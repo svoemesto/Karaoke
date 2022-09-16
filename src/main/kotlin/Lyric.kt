@@ -4,6 +4,7 @@ import java.lang.Long.min
 
 class Lyric {
     var items: List<LyricLine> = emptyList()
+    var fontSize: Long = KLT_ITEM_CONTENT_FONT_PIXEL_SIZE
     companion object {
         fun getLiric(subtitles: Subtitles): Lyric {
 
@@ -128,6 +129,8 @@ class Lyric {
 
             File(fileName).writeText(text)
             File(fileNameKdeTitile).writeText(template)
+
+            resultLyric.fontSize = maxFontSize
 
             return resultLyric
         }

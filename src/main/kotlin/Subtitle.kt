@@ -63,31 +63,11 @@ class Subtitles() {
             val result = Subtitles()
             result.items = subtitles
             result.end = subtitles.last().end
-            if (subtitles.last().text == "[END]") {
-                subtitles.removeLast()
-            }
             result.items.forEach {
                 println(it)
             }
 
             return result
-        }
-
-        fun createTextFromSubtitles() {
-
-            val fileName = "src/main/resources/lyrics.txt"
-
-            val subtitles = getSubtitles()
-            var text = ""
-            subtitles.items.forEach { subtitle ->
-                text += subtitle.text
-                if (subtitle.isLineEnd == true) text += "\n"
-            }
-
-            println(text)
-
-            File(fileName).writeText(text)
-
         }
 
     }

@@ -1,6 +1,7 @@
 import java.io.File
 import java.lang.Long.max
 import java.lang.Long.min
+import kotlin.math.roundToLong
 
 class Lyric {
     var items: List<LyricLine> = emptyList()
@@ -14,6 +15,7 @@ class Lyric {
             val fileName = "src/main/resources/lyrics.txt"
             val fileNameKdeTitile = "src/main/resources/lyrics.kdenlivetitle"
             val fileNameKdeHorizont = "src/main/resources/horyzont.kdenlivetitle"
+            val fileNameKdeTransformPropertyTitle = "src/main/resources/transform_property_title.txt"
             var startLine: String? = null
             var endLine: String? = null
 
@@ -37,11 +39,14 @@ class Lyric {
                     endLine = subtitle.end
                     val s = Subtitles()
                     s.items = subs
+
                     val liric = LyricLine(
                         text = line,
                         start = startLine,
                         end = endLine,
-                        subtitles = s
+                        subtitles = s,
+                        startTp = null,
+                        endTp = null
                     )
                     val lineDuration = getDurationInMilliseconds(startLine!!, endLine!!)
                     maxLineDuration = max(maxLineDuration, lineDuration)
@@ -96,11 +101,13 @@ class Lyric {
             val maxTextLength = resultLyric.items.maxBy { it.text!!.length }.text!!.length
             val maxSymbolWidth = maxTextWidth / maxTextLength
             val maxFontSize = min((maxSymbolWidth * KLT_ITEM_CONTENT_FONT_PIXEL_SIZE) / KLT_ITEM_CONTENT_FONT_SYMBOL_WIDTH, KLT_ITEM_CONTENT_FONT_PIXEL_SIZE)
-            val currentFontSymbolHeight = maxFontSize * KLT_ITEM_CONTENT_FONT_SYMBOL_HEIGHT / KLT_ITEM_CONTENT_FONT_PIXEL_SIZE
-            val currentFontSymbolWidth = maxFontSize * KLT_ITEM_CONTENT_FONT_SYMBOL_WIDTH / KLT_ITEM_CONTENT_FONT_PIXEL_SIZE
+            val currentFontSymbolHeightDouble = (maxFontSize.toDouble() * KLT_ITEM_CONTENT_FONT_SYMBOL_HEIGHT / KLT_ITEM_CONTENT_FONT_PIXEL_SIZE)
+            val currentFontSymbolWidthDouble = (maxFontSize.toDouble() * KLT_ITEM_CONTENT_FONT_SYMBOL_WIDTH / KLT_ITEM_CONTENT_FONT_PIXEL_SIZE)
+            val currentFontSymbolHeight: Long = Math.round(currentFontSymbolHeightDouble)
+            val currentFontSymbolWidth: Long = Math.round(currentFontSymbolWidthDouble)
 
-            val boxHeight = resultLyric.items.size * currentFontSymbolHeight
-            val boxWidth = maxTextLength * currentFontSymbolWidth
+            val boxHeight: Long = ((resultLyric.items.size-1) * currentFontSymbolHeight)
+            val boxWidth: Long = (maxTextLength * currentFontSymbolWidth)
 
             val templateTitle = """
 <kdenlivetitle duration="0" LC_NUMERIC="C" width="$FRAME_WIDTH" height="$boxHeight" out="0">
@@ -130,7 +137,7 @@ class Lyric {
  <background color="0,0,0,0"/>
 </kdenlivetitle>"""
 
-            val horizontPosition = FRAME_HEIGHT / 2 + currentFontSymbolHeight / 2
+            val horizontPosition = (FRAME_HEIGHT / 2 + currentFontSymbolHeight / 2) + 7
 
 
             val templateHorizont = """
@@ -147,23 +154,66 @@ class Lyric {
 </kdenlivetitle>"""
 
 
+
+
+            resultLyric.items.forEachIndexed { index, liricLine ->
+                val startTp = TransformProperty(
+                    time = liricLine.start,
+                    x = 0,
+                    y = horizontPosition - ((index + 1)*(currentFontSymbolHeightDouble-1.1)).toLong(),
+                    w = FRAME_WIDTH,
+                    h = boxHeight,
+                    opacity = 1.0
+                )
+
+                val endTp = TransformProperty(
+                    time = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(liricLine.end!!)-(1000/FRAME_FPS+1)),
+                    x = 0,
+                    y = horizontPosition - ((index + 1)*(currentFontSymbolHeightDouble-1.1)).toLong(),
+                    w = FRAME_WIDTH,
+                    h = boxHeight,
+                    opacity = 1.0
+                )
+                liricLine.startTp = startTp
+                liricLine.endTp = endTp
+            }
+            val propRectValue = resultLyric.items.map { "${it.startTp?.time}=${it.startTp?.x} ${it.startTp?.y} ${it.startTp?.w} ${it.startTp?.h} ${it.startTp?.opacity};${it.endTp?.time}=${it.startTp?.x} ${it.startTp?.y} ${it.startTp?.w} ${it.startTp?.h} ${it.startTp?.opacity}" }.joinToString(";")
+            val propText = """<property name="rect">$propRectValue</property>""".replace(",",".")
+
             File(fileName).writeText(text)
             File(fileNameKdeTitile).writeText(templateTitle)
             File(fileNameKdeHorizont).writeText(templateHorizont)
+            File(fileNameKdeTransformPropertyTitle).writeText(propText)
 
             resultLyric.fontSize = maxFontSize
             resultLyric.horizontPosition = horizontPosition
             resultLyric.symbolHeight = currentFontSymbolHeight
             resultLyric.symbolWidth = currentFontSymbolWidth
 
+            println(resultLyric.fontSize)
+            println(resultLyric.horizontPosition)
+            println(resultLyric.symbolWidth)
+            println(resultLyric.symbolHeight)
+
             return resultLyric
         }
     }
 }
 
+data class TransformProperty(
+    val time: String? = null,
+    val x: Long? = null,
+    val y: Long? = null,
+    val w: Long? = null,
+    val h: Long? = null,
+    val opacity: Double? = null
+)
+
 data class LyricLine(
     val text: String? = null,
     val start: String? = null,
     val end: String? = null,
-    val subtitles: Subtitles? = null
+    val subtitles: Subtitles? = null,
+    var startTp: TransformProperty? = null,
+    var endTp: TransformProperty? = null
 )

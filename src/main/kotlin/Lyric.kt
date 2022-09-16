@@ -1,17 +1,17 @@
 import java.io.File
 import java.lang.Long.max
 
-class Liric {
+class Lyric {
     var items: List<LyricLine> = emptyList()
     companion object {
-        fun createLiric(subtitles: Subtitles) {
+        fun getLiric(subtitles: Subtitles): Lyric {
 
             val fileName = "src/main/resources/lyrics.txt"
             var startLine: String? = null
             var endLine: String? = null
 
             var subs: MutableList<Subtitle> = emptyList<Subtitle>().toMutableList()
-            val lirics: MutableList<LyricLine> = emptyList<LyricLine>().toMutableList()
+            val lyrics: MutableList<LyricLine> = emptyList<LyricLine>().toMutableList()
             val result: MutableList<LyricLine> = emptyList<LyricLine>().toMutableList()
 
             var text = ""
@@ -38,14 +38,14 @@ class Liric {
                     )
                     val lineDuration = getDurationInMilliseconds(startLine!!, endLine!!)
                     maxLineDuration = max(maxLineDuration, lineDuration)
-                    lirics.add(liric)
+                    lyrics.add(liric)
 //                    text += "[$startLine --> $endLine]: $line\n"
                 }
             }
 
             var currentPositionStart = 0L
             var currentPositionEnd = 0L
-            lirics.forEach { liric ->
+            lyrics.forEach { liric ->
                 val silentDuration = convertTimecodeToMilliseconds(liric.start!!) - currentPositionEnd
                 val linesToInsert: Long = silentDuration / maxLineDuration
                 if (linesToInsert > 0) {
@@ -82,6 +82,10 @@ class Liric {
 
             File(fileName).writeText(text)
 
+            var resultLyric = Lyric()
+            resultLyric.items = result
+
+            return resultLyric
         }
     }
 }

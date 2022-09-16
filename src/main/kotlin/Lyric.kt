@@ -5,11 +5,15 @@ import java.lang.Long.min
 class Lyric {
     var items: List<LyricLine> = emptyList()
     var fontSize: Long = KLT_ITEM_CONTENT_FONT_PIXEL_SIZE
+    var horizontPosition: Long = KLT_ITEM_CONTENT_FONT_PIXEL_SIZE / 2
+    var symbolWidth: Long = KLT_ITEM_CONTENT_FONT_SYMBOL_WIDTH
+    var symbolHeight: Long = KLT_ITEM_CONTENT_FONT_SYMBOL_HEIGHT
     companion object {
         fun getLiric(subtitles: Subtitles): Lyric {
 
             val fileName = "src/main/resources/lyrics.txt"
             val fileNameKdeTitile = "src/main/resources/lyrics.kdenlivetitle"
+            val fileNameKdeHorizont = "src/main/resources/horyzont.kdenlivetitle"
             var startLine: String? = null
             var endLine: String? = null
 
@@ -98,7 +102,7 @@ class Lyric {
             val boxHeight = resultLyric.items.size * currentFontSymbolHeight
             val boxWidth = maxTextLength * currentFontSymbolWidth
 
-            val template = """
+            val templateTitle = """
 <kdenlivetitle duration="0" LC_NUMERIC="C" width="$FRAME_WIDTH" height="$boxHeight" out="0">
  <item type="QGraphicsTextItem" z-index="0">
   <position x="$KLT_ITEM_CONTENT_TITLE_POSITION_START_X" y="$KLT_ITEM_CONTENT_TITLE_POSITION_START_Y">
@@ -126,11 +130,31 @@ class Lyric {
  <background color="0,0,0,0"/>
 </kdenlivetitle>"""
 
+            val horizontPosition = FRAME_HEIGHT / 2 + currentFontSymbolHeight / 2
+
+
+            val templateHorizont = """
+<kdenlivetitle duration="0" LC_NUMERIC="C" width="$FRAME_WIDTH" height="$FRAME_HEIGHT" out="0">
+ <item type="QGraphicsRectItem" z-index="0">
+  <position x="0" y="$horizontPosition">
+   <transform zoom="100">1,0,0,0,1,0,0,0,1</transform>
+  </position>
+  <content brushcolor="255,0,0,255" pencolor="0,0,0,255" penwidth="0" rect="0,0,1920,3"/>
+ </item>
+ <startviewport rect="0,0,$FRAME_WIDTH,$FRAME_HEIGHT"/>
+ <endviewport rect="0,0,$FRAME_WIDTH,$FRAME_HEIGHT"/>
+ <background color="0,0,0,0"/>
+</kdenlivetitle>"""
+
 
             File(fileName).writeText(text)
-            File(fileNameKdeTitile).writeText(template)
+            File(fileNameKdeTitile).writeText(templateTitle)
+            File(fileNameKdeHorizont).writeText(templateHorizont)
 
             resultLyric.fontSize = maxFontSize
+            resultLyric.horizontPosition = horizontPosition
+            resultLyric.symbolHeight = currentFontSymbolHeight
+            resultLyric.symbolWidth = currentFontSymbolWidth
 
             return resultLyric
         }

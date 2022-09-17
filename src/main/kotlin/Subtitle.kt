@@ -1,5 +1,3 @@
-import java.io.File
-
 class Subtitles() {
     var items: List<Subtitle> = emptyList()
     var end: String? = null
@@ -9,7 +7,7 @@ class Subtitles() {
             val fileName = "subtitles.srt"
             // Считываем содержимое файла субтитров
             val body = Subtitles::class.java.getResource(fileName)?.readText()
-            // Разбиваем содерфимое файла на массив строк
+            // Разбиваем содержимое файла на массив строк
             val subs = body?.split("\n")
 
             var id: Long? = null
@@ -39,8 +37,8 @@ class Subtitles() {
                             // Разделяем startEnd на start и end в список, вынимаем из списка соответствующие значения
                             // прибавляя к значению времени оффсет, указанный в TIME_OFFSET
                             val se = startEnd!!.split(" --> ")
-                            start = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(se[0])+TIME_OFFSET)
-                            end = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(se[1])+TIME_OFFSET)
+                            start = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(se[0])+TIME_OFFSET_MS)
+                            end = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(se[1])+TIME_OFFSET_MS)
                             val isLineStart = text!!.startsWith("//")   // Вычисляем признак начала строки
                             val isLineEnd = text!!.endsWith("\\\\")     // Вычисляем признак конца строки
                             // Удаляем служебные символы из строки и заменяем подчёркивание пробелом

@@ -20,3 +20,11 @@ fun convertMillisecondsToTimecode(milliseconds: Long): String {
 fun getDurationInMilliseconds(start: String, end: String): Long {
     return convertTimecodeToMilliseconds(end) - convertTimecodeToMilliseconds(start)
 }
+
+fun getPixels(pt: Double): Double {
+    return pt * 96 / 72
+}
+
+fun getPoints(pixel: Double): Double {
+    return pixel * 72 / 96
+}

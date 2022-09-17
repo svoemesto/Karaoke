@@ -172,71 +172,94 @@ class Lyric {
                     text += "\n"
                 }
             }
-
-            // Теперь в списке result у нас нужное количество строк - как полных, так и пустых. И в начале, и в середине, и в конце
-
             println(text)
 
+            // Теперь в списке result у нас нужное количество строк - как полных, так и пустых. И в начале, и в середине, и в конце
+            // Создаём объект Lyric и в его items помещаем этот список
             var resultLyric = Lyric()
             resultLyric.items = result
 
+            // maxTextWidth - максимальная ширина текста = ширина экрана минус 2 отступа
             val maxTextWidth = FRAME_WIDTH - KLT_ITEM_CONTENT_TITLE_POSITION_START_X * 2
+
+            // maxTextLength - максимальная длина текста (в символах) = длине символов самой длинной строки
             val maxTextLength = resultLyric.items.maxBy { it.text!!.length }.text!!.length
+
+            // maxSymbolWidth - максимальная ширина символа = максимальная ширина текста делённая на максимальную длину
             val maxSymbolWidth = maxTextWidth / maxTextLength
-            val maxFontSize = min((maxSymbolWidth * KLT_ITEM_CONTENT_FONT_PIXEL_SIZE) / KLT_ITEM_CONTENT_FONT_SYMBOL_WIDTH, KLT_ITEM_CONTENT_FONT_PIXEL_SIZE)
+
+            // maxFontSize - максимальный размер шрифта = максимальная ширина символа * KLT_ITEM_CONTENT_FONT_PIXEL_SIZE / KLT_ITEM_CONTENT_FONT_SYMBOL_WIDTH
+            // но не больше KLT_ITEM_CONTENT_FONT_PIXEL_SIZE
+            val maxFontSize = min(
+                (maxSymbolWidth * KLT_ITEM_CONTENT_FONT_PIXEL_SIZE) / KLT_ITEM_CONTENT_FONT_SYMBOL_WIDTH,
+                KLT_ITEM_CONTENT_FONT_PIXEL_SIZE
+            )
+
+            // currentFontSymbolHeightDouble - текущая высота символа (дробное)
             val currentFontSymbolHeightDouble = (maxFontSize.toDouble() * KLT_ITEM_CONTENT_FONT_SYMBOL_HEIGHT / KLT_ITEM_CONTENT_FONT_PIXEL_SIZE)
+
+            // currentFontSymbolHeightDouble - текущая ширина символа (дробное)
             val currentFontSymbolWidthDouble = (maxFontSize.toDouble() * KLT_ITEM_CONTENT_FONT_SYMBOL_WIDTH / KLT_ITEM_CONTENT_FONT_PIXEL_SIZE)
+
+            // currentFontSymbolHeightDouble - текущая высота символа (целое)
             val currentFontSymbolHeight: Long = Math.round(currentFontSymbolHeightDouble)
+
+            // currentFontSymbolHeightDouble - текущая ширина символа (целое)
             val currentFontSymbolWidth: Long = Math.round(currentFontSymbolWidthDouble)
 
-            val boxHeight: Long = ((resultLyric.items.size-1) * currentFontSymbolHeight)
+            // boxHeight - высота "бокса" текста = количество строк текста * высоту символа
+            val boxHeight: Long = ((resultLyric.items.size) * currentFontSymbolHeight)
+
+            // boxHeight - ширина "бокса" текста = ширина текста * ширину символа
             val boxWidth: Long = (maxTextLength * currentFontSymbolWidth)
 
+            // Шаблон для файла субтитра текста
             val templateTitle = """
-<kdenlivetitle duration="0" LC_NUMERIC="C" width="$FRAME_WIDTH" height="$boxHeight" out="0">
- <item type="QGraphicsTextItem" z-index="0">
-  <position x="$KLT_ITEM_CONTENT_TITLE_POSITION_START_X" y="$KLT_ITEM_CONTENT_TITLE_POSITION_START_Y">
-   <transform>1,0,0,0,1,0,0,0,1</transform>
-  </position>
-  <content 
-        line-spacing="$KLT_ITEM_CONTENT_LINE_SPACING" 
-        shadow="$KLT_ITEM_CONTENT_SHADOW" 
-        font-underline="$KLT_ITEM_CONTENT_FONT_UNDERLINE" 
-        box-height="$boxHeight" 
-        font="$KLT_ITEM_CONTENT_FONT_NAME" 
-        letter-spacing="0" 
-        font-pixel-size="$maxFontSize" 
-        font-italic="$KLT_ITEM_CONTENT_FONT_ITALIC" 
-        typewriter="$KLT_ITEM_CONTENT_TYPEWRITER" 
-        alignment="$KLT_ITEM_CONTENT_ALIGNMENT" 
-        font-weight="$KLT_ITEM_CONTENT_FONT_WEIGHT" 
-        box-width="$boxWidth" 
-        font-color="$KLT_ITEM_CONTENT_FONT_COLOR"
-        >$text<
-        /content>
- </item>
- <startviewport rect="0,0,$FRAME_WIDTH,$boxHeight"/>
- <endviewport rect="0,0,$FRAME_WIDTH,$boxHeight"/>
- <background color="0,0,0,0"/>
-</kdenlivetitle>"""
+                <kdenlivetitle duration="0" LC_NUMERIC="C" width="$FRAME_WIDTH" height="$boxHeight" out="0">
+                 <item type="QGraphicsTextItem" z-index="0">
+                  <position x="$KLT_ITEM_CONTENT_TITLE_POSITION_START_X" y="$KLT_ITEM_CONTENT_TITLE_POSITION_START_Y">
+                   <transform>1,0,0,0,1,0,0,0,1</transform>
+                  </position>
+                  <content 
+                        line-spacing="$KLT_ITEM_CONTENT_LINE_SPACING" 
+                        shadow="$KLT_ITEM_CONTENT_SHADOW" 
+                        font-underline="$KLT_ITEM_CONTENT_FONT_UNDERLINE" 
+                        box-height="$boxHeight" 
+                        font="$KLT_ITEM_CONTENT_FONT_NAME" 
+                        letter-spacing="0" 
+                        font-pixel-size="$maxFontSize" 
+                        font-italic="$KLT_ITEM_CONTENT_FONT_ITALIC" 
+                        typewriter="$KLT_ITEM_CONTENT_TYPEWRITER" 
+                        alignment="$KLT_ITEM_CONTENT_ALIGNMENT" 
+                        font-weight="$KLT_ITEM_CONTENT_FONT_WEIGHT" 
+                        box-width="$boxWidth" 
+                        font-color="$KLT_ITEM_CONTENT_FONT_COLOR"
+                        >$text<
+                        /content>
+                 </item>
+                 <startviewport rect="0,0,$FRAME_WIDTH,$boxHeight"/>
+                 <endviewport rect="0,0,$FRAME_WIDTH,$boxHeight"/>
+                 <background color="0,0,0,0"/>
+                </kdenlivetitle>"""
 
+            // horizontPosition - позиция горизонта = половина экрана + половина высоты символа - оффсет
             val horizontPosition = (FRAME_HEIGHT / 2 + currentFontSymbolHeight / 2) - HORIZONT_OFFSET
 
-
+            // Шаблон для файла субтитра "горизонта"
             val templateHorizont = """
-<kdenlivetitle duration="0" LC_NUMERIC="C" width="$FRAME_WIDTH" height="$FRAME_HEIGHT" out="0">
- <item type="QGraphicsRectItem" z-index="0">
-  <position x="0" y="$horizontPosition">
-   <transform zoom="100">1,0,0,0,1,0,0,0,1</transform>
-  </position>
-  <content brushcolor="255,0,0,255" pencolor="0,0,0,255" penwidth="0" rect="0,0,1920,3"/>
- </item>
- <startviewport rect="0,0,$FRAME_WIDTH,$FRAME_HEIGHT"/>
- <endviewport rect="0,0,$FRAME_WIDTH,$FRAME_HEIGHT"/>
- <background color="0,0,0,0"/>
-</kdenlivetitle>"""
+                <kdenlivetitle duration="0" LC_NUMERIC="C" width="$FRAME_WIDTH" height="$FRAME_HEIGHT" out="0">
+                 <item type="QGraphicsRectItem" z-index="0">
+                  <position x="0" y="$horizontPosition">
+                   <transform zoom="100">1,0,0,0,1,0,0,0,1</transform>
+                  </position>
+                  <content brushcolor="255,0,0,255" pencolor="0,0,0,255" penwidth="0" rect="0,0,1920,3"/>
+                 </item>
+                 <startviewport rect="0,0,$FRAME_WIDTH,$FRAME_HEIGHT"/>
+                 <endviewport rect="0,0,$FRAME_WIDTH,$FRAME_HEIGHT"/>
+                 <background color="0,0,0,0"/>
+                </kdenlivetitle>"""
 
-
+            // Настало время прописать TransformProperty для строк
 
 
             resultLyric.items.forEachIndexed { index, lyricLine ->

@@ -28,70 +28,152 @@ class Lyric {
             var line = ""
             var maxLineDuration = 0L
 
+            // Проходимся по всем сабам
             subtitles.items.forEach { subtitle ->
+                // Если саб - начало строки - начинаем новую строку (пока она пустая) и инициализируем пустой список subs
                 if (subtitle.isLineStart == true) {
                     startLine = subtitle.start
                     line = ""
                     subs = emptyList<Subtitle>().toMutableList()
                 }
+                // Дописываем в текст текущей строки текст из саба
                 line += subtitle.text
+
+                // Добавляем текущий саб к списку subs
                 subs.add(subtitle)
+
+                // Если саб - конец строки
                 if (subtitle.isLineEnd == true) {
+
+                    // Устанавливаем конец строки позицией конца из саба
                     endLine = subtitle.end
+
+                    // Создаем объект Subtitles
                     val s = Subtitles()
+                    // В его items прописываем список subs - это все сабы текущей строки
                     s.items = subs
 
-                    val liric = LyricLine(
-                        text = line,
-                        start = startLine,
-                        end = endLine,
-                        subtitles = s,
-                        startTp = null,
-                        endTp = null
-                    )
+                    // Создаем объект LyricLine и инициализируем его переменными
+                    // на данный момент нам пока неизвестны поля startTp и endTp - оставляем их пустыми
+                    val liric = LyricLine(text = line, start = startLine, end = endLine, subtitles = s, startTp = null, endTp = null)
+
+                    // Находим время "звучания" строки в миллисекундах
                     val lineDuration = getDurationInMilliseconds(startLine!!, endLine!!)
+
+                    // Находим максимальное время "звучания" среди всех строк
                     maxLineDuration = max(maxLineDuration, lineDuration)
+
+                    // Добавляем строку liric в список строк lyrics
                     lyrics.add(liric)
-//                    text += "[$startLine --> $endLine]: $line\n"
+
                 }
             }
 
-            var currentPositionStart = 0L
+            // Устанавливаем текущую позицию конца в ноль
             var currentPositionEnd = 0L
-            lyrics.forEach { liric ->
-                val silentDuration = convertTimecodeToMilliseconds(liric.start!!) - currentPositionEnd
+
+            // Походимся по массиву строк
+            lyrics.forEach { lyric ->
+
+                // Вычисляем время "тишины" - от конца текущей позиции до начала текущей строки
+                val silentDuration = convertTimecodeToMilliseconds(lyric.start!!) - currentPositionEnd
+
+                // Вычисляем кол-во "пустых" строк, которые надо вставить перед текущей строкой
+                // Оно равно времени "тишины" деленному на время "звучания" самой длинной строки, которое мы нашли ранее
                 val linesToInsert: Long = silentDuration / maxLineDuration
+
+                // Если количество вставляемых пустых строк больше нуля - начинаем их вставлять
                 if (linesToInsert > 0) {
+
+                    // Вычисляем "длительность" вставляемой пустой строки
+                    // Она равна времени тишины деленное на количество вставляемых строк
                     val silentLineDuration: Long =  silentDuration / linesToInsert
+
+                    // Цикл от 1 до количества вставляемых строк включительно
                     for (i in 1..linesToInsert) {
+
+                        // Время начала строки = текущая позиция конца + 1/10 от длины строки
                         val startDuration = convertMillisecondsToTimecode(currentPositionEnd + silentLineDuration/10)
+
+                        // Время конца строки = текущая позиция конца + длина строки
                         val endDuration = convertMillisecondsToTimecode(currentPositionEnd + silentLineDuration)
-                        val subtitleEmpty = Subtitle(
-                            text = "",
-                            start = startDuration,
-                            end = endDuration,
-                            isLineStart = true,
-                            isLineEnd = true
-                        )
+
+                        // Создаем объект Subtitle с пустым текстом, с вычисленными выше началом и концом
+                        // И помечаем его и как начало и как конец строки
+                        val subtitleEmpty = Subtitle(text = "", start = startDuration, end = endDuration, isLineStart = true, isLineEnd = true)
+
+                        // Создаем объект Subtitles, в его items помещаем единственный "пустой" Subtitle, созданный шагом раньше
+                        // на данный момент нам пока неизвестны поля startTp и endTp - оставляем их пустыми
                         val s = Subtitles()
                         s.items = listOf(subtitleEmpty)
-                        val liricEmpty = LyricLine(
-                            text = "",
-                            start = startDuration,
-                            end = endDuration,
-                            subtitles = s
-                        )
+                        val lyricEmpty = LyricLine(text = "", start = startDuration, end = endDuration, subtitles = s, startTp = null, endTp = null)
+
+                        // Устанавливаем текущую позицию конца равной позиции конца созданной пустой строки
                         currentPositionEnd += silentLineDuration
-                        result.add(liricEmpty)
-//                        text += "[$startDuration --> $endDuration]: \n"
+
+                        // Добавляем пустую строку lyricEmpty в список строк result
+                        result.add(lyricEmpty)
+
                         text += "\n"
                     }
                 }
-                result.add(liric)
-                currentPositionEnd = convertTimecodeToMilliseconds(liric.end!!)
-//                text += "[${liric.start} --> ${liric.end}]: ${liric.text}\n"
-                text += "${liric.text}\n"
+
+                // Добавляем строку lyric в список строк result
+                // К этому моменту в список уже добавлено нужное количество пустых строк перед текущей
+                result.add(lyric)
+
+                // Устанавливаем текущую позицию конца равной позиции конца текущей строки
+                currentPositionEnd = convertTimecodeToMilliseconds(lyric.end!!)
+
+                text += "${lyric.text}\n"
             }
+
+            // Мы добавили в result все строки, но у нас еще остался "хвост тишины", для которого тоже надо добавить пустые строки
+
+            // Вычисляем время "тишины" - от конца текущей позиции до конца титров
+            val silentDuration = convertTimecodeToMilliseconds(subtitles.end!!) - currentPositionEnd
+
+            // Вычисляем кол-во "пустых" строк, которые надо вставить после последней строки
+            // Оно равно времени "тишины" деленному на время "звучания" самой длинной строки, которое мы нашли ранее
+            val linesToInsert: Long = silentDuration / maxLineDuration
+
+            // Если количество вставляемых пустых строк больше нуля - начинаем их вставлять
+            if (linesToInsert > 0) {
+
+                // Вычисляем "длительность" вставляемой пустой строки
+                // Она равна времени тишины деленное на количество вставляемых строк
+                val silentLineDuration: Long =  silentDuration / linesToInsert
+
+                // Цикл от 1 до количества вставляемых строк включительно
+                for (i in 1..linesToInsert) {
+
+                    // Время начала строки = текущая позиция конца + 1/10 от длины строки
+                    val startDuration = convertMillisecondsToTimecode(currentPositionEnd + silentLineDuration/10)
+
+                    // Время конца строки = текущая позиция конца + длина строки
+                    val endDuration = convertMillisecondsToTimecode(currentPositionEnd + silentLineDuration)
+
+                    // Создаем объект Subtitle с пустым текстом, с вычисленными выше началом и концом
+                    // И помечаем его и как начало и как конец строки
+                    val subtitleEmpty = Subtitle(text = "", start = startDuration, end = endDuration, isLineStart = true, isLineEnd = true)
+
+                    // Создаем объект Subtitles, в его items помещаем единственный "пустой" Subtitle, созданный шагом раньше
+                    // на данный момент нам пока неизвестны поля startTp и endTp - оставляем их пустыми
+                    val s = Subtitles()
+                    s.items = listOf(subtitleEmpty)
+                    val lyricEmpty = LyricLine(text = "", start = startDuration, end = endDuration, subtitles = s, startTp = null, endTp = null)
+
+                    // Устанавливаем текущую позицию конца равной позиции конца созданной пустой строки
+                    currentPositionEnd += silentLineDuration
+
+                    // Добавляем пустую строку lyricEmpty в список строк result
+                    result.add(lyricEmpty)
+
+                    text += "\n"
+                }
+            }
+
+            // Теперь в списке result у нас нужное количество строк - как полных, так и пустых. И в начале, и в середине, и в конце
 
             println(text)
 

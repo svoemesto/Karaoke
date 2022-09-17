@@ -65,10 +65,12 @@ class Subtitles() {
 
             // Создаем объект Subtitles
             val result = Subtitles()
-            // В его items кладём список объектов Subtitle
-            result.items = subtitles
             // Устанавливаем end равный end последнего объекта из списка
             result.end = subtitles.last().end
+            // Удаляем последний объект из списка - он у нас "служебный" и был нужен только для обозначения финальной позиции
+            subtitles.removeLast()
+            // В его объект Subtitles кладём список объектов Subtitle
+            result.items = subtitles
             // Выводим на экран список объектов Subtitle
             result.items.forEach {
                 println(it)

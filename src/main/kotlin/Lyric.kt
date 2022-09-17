@@ -1,7 +1,6 @@
 import java.io.File
 import java.lang.Long.max
 import java.lang.Long.min
-import kotlin.math.roundToLong
 
 class Lyric {
     var items: List<LyricLine> = emptyList()
@@ -16,6 +15,8 @@ class Lyric {
             val fileNameKdeTitile = "src/main/resources/lyrics.kdenlivetitle"
             val fileNameKdeHorizont = "src/main/resources/horyzont.kdenlivetitle"
             val fileNameKdeTransformPropertyTitle = "src/main/resources/transform_property_title.txt"
+            val fileNameKdeTransformPropertyFillOdd = "src/main/resources/transform_property_fill_odd.txt"
+            val fileNameKdeTransformPropertyFillEven = "src/main/resources/transform_property_fill_even.txt"
             var startLine: String? = null
             var endLine: String? = null
 
@@ -63,7 +64,7 @@ class Lyric {
                 if (linesToInsert > 0) {
                     val silentLineDuration: Long =  silentDuration / linesToInsert
                     for (i in 1..linesToInsert) {
-                        val startDuration = convertMillisecondsToTimecode(currentPositionEnd)
+                        val startDuration = convertMillisecondsToTimecode(currentPositionEnd + silentLineDuration/10)
                         val endDuration = convertMillisecondsToTimecode(currentPositionEnd + silentLineDuration)
                         val subtitleEmpty = Subtitle(
                             text = "",
@@ -137,7 +138,7 @@ class Lyric {
  <background color="0,0,0,0"/>
 </kdenlivetitle>"""
 
-            val horizontPosition = (FRAME_HEIGHT / 2 + currentFontSymbolHeight / 2) + 7
+            val horizontPosition = (FRAME_HEIGHT / 2 + currentFontSymbolHeight / 2) - HORIZONT_OFFSET
 
 
             val templateHorizont = """
@@ -156,34 +157,156 @@ class Lyric {
 
 
 
-            resultLyric.items.forEachIndexed { index, liricLine ->
+            resultLyric.items.forEachIndexed { index, lyricLine ->
                 val startTp = TransformProperty(
-                    time = liricLine.start,
+                    time = lyricLine.start,
                     x = 0,
-                    y = horizontPosition - ((index + 1)*(currentFontSymbolHeightDouble-1.1)).toLong(),
+                    y = horizontPosition - ((index + 1)*(currentFontSymbolHeightDouble+HEIGHT_CORRECTION)).toLong(),
                     w = FRAME_WIDTH,
                     h = boxHeight,
                     opacity = 1.0
                 )
 
                 val endTp = TransformProperty(
-                    time = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(liricLine.end!!)-(1000/FRAME_FPS+1)),
+                    time = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(lyricLine.end!!)-(1000/FRAME_FPS+1)),
                     x = 0,
-                    y = horizontPosition - ((index + 1)*(currentFontSymbolHeightDouble-1.1)).toLong(),
+                    y = horizontPosition - ((index + 1)*(currentFontSymbolHeightDouble+HEIGHT_CORRECTION)).toLong(),
                     w = FRAME_WIDTH,
                     h = boxHeight,
                     opacity = 1.0
                 )
-                liricLine.startTp = startTp
-                liricLine.endTp = endTp
+                lyricLine.startTp = startTp
+                lyricLine.endTp = endTp
             }
-            val propRectValue = resultLyric.items.map { "${it.startTp?.time}=${it.startTp?.x} ${it.startTp?.y} ${it.startTp?.w} ${it.startTp?.h} ${it.startTp?.opacity};${it.endTp?.time}=${it.startTp?.x} ${it.startTp?.y} ${it.startTp?.w} ${it.startTp?.h} ${it.startTp?.opacity}" }.joinToString(";")
+
+            var propRectLineValue = emptyList<String>().toMutableList()
+            var propRectTitleValueLineOdd = emptyList<String>().toMutableList()
+            var propRectTitleValueLineEven = emptyList<String>().toMutableList()
+            for (i in 0..resultLyric.items.size-2) {
+                val currentLyricLine = resultLyric.items[i]
+                val nextLyricLine = resultLyric.items[i+1]
+                val diffInMills = convertTimecodeToMilliseconds(nextLyricLine.start!!) - convertTimecodeToMilliseconds(currentLyricLine.end!!)
+                if (diffInMills < 200) {
+                    currentLyricLine.end = nextLyricLine.start
+                    currentLyricLine.subtitles?.items?.last()?.end = currentLyricLine.end
+                }
+
+                propRectLineValue.add("${currentLyricLine.startTp?.time}=${currentLyricLine.startTp?.x} ${currentLyricLine.startTp?.y} ${currentLyricLine.startTp?.w} ${currentLyricLine.startTp?.h} ${currentLyricLine.startTp?.opacity}")
+                if (currentLyricLine.text != "") {
+
+                    var ww = 1L
+
+                    val currentSubtitle = currentLyricLine.subtitles!!.items[0]
+                    val startTime = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(currentSubtitle.start!!)-(1000/FRAME_FPS+1))
+                    val y = horizontPosition - currentFontSymbolHeight + HORIZONT_OFFSET
+                    var propRectTitleValueFade = "${startTime}=${KLT_ITEM_CONTENT_TITLE_POSITION_START_X+KLT_ITEM_CONTENT_TITLE_OFFSET_START_X} ${y} ${ww} ${currentFontSymbolHeight} 0.0"
+                    if (i%2 == 0) {
+                        propRectTitleValueLineOdd.add(propRectTitleValueFade)
+                    } else {
+                        propRectTitleValueLineEven.add(propRectTitleValueFade)
+                    }
+                    ww = -KLT_ITEM_CONTENT_TITLE_OFFSET_START_X
+                    for (j in 0..(currentLyricLine.subtitles!!.items.size) - 2) {
+                        val currentSubtitle = currentLyricLine.subtitles.items[j]
+                        val nextSubtitle = currentLyricLine.subtitles.items[j+1]
+                        val y = horizontPosition - currentFontSymbolHeight + HORIZONT_OFFSET
+                        val w = currentSubtitle.text!!.length * currentFontSymbolWidth
+                        var propRectTitleValueStart = "${currentSubtitle.start}=${KLT_ITEM_CONTENT_TITLE_POSITION_START_X+KLT_ITEM_CONTENT_TITLE_OFFSET_START_X} ${y} ${ww} ${currentFontSymbolHeight} 0.6"
+                        ww += w
+                        var propRectTitleValueEnd = "${currentSubtitle.end}=${KLT_ITEM_CONTENT_TITLE_POSITION_START_X+KLT_ITEM_CONTENT_TITLE_OFFSET_START_X} ${y} ${ww} ${currentFontSymbolHeight} 0.6"
+                        if (i%2 == 0) {
+                            if (propRectTitleValueLineOdd.last() != propRectTitleValueStart) propRectTitleValueLineOdd.add(propRectTitleValueStart)
+                            if (propRectTitleValueLineOdd.last() != propRectTitleValueEnd) propRectTitleValueLineOdd.add(propRectTitleValueEnd)
+                        } else {
+                            if (propRectTitleValueLineEven.last() != propRectTitleValueStart) propRectTitleValueLineEven.add(propRectTitleValueStart)
+                            if (propRectTitleValueLineEven.last() != propRectTitleValueEnd) propRectTitleValueLineEven.add(propRectTitleValueEnd)
+                        }
+                    }
+
+                    if (diffInMills < 200) {
+
+                        propRectLineValue.add("${currentLyricLine.subtitles?.items?.last()?.start}=${currentLyricLine.startTp?.x} ${currentLyricLine.startTp?.y} ${currentLyricLine.startTp?.w} ${currentLyricLine.startTp?.h} ${currentLyricLine.startTp?.opacity}")
+
+                        val currentSubtitle = currentLyricLine.subtitles.items[(currentLyricLine.subtitles!!.items.size)-1]
+                        var nextSubtitle = nextLyricLine.subtitles!!.items[0]
+
+                        var y = horizontPosition - currentFontSymbolHeight + HORIZONT_OFFSET
+
+                        val w = currentSubtitle.text!!.length * currentFontSymbolWidth
+                        var propRectTitleValueStart = "${currentSubtitle.start}=${KLT_ITEM_CONTENT_TITLE_POSITION_START_X+KLT_ITEM_CONTENT_TITLE_OFFSET_START_X} ${y} ${ww} ${currentFontSymbolHeight} 0.6"
+                        ww += w
+                        y -= currentFontSymbolHeight
+                        var propRectTitleValueEnd = "${currentSubtitle.end}=${KLT_ITEM_CONTENT_TITLE_POSITION_START_X+KLT_ITEM_CONTENT_TITLE_OFFSET_START_X} ${y} ${ww} ${currentFontSymbolHeight} 0.6"
+
+                        if (i%2 == 0) {
+                            if (propRectTitleValueLineOdd.last() != propRectTitleValueStart) propRectTitleValueLineOdd.add(propRectTitleValueStart)
+                            if (propRectTitleValueLineOdd.last() != propRectTitleValueEnd) propRectTitleValueLineOdd.add(propRectTitleValueEnd)
+                        } else {
+                            if (propRectTitleValueLineEven.last() != propRectTitleValueStart) propRectTitleValueLineEven.add(propRectTitleValueStart)
+                            if (propRectTitleValueLineEven.last() != propRectTitleValueEnd) propRectTitleValueLineEven.add(propRectTitleValueEnd)
+                        }
+
+                        var propRectTitleValueFade = "${nextSubtitle.start}=${KLT_ITEM_CONTENT_TITLE_POSITION_START_X+KLT_ITEM_CONTENT_TITLE_OFFSET_START_X} ${y} ${ww} ${currentFontSymbolHeight} 0.6"
+                        if (i%2 == 0) {
+                            if (propRectTitleValueLineOdd.last() != propRectTitleValueFade) propRectTitleValueLineOdd.add(propRectTitleValueFade)
+                        } else {
+                            if (propRectTitleValueLineEven.last() != propRectTitleValueFade) propRectTitleValueLineEven.add(propRectTitleValueFade)
+                        }
+
+                        propRectTitleValueFade = "${nextSubtitle.end}=${KLT_ITEM_CONTENT_TITLE_POSITION_START_X+KLT_ITEM_CONTENT_TITLE_OFFSET_START_X} ${y} ${ww} ${currentFontSymbolHeight} 0.0"
+                        if (i%2 == 0) {
+                            if (propRectTitleValueLineOdd.last() != propRectTitleValueFade) propRectTitleValueLineOdd.add(propRectTitleValueFade)
+                        } else {
+                            if (propRectTitleValueLineEven.last() != propRectTitleValueFade) propRectTitleValueLineEven.add(propRectTitleValueFade)
+                        }
+
+                    } else {
+                        propRectLineValue.add("${currentLyricLine.endTp?.time}=${currentLyricLine.startTp?.x} ${currentLyricLine.startTp?.y} ${currentLyricLine.startTp?.w} ${currentLyricLine.startTp?.h} ${currentLyricLine.startTp?.opacity}")
+
+                        val currentSubtitle = currentLyricLine.subtitles.items[(currentLyricLine.subtitles!!.items.size)-1]
+                        val nextSubtitle = nextLyricLine.subtitles!!.items[0]
+
+                        var y = horizontPosition - currentFontSymbolHeight + HORIZONT_OFFSET
+                        val w = currentSubtitle.text!!.length * currentFontSymbolWidth
+                        var propRectTitleValueStart = "${currentSubtitle.start}=${KLT_ITEM_CONTENT_TITLE_POSITION_START_X+KLT_ITEM_CONTENT_TITLE_OFFSET_START_X} ${y} ${ww} ${currentFontSymbolHeight} 0.6"
+                        ww += w
+                        var propRectTitleValueEnd = "${currentSubtitle.end}=${KLT_ITEM_CONTENT_TITLE_POSITION_START_X+KLT_ITEM_CONTENT_TITLE_OFFSET_START_X} ${y} ${ww} ${currentFontSymbolHeight} 0.6"
+
+                        if (i%2 == 0) {
+                            if (propRectTitleValueLineOdd.last() != propRectTitleValueStart) propRectTitleValueLineOdd.add(propRectTitleValueStart)
+                            if (propRectTitleValueLineOdd.last() != propRectTitleValueEnd) propRectTitleValueLineOdd.add(propRectTitleValueEnd)
+                        } else {
+                            if (propRectTitleValueLineEven.last() != propRectTitleValueStart) propRectTitleValueLineEven.add(propRectTitleValueStart)
+                            if (propRectTitleValueLineEven.last() != propRectTitleValueEnd) propRectTitleValueLineEven.add(propRectTitleValueEnd)
+                        }
+
+                        y -= currentFontSymbolHeight
+                        var propRectTitleValueFade = "${nextSubtitle.start}=${KLT_ITEM_CONTENT_TITLE_POSITION_START_X+KLT_ITEM_CONTENT_TITLE_OFFSET_START_X} ${y} ${ww} ${currentFontSymbolHeight} 0.0"
+                        if (i%2 == 0) {
+                            if (propRectTitleValueLineOdd.last() != propRectTitleValueFade) propRectTitleValueLineOdd.add(propRectTitleValueFade)
+                        } else {
+                            if (propRectTitleValueLineEven.last() != propRectTitleValueFade) propRectTitleValueLineEven.add(propRectTitleValueFade)
+                        }
+                    }
+                }
+            }
+
+
+
+//            val propRectValue = resultLyric.items.map { "${it.startTp?.time}=${it.startTp?.x} ${it.startTp?.y} ${it.startTp?.w} ${it.startTp?.h} ${it.startTp?.opacity}${if (it.text == "") "" else ";${it.endTp?.time}=${it.startTp?.x} ${it.startTp?.y} ${it.startTp?.w} ${it.startTp?.h} ${it.startTp?.opacity}"}"}.joinToString(";")
+            val propRectValue = propRectLineValue.joinToString(";")
+            val propFillOddValue = propRectTitleValueLineOdd.joinToString(";")
+            val propFillEvenValue = propRectTitleValueLineEven.joinToString(";")
             val propText = """<property name="rect">$propRectValue</property>""".replace(",",".")
+            val propTextFillOdd = """<property name="rect">$propFillOddValue</property>""".replace(",",".")
+            val propTextFillEven = """<property name="rect">$propFillEvenValue</property>""".replace(",",".")
 
             File(fileName).writeText(text)
             File(fileNameKdeTitile).writeText(templateTitle)
             File(fileNameKdeHorizont).writeText(templateHorizont)
             File(fileNameKdeTransformPropertyTitle).writeText(propText)
+            File(fileNameKdeTransformPropertyFillOdd).writeText(propTextFillOdd)
+            File(fileNameKdeTransformPropertyFillEven).writeText(propTextFillEven)
 
             resultLyric.fontSize = maxFontSize
             resultLyric.horizontPosition = horizontPosition
@@ -211,8 +334,8 @@ data class TransformProperty(
 
 data class LyricLine(
     val text: String? = null,
-    val start: String? = null,
-    val end: String? = null,
+    var start: String? = null,
+    var end: String? = null,
     val subtitles: Subtitles? = null,
     var startTp: TransformProperty? = null,
     var endTp: TransformProperty? = null

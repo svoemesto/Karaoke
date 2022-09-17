@@ -260,9 +260,16 @@ class Lyric {
                 </kdenlivetitle>"""
 
             // Настало время прописать TransformProperty для строк
-
-
+            // Проходимся по всем строкам
             resultLyric.items.forEachIndexed { index, lyricLine ->
+
+                // TransformProperty для точки начала линии
+                // time = время начала строки
+                // x = 0
+                // y = позиция горизонта - текущий номер строки * (высота символа + коррекция)
+                // w = ширина экрана
+                // h = высота бокса текста
+                // непрозрачность полная
                 val startTp = TransformProperty(
                     time = lyricLine.start,
                     x = 0,
@@ -272,8 +279,34 @@ class Lyric {
                     opacity = 1.0
                 )
 
+                // TransformProperty для точки конца линии
+                // time = время конца строки (с коррекцией на следующую строку)
+                // x = 0
+                // y = позиция горизонта - текущий номер строки * (высота символа + коррекция)
+                // w = ширина экрана
+                // h = высота бокса текста
+                // непрозрачность полная
+
+                var time = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(lyricLine.end!!))
+                // Если текущий элемент не последний - надо проверить начало следующего элемента
+                // и если оно отличается меньше чем на 200 мс - скорректировать время конца текущей линии
+                if (index != resultLyric.items.size-1) {
+                    // Находим следующую строку
+                    val nextLyricLine = resultLyric.items[index+1]
+                    // Находим разницу во времени между текущей строкой и следующей
+                    val diffInMills = convertTimecodeToMilliseconds(nextLyricLine.start!!) - convertTimecodeToMilliseconds(lyricLine.end!!)
+                    // Если эта разница меньше 200 мс
+                    if (diffInMills < 200) {
+                        // Сдвигаем конец текущей линии и конец последнего титра в ней до начала следующей
+                        lyricLine.end = nextLyricLine.start
+                        lyricLine.subtitles?.items?.last()?.end = lyricLine.end
+                        // сдвигаем время TransformProperty к начало последнего титра текущей строки
+                        time = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(lyricLine.subtitles!!.items.last().start!!))
+                    }
+                }
+
                 val endTp = TransformProperty(
-                    time = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(lyricLine.end!!)-(1000/FRAME_FPS+1)),
+                    time = time,
                     x = 0,
                     y = horizontPosition - ((index + 1)*(currentFontSymbolHeightDouble+HEIGHT_CORRECTION)).toLong(),
                     w = FRAME_WIDTH,
@@ -284,41 +317,106 @@ class Lyric {
                 lyricLine.endTp = endTp
             }
 
+            // Список свойств трансформации текста
             var propRectLineValue = emptyList<String>().toMutableList()
+            // Список свойств трансформации чётных заливок
             var propRectTitleValueLineOdd = emptyList<String>().toMutableList()
+            // Список свойств трансформации нечётных заливок
             var propRectTitleValueLineEven = emptyList<String>().toMutableList()
-            for (i in 0..resultLyric.items.size-2) {
-                val currentLyricLine = resultLyric.items[i]
-                val nextLyricLine = resultLyric.items[i+1]
-                val diffInMills = convertTimecodeToMilliseconds(nextLyricLine.start!!) - convertTimecodeToMilliseconds(currentLyricLine.end!!)
-                if (diffInMills < 200) {
-                    currentLyricLine.end = nextLyricLine.start
-                    currentLyricLine.subtitles?.items?.last()?.end = currentLyricLine.end
-                }
 
+            // Настало время прописать TransformProperty для заливок
+            // Проходимся по строкам - от первой до предпоследней
+            for (i in 0..resultLyric.items.size-2) {
+
+                // Текущая строка
+                val currentLyricLine = resultLyric.items[i]
+
+                //Следующая строка
+                val nextLyricLine = resultLyric.items[i+1]
+
+                // Разница во времени между текущей строкой и следующей
+                val diffInMills = convertTimecodeToMilliseconds(nextLyricLine.start!!) - convertTimecodeToMilliseconds(currentLyricLine.end!!)
+
+//
+//                if (diffInMills < 200) {
+//                    currentLyricLine.end = nextLyricLine.start
+//                    currentLyricLine.subtitles?.items?.last()?.end = currentLyricLine.end
+//                }
+
+                // Свойство трансформации текста текущей строки - из startTp
                 propRectLineValue.add("${currentLyricLine.startTp?.time}=${currentLyricLine.startTp?.x} ${currentLyricLine.startTp?.y} ${currentLyricLine.startTp?.w} ${currentLyricLine.startTp?.h} ${currentLyricLine.startTp?.opacity}")
+
+                // Если текущая строка пустая - ничего больше не делаем. Переход между строками будет плавны
+                // Если текущая строка не пустая
                 if (currentLyricLine.text != "") {
 
+                    // Начальная позиция w для заливки = 1
                     var ww = 1L
 
+                    // Получаем первый титр текущей строки (он точно есть, т.к. строка не пустая)
                     val currentSubtitle = currentLyricLine.subtitles!!.items[0]
-                    val startTime = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(currentSubtitle.start!!)-(1000/FRAME_FPS+1))
+
+                    // Время начала анимации = времени начала этого титра //-(1000/FRAME_FPS+1)
+                    val startTime = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(currentSubtitle.start!!))
+
+                    // Координата x всегда одна и та же = KLT_ITEM_CONTENT_TITLE_POSITION_START_X + KLT_ITEM_CONTENT_TITLE_OFFSET_START_X
+                    val x = KLT_ITEM_CONTENT_TITLE_POSITION_START_X+KLT_ITEM_CONTENT_TITLE_OFFSET_START_X
+
+                    // Координата y = позиция горизонта - высота символа + оффсет
                     val y = horizontPosition - currentFontSymbolHeight + HORIZONT_OFFSET
-                    var propRectTitleValueFade = "${startTime}=${KLT_ITEM_CONTENT_TITLE_POSITION_START_X+KLT_ITEM_CONTENT_TITLE_OFFSET_START_X} ${y} ${ww} ${currentFontSymbolHeight} 0.0"
+
+                    // Ширина = начальной позиции (1)
+                    val w = ww
+
+                    // Высота = высоте символа
+                    val h = currentFontSymbolHeight
+
+                    // Свойство трансформации заливки с полной прозрачностью
+                    var propRectTitleValueFade = "${startTime}=${x} ${y} ${w} ${h} 0.0"
+
+                    // В зависимости от чётности номера линии добавляем свойство трансформации заливки в нужный список
                     if (i%2 == 0) {
                         propRectTitleValueLineOdd.add(propRectTitleValueFade)
                     } else {
                         propRectTitleValueLineEven.add(propRectTitleValueFade)
                     }
+
+                    // Смещаем стартовую позицию w на величину KLT_ITEM_CONTENT_TITLE_OFFSET_START_X
                     ww = -KLT_ITEM_CONTENT_TITLE_OFFSET_START_X
+
+                    // Проходимся по титрам текущей линии от первого до предпоследнего
                     for (j in 0..(currentLyricLine.subtitles!!.items.size) - 2) {
+
+                        // Текущий титр
                         val currentSubtitle = currentLyricLine.subtitles.items[j]
-                        val nextSubtitle = currentLyricLine.subtitles.items[j+1]
+
+                        // Время - начало текущего титра
+                        var time = currentSubtitle.start
+
+                        // Координата x всегда одна и та же = KLT_ITEM_CONTENT_TITLE_POSITION_START_X + KLT_ITEM_CONTENT_TITLE_OFFSET_START_X
+                        val x = KLT_ITEM_CONTENT_TITLE_POSITION_START_X+KLT_ITEM_CONTENT_TITLE_OFFSET_START_X
+
+                        // Координата y = позиция горизонта - высота символа + оффсет
                         val y = horizontPosition - currentFontSymbolHeight + HORIZONT_OFFSET
+
+                        // Ширина = ширина текста тира * ширину символа
                         val w = currentSubtitle.text!!.length * currentFontSymbolWidth
-                        var propRectTitleValueStart = "${currentSubtitle.start}=${KLT_ITEM_CONTENT_TITLE_POSITION_START_X+KLT_ITEM_CONTENT_TITLE_OFFSET_START_X} ${y} ${ww} ${currentFontSymbolHeight} 0.6"
+
+                        // Высота = высоте символа
+                        val h = currentFontSymbolHeight
+
+                        // Начало анимации титра - в начальной позиции титра с непрозрачностью 60%
+                        var propRectTitleValueStart = "${time}=${x} ${y} ${ww} ${h} 0.6"
+
+                        // Время - конец текущего титра
+                        time = currentSubtitle.end
+
+                        // Ширина = предыдущее значение ширины + ширина
                         ww += w
-                        var propRectTitleValueEnd = "${currentSubtitle.end}=${KLT_ITEM_CONTENT_TITLE_POSITION_START_X+KLT_ITEM_CONTENT_TITLE_OFFSET_START_X} ${y} ${ww} ${currentFontSymbolHeight} 0.6"
+                        // Конец анимации титра - в конечной позиции титра с непрозрачностью 60%
+                        var propRectTitleValueEnd = "${time}=${x} ${y} ${ww} ${h} 0.6"
+
+                        // В зависимости от чётности номера линии добавляем свойство трансформации заливки в нужный список
                         if (i%2 == 0) {
                             if (propRectTitleValueLineOdd.last() != propRectTitleValueStart) propRectTitleValueLineOdd.add(propRectTitleValueStart)
                             if (propRectTitleValueLineOdd.last() != propRectTitleValueEnd) propRectTitleValueLineOdd.add(propRectTitleValueEnd)
@@ -328,6 +426,9 @@ class Lyric {
                         }
                     }
 
+                    // На этом этапе мы закрасили все титры линии, кроме последнего
+
+                    // Если между текущей и следующей строкой меньше 200 мс
                     if (diffInMills < 200) {
 
                         propRectLineValue.add("${currentLyricLine.subtitles?.items?.last()?.start}=${currentLyricLine.startTp?.x} ${currentLyricLine.startTp?.y} ${currentLyricLine.startTp?.w} ${currentLyricLine.startTp?.h} ${currentLyricLine.startTp?.opacity}")
@@ -365,7 +466,9 @@ class Lyric {
                             if (propRectTitleValueLineEven.last() != propRectTitleValueFade) propRectTitleValueLineEven.add(propRectTitleValueFade)
                         }
 
+                    // Если между текущей и следующей строкой больше или равно 200 мс
                     } else {
+
                         propRectLineValue.add("${currentLyricLine.endTp?.time}=${currentLyricLine.startTp?.x} ${currentLyricLine.startTp?.y} ${currentLyricLine.startTp?.w} ${currentLyricLine.startTp?.h} ${currentLyricLine.startTp?.opacity}")
 
                         val currentSubtitle = currentLyricLine.subtitles.items[(currentLyricLine.subtitles!!.items.size)-1]

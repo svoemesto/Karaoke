@@ -3,6 +3,13 @@ class Song() {
     var end: String? = null
     var bpm: Long? = null
     var key: String? = null
+    var rootFolder: String? = null
+    var projectPath: String? = null
+    var audioSongPath: String? = null
+    var audioMusicPath: String? = null
+    var audioVocalPath: String? = null
+    var album: String? = null
+    var songName: String? = null
     companion object {
         fun getSubtitles(): Song {
             // Задаём имя и путь к файлу с субтитрами
@@ -19,6 +26,13 @@ class Song() {
             var text: String? = null
             var bpm: Long? = null
             var key: String? = null
+            var rootFolder: String? = null
+            var projectPath: String? = null
+            var audioSongPath: String? = null
+            var audioMusicPath: String? = null
+            var audioVocalPath: String? = null
+            var album: String? = null
+            var songName: String? = null
 
             val subtitles: MutableList<Subtitle> = emptyList<Subtitle>().toMutableList()
 
@@ -39,6 +53,13 @@ class Song() {
                             when (settings[1].uppercase()) {
                                 "BPM" -> bpm = settings[2].toLongOrNull()
                                 "KEY" -> key = settings[2]
+                                "NAME" -> songName = settings[2]
+                                "ALBUM" -> album = settings[2]
+                                "ROOT" -> rootFolder = settings[2]
+                                "MUSICFILE" -> audioMusicPath = settings[2]
+                                "VOCALFILE" -> audioVocalPath = settings[2]
+                                "SONGFILE" -> audioSongPath = settings[2]
+                                "PROJECTFILE" -> projectPath = settings[2]
                             }
                             // Обнуляем переменные
                             id = null
@@ -87,6 +108,14 @@ class Song() {
             result.end = subtitles.last().end
             result.bpm = bpm
             result.key = key
+            result.rootFolder = rootFolder
+            result.projectPath = projectPath
+            result.audioSongPath = audioSongPath
+            result.audioMusicPath = audioMusicPath
+            result.audioVocalPath = audioVocalPath
+            result.album = album
+            result.songName = songName
+
             // Удаляем последний объект из списка - он у нас "служебный" и был нужен только для обозначения финальной позиции
             subtitles.removeLast()
             // В его объект Subtitles кладём список объектов Subtitle
@@ -97,6 +126,7 @@ class Song() {
             }
             println("BPM = $bpm")
             println("KEY = $key")
+            println("end = ${result.end}")
             // Возвращаем объект Subtitles
             return result
         }

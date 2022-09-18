@@ -9,7 +9,7 @@ class Lyric {
     var symbolWidth = fontSize * PT_TO_PX
     var symbolHeight = fontSize * FONT_SYMBOL_WIDTH_ASPECT
     companion object {
-        fun getLiric(subtitles: Subtitles): Lyric {
+        fun getLiric(subtitles: Song): Lyric {
 
             val fileName = "src/main/resources/lyrics.txt"
             val fileNameKdeTitile = "src/main/resources/lyrics.kdenlivetitle"
@@ -29,7 +29,7 @@ class Lyric {
             var maxLineDuration = 0L
 
             // Проходимся по всем сабам
-            subtitles.items.forEach { subtitle ->
+            subtitles.subtitles.forEach { subtitle ->
                 // Если саб - начало строки - начинаем новую строку (пока она пустая) и инициализируем пустой список subs
                 if (subtitle.isLineStart == true) {
                     startLine = subtitle.start
@@ -48,14 +48,9 @@ class Lyric {
                     // Устанавливаем конец строки позицией конца из саба
                     endLine = subtitle.end
 
-                    // Создаем объект Subtitles
-                    val s = Subtitles()
-                    // В его items прописываем список subs - это все сабы текущей строки
-                    s.items = subs
-
                     // Создаем объект LyricLine и инициализируем его переменными
                     // на данный момент нам пока неизвестны поля startTp и endTp - оставляем их пустыми
-                    val liric = LyricLine(text = line, start = startLine, end = endLine, subtitles = s, startTp = null, endTp = null)
+                    val liric = LyricLine(text = line, start = startLine, end = endLine, subtitles = subs, startTp = null, endTp = null)
 
                     // Находим время "звучания" строки в миллисекундах
                     val lineDuration = getDurationInMilliseconds(startLine!!, endLine!!)
@@ -104,9 +99,7 @@ class Lyric {
 
                         // Создаем объект Subtitles, в его items помещаем единственный "пустой" Subtitle, созданный шагом раньше
                         // на данный момент нам пока неизвестны поля startTp и endTp - оставляем их пустыми
-                        val s = Subtitles()
-                        s.items = listOf(subtitleEmpty)
-                        val lyricEmpty = LyricLine(text = "", start = startDuration, end = endDuration, subtitles = s, startTp = null, endTp = null)
+                        val lyricEmpty = LyricLine(text = "", start = startDuration, end = endDuration, subtitles = listOf(subtitleEmpty), startTp = null, endTp = null)
 
                         // Устанавливаем текущую позицию конца равной позиции конца созданной пустой строки
                         currentPositionEnd += silentLineDuration
@@ -159,9 +152,7 @@ class Lyric {
 
                     // Создаем объект Subtitles, в его items помещаем единственный "пустой" Subtitle, созданный шагом раньше
                     // на данный момент нам пока неизвестны поля startTp и endTp - оставляем их пустыми
-                    val s = Subtitles()
-                    s.items = listOf(subtitleEmpty)
-                    val lyricEmpty = LyricLine(text = "", start = startDuration, end = endDuration, subtitles = s, startTp = null, endTp = null)
+                    val lyricEmpty = LyricLine(text = "", start = startDuration, end = endDuration, subtitles = listOf(subtitleEmpty), startTp = null, endTp = null)
 
                     // Устанавливаем текущую позицию конца равной позиции конца созданной пустой строки
                     currentPositionEnd += silentLineDuration
@@ -176,7 +167,7 @@ class Lyric {
 
             // Теперь в списке result у нас нужное количество строк - как полных, так и пустых. И в начале, и в середине, и в конце
             // Создаём объект Lyric и в его items помещаем этот список
-            var resultLyric = Lyric()
+            val resultLyric = Lyric()
             resultLyric.items = result
 
             // maxTextWidth - максимальная ширина текста = ширина экрана минус 2 отступа
@@ -228,7 +219,7 @@ class Lyric {
             println("Ширина бокса в пикселах: $boxWidthPx")
 
             // Высота рабочей области
-            val workAreaHeightPx = boxHeightPx.toLong() + 1000
+            val workAreaHeightPx = boxHeightPx + 1000
 
             // Шаблон для файла субтитра текста
             val templateTitle = """<kdenlivetitle duration="0" LC_NUMERIC="C" width="$FRAME_WIDTH_PX" height="${workAreaHeightPx}" out="0">
@@ -301,9 +292,9 @@ class Lyric {
                     if (diffInMills < 200) {
                         // Сдвигаем конец текущей линии и конец последнего титра в ней до начала следующей
                         lyricLine.end = nextLyricLine.start
-                        lyricLine.subtitles?.items?.last()?.end = lyricLine.end
+                        lyricLine.subtitles.last().end = lyricLine.end
                         // сдвигаем время TransformProperty к начало последнего титра текущей строки
-                        time = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(lyricLine.subtitles!!.items.last().start!!))
+                        time = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(lyricLine.subtitles.last().start!!))
                     }
                 }
 
@@ -320,11 +311,11 @@ class Lyric {
             }
 
             // Список свойств трансформации текста
-            var propRectLineValue = emptyList<String>().toMutableList()
+            val propRectLineValue = emptyList<String>().toMutableList()
             // Список свойств трансформации чётных заливок
-            var propRectTitleValueLineOdd = emptyList<String>().toMutableList()
+            val propRectTitleValueLineOdd = emptyList<String>().toMutableList()
             // Список свойств трансформации нечётных заливок
-            var propRectTitleValueLineEven = emptyList<String>().toMutableList()
+            val propRectTitleValueLineEven = emptyList<String>().toMutableList()
 
             // Настало время прописать TransformProperty для заливок
             // Проходимся по строкам - от первой до предпоследней
@@ -359,7 +350,7 @@ class Lyric {
                     var ww = 1.0
 
                     // Получаем первый титр текущей строки (он точно есть, т.к. строка не пустая)
-                    val currentSubtitle = currentLyricLine.subtitles!!.items[0]
+                    val currentSubtitle = currentLyricLine.subtitles[0]
 
                     // Время начала анимации = времени начала этого титра минус 1 фрейм
                     val startTime = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(currentSubtitle.start!!)-(1000/FRAME_FPS+1))
@@ -377,7 +368,7 @@ class Lyric {
                     val h = currentFontSymbolHeightPx
 
                     // Свойство трансформации заливки с полной прозрачностью
-                    var propRectTitleValueFade = "${startTime}=${x.toLong()} ${y.toLong()} ${w.toLong()} ${h.toLong()} 0.0"
+                    val propRectTitleValueFade = "${startTime}=${x.toLong()} ${y.toLong()} ${w.toLong()} ${h.toLong()} 0.0"
 
                     // В зависимости от чётности номера линии добавляем свойство трансформации заливки в нужный список
                     if (i%2 == 0) {
@@ -390,10 +381,10 @@ class Lyric {
                     ww = -TITLE_OFFSET_START_X_PX.toDouble()
 
                     // Проходимся по титрам текущей линии от первого до предпоследнего
-                    for (j in 0..(currentLyricLine.subtitles!!.items.size) - 2) {
+                    for (j in 0..(currentLyricLine.subtitles.size) - 2) {
 
                         // Текущий титр
-                        val currentSubtitle = currentLyricLine.subtitles.items[j]
+                        val currentSubtitle = currentLyricLine.subtitles[j]
 
                         // Время - начало текущего титра
                         var time = currentSubtitle.start
@@ -438,10 +429,10 @@ class Lyric {
 
 
                         // Текущий титр - последний титр текущей строки
-                        val currentSubtitle = currentLyricLine.subtitles.items[(currentLyricLine.subtitles!!.items.size)-1]
+                        val currentSubtitle = currentLyricLine.subtitles[(currentLyricLine.subtitles.size)-1]
 
                         // Следующий титр - первый титр следующей строки
-                        var nextSubtitle = nextLyricLine.subtitles!!.items[0]
+                        val nextSubtitle = nextLyricLine.subtitles[0]
 
                         // Время - начало текущего титра
                         var time = currentSubtitle.start
@@ -510,10 +501,10 @@ class Lyric {
                     } else {
 
                         // Текущий титр - последний титр текущей строки
-                        val currentSubtitle = currentLyricLine.subtitles.items[(currentLyricLine.subtitles!!.items.size)-1]
+                        val currentSubtitle = currentLyricLine.subtitles[(currentLyricLine.subtitles.size)-1]
 
                         // Следующий титр - первый титр следующей строки
-                        val nextSubtitle = nextLyricLine.subtitles!!.items[0]
+                        val nextSubtitle = nextLyricLine.subtitles[0]
 
                         // Время - начало текущего титра
                         var time = currentSubtitle.start
@@ -619,7 +610,7 @@ data class LyricLine(
     val text: String? = null,
     var start: String? = null,
     var end: String? = null,
-    val subtitles: Subtitles? = null,
+    val subtitles: List<Subtitle> = emptyList(),
     var startTp: TransformProperty? = null,
     var endTp: TransformProperty? = null
 )

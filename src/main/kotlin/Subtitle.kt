@@ -1,12 +1,14 @@
-class Subtitles() {
-    var items: List<Subtitle> = emptyList()
+class Song() {
+    var subtitles: List<Subtitle> = emptyList()
     var end: String? = null
+    var bpm: Long? = null
+    var key: String? = null
     companion object {
-        fun getSubtitles(): Subtitles {
+        fun getSubtitles(): Song {
             // Задаём имя и путь к файлу с субтитрами
             val fileName = "subtitles.srt"
             // Считываем содержимое файла субтитров
-            val body = Subtitles::class.java.getResource(fileName)?.readText()
+            val body = Song::class.java.getResource(fileName)?.readText()
             // Разбиваем содержимое файла на массив строк
             val subs = body?.split("\n")
 
@@ -15,6 +17,8 @@ class Subtitles() {
             var start: String? = null
             var end: String? = null
             var text: String? = null
+            var bpm: Long? = null
+            var key: String? = null
 
             val subtitles: MutableList<Subtitle> = emptyList<Subtitle>().toMutableList()
 
@@ -27,11 +31,27 @@ class Subtitles() {
                         id = sub.toLongOrNull()
                     } else if (startEnd == null && sub != "") {     // Если еще нет startEnd и строка не пустая - значит текущая строка - это startEnd
                         startEnd = sub
-                    } else if(text == null && sub != "") {          // Если еще нет text и строка не пустая - значит текущая строка - это text
-                        text = sub
+                    } else if(text == null && sub != "") {          // Если еще нет text и строка не пустая - значит текущая строка - это text или настройка
+                        // Если sub начитается с "[SETTING]|" - это настройка
+                        if (sub.uppercase().startsWith("[SETTING]|")) {
+                            // Разделяем sub по | в список
+                            val settings = sub.split("|")
+                            when (settings[1].uppercase()) {
+                                "BPM" -> bpm = settings[2].toLongOrNull()
+                                "KEY" -> key = settings[2]
+                            }
+                            // Обнуляем переменные
+                            id = null
+                            startEnd = null
+                            start = null
+                            end = null
+                            text = null
+                        } else {
+                            text = sub
+                        }
                     } else if(text != null && sub != "") {          // Если уже есть text и строка всё еще не пустая - значит текущая строка - это тоже text
                         text += sub
-                    } else if(sub == "") {                          // Если строка пустая
+                    } else if (sub == ""){                                        // Если строка пустая
                         // Если уже есть все переменные
                         if (id != null && startEnd != null && text != null) {
                             // Разделяем startEnd на start и end в список, вынимаем из списка соответствующие значения
@@ -50,7 +70,7 @@ class Subtitles() {
                             val subtitle = Subtitle(id = id, start = start, end = end, text = text, isLineStart = isLineStart, isLineEnd = isLineEnd)
                             // Добавляем этот объект к списку объектов
                             subtitles.add(subtitle)
-                            // Обнулям переменные
+                            // Обнуляем переменные
                             id = null
                             startEnd = null
                             start = null
@@ -62,18 +82,21 @@ class Subtitles() {
             }
 
             // Создаем объект Subtitles
-            val result = Subtitles()
-            // Устанавливаем end равный end последнего объекта из списка
+            val result = Song()
+            // Устанавливаем end равный end последнего объекта из списка и найденные выше настройки (если они были)
             result.end = subtitles.last().end
+            result.bpm = bpm
+            result.key = key
             // Удаляем последний объект из списка - он у нас "служебный" и был нужен только для обозначения финальной позиции
             subtitles.removeLast()
             // В его объект Subtitles кладём список объектов Subtitle
-            result.items = subtitles
+            result.subtitles = subtitles
             // Выводим на экран список объектов Subtitle
-            result.items.forEach {
+            result.subtitles.forEach {
                 println(it)
             }
-
+            println("BPM = $bpm")
+            println("KEY = $key")
             // Возвращаем объект Subtitles
             return result
         }

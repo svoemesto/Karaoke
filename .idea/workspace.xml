@@ -4,9 +4,9 @@
     <list default="true" id="19caf878-7ce0-44d7-94a1-cf0a31300a8b" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/Lyric.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Lyric.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/Settings.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Settings.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/Main.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Main.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/Subtitle.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Subtitle.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/Utils.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Utils.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/subtitles.srt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/subtitles.srt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -63,7 +63,7 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1663329937819</updated>
-      <workItem from="1663329942664" duration="64022000" />
+      <workItem from="1663329942664" duration="67195000" />
     </task>
     <task id="LOCAL-00001" summary="Initial commit">
       <created>1663330270975</created>
@@ -177,7 +177,14 @@
       <option name="project" value="LOCAL" />
       <updated>1663404067251</updated>
     </task>
-    <option name="localTasksCounter" value="17" />
+    <task id="LOCAL-00017" summary="Initial commit">
+      <created>1663420427906</created>
+      <option name="number" value="00017" />
+      <option name="presentableId" value="LOCAL-00017" />
+      <option name="project" value="LOCAL" />
+      <updated>1663420427907</updated>
+    </task>
+    <option name="localTasksCounter" value="18" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -192,13 +199,8 @@
       <breakpoints>
         <line-breakpoint enabled="true" type="kotlin-line">
           <url>file://$PROJECT_DIR$/src/main/kotlin/Lyric.kt</url>
-          <line>182</line>
+          <line>173</line>
           <option name="timeStamp" value="6" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="kotlin-line">
-          <url>file://$PROJECT_DIR$/src/main/kotlin/Lyric.kt</url>
-          <line>246</line>
-          <option name="timeStamp" value="7" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

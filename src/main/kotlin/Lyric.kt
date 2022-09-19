@@ -1,5 +1,4 @@
 import java.io.File
-import java.lang.Double.min
 import java.lang.Long.max
 
 data class TransformProperty(
@@ -25,36 +24,35 @@ data class LyricLine(
 
 class Lyric {
     var items: List<LyricLine> = emptyList()
-    var fontSize: Long = KLT_ITEM_CONTENT_FONT_SIZE_PT
+    var fontSize: Int = KLT_ITEM_CONTENT_FONT_SIZE_PT
     var horizontPosition = FRAME_HEIGHT_PX / 2
-    var symbolWidth = fontSize * PT_TO_PX
-    var symbolHeight: Long = (fontSize * FONT_SYMBOL_WIDTH_ASPECT).toLong()
+    var symbolWidth: Double = fontSize * PT_TO_PX
+    var symbolHeight: Int = (fontSize * FONT_SYMBOL_WIDTH_ASPECT).toInt()
     companion object {
-        fun getLiric(song: Song): Lyric {
+        fun getLyric(song: Song): Lyric {
 
             val fileName = "src/main/resources/lyrics.txt"
-            val fileNameKdeTitile = "src/main/resources/lyrics.kdenlivetitle"
-            val fileNameKdeHorizont = "src/main/resources/horyzont.kdenlivetitle"
-            val fileNameKdeTransformPropertyTitle = "src/main/resources/transform_property_title.txt"
-            val fileNameKdeTransformPropertyFillOdd = "src/main/resources/transform_property_fill_odd.txt"
-            val fileNameKdeTransformPropertyFillEven = "src/main/resources/transform_property_fill_even.txt"
-            val fileNameKdeTransformPropertyCounter0 = "src/main/resources/transform_property_counter_0.txt"
-            val fileNameKdeTransformPropertyCounter1 = "src/main/resources/transform_property_counter_1.txt"
-            val fileNameKdeTransformPropertyCounter2 = "src/main/resources/transform_property_counter_2.txt"
-            val fileNameKdeTransformPropertyCounter3 = "src/main/resources/transform_property_counter_3.txt"
-            val fileNameKdeTransformPropertyCounter4 = "src/main/resources/transform_property_counter_4.txt"
             var startLine: String? = null
-            var endLine: String? = null
+            var endLine: String?
 
             var subs: MutableList<Subtitle> = emptyList<Subtitle>().toMutableList()
             val lyrics: MutableList<LyricLine> = emptyList<LyricLine>().toMutableList()
             val result: MutableList<LyricLine> = emptyList<LyricLine>().toMutableList()
 
-            val counter0list: MutableList<String> = emptyList<String>().toMutableList()
-            val counter1list: MutableList<String> = emptyList<String>().toMutableList()
-            val counter2list: MutableList<String> = emptyList<String>().toMutableList()
-            val counter3list: MutableList<String> = emptyList<String>().toMutableList()
-            val counter4list: MutableList<String> = emptyList<String>().toMutableList()
+            val counters = listOf(
+                emptyList<String>().toMutableList(),
+                emptyList<String>().toMutableList(),
+                emptyList<String>().toMutableList(),
+                emptyList<String>().toMutableList(),
+                emptyList<String>().toMutableList()
+            )
+
+            val propRectLineValue = emptyList<String>().toMutableList() // Список свойств трансформации текста
+
+            val propRectTitleValueLineOddEven = listOf(
+                emptyList<String>().toMutableList(),
+                emptyList<String>().toMutableList()
+            )
 
             var text = ""
             var line = ""
@@ -68,275 +66,163 @@ class Lyric {
                     line = ""
                     subs = emptyList<Subtitle>().toMutableList()
                 }
-                // Дописываем в текст текущей строки текст из саба
-                line += subtitle.text
 
-                // Добавляем текущий саб к списку subs
-                subs.add(subtitle)
+                line += subtitle.text   // Дописываем в текст текущей строки текст из саба
+                subs.add(subtitle)      // Добавляем текущий саб к списку subs
 
                 // Если саб - конец строки
                 if (subtitle.isLineEnd == true) {
 
-                    // Устанавливаем конец строки позицией конца из саба
-                    endLine = subtitle.end
+                    endLine = subtitle.end  // Устанавливаем конец строки позицией конца из саба
 
-                    // Создаем объект LyricLine и инициализируем его переменными
-                    // на данный момент нам пока неизвестны поля startTp и endTp - оставляем их пустыми
-                    val liric = LyricLine(text = line, start = startLine, end = endLine, subtitles = subs, startTp = null, endTp = null)
+                    // Создаем объект LyricLine и инициализируем его переменными. На данный момент нам пока неизвестны поля startTp и endTp - оставляем их пустыми
+                    val liric = LyricLine(text = line, start = startLine, end = endLine, subtitles = subs)
 
-                    // Находим время "звучания" строки в миллисекундах
-                    val lineDuration = getDurationInMilliseconds(startLine!!, endLine!!)
-
-                    // Находим максимальное время "звучания" среди всех строк
-                    maxLineDuration = max(maxLineDuration, lineDuration)
-
-                    // Добавляем строку liric в список строк lyrics
-                    lyrics.add(liric)
+                    val lineDuration = getDurationInMilliseconds(startLine!!, endLine!!)     // Находим время "звучания" строки в миллисекундах
+                    maxLineDuration = max(maxLineDuration, lineDuration)                    // Находим максимальное время "звучания" среди всех строк
+                    lyrics.add(liric)                                                       // Добавляем строку lyric в список строк lyrics
 
                 }
             }
 
-            // Устанавливаем текущую позицию конца в ноль
-            var currentPositionEnd = 0L
+            var currentPositionEnd = 0L // Устанавливаем текущую позицию конца в ноль
 
-            // Походимся по массиву строк
-            lyrics.forEach { lyric ->
+            lyrics.forEach { lyric -> // Проходимся по массиву строк
 
-                // Вычисляем время "тишины" - от конца текущей позиции до начала текущей строки
-                val silentDuration = convertTimecodeToMilliseconds(lyric.start!!) - currentPositionEnd
+                val silentDuration = convertTimecodeToMilliseconds(lyric.start!!) - currentPositionEnd  // Вычисляем время "тишины"
+                val linesToInsert: Long = silentDuration / maxLineDuration // Вычисляем кол-во "пустых" строк, которые надо вставить перед текущей строкой
 
-                // Вычисляем кол-во "пустых" строк, которые надо вставить перед текущей строкой
-                // Оно равно времени "тишины" деленному на время "звучания" самой длинной строки, которое мы нашли ранее
-                val linesToInsert: Long = silentDuration / maxLineDuration
+                if (linesToInsert > 0) { // Если количество вставляемых пустых строк больше нуля - начинаем их вставлять
 
-                // Если количество вставляемых пустых строк больше нуля - начинаем их вставлять
-                if (linesToInsert > 0) {
+                    val silentLineDuration: Long =  silentDuration / linesToInsert // Вычисляем "длительность" вставляемой пустой строки
 
-                    // Вычисляем "длительность" вставляемой пустой строки
-                    // Она равна времени тишины деленное на количество вставляемых строк
-                    val silentLineDuration: Long =  silentDuration / linesToInsert
+                    for (i in 1..linesToInsert) { // Цикл от 1 до количества вставляемых строк включительно
 
-                    // Цикл от 1 до количества вставляемых строк включительно
-                    for (i in 1..linesToInsert) {
+                        val startDuration = convertMillisecondsToTimecode(currentPositionEnd + silentLineDuration/5) // Время начала строки
+                        val endDuration = convertMillisecondsToTimecode(currentPositionEnd + silentLineDuration) // Время конца строки
 
-                        // Время начала строки = текущая позиция конца + 1/10 от длины строки
-                        val startDuration = convertMillisecondsToTimecode(currentPositionEnd + silentLineDuration/10)
+                        // Создаем объект Subtitle с пустым текстом, с вычисленными выше началом и концом и помечаем его и как начало и конец строки
+                        val subtitleEmpty = Subtitle(
+                            text = "",
+                            start = startDuration,
+                            end = endDuration,
+                            isLineStart = true,
+                            isLineEnd = true)
 
-                        // Время конца строки = текущая позиция конца + длина строки
-                        val endDuration = convertMillisecondsToTimecode(currentPositionEnd + silentLineDuration)
+                        // Создаем объект LyricLine, в его subtitles помещаем единственный "пустой" Subtitle, созданный шагом раньше
+                        // помечаем его как пустую строку
+                        val lyricEmpty = LyricLine(
+                            text = "",
+                            start = startDuration,
+                            end = endDuration,
+                            subtitles = listOf(subtitleEmpty),
+                            isEmptyLine = true,
+                            isFadeLine = result.isEmpty() || lyric == lyrics.last())
 
-                        // Создаем объект Subtitle с пустым текстом, с вычисленными выше началом и концом
-                        // И помечаем его и как начало и как конец строки
-                        val subtitleEmpty = Subtitle(text = "", start = startDuration, end = endDuration, isLineStart = true, isLineEnd = true)
-
-                        // Создаем объект Subtitles, в его items помещаем единственный "пустой" Subtitle, созданный шагом раньше
-                        // на данный момент нам пока неизвестны поля startTp и endTp - оставляем их пустыми
-                        val lyricEmpty = LyricLine(text = "", start = startDuration, end = endDuration, subtitles = listOf(subtitleEmpty), startTp = null, endTp = null, isEmptyLine = true, isFadeLine = result.isEmpty())
-
-                        // Устанавливаем текущую позицию конца равной позиции конца созданной пустой строки
-                        currentPositionEnd += silentLineDuration
-
-                        // Добавляем пустую строку lyricEmpty в список строк result
-                        result.add(lyricEmpty)
-
+                        currentPositionEnd += silentLineDuration    // Устанавливаем текущую позицию конца равной позиции конца созданной пустой строки
+                        result.add(lyricEmpty)                      // Добавляем lyricEmpty в список строк result
                         text += "\n"
                     }
                 }
 
-                // Добавляем строку lyric в список строк result
-                // К этому моменту в список уже добавлено нужное количество пустых строк перед текущей
-                result.add(lyric)
-
-                // Устанавливаем текущую позицию конца равной позиции конца текущей строки
-                currentPositionEnd = convertTimecodeToMilliseconds(lyric.end!!)
-
+                if (lyric != lyrics.last()) result.add(lyric) // Добавляем строку lyric в список строк result если строка не последняя
+                currentPositionEnd = convertTimecodeToMilliseconds(lyric.end!!) // Устанавливаем текущую позицию конца равной позиции конца текущей строки
                 text += "${lyric.text}\n"
+
             }
 
-            // Мы добавили в result все строки, но у нас еще остался "хвост тишины", для которого тоже надо добавить пустые строки
+            // Теперь в списке result у нас нужное количество строк - как полных, так и пустых.
 
-            // Вычисляем время "тишины" - от конца текущей позиции до конца титров
-            val silentDuration = convertTimecodeToMilliseconds(song.end!!) - currentPositionEnd
-
-            // Вычисляем кол-во "пустых" строк, которые надо вставить после последней строки
-            // Оно равно времени "тишины" деленному на время "звучания" самой длинной строки, которое мы нашли ранее
-            val linesToInsert: Long = silentDuration / maxLineDuration
-
-            // Если количество вставляемых пустых строк больше нуля - начинаем их вставлять
-            if (linesToInsert > 0) {
-
-                // Вычисляем "длительность" вставляемой пустой строки
-                // Она равна времени тишины деленное на количество вставляемых строк
-                val silentLineDuration: Long =  silentDuration / linesToInsert
-
-                // Цикл от 1 до количества вставляемых строк включительно
-                for (i in 1..linesToInsert) {
-
-                    // Время начала строки = текущая позиция конца + 1/10 от длины строки
-                    val startDuration = convertMillisecondsToTimecode(currentPositionEnd + silentLineDuration/10)
-
-                    // Время конца строки = текущая позиция конца + длина строки
-                    val endDuration = convertMillisecondsToTimecode(currentPositionEnd + silentLineDuration)
-
-                    // Создаем объект Subtitle с пустым текстом, с вычисленными выше началом и концом
-                    // И помечаем его и как начало и как конец строки
-                    val subtitleEmpty = Subtitle(text = "", start = startDuration, end = endDuration, isLineStart = true, isLineEnd = true)
-
-                    // Создаем объект Subtitles, в его items помещаем единственный "пустой" Subtitle, созданный шагом раньше
-                    // на данный момент нам пока неизвестны поля startTp и endTp - оставляем их пустыми
-                    val lyricEmpty = LyricLine(text = "", start = startDuration, end = endDuration, subtitles = listOf(subtitleEmpty), startTp = null, endTp = null, isEmptyLine = true, isFadeLine = true)
-
-                    // Устанавливаем текущую позицию конца равной позиции конца созданной пустой строки
-                    currentPositionEnd += silentLineDuration
-
-                    // Добавляем пустую строку lyricEmpty в список строк result
-                    result.add(lyricEmpty)
-
-                    text += "\n"
-                }
-            }
-//            println(text)
-
-            // Теперь в списке result у нас нужное количество строк - как полных, так и пустых. И в начале, и в середине, и в конце
             // Создаём объект Lyric и в его items помещаем этот список
             val resultLyric = Lyric()
             resultLyric.items = result
 
-            // maxTextWidth - максимальная ширина текста = ширина экрана минус 2 отступа
-            val maxTextWidthPx = FRAME_WIDTH_PX.toDouble() - TITLE_POSITION_START_X_PX * 2
+
+            val maxTextWidthPx = FRAME_WIDTH_PX.toDouble() - TITLE_POSITION_START_X_PX * 2      // maxTextWidth - максимальная ширина текста = ширина экрана минус 2 отступа
             println("Максимальная ширина текста: $maxTextWidthPx")
-            // maxTextLength - максимальная длина текста (в символах) = длине символов самой длинной строки
-            val maxTextLengthSym = resultLyric.items.maxBy { it.text!!.length }.text!!.length
+
+            val maxTextLengthSym = resultLyric.items.maxBy { it.text!!.length }.text!!.length   // maxTextLength - максимальная длина текста (в символах) = длине символов самой длинной строки
             println("Максимальная длина текста (в символах): $maxTextLengthSym")
 
-            // maxSymbolWidth - максимальная ширина символа = максимальная ширина текста делённая на максимальную длину
-            val maxSymbolWidthPx = maxTextWidthPx / maxTextLengthSym
+            val maxSymbolWidthPx = maxTextWidthPx / maxTextLengthSym                            // maxSymbolWidth - максимальная ширина символа = максимальная ширина текста делённая на максимальную длину
             println("Максимальная ширина символа: $maxSymbolWidthPx")
 
-            val maxSymbolHeightPx = maxSymbolWidthPx / FONT_SYMBOL_WIDTH_ASPECT
-            println("Максимальная высота символа: $maxSymbolHeightPx")
+            val fontSizePt = getFontSizeBySymbolWidth(maxSymbolWidthPx)                         // Размер шрифта для найденной максимальной ширины символа
+            println("Размер шрифта для найденной максимальной ширины символа: $fontSizePt")
 
-            // maxFontSize - максимальный размер шрифта = максимальная ширина символа * KLT_ITEM_CONTENT_FONT_PIXEL_SIZE / KLT_ITEM_CONTENT_FONT_SYMBOL_WIDTH
-            // но не больше KLT_ITEM_CONTENT_FONT_PIXEL_SIZE
+            val symbolHeightPx = getSymbolHeight(fontSizePt)
+            println("Текущая высота символа в пикселах: $symbolHeightPx")
 
-            // Высота символа в пикселах
-            val currentSymbolHeightPx = KLT_ITEM_CONTENT_FONT_SIZE_PT * PT_TO_PX
-            println("Высота символа в пикселах по умлочанию: $currentSymbolHeightPx")
+            val symbolWidthPx = getSymbolWidth(fontSizePt)
+            println("Текущая ширина символа в пикселах: $symbolWidthPx")
 
-            // Ширина символа в пикселах
-            val currentSymbolWidthPx = currentSymbolHeightPx * FONT_SYMBOL_WIDTH_ASPECT
-            println("Ширина символа в пикселах по умлочанию: $currentSymbolWidthPx")
-
-            var maxFontSizePx = min(maxSymbolHeightPx, currentSymbolHeightPx).toLong()
-            println("Расчётная высота символа в пикселах: $maxFontSizePx")
-
-            val maxFontSizePt = (maxFontSizePx / PT_TO_PX).toLong()
-            println("Расчётный размер шрифта в пунктах: $maxFontSizePt")
-
-            maxFontSizePx = POINT_TO_PIXEL[maxFontSizePt.toInt()].toLong()
-            println("Расчётная высота символа в пикселах после расчета размера шрифта: $maxFontSizePx")
-
-            // currentFontSymbolHeightDouble - текущая высота символа (дробное)
-            val currentFontSymbolHeightPx = maxFontSizePx
-            println("Текущая высота символа в пикселах: $currentFontSymbolHeightPx")
-
-            // currentFontSymbolHeightDouble - текущая ширина символа (дробное)
-            val currentFontSymbolWidthPx = maxFontSizePx * FONT_SYMBOL_WIDTH_ASPECT
-            println("Текущая ширина символа в пикселах: $currentFontSymbolWidthPx")
-
-            // boxHeight - высота "бокса" текста = количество строк текста * высоту символа
-            val boxHeightPx = ((resultLyric.items.size + 1) * currentFontSymbolHeightPx.toLong())
+            val boxHeightPx = ((resultLyric.items.size + 1) * symbolHeightPx.toLong())  // boxHeight - высота "бокса" текста = количество строк текста * высоту символа
             println("Высота бокса в пикселах: $boxHeightPx")
             println("Количество строк: ${resultLyric.items.size}")
 
-            // boxHeight - ширина "бокса" текста = ширина текста * ширину символа
-            val boxWidthPx = (maxTextLengthSym * currentFontSymbolWidthPx)
+            val boxWidthPx = (maxTextLengthSym * symbolWidthPx)                         // boxHeight - ширина "бокса" текста = ширина текста * ширину символа
             println("Ширина бокса в пикселах: $boxWidthPx")
 
-            // Высота рабочей области
-            val workAreaHeightPx = ((boxHeightPx / 1080) + 1) * 1080
+            val workAreaHeightPx = boxHeightPx + symbolHeightPx // Высота рабочей области
 
             // Шаблон для файла субтитра текста
-            val templateTitle = """<kdenlivetitle duration="0" LC_NUMERIC="C" width="$FRAME_WIDTH_PX" height="${workAreaHeightPx}" out="0">
+            val templateTitle = """<kdenlivetitle duration="0" LC_NUMERIC="C" width="$FRAME_WIDTH_PX" height="$workAreaHeightPx" out="0">
  <item type="QGraphicsTextItem" z-index="0">
   <position x="$TITLE_POSITION_START_X_PX" y="$TITLE_POSITION_START_Y_PX">
    <transform>1,0,0,0,1,0,0,0,1</transform>
   </position>
-  <content line-spacing="$LINE_SPACING" shadow="$SHADOW" font-underline="$FONT_UNDERLINE" box-height="${boxHeightPx.toLong()}" font="$FONT_NAME" letter-spacing="0" font-pixel-size="${maxFontSizePt.toLong()}" font-italic="$FONT_ITALIC" typewriter="$TYPEWRITER" alignment="$ALIGNMENT" font-weight="$FONT_WEIGHT" box-width="$boxWidthPx" font-color="$FONT_COLOR">$text</content>
+  <content line-spacing="$LINE_SPACING" shadow="$SHADOW" font-underline="$FONT_UNDERLINE" box-height="$boxHeightPx" font="$FONT_NAME" letter-spacing="0" font-pixel-size="$fontSizePt" font-italic="$FONT_ITALIC" typewriter="$TYPEWRITER" alignment="$ALIGNMENT" font-weight="$FONT_WEIGHT" box-width="$boxWidthPx" font-color="$FONT_COLOR">$text</content>
  </item>
  <startviewport rect="0,0,$FRAME_WIDTH_PX,${workAreaHeightPx}"/>
  <endviewport rect="0,0,$FRAME_WIDTH_PX,${workAreaHeightPx}"/>
  <background color="0,0,0,0"/>
 </kdenlivetitle>"""
 
-            // horizontPosition - позиция горизонта = половина экрана + половина высоты символа - оффсет
-            val horizontPositionPx = (FRAME_HEIGHT_PX / 2 + currentFontSymbolHeightPx / 2) - HORIZONT_OFFSET_PX
+            val horizontPositionPx = (FRAME_HEIGHT_PX / 2 + symbolHeightPx / 2) - HORIZONT_OFFSET_PX    // horizontPosition - позиция горизонта = половина экрана + половина высоты символа - оффсет
             println("Позиция горизонта в пикселах: $horizontPositionPx")
 
             // Шаблон для файла субтитра "горизонта"
-            val templateHorizont = """
-                <kdenlivetitle duration="0" LC_NUMERIC="C" width="$FRAME_WIDTH_PX" height="$FRAME_HEIGHT_PX" out="0">
-                 <item type="QGraphicsRectItem" z-index="0">
-                  <position x="0" y="${horizontPositionPx.toLong()}">
-                   <transform zoom="100">1,0,0,0,1,0,0,0,1</transform>
-                  </position>
-                  <content brushcolor="255,0,0,255" pencolor="0,0,0,255" penwidth="0" rect="0,0,1920,3"/>
-                 </item>
-                 <startviewport rect="0,0,$FRAME_WIDTH_PX,$FRAME_HEIGHT_PX"/>
-                 <endviewport rect="0,0,$FRAME_WIDTH_PX,$FRAME_HEIGHT_PX"/>
-                 <background color="0,0,0,0"/>
-                </kdenlivetitle>"""
+            val templateHorizont = """<kdenlivetitle duration="0" LC_NUMERIC="C" width="$FRAME_WIDTH_PX" height="$FRAME_HEIGHT_PX" out="0">
+ <item type="QGraphicsRectItem" z-index="0">
+  <position x="0" y="${horizontPositionPx.toLong()}">
+   <transform zoom="100">1,0,0,0,1,0,0,0,1</transform>
+  </position>
+  <content brushcolor="255,0,0,255" pencolor="0,0,0,255" penwidth="0" rect="0,0,1920,3"/>
+ </item>
+ <startviewport rect="0,0,$FRAME_WIDTH_PX,$FRAME_HEIGHT_PX"/>
+ <endviewport rect="0,0,$FRAME_WIDTH_PX,$FRAME_HEIGHT_PX"/>
+ <background color="0,0,0,0"/>
+</kdenlivetitle>"""
 
             // Настало время прописать TransformProperty для строк
-            // Проходимся по всем строкам
-            resultLyric.items.forEachIndexed { index, lyricLine ->
 
-                // TransformProperty для точки начала линии
-                // time = время начала строки
-                // x = 0
-                // y = позиция горизонта - текущий номер строки * (высота символа + коррекция)
-                // w = ширина экрана
-                // h = высота бокса текста
-                // непрозрачность полная
+            resultLyric.items.forEachIndexed { index, lyricLine -> // Проходимся по всем строкам
+
                 val startTp = TransformProperty(
                     time = lyricLine.start,
                     x = 0,
-                    y = horizontPositionPx - ((index + 1)*(currentFontSymbolHeightPx +HEIGHT_CORRECTION)).toLong(),
+                    y = horizontPositionPx - ((index + 1)*(symbolHeightPx + HEIGHT_CORRECTION)).toLong(),
                     w = FRAME_WIDTH_PX,
                     h = workAreaHeightPx,
                     if(lyricLine.isFadeLine) 0.0 else 1.0
                 )
 
-                // TransformProperty для точки конца линии
-                // time = время конца строки (с коррекцией на следующую строку)
-                // x = 0
-                // y = позиция горизонта - текущий номер строки * (высота символа + коррекция)
-                // w = ширина экрана
-                // h = высота бокса текста
-                // непрозрачность полная
-
-                var time = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(lyricLine.end!!))
+                var time = lyricLine.end!!
                 // Если текущий элемент не последний - надо проверить начало следующего элемента
-                // и если оно отличается меньше чем на 200 мс - скорректировать время конца текущей линии
                 if (index != resultLyric.items.size-1) {
-                    // Находим следующую строку
-                    val nextLyricLine = resultLyric.items[index+1]
-                    // Находим разницу во времени между текущей строкой и следующей
-                    val diffInMills = convertTimecodeToMilliseconds(nextLyricLine.start!!) - convertTimecodeToMilliseconds(lyricLine.end!!)
-                    // Если эта разница меньше 200 мс
-                    if (diffInMills < 200) {
-                        // Сдвигаем конец текущей линии и конец последнего титра в ней до начала следующей
-                        lyricLine.end = nextLyricLine.start
+                    val nextLyricLine = resultLyric.items[index+1] // Находим следующую строку
+                    val diffInMills = getDiffInMilliseconds(nextLyricLine.start!!, lyricLine.end!!) // Находим разницу во времени между текущей строкой и следующей
+                    if (diffInMills < 200) {                            // Если эта разница меньше 200 мс
+                        lyricLine.end = nextLyricLine.start             // Сдвигаем конец текущей линии и конец последнего титра в ней до начала следующей
                         lyricLine.subtitles.last().end = lyricLine.end
-                        // сдвигаем время TransformProperty к начало последнего титра текущей строки
-                        time = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(lyricLine.subtitles.last().start!!))
+                        time = lyricLine.subtitles.last().start!!       // сдвигаем время TransformProperty к началу последнего титра текущей строки
                     }
                 }
 
                 val endTp = TransformProperty(
                     time = time,
                     x = 0,
-                    y = horizontPositionPx - ((index + 1)*(currentFontSymbolHeightPx +HEIGHT_CORRECTION)).toLong(),
+                    y = horizontPositionPx - ((index + 1)*(symbolHeightPx + HEIGHT_CORRECTION)).toLong(),
                     w = FRAME_WIDTH_PX,
                     h = workAreaHeightPx,
                     opacity = if(lyricLine.isFadeLine) 0.0 else 1.0
@@ -345,378 +231,119 @@ class Lyric {
                 lyricLine.endTp = endTp
             }
 
-            // Список свойств трансформации текста
-            val propRectLineValue = emptyList<String>().toMutableList()
-            // Список свойств трансформации чётных заливок
-            val propRectTitleValueLineOdd = emptyList<String>().toMutableList()
-            // Список свойств трансформации нечётных заливок
-            val propRectTitleValueLineEven = emptyList<String>().toMutableList()
-
             // Настало время прописать TransformProperty для заливок
-            // Проходимся по строкам - от первой до предпоследней
-            for (i in 0 until resultLyric.items.size) {
 
-                // Текущая строка
-                val currentLyricLine = resultLyric.items[i]
+            for (i in 0 until resultLyric.items.size) { // Проходимся по строкам - от первой до последней
 
-                //Следующая строка
-                val nextLyricLine = if (i < resultLyric.items.size -1 ) resultLyric.items[i+1] else null
-
-                // Разница во времени между текущей строкой и следующей
-                val diffInMills = if (nextLyricLine != null) convertTimecodeToMilliseconds(nextLyricLine.start!!) - convertTimecodeToMilliseconds(currentLyricLine.end!!) else 0
-
-                // Свойство трансформации текста текущей строки - из startTp
+                val currentLyricLine = resultLyric.items[i] // Текущая строка
+                val nextLyricLine = if (i < resultLyric.items.size -1 ) resultLyric.items[i+1] else null //Следующая строка
+                val diffInMills = if (nextLyricLine != null) convertTimecodeToMilliseconds(nextLyricLine.start!!) - convertTimecodeToMilliseconds(currentLyricLine.end!!) else 0 // Разница во времени между текущей строкой и следующей
                 propRectLineValue.add("${currentLyricLine.startTp?.time}=${currentLyricLine.startTp?.x} ${currentLyricLine.startTp?.y} ${currentLyricLine.startTp?.w} ${currentLyricLine.startTp?.h} ${currentLyricLine.startTp?.opacity}")
 
                 // Если текущая строка пустая - ничего больше не делаем. Переход между строками будет плавны
-                // Если текущая строка не пустая
-                if (currentLyricLine.text != "") {
-
-                    // Свойство трансформации текста текущей строки - из endTp
+                if (currentLyricLine.text != "") { // Если текущая строка не пустая
                     propRectLineValue.add("${currentLyricLine.endTp?.time}=${currentLyricLine.endTp?.x} ${currentLyricLine.endTp?.y} ${currentLyricLine.endTp?.w} ${currentLyricLine.endTp?.h} ${currentLyricLine.endTp?.opacity}")
+                    var ww = 1.0 // Начальная позиция w для заливки = 1
+                    var currentSubtitle = currentLyricLine.subtitles[0] // Получаем первый титр текущей строки (он точно есть, т.к. строка не пустая)
+                    val startTime = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(currentSubtitle.start!!)-(1000/FRAME_FPS+1)) // Время начала анимации = времени начала этого титра минус 1 фрейм
+                    val x = TITLE_POSITION_START_X_PX+TITLE_OFFSET_START_X_PX // Координата x всегда одна и та же = TITLE_POSITION_START_X_PX + TITLE_OFFSET_START_X_PX
+                    var y = horizontPositionPx - symbolHeightPx // Координата y = позиция горизонта - высота символа
+                    val h = symbolHeightPx // Высота = высоте символа
+                    val propRectTitleValueFade = "${startTime}=${x} ${y} ${ww.toLong()} ${h} 0.0" // Свойство трансформации заливки с полной прозрачностью
+                    propRectTitleValueLineOddEven[i%2].add(propRectTitleValueFade)
+                    ww = -TITLE_OFFSET_START_X_PX.toDouble() // Смещаем стартовую позицию w на величину TITLE_OFFSET_START_X_PX
 
-                    // Начальная позиция w для заливки = 1
-                    var ww = 1.0
-
-                    // Получаем первый титр текущей строки (он точно есть, т.к. строка не пустая)
-                    val currentSubtitle = currentLyricLine.subtitles[0]
-
-                    // Время начала анимации = времени начала этого титра минус 1 фрейм
-                    val startTime = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(currentSubtitle.start!!)-(1000/FRAME_FPS+1))
-
-                    // Координата x всегда одна и та же = KLT_ITEM_CONTENT_TITLE_POSITION_START_X + KLT_ITEM_CONTENT_TITLE_OFFSET_START_X
-                    val x = TITLE_POSITION_START_X_PX+TITLE_OFFSET_START_X_PX
-
-                    // Координата y = позиция горизонта - высота символа + оффсет
-                    val y = horizontPositionPx - currentFontSymbolHeightPx// + HORIZONT_OFFSET_PX
-
-                    // Ширина = начальной позиции (1)
-                    val w = ww
-
-                    // Высота = высоте символа
-                    val h = currentFontSymbolHeightPx
-
-                    // Свойство трансформации заливки с полной прозрачностью
-                    val propRectTitleValueFade = "${startTime}=${x} ${y} ${w.toLong()} ${h} 0.0"
-
-                    // В зависимости от чётности номера линии добавляем свойство трансформации заливки в нужный список
-                    if (i%2 == 0) {
-                        propRectTitleValueLineOdd.add(propRectTitleValueFade)
-                    } else {
-                        propRectTitleValueLineEven.add(propRectTitleValueFade)
-                    }
-
-                    // Смещаем стартовую позицию w на величину KLT_ITEM_CONTENT_TITLE_OFFSET_START_X
-                    ww = -TITLE_OFFSET_START_X_PX.toDouble()
-
-                    // Проходимся по титрам текущей линии от первого до предпоследнего
-                    for (j in 0..(currentLyricLine.subtitles.size) - 2) {
-
-                        // Текущий титр
-                        val currentSubtitle = currentLyricLine.subtitles[j]
-
-                        // Время - начало текущего титра
-                        var time = currentSubtitle.start
-
-                        // Координата x всегда одна и та же = KLT_ITEM_CONTENT_TITLE_POSITION_START_X + KLT_ITEM_CONTENT_TITLE_OFFSET_START_X
-                        val x = TITLE_POSITION_START_X_PX+TITLE_OFFSET_START_X_PX
-
-                        // Координата y = позиция горизонта - высота символа + оффсет
-                        val y = horizontPositionPx - currentFontSymbolHeightPx// + HORIZONT_OFFSET_PX
-
-                        // Ширина = ширина текста тира * ширину символа
-                        val w = currentSubtitle.text!!.length * currentFontSymbolWidthPx
-
-                        // Высота = высоте символа
-                        val h = currentFontSymbolHeightPx
-
-                        // Начало анимации титра - в начальной позиции титра с непрозрачностью 60%
-                        var propRectTitleValueStart = "${time}=${x.toLong()} ${y.toLong()} ${ww.toLong()} ${h.toLong()} 0.6"
-
-                        // Время - конец текущего титра
-                        time = currentSubtitle.end
-
-                        // Ширина = предыдущее значение ширины + ширина
-                        ww += w
-                        // Конец анимации титра - в конечной позиции титра с непрозрачностью 60%
-                        var propRectTitleValueEnd = "${time}=${x} ${y} ${ww.toLong()} ${h} 0.6"
-
-                        // В зависимости от чётности номера линии добавляем свойство трансформации заливки в нужный список
-                        if (i%2 == 0) {
-                            if (propRectTitleValueLineOdd.last() != propRectTitleValueStart) propRectTitleValueLineOdd.add(propRectTitleValueStart)
-                            if (propRectTitleValueLineOdd.last() != propRectTitleValueEnd) propRectTitleValueLineOdd.add(propRectTitleValueEnd)
-                        } else {
-                            if (propRectTitleValueLineEven.last() != propRectTitleValueStart) propRectTitleValueLineEven.add(propRectTitleValueStart)
-                            if (propRectTitleValueLineEven.last() != propRectTitleValueEnd) propRectTitleValueLineEven.add(propRectTitleValueEnd)
-                        }
+                    for (j in 0..(currentLyricLine.subtitles.size) - 2) { // Проходимся по титрам текущей линии от первого до предпоследнего
+                        val currentSub = currentLyricLine.subtitles[j] // Текущий титр
+                        var time = currentSub.start // Время - начало текущего титра
+                        val w = currentSub.text!!.length * symbolWidthPx // Ширина = ширина текста тира * ширину символа
+                        val propRectTitleValueStart = "${time}=${x} ${y} ${ww.toLong()} ${h} 0.6" // Начало анимации титра - в начальной позиции титра с непрозрачностью 60%
+                        time = currentSub.end // Время - конец текущего титра
+                        ww += w // Ширина = предыдущее значение ширины + ширина
+                        val propRectTitleValueEnd = "${time}=${x} ${y} ${ww.toLong()} ${h} 0.6" // Конец анимации титра - в конечной позиции титра с непрозрачностью 60%
+                        if (propRectTitleValueLineOddEven[i%2].last() != propRectTitleValueStart) propRectTitleValueLineOddEven[i%2].add(propRectTitleValueStart)
+                        if (propRectTitleValueLineOddEven[i%2].last() != propRectTitleValueEnd) propRectTitleValueLineOddEven[i%2].add(propRectTitleValueEnd)
                     }
 
                     // На этом этапе мы закрасили все титры линии, кроме последнего
+                    currentSubtitle = currentLyricLine.subtitles[(currentLyricLine.subtitles.size)-1]   // Текущий титр - последний титр текущей строки
+                    val nextSubtitle = nextLyricLine!!.subtitles[0]  // Следующий титр - первый титр следующей строки
+                    var time = currentSubtitle.start  // Время - начало текущего титра
+                    val w = currentSubtitle.text!!.length * symbolWidthPx  // Ширина = ширина текста титра * ширину символа
+                    val propRectTitleValueStart = "$time=$x $y ${ww.toLong()} $h 0.6" // Начало анимации титра - в начальной позиции титра с непрозрачностью 60%
+                    if (propRectTitleValueLineOddEven[i%2].last() != propRectTitleValueStart) propRectTitleValueLineOddEven[i%2].add(propRectTitleValueStart)
+                    time = currentSubtitle.end  // Время - конец текущего титра
+                    ww += w  // Ширина = предыдущее значение ширины + ширина
+                    if (diffInMills < 200) y -= symbolHeightPx
+                    val propRectTitleValueEnd = "$time=$x $y ${ww.toLong()} $h 0.6"
+                    if (propRectTitleValueLineOddEven[i%2].last() != propRectTitleValueEnd) propRectTitleValueLineOddEven[i%2].add(propRectTitleValueEnd)
 
-                    // Если между текущей и следующей строкой меньше 200 мс
-                    if (diffInMills < 200) {
-
-
-                        // Текущий титр - последний титр текущей строки
-                        val currentSubtitle = currentLyricLine.subtitles[(currentLyricLine.subtitles.size)-1]
-
-                        // Следующий титр - первый титр следующей строки
-                        val nextSubtitle = nextLyricLine!!.subtitles[0]
-
-                        // Время - начало текущего титра
-                        var time = currentSubtitle.start
-
-                        // Координата x всегда одна и та же = KLT_ITEM_CONTENT_TITLE_POSITION_START_X + KLT_ITEM_CONTENT_TITLE_OFFSET_START_X
-                        val x = TITLE_POSITION_START_X_PX+TITLE_OFFSET_START_X_PX
-
-                        // Координата y = позиция горизонта - высота символа + оффсет
-                        var y = horizontPositionPx - currentFontSymbolHeightPx// + HORIZONT_OFFSET_PX
-
-                        // Ширина = ширина текста тира * ширину символа
-                        val w = currentSubtitle.text!!.length * currentFontSymbolWidthPx
-
-                        // Высота = высоте символа
-                        val h = currentFontSymbolHeightPx
-
-                        // Начало анимации титра - в начальной позиции титра с непрозрачностью 60%
-                        var propRectTitleValueStart = "${time}=${x} ${y} ${ww.toLong()} ${h} 0.6"
-
-                        // Время - конец текущего титра
-                        time = currentSubtitle.end
-
-                        // Ширина = предыдущее значение ширины + ширина
-                        ww += w
-
-                        // Поднимаем y на высоту символа
-                        y -= currentFontSymbolHeightPx
-
-                        // Конец анимации титра - в конечной позиции титра на новом уровне с непрозрачностью 60%
-                        var propRectTitleValueEnd = "${time}=${x} ${y} ${ww.toLong()} ${h} 0.6"
-
-                        // В зависимости от чётности номера линии добавляем свойство трансформации заливки в нужный список
-                        if (i%2 == 0) {
-                            if (propRectTitleValueLineOdd.last() != propRectTitleValueStart) propRectTitleValueLineOdd.add(propRectTitleValueStart)
-                            if (propRectTitleValueLineOdd.last() != propRectTitleValueEnd) propRectTitleValueLineOdd.add(propRectTitleValueEnd)
-                        } else {
-                            if (propRectTitleValueLineEven.last() != propRectTitleValueStart) propRectTitleValueLineEven.add(propRectTitleValueStart)
-                            if (propRectTitleValueLineEven.last() != propRectTitleValueEnd) propRectTitleValueLineEven.add(propRectTitleValueEnd)
-                        }
-
+                    if (diffInMills < 200) { // Если между текущей и следующей строкой меньше 200 мс
                         // На данном этапе залили последний титр строки - пора сделать фэйд
-
-                        // Начало анимации титра - в начальной позиции следующиго титра с теми же координатами и с непрозрачностью 60%
-                        var propRectTitleValueFade = "${nextSubtitle.start}=${x} ${y} ${ww.toLong()} ${h} 0.6"
-
-                        // В зависимости от чётности номера линии добавляем свойство трансформации заливки в нужный список
-                        if (i%2 == 0) {
-                            if (propRectTitleValueLineOdd.last() != propRectTitleValueFade) propRectTitleValueLineOdd.add(propRectTitleValueFade)
-                        } else {
-                            if (propRectTitleValueLineEven.last() != propRectTitleValueFade) propRectTitleValueLineEven.add(propRectTitleValueFade)
-                        }
-
-                        // Конец анимации титра - в конечной позиции следующиго титра с теми же координатами и с непрозрачностью 0%
-                        propRectTitleValueFade = "${nextSubtitle.end}=${x} ${y} ${ww.toLong()} ${h} 0.0"
-
-                        // В зависимости от чётности номера линии добавляем свойство трансформации заливки в нужный список
-                        if (i%2 == 0) {
-                            if (propRectTitleValueLineOdd.last() != propRectTitleValueFade) propRectTitleValueLineOdd.add(propRectTitleValueFade)
-                        } else {
-                            if (propRectTitleValueLineEven.last() != propRectTitleValueFade) propRectTitleValueLineEven.add(propRectTitleValueFade)
-                        }
-
-                        // На данный момент мы залили и зафейдили текущую строку
-
-                    // Если между текущей и следующей строкой больше или равно 200 мс
-                    } else {
-
-                        // Текущий титр - последний титр текущей строки
-                        val currentSubtitle = currentLyricLine.subtitles[(currentLyricLine.subtitles.size)-1]
-
-                        // Следующий титр - первый титр следующей строки
-                        val nextSubtitle = nextLyricLine!!.subtitles[0]
-
-                        // Время - начало текущего титра
-                        var time = currentSubtitle.start
-
-                        // Координата x всегда одна и та же = KLT_ITEM_CONTENT_TITLE_POSITION_START_X + KLT_ITEM_CONTENT_TITLE_OFFSET_START_X
-                        val x = TITLE_POSITION_START_X_PX+TITLE_OFFSET_START_X_PX
-
-                        // Координата y = позиция горизонта - высота символа + оффсет
-                        var y = horizontPositionPx - currentFontSymbolHeightPx// + HORIZONT_OFFSET_PX
-
-                        // Ширина = ширина текста тира * ширину символа
-                        val w = currentSubtitle.text!!.length * currentFontSymbolWidthPx
-
-                        // Высота = высоте символа
-                        val h = currentFontSymbolHeightPx
-
-                        // Начало анимации титра - в начальной позиции титра с непрозрачностью 60%
-                        var propRectTitleValueStart = "${time}=${x} ${y} ${ww.toLong()} ${h} 0.6"
-
-                        // Время - конец текущего титра
-                        time = currentSubtitle.end
-
-                        // Ширина = предыдущее значение ширины + ширина
-                        ww += w
-
-                        // Конец анимации титра - в конечной позиции титра на том же уровне с непрозрачностью 60%
-                        var propRectTitleValueEnd = "${time}=${x} ${y} ${ww.toLong()} ${h} 0.6"
-
-                        // В зависимости от чётности номера линии добавляем свойство трансформации заливки в нужный список
-                        if (i%2 == 0) {
-                            if (propRectTitleValueLineOdd.last() != propRectTitleValueStart) propRectTitleValueLineOdd.add(propRectTitleValueStart)
-                            if (propRectTitleValueLineOdd.last() != propRectTitleValueEnd) propRectTitleValueLineOdd.add(propRectTitleValueEnd)
-                        } else {
-                            if (propRectTitleValueLineEven.last() != propRectTitleValueStart) propRectTitleValueLineEven.add(propRectTitleValueStart)
-                            if (propRectTitleValueLineEven.last() != propRectTitleValueEnd) propRectTitleValueLineEven.add(propRectTitleValueEnd)
-                        }
-
+                        time = nextSubtitle.start // Время - начало следующего титра
+                        var propRectTitleValueFadeOut = "$time=$x $y ${ww.toLong()} $h 0.6"
+                        if (propRectTitleValueLineOddEven[i%2].last() != propRectTitleValueFadeOut) propRectTitleValueLineOddEven[i%2].add(propRectTitleValueFadeOut)
+                        time = nextSubtitle.end // Время - конец следующего титра
+                        propRectTitleValueFadeOut = "$time=$x $y ${ww.toLong()} $h 0.0"
+                        if (propRectTitleValueLineOddEven[i%2].last() != propRectTitleValueFadeOut) propRectTitleValueLineOddEven[i%2].add(propRectTitleValueFadeOut)
+                    } else { // Если между текущей и следующей строкой больше или равно 200 мс
                         // На данный момент мы закрасили всю строку, и теперь надо её сфэйдить с переходом на новую строку
-
-                        // Поднимаем y на высоту символа
-                        y -= currentFontSymbolHeightPx
-
-                        // Время - начало следующего титра
-                        time = nextSubtitle.start
-
-                        // Конец анимации титра - в начальной позиции следующиго титра с новыми координатами и с непрозрачностью 0%
-                        var propRectTitleValueFade = "${time}=${x} ${y} ${ww.toLong()} ${h} 0.0"
-
-                        // В зависимости от чётности номера линии добавляем свойство трансформации заливки в нужный список
-                        if (i%2 == 0) {
-                            if (propRectTitleValueLineOdd.last() != propRectTitleValueFade) propRectTitleValueLineOdd.add(propRectTitleValueFade)
-                        } else {
-                            if (propRectTitleValueLineEven.last() != propRectTitleValueFade) propRectTitleValueLineEven.add(propRectTitleValueFade)
-                        }
+                        y -= symbolHeightPx        // Поднимаем y на высоту символа
+                        time = nextSubtitle.start  // Время - начало следующего титра
+                        var propRectTitleValueFadeOut = "$time=$x $y ${ww.toLong()} $h 0.0"
+                        if (propRectTitleValueLineOddEven[i%2].last() != propRectTitleValueFadeOut) propRectTitleValueLineOddEven[i%2].add(propRectTitleValueFadeOut)
                     }
                 }
             }
 
             // Настало время заняться счётчиками вступления. В том случае, если для песни известно BPM
             if (song.bpm != null) {
-                // Находим длительность показа одного счётчика в миллисекундах: BPM / 4 такта / 60 секунд * 1000 миллисекунд
-                val counterLengthMs = (((song.bpm!!.toDouble() / 4) / 60) * 1000).toLong()
+                val counterLengthMs = (((song.bpm!!.toDouble() / 4) / 60) * 1000).toLong() // Находим длительность показа одного счётчика в миллисекундах: BPM / 4 такта / 60 секунд * 1000 миллисекунд
 
                 // Счетчики надо вставлять тогда, когда перед не пустой строкой шла пустая. Найдём и пометим такие строки
                 var currentTime = 0L
                 var previousLineIsEmpty = true
-                // Проходимся по строкам
-                resultLyric.items.forEach { lyricLine ->
-                    // Если строка не пустая
-                    if (!lyricLine.isEmptyLine) {
-                        // Если предыдущая строка была пустой или это первая не пустая строка
-                        if (previousLineIsEmpty || currentTime == 0L) {
-                            // Помечаем строку для счётчика
-                            lyricLine.isNeedCounter = true
+                resultLyric.items.forEach { lyricLine -> // Проходимся по строкам
+                    if (!lyricLine.isEmptyLine) { // Если строка не пустая
+                        if (previousLineIsEmpty || currentTime == 0L) { // Если предыдущая строка была пустой или это первая не пустая строка
+                            lyricLine.isNeedCounter = true // Помечаем строку для счётчика
                         }
-                        // Запоминаем текущую позицию
-                        currentTime = convertTimecodeToMilliseconds(lyricLine.end!!)
+                        currentTime = convertTimecodeToMilliseconds(lyricLine.end!!) // Запоминаем текущую позицию
                     }
                     previousLineIsEmpty = lyricLine.isEmptyLine
                 }
                 // На данный момент мы пометили всё нужные строки, для которых нужен счётчик
-
-                // Проходимся по всем строкам, для которых нужен счётчик
-                lyrics.filter { it.isNeedCounter }.forEach { lyric ->
-
-                    // Счётчик "0" - с позиции начала строки
-                    var startTimeMs = convertTimecodeToMilliseconds(lyric.start!!) - counterLengthMs * 0
-                    var initTimeMs = startTimeMs -(1000/FRAME_FPS+1)
-                    var endTimeMs = startTimeMs + counterLengthMs
-
-                    counter0list.add("${convertMillisecondsToTimecode(initTimeMs)}=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 0.0")
-                    counter0list.add("${convertMillisecondsToTimecode(startTimeMs)}=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 1.0")
-                    counter0list.add("${convertMillisecondsToTimecode(endTimeMs)}=-1440 -810 4800 2700 0.0")
-
-                    // Счётчик "1" - с позиции начала строки - 1 такт
-                    startTimeMs = convertTimecodeToMilliseconds(lyric.start!!) - counterLengthMs * 1
-                    initTimeMs = startTimeMs -(1000/FRAME_FPS+1)
-                    endTimeMs = startTimeMs + counterLengthMs
-
-                    if (startTimeMs > 0) {
-                        counter1list.add("${convertMillisecondsToTimecode(initTimeMs)}=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 0.0")
-                        counter1list.add("${convertMillisecondsToTimecode(startTimeMs)}=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 1.0")
-                        counter1list.add("${convertMillisecondsToTimecode(endTimeMs)}=-1440 -810 4800 2700 0.0")
+                lyrics.filter { it.isNeedCounter }.forEach { lyric -> // Проходимся по всем строкам, для которых нужен счётчик
+                    for (counterNumber in 0 .. 4) {
+                        val startTimeMs = convertTimecodeToMilliseconds(lyric.start!!) - counterLengthMs * counterNumber
+                        val initTimeMs = startTimeMs -(1000/FRAME_FPS+1)
+                        val endTimeMs = startTimeMs + counterLengthMs
+                        if (startTimeMs > 0) {
+                            counters[counterNumber].add("${convertMillisecondsToTimecode(initTimeMs)}=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 0.0")
+                            counters[counterNumber].add("${convertMillisecondsToTimecode(startTimeMs)}=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 1.0")
+                            counters[counterNumber].add("${convertMillisecondsToTimecode(endTimeMs)}=-1440 -810 4800 2700 0.0")
+                        }
                     }
-
-                    // Счётчик "2" - с позиции начала строки - 2 такта
-                    startTimeMs = convertTimecodeToMilliseconds(lyric.start!!) - counterLengthMs * 2
-                    initTimeMs = startTimeMs -(1000/FRAME_FPS+1)
-                    endTimeMs = startTimeMs + counterLengthMs
-
-                    if (startTimeMs > 0) {
-                        counter2list.add("${convertMillisecondsToTimecode(initTimeMs)}=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 0.0")
-                        counter2list.add("${convertMillisecondsToTimecode(startTimeMs)}=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 1.0")
-                        counter2list.add("${convertMillisecondsToTimecode(endTimeMs)}=-1440 -810 4800 2700 0.0")
-                    }
-
-                    // Счётчик "3" - с позиции начала строки - 3 такта
-                    startTimeMs = convertTimecodeToMilliseconds(lyric.start!!) - counterLengthMs * 3
-                    initTimeMs = startTimeMs -(1000/FRAME_FPS+1)
-                    endTimeMs = startTimeMs + counterLengthMs
-
-                    if (startTimeMs > 0) {
-                        counter3list.add("${convertMillisecondsToTimecode(initTimeMs)}=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 0.0")
-                        counter3list.add("${convertMillisecondsToTimecode(startTimeMs)}=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 1.0")
-                        counter3list.add("${convertMillisecondsToTimecode(endTimeMs)}=-1440 -810 4800 2700 0.0")
-                    }
-
-                    // Счётчик "4" - с позиции начала строки - 4 такта
-                    startTimeMs = convertTimecodeToMilliseconds(lyric.start!!) - counterLengthMs * 4
-                    initTimeMs = startTimeMs -(1000/FRAME_FPS+1)
-                    endTimeMs = startTimeMs + counterLengthMs
-
-                    if (startTimeMs > 0) {
-                        counter4list.add("${convertMillisecondsToTimecode(initTimeMs)}=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 0.0")
-                        counter4list.add("${convertMillisecondsToTimecode(startTimeMs)}=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 1.0")
-                        counter4list.add("${convertMillisecondsToTimecode(endTimeMs)}=-1440 -810 4800 2700 0.0")
-                    }
-
                 }
-
             }
 
             // Формируем тексты для файлов и сохраняем файлы
 
             val propRectValue = propRectLineValue.joinToString(";")
-            val propFillOddValue = propRectTitleValueLineOdd.joinToString(";")
-            val propFillEvenValue = propRectTitleValueLineEven.joinToString(";")
-            val propFillCounter0Value = counter0list.joinToString(";")
-            val propFillCounter1Value = counter1list.joinToString(";")
-            val propFillCounter2Value = counter2list.joinToString(";")
-            val propFillCounter3Value = counter3list.joinToString(";")
-            val propFillCounter4Value = counter4list.joinToString(";")
-            val propText = """<property name="rect">$propRectValue</property>""".replace(",",".")
-            val propTextFillOdd = """<property name="rect">$propFillOddValue</property>""".replace(",",".")
-            val propTextFillEven = """<property name="rect">$propFillEvenValue</property>""".replace(",",".")
-            val propTextCounter0 = """<property name="rect">$propFillCounter0Value</property>""".replace(",",".")
-            val propTextCounter1 = """<property name="rect">$propFillCounter1Value</property>""".replace(",",".")
-            val propTextCounter2 = """<property name="rect">$propFillCounter2Value</property>""".replace(",",".")
-            val propTextCounter3 = """<property name="rect">$propFillCounter3Value</property>""".replace(",",".")
-            val propTextCounter4 = """<property name="rect">$propFillCounter4Value</property>""".replace(",",".")
+            val propFillOddValue = propRectTitleValueLineOddEven[0].joinToString(";")
+            val propFillEvenValue = propRectTitleValueLineOddEven[1].joinToString(";")
+            val propFillCounter0Value = counters[0].joinToString(";")
+            val propFillCounter1Value = counters[1].joinToString(";")
+            val propFillCounter2Value = counters[2].joinToString(";")
+            val propFillCounter3Value = counters[3].joinToString(";")
+            val propFillCounter4Value = counters[4].joinToString(";")
 
             File(fileName).writeText(text)
-            File(fileNameKdeTitile).writeText(templateTitle)
-            File(fileNameKdeHorizont).writeText(templateHorizont)
-            File(fileNameKdeTransformPropertyTitle).writeText(propText)
-            File(fileNameKdeTransformPropertyFillOdd).writeText(propTextFillOdd)
-            File(fileNameKdeTransformPropertyFillEven).writeText(propTextFillEven)
-            File(fileNameKdeTransformPropertyCounter0).writeText(propTextCounter0)
-            File(fileNameKdeTransformPropertyCounter1).writeText(propTextCounter1)
-            File(fileNameKdeTransformPropertyCounter2).writeText(propTextCounter2)
-            File(fileNameKdeTransformPropertyCounter3).writeText(propTextCounter3)
-            File(fileNameKdeTransformPropertyCounter4).writeText(propTextCounter4)
 
-
-            resultLyric.fontSize = maxFontSizePt
+            resultLyric.fontSize = fontSizePt
             resultLyric.horizontPosition = horizontPositionPx.toLong()
-            resultLyric.symbolHeight = currentFontSymbolHeightPx
-            resultLyric.symbolWidth = currentFontSymbolWidthPx
-
-//            println(resultLyric.fontSize)
-//            println(resultLyric.horizontPosition)
-//            println(resultLyric.symbolWidth)
-//            println(resultLyric.symbolHeight)
+            resultLyric.symbolHeight = symbolHeightPx
+            resultLyric.symbolWidth = symbolWidthPx
 
             val kdeHeaderTone = "Тональность: ${song.key}"
             val kdeHeaderBpm = "Темп: ${song.bpm} bpm"
@@ -730,14 +357,6 @@ class Lyric {
             val kdeLength = convertTimecodeToMilliseconds(song.end!!)
             val kdeSongTextXmlData = templateTitle
             val kdeHorizontXmlData = templateHorizont
-            val kdeTransformFillEvenData = propTextFillEven
-            val kdeTransformFillOddData = propTextFillOdd
-            val kdeTransformTextData = propText
-            val kdeTransformCounter0Data = propTextCounter0
-            val kdeTransformCounter1Data = propTextCounter1
-            val kdeTransformCounter2Data = propTextCounter2
-            val kdeTransformCounter3Data = propTextCounter3
-            val kdeTransformCounter4Data = propTextCounter4
 
             val templateProject = """<?xml version='1.0' encoding='utf-8'?>
 <mlt LC_NUMERIC="C" producer="main_bin" version="7.9.0" root="${song.rootFolder}">
@@ -756,7 +375,6 @@ class Lyric {
   <property name="kdenlive:folderid">-1</property>
   <property name="kdenlive:clip_type">2</property>
   <property name="kdenlive:id">2</property>
-  <property name="kdenlive:file_hash">c59779cad231c7b8f562e8ef29443a01</property>
   <property name="force_reload">0</property>
   <property name="meta.media.width">$FRAME_WIDTH_PX</property>
   <property name="meta.media.height">$workAreaHeightPx</property>
@@ -775,7 +393,6 @@ class Lyric {
   <property name="kdenlive:folderid">-1</property>
   <property name="kdenlive:clip_type">2</property>
   <property name="kdenlive:id">3</property>
-  <property name="kdenlive:file_hash">16ef3f54e386fdf436ac658069cd3452</property>
   <property name="force_reload">0</property>
   <property name="meta.media.width">$FRAME_WIDTH_PX</property>
   <property name="meta.media.height">$FRAME_HEIGHT_PX</property>
@@ -792,7 +409,6 @@ class Lyric {
   <property name="kdenlive:clip_type">2</property>
   <property name="kdenlive:id">4</property>
   <property name="mlt_image_format">rgb</property>
-  <property name="kdenlive:file_hash">13e1c0b0876a622164d511aa95adea94</property>
  </producer>
  <producer id="producer_logotype" in="$kdeIn" out="$kdeOut">
   <property name="length">$kdeLength</property>
@@ -811,7 +427,6 @@ class Lyric {
   <property name="kdenlive:clip_type">2</property>
   <property name="kdenlive:id">5</property>
   <property name="kdenlive:file_size">30611</property>
-  <property name="kdenlive:file_hash">c4e099091af6d3375ff857acb31ce4eb</property>
  </producer>
  <producer id="producer_header" in="$kdeIn" out="$kdeOut">
   <property name="length">$kdeLength</property>
@@ -868,7 +483,6 @@ class Lyric {
   <property name="kdenlive:folderid">-1</property>
   <property name="kdenlive:clip_type">2</property>
   <property name="kdenlive:id">6</property>
-  <property name="kdenlive:file_hash">95d29724ff9aa14f6293d585a6f15819</property>
   <property name="force_reload">0</property>
   <property name="meta.media.width">$FRAME_WIDTH_PX</property>
   <property name="meta.media.height">$FRAME_HEIGHT_PX</property>
@@ -890,7 +504,6 @@ class Lyric {
   <property name="kdenlive:clip_type">2</property>
   <property name="kdenlive:id">7</property>
   <property name="kdenlive:file_size">9425672</property>
-  <property name="kdenlive:file_hash">6c362c6f19d4488ea3cfdbb02545e00a</property>
  </producer>
  <producer id="producer_microphone" in="$kdeIn" out="$kdeOut">
   <property name="length">$kdeLength</property>
@@ -909,7 +522,6 @@ class Lyric {
   <property name="kdenlive:clip_type">2</property>
   <property name="kdenlive:id">8</property>
   <property name="kdenlive:file_size">62987</property>
-  <property name="kdenlive:file_hash">35887e30f1b8aaa2015de9b97a459ef7</property>
  </producer>
  <producer id="producer_counter4" in="$kdeIn" out="$kdeOut">
   <property name="length">$kdeLength</property>
@@ -936,7 +548,6 @@ class Lyric {
   <property name="kdenlive:folderid">-1</property>
   <property name="kdenlive:clip_type">2</property>
   <property name="kdenlive:id">9</property>
-  <property name="kdenlive:file_hash">fd04285313b869ae7b121d36d93c6282</property>
   <property name="force_reload">0</property>
   <property name="meta.media.width">$FRAME_WIDTH_PX</property>
   <property name="meta.media.height">$FRAME_HEIGHT_PX</property>
@@ -966,7 +577,6 @@ class Lyric {
   <property name="kdenlive:folderid">-1</property>
   <property name="kdenlive:clip_type">2</property>
   <property name="kdenlive:id">10</property>
-  <property name="kdenlive:file_hash">086e6c6bbca124747fe2086e4d9a6d8d</property>
   <property name="force_reload">0</property>
   <property name="meta.media.width">$FRAME_WIDTH_PX</property>
   <property name="meta.media.height">$FRAME_HEIGHT_PX</property>
@@ -996,7 +606,6 @@ class Lyric {
   <property name="kdenlive:folderid">-1</property>
   <property name="kdenlive:clip_type">2</property>
   <property name="kdenlive:id">11</property>
-  <property name="kdenlive:file_hash">b840cdc4c2d960b77793a5df3268b902</property>
   <property name="force_reload">0</property>
   <property name="meta.media.width">$FRAME_WIDTH_PX</property>
   <property name="meta.media.height">$FRAME_HEIGHT_PX</property>
@@ -1026,7 +635,6 @@ class Lyric {
   <property name="kdenlive:folderid">-1</property>
   <property name="kdenlive:clip_type">2</property>
   <property name="kdenlive:id">12</property>
-  <property name="kdenlive:file_hash">343afff97616b0574c44cfd53b2d5765</property>
   <property name="force_reload">0</property>
   <property name="meta.media.width">$FRAME_WIDTH_PX</property>
   <property name="meta.media.height">$FRAME_HEIGHT_PX</property>
@@ -1056,7 +664,6 @@ class Lyric {
   <property name="kdenlive:folderid">-1</property>
   <property name="kdenlive:clip_type">2</property>
   <property name="kdenlive:id">13</property>
-  <property name="kdenlive:file_hash">fe787c4acf6ed08b75ec319697c6204d</property>
   <property name="force_reload">0</property>
   <property name="meta.media.width">$FRAME_WIDTH_PX</property>
   <property name="meta.media.height">$FRAME_HEIGHT_PX</property>
@@ -1092,7 +699,6 @@ class Lyric {
   <property name="kdenlive:folderid">-1</property>
   <property name="kdenlive:id">14</property>
   <property name="kdenlive:file_size">22762064</property>
-  <property name="kdenlive:file_hash">10050cff723571891d2a83e0b83808bf</property>
   <property name="kdenlive:audio_max0">250</property>
  </producer>
  <producer id="producer_audio_music" in="$kdeIn" out="$kdeOut">
@@ -1117,7 +723,6 @@ class Lyric {
   <property name="kdenlive:folderid">-1</property>
   <property name="kdenlive:id">15</property>
   <property name="kdenlive:file_size">30326828</property>
-  <property name="kdenlive:file_hash">1c3feccff8d2e997c1c49b25c4e85935</property>
   <property name="kdenlive:audio_max0">248</property>
  </producer>
  <producer id="producer_audio_vocal" in="$kdeIn" out="$kdeOut">
@@ -1142,7 +747,6 @@ class Lyric {
   <property name="kdenlive:folderid">-1</property>
   <property name="kdenlive:id">16</property>
   <property name="kdenlive:file_size">30326828</property>
-  <property name="kdenlive:file_hash">b6676a29a1127b0244f33cc610f2f491</property>
   <property name="kdenlive:audio_max0">204</property>
  </producer>
  <playlist id="main_bin">
@@ -1200,7 +804,7 @@ class Lyric {
   <property name="kdenlive:docproperties.zoom">12</property>
   <property name="kdenlive:expandedFolders"/>
   <property name="kdenlive:documentnotes"/>
-  <property name="kdenlive:docproperties.renderurl">(06) [Агата Кристи] Сказочная тайга [lyrics].mp4</property>
+  <property name="kdenlive:docproperties.renderurl">${song.videoPath}</property>
   <property name="xml_retain">1</property>
   <entry producer="producer_song_text" in="$kdeIn" out="$kdeOut"/>
   <entry producer="producer_horizont" in="$kdeIn" out="$kdeOut"/>
@@ -1241,7 +845,6 @@ class Lyric {
   <property name="kdenlive:folderid">-1</property>
   <property name="kdenlive:id">16</property>
   <property name="kdenlive:file_size">30326828</property>
-  <property name="kdenlive:file_hash">b6676a29a1127b0244f33cc610f2f491</property>
   <property name="kdenlive:audio_max0">204</property>
   <property name="xml">was here</property>
   <property name="set.test_audio">0</property>
@@ -1301,7 +904,6 @@ class Lyric {
   <property name="kdenlive:folderid">-1</property>
   <property name="kdenlive:id">15</property>
   <property name="kdenlive:file_size">30326828</property>
-  <property name="kdenlive:file_hash">1c3feccff8d2e997c1c49b25c4e85935</property>
   <property name="kdenlive:audio_max0">248</property>
   <property name="xml">was here</property>
   <property name="set.test_audio">0</property>
@@ -1361,7 +963,6 @@ class Lyric {
   <property name="kdenlive:folderid">-1</property>
   <property name="kdenlive:id">14</property>
   <property name="kdenlive:file_size">22762064</property>
-  <property name="kdenlive:file_hash">10050cff723571891d2a83e0b83808bf</property>
   <property name="kdenlive:audio_max0">250</property>
   <property name="xml">was here</property>
   <property name="set.test_audio">0</property>
@@ -1506,7 +1107,7 @@ class Lyric {
     <property name="rotate_center">1</property>
     <property name="mlt_service">qtblend</property>
     <property name="kdenlive_id">qtblend</property>
-    $kdeTransformFillEvenData
+    <property name="rect">$propFillEvenValue</property>
     <property name="compositing">0</property>
     <property name="distort">1</property>
     <property name="kdenlive:collapsed">0</property>
@@ -1531,7 +1132,7 @@ class Lyric {
     <property name="rotate_center">1</property>
     <property name="mlt_service">qtblend</property>
     <property name="kdenlive_id">qtblend</property>
-    $kdeTransformFillOddData
+    <property name="rect">$propFillOddValue</property>
     <property name="rotation">$kdeIn=0</property>
     <property name="compositing">0</property>
     <property name="distort">1</property>
@@ -1557,7 +1158,7 @@ class Lyric {
     <property name="rotate_center">1</property>
     <property name="mlt_service">qtblend</property>
     <property name="kdenlive_id">qtblend</property>
-    $kdeTransformTextData
+    <property name="rect">$propRectValue</property>
     <property name="compositing">0</property>
     <property name="distort">0</property>
     <property name="kdenlive:collapsed">0</property>
@@ -1649,7 +1250,7 @@ class Lyric {
     <property name="rotate_center">0</property>
     <property name="mlt_service">qtblend</property>
     <property name="kdenlive_id">qtblend</property>
-    $kdeTransformCounter4Data
+    <property name="rect">$propFillCounter4Value</property>
     <property name="compositing">0</property>
     <property name="distort">0</property>
     <property name="kdenlive:collapsed">0</property>
@@ -1674,7 +1275,7 @@ class Lyric {
     <property name="rotate_center">1</property>
     <property name="mlt_service">qtblend</property>
     <property name="kdenlive_id">qtblend</property>
-    $kdeTransformCounter3Data
+    <property name="rect">$propFillCounter3Value</property>
     <property name="compositing">0</property>
     <property name="distort">0</property>
     <property name="kdenlive:collapsed">0</property>
@@ -1699,7 +1300,7 @@ class Lyric {
     <property name="rotate_center">1</property>
     <property name="mlt_service">qtblend</property>
     <property name="kdenlive_id">qtblend</property>
-    $kdeTransformCounter2Data
+    <property name="rect">$propFillCounter2Value</property>
     <property name="compositing">0</property>
     <property name="distort">0</property>
     <property name="kdenlive:collapsed">0</property>
@@ -1724,7 +1325,7 @@ class Lyric {
     <property name="rotate_center">1</property>
     <property name="mlt_service">qtblend</property>
     <property name="kdenlive_id">qtblend</property>
-    $kdeTransformCounter1Data
+    <property name="rect">$propFillCounter1Value</property>
     <property name="compositing">0</property>
     <property name="distort">0</property>
     <property name="kdenlive:collapsed">0</property>
@@ -1749,7 +1350,7 @@ class Lyric {
     <property name="rotate_center">1</property>
     <property name="mlt_service">qtblend</property>
     <property name="kdenlive_id">qtblend</property>
-    $kdeTransformCounter0Data
+    <property name="rect">$propFillCounter0Value</property>
     <property name="compositing">0</property>
     <property name="distort">0</property>
     <property name="kdenlive:collapsed">0</property>

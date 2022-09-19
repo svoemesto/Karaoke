@@ -1,5 +1,5 @@
 fun main(args: Array<String>) {
 
-    Lyric.getLiric(Song.getSubtitles())
+    Lyric.getLyric(Song.getSubtitles())
 
 }

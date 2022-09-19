@@ -10,6 +10,7 @@ class Song() {
     var audioVocalPath: String? = null
     var album: String? = null
     var songName: String? = null
+    var videoPath: String? = null
     companion object {
         fun getSubtitles(): Song {
             // Задаём имя и путь к файлу с субтитрами
@@ -33,6 +34,7 @@ class Song() {
             var audioVocalPath: String? = null
             var album: String? = null
             var songName: String? = null
+            var videoPath: String? = null
 
             val subtitles: MutableList<Subtitle> = emptyList<Subtitle>().toMutableList()
 
@@ -60,6 +62,7 @@ class Song() {
                                 "VOCALFILE" -> audioVocalPath = settings[2]
                                 "SONGFILE" -> audioSongPath = settings[2]
                                 "PROJECTFILE" -> projectPath = settings[2]
+                                "VIDEOFILE" -> videoPath = settings[2]
                             }
                             // Обнуляем переменные
                             id = null
@@ -115,9 +118,8 @@ class Song() {
             result.audioVocalPath = audioVocalPath
             result.album = album
             result.songName = songName
+            result.videoPath = videoPath
 
-            // Удаляем последний объект из списка - он у нас "служебный" и был нужен только для обозначения финальной позиции
-            subtitles.removeLast()
             // В его объект Subtitles кладём список объектов Subtitle
             result.subtitles = subtitles
             // Выводим на экран список объектов Subtitle

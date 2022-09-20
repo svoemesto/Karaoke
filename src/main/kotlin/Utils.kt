@@ -1,15 +1,11 @@
 fun main() {
-    val ms = 41100L
+    val ms = 42100L
     val fps = 50L
     val crop = 1000.0 / fps
     val frames = convertMillisecondsToFrames(ms, fps)
-    println(crop)
-    println(Math.round(ms / crop))
-    println(frames)
-    println(convertFramesToMilliseconds(frames, fps))
 
-    println(convertTimecodeToMilliseconds("00:00:41.100"))
-    println(convertMillisecondsToTimecode(ms))
+    println(getBeatNumberByMilliseconds(24563))
+
 }
 
 fun convertMillisecondsToFrames(milliseconds: Long, fps:Long = FRAME_FPS): Long {
@@ -54,10 +50,20 @@ fun convertMillisecondsToTimecode(milliseconds: Long, fps:Long = 60): String {
     return "%02d:%02d:%02d.%03d".format(hours,minutes,seconds,ms)
 }
 
-fun getTactByMilliseconds(timeInMilliseconds: Long, bpm: Long = 90, firstTactTimecode: String = "00:00:00.00"): Long {
-    val taktMs = (60000.0 / bpm)
-    return  0L
+fun getBeatNumberByMilliseconds(timeInMilliseconds: Long, bpm: Long = 90, firstBeatTimecode: String = "00:00:00.000"): Long {
+    val beatMs = (60000.0 / bpm)
+    var firstBeatMs = convertTimecodeToMilliseconds(firstBeatTimecode)
+    firstBeatMs -= (firstBeatMs / ((beatMs * 4).toLong())) * (beatMs * 4).toLong()
+    val timeInMillsCorrected = timeInMilliseconds - firstBeatMs
+    return ((timeInMillsCorrected / ((beatMs * 4).toLong())) % 4) + 1
+}
 
+fun getBeatNumberByTimecode(timeCode: String, bpm: Long = 90, firstBeatTimecode: String = "00:00:00.000"): Long {
+    return getBeatNumberByMilliseconds(convertTimecodeToMilliseconds(timeCode),bpm, firstBeatTimecode)
+}
+
+fun getBeatNumberByFrames(frames: Long, bpm: Long = 90, firstBeatTimecode: String = "00:00:00.000"): Long {
+    return getBeatNumberByMilliseconds(convertFramesToMilliseconds(frames),bpm, firstBeatTimecode)
 }
 
 fun getDurationInMilliseconds(start: String, end: String): Long {

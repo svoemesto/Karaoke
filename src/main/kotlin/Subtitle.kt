@@ -100,7 +100,8 @@ class Song() {
                                 .replace("\\\\","")
                                 .replace("_", " ")
                             // Создаем объект Subtitle и инициализируем его переменными
-                            val subtitle = Subtitle(id = id, start = start, end = end, text = text, isLineStart = isLineStart, isLineEnd = isLineEnd)
+                            val isBeat = if (text != "" && beat != null && bpm != null) false else getBeatNumberByTimecode(start!!, bpm!!, beat!!) == 1L
+                            val subtitle = Subtitle(id = id, start = start, end = end, text = text, isLineStart = isLineStart, isLineEnd = isLineEnd, isBeat = isBeat)
                             // Добавляем этот объект к списку объектов
                             subtitles.add(subtitle)
                             // Обнуляем переменные

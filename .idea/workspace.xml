@@ -3,7 +3,6 @@
   <component name="ChangeListManager">
     <list default="true" id="19caf878-7ce0-44d7-94a1-cf0a31300a8b" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/Lyric.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Lyric.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/Subtitle.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Subtitle.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/Utils.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Utils.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/resources/subtitles.srt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/subtitles.srt" afterDir="false" />
@@ -33,15 +32,15 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "WebServerToolWindowFactoryState": "false"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;
   }
-}]]></component>
-  <component name="RunManager" selected="Kotlin.MainKt">
+}</component>
+  <component name="RunManager" selected="Kotlin.UtilsKt">
     <configuration name="MainKt" type="JetRunConfigurationType" temporary="true" nameIsGenerated="true">
       <option name="MAIN_CLASS_NAME" value="MainKt" />
       <module name="Karaoke" />
@@ -58,8 +57,8 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Kotlin.MainKt" />
         <item itemvalue="Kotlin.UtilsKt" />
+        <item itemvalue="Kotlin.MainKt" />
       </list>
     </recent_temporary>
   </component>
@@ -71,7 +70,8 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1663329937819</updated>
-      <workItem from="1663329942664" duration="149820000" />
+      <workItem from="1663329942664" duration="149955000" />
+      <workItem from="1663688948243" duration="2455000" />
     </task>
     <task id="LOCAL-00001" summary="Initial commit">
       <created>1663330270975</created>
@@ -220,7 +220,14 @@
       <option name="project" value="LOCAL" />
       <updated>1663674665594</updated>
     </task>
-    <option name="localTasksCounter" value="22" />
+    <task id="LOCAL-00022" summary="Initial commit">
+      <created>1663688915564</created>
+      <option name="number" value="00022" />
+      <option name="presentableId" value="LOCAL-00022" />
+      <option name="project" value="LOCAL" />
+      <updated>1663688915564</updated>
+    </task>
+    <option name="localTasksCounter" value="23" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

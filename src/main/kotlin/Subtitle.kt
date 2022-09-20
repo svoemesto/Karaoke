@@ -2,7 +2,6 @@ class Song() {
     var subtitles: List<Subtitle> = emptyList()
     var end: String? = null
     var bpm: Long = 90
-    var delay: Long = 0L
     var key: String? = null
     var rootFolder: String? = null
     var projectLyricsPath: String? = null
@@ -14,6 +13,7 @@ class Song() {
     var songName: String? = null
     var videoLyricsPath: String? = null
     var videoKaraokePath: String? = null
+    var beat: String? = null
     companion object {
         fun getSubtitles(): Song {
             // Задаём имя и путь к файлу с субтитрами
@@ -29,7 +29,6 @@ class Song() {
             var end: String? = null
             var text: String? = null
             var bpm: Long? = null
-            var delay: Long? = null
             var key: String? = null
             var rootFolder: String? = null
             var projectLyricsPath: String? = null
@@ -41,6 +40,7 @@ class Song() {
             var songName: String? = null
             var videoLyricsPath: String? = null
             var videoKaraokePath: String? = null
+            var beat: String? = null
 
             val subtitles: MutableList<Subtitle> = emptyList<Subtitle>().toMutableList()
 
@@ -60,7 +60,6 @@ class Song() {
                             val settings = sub.split("|")
                             when (settings[1].uppercase()) {
                                 "BPM" -> bpm = settings[2].toLongOrNull()
-                                "DELAY" -> delay = settings[2].toLongOrNull()
                                 "KEY" -> key = settings[2]
                                 "NAME" -> songName = settings[2]
                                 "ALBUM" -> album = settings[2]
@@ -72,6 +71,7 @@ class Song() {
                                 "PROJECTKARAOKEFILE" -> projectKaraokePath = settings[2]
                                 "VIDEOLYRICSFILE" -> videoLyricsPath = settings[2]
                                 "VIDEOKARAOKEFILE" -> videoKaraokePath = settings[2]
+                                "TACT" -> beat = startEnd!!.split(" --> ")[1]
                             }
                             // Обнуляем переменные
                             id = null
@@ -119,7 +119,6 @@ class Song() {
             // Устанавливаем end равный end последнего объекта из списка и найденные выше настройки (если они были)
             result.end = subtitles.last().end
             result.bpm = bpm?:90L
-            result.delay = delay?:0L
             result.key = key
             result.rootFolder = rootFolder
             result.projectLyricsPath = projectLyricsPath
@@ -131,6 +130,7 @@ class Song() {
             result.songName = songName
             result.videoLyricsPath = videoLyricsPath
             result.videoKaraokePath = videoKaraokePath
+            result.beat = beat
 
             // В его объект Subtitles кладём список объектов Subtitle
             result.subtitles = subtitles
@@ -154,5 +154,6 @@ data class Subtitle(
     var end: String? = null,
     val text: String? = null,
     val isLineStart: Boolean? = null,
-    val isLineEnd: Boolean? = null
+    val isLineEnd: Boolean? = null,
+    val isBeat: Boolean = false
 )

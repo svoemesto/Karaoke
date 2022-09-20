@@ -48,7 +48,7 @@ class Lyric {
                 emptyList<String>().toMutableList()
             )
 
-            val takts = listOf(
+            val beats = listOf(
                 emptyList<String>().toMutableList(),
                 emptyList<String>().toMutableList(),
                 emptyList<String>().toMutableList(),
@@ -336,39 +336,47 @@ class Lyric {
             }
 
             // Такты
-            val delayMs = convertTimecodeToMilliseconds("00:00:03.533") + TIME_OFFSET_MS
+            val delayMs = convertTimecodeToMilliseconds(song.beat!!) + TIME_OFFSET_MS
 
 //            // Такт в мс
-            val taktMs = (60000.0 / song.bpm) // song.delay
+            val beatMs = (60000.0 / song.bpm) // song.delay
             // Такт в таймкоде
-            val taktTimecode = convertMillisecondsToTimecode(taktMs.toLong())
+            val beatTimecode = convertMillisecondsToTimecode(beatMs.toLong())
             // Такт в фреймах
-            val taktFrames = convertMillisecondsToFrames(taktMs.toLong())
+            val beatFrames = convertMillisecondsToFrames(beatMs.toLong())
 
             var currentPositionStartMs = 0L
             var prevRightPositionMs = 0L
             var prevPositionTimecode = "00:00:00.000"
-            var taktCounter = 1L
-            while ((delayMs + currentPositionStartMs + taktMs) < convertTimecodeToMilliseconds(song.end!!)) {
+            var beatCounter = 1L
+            while ((delayMs + currentPositionStartMs + beatMs) < convertTimecodeToMilliseconds(song.end!!)) {
 
-                currentPositionStartMs = (delayMs + taktMs * (taktCounter-1)).toLong()
-                val currentPositionStartMs1fb = convertFramesToMilliseconds(convertMillisecondsToFrames(currentPositionStartMs)-2)
-                val currentPositionEndMs = (delayMs + taktMs * (taktCounter)).toLong()
+                val tick = (beatCounter-1)%4
+                currentPositionStartMs = (delayMs + beatMs * (beatCounter-1)).toLong() + TIME_OFFSET_MS
+
+                val currentPositionStartMs2fb = convertFramesToMilliseconds(convertMillisecondsToFrames(currentPositionStartMs)-2)
+                val currentPositionStartMs1fb = convertFramesToMilliseconds(convertMillisecondsToFrames(currentPositionStartMs)-1)
+                val currentPositionEndMs = convertFramesToMilliseconds(convertMillisecondsToFrames(currentPositionStartMs + (beatMs * (4-tick)).toLong())-3)
                 val currentPositionEndMs1fa = convertFramesToMilliseconds(convertMillisecondsToFrames(currentPositionEndMs)+1)
+                val currentPositionEndMs2fa = convertFramesToMilliseconds(convertMillisecondsToFrames(currentPositionEndMs)+2)
 
+                val point0 = "${convertMillisecondsToTimecode(currentPositionStartMs2fb)}=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 0.0"
                 val point1 = "${convertMillisecondsToTimecode(currentPositionStartMs1fb)}=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 0.0"
                 val point2 = "${convertMillisecondsToTimecode(currentPositionStartMs)}=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 1.0"
-                val point3 = "${convertMillisecondsToTimecode(currentPositionEndMs)}=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 1.0"
+                val point3 = "${convertMillisecondsToTimecode(currentPositionEndMs)}=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 0.0"
                 val point4 = "${convertMillisecondsToTimecode(currentPositionEndMs1fa)}=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 0.0"
+                val point5 = "${convertMillisecondsToTimecode(currentPositionEndMs2fa)}=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 0.0"
 
-                takts[((taktCounter-1)%4).toInt()].add(point1)
-                takts[((taktCounter-1)%4).toInt()].add(point2)
-                takts[((taktCounter-1)%4).toInt()].add(point3)
-                takts[((taktCounter-1)%4).toInt()].add(point4)
+                beats[tick.toInt()].add(point0)
+                beats[tick.toInt()].add(point1)
+                beats[tick.toInt()].add(point2)
+                beats[tick.toInt()].add(point3)
+                beats[tick.toInt()].add(point4)
+                beats[tick.toInt()].add(point5)
 
                 prevRightPositionMs = currentPositionStartMs
 
-                taktCounter += 1
+                beatCounter += 1
             }
 
             // Формируем тексты для файлов и сохраняем файлы
@@ -382,10 +390,10 @@ class Lyric {
             val propFillCounter2Value = counters[2].joinToString(";")
             val propFillCounter3Value = counters[3].joinToString(";")
             val propFillCounter4Value = counters[4].joinToString(";")
-            val propTakt1Value = takts[0].joinToString(";")
-            val propTakt2Value = takts[1].joinToString(";")
-            val propTakt3Value = takts[2].joinToString(";")
-            val propTakt4Value = takts[3].joinToString(";")
+            val propTakt1Value = beats[0].joinToString(";")
+            val propTakt2Value = beats[1].joinToString(";")
+            val propTakt3Value = beats[2].joinToString(";")
+            val propTakt4Value = beats[3].joinToString(";")
             File(fileName).writeText(text)
 
             resultLyric.fontSize = fontSizePt
@@ -797,8 +805,8 @@ class Lyric {
   <property name="kdenlive:file_size">30326828</property>
   <property name="kdenlive:audio_max0">204</property>
  </producer>
- <producer id="producer_takt1" in="00:00:00.000" out="00:02:51.750">
-  <property name="length">10306</property>
+ <producer id="producer_beat1" in="$kdeIn" out="$kdeOut">
+  <property name="length">$kdeLength</property>
   <property name="eof">pause</property>
   <property name="resource"/>
   <property name="progressive">1</property>
@@ -808,11 +816,11 @@ class Lyric {
   <property name="kdenlive:duration">300</property>
   <property name="kdenlive:clipname">Такт1</property>
   <property name="xmldata"><kdenlivetitle duration="300" LC_NUMERIC="C" width="1920" height="1080" out="299">
- <item type="QGraphicsTextItem" z-index="-1">
-  <position x="1794" y="813">
-   <transform>1,0,0,0,1,0,0,0,1</transform>
+ <item type="QGraphicsRectItem" z-index="1">
+  <position x="860" y="150">
+   <transform zoom="100">1,0,0,0,1,0,0,0,1</transform>
   </position>
-  <content line-spacing="0" shadow="1;#64000000;3;3;3" font-underline="0" box-height="264" font="JetBrains Mono" letter-spacing="0" font-pixel-size="200" font-italic="0" typewriter="0;2;1;0;0" alignment="1" font-weight="50" box-width="120" font-color="85,255,127,255">1</content>
+  <content brushcolor="0,255,0,255" pencolor="0,0,0,255" penwidth="0" rect="0,0,200,50"/>
  </item>
  <startviewport rect="0,0,1920,1080"/>
  <endviewport rect="0,0,1920,1080"/>
@@ -827,8 +835,8 @@ class Lyric {
   <property name="meta.media.width">1920</property>
   <property name="meta.media.height">1080</property>
  </producer>
- <producer id="producer_takt2" in="00:00:00.000" out="00:02:51.750">
-  <property name="length">10306</property>
+ <producer id="producer_beat2" in="$kdeIn" out="$kdeOut">
+  <property name="length">$kdeLength</property>
   <property name="eof">pause</property>
   <property name="resource"/>
   <property name="progressive">1</property>
@@ -838,11 +846,11 @@ class Lyric {
   <property name="kdenlive:duration">300</property>
   <property name="kdenlive:clipname">Такт2</property>
   <property name="xmldata"><kdenlivetitle duration="300" LC_NUMERIC="C" width="1920" height="1080" out="299">
- <item type="QGraphicsTextItem" z-index="-1">
-  <position x="1794" y="813">
-   <transform>1,0,0,0,1,0,0,0,1</transform>
+ <item type="QGraphicsRectItem" z-index="2">
+  <position x="910" y="150">
+   <transform zoom="100">1,0,0,0,1,0,0,0,1</transform>
   </position>
-  <content line-spacing="0" shadow="1;#64000000;3;3;3" font-underline="0" box-height="264" font-outline-color="0,0,0,255" font="JetBrains Mono" letter-spacing="0" font-pixel-size="200" font-italic="0" typewriter="0;2;1;0;0" alignment="1" font-weight="50" font-outline="0" box-width="123" font-color="255,255,127,255">2</content>
+  <content brushcolor="0,255,0,255" pencolor="0,0,0,255" penwidth="0" rect="0,0,150,50"/>
  </item>
  <startviewport rect="0,0,1920,1080"/>
  <endviewport rect="0,0,1920,1080"/>
@@ -857,8 +865,8 @@ class Lyric {
   <property name="meta.media.width">1920</property>
   <property name="meta.media.height">1080</property>
  </producer>
- <producer id="producer_takt3" in="00:00:00.000" out="00:02:51.750">
-  <property name="length">10306</property>
+ <producer id="producer_beat3" in="$kdeIn" out="$kdeOut">
+  <property name="length">$kdeLength</property>
   <property name="eof">pause</property>
   <property name="resource"/>
   <property name="progressive">1</property>
@@ -868,11 +876,17 @@ class Lyric {
   <property name="kdenlive:duration">300</property>
   <property name="kdenlive:clipname">Такт3</property>
   <property name="xmldata"><kdenlivetitle duration="300" LC_NUMERIC="C" width="1920" height="1080" out="299">
- <item type="QGraphicsTextItem" z-index="-1">
-  <position x="1794" y="813">
-   <transform>1,0,0,0,1,0,0,0,1</transform>
+ <item type="QGraphicsRectItem" z-index="4">
+  <position x="1010" y="150">
+   <transform zoom="100">1,0,0,0,1,0,0,0,1</transform>
   </position>
-  <content line-spacing="0" shadow="1;#64000000;3;3;3" font-underline="0" box-height="264" font-outline-color="0,0,0,255" font="JetBrains Mono" letter-spacing="0" font-pixel-size="200" font-italic="0" typewriter="0;2;1;0;0" alignment="1" font-weight="50" font-outline="0" box-width="123" font-color="255,170,127,255">3</content>
+  <content brushcolor="0,255,0,255" pencolor="0,0,0,255" penwidth="0" rect="0,0,50,50"/>
+ </item>
+ <item type="QGraphicsRectItem" z-index="3">
+  <position x="960" y="150">
+   <transform zoom="100">1,0,0,0,1,0,0,0,1</transform>
+  </position>
+  <content brushcolor="0,255,0,255" pencolor="0,0,0,255" penwidth="0" rect="0,0,100,50"/>
  </item>
  <startviewport rect="0,0,1920,1080"/>
  <endviewport rect="0,0,1920,1080"/>
@@ -887,8 +901,8 @@ class Lyric {
   <property name="meta.media.width">1920</property>
   <property name="meta.media.height">1080</property>
  </producer>
- <producer id="producer_takt4" in="00:00:00.000" out="00:02:51.750">
-  <property name="length">10306</property>
+ <producer id="producer_beat4" in="$kdeIn" out="$kdeOut">
+  <property name="length">$kdeLength</property>
   <property name="eof">pause</property>
   <property name="resource"/>
   <property name="progressive">1</property>
@@ -898,11 +912,11 @@ class Lyric {
   <property name="kdenlive:duration">300</property>
   <property name="kdenlive:clipname">Такт4</property>
   <property name="xmldata"><kdenlivetitle duration="300" LC_NUMERIC="C" width="1920" height="1080" out="299">
- <item type="QGraphicsTextItem" z-index="-1">
-  <position x="1794" y="813">
-   <transform>1,0,0,0,1,0,0,0,1</transform>
+ <item type="QGraphicsRectItem" z-index="4">
+  <position x="1010" y="150">
+   <transform zoom="100">1,0,0,0,1,0,0,0,1</transform>
   </position>
-  <content line-spacing="0" shadow="1;#64000000;3;3;3" font-underline="0" box-height="264" font-outline-color="0,0,0,255" font="JetBrains Mono" letter-spacing="0" font-pixel-size="200" font-italic="0" typewriter="0;2;1;0;0" alignment="1" font-weight="50" font-outline="0" box-width="123" font-color="255,0,0,255">4</content>
+  <content brushcolor="0,255,0,255" pencolor="0,0,0,255" penwidth="0" rect="0,0,50,50"/>
  </item>
  <startviewport rect="0,0,1920,1080"/>
  <endviewport rect="0,0,1920,1080"/>
@@ -989,10 +1003,10 @@ class Lyric {
   <entry producer="producer_audio_song" in="$kdeIn" out="$kdeOut"/>
   <entry producer="producer_audio_music" in="$kdeIn" out="$kdeOut"/>
   <entry producer="producer_audio_vocal" in="$kdeIn" out="$kdeOut"/>
-  <entry producer="producer_takt1" in="$kdeIn" out="$kdeOut"/>
-  <entry producer="producer_takt2" in="$kdeIn" out="$kdeOut"/>
-  <entry producer="producer_takt3" in="$kdeIn" out="$kdeOut"/>
-  <entry producer="producer_takt4" in="$kdeIn" out="$kdeOut"/>
+  <entry producer="producer_beat1" in="$kdeIn" out="$kdeOut"/>
+  <entry producer="producer_beat2" in="$kdeIn" out="$kdeOut"/>
+  <entry producer="producer_beat3" in="$kdeIn" out="$kdeOut"/>
+  <entry producer="producer_beat4" in="$kdeIn" out="$kdeOut"/>
  </playlist>
  <producer id="black_track" in="$kdeIn" out="00:11:11.917">
   <property name="length">2147483647</property>
@@ -1525,11 +1539,11 @@ class Lyric {
   <track hide="audio" producer="playlist_counter0_file"/>
   <track hide="audio" producer="playlist_counter0_track"/>
  </tractor>
-<playlist id="playlist_takt4_file">
-  <entry producer="producer_takt4" in="00:00:00.000" out="00:02:51.750">
+<playlist id="playlist_beat4_file">
+  <entry producer="producer_beat4" in="$kdeIn" out="$kdeOut">
    <property name="kdenlive:id">20</property>
    <property name="kdenlive:activeeffect">0</property>
-   <filter id="filter_takt4">
+   <filter id="filter_beat4">
     <property name="rotate_center">1</property>
     <property name="mlt_service">qtblend</property>
     <property name="kdenlive_id">qtblend</property>
@@ -1540,22 +1554,22 @@ class Lyric {
    </filter>
   </entry>
  </playlist>
- <playlist id="playlist_takt4_track"/>
- <tractor id="tractor_takt4" in="$kdeIn" out="$kdeOut">
+ <playlist id="playlist_beat4_track"/>
+ <tractor id="tractor_beat4" in="$kdeIn" out="$kdeOut">
   <property name="kdenlive:trackheight">69</property>
   <property name="kdenlive:timeline_active">1</property>
   <property name="kdenlive:collapsed">28</property>
   <property name="kdenlive:track_name">ТАКТ4</property>
   <property name="kdenlive:thumbs_format"/>
   <property name="kdenlive:audio_rec"/>
-  <track hide="audio" producer="playlist_takt4_file"/>
-  <track hide="audio" producer="playlist_takt4_track"/>
+  <track hide="audio" producer="playlist_beat4_file"/>
+  <track hide="audio" producer="playlist_beat4_track"/>
  </tractor>
- <playlist id="playlist_takt3_file">
-  <entry producer="producer_takt3" in="$kdeIn" out="$kdeOut">
+ <playlist id="playlist_beat3_file">
+  <entry producer="producer_beat3" in="$kdeIn" out="$kdeOut">
    <property name="kdenlive:id">19</property>
    <property name="kdenlive:activeeffect">0</property>
-   <filter id="filter_takt3">
+   <filter id="filter_beat3">
     <property name="rotate_center">1</property>
     <property name="mlt_service">qtblend</property>
     <property name="kdenlive_id">qtblend</property>
@@ -1566,20 +1580,20 @@ class Lyric {
    </filter>
   </entry>
  </playlist>
- <playlist id="playlist_takt3_track"/>
- <tractor id="tractor_takt3" in="$kdeIn" out="$kdeOut">
+ <playlist id="playlist_beat3_track"/>
+ <tractor id="tractor_beat3" in="$kdeIn" out="$kdeOut">
   <property name="kdenlive:trackheight">69</property>
   <property name="kdenlive:timeline_active">1</property>
   <property name="kdenlive:track_name">ТАКТ3</property>
   <property name="kdenlive:collapsed">28</property>
-  <track producer="playlist_takt3_file"/>
-  <track producer="playlist_takt3_track"/>
+  <track producer="playlist_beat3_file"/>
+  <track producer="playlist_beat3_track"/>
  </tractor>
- <playlist id="playlist_takt2_file">
-  <entry producer="producer_takt2" in="$kdeIn" out="$kdeOut">
+ <playlist id="playlist_beat2_file">
+  <entry producer="producer_beat2" in="$kdeIn" out="$kdeOut">
    <property name="kdenlive:id">18</property>
    <property name="kdenlive:activeeffect">0</property>
-   <filter id="filter_takt2">
+   <filter id="filter_beat2">
     <property name="rotate_center">1</property>
     <property name="mlt_service">qtblend</property>
     <property name="kdenlive_id">qtblend</property>
@@ -1590,20 +1604,20 @@ class Lyric {
    </filter>
   </entry>
  </playlist>
- <playlist id="playlist_takt2_track"/>
- <tractor id="tractor_takt2" in="$kdeIn" out="$kdeOut">
+ <playlist id="playlist_beat2_track"/>
+ <tractor id="tractor_beat2" in="$kdeIn" out="$kdeOut">
   <property name="kdenlive:trackheight">69</property>
   <property name="kdenlive:timeline_active">1</property>
   <property name="kdenlive:track_name">ТАКТ2</property>
   <property name="kdenlive:collapsed">28</property>
-  <track producer="playlist_takt2_file"/>
-  <track producer="playlist_takt2_track"/>
+  <track producer="playlist_beat2_file"/>
+  <track producer="playlist_beat2_track"/>
  </tractor>
- <playlist id="playlist_takt1_file">
-  <entry producer="producer_takt1" in="$kdeIn" out="$kdeOut">
+ <playlist id="playlist_beat1_file">
+  <entry producer="producer_beat1" in="$kdeIn" out="$kdeOut">
    <property name="kdenlive:id">17</property>
    <property name="kdenlive:activeeffect">0</property>
-   <filter id="filter_takt1">
+   <filter id="filter_beat1">
     <property name="rotate_center">1</property>
     <property name="mlt_service">qtblend</property>
     <property name="kdenlive_id">qtblend</property>
@@ -1614,14 +1628,14 @@ class Lyric {
    </filter>
   </entry>
  </playlist>
- <playlist id="playlist_takt1_track"/>
- <tractor id="tractor_takt1" in="$kdeIn" out="$kdeOut">
+ <playlist id="playlist_beat1_track"/>
+ <tractor id="tractor_beat1" in="$kdeIn" out="$kdeOut">
   <property name="kdenlive:trackheight">69</property>
   <property name="kdenlive:timeline_active">1</property>
   <property name="kdenlive:track_name">ТАКТ1</property>
   <property name="kdenlive:collapsed">28</property>
-  <track producer="playlist_takt1_file"/>
-  <track producer="playlist_takt1_track"/>
+  <track producer="playlist_beat1_file"/>
+  <track producer="playlist_beat1_track"/>
  </tractor>
  <tractor id="tractor_timeline" in="$kdeIn" out="00:11:11.917">
   <track producer="black_track"/>
@@ -1641,10 +1655,10 @@ class Lyric {
   <track producer="tractor_counter2"/>
   <track producer="tractor_counter1"/>
   <track producer="tractor_counter0"/>
-  <track producer="tractor_takt4"/>
-  <track producer="tractor_takt3"/>
-  <track producer="tractor_takt2"/>
-  <track producer="tractor_takt1"/>
+  <track producer="tractor_beat4"/>
+  <track producer="tractor_beat3"/>
+  <track producer="tractor_beat2"/>
+  <track producer="tractor_beat1"/>
   <transition id="transition0">
    <property name="a_track">0</property>
    <property name="b_track">1</property>

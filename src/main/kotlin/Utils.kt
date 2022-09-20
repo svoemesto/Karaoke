@@ -54,6 +54,12 @@ fun convertMillisecondsToTimecode(milliseconds: Long, fps:Long = 60): String {
     return "%02d:%02d:%02d.%03d".format(hours,minutes,seconds,ms)
 }
 
+fun getTactByMilliseconds(timeInMilliseconds: Long, bpm: Long = 90, firstTactTimecode: String = "00:00:00.00"): Long {
+    val taktMs = (60000.0 / bpm)
+    return  0L
+
+}
+
 fun getDurationInMilliseconds(start: String, end: String): Long {
     return convertTimecodeToMilliseconds(end) - convertTimecodeToMilliseconds(start)
 }

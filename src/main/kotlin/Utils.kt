@@ -1,10 +1,6 @@
 fun main() {
-    val ms = 42100L
-    val fps = 50L
-    val crop = 1000.0 / fps
-    val frames = convertMillisecondsToFrames(ms, fps)
 
-    println(getBeatNumberByMilliseconds(24563))
+    println(getBeatNumberByMilliseconds(11000, 100, "00:00:05.000"))
 
 }
 
@@ -52,10 +48,23 @@ fun convertMillisecondsToTimecode(milliseconds: Long, fps:Long = 60): String {
 
 fun getBeatNumberByMilliseconds(timeInMilliseconds: Long, bpm: Long = 90, firstBeatTimecode: String = "00:00:00.000"): Long {
     val beatMs = (60000.0 / bpm)
+    println("Время звучания 1 бита = $beatMs ms")
     var firstBeatMs = convertTimecodeToMilliseconds(firstBeatTimecode)
-    firstBeatMs -= (firstBeatMs / ((beatMs * 4).toLong())) * (beatMs * 4).toLong()
-    val timeInMillsCorrected = timeInMilliseconds - firstBeatMs
-    return ((timeInMillsCorrected / ((beatMs * 4).toLong())) % 4) + 1
+    println("Первый отмеченый бит находится от начала в $firstBeatMs ms")
+    println("Время = $timeInMilliseconds ms")
+    var timeInMillsCorrected = timeInMilliseconds - firstBeatMs
+    println("Время после сдвигания = $timeInMillsCorrected ms")
+    val count4beatsBeafore = (timeInMillsCorrected / (beatMs * 4)).toLong()
+    println("Перед первым временем находится как минимум $count4beatsBeafore тактов по 4 бита")
+    val different = count4beatsBeafore * (beatMs * 4).toLong()
+    println("Надо сдвинуть время на $different ms")
+    timeInMillsCorrected -= different
+    println("После сдвига время находится от начала в $timeInMillsCorrected ms и это должно быть меньше, чем ${(beatMs * 4).toLong()} ms")
+    val result = ((timeInMillsCorrected / (beatMs.toLong())) % 4) + 1
+    println("Разультат = $result")
+    println("-------------------------------------------")
+
+    return result
 }
 
 fun getBeatNumberByTimecode(timeCode: String, bpm: Long = 90, firstBeatTimecode: String = "00:00:00.000"): Long {

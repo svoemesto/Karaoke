@@ -1,3 +1,38 @@
+fun main() {
+    val ms = 41100L
+    val fps = 50L
+    val crop = 1000.0 / fps
+    val frames = convertMillisecondsToFrames(ms, fps)
+    println(crop)
+    println(Math.round(ms / crop))
+    println(frames)
+    println(convertFramesToMilliseconds(frames, fps))
+
+    println(convertTimecodeToMilliseconds("00:00:41.100"))
+    println(convertMillisecondsToTimecode(ms))
+}
+
+fun convertMillisecondsToFrames(milliseconds: Long, fps:Long = FRAME_FPS): Long {
+    val frameLength = 1000.0 / fps
+    return Math.round(milliseconds / frameLength)
+}
+
+fun convertMillisecondsToFramesDouble(milliseconds: Long, fps:Long = FRAME_FPS): Double {
+    val frameLength = 1000.0 / fps
+    return milliseconds / frameLength
+}
+
+fun convertFramesToMilliseconds(frames: Long, fps:Long = FRAME_FPS): Long {
+    val frameLength = 1000.0 / fps
+    return Math.round(frames * frameLength)
+}
+
+fun convertFramesToTimecode(frames: Long, fps:Long = FRAME_FPS): String {
+    return convertMillisecondsToTimecode(convertFramesToMilliseconds(frames,fps))
+}
+fun convertTimecodeToFrames(timecode: String, fps:Long = FRAME_FPS): Long {
+    return convertMillisecondsToFrames(convertTimecodeToMilliseconds(timecode), fps)
+}
 fun convertTimecodeToMilliseconds(timecode: String): Long {
     val hhmmssmm = timecode.split(":")
     val hours = hhmmssmm[0].toLong()
@@ -9,7 +44,9 @@ fun convertTimecodeToMilliseconds(timecode: String): Long {
     return result
 }
 
-fun convertMillisecondsToTimecode(milliseconds: Long): String {
+fun convertMillisecondsToTimecode(milliseconds: Long, fps:Long = 60): String {
+//    val frames = convertMillisecondsToFrames(milliseconds, fps)
+//    val croppedMs = convertFramesToMilliseconds(frames, fps)
     val hours = milliseconds / (1000*60*60)
     val minutes = (milliseconds - hours*1000*60*60) / (1000*60)
     val seconds = (milliseconds - hours*1000*60*60 - minutes*1000*60) / 1000

@@ -4,8 +4,7 @@
     <list default="true" id="19caf878-7ce0-44d7-94a1-cf0a31300a8b" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/Lyric.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Lyric.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/Main.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Main.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/Settings.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Settings.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/Setup.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Setup.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/Subtitle.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Subtitle.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/Utils.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Utils.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/resources/subtitles.srt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/subtitles.srt" afterDir="false" />
@@ -43,9 +42,16 @@
     "WebServerToolWindowFactoryState": "false"
   }
 }]]></component>
-  <component name="RunManager">
+  <component name="RunManager" selected="Kotlin.MainKt">
     <configuration name="MainKt" type="JetRunConfigurationType" temporary="true" nameIsGenerated="true">
       <option name="MAIN_CLASS_NAME" value="MainKt" />
+      <module name="Karaoke" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="UtilsKt" type="JetRunConfigurationType" temporary="true" nameIsGenerated="true">
+      <option name="MAIN_CLASS_NAME" value="UtilsKt" />
       <module name="Karaoke" />
       <method v="2">
         <option name="Make" enabled="true" />
@@ -54,6 +60,7 @@
     <recent_temporary>
       <list>
         <item itemvalue="Kotlin.MainKt" />
+        <item itemvalue="Kotlin.UtilsKt" />
       </list>
     </recent_temporary>
   </component>
@@ -65,7 +72,7 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1663329937819</updated>
-      <workItem from="1663329942664" duration="113768000" />
+      <workItem from="1663329942664" duration="141987000" />
     </task>
     <task id="LOCAL-00001" summary="Initial commit">
       <created>1663330270975</created>
@@ -200,7 +207,14 @@
       <option name="project" value="LOCAL" />
       <updated>1663540073958</updated>
     </task>
-    <option name="localTasksCounter" value="20" />
+    <task id="LOCAL-00020" summary="Initial commit">
+      <created>1663582265499</created>
+      <option name="number" value="00020" />
+      <option name="presentableId" value="LOCAL-00020" />
+      <option name="project" value="LOCAL" />
+      <updated>1663582265499</updated>
+    </task>
+    <option name="localTasksCounter" value="21" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

@@ -1,16 +1,19 @@
 class Song() {
     var subtitles: List<Subtitle> = emptyList()
     var end: String? = null
-    var bpm: Long? = null
+    var bpm: Long = 90
+    var delay: Long = 0L
     var key: String? = null
     var rootFolder: String? = null
-    var projectPath: String? = null
+    var projectLyricsPath: String? = null
+    var projectKaraokePath: String? = null
     var audioSongPath: String? = null
     var audioMusicPath: String? = null
     var audioVocalPath: String? = null
     var album: String? = null
     var songName: String? = null
-    var videoPath: String? = null
+    var videoLyricsPath: String? = null
+    var videoKaraokePath: String? = null
     companion object {
         fun getSubtitles(): Song {
             // Задаём имя и путь к файлу с субтитрами
@@ -26,15 +29,18 @@ class Song() {
             var end: String? = null
             var text: String? = null
             var bpm: Long? = null
+            var delay: Long? = null
             var key: String? = null
             var rootFolder: String? = null
-            var projectPath: String? = null
+            var projectLyricsPath: String? = null
+            var projectKaraokePath: String? = null
             var audioSongPath: String? = null
             var audioMusicPath: String? = null
             var audioVocalPath: String? = null
             var album: String? = null
             var songName: String? = null
-            var videoPath: String? = null
+            var videoLyricsPath: String? = null
+            var videoKaraokePath: String? = null
 
             val subtitles: MutableList<Subtitle> = emptyList<Subtitle>().toMutableList()
 
@@ -54,6 +60,7 @@ class Song() {
                             val settings = sub.split("|")
                             when (settings[1].uppercase()) {
                                 "BPM" -> bpm = settings[2].toLongOrNull()
+                                "DELAY" -> delay = settings[2].toLongOrNull()
                                 "KEY" -> key = settings[2]
                                 "NAME" -> songName = settings[2]
                                 "ALBUM" -> album = settings[2]
@@ -61,8 +68,10 @@ class Song() {
                                 "MUSICFILE" -> audioMusicPath = settings[2]
                                 "VOCALFILE" -> audioVocalPath = settings[2]
                                 "SONGFILE" -> audioSongPath = settings[2]
-                                "PROJECTFILE" -> projectPath = settings[2]
-                                "VIDEOFILE" -> videoPath = settings[2]
+                                "PROJECTLYRICSFILE" -> projectLyricsPath = settings[2]
+                                "PROJECTKARAOKEFILE" -> projectKaraokePath = settings[2]
+                                "VIDEOLYRICSFILE" -> videoLyricsPath = settings[2]
+                                "VIDEOKARAOKEFILE" -> videoKaraokePath = settings[2]
                             }
                             // Обнуляем переменные
                             id = null
@@ -109,16 +118,19 @@ class Song() {
             val result = Song()
             // Устанавливаем end равный end последнего объекта из списка и найденные выше настройки (если они были)
             result.end = subtitles.last().end
-            result.bpm = bpm
+            result.bpm = bpm?:90L
+            result.delay = delay?:0L
             result.key = key
             result.rootFolder = rootFolder
-            result.projectPath = projectPath
+            result.projectLyricsPath = projectLyricsPath
+            result.projectKaraokePath = projectKaraokePath
             result.audioSongPath = audioSongPath
             result.audioMusicPath = audioMusicPath
             result.audioVocalPath = audioVocalPath
             result.album = album
             result.songName = songName
-            result.videoPath = videoPath
+            result.videoLyricsPath = videoLyricsPath
+            result.videoKaraokePath = videoKaraokePath
 
             // В его объект Subtitles кладём список объектов Subtitle
             result.subtitles = subtitles

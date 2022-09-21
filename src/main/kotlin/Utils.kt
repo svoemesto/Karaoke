@@ -46,8 +46,8 @@ fun convertMillisecondsToTimecode(milliseconds: Long, fps:Long = 60): String {
     return "%02d:%02d:%02d.%03d".format(hours,minutes,seconds,ms)
 }
 
-fun getBeatNumberByMilliseconds(timeInMilliseconds: Long, bpm: Long = 90, firstBeatTimecode: String = "00:00:00.000"): Long {
-    val beatMs = (60000.0 / bpm)
+fun getBeatNumberByMilliseconds(timeInMilliseconds: Long, beatMs: Long = 90, firstBeatTimecode: String = "00:00:00.000"): Long {
+
     println("Время звучания 1 бита = $beatMs ms")
     var firstBeatMs = convertTimecodeToMilliseconds(firstBeatTimecode)
     println("Первый отмеченый бит находится от начала в $firstBeatMs ms")
@@ -67,12 +67,12 @@ fun getBeatNumberByMilliseconds(timeInMilliseconds: Long, bpm: Long = 90, firstB
     return result
 }
 
-fun getBeatNumberByTimecode(timeCode: String, bpm: Long = 90, firstBeatTimecode: String = "00:00:00.000"): Long {
-    return getBeatNumberByMilliseconds(convertTimecodeToMilliseconds(timeCode),bpm, firstBeatTimecode)
+fun getBeatNumberByTimecode(timeCode: String, beatMs: Long = 90, firstBeatTimecode: String = "00:00:00.000"): Long {
+    return getBeatNumberByMilliseconds(convertTimecodeToMilliseconds(timeCode),beatMs, firstBeatTimecode)
 }
 
-fun getBeatNumberByFrames(frames: Long, bpm: Long = 90, firstBeatTimecode: String = "00:00:00.000"): Long {
-    return getBeatNumberByMilliseconds(convertFramesToMilliseconds(frames),bpm, firstBeatTimecode)
+fun getBeatNumberByFrames(frames: Long, beatMs: Long = 90, firstBeatTimecode: String = "00:00:00.000"): Long {
+    return getBeatNumberByMilliseconds(convertFramesToMilliseconds(frames),beatMs, firstBeatTimecode)
 }
 
 fun getDurationInMilliseconds(start: String, end: String): Long {

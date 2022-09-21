@@ -7,6 +7,7 @@
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/Settings.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Settings.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/Subtitle.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Subtitle.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/Utils.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Utils.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/subtitles.srt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/subtitles.srt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -72,7 +73,8 @@
       <option name="presentableId" value="Default" />
       <updated>1663329937819</updated>
       <workItem from="1663329942664" duration="149955000" />
-      <workItem from="1663688948243" duration="9132000" />
+      <workItem from="1663688948243" duration="14235000" />
+      <workItem from="1663706179352" duration="12581000" />
     </task>
     <task id="LOCAL-00001" summary="Initial commit">
       <created>1663330270975</created>
@@ -235,7 +237,14 @@
       <option name="project" value="LOCAL" />
       <updated>1663691409729</updated>
     </task>
-    <option name="localTasksCounter" value="24" />
+    <task id="LOCAL-00024" summary="Initial commit">
+      <created>1663698300740</created>
+      <option name="number" value="00024" />
+      <option name="presentableId" value="LOCAL-00024" />
+      <option name="project" value="LOCAL" />
+      <updated>1663698300740</updated>
+    </task>
+    <option name="localTasksCounter" value="25" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

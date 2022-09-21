@@ -2,6 +2,7 @@ class Song() {
     var subtitles: List<Subtitle> = emptyList()
     var end: String? = null
     var bpm: Long = 90
+    var ms: Long? = null
     var key: String? = null
     var rootFolder: String? = null
     var projectLyricsPath: String? = null
@@ -14,6 +15,7 @@ class Song() {
     var videoLyricsPath: String? = null
     var videoKaraokePath: String? = null
     var beat: String? = null
+    var body: String = ""
     companion object {
         fun getSubtitles(): Song {
             // Задаём имя и путь к файлу с субтитрами
@@ -29,6 +31,7 @@ class Song() {
             var end: String? = null
             var text: String? = null
             var bpm: Long? = null
+            var ms: Long? = null
             var key: String? = null
             var rootFolder: String? = null
             var projectLyricsPath: String? = null
@@ -61,6 +64,7 @@ class Song() {
                             when (settings[1].uppercase()) {
                                 "BPM" -> bpm = settings[2].toLongOrNull()
                                 "KEY" -> key = settings[2]
+                                "MS" -> ms = settings[2].toLongOrNull()
                                 "NAME" -> songName = settings[2]
                                 "ALBUM" -> album = settings[2]
                                 "ROOT" -> rootFolder = settings[2]
@@ -71,7 +75,7 @@ class Song() {
                                 "PROJECTKARAOKEFILE" -> projectKaraokePath = settings[2]
                                 "VIDEOLYRICSFILE" -> videoLyricsPath = settings[2]
                                 "VIDEOKARAOKEFILE" -> videoKaraokePath = settings[2]
-                                "TACT" -> beat = startEnd!!.split(" --> ")[1]
+                                "BEAT" -> beat = startEnd!!.split(" --> ")[0]
                             }
                             // Обнуляем переменные
                             id = null
@@ -90,8 +94,8 @@ class Song() {
                             // Разделяем startEnd на start и end в список, вынимаем из списка соответствующие значения
                             // прибавляя к значению времени оффсет, указанный в TIME_OFFSET
                             val se = startEnd!!.split(" --> ")
-                            start = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(se[0])+TIME_OFFSET_MS)
-                            end = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(se[1])+TIME_OFFSET_MS)
+                            start = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(se[0]))
+                            end = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(se[1]))
                             val isLineStart = text!!.startsWith("//")   // Вычисляем признак начала строки
                             val isLineEnd = text!!.endsWith("\\\\")     // Вычисляем признак конца строки
                             // Удаляем служебные символы из строки и заменяем подчёркивание пробелом
@@ -101,9 +105,10 @@ class Song() {
                                 .replace("_", " ")
                             // Создаем объект Subtitle и инициализируем его переменными
                             val isBeat = if (text != "" && beat != null && bpm != null) {
-                                val startBeatNumber = getBeatNumberByMilliseconds(convertTimecodeToMilliseconds(se[0]), bpm!!, beat!!)
-                                val endBeatNumber = getBeatNumberByMilliseconds(convertTimecodeToMilliseconds(se[1]), bpm!!, beat!!)
-                                startBeatNumber == 0L || endBeatNumber == 0L || startBeatNumber > endBeatNumber
+                                val beatMs = if (ms == null) (60000.0 / bpm!!).toLong() else ms!!
+                                val startBeatNumber = getBeatNumberByMilliseconds(convertTimecodeToMilliseconds(se[0]), beatMs, beat!!)
+                                val endBeatNumber = getBeatNumberByMilliseconds(convertTimecodeToMilliseconds(se[1]), beatMs, beat!!)
+                                (startBeatNumber == 1L && endBeatNumber == 1L)|| startBeatNumber > endBeatNumber
                             } else false
                             val subtitle = Subtitle(id = id, start = start, end = end, text = text, isLineStart = isLineStart, isLineEnd = isLineEnd, isBeat = isBeat)
                             // Добавляем этот объект к списку объектов
@@ -123,8 +128,10 @@ class Song() {
             val result = Song()
             // Устанавливаем end равный end последнего объекта из списка и найденные выше настройки (если они были)
             result.end = subtitles.last().end
+            result.body = body?:""
             result.bpm = bpm?:90L
             result.key = key
+            result.ms = ms
             result.rootFolder = rootFolder
             result.projectLyricsPath = projectLyricsPath
             result.projectKaraokePath = projectKaraokePath

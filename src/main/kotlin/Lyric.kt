@@ -42,6 +42,7 @@ class Lyric {
             val resultFullText: MutableList<LyricLine> = emptyList<LyricLine>().toMutableList()
             val resultBeatText: MutableList<LyricLine> = emptyList<LyricLine>().toMutableList()
 
+
             val counters = listOf(
                 emptyList<String>().toMutableList(),
                 emptyList<String>().toMutableList(),
@@ -59,6 +60,8 @@ class Lyric {
 
             val propRectLineValue = emptyList<String>().toMutableList() // Список свойств трансформации текста
             val propTaktsLineValue = emptyList<String>().toMutableList() // Список свойств дорожки тактов
+            val propGuidesValue = emptyList<String>().toMutableList()
+            val guidesTypes = listOf<Long>(8,7,4,3)
 
             val propRectTitleValueLineOddEven = listOf(
                 emptyList<String>().toMutableList(),
@@ -203,7 +206,7 @@ class Lyric {
   <position x="$TITLE_POSITION_START_X_PX" y="$TITLE_POSITION_START_Y_PX">
    <transform>1,0,0,0,1,0,0,0,1</transform>
   </position>
-  <content line-spacing="$LINE_SPACING" shadow="$SHADOW" font-underline="$FONT_UNDERLINE" box-height="$boxHeightPx" font="$FONT_NAME" letter-spacing="0" font-pixel-size="$fontSizePt" font-italic="$FONT_ITALIC" typewriter="$TYPEWRITER" alignment="$ALIGNMENT" font-weight="$FONT_WEIGHT" box-width="$boxWidthPx" font-color="$FONT_COLOR_BEAT">${resultBeatText.map { it.text }.joinToString("\n")}</content>
+  <content line-spacing="$LINE_SPACING" shadow="$SHADOW" font-underline="$FONT_UNDERLINE" box-height="$boxHeightPx" font="$FONT_NAME" letter-spacing="0" font-pixel-size="$fontSizePt" font-italic="$FONT_ITALIC" typewriter="$TYPEWRITER" alignment="$ALIGNMENT" font-weight="$FONT_WEIGHT" box-width="$boxWidthPx" font-color="${if (SHOW_BEAT_SUBS) FONT_COLOR_BEAT else FONT_COLOR_TEXT}">${resultBeatText.map { it.text }.joinToString("\n")}</content>
  </item>
  <startviewport rect="0,0,$FRAME_WIDTH_PX,${workAreaHeightPx}"/>
  <endviewport rect="0,0,$FRAME_WIDTH_PX,${workAreaHeightPx}"/>
@@ -330,7 +333,7 @@ class Lyric {
 
             // Настало время заняться счётчиками вступления. В том случае, если для песни известно BPM
 
-            val quarterNoteLengthMs = (60000.0 / song.bpm).toLong() // Находим длительность звучания 1/4 ноты в миллисекундах
+            val quarterNoteLengthMs = if (song.ms == null) (60000.0 / song.bpm).toLong() else song.ms!! // Находим длительность звучания 1/4 ноты в миллисекундах
 
             // Счетчики надо вставлять тогда, когда перед не пустой строкой шла пустая. Найдём и пометим такие строки
             var currentTime = 0L
@@ -359,23 +362,26 @@ class Lyric {
             }
 
             // Такты
-            val delayMs = convertTimecodeToMilliseconds(song.beat!!) + TIME_OFFSET_MS
+            val delayMs = convertTimecodeToMilliseconds(song.beat!!) // + TIME_OFFSET_MS
 
-//            // Такт в мс
-            val beatMs = (60000.0 / song.bpm) // song.delay
+            // Такт в мс
+            val beatMs = if (song.ms == null) (60000.0 / song.bpm).toLong() else song.ms!!// song.delay
             // Такт в таймкоде
             val beatTimecode = convertMillisecondsToTimecode(beatMs.toLong())
             // Такт в фреймах
             val beatFrames = convertMillisecondsToFrames(beatMs.toLong())
 
             var currentPositionStartMs = 0L
+            var currentPositionStartFrame = convertMillisecondsToFrames(currentPositionStartMs)
             var prevRightPositionMs = 0L
             var prevPositionTimecode = "00:00:00.000"
             var beatCounter = 1L
+            propGuidesValue.add("""{"comment": "Offset", "pos": ${convertMillisecondsToFrames(TIME_OFFSET_MS)}, "type": 0}""")
             while ((delayMs + currentPositionStartMs + beatMs) < convertTimecodeToMilliseconds(song.end!!)) {
 
                 val tick = (beatCounter-1)%4
-                currentPositionStartMs = (delayMs + beatMs * (beatCounter-1)).toLong() + TIME_OFFSET_MS
+                currentPositionStartMs = (delayMs + beatMs * (beatCounter-1)).toLong()// + TIME_OFFSET_MS
+                currentPositionStartFrame = convertMillisecondsToFrames(currentPositionStartMs)
 
                 val currentPositionStartMs2fb = convertFramesToMilliseconds(convertMillisecondsToFrames(currentPositionStartMs)-2)
                 val currentPositionStartMs1fb = convertFramesToMilliseconds(convertMillisecondsToFrames(currentPositionStartMs)-1)
@@ -397,15 +403,19 @@ class Lyric {
                 beats[tick.toInt()].add(point4)
                 beats[tick.toInt()].add(point5)
 
+                propGuidesValue.add("""{"comment": "${tick.toInt()+1}", "pos": $currentPositionStartFrame, "type": ${guidesTypes[tick.toInt()]}}""")
+
                 prevRightPositionMs = currentPositionStartMs
+                guidesTypes
 
                 beatCounter += 1
             }
 
+
+
             // Формируем тексты для файлов и сохраняем файлы
 
             val propRectValue = propRectLineValue.joinToString(";")
-            val propTaktsValue = propTaktsLineValue.joinToString("\n")
             val propFillOddValue = propRectTitleValueLineOddEven[0].joinToString(";")
             val propFillEvenValue = propRectTitleValueLineOddEven[1].joinToString(";")
             val propFillCounter0Value = counters[0].joinToString(";")
@@ -413,10 +423,11 @@ class Lyric {
             val propFillCounter2Value = counters[2].joinToString(";")
             val propFillCounter3Value = counters[3].joinToString(";")
             val propFillCounter4Value = counters[4].joinToString(";")
-            val propTakt1Value = beats[0].joinToString(";")
-            val propTakt2Value = beats[1].joinToString(";")
-            val propTakt3Value = beats[2].joinToString(";")
-            val propTakt4Value = beats[3].joinToString(";")
+            val propBeat1Value = beats[0].joinToString(";")
+            val propBeat2Value = beats[1].joinToString(";")
+            val propBeat3Value = beats[2].joinToString(";")
+            val propBeat4Value = beats[3].joinToString(";")
+            val propGuides = propGuidesValue.joinToString(",")
             File(fileName).writeText(text)
 
             resultLyricFullText.fontSize = fontSizePt
@@ -430,6 +441,7 @@ class Lyric {
             val kdeHeaderSongName = song.songName
 
             val kdeIn = "00:00:00.000"
+            val kdeInOffset = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(kdeIn) + TIME_OFFSET_MS)
             val kdeFadeIn = "00:00:01.000"
             val kdeOut = song.end!!.replace(",",".")
             val kdeFadeOut = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(song.end!!) - 1000).replace(",",".")
@@ -1005,6 +1017,7 @@ class Lyric {
   <property name="kdenlive:docproperties.zoom">12</property>
   <property name="kdenlive:expandedFolders"/>
   <property name="kdenlive:documentnotes"/>
+  <property name="kdenlive:docproperties.guides">[$propGuides]</property>
   <property name="kdenlive:docproperties.renderurl">${song.videoLyricsPath}</property>
   <property name="xml_retain">1</property>
   <entry producer="producer_song_text" in="$kdeIn" out="$kdeOut"/>
@@ -1057,6 +1070,7 @@ class Lyric {
  </producer>
  <playlist id="playlist_audio_vocal_file">
   <property name="kdenlive:audio_track">1</property>
+  <blank length="$kdeInOffset"/>
   <entry producer="producer_audio_vocal_file" in="$kdeIn" out="$kdeOut">
    <property name="kdenlive:id">16</property>
   </entry>
@@ -1116,6 +1130,7 @@ class Lyric {
  </producer>
  <playlist id="playlist_audio_music_file">
   <property name="kdenlive:audio_track">1</property>
+  <blank length="$kdeInOffset"/>
   <entry producer="producer_audio_music_file" in="$kdeIn" out="$kdeOut">
    <property name="kdenlive:id">15</property>
   </entry>
@@ -1175,6 +1190,7 @@ class Lyric {
  </producer>
  <playlist id="playlist_audio_song_file">
   <property name="kdenlive:audio_track">1</property>
+  <blank length="$kdeInOffset"/>
   <entry producer="producer_audio_song_file" in="$kdeIn" out="$kdeOut">
    <property name="kdenlive:id">14</property>
   </entry>
@@ -1566,7 +1582,7 @@ class Lyric {
     <property name="rotate_center">1</property>
     <property name="mlt_service">qtblend</property>
     <property name="kdenlive_id">qtblend</property>
-    <property name="rect">$propTakt4Value</property>
+    <property name="rect">$propBeat4Value</property>
     <property name="compositing">0</property>
     <property name="distort">0</property>
     <property name="kdenlive:collapsed">0</property>
@@ -1592,7 +1608,7 @@ class Lyric {
     <property name="rotate_center">1</property>
     <property name="mlt_service">qtblend</property>
     <property name="kdenlive_id">qtblend</property>
-    <property name="rect">$propTakt3Value</property>
+    <property name="rect">$propBeat3Value</property>
     <property name="compositing">0</property>
     <property name="distort">0</property>
     <property name="kdenlive:collapsed">0</property>
@@ -1616,7 +1632,7 @@ class Lyric {
     <property name="rotate_center">1</property>
     <property name="mlt_service">qtblend</property>
     <property name="kdenlive_id">qtblend</property>
-    <property name="rect">$propTakt2Value</property>
+    <property name="rect">$propBeat2Value</property>
     <property name="compositing">0</property>
     <property name="distort">0</property>
     <property name="kdenlive:collapsed">0</property>
@@ -1640,7 +1656,7 @@ class Lyric {
     <property name="rotate_center">1</property>
     <property name="mlt_service">qtblend</property>
     <property name="kdenlive_id">qtblend</property>
-    <property name="rect">$propTakt1Value</property>
+    <property name="rect">$propBeat1Value</property>
     <property name="compositing">0</property>
     <property name="distort">0</property>
     <property name="kdenlive:collapsed">0</property>
@@ -2409,6 +2425,7 @@ class Lyric {
   <property name="kdenlive:docproperties.zoom">12</property>
   <property name="kdenlive:expandedFolders"/>
   <property name="kdenlive:documentnotes"/>
+  <property name="kdenlive:docproperties.guides">[$propGuides]</property>
   <property name="kdenlive:docproperties.renderurl">${song.videoKaraokePath}</property>
   <property name="xml_retain">1</property>
   <entry producer="producer_song_text" in="$kdeIn" out="$kdeOut"/>
@@ -2461,6 +2478,7 @@ class Lyric {
  </producer>
  <playlist id="playlist_audio_vocal_file">
   <property name="kdenlive:audio_track">1</property>
+  <blank length="$kdeInOffset"/>
   <entry producer="producer_audio_vocal_file" in="$kdeIn" out="$kdeOut">
    <property name="kdenlive:id">16</property>
   </entry>
@@ -2520,6 +2538,7 @@ class Lyric {
  </producer>
  <playlist id="playlist_audio_music_file">
   <property name="kdenlive:audio_track">1</property>
+  <blank length="$kdeInOffset"/>
   <entry producer="producer_audio_music_file" in="$kdeIn" out="$kdeOut">
    <property name="kdenlive:id">15</property>
   </entry>
@@ -2579,6 +2598,7 @@ class Lyric {
  </producer>
  <playlist id="playlist_audio_song_file">
   <property name="kdenlive:audio_track">1</property>
+  <blank length="$kdeInOffset"/>
   <entry producer="producer_audio_song_file" in="$kdeIn" out="$kdeOut">
    <property name="kdenlive:id">14</property>
   </entry>
@@ -2970,7 +2990,7 @@ class Lyric {
     <property name="rotate_center">1</property>
     <property name="mlt_service">qtblend</property>
     <property name="kdenlive_id">qtblend</property>
-    <property name="rect">$propTakt4Value</property>
+    <property name="rect">$propBeat4Value</property>
     <property name="compositing">0</property>
     <property name="distort">0</property>
     <property name="kdenlive:collapsed">0</property>
@@ -2996,7 +3016,7 @@ class Lyric {
     <property name="rotate_center">1</property>
     <property name="mlt_service">qtblend</property>
     <property name="kdenlive_id">qtblend</property>
-    <property name="rect">$propTakt3Value</property>
+    <property name="rect">$propBeat3Value</property>
     <property name="compositing">0</property>
     <property name="distort">0</property>
     <property name="kdenlive:collapsed">0</property>
@@ -3020,7 +3040,7 @@ class Lyric {
     <property name="rotate_center">1</property>
     <property name="mlt_service">qtblend</property>
     <property name="kdenlive_id">qtblend</property>
-    <property name="rect">$propTakt2Value</property>
+    <property name="rect">$propBeat2Value</property>
     <property name="compositing">0</property>
     <property name="distort">0</property>
     <property name="kdenlive:collapsed">0</property>
@@ -3044,7 +3064,7 @@ class Lyric {
     <property name="rotate_center">1</property>
     <property name="mlt_service">qtblend</property>
     <property name="kdenlive_id">qtblend</property>
-    <property name="rect">$propTakt1Value</property>
+    <property name="rect">$propBeat1Value</property>
     <property name="compositing">0</property>
     <property name="distort">0</property>
     <property name="kdenlive:collapsed">0</property>
@@ -3248,6 +3268,8 @@ class Lyric {
 
             File("${song.rootFolder}/${song.projectLyricsPath}").writeText(templateProjectLyrics)
             File("${song.rootFolder}/${song.projectKaraokePath}").writeText(templateProjectKaraoke)
+            File("${song.rootFolder}/${song.projectLyricsPath}.srt").writeText(song.body)
+            File("${song.rootFolder}/${song.projectKaraokePath}.srt").writeText(song.body)
 
             return resultLyricFullText
         }

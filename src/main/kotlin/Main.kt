@@ -7,13 +7,13 @@ import java.io.File
 
 fun main(args: Array<String>) {
 
-    getLyric(getSong())
+    val settingsFileName = "/home/nsa/Documents/Караоке/Агата Кристи/1994 - Опиум/(06) [Агата Кристи] Сказочная тайга.settings"
+    getLyric(getSong(getSettings(settingsFileName)))
 
 }
 
 fun getLyric(song: Song): Lyric {
 
-    val fileName = "src/main/resources/lyrics.txt"
     var startLine: String? = null
     var endLine: String?
 
@@ -297,7 +297,7 @@ fun getLyric(song: Song): Lyric {
 
     // Настало время заняться счётчиками вступления. В том случае, если для песни известно BPM
 
-    val quarterNoteLengthMs = if (song.ms == null) (60000.0 / song.bpm).toLong() else song.ms!! // Находим длительность звучания 1/4 ноты в миллисекундах
+    val quarterNoteLengthMs = if (song.settings.ms == 0L) (60000.0 / song.settings.bpm).toLong() else song.settings.ms // Находим длительность звучания 1/4 ноты в миллисекундах
 
     // Счетчики надо вставлять тогда, когда перед не пустой строкой шла пустая. Найдём и пометим такие строки
     var currentTime = 0L
@@ -329,7 +329,7 @@ fun getLyric(song: Song): Lyric {
     val delayMs = convertTimecodeToMilliseconds(song.beat!!) // + TIME_OFFSET_MS
 
     // Такт в мс
-    val beatMs = if (song.ms == null) (60000.0 / song.bpm).toLong() else song.ms!!// song.delay
+    val beatMs = if (song.settings.ms == 0L) (60000.0 / song.settings.bpm).toLong() else song.settings.ms// song.delay
 
     var currentPositionStartMs = 0L
     var beatCounter = 1L
@@ -380,17 +380,16 @@ fun getLyric(song: Song): Lyric {
     val propBeat3Value = beats[2].joinToString(";")
     val propBeat4Value = beats[3].joinToString(";")
     val propGuides = propGuidesValue.joinToString(",")
-    File(fileName).writeText(text)
 
     resultLyricFullText.fontSize = fontSizePt
     resultLyricFullText.horizontPosition = horizontPositionPx.toLong()
     resultLyricFullText.symbolHeight = symbolHeightPx
     resultLyricFullText.symbolWidth = symbolWidthPx
 
-    val kdeHeaderTone = "Тональность: ${song.key}"
-    val kdeHeaderBpm = "Темп: ${song.bpm} bpm"
-    val kdeHeaderAlbum = "Альбом: ${song.album}"
-    val kdeHeaderSongName = song.songName
+    val kdeHeaderTone = "Тональность: ${song.settings.key}"
+    val kdeHeaderBpm = "Темп: ${song.settings.bpm} bpm"
+    val kdeHeaderAlbum = "Альбом: ${song.settings.album}"
+    val kdeHeaderSongName = song.settings.songName
 
     val kdeIn = "00:00:00.000"
     val kdeInOffset = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(kdeIn) + TIME_OFFSET_MS)
@@ -406,7 +405,7 @@ fun getLyric(song: Song): Lyric {
     fileIsKaraoke.forEach { isKaraoke ->
 
         val templateProject = """<?xml version='1.0' encoding='utf-8'?>
-<mlt LC_NUMERIC="C" producer="main_bin" version="7.9.0" root="${song.rootFolder}">
+<mlt LC_NUMERIC="C" producer="main_bin" version="7.9.0" root="${song.settings.rootFolder}">
  <profile frame_rate_num="60" sample_aspect_num="1" display_aspect_den="9" colorspace="709" progressive="1" description="HD 1080p 60 fps" display_aspect_num="16" frame_rate_den="1" width="$FRAME_WIDTH_PX" height="$FRAME_HEIGHT_PX" sample_aspect_den="1"/>
  <producer id="producer_song_text" in="$kdeIn" out="$kdeOut">
   <property name="length">$kdeLength</property>
@@ -718,7 +717,7 @@ fun getLyric(song: Song): Lyric {
  <producer id="producer_audio_song" in="$kdeIn" out="$kdeOut">
   <property name="length">$kdeLength</property>
   <property name="eof">pause</property>
-  <property name="resource">${song.audioSongPath}</property>
+  <property name="resource">${song.settings.audioSongFileName}</property>
   <property name="meta.media.nb_streams">1</property>
   <property name="meta.media.0.stream.type">audio</property>
   <property name="meta.media.0.codec.sample_fmt">s16</property>
@@ -751,7 +750,7 @@ fun getLyric(song: Song): Lyric {
  <producer id="producer_audio_music" in="$kdeIn" out="$kdeOut">
   <property name="length">$kdeLength</property>
   <property name="eof">pause</property>
-  <property name="resource">${song.audioMusicPath}</property>
+  <property name="resource">${song.settings.audioMusicFileName}</property>
   <property name="meta.media.nb_streams">1</property>
   <property name="meta.media.0.stream.type">audio</property>
   <property name="meta.media.0.codec.sample_fmt">s16</property>
@@ -775,7 +774,7 @@ fun getLyric(song: Song): Lyric {
  <producer id="producer_audio_vocal" in="$kdeIn" out="$kdeOut">
   <property name="length">$kdeLength</property>
   <property name="eof">pause</property>
-  <property name="resource">${song.audioVocalPath}</property>
+  <property name="resource">${song.settings.audioVocalFileName}</property>
   <property name="meta.media.nb_streams">1</property>
   <property name="meta.media.0.stream.type">audio</property>
   <property name="meta.media.0.codec.sample_fmt">s16</property>
@@ -974,7 +973,7 @@ fun getLyric(song: Song): Lyric {
   <property name="kdenlive:expandedFolders"/>
   <property name="kdenlive:documentnotes"/>
   <property name="kdenlive:docproperties.guides">[$propGuides]</property>
-  <property name="kdenlive:docproperties.renderurl">${if (isKaraoke) song.videoKaraokePath else song.videoLyricsPath}</property>
+  <property name="kdenlive:docproperties.renderurl">${if (isKaraoke) song.settings.videoKaraokeFileName else song.settings.videoLyricsFileName}</property>
   <property name="xml_retain">1</property>
   <entry producer="producer_song_text" in="$kdeIn" out="$kdeOut"/>
   <entry producer="producer_horizont" in="$kdeIn" out="$kdeOut"/>
@@ -1008,7 +1007,7 @@ fun getLyric(song: Song): Lyric {
  <producer id="producer_audio_vocal_file" in="$kdeIn" out="$kdeOut">
   <property name="length">$kdeLength</property>
   <property name="eof">pause</property>
-  <property name="resource">${song.audioVocalPath}</property>
+  <property name="resource">${song.settings.audioVocalFileName}</property>
   <property name="audio_index">0</property>
   <property name="video_index">-1</property>
   <property name="mute_on_pause">0</property>
@@ -1068,7 +1067,7 @@ fun getLyric(song: Song): Lyric {
  <producer id="producer_audio_music_file" in="$kdeIn" out="$kdeOut">
   <property name="length">$kdeLength</property>
   <property name="eof">pause</property>
-  <property name="resource">${song.audioMusicPath}</property>
+  <property name="resource">${song.settings.audioMusicFileName}</property>
   <property name="audio_index">0</property>
   <property name="video_index">-1</property>
   <property name="mute_on_pause">0</property>
@@ -1128,7 +1127,7 @@ fun getLyric(song: Song): Lyric {
  <producer id="producer_audio_song_file" in="$kdeIn" out="$kdeOut">
   <property name="length">$kdeLength</property>
   <property name="eof">pause</property>
-  <property name="resource">${song.audioSongPath}</property>
+  <property name="resource">${song.settings.audioSongFileName}</property>
   <property name="audio_index">0</property>
   <property name="video_index">-1</property>
   <property name="mute_on_pause">0</property>
@@ -1813,7 +1812,7 @@ fun getLyric(song: Song): Lyric {
  </tractor>
 </mlt>
 """
-        val fileProjectName = "${song.rootFolder}/${if (isKaraoke) song.projectKaraokePath else song.projectLyricsPath}"
+        val fileProjectName = "${song.settings.rootFolder}/${if (isKaraoke) song.settings.projectKaraokeFileName else song.settings.projectLyricsFileName}"
         val fileSubtitleName = "$fileProjectName.srt"
         File(fileProjectName).writeText(templateProject)
         File(fileSubtitleName).writeText(song.body)
@@ -1823,136 +1822,130 @@ fun getLyric(song: Song): Lyric {
 }
 
 
-fun getSong(): Song {
-    // Задаём имя и путь к файлу с субтитрами
-    val fileName = "subtitles.srt"
+fun getSong(settings: Settings): Song {
     // Считываем содержимое файла субтитров
-    val body = Song::class.java.getResource(fileName)?.readText()
-    // Разбиваем содержимое файла на массив строк
-    val subs = body?.split("\n")
+    val body = File("${settings.rootFolder}/${settings.subtitleFileName}").readText(Charsets.UTF_8)
 
     var id: Long? = null
     var startEnd: String? = null
     var start: String? = null
     var end: String? = null
     var text: String? = null
-    var bpm: Long? = null
-    var ms: Long? = null
-    var key: String? = null
-    var rootFolder: String? = null
-    var projectLyricsPath: String? = null
-    var projectKaraokePath: String? = null
-    var audioSongPath: String? = null
-    var audioMusicPath: String? = null
-    var audioVocalPath: String? = null
-    var album: String? = null
-    var songName: String? = null
-    var videoLyricsPath: String? = null
-    var videoKaraokePath: String? = null
     var beat: String? = null
 
     val subtitles: MutableList<Subtitle> = emptyList<Subtitle>().toMutableList()
 
     // Если массив строк не пустой - работаем с ним
-    if (subs != null) {
-        // Проходимся последовательно по всем элементам массива строк
-        subs.forEach { sub ->
-
-            if (id == null && sub != "") {                  // Если еще нет id и строка не пустая - значит текущая строка - это id
-                id = sub.toLongOrNull()
-            } else if (startEnd == null && sub != "") {     // Если еще нет startEnd и строка не пустая - значит текущая строка - это startEnd
-                startEnd = sub
-            } else if(text == null && sub != "") {          // Если еще нет text и строка не пустая - значит текущая строка - это text или настройка
-                // Если sub начитается с "[SETTING]|" - это настройка
-                if (sub.uppercase().startsWith("[SETTING]|")) {
-                    // Разделяем sub по | в список
-                    val settings = sub.split("|")
-                    when (settings[1].uppercase()) {
-                        "BPM" -> bpm = settings[2].toLongOrNull()
-                        "KEY" -> key = settings[2]
-                        "MS" -> ms = settings[2].toLongOrNull()
-                        "NAME" -> songName = settings[2]
-                        "ALBUM" -> album = settings[2]
-                        "ROOT" -> rootFolder = settings[2]
-                        "MUSICFILE" -> audioMusicPath = settings[2]
-                        "VOCALFILE" -> audioVocalPath = settings[2]
-                        "SONGFILE" -> audioSongPath = settings[2]
-                        "PROJECTLYRICSFILE" -> projectLyricsPath = settings[2]
-                        "PROJECTKARAOKEFILE" -> projectKaraokePath = settings[2]
-                        "VIDEOLYRICSFILE" -> videoLyricsPath = settings[2]
-                        "VIDEOKARAOKEFILE" -> videoKaraokePath = settings[2]
-                        "BEAT" -> beat = startEnd!!.split(" --> ")[0]
-                    }
-                    // Обнуляем переменные
-                    id = null
-                    startEnd = null
-                    start = null
-                    end = null
-                    text = null
-                } else {
-                    text = sub
+    body.split("\n").forEach { sub ->
+        if (id == null && sub != "") {                  // Если еще нет id и строка не пустая - значит текущая строка - это id
+            id = sub.toLongOrNull()
+        } else if (startEnd == null && sub != "") {     // Если еще нет startEnd и строка не пустая - значит текущая строка - это startEnd
+            startEnd = sub
+        } else if (text == null && sub != "") {          // Если еще нет text и строка не пустая - значит текущая строка - это text или настройка
+            // Если sub начитается с "[SETTING]|" - это настройка
+            if (sub.uppercase().startsWith("[SETTING]|")) {
+                // Разделяем sub по | в список
+                val settings = sub.split("|")
+                when (settings[1].uppercase()) {
+                    "BEAT" -> beat = startEnd!!.split(" --> ")[0]
                 }
-            } else if(text != null && sub != "") {          // Если уже есть text и строка всё еще не пустая - значит текущая строка - это тоже text
-                text += sub
-            } else if (sub == ""){                                        // Если строка пустая
-                // Если уже есть все переменные
-                if (id != null && startEnd != null && text != null) {
-                    // Разделяем startEnd на start и end в список, вынимаем из списка соответствующие значения
-                    // прибавляя к значению времени оффсет, указанный в TIME_OFFSET
-                    val se = startEnd!!.split(" --> ")
-                    start = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(se[0]))
-                    end = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(se[1]))
-                    val isLineStart = text!!.startsWith("//")   // Вычисляем признак начала строки
-                    val isLineEnd = text!!.endsWith("\\\\")     // Вычисляем признак конца строки
-                    // Удаляем служебные символы из строки и заменяем подчёркивание пробелом
-                    text = text!!
-                        .replace("//","")
-                        .replace("\\\\","")
-                        .replace("_", " ")
-                    // Создаем объект classes.Subtitle и инициализируем его переменными
-                    val isBeat = if (text != "" && beat != null && bpm != null) {
-                        val beatMs = if (ms == null) (60000.0 / bpm!!).toLong() else ms!!
-                        val startBeatNumber = getBeatNumberByMilliseconds(convertTimecodeToMilliseconds(se[0]), beatMs, beat!!)
-                        val endBeatNumber = getBeatNumberByMilliseconds(convertTimecodeToMilliseconds(se[1]), beatMs, beat!!)
-                        (startBeatNumber == 1L && endBeatNumber == 1L)|| startBeatNumber > endBeatNumber
-                    } else false
-                    val subtitle = Subtitle(id = id, start = start, end = end, text = text, isLineStart = isLineStart, isLineEnd = isLineEnd, isBeat = isBeat)
-                    // Добавляем этот объект к списку объектов
-                    subtitles.add(subtitle)
-                    // Обнуляем переменные
-                    id = null
-                    startEnd = null
-                    start = null
-                    end = null
-                    text = null
-                }
+                // Обнуляем переменные
+                id = null
+                startEnd = null
+                start = null
+                end = null
+                text = null
+            } else {
+                text = sub
+            }
+        } else if (text != null && sub != "") {          // Если уже есть text и строка всё еще не пустая - значит текущая строка - это тоже text
+            text += sub
+        } else if (sub == "") {                                        // Если строка пустая
+            // Если уже есть все переменные
+            if (id != null && startEnd != null && text != null) {
+                // Разделяем startEnd на start и end в список, вынимаем из списка соответствующие значения
+                // прибавляя к значению времени оффсет, указанный в TIME_OFFSET
+                val se = startEnd!!.split(" --> ")
+                start = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(se[0]))
+                end = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(se[1]))
+                val isLineStart = text!!.startsWith("//")   // Вычисляем признак начала строки
+                val isLineEnd = text!!.endsWith("\\\\")     // Вычисляем признак конца строки
+                // Удаляем служебные символы из строки и заменяем подчёркивание пробелом
+                text = text!!
+                    .replace("//", "")
+                    .replace("\\\\", "")
+                    .replace("_", " ")
+                // Создаем объект classes.Subtitle и инициализируем его переменными
+                val isBeat = if (text != "" && beat != null) {
+                    val beatMs = if (settings.ms == 0L) (60000.0 / settings.bpm).toLong() else settings.ms
+                    val startBeatNumber =
+                        getBeatNumberByMilliseconds(convertTimecodeToMilliseconds(se[0]), beatMs, beat!!)
+                    val endBeatNumber =
+                        getBeatNumberByMilliseconds(convertTimecodeToMilliseconds(se[1]), beatMs, beat!!)
+                    (startBeatNumber == 1L && endBeatNumber == 1L) || startBeatNumber > endBeatNumber
+                } else false
+                val subtitle = Subtitle(
+                    id = id,
+                    start = start,
+                    end = end,
+                    text = text,
+                    isLineStart = isLineStart,
+                    isLineEnd = isLineEnd,
+                    isBeat = isBeat
+                )
+                // Добавляем этот объект к списку объектов
+                subtitles.add(subtitle)
+                // Обнуляем переменные
+                id = null
+                startEnd = null
+                start = null
+                end = null
+                text = null
             }
         }
     }
 
     // Создаем объект classes.Song
     val result = Song()
+    result.settings = settings
     // Устанавливаем end равный end последнего объекта из списка и найденные выше настройки (если они были)
     result.end = subtitles.last().end
-    result.body = body?:""
-    result.bpm = bpm?:90L
-    result.key = key
-    result.ms = ms
-    result.rootFolder = rootFolder
-    result.projectLyricsPath = projectLyricsPath
-    result.projectKaraokePath = projectKaraokePath
-    result.audioSongPath = audioSongPath
-    result.audioMusicPath = audioMusicPath
-    result.audioVocalPath = audioVocalPath
-    result.album = album
-    result.songName = songName
-    result.videoLyricsPath = videoLyricsPath
-    result.videoKaraokePath = videoKaraokePath
     result.beat = beat
+    result.body = body
 
     // В его объект Subtitles кладём список объектов classes.Subtitle
     result.subtitles = subtitles
 
     // Возвращаем объект classes.Song
     return result
+}
+
+fun getSettings(pathToSettingsFile: String): Settings {
+    val settings = Settings()
+    val body = File(pathToSettingsFile).readText(Charsets.UTF_8)
+    body.split("\n").forEach { line ->
+        println(line)
+        val settingList = line.split("=")
+        if (settingList.size == 2) {
+            val settingName = settingList[0].uppercase()
+            val settingValue = settingList[1]
+            when (settingName) {
+                "NAME" -> settings.songName = settingValue
+                "ALBUM" -> settings.album = settingValue
+                "KEY" -> settings.key = settingValue
+                "BPM" -> settings.bpm = settingValue.toLong()
+                "MS" -> settings.ms = settingValue.toLong()
+                "ROOT" -> settings.rootFolder = settingValue
+                "SUBTITLES" -> settings.subtitleFileName = settingValue
+                "SONGFILE" -> settings.audioSongFileName = settingValue
+                "MUSICFILE" -> settings.audioMusicFileName = settingValue
+                "VOCALFILE" -> settings.audioVocalFileName = settingValue
+                "PROJECTLYRICSFILE" -> settings.projectLyricsFileName = settingValue
+                "PROJECTKARAOKEFILE" -> settings.projectKaraokeFileName = settingValue
+                "VIDEOLYRICSFILE" -> settings.videoLyricsFileName = settingValue
+                "VIDEOKARAOKEFILE" -> settings.videoKaraokeFileName = settingValue
+            }
+        }
+    }
+    return settings
 }

@@ -9,20 +9,20 @@ fun convertMillisecondsToFrames(milliseconds: Long, fps:Long = FRAME_FPS): Long 
     return Math.round(milliseconds / frameLength)
 }
 
-fun convertMillisecondsToFramesDouble(milliseconds: Long, fps:Long = FRAME_FPS): Double {
+fun convertMillisecondsToFramesDouble(milliseconds: Long, fps:Long): Double {
     val frameLength = 1000.0 / fps
     return milliseconds / frameLength
 }
 
-fun convertFramesToMilliseconds(frames: Long, fps:Long = FRAME_FPS): Long {
+fun convertFramesToMilliseconds(frames: Long, fps:Long): Long {
     val frameLength = 1000.0 / fps
     return Math.round(frames * frameLength)
 }
 
-fun convertFramesToTimecode(frames: Long, fps:Long = FRAME_FPS): String {
+fun convertFramesToTimecode(frames: Long, fps:Long): String {
     return convertMillisecondsToTimecode(convertFramesToMilliseconds(frames,fps))
 }
-fun convertTimecodeToFrames(timecode: String, fps:Long = FRAME_FPS): Long {
+fun convertTimecodeToFrames(timecode: String, fps:Long): Long {
     return convertMillisecondsToFrames(convertTimecodeToMilliseconds(timecode), fps)
 }
 fun convertTimecodeToMilliseconds(timecode: String): Long {
@@ -36,9 +36,7 @@ fun convertTimecodeToMilliseconds(timecode: String): Long {
     return result
 }
 
-fun convertMillisecondsToTimecode(milliseconds: Long, fps:Long = 60): String {
-//    val frames = convertMillisecondsToFrames(milliseconds, fps)
-//    val croppedMs = convertFramesToMilliseconds(frames, fps)
+fun convertMillisecondsToTimecode(milliseconds: Long): String {
     val hours = milliseconds / (1000*60*60)
     val minutes = (milliseconds - hours*1000*60*60) / (1000*60)
     val seconds = (milliseconds - hours*1000*60*60 - minutes*1000*60) / 1000
@@ -46,33 +44,23 @@ fun convertMillisecondsToTimecode(milliseconds: Long, fps:Long = 60): String {
     return "%02d:%02d:%02d.%03d".format(hours,minutes,seconds,ms)
 }
 
-fun getBeatNumberByMilliseconds(timeInMilliseconds: Long, beatMs: Long = 90, firstBeatTimecode: String = "00:00:00.000"): Long {
+fun getBeatNumberByMilliseconds(timeInMilliseconds: Long, beatMs: Long, firstBeatTimecode: String): Long {
 
-    println("Время звучания 1 бита = $beatMs ms")
-    var firstBeatMs = convertTimecodeToMilliseconds(firstBeatTimecode)
-    println("Первый отмеченый бит находится от начала в $firstBeatMs ms")
-    println("Время = $timeInMilliseconds ms")
+    // println("Время звучания 1 бита = $beatMs ms")
+    val firstBeatMs = convertTimecodeToMilliseconds(firstBeatTimecode)
+    // println("Первый отмеченый бит находится от начала в $firstBeatMs ms")
+    // println("Время = $timeInMilliseconds ms")
     var timeInMillsCorrected = timeInMilliseconds - firstBeatMs
-    println("Время после сдвигания = $timeInMillsCorrected ms")
+    // println("Время после сдвигания = $timeInMillsCorrected ms")
     val count4beatsBeafore = (timeInMillsCorrected / (beatMs * 4)).toLong()
-    println("Перед первым временем находится как минимум $count4beatsBeafore тактов по 4 бита")
+    // println("Перед первым временем находится как минимум $count4beatsBeafore тактов по 4 бита")
     val different = count4beatsBeafore * (beatMs * 4).toLong()
-    println("Надо сдвинуть время на $different ms")
+    // println("Надо сдвинуть время на $different ms")
     timeInMillsCorrected -= different
-    println("После сдвига время находится от начала в $timeInMillsCorrected ms и это должно быть меньше, чем ${(beatMs * 4).toLong()} ms")
+    // println("После сдвига время находится от начала в $timeInMillsCorrected ms и это должно быть меньше, чем ${(beatMs * 4).toLong()} ms")
     val result = ((timeInMillsCorrected / (beatMs.toLong())) % 4) + 1
-    println("Разультат = $result")
-    println("-------------------------------------------")
-
+    // println("Результат = $result")
     return result
-}
-
-fun getBeatNumberByTimecode(timeCode: String, beatMs: Long = 90, firstBeatTimecode: String = "00:00:00.000"): Long {
-    return getBeatNumberByMilliseconds(convertTimecodeToMilliseconds(timeCode),beatMs, firstBeatTimecode)
-}
-
-fun getBeatNumberByFrames(frames: Long, beatMs: Long = 90, firstBeatTimecode: String = "00:00:00.000"): Long {
-    return getBeatNumberByMilliseconds(convertFramesToMilliseconds(frames),beatMs, firstBeatTimecode)
 }
 
 fun getDurationInMilliseconds(start: String, end: String): Long {
@@ -96,17 +84,4 @@ fun getSymbolHeight(fontSizePt: Int): Int {
 fun getFontSizeBySymbolWidth(symbolWidthPx: Double): Int {
     // Получение размера шрифта (в пунктах) для ширины символа (в пикселах)
     return (symbolWidthPx/0.6).toInt()
-}
-
-fun getFontSizeBySymbolHeight(symbolHeightPx: Int): Int {
-    // Получение размера шрифта (в пунктах) для высоты символа (в пикселах)
-    return POINT_TO_PIXEL.firstOrNull { it in symbolHeightPx..symbolHeightPx } ?:0
-}
-
-fun getPixels(pt: Double): Double {
-    return pt * 96 / 72
-}
-
-fun getPoints(pixel: Double): Double {
-    return pixel * 72 / 96
 }

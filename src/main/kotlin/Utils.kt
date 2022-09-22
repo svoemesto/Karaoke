@@ -1,7 +1,30 @@
+import java.io.File
+
 fun main() {
+    val pathToFileFrom = "/home/nsa/Documents/Karaoke/text.txt"
+    val pathToFileTo = "/home/nsa/Documents/Karaoke/Song-Auto.kdenlive.srt"
+    extractSubtitlesFromAutorecognizedFile(pathToFileFrom, pathToFileTo)
+}
 
-    println(getBeatNumberByMilliseconds(11000, 100, "00:00:05.000"))
-
+fun extractSubtitlesFromAutorecognizedFile(pathToFileFrom: String, pathToFileTo: String): String {
+    val text = File(pathToFileFrom).readText(Charsets.UTF_8)
+    var regexpLines = Regex("""href=\"\d#[^\/a](.+?)\/a""")
+    val linesMatchResults = regexpLines.findAll(text)
+    var counter = 0L
+    var subs = ""
+    linesMatchResults.forEach { lineMatchResult->
+        val line = lineMatchResult.value
+        val startEnd = Regex("""href=\"\d[^\"&gt](.+?)\"&gt""").find(line)?.groups?.get(1)?.value?.split(":")
+        val start = convertMillisecondsToTimecode(((startEnd?.get(0)?:"0").toDouble()*1000).toLong())
+        val end = convertMillisecondsToTimecode(((startEnd?.get(1)?:"0").toDouble()*1000).toLong())
+        val word = Regex("""&gt[^&lt](.+?)&lt""").find(line)?.groups?.get(1)?.value
+        if (word != "Речь отсутствует") {
+            counter++
+            subs += "${counter}\n${start} --> ${end}\n${word}\n\n"
+        }
+    }
+    File(pathToFileTo).writeText(subs)
+    return subs
 }
 
 fun convertMillisecondsToFrames(milliseconds: Long, fps:Long = FRAME_FPS): Long {

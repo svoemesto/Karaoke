@@ -1,4 +1,4 @@
-package classes
+package model
 
 data class Subtitle(
     val id: Long? = null,

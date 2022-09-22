@@ -1,14 +1,16 @@
-import classes.Lyric
-import classes.LyricLine
-import classes.Song
-import classes.Subtitle
-import classes.TransformProperty
+import model.Lyric
+import model.LyricLine
+import model.Settings
+import model.Song
+import model.Subtitle
+import model.TransformProperty
 import java.io.File
 
 fun main(args: Array<String>) {
 
-    val settingsFileName = "/home/nsa/Documents/Караоке/Агата Кристи/1994 - Опиум/(06) [Агата Кристи] Сказочная тайга.settings"
-    getLyric(getSong(getSettings(settingsFileName)))
+    val folder = "/home/nsa/Documents/Караоке/Агата Кристи/1994 - Опиум"
+    val file = "(11) [Агата Кристи] Опиум для никого"
+    getLyric(getSong(getSettings("${folder}/${file}.settings")))
 
 }
 
@@ -62,8 +64,8 @@ fun getLyric(song: Song): Lyric {
             subs = emptyList<Subtitle>().toMutableList()
         }
 
-        lineFullText += if (!subtitle.isBeat) subtitle.text else " ".repeat(subtitle.text!!.length)    // Дописываем в текст текущей строки текст из саба
-        lineBeatText += if (subtitle.isBeat) subtitle.text else " ".repeat(subtitle.text!!.length)
+        lineFullText += if (!subtitle.isBeat) subtitle.text else subtitle.text?.let { replaceVowelOrConsonantLetters(it, true) }    // Дописываем в текст текущей строки текст из саба
+        lineBeatText += if (subtitle.isBeat) subtitle.text?.let { replaceVowelOrConsonantLetters(it, false) } else subtitle.text?.let {" ".repeat(it.length)}
         subs.add(subtitle)      // Добавляем текущий саб к списку subs
 
         // Если саб - конец строки
@@ -326,10 +328,12 @@ fun getLyric(song: Song): Lyric {
     }
 
     // Такты
-    val delayMs = convertTimecodeToMilliseconds(song.beat!!) // + TIME_OFFSET_MS
+    var delayMs = convertTimecodeToMilliseconds(song.beat!!) // + TIME_OFFSET_MS
 
     // Такт в мс
     val beatMs = if (song.settings.ms == 0L) (60000.0 / song.settings.bpm).toLong() else song.settings.ms// song.delay
+    val different = ((delayMs / (beatMs * 4))-1) * (beatMs * 4)
+    delayMs -= different
 
     var currentPositionStartMs = 0L
     var beatCounter = 1L
@@ -353,6 +357,7 @@ fun getLyric(song: Song): Lyric {
         val point4 = "${convertMillisecondsToTimecode(currentPositionEndMs1fa)}=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 0.0"
         val point5 = "${convertMillisecondsToTimecode(currentPositionEndMs2fa)}=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 0.0"
 
+
         beats[tick.toInt()].add(point0)
         beats[tick.toInt()].add(point1)
         beats[tick.toInt()].add(point2)
@@ -360,7 +365,9 @@ fun getLyric(song: Song): Lyric {
         beats[tick.toInt()].add(point4)
         beats[tick.toInt()].add(point5)
 
-        propGuidesValue.add("""{"comment": "${tick.toInt()+1}", "pos": $currentPositionStartFrame, "type": ${guidesTypes[tick.toInt()]}}""")
+        if (tick == 0L) {
+            propGuidesValue.add("""{"comment": "|", "pos": $currentPositionStartFrame, "type": ${guidesTypes[tick.toInt()]}}""")
+        }
 
         beatCounter += 1
     }
@@ -1878,11 +1885,9 @@ fun getSong(settings: Settings): Song {
                 // Создаем объект classes.Subtitle и инициализируем его переменными
                 val isBeat = if (text != "" && beat != null) {
                     val beatMs = if (settings.ms == 0L) (60000.0 / settings.bpm).toLong() else settings.ms
-                    val startBeatNumber =
-                        getBeatNumberByMilliseconds(convertTimecodeToMilliseconds(se[0]), beatMs, beat!!)
-                    val endBeatNumber =
-                        getBeatNumberByMilliseconds(convertTimecodeToMilliseconds(se[1]), beatMs, beat!!)
-                    (startBeatNumber == 1L && endBeatNumber == 1L) || startBeatNumber > endBeatNumber
+                    val startBeatNumber = getBeatNumberByMilliseconds(convertTimecodeToMilliseconds(se[0]), beatMs, beat!!)
+                    val endBeatNumber = getBeatNumberByMilliseconds(convertTimecodeToMilliseconds(se[1]), beatMs, beat!!)
+                    startBeatNumber > endBeatNumber
                 } else false
                 val subtitle = Subtitle(
                     id = id,

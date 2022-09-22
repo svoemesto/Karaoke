@@ -1,4 +1,4 @@
-package classes
+package model
 
 import FONT_SYMBOL_WIDTH_ASPECT
 import FRAME_HEIGHT_PX

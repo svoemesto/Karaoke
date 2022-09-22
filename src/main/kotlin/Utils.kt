@@ -85,3 +85,11 @@ fun getFontSizeBySymbolWidth(symbolWidthPx: Double): Int {
     // Получение размера шрифта (в пунктах) для ширины символа (в пикселах)
     return (symbolWidthPx/0.6).toInt()
 }
+
+fun replaceVowelOrConsonantLetters(str: String, isVowel: Boolean = true, replSymbol: String = " "): String {
+    var result = ""
+    str.forEach { symbol ->
+        if ((symbol in LETTERS_VOWEL) == isVowel) result += replSymbol else result += symbol
+    }
+    return result
+}

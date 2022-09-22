@@ -1,6 +1,4 @@
-package classes
-
-import Settings
+package model
 
 class Song() {
     var settings: Settings = Settings()

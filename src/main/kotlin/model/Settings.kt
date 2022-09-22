@@ -1,3 +1,5 @@
+package model
+
 class Settings {
     var songName: String = ""
     var album: String = ""

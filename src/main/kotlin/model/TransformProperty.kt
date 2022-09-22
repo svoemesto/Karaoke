@@ -1,4 +1,4 @@
-package classes
+package model
 
 data class TransformProperty(
     val time: String? = null,

@@ -2,8 +2,17 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="19caf878-7ce0-44d7-94a1-cf0a31300a8b" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/src/main/resources/subtitles.settings" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/resources/subtitles.srt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/subtitles.srt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/Constants.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Constants.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/Main.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Main.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/Settings.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/model/Settings.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/Utils.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Utils.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/classes/Lyric.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/model/Lyric.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/classes/LyricLine.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/model/LyricLine.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/classes/Song.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/model/Song.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/classes/Subtitle.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/model/Subtitle.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/classes/TransformProperty.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/model/TransformProperty.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/template.xml" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/template.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -35,11 +44,13 @@
   "keyToString": {
     "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
-    "WebServerToolWindowFactoryState": "false"
+    "WebServerToolWindowFactoryState": "false",
+    "settings.editor.selected.configurable": "preferences.pluginManager"
   }
 }]]></component>
   <component name="RecentsManager">
     <key name="MoveKotlinTopLevelDeclarationsDialog.RECENTS_KEY">
+      <recent name="model" />
       <recent name="classes" />
     </key>
   </component>
@@ -75,7 +86,7 @@
       <updated>1663329937819</updated>
       <workItem from="1663329942664" duration="149955000" />
       <workItem from="1663688948243" duration="14235000" />
-      <workItem from="1663706179352" duration="20587000" />
+      <workItem from="1663706179352" duration="30499000" />
     </task>
     <task id="LOCAL-00001" summary="Initial commit">
       <created>1663330270975</created>
@@ -273,7 +284,14 @@
       <option name="project" value="LOCAL" />
       <updated>1663787315263</updated>
     </task>
-    <option name="localTasksCounter" value="29" />
+    <task id="LOCAL-00029" summary="Классы разнесены по файлам&#10;Настройки убраны из субтитров в отдельный файл&#10;Убраны компаньоны">
+      <created>1663787493264</created>
+      <option name="number" value="00029" />
+      <option name="presentableId" value="LOCAL-00029" />
+      <option name="project" value="LOCAL" />
+      <updated>1663787493264</updated>
+    </task>
+    <option name="localTasksCounter" value="30" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

@@ -1,4 +1,4 @@
-package classes
+package model
 
 data class LyricLine(
     val text: String? = null,

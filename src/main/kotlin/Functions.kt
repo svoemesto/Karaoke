@@ -172,12 +172,12 @@ fun getLyric(song: Song): Lyric {
  <background color="0,0,0,0"/>
 </kdenlivetitle>"""
 
-    val horizontPositionPx = (FRAME_HEIGHT_PX / 2 + symbolHeightPx / 2) - HORIZONT_OFFSET_PX    // horizontPosition - позиция горизонта = половина экрана + половина высоты символа - оффсет
+    val horizontPositionPx = (FRAME_HEIGHT_PX / 2 + symbolHeightPx / 2) - HORIZON_OFFSET_PX    // horizontPosition - позиция горизонта = половина экрана + половина высоты символа - оффсет
 
     // Шаблон для файла субтитра "горизонта"
     val templateHorizont = """<kdenlivetitle duration="0" LC_NUMERIC="C" width="$FRAME_WIDTH_PX" height="$FRAME_HEIGHT_PX" out="0">
  <item type="QGraphicsRectItem" z-index="0">
-  <position x="0" y="${horizontPositionPx.toLong()}">
+  <position x="0" y="${horizontPositionPx}">
    <transform zoom="100">1,0,0,0,1,0,0,0,1</transform>
   </position>
   <content brushcolor="255,0,0,255" pencolor="0,0,0,255" penwidth="0" rect="0,0,$FRAME_WIDTH_PX,3"/>
@@ -189,12 +189,12 @@ fun getLyric(song: Song): Lyric {
 
     // Настало время прописать classes.TransformProperty для строк
 
-    resultLyricFullText.items.forEachIndexed { index, lyricLine -> // Проходимся по всем строкам
+    resultLyricFullText.items.forEachIndexed { itemIndex, lyricLine -> // Проходимся по всем строкам
 
         val startTp = TransformProperty(
             time = lyricLine.start,
             x = 0,
-            y = horizontPositionPx - ((index + 1)*(symbolHeightPx + HEIGHT_CORRECTION)).toLong(),
+            y = horizontPositionPx - ((itemIndex + 1)*(symbolHeightPx + HEIGHT_CORRECTION)).toLong(),
             w = FRAME_WIDTH_PX,
             h = workAreaHeightPx,
             if(lyricLine.isFadeLine) 0.0 else 1.0
@@ -202,8 +202,8 @@ fun getLyric(song: Song): Lyric {
 
         var time = lyricLine.end!!
         // Если текущий элемент не последний - надо проверить начало следующего элемента
-        if (index != resultLyricFullText.items.size-1) {
-            val nextLyricLine = resultLyricFullText.items[index+1] // Находим следующую строку
+        if (itemIndex != resultLyricFullText.items.size-1) {
+            val nextLyricLine = resultLyricFullText.items[itemIndex+1] // Находим следующую строку
             val diffInMills = getDiffInMilliseconds(nextLyricLine.start!!, lyricLine.end!!) // Находим разницу во времени между текущей строкой и следующей
             if (diffInMills < 200) {                            // Если эта разница меньше 200 мс
                 lyricLine.end = nextLyricLine.start             // Сдвигаем конец текущей линии и конец последнего титра в ней до начала следующей
@@ -215,7 +215,7 @@ fun getLyric(song: Song): Lyric {
         val endTp = TransformProperty(
             time = time,
             x = 0,
-            y = horizontPositionPx - ((index + 1)*(symbolHeightPx + HEIGHT_CORRECTION)).toLong(),
+            y = horizontPositionPx - ((itemIndex + 1)*(symbolHeightPx + HEIGHT_CORRECTION)).toLong(),
             w = FRAME_WIDTH_PX,
             h = workAreaHeightPx,
             opacity = if(lyricLine.isFadeLine) 0.0 else 1.0
@@ -283,7 +283,7 @@ fun getLyric(song: Song): Lyric {
                 // На данный момент мы закрасили всю строку, и теперь надо её сфэйдить с переходом на новую строку
                 y -= symbolHeightPx        // Поднимаем y на высоту символа
                 time = nextSubtitle.start  // Время - начало следующего титра
-                var propRectTitleValueFadeOut = "$time=$x $y ${ww.toLong()} $h 0.0"
+                val propRectTitleValueFadeOut = "$time=$x $y ${ww.toLong()} $h 0.0"
                 if (propRectTitleValueLineOddEven[i%2].last() != propRectTitleValueFadeOut) propRectTitleValueLineOddEven[i%2].add(propRectTitleValueFadeOut)
             }
         }
@@ -333,12 +333,12 @@ fun getLyric(song: Song): Lyric {
     while ((delayMs + currentPositionStartMs + beatMs) < convertTimecodeToMilliseconds(song.end!!)) {
 
         val tick = (beatCounter-1)%4
-        currentPositionStartMs = (delayMs + beatMs * (beatCounter-1)).toLong()// + TIME_OFFSET_MS
+        currentPositionStartMs = (delayMs + beatMs * (beatCounter-1))// + TIME_OFFSET_MS
         val currentPositionStartFrame = convertMillisecondsToFrames(currentPositionStartMs)
 
         val currentPositionStartMs2fb = convertFramesToMilliseconds(convertMillisecondsToFrames(currentPositionStartMs)-2, FRAME_FPS)
         val currentPositionStartMs1fb = convertFramesToMilliseconds(convertMillisecondsToFrames(currentPositionStartMs)-1, FRAME_FPS)
-        val currentPositionEndMs = convertFramesToMilliseconds(convertMillisecondsToFrames(currentPositionStartMs + (beatMs * (4-tick)).toLong())-3, FRAME_FPS)
+        val currentPositionEndMs = convertFramesToMilliseconds(convertMillisecondsToFrames(currentPositionStartMs + (beatMs * (4-tick)))-3, FRAME_FPS)
         val currentPositionEndMs1fa = convertFramesToMilliseconds(convertMillisecondsToFrames(currentPositionEndMs)+1, FRAME_FPS)
         val currentPositionEndMs2fa = convertFramesToMilliseconds(convertMillisecondsToFrames(currentPositionEndMs)+2, FRAME_FPS)
 
@@ -381,7 +381,7 @@ fun getLyric(song: Song): Lyric {
     val propGuides = propGuidesValue.joinToString(",")
 
     resultLyricFullText.fontSize = fontSizePt
-    resultLyricFullText.horizontPosition = horizontPositionPx.toLong()
+    resultLyricFullText.horizontPosition = horizontPositionPx
     resultLyricFullText.symbolHeight = symbolHeightPx
     resultLyricFullText.symbolWidth = symbolWidthPx
 
@@ -1827,8 +1827,8 @@ fun getSong(settings: Settings): Song {
 
     var id: Long? = null
     var startEnd: String? = null
-    var start: String? = null
-    var end: String? = null
+    var start: String?
+    var end: String?
     var text: String? = null
     var beat: String? = null
 
@@ -1844,8 +1844,8 @@ fun getSong(settings: Settings): Song {
             // Если sub начитается с "[SETTING]|" - это настройка
             if (sub.uppercase().startsWith("[SETTING]|")) {
                 // Разделяем sub по | в список
-                val settings = sub.split("|")
-                when (settings[1].uppercase()) {
+                val settingList = sub.split("|")
+                when (settingList[1].uppercase()) {
                     "BEAT" -> beat = startEnd!!.split(" --> ")[0]
                 }
                 // Обнуляем переменные
@@ -1859,7 +1859,7 @@ fun getSong(settings: Settings): Song {
             }
         } else if (text != null && sub != "") {          // Если уже есть text и строка всё еще не пустая - значит текущая строка - это тоже text
             text += sub
-        } else if (sub == "") {                                        // Если строка пустая
+        } else {                                        // Если строка пустая
             // Если уже есть все переменные
             if (id != null && startEnd != null && text != null) {
                 // Разделяем startEnd на start и end в список, вынимаем из списка соответствующие значения

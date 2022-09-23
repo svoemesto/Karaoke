@@ -1,20 +1,32 @@
 import java.io.File
+import java.nio.file.Files
+import kotlin.io.path.Path
+import kotlin.random.Random
 
 fun main() {
-    val pathToFileFrom = "/home/nsa/Documents/Karaoke/text.txt"
-    val pathToFileTo = "/home/nsa/Documents/Karaoke/Song-Auto.kdenlive.srt"
+    val pathToFileFrom = "/home/nsa/Documents/Караоке/Агата Кристи/1988 - Второй фронт/(03) [Агата Кристи] Пантера [vocals].txt"
+    val pathToFileTo = "/home/nsa/Documents/Караоке/Агата Кристи/1988 - Второй фронт/(03) [Агата Кристи] Пантера.kdenlive.srt"
     extractSubtitlesFromAutorecognizedFile(pathToFileFrom, pathToFileTo)
+}
+
+fun getRandomFile(pathToFolder: String, extention: String = ""): String {
+    val listFiles = getListFiles(pathToFolder, extention)
+    return if (listFiles.isEmpty()) "" else listFiles[Random.nextInt(listFiles.size)]
+}
+
+fun getListFiles(pathToFolder: String, extention: String = ""): List<String> {
+    return Files.walk(Path(pathToFolder)).filter(Files::isRegularFile).map { it.toString() }.filter{ it.endsWith(extention) }.toList()
 }
 
 fun extractSubtitlesFromAutorecognizedFile(pathToFileFrom: String, pathToFileTo: String): String {
     val text = File(pathToFileFrom).readText(Charsets.UTF_8)
-    var regexpLines = Regex("""href=\"\d#[^\/a](.+?)\/a""")
+    val regexpLines = Regex("""href=\"\d+?#[^\/a](.+?)\/a""")
     val linesMatchResults = regexpLines.findAll(text)
     var counter = 0L
     var subs = ""
     linesMatchResults.forEach { lineMatchResult->
         val line = lineMatchResult.value
-        val startEnd = Regex("""href=\"\d[^\"&gt](.+?)\"&gt""").find(line)?.groups?.get(1)?.value?.split(":")
+        val startEnd = Regex("""href=\"\d+?[^\"&gt](.+?)\"&gt""").find(line)?.groups?.get(1)?.value?.split(":")
         val start = convertMillisecondsToTimecode(((startEnd?.get(0)?:"0").toDouble()*1000).toLong())
         val end = convertMillisecondsToTimecode(((startEnd?.get(1)?:"0").toDouble()*1000).toLong())
         val word = Regex("""&gt[^&lt](.+?)&lt""").find(line)?.groups?.get(1)?.value
@@ -75,17 +87,20 @@ fun getBeatNumberByMilliseconds(timeInMilliseconds: Long, beatMs: Long, firstBea
     // println("Время = $timeInMilliseconds ms")
     var timeInMillsCorrected = timeInMilliseconds - firstBeatMs
     // println("Время после сдвигания = $timeInMillsCorrected ms")
-    val count4beatsBeafore = (timeInMillsCorrected / (beatMs * 4)).toLong()
+    val count4beatsBefore = (timeInMillsCorrected / (beatMs * 4))
     // println("Перед первым временем находится как минимум $count4beatsBeafore тактов по 4 бита")
-    val different = count4beatsBeafore * (beatMs * 4).toLong()
+    val different = count4beatsBefore * (beatMs * 4)
     // println("Надо сдвинуть время на $different ms")
     timeInMillsCorrected -= different
     // println("После сдвига время находится от начала в $timeInMillsCorrected ms и это должно быть меньше, чем ${(beatMs * 4).toLong()} ms")
-    val result = ((timeInMillsCorrected / (beatMs.toLong())) % 4) + 1
+    val result = ((timeInMillsCorrected / (beatMs)) % 4) + 1
     // println("Результат = $result")
     return result
 }
 
+fun getBeatNumberByTimecode(timeInTimecode: String, beatMs: Long, firstBeatTimecode: String): Long {
+    return getBeatNumberByMilliseconds(convertTimecodeToMilliseconds(timeInTimecode), beatMs, firstBeatTimecode)
+}
 fun getDurationInMilliseconds(start: String, end: String): Long {
     return convertTimecodeToMilliseconds(end) - convertTimecodeToMilliseconds(start)
 }

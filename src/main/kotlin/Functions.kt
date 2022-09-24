@@ -407,6 +407,9 @@ fun createKaraoke(song: Song) {
 
     kdeLogoPath = "${song.settings.rootFolder}/Logo.png"
     kdeMicrophonePath = "${song.settings.rootFolder}/Microphone.png"
+
+    val fontNameSizePt = Integer.min(getFontSizeBySymbolWidth(1100.0 / song.settings.songName.length),80)
+
     fileIsKaraoke.forEach { isKaraoke ->
 
         val templateProject = """<?xml version='1.0' encoding='utf-8'?>
@@ -524,7 +527,7 @@ fun createKaraoke(song: Song) {
   <position x="96" y="0">
    <transform>1,0,0,0,1,0,0,0,1</transform>
   </position>
-  <content line-spacing="0" shadow="1;#64000000;3;3;3" font-underline="0" box-height="106" font="JetBrains Mono" letter-spacing="0" font-pixel-size="80" font-italic="0" typewriter="0;2;1;0;0" alignment="1" font-weight="50" box-width="818.734" font-color="255,255,127,255">$kdeHeaderSongName</content>
+  <content line-spacing="0" shadow="1;#64000000;3;3;3" font-underline="0" box-height="106" font="JetBrains Mono" letter-spacing="0" font-pixel-size="${fontNameSizePt}" font-italic="0" typewriter="0;2;1;0;0" alignment="1" font-weight="50" box-width="818.734" font-color="255,255,127,255">$kdeHeaderSongName</content>
  </item>
  <item type="QGraphicsRectItem" z-index="-1">
   <position x="0" y="0">

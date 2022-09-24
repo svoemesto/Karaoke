@@ -2,16 +2,9 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="19caf878-7ce0-44d7-94a1-cf0a31300a8b" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/libraries/google_code_gson.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/uiDesigner.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/model/Marker.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Karaoke.iml" beforeDir="false" afterPath="$PROJECT_DIR$/Karaoke.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/Constants.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Constants.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/Functions.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Functions.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/Main.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Main.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/Utils.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Utils.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/model/Settings.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/model/Settings.kt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -98,7 +91,7 @@
       <workItem from="1663329942664" duration="149955000" />
       <workItem from="1663688948243" duration="14235000" />
       <workItem from="1663706179352" duration="32592000" />
-      <workItem from="1663855534577" duration="50610000" />
+      <workItem from="1663855534577" duration="54565000" />
     </task>
     <task id="LOCAL-00001" summary="Initial commit">
       <created>1663330270975</created>
@@ -345,7 +338,14 @@
       <option name="project" value="LOCAL" />
       <updated>1663949428382</updated>
     </task>
-    <option name="localTasksCounter" value="36" />
+    <task id="LOCAL-00036" summary="Рефакторинг, переработаны настройки, исправление ошибки &quot;первой строчки&quot;">
+      <created>1664033381804</created>
+      <option name="number" value="00036" />
+      <option name="presentableId" value="LOCAL-00036" />
+      <option name="project" value="LOCAL" />
+      <updated>1664033381804</updated>
+    </task>
+    <option name="localTasksCounter" value="37" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -361,6 +361,7 @@
     <MESSAGE value="Рефакторинг" />
     <MESSAGE value="Рефакторинг, рандомный выбор фона, исправление ошибки &quot;послендей строчки&quot;" />
     <MESSAGE value="Рефакторинг, рандомный выбор фона, исправление ошибки &quot;последней строчки&quot;" />
-    <option name="LAST_COMMIT_MESSAGE" value="Рефакторинг, рандомный выбор фона, исправление ошибки &quot;последней строчки&quot;" />
+    <MESSAGE value="Рефакторинг, переработаны настройки, исправление ошибки &quot;первой строчки&quot;" />
+    <option name="LAST_COMMIT_MESSAGE" value="Рефакторинг, переработаны настройки, исправление ошибки &quot;первой строчки&quot;" />
   </component>
 </project>

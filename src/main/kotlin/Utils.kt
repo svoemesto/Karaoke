@@ -1,12 +1,105 @@
+import com.google.gson.GsonBuilder
+import model.Marker
+import model.Subtitle
 import java.io.File
 import java.nio.file.Files
 import kotlin.io.path.Path
 import kotlin.random.Random
 
+
 fun main() {
-    val pathToFileFrom = "/home/nsa/Documents/Караоке/Агата Кристи/1988 - Второй фронт/(03) [Агата Кристи] Пантера [vocals].txt"
-    val pathToFileTo = "/home/nsa/Documents/Караоке/Агата Кристи/1988 - Второй фронт/(03) [Агата Кристи] Пантера.kdenlive.srt"
-    extractSubtitlesFromAutorecognizedFile(pathToFileFrom, pathToFileTo)
+//    val pathToFileFrom = "/home/nsa/Documents/Караоке/Агата Кристи/1988 - Второй фронт/(03) [Агата Кристи] Пантера [vocals].txt"
+//    val pathToFileTo = "/home/nsa/Documents/Караоке/Агата Кристи/1988 - Второй фронт/(03) [Агата Кристи] Пантера.kdenlive.srt"
+//    extractSubtitlesFromAutorecognizedFile(pathToFileFrom, pathToFileTo)
+
+    val pathToFileFrom = "/home/nsa/Documents/Караоке/Ундервуд/2002 - Все пройдет, Милая/(03) [Ундервуд] Следи за ее левой рукой.kdenlive"
+
+//    val listFiles = getListFiles("/home/nsa/Documents/Караоке/Ундервуд", ".kdenlive")
+//    listFiles.forEach { fileName ->
+//        convertMarkersToSubtitles(fileName)
+//    }
+
+
+}
+
+fun convertMarkersToSubtitles(pathToSourceFile: String, pathToResultFile: String = "") {
+
+    val gson = GsonBuilder()
+        .setLenient()
+        .create()
+
+    val sourceFileBody = File(pathToSourceFile).readText(Charsets.UTF_8)
+    val regexpLines = Regex("""<property name=\"kdenlive:markers\"[^<]([\s\S]+?)</property>""")
+    val linesMatchResults = regexpLines.findAll(sourceFileBody)
+    var countSubsFile = 0L
+    val subsFiles: MutableList<MutableList<Marker>> = emptyList<MutableList<Marker>>().toMutableList()
+    linesMatchResults.forEach { lineMatchResult ->
+        val textToAnalize = lineMatchResult.groups.get(1)?.value?.replace("\n", "")?.replace("[", "")?.replace("]", "")
+        val regexpMarkers = Regex("""\{[^\}]([\s\S]+?)\}""")
+        val markersMatchResults = regexpMarkers.findAll(textToAnalize!!)
+        if (markersMatchResults.iterator().hasNext()) {
+            countSubsFile++
+            val markers = mutableListOf<Marker>()
+            markersMatchResults.forEach { markerMatchResult ->
+                val marker = gson.fromJson(markerMatchResult.value, Marker::class.java)
+                markers.add(marker)
+            }
+            subsFiles.add(markers)
+        }
+    }
+
+
+    var countCreatedFiles = 0L
+    for (indexSubFiles in 0 until subsFiles.size) {
+        val subFile = subsFiles[indexSubFiles]
+        var prevMarkerIsEndLine = true
+        var subtitles = mutableListOf<Subtitle>()
+        for (indexMarker in 0 until subFile.size) {
+
+            val currMarker = subFile[indexMarker]
+
+            if (currMarker.comment in ".\\/*" || indexMarker == subFile.size-1) {
+                prevMarkerIsEndLine = true
+                continue
+            }
+
+            val nextMarker = subFile[indexMarker+1]
+            val isLineStart = prevMarkerIsEndLine
+            val isLineEnd = (nextMarker.comment in ".\\/*" || indexMarker == subFile.size-1)
+            prevMarkerIsEndLine = isLineEnd
+
+            var subText = currMarker.comment.replace(" ", "_").replace("-", "")
+            if (isLineStart) subText = subText[0].uppercase()+subText.subSequence(1,subText.length)
+            if (isLineStart) subText = "//${subText}"
+            if (isLineEnd) subText = "${subText}\\\\"
+
+            val startTimecode = convertFramesToTimecode(currMarker.pos, 25L)
+            val endTimecode = convertFramesToTimecode(nextMarker.pos, 25L)
+
+            val subtitle = Subtitle(
+                startTimecode = startTimecode,
+                endTimecode = endTimecode,
+                text = subText,
+                isLineStart = isLineStart,
+                isLineEnd = isLineEnd
+            )
+            subtitles.add(subtitle)
+        }
+
+        var textSubtitleFile = ""
+        for (index in 0 until subtitles.size) {
+            val subtitle = subtitles[index]
+            textSubtitleFile += "${index+1}\n${subtitle.startTimecode} --> ${subtitle.endTimecode}\n${subtitle.text}\n\n"
+        }
+
+        if (textSubtitleFile != "") {
+            countCreatedFiles++
+            val fileNameNewSubs = "${pathToSourceFile}${if (countCreatedFiles == 1L) "" else "_${countCreatedFiles-1}"}.srt"
+            File(fileNameNewSubs).writeText(textSubtitleFile)
+        }
+
+    }
+
 }
 
 fun getRandomFile(pathToFolder: String, extention: String = ""): String {

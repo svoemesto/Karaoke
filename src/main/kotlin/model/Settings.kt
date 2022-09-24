@@ -2,6 +2,7 @@ package model
 
 class Settings {
     var songName: String = ""
+    var author: String = ""
     var album: String = ""
     var key: String = ""
     var bpm: Long = 0

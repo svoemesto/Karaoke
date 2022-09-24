@@ -5,6 +5,7 @@ import model.Song
 import model.Subtitle
 import model.TransformProperty
 import java.io.File
+import kotlin.io.path.Path
 
 fun createKaraoke(song: Song) {
 
@@ -24,6 +25,12 @@ fun createKaraoke(song: Song) {
         emptyList<String>().toMutableList(),
         emptyList<String>().toMutableList()
     )
+
+    counters[0].add("00:00:00.000=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 0.0")
+    counters[1].add("00:00:00.000=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 0.0")
+    counters[2].add("00:00:00.000=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 0.0")
+    counters[3].add("00:00:00.000=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 0.0")
+    counters[4].add("00:00:00.000=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 0.0")
 
     val beats = listOf(
         emptyList<String>().toMutableList(),
@@ -182,6 +189,7 @@ fun createKaraoke(song: Song) {
 
     // Настало время прописать classes.TransformProperty для строк
 
+
     resultLyricLinesFullText.forEachIndexed { itemIndex, lyricLine -> // Проходимся по всем строкам
 
         val startTp = TransformProperty(
@@ -215,6 +223,12 @@ fun createKaraoke(song: Song) {
         )
         lyricLine.startTp = startTp
         lyricLine.endTp = endTp
+    }
+
+    if (!resultLyricLinesFullText[0].isEmptyLine) {
+        val currentLyricLine = resultLyricLinesFullText[0]
+        propRectLineValue.add("00:00:00.000=${currentLyricLine.startTp?.x} ${currentLyricLine.startTp?.y} ${currentLyricLine.startTp?.w} ${currentLyricLine.startTp?.h} 0.0")
+        propRectLineValue.add("00:00:01.000=${currentLyricLine.startTp?.x} ${currentLyricLine.startTp?.y} ${currentLyricLine.startTp?.w} ${currentLyricLine.startTp?.h} 1.0")
     }
 
     // Настало время прописать classes.TransformProperty для заливок
@@ -374,6 +388,7 @@ fun createKaraoke(song: Song) {
     val propBeat4Value = beats[3].joinToString(";")
     val propGuides = propGuidesValue.joinToString(",")
 
+    val kdeHeaderAuthor = "Исполнитель: ${song.settings.author}"
     val kdeHeaderTone = "Тональность: ${song.settings.key}"
     val kdeHeaderBpm = "Темп: ${song.settings.bpm} bpm"
     val kdeHeaderAlbum = "Альбом: ${song.settings.album}"
@@ -390,6 +405,8 @@ fun createKaraoke(song: Song) {
 
     val fileIsKaraoke = listOf(false, true)
 
+    kdeLogoPath = "${song.settings.rootFolder}/Logo.png"
+    kdeMicrophonePath = "${song.settings.rootFolder}/Microphone.png"
     fileIsKaraoke.forEach { isKaraoke ->
 
         val templateProject = """<?xml version='1.0' encoding='utf-8'?>
@@ -474,25 +491,31 @@ fun createKaraoke(song: Song) {
   <property name="kdenlive:clipname">Заголовок</property>
   <property name="xmldata"><kdenlivetitle duration="300" LC_NUMERIC="C" width="$FRAME_WIDTH_PX" height="$FRAME_HEIGHT_PX" out="299">
  <item type="QGraphicsTextItem" z-index="6">
-  <position x="223" y="169">
+  <position x="96" y="96">
+   <transform>1,0,0,0,1,0,0,0,1</transform>
+  </position>
+  <content line-spacing="0" shadow="1;#64000000;3;3;3" font-underline="0" box-height="40" font="JetBrains Mono" letter-spacing="0" font-pixel-size="30" font-italic="0" typewriter="0;2;1;0;0" alignment="1" font-weight="50" box-width="233.797" font-color="85,255,255,255">$kdeHeaderAuthor</content>
+ </item>
+ <item type="QGraphicsTextItem" z-index="6">
+  <position x="223" y="201">
    <transform>1,0,0,0,1,0,0,0,1</transform>
   </position>
   <content line-spacing="0" shadow="1;#64000000;3;3;3" font-underline="0" box-height="40" font="JetBrains Mono" letter-spacing="0" font-pixel-size="30" font-italic="0" typewriter="0;2;1;0;0" alignment="1" font-weight="50" box-width="233.797" font-color="85,255,255,255">$kdeHeaderBpm</content>
  </item>
  <item type="QGraphicsTextItem" z-index="5">
-  <position x="96" y="132">
+  <position x="96" y="169">
    <transform>1,0,0,0,1,0,0,0,1</transform>
   </position>
   <content line-spacing="0" shadow="1;#64000000;3;3;3" font-underline="0" box-height="40" font="JetBrains Mono" letter-spacing="0" font-pixel-size="30" font-italic="0" typewriter="0;2;1;0;0" alignment="1" font-weight="50" box-width="359.688" font-color="85,255,255,255">$kdeHeaderTone</content>
  </item>
  <item type="QGraphicsRectItem" z-index="4">
-  <position x="0" y="210">
+  <position x="0" y="246">
    <transform zoom="100">1,0,0,0,1,0,0,0,1</transform>
   </position>
   <content brushcolor="0,0,0,255" pencolor="0,0,0,255" penwidth="0" rect="0,0,$FRAME_WIDTH_PX,50" gradient="#ff000000;#00bf4040;0;100;90"/>
  </item>
  <item type="QGraphicsTextItem" z-index="2">
-  <position x="185" y="96">
+  <position x="185" y="132">
    <transform>1,0,0,0,1,0,0,0,1</transform>
   </position>
   <content line-spacing="0" shadow="1;#64000000;3;3;3" font-underline="0" box-height="40" font="JetBrains Mono" letter-spacing="0" font-pixel-size="30" font-italic="0" typewriter="0;2;1;0;0" alignment="1" font-weight="50" box-width="395.656" font-color="85,255,255,255">$kdeHeaderAlbum</content>
@@ -507,7 +530,7 @@ fun createKaraoke(song: Song) {
   <position x="0" y="0">
    <transform zoom="100">1,0,0,0,1,0,0,0,1</transform>
   </position>
-  <content brushcolor="0,0,0,255" pencolor="0,0,0,255" penwidth="0" rect="0,0,$FRAME_WIDTH_PX,210"/>
+  <content brushcolor="0,0,0,255" pencolor="0,0,0,255" penwidth="0" rect="0,0,$FRAME_WIDTH_PX,246"/>
  </item>
  <startviewport rect="0,0,$FRAME_WIDTH_PX,$FRAME_HEIGHT_PX"/>
  <endviewport rect="0,0,$FRAME_WIDTH_PX,$FRAME_HEIGHT_PX"/>
@@ -1906,7 +1929,25 @@ fun getSong(settings: Settings): Song {
 }
 
 fun getSettings(pathToSettingsFile: String): Settings {
+    val settingFilePath = Path(pathToSettingsFile)
+    val settingRoot = settingFilePath.parent.toString()
+    val settingFileNameList = settingFilePath.fileName.toString()
+        .split(".")
+        .toMutableList()
+    settingFileNameList.removeLast()
+    val settingFileName = settingFileNameList.joinToString(".")
+
     val settings = Settings()
+    settings.rootFolder = settingRoot
+    settings.subtitleFileName = "${settingFileName}.kdenlive.srt"
+    settings.audioSongFileName = "${settingFileName}.flac"
+    settings.audioMusicFileName = "${settingFileName} [music].wav"
+    settings.audioVocalFileName = "${settingFileName} [vocals].wav"
+    settings.projectLyricsFileName = "${settingFileName} [lyrics].kdenlive"
+    settings.videoLyricsFileName = "${settingFileName} [lyrics].mp4"
+    settings.projectKaraokeFileName = "${settingFileName} [karaoke].kdenlive"
+    settings.videoKaraokeFileName = "${settingFileName} [karaoke].mp4"
+
     val body = File(pathToSettingsFile).readText(Charsets.UTF_8)
     body.split("\n").forEach { line ->
         println(line)
@@ -1916,21 +1957,14 @@ fun getSettings(pathToSettingsFile: String): Settings {
             val settingValue = settingList[1]
             when (settingName) {
                 "NAME" -> settings.songName = settingValue
+                "AUTHOR" -> settings.author = settingValue
                 "ALBUM" -> settings.album = settingValue
                 "KEY" -> settings.key = settingValue
                 "BPM" -> settings.bpm = settingValue.toLong()
                 "MS" -> settings.ms = settingValue.toLong()
-                "ROOT" -> settings.rootFolder = settingValue
-                "SUBTITLES" -> settings.subtitleFileName = settingValue
-                "SONGFILE" -> settings.audioSongFileName = settingValue
-                "MUSICFILE" -> settings.audioMusicFileName = settingValue
-                "VOCALFILE" -> settings.audioVocalFileName = settingValue
-                "PROJECTLYRICSFILE" -> settings.projectLyricsFileName = settingValue
-                "PROJECTKARAOKEFILE" -> settings.projectKaraokeFileName = settingValue
-                "VIDEOLYRICSFILE" -> settings.videoLyricsFileName = settingValue
-                "VIDEOKARAOKEFILE" -> settings.videoKaraokeFileName = settingValue
             }
         }
+
     }
     return settings
 }

@@ -6,5 +6,6 @@ data class Subtitle(
     val text: String? = null,
     val isLineStart: Boolean? = null,
     val isLineEnd: Boolean? = null,
-    var isBeat: Boolean = false
+    var isBeat: Boolean = false,
+    var group: Long = 0L
 )

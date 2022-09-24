@@ -13,10 +13,13 @@ fun createKaraoke(song: Song) {
     var endLine: String?
 
     var subs: MutableList<Subtitle> = emptyList<Subtitle>().toMutableList()
-    val lyricLinesFullText: MutableList<LyricLine> = emptyList<LyricLine>().toMutableList()
-    val lyricLinesBeatText: MutableList<LyricLine> = emptyList<LyricLine>().toMutableList()
-    val resultLyricLinesFullText: MutableList<LyricLine> = emptyList<LyricLine>().toMutableList()
-    val resultLyricLinesBeatText: MutableList<LyricLine> = emptyList<LyricLine>().toMutableList()
+    val lyricLinesFullText: MutableList<LyricLine> = mutableListOf()
+    val lyricLinesFullTextGroups: MutableMap<Long, MutableList<LyricLine>> = mutableMapOf()
+    val lyricLinesBeatTextGroups: MutableMap<Long, MutableList<LyricLine>> = mutableMapOf()
+
+    val resultLyricLinesFullText: MutableList<LyricLine> = mutableListOf()
+    val resultLyricLinesFullTextGroups: MutableMap<Long, MutableList<LyricLine>> = mutableMapOf()
+    val resultLyricLinesBeatTextGroups: MutableMap<Long, MutableList<LyricLine>> = mutableMapOf()
 
     val counters = listOf(
         emptyList<String>().toMutableList(),
@@ -49,20 +52,24 @@ fun createKaraoke(song: Song) {
     )
 
     var text = ""
+    var lineText = ""
     var lineFullText = ""
     var lineBeatText = ""
     var maxLineDuration = 0L
-
+    var group = 0L
     // Проходимся по всем сабам
     song.subtitles.forEach { subtitle ->
         // Если саб - начало строки - начинаем новую строку (пока она пустая) и инициализируем пустой список subs
         if (subtitle.isLineStart == true) {
             startLine = subtitle.startTimecode
+            lineText = ""
             lineFullText = ""
             lineBeatText = ""
             subs = emptyList<Subtitle>().toMutableList()
+            group = subtitle.group
         }
 
+        lineText += subtitle.text
         lineFullText += if (!subtitle.isBeat) subtitle.text else subtitle.text?.let { replaceVowelOrConsonantLetters(it, true) }    // Дописываем в текст текущей строки текст из саба
         lineBeatText += if (subtitle.isBeat) subtitle.text?.let { replaceVowelOrConsonantLetters(it, false) } else subtitle.text?.let {" ".repeat(it.length)}
         subs.add(subtitle)      // Добавляем текущий саб к списку subs
@@ -72,17 +79,27 @@ fun createKaraoke(song: Song) {
 
             endLine = subtitle.endTimecode  // Устанавливаем конец строки позицией конца из саба
 
+            lyricLinesFullText.add(LyricLine(text = lineText, start = startLine, end = endLine, subtitles = subs, isEmptyLine = lineFullText.isEmpty()))
+
+            for (indexGroup in 0L until MAX_GROUPS) {
+                val lyricLineFull = if (indexGroup == group) LyricLine(text = lineFullText, start = startLine, end = endLine, subtitles = subs, isEmptyLine = lineFullText.isEmpty()) else LyricLine(text = "", start = startLine, end = endLine, subtitles = subs, isEmptyLine = lineFullText.isEmpty())
+                val lyricLineBeat = if (indexGroup == group) LyricLine(text = lineBeatText, start = startLine, end = endLine, subtitles = subs, isEmptyLine = lineFullText.isEmpty()) else LyricLine(text = "", start = startLine, end = endLine, subtitles = subs, isEmptyLine = lineFullText.isEmpty())
+                val lstLineFull = lyricLinesFullTextGroups[indexGroup] ?: mutableListOf()
+                val lstLineBeat = lyricLinesBeatTextGroups[indexGroup] ?: mutableListOf()
+                lstLineFull.add(lyricLineFull)
+                lstLineBeat.add(lyricLineBeat)
+                lyricLinesFullTextGroups[indexGroup] = lstLineFull                                                       // Добавляем строку lyric в список строк lyrics
+                lyricLinesBeatTextGroups[indexGroup] = lstLineBeat
+            }
+
             // Создаем объект classes.LyricLine и инициализируем его переменными. На данный момент нам пока неизвестны поля startTp и endTp - оставляем их пустыми
-            val lyricLineFull = LyricLine(text = lineFullText, start = startLine, end = endLine, subtitles = subs, isEmptyLine = lineFullText.isEmpty())
-            val lyricLineBeat = LyricLine(text = lineBeatText, start = startLine, end = endLine, subtitles = subs, isEmptyLine = lineFullText.isEmpty())
 
             val lineDuration = getDurationInMilliseconds(startLine!!, endLine!!)     // Находим время "звучания" строки в миллисекундах
             maxLineDuration = java.lang.Long.max(
                 maxLineDuration,
                 lineDuration
             )                    // Находим максимальное время "звучания" среди всех строк
-            lyricLinesFullText.add(lyricLineFull)                                                       // Добавляем строку lyric в список строк lyrics
-            lyricLinesBeatText.add(lyricLineBeat)                                                       // Добавляем строку lyric в список строк lyrics
+                                                               // Добавляем строку lyric в список строк lyrics
 
         }
     }
@@ -91,7 +108,6 @@ fun createKaraoke(song: Song) {
 
     var index = 0
     lyricLinesFullText.forEach { lyricFullText -> // Проходимся по массиву строк
-        val lyricBeatText = lyricLinesBeatText[index]
         index ++
         val silentDuration = convertTimecodeToMilliseconds(lyricFullText.start!!) - currentPositionEnd  // Вычисляем время "тишины"
         val linesToInsert: Long = silentDuration / maxLineDuration // Вычисляем кол-во "пустых" строк, которые надо вставить перед текущей строкой
@@ -124,14 +140,31 @@ fun createKaraoke(song: Song) {
                     isFadeLine = resultLyricLinesFullText.isEmpty() || lyricFullText == lyricLinesFullText.last())
 
                 currentPositionEnd += silentLineDuration    // Устанавливаем текущую позицию конца равной позиции конца созданной пустой строки
-                resultLyricLinesFullText.add(lyricEmpty)                      // Добавляем lyricEmpty в список строк result
-                resultLyricLinesBeatText.add(lyricEmpty)                      // Добавляем lyricEmpty в список строк result
+
+                resultLyricLinesFullText.add(lyricEmpty)
+                for (indexGroup in 0L until MAX_GROUPS) {
+                    val lstLineFull = resultLyricLinesFullTextGroups[indexGroup] ?: mutableListOf()
+                    val lstLineBeat = resultLyricLinesBeatTextGroups[indexGroup] ?: mutableListOf()
+                    lstLineFull.add(lyricEmpty)
+                    lstLineBeat.add(lyricEmpty)
+                    resultLyricLinesFullTextGroups[indexGroup] = lstLineFull                                                       // Добавляем строку lyric в список строк lyrics
+                    resultLyricLinesBeatTextGroups[indexGroup] = lstLineBeat
+                }
+
                 text += "\n"
             }
         }
         // Добавляем строку lyric в список строк result
+
         resultLyricLinesFullText.add(lyricFullText)
-        resultLyricLinesBeatText.add(lyricBeatText)
+        for (indexGroup in 0L until MAX_GROUPS) {
+            val lstLineFull = resultLyricLinesFullTextGroups[indexGroup] ?: mutableListOf()
+            val lstLineBeat = resultLyricLinesBeatTextGroups[indexGroup] ?: mutableListOf()
+            lstLineFull.add(lyricLinesFullTextGroups[indexGroup]!![index-1])
+            lstLineBeat.add(lyricLinesBeatTextGroups[indexGroup]!![index-1])
+            resultLyricLinesFullTextGroups[indexGroup] = lstLineFull                                                       // Добавляем строку lyric в список строк lyrics
+            resultLyricLinesBeatTextGroups[indexGroup] = lstLineBeat
+        }
 
         currentPositionEnd = convertTimecodeToMilliseconds(lyricFullText.end!!) // Устанавливаем текущую позицию конца равной позиции конца текущей строки
         text += "${lyricFullText.text}\n"
@@ -153,20 +186,27 @@ fun createKaraoke(song: Song) {
     val boxWidthPx = (maxTextLengthSym * symbolWidthPx)                         // boxHeight - ширина "бокса" текста = ширина текста * ширину символа
     val workAreaHeightPx = boxHeightPx + symbolHeightPx // Высота рабочей области
 
-    // Шаблон для файла субтитра текста
-    val templateTitle = """<kdenlivetitle duration="0" LC_NUMERIC="C" width="$FRAME_WIDTH_PX" height="$workAreaHeightPx" out="0">
+
+    val templateTitleGroup = mutableListOf<String>()
+    for (indexGroup in 0L until MAX_GROUPS) {
+        templateTitleGroup.add("""<item type="QGraphicsTextItem" z-index="0">
+  <position x="$TITLE_POSITION_START_X_PX" y="$TITLE_POSITION_START_Y_PX">
+   <transform>1,0,0,0,1,0,0,0,1</transform>
+  </position>
+  <content line-spacing="$LINE_SPACING" shadow="$SHADOW" font-underline="$FONT_UNDERLINE" box-height="$boxHeightPx" font="$FONT_NAME" letter-spacing="0" font-pixel-size="$fontSizePt" font-italic="$FONT_ITALIC" typewriter="$TYPEWRITER" alignment="$ALIGNMENT" font-weight="$FONT_WEIGHT" box-width="$boxWidthPx" font-color="${GROUPS_FONT_COLORS_TEXT[indexGroup]}">${resultLyricLinesFullTextGroups[indexGroup]?.map { it.text }?.joinToString("\n")}</content>
+ </item>
  <item type="QGraphicsTextItem" z-index="0">
   <position x="$TITLE_POSITION_START_X_PX" y="$TITLE_POSITION_START_Y_PX">
    <transform>1,0,0,0,1,0,0,0,1</transform>
   </position>
-  <content line-spacing="$LINE_SPACING" shadow="$SHADOW" font-underline="$FONT_UNDERLINE" box-height="$boxHeightPx" font="$FONT_NAME" letter-spacing="0" font-pixel-size="$fontSizePt" font-italic="$FONT_ITALIC" typewriter="$TYPEWRITER" alignment="$ALIGNMENT" font-weight="$FONT_WEIGHT" box-width="$boxWidthPx" font-color="$FONT_COLOR_TEXT">${resultLyricLinesFullText.map { it.text }.joinToString("\n")}</content>
- </item>
- <item type="QGraphicsTextItem" z-index="1">
-  <position x="$TITLE_POSITION_START_X_PX" y="$TITLE_POSITION_START_Y_PX">
-   <transform>1,0,0,0,1,0,0,0,1</transform>
-  </position>
-  <content line-spacing="$LINE_SPACING" shadow="$SHADOW" font-underline="$FONT_UNDERLINE" box-height="$boxHeightPx" font="$FONT_NAME" letter-spacing="0" font-pixel-size="$fontSizePt" font-italic="$FONT_ITALIC" typewriter="$TYPEWRITER" alignment="$ALIGNMENT" font-weight="$FONT_WEIGHT" box-width="$boxWidthPx" font-color="${if (SHOW_BEAT_SUBS) FONT_COLOR_BEAT else FONT_COLOR_TEXT}">${resultLyricLinesBeatText.map { it.text }.joinToString("\n")}</content>
- </item>
+  <content line-spacing="$LINE_SPACING" shadow="$SHADOW" font-underline="$FONT_UNDERLINE" box-height="$boxHeightPx" font="$FONT_NAME" letter-spacing="0" font-pixel-size="$fontSizePt" font-italic="$FONT_ITALIC" typewriter="$TYPEWRITER" alignment="$ALIGNMENT" font-weight="$FONT_WEIGHT" box-width="$boxWidthPx" font-color="${GROUPS_FONT_COLORS_BEAT[indexGroup]}">${resultLyricLinesBeatTextGroups[indexGroup]?.map { it.text }?.joinToString("\n")}</content>
+ </item>""")
+    }
+
+
+    // Шаблон для файла субтитра текста
+    val templateTitle = """<kdenlivetitle duration="0" LC_NUMERIC="C" width="$FRAME_WIDTH_PX" height="$workAreaHeightPx" out="0">
+ ${templateTitleGroup.joinToString("\n")}
  <startviewport rect="0,0,$FRAME_WIDTH_PX,${workAreaHeightPx}"/>
  <endviewport rect="0,0,$FRAME_WIDTH_PX,${workAreaHeightPx}"/>
  <background color="0,0,0,0"/>
@@ -1845,6 +1885,7 @@ fun getSong(settings: Settings): Song {
     var end: String?
     var text: String? = null
     var beatTimecode: String? = null
+    var group: Long = 0L
 
     val subtitles: MutableList<Subtitle> = emptyList<Subtitle>().toMutableList()
 
@@ -1861,6 +1902,7 @@ fun getSong(settings: Settings): Song {
                 val settingList = sub.split("|")
                 when (settingList[1].uppercase()) {
                     "BEAT" -> beatTimecode = startEnd!!.split(" --> ")[0]
+                    "GROUP" -> group = settingList[2].toLong()
                 }
                 // Обнуляем переменные
                 id = null
@@ -1894,7 +1936,8 @@ fun getSong(settings: Settings): Song {
                     endTimecode = end,
                     text = text,
                     isLineStart = isLineStart,
-                    isLineEnd = isLineEnd
+                    isLineEnd = isLineEnd,
+                    group = group
                 )
                 // Добавляем этот объект к списку объектов
                 subtitles.add(subtitle)

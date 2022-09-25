@@ -4,6 +4,7 @@ import model.Subtitle
 import java.io.File
 import java.nio.file.Files
 import kotlin.io.path.Path
+import kotlin.math.roundToInt
 import kotlin.random.Random
 
 
@@ -53,7 +54,7 @@ fun convertMarkersToSubtitles(pathToSourceFile: String, pathToResultFile: String
     for (indexSubFiles in 0 until subsFiles.size) {
         val subFile = subsFiles[indexSubFiles]
         var prevMarkerIsEndLine = true
-        var subtitles = mutableListOf<Subtitle>()
+        val subtitles = mutableListOf<Subtitle>()
         for (indexMarker in 0 until subFile.size) {
 
             val currMarker = subFile[indexMarker]
@@ -144,7 +145,7 @@ fun convertMillisecondsToFramesDouble(milliseconds: Long, fps:Long): Double {
 
 fun convertFramesToMilliseconds(frames: Long, fps:Long): Long {
     val frameLength = 1000.0 / fps
-    return Math.round(frames * frameLength)
+    return (frames * frameLength).roundToInt().toLong()
 }
 
 fun convertFramesToTimecode(frames: Long, fps:Long): String {
@@ -157,11 +158,10 @@ fun convertTimecodeToMilliseconds(timecode: String): Long {
     val hhmmssmm = timecode.split(":")
     val hours = hhmmssmm[0].toLong()
     val minutes = hhmmssmm[1].toLong()
-    val ssmm = hhmmssmm[2].replace(",",".").split(".")
+    val ssmm = hhmmssmm[2].replace(",", ".").split(".")
     val seconds = ssmm[0].toLong()
     val milliseconds = ssmm[1].toLong()
-    val result = milliseconds + seconds*1000 + minutes*1000*60 + hours*1000*60*60
-    return result
+    return milliseconds + seconds * 1000 + minutes * 1000 * 60 + hours * 1000 * 60 * 60
 }
 
 fun convertMillisecondsToTimecode(milliseconds: Long): String {
@@ -186,9 +186,8 @@ fun getBeatNumberByMilliseconds(timeInMilliseconds: Long, beatMs: Long, firstBea
     // println("Надо сдвинуть время на $different ms")
     timeInMillsCorrected -= different
     // println("После сдвига время находится от начала в $timeInMillsCorrected ms и это должно быть меньше, чем ${(beatMs * 4).toLong()} ms")
-    val result = ((timeInMillsCorrected / (beatMs)) % 4) + 1
     // println("Результат = $result")
-    return result
+    return ((timeInMillsCorrected / (beatMs)) % 4) + 1
 }
 
 fun getBeatNumberByTimecode(timeInTimecode: String, beatMs: Long, firstBeatTimecode: String): Long {

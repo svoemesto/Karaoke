@@ -1,9 +1,9 @@
 package model
 
 data class LyricLine(
-    val text: String? = null,
-    var start: String? = null,
-    var end: String? = null,
+    val text: String = "",
+    var start: String = "",
+    var end: String = "",
     val subtitles: List<Subtitle> = emptyList(),
     var startTp: TransformProperty? = null,
     var endTp: TransformProperty? = null,

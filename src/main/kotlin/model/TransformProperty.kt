@@ -1,10 +1,10 @@
 package model
 
 data class TransformProperty(
-    val time: String? = null,
-    val x: Long? = null,
-    val y: Long? = null,
-    val w: Long? = null,
-    val h: Long? = null,
-    val opacity: Double? = null
+    val time: String = "",
+    val x: Long = 0,
+    val y: Long = 0,
+    val w: Long = 0,
+    val h: Long = 0,
+    val opacity: Double = 0.0
 )

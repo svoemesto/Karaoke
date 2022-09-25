@@ -9,8 +9,8 @@ import kotlin.io.path.Path
 
 fun createKaraoke(song: Song) {
 
-    var startLine: String? = null
-    var endLine: String?
+    var startLine = ""
+    var endLine: String
 
     var subs: MutableList<Subtitle> = emptyList<Subtitle>().toMutableList()
     val lyricLinesFullText: MutableList<LyricLine> = mutableListOf()
@@ -82,22 +82,22 @@ fun createKaraoke(song: Song) {
     // Проходимся по всем сабам
     song.subtitles.forEach { subtitle ->
         // Если саб - начало строки - начинаем новую строку (пока она пустая) и инициализируем пустой список subs
-        if (subtitle.isLineStart == true) {
+        if (subtitle.isLineStart) {
             startLine = subtitle.startTimecode
             lineText = ""
             lineFullText = ""
             lineBeatText = ""
-            subs = emptyList<Subtitle>().toMutableList()
+            subs = mutableListOf<Subtitle>()
             group = subtitle.group
         }
 
         lineText += subtitle.text
-        lineFullText += if (!subtitle.isBeat) subtitle.text else subtitle.text?.let { replaceVowelOrConsonantLetters(it, true) }    // Дописываем в текст текущей строки текст из саба
-        lineBeatText += if (subtitle.isBeat) subtitle.text?.let { replaceVowelOrConsonantLetters(it, false) } else subtitle.text?.let {" ".repeat(it.length)}
+        lineFullText += if (!subtitle.isBeat) subtitle.text else replaceVowelOrConsonantLetters(subtitle.text, true)    // Дописываем в текст текущей строки текст из саба
+        lineBeatText += if (subtitle.isBeat) replaceVowelOrConsonantLetters(subtitle.text, false) else " ".repeat(subtitle.text.length)
         subs.add(subtitle)      // Добавляем текущий саб к списку subs
 
         // Если саб - конец строки
-        if (subtitle.isLineEnd == true) {
+        if (subtitle.isLineEnd) {
 
             endLine = subtitle.endTimecode  // Устанавливаем конец строки позицией конца из саба
 
@@ -116,11 +116,8 @@ fun createKaraoke(song: Song) {
 
             // Создаем объект classes.LyricLine и инициализируем его переменными. На данный момент нам пока неизвестны поля startTp и endTp - оставляем их пустыми
 
-            val lineDuration = getDurationInMilliseconds(startLine!!, endLine!!)     // Находим время "звучания" строки в миллисекундах
-            maxLineDuration = java.lang.Long.max(
-                maxLineDuration,
-                lineDuration
-            )                    // Находим максимальное время "звучания" среди всех строк
+            val lineDuration = getDurationInMilliseconds(startLine, endLine)     // Находим время "звучания" строки в миллисекундах
+            maxLineDuration = java.lang.Long.max(maxLineDuration, lineDuration)                    // Находим максимальное время "звучания" среди всех строк
                                                                // Добавляем строку lyric в список строк lyrics
 
         }
@@ -131,7 +128,7 @@ fun createKaraoke(song: Song) {
     var index = 0
     lyricLinesFullText.forEach { lyricFullText -> // Проходимся по массиву строк
         index ++
-        val silentDuration = convertTimecodeToMilliseconds(lyricFullText.start!!) - currentPositionEnd  // Вычисляем время "тишины"
+        val silentDuration = convertTimecodeToMilliseconds(lyricFullText.start) - currentPositionEnd  // Вычисляем время "тишины"
         val linesToInsert: Long = silentDuration / maxLineDuration // Вычисляем кол-во "пустых" строк, которые надо вставить перед текущей строкой
 
         if (linesToInsert > 0) { // Если количество вставляемых пустых строк больше нуля - начинаем их вставлять
@@ -188,7 +185,7 @@ fun createKaraoke(song: Song) {
             resultLyricLinesBeatTextGroups[indexGroup] = lstLineBeat
         }
 
-        currentPositionEnd = convertTimecodeToMilliseconds(lyricFullText.end!!) // Устанавливаем текущую позицию конца равной позиции конца текущей строки
+        currentPositionEnd = convertTimecodeToMilliseconds(lyricFullText.end) // Устанавливаем текущую позицию конца равной позиции конца текущей строки
         text += "${lyricFullText.text}\n"
 
     }
@@ -196,7 +193,7 @@ fun createKaraoke(song: Song) {
 
 
     val maxTextWidthPx = FRAME_WIDTH_PX.toDouble() - TITLE_POSITION_START_X_PX * 2      // maxTextWidth - максимальная ширина текста = ширина экрана минус 2 отступа
-    val maxTextLengthSym = resultLyricLinesFullText.maxBy { it.text!!.length }.text!!.length   // maxTextLength - максимальная длина текста (в символах) = длине символов самой длинной строки
+    val maxTextLengthSym = resultLyricLinesFullText.maxBy { it.text.length }.text.length   // maxTextLength - максимальная длина текста (в символах) = длине символов самой длинной строки
     val maxSymbolWidthPx = maxTextWidthPx / maxTextLengthSym                            // maxSymbolWidth - максимальная ширина символа = максимальная ширина текста делённая на максимальную длину
     val fontSizePt = Integer.min(
         getFontSizeBySymbolWidth(maxSymbolWidthPx),
@@ -241,9 +238,9 @@ fun createKaraoke(song: Song) {
 
     resultLyricLinesFullText.forEach { lyricLine ->
         if (!lyricLine.isEmptyLine) {
-            val lineStartMs = convertTimecodeToMilliseconds(lyricLine.start!!)
-            val lineEndMs = convertTimecodeToMilliseconds(lyricLine.end!!)
-            val songLengthMs = convertTimecodeToMilliseconds(song.endTimecode!!)
+            val lineStartMs = convertTimecodeToMilliseconds(lyricLine.start)
+            val lineEndMs = convertTimecodeToMilliseconds(lyricLine.end)
+            val songLengthMs = convertTimecodeToMilliseconds(song.endTimecode)
             val lineX = ((lineStartMs.toDouble() / songLengthMs) * FRAME_WIDTH_PX).toLong()
             val lineW = ((lineEndMs.toDouble() / songLengthMs) * FRAME_WIDTH_PX).toLong() - lineX
             val templateHorizonGroupText = """
@@ -263,7 +260,7 @@ fun createKaraoke(song: Song) {
     val templateHorizon = """
         <kdenlivetitle duration="0" LC_NUMERIC="C" width="$FRAME_WIDTH_PX" height="$FRAME_HEIGHT_PX" out="0">
          <item type="QGraphicsRectItem" z-index="0">
-          <position x="0" y="${horizonPositionPx}">
+          <position x="0" y="$horizonPositionPx">
            <transform zoom="100">1,0,0,0,1,0,0,0,1</transform>
           </position>
           <content brushcolor="${GROUPS_TIMELINE_COLORS[-1]}" pencolor="0,0,0,255" penwidth="0" rect="0,0,$FRAME_WIDTH_PX,3"/>
@@ -281,7 +278,7 @@ fun createKaraoke(song: Song) {
     val templateProgress = """
         <kdenlivetitle duration="0" LC_NUMERIC="C" width="$FRAME_WIDTH_PX" height="$FRAME_HEIGHT_PX" out="0">
          <item type="QGraphicsTextItem" z-index="0">
-          <position x="0" y="${horizonPositionPx}">
+          <position x="0" y="$horizonPositionPx">
            <transform zoom="100">1,0,0,0,1,0,0,0,1</transform>
           </position>
           <content line-spacing="$LINE_SPACING" shadow="0" font-underline="0" box-height="100" font="$FONT_NAME" letter-spacing="0" font-pixel-size="$fontSizeProgress" font-italic="0" typewriter="$TYPEWRITER" alignment="$ALIGNMENT" font-weight="$FONT_WEIGHT" box-width="10" font-color="$PROGRESS_COLOR">▲</content>
@@ -292,10 +289,10 @@ fun createKaraoke(song: Song) {
         </kdenlivetitle>"""
 
     val yOffset = -5
-    propProgressLineValue.add("00:00:00.000=-${progressSymbolHalfWidth} ${yOffset} $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 0.0")
-    propProgressLineValue.add("00:00:01.000=${FRAME_WIDTH_PX*(1000.0/convertTimecodeToMilliseconds(song.endTimecode!!)).toLong()-progressSymbolHalfWidth} ${yOffset} $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 1.0")
-    propProgressLineValue.add("${convertMillisecondsToTimecode(convertTimecodeToMilliseconds(song.endTimecode!!)-1000L)}=${FRAME_WIDTH_PX-FRAME_WIDTH_PX*(1000.0/convertTimecodeToMilliseconds(song.endTimecode!!)).toLong()-progressSymbolHalfWidth} ${yOffset} $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 1.0")
-    propProgressLineValue.add("${song.endTimecode!!}=${FRAME_WIDTH_PX-progressSymbolHalfWidth} ${yOffset} $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 0.0")
+    propProgressLineValue.add("00:00:00.000=-${progressSymbolHalfWidth} $yOffset $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 0.0")
+    propProgressLineValue.add("00:00:01.000=${FRAME_WIDTH_PX*(1000.0/convertTimecodeToMilliseconds(song.endTimecode)).toLong()-progressSymbolHalfWidth} $yOffset $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 1.0")
+    propProgressLineValue.add("${convertMillisecondsToTimecode(convertTimecodeToMilliseconds(song.endTimecode)-1000L)}=${FRAME_WIDTH_PX-FRAME_WIDTH_PX*(1000.0/convertTimecodeToMilliseconds(song.endTimecode)).toLong()-progressSymbolHalfWidth} $yOffset $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 1.0")
+    propProgressLineValue.add("${song.endTimecode}=${FRAME_WIDTH_PX-progressSymbolHalfWidth} $yOffset $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 0.0")
 
 
     resultLyricLinesFullText.forEachIndexed { itemIndex, lyricLine -> // Проходимся по всем строкам
@@ -309,15 +306,15 @@ fun createKaraoke(song: Song) {
             opacity = if(lyricLine.isFadeLine) 0.0 else if (itemIndex < (resultLyricLinesFullText.size)-1) 1.0 else 0.0
         )
 
-        var time = lyricLine.end!!
+        var time = lyricLine.end
         // Если текущий элемент не последний - надо проверить начало следующего элемента
         if (itemIndex != resultLyricLinesFullText.size-1) {
             val nextLyricLine = resultLyricLinesFullText[itemIndex+1] // Находим следующую строку
-            val diffInMills = getDiffInMilliseconds(nextLyricLine.start!!, lyricLine.end!!) // Находим разницу во времени между текущей строкой и следующей
+            val diffInMills = getDiffInMilliseconds(nextLyricLine.start, lyricLine.end) // Находим разницу во времени между текущей строкой и следующей
             if (diffInMills < 200) {                            // Если эта разница меньше 200 мс
                 lyricLine.end = nextLyricLine.start             // Сдвигаем конец текущей линии и конец последнего титра в ней до начала следующей
                 lyricLine.subtitles.last().endTimecode = lyricLine.end
-                time = lyricLine.subtitles.last().startTimecode!!       // сдвигаем время classes.TransformProperty к началу последнего титра текущей строки
+                time = lyricLine.subtitles.last().startTimecode       // сдвигаем время classes.TransformProperty к началу последнего титра текущей строки
             }
         }
 
@@ -345,7 +342,7 @@ fun createKaraoke(song: Song) {
 
         val currentLyricLine = resultLyricLinesFullText[i] // Текущая строка
         val nextLyricLine = if (i < resultLyricLinesFullText.size -1 ) resultLyricLinesFullText[i+1] else null //Следующая строка
-        val diffInMills = if (nextLyricLine != null) convertTimecodeToMilliseconds(nextLyricLine.start!!) - convertTimecodeToMilliseconds(currentLyricLine.end!!) else 0 // Разница во времени между текущей строкой и следующей
+        val diffInMills = if (nextLyricLine != null) convertTimecodeToMilliseconds(nextLyricLine.start) - convertTimecodeToMilliseconds(currentLyricLine.end) else 0 // Разница во времени между текущей строкой и следующей
         propRectLineValue.add("${currentLyricLine.startTp?.time}=${currentLyricLine.startTp?.x} ${currentLyricLine.startTp?.y} ${currentLyricLine.startTp?.w} ${currentLyricLine.startTp?.h} ${currentLyricLine.startTp?.opacity}")
 
         // Если текущая строка пустая - ничего больше не делаем. Переход между строками будет плавны
@@ -353,11 +350,11 @@ fun createKaraoke(song: Song) {
             propRectLineValue.add("${currentLyricLine.endTp?.time}=${currentLyricLine.endTp?.x} ${currentLyricLine.endTp?.y} ${currentLyricLine.endTp?.w} ${currentLyricLine.endTp?.h} ${currentLyricLine.endTp?.opacity}")
             var ww = 1.0 // Начальная позиция w для заливки = 1
             var currentSubtitle = currentLyricLine.subtitles[0] // Получаем первый титр текущей строки (он точно есть, т.к. строка не пустая)
-            val startTime = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(currentSubtitle.startTimecode!!)-(1000/FRAME_FPS+1)) // Время начала анимации = времени начала этого титра минус 1 фрейм
+            val startTime = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(currentSubtitle.startTimecode)-(1000/FRAME_FPS+1)) // Время начала анимации = времени начала этого титра минус 1 фрейм
             val x = TITLE_POSITION_START_X_PX+TITLE_OFFSET_START_X_PX // Координата x всегда одна и та же = TITLE_POSITION_START_X_PX + TITLE_OFFSET_START_X_PX
             var y = horizonPositionPx - symbolHeightPx // Координата y = позиция горизонта - высота символа
             val h = symbolHeightPx // Высота = высоте символа
-            val propRectTitleValueFade = "${startTime}=${x} ${y} ${ww.toLong()} ${h} 0.0" // Свойство трансформации заливки с полной прозрачностью
+            val propRectTitleValueFade = "$startTime=$x $y ${ww.toLong()} $h 0.0" // Свойство трансформации заливки с полной прозрачностью
             propRectTitleValueLineOddEven[i%2].add(propRectTitleValueFade)
             ww = -TITLE_OFFSET_START_X_PX.toDouble() // Смещаем стартовую позицию w на величину TITLE_OFFSET_START_X_PX
 
@@ -365,11 +362,11 @@ fun createKaraoke(song: Song) {
                 val currentSub = currentLyricLine.subtitles[j] // Текущий титр
                 val nextSub = currentLyricLine.subtitles[j+1] // Следующий титр
                 var time = currentSub.startTimecode // Время - начало текущего титра
-                val w = currentSub.text!!.length * symbolWidthPx // Ширина = ширина текста тира * ширину символа
-                val propRectTitleValueStart = "${time}=${x} ${y} ${ww.toLong()} ${h} 0.6" // Начало анимации титра - в начальной позиции титра с непрозрачностью 60%
+                val w = currentSub.text.length * symbolWidthPx // Ширина = ширина текста тира * ширину символа
+                val propRectTitleValueStart = "$time=$x $y ${ww.toLong()} $h 0.6" // Начало анимации титра - в начальной позиции титра с непрозрачностью 60%
                 time = nextSub.startTimecode // Время - начало следующего титра
                 ww += w // Ширина = предыдущее значение ширины + ширина
-                val propRectTitleValueEnd = "${time}=${x} ${y} ${ww.toLong()} ${h} 0.6" // Конец анимации титра - в конечной позиции титра с непрозрачностью 60%
+                val propRectTitleValueEnd = "$time=$x $y ${ww.toLong()} $h 0.6" // Конец анимации титра - в конечной позиции титра с непрозрачностью 60%
                 if (propRectTitleValueLineOddEven[i%2].last() != propRectTitleValueStart) propRectTitleValueLineOddEven[i%2].add(propRectTitleValueStart)
                 if (propRectTitleValueLineOddEven[i%2].last() != propRectTitleValueEnd) propRectTitleValueLineOddEven[i%2].add(propRectTitleValueEnd)
             }
@@ -378,7 +375,7 @@ fun createKaraoke(song: Song) {
             currentSubtitle = currentLyricLine.subtitles[(currentLyricLine.subtitles.size)-1]   // Текущий титр - последний титр текущей строки
             val nextSubtitle = nextLyricLine!!.subtitles[0]  // Следующий титр - первый титр следующей строки
             var time = currentSubtitle.startTimecode  // Время - начало текущего титра
-            val w = currentSubtitle.text!!.length * symbolWidthPx  // Ширина = ширина текста титра * ширину символа
+            val w = currentSubtitle.text.length * symbolWidthPx  // Ширина = ширина текста титра * ширину символа
             val propRectTitleValueStart = "$time=$x $y ${ww.toLong()} $h 0.6" // Начало анимации титра - в начальной позиции титра с непрозрачностью 60%
             if (propRectTitleValueLineOddEven[i%2].last() != propRectTitleValueStart) propRectTitleValueLineOddEven[i%2].add(propRectTitleValueStart)
             time = currentSubtitle.endTimecode  // Время - конец текущего титра
@@ -417,14 +414,14 @@ fun createKaraoke(song: Song) {
             if (previousLineIsEmpty || currentTime == 0L) { // Если предыдущая строка была пустой или это первая не пустая строка
                 lyricLine.isNeedCounter = true // Помечаем строку для счётчика
             }
-            currentTime = convertTimecodeToMilliseconds(lyricLine.end!!) // Запоминаем текущую позицию
+            currentTime = convertTimecodeToMilliseconds(lyricLine.end) // Запоминаем текущую позицию
         }
         previousLineIsEmpty = lyricLine.isEmptyLine
     }
     // На данный момент мы пометили всё нужные строки, для которых нужен счётчик
     lyricLinesFullText.filter { it.isNeedCounter }.forEach { lyric -> // Проходимся по всем строкам, для которых нужен счётчик
         for (counterNumber in 0 .. 4) {
-            val startTimeMs = convertTimecodeToMilliseconds(lyric.start!!) - quarterNoteLengthMs * counterNumber
+            val startTimeMs = convertTimecodeToMilliseconds(lyric.start) - quarterNoteLengthMs * counterNumber
             val initTimeMs = startTimeMs -(1000/FRAME_FPS+1)
             val endTimeMs = startTimeMs + quarterNoteLengthMs
             if (startTimeMs > 0) {
@@ -436,7 +433,7 @@ fun createKaraoke(song: Song) {
     }
 
     // Такты
-    var delayMs = convertTimecodeToMilliseconds(song.beatTimecode!!) // + TIME_OFFSET_MS
+    var delayMs = convertTimecodeToMilliseconds(song.beatTimecode) // + TIME_OFFSET_MS
 
     // Такт в мс
     val beatMs = if (song.settings.ms == 0L) (60000.0 / song.settings.bpm).toLong() else song.settings.ms// song.delay
@@ -446,7 +443,7 @@ fun createKaraoke(song: Song) {
     var currentPositionStartMs = 0L
     var beatCounter = 1L
     propGuidesValue.add("""{"comment": "Offset", "pos": ${convertMillisecondsToFrames(TIME_OFFSET_MS)}, "type": 0}""")
-    while ((delayMs + currentPositionStartMs + beatMs) < convertTimecodeToMilliseconds(song.endTimecode!!)) {
+    while ((delayMs + currentPositionStartMs + beatMs) < convertTimecodeToMilliseconds(song.endTimecode)) {
 
         val tick = (beatCounter-1)%4
         currentPositionStartMs = (delayMs + beatMs * (beatCounter-1))// + TIME_OFFSET_MS
@@ -464,7 +461,6 @@ fun createKaraoke(song: Song) {
         val point3 = "${convertMillisecondsToTimecode(currentPositionEndMs)}=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 0.0"
         val point4 = "${convertMillisecondsToTimecode(currentPositionEndMs1fa)}=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 0.0"
         val point5 = "${convertMillisecondsToTimecode(currentPositionEndMs2fa)}=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 0.0"
-
 
         beats[tick.toInt()].add(point0)
         beats[tick.toInt()].add(point1)
@@ -506,9 +502,9 @@ fun createKaraoke(song: Song) {
     val kdeIn = "00:00:00.000"
     val kdeInOffset = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(kdeIn) + TIME_OFFSET_MS)
     val kdeFadeIn = "00:00:01.000"
-    val kdeOut = song.endTimecode!!.replace(",",".")
-    val kdeFadeOut = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(song.endTimecode!!) - 1000).replace(",",".")
-    val kdeLength = convertTimecodeToMilliseconds(song.endTimecode!!)
+    val kdeOut = song.endTimecode.replace(",",".")
+    val kdeFadeOut = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(song.endTimecode) - 1000).replace(",",".")
+    val kdeLength = convertTimecodeToMilliseconds(song.endTimecode)
     val kdeSongTextXmlData = templateTitle
     val kdeHorizonXmlData = templateHorizon
     val kdeProgressXmlData = templateProgress
@@ -2010,7 +2006,7 @@ fun getSong(settings: Settings): Song {
     var end: String?
     var text: String? = null
     var beatTimecode: String? = null
-    var group: Long = 0L
+    var group = 0L
 
     val subtitles: MutableList<Subtitle> = emptyList<Subtitle>().toMutableList()
 
@@ -2057,9 +2053,9 @@ fun getSong(settings: Settings): Song {
                     .replace("_", " ")
                 // Создаем объект classes.Subtitle и инициализируем его переменными
                 val subtitle = Subtitle(
-                    startTimecode = start,
-                    endTimecode = end,
-                    text = text,
+                    startTimecode = start!!,
+                    endTimecode = end!!,
+                    text = text!!,
                     isLineStart = isLineStart,
                     isLineEnd = isLineEnd,
                     group = group
@@ -2078,8 +2074,8 @@ fun getSong(settings: Settings): Song {
     val beatMs = if (settings.ms == 0L) (60000.0 / settings.bpm).toLong() else settings.ms
     subtitles.forEach { subtitle ->
         subtitle.isBeat = if (subtitle.text != "" && beatTimecode != null) {
-            val startBeatNumber = getBeatNumberByTimecode(subtitle.startTimecode!!, beatMs, beatTimecode!!)
-            val endBeatNumber = getBeatNumberByTimecode(subtitle.endTimecode!!, beatMs, beatTimecode!!)
+            val startBeatNumber = getBeatNumberByTimecode(subtitle.startTimecode, beatMs, beatTimecode!!)
+            val endBeatNumber = getBeatNumberByTimecode(subtitle.endTimecode, beatMs, beatTimecode!!)
             startBeatNumber > endBeatNumber
         } else false
     }
@@ -2089,7 +2085,7 @@ fun getSong(settings: Settings): Song {
     result.settings = settings
     // Устанавливаем end равный end последнего объекта из списка и найденные выше настройки (если они были)
     result.endTimecode = subtitles.last().endTimecode
-    result.beatTimecode = beatTimecode
+    result.beatTimecode = beatTimecode!!
     result.srtFileBody = body
 
     // В его объект Subtitles кладём список объектов classes.Subtitle
@@ -2112,12 +2108,12 @@ fun getSettings(pathToSettingsFile: String): Settings {
     settings.rootFolder = settingRoot
     settings.subtitleFileName = "${settingFileName}.kdenlive.srt"
     settings.audioSongFileName = "${settingFileName}.flac"
-    settings.audioMusicFileName = "${settingFileName} [music].wav"
-    settings.audioVocalFileName = "${settingFileName} [vocals].wav"
-    settings.projectLyricsFileName = "${settingFileName} [lyrics].kdenlive"
-    settings.videoLyricsFileName = "${settingFileName} [lyrics].mp4"
-    settings.projectKaraokeFileName = "${settingFileName} [karaoke].kdenlive"
-    settings.videoKaraokeFileName = "${settingFileName} [karaoke].mp4"
+    settings.audioMusicFileName = "$settingFileName [music].wav"
+    settings.audioVocalFileName = "$settingFileName [vocals].wav"
+    settings.projectLyricsFileName = "$settingFileName [lyrics].kdenlive"
+    settings.videoLyricsFileName = "$settingFileName [lyrics].mp4"
+    settings.projectKaraokeFileName = "$settingFileName [karaoke].kdenlive"
+    settings.videoKaraokeFileName = "$settingFileName [karaoke].mp4"
 
     val body = File(pathToSettingsFile).readText(Charsets.UTF_8)
     body.split("\n").forEach { line ->

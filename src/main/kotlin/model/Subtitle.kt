@@ -1,11 +1,11 @@
 package model
 
 data class Subtitle(
-    val startTimecode: String? = null,
-    var endTimecode: String? = null,
-    val text: String? = null,
-    val isLineStart: Boolean? = null,
-    val isLineEnd: Boolean? = null,
+    val startTimecode: String = "",
+    var endTimecode: String = "",
+    val text: String = "",
+    val isLineStart: Boolean = false,
+    val isLineEnd: Boolean = false,
     var isBeat: Boolean = false,
     var group: Long = 0L
 )

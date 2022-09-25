@@ -2001,12 +2001,7 @@ fun getSong(settings: Settings): Song {
     // Считываем содержимое файла субтитров
     val body = File("${settings.rootFolder}/${settings.subtitleFileName}").readText(Charsets.UTF_8)
 
-    var id: Long? = null
-    var startEnd: String? = null
-    var start: String?
-    var end: String?
-    var text: String = ""
-    var beatTimecode: String? = null
+    var beatTimecode = "00:00:00.000"
     var group = 0L
 
     val subtitles: MutableList<Subtitle> = emptyList<Subtitle>().toMutableList()
@@ -2014,13 +2009,10 @@ fun getSong(settings: Settings): Song {
     val blocks = body.split("\\n[\\n]+".toRegex())
 
     blocks.forEach() { block ->
-        println(block)
-        println(block.length)
-
         val blocklines = block.split("\n")
-        id = if (blocklines.size > 0) blocklines[0].toLongOrNull() else 0
-        startEnd = if (blocklines.size > 1) blocklines[1] else ""
-        text = if (blocklines.size > 2) blocklines[2] else ""
+        val id = if (blocklines.isNotEmpty()) blocklines[0].toLong() else 0
+        val startEnd = if (blocklines.size > 1) blocklines[1] else ""
+        var text = if (blocklines.size > 2) blocklines[2] else ""
 
         if (startEnd != "" && id != 0L) {
             if (text.uppercase().startsWith("[SETTING]|")) {
@@ -2031,9 +2023,9 @@ fun getSong(settings: Settings): Song {
                     "GROUP" -> group = if (settingList.size > 2) settingList[2].toLong() else 0
                 }
             } else {
-                val se = startEnd!!.split(" --> ")
-                start = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(se[0]))
-                end = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(se[1]))
+                val se = startEnd.split(" --> ")
+                val start = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(se[0]))
+                val end = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(se[1]))
                 val isLineStart = text.startsWith("//")   // Вычисляем признак начала строки
                 val isLineEnd = text.endsWith("\\\\")     // Вычисляем признак конца строки
                 // Удаляем служебные символы из строки и заменяем подчёркивание пробелом
@@ -2043,8 +2035,8 @@ fun getSong(settings: Settings): Song {
                     .replace("_", " ")
                 // Создаем объект classes.Subtitle и инициализируем его переменными
                 val subtitle = Subtitle(
-                    startTimecode = start!!,
-                    endTimecode = end!!,
+                    startTimecode = start,
+                    endTimecode = end,
                     text = text,
                     isLineStart = isLineStart,
                     isLineEnd = isLineEnd,
@@ -2060,9 +2052,9 @@ fun getSong(settings: Settings): Song {
 
     val beatMs = if (settings.ms == 0L) (60000.0 / settings.bpm).toLong() else settings.ms
     subtitles.forEach { subtitle ->
-        subtitle.isBeat = if (subtitle.text != "" && beatTimecode != null) {
-            val startBeatNumber = getBeatNumberByTimecode(subtitle.startTimecode, beatMs, beatTimecode!!)
-            val endBeatNumber = getBeatNumberByTimecode(subtitle.endTimecode, beatMs, beatTimecode!!)
+        subtitle.isBeat = if (subtitle.text != "") {
+            val startBeatNumber = getBeatNumberByTimecode(subtitle.startTimecode, beatMs, beatTimecode)
+            val endBeatNumber = getBeatNumberByTimecode(subtitle.endTimecode, beatMs, beatTimecode)
             startBeatNumber > endBeatNumber
         } else false
     }
@@ -2072,7 +2064,7 @@ fun getSong(settings: Settings): Song {
     result.settings = settings
     // Устанавливаем end равный end последнего объекта из списка и найденные выше настройки (если они были)
     result.endTimecode = subtitles.last().endTimecode
-    result.beatTimecode = beatTimecode!!
+    result.beatTimecode = beatTimecode
     result.srtFileBody = body
 
     // В его объект Subtitles кладём список объектов classes.Subtitle

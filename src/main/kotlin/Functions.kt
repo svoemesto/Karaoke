@@ -212,16 +212,38 @@ fun createKaraoke(song: Song) {
  <background color="0,0,0,0"/>
 </kdenlivetitle>"""
 
-    val horizontPositionPx = (FRAME_HEIGHT_PX / 2 + symbolHeightPx / 2) - HORIZON_OFFSET_PX    // horizontPosition - позиция горизонта = половина экрана + половина высоты символа - оффсет
+    val templateHorizonGroup = mutableListOf<String>()
+    val horizonPositionPx = (FRAME_HEIGHT_PX / 2 + symbolHeightPx / 2) - HORIZON_OFFSET_PX    // horizonPosition - позиция горизонта = половина экрана + половина высоты символа - оффсет
 
-    // Шаблон для файла субтитра "горизонта"
-    val templateHorizont = """<kdenlivetitle duration="0" LC_NUMERIC="C" width="$FRAME_WIDTH_PX" height="$FRAME_HEIGHT_PX" out="0">
- <item type="QGraphicsRectItem" z-index="0">
-  <position x="0" y="${horizontPositionPx}">
+    resultLyricLinesFullText.forEach { lyricLine ->
+        if (!lyricLine.isEmptyLine) {
+            val lineStartMs = convertTimecodeToMilliseconds(lyricLine.start!!)
+            val lineEndMs = convertTimecodeToMilliseconds(lyricLine.end!!)
+            val songLengthMs = convertTimecodeToMilliseconds(song.endTimecode!!)
+            val lineX = ((lineStartMs.toDouble() / songLengthMs) * FRAME_WIDTH_PX).toLong()
+            val lineW = ((lineEndMs.toDouble() / songLengthMs) * FRAME_WIDTH_PX).toLong() - lineX
+            val templateHorizonGroupText = """
+<item type="QGraphicsRectItem" z-index="0">
+  <position x="0" y="${horizonPositionPx}">
    <transform zoom="100">1,0,0,0,1,0,0,0,1</transform>
   </position>
-  <content brushcolor="255,0,0,255" pencolor="0,0,0,255" penwidth="0" rect="0,0,$FRAME_WIDTH_PX,3"/>
+  <content brushcolor="${GROUPS_TIMELINE_COLORS[lyricLine.subtitles.first().group]}" pencolor="0,0,0,255" penwidth="0" rect="$lineX,0,$lineW,3"/>
  </item>
+ """
+            templateHorizonGroup.add(templateHorizonGroupText)
+        }
+
+    }
+
+    // Шаблон для файла субтитра "горизонта"
+    val templatehorizon = """<kdenlivetitle duration="0" LC_NUMERIC="C" width="$FRAME_WIDTH_PX" height="$FRAME_HEIGHT_PX" out="0">
+ <item type="QGraphicsRectItem" z-index="0">
+  <position x="0" y="${horizonPositionPx}">
+   <transform zoom="100">1,0,0,0,1,0,0,0,1</transform>
+  </position>
+  <content brushcolor="${GROUPS_TIMELINE_COLORS[-1]}" pencolor="0,0,0,255" penwidth="0" rect="0,0,$FRAME_WIDTH_PX,3"/>
+ </item>
+ ${templateHorizonGroup.joinToString("\n")}
  <startviewport rect="0,0,$FRAME_WIDTH_PX,$FRAME_HEIGHT_PX"/>
  <endviewport rect="0,0,$FRAME_WIDTH_PX,$FRAME_HEIGHT_PX"/>
  <background color="0,0,0,0"/>
@@ -235,7 +257,7 @@ fun createKaraoke(song: Song) {
         val startTp = TransformProperty(
             time = lyricLine.start,
             x = 0,
-            y = horizontPositionPx - ((itemIndex + 1)*(symbolHeightPx + HEIGHT_CORRECTION)).toLong(),
+            y = horizonPositionPx - ((itemIndex + 1)*(symbolHeightPx + HEIGHT_CORRECTION)).toLong(),
             w = FRAME_WIDTH_PX,
             h = workAreaHeightPx,
             opacity = if(lyricLine.isFadeLine) 0.0 else if (itemIndex < (resultLyricLinesFullText.size)-1) 1.0 else 0.0
@@ -256,7 +278,7 @@ fun createKaraoke(song: Song) {
         val endTp = TransformProperty(
             time = time,
             x = 0,
-            y = horizontPositionPx - ((itemIndex + 1)*(symbolHeightPx + HEIGHT_CORRECTION)).toLong(),
+            y = horizonPositionPx - ((itemIndex + 1)*(symbolHeightPx + HEIGHT_CORRECTION)).toLong(),
             w = FRAME_WIDTH_PX,
             h = workAreaHeightPx,
             opacity = if(lyricLine.isFadeLine) 0.0 else if (itemIndex < (resultLyricLinesFullText.size)-1) 1.0 else 0.0
@@ -287,7 +309,7 @@ fun createKaraoke(song: Song) {
             var currentSubtitle = currentLyricLine.subtitles[0] // Получаем первый титр текущей строки (он точно есть, т.к. строка не пустая)
             val startTime = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(currentSubtitle.startTimecode!!)-(1000/FRAME_FPS+1)) // Время начала анимации = времени начала этого титра минус 1 фрейм
             val x = TITLE_POSITION_START_X_PX+TITLE_OFFSET_START_X_PX // Координата x всегда одна и та же = TITLE_POSITION_START_X_PX + TITLE_OFFSET_START_X_PX
-            var y = horizontPositionPx - symbolHeightPx // Координата y = позиция горизонта - высота символа
+            var y = horizonPositionPx - symbolHeightPx // Координата y = позиция горизонта - высота символа
             val h = symbolHeightPx // Высота = высоте символа
             val propRectTitleValueFade = "${startTime}=${x} ${y} ${ww.toLong()} ${h} 0.0" // Свойство трансформации заливки с полной прозрачностью
             propRectTitleValueLineOddEven[i%2].add(propRectTitleValueFade)
@@ -441,7 +463,7 @@ fun createKaraoke(song: Song) {
     val kdeFadeOut = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(song.endTimecode!!) - 1000).replace(",",".")
     val kdeLength = convertTimecodeToMilliseconds(song.endTimecode!!)
     val kdeSongTextXmlData = templateTitle
-    val kdeHorizontXmlData = templateHorizont
+    val kdehorizonXmlData = templatehorizon
 
     val fileIsKaraoke = listOf(false, true)
 
@@ -473,7 +495,7 @@ fun createKaraoke(song: Song) {
   <property name="meta.media.width">$FRAME_WIDTH_PX</property>
   <property name="meta.media.height">$workAreaHeightPx</property>
  </producer>
- <producer id="producer_horizont" in="$kdeIn" out="$kdeOut">
+ <producer id="producer_horizon" in="$kdeIn" out="$kdeOut">
   <property name="length">$kdeLength</property>
   <property name="eof">pause</property>
   <property name="resource"/>
@@ -483,7 +505,7 @@ fun createKaraoke(song: Song) {
   <property name="mlt_service">kdenlivetitle</property>
   <property name="kdenlive:duration">$kdeOut</property>
   <property name="kdenlive:clipname">Горизонт</property>
-  <property name="xmldata">$kdeHorizontXmlData</property>
+  <property name="xmldata">$kdehorizonXmlData</property>
   <property name="kdenlive:folderid">-1</property>
   <property name="kdenlive:clip_type">2</property>
   <property name="kdenlive:id">3</property>
@@ -1030,7 +1052,7 @@ fun createKaraoke(song: Song) {
   <property name="kdenlive:docproperties.renderurl">${if (isKaraoke) song.settings.videoKaraokeFileName else song.settings.videoLyricsFileName}</property>
   <property name="xml_retain">1</property>
   <entry producer="producer_song_text" in="$kdeIn" out="$kdeOut"/>
-  <entry producer="producer_horizont" in="$kdeIn" out="$kdeOut"/>
+  <entry producer="producer_horizon" in="$kdeIn" out="$kdeOut"/>
   <entry producer="producer_orange" in="$kdeIn" out="$kdeOut"/>
   <entry producer="producer_logotype" in="$kdeIn" out="$kdeOut"/>
   <entry producer="producer_header" in="$kdeIn" out="$kdeOut"/>
@@ -1304,10 +1326,10 @@ fun createKaraoke(song: Song) {
   <track hide="${if (isKaraoke) "audio" else "both"}" producer="playlist_microphone_file"/>
   <track hide="${if (isKaraoke) "audio" else "both"}" producer="playlist_microphone_track"/>
  </tractor>
- <playlist id="playlist_horizont_file">
-  <entry producer="producer_horizont" in="$kdeIn" out="$kdeOut">
+ <playlist id="playlist_horizon_file">
+  <entry producer="producer_horizon" in="$kdeIn" out="$kdeOut">
    <property name="kdenlive:id">3</property>
-   <filter id="karaoke_horizont">
+   <filter id="karaoke_horizon">
     <property name="rotate_center">1</property>
     <property name="mlt_service">qtblend</property>
     <property name="kdenlive_id">qtblend</property>
@@ -1319,16 +1341,16 @@ fun createKaraoke(song: Song) {
    </filter>
   </entry>
  </playlist>
- <playlist id="playlist_horizont_track"/>
- <tractor id="tractor_horizont" in="$kdeIn" out="$kdeOut">
+ <playlist id="playlist_horizon_track"/>
+ <tractor id="tractor_horizon" in="$kdeIn" out="$kdeOut">
   <property name="kdenlive:trackheight">69</property>
   <property name="kdenlive:timeline_active">1</property>
   <property name="kdenlive:collapsed">28</property>
   <property name="kdenlive:track_name">Горизонт</property>
   <property name="kdenlive:thumbs_format"/>
   <property name="kdenlive:audio_rec"/>
-  <track hide="audio" producer="playlist_horizont_file"/>
-  <track hide="audio" producer="playlist_horizont_track"/>
+  <track hide="audio" producer="playlist_horizon_file"/>
+  <track hide="audio" producer="playlist_horizon_track"/>
  </tractor>
  <playlist id="playlist_fill_odd_file">
   <entry producer="producer_orange" in="$kdeIn" out="$kdeOut">
@@ -1688,7 +1710,7 @@ fun createKaraoke(song: Song) {
   <track producer="tractor_song"/>
   <track producer="tractor_background"/>
   <track producer="tractor_microphone"/>
-  <track producer="tractor_horizont"/>
+  <track producer="tractor_horizon"/>
   <track producer="tractor_fill_odd"/>
   <track producer="tractor_fill_even"/>
   <track producer="tractor_textsong"/>

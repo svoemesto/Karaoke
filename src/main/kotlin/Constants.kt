@@ -17,8 +17,20 @@ const val GROUP_1_FONT_COLOR_BEAT = "105,255,105,255"
 const val GROUP_2_FONT_COLOR_TEXT = "85,255,255,255"
 const val GROUP_2_FONT_COLOR_BEAT = "105,255,105,255"
 
-val GROUPS_FONT_COLORS_TEXT: Map<Long, String> = mutableMapOf(Pair(0, GROUP_0_FONT_COLOR_TEXT), Pair(1, GROUP_1_FONT_COLOR_TEXT), Pair(2, GROUP_2_FONT_COLOR_TEXT))
-val GROUPS_FONT_COLORS_BEAT: Map<Long, String> = mutableMapOf(Pair(0, GROUP_0_FONT_COLOR_BEAT), Pair(1, GROUP_1_FONT_COLOR_BEAT), Pair(2, GROUP_2_FONT_COLOR_BEAT))
+val GROUPS_FONT_COLORS_TEXT: Map<Long, String> = mutableMapOf(
+    Pair(0, GROUP_0_FONT_COLOR_TEXT),
+    Pair(1, GROUP_1_FONT_COLOR_TEXT),
+    Pair(2, GROUP_2_FONT_COLOR_TEXT))
+val GROUPS_FONT_COLORS_BEAT: Map<Long, String> = mutableMapOf(
+    Pair(0, GROUP_0_FONT_COLOR_BEAT),
+    Pair(1, GROUP_1_FONT_COLOR_BEAT),
+    Pair(2, GROUP_2_FONT_COLOR_BEAT))
+val GROUPS_TIMELINE_COLORS: Map<Long, String> = mutableMapOf(
+    Pair(-1, "0,255,0,255"),
+    Pair(0, "255,0,0,255"),
+    Pair(1, "255,255,0,255"),
+    Pair(2, "0,0,255,255"))
+
 const val TITLE_POSITION_START_X_PX = 96L
 const val TITLE_POSITION_START_Y_PX = 0L
 const val TITLE_OFFSET_START_X_PX = -20L

@@ -27,9 +27,9 @@ val GROUPS_FONT_COLORS_BEAT: Map<Long, String> = mutableMapOf(
     Pair(2, GROUP_2_FONT_COLOR_BEAT))
 val GROUPS_TIMELINE_COLORS: Map<Long, String> = mutableMapOf(
     Pair(-1, "0,255,0,255"),
-    Pair(0, "255,0,0,255"),
+    Pair(0, "255,255,255,255"),
     Pair(1, "255,255,0,255"),
-    Pair(2, "0,0,255,255"))
+    Pair(2, "85,255,255,255"))
 
 const val TITLE_POSITION_START_X_PX = 96L
 const val TITLE_POSITION_START_Y_PX = 0L

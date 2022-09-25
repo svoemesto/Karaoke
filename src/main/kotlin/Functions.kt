@@ -2010,7 +2010,7 @@ fun getSong(settings: Settings): Song {
 
     blocks.forEach() { block ->
         val blocklines = block.split("\n")
-        val id = if (blocklines.isNotEmpty()) blocklines[0].toLong() else 0
+        val id = if (blocklines.isNotEmpty() && blocklines[0]!= "" ) blocklines[0].toLong() else 0
         val startEnd = if (blocklines.size > 1) blocklines[1] else ""
         var text = if (blocklines.size > 2) blocklines[2] else ""
 
@@ -2044,7 +2044,6 @@ fun getSong(settings: Settings): Song {
                 )
                 // Добавляем этот объект к списку объектов
                 subtitles.add(subtitle)
-                println(subtitle)
             }
         }
 

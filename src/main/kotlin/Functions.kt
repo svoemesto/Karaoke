@@ -955,7 +955,7 @@ fun createKaraoke(song: Song) {
           <property name="kdenlive:clipname">Такт1</property>
           <property name="xmldata"><kdenlivetitle duration="300" LC_NUMERIC="C" width="$FRAME_WIDTH_PX" height="$FRAME_HEIGHT_PX" out="299">
          <item type="QGraphicsRectItem" z-index="1">
-          <position x="860" y="150">
+          <position x="860" y="180">
            <transform zoom="100">1,0,0,0,1,0,0,0,1</transform>
           </position>
           <content brushcolor="0,255,0,255" pencolor="0,0,0,255" penwidth="0" rect="0,0,200,50"/>
@@ -984,7 +984,7 @@ fun createKaraoke(song: Song) {
           <property name="kdenlive:clipname">Такт2</property>
           <property name="xmldata"><kdenlivetitle duration="300" LC_NUMERIC="C" width="$FRAME_WIDTH_PX" height="$FRAME_HEIGHT_PX" out="299">
          <item type="QGraphicsRectItem" z-index="2">
-          <position x="910" y="150">
+          <position x="910" y="180">
            <transform zoom="100">1,0,0,0,1,0,0,0,1</transform>
           </position>
           <content brushcolor="0,255,0,255" pencolor="0,0,0,255" penwidth="0" rect="0,0,150,50"/>
@@ -1013,13 +1013,13 @@ fun createKaraoke(song: Song) {
           <property name="kdenlive:clipname">Такт3</property>
           <property name="xmldata"><kdenlivetitle duration="300" LC_NUMERIC="C" width="$FRAME_WIDTH_PX" height="$FRAME_HEIGHT_PX" out="299">
          <item type="QGraphicsRectItem" z-index="4">
-          <position x="1010" y="150">
+          <position x="1010" y="180">
            <transform zoom="100">1,0,0,0,1,0,0,0,1</transform>
           </position>
           <content brushcolor="0,255,0,255" pencolor="0,0,0,255" penwidth="0" rect="0,0,50,50"/>
          </item>
          <item type="QGraphicsRectItem" z-index="3">
-          <position x="960" y="150">
+          <position x="960" y="180">
            <transform zoom="100">1,0,0,0,1,0,0,0,1</transform>
           </position>
           <content brushcolor="0,255,0,255" pencolor="0,0,0,255" penwidth="0" rect="0,0,100,50"/>
@@ -1048,7 +1048,7 @@ fun createKaraoke(song: Song) {
           <property name="kdenlive:clipname">Такт4</property>
           <property name="xmldata"><kdenlivetitle duration="300" LC_NUMERIC="C" width="$FRAME_WIDTH_PX" height="$FRAME_HEIGHT_PX" out="299">
          <item type="QGraphicsRectItem" z-index="4">
-          <position x="1010" y="150">
+          <position x="1010" y="180">
            <transform zoom="100">1,0,0,0,1,0,0,0,1</transform>
           </position>
           <content brushcolor="0,255,0,255" pencolor="0,0,0,255" penwidth="0" rect="0,0,50,50"/>
@@ -1816,15 +1816,15 @@ fun createKaraoke(song: Song) {
           <track producer="tractor_textsong"/>
           <track producer="tractor_header"/>
           <track producer="tractor_logo"/>
+          <track producer="tractor_beat4"/>
+          <track producer="tractor_beat3"/>
+          <track producer="tractor_beat2"/>
+          <track producer="tractor_beat1"/>          
           <track producer="tractor_counter4"/>
           <track producer="tractor_counter3"/>
           <track producer="tractor_counter2"/>
           <track producer="tractor_counter1"/>
           <track producer="tractor_counter0"/>
-          <track producer="tractor_beat4"/>
-          <track producer="tractor_beat3"/>
-          <track producer="tractor_beat2"/>
-          <track producer="tractor_beat1"/>
           <transition id="transition0">
            <property name="a_track">0</property>
            <property name="b_track">1</property>
@@ -2107,9 +2107,10 @@ fun getSettings(pathToSettingsFile: String): Settings {
                 "KEY" -> settings.key = settingValue
                 "BPM" -> settings.bpm = settingValue.toLong()
                 "MS" -> settings.ms = settingValue.toLong()
+                "FORMAT" -> settings.audioSongFileName = "${settingFileName}.${settingValue}"
             }
         }
-
     }
+
     return settings
 }

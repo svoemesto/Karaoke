@@ -405,6 +405,7 @@ fun createKaraoke(song: Song) {
     // Настало время заняться счётчиками вступления. В том случае, если для песни известно BPM
 
     val quarterNoteLengthMs = if (song.settings.ms == 0L) (60000.0 / song.settings.bpm).toLong() else song.settings.ms // Находим длительность звучания 1/4 ноты в миллисекундах
+    val halfNoteLengthMs = quarterNoteLengthMs * 2
 
     // Счетчики надо вставлять тогда, когда перед не пустой строкой шла пустая. Найдём и пометим такие строки
     var currentTime = 0L
@@ -421,9 +422,9 @@ fun createKaraoke(song: Song) {
     // На данный момент мы пометили всё нужные строки, для которых нужен счётчик
     lyricLinesFullText.filter { it.isNeedCounter }.forEach { lyric -> // Проходимся по всем строкам, для которых нужен счётчик
         for (counterNumber in 0 .. 4) {
-            val startTimeMs = convertTimecodeToMilliseconds(lyric.start) - quarterNoteLengthMs * counterNumber
+            val startTimeMs = convertTimecodeToMilliseconds(lyric.start) - halfNoteLengthMs * counterNumber
             val initTimeMs = startTimeMs -(1000/FRAME_FPS+1)
-            val endTimeMs = startTimeMs + quarterNoteLengthMs
+            val endTimeMs = startTimeMs + halfNoteLengthMs
             if (startTimeMs > 0) {
                 counters[counterNumber].add("${convertMillisecondsToTimecode(initTimeMs)}=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 0.0")
                 counters[counterNumber].add("${convertMillisecondsToTimecode(startTimeMs)}=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 1.0")
@@ -683,7 +684,7 @@ fun createKaraoke(song: Song) {
          <producer id="producer_background" in="$kdeIn" out="$kdeOut">
           <property name="length">$kdeLength</property>
           <property name="eof">pause</property>
-          <property name="resource">$kdeBackgroundPath</property>
+          <property name="resource">${getRandomFile(kdeBackgroundFolderPath, ".png")}</property>
           <property name="ttl">25</property>
           <property name="aspect_ratio">1</property>
           <property name="progressive">1</property>
@@ -2004,50 +2005,39 @@ fun getSong(settings: Settings): Song {
     var startEnd: String? = null
     var start: String?
     var end: String?
-    var text: String? = null
+    var text: String = ""
     var beatTimecode: String? = null
     var group = 0L
 
     val subtitles: MutableList<Subtitle> = emptyList<Subtitle>().toMutableList()
 
-    // Если массив строк не пустой - работаем с ним
-    body.split("\n").forEach { sub ->
-        if (id == null && sub != "") {                  // Если еще нет id и строка не пустая - значит текущая строка - это id
-            id = sub.toLongOrNull()
-        } else if (startEnd == null && sub != "") {     // Если еще нет startEnd и строка не пустая - значит текущая строка - это startEnd
-            startEnd = sub
-        } else if (text == null && sub != "") {          // Если еще нет text и строка не пустая - значит текущая строка - это text или настройка
-            // Если sub начитается с "[SETTING]|" - это настройка
-            if (sub.uppercase().startsWith("[SETTING]|")) {
+    val blocks = body.split("\\n[\\n]+".toRegex())
+
+    blocks.forEach() { block ->
+        println(block)
+        println(block.length)
+
+        val blocklines = block.split("\n")
+        id = if (blocklines.size > 0) blocklines[0].toLongOrNull() else 0
+        startEnd = if (blocklines.size > 1) blocklines[1] else ""
+        text = if (blocklines.size > 2) blocklines[2] else ""
+
+        if (startEnd != "" && id != 0L) {
+            if (text.uppercase().startsWith("[SETTING]|")) {
                 // Разделяем sub по | в список
-                val settingList = sub.split("|")
+                val settingList = text.split("|")
                 when (settingList[1].uppercase()) {
-                    "BEAT" -> beatTimecode = startEnd!!.split(" --> ")[0]
-                    "GROUP" -> group = settingList[2].toLong()
+                    "BEAT" -> beatTimecode = startEnd!!.split(" --> ")[0].replace(",",".")
+                    "GROUP" -> group = if (settingList.size > 2) settingList[2].toLong() else 0
                 }
-                // Обнуляем переменные
-                id = null
-                startEnd = null
-                start = null
-                end = null
-                text = null
             } else {
-                text = sub
-            }
-        } else if (text != null && sub != "") {          // Если уже есть text и строка всё еще не пустая - значит текущая строка - это тоже text
-            text += sub
-        } else {                                        // Если строка пустая
-            // Если уже есть все переменные
-            if (id != null && startEnd != null && text != null) {
-                // Разделяем startEnd на start и end в список, вынимаем из списка соответствующие значения
-                // прибавляя к значению времени оффсет, указанный в TIME_OFFSET
                 val se = startEnd!!.split(" --> ")
                 start = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(se[0]))
                 end = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(se[1]))
-                val isLineStart = text!!.startsWith("//")   // Вычисляем признак начала строки
-                val isLineEnd = text!!.endsWith("\\\\")     // Вычисляем признак конца строки
+                val isLineStart = text.startsWith("//")   // Вычисляем признак начала строки
+                val isLineEnd = text.endsWith("\\\\")     // Вычисляем признак конца строки
                 // Удаляем служебные символы из строки и заменяем подчёркивание пробелом
-                text = text!!
+                text = text
                     .replace("//", "")
                     .replace("\\\\", "")
                     .replace("_", " ")
@@ -2055,22 +2045,19 @@ fun getSong(settings: Settings): Song {
                 val subtitle = Subtitle(
                     startTimecode = start!!,
                     endTimecode = end!!,
-                    text = text!!,
+                    text = text,
                     isLineStart = isLineStart,
                     isLineEnd = isLineEnd,
                     group = group
                 )
                 // Добавляем этот объект к списку объектов
                 subtitles.add(subtitle)
-                // Обнуляем переменные
-                id = null
-                startEnd = null
-                start = null
-                end = null
-                text = null
+                println(subtitle)
             }
         }
+
     }
+
     val beatMs = if (settings.ms == 0L) (60000.0 / settings.bpm).toLong() else settings.ms
     subtitles.forEach { subtitle ->
         subtitle.isBeat = if (subtitle.text != "" && beatTimecode != null) {

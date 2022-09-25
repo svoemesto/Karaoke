@@ -5,7 +5,7 @@ fun main(args: Array<String>) {
 //    createKaraoke(getSong(getSettings("${folder}/${file}.settings")))
 
     val folder = "/home/nsa/Documents/Караоке/Ундервуд/2002 - Все пройдет, Милая"
-    val file = "(03) [Ундервуд] Следи за ее левой рукой"
+    val file = "(01) [Ундервуд] Все что надо"
     createKaraoke(getSong(getSettings("${folder}/${file}.settings")))
 
 

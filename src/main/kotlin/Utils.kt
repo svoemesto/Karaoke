@@ -174,8 +174,13 @@ fun convertMillisecondsToTimecode(milliseconds: Long): String {
 
 fun getBeatNumberByMilliseconds(timeInMilliseconds: Long, beatMs: Long, firstBeatTimecode: String): Long {
 
+    var delayMs = convertTimecodeToMilliseconds(firstBeatTimecode)
+    val diff = ((delayMs / (beatMs * 4))-1) * (beatMs * 4)
+    delayMs -= diff
+
+    val firstBeatMs = delayMs
     // println("Время звучания 1 бита = $beatMs ms")
-    val firstBeatMs = convertTimecodeToMilliseconds(firstBeatTimecode)
+//    val firstBeatMs = convertTimecodeToMilliseconds(firstBeatTimecode)
     // println("Первый отмеченый бит находится от начала в $firstBeatMs ms")
     // println("Время = $timeInMilliseconds ms")
     var timeInMillsCorrected = timeInMilliseconds - firstBeatMs

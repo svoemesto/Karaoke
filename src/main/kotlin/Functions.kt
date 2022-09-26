@@ -236,12 +236,12 @@ fun createKaraoke(song: Song) {
 
     val templateHorizonGroup = mutableListOf<String>()
     val horizonPositionPx = (FRAME_HEIGHT_PX / 2 + symbolHeightPx / 2) - HORIZON_OFFSET_PX    // horizonPosition - позиция горизонта = половина экрана + половина высоты символа - оффсет
+    val songLengthMs = convertTimecodeToMilliseconds(song.endTimecode)
 
     resultLyricLinesFullText.forEach { lyricLine ->
         if (!lyricLine.isEmptyLine) {
             val lineStartMs = convertTimecodeToMilliseconds(lyricLine.start)
             val lineEndMs = convertTimecodeToMilliseconds(lyricLine.end)
-            val songLengthMs = convertTimecodeToMilliseconds(song.endTimecode)
             val lineX = ((lineStartMs.toDouble() / songLengthMs) * FRAME_WIDTH_PX).toLong()
             val lineW = ((lineEndMs.toDouble() / songLengthMs) * FRAME_WIDTH_PX).toLong() - lineX
             val templateHorizonGroupText = """
@@ -529,11 +529,19 @@ fun createKaraoke(song: Song) {
 
     val fontNameSizePt = Integer.min(getFontSizeBySymbolWidth(1100.0 / song.settings.songName.length),80)
 
+
     fileIsKaraoke.forEach { isKaraoke ->
+
+        val fileProjectName = "${song.settings.rootFolder}/${if (isKaraoke) song.settings.projectKaraokeFileName else song.settings.projectLyricsFileName}"
+        val fileRenderRequeueName = "${song.settings.rootFolder}/kdenlive-renderqueue/${(if (isKaraoke) song.settings.projectKaraokeFileName else song.settings.projectLyricsFileName).replace(".kdenlive",".mlt")}"
+        val fileSubtitleName = "$fileProjectName.srt"
 
         val templateProject = """<?xml version='1.0' encoding='utf-8'?>
         <mlt LC_NUMERIC="C" producer="main_bin" version="7.9.0" root="${song.settings.rootFolder}">
          <profile frame_rate_num="60" sample_aspect_num="1" display_aspect_den="9" colorspace="709" progressive="1" description="HD 1080p 60 fps" display_aspect_num="16" frame_rate_den="1" width="$FRAME_WIDTH_PX" height="$FRAME_HEIGHT_PX" sample_aspect_den="1"/>
+         <consumer f="mp4" properties="x265-medium" channels="2" x265-param="crf=%quality" crf="15" target="${song.settings.rootFolder}/${if (isKaraoke) song.settings.videoKaraokeFileName else song.settings.videoLyricsFileName}" mlt_service="avformat" real_time="-16" threads="0" vcodec="libx265" ab="160k" preset="ultrafast" acodec="aac" in="0" out="${convertMillisecondsToFrames(songLengthMs)}"/>
+         
+         <!--producer_song_text-->
          <producer id="producer_song_text" in="$kdeIn" out="$kdeOut">
           <property name="length">$kdeLength</property>
           <property name="eof">pause</property>
@@ -552,6 +560,8 @@ fun createKaraoke(song: Song) {
           <property name="meta.media.width">$FRAME_WIDTH_PX</property>
           <property name="meta.media.height">$workAreaHeightPx</property>
          </producer>
+         
+         <!--producer_horizon-->
          <producer id="producer_horizon" in="$kdeIn" out="$kdeOut">
           <property name="length">$kdeLength</property>
           <property name="eof">pause</property>
@@ -570,6 +580,8 @@ fun createKaraoke(song: Song) {
           <property name="meta.media.width">$FRAME_WIDTH_PX</property>
           <property name="meta.media.height">$FRAME_HEIGHT_PX</property>
          </producer>
+         
+         <!--producer_watermark-->
          <producer id="producer_watermark" in="$kdeIn" out="$kdeOut">
           <property name="length">$kdeLength</property>
           <property name="eof">pause</property>
@@ -588,6 +600,8 @@ fun createKaraoke(song: Song) {
           <property name="meta.media.width">$FRAME_WIDTH_PX</property>
           <property name="meta.media.height">$FRAME_HEIGHT_PX</property>
          </producer>
+         
+         <!--producer_progress-->
          <producer id="producer_progress" in="$kdeIn" out="$kdeOut">
          <filter id="karaoke_progress">
             <property name="rotate_center">1</property>
@@ -615,6 +629,8 @@ fun createKaraoke(song: Song) {
           <property name="meta.media.width">$FRAME_WIDTH_PX</property>
           <property name="meta.media.height">$FRAME_HEIGHT_PX</property>
          </producer>
+         
+         <!--producer_orange-->
          <producer id="producer_orange" in="$kdeIn" out="$kdeOut">
           <property name="length">$kdeLength</property>
           <property name="eof">pause</property>
@@ -628,6 +644,8 @@ fun createKaraoke(song: Song) {
           <property name="kdenlive:id">$idProducerOrange</property>
           <property name="mlt_image_format">rgb</property>
          </producer>
+         
+         <!--producer_logotype-->
          <producer id="producer_logotype" in="$kdeIn" out="$kdeOut">
           <property name="length">$kdeLength</property>
           <property name="eof">pause</property>
@@ -646,6 +664,8 @@ fun createKaraoke(song: Song) {
           <property name="kdenlive:id">$idProducerLogotype</property>
           <property name="kdenlive:file_size">30611</property>
          </producer>
+         
+         <!--producer_header-->
          <producer id="producer_header" in="$kdeIn" out="$kdeOut">
           <property name="length">$kdeLength</property>
           <property name="eof">pause</property>
@@ -711,6 +731,9 @@ fun createKaraoke(song: Song) {
           <property name="meta.media.width">$FRAME_WIDTH_PX</property>
           <property name="meta.media.height">$FRAME_HEIGHT_PX</property>
          </producer>
+         
+         <!--producer_background-->
+         
          <producer id="producer_background" in="$kdeIn" out="$kdeOut">
           <property name="length">$kdeLength</property>
           <property name="eof">pause</property>
@@ -729,6 +752,9 @@ fun createKaraoke(song: Song) {
           <property name="kdenlive:id">$idProducerBackground</property>
           <property name="kdenlive:file_size">9425672</property>
          </producer>
+         
+         <!--producer_microphone-->
+         
          <producer id="producer_microphone" in="$kdeIn" out="$kdeOut">
           <property name="length">$kdeLength</property>
           <property name="eof">pause</property>
@@ -747,6 +773,9 @@ fun createKaraoke(song: Song) {
           <property name="kdenlive:id">$idProducerMicrophone</property>
           <property name="kdenlive:file_size">62987</property>
          </producer>
+         
+         <!--producer_counter4-->
+         
          <producer id="producer_counter4" in="$kdeIn" out="$kdeOut">
           <property name="length">$kdeLength</property>
           <property name="eof">pause</property>
@@ -776,6 +805,9 @@ fun createKaraoke(song: Song) {
           <property name="meta.media.width">$FRAME_WIDTH_PX</property>
           <property name="meta.media.height">$FRAME_HEIGHT_PX</property>
          </producer>
+         
+         <!--producer_counter3-->
+         
          <producer id="producer_counter3" in="$kdeIn" out="$kdeOut">
           <property name="length">$kdeLength</property>
           <property name="eof">pause</property>
@@ -805,6 +837,9 @@ fun createKaraoke(song: Song) {
           <property name="meta.media.width">$FRAME_WIDTH_PX</property>
           <property name="meta.media.height">$FRAME_HEIGHT_PX</property>
          </producer>
+         
+         <!--producer_counter2-->
+         
          <producer id="producer_counter2" in="$kdeIn" out="$kdeOut">
           <property name="length">$kdeLength</property>
           <property name="eof">pause</property>
@@ -834,6 +869,9 @@ fun createKaraoke(song: Song) {
           <property name="meta.media.width">$FRAME_WIDTH_PX</property>
           <property name="meta.media.height">$FRAME_HEIGHT_PX</property>
          </producer>
+         
+         <!--producer_counter1-->
+        
          <producer id="producer_counter1" in="$kdeIn" out="$kdeOut">
           <property name="length">$kdeLength</property>
           <property name="eof">pause</property>
@@ -863,6 +901,9 @@ fun createKaraoke(song: Song) {
           <property name="meta.media.width">$FRAME_WIDTH_PX</property>
           <property name="meta.media.height">$FRAME_HEIGHT_PX</property>
          </producer>
+         
+         <!--producer_counter0-->
+         
          <producer id="producer_counter0" in="$kdeIn" out="$kdeOut">
           <property name="length">$kdeLength</property>
           <property name="eof">pause</property>
@@ -892,6 +933,9 @@ fun createKaraoke(song: Song) {
           <property name="meta.media.width">$FRAME_WIDTH_PX</property>
           <property name="meta.media.height">$FRAME_HEIGHT_PX</property>
          </producer>
+         
+         <!--producer_audio_song-->
+         
          <producer id="producer_audio_song" in="$kdeIn" out="$kdeOut">
           <property name="length">$kdeLength</property>
           <property name="eof">pause</property>
@@ -925,6 +969,9 @@ fun createKaraoke(song: Song) {
           <property name="kdenlive:file_size">22762064</property>
           <property name="kdenlive:audio_max0">250</property>
          </producer>
+         
+         <!--producer_audio_music-->
+         
          <producer id="producer_audio_music" in="$kdeIn" out="$kdeOut">
           <property name="length">$kdeLength</property>
           <property name="eof">pause</property>
@@ -949,6 +996,9 @@ fun createKaraoke(song: Song) {
           <property name="kdenlive:file_size">30326828</property>
           <property name="kdenlive:audio_max0">248</property>
          </producer>
+         
+         <!--producer_audio_vocal-->
+         
          <producer id="producer_audio_vocal" in="$kdeIn" out="$kdeOut">
           <property name="length">$kdeLength</property>
           <property name="eof">pause</property>
@@ -973,6 +1023,9 @@ fun createKaraoke(song: Song) {
           <property name="kdenlive:file_size">30326828</property>
           <property name="kdenlive:audio_max0">204</property>
          </producer>
+         
+         <!--producer_beat1-->
+         
          <producer id="producer_beat1" in="$kdeIn" out="$kdeOut">
           <property name="length">$kdeLength</property>
           <property name="eof">pause</property>
@@ -1002,6 +1055,9 @@ fun createKaraoke(song: Song) {
           <property name="meta.media.width">$FRAME_WIDTH_PX</property>
           <property name="meta.media.height">$FRAME_HEIGHT_PX</property>
          </producer>
+         
+         <!--producer_beat2-->
+         
          <producer id="producer_beat2" in="$kdeIn" out="$kdeOut">
           <property name="length">$kdeLength</property>
           <property name="eof">pause</property>
@@ -1031,6 +1087,9 @@ fun createKaraoke(song: Song) {
           <property name="meta.media.width">$FRAME_WIDTH_PX</property>
           <property name="meta.media.height">$FRAME_HEIGHT_PX</property>
          </producer>
+         
+         <!--producer_beat3-->
+         
          <producer id="producer_beat3" in="$kdeIn" out="$kdeOut">
           <property name="length">$kdeLength</property>
           <property name="eof">pause</property>
@@ -1066,6 +1125,9 @@ fun createKaraoke(song: Song) {
           <property name="meta.media.width">$FRAME_WIDTH_PX</property>
           <property name="meta.media.height">$FRAME_HEIGHT_PX</property>
          </producer>
+         
+         <!--producer_beat4-->
+         
          <producer id="producer_beat4" in="$kdeIn" out="$kdeOut">
           <property name="length">$kdeLength</property>
           <property name="eof">pause</property>
@@ -1095,6 +1157,10 @@ fun createKaraoke(song: Song) {
           <property name="meta.media.width">$FRAME_WIDTH_PX</property>
           <property name="meta.media.height">$FRAME_HEIGHT_PX</property>
          </producer>
+         
+         <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
+         <!--playlist_main_bin-->
+            
          <playlist id="main_bin">
           <property name="kdenlive:docproperties.activeTrack">3</property>
           <property name="kdenlive:docproperties.audioChannels">2</property>
@@ -1175,6 +1241,9 @@ fun createKaraoke(song: Song) {
           <entry producer="producer_beat3" in="$kdeIn" out="$kdeOut"/>
           <entry producer="producer_beat4" in="$kdeIn" out="$kdeOut"/>
          </playlist>
+         
+         <!--producer_black_track-->
+         
          <producer id="black_track" in="$kdeIn" out="00:11:11.917">
           <property name="length">2147483647</property>
           <property name="eof">continue</property>
@@ -1184,6 +1253,11 @@ fun createKaraoke(song: Song) {
           <property name="mlt_image_format">rgba</property>
           <property name="set.test_audio">0</property>
          </producer>
+         
+         <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
+         
+         <!--producer_audio_vocal-->
+         
          <producer id="producer_audio_vocal_file" in="$kdeIn" out="$kdeOut">
           <property name="length">$kdeLength</property>
           <property name="eof">pause</property>
@@ -1244,6 +1318,9 @@ fun createKaraoke(song: Song) {
            <property name="disable">1</property>
           </filter>
          </tractor>
+         
+         <!--producer_audio_music-->
+         
          <producer id="producer_audio_music_file" in="$kdeIn" out="$kdeOut">
           <property name="length">$kdeLength</property>
           <property name="eof">pause</property>
@@ -1304,6 +1381,9 @@ fun createKaraoke(song: Song) {
            <property name="disable">1</property>
           </filter>
          </tractor>
+         
+         <!--producer_audio_song-->
+         
          <producer id="producer_audio_song_file" in="$kdeIn" out="$kdeOut">
           <property name="length">$kdeLength</property>
           <property name="eof">pause</property>
@@ -1364,6 +1444,9 @@ fun createKaraoke(song: Song) {
            <property name="disable">1</property>
           </filter>
          </tractor>
+         
+         <!--producer_background-->
+         
          <playlist id="playlist_background_file">
           <entry producer="producer_background" in="$kdeIn" out="$kdeOut">
            <property name="kdenlive:id">$idProducerBackground</property>
@@ -1404,6 +1487,9 @@ fun createKaraoke(song: Song) {
           <track hide="audio" producer="playlist_background_file"/>
           <track hide="audio" producer="playlist_background_track"/>
          </tractor>
+         
+         <!--producer_microphone-->
+         
          <playlist id="playlist_microphone_file">
           <entry producer="producer_microphone" in="$kdeIn" out="$kdeOut">
            <property name="kdenlive:id">$idProducerMicrophone</property>
@@ -1430,6 +1516,9 @@ fun createKaraoke(song: Song) {
           <track hide="${if (isKaraoke) "audio" else "both"}" producer="playlist_microphone_file"/>
           <track hide="${if (isKaraoke) "audio" else "both"}" producer="playlist_microphone_track"/>
          </tractor>
+         
+         <!--producer_horizon-->
+         
          <playlist id="playlist_horizon_file">
           <entry producer="producer_horizon" in="$kdeIn" out="$kdeOut">
            <property name="kdenlive:id">$idProducerHorizon</property>
@@ -1456,32 +1545,9 @@ fun createKaraoke(song: Song) {
           <track hide="audio" producer="playlist_horizon_file"/>
           <track hide="audio" producer="playlist_horizon_track"/>
          </tractor>
-         <playlist id="playlist_watermark_file">
-          <entry producer="producer_watermark" in="$kdeIn" out="$kdeOut">
-           <property name="kdenlive:id">$idProducerWatermark</property>
-           <filter id="karaoke_watermark">
-            <property name="rotate_center">1</property>
-            <property name="mlt_service">qtblend</property>
-            <property name="kdenlive_id">qtblend</property>
-            <property name="rect">$kdeIn=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 0.000000;$kdeFadeIn=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 0.500000;$kdeFadeOut=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 0.500000;$kdeOut=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 0.000000</property>
-            <property name="rotation">$kdeIn=0;$kdeFadeIn=0;$kdeFadeOut=0;$kdeOut=0</property>
-            <property name="compositing">0</property>
-            <property name="distort">0</property>
-            <property name="kdenlive:collapsed">0</property>
-           </filter>
-          </entry>
-         </playlist>
-         <playlist id="playlist_watermark_track"/>
-         <tractor id="tractor_watermark" in="$kdeIn" out="$kdeOut">
-          <property name="kdenlive:trackheight">69</property>
-          <property name="kdenlive:timeline_active">1</property>
-          <property name="kdenlive:collapsed">28</property>
-          <property name="kdenlive:track_name">Watermark</property>
-          <property name="kdenlive:thumbs_format"/>
-          <property name="kdenlive:audio_rec"/>
-          <track hide="audio" producer="playlist_watermark_file"/>
-          <track hide="audio" producer="playlist_watermark_track"/>
-         </tractor>
+         
+         <!--producer_progress-->
+         
          <playlist id="playlist_progress_file">
           <entry producer="producer_progress" in="$kdeIn" out="$kdeOut">
            <property name="kdenlive:id">$idProducerProgress</property>
@@ -1508,6 +1574,9 @@ fun createKaraoke(song: Song) {
           <track hide="audio" producer="playlist_progress_file"/>
           <track hide="audio" producer="playlist_progress_track"/>
          </tractor>
+         
+         <!--producer_orange-->
+         
          <playlist id="playlist_fill_odd_file">
           <entry producer="producer_orange" in="$kdeIn" out="$kdeOut">
            <property name="kdenlive:id">$idProducerOrange</property>
@@ -1533,6 +1602,9 @@ fun createKaraoke(song: Song) {
           <track hide="audio" producer="playlist_fill_odd_file"/>
           <track hide="audio" producer="playlist_fill_odd_track"/>
          </tractor>
+         
+         <!--producer_orange-->
+         
          <playlist id="playlist_fill_even_file">
           <entry producer="producer_orange" in="$kdeIn" out="$kdeOut">
            <property name="kdenlive:id">$idProducerOrange</property>
@@ -1559,6 +1631,9 @@ fun createKaraoke(song: Song) {
           <track hide="audio" producer="playlist_fill_even_file"/>
           <track hide="audio" producer="playlist_fill_even_track"/>
          </tractor>
+         
+         <!--producer_song_text-->
+         
          <playlist id="playlist_songtext_file">
           <entry producer="producer_song_text" in="$kdeIn" out="$kdeOut">
            <property name="kdenlive:id">$idProducerSongText</property>
@@ -1584,6 +1659,9 @@ fun createKaraoke(song: Song) {
           <track hide="audio" producer="playlist_songtext_file"/>
           <track hide="audio" producer="playlist_songtext_track"/>
          </tractor>
+         
+         <!--producer_header-->
+         
          <playlist id="playlist_header_file">
           <entry producer="producer_header" in="$kdeIn" out="$kdeOut">
            <property name="kdenlive:id">$idProducerHeader</property>
@@ -1610,6 +1688,9 @@ fun createKaraoke(song: Song) {
           <track hide="audio" producer="playlist_header_file"/>
           <track hide="audio" producer="playlist_header_track"/>
          </tractor>
+         
+         <!--producer_logotype-->
+         
          <playlist id="playlist_logo_file">
           <entry producer="producer_logotype" in="$kdeIn" out="$kdeOut">
            <property name="kdenlive:id">$idProducerLogotype</property>
@@ -1636,131 +1717,9 @@ fun createKaraoke(song: Song) {
           <track hide="audio" producer="playlist_logo_file"/>
           <track hide="audio" producer="playlist_logo_track"/>
          </tractor>
-         <playlist id="playlist_counter4_file">
-          <entry producer="producer_counter4" in="$kdeIn" out="$kdeOut">
-           <property name="kdenlive:id">$idProducerCounter4</property>
-           <filter id="filter_counter_4">
-            <property name="rotate_center">0</property>
-            <property name="mlt_service">qtblend</property>
-            <property name="kdenlive_id">qtblend</property>
-            <property name="rect">$propFillCounter4Value</property>
-            <property name="compositing">0</property>
-            <property name="distort">0</property>
-            <property name="kdenlive:collapsed">0</property>
-           </filter>
-          </entry>
-         </playlist>
-         <playlist id="playlist_counter4_track"/>
-         <tractor id="tractor_counter4" in="$kdeIn" out="$kdeOut">
-          <property name="kdenlive:trackheight">69</property>
-          <property name="kdenlive:timeline_active">1</property>
-          <property name="kdenlive:collapsed">28</property>
-          <property name="kdenlive:track_name">4</property>
-          <property name="kdenlive:thumbs_format"/>
-          <property name="kdenlive:audio_rec"/>
-          <track hide="audio" producer="playlist_counter4_file"/>
-          <track hide="audio" producer="playlist_counter4_track"/>
-         </tractor>
-         <playlist id="playlist_counter3_file">
-          <entry producer="producer_counter3" in="$kdeIn" out="$kdeOut">
-           <property name="kdenlive:id">$idProducerCounter3</property>
-           <filter id="filter_counter_3">
-            <property name="rotate_center">1</property>
-            <property name="mlt_service">qtblend</property>
-            <property name="kdenlive_id">qtblend</property>
-            <property name="rect">$propFillCounter3Value</property>
-            <property name="compositing">0</property>
-            <property name="distort">0</property>
-            <property name="kdenlive:collapsed">0</property>
-           </filter>
-          </entry>
-         </playlist>
-         <playlist id="playlist_counter3_track"/>
-         <tractor id="tractor_counter3" in="$kdeIn" out="$kdeOut">
-          <property name="kdenlive:trackheight">69</property>
-          <property name="kdenlive:timeline_active">1</property>
-          <property name="kdenlive:collapsed">28</property>
-          <property name="kdenlive:track_name">3</property>
-          <property name="kdenlive:thumbs_format"/>
-          <property name="kdenlive:audio_rec"/>
-          <track hide="audio" producer="playlist_counter3_file"/>
-          <track hide="audio" producer="playlist_counter3_track"/>
-         </tractor>
-         <playlist id="playlist_counter2_file">
-          <entry producer="producer_counter2" in="$kdeIn" out="$kdeOut">
-           <property name="kdenlive:id">$idProducerCounter2</property>
-           <filter id="filter_counter_2">
-            <property name="rotate_center">1</property>
-            <property name="mlt_service">qtblend</property>
-            <property name="kdenlive_id">qtblend</property>
-            <property name="rect">$propFillCounter2Value</property>
-            <property name="compositing">0</property>
-            <property name="distort">0</property>
-            <property name="kdenlive:collapsed">0</property>
-           </filter>
-          </entry>
-         </playlist>
-         <playlist id="playlist_counter2_track"/>
-         <tractor id="tractor_counter2" in="$kdeIn" out="$kdeOut">
-          <property name="kdenlive:trackheight">69</property>
-          <property name="kdenlive:timeline_active">1</property>
-          <property name="kdenlive:collapsed">28</property>
-          <property name="kdenlive:track_name">2</property>
-          <property name="kdenlive:thumbs_format"/>
-          <property name="kdenlive:audio_rec"/>
-          <track hide="audio" producer="playlist_counter2_file"/>
-          <track hide="audio" producer="playlist_counter2_track"/>
-         </tractor>
-         <playlist id="playlist_counter1_file">
-          <entry producer="producer_counter1" in="$kdeIn" out="$kdeOut">
-           <property name="kdenlive:id">$idProducerCounter1</property>
-           <filter id="filter_counter_1">
-            <property name="rotate_center">1</property>
-            <property name="mlt_service">qtblend</property>
-            <property name="kdenlive_id">qtblend</property>
-            <property name="rect">$propFillCounter1Value</property>
-            <property name="compositing">0</property>
-            <property name="distort">0</property>
-            <property name="kdenlive:collapsed">0</property>
-           </filter>
-          </entry>
-         </playlist>
-         <playlist id="playlist_counter1_track"/>
-         <tractor id="tractor_counter1" in="$kdeIn" out="$kdeOut">
-          <property name="kdenlive:trackheight">69</property>
-          <property name="kdenlive:timeline_active">1</property>
-          <property name="kdenlive:collapsed">28</property>
-          <property name="kdenlive:track_name">1</property>
-          <property name="kdenlive:thumbs_format"/>
-          <property name="kdenlive:audio_rec"/>
-          <track hide="audio" producer="playlist_counter1_file"/>
-          <track hide="audio" producer="playlist_counter1_track"/>
-         </tractor>
-         <playlist id="playlist_counter0_file">
-          <entry producer="producer_counter0" in="$kdeIn" out="$kdeOut">
-           <property name="kdenlive:id">$idProducerCounter0</property>
-           <filter id="filter_counter_0">
-            <property name="rotate_center">1</property>
-            <property name="mlt_service">qtblend</property>
-            <property name="kdenlive_id">qtblend</property>
-            <property name="rect">$propFillCounter0Value</property>
-            <property name="compositing">0</property>
-            <property name="distort">0</property>
-            <property name="kdenlive:collapsed">0</property>
-           </filter>
-          </entry>
-         </playlist>
-         <playlist id="playlist_counter0_track"/>
-         <tractor id="tractor_counter0" in="$kdeIn" out="$kdeOut">
-          <property name="kdenlive:trackheight">69</property>
-          <property name="kdenlive:timeline_active">1</property>
-          <property name="kdenlive:collapsed">28</property>
-          <property name="kdenlive:track_name">0</property>
-          <property name="kdenlive:thumbs_format"/>
-          <property name="kdenlive:audio_rec"/>
-          <track hide="audio" producer="playlist_counter0_file"/>
-          <track hide="audio" producer="playlist_counter0_track"/>
-         </tractor>
+         
+                  <!--producer_beat4-->
+         
         <playlist id="playlist_beat4_file">
           <entry producer="producer_beat4" in="$kdeIn" out="$kdeOut">
            <property name="kdenlive:id">$idProducerBeat4</property>
@@ -1787,6 +1746,9 @@ fun createKaraoke(song: Song) {
           <track hide="audio" producer="playlist_beat4_file"/>
           <track hide="audio" producer="playlist_beat4_track"/>
          </tractor>
+         
+         <!--producer_beat3-->
+         
          <playlist id="playlist_beat3_file">
           <entry producer="producer_beat3" in="$kdeIn" out="$kdeOut">
            <property name="kdenlive:id">$idProducerBeat3</property>
@@ -1811,6 +1773,9 @@ fun createKaraoke(song: Song) {
           <track producer="playlist_beat3_file"/>
           <track producer="playlist_beat3_track"/>
          </tractor>
+         
+         <!--producer_beat2-->
+         
          <playlist id="playlist_beat2_file">
           <entry producer="producer_beat2" in="$kdeIn" out="$kdeOut">
            <property name="kdenlive:id">$idProducerBeat2</property>
@@ -1835,6 +1800,9 @@ fun createKaraoke(song: Song) {
           <track producer="playlist_beat2_file"/>
           <track producer="playlist_beat2_track"/>
          </tractor>
+         
+         <!--producer_beat1-->
+         
          <playlist id="playlist_beat1_file">
           <entry producer="producer_beat1" in="$kdeIn" out="$kdeOut">
            <property name="kdenlive:id">$idProducerBeat1</property>
@@ -1859,6 +1827,178 @@ fun createKaraoke(song: Song) {
           <track producer="playlist_beat1_file"/>
           <track producer="playlist_beat1_track"/>
          </tractor>
+         
+         <!--producer_counter4-->
+         
+         <playlist id="playlist_counter4_file">
+          <entry producer="producer_counter4" in="$kdeIn" out="$kdeOut">
+           <property name="kdenlive:id">$idProducerCounter4</property>
+           <filter id="filter_counter_4">
+            <property name="rotate_center">0</property>
+            <property name="mlt_service">qtblend</property>
+            <property name="kdenlive_id">qtblend</property>
+            <property name="rect">$propFillCounter4Value</property>
+            <property name="compositing">0</property>
+            <property name="distort">0</property>
+            <property name="kdenlive:collapsed">0</property>
+           </filter>
+          </entry>
+         </playlist>
+         <playlist id="playlist_counter4_track"/>
+         <tractor id="tractor_counter4" in="$kdeIn" out="$kdeOut">
+          <property name="kdenlive:trackheight">69</property>
+          <property name="kdenlive:timeline_active">1</property>
+          <property name="kdenlive:collapsed">28</property>
+          <property name="kdenlive:track_name">4</property>
+          <property name="kdenlive:thumbs_format"/>
+          <property name="kdenlive:audio_rec"/>
+          <track hide="audio" producer="playlist_counter4_file"/>
+          <track hide="audio" producer="playlist_counter4_track"/>
+         </tractor>
+         
+         <!--producer_counter3-->
+         
+         <playlist id="playlist_counter3_file">
+          <entry producer="producer_counter3" in="$kdeIn" out="$kdeOut">
+           <property name="kdenlive:id">$idProducerCounter3</property>
+           <filter id="filter_counter_3">
+            <property name="rotate_center">1</property>
+            <property name="mlt_service">qtblend</property>
+            <property name="kdenlive_id">qtblend</property>
+            <property name="rect">$propFillCounter3Value</property>
+            <property name="compositing">0</property>
+            <property name="distort">0</property>
+            <property name="kdenlive:collapsed">0</property>
+           </filter>
+          </entry>
+         </playlist>
+         <playlist id="playlist_counter3_track"/>
+         <tractor id="tractor_counter3" in="$kdeIn" out="$kdeOut">
+          <property name="kdenlive:trackheight">69</property>
+          <property name="kdenlive:timeline_active">1</property>
+          <property name="kdenlive:collapsed">28</property>
+          <property name="kdenlive:track_name">3</property>
+          <property name="kdenlive:thumbs_format"/>
+          <property name="kdenlive:audio_rec"/>
+          <track hide="audio" producer="playlist_counter3_file"/>
+          <track hide="audio" producer="playlist_counter3_track"/>
+         </tractor>
+         
+         <!--producer_counter2-->
+         
+         <playlist id="playlist_counter2_file">
+          <entry producer="producer_counter2" in="$kdeIn" out="$kdeOut">
+           <property name="kdenlive:id">$idProducerCounter2</property>
+           <filter id="filter_counter_2">
+            <property name="rotate_center">1</property>
+            <property name="mlt_service">qtblend</property>
+            <property name="kdenlive_id">qtblend</property>
+            <property name="rect">$propFillCounter2Value</property>
+            <property name="compositing">0</property>
+            <property name="distort">0</property>
+            <property name="kdenlive:collapsed">0</property>
+           </filter>
+          </entry>
+         </playlist>
+         <playlist id="playlist_counter2_track"/>
+         <tractor id="tractor_counter2" in="$kdeIn" out="$kdeOut">
+          <property name="kdenlive:trackheight">69</property>
+          <property name="kdenlive:timeline_active">1</property>
+          <property name="kdenlive:collapsed">28</property>
+          <property name="kdenlive:track_name">2</property>
+          <property name="kdenlive:thumbs_format"/>
+          <property name="kdenlive:audio_rec"/>
+          <track hide="audio" producer="playlist_counter2_file"/>
+          <track hide="audio" producer="playlist_counter2_track"/>
+         </tractor>
+         
+         <!--producer_counter1-->
+         
+         <playlist id="playlist_counter1_file">
+          <entry producer="producer_counter1" in="$kdeIn" out="$kdeOut">
+           <property name="kdenlive:id">$idProducerCounter1</property>
+           <filter id="filter_counter_1">
+            <property name="rotate_center">1</property>
+            <property name="mlt_service">qtblend</property>
+            <property name="kdenlive_id">qtblend</property>
+            <property name="rect">$propFillCounter1Value</property>
+            <property name="compositing">0</property>
+            <property name="distort">0</property>
+            <property name="kdenlive:collapsed">0</property>
+           </filter>
+          </entry>
+         </playlist>
+         <playlist id="playlist_counter1_track"/>
+         <tractor id="tractor_counter1" in="$kdeIn" out="$kdeOut">
+          <property name="kdenlive:trackheight">69</property>
+          <property name="kdenlive:timeline_active">1</property>
+          <property name="kdenlive:collapsed">28</property>
+          <property name="kdenlive:track_name">1</property>
+          <property name="kdenlive:thumbs_format"/>
+          <property name="kdenlive:audio_rec"/>
+          <track hide="audio" producer="playlist_counter1_file"/>
+          <track hide="audio" producer="playlist_counter1_track"/>
+         </tractor>
+         
+         <!--producer_counter0-->
+         
+         <playlist id="playlist_counter0_file">
+          <entry producer="producer_counter0" in="$kdeIn" out="$kdeOut">
+           <property name="kdenlive:id">$idProducerCounter0</property>
+           <filter id="filter_counter_0">
+            <property name="rotate_center">1</property>
+            <property name="mlt_service">qtblend</property>
+            <property name="kdenlive_id">qtblend</property>
+            <property name="rect">$propFillCounter0Value</property>
+            <property name="compositing">0</property>
+            <property name="distort">0</property>
+            <property name="kdenlive:collapsed">0</property>
+           </filter>
+          </entry>
+         </playlist>
+         <playlist id="playlist_counter0_track"/>
+         <tractor id="tractor_counter0" in="$kdeIn" out="$kdeOut">
+          <property name="kdenlive:trackheight">69</property>
+          <property name="kdenlive:timeline_active">1</property>
+          <property name="kdenlive:collapsed">28</property>
+          <property name="kdenlive:track_name">0</property>
+          <property name="kdenlive:thumbs_format"/>
+          <property name="kdenlive:audio_rec"/>
+          <track hide="audio" producer="playlist_counter0_file"/>
+          <track hide="audio" producer="playlist_counter0_track"/>
+         </tractor>
+         
+         <!--producer_watermark-->
+         
+         <playlist id="playlist_watermark_file">
+          <entry producer="producer_watermark" in="$kdeIn" out="$kdeOut">
+           <property name="kdenlive:id">$idProducerWatermark</property>
+           <filter id="karaoke_watermark">
+            <property name="rotate_center">1</property>
+            <property name="mlt_service">qtblend</property>
+            <property name="kdenlive_id">qtblend</property>
+            <property name="rect">$kdeIn=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 0.000000;$kdeFadeIn=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 0.500000;$kdeFadeOut=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 0.500000;$kdeOut=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 0.000000</property>
+            <property name="rotation">$kdeIn=0;$kdeFadeIn=0;$kdeFadeOut=0;$kdeOut=0</property>
+            <property name="compositing">0</property>
+            <property name="distort">0</property>
+            <property name="kdenlive:collapsed">0</property>
+           </filter>
+          </entry>
+         </playlist>
+         <playlist id="playlist_watermark_track"/>
+         <tractor id="tractor_watermark" in="$kdeIn" out="$kdeOut">
+          <property name="kdenlive:trackheight">69</property>
+          <property name="kdenlive:timeline_active">1</property>
+          <property name="kdenlive:collapsed">28</property>
+          <property name="kdenlive:track_name">Watermark</property>
+          <property name="kdenlive:thumbs_format"/>
+          <property name="kdenlive:audio_rec"/>
+          <track hide="audio" producer="playlist_watermark_file"/>
+          <track hide="audio" producer="playlist_watermark_track"/>
+         </tractor>
+         
+         <!--tractor_timeline-->
+         
          <tractor id="tractor_timeline" in="$kdeIn" out="00:11:11.917">
           <track producer="black_track"/>
           <track producer="tractor_vocal"/>
@@ -2046,9 +2186,9 @@ fun createKaraoke(song: Song) {
          </tractor>
         </mlt>
         """
-        val fileProjectName = "${song.settings.rootFolder}/${if (isKaraoke) song.settings.projectKaraokeFileName else song.settings.projectLyricsFileName}"
-        val fileSubtitleName = "$fileProjectName.srt"
+
         File(fileProjectName).writeText(templateProject)
+//        File(fileRenderRequeueName).writeText(templateProject)
         File(fileSubtitleName).writeText(song.srtFileBody)
     }
 
@@ -2106,6 +2246,7 @@ fun getSong(settings: Settings): Song {
         }
 
     }
+
 
     val beatMs = if (settings.ms == 0L) (60000.0 / settings.bpm).toLong() else settings.ms
     subtitles.forEach { subtitle ->

@@ -290,10 +290,8 @@ fun createKaraoke(song: Song) {
         </kdenlivetitle>"""
 
     val yOffset = -5
-    propProgressLineValue.add("00:00:00.000=-${progressSymbolHalfWidth} $yOffset $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 0.0")
-    propProgressLineValue.add("00:00:01.000=${FRAME_WIDTH_PX*(1000.0/convertTimecodeToMilliseconds(song.endTimecode)).toLong()-progressSymbolHalfWidth} $yOffset $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 1.0")
-    propProgressLineValue.add("${convertMillisecondsToTimecode(convertTimecodeToMilliseconds(song.endTimecode)-1000L)}=${FRAME_WIDTH_PX-FRAME_WIDTH_PX*(1000.0/convertTimecodeToMilliseconds(song.endTimecode)).toLong()-progressSymbolHalfWidth} $yOffset $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 1.0")
-    propProgressLineValue.add("${song.endTimecode}=${FRAME_WIDTH_PX-progressSymbolHalfWidth} $yOffset $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 0.0")
+    propProgressLineValue.add("00:00:00.000=-${progressSymbolHalfWidth} $yOffset $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 1.0")
+    propProgressLineValue.add("${song.endTimecode}=${FRAME_WIDTH_PX-progressSymbolHalfWidth} $yOffset $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 1.0")
 
     val templateWatermark = """
         <kdenlivetitle duration="0" LC_NUMERIC="C" width="$FRAME_WIDTH_PX" height="$FRAME_HEIGHT_PX" out="0">
@@ -591,7 +589,7 @@ fun createKaraoke(song: Song) {
           <property name="meta.media.height">$FRAME_HEIGHT_PX</property>
          </producer>
          <producer id="producer_progress" in="$kdeIn" out="$kdeOut">
-         <filter id="karaoke_text">
+         <filter id="karaoke_progress">
             <property name="rotate_center">1</property>
             <property name="mlt_service">qtblend</property>
             <property name="kdenlive_id">qtblend</property>

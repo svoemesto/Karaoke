@@ -55,6 +55,7 @@ fun createKaraoke(song: Song) {
     val idProducerBeat3 = 19
     val idProducerBeat4 = 20
     val idProducerProgress = 21
+    val idProducerWatermark = 22
 
     val beats = listOf(
         emptyList<String>().toMutableList(),
@@ -294,6 +295,18 @@ fun createKaraoke(song: Song) {
     propProgressLineValue.add("${convertMillisecondsToTimecode(convertTimecodeToMilliseconds(song.endTimecode)-1000L)}=${FRAME_WIDTH_PX-FRAME_WIDTH_PX*(1000.0/convertTimecodeToMilliseconds(song.endTimecode)).toLong()-progressSymbolHalfWidth} $yOffset $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 1.0")
     propProgressLineValue.add("${song.endTimecode}=${FRAME_WIDTH_PX-progressSymbolHalfWidth} $yOffset $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 0.0")
 
+    val templateWatermark = """
+        <kdenlivetitle duration="0" LC_NUMERIC="C" width="$FRAME_WIDTH_PX" height="$FRAME_HEIGHT_PX" out="0">
+         <item type="QGraphicsTextItem" z-index="0">
+          <position x="1700" y="1063">
+           <transform>1,0,0,0,1,0,0,0,1</transform>
+          </position>
+          <content line-spacing="0" shadow="0;#64000000;3;3;3" font-underline="0" box-height="14" font-outline-color="0,0,0,255" font="JetBrains Mono" letter-spacing="0" font-pixel-size="10" font-italic="0" typewriter="0;2;1;0;0" alignment="2" font-weight="50" font-outline="0" box-width="216" font-color="255,255,255,255">https://github.com/svoemesto/Karaoke</content>
+         </item>
+         <startviewport rect="0,0,$FRAME_WIDTH_PX,$FRAME_HEIGHT_PX"/>
+         <endviewport rect="0,0,$FRAME_WIDTH_PX,$FRAME_HEIGHT_PX"/>
+         <background color="0,0,0,0"/>
+        </kdenlivetitle>"""
 
     resultLyricLinesFullText.forEachIndexed { itemIndex, lyricLine -> // Проходимся по всем строкам
 
@@ -509,6 +522,7 @@ fun createKaraoke(song: Song) {
     val kdeSongTextXmlData = templateTitle
     val kdeHorizonXmlData = templateHorizon
     val kdeProgressXmlData = templateProgress
+    val kdeWatermarkXmlData = templateWatermark
 
     val fileIsKaraoke = listOf(false, true)
 
@@ -554,6 +568,24 @@ fun createKaraoke(song: Song) {
           <property name="kdenlive:folderid">-1</property>
           <property name="kdenlive:clip_type">2</property>
           <property name="kdenlive:id">$idProducerHorizon</property>
+          <property name="force_reload">0</property>
+          <property name="meta.media.width">$FRAME_WIDTH_PX</property>
+          <property name="meta.media.height">$FRAME_HEIGHT_PX</property>
+         </producer>
+         <producer id="producer_watermark" in="$kdeIn" out="$kdeOut">
+          <property name="length">$kdeLength</property>
+          <property name="eof">pause</property>
+          <property name="resource"/>
+          <property name="progressive">1</property>
+          <property name="aspect_ratio">1</property>
+          <property name="seekable">1</property>
+          <property name="mlt_service">kdenlivetitle</property>
+          <property name="kdenlive:duration">$kdeOut</property>
+          <property name="kdenlive:clipname">Watermark</property>
+          <property name="xmldata">$kdeWatermarkXmlData</property>
+          <property name="kdenlive:folderid">-1</property>
+          <property name="kdenlive:clip_type">2</property>
+          <property name="kdenlive:id">$idProducerWatermark</property>
           <property name="force_reload">0</property>
           <property name="meta.media.width">$FRAME_WIDTH_PX</property>
           <property name="meta.media.height">$FRAME_HEIGHT_PX</property>
@@ -1125,6 +1157,7 @@ fun createKaraoke(song: Song) {
           <property name="xml_retain">1</property>
           <entry producer="producer_song_text" in="$kdeIn" out="$kdeOut"/>
           <entry producer="producer_horizon" in="$kdeIn" out="$kdeOut"/>
+          <entry producer="producer_watermark" in="$kdeIn" out="$kdeOut"/>
           <entry producer="producer_progress" in="$kdeIn" out="$kdeOut"/>
           <entry producer="producer_orange" in="$kdeIn" out="$kdeOut"/>
           <entry producer="producer_logotype" in="$kdeIn" out="$kdeOut"/>
@@ -1424,6 +1457,32 @@ fun createKaraoke(song: Song) {
           <property name="kdenlive:audio_rec"/>
           <track hide="audio" producer="playlist_horizon_file"/>
           <track hide="audio" producer="playlist_horizon_track"/>
+         </tractor>
+         <playlist id="playlist_watermark_file">
+          <entry producer="producer_watermark" in="$kdeIn" out="$kdeOut">
+           <property name="kdenlive:id">$idProducerWatermark</property>
+           <filter id="karaoke_watermark">
+            <property name="rotate_center">1</property>
+            <property name="mlt_service">qtblend</property>
+            <property name="kdenlive_id">qtblend</property>
+            <property name="rect">$kdeIn=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 0.000000;$kdeFadeIn=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 0.500000;$kdeFadeOut=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 0.500000;$kdeOut=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 0.000000</property>
+            <property name="rotation">$kdeIn=0;$kdeFadeIn=0;$kdeFadeOut=0;$kdeOut=0</property>
+            <property name="compositing">0</property>
+            <property name="distort">0</property>
+            <property name="kdenlive:collapsed">0</property>
+           </filter>
+          </entry>
+         </playlist>
+         <playlist id="playlist_watermark_track"/>
+         <tractor id="tractor_watermark" in="$kdeIn" out="$kdeOut">
+          <property name="kdenlive:trackheight">69</property>
+          <property name="kdenlive:timeline_active">1</property>
+          <property name="kdenlive:collapsed">28</property>
+          <property name="kdenlive:track_name">Watermark</property>
+          <property name="kdenlive:thumbs_format"/>
+          <property name="kdenlive:audio_rec"/>
+          <track hide="audio" producer="playlist_watermark_file"/>
+          <track hide="audio" producer="playlist_watermark_track"/>
          </tractor>
          <playlist id="playlist_progress_file">
           <entry producer="producer_progress" in="$kdeIn" out="$kdeOut">
@@ -1825,6 +1884,7 @@ fun createKaraoke(song: Song) {
           <track producer="tractor_counter2"/>
           <track producer="tractor_counter1"/>
           <track producer="tractor_counter0"/>
+          <track producer="tractor_watermark"/>
           <transition id="transition0">
            <property name="a_track">0</property>
            <property name="b_track">1</property>

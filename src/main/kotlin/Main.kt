@@ -5,10 +5,13 @@ fun main(args: Array<String>) {
 //    createKaraoke(getSong(getSettings("${folder}/${file}.settings")))
 
     val mapFiles = mutableListOf<Pair<String,String>>(
-        Pair("/home/nsa/Documents/Караоке/Разное/Infornal Fuckъ - Конунг Олаф Моржовый Хер","Конунг Олаф Моржовый Хер"),
+//        Pair("/home/nsa/Documents/Караоке/Разное/Infornal Fuckъ - Конунг Олаф Моржовый Хер","Конунг Олаф Моржовый Хер"),
 //        Pair("/home/nsa/Documents/Караоке/Ундервуд/2002 - Все пройдет, Милая","(01) [Ундервуд] Все что надо"),
 //        Pair("/home/nsa/Documents/Караоке/Ундервуд/2002 - Все пройдет, Милая","(02) [Ундервуд] Гагарин, я Вас любила"),
 //        Pair("/home/nsa/Documents/Караоке/Ундервуд/2002 - Все пройдет, Милая","(03) [Ундервуд] Следи за ее левой рукой"),
+//        Pair("/home/nsa/Documents/Караоке/Ундервуд/2002 - Все пройдет, Милая","(04) [Ундервуд] Истребитель № 0"),
+//        Pair("/home/nsa/Documents/Караоке/Ундервуд/2002 - Все пройдет, Милая","(05) [Ундервуд] Парабеллум"),
+        Pair("/home/nsa/Documents/Караоке/Ундервуд/2002 - Все пройдет, Милая","(06) [Ундервуд] Федюнчик, посмотри 'Титаник'"),
 //        Pair("",""),
 //        Pair("",""),
 //        Pair("",""),

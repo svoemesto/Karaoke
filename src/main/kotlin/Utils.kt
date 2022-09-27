@@ -108,8 +108,8 @@ fun getRandomFile(pathToFolder: String, extention: String = ""): String {
     return if (listFiles.isEmpty()) "" else listFiles[Random.nextInt(listFiles.size)]
 }
 
-fun getListFiles(pathToFolder: String, extention: String = ""): List<String> {
-    return Files.walk(Path(pathToFolder)).filter(Files::isRegularFile).map { it.toString() }.filter{ it.endsWith(extention) }.toList()
+fun getListFiles(pathToFolder: String, extention: String = "", startWith: String = ""): List<String> {
+    return Files.walk(Path(pathToFolder)).filter(Files::isRegularFile).map { it.toString() }.filter{ it.endsWith(extention) && it.startsWith("${pathToFolder}/$startWith")}.toList()
 }
 
 fun extractSubtitlesFromAutorecognizedFile(pathToFileFrom: String, pathToFileTo: String): String {

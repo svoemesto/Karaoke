@@ -100,14 +100,14 @@ fun createKaraoke(song: Song) {
     var maxLineDuration = 0L
     var group = 0L
     // Проходимся по всем сабам
-    song.subtitles.forEach { subtitle ->
+    song.subtitles[0]!!.forEach { subtitle ->
         // Если саб - начало строки - начинаем новую строку (пока она пустая) и инициализируем пустой список subs
         if (subtitle.isLineStart) {
             startLine = subtitle.startTimecode
             lineText = ""
             lineFullText = ""
             lineBeatText = ""
-            subs = mutableListOf<Subtitle>()
+            subs = mutableListOf()
             group = subtitle.group
         }
 
@@ -576,8 +576,7 @@ fun createKaraoke(song: Song) {
     val kdeInOffset = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(kdeIn) + TIME_OFFSET_MS)
     val kdeFadeIn = "00:00:01.000"
     val kdeOut = song.endTimecode.replace(",", ".")
-    val kdeFadeOut =
-        convertMillisecondsToTimecode(convertTimecodeToMilliseconds(song.endTimecode) - 1000).replace(",", ".")
+    val kdeFadeOut = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(song.endTimecode) - 1000).replace(",", ".")
     val kdeLengthMs = convertTimecodeToMilliseconds(song.endTimecode)
     val kdeLengthFrames = convertTimecodeToFrames(song.endTimecode, FRAME_FPS)
 
@@ -671,109 +670,104 @@ fun createKaraoke(song: Song) {
     val fileIsKaraoke = listOf(false, true)
 
     fileIsKaraoke.forEach { isKaraoke ->
-        param["SONG_PROJECT_FILENAME"] =
-            if (isKaraoke) song.settings.projectKaraokeFileName else song.settings.projectLyricsFileName
-        param["SONG_VIDEO_FILENAME"] =
-            if (isKaraoke) song.settings.videoKaraokeFileName else song.settings.videoLyricsFileName
+        param["SONG_PROJECT_FILENAME"] = if (isKaraoke) song.settings.projectKaraokeFileName else song.settings.projectLyricsFileName
+        param["SONG_VIDEO_FILENAME"] = if (isKaraoke) song.settings.videoKaraokeFileName else song.settings.videoLyricsFileName
         param["HIDE_TRACTOR_MUSIC"] = if (isKaraoke) "video" else "both"
         param["HIDE_TRACTOR_SONG"] = if (isKaraoke) "both" else "video"
         param["HIDE_TRACTOR_MICROPHONE"] = if (isKaraoke) "audio" else "both"
 
-
-        val fileProjectName =
-            "${song.settings.rootFolder}/${if (isKaraoke) song.settings.projectKaraokeFileName else song.settings.projectLyricsFileName}"
-//        val fileRenderRequeueName = "${song.settings.rootFolder}/kdenlive-renderqueue/${
-//            (if (isKaraoke) song.settings.projectKaraokeFileName else song.settings.projectLyricsFileName).replace(
-//                ".kdenlive",
-//                ".mlt"
-//            )
-//        }"
+        val fileProjectName = "${song.settings.rootFolder}/${if (isKaraoke) song.settings.projectKaraokeFileName else song.settings.projectLyricsFileName}"
         val fileSubtitleName = "$fileProjectName.srt"
 
         val templateProject = "<?xml version='1.0' encoding='utf-8'?>\n${getMlt(param)}"
 
         File(fileProjectName).writeText(templateProject)
-//        File(fileRenderRequeueName).writeText(templateProject)
-        File(fileSubtitleName).writeText(song.srtFileBody)
+        File(fileSubtitleName).writeText(song.srtFileBody[0]?:"")
     }
 
 }
 
 
 fun getSong(settings: Settings): Song {
-    // Считываем содержимое файла субтитров
-    val body = File("${settings.rootFolder}/${settings.subtitleFileName}").readText(Charsets.UTF_8)
 
-    var beatTimecode = "00:00:00.000"
-    var group = 0L
+    val mapFiles = mutableMapOf<Int, String>()
+    val listFile = getListFiles(settings.rootFolder, ".srt", "${settings.fileName}.kdenlive")
+    listFile.sorted().forEachIndexed() { index, fileName ->
+        mapFiles[index] = fileName
+    }
 
-    val subtitles: MutableList<Subtitle> = emptyList<Subtitle>().toMutableList()
+    val result = Song()
 
-    val blocks = body.split("\\n[\\n]+".toRegex())
+    for (i in listFile.indices) {
+        // Считываем содержимое файла субтитров
+        val body = File("${settings.rootFolder}/${settings.subtitleFileName}").readText(Charsets.UTF_8)
 
-    blocks.forEach() { block ->
-        val blocklines = block.split("\n")
-        val id = if (blocklines.isNotEmpty() && blocklines[0]!= "" ) blocklines[0].toLong() else 0
-        val startEnd = if (blocklines.size > 1) blocklines[1] else ""
-        var text = if (blocklines.size > 2) blocklines[2] else ""
+        var beatTimecode = "00:00:00.000"
+        var group = 0L
 
-        if (startEnd != "" && id != 0L) {
-            if (text.uppercase().startsWith("[SETTING]|")) {
-                // Разделяем sub по | в список
-                val settingList = text.split("|")
-                when (settingList[1].uppercase()) {
-                    "BEAT" -> beatTimecode = startEnd!!.split(" --> ")[0].replace(",",".")
-                    "GROUP" -> group = if (settingList.size > 2) settingList[2].toLong() else 0
+        val subtitles: MutableList<Subtitle> = emptyList<Subtitle>().toMutableList()
+
+        val blocks = body.split("\\n[\\n]+".toRegex())
+
+        blocks.forEach() { block ->
+            val blocklines = block.split("\n")
+            val id = if (blocklines.isNotEmpty() && blocklines[0]!= "" ) blocklines[0].toLong() else 0
+            val startEnd = if (blocklines.size > 1) blocklines[1] else ""
+            var text = if (blocklines.size > 2) blocklines[2] else ""
+
+            if (startEnd != "" && id != 0L) {
+                if (text.uppercase().startsWith("[SETTING]|")) {
+                    // Разделяем sub по | в список
+                    val settingList = text.split("|")
+                    when (settingList[1].uppercase()) {
+                        "BEAT" -> beatTimecode = startEnd.split(" --> ")[0].replace(",",".")
+                        "GROUP" -> group = if (settingList.size > 2) settingList[2].toLong() else 0
+                    }
+                } else {
+                    val se = startEnd.split(" --> ")
+                    val start = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(se[0]))
+                    val end = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(se[1]))
+                    val isLineStart = text.startsWith("//")   // Вычисляем признак начала строки
+                    val isLineEnd = text.endsWith("\\\\")     // Вычисляем признак конца строки
+                    // Удаляем служебные символы из строки и заменяем подчёркивание пробелом
+                    text = text
+                        .replace("//", "")
+                        .replace("\\\\", "")
+                        .replace("_", " ")
+                    // Создаем объект classes.Subtitle и инициализируем его переменными
+                    val subtitle = Subtitle(
+                        startTimecode = start,
+                        endTimecode = end,
+                        text = text,
+                        isLineStart = isLineStart,
+                        isLineEnd = isLineEnd,
+                        group = group
+                    )
+                    // Добавляем этот объект к списку объектов
+                    subtitles.add(subtitle)
                 }
-            } else {
-                val se = startEnd.split(" --> ")
-                val start = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(se[0]))
-                val end = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(se[1]))
-                val isLineStart = text.startsWith("//")   // Вычисляем признак начала строки
-                val isLineEnd = text.endsWith("\\\\")     // Вычисляем признак конца строки
-                // Удаляем служебные символы из строки и заменяем подчёркивание пробелом
-                text = text
-                    .replace("//", "")
-                    .replace("\\\\", "")
-                    .replace("_", " ")
-                // Создаем объект classes.Subtitle и инициализируем его переменными
-                val subtitle = Subtitle(
-                    startTimecode = start,
-                    endTimecode = end,
-                    text = text,
-                    isLineStart = isLineStart,
-                    isLineEnd = isLineEnd,
-                    group = group
-                )
-                // Добавляем этот объект к списку объектов
-                subtitles.add(subtitle)
             }
+
         }
 
+        val beatMs = if (settings.ms == 0L) (60000.0 / settings.bpm).toLong() else settings.ms
+        subtitles.forEach { subtitle ->
+            subtitle.isBeat = if (subtitle.text != "") {
+                val startBeatNumber = getBeatNumberByTimecode(subtitle.startTimecode, beatMs, beatTimecode)
+                val endBeatNumber = getBeatNumberByTimecode(subtitle.endTimecode, beatMs, beatTimecode)
+                startBeatNumber > endBeatNumber
+            } else false
+        }
+
+        if (i == 0) {
+            result.settings = settings
+            result.endTimecode = subtitles.last().endTimecode
+            result.beatTimecode = beatTimecode
+        }
+        result.srtFileBody[i.toLong()] = body
+        result.subtitles[i.toLong()] = subtitles
     }
 
-
-    val beatMs = if (settings.ms == 0L) (60000.0 / settings.bpm).toLong() else settings.ms
-    subtitles.forEach { subtitle ->
-        subtitle.isBeat = if (subtitle.text != "") {
-            val startBeatNumber = getBeatNumberByTimecode(subtitle.startTimecode, beatMs, beatTimecode)
-            val endBeatNumber = getBeatNumberByTimecode(subtitle.endTimecode, beatMs, beatTimecode)
-            startBeatNumber > endBeatNumber
-        } else false
-    }
-
-    // Создаем объект classes.Song
-    val result = Song()
-    result.settings = settings
-    // Устанавливаем end равный end последнего объекта из списка и найденные выше настройки (если они были)
-    result.endTimecode = subtitles.last().endTimecode
-    result.beatTimecode = beatTimecode
-    result.srtFileBody = body
-
-    // В его объект Subtitles кладём список объектов classes.Subtitle
-    result.subtitles = subtitles
-
-    // Возвращаем объект classes.Song
     return result
 }
 
@@ -788,6 +782,7 @@ fun getSettings(pathToSettingsFile: String): Settings {
 
     val settings = Settings()
     settings.rootFolder = settingRoot
+    settings.fileName = settingFileName
     settings.subtitleFileName = "${settingFileName}.kdenlive.srt"
     settings.audioSongFileName = "${settingFileName}.flac"
     settings.audioMusicFileName = "$settingFileName [music].wav"

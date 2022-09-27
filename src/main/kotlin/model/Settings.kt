@@ -8,6 +8,7 @@ class Settings {
     var bpm: Long = 0
     var ms: Long = 0
     var rootFolder: String = ""
+    var fileName: String = ""
     var subtitleFileName: String = ""
     var audioSongFileName: String = ""
     var audioMusicFileName: String = ""

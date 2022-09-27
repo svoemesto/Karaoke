@@ -1,4 +1,17 @@
-const val SHOW_BEAT_SUBS = true
+const val PRESENT_TEXT_SUBS = true
+const val PRESENT_BEAT_SUBS = true
+const val PRESENT_COUNTERS = true
+const val PRESENT_BACKGROUND = true
+const val PRESENT_PROGRESS = true
+const val PRESENT_HORIZON = true
+const val PRESENT_FILLS = true
+const val PRESENT_AUDIO_SONG = true
+const val PRESENT_AUDIO_MUSIC = true
+const val PRESENT_AUDIO_VOCAL = true
+const val PRESENT_HEADER = true
+const val PRESENT_MICROPHONE = true
+const val PRESENT_LOGOTYPE = true
+
 const val FRAME_WIDTH_PX = 1920L
 const val FRAME_HEIGHT_PX = 1080L
 const val FRAME_FPS = 60L

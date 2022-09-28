@@ -310,9 +310,11 @@ fun createKaraoke(song: Song) {
         param["BOX_HEIGHT_PX"] = boxHeightPx
         param["BOX_WIDTH_PX"] = boxWidthPx
         param["FONT_SIZE_PT"] = fontSizePt
-        param["LYRIC_LINES_FULL_TEXT_GROUPS"] = resultLyricLinesFullTextGroups
-        param["LYRIC_LINES_BEAT_TEXT_GROUPS"] = resultLyricLinesBeatTextGroups
-        param["LYRIC_LINES_FULL_TEXT"] = resultLyricLinesFullText
+        param["LYRIC_LINES_FULL_TEXT${groupId}_GROUPS"] = resultLyricLinesFullTextGroups
+        param["LYRIC_LINES_BEAT_TEXT${groupId}_GROUPS"] = resultLyricLinesBeatTextGroups
+        if (groupId == 0 ) {
+            param["LYRIC_LINES_FULL_TEXT"] = resultLyricLinesFullText
+        }
         param["FONT_SIZE_PROGRESS"] = fontSizeProgress
         param["HEADER_AUTHOR"] = kdeHeaderAuthor
         param["HEADER_TONE"] = kdeHeaderTone
@@ -321,7 +323,7 @@ fun createKaraoke(song: Song) {
         param["HEADER_SONG_NAME"] = kdeHeaderSongName
         param["HEADER_SONG_NAME_FONT_SIZE"] = fontNameSizePt
 
-        val templateSongText = getTemplateSongText(param)
+        val templateSongText = getTemplateSongText(param,groupId)
         val templateHorizon = getTemplateHorizon(param)
         val templateProgress = getTemplateProgress(param)
         val templateWatermark = getTemplateWatermark(param)
@@ -601,125 +603,125 @@ fun createKaraoke(song: Song) {
         param["IN_OFFSET"] = kdeInOffset
 
 
-        param["AUDIOSONG_ID"] = idProducerAudioSong
-        param["AUDIOSONG_PATH"] = song.settings.audioSongFileName
+        param["${ProducerType.AUDIOSONG.text.uppercase()}${groupId}_ID"] = idProducerAudioSong
+        param["${ProducerType.AUDIOSONG.text.uppercase()}${groupId}_PATH"] = song.settings.audioSongFileName
 
-        param["AUDIOMUSIC_ID"] = idProducerAudioMusic
-        param["AUDIOMUSIC_PATH"] = song.settings.audioMusicFileName
+        param["${ProducerType.AUDIOMUSIC.text.uppercase()}${groupId}_ID"] = idProducerAudioMusic
+        param["${ProducerType.AUDIOMUSIC.text.uppercase()}${groupId}_PATH"] = song.settings.audioMusicFileName
 
-        param["AUDIOVOCAL_ID"] = idProducerAudioVocal
-        param["AUDIOVOCAL_PATH"] = song.settings.audioVocalFileName
-        param["HIDE_TRACTOR_AUDIOVOCAL"] = "both"
+        param["${ProducerType.AUDIOVOCAL.text.uppercase()}${groupId}_ID"] = idProducerAudioVocal
+        param["${ProducerType.AUDIOVOCAL.text.uppercase()}${groupId}_PATH"] = song.settings.audioVocalFileName
+        param["HIDE_TRACTOR_${ProducerType.AUDIOVOCAL.text.uppercase()}${groupId}"] = "both"
 
-        param["SONGTEXT_ID"] = idProducerSongText
-        param["SONGTEXT_WORK_AREA_HEIGHT_PX"] = workAreaHeightPx
-        param["SONGTEXT_XML_DATA"] = templateSongText
-        param["SONGTEXT_PROPERTY_RECT"] = propRectValue
-        param["HIDE_TRACTOR_SONGTEXT"] = "audio"
-
-
-        param["HORIZON_ID"] = idProducerHorizon
-        param["HORIZON_XML_DATA"] = templateHorizon
-        param["HIDE_TRACTOR_HORIZON"] = "audio"
+        param["${ProducerType.SONGTEXT.text.uppercase()}${groupId}_ID"] = idProducerSongText
+        param["${ProducerType.SONGTEXT.text.uppercase()}${groupId}_WORK_AREA_HEIGHT_PX"] = workAreaHeightPx
+        param["${ProducerType.SONGTEXT.text.uppercase()}${groupId}_XML_DATA"] = templateSongText
+        param["${ProducerType.SONGTEXT.text.uppercase()}${groupId}_PROPERTY_RECT"] = propRectValue
+        param["HIDE_TRACTOR_${ProducerType.SONGTEXT.text.uppercase()}${groupId}"] = "audio"
 
 
-        param["WATERMARK_ID"] = idProducerWatermark
-        param["WATERMARK_XML_DATA"] = templateWatermark
-        param["HIDE_TRACTOR_WATERMARK"] = "audio"
+        param["${ProducerType.HORIZON.text.uppercase()}${groupId}_ID"] = idProducerHorizon
+        param["${ProducerType.HORIZON.text.uppercase()}${groupId}_XML_DATA"] = templateHorizon
+        param["HIDE_TRACTOR_${ProducerType.HORIZON.text.uppercase()}${groupId}"] = "audio"
 
 
-        param["PROGRESS_ID"] = idProducerProgress
-        param["PROGRESS_XML_DATA"] = templateProgress
-        param["PROGRESS_PROPERTY_RECT"] = propProgressValue
-        param["HIDE_TRACTOR_PROGRESS"] = "audio"
+        param["${ProducerType.WATERMARK.text.uppercase()}${groupId}_ID"] = idProducerWatermark
+        param["${ProducerType.WATERMARK.text.uppercase()}${groupId}_XML_DATA"] = templateWatermark
+        param["HIDE_TRACTOR_${ProducerType.WATERMARK.text.uppercase()}${groupId}"] = "audio"
 
 
-        param["FILLCOLOR_ID"] = idProducerFillColor
-        param["FILLCOLOR_EVEN_PROPERTY_RECT"] = propFillEvenValue
-        param["FILLCOLOR_ODD_PROPERTY_RECT"] = propFillOddValue
-        param["HIDE_TRACTOR_FILLCOLOR_EVEN"] = "audio"
-        param["HIDE_TRACTOR_FILLCOLOR_ODD"] = "audio"
+        param["${ProducerType.PROGRESS.text.uppercase()}${groupId}_ID"] = idProducerProgress
+        param["${ProducerType.PROGRESS.text.uppercase()}${groupId}_XML_DATA"] = templateProgress
+        param["${ProducerType.PROGRESS.text.uppercase()}${groupId}_PROPERTY_RECT"] = propProgressValue
+        param["HIDE_TRACTOR_${ProducerType.PROGRESS.text.uppercase()}${groupId}"] = "audio"
 
 
-        param["LOGOTYPE_ID"] = idProducerLogotype
-        param["LOGOTYPE_PATH"] = kdeLogoPath
-        param["HIDE_TRACTOR_LOGOTYPE"] = "audio"
+        param["${ProducerType.FILLCOLOR.text.uppercase()}${groupId}_ID"] = idProducerFillColor
+        param["${ProducerType.FILLCOLOR.text.uppercase()}${groupId}_EVEN_PROPERTY_RECT"] = propFillEvenValue
+        param["${ProducerType.FILLCOLOR.text.uppercase()}${groupId}_ODD_PROPERTY_RECT"] = propFillOddValue
+        param["HIDE_TRACTOR_${ProducerType.FILLCOLOR.text.uppercase()}${groupId}_EVEN"] = "audio"
+        param["HIDE_TRACTOR_${ProducerType.FILLCOLOR.text.uppercase()}${groupId}_ODD"] = "audio"
 
 
-        param["HEADER_ID"] = idProducerHeader
-        param["HEADER_XML_DATA"] = templateHeader
-        param["HIDE_TRACTOR_HEADER"] = "audio"
+        param["${ProducerType.LOGOTYPE.text.uppercase()}${groupId}_ID"] = idProducerLogotype
+        param["${ProducerType.LOGOTYPE.text.uppercase()}${groupId}_PATH"] = kdeLogoPath
+        param["HIDE_TRACTOR_${ProducerType.LOGOTYPE.text.uppercase()}${groupId}"] = "audio"
 
 
-        param["MICROPHONE_ID"] = idProducerMicrophone
-        param["MICROPHONE_PATH"] = kdeMicrophonePath
+        param["${ProducerType.HEADER.text.uppercase()}${groupId}_ID"] = idProducerHeader
+        param["${ProducerType.HEADER.text.uppercase()}${groupId}_XML_DATA"] = templateHeader
+        param["HIDE_TRACTOR_${ProducerType.HEADER.text.uppercase()}${groupId}"] = "audio"
 
 
-        param["BACKGROUND_ID"] = idProducerBackground
-        param["BACKGROUND_PATH"] = getRandomFile(kdeBackgroundFolderPath, ".png")
-        param["HIDE_TRACTOR_BACKGROUND"] = "audio"
+        param["${ProducerType.MICROPHONE.text.uppercase()}${groupId}_ID"] = idProducerMicrophone
+        param["${ProducerType.MICROPHONE.text.uppercase()}${groupId}_PATH"] = kdeMicrophonePath
 
 
-        param["COUNTER0_ID"] = idProducerCounter0
-        param["COUNTER0_XML_DATA"] = templateCounter0
-        param["COUNTER0_PROPERTY_RECT"] = propFillCounter0Value
-        param["HIDE_TRACTOR_COUNTER0"] = "audio"
-
-        param["COUNTER1_ID"] = idProducerCounter1
-        param["COUNTER1_XML_DATA"] = templateCounter1
-        param["COUNTER1_PROPERTY_RECT"] = propFillCounter1Value
-        param["HIDE_TRACTOR_COUNTER1"] = "audio"
-
-        param["COUNTER2_ID"] = idProducerCounter2
-        param["COUNTER2_XML_DATA"] = templateCounter2
-        param["COUNTER2_PROPERTY_RECT"] = propFillCounter2Value
-        param["HIDE_TRACTOR_COUNTER2"] = "audio"
-
-        param["COUNTER3_ID"] = idProducerCounter3
-        param["COUNTER3_XML_DATA"] = templateCounter3
-        param["COUNTER3_PROPERTY_RECT"] = propFillCounter3Value
-        param["HIDE_TRACTOR_COUNTER3"] = "audio"
-
-        param["COUNTER4_ID"] = idProducerCounter4
-        param["COUNTER4_XML_DATA"] = templateCounter4
-        param["COUNTER4_PROPERTY_RECT"] = propFillCounter4Value
-        param["HIDE_TRACTOR_COUNTER4"] = "audio"
+        param["${ProducerType.BACKGROUND.text.uppercase()}${groupId}_ID"] = idProducerBackground
+        param["${ProducerType.BACKGROUND.text.uppercase()}${groupId}_PATH"] = getRandomFile(kdeBackgroundFolderPath, ".png")
+        param["HIDE_TRACTOR_${ProducerType.BACKGROUND.text.uppercase()}${groupId}"] = "audio"
 
 
-        param["BEAT1_ID"] = idProducerBeat1
-        param["BEAT1_XML_DATA"] = templateBeat1
-        param["BEAT1_PROPERTY_RECT"] = propBeat1Value
-        param["HIDE_TRACTOR_BEAT1"] = "audio"
+        param["${ProducerType.COUNTER.text.uppercase()}${groupId}0_ID"] = idProducerCounter0
+        param["${ProducerType.COUNTER.text.uppercase()}${groupId}0_XML_DATA"] = templateCounter0
+        param["${ProducerType.COUNTER.text.uppercase()}${groupId}0_PROPERTY_RECT"] = propFillCounter0Value
+        param["HIDE_TRACTOR_${ProducerType.COUNTER.text.uppercase()}${groupId}0"] = "audio"
 
-        param["BEAT2_ID"] = idProducerBeat2
-        param["BEAT2_XML_DATA"] = templateBeat2
-        param["BEAT2_PROPERTY_RECT"] = propBeat2Value
-        param["HIDE_TRACTOR_BEAT2"] = "audio"
+        param["${ProducerType.COUNTER.text.uppercase()}${groupId}1_ID"] = idProducerCounter1
+        param["${ProducerType.COUNTER.text.uppercase()}${groupId}1_XML_DATA"] = templateCounter1
+        param["${ProducerType.COUNTER.text.uppercase()}${groupId}1_PROPERTY_RECT"] = propFillCounter1Value
+        param["HIDE_TRACTOR_${ProducerType.COUNTER.text.uppercase()}${groupId}1"] = "audio"
 
-        param["BEAT3_ID"] = idProducerBeat3
-        param["BEAT3_XML_DATA"] = templateBeat3
-        param["BEAT3_PROPERTY_RECT"] = propBeat3Value
-        param["HIDE_TRACTOR_BEAT3"] = "audio"
+        param["${ProducerType.COUNTER.text.uppercase()}${groupId}2_ID"] = idProducerCounter2
+        param["${ProducerType.COUNTER.text.uppercase()}${groupId}2_XML_DATA"] = templateCounter2
+        param["${ProducerType.COUNTER.text.uppercase()}${groupId}2_PROPERTY_RECT"] = propFillCounter2Value
+        param["HIDE_TRACTOR_${ProducerType.COUNTER.text.uppercase()}${groupId}2"] = "audio"
 
-        param["BEAT4_ID"] = idProducerBeat4
-        param["BEAT4_XML_DATA"] = templateBeat4
-        param["BEAT4_PROPERTY_RECT"] = propBeat4Value
-        param["HIDE_TRACTOR_BEAT4"] = "audio"
+        param["${ProducerType.COUNTER.text.uppercase()}${groupId}3_ID"] = idProducerCounter3
+        param["${ProducerType.COUNTER.text.uppercase()}${groupId}3_XML_DATA"] = templateCounter3
+        param["${ProducerType.COUNTER.text.uppercase()}${groupId}3_PROPERTY_RECT"] = propFillCounter3Value
+        param["HIDE_TRACTOR_${ProducerType.COUNTER.text.uppercase()}${groupId}3"] = "audio"
 
-        param["${ProducerType.AUDIOVOCAL.text.uppercase()}}_ENABLED"] = true
-        param["${ProducerType.AUDIOMUSIC.text.uppercase()}}_ENABLED"] = true
-        param["${ProducerType.AUDIOSONG.text.uppercase()}}_ENABLED"] = true
-        param["${ProducerType.BACKGROUND.text.uppercase()}}_ENABLED"] = true
-        param["${ProducerType.MICROPHONE.text.uppercase()}}_ENABLED"] = true
-        param["${ProducerType.HORIZON.text.uppercase()}}_ENABLED"] = true
-        param["${ProducerType.PROGRESS.text.uppercase()}}_ENABLED"] = true
-        param["${ProducerType.FILLCOLOR.text.uppercase()}}_ENABLED"] = true
-        param["${ProducerType.SONGTEXT.text.uppercase()}}_ENABLED"] = true
-        param["${ProducerType.HEADER.text.uppercase()}}_ENABLED"] = true
-        param["${ProducerType.LOGOTYPE.text.uppercase()}}_ENABLED"] = true
-        param["${ProducerType.BEAT.text.uppercase()}}_ENABLED"] = true
-        param["${ProducerType.COUNTER.text.uppercase()}}_ENABLED"] = true
-        param["${ProducerType.WATERMARK.text.uppercase()}}_ENABLED"] = true
+        param["${ProducerType.COUNTER.text.uppercase()}${groupId}4_ID"] = idProducerCounter4
+        param["${ProducerType.COUNTER.text.uppercase()}${groupId}4_XML_DATA"] = templateCounter4
+        param["${ProducerType.COUNTER.text.uppercase()}${groupId}4_PROPERTY_RECT"] = propFillCounter4Value
+        param["HIDE_TRACTOR_${ProducerType.COUNTER.text.uppercase()}${groupId}4"] = "audio"
+
+
+        param["${ProducerType.BEAT.text.uppercase()}${groupId}1_ID"] = idProducerBeat1
+        param["${ProducerType.BEAT.text.uppercase()}${groupId}1_XML_DATA"] = templateBeat1
+        param["${ProducerType.BEAT.text.uppercase()}${groupId}1_PROPERTY_RECT"] = propBeat1Value
+        param["HIDE_TRACTOR_${ProducerType.BEAT.text.uppercase()}${groupId}1"] = "audio"
+
+        param["${ProducerType.BEAT.text.uppercase()}${groupId}2_ID"] = idProducerBeat2
+        param["${ProducerType.BEAT.text.uppercase()}${groupId}2_XML_DATA"] = templateBeat2
+        param["${ProducerType.BEAT.text.uppercase()}${groupId}2_PROPERTY_RECT"] = propBeat2Value
+        param["HIDE_TRACTOR_${ProducerType.BEAT.text.uppercase()}${groupId}2"] = "audio"
+
+        param["${ProducerType.BEAT.text.uppercase()}${groupId}3_ID"] = idProducerBeat3
+        param["${ProducerType.BEAT.text.uppercase()}${groupId}3_XML_DATA"] = templateBeat3
+        param["${ProducerType.BEAT.text.uppercase()}${groupId}3_PROPERTY_RECT"] = propBeat3Value
+        param["HIDE_TRACTOR_${ProducerType.BEAT.text.uppercase()}${groupId}3"] = "audio"
+
+        param["${ProducerType.BEAT.text.uppercase()}${groupId}4_ID"] = idProducerBeat4
+        param["${ProducerType.BEAT.text.uppercase()}${groupId}4_XML_DATA"] = templateBeat4
+        param["${ProducerType.BEAT.text.uppercase()}${groupId}4_PROPERTY_RECT"] = propBeat4Value
+        param["HIDE_TRACTOR_${ProducerType.BEAT.text.uppercase()}${groupId}4"] = "audio"
+
+        param["${ProducerType.AUDIOVOCAL.text.uppercase()}${groupId}_ENABLED"] = true
+        param["${ProducerType.AUDIOMUSIC.text.uppercase()}${groupId}_ENABLED"] = true
+        param["${ProducerType.AUDIOSONG.text.uppercase()}${groupId}_ENABLED"] = true
+        param["${ProducerType.BACKGROUND.text.uppercase()}${groupId}_ENABLED"] = true
+        param["${ProducerType.MICROPHONE.text.uppercase()}${groupId}_ENABLED"] = true
+        param["${ProducerType.HORIZON.text.uppercase()}${groupId}_ENABLED"] = true
+        param["${ProducerType.PROGRESS.text.uppercase()}${groupId}_ENABLED"] = true
+        param["${ProducerType.FILLCOLOR.text.uppercase()}${groupId}_ENABLED"] = true
+        param["${ProducerType.SONGTEXT.text.uppercase()}${groupId}_ENABLED"] = true
+        param["${ProducerType.HEADER.text.uppercase()}${groupId}_ENABLED"] = true
+        param["${ProducerType.LOGOTYPE.text.uppercase()}${groupId}_ENABLED"] = true
+        param["${ProducerType.BEAT.text.uppercase()}${groupId}_ENABLED"] = true
+        param["${ProducerType.COUNTER.text.uppercase()}${groupId}_ENABLED"] = true
+        param["${ProducerType.WATERMARK.text.uppercase()}${groupId}_ENABLED"] = true
 
     }
 
@@ -731,9 +733,12 @@ fun createKaraoke(song: Song) {
     fileIsKaraoke.forEach { isKaraoke ->
         param["SONG_PROJECT_FILENAME"] = if (isKaraoke) song.settings.projectKaraokeFileName else song.settings.projectLyricsFileName
         param["SONG_VIDEO_FILENAME"] = if (isKaraoke) song.settings.videoKaraokeFileName else song.settings.videoLyricsFileName
-        param["HIDE_TRACTOR_AUDIOMUSIC"] = if (isKaraoke) "video" else "both"
-        param["HIDE_TRACTOR_AUDIOSONG"] = if (isKaraoke) "both" else "video"
-        param["HIDE_TRACTOR_MICROPHONE"] = if (isKaraoke) "audio" else "both"
+        for (groupId in 0 until song.subtitles.size) {
+            param["HIDE_TRACTOR_${ProducerType.AUDIOMUSIC.text.uppercase()}${groupId}"] = if (isKaraoke) "video" else "both"
+            param["HIDE_TRACTOR_${ProducerType.AUDIOSONG.text.uppercase()}${groupId}"] = if (isKaraoke) "both" else "video"
+            param["HIDE_TRACTOR_${ProducerType.MICROPHONE.text.uppercase()}${groupId}"] = if (isKaraoke) "audio" else "both"
+        }
+
 
         val fileProjectName = "${song.settings.rootFolder}/${if (isKaraoke) song.settings.projectKaraokeFileName else song.settings.projectLyricsFileName}"
         val fileSubtitleName = "$fileProjectName.srt"
@@ -759,7 +764,7 @@ fun getSong(settings: Settings): Song {
 
     for (i in listFile.indices) {
         // Считываем содержимое файла субтитров
-        val body = File("${settings.rootFolder}/${settings.subtitleFileName}").readText(Charsets.UTF_8)
+        val body = File(mapFiles[i]!!).readText(Charsets.UTF_8)
 
         var beatTimecode = "00:00:00.000"
         var group = 0L

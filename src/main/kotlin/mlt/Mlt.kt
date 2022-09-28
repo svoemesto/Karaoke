@@ -71,70 +71,70 @@ fun getMlt(param: Map<String, Any?>): MltNode {
 
     for (groupId in 0 until countGroups) {
         type = ProducerType.SONGTEXT
-        if ((param["${type.text.uppercase()}}_ENABLED"] as Boolean)) {
+        if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
             if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
                 body.add(getMltSongTextProducer(param, type, groupId))
             }
         }
 
         type = ProducerType.HORIZON
-        if ((param["${type.text.uppercase()}}_ENABLED"] as Boolean)) {
+        if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
             if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
                 body.add(getMltHorizonProducer(param, type, groupId))
             }
         }
 
         type = ProducerType.WATERMARK
-        if ((param["${type.text.uppercase()}}_ENABLED"] as Boolean)) {
+        if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
             if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
                 body.add(getMltWatermarkProducer(param, type, groupId))
             }
         }
 
         type = ProducerType.PROGRESS
-        if ((param["${type.text.uppercase()}}_ENABLED"] as Boolean)) {
+        if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
             if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
                 body.add(getMltProgressProducer(param, type, groupId))
             }
         }
 
         type = ProducerType.FILLCOLOR
-        if ((param["${type.text.uppercase()}}_ENABLED"] as Boolean)) {
+        if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
             if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
                 body.add(getMltFillColorProducer(param, type, groupId))
             }
         }
 
         type = ProducerType.LOGOTYPE
-        if ((param["${type.text.uppercase()}}_ENABLED"] as Boolean)) {
+        if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
             if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
                 body.add(getMltLogotypeProducer(param, type, groupId))
             }
         }
 
         type = ProducerType.HEADER
-        if ((param["${type.text.uppercase()}}_ENABLED"] as Boolean)) {
+        if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
             if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
                 body.add(getMltHeaderProducer(param, type, groupId))
             }
         }
 
         type = ProducerType.BACKGROUND
-        if ((param["${type.text.uppercase()}}_ENABLED"] as Boolean)) {
+        if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
             if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
                 body.add(getMltBackgroundProducer(param, type, groupId))
             }
         }
 
         type = ProducerType.MICROPHONE
-        if ((param["${type.text.uppercase()}}_ENABLED"] as Boolean)) {
+        if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
             if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
                 body.add(getMltMicrophoneProducer(param, type, groupId))
             }
         }
 
         type = ProducerType.COUNTER
-        if ((param["${type.text.uppercase()}}_ENABLED"] as Boolean)) {
+        if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
             if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
                 body.add(getMltCounterProducer(param, 4, type, groupId))
                 body.add(getMltCounterProducer(param, 3, type, groupId))
@@ -145,7 +145,7 @@ fun getMlt(param: Map<String, Any?>): MltNode {
         }
 
         type = ProducerType.BEAT
-        if ((param["${type.text.uppercase()}}_ENABLED"] as Boolean)) {
+        if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
             if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
                 body.add(getMltBeatProducer(param, 1, type, groupId))
                 body.add(getMltBeatProducer(param, 2, type, groupId))
@@ -155,21 +155,21 @@ fun getMlt(param: Map<String, Any?>): MltNode {
         }
 
         type = ProducerType.AUDIOVOCAL
-        if ((param["${type.text.uppercase()}}_ENABLED"] as Boolean)) {
+        if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
             if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
                 body.add(getMltAudioProducer(param, type, groupId))
             }
         }
 
         type = ProducerType.AUDIOMUSIC
-        if ((param["${type.text.uppercase()}}_ENABLED"] as Boolean)) {
+        if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
             if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
                 body.add(getMltAudioProducer(param, type, groupId))
             }
         }
 
         type = ProducerType.AUDIOSONG
-        if ((param["${type.text.uppercase()}}_ENABLED"] as Boolean)) {
+        if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
             if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
                 body.add(getMltAudioProducer(param, type, groupId))
             }
@@ -183,7 +183,7 @@ fun getMlt(param: Map<String, Any?>): MltNode {
     for (groupId in 0 until countGroups) {
 
         type = ProducerType.AUDIOVOCAL
-        if ((param["${type.text.uppercase()}}_ENABLED"] as Boolean)) {
+        if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
             if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
                 body.add(getMltAudioFileProducer(param, type, groupId))
                 body.add(getMltAudioFilePlaylist(param, type, groupId))
@@ -193,7 +193,7 @@ fun getMlt(param: Map<String, Any?>): MltNode {
         }
 
         type = ProducerType.AUDIOMUSIC
-        if ((param["${type.text.uppercase()}}_ENABLED"] as Boolean)) {
+        if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
             if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
                 body.add(getMltAudioFileProducer(param, type, groupId))
                 body.add(getMltAudioFilePlaylist(param, type, groupId))
@@ -203,7 +203,7 @@ fun getMlt(param: Map<String, Any?>): MltNode {
         }
 
         type = ProducerType.AUDIOSONG
-        if ((param["${type.text.uppercase()}}_ENABLED"] as Boolean)) {
+        if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
             if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
                 body.add(getMltAudioFileProducer(param, type, groupId))
                 body.add(getMltAudioFilePlaylist(param, type, groupId))
@@ -213,7 +213,7 @@ fun getMlt(param: Map<String, Any?>): MltNode {
         }
 
         type = ProducerType.BACKGROUND
-        if ((param["${type.text.uppercase()}}_ENABLED"] as Boolean)) {
+        if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
             if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
                 body.add(getMltBackgroundFilePlaylist(param, type, groupId))
                 body.add(getMltBackgroundTrackPlaylist(param, type, groupId))
@@ -222,7 +222,7 @@ fun getMlt(param: Map<String, Any?>): MltNode {
         }
 
         type = ProducerType.MICROPHONE
-        if ((param["${type.text.uppercase()}}_ENABLED"] as Boolean)) {
+        if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
             if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
                 body.add(getMltMicrophoneFilePlaylist(param, type, groupId))
                 body.add(getMltMicrophoneTrackPlaylist(param, type, groupId))
@@ -231,7 +231,7 @@ fun getMlt(param: Map<String, Any?>): MltNode {
         }
 
         type = ProducerType.HORIZON
-        if ((param["${type.text.uppercase()}}_ENABLED"] as Boolean)) {
+        if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
             if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
                 body.add(getMltHorizonFilePlaylist(param, type, groupId))
                 body.add(getMltHorizonTrackPlaylist(param, type, groupId))
@@ -240,7 +240,7 @@ fun getMlt(param: Map<String, Any?>): MltNode {
         }
 
         type = ProducerType.PROGRESS
-        if ((param["${type.text.uppercase()}}_ENABLED"] as Boolean)) {
+        if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
             if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
                 body.add(getMltProgressFilePlaylist(param, type, groupId))
                 body.add(getMltProgressTrackPlaylist(param, type, groupId))
@@ -249,7 +249,7 @@ fun getMlt(param: Map<String, Any?>): MltNode {
         }
 
         type = ProducerType.FILLCOLOR
-        if ((param["${type.text.uppercase()}}_ENABLED"] as Boolean)) {
+        if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
             if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
                 body.add(getMltFillEvenFilePlaylist(param, type, groupId))
                 body.add(getMltFillEvenTrackPlaylist(param, type, groupId))
@@ -261,7 +261,7 @@ fun getMlt(param: Map<String, Any?>): MltNode {
         }
 
         type = ProducerType.SONGTEXT
-        if ((param["${type.text.uppercase()}}_ENABLED"] as Boolean)) {
+        if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
             if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
                 body.add(getMltSongTextFilePlaylist(param, type, groupId))
                 body.add(getMltSongTextTrackPlaylist(param, type, groupId))
@@ -270,7 +270,7 @@ fun getMlt(param: Map<String, Any?>): MltNode {
         }
 
         type = ProducerType.HEADER
-        if ((param["${type.text.uppercase()}}_ENABLED"] as Boolean)) {
+        if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
             if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
                 body.add(getMltHeaderFilePlaylist(param, type, groupId))
                 body.add(getMltHeaderTrackPlaylist(param, type, groupId))
@@ -279,7 +279,7 @@ fun getMlt(param: Map<String, Any?>): MltNode {
         }
 
         type = ProducerType.LOGOTYPE
-        if ((param["${type.text.uppercase()}}_ENABLED"] as Boolean)) {
+        if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
             if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
                 body.add(getMltLogotypeFilePlaylist(param, type, groupId))
                 body.add(getMltLogotypeTrackPlaylist(param, type, groupId))
@@ -288,7 +288,7 @@ fun getMlt(param: Map<String, Any?>): MltNode {
         }
 
         type = ProducerType.BEAT
-        if ((param["${type.text.uppercase()}}_ENABLED"] as Boolean)) {
+        if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
             if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
                 body.add(getMltBeatFilePlaylist(param, 4, type, groupId))
                 body.add(getMltBeatTrackPlaylist(param, 4, type, groupId))
@@ -306,7 +306,7 @@ fun getMlt(param: Map<String, Any?>): MltNode {
         }
 
         type = ProducerType.COUNTER
-        if ((param["${type.text.uppercase()}}_ENABLED"] as Boolean)) {
+        if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
             if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
                 body.add(getMltCounterFilePlaylist(param, 4, type, groupId))
                 body.add(getMltCounterTrackPlaylist(param, 4, type, groupId))
@@ -327,7 +327,7 @@ fun getMlt(param: Map<String, Any?>): MltNode {
         }
 
         type = ProducerType.WATERMARK
-        if ((param["${type.text.uppercase()}}_ENABLED"] as Boolean)) {
+        if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
             if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
                 body.add(getMltWatermarkFilePlaylist(param, type, groupId))
                 body.add(getMltWatermarkTrackPlaylist(param, type, groupId))

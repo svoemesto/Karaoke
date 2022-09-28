@@ -1,4 +1,5 @@
 import model.MltNode
+import model.ProducerType
 
 fun getMltMainBinPlaylist(param: Map<String, Any?>): MltNode {
 
@@ -38,7 +39,109 @@ fun getMltMainBinPlaylist(param: Map<String, Any?>): MltNode {
 //    <property name="kdenlive:expandedFolders"/>
 //    <property name="kdenlive:documentnotes"/>
 
+    val countGroups = (param["COUNT_GROUPS"] as Int)
+    val entries = mutableListOf<MltNode>()
+    var type = ProducerType.NONE
+    for (groupId in 0 until countGroups) {
 
+        type = ProducerType.SONGTEXT
+        if ((param["${type.text.uppercase()}}_ENABLED"] as Boolean)) {
+            if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
+                entries.add(MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_${type.text}${groupId}"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))))
+            }
+        }
+
+        type = ProducerType.HORIZON
+        if ((param["${type.text.uppercase()}}_ENABLED"] as Boolean)) {
+            if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
+                entries.add(MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_${type.text}${groupId}"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))))
+            }
+        }
+        type = ProducerType.WATERMARK
+        if ((param["${type.text.uppercase()}}_ENABLED"] as Boolean)) {
+            if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
+                entries.add(MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_${type.text}${groupId}"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))))
+            }
+        }
+        type = ProducerType.PROGRESS
+        if ((param["${type.text.uppercase()}}_ENABLED"] as Boolean)) {
+            if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
+                entries.add(MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_${type.text}${groupId}"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))))
+            }
+        }
+
+        type = ProducerType.FILLCOLOR
+        if ((param["${type.text.uppercase()}}_ENABLED"] as Boolean)) {
+            if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
+                entries.add(MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_${type.text}${groupId}"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))))
+            }
+        }
+        type = ProducerType.LOGOTYPE
+        if ((param["${type.text.uppercase()}}_ENABLED"] as Boolean)) {
+            if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
+                entries.add(MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_${type.text}${groupId}"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))))
+            }
+        }
+        type = ProducerType.HEADER
+        if ((param["${type.text.uppercase()}}_ENABLED"] as Boolean)) {
+            if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
+                entries.add(MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_${type.text}${groupId}"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))))
+            }
+        }
+        type = ProducerType.BACKGROUND
+        if ((param["${type.text.uppercase()}}_ENABLED"] as Boolean)) {
+            if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
+                entries.add(MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_${type.text}${groupId}"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))))
+            }
+        }
+        type = ProducerType.MICROPHONE
+        if ((param["${type.text.uppercase()}}_ENABLED"] as Boolean)) {
+            if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
+                entries.add(MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_${type.text}${groupId}"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))))
+            }
+        }
+
+        type = ProducerType.COUNTER
+        if ((param["${type.text.uppercase()}}_ENABLED"] as Boolean)) {
+            if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
+                entries.add(MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_${type.text}${groupId}4"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))))
+                entries.add(MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_${type.text}${groupId}3"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))))
+                entries.add(MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_${type.text}${groupId}2"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))))
+                entries.add(MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_${type.text}${groupId}1"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))))
+                entries.add(MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_${type.text}${groupId}0"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))))
+            }
+        }
+
+        type = ProducerType.BEAT
+        if ((param["${type.text.uppercase()}}_ENABLED"] as Boolean)) {
+            if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
+                entries.add(MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_${type.text}${groupId}1"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))))
+                entries.add(MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_${type.text}${groupId}2"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))))
+                entries.add(MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_${type.text}${groupId}3"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))))
+                entries.add(MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_${type.text}${groupId}4"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))))
+            }
+        }
+
+        type = ProducerType.AUDIOSONG
+        if ((param["${type.text.uppercase()}}_ENABLED"] as Boolean)) {
+            if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
+                entries.add(MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_${type.text}${groupId}"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))))
+            }
+        }
+
+        type = ProducerType.AUDIOMUSIC
+        if ((param["${type.text.uppercase()}}_ENABLED"] as Boolean)) {
+            if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
+                entries.add(MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_${type.text}${groupId}"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))))
+            }
+        }
+        type = ProducerType.AUDIOVOCAL
+        if ((param["${type.text.uppercase()}}_ENABLED"] as Boolean)) {
+            if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
+                entries.add(MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_${type.text}${groupId}"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))))
+            }
+        }
+    }
 
     val mlt = MltNode(
         name = "playlist",
@@ -64,27 +167,7 @@ fun getMltMainBinPlaylist(param: Map<String, Any?>): MltNode {
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:docproperties.guides")), body = param["GUIDES_PROPERTY"]),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:docproperties.renderurl")), body = param["SONG_VIDEO_FILENAME"]),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","xml_retain")), body = 1),
-            MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_song_text"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))),
-            MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_horizon"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))),
-            MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_watermark"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))),
-            MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_progress"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))),
-            MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_fillcolor"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))),
-            MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_logotype"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))),
-            MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_header"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))),
-            MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_background"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))),
-            MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_microphone"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))),
-            MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_counter4"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))),
-            MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_counter3"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))),
-            MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_counter2"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))),
-            MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_counter1"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))),
-            MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_counter0"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))),
-            MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_beat1"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))),
-            MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_beat2"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))),
-            MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_beat3"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))),
-            MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_beat4"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))),
-            MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_audio_song"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))),
-            MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_audio_music"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))),
-            MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_audio_vocal"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))),
+            entries
         )
     )
 

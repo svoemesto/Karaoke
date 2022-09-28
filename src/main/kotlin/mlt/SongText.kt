@@ -1,12 +1,14 @@
 import model.LyricLine
 import model.MltNode
+import model.ProducerType
 
-fun getMltSongTextProducer(param: Map<String, Any?>): MltNode {
+fun getMltSongTextProducer(param: Map<String, Any?>, type:ProducerType = ProducerType.SONGTEXT, groupId: Int = 0): MltNode {
 
     val mlt = MltNode(
+        type = type,
         name = "producer",
         fields = mutableMapOf(
-            Pair("id","producer_song_text"),
+            Pair("id","producer_${type.text}${groupId}"),
             Pair("in",param["SONG_START_TIMECODE"].toString()),
             Pair("out",param["SONG_END_TIMECODE"].toString())
         ),
@@ -19,14 +21,14 @@ fun getMltSongTextProducer(param: Map<String, Any?>): MltNode {
             MltNode(name = "property", fields = mutableMapOf(Pair("name","seekable")), body = 1),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","mlt_service")), body = "kdenlivetitle"),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:duration")), body = param["SONG_END_TIMECODE"]),
-            MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:clipname")), body = "SONG_TEXT"),
-            MltNode(name = "property", fields = mutableMapOf(Pair("name","xmldata")), body = param["SONG_TEXT_XML_DATA"]),
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:clipname")), body = "${type.text.uppercase()}${if (groupId==0) "" else groupId}"),
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","xmldata")), body = param["${type.text.uppercase()}_XML_DATA"]),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:folderid")), body = -1),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:clip_type")), body = 2),
-            MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:id")), body = param["SONG_TEXT_ID"]),
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:id")), body = (param["${type.text.uppercase()}_ID"] as Int)+groupId*100),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","force_reload")), body = 0),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","meta.media.width")), body = param["FRAME_WIDTH_PX"]),
-            MltNode(name = "property", fields = mutableMapOf(Pair("name","meta.media.height")), body = param["SONG_TEXT_WORK_AREA_HEIGHT_PX"])
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","meta.media.height")), body = param["${type.text.uppercase()}_WORK_AREA_HEIGHT_PX"])
         )
     )
 
@@ -34,27 +36,28 @@ fun getMltSongTextProducer(param: Map<String, Any?>): MltNode {
 }
 
 
-fun getMltSongTextFilePlaylist(param: Map<String, Any?>): MltNode {
+fun getMltSongTextFilePlaylist(param: Map<String, Any?>, type:ProducerType = ProducerType.SONGTEXT, groupId: Int = 0): MltNode {
 
     val mlt = MltNode(
+        type = type,
         name = "playlist",
         fields = mutableMapOf(
-            Pair("id","playlist_song_text_file")
+            Pair("id","playlist_${type.text}${groupId}_file")
         ),
         body = mutableListOf(
             MltNode(name = "entry", fields = mutableMapOf(
-                Pair("producer","producer_song_text"),
+                Pair("producer","producer_${type.text}${groupId}"),
                 Pair("in",param["SONG_START_TIMECODE"].toString()),
                 Pair("out",param["SONG_END_TIMECODE"].toString()),
             ), body = mutableListOf(
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:id")), body = param["SONG_TEXT_ID"]),
+                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:id")), body = (param["${type.text.uppercase()}_ID"] as Int)+groupId*100),
                 MltNode(name = "filter",
-                    fields = mutableMapOf(Pair("id","filter_songtext_qtblend")),
+                    fields = mutableMapOf(Pair("id","filter_${type.text}${groupId}_qtblend")),
                     body = mutableListOf(
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","rotate_center")), body = 1),
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","mlt_service")), body = "qtblend"),
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive_id")), body = "qtblend"),
-                        MltNode(name = "property", fields = mutableMapOf(Pair("name","rect")), body = param["SONG_TEXT_PROPERTY_RECT"].toString()),
+                        MltNode(name = "property", fields = mutableMapOf(Pair("name","rect")), body = param["${type.text.uppercase()}_PROPERTY_RECT"].toString()),
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","compositing")), body = 0),
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","distort")), body = 0),
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:collapsed")), body = 0),
@@ -67,24 +70,26 @@ fun getMltSongTextFilePlaylist(param: Map<String, Any?>): MltNode {
     return mlt
 }
 
-fun getMltSongTextTrackPlaylist(param: Map<String, Any?>): MltNode {
+fun getMltSongTextTrackPlaylist(param: Map<String, Any?>, type:ProducerType = ProducerType.SONGTEXT, groupId: Int = 0): MltNode {
 
     val mlt = MltNode(
+        type = type,
         name = "playlist",
         fields = mutableMapOf(
-            Pair("id","playlist_song_text_track")
+            Pair("id","playlist_${type.text}${groupId}_track")
         )
     )
 
     return mlt
 }
 
-fun getMltSongTextTractor(param: Map<String, Any?>): MltNode {
+fun getMltSongTextTractor(param: Map<String, Any?>, type:ProducerType = ProducerType.SONGTEXT, groupId: Int = 0): MltNode {
 
     val mlt = MltNode(
+        type = type,
         name = "tractor",
         fields = mutableMapOf(
-            Pair("id","tractor_song_text"),
+            Pair("id","tractor_${type.text}${groupId}"),
             Pair("in",param["SONG_START_TIMECODE"].toString()),
             Pair("out",param["SONG_END_TIMECODE"].toString())
         ),
@@ -97,12 +102,12 @@ fun getMltSongTextTractor(param: Map<String, Any?>): MltNode {
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:audio_rec"))),
             MltNode(name = "track",
                 fields = mutableMapOf(
-                    Pair("hide",param["HIDE_TRACTOR_SONG_TEXT"].toString()),
-                    Pair("producer","playlist_song_text_file"))),
+                    Pair("hide",param["HIDE_TRACTOR_${type.text.uppercase()}"].toString()),
+                    Pair("producer","playlist_${type.text}${groupId}_file"))),
             MltNode(name = "track",
                 fields = mutableMapOf(
-                    Pair("hide",param["HIDE_TRACTOR_SONG_TEXT"].toString()),
-                    Pair("producer","playlist_song_text_track"))),
+                    Pair("hide",param["HIDE_TRACTOR_${type.text.uppercase()}"].toString()),
+                    Pair("producer","playlist_${type.text}${groupId}_track"))),
 
             )
     )

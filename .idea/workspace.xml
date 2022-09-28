@@ -2,8 +2,28 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="19caf878-7ce0-44d7-94a1-cf0a31300a8b" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/src/main/kotlin/model/Producer.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/kotlin/model/ProducerType.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/Functions.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Functions.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/AudioMusic.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Audio.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/AudioSong.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/AudioVocal.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/Background.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Background.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/Beat.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Beat.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/Counter.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Counter.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/Fillcolor.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Fillcolor.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/Header.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Header.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/Horizon.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Horizon.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/Logotype.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Logotype.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/MainBin.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/MainBin.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/Microphone.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Microphone.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/Mlt.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Mlt.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/Progress.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Progress.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/SongText.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/SongText.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/Timeline.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Timeline.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/Watermark.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Watermark.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/model/MltNode.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/model/MltNode.kt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -13,9 +33,10 @@
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
-        <option value="Kotlin Data Class" />
         <option value="Kotlin Class" />
         <option value="Kotlin File" />
+        <option value="Kotlin Enum" />
+        <option value="Kotlin Data Class" />
       </list>
     </option>
   </component>
@@ -102,13 +123,6 @@
       <workItem from="1663688948243" duration="14235000" />
       <workItem from="1663706179352" duration="32592000" />
       <workItem from="1663855534577" duration="66047000" />
-    </task>
-    <task id="LOCAL-00001" summary="Initial commit">
-      <created>1663330270975</created>
-      <option name="number" value="00001" />
-      <option name="presentableId" value="LOCAL-00001" />
-      <option name="project" value="LOCAL" />
-      <updated>1663330270975</updated>
     </task>
     <task id="LOCAL-00002" summary="Initial commit">
       <created>1663330743837</created>
@@ -446,7 +460,14 @@
       <option name="project" value="LOCAL" />
       <updated>1664306774803</updated>
     </task>
-    <option name="localTasksCounter" value="50" />
+    <task id="LOCAL-00050" summary="Исправлена ошибка вывода направляющих">
+      <created>1664337910297</created>
+      <option name="number" value="00050" />
+      <option name="presentableId" value="LOCAL-00050" />
+      <option name="project" value="LOCAL" />
+      <updated>1664337910297</updated>
+    </task>
+    <option name="localTasksCounter" value="51" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -485,6 +506,7 @@
     <MESSAGE value="Изменена функция расчета номер такта по времени - теперь учитывается весь таймлайн вне зависимости от расположения метки &quot;первого такта&quot;" />
     <MESSAGE value="Полностью переработана работа с шаблонами" />
     <MESSAGE value="Добавлена возможность обработки нескольких файлов субтитров для одной песни: вокал, бэк-вокал и т.п. Пока только считывание из файлом, обработка - позже." />
-    <option name="LAST_COMMIT_MESSAGE" value="Добавлена возможность обработки нескольких файлов субтитров для одной песни: вокал, бэк-вокал и т.п. Пока только считывание из файлом, обработка - позже." />
+    <MESSAGE value="Исправлена ошибка вывода направляющих" />
+    <option name="LAST_COMMIT_MESSAGE" value="Исправлена ошибка вывода направляющих" />
   </component>
 </project>

@@ -8,6 +8,7 @@ import model.Song
 import model.Subtitle
 import model.TransformProperty
 import java.io.File
+import java.lang.Integer.max
 import kotlin.io.path.Path
 
 fun createKaraoke(song: Song) {
@@ -31,8 +32,20 @@ fun createKaraoke(song: Song) {
     param["GROUPS_FONT_COLORS_BEAT"] = GROUPS_FONT_COLORS_BEAT
     param["GROUPS_TIMELINE_COLORS"] = GROUPS_TIMELINE_COLORS
 
+    val maxTextWidthPx = FRAME_WIDTH_PX.toDouble() - TITLE_POSITION_START_X_PX * 2      // maxTextWidth - максимальная ширина текста = ширина экрана минус 2 отступа
+    val maxTextLengthSym = song.maxLengthLine.map { it.value }.sum() + 2*(song.maxLengthLine.size-1)
+    val maxSymbolWidthPx = maxTextWidthPx / maxTextLengthSym                            // maxSymbolWidth - максимальная ширина символа = максимальная ширина текста делённая на максимальную длину
+    val fontSizePt = Integer.min(getFontSizeBySymbolWidth(maxSymbolWidthPx),KLT_ITEM_CONTENT_FONT_SIZE_PT) // Размер шрифта для найденной максимальной ширины символа
+    val symbolHeightPx = getSymbolHeight(fontSizePt)
+    val symbolWidthPx = getSymbolWidth(fontSizePt)
+
+    var currentGroupOffset = 0L
 
     for (groupId in 0 until song.subtitles.size) {
+
+        if (groupId > 0) {
+            currentGroupOffset += ((song.maxLengthLine[groupId.toLong()-1]!!+2)*symbolWidthPx).toLong()
+        }
 
         var startLine = ""
         var endLine: String
@@ -271,18 +284,11 @@ fun createKaraoke(song: Song) {
         // Теперь в списке result у нас нужное количество строк - как полных, так и пустых.
 
 
-        val maxTextWidthPx =
-            FRAME_WIDTH_PX.toDouble() - TITLE_POSITION_START_X_PX * 2      // maxTextWidth - максимальная ширина текста = ширина экрана минус 2 отступа
-        val maxTextLengthSym =
-            resultLyricLinesFullText.maxBy { it.text.length }.text.length   // maxTextLength - максимальная длина текста (в символах) = длине символов самой длинной строки
-        val maxSymbolWidthPx =
-            maxTextWidthPx / maxTextLengthSym                            // maxSymbolWidth - максимальная ширина символа = максимальная ширина текста делённая на максимальную длину
-        val fontSizePt = Integer.min(
-            getFontSizeBySymbolWidth(maxSymbolWidthPx),
-            KLT_ITEM_CONTENT_FONT_SIZE_PT
-        ) // Размер шрифта для найденной максимальной ширины символа
-        val symbolHeightPx = getSymbolHeight(fontSizePt)
-        val symbolWidthPx = getSymbolWidth(fontSizePt)
+
+
+//        val maxTextLengthSym =
+//            resultLyricLinesFullText.maxBy { it.text.length }.text.length   // maxTextLength - максимальная длина текста (в символах) = длине символов самой длинной строки
+
         val boxHeightPx =
             ((resultLyricLinesFullText.size + 1) * symbolHeightPx.toLong())  // boxHeight - высота "бокса" текста = количество строк текста * высоту символа
         val boxWidthPx =
@@ -304,6 +310,7 @@ fun createKaraoke(song: Song) {
         propProgressLineValue.add("00:00:00.000=-${progressSymbolHalfWidth} $yOffset $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 1.0")
         propProgressLineValue.add("${song.endTimecode}=${FRAME_WIDTH_PX - progressSymbolHalfWidth} $yOffset $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 1.0")
 
+        param["GROUP${groupId}_OFFSET"] = currentGroupOffset
         param["WORK_AREA_HEIGHT_PX"] = workAreaHeightPx
         param["HORIZON_POSITION_PX"] = horizonPositionPx
         param["SONG_LENGTH_MS"] = songLengthMs
@@ -342,7 +349,7 @@ fun createKaraoke(song: Song) {
 
             val startTp = TransformProperty(
                 time = lyricLine.start,
-                x = 0,
+                x = currentGroupOffset,
                 y = horizonPositionPx - ((itemIndex + 1) * (symbolHeightPx + HEIGHT_CORRECTION)).toLong(),
                 w = FRAME_WIDTH_PX,
                 h = workAreaHeightPx,
@@ -368,7 +375,7 @@ fun createKaraoke(song: Song) {
 
             val endTp = TransformProperty(
                 time = time,
-                x = 0,
+                x = currentGroupOffset,
                 y = horizonPositionPx - ((itemIndex + 1) * (symbolHeightPx + HEIGHT_CORRECTION)).toLong(),
                 w = FRAME_WIDTH_PX,
                 h = workAreaHeightPx,
@@ -406,7 +413,7 @@ fun createKaraoke(song: Song) {
                 val startTime =
                     convertMillisecondsToTimecode(convertTimecodeToMilliseconds(currentSubtitle.startTimecode) - (1000 / FRAME_FPS + 1)) // Время начала анимации = времени начала этого титра минус 1 фрейм
                 val x =
-                    TITLE_POSITION_START_X_PX + TITLE_OFFSET_START_X_PX // Координата x всегда одна и та же = TITLE_POSITION_START_X_PX + TITLE_OFFSET_START_X_PX
+                    TITLE_POSITION_START_X_PX + TITLE_OFFSET_START_X_PX + currentGroupOffset // Координата x всегда одна и та же = TITLE_POSITION_START_X_PX + TITLE_OFFSET_START_X_PX
                 var y = horizonPositionPx - symbolHeightPx // Координата y = позиция горизонта - высота символа
                 val h = symbolHeightPx // Высота = высоте символа
                 val propRectTitleValueFade =
@@ -764,6 +771,9 @@ fun getSong(settings: Settings): Song {
 
     for (i in listFile.indices) {
         // Считываем содержимое файла субтитров
+
+        var maxLengthLine = 0
+        var lengthLine = 0
         val body = File(mapFiles[i]!!).readText(Charsets.UTF_8)
 
         var beatTimecode = "00:00:00.000"
@@ -798,6 +808,7 @@ fun getSong(settings: Settings): Song {
                         .replace("//", "")
                         .replace("\\\\", "")
                         .replace("_", " ")
+                    lengthLine += text.length
                     // Создаем объект classes.Subtitle и инициализируем его переменными
                     val subtitle = Subtitle(
                         startTimecode = start,
@@ -809,6 +820,10 @@ fun getSong(settings: Settings): Song {
                     )
                     // Добавляем этот объект к списку объектов
                     subtitles.add(subtitle)
+                    if (isLineEnd) {
+                        maxLengthLine = max(maxLengthLine,lengthLine)
+                        lengthLine = 0
+                    }
                 }
             }
 
@@ -830,6 +845,7 @@ fun getSong(settings: Settings): Song {
         }
         result.srtFileBody[i.toLong()] = body
         result.subtitles[i.toLong()] = subtitles
+        result.maxLengthLine[i.toLong()] = maxLengthLine.toLong()
     }
 
     return result

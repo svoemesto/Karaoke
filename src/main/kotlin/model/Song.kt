@@ -6,4 +6,5 @@ class Song() {
     var endTimecode: String = ""
     var beatTimecode: String = ""
     var srtFileBody: MutableMap<Long, String> = mutableMapOf(Pair(0,""))
+    var maxLengthLine: MutableMap<Long, Long> = mutableMapOf(Pair(0,0))
 }

@@ -645,7 +645,7 @@ fun createKaraoke(song: Song) {
     param["AUDIO_MUSIC_PATH"] = song.settings.audioMusicFileName
     param["AUDIO_VOCAL_PATH"] = song.settings.audioVocalFileName
     param["BACKGROUND_PATH"] = getRandomFile(kdeBackgroundFolderPath, ".png")
-    param["GUIDES_PROPERTY"] = propGuides
+    param["GUIDES_PROPERTY"] = "[${propGuides}]"
     param["IN_OFFSET"] = kdeInOffset
     param["HIDE_TRACTOR_VOCAL"] = "both"
     param["HIDE_TRACTOR_BACKGROUND"] = "audio"

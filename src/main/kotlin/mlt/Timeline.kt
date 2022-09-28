@@ -35,12 +35,6 @@ fun getMltTimelineTractor(param: Map<String, Any?>): MltNode {
             MltNode(name = "track", fields = mutableMapOf(Pair("producer","tractor_counter1"))),
             MltNode(name = "track", fields = mutableMapOf(Pair("producer","tractor_counter0"))),
             MltNode(name = "track", fields = mutableMapOf(Pair("producer","tractor_watermark"))),
-            MltNode(name = "track", fields = mutableMapOf(Pair("producer","black_track"))),
-            MltNode(name = "track", fields = mutableMapOf(Pair("producer","black_track"))),
-            MltNode(name = "track", fields = mutableMapOf(Pair("producer","black_track"))),
-            MltNode(name = "track", fields = mutableMapOf(Pair("producer","black_track"))),
-            MltNode(name = "track", fields = mutableMapOf(Pair("producer","black_track"))),
-            MltNode(name = "track", fields = mutableMapOf(Pair("producer","black_track"))),
             MltNode(name = "filter",
                 fields = mutableMapOf(
                     Pair("id","filter_subtitles")

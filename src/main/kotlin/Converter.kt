@@ -4,6 +4,17 @@ import java.awt.Font
 class Converter {
     companion object {
 
+        fun getColorsFromString(settingString: String): MutableList<Color> {
+            val listColors: MutableList<Color> = mutableListOf()
+            val colorsParts = settingString.split("|")
+            colorsParts.forEach { colorPart ->
+                listColors.add(getColorFromString(colorPart))
+            }
+            return listColors
+        }
+        fun getStringFromColors(colors: MutableList<Color>): String {
+            return colors.joinToString("|") { color -> getStringFromColor(color) }
+        }
         fun getVoicesFromString(settingString: String): MutableList<Karaoke.KaraokeVoice> {
 
             val defaultValue = """songtextTextFont|[NAME]|name=Tahoma;style=0;size=80
@@ -81,13 +92,46 @@ songtextBeatColor|[NAME]|r=105;g=255;b=105;a=255""".trimIndent()
             val karaokeVoices: MutableList<Karaoke.KaraokeVoice> = mutableListOf()
             val partsVoices = settingString.split(delimiterVoices)
             partsVoices.forEach { partVoice ->
+                val partsVoiceFields = partVoice.split(delimiterVoiceFields)
+                val partVoiceFieldGroups = partsVoiceFields[0]
+                val partVoiceFieldFill = partsVoiceFields[1]
+
+                val partsFills = partVoiceFieldFill.split(delimiterFields)
+                var evenColor: Color? = null
+                var evenOpacity: Double? = null
+                var oddColor: Color? = null
+                var oddOpacity: Double? = null
+                partsFills.forEach { partFill ->
+                    val parts = partFill.split(delimiterNames)
+                    val partName = parts[0]
+                    val partValue = parts[1]
+                    try {
+                        when(partName) {
+                            "evenColor" -> evenColor = getColorFromString(partValue)
+                            "evenOpacity" -> evenOpacity = partValue.toDouble()
+                            "oddColor" -> oddColor = getColorFromString(partValue)
+                            "oddOpacity" -> oddOpacity = partValue.toDouble()
+                        }
+                    } catch (e: Exception) {
+                        println("ВНИМАНИЕ: Исключение ${e.message} при десериализации заливки: $settingString")
+                    }
+                }
+                val fill = Karaoke.KaraokeVoiceFill(
+                    evenColor = evenColor ?: getColorFromString(""),
+                    evenOpacity = evenOpacity ?: 0.6,
+                    oddColor = oddColor ?: getColorFromString(""),
+                    oddOpacity = oddOpacity?: 0.6
+                )
+
                 val karaokeGroups: MutableList<Karaoke.KaraokeVoiceGroup> = mutableListOf()
-                val partsGroups = partVoice.split(delimiterGroups)
+                val partsGroups = partVoiceFieldGroups.split(delimiterGroups)
                 partsGroups.forEach { partGroup ->
                     val partsFields = partGroup.split(delimiterFields)
                     var songtextTextFont: Font? = null
+                    var songtextTextFontUnderline: Long? = null
                     var songtextTextColor: Color? = null
                     var songtextBeatFont: Font? = null
+                    var songtextBeatFontUnderline: Long? = null
                     var songtextBeatColor: Color? = null
                     partsFields.forEach { partField ->
                         val parts = partField.split(delimiterNames)
@@ -96,8 +140,10 @@ songtextBeatColor|[NAME]|r=105;g=255;b=105;a=255""".trimIndent()
                         try {
                             when(partName) {
                                 "songtextTextFont" -> songtextTextFont = getFontFromString(partValue)
+                                "songtextTextFontUnderline" -> songtextTextFontUnderline = partValue.toLong()
                                 "songtextTextColor" -> songtextTextColor = getColorFromString(partValue)
                                 "songtextBeatFont" -> songtextBeatFont = getFontFromString(partValue)
+                                "songtextBeatFontUnderline" -> songtextBeatFontUnderline = partValue.toLong()
                                 "songtextBeatColor" -> songtextBeatColor = getColorFromString(partValue)
                             }
                         } catch (e: Exception) {
@@ -107,20 +153,22 @@ songtextBeatColor|[NAME]|r=105;g=255;b=105;a=255""".trimIndent()
                     karaokeGroups.add(
                         Karaoke.KaraokeVoiceGroup(
                             songtextTextFont = songtextTextFont ?: getFontFromString(""),
+                            songtextTextFontUnderline = songtextTextFontUnderline ?: 0,
                             songtextTextColor = songtextTextColor ?: getColorFromString(""),
                             songtextBeatFont = songtextBeatFont ?: getFontFromString(""),
+                            songtextBeatFontUnderline = songtextBeatFontUnderline ?: 0,
                             songtextBeatColor = songtextBeatColor ?: getColorFromString("")
                         )
                     )
                 }
-                karaokeVoices.add(Karaoke.KaraokeVoice(karaokeGroups))
+                karaokeVoices.add(Karaoke.KaraokeVoice(groups = karaokeGroups,fill = fill))
             }
             return karaokeVoices
         }
 
         fun getStringFromVoices(voices: MutableList<Karaoke.KaraokeVoice>): String {
             return voices.joinToString(delimiterVoices) { voice ->
-                voice.groups.joinToString(delimiterGroups) { group ->
+                val groupsText = voice.groups.joinToString(delimiterGroups) { group ->
                     val fieldsText = "songtextTextFont" +
                             delimiterNames +
                             getStringFromFont(group.songtextTextFont) +
@@ -138,6 +186,22 @@ songtextBeatColor|[NAME]|r=105;g=255;b=105;a=255""".trimIndent()
                             getStringFromColor(group.songtextBeatColor)
                     fieldsText
                 }
+                val fillText = "evenColor" +
+                        delimiterNames +
+                        getStringFromColor(voice.fill.evenColor) +
+                        delimiterFields +
+                        "evenOpacity" +
+                        delimiterNames +
+                        voice.fill.evenOpacity +
+                        delimiterFields +
+                        "oddColor" +
+                        delimiterNames +
+                        getStringFromColor(voice.fill.oddColor) +
+                        delimiterFields +
+                        "oddOpacity" +
+                        delimiterNames +
+                        voice.fill.oddOpacity
+                "${groupsText}${delimiterVoiceFields}${fillText}"
             }
         }
         fun colorToMltValue(color: Color): String {

@@ -121,13 +121,15 @@ fun getTemplateSongText(param: Map<String, Any?>, voiceId: Int): MltNode {
 
     val templateSongTextSymbolsGroup = mutableListOf<MltNode>()
 
+    val voiceSetting = Karaoke.voices[Integer.min(voiceId, Karaoke.voices.size - 1)]
     val workAreaHeightPx = param["VOICE${voiceId}_WORK_AREA_HEIGHT_PX"] as Long
     val voiceLines = param["VOICE${voiceId}_VOICELINES"] as MutableList<*>
-    val symbolHeightPx = param["SYMBOL_HEIGHT_PX"] as Double
+    val symbolHeightPx = getTextWidthHeightPx("|", (voiceLines[0] as SongVoiceLine).fontText).second
     val boxHeight = symbolHeightPx.toLong()
     val startX = param["TITLE_POSITION_START_X_PX"] as Long
     val startY = param["TITLE_POSITION_START_Y_PX"] as Long
-    val voiceSetting = VOICES_SETTINGS[Integer.min(voiceId, VOICES_SETTINGS.size - 1)]
+
+
 
     // Тонкий - font-weight="25"
     // Обычный - font-weight="50"
@@ -139,13 +141,16 @@ fun getTemplateSongText(param: Map<String, Any?>, voiceId: Int): MltNode {
     voiceLines.forEachIndexed { indexLine, it ->
         val voiceLine = it as SongVoiceLine
         voiceLine.symbols.forEachIndexed { indexSymbol, lineSymbol ->
+
             val text = lineSymbol.text
             val x = (startX + voiceLine.getSymbolXpx(indexSymbol)).toLong()
             val y = (startY + indexLine*symbolHeightPx).toLong()
             val fontItalic = if (lineSymbol.font.isItalic) 1 else 0
             val fontWeight = if (lineSymbol.font.isBold) 75 else 50
             val boxWidth = lineSymbol.widthPx.toLong()
-            val color = if (!lineSymbol.isBeat) voiceSetting[lineSymbol.group].colorText else voiceSetting[lineSymbol.group].colorBeat
+            val color = if (!lineSymbol.isBeat) voiceSetting.groups[lineSymbol.group].songtextTextColor else voiceSetting.groups[lineSymbol.group].songtextBeatColor
+            val fontName = lineSymbol.font.name
+            val fontSize = lineSymbol.font.size
             val fontColor = "${color.red}, ${color.green}, ${color.blue}, ${color.alpha}"
 
             templateSongTextSymbolsGroup.add(
@@ -165,9 +170,9 @@ fun getTemplateSongText(param: Map<String, Any?>, voiceId: Int): MltNode {
                                 Pair("shadow", "${param["SHADOW"]}"),                        // shadow="$SHADOW"
                                 Pair("font-underline","${param["FONT_UNDERLINE"]}"),         // font-underline="$FONT_UNDERLINE"
                                 Pair("box-height","$boxHeight"),              // box-height="$boxHeightPx"
-                                Pair("font", "${param["FONT_NAME"]}"),                       // font="$FONT_NAME"
+                                Pair("font", fontName),                       // font="$FONT_NAME"
                                 Pair("letter-spacing","0"),                 // letter-spacing="0"
-                                Pair("font-pixel-size","${param["FONT_SIZE_PT"]}"),      // font-pixel-size="$fontSizePt"
+                                Pair("font-pixel-size","$fontSize"),      // font-pixel-size="$fontSizePt"
                                 Pair("font-italic","$fontItalic"),         // font-italic="$FONT_ITALIC"
                                 Pair("typewriter", "${param["TYPEWRITER"]}"),             // typewriter="$TYPEWRITER"
                                 Pair("alignment","${param["ALIGNMENT"]}"),             // alignment="$ALIGNMENT"

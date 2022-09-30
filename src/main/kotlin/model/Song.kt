@@ -1,9 +1,6 @@
 package model
 
-import DEFAULT_FONT
-import FONT_NAME
-import FONT_SIZE_DEFAULT
-import FONT_STYLE
+import Karaoke
 import convertMillisecondsToTimecode
 import convertTimecodeToMilliseconds
 import getBeatNumberByTimecode
@@ -12,6 +9,7 @@ import getListFiles
 import getTextWidthHeightPx
 import java.awt.Font
 import java.io.File
+import java.util.DoubleSummaryStatistics
 
 data class Song(val settings: Settings) {
         var endTimecode: String = ""
@@ -26,7 +24,7 @@ data class Song(val settings: Settings) {
             listFile.sorted().forEach { mapFiles.add(it) }
 
             val listVoices = mutableListOf<SongVoice>()
-            for (i in listFile.indices) {
+            for (voideId in listFile.indices) {
 
                 val listLines = mutableListOf<SongVoiceLine>()
                 var maxLengthLine = 0
@@ -35,10 +33,10 @@ data class Song(val settings: Settings) {
                 var widthLinePx = 0.0
                 var lineText = ""
                 var maxWidthLineText = ""
-                val body = File(mapFiles[i]).readText(Charsets.UTF_8)
+                val body = File(mapFiles[voideId]).readText(Charsets.UTF_8)
 
                 var voiceBeatTimecode = "00:00:00.000"
-                var group = 0L
+                var group = 0
 
                 var songSubtitles: MutableList<Subtitle> = mutableListOf()
 
@@ -56,7 +54,7 @@ data class Song(val settings: Settings) {
                             val settingList = text.split("|")
                             when (settingList[1].uppercase()) {
                                 "BEAT" -> voiceBeatTimecode = startEnd.split(" --> ")[0].replace(",",".")
-                                "GROUP" -> group = if (settingList.size > 2) settingList[2].toLong() else 0
+                                "GROUP" -> group = if (settingList.size > 2) settingList[2].toInt() else 0
                             }
                         } else {
                             val se = startEnd.split(" --> ")
@@ -89,7 +87,7 @@ data class Song(val settings: Settings) {
                             if (isLineEnd) {
                                 maxLengthLine = Integer.max(maxLengthLine, lengthLine)
                                 lengthLine = 0
-                                widthLinePx = getTextWidthHeightPx(lineText, FONT_NAME, FONT_STYLE, FONT_SIZE_DEFAULT).first
+                                widthLinePx = getTextWidthHeightPx(lineText, Karaoke.voices[voideId].groups[group].songtextTextFont).first
                                 if (maxWidthLinePx < widthLinePx) {
                                     maxWidthLinePx = java.lang.Double.max(maxWidthLinePx, widthLinePx)
                                     maxWidthLineText = lineText
@@ -102,8 +100,8 @@ data class Song(val settings: Settings) {
                                         end = songSubtitles.last().endTimecode,
                                         durationMs = getDurationInMilliseconds(songSubtitles.first().startTimecode, songSubtitles.last().endTimecode),
                                         isEmptyLine = (lineText == ""),
-                                        fontText = DEFAULT_FONT,
-                                        fontBeat = DEFAULT_FONT
+                                        fontText = Karaoke.voices[voideId].groups[group].songtextTextFont,
+                                        fontBeat = Karaoke.voices[voideId].groups[group].songtextBeatFont
                                     )
                                 )
                                 lineText = ""
@@ -114,7 +112,10 @@ data class Song(val settings: Settings) {
 
                 }
 
-                listLines.forEach { it.isMaxLine = it.widthLinePx >= maxWidthLinePx.toLong() }
+                listLines.forEach {
+//                    println("${it.widthLinePx} - ${maxWidthLinePx.toLong()}")
+                    it.isMaxLine = it.widthLinePx >= maxWidthLinePx.toLong()
+                }
 
                 listVoices.add(
                     SongVoice(
@@ -122,7 +123,7 @@ data class Song(val settings: Settings) {
                         lines = listLines
                     ))
 
-                if (i == 0) beatTimecode = voiceBeatTimecode
+                if (voideId == 0) beatTimecode = voiceBeatTimecode
 
             }
 
@@ -149,10 +150,22 @@ data class SongVoice(
     val srtFileBody: String = "",
     val lines: MutableList<SongVoiceLine> = mutableListOf()
 ) {
-    val maxDurationMs get() = lines.maxOf { it.durationMs }
-    val maxCountSymbolsInLine get() = lines.first { it.isMaxLine }.text.length
-    val maxWidthLinePx get() = lines.first { it.isMaxLine }.widthLinePx
-    val maxWidthLineText get() = lines.first { it.isMaxLine }.text
+    val maxDurationMs: Long
+    get() {
+        return lines.maxOf { it.durationMs }
+    }
+    val maxCountSymbolsInLine: Int
+    get() {
+        return lines.first { it.isMaxLine }.text.length
+    }
+    val maxWidthLinePx: Long
+    get() {
+        return lines.first { it.isMaxLine }.widthLinePx
+    }
+    val maxWidthLineText: String
+    get() {
+        return lines.first { it.isMaxLine }.text
+    }
 }
 
 data class SongVoiceLine(
@@ -201,9 +214,10 @@ data class SongVoiceLine(
             textSubs += sub.text
         }
 
-        println("\"${textSubs}\", font = $fontText")
+        val result = getTextWidthHeightPx(textSubs,fontText).first
+        println("\"${textSubs}\", font = $fontText, getWidthLinePx = $result")
 
-        return  getTextWidthHeightPx(textSubs,fontText).first
+        return result
 
     }
 
@@ -230,7 +244,15 @@ data class SongVoiceLineSymbol(
     var group: Int = 0,
     var isBeat: Boolean = false
 ) {
-    private val widthHeightPx get() = getTextWidthHeightPx(text, font)
-    val widthPx get() = widthHeightPx.first
-    val heightPx get() = widthHeightPx.second
+    private val widthHeightPx: Pair<Double, Double> get() {
+        val result = getTextWidthHeightPx(text, font)
+        println("widthHeightPx = $result, text = $text, font = $font")
+        return result
+    }
+    val widthPx: Double get() {
+        return widthHeightPx.first
+    }
+    val heightPx: Double get() {
+        return widthHeightPx.second
+    }
 }

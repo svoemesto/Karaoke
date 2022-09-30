@@ -160,7 +160,7 @@ fun getTemplateProgress(param: Map<String, Any?>): MltNode {
                             Pair("shadow", "0"),
                             Pair("font-underline","0"),
                             Pair("box-height","100"),
-                            Pair("font", FONT_NAME),
+                            Pair("font", Karaoke.voices[0].groups[0].songtextTextFont.name),
                             Pair("letter-spacing","0"),
                             Pair("font-pixel-size","${param["FONT_SIZE_PROGRESS"]}"),
                             Pair("font-italic","0"),

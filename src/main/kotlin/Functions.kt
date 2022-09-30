@@ -14,14 +14,11 @@ fun createKaraoke(song: Song) {
     val param = mutableMapOf<String, Any?>()
     param["COUNT_VOICES"] = song.voices.size
     param["MAX_GROUPS"] = MAX_GROUPS
-    param["Karaoke.frameWidthPx"] = Karaoke.frameWidthPx
-    param["Karaoke.frameHeightPx"] = Karaoke.frameHeightPx
     param["TITLE_POSITION_START_X_PX"] = TITLE_POSITION_START_X_PX
     param["TITLE_POSITION_START_Y_PX"] = TITLE_POSITION_START_Y_PX
     param["LINE_SPACING"] = LINE_SPACING
     param["SHADOW"] = SHADOW
     param["FONT_UNDERLINE"] = FONT_UNDERLINE
-    param["FONT_NAME"] = FONT_NAME
     param["FONT_ITALIC"] = FONT_ITALIC
     param["TYPEWRITER"] = TYPEWRITER
     param["ALIGNMENT"] = ALIGNMENT
@@ -32,25 +29,25 @@ fun createKaraoke(song: Song) {
 
     val maxTextWidthPx = Karaoke.frameWidthPx.toDouble() - TITLE_POSITION_START_X_PX * 2      // maxTextWidth - максимальная ширина текста = ширина экрана минус 2 отступа
 
-    // Ширина в символах суммарной самой длинной строки
-    val maxTextLengthSym = song.voices.sumOf { it.maxCountSymbolsInLine } + 2*(song.voices.size-1)
-
     // Ширина в пикселах суммарной самой длинной строки
     var maxTextWidthPxByFontSize = song.voices.sumOf { it.maxWidthLinePx } + TITLE_POSITION_START_X_PX*(song.voices.size-1)
 
     // Максимальный размер шрифта берем из дефолтного значения
-    var fontSizePt = FONT_SIZE_DEFAULT
+    var fontSizePt = Karaoke.voices[0].groups[0].songtextTextFont.size
+    val step = if (maxTextWidthPxByFontSize > maxTextWidthPx) -1 else 1
     while (true) {
-        if (maxTextWidthPxByFontSize > maxTextWidthPx) {
-            fontSizePt -= 1
-            maxTextWidthPxByFontSize = (song.voices.sumOf{getTextWidthHeightPx(it.maxWidthLineText, FONT_NAME, FONT_STYLE, fontSizePt).first} + TITLE_POSITION_START_X_PX*(song.voices.size-1).toLong()).toLong()
+        if ((maxTextWidthPxByFontSize > maxTextWidthPx && step < 0) || (maxTextWidthPxByFontSize < maxTextWidthPx && step > 0)) {
+            fontSizePt += step
+            maxTextWidthPxByFontSize = (song.voices.sumOf{getTextWidthHeightPx(it.maxWidthLineText, Karaoke.voices[0].groups[0].songtextTextFont.name, Karaoke.voices[0].groups[0].songtextTextFont.style, fontSizePt).first} + TITLE_POSITION_START_X_PX*(song.voices.size-1).toLong()).toLong()
         } else {
             break
         }
     }
 
-    val symbolHeightPx = getTextWidthHeightPx(".", FONT_NAME, FONT_STYLE, fontSizePt).second
-    val symbolWidthPx = getTextWidthHeightPx("W", FONT_NAME, FONT_STYLE, fontSizePt).first
+    val font = Font(Karaoke.voices[0].groups[0].songtextTextFont.name, Karaoke.voices[0].groups[0].songtextTextFont.style, fontSizePt)
+
+    val symbolHeightPx = getTextWidthHeightPx("W", font).second
+    val symbolWidthPx = getTextWidthHeightPx("W", font).first
 
     val quarterNoteLengthMs = if (song.settings.ms == 0L) (60000.0 / song.settings.bpm).toLong() else song.settings.ms // Находим длительность звучания 1/4 ноты в миллисекундах
     val halfNoteLengthMs = quarterNoteLengthMs * 2
@@ -62,7 +59,7 @@ fun createKaraoke(song: Song) {
         val songVoice = song.voices[voiceId]
 
         if (voiceId > 0) {
-            currentVoiceOffset += (getTextWidthHeightPx(song.voices[voiceId-1].maxWidthLineText, FONT_NAME, FONT_STYLE, fontSizePt).first + TITLE_POSITION_START_X_PX).toLong()
+            currentVoiceOffset += (getTextWidthHeightPx(song.voices[voiceId-1].maxWidthLineText, Karaoke.voices[0].groups[0].songtextTextFont.name, Karaoke.voices[0].groups[0].songtextTextFont.style, fontSizePt).first + TITLE_POSITION_START_X_PX).toLong()
         }
 
         val counters = listOf(
@@ -118,28 +115,29 @@ fun createKaraoke(song: Song) {
             emptyList<String>().toMutableList()
         )
 
-        val voiceSetting = VOICES_SETTINGS[min(voiceId, VOICES_SETTINGS.size-1)]
+        val voiceSetting = Karaoke.voices[min(voiceId, Karaoke.voices.size-1)]
 
         var currentGroup = 0 // Получаем номер текущей группы
-        var groupSetting = voiceSetting[min(currentGroup, voiceSetting.size-1)] // Получаем настройки для текущей группы
-        groupSetting.fontText = Font(groupSetting.fontText.name!!, groupSetting.fontText.style, fontSizePt) // Заменяем размер ширфта из настроек на нужный размер
-        groupSetting.fontBeat = Font(groupSetting.fontBeat.name!!, groupSetting.fontBeat.style, fontSizePt) // Заменяем размер ширфта из настроек на нужный размер
+        var groupSetting = voiceSetting.groups[min(currentGroup, voiceSetting.groups.size-1)] // Получаем настройки для текущей группы
         songVoice.lines.forEach { voiceLine ->
+            val fontText = Font(groupSetting.songtextTextFont.name, groupSetting.songtextTextFont.style, fontSizePt)
+            val fontBeat = Font(groupSetting.songtextBeatFont.name, groupSetting.songtextBeatFont.style, fontSizePt)
+            voiceLine.symbols.forEach {lineSymbol ->
+                lineSymbol.font = if (lineSymbol.isBeat) fontBeat else fontText
+            }
             val lineText = voiceLine.subtitles.map { it.text }.toList().joinToString("")
-            currentGroup = voiceLine.subtitles.firstOrNull()?.group?.toInt() ?: 0 // Получаем номер текущей группы
-            groupSetting = voiceSetting[min(currentGroup, voiceSetting.size-1)] // Получаем настройки для текущей группы
-            groupSetting.fontText = Font(groupSetting.fontText.name!!, groupSetting.fontText.style, fontSizePt) // Заменяем размер ширфта из настроек на нужный размер
-            groupSetting.fontBeat = Font(groupSetting.fontBeat.name!!, groupSetting.fontBeat.style, fontSizePt) // Заменяем размер ширфта из настроек на нужный размер
+            currentGroup = voiceLine.subtitles.firstOrNull()?.group ?: 0 // Получаем номер текущей группы
+            groupSetting = voiceSetting.groups[min(currentGroup, voiceSetting.groups.size-1)] // Получаем настройки для текущей группы
             var currentGroupText = ""
 
-            voiceLine.fontText = groupSetting.fontText
-            voiceLine.fontBeat = groupSetting.fontBeat
+            voiceLine.fontText = fontText
+            voiceLine.fontBeat = fontBeat
 
             for (subtitle in voiceLine.subtitles) {
-                currentGroup = subtitle.group.toInt() // Получаем номер текущей группы
-                groupSetting = voiceSetting[min(currentGroup, voiceSetting.size-1)] // Получаем настройки для текущей группы
-                groupSetting.fontText = Font(groupSetting.fontText.name!!, groupSetting.fontText.style, fontSizePt) // Заменяем размер ширфта из настроек на нужный размер
-                groupSetting.fontBeat = Font(groupSetting.fontBeat.name!!, groupSetting.fontBeat.style, fontSizePt) // Заменяем размер ширфта из настроек на нужный размер
+                currentGroup = subtitle.group // Получаем номер текущей группы
+                groupSetting = voiceSetting.groups[min(currentGroup, voiceSetting.groups.size-1)] // Получаем настройки для текущей группы
+                val fontTextForSubtitle = Font(groupSetting.songtextTextFont.name, groupSetting.songtextTextFont.style, fontSizePt)
+                val fontBeatForSubtitle = Font(groupSetting.songtextBeatFont.name, groupSetting.songtextBeatFont.style, fontSizePt)
                 if (subtitle.isBeat) {
                     var textBeforeVowel = ""
                     var textVowel = ""
@@ -163,7 +161,7 @@ fun createKaraoke(song: Song) {
                             voiceLine.symbols.add(
                                 SongVoiceLineSymbol(
                                     text = currentGroupText,
-                                    font = groupSetting.fontText,
+                                    font = fontTextForSubtitle,
                                     group = currentGroup,
                                     isBeat = false
                                 )
@@ -176,7 +174,7 @@ fun createKaraoke(song: Song) {
                             voiceLine.symbols.add(
                                 SongVoiceLineSymbol(
                                     text = currentGroupText,
-                                    font = groupSetting.fontBeat,
+                                    font = fontBeatForSubtitle,
                                     group = currentGroup,
                                     isBeat = true
                                 )
@@ -195,7 +193,7 @@ fun createKaraoke(song: Song) {
                 voiceLine.symbols.add(
                     SongVoiceLineSymbol(
                         text = currentGroupText,
-                        font = groupSetting.fontText,
+                        font = fontText,
                         group = currentGroup,
                         isBeat = false
                     )
@@ -228,8 +226,8 @@ fun createKaraoke(song: Song) {
                             isFadeLine = true,
                             isMaxLine = false,
                             durationMs = silentLineDuration,
-                            fontText = groupSetting.fontText,
-                            fontBeat = groupSetting.fontBeat
+                            fontText = voiceLine.fontText,
+                            fontBeat = voiceLine.fontBeat
                         )
                     )
                     currentPositionEnd = convertTimecodeToMilliseconds(endDuration)
@@ -343,14 +341,14 @@ fun createKaraoke(song: Song) {
                 propRectLineValue.add("${voiceLine.endTp?.time}=${voiceLine.endTp?.x} ${voiceLine.endTp?.y} ${voiceLine.endTp?.w} ${voiceLine.endTp?.h} ${voiceLine.endTp?.opacity}")
                 val currSubtitle = voiceLine.subtitles[0] // Получаем первый титр текущей строки (он точно есть, т.к. строка не пустая)
                 val startTime = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(currSubtitle.startTimecode) - (1000 / Karaoke.frameFps + 1).toLong()) // Время начала анимации = времени начала этого титра минус 1 фрейм
-                val x = TITLE_POSITION_START_X_PX + TITLE_OFFSET_START_X_PX + currentVoiceOffset
+                val x = TITLE_POSITION_START_X_PX - TITLE_OFFSET_START_X_PX + currentVoiceOffset
                 var y: Double = horizonPositionPx - symbolHeightPx // Координата y = позиция горизонта - высота символа
                 val h = symbolHeightPx // Высота = высоте символа
                 val propRectTitleValueFade = "$startTime=$x ${y.toLong()} 1 ${h.toLong()} 0.0" // Свойство трансформации заливки с полной прозрачностью
                 propRectTitleValueLineOddEven[indexLine % 2].add(propRectTitleValueFade)
                 println("\"${currSubtitle.text}\" : $propRectTitleValueFade")
 
-                val startW = -TITLE_OFFSET_START_X_PX //.toDouble() // Смещаем стартовую позицию w на величину TITLE_OFFSET_START_X_PX
+                val startW = TITLE_OFFSET_START_X_PX //.toDouble() // Смещаем стартовую позицию w на величину TITLE_OFFSET_START_X_PX
                 val timeFirstIn = currSubtitle.startTimecode // Время - начало текущего титра
                 val wFirstIn = startW + voiceLine.getSubtitleXpx(currSubtitle).toLong()
                 val propRectTitleValueFirstIn = "$timeFirstIn=$x ${y.toLong()} $wFirstIn ${h.toLong()} 0.6" // Начало анимации титра - в начальной позиции титра с непрозрачностью 60%
@@ -376,7 +374,7 @@ fun createKaraoke(song: Song) {
 
                 y -= if (diffInMills < MIN_MS_TO_SCROLL_LINE) symbolHeightPx else 0.0
                 val timeOut = currSub.endTimecode // Время - конец текущего титра
-                val wOut = startW + voiceLine.widthLinePx
+                val wOut = startW + voiceLine.widthLinePx + TITLE_OFFSET_START_X_PX
                 val propRectTitleValueOut = "$timeOut=$x ${y.toLong()} $wOut ${h.toLong()} 0.6"
                 propRectTitleValueLineOddEven[indexLine % 2].add(propRectTitleValueOut)
                 println("\"${currSub.text}\" : $propRectTitleValueOut")

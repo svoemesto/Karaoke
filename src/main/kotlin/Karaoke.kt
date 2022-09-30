@@ -15,9 +15,9 @@ class Karaoke {
         val groups: MutableList<KaraokeVoiceGroup>
     )
     data class KaraokeVoiceGroup(
-        val songtextTextFont: Font,
+        var songtextTextFont: Font,
         val songtextTextColor: Color,
-        val songtextBeatFont: Font,
+        var songtextBeatFont: Font,
         val songtextBeatColor: Color
     )
     companion object {

@@ -35,9 +35,9 @@ const val GROUP_1_FONT_COLOR_BEAT = "105,255,105,255"
 const val GROUP_2_FONT_COLOR_TEXT = "85,255,255,255"
 const val GROUP_2_FONT_COLOR_BEAT = "105,255,105,255"
 const val PROGRESS_COLOR = "255,255,255,255"
-const val FONT_NAME = "Lobster"
-const val FONT_STYLE = 0 // 0 - plain, 1 - bold, 2 - italic, 3 - bold+italic
-const val FONT_SIZE_DEFAULT = 200
+//const val FONT_NAME = "Lobster"
+//const val FONT_STYLE = 0 // 0 - plain, 1 - bold, 2 - italic, 3 - bold+italic
+//const val FONT_SIZE_DEFAULT = 200
 
 data class VoiceSetting(
     var fontText: Font,
@@ -46,106 +46,106 @@ data class VoiceSetting(
     var colorBeat: Color
 )
 
-val VOICES_SETTINGS: List<List<VoiceSetting>> = mutableListOf(
-    // Voice 0
-    mutableListOf(
-        // Voice 0 Group 0
-        VoiceSetting(
-            fontText = Font(FONT_NAME,FONT_STYLE,FONT_SIZE_DEFAULT),
-            fontBeat = Font(FONT_NAME,FONT_STYLE,FONT_SIZE_DEFAULT),
-            colorText = Color(255, 255, 255, 255),
-            colorBeat = Color(155, 255, 255, 255)
-        ),
-        // Voice 0 Group 1
-        VoiceSetting(
-            fontText = Font(FONT_NAME,FONT_STYLE,FONT_SIZE_DEFAULT),
-            fontBeat = Font(FONT_NAME,FONT_STYLE,FONT_SIZE_DEFAULT),
-            colorText = Color(255, 255, 155, 255),
-            colorBeat = Color(105, 255, 105, 255)
-        ),
-        // Voice 0 Group 2
-        VoiceSetting(
-            fontText = Font(FONT_NAME,FONT_STYLE,FONT_SIZE_DEFAULT),
-            fontBeat = Font(FONT_NAME,FONT_STYLE,FONT_SIZE_DEFAULT),
-            colorText = Color(85, 255, 255, 255),
-            colorBeat = Color(105, 255, 105, 255)
-        )
-    ),
-    // Voice 1
-    mutableListOf(
-        // Voice 1 Group 0
-        VoiceSetting(
-            fontText = Font(FONT_NAME,FONT_STYLE,FONT_SIZE_DEFAULT),
-            fontBeat = Font(FONT_NAME,FONT_STYLE,FONT_SIZE_DEFAULT),
-            colorText = Color(255, 255, 255, 255),
-            colorBeat = Color(155, 255, 255, 255)
-        ),
-        // Voice 1 Group 1
-        VoiceSetting(
-            fontText = Font(FONT_NAME,FONT_STYLE,FONT_SIZE_DEFAULT),
-            fontBeat = Font(FONT_NAME,FONT_STYLE,FONT_SIZE_DEFAULT),
-            colorText = Color(255, 255, 155, 255),
-            colorBeat = Color(105, 255, 105, 255)
-        ),
-        // Voice 1 Group 2
-        VoiceSetting(
-            fontText = Font(FONT_NAME,FONT_STYLE,FONT_SIZE_DEFAULT),
-            fontBeat = Font(FONT_NAME,FONT_STYLE,FONT_SIZE_DEFAULT),
-            colorText = Color(85, 255, 255, 255),
-            colorBeat = Color(105, 255, 105, 255)
-        )
-    ),
-    // Voice 2
-    mutableListOf(
-        // Voice 2 Group 0
-        VoiceSetting(
-            fontText = Font(FONT_NAME,FONT_STYLE,FONT_SIZE_DEFAULT),
-            fontBeat = Font(FONT_NAME,FONT_STYLE,FONT_SIZE_DEFAULT),
-            colorText = Color(255, 255, 255, 255),
-            colorBeat = Color(155, 255, 255, 255)
-        ),
-        // Voice 2 Group 1
-        VoiceSetting(
-            fontText = Font(FONT_NAME,FONT_STYLE,FONT_SIZE_DEFAULT),
-            fontBeat = Font(FONT_NAME,FONT_STYLE,FONT_SIZE_DEFAULT),
-            colorText = Color(255, 255, 155, 255),
-            colorBeat = Color(105, 255, 105, 255)
-        ),
-        // Voice 2 Group 2
-        VoiceSetting(
-            fontText = Font(FONT_NAME,FONT_STYLE,FONT_SIZE_DEFAULT),
-            fontBeat = Font(FONT_NAME,FONT_STYLE,FONT_SIZE_DEFAULT),
-            colorText = Color(85, 255, 255, 255),
-            colorBeat = Color(105, 255, 105, 255)
-        )
-    ),
-    // Voice 3
-    mutableListOf(
-        // Voice 3 Group 0
-        VoiceSetting(
-            fontText = Font(FONT_NAME,FONT_STYLE,FONT_SIZE_DEFAULT),
-            fontBeat = Font(FONT_NAME,FONT_STYLE,FONT_SIZE_DEFAULT),
-            colorText = Color(255, 255, 255, 255),
-            colorBeat = Color(155, 255, 255, 255)
-        ),
-        // Voice 3 Group 1
-        VoiceSetting(
-            fontText = Font(FONT_NAME,FONT_STYLE,FONT_SIZE_DEFAULT),
-            fontBeat = Font(FONT_NAME,FONT_STYLE,FONT_SIZE_DEFAULT),
-            colorText = Color(255, 255, 155, 255),
-            colorBeat = Color(105, 255, 105, 255)
-        ),
-        // Voice 3 Group 2
-        VoiceSetting(
-            fontText = Font(FONT_NAME,FONT_STYLE,FONT_SIZE_DEFAULT),
-            fontBeat = Font(FONT_NAME,FONT_STYLE,FONT_SIZE_DEFAULT),
-            colorText = Color(85, 255, 255, 255),
-            colorBeat = Color(105, 255, 105, 255)
-        )
-    )
-)
+//val VOICES_SETTINGS: List<List<VoiceSetting>> = mutableListOf(
+//    // Voice 0
+//    mutableListOf(
+//        // Voice 0 Group 0
+//        VoiceSetting(
+//            fontText = Font(FONT_NAME,FONT_STYLE,FONT_SIZE_DEFAULT),
+//            fontBeat = Font(FONT_NAME,FONT_STYLE,FONT_SIZE_DEFAULT),
+//            colorText = Color(255, 255, 255, 255),
+//            colorBeat = Color(155, 255, 255, 255)
+//        ),
+//        // Voice 0 Group 1
+//        VoiceSetting(
+//            fontText = Font(FONT_NAME,FONT_STYLE,FONT_SIZE_DEFAULT),
+//            fontBeat = Font(FONT_NAME,FONT_STYLE,FONT_SIZE_DEFAULT),
+//            colorText = Color(255, 255, 155, 255),
+//            colorBeat = Color(105, 255, 105, 255)
+//        ),
+//        // Voice 0 Group 2
+//        VoiceSetting(
+//            fontText = Font(FONT_NAME,FONT_STYLE,FONT_SIZE_DEFAULT),
+//            fontBeat = Font(FONT_NAME,FONT_STYLE,FONT_SIZE_DEFAULT),
+//            colorText = Color(85, 255, 255, 255),
+//            colorBeat = Color(105, 255, 105, 255)
+//        )
+//    ),
+//    // Voice 1
+//    mutableListOf(
+//        // Voice 1 Group 0
+//        VoiceSetting(
+//            fontText = Font(FONT_NAME,FONT_STYLE,FONT_SIZE_DEFAULT),
+//            fontBeat = Font(FONT_NAME,FONT_STYLE,FONT_SIZE_DEFAULT),
+//            colorText = Color(255, 255, 255, 255),
+//            colorBeat = Color(155, 255, 255, 255)
+//        ),
+//        // Voice 1 Group 1
+//        VoiceSetting(
+//            fontText = Font(FONT_NAME,FONT_STYLE,FONT_SIZE_DEFAULT),
+//            fontBeat = Font(FONT_NAME,FONT_STYLE,FONT_SIZE_DEFAULT),
+//            colorText = Color(255, 255, 155, 255),
+//            colorBeat = Color(105, 255, 105, 255)
+//        ),
+//        // Voice 1 Group 2
+//        VoiceSetting(
+//            fontText = Font(FONT_NAME,FONT_STYLE,FONT_SIZE_DEFAULT),
+//            fontBeat = Font(FONT_NAME,FONT_STYLE,FONT_SIZE_DEFAULT),
+//            colorText = Color(85, 255, 255, 255),
+//            colorBeat = Color(105, 255, 105, 255)
+//        )
+//    ),
+//    // Voice 2
+//    mutableListOf(
+//        // Voice 2 Group 0
+//        VoiceSetting(
+//            fontText = Font(FONT_NAME,FONT_STYLE,FONT_SIZE_DEFAULT),
+//            fontBeat = Font(FONT_NAME,FONT_STYLE,FONT_SIZE_DEFAULT),
+//            colorText = Color(255, 255, 255, 255),
+//            colorBeat = Color(155, 255, 255, 255)
+//        ),
+//        // Voice 2 Group 1
+//        VoiceSetting(
+//            fontText = Font(FONT_NAME,FONT_STYLE,FONT_SIZE_DEFAULT),
+//            fontBeat = Font(FONT_NAME,FONT_STYLE,FONT_SIZE_DEFAULT),
+//            colorText = Color(255, 255, 155, 255),
+//            colorBeat = Color(105, 255, 105, 255)
+//        ),
+//        // Voice 2 Group 2
+//        VoiceSetting(
+//            fontText = Font(FONT_NAME,FONT_STYLE,FONT_SIZE_DEFAULT),
+//            fontBeat = Font(FONT_NAME,FONT_STYLE,FONT_SIZE_DEFAULT),
+//            colorText = Color(85, 255, 255, 255),
+//            colorBeat = Color(105, 255, 105, 255)
+//        )
+//    ),
+//    // Voice 3
+//    mutableListOf(
+//        // Voice 3 Group 0
+//        VoiceSetting(
+//            fontText = Font(FONT_NAME,FONT_STYLE,FONT_SIZE_DEFAULT),
+//            fontBeat = Font(FONT_NAME,FONT_STYLE,FONT_SIZE_DEFAULT),
+//            colorText = Color(255, 255, 255, 255),
+//            colorBeat = Color(155, 255, 255, 255)
+//        ),
+//        // Voice 3 Group 1
+//        VoiceSetting(
+//            fontText = Font(FONT_NAME,FONT_STYLE,FONT_SIZE_DEFAULT),
+//            fontBeat = Font(FONT_NAME,FONT_STYLE,FONT_SIZE_DEFAULT),
+//            colorText = Color(255, 255, 155, 255),
+//            colorBeat = Color(105, 255, 105, 255)
+//        ),
+//        // Voice 3 Group 2
+//        VoiceSetting(
+//            fontText = Font(FONT_NAME,FONT_STYLE,FONT_SIZE_DEFAULT),
+//            fontBeat = Font(FONT_NAME,FONT_STYLE,FONT_SIZE_DEFAULT),
+//            colorText = Color(85, 255, 255, 255),
+//            colorBeat = Color(105, 255, 105, 255)
+//        )
+//    )
+//)
 
-val DEFAULT_FONT = VOICES_SETTINGS[0][0].fontText
+//val DEFAULT_FONT = VOICES_SETTINGS[0][0].fontText
 
 val GROUPS_FONT_COLORS_TEXT: Map<Long, String> = mutableMapOf(
     Pair(0, GROUP_0_FONT_COLOR_TEXT),
@@ -163,7 +163,7 @@ val GROUPS_TIMELINE_COLORS: Map<Long, String> = mutableMapOf(
 
 const val TITLE_POSITION_START_X_PX = 96L
 const val TITLE_POSITION_START_Y_PX = 0L
-const val TITLE_OFFSET_START_X_PX = -20L
+const val TITLE_OFFSET_START_X_PX = 20L
 //const val FONT_NAME = "JetBrains Mono"
 
 const val MIN_MS_TO_SCROLL_LINE = 200L

@@ -1,6 +1,11 @@
 import java.awt.Color
 import java.awt.Font
 
+val delimiterVoices = "\n|[VOICE]|\n"
+val delimiterGroups = "\n|[GROUP]|\n"
+val delimiterFields = "\n|[FIELD]|\n"
+val delimiterNames = "|[NAME]|"
+
 const val PRESENT_TEXT_SUBS = true
 const val PRESENT_BEAT_SUBS = true
 const val PRESENT_COUNTERS = true

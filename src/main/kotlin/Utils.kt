@@ -27,9 +27,12 @@ fun main() {
 
 //    test()
 
-    println("headerSongnameFont = ${Karaoke.headerSongnameFont}")
-    println("headerSongnameColor = ${Karaoke.headerSongnameColor}")
+//    println("headerSongnameFont = ${Karaoke.headerSongnameFont}")
+//    println("headerSongnameColor = ${Karaoke.headerSongnameColor}")
 
+    println(Karaoke.voices)
+    Karaoke.voices = Karaoke.voices
+    println(Karaoke.voices)
 
 }
 
@@ -222,12 +225,18 @@ fun convertFramesToMilliseconds(frames: Long, fps:Double): Long {
     return (frames * frameLength).roundToInt().toLong()
 }
 
+fun convertMillisecondsToTimecode(milliseconds: Long): String {
+    val hours = milliseconds / (1000*60*60)
+    val minutes = (milliseconds - hours*1000*60*60) / (1000*60)
+    val seconds = (milliseconds - hours*1000*60*60 - minutes*1000*60) / 1000
+    val ms = milliseconds - hours*1000*60*60 - minutes*1000*60 - seconds*1000
+    return "%02d:%02d:%02d.%03d".format(hours,minutes,seconds,ms)
+}
+
 fun convertFramesToTimecode(frames: Long, fps:Double): String {
-    return convertMillisecondsToTimecode(convertFramesToMilliseconds(frames,fps))
+    return convertMillisecondsToTimecode(milliseconds = convertFramesToMilliseconds(frames,fps))
 }
-fun convertTimecodeToFrames(timecode: String, fps:Double): Long {
-    return convertMillisecondsToFrames(convertTimecodeToMilliseconds(timecode), fps)
-}
+
 fun convertTimecodeToMilliseconds(timecode: String): Long {
     val hhmmssmm = timecode.split(":")
     val hours = hhmmssmm[0].toLong()
@@ -238,12 +247,8 @@ fun convertTimecodeToMilliseconds(timecode: String): Long {
     return milliseconds + seconds * 1000 + minutes * 1000 * 60 + hours * 1000 * 60 * 60
 }
 
-fun convertMillisecondsToTimecode(milliseconds: Long): String {
-    val hours = milliseconds / (1000*60*60)
-    val minutes = (milliseconds - hours*1000*60*60) / (1000*60)
-    val seconds = (milliseconds - hours*1000*60*60 - minutes*1000*60) / 1000
-    val ms = milliseconds - hours*1000*60*60 - minutes*1000*60 - seconds*1000
-    return "%02d:%02d:%02d.%03d".format(hours,minutes,seconds,ms)
+fun convertTimecodeToFrames(timecode: String, fps:Double): Long {
+    return convertMillisecondsToFrames(convertTimecodeToMilliseconds(timecode = timecode), fps)
 }
 
 fun getBeatNumberByMilliseconds(timeInMilliseconds: Long, beatMs: Long, firstBeatTimecode: String): Long {

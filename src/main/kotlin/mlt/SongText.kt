@@ -1,4 +1,4 @@
-import model.LyricLine
+import model.SongVoiceLine
 import model.MltNode
 import model.ProducerType
 
@@ -27,7 +27,7 @@ fun getMltSongTextProducer(param: Map<String, Any?>, type:ProducerType = Produce
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:clip_type")), body = 2),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:id")), body = (param["${type.text.uppercase()}${groupId}_ID"] as Int)+groupId*100),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","force_reload")), body = 0),
-            MltNode(name = "property", fields = mutableMapOf(Pair("name","meta.media.width")), body = param["FRAME_WIDTH_PX"]),
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","meta.media.width")), body = Karaoke.frameWidthPx),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","meta.media.height")), body = param["${type.text.uppercase()}${groupId}_WORK_AREA_HEIGHT_PX"])
         )
     )
@@ -115,102 +115,87 @@ fun getMltSongTextTractor(param: Map<String, Any?>, type:ProducerType = Producer
     return mlt
 }
 
-fun getTemplateSongText(param: Map<String, Any?>, groupId: Int): MltNode {
+fun getTemplateSongText(param: Map<String, Any?>, voiceId: Int): MltNode {
 
     val templateSongTextGroup = mutableListOf<MltNode>()
-    for (indexGroup in 0L until (param["MAX_GROUPS"] as Long)) {
-        templateSongTextGroup.add(
-            MltNode( //<item type="QGraphicsTextItem" z-index="0">
-                name = "item",
-                fields = mutableMapOf(
-                    Pair("type","QGraphicsTextItem"),
-                    Pair("z-index","0"),
-                ),
-                body = mutableListOf(
-                    MltNode( // <position x="$TITLE_POSITION_START_X_PX" y="$TITLE_POSITION_START_Y_PX">
-                        name = "position",
-                        fields = mutableMapOf(
-                            Pair("x","${param["TITLE_POSITION_START_X_PX"]}"),
-                            Pair("y","${param["TITLE_POSITION_START_Y_PX"]}")
-                        ),
-                        body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(), body = "1,0,0,0,1,0,0,0,1")) //<transform>1,0,0,0,1,0,0,0,1</transform>
-                    ),
-                    MltNode(
-                        name = "content",
-                        fields = mutableMapOf(
-                            Pair("line-spacing","${param["LINE_SPACING"]}"),             // line-spacing="$LINE_SPACING"
-                            Pair("shadow", "${param["SHADOW"]}"),                        // shadow="$SHADOW"
-                            Pair("font-underline","${param["FONT_UNDERLINE"]}"),         // font-underline="$FONT_UNDERLINE"
-                            Pair("box-height","${param["BOX_HEIGHT_PX"]}"),              // box-height="$boxHeightPx"
-                            Pair("font", "${param["FONT_NAME"]}"),                       // font="$FONT_NAME"
-                            Pair("letter-spacing","0"),                 // letter-spacing="0"
-                            Pair("font-pixel-size","${param["FONT_SIZE_PT"]}"),      // font-pixel-size="$fontSizePt"
-                            Pair("font-italic","${param["FONT_ITALIC"]}"),         // font-italic="$FONT_ITALIC"
-                            Pair("typewriter", "${param["TYPEWRITER"]}"),             // typewriter="$TYPEWRITER"
-                            Pair("alignment","${param["ALIGNMENT"]}"),             // alignment="$ALIGNMENT"
-                            Pair("font-weight","${param["FONT_WEIGHT"]}"),          // font-weight="$FONT_WEIGHT"
-                            Pair("box-width","${param["BOX_WIDTH_PX"]}"),            // box-width="$boxWidthPx"
-                            Pair("font-color","${(param["GROUPS_FONT_COLORS_TEXT"] as Map<*, *>)[indexGroup]}"), // font-color="${GROUPS_FONT_COLORS_TEXT[indexGroup]}"
-                        ),
-                        body = "${(param["LYRIC_LINES_FULL_TEXT${groupId}_GROUPS"] as MutableMap<Long, MutableList<LyricLine>>)[indexGroup]?.joinToString("\n") { it.text }}" // ${resultLyricLinesFullTextGroups[indexGroup]?.map { it.text }?.joinToString("\n")}
-                    )
-                )
-            )
-        )
-        templateSongTextGroup.add(
-            MltNode( // <item type="QGraphicsTextItem" z-index="0">
-                name = "item",
-                fields = mutableMapOf(
-                    Pair("type","QGraphicsTextItem"),
-                    Pair("z-index","0"),
-                ),
-                body = mutableListOf(
-                    MltNode( // <position x="$TITLE_POSITION_START_X_PX" y="$TITLE_POSITION_START_Y_PX">
-                        name = "position",
-                        fields = mutableMapOf(
-                            Pair("x","${param["TITLE_POSITION_START_X_PX"]}"),
-                            Pair("y","${param["TITLE_POSITION_START_Y_PX"]}")
-                        ),
-                        body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(), body = "1,0,0,0,1,0,0,0,1")) // <transform>1,0,0,0,1,0,0,0,1</transform>
-                    ),
-                    MltNode(
-                        name = "content",
-                        fields = mutableMapOf(
-                            Pair("line-spacing","${param["LINE_SPACING"]}"),           // line-spacing="$LINE_SPACING"
-                            Pair("shadow", "${param["SHADOW"]}"),                         // shadow="$SHADOW"
-                            Pair("font-underline","${param["FONT_UNDERLINE"]}"),       // font-underline="$FONT_UNDERLINE"
-                            Pair("box-height","${param["BOX_HEIGHT_PX"]}"),              // box-height="$boxHeightPx"
-                            Pair("font", "${param["FONT_NAME"]}"),                        // font="$FONT_NAME"
-                            Pair("letter-spacing","0"),                     // letter-spacing="0"
-                            Pair("font-pixel-size","${param["FONT_SIZE_PT"]}"),          // font-pixel-size="$fontSizePt"
-                            Pair("font-italic","${param["FONT_ITALIC"]}"),             // font-italic="$FONT_ITALIC"
-                            Pair("typewriter", "${param["TYPEWRITER"]}"),                 // typewriter="$TYPEWRITER"
-                            Pair("alignment","${param["ALIGNMENT"]}"),                 // alignment="$ALIGNMENT"
-                            Pair("font-weight","${param["FONT_WEIGHT"]}"),              // font-weight="$FONT_WEIGHT"
-                            Pair("box-width","${param["BOX_WIDTH_PX"]}"),                // box-width="$boxWidthPx"
-                            Pair("font-color","${(param["GROUPS_FONT_COLORS_BEAT"] as Map<*, *>)[indexGroup]}"), // font-color="${GROUPS_FONT_COLORS_BEAT[indexGroup]}"
-                        ),
-                        body = "${(param["LYRIC_LINES_BEAT_TEXT${groupId}_GROUPS"] as MutableMap<Long, MutableList<LyricLine>>)[indexGroup]?.joinToString("\n") { it.text }}" // ${resultLyricLinesBeatTextGroups[indexGroup]?.map { it.text }?.joinToString("\n")}
-                    )
-                )
-            )
-        )
-    }
 
+    val templateSongTextSymbolsGroup = mutableListOf<MltNode>()
+
+    val workAreaHeightPx = param["VOICE${voiceId}_WORK_AREA_HEIGHT_PX"] as Long
+    val voiceLines = param["VOICE${voiceId}_VOICELINES"] as MutableList<*>
+    val symbolHeightPx = param["SYMBOL_HEIGHT_PX"] as Double
+    val boxHeight = symbolHeightPx.toLong()
+    val startX = param["TITLE_POSITION_START_X_PX"] as Long
+    val startY = param["TITLE_POSITION_START_Y_PX"] as Long
+    val voiceSetting = VOICES_SETTINGS[Integer.min(voiceId, VOICES_SETTINGS.size - 1)]
+
+    // Тонкий - font-weight="25"
+    // Обычный - font-weight="50"
+    // Полужирный - font-weight="63"
+    // Жирный - font-weight="75"
+    // Очень жирный - font-weight="87"
+
+
+    voiceLines.forEachIndexed { indexLine, it ->
+        val voiceLine = it as SongVoiceLine
+        voiceLine.symbols.forEachIndexed { indexSymbol, lineSymbol ->
+            val text = lineSymbol.text
+            val x = (startX + voiceLine.getSymbolXpx(indexSymbol)).toLong()
+            val y = (startY + indexLine*symbolHeightPx).toLong()
+            val fontItalic = if (lineSymbol.font.isItalic) 1 else 0
+            val fontWeight = if (lineSymbol.font.isBold) 75 else 50
+            val boxWidth = lineSymbol.widthPx.toLong()
+            val color = if (!lineSymbol.isBeat) voiceSetting[lineSymbol.group].colorText else voiceSetting[lineSymbol.group].colorBeat
+            val fontColor = "${color.red}, ${color.green}, ${color.blue}, ${color.alpha}"
+
+            templateSongTextSymbolsGroup.add(
+                MltNode(
+                    name = "item",
+                    fields = mutableMapOf(Pair("type","QGraphicsTextItem"), Pair("z-index","0")),
+                    body = mutableListOf(
+                        MltNode(
+                            name = "position",
+                            fields = mutableMapOf(Pair("x","$x"), Pair("y","$y")),
+                            body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(), body = "1,0,0,0,1,0,0,0,1"))
+                        ),
+                        MltNode(
+                            name = "content",
+                            fields = mutableMapOf(
+                                Pair("line-spacing","${param["LINE_SPACING"]}"),             // line-spacing="$LINE_SPACING"
+                                Pair("shadow", "${param["SHADOW"]}"),                        // shadow="$SHADOW"
+                                Pair("font-underline","${param["FONT_UNDERLINE"]}"),         // font-underline="$FONT_UNDERLINE"
+                                Pair("box-height","$boxHeight"),              // box-height="$boxHeightPx"
+                                Pair("font", "${param["FONT_NAME"]}"),                       // font="$FONT_NAME"
+                                Pair("letter-spacing","0"),                 // letter-spacing="0"
+                                Pair("font-pixel-size","${param["FONT_SIZE_PT"]}"),      // font-pixel-size="$fontSizePt"
+                                Pair("font-italic","$fontItalic"),         // font-italic="$FONT_ITALIC"
+                                Pair("typewriter", "${param["TYPEWRITER"]}"),             // typewriter="$TYPEWRITER"
+                                Pair("alignment","${param["ALIGNMENT"]}"),             // alignment="$ALIGNMENT"
+                                Pair("font-weight","$fontWeight"),          // font-weight="$FONT_WEIGHT"
+                                Pair("box-width","$boxWidth"),            // box-width="$boxWidthPx"
+                                Pair("font-color", fontColor), // font-color="${GROUPS_FONT_COLORS_TEXT[indexGroup]}"
+                            ),
+                            body = text
+                        )
+                    )
+                )
+            )
+        }
+    }
 
     val templateSongText = MltNode(
         name = "kdenlivetitle",
         fields = mutableMapOf(
             Pair("duration","0"),
             Pair("LC_NUMERIC","C"),
-            Pair("width","${param["FRAME_WIDTH_PX"]}"),
-            Pair("height","${param["WORK_AREA_HEIGHT_PX"]}"),
+            Pair("width","${Karaoke.frameWidthPx}"),
+            Pair("height","$workAreaHeightPx"),
             Pair("out","0"),
         ),
         body = mutableListOf(
-            templateSongTextGroup,
-            MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${param["FRAME_WIDTH_PX"]},${param["WORK_AREA_HEIGHT_PX"]}"))),
-            MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${param["FRAME_WIDTH_PX"]},${param["WORK_AREA_HEIGHT_PX"]}"))),
+            templateSongTextSymbolsGroup,
+            MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},$workAreaHeightPx"))),
+            MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},$workAreaHeightPx"))),
             MltNode(name = "background", fields = mutableMapOf(Pair("color","0,0,0,0")))
         )
     )

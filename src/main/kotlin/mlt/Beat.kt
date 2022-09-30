@@ -26,8 +26,8 @@ fun getMltBeatProducer(param: Map<String, Any?>, id: Long, type:ProducerType = P
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:clip_type")), body = 2),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:id")), body = (param["${type.text.uppercase()}${groupId}${id}_ID"] as Int)+groupId*100),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","force_reload")), body = 0),
-            MltNode(name = "property", fields = mutableMapOf(Pair("name","meta.media.width")), body = param["FRAME_WIDTH_PX"]),
-            MltNode(name = "property", fields = mutableMapOf(Pair("name","meta.media.height")), body = param["FRAME_HEIGHT_PX"])
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","meta.media.width")), body = Karaoke.frameWidthPx),
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","meta.media.height")), body = Karaoke.frameHeightPx)
         )
     )
 
@@ -121,8 +121,8 @@ fun getTemplateBeat1(param: Map<String, Any?>): MltNode {
         fields = mutableMapOf(
             Pair("duration","0"),
             Pair("LC_NUMERIC","C"),
-            Pair("width","${param["FRAME_WIDTH_PX"]}"),
-            Pair("height","${param["FRAME_HEIGHT_PX"]}"),
+            Pair("width","${Karaoke.frameWidthPx}"),
+            Pair("height","${Karaoke.frameHeightPx}"),
             Pair("out","0"),
         ), body = mutableListOf(
             MltNode(
@@ -140,8 +140,8 @@ fun getTemplateBeat1(param: Map<String, Any?>): MltNode {
                     )
                 )
             ),
-            MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${param["FRAME_WIDTH_PX"]},${param["FRAME_HEIGHT_PX"]}"))),
-            MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${param["FRAME_WIDTH_PX"]},${param["FRAME_HEIGHT_PX"]}"))),
+            MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${Karaoke.frameHeightPx}"))),
+            MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${Karaoke.frameHeightPx}"))),
             MltNode(name = "background", fields = mutableMapOf(Pair("color","0,0,0,0")))
         )
     )
@@ -154,8 +154,8 @@ fun getTemplateBeat2(param: Map<String, Any?>): MltNode {
         fields = mutableMapOf(
             Pair("duration","0"),
             Pair("LC_NUMERIC","C"),
-            Pair("width","${param["FRAME_WIDTH_PX"]}"),
-            Pair("height","${param["FRAME_HEIGHT_PX"]}"),
+            Pair("width","${Karaoke.frameWidthPx}"),
+            Pair("height","${Karaoke.frameHeightPx}"),
             Pair("out","0"),
         ), body = mutableListOf(
             MltNode(
@@ -173,8 +173,8 @@ fun getTemplateBeat2(param: Map<String, Any?>): MltNode {
                     )
                 )
             ),
-            MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${param["FRAME_WIDTH_PX"]},${param["FRAME_HEIGHT_PX"]}"))),
-            MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${param["FRAME_WIDTH_PX"]},${param["FRAME_HEIGHT_PX"]}"))),
+            MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${Karaoke.frameHeightPx}"))),
+            MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${Karaoke.frameHeightPx}"))),
             MltNode(name = "background", fields = mutableMapOf(Pair("color","0,0,0,0")))
         )
     )
@@ -187,8 +187,8 @@ fun getTemplateBeat3(param: Map<String, Any?>): MltNode {
         fields = mutableMapOf(
             Pair("duration","0"),
             Pair("LC_NUMERIC","C"),
-            Pair("width","${param["FRAME_WIDTH_PX"]}"),
-            Pair("height","${param["FRAME_HEIGHT_PX"]}"),
+            Pair("width","${Karaoke.frameWidthPx}"),
+            Pair("height","${Karaoke.frameHeightPx}"),
             Pair("out","0"),
         ), body = mutableListOf(
             MltNode(
@@ -206,8 +206,8 @@ fun getTemplateBeat3(param: Map<String, Any?>): MltNode {
                     )
                 )
             ),
-            MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${param["FRAME_WIDTH_PX"]},${param["FRAME_HEIGHT_PX"]}"))),
-            MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${param["FRAME_WIDTH_PX"]},${param["FRAME_HEIGHT_PX"]}"))),
+            MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${Karaoke.frameHeightPx}"))),
+            MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${Karaoke.frameHeightPx}"))),
             MltNode(name = "background", fields = mutableMapOf(Pair("color","0,0,0,0")))
         )
     )
@@ -220,8 +220,8 @@ fun getTemplateBeat4(param: Map<String, Any?>): MltNode {
         fields = mutableMapOf(
             Pair("duration","0"),
             Pair("LC_NUMERIC","C"),
-            Pair("width","${param["FRAME_WIDTH_PX"]}"),
-            Pair("height","${param["FRAME_HEIGHT_PX"]}"),
+            Pair("width","${Karaoke.frameWidthPx}"),
+            Pair("height","${Karaoke.frameHeightPx}"),
             Pair("out","0"),
         ), body = mutableListOf(
             MltNode(
@@ -239,8 +239,8 @@ fun getTemplateBeat4(param: Map<String, Any?>): MltNode {
                     )
                 )
             ),
-            MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${param["FRAME_WIDTH_PX"]},${param["FRAME_HEIGHT_PX"]}"))),
-            MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${param["FRAME_WIDTH_PX"]},${param["FRAME_HEIGHT_PX"]}"))),
+            MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${Karaoke.frameHeightPx}"))),
+            MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${Karaoke.frameHeightPx}"))),
             MltNode(name = "background", fields = mutableMapOf(Pair("color","0,0,0,0")))
         )
     )

@@ -13,8 +13,8 @@ fun getMltProfile(param: Map<String, Any?>): MltNode {
             Pair("description","HD 1080p 60 fps"),
             Pair("display_aspect_num","16"),
             Pair("frame_rate_den","1"),
-            Pair("width",param["FRAME_WIDTH_PX"].toString()),
-            Pair("height",param["FRAME_HEIGHT_PX"].toString()),
+            Pair("width","${Karaoke.frameWidthPx}"),
+            Pair("height","${Karaoke.frameHeightPx}"),
             Pair("sample_aspect_den","1")
         )
     )

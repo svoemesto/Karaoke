@@ -1,4 +1,4 @@
-import model.LyricLine
+import model.SongVoiceLine
 import model.MltNode
 import model.ProducerType
 
@@ -27,8 +27,8 @@ fun getMltHorizonProducer(param: Map<String, Any?>, type:ProducerType = Producer
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:clip_type")), body = 2),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:id")), body = (param["${type.text.uppercase()}${groupId}_ID"] as Int)+groupId*100),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","force_reload")), body = 0),
-            MltNode(name = "property", fields = mutableMapOf(Pair("name","meta.media.width")), body = param["FRAME_WIDTH_PX"]),
-            MltNode(name = "property", fields = mutableMapOf(Pair("name","meta.media.height")), body = param["FRAME_HEIGHT_PX"])
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","meta.media.width")), body = Karaoke.frameWidthPx),
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","meta.media.height")), body = Karaoke.frameHeightPx)
         )
     )
 
@@ -57,7 +57,7 @@ fun getMltHorizonFilePlaylist(param: Map<String, Any?>, type:ProducerType = Prod
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","rotate_center")), body = 1),
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","mlt_service")), body = "qtblend"),
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive_id")), body = "qtblend"),
-                        MltNode(name = "property", fields = mutableMapOf(Pair("name","rect")), body = "${param["SONG_START_TIMECODE"].toString()}=0 0 ${param["FRAME_WIDTH_PX"].toString()} ${param["FRAME_HEIGHT_PX"].toString()} 0.000000;${param["SONG_FADEIN_TIMECODE"].toString()}=0 0 ${param["FRAME_WIDTH_PX"].toString()} ${param["FRAME_HEIGHT_PX"].toString()} 1.000000;${param["SONG_FADEOUT_TIMECODE"].toString()}=0 0 ${param["FRAME_WIDTH_PX"].toString()} ${param["FRAME_HEIGHT_PX"].toString()} 1.000000;${param["SONG_END_TIMECODE"].toString()}=0 0 ${param["FRAME_WIDTH_PX"].toString()} ${param["FRAME_HEIGHT_PX"].toString()} 0.000000"),
+                        MltNode(name = "property", fields = mutableMapOf(Pair("name","rect")), body = "${param["SONG_START_TIMECODE"]}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.000000;${param["SONG_FADEIN_TIMECODE"].toString()}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 1.000000;${param["SONG_FADEOUT_TIMECODE"].toString()}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 1.000000;${param["SONG_END_TIMECODE"]}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.000000"),
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","compositing")), body = 0),
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","distort")), body = 0),
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:collapsed")), body = 0),
@@ -119,12 +119,15 @@ fun getTemplateHorizon(param: Map<String, Any?>): MltNode {
 
     val templateHorizonGroup = mutableListOf<MltNode>()
 
-    (param["LYRIC_LINES_FULL_TEXT"] as MutableList<LyricLine>).forEach { lyricLine ->
-        if (!lyricLine.isEmptyLine) {
-            val lineStartMs = convertTimecodeToMilliseconds(lyricLine.start)
-            val lineEndMs = convertTimecodeToMilliseconds(lyricLine.end)
-            val lineX = ((lineStartMs.toDouble() / (param["SONG_LENGTH_MS"] as Long)) * (param["FRAME_WIDTH_PX"] as Long)).toLong()
-            val lineW = ((lineEndMs.toDouble() / (param["SONG_LENGTH_MS"] as Long)) * (param["FRAME_WIDTH_PX"] as Long)).toLong() - lineX
+    val voiceLines = param["VOICE0_VOICELINES"] as MutableList<*>
+
+    voiceLines.forEachIndexed { indexLine, it ->
+        val voiceLine = it as SongVoiceLine
+        if (!voiceLine.isEmptyLine) {
+            val lineStartMs = convertTimecodeToMilliseconds(voiceLine.start)
+            val lineEndMs = convertTimecodeToMilliseconds(voiceLine.end)
+            val lineX = ((lineStartMs.toDouble() / (param["SONG_LENGTH_MS"] as Long)) * (Karaoke.frameWidthPx as Long)).toLong()
+            val lineW = ((lineEndMs.toDouble() / (param["SONG_LENGTH_MS"] as Long)) * (Karaoke.frameWidthPx as Long)).toLong() - lineX
 
             templateHorizonGroup.add(
                 MltNode(
@@ -145,7 +148,7 @@ fun getTemplateHorizon(param: Map<String, Any?>): MltNode {
                         MltNode(
                             name = "content",
                             fields = mutableMapOf(
-                                Pair("brushcolor","${(param["GROUPS_TIMELINE_COLORS"] as Map<Long, String>)[lyricLine.subtitles.first().group]}"),
+                                Pair("brushcolor","${(param["GROUPS_TIMELINE_COLORS"] as Map<Long, String>)[voiceLine.subtitles.first().group]}"),
                                 Pair("pencolor","0,0,0,255"),
                                 Pair("penwidth","0"),
                                 Pair("rect","$lineX,0,$lineW,3")
@@ -155,8 +158,8 @@ fun getTemplateHorizon(param: Map<String, Any?>): MltNode {
                 )
             )
         }
-
     }
+
 
     val templateHorizon = MltNode(
         type = ProducerType.HORIZON,
@@ -164,8 +167,8 @@ fun getTemplateHorizon(param: Map<String, Any?>): MltNode {
         fields = mutableMapOf(
             Pair("duration","0"),
             Pair("LC_NUMERIC","C"),
-            Pair("width","${param["FRAME_WIDTH_PX"]}"),
-            Pair("height","${param["FRAME_HEIGHT_PX"]}"),
+            Pair("width","${Karaoke.frameWidthPx}"),
+            Pair("height","${Karaoke.frameHeightPx}"),
             Pair("out","0"),
         ),
         body = mutableListOf(
@@ -190,14 +193,14 @@ fun getTemplateHorizon(param: Map<String, Any?>): MltNode {
                             Pair("brushcolor","${(param["GROUPS_TIMELINE_COLORS"] as Map<Long, String>)[-1]}"),
                             Pair("pencolor", "0,0,0,255"),
                             Pair("penwidth","0"),
-                            Pair("rect","0,0,${param["FRAME_WIDTH_PX"]},3")
+                            Pair("rect","0,0,${Karaoke.frameWidthPx},3")
                         )
                     )
                 )
             ),
             templateHorizonGroup,
-            MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${param["FRAME_WIDTH_PX"]},${param["FRAME_HEIGHT_PX"]}"))),
-            MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${param["FRAME_WIDTH_PX"]},${param["FRAME_HEIGHT_PX"]}"))),
+            MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${Karaoke.frameHeightPx}"))),
+            MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${Karaoke.frameHeightPx}"))),
             MltNode(name = "background", fields = mutableMapOf(Pair("color","0,0,0,0")))
         )
     )

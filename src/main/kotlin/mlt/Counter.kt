@@ -26,8 +26,8 @@ fun getMltCounterProducer(param: Map<String, Any?>, id: Long, type:ProducerType 
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:clip_type")), body = 2),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:id")), body = (param["${type.text.uppercase()}${groupId}${id}_ID"] as Int)+groupId*100),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","force_reload")), body = 0),
-            MltNode(name = "property", fields = mutableMapOf(Pair("name","meta.media.width")), body = param["FRAME_WIDTH_PX"]),
-            MltNode(name = "property", fields = mutableMapOf(Pair("name","meta.media.height")), body = param["FRAME_HEIGHT_PX"])
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","meta.media.width")), body = Karaoke.frameWidthPx),
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","meta.media.height")), body = Karaoke.frameHeightPx)
         )
     )
 
@@ -120,8 +120,8 @@ fun getTemplateCounter0(param: Map<String, Any?>): MltNode {
         fields = mutableMapOf(
             Pair("duration","0"),
             Pair("LC_NUMERIC","C"),
-            Pair("width","${param["FRAME_WIDTH_PX"]}"),
-            Pair("height","${param["FRAME_HEIGHT_PX"]}"),
+            Pair("width","${Karaoke.frameWidthPx}"),
+            Pair("height","${Karaoke.frameHeightPx}"),
             Pair("out","0"),
         ), body = mutableListOf(
             MltNode(
@@ -149,8 +149,8 @@ fun getTemplateCounter0(param: Map<String, Any?>): MltNode {
                     )
                 )
             ),
-            MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${param["FRAME_WIDTH_PX"]},${param["FRAME_HEIGHT_PX"]}"))),
-            MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${param["FRAME_WIDTH_PX"]},${param["FRAME_HEIGHT_PX"]}"))),
+            MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${Karaoke.frameHeightPx}"))),
+            MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${Karaoke.frameHeightPx}"))),
             MltNode(name = "background", fields = mutableMapOf(Pair("color","0,0,0,0")))
         )
     )
@@ -162,8 +162,8 @@ fun getTemplateCounter1(param: Map<String, Any?>): MltNode {
         fields = mutableMapOf(
             Pair("duration","0"),
             Pair("LC_NUMERIC","C"),
-            Pair("width","${param["FRAME_WIDTH_PX"]}"),
-            Pair("height","${param["FRAME_HEIGHT_PX"]}"),
+            Pair("width","${Karaoke.frameWidthPx}"),
+            Pair("height","${Karaoke.frameHeightPx}"),
             Pair("out","0"),
         ), body = mutableListOf(
             MltNode(
@@ -191,8 +191,8 @@ fun getTemplateCounter1(param: Map<String, Any?>): MltNode {
                     )
                 )
             ),
-            MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${param["FRAME_WIDTH_PX"]},${param["FRAME_HEIGHT_PX"]}"))),
-            MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${param["FRAME_WIDTH_PX"]},${param["FRAME_HEIGHT_PX"]}"))),
+            MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${Karaoke.frameHeightPx}"))),
+            MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${Karaoke.frameHeightPx}"))),
             MltNode(name = "background", fields = mutableMapOf(Pair("color","0,0,0,0")))
         )
     )
@@ -204,8 +204,8 @@ fun getTemplateCounter2(param: Map<String, Any?>): MltNode {
         fields = mutableMapOf(
             Pair("duration","0"),
             Pair("LC_NUMERIC","C"),
-            Pair("width","${param["FRAME_WIDTH_PX"]}"),
-            Pair("height","${param["FRAME_HEIGHT_PX"]}"),
+            Pair("width","${Karaoke.frameWidthPx}"),
+            Pair("height","${Karaoke.frameHeightPx}"),
             Pair("out","0"),
         ), body = mutableListOf(
             MltNode(
@@ -233,8 +233,8 @@ fun getTemplateCounter2(param: Map<String, Any?>): MltNode {
                     )
                 )
             ),
-            MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${param["FRAME_WIDTH_PX"]},${param["FRAME_HEIGHT_PX"]}"))),
-            MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${param["FRAME_WIDTH_PX"]},${param["FRAME_HEIGHT_PX"]}"))),
+            MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${Karaoke.frameHeightPx}"))),
+            MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${Karaoke.frameHeightPx}"))),
             MltNode(name = "background", fields = mutableMapOf(Pair("color","0,0,0,0")))
         )
     )
@@ -246,8 +246,8 @@ fun getTemplateCounter3(param: Map<String, Any?>): MltNode {
         fields = mutableMapOf(
             Pair("duration","0"),
             Pair("LC_NUMERIC","C"),
-            Pair("width","${param["FRAME_WIDTH_PX"]}"),
-            Pair("height","${param["FRAME_HEIGHT_PX"]}"),
+            Pair("width","${Karaoke.frameWidthPx}"),
+            Pair("height","${Karaoke.frameHeightPx}"),
             Pair("out","0"),
         ), body = mutableListOf(
             MltNode(
@@ -275,8 +275,8 @@ fun getTemplateCounter3(param: Map<String, Any?>): MltNode {
                     )
                 )
             ),
-            MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${param["FRAME_WIDTH_PX"]},${param["FRAME_HEIGHT_PX"]}"))),
-            MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${param["FRAME_WIDTH_PX"]},${param["FRAME_HEIGHT_PX"]}"))),
+            MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${Karaoke.frameHeightPx}"))),
+            MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${Karaoke.frameHeightPx}"))),
             MltNode(name = "background", fields = mutableMapOf(Pair("color","0,0,0,0")))
         )
     )
@@ -288,8 +288,8 @@ fun getTemplateCounter4(param: Map<String, Any?>): MltNode {
         fields = mutableMapOf(
             Pair("duration","0"),
             Pair("LC_NUMERIC","C"),
-            Pair("width","${param["FRAME_WIDTH_PX"]}"),
-            Pair("height","${param["FRAME_HEIGHT_PX"]}"),
+            Pair("width","${Karaoke.frameWidthPx}"),
+            Pair("height","${Karaoke.frameHeightPx}"),
             Pair("out","0"),
         ), body = mutableListOf(
             MltNode(
@@ -317,8 +317,8 @@ fun getTemplateCounter4(param: Map<String, Any?>): MltNode {
                     )
                 )
             ),
-            MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${param["FRAME_WIDTH_PX"]},${param["FRAME_HEIGHT_PX"]}"))),
-            MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${param["FRAME_WIDTH_PX"]},${param["FRAME_HEIGHT_PX"]}"))),
+            MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${Karaoke.frameHeightPx}"))),
+            MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${Karaoke.frameHeightPx}"))),
             MltNode(name = "background", fields = mutableMapOf(Pair("color","0,0,0,0")))
         )
     )

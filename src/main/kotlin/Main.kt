@@ -1,3 +1,6 @@
+import model.Settings
+import model.Song
+
 fun main(args: Array<String>) {
 
 //    val folder = "/home/nsa/Documents/Караоке/Агата Кристи/1988 - Второй фронт"
@@ -39,7 +42,7 @@ fun main(args: Array<String>) {
     )
     mapFiles.forEach {
         if (it.first != "" && it.second != "") {
-            createKaraoke(getSong(getSettings("${it.first}/${it.second}.settings")))
+            createKaraoke(Song(Settings("${it.first}/${it.second}.settings")))
         }
 
     }

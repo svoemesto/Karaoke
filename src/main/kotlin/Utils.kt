@@ -1,11 +1,16 @@
 import com.google.gson.GsonBuilder
 import model.Marker
 import model.Subtitle
+import java.awt.Font
+import java.awt.Graphics2D
+import java.awt.image.BufferedImage
 import java.io.File
 import java.nio.file.Files
+import java.util.Properties
 import kotlin.io.path.Path
 import kotlin.math.roundToInt
 import kotlin.random.Random
+
 
 
 fun main() {
@@ -13,14 +18,82 @@ fun main() {
 //    val pathToFileTo = "/home/nsa/Documents/Караоке/Агата Кристи/1988 - Второй фронт/(03) [Агата Кристи] Пантера.kdenlive.srt"
 //    extractSubtitlesFromAutorecognizedFile(pathToFileFrom, pathToFileTo)
 
-    val pathToFileFrom = "/home/nsa/Documents/Караоке/Ундервуд/2002 - Все пройдет, Милая/(03) [Ундервуд] Следи за ее левой рукой.kdenlive"
+//    val pathToFileFrom = "/home/nsa/Documents/Караоке/Ундервуд/2002 - Все пройдет, Милая/(03) [Ундервуд] Следи за ее левой рукой.kdenlive"
 
 //    val listFiles = getListFiles("/home/nsa/Documents/Караоке/Ундервуд", ".kdenlive")
 //    listFiles.forEach { fileName ->
 //        convertMarkersToSubtitles(fileName)
 //    }
 
+//    test()
 
+    println(Karaoke.headerSongnameFont)
+    println(Karaoke.frameHeightPx)
+
+}
+
+fun test() {
+
+
+    val fileNameXml = "src/main/resources/settings.xml"
+    val props = Properties()
+//    val frameW = Integer.valueOf(props.getProperty("FRAME_WIDTH_PX", "1"));
+    var kdeBackgroundFolderPath = props.getProperty("kdeBackgroundFolderPath", "&&&")
+
+    props.setProperty("FRAME_FPS", Karaoke.frameFps.toString())
+    props.setProperty("VOICES_SETTINGS", """
+        voice=0;group=0;fontNameText=Tahoma;colorText=255,255,255,255;fontNameBeat=Tahoma;colorBeat=155,255,255,255
+        voice=0;group=1;fontNameText=Lobster;colorBeat=105,255,105,255;fontNameBeat=Lobster;colorText=255,255,155,255
+        """
+        .trimIndent())
+    props.storeToXML(File(fileNameXml).outputStream(), "Какой-то комментарий")
+
+    props.loadFromXML(File(fileNameXml).inputStream())
+
+    val videoSettings = props.getProperty("VOICES_SETTINGS").split("\n")
+
+    videoSettings.forEach { vs ->
+        if (vs.isNotEmpty()) {
+            val vars = vs.split(";")
+            vars.forEach { variable ->
+                val nameAndValue = variable.split("=")
+                when(nameAndValue[0]) {
+                    "voice" -> println("${nameAndValue[0]} = ${(nameAndValue[1].toLong())}")
+                    "group" -> println("${nameAndValue[0]} = ${(nameAndValue[1].toLong())}")
+                    "fontNameText" -> println("${nameAndValue[0]} = ${(nameAndValue[1] as String)}")
+                    "fontNameBeat" -> println("${nameAndValue[0]} = ${(nameAndValue[1] as String)}")
+                    "colorText" -> {
+                        val rgba = nameAndValue[1].split(",")
+                        println("colorText r = ${(rgba[0].toLong())}")
+                        println("colorText g = ${(rgba[1].toLong())}")
+                        println("colorText b = ${(rgba[2].toLong())}")
+                        println("colorText a = ${(rgba[3].toLong())}")
+                    }
+                    "colorBeat" -> {
+                        val rgba = nameAndValue[1].split(",")
+                        println("colorBeat r = ${(rgba[0].toLong())}")
+                        println("colorBeat g = ${(rgba[1].toLong())}")
+                        println("colorBeat b = ${(rgba[2].toLong())}")
+                        println("colorBeat a = ${(rgba[3].toLong())}")
+                    }
+                }
+            }
+        }
+    }
+
+
+
+}
+
+fun getTextWidthHeightPx(text: String, fontName: String, fontStyle: Int, fontSize: Int): Pair<Double, Double> {
+    return getTextWidthHeightPx(text, Font(fontName, fontStyle, fontSize))
+}
+
+fun getTextWidthHeightPx(text: String, font: Font): Pair<Double, Double> {
+    val graphics2D = BufferedImage(1,1,BufferedImage.TYPE_INT_ARGB).graphics as Graphics2D
+    graphics2D.font = font
+    val rect = graphics2D.fontMetrics.getStringBounds(text, graphics2D)
+    return Pair(rect.width, rect.height)
 }
 
 fun convertMarkersToSubtitles(pathToSourceFile: String, pathToResultFile: String = "") {
@@ -74,8 +147,8 @@ fun convertMarkersToSubtitles(pathToSourceFile: String, pathToResultFile: String
             if (isLineStart) subText = "//${subText}"
             if (isLineEnd) subText = "${subText}\\\\"
 
-            val startTimecode = convertFramesToTimecode(currMarker.pos, 25L)
-            val endTimecode = convertFramesToTimecode(nextMarker.pos, 25L)
+            val startTimecode = convertFramesToTimecode(currMarker.pos, 25.0)
+            val endTimecode = convertFramesToTimecode(nextMarker.pos, 25.0)
 
             val subtitle = Subtitle(
                 startTimecode = startTimecode,
@@ -133,25 +206,25 @@ fun extractSubtitlesFromAutorecognizedFile(pathToFileFrom: String, pathToFileTo:
     return subs
 }
 
-fun convertMillisecondsToFrames(milliseconds: Long, fps:Long = FRAME_FPS): Long {
+fun convertMillisecondsToFrames(milliseconds: Long, fps:Double = Karaoke.frameFps): Long {
     val frameLength = 1000.0 / fps
     return Math.round(milliseconds / frameLength)
 }
 
-fun convertMillisecondsToFramesDouble(milliseconds: Long, fps:Long): Double {
+fun convertMillisecondsToFramesDouble(milliseconds: Long, fps:Double): Double {
     val frameLength = 1000.0 / fps
     return milliseconds / frameLength
 }
 
-fun convertFramesToMilliseconds(frames: Long, fps:Long): Long {
+fun convertFramesToMilliseconds(frames: Long, fps:Double): Long {
     val frameLength = 1000.0 / fps
     return (frames * frameLength).roundToInt().toLong()
 }
 
-fun convertFramesToTimecode(frames: Long, fps:Long): String {
+fun convertFramesToTimecode(frames: Long, fps:Double): String {
     return convertMillisecondsToTimecode(convertFramesToMilliseconds(frames,fps))
 }
-fun convertTimecodeToFrames(timecode: String, fps:Long): Long {
+fun convertTimecodeToFrames(timecode: String, fps:Double): Long {
     return convertMillisecondsToFrames(convertTimecodeToMilliseconds(timecode), fps)
 }
 fun convertTimecodeToMilliseconds(timecode: String): Long {

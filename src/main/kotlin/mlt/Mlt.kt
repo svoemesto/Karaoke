@@ -61,7 +61,7 @@ import model.ProducerType
 
 fun getMlt(param: Map<String, Any?>): MltNode {
 
-    val countGroups = (param["COUNT_GROUPS"] as Int)
+    val countGroups = (param["COUNT_VOICES"] as Int)
     var type = ProducerType.NONE
 
     val body = mutableListOf<MltNode>()

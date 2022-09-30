@@ -1,23 +1,21 @@
 //import model.Lyric
 import mlt.getMlt
-import model.LyricLine
-import model.Producer
+import model.SongVoiceLine
 import model.ProducerType
-import model.Settings
 import model.Song
-import model.Subtitle
+import model.SongVoiceLineSymbol
 import model.TransformProperty
+import java.awt.Font
 import java.io.File
-import java.lang.Integer.max
-import kotlin.io.path.Path
+import java.lang.Integer.min
 
 fun createKaraoke(song: Song) {
 
     val param = mutableMapOf<String, Any?>()
-    param["COUNT_GROUPS"] = song.subtitles.size
+    param["COUNT_VOICES"] = song.voices.size
     param["MAX_GROUPS"] = MAX_GROUPS
-    param["FRAME_WIDTH_PX"] = FRAME_WIDTH_PX
-    param["FRAME_HEIGHT_PX"] = FRAME_HEIGHT_PX
+    param["Karaoke.frameWidthPx"] = Karaoke.frameWidthPx
+    param["Karaoke.frameHeightPx"] = Karaoke.frameHeightPx
     param["TITLE_POSITION_START_X_PX"] = TITLE_POSITION_START_X_PX
     param["TITLE_POSITION_START_Y_PX"] = TITLE_POSITION_START_Y_PX
     param["LINE_SPACING"] = LINE_SPACING
@@ -32,32 +30,40 @@ fun createKaraoke(song: Song) {
     param["GROUPS_FONT_COLORS_BEAT"] = GROUPS_FONT_COLORS_BEAT
     param["GROUPS_TIMELINE_COLORS"] = GROUPS_TIMELINE_COLORS
 
-    val maxTextWidthPx = FRAME_WIDTH_PX.toDouble() - TITLE_POSITION_START_X_PX * 2      // maxTextWidth - максимальная ширина текста = ширина экрана минус 2 отступа
-    val maxTextLengthSym = song.maxLengthLine.map { it.value }.sum() + 2*(song.maxLengthLine.size-1)
-    val maxSymbolWidthPx = maxTextWidthPx / maxTextLengthSym                            // maxSymbolWidth - максимальная ширина символа = максимальная ширина текста делённая на максимальную длину
-    val fontSizePt = Integer.min(getFontSizeBySymbolWidth(maxSymbolWidthPx),KLT_ITEM_CONTENT_FONT_SIZE_PT) // Размер шрифта для найденной максимальной ширины символа
-    val symbolHeightPx = getSymbolHeight(fontSizePt)
-    val symbolWidthPx = getSymbolWidth(fontSizePt)
+    val maxTextWidthPx = Karaoke.frameWidthPx.toDouble() - TITLE_POSITION_START_X_PX * 2      // maxTextWidth - максимальная ширина текста = ширина экрана минус 2 отступа
 
-    var currentGroupOffset = 0L
+    // Ширина в символах суммарной самой длинной строки
+    val maxTextLengthSym = song.voices.sumOf { it.maxCountSymbolsInLine } + 2*(song.voices.size-1)
 
-    for (groupId in 0 until song.subtitles.size) {
+    // Ширина в пикселах суммарной самой длинной строки
+    var maxTextWidthPxByFontSize = song.voices.sumOf { it.maxWidthLinePx } + TITLE_POSITION_START_X_PX*(song.voices.size-1)
 
-        if (groupId > 0) {
-            currentGroupOffset += ((song.maxLengthLine[groupId.toLong()-1]!!+2)*symbolWidthPx).toLong()
+    // Максимальный размер шрифта берем из дефолтного значения
+    var fontSizePt = FONT_SIZE_DEFAULT
+    while (true) {
+        if (maxTextWidthPxByFontSize > maxTextWidthPx) {
+            fontSizePt -= 1
+            maxTextWidthPxByFontSize = (song.voices.sumOf{getTextWidthHeightPx(it.maxWidthLineText, FONT_NAME, FONT_STYLE, fontSizePt).first} + TITLE_POSITION_START_X_PX*(song.voices.size-1).toLong()).toLong()
+        } else {
+            break
         }
+    }
 
-        var startLine = ""
-        var endLine: String
+    val symbolHeightPx = getTextWidthHeightPx(".", FONT_NAME, FONT_STYLE, fontSizePt).second
+    val symbolWidthPx = getTextWidthHeightPx("W", FONT_NAME, FONT_STYLE, fontSizePt).first
 
-        var subs: MutableList<Subtitle> = emptyList<Subtitle>().toMutableList()
-        val lyricLinesFullText: MutableList<LyricLine> = mutableListOf()
-        val lyricLinesFullTextGroups: MutableMap<Long, MutableList<LyricLine>> = mutableMapOf()
-        val lyricLinesBeatTextGroups: MutableMap<Long, MutableList<LyricLine>> = mutableMapOf()
+    val quarterNoteLengthMs = if (song.settings.ms == 0L) (60000.0 / song.settings.bpm).toLong() else song.settings.ms // Находим длительность звучания 1/4 ноты в миллисекундах
+    val halfNoteLengthMs = quarterNoteLengthMs * 2
 
-        val resultLyricLinesFullText: MutableList<LyricLine> = mutableListOf()
-        val resultLyricLinesFullTextGroups: MutableMap<Long, MutableList<LyricLine>> = mutableMapOf()
-        val resultLyricLinesBeatTextGroups: MutableMap<Long, MutableList<LyricLine>> = mutableMapOf()
+    var currentVoiceOffset = 0L
+
+    for (voiceId in 0 until song.voices.size) {
+
+        val songVoice = song.voices[voiceId]
+
+        if (voiceId > 0) {
+            currentVoiceOffset += (getTextWidthHeightPx(song.voices[voiceId-1].maxWidthLineText, FONT_NAME, FONT_STYLE, fontSizePt).first + TITLE_POSITION_START_X_PX).toLong()
+        }
 
         val counters = listOf(
             emptyList<String>().toMutableList(),
@@ -67,11 +73,11 @@ fun createKaraoke(song: Song) {
             emptyList<String>().toMutableList()
         )
 
-        counters[0].add("00:00:00.000=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 0.0")
-        counters[1].add("00:00:00.000=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 0.0")
-        counters[2].add("00:00:00.000=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 0.0")
-        counters[3].add("00:00:00.000=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 0.0")
-        counters[4].add("00:00:00.000=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 0.0")
+        counters[0].add("00:00:00.000=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.0")
+        counters[1].add("00:00:00.000=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.0")
+        counters[2].add("00:00:00.000=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.0")
+        counters[3].add("00:00:00.000=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.0")
+        counters[4].add("00:00:00.000=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.0")
 
         val idProducerSongText = 2
         val idProducerHorizon = 3
@@ -112,190 +118,130 @@ fun createKaraoke(song: Song) {
             emptyList<String>().toMutableList()
         )
 
-        var text = ""
-        var lineText = ""
-        var lineFullText = ""
-        var lineBeatText = ""
-        var maxLineDuration = 0L
-        var group = 0L
+        val voiceSetting = VOICES_SETTINGS[min(voiceId, VOICES_SETTINGS.size-1)]
 
-        // Проходимся по всем сабам
-        song.subtitles[groupId.toLong()]!!.forEach { subtitle ->
-            // Если саб - начало строки - начинаем новую строку (пока она пустая) и инициализируем пустой список subs
-            if (subtitle.isLineStart) {
-                startLine = subtitle.startTimecode
-                lineText = ""
-                lineFullText = ""
-                lineBeatText = ""
-                subs = mutableListOf()
-                group = subtitle.group
-            }
+        var currentGroup = 0 // Получаем номер текущей группы
+        var groupSetting = voiceSetting[min(currentGroup, voiceSetting.size-1)] // Получаем настройки для текущей группы
+        groupSetting.fontText = Font(groupSetting.fontText.name!!, groupSetting.fontText.style, fontSizePt) // Заменяем размер ширфта из настроек на нужный размер
+        groupSetting.fontBeat = Font(groupSetting.fontBeat.name!!, groupSetting.fontBeat.style, fontSizePt) // Заменяем размер ширфта из настроек на нужный размер
+        songVoice.lines.forEach { voiceLine ->
+            val lineText = voiceLine.subtitles.map { it.text }.toList().joinToString("")
+            currentGroup = voiceLine.subtitles.firstOrNull()?.group?.toInt() ?: 0 // Получаем номер текущей группы
+            groupSetting = voiceSetting[min(currentGroup, voiceSetting.size-1)] // Получаем настройки для текущей группы
+            groupSetting.fontText = Font(groupSetting.fontText.name!!, groupSetting.fontText.style, fontSizePt) // Заменяем размер ширфта из настроек на нужный размер
+            groupSetting.fontBeat = Font(groupSetting.fontBeat.name!!, groupSetting.fontBeat.style, fontSizePt) // Заменяем размер ширфта из настроек на нужный размер
+            var currentGroupText = ""
 
-            lineText += subtitle.text
-            lineFullText += if (!subtitle.isBeat) subtitle.text else replaceVowelOrConsonantLetters(
-                subtitle.text,
-                true
-            )    // Дописываем в текст текущей строки текст из саба
-            lineBeatText += if (subtitle.isBeat) replaceVowelOrConsonantLetters(subtitle.text, false) else " ".repeat(
-                subtitle.text.length
-            )
-            subs.add(subtitle)      // Добавляем текущий саб к списку subs
+            voiceLine.fontText = groupSetting.fontText
+            voiceLine.fontBeat = groupSetting.fontBeat
 
-            // Если саб - конец строки
-            if (subtitle.isLineEnd) {
+            for (subtitle in voiceLine.subtitles) {
+                currentGroup = subtitle.group.toInt() // Получаем номер текущей группы
+                groupSetting = voiceSetting[min(currentGroup, voiceSetting.size-1)] // Получаем настройки для текущей группы
+                groupSetting.fontText = Font(groupSetting.fontText.name!!, groupSetting.fontText.style, fontSizePt) // Заменяем размер ширфта из настроек на нужный размер
+                groupSetting.fontBeat = Font(groupSetting.fontBeat.name!!, groupSetting.fontBeat.style, fontSizePt) // Заменяем размер ширфта из настроек на нужный размер
+                if (subtitle.isBeat) {
+                    var textBeforeVowel = ""
+                    var textVowel = ""
+                    var textAfterVowel = ""
+                    var isFoundVowel = false
+                    for (i in subtitle.text.indices) {
+                        val symbol = subtitle.text[i]
+                        if (symbol in LETTERS_VOWEL) {
+                            isFoundVowel = true
+                            if (i>0) textBeforeVowel = subtitle.text.substring(0 until i)
+                            textVowel = symbol.toString()
+                            if (i<subtitle.text.length-1) textAfterVowel = subtitle.text.substring(i+1)
+                            break
+                        }
+                    }
+                    if (!isFoundVowel) {
+                        currentGroupText += subtitle.text
+                    } else {
+                        currentGroupText += textBeforeVowel
+                        if (currentGroupText != "") {
+                            voiceLine.symbols.add(
+                                SongVoiceLineSymbol(
+                                    text = currentGroupText,
+                                    font = groupSetting.fontText,
+                                    group = currentGroup,
+                                    isBeat = false
+                                )
+                            )
+                            currentGroupText = ""
+                        }
 
-                endLine = subtitle.endTimecode  // Устанавливаем конец строки позицией конца из саба
-
-                lyricLinesFullText.add(
-                    LyricLine(
-                        text = lineText,
-                        start = startLine,
-                        end = endLine,
-                        subtitles = subs,
-                        isEmptyLine = lineFullText.isEmpty()
-                    )
-                )
-
-                for (indexGroup in 0L until MAX_GROUPS) {
-                    val lyricLineFull = if (indexGroup == group) LyricLine(
-                        text = lineFullText,
-                        start = startLine,
-                        end = endLine,
-                        subtitles = subs,
-                        isEmptyLine = lineFullText.isEmpty()
-                    ) else LyricLine(
-                        text = "",
-                        start = startLine,
-                        end = endLine,
-                        subtitles = subs,
-                        isEmptyLine = lineFullText.isEmpty()
-                    )
-                    val lyricLineBeat = if (indexGroup == group) LyricLine(
-                        text = lineBeatText,
-                        start = startLine,
-                        end = endLine,
-                        subtitles = subs,
-                        isEmptyLine = lineFullText.isEmpty()
-                    ) else LyricLine(
-                        text = "",
-                        start = startLine,
-                        end = endLine,
-                        subtitles = subs,
-                        isEmptyLine = lineFullText.isEmpty()
-                    )
-                    val lstLineFull = lyricLinesFullTextGroups[indexGroup] ?: mutableListOf()
-                    val lstLineBeat = lyricLinesBeatTextGroups[indexGroup] ?: mutableListOf()
-                    lstLineFull.add(lyricLineFull)
-                    lstLineBeat.add(lyricLineBeat)
-                    lyricLinesFullTextGroups[indexGroup] =
-                        lstLineFull                                                       // Добавляем строку lyric в список строк lyrics
-                    lyricLinesBeatTextGroups[indexGroup] = lstLineBeat
+                        currentGroupText += textVowel
+                        if (currentGroupText != "") {
+                            voiceLine.symbols.add(
+                                SongVoiceLineSymbol(
+                                    text = currentGroupText,
+                                    font = groupSetting.fontBeat,
+                                    group = currentGroup,
+                                    isBeat = true
+                                )
+                            )
+                            currentGroupText = ""
+                        }
+                        currentGroupText += textAfterVowel
+                    }
+                } else {
+                    currentGroupText += subtitle.text
                 }
 
-                // Создаем объект classes.LyricLine и инициализируем его переменными. На данный момент нам пока неизвестны поля startTp и endTp - оставляем их пустыми
+            }
 
-                val lineDuration =
-                    getDurationInMilliseconds(startLine, endLine)     // Находим время "звучания" строки в миллисекундах
-                maxLineDuration = java.lang.Long.max(
-                    maxLineDuration,
-                    lineDuration
-                )                    // Находим максимальное время "звучания" среди всех строк
-                // Добавляем строку lyric в список строк lyrics
-
+            if (currentGroupText != "") {
+                voiceLine.symbols.add(
+                    SongVoiceLineSymbol(
+                        text = currentGroupText,
+                        font = groupSetting.fontText,
+                        group = currentGroup,
+                        isBeat = false
+                    )
+                )
             }
         }
 
         var currentPositionEnd = 0L // Устанавливаем текущую позицию конца в ноль
 
-        var index = 0
-        lyricLinesFullText.forEach { lyricFullText -> // Проходимся по массиву строк
-            index++
-            val silentDuration =
-                convertTimecodeToMilliseconds(lyricFullText.start) - currentPositionEnd  // Вычисляем время "тишины"
-            val linesToInsert: Long =
-                silentDuration / maxLineDuration // Вычисляем кол-во "пустых" строк, которые надо вставить перед текущей строкой
-
-            if (linesToInsert > 0) { // Если количество вставляемых пустых строк больше нуля - начинаем их вставлять
-
-                val silentLineDuration: Long =
-                    silentDuration / linesToInsert // Вычисляем "длительность" вставляемой пустой строки
-
-                for (i in 1..linesToInsert) { // Цикл от 1 до количества вставляемых строк включительно
-
-                    val startDuration =
-                        convertMillisecondsToTimecode(currentPositionEnd + silentLineDuration / 5) // Время начала строки
-                    val endDuration =
-                        convertMillisecondsToTimecode(currentPositionEnd + silentLineDuration) // Время конца строки
-
-                    // Создаем объект classes.Subtitle с пустым текстом, с вычисленными выше началом и концом и помечаем его и как начало и конец строки
-                    val subtitleEmpty = Subtitle(
-                        text = "",
-                        startTimecode = startDuration,
-                        endTimecode = endDuration,
-                        isLineStart = true,
-                        isLineEnd = true
+        val voiceLines = mutableListOf<SongVoiceLine>()
+        songVoice.lines.forEach { voiceLine ->
+            val silentDuration = convertTimecodeToMilliseconds(voiceLine.start) - currentPositionEnd
+            val linesToInsert: Long = silentDuration / songVoice.maxDurationMs
+            if (linesToInsert > 0) {
+                val silentLineDuration: Long = silentDuration / linesToInsert
+                for (i in 1..linesToInsert) {
+                    val startDuration = convertMillisecondsToTimecode(currentPositionEnd + silentLineDuration / 5)
+                    val endDuration = convertMillisecondsToTimecode(currentPositionEnd + silentLineDuration)
+                    voiceLines.add(
+                        SongVoiceLine(
+                            subtitles = mutableListOf(),
+                            symbols = mutableListOf(),
+                            text = "",
+                            start = startDuration,
+                            end = endDuration,
+                            startTp = null,
+                            endTp = null,
+                            isEmptyLine = true,
+                            isNeedCounter = false,
+                            isFadeLine = true,
+                            isMaxLine = false,
+                            durationMs = silentLineDuration,
+                            fontText = groupSetting.fontText,
+                            fontBeat = groupSetting.fontBeat
+                        )
                     )
-
-                    // Создаем объект classes.LyricLine, в его subtitles помещаем единственный "пустой" classes.Subtitle, созданный шагом раньше
-                    // помечаем его как пустую строку
-                    val lyricEmpty = LyricLine(
-                        text = "",
-                        start = startDuration,
-                        end = endDuration,
-                        subtitles = listOf(subtitleEmpty),
-                        isEmptyLine = true,
-                        isFadeLine = resultLyricLinesFullText.isEmpty() || lyricFullText == lyricLinesFullText.last()
-                    )
-
-                    currentPositionEnd += silentLineDuration    // Устанавливаем текущую позицию конца равной позиции конца созданной пустой строки
-
-                    resultLyricLinesFullText.add(lyricEmpty)
-                    for (indexGroup in 0L until MAX_GROUPS) {
-                        val lstLineFull = resultLyricLinesFullTextGroups[indexGroup] ?: mutableListOf()
-                        val lstLineBeat = resultLyricLinesBeatTextGroups[indexGroup] ?: mutableListOf()
-                        lstLineFull.add(lyricEmpty)
-                        lstLineBeat.add(lyricEmpty)
-                        resultLyricLinesFullTextGroups[indexGroup] =
-                            lstLineFull                                                       // Добавляем строку lyric в список строк lyrics
-                        resultLyricLinesBeatTextGroups[indexGroup] = lstLineBeat
-                    }
-
-                    text += "\n"
+                    currentPositionEnd = convertTimecodeToMilliseconds(endDuration)
                 }
             }
-            // Добавляем строку lyric в список строк result
-
-            resultLyricLinesFullText.add(lyricFullText)
-            for (indexGroup in 0L until MAX_GROUPS) {
-                val lstLineFull = resultLyricLinesFullTextGroups[indexGroup] ?: mutableListOf()
-                val lstLineBeat = resultLyricLinesBeatTextGroups[indexGroup] ?: mutableListOf()
-                lstLineFull.add(lyricLinesFullTextGroups[indexGroup]!![index - 1])
-                lstLineBeat.add(lyricLinesBeatTextGroups[indexGroup]!![index - 1])
-                resultLyricLinesFullTextGroups[indexGroup] =
-                    lstLineFull                                                       // Добавляем строку lyric в список строк lyrics
-                resultLyricLinesBeatTextGroups[indexGroup] = lstLineBeat
-            }
-
-            currentPositionEnd =
-                convertTimecodeToMilliseconds(lyricFullText.end) // Устанавливаем текущую позицию конца равной позиции конца текущей строки
-            text += "${lyricFullText.text}\n"
-
+            voiceLine.isNeedCounter = (linesToInsert > 0 || voiceLine == songVoice.lines.first())
+            voiceLines.add(voiceLine)
+            currentPositionEnd = convertTimecodeToMilliseconds(voiceLine.end)
         }
-        // Теперь в списке result у нас нужное количество строк - как полных, так и пустых.
 
-
-
-
-//        val maxTextLengthSym =
-//            resultLyricLinesFullText.maxBy { it.text.length }.text.length   // maxTextLength - максимальная длина текста (в символах) = длине символов самой длинной строки
-
-        val boxHeightPx =
-            ((resultLyricLinesFullText.size + 1) * symbolHeightPx.toLong())  // boxHeight - высота "бокса" текста = количество строк текста * высоту символа
-        val boxWidthPx =
-            (maxTextLengthSym * symbolWidthPx)                         // boxHeight - ширина "бокса" текста = ширина текста * ширину символа
-        val workAreaHeightPx = boxHeightPx + symbolHeightPx // Высота рабочей области
-        val horizonPositionPx =
-            (FRAME_HEIGHT_PX / 2 + symbolHeightPx / 2) - HORIZON_OFFSET_PX    // horizonPosition - позиция горизонта = половина экрана + половина высоты символа - оффсет
+        val workAreaHeightPx = symbolHeightPx * voiceLines.size // Высота рабочей области
+        val horizonPositionPx = (Karaoke.frameHeightPx / 2 + symbolHeightPx.toLong() / 2) - HORIZON_OFFSET_PX    // horizonPosition - позиция горизонта = половина экрана + половина высоты символа - оффсет
         val songLengthMs = convertTimecodeToMilliseconds(song.endTimecode)
         val fontSizeProgress = 30
         val progressSymbolHalfWidth = (getSymbolWidth(fontSizeProgress) / 2).toLong()
@@ -307,21 +253,18 @@ fun createKaraoke(song: Song) {
         val fontNameSizePt = Integer.min(getFontSizeBySymbolWidth(1100.0 / song.settings.songName.length), 80)
         val yOffset = -5
 
-        propProgressLineValue.add("00:00:00.000=-${progressSymbolHalfWidth} $yOffset $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 1.0")
-        propProgressLineValue.add("${song.endTimecode}=${FRAME_WIDTH_PX - progressSymbolHalfWidth} $yOffset $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 1.0")
+        propProgressLineValue.add("00:00:00.000=-${progressSymbolHalfWidth} $yOffset $Karaoke.frameWidthPx $Karaoke.frameHeightPx 1.0")
+        propProgressLineValue.add("${song.endTimecode}=${Karaoke.frameWidthPx - progressSymbolHalfWidth} $yOffset $Karaoke.frameWidthPx $Karaoke.frameHeightPx 1.0")
 
-        param["GROUP${groupId}_OFFSET"] = currentGroupOffset
-        param["WORK_AREA_HEIGHT_PX"] = workAreaHeightPx
+        param["VOICE${voiceId}_OFFSET"] = currentVoiceOffset
+        param["VOICE${voiceId}_WORK_AREA_HEIGHT_PX"] = workAreaHeightPx.toLong()
+        param["VOICE${voiceId}_VOICELINES"] = voiceLines
+
+        param["SYMBOL_HEIGHT_PX"] = symbolHeightPx
         param["HORIZON_POSITION_PX"] = horizonPositionPx
         param["SONG_LENGTH_MS"] = songLengthMs
-        param["BOX_HEIGHT_PX"] = boxHeightPx
-        param["BOX_WIDTH_PX"] = boxWidthPx
         param["FONT_SIZE_PT"] = fontSizePt
-        param["LYRIC_LINES_FULL_TEXT${groupId}_GROUPS"] = resultLyricLinesFullTextGroups
-        param["LYRIC_LINES_BEAT_TEXT${groupId}_GROUPS"] = resultLyricLinesBeatTextGroups
-        if (groupId == 0 ) {
-            param["LYRIC_LINES_FULL_TEXT"] = resultLyricLinesFullText
-        }
+
         param["FONT_SIZE_PROGRESS"] = fontSizeProgress
         param["HEADER_AUTHOR"] = kdeHeaderAuthor
         param["HEADER_TONE"] = kdeHeaderTone
@@ -330,7 +273,7 @@ fun createKaraoke(song: Song) {
         param["HEADER_SONG_NAME"] = kdeHeaderSongName
         param["HEADER_SONG_NAME_FONT_SIZE"] = fontNameSizePt
 
-        val templateSongText = getTemplateSongText(param,groupId)
+        val templateSongText = getTemplateSongText(param,voiceId)
         val templateHorizon = getTemplateHorizon(param)
         val templateProgress = getTemplateProgress(param)
         val templateWatermark = getTemplateWatermark(param)
@@ -345,176 +288,128 @@ fun createKaraoke(song: Song) {
         val templateBeat3 = getTemplateBeat3(param)
         val templateBeat4 = getTemplateBeat4(param)
 
-        resultLyricLinesFullText.forEachIndexed { itemIndex, lyricLine -> // Проходимся по всем строкам
+        voiceLines.forEachIndexed { indexLine, voiceLine ->
 
             val startTp = TransformProperty(
-                time = lyricLine.start,
-                x = currentGroupOffset,
-                y = horizonPositionPx - ((itemIndex + 1) * (symbolHeightPx + HEIGHT_CORRECTION)).toLong(),
-                w = FRAME_WIDTH_PX,
-                h = workAreaHeightPx,
-                opacity = if (lyricLine.isFadeLine) 0.0 else if (itemIndex < (resultLyricLinesFullText.size) - 1) 1.0 else 0.0
+                time = voiceLine.start,
+                x = currentVoiceOffset,
+                y = horizonPositionPx - ((indexLine + 1) * symbolHeightPx).toLong(),
+                w = Karaoke.frameWidthPx,
+                h = workAreaHeightPx.toLong(),
+                opacity = if (voiceLine.isFadeLine) 0.0 else if (indexLine < voiceLines.size-1) 1.0 else 0.0
             )
 
-            var time = lyricLine.end
+            var time = voiceLine.end
             // Если текущий элемент не последний - надо проверить начало следующего элемента
-            if (itemIndex != resultLyricLinesFullText.size - 1) {
-                val nextLyricLine = resultLyricLinesFullText[itemIndex + 1] // Находим следующую строку
-                val diffInMills = getDiffInMilliseconds(
-                    nextLyricLine.start,
-                    lyricLine.end
-                ) // Находим разницу во времени между текущей строкой и следующей
-                if (diffInMills < 200) {                            // Если эта разница меньше 200 мс
-                    lyricLine.end =
-                        nextLyricLine.start             // Сдвигаем конец текущей линии и конец последнего титра в ней до начала следующей
-                    lyricLine.subtitles.last().endTimecode = lyricLine.end
-                    time =
-                        lyricLine.subtitles.last().startTimecode       // сдвигаем время classes.TransformProperty к началу последнего титра текущей строки
+            if (indexLine != voiceLines.size - 1) {
+                val nextVoiceLine = voiceLines[indexLine + 1] // Находим следующую строку
+                val diffInMills = getDiffInMilliseconds(nextVoiceLine.start, voiceLine.end) // Находим разницу во времени между текущей строкой и следующей
+                if (diffInMills < MIN_MS_TO_SCROLL_LINE) {                            // Если эта разница меньше 200 мс
+                    voiceLine.end = nextVoiceLine.start             // Сдвигаем конец текущей линии и конец последнего титра в ней до начала следующей
+                    if (voiceLine.subtitles.isNotEmpty()) {
+                        voiceLine.subtitles.last().endTimecode = voiceLine.end
+                        time = voiceLine.subtitles.last().startTimecode       // сдвигаем время classes.TransformProperty к началу последнего титра текущей строки
+                    }
                 }
             }
 
             val endTp = TransformProperty(
                 time = time,
-                x = currentGroupOffset,
-                y = horizonPositionPx - ((itemIndex + 1) * (symbolHeightPx + HEIGHT_CORRECTION)).toLong(),
-                w = FRAME_WIDTH_PX,
-                h = workAreaHeightPx,
-                opacity = if (lyricLine.isFadeLine) 0.0 else if (itemIndex < (resultLyricLinesFullText.size) - 1) 1.0 else 0.0
+                x = currentVoiceOffset,
+                y = horizonPositionPx - ((indexLine + 1) * symbolHeightPx).toLong(),
+                w = Karaoke.frameWidthPx,
+                h = workAreaHeightPx.toLong(),
+                opacity = if (voiceLine.isFadeLine) 0.0 else if (indexLine < voiceLines.size-1) 1.0 else 0.0
             )
-            lyricLine.startTp = startTp
-            lyricLine.endTp = endTp
+            voiceLine.startTp = startTp
+            voiceLine.endTp = endTp
+
         }
 
-        if (!resultLyricLinesFullText[0].isEmptyLine) {
-            val currentLyricLine = resultLyricLinesFullText[0]
-            propRectLineValue.add("00:00:00.000=${currentLyricLine.startTp?.x} ${currentLyricLine.startTp?.y} ${currentLyricLine.startTp?.w} ${currentLyricLine.startTp?.h} 0.0")
-            propRectLineValue.add("00:00:01.000=${currentLyricLine.startTp?.x} ${currentLyricLine.startTp?.y} ${currentLyricLine.startTp?.w} ${currentLyricLine.startTp?.h} 1.0")
-        }
+//        if (!resultSongVoiceLinesFullText[0].isEmptyLine) {
+//            val currentLyricLine = resultSongVoiceLinesFullText[0]
+//            propRectLineValue.add("00:00:00.000=${currentLyricLine.startTp?.x} ${currentLyricLine.startTp?.y} ${currentLyricLine.startTp?.w} ${currentLyricLine.startTp?.h} 0.0")
+//            propRectLineValue.add("00:00:01.000=${currentLyricLine.startTp?.x} ${currentLyricLine.startTp?.y} ${currentLyricLine.startTp?.w} ${currentLyricLine.startTp?.h} 1.0")
+//        }
 
         // Настало время прописать classes.TransformProperty для заливок
 
-        for (i in 0 until resultLyricLinesFullText.size) { // Проходимся по строкам - от первой до последней
+        voiceLines.forEachIndexed { indexLine, voiceLine ->
+//            voiceLine._widthLinePx = null
+            val nextVoiceLine = if (indexLine < voiceLines.size - 1) voiceLines[indexLine + 1] else null //Следующая строка
+            propRectLineValue.add("${voiceLine.startTp?.time}=${voiceLine.startTp?.x} ${voiceLine.startTp?.y} ${voiceLine.startTp?.w} ${voiceLine.startTp?.h} ${voiceLine.startTp?.opacity}")
 
-            val currentLyricLine = resultLyricLinesFullText[i] // Текущая строка
-            val nextLyricLine =
-                if (i < resultLyricLinesFullText.size - 1) resultLyricLinesFullText[i + 1] else null //Следующая строка
-            val diffInMills =
-                if (nextLyricLine != null) convertTimecodeToMilliseconds(nextLyricLine.start) - convertTimecodeToMilliseconds(
-                    currentLyricLine.end
-                ) else 0 // Разница во времени между текущей строкой и следующей
-            propRectLineValue.add("${currentLyricLine.startTp?.time}=${currentLyricLine.startTp?.x} ${currentLyricLine.startTp?.y} ${currentLyricLine.startTp?.w} ${currentLyricLine.startTp?.h} ${currentLyricLine.startTp?.opacity}")
-
-            // Если текущая строка пустая - ничего больше не делаем. Переход между строками будет плавны
-            if (currentLyricLine.text != "") { // Если текущая строка не пустая
-                propRectLineValue.add("${currentLyricLine.endTp?.time}=${currentLyricLine.endTp?.x} ${currentLyricLine.endTp?.y} ${currentLyricLine.endTp?.w} ${currentLyricLine.endTp?.h} ${currentLyricLine.endTp?.opacity}")
-                var ww = 1.0 // Начальная позиция w для заливки = 1
-                var currentSubtitle =
-                    currentLyricLine.subtitles[0] // Получаем первый титр текущей строки (он точно есть, т.к. строка не пустая)
-                val startTime =
-                    convertMillisecondsToTimecode(convertTimecodeToMilliseconds(currentSubtitle.startTimecode) - (1000 / FRAME_FPS + 1)) // Время начала анимации = времени начала этого титра минус 1 фрейм
-                val x =
-                    TITLE_POSITION_START_X_PX + TITLE_OFFSET_START_X_PX + currentGroupOffset // Координата x всегда одна и та же = TITLE_POSITION_START_X_PX + TITLE_OFFSET_START_X_PX
-                var y = horizonPositionPx - symbolHeightPx // Координата y = позиция горизонта - высота символа
+            if (!voiceLine.isEmptyLine) { // Если текущая строка пустая - ничего больше не делаем. Переход между строками будет плавны
+                propRectLineValue.add("${voiceLine.endTp?.time}=${voiceLine.endTp?.x} ${voiceLine.endTp?.y} ${voiceLine.endTp?.w} ${voiceLine.endTp?.h} ${voiceLine.endTp?.opacity}")
+                val currSubtitle = voiceLine.subtitles[0] // Получаем первый титр текущей строки (он точно есть, т.к. строка не пустая)
+                val startTime = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(currSubtitle.startTimecode) - (1000 / Karaoke.frameFps + 1).toLong()) // Время начала анимации = времени начала этого титра минус 1 фрейм
+                val x = TITLE_POSITION_START_X_PX + TITLE_OFFSET_START_X_PX + currentVoiceOffset
+                var y: Double = horizonPositionPx - symbolHeightPx // Координата y = позиция горизонта - высота символа
                 val h = symbolHeightPx // Высота = высоте символа
-                val propRectTitleValueFade =
-                    "$startTime=$x $y ${ww.toLong()} $h 0.0" // Свойство трансформации заливки с полной прозрачностью
-                propRectTitleValueLineOddEven[i % 2].add(propRectTitleValueFade)
-                ww = -TITLE_OFFSET_START_X_PX.toDouble() // Смещаем стартовую позицию w на величину TITLE_OFFSET_START_X_PX
+                val propRectTitleValueFade = "$startTime=$x ${y.toLong()} 1 ${h.toLong()} 0.0" // Свойство трансформации заливки с полной прозрачностью
+                propRectTitleValueLineOddEven[indexLine % 2].add(propRectTitleValueFade)
+                println("\"${currSubtitle.text}\" : $propRectTitleValueFade")
 
-                for (j in 0..(currentLyricLine.subtitles.size) - 2) { // Проходимся по титрам текущей линии от первого до предпоследнего
-                    val currentSub = currentLyricLine.subtitles[j] // Текущий титр
-                    val nextSub = currentLyricLine.subtitles[j + 1] // Следующий титр
-                    var time = currentSub.startTimecode // Время - начало текущего титра
-                    val w = currentSub.text.length * symbolWidthPx // Ширина = ширина текста тира * ширину символа
-                    val propRectTitleValueStart =
-                        "$time=$x $y ${ww.toLong()} $h 0.6" // Начало анимации титра - в начальной позиции титра с непрозрачностью 60%
-                    time = nextSub.startTimecode // Время - начало следующего титра
-                    ww += w // Ширина = предыдущее значение ширины + ширина
-                    val propRectTitleValueEnd =
-                        "$time=$x $y ${ww.toLong()} $h 0.6" // Конец анимации титра - в конечной позиции титра с непрозрачностью 60%
-                    if (propRectTitleValueLineOddEven[i % 2].last() != propRectTitleValueStart) propRectTitleValueLineOddEven[i % 2].add(
-                        propRectTitleValueStart
-                    )
-                    if (propRectTitleValueLineOddEven[i % 2].last() != propRectTitleValueEnd) propRectTitleValueLineOddEven[i % 2].add(
-                        propRectTitleValueEnd
-                    )
+                val startW = -TITLE_OFFSET_START_X_PX //.toDouble() // Смещаем стартовую позицию w на величину TITLE_OFFSET_START_X_PX
+                val timeFirstIn = currSubtitle.startTimecode // Время - начало текущего титра
+                val wFirstIn = startW + voiceLine.getSubtitleXpx(currSubtitle).toLong()
+                val propRectTitleValueFirstIn = "$timeFirstIn=$x ${y.toLong()} $wFirstIn ${h.toLong()} 0.6" // Начало анимации титра - в начальной позиции титра с непрозрачностью 60%
+                propRectTitleValueLineOddEven[indexLine % 2].add(propRectTitleValueFirstIn)
+                println("\"${currSubtitle.text}\" : $propRectTitleValueFirstIn")
+
+                for (indexSub in 0..(voiceLine.subtitles.size) - 2) { // Проходимся по титрам текущей линии от первого до предпоследнего
+                    val currSub = voiceLine.subtitles[indexSub] // Текущий титр
+                    val nextSub = voiceLine.subtitles[indexSub + 1] // Следующий титр
+
+                    val timeOut = nextSub.startTimecode // Время - начало следующего титра
+                    val wOut = startW + voiceLine.getSubtitleXpx(nextSub).toLong()
+                    val propRectTitleValueOut = "$timeOut=$x ${y.toLong()} $wOut ${h.toLong()} 0.6" // Конец анимации титра - в конечной позиции титра с непрозрачностью 60%
+                    propRectTitleValueLineOddEven[indexLine % 2].add(propRectTitleValueOut)
+                    println("\"${nextSub.text}\" : $propRectTitleValueOut")
                 }
 
                 // На этом этапе мы закрасили все титры линии, кроме последнего
-                currentSubtitle =
-                    currentLyricLine.subtitles[(currentLyricLine.subtitles.size) - 1]   // Текущий титр - последний титр текущей строки
-                val nextSubtitle = nextLyricLine!!.subtitles[0]  // Следующий титр - первый титр следующей строки
-                var time = currentSubtitle.startTimecode  // Время - начало текущего титра
-                val w = currentSubtitle.text.length * symbolWidthPx  // Ширина = ширина текста титра * ширину символа
-                val propRectTitleValueStart =
-                    "$time=$x $y ${ww.toLong()} $h 0.6" // Начало анимации титра - в начальной позиции титра с непрозрачностью 60%
-                if (propRectTitleValueLineOddEven[i % 2].last() != propRectTitleValueStart) propRectTitleValueLineOddEven[i % 2].add(
-                    propRectTitleValueStart
-                )
-                time = currentSubtitle.endTimecode  // Время - конец текущего титра
-                ww += w  // Ширина = предыдущее значение ширины + ширина
-                if (diffInMills < 200) y -= symbolHeightPx
-                val propRectTitleValueEnd = "$time=$x $y ${ww.toLong()} $h 0.6"
-                if (propRectTitleValueLineOddEven[i % 2].last() != propRectTitleValueEnd) propRectTitleValueLineOddEven[i % 2].add(
-                    propRectTitleValueEnd
-                )
 
-                if (diffInMills < 200) { // Если между текущей и следующей строкой меньше 200 мс
-                    // На данном этапе залили последний титр строки - пора сделать фэйд
-                    time = nextSubtitle.startTimecode // Время - начало следующего титра
-                    var propRectTitleValueFadeOut = "$time=$x $y ${ww.toLong()} $h 0.6"
-                    if (propRectTitleValueLineOddEven[i % 2].last() != propRectTitleValueFadeOut) propRectTitleValueLineOddEven[i % 2].add(
-                        propRectTitleValueFadeOut
-                    )
-                    time = nextSubtitle.endTimecode // Время - конец следующего титра
-                    propRectTitleValueFadeOut = "$time=$x $y ${ww.toLong()} $h 0.0"
-                    if (propRectTitleValueLineOddEven[i % 2].last() != propRectTitleValueFadeOut) propRectTitleValueLineOddEven[i % 2].add(
-                        propRectTitleValueFadeOut
-                    )
-                } else { // Если между текущей и следующей строкой больше или равно 200 мс
-                    // На данный момент мы закрасили всю строку, и теперь надо её сфэйдить с переходом на новую строку
-                    y -= symbolHeightPx        // Поднимаем y на высоту символа
-                    time = nextSubtitle.startTimecode  // Время - начало следующего титра
-                    val propRectTitleValueFadeOut = "$time=$x $y ${ww.toLong()} $h 0.0"
-                    if (propRectTitleValueLineOddEven[i % 2].last() != propRectTitleValueFadeOut) propRectTitleValueLineOddEven[i % 2].add(
-                        propRectTitleValueFadeOut
-                    )
+                val currSub = voiceLine.subtitles[(voiceLine.subtitles.size) - 1]   // Текущий титр - последний титр текущей строки
+                val nextSub = if (nextVoiceLine?.subtitles != null && nextVoiceLine.subtitles.isNotEmpty()) nextVoiceLine.subtitles[0] else null // Следующий титр - первый титр следующей строки (может не быть)
+                val diffInMills = if (nextVoiceLine != null) getDiffInMilliseconds(nextVoiceLine.start, voiceLine.end) else MIN_MS_TO_SCROLL_LINE
+
+                y -= if (diffInMills < MIN_MS_TO_SCROLL_LINE) symbolHeightPx else 0.0
+                val timeOut = currSub.endTimecode // Время - конец текущего титра
+                val wOut = startW + voiceLine.widthLinePx
+                val propRectTitleValueOut = "$timeOut=$x ${y.toLong()} $wOut ${h.toLong()} 0.6"
+                propRectTitleValueLineOddEven[indexLine % 2].add(propRectTitleValueOut)
+                println("\"${currSub.text}\" : $propRectTitleValueOut")
+
+                y -= if (diffInMills < MIN_MS_TO_SCROLL_LINE) 0.0 else symbolHeightPx
+
+                val timeFadeOut = if (diffInMills < MIN_MS_TO_SCROLL_LINE) {
+                    nextSub?.endTimecode  ?: convertMillisecondsToTimecode(convertTimecodeToMilliseconds(currSub.endTimecode) + MIN_MS_TO_SCROLL_LINE)
+                } else {
+                    nextSub?.startTimecode  ?: convertMillisecondsToTimecode(convertTimecodeToMilliseconds(currSub.endTimecode) + MIN_MS_TO_SCROLL_LINE)
                 }
+                val propRectTitleValueFadeOut = "$timeFadeOut=$x ${y.toLong()} $wOut ${h.toLong()} 0.0"
+                propRectTitleValueLineOddEven[indexLine % 2].add(propRectTitleValueFadeOut)
+                println("\"${currSub.text}\" : $propRectTitleValueFadeOut")
             }
         }
 
-        // Настало время заняться счётчиками вступления. В том случае, если для песни известно BPM
+        // Настало время заняться счётчиками вступления.
 
-        val quarterNoteLengthMs =
-            if (song.settings.ms == 0L) (60000.0 / song.settings.bpm).toLong() else song.settings.ms // Находим длительность звучания 1/4 ноты в миллисекундах
-        val halfNoteLengthMs = quarterNoteLengthMs * 2
-
-        // Счетчики надо вставлять тогда, когда перед не пустой строкой шла пустая. Найдём и пометим такие строки
-        var currentTime = 0L
-        var previousLineIsEmpty = true
-        resultLyricLinesFullText.forEach { lyricLine -> // Проходимся по строкам
-            if (!lyricLine.isEmptyLine) { // Если строка не пустая
-                if (previousLineIsEmpty || currentTime == 0L) { // Если предыдущая строка была пустой или это первая не пустая строка
-                    lyricLine.isNeedCounter = true // Помечаем строку для счётчика
-                }
-                currentTime = convertTimecodeToMilliseconds(lyricLine.end) // Запоминаем текущую позицию
-            }
-            previousLineIsEmpty = lyricLine.isEmptyLine
-        }
-        // На данный момент мы пометили всё нужные строки, для которых нужен счётчик
-        lyricLinesFullText.filter { it.isNeedCounter }
+        voiceLines.filter { it.isNeedCounter }
             .forEach { lyric -> // Проходимся по всем строкам, для которых нужен счётчик
                 for (counterNumber in 0..4) {
                     val startTimeMs = convertTimecodeToMilliseconds(lyric.start) - halfNoteLengthMs * counterNumber
-                    val initTimeMs = startTimeMs - (1000 / FRAME_FPS + 1)
+                    val initTimeMs = startTimeMs - (1000 / Karaoke.frameFps + 1).toLong()
                     val endTimeMs = startTimeMs + halfNoteLengthMs
                     if (startTimeMs > 0) {
-                        counters[counterNumber].add("${convertMillisecondsToTimecode(initTimeMs)}=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 0.0")
-                        counters[counterNumber].add("${convertMillisecondsToTimecode(startTimeMs)}=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 1.0")
+                        counters[counterNumber].add("${convertMillisecondsToTimecode(initTimeMs)}=0 0 $Karaoke.frameWidthPx $Karaoke.frameHeightPx 0.0")
+                        counters[counterNumber].add("${convertMillisecondsToTimecode(startTimeMs)}=0 0 $Karaoke.frameWidthPx $Karaoke.frameHeightPx 1.0")
                         counters[counterNumber].add("${convertMillisecondsToTimecode(endTimeMs)}=-1440 -810 4800 2700 0.0")
                     }
                 }
             }
+
 
         // Такты
         var delayMs = convertTimecodeToMilliseconds(song.beatTimecode) // + TIME_OFFSET_MS
@@ -534,28 +429,28 @@ fun createKaraoke(song: Song) {
             val currentPositionStartFrame = convertMillisecondsToFrames(currentPositionStartMs)
 
             val currentPositionStartMs2fb =
-                convertFramesToMilliseconds(convertMillisecondsToFrames(currentPositionStartMs) - 2, FRAME_FPS)
+                convertFramesToMilliseconds(convertMillisecondsToFrames(currentPositionStartMs) - 2, Karaoke.frameFps)
             val currentPositionStartMs1fb =
-                convertFramesToMilliseconds(convertMillisecondsToFrames(currentPositionStartMs) - 1, FRAME_FPS)
+                convertFramesToMilliseconds(convertMillisecondsToFrames(currentPositionStartMs) - 1, Karaoke.frameFps)
             val currentPositionEndMs = convertFramesToMilliseconds(
                 convertMillisecondsToFrames(currentPositionStartMs + (beatMs * (4 - tick))) - 3,
-                FRAME_FPS
+                Karaoke.frameFps
             )
             val currentPositionEndMs1fa =
-                convertFramesToMilliseconds(convertMillisecondsToFrames(currentPositionEndMs) + 1, FRAME_FPS)
+                convertFramesToMilliseconds(convertMillisecondsToFrames(currentPositionEndMs) + 1, Karaoke.frameFps)
             val currentPositionEndMs2fa =
-                convertFramesToMilliseconds(convertMillisecondsToFrames(currentPositionEndMs) + 2, FRAME_FPS)
+                convertFramesToMilliseconds(convertMillisecondsToFrames(currentPositionEndMs) + 2, Karaoke.frameFps)
 
             val point0 =
-                "${convertMillisecondsToTimecode(currentPositionStartMs2fb)}=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 0.0"
+                "${convertMillisecondsToTimecode(currentPositionStartMs2fb)}=0 0 $Karaoke.frameWidthPx $Karaoke.frameHeightPx 0.0"
             val point1 =
-                "${convertMillisecondsToTimecode(currentPositionStartMs1fb)}=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 0.0"
-            val point2 = "${convertMillisecondsToTimecode(currentPositionStartMs)}=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 1.0"
-            val point3 = "${convertMillisecondsToTimecode(currentPositionEndMs)}=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 0.0"
+                "${convertMillisecondsToTimecode(currentPositionStartMs1fb)}=0 0 $Karaoke.frameWidthPx $Karaoke.frameHeightPx 0.0"
+            val point2 = "${convertMillisecondsToTimecode(currentPositionStartMs)}=0 0 $Karaoke.frameWidthPx $Karaoke.frameHeightPx 1.0"
+            val point3 = "${convertMillisecondsToTimecode(currentPositionEndMs)}=0 0 $Karaoke.frameWidthPx $Karaoke.frameHeightPx 0.0"
             val point4 =
-                "${convertMillisecondsToTimecode(currentPositionEndMs1fa)}=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 0.0"
+                "${convertMillisecondsToTimecode(currentPositionEndMs1fa)}=0 0 $Karaoke.frameWidthPx $Karaoke.frameHeightPx 0.0"
             val point5 =
-                "${convertMillisecondsToTimecode(currentPositionEndMs2fa)}=0 0 $FRAME_WIDTH_PX $FRAME_HEIGHT_PX 0.0"
+                "${convertMillisecondsToTimecode(currentPositionEndMs2fa)}=0 0 $Karaoke.frameWidthPx $Karaoke.frameHeightPx 0.0"
 
             beats[tick.toInt()].add(point0)
             beats[tick.toInt()].add(point1)
@@ -594,7 +489,7 @@ fun createKaraoke(song: Song) {
         val kdeOut = song.endTimecode.replace(",", ".")
         val kdeFadeOut = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(song.endTimecode) - 1000).replace(",", ".")
         val kdeLengthMs = convertTimecodeToMilliseconds(song.endTimecode)
-        val kdeLengthFrames = convertTimecodeToFrames(song.endTimecode, FRAME_FPS)
+        val kdeLengthFrames = convertTimecodeToFrames(song.endTimecode, Karaoke.frameFps)
 
         kdeLogoPath = "${song.settings.rootFolder}/Logo.png"
         kdeMicrophonePath = "${song.settings.rootFolder}/Microphone.png"
@@ -610,125 +505,125 @@ fun createKaraoke(song: Song) {
         param["IN_OFFSET"] = kdeInOffset
 
 
-        param["${ProducerType.AUDIOSONG.text.uppercase()}${groupId}_ID"] = idProducerAudioSong
-        param["${ProducerType.AUDIOSONG.text.uppercase()}${groupId}_PATH"] = song.settings.audioSongFileName
+        param["${ProducerType.AUDIOSONG.text.uppercase()}${voiceId}_ID"] = idProducerAudioSong
+        param["${ProducerType.AUDIOSONG.text.uppercase()}${voiceId}_PATH"] = song.settings.audioSongFileName
 
-        param["${ProducerType.AUDIOMUSIC.text.uppercase()}${groupId}_ID"] = idProducerAudioMusic
-        param["${ProducerType.AUDIOMUSIC.text.uppercase()}${groupId}_PATH"] = song.settings.audioMusicFileName
+        param["${ProducerType.AUDIOMUSIC.text.uppercase()}${voiceId}_ID"] = idProducerAudioMusic
+        param["${ProducerType.AUDIOMUSIC.text.uppercase()}${voiceId}_PATH"] = song.settings.audioMusicFileName
 
-        param["${ProducerType.AUDIOVOCAL.text.uppercase()}${groupId}_ID"] = idProducerAudioVocal
-        param["${ProducerType.AUDIOVOCAL.text.uppercase()}${groupId}_PATH"] = song.settings.audioVocalFileName
-        param["HIDE_TRACTOR_${ProducerType.AUDIOVOCAL.text.uppercase()}${groupId}"] = "both"
+        param["${ProducerType.AUDIOVOCAL.text.uppercase()}${voiceId}_ID"] = idProducerAudioVocal
+        param["${ProducerType.AUDIOVOCAL.text.uppercase()}${voiceId}_PATH"] = song.settings.audioVocalFileName
+        param["HIDE_TRACTOR_${ProducerType.AUDIOVOCAL.text.uppercase()}${voiceId}"] = "both"
 
-        param["${ProducerType.SONGTEXT.text.uppercase()}${groupId}_ID"] = idProducerSongText
-        param["${ProducerType.SONGTEXT.text.uppercase()}${groupId}_WORK_AREA_HEIGHT_PX"] = workAreaHeightPx
-        param["${ProducerType.SONGTEXT.text.uppercase()}${groupId}_XML_DATA"] = templateSongText
-        param["${ProducerType.SONGTEXT.text.uppercase()}${groupId}_PROPERTY_RECT"] = propRectValue
-        param["HIDE_TRACTOR_${ProducerType.SONGTEXT.text.uppercase()}${groupId}"] = "audio"
-
-
-        param["${ProducerType.HORIZON.text.uppercase()}${groupId}_ID"] = idProducerHorizon
-        param["${ProducerType.HORIZON.text.uppercase()}${groupId}_XML_DATA"] = templateHorizon
-        param["HIDE_TRACTOR_${ProducerType.HORIZON.text.uppercase()}${groupId}"] = "audio"
+        param["${ProducerType.SONGTEXT.text.uppercase()}${voiceId}_ID"] = idProducerSongText
+        param["${ProducerType.SONGTEXT.text.uppercase()}${voiceId}_WORK_AREA_HEIGHT_PX"] = workAreaHeightPx.toLong()
+        param["${ProducerType.SONGTEXT.text.uppercase()}${voiceId}_XML_DATA"] = templateSongText
+        param["${ProducerType.SONGTEXT.text.uppercase()}${voiceId}_PROPERTY_RECT"] = propRectValue
+        param["HIDE_TRACTOR_${ProducerType.SONGTEXT.text.uppercase()}${voiceId}"] = "audio"
 
 
-        param["${ProducerType.WATERMARK.text.uppercase()}${groupId}_ID"] = idProducerWatermark
-        param["${ProducerType.WATERMARK.text.uppercase()}${groupId}_XML_DATA"] = templateWatermark
-        param["HIDE_TRACTOR_${ProducerType.WATERMARK.text.uppercase()}${groupId}"] = "audio"
+        param["${ProducerType.HORIZON.text.uppercase()}${voiceId}_ID"] = idProducerHorizon
+        param["${ProducerType.HORIZON.text.uppercase()}${voiceId}_XML_DATA"] = templateHorizon
+        param["HIDE_TRACTOR_${ProducerType.HORIZON.text.uppercase()}${voiceId}"] = "audio"
 
 
-        param["${ProducerType.PROGRESS.text.uppercase()}${groupId}_ID"] = idProducerProgress
-        param["${ProducerType.PROGRESS.text.uppercase()}${groupId}_XML_DATA"] = templateProgress
-        param["${ProducerType.PROGRESS.text.uppercase()}${groupId}_PROPERTY_RECT"] = propProgressValue
-        param["HIDE_TRACTOR_${ProducerType.PROGRESS.text.uppercase()}${groupId}"] = "audio"
+        param["${ProducerType.WATERMARK.text.uppercase()}${voiceId}_ID"] = idProducerWatermark
+        param["${ProducerType.WATERMARK.text.uppercase()}${voiceId}_XML_DATA"] = templateWatermark
+        param["HIDE_TRACTOR_${ProducerType.WATERMARK.text.uppercase()}${voiceId}"] = "audio"
 
 
-        param["${ProducerType.FILLCOLOR.text.uppercase()}${groupId}_ID"] = idProducerFillColor
-        param["${ProducerType.FILLCOLOR.text.uppercase()}${groupId}_EVEN_PROPERTY_RECT"] = propFillEvenValue
-        param["${ProducerType.FILLCOLOR.text.uppercase()}${groupId}_ODD_PROPERTY_RECT"] = propFillOddValue
-        param["HIDE_TRACTOR_${ProducerType.FILLCOLOR.text.uppercase()}${groupId}_EVEN"] = "audio"
-        param["HIDE_TRACTOR_${ProducerType.FILLCOLOR.text.uppercase()}${groupId}_ODD"] = "audio"
+        param["${ProducerType.PROGRESS.text.uppercase()}${voiceId}_ID"] = idProducerProgress
+        param["${ProducerType.PROGRESS.text.uppercase()}${voiceId}_XML_DATA"] = templateProgress
+        param["${ProducerType.PROGRESS.text.uppercase()}${voiceId}_PROPERTY_RECT"] = propProgressValue
+        param["HIDE_TRACTOR_${ProducerType.PROGRESS.text.uppercase()}${voiceId}"] = "audio"
 
 
-        param["${ProducerType.LOGOTYPE.text.uppercase()}${groupId}_ID"] = idProducerLogotype
-        param["${ProducerType.LOGOTYPE.text.uppercase()}${groupId}_PATH"] = kdeLogoPath
-        param["HIDE_TRACTOR_${ProducerType.LOGOTYPE.text.uppercase()}${groupId}"] = "audio"
+        param["${ProducerType.FILLCOLOR.text.uppercase()}${voiceId}_ID"] = idProducerFillColor
+        param["${ProducerType.FILLCOLOR.text.uppercase()}${voiceId}_EVEN_PROPERTY_RECT"] = propFillEvenValue
+        param["${ProducerType.FILLCOLOR.text.uppercase()}${voiceId}_ODD_PROPERTY_RECT"] = propFillOddValue
+        param["HIDE_TRACTOR_${ProducerType.FILLCOLOR.text.uppercase()}${voiceId}_EVEN"] = "audio"
+        param["HIDE_TRACTOR_${ProducerType.FILLCOLOR.text.uppercase()}${voiceId}_ODD"] = "audio"
 
 
-        param["${ProducerType.HEADER.text.uppercase()}${groupId}_ID"] = idProducerHeader
-        param["${ProducerType.HEADER.text.uppercase()}${groupId}_XML_DATA"] = templateHeader
-        param["HIDE_TRACTOR_${ProducerType.HEADER.text.uppercase()}${groupId}"] = "audio"
+        param["${ProducerType.LOGOTYPE.text.uppercase()}${voiceId}_ID"] = idProducerLogotype
+        param["${ProducerType.LOGOTYPE.text.uppercase()}${voiceId}_PATH"] = kdeLogoPath
+        param["HIDE_TRACTOR_${ProducerType.LOGOTYPE.text.uppercase()}${voiceId}"] = "audio"
 
 
-        param["${ProducerType.MICROPHONE.text.uppercase()}${groupId}_ID"] = idProducerMicrophone
-        param["${ProducerType.MICROPHONE.text.uppercase()}${groupId}_PATH"] = kdeMicrophonePath
+        param["${ProducerType.HEADER.text.uppercase()}${voiceId}_ID"] = idProducerHeader
+        param["${ProducerType.HEADER.text.uppercase()}${voiceId}_XML_DATA"] = templateHeader
+        param["HIDE_TRACTOR_${ProducerType.HEADER.text.uppercase()}${voiceId}"] = "audio"
 
 
-        param["${ProducerType.BACKGROUND.text.uppercase()}${groupId}_ID"] = idProducerBackground
-        param["${ProducerType.BACKGROUND.text.uppercase()}${groupId}_PATH"] = getRandomFile(kdeBackgroundFolderPath, ".png")
-        param["HIDE_TRACTOR_${ProducerType.BACKGROUND.text.uppercase()}${groupId}"] = "audio"
+        param["${ProducerType.MICROPHONE.text.uppercase()}${voiceId}_ID"] = idProducerMicrophone
+        param["${ProducerType.MICROPHONE.text.uppercase()}${voiceId}_PATH"] = kdeMicrophonePath
 
 
-        param["${ProducerType.COUNTER.text.uppercase()}${groupId}0_ID"] = idProducerCounter0
-        param["${ProducerType.COUNTER.text.uppercase()}${groupId}0_XML_DATA"] = templateCounter0
-        param["${ProducerType.COUNTER.text.uppercase()}${groupId}0_PROPERTY_RECT"] = propFillCounter0Value
-        param["HIDE_TRACTOR_${ProducerType.COUNTER.text.uppercase()}${groupId}0"] = "audio"
-
-        param["${ProducerType.COUNTER.text.uppercase()}${groupId}1_ID"] = idProducerCounter1
-        param["${ProducerType.COUNTER.text.uppercase()}${groupId}1_XML_DATA"] = templateCounter1
-        param["${ProducerType.COUNTER.text.uppercase()}${groupId}1_PROPERTY_RECT"] = propFillCounter1Value
-        param["HIDE_TRACTOR_${ProducerType.COUNTER.text.uppercase()}${groupId}1"] = "audio"
-
-        param["${ProducerType.COUNTER.text.uppercase()}${groupId}2_ID"] = idProducerCounter2
-        param["${ProducerType.COUNTER.text.uppercase()}${groupId}2_XML_DATA"] = templateCounter2
-        param["${ProducerType.COUNTER.text.uppercase()}${groupId}2_PROPERTY_RECT"] = propFillCounter2Value
-        param["HIDE_TRACTOR_${ProducerType.COUNTER.text.uppercase()}${groupId}2"] = "audio"
-
-        param["${ProducerType.COUNTER.text.uppercase()}${groupId}3_ID"] = idProducerCounter3
-        param["${ProducerType.COUNTER.text.uppercase()}${groupId}3_XML_DATA"] = templateCounter3
-        param["${ProducerType.COUNTER.text.uppercase()}${groupId}3_PROPERTY_RECT"] = propFillCounter3Value
-        param["HIDE_TRACTOR_${ProducerType.COUNTER.text.uppercase()}${groupId}3"] = "audio"
-
-        param["${ProducerType.COUNTER.text.uppercase()}${groupId}4_ID"] = idProducerCounter4
-        param["${ProducerType.COUNTER.text.uppercase()}${groupId}4_XML_DATA"] = templateCounter4
-        param["${ProducerType.COUNTER.text.uppercase()}${groupId}4_PROPERTY_RECT"] = propFillCounter4Value
-        param["HIDE_TRACTOR_${ProducerType.COUNTER.text.uppercase()}${groupId}4"] = "audio"
+        param["${ProducerType.BACKGROUND.text.uppercase()}${voiceId}_ID"] = idProducerBackground
+        param["${ProducerType.BACKGROUND.text.uppercase()}${voiceId}_PATH"] = getRandomFile(kdeBackgroundFolderPath, ".png")
+        param["HIDE_TRACTOR_${ProducerType.BACKGROUND.text.uppercase()}${voiceId}"] = "audio"
 
 
-        param["${ProducerType.BEAT.text.uppercase()}${groupId}1_ID"] = idProducerBeat1
-        param["${ProducerType.BEAT.text.uppercase()}${groupId}1_XML_DATA"] = templateBeat1
-        param["${ProducerType.BEAT.text.uppercase()}${groupId}1_PROPERTY_RECT"] = propBeat1Value
-        param["HIDE_TRACTOR_${ProducerType.BEAT.text.uppercase()}${groupId}1"] = "audio"
+        param["${ProducerType.COUNTER.text.uppercase()}${voiceId}0_ID"] = idProducerCounter0
+        param["${ProducerType.COUNTER.text.uppercase()}${voiceId}0_XML_DATA"] = templateCounter0
+        param["${ProducerType.COUNTER.text.uppercase()}${voiceId}0_PROPERTY_RECT"] = propFillCounter0Value
+        param["HIDE_TRACTOR_${ProducerType.COUNTER.text.uppercase()}${voiceId}0"] = "audio"
 
-        param["${ProducerType.BEAT.text.uppercase()}${groupId}2_ID"] = idProducerBeat2
-        param["${ProducerType.BEAT.text.uppercase()}${groupId}2_XML_DATA"] = templateBeat2
-        param["${ProducerType.BEAT.text.uppercase()}${groupId}2_PROPERTY_RECT"] = propBeat2Value
-        param["HIDE_TRACTOR_${ProducerType.BEAT.text.uppercase()}${groupId}2"] = "audio"
+        param["${ProducerType.COUNTER.text.uppercase()}${voiceId}1_ID"] = idProducerCounter1
+        param["${ProducerType.COUNTER.text.uppercase()}${voiceId}1_XML_DATA"] = templateCounter1
+        param["${ProducerType.COUNTER.text.uppercase()}${voiceId}1_PROPERTY_RECT"] = propFillCounter1Value
+        param["HIDE_TRACTOR_${ProducerType.COUNTER.text.uppercase()}${voiceId}1"] = "audio"
 
-        param["${ProducerType.BEAT.text.uppercase()}${groupId}3_ID"] = idProducerBeat3
-        param["${ProducerType.BEAT.text.uppercase()}${groupId}3_XML_DATA"] = templateBeat3
-        param["${ProducerType.BEAT.text.uppercase()}${groupId}3_PROPERTY_RECT"] = propBeat3Value
-        param["HIDE_TRACTOR_${ProducerType.BEAT.text.uppercase()}${groupId}3"] = "audio"
+        param["${ProducerType.COUNTER.text.uppercase()}${voiceId}2_ID"] = idProducerCounter2
+        param["${ProducerType.COUNTER.text.uppercase()}${voiceId}2_XML_DATA"] = templateCounter2
+        param["${ProducerType.COUNTER.text.uppercase()}${voiceId}2_PROPERTY_RECT"] = propFillCounter2Value
+        param["HIDE_TRACTOR_${ProducerType.COUNTER.text.uppercase()}${voiceId}2"] = "audio"
 
-        param["${ProducerType.BEAT.text.uppercase()}${groupId}4_ID"] = idProducerBeat4
-        param["${ProducerType.BEAT.text.uppercase()}${groupId}4_XML_DATA"] = templateBeat4
-        param["${ProducerType.BEAT.text.uppercase()}${groupId}4_PROPERTY_RECT"] = propBeat4Value
-        param["HIDE_TRACTOR_${ProducerType.BEAT.text.uppercase()}${groupId}4"] = "audio"
+        param["${ProducerType.COUNTER.text.uppercase()}${voiceId}3_ID"] = idProducerCounter3
+        param["${ProducerType.COUNTER.text.uppercase()}${voiceId}3_XML_DATA"] = templateCounter3
+        param["${ProducerType.COUNTER.text.uppercase()}${voiceId}3_PROPERTY_RECT"] = propFillCounter3Value
+        param["HIDE_TRACTOR_${ProducerType.COUNTER.text.uppercase()}${voiceId}3"] = "audio"
 
-        param["${ProducerType.AUDIOVOCAL.text.uppercase()}${groupId}_ENABLED"] = true
-        param["${ProducerType.AUDIOMUSIC.text.uppercase()}${groupId}_ENABLED"] = true
-        param["${ProducerType.AUDIOSONG.text.uppercase()}${groupId}_ENABLED"] = true
-        param["${ProducerType.BACKGROUND.text.uppercase()}${groupId}_ENABLED"] = true
-        param["${ProducerType.MICROPHONE.text.uppercase()}${groupId}_ENABLED"] = true
-        param["${ProducerType.HORIZON.text.uppercase()}${groupId}_ENABLED"] = true
-        param["${ProducerType.PROGRESS.text.uppercase()}${groupId}_ENABLED"] = true
-        param["${ProducerType.FILLCOLOR.text.uppercase()}${groupId}_ENABLED"] = true
-        param["${ProducerType.SONGTEXT.text.uppercase()}${groupId}_ENABLED"] = true
-        param["${ProducerType.HEADER.text.uppercase()}${groupId}_ENABLED"] = true
-        param["${ProducerType.LOGOTYPE.text.uppercase()}${groupId}_ENABLED"] = true
-        param["${ProducerType.BEAT.text.uppercase()}${groupId}_ENABLED"] = true
-        param["${ProducerType.COUNTER.text.uppercase()}${groupId}_ENABLED"] = true
-        param["${ProducerType.WATERMARK.text.uppercase()}${groupId}_ENABLED"] = true
+        param["${ProducerType.COUNTER.text.uppercase()}${voiceId}4_ID"] = idProducerCounter4
+        param["${ProducerType.COUNTER.text.uppercase()}${voiceId}4_XML_DATA"] = templateCounter4
+        param["${ProducerType.COUNTER.text.uppercase()}${voiceId}4_PROPERTY_RECT"] = propFillCounter4Value
+        param["HIDE_TRACTOR_${ProducerType.COUNTER.text.uppercase()}${voiceId}4"] = "audio"
+
+
+        param["${ProducerType.BEAT.text.uppercase()}${voiceId}1_ID"] = idProducerBeat1
+        param["${ProducerType.BEAT.text.uppercase()}${voiceId}1_XML_DATA"] = templateBeat1
+        param["${ProducerType.BEAT.text.uppercase()}${voiceId}1_PROPERTY_RECT"] = propBeat1Value
+        param["HIDE_TRACTOR_${ProducerType.BEAT.text.uppercase()}${voiceId}1"] = "audio"
+
+        param["${ProducerType.BEAT.text.uppercase()}${voiceId}2_ID"] = idProducerBeat2
+        param["${ProducerType.BEAT.text.uppercase()}${voiceId}2_XML_DATA"] = templateBeat2
+        param["${ProducerType.BEAT.text.uppercase()}${voiceId}2_PROPERTY_RECT"] = propBeat2Value
+        param["HIDE_TRACTOR_${ProducerType.BEAT.text.uppercase()}${voiceId}2"] = "audio"
+
+        param["${ProducerType.BEAT.text.uppercase()}${voiceId}3_ID"] = idProducerBeat3
+        param["${ProducerType.BEAT.text.uppercase()}${voiceId}3_XML_DATA"] = templateBeat3
+        param["${ProducerType.BEAT.text.uppercase()}${voiceId}3_PROPERTY_RECT"] = propBeat3Value
+        param["HIDE_TRACTOR_${ProducerType.BEAT.text.uppercase()}${voiceId}3"] = "audio"
+
+        param["${ProducerType.BEAT.text.uppercase()}${voiceId}4_ID"] = idProducerBeat4
+        param["${ProducerType.BEAT.text.uppercase()}${voiceId}4_XML_DATA"] = templateBeat4
+        param["${ProducerType.BEAT.text.uppercase()}${voiceId}4_PROPERTY_RECT"] = propBeat4Value
+        param["HIDE_TRACTOR_${ProducerType.BEAT.text.uppercase()}${voiceId}4"] = "audio"
+
+        param["${ProducerType.AUDIOVOCAL.text.uppercase()}${voiceId}_ENABLED"] = true
+        param["${ProducerType.AUDIOMUSIC.text.uppercase()}${voiceId}_ENABLED"] = true
+        param["${ProducerType.AUDIOSONG.text.uppercase()}${voiceId}_ENABLED"] = true
+        param["${ProducerType.BACKGROUND.text.uppercase()}${voiceId}_ENABLED"] = true
+        param["${ProducerType.MICROPHONE.text.uppercase()}${voiceId}_ENABLED"] = true
+        param["${ProducerType.HORIZON.text.uppercase()}${voiceId}_ENABLED"] = true
+        param["${ProducerType.PROGRESS.text.uppercase()}${voiceId}_ENABLED"] = true
+        param["${ProducerType.FILLCOLOR.text.uppercase()}${voiceId}_ENABLED"] = true
+        param["${ProducerType.SONGTEXT.text.uppercase()}${voiceId}_ENABLED"] = true
+        param["${ProducerType.HEADER.text.uppercase()}${voiceId}_ENABLED"] = true
+        param["${ProducerType.LOGOTYPE.text.uppercase()}${voiceId}_ENABLED"] = true
+        param["${ProducerType.BEAT.text.uppercase()}${voiceId}_ENABLED"] = true
+        param["${ProducerType.COUNTER.text.uppercase()}${voiceId}_ENABLED"] = true
+        param["${ProducerType.WATERMARK.text.uppercase()}${voiceId}_ENABLED"] = true
 
     }
 
@@ -740,12 +635,11 @@ fun createKaraoke(song: Song) {
     fileIsKaraoke.forEach { isKaraoke ->
         param["SONG_PROJECT_FILENAME"] = if (isKaraoke) song.settings.projectKaraokeFileName else song.settings.projectLyricsFileName
         param["SONG_VIDEO_FILENAME"] = if (isKaraoke) song.settings.videoKaraokeFileName else song.settings.videoLyricsFileName
-        for (groupId in 0 until song.subtitles.size) {
-            param["HIDE_TRACTOR_${ProducerType.AUDIOMUSIC.text.uppercase()}${groupId}"] = if (isKaraoke) "video" else "both"
-            param["HIDE_TRACTOR_${ProducerType.AUDIOSONG.text.uppercase()}${groupId}"] = if (isKaraoke) "both" else "video"
-            param["HIDE_TRACTOR_${ProducerType.MICROPHONE.text.uppercase()}${groupId}"] = if (isKaraoke) "audio" else "both"
+        for (voiceId in 0 until song.voices.size) {
+            param["HIDE_TRACTOR_${ProducerType.AUDIOMUSIC.text.uppercase()}${voiceId}"] = if (isKaraoke) "video" else "both"
+            param["HIDE_TRACTOR_${ProducerType.AUDIOSONG.text.uppercase()}${voiceId}"] = if (isKaraoke) "both" else "video"
+            param["HIDE_TRACTOR_${ProducerType.MICROPHONE.text.uppercase()}${voiceId}"] = if (isKaraoke) "audio" else "both"
         }
-
 
         val fileProjectName = "${song.settings.rootFolder}/${if (isKaraoke) song.settings.projectKaraokeFileName else song.settings.projectLyricsFileName}"
         val fileSubtitleName = "$fileProjectName.srt"
@@ -753,143 +647,7 @@ fun createKaraoke(song: Song) {
         val templateProject = "<?xml version='1.0' encoding='utf-8'?>\n${getMlt(param)}"
 
         File(fileProjectName).writeText(templateProject)
-        File(fileSubtitleName).writeText(song.srtFileBody[0]?:"")
+        File(fileSubtitleName).writeText(song.voices[0].srtFileBody)
     }
 
-}
-
-
-fun getSong(settings: Settings): Song {
-
-    val mapFiles = mutableMapOf<Int, String>()
-    val listFile = getListFiles(settings.rootFolder, ".srt", "${settings.fileName}.kdenlive")
-    listFile.sorted().forEachIndexed() { index, fileName ->
-        mapFiles[index] = fileName
-    }
-
-    val result = Song()
-
-    for (i in listFile.indices) {
-        // Считываем содержимое файла субтитров
-
-        var maxLengthLine = 0
-        var lengthLine = 0
-        val body = File(mapFiles[i]!!).readText(Charsets.UTF_8)
-
-        var beatTimecode = "00:00:00.000"
-        var group = 0L
-
-        val subtitles: MutableList<Subtitle> = emptyList<Subtitle>().toMutableList()
-
-        val blocks = body.split("\\n[\\n]+".toRegex())
-
-        blocks.forEach() { block ->
-            val blocklines = block.split("\n")
-            val id = if (blocklines.isNotEmpty() && blocklines[0]!= "" ) blocklines[0].toLong() else 0
-            val startEnd = if (blocklines.size > 1) blocklines[1] else ""
-            var text = if (blocklines.size > 2) blocklines[2] else ""
-
-            if (startEnd != "" && id != 0L) {
-                if (text.uppercase().startsWith("[SETTING]|")) {
-                    // Разделяем sub по | в список
-                    val settingList = text.split("|")
-                    when (settingList[1].uppercase()) {
-                        "BEAT" -> beatTimecode = startEnd.split(" --> ")[0].replace(",",".")
-                        "GROUP" -> group = if (settingList.size > 2) settingList[2].toLong() else 0
-                    }
-                } else {
-                    val se = startEnd.split(" --> ")
-                    val start = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(se[0]))
-                    val end = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(se[1]))
-                    val isLineStart = text.startsWith("//")   // Вычисляем признак начала строки
-                    val isLineEnd = text.endsWith("\\\\")     // Вычисляем признак конца строки
-                    // Удаляем служебные символы из строки и заменяем подчёркивание пробелом
-                    text = text
-                        .replace("//", "")
-                        .replace("\\\\", "")
-                        .replace("_", " ")
-                    lengthLine += text.length
-                    // Создаем объект classes.Subtitle и инициализируем его переменными
-                    val subtitle = Subtitle(
-                        startTimecode = start,
-                        endTimecode = end,
-                        text = text,
-                        isLineStart = isLineStart,
-                        isLineEnd = isLineEnd,
-                        group = group
-                    )
-                    // Добавляем этот объект к списку объектов
-                    subtitles.add(subtitle)
-                    if (isLineEnd) {
-                        maxLengthLine = max(maxLengthLine,lengthLine)
-                        lengthLine = 0
-                    }
-                }
-            }
-
-        }
-
-        val beatMs = if (settings.ms == 0L) (60000.0 / settings.bpm).toLong() else settings.ms
-        subtitles.forEach { subtitle ->
-            subtitle.isBeat = if (subtitle.text != "") {
-                val startBeatNumber = getBeatNumberByTimecode(subtitle.startTimecode, beatMs, beatTimecode)
-                val endBeatNumber = getBeatNumberByTimecode(subtitle.endTimecode, beatMs, beatTimecode)
-                startBeatNumber > endBeatNumber
-            } else false
-        }
-
-        if (i == 0) {
-            result.settings = settings
-            result.endTimecode = subtitles.last().endTimecode
-            result.beatTimecode = beatTimecode
-        }
-        result.srtFileBody[i.toLong()] = body
-        result.subtitles[i.toLong()] = subtitles
-        result.maxLengthLine[i.toLong()] = maxLengthLine.toLong()
-    }
-
-    return result
-}
-
-fun getSettings(pathToSettingsFile: String): Settings {
-    val settingFilePath = Path(pathToSettingsFile)
-    val settingRoot = settingFilePath.parent.toString()
-    val settingFileNameList = settingFilePath.fileName.toString()
-        .split(".")
-        .toMutableList()
-    settingFileNameList.removeLast()
-    val settingFileName = settingFileNameList.joinToString(".")
-
-    val settings = Settings()
-    settings.rootFolder = settingRoot
-    settings.fileName = settingFileName
-    settings.subtitleFileName = "${settingFileName}.kdenlive.srt"
-    settings.audioSongFileName = "${settingFileName}.flac"
-    settings.audioMusicFileName = "$settingFileName [music].wav"
-    settings.audioVocalFileName = "$settingFileName [vocals].wav"
-    settings.projectLyricsFileName = "$settingFileName [lyrics].kdenlive"
-    settings.videoLyricsFileName = "$settingFileName [lyrics].mp4"
-    settings.projectKaraokeFileName = "$settingFileName [karaoke].kdenlive"
-    settings.videoKaraokeFileName = "$settingFileName [karaoke].mp4"
-
-    val body = File(pathToSettingsFile).readText(Charsets.UTF_8)
-    body.split("\n").forEach { line ->
-        println(line)
-        val settingList = line.split("=")
-        if (settingList.size == 2) {
-            val settingName = settingList[0].uppercase()
-            val settingValue = settingList[1]
-            when (settingName) {
-                "NAME" -> settings.songName = settingValue
-                "AUTHOR" -> settings.author = settingValue
-                "ALBUM" -> settings.album = settingValue
-                "KEY" -> settings.key = settingValue
-                "BPM" -> settings.bpm = settingValue.toLong()
-                "MS" -> settings.ms = settingValue.toLong()
-                "FORMAT" -> settings.audioSongFileName = "${settingFileName}.${settingValue}"
-            }
-        }
-    }
-
-    return settings
 }

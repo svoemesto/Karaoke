@@ -39,7 +39,7 @@ fun getMltMainBinPlaylist(param: Map<String, Any?>): MltNode {
 //    <property name="kdenlive:expandedFolders"/>
 //    <property name="kdenlive:documentnotes"/>
 
-    val countGroups = (param["COUNT_GROUPS"] as Int)
+    val countGroups = (param["COUNT_VOICES"] as Int)
     val entries = mutableListOf<MltNode>()
     var type = ProducerType.NONE
     for (groupId in 0 until countGroups) {

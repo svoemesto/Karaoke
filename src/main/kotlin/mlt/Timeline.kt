@@ -5,62 +5,83 @@ import model.ProducerType
 
 fun getMltTimelineTractor(param: Map<String, Any?>): MltNode {
 
-    val countGroups = (param["COUNT_GROUPS"] as Int)
+    val countGroups = (param["COUNT_VOICES"] as Int)
     val body = mutableListOf<MltNode>()
     body.add(MltNode(name = "track", fields = mutableMapOf(Pair("producer","black_track"))))
 
     var type = ProducerType.NONE
     for (groupId in 0 until countGroups) {
-
         type = ProducerType.AUDIOVOCAL
         if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
-            if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
-                body.add(MltNode(name = "track", fields = mutableMapOf(Pair("producer","tractor_${type.text}${groupId}"))))
+            if ((type.onlyOne && groupId == 0) || !type.onlyOne) {
+                body.add(
+                    MltNode(
+                        name = "track",
+                        fields = mutableMapOf(Pair("producer", "tractor_${type.text}${groupId}"))
+                    )
+                )
             }
         }
-
+    }
+    for (groupId in 0 until countGroups) {
         type = ProducerType.AUDIOMUSIC
         if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
-            if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
-                body.add(MltNode(name = "track", fields = mutableMapOf(Pair("producer","tractor_${type.text}${groupId}"))))
+            if ((type.onlyOne && groupId == 0) || !type.onlyOne) {
+                body.add(
+                    MltNode(
+                        name = "track",
+                        fields = mutableMapOf(Pair("producer", "tractor_${type.text}${groupId}"))
+                    )
+                )
             }
         }
-
+    }
+    for (groupId in 0 until countGroups) {
         type = ProducerType.AUDIOSONG
         if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
-            if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
-                body.add(MltNode(name = "track", fields = mutableMapOf(Pair("producer","tractor_${type.text}${groupId}"))))
+            if ((type.onlyOne && groupId == 0) || !type.onlyOne) {
+                body.add(
+                    MltNode(
+                        name = "track",
+                        fields = mutableMapOf(Pair("producer", "tractor_${type.text}${groupId}"))
+                    )
+                )
             }
         }
-
+    }
+    for (groupId in 0 until countGroups) {
         type = ProducerType.BACKGROUND
         if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
             if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
                 body.add(MltNode(name = "track", fields = mutableMapOf(Pair("producer","tractor_${type.text}${groupId}"))))
             }
         }
-
+    }
+    for (groupId in 0 until countGroups) {
         type = ProducerType.MICROPHONE
         if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
             if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
                 body.add(MltNode(name = "track", fields = mutableMapOf(Pair("producer","tractor_${type.text}${groupId}"))))
             }
         }
-
+    }
+    for (groupId in 0 until countGroups) {
         type = ProducerType.HORIZON
         if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
             if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
                 body.add(MltNode(name = "track", fields = mutableMapOf(Pair("producer","tractor_${type.text}${groupId}"))))
             }
         }
-
+    }
+    for (groupId in 0 until countGroups) {
         type = ProducerType.PROGRESS
         if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
             if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
                 body.add(MltNode(name = "track", fields = mutableMapOf(Pair("producer","tractor_${type.text}${groupId}"))))
             }
         }
-
+    }
+    for (groupId in 0 until countGroups) {
         type = ProducerType.FILLCOLOR
         if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
             if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
@@ -68,26 +89,32 @@ fun getMltTimelineTractor(param: Map<String, Any?>): MltNode {
                 body.add(MltNode(name = "track", fields = mutableMapOf(Pair("producer","tractor_${type.text}${groupId}_even"))))
             }
         }
-
+    }
+    for (groupId in 0 until countGroups) {
         type = ProducerType.SONGTEXT
         if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
             if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
                 body.add(MltNode(name = "track", fields = mutableMapOf(Pair("producer","tractor_${type.text}${groupId}"))))
             }
         }
-
+    }
+    for (groupId in 0 until countGroups) {
         type = ProducerType.HEADER
         if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
             if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
                 body.add(MltNode(name = "track", fields = mutableMapOf(Pair("producer","tractor_${type.text}${groupId}"))))
             }
         }
+    }
+    for (groupId in 0 until countGroups) {
         type = ProducerType.LOGOTYPE
         if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
             if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
                 body.add(MltNode(name = "track", fields = mutableMapOf(Pair("producer","tractor_${type.text}${groupId}"))))
             }
         }
+    }
+    for (groupId in 0 until countGroups) {
         type = ProducerType.BEAT
         if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
             if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
@@ -97,6 +124,8 @@ fun getMltTimelineTractor(param: Map<String, Any?>): MltNode {
                 body.add(MltNode(name = "track", fields = mutableMapOf(Pair("producer","tractor_${type.text}${groupId}1"))))
             }
         }
+    }
+    for (groupId in 0 until countGroups) {
         type = ProducerType.COUNTER
         if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
             if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
@@ -107,6 +136,8 @@ fun getMltTimelineTractor(param: Map<String, Any?>): MltNode {
                 body.add(MltNode(name = "track", fields = mutableMapOf(Pair("producer","tractor_${type.text}${groupId}0"))))
             }
         }
+    }
+    for (groupId in 0 until countGroups) {
         type = ProducerType.WATERMARK
         if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
             if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
@@ -114,6 +145,7 @@ fun getMltTimelineTractor(param: Map<String, Any?>): MltNode {
             }
         }
     }
+
     body.add(
         MltNode(name = "filter",
             fields = mutableMapOf(

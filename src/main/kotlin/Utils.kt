@@ -27,8 +27,9 @@ fun main() {
 
 //    test()
 
-    println(Karaoke.headerSongnameFont)
-    println(Karaoke.frameHeightPx)
+    println("headerSongnameFont = ${Karaoke.headerSongnameFont}")
+    println("headerSongnameColor = ${Karaoke.headerSongnameColor}")
+
 
 }
 

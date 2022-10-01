@@ -121,44 +121,48 @@ fun getTemplateHorizon(param: Map<String, Any?>): MltNode {
 
     val voiceLines = param["VOICE0_VOICELINES"] as MutableList<*>
 
-    voiceLines.forEachIndexed { indexLine, it ->
-        val voiceLine = it as SongVoiceLine
-        if (!voiceLine.isEmptyLine) {
-            val lineStartMs = convertTimecodeToMilliseconds(voiceLine.start)
-            val lineEndMs = convertTimecodeToMilliseconds(voiceLine.end)
-            val lineX = ((lineStartMs.toDouble() / (param["SONG_LENGTH_MS"] as Long)) * (Karaoke.frameWidthPx as Long)).toLong()
-            val lineW = ((lineEndMs.toDouble() / (param["SONG_LENGTH_MS"] as Long)) * (Karaoke.frameWidthPx as Long)).toLong() - lineX
+    if (Karaoke.paintHorizon) {
+        voiceLines.forEachIndexed { indexLine, it ->
+            val voiceLine = it as SongVoiceLine
+            if (!voiceLine.isEmptyLine) {
+                val lineStartMs = convertTimecodeToMilliseconds(voiceLine.start)
+                val lineEndMs = convertTimecodeToMilliseconds(voiceLine.end)
+                val lineX = ((lineStartMs.toDouble() / (param["SONG_LENGTH_MS"] as Long)) * (Karaoke.frameWidthPx as Long)).toLong()
+                val lineW = ((lineEndMs.toDouble() / (param["SONG_LENGTH_MS"] as Long)) * (Karaoke.frameWidthPx as Long)).toLong() - lineX
 
-            templateHorizonGroup.add(
-                MltNode(
-                    name = "item",
-                    fields = mutableMapOf(
-                        Pair("type","QGraphicsRectItem"),
-                        Pair("z-index","0"),
-                    ),
-                    body = mutableListOf(
-                        MltNode(
-                            name = "position",
-                            fields = mutableMapOf(
-                                Pair("x","0"),
-                                Pair("y","${param["HORIZON_POSITION_PX"]}"),
-                            ),
-                            body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(Pair("zoom","100")), body = "1,0,0,0,1,0,0,0,1"))
+                templateHorizonGroup.add(
+                    MltNode(
+                        name = "item",
+                        fields = mutableMapOf(
+                            Pair("type","QGraphicsRectItem"),
+                            Pair("z-index","0"),
                         ),
-                        MltNode(
-                            name = "content",
-                            fields = mutableMapOf(
-                                Pair("brushcolor", Karaoke.horizonColors[voiceLine.subtitles.first().group].mlt()),
-                                Pair("pencolor","0,0,0,255"),
-                                Pair("penwidth","0"),
-                                Pair("rect","$lineX,0,$lineW,3")
+                        body = mutableListOf(
+                            MltNode(
+                                name = "position",
+                                fields = mutableMapOf(
+                                    Pair("x","0"),
+                                    Pair("y","${param["HORIZON_POSITION_PX"]}"),
+                                ),
+                                body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(Pair("zoom","100")), body = "1,0,0,0,1,0,0,0,1"))
+                            ),
+                            MltNode(
+                                name = "content",
+                                fields = mutableMapOf(
+                                    Pair("brushcolor", Karaoke.horizonColors[voiceLine.subtitles.first().group].mlt()),
+                                    Pair("pencolor","0,0,0,255"),
+                                    Pair("penwidth","0"),
+                                    Pair("rect","$lineX,0,$lineW,3")
+                                )
                             )
                         )
                     )
                 )
-            )
+            }
         }
+
     }
+
 
 
     val templateHorizon = MltNode(

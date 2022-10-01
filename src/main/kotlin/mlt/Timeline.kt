@@ -99,14 +99,6 @@ fun getMltTimelineTractor(param: Map<String, Any?>): MltNode {
         }
     }
     for (groupId in 0 until countVoices) {
-        type = ProducerType.LOGOTYPE
-        if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
-            if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
-                body.add(MltNode(name = "track", fields = mutableMapOf(Pair("producer","tractor_${type.text}${groupId}"))))
-            }
-        }
-    }
-    for (groupId in 0 until countVoices) {
         type = ProducerType.MICROPHONE
         if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
             if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {

@@ -12,7 +12,6 @@ enum class ProducerType(val text: String, val orderInTimeline: Int, val onlyOne:
     FILLCOLOR(text ="fillcolor", orderInTimeline = 8, onlyOne = false),
     SONGTEXT(text ="songtext", orderInTimeline = 9, onlyOne = false),
     HEADER(text ="header", orderInTimeline = 10, onlyOne = true),
-    LOGOTYPE(text ="logotype", orderInTimeline = 11, onlyOne = true),
     BEAT(text ="beat", orderInTimeline = 12, onlyOne = true),
     COUNTER(text ="counter", orderInTimeline = 13, onlyOne = false),
     WATERMARK(text ="watermark", orderInTimeline = 14, onlyOne = true)

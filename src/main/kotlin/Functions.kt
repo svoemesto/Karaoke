@@ -71,24 +71,23 @@ fun createKaraoke(song: Song) {
         val idProducerHorizon = 3
         val idProducerFillColorEven = 4
         val idProducerFillColorOdd = 5
-        val idProducerLogotype = 6
-        val idProducerHeader = 7
-        val idProducerBackground = 8
-        val idProducerMicrophone = 9
-        val idProducerCounter4 = 10
-        val idProducerCounter3 = 11
-        val idProducerCounter2 = 12
-        val idProducerCounter1 = 13
-        val idProducerCounter0 = 14
-        val idProducerAudioSong = 15
-        val idProducerAudioMusic = 16
-        val idProducerAudioVocal = 17
-        val idProducerBeat1 = 18
-        val idProducerBeat2 = 19
-        val idProducerBeat3 = 20
-        val idProducerBeat4 = 21
-        val idProducerProgress = 22
-        val idProducerWatermark = 23
+        val idProducerHeader = 6
+        val idProducerBackground = 7
+        val idProducerMicrophone = 8
+        val idProducerCounter4 = 9
+        val idProducerCounter3 = 10
+        val idProducerCounter2 = 11
+        val idProducerCounter1 = 12
+        val idProducerCounter0 = 13
+        val idProducerAudioSong = 14
+        val idProducerAudioMusic = 15
+        val idProducerAudioVocal = 16
+        val idProducerBeat1 = 17
+        val idProducerBeat2 = 18
+        val idProducerBeat3 = 19
+        val idProducerBeat4 = 20
+        val idProducerProgress = 21
+        val idProducerWatermark = 22
 
         val beats = listOf(
             emptyList<String>().toMutableList(),
@@ -99,6 +98,7 @@ fun createKaraoke(song: Song) {
 
         val propRectLineValue = mutableListOf<String>() // Список свойств трансформации текста
         val propProgressLineValue = mutableListOf<String>() // Список свойств трансформации текста
+        val propHeaderLineValue = mutableListOf<String>() // Список свойств трансформации текста
         val propGuidesValue = mutableListOf<String>()
         val guidesTypes = listOf<Long>(8, 7, 4, 3)
 
@@ -195,11 +195,12 @@ fun createKaraoke(song: Song) {
         }
 
         var currentPositionEnd = 0L // Устанавливаем текущую позицию конца в ноль
-
+        var endTimeHidingHeaderMs: Long? = null
         val voiceLines = mutableListOf<SongVoiceLine>()
         songVoice.lines.forEach { voiceLine ->
             val silentDuration = convertTimecodeToMilliseconds(voiceLine.start) - currentPositionEnd
-            val linesToInsert: Long = silentDuration / songVoice.maxDurationMs
+            var linesToInsert: Long = silentDuration / songVoice.maxDurationMs
+            if (voiceLine == songVoice.lines.first() && linesToInsert == 0L) linesToInsert = 1L
             if (linesToInsert > 0) {
                 val silentLineDuration: Long = silentDuration / linesToInsert
                 for (i in 1..linesToInsert) {
@@ -229,6 +230,7 @@ fun createKaraoke(song: Song) {
             voiceLine.isNeedCounter = ((linesToInsert > 0 && !voiceLine.isEmptyLine) || voiceLine == songVoice.lines.first())
             voiceLines.add(voiceLine)
             currentPositionEnd = convertTimecodeToMilliseconds(voiceLine.end)
+            if (!voiceLine.isEmptyLine) endTimeHidingHeaderMs = currentPositionEnd
         }
 
         val workAreaHeightPx = symbolHeightPx * voiceLines.size // Высота рабочей области
@@ -264,6 +266,7 @@ fun createKaraoke(song: Song) {
         param["HEADER_ALBUM"] = kdeHeaderAlbum
         param["HEADER_SONG_NAME"] = kdeHeaderSongName
         param["HEADER_SONG_NAME_FONT_SIZE"] = fontNameSizePt
+        param["LOGOTYPE_PATH"] = "${song.settings.rootFolder}/Logo.png"
 
         val templateSongText = getTemplateSongText(param,voiceId)
         val templateHorizon = getTemplateHorizon(param)
@@ -383,8 +386,10 @@ fun createKaraoke(song: Song) {
 
         // Настало время заняться счётчиками вступления.
 
+        var startTimeFirstCounterMs: Long? = null
         voiceLines.filter { it.isNeedCounter }
             .forEach { lyric -> // Проходимся по всем строкам, для которых нужен счётчик
+                if (startTimeFirstCounterMs == null) startTimeFirstCounterMs = convertTimecodeToMilliseconds(lyric.start) - halfNoteLengthMs * 4
                 for (counterNumber in 0..4) {
                     val startTimeMs = convertTimecodeToMilliseconds(lyric.start) - halfNoteLengthMs * counterNumber
                     val initTimeMs = startTimeMs - (1000 / Karaoke.frameFps + 1).toLong()
@@ -396,7 +401,7 @@ fun createKaraoke(song: Song) {
                     }
                 }
             }
-
+        if (startTimeFirstCounterMs == null || startTimeFirstCounterMs!! < 0L) startTimeFirstCounterMs = 3000
 
         // Такты
         var delayMs = convertTimecodeToMilliseconds(song.beatTimecode) // + TIME_OFFSET_MS
@@ -415,18 +420,11 @@ fun createKaraoke(song: Song) {
             currentPositionStartMs = (delayMs + beatMs * (beatCounter - 1))// + TIME_OFFSET_MS
             val currentPositionStartFrame = convertMillisecondsToFrames(currentPositionStartMs)
 
-            val currentPositionStartMs2fb =
-                convertFramesToMilliseconds(convertMillisecondsToFrames(currentPositionStartMs) - 2, Karaoke.frameFps)
-            val currentPositionStartMs1fb =
-                convertFramesToMilliseconds(convertMillisecondsToFrames(currentPositionStartMs) - 1, Karaoke.frameFps)
-            val currentPositionEndMs = convertFramesToMilliseconds(
-                convertMillisecondsToFrames(currentPositionStartMs + (beatMs * (4 - tick))) - 3,
-                Karaoke.frameFps
-            )
-            val currentPositionEndMs1fa =
-                convertFramesToMilliseconds(convertMillisecondsToFrames(currentPositionEndMs) + 1, Karaoke.frameFps)
-            val currentPositionEndMs2fa =
-                convertFramesToMilliseconds(convertMillisecondsToFrames(currentPositionEndMs) + 2, Karaoke.frameFps)
+            val currentPositionStartMs2fb = convertFramesToMilliseconds(convertMillisecondsToFrames(currentPositionStartMs) - 2, Karaoke.frameFps)
+            val currentPositionStartMs1fb = convertFramesToMilliseconds(convertMillisecondsToFrames(currentPositionStartMs) - 1, Karaoke.frameFps)
+            val currentPositionEndMs = convertFramesToMilliseconds(convertMillisecondsToFrames(currentPositionStartMs + (beatMs * (4 - tick))) - 3, Karaoke.frameFps)
+            val currentPositionEndMs1fa = convertFramesToMilliseconds(convertMillisecondsToFrames(currentPositionEndMs) + 1, Karaoke.frameFps)
+            val currentPositionEndMs2fa = convertFramesToMilliseconds(convertMillisecondsToFrames(currentPositionEndMs) + 2, Karaoke.frameFps)
 
             val point0 = "${convertMillisecondsToTimecode(currentPositionStartMs2fb)}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.0"
             val point1 = "${convertMillisecondsToTimecode(currentPositionStartMs1fb)}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.0"
@@ -449,10 +447,16 @@ fun createKaraoke(song: Song) {
             beatCounter += 1
         }
 
+        propHeaderLineValue.add("${convertMillisecondsToTimecode(startTimeFirstCounterMs!!)}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 1.0")
+        propHeaderLineValue.add("${convertMillisecondsToTimecode(startTimeFirstCounterMs!!+halfNoteLengthMs*4)}=0 -492 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 1.0")
+        propHeaderLineValue.add("${convertMillisecondsToTimecode(endTimeHidingHeaderMs!!)}=0 -492 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 1.0")
+        propHeaderLineValue.add("${convertMillisecondsToTimecode(endTimeHidingHeaderMs!!+halfNoteLengthMs*4)}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 1.0")
+
         // Формируем тексты для файлов и сохраняем файлы
 
         val propRectValue = propRectLineValue.joinToString(";")
         val propProgressValue = propProgressLineValue.joinToString(";")
+        val propHeaderValue = propHeaderLineValue.joinToString(";")
         val propFillOddValue = propRectTitleValueLineOddEven[0].joinToString(";")
         val propFillEvenValue = propRectTitleValueLineOddEven[1].joinToString(";")
         val propFillCounter0Value = counters[0].joinToString(";")
@@ -486,7 +490,6 @@ fun createKaraoke(song: Song) {
         param["SONG_LENGTH_FR"] = kdeLengthFrames
         param["GUIDES_PROPERTY"] = "[${propGuides}]"
         param["IN_OFFSET"] = kdeInOffset
-
 
         param["${ProducerType.AUDIOSONG.text.uppercase()}${voiceId}_ID"] = idProducerAudioSong
         param["${ProducerType.AUDIOSONG.text.uppercase()}${voiceId}_PATH"] = song.settings.audioSongFileName
@@ -529,13 +532,9 @@ fun createKaraoke(song: Song) {
         param["${ProducerType.FILLCOLOR.text.uppercase()}${voiceId}_ODD_PROPERTY_RECT"] = propFillOddValue
         param["HIDE_TRACTOR_${ProducerType.FILLCOLOR.text.uppercase()}${voiceId}_ODD"] = "audio"
 
-        param["${ProducerType.LOGOTYPE.text.uppercase()}${voiceId}_ID"] = idProducerLogotype
-        param["${ProducerType.LOGOTYPE.text.uppercase()}${voiceId}_PATH"] = kdeLogoPath
-        param["HIDE_TRACTOR_${ProducerType.LOGOTYPE.text.uppercase()}${voiceId}"] = "audio"
-
-
         param["${ProducerType.HEADER.text.uppercase()}${voiceId}_ID"] = idProducerHeader
         param["${ProducerType.HEADER.text.uppercase()}${voiceId}_XML_DATA"] = templateHeader
+        param["${ProducerType.HEADER.text.uppercase()}${voiceId}_PROPERTY_RECT"] = propHeaderValue
         param["HIDE_TRACTOR_${ProducerType.HEADER.text.uppercase()}${voiceId}"] = "audio"
 
 
@@ -604,7 +603,6 @@ fun createKaraoke(song: Song) {
         param["${ProducerType.FILLCOLOR.text.uppercase()}${voiceId}_ENABLED"] = Karaoke.createFills
         param["${ProducerType.SONGTEXT.text.uppercase()}${voiceId}_ENABLED"] = Karaoke.createSongtext
         param["${ProducerType.HEADER.text.uppercase()}${voiceId}_ENABLED"] = Karaoke.createHeader
-        param["${ProducerType.LOGOTYPE.text.uppercase()}${voiceId}_ENABLED"] = Karaoke.createLogotype
         param["${ProducerType.BEAT.text.uppercase()}${voiceId}_ENABLED"] = Karaoke.createBeats
         param["${ProducerType.COUNTER.text.uppercase()}${voiceId}_ENABLED"] = Karaoke.createCounters
         param["${ProducerType.WATERMARK.text.uppercase()}${voiceId}_ENABLED"] = Karaoke.createWatermark

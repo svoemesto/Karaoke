@@ -35,10 +35,6 @@ import getMltHorizonFilePlaylist
 import getMltHorizonProducer
 import getMltHorizonTrackPlaylist
 import getMltHorizonTractor
-import getMltLogotypeFilePlaylist
-import getMltLogotypeProducer
-import getMltLogotypeTrackPlaylist
-import getMltLogotypeTractor
 import getMltMainBinPlaylist
 import getMltMicrophoneFilePlaylist
 import getMltMicrophoneProducer
@@ -104,13 +100,6 @@ fun getMlt(param: Map<String, Any?>): MltNode {
             if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
                 body.add(getMltFillColorEvenProducer(param, type, groupId))
                 body.add(getMltFillColorOddProducer(param, type, groupId))
-            }
-        }
-
-        type = ProducerType.LOGOTYPE
-        if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
-            if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
-                body.add(getMltLogotypeProducer(param, type, groupId))
             }
         }
 
@@ -277,15 +266,6 @@ fun getMlt(param: Map<String, Any?>): MltNode {
                 body.add(getMltHeaderFilePlaylist(param, type, voiceId))
                 body.add(getMltHeaderTrackPlaylist(param, type, voiceId))
                 body.add(getMltHeaderTractor(param, type, voiceId))
-            }
-        }
-
-        type = ProducerType.LOGOTYPE
-        if ((param["${type.text.uppercase()}${voiceId}_ENABLED"] as Boolean)) {
-            if ((type.onlyOne && voiceId == 0) || !type.onlyOne ) {
-                body.add(getMltLogotypeFilePlaylist(param, type, voiceId))
-                body.add(getMltLogotypeTrackPlaylist(param, type, voiceId))
-                body.add(getMltLogotypeTractor(param, type, voiceId))
             }
         }
 

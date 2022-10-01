@@ -121,7 +121,7 @@ class Karaoke {
         // Раскрашивать горизонт
         var paintHorizon: Boolean
             get() {
-                val defaultValue = "true"
+                val defaultValue = "false"
                 props.loadFromXML(File(fileNameXml).inputStream())
                 return props.getProperty("paintHorizon",defaultValue).toBoolean()
             }
@@ -193,7 +193,7 @@ class Karaoke {
         // Создавать такты
         var createBeats: Boolean
             get() {
-                val defaultValue = "true"
+                val defaultValue = "false"
                 props.loadFromXML(File(fileNameXml).inputStream())
                 return props.getProperty("createBeats",defaultValue).toBoolean()
             }
@@ -666,7 +666,7 @@ oddOpacity|[NAME]|0.6""".trimIndent()
         var progressFont: MltFont
             get() {
                 val defaultValue = MltFont(
-                    font = Font("Tahoma", 0, 30),
+                    font = Font("Tahoma", 0, 20),
                     fontColor = Color(255,255,255,255),
                     fontOutlineColor = Color(0,0,0,255),
                     fontOutline = 0,

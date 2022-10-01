@@ -19,7 +19,8 @@ import getMltCounterFilePlaylist
 import getMltCounterProducer
 import getMltCounterTrackPlaylist
 import getMltCounterTractor
-import getMltFillColorProducer
+import getMltFillColorEvenProducer
+import getMltFillColorOddProducer
 import getMltFillEvenFilePlaylist
 import getMltFillEvenTrackPlaylist
 import getMltFillEvenTractor
@@ -101,7 +102,8 @@ fun getMlt(param: Map<String, Any?>): MltNode {
         type = ProducerType.FILLCOLOR
         if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
             if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
-                body.add(getMltFillColorProducer(param, type, groupId))
+                body.add(getMltFillColorEvenProducer(param, type, groupId))
+                body.add(getMltFillColorOddProducer(param, type, groupId))
             }
         }
 
@@ -180,158 +182,158 @@ fun getMlt(param: Map<String, Any?>): MltNode {
     body.add(getMltMainBinPlaylist(param))
     body.add(getMltBlackTrackProducer(param))
 
-    for (groupId in 0 until countGroups) {
+    for (voiceId in 0 until countGroups) {
 
         type = ProducerType.AUDIOVOCAL
-        if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
-            if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
-                body.add(getMltAudioFileProducer(param, type, groupId))
-                body.add(getMltAudioFilePlaylist(param, type, groupId))
-                body.add(getMltAudioTrackPlaylist(param, type, groupId))
-                body.add(getMltAudioTractor(param, type, groupId))
+        if ((param["${type.text.uppercase()}${voiceId}_ENABLED"] as Boolean)) {
+            if ((type.onlyOne && voiceId == 0) || !type.onlyOne ) {
+                body.add(getMltAudioFileProducer(param, type, voiceId))
+                body.add(getMltAudioFilePlaylist(param, type, voiceId))
+                body.add(getMltAudioTrackPlaylist(param, type, voiceId))
+                body.add(getMltAudioTractor(param, type, voiceId))
             }
         }
 
         type = ProducerType.AUDIOMUSIC
-        if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
-            if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
-                body.add(getMltAudioFileProducer(param, type, groupId))
-                body.add(getMltAudioFilePlaylist(param, type, groupId))
-                body.add(getMltAudioTrackPlaylist(param, type, groupId))
-                body.add(getMltAudioTractor(param, type, groupId))
+        if ((param["${type.text.uppercase()}${voiceId}_ENABLED"] as Boolean)) {
+            if ((type.onlyOne && voiceId == 0) || !type.onlyOne ) {
+                body.add(getMltAudioFileProducer(param, type, voiceId))
+                body.add(getMltAudioFilePlaylist(param, type, voiceId))
+                body.add(getMltAudioTrackPlaylist(param, type, voiceId))
+                body.add(getMltAudioTractor(param, type, voiceId))
             }
         }
 
         type = ProducerType.AUDIOSONG
-        if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
-            if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
-                body.add(getMltAudioFileProducer(param, type, groupId))
-                body.add(getMltAudioFilePlaylist(param, type, groupId))
-                body.add(getMltAudioTrackPlaylist(param, type, groupId))
-                body.add(getMltAudioTractor(param, type, groupId))
+        if ((param["${type.text.uppercase()}${voiceId}_ENABLED"] as Boolean)) {
+            if ((type.onlyOne && voiceId == 0) || !type.onlyOne ) {
+                body.add(getMltAudioFileProducer(param, type, voiceId))
+                body.add(getMltAudioFilePlaylist(param, type, voiceId))
+                body.add(getMltAudioTrackPlaylist(param, type, voiceId))
+                body.add(getMltAudioTractor(param, type, voiceId))
             }
         }
 
         type = ProducerType.BACKGROUND
-        if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
-            if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
-                body.add(getMltBackgroundFilePlaylist(param, type, groupId))
-                body.add(getMltBackgroundTrackPlaylist(param, type, groupId))
-                body.add(getMltBackgroundTractor(param, type, groupId))
+        if ((param["${type.text.uppercase()}${voiceId}_ENABLED"] as Boolean)) {
+            if ((type.onlyOne && voiceId == 0) || !type.onlyOne ) {
+                body.add(getMltBackgroundFilePlaylist(param, type, voiceId))
+                body.add(getMltBackgroundTrackPlaylist(param, type, voiceId))
+                body.add(getMltBackgroundTractor(param, type, voiceId))
             }
         }
 
         type = ProducerType.MICROPHONE
-        if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
-            if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
-                body.add(getMltMicrophoneFilePlaylist(param, type, groupId))
-                body.add(getMltMicrophoneTrackPlaylist(param, type, groupId))
-                body.add(getMltMicrophoneTractor(param, type, groupId))
+        if ((param["${type.text.uppercase()}${voiceId}_ENABLED"] as Boolean)) {
+            if ((type.onlyOne && voiceId == 0) || !type.onlyOne ) {
+                body.add(getMltMicrophoneFilePlaylist(param, type, voiceId))
+                body.add(getMltMicrophoneTrackPlaylist(param, type, voiceId))
+                body.add(getMltMicrophoneTractor(param, type, voiceId))
             }
         }
 
         type = ProducerType.HORIZON
-        if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
-            if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
-                body.add(getMltHorizonFilePlaylist(param, type, groupId))
-                body.add(getMltHorizonTrackPlaylist(param, type, groupId))
-                body.add(getMltHorizonTractor(param, type, groupId))
+        if ((param["${type.text.uppercase()}${voiceId}_ENABLED"] as Boolean)) {
+            if ((type.onlyOne && voiceId == 0) || !type.onlyOne ) {
+                body.add(getMltHorizonFilePlaylist(param, type, voiceId))
+                body.add(getMltHorizonTrackPlaylist(param, type, voiceId))
+                body.add(getMltHorizonTractor(param, type, voiceId))
             }
         }
 
         type = ProducerType.PROGRESS
-        if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
-            if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
-                body.add(getMltProgressFilePlaylist(param, type, groupId))
-                body.add(getMltProgressTrackPlaylist(param, type, groupId))
-                body.add(getMltProgressTractor(param, type, groupId))
+        if ((param["${type.text.uppercase()}${voiceId}_ENABLED"] as Boolean)) {
+            if ((type.onlyOne && voiceId == 0) || !type.onlyOne ) {
+                body.add(getMltProgressFilePlaylist(param, type, voiceId))
+                body.add(getMltProgressTrackPlaylist(param, type, voiceId))
+                body.add(getMltProgressTractor(param, type, voiceId))
             }
         }
 
         type = ProducerType.FILLCOLOR
-        if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
-            if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
-                body.add(getMltFillEvenFilePlaylist(param, type, groupId))
-                body.add(getMltFillEvenTrackPlaylist(param, type, groupId))
-                body.add(getMltFillEvenTractor(param, type, groupId))
-                body.add(getMltFillOddFilePlaylist(param, type, groupId))
-                body.add(getMltFillOddTrackPlaylist(param, type, groupId))
-                body.add(getMltFillOddTractor(param, type, groupId))
+        if ((param["${type.text.uppercase()}${voiceId}_ENABLED"] as Boolean)) {
+            if ((type.onlyOne && voiceId == 0) || !type.onlyOne ) {
+                body.add(getMltFillEvenFilePlaylist(param, type, voiceId))
+                body.add(getMltFillEvenTrackPlaylist(param, type, voiceId))
+                body.add(getMltFillEvenTractor(param, type, voiceId))
+                body.add(getMltFillOddFilePlaylist(param, type, voiceId))
+                body.add(getMltFillOddTrackPlaylist(param, type, voiceId))
+                body.add(getMltFillOddTractor(param, type, voiceId))
             }
         }
 
         type = ProducerType.SONGTEXT
-        if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
-            if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
-                body.add(getMltSongTextFilePlaylist(param, type, groupId))
-                body.add(getMltSongTextTrackPlaylist(param, type, groupId))
-                body.add(getMltSongTextTractor(param, type, groupId))
+        if ((param["${type.text.uppercase()}${voiceId}_ENABLED"] as Boolean)) {
+            if ((type.onlyOne && voiceId == 0) || !type.onlyOne ) {
+                body.add(getMltSongTextFilePlaylist(param, type, voiceId))
+                body.add(getMltSongTextTrackPlaylist(param, type, voiceId))
+                body.add(getMltSongTextTractor(param, type, voiceId))
             }
         }
 
         type = ProducerType.HEADER
-        if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
-            if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
-                body.add(getMltHeaderFilePlaylist(param, type, groupId))
-                body.add(getMltHeaderTrackPlaylist(param, type, groupId))
-                body.add(getMltHeaderTractor(param, type, groupId))
+        if ((param["${type.text.uppercase()}${voiceId}_ENABLED"] as Boolean)) {
+            if ((type.onlyOne && voiceId == 0) || !type.onlyOne ) {
+                body.add(getMltHeaderFilePlaylist(param, type, voiceId))
+                body.add(getMltHeaderTrackPlaylist(param, type, voiceId))
+                body.add(getMltHeaderTractor(param, type, voiceId))
             }
         }
 
         type = ProducerType.LOGOTYPE
-        if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
-            if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
-                body.add(getMltLogotypeFilePlaylist(param, type, groupId))
-                body.add(getMltLogotypeTrackPlaylist(param, type, groupId))
-                body.add(getMltLogotypeTractor(param, type, groupId))
+        if ((param["${type.text.uppercase()}${voiceId}_ENABLED"] as Boolean)) {
+            if ((type.onlyOne && voiceId == 0) || !type.onlyOne ) {
+                body.add(getMltLogotypeFilePlaylist(param, type, voiceId))
+                body.add(getMltLogotypeTrackPlaylist(param, type, voiceId))
+                body.add(getMltLogotypeTractor(param, type, voiceId))
             }
         }
 
         type = ProducerType.BEAT
-        if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
-            if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
-                body.add(getMltBeatFilePlaylist(param, 4, type, groupId))
-                body.add(getMltBeatTrackPlaylist(param, 4, type, groupId))
-                body.add(getMltBeatTractor(param, 4, type, groupId))
-                body.add(getMltBeatFilePlaylist(param, 3, type, groupId))
-                body.add(getMltBeatTrackPlaylist(param, 3, type, groupId))
-                body.add(getMltBeatTractor(param, 3, type, groupId))
-                body.add(getMltBeatFilePlaylist(param, 2, type, groupId))
-                body.add(getMltBeatTrackPlaylist(param, 2, type, groupId))
-                body.add(getMltBeatTractor(param, 2, type, groupId))
-                body.add(getMltBeatFilePlaylist(param, 1, type, groupId))
-                body.add(getMltBeatTrackPlaylist(param, 1, type, groupId))
-                body.add(getMltBeatTractor(param, 1, type, groupId))
+        if ((param["${type.text.uppercase()}${voiceId}_ENABLED"] as Boolean)) {
+            if ((type.onlyOne && voiceId == 0) || !type.onlyOne ) {
+                body.add(getMltBeatFilePlaylist(param, 4, type, voiceId))
+                body.add(getMltBeatTrackPlaylist(param, 4, type, voiceId))
+                body.add(getMltBeatTractor(param, 4, type, voiceId))
+                body.add(getMltBeatFilePlaylist(param, 3, type, voiceId))
+                body.add(getMltBeatTrackPlaylist(param, 3, type, voiceId))
+                body.add(getMltBeatTractor(param, 3, type, voiceId))
+                body.add(getMltBeatFilePlaylist(param, 2, type, voiceId))
+                body.add(getMltBeatTrackPlaylist(param, 2, type, voiceId))
+                body.add(getMltBeatTractor(param, 2, type, voiceId))
+                body.add(getMltBeatFilePlaylist(param, 1, type, voiceId))
+                body.add(getMltBeatTrackPlaylist(param, 1, type, voiceId))
+                body.add(getMltBeatTractor(param, 1, type, voiceId))
             }
         }
 
         type = ProducerType.COUNTER
-        if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
-            if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
-                body.add(getMltCounterFilePlaylist(param, 4, type, groupId))
-                body.add(getMltCounterTrackPlaylist(param, 4, type, groupId))
-                body.add(getMltCounterTractor(param, 4, type, groupId))
-                body.add(getMltCounterFilePlaylist(param, 3, type, groupId))
-                body.add(getMltCounterTrackPlaylist(param, 3, type, groupId))
-                body.add(getMltCounterTractor(param, 3, type, groupId))
-                body.add(getMltCounterFilePlaylist(param, 2, type, groupId))
-                body.add(getMltCounterTrackPlaylist(param, 2, type, groupId))
-                body.add(getMltCounterTractor(param, 2, type, groupId))
-                body.add(getMltCounterFilePlaylist(param, 1, type, groupId))
-                body.add(getMltCounterTrackPlaylist(param, 1, type, groupId))
-                body.add(getMltCounterTractor(param, 1, type, groupId))
-                body.add(getMltCounterFilePlaylist(param, 0, type, groupId))
-                body.add(getMltCounterTrackPlaylist(param, 0, type, groupId))
-                body.add(getMltCounterTractor(param, 0, type, groupId))
+        if ((param["${type.text.uppercase()}${voiceId}_ENABLED"] as Boolean)) {
+            if ((type.onlyOne && voiceId == 0) || !type.onlyOne ) {
+                body.add(getMltCounterFilePlaylist(param, 4, type, voiceId))
+                body.add(getMltCounterTrackPlaylist(param, 4, type, voiceId))
+                body.add(getMltCounterTractor(param, 4, type, voiceId))
+                body.add(getMltCounterFilePlaylist(param, 3, type, voiceId))
+                body.add(getMltCounterTrackPlaylist(param, 3, type, voiceId))
+                body.add(getMltCounterTractor(param, 3, type, voiceId))
+                body.add(getMltCounterFilePlaylist(param, 2, type, voiceId))
+                body.add(getMltCounterTrackPlaylist(param, 2, type, voiceId))
+                body.add(getMltCounterTractor(param, 2, type, voiceId))
+                body.add(getMltCounterFilePlaylist(param, 1, type, voiceId))
+                body.add(getMltCounterTrackPlaylist(param, 1, type, voiceId))
+                body.add(getMltCounterTractor(param, 1, type, voiceId))
+                body.add(getMltCounterFilePlaylist(param, 0, type, voiceId))
+                body.add(getMltCounterTrackPlaylist(param, 0, type, voiceId))
+                body.add(getMltCounterTractor(param, 0, type, voiceId))
             }
         }
 
         type = ProducerType.WATERMARK
-        if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
-            if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
-                body.add(getMltWatermarkFilePlaylist(param, type, groupId))
-                body.add(getMltWatermarkTrackPlaylist(param, type, groupId))
-                body.add(getMltWatermarkTractor(param, type, groupId))
+        if ((param["${type.text.uppercase()}${voiceId}_ENABLED"] as Boolean)) {
+            if ((type.onlyOne && voiceId == 0) || !type.onlyOne ) {
+                body.add(getMltWatermarkFilePlaylist(param, type, voiceId))
+                body.add(getMltWatermarkTrackPlaylist(param, type, voiceId))
+                body.add(getMltWatermarkTractor(param, type, voiceId))
             }
         }
 

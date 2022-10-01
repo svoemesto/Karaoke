@@ -11,7 +11,7 @@ fun Font.setting(): String {
     return "name=${name};style=${style};size=${size}"
 }
 fun Color.hexRGB(): String {
-    return Integer.toHexString(rgb)
+    return "0x${Integer.toHexString(rgb).substring(2)}${Integer.toHexString(rgb).substring(0,2)}"
 }
 
 fun Color.mlt(): String {

@@ -69,25 +69,26 @@ fun createKaraoke(song: Song) {
 
         val idProducerSongText = 2
         val idProducerHorizon = 3
-        val idProducerFillColor = 4
-        val idProducerLogotype = 5
-        val idProducerHeader = 6
-        val idProducerBackground = 7
-        val idProducerMicrophone = 8
-        val idProducerCounter4 = 9
-        val idProducerCounter3 = 10
-        val idProducerCounter2 = 11
-        val idProducerCounter1 = 12
-        val idProducerCounter0 = 13
-        val idProducerAudioSong = 14
-        val idProducerAudioMusic = 15
-        val idProducerAudioVocal = 16
-        val idProducerBeat1 = 17
-        val idProducerBeat2 = 18
-        val idProducerBeat3 = 19
-        val idProducerBeat4 = 20
-        val idProducerProgress = 21
-        val idProducerWatermark = 22
+        val idProducerFillColorEven = 4
+        val idProducerFillColorOdd = 5
+        val idProducerLogotype = 6
+        val idProducerHeader = 7
+        val idProducerBackground = 8
+        val idProducerMicrophone = 9
+        val idProducerCounter4 = 10
+        val idProducerCounter3 = 11
+        val idProducerCounter2 = 12
+        val idProducerCounter1 = 13
+        val idProducerCounter0 = 14
+        val idProducerAudioSong = 15
+        val idProducerAudioMusic = 16
+        val idProducerAudioVocal = 17
+        val idProducerBeat1 = 18
+        val idProducerBeat2 = 19
+        val idProducerBeat3 = 20
+        val idProducerBeat4 = 21
+        val idProducerProgress = 22
+        val idProducerWatermark = 23
 
         val beats = listOf(
             emptyList<String>().toMutableList(),
@@ -522,12 +523,13 @@ fun createKaraoke(song: Song) {
         param["HIDE_TRACTOR_${ProducerType.PROGRESS.text.uppercase()}${voiceId}"] = "audio"
 
 
-        param["${ProducerType.FILLCOLOR.text.uppercase()}${voiceId}_ID"] = idProducerFillColor
+        param["${ProducerType.FILLCOLOR.text.uppercase()}${voiceId}_EVEN_ID"] = idProducerFillColorEven
         param["${ProducerType.FILLCOLOR.text.uppercase()}${voiceId}_EVEN_PROPERTY_RECT"] = propFillEvenValue
-        param["${ProducerType.FILLCOLOR.text.uppercase()}${voiceId}_ODD_PROPERTY_RECT"] = propFillOddValue
         param["HIDE_TRACTOR_${ProducerType.FILLCOLOR.text.uppercase()}${voiceId}_EVEN"] = "audio"
-        param["HIDE_TRACTOR_${ProducerType.FILLCOLOR.text.uppercase()}${voiceId}_ODD"] = "audio"
 
+        param["${ProducerType.FILLCOLOR.text.uppercase()}${voiceId}_ODD_ID"] = idProducerFillColorOdd
+        param["${ProducerType.FILLCOLOR.text.uppercase()}${voiceId}_ODD_PROPERTY_RECT"] = propFillOddValue
+        param["HIDE_TRACTOR_${ProducerType.FILLCOLOR.text.uppercase()}${voiceId}_ODD"] = "audio"
 
         param["${ProducerType.LOGOTYPE.text.uppercase()}${voiceId}_ID"] = idProducerLogotype
         param["${ProducerType.LOGOTYPE.text.uppercase()}${voiceId}_PATH"] = kdeLogoPath

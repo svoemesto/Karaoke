@@ -14,19 +14,21 @@ import kotlin.random.Random
 
 
 fun main() {
-//    val pathToFileFrom = "/home/nsa/Documents/Караоке/Агата Кристи/1988 - Второй фронт/(03) [Агата Кристи] Пантера [vocals].txt"
-//    val pathToFileTo = "/home/nsa/Documents/Караоке/Агата Кристи/1988 - Второй фронт/(03) [Агата Кристи] Пантера.kdenlive.srt"
-//    extractSubtitlesFromAutorecognizedFile(pathToFileFrom, pathToFileTo)
 
-//    val pathToFileFrom = "/home/nsa/Documents/Караоке/Ундервуд/2002 - Все пройдет, Милая/(03) [Ундервуд] Следи за ее левой рукой.kdenlive"
-
-//    val listFiles = getListFiles("/home/nsa/Documents/Караоке/Ундервуд", ".kdenlive")
-//    listFiles.forEach { fileName ->
-//        convertMarkersToSubtitles(fileName)
-//    }
-
-//    test()
-
+Karaoke.createAudioMusic = Karaoke.createAudioMusic
+Karaoke.createAudioSong = Karaoke.createAudioSong
+Karaoke.createAudioVocal = Karaoke.createAudioVocal
+Karaoke.createBeats = Karaoke.createBeats
+Karaoke.createBackground = Karaoke.createBackground
+Karaoke.createCounters = Karaoke.createCounters
+Karaoke.createFills = Karaoke.createFills
+Karaoke.createHeader = Karaoke.createHeader
+Karaoke.createHorizon = Karaoke.createHorizon
+Karaoke.createLogotype = Karaoke.createLogotype
+Karaoke.createMicrophone = Karaoke.createMicrophone
+Karaoke.createProgress = Karaoke.createProgress
+Karaoke.createSongtext = Karaoke.createSongtext
+Karaoke.createWatermark = Karaoke.createWatermark
 
 }
 

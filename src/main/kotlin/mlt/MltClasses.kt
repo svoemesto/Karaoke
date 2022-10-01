@@ -47,7 +47,7 @@ fun MltFont.mltNode(value: String): MltNode {
 fun MltFont.setting(): String {
     return "fname=${font.name}|fstyle=${font.style}|fsize=${font.size}" +
             "|fcr=${fontColor.red}|fcg=${fontColor.green}|fcb=${fontColor.blue}|fca=${fontColor.alpha}" +
-            "|ocr=${fontColor.red}|ocg=${fontColor.green}|ocb=${fontColor.blue}|oca=${fontColor.alpha}" +
+            "|ocr=${fontOutlineColor.red}|ocg=${fontOutlineColor.green}|ocb=${fontOutlineColor.blue}|oca=${fontOutlineColor.alpha}" +
             "|underline=${fontUnderline}" +
             "|outline=${fontOutline}"
 }

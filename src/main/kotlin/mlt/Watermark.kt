@@ -116,6 +116,11 @@ fun getMltWatermarkTractor(param: Map<String, Any?>, type:ProducerType = Produce
 }
 
 fun getTemplateWatermark(param: Map<String, Any?>): MltNode {
+
+    val (w, h) = getTextWidthHeightPx(Karaoke.watermarkText, Karaoke.watermarkFont.font)
+    val x = Karaoke.frameWidthPx - w.toLong() - 10
+    val y = Karaoke.frameHeightPx - h.toLong() - 10
+
     return MltNode(
         name = "kdenlivetitle",
         fields = mutableMapOf(
@@ -136,12 +141,12 @@ fun getTemplateWatermark(param: Map<String, Any?>): MltNode {
                     MltNode(
                         name = "position",
                         fields = mutableMapOf(
-                            Pair("x","1700"),
-                            Pair("y","1063")
+                            Pair("x","$x"),
+                            Pair("y","$y")
                         ),
                         body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(Pair("zoom","100")), body = "1,0,0,0,1,0,0,0,1"))
                     ),
-                    Karaoke.watermarkFont.mltNode("https://github.com/svoemesto/Karaoke")
+                    Karaoke.watermarkFont.mltNode(Karaoke.watermarkText)
                 )
             ),
             MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${Karaoke.frameHeightPx}"))),

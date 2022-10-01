@@ -17,6 +17,7 @@ class Karaoke {
         private val fileNameXml = "src/main/resources/settings.xml"
         private val props = Properties()
 
+
         // Путь к папке с фонами
         var backgroundFolderPath: String
             get() {
@@ -329,17 +330,21 @@ class Karaoke {
         // Настройки текста для голосов - групп
         var voices: MutableList<KaraokeVoice>
             get() {
-                val defaultValue = """songtextTextMltFont|[NAME]|${MltFont(font = Font("Tahoma",0,80), fontColor = Color(255,255,255,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 0, fontUnderline = 0).setting()}
+                val defaultValue = """songtextTextMltFont|[NAME]|${MltFont(font = Font("Montserrat SemiBold",0,80), fontColor = Color(255,255,255,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 1, fontUnderline = 0).setting()}
 |[FIELD]|
-songtextBeatMltFont|[NAME]|${MltFont(font = Font("Tahoma",0,80), fontColor = Color(155,255,255,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 0, fontUnderline = 0).setting()}
+songtextBeatMltFont|[NAME]|${MltFont(font = Font("Montserrat SemiBold",0,80), fontColor = Color(155,255,155,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 1, fontUnderline = 0).setting()}
 |[GROUP]|
-songtextTextMltFont|[NAME]|${MltFont(font = Font("Tahoma",0,80), fontColor = Color(255,255,155,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 0, fontUnderline = 0).setting()}
+songtextTextMltFont|[NAME]|${MltFont(font = Font("Montserrat SemiBold",2,80), fontColor = Color(255,255,155,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 1, fontUnderline = 0).setting()}
 |[FIELD]|
-songtextBeatMltFont|[NAME]|${MltFont(font = Font("Tahoma",0,80), fontColor = Color(105,255,105,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 0, fontUnderline = 0).setting()}
+songtextBeatMltFont|[NAME]|${MltFont(font = Font("Montserrat SemiBold",2,80), fontColor = Color(105,255,105,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 1, fontUnderline = 0).setting()}
 |[GROUP]|
-songtextTextMltFont|[NAME]|${MltFont(font = Font("Tahoma",0,80), fontColor = Color(85,255,155,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 0, fontUnderline = 0).setting()}
+songtextTextMltFont|[NAME]|${MltFont(font = Font("Montserrat SemiBold",0,80), fontColor = Color(155,255,255,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 1, fontUnderline = 0).setting()}
 |[FIELD]|
-songtextBeatMltFont|[NAME]|${MltFont(font = Font("Tahoma",0,80), fontColor = Color(105,255,105,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 0, fontUnderline = 0).setting()}
+songtextBeatMltFont|[NAME]|${MltFont(font = Font("Montserrat SemiBold",0,80), fontColor = Color(105,255,105,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 1, fontUnderline = 0).setting()}
+|[GROUP]|
+songtextTextMltFont|[NAME]|${MltFont(font = Font("Montserrat SemiBold",2,80), fontColor = Color(255,255,255,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 1, fontUnderline = 0).setting()}
+|[FIELD]|
+songtextBeatMltFont|[NAME]|${MltFont(font = Font("Montserrat SemiBold",2,80), fontColor = Color(155,255,155,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 1, fontUnderline = 0).setting()}
 |[VOICEFIELDS]|
 evenColor|[NAME]|${Color(255,128,0,255).setting()}
 |[FIELD]|
@@ -349,17 +354,21 @@ oddColor|[NAME]|${Color(255,128,0,255).setting()}
 |[FIELD]|
 oddOpacity|[NAME]|0.6
 |[VOICE]|
-songtextTextMltFont|[NAME]|${MltFont(font = Font("Tahoma",0,80), fontColor = Color(255,255,255,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 0, fontUnderline = 0).setting()}
+songtextTextMltFont|[NAME]|${MltFont(font = Font("Montserrat SemiBold",0,80), fontColor = Color(255,255,255,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 1, fontUnderline = 0).setting()}
 |[FIELD]|
-songtextBeatMltFont|[NAME]|${MltFont(font = Font("Tahoma",0,80), fontColor = Color(155,255,255,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 0, fontUnderline = 0).setting()}
+songtextBeatMltFont|[NAME]|${MltFont(font = Font("Montserrat SemiBold",0,80), fontColor = Color(155,255,155,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 1, fontUnderline = 0).setting()}
 |[GROUP]|
-songtextTextMltFont|[NAME]|${MltFont(font = Font("Tahoma",0,80), fontColor = Color(255,255,155,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 0, fontUnderline = 0).setting()}
+songtextTextMltFont|[NAME]|${MltFont(font = Font("Montserrat SemiBold",2,80), fontColor = Color(255,255,155,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 1, fontUnderline = 0).setting()}
 |[FIELD]|
-songtextBeatMltFont|[NAME]|${MltFont(font = Font("Tahoma",0,80), fontColor = Color(105,255,105,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 0, fontUnderline = 0).setting()}
+songtextBeatMltFont|[NAME]|${MltFont(font = Font("Montserrat SemiBold",2,80), fontColor = Color(105,255,105,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 1, fontUnderline = 0).setting()}
 |[GROUP]|
-songtextTextMltFont|[NAME]|${MltFont(font = Font("Tahoma",0,80), fontColor = Color(85,255,155,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 0, fontUnderline = 0).setting()}
+songtextTextMltFont|[NAME]|${MltFont(font = Font("Montserrat SemiBold",0,80), fontColor = Color(155,255,255,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 1, fontUnderline = 0).setting()}
 |[FIELD]|
-songtextBeatMltFont|[NAME]|${MltFont(font = Font("Tahoma",0,80), fontColor = Color(105,255,105,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 0, fontUnderline = 0).setting()}
+songtextBeatMltFont|[NAME]|${MltFont(font = Font("Montserrat SemiBold",0,80), fontColor = Color(105,255,105,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 1, fontUnderline = 0).setting()}
+|[GROUP]|
+songtextTextMltFont|[NAME]|${MltFont(font = Font("Montserrat SemiBold",2,80), fontColor = Color(255,255,255,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 1, fontUnderline = 0).setting()}
+|[FIELD]|
+songtextBeatMltFont|[NAME]|${MltFont(font = Font("Montserrat SemiBold",2,80), fontColor = Color(155,255,155,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 1, fontUnderline = 0).setting()}
 |[VOICEFIELDS]|
 evenColor|[NAME]|${Color(255,128,0,255).setting()}
 |[FIELD]|
@@ -369,17 +378,21 @@ oddColor|[NAME]|${Color(255,128,0,255).setting()}
 |[FIELD]|
 oddOpacity|[NAME]|0.6
 |[VOICE]|
-songtextTextMltFont|[NAME]|${MltFont(font = Font("Tahoma",0,80), fontColor = Color(255,255,255,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 0, fontUnderline = 0).setting()}
+songtextTextMltFont|[NAME]|${MltFont(font = Font("Montserrat SemiBold",0,80), fontColor = Color(255,255,255,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 1, fontUnderline = 0).setting()}
 |[FIELD]|
-songtextBeatMltFont|[NAME]|${MltFont(font = Font("Tahoma",0,80), fontColor = Color(155,255,255,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 0, fontUnderline = 0).setting()}
+songtextBeatMltFont|[NAME]|${MltFont(font = Font("Montserrat SemiBold",0,80), fontColor = Color(155,255,155,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 1, fontUnderline = 0).setting()}
 |[GROUP]|
-songtextTextMltFont|[NAME]|${MltFont(font = Font("Tahoma",0,80), fontColor = Color(255,255,155,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 0, fontUnderline = 0).setting()}
+songtextTextMltFont|[NAME]|${MltFont(font = Font("Montserrat SemiBold",2,80), fontColor = Color(255,255,155,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 1, fontUnderline = 0).setting()}
 |[FIELD]|
-songtextBeatMltFont|[NAME]|${MltFont(font = Font("Tahoma",0,80), fontColor = Color(105,255,105,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 0, fontUnderline = 0).setting()}
+songtextBeatMltFont|[NAME]|${MltFont(font = Font("Montserrat SemiBold",2,80), fontColor = Color(105,255,105,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 1, fontUnderline = 0).setting()}
 |[GROUP]|
-songtextTextMltFont|[NAME]|${MltFont(font = Font("Tahoma",0,80), fontColor = Color(85,255,155,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 0, fontUnderline = 0).setting()}
+songtextTextMltFont|[NAME]|${MltFont(font = Font("Montserrat SemiBold",0,80), fontColor = Color(155,255,255,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 1, fontUnderline = 0).setting()}
 |[FIELD]|
-songtextBeatMltFont|[NAME]|${MltFont(font = Font("Tahoma",0,80), fontColor = Color(105,255,105,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 0, fontUnderline = 0).setting()}
+songtextBeatMltFont|[NAME]|${MltFont(font = Font("Montserrat SemiBold",0,80), fontColor = Color(105,255,105,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 1, fontUnderline = 0).setting()}
+|[GROUP]|
+songtextTextMltFont|[NAME]|${MltFont(font = Font("Montserrat SemiBold",2,80), fontColor = Color(255,255,255,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 1, fontUnderline = 0).setting()}
+|[FIELD]|
+songtextBeatMltFont|[NAME]|${MltFont(font = Font("Montserrat SemiBold",2,80), fontColor = Color(155,255,155,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 1, fontUnderline = 0).setting()}
 |[VOICEFIELDS]|
 evenColor|[NAME]|${Color(255,128,0,255).setting()}
 |[FIELD]|
@@ -438,7 +451,7 @@ oddOpacity|[NAME]|0.6""".trimIndent()
         var headerSongnameFont: MltFont
             get() {
                 val defaultValue = MltFont(
-                    font = Font("Tahoma", 0, 80),
+                    font = Font("Montserrat SemiBold", 0, 80),
                     fontColor = Color(255,255,127,255),
                     fontOutlineColor = Color(0,0,0,255),
                     fontOutline = 0,
@@ -452,12 +465,24 @@ oddOpacity|[NAME]|0.6""".trimIndent()
                 props.storeToXML(File(fileNameXml).outputStream(),null)
             }
 
+        // Максимальная позиция по X до которой должна быть надпись названия песни, чтобы не перекрывать логотип
+        var headerSongnameMaxX: Long
+            get() {
+                val defaultValue = "1200"
+                props.loadFromXML(File(fileNameXml).inputStream())
+                return props.getProperty("headerSongnameMaxX",defaultValue).toLong()
+            }
+            set(value) {
+                props.setProperty("headerSongnameMaxX", value.toString())
+                props.storeToXML(File(fileNameXml).outputStream(), null)
+            }
+
         // Заголовок - Автор - шрифт
         var headerAuthorFont: MltFont
             get() {
                 val defaultValue = MltFont(
-                    font = Font("Tahoma", 0, 30),
-                    fontColor = Color(85,255,255,255),
+                    font = Font("Montserrat SemiBold", 0, 30),
+                    fontColor = Color(255,255,127,255),
                     fontOutlineColor = Color(0,0,0,255),
                     fontOutline = 0,
                     fontUnderline = 0
@@ -470,12 +495,40 @@ oddOpacity|[NAME]|0.6""".trimIndent()
                 props.storeToXML(File(fileNameXml).outputStream(),null)
             }
 
+        var headerAuthorNameFont: MltFont
+            get() {
+                val defaultValue = MltFont(
+                    font = Font("Montserrat SemiBold", 0, 30),
+                    fontColor = Color(85,255,255,255),
+                    fontOutlineColor = Color(0,0,0,255),
+                    fontOutline = 0,
+                    fontUnderline = 0
+                ).setting()
+                props.loadFromXML(File(fileNameXml).inputStream())
+                return getMltFontFromString(props.getProperty("headerAuthorNameFont", defaultValue))
+            }
+            set(value) {
+                props.setProperty("headerAuthorNameFont", value.setting())
+                props.storeToXML(File(fileNameXml).outputStream(),null)
+            }
+
+        var headerAuthorName: String
+            get() {
+                val defaultValue = "Исполнитель: "
+                props.loadFromXML(File(fileNameXml).inputStream())
+                return props.getProperty("headerAuthorName",defaultValue)
+            }
+            set(value) {
+                props.setProperty("headerAuthorName", value)
+                props.storeToXML(File(fileNameXml).outputStream(), null)
+            }
+
         // Заголовок - Название альбома - шрифт
         var headerAlbumFont: MltFont
             get() {
                 val defaultValue = MltFont(
-                    font = Font("Tahoma", 0, 30),
-                    fontColor = Color(85,255,255,255),
+                    font = Font("Montserrat SemiBold", 0, 30),
+                    fontColor = Color(255,255,127,255),
                     fontOutlineColor = Color(0,0,0,255),
                     fontOutline = 0,
                     fontUnderline = 0
@@ -488,12 +541,40 @@ oddOpacity|[NAME]|0.6""".trimIndent()
                 props.storeToXML(File(fileNameXml).outputStream(),null)
             }
 
+        var headerAlbumNameFont: MltFont
+            get() {
+                val defaultValue = MltFont(
+                    font = Font("Montserrat SemiBold", 0, 30),
+                    fontColor = Color(85,255,255,255),
+                    fontOutlineColor = Color(0,0,0,255),
+                    fontOutline = 0,
+                    fontUnderline = 0
+                ).setting()
+                props.loadFromXML(File(fileNameXml).inputStream())
+                return getMltFontFromString(props.getProperty("headerAlbumNameFont", defaultValue))
+            }
+            set(value) {
+                props.setProperty("headerAlbumNameFont", value.setting())
+                props.storeToXML(File(fileNameXml).outputStream(),null)
+            }
+
+        var headerAlbumName: String
+            get() {
+                val defaultValue = "Альбом: "
+                props.loadFromXML(File(fileNameXml).inputStream())
+                return props.getProperty("headerAlbumName",defaultValue)
+            }
+            set(value) {
+                props.setProperty("headerAlbumName", value)
+                props.storeToXML(File(fileNameXml).outputStream(), null)
+            }
+
         // Заголовок - Тональность - шрифт
         var headerToneFont: MltFont
             get() {
                 val defaultValue = MltFont(
-                    font = Font("Tahoma", 0, 30),
-                    fontColor = Color(85,255,255,255),
+                    font = Font("Montserrat SemiBold", 0, 30),
+                    fontColor = Color(255,255,127,255),
                     fontOutlineColor = Color(0,0,0,255),
                     fontOutline = 0,
                     fontUnderline = 0
@@ -506,12 +587,41 @@ oddOpacity|[NAME]|0.6""".trimIndent()
                 props.storeToXML(File(fileNameXml).outputStream(),null)
             }
 
+        var headerToneNameFont: MltFont
+            get() {
+                val defaultValue = MltFont(
+                    font = Font("Montserrat SemiBold", 0, 30),
+                    fontColor = Color(85,255,255,255),
+                    fontOutlineColor = Color(0,0,0,255),
+                    fontOutline = 0,
+                    fontUnderline = 0
+                ).setting()
+                props.loadFromXML(File(fileNameXml).inputStream())
+                return getMltFontFromString(props.getProperty("headerToneNameFont", defaultValue))
+            }
+            set(value) {
+                props.setProperty("headerToneNameFont", value.setting())
+                props.storeToXML(File(fileNameXml).outputStream(),null)
+            }
+
+        var headerToneName: String
+            get() {
+                val defaultValue = "Тональность: "
+                props.loadFromXML(File(fileNameXml).inputStream())
+                return props.getProperty("headerToneName",defaultValue)
+            }
+            set(value) {
+                props.setProperty("headerToneName", value)
+                props.storeToXML(File(fileNameXml).outputStream(), null)
+            }
+
+
         // Заголовок - Темп - шрифт
         var headerBpmFont: MltFont
             get() {
                 val defaultValue = MltFont(
-                    font = Font("Tahoma", 0, 30),
-                    fontColor = Color(85,255,255,255),
+                    font = Font("Montserrat SemiBold", 0, 30),
+                    fontColor = Color(255,255,127,255),
                     fontOutlineColor = Color(0,0,0,255),
                     fontOutline = 0,
                     fontUnderline = 0
@@ -524,6 +634,33 @@ oddOpacity|[NAME]|0.6""".trimIndent()
                 props.storeToXML(File(fileNameXml).outputStream(),null)
             }
 
+        var headerBpmNameFont: MltFont
+            get() {
+                val defaultValue = MltFont(
+                    font = Font("Montserrat SemiBold", 0, 30),
+                    fontColor = Color(85,255,255,255),
+                    fontOutlineColor = Color(0,0,0,255),
+                    fontOutline = 0,
+                    fontUnderline = 0
+                ).setting()
+                props.loadFromXML(File(fileNameXml).inputStream())
+                return getMltFontFromString(props.getProperty("headerBpmNameFont", defaultValue))
+            }
+            set(value) {
+                props.setProperty("headerBpmNameFont", value.setting())
+                props.storeToXML(File(fileNameXml).outputStream(),null)
+            }
+
+        var headerBpmName: String
+            get() {
+                val defaultValue = "Темп: "
+                props.loadFromXML(File(fileNameXml).inputStream())
+                return props.getProperty("headerBpmName",defaultValue)
+            }
+            set(value) {
+                props.setProperty("headerBpmName", value)
+                props.storeToXML(File(fileNameXml).outputStream(), null)
+            }
 
         // Прогрессометр - шрифт
         var progressFont: MltFont
@@ -543,11 +680,22 @@ oddOpacity|[NAME]|0.6""".trimIndent()
                 props.storeToXML(File(fileNameXml).outputStream(),null)
             }
 
+        var progressSymbol: String
+            get() {
+                val defaultValue = "▲"
+                props.loadFromXML(File(fileNameXml).inputStream())
+                return props.getProperty("progressSymbol",defaultValue)
+            }
+            set(value) {
+                props.setProperty("progressSymbol", value)
+                props.storeToXML(File(fileNameXml).outputStream(), null)
+            }
+
         // Водяной знак - шрифт
         var watermarkFont: MltFont
             get() {
                 val defaultValue = MltFont(
-                    font = Font("Tahoma", 0, 10),
+                    font = Font("Montserrat SemiBold", 0, 10),
                     fontColor = Color(255,255,255,127),
                     fontOutlineColor = Color(0,0,0,255),
                     fontOutline = 0,
@@ -561,5 +709,16 @@ oddOpacity|[NAME]|0.6""".trimIndent()
                 props.storeToXML(File(fileNameXml).outputStream(),null)
             }
 
+        // Текст водяного знака
+        var watermarkText: String
+            get() {
+                val defaultValue = "https://github.com/svoemesto/Karaoke"
+                props.loadFromXML(File(fileNameXml).inputStream())
+                return props.getProperty("watermarkText",defaultValue)
+            }
+            set(value) {
+                props.setProperty("watermarkText", value)
+                props.storeToXML(File(fileNameXml).outputStream(), null)
+            }
     }
 }

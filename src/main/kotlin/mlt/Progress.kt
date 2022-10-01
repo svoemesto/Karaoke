@@ -154,7 +154,7 @@ fun getTemplateProgress(param: Map<String, Any?>): MltNode {
                         ),
                         body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(Pair("zoom","100")), body = "1,0,0,0,1,0,0,0,1"))
                     ),
-                    Karaoke.progressFont.mltNode("▲")
+                    Karaoke.progressFont.mltNode(Karaoke.progressSymbol)
                 )
             ),
             MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${Karaoke.frameHeightPx}"))),

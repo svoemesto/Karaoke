@@ -38,7 +38,7 @@ fun createKaraoke(song: Song) {
     val font = Font(Karaoke.voices[0].groups[0].songtextTextMltFont.font.name, Karaoke.voices[0].groups[0].songtextTextMltFont.font.style, fontSizePt)
 
     val symbolHeightPx = getTextWidthHeightPx("W", font).second
-    val symbolWidthPx = getTextWidthHeightPx("W", font).first
+    val symbolWidthPx = getTextWidthHeightPx("0", font).first
 
     val quarterNoteLengthMs = if (song.settings.ms == 0L) (60000.0 / song.settings.bpm).toLong() else song.settings.ms // Находим длительность звучания 1/4 ноты в миллисекундах
     val halfNoteLengthMs = quarterNoteLengthMs * 2
@@ -234,12 +234,11 @@ fun createKaraoke(song: Song) {
         val workAreaHeightPx = symbolHeightPx * voiceLines.size // Высота рабочей области
         val horizonPositionPx = (Karaoke.frameHeightPx / 2 + symbolHeightPx.toLong() / 2) - Karaoke.horizonOffsetPx    // horizonPosition - позиция горизонта = половина экрана + половина высоты символа - оффсет
         val songLengthMs = convertTimecodeToMilliseconds(song.endTimecode)
-        val fontSizeProgress = 30
-        val progressSymbolHalfWidth = (getSymbolWidth(fontSizeProgress) / 2).toLong()
-        val kdeHeaderAuthor = "Исполнитель: ${song.settings.author}"
-        val kdeHeaderTone = "Тональность: ${song.settings.key}"
-        val kdeHeaderBpm = "Темп: ${song.settings.bpm} bpm"
-        val kdeHeaderAlbum = "Альбом: ${song.settings.album}"
+        val progressSymbolHalfWidth = (getTextWidthHeightPx(Karaoke.progressSymbol, Karaoke.progressFont.font).first/2).toLong()
+        val kdeHeaderAuthor = song.settings.author
+        val kdeHeaderTone = song.settings.key
+        val kdeHeaderBpm = song.settings.bpm
+        val kdeHeaderAlbum = song.settings.album
         val kdeHeaderSongName = song.settings.songName
         val fontNameSizePt = Integer.min(getFontSizeBySymbolWidth(1100.0 / song.settings.songName.length), 80)
         val yOffset = -5
@@ -259,7 +258,6 @@ fun createKaraoke(song: Song) {
         param["SONG_LENGTH_MS"] = songLengthMs
         param["FONT_SIZE_PT"] = fontSizePt
 
-        param["FONT_SIZE_PROGRESS"] = fontSizeProgress
         param["HEADER_AUTHOR"] = kdeHeaderAuthor
         param["HEADER_TONE"] = kdeHeaderTone
         param["HEADER_BPM"] = kdeHeaderBpm
@@ -374,9 +372,9 @@ fun createKaraoke(song: Song) {
                 y -= if (diffInMills < Karaoke.transferMinimumMsBetweenLinesToScroll) 0.0 else symbolHeightPx
 
                 val timeFadeOut = if (diffInMills < Karaoke.transferMinimumMsBetweenLinesToScroll) {
-                    nextSub?.endTimecode  ?: convertMillisecondsToTimecode(convertTimecodeToMilliseconds(currSub.endTimecode) + Karaoke.transferMinimumMsBetweenLinesToScroll)
+                    nextSub?.endTimecode  ?: nextVoiceLine?.start ?: convertMillisecondsToTimecode(convertTimecodeToMilliseconds(currSub.endTimecode) + Karaoke.transferMinimumMsBetweenLinesToScroll)
                 } else {
-                    nextSub?.startTimecode  ?: convertMillisecondsToTimecode(convertTimecodeToMilliseconds(currSub.endTimecode) + Karaoke.transferMinimumMsBetweenLinesToScroll)
+                    nextSub?.startTimecode  ?: nextVoiceLine?.start ?: convertMillisecondsToTimecode(convertTimecodeToMilliseconds(currSub.endTimecode) + Karaoke.transferMinimumMsBetweenLinesToScroll)
                 }
                 val propRectTitleValueFadeOut = "$timeFadeOut=$x ${y.toLong()} $wOut ${h.toLong()} 0.0"
                 propRectTitleValueLineOddEven[indexLine % 2].add(propRectTitleValueFadeOut)
@@ -430,16 +428,12 @@ fun createKaraoke(song: Song) {
             val currentPositionEndMs2fa =
                 convertFramesToMilliseconds(convertMillisecondsToFrames(currentPositionEndMs) + 2, Karaoke.frameFps)
 
-            val point0 =
-                "${convertMillisecondsToTimecode(currentPositionStartMs2fb)}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.0"
-            val point1 =
-                "${convertMillisecondsToTimecode(currentPositionStartMs1fb)}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.0"
+            val point0 = "${convertMillisecondsToTimecode(currentPositionStartMs2fb)}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.0"
+            val point1 = "${convertMillisecondsToTimecode(currentPositionStartMs1fb)}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.0"
             val point2 = "${convertMillisecondsToTimecode(currentPositionStartMs)}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 1.0"
             val point3 = "${convertMillisecondsToTimecode(currentPositionEndMs)}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.0"
-            val point4 =
-                "${convertMillisecondsToTimecode(currentPositionEndMs1fa)}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.0"
-            val point5 =
-                "${convertMillisecondsToTimecode(currentPositionEndMs2fa)}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.0"
+            val point4 = "${convertMillisecondsToTimecode(currentPositionEndMs1fa)}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.0"
+            val point5 = "${convertMillisecondsToTimecode(currentPositionEndMs2fa)}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.0"
 
             beats[tick.toInt()].add(point0)
             beats[tick.toInt()].add(point1)

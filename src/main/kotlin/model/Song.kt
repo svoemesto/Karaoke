@@ -215,7 +215,6 @@ data class SongVoiceLine(
         }
 
         val result = getTextWidthHeightPx(textSubs,fontText).first
-        println("\"${textSubs}\", font = $fontText, getWidthLinePx = $result")
 
         return result
 
@@ -246,7 +245,6 @@ data class SongVoiceLineSymbol(
 ) {
     private val widthHeightPx: Pair<Double, Double> get() {
         val result = getTextWidthHeightPx(text, font)
-        println("widthHeightPx = $result, text = $text, font = $font")
         return result
     }
     val widthPx: Double get() {

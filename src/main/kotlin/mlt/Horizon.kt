@@ -148,7 +148,7 @@ fun getTemplateHorizon(param: Map<String, Any?>): MltNode {
                         MltNode(
                             name = "content",
                             fields = mutableMapOf(
-                                Pair("brushcolor","${(param["GROUPS_TIMELINE_COLORS"] as Map<Int, String>)[voiceLine.subtitles.first().group]}"),
+                                Pair("brushcolor", Karaoke.horizonColors[voiceLine.subtitles.first().group].mlt()),
                                 Pair("pencolor","0,0,0,255"),
                                 Pair("penwidth","0"),
                                 Pair("rect","$lineX,0,$lineW,3")
@@ -190,7 +190,7 @@ fun getTemplateHorizon(param: Map<String, Any?>): MltNode {
                     MltNode(
                         name = "content",
                         fields = mutableMapOf(
-                            Pair("brushcolor","${(param["GROUPS_TIMELINE_COLORS"] as Map<Long, String>)[-1]}"),
+                            Pair("brushcolor", Karaoke.horizonColor.mlt()),
                             Pair("pencolor", "0,0,0,255"),
                             Pair("penwidth","0"),
                             Pair("rect","0,0,${Karaoke.frameWidthPx},3")

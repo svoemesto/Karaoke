@@ -2,28 +2,6 @@ package model
 
 fun main() {
 
-
-
-    val prop1 = MltNode(
-        name = "property",
-        fields = mutableMapOf(Pair("name", "length")),
-        body = "123432"
-    )
-
-    val prop2 = MltNode(
-        name = "property",
-        fields = mutableMapOf(Pair("name", "eof")),
-        body = "pause"
-    )
-
-    val producer = MltNode(
-        name = "producer",
-        fields = mutableMapOf(Pair("id", "producer_song_text"), Pair("in", "00:00:00.000"), Pair("out", "00:05:05.500")),
-        body = listOf(prop1, prop2)
-    )
-
-    println(producer)
-
 }
 
 data class MltNode (

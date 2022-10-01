@@ -1,9 +1,6 @@
 import Converter.Companion.getColorFromString
 import Converter.Companion.getColorsFromString
 import Converter.Companion.getFontFromString
-import Converter.Companion.getStringFromColor
-import Converter.Companion.getStringFromColors
-import Converter.Companion.getStringFromFont
 import Converter.Companion.getStringFromVoices
 import Converter.Companion.getVoicesFromString
 import java.awt.Color
@@ -301,159 +298,163 @@ class Karaoke {
         // Цвета горизонта для групп
         var horizonColors: MutableList<Color>
             get() {
-                val defaultValue = "r=255;g=255;b=255;a=255|r=255;g=255;b=0;a=255|r=85;g=255;b=255;a=255"
+                val defaultValue = listOf(
+                    Color(255,255,255,255),
+                    Color(255,255,0,255),
+                    Color(85,255,255,255)
+                ).setting()
                 props.loadFromXML(File(fileNameXml).inputStream())
                 return getColorsFromString(props.getProperty("horizonColors", defaultValue))
             }
             set(value) {
-                props.setProperty("horizonColors", getStringFromColors(value))
+                props.setProperty("horizonColors", value.setting())
                 props.storeToXML(File(fileNameXml).outputStream(),null)
             }
 
         // Цвет горизонта
         var horizonColor: Color
             get() {
-                val defaultValue = "r=0;g=255;b=0;a=255"
+                val defaultValue = Color(0,255,0,255).setting()
                 props.loadFromXML(File(fileNameXml).inputStream())
                 return getColorFromString(props.getProperty("horizonColor", defaultValue))
             }
             set(value) {
-                props.setProperty("horizonColor", getStringFromColor(value))
+                props.setProperty("horizonColor", value.setting())
                 props.storeToXML(File(fileNameXml).outputStream(),null)
             }
 
         // Настройки текста для голосов - групп
         var voices: MutableList<KaraokeVoice>
             get() {
-                val defaultValue = """songtextTextFont|[NAME]|name=Tahoma;style=0;size=80
+                val defaultValue = """songtextTextFont|[NAME]|${Font("Tahoma",0,80).setting()}
 |[FIELD]|
 songtextTextFontUnderline|[NAME]|0
 |[FIELD]|
-songtextTextColor|[NAME]|r=255;g=255;b=255;a=255
+songtextTextColor|[NAME]|${Color(255,255,255,255).setting()}
 |[FIELD]|
-songtextBeatFont|[NAME]|name=Tahoma;style=0;size=80
+songtextBeatFont|[NAME]|${Font("Tahoma",0,80).setting()}
 |[FIELD]|
 songtextBeatFontUnderline|[NAME]|0
 |[FIELD]|
-songtextBeatColor|[NAME]|r=155;g=255;b=255;a=255
+songtextBeatColor|[NAME]|${Color(155,255,255,255).setting()}
 |[GROUP]|
-songtextTextFont|[NAME]|name=Tahoma;style=0;size=80
+songtextTextFont|[NAME]|${Font("Tahoma",0,80).setting()}
 |[FIELD]|
 songtextTextFontUnderline|[NAME]|0
 |[FIELD]|
-songtextTextColor|[NAME]|r=255;g=255;b=155;a=255
+songtextTextColor|[NAME]|${Color(255,255,155,255).setting()}
 |[FIELD]|
-songtextBeatFont|[NAME]|name=Tahoma;style=0;size=80
+songtextBeatFont|[NAME]|${Font("Tahoma",0,80).setting()}
 |[FIELD]|
 songtextBeatFontUnderline|[NAME]|0
 |[FIELD]|
-songtextBeatColor|[NAME]|r=105;g=255;b=105;a=255
+songtextBeatColor|[NAME]|${Color(105,255,105,255).setting()}
 |[GROUP]|
-songtextTextFont|[NAME]|name=Tahoma;style=0;size=80
+songtextTextFont|[NAME]|${Font("Tahoma",0,80).setting()}
 |[FIELD]|
 songtextTextFontUnderline|[NAME]|0
 |[FIELD]|
-songtextTextColor|[NAME]|r=85;g=255;b=155;a=255
+songtextTextColor|[NAME]|${Color(85,255,155,255).setting()}
 |[FIELD]|
-songtextBeatFont|[NAME]|name=Tahoma;style=0;size=80
+songtextBeatFont|[NAME]|${Font("Tahoma",0,80).setting()}
 |[FIELD]|
 songtextBeatFontUnderline|[NAME]|0
 |[FIELD]|
-songtextBeatColor|[NAME]|r=105;g=255;b=105;a=255
+songtextBeatColor|[NAME]|${Color(105,255,105,255).setting()}
 |[VOICEFIELDS]|
-evenColor|[NAME]|r=255;g=128;b=0;a=255
+evenColor|[NAME]|${Color(255,128,0,255).setting()}
 |[FIELD]|
 evenOpacity|[NAME]|0.6
 |[FIELD]|
-oddColor|[NAME]|r=255;g=128;b=0;a=255
+oddColor|[NAME]|${Color(255,128,0,255).setting()}
 |[FIELD]|
 oddOpacity|[NAME]|0.6
 |[VOICE]|
-songtextTextFont|[NAME]|name=Tahoma;style=0;size=80
+songtextTextFont|[NAME]|${Font("Tahoma",0,80).setting()}
 |[FIELD]|
 songtextTextFontUnderline|[NAME]|0
 |[FIELD]|
-songtextTextColor|[NAME]|r=255;g=255;b=255;a=255
+songtextTextColor|[NAME]|${Color(255,255,255,255).setting()}
 |[FIELD]|
-songtextBeatFont|[NAME]|name=Tahoma;style=0;size=80
+songtextBeatFont|[NAME]|${Font("Tahoma",0,80).setting()}
 |[FIELD]|
 songtextBeatFontUnderline|[NAME]|0
 |[FIELD]|
-songtextBeatColor|[NAME]|r=155;g=255;b=255;a=255
+songtextBeatColor|[NAME]|${Color(155,255,255,255).setting()}
 |[GROUP]|
-songtextTextFont|[NAME]|name=Tahoma;style=0;size=80
+songtextTextFont|[NAME]|${Font("Tahoma",0,80).setting()}
 |[FIELD]|
 songtextTextFontUnderline|[NAME]|0
 |[FIELD]|
-songtextTextColor|[NAME]|r=255;g=255;b=155;a=255
+songtextTextColor|[NAME]|${Color(255,255,155,255).setting()}
 |[FIELD]|
-songtextBeatFont|[NAME]|name=Tahoma;style=0;size=80
+songtextBeatFont|[NAME]|${Font("Tahoma",0,80).setting()}
 |[FIELD]|
 songtextBeatFontUnderline|[NAME]|0
 |[FIELD]|
-songtextBeatColor|[NAME]|r=105;g=255;b=105;a=255
+songtextBeatColor|[NAME]|${Color(105,255,105,255).setting()}
 |[GROUP]|
-songtextTextFont|[NAME]|name=Tahoma;style=0;size=80
+songtextTextFont|[NAME]|${Font("Tahoma",0,80).setting()}
 |[FIELD]|
 songtextTextFontUnderline|[NAME]|0
 |[FIELD]|
-songtextTextColor|[NAME]|r=85;g=255;b=155;a=255
+songtextTextColor|[NAME]|${Color(85,255,155,255).setting()}
 |[FIELD]|
-songtextBeatFont|[NAME]|name=Tahoma;style=0;size=80
+songtextBeatFont|[NAME]|${Font("Tahoma",0,80).setting()}
 |[FIELD]|
 songtextBeatFontUnderline|[NAME]|0
 |[FIELD]|
-songtextBeatColor|[NAME]|r=105;g=255;b=105;a=255
+songtextBeatColor|[NAME]|${Color(105,255,105,255).setting()}
 |[VOICEFIELDS]|
-evenColor|[NAME]|r=255;g=128;b=0;a=255
+evenColor|[NAME]|${Color(255,128,0,255).setting()}
 |[FIELD]|
 evenOpacity|[NAME]|0.6
 |[FIELD]|
-oddColor|[NAME]|r=255;g=128;b=0;a=255
+oddColor|[NAME]|${Color(255,128,0,255).setting()}
 |[FIELD]|
 oddOpacity|[NAME]|0.6
 |[VOICE]|
-songtextTextFont|[NAME]|name=Tahoma;style=0;size=80
+songtextTextFont|[NAME]|${Font("Tahoma",0,80).setting()}
 |[FIELD]|
 songtextTextFontUnderline|[NAME]|0
 |[FIELD]|
-songtextTextColor|[NAME]|r=255;g=255;b=255;a=255
+songtextTextColor|[NAME]|${Color(255,255,255,255).setting()}
 |[FIELD]|
-songtextBeatFont|[NAME]|name=Tahoma;style=0;size=80
+songtextBeatFont|[NAME]|${Font("Tahoma",0,80).setting()}
 |[FIELD]|
 songtextBeatFontUnderline|[NAME]|0
 |[FIELD]|
-songtextBeatColor|[NAME]|r=155;g=255;b=255;a=255
+songtextBeatColor|[NAME]|${Color(155,255,255,255).setting()}
 |[GROUP]|
-songtextTextFont|[NAME]|name=Tahoma;style=0;size=80
+songtextTextFont|[NAME]|${Font("Tahoma",0,80).setting()}
 |[FIELD]|
 songtextTextFontUnderline|[NAME]|0
 |[FIELD]|
-songtextTextColor|[NAME]|r=255;g=255;b=155;a=255
+songtextTextColor|[NAME]|${Color(255,255,155,255).setting()}
 |[FIELD]|
-songtextBeatFont|[NAME]|name=Tahoma;style=0;size=80
+songtextBeatFont|[NAME]|${Font("Tahoma",0,80).setting()}
 |[FIELD]|
 songtextBeatFontUnderline|[NAME]|0
 |[FIELD]|
-songtextBeatColor|[NAME]|r=105;g=255;b=105;a=255
+songtextBeatColor|[NAME]|${Color(105,255,105,255).setting()}
 |[GROUP]|
-songtextTextFont|[NAME]|name=Tahoma;style=0;size=80
+songtextTextFont|[NAME]|${Font("Tahoma",0,80).setting()}
 |[FIELD]|
 songtextTextFontUnderline|[NAME]|0
 |[FIELD]|
-songtextTextColor|[NAME]|r=85;g=255;b=155;a=255
+songtextTextColor|[NAME]|${Color(85,255,155,255).setting()}
 |[FIELD]|
-songtextBeatFont|[NAME]|name=Tahoma;style=0;size=80
+songtextBeatFont|[NAME]|${Font("Tahoma",0,80).setting()}
 |[FIELD]|
 songtextBeatFontUnderline|[NAME]|0
 |[FIELD]|
-songtextBeatColor|[NAME]|r=105;g=255;b=105;a=255
+songtextBeatColor|[NAME]|${Color(105,255,105,255).setting()}
 |[VOICEFIELDS]|
-evenColor|[NAME]|r=255;g=128;b=0;a=255
+evenColor|[NAME]|${Color(255,128,0,255).setting()}
 |[FIELD]|
 evenOpacity|[NAME]|0.6
 |[FIELD]|
-oddColor|[NAME]|r=255;g=128;b=0;a=255
+oddColor|[NAME]|${Color(255,128,0,255).setting()}
 |[FIELD]|
 oddOpacity|[NAME]|0.6""".trimIndent()
                 props.loadFromXML(File(fileNameXml).inputStream())
@@ -505,12 +506,12 @@ oddOpacity|[NAME]|0.6""".trimIndent()
         // Заголовок - Название песни - шрифт
         var headerSongnameFont: Font
             get() {
-                val defaultValue = "name=Tahoma;style=0;size=80"
+                val defaultValue = Font("Tahoma",0,80).setting()
                 props.loadFromXML(File(fileNameXml).inputStream())
                 return getFontFromString(props.getProperty("headerSongnameFont", defaultValue))
             }
             set(value) {
-                props.setProperty("headerSongnameFont", getStringFromFont(value))
+                props.setProperty("headerSongnameFont", value.setting())
                 props.storeToXML(File(fileNameXml).outputStream(),null)
             }
 
@@ -530,24 +531,24 @@ oddOpacity|[NAME]|0.6""".trimIndent()
         // Заголовок - Название песни - шрифт
         var headerSongnameColor: Color
             get() {
-                val defaultValue = "r=255;g=255;b=127;a=255"
+                val defaultValue = Color(255,255,127,255).setting()
                 props.loadFromXML(File(fileNameXml).inputStream())
                 return getColorFromString(props.getProperty("headerSongnameColor", defaultValue))
             }
             set(value) {
-                props.setProperty("headerSongnameColor", getStringFromColor(value))
+                props.setProperty("headerSongnameColor", value.setting())
                 props.storeToXML(File(fileNameXml).outputStream(),null)
             }
 
         // Заголовок - Автор - шрифт
         var headerAuthorFont: Font
             get() {
-                val defaultValue = "name=Tahoma;style=0;size=30"
+                val defaultValue = Font("Tahoma",0,30).setting()
                 props.loadFromXML(File(fileNameXml).inputStream())
                 return getFontFromString(props.getProperty("headerAuthorFont", defaultValue))
             }
             set(value) {
-                props.setProperty("headerAuthorFont", getStringFromFont(value))
+                props.setProperty("headerAuthorFont", value.setting())
                 props.storeToXML(File(fileNameXml).outputStream(),null)
             }
 
@@ -566,24 +567,24 @@ oddOpacity|[NAME]|0.6""".trimIndent()
         // Заголовок - Автор - цвет
         var headerAuthorColor: Color
             get() {
-                val defaultValue = "r=85;g=255;b=255;a=255"
+                val defaultValue = Color(85,255,255,255).setting()
                 props.loadFromXML(File(fileNameXml).inputStream())
                 return getColorFromString(props.getProperty("headerAuthorColor", defaultValue))
             }
             set(value) {
-                props.setProperty("headerAuthorColor", getStringFromColor(value))
+                props.setProperty("headerAuthorColor", value.setting())
                 props.storeToXML(File(fileNameXml).outputStream(),null)
             }
 
         // Заголовок - Название альбома - шрифт
         var headerAlbumFont: Font
             get() {
-                val defaultValue = "name=Tahoma;style=0;size=30"
+                val defaultValue = Font("Tahoma",0,30).setting()
                 props.loadFromXML(File(fileNameXml).inputStream())
                 return getFontFromString(props.getProperty("headerAlbumFont", defaultValue))
             }
             set(value) {
-                props.setProperty("headerAlbumFont", getStringFromFont(value))
+                props.setProperty("headerAlbumFont", value.setting())
                 props.storeToXML(File(fileNameXml).outputStream(),null)
             }
 
@@ -603,24 +604,24 @@ oddOpacity|[NAME]|0.6""".trimIndent()
         // Заголовок - Название альбома - цвет
         var headerAlbumColor: Color
             get() {
-                val defaultValue = "r=85;g=255;b=255;a=255"
+                val defaultValue = Color(85,255,255,255).setting()
                 props.loadFromXML(File(fileNameXml).inputStream())
                 return getColorFromString(props.getProperty("headerAlbumColor", defaultValue))
             }
             set(value) {
-                props.setProperty("headerAuthorColor", getStringFromColor(value))
+                props.setProperty("headerAuthorColor", value.setting())
                 props.storeToXML(File(fileNameXml).outputStream(),null)
             }
 
         // Заголовок - Тональность - шрифт
         var headerToneFont: Font
             get() {
-                val defaultValue = "name=Tahoma;style=0;size=30"
+                val defaultValue = Font("Tahoma",0,30).setting()
                 props.loadFromXML(File(fileNameXml).inputStream())
                 return getFontFromString(props.getProperty("headerToneFont", defaultValue))
             }
             set(value) {
-                props.setProperty("headerAlbumFont", getStringFromFont(value))
+                props.setProperty("headerAlbumFont", value.setting())
                 props.storeToXML(File(fileNameXml).outputStream(),null)
             }
 
@@ -640,24 +641,24 @@ oddOpacity|[NAME]|0.6""".trimIndent()
         // Заголовок - Тональность - цвет
         var headerToneColor: Color
             get() {
-                val defaultValue = "r=85;g=255;b=255;a=255"
+                val defaultValue = Color(85,255,255,255).setting()
                 props.loadFromXML(File(fileNameXml).inputStream())
                 return getColorFromString(props.getProperty("headerToneColor", defaultValue))
             }
             set(value) {
-                props.setProperty("headerToneColor", getStringFromColor(value))
+                props.setProperty("headerToneColor", value.setting())
                 props.storeToXML(File(fileNameXml).outputStream(),null)
             }
 
         // Заголовок - Темп - шрифт
         var headerBpmFont: Font
             get() {
-                val defaultValue = "name=Tahoma;style=0;size=30"
+                val defaultValue = Font("Tahoma",0,30).setting()
                 props.loadFromXML(File(fileNameXml).inputStream())
                 return getFontFromString(props.getProperty("headerBpmFont", defaultValue))
             }
             set(value) {
-                props.setProperty("headerBpmFont", getStringFromFont(value))
+                props.setProperty("headerBpmFont", value.setting())
                 props.storeToXML(File(fileNameXml).outputStream(),null)
             }
 
@@ -676,36 +677,36 @@ oddOpacity|[NAME]|0.6""".trimIndent()
         // Заголовок - Темп - цвет
         var headerBpmColor: Color
             get() {
-                val defaultValue = "r=85;g=255;b=255;a=255"
+                val defaultValue = Color(85,255,255,255).setting()
                 props.loadFromXML(File(fileNameXml).inputStream())
                 return getColorFromString(props.getProperty("headerBpmColor", defaultValue))
             }
             set(value) {
-                props.setProperty("headerBpmColor", getStringFromColor(value))
+                props.setProperty("headerBpmColor", value.setting())
                 props.storeToXML(File(fileNameXml).outputStream(),null)
             }
 
         // Прогрессометр - шрифт
         var progressFont: Font
             get() {
-                val defaultValue = "name=Tahoma;style=0;size=30"
+                val defaultValue = Font("Tahoma",0,30).setting()
                 props.loadFromXML(File(fileNameXml).inputStream())
                 return getFontFromString(props.getProperty("progressFont", defaultValue))
             }
             set(value) {
-                props.setProperty("progressFont", getStringFromFont(value))
+                props.setProperty("progressFont", value.setting())
                 props.storeToXML(File(fileNameXml).outputStream(),null)
             }
 
         // Прогрессометр - Цвет
         var progressColor: Color
             get() {
-                val defaultValue = "r=85;g=255;b=255;a=255"
+                val defaultValue = Color(85,255,255,255).setting()
                 props.loadFromXML(File(fileNameXml).inputStream())
                 return getColorFromString(props.getProperty("progressColor", defaultValue))
             }
             set(value) {
-                props.setProperty("progressColor", getStringFromColor(value))
+                props.setProperty("progressColor", value.setting())
                 props.storeToXML(File(fileNameXml).outputStream(),null)
             }
 
@@ -724,12 +725,12 @@ oddOpacity|[NAME]|0.6""".trimIndent()
         // Водяной знак - шрифт
         var watermarkFont: Font
             get() {
-                val defaultValue = "name=Tahoma;style=0;size=10"
+                val defaultValue = Font("Tahoma",0,10).setting()
                 props.loadFromXML(File(fileNameXml).inputStream())
                 return getFontFromString(props.getProperty("watermarkFont", defaultValue))
             }
             set(value) {
-                props.setProperty("watermarkFont", getStringFromFont(value))
+                props.setProperty("watermarkFont", value.setting())
                 props.storeToXML(File(fileNameXml).outputStream(),null)
             }
 
@@ -748,12 +749,12 @@ oddOpacity|[NAME]|0.6""".trimIndent()
         // Водяной знак - Цвет
         var watermarkColor: Color
             get() {
-                val defaultValue = "r=255;g=255;b=255;a=255"
+                val defaultValue = Color(255,255,255,255).setting()
                 props.loadFromXML(File(fileNameXml).inputStream())
                 return getColorFromString(props.getProperty("watermarkColor", defaultValue))
             }
             set(value) {
-                props.setProperty("watermarkColor", getStringFromColor(value))
+                props.setProperty("watermarkColor", value.setting())
                 props.storeToXML(File(fileNameXml).outputStream(),null)
             }
 

@@ -337,14 +337,12 @@ fun createKaraoke(song: Song) {
                 val h = symbolHeightPx // Высота = высоте символа
                 val propRectTitleValueFade = "$startTime=$x ${y.toLong()} 1 ${h.toLong()} 0.0" // Свойство трансформации заливки с полной прозрачностью
                 propRectTitleValueLineOddEven[indexLine % 2].add(propRectTitleValueFade)
-                println("\"${currSubtitle.text}\" : $propRectTitleValueFade")
 
                 val startW = Karaoke.songtextStartOffsetXpx //.toDouble() // Смещаем стартовую позицию w на величину TITLE_OFFSET_START_X_PX
                 val timeFirstIn = currSubtitle.startTimecode // Время - начало текущего титра
                 val wFirstIn = startW + voiceLine.getSubtitleXpx(currSubtitle).toLong()
                 val propRectTitleValueFirstIn = "$timeFirstIn=$x ${y.toLong()} $wFirstIn ${h.toLong()} ${if (indexLine % 2 == 0) Karaoke.voices[voiceId].fill.oddOpacity else Karaoke.voices[voiceId].fill.evenOpacity}" // Начало анимации титра - в начальной позиции титра с непрозрачностью 60%
                 propRectTitleValueLineOddEven[indexLine % 2].add(propRectTitleValueFirstIn)
-                println("\"${currSubtitle.text}\" : $propRectTitleValueFirstIn")
 
                 for (indexSub in 0..(voiceLine.subtitles.size) - 2) { // Проходимся по титрам текущей линии от первого до предпоследнего
                     val currSub = voiceLine.subtitles[indexSub] // Текущий титр
@@ -354,7 +352,6 @@ fun createKaraoke(song: Song) {
                     val wOut = startW + voiceLine.getSubtitleXpx(nextSub).toLong()
                     val propRectTitleValueOut = "$timeOut=$x ${y.toLong()} $wOut ${h.toLong()} ${if (indexLine % 2 == 0) Karaoke.voices[voiceId].fill.oddOpacity else Karaoke.voices[voiceId].fill.evenOpacity}" // Конец анимации титра - в конечной позиции титра с непрозрачностью 60%
                     propRectTitleValueLineOddEven[indexLine % 2].add(propRectTitleValueOut)
-                    println("\"${nextSub.text}\" : $propRectTitleValueOut")
                 }
 
                 // На этом этапе мы закрасили все титры линии, кроме последнего
@@ -368,7 +365,6 @@ fun createKaraoke(song: Song) {
                 val wOut = startW + voiceLine.widthLinePx + Karaoke.songtextStartOffsetXpx
                 val propRectTitleValueOut = "$timeOut=$x ${y.toLong()} $wOut ${h.toLong()} ${if (indexLine % 2 == 0) Karaoke.voices[voiceId].fill.oddOpacity else Karaoke.voices[voiceId].fill.evenOpacity}"
                 propRectTitleValueLineOddEven[indexLine % 2].add(propRectTitleValueOut)
-                println("\"${currSub.text}\" : $propRectTitleValueOut")
 
                 y -= if (diffInMills < Karaoke.transferMinimumMsBetweenLinesToScroll) 0.0 else symbolHeightPx
 
@@ -379,7 +375,6 @@ fun createKaraoke(song: Song) {
                 }
                 val propRectTitleValueFadeOut = "$timeFadeOut=$x ${y.toLong()} $wOut ${h.toLong()} 0.0"
                 propRectTitleValueLineOddEven[indexLine % 2].add(propRectTitleValueFadeOut)
-                println("\"${currSub.text}\" : $propRectTitleValueFadeOut")
             }
         }
 

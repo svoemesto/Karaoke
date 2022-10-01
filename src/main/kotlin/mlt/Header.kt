@@ -1,4 +1,3 @@
-import Converter.Companion.colorToMltValue
 import model.MltNode
 import model.ProducerType
 
@@ -146,7 +145,7 @@ fun getTemplateHeader(param: Map<String, Any?>): MltNode {
                         Pair("alignment","1"),
                         Pair("font-weight","50"),
                         Pair("box-width","233.797"),
-                        Pair("font-color",colorToMltValue(Karaoke.headerAuthorColor))
+                        Pair("font-color",Karaoke.headerAuthorColor.mlt())
                     ), body = param["HEADER_AUTHOR"]
                     )
                 )
@@ -171,7 +170,7 @@ fun getTemplateHeader(param: Map<String, Any?>): MltNode {
                         Pair("alignment","1"),
                         Pair("font-weight","50"),
                         Pair("box-width","233.797"),
-                        Pair("font-color",colorToMltValue(Karaoke.headerBpmColor))
+                        Pair("font-color",Karaoke.headerBpmColor.mlt())
                     ), body = param["HEADER_BPM"]
                     )
                 )
@@ -196,7 +195,7 @@ fun getTemplateHeader(param: Map<String, Any?>): MltNode {
                         Pair("alignment","1"),
                         Pair("font-weight","50"),
                         Pair("box-width","359.688"),
-                        Pair("font-color",colorToMltValue(Karaoke.headerToneColor))
+                        Pair("font-color",Karaoke.headerToneColor.mlt())
                     ), body = param["HEADER_TONE"]
                     )
                 )
@@ -221,7 +220,7 @@ fun getTemplateHeader(param: Map<String, Any?>): MltNode {
                         Pair("alignment","1"),
                         Pair("font-weight","50"),
                         Pair("box-width","395.656"),
-                        Pair("font-color",colorToMltValue(Karaoke.headerAlbumColor))
+                        Pair("font-color",Karaoke.headerAlbumColor.mlt())
                     ), body = param["HEADER_ALBUM"]
                     )
                 )
@@ -246,7 +245,7 @@ fun getTemplateHeader(param: Map<String, Any?>): MltNode {
                         Pair("alignment","1"),
                         Pair("font-weight","50"),
                         Pair("box-width","818.734"),
-                        Pair("font-color",colorToMltValue(Karaoke.headerSongnameColor))
+                        Pair("font-color",Karaoke.headerSongnameColor.mlt())
                     ), body = param["HEADER_SONG_NAME"]
                     )
                 )

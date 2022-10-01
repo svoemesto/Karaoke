@@ -43,7 +43,6 @@ data class Settings(val _pathToSettingsFile: String) {
 
         val body = File(_pathToSettingsFile).readText(Charsets.UTF_8)
         body.split("\n").forEach { line ->
-            println(line)
             val settingList = line.split("=")
             if (settingList.size == 2) {
                 val settingName = settingList[0].uppercase()

@@ -12,82 +12,7 @@ class Converter {
             }
             return listColors
         }
-        fun getStringFromColors(colors: MutableList<Color>): String {
-            return colors.joinToString("|") { color -> getStringFromColor(color) }
-        }
         fun getVoicesFromString(settingString: String): MutableList<Karaoke.KaraokeVoice> {
-
-            val defaultValue = """songtextTextFont|[NAME]|name=Tahoma;style=0;size=80
-|[FIELD]|
-songtextTextColor|[NAME]|r=255;g=255;b=255;a=255
-|[FIELD]|
-songtextBeatFont|[NAME]|name=Tahoma;style=0;size=80
-|[FIELD]|
-songtextBeatColor|[NAME]|r=155;g=255;b=255;a=255
-|[GROUP]|
-songtextTextFont|[NAME]|name=Tahoma;style=0;size=80
-|[FIELD]|
-songtextTextColor|[NAME]|r=255;g=255;b=155;a=255
-|[FIELD]|
-songtextBeatFont|[NAME]|name=Tahoma;style=0;size=80
-|[FIELD]|
-songtextBeatColor|[NAME]|r=105;g=255;b=105;a=255
-|[GROUP]|
-songtextTextFont|[NAME]|name=Tahoma;style=0;size=80
-|[FIELD]|
-songtextTextColor|[NAME]|r=85;g=255;b=155;a=255
-|[FIELD]|
-songtextBeatFont|[NAME]|name=Tahoma;style=0;size=80
-|[FIELD]|
-songtextBeatColor|[NAME]|r=105;g=255;b=105;a=255
-|[VOICE]|
-songtextTextFont|[NAME]|name=Tahoma;style=0;size=80
-|[FIELD]|
-songtextTextColor|[NAME]|r=255;g=255;b=255;a=255
-|[FIELD]|
-songtextBeatFont|[NAME]|name=Tahoma;style=0;size=80
-|[FIELD]|
-songtextBeatColor|[NAME]|r=155;g=255;b=255;a=255
-|[GROUP]|
-songtextTextFont|[NAME]|name=Tahoma;style=0;size=80
-|[FIELD]|
-songtextTextColor|[NAME]|r=255;g=255;b=155;a=255
-|[FIELD]|
-songtextBeatFont|[NAME]|name=Tahoma;style=0;size=80
-|[FIELD]|
-songtextBeatColor|[NAME]|r=105;g=255;b=105;a=255
-|[GROUP]|
-songtextTextFont|[NAME]|name=Tahoma;style=0;size=80
-|[FIELD]|
-songtextTextColor|[NAME]|r=85;g=255;b=155;a=255
-|[FIELD]|
-songtextBeatFont|[NAME]|name=Tahoma;style=0;size=80
-|[FIELD]|
-songtextBeatColor|[NAME]|r=105;g=255;b=105;a=255
-|[VOICE]|
-songtextTextFont|[NAME]|name=Tahoma;style=0;size=80
-|[FIELD]|
-songtextTextColor|[NAME]|r=255;g=255;b=255;a=255
-|[FIELD]|
-songtextBeatFont|[NAME]|name=Tahoma;style=0;size=80
-|[FIELD]|
-songtextBeatColor|[NAME]|r=155;g=255;b=255;a=255
-|[GROUP]|
-songtextTextFont|[NAME]|name=Tahoma;style=0;size=80
-|[FIELD]|
-songtextTextColor|[NAME]|r=255;g=255;b=155;a=255
-|[FIELD]|
-songtextBeatFont|[NAME]|name=Tahoma;style=0;size=80
-|[FIELD]|
-songtextBeatColor|[NAME]|r=105;g=255;b=105;a=255
-|[GROUP]|
-songtextTextFont|[NAME]|name=Tahoma;style=0;size=80
-|[FIELD]|
-songtextTextColor|[NAME]|r=85;g=255;b=155;a=255
-|[FIELD]|
-songtextBeatFont|[NAME]|name=Tahoma;style=0;size=80
-|[FIELD]|
-songtextBeatColor|[NAME]|r=105;g=255;b=105;a=255""".trimIndent()
 
             val karaokeVoices: MutableList<Karaoke.KaraokeVoice> = mutableListOf()
             val partsVoices = settingString.split(delimiterVoices)
@@ -171,24 +96,24 @@ songtextBeatColor|[NAME]|r=105;g=255;b=105;a=255""".trimIndent()
                 val groupsText = voice.groups.joinToString(delimiterGroups) { group ->
                     val fieldsText = "songtextTextFont" +
                             delimiterNames +
-                            getStringFromFont(group.songtextTextFont) +
+                            group.songtextTextFont.setting() +
                             delimiterFields +
                             "songtextTextColor" +
                             delimiterNames +
-                            getStringFromColor(group.songtextTextColor) +
+                            group.songtextTextColor.setting() +
                             delimiterFields +
                             "songtextBeatFont" +
                             delimiterNames +
-                            getStringFromFont(group.songtextBeatFont) +
+                            group.songtextBeatFont.setting() +
                             delimiterFields +
                             "songtextBeatColor" +
                             delimiterNames +
-                            getStringFromColor(group.songtextBeatColor)
+                            group.songtextBeatColor.setting()
                     fieldsText
                 }
                 val fillText = "evenColor" +
                         delimiterNames +
-                        getStringFromColor(voice.fill.evenColor) +
+                        voice.fill.evenColor.setting() +
                         delimiterFields +
                         "evenOpacity" +
                         delimiterNames +
@@ -196,7 +121,7 @@ songtextBeatColor|[NAME]|r=105;g=255;b=105;a=255""".trimIndent()
                         delimiterFields +
                         "oddColor" +
                         delimiterNames +
-                        getStringFromColor(voice.fill.oddColor) +
+                        voice.fill.oddColor.setting() +
                         delimiterFields +
                         "oddOpacity" +
                         delimiterNames +
@@ -204,9 +129,7 @@ songtextBeatColor|[NAME]|r=105;g=255;b=105;a=255""".trimIndent()
                 "${groupsText}${delimiterVoiceFields}${fillText}"
             }
         }
-        fun colorToMltValue(color: Color): String {
-            return "${color.red},${color.green},${color.blue},${color.alpha}"
-        }
+
         fun getFontFromString(settingString: String): Font {
             val parts = settingString.split(";")
             var fontName = "Tahoma"
@@ -237,9 +160,6 @@ songtextBeatColor|[NAME]|r=105;g=255;b=105;a=255""".trimIndent()
             }
 
             return Font(fontName, fontStyle, fontSize)
-        }
-        fun getStringFromFont(font: Font): String {
-            return "name=${font.name};style=${font.style};size=${font.size}"
         }
 
         fun getColorFromString(settingString: String): Color {
@@ -273,9 +193,6 @@ songtextBeatColor|[NAME]|r=105;g=255;b=105;a=255""".trimIndent()
                 println("ВНИМАНИЕ: Неверное количество параметров при десериализации цвета: $settingString")
             }
             return Color(colorR, colorG, colorB, colorA)
-        }
-        fun getStringFromColor(color: Color): String {
-            return "r=${color.red};g=${color.green};b=${color.blue};a=${color.alpha}"
         }
 
     }

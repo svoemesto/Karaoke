@@ -27,12 +27,6 @@ fun main() {
 
 //    test()
 
-//    println("headerSongnameFont = ${Karaoke.headerSongnameFont}")
-//    println("headerSongnameColor = ${Karaoke.headerSongnameColor}")
-
-    println(Karaoke.voices)
-    Karaoke.voices = Karaoke.voices
-    println(Karaoke.voices)
 
 }
 
@@ -288,11 +282,6 @@ fun getDiffInMilliseconds(firstTimecode: String, secondTimecode: String): Long {
 fun getSymbolWidth(fontSizePt: Int): Double {
     // Получение ширины символа (в пикселях) для размера шрифта (в пунктах)
     return fontSizePt*0.6
-}
-
-fun getSymbolHeight(fontSizePt: Int): Int {
-    // Получение высоты символа (в пикселях) для размера шрифта (в пунктах)
-    return if (fontSizePt in 8 until POINT_TO_PIXEL.size) POINT_TO_PIXEL[fontSizePt] else 0
 }
 
 fun getFontSizeBySymbolWidth(symbolWidthPx: Double): Int {

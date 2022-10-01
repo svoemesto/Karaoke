@@ -244,8 +244,8 @@ fun createKaraoke(song: Song) {
         val fontNameSizePt = Integer.min(getFontSizeBySymbolWidth(1100.0 / song.settings.songName.length), 80)
         val yOffset = -5
 
-        propProgressLineValue.add("00:00:00.000=-${progressSymbolHalfWidth} $yOffset $Karaoke.frameWidthPx $Karaoke.frameHeightPx 1.0")
-        propProgressLineValue.add("${song.endTimecode}=${Karaoke.frameWidthPx - progressSymbolHalfWidth} $yOffset $Karaoke.frameWidthPx $Karaoke.frameHeightPx 1.0")
+        propProgressLineValue.add("00:00:00.000=-${progressSymbolHalfWidth} $yOffset ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 1.0")
+        propProgressLineValue.add("${song.endTimecode}=${Karaoke.frameWidthPx - progressSymbolHalfWidth} $yOffset ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 1.0")
 
         param["VOICE${voiceId}_SETTING"] = voiceSetting
         param["VOICE${voiceId}_OFFSET"] = currentVoiceOffset
@@ -390,8 +390,8 @@ fun createKaraoke(song: Song) {
                     val initTimeMs = startTimeMs - (1000 / Karaoke.frameFps + 1).toLong()
                     val endTimeMs = startTimeMs + halfNoteLengthMs
                     if (startTimeMs > 0) {
-                        counters[counterNumber].add("${convertMillisecondsToTimecode(initTimeMs)}=0 0 $Karaoke.frameWidthPx $Karaoke.frameHeightPx 0.0")
-                        counters[counterNumber].add("${convertMillisecondsToTimecode(startTimeMs)}=0 0 $Karaoke.frameWidthPx $Karaoke.frameHeightPx 1.0")
+                        counters[counterNumber].add("${convertMillisecondsToTimecode(initTimeMs)}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.0")
+                        counters[counterNumber].add("${convertMillisecondsToTimecode(startTimeMs)}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 1.0")
                         counters[counterNumber].add("${convertMillisecondsToTimecode(endTimeMs)}=-1440 -810 4800 2700 0.0")
                     }
                 }
@@ -429,15 +429,15 @@ fun createKaraoke(song: Song) {
                 convertFramesToMilliseconds(convertMillisecondsToFrames(currentPositionEndMs) + 2, Karaoke.frameFps)
 
             val point0 =
-                "${convertMillisecondsToTimecode(currentPositionStartMs2fb)}=0 0 $Karaoke.frameWidthPx $Karaoke.frameHeightPx 0.0"
+                "${convertMillisecondsToTimecode(currentPositionStartMs2fb)}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.0"
             val point1 =
-                "${convertMillisecondsToTimecode(currentPositionStartMs1fb)}=0 0 $Karaoke.frameWidthPx $Karaoke.frameHeightPx 0.0"
-            val point2 = "${convertMillisecondsToTimecode(currentPositionStartMs)}=0 0 $Karaoke.frameWidthPx $Karaoke.frameHeightPx 1.0"
-            val point3 = "${convertMillisecondsToTimecode(currentPositionEndMs)}=0 0 $Karaoke.frameWidthPx $Karaoke.frameHeightPx 0.0"
+                "${convertMillisecondsToTimecode(currentPositionStartMs1fb)}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.0"
+            val point2 = "${convertMillisecondsToTimecode(currentPositionStartMs)}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 1.0"
+            val point3 = "${convertMillisecondsToTimecode(currentPositionEndMs)}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.0"
             val point4 =
-                "${convertMillisecondsToTimecode(currentPositionEndMs1fa)}=0 0 $Karaoke.frameWidthPx $Karaoke.frameHeightPx 0.0"
+                "${convertMillisecondsToTimecode(currentPositionEndMs1fa)}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.0"
             val point5 =
-                "${convertMillisecondsToTimecode(currentPositionEndMs2fa)}=0 0 $Karaoke.frameWidthPx $Karaoke.frameHeightPx 0.0"
+                "${convertMillisecondsToTimecode(currentPositionEndMs2fa)}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.0"
 
             beats[tick.toInt()].add(point0)
             beats[tick.toInt()].add(point1)

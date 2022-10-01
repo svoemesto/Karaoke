@@ -55,7 +55,7 @@ fun getMltMicrophoneFilePlaylist(param: Map<String, Any?>, type:ProducerType = P
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","rotate_center")), body = 1),
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","mlt_service")), body = "qtblend"),
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive_id")), body = "qtblend"),
-                        MltNode(name = "property", fields = mutableMapOf(Pair("name","rect")), body = "${param["SONG_START_TIMECODE"].toString()}=-90 0 230 129 0.000000;${param["SONG_FADEIN_TIMECODE"].toString()}=-90 0 230 129 1.000000;${param["SONG_FADEOUT_TIMECODE"].toString()}=-90 0 230 129 1.000000;${param["SONG_END_TIMECODE"].toString()}=-90 0 230 129 0.000000"),
+                        MltNode(name = "property", fields = mutableMapOf(Pair("name","rect")), body = "${param["SONG_START_TIMECODE"].toString()}=-80 10 230 129 0.000000;${param["SONG_FADEIN_TIMECODE"].toString()}=-80 10 230 129 1.000000;${param["SONG_FADEOUT_TIMECODE"].toString()}=-80 10 230 129 1.000000;${param["SONG_END_TIMECODE"].toString()}=-80 10 230 129 0.000000"),
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","compositing")), body = 0),
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","distort")), body = 0),
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:collapsed")), body = 0),

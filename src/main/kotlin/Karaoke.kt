@@ -281,6 +281,24 @@ class Karaoke {
             }
 
         // Цвета горизонта для групп
+        var countersColors: MutableList<Color>
+            get() {
+                val defaultValue = listOf(
+                    Color(0,255,0,255),
+                    Color(255,255,0,255),
+                    Color(255,255,0,255),
+                    Color(255,0,0,255),
+                    Color(255,0,0,255)
+                ).setting()
+                props.loadFromXML(File(fileNameXml).inputStream())
+                return getColorsFromString(props.getProperty("countersColors", defaultValue))
+            }
+            set(value) {
+                props.setProperty("countersColors", value.setting())
+                props.storeToXML(File(fileNameXml).outputStream(),null)
+            }
+
+        // Цвета горизонта для групп
         var horizonColors: MutableList<Color>
             get() {
                 val defaultValue = listOf(

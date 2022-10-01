@@ -7,7 +7,11 @@
     <list default="true" id="19caf878-7ce0-44d7-94a1-cf0a31300a8b" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/Functions.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Functions.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/model/ProducerType.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/model/ProducerType.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/Karaoke.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Karaoke.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/Main.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Main.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/Counter.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Counter.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/Header.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Header.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/Microphone.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Microphone.kt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -109,14 +113,7 @@
       <workItem from="1663855534577" duration="66047000" />
       <workItem from="1664512065788" duration="13964000" />
       <workItem from="1664538886774" duration="92000" />
-      <workItem from="1664538988134" duration="48021000" />
-    </task>
-    <task id="LOCAL-00016" summary="Initial commit">
-      <created>1663404067251</created>
-      <option name="number" value="00016" />
-      <option name="presentableId" value="LOCAL-00016" />
-      <option name="project" value="LOCAL" />
-      <updated>1663404067251</updated>
+      <workItem from="1664538988134" duration="54914000" />
     </task>
     <task id="LOCAL-00017" summary="Initial commit">
       <created>1663420427906</created>
@@ -454,7 +451,14 @@
       <option name="project" value="LOCAL" />
       <updated>1664631959032</updated>
     </task>
-    <option name="localTasksCounter" value="65" />
+    <task id="LOCAL-00065" summary="Перенос настроек в файл и класс (процесс)">
+      <created>1664635320281</created>
+      <option name="number" value="00065" />
+      <option name="presentableId" value="LOCAL-00065" />
+      <option name="project" value="LOCAL" />
+      <updated>1664635320281</updated>
+    </task>
+    <option name="localTasksCounter" value="66" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -498,21 +502,5 @@
     <MESSAGE value="Перенос настроек в файл и класс (процесс)&#10;Заголовок - название песни, исполнитель, альбом, тональность, темп - шрифт и цвет" />
     <MESSAGE value="Перенос настроек в файл и класс (процесс)" />
     <option name="LAST_COMMIT_MESSAGE" value="Перенос настроек в файл и класс (процесс)" />
-  </component>
-  <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" type="kotlin-line">
-          <url>file://$PROJECT_DIR$/src/main/kotlin/Functions.kt</url>
-          <line>45</line>
-          <option name="timeStamp" value="42" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="kotlin-line">
-          <url>file://$PROJECT_DIR$/src/main/kotlin/Functions.kt</url>
-          <line>391</line>
-          <option name="timeStamp" value="44" />
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
   </component>
 </project>

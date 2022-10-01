@@ -1,3 +1,5 @@
+import mlt.MltFont
+import mlt.mltNode
 import model.MltNode
 import model.ProducerType
 
@@ -114,7 +116,11 @@ fun getMltCounterTractor(param: Map<String, Any?>, id: Long, type:ProducerType =
     return mlt
 }
 
-fun getTemplateCounter0(param: Map<String, Any?>): MltNode {
+fun getTemplateCounter(param: Map<String, Any?>, id: Int, voiceId: Int): MltNode {
+
+    val voiceSetting = param["VOICE${voiceId}_SETTING"] as KaraokeVoice
+    val mltFont: MltFont = voiceSetting.groups[0].songtextTextMltFont
+    mltFont.fontColor =  Karaoke.countersColors[id]
 
     return MltNode(
         name = "kdenlivetitle",
@@ -131,191 +137,11 @@ fun getTemplateCounter0(param: Map<String, Any?>): MltNode {
                     Pair("type","QGraphicsTextItem"),
                     Pair("z-index","0"),
                 ), body = mutableListOf(
-                    MltNode(name = "position", fields = mutableMapOf(Pair("x","897"),Pair("y","300")), body = mutableListOf(MltNode(name = "transform", body = "1,0,0,0,1,0,0,0,1"))),
-                    MltNode(name = "content", fields = mutableMapOf(
-                        Pair("line-spacing","0"),
-                        Pair("shadow","1;#64000000;3;3;3"),
-                        Pair("font-underline","0"),
-                        Pair("box-height","264"),
-                        Pair("font","${param["FONT_NAME"]}"),
-                        Pair("letter-spacing","0"),
-                        Pair("font-pixel-size","200"),
-                        Pair("font-italic","0"),
-                        Pair("typewriter","0;2;1;0;0"),
-                        Pair("alignment","1"),
-                        Pair("font-weight","50"),
-                        Pair("box-width","120"),
-                        Pair("font-color","85,255,0,255")
-                    ), body = "GO!"
-                    )
-                )
-            ),
-            MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${Karaoke.frameHeightPx}"))),
-            MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${Karaoke.frameHeightPx}"))),
-            MltNode(name = "background", fields = mutableMapOf(Pair("color","0,0,0,0")))
-        )
-    )
-}
-
-fun getTemplateCounter1(param: Map<String, Any?>): MltNode {
-    return MltNode(
-        name = "kdenlivetitle",
-        fields = mutableMapOf(
-            Pair("duration","0"),
-            Pair("LC_NUMERIC","C"),
-            Pair("width","${Karaoke.frameWidthPx}"),
-            Pair("height","${Karaoke.frameHeightPx}"),
-            Pair("out","0"),
-        ), body = mutableListOf(
-            MltNode(
-                name = "item",
-                fields = mutableMapOf(
-                    Pair("type","QGraphicsTextItem"),
-                    Pair("z-index","0"),
-                ), body = mutableListOf(
-                    MltNode(name = "position", fields = mutableMapOf(Pair("x","897"),Pair("y","300")), body = mutableListOf(MltNode(name = "transform", body = "1,0,0,0,1,0,0,0,1"))),
-                    MltNode(name = "content", fields = mutableMapOf(
-                        Pair("line-spacing","0"),
-                        Pair("shadow","1;#64000000;3;3;3"),
-                        Pair("font-underline","0"),
-                        Pair("box-height","264"),
-                        Pair("font","${param["FONT_NAME"]}"),
-                        Pair("letter-spacing","0"),
-                        Pair("font-pixel-size","200"),
-                        Pair("font-italic","0"),
-                        Pair("typewriter","0;2;1;0;0"),
-                        Pair("alignment","1"),
-                        Pair("font-weight","50"),
-                        Pair("box-width","120"),
-                        Pair("font-color","255,255,0,255")
-                    ), body = "1"
-                    )
-                )
-            ),
-            MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${Karaoke.frameHeightPx}"))),
-            MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${Karaoke.frameHeightPx}"))),
-            MltNode(name = "background", fields = mutableMapOf(Pair("color","0,0,0,0")))
-        )
-    )
-}
-
-fun getTemplateCounter2(param: Map<String, Any?>): MltNode {
-    return MltNode(
-        name = "kdenlivetitle",
-        fields = mutableMapOf(
-            Pair("duration","0"),
-            Pair("LC_NUMERIC","C"),
-            Pair("width","${Karaoke.frameWidthPx}"),
-            Pair("height","${Karaoke.frameHeightPx}"),
-            Pair("out","0"),
-        ), body = mutableListOf(
-            MltNode(
-                name = "item",
-                fields = mutableMapOf(
-                    Pair("type","QGraphicsTextItem"),
-                    Pair("z-index","0"),
-                ), body = mutableListOf(
-                    MltNode(name = "position", fields = mutableMapOf(Pair("x","897"),Pair("y","300")), body = mutableListOf(MltNode(name = "transform", body = "1,0,0,0,1,0,0,0,1"))),
-                    MltNode(name = "content", fields = mutableMapOf(
-                        Pair("line-spacing","0"),
-                        Pair("shadow","1;#64000000;3;3;3"),
-                        Pair("font-underline","0"),
-                        Pair("box-height","264"),
-                        Pair("font","${param["FONT_NAME"]}"),
-                        Pair("letter-spacing","0"),
-                        Pair("font-pixel-size","200"),
-                        Pair("font-italic","0"),
-                        Pair("typewriter","0;2;1;0;0"),
-                        Pair("alignment","1"),
-                        Pair("font-weight","50"),
-                        Pair("box-width","120"),
-                        Pair("font-color","255,255,0,255")
-                    ), body = "2"
-                    )
-                )
-            ),
-            MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${Karaoke.frameHeightPx}"))),
-            MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${Karaoke.frameHeightPx}"))),
-            MltNode(name = "background", fields = mutableMapOf(Pair("color","0,0,0,0")))
-        )
-    )
-}
-
-fun getTemplateCounter3(param: Map<String, Any?>): MltNode {
-    return MltNode(
-        name = "kdenlivetitle",
-        fields = mutableMapOf(
-            Pair("duration","0"),
-            Pair("LC_NUMERIC","C"),
-            Pair("width","${Karaoke.frameWidthPx}"),
-            Pair("height","${Karaoke.frameHeightPx}"),
-            Pair("out","0"),
-        ), body = mutableListOf(
-            MltNode(
-                name = "item",
-                fields = mutableMapOf(
-                    Pair("type","QGraphicsTextItem"),
-                    Pair("z-index","0"),
-                ), body = mutableListOf(
-                    MltNode(name = "position", fields = mutableMapOf(Pair("x","897"),Pair("y","300")), body = mutableListOf(MltNode(name = "transform", body = "1,0,0,0,1,0,0,0,1"))),
-                    MltNode(name = "content", fields = mutableMapOf(
-                        Pair("line-spacing","0"),
-                        Pair("shadow","1;#64000000;3;3;3"),
-                        Pair("font-underline","0"),
-                        Pair("box-height","264"),
-                        Pair("font","${param["FONT_NAME"]}"),
-                        Pair("letter-spacing","0"),
-                        Pair("font-pixel-size","200"),
-                        Pair("font-italic","0"),
-                        Pair("typewriter","0;2;1;0;0"),
-                        Pair("alignment","1"),
-                        Pair("font-weight","50"),
-                        Pair("box-width","120"),
-                        Pair("font-color","255,0,0,255")
-                    ), body = "3"
-                    )
-                )
-            ),
-            MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${Karaoke.frameHeightPx}"))),
-            MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${Karaoke.frameHeightPx}"))),
-            MltNode(name = "background", fields = mutableMapOf(Pair("color","0,0,0,0")))
-        )
-    )
-}
-
-fun getTemplateCounter4(param: Map<String, Any?>): MltNode {
-    return MltNode(
-        name = "kdenlivetitle",
-        fields = mutableMapOf(
-            Pair("duration","0"),
-            Pair("LC_NUMERIC","C"),
-            Pair("width","${Karaoke.frameWidthPx}"),
-            Pair("height","${Karaoke.frameHeightPx}"),
-            Pair("out","0"),
-        ), body = mutableListOf(
-            MltNode(
-                name = "item",
-                fields = mutableMapOf(
-                    Pair("type","QGraphicsTextItem"),
-                    Pair("z-index","0"),
-                ), body = mutableListOf(
-                    MltNode(name = "position", fields = mutableMapOf(Pair("x","897"),Pair("y","300")), body = mutableListOf(MltNode(name = "transform", body = "1,0,0,0,1,0,0,0,1"))),
-                    MltNode(name = "content", fields = mutableMapOf(
-                        Pair("line-spacing","0"),
-                        Pair("shadow","1;#64000000;3;3;3"),
-                        Pair("font-underline","0"),
-                        Pair("box-height","264"),
-                        Pair("font","${param["FONT_NAME"]}"),
-                        Pair("letter-spacing","0"),
-                        Pair("font-pixel-size","200"),
-                        Pair("font-italic","0"),
-                        Pair("typewriter","0;2;1;0;0"),
-                        Pair("alignment","1"),
-                        Pair("font-weight","50"),
-                        Pair("box-width","120"),
-                        Pair("font-color","255,0,0,255")
-                    ), body = "4"
-                    )
+                    MltNode(
+                        name = "position",
+                        fields = mutableMapOf(Pair("x","${param["VOICE${voiceId}_COUNTER_POSITION_X_PX"]}"),Pair("y","${param["COUNTER_POSITION_Y_PX"]}")),
+                        body = mutableListOf(MltNode(name = "transform", body = "1,0,0,0,1,0,0,0,1"))),
+                    mltFont.mltNode(id.toString())
                 )
             ),
             MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${Karaoke.frameHeightPx}"))),

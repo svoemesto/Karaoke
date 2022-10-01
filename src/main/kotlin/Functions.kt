@@ -216,7 +216,7 @@ fun createKaraoke(song: Song) {
                             endTp = null,
                             isEmptyLine = true,
                             isNeedCounter = false,
-                            isFadeLine = true,
+                            isFadeLine = false,
                             isMaxLine = false,
                             durationMs = silentLineDuration,
                             fontText = voiceLine.fontText,
@@ -226,7 +226,7 @@ fun createKaraoke(song: Song) {
                     currentPositionEnd = convertTimecodeToMilliseconds(endDuration)
                 }
             }
-            voiceLine.isNeedCounter = (linesToInsert > 0 || voiceLine == songVoice.lines.first())
+            voiceLine.isNeedCounter = ((linesToInsert > 0 && !voiceLine.isEmptyLine) || voiceLine == songVoice.lines.first())
             voiceLines.add(voiceLine)
             currentPositionEnd = convertTimecodeToMilliseconds(voiceLine.end)
         }
@@ -254,6 +254,8 @@ fun createKaraoke(song: Song) {
 
         param["SYMBOL_HEIGHT_PX"] = symbolHeightPx
         param["HORIZON_POSITION_PX"] = horizonPositionPx
+        param["COUNTER_POSITION_Y_PX"] = (horizonPositionPx - symbolHeightPx).toLong()
+        param["VOICE${voiceId}_COUNTER_POSITION_X_PX"] = currentVoiceOffset + Karaoke.songtextStartPositionXpx - Karaoke.songtextStartOffsetXpx - symbolWidthPx
         param["SONG_LENGTH_MS"] = songLengthMs
         param["FONT_SIZE_PT"] = fontSizePt
 
@@ -270,11 +272,11 @@ fun createKaraoke(song: Song) {
         val templateProgress = getTemplateProgress(param)
         val templateWatermark = getTemplateWatermark(param)
         val templateHeader = getTemplateHeader(param)
-        val templateCounter0 = getTemplateCounter0(param)
-        val templateCounter1 = getTemplateCounter1(param)
-        val templateCounter2 = getTemplateCounter2(param)
-        val templateCounter3 = getTemplateCounter3(param)
-        val templateCounter4 = getTemplateCounter4(param)
+        val templateCounter0 = getTemplateCounter(param,0, voiceId)
+        val templateCounter1 = getTemplateCounter(param,1, voiceId)
+        val templateCounter2 = getTemplateCounter(param,2, voiceId)
+        val templateCounter3 = getTemplateCounter(param,3, voiceId)
+        val templateCounter4 = getTemplateCounter(param,4, voiceId)
         val templateBeat1 = getTemplateBeat1(param)
         val templateBeat2 = getTemplateBeat2(param)
         val templateBeat3 = getTemplateBeat3(param)
@@ -288,7 +290,7 @@ fun createKaraoke(song: Song) {
                 y = horizonPositionPx - ((indexLine + 1) * symbolHeightPx).toLong(),
                 w = Karaoke.frameWidthPx,
                 h = workAreaHeightPx.toLong(),
-                opacity = if (voiceLine.isFadeLine) 0.0 else if (indexLine < voiceLines.size-1) 1.0 else 0.0
+                opacity = if (indexLine in 1 until voiceLines.size-1) 1.0 else 0.0
             )
 
             var time = voiceLine.end
@@ -311,7 +313,7 @@ fun createKaraoke(song: Song) {
                 y = horizonPositionPx - ((indexLine + 1) * symbolHeightPx).toLong(),
                 w = Karaoke.frameWidthPx,
                 h = workAreaHeightPx.toLong(),
-                opacity = if (voiceLine.isFadeLine) 0.0 else if (indexLine < voiceLines.size-1) 1.0 else 0.0
+                opacity = if (indexLine in 1 until voiceLines.size-1) 1.0 else 0.0
             )
             voiceLine.startTp = startTp
             voiceLine.endTp = endTp
@@ -392,7 +394,7 @@ fun createKaraoke(song: Song) {
                     if (startTimeMs > 0) {
                         counters[counterNumber].add("${convertMillisecondsToTimecode(initTimeMs)}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.0")
                         counters[counterNumber].add("${convertMillisecondsToTimecode(startTimeMs)}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 1.0")
-                        counters[counterNumber].add("${convertMillisecondsToTimecode(endTimeMs)}=-1440 -810 4800 2700 0.0")
+                        counters[counterNumber].add("${convertMillisecondsToTimecode(endTimeMs)}=0 ${-symbolHeightPx} ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.0")
                     }
                 }
             }

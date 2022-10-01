@@ -1,29 +1,29 @@
 import model.MltNode
 import model.ProducerType
 
-fun getMltBackgroundProducer(param: Map<String, Any?>, type:ProducerType = ProducerType.BACKGROUND, groupId: Int = 0): MltNode {
+fun getMltBackgroundProducer(param: Map<String, Any?>, type:ProducerType = ProducerType.BACKGROUND, voiceId: Int = 0): MltNode {
 
     val mlt = MltNode(
         type = type,
         name = "producer",
         fields = mutableMapOf(
-            Pair("id","producer_${type.text}${groupId}"),
+            Pair("id","producer_${type.text}${voiceId}"),
             Pair("in",param["SONG_START_TIMECODE"].toString()),
             Pair("out",param["SONG_END_TIMECODE"].toString())
         ),
         body = mutableListOf(
             MltNode(name = "property", fields = mutableMapOf(Pair("name","length")), body = param["SONG_LENGTH_MS"]),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","eof")), body = "pause"),
-            MltNode(name = "property", fields = mutableMapOf(Pair("name","resource")), body = param["${type.text.uppercase()}${groupId}_PATH"]),
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","resource")), body = param["${type.text.uppercase()}${voiceId}_PATH"]),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","ttl")), body = 25),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","progressive")), body = 1),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","aspect_ratio")), body = 1),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","mlt_service")), body = "qimage"),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:duration")), body = param["SONG_END_TIMECODE"]),
-            MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:clipname")), body = "${type.text.uppercase()}${if (groupId==0) "" else groupId}"),
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:clipname")), body = "${type.text.uppercase()}${if (voiceId==0) "" else voiceId}"),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:folderid")), body = -1),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:clip_type")), body = 2),
-            MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:id")), body = (param["${type.text.uppercase()}${groupId}_ID"] as Int)+groupId*100),
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:id")), body = (param["${type.text.uppercase()}${voiceId}_ID"] as Int)+voiceId*100),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","force_reload")), body = 0),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","meta.media.width")), body = 4096),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","meta.media.height")), body = 4096)
@@ -33,24 +33,24 @@ fun getMltBackgroundProducer(param: Map<String, Any?>, type:ProducerType = Produ
     return mlt
 }
 
-fun getMltBackgroundFilePlaylist(param: Map<String, Any?>, type:ProducerType = ProducerType.BACKGROUND, groupId: Int = 0): MltNode {
+fun getMltBackgroundFilePlaylist(param: Map<String, Any?>, type:ProducerType = ProducerType.BACKGROUND, voiceId: Int = 0): MltNode {
 
     val mlt = MltNode(
         type = type,
         name = "playlist",
         fields = mutableMapOf(
-            Pair("id","playlist_${type.text}${groupId}_file")
+            Pair("id","playlist_${type.text}${voiceId}_file")
         ),
         body = mutableListOf(
             MltNode(name = "entry", fields = mutableMapOf(
-                Pair("producer","producer_${type.text}${groupId}"),
+                Pair("producer","producer_${type.text}${voiceId}"),
                 Pair("in",param["SONG_START_TIMECODE"].toString()),
                 Pair("out",param["SONG_END_TIMECODE"].toString()),
             ), body = mutableListOf(
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:id")), body = (param["${type.text.uppercase()}${groupId}_ID"] as Int)+groupId*100),
+                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:id")), body = (param["${type.text.uppercase()}${voiceId}_ID"] as Int)+voiceId*100),
                 MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:activeeffect")), body = 1),
                 MltNode(name = "filter",
-                    fields = mutableMapOf(Pair("id","filter_${type.text}${groupId}_gamma")),
+                    fields = mutableMapOf(Pair("id","filter_${type.text}${voiceId}_gamma")),
                     body = mutableListOf(
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","lift_r")), body = "${param["SONG_START_TIMECODE"].toString()}=-0.199985"),
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","lift_g")), body = "${param["SONG_START_TIMECODE"].toString()}=-0.199985"),
@@ -67,7 +67,7 @@ fun getMltBackgroundFilePlaylist(param: Map<String, Any?>, type:ProducerType = P
                     )
                 ),
                 MltNode(name = "filter",
-                    fields = mutableMapOf(Pair("id","filter_${type.text}${groupId}_qtblend")),
+                    fields = mutableMapOf(Pair("id","filter_${type.text}${voiceId}_qtblend")),
                     body = mutableListOf(
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","rotate_center")), body = 1),
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","mlt_service")), body = "qtblend"),
@@ -85,26 +85,26 @@ fun getMltBackgroundFilePlaylist(param: Map<String, Any?>, type:ProducerType = P
     return mlt
 }
 
-fun getMltBackgroundTrackPlaylist(param: Map<String, Any?>, type:ProducerType = ProducerType.BACKGROUND, groupId: Int = 0): MltNode {
+fun getMltBackgroundTrackPlaylist(param: Map<String, Any?>, type:ProducerType = ProducerType.BACKGROUND, voiceId: Int = 0): MltNode {
 
     val mlt = MltNode(
         type = type,
         name = "playlist",
         fields = mutableMapOf(
-            Pair("id","playlist_${type.text}${groupId}_track")
+            Pair("id","playlist_${type.text}${voiceId}_track")
         )
     )
 
     return mlt
 }
 
-fun getMltBackgroundTractor(param: Map<String, Any?>, type:ProducerType = ProducerType.BACKGROUND, groupId: Int = 0): MltNode {
+fun getMltBackgroundTractor(param: Map<String, Any?>, type:ProducerType = ProducerType.BACKGROUND, voiceId: Int = 0): MltNode {
 
     val mlt = MltNode(
         type = type,
         name = "tractor",
         fields = mutableMapOf(
-            Pair("id","tractor_${type.text}${groupId}"),
+            Pair("id","tractor_${type.text}${voiceId}"),
             Pair("in",param["SONG_START_TIMECODE"].toString()),
             Pair("out",param["SONG_END_TIMECODE"].toString())
         ),
@@ -112,17 +112,17 @@ fun getMltBackgroundTractor(param: Map<String, Any?>, type:ProducerType = Produc
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:trackheight")), body = 69),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:timeline_active")), body = 1),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:collapsed")), body = 28),
-            MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:track_name")), body = "${type.text.uppercase()}${if (groupId==0) "" else groupId}"),
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:track_name")), body = "${type.text.uppercase()}${if (voiceId==0) "" else voiceId}"),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:thumbs_format"))),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:audio_rec"))),
             MltNode(name = "track",
                 fields = mutableMapOf(
-                    Pair("hide",param["HIDE_TRACTOR_${type.text.uppercase()}${groupId}"].toString()),
-                    Pair("producer","playlist_${type.text}${groupId}_file"))),
+                    Pair("hide",param["HIDE_TRACTOR_${type.text.uppercase()}${voiceId}"].toString()),
+                    Pair("producer","playlist_${type.text}${voiceId}_file"))),
             MltNode(name = "track",
                 fields = mutableMapOf(
-                    Pair("hide",param["HIDE_TRACTOR_${type.text.uppercase()}${groupId}"].toString()),
-                    Pair("producer","playlist_${type.text}${groupId}_track"))),
+                    Pair("hide",param["HIDE_TRACTOR_${type.text.uppercase()}${voiceId}"].toString()),
+                    Pair("producer","playlist_${type.text}${voiceId}_track"))),
 
         )
     )

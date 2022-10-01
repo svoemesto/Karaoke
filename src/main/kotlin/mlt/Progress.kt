@@ -2,25 +2,25 @@ import mlt.mltNode
 import model.MltNode
 import model.ProducerType
 
-fun getMltProgressProducer(param: Map<String, Any?>, type:ProducerType = ProducerType.PROGRESS, groupId: Int = 0): MltNode {
+fun getMltProgressProducer(param: Map<String, Any?>, type:ProducerType = ProducerType.PROGRESS, voiceId: Int = 0): MltNode {
 
     val mlt = MltNode(
         type = type,
         name = "producer",
         fields = mutableMapOf(
-            Pair("id","producer_${type.text}${groupId}"),
+            Pair("id","producer_${type.text}${voiceId}"),
             Pair("in",param["SONG_START_TIMECODE"].toString()),
             Pair("out",param["SONG_END_TIMECODE"].toString())
         ),
         body = mutableListOf(
             MltNode(
                 name = "filter",
-                fields = mutableMapOf(Pair("id","filter_${type.text}${groupId}_qtblend1")),
+                fields = mutableMapOf(Pair("id","filter_${type.text}${voiceId}_qtblend1")),
                 body = mutableListOf(
                     MltNode(name = "property", fields = mutableMapOf(Pair("name","rotate_center")), body = 1),
                     MltNode(name = "property", fields = mutableMapOf(Pair("name","mlt_service")), body = "qtblend"),
                     MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive_id")), body = "qtblend"),
-                    MltNode(name = "property", fields = mutableMapOf(Pair("name","rect")), body = param["${type.text.uppercase()}${groupId}_PROPERTY_RECT"]),
+                    MltNode(name = "property", fields = mutableMapOf(Pair("name","rect")), body = param["${type.text.uppercase()}${voiceId}_PROPERTY_RECT"]),
                     MltNode(name = "property", fields = mutableMapOf(Pair("name","compositing")), body = 0),
                     MltNode(name = "property", fields = mutableMapOf(Pair("name","distort")), body = 0),
                     MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:collapsed")), body = 0)
@@ -33,11 +33,11 @@ fun getMltProgressProducer(param: Map<String, Any?>, type:ProducerType = Produce
             MltNode(name = "property", fields = mutableMapOf(Pair("name","seekable")), body = 1),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","mlt_service")), body = "kdenlivetitle"),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:duration")), body = param["SONG_END_TIMECODE"]),
-            MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:clipname")), body = "${type.text.uppercase()}${if (groupId==0) "" else groupId}"),
-            MltNode(name = "property", fields = mutableMapOf(Pair("name","xmldata")), body = param["${type.text.uppercase()}${groupId}_XML_DATA"]),
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:clipname")), body = "${type.text.uppercase()}${if (voiceId==0) "" else voiceId}"),
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","xmldata")), body = param["${type.text.uppercase()}${voiceId}_XML_DATA"]),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:folderid")), body = -1),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:clip_type")), body = 2),
-            MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:id")), body = (param["${type.text.uppercase()}${groupId}_ID"] as Int)+groupId*100),
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:id")), body = (param["${type.text.uppercase()}${voiceId}_ID"] as Int)+voiceId*100),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","force_reload")), body = 0),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","meta.media.width")), body = Karaoke.frameWidthPx),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","meta.media.height")), body = Karaoke.frameHeightPx)
@@ -48,23 +48,23 @@ fun getMltProgressProducer(param: Map<String, Any?>, type:ProducerType = Produce
 }
 
 
-fun getMltProgressFilePlaylist(param: Map<String, Any?>, type:ProducerType = ProducerType.PROGRESS, groupId: Int = 0): MltNode {
+fun getMltProgressFilePlaylist(param: Map<String, Any?>, type:ProducerType = ProducerType.PROGRESS, voiceId: Int = 0): MltNode {
 
     val mlt = MltNode(
         type = type,
         name = "playlist",
         fields = mutableMapOf(
-            Pair("id","playlist_${type.text}${groupId}_file")
+            Pair("id","playlist_${type.text}${voiceId}_file")
         ),
         body = mutableListOf(
             MltNode(name = "entry", fields = mutableMapOf(
-                Pair("producer","producer_${type.text}${groupId}"),
+                Pair("producer","producer_${type.text}${voiceId}"),
                 Pair("in",param["SONG_START_TIMECODE"].toString()),
                 Pair("out",param["SONG_END_TIMECODE"].toString()),
             ), body = mutableListOf(
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:id")), body = (param["${type.text.uppercase()}${groupId}_ID"] as Int)+groupId*100),
+                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:id")), body = (param["${type.text.uppercase()}${voiceId}_ID"] as Int)+voiceId*100),
                 MltNode(name = "filter",
-                    fields = mutableMapOf(Pair("id","filter_${type.text}${groupId}_qtblend")),
+                    fields = mutableMapOf(Pair("id","filter_${type.text}${voiceId}_qtblend")),
                     body = mutableListOf(
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","rotate_center")), body = 1),
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","mlt_service")), body = "qtblend"),
@@ -82,26 +82,26 @@ fun getMltProgressFilePlaylist(param: Map<String, Any?>, type:ProducerType = Pro
     return mlt
 }
 
-fun getMltProgressTrackPlaylist(param: Map<String, Any?>, type:ProducerType = ProducerType.PROGRESS, groupId: Int = 0): MltNode {
+fun getMltProgressTrackPlaylist(param: Map<String, Any?>, type:ProducerType = ProducerType.PROGRESS, voiceId: Int = 0): MltNode {
 
     val mlt = MltNode(
         type = type,
         name = "playlist",
         fields = mutableMapOf(
-            Pair("id","playlist_${type.text}${groupId}_track")
+            Pair("id","playlist_${type.text}${voiceId}_track")
         )
     )
 
     return mlt
 }
 
-fun getMltProgressTractor(param: Map<String, Any?>, type:ProducerType = ProducerType.PROGRESS, groupId: Int = 0): MltNode {
+fun getMltProgressTractor(param: Map<String, Any?>, type:ProducerType = ProducerType.PROGRESS, voiceId: Int = 0): MltNode {
 
     val mlt = MltNode(
         type = type,
         name = "tractor",
         fields = mutableMapOf(
-            Pair("id","tractor_${type.text}${groupId}"),
+            Pair("id","tractor_${type.text}${voiceId}"),
             Pair("in",param["SONG_START_TIMECODE"].toString()),
             Pair("out",param["SONG_END_TIMECODE"].toString())
         ),
@@ -109,17 +109,17 @@ fun getMltProgressTractor(param: Map<String, Any?>, type:ProducerType = Producer
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:trackheight")), body = 69),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:timeline_active")), body = 1),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:collapsed")), body = 28),
-            MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:track_name")), body = "${type.text.uppercase()}${if (groupId==0) "" else groupId}"),
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:track_name")), body = "${type.text.uppercase()}${if (voiceId==0) "" else voiceId}"),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:thumbs_format"))),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:audio_rec"))),
             MltNode(name = "track",
                 fields = mutableMapOf(
-                    Pair("hide",param["HIDE_TRACTOR_${type.text.uppercase()}${groupId}"].toString()),
-                    Pair("producer","playlist_${type.text}${groupId}_file"))),
+                    Pair("hide",param["HIDE_TRACTOR_${type.text.uppercase()}${voiceId}"].toString()),
+                    Pair("producer","playlist_${type.text}${voiceId}_file"))),
             MltNode(name = "track",
                 fields = mutableMapOf(
-                    Pair("hide",param["HIDE_TRACTOR_${type.text.uppercase()}${groupId}"].toString()),
-                    Pair("producer","playlist_${type.text}${groupId}_track"))),
+                    Pair("hide",param["HIDE_TRACTOR_${type.text.uppercase()}${voiceId}"].toString()),
+                    Pair("producer","playlist_${type.text}${voiceId}_track"))),
 
             )
     )

@@ -1,3 +1,4 @@
+import mlt.mltNode
 import model.MltNode
 import model.ProducerType
 
@@ -140,27 +141,7 @@ fun getTemplateWatermark(param: Map<String, Any?>): MltNode {
                         ),
                         body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(Pair("zoom","100")), body = "1,0,0,0,1,0,0,0,1"))
                     ),
-                    MltNode(
-                        name = "content",
-                        fields = mutableMapOf(
-                            Pair("line-spacing","0"),
-                            Pair("shadow", "0;#64000000;3;3;3"),
-                            Pair("font-underline","0"),
-                            Pair("box-height","14"),
-                            Pair("font-outline-color","0,0,0,255"),
-                            Pair("font", "${param["FONT_NAME"]}"),
-                            Pair("letter-spacing","0"),
-                            Pair("font-pixel-size","10"),
-                            Pair("font-italic","0"),
-                            Pair("typewriter", "${param["TYPEWRITER"]}"),
-                            Pair("alignment","2"),
-                            Pair("font-weight","${param["FONT_WEIGHT"]}"),
-                            Pair("font-outline","0"),
-                            Pair("box-width","216"),
-                            Pair("font-color", "255,255,255,255"),
-                        ),
-                        body = "https://github.com/svoemesto/Karaoke"
-                    )
+                    Karaoke.watermarkFont.mltNode("https://github.com/svoemesto/Karaoke")
                 )
             ),
             MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${Karaoke.frameHeightPx}"))),

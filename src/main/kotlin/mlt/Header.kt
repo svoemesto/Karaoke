@@ -1,3 +1,4 @@
+import mlt.mltNode
 import model.MltNode
 import model.ProducerType
 
@@ -132,22 +133,7 @@ fun getTemplateHeader(param: Map<String, Any?>): MltNode {
                     Pair("z-index","6"),
                 ), body = mutableListOf(
                     MltNode(name = "position", fields = mutableMapOf(Pair("x","96"),Pair("y","96")), body = mutableListOf(MltNode(name = "transform", body = "1,0,0,0,1,0,0,0,1"))),
-                    MltNode(name = "content", fields = mutableMapOf(
-                        Pair("line-spacing","0"),
-                        Pair("shadow","1;#64000000;3;3;3"),
-                        Pair("font-underline","0"),
-                        Pair("box-height","40"),
-                        Pair("font", Karaoke.headerAuthorFont.name),
-                        Pair("letter-spacing","0"),
-                        Pair("font-pixel-size","${Karaoke.headerAuthorFont.size}"),
-                        Pair("font-italic","0"),
-                        Pair("typewriter","0;2;1;0;0"),
-                        Pair("alignment","1"),
-                        Pair("font-weight","50"),
-                        Pair("box-width","233.797"),
-                        Pair("font-color",Karaoke.headerAuthorColor.mlt())
-                    ), body = param["HEADER_AUTHOR"]
-                    )
+                    Karaoke.headerAuthorFont.mltNode(param["HEADER_AUTHOR"].toString())
                 )
             ),
             MltNode(
@@ -157,22 +143,7 @@ fun getTemplateHeader(param: Map<String, Any?>): MltNode {
                     Pair("z-index","6"),
                 ), body = mutableListOf(
                     MltNode(name = "position", fields = mutableMapOf(Pair("x","223"),Pair("y","201")), body = mutableListOf(MltNode(name = "transform", body = "1,0,0,0,1,0,0,0,1"))),
-                    MltNode(name = "content", fields = mutableMapOf(
-                        Pair("line-spacing","0"),
-                        Pair("shadow","1;#64000000;3;3;3"),
-                        Pair("font-underline","0"),
-                        Pair("box-height","40"),
-                        Pair("font",Karaoke.headerBpmFont.name),
-                        Pair("letter-spacing","0"),
-                        Pair("font-pixel-size","${Karaoke.headerBpmFont.size}"),
-                        Pair("font-italic","0"),
-                        Pair("typewriter","0;2;1;0;0"),
-                        Pair("alignment","1"),
-                        Pair("font-weight","50"),
-                        Pair("box-width","233.797"),
-                        Pair("font-color",Karaoke.headerBpmColor.mlt())
-                    ), body = param["HEADER_BPM"]
-                    )
+                    Karaoke.headerBpmFont.mltNode(param["HEADER_BPM"].toString())
                 )
             ),
             MltNode(
@@ -182,22 +153,7 @@ fun getTemplateHeader(param: Map<String, Any?>): MltNode {
                     Pair("z-index","6"),
                 ), body = mutableListOf(
                     MltNode(name = "position", fields = mutableMapOf(Pair("x","96"),Pair("y","169")), body = mutableListOf(MltNode(name = "transform", body = "1,0,0,0,1,0,0,0,1"))),
-                    MltNode(name = "content", fields = mutableMapOf(
-                        Pair("line-spacing","0"),
-                        Pair("shadow","1;#64000000;3;3;3"),
-                        Pair("font-underline","0"),
-                        Pair("box-height","40"),
-                        Pair("font",Karaoke.headerToneFont.name),
-                        Pair("letter-spacing","0"),
-                        Pair("font-pixel-size","${Karaoke.headerToneFont.size}"),
-                        Pair("font-italic","0"),
-                        Pair("typewriter","0;2;1;0;0"),
-                        Pair("alignment","1"),
-                        Pair("font-weight","50"),
-                        Pair("box-width","359.688"),
-                        Pair("font-color",Karaoke.headerToneColor.mlt())
-                    ), body = param["HEADER_TONE"]
-                    )
+                    Karaoke.headerToneFont.mltNode(param["HEADER_TONE"].toString())
                 )
             ),
             MltNode(
@@ -207,22 +163,7 @@ fun getTemplateHeader(param: Map<String, Any?>): MltNode {
                     Pair("z-index","6"),
                 ), body = mutableListOf(
                     MltNode(name = "position", fields = mutableMapOf(Pair("x","185"),Pair("y","132")), body = mutableListOf(MltNode(name = "transform", body = "1,0,0,0,1,0,0,0,1"))),
-                    MltNode(name = "content", fields = mutableMapOf(
-                        Pair("line-spacing","0"),
-                        Pair("shadow","1;#64000000;3;3;3"),
-                        Pair("font-underline","0"),
-                        Pair("box-height","40"),
-                        Pair("font",Karaoke.headerAlbumFont.name),
-                        Pair("letter-spacing","0"),
-                        Pair("font-pixel-size","${Karaoke.headerAlbumFont.size}"),
-                        Pair("font-italic","0"),
-                        Pair("typewriter","0;2;1;0;0"),
-                        Pair("alignment","1"),
-                        Pair("font-weight","50"),
-                        Pair("box-width","395.656"),
-                        Pair("font-color",Karaoke.headerAlbumColor.mlt())
-                    ), body = param["HEADER_ALBUM"]
-                    )
+                    Karaoke.headerAlbumFont.mltNode(param["HEADER_ALBUM"].toString())
                 )
             ),
             MltNode(
@@ -232,22 +173,7 @@ fun getTemplateHeader(param: Map<String, Any?>): MltNode {
                     Pair("z-index","6"),
                 ), body = mutableListOf(
                     MltNode(name = "position", fields = mutableMapOf(Pair("x","96"),Pair("y","0")), body = mutableListOf(MltNode(name = "transform", body = "1,0,0,0,1,0,0,0,1"))),
-                    MltNode(name = "content", fields = mutableMapOf(
-                        Pair("line-spacing","0"),
-                        Pair("shadow","1;#64000000;3;3;3"),
-                        Pair("font-underline","0"),
-                        Pair("box-height","106"),
-                        Pair("font",Karaoke.headerSongnameFont.name),
-                        Pair("letter-spacing","0"),
-                        Pair("font-pixel-size","${Karaoke.headerSongnameFont.size}"),
-                        Pair("font-italic","0"),
-                        Pair("typewriter","0;2;1;0;0"),
-                        Pair("alignment","1"),
-                        Pair("font-weight","50"),
-                        Pair("box-width","818.734"),
-                        Pair("font-color",Karaoke.headerSongnameColor.mlt())
-                    ), body = param["HEADER_SONG_NAME"]
-                    )
+                    Karaoke.headerSongnameFont.mltNode(param["HEADER_SONG_NAME"].toString())
                 )
             ),
             MltNode(

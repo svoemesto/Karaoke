@@ -1,3 +1,4 @@
+import mlt.mltNode
 import model.MltNode
 import model.ProducerType
 
@@ -153,25 +154,7 @@ fun getTemplateProgress(param: Map<String, Any?>): MltNode {
                         ),
                         body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(Pair("zoom","100")), body = "1,0,0,0,1,0,0,0,1"))
                     ),
-                    MltNode(
-                        name = "content",
-                        fields = mutableMapOf(
-                            Pair("line-spacing","$LINE_SPACING"),
-                            Pair("shadow", "0"),
-                            Pair("font-underline","0"),
-                            Pair("box-height","100"),
-                            Pair("font", Karaoke.progressFont.name),
-                            Pair("letter-spacing","0"),
-                            Pair("font-pixel-size","${Karaoke.progressFont.size}"),
-                            Pair("font-italic","0"),
-                            Pair("typewriter", TYPEWRITER),
-                            Pair("alignment","$ALIGNMENT"),
-                            Pair("font-weight","${Karaoke.progressFont.weight()}"),
-                            Pair("box-width","10"),
-                            Pair("font-color", Karaoke.progressColor.mlt()),
-                        ),
-                        body = "▲"
-                    )
+                    Karaoke.progressFont.mltNode("▲")
                 )
             ),
             MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${Karaoke.frameHeightPx}"))),

@@ -1,6 +1,7 @@
 import Converter.Companion.getColorFromString
 import Converter.Companion.getColorsFromString
 import Converter.Companion.getFontFromString
+import Converter.Companion.getMltFontFromString
 import Converter.Companion.getStringFromVoices
 import Converter.Companion.getVoicesFromString
 import mlt.MltFont
@@ -416,269 +417,129 @@ oddOpacity|[NAME]|0.6""".trimIndent()
         // HEADER
 
         // Заголовок - Название песни - шрифт
-        var headerSongnameFont: Font
+        var headerSongnameFont: MltFont
             get() {
-                val defaultValue = Font("Tahoma",0,80).setting()
+                val defaultValue = MltFont(
+                    font = Font("Tahoma", 0, 80),
+                    fontColor = Color(255,255,127,255),
+                    fontOutlineColor = Color(0,0,0,255),
+                    fontOutline = 0,
+                    fontUnderline = 0
+                ).setting()
                 props.loadFromXML(File(fileNameXml).inputStream())
-                return getFontFromString(props.getProperty("headerSongnameFont", defaultValue))
+                return getMltFontFromString(props.getProperty("headerSongnameFont", defaultValue))
             }
             set(value) {
                 props.setProperty("headerSongnameFont", value.setting())
                 props.storeToXML(File(fileNameXml).outputStream(),null)
             }
 
-        // Заголовок - Название песни - шрифт подчеркнутый (0 - нет, 1 - да)
-        var headerSongnameFontUnderline: Long
-            get() {
-                val defaultValue = "0"
-                props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("headerSongnameFontUnderline",defaultValue).toLong()
-            }
-            set(value) {
-                props.setProperty("headerSongnameFontUnderline", value.toString())
-                props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
-
-
-        // Заголовок - Название песни - шрифт
-        var headerSongnameColor: Color
-            get() {
-                val defaultValue = Color(255,255,127,255).setting()
-                props.loadFromXML(File(fileNameXml).inputStream())
-                return getColorFromString(props.getProperty("headerSongnameColor", defaultValue))
-            }
-            set(value) {
-                props.setProperty("headerSongnameColor", value.setting())
-                props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
-
         // Заголовок - Автор - шрифт
-        var headerAuthorFont: Font
+        var headerAuthorFont: MltFont
             get() {
-                val defaultValue = Font("Tahoma",0,30).setting()
+                val defaultValue = MltFont(
+                    font = Font("Tahoma", 0, 30),
+                    fontColor = Color(85,255,255,255),
+                    fontOutlineColor = Color(0,0,0,255),
+                    fontOutline = 0,
+                    fontUnderline = 0
+                ).setting()
                 props.loadFromXML(File(fileNameXml).inputStream())
-                return getFontFromString(props.getProperty("headerAuthorFont", defaultValue))
+                return getMltFontFromString(props.getProperty("headerAuthorFont", defaultValue))
             }
             set(value) {
                 props.setProperty("headerAuthorFont", value.setting())
                 props.storeToXML(File(fileNameXml).outputStream(),null)
             }
 
-        // Заголовок - Автор - шрифт подчеркнутый (0 - нет, 1 - да)
-        var headerAuthorFontUnderline: Long
-            get() {
-                val defaultValue = "0"
-                props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("headerAuthorFontUnderline",defaultValue).toLong()
-            }
-            set(value) {
-                props.setProperty("headerAuthorFontUnderline", value.toString())
-                props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
-
-        // Заголовок - Автор - цвет
-        var headerAuthorColor: Color
-            get() {
-                val defaultValue = Color(85,255,255,255).setting()
-                props.loadFromXML(File(fileNameXml).inputStream())
-                return getColorFromString(props.getProperty("headerAuthorColor", defaultValue))
-            }
-            set(value) {
-                props.setProperty("headerAuthorColor", value.setting())
-                props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
-
         // Заголовок - Название альбома - шрифт
-        var headerAlbumFont: Font
+        var headerAlbumFont: MltFont
             get() {
-                val defaultValue = Font("Tahoma",0,30).setting()
+                val defaultValue = MltFont(
+                    font = Font("Tahoma", 0, 30),
+                    fontColor = Color(85,255,255,255),
+                    fontOutlineColor = Color(0,0,0,255),
+                    fontOutline = 0,
+                    fontUnderline = 0
+                ).setting()
                 props.loadFromXML(File(fileNameXml).inputStream())
-                return getFontFromString(props.getProperty("headerAlbumFont", defaultValue))
+                return getMltFontFromString(props.getProperty("headerAlbumFont", defaultValue))
             }
             set(value) {
                 props.setProperty("headerAlbumFont", value.setting())
-                props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
-
-        // Заголовок - Название альбома - шрифт подчеркнутый (0 - нет, 1 - да)
-        var headerAlbumFontUnderline: Long
-            get() {
-                val defaultValue = "0"
-                props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("headerAlbumFontUnderline",defaultValue).toLong()
-            }
-            set(value) {
-                props.setProperty("headerAlbumFontUnderline", value.toString())
-                props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
-
-
-        // Заголовок - Название альбома - цвет
-        var headerAlbumColor: Color
-            get() {
-                val defaultValue = Color(85,255,255,255).setting()
-                props.loadFromXML(File(fileNameXml).inputStream())
-                return getColorFromString(props.getProperty("headerAlbumColor", defaultValue))
-            }
-            set(value) {
-                props.setProperty("headerAuthorColor", value.setting())
                 props.storeToXML(File(fileNameXml).outputStream(),null)
             }
 
         // Заголовок - Тональность - шрифт
-        var headerToneFont: Font
+        var headerToneFont: MltFont
             get() {
-                val defaultValue = Font("Tahoma",0,30).setting()
+                val defaultValue = MltFont(
+                    font = Font("Tahoma", 0, 30),
+                    fontColor = Color(85,255,255,255),
+                    fontOutlineColor = Color(0,0,0,255),
+                    fontOutline = 0,
+                    fontUnderline = 0
+                ).setting()
                 props.loadFromXML(File(fileNameXml).inputStream())
-                return getFontFromString(props.getProperty("headerToneFont", defaultValue))
+                return getMltFontFromString(props.getProperty("headerToneFont", defaultValue))
             }
             set(value) {
                 props.setProperty("headerAlbumFont", value.setting())
                 props.storeToXML(File(fileNameXml).outputStream(),null)
             }
 
-        // Заголовок - Тональность - шрифт подчеркнутый (0 - нет, 1 - да)
-        var headerToneFontUnderline: Long
-            get() {
-                val defaultValue = "0"
-                props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("headerToneFontUnderline",defaultValue).toLong()
-            }
-            set(value) {
-                props.setProperty("headerToneFontUnderline", value.toString())
-                props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
-
-
-        // Заголовок - Тональность - цвет
-        var headerToneColor: Color
-            get() {
-                val defaultValue = Color(85,255,255,255).setting()
-                props.loadFromXML(File(fileNameXml).inputStream())
-                return getColorFromString(props.getProperty("headerToneColor", defaultValue))
-            }
-            set(value) {
-                props.setProperty("headerToneColor", value.setting())
-                props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
-
         // Заголовок - Темп - шрифт
-        var headerBpmFont: Font
+        var headerBpmFont: MltFont
             get() {
-                val defaultValue = Font("Tahoma",0,30).setting()
+                val defaultValue = MltFont(
+                    font = Font("Tahoma", 0, 30),
+                    fontColor = Color(85,255,255,255),
+                    fontOutlineColor = Color(0,0,0,255),
+                    fontOutline = 0,
+                    fontUnderline = 0
+                ).setting()
                 props.loadFromXML(File(fileNameXml).inputStream())
-                return getFontFromString(props.getProperty("headerBpmFont", defaultValue))
+                return getMltFontFromString(props.getProperty("headerBpmFont", defaultValue))
             }
             set(value) {
                 props.setProperty("headerBpmFont", value.setting())
                 props.storeToXML(File(fileNameXml).outputStream(),null)
             }
 
-        // Заголовок - Темп - шрифт подчеркнутый (0 - нет, 1 - да)
-        var headerBpmFontUnderline: Long
-            get() {
-                val defaultValue = "0"
-                props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("headerBpmFontUnderline",defaultValue).toLong()
-            }
-            set(value) {
-                props.setProperty("headerBpmFontUnderline", value.toString())
-                props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
-
-        // Заголовок - Темп - цвет
-        var headerBpmColor: Color
-            get() {
-                val defaultValue = Color(85,255,255,255).setting()
-                props.loadFromXML(File(fileNameXml).inputStream())
-                return getColorFromString(props.getProperty("headerBpmColor", defaultValue))
-            }
-            set(value) {
-                props.setProperty("headerBpmColor", value.setting())
-                props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
 
         // Прогрессометр - шрифт
-        var progressFont: Font
+        var progressFont: MltFont
             get() {
-                val defaultValue = Font("Tahoma",0,30).setting()
+                val defaultValue = MltFont(
+                    font = Font("Tahoma", 0, 30),
+                    fontColor = Color(255,255,255,255),
+                    fontOutlineColor = Color(0,0,0,255),
+                    fontOutline = 0,
+                    fontUnderline = 0
+                ).setting()
                 props.loadFromXML(File(fileNameXml).inputStream())
-                return getFontFromString(props.getProperty("progressFont", defaultValue))
+                return getMltFontFromString(props.getProperty("progressFont", defaultValue))
             }
             set(value) {
                 props.setProperty("progressFont", value.setting())
                 props.storeToXML(File(fileNameXml).outputStream(),null)
             }
 
-        // Прогрессометр - Цвет
-        var progressColor: Color
-            get() {
-                val defaultValue = Color(85,255,255,255).setting()
-                props.loadFromXML(File(fileNameXml).inputStream())
-                return getColorFromString(props.getProperty("progressColor", defaultValue))
-            }
-            set(value) {
-                props.setProperty("progressColor", value.setting())
-                props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
-
-        // Прогрессометр - прозрачность (0.0 - полная прозрачность, 1.0 - полностью непрозрачный)
-        var progressOpacity: Double
-            get() {
-                val defaultValue = "1.0"
-                props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("progressOpacity",defaultValue).toDouble()
-            }
-            set(value) {
-                props.setProperty("progressOpacity", value.toString())
-                props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
-
         // Водяной знак - шрифт
-        var watermarkFont: Font
+        var watermarkFont: MltFont
             get() {
-                val defaultValue = Font("Tahoma",0,10).setting()
+                val defaultValue = MltFont(
+                    font = Font("Tahoma", 0, 10),
+                    fontColor = Color(255,255,255,127),
+                    fontOutlineColor = Color(0,0,0,255),
+                    fontOutline = 0,
+                    fontUnderline = 0
+                    ).setting()
                 props.loadFromXML(File(fileNameXml).inputStream())
-                return getFontFromString(props.getProperty("watermarkFont", defaultValue))
+                return getMltFontFromString(props.getProperty("watermarkFont", defaultValue))
             }
             set(value) {
                 props.setProperty("watermarkFont", value.setting())
-                props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
-
-        // Водяной знак - шрифт подчеркнутый (0 - нет, 1 - да)
-        var watermarkFontUnderline: Long
-            get() {
-                val defaultValue = "0"
-                props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("watermarkFontUnderline",defaultValue).toLong()
-            }
-            set(value) {
-                props.setProperty("watermarkFontUnderline", value.toString())
-                props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
-
-        // Водяной знак - Цвет
-        var watermarkColor: Color
-            get() {
-                val defaultValue = Color(255,255,255,255).setting()
-                props.loadFromXML(File(fileNameXml).inputStream())
-                return getColorFromString(props.getProperty("watermarkColor", defaultValue))
-            }
-            set(value) {
-                props.setProperty("watermarkColor", value.setting())
-                props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
-
-        // Водяной знак - прозрачность (0.0 - полная прозрачность, 1.0 - полностью непрозрачный)
-        var watermarkOpacity: Double
-            get() {
-                val defaultValue = "0.5"
-                props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("watermarkOpacity",defaultValue).toDouble()
-            }
-            set(value) {
-                props.setProperty("watermarkOpacity", value.toString())
                 props.storeToXML(File(fileNameXml).outputStream(),null)
             }
 

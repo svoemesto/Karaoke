@@ -3,31 +3,15 @@ import Converter.Companion.getColorsFromString
 import Converter.Companion.getFontFromString
 import Converter.Companion.getStringFromVoices
 import Converter.Companion.getVoicesFromString
+import mlt.MltFont
+import mlt.setting
 import java.awt.Color
 import java.awt.Font
 import java.io.File
 import java.util.*
 
-class Karaoke {
 
-    data class KaraokeVoice (
-        val groups: MutableList<KaraokeVoiceGroup>,
-        val fill: KaraokeVoiceFill
-    )
-    data class KaraokeVoiceFill(
-        val evenColor: Color,
-        val evenOpacity: Double,
-        val oddColor: Color,
-        val oddOpacity: Double
-    )
-    data class KaraokeVoiceGroup(
-        var songtextTextFont: Font,
-        var songtextTextFontUnderline: Long,
-        val songtextTextColor: Color,
-        var songtextBeatFont: Font,
-        var songtextBeatFontUnderline: Long,
-        val songtextBeatColor: Color
-    )
+class Karaoke {
     companion object {
         private val fileNameXml = "src/main/resources/settings.xml"
         private val props = Properties()
@@ -326,41 +310,17 @@ class Karaoke {
         // Настройки текста для голосов - групп
         var voices: MutableList<KaraokeVoice>
             get() {
-                val defaultValue = """songtextTextFont|[NAME]|${Font("Tahoma",0,80).setting()}
+                val defaultValue = """songtextTextMltFont|[NAME]|${MltFont(font = Font("Tahoma",0,80), fontColor = Color(255,255,255,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 0, fontUnderline = 0).setting()}
 |[FIELD]|
-songtextTextFontUnderline|[NAME]|0
-|[FIELD]|
-songtextTextColor|[NAME]|${Color(255,255,255,255).setting()}
-|[FIELD]|
-songtextBeatFont|[NAME]|${Font("Tahoma",0,80).setting()}
-|[FIELD]|
-songtextBeatFontUnderline|[NAME]|0
-|[FIELD]|
-songtextBeatColor|[NAME]|${Color(155,255,255,255).setting()}
+songtextBeatMltFont|[NAME]|${MltFont(font = Font("Tahoma",0,80), fontColor = Color(155,255,255,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 0, fontUnderline = 0).setting()}
 |[GROUP]|
-songtextTextFont|[NAME]|${Font("Tahoma",0,80).setting()}
+songtextTextMltFont|[NAME]|${MltFont(font = Font("Tahoma",0,80), fontColor = Color(255,255,155,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 0, fontUnderline = 0).setting()}
 |[FIELD]|
-songtextTextFontUnderline|[NAME]|0
-|[FIELD]|
-songtextTextColor|[NAME]|${Color(255,255,155,255).setting()}
-|[FIELD]|
-songtextBeatFont|[NAME]|${Font("Tahoma",0,80).setting()}
-|[FIELD]|
-songtextBeatFontUnderline|[NAME]|0
-|[FIELD]|
-songtextBeatColor|[NAME]|${Color(105,255,105,255).setting()}
+songtextBeatMltFont|[NAME]|${MltFont(font = Font("Tahoma",0,80), fontColor = Color(105,255,105,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 0, fontUnderline = 0).setting()}
 |[GROUP]|
-songtextTextFont|[NAME]|${Font("Tahoma",0,80).setting()}
+songtextTextMltFont|[NAME]|${MltFont(font = Font("Tahoma",0,80), fontColor = Color(85,255,155,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 0, fontUnderline = 0).setting()}
 |[FIELD]|
-songtextTextFontUnderline|[NAME]|0
-|[FIELD]|
-songtextTextColor|[NAME]|${Color(85,255,155,255).setting()}
-|[FIELD]|
-songtextBeatFont|[NAME]|${Font("Tahoma",0,80).setting()}
-|[FIELD]|
-songtextBeatFontUnderline|[NAME]|0
-|[FIELD]|
-songtextBeatColor|[NAME]|${Color(105,255,105,255).setting()}
+songtextBeatMltFont|[NAME]|${MltFont(font = Font("Tahoma",0,80), fontColor = Color(105,255,105,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 0, fontUnderline = 0).setting()}
 |[VOICEFIELDS]|
 evenColor|[NAME]|${Color(255,128,0,255).setting()}
 |[FIELD]|
@@ -370,41 +330,17 @@ oddColor|[NAME]|${Color(255,128,0,255).setting()}
 |[FIELD]|
 oddOpacity|[NAME]|0.6
 |[VOICE]|
-songtextTextFont|[NAME]|${Font("Tahoma",0,80).setting()}
+songtextTextMltFont|[NAME]|${MltFont(font = Font("Tahoma",0,80), fontColor = Color(255,255,255,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 0, fontUnderline = 0).setting()}
 |[FIELD]|
-songtextTextFontUnderline|[NAME]|0
-|[FIELD]|
-songtextTextColor|[NAME]|${Color(255,255,255,255).setting()}
-|[FIELD]|
-songtextBeatFont|[NAME]|${Font("Tahoma",0,80).setting()}
-|[FIELD]|
-songtextBeatFontUnderline|[NAME]|0
-|[FIELD]|
-songtextBeatColor|[NAME]|${Color(155,255,255,255).setting()}
+songtextBeatMltFont|[NAME]|${MltFont(font = Font("Tahoma",0,80), fontColor = Color(155,255,255,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 0, fontUnderline = 0).setting()}
 |[GROUP]|
-songtextTextFont|[NAME]|${Font("Tahoma",0,80).setting()}
+songtextTextMltFont|[NAME]|${MltFont(font = Font("Tahoma",0,80), fontColor = Color(255,255,155,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 0, fontUnderline = 0).setting()}
 |[FIELD]|
-songtextTextFontUnderline|[NAME]|0
-|[FIELD]|
-songtextTextColor|[NAME]|${Color(255,255,155,255).setting()}
-|[FIELD]|
-songtextBeatFont|[NAME]|${Font("Tahoma",0,80).setting()}
-|[FIELD]|
-songtextBeatFontUnderline|[NAME]|0
-|[FIELD]|
-songtextBeatColor|[NAME]|${Color(105,255,105,255).setting()}
+songtextBeatMltFont|[NAME]|${MltFont(font = Font("Tahoma",0,80), fontColor = Color(105,255,105,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 0, fontUnderline = 0).setting()}
 |[GROUP]|
-songtextTextFont|[NAME]|${Font("Tahoma",0,80).setting()}
+songtextTextMltFont|[NAME]|${MltFont(font = Font("Tahoma",0,80), fontColor = Color(85,255,155,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 0, fontUnderline = 0).setting()}
 |[FIELD]|
-songtextTextFontUnderline|[NAME]|0
-|[FIELD]|
-songtextTextColor|[NAME]|${Color(85,255,155,255).setting()}
-|[FIELD]|
-songtextBeatFont|[NAME]|${Font("Tahoma",0,80).setting()}
-|[FIELD]|
-songtextBeatFontUnderline|[NAME]|0
-|[FIELD]|
-songtextBeatColor|[NAME]|${Color(105,255,105,255).setting()}
+songtextBeatMltFont|[NAME]|${MltFont(font = Font("Tahoma",0,80), fontColor = Color(105,255,105,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 0, fontUnderline = 0).setting()}
 |[VOICEFIELDS]|
 evenColor|[NAME]|${Color(255,128,0,255).setting()}
 |[FIELD]|
@@ -414,41 +350,17 @@ oddColor|[NAME]|${Color(255,128,0,255).setting()}
 |[FIELD]|
 oddOpacity|[NAME]|0.6
 |[VOICE]|
-songtextTextFont|[NAME]|${Font("Tahoma",0,80).setting()}
+songtextTextMltFont|[NAME]|${MltFont(font = Font("Tahoma",0,80), fontColor = Color(255,255,255,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 0, fontUnderline = 0).setting()}
 |[FIELD]|
-songtextTextFontUnderline|[NAME]|0
-|[FIELD]|
-songtextTextColor|[NAME]|${Color(255,255,255,255).setting()}
-|[FIELD]|
-songtextBeatFont|[NAME]|${Font("Tahoma",0,80).setting()}
-|[FIELD]|
-songtextBeatFontUnderline|[NAME]|0
-|[FIELD]|
-songtextBeatColor|[NAME]|${Color(155,255,255,255).setting()}
+songtextBeatMltFont|[NAME]|${MltFont(font = Font("Tahoma",0,80), fontColor = Color(155,255,255,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 0, fontUnderline = 0).setting()}
 |[GROUP]|
-songtextTextFont|[NAME]|${Font("Tahoma",0,80).setting()}
+songtextTextMltFont|[NAME]|${MltFont(font = Font("Tahoma",0,80), fontColor = Color(255,255,155,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 0, fontUnderline = 0).setting()}
 |[FIELD]|
-songtextTextFontUnderline|[NAME]|0
-|[FIELD]|
-songtextTextColor|[NAME]|${Color(255,255,155,255).setting()}
-|[FIELD]|
-songtextBeatFont|[NAME]|${Font("Tahoma",0,80).setting()}
-|[FIELD]|
-songtextBeatFontUnderline|[NAME]|0
-|[FIELD]|
-songtextBeatColor|[NAME]|${Color(105,255,105,255).setting()}
+songtextBeatMltFont|[NAME]|${MltFont(font = Font("Tahoma",0,80), fontColor = Color(105,255,105,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 0, fontUnderline = 0).setting()}
 |[GROUP]|
-songtextTextFont|[NAME]|${Font("Tahoma",0,80).setting()}
+songtextTextMltFont|[NAME]|${MltFont(font = Font("Tahoma",0,80), fontColor = Color(85,255,155,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 0, fontUnderline = 0).setting()}
 |[FIELD]|
-songtextTextFontUnderline|[NAME]|0
-|[FIELD]|
-songtextTextColor|[NAME]|${Color(85,255,155,255).setting()}
-|[FIELD]|
-songtextBeatFont|[NAME]|${Font("Tahoma",0,80).setting()}
-|[FIELD]|
-songtextBeatFontUnderline|[NAME]|0
-|[FIELD]|
-songtextBeatColor|[NAME]|${Color(105,255,105,255).setting()}
+songtextBeatMltFont|[NAME]|${MltFont(font = Font("Tahoma",0,80), fontColor = Color(105,255,105,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 0, fontUnderline = 0).setting()}
 |[VOICEFIELDS]|
 evenColor|[NAME]|${Color(255,128,0,255).setting()}
 |[FIELD]|

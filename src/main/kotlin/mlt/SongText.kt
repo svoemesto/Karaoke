@@ -1,3 +1,5 @@
+import mlt.MltFont
+import mlt.mltNode
 import model.SongVoiceLine
 import model.MltNode
 import model.ProducerType
@@ -117,37 +119,23 @@ fun getMltSongTextTractor(param: Map<String, Any?>, type:ProducerType = Producer
 
 fun getTemplateSongText(param: Map<String, Any?>, voiceId: Int): MltNode {
 
-    val templateSongTextGroup = mutableListOf<MltNode>()
-
     val templateSongTextSymbolsGroup = mutableListOf<MltNode>()
-
-    val voiceSetting = Karaoke.voices[Integer.min(voiceId, Karaoke.voices.size - 1)]
+    val voiceSetting = param["VOICE${voiceId}_SETTING"] as KaraokeVoice
     val workAreaHeightPx = param["VOICE${voiceId}_WORK_AREA_HEIGHT_PX"] as Long
     val voiceLines = param["VOICE${voiceId}_VOICELINES"] as MutableList<*>
     val symbolHeightPx = getTextWidthHeightPx("|", (voiceLines[0] as SongVoiceLine).fontText).second
-    val boxHeight = symbolHeightPx.toLong()
     val startX = Karaoke.songtextStartPositionXpx
     val startY = 0
-
-
-
-    // Тонкий - font-weight="25"
-    // Обычный - font-weight="50"
-    // Полужирный - font-weight="63"
-    // Жирный - font-weight="75"
-    // Очень жирный - font-weight="87"
 
 
     voiceLines.forEachIndexed { indexLine, it ->
         val voiceLine = it as SongVoiceLine
         voiceLine.symbols.forEachIndexed { indexSymbol, lineSymbol ->
 
+            val mltFont: MltFont = if (!lineSymbol.isBeat) voiceSetting.groups[lineSymbol.group].songtextTextMltFont else voiceSetting.groups[lineSymbol.group].songtextBeatMltFont
             val text = lineSymbol.text
             val x = (startX + voiceLine.getSymbolXpx(indexSymbol)).toLong()
             val y = (startY + indexLine*symbolHeightPx).toLong()
-            val fontItalic = if (lineSymbol.font.isItalic) 1 else 0
-            val boxWidth = lineSymbol.widthPx.toLong()
-            val color = if (!lineSymbol.isBeat) voiceSetting.groups[lineSymbol.group].songtextTextColor else voiceSetting.groups[lineSymbol.group].songtextBeatColor
 
             templateSongTextSymbolsGroup.add(
                 MltNode(
@@ -159,25 +147,7 @@ fun getTemplateSongText(param: Map<String, Any?>, voiceId: Int): MltNode {
                             fields = mutableMapOf(Pair("x","$x"), Pair("y","$y")),
                             body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(), body = "1,0,0,0,1,0,0,0,1"))
                         ),
-                        MltNode(
-                            name = "content",
-                            fields = mutableMapOf(
-                                Pair("line-spacing","${param["LINE_SPACING"]}"),             // line-spacing="$LINE_SPACING"
-                                Pair("shadow", "${param["SHADOW"]}"),                        // shadow="$SHADOW"
-                                Pair("font-underline","${param["FONT_UNDERLINE"]}"),         // font-underline="$FONT_UNDERLINE"
-                                Pair("box-height","$boxHeight"),              // box-height="$boxHeightPx"
-                                Pair("font", lineSymbol.font.name),                       // font="$FONT_NAME"
-                                Pair("letter-spacing","0"),                 // letter-spacing="0"
-                                Pair("font-pixel-size","${lineSymbol.font.size}"),      // font-pixel-size="$fontSizePt"
-                                Pair("font-italic","$fontItalic"),         // font-italic="$FONT_ITALIC"
-                                Pair("typewriter", "${param["TYPEWRITER"]}"),             // typewriter="$TYPEWRITER"
-                                Pair("alignment","${param["ALIGNMENT"]}"),             // alignment="$ALIGNMENT"
-                                Pair("font-weight","${lineSymbol.font.weight()}"),          // font-weight="$FONT_WEIGHT"
-                                Pair("box-width","$boxWidth"),            // box-width="$boxWidthPx"
-                                Pair("font-color", color.mlt()), // font-color="${GROUPS_FONT_COLORS_TEXT[indexGroup]}"
-                            ),
-                            body = text
-                        )
+                        mltFont.mltNode(text)
                     )
                 )
             )

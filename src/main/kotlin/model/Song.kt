@@ -87,7 +87,7 @@ data class Song(val settings: Settings) {
                             if (isLineEnd) {
                                 maxLengthLine = Integer.max(maxLengthLine, lengthLine)
                                 lengthLine = 0
-                                widthLinePx = getTextWidthHeightPx(lineText, Karaoke.voices[voideId].groups[group].songtextTextFont).first
+                                widthLinePx = getTextWidthHeightPx(lineText, Karaoke.voices[voideId].groups[group].songtextTextMltFont.font).first
                                 if (maxWidthLinePx < widthLinePx) {
                                     maxWidthLinePx = java.lang.Double.max(maxWidthLinePx, widthLinePx)
                                     maxWidthLineText = lineText
@@ -100,8 +100,8 @@ data class Song(val settings: Settings) {
                                         end = songSubtitles.last().endTimecode,
                                         durationMs = getDurationInMilliseconds(songSubtitles.first().startTimecode, songSubtitles.last().endTimecode),
                                         isEmptyLine = (lineText == ""),
-                                        fontText = Karaoke.voices[voideId].groups[group].songtextTextFont,
-                                        fontBeat = Karaoke.voices[voideId].groups[group].songtextBeatFont
+                                        fontText = Karaoke.voices[voideId].groups[group].songtextTextMltFont.font,
+                                        fontBeat = Karaoke.voices[voideId].groups[group].songtextBeatMltFont.font
                                     )
                                 )
                                 lineText = ""

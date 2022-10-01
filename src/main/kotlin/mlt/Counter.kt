@@ -115,6 +115,7 @@ fun getMltCounterTractor(param: Map<String, Any?>, id: Long, type:ProducerType =
 }
 
 fun getTemplateCounter0(param: Map<String, Any?>): MltNode {
+
     return MltNode(
         name = "kdenlivetitle",
         fields = mutableMapOf(

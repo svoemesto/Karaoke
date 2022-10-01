@@ -1,3 +1,5 @@
+import mlt.MltFont
+import mlt.setting
 import java.awt.Color
 import java.awt.Font
 
@@ -12,9 +14,9 @@ class Converter {
             }
             return listColors
         }
-        fun getVoicesFromString(settingString: String): MutableList<Karaoke.KaraokeVoice> {
+        fun getVoicesFromString(settingString: String): MutableList<KaraokeVoice> {
 
-            val karaokeVoices: MutableList<Karaoke.KaraokeVoice> = mutableListOf()
+            val karaokeVoices: MutableList<KaraokeVoice> = mutableListOf()
             val partsVoices = settingString.split(delimiterVoices)
             partsVoices.forEach { partVoice ->
                 val partsVoiceFields = partVoice.split(delimiterVoiceFields)
@@ -41,74 +43,54 @@ class Converter {
                         println("ВНИМАНИЕ: Исключение ${e.message} при десериализации заливки: $settingString")
                     }
                 }
-                val fill = Karaoke.KaraokeVoiceFill(
+                val fill = KaraokeVoiceFill(
                     evenColor = evenColor ?: getColorFromString(""),
                     evenOpacity = evenOpacity ?: 0.6,
                     oddColor = oddColor ?: getColorFromString(""),
-                    oddOpacity = oddOpacity?: 0.6
+                    oddOpacity = oddOpacity ?: 0.6
                 )
 
-                val karaokeGroups: MutableList<Karaoke.KaraokeVoiceGroup> = mutableListOf()
+                val karaokeGroups: MutableList<KaraokeVoiceGroup> = mutableListOf()
                 val partsGroups = partVoiceFieldGroups.split(delimiterGroups)
                 partsGroups.forEach { partGroup ->
                     val partsFields = partGroup.split(delimiterFields)
-                    var songtextTextFont: Font? = null
-                    var songtextTextFontUnderline: Long? = null
-                    var songtextTextColor: Color? = null
-                    var songtextBeatFont: Font? = null
-                    var songtextBeatFontUnderline: Long? = null
-                    var songtextBeatColor: Color? = null
+                    var songtextTextMltFont: MltFont? = null
+                    var songtextBeatMltFont: MltFont? = null
                     partsFields.forEach { partField ->
                         val parts = partField.split(delimiterNames)
                         val partName = parts[0]
                         val partValue = parts[1]
                         try {
                             when(partName) {
-                                "songtextTextFont" -> songtextTextFont = getFontFromString(partValue)
-                                "songtextTextFontUnderline" -> songtextTextFontUnderline = partValue.toLong()
-                                "songtextTextColor" -> songtextTextColor = getColorFromString(partValue)
-                                "songtextBeatFont" -> songtextBeatFont = getFontFromString(partValue)
-                                "songtextBeatFontUnderline" -> songtextBeatFontUnderline = partValue.toLong()
-                                "songtextBeatColor" -> songtextBeatColor = getColorFromString(partValue)
+                                "songtextTextMltFont" -> songtextTextMltFont = getMltFontFromString(partValue)
+                                "songtextBeatMltFont" -> songtextBeatMltFont = getMltFontFromString(partValue)
                             }
                         } catch (e: Exception) {
                             println("ВНИМАНИЕ: Исключение ${e.message} при десериализации шрифта: $settingString")
                         }
                     }
                     karaokeGroups.add(
-                        Karaoke.KaraokeVoiceGroup(
-                            songtextTextFont = songtextTextFont ?: getFontFromString(""),
-                            songtextTextFontUnderline = songtextTextFontUnderline ?: 0,
-                            songtextTextColor = songtextTextColor ?: getColorFromString(""),
-                            songtextBeatFont = songtextBeatFont ?: getFontFromString(""),
-                            songtextBeatFontUnderline = songtextBeatFontUnderline ?: 0,
-                            songtextBeatColor = songtextBeatColor ?: getColorFromString("")
+                        KaraokeVoiceGroup(
+                            songtextTextMltFont = songtextTextMltFont ?: getMltFontFromString(""),
+                            songtextBeatMltFont = songtextBeatMltFont ?: getMltFontFromString("")
                         )
                     )
                 }
-                karaokeVoices.add(Karaoke.KaraokeVoice(groups = karaokeGroups,fill = fill))
+                karaokeVoices.add(KaraokeVoice(groups = karaokeGroups, fill = fill))
             }
             return karaokeVoices
         }
 
-        fun getStringFromVoices(voices: MutableList<Karaoke.KaraokeVoice>): String {
+        fun getStringFromVoices(voices: MutableList<KaraokeVoice>): String {
             return voices.joinToString(delimiterVoices) { voice ->
                 val groupsText = voice.groups.joinToString(delimiterGroups) { group ->
-                    val fieldsText = "songtextTextFont" +
+                    val fieldsText = "songtextTextMltFont" +
                             delimiterNames +
-                            group.songtextTextFont.setting() +
+                            group.songtextTextMltFont.setting() +
                             delimiterFields +
-                            "songtextTextColor" +
+                            "songtextBeatMltFont" +
                             delimiterNames +
-                            group.songtextTextColor.setting() +
-                            delimiterFields +
-                            "songtextBeatFont" +
-                            delimiterNames +
-                            group.songtextBeatFont.setting() +
-                            delimiterFields +
-                            "songtextBeatColor" +
-                            delimiterNames +
-                            group.songtextBeatColor.setting()
+                            group.songtextBeatMltFont.setting()
                     fieldsText
                 }
                 val fillText = "evenColor" +
@@ -128,6 +110,61 @@ class Converter {
                         voice.fill.oddOpacity
                 "${groupsText}${delimiterVoiceFields}${fillText}"
             }
+        }
+
+        fun getMltFontFromString(settingString: String): MltFont {
+            val parts = settingString.split("|")
+
+            var fname = "Tahoma"
+            var fstyle = 0
+            var fsize = 0
+            var fcr = 255
+            var fcg = 255
+            var fcb = 255
+            var fca = 255
+            var ocr = 0
+            var ocg = 0
+            var ocb = 0
+            var oca = 255
+            var underline = 0
+            var outline = 0
+
+            var fontSize = 100
+            if (parts.size == 13) {
+                parts.forEach {part ->
+                    val nameAndValue = part.split("=")
+                    if (nameAndValue.size ==2) {
+                        val partName = nameAndValue[0]
+                        val partValue = nameAndValue[1]
+                        try {
+                            when(partName) {
+                                "fname" -> fname = partValue
+                                "fstyle" -> fstyle = partValue.toInt()
+                                "fsize" -> fsize = partValue.toInt()
+                                "fcr" -> fcr = partValue.toInt()
+                                "fcg" -> fcg = partValue.toInt()
+                                "fcb" -> fcb = partValue.toInt()
+                                "fca" -> fca = partValue.toInt()
+                                "ocr" -> ocr = partValue.toInt()
+                                "ocg" -> ocg = partValue.toInt()
+                                "ocb" -> ocb = partValue.toInt()
+                                "oca" -> oca = partValue.toInt()
+                                "underline" -> underline = partValue.toInt()
+                                "outline" -> outline = partValue.toInt()
+                            }
+                        } catch (e: Exception) {
+                            println("ВНИМАНИЕ: Исключение ${e.message} при десериализации шрифта: $settingString")
+                        }
+                    } else {
+                        println("ВНИМАНИЕ: Неверное количество аргументов при десериализации шрифта: $settingString")
+                    }
+
+                }
+            } else {
+                println("ВНИМАНИЕ: Неверное количество параметров при десериализации шрифта: $settingString")
+            }
+
+            return MltFont(font = Font(fname,fstyle,fsize), fontColor = Color(fcr,fcg,fcb,fca), fontOutlineColor = Color(ocr,ocg,ocb,oca), fontUnderline = underline, fontOutline = outline)
         }
 
         fun getFontFromString(settingString: String): Font {

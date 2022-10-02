@@ -205,7 +205,7 @@ fun createKaraoke(song: Song) {
             if (linesToInsert > 0) {
                 val silentLineDuration: Long = silentDuration / linesToInsert
                 for (i in 1..linesToInsert) {
-                    val startDuration = convertMillisecondsToTimecode(currentPositionEnd + silentLineDuration / 1)
+                    val startDuration = convertMillisecondsToTimecode(currentPositionEnd) //  + silentLineDuration / 2
                     val endDuration = convertMillisecondsToTimecode(currentPositionEnd + silentLineDuration)
                     voiceLines.add(
                         SongVoiceLine(
@@ -225,7 +225,7 @@ fun createKaraoke(song: Song) {
                             fontBeat = voiceLine.fontBeat
                         )
                     )
-                    currentPositionEnd = convertTimecodeToMilliseconds(endDuration)
+                    currentPositionEnd = currentPositionEnd + silentLineDuration //convertTimecodeToMilliseconds(endDuration)
                 }
             }
             voiceLine.isNeedCounter = ((linesToInsert > 0 && !voiceLine.isEmptyLine) || voiceLine == songVoice.lines.first())
@@ -325,12 +325,6 @@ fun createKaraoke(song: Song) {
 
         }
 
-//        if (!resultSongVoiceLinesFullText[0].isEmptyLine) {
-//            val currentLyricLine = resultSongVoiceLinesFullText[0]
-//            propRectLineValue.add("00:00:00.000=${currentLyricLine.startTp?.x} ${currentLyricLine.startTp?.y} ${currentLyricLine.startTp?.w} ${currentLyricLine.startTp?.h} 0.0")
-//            propRectLineValue.add("00:00:01.000=${currentLyricLine.startTp?.x} ${currentLyricLine.startTp?.y} ${currentLyricLine.startTp?.w} ${currentLyricLine.startTp?.h} 1.0")
-//        }
-
         // Настало время прописать classes.TransformProperty для заливок
 
         voiceLines.forEachIndexed { indexLine, voiceLine ->
@@ -377,12 +371,14 @@ fun createKaraoke(song: Song) {
                 propRectTitleValueLineOddEven[indexLine % 2].add(propRectTitleValueOut)
 
                 y -= if (diffInMills < Karaoke.transferMinimumMsBetweenLinesToScroll) 0.0 else symbolHeightPx
+                y -= if (nextSub != null) 0.0 else symbolHeightPx
 
-                val timeFadeOut = if (diffInMills < Karaoke.transferMinimumMsBetweenLinesToScroll) {
-                    nextSub?.endTimecode  ?: nextVoiceLine?.start ?: convertMillisecondsToTimecode(convertTimecodeToMilliseconds(currSub.endTimecode) + Karaoke.transferMinimumMsBetweenLinesToScroll)
+                var timeFadeOut = if (diffInMills < Karaoke.transferMinimumMsBetweenLinesToScroll) {
+                    nextSub?.endTimecode  ?: nextVoiceLine?.end ?: convertMillisecondsToTimecode(convertTimecodeToMilliseconds(currSub.endTimecode) + Karaoke.transferMinimumMsBetweenLinesToScroll)
                 } else {
-                    nextSub?.startTimecode  ?: nextVoiceLine?.start ?: convertMillisecondsToTimecode(convertTimecodeToMilliseconds(currSub.endTimecode) + Karaoke.transferMinimumMsBetweenLinesToScroll)
+                    nextSub?.startTimecode  ?: nextVoiceLine?.end ?: convertMillisecondsToTimecode(convertTimecodeToMilliseconds(currSub.endTimecode) + Karaoke.transferMinimumMsBetweenLinesToScroll)
                 }
+                timeFadeOut = convertFramesToTimecode(convertTimecodeToFrames(timeFadeOut) - 2)
                 val propRectTitleValueFadeOut = "$timeFadeOut=$x ${y.toLong()} $wOut ${h.toLong()} 0.0"
                 propRectTitleValueLineOddEven[indexLine % 2].add(propRectTitleValueFadeOut)
             }

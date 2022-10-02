@@ -211,12 +211,12 @@ fun convertMillisecondsToFrames(milliseconds: Long, fps:Double = Karaoke.frameFp
     return Math.round(milliseconds / frameLength)
 }
 
-fun convertMillisecondsToFramesDouble(milliseconds: Long, fps:Double): Double {
+fun convertMillisecondsToFramesDouble(milliseconds: Long, fps:Double = Karaoke.frameFps): Double {
     val frameLength = 1000.0 / fps
     return milliseconds / frameLength
 }
 
-fun convertFramesToMilliseconds(frames: Long, fps:Double): Long {
+fun convertFramesToMilliseconds(frames: Long, fps:Double = Karaoke.frameFps): Long {
     val frameLength = 1000.0 / fps
     return (frames * frameLength).roundToInt().toLong()
 }
@@ -229,7 +229,7 @@ fun convertMillisecondsToTimecode(milliseconds: Long): String {
     return "%02d:%02d:%02d.%03d".format(hours,minutes,seconds,ms)
 }
 
-fun convertFramesToTimecode(frames: Long, fps:Double): String {
+fun convertFramesToTimecode(frames: Long, fps:Double = Karaoke.frameFps): String {
     return convertMillisecondsToTimecode(milliseconds = convertFramesToMilliseconds(frames,fps))
 }
 
@@ -243,7 +243,7 @@ fun convertTimecodeToMilliseconds(timecode: String): Long {
     return milliseconds + seconds * 1000 + minutes * 1000 * 60 + hours * 1000 * 60 * 60
 }
 
-fun convertTimecodeToFrames(timecode: String, fps:Double): Long {
+fun convertTimecodeToFrames(timecode: String, fps:Double = Karaoke.frameFps): Long {
     return convertMillisecondsToFrames(convertTimecodeToMilliseconds(timecode = timecode), fps)
 }
 

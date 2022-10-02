@@ -139,11 +139,29 @@ fun getTemplateProgress(param: Map<String, Any?>): MltNode {
             Pair("out","0"),
         ),
         body = mutableListOf(
+//            MltNode(
+//                name = "item",
+//                fields = mutableMapOf(
+//                    Pair("type","QGraphicsTextItem"),
+//                    Pair("z-index","0"),
+//                ),
+//                body = mutableListOf(
+//                    MltNode(
+//                        name = "position",
+//                        fields = mutableMapOf(
+//                            Pair("x","0"),
+//                            Pair("y","${param["HORIZON_POSITION_PX"]}")
+//                        ),
+//                        body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(Pair("zoom","100")), body = "1,0,0,0,1,0,0,0,1"))
+//                    ),
+//                    Karaoke.progressFont.mltNode(Karaoke.progressSymbol)
+//                )
+//            ),
             MltNode(
                 name = "item",
                 fields = mutableMapOf(
-                    Pair("type","QGraphicsTextItem"),
-                    Pair("index","0"),
+                    Pair("type","QGraphicsRectItem"),
+                    Pair("z-index","10"),
                 ),
                 body = mutableListOf(
                     MltNode(
@@ -154,7 +172,15 @@ fun getTemplateProgress(param: Map<String, Any?>): MltNode {
                         ),
                         body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(Pair("zoom","100")), body = "1,0,0,0,1,0,0,0,1"))
                     ),
-                    Karaoke.progressFont.mltNode(Karaoke.progressSymbol)
+                    MltNode(
+                        name = "content",
+                        fields = mutableMapOf(
+                            Pair("brushcolor", "0,0,0,127"),
+                            Pair("pencolor", "0,0,0,255"),
+                            Pair("penwidth","0"),
+                            Pair("rect","0,0,${Karaoke.frameWidthPx},3")
+                        )
+                    )
                 )
             ),
             MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${Karaoke.frameHeightPx}"))),

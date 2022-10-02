@@ -135,7 +135,7 @@ fun getTemplateWatermark(param: Map<String, Any?>): MltNode {
                 name = "item",
                 fields = mutableMapOf(
                     Pair("type","QGraphicsTextItem"),
-                    Pair("index","0"),
+                    Pair("z-index","0"),
                 ),
                 body = mutableListOf(
                     MltNode(

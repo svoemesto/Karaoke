@@ -138,7 +138,7 @@ fun getTemplateFader(param: Map<String, Any?>): MltNode {
                 name = "item",
                 fields = mutableMapOf(
                     Pair("type","QGraphicsRectItem"),
-                    Pair("index","0"),
+                    Pair("z-index","0"),
                 ),
                 body = mutableListOf(
                     MltNode(
@@ -166,7 +166,7 @@ fun getTemplateFader(param: Map<String, Any?>): MltNode {
                 name = "item",
                 fields = mutableMapOf(
                     Pair("type","QGraphicsRectItem"),
-                    Pair("index","0"),
+                    Pair("z-index","0"),
                 ),
                 body = mutableListOf(
                     MltNode(

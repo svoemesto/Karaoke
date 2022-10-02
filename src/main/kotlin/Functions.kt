@@ -205,7 +205,7 @@ fun createKaraoke(song: Song) {
             if (linesToInsert > 0) {
                 val silentLineDuration: Long = silentDuration / linesToInsert
                 for (i in 1..linesToInsert) {
-                    val startDuration = convertMillisecondsToTimecode(currentPositionEnd + silentLineDuration / 5)
+                    val startDuration = convertMillisecondsToTimecode(currentPositionEnd + silentLineDuration / 1)
                     val endDuration = convertMillisecondsToTimecode(currentPositionEnd + silentLineDuration)
                     voiceLines.add(
                         SongVoiceLine(
@@ -237,14 +237,14 @@ fun createKaraoke(song: Song) {
         val workAreaHeightPx = symbolHeightPx * voiceLines.size // Высота рабочей области
         val horizonPositionPx = (Karaoke.frameHeightPx / 2 + symbolHeightPx.toLong() / 2) - Karaoke.horizonOffsetPx    // horizonPosition - позиция горизонта = половина экрана + половина высоты символа - оффсет
         val songLengthMs = convertTimecodeToMilliseconds(song.endTimecode)
-        val progressSymbolHalfWidth = (getTextWidthHeightPx(Karaoke.progressSymbol, Karaoke.progressFont.font).first/2).toLong()
+        val progressSymbolHalfWidth =  0 //(getTextWidthHeightPx(Karaoke.progressSymbol, Karaoke.progressFont.font).first/2).toLong()
         val kdeHeaderAuthor = song.settings.author
         val kdeHeaderTone = song.settings.key
         val kdeHeaderBpm = song.settings.bpm
         val kdeHeaderAlbum = song.settings.album
         val kdeHeaderSongName = song.settings.songName
         val fontNameSizePt = Integer.min(getFontSizeBySymbolWidth(1100.0 / song.settings.songName.length), 80)
-        val yOffset = -5
+        val yOffset = 0 //-5
 
         propProgressLineValue.add("00:00:00.000=-${progressSymbolHalfWidth} $yOffset ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 1.0")
         propProgressLineValue.add("${song.endTimecode}=${Karaoke.frameWidthPx - progressSymbolHalfWidth} $yOffset ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 1.0")

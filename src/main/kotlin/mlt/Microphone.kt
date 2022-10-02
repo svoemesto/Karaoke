@@ -131,7 +131,7 @@ fun getTemplateMicrophone(param: Map<String, Any?>): MltNode {
                 name = "item",
                 fields = mutableMapOf(
                     Pair("type","QGraphicsPixmapItem"),
-                    Pair("index","0"),
+                    Pair("z-index","0"),
                 ),
                 body = mutableListOf(
                     MltNode(

@@ -7,11 +7,8 @@
     <list default="true" id="19caf878-7ce0-44d7-94a1-cf0a31300a8b" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/Functions.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Functions.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/Fader.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Fader.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/Horizon.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Horizon.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/Microphone.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Microphone.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/Header.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Header.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/Progress.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Progress.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/Watermark.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Watermark.kt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -113,14 +110,7 @@
       <workItem from="1663855534577" duration="66047000" />
       <workItem from="1664512065788" duration="13964000" />
       <workItem from="1664538886774" duration="92000" />
-      <workItem from="1664538988134" duration="79832000" />
-    </task>
-    <task id="LOCAL-00021" summary="Initial commit">
-      <created>1663674665594</created>
-      <option name="number" value="00021" />
-      <option name="presentableId" value="LOCAL-00021" />
-      <option name="project" value="LOCAL" />
-      <updated>1663674665594</updated>
+      <workItem from="1664538988134" duration="85349000" />
     </task>
     <task id="LOCAL-00022" summary="Initial commit">
       <created>1663688915564</created>
@@ -458,7 +448,14 @@
       <option name="project" value="LOCAL" />
       <updated>1664697457661</updated>
     </task>
-    <option name="localTasksCounter" value="70" />
+    <task id="LOCAL-00070" summary="По всем ощущениям - первая финальная версия">
+      <created>1664700979145</created>
+      <option name="number" value="00070" />
+      <option name="presentableId" value="LOCAL-00070" />
+      <option name="project" value="LOCAL" />
+      <updated>1664700979145</updated>
+    </task>
+    <option name="localTasksCounter" value="71" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

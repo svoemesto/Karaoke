@@ -171,8 +171,20 @@ fun getTemplateHeader(param: Map<String, Any?>): MltNode {
                     Pair("type","QGraphicsPixmapItem"),
                     Pair("z-index","6"),
                 ), body = mutableListOf(
-                    MltNode(name = "position", fields = mutableMapOf(Pair("x","0"),Pair("y","0")), body = mutableListOf(MltNode(name = "transform", body = "1,0,0,0,1,0,0,0,1"))),
-                    MltNode(name = "content", fields = mutableMapOf(Pair("url", param["LOGOTYPE_PATH"].toString())))
+                    MltNode(name = "position", fields = mutableMapOf(Pair("x","${(Karaoke.frameWidthPx * 0.6385).toLong()}"),Pair("y","36")), body = mutableListOf(MltNode(name = "transform", body = "${Karaoke.frameWidthPx*0.00025},0,0,0,${Karaoke.frameWidthPx*0.00025},0,0,0,1"))),
+                    MltNode(name = "content", fields = mutableMapOf(Pair("url", param["LOGOAUTHOR_PATH"].toString())))
+                )
+            )
+        )
+        body.add(
+            MltNode(
+                name = "item",
+                fields = mutableMapOf(
+                    Pair("type","QGraphicsPixmapItem"),
+                    Pair("z-index","6"),
+                ), body = mutableListOf(
+                    MltNode(name = "position", fields = mutableMapOf(Pair("x","${(Karaoke.frameWidthPx * 0.8927).toLong()}"),Pair("y","36")), body = mutableListOf(MltNode(name = "transform", body = "${Karaoke.frameWidthPx*0.00025},0,0,0,${Karaoke.frameWidthPx*0.00025},0,0,0,1"))),
+                    MltNode(name = "content", fields = mutableMapOf(Pair("url", param["LOGOALBUM_PATH"].toString())))
                 )
             )
         )

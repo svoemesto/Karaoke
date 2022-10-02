@@ -267,7 +267,8 @@ fun createKaraoke(song: Song) {
         param["HEADER_ALBUM"] = kdeHeaderAlbum
         param["HEADER_SONG_NAME"] = kdeHeaderSongName
         param["HEADER_SONG_NAME_FONT_SIZE"] = fontNameSizePt
-        param["LOGOTYPE_PATH"] = "${song.settings.rootFolder}/Logo.png"
+        param["LOGOAUTHOR_PATH"] = "${song.settings.rootFolder}/LogoAuthor.png"
+        param["LOGOALBUM_PATH"] = "${song.settings.rootFolder}/LogoAlbum.png"
 
         val templateSongText = getTemplateSongText(param,voiceId)
         val templateHorizon = getTemplateHorizon(param)

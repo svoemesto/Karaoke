@@ -175,7 +175,7 @@ fun getTemplateProgress(param: Map<String, Any?>): MltNode {
                     MltNode(
                         name = "content",
                         fields = mutableMapOf(
-                            Pair("brushcolor", "0,0,0,127"),
+                            Pair("brushcolor", "0,0,0,170"),
                             Pair("pencolor", "0,0,0,255"),
                             Pair("penwidth","0"),
                             Pair("rect","0,0,${Karaoke.frameWidthPx},3")

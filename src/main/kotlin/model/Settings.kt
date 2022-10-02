@@ -37,9 +37,9 @@ data class Settings(val _pathToSettingsFile: String) {
         audioMusicFileName = "$settingFileName [music].wav"
         audioVocalFileName = "$settingFileName [vocals].wav"
         projectLyricsFileName = "$settingFileName [lyrics].kdenlive"
-        videoLyricsFileName = "$settingFileName [lyrics].mp4"
+        videoLyricsFileName = "done/$settingFileName [lyrics].mp4"
         projectKaraokeFileName = "$settingFileName [karaoke].kdenlive"
-        videoKaraokeFileName = "$settingFileName [karaoke].mp4"
+        videoKaraokeFileName = "done/$settingFileName [karaoke].mp4"
 
         val body = File(_pathToSettingsFile).readText(Charsets.UTF_8)
         body.split("\n").forEach { line ->

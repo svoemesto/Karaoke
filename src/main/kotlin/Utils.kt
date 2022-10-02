@@ -1,12 +1,17 @@
 import com.google.gson.GsonBuilder
 import model.Marker
+import model.Settings
+import model.Song
 import model.Subtitle
+import java.awt.AlphaComposite
+import java.awt.Color
 import java.awt.Font
 import java.awt.Graphics2D
 import java.awt.image.BufferedImage
 import java.io.File
 import java.nio.file.Files
 import java.util.Properties
+import javax.imageio.ImageIO
 import kotlin.io.path.Path
 import kotlin.math.roundToInt
 import kotlin.random.Random
@@ -15,23 +20,106 @@ import kotlin.random.Random
 
 fun main() {
 
-Karaoke.createAudioMusic = Karaoke.createAudioMusic
-Karaoke.createAudioSong = Karaoke.createAudioSong
-Karaoke.createAudioVocal = Karaoke.createAudioVocal
-Karaoke.createBeats = Karaoke.createBeats
-Karaoke.createBackground = Karaoke.createBackground
-Karaoke.createCounters = Karaoke.createCounters
-Karaoke.createFills = Karaoke.createFills
-Karaoke.createHeader = Karaoke.createHeader
-Karaoke.createHorizon = Karaoke.createHorizon
-Karaoke.createLogotype = Karaoke.createLogotype
-Karaoke.createMicrophone = Karaoke.createMicrophone
-Karaoke.createProgress = Karaoke.createProgress
-Karaoke.createSongtext = Karaoke.createSongtext
-Karaoke.createWatermark = Karaoke.createWatermark
+    createSongPictures(Song(Settings("/home/nsa/Documents/Караоке/Ундервуд/2002 - Все пройдет, Милая/(10) [Ундервуд] Ампутация.settings")))
 
 }
 
+fun createSongPictures(song: Song) {
+    val fileNameKaraoke = "${song.settings.rootFolder}/done/${song.settings.fileName} [karaoke].png"
+    val fileNameLyrics = "${song.settings.rootFolder}/done/${song.settings.fileName} [lyrics].png"
+    val pathToLogoAlbum = "${song.settings.rootFolder}/LogoAlbum.png"
+    val pathToLogoAuthor = "${song.settings.rootFolder}/LogoAuthor.png"
+
+    val frameW = 1920
+    val frameH = 1080
+    val opaque: Float = 1f
+    var fontSongname = Font("Montserrat SemiBold", 0, 10)
+    var fontCaption = Font("Montserrat SemiBold", 0, 200)
+    val colorSongname = Color(255,255,127,255)
+    val colorCaption = Color(85,255,255,255)
+    var textToOverlay = song.settings.songName
+    val imageType = BufferedImage.TYPE_INT_ARGB
+    var resultImageKaraoke = BufferedImage(frameW, frameH, imageType)
+    var resultImageLyrics = BufferedImage(frameW, frameH, imageType)
+    val graphics2Dkaraoke = resultImageKaraoke.graphics as Graphics2D
+    val graphics2Dlyrics = resultImageLyrics.graphics as Graphics2D
+    val alphaChannel = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opaque)
+
+    val biLogoAlbum = ImageIO.read(File(pathToLogoAlbum))
+    val biLogoAuthor = ImageIO.read(File(pathToLogoAuthor))
+
+    graphics2Dkaraoke.composite = alphaChannel
+    graphics2Dkaraoke.background = Color.BLACK
+    graphics2Dkaraoke.color = Color.BLACK
+    graphics2Dkaraoke.fillRect(0,0,frameW, frameH)
+    graphics2Dkaraoke.color = colorSongname
+    graphics2Dkaraoke.font = fontSongname
+
+    graphics2Dlyrics.composite = alphaChannel
+    graphics2Dlyrics.background = Color.BLACK
+    graphics2Dlyrics.color = Color.BLACK
+    graphics2Dlyrics.fillRect(0,0,frameW, frameH)
+    graphics2Dlyrics.color = colorSongname
+    graphics2Dlyrics.font = fontSongname
+
+    var rectW = 0
+    var rectH = 0
+    do {
+        fontSongname = Font(fontSongname.name, fontSongname.style, fontSongname.size+1)
+        graphics2Dkaraoke.font = fontSongname
+        graphics2Dlyrics.font = fontSongname
+        val fontMetrics = graphics2Dkaraoke.fontMetrics
+        val rect = fontMetrics.getStringBounds(textToOverlay, graphics2Dkaraoke)
+        rectW = rect.width.toInt()
+        rectH = rect.height.toInt()
+    } while (rectW < frameW * 0.95)
+
+    var centerX = (frameW - rectW) / 2
+    var centerY = (frameH - rectH) / 2 + rectH
+    graphics2Dkaraoke.drawString(textToOverlay, centerX, centerY)
+    graphics2Dlyrics.drawString(textToOverlay, centerX, centerY)
+
+    textToOverlay = "Karaoke"
+    graphics2Dkaraoke.color = colorCaption
+    graphics2Dkaraoke.font = fontCaption
+    var fontMetrics = graphics2Dkaraoke.fontMetrics
+    var rect = fontMetrics.getStringBounds(textToOverlay, graphics2Dkaraoke)
+    rectW = rect.width.toInt()
+    rectH = rect.height.toInt()
+
+    centerX = (frameW - rectW) / 2
+    centerY = frameH - 100
+    graphics2Dkaraoke.drawString(textToOverlay, centerX, centerY)
+
+    graphics2Dkaraoke.drawImage(biLogoAlbum, 50, 50, null)
+    graphics2Dkaraoke.drawImage(biLogoAuthor, 710, 50, null)
+
+    graphics2Dkaraoke.dispose()
+
+    textToOverlay = "Lyrics"
+    graphics2Dlyrics.color = colorCaption
+    graphics2Dlyrics.font = fontCaption
+    fontMetrics = graphics2Dlyrics.fontMetrics
+    rect = fontMetrics.getStringBounds(textToOverlay, graphics2Dlyrics)
+    rectW = rect.width.toInt()
+    rectH = rect.height.toInt()
+
+    centerX = (frameW - rectW) / 2
+    centerY = frameH - 100
+    graphics2Dlyrics.drawString(textToOverlay, centerX, centerY)
+
+    graphics2Dlyrics.drawImage(biLogoAlbum, 50, 50, null)
+    graphics2Dlyrics.drawImage(biLogoAuthor, 710, 50, null)
+
+    graphics2Dlyrics.dispose()
+
+    val fileKaraoke = File(fileNameKaraoke)
+    val fileLyrics = File(fileNameLyrics)
+
+    ImageIO.write(resultImageKaraoke, "png", fileKaraoke)
+    ImageIO.write(resultImageLyrics, "png", fileLyrics)
+
+}
 fun test() {
 
 

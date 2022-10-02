@@ -24,3 +24,9 @@ fun Color.setting(): String {
 fun List<Color>.setting(): String {
     return joinToString("|") { it.setting() }
 }
+
+fun String.hashtag(): String {
+    var result = "#"
+    forEach { if (it.lowercase() in "qwertyuiopasdfghjklzxcvbnmйцукенгшщзхъёфывапролджэячсмитьбю1234567890") result += it  }
+    return result
+}

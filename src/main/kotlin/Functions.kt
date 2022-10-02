@@ -630,12 +630,17 @@ fun createKaraoke(song: Song) {
         }
 
         val fileProjectName = "${song.settings.rootFolder}/${if (isKaraoke) song.settings.projectKaraokeFileName else song.settings.projectLyricsFileName}"
+        val fileDescriptionName = "${song.settings.rootFolder}/done/${song.settings.fileName}${if (isKaraoke) " [karaoke].txt" else " [lyrics].txt"}"
+        val textDescription = if (isKaraoke) song.descriptionKaraokeText else song.descriptionLyricText
         val fileSubtitleName = "$fileProjectName.srt"
 
         val templateProject = "<?xml version='1.0' encoding='utf-8'?>\n${getMlt(param)}"
 
         File(fileProjectName).writeText(templateProject)
+        File(fileDescriptionName).writeText(textDescription)
         File(fileSubtitleName).writeText(song.voices[0].srtFileBody)
     }
+
+    createSongPictures(song)
 
 }

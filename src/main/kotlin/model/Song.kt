@@ -7,6 +7,7 @@ import getBeatNumberByTimecode
 import getDurationInMilliseconds
 import getListFiles
 import getTextWidthHeightPx
+import hashtag
 import java.awt.Font
 import java.io.File
 import java.util.DoubleSummaryStatistics
@@ -15,6 +16,40 @@ data class Song(val settings: Settings) {
         var endTimecode: String = ""
         var beatTimecode: String = "00:00:00.000"
         var voices: MutableList<SongVoice> = mutableListOf()
+
+        val descriptionLyricText: String
+            get() {
+                val text = "${settings.songName} ★♫★ ${settings.author} ★♫★ lyric" + "\n" +
+                        "Композиция: ${settings.songName}\n" +
+                        "Исполнитель: ${settings.author}\n" +
+                        "Альбом: ${settings.album}\n" +
+                        "Тональность: ${settings.key}\n" +
+                        "Темп: ${settings.bpm} bpm\n" +
+                        "Karaoke-версия: \n" +
+                        "Плейлист «${settings.author} (karaoke)»: \n" +
+                        "Плейлист «${settings.author} (lyrics)»: \n" +
+                        "Минусовка, определение тональности и темпа композиции сделаны с помощью сервиса https://vocalremover.org\n" +
+                        "Видео создано с помощью написанной мной программы для создания караоке: https://github.com/svoemesto/Karaoke\n" +
+                        "${settings.songName.hashtag()} ${settings.author.hashtag()} ${"karaoke".hashtag()} ${"караоке".hashtag()}\n"
+                return text
+            }
+
+    val descriptionKaraokeText: String
+        get() {
+            val text = "${settings.songName} ★♫★ ${settings.author} ★♫★ karaoke" + "\n" +
+                    "Композиция: ${settings.songName}\n" +
+                    "Исполнитель: ${settings.author}\n" +
+                    "Альбом: ${settings.album}\n" +
+                    "Тональность: ${settings.key}\n" +
+                    "Темп: ${settings.bpm} bpm\n" +
+                    "Lyric-версия: \n" +
+                    "Плейлист «${settings.author} (karaoke)»: \n" +
+                    "Плейлист «${settings.author} (lyrics)»: \n" +
+                    "Минусовка, определение тональности и темпа композиции сделаны с помощью сервиса https://vocalremover.org\n" +
+                    "Видео создано с помощью написанной мной программы для создания караоке: https://github.com/svoemesto/Karaoke\n" +
+                    "${settings.songName.hashtag()} ${settings.author.hashtag()} ${"karaoke".hashtag()} ${"караоке".hashtag()}\n"
+            return text
+        }
         init {
 
             val beatMs = if (settings.ms == 0L) (60000.0 / settings.bpm).toLong() else settings.ms

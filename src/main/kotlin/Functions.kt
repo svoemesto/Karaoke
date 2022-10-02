@@ -11,6 +11,8 @@ import java.lang.Integer.min
 
 fun createKaraoke(song: Song) {
 
+    println("Создаём караоке: ${song.settings.author}, ${song.settings.songName}")
+
     val param = mutableMapOf<String, Any?>()
     param["COUNT_VOICES"] = song.voices.size
     param["LINE_SPACING"] = LINE_SPACING
@@ -132,7 +134,7 @@ fun createKaraoke(song: Song) {
                 groupSetting = voiceSetting.groups[min(currentGroup, voiceSetting.groups.size-1)] // Получаем настройки для текущей группы
                 val fontTextForSubtitle = Font(groupSetting.songtextTextMltFont.font.name, groupSetting.songtextTextMltFont.font.style, fontSizePt)
                 val fontBeatForSubtitle = Font(groupSetting.songtextBeatMltFont.font.name, groupSetting.songtextBeatMltFont.font.style, fontSizePt)
-                if (subtitle.isBeat) {
+                if (Karaoke.showMainBeatVowels && subtitle.isBeat) {
                     var textBeforeVowel = ""
                     var textVowel = ""
                     var textAfterVowel = ""
@@ -233,6 +235,8 @@ fun createKaraoke(song: Song) {
             currentPositionEnd = convertTimecodeToMilliseconds(voiceLine.end)
             if (!voiceLine.isEmptyLine) endTimeHidingHeaderMs = currentPositionEnd
         }
+
+        if (convertTimecodeToMilliseconds(song.endTimecode) - endTimeHidingHeaderMs!! < 10000) endTimeHidingHeaderMs = convertTimecodeToMilliseconds(song.endTimecode) - 10000
 
         val workAreaHeightPx = symbolHeightPx * voiceLines.size // Высота рабочей области
         val horizonPositionPx = (Karaoke.frameHeightPx / 2 + symbolHeightPx.toLong() / 2) - Karaoke.horizonOffsetPx    // horizonPosition - позиция горизонта = половина экрана + половина высоты символа - оффсет

@@ -30,6 +30,19 @@ class Karaoke {
                 props.storeToXML(File(fileNameXml).outputStream(), null)
             }
 
+        // Выделять гласные сильных долей
+        var showMainBeatVowels: Boolean
+            get() {
+                val defaultValue = "false"
+                props.loadFromXML(File(fileNameXml).inputStream())
+                return props.getProperty("showMainBeatVowels",defaultValue).toBoolean()
+            }
+            set(value) {
+                props.setProperty("showMainBeatVowels", value.toString())
+                props.storeToXML(File(fileNameXml).outputStream(), null)
+            }
+
+
         // Создавать логотип
         var createLogotype: Boolean
             get() {

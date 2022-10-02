@@ -187,7 +187,6 @@ data class SongVoiceLine(
     val widthLinePx: Long
         get() = getWidthLinePx().toLong()
 
-//    val widthLinePx: Long = if (subtitles.isEmpty()) 0 else (getSubtitleXpx(subtitles.last())+getSubtitleWpx(subtitles.last())).toLong()
     fun getSymbolXpx(symbolPositionInSymbols: Int): Double {
         var result = 0.0
         for (indexSymbol in symbols.indices) {

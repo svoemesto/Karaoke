@@ -19,6 +19,10 @@ import getMltCounterFilePlaylist
 import getMltCounterProducer
 import getMltCounterTrackPlaylist
 import getMltCounterTractor
+import getMltFaderFilePlaylist
+import getMltFaderProducer
+import getMltFaderTrackPlaylist
+import getMltFaderTractor
 import getMltFillColorEvenProducer
 import getMltFillColorOddProducer
 import getMltFillEvenFilePlaylist
@@ -100,6 +104,13 @@ fun getMlt(param: Map<String, Any?>): MltNode {
             if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
                 body.add(getMltFillColorEvenProducer(param, type, groupId))
                 body.add(getMltFillColorOddProducer(param, type, groupId))
+            }
+        }
+
+        type = ProducerType.FADER
+        if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
+            if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
+                body.add(getMltFaderProducer(param, type, groupId))
             }
         }
 
@@ -257,6 +268,15 @@ fun getMlt(param: Map<String, Any?>): MltNode {
                 body.add(getMltSongTextFilePlaylist(param, type, voiceId))
                 body.add(getMltSongTextTrackPlaylist(param, type, voiceId))
                 body.add(getMltSongTextTractor(param, type, voiceId))
+            }
+        }
+
+        type = ProducerType.FADER
+        if ((param["${type.text.uppercase()}${voiceId}_ENABLED"] as Boolean)) {
+            if ((type.onlyOne && voiceId == 0) || !type.onlyOne ) {
+                body.add(getMltFaderFilePlaylist(param, type, voiceId))
+                body.add(getMltFaderTrackPlaylist(param, type, voiceId))
+                body.add(getMltFaderTractor(param, type, voiceId))
             }
         }
 

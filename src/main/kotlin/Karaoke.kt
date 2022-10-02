@@ -106,6 +106,19 @@ class Karaoke {
                 props.storeToXML(File(fileNameXml).outputStream(),null)
             }
 
+        // Создавать фэйдер
+        var createFader: Boolean
+            get() {
+                val defaultValue = "true"
+                props.loadFromXML(File(fileNameXml).inputStream())
+                return props.getProperty("createFader",defaultValue).toBoolean()
+            }
+            set(value) {
+                props.setProperty("createFader", value.toString())
+                props.storeToXML(File(fileNameXml).outputStream(),null)
+            }
+
+
         // Создавать заливки
         var createFills: Boolean
             get() {

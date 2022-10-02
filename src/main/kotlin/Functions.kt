@@ -88,6 +88,7 @@ fun createKaraoke(song: Song) {
         val idProducerBeat4 = 20
         val idProducerProgress = 21
         val idProducerWatermark = 22
+        val idProducerFader = 23
 
         val beats = listOf(
             emptyList<String>().toMutableList(),
@@ -272,6 +273,8 @@ fun createKaraoke(song: Song) {
         val templateHorizon = getTemplateHorizon(param)
         val templateProgress = getTemplateProgress(param)
         val templateWatermark = getTemplateWatermark(param)
+        val templateMicrophone = getTemplateMicrophone(param)
+        val templateFader = getTemplateFader(param)
         val templateHeader = getTemplateHeader(param)
         val templateCounter0 = getTemplateCounter(param,0, voiceId)
         val templateCounter1 = getTemplateCounter(param,1, voiceId)
@@ -479,7 +482,6 @@ fun createKaraoke(song: Song) {
         val kdeLengthFrames = convertTimecodeToFrames(song.endTimecode, Karaoke.frameFps)
 
         kdeLogoPath = "${song.settings.rootFolder}/Logo.png"
-        kdeMicrophonePath = "${song.settings.rootFolder}/Microphone.png"
 
         param["SONG_ROOT_FOLDER"] = song.settings.rootFolder
         param["SONG_START_TIMECODE"] = kdeIn
@@ -517,6 +519,9 @@ fun createKaraoke(song: Song) {
         param["${ProducerType.WATERMARK.text.uppercase()}${voiceId}_XML_DATA"] = templateWatermark
         param["HIDE_TRACTOR_${ProducerType.WATERMARK.text.uppercase()}${voiceId}"] = "audio"
 
+        param["${ProducerType.FADER.text.uppercase()}${voiceId}_ID"] = idProducerFader
+        param["${ProducerType.FADER.text.uppercase()}${voiceId}_XML_DATA"] = templateFader
+        param["HIDE_TRACTOR_${ProducerType.FADER.text.uppercase()}${voiceId}"] = "audio"
 
         param["${ProducerType.PROGRESS.text.uppercase()}${voiceId}_ID"] = idProducerProgress
         param["${ProducerType.PROGRESS.text.uppercase()}${voiceId}_XML_DATA"] = templateProgress
@@ -539,8 +544,7 @@ fun createKaraoke(song: Song) {
 
 
         param["${ProducerType.MICROPHONE.text.uppercase()}${voiceId}_ID"] = idProducerMicrophone
-        param["${ProducerType.MICROPHONE.text.uppercase()}${voiceId}_PATH"] = kdeMicrophonePath
-
+        param["${ProducerType.MICROPHONE.text.uppercase()}${voiceId}_XML_DATA"] = templateMicrophone
 
         param["${ProducerType.BACKGROUND.text.uppercase()}${voiceId}_ID"] = idProducerBackground
         param["${ProducerType.BACKGROUND.text.uppercase()}${voiceId}_PATH"] = getRandomFile(Karaoke.backgroundFolderPath, ".png")
@@ -602,6 +606,7 @@ fun createKaraoke(song: Song) {
         param["${ProducerType.PROGRESS.text.uppercase()}${voiceId}_ENABLED"] = Karaoke.createProgress
         param["${ProducerType.FILLCOLOR.text.uppercase()}${voiceId}_ENABLED"] = Karaoke.createFills
         param["${ProducerType.SONGTEXT.text.uppercase()}${voiceId}_ENABLED"] = Karaoke.createSongtext
+        param["${ProducerType.FADER.text.uppercase()}${voiceId}_ENABLED"] = Karaoke.createFader
         param["${ProducerType.HEADER.text.uppercase()}${voiceId}_ENABLED"] = Karaoke.createHeader
         param["${ProducerType.BEAT.text.uppercase()}${voiceId}_ENABLED"] = Karaoke.createBeats
         param["${ProducerType.COUNTER.text.uppercase()}${voiceId}_ENABLED"] = Karaoke.createCounters

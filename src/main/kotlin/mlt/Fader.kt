@@ -2,7 +2,7 @@ import mlt.mltNode
 import model.MltNode
 import model.ProducerType
 
-fun getMltMicrophoneProducer(param: Map<String, Any?>, type:ProducerType = ProducerType.WATERMARK, voiceId: Int = 0): MltNode {
+fun getMltFaderProducer(param: Map<String, Any?>, type:ProducerType = ProducerType.FADER, voiceId: Int = 0): MltNode {
 
     val mlt = MltNode(
         type = type,
@@ -36,7 +36,7 @@ fun getMltMicrophoneProducer(param: Map<String, Any?>, type:ProducerType = Produ
 }
 
 
-fun getMltMicrophoneFilePlaylist(param: Map<String, Any?>, type:ProducerType = ProducerType.WATERMARK, voiceId: Int = 0): MltNode {
+fun getMltFaderFilePlaylist(param: Map<String, Any?>, type:ProducerType = ProducerType.FADER, voiceId: Int = 0): MltNode {
 
     val mlt = MltNode(
         type = type,
@@ -70,7 +70,7 @@ fun getMltMicrophoneFilePlaylist(param: Map<String, Any?>, type:ProducerType = P
     return mlt
 }
 
-fun getMltMicrophoneTrackPlaylist(param: Map<String, Any?>, type:ProducerType = ProducerType.WATERMARK, voiceId: Int = 0): MltNode {
+fun getMltFaderTrackPlaylist(param: Map<String, Any?>, type:ProducerType = ProducerType.FADER, voiceId: Int = 0): MltNode {
 
     val mlt = MltNode(
         type = type,
@@ -83,7 +83,7 @@ fun getMltMicrophoneTrackPlaylist(param: Map<String, Any?>, type:ProducerType = 
     return mlt
 }
 
-fun getMltMicrophoneTractor(param: Map<String, Any?>, type:ProducerType = ProducerType.WATERMARK, voiceId: Int = 0): MltNode {
+fun getMltFaderTractor(param: Map<String, Any?>, type:ProducerType = ProducerType.FADER, voiceId: Int = 0): MltNode {
 
     val mlt = MltNode(
         type = type,
@@ -115,7 +115,14 @@ fun getMltMicrophoneTractor(param: Map<String, Any?>, type:ProducerType = Produc
     return mlt
 }
 
-fun getTemplateMicrophone(param: Map<String, Any?>): MltNode {
+fun getTemplateFader(param: Map<String, Any?>): MltNode {
+
+    val voiceSetting = param["VOICE0_SETTING"] as KaraokeVoice
+    val w = Karaoke.frameWidthPx
+    val h = getTextWidthHeightPx("W", voiceSetting.groups[0].songtextTextMltFont.font).second.toLong() * 2
+    val x = 0
+    val yTop = 0
+    val yBottom = Karaoke.frameHeightPx - h
 
     return MltNode(
         name = "kdenlivetitle",
@@ -130,22 +137,55 @@ fun getTemplateMicrophone(param: Map<String, Any?>): MltNode {
             MltNode(
                 name = "item",
                 fields = mutableMapOf(
-                    Pair("type","QGraphicsPixmapItem"),
+                    Pair("type","QGraphicsRectItem"),
                     Pair("index","0"),
                 ),
                 body = mutableListOf(
                     MltNode(
                         name = "position",
                         fields = mutableMapOf(
-                            Pair("x","-8"),
-                            Pair("y","10")
+                            Pair("x","$x"),
+                            Pair("y","$yTop")
                         ),
-                        body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(), body = "0.313559,0,0,0,0.313559,0,0,0,1"))
+                        body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(Pair("zoom","100")), body = "1,0,0,0,1,0,0,0,1"))
                     ),
                     MltNode(
                         name = "content",
                         fields = mutableMapOf(
-                            Pair("base64",microphoneBase64)
+                            Pair("brushcolor","0,0,0,255"),
+                            Pair("pencolor","0,0,0,255"),
+                            Pair("penwidth","0"),
+                            Pair("penwidth","0"),
+                            Pair("rect","0,0,$w,$h"),
+                            Pair("gradient","#ff000000;#00bf4040;0;100;90")
+                        )
+                    )
+                )
+            ),
+            MltNode(
+                name = "item",
+                fields = mutableMapOf(
+                    Pair("type","QGraphicsRectItem"),
+                    Pair("index","0"),
+                ),
+                body = mutableListOf(
+                    MltNode(
+                        name = "position",
+                        fields = mutableMapOf(
+                            Pair("x","$x"),
+                            Pair("y","$yBottom")
+                        ),
+                        body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(Pair("zoom","100")), body = "1,0,0,0,1,0,0,0,1"))
+                    ),
+                    MltNode(
+                        name = "content",
+                        fields = mutableMapOf(
+                            Pair("brushcolor","0,0,0,255"),
+                            Pair("pencolor","0,0,0,255"),
+                            Pair("penwidth","0"),
+                            Pair("penwidth","0"),
+                            Pair("rect","0,0,$w,$h"),
+                            Pair("gradient","#ff000000;#00bf4040;100;0;90")
                         )
                     )
                 )

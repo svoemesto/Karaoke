@@ -18,6 +18,55 @@ class Karaoke {
         private val props = Properties()
 
 
+        // Создавать описания
+        var createSongDesctiption: Boolean
+            get() {
+                val defaultValue = "true"
+                props.loadFromXML(File(fileNameXml).inputStream())
+                return props.getProperty("createSongDesctiption",defaultValue).toBoolean()
+            }
+            set(value) {
+                props.setProperty("createSongDesctiption", value.toString())
+                props.storeToXML(File(fileNameXml).outputStream(),null)
+            }
+
+
+        // Создавать картинки
+        var createSongPictures: Boolean
+            get() {
+                val defaultValue = "true"
+                props.loadFromXML(File(fileNameXml).inputStream())
+                return props.getProperty("createSongPictures",defaultValue).toBoolean()
+            }
+            set(value) {
+                props.setProperty("createSongPictures", value.toString())
+                props.storeToXML(File(fileNameXml).outputStream(),null)
+            }
+
+        // Создавать проект лирикс
+        var createProjectLyrics: Boolean
+            get() {
+                val defaultValue = "true"
+                props.loadFromXML(File(fileNameXml).inputStream())
+                return props.getProperty("createProjectLyrics",defaultValue).toBoolean()
+            }
+            set(value) {
+                props.setProperty("createProjectLyrics", value.toString())
+                props.storeToXML(File(fileNameXml).outputStream(),null)
+            }
+
+        // Создавать проект караоке
+        var createProjectKaraoke: Boolean
+            get() {
+                val defaultValue = "true"
+                props.loadFromXML(File(fileNameXml).inputStream())
+                return props.getProperty("createProjectKaraoke",defaultValue).toBoolean()
+            }
+            set(value) {
+                props.setProperty("createProjectKaraoke", value.toString())
+                props.storeToXML(File(fileNameXml).outputStream(),null)
+            }
+
         // Путь к папке с фонами
         var backgroundFolderPath: String
             get() {
@@ -368,9 +417,9 @@ songtextTextMltFont|[NAME]|${MltFont(font = Font("Montserrat SemiBold",0,80), fo
 |[FIELD]|
 songtextBeatMltFont|[NAME]|${MltFont(font = Font("Montserrat SemiBold",0,80), fontColor = Color(105,255,105,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 1, fontUnderline = 0).setting()}
 |[GROUP]|
-songtextTextMltFont|[NAME]|${MltFont(font = Font("Montserrat SemiBold",2,80), fontColor = Color(255,255,255,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 1, fontUnderline = 0).setting()}
+songtextTextMltFont|[NAME]|${MltFont(font = Font("Montserrat SemiBold",2,80), fontColor = Color(155,255,155,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 1, fontUnderline = 0).setting()}
 |[FIELD]|
-songtextBeatMltFont|[NAME]|${MltFont(font = Font("Montserrat SemiBold",2,80), fontColor = Color(155,255,155,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 1, fontUnderline = 0).setting()}
+songtextBeatMltFont|[NAME]|${MltFont(font = Font("Montserrat SemiBold",2,80), fontColor = Color(105,255,105,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 1, fontUnderline = 0).setting()}
 |[VOICEFIELDS]|
 evenColor|[NAME]|${Color(255,128,0,255).setting()}
 |[FIELD]|
@@ -392,9 +441,9 @@ songtextTextMltFont|[NAME]|${MltFont(font = Font("Montserrat SemiBold",0,80), fo
 |[FIELD]|
 songtextBeatMltFont|[NAME]|${MltFont(font = Font("Montserrat SemiBold",0,80), fontColor = Color(105,255,105,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 1, fontUnderline = 0).setting()}
 |[GROUP]|
-songtextTextMltFont|[NAME]|${MltFont(font = Font("Montserrat SemiBold",2,80), fontColor = Color(255,255,255,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 1, fontUnderline = 0).setting()}
+songtextTextMltFont|[NAME]|${MltFont(font = Font("Montserrat SemiBold",2,80), fontColor = Color(155,255,155,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 1, fontUnderline = 0).setting()}
 |[FIELD]|
-songtextBeatMltFont|[NAME]|${MltFont(font = Font("Montserrat SemiBold",2,80), fontColor = Color(155,255,155,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 1, fontUnderline = 0).setting()}
+songtextBeatMltFont|[NAME]|${MltFont(font = Font("Montserrat SemiBold",2,80), fontColor = Color(105,255,105,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 1, fontUnderline = 0).setting()}
 |[VOICEFIELDS]|
 evenColor|[NAME]|${Color(255,128,0,255).setting()}
 |[FIELD]|
@@ -416,9 +465,9 @@ songtextTextMltFont|[NAME]|${MltFont(font = Font("Montserrat SemiBold",0,80), fo
 |[FIELD]|
 songtextBeatMltFont|[NAME]|${MltFont(font = Font("Montserrat SemiBold",0,80), fontColor = Color(105,255,105,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 1, fontUnderline = 0).setting()}
 |[GROUP]|
-songtextTextMltFont|[NAME]|${MltFont(font = Font("Montserrat SemiBold",2,80), fontColor = Color(255,255,255,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 1, fontUnderline = 0).setting()}
+songtextTextMltFont|[NAME]|${MltFont(font = Font("Montserrat SemiBold",2,80), fontColor = Color(155,255,155,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 1, fontUnderline = 0).setting()}
 |[FIELD]|
-songtextBeatMltFont|[NAME]|${MltFont(font = Font("Montserrat SemiBold",2,80), fontColor = Color(155,255,155,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 1, fontUnderline = 0).setting()}
+songtextBeatMltFont|[NAME]|${MltFont(font = Font("Montserrat SemiBold",2,80), fontColor = Color(105,255,105,255), fontOutlineColor = Color(0,0,0,255) , fontOutline = 1, fontUnderline = 0).setting()}
 |[VOICEFIELDS]|
 evenColor|[NAME]|${Color(255,128,0,255).setting()}
 |[FIELD]|

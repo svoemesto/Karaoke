@@ -620,27 +620,48 @@ fun createKaraoke(song: Song) {
 
 //    param.forEach{println("${it.key} : ${it.value}")}
 
-    fileIsKaraoke.forEach { isKaraoke ->
-        param["SONG_PROJECT_FILENAME"] = if (isKaraoke) song.settings.projectKaraokeFileName else song.settings.projectLyricsFileName
-        param["SONG_VIDEO_FILENAME"] = if (isKaraoke) song.settings.videoKaraokeFileName else song.settings.videoLyricsFileName
+    if (Karaoke.createProjectLyrics) {
+        param["SONG_PROJECT_FILENAME"] = song.settings.projectLyricsFileName
+        param["SONG_VIDEO_FILENAME"] = song.settings.videoLyricsFileName
         for (voiceId in 0 until song.voices.size) {
-            param["HIDE_TRACTOR_${ProducerType.AUDIOMUSIC.text.uppercase()}${voiceId}"] = if (isKaraoke) "video" else "both"
-            param["HIDE_TRACTOR_${ProducerType.AUDIOSONG.text.uppercase()}${voiceId}"] = if (isKaraoke) "both" else "video"
-            param["HIDE_TRACTOR_${ProducerType.MICROPHONE.text.uppercase()}${voiceId}"] = if (isKaraoke) "audio" else "both"
+            param["HIDE_TRACTOR_${ProducerType.AUDIOMUSIC.text.uppercase()}${voiceId}"] = "both"
+            param["HIDE_TRACTOR_${ProducerType.AUDIOSONG.text.uppercase()}${voiceId}"] = "video"
+            param["HIDE_TRACTOR_${ProducerType.MICROPHONE.text.uppercase()}${voiceId}"] = "both"
         }
-
-        val fileProjectName = "${song.settings.rootFolder}/${if (isKaraoke) song.settings.projectKaraokeFileName else song.settings.projectLyricsFileName}"
-        val fileDescriptionName = "${song.settings.rootFolder}/done/${song.settings.fileName}${if (isKaraoke) " [karaoke].txt" else " [lyrics].txt"}"
-        val textDescription = if (isKaraoke) song.descriptionKaraokeText else song.descriptionLyricText
+        val fileProjectName = "${song.settings.rootFolder}/${song.settings.projectLyricsFileName}"
         val fileSubtitleName = "$fileProjectName.srt"
-
         val templateProject = "<?xml version='1.0' encoding='utf-8'?>\n${getMlt(param)}"
-
         File(fileProjectName).writeText(templateProject)
-        File(fileDescriptionName).writeText(textDescription)
         File(fileSubtitleName).writeText(song.voices[0].srtFileBody)
     }
 
-    createSongPictures(song)
+    if (Karaoke.createProjectKaraoke) {
+        param["SONG_PROJECT_FILENAME"] = song.settings.projectKaraokeFileName
+        param["SONG_VIDEO_FILENAME"] = song.settings.videoKaraokeFileName
+        for (voiceId in 0 until song.voices.size) {
+            param["HIDE_TRACTOR_${ProducerType.AUDIOMUSIC.text.uppercase()}${voiceId}"] = "video"
+            param["HIDE_TRACTOR_${ProducerType.AUDIOSONG.text.uppercase()}${voiceId}"] = "both"
+            param["HIDE_TRACTOR_${ProducerType.MICROPHONE.text.uppercase()}${voiceId}"] = "audio"
+        }
+        val fileProjectName = "${song.settings.rootFolder}/${song.settings.projectKaraokeFileName}"
+        val fileSubtitleName = "$fileProjectName.srt"
+        val templateProject = "<?xml version='1.0' encoding='utf-8'?>\n${getMlt(param)}"
+        File(fileProjectName).writeText(templateProject)
+        File(fileSubtitleName).writeText(song.voices[0].srtFileBody)
+    }
+
+    if (Karaoke.createSongPictures) {
+        createSongPictures(song)
+    }
+
+    if (Karaoke.createSongDesctiption) {
+        val fileDescriptionLyricsName = "${song.settings.rootFolder}/done/${song.settings.fileName} [lyrics].txt"
+        val textDescriptionLyrics = song.descriptionKaraokeText
+        File(fileDescriptionLyricsName).writeText(textDescriptionLyrics)
+
+        val fileDescriptionKaraokeName = "${song.settings.rootFolder}/done/${song.settings.fileName} [karaoke].txt"
+        val textDescriptionKaraoke = song.descriptionKaraokeText
+        File(fileDescriptionKaraokeName).writeText(textDescriptionKaraoke)
+    }
 
 }

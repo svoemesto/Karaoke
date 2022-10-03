@@ -44,11 +44,12 @@ data class Settings(val _pathToSettingsFile: String) {
         val body = File(_pathToSettingsFile).readText(Charsets.UTF_8)
         body.split("\n").forEach { line ->
             val settingList = line.split("=")
-            if (settingList.size == 2) {
+            if (settingList.size >1 ) {
                 val settingName = settingList[0].uppercase()
                 val settingValue = settingList[1]
+                val settingValue2 = if (settingList.size == 3) "="+settingList[2] else ""
                 when (settingName) {
-                    "NAME" -> songName = settingValue
+                    "NAME" -> songName = settingValue+settingValue2
                     "AUTHOR" -> author = settingValue
                     "ALBUM" -> album = settingValue
                     "KEY" -> key = settingValue

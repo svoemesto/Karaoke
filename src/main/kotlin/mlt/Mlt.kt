@@ -14,6 +14,10 @@ import getMltBeatProducer
 import getMltBeatTrackPlaylist
 import getMltBeatTractor
 import getMltBlackTrackProducer
+import getMltChordsFilePlaylist
+import getMltChordsProducer
+import getMltChordsTrackPlaylist
+import getMltChordsTractor
 import getMltConsumer
 import getMltCounterFilePlaylist
 import getMltCounterProducer
@@ -23,14 +27,22 @@ import getMltFaderFilePlaylist
 import getMltFaderProducer
 import getMltFaderTrackPlaylist
 import getMltFaderTractor
-import getMltFillColorEvenProducer
-import getMltFillColorOddProducer
-import getMltFillEvenFilePlaylist
-import getMltFillEvenTrackPlaylist
-import getMltFillEvenTractor
-import getMltFillOddFilePlaylist
-import getMltFillOddTrackPlaylist
-import getMltFillOddTractor
+import getMltFillChordsEvenFilePlaylist
+import getMltFillChordsEvenTrackPlaylist
+import getMltFillChordsEvenTractor
+import getMltFillChordsOddFilePlaylist
+import getMltFillChordsOddTrackPlaylist
+import getMltFillChordsOddTractor
+import getMltFillColorChordsEvenProducer
+import getMltFillColorChordsOddProducer
+import getMltFillColorSongtextEvenProducer
+import getMltFillColorSongtextOddProducer
+import getMltFillSongtextEvenFilePlaylist
+import getMltFillSongtextEvenTrackPlaylist
+import getMltFillSongtextEvenTractor
+import getMltFillSongtextOddFilePlaylist
+import getMltFillSongtextOddTrackPlaylist
+import getMltFillSongtextOddTractor
 import getMltHeaderFilePlaylist
 import getMltHeaderProducer
 import getMltHeaderTrackPlaylist
@@ -78,6 +90,13 @@ fun getMlt(param: Map<String, Any?>): MltNode {
             }
         }
 
+        type = ProducerType.CHORDS
+        if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
+            if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
+                body.add(getMltChordsProducer(param, type, groupId))
+            }
+        }
+
         type = ProducerType.HORIZON
         if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
             if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
@@ -99,11 +118,19 @@ fun getMlt(param: Map<String, Any?>): MltNode {
             }
         }
 
-        type = ProducerType.FILLCOLOR
+        type = ProducerType.FILLCOLORSONGTEXT
         if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
             if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
-                body.add(getMltFillColorEvenProducer(param, type, groupId))
-                body.add(getMltFillColorOddProducer(param, type, groupId))
+                body.add(getMltFillColorSongtextEvenProducer(param, type, groupId))
+                body.add(getMltFillColorSongtextOddProducer(param, type, groupId))
+            }
+        }
+
+        type = ProducerType.FILLCOLORCHORDS
+        if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
+            if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
+                body.add(getMltFillColorChordsEvenProducer(param, type, groupId))
+                body.add(getMltFillColorChordsOddProducer(param, type, groupId))
             }
         }
 
@@ -284,15 +311,27 @@ fun getMlt(param: Map<String, Any?>): MltNode {
             }
         }
 
-        type = ProducerType.FILLCOLOR
+        type = ProducerType.FILLCOLORSONGTEXT
         if ((param["${type.text.uppercase()}${voiceId}_ENABLED"] as Boolean)) {
             if ((type.onlyOne && voiceId == 0) || !type.onlyOne ) {
-                body.add(getMltFillEvenFilePlaylist(param, type, voiceId))
-                body.add(getMltFillEvenTrackPlaylist(param, type, voiceId))
-                body.add(getMltFillEvenTractor(param, type, voiceId))
-                body.add(getMltFillOddFilePlaylist(param, type, voiceId))
-                body.add(getMltFillOddTrackPlaylist(param, type, voiceId))
-                body.add(getMltFillOddTractor(param, type, voiceId))
+                body.add(getMltFillSongtextEvenFilePlaylist(param, type, voiceId))
+                body.add(getMltFillSongtextEvenTrackPlaylist(param, type, voiceId))
+                body.add(getMltFillSongtextEvenTractor(param, type, voiceId))
+                body.add(getMltFillSongtextOddFilePlaylist(param, type, voiceId))
+                body.add(getMltFillSongtextOddTrackPlaylist(param, type, voiceId))
+                body.add(getMltFillSongtextOddTractor(param, type, voiceId))
+            }
+        }
+
+        type = ProducerType.FILLCOLORCHORDS
+        if ((param["${type.text.uppercase()}${voiceId}_ENABLED"] as Boolean)) {
+            if ((type.onlyOne && voiceId == 0) || !type.onlyOne ) {
+                body.add(getMltFillChordsEvenFilePlaylist(param, type, voiceId))
+                body.add(getMltFillChordsEvenTrackPlaylist(param, type, voiceId))
+                body.add(getMltFillChordsEvenTractor(param, type, voiceId))
+                body.add(getMltFillChordsOddFilePlaylist(param, type, voiceId))
+                body.add(getMltFillChordsOddTrackPlaylist(param, type, voiceId))
+                body.add(getMltFillChordsOddTractor(param, type, voiceId))
             }
         }
 
@@ -302,6 +341,15 @@ fun getMlt(param: Map<String, Any?>): MltNode {
                 body.add(getMltSongTextFilePlaylist(param, type, voiceId))
                 body.add(getMltSongTextTrackPlaylist(param, type, voiceId))
                 body.add(getMltSongTextTractor(param, type, voiceId))
+            }
+        }
+
+        type = ProducerType.CHORDS
+        if ((param["${type.text.uppercase()}${voiceId}_ENABLED"] as Boolean)) {
+            if ((type.onlyOne && voiceId == 0) || !type.onlyOne ) {
+                body.add(getMltChordsFilePlaylist(param, type, voiceId))
+                body.add(getMltChordsTrackPlaylist(param, type, voiceId))
+                body.add(getMltChordsTractor(param, type, voiceId))
             }
         }
 

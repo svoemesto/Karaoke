@@ -1,7 +1,7 @@
 import model.MltNode
 import model.ProducerType
 
-fun getMltFillColorEvenProducer(param: Map<String, Any?>, type:ProducerType = ProducerType.FILLCOLOR, voiceId: Int = 0): MltNode {
+fun getMltFillColorChordsEvenProducer(param: Map<String, Any?>, type:ProducerType = ProducerType.FILLCOLORCHORDS, voiceId: Int = 0): MltNode {
 
     val mlt = MltNode(
         type = type,
@@ -29,7 +29,7 @@ fun getMltFillColorEvenProducer(param: Map<String, Any?>, type:ProducerType = Pr
     return mlt
 }
 
-fun getMltFillColorOddProducer(param: Map<String, Any?>, type:ProducerType = ProducerType.FILLCOLOR, voiceId: Int = 0): MltNode {
+fun getMltFillColorChordsOddProducer(param: Map<String, Any?>, type:ProducerType = ProducerType.FILLCOLORCHORDS, voiceId: Int = 0): MltNode {
 
     val mlt = MltNode(
         type = type,
@@ -57,7 +57,7 @@ fun getMltFillColorOddProducer(param: Map<String, Any?>, type:ProducerType = Pro
     return mlt
 }
 
-fun getMltFillEvenFilePlaylist(param: Map<String, Any?>, type:ProducerType = ProducerType.FILLCOLOR, voiceId: Int = 0): MltNode {
+fun getMltFillChordsEvenFilePlaylist(param: Map<String, Any?>, type:ProducerType = ProducerType.FILLCOLORCHORDS, voiceId: Int = 0): MltNode {
 
     val mlt = MltNode(
         type = type,
@@ -91,7 +91,7 @@ fun getMltFillEvenFilePlaylist(param: Map<String, Any?>, type:ProducerType = Pro
     return mlt
 }
 
-fun getMltFillEvenTrackPlaylist(param: Map<String, Any?>, type:ProducerType = ProducerType.FILLCOLOR, voiceId: Int = 0): MltNode {
+fun getMltFillChordsEvenTrackPlaylist(param: Map<String, Any?>, type:ProducerType = ProducerType.FILLCOLORCHORDS, voiceId: Int = 0): MltNode {
 
     val mlt = MltNode(
         type = type,
@@ -104,7 +104,7 @@ fun getMltFillEvenTrackPlaylist(param: Map<String, Any?>, type:ProducerType = Pr
     return mlt
 }
 
-fun getMltFillEvenTractor(param: Map<String, Any?>, type:ProducerType = ProducerType.FILLCOLOR, voiceId: Int = 0): MltNode {
+fun getMltFillChordsEvenTractor(param: Map<String, Any?>, type:ProducerType = ProducerType.FILLCOLORCHORDS, voiceId: Int = 0): MltNode {
 
     val mlt = MltNode(
         type = type,
@@ -136,7 +136,7 @@ fun getMltFillEvenTractor(param: Map<String, Any?>, type:ProducerType = Producer
     return mlt
 }
 
-fun getMltFillOddFilePlaylist(param: Map<String, Any?>, type:ProducerType = ProducerType.FILLCOLOR, voiceId: Int = 0): MltNode {
+fun getMltFillChordsOddFilePlaylist(param: Map<String, Any?>, type:ProducerType = ProducerType.FILLCOLORCHORDS, voiceId: Int = 0): MltNode {
 
     val mlt = MltNode(
         type = type,
@@ -170,7 +170,7 @@ fun getMltFillOddFilePlaylist(param: Map<String, Any?>, type:ProducerType = Prod
     return mlt
 }
 
-fun getMltFillOddTrackPlaylist(param: Map<String, Any?>, type:ProducerType = ProducerType.FILLCOLOR, voiceId: Int = 0): MltNode {
+fun getMltFillChordsOddTrackPlaylist(param: Map<String, Any?>, type:ProducerType = ProducerType.FILLCOLORCHORDS, voiceId: Int = 0): MltNode {
 
     val mlt = MltNode(
         type = type,
@@ -183,7 +183,7 @@ fun getMltFillOddTrackPlaylist(param: Map<String, Any?>, type:ProducerType = Pro
     return mlt
 }
 
-fun getMltFillOddTractor(param: Map<String, Any?>, type:ProducerType = ProducerType.FILLCOLOR, voiceId: Int = 0): MltNode {
+fun getMltFillChordsOddTractor(param: Map<String, Any?>, type:ProducerType = ProducerType.FILLCOLORCHORDS, voiceId: Int = 0): MltNode {
 
     val mlt = MltNode(
         type = type,

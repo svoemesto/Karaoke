@@ -119,7 +119,7 @@ fun getTemplateHorizon(param: Map<String, Any?>): MltNode {
 
     val templateHorizonGroup = mutableListOf<MltNode>()
 
-    val voiceLines = param["VOICE0_VOICELINES"] as MutableList<*>
+    val voiceLines = param["VOICE0_VOICELINES_SONGTEXT"] as MutableList<*>
 
     if (Karaoke.paintHorizon) {
         voiceLines.forEachIndexed { indexLine, it ->

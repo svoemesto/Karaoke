@@ -18,14 +18,14 @@ class Karaoke {
 
 
         // Создавать аккорды
-        var createAccords: Boolean
+        var createChords: Boolean
             get() {
                 val defaultValue = "true"
                 props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("createAccords",defaultValue).toBoolean()
+                return props.getProperty("createChords",defaultValue).toBoolean()
             }
             set(value) {
-                props.setProperty("createAccords", value.toString())
+                props.setProperty("createChords", value.toString())
                 props.storeToXML(File(fileNameXml).outputStream(),null)
             }
 
@@ -231,14 +231,25 @@ class Karaoke {
 
 
         // Создавать заливки
-        var createFills: Boolean
+        var createFillsSongtext: Boolean
             get() {
                 val defaultValue = "true"
                 props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("createFills",defaultValue).toBoolean()
+                return props.getProperty("createFillsSongtext",defaultValue).toBoolean()
             }
             set(value) {
-                props.setProperty("createFills", value.toString())
+                props.setProperty("createFillsSongtext", value.toString())
+                props.storeToXML(File(fileNameXml).outputStream(),null)
+            }
+
+        var createFillsChords: Boolean
+            get() {
+                val defaultValue = "true"
+                props.loadFromXML(File(fileNameXml).inputStream())
+                return props.getProperty("createFillsChords",defaultValue).toBoolean()
+            }
+            set(value) {
+                props.setProperty("createFillsChords", value.toString())
                 props.storeToXML(File(fileNameXml).outputStream(),null)
             }
 
@@ -572,7 +583,7 @@ oddOpacity|[NAME]|0.6""".trimIndent()
         // HEADER
 
 
-        var accordsFont: MltFont
+        var chordsFont: MltFont
             get() {
                 val defaultValue = MltFont(
                     font = Font("Montserrat SemiBold", 0, 80),
@@ -582,23 +593,23 @@ oddOpacity|[NAME]|0.6""".trimIndent()
                     fontUnderline = 0
                 ).setting()
                 props.loadFromXML(File(fileNameXml).inputStream())
-                return getMltFontFromString(props.getProperty("accordsFont", defaultValue))
+                return getMltFontFromString(props.getProperty("chordsFont", defaultValue))
             }
             set(value) {
-                props.setProperty("accordsFont", value.setting())
+                props.setProperty("chordsFont", value.setting())
                 props.storeToXML(File(fileNameXml).outputStream(),null)
             }
 
 
         // Коэффициэнт размера шрифта аккорда относительно размера шрифта текста песни
-        var accordsHeightCoeff: Double
+        var chordsHeightCoefficient: Double
             get() {
                 val defaultValue = "0.5"
                 props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("accordsHeightCoeff",defaultValue).toDouble()
+                return props.getProperty("chordsHeightCoefficient",defaultValue).toDouble()
             }
             set(value) {
-                props.setProperty("accordsHeightCoeff", value.toString())
+                props.setProperty("chordsHeightCoefficient", value.toString())
                 props.storeToXML(File(fileNameXml).outputStream(),null)
             }
 

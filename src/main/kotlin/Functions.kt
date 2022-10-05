@@ -219,7 +219,9 @@ fun createKaraoke(song: Song) {
         var currentPositionEnd = 0L // Устанавливаем текущую позицию конца в ноль
         var endTimeHidingHeaderMs: Long? = null
         val voiceLinesSongtext = mutableListOf<SongVoiceLine>()
+        val voiceLinesSongchords = mutableListOf<SongVoiceLine>()
         val voiceLinesChords = mutableListOf<SongVoiceLine>()
+
         songVoice.lines.forEach { voiceLine ->
             val silentDuration = convertTimecodeToMilliseconds(voiceLine.start) - currentPositionEnd
             var linesToInsert: Long = silentDuration / songVoice.maxDurationMs
@@ -247,6 +249,7 @@ fun createKaraoke(song: Song) {
                     )
 
                     voiceLinesSongtext.add(emptyVoiceLine)
+                    voiceLinesSongchords.add(emptyVoiceLine.copy())
                     voiceLinesChords.add(emptyVoiceLine.copy())
 
                     currentPositionEnd = currentPositionEnd + silentLineDuration //convertTimecodeToMilliseconds(endDuration)
@@ -254,7 +257,12 @@ fun createKaraoke(song: Song) {
             }
             voiceLine.isNeedCounter = ((linesToInsert > 0 && !voiceLine.isEmptyLine) || voiceLine == songVoice.lines.first())
             voiceLinesSongtext.add(voiceLine)
-            voiceLinesChords.add(voiceLine.copy())
+            voiceLinesSongchords.add(voiceLine.copy())
+
+            // ***************************************************************************************************************
+            // Тут надо сформировать правильную строчку для voiceLinesChords
+            // ***************************************************************************************************************
+
             currentPositionEnd = convertTimecodeToMilliseconds(voiceLine.end)
             if (!voiceLine.isEmptyLine) endTimeHidingHeaderMs = currentPositionEnd
         }
@@ -262,7 +270,7 @@ fun createKaraoke(song: Song) {
         if (convertTimecodeToMilliseconds(song.endTimecode) - endTimeHidingHeaderMs!! < 10000) endTimeHidingHeaderMs = convertTimecodeToMilliseconds(song.endTimecode) - 10000
 
         val workAreaSongtextHeightPx = symbolSongtextHeightPx * voiceLinesSongtext.size // Высота рабочей области
-        val workAreaChordsHeightPx = (symbolSongtextHeightPx + symbolChordsHeightPx) * voiceLinesChords.size // Высота рабочей области
+        val workAreaChordsHeightPx = (symbolSongtextHeightPx + symbolChordsHeightPx) * voiceLinesSongchords.size // Высота рабочей области
         val horizonPositionPx = (Karaoke.frameHeightPx / 2 + symbolSongtextHeightPx.toLong() / 2) - Karaoke.horizonOffsetPx    // horizonPosition - позиция горизонта = половина экрана + половина высоты символа - оффсет
         val songLengthMs = convertTimecodeToMilliseconds(song.endTimecode)
         val progressSymbolHalfWidth =  0 //(getTextWidthHeightPx(Karaoke.progressSymbol, Karaoke.progressFont.font).first/2).toLong()
@@ -284,7 +292,7 @@ fun createKaraoke(song: Song) {
         param["VOICE${voiceId}_WORK_AREA_SONGTEXT_HEIGHT_PX"] = workAreaSongtextHeightPx.toLong()
         param["VOICE${voiceId}_WORK_AREA_CHORDS_HEIGHT_PX"] = workAreaChordsHeightPx.toLong()
         param["VOICE${voiceId}_VOICELINES_SONGTEXT"] = voiceLinesSongtext
-        param["VOICE${voiceId}_VOICELINES_CHORDS"] = voiceLinesChords
+        param["VOICE${voiceId}_VOICELINES_CHORDS"] = voiceLinesSongchords
 
         param["SYMBOL_SONGTEXT_HEIGHT_PX"] = symbolSongtextHeightPx
         param["SYMBOL_CHORDS_HEIGHT_PX"] = symbolChordsHeightPx
@@ -308,7 +316,7 @@ fun createKaraoke(song: Song) {
 
         voiceLinesSongtext.forEachIndexed { indexLine, voiceLineSongtext ->
 
-            val voiceLineChords = voiceLinesChords[indexLine]
+            val voiceLineSongchords = voiceLinesSongchords[indexLine]
 
             val startTpSongtext = TransformProperty(
                 time = voiceLineSongtext.start,
@@ -320,26 +328,26 @@ fun createKaraoke(song: Song) {
             )
 
             val startTpChords = TransformProperty(
-                time = voiceLineChords.start,
+                time = voiceLineSongchords.start,
                 x = currentVoiceOffset,
                 y = horizonPositionPx - ((indexLine + 1) * (symbolSongtextHeightPx + symbolChordsHeightPx)).toLong(),
                 w = Karaoke.frameWidthPx,
                 h = workAreaChordsHeightPx.toLong(),
-                opacity = if (indexLine in 1 until voiceLinesChords.size-1) 1.0 else 0.0
+                opacity = if (indexLine in 1 until voiceLinesSongchords.size-1) 1.0 else 0.0
             )
 
             var time = voiceLineSongtext.end
             // Если текущий элемент не последний - надо проверить начало следующего элемента
             if (indexLine != voiceLinesSongtext.size - 1) {
                 val nextVoiceLineSongtext = voiceLinesSongtext[indexLine + 1] // Находим следующую строку
-                val nextVoiceLineChords = voiceLinesChords[indexLine + 1] // Находим следующую строку
+                val nextVoiceLineChords = voiceLinesSongchords[indexLine + 1] // Находим следующую строку
                 val diffInMills = getDiffInMilliseconds(nextVoiceLineSongtext.start, voiceLineSongtext.end) // Находим разницу во времени между текущей строкой и следующей
                 if (diffInMills < Karaoke.transferMinimumMsBetweenLinesToScroll) {                            // Если эта разница меньше 200 мс
                     voiceLineSongtext.end = nextVoiceLineSongtext.start             // Сдвигаем конец текущей линии и конец последнего титра в ней до начала следующей
-                    voiceLineChords.end = nextVoiceLineChords.start             // Сдвигаем конец текущей линии и конец последнего титра в ней до начала следующей
+                    voiceLineSongchords.end = nextVoiceLineChords.start             // Сдвигаем конец текущей линии и конец последнего титра в ней до начала следующей
                     if (voiceLineSongtext.subtitles.isNotEmpty()) {
                         voiceLineSongtext.subtitles.last().endTimecode = voiceLineSongtext.end
-                        voiceLineChords.subtitles.last().endTimecode = voiceLineChords.end
+                        voiceLineSongchords.subtitles.last().endTimecode = voiceLineSongchords.end
                         time = voiceLineSongtext.subtitles.last().startTimecode       // сдвигаем время classes.TransformProperty к началу последнего титра текущей строки
                     }
                 }
@@ -359,14 +367,14 @@ fun createKaraoke(song: Song) {
                 y = horizonPositionPx - ((indexLine + 1) * (symbolSongtextHeightPx + symbolChordsHeightPx)).toLong(),
                 w = Karaoke.frameWidthPx,
                 h = workAreaChordsHeightPx.toLong(),
-                opacity = if (indexLine in 1 until voiceLinesChords.size-1) 1.0 else 0.0
+                opacity = if (indexLine in 1 until voiceLinesSongchords.size-1) 1.0 else 0.0
             )
 
             voiceLineSongtext.startTp = startTpSongtext
             voiceLineSongtext.endTp = endTpSongtext
 
-            voiceLineChords.startTp = startTpChords
-            voiceLineChords.endTp = endTpChords
+            voiceLineSongchords.startTp = startTpChords
+            voiceLineSongchords.endTp = endTpChords
 
             val ddd = ""
         }
@@ -375,16 +383,16 @@ fun createKaraoke(song: Song) {
 
         voiceLinesSongtext.forEachIndexed { indexLine, voiceLineSongtext ->
 
-            val voiceLineChords = voiceLinesChords[indexLine]
+            val voiceLineSongchords = voiceLinesSongchords[indexLine]
 
             val nextVoiceLineSongtext = if (indexLine < voiceLinesSongtext.size - 1) voiceLinesSongtext[indexLine + 1] else null //Следующая строка
-            val nextVoiceLineChords = if (indexLine < voiceLinesChords.size - 1) voiceLinesChords[indexLine + 1] else null //Следующая строка
+            val nextVoiceLineChords = if (indexLine < voiceLinesSongchords.size - 1) voiceLinesSongchords[indexLine + 1] else null //Следующая строка
             propRectSongtextLineValue.add("${voiceLineSongtext.startTp?.time}=${voiceLineSongtext.startTp?.x} ${voiceLineSongtext.startTp?.y} ${voiceLineSongtext.startTp?.w} ${voiceLineSongtext.startTp?.h} ${voiceLineSongtext.startTp?.opacity}")
-            propRectChordsLineValue.add("${voiceLineChords.startTp?.time}=${voiceLineChords.startTp?.x} ${voiceLineChords.startTp?.y} ${voiceLineChords.startTp?.w} ${voiceLineChords.startTp?.h} ${voiceLineChords.startTp?.opacity}")
+            propRectChordsLineValue.add("${voiceLineSongchords.startTp?.time}=${voiceLineSongchords.startTp?.x} ${voiceLineSongchords.startTp?.y} ${voiceLineSongchords.startTp?.w} ${voiceLineSongchords.startTp?.h} ${voiceLineSongchords.startTp?.opacity}")
 
             if (!voiceLineSongtext.isEmptyLine) { // Если текущая строка пустая - ничего больше не делаем. Переход между строками будет плавны
                 propRectSongtextLineValue.add("${voiceLineSongtext.endTp?.time}=${voiceLineSongtext.endTp?.x} ${voiceLineSongtext.endTp?.y} ${voiceLineSongtext.endTp?.w} ${voiceLineSongtext.endTp?.h} ${voiceLineSongtext.endTp?.opacity}")
-                propRectChordsLineValue.add("${voiceLineChords.endTp?.time}=${voiceLineChords.endTp?.x} ${voiceLineChords.endTp?.y} ${voiceLineChords.endTp?.w} ${voiceLineChords.endTp?.h} ${voiceLineChords.endTp?.opacity}")
+                propRectChordsLineValue.add("${voiceLineSongchords.endTp?.time}=${voiceLineSongchords.endTp?.x} ${voiceLineSongchords.endTp?.y} ${voiceLineSongchords.endTp?.w} ${voiceLineSongchords.endTp?.h} ${voiceLineSongchords.endTp?.opacity}")
                 val currSubtitle = voiceLineSongtext.subtitles[0] // Получаем первый титр текущей строки (он точно есть, т.к. строка не пустая)
                 val startTime = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(currSubtitle.startTimecode) - (1000 / Karaoke.frameFps + 1).toLong()) // Время начала анимации = времени начала этого титра минус 1 фрейм
                 val x = Karaoke.songtextStartPositionXpx - Karaoke.songtextStartOffsetXpx + currentVoiceOffset

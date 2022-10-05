@@ -5,6 +5,8 @@ enum class ProducerType(val text: String, val orderInTimeline: Int, val onlyOne:
     AUDIOVOCAL(text = "audiovocal", orderInTimeline = 1, onlyOne = true),
     AUDIOMUSIC(text ="audiomusic", orderInTimeline = 2, onlyOne = true),
     AUDIOSONG(text ="audiosong", orderInTimeline = 3, onlyOne = true),
+    AUDIOBASS(text ="audiobass", orderInTimeline = 3, onlyOne = true),
+    AUDIODRUMS(text ="audiodrums", orderInTimeline = 3, onlyOne = true),
     BACKGROUND(text ="background", orderInTimeline = 4, onlyOne = true),
     MICROPHONE(text ="microphone", orderInTimeline = 5, onlyOne = true),
     HORIZON(text ="horizon", orderInTimeline = 6, onlyOne = true),

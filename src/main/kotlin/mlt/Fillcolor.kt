@@ -21,7 +21,7 @@ fun getMltFillColorEvenProducer(param: Map<String, Any?>, type:ProducerType = Pr
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:clipname")), body = "${type.text.uppercase()}EVEN${if (voiceId==0) "" else voiceId}"),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:folderid")), body = -1),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:clip_type")), body = 2),
-            MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:id")), body = (param["${type.text.uppercase()}${voiceId}_EVEN_ID"] as Int)+voiceId*100),
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:id")), body = (param["${type.text.uppercase()}${voiceId}_EVEN_ID"] as Int)+voiceId*1000),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","mlt_image_format")), body = "rgb")
         )
     )
@@ -49,7 +49,7 @@ fun getMltFillColorOddProducer(param: Map<String, Any?>, type:ProducerType = Pro
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:clipname")), body = "${type.text.uppercase()}ODD${if (voiceId==0) "" else voiceId}"),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:folderid")), body = -1),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:clip_type")), body = 2),
-            MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:id")), body = (param["${type.text.uppercase()}${voiceId}_ODD_ID"] as Int)+voiceId*100),
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:id")), body = (param["${type.text.uppercase()}${voiceId}_ODD_ID"] as Int)+voiceId*1000),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","mlt_image_format")), body = "rgb")
         )
     )
@@ -71,7 +71,7 @@ fun getMltFillEvenFilePlaylist(param: Map<String, Any?>, type:ProducerType = Pro
                 Pair("in",param["SONG_START_TIMECODE"].toString()),
                 Pair("out",param["SONG_END_TIMECODE"].toString()),
             ), body = mutableListOf(
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:id")), body = (param["${type.text.uppercase()}${voiceId}_EVEN_ID"] as Int)+voiceId*100),
+                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:id")), body = (param["${type.text.uppercase()}${voiceId}_EVEN_ID"] as Int)+voiceId*1000),
                 MltNode(name = "filter",
                     fields = mutableMapOf(Pair("id","filter_${type.text}even${voiceId}_qtblend")),
                     body = mutableListOf(
@@ -150,7 +150,7 @@ fun getMltFillOddFilePlaylist(param: Map<String, Any?>, type:ProducerType = Prod
                 Pair("in",param["SONG_START_TIMECODE"].toString()),
                 Pair("out",param["SONG_END_TIMECODE"].toString()),
             ), body = mutableListOf(
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:id")), body = (param["${type.text.uppercase()}${voiceId}_ODD_ID"] as Int)+voiceId*100),
+                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:id")), body = (param["${type.text.uppercase()}${voiceId}_ODD_ID"] as Int)+voiceId*1000),
                 MltNode(name = "filter",
                     fields = mutableMapOf(Pair("id","filter_${type.text}odd${voiceId}_qtblend")),
                     body = mutableListOf(

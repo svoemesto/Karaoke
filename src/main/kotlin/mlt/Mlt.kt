@@ -177,6 +177,20 @@ fun getMlt(param: Map<String, Any?>): MltNode {
             }
         }
 
+        type = ProducerType.AUDIOBASS
+        if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
+            if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
+                body.add(getMltAudioProducer(param, type, groupId))
+            }
+        }
+
+        type = ProducerType.AUDIODRUMS
+        if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
+            if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
+                body.add(getMltAudioProducer(param, type, groupId))
+            }
+        }
+
     }
 
     body.add(getMltMainBinPlaylist(param))
@@ -205,6 +219,26 @@ fun getMlt(param: Map<String, Any?>): MltNode {
         }
 
         type = ProducerType.AUDIOSONG
+        if ((param["${type.text.uppercase()}${voiceId}_ENABLED"] as Boolean)) {
+            if ((type.onlyOne && voiceId == 0) || !type.onlyOne ) {
+                body.add(getMltAudioFileProducer(param, type, voiceId))
+                body.add(getMltAudioFilePlaylist(param, type, voiceId))
+                body.add(getMltAudioTrackPlaylist(param, type, voiceId))
+                body.add(getMltAudioTractor(param, type, voiceId))
+            }
+        }
+
+        type = ProducerType.AUDIOBASS
+        if ((param["${type.text.uppercase()}${voiceId}_ENABLED"] as Boolean)) {
+            if ((type.onlyOne && voiceId == 0) || !type.onlyOne ) {
+                body.add(getMltAudioFileProducer(param, type, voiceId))
+                body.add(getMltAudioFilePlaylist(param, type, voiceId))
+                body.add(getMltAudioTrackPlaylist(param, type, voiceId))
+                body.add(getMltAudioTractor(param, type, voiceId))
+            }
+        }
+
+        type = ProducerType.AUDIODRUMS
         if ((param["${type.text.uppercase()}${voiceId}_ENABLED"] as Boolean)) {
             if ((type.onlyOne && voiceId == 0) || !type.onlyOne ) {
                 body.add(getMltAudioFileProducer(param, type, voiceId))

@@ -142,6 +142,18 @@ fun getMltMainBinPlaylist(param: Map<String, Any?>): MltNode {
                 entries.add(MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_${type.text}${groupId}"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))))
             }
         }
+        type = ProducerType.AUDIOBASS
+        if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
+            if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
+                entries.add(MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_${type.text}${groupId}"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))))
+            }
+        }
+        type = ProducerType.AUDIODRUMS
+        if ((param["${type.text.uppercase()}${groupId}_ENABLED"] as Boolean)) {
+            if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
+                entries.add(MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_${type.text}${groupId}"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))))
+            }
+        }
     }
 
     val mlt = MltNode(

@@ -23,7 +23,7 @@ fun getMltBackgroundProducer(param: Map<String, Any?>, type:ProducerType = Produ
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:clipname")), body = "${type.text.uppercase()}${if (voiceId==0) "" else voiceId}"),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:folderid")), body = -1),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:clip_type")), body = 2),
-            MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:id")), body = (param["${type.text.uppercase()}${voiceId}_ID"] as Int)+voiceId*100),
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:id")), body = (param["${type.text.uppercase()}${voiceId}_ID"] as Int)+voiceId*1000),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","force_reload")), body = 0),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","meta.media.width")), body = 4096),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","meta.media.height")), body = 4096)
@@ -47,7 +47,7 @@ fun getMltBackgroundFilePlaylist(param: Map<String, Any?>, type:ProducerType = P
                 Pair("in",param["SONG_START_TIMECODE"].toString()),
                 Pair("out",param["SONG_END_TIMECODE"].toString()),
             ), body = mutableListOf(
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:id")), body = (param["${type.text.uppercase()}${voiceId}_ID"] as Int)+voiceId*100),
+                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:id")), body = (param["${type.text.uppercase()}${voiceId}_ID"] as Int)+voiceId*1000),
                 MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:activeeffect")), body = 1),
                 MltNode(name = "filter",
                     fields = mutableMapOf(Pair("id","filter_${type.text}${voiceId}_gamma")),

@@ -26,7 +26,7 @@ fun getMltCounterProducer(param: Map<String, Any?>, id: Long, type:ProducerType 
             MltNode(name = "property", fields = mutableMapOf(Pair("name","xmldata")), body = param["${type.text.uppercase()}${voiceId}${id}_XML_DATA"]),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:folderid")), body = -1),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:clip_type")), body = 2),
-            MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:id")), body = (param["${type.text.uppercase()}${voiceId}${id}_ID"] as Int)+voiceId*100),
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:id")), body = (param["${type.text.uppercase()}${voiceId}${id}_ID"] as Int)+voiceId*1000),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","force_reload")), body = 0),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","meta.media.width")), body = Karaoke.frameWidthPx),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","meta.media.height")), body = Karaoke.frameHeightPx)
@@ -51,7 +51,7 @@ fun getMltCounterFilePlaylist(param: Map<String, Any?>, id: Long, type:ProducerT
                 Pair("in",param["SONG_START_TIMECODE"].toString()),
                 Pair("out",param["SONG_END_TIMECODE"].toString()),
             ), body = mutableListOf(
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:id")), body = (param["${type.text.uppercase()}${voiceId}${id}_ID"] as Int)+voiceId*100),
+                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:id")), body = (param["${type.text.uppercase()}${voiceId}${id}_ID"] as Int)+voiceId*1000),
                 MltNode(name = "filter",
                     fields = mutableMapOf(Pair("id","filter_${type.text}${voiceId}${id}_qtblend")),
                     body = mutableListOf(

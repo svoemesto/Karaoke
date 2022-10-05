@@ -10,7 +10,7 @@ import java.awt.Graphics2D
 import java.awt.image.BufferedImage
 import java.io.File
 import java.nio.file.Files
-import java.util.Properties
+import java.util.*
 import javax.imageio.ImageIO
 import kotlin.io.path.Path
 import kotlin.math.roundToInt
@@ -20,13 +20,12 @@ import kotlin.random.Random
 
 fun main() {
 
-    createSongPictures(Song(Settings("/home/nsa/Documents/Караоке/Ундервуд/2002 - Все пройдет, Милая/(10) [Ундервуд] Ампутация.settings")))
+//    createSongPicture(Song(Settings("/home/nsa/Documents/Караоке/Ундервуд/2002 - Все пройдет, Милая/(10) [Ундервуд] Ампутация.settings")))
 
 }
 
-fun createSongPictures(song: Song) {
-    val fileNameKaraoke = "${song.settings.rootFolder}/done/${song.settings.fileName} [karaoke].png"
-    val fileNameLyrics = "${song.settings.rootFolder}/done/${song.settings.fileName} [lyrics].png"
+fun createSongPicture(song: Song, caption: String) {
+    val fileName = "${song.settings.rootFolder}/done/${song.settings.fileName} [${caption.lowercase()}].png"
     val pathToLogoAlbum = "${song.settings.rootFolder}/LogoAlbum.png"
     val pathToLogoAuthor = "${song.settings.rootFolder}/LogoAuthor.png"
 
@@ -39,85 +38,55 @@ fun createSongPictures(song: Song) {
     val colorCaption = Color(85,255,255,255)
     var textToOverlay = song.settings.songName
     val imageType = BufferedImage.TYPE_INT_ARGB
-    var resultImageKaraoke = BufferedImage(frameW, frameH, imageType)
-    var resultImageLyrics = BufferedImage(frameW, frameH, imageType)
-    val graphics2Dkaraoke = resultImageKaraoke.graphics as Graphics2D
-    val graphics2Dlyrics = resultImageLyrics.graphics as Graphics2D
+    var resultImage = BufferedImage(frameW, frameH, imageType)
+    val graphics2D = resultImage.graphics as Graphics2D
     val alphaChannel = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opaque)
 
     val biLogoAlbum = ImageIO.read(File(pathToLogoAlbum))
     val biLogoAuthor = ImageIO.read(File(pathToLogoAuthor))
 
-    graphics2Dkaraoke.composite = alphaChannel
-    graphics2Dkaraoke.background = Color.BLACK
-    graphics2Dkaraoke.color = Color.BLACK
-    graphics2Dkaraoke.fillRect(0,0,frameW, frameH)
-    graphics2Dkaraoke.color = colorSongname
-    graphics2Dkaraoke.font = fontSongname
-
-    graphics2Dlyrics.composite = alphaChannel
-    graphics2Dlyrics.background = Color.BLACK
-    graphics2Dlyrics.color = Color.BLACK
-    graphics2Dlyrics.fillRect(0,0,frameW, frameH)
-    graphics2Dlyrics.color = colorSongname
-    graphics2Dlyrics.font = fontSongname
+    graphics2D.composite = alphaChannel
+    graphics2D.background = Color.BLACK
+    graphics2D.color = Color.BLACK
+    graphics2D.fillRect(0,0,frameW, frameH)
+    graphics2D.color = colorSongname
+    graphics2D.font = fontSongname
 
     var rectW = 0
     var rectH = 0
     do {
         fontSongname = Font(fontSongname.name, fontSongname.style, fontSongname.size+1)
-        graphics2Dkaraoke.font = fontSongname
-        graphics2Dlyrics.font = fontSongname
-        val fontMetrics = graphics2Dkaraoke.fontMetrics
-        val rect = fontMetrics.getStringBounds(textToOverlay, graphics2Dkaraoke)
+        graphics2D.font = fontSongname
+        val fontMetrics = graphics2D.fontMetrics
+        val rect = fontMetrics.getStringBounds(textToOverlay, graphics2D)
         rectW = rect.width.toInt()
         rectH = rect.height.toInt()
     } while (rectW < frameW * 0.95)
 
     var centerX = (frameW - rectW) / 2
     var centerY = (frameH - rectH) / 2 + rectH
-    graphics2Dkaraoke.drawString(textToOverlay, centerX, centerY)
-    graphics2Dlyrics.drawString(textToOverlay, centerX, centerY)
+    graphics2D.drawString(textToOverlay, centerX, centerY)
 
-    textToOverlay = "Karaoke"
-    graphics2Dkaraoke.color = colorCaption
-    graphics2Dkaraoke.font = fontCaption
-    var fontMetrics = graphics2Dkaraoke.fontMetrics
-    var rect = fontMetrics.getStringBounds(textToOverlay, graphics2Dkaraoke)
+    textToOverlay = caption.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+    graphics2D.color = colorCaption
+    graphics2D.font = fontCaption
+    var fontMetrics = graphics2D.fontMetrics
+    var rect = fontMetrics.getStringBounds(textToOverlay, graphics2D)
     rectW = rect.width.toInt()
     rectH = rect.height.toInt()
 
     centerX = (frameW - rectW) / 2
     centerY = frameH - 100
-    graphics2Dkaraoke.drawString(textToOverlay, centerX, centerY)
+    graphics2D.drawString(textToOverlay, centerX, centerY)
 
-    graphics2Dkaraoke.drawImage(biLogoAlbum, 50, 50, null)
-    graphics2Dkaraoke.drawImage(biLogoAuthor, 710, 50, null)
+    graphics2D.drawImage(biLogoAlbum, 50, 50, null)
+    graphics2D.drawImage(biLogoAuthor, 710, 50, null)
 
-    graphics2Dkaraoke.dispose()
+    graphics2D.dispose()
 
-    textToOverlay = "Lyrics"
-    graphics2Dlyrics.color = colorCaption
-    graphics2Dlyrics.font = fontCaption
-    fontMetrics = graphics2Dlyrics.fontMetrics
-    rect = fontMetrics.getStringBounds(textToOverlay, graphics2Dlyrics)
-    rectW = rect.width.toInt()
-    rectH = rect.height.toInt()
+    val file = File(fileName)
 
-    centerX = (frameW - rectW) / 2
-    centerY = frameH - 100
-    graphics2Dlyrics.drawString(textToOverlay, centerX, centerY)
-
-    graphics2Dlyrics.drawImage(biLogoAlbum, 50, 50, null)
-    graphics2Dlyrics.drawImage(biLogoAuthor, 710, 50, null)
-
-    graphics2Dlyrics.dispose()
-
-    val fileKaraoke = File(fileNameKaraoke)
-    val fileLyrics = File(fileNameLyrics)
-
-    ImageIO.write(resultImageKaraoke, "png", fileKaraoke)
-    ImageIO.write(resultImageLyrics, "png", fileLyrics)
+    ImageIO.write(resultImage, "png", file)
 
 }
 fun test() {

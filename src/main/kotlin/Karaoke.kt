@@ -1,6 +1,5 @@
 import Converter.Companion.getColorFromString
 import Converter.Companion.getColorsFromString
-import Converter.Companion.getFontFromString
 import Converter.Companion.getMltFontFromString
 import Converter.Companion.getStringFromVoices
 import Converter.Companion.getVoicesFromString
@@ -16,6 +15,19 @@ class Karaoke {
     companion object {
         private val fileNameXml = "src/main/resources/settings.xml"
         private val props = Properties()
+
+
+        // Создавать аккорды
+        var createAccords: Boolean
+            get() {
+                val defaultValue = "true"
+                props.loadFromXML(File(fileNameXml).inputStream())
+                return props.getProperty("createAccords",defaultValue).toBoolean()
+            }
+            set(value) {
+                props.setProperty("createAccords", value.toString())
+                props.storeToXML(File(fileNameXml).outputStream(),null)
+            }
 
 
         // Создавать описания
@@ -40,6 +52,18 @@ class Karaoke {
             }
             set(value) {
                 props.setProperty("createSongPictures", value.toString())
+                props.storeToXML(File(fileNameXml).outputStream(),null)
+            }
+
+        // Создавать проект аккотрды
+        var createProjectChords: Boolean
+            get() {
+                val defaultValue = "true"
+                props.loadFromXML(File(fileNameXml).inputStream())
+                return props.getProperty("createProjectAccords",defaultValue).toBoolean()
+            }
+            set(value) {
+                props.setProperty("createProjectAccords", value.toString())
                 props.storeToXML(File(fileNameXml).outputStream(),null)
             }
 
@@ -130,6 +154,31 @@ class Karaoke {
                 props.storeToXML(File(fileNameXml).outputStream(), null)
             }
 
+
+        // Создавать аудио ударных
+        var createAudioDrums: Boolean
+            get() {
+                val defaultValue = "true"
+                props.loadFromXML(File(fileNameXml).inputStream())
+                return props.getProperty("createAudioDrums",defaultValue).toBoolean()
+            }
+            set(value) {
+                props.setProperty("createAudioDrums", value.toString())
+                props.storeToXML(File(fileNameXml).outputStream(), null)
+            }
+
+
+        // Создавать аудио баса
+        var createAudioBass: Boolean
+            get() {
+                val defaultValue = "true"
+                props.loadFromXML(File(fileNameXml).inputStream())
+                return props.getProperty("createAudioBass",defaultValue).toBoolean()
+            }
+            set(value) {
+                props.setProperty("createAudioBass", value.toString())
+                props.storeToXML(File(fileNameXml).outputStream(), null)
+            }
 
         // Создавать аудио вокала
         var createAudioVocal: Boolean
@@ -521,6 +570,37 @@ oddOpacity|[NAME]|0.6""".trimIndent()
             }
 
         // HEADER
+
+
+        var accordsFont: MltFont
+            get() {
+                val defaultValue = MltFont(
+                    font = Font("Montserrat SemiBold", 0, 80),
+                    fontColor = Color(255,127,127,255),
+                    fontOutlineColor = Color(0,0,0,255),
+                    fontOutline = 0,
+                    fontUnderline = 0
+                ).setting()
+                props.loadFromXML(File(fileNameXml).inputStream())
+                return getMltFontFromString(props.getProperty("accordsFont", defaultValue))
+            }
+            set(value) {
+                props.setProperty("accordsFont", value.setting())
+                props.storeToXML(File(fileNameXml).outputStream(),null)
+            }
+
+
+        // Коэффициэнт размера шрифта аккорда относительно размера шрифта текста песни
+        var accordsHeightCoeff: Double
+            get() {
+                val defaultValue = "0.5"
+                props.loadFromXML(File(fileNameXml).inputStream())
+                return props.getProperty("accordsHeightCoeff",defaultValue).toDouble()
+            }
+            set(value) {
+                props.setProperty("accordsHeightCoeff", value.toString())
+                props.storeToXML(File(fileNameXml).outputStream(),null)
+            }
 
         // Заголовок - Название песни - шрифт
         var headerSongnameFont: MltFont

@@ -11,7 +11,8 @@ import java.lang.Integer.min
 
 fun createKaraoke(song: Song) {
 
-    println("Создаём караоке: ${song.settings.author}, ${song.settings.songName}")
+    println("Создаём караоке: ${song.settings.author} / ${song.settings.songName}")
+//    println("Аккорды: ${song.accords}")
 
     val param = mutableMapOf<String, Any?>()
     param["COUNT_VOICES"] = song.voices.size
@@ -19,6 +20,58 @@ fun createKaraoke(song: Song) {
     param["SHADOW"] = SHADOW
     param["TYPEWRITER"] = TYPEWRITER
     param["ALIGNMENT"] = ALIGNMENT
+
+
+
+    val idProducerSongText = ProducerType.SONGTEXT.ordinal * 10
+    val idProducerHorizon = ProducerType.HORIZON.ordinal * 10
+    val idProducerFillColorEven = ProducerType.FILLCOLOR.ordinal * 10
+    val idProducerFillColorOdd = ProducerType.FILLCOLOR.ordinal * 10 + 1
+    val idProducerHeader = ProducerType.HEADER.ordinal * 10
+    val idProducerBackground = ProducerType.BACKGROUND.ordinal * 10
+    val idProducerMicrophone = ProducerType.MICROPHONE.ordinal * 10
+    val idProducerCounter4 = ProducerType.COUNTER.ordinal * 10 + 4
+    val idProducerCounter3 = ProducerType.COUNTER.ordinal * 10 + 3
+    val idProducerCounter2 = ProducerType.COUNTER.ordinal * 10 + 2
+    val idProducerCounter1 = ProducerType.COUNTER.ordinal * 10 + 1
+    val idProducerCounter0 = ProducerType.COUNTER.ordinal * 10
+    val idProducerAudioSong = ProducerType.AUDIOSONG.ordinal * 10
+    val idProducerAudioMusic = ProducerType.AUDIOMUSIC.ordinal * 10
+    val idProducerAudioVocal = ProducerType.AUDIOVOCAL.ordinal * 10
+    val idProducerAudioBass = ProducerType.AUDIOBASS.ordinal * 10
+    val idProducerAudioDrums = ProducerType.AUDIODRUMS.ordinal * 10
+    val idProducerBeat1 = ProducerType.BEAT.ordinal * 10 + 1
+    val idProducerBeat2 = ProducerType.BEAT.ordinal * 10 + 2
+    val idProducerBeat3 = ProducerType.BEAT.ordinal * 10 + 3
+    val idProducerBeat4 = ProducerType.BEAT.ordinal * 10 + 4
+    val idProducerProgress = ProducerType.PROGRESS.ordinal * 10 + 1
+    val idProducerWatermark = ProducerType.WATERMARK.ordinal * 10 + 1
+    val idProducerFader = ProducerType.FADER.ordinal * 10 + 1
+
+//    val idProducerSongText = 2
+//    val idProducerHorizon = 3
+//    val idProducerFillColorEven = 4
+//    val idProducerFillColorOdd = 5
+//    val idProducerHeader = 6
+//    val idProducerBackground = 7
+//    val idProducerMicrophone = 8
+//    val idProducerCounter4 = 9
+//    val idProducerCounter3 = 10
+//    val idProducerCounter2 = 11
+//    val idProducerCounter1 = 12
+//    val idProducerCounter0 = 13
+//    val idProducerAudioSong = 14
+//    val idProducerAudioMusic = 15
+//    val idProducerAudioVocal = 16
+//    val idProducerAudioBass = 17
+//    val idProducerAudioDrums = 18
+//    val idProducerBeat1 = 19
+//    val idProducerBeat2 = 20
+//    val idProducerBeat3 = 21
+//    val idProducerBeat4 = 22
+//    val idProducerProgress = 23
+//    val idProducerWatermark = 23
+//    val idProducerFader = 25
 
     val maxTextWidthPx = Karaoke.frameWidthPx.toDouble() - Karaoke.songtextStartPositionXpx * 2      // maxTextWidth - максимальная ширина текста = ширина экрана минус 2 отступа
 
@@ -68,29 +121,6 @@ fun createKaraoke(song: Song) {
         counters[2].add("00:00:00.000=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.0")
         counters[3].add("00:00:00.000=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.0")
         counters[4].add("00:00:00.000=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.0")
-
-        val idProducerSongText = 2
-        val idProducerHorizon = 3
-        val idProducerFillColorEven = 4
-        val idProducerFillColorOdd = 5
-        val idProducerHeader = 6
-        val idProducerBackground = 7
-        val idProducerMicrophone = 8
-        val idProducerCounter4 = 9
-        val idProducerCounter3 = 10
-        val idProducerCounter2 = 11
-        val idProducerCounter1 = 12
-        val idProducerCounter0 = 13
-        val idProducerAudioSong = 14
-        val idProducerAudioMusic = 15
-        val idProducerAudioVocal = 16
-        val idProducerBeat1 = 17
-        val idProducerBeat2 = 18
-        val idProducerBeat3 = 19
-        val idProducerBeat4 = 20
-        val idProducerProgress = 21
-        val idProducerWatermark = 22
-        val idProducerFader = 23
 
         val beats = listOf(
             emptyList<String>().toMutableList(),
@@ -504,6 +534,12 @@ fun createKaraoke(song: Song) {
         param["${ProducerType.AUDIOVOCAL.text.uppercase()}${voiceId}_PATH"] = song.settings.audioVocalFileName
         param["HIDE_TRACTOR_${ProducerType.AUDIOVOCAL.text.uppercase()}${voiceId}"] = "both"
 
+        param["${ProducerType.AUDIOBASS.text.uppercase()}${voiceId}_ID"] = idProducerAudioBass
+        param["${ProducerType.AUDIOBASS.text.uppercase()}${voiceId}_PATH"] = song.settings.audioBassFileName
+
+        param["${ProducerType.AUDIODRUMS.text.uppercase()}${voiceId}_ID"] = idProducerAudioDrums
+        param["${ProducerType.AUDIODRUMS.text.uppercase()}${voiceId}_PATH"] = song.settings.audioDrumsFileName
+
         param["${ProducerType.SONGTEXT.text.uppercase()}${voiceId}_ID"] = idProducerSongText
         param["${ProducerType.SONGTEXT.text.uppercase()}${voiceId}_WORK_AREA_HEIGHT_PX"] = workAreaHeightPx.toLong()
         param["${ProducerType.SONGTEXT.text.uppercase()}${voiceId}_XML_DATA"] = templateSongText
@@ -601,6 +637,8 @@ fun createKaraoke(song: Song) {
         param["${ProducerType.AUDIOVOCAL.text.uppercase()}${voiceId}_ENABLED"] = Karaoke.createAudioVocal
         param["${ProducerType.AUDIOMUSIC.text.uppercase()}${voiceId}_ENABLED"] = Karaoke.createAudioMusic
         param["${ProducerType.AUDIOSONG.text.uppercase()}${voiceId}_ENABLED"] = Karaoke.createAudioSong
+        param["${ProducerType.AUDIOBASS.text.uppercase()}${voiceId}_ENABLED"] = Karaoke.createAudioBass
+        param["${ProducerType.AUDIODRUMS.text.uppercase()}${voiceId}_ENABLED"] = Karaoke.createAudioDrums
         param["${ProducerType.BACKGROUND.text.uppercase()}${voiceId}_ENABLED"] = Karaoke.createBackground
         param["${ProducerType.MICROPHONE.text.uppercase()}${voiceId}_ENABLED"] = Karaoke.createMicrophone
         param["${ProducerType.HORIZON.text.uppercase()}${voiceId}_ENABLED"] = Karaoke.createHorizon
@@ -621,11 +659,14 @@ fun createKaraoke(song: Song) {
 //    param.forEach{println("${it.key} : ${it.value}")}
 
     if (Karaoke.createProjectLyrics) {
+        println("Создаём проект [lyrics]: ${song.settings.author} / ${song.settings.songName}")
         param["SONG_PROJECT_FILENAME"] = song.settings.projectLyricsFileName
         param["SONG_VIDEO_FILENAME"] = song.settings.videoLyricsFileName
         for (voiceId in 0 until song.voices.size) {
             param["HIDE_TRACTOR_${ProducerType.AUDIOMUSIC.text.uppercase()}${voiceId}"] = "both"
             param["HIDE_TRACTOR_${ProducerType.AUDIOSONG.text.uppercase()}${voiceId}"] = "video"
+            param["HIDE_TRACTOR_${ProducerType.AUDIOBASS.text.uppercase()}${voiceId}"] = "both"
+            param["HIDE_TRACTOR_${ProducerType.AUDIODRUMS.text.uppercase()}${voiceId}"] = "both"
             param["HIDE_TRACTOR_${ProducerType.MICROPHONE.text.uppercase()}${voiceId}"] = "both"
         }
         val fileProjectName = "${song.settings.rootFolder}/${song.settings.projectLyricsFileName}"
@@ -636,11 +677,14 @@ fun createKaraoke(song: Song) {
     }
 
     if (Karaoke.createProjectKaraoke) {
+        println("Создаём проект [karaoke]: ${song.settings.author} / ${song.settings.songName}")
         param["SONG_PROJECT_FILENAME"] = song.settings.projectKaraokeFileName
         param["SONG_VIDEO_FILENAME"] = song.settings.videoKaraokeFileName
         for (voiceId in 0 until song.voices.size) {
             param["HIDE_TRACTOR_${ProducerType.AUDIOMUSIC.text.uppercase()}${voiceId}"] = "video"
             param["HIDE_TRACTOR_${ProducerType.AUDIOSONG.text.uppercase()}${voiceId}"] = "both"
+            param["HIDE_TRACTOR_${ProducerType.AUDIOBASS.text.uppercase()}${voiceId}"] = "both"
+            param["HIDE_TRACTOR_${ProducerType.AUDIODRUMS.text.uppercase()}${voiceId}"] = "both"
             param["HIDE_TRACTOR_${ProducerType.MICROPHONE.text.uppercase()}${voiceId}"] = "audio"
         }
         val fileProjectName = "${song.settings.rootFolder}/${song.settings.projectKaraokeFileName}"
@@ -650,11 +694,33 @@ fun createKaraoke(song: Song) {
         File(fileSubtitleName).writeText(song.voices[0].srtFileBody)
     }
 
+    if (Karaoke.createProjectChords && song.hasChords) {
+        println("Создаём проект [chords]: ${song.settings.author} / ${song.settings.songName}")
+        param["SONG_PROJECT_FILENAME"] = song.settings.projectChordsFileName
+        param["SONG_VIDEO_FILENAME"] = song.settings.videoChordsFileName
+        for (voiceId in 0 until song.voices.size) {
+            param["HIDE_TRACTOR_${ProducerType.AUDIOMUSIC.text.uppercase()}${voiceId}"] = "both"
+            param["HIDE_TRACTOR_${ProducerType.AUDIOSONG.text.uppercase()}${voiceId}"] = "both"
+            param["HIDE_TRACTOR_${ProducerType.AUDIOBASS.text.uppercase()}${voiceId}"] = "video"
+            param["HIDE_TRACTOR_${ProducerType.AUDIODRUMS.text.uppercase()}${voiceId}"] = "video"
+            param["HIDE_TRACTOR_${ProducerType.MICROPHONE.text.uppercase()}${voiceId}"] = "both"
+        }
+        val fileProjectName = "${song.settings.rootFolder}/${song.settings.projectChordsFileName}"
+        val fileSubtitleName = "$fileProjectName.srt"
+        val templateProject = "<?xml version='1.0' encoding='utf-8'?>\n${getMlt(param)}"
+        File(fileProjectName).writeText(templateProject)
+        File(fileSubtitleName).writeText(song.voices[0].srtFileBody)
+    }
+
     if (Karaoke.createSongPictures) {
-        createSongPictures(song)
+        println("Создаём картинки: ${song.settings.author} / ${song.settings.songName}")
+        createSongPicture(song, "karaoke")
+        createSongPicture(song, "lyrics")
+        if (song.hasChords) createSongPicture(song, "chords")
     }
 
     if (Karaoke.createSongDesctiption) {
+        println("Создаём описания: ${song.settings.author} / ${song.settings.songName}")
         val fileDescriptionLyricsName = "${song.settings.rootFolder}/done/${song.settings.fileName} [lyrics].txt"
         val textDescriptionLyrics = song.descriptionKaraokeText
         File(fileDescriptionLyricsName).writeText(textDescriptionLyrics)
@@ -662,6 +728,13 @@ fun createKaraoke(song: Song) {
         val fileDescriptionKaraokeName = "${song.settings.rootFolder}/done/${song.settings.fileName} [karaoke].txt"
         val textDescriptionKaraoke = song.descriptionKaraokeText
         File(fileDescriptionKaraokeName).writeText(textDescriptionKaraoke)
+
+        if (song.hasChords) {
+            val fileDescriptionAccordsName = "${song.settings.rootFolder}/done/${song.settings.fileName} [accords].txt"
+            val textDescriptionAccords = song.descriptionAccordsText
+            File(fileDescriptionAccordsName).writeText(textDescriptionAccords)
+        }
+
     }
 
 }

@@ -19,5 +19,6 @@ enum class ProducerType(val text: String, val onlyOne: Boolean, val suffixes: Li
     FADER(text ="fader", onlyOne = true, suffixes = emptyList(), ids = emptyList()),
     HEADER(text ="header", onlyOne = true, suffixes = emptyList(), ids = emptyList()),
     BEAT(text ="beat", onlyOne = true, suffixes = emptyList(), ids = listOf(1,2,3,4)),
-    WATERMARK(text ="watermark", onlyOne = true, suffixes = emptyList(), ids = emptyList())
+    WATERMARK(text ="watermark", onlyOne = true, suffixes = emptyList(), ids = emptyList()),
+    SPLASHSTART(text ="splashstart", onlyOne = true, suffixes = emptyList(), ids = emptyList())
 }

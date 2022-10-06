@@ -27,6 +27,7 @@ val idProducerBeat4 = ProducerType.BEAT.ordinal * 10 + 4
 val idProducerProgress = ProducerType.PROGRESS.ordinal * 10 + 1
 val idProducerWatermark = ProducerType.WATERMARK.ordinal * 10 + 1
 val idProducerFader = ProducerType.FADER.ordinal * 10 + 1
+val idProducerSplashstart = ProducerType.SPLASHSTART.ordinal * 10 + 1
 
 
 val delimiterVoices = "\n|[VOICE]|\n"

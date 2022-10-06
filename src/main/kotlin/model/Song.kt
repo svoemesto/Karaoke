@@ -11,12 +11,12 @@ import hashtag
 import java.awt.Font
 import java.io.File
 
-data class Song(val settings: Settings) {
-    fun getOutputFilename(songOutputFile: SongOutputFile, songVersion: SongVersion, idBluetoothDelay: Boolean): String {
-        return "${settings.rootFolder}/done/${settings.fileName}${songVersion.suffix}${if (idBluetoothDelay) " bluetooth" else ""}.${songOutputFile.extension}"
+data class Song(val settings: Settings, val songVersion: SongVersion) {
+    fun getOutputFilename(songOutputFile: SongOutputFile, idBluetoothDelay: Boolean): String {
+        return "${settings.rootFolder}/done_${if (songOutputFile == SongOutputFile.PROJECT || songOutputFile == SongOutputFile.SUBTITLE) "projects" else "files"}/${settings.fileName}${songVersion.suffix}${if (idBluetoothDelay) " bluetooth" else ""}.${songOutputFile.extension}"
     }
 
-    fun getDescription(songVersion: SongVersion): String {
+    fun getDescription(): String {
         return when (songVersion) {
             SongVersion.LYRICS -> descriptionLyricText
             SongVersion.KARAOKE -> descriptionKaraokeText
@@ -142,7 +142,9 @@ data class Song(val settings: Settings) {
                                 .replace("//", "")
                                 .replace("\\\\", "")
                                 .replace("_", " ")
-
+                            if (songVersion != SongVersion.CHORDS) {
+                                text = text.replace("♬"," ")
+                            }
                             // Создаем объект classes.Subtitle и инициализируем его переменными
                             val subtitle = Subtitle(
                                 startTimecode = start,
@@ -167,6 +169,7 @@ data class Song(val settings: Settings) {
                                     maxWidthLinePx = java.lang.Double.max(maxWidthLinePx, widthLinePx)
                                     maxWidthLineText = lineText
                                 }
+
                                 listLines.add(
                                     SongVoiceLine(
                                         subtitles = songSubtitles,
@@ -179,6 +182,7 @@ data class Song(val settings: Settings) {
                                         fontBeat = Karaoke.voices[voideId].groups[group].songtextBeatMltFont.font
                                     )
                                 )
+
                                 lineText = ""
                                 songSubtitles = mutableListOf()
                             }

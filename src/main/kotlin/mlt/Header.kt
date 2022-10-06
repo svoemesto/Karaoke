@@ -1,6 +1,7 @@
 import mlt.mltNode
 import model.MltNode
 import model.ProducerType
+import model.SongVersion
 import java.awt.Font
 import java.util.DoubleSummaryStatistics
 
@@ -132,6 +133,8 @@ fun getMltHeaderTractor(param: Map<String, Any?>, type:ProducerType = ProducerTy
 
 fun getTemplateHeader(param: Map<String, Any?>): MltNode {
 
+    val songVersion = param["SONG_VERSION"] as SongVersion
+
     val offsetX = Karaoke.songtextStartPositionXpx
     val maxSongnameW = Karaoke.headerSongnameMaxX - offsetX
     val songnameNameMltFont = Karaoke.headerSongnameFont
@@ -250,62 +253,66 @@ fun getTemplateHeader(param: Map<String, Any?>): MltNode {
                 Pair("z-index","6"),
             ), body = mutableListOf(
                 MltNode(name = "position", fields = mutableMapOf(Pair("x","${valueX.toLong()}"),Pair("y","${albumY.toLong()}")), body = mutableListOf(MltNode(name = "transform", body = "1,0,0,0,1,0,0,0,1"))),
-                Karaoke.headerAlbumFont.mltNode(param["HEADER_ALBUM"].toString())
+                Karaoke.headerAlbumFont.mltNode("${param["HEADER_ALBUM"].toString()} (${param["HEADER_YEAR"].toString()})")
             )
         )
     )
 
-    body.add(
-        MltNode(
-            name = "item",
-            fields = mutableMapOf(
-                Pair("type","QGraphicsTextItem"),
-                Pair("z-index","6"),
-            ), body = mutableListOf(
-                MltNode(name = "position", fields = mutableMapOf(Pair("x","${toneX.toLong()}"),Pair("y","${toneY.toLong()}")), body = mutableListOf(MltNode(name = "transform", body = "1,0,0,0,1,0,0,0,1"))),
-                Karaoke.headerToneNameFont.mltNode(Karaoke.headerToneName)
+    if (songVersion == SongVersion.CHORDS) {
+        body.add(
+            MltNode(
+                name = "item",
+                fields = mutableMapOf(
+                    Pair("type","QGraphicsTextItem"),
+                    Pair("z-index","6"),
+                ), body = mutableListOf(
+                    MltNode(name = "position", fields = mutableMapOf(Pair("x","${toneX.toLong()}"),Pair("y","${toneY.toLong()}")), body = mutableListOf(MltNode(name = "transform", body = "1,0,0,0,1,0,0,0,1"))),
+                    Karaoke.headerToneNameFont.mltNode(Karaoke.headerToneName)
+                )
             )
         )
-    )
 
-    body.add(
-        MltNode(
-            name = "item",
-            fields = mutableMapOf(
-                Pair("type","QGraphicsTextItem"),
-                Pair("z-index","6"),
-            ), body = mutableListOf(
-                MltNode(name = "position", fields = mutableMapOf(Pair("x","${valueX.toLong()}"),Pair("y","${toneY.toLong()}")), body = mutableListOf(MltNode(name = "transform", body = "1,0,0,0,1,0,0,0,1"))),
-                Karaoke.headerToneFont.mltNode(param["HEADER_TONE"].toString())
+        body.add(
+            MltNode(
+                name = "item",
+                fields = mutableMapOf(
+                    Pair("type","QGraphicsTextItem"),
+                    Pair("z-index","6"),
+                ), body = mutableListOf(
+                    MltNode(name = "position", fields = mutableMapOf(Pair("x","${valueX.toLong()}"),Pair("y","${toneY.toLong()}")), body = mutableListOf(MltNode(name = "transform", body = "1,0,0,0,1,0,0,0,1"))),
+                    Karaoke.headerToneFont.mltNode(param["HEADER_TONE"].toString())
+                )
             )
         )
-    )
 
-    body.add(
-        MltNode(
-            name = "item",
-            fields = mutableMapOf(
-                Pair("type","QGraphicsTextItem"),
-                Pair("z-index","6"),
-            ), body = mutableListOf(
-                MltNode(name = "position", fields = mutableMapOf(Pair("x","${bpmX.toLong()}"),Pair("y","${bpmY.toLong()}")), body = mutableListOf(MltNode(name = "transform", body = "1,0,0,0,1,0,0,0,1"))),
-                Karaoke.headerBpmNameFont.mltNode(Karaoke.headerBpmName)
+        body.add(
+            MltNode(
+                name = "item",
+                fields = mutableMapOf(
+                    Pair("type","QGraphicsTextItem"),
+                    Pair("z-index","6"),
+                ), body = mutableListOf(
+                    MltNode(name = "position", fields = mutableMapOf(Pair("x","${bpmX.toLong()}"),Pair("y","${bpmY.toLong()}")), body = mutableListOf(MltNode(name = "transform", body = "1,0,0,0,1,0,0,0,1"))),
+                    Karaoke.headerBpmNameFont.mltNode(Karaoke.headerBpmName)
+                )
             )
         )
-    )
 
-    body.add(
-        MltNode(
-            name = "item",
-            fields = mutableMapOf(
-                Pair("type","QGraphicsTextItem"),
-                Pair("z-index","6"),
-            ), body = mutableListOf(
-                MltNode(name = "position", fields = mutableMapOf(Pair("x","${valueX.toLong()}"),Pair("y","${bpmY.toLong()}")), body = mutableListOf(MltNode(name = "transform", body = "1,0,0,0,1,0,0,0,1"))),
-                Karaoke.headerBpmFont.mltNode("${param["HEADER_BPM"].toString()} bpm")
+        body.add(
+            MltNode(
+                name = "item",
+                fields = mutableMapOf(
+                    Pair("type","QGraphicsTextItem"),
+                    Pair("z-index","6"),
+                ), body = mutableListOf(
+                    MltNode(name = "position", fields = mutableMapOf(Pair("x","${valueX.toLong()}"),Pair("y","${bpmY.toLong()}")), body = mutableListOf(MltNode(name = "transform", body = "1,0,0,0,1,0,0,0,1"))),
+                    Karaoke.headerBpmFont.mltNode("${param["HEADER_BPM"].toString()} bpm")
+                )
             )
         )
-    )
+    }
+
+
 
     body.add(
         MltNode(

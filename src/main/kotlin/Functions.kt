@@ -11,24 +11,27 @@ import model.TransformProperty
 import java.awt.Font
 import java.io.File
 import java.lang.Integer.min
+import java.nio.file.Files
+import java.nio.file.Path
 
 fun createKaraokeAll(pathToSettingsFile: String) {
     val settings = Settings(pathToSettingsFile)
-    createKaraoke(Song(settings), SongVersion.LYRICS, false)
-    createKaraoke(Song(settings), SongVersion.KARAOKE, false)
-    createKaraoke(Song(settings), SongVersion.CHORDS, false)
-    createKaraoke(Song(settings), SongVersion.LYRICS, true)
-    createKaraoke(Song(settings), SongVersion.KARAOKE, true)
-    createKaraoke(Song(settings), SongVersion.CHORDS, true)
+    createKaraoke(Song(settings, SongVersion.LYRICS), false)
+    createKaraoke(Song(settings, SongVersion.KARAOKE), false)
+    createKaraoke(Song(settings, SongVersion.CHORDS), false)
+    createKaraoke(Song(settings, SongVersion.LYRICS), true)
+    createKaraoke(Song(settings, SongVersion.KARAOKE), true)
+    createKaraoke(Song(settings, SongVersion.CHORDS), true)
 }
-fun createKaraoke(song: Song, songVersion: SongVersion, isBluetoothDelay: Boolean) {
+fun createKaraoke(song: Song, isBluetoothDelay: Boolean) {
 
-    println("Создаём ${songVersion.name}${if (isBluetoothDelay) " for Bluetooth" else ""}: ${song.settings.author} / ${song.settings.songName}")
+    println("Создаём ${song.songVersion.name}${if (isBluetoothDelay) " for Bluetooth" else ""}: ${song.settings.author} / ${song.settings.songName}")
 //    println("Аккорды: ${song.accords}")
 
     val param = mutableMapOf<String, Any?>()
 
-    param["SONG_VERSION"] = songVersion
+    param["SONG_VERSION"] = song.songVersion
+    param["SONG_NAME"] = song.settings.songName
     param["ID_BLUETOOTH_DELAY"] = isBluetoothDelay
 
     param["COUNT_VOICES"] = song.voices.size
@@ -576,8 +579,10 @@ fun createKaraoke(song: Song, songVersion: SongVersion, isBluetoothDelay: Boolea
         param["SONG_ROOT_FOLDER"] = song.settings.rootFolder
         param["SONG_START_TIMECODE"] = kdeIn
         param["SONG_END_TIMECODE"] = kdeOut
+        param["SPLASHSTART_END_TIMECODE"] = convertMillisecondsToTimecode(Karaoke.timeSplashScreenStartMs)
         param["SONG_FADEIN_TIMECODE"] = kdeFadeIn
         param["SONG_FADEOUT_TIMECODE"] = kdeFadeOut
+        param["SPLASHSTART_FADEOUT_TIMECODE"] = convertMillisecondsToTimecode(Karaoke.timeSplashScreenStartMs - 1000).replace(",", ".")
         param["SONG_LENGTH_MS"] = kdeLengthMs
         param["SONG_LENGTH_FR"] = kdeLengthFrames
         param["GUIDES_PROPERTY"] = "[${propGuides}]"
@@ -592,6 +597,7 @@ fun createKaraoke(song: Song, songVersion: SongVersion, isBluetoothDelay: Boolea
         val templateMicrophone = getTemplateMicrophone(param)
         val templateFader = getTemplateFader(param)
         val templateHeader = getTemplateHeader(param)
+        val templateSplashstart = getTemplateSplashstart(param)
         val templateCounter0 = getTemplateCounter(param,0, voiceId)
         val templateCounter1 = getTemplateCounter(param,1, voiceId)
         val templateCounter2 = getTemplateCounter(param,2, voiceId)
@@ -667,6 +673,9 @@ fun createKaraoke(song: Song, songVersion: SongVersion, isBluetoothDelay: Boolea
         param["${ProducerType.HEADER.text.uppercase()}${voiceId}_PROPERTY_RECT"] = propHeaderValue
         param["HIDE_TRACTOR_${ProducerType.HEADER.text.uppercase()}${voiceId}"] = "audio"
 
+        param["${ProducerType.SPLASHSTART.text.uppercase()}${voiceId}_ID"] = idProducerSplashstart
+        param["${ProducerType.SPLASHSTART.text.uppercase()}${voiceId}_XML_DATA"] = templateSplashstart
+        param["HIDE_TRACTOR_${ProducerType.SPLASHSTART.text.uppercase()}${voiceId}"] = "audio"
 
         param["${ProducerType.MICROPHONE.text.uppercase()}${voiceId}_ID"] = idProducerMicrophone
         param["${ProducerType.MICROPHONE.text.uppercase()}${voiceId}_XML_DATA"] = templateMicrophone
@@ -743,17 +752,27 @@ fun createKaraoke(song: Song, songVersion: SongVersion, isBluetoothDelay: Boolea
 
     }
 
-    param["SONG_PROJECT_FILENAME"] = song.getOutputFilename(SongOutputFile.PROJECT ,songVersion , isBluetoothDelay)
-    param["SONG_VIDEO_FILENAME"] = song.getOutputFilename(SongOutputFile.VIDEO ,songVersion , isBluetoothDelay)
-    param["SONG_PICTURE_FILENAME"] = song.getOutputFilename(SongOutputFile.PICTURE ,songVersion , isBluetoothDelay)
-    param["SONG_SUBTITLE_FILENAME"] = song.getOutputFilename(SongOutputFile.SUBTITLE ,songVersion , isBluetoothDelay)
-    param["SONG_DESCRIPTION_FILENAME"] = song.getOutputFilename(SongOutputFile.DESCRIPTION ,songVersion , isBluetoothDelay)
+    param["SONG_PROJECT_FILENAME"] = song.getOutputFilename(SongOutputFile.PROJECT, isBluetoothDelay)
+    param["SONG_VIDEO_FILENAME"] = song.getOutputFilename(SongOutputFile.VIDEO, isBluetoothDelay)
+    param["SONG_PICTURE_FILENAME"] = song.getOutputFilename(SongOutputFile.PICTURE, isBluetoothDelay)
+    param["SONG_SUBTITLE_FILENAME"] = song.getOutputFilename(SongOutputFile.SUBTITLE, isBluetoothDelay)
+    param["SONG_DESCRIPTION_FILENAME"] = song.getOutputFilename(SongOutputFile.DESCRIPTION, isBluetoothDelay)
 
     val templateProject = "<?xml version='1.0' encoding='utf-8'?>\n${getMlt(param)}"
+    val fileProject = File(param["SONG_PROJECT_FILENAME"].toString())
+    Files.createDirectories(Path.of(fileProject.parent))
+    fileProject.writeText(templateProject)
 
-    File(param["SONG_PROJECT_FILENAME"].toString()).writeText(templateProject)
-    File(param["SONG_SUBTITLE_FILENAME"].toString()).writeText(song.voices[0].srtFileBody)
-    File(param["SONG_DESCRIPTION_FILENAME"].toString()).writeText(song.getDescription(songVersion))
-    createSongPicture(song, param["SONG_PICTURE_FILENAME"].toString(),songVersion, isBluetoothDelay)
+//    val fileSub = File(param["SONG_SUBTITLE_FILENAME"].toString())
+//    Files.createDirectories(Path.of(fileSub.parent))
+//    fileSub.writeText(song.voices[0].srtFileBody)
+
+    val fileDescription = File(param["SONG_DESCRIPTION_FILENAME"].toString())
+    Files.createDirectories(Path.of(fileDescription.parent))
+    fileDescription.writeText(song.getDescription())
+
+    val filePictures = File(param["SONG_DESCRIPTION_FILENAME"].toString())
+    Files.createDirectories(Path.of(filePictures.parent))
+    createSongPicture(song, param["SONG_PICTURE_FILENAME"].toString(),song.songVersion, isBluetoothDelay)
 
 }

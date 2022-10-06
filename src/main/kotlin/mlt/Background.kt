@@ -9,17 +9,17 @@ fun getMltBackgroundProducer(param: Map<String, Any?>, type:ProducerType = Produ
         fields = mutableMapOf(
             Pair("id","producer_${type.text}${voiceId}"),
             Pair("in",param["SONG_START_TIMECODE"].toString()),
-            Pair("out",param["SONG_END_TIMECODE"].toString())
+            Pair("out", convertMillisecondsToTimecode(Karaoke.timeSplashScreenStartMs + convertTimecodeToMilliseconds(param["SONG_END_TIMECODE"].toString())))
         ),
         body = mutableListOf(
-            MltNode(name = "property", fields = mutableMapOf(Pair("name","length")), body = param["SONG_LENGTH_MS"]),
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","length")), body = ((param["SONG_LENGTH_MS"] as Long) + Karaoke.timeSplashScreenStartMs).toString()),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","eof")), body = "pause"),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","resource")), body = param["${type.text.uppercase()}${voiceId}_PATH"]),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","ttl")), body = 25),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","progressive")), body = 1),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","aspect_ratio")), body = 1),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","mlt_service")), body = "qimage"),
-            MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:duration")), body = param["SONG_END_TIMECODE"]),
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:duration")), body = convertMillisecondsToTimecode(Karaoke.timeSplashScreenStartMs + convertTimecodeToMilliseconds(param["SONG_END_TIMECODE"].toString()))),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:clipname")), body = "${type.text.uppercase()}${if (voiceId==0) "" else voiceId}"),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:folderid")), body = -1),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:clip_type")), body = 2),
@@ -42,11 +42,10 @@ fun getMltBackgroundFilePlaylist(param: Map<String, Any?>, type:ProducerType = P
             Pair("id","playlist_${type.text}${voiceId}_file")
         ),
         body = mutableListOf(
-            MltNode(name = "blank", fields = mutableMapOf(Pair("length", param["IN_OFFSET_VIDEO"].toString()))),
             MltNode(name = "entry", fields = mutableMapOf(
                 Pair("producer","producer_${type.text}${voiceId}"),
                 Pair("in",param["SONG_START_TIMECODE"].toString()),
-                Pair("out",param["SONG_END_TIMECODE"].toString()),
+                Pair("out", convertMillisecondsToTimecode(Karaoke.timeSplashScreenStartMs + convertTimecodeToMilliseconds(param["SONG_END_TIMECODE"].toString())))
             ), body = mutableListOf(
                 MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:id")), body = (param["${type.text.uppercase()}${voiceId}_ID"] as Int)+voiceId*1000),
                 MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:activeeffect")), body = 1),
@@ -73,7 +72,7 @@ fun getMltBackgroundFilePlaylist(param: Map<String, Any?>, type:ProducerType = P
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","rotate_center")), body = 1),
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","mlt_service")), body = "qtblend"),
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive_id")), body = "qtblend"),
-                        MltNode(name = "property", fields = mutableMapOf(Pair("name","rect")), body = "${param["SONG_START_TIMECODE"].toString()}=0 0 4096 4096 0.000000;${param["SONG_FADEIN_TIMECODE"].toString()}=-13 -18 4096 4096 1.000000;${param["SONG_FADEOUT_TIMECODE"].toString()}=-2163 -2998 4096 4096 1.000000;${param["SONG_END_TIMECODE"].toString()}=-2176 -3016 4096 4096 0.000000"),
+                        MltNode(name = "property", fields = mutableMapOf(Pair("name","rect")), body = "${param["SONG_START_TIMECODE"].toString()}=0 0 4096 4096 0.000000;${param["SONG_FADEIN_TIMECODE"].toString()}=-13 -18 4096 4096 1.000000;${convertMillisecondsToTimecode(Karaoke.timeSplashScreenStartMs - 1000 + convertTimecodeToMilliseconds(param["SONG_END_TIMECODE"].toString()))}=-2163 -2998 4096 4096 1.000000;${convertMillisecondsToTimecode(Karaoke.timeSplashScreenStartMs + convertTimecodeToMilliseconds(param["SONG_END_TIMECODE"].toString()))}=-2176 -3016 4096 4096 0.000000"),
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","compositing")), body = 0),
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","distort")), body = 0),
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:collapsed")), body = 0),
@@ -107,7 +106,7 @@ fun getMltBackgroundTractor(param: Map<String, Any?>, type:ProducerType = Produc
         fields = mutableMapOf(
             Pair("id","tractor_${type.text}${voiceId}"),
             Pair("in",param["SONG_START_TIMECODE"].toString()),
-            Pair("out",param["SONG_END_TIMECODE"].toString())
+            Pair("out", convertMillisecondsToTimecode(Karaoke.timeSplashScreenStartMs + convertTimecodeToMilliseconds(param["SONG_END_TIMECODE"].toString())))
         ),
         body = mutableListOf(
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:trackheight")), body = 69),

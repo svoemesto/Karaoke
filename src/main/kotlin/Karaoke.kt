@@ -910,5 +910,57 @@ oddOpacity|[NAME]|0.6""".trimIndent()
                 props.setProperty("watermarkText", value)
                 props.storeToXML(File(fileNameXml).outputStream(), null)
             }
+
+        var splashstartSongNameFont: MltFont
+            get() {
+                val defaultValue = MltFont(
+                    font = Font("Montserrat SemiBold", 0, 10),
+                    fontColor = Color(255,255,127,255),
+                    fontOutlineColor = Color(0,0,0,255),
+                    fontOutline = 1,
+                    fontUnderline = 0
+                ).setting()
+                props.loadFromXML(File(fileNameXml).inputStream())
+                return getMltFontFromString(props.getProperty("splashstartSongNameFont", defaultValue))
+            }
+            set(value) {
+                props.setProperty("splashstartSongNameFont", value.setting())
+                props.storeToXML(File(fileNameXml).outputStream(),null)
+            }
+
+        var splashstartSongVersionFont: MltFont
+            get() {
+                val defaultValue = MltFont(
+                    font = Font("Montserrat SemiBold", 0, 150),
+                    fontColor = Color(85,255,255,255),
+                    fontOutlineColor = Color(0,0,0,255),
+                    fontOutline = 1,
+                    fontUnderline = 0
+                ).setting()
+                props.loadFromXML(File(fileNameXml).inputStream())
+                return getMltFontFromString(props.getProperty("splashstartSongVersionFont", defaultValue))
+            }
+            set(value) {
+                props.setProperty("splashstartSongVersionFont", value.setting())
+                props.storeToXML(File(fileNameXml).outputStream(),null)
+            }
+
+        var splashstartCommentFont: MltFont
+            get() {
+                val defaultValue = MltFont(
+                    font = Font("Montserrat SemiBold", 0, 60),
+                    fontColor = Color(85,255,255,255),
+                    fontOutlineColor = Color(0,0,0,255),
+                    fontOutline = 1,
+                    fontUnderline = 0
+                ).setting()
+                props.loadFromXML(File(fileNameXml).inputStream())
+                return getMltFontFromString(props.getProperty("splashstartCommentFont", defaultValue))
+            }
+            set(value) {
+                props.setProperty("splashstartSongVersionFont", value.setting())
+                props.storeToXML(File(fileNameXml).outputStream(),null)
+            }
+
     }
 }

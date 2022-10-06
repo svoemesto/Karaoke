@@ -64,6 +64,10 @@ import getMltSongTextFilePlaylist
 import getMltSongTextProducer
 import getMltSongTextTrackPlaylist
 import getMltSongTextTractor
+import getMltSplashstartFilePlaylist
+import getMltSplashstartProducer
+import getMltSplashstartTrackPlaylist
+import getMltSplashstartTractor
 import getMltWatermarkFilePlaylist
 import getMltWatermarkProducer
 import getMltWatermarkTrackPlaylist
@@ -87,6 +91,7 @@ fun getMlt(param: Map<String, Any?>): MltNode {
         songVersion.producers.forEach { type ->
             if ((type.onlyOne && voiceId == 0) || !type.onlyOne ) {
                 when(type) {
+                    ProducerType.SPLASHSTART -> body.add(getMltSplashstartProducer(param, type, voiceId))
                     ProducerType.SONGTEXT -> body.add(getMltSongTextProducer(param, type, voiceId))
                     ProducerType.CHORDS -> body.add(getMltSongTextProducer(param, type, voiceId))
                     ProducerType.HORIZON -> body.add(getMltHorizonProducer(param, type, voiceId))
@@ -135,6 +140,11 @@ fun getMlt(param: Map<String, Any?>): MltNode {
         songVersion.producers.forEach { type ->
             if ((type.onlyOne && voiceId == 0) || !type.onlyOne ) {
                 when(type) {
+                    ProducerType.SPLASHSTART -> {
+                        body.add(getMltSplashstartFilePlaylist(param, type, voiceId))
+                        body.add(getMltSplashstartTrackPlaylist(param, type, voiceId))
+                        body.add(getMltSplashstartTractor(param, type, voiceId))
+                    }
                     ProducerType.SONGTEXT -> {
                         body.add(getMltSongTextFilePlaylist(param, type, voiceId))
                         body.add(getMltSongTextTrackPlaylist(param, type, voiceId))

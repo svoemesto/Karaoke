@@ -1,10 +1,11 @@
 package model
 
 enum class SongVersion(val text: String, val suffix: String, val producers: List<ProducerType>) {
-    LYRICS(text = "Lyrics", suffix = "[lyrics]",
+    LYRICS(text = "Lyrics", suffix = " [lyrics]",
         producers = listOf(
             ProducerType.AUDIOSONG,
             ProducerType.BACKGROUND,
+            ProducerType.SPLASHSTART,
             ProducerType.HORIZON,
             ProducerType.PROGRESS,
             ProducerType.FILLCOLORSONGTEXT,
@@ -15,10 +16,11 @@ enum class SongVersion(val text: String, val suffix: String, val producers: List
             ProducerType.WATERMARK
         )
     ),
-    KARAOKE(text = "Karaoke", suffix = "[karaoke]",
+    KARAOKE(text = "Karaoke", suffix = " [karaoke]",
         producers = listOf(
             ProducerType.AUDIOMUSIC,
             ProducerType.BACKGROUND,
+            ProducerType.SPLASHSTART,
             ProducerType.HORIZON,
             ProducerType.PROGRESS,
             ProducerType.FILLCOLORSONGTEXT,
@@ -29,11 +31,12 @@ enum class SongVersion(val text: String, val suffix: String, val producers: List
             ProducerType.WATERMARK
         )
     ),
-    CHORDS(text = "Chords", suffix = "[chords]",
+    CHORDS(text = "Chords", suffix = " [chords]",
         producers = listOf(
             ProducerType.AUDIOBASS,
             ProducerType.AUDIODRUMS,
             ProducerType.BACKGROUND,
+            ProducerType.SPLASHSTART,
             ProducerType.HORIZON,
             ProducerType.PROGRESS,
             ProducerType.FILLCOLORCHORDS,

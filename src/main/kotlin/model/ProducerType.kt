@@ -1,23 +1,23 @@
 package model
 
-enum class ProducerType(val text: String, val orderInTimeline: Int, val onlyOne: Boolean) {
-    NONE(text = "none", orderInTimeline = 0, onlyOne = false),
-    AUDIOVOCAL(text = "audiovocal", orderInTimeline = 1, onlyOne = true),
-    AUDIOMUSIC(text ="audiomusic", orderInTimeline = 2, onlyOne = true),
-    AUDIOSONG(text ="audiosong", orderInTimeline = 3, onlyOne = true),
-    AUDIOBASS(text ="audiobass", orderInTimeline = 3, onlyOne = true),
-    AUDIODRUMS(text ="audiodrums", orderInTimeline = 3, onlyOne = true),
-    BACKGROUND(text ="background", orderInTimeline = 4, onlyOne = true),
-    MICROPHONE(text ="microphone", orderInTimeline = 5, onlyOne = true),
-    HORIZON(text ="horizon", orderInTimeline = 6, onlyOne = true),
-    PROGRESS(text ="progress", orderInTimeline = 7, onlyOne = true),
-    FILLCOLORSONGTEXT(text ="fillcolorsongtext", orderInTimeline = 8, onlyOne = false),
-    FILLCOLORCHORDS(text ="fillcolorchords", orderInTimeline = 8, onlyOne = false),
-    SONGTEXT(text ="songtext", orderInTimeline = 9, onlyOne = false),
-    CHORDS(text ="chords", orderInTimeline = 9, onlyOne = false),
-    COUNTER(text ="counter", orderInTimeline = 10, onlyOne = false),
-    FADER(text ="fader", orderInTimeline = 11, onlyOne = true),
-    HEADER(text ="header", orderInTimeline = 12, onlyOne = true),
-    BEAT(text ="beat", orderInTimeline = 13, onlyOne = true),
-    WATERMARK(text ="watermark", orderInTimeline = 14, onlyOne = true)
+enum class ProducerType(val text: String, val onlyOne: Boolean, val suffixes: List<String>, val ids: List<Int>) {
+    NONE(text = "none", onlyOne = false, suffixes = emptyList(), ids = emptyList()),
+    AUDIOVOCAL(text = "audiovocal", onlyOne = true, suffixes = emptyList(), ids = emptyList()),
+    AUDIOMUSIC(text ="audiomusic", onlyOne = true, suffixes = emptyList(), ids = emptyList()),
+    AUDIOSONG(text ="audiosong", onlyOne = true, suffixes = emptyList(), ids = emptyList()),
+    AUDIOBASS(text ="audiobass", onlyOne = true, suffixes = emptyList(), ids = emptyList()),
+    AUDIODRUMS(text ="audiodrums", onlyOne = true, suffixes = emptyList(), ids = emptyList()),
+    BACKGROUND(text ="background", onlyOne = true, suffixes = emptyList(), ids = emptyList()),
+    MICROPHONE(text ="microphone", onlyOne = true, suffixes = emptyList(), ids = emptyList()),
+    HORIZON(text ="horizon", onlyOne = true, suffixes = emptyList(), ids = emptyList()),
+    PROGRESS(text ="progress", onlyOne = true, suffixes = emptyList(), ids = emptyList()),
+    FILLCOLORSONGTEXT(text ="fillcolorsongtext", onlyOne = false, suffixes = listOf("even", "odd"), ids = emptyList()),
+    FILLCOLORCHORDS(text ="fillcolorchords", onlyOne = false, suffixes = listOf("even", "odd"), ids = emptyList()),
+    SONGTEXT(text ="songtext", onlyOne = false, suffixes = emptyList(), ids = emptyList()),
+    CHORDS(text ="chords", onlyOne = false, suffixes = emptyList(), ids = emptyList()),
+    COUNTER(text ="counter", onlyOne = false, suffixes = emptyList(), ids = listOf(4,3,2,1,0)),
+    FADER(text ="fader", onlyOne = true, suffixes = emptyList(), ids = emptyList()),
+    HEADER(text ="header", onlyOne = true, suffixes = emptyList(), ids = emptyList()),
+    BEAT(text ="beat", onlyOne = true, suffixes = emptyList(), ids = listOf(1,2,3,4)),
+    WATERMARK(text ="watermark", onlyOne = true, suffixes = emptyList(), ids = emptyList())
 }

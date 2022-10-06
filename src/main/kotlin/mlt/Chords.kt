@@ -47,6 +47,7 @@ fun getMltChordsFilePlaylist(param: Map<String, Any?>, type:ProducerType = Produ
             Pair("id","playlist_${type.text}${voiceId}_file")
         ),
         body = mutableListOf(
+            MltNode(name = "blank", fields = mutableMapOf(Pair("length", param["IN_OFFSET_VIDEO"].toString()))),
             MltNode(name = "entry", fields = mutableMapOf(
                 Pair("producer","producer_${type.text}${voiceId}"),
                 Pair("in",param["SONG_START_TIMECODE"].toString()),
@@ -122,21 +123,60 @@ fun getTemplateChords(param: Map<String, Any?>, voiceId: Int): MltNode {
     val templateChordsSymbolsGroup = mutableListOf<MltNode>()
     val voiceSetting = param["VOICE${voiceId}_SETTING"] as KaraokeVoice
     val workAreaChordsHeightPx = param["VOICE${voiceId}_WORK_AREA_CHORDS_HEIGHT_PX"] as Long
+    val voiceLinesSongchords = param["VOICE${voiceId}_VOICELINES_SONGCHORDS"] as MutableList<*>
     val voiceLinesChords = param["VOICE${voiceId}_VOICELINES_CHORDS"] as MutableList<*>
     val symbolSongtextHeightPx = param["SYMBOL_SONGTEXT_HEIGHT_PX"] as Double
     val symbolChordsHeightPx = param["SYMBOL_CHORDS_HEIGHT_PX"] as Double
     val startX = Karaoke.songtextStartPositionXpx
-    val startY = symbolChordsHeightPx
+    val startYsongchords = symbolChordsHeightPx
+    val startYchords = symbolSongtextHeightPx *0.2
 
 
-    voiceLinesChords.forEachIndexed { indexLine, it ->
-        val voiceLineChords = it as SongVoiceLine
-        voiceLineChords.symbols.forEachIndexed { indexSymbol, lineSymbol ->
+    voiceLinesSongchords.forEachIndexed { indexLine, it ->
+        val voiceLineSongchords = it as SongVoiceLine
+        voiceLineSongchords.symbols.forEachIndexed { indexSymbol, lineSymbol ->
 
             val mltFont: MltFont = if (!lineSymbol.isBeat) voiceSetting.groups[lineSymbol.group].songtextTextMltFont else voiceSetting.groups[lineSymbol.group].songtextBeatMltFont
             val text = lineSymbol.text
-            val x = (startX + voiceLineChords.getSymbolXpx(indexSymbol)).toLong()
-            val y = (startY + indexLine*(symbolSongtextHeightPx+symbolChordsHeightPx)).toLong()
+            val x = (startX + voiceLineSongchords.getSymbolXpx(indexSymbol)).toLong()
+            val y = (startYsongchords + indexLine*(symbolSongtextHeightPx+symbolChordsHeightPx)).toLong()
+
+            templateChordsSymbolsGroup.add(
+                MltNode(
+                    name = "item",
+                    fields = mutableMapOf(Pair("type","QGraphicsTextItem"), Pair("z-index","0")),
+                    body = mutableListOf(
+                        MltNode(
+                            name = "position",
+                            fields = mutableMapOf(Pair("x","$x"), Pair("y","$y")),
+                            body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(), body = "1,0,0,0,1,0,0,0,1"))
+                        ),
+                        mltFont.mltNode(text)
+                    )
+                )
+            )
+        }
+    }
+
+    voiceLinesChords.forEachIndexed { indexLine, it ->
+
+        val voiceLineChords = it as SongVoiceLine
+        val voiceLineSongchords = voiceLinesSongchords[indexLine] as SongVoiceLine
+
+        voiceLineChords.symbols.forEachIndexed { indexSymbol, lineSymbol ->
+
+            val mltFont = MltFont(
+                font = lineSymbol.font,
+                fontColor = Karaoke.chordsFont.fontColor,
+                fontUnderline = Karaoke.chordsFont.fontUnderline,
+                fontOutline = Karaoke.chordsFont.fontOutline,
+                fontOutlineColor = Karaoke.chordsFont.fontOutlineColor
+            )
+
+            val text = lineSymbol.text
+            val textBeforeChord = lineSymbol.textBeforeChord
+            val x = (startX + getTextWidthHeightPx(textBeforeChord, voiceLineSongchords.fontText).first).toLong()
+            val y = (startYchords + indexLine*(symbolSongtextHeightPx+symbolChordsHeightPx)).toLong()
 
             templateChordsSymbolsGroup.add(
                 MltNode(

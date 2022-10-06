@@ -12,7 +12,19 @@ import java.awt.Font
 import java.io.File
 
 data class Song(val settings: Settings) {
-        var endTimecode: String = ""
+    fun getOutputFilename(songOutputFile: SongOutputFile, songVersion: SongVersion, idBluetoothDelay: Boolean): String {
+        return "${settings.rootFolder}/done/${settings.fileName}${songVersion.suffix}${if (idBluetoothDelay) " bluetooth" else ""}.${songOutputFile.extension}"
+    }
+
+    fun getDescription(songVersion: SongVersion): String {
+        return when (songVersion) {
+            SongVersion.LYRICS -> descriptionLyricText
+            SongVersion.KARAOKE -> descriptionKaraokeText
+            SongVersion.CHORDS -> descriptionChordsText
+        }
+    }
+
+    var endTimecode: String = ""
         var beatTimecode: String = "00:00:00.000"
         var voices: MutableList<SongVoice> = mutableListOf()
         var chords: MutableList<Chord> = mutableListOf()
@@ -53,7 +65,7 @@ data class Song(val settings: Settings) {
             return text
         }
 
-    val descriptionAccordsText: String
+    val descriptionChordsText: String
         get() {
             val text = "${settings.songName} ★♫★ ${settings.author} ★♫★ accords" + "\n" +
                     "Композиция: ${settings.songName}\n" +
@@ -162,7 +174,7 @@ data class Song(val settings: Settings) {
                                         start = songSubtitles.first().startTimecode,
                                         end = songSubtitles.last().endTimecode,
                                         durationMs = getDurationInMilliseconds(songSubtitles.first().startTimecode, songSubtitles.last().endTimecode),
-                                        isEmptyLine = (lineText == ""),
+                                        isEmptyLine = (lineText.trim() == ""),
                                         fontText = Karaoke.voices[voideId].groups[group].songtextTextMltFont.font,
                                         fontBeat = Karaoke.voices[voideId].groups[group].songtextBeatMltFont.font
                                     )
@@ -301,6 +313,7 @@ data class SongVoiceLine(
 
 data class SongVoiceLineSymbol(
     var text: String = "",
+    var textBeforeChord: String = "",
     var font: Font,
     var group: Int = 0,
     var isBeat: Boolean = false

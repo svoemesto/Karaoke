@@ -2,6 +2,7 @@ import com.google.gson.GsonBuilder
 import model.Marker
 import model.Settings
 import model.Song
+import model.SongVersion
 import model.Subtitle
 import java.awt.AlphaComposite
 import java.awt.Color
@@ -20,12 +21,13 @@ import kotlin.random.Random
 
 fun main() {
 
-//    createSongPicture(Song(Settings("/home/nsa/Documents/Караоке/Ундервуд/2002 - Все пройдет, Милая/(10) [Ундервуд] Ампутация.settings")))
+
 
 }
 
-fun createSongPicture(song: Song, caption: String) {
-    val fileName = "${song.settings.rootFolder}/done/${song.settings.fileName} [${caption.lowercase()}].png"
+fun createSongPicture(song: Song, fileName: String, songVersion: SongVersion, isBluetoothDelay: Boolean) {
+    val caption = songVersion.text
+    val comment: String = if (isBluetoothDelay) "для Bluetooth-колонок, задержка видео ${Karaoke.timeOffsetBluetoothSpeakerMs} ms" else ""
     val pathToLogoAlbum = "${song.settings.rootFolder}/LogoAlbum.png"
     val pathToLogoAuthor = "${song.settings.rootFolder}/LogoAuthor.png"
 
@@ -34,8 +36,10 @@ fun createSongPicture(song: Song, caption: String) {
     val opaque: Float = 1f
     var fontSongname = Font("Montserrat SemiBold", 0, 10)
     var fontCaption = Font("Montserrat SemiBold", 0, 200)
+    var fontComment = Font("Montserrat SemiBold", 0, 60)
     val colorSongname = Color(255,255,127,255)
     val colorCaption = Color(85,255,255,255)
+    val colorComment = Color(85,255,255,255)
     var textToOverlay = song.settings.songName
     val imageType = BufferedImage.TYPE_INT_ARGB
     var resultImage = BufferedImage(frameW, frameH, imageType)
@@ -78,6 +82,25 @@ fun createSongPicture(song: Song, caption: String) {
     centerX = (frameW - rectW) / 2
     centerY = frameH - 100
     graphics2D.drawString(textToOverlay, centerX, centerY)
+
+    graphics2D.drawImage(biLogoAlbum, 50, 50, null)
+    graphics2D.drawImage(biLogoAuthor, 710, 50, null)
+
+    if (comment != "") {
+        textToOverlay = comment
+        graphics2D.color = colorComment
+        graphics2D.font = fontComment
+        var fontMetrics = graphics2D.fontMetrics
+        var rect = fontMetrics.getStringBounds(textToOverlay, graphics2D)
+        rectW = rect.width.toInt()
+        rectH = rect.height.toInt()
+
+        centerX = (frameW - rectW) / 2
+        centerY = frameH - 20
+        graphics2D.drawString(textToOverlay, centerX, centerY)
+
+
+    }
 
     graphics2D.drawImage(biLogoAlbum, 50, 50, null)
     graphics2D.drawImage(biLogoAuthor, 710, 50, null)

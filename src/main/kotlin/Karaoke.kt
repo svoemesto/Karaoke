@@ -350,16 +350,40 @@ class Karaoke {
             }
 
         // Время (в миллисекундах) задержки звука от начала анимации
-        var timeOffsetMs: Long
+        var timeOffsetStartFillingLineMs: Long
             get() {
                 val defaultValue = "170"
                 props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("timeOffsetMs",defaultValue).toLong()
+                return props.getProperty("timeOffsetStartFillingLineMs",defaultValue).toLong()
             }
             set(value) {
-                props.setProperty("timeOffsetMs", value.toString())
+                props.setProperty("timeOffsetStartFillingLineMs", value.toString())
                 props.storeToXML(File(fileNameXml).outputStream(),null)
             }
+
+        var timeOffsetBluetoothSpeakerMs: Long
+            get() {
+                val defaultValue = "300"
+                props.loadFromXML(File(fileNameXml).inputStream())
+                return props.getProperty("timeOffsetBluetoothSpeakerMs",defaultValue).toLong()
+            }
+            set(value) {
+                props.setProperty("timeOffsetBluetoothSpeakerMs", value.toString())
+                props.storeToXML(File(fileNameXml).outputStream(),null)
+            }
+
+        // Время показа в миллисекундах начальной заставки
+        var timeSplashScreenStartMs: Long
+            get() {
+                val defaultValue = "5000"
+                props.loadFromXML(File(fileNameXml).inputStream())
+                return props.getProperty("timeSplashScreenStartMs",defaultValue).toLong()
+            }
+            set(value) {
+                props.setProperty("timeSplashScreenStartMs", value.toString())
+                props.storeToXML(File(fileNameXml).outputStream(),null)
+            }
+
 
         // Минимальное время (в миллисекундах) между линиями, меньше которого заливка последнего титра будет во время смещения линии
         var transferMinimumMsBetweenLinesToScroll: Long
@@ -589,7 +613,7 @@ oddOpacity|[NAME]|0.6""".trimIndent()
                     font = Font("Montserrat SemiBold", 0, 80),
                     fontColor = Color(255,127,127,255),
                     fontOutlineColor = Color(0,0,0,255),
-                    fontOutline = 0,
+                    fontOutline = 1,
                     fontUnderline = 0
                 ).setting()
                 props.loadFromXML(File(fileNameXml).inputStream())
@@ -604,7 +628,7 @@ oddOpacity|[NAME]|0.6""".trimIndent()
         // Коэффициэнт размера шрифта аккорда относительно размера шрифта текста песни
         var chordsHeightCoefficient: Double
             get() {
-                val defaultValue = "0.5"
+                val defaultValue = "0.75"
                 props.loadFromXML(File(fileNameXml).inputStream())
                 return props.getProperty("chordsHeightCoefficient",defaultValue).toDouble()
             }

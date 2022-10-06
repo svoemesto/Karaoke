@@ -30,3 +30,12 @@ fun String.hashtag(): String {
     forEach { if (it.lowercase() in "qwertyuiopasdfghjklzxcvbnmйцукенгшщзхъёфывапролджэячсмитьбю1234567890") result += it  }
     return result
 }
+
+fun String.getFirstVowelIndex(): Int {
+    for (i in this.indices) {
+        if (this[i] in LETTERS_VOWEL) {
+            return i
+        }
+    }
+    return -1
+}

@@ -2,54 +2,40 @@
 import mlt.getMlt
 import model.SongVoiceLine
 import model.ProducerType
+import model.Settings
 import model.Song
+import model.SongOutputFile
+import model.SongVersion
 import model.SongVoiceLineSymbol
 import model.TransformProperty
 import java.awt.Font
 import java.io.File
 import java.lang.Integer.min
 
-fun createKaraoke(song: Song) {
+fun createKaraokeAll(pathToSettingsFile: String) {
+    val settings = Settings(pathToSettingsFile)
+    createKaraoke(Song(settings), SongVersion.LYRICS, false)
+    createKaraoke(Song(settings), SongVersion.KARAOKE, false)
+    createKaraoke(Song(settings), SongVersion.CHORDS, false)
+    createKaraoke(Song(settings), SongVersion.LYRICS, true)
+    createKaraoke(Song(settings), SongVersion.KARAOKE, true)
+    createKaraoke(Song(settings), SongVersion.CHORDS, true)
+}
+fun createKaraoke(song: Song, songVersion: SongVersion, isBluetoothDelay: Boolean) {
 
-    println("Создаём караоке: ${song.settings.author} / ${song.settings.songName}")
+    println("Создаём ${songVersion.name}${if (isBluetoothDelay) " for Bluetooth" else ""}: ${song.settings.author} / ${song.settings.songName}")
 //    println("Аккорды: ${song.accords}")
 
     val param = mutableMapOf<String, Any?>()
+
+    param["SONG_VERSION"] = songVersion
+    param["ID_BLUETOOTH_DELAY"] = isBluetoothDelay
+
     param["COUNT_VOICES"] = song.voices.size
     param["LINE_SPACING"] = LINE_SPACING
     param["SHADOW"] = SHADOW
     param["TYPEWRITER"] = TYPEWRITER
     param["ALIGNMENT"] = ALIGNMENT
-
-
-
-    val idProducerSongText = ProducerType.SONGTEXT.ordinal * 10
-    val idProducerChordsText = ProducerType.CHORDS.ordinal * 10
-    val idProducerHorizon = ProducerType.HORIZON.ordinal * 10
-    val idProducerFillColorSongtextEven = ProducerType.FILLCOLORSONGTEXT.ordinal * 10
-    val idProducerFillColorSongtextOdd = ProducerType.FILLCOLORSONGTEXT.ordinal * 10 + 1
-    val idProducerFillColorChordsEven = ProducerType.FILLCOLORCHORDS.ordinal * 10
-    val idProducerFillColorChordsOdd = ProducerType.FILLCOLORCHORDS.ordinal * 10 + 1
-    val idProducerHeader = ProducerType.HEADER.ordinal * 10
-    val idProducerBackground = ProducerType.BACKGROUND.ordinal * 10
-    val idProducerMicrophone = ProducerType.MICROPHONE.ordinal * 10
-    val idProducerCounter4 = ProducerType.COUNTER.ordinal * 10 + 4
-    val idProducerCounter3 = ProducerType.COUNTER.ordinal * 10 + 3
-    val idProducerCounter2 = ProducerType.COUNTER.ordinal * 10 + 2
-    val idProducerCounter1 = ProducerType.COUNTER.ordinal * 10 + 1
-    val idProducerCounter0 = ProducerType.COUNTER.ordinal * 10
-    val idProducerAudioSong = ProducerType.AUDIOSONG.ordinal * 10
-    val idProducerAudioMusic = ProducerType.AUDIOMUSIC.ordinal * 10
-    val idProducerAudioVocal = ProducerType.AUDIOVOCAL.ordinal * 10
-    val idProducerAudioBass = ProducerType.AUDIOBASS.ordinal * 10
-    val idProducerAudioDrums = ProducerType.AUDIODRUMS.ordinal * 10
-    val idProducerBeat1 = ProducerType.BEAT.ordinal * 10 + 1
-    val idProducerBeat2 = ProducerType.BEAT.ordinal * 10 + 2
-    val idProducerBeat3 = ProducerType.BEAT.ordinal * 10 + 3
-    val idProducerBeat4 = ProducerType.BEAT.ordinal * 10 + 4
-    val idProducerProgress = ProducerType.PROGRESS.ordinal * 10 + 1
-    val idProducerWatermark = ProducerType.WATERMARK.ordinal * 10 + 1
-    val idProducerFader = ProducerType.FADER.ordinal * 10 + 1
 
     val maxTextWidthPx = Karaoke.frameWidthPx.toDouble() - Karaoke.songtextStartPositionXpx * 2      // maxTextWidth - максимальная ширина текста = ширина экрана минус 2 отступа
 
@@ -67,6 +53,7 @@ fun createKaraoke(song: Song) {
             break
         }
     }
+
     val fontChordsSizePt = (fontSongtextSizePt * Karaoke.chordsHeightCoefficient).toInt()
 
     val fontSongtext = Font(Karaoke.voices[0].groups[0].songtextTextMltFont.font.name, Karaoke.voices[0].groups[0].songtextTextMltFont.font.style, fontSongtextSizePt)
@@ -261,6 +248,36 @@ fun createKaraoke(song: Song) {
 
             // ***************************************************************************************************************
             // Тут надо сформировать правильную строчку для voiceLinesChords
+            // Находим аккорды, которые по времени попадают в текущую строку
+            val chords = song.chords.filter { convertTimecodeToMilliseconds(it.timecode) in convertTimecodeToMilliseconds(voiceLine.start) until convertTimecodeToMilliseconds(voiceLine.end) }
+            // Проходимся по всем аккордам, попавшим в текущую строку
+            val symbolsChords = mutableListOf<SongVoiceLineSymbol>()
+            chords.forEach { chord ->
+                // Находим субтитр текущей строки, на который попадает аккорд
+                val subtitle = voiceLine.subtitles.firstOrNull {convertTimecodeToMilliseconds(chord.timecode) in convertTimecodeToMilliseconds(it.startTimecode) until convertTimecodeToMilliseconds(it.endTimecode)}
+                // Если такой субтитр найден
+                if (subtitle != null) {
+                    // Находим позицию первой гласной в тексте субтитра
+//                    val firstVowelIndex = max(subtitle.text.getFirstVowelIndex(), 0)
+                    val firstVowelIndex = 0
+                    // Получаем текст строки до этого символа
+                    var textBefore = ""
+                    for (sub in voiceLine.subtitles) {
+                        if (sub == subtitle) {
+                            textBefore += subtitle.text.substring(0,firstVowelIndex)
+                            break
+                        } else {
+                            textBefore += sub.text
+                        }
+                    }
+                    symbolsChords.add(SongVoiceLineSymbol(text = chord.text, textBeforeChord = textBefore, font = fontChords))
+                }
+            }
+            val voiceLineChords = voiceLine.copy()
+            voiceLineChords.symbols = symbolsChords
+            voiceLinesChords.add(voiceLineChords)
+
+            // Формируем SongVoiceLine для аккордов текущей строки.
             // ***************************************************************************************************************
 
             currentPositionEnd = convertTimecodeToMilliseconds(voiceLine.end)
@@ -292,7 +309,8 @@ fun createKaraoke(song: Song) {
         param["VOICE${voiceId}_WORK_AREA_SONGTEXT_HEIGHT_PX"] = workAreaSongtextHeightPx.toLong()
         param["VOICE${voiceId}_WORK_AREA_CHORDS_HEIGHT_PX"] = workAreaChordsHeightPx.toLong()
         param["VOICE${voiceId}_VOICELINES_SONGTEXT"] = voiceLinesSongtext
-        param["VOICE${voiceId}_VOICELINES_CHORDS"] = voiceLinesSongchords
+        param["VOICE${voiceId}_VOICELINES_SONGCHORDS"] = voiceLinesSongchords
+        param["VOICE${voiceId}_VOICELINES_CHORDS"] = voiceLinesChords
 
         param["SYMBOL_SONGTEXT_HEIGHT_PX"] = symbolSongtextHeightPx
         param["SYMBOL_CHORDS_HEIGHT_PX"] = symbolChordsHeightPx
@@ -394,7 +412,8 @@ fun createKaraoke(song: Song) {
                 propRectSongtextLineValue.add("${voiceLineSongtext.endTp?.time}=${voiceLineSongtext.endTp?.x} ${voiceLineSongtext.endTp?.y} ${voiceLineSongtext.endTp?.w} ${voiceLineSongtext.endTp?.h} ${voiceLineSongtext.endTp?.opacity}")
                 propRectChordsLineValue.add("${voiceLineSongchords.endTp?.time}=${voiceLineSongchords.endTp?.x} ${voiceLineSongchords.endTp?.y} ${voiceLineSongchords.endTp?.w} ${voiceLineSongchords.endTp?.h} ${voiceLineSongchords.endTp?.opacity}")
                 val currSubtitle = voiceLineSongtext.subtitles[0] // Получаем первый титр текущей строки (он точно есть, т.к. строка не пустая)
-                val startTime = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(currSubtitle.startTimecode) - (1000 / Karaoke.frameFps + 1).toLong()) // Время начала анимации = времени начала этого титра минус 1 фрейм
+//                val startTime = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(currSubtitle.startTimecode) - (1000 / Karaoke.frameFps + 1).toLong()) // Время начала анимации = времени начала этого титра минус оффсет
+                val startTime = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(currSubtitle.startTimecode) - Karaoke.timeOffsetStartFillingLineMs) // Время начала анимации = времени начала этого титра минус оффсет
                 val x = Karaoke.songtextStartPositionXpx - Karaoke.songtextStartOffsetXpx + currentVoiceOffset
                 var songtextY: Double = horizonPositionPx - symbolSongtextHeightPx // Координата y = позиция горизонта - высота символа
                 var chordsY: Double = horizonPositionPx - (symbolSongtextHeightPx + symbolChordsHeightPx) // Координата y = позиция горизонта - высота символа
@@ -477,49 +496,49 @@ fun createKaraoke(song: Song) {
             }
         if (startTimeFirstCounterMs == null || startTimeFirstCounterMs!! < 0L) startTimeFirstCounterMs = 3000
 
-        // Такты
-        var delayMs = convertTimecodeToMilliseconds(song.beatTimecode) // + TIME_OFFSET_MS
-
-        // Такт в мс
-        val beatMs = if (song.settings.ms == 0L) (60000.0 / song.settings.bpm).toLong() else song.settings.ms// song.delay
-        val different = ((delayMs / (beatMs * 4)) - 1) * (beatMs * 4)
-        delayMs -= different
-
-        var currentPositionStartMs = 0L
-        var beatCounter = 1L
-        propGuidesValue.add("""{"comment": "Offset", "pos": ${convertMillisecondsToFrames(Karaoke.timeOffsetMs)}, "type": 0}""")
-        while ((delayMs + currentPositionStartMs + beatMs) < convertTimecodeToMilliseconds(song.endTimecode)) {
-
-            val tick = (beatCounter - 1) % 4
-            currentPositionStartMs = (delayMs + beatMs * (beatCounter - 1))// + TIME_OFFSET_MS
-            val currentPositionStartFrame = convertMillisecondsToFrames(currentPositionStartMs)
-
-            val currentPositionStartMs2fb = convertFramesToMilliseconds(convertMillisecondsToFrames(currentPositionStartMs) - 2, Karaoke.frameFps)
-            val currentPositionStartMs1fb = convertFramesToMilliseconds(convertMillisecondsToFrames(currentPositionStartMs) - 1, Karaoke.frameFps)
-            val currentPositionEndMs = convertFramesToMilliseconds(convertMillisecondsToFrames(currentPositionStartMs + (beatMs * (4 - tick))) - 3, Karaoke.frameFps)
-            val currentPositionEndMs1fa = convertFramesToMilliseconds(convertMillisecondsToFrames(currentPositionEndMs) + 1, Karaoke.frameFps)
-            val currentPositionEndMs2fa = convertFramesToMilliseconds(convertMillisecondsToFrames(currentPositionEndMs) + 2, Karaoke.frameFps)
-
-            val point0 = "${convertMillisecondsToTimecode(currentPositionStartMs2fb)}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.0"
-            val point1 = "${convertMillisecondsToTimecode(currentPositionStartMs1fb)}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.0"
-            val point2 = "${convertMillisecondsToTimecode(currentPositionStartMs)}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 1.0"
-            val point3 = "${convertMillisecondsToTimecode(currentPositionEndMs)}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.0"
-            val point4 = "${convertMillisecondsToTimecode(currentPositionEndMs1fa)}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.0"
-            val point5 = "${convertMillisecondsToTimecode(currentPositionEndMs2fa)}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.0"
-
-            beats[tick.toInt()].add(point0)
-            beats[tick.toInt()].add(point1)
-            beats[tick.toInt()].add(point2)
-            beats[tick.toInt()].add(point3)
-            beats[tick.toInt()].add(point4)
-            beats[tick.toInt()].add(point5)
-
-            if (tick == 0L) {
-                propGuidesValue.add("""{"comment": "|", "pos": $currentPositionStartFrame, "type": ${guidesTypes[tick.toInt()]}}""")
-            }
-
-            beatCounter += 1
-        }
+//        // Такты
+//        var delayMs = convertTimecodeToMilliseconds(song.beatTimecode) // + TIME_OFFSET_MS
+//
+//        // Такт в мс
+//        val beatMs = if (song.settings.ms == 0L) (60000.0 / song.settings.bpm).toLong() else song.settings.ms// song.delay
+//        val different = ((delayMs / (beatMs * 4)) - 1) * (beatMs * 4)
+//        delayMs -= different
+//
+//        var currentPositionStartMs = 0L
+//        var beatCounter = 1L
+//        propGuidesValue.add("""{"comment": "Offset", "pos": ${convertMillisecondsToFrames(Karaoke.timeOffsetComputerMs.absoluteValue)}, "type": 0}""")
+//        while ((delayMs + currentPositionStartMs + beatMs) < convertTimecodeToMilliseconds(song.endTimecode)) {
+//
+//            val tick = (beatCounter - 1) % 4
+//            currentPositionStartMs = (delayMs + beatMs * (beatCounter - 1))// + TIME_OFFSET_MS
+//            val currentPositionStartFrame = convertMillisecondsToFrames(currentPositionStartMs)
+//
+//            val currentPositionStartMs2fb = convertFramesToMilliseconds(convertMillisecondsToFrames(currentPositionStartMs) - 2, Karaoke.frameFps)
+//            val currentPositionStartMs1fb = convertFramesToMilliseconds(convertMillisecondsToFrames(currentPositionStartMs) - 1, Karaoke.frameFps)
+//            val currentPositionEndMs = convertFramesToMilliseconds(convertMillisecondsToFrames(currentPositionStartMs + (beatMs * (4 - tick))) - 3, Karaoke.frameFps)
+//            val currentPositionEndMs1fa = convertFramesToMilliseconds(convertMillisecondsToFrames(currentPositionEndMs) + 1, Karaoke.frameFps)
+//            val currentPositionEndMs2fa = convertFramesToMilliseconds(convertMillisecondsToFrames(currentPositionEndMs) + 2, Karaoke.frameFps)
+//
+//            val point0 = "${convertMillisecondsToTimecode(currentPositionStartMs2fb)}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.0"
+//            val point1 = "${convertMillisecondsToTimecode(currentPositionStartMs1fb)}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.0"
+//            val point2 = "${convertMillisecondsToTimecode(currentPositionStartMs)}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 1.0"
+//            val point3 = "${convertMillisecondsToTimecode(currentPositionEndMs)}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.0"
+//            val point4 = "${convertMillisecondsToTimecode(currentPositionEndMs1fa)}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.0"
+//            val point5 = "${convertMillisecondsToTimecode(currentPositionEndMs2fa)}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.0"
+//
+//            beats[tick.toInt()].add(point0)
+//            beats[tick.toInt()].add(point1)
+//            beats[tick.toInt()].add(point2)
+//            beats[tick.toInt()].add(point3)
+//            beats[tick.toInt()].add(point4)
+//            beats[tick.toInt()].add(point5)
+//
+//            if (tick == 0L) {
+//                propGuidesValue.add("""{"comment": "|", "pos": $currentPositionStartFrame, "type": ${guidesTypes[tick.toInt()]}}""")
+//            }
+//
+//            beatCounter += 1
+//        }
 
         propHeaderLineValue.add("${convertMillisecondsToTimecode(startTimeFirstCounterMs!!)}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 1.0")
         propHeaderLineValue.add("${convertMillisecondsToTimecode(startTimeFirstCounterMs!!+halfNoteLengthMs*4)}=0 -492 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 1.0")
@@ -546,7 +565,8 @@ fun createKaraoke(song: Song) {
         val propGuides = propGuidesValue.joinToString(",")
 
         val kdeIn = "00:00:00.000"
-        val kdeInOffset = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(kdeIn) + Karaoke.timeOffsetMs)
+        val kdeInOffsetAudio = convertMillisecondsToTimecode(Karaoke.timeSplashScreenStartMs - if(isBluetoothDelay) Karaoke.timeOffsetBluetoothSpeakerMs else 0) // convertMillisecondsToTimecode(convertTimecodeToMilliseconds(kdeIn) + max(Karaoke.timeOffsetStartFillingLineMs.toInt(),0).absoluteValue)
+        val kdeInOffsetVideo = convertMillisecondsToTimecode(Karaoke.timeSplashScreenStartMs) // convertMillisecondsToTimecode(convertTimecodeToMilliseconds(kdeIn) + max(-Karaoke.timeOffsetStartFillingLineMs.toInt(),0).absoluteValue)
         val kdeFadeIn = "00:00:01.000"
         val kdeOut = song.endTimecode.replace(",", ".")
         val kdeFadeOut = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(song.endTimecode) - 1000).replace(",", ".")
@@ -561,7 +581,8 @@ fun createKaraoke(song: Song) {
         param["SONG_LENGTH_MS"] = kdeLengthMs
         param["SONG_LENGTH_FR"] = kdeLengthFrames
         param["GUIDES_PROPERTY"] = "[${propGuides}]"
-        param["IN_OFFSET"] = kdeInOffset
+        param["IN_OFFSET_AUDIO"] = kdeInOffsetAudio
+        param["IN_OFFSET_VIDEO"] = kdeInOffsetVideo
 
         val templateSongText = getTemplateSongText(param,voiceId)
         val templateChordsText = getTemplateChords(param,voiceId)
@@ -722,102 +743,17 @@ fun createKaraoke(song: Song) {
 
     }
 
+    param["SONG_PROJECT_FILENAME"] = song.getOutputFilename(SongOutputFile.PROJECT ,songVersion , isBluetoothDelay)
+    param["SONG_VIDEO_FILENAME"] = song.getOutputFilename(SongOutputFile.VIDEO ,songVersion , isBluetoothDelay)
+    param["SONG_PICTURE_FILENAME"] = song.getOutputFilename(SongOutputFile.PICTURE ,songVersion , isBluetoothDelay)
+    param["SONG_SUBTITLE_FILENAME"] = song.getOutputFilename(SongOutputFile.SUBTITLE ,songVersion , isBluetoothDelay)
+    param["SONG_DESCRIPTION_FILENAME"] = song.getOutputFilename(SongOutputFile.DESCRIPTION ,songVersion , isBluetoothDelay)
 
-    if (Karaoke.createProjectLyrics) {
-        println("Создаём проект [lyrics]: ${song.settings.author} / ${song.settings.songName}")
-        param["SONG_PROJECT_FILENAME"] = song.settings.projectLyricsFileName
-        param["SONG_VIDEO_FILENAME"] = song.settings.videoLyricsFileName
-        for (voiceId in 0 until song.voices.size) {
-            param["HIDE_TRACTOR_${ProducerType.AUDIOMUSIC.text.uppercase()}${voiceId}"] = "both"
-            param["HIDE_TRACTOR_${ProducerType.AUDIOSONG.text.uppercase()}${voiceId}"] = "video"
-            param["HIDE_TRACTOR_${ProducerType.AUDIOBASS.text.uppercase()}${voiceId}"] = "both"
-            param["HIDE_TRACTOR_${ProducerType.AUDIODRUMS.text.uppercase()}${voiceId}"] = "both"
-            param["HIDE_TRACTOR_${ProducerType.SONGTEXT.text.uppercase()}${voiceId}"] = "audio"
-            param["HIDE_TRACTOR_${ProducerType.CHORDS.text.uppercase()}${voiceId}"] = "both"
-            param["HIDE_TRACTOR_${ProducerType.FILLCOLORSONGTEXT.text.uppercase()}${voiceId}_EVEN"] = "audio"
-            param["HIDE_TRACTOR_${ProducerType.FILLCOLORSONGTEXT.text.uppercase()}${voiceId}_ODD"] = "audio"
-            param["HIDE_TRACTOR_${ProducerType.FILLCOLORCHORDS.text.uppercase()}${voiceId}_EVEN"] = "both"
-            param["HIDE_TRACTOR_${ProducerType.FILLCOLORCHORDS.text.uppercase()}${voiceId}_ODD"] = "both"
-            param["HIDE_TRACTOR_${ProducerType.MICROPHONE.text.uppercase()}${voiceId}"] = "both"
-        }
-        val fileProjectName = "${song.settings.rootFolder}/${song.settings.projectLyricsFileName}"
-        val fileSubtitleName = "$fileProjectName.srt"
-        val templateProject = "<?xml version='1.0' encoding='utf-8'?>\n${getMlt(param)}"
-        File(fileProjectName).writeText(templateProject)
-        File(fileSubtitleName).writeText(song.voices[0].srtFileBody)
-    }
+    val templateProject = "<?xml version='1.0' encoding='utf-8'?>\n${getMlt(param)}"
 
-    if (Karaoke.createProjectKaraoke) {
-        println("Создаём проект [karaoke]: ${song.settings.author} / ${song.settings.songName}")
-        param["SONG_PROJECT_FILENAME"] = song.settings.projectKaraokeFileName
-        param["SONG_VIDEO_FILENAME"] = song.settings.videoKaraokeFileName
-        for (voiceId in 0 until song.voices.size) {
-            param["HIDE_TRACTOR_${ProducerType.AUDIOMUSIC.text.uppercase()}${voiceId}"] = "video"
-            param["HIDE_TRACTOR_${ProducerType.AUDIOSONG.text.uppercase()}${voiceId}"] = "both"
-            param["HIDE_TRACTOR_${ProducerType.AUDIOBASS.text.uppercase()}${voiceId}"] = "both"
-            param["HIDE_TRACTOR_${ProducerType.AUDIODRUMS.text.uppercase()}${voiceId}"] = "both"
-            param["HIDE_TRACTOR_${ProducerType.SONGTEXT.text.uppercase()}${voiceId}"] = "audio"
-            param["HIDE_TRACTOR_${ProducerType.CHORDS.text.uppercase()}${voiceId}"] = "both"
-            param["HIDE_TRACTOR_${ProducerType.FILLCOLORSONGTEXT.text.uppercase()}${voiceId}_EVEN"] = "audio"
-            param["HIDE_TRACTOR_${ProducerType.FILLCOLORSONGTEXT.text.uppercase()}${voiceId}_ODD"] = "audio"
-            param["HIDE_TRACTOR_${ProducerType.FILLCOLORCHORDS.text.uppercase()}${voiceId}_EVEN"] = "both"
-            param["HIDE_TRACTOR_${ProducerType.FILLCOLORCHORDS.text.uppercase()}${voiceId}_ODD"] = "both"
-            param["HIDE_TRACTOR_${ProducerType.MICROPHONE.text.uppercase()}${voiceId}"] = "audio"
-        }
-        val fileProjectName = "${song.settings.rootFolder}/${song.settings.projectKaraokeFileName}"
-        val fileSubtitleName = "$fileProjectName.srt"
-        val templateProject = "<?xml version='1.0' encoding='utf-8'?>\n${getMlt(param)}"
-        File(fileProjectName).writeText(templateProject)
-        File(fileSubtitleName).writeText(song.voices[0].srtFileBody)
-    }
-
-    if (Karaoke.createProjectChords && song.hasChords) {
-        println("Создаём проект [chords]: ${song.settings.author} / ${song.settings.songName}")
-        param["SONG_PROJECT_FILENAME"] = song.settings.projectChordsFileName
-        param["SONG_VIDEO_FILENAME"] = song.settings.videoChordsFileName
-        for (voiceId in 0 until song.voices.size) {
-            param["HIDE_TRACTOR_${ProducerType.AUDIOMUSIC.text.uppercase()}${voiceId}"] = "both"
-            param["HIDE_TRACTOR_${ProducerType.AUDIOSONG.text.uppercase()}${voiceId}"] = "both"
-            param["HIDE_TRACTOR_${ProducerType.AUDIOBASS.text.uppercase()}${voiceId}"] = "video"
-            param["HIDE_TRACTOR_${ProducerType.AUDIODRUMS.text.uppercase()}${voiceId}"] = "video"
-            param["HIDE_TRACTOR_${ProducerType.SONGTEXT.text.uppercase()}${voiceId}"] = "both"
-            param["HIDE_TRACTOR_${ProducerType.CHORDS.text.uppercase()}${voiceId}"] = "audio"
-            param["HIDE_TRACTOR_${ProducerType.FILLCOLORSONGTEXT.text.uppercase()}${voiceId}_EVEN"] = "both"
-            param["HIDE_TRACTOR_${ProducerType.FILLCOLORSONGTEXT.text.uppercase()}${voiceId}_ODD"] = "both"
-            param["HIDE_TRACTOR_${ProducerType.FILLCOLORCHORDS.text.uppercase()}${voiceId}_EVEN"] = "audio"
-            param["HIDE_TRACTOR_${ProducerType.FILLCOLORCHORDS.text.uppercase()}${voiceId}_ODD"] = "audio"
-            param["HIDE_TRACTOR_${ProducerType.MICROPHONE.text.uppercase()}${voiceId}"] = "both"
-        }
-        val fileProjectName = "${song.settings.rootFolder}/${song.settings.projectChordsFileName}"
-        val fileSubtitleName = "$fileProjectName.srt"
-        val templateProject = "<?xml version='1.0' encoding='utf-8'?>\n${getMlt(param)}"
-        File(fileProjectName).writeText(templateProject)
-        File(fileSubtitleName).writeText(song.voices[0].srtFileBody)
-    }
-
-    if (Karaoke.createSongPictures) {
-        println("Создаём картинки: ${song.settings.author} / ${song.settings.songName}")
-        createSongPicture(song, "karaoke")
-        createSongPicture(song, "lyrics")
-        if (song.hasChords) createSongPicture(song, "chords")
-    }
-
-    if (Karaoke.createSongDesctiption) {
-        println("Создаём описания: ${song.settings.author} / ${song.settings.songName}")
-        val fileDescriptionLyricsName = "${song.settings.rootFolder}/done/${song.settings.fileName} [lyrics].txt"
-        val textDescriptionLyrics = song.descriptionKaraokeText
-        File(fileDescriptionLyricsName).writeText(textDescriptionLyrics)
-
-        val fileDescriptionKaraokeName = "${song.settings.rootFolder}/done/${song.settings.fileName} [karaoke].txt"
-        val textDescriptionKaraoke = song.descriptionKaraokeText
-        File(fileDescriptionKaraokeName).writeText(textDescriptionKaraoke)
-
-        if (song.hasChords) {
-            val fileDescriptionAccordsName = "${song.settings.rootFolder}/done/${song.settings.fileName} [accords].txt"
-            val textDescriptionAccords = song.descriptionAccordsText
-            File(fileDescriptionAccordsName).writeText(textDescriptionAccords)
-        }
-
-    }
+    File(param["SONG_PROJECT_FILENAME"].toString()).writeText(templateProject)
+    File(param["SONG_SUBTITLE_FILENAME"].toString()).writeText(song.voices[0].srtFileBody)
+    File(param["SONG_DESCRIPTION_FILENAME"].toString()).writeText(song.getDescription(songVersion))
+    createSongPicture(song, param["SONG_PICTURE_FILENAME"].toString(),songVersion, isBluetoothDelay)
 
 }

@@ -139,7 +139,7 @@ fun main(args: Array<String>) {
     )
     mapFiles.forEach {
         if (it.first != "" && it.second != "") {
-            createKaraoke(Song(Settings("${it.first}/${it.second}.settings")))
+            createKaraokeAll("${it.first}/${it.second}.settings")
         }
 
     }

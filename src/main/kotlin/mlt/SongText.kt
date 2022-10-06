@@ -47,6 +47,7 @@ fun getMltSongTextFilePlaylist(param: Map<String, Any?>, type:ProducerType = Pro
             Pair("id","playlist_${type.text}${voiceId}_file")
         ),
         body = mutableListOf(
+            MltNode(name = "blank", fields = mutableMapOf(Pair("length", param["IN_OFFSET_VIDEO"].toString()))),
             MltNode(name = "entry", fields = mutableMapOf(
                 Pair("producer","producer_${type.text}${voiceId}"),
                 Pair("in",param["SONG_START_TIMECODE"].toString()),

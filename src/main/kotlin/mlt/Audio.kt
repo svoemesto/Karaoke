@@ -1,5 +1,6 @@
 import model.MltNode
 import model.ProducerType
+import java.lang.Integer.max
 
 fun getMltAudioProducer(param: Map<String, Any?>, type: ProducerType, voiceId: Int = 0): MltNode {
 
@@ -74,7 +75,7 @@ fun getMltAudioFilePlaylist(param: Map<String, Any?>, type: ProducerType, voiceI
         ),
         body = mutableListOf(
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:audio_track")), body = 1),
-            MltNode(name = "blank", fields = mutableMapOf(Pair("length",param["IN_OFFSET"].toString()))),
+            MltNode(name = "blank", fields = mutableMapOf(Pair("length", param["IN_OFFSET_AUDIO"].toString()))),
             MltNode(name = "entry", fields = mutableMapOf(
                 Pair("producer","producer_${type.text}${voiceId}_file"),
                 Pair("in",param["SONG_START_TIMECODE"].toString()),

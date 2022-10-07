@@ -21,13 +21,34 @@ import kotlin.random.Random
 
 fun main() {
 
-
+println(
+    getFileNameByMasks(
+        "/home/nsa/Documents/Караоке/Ундервуд/2002 - Все пройдет, Милая",
+        "(02) [Ундервуд] Гагарин, я Вас любила",
+        listOf("-accompaniment-", " [music]"),
+        ".wav")
+)
 
 }
 
+fun getFileNameByMasks(pathToFolder: String, startWith: String, suffixes: List<String>,extension: String): String {
+
+    val files = Files.walk(Path(pathToFolder))
+        .filter(Files::isRegularFile)
+        .map { it.toString() }
+        .filter{ it.endsWith(extension) && it.startsWith("${pathToFolder}/$startWith")}
+        .map { Path(it).toFile().name }
+        .toList()
+    suffixes.forEach { suffix ->
+        val filename = files.firstOrNull{it.startsWith("${startWith}${suffix}")}
+        if (filename != null) return filename
+    }
+    return ""
+
+}
 fun createSongPicture(song: Song, fileName: String, songVersion: SongVersion, isBluetoothDelay: Boolean) {
     val caption = songVersion.text
-    val comment: String = if (isBluetoothDelay) "для Bluetooth-колонок, задержка видео ${Karaoke.timeOffsetBluetoothSpeakerMs} ms" else ""
+    val comment: String = "${songVersion.textForDescription}${if (isBluetoothDelay) " с задержкой видео на ${Karaoke.timeOffsetBluetoothSpeakerMs}ms" else ""}"
     val pathToLogoAlbum = "${song.settings.rootFolder}/LogoAlbum.png"
     val pathToLogoAuthor = "${song.settings.rootFolder}/LogoAuthor.png"
 

@@ -1,5 +1,6 @@
 package model
 
+import getFileNameByMasks
 import java.io.File
 import kotlin.io.path.Path
 
@@ -39,10 +40,6 @@ data class Settings(val _pathToSettingsFile: String) {
         fileName = settingFileName
         subtitleFileName = "${settingFileName}.kdenlive.srt"
         audioSongFileName = "${settingFileName}.flac"
-        audioMusicFileName = "$settingFileName [music].wav"
-        audioVocalFileName = "$settingFileName [vocals].wav"
-        audioBassFileName = "$settingFileName [bass].wav"
-        audioDrumsFileName = "$settingFileName [drums].wav"
         projectLyricsFileName = "$settingFileName [lyrics].kdenlive"
         videoLyricsFileName = "done/$settingFileName [lyrics].mp4"
         projectKaraokeFileName = "$settingFileName [karaoke].kdenlive"
@@ -67,8 +64,19 @@ data class Settings(val _pathToSettingsFile: String) {
                     "BPM" -> bpm = settingValue.toLong()
                     "MS" -> ms = settingValue.toLong()
                     "FORMAT" -> audioSongFileName = "${settingFileName}.${settingValue}"
+                    "AUDIOSONG" -> audioSongFileName = settingValue
+                    "AUDIOMUSIC" -> audioMusicFileName = settingValue
+                    "AUDIOVOCALS" -> audioVocalFileName = settingValue
+                    "AUDIODRUMS" -> audioDrumsFileName = settingValue
+                    "AUDIOBASS" -> audioBassFileName = settingValue
                 }
             }
         }
+
+        if (audioMusicFileName == "") audioMusicFileName = getFileNameByMasks(rootFolder,fileName, listOf("-accompaniment-"," [music]"),".wav")
+        if (audioVocalFileName == "") audioVocalFileName = getFileNameByMasks(rootFolder,fileName, listOf("-vocals-"," [vocals]"),".wav")
+        if (audioBassFileName == "") audioBassFileName = getFileNameByMasks(rootFolder,fileName, listOf("-bass-"," [bass]"),".wav")
+        if (audioDrumsFileName == "") audioDrumsFileName = getFileNameByMasks(rootFolder,fileName, listOf("-drums-"," [drums]"),".wav")
+
     }
 }

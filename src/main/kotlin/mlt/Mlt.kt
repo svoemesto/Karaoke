@@ -42,6 +42,10 @@ import getMltFillSongtextEvenTractor
 import getMltFillSongtextOddFilePlaylist
 import getMltFillSongtextOddTrackPlaylist
 import getMltFillSongtextOddTractor
+import getMltFlashFilePlaylist
+import getMltFlashProducer
+import getMltFlashTrackPlaylist
+import getMltFlashTractor
 import getMltHeaderFilePlaylist
 import getMltHeaderProducer
 import getMltHeaderTrackPlaylist
@@ -95,6 +99,7 @@ fun getMlt(param: Map<String, Any?>): MltNode {
                     ProducerType.SONGTEXT -> body.add(getMltSongTextProducer(param, type, voiceId))
                     ProducerType.CHORDS -> body.add(getMltSongTextProducer(param, type, voiceId))
                     ProducerType.HORIZON -> body.add(getMltHorizonProducer(param, type, voiceId))
+                    ProducerType.FLASH -> body.add(getMltFlashProducer(param, type, voiceId))
                     ProducerType.WATERMARK -> body.add(getMltWatermarkProducer(param, type, voiceId))
                     ProducerType.PROGRESS -> body.add(getMltProgressProducer(param, type, voiceId))
                     ProducerType.FADER -> body.add(getMltFaderProducer(param, type, voiceId))
@@ -159,6 +164,11 @@ fun getMlt(param: Map<String, Any?>): MltNode {
                         body.add(getMltHorizonFilePlaylist(param, type, voiceId))
                         body.add(getMltHorizonTrackPlaylist(param, type, voiceId))
                         body.add(getMltHorizonTractor(param, type, voiceId))
+                    }
+                    ProducerType.FLASH -> {
+                        body.add(getMltFlashFilePlaylist(param, type, voiceId))
+                        body.add(getMltFlashTrackPlaylist(param, type, voiceId))
+                        body.add(getMltFlashTractor(param, type, voiceId))
                     }
                     ProducerType.WATERMARK -> {
                         body.add(getMltWatermarkFilePlaylist(param, type, voiceId))

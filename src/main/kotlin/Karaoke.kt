@@ -486,6 +486,17 @@ class Karaoke {
                 props.storeToXML(File(fileNameXml).outputStream(),null)
             }
 
+        var flashColor: Color
+            get() {
+                val defaultValue = Color(255,0,0,255).setting()
+                props.loadFromXML(File(fileNameXml).inputStream())
+                return getColorFromString(props.getProperty("flashColor", defaultValue))
+            }
+            set(value) {
+                props.setProperty("flashColor", value.setting())
+                props.storeToXML(File(fileNameXml).outputStream(),null)
+            }
+
         // Настройки текста для голосов - групп
         var voices: MutableList<KaraokeVoice>
             get() {
@@ -960,6 +971,18 @@ oddOpacity|[NAME]|0.6""".trimIndent()
             set(value) {
                 props.setProperty("splashstartSongVersionFont", value.setting())
                 props.storeToXML(File(fileNameXml).outputStream(),null)
+            }
+
+        // Время в миллисекундах. Если субтитр длится дольше этого времени - закраска увеличивается
+        var shortSubtitleMs: Long
+            get() {
+                val defaultValue = "750"
+                props.loadFromXML(File(fileNameXml).inputStream())
+                return props.getProperty("shortSubtitleMs",defaultValue).toLong()
+            }
+            set(value) {
+                props.setProperty("shortSubtitleMs", value.toString())
+                props.storeToXML(File(fileNameXml).outputStream(), null)
             }
 
     }

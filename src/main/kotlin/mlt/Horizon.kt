@@ -159,6 +159,7 @@ fun getTemplateHorizon(param: Map<String, Any?>): MltNode {
                         )
                     )
                 )
+
             }
         }
 
@@ -203,6 +204,34 @@ fun getTemplateHorizon(param: Map<String, Any?>): MltNode {
                     )
                 )
             ),
+
+            MltNode(
+                name = "item",
+                fields = mutableMapOf(
+                    Pair("type","QGraphicsRectItem"),
+                    Pair("z-index","0"),
+                ),
+                body = mutableListOf(
+                    MltNode(
+                        name = "position",
+                        fields = mutableMapOf(
+                            Pair("x","0"),
+                            Pair("y","${param["HORIZON_POSITION_PX"] as Long - (param["SYMBOL_SONGTEXT_HEIGHT_PX"] as Double).toLong() - 6}")
+                        ),
+                        body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(Pair("zoom","100")), body = "1,0,0,0,1,0,0,0,1"))
+                    ),
+                    MltNode(
+                        name = "content",
+                        fields = mutableMapOf(
+                            Pair("brushcolor", Karaoke.horizonColor.mlt()),
+                            Pair("pencolor", "0,0,0,255"),
+                            Pair("penwidth","0"),
+                            Pair("rect","0,0,${Karaoke.frameWidthPx},3")
+                        )
+                    )
+                )
+            ),
+
             templateHorizonGroup,
             MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${Karaoke.frameHeightPx}"))),
             MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${Karaoke.frameHeightPx}"))),

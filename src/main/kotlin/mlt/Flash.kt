@@ -1,10 +1,8 @@
-import mlt.MltFont
-import mlt.mltNode
 import model.SongVoiceLine
 import model.MltNode
 import model.ProducerType
 
-fun getMltChordsProducer(param: Map<String, Any?>, type:ProducerType = ProducerType.CHORDS, voiceId: Int = 0): MltNode {
+fun getMltFlashProducer(param: Map<String, Any?>, type:ProducerType = ProducerType.FLASH, voiceId: Int = 0): MltNode {
 
     val mlt = MltNode(
         type = type,
@@ -15,6 +13,18 @@ fun getMltChordsProducer(param: Map<String, Any?>, type:ProducerType = ProducerT
             Pair("out",param["SONG_END_TIMECODE"].toString())
         ),
         body = mutableListOf(
+            MltNode(
+                name = "filter",
+                fields = mutableMapOf(Pair("id","filter_${type.text}${voiceId}_qtblend1")),
+                body = mutableListOf(
+                    MltNode(name = "property", fields = mutableMapOf(Pair("name","rotate_center")), body = 1),
+                    MltNode(name = "property", fields = mutableMapOf(Pair("name","mlt_service")), body = "qtblend"),
+                    MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive_id")), body = "qtblend"),
+                    MltNode(name = "property", fields = mutableMapOf(Pair("name","rect")), body = param["${type.text.uppercase()}${voiceId}_PROPERTY_RECT"]),
+                    MltNode(name = "property", fields = mutableMapOf(Pair("name","compositing")), body = 0),
+                    MltNode(name = "property", fields = mutableMapOf(Pair("name","distort")), body = 0),
+                    MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:collapsed")), body = 0)
+                )),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","length")), body = param["SONG_LENGTH_MS"]),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","eof")), body = "pause"),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","resource"))),
@@ -27,10 +37,10 @@ fun getMltChordsProducer(param: Map<String, Any?>, type:ProducerType = ProducerT
             MltNode(name = "property", fields = mutableMapOf(Pair("name","xmldata")), body = param["${type.text.uppercase()}${voiceId}_XML_DATA"]),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:folderid")), body = -1),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:clip_type")), body = 2),
-            MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:id")), body = (param["${type.text.uppercase()}${voiceId}_ID"] as Int)+voiceId*100),
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:id")), body = (param["${type.text.uppercase()}${voiceId}_ID"] as Int)+voiceId*1000),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","force_reload")), body = 0),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","meta.media.width")), body = Karaoke.frameWidthPx),
-            MltNode(name = "property", fields = mutableMapOf(Pair("name","meta.media.height")), body = param["${type.text.uppercase()}${voiceId}_WORK_AREA_CHORDS_HEIGHT_PX"])
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","meta.media.height")), body = Karaoke.frameHeightPx)
         )
     )
 
@@ -38,7 +48,7 @@ fun getMltChordsProducer(param: Map<String, Any?>, type:ProducerType = ProducerT
 }
 
 
-fun getMltChordsFilePlaylist(param: Map<String, Any?>, type:ProducerType = ProducerType.CHORDS, voiceId: Int = 0): MltNode {
+fun getMltFlashFilePlaylist(param: Map<String, Any?>, type:ProducerType = ProducerType.FLASH, voiceId: Int = 0): MltNode {
 
     val mlt = MltNode(
         type = type,
@@ -53,14 +63,14 @@ fun getMltChordsFilePlaylist(param: Map<String, Any?>, type:ProducerType = Produ
                 Pair("in",param["SONG_START_TIMECODE"].toString()),
                 Pair("out",param["SONG_END_TIMECODE"].toString()),
             ), body = mutableListOf(
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:id")), body = (param["${type.text.uppercase()}${voiceId}_ID"] as Int)+voiceId*100),
+                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:id")), body = (param["${type.text.uppercase()}${voiceId}_ID"] as Int)+voiceId*1000),
                 MltNode(name = "filter",
                     fields = mutableMapOf(Pair("id","filter_${type.text}${voiceId}_qtblend")),
                     body = mutableListOf(
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","rotate_center")), body = 1),
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","mlt_service")), body = "qtblend"),
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive_id")), body = "qtblend"),
-                        MltNode(name = "property", fields = mutableMapOf(Pair("name","rect")), body = param["${type.text.uppercase()}${voiceId}_PROPERTY_RECT"].toString()),
+                        MltNode(name = "property", fields = mutableMapOf(Pair("name","rect")), body = "${param["SONG_START_TIMECODE"]}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.000000;${param["SONG_FADEIN_TIMECODE"].toString()}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 1.000000;${param["SONG_FADEOUT_TIMECODE"].toString()}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 1.000000;${param["SONG_END_TIMECODE"]}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.000000"),
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","compositing")), body = 0),
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","distort")), body = 0),
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:collapsed")), body = 0),
@@ -73,7 +83,7 @@ fun getMltChordsFilePlaylist(param: Map<String, Any?>, type:ProducerType = Produ
     return mlt
 }
 
-fun getMltChordsTrackPlaylist(param: Map<String, Any?>, type:ProducerType = ProducerType.CHORDS, voiceId: Int = 0): MltNode {
+fun getMltFlashTrackPlaylist(param: Map<String, Any?>, type:ProducerType = ProducerType.FLASH, voiceId: Int = 0): MltNode {
 
     val mlt = MltNode(
         type = type,
@@ -86,7 +96,7 @@ fun getMltChordsTrackPlaylist(param: Map<String, Any?>, type:ProducerType = Prod
     return mlt
 }
 
-fun getMltChordsTractor(param: Map<String, Any?>, type:ProducerType = ProducerType.CHORDS, voiceId: Int = 0): MltNode {
+fun getMltFlashTractor(param: Map<String, Any?>, type:ProducerType = ProducerType.FLASH, voiceId: Int = 0): MltNode {
 
     val mlt = MltNode(
         type = type,
@@ -118,100 +128,83 @@ fun getMltChordsTractor(param: Map<String, Any?>, type:ProducerType = ProducerTy
     return mlt
 }
 
-fun getTemplateChords(param: Map<String, Any?>, voiceId: Int): MltNode {
+fun getTemplateFlash(param: Map<String, Any?>): MltNode {
 
-    val templateChordsSymbolsGroup = mutableListOf<MltNode>()
-    val voiceSetting = param["VOICE${voiceId}_SETTING"] as KaraokeVoice
-    val workAreaChordsHeightPx = param["VOICE${voiceId}_WORK_AREA_CHORDS_HEIGHT_PX"] as Long
-    val voiceLinesSongchords = param["VOICE${voiceId}_VOICELINES_SONGCHORDS"] as MutableList<*>
-    val voiceLinesChords = param["VOICE${voiceId}_VOICELINES_CHORDS"] as MutableList<*>
-    val symbolSongtextHeightPx = param["SYMBOL_SONGTEXT_HEIGHT_PX"] as Double
-    val symbolChordsHeightPx = param["SYMBOL_CHORDS_HEIGHT_PX"] as Double
-    val startX = Karaoke.songtextStartPositionXpx
-    val startYsongchords = symbolChordsHeightPx
-    val startYchords = symbolSongtextHeightPx * 0.1
+    val templateFlashGroup = mutableListOf<MltNode>()
 
+    val voiceLines = param["VOICE0_VOICELINES_SONGTEXT"] as MutableList<*>
 
-    voiceLinesSongchords.forEachIndexed { indexLine, it ->
-        val voiceLineSongchords = it as SongVoiceLine
-        voiceLineSongchords.symbols.forEachIndexed { indexSymbol, lineSymbol ->
-
-            val mltFont: MltFont = if (!lineSymbol.isBeat) voiceSetting.groups[lineSymbol.group].songtextTextMltFont else voiceSetting.groups[lineSymbol.group].songtextBeatMltFont
-            val text = lineSymbol.text
-            val x = (startX + voiceLineSongchords.getSymbolXpx(indexSymbol)).toLong()
-            val y = (startYsongchords + indexLine*(symbolSongtextHeightPx+symbolChordsHeightPx)).toLong()
-
-            templateChordsSymbolsGroup.add(
-                MltNode(
-                    name = "item",
-                    fields = mutableMapOf(Pair("type","QGraphicsTextItem"), Pair("z-index","0")),
-                    body = mutableListOf(
-                        MltNode(
-                            name = "position",
-                            fields = mutableMapOf(Pair("x","$x"), Pair("y","$y")),
-                            body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(), body = "1,0,0,0,1,0,0,0,1"))
-                        ),
-                        mltFont.mltNode(text)
-                    )
-                )
-            )
-        }
-    }
-
-    voiceLinesChords.forEachIndexed { indexLine, it ->
-
-        val voiceLineChords = it as SongVoiceLine
-        val voiceLineSongchords = voiceLinesSongchords[indexLine] as SongVoiceLine
-
-        voiceLineChords.symbols.forEachIndexed { indexSymbol, lineSymbol ->
-
-            val mltFont = MltFont(
-                font = lineSymbol.font,
-                fontColor = Karaoke.chordsFont.fontColor,
-                fontUnderline = Karaoke.chordsFont.fontUnderline,
-                fontOutline = Karaoke.chordsFont.fontOutline,
-                fontOutlineColor = Karaoke.chordsFont.fontOutlineColor
-            )
-
-            val text = lineSymbol.text
-            val textBeforeChord = lineSymbol.textBeforeChord
-            val x = (startX + getTextWidthHeightPx(textBeforeChord, voiceLineSongchords.fontText).first).toLong()
-            val y = (startYchords + indexLine*(symbolSongtextHeightPx+symbolChordsHeightPx)).toLong()
-
-            templateChordsSymbolsGroup.add(
-                MltNode(
-                    name = "item",
-                    fields = mutableMapOf(Pair("type","QGraphicsTextItem"), Pair("z-index","0")),
-                    body = mutableListOf(
-                        MltNode(
-                            name = "position",
-                            fields = mutableMapOf(Pair("x","$x"), Pair("y","$y")),
-                            body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(), body = "1,0,0,0,1,0,0,0,1"))
-                        ),
-                        mltFont.mltNode(text)
-                    )
-                )
-            )
-        }
-    }
-
-    val templateSongText = MltNode(
+    val templateFlash = MltNode(
+        type = ProducerType.HORIZON,
         name = "kdenlivetitle",
         fields = mutableMapOf(
             Pair("duration","0"),
             Pair("LC_NUMERIC","C"),
             Pair("width","${Karaoke.frameWidthPx}"),
-            Pair("height","$workAreaChordsHeightPx"),
+            Pair("height","${Karaoke.frameHeightPx}"),
             Pair("out","0"),
         ),
         body = mutableListOf(
-            templateChordsSymbolsGroup,
-            MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},$workAreaChordsHeightPx"))),
-            MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},$workAreaChordsHeightPx"))),
+            MltNode(
+                name = "item",
+                fields = mutableMapOf(
+                    Pair("type","QGraphicsRectItem"),
+                    Pair("z-index","0"),
+                ),
+                body = mutableListOf(
+                    MltNode(
+                        name = "position",
+                        fields = mutableMapOf(
+                            Pair("x","0"),
+                            Pair("y","${param["HORIZON_POSITION_PX"]}")
+                        ),
+                        body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(Pair("zoom","100")), body = "1,0,0,0,1,0,0,0,1"))
+                    ),
+                    MltNode(
+                        name = "content",
+                        fields = mutableMapOf(
+                            Pair("brushcolor", Karaoke.flashColor.mlt()),
+                            Pair("pencolor", "0,0,0,255"),
+                            Pair("penwidth","0"),
+                            Pair("rect","0,0,${Karaoke.frameWidthPx},3")
+                        )
+                    )
+                )
+            ),
+
+            MltNode(
+                name = "item",
+                fields = mutableMapOf(
+                    Pair("type","QGraphicsRectItem"),
+                    Pair("z-index","0"),
+                ),
+                body = mutableListOf(
+                    MltNode(
+                        name = "position",
+                        fields = mutableMapOf(
+                            Pair("x","0"),
+                            Pair("y","${param["HORIZON_POSITION_PX"] as Long - (param["SYMBOL_SONGTEXT_HEIGHT_PX"] as Double).toLong() - 6}")
+                        ),
+                        body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(Pair("zoom","100")), body = "1,0,0,0,1,0,0,0,1"))
+                    ),
+                    MltNode(
+                        name = "content",
+                        fields = mutableMapOf(
+                            Pair("brushcolor", Karaoke.flashColor.mlt()),
+                            Pair("pencolor", "0,0,0,255"),
+                            Pair("penwidth","0"),
+                            Pair("rect","0,0,${Karaoke.frameWidthPx},3")
+                        )
+                    )
+                )
+            ),
+
+            templateFlashGroup,
+            MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${Karaoke.frameHeightPx}"))),
+            MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${Karaoke.frameHeightPx}"))),
             MltNode(name = "background", fields = mutableMapOf(Pair("color","0,0,0,0")))
         )
     )
 
-    return templateSongText
+    return templateFlash
 }
-

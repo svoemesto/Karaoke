@@ -10,6 +10,7 @@ enum class ProducerType(val text: String, val onlyOne: Boolean, val suffixes: Li
     BACKGROUND(text ="background", onlyOne = true, suffixes = emptyList(), ids = emptyList()),
     MICROPHONE(text ="microphone", onlyOne = true, suffixes = emptyList(), ids = emptyList()),
     HORIZON(text ="horizon", onlyOne = true, suffixes = emptyList(), ids = emptyList()),
+    FLASH(text ="flash", onlyOne = true, suffixes = emptyList(), ids = emptyList()),
     PROGRESS(text ="progress", onlyOne = true, suffixes = emptyList(), ids = emptyList()),
     FILLCOLORSONGTEXT(text ="fillcolorsongtext", onlyOne = false, suffixes = listOf("even", "odd"), ids = emptyList()),
     FILLCOLORCHORDS(text ="fillcolorchords", onlyOne = false, suffixes = listOf("even", "odd"), ids = emptyList()),

@@ -128,7 +128,7 @@ fun getTemplateSplashstart(param: Map<String, Any?>): MltNode {
     val songversionTextFontMlt = Karaoke.splashstartSongVersionFont
     val commentTextFontMlt = Karaoke.splashstartCommentFont
 
-    val commentText = if (isBluetoothDelay) "для Bluetooth-колонок, задержка видео ${Karaoke.timeOffsetBluetoothSpeakerMs} ms" else ""
+    val commentText = "${songVersion.textForDescription}${if (isBluetoothDelay) " с задержкой видео на ${Karaoke.timeOffsetBluetoothSpeakerMs}ms" else ""}"
     val songversionText = songVersion.text
     val songnameText = param["SONG_NAME"] as String
 

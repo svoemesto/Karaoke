@@ -1,0 +1,31 @@
+package model
+
+enum class MusicInterval (val halfTones: Int, val text: String) {
+    UNISON (halfTones = 0, text ="чистая прима"),
+    MINOR_SECOND (halfTones = 1, text ="малая секунда"),
+    MAJOR_SECOND (halfTones = 2, text ="большая секунда"),
+    MINOR_THIRD (halfTones = 3, text ="малая терция"),
+    MAJOR_THIRD (halfTones = 4, text ="большая терция"),
+    PERFECT_FOURTH (halfTones = 5, text ="чистая кварта"),
+    AUGMENTED_FOURTH (halfTones = 6, text ="увеличенная кварта"),
+    DIMINISHED_FIFTH (halfTones = 6, text ="уменьшенная квинта"),
+    PERFECT_FIFTH (halfTones = 7, text ="чистая квинта"),
+    MINOR_SIXTH (halfTones = 8, text ="малая секста"),
+    MAJOR_SIXTH (halfTones = 9, text ="большая секста"),
+    MINOR_SEVENTH (halfTones = 10, text ="малая септима"),
+    MAJOR_SEVENTH (halfTones = 11, text ="большая септима"),
+    PERFECT_OCTAVE (halfTones = 12, text ="чистая октава"),
+    MINOR_NINTH (halfTones = 13, text ="малая нона"),
+    MAJOR_NINTH (halfTones = 14, text ="большая нона"),
+    MINOR_TENTH (halfTones = 15, text ="малая децима"),
+    MAJOR_TENTH (halfTones = 16, text ="большая децима"),
+    PERFECT_ELEVENTH (halfTones = 17, text ="чистая ундецима"),
+    AUGMENTED_ELEVENTH (halfTones = 18, text ="увеличенная ундецима"),
+    DIMINISHED_TWELFTH (halfTones = 18, text ="уменьшенная дуодецима"),
+    PERFECT_TWELFTH (halfTones = 19, text ="чистая дуодецима"),
+    MINOR_THIRTEENTH (halfTones = 20, text ="малая терцдецима"),
+    MAJOR_THIRTEENTH (halfTones = 21, text ="большая терцдецима"),
+    MINOR_FOURTEENTH (halfTones = 22, text ="малая квартдецима"),
+    MAJOR_FOURTEENTH (halfTones = 23, text ="большая квартдецима"),
+    PERFECT_FIFTEENTH (halfTones = 24, text ="чистая квинтдецима")
+}

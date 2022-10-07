@@ -16,12 +16,23 @@ data class Song(val settings: Settings, val songVersion: SongVersion) {
         return "${settings.rootFolder}/done_${if (songOutputFile == SongOutputFile.PROJECT || songOutputFile == SongOutputFile.SUBTITLE) "projects" else "files"}/${settings.fileName}${songVersion.suffix}${if (idBluetoothDelay) " bluetooth" else ""}.${songOutputFile.extension}"
     }
 
-    fun getDescription(): String {
-        return when (songVersion) {
-            SongVersion.LYRICS -> descriptionLyricText
-            SongVersion.KARAOKE -> descriptionKaraokeText
-            SongVersion.CHORDS -> descriptionChordsText
-        }
+    fun getDescription(isBluetoothDelay: Boolean): String {
+
+        return "${settings.songName} ★♫★ ${settings.author} ★♫★ ${songVersion.text} ★♫★ ${songVersion.textForDescription}${if (isBluetoothDelay) " ★♫★ video delay ${Karaoke.timeOffsetBluetoothSpeakerMs}ms for bluetooth speakers" else ""}" + "\n" +
+                "Версия: ${songVersion.text} (${songVersion.textForDescription})${if (isBluetoothDelay) " с задержкой видео на ${Karaoke.timeOffsetBluetoothSpeakerMs}ms для bluetooth-колонок" else ""}\n" +
+                "Композиция: ${settings.songName}\n" +
+                "Исполнитель: ${settings.author}\n" +
+                "Альбом: ${settings.album}\n" +
+                "Год: ${settings.year}\n" +
+                (if (songVersion == SongVersion.CHORDS) "Тональность: ${settings.key}\nТемп: ${settings.bpm} bpm\n" else "") +
+                "https://github.com/svoemesto/Karaoke\n" +
+                "${settings.songName.hashtag()} ${settings.author.hashtag()} ${"karaoke".hashtag()} ${"караоке".hashtag()}${if (songVersion == SongVersion.CHORDS) " ${"chords".hashtag()} ${"аккорды".hashtag()}" else ""}\n"
+
+//        return when (songVersion) {
+//            SongVersion.LYRICS -> descriptionLyricText
+//            SongVersion.KARAOKE -> descriptionKaraokeText
+//            SongVersion.CHORDS -> descriptionChordsText
+//        }
     }
 
     var endTimecode: String = ""
@@ -35,6 +46,7 @@ data class Song(val settings: Settings, val songVersion: SongVersion) {
                         "Композиция: ${settings.songName}\n" +
                         "Исполнитель: ${settings.author}\n" +
                         "Альбом: ${settings.album}\n" +
+                        "Год: ${settings.year}\n" +
                         "Тональность: ${settings.key}\n" +
                         "Темп: ${settings.bpm} bpm\n" +
                         "Karaoke-версия: \n" +
@@ -53,6 +65,7 @@ data class Song(val settings: Settings, val songVersion: SongVersion) {
                     "Композиция: ${settings.songName}\n" +
                     "Исполнитель: ${settings.author}\n" +
                     "Альбом: ${settings.album}\n" +
+                    "Год: ${settings.year}\n" +
                     "Тональность: ${settings.key}\n" +
                     "Темп: ${settings.bpm} bpm\n" +
                     "Lyric-версия: \n" +
@@ -71,6 +84,7 @@ data class Song(val settings: Settings, val songVersion: SongVersion) {
                     "Композиция: ${settings.songName}\n" +
                     "Исполнитель: ${settings.author}\n" +
                     "Альбом: ${settings.album}\n" +
+                    "Год: ${settings.year}\n" +
                     "Тональность: ${settings.key}\n" +
                     "Темп: ${settings.bpm} bpm\n" +
                     "Karaoke-версия: \n" +
@@ -142,9 +156,9 @@ data class Song(val settings: Settings, val songVersion: SongVersion) {
                                 .replace("//", "")
                                 .replace("\\\\", "")
                                 .replace("_", " ")
-                            if (songVersion != SongVersion.CHORDS) {
-                                text = text.replace("♬"," ")
-                            }
+//                            if (songVersion != SongVersion.CHORDS) {
+//                                text = text.replace("♬"," ")
+//                            }
                             // Создаем объект classes.Subtitle и инициализируем его переменными
                             val subtitle = Subtitle(
                                 startTimecode = start,
@@ -170,18 +184,35 @@ data class Song(val settings: Settings, val songVersion: SongVersion) {
                                     maxWidthLineText = lineText
                                 }
 
-                                listLines.add(
-                                    SongVoiceLine(
-                                        subtitles = songSubtitles,
-                                        text = lineText,
-                                        start = songSubtitles.first().startTimecode,
-                                        end = songSubtitles.last().endTimecode,
-                                        durationMs = getDurationInMilliseconds(songSubtitles.first().startTimecode, songSubtitles.last().endTimecode),
-                                        isEmptyLine = (lineText.trim() == ""),
-                                        fontText = Karaoke.voices[voideId].groups[group].songtextTextMltFont.font,
-                                        fontBeat = Karaoke.voices[voideId].groups[group].songtextBeatMltFont.font
+                                if (songVersion != SongVersion.CHORDS && lineText.contains("♬")) {
+                                    listLines.add(
+                                        SongVoiceLine(
+                                            subtitles = mutableListOf(),
+                                            text = "",
+                                            start = songSubtitles.first().startTimecode,
+                                            end = songSubtitles.last().endTimecode,
+                                            durationMs = getDurationInMilliseconds(songSubtitles.first().startTimecode, songSubtitles.last().endTimecode),
+                                            isEmptyLine = true,
+                                            fontText = Karaoke.voices[voideId].groups[group].songtextTextMltFont.font,
+                                            fontBeat = Karaoke.voices[voideId].groups[group].songtextBeatMltFont.font
+                                        )
                                     )
-                                )
+                                } else {
+                                    listLines.add(
+                                        SongVoiceLine(
+                                            subtitles = songSubtitles,
+                                            text = lineText,
+                                            start = songSubtitles.first().startTimecode,
+                                            end = songSubtitles.last().endTimecode,
+                                            durationMs = getDurationInMilliseconds(songSubtitles.first().startTimecode, songSubtitles.last().endTimecode),
+                                            isEmptyLine = (lineText.trim() == ""),
+                                            fontText = Karaoke.voices[voideId].groups[group].songtextTextMltFont.font,
+                                            fontBeat = Karaoke.voices[voideId].groups[group].songtextBeatMltFont.font
+                                        )
+                                    )
+                                }
+
+
 
                                 lineText = ""
                                 songSubtitles = mutableListOf()
@@ -343,7 +374,10 @@ data class Subtitle(
     var isBeat: Boolean = false,
     var group: Int = 0,
     var indexFirstSymbolInLine: Int = 0
-)
+) {
+    val durationMs: Long get() = convertTimecodeToMilliseconds(endTimecode) - convertTimecodeToMilliseconds(startTimecode)
+    val longSubtitleInt: Int get() = if (durationMs >= Karaoke.shortSubtitleMs) 1 else 0
+}
 
 data class Chord(
     val timecode: String = "",

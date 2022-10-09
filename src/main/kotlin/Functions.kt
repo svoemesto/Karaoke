@@ -663,7 +663,8 @@ fun createKaraoke(song: Song, isBluetoothDelay: Boolean) {
         val templateProgress = getTemplateProgress(param)
         val templateWatermark = getTemplateWatermark(param)
         val templateMicrophone = getTemplateMicrophone(param)
-        val templateFader = getTemplateFader(param)
+        val templateFaderText = getTemplateFaderText(param)
+        val templateFaderChords = getTemplateFaderChords(param)
         val templateHeader = getTemplateHeader(param)
         val templateSplashstart = getTemplateSplashstart(param)
         val templateCounter0 = getTemplateCounter(param,0, voiceId)
@@ -717,9 +718,13 @@ fun createKaraoke(song: Song, isBluetoothDelay: Boolean) {
         param["${ProducerType.WATERMARK.text.uppercase()}${voiceId}_XML_DATA"] = templateWatermark
         param["HIDE_TRACTOR_${ProducerType.WATERMARK.text.uppercase()}${voiceId}"] = "audio"
 
-        param["${ProducerType.FADER.text.uppercase()}${voiceId}_ID"] = idProducerFader
-        param["${ProducerType.FADER.text.uppercase()}${voiceId}_XML_DATA"] = templateFader
-        param["HIDE_TRACTOR_${ProducerType.FADER.text.uppercase()}${voiceId}"] = "audio"
+        param["${ProducerType.FADERTEXT.text.uppercase()}${voiceId}_ID"] = idProducerFaderText
+        param["${ProducerType.FADERTEXT.text.uppercase()}${voiceId}_XML_DATA"] = templateFaderText
+        param["HIDE_TRACTOR_${ProducerType.FADERTEXT.text.uppercase()}${voiceId}"] = "audio"
+
+        param["${ProducerType.FADERCHORDS.text.uppercase()}${voiceId}_ID"] = idProducerFaderChords
+        param["${ProducerType.FADERCHORDS.text.uppercase()}${voiceId}_XML_DATA"] = templateFaderChords
+        param["HIDE_TRACTOR_${ProducerType.FADERCHORDS.text.uppercase()}${voiceId}"] = "audio"
 
         param["${ProducerType.PROGRESS.text.uppercase()}${voiceId}_ID"] = idProducerProgress
         param["${ProducerType.PROGRESS.text.uppercase()}${voiceId}_XML_DATA"] = templateProgress
@@ -816,7 +821,8 @@ fun createKaraoke(song: Song, isBluetoothDelay: Boolean) {
         param["${ProducerType.FILLCOLORCHORDS.text.uppercase()}${voiceId}_ENABLED"] = Karaoke.createFillsChords
         param["${ProducerType.SONGTEXT.text.uppercase()}${voiceId}_ENABLED"] = Karaoke.createSongtext
         param["${ProducerType.CHORDS.text.uppercase()}${voiceId}_ENABLED"] = Karaoke.createChords
-        param["${ProducerType.FADER.text.uppercase()}${voiceId}_ENABLED"] = Karaoke.createFader
+        param["${ProducerType.FADERTEXT.text.uppercase()}${voiceId}_ENABLED"] = Karaoke.createFader
+        param["${ProducerType.FADERCHORDS.text.uppercase()}${voiceId}_ENABLED"] = Karaoke.createFader
         param["${ProducerType.HEADER.text.uppercase()}${voiceId}_ENABLED"] = Karaoke.createHeader
         param["${ProducerType.BEAT.text.uppercase()}${voiceId}_ENABLED"] = Karaoke.createBeats
         param["${ProducerType.COUNTER.text.uppercase()}${voiceId}_ENABLED"] = Karaoke.createCounters

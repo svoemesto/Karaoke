@@ -1048,7 +1048,7 @@ oddOpacity|[NAME]|0.6""".trimIndent()
             get() {
                 val defaultValue = MltShape(
                     type = MltObjectType.RECTANGLE,
-                    shapeColor = Color(0,0,0,0),
+                    shapeColor = Color(255,255,255,127),
                     shapeOutlineColor = Color(255,255,255,255),
                     shapeOutline = 2
                 ).setting()

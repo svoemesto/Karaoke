@@ -16,6 +16,7 @@ import java.awt.Color
 import java.awt.Font
 import java.awt.Graphics2D
 import java.awt.image.BufferedImage
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.nio.file.Files
 import java.util.*
@@ -36,6 +37,11 @@ fun main() {
     }
 
     val bi = getChordLayoutPicture(layouts)
+
+    val os = ByteArrayOutputStream()
+    ImageIO.write(bi, "png", os)
+    val b = Base64.getEncoder().encodeToString(os.toByteArray())
+    println(b)
     println(bi)
 }
 
@@ -48,8 +54,8 @@ fun generateChordLayout(chord: MusicChord, note: MusicNote): List<MltObject> {
     val fingerboards = chord.getFingerboard(note, note.defaultRootFret)
     val initFret = fingerboards[0].rootFret
     val result:MutableList<MltObject> = mutableListOf()
-    var chordLayoutW = Karaoke.chordLayoutW
-    var chordLayoutH = Karaoke.chordLayoutH
+    var chordLayoutW = (Karaoke.frameHeightPx / 4).toInt()
+    var chordLayoutH = chordLayoutW
 
     val chordName = "${note.names.first()}${chord.names.first()}"
     val chordNameMltText = Karaoke.chordLayoutChordNameMltText.copy()
@@ -219,13 +225,13 @@ fun getChordLayoutPicture(mltObjects:List<MltObject>): BufferedImage {
                 val textToOverlay = (obj.shape as MltText).text
                 graphics2D.font = (obj.shape as MltText).font
                 graphics2D.drawString(textToOverlay, obj.x, obj.y + obj.h - obj.h/4)
+
             }
             else -> {
 
                 var opaque = obj.shape.shapeColor.alpha / 255f
                 var alphaChannel = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opaque)
                 graphics2D.composite = alphaChannel
-
                 graphics2D.color = obj.shape.shapeColor
 
                 when (obj.shape.type) {
@@ -247,6 +253,7 @@ fun getChordLayoutPicture(mltObjects:List<MltObject>): BufferedImage {
                     MltObjectType.ROUNDEDRECTANGLE -> graphics2D.drawRoundRect(obj.x,obj.y,obj.w, obj.h, Integer.min(obj.w, obj.h), Integer.min(obj.w, obj.h))
                     else -> {}
                 }
+
             }
         }
     }

@@ -1,7 +1,7 @@
 import model.MltNode
 import model.ProducerType
 
-fun getMltFaderProducer(param: Map<String, Any?>, type:ProducerType = ProducerType.FADER, voiceId: Int = 0): MltNode {
+fun getMltFaderChordsProducer(param: Map<String, Any?>, type:ProducerType = ProducerType.FADERCHORDS, voiceId: Int = 0): MltNode {
 
     val mlt = MltNode(
         type = type,
@@ -35,7 +35,7 @@ fun getMltFaderProducer(param: Map<String, Any?>, type:ProducerType = ProducerTy
 }
 
 
-fun getMltFaderFilePlaylist(param: Map<String, Any?>, type:ProducerType = ProducerType.FADER, voiceId: Int = 0): MltNode {
+fun getMltFaderChordsFilePlaylist(param: Map<String, Any?>, type:ProducerType = ProducerType.FADERCHORDS, voiceId: Int = 0): MltNode {
 
     val mlt = MltNode(
         type = type,
@@ -70,7 +70,7 @@ fun getMltFaderFilePlaylist(param: Map<String, Any?>, type:ProducerType = Produc
     return mlt
 }
 
-fun getMltFaderTrackPlaylist(param: Map<String, Any?>, type:ProducerType = ProducerType.FADER, voiceId: Int = 0): MltNode {
+fun getMltFaderChordsTrackPlaylist(param: Map<String, Any?>, type:ProducerType = ProducerType.FADERCHORDS, voiceId: Int = 0): MltNode {
 
     val mlt = MltNode(
         type = type,
@@ -83,7 +83,7 @@ fun getMltFaderTrackPlaylist(param: Map<String, Any?>, type:ProducerType = Produ
     return mlt
 }
 
-fun getMltFaderTractor(param: Map<String, Any?>, type:ProducerType = ProducerType.FADER, voiceId: Int = 0): MltNode {
+fun getMltFaderChordsTractor(param: Map<String, Any?>, type:ProducerType = ProducerType.FADERCHORDS, voiceId: Int = 0): MltNode {
 
     val mlt = MltNode(
         type = type,
@@ -115,13 +115,14 @@ fun getMltFaderTractor(param: Map<String, Any?>, type:ProducerType = ProducerTyp
     return mlt
 }
 
-fun getTemplateFader(param: Map<String, Any?>): MltNode {
+fun getTemplateFaderChords(param: Map<String, Any?>): MltNode {
 
     val voiceSetting = param["VOICE0_SETTING"] as KaraokeVoice
-    val w = Karaoke.frameWidthPx
-    val h = getTextWidthHeightPx("W", voiceSetting.groups[0].songtextTextMltText.font).second.toLong() * 2
+    val w = Karaoke.frameWidthPx / 2
+    val h = Karaoke.frameHeightPx / 4
     val x = 0
-    val yTop = 0
+    val y = 0
+    val xRight = Karaoke.frameWidthPx - w
     val yBottom = Karaoke.frameHeightPx - h
 
     return MltNode(
@@ -145,7 +146,7 @@ fun getTemplateFader(param: Map<String, Any?>): MltNode {
                         name = "position",
                         fields = mutableMapOf(
                             Pair("x","$x"),
-                            Pair("y","$yTop")
+                            Pair("y","$y")
                         ),
                         body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(Pair("zoom","100")), body = "1,0,0,0,1,0,0,0,1"))
                     ),
@@ -157,7 +158,7 @@ fun getTemplateFader(param: Map<String, Any?>): MltNode {
                             Pair("penwidth","0"),
                             Pair("penwidth","0"),
                             Pair("rect","0,0,$w,$h"),
-                            Pair("gradient","#ff000000;#00bf4040;0;100;90")
+                            Pair("gradient","#ff000000;#00bf4040;0;100;0")
                         )
                     )
                 )
@@ -172,8 +173,8 @@ fun getTemplateFader(param: Map<String, Any?>): MltNode {
                     MltNode(
                         name = "position",
                         fields = mutableMapOf(
-                            Pair("x","$x"),
-                            Pair("y","$yBottom")
+                            Pair("x","$xRight"),
+                            Pair("y","$y")
                         ),
                         body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(Pair("zoom","100")), body = "1,0,0,0,1,0,0,0,1"))
                     ),
@@ -185,7 +186,7 @@ fun getTemplateFader(param: Map<String, Any?>): MltNode {
                             Pair("penwidth","0"),
                             Pair("penwidth","0"),
                             Pair("rect","0,0,$w,$h"),
-                            Pair("gradient","#ff000000;#00bf4040;100;0;90")
+                            Pair("gradient","#ff000000;#00bf4040;0;100;180")
                         )
                     )
                 )

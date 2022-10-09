@@ -11,7 +11,7 @@ enum class SongVersion(val text: String, val textForDescription: String, val suf
             ProducerType.PROGRESS,
             ProducerType.FILLCOLORSONGTEXT,
             ProducerType.SONGTEXT,
-            ProducerType.FADER,
+            ProducerType.FADERTEXT,
             ProducerType.HEADER,
             ProducerType.COUNTER,
             ProducerType.WATERMARK
@@ -27,7 +27,7 @@ enum class SongVersion(val text: String, val textForDescription: String, val suf
             ProducerType.PROGRESS,
             ProducerType.FILLCOLORSONGTEXT,
             ProducerType.SONGTEXT,
-            ProducerType.FADER,
+            ProducerType.FADERTEXT,
             ProducerType.HEADER,
             ProducerType.COUNTER,
             ProducerType.WATERMARK
@@ -44,8 +44,10 @@ enum class SongVersion(val text: String, val textForDescription: String, val suf
             ProducerType.PROGRESS,
             ProducerType.FILLCOLORCHORDS,
             ProducerType.CHORDS,
-            ProducerType.FADER,
+            ProducerType.FADERTEXT,
             ProducerType.HEADER,
+//            ProducerType.FINGERBOARD,
+            ProducerType.FADERCHORDS,
             ProducerType.COUNTER,
             ProducerType.WATERMARK
         ))

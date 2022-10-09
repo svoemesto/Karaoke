@@ -22,10 +22,14 @@ import getMltCounterFilePlaylist
 import getMltCounterProducer
 import getMltCounterTrackPlaylist
 import getMltCounterTractor
-import getMltFaderFilePlaylist
-import getMltFaderProducer
-import getMltFaderTrackPlaylist
-import getMltFaderTractor
+import getMltFaderChordsFilePlaylist
+import getMltFaderChordsProducer
+import getMltFaderChordsTrackPlaylist
+import getMltFaderChordsTractor
+import getMltFaderTextFilePlaylist
+import getMltFaderTextProducer
+import getMltFaderTextTrackPlaylist
+import getMltFaderTextTractor
 import getMltFillChordsEvenFilePlaylist
 import getMltFillChordsEvenTrackPlaylist
 import getMltFillChordsEvenTractor
@@ -102,7 +106,8 @@ fun getMlt(param: Map<String, Any?>): MltNode {
                     ProducerType.FLASH -> body.add(getMltFlashProducer(param, type, voiceId))
                     ProducerType.WATERMARK -> body.add(getMltWatermarkProducer(param, type, voiceId))
                     ProducerType.PROGRESS -> body.add(getMltProgressProducer(param, type, voiceId))
-                    ProducerType.FADER -> body.add(getMltFaderProducer(param, type, voiceId))
+                    ProducerType.FADERTEXT -> body.add(getMltFaderTextProducer(param, type, voiceId))
+                    ProducerType.FADERCHORDS -> body.add(getMltFaderChordsProducer(param, type, voiceId))
                     ProducerType.HEADER -> body.add(getMltHeaderProducer(param, type, voiceId))
                     ProducerType.BACKGROUND -> body.add(getMltBackgroundProducer(param, type, voiceId))
                     ProducerType.MICROPHONE -> body.add(getMltMicrophoneProducer(param, type, voiceId))
@@ -180,10 +185,15 @@ fun getMlt(param: Map<String, Any?>): MltNode {
                         body.add(getMltProgressTrackPlaylist(param, type, voiceId))
                         body.add(getMltProgressTractor(param, type, voiceId))
                     }
-                    ProducerType.FADER -> {
-                        body.add(getMltFaderFilePlaylist(param, type, voiceId))
-                        body.add(getMltFaderTrackPlaylist(param, type, voiceId))
-                        body.add(getMltFaderTractor(param, type, voiceId))
+                    ProducerType.FADERTEXT -> {
+                        body.add(getMltFaderTextFilePlaylist(param, type, voiceId))
+                        body.add(getMltFaderTextTrackPlaylist(param, type, voiceId))
+                        body.add(getMltFaderTextTractor(param, type, voiceId))
+                    }
+                    ProducerType.FADERCHORDS -> {
+                        body.add(getMltFaderChordsFilePlaylist(param, type, voiceId))
+                        body.add(getMltFaderChordsTrackPlaylist(param, type, voiceId))
+                        body.add(getMltFaderChordsTractor(param, type, voiceId))
                     }
                     ProducerType.HEADER -> {
                         body.add(getMltHeaderFilePlaylist(param, type, voiceId))

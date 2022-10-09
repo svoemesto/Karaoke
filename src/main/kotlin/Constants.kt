@@ -26,7 +26,9 @@ val idProducerBeat3 = ProducerType.BEAT.ordinal * 10 + 3
 val idProducerBeat4 = ProducerType.BEAT.ordinal * 10 + 4
 val idProducerProgress = ProducerType.PROGRESS.ordinal * 10 + 1
 val idProducerWatermark = ProducerType.WATERMARK.ordinal * 10 + 1
-val idProducerFader = ProducerType.FADER.ordinal * 10 + 1
+val idProducerFaderText = ProducerType.FADERTEXT.ordinal * 10 + 1
+val idProducerFaderChords = ProducerType.FADERCHORDS.ordinal * 10 + 1
+val idProducerFingerboard = ProducerType.FINGERBOARD.ordinal * 10 + 1
 val idProducerSplashstart = ProducerType.SPLASHSTART.ordinal * 10 + 1
 val idProducerFlash = ProducerType.FLASH.ordinal * 10 + 1
 

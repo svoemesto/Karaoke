@@ -1,9 +1,18 @@
 import com.google.gson.GsonBuilder
+import mlt.MltObject
+import mlt.MltObjectAlignmentX
+import mlt.MltObjectAlignmentY
+import mlt.MltObjectType
+import mlt.MltShape
+import mlt.MltText
 import model.Marker
+import model.MusicChord
+import model.MusicNote
 import model.Song
 import model.SongVersion
 import model.Subtitle
 import java.awt.AlphaComposite
+import java.awt.BasicStroke
 import java.awt.Color
 import java.awt.Font
 import java.awt.Graphics2D
@@ -19,18 +28,161 @@ import kotlin.random.Random
 
 
 fun main() {
+    val layouts = generateChordLayout(MusicChord.Xm, MusicNote.A, 0)
+    layouts.forEach { l ->
+        if (l.shape.type == MltObjectType.TEXT) {
+            println("text = ${(l.shape as MltText).text}, font size=${(l.shape as MltText).font.size}")
+        }
+        println("x=${l.x}, y=${l.y}, w=${l.w}, h=${l.h}")
+    }
 
-println(
-    getFileNameByMasks(
-        "/home/nsa/Documents/Караоке/Ундервуд/2002 - Все пройдет, Милая",
-        "(02) [Ундервуд] Гагарин, я Вас любила",
-        listOf("-accompaniment-", " [music]"),
-        ".wav")
-)
-
+    val bi = getChordLayoutPicture(layouts)
+    println(bi)
 }
 
-fun getFontSizeByHeight(heightPx: Double, font: Font): Int {
+fun generateChordLayout(chord: MusicChord, note: MusicNote, initFret: Int = 0): List<MltObject> {
+
+    val result:MutableList<MltObject> = mutableListOf()
+    var chordLayoutW = Karaoke.chordLayoutW
+    var chordLayoutH = Karaoke.chordLayoutH
+
+    // Бэкграунд
+    result.add(MltObject(
+        layoutW = chordLayoutW,
+        layoutH = chordLayoutH,
+        _shape = Karaoke.chordLayoutBackgroundRectangleMltShape,
+        alignmentX = MltObjectAlignmentX.LEFT,
+        alignmentY = MltObjectAlignmentY.TOP,
+        _x = 0,
+        _y = 0,
+        _w = chordLayoutW,
+        _h = chordLayoutH
+    ))
+
+    // Название аккорда
+    val chordName = "${note.names.first()}${chord.names.first()}"
+    val chordNameMltText = Karaoke.chordLayoutChordNameMltText.copy()
+    chordNameMltText.text = chordName
+
+    val mltTextChordName = MltObject(
+        layoutW = chordLayoutW,
+        layoutH = chordLayoutH,
+        _shape = chordNameMltText,
+        alignmentX = MltObjectAlignmentX.CENTER,
+        alignmentY = MltObjectAlignmentY.TOP,
+        _x = chordLayoutW/2,
+        _y = 0,
+        _h = (chordLayoutH * 0.2).toInt()
+    )
+    result.add(mltTextChordName)
+
+    val fretW = (chordLayoutW / 6.0).toInt()
+    var fretNumberTextH = 0
+    // Номера ладов
+    val firstFret = if (initFret == 0) 1 else initFret
+    for (fret in firstFret..(firstFret+3)) {
+        val fretNumberMltText = Karaoke.chordLayoutFretsNumbersMltText.copy()
+        fretNumberMltText.text = fret.toString()
+
+        val mltTextFretNumber = MltObject(
+            layoutW = chordLayoutW,
+            layoutH = chordLayoutH,
+            _shape = fretNumberMltText,
+            alignmentX = MltObjectAlignmentX.CENTER,
+            alignmentY = MltObjectAlignmentY.TOP,
+            _x = fretW * (fret - firstFret + 1) + fretW/2,
+            _y = mltTextChordName.h,
+            _h = (chordLayoutH * 0.1).toInt()
+        )
+        fretNumberTextH = mltTextFretNumber.h
+        result.add(mltTextFretNumber)
+    }
+
+    // Прямоугольники ладов
+    val mltShapeFretRectangleH = (chordLayoutH - (mltTextChordName.h + 2*fretNumberTextH)) / 5
+    for (string in 0..4) {
+        if (initFret == 0) {
+            val nutRectangleMltShape = Karaoke.chordLayoutNutsRectangleMltShape.copy()
+            val mltShapeNutRectangle = MltObject(
+                layoutW = chordLayoutW,
+                layoutH = chordLayoutH,
+                _shape = nutRectangleMltShape,
+                alignmentX = MltObjectAlignmentX.RIGHT,
+                alignmentY = MltObjectAlignmentY.TOP,
+                _x = fretW,
+                _y = mltTextChordName.h + fretNumberTextH + mltShapeFretRectangleH*(string),
+                _w = fretW/5,
+                _h = mltShapeFretRectangleH
+            )
+            result.add(mltShapeNutRectangle)
+        }
+        for (fret in 1..4) {
+
+            val fretRectangleMltShape = Karaoke.chordLayoutFretsRectangleMltShape.copy()
+            val mltShapeFretRectangle = MltObject(
+                layoutW = chordLayoutW,
+                layoutH = chordLayoutH,
+                _shape = fretRectangleMltShape,
+                alignmentX = MltObjectAlignmentX.CENTER,
+                alignmentY = MltObjectAlignmentY.TOP,
+                _x = fretW * fret + fretW/2,
+                _y = mltTextChordName.h + fretNumberTextH + mltShapeFretRectangleH*(string),
+                _w = fretW,
+                _h = mltShapeFretRectangleH
+            )
+            result.add(mltShapeFretRectangle)
+        }
+    }
+
+    return result
+}
+
+fun getChordLayoutPicture(mltObjects:List<MltObject>): BufferedImage {
+
+    val imageType = BufferedImage.TYPE_INT_ARGB
+    if (mltObjects.isEmpty()) return BufferedImage(100, 100, imageType)
+    val resultImage = BufferedImage(mltObjects[0].layoutW, mltObjects[0].layoutH, imageType)
+    val graphics2D = resultImage.graphics as Graphics2D
+
+    mltObjects.forEach { obj ->
+
+        when (obj.shape.type) {
+            MltObjectType.TEXT -> {
+                val opaque = obj.shape.shapeColor.alpha / 255f
+                val alphaChannel = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opaque)
+                graphics2D.composite = alphaChannel
+                graphics2D.color = obj.shape.shapeColor
+                graphics2D.stroke = BasicStroke(obj.shape.shapeOutline.toFloat())
+
+                val textToOverlay = (obj.shape as MltText).text
+                graphics2D.font = (obj.shape as MltText).font
+                graphics2D.drawString(textToOverlay, obj.x, obj.y + obj.h - obj.h/4)
+            }
+            else -> {
+
+                var opaque = obj.shape.shapeColor.alpha / 255f
+                var alphaChannel = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opaque)
+                graphics2D.composite = alphaChannel
+
+                graphics2D.color = obj.shape.shapeColor
+                graphics2D.fillRect(obj.x,obj.y,obj.w, obj.h)
+
+                opaque = obj.shape.shapeOutlineColor.alpha / 255f
+                alphaChannel = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opaque)
+                graphics2D.composite = alphaChannel
+                graphics2D.stroke = BasicStroke(obj.shape.shapeOutline.toFloat())
+
+                graphics2D.color = obj.shape.shapeOutlineColor
+                graphics2D.drawRect(obj.x,obj.y,obj.w, obj.h)
+
+            }
+        }
+    }
+    graphics2D.dispose()
+    return resultImage
+}
+
+fun getFontSizeByHeight(heightPx: Int, font: Font): Int {
     var fontSize = 1
     while (getTextWidthHeightPx("0", Font(font.fontName, font.style, fontSize)).second < heightPx) {
         fontSize += 1

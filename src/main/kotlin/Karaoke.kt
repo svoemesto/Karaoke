@@ -1,8 +1,11 @@
 import Converter.Companion.getColorFromString
 import Converter.Companion.getColorsFromString
 import Converter.Companion.getMltFontFromString
+import Converter.Companion.getMltShapeFromString
 import Converter.Companion.getStringFromVoices
 import Converter.Companion.getVoicesFromString
+import mlt.MltObjectType
+import mlt.MltShape
 import mlt.MltText
 import mlt.setting
 import java.awt.Color
@@ -985,5 +988,108 @@ oddOpacity|[NAME]|0.6""".trimIndent()
                 props.storeToXML(File(fileNameXml).outputStream(), null)
             }
 
+        var chordLayoutW: Int
+            get() {
+                val defaultValue = "800"
+                props.loadFromXML(File(fileNameXml).inputStream())
+                return props.getProperty("chordLayoutW",defaultValue).toInt()
+            }
+            set(value) {
+                props.setProperty("chordLayoutW", value.toString())
+                props.storeToXML(File(fileNameXml).outputStream(), null)
+            }
+
+        var chordLayoutH: Int
+            get() {
+                val defaultValue = "800"
+                props.loadFromXML(File(fileNameXml).inputStream())
+                return props.getProperty("chordLayoutH",defaultValue).toInt()
+            }
+            set(value) {
+                props.setProperty("chordLayoutH", value.toString())
+                props.storeToXML(File(fileNameXml).outputStream(), null)
+            }
+
+        var chordLayoutChordNameMltText: MltText
+            get() {
+                val defaultValue = MltText(
+                    font = Font("Montserrat SemiBold", 0, 10),
+                    shapeColor = Color(255,255,127,255),
+                    shapeOutlineColor = Color(0,0,0,255),
+                    shapeOutline = 1,
+                    fontUnderline = 0
+                ).setting()
+                props.loadFromXML(File(fileNameXml).inputStream())
+                return getMltFontFromString(props.getProperty("chordLayoutChordNameMltText", defaultValue))
+            }
+            set(value) {
+                props.setProperty("chordLayoutChordNameMltText", value.setting())
+                props.storeToXML(File(fileNameXml).outputStream(),null)
+            }
+
+        var chordLayoutFretsNumbersMltText: MltText
+            get() {
+                val defaultValue = MltText(
+                    font = Font("Montserrat SemiBold", 0, 10),
+                    shapeColor = Color(127,127,127,255),
+                    shapeOutlineColor = Color(0,0,0,255),
+                    shapeOutline = 1,
+                    fontUnderline = 0
+                ).setting()
+                props.loadFromXML(File(fileNameXml).inputStream())
+                return getMltFontFromString(props.getProperty("chordLayoutFretsNumbersMltText", defaultValue))
+            }
+            set(value) {
+                props.setProperty("chordLayoutFretsNumbersMltText", value.setting())
+                props.storeToXML(File(fileNameXml).outputStream(),null)
+            }
+
+        var chordLayoutFretsRectangleMltShape: MltShape
+            get() {
+                val defaultValue = MltShape(
+                    type = MltObjectType.RECTANGLE,
+                    shapeColor = Color(0,0,0,0),
+                    shapeOutlineColor = Color(255,255,255,255),
+                    shapeOutline = 2
+                ).setting()
+                props.loadFromXML(File(fileNameXml).inputStream())
+                return getMltShapeFromString(props.getProperty("chordLayoutFretsRectangleMltShape", defaultValue))
+            }
+            set(value) {
+                props.setProperty("chordLayoutFretsRectangleMltShape", value.setting())
+                props.storeToXML(File(fileNameXml).outputStream(),null)
+            }
+
+        var chordLayoutNutsRectangleMltShape: MltShape
+            get() {
+                val defaultValue = MltShape(
+                    type = MltObjectType.RECTANGLE,
+                    shapeColor = Color(255,255,255,255),
+                    shapeOutlineColor = Color(255,255,255,255),
+                    shapeOutline = 2
+                ).setting()
+                props.loadFromXML(File(fileNameXml).inputStream())
+                return getMltShapeFromString(props.getProperty("chordLayoutNutsRectangleMltShape", defaultValue))
+            }
+            set(value) {
+                props.setProperty("chordLayoutNutsRectangleMltShape", value.setting())
+                props.storeToXML(File(fileNameXml).outputStream(),null)
+            }
+
+        var chordLayoutBackgroundRectangleMltShape: MltShape
+            get() {
+                val defaultValue = MltShape(
+                    type = MltObjectType.RECTANGLE,
+                    shapeColor = Color(0,0,0,255),
+                    shapeOutlineColor = Color(255,255,255,20),
+                    shapeOutline = 2
+                ).setting()
+                props.loadFromXML(File(fileNameXml).inputStream())
+                return getMltShapeFromString(props.getProperty("chordLayoutBackgroundRectangleMltShape", defaultValue))
+            }
+            set(value) {
+                props.setProperty("chordLayoutBackgroundRectangleMltShape", value.setting())
+                props.storeToXML(File(fileNameXml).outputStream(),null)
+            }
     }
 }

@@ -8,14 +8,15 @@ import java.awt.Color
 import java.awt.Font
 
 data class MltObject(
-    val parent: MltObject? = null,
     val _shape: MltShape,
-    val _x: Double,
-    val _y: Double,
-    val _w: Double,
-    val _h: Double,
+    val layoutW: Int = 100,
+    val layoutH: Int = 100,
+    val _x: Int = 0,
+    val _y: Int = 0,
+    val _w: Int = 0,
+    val _h: Int = 0,
     val alignmentX: MltObjectAlignmentX = MltObjectAlignmentX.CENTER,
-    val alignmentY: MltObjectAlignmentY = MltObjectAlignmentY.CENTER,
+    val alignmentY: MltObjectAlignmentY = MltObjectAlignmentY.CENTER
 ) {
 
     val shape: MltShape
@@ -41,33 +42,33 @@ data class MltObject(
                 }
             }
         }
-    val x: Double
+    val x: Int
         get() {
             return when (alignmentX) {
                 MltObjectAlignmentX.LEFT -> _x
-                MltObjectAlignmentX.CENTER -> _x + w/2
-                MltObjectAlignmentX.RIGHT -> _x + w
+                MltObjectAlignmentX.CENTER -> _x - w/2
+                MltObjectAlignmentX.RIGHT -> _x - w
             }
         }
-    val y: Double
+    val y: Int
         get() {
             return when (alignmentY) {
                 MltObjectAlignmentY.TOP -> _y
-                MltObjectAlignmentY.CENTER -> _y + h/2
-                MltObjectAlignmentY.BOTTOM -> _y + h
+                MltObjectAlignmentY.CENTER -> _y - h/2
+                MltObjectAlignmentY.BOTTOM -> _y - h
             }
         }
 
 
-    val w: Double
+    val w: Int
         get() {
-            return when (_shape.type) {
-                MltObjectType.TEXT -> getTextWidthHeightPx((_shape as MltText).text, _shape.font).first
+            return when (shape.type) {
+                MltObjectType.TEXT -> getTextWidthHeightPx((shape as MltText).text, (shape as MltText).font).first.toInt()
                 else -> _w
             }
         }
 
-    val h: Double
+    val h: Int
         get() {
             return _h
         }
@@ -97,6 +98,10 @@ data class MltText(
     val typewriter: String = "0;2;1;0;0"
     val shadow: String = "0;#64000000;3;3;3"
     val fontItalic: Int get() = if (font.isItalic) 1 else 0
+
+    override fun copy(): MltText {
+        return MltText(text = text, font = Font(font.name,font.style, font.size) , fontUnderline = fontUnderline, shapeColor = Color(shapeColor.red, shapeColor.green, shapeColor.blue, shapeColor.alpha), shapeOutline = shapeOutline, shapeOutlineColor = Color(shapeOutlineColor.red, shapeOutlineColor.green, shapeOutlineColor.blue, shapeOutlineColor.alpha))
+    }
 }
 
 open class MltShape(
@@ -104,7 +109,12 @@ open class MltShape(
     open var shapeColor: Color,
     open var shapeOutline: Int,
     open var shapeOutlineColor: Color
-)
+) {
+    open fun copy(): MltShape {
+        return MltShape(type = type, shapeColor = Color(shapeColor.red, shapeColor.green, shapeColor.blue, shapeColor.alpha), shapeOutline = shapeOutline, shapeOutlineColor = Color(shapeOutlineColor.red, shapeOutlineColor.green, shapeOutlineColor.blue, shapeOutlineColor.alpha))
+    }
+}
+
 fun MltText.mltNode(value: String): MltNode {
     return MltNode(
         name = "content",
@@ -132,5 +142,11 @@ fun MltText.setting(): String {
             "|fcr=${shapeColor.red}|fcg=${shapeColor.green}|fcb=${shapeColor.blue}|fca=${shapeColor.alpha}" +
             "|ocr=${shapeOutlineColor.red}|ocg=${shapeOutlineColor.green}|ocb=${shapeOutlineColor.blue}|oca=${shapeOutlineColor.alpha}" +
             "|underline=${fontUnderline}" +
+            "|outline=${shapeOutline}"
+}
+
+fun MltShape.setting(): String {
+    return  "type=${type.name}|fcr=${shapeColor.red}|fcg=${shapeColor.green}|fcb=${shapeColor.blue}|fca=${shapeColor.alpha}" +
+            "|ocr=${shapeOutlineColor.red}|ocg=${shapeOutlineColor.green}|ocb=${shapeOutlineColor.blue}|oca=${shapeOutlineColor.alpha}" +
             "|outline=${shapeOutline}"
 }

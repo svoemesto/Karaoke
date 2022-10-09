@@ -1,3 +1,5 @@
+import mlt.MltObjectType
+import mlt.MltShape
 import mlt.MltText
 import mlt.setting
 import java.awt.Color
@@ -165,6 +167,54 @@ class Converter {
             }
 
             return MltText(font = Font(fname,fstyle,fsize), shapeColor = Color(fcr,fcg,fcb,fca), shapeOutlineColor = Color(ocr,ocg,ocb,oca), fontUnderline = underline, shapeOutline = outline)
+        }
+
+        fun getMltShapeFromString(settingString: String): MltShape {
+            val parts = settingString.split("|")
+
+            var type = MltObjectType.RECTANGLE
+            var fcr = 255
+            var fcg = 255
+            var fcb = 255
+            var fca = 255
+            var ocr = 0
+            var ocg = 0
+            var ocb = 0
+            var oca = 255
+            var outline = 0
+
+            if (parts.size == 10) {
+                parts.forEach {part ->
+                    val nameAndValue = part.split("=")
+                    if (nameAndValue.size ==2) {
+                        val partName = nameAndValue[0]
+                        val partValue = nameAndValue[1]
+                        try {
+                            when(partName) {
+                                "type" -> type = MltObjectType.valueOf(partValue)
+                                "fcr" -> fcr = partValue.toInt()
+                                "fcg" -> fcg = partValue.toInt()
+                                "fcb" -> fcb = partValue.toInt()
+                                "fca" -> fca = partValue.toInt()
+                                "ocr" -> ocr = partValue.toInt()
+                                "ocg" -> ocg = partValue.toInt()
+                                "ocb" -> ocb = partValue.toInt()
+                                "oca" -> oca = partValue.toInt()
+                                "outline" -> outline = partValue.toInt()
+                            }
+                        } catch (e: Exception) {
+                            println("ВНИМАНИЕ: Исключение ${e.message} при десериализации шейпа: $settingString")
+                        }
+                    } else {
+                        println("ВНИМАНИЕ: Неверное количество аргументов при десериализации шейпа: $settingString")
+                    }
+
+                }
+            } else {
+                println("ВНИМАНИЕ: Неверное количество параметров при десериализации шейпа: $settingString")
+            }
+
+            return MltShape(type = type, shapeColor = Color(fcr,fcg,fcb,fca), shapeOutlineColor = Color(ocr,ocg,ocb,oca), shapeOutline = outline)
         }
 
         fun getFontFromString(settingString: String): Font {

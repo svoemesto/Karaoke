@@ -5,23 +5,11 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="19caf878-7ce0-44d7-94a1-cf0a31300a8b" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Flash.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/model/MusicInterval.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/kotlin/model/GuitarString.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/kotlin/model/MusicChord.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/kotlin/model/MusicNote.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/Constants.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Constants.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/Functions.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Functions.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/Karaoke.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Karaoke.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/Main.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Main.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/Utils.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Utils.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/Chords.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Chords.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/Horizon.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Horizon.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/Mlt.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Mlt.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/Progress.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Progress.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/SplashStart.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/SplashStart.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/model/ProducerType.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/model/ProducerType.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/model/Settings.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/model/Settings.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/model/Song.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/model/Song.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/model/SongVersion.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/model/SongVersion.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/model/MusicInterval.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/model/MusicInterval.kt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -79,7 +67,14 @@
       <recent name="classes" />
     </key>
   </component>
-  <component name="RunManager" selected="Kotlin.MainKt">
+  <component name="RunManager" selected="Kotlin.GuitarStringKt">
+    <configuration name="GuitarStringKt" type="JetRunConfigurationType" temporary="true" nameIsGenerated="true">
+      <option name="MAIN_CLASS_NAME" value="model.GuitarStringKt" />
+      <module name="Karaoke" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="MainKt" type="JetRunConfigurationType" temporary="true" nameIsGenerated="true">
       <option name="MAIN_CLASS_NAME" value="MainKt" />
       <module name="Karaoke" />
@@ -103,6 +98,7 @@
     </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Kotlin.GuitarStringKt" />
         <item itemvalue="Kotlin.MainKt" />
         <item itemvalue="Kotlin.UtilsKt" />
         <item itemvalue="Kotlin.MltNodeKt" />
@@ -126,14 +122,7 @@
       <workItem from="1664538988134" duration="147445000" />
       <workItem from="1664879315230" duration="831000" />
       <workItem from="1664880487301" duration="41289000" />
-      <workItem from="1665047084136" duration="50050000" />
-    </task>
-    <task id="LOCAL-00033" summary="Парсинг субтитров после распознавания голоса">
-      <created>1663876675079</created>
-      <option name="number" value="00033" />
-      <option name="presentableId" value="LOCAL-00033" />
-      <option name="project" value="LOCAL" />
-      <updated>1663876675079</updated>
+      <workItem from="1665047084136" duration="107863000" />
     </task>
     <task id="LOCAL-00034" summary="Рефакторинг">
       <created>1663877003883</created>
@@ -471,7 +460,14 @@
       <option name="project" value="LOCAL" />
       <updated>1665078463273</updated>
     </task>
-    <option name="localTasksCounter" value="82" />
+    <task id="LOCAL-00082" summary="Переделываем под новую концепцию">
+      <created>1665139889202</created>
+      <option name="number" value="00082" />
+      <option name="presentableId" value="LOCAL-00082" />
+      <option name="project" value="LOCAL" />
+      <updated>1665139889202</updated>
+    </task>
+    <option name="localTasksCounter" value="83" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

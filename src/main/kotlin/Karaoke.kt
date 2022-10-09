@@ -1091,5 +1091,37 @@ oddOpacity|[NAME]|0.6""".trimIndent()
                 props.setProperty("chordLayoutBackgroundRectangleMltShape", value.setting())
                 props.storeToXML(File(fileNameXml).outputStream(),null)
             }
+
+        var chordLayoutMutedRectangleMltShape: MltShape
+            get() {
+                val defaultValue = MltShape(
+                    type = MltObjectType.RECTANGLE,
+                    shapeColor = Color(255,0,0,200),
+                    shapeOutlineColor = Color(255,0,0,0),
+                    shapeOutline = 0
+                ).setting()
+                props.loadFromXML(File(fileNameXml).inputStream())
+                return getMltShapeFromString(props.getProperty("chordLayoutMutedRectangleMltShape", defaultValue))
+            }
+            set(value) {
+                props.setProperty("chordLayoutMutedRectangleMltShape", value.setting())
+                props.storeToXML(File(fileNameXml).outputStream(),null)
+            }
+
+        var chordLayoutFingerCircleMltShape: MltShape
+            get() {
+                val defaultValue = MltShape(
+                    type = MltObjectType.CIRCLE,
+                    shapeColor = Color(255,0,0,255),
+                    shapeOutlineColor = Color(255,255,255,255),
+                    shapeOutline = 2
+                ).setting()
+                props.loadFromXML(File(fileNameXml).inputStream())
+                return getMltShapeFromString(props.getProperty("chordLayoutFingerCircleMltShape", defaultValue))
+            }
+            set(value) {
+                props.setProperty("chordLayoutFingerCircleMltShape", value.setting())
+                props.storeToXML(File(fileNameXml).outputStream(),null)
+            }
     }
 }

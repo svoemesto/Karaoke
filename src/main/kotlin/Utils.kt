@@ -3,7 +3,6 @@ import mlt.MltObject
 import mlt.MltObjectAlignmentX
 import mlt.MltObjectAlignmentY
 import mlt.MltObjectType
-import mlt.MltShape
 import mlt.MltText
 import model.Marker
 import model.MusicChord
@@ -28,7 +27,7 @@ import kotlin.random.Random
 
 
 fun main() {
-    val layouts = generateChordLayout(MusicChord.Xm, MusicNote.A, 0)
+    val layouts = generateChordLayout("D#m")
     layouts.forEach { l ->
         if (l.shape.type == MltObjectType.TEXT) {
             println("text = ${(l.shape as MltText).text}, font size=${(l.shape as MltText).font.size}")
@@ -40,11 +39,26 @@ fun main() {
     println(bi)
 }
 
-fun generateChordLayout(chord: MusicChord, note: MusicNote, initFret: Int = 0): List<MltObject> {
+fun generateChordLayout(chordName: String): List<MltObject> {
+    val (chord, note) = MusicChord.getChordNote(chordName)
+    return if (chord!=null && note != null) generateChordLayout(chord, note) else emptyList()
+}
+fun generateChordLayout(chord: MusicChord, note: MusicNote): List<MltObject> {
 
+    val fingerboards = chord.getFingerboard(note, note.defaultRootFret)
+    val initFret = fingerboards[0].rootFret
     val result:MutableList<MltObject> = mutableListOf()
     var chordLayoutW = Karaoke.chordLayoutW
     var chordLayoutH = Karaoke.chordLayoutH
+
+    val chordName = "${note.names.first()}${chord.names.first()}"
+    val chordNameMltText = Karaoke.chordLayoutChordNameMltText.copy()
+    chordNameMltText.text = chordName
+
+    val fretW = (chordLayoutW / 6.0).toInt()
+    var fretNumberTextH = 0
+    val mltShapeFingerCircleDiameter = fretW/2
+    val fretRectangleMltShape = Karaoke.chordLayoutFretsRectangleMltShape.copy()
 
     // Бэкграунд
     result.add(MltObject(
@@ -60,10 +74,6 @@ fun generateChordLayout(chord: MusicChord, note: MusicNote, initFret: Int = 0): 
     ))
 
     // Название аккорда
-    val chordName = "${note.names.first()}${chord.names.first()}"
-    val chordNameMltText = Karaoke.chordLayoutChordNameMltText.copy()
-    chordNameMltText.text = chordName
-
     val mltTextChordName = MltObject(
         layoutW = chordLayoutW,
         layoutH = chordLayoutH,
@@ -76,8 +86,6 @@ fun generateChordLayout(chord: MusicChord, note: MusicNote, initFret: Int = 0): 
     )
     result.add(mltTextChordName)
 
-    val fretW = (chordLayoutW / 6.0).toInt()
-    var fretNumberTextH = 0
     // Номера ладов
     val firstFret = if (initFret == 0) 1 else initFret
     for (fret in firstFret..(firstFret+3)) {
@@ -98,8 +106,10 @@ fun generateChordLayout(chord: MusicChord, note: MusicNote, initFret: Int = 0): 
         result.add(mltTextFretNumber)
     }
 
-    // Прямоугольники ладов
     val mltShapeFretRectangleH = (chordLayoutH - (mltTextChordName.h + 2*fretNumberTextH)) / 5
+
+    // Прямоугольники ладов
+
     for (string in 0..4) {
         if (initFret == 0) {
             val nutRectangleMltShape = Karaoke.chordLayoutNutsRectangleMltShape.copy()
@@ -110,15 +120,13 @@ fun generateChordLayout(chord: MusicChord, note: MusicNote, initFret: Int = 0): 
                 alignmentX = MltObjectAlignmentX.RIGHT,
                 alignmentY = MltObjectAlignmentY.TOP,
                 _x = fretW,
-                _y = mltTextChordName.h + fretNumberTextH + mltShapeFretRectangleH*(string),
+                _y = mltTextChordName.h + fretNumberTextH + mltShapeFretRectangleH*(string) + mltShapeFingerCircleDiameter/2,
                 _w = fretW/5,
                 _h = mltShapeFretRectangleH
             )
             result.add(mltShapeNutRectangle)
         }
         for (fret in 1..4) {
-
-            val fretRectangleMltShape = Karaoke.chordLayoutFretsRectangleMltShape.copy()
             val mltShapeFretRectangle = MltObject(
                 layoutW = chordLayoutW,
                 layoutH = chordLayoutH,
@@ -126,12 +134,66 @@ fun generateChordLayout(chord: MusicChord, note: MusicNote, initFret: Int = 0): 
                 alignmentX = MltObjectAlignmentX.CENTER,
                 alignmentY = MltObjectAlignmentY.TOP,
                 _x = fretW * fret + fretW/2,
-                _y = mltTextChordName.h + fretNumberTextH + mltShapeFretRectangleH*(string),
+                _y = mltTextChordName.h + fretNumberTextH + mltShapeFretRectangleH*(string) + mltShapeFingerCircleDiameter/2,
                 _w = fretW,
                 _h = mltShapeFretRectangleH
             )
             result.add(mltShapeFretRectangle)
         }
+    }
+
+    // Распальцовка
+    fingerboards.forEach { fingerboard ->
+
+        // Приглушение струны
+        if (fingerboard.muted) {
+            val mutedRectangleMltShape = Karaoke.chordLayoutMutedRectangleMltShape.copy()
+            val mltShapeMutedRectangle = MltObject(
+                layoutW = chordLayoutW,
+                layoutH = chordLayoutH,
+                _shape = mutedRectangleMltShape,
+                alignmentX = MltObjectAlignmentX.LEFT,
+                alignmentY = MltObjectAlignmentY.TOP,
+                _x = fretW,
+                _y = mltTextChordName.h + fretNumberTextH + mltShapeFretRectangleH*(fingerboard.guitarString.number-1) + mltShapeFingerCircleDiameter/2 - fretRectangleMltShape.shapeOutline/2,
+                _w = fretW*4,
+                _h = fretRectangleMltShape.shapeOutline
+            )
+            result.add(mltShapeMutedRectangle)
+        }
+
+        val fingerCircleMltShape = Karaoke.chordLayoutFingerCircleMltShape.copy()
+        val mltShapeFingerCircle = MltObject(
+            layoutW = chordLayoutW,
+            layoutH = chordLayoutH,
+            _shape = fingerCircleMltShape,
+            alignmentX = MltObjectAlignmentX.LEFT,
+            alignmentY = MltObjectAlignmentY.TOP,
+            _x = fretW * (fingerboard.fret - initFret + 1) + fretW/2 - (mltShapeFingerCircleDiameter)/2,
+            _y = mltTextChordName.h + fretNumberTextH + mltShapeFretRectangleH*(fingerboard.guitarString.number-1) + mltShapeFingerCircleDiameter/2 - mltShapeFingerCircleDiameter/2,
+            _w = mltShapeFingerCircleDiameter,
+            _h = mltShapeFingerCircleDiameter
+        )
+        result.add(mltShapeFingerCircle)
+
+    }
+
+    // Барре (если первый лад не нулевой)
+    if (initFret != 0) {
+        val fingerCircleMltShape = Karaoke.chordLayoutFingerCircleMltShape.copy()
+        fingerCircleMltShape.type = MltObjectType.ROUNDEDRECTANGLE
+        val mltShapeFingerCircle = MltObject(
+            layoutW = chordLayoutW,
+            layoutH = chordLayoutH,
+            _shape = fingerCircleMltShape,
+            alignmentX = MltObjectAlignmentX.LEFT,
+            alignmentY = MltObjectAlignmentY.TOP,
+            _x = fretW + fretW/2 - (mltShapeFingerCircleDiameter)/2,
+            _y = mltTextChordName.h + fretNumberTextH + mltShapeFingerCircleDiameter/2 - mltShapeFingerCircleDiameter/2,
+            _w = mltShapeFingerCircleDiameter,
+            _h = mltShapeFretRectangleH*5 +  mltShapeFingerCircleDiameter
+        )
+        result.add(mltShapeFingerCircle)
     }
 
     return result
@@ -165,7 +227,13 @@ fun getChordLayoutPicture(mltObjects:List<MltObject>): BufferedImage {
                 graphics2D.composite = alphaChannel
 
                 graphics2D.color = obj.shape.shapeColor
-                graphics2D.fillRect(obj.x,obj.y,obj.w, obj.h)
+
+                when (obj.shape.type) {
+                    MltObjectType.RECTANGLE -> graphics2D.fillRect(obj.x,obj.y,obj.w, obj.h)
+                    MltObjectType.CIRCLE -> graphics2D.fillOval(obj.x,obj.y,obj.w, obj.h)
+                    MltObjectType.ROUNDEDRECTANGLE -> graphics2D.fillRoundRect(obj.x,obj.y,obj.w, obj.h, Integer.min(obj.w, obj.h), Integer.min(obj.w, obj.h))
+                    else -> {}
+                }
 
                 opaque = obj.shape.shapeOutlineColor.alpha / 255f
                 alphaChannel = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opaque)
@@ -173,8 +241,12 @@ fun getChordLayoutPicture(mltObjects:List<MltObject>): BufferedImage {
                 graphics2D.stroke = BasicStroke(obj.shape.shapeOutline.toFloat())
 
                 graphics2D.color = obj.shape.shapeOutlineColor
-                graphics2D.drawRect(obj.x,obj.y,obj.w, obj.h)
-
+                when (obj.shape.type) {
+                    MltObjectType.RECTANGLE -> graphics2D.drawRect(obj.x,obj.y,obj.w, obj.h)
+                    MltObjectType.CIRCLE -> graphics2D.drawOval(obj.x,obj.y,obj.w, obj.h)
+                    MltObjectType.ROUNDEDRECTANGLE -> graphics2D.drawRoundRect(obj.x,obj.y,obj.w, obj.h, Integer.min(obj.w, obj.h), Integer.min(obj.w, obj.h))
+                    else -> {}
+                }
             }
         }
     }

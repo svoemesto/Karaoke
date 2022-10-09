@@ -75,7 +75,7 @@ data class MltObject(
 
 }
 enum class MltObjectType {
-    TEXT, RECTANGLE, CIRCLE
+    TEXT, RECTANGLE, CIRCLE, ROUNDEDRECTANGLE
 }
 enum class MltObjectAlignmentY {
     TOP, CENTER, BOTTOM

@@ -28,7 +28,7 @@ import kotlin.random.Random
 
 
 fun main() {
-    val layouts = generateChordLayout("D#m")
+    val layouts = generateChordLayout("Am")
     layouts.forEach { l ->
         if (l.shape.type == MltObjectType.TEXT) {
             println("text = ${(l.shape as MltText).text}, font size=${(l.shape as MltText).font.size}")
@@ -37,11 +37,10 @@ fun main() {
     }
 
     val bi = getChordLayoutPicture(layouts)
-
     val os = ByteArrayOutputStream()
     ImageIO.write(bi, "png", os)
-    val b = Base64.getEncoder().encodeToString(os.toByteArray())
-    println(b)
+    val base64 = Base64.getEncoder().encodeToString(os.toByteArray())
+    println(base64)
     println(bi)
 }
 
@@ -168,19 +167,22 @@ fun generateChordLayout(chord: MusicChord, note: MusicNote): List<MltObject> {
             result.add(mltShapeMutedRectangle)
         }
 
-        val fingerCircleMltShape = Karaoke.chordLayoutFingerCircleMltShape.copy()
-        val mltShapeFingerCircle = MltObject(
-            layoutW = chordLayoutW,
-            layoutH = chordLayoutH,
-            _shape = fingerCircleMltShape,
-            alignmentX = MltObjectAlignmentX.LEFT,
-            alignmentY = MltObjectAlignmentY.TOP,
-            _x = fretW * (fingerboard.fret - initFret + 1) + fretW/2 - (mltShapeFingerCircleDiameter)/2,
-            _y = mltTextChordName.h + fretNumberTextH + mltShapeFretRectangleH*(fingerboard.guitarString.number-1) + mltShapeFingerCircleDiameter/2 - mltShapeFingerCircleDiameter/2,
-            _w = mltShapeFingerCircleDiameter,
-            _h = mltShapeFingerCircleDiameter
-        )
-        result.add(mltShapeFingerCircle)
+        if (!(initFret == 0 && fingerboard.fret == 0)) {
+            val fingerCircleMltShape = Karaoke.chordLayoutFingerCircleMltShape.copy()
+            val mltShapeFingerCircle = MltObject(
+                layoutW = chordLayoutW,
+                layoutH = chordLayoutH,
+                _shape = fingerCircleMltShape,
+                alignmentX = MltObjectAlignmentX.LEFT,
+                alignmentY = MltObjectAlignmentY.TOP,
+                _x = fretW * (fingerboard.fret - initFret + (if (initFret != 0) 1 else 0)) + fretW/2 - (mltShapeFingerCircleDiameter)/2,
+                _y = mltTextChordName.h + fretNumberTextH + mltShapeFretRectangleH*(fingerboard.guitarString.number-1) + mltShapeFingerCircleDiameter/2 - mltShapeFingerCircleDiameter/2,
+                _w = mltShapeFingerCircleDiameter,
+                _h = mltShapeFingerCircleDiameter
+            )
+            result.add(mltShapeFingerCircle)
+        }
+
 
     }
 
@@ -208,9 +210,21 @@ fun generateChordLayout(chord: MusicChord, note: MusicNote): List<MltObject> {
 fun getChordLayoutPicture(mltObjects:List<MltObject>): BufferedImage {
 
     val imageType = BufferedImage.TYPE_INT_ARGB
-    if (mltObjects.isEmpty()) return BufferedImage(100, 100, imageType)
+
+    if (mltObjects.isEmpty()) {
+        val resultImage = BufferedImage((Karaoke.frameHeightPx/4).toInt(), (Karaoke.frameHeightPx/4).toInt(), imageType)
+        val graphics2D = resultImage.graphics as Graphics2D
+        val opaque = 1f
+        val alphaChannel = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opaque)
+        graphics2D.composite = alphaChannel
+        graphics2D.color = Color.BLACK
+        graphics2D.fillRect(0,0,(Karaoke.frameHeightPx/4).toInt(), (Karaoke.frameHeightPx/4).toInt())
+        graphics2D.dispose()
+        return resultImage
+    }
     val resultImage = BufferedImage(mltObjects[0].layoutW, mltObjects[0].layoutH, imageType)
     val graphics2D = resultImage.graphics as Graphics2D
+
 
     mltObjects.forEach { obj ->
 

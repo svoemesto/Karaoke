@@ -46,6 +46,10 @@ import getMltFillSongtextEvenTractor
 import getMltFillSongtextOddFilePlaylist
 import getMltFillSongtextOddTrackPlaylist
 import getMltFillSongtextOddTractor
+import getMltFingerboardFilePlaylist
+import getMltFingerboardProducer
+import getMltFingerboardTrackPlaylist
+import getMltFingerboardTractor
 import getMltFlashFilePlaylist
 import getMltFlashProducer
 import getMltFlashTrackPlaylist
@@ -108,6 +112,7 @@ fun getMlt(param: Map<String, Any?>): MltNode {
                     ProducerType.PROGRESS -> body.add(getMltProgressProducer(param, type, voiceId))
                     ProducerType.FADERTEXT -> body.add(getMltFaderTextProducer(param, type, voiceId))
                     ProducerType.FADERCHORDS -> body.add(getMltFaderChordsProducer(param, type, voiceId))
+                    ProducerType.FINGERBOARD -> body.add(getMltFingerboardProducer(param, type, voiceId))
                     ProducerType.HEADER -> body.add(getMltHeaderProducer(param, type, voiceId))
                     ProducerType.BACKGROUND -> body.add(getMltBackgroundProducer(param, type, voiceId))
                     ProducerType.MICROPHONE -> body.add(getMltMicrophoneProducer(param, type, voiceId))
@@ -194,6 +199,11 @@ fun getMlt(param: Map<String, Any?>): MltNode {
                         body.add(getMltFaderChordsFilePlaylist(param, type, voiceId))
                         body.add(getMltFaderChordsTrackPlaylist(param, type, voiceId))
                         body.add(getMltFaderChordsTractor(param, type, voiceId))
+                    }
+                    ProducerType.FINGERBOARD -> {
+                        body.add(getMltFingerboardFilePlaylist(param, type, voiceId))
+                        body.add(getMltFingerboardTrackPlaylist(param, type, voiceId))
+                        body.add(getMltFingerboardTractor(param, type, voiceId))
                     }
                     ProducerType.HEADER -> {
                         body.add(getMltHeaderFilePlaylist(param, type, voiceId))

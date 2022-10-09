@@ -104,6 +104,8 @@ fun createKaraoke(song: Song, isBluetoothDelay: Boolean) {
 
         val propRectSongtextLineValue = mutableListOf<String>() // Список свойств трансформации текста
         val propRectChordsLineValue = mutableListOf<String>() // Список свойств трансформации текста
+        val propRectFaderChordsLineValue = mutableListOf<String>() // Список свойств трансформации текста
+        val propRectFingerboardLineValue = mutableListOf<String>() // Список свойств трансформации текста
         val propProgressLineValue = mutableListOf<String>() // Список свойств трансформации текста
         val propHeaderLineValue = mutableListOf<String>() // Список свойств трансформации текста
         val propFlashLineValue = mutableListOf<String>() // Список свойств трансформации текста
@@ -309,6 +311,16 @@ fun createKaraoke(song: Song, isBluetoothDelay: Boolean) {
         propProgressLineValue.add("${song.endTimecode}=${Karaoke.frameWidthPx - progressSymbolHalfWidth} $yOffset ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 1.0")
         propFlashLineValue.add("00:00:00.000=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.0")
 
+        val chordW = (Karaoke.frameHeightPx/4).toInt()
+        val fingerboardW = (Karaoke.frameWidthPx - chordW + (song.chords.size + 1) * chordW).toInt()
+        val fingerboardH = chordW
+
+        param["VOICE${voiceId}_FINGERBOARD_W"] = fingerboardW
+        param["VOICE${voiceId}_FINGERBOARD_H"] = fingerboardH
+        param["VOICE${voiceId}_CHORD_W"] = chordW
+        param["VOICE${voiceId}_CHORD_H"] = chordW
+        param["VOICE${voiceId}_CHORDS"] = song.chords
+
         param["VOICE${voiceId}_SETTING"] = voiceSetting
         param["VOICE${voiceId}_OFFSET"] = currentVoiceOffset
         param["VOICE${voiceId}_WORK_AREA_SONGTEXT_HEIGHT_PX"] = workAreaSongtextHeightPx.toLong()
@@ -401,6 +413,7 @@ fun createKaraoke(song: Song, isBluetoothDelay: Boolean) {
 
             val ddd = ""
         }
+
 
         // Настало время прописать classes.TransformProperty для заливок
 
@@ -565,6 +578,36 @@ fun createKaraoke(song: Song, isBluetoothDelay: Boolean) {
             }
         if (startTimeFirstCounterMs == null || startTimeFirstCounterMs!! < 0L) startTimeFirstCounterMs = 3000
 
+        val kdeIn = "00:00:00.000"
+        val kdeFadeIn = "00:00:01.000"
+        val kdeOut = song.endTimecode.replace(",", ".")
+        val kdeFadeOut = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(song.endTimecode) - 1000).replace(",", ".")
+
+        propRectFaderChordsLineValue.add("${convertMillisecondsToTimecode(startTimeFirstCounterMs!!)}=0 -${fingerboardH} ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.0")
+        propRectFaderChordsLineValue.add("${convertMillisecondsToTimecode(startTimeFirstCounterMs!!+halfNoteLengthMs*4)}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 1.0")
+
+        propRectFingerboardLineValue.add("${convertMillisecondsToTimecode(startTimeFirstCounterMs!!)}=0 -${fingerboardH} ${fingerboardW} ${fingerboardH} 1.0")
+        propRectFingerboardLineValue.add("${convertMillisecondsToTimecode(startTimeFirstCounterMs!!+halfNoteLengthMs*4)}=0 0 ${fingerboardW} ${fingerboardH} 1.0")
+        var prevChordX = 0
+        var prevChordTimeCode = kdeFadeIn
+        var currChordX = 0
+        song.chords.forEachIndexed { indexChords, chord ->
+            val chordTimecode = chord.timecode
+            val diffChordsMs = convertTimecodeToMilliseconds(chordTimecode) - convertTimecodeToMilliseconds(prevChordTimeCode)
+            val movingMs = if (diffChordsMs > 1000) 1000 else (diffChordsMs/2).toInt()
+            val startMoveTimecode = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(chordTimecode) - movingMs)
+            val endMoveTimecode = chordTimecode
+            currChordX = prevChordX - chordW
+            propRectFingerboardLineValue.add("${startMoveTimecode}=${prevChordX} 0 ${fingerboardW} ${fingerboardH} 1.0")
+            propRectFingerboardLineValue.add("${endMoveTimecode}=${currChordX} 0 ${fingerboardW} ${fingerboardH} 1.0")
+            prevChordX = currChordX
+        }
+        propRectFingerboardLineValue.add("${convertMillisecondsToTimecode(endTimeHidingHeaderMs!!)}=${currChordX} 0 ${fingerboardW} ${fingerboardH} 1.0")
+        propRectFingerboardLineValue.add("${convertMillisecondsToTimecode(endTimeHidingHeaderMs!!+halfNoteLengthMs*4)}=${currChordX} -${fingerboardH} ${fingerboardW} ${fingerboardH} 0.0")
+
+        propRectFaderChordsLineValue.add("${convertMillisecondsToTimecode(endTimeHidingHeaderMs!!)}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 1.0")
+        propRectFaderChordsLineValue.add("${convertMillisecondsToTimecode(endTimeHidingHeaderMs!!+halfNoteLengthMs*4)}=0 -${fingerboardH} ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 1.0")
+
 //        // Такты
 //        var delayMs = convertTimecodeToMilliseconds(song.beatTimecode) // + TIME_OFFSET_MS
 //
@@ -616,6 +659,8 @@ fun createKaraoke(song: Song, isBluetoothDelay: Boolean) {
 
         val propRectSongtextValue = propRectSongtextLineValue.joinToString(";")
         val propRectChordsValue = propRectChordsLineValue.joinToString(";")
+        val propRectFingerboardValue = propRectFingerboardLineValue.joinToString(";")
+        val propRectFaderChordsValue = propRectFaderChordsLineValue.joinToString(";")
         val propProgressValue = propProgressLineValue.joinToString(";")
         val propHeaderValue = propHeaderLineValue.joinToString(";")
         val propFlashValue = propFlashLineValue.joinToString(";")
@@ -634,12 +679,9 @@ fun createKaraoke(song: Song, isBluetoothDelay: Boolean) {
         val propBeat4Value = beats[3].joinToString(";")
         val propGuides = propGuidesValue.joinToString(",")
 
-        val kdeIn = "00:00:00.000"
+
         val kdeInOffsetAudio = convertMillisecondsToTimecode(Karaoke.timeSplashScreenStartMs - if(isBluetoothDelay) Karaoke.timeOffsetBluetoothSpeakerMs else 0) // convertMillisecondsToTimecode(convertTimecodeToMilliseconds(kdeIn) + max(Karaoke.timeOffsetStartFillingLineMs.toInt(),0).absoluteValue)
         val kdeInOffsetVideo = convertMillisecondsToTimecode(Karaoke.timeSplashScreenStartMs) // convertMillisecondsToTimecode(convertTimecodeToMilliseconds(kdeIn) + max(-Karaoke.timeOffsetStartFillingLineMs.toInt(),0).absoluteValue)
-        val kdeFadeIn = "00:00:01.000"
-        val kdeOut = song.endTimecode.replace(",", ".")
-        val kdeFadeOut = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(song.endTimecode) - 1000).replace(",", ".")
         val kdeLengthMs = convertTimecodeToMilliseconds(song.endTimecode)
         val kdeLengthFrames = convertTimecodeToFrames(song.endTimecode, Karaoke.frameFps)
 
@@ -656,6 +698,7 @@ fun createKaraoke(song: Song, isBluetoothDelay: Boolean) {
         param["IN_OFFSET_AUDIO"] = kdeInOffsetAudio
         param["IN_OFFSET_VIDEO"] = kdeInOffsetVideo
 
+
         val templateSongText = getTemplateSongText(param,voiceId)
         val templateChordsText = getTemplateChords(param,voiceId)
         val templateHorizon = getTemplateHorizon(param)
@@ -665,6 +708,7 @@ fun createKaraoke(song: Song, isBluetoothDelay: Boolean) {
         val templateMicrophone = getTemplateMicrophone(param)
         val templateFaderText = getTemplateFaderText(param)
         val templateFaderChords = getTemplateFaderChords(param)
+        val templateFingerboard = getTemplateFingerboard(param)
         val templateHeader = getTemplateHeader(param)
         val templateSplashstart = getTemplateSplashstart(param)
         val templateCounter0 = getTemplateCounter(param,0, voiceId)
@@ -724,7 +768,13 @@ fun createKaraoke(song: Song, isBluetoothDelay: Boolean) {
 
         param["${ProducerType.FADERCHORDS.text.uppercase()}${voiceId}_ID"] = idProducerFaderChords
         param["${ProducerType.FADERCHORDS.text.uppercase()}${voiceId}_XML_DATA"] = templateFaderChords
+        param["${ProducerType.FADERCHORDS.text.uppercase()}${voiceId}_PROPERTY_RECT"] = propRectFaderChordsValue
         param["HIDE_TRACTOR_${ProducerType.FADERCHORDS.text.uppercase()}${voiceId}"] = "audio"
+
+        param["${ProducerType.FINGERBOARD.text.uppercase()}${voiceId}_ID"] = idProducerFingerboard
+        param["${ProducerType.FINGERBOARD.text.uppercase()}${voiceId}_XML_DATA"] = templateFingerboard
+        param["${ProducerType.FINGERBOARD.text.uppercase()}${voiceId}_PROPERTY_RECT"] = propRectFingerboardValue
+        param["HIDE_TRACTOR_${ProducerType.FINGERBOARD.text.uppercase()}${voiceId}"] = "audio"
 
         param["${ProducerType.PROGRESS.text.uppercase()}${voiceId}_ID"] = idProducerProgress
         param["${ProducerType.PROGRESS.text.uppercase()}${voiceId}_XML_DATA"] = templateProgress

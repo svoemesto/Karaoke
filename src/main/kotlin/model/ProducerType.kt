@@ -19,7 +19,7 @@ enum class ProducerType(val text: String, val onlyOne: Boolean, val suffixes: Li
     COUNTER(text ="counter", onlyOne = false, suffixes = emptyList(), ids = listOf(4,3,2,1,0)),
     FADERTEXT(text ="fadertext", onlyOne = true, suffixes = emptyList(), ids = emptyList()),
     FADERCHORDS(text ="faderchords", onlyOne = true, suffixes = emptyList(), ids = emptyList()),
-    FINGERBOARD(text ="fingerboadr", onlyOne = true, suffixes = emptyList(), ids = emptyList()),
+    FINGERBOARD(text ="fingerboard", onlyOne = true, suffixes = emptyList(), ids = emptyList()),
     HEADER(text ="header", onlyOne = true, suffixes = emptyList(), ids = emptyList()),
     BEAT(text ="beat", onlyOne = true, suffixes = emptyList(), ids = listOf(1,2,3,4)),
     WATERMARK(text ="watermark", onlyOne = true, suffixes = emptyList(), ids = emptyList()),

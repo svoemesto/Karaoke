@@ -178,7 +178,7 @@ data class Song(val settings: Settings, val songVersion: SongVersion) {
                             if (isLineEnd) {
                                 maxLengthLine = Integer.max(maxLengthLine, lengthLine)
                                 lengthLine = 0
-                                widthLinePx = getTextWidthHeightPx(lineText, Karaoke.voices[voideId].groups[group].songtextTextMltFont.font).first
+                                widthLinePx = getTextWidthHeightPx(lineText, Karaoke.voices[voideId].groups[group].songtextTextMltText.font).first
                                 if (maxWidthLinePx < widthLinePx) {
                                     maxWidthLinePx = java.lang.Double.max(maxWidthLinePx, widthLinePx)
                                     maxWidthLineText = lineText
@@ -193,8 +193,8 @@ data class Song(val settings: Settings, val songVersion: SongVersion) {
                                             end = songSubtitles.last().endTimecode,
                                             durationMs = getDurationInMilliseconds(songSubtitles.first().startTimecode, songSubtitles.last().endTimecode),
                                             isEmptyLine = true,
-                                            fontText = Karaoke.voices[voideId].groups[group].songtextTextMltFont.font,
-                                            fontBeat = Karaoke.voices[voideId].groups[group].songtextBeatMltFont.font
+                                            fontText = Karaoke.voices[voideId].groups[group].songtextTextMltText.font,
+                                            fontBeat = Karaoke.voices[voideId].groups[group].songtextBeatMltText.font
                                         )
                                     )
                                 } else {
@@ -206,8 +206,8 @@ data class Song(val settings: Settings, val songVersion: SongVersion) {
                                             end = songSubtitles.last().endTimecode,
                                             durationMs = getDurationInMilliseconds(songSubtitles.first().startTimecode, songSubtitles.last().endTimecode),
                                             isEmptyLine = (lineText.trim() == ""),
-                                            fontText = Karaoke.voices[voideId].groups[group].songtextTextMltFont.font,
-                                            fontBeat = Karaoke.voices[voideId].groups[group].songtextBeatMltFont.font
+                                            fontText = Karaoke.voices[voideId].groups[group].songtextTextMltText.font,
+                                            fontBeat = Karaoke.voices[voideId].groups[group].songtextBeatMltText.font
                                         )
                                     )
                                 }

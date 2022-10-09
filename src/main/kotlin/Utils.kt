@@ -1,6 +1,5 @@
 import com.google.gson.GsonBuilder
 import model.Marker
-import model.Settings
 import model.Song
 import model.SongVersion
 import model.Subtitle
@@ -29,6 +28,14 @@ println(
         ".wav")
 )
 
+}
+
+fun getFontSizeByHeight(heightPx: Double, font: Font): Int {
+    var fontSize = 1
+    while (getTextWidthHeightPx("0", Font(font.fontName, font.style, fontSize)).second < heightPx) {
+        fontSize += 1
+    }
+    return fontSize-1
 }
 
 fun getFileNameByMasks(pathToFolder: String, startWith: String, suffixes: List<String>,extension: String): String {

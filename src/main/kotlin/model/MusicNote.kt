@@ -12,7 +12,7 @@ enum class MusicNote(val text: String, val names: List<String>, val frequencies:
     G_SHARP (text = "соль диез", names = listOf("G#", "A♭", "G♯", "Ab"), frequencies = listOf(25.96, 51.91, 103.8, 207.7, 415.3, 830.6, 1661.0, 3322.0, 6645.0)),
     A (text = "ля", names = listOf("A",), frequencies = listOf(27.5, 55.0, 110.0, 220.0, 440.0, 880.0, 1760.0, 3520.0, 7040.0)),
     A_SHARP (text = "ля диез", names = listOf("A#", "B♭", "A♯", "Bb"), frequencies = listOf(29.14, 58.27, 116.5, 233.1, 466.2, 932.3, 1865.0, 3729.0, 7459.0)),
-    B (text = "си", names = listOf("B", "C♭", "Cb"), frequencies = listOf(30.87, 61.74, 123.5, 246.9, 493.9, 987.8, 1976.0, 3951.0, 7902.0));
+    B (text = "си", names = listOf("H", "B", "C♭", "Cb"), frequencies = listOf(30.87, 61.74, 123.5, 246.9, 493.9, 987.8, 1976.0, 3951.0, 7902.0));
 
     companion object {
         fun getNote(noteName: String): MusicNote? {

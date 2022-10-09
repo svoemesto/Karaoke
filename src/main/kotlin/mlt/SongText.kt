@@ -1,4 +1,4 @@
-import mlt.MltFont
+import mlt.MltText
 import mlt.mltNode
 import model.SongVoiceLine
 import model.MltNode
@@ -133,7 +133,7 @@ fun getTemplateSongText(param: Map<String, Any?>, voiceId: Int): MltNode {
         val voiceLineSongtext = it as SongVoiceLine
         voiceLineSongtext.symbols.forEachIndexed { indexSymbol, lineSymbol ->
 
-            val mltFont: MltFont = if (!lineSymbol.isBeat) voiceSetting.groups[lineSymbol.group].songtextTextMltFont else voiceSetting.groups[lineSymbol.group].songtextBeatMltFont
+            val mltText: MltText = if (!lineSymbol.isBeat) voiceSetting.groups[lineSymbol.group].songtextTextMltText else voiceSetting.groups[lineSymbol.group].songtextBeatMltText
             val text = lineSymbol.text
             val x = (startX + voiceLineSongtext.getSymbolXpx(indexSymbol)).toLong()
             val y = (startY + indexLine*symbolSongtextHeightPx).toLong()
@@ -148,7 +148,7 @@ fun getTemplateSongText(param: Map<String, Any?>, voiceId: Int): MltNode {
                             fields = mutableMapOf(Pair("x","$x"), Pair("y","$y")),
                             body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(), body = "1,0,0,0,1,0,0,0,1"))
                         ),
-                        mltFont.mltNode(text)
+                        mltText.mltNode(text)
                     )
                 )
             )

@@ -1,4 +1,4 @@
-import mlt.MltFont
+import mlt.MltText
 import mlt.mltNode
 import model.MltNode
 import model.ProducerType
@@ -120,8 +120,8 @@ fun getMltCounterTractor(param: Map<String, Any?>, id: Long, type:ProducerType =
 fun getTemplateCounter(param: Map<String, Any?>, id: Int, voiceId: Int): MltNode {
 
     val voiceSetting = param["VOICE${voiceId}_SETTING"] as KaraokeVoice
-    val mltFont: MltFont = voiceSetting.groups[0].songtextTextMltFont
-    mltFont.fontColor =  Karaoke.countersColors[id]
+    val mltText: MltText = voiceSetting.groups[0].songtextTextMltText
+    mltText.shapeColor =  Karaoke.countersColors[id]
 
     return MltNode(
         name = "kdenlivetitle",
@@ -142,7 +142,7 @@ fun getTemplateCounter(param: Map<String, Any?>, id: Int, voiceId: Int): MltNode
                         name = "position",
                         fields = mutableMapOf(Pair("x","${param["VOICE${voiceId}_COUNTER_POSITION_X_PX"]}"),Pair("y","${param["COUNTER_POSITION_Y_PX"]}")),
                         body = mutableListOf(MltNode(name = "transform", body = "1,0,0,0,1,0,0,0,1"))),
-                    mltFont.mltNode(id.toString())
+                    mltText.mltNode(id.toString())
                 )
             ),
             MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${Karaoke.frameHeightPx}"))),

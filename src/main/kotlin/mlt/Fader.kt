@@ -1,4 +1,3 @@
-import mlt.mltNode
 import model.MltNode
 import model.ProducerType
 
@@ -120,7 +119,7 @@ fun getTemplateFader(param: Map<String, Any?>): MltNode {
 
     val voiceSetting = param["VOICE0_SETTING"] as KaraokeVoice
     val w = Karaoke.frameWidthPx
-    val h = getTextWidthHeightPx("W", voiceSetting.groups[0].songtextTextMltFont.font).second.toLong() * 2
+    val h = getTextWidthHeightPx("W", voiceSetting.groups[0].songtextTextMltText.font).second.toLong() * 2
     val x = 0
     val yTop = 0
     val yBottom = Karaoke.frameHeightPx - h

@@ -1,4 +1,4 @@
-import mlt.MltFont
+import mlt.MltText
 import mlt.setting
 import java.awt.Color
 import java.awt.Font
@@ -54,16 +54,16 @@ class Converter {
                 val partsGroups = partVoiceFieldGroups.split(delimiterGroups)
                 partsGroups.forEach { partGroup ->
                     val partsFields = partGroup.split(delimiterFields)
-                    var songtextTextMltFont: MltFont? = null
-                    var songtextBeatMltFont: MltFont? = null
+                    var songtextTextMltText: MltText? = null
+                    var songtextBeatMltText: MltText? = null
                     partsFields.forEach { partField ->
                         val parts = partField.split(delimiterNames)
                         val partName = parts[0]
                         val partValue = parts[1]
                         try {
                             when(partName) {
-                                "songtextTextMltFont" -> songtextTextMltFont = getMltFontFromString(partValue)
-                                "songtextBeatMltFont" -> songtextBeatMltFont = getMltFontFromString(partValue)
+                                "songtextTextMltFont" -> songtextTextMltText = getMltFontFromString(partValue)
+                                "songtextBeatMltFont" -> songtextBeatMltText = getMltFontFromString(partValue)
                             }
                         } catch (e: Exception) {
                             println("ВНИМАНИЕ: Исключение ${e.message} при десериализации шрифта: $settingString")
@@ -71,8 +71,8 @@ class Converter {
                     }
                     karaokeGroups.add(
                         KaraokeVoiceGroup(
-                            songtextTextMltFont = songtextTextMltFont ?: getMltFontFromString(""),
-                            songtextBeatMltFont = songtextBeatMltFont ?: getMltFontFromString("")
+                            songtextTextMltText = songtextTextMltText ?: getMltFontFromString(""),
+                            songtextBeatMltText = songtextBeatMltText ?: getMltFontFromString("")
                         )
                     )
                 }
@@ -86,11 +86,11 @@ class Converter {
                 val groupsText = voice.groups.joinToString(delimiterGroups) { group ->
                     val fieldsText = "songtextTextMltFont" +
                             delimiterNames +
-                            group.songtextTextMltFont.setting() +
+                            group.songtextTextMltText.setting() +
                             delimiterFields +
                             "songtextBeatMltFont" +
                             delimiterNames +
-                            group.songtextBeatMltFont.setting()
+                            group.songtextBeatMltText.setting()
                     fieldsText
                 }
                 val fillText = "evenColor" +
@@ -112,7 +112,7 @@ class Converter {
             }
         }
 
-        fun getMltFontFromString(settingString: String): MltFont {
+        fun getMltFontFromString(settingString: String): MltText {
             val parts = settingString.split("|")
 
             var fname = "Tahoma"
@@ -164,7 +164,7 @@ class Converter {
                 println("ВНИМАНИЕ: Неверное количество параметров при десериализации шрифта: $settingString")
             }
 
-            return MltFont(font = Font(fname,fstyle,fsize), fontColor = Color(fcr,fcg,fcb,fca), fontOutlineColor = Color(ocr,ocg,ocb,oca), fontUnderline = underline, fontOutline = outline)
+            return MltText(font = Font(fname,fstyle,fsize), shapeColor = Color(fcr,fcg,fcb,fca), shapeOutlineColor = Color(ocr,ocg,ocb,oca), fontUnderline = underline, shapeOutline = outline)
         }
 
         fun getFontFromString(settingString: String): Font {

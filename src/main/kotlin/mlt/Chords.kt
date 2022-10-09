@@ -1,4 +1,4 @@
-import mlt.MltFont
+import mlt.MltText
 import mlt.mltNode
 import model.SongVoiceLine
 import model.MltNode
@@ -136,7 +136,7 @@ fun getTemplateChords(param: Map<String, Any?>, voiceId: Int): MltNode {
         val voiceLineSongchords = it as SongVoiceLine
         voiceLineSongchords.symbols.forEachIndexed { indexSymbol, lineSymbol ->
 
-            val mltFont: MltFont = if (!lineSymbol.isBeat) voiceSetting.groups[lineSymbol.group].songtextTextMltFont else voiceSetting.groups[lineSymbol.group].songtextBeatMltFont
+            val mltText: MltText = if (!lineSymbol.isBeat) voiceSetting.groups[lineSymbol.group].songtextTextMltText else voiceSetting.groups[lineSymbol.group].songtextBeatMltText
             val text = lineSymbol.text
             val x = (startX + voiceLineSongchords.getSymbolXpx(indexSymbol)).toLong()
             val y = (startYsongchords + indexLine*(symbolSongtextHeightPx+symbolChordsHeightPx)).toLong()
@@ -151,7 +151,7 @@ fun getTemplateChords(param: Map<String, Any?>, voiceId: Int): MltNode {
                             fields = mutableMapOf(Pair("x","$x"), Pair("y","$y")),
                             body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(), body = "1,0,0,0,1,0,0,0,1"))
                         ),
-                        mltFont.mltNode(text)
+                        mltText.mltNode(text)
                     )
                 )
             )
@@ -165,12 +165,12 @@ fun getTemplateChords(param: Map<String, Any?>, voiceId: Int): MltNode {
 
         voiceLineChords.symbols.forEachIndexed { indexSymbol, lineSymbol ->
 
-            val mltFont = MltFont(
+            val mltText = MltText(
                 font = lineSymbol.font,
-                fontColor = Karaoke.chordsFont.fontColor,
+                shapeColor = Karaoke.chordsFont.shapeColor,
                 fontUnderline = Karaoke.chordsFont.fontUnderline,
-                fontOutline = Karaoke.chordsFont.fontOutline,
-                fontOutlineColor = Karaoke.chordsFont.fontOutlineColor
+                shapeOutline = Karaoke.chordsFont.shapeOutline,
+                shapeOutlineColor = Karaoke.chordsFont.shapeOutlineColor
             )
 
             val text = lineSymbol.text
@@ -188,7 +188,7 @@ fun getTemplateChords(param: Map<String, Any?>, voiceId: Int): MltNode {
                             fields = mutableMapOf(Pair("x","$x"), Pair("y","$y")),
                             body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(), body = "1,0,0,0,1,0,0,0,1"))
                         ),
-                        mltFont.mltNode(text)
+                        mltText.mltNode(text)
                     )
                 )
             )

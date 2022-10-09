@@ -46,12 +46,12 @@ fun createKaraoke(song: Song, isBluetoothDelay: Boolean) {
     var maxTextWidthPxByFontSize = song.voices.sumOf { it.maxWidthLinePx } + Karaoke.songtextStartPositionXpx*(song.voices.size-1)
 
     // Максимальный размер шрифта берем из дефолтного значения
-    var fontSongtextSizePt = Karaoke.voices[0].groups[0].songtextTextMltFont.font.size
+    var fontSongtextSizePt = Karaoke.voices[0].groups[0].songtextTextMltText.font.size
     val step = if (maxTextWidthPxByFontSize > maxTextWidthPx) -1 else 1
     while (true) {
         if ((maxTextWidthPxByFontSize > maxTextWidthPx && step < 0) || (maxTextWidthPxByFontSize < maxTextWidthPx && step > 0)) {
             fontSongtextSizePt += step
-            maxTextWidthPxByFontSize = (song.voices.sumOf{getTextWidthHeightPx(it.maxWidthLineText, Karaoke.voices[0].groups[0].songtextTextMltFont.font.name, Karaoke.voices[0].groups[0].songtextTextMltFont.font.style, fontSongtextSizePt).first} + Karaoke.songtextStartPositionXpx*(song.voices.size-1).toLong()).toLong()
+            maxTextWidthPxByFontSize = (song.voices.sumOf{getTextWidthHeightPx(it.maxWidthLineText, Karaoke.voices[0].groups[0].songtextTextMltText.font.name, Karaoke.voices[0].groups[0].songtextTextMltText.font.style, fontSongtextSizePt).first} + Karaoke.songtextStartPositionXpx*(song.voices.size-1).toLong()).toLong()
         } else {
             break
         }
@@ -59,7 +59,7 @@ fun createKaraoke(song: Song, isBluetoothDelay: Boolean) {
 
     val fontChordsSizePt = (fontSongtextSizePt * Karaoke.chordsHeightCoefficient).toInt()
 
-    val fontSongtext = Font(Karaoke.voices[0].groups[0].songtextTextMltFont.font.name, Karaoke.voices[0].groups[0].songtextTextMltFont.font.style, fontSongtextSizePt)
+    val fontSongtext = Font(Karaoke.voices[0].groups[0].songtextTextMltText.font.name, Karaoke.voices[0].groups[0].songtextTextMltText.font.style, fontSongtextSizePt)
     val fontChords = Font(Karaoke.chordsFont.font.name, Karaoke.chordsFont.font.style, fontChordsSizePt)
 
     val symbolSongtextHeightPx = getTextWidthHeightPx("0", fontSongtext).second
@@ -78,7 +78,7 @@ fun createKaraoke(song: Song, isBluetoothDelay: Boolean) {
         val songVoice = song.voices[voiceId]
 
         if (voiceId > 0) {
-            currentVoiceOffset += (getTextWidthHeightPx(song.voices[voiceId-1].maxWidthLineText, Karaoke.voices[0].groups[0].songtextTextMltFont.font.name, Karaoke.voices[0].groups[0].songtextTextMltFont.font.style, fontSongtextSizePt).first + Karaoke.songtextStartPositionXpx).toLong()
+            currentVoiceOffset += (getTextWidthHeightPx(song.voices[voiceId-1].maxWidthLineText, Karaoke.voices[0].groups[0].songtextTextMltText.font.name, Karaoke.voices[0].groups[0].songtextTextMltText.font.style, fontSongtextSizePt).first + Karaoke.songtextStartPositionXpx).toLong()
         }
 
         val counters = listOf<MutableList<String>>(
@@ -126,8 +126,8 @@ fun createKaraoke(song: Song, isBluetoothDelay: Boolean) {
         var currentGroup = 0 // Получаем номер текущей группы
         var groupSetting = voiceSetting.groups[min(currentGroup, voiceSetting.groups.size-1)] // Получаем настройки для текущей группы
         songVoice.lines.forEach { voiceLine ->
-            val fontText = Font(groupSetting.songtextTextMltFont.font.name, groupSetting.songtextTextMltFont.font.style, fontSongtextSizePt)
-            val fontBeat = Font(groupSetting.songtextBeatMltFont.font.name, groupSetting.songtextBeatMltFont.font.style, fontSongtextSizePt)
+            val fontText = Font(groupSetting.songtextTextMltText.font.name, groupSetting.songtextTextMltText.font.style, fontSongtextSizePt)
+            val fontBeat = Font(groupSetting.songtextBeatMltText.font.name, groupSetting.songtextBeatMltText.font.style, fontSongtextSizePt)
             voiceLine.symbols.forEach {lineSymbol ->
                 lineSymbol.font = if (lineSymbol.isBeat) fontBeat else fontText
             }
@@ -142,8 +142,8 @@ fun createKaraoke(song: Song, isBluetoothDelay: Boolean) {
             for (subtitle in voiceLine.subtitles) {
                 currentGroup = subtitle.group // Получаем номер текущей группы
                 groupSetting = voiceSetting.groups[min(currentGroup, voiceSetting.groups.size-1)] // Получаем настройки для текущей группы
-                val fontTextForSubtitle = Font(groupSetting.songtextTextMltFont.font.name, groupSetting.songtextTextMltFont.font.style, fontSongtextSizePt)
-                val fontBeatForSubtitle = Font(groupSetting.songtextBeatMltFont.font.name, groupSetting.songtextBeatMltFont.font.style, fontSongtextSizePt)
+                val fontTextForSubtitle = Font(groupSetting.songtextTextMltText.font.name, groupSetting.songtextTextMltText.font.style, fontSongtextSizePt)
+                val fontBeatForSubtitle = Font(groupSetting.songtextBeatMltText.font.name, groupSetting.songtextBeatMltText.font.style, fontSongtextSizePt)
                 if (Karaoke.showMainBeatVowels && subtitle.isBeat) {
                     var textBeforeVowel = ""
                     var textVowel = ""

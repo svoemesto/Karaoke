@@ -1,4 +1,4 @@
-import mlt.MltFont
+import mlt.MltText
 import java.awt.Color
 import java.awt.Font
 
@@ -8,15 +8,15 @@ data class KaraokeVoice (
 ) {
     fun replaceFontSize(fontSizePt: Int) {
         groups.forEach { group ->
-            group.songtextTextMltFont.font = Font(group.songtextTextMltFont.font.name, group.songtextTextMltFont.font.style, fontSizePt)
-            group.songtextBeatMltFont.font = Font(group.songtextBeatMltFont.font.name, group.songtextBeatMltFont.font.style, fontSizePt)
+            group.songtextTextMltText.font = Font(group.songtextTextMltText.font.name, group.songtextTextMltText.font.style, fontSizePt)
+            group.songtextBeatMltText.font = Font(group.songtextBeatMltText.font.name, group.songtextBeatMltText.font.style, fontSizePt)
         }
     }
 }
 
 data class KaraokeVoiceGroup(
-    var songtextTextMltFont: MltFont,
-    var songtextBeatMltFont: MltFont
+    var songtextTextMltText: MltText,
+    var songtextBeatMltText: MltText
 )
 
 data class KaraokeVoiceFill(

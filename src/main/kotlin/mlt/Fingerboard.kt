@@ -46,7 +46,7 @@ fun getMltFingerboardProducer(param: Map<String, Any?>, type:ProducerType = Prod
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:id")), body = (param["${type.text.uppercase()}${voiceId}_ID"] as Int)+voiceId*1000),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","force_reload")), body = 0),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","meta.media.width")), body = fingerboardW),
-            MltNode(name = "property", fields = mutableMapOf(Pair("name","meta.media.height")), body = fingerboardH)
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","meta.media.height")), body = fingerboardH+50)
         )
     )
 
@@ -178,7 +178,7 @@ fun getTemplateFingerboard(param: Map<String, Any?>): MltNode {
             Pair("duration","0"),
             Pair("LC_NUMERIC","C"),
             Pair("width","${fingerboardW}"),
-            Pair("height","${fingerboardH}"),
+            Pair("height","${fingerboardH+50}"),
             Pair("out","0"),
         ),
         body = mutableListOf(
@@ -210,8 +210,8 @@ fun getTemplateFingerboard(param: Map<String, Any?>): MltNode {
                 )
             ),
             body,
-            MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${fingerboardW},${fingerboardH}"))),
-            MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${fingerboardW},${fingerboardH}"))),
+            MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${fingerboardW},${fingerboardH+50}"))),
+            MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${fingerboardW},${fingerboardH+50}"))),
             MltNode(name = "background", fields = mutableMapOf(Pair("color","0,0,0,0")))
         )
     )

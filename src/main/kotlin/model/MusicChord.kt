@@ -504,7 +504,7 @@ enum class MusicChord(val text: String, val names: List<String>, val intervals: 
                 currFinger += if (initFret == 0) 0 else 1
                 result.addAll(fingerboards)
             } else {
-                if (fret -initFret > maxDiffBetweenFrets) {
+                if (fret - initFret > maxDiffBetweenFrets) {
                     fingerboards.forEach {
                         it.muted = true
                     }
@@ -529,8 +529,13 @@ enum class MusicChord(val text: String, val names: List<String>, val intervals: 
                                 currFinger += 1
                             } else {
                                 sortedFingerboards.forEach { fingerboard ->
-                                    fingerboard.finger = currFinger
-                                    currFinger += 1
+                                    if (initFret == 0 && fingerboard.guitarString.number == 6 && fingerboard.fret <3) {
+                                        fingerboard.muted = true
+                                    } else {
+                                        fingerboard.finger = currFinger
+                                        currFinger += 1
+                                    }
+
                                 }
                             }
                         } else {

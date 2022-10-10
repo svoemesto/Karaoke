@@ -3,6 +3,9 @@ import model.ProducerType
 
 fun getMltFaderChordsProducer(param: Map<String, Any?>, type:ProducerType = ProducerType.FADERCHORDS, voiceId: Int = 0): MltNode {
 
+    val fingerboardW = param["VOICE0_FINGERBOARD_W"] as Int
+    val fingerboardH = param["VOICE0_FINGERBOARD_H"] as Int
+
     val mlt = MltNode(
         type = type,
         name = "producer",
@@ -39,7 +42,7 @@ fun getMltFaderChordsProducer(param: Map<String, Any?>, type:ProducerType = Prod
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:id")), body = (param["${type.text.uppercase()}${voiceId}_ID"] as Int)+voiceId*1000),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","force_reload")), body = 0),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","meta.media.width")), body = Karaoke.frameWidthPx),
-            MltNode(name = "property", fields = mutableMapOf(Pair("name","meta.media.height")), body = Karaoke.frameHeightPx)
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","meta.media.height")), body = fingerboardH+50)
         )
     )
 
@@ -117,6 +120,9 @@ fun getMltFaderChordsTractor(param: Map<String, Any?>, type:ProducerType = Produ
 
 fun getTemplateFaderChords(param: Map<String, Any?>): MltNode {
 
+    val fingerboardW = param["VOICE0_FINGERBOARD_W"] as Int
+    val fingerboardH = param["VOICE0_FINGERBOARD_H"] as Int
+
     val voiceSetting = param["VOICE0_SETTING"] as KaraokeVoice
     val w = Karaoke.frameWidthPx / 4
     val h = Karaoke.frameHeightPx / 4
@@ -131,7 +137,7 @@ fun getTemplateFaderChords(param: Map<String, Any?>): MltNode {
             Pair("duration","0"),
             Pair("LC_NUMERIC","C"),
             Pair("width","${Karaoke.frameWidthPx}"),
-            Pair("height","${Karaoke.frameHeightPx}"),
+            Pair("height","${fingerboardH+50}"),
             Pair("out","0"),
         ),
         body = mutableListOf(
@@ -273,8 +279,8 @@ fun getTemplateFaderChords(param: Map<String, Any?>): MltNode {
                     )
                 )
             ),
-            MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${Karaoke.frameHeightPx}"))),
-            MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${Karaoke.frameHeightPx}"))),
+            MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${fingerboardH+50}"))),
+            MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${fingerboardH+50}"))),
             MltNode(name = "background", fields = mutableMapOf(Pair("color","0,0,0,0")))
         )
     )

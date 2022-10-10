@@ -3,7 +3,7 @@ package model
 fun main() {
 
     for (i in 0 .. 12) {
-        val result = MusicChord.X.getFingerboard(MusicNote.G_SHARP,i)
+        val result = MusicChord.Xm.getFingerboard(MusicNote.G,i)
         if (result.isNotEmpty()) {
             println(result.joinToString("\n"))
             println()

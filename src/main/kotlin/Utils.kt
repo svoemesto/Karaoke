@@ -28,7 +28,7 @@ import kotlin.random.Random
 
 
 fun main() {
-    val layouts = generateChordLayout("Am")
+    val layouts = generateChordLayout("Dm")
     layouts.forEach { l ->
         if (l.shape.type == MltObjectType.TEXT) {
             println("text = ${(l.shape as MltText).text}, font size=${(l.shape as MltText).font.size}")
@@ -167,7 +167,7 @@ fun generateChordLayout(chord: MusicChord, note: MusicNote): List<MltObject> {
             result.add(mltShapeMutedRectangle)
         }
 
-        if (!(initFret == 0 && fingerboard.fret == 0)) {
+        if (!((initFret == 0 && fingerboard.fret == 0) || fingerboard.muted)) {
             val fingerCircleMltShape = Karaoke.chordLayoutFingerCircleMltShape.copy()
             val mltShapeFingerCircle = MltObject(
                 layoutW = chordLayoutW,

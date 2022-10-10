@@ -583,30 +583,31 @@ fun createKaraoke(song: Song, isBluetoothDelay: Boolean) {
         val kdeOut = song.endTimecode.replace(",", ".")
         val kdeFadeOut = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(song.endTimecode) - 1000).replace(",", ".")
 
-        propRectFaderChordsLineValue.add("${convertMillisecondsToTimecode(startTimeFirstCounterMs!!)}=0 -${fingerboardH} ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.0")
-        propRectFaderChordsLineValue.add("${convertMillisecondsToTimecode(startTimeFirstCounterMs!!+halfNoteLengthMs*4)}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 1.0")
+        propRectFaderChordsLineValue.add("${kdeIn}=0 -${fingerboardH+50} ${Karaoke.frameWidthPx} ${fingerboardH+50} 1.0")
+        propRectFaderChordsLineValue.add("${kdeFadeIn}=0 0 ${Karaoke.frameWidthPx} ${fingerboardH+50} 1.0")
 
-        propRectFingerboardLineValue.add("${convertMillisecondsToTimecode(startTimeFirstCounterMs!!)}=0 -${fingerboardH} ${fingerboardW} ${fingerboardH} 1.0")
-        propRectFingerboardLineValue.add("${convertMillisecondsToTimecode(startTimeFirstCounterMs!!+halfNoteLengthMs*4)}=0 0 ${fingerboardW} ${fingerboardH} 1.0")
+        propRectFingerboardLineValue.add("${kdeIn}=0 -${fingerboardH+50} ${fingerboardW} ${fingerboardH+50} 1.0")
+        propRectFingerboardLineValue.add("${kdeFadeIn}=0 0 ${fingerboardW} ${fingerboardH+50} 1.0")
+
         var prevChordX = 0
         var prevChordTimeCode = kdeFadeIn
         var currChordX = 0
         song.chords.forEachIndexed { indexChords, chord ->
             val chordTimecode = chord.timecode
             val diffChordsMs = convertTimecodeToMilliseconds(chordTimecode) - convertTimecodeToMilliseconds(prevChordTimeCode)
-            val movingMs = if (diffChordsMs > 1000) 1000 else (diffChordsMs/2).toInt()
+            val movingMs = if (diffChordsMs > 500) 500 else (diffChordsMs/2).toInt()
             val startMoveTimecode = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(chordTimecode) - movingMs)
             val endMoveTimecode = chordTimecode
             currChordX = prevChordX - chordW
-            propRectFingerboardLineValue.add("${startMoveTimecode}=${prevChordX} 0 ${fingerboardW} ${fingerboardH} 1.0")
-            propRectFingerboardLineValue.add("${endMoveTimecode}=${currChordX} 0 ${fingerboardW} ${fingerboardH} 1.0")
+            propRectFingerboardLineValue.add("${startMoveTimecode}=${prevChordX} 0 ${fingerboardW} ${fingerboardH+50} 1.0")
+            propRectFingerboardLineValue.add("${endMoveTimecode}=${currChordX} 0 ${fingerboardW} ${fingerboardH+50} 1.0")
             prevChordX = currChordX
         }
-        propRectFingerboardLineValue.add("${convertMillisecondsToTimecode(endTimeHidingHeaderMs!!)}=${currChordX} 0 ${fingerboardW} ${fingerboardH} 1.0")
-        propRectFingerboardLineValue.add("${convertMillisecondsToTimecode(endTimeHidingHeaderMs!!+halfNoteLengthMs*4)}=${currChordX} -${fingerboardH} ${fingerboardW} ${fingerboardH} 0.0")
+        propRectFingerboardLineValue.add("${convertMillisecondsToTimecode(endTimeHidingHeaderMs!!)}=${currChordX} 0 ${fingerboardW} ${fingerboardH+50} 1.0")
+        propRectFingerboardLineValue.add("${convertMillisecondsToTimecode(endTimeHidingHeaderMs!!+halfNoteLengthMs*4)}=${currChordX} -${fingerboardH+50} ${fingerboardW} ${fingerboardH+50} 1.0")
 
-        propRectFaderChordsLineValue.add("${convertMillisecondsToTimecode(endTimeHidingHeaderMs!!)}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 1.0")
-        propRectFaderChordsLineValue.add("${convertMillisecondsToTimecode(endTimeHidingHeaderMs!!+halfNoteLengthMs*4)}=0 -${fingerboardH} ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 1.0")
+        propRectFaderChordsLineValue.add("${convertMillisecondsToTimecode(endTimeHidingHeaderMs!!)}=0 0 ${Karaoke.frameWidthPx} ${fingerboardH+50} 1.0")
+        propRectFaderChordsLineValue.add("${convertMillisecondsToTimecode(endTimeHidingHeaderMs!!+halfNoteLengthMs*4)}=0 -${fingerboardH+50} ${Karaoke.frameWidthPx} ${fingerboardH+50} 1.0")
 
 //        // Такты
 //        var delayMs = convertTimecodeToMilliseconds(song.beatTimecode) // + TIME_OFFSET_MS
@@ -652,7 +653,9 @@ fun createKaraoke(song: Song, isBluetoothDelay: Boolean) {
 //            beatCounter += 1
 //        }
 
-        propHeaderLineValue.add("${convertMillisecondsToTimecode(startTimeFirstCounterMs!!)}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 1.0")
+        if (song.songVersion != SongVersion.CHORDS) {
+            propHeaderLineValue.add("${convertMillisecondsToTimecode(startTimeFirstCounterMs!!)}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 1.0")
+        }
         propHeaderLineValue.add("${convertMillisecondsToTimecode(startTimeFirstCounterMs!!+halfNoteLengthMs*4)}=0 -492 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 1.0")
         propHeaderLineValue.add("${convertMillisecondsToTimecode(endTimeHidingHeaderMs!!)}=0 -492 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 1.0")
         propHeaderLineValue.add("${convertMillisecondsToTimecode(endTimeHidingHeaderMs!!+halfNoteLengthMs*4)}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 1.0")

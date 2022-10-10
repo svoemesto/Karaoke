@@ -100,7 +100,14 @@ data class MltText(
     val fontItalic: Int get() = if (font.isItalic) 1 else 0
 
     override fun copy(): MltText {
-        return MltText(text = text, font = Font(font.name,font.style, font.size) , fontUnderline = fontUnderline, shapeColor = Color(shapeColor.red, shapeColor.green, shapeColor.blue, shapeColor.alpha), shapeOutline = shapeOutline, shapeOutlineColor = Color(shapeOutlineColor.red, shapeOutlineColor.green, shapeOutlineColor.blue, shapeOutlineColor.alpha))
+        return MltText(
+            text = text,
+            font = Font(font.name,font.style, font.size) ,
+            fontUnderline = fontUnderline,
+            shapeColor = Color(shapeColor.red, shapeColor.green, shapeColor.blue, shapeColor.alpha),
+            shapeOutline = shapeOutline,
+            shapeOutlineColor = Color(shapeOutlineColor.red, shapeOutlineColor.green, shapeOutlineColor.blue, shapeOutlineColor.alpha)
+        )
     }
 }
 
@@ -111,7 +118,12 @@ open class MltShape(
     open var shapeOutlineColor: Color
 ) {
     open fun copy(): MltShape {
-        return MltShape(type = type, shapeColor = Color(shapeColor.red, shapeColor.green, shapeColor.blue, shapeColor.alpha), shapeOutline = shapeOutline, shapeOutlineColor = Color(shapeOutlineColor.red, shapeOutlineColor.green, shapeOutlineColor.blue, shapeOutlineColor.alpha))
+        return MltShape(
+            type = type,
+            shapeColor = Color(shapeColor.red, shapeColor.green, shapeColor.blue, shapeColor.alpha),
+            shapeOutline = shapeOutline,
+            shapeOutlineColor = Color(shapeOutlineColor.red, shapeOutlineColor.green, shapeOutlineColor.blue, shapeOutlineColor.alpha)
+        )
     }
 }
 

@@ -13,89 +13,10 @@ import java.awt.Font
 import java.io.File
 import java.util.*
 
-fun main() {
-    Karaoke.createChords = true
-}
-
 class Karaoke {
     companion object {
         private val fileNameXml = "src/main/resources/settings.xml"
         private val props = Properties()
-
-
-        // Создавать аккорды
-        var createChords: Boolean
-            get() {
-                val defaultValue = "true"
-                props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("createChords",defaultValue).toBoolean()
-            }
-            set(value) {
-                props.setProperty("createChords", value.toString())
-                props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
-
-
-        // Создавать описания
-        var createSongDesctiption: Boolean
-            get() {
-                val defaultValue = "true"
-                props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("createSongDesctiption",defaultValue).toBoolean()
-            }
-            set(value) {
-                props.setProperty("createSongDesctiption", value.toString())
-                props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
-
-
-        // Создавать картинки
-        var createSongPictures: Boolean
-            get() {
-                val defaultValue = "true"
-                props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("createSongPictures",defaultValue).toBoolean()
-            }
-            set(value) {
-                props.setProperty("createSongPictures", value.toString())
-                props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
-
-        // Создавать проект аккотрды
-        var createProjectChords: Boolean
-            get() {
-                val defaultValue = "true"
-                props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("createProjectAccords",defaultValue).toBoolean()
-            }
-            set(value) {
-                props.setProperty("createProjectAccords", value.toString())
-                props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
-
-        // Создавать проект лирикс
-        var createProjectLyrics: Boolean
-            get() {
-                val defaultValue = "true"
-                props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("createProjectLyrics",defaultValue).toBoolean()
-            }
-            set(value) {
-                props.setProperty("createProjectLyrics", value.toString())
-                props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
-
-        // Создавать проект караоке
-        var createProjectKaraoke: Boolean
-            get() {
-                val defaultValue = "true"
-                props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("createProjectKaraoke",defaultValue).toBoolean()
-            }
-            set(value) {
-                props.setProperty("createProjectKaraoke", value.toString())
-                props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
 
         // Путь к папке с фонами
         var backgroundFolderPath: String
@@ -106,18 +27,6 @@ class Karaoke {
             }
             set(value) {
                 props.setProperty("backgroundFolderPath", value)
-                props.storeToXML(File(fileNameXml).outputStream(), null)
-            }
-
-        // Выделять гласные сильных долей
-        var showMainBeatVowels: Boolean
-            get() {
-                val defaultValue = "false"
-                props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("showMainBeatVowels",defaultValue).toBoolean()
-            }
-            set(value) {
-                props.setProperty("showMainBeatVowels", value.toString())
                 props.storeToXML(File(fileNameXml).outputStream(), null)
             }
 

@@ -9,14 +9,7 @@ import getMltBackgroundFilePlaylist
 import getMltBackgroundProducer
 import getMltBackgroundTrackPlaylist
 import getMltBackgroundTractor
-import getMltBeatFilePlaylist
-import getMltBeatProducer
-import getMltBeatTrackPlaylist
-import getMltBeatTractor
 import getMltBlackTrackProducer
-import getMltChordsFilePlaylist
-import getMltChordsTrackPlaylist
-import getMltChordsTractor
 import getMltConsumer
 import getMltCounterFilePlaylist
 import getMltCounterProducer
@@ -30,14 +23,6 @@ import getMltFaderTextFilePlaylist
 import getMltFaderTextProducer
 import getMltFaderTextTrackPlaylist
 import getMltFaderTextTractor
-import getMltFillChordsEvenFilePlaylist
-import getMltFillChordsEvenTrackPlaylist
-import getMltFillChordsEvenTractor
-import getMltFillChordsOddFilePlaylist
-import getMltFillChordsOddTrackPlaylist
-import getMltFillChordsOddTractor
-import getMltFillColorChordsEvenProducer
-import getMltFillColorChordsOddProducer
 import getMltFillColorSongtextEvenProducer
 import getMltFillColorSongtextOddProducer
 import getMltFillSongtextEvenFilePlaylist
@@ -63,10 +48,6 @@ import getMltHorizonProducer
 import getMltHorizonTrackPlaylist
 import getMltHorizonTractor
 import getMltMainBinPlaylist
-import getMltMicrophoneFilePlaylist
-import getMltMicrophoneProducer
-import getMltMicrophoneTrackPlaylist
-import getMltMicrophoneTractor
 import getMltProfile
 import getMltProgressFilePlaylist
 import getMltProgressProducer
@@ -92,7 +73,6 @@ fun getMlt(param: Map<String, Any?>): MltNode {
 
     val songVersion = param["SONG_VERSION"] as SongVersion
     val countVoices = (param["COUNT_VOICES"] as Int)
-//    var type = ProducerType.NONE
 
     val body = mutableListOf<MltNode>()
 
@@ -105,7 +85,6 @@ fun getMlt(param: Map<String, Any?>): MltNode {
                 when(type) {
                     ProducerType.SPLASHSTART -> body.add(getMltSplashstartProducer(param, type, voiceId))
                     ProducerType.SONGTEXT -> body.add(getMltSongTextProducer(param, type, voiceId))
-                    ProducerType.CHORDS -> body.add(getMltSongTextProducer(param, type, voiceId))
                     ProducerType.HORIZON -> body.add(getMltHorizonProducer(param, type, voiceId))
                     ProducerType.FLASH -> body.add(getMltFlashProducer(param, type, voiceId))
                     ProducerType.WATERMARK -> body.add(getMltWatermarkProducer(param, type, voiceId))
@@ -115,7 +94,6 @@ fun getMlt(param: Map<String, Any?>): MltNode {
                     ProducerType.FINGERBOARD -> body.add(getMltFingerboardProducer(param, type, voiceId))
                     ProducerType.HEADER -> body.add(getMltHeaderProducer(param, type, voiceId))
                     ProducerType.BACKGROUND -> body.add(getMltBackgroundProducer(param, type, voiceId))
-                    ProducerType.MICROPHONE -> body.add(getMltMicrophoneProducer(param, type, voiceId))
                     ProducerType.AUDIOVOCAL -> body.add(getMltAudioProducer(param, type, voiceId))
                     ProducerType.AUDIOMUSIC -> body.add(getMltAudioProducer(param, type, voiceId))
                     ProducerType.AUDIOSONG -> body.add(getMltAudioProducer(param, type, voiceId))
@@ -125,22 +103,12 @@ fun getMlt(param: Map<String, Any?>): MltNode {
                         body.add(getMltFillColorSongtextEvenProducer(param, type, voiceId))
                         body.add(getMltFillColorSongtextOddProducer(param, type, voiceId))
                     }
-                    ProducerType.FILLCOLORCHORDS -> {
-                        body.add(getMltFillColorChordsEvenProducer(param, type, voiceId))
-                        body.add(getMltFillColorChordsOddProducer(param, type, voiceId))
-                    }
                     ProducerType.COUNTER -> {
                         body.add(getMltCounterProducer(param, 4, type, voiceId))
                         body.add(getMltCounterProducer(param, 3, type, voiceId))
                         body.add(getMltCounterProducer(param, 2, type, voiceId))
                         body.add(getMltCounterProducer(param, 1, type, voiceId))
                         body.add(getMltCounterProducer(param, 0, type, voiceId))
-                    }
-                    ProducerType.BEAT -> {
-                        body.add(getMltBeatProducer(param, 1, type, voiceId))
-                        body.add(getMltBeatProducer(param, 2, type, voiceId))
-                        body.add(getMltBeatProducer(param, 3, type, voiceId))
-                        body.add(getMltBeatProducer(param, 4, type, voiceId))
                     }
                     else -> {}
                 }
@@ -165,11 +133,7 @@ fun getMlt(param: Map<String, Any?>): MltNode {
                         body.add(getMltSongTextTrackPlaylist(param, type, voiceId))
                         body.add(getMltSongTextTractor(param, type, voiceId))
                     }
-                    ProducerType.CHORDS -> {
-                        body.add(getMltChordsFilePlaylist(param, type, voiceId))
-                        body.add(getMltChordsTrackPlaylist(param, type, voiceId))
-                        body.add(getMltChordsTractor(param, type, voiceId))
-                    }
+
                     ProducerType.HORIZON -> {
                         body.add(getMltHorizonFilePlaylist(param, type, voiceId))
                         body.add(getMltHorizonTrackPlaylist(param, type, voiceId))
@@ -215,11 +179,6 @@ fun getMlt(param: Map<String, Any?>): MltNode {
                         body.add(getMltBackgroundTrackPlaylist(param, type, voiceId))
                         body.add(getMltBackgroundTractor(param, type, voiceId))
                     }
-                    ProducerType.MICROPHONE -> {
-                        body.add(getMltMicrophoneFilePlaylist(param, type, voiceId))
-                        body.add(getMltMicrophoneTrackPlaylist(param, type, voiceId))
-                        body.add(getMltMicrophoneTractor(param, type, voiceId))
-                    }
                     ProducerType.AUDIOVOCAL -> {
                         body.add(getMltAudioFileProducer(param, type, voiceId))
                         body.add(getMltAudioFilePlaylist(param, type, voiceId))
@@ -258,14 +217,7 @@ fun getMlt(param: Map<String, Any?>): MltNode {
                         body.add(getMltFillSongtextOddTrackPlaylist(param, type, voiceId))
                         body.add(getMltFillSongtextOddTractor(param, type, voiceId))
                     }
-                    ProducerType.FILLCOLORCHORDS -> {
-                        body.add(getMltFillChordsEvenFilePlaylist(param, type, voiceId))
-                        body.add(getMltFillChordsEvenTrackPlaylist(param, type, voiceId))
-                        body.add(getMltFillChordsEvenTractor(param, type, voiceId))
-                        body.add(getMltFillChordsOddFilePlaylist(param, type, voiceId))
-                        body.add(getMltFillChordsOddTrackPlaylist(param, type, voiceId))
-                        body.add(getMltFillChordsOddTractor(param, type, voiceId))
-                    }
+
                     ProducerType.COUNTER -> {
                         body.add(getMltCounterFilePlaylist(param, 4, type, voiceId))
                         body.add(getMltCounterTrackPlaylist(param, 4, type, voiceId))
@@ -283,20 +235,7 @@ fun getMlt(param: Map<String, Any?>): MltNode {
                         body.add(getMltCounterTrackPlaylist(param, 0, type, voiceId))
                         body.add(getMltCounterTractor(param, 0, type, voiceId))
                     }
-                    ProducerType.BEAT -> {
-                        body.add(getMltBeatFilePlaylist(param, 4, type, voiceId))
-                        body.add(getMltBeatTrackPlaylist(param, 4, type, voiceId))
-                        body.add(getMltBeatTractor(param, 4, type, voiceId))
-                        body.add(getMltBeatFilePlaylist(param, 3, type, voiceId))
-                        body.add(getMltBeatTrackPlaylist(param, 3, type, voiceId))
-                        body.add(getMltBeatTractor(param, 3, type, voiceId))
-                        body.add(getMltBeatFilePlaylist(param, 2, type, voiceId))
-                        body.add(getMltBeatTrackPlaylist(param, 2, type, voiceId))
-                        body.add(getMltBeatTractor(param, 2, type, voiceId))
-                        body.add(getMltBeatFilePlaylist(param, 1, type, voiceId))
-                        body.add(getMltBeatTrackPlaylist(param, 1, type, voiceId))
-                        body.add(getMltBeatTractor(param, 1, type, voiceId))
-                    }
+//
                     else -> {}
                 }
             }

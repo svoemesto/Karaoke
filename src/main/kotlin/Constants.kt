@@ -1,15 +1,11 @@
 import model.ProducerType
 
 val idProducerSongText = ProducerType.SONGTEXT.ordinal * 10
-val idProducerChordsText = ProducerType.CHORDS.ordinal * 10
 val idProducerHorizon = ProducerType.HORIZON.ordinal * 10
 val idProducerFillColorSongtextEven = ProducerType.FILLCOLORSONGTEXT.ordinal * 10
 val idProducerFillColorSongtextOdd = ProducerType.FILLCOLORSONGTEXT.ordinal * 10 + 1
-val idProducerFillColorChordsEven = ProducerType.FILLCOLORCHORDS.ordinal * 10
-val idProducerFillColorChordsOdd = ProducerType.FILLCOLORCHORDS.ordinal * 10 + 1
 val idProducerHeader = ProducerType.HEADER.ordinal * 10
 val idProducerBackground = ProducerType.BACKGROUND.ordinal * 10
-val idProducerMicrophone = ProducerType.MICROPHONE.ordinal * 10
 val idProducerCounter4 = ProducerType.COUNTER.ordinal * 10 + 4
 val idProducerCounter3 = ProducerType.COUNTER.ordinal * 10 + 3
 val idProducerCounter2 = ProducerType.COUNTER.ordinal * 10 + 2
@@ -20,10 +16,6 @@ val idProducerAudioMusic = ProducerType.AUDIOMUSIC.ordinal * 10
 val idProducerAudioVocal = ProducerType.AUDIOVOCAL.ordinal * 10
 val idProducerAudioBass = ProducerType.AUDIOBASS.ordinal * 10
 val idProducerAudioDrums = ProducerType.AUDIODRUMS.ordinal * 10
-val idProducerBeat1 = ProducerType.BEAT.ordinal * 10 + 1
-val idProducerBeat2 = ProducerType.BEAT.ordinal * 10 + 2
-val idProducerBeat3 = ProducerType.BEAT.ordinal * 10 + 3
-val idProducerBeat4 = ProducerType.BEAT.ordinal * 10 + 4
 val idProducerProgress = ProducerType.PROGRESS.ordinal * 10 + 1
 val idProducerWatermark = ProducerType.WATERMARK.ordinal * 10 + 1
 val idProducerFaderText = ProducerType.FADERTEXT.ordinal * 10 + 1

@@ -12,7 +12,7 @@ fun getMltBeatProducer(param: Map<String, Any?>, id: Long, type:ProducerType = P
             Pair("out",param["SONG_END_TIMECODE"].toString())
         ),
         body = mutableListOf(
-            MltNode(name = "property", fields = mutableMapOf(Pair("name","length")), body = param["SONG_LENGTH_MS"]),
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","length")), body = param["SONG_LENGTH_FR"]),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","eof")), body = "pause"),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","resource"))),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","progressive")), body = 1),

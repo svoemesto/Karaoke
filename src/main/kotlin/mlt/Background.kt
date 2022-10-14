@@ -12,7 +12,7 @@ fun getMltBackgroundProducer(param: Map<String, Any?>, type:ProducerType = Produ
             Pair("out", convertMillisecondsToTimecode(Karaoke.timeSplashScreenStartMs + convertTimecodeToMilliseconds(param["SONG_END_TIMECODE"].toString())))
         ),
         body = mutableListOf(
-            MltNode(name = "property", fields = mutableMapOf(Pair("name","length")), body = ((param["SONG_LENGTH_MS"] as Long) + Karaoke.timeSplashScreenStartMs).toString()),
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","length")), body = ((param["SONG_LENGTH_FR"] as Long) + convertMillisecondsToFrames(Karaoke.timeSplashScreenStartMs)).toString()),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","eof")), body = "pause"),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","resource")), body = param["${type.text.uppercase()}${voiceId}_PATH"]),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","ttl")), body = 25),

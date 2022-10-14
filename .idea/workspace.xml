@@ -4,16 +4,93 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="19caf878-7ce0-44d7-94a1-cf0a31300a8b" name="Changes" comment="">
+    <list default="true" id="19caf878-7ce0-44d7-94a1-cf0a31300a8b" name="Changes" comment="Переделываем под новую концепцию">
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/JetBrainsMono/JetBrainsMono-Bold.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/JetBrainsMono/JetBrainsMono-BoldItalic.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/JetBrainsMono/JetBrainsMono-ExtraBold.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/JetBrainsMono/JetBrainsMono-ExtraBoldItalic.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/JetBrainsMono/JetBrainsMono-ExtraLight.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/JetBrainsMono/JetBrainsMono-ExtraLightItalic.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/JetBrainsMono/JetBrainsMono-Italic.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/JetBrainsMono/JetBrainsMono-Italic[wght].ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/JetBrainsMono/JetBrainsMono-Light.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/JetBrainsMono/JetBrainsMono-LightItalic.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/JetBrainsMono/JetBrainsMono-Medium.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/JetBrainsMono/JetBrainsMono-MediumItalic.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/JetBrainsMono/JetBrainsMono-Regular.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/JetBrainsMono/JetBrainsMono-SemiBold.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/JetBrainsMono/JetBrainsMono-SemiBoldItalic.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/JetBrainsMono/JetBrainsMono-Thin.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/JetBrainsMono/JetBrainsMono-ThinItalic.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/JetBrainsMono/JetBrainsMonoNL-Bold.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/JetBrainsMono/JetBrainsMonoNL-BoldItalic.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/JetBrainsMono/JetBrainsMonoNL-ExtraBold.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/JetBrainsMono/JetBrainsMonoNL-ExtraBoldItalic.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/JetBrainsMono/JetBrainsMonoNL-ExtraLight.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/JetBrainsMono/JetBrainsMonoNL-ExtraLightItalic.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/JetBrainsMono/JetBrainsMonoNL-Italic.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/JetBrainsMono/JetBrainsMonoNL-Light.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/JetBrainsMono/JetBrainsMonoNL-LightItalic.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/JetBrainsMono/JetBrainsMonoNL-Medium.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/JetBrainsMono/JetBrainsMonoNL-MediumItalic.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/JetBrainsMono/JetBrainsMonoNL-Regular.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/JetBrainsMono/JetBrainsMonoNL-SemiBold.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/JetBrainsMono/JetBrainsMonoNL-SemiBoldItalic.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/JetBrainsMono/JetBrainsMonoNL-Thin.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/JetBrainsMono/JetBrainsMonoNL-ThinItalic.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/JetBrainsMono/JetBrainsMono[wght].ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/Montserrat/Montserrat-Black.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/Montserrat/Montserrat-BlackItalic.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/Montserrat/Montserrat-Bold.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/Montserrat/Montserrat-BoldItalic.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/Montserrat/Montserrat-ExtraBold.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/Montserrat/Montserrat-ExtraBoldItalic.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/Montserrat/Montserrat-ExtraLight.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/Montserrat/Montserrat-ExtraLightItalic.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/Montserrat/Montserrat-Italic-VariableFont_wght.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/Montserrat/Montserrat-Italic.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/Montserrat/Montserrat-Light.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/Montserrat/Montserrat-LightItalic.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/Montserrat/Montserrat-Medium.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/Montserrat/Montserrat-MediumItalic.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/Montserrat/Montserrat-Regular.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/Montserrat/Montserrat-SemiBold.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/Montserrat/Montserrat-SemiBoldItalic.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/Montserrat/Montserrat-Thin.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/Montserrat/Montserrat-ThinItalic.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fonts/Montserrat/Montserrat-VariableFont_wght.ttf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/settings.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/Constants.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Constants.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/Converter.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Converter.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/Functions.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Functions.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/Karaoke.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Karaoke.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/KaraokeClasses.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/KaraokeClasses.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/Main.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Main.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/Utils.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Utils.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/Audio.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Audio.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/Background.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Background.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/Beat.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Beat.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/BlackTrack.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/BlackTrack.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/Chords.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Chords.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/Counter.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Counter.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/FaderChords.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/FaderChords.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/FaderText.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/FaderText.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/FillcolorChords.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/FillcolorChords.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/FillcolorSongtext.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/FillcolorSongtext.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/Fingerboard.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Fingerboard.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/Flash.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Flash.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/Header.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Header.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/Horizon.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Horizon.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/Microphone.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Microphone.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/MltClasses.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/MltClasses.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/model/GuitarString.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/model/GuitarString.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/model/MusicChord.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/model/MusicChord.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/Progress.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Progress.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/SongText.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/SongText.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/Watermark.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Watermark.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/model/Song.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/model/Song.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/model/SongVersion.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/model/SongVersion.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/model/TransformProperty.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/model/TransformProperty.kt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -53,27 +130,39 @@
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
     &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
     &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/home/nsa/Karaoke/src/main/kotlin/mlt&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/home/nsa/Karaoke/src/main/resources&quot;,
     &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;project.structure.last.edited&quot;: &quot;Modules&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;SDKs&quot;,
     &quot;project.structure.proportion&quot;: &quot;0.0&quot;,
     &quot;project.structure.side.proportion&quot;: &quot;0.28704488&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;reference.settings.project.maven.runner&quot;
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.lookFeel&quot;
   }
 }</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
-      <recent name="$PROJECT_DIR$/src/main/kotlin/mlt" />
       <recent name="$PROJECT_DIR$/src/main/resources" />
+      <recent name="$PROJECT_DIR$/src/main/kotlin/mlt" />
     </key>
     <key name="MoveKotlinTopLevelDeclarationsDialog.RECENTS_KEY">
       <recent name="model" />
       <recent name="classes" />
     </key>
   </component>
+  <component name="RunAnythingCache">
+    <option name="myCommands">
+      <command value="templateSongTextSymbolsGroup.add(                 MltNode(                     name = &quot;item&quot;,                     fields = mutableMapOf(Pair(&quot;type&quot;,&quot;QGraphicsTextItem&quot;), Pair(&quot;z-index&quot;,&quot;1&quot;)),                     body = mutableListOf(                         MltNode(                             name = &quot;position&quot;,                             fields = mutableMapOf(Pair(&quot;x&quot;,&quot;$x&quot;), Pair(&quot;y&quot;,&quot;$y&quot;)),                             body = mutableListOf(MltNode(name = &quot;transform&quot;, fields = mutableMapOf(), body = &quot;1,0,0,0,1,0,0,0,1&quot;))                         ),                         mltText.mltNode(text)                     )                 )             )" />
+    </option>
+  </component>
   <component name="RunManager" selected="Kotlin.MainKt">
     <configuration name="GuitarStringKt" type="JetRunConfigurationType" temporary="true" nameIsGenerated="true">
       <option name="MAIN_CLASS_NAME" value="model.GuitarStringKt" />
+      <module name="Karaoke" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="KaraokeKt" type="JetRunConfigurationType" temporary="true" nameIsGenerated="true">
+      <option name="MAIN_CLASS_NAME" value="KaraokeKt" />
       <module name="Karaoke" />
       <method v="2">
         <option name="Make" enabled="true" />
@@ -103,6 +192,7 @@
     <recent_temporary>
       <list>
         <item itemvalue="Kotlin.MainKt" />
+        <item itemvalue="Kotlin.KaraokeKt" />
         <item itemvalue="Kotlin.GuitarStringKt" />
         <item itemvalue="Kotlin.UtilsKt" />
         <item itemvalue="Kotlin.MltNodeKt" />
@@ -127,6 +217,11 @@
       <workItem from="1664879315230" duration="831000" />
       <workItem from="1664880487301" duration="41289000" />
       <workItem from="1665047084136" duration="153090000" />
+      <workItem from="1665424327661" duration="371000" />
+      <workItem from="1665468950792" duration="3219000" />
+      <workItem from="1665480221273" duration="4054000" />
+      <workItem from="1665501114485" duration="36646000" />
+      <workItem from="1665642883569" duration="27440000" />
     </task>
     <task id="LOCAL-00040" summary="Рефакторинг">
       <created>1664101268609</created>
@@ -521,10 +616,14 @@
       <breakpoints>
         <line-breakpoint enabled="true" type="kotlin-line">
           <url>file://$PROJECT_DIR$/src/main/kotlin/mlt/Fingerboard.kt</url>
-          <line>52</line>
+          <line>53</line>
           <option name="timeStamp" value="46" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
+  </component>
+  <component name="XSLT-Support.FileAssociations.UIState">
+    <expand />
+    <select />
   </component>
 </project>

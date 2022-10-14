@@ -3,8 +3,11 @@ import mlt.mltNode
 import model.SongVoiceLine
 import model.MltNode
 import model.ProducerType
+import model.SongVoiceLineType
 
 fun getMltSongTextProducer(param: Map<String, Any?>, type:ProducerType = ProducerType.SONGTEXT, voiceId: Int = 0): MltNode {
+
+
 
     val mlt = MltNode(
         type = type,
@@ -15,7 +18,7 @@ fun getMltSongTextProducer(param: Map<String, Any?>, type:ProducerType = Produce
             Pair("out",param["SONG_END_TIMECODE"].toString())
         ),
         body = mutableListOf(
-            MltNode(name = "property", fields = mutableMapOf(Pair("name","length")), body = param["SONG_LENGTH_MS"]),
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","length")), body = param["SONG_LENGTH_FR"]),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","eof")), body = "pause"),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","resource"))),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","progressive")), body = 1),
@@ -40,6 +43,10 @@ fun getMltSongTextProducer(param: Map<String, Any?>, type:ProducerType = Produce
 
 fun getMltSongTextFilePlaylist(param: Map<String, Any?>, type:ProducerType = ProducerType.SONGTEXT, voiceId: Int = 0): MltNode {
 
+    val voiceLines = param["VOICE${voiceId}_VOICELINES_SONGTEXT"] as List<SongVoiceLine>
+    val propRect = voiceLines
+        .filter {it.startTp != null && it.endTp != null && (it.type == SongVoiceLineType.TEXT || it == voiceLines.first() || it == voiceLines.last())}
+        .map { listOf(it.startTp.toString(), it.endTp.toString()).joinToString(";") }.joinToString(";")
     val mlt = MltNode(
         type = type,
         name = "playlist",
@@ -60,7 +67,7 @@ fun getMltSongTextFilePlaylist(param: Map<String, Any?>, type:ProducerType = Pro
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","rotate_center")), body = 1),
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","mlt_service")), body = "qtblend"),
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive_id")), body = "qtblend"),
-                        MltNode(name = "property", fields = mutableMapOf(Pair("name","rect")), body = param["${type.text.uppercase()}${voiceId}_PROPERTY_RECT"].toString()),
+                        MltNode(name = "property", fields = mutableMapOf(Pair("name","rect")), body = propRect),
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","compositing")), body = 0),
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","distort")), body = 0),
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:collapsed")), body = 0),
@@ -120,28 +127,30 @@ fun getMltSongTextTractor(param: Map<String, Any?>, type:ProducerType = Producer
 
 fun getTemplateSongText(param: Map<String, Any?>, voiceId: Int): MltNode {
 
+    val voiceLines = param["VOICE${voiceId}_VOICELINES_SONGTEXT"] as List<SongVoiceLine>
     val templateSongTextSymbolsGroup = mutableListOf<MltNode>()
     val voiceSetting = param["VOICE${voiceId}_SETTING"] as KaraokeVoice
-    val workAreaSongtextHeightPx = param["VOICE${voiceId}_WORK_AREA_SONGTEXT_HEIGHT_PX"] as Long
-    val voiceLinesSongtext = param["VOICE${voiceId}_VOICELINES_SONGTEXT"] as MutableList<*>
-    val symbolSongtextHeightPx = param["SYMBOL_SONGTEXT_HEIGHT_PX"] as Double
-    val startX = Karaoke.songtextStartPositionXpx
-    val startY = 0
+    val workAreaSongtextHeightPx = param["VOICE${voiceId}_WORK_AREA_SONGTEXT_HEIGHT_PX"] as Int
+//    val voiceLinesSongtext = param["VOICE${voiceId}_VOICELINES_SONGTEXT"] as MutableList<*>
+//    val symbolSongtextHeightPx = param["SYMBOL_SONGTEXT_HEIGHT_PX"] as Int
+//    val startX = Karaoke.songtextStartPositionXpx
+//    val startY = 0
 
 
-    voiceLinesSongtext.forEachIndexed { indexLine, it ->
+    voiceLines.forEachIndexed { indexLine, it ->
         val voiceLineSongtext = it as SongVoiceLine
         voiceLineSongtext.symbols.forEachIndexed { indexSymbol, lineSymbol ->
 
-            val mltText: MltText = if (!lineSymbol.isBeat) voiceSetting.groups[lineSymbol.group].songtextTextMltText else voiceSetting.groups[lineSymbol.group].songtextBeatMltText
-            val text = lineSymbol.text
-            val x = (startX + voiceLineSongtext.getSymbolXpx(indexSymbol)).toLong()
-            val y = (startY + indexLine*symbolSongtextHeightPx).toLong()
+            val mltText: MltText = lineSymbol.mltText
+//            val mltText: MltText = if (!lineSymbol.isBeat) voiceSetting.groups[lineSymbol.group].songtextTextMltText else voiceSetting.groups[lineSymbol.group].songtextBeatMltText
+            val text = mltText.text
+            val x = lineSymbol.xStartPx + Karaoke.songtextStartPositionXpx // (startX + voiceLineSongtext.getSymbolXpx(indexSymbol)).toLong()
+            val y = voiceLineSongtext.yPx //(startY + indexLine*symbolSongtextHeightPx + (symbolSongtextHeightPx - mltText.h)).toLong()
 
             templateSongTextSymbolsGroup.add(
                 MltNode(
                     name = "item",
-                    fields = mutableMapOf(Pair("type","QGraphicsTextItem"), Pair("z-index","0")),
+                    fields = mutableMapOf(Pair("type","QGraphicsTextItem"), Pair("z-index","1")),
                     body = mutableListOf(
                         MltNode(
                             name = "position",
@@ -153,7 +162,11 @@ fun getTemplateSongText(param: Map<String, Any?>, voiceId: Int): MltNode {
                 )
             )
         }
+
     }
+    templateSongTextSymbolsGroup.add(MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},$workAreaSongtextHeightPx"))))
+    templateSongTextSymbolsGroup.add(MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},$workAreaSongtextHeightPx"))))
+    templateSongTextSymbolsGroup.add(MltNode(name = "background", fields = mutableMapOf(Pair("color","0,0,0,0"))))
 
     val templateSongText = MltNode(
         name = "kdenlivetitle",
@@ -164,12 +177,7 @@ fun getTemplateSongText(param: Map<String, Any?>, voiceId: Int): MltNode {
             Pair("height","$workAreaSongtextHeightPx"),
             Pair("out","0"),
         ),
-        body = mutableListOf(
-            templateSongTextSymbolsGroup,
-            MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},$workAreaSongtextHeightPx"))),
-            MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},$workAreaSongtextHeightPx"))),
-            MltNode(name = "background", fields = mutableMapOf(Pair("color","0,0,0,0")))
-        )
+        body = templateSongTextSymbolsGroup
     )
 
     return templateSongText

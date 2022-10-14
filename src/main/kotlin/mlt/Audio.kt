@@ -13,7 +13,7 @@ fun getMltAudioProducer(param: Map<String, Any?>, type: ProducerType, voiceId: I
             Pair("out",param["SONG_END_TIMECODE"].toString())
         ),
         body = mutableListOf(
-            MltNode(name = "property", fields = mutableMapOf(Pair("name","length")), body = param["SONG_LENGTH_MS"]),
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","length")), body = param["SONG_LENGTH_FR"]),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","eof")), body = "pause"),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","resource")), body = param["${type.text.uppercase()}${voiceId}_PATH"]),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","seekable")), body = 1),
@@ -44,7 +44,7 @@ fun getMltAudioFileProducer(param: Map<String, Any?>, type: ProducerType, voiceI
             Pair("out",param["SONG_END_TIMECODE"].toString())
         ),
         body = mutableListOf(
-            MltNode(name = "property", fields = mutableMapOf(Pair("name","length")), body = param["SONG_LENGTH_MS"]),
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","length")), body = param["SONG_LENGTH_FR"]),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","eof")), body = "pause"),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","resource")), body = param["${type.text.uppercase()}${voiceId}_PATH"]),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","seekable")), body = 1),

@@ -10,7 +10,7 @@ fun getMltBlackTrackProducer(param: Map<String, Any?>): MltNode {
             Pair("out",param["SONG_END_TIMECODE"].toString())
         ),
         body = mutableListOf(
-            MltNode(name = "property", fields = mutableMapOf(Pair("name","length")), body = param["SONG_LENGTH_MS"]),
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","length")), body = param["SONG_LENGTH_FR"]),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","eof")), body = "continue"),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","resource")), body = "black"),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","aspect_ratio")), body = 1),

@@ -65,7 +65,6 @@ class Converter {
                         try {
                             when(partName) {
                                 "songtextTextMltFont" -> songtextTextMltText = getMltFontFromString(partValue)
-                                "songtextBeatMltFont" -> songtextBeatMltText = getMltFontFromString(partValue)
                             }
                         } catch (e: Exception) {
                             println("ВНИМАНИЕ: Исключение ${e.message} при десериализации шрифта: $settingString")
@@ -73,8 +72,7 @@ class Converter {
                     }
                     karaokeGroups.add(
                         KaraokeVoiceGroup(
-                            songtextTextMltText = songtextTextMltText ?: getMltFontFromString(""),
-                            songtextBeatMltText = songtextBeatMltText ?: getMltFontFromString("")
+                            mltText = songtextTextMltText ?: getMltFontFromString("")
                         )
                     )
                 }
@@ -88,11 +86,7 @@ class Converter {
                 val groupsText = voice.groups.joinToString(delimiterGroups) { group ->
                     val fieldsText = "songtextTextMltFont" +
                             delimiterNames +
-                            group.songtextTextMltText.setting() +
-                            delimiterFields +
-                            "songtextBeatMltFont" +
-                            delimiterNames +
-                            group.songtextBeatMltText.setting()
+                            group.mltText.setting()
                     fieldsText
                 }
                 val fillText = "evenColor" +

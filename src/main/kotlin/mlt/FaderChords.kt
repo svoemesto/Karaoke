@@ -27,7 +27,7 @@ fun getMltFaderChordsProducer(param: Map<String, Any?>, type:ProducerType = Prod
                     MltNode(name = "property", fields = mutableMapOf(Pair("name","distort")), body = 0),
                     MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:collapsed")), body = 0)
                 )),
-            MltNode(name = "property", fields = mutableMapOf(Pair("name","length")), body = param["SONG_LENGTH_MS"]),
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","length")), body = param["SONG_LENGTH_FR"]),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","eof")), body = "pause"),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","resource"))),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","progressive")), body = 1),

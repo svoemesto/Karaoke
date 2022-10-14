@@ -99,10 +99,24 @@ data class MltText(
     val shadow: String = "0;#64000000;3;3;3"
     val fontItalic: Int get() = if (font.isItalic) 1 else 0
 
-    override fun copy(): MltText {
+    val w: Int get() = getTextWidthHeightPx(text, font).first.toInt()
+    val h: Int get() = getTextWidthHeightPx(text, font).second.toInt()
+
+    fun copy(newText: String, fontScaleCoeff: Double = 1.0): MltText {
         return MltText(
-            text = text,
-            font = Font(font.name,font.style, font.size) ,
+            text = newText,
+            font = Font(font.name,font.style, (font.size*fontScaleCoeff).toInt()) ,
+            fontUnderline = fontUnderline,
+            shapeColor = Color(shapeColor.red, shapeColor.green, shapeColor.blue, shapeColor.alpha),
+            shapeOutline = shapeOutline,
+            shapeOutlineColor = Color(shapeOutlineColor.red, shapeOutlineColor.green, shapeOutlineColor.blue, shapeOutlineColor.alpha)
+        )
+    }
+
+    fun copy(newText: String, newFontSize: Int): MltText {
+        return MltText(
+            text = newText,
+            font = Font(font.name,font.style, newFontSize) ,
             fontUnderline = fontUnderline,
             shapeColor = Color(shapeColor.red, shapeColor.green, shapeColor.blue, shapeColor.alpha),
             shapeOutline = shapeOutline,

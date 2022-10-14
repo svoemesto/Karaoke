@@ -24,7 +24,7 @@ import javax.imageio.ImageIO
 import kotlin.io.path.Path
 import kotlin.math.roundToInt
 import kotlin.random.Random
-
+import kotlin.streams.toList
 
 
 fun main() {
@@ -57,8 +57,8 @@ fun generateChordLayout(chord: MusicChord, note: MusicNote): List<MltObject> {
     var chordLayoutH = chordLayoutW
 
     val chordName = "${note.names.first()}${chord.names.first()}"
-    val chordNameMltText = Karaoke.chordLayoutChordNameMltText.copy()
-    chordNameMltText.text = chordName
+    val chordNameMltText = Karaoke.chordLayoutChordNameMltText.copy(chordName)
+//    chordNameMltText.text = chordName
 
     val fretW = (chordLayoutW / 6.0).toInt()
     var fretNumberTextH = 0
@@ -94,8 +94,8 @@ fun generateChordLayout(chord: MusicChord, note: MusicNote): List<MltObject> {
     // Номера ладов
     val firstFret = if (initFret == 0) 1 else initFret
     for (fret in firstFret..(firstFret+3)) {
-        val fretNumberMltText = Karaoke.chordLayoutFretsNumbersMltText.copy()
-        fretNumberMltText.text = fret.toString()
+        val fretNumberMltText = Karaoke.chordLayoutFretsNumbersMltText.copy(fret.toString())
+//        fretNumberMltText.text = fret.toString()
 
         val mltTextFretNumber = MltObject(
             layoutW = chordLayoutW,
@@ -506,7 +506,7 @@ fun convertMarkersToSubtitles(pathToSourceFile: String, pathToResultFile: String
             val subtitle = Subtitle(
                 startTimecode = startTimecode,
                 endTimecode = endTimecode,
-                text = subText,
+//                text = subText,
                 isLineStart = isLineStart,
                 isLineEnd = isLineEnd
             )
@@ -516,7 +516,7 @@ fun convertMarkersToSubtitles(pathToSourceFile: String, pathToResultFile: String
         var textSubtitleFile = ""
         for (index in 0 until subtitles.size) {
             val subtitle = subtitles[index]
-            textSubtitleFile += "${index+1}\n${subtitle.startTimecode} --> ${subtitle.endTimecode}\n${subtitle.text}\n\n"
+//            textSubtitleFile += "${index+1}\n${subtitle.startTimecode} --> ${subtitle.endTimecode}\n${subtitle.text}\n\n"
         }
 
         if (textSubtitleFile != "") {

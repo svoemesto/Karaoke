@@ -13,6 +13,9 @@ import java.awt.Font
 import java.io.File
 import java.util.*
 
+fun main() {
+    Karaoke.createChords = true
+}
 
 class Karaoke {
     companion object {
@@ -426,9 +429,9 @@ class Karaoke {
             }
 
         // Начальная позиция по Х текста песни на экране (в пикселах)
-        val songtextStartPositionXpx: Long
+        val songtextStartPositionXpx: Int
             get () {
-                return (songtextStartPositionXpercent * frameWidthPx / 100).toLong()
+                return (songtextStartPositionXpercent * frameWidthPx / 100).toInt()
             }
 
         // Смещение горизонта (в пикселах)
@@ -503,77 +506,40 @@ class Karaoke {
         // Настройки текста для голосов - групп
         var voices: MutableList<KaraokeVoice>
             get() {
-                val defaultValue = """songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",0,80), shapeColor = Color(255,255,255,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}
-|[FIELD]|
-songtextBeatMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",0,80), shapeColor = Color(155,255,155,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}
-|[GROUP]|
-songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",2,80), shapeColor = Color(255,255,155,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}
-|[FIELD]|
-songtextBeatMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",2,80), shapeColor = Color(105,255,105,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}
-|[GROUP]|
-songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",0,80), shapeColor = Color(155,255,255,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}
-|[FIELD]|
-songtextBeatMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",0,80), shapeColor = Color(105,255,105,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}
-|[GROUP]|
-songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",2,80), shapeColor = Color(155,255,155,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}
-|[FIELD]|
-songtextBeatMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",2,80), shapeColor = Color(105,255,105,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}
-|[VOICEFIELDS]|
-evenColor|[NAME]|${Color(255,128,0,255).setting()}
-|[FIELD]|
-evenOpacity|[NAME]|0.6
-|[FIELD]|
-oddColor|[NAME]|${Color(255,128,0,255).setting()}
-|[FIELD]|
-oddOpacity|[NAME]|0.6
-|[VOICE]|
-songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",0,80), shapeColor = Color(255,255,255,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}
-|[FIELD]|
-songtextBeatMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",0,80), shapeColor = Color(155,255,155,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}
-|[GROUP]|
-songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",2,80), shapeColor = Color(255,255,155,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}
-|[FIELD]|
-songtextBeatMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",2,80), shapeColor = Color(105,255,105,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}
-|[GROUP]|
-songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",0,80), shapeColor = Color(155,255,255,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}
-|[FIELD]|
-songtextBeatMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",0,80), shapeColor = Color(105,255,105,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}
-|[GROUP]|
-songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",2,80), shapeColor = Color(155,255,155,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}
-|[FIELD]|
-songtextBeatMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",2,80), shapeColor = Color(105,255,105,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}
-|[VOICEFIELDS]|
-evenColor|[NAME]|${Color(255,128,0,255).setting()}
-|[FIELD]|
-evenOpacity|[NAME]|0.6
-|[FIELD]|
-oddColor|[NAME]|${Color(255,128,0,255).setting()}
-|[FIELD]|
-oddOpacity|[NAME]|0.6
-|[VOICE]|
-songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",0,80), shapeColor = Color(255,255,255,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}
-|[FIELD]|
-songtextBeatMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",0,80), shapeColor = Color(155,255,155,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}
-|[GROUP]|
-songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",2,80), shapeColor = Color(255,255,155,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}
-|[FIELD]|
-songtextBeatMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",2,80), shapeColor = Color(105,255,105,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}
-|[GROUP]|
-songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",0,80), shapeColor = Color(155,255,255,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}
-|[FIELD]|
-songtextBeatMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",0,80), shapeColor = Color(105,255,105,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}
-|[GROUP]|
-songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",2,80), shapeColor = Color(155,255,155,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}
-|[FIELD]|
-songtextBeatMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",2,80), shapeColor = Color(105,255,105,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}
-|[VOICEFIELDS]|
-evenColor|[NAME]|${Color(255,128,0,255).setting()}
-|[FIELD]|
-evenOpacity|[NAME]|0.6
-|[FIELD]|
-oddColor|[NAME]|${Color(255,128,0,255).setting()}
-|[FIELD]|
-oddOpacity|[NAME]|0.6""".trimIndent()
+                val defaultValue = "" +
+                        "songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",0,80), shapeColor = Color(255,255,255,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}" +
+                        "|[GROUP]|" +
+                        "songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",2,80), shapeColor = Color(255,255,155,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}" +
+                        "|[GROUP]|" +
+                        "songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",0,80), shapeColor = Color(155,255,255,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}" +
+                        "|[GROUP]|" +
+                        "songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",2,80), shapeColor = Color(155,255,155,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}" +
+                        "|[GROUP]|" +
+                        "songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",2,80), shapeColor = Color(127,127,127,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 1).setting()}" +
+                        "|[VOICEFIELDS]|" + "evenColor|[NAME]|${Color(255,128,0,255).setting()}" + "|[FIELD]|" + "evenOpacity|[NAME]|0.6" + "|[FIELD]|" + "oddColor|[NAME]|${Color(255,128,0,255).setting()}" + "|[FIELD]|" + "oddOpacity|[NAME]|0.6" +
+
+                        "|[VOICE]|" +
+
+                        "songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",0,80), shapeColor = Color(255,255,255,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}" +
+                        "|[GROUP]|" +
+                        "songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",2,80), shapeColor = Color(255,255,155,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}" +
+                        "|[GROUP]|" +
+                        "songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",0,80), shapeColor = Color(155,255,255,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}" +
+                        "|[GROUP]|" +
+                        "songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",2,80), shapeColor = Color(155,255,155,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}" +
+                        "|[VOICEFIELDS]|" + "evenColor|[NAME]|${Color(255,128,0,255).setting()}" + "|[FIELD]|" + "evenOpacity|[NAME]|0.6" + "|[FIELD]|" + "oddColor|[NAME]|${Color(255,128,0,255).setting()}" + "|[FIELD]|" + "oddOpacity|[NAME]|0.6" +
+
+                        "|[VOICE]|" +
+
+                        "songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",0,80), shapeColor = Color(255,255,255,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}" +
+                        "|[GROUP]|" +
+                        "songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",2,80), shapeColor = Color(255,255,155,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}" +
+                        "|[GROUP]|" +
+                        "songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",0,80), shapeColor = Color(155,255,255,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}" +
+                        "|[GROUP]|" +
+                        "songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",2,80), shapeColor = Color(155,255,155,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}" +
+                        "|[VOICEFIELDS]|" + "evenColor|[NAME]|${Color(255,128,0,255).setting()}" + "|[FIELD]|" + "evenOpacity|[NAME]|0.6" + "|[FIELD]|" + "oddColor|[NAME]|${Color(255,128,0,255).setting()}" + "|[FIELD]|" + "oddOpacity|[NAME]|0.6"
+
                 props.loadFromXML(File(fileNameXml).inputStream())
                 return getVoicesFromString(props.getProperty("voices", defaultValue))
             }
@@ -583,11 +549,11 @@ oddOpacity|[NAME]|0.6""".trimIndent()
             }
 
         // Ширина экрана в пикселах
-        var frameWidthPx: Long
+        var frameWidthPx: Int
             get() {
                 val defaultValue = "1920"
                 props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("frameWidthPx",defaultValue).toLong()
+                return props.getProperty("frameWidthPx",defaultValue).toInt()
             }
             set(value) {
                 props.setProperty("frameWidthPx", value.toString())
@@ -595,11 +561,11 @@ oddOpacity|[NAME]|0.6""".trimIndent()
             }
 
         // Высота экрана в пикселах
-        var frameHeightPx: Long
+        var frameHeightPx: Int
             get() {
                 val defaultValue = "1080"
                 props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("frameHeightPx",defaultValue).toLong()
+                return props.getProperty("frameHeightPx",defaultValue).toInt()
             }
             set(value) {
                 props.setProperty("frameHeightPx", value.toString())
@@ -1007,6 +973,28 @@ oddOpacity|[NAME]|0.6""".trimIndent()
             }
             set(value) {
                 props.setProperty("chordLayoutH", value.toString())
+                props.storeToXML(File(fileNameXml).outputStream(), null)
+            }
+
+        var shortLineMs: Long
+            get() {
+                val defaultValue = "200"
+                props.loadFromXML(File(fileNameXml).inputStream())
+                return props.getProperty("shortLineMs",defaultValue).toLong()
+            }
+            set(value) {
+                props.setProperty("shortLineMs", value.toString())
+                props.storeToXML(File(fileNameXml).outputStream(), null)
+            }
+
+        var shortLineFontScaleCoeff: Double
+            get() {
+                val defaultValue = "0.75"
+                props.loadFromXML(File(fileNameXml).inputStream())
+                return props.getProperty("shortLineFontScaleCoeff",defaultValue).toDouble()
+            }
+            set(value) {
+                props.setProperty("shortLineFontScaleCoeff", value.toString())
                 props.storeToXML(File(fileNameXml).outputStream(), null)
             }
 

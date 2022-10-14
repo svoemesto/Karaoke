@@ -15,7 +15,7 @@ fun getMltChordsProducer(param: Map<String, Any?>, type:ProducerType = ProducerT
             Pair("out",param["SONG_END_TIMECODE"].toString())
         ),
         body = mutableListOf(
-            MltNode(name = "property", fields = mutableMapOf(Pair("name","length")), body = param["SONG_LENGTH_MS"]),
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","length")), body = param["SONG_LENGTH_FR"]),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","eof")), body = "pause"),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","resource"))),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","progressive")), body = 1),
@@ -125,8 +125,8 @@ fun getTemplateChords(param: Map<String, Any?>, voiceId: Int): MltNode {
     val workAreaChordsHeightPx = param["VOICE${voiceId}_WORK_AREA_CHORDS_HEIGHT_PX"] as Long
     val voiceLinesSongchords = param["VOICE${voiceId}_VOICELINES_SONGCHORDS"] as MutableList<*>
     val voiceLinesChords = param["VOICE${voiceId}_VOICELINES_CHORDS"] as MutableList<*>
-    val symbolSongtextHeightPx = param["SYMBOL_SONGTEXT_HEIGHT_PX"] as Double
-    val symbolChordsHeightPx = param["SYMBOL_CHORDS_HEIGHT_PX"] as Double
+    val symbolSongtextHeightPx = param["SYMBOL_SONGTEXT_HEIGHT_PX"] as Int
+    val symbolChordsHeightPx = param["SYMBOL_CHORDS_HEIGHT_PX"] as Int
     val startX = Karaoke.songtextStartPositionXpx
     val startYsongchords = symbolChordsHeightPx
     val startYchords = symbolSongtextHeightPx * 0.1
@@ -136,10 +136,11 @@ fun getTemplateChords(param: Map<String, Any?>, voiceId: Int): MltNode {
         val voiceLineSongchords = it as SongVoiceLine
         voiceLineSongchords.symbols.forEachIndexed { indexSymbol, lineSymbol ->
 
-            val mltText: MltText = if (!lineSymbol.isBeat) voiceSetting.groups[lineSymbol.group].songtextTextMltText else voiceSetting.groups[lineSymbol.group].songtextBeatMltText
-            val text = lineSymbol.text
+            val mltText: MltText = lineSymbol.mltText
+//            val mltText: MltText = if (!lineSymbol.isBeat) voiceSetting.groups[lineSymbol.group].songtextTextMltText else voiceSetting.groups[lineSymbol.group].songtextBeatMltText
+            val text = lineSymbol.mltText.text
             val x = (startX + voiceLineSongchords.getSymbolXpx(indexSymbol)).toLong()
-            val y = (startYsongchords + indexLine*(symbolSongtextHeightPx+symbolChordsHeightPx)).toLong()
+            val y = (startYsongchords + indexLine*(symbolSongtextHeightPx+symbolChordsHeightPx) + (symbolSongtextHeightPx - mltText.h)).toLong()
 
             templateChordsSymbolsGroup.add(
                 MltNode(
@@ -165,17 +166,18 @@ fun getTemplateChords(param: Map<String, Any?>, voiceId: Int): MltNode {
 
         voiceLineChords.symbols.forEachIndexed { indexSymbol, lineSymbol ->
 
-            val mltText = MltText(
-                font = lineSymbol.font,
-                shapeColor = Karaoke.chordsFont.shapeColor,
-                fontUnderline = Karaoke.chordsFont.fontUnderline,
-                shapeOutline = Karaoke.chordsFont.shapeOutline,
-                shapeOutlineColor = Karaoke.chordsFont.shapeOutlineColor
-            )
+//            val mltText = MltText(
+//                font = lineSymbol.mltText,
+//                shapeColor = Karaoke.chordsFont.shapeColor,
+//                fontUnderline = Karaoke.chordsFont.fontUnderline,
+//                shapeOutline = Karaoke.chordsFont.shapeOutline,
+//                shapeOutlineColor = Karaoke.chordsFont.shapeOutlineColor
+//            )
 
-            val text = lineSymbol.text
-            val textBeforeChord = lineSymbol.textBeforeChord
-            val x = (startX + getTextWidthHeightPx(textBeforeChord, voiceLineSongchords.fontText).first).toLong()
+            val mltText = lineSymbol.mltText
+            val text = mltText.text
+            val textBeforeChord = lineSymbol.mltTextBefore.text
+            val x = (startX + getTextWidthHeightPx(textBeforeChord, voiceLineSongchords.mltText.font).first).toLong()
             val y = (startYchords + indexLine*(symbolSongtextHeightPx+symbolChordsHeightPx)).toLong()
 
             templateChordsSymbolsGroup.add(

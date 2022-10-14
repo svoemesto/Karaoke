@@ -25,7 +25,7 @@ fun getMltFlashProducer(param: Map<String, Any?>, type:ProducerType = ProducerTy
                     MltNode(name = "property", fields = mutableMapOf(Pair("name","distort")), body = 0),
                     MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:collapsed")), body = 0)
                 )),
-            MltNode(name = "property", fields = mutableMapOf(Pair("name","length")), body = param["SONG_LENGTH_MS"]),
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","length")), body = param["SONG_LENGTH_FR"]),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","eof")), body = "pause"),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","resource"))),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","progressive")), body = 1),
@@ -183,7 +183,7 @@ fun getTemplateFlash(param: Map<String, Any?>): MltNode {
                         name = "position",
                         fields = mutableMapOf(
                             Pair("x","0"),
-                            Pair("y","${param["HORIZON_POSITION_PX"] as Long - (param["SYMBOL_SONGTEXT_HEIGHT_PX"] as Double).toLong() - 6}")
+                            Pair("y","${param["HORIZON_POSITION_PX"] as Int - (param["SYMBOL_SONGTEXT_HEIGHT_PX"] as Int).toLong() - 6}")
                         ),
                         body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(Pair("zoom","100")), body = "1,0,0,0,1,0,0,0,1"))
                     ),

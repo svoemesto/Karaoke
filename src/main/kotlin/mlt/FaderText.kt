@@ -12,7 +12,7 @@ fun getMltFaderTextProducer(param: Map<String, Any?>, type:ProducerType = Produc
             Pair("out",param["SONG_END_TIMECODE"].toString())
         ),
         body = mutableListOf(
-            MltNode(name = "property", fields = mutableMapOf(Pair("name","length")), body = param["SONG_LENGTH_MS"]),
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","length")), body = param["SONG_LENGTH_FR"]),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","eof")), body = "pause"),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","resource"))),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","progressive")), body = 1),
@@ -119,7 +119,7 @@ fun getTemplateFaderText(param: Map<String, Any?>): MltNode {
 
     val voiceSetting = param["VOICE0_SETTING"] as KaraokeVoice
     val w = Karaoke.frameWidthPx
-    val h = getTextWidthHeightPx("W", voiceSetting.groups[0].songtextTextMltText.font).second.toLong() * 2
+    val h = getTextWidthHeightPx("W", voiceSetting.groups[0].mltText.font).second.toLong() * 2
     val x = 0
     val yTop = 0
     val yBottom = Karaoke.frameHeightPx - h

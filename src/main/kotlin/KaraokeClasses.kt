@@ -8,15 +8,13 @@ data class KaraokeVoice (
 ) {
     fun replaceFontSize(fontSizePt: Int) {
         groups.forEach { group ->
-            group.songtextTextMltText.font = Font(group.songtextTextMltText.font.name, group.songtextTextMltText.font.style, fontSizePt)
-            group.songtextBeatMltText.font = Font(group.songtextBeatMltText.font.name, group.songtextBeatMltText.font.style, fontSizePt)
+            group.mltText.font = Font(group.mltText.font.name, group.mltText.font.style, fontSizePt)
         }
     }
 }
 
 data class KaraokeVoiceGroup(
-    var songtextTextMltText: MltText,
-    var songtextBeatMltText: MltText
+    var mltText: MltText
 )
 
 data class KaraokeVoiceFill(

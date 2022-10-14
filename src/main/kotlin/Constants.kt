@@ -33,10 +33,10 @@ val idProducerSplashstart = ProducerType.SPLASHSTART.ordinal * 10 + 1
 val idProducerFlash = ProducerType.FLASH.ordinal * 10 + 1
 
 
-val delimiterVoices = "\n|[VOICE]|\n"
-val delimiterGroups = "\n|[GROUP]|\n"
-val delimiterFields = "\n|[FIELD]|\n"
-val delimiterVoiceFields = "\n|[VOICEFIELDS]|\n"
+val delimiterVoices = "|[VOICE]|"
+val delimiterGroups = "|[GROUP]|"
+val delimiterFields = "|[FIELD]|"
+val delimiterVoiceFields = "|[VOICEFIELDS]|"
 val delimiterNames = "|[NAME]|"
 
 const val LINE_SPACING = 0L

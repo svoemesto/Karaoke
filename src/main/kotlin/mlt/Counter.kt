@@ -14,7 +14,7 @@ fun getMltCounterProducer(param: Map<String, Any?>, id: Long, type:ProducerType 
             Pair("out",param["SONG_END_TIMECODE"].toString())
         ),
         body = mutableListOf(
-            MltNode(name = "property", fields = mutableMapOf(Pair("name","length")), body = param["SONG_LENGTH_MS"]),
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","length")), body = param["SONG_LENGTH_FR"]),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","eof")), body = "pause"),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","resource"))),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","progressive")), body = 1),
@@ -120,7 +120,7 @@ fun getMltCounterTractor(param: Map<String, Any?>, id: Long, type:ProducerType =
 fun getTemplateCounter(param: Map<String, Any?>, id: Int, voiceId: Int): MltNode {
 
     val voiceSetting = param["VOICE${voiceId}_SETTING"] as KaraokeVoice
-    val mltText: MltText = voiceSetting.groups[0].songtextTextMltText
+    val mltText: MltText = voiceSetting.groups[0].mltText
     mltText.shapeColor =  Karaoke.countersColors[id]
 
     return MltNode(

@@ -1,6 +1,7 @@
 import model.SongVoiceLine
 import model.MltNode
 import model.ProducerType
+import model.SongVoiceLineType
 
 fun getMltHorizonProducer(param: Map<String, Any?>, type:ProducerType = ProducerType.HORIZON, voiceId: Int = 0): MltNode {
 
@@ -13,7 +14,7 @@ fun getMltHorizonProducer(param: Map<String, Any?>, type:ProducerType = Producer
             Pair("out",param["SONG_END_TIMECODE"].toString())
         ),
         body = mutableListOf(
-            MltNode(name = "property", fields = mutableMapOf(Pair("name","length")), body = param["SONG_LENGTH_MS"]),
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","length")), body = param["SONG_LENGTH_FR"]),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","eof")), body = "pause"),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","resource"))),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","progressive")), body = 1),
@@ -125,7 +126,7 @@ fun getTemplateHorizon(param: Map<String, Any?>): MltNode {
     if (Karaoke.paintHorizon) {
         voiceLines.forEachIndexed { indexLine, it ->
             val voiceLine = it as SongVoiceLine
-            if (!voiceLine.isEmptyLine) {
+            if (voiceLine.type != SongVoiceLineType.EMPTY) {
                 val lineStartMs = convertTimecodeToMilliseconds(voiceLine.start)
                 val lineEndMs = convertTimecodeToMilliseconds(voiceLine.end)
                 val lineX = ((lineStartMs.toDouble() / (param["SONG_LENGTH_MS"] as Long)) * (Karaoke.frameWidthPx as Long)).toLong()
@@ -150,7 +151,7 @@ fun getTemplateHorizon(param: Map<String, Any?>): MltNode {
                             MltNode(
                                 name = "content",
                                 fields = mutableMapOf(
-                                    Pair("brushcolor", Karaoke.horizonColors[voiceLine.subtitles.first().group].mlt()),
+                                    Pair("brushcolor", Karaoke.horizonColors[voiceLine.group].mlt()),
                                     Pair("pencolor","0,0,0,255"),
                                     Pair("penwidth","0"),
                                     Pair("rect","$lineX,0,$lineW,3")
@@ -216,7 +217,7 @@ fun getTemplateHorizon(param: Map<String, Any?>): MltNode {
                         name = "position",
                         fields = mutableMapOf(
                             Pair("x","0"),
-                            Pair("y","${param["HORIZON_POSITION_PX"] as Long - (param["SYMBOL_SONGTEXT_HEIGHT_PX"] as Double).toLong() - 6}")
+                            Pair("y","${param["HORIZON_POSITION_PX"] as Int - (param["SYMBOL_SONGTEXT_HEIGHT_PX"] as Int).toLong() - 6}")
                         ),
                         body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(Pair("zoom","100")), body = "1,0,0,0,1,0,0,0,1"))
                     ),

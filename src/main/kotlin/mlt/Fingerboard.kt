@@ -1,6 +1,7 @@
 import model.Chord
 import model.MltNode
 import model.ProducerType
+import model.SongVoiceLineSymbol
 import java.io.ByteArrayOutputStream
 import java.util.*
 import javax.imageio.ImageIO
@@ -31,7 +32,7 @@ fun getMltFingerboardProducer(param: Map<String, Any?>, type:ProducerType = Prod
                     MltNode(name = "property", fields = mutableMapOf(Pair("name","distort")), body = 0),
                     MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:collapsed")), body = 0)
                 )),
-            MltNode(name = "property", fields = mutableMapOf(Pair("name","length")), body = param["SONG_LENGTH_MS"]),
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","length")), body = param["SONG_LENGTH_FR"]),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","eof")), body = "pause"),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","resource"))),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","progressive")), body = 1),
@@ -132,14 +133,14 @@ fun getTemplateFingerboard(param: Map<String, Any?>): MltNode {
     val fingerboardH = param["VOICE0_FINGERBOARD_H"] as Int
     val chordW = param["VOICE0_CHORD_W"] as Int
     val chordH = param["VOICE0_CHORD_H"] as Int
-    val chords = param["VOICE0_CHORDS"] as List<Chord>
+    val chords = param["VOICE0_CHORDS"] as List<SongVoiceLineSymbol>
     val startChordX = (Karaoke.frameWidthPx / 2 - chordW /2 + chordW).toInt()
 
     val body: MutableList<MltNode> = mutableListOf()
 
     chords.forEachIndexed{ indexChord, chord ->
         val chordX = startChordX + indexChord * chordW
-        val layouts = generateChordLayout(chord.text)
+        val layouts = generateChordLayout(chord.mltText.text)
         val bi = getChordLayoutPicture(layouts)
         val os = ByteArrayOutputStream()
         ImageIO.write(bi, "png", os)

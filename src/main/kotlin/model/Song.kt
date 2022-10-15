@@ -31,74 +31,12 @@ data class Song(val settings: Settings, val songVersion: SongVersion) {
                 "https://github.com/svoemesto/Karaoke\n" +
                 "${settings.songName.hashtag()} ${settings.author.hashtag()} ${"karaoke".hashtag()} ${"караоке".hashtag()}${if (songVersion == SongVersion.CHORDS) " ${"chords".hashtag()} ${"аккорды".hashtag()}" else ""}\n"
 
-//        return when (songVersion) {
-//            SongVersion.LYRICS -> descriptionLyricText
-//            SongVersion.KARAOKE -> descriptionKaraokeText
-//            SongVersion.CHORDS -> descriptionChordsText
-//        }
     }
 
     var endTimecode: String = ""
-        var beatTimecode: String = "00:00:00.000"
-        var voices: MutableList<SongVoice> = mutableListOf()
-//        var chords: MutableList<Chord> = mutableListOf()
-//    val hasChords: Boolean get() = chords.isNotEmpty()
-        val descriptionLyricText: String
-            get() {
-                val text = "${settings.songName} ★♫★ ${settings.author} ★♫★ lyric" + "\n" +
-                        "Композиция: ${settings.songName}\n" +
-                        "Исполнитель: ${settings.author}\n" +
-                        "Альбом: ${settings.album}\n" +
-                        "Год: ${settings.year}\n" +
-                        "Тональность: ${settings.key}\n" +
-                        "Темп: ${settings.bpm} bpm\n" +
-                        "Karaoke-версия: \n" +
-                        "Accords-версия: \n" +
-                        "Плейлист «${settings.author} (karaoke)»: \n" +
-                        "Плейлист «${settings.author} (lyrics)»: \n" +
-                        "Минусовка, определение тональности и темпа композиции сделаны с помощью сервиса https://vocalremover.org\n" +
-                        "Видео создано с помощью написанной мной программы для создания караоке: https://github.com/svoemesto/Karaoke\n" +
-                        "${settings.songName.hashtag()} ${settings.author.hashtag()} ${"karaoke".hashtag()} ${"караоке".hashtag()}\n"
-                return text
-            }
+    var voices: MutableList<SongVoice> = mutableListOf()
+    val hasChords: Boolean get() = voices.sumOf { it.lines.filter { it.type == SongVoiceLineType.CHORDS }.size } > 0
 
-    val descriptionKaraokeText: String
-        get() {
-            val text = "${settings.songName} ★♫★ ${settings.author} ★♫★ karaoke" + "\n" +
-                    "Композиция: ${settings.songName}\n" +
-                    "Исполнитель: ${settings.author}\n" +
-                    "Альбом: ${settings.album}\n" +
-                    "Год: ${settings.year}\n" +
-                    "Тональность: ${settings.key}\n" +
-                    "Темп: ${settings.bpm} bpm\n" +
-                    "Lyric-версия: \n" +
-                    "Accords-версия: \n" +
-                    "Плейлист «${settings.author} (karaoke)»: \n" +
-                    "Плейлист «${settings.author} (lyrics)»: \n" +
-                    "Минусовка, определение тональности и темпа композиции сделаны с помощью сервиса https://vocalremover.org\n" +
-                    "Видео создано с помощью написанной мной программы для создания караоке: https://github.com/svoemesto/Karaoke\n" +
-                    "${settings.songName.hashtag()} ${settings.author.hashtag()} ${"karaoke".hashtag()} ${"караоке".hashtag()}\n"
-            return text
-        }
-
-    val descriptionChordsText: String
-        get() {
-            val text = "${settings.songName} ★♫★ ${settings.author} ★♫★ accords" + "\n" +
-                    "Композиция: ${settings.songName}\n" +
-                    "Исполнитель: ${settings.author}\n" +
-                    "Альбом: ${settings.album}\n" +
-                    "Год: ${settings.year}\n" +
-                    "Тональность: ${settings.key}\n" +
-                    "Темп: ${settings.bpm} bpm\n" +
-                    "Karaoke-версия: \n" +
-                    "Lyric-версия: \n" +
-                    "Плейлист «${settings.author} (karaoke)»: \n" +
-                    "Плейлист «${settings.author} (lyrics)»: \n" +
-                    "Минусовка, определение тональности и темпа композиции сделаны с помощью сервиса https://vocalremover.org\n" +
-                    "Видео создано с помощью написанной мной программы для создания караоке: https://github.com/svoemesto/Karaoke\n" +
-                    "${settings.songName.hashtag()} ${settings.author.hashtag()} ${"karaoke".hashtag()} ${"караоке".hashtag()}\n"
-            return text
-        }
 
         init {
 
@@ -111,7 +49,7 @@ data class Song(val settings: Settings, val songVersion: SongVersion) {
             val listVoices = mutableListOf<SongVoice>()
             for (voideId in listFile.indices) {
 
-                var chords: MutableList<Chord> = mutableListOf()
+                val chords: MutableList<Chord> = mutableListOf()
                 val listLines = mutableListOf<SongVoiceLine>()
                 val listChordLines = mutableListOf<SongVoiceLine>()
                 var maxLengthLine = 0
@@ -122,7 +60,6 @@ data class Song(val settings: Settings, val songVersion: SongVersion) {
                 var maxWidthLineText = ""
                 val body = File(mapFiles[voideId]).readText(Charsets.UTF_8)
 
-                var voiceBeatTimecode = "00:00:00.000"
                 var group = 0
 
                 var songSubtitles: MutableList<Subtitle> = mutableListOf()
@@ -140,11 +77,10 @@ data class Song(val settings: Settings, val songVersion: SongVersion) {
                             // Разделяем sub по | в список
                             val settingList = text.split("|")
                             when (settingList[1].uppercase()) {
-                                "BEAT" -> voiceBeatTimecode = startEnd.split(" --> ")[0].replace(",",".")
                                 "GROUP" -> group = if (settingList.size > 2) settingList[2].toInt() else 0
                                 "CHORD" -> {
                                     val chordTimecode = startEnd.split(" --> ")[0].replace(",",".")
-                                    val chordText = if (settingList.size > 2) settingList[2] else ""
+                                    val chordText = "${if (settingList.size > 2) settingList[2] else ""}${if (settingList.size > 3) "|" + settingList[3] else ""}"
                                     if (chordText != "") {
                                         chords.add(Chord(chordTimecode, chordText))
                                     }
@@ -182,6 +118,7 @@ data class Song(val settings: Settings, val songVersion: SongVersion) {
                                         )
                                     }
                                 }
+                                else -> {}
                             }
                         } else {
                             val se = startEnd.split(" --> ")
@@ -321,8 +258,6 @@ data class Song(val settings: Settings, val songVersion: SongVersion) {
                         srtFileBody = body,
                         lines = listLines.sortedBy { convertTimecodeToMilliseconds(it.start)}.toMutableList()
                     ))
-
-                if (voideId == 0) beatTimecode = voiceBeatTimecode
 
             }
 

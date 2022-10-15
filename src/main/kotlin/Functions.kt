@@ -25,6 +25,7 @@ fun createKaraokeAll(pathToSettingsFile: String) {
 }
 fun createKaraoke(song: Song, isBluetoothDelay: Boolean) {
 
+    if (song.songVersion == SongVersion.CHORDS && !song.hasChords) return
     println("Создаём ${song.songVersion.name}${if (isBluetoothDelay) " for Bluetooth" else ""}: ${song.settings.author} / ${song.settings.songName}")
 
     val param = mutableMapOf<String, Any?>()

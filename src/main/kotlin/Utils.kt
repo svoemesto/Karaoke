@@ -45,12 +45,15 @@ fun main() {
 }
 
 fun generateChordLayout(chordName: String): List<MltObject> {
-    val (chord, note) = MusicChord.getChordNote(chordName)
-    return if (chord!=null && note != null) generateChordLayout(chord, note) else emptyList()
+    val chardNameAndFret = chordName.split("|")
+    val nameChord = chardNameAndFret[0]
+    val fretChord = if (chardNameAndFret.size > 1) chardNameAndFret[1].toInt() else 0
+    val (chord, note) = MusicChord.getChordNote(nameChord)
+    return if (chord!=null && note != null) generateChordLayout(chord, note, fretChord) else emptyList()
 }
-fun generateChordLayout(chord: MusicChord, note: MusicNote): List<MltObject> {
+fun generateChordLayout(chord: MusicChord, note: MusicNote, fret: Int = 0): List<MltObject> {
 
-    val fingerboards = chord.getFingerboard(note, note.defaultRootFret)
+    val fingerboards = chord.getFingerboard(note, if (fret == 0) note.defaultRootFret else fret)
     val initFret = fingerboards[0].rootFret
     val result:MutableList<MltObject> = mutableListOf()
     var chordLayoutW = (Karaoke.frameHeightPx / 4).toInt()

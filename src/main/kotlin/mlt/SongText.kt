@@ -129,21 +129,14 @@ fun getTemplateSongText(param: Map<String, Any?>, voiceId: Int): MltNode {
 
     val voiceLines = param["VOICE${voiceId}_VOICELINES_SONGTEXT"] as List<SongVoiceLine>
     val templateSongTextSymbolsGroup = mutableListOf<MltNode>()
-    val voiceSetting = param["VOICE${voiceId}_SETTING"] as KaraokeVoice
     val workAreaSongtextHeightPx = param["VOICE${voiceId}_WORK_AREA_SONGTEXT_HEIGHT_PX"] as Int
-//    val voiceLinesSongtext = param["VOICE${voiceId}_VOICELINES_SONGTEXT"] as MutableList<*>
-//    val symbolSongtextHeightPx = param["SYMBOL_SONGTEXT_HEIGHT_PX"] as Int
-//    val startX = Karaoke.songtextStartPositionXpx
-//    val startY = 0
-
 
     voiceLines.forEachIndexed { indexLine, it ->
         val voiceLineSongtext = it as SongVoiceLine
         voiceLineSongtext.symbols.forEachIndexed { indexSymbol, lineSymbol ->
 
             val mltText: MltText = lineSymbol.mltText
-//            val mltText: MltText = if (!lineSymbol.isBeat) voiceSetting.groups[lineSymbol.group].songtextTextMltText else voiceSetting.groups[lineSymbol.group].songtextBeatMltText
-            val text = mltText.text
+            val text = if (voiceLineSongtext.type == SongVoiceLineType.CHORDS) mltText.text.split("|")[0] else mltText.text
             val x = lineSymbol.xStartPx + Karaoke.songtextStartPositionXpx // (startX + voiceLineSongtext.getSymbolXpx(indexSymbol)).toLong()
             val y = voiceLineSongtext.yPx //(startY + indexLine*symbolSongtextHeightPx + (symbolSongtextHeightPx - mltText.h)).toLong()
 

@@ -77,6 +77,7 @@ fun getMlt(param: Map<String, Any?>): MltNode {
 
     val songVersion = param["SONG_VERSION"] as SongVersion
     val countVoices = (param["COUNT_VOICES"] as Int)
+    val countFingerboards = param["VOICE0_COUNT_FINGERBOARDS"] as Int
 
     val body = mutableListOf<MltNode>()
 
@@ -96,7 +97,11 @@ fun getMlt(param: Map<String, Any?>): MltNode {
                     ProducerType.FADERTEXT -> body.add(getMltFaderTextProducer(param, type, voiceId))
                     ProducerType.FADERCHORDS -> body.add(getMltFaderChordsProducer(param, type, voiceId))
                     ProducerType.BACKCHORDS -> body.add(getMltBackChordsProducer(param, type, voiceId))
-                    ProducerType.FINGERBOARD -> body.add(getMltFingerboardProducer(param, type, voiceId))
+                    ProducerType.FINGERBOARD -> {
+                        for (indexFingerboard in 0 until countFingerboards) {
+                            body.add(getMltFingerboardProducer(param, type, voiceId, indexFingerboard))
+                        }
+                    }
                     ProducerType.HEADER -> body.add(getMltHeaderProducer(param, type, voiceId))
                     ProducerType.BACKGROUND -> body.add(getMltBackgroundProducer(param, type, voiceId))
                     ProducerType.AUDIOVOCAL -> body.add(getMltAudioProducer(param, type, voiceId))
@@ -175,9 +180,11 @@ fun getMlt(param: Map<String, Any?>): MltNode {
                         body.add(getMltBackChordsTractor(param, type, voiceId))
                     }
                     ProducerType.FINGERBOARD -> {
-                        body.add(getMltFingerboardFilePlaylist(param, type, voiceId))
-                        body.add(getMltFingerboardTrackPlaylist(param, type, voiceId))
-                        body.add(getMltFingerboardTractor(param, type, voiceId))
+                        for (indexFingerboard in 0 until countFingerboards) {
+                            body.add(getMltFingerboardFilePlaylist(param, type, voiceId, indexFingerboard))
+                            body.add(getMltFingerboardTrackPlaylist(param, type, voiceId, indexFingerboard))
+                            body.add(getMltFingerboardTractor(param, type, voiceId, indexFingerboard))
+                        }
                     }
                     ProducerType.HEADER -> {
                         body.add(getMltHeaderFilePlaylist(param, type, voiceId))

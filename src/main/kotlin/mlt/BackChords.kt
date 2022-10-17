@@ -3,7 +3,7 @@ import model.ProducerType
 
 fun getMltBackChordsProducer(param: Map<String, Any?>, type:ProducerType = ProducerType.BACKCHORDS, voiceId: Int = 0): MltNode {
 
-    val fingerboardW = param["VOICE0_FINGERBOARD_W"] as Int
+//    val fingerboardW = param["VOICE0_FINGERBOARD_W"] as Int
     val fingerboardH = param["VOICE0_FINGERBOARD_H"] as Int
 
     val mlt = MltNode(
@@ -120,7 +120,7 @@ fun getMltBackChordsTractor(param: Map<String, Any?>, type:ProducerType = Produc
 
 fun getTemplateBackChords(param: Map<String, Any?>): MltNode {
 
-    val fingerboardW = param["VOICE0_FINGERBOARD_W"] as Int
+//    val fingerboardW = param["VOICE0_FINGERBOARD_W"] as Int
     val fingerboardH = param["VOICE0_FINGERBOARD_H"] as Int
 
     val voiceSetting = param["VOICE0_SETTING"] as KaraokeVoice

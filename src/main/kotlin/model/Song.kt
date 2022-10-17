@@ -83,7 +83,7 @@ data class Song(val settings: Settings, val songVersion: SongVersion) {
                             "CHORD" -> {
                                 val chordTimecode = startEnd.split(" --> ")[0].replace(",",".")
                                 var chordText = "${if (settingList.size > 2) settingList[2] else ""}${if (settingList.size > 3) "|" + settingList[3] else "|$capo"}"
-                                chordText = chordText.replace("#","♯").replace("b","♭")
+//                                chordText = chordText.replace("#","♯").replace("b","♭")
                                 if (chordText != "") {
                                     chords.add(Chord(chordTimecode, chordText))
                                 }

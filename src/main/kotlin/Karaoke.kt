@@ -896,6 +896,18 @@ class Karaoke {
                 props.storeToXML(File(fileNameXml).outputStream(), null)
             }
 
+        var maxCountChordsInFingerboard: Int
+            get() {
+                val defaultValue = "100"
+                props.loadFromXML(File(fileNameXml).inputStream())
+                return props.getProperty("maxCountChordsInFingerboard",defaultValue).toInt()
+            }
+            set(value) {
+                props.setProperty("maxCountChordsInFingerboard", value.toString())
+                props.storeToXML(File(fileNameXml).outputStream(), null)
+            }
+
+
         var shortLineFontScaleCoeff: Double
             get() {
                 val defaultValue = "0.75"

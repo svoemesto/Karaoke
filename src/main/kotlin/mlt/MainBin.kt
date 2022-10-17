@@ -5,32 +5,37 @@ import model.SongVersion
 fun getMltMainBinPlaylist(param: Map<String, Any?>): MltNode {
 
     val songVersion = param["SONG_VERSION"] as SongVersion
-
-    val countGroups = (param["COUNT_VOICES"] as Int)
+    val countFingerboards = param["VOICE0_COUNT_FINGERBOARDS"] as Int
+    val countVoices = (param["COUNT_VOICES"] as Int)
     val entries = mutableListOf<MltNode>()
 //    var type = ProducerType.NONE
-    for (groupId in 0 until countGroups) {
+    for (voiceId in 0 until countVoices) {
 
         songVersion.producers.forEach { type ->
-            if ((type.onlyOne && groupId == 0) || !type.onlyOne ) {
-                if (type.suffixes.isEmpty() && type.ids.isEmpty()) {
-                    entries.add(MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_${type.text}${groupId}"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))))
-                } else if (type.suffixes.isEmpty() && type.ids.isNotEmpty()) {
-                    for (id in type.ids) {
-                        entries.add(MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_${type.text}${groupId}${id}"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))))
-                    }
-                } else if (type.suffixes.isNotEmpty() && type.ids.isEmpty()) {
-                    for (suffix in type.suffixes) {
-                        entries.add(MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_${type.text}${suffix}${groupId}"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))))
+            if ((type.onlyOne && voiceId == 0) || !type.onlyOne ) {
+                if (type == ProducerType.FINGERBOARD) {
+                    for (indexFingerboard in 0 until countFingerboards) {
+                        entries.add(MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_${type.text}${voiceId}${indexFingerboard}"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))))
                     }
                 } else {
-                    for (id in type.ids) {
+                    if (type.suffixes.isEmpty() && type.ids.isEmpty()) {
+                        entries.add(MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_${type.text}${voiceId}"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))))
+                    } else if (type.suffixes.isEmpty() && type.ids.isNotEmpty()) {
+                        for (id in type.ids) {
+                            entries.add(MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_${type.text}${voiceId}${id}"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))))
+                        }
+                    } else if (type.suffixes.isNotEmpty() && type.ids.isEmpty()) {
                         for (suffix in type.suffixes) {
-                            entries.add(MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_${type.text}${suffix}${groupId}${id}"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))))
+                            entries.add(MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_${type.text}${suffix}${voiceId}"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))))
+                        }
+                    } else {
+                        for (id in type.ids) {
+                            for (suffix in type.suffixes) {
+                                entries.add(MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_${type.text}${suffix}${voiceId}${id}"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))))
+                            }
                         }
                     }
                 }
-
             }
         }
 

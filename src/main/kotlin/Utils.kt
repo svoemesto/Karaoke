@@ -4,6 +4,7 @@ import mlt.MltObjectAlignmentX
 import mlt.MltObjectAlignmentY
 import mlt.MltObjectType
 import mlt.MltText
+import model.Fingerboard
 import model.Marker
 import model.MusicChord
 import model.MusicNote
@@ -53,7 +54,14 @@ fun generateChordLayout(chordName: String): List<MltObject> {
 }
 fun generateChordLayout(chord: MusicChord, note: MusicNote, fret: Int = 0): List<MltObject> {
 
-    val fingerboards = chord.getFingerboard(note, if (fret == 0) note.defaultRootFret else fret)
+    var fingerboards: List<Fingerboard> = chord.getFingerboard(note, if (fret == 0) note.defaultRootFret else fret)
+
+    var nextFret = fret
+    while (fingerboards.isEmpty()) {
+        nextFret += 1
+        fingerboards = chord.getFingerboard(note, if (nextFret == 0) note.defaultRootFret else nextFret)
+    }
+
     val initFret = fingerboards[0].rootFret
     val result:MutableList<MltObject> = mutableListOf()
     var chordLayoutW = (Karaoke.frameHeightPx / 4).toInt()
@@ -359,7 +367,7 @@ fun createSongPicture(song: Song, fileName: String, songVersion: SongVersion, is
     centerY = frameH - 100
     graphics2D.drawString(textToOverlay, centerX, centerY)
 
-    graphics2D.drawImage(biLogoAlbum, 50, 50, null)
+    graphics2D.drawImage(biLogoAlbum, 260, 50, null)
     graphics2D.drawImage(biLogoAuthor, 710, 50, null)
 
     if (comment != "") {
@@ -378,8 +386,8 @@ fun createSongPicture(song: Song, fileName: String, songVersion: SongVersion, is
 
     }
 
-    graphics2D.drawImage(biLogoAlbum, 50, 50, null)
-    graphics2D.drawImage(biLogoAuthor, 710, 50, null)
+//    graphics2D.drawImage(biLogoAlbum, 50, 50, null)
+//    graphics2D.drawImage(biLogoAuthor, 710, 50, null)
 
     graphics2D.dispose()
 

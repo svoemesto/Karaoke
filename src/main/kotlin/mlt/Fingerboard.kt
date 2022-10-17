@@ -138,6 +138,36 @@ fun getTemplateFingerboard(param: Map<String, Any?>): MltNode {
 
     val body: MutableList<MltNode> = mutableListOf()
 
+    body.add(
+        MltNode(
+            name = "item",
+            fields = mutableMapOf(
+                Pair("type","QGraphicsRectItem"),
+                Pair("z-index","0"),
+            ),
+            body = mutableListOf(
+                MltNode(
+                    name = "position",
+                    fields = mutableMapOf(
+                        Pair("x","0"),
+                        Pair("y","0")
+                    ),
+                    body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(Pair("zoom","100")), body = "1,0,0,0,1,0,0,0,1"))
+                ),
+                MltNode(
+                    name = "content",
+                    fields = mutableMapOf(
+                        Pair("brushcolor","0,0,0,255"),
+                        Pair("pencolor","0,0,0,255"),
+                        Pair("penwidth","0"),
+                        Pair("penwidth","0"),
+                        Pair("rect","0,0,$fingerboardW,$fingerboardH")
+                    )
+                )
+            )
+        )
+    )
+
     chords.forEachIndexed{ indexChord, chord ->
         val chordX = startChordX + indexChord * chordW
         val layouts = generateChordLayout(chord.mltText.text)
@@ -172,6 +202,9 @@ fun getTemplateFingerboard(param: Map<String, Any?>): MltNode {
         )
     }
 
+    body.add(MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${fingerboardW},${fingerboardH+50}"))))
+    body.add(MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${fingerboardW},${fingerboardH+50}"))))
+    body.add(MltNode(name = "background", fields = mutableMapOf(Pair("color","0,0,0,0"))))
 
     return MltNode(
         name = "kdenlivetitle",
@@ -182,39 +215,7 @@ fun getTemplateFingerboard(param: Map<String, Any?>): MltNode {
             Pair("height","${fingerboardH+50}"),
             Pair("out","0"),
         ),
-        body = mutableListOf(
-            MltNode(
-                name = "item",
-                fields = mutableMapOf(
-                    Pair("type","QGraphicsRectItem"),
-                    Pair("z-index","0"),
-                ),
-                body = mutableListOf(
-                    MltNode(
-                        name = "position",
-                        fields = mutableMapOf(
-                            Pair("x","0"),
-                            Pair("y","0")
-                        ),
-                        body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(Pair("zoom","100")), body = "1,0,0,0,1,0,0,0,1"))
-                    ),
-                    MltNode(
-                        name = "content",
-                        fields = mutableMapOf(
-                            Pair("brushcolor","0,0,0,255"),
-                            Pair("pencolor","0,0,0,255"),
-                            Pair("penwidth","0"),
-                            Pair("penwidth","0"),
-                            Pair("rect","0,0,$fingerboardW,$fingerboardH")
-                        )
-                    )
-                )
-            ),
-            body,
-            MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${fingerboardW},${fingerboardH+50}"))),
-            MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${fingerboardW},${fingerboardH+50}"))),
-            MltNode(name = "background", fields = mutableMapOf(Pair("color","0,0,0,0")))
-        )
+        body = body
     )
 
 }

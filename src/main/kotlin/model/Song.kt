@@ -34,6 +34,7 @@ data class Song(val settings: Settings, val songVersion: SongVersion) {
     }
 
     var endTimecode: String = ""
+    var capo: Int = 0
     var voices: MutableList<SongVoice> = mutableListOf()
     val hasChords: Boolean get() = voices.sumOf { it.lines.filter { it.type == SongVoiceLineType.CHORDS }.size } > 0
 
@@ -78,9 +79,11 @@ data class Song(val settings: Settings, val songVersion: SongVersion) {
                         val settingList = text.split("|")
                         when (settingList[1].uppercase()) {
                             "GROUP" -> group = if (settingList.size > 2) settingList[2].toInt() else 0
+                            "CAPO" -> capo = if (settingList.size > 2) settingList[2].toInt() else 0
                             "CHORD" -> {
                                 val chordTimecode = startEnd.split(" --> ")[0].replace(",",".")
-                                val chordText = "${if (settingList.size > 2) settingList[2] else ""}${if (settingList.size > 3) "|" + settingList[3] else ""}"
+                                var chordText = "${if (settingList.size > 2) settingList[2] else ""}${if (settingList.size > 3) "|" + settingList[3] else "|$capo"}"
+                                chordText = chordText.replace("#","♯").replace("b","♭")
                                 if (chordText != "") {
                                     chords.add(Chord(chordTimecode, chordText))
                                 }
@@ -156,7 +159,7 @@ data class Song(val settings: Settings, val songVersion: SongVersion) {
                                 maxWidthLineText = lineText
                             }
 
-                            if (songVersion != SongVersion.CHORDS && lineText.contains("♬")) {
+                            if (songVersion != SongVersion.CHORDS && (lineText.contains("♬") || lineText.contains("♩") || lineText.contains("♪"))) {
                                 listLines.add(
                                     SongVoiceLine(
                                         type = SongVoiceLineType.EMPTY,
@@ -517,7 +520,7 @@ data class SongVoiceLine(
                             y = voice.getScreenY(this, convertMillisecondsToTimecode(convertTimecodeToMilliseconds(subtitles.last().endTimecode) + 1000), horizonPositionPx) + subtitles.last().deltaEndY,
                             w = Integer.max(subtitles.last().xEndPx,1),
                             h = subtitles.last().hPx - subtitles.last().deltaEndH,
-                            opacity = 1.0 - coeff
+                            opacity = 1.0 // - coeff
                         )
                     )
                 }

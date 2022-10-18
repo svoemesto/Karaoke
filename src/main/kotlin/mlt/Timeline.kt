@@ -13,12 +13,12 @@ fun getMltTimelineTractor(param: Map<String, Any?>): MltNode {
     body.add(MltNode(name = "track", fields = mutableMapOf(Pair("producer","black_track"))))
 
 //    var type = ProducerType.NONE
-    for (voiceId in 0 until countVoices) {
 
-        songVersion.producers.forEach { type ->
+    songVersion.producers.forEach { type ->
+        for (voiceId in 0 until countVoices) {
             if ((type.onlyOne && voiceId == 0) || !type.onlyOne ) {
                 if (type == ProducerType.FINGERBOARD) {
-                    for (indexFingerboard in 0 until countFingerboards) {
+                    for (indexFingerboard in (countFingerboards-1) downTo 0 ) {
                         body.add(MltNode(name = "track", fields = mutableMapOf(Pair("producer", "tractor_${type.text}${voiceId}${indexFingerboard}"))))
                     }
                 } else {

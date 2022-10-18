@@ -9,12 +9,13 @@ fun getMltMainBinPlaylist(param: Map<String, Any?>): MltNode {
     val countVoices = (param["COUNT_VOICES"] as Int)
     val entries = mutableListOf<MltNode>()
 //    var type = ProducerType.NONE
-    for (voiceId in 0 until countVoices) {
 
-        songVersion.producers.forEach { type ->
+
+    songVersion.producers.forEach { type ->
+        for (voiceId in 0 until countVoices) {
             if ((type.onlyOne && voiceId == 0) || !type.onlyOne ) {
                 if (type == ProducerType.FINGERBOARD) {
-                    for (indexFingerboard in 0 until countFingerboards) {
+                    for (indexFingerboard in (countFingerboards-1) downTo 0 ) {
                         entries.add(MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_${type.text}${voiceId}${indexFingerboard}"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))))
                     }
                 } else {

@@ -29,20 +29,13 @@ import kotlin.streams.toList
 
 
 fun main() {
-    val layouts = generateChordLayout("Dm")
-    layouts.forEach { l ->
-        if (l.shape.type == MltObjectType.TEXT) {
-            println("text = ${(l.shape as MltText).text}, font size=${(l.shape as MltText).font.size}")
+    for (i in 0 .. 12) {
+        val result = MusicChord.Xm6.getFingerboard(MusicNote.F,i)
+        if (result.isNotEmpty()) {
+            println(result.joinToString("\n"))
+            println()
         }
-        println("x=${l.x}, y=${l.y}, w=${l.w}, h=${l.h}")
     }
-
-    val bi = getChordLayoutPicture(layouts)
-    val os = ByteArrayOutputStream()
-    ImageIO.write(bi, "png", os)
-    val base64 = Base64.getEncoder().encodeToString(os.toByteArray())
-    println(base64)
-    println(bi)
 }
 
 fun generateChordLayout(chordName: String): List<MltObject> {

@@ -98,7 +98,7 @@ fun getMlt(param: Map<String, Any?>): MltNode {
                     ProducerType.FADERCHORDS -> body.add(getMltFaderChordsProducer(param, type, voiceId))
                     ProducerType.BACKCHORDS -> body.add(getMltBackChordsProducer(param, type, voiceId))
                     ProducerType.FINGERBOARD -> {
-                        for (indexFingerboard in 0 until countFingerboards) {
+                        for (indexFingerboard in (countFingerboards-1) downTo 0 ) {
                             body.add(getMltFingerboardProducer(param, type, voiceId, indexFingerboard))
                         }
                     }
@@ -180,7 +180,7 @@ fun getMlt(param: Map<String, Any?>): MltNode {
                         body.add(getMltBackChordsTractor(param, type, voiceId))
                     }
                     ProducerType.FINGERBOARD -> {
-                        for (indexFingerboard in 0 until countFingerboards) {
+                        for (indexFingerboard in (countFingerboards-1) downTo 0 ) {
                             body.add(getMltFingerboardFilePlaylist(param, type, voiceId, indexFingerboard))
                             body.add(getMltFingerboardTrackPlaylist(param, type, voiceId, indexFingerboard))
                             body.add(getMltFingerboardTractor(param, type, voiceId, indexFingerboard))

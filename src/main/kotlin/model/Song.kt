@@ -397,9 +397,8 @@ data class SongVoiceLine(
     var durationMs: Long = 0,
     var mltText: MltText,
 ) {
-    fun getFillTps(voice: SongVoice, horizonPositionPx: Int): String {
+    fun getFillTps(voice: SongVoice, horizonPositionPx: Int, opacityFillValue: Double): String {
         val result: MutableList<TransformProperty> = mutableListOf()
-
         val endTpCurrLineMs = convertTimecodeToMilliseconds(endTp!!.time)
         val nextLine = voice.lines.firstOrNull {
             it.type == SongVoiceLineType.TEXT && it.startTp != null && convertTimecodeToMilliseconds(it.startTp!!.time) > endTpCurrLineMs
@@ -433,7 +432,7 @@ data class SongVoiceLine(
                         y = voice.getScreenY(this, subtitle.startTimecode, horizonPositionPx) + subtitle.deltaStartY,
                         w = Integer.max(subtitle.xStartPx,1),
                         h = subtitle.hPx - subtitle.deltaStartH,
-                        opacity = 1.0
+                        opacity = opacityFillValue
                     )
                 )
                 result.add(
@@ -443,7 +442,7 @@ data class SongVoiceLine(
                         y = voice.getScreenY(this, convertFramesToTimecode(convertTimecodeToFrames(subtitle.endTimecode) - 2), horizonPositionPx) + subtitle.deltaEndY,
                         w = Integer.max(subtitle.xEndPx,1),
                         h = subtitle.hPx - subtitle.deltaEndH,
-                        opacity = 1.0
+                        opacity = opacityFillValue
                     )
                 )
                 if (subtitle == subtitles.last()) {
@@ -454,7 +453,7 @@ data class SongVoiceLine(
                             y = voice.getScreenY(this, subtitle.endTimecode, horizonPositionPx) + subtitle.deltaEndY,
                             w = Integer.max(subtitle.xEndPx,1),
                             h = subtitle.hPx - subtitle.deltaEndH,
-                            opacity = 1.0
+                            opacity = opacityFillValue
                         )
                     )
                 }
@@ -467,7 +466,7 @@ data class SongVoiceLine(
                     y = voice.getScreenY(this, subtitle.startTimecode, horizonPositionPx) + subtitle.deltaStartY,
                     w = Integer.max(subtitle.xStartPx,1),
                     h = subtitle.hPx - subtitle.deltaStartH,
-                    opacity = 1.0
+                    opacity = opacityFillValue
                 )
 
                 val coeff = (endTpCurrLineMs.toDouble() - timeFromMs.toDouble()) / (timeToMs.toDouble() - timeFromMs.toDouble())
@@ -478,7 +477,7 @@ data class SongVoiceLine(
                     y = voice.getScreenY(this, subtitle.startTimecode, horizonPositionPx) + subtitle.deltaStartY,
                     w = Integer.max(subtitle.xStartPx,1) + (subtitle.wPx * coeff).toInt(),
                     h = subtitle.hPx - subtitle.deltaStartH,
-                    opacity = 1.0
+                    opacity = opacityFillValue
                 )
 
                 result.add(
@@ -488,7 +487,7 @@ data class SongVoiceLine(
                         y = voice.getScreenY(this, convertFramesToTimecode(convertTimecodeToFrames(subtitle.endTimecode) - 2), horizonPositionPx) + subtitle.deltaEndY,
                         w = Integer.max(subtitle.xEndPx,1),
                         h = subtitle.hPx - subtitle.deltaEndH,
-                        opacity = 1.0
+                        opacity = opacityFillValue
                     )
                 )
             }
@@ -520,7 +519,7 @@ data class SongVoiceLine(
                             y = voice.getScreenY(this, convertMillisecondsToTimecode(convertTimecodeToMilliseconds(subtitles.last().endTimecode) + 1000), horizonPositionPx) + subtitles.last().deltaEndY,
                             w = Integer.max(subtitles.last().xEndPx,1),
                             h = subtitles.last().hPx - subtitles.last().deltaEndH,
-                            opacity = 1.0 // - coeff
+                            opacity = opacityFillValue // - coeff
                         )
                     )
                 }

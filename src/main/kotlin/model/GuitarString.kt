@@ -73,6 +73,9 @@ fun GuitarString.getFrets(note: MusicNote): List<NoteOctaveFret> {
 
 fun GuitarString.getPrintedString(notes: List<MusicNote>): String {
     var strString = "|-----".repeat(countFrets)
-    notes.flatMap { note -> getFrets(note).map { nof -> nof.fret } }.forEach { fret -> strString = strString.replaceRange(fret*6+3,fret*6+4, "0")}
+    notes
+        .flatMap { note -> getFrets(note).map { nof -> Pair(nof.fret,notes.indexOf(note))}
+        }
+        .forEach { fretAndIndex -> strString = strString.replaceRange(fretAndIndex.first*6+3,fretAndIndex.first*6+4, fretAndIndex.second.toString())}
     return strString
 }

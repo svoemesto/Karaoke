@@ -452,34 +452,49 @@ enum class MusicChord(val text: String, val names: List<String>, val intervals: 
         )
     );
 
-    private fun getNotes(rootNote: MusicNote): List<Pair<MusicNote, Int>> =
+    fun getNotes(rootNote: MusicNote): List<Pair<MusicNote, Int>> =
         this.intervals.map { it.getMusicNote(rootNote) }
 
     // Струна - лад - номер ноты в списке нот аккорда
     fun getFingerboard(rootNote: MusicNote, initFret: Int = 0, withSmallBarre: Boolean = true): List<Fingerboard> {
 
-        val preResult: MutableList<Fingerboard> = mutableListOf()
-        var result: MutableList<Fingerboard> = mutableListOf()
-        val notes = getNotes(rootNote).map { it.first }
-        val maxDiffBetweenFrets = 3 + if (initFret == 0) 1 else 0
-        val strings = GuitarString.values()
+        val preResult: MutableList<Fingerboard> = mutableListOf() // Предварительный результат
+        var result: MutableList<Fingerboard> = mutableListOf() // Результат
+        val notes = getNotes(rootNote).map { it.first } // Список нот аккорда, начиная с тоники
+        val maxDiffBetweenFrets = 3 + if (initFret == 0) 1 else 0 // Максмальное расстояние между ладами (4 для 0-го лада, 3 для остальных)
+        val guitarStrings = GuitarString.values() // Гитарные струны
 
-        strings.forEach { string ->
-            var foundNoteInString = false
-            var fretForNote = 0
-            var indexNoteInChord = 0
-            for (fret in initFret until string.fretNextString+initFret) {
-                val (noteInFret, _, _) = string.getNote(fret)
-                if (noteInFret in notes) {
-                    foundNoteInString = true
-                    fretForNote = fret
-                    indexNoteInChord = notes.indexOf(noteInFret)
-                    break
+        guitarStrings.forEach { guitarString -> // Цикл по струнам
+            var foundNoteInString = false // Найдена ли нота на струне
+            var fretForNote = 0 // Лад для ноты
+            var indexNoteInChord = 0 // Индекс ноты в аккорде
+            for (fret in initFret until Integer.min(guitarString.fretNextString, maxDiffBetweenFrets) + initFret) { // Цикл от начального лада до лада с нотой следующей струны (не включая)
+                val (noteInFret, _, _) = guitarString.getNote(fret) // Получаем ноту текущего лада цикла
+                if (noteInFret in notes) { // Если эта нота есть среди нот аккорда
+                    foundNoteInString = true // Считаем что ноту на струне нашли
+                    fretForNote = fret // Запоминаем лад, на котором нашли эту ноту
+                    indexNoteInChord = notes.indexOf(noteInFret) // Запоминаем индекс этой ноты в массиве нот аккорда
+
+                    if (initFret != 0) {
+                        preResult.add(Fingerboard(
+                            guitarString = guitarString,
+                            rootFret = initFret,
+                            fret = fretForNote,
+                            finger = 0,
+                            indexNote = indexNoteInChord
+                        ))
+                    } else {
+                        break
+                    }
+
+
+//                    break // Выходим из цикла
+                    // Тут проблема. Мы выходим при нахождении первой ноты на струне, а там могут быть еще.
                 }
             }
-            if (foundNoteInString) {
+            if (initFret == 0 && foundNoteInString) { // Если после прохода цикла нота найдена - добавляем запись в массив предварительного результата
                 preResult.add(Fingerboard(
-                    guitarString = string,
+                    guitarString = guitarString,
                     rootFret = initFret,
                     fret = fretForNote,
                     finger = 0,
@@ -590,8 +605,30 @@ enum class MusicChord(val text: String, val names: List<String>, val intervals: 
             }
         }
 
-        result = result.sortedBy { it.guitarString.number }.toMutableList()
+        // На данном этапе надо посмотреть, есть ли задвоение струн
+        // Если есть - посмотреть, какие ноты аккорда зажаты на этой задвоенной струне
+        // Посмотреть, есть ли такие же ноты на остальных струнах
+        // И оставить ту задвоенную струну, на которой уникальная нота
 
+        // Отфильтровываем задвоенные струны
+        val groupResult = result.groupBy { it.guitarString }.filter { it.value.size > 1 }
+        groupResult.forEach { doubleResult ->
+            doubleResult.value.forEach { doubleFingerboard ->
+                val foundDouble = result.any { it.guitarString != doubleResult.key && it.indexNote == doubleFingerboard.indexNote }
+                if (foundDouble) {
+                    result.remove(result.first { it.guitarString == doubleResult.key && it.indexNote == doubleFingerboard.indexNote })
+                }
+            }
+        }
+
+        val finalResult: MutableList<Fingerboard> = mutableListOf()
+        GuitarString.values().forEach { gs ->
+            result.filter { it.guitarString == gs }.maxByOrNull { it.fret }?.let { finalResult.add(it) }
+        }
+
+        if (finalResult.size != 6) return emptyList()
+
+        result = finalResult.sortedBy { it.guitarString.number }.toMutableList()
         for (i in 1..4) {
             if (result[i].muted && !result[i-1].muted && !result[i+1].muted) return emptyList()
         }

@@ -284,10 +284,10 @@ fun createKaraoke(song: Song, isBluetoothDelay: Boolean) {
         // Отметим те линии, для которых нужны счётчики
         var prevLineInEmptyOrComment = true
         voiceLines.forEach { voiceLine ->
-            if (voiceLine.type !in listOf(SongVoiceLineType.COMMENTS, SongVoiceLineType.EMPTY)) {
+            if (voiceLine.type !in listOf(SongVoiceLineType.EMPTY)) {
                 voiceLine.isNeedCounter = prevLineInEmptyOrComment
             }
-            prevLineInEmptyOrComment = (voiceLine.type in listOf(SongVoiceLineType.COMMENTS, SongVoiceLineType.EMPTY))
+            prevLineInEmptyOrComment = (voiceLine.type in listOf(SongVoiceLineType.EMPTY))
         }
 
         // Пройдёмся по линиям и пропишем координаты Y для строк

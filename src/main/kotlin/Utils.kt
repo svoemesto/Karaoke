@@ -5,12 +5,14 @@ import mlt.MltObjectAlignmentY
 import mlt.MltObjectType
 import mlt.MltText
 import model.Fingerboard
+import model.GuitarString
 import model.Marker
 import model.MusicChord
 import model.MusicNote
 import model.Song
 import model.SongVersion
 import model.Subtitle
+import model.getPrintedString
 import java.awt.AlphaComposite
 import java.awt.BasicStroke
 import java.awt.Color
@@ -29,8 +31,14 @@ import kotlin.streams.toList
 
 
 fun main() {
+    val musicChord = MusicChord.X7
+    val musicNote = MusicNote.E
+    GuitarString.values().forEach { gs ->
+        println(gs.getPrintedString(musicChord.getNotes(musicNote).map { it.first }))
+    }
     for (i in 0 .. 12) {
-        val result = MusicChord.Xm6.getFingerboard(MusicNote.F,i)
+        val result = musicChord.getFingerboard(musicNote,i)
+
         if (result.isNotEmpty()) {
             println(result.joinToString("\n"))
             println()

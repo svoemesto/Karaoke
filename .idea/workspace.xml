@@ -9,11 +9,10 @@
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/Functions.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Functions.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/Main.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Main.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/Utils.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Utils.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/MainBin.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/MainBin.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/Mlt.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Mlt.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/Timeline.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Timeline.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/model/GuitarString.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/model/GuitarString.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/model/MusicChord.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/model/MusicChord.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/model/Settings.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/model/Settings.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/model/Song.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/model/Song.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/model/SongVersion.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/model/SongVersion.kt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -43,24 +42,24 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Downloaded.Files.Path.Enabled": "false",
-    "Repository.Attach.Annotations": "false",
-    "Repository.Attach.JavaDocs": "false",
-    "Repository.Attach.Sources": "false",
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "WebServerToolWindowFactoryState": "false",
-    "last_opened_file_path": "/home/nsa/Karaoke/src/main/kotlin/mlt",
-    "nodejs_package_manager_path": "npm",
-    "project.structure.last.edited": "SDKs",
-    "project.structure.proportion": "0.0",
-    "project.structure.side.proportion": "0.28704488",
-    "settings.editor.selected.configurable": "preferences.lookFeel"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Downloaded.Files.Path.Enabled&quot;: &quot;false&quot;,
+    &quot;Repository.Attach.Annotations&quot;: &quot;false&quot;,
+    &quot;Repository.Attach.JavaDocs&quot;: &quot;false&quot;,
+    &quot;Repository.Attach.Sources&quot;: &quot;false&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/home/nsa/Karaoke/src/main/kotlin/mlt&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;SDKs&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.0&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.28704488&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.lookFeel&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/src/main/kotlin/mlt" />
@@ -146,13 +145,9 @@
       <workItem from="1665501114485" duration="36646000" />
       <workItem from="1665642883569" duration="28911000" />
       <workItem from="1665728617840" duration="17190000" />
-    </task>
-    <task id="LOCAL-00046" summary="Исправлена ошибка фэйда прогрессометра">
-      <created>1664199000872</created>
-      <option name="number" value="00046" />
-      <option name="presentableId" value="LOCAL-00046" />
-      <option name="project" value="LOCAL" />
-      <updated>1664199000872</updated>
+      <workItem from="1666510403903" duration="8366000" />
+      <workItem from="1666591719060" duration="2526000" />
+      <workItem from="1666611105992" duration="10958000" />
     </task>
     <task id="LOCAL-00047" summary="Изменена функция расчета номер такта по времени - теперь учитывается весь таймлайн вне зависимости от расположения метки &quot;первого такта&quot;">
       <created>1664220136675</created>
@@ -490,7 +485,14 @@
       <option name="project" value="LOCAL" />
       <updated>1666001054145</updated>
     </task>
-    <option name="localTasksCounter" value="95" />
+    <task id="LOCAL-00095" summary="Переделываем под новую концепцию">
+      <created>1666114792953</created>
+      <option name="number" value="00095" />
+      <option name="presentableId" value="LOCAL-00095" />
+      <option name="project" value="LOCAL" />
+      <updated>1666114792953</updated>
+    </task>
+    <option name="localTasksCounter" value="96" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -539,9 +541,9 @@
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" type="kotlin-line">
-          <url>file://$PROJECT_DIR$/src/main/kotlin/model/Song.kt</url>
-          <line>306</line>
-          <option name="timeStamp" value="54" />
+          <url>file://$PROJECT_DIR$/src/main/kotlin/model/MusicChord.kt</url>
+          <line>623</line>
+          <option name="timeStamp" value="70" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

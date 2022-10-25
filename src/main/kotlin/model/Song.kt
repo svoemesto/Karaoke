@@ -16,7 +16,7 @@ import kotlin.math.absoluteValue
 
 data class Song(val settings: Settings, val songVersion: SongVersion) {
     fun getOutputFilename(songOutputFile: SongOutputFile, idBluetoothDelay: Boolean): String {
-        return "${settings.rootFolder}/done_${if (songOutputFile == SongOutputFile.PROJECT || songOutputFile == SongOutputFile.SUBTITLE) "projects" else "files"}/${settings.fileName}${songVersion.suffix}${if (idBluetoothDelay) " bluetooth" else ""}.${songOutputFile.extension}"
+        return "${settings.rootFolder}/done_${if (songOutputFile == SongOutputFile.PROJECT || songOutputFile == SongOutputFile.SUBTITLE) "projects" else "files"}/${settings.year} ${settings.fileName}${songVersion.suffix}${if (idBluetoothDelay) " bluetooth" else ""}.${songOutputFile.extension}"
     }
 
     fun getDescription(isBluetoothDelay: Boolean): String {

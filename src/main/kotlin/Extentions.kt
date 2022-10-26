@@ -39,3 +39,22 @@ fun String.getFirstVowelIndex(): Int {
     }
     return -1
 }
+
+fun String.containThisSymbols(symbolString: String): Boolean {
+    this.forEach { symbolInString ->
+        if (symbolInString in symbolString) return true
+    }
+    return false
+}
+
+fun String.containOnlyThisSymbols(symbolString: String): Boolean {
+    return this.deleteThisSymbols(symbolString).trim() == ""
+}
+
+fun String.deleteThisSymbols(symbolString: String): String {
+    var txt = this
+    symbolString.forEach { symbolInSymbolString ->
+        txt = txt.replace(symbolInSymbolString.toString(),"")
+    }
+    return txt
+}

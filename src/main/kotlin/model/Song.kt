@@ -1,11 +1,15 @@
 package model
 
 import Karaoke
+import NOTES_SYMBOLS
+import containOnlyThisSymbols
+import containThisSymbols
 import convertFramesToMilliseconds
 import convertFramesToTimecode
 import convertMillisecondsToTimecode
 import convertTimecodeToFrames
 import convertTimecodeToMilliseconds
+import deleteThisSymbols
 import getDurationInMilliseconds
 import getListFiles
 import getTextWidthHeightPx
@@ -82,7 +86,7 @@ data class Song(val settings: Settings, val songVersion: SongVersion) {
                             "CAPO" -> capo = if (settingList.size > 2) settingList[2].toInt() else 0
                             "CHORD" -> {
                                 val chordTimecode = startEnd.split(" --> ")[0].replace(",",".")
-                                var chordText = "${if (settingList.size > 2) settingList[2] else ""}${if (settingList.size > 3) "|" + settingList[3] else "|$capo"}"
+                                var chordText = "${if (settingList.size > 2) settingList[2] else ""}${if (settingList.size > 3) "|" + settingList[3] else ""}"
 //                                chordText = chordText.replace("#","♯").replace("b","♭")
                                 if (chordText != "") {
                                     chords.add(Chord(chordTimecode, chordText))
@@ -135,6 +139,13 @@ data class Song(val settings: Settings, val songVersion: SongVersion) {
                             .replace("\\\\", "")
                             .replace("_", " ")
                         // Создаем объект classes.Subtitle и инициализируем его переменными
+
+                        if (songVersion != SongVersion.CHORDS &&
+                            text.containThisSymbols(NOTES_SYMBOLS)
+                        ) {
+                            text = text.deleteThisSymbols(NOTES_SYMBOLS)
+                        }
+
                         val subtitle = Subtitle(
                             startTimecode = start,
                             endTimecode = end,
@@ -159,7 +170,7 @@ data class Song(val settings: Settings, val songVersion: SongVersion) {
                                 maxWidthLineText = lineText
                             }
 
-                            if (songVersion != SongVersion.CHORDS && (lineText.contains("♬") || lineText.contains("♩") || lineText.contains("♪"))) {
+                            if (songVersion != SongVersion.CHORDS && lineText.containOnlyThisSymbols(NOTES_SYMBOLS)) {
                                 listLines.add(
                                     SongVoiceLine(
                                         type = SongVoiceLineType.EMPTY,
@@ -173,6 +184,12 @@ data class Song(val settings: Settings, val songVersion: SongVersion) {
                                     )
                                 )
                             } else {
+                                if (songVersion != SongVersion.CHORDS &&
+                                    lineText.containThisSymbols(NOTES_SYMBOLS) &&
+                                    !lineText.containOnlyThisSymbols(NOTES_SYMBOLS)
+                                ) {
+                                    lineText = lineText.deleteThisSymbols(NOTES_SYMBOLS)
+                                }
                                 listLines.add(
                                     SongVoiceLine(
                                         type = if (lineText.trim() == "") SongVoiceLineType.EMPTY else SongVoiceLineType.TEXT,
@@ -260,7 +277,8 @@ data class Song(val settings: Settings, val songVersion: SongVersion) {
         }
 
         voices = listVoices
-        endTimecode = voices.first().lines.last().subtitles.last().endTimecode
+//        endTimecode = voices.first().lines.last().subtitles.last().endTimecode
+        endTimecode = voices.first().lines.last().end
         setMaxLines()
 
     }

@@ -33,6 +33,7 @@ fun createKaraoke(song: Song, isBluetoothDelay: Boolean) {
     val param = mutableMapOf<String, Any?>()
 
     param["SONG_VERSION"] = song.songVersion
+    param["SONG_CAPO"] = song.capo
     param["SONG_NAME"] = song.settings.songName
     param["ID_BLUETOOTH_DELAY"] = isBluetoothDelay
 

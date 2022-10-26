@@ -19,7 +19,6 @@ import java.awt.Color
 import java.awt.Font
 import java.awt.Graphics2D
 import java.awt.image.BufferedImage
-import java.io.ByteArrayOutputStream
 import java.io.File
 import java.nio.file.Files
 import java.util.*
@@ -27,12 +26,11 @@ import javax.imageio.ImageIO
 import kotlin.io.path.Path
 import kotlin.math.roundToInt
 import kotlin.random.Random
-import kotlin.streams.toList
 
 
 fun main() {
     val musicChord = MusicChord.X7
-    val musicNote = MusicNote.E
+    val musicNote = MusicNote.C
     GuitarString.values().forEach { gs ->
         println(gs.getPrintedString(musicChord.getNotes(musicNote).map { it.first }))
     }
@@ -46,16 +44,22 @@ fun main() {
     }
 }
 
-fun generateChordLayout(chordName: String): List<MltObject> {
-    val chardNameAndFret = chordName.split("|")
-    val nameChord = chardNameAndFret[0]
-    val fretChord = if (chardNameAndFret.size > 1) chardNameAndFret[1].toInt() else 0
+fun generateChordLayout(chordName: String, capo: Int): List<MltObject> {
+    val chordNameAndFret = chordName.split("|")
+    val nameChord = chordNameAndFret[0]
+    val fretChord = if (chordNameAndFret.size > 1) chordNameAndFret[1].toInt() else 0
     val (chord, note) = MusicChord.getChordNote(nameChord)
-    return if (chord!=null && note != null) generateChordLayout(chord, note, fretChord) else emptyList()
+    return if (chord!=null && note != null) generateChordLayout(chord, note, fretChord, capo) else emptyList()
 }
-fun generateChordLayout(chord: MusicChord, note: MusicNote, fret: Int = 0): List<MltObject> {
+fun generateChordLayout(chord: MusicChord, startRootNote: MusicNote, startInitFret: Int, capo: Int): List<MltObject> {
 
-    var fingerboards: List<Fingerboard> = chord.getFingerboard(note, if (fret == 0) note.defaultRootFret else fret)
+    var newIndexNote = MusicNote.values().indexOf(startRootNote) - capo
+    if (newIndexNote < 0) newIndexNote = MusicNote.values().size + newIndexNote
+    val note = MusicNote.values()[newIndexNote]
+    var fret = startInitFret - capo
+    if (fret < 0) fret = 0
+
+    var fingerboards: List<Fingerboard> = chord.getFingerboard(note, if (fret == 0) note.defaultRootFret else fret, capo)
 
     var nextFret = fret
     while (fingerboards.isEmpty()) {
@@ -105,7 +109,7 @@ fun generateChordLayout(chord: MusicChord, note: MusicNote, fret: Int = 0): List
 
     // Номера ладов
     val firstFret = if (initFret == 0) 1 else initFret
-    for (fret in firstFret..(firstFret+3)) {
+    for (fret in firstFret+capo..(firstFret+capo+3)) {
         val fretNumberMltText = Karaoke.chordLayoutFretsNumbersMltText.copy(fret.toString())
 //        fretNumberMltText.text = fret.toString()
 
@@ -115,7 +119,7 @@ fun generateChordLayout(chord: MusicChord, note: MusicNote, fret: Int = 0): List
             _shape = fretNumberMltText,
             alignmentX = MltObjectAlignmentX.CENTER,
             alignmentY = MltObjectAlignmentY.TOP,
-            _x = fretW * (fret - firstFret + 1) + fretW/2,
+            _x = fretW * (fret - firstFret + 1 - capo) + fretW/2,
             _y = mltTextChordName.h,
             _h = (chordLayoutH * 0.1).toInt()
         )
@@ -128,8 +132,9 @@ fun generateChordLayout(chord: MusicChord, note: MusicNote, fret: Int = 0): List
     // Прямоугольники ладов
 
     for (string in 0..4) {
+        // Порожек или каподастр
         if (initFret == 0) {
-            val nutRectangleMltShape = Karaoke.chordLayoutNutsRectangleMltShape.copy()
+            val nutRectangleMltShape = if (capo == 0) Karaoke.chordLayoutNutsRectangleMltShape.copy() else Karaoke.chordLayoutСapoRectangleMltShape.copy()
             val mltShapeNutRectangle = MltObject(
                 layoutW = chordLayoutW,
                 layoutH = chordLayoutH,

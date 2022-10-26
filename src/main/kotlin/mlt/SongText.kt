@@ -2,6 +2,8 @@ import mlt.MltText
 import mlt.mltNode
 import model.SongVoiceLine
 import model.MltNode
+import model.MusicChord
+import model.MusicNote
 import model.ProducerType
 import model.SongVoiceLineType
 
@@ -130,13 +132,32 @@ fun getTemplateSongText(param: Map<String, Any?>, voiceId: Int): MltNode {
     val voiceLines = param["VOICE${voiceId}_VOICELINES_SONGTEXT"] as List<SongVoiceLine>
     val templateSongTextSymbolsGroup = mutableListOf<MltNode>()
     val workAreaSongtextHeightPx = param["VOICE${voiceId}_WORK_AREA_SONGTEXT_HEIGHT_PX"] as Int
+    val capo = param["SONG_CAPO"] as Int
 
     voiceLines.forEachIndexed { indexLine, it ->
         val voiceLineSongtext = it as SongVoiceLine
         voiceLineSongtext.symbols.forEachIndexed { indexSymbol, lineSymbol ->
 
             val mltText: MltText = lineSymbol.mltText
-            val text = if (voiceLineSongtext.type == SongVoiceLineType.CHORDS) mltText.text.split("|")[0] else mltText.text
+            val text = if (voiceLineSongtext.type == SongVoiceLineType.CHORDS) {
+                if (capo == 0) {
+                    mltText.text.split("|")[0]
+                } else {
+                    val chordNameAndFret = mltText.text.split("|")
+                    val nameChord = chordNameAndFret[0]
+                    val fretChord = if (chordNameAndFret.size > 1) chordNameAndFret[1].toInt() else 0
+                    val (chord, note) = MusicChord.getChordNote(nameChord)
+
+                    var newIndexNote = MusicNote.values().indexOf(note!!) - capo
+                    if (newIndexNote < 0) newIndexNote = MusicNote.values().size + newIndexNote
+                    val newNote = MusicNote.values()[newIndexNote]
+
+                    newNote.names.first() + chord!!.names.first()
+                }
+            } else {
+                mltText.text
+            }
+
             val x = lineSymbol.xStartPx + Karaoke.songtextStartPositionXpx // (startX + voiceLineSongtext.getSymbolXpx(indexSymbol)).toLong()
             val y = voiceLineSongtext.yPx //(startY + indexLine*symbolSongtextHeightPx + (symbolSongtextHeightPx - mltText.h)).toLong()
 
@@ -174,5 +195,6 @@ fun getTemplateSongText(param: Map<String, Any?>, voiceId: Int): MltNode {
     )
 
     return templateSongText
+
 }
 

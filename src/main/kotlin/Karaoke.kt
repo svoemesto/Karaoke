@@ -499,7 +499,7 @@ class Karaoke {
         var chordsFont: MltText
             get() {
                 val defaultValue = MltText(
-                    font = Font("Montserrat SemiBold", 0, 80),
+                    font = Font("Fira Sans Extra Condensed Medium", 0, 80),
                     shapeColor = Color(255,127,127,255),
                     shapeOutlineColor = Color(0,0,0,255),
                     shapeOutline = 1,
@@ -517,12 +517,29 @@ class Karaoke {
         // Коэффициэнт размера шрифта аккорда относительно размера шрифта текста песни
         var chordsHeightCoefficient: Double
             get() {
-                val defaultValue = "0.75"
+                val defaultValue = "0.72"
                 props.loadFromXML(File(fileNameXml).inputStream())
                 return props.getProperty("chordsHeightCoefficient",defaultValue).toDouble()
             }
             set(value) {
                 props.setProperty("chordsHeightCoefficient", value.toString())
+                props.storeToXML(File(fileNameXml).outputStream(),null)
+            }
+
+        var chordsCapoFont: MltText
+            get() {
+                val defaultValue = MltText(
+                    font = Font("Montserrat SemiBold", 0, 35),
+                    shapeColor = Color(255,127,127,255),
+                    shapeOutlineColor = Color(255,127,127,255),
+                    shapeOutline = 0,
+                    fontUnderline = 0
+                ).setting()
+                props.loadFromXML(File(fileNameXml).inputStream())
+                return getMltFontFromString(props.getProperty("chordsCapoFont", defaultValue))
+            }
+            set(value) {
+                props.setProperty("chordsCapoFont", value.setting())
                 props.storeToXML(File(fileNameXml).outputStream(),null)
             }
 
@@ -925,7 +942,7 @@ class Karaoke {
                     font = Font("Montserrat SemiBold", 0, 10),
                     shapeColor = Color(255,255,127,255),
                     shapeOutlineColor = Color(0,0,0,255),
-                    shapeOutline = 1,
+                    shapeOutline = 0,
                     fontUnderline = 0
                 ).setting()
                 props.loadFromXML(File(fileNameXml).inputStream())
@@ -982,6 +999,22 @@ class Karaoke {
             }
             set(value) {
                 props.setProperty("chordLayoutNutsRectangleMltShape", value.setting())
+                props.storeToXML(File(fileNameXml).outputStream(),null)
+            }
+
+        var chordLayoutСapoRectangleMltShape: MltShape
+            get() {
+                val defaultValue = MltShape(
+                    type = MltObjectType.RECTANGLE,
+                    shapeColor = Color(255,0,0,255),
+                    shapeOutlineColor = Color(255,0,0,255),
+                    shapeOutline = 2
+                ).setting()
+                props.loadFromXML(File(fileNameXml).inputStream())
+                return getMltShapeFromString(props.getProperty("chordLayoutСapoRectangleMltShape", defaultValue))
+            }
+            set(value) {
+                props.setProperty("chordLayoutСapoRectangleMltShape", value.setting())
                 props.storeToXML(File(fileNameXml).outputStream(),null)
             }
 

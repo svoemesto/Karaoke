@@ -456,12 +456,18 @@ enum class MusicChord(val text: String, val names: List<String>, val intervals: 
         this.intervals.map { it.getMusicNote(rootNote) }
 
     // Струна - лад - номер ноты в списке нот аккорда
-    fun getFingerboard(rootNote: MusicNote, initFret: Int = 0, withSmallBarre: Boolean = true): List<Fingerboard> {
+    fun getFingerboard(rootNote: MusicNote, initFret: Int = 0, capo: Int = 0, withSmallBarre: Boolean = true): List<Fingerboard> {
+
+//        var newIndexNote = MusicNote.values().indexOf(startRootNote) - capo
+//        if (newIndexNote < 0) newIndexNote = MusicNote.values().size + newIndexNote
+//        val rootNote = MusicNote.values()[newIndexNote]
+//        var initFret = rootNote.defaultRootFret
+//        if (initFret < 0) initFret = 0
 
         val preResult: MutableList<Fingerboard> = mutableListOf() // Предварительный результат
         var result: MutableList<Fingerboard> = mutableListOf() // Результат
         val notes = getNotes(rootNote).map { it.first } // Список нот аккорда, начиная с тоники
-        val maxDiffBetweenFrets = 3 + if (initFret == 0) 1 else 0 // Максмальное расстояние между ладами (4 для 0-го лада, 3 для остальных)
+        val maxDiffBetweenFrets = 3 + if (initFret == 0) 1 else 0 // Максимальное расстояние между ладами (4 для 0-го лада, 3 для остальных)
         val guitarStrings = GuitarString.values() // Гитарные струны
 
         guitarStrings.forEach { guitarString -> // Цикл по струнам
@@ -633,8 +639,24 @@ enum class MusicChord(val text: String, val names: List<String>, val intervals: 
             if (result[i].muted && !result[i-1].muted && !result[i+1].muted) return emptyList()
         }
 
+        // Если мы на нулевом ладу, две струны на первом и 2 на 3 - отказать
+        if (initFret == 0) {
+            if (
+                (result.filter { it.fret == 1 }.size > 0 &&
+                result.filter { it.fret == 2 }.size == 0 &&
+                result.filter { it.fret == 3 }.size > 1) ||
+                (result.filter { it.fret == 1 }.size > 1 &&
+                result.filter { it.fret == 2 }.size == 0 &&
+                result.filter { it.fret == 3 }.size > 0) ||
+                (result.filter { it.fret == 1 }.size > 1 &&
+                result.filter { it.fret == 2 }.size == 1 &&
+                result.filter { it.fret == 3 }.size == 0)
+            ) return emptyList()
+        }
+
+
         if (currFinger == 4 && withSmallBarre && wasSmallBarre) {
-            return getFingerboard(rootNote, initFret, false)
+            return getFingerboard(rootNote, initFret, capo,false)
         } else {
             if (currFinger > 5) {
                 return emptyList()

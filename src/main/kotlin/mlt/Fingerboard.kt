@@ -135,6 +135,7 @@ fun getTemplateFingerboard(param: Map<String, Any?>, indexFingerboard: Int): Mlt
 
     val voiceSetting = param["VOICE0_SETTING"] as KaraokeVoice
     val fingerboardW = param["VOICE0${indexFingerboard}_FINGERBOARD_W"] as Int
+    val capo = param["SONG_CAPO"] as Int
     val fingerboardH = param["VOICE0_FINGERBOARD_H"] as Int
     val chordW = param["VOICE0_CHORD_W"] as Int
     val chordH = param["VOICE0_CHORD_H"] as Int
@@ -175,7 +176,7 @@ fun getTemplateFingerboard(param: Map<String, Any?>, indexFingerboard: Int): Mlt
 
     chords.forEachIndexed{ indexChord, chord ->
         val chordX = startChordX + indexChord * chordW
-        val layouts = generateChordLayout(chord.mltText.text)
+        val layouts = generateChordLayout(chord.mltText.text, capo)
         val bi = getChordLayoutPicture(layouts)
         val os = ByteArrayOutputStream()
         ImageIO.write(bi, "png", os)

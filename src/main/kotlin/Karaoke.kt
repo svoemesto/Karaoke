@@ -529,7 +529,7 @@ class Karaoke {
         var chordsCapoFont: MltText
             get() {
                 val defaultValue = MltText(
-                    font = Font("Montserrat SemiBold", 0, 35),
+                    font = Font("Fira Sans Extra Condensed Medium", 0, 35),
                     shapeColor = Color(255,127,127,255),
                     shapeOutlineColor = Color(255,127,127,255),
                     shapeOutline = 0,
@@ -865,6 +865,23 @@ class Karaoke {
             }
             set(value) {
                 props.setProperty("splashstartSongVersionFont", value.setting())
+                props.storeToXML(File(fileNameXml).outputStream(),null)
+            }
+
+        var splashstartChordDescriptionFont: MltText
+            get() {
+                val defaultValue = MltText(
+                    font = Font("Fira Sans Extra Condensed Medium", 0, 40),
+                    shapeColor = Color(255,127,127,255),
+                    shapeOutlineColor = Color(0,0,0,255),
+                    shapeOutline = 1,
+                    fontUnderline = 0
+                ).setting()
+                props.loadFromXML(File(fileNameXml).inputStream())
+                return getMltFontFromString(props.getProperty("splashstartChordDescriptionFont", defaultValue))
+            }
+            set(value) {
+                props.setProperty("splashstartChordDescriptionFont", value.setting())
                 props.storeToXML(File(fileNameXml).outputStream(),null)
             }
 

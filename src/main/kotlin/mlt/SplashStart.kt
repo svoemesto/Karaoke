@@ -122,11 +122,13 @@ fun getTemplateSplashstart(param: Map<String, Any?>): MltNode {
 
     val songVersion = param["SONG_VERSION"] as SongVersion
     val isBluetoothDelay = param["ID_BLUETOOTH_DELAY"] as Boolean
+    val chordDescriptionText = (param["SONG_CHORD_DESCRIPTION"] as String).replace("\n",", ")
 
     var songnameTextFontMlt = Karaoke.splashstartSongNameFont
     var songnameTextFont = songnameTextFontMlt.font
     val songversionTextFontMlt = Karaoke.splashstartSongVersionFont
     val commentTextFontMlt = Karaoke.splashstartCommentFont
+    val chordDescriptionTextFontMlt = Karaoke.splashstartChordDescriptionFont
 
     val commentText = "${songVersion.textForDescription}${if (isBluetoothDelay) " с задержкой видео на ${Karaoke.timeOffsetBluetoothSpeakerMs}ms" else ""}"
     val songversionText = songVersion.text
@@ -150,10 +152,15 @@ fun getTemplateSplashstart(param: Map<String, Any?>): MltNode {
     val commentTextX = (Karaoke.frameWidthPx - commentTextW) / 2
     val commentTextY = (Karaoke.frameHeightPx - border/2 - getTextWidthHeightPx("0", commentTextFontMlt.font).second).toLong()
 
+    val chordDescriptionTextW =  (getTextWidthHeightPx(chordDescriptionText, chordDescriptionTextFontMlt.font).first).toLong()
+    val chordDescriptionTextH =  (getTextWidthHeightPx(chordDescriptionText, chordDescriptionTextFontMlt.font).second).toLong()
+    val chordDescriptionTextX = (Karaoke.frameWidthPx - chordDescriptionTextW) / 2
+    val chordDescriptionTextY = if (chordDescriptionText != "") (commentTextY - getTextWidthHeightPx("0", chordDescriptionTextFontMlt.font).second).toLong() else commentTextY
+
     val songversionTextW =  (getTextWidthHeightPx(songversionText, songversionTextFontMlt.font).first).toLong()
     val songversionTextH =  (getTextWidthHeightPx(songversionText, songversionTextFontMlt.font).second).toLong()
     val songversionTextX = (Karaoke.frameWidthPx - songversionTextW) / 2
-    val songversionTextY = (commentTextY - getTextWidthHeightPx("0", songversionTextFontMlt.font).second).toLong()
+    val songversionTextY = (chordDescriptionTextY - getTextWidthHeightPx("0", songversionTextFontMlt.font).second).toLong()
 
     var songnameTextY = (border + 400 * pictureScaleCoeff).toLong()
     val songnameTextHmax = songversionTextY - songnameTextY
@@ -224,6 +231,22 @@ fun getTemplateSplashstart(param: Map<String, Any?>): MltNode {
             )
         )
     )
+
+    if (chordDescriptionText != "") {
+        body.add(
+            MltNode(
+                name = "item",
+                fields = mutableMapOf(
+                    Pair("type","QGraphicsTextItem"),
+                    Pair("z-index","6"),
+                ), body = mutableListOf(
+                    MltNode(name = "position", fields = mutableMapOf(Pair("x","$chordDescriptionTextX"),Pair("y","$chordDescriptionTextY")),
+                        body = mutableListOf(MltNode(name = "transform", body = "1,0,0,0,1,0,0,0,1"))),
+                    chordDescriptionTextFontMlt.mltNode(chordDescriptionText)
+                )
+            )
+        )
+    }
 
     body.add(
         MltNode(

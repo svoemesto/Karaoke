@@ -44,6 +44,15 @@ fun main() {
     }
 }
 
+fun getNewTone(tone: String, capo: Int): String {
+    val noteAndTone = tone.split(" ")
+    val nameChord = noteAndTone[0]
+    val (chord, note) = MusicChord.getChordNote(nameChord)
+    var newIndexNote = MusicNote.values().indexOf(note!!) - capo
+    if (newIndexNote < 0) newIndexNote = MusicNote.values().size + newIndexNote
+    val newNote = MusicNote.values()[newIndexNote]
+    return "${newNote.names.first()} ${noteAndTone[1]}"
+}
 fun generateChordLayout(chordName: String, capo: Int): List<MltObject> {
     val chordNameAndFret = chordName.split("|")
     val nameChord = chordNameAndFret[0]
@@ -355,7 +364,7 @@ fun createSongPicture(song: Song, fileName: String, songVersion: SongVersion, is
         val rect = fontMetrics.getStringBounds(textToOverlay, graphics2D)
         rectW = rect.width.toInt()
         rectH = rect.height.toInt()
-    } while (rectW < frameW * 0.95)
+    } while (!(rectH > 430 || rectW > (frameW * 0.95)))
 
     var centerX = (frameW - rectW) / 2
     var centerY = (frameH - rectH) / 2 + rectH

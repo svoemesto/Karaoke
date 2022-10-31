@@ -124,6 +124,7 @@ fun getTemplateFaderChords(param: Map<String, Any?>): MltNode {
 //    val fingerboardW = param["VOICE0_FINGERBOARD_W"] as Int
     val fingerboardH = param["VOICE0_FINGERBOARD_H"] as Int
     val capo = param["SONG_CAPO"] as Int
+    val chordDescription = param["SONG_CHORD_DESCRIPTION"] as String
 
     val voiceSetting = param["VOICE0_SETTING"] as KaraokeVoice
     val w = Karaoke.frameWidthPx / 4
@@ -284,20 +285,18 @@ fun getTemplateFaderChords(param: Map<String, Any?>): MltNode {
             )
         )
     )
-    if (capo != 0) {
-        body.add(
-            MltNode(
-                name = "item",
-                fields = mutableMapOf(
-                    Pair("type","QGraphicsTextItem"),
-                    Pair("z-index","6"),
-                ), body = mutableListOf(
-                    MltNode(name = "position", fields = mutableMapOf(Pair("x","10"),Pair("y","10")), body = mutableListOf(MltNode(name = "transform", body = "1,0,0,0,1,0,0,0,1"))),
-                    chordsCapoMltFont.mltNode("Каподастр на ${capo}-м ладу")
-                )
+    body.add(
+        MltNode(
+            name = "item",
+            fields = mutableMapOf(
+                Pair("type","QGraphicsTextItem"),
+                Pair("z-index","6"),
+            ), body = mutableListOf(
+                MltNode(name = "position", fields = mutableMapOf(Pair("x","10"),Pair("y","10")), body = mutableListOf(MltNode(name = "transform", body = "1,0,0,0,1,0,0,0,1"))),
+                chordsCapoMltFont.mltNode(chordDescription)
             )
         )
-    }
+    )
 
     body.add(MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${fingerboardH+50}"))))
     body.add(MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${fingerboardH+50}"))))

@@ -34,6 +34,7 @@ fun createKaraoke(song: Song, isBluetoothDelay: Boolean) {
 
     param["SONG_VERSION"] = song.songVersion
     param["SONG_CAPO"] = song.capo
+    param["SONG_CHORD_DESCRIPTION"] = song.getChordDescription()
     param["SONG_NAME"] = song.settings.songName
     param["ID_BLUETOOTH_DELAY"] = isBluetoothDelay
 

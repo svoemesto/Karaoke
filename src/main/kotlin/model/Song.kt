@@ -11,7 +11,9 @@ import convertTimecodeToFrames
 import convertTimecodeToMilliseconds
 import deleteThisSymbols
 import getDurationInMilliseconds
+import getFirstVowelIndex
 import getListFiles
+import getNewTone
 import getTextWidthHeightPx
 import hashtag
 import mlt.MltText
@@ -31,9 +33,27 @@ data class Song(val settings: Settings, val songVersion: SongVersion) {
                 "Исполнитель: ${settings.author}\n" +
                 "Альбом: ${settings.album}\n" +
                 "Год: ${settings.year}\n" +
-                (if (songVersion == SongVersion.CHORDS) "Тональность: ${settings.key}\nТемп: ${settings.bpm} bpm\n" else "") +
+                (if (getChordDescription() !="") "${getChordDescription()}\n" else "") +
                 "https://github.com/svoemesto/Karaoke\n" +
                 "${settings.songName.hashtag()} ${settings.author.hashtag()} ${"karaoke".hashtag()} ${"караоке".hashtag()}${if (songVersion == SongVersion.CHORDS) " ${"chords".hashtag()} ${"аккорды".hashtag()}" else ""}\n"
+
+    }
+
+    fun getChordDescription(): String {
+
+        if (songVersion == SongVersion.CHORDS) {
+            if (capo == 0) {
+                return  "Темп: ${settings.bpm} bpm\n" +
+                        "Тональность: ${settings.key}"
+            } else {
+                return  "Темп: ${settings.bpm} bpm\n" +
+                        "Оригинальная тональность: ${settings.key}\n" +
+                        "Аккорды и аппликатуры: ${getNewTone(settings.key, capo)}\n" +
+                        "Каподастр на ${capo}-м ладу"
+            }
+        } else {
+            return ""
+        }
 
     }
 
@@ -87,7 +107,6 @@ data class Song(val settings: Settings, val songVersion: SongVersion) {
                             "CHORD" -> {
                                 val chordTimecode = startEnd.split(" --> ")[0].replace(",",".")
                                 var chordText = "${if (settingList.size > 2) settingList[2] else ""}${if (settingList.size > 3) "|" + settingList[3] else ""}"
-//                                chordText = chordText.replace("#","♯").replace("b","♭")
                                 if (chordText != "") {
                                     chords.add(Chord(chordTimecode, chordText))
                                 }
@@ -219,7 +238,7 @@ data class Song(val settings: Settings, val songVersion: SongVersion) {
                     val subtitle = voiceLine.subtitles.firstOrNull {convertTimecodeToMilliseconds(chord.timecode) in convertTimecodeToMilliseconds(it.startTimecode) until convertTimecodeToMilliseconds(it.endTimecode)}
                     // Если такой субтитр найден
                     if (subtitle != null) {
-                        val firstVowelIndex = 0
+                        val firstVowelIndex = subtitle.mltText.text.getFirstVowelIndex()
                         // Получаем текст строки до этого символа
                         var textBefore = ""
                         for (sub in voiceLine.subtitles) {

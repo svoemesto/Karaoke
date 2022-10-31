@@ -37,7 +37,7 @@ fun String.getFirstVowelIndex(): Int {
             return i
         }
     }
-    return -1
+    return 0
 }
 
 fun String.containThisSymbols(symbolString: String): Boolean {

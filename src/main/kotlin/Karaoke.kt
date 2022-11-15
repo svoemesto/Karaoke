@@ -425,6 +425,8 @@ class Karaoke {
                         "songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",2,80), shapeColor = Color(155,255,155,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}" +
                         "|[GROUP]|" +
                         "songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",2,80), shapeColor = Color(127,127,127,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 1).setting()}" +
+                        "|[GROUP]|" +
+                        "songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",2,80), shapeColor = Color(255,127,127,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}" +
                         "|[VOICEFIELDS]|" + "evenColor|[NAME]|${Color(255,128,0,255).setting()}" + "|[FIELD]|" + "evenOpacity|[NAME]|0.6" + "|[FIELD]|" + "oddColor|[NAME]|${Color(255,128,0,255).setting()}" + "|[FIELD]|" + "oddOpacity|[NAME]|0.6" +
 
                         "|[VOICE]|" +
@@ -436,6 +438,10 @@ class Karaoke {
                         "songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",0,80), shapeColor = Color(155,255,255,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}" +
                         "|[GROUP]|" +
                         "songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",2,80), shapeColor = Color(155,255,155,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}" +
+                        "|[GROUP]|" +
+                        "songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",2,80), shapeColor = Color(127,127,127,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 1).setting()}" +
+                        "|[GROUP]|" +
+                        "songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",2,80), shapeColor = Color(255,127,127,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}" +
                         "|[VOICEFIELDS]|" + "evenColor|[NAME]|${Color(255,128,0,255).setting()}" + "|[FIELD]|" + "evenOpacity|[NAME]|0.6" + "|[FIELD]|" + "oddColor|[NAME]|${Color(255,128,0,255).setting()}" + "|[FIELD]|" + "oddOpacity|[NAME]|0.6" +
 
                         "|[VOICE]|" +
@@ -447,6 +453,10 @@ class Karaoke {
                         "songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",0,80), shapeColor = Color(155,255,255,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}" +
                         "|[GROUP]|" +
                         "songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",2,80), shapeColor = Color(155,255,155,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}" +
+                        "|[GROUP]|" +
+                        "songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",2,80), shapeColor = Color(127,127,127,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 1).setting()}" +
+                        "|[GROUP]|" +
+                        "songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",2,80), shapeColor = Color(255,127,127,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}" +
                         "|[VOICEFIELDS]|" + "evenColor|[NAME]|${Color(255,128,0,255).setting()}" + "|[FIELD]|" + "evenOpacity|[NAME]|0.6" + "|[FIELD]|" + "oddColor|[NAME]|${Color(255,128,0,255).setting()}" + "|[FIELD]|" + "oddOpacity|[NAME]|0.6"
 
                 props.loadFromXML(File(fileNameXml).inputStream())

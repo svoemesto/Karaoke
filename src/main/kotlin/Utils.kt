@@ -26,22 +26,35 @@ import javax.imageio.ImageIO
 import kotlin.io.path.Path
 import kotlin.math.roundToInt
 import kotlin.random.Random
+import kotlin.streams.toList
 
 
 fun main() {
-    val musicChord = MusicChord.X7
-    val musicNote = MusicNote.C
-    GuitarString.values().forEach { gs ->
-        println(gs.getPrintedString(musicChord.getNotes(musicNote).map { it.first }))
-    }
-    for (i in 0 .. 12) {
-        val result = musicChord.getFingerboard(musicNote,i)
+//    val musicChord = MusicChord.X7
+//    val musicNote = MusicNote.C
+//    GuitarString.values().forEach { gs ->
+//        println(gs.getPrintedString(musicChord.getNotes(musicNote).map { it.first }))
+//    }
+//    for (i in 0 .. 12) {
+//        val result = musicChord.getFingerboard(musicNote,i)
+//
+//        if (result.isNotEmpty()) {
+//            println(result.joinToString("\n"))
+//            println()
+//        }
+//    }
 
-        if (result.isNotEmpty()) {
-            println(result.joinToString("\n"))
-            println()
-        }
-    }
+//    convertMarkersToSubtitles("/home/nsa/Documents/Караоке/Ундервуд/2020 - Человек-Лук/2 сцена Жить в эпоху перемен.kdenlive")
+//    convertMarkersToSubtitles("/home/nsa/Documents/Караоке/Ундервуд/2020 - Человек-Лук/3 сцена Встреча на рынке.kdenlive")
+//    convertMarkersToSubtitles("/home/nsa/Documents/Караоке/Ундервуд/2020 - Человек-Лук/4 сцена Мы справимся, мессир Конфликт.kdenlive")
+//    convertMarkersToSubtitles("/home/nsa/Documents/Караоке/Ундервуд/2020 - Человек-Лук/5 сцена За прогресс.kdenlive")
+//    convertMarkersToSubtitles("/home/nsa/Documents/Караоке/Ундервуд/2020 - Человек-Лук/6 сцена Welcome welcome welcome Танец Винегрет.kdenlive")
+//    convertMarkersToSubtitles("/home/nsa/Documents/Караоке/Ундервуд/2020 - Человек-Лук/7 сцена Трансформация.kdenlive")
+//    convertMarkersToSubtitles("/home/nsa/Documents/Караоке/Ундервуд/2020 - Человек-Лук/8 сцена Первый подвиг.kdenlive")
+//    convertMarkersToSubtitles("/home/nsa/Documents/Караоке/Ундервуд/2020 - Человек-Лук/9 сцена Явление антагониста.kdenlive")
+//    convertMarkersToSubtitles("/home/nsa/Documents/Караоке/Ундервуд/2020 - Человек-Лук/10 сцена Ботанический сад.kdenlive")
+//    convertMarkersToSubtitles("/home/nsa/Documents/Караоке/Ундервуд/2020 - Человек-Лук/11 сцена Казино.kdenlive")
+
 }
 
 fun getNewTone(tone: String, capo: Int): String {
@@ -526,13 +539,13 @@ fun convertMarkersToSubtitles(pathToSourceFile: String, pathToResultFile: String
             if (isLineStart) subText = "//${subText}"
             if (isLineEnd) subText = "${subText}\\\\"
 
-            val startTimecode = convertFramesToTimecode(currMarker.pos, 25.0)
-            val endTimecode = convertFramesToTimecode(nextMarker.pos, 25.0)
+            val startTimecode = convertFramesToTimecode(currMarker.pos, 60.0)
+            val endTimecode = convertFramesToTimecode(nextMarker.pos, 60.0)
 
             val subtitle = Subtitle(
                 startTimecode = startTimecode,
                 endTimecode = endTimecode,
-//                text = subText,
+                mltText = Karaoke.voices[0].groups[0].mltText.copy(subText),
                 isLineStart = isLineStart,
                 isLineEnd = isLineEnd
             )
@@ -542,7 +555,7 @@ fun convertMarkersToSubtitles(pathToSourceFile: String, pathToResultFile: String
         var textSubtitleFile = ""
         for (index in 0 until subtitles.size) {
             val subtitle = subtitles[index]
-//            textSubtitleFile += "${index+1}\n${subtitle.startTimecode} --> ${subtitle.endTimecode}\n${subtitle.text}\n\n"
+            textSubtitleFile += "${index+1}\n${subtitle.startTimecode} --> ${subtitle.endTimecode}\n${subtitle.mltText.text}\n\n"
         }
 
         if (textSubtitleFile != "") {

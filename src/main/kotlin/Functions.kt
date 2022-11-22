@@ -159,7 +159,7 @@ fun createKaraoke(song: Song, isBluetoothDelay: Boolean) {
         var voiceLines = mutableListOf<SongVoiceLine>()
         val emptyLines = mutableListOf<SongVoiceLine>()
         var endTimeHidingHeaderMs: Long? = null
-        songVoice.lines.filter { it.type == SongVoiceLineType.TEXT }
+        songVoice.lines.filter { it.type == SongVoiceLineType.TEXT || it.type == SongVoiceLineType.EMPTY }
             .forEachIndexed { indexVoiceLineText, voiceLineText ->
                 val silentDuration = convertTimecodeToMilliseconds(voiceLineText.start) - currentPositionEnd
                 var linesToInsert: Long = silentDuration / songVoice.maxDurationMs

@@ -6,6 +6,7 @@ import containOnlyThisSymbols
 import containThisSymbols
 import convertFramesToMilliseconds
 import convertFramesToTimecode
+import convertMillisecondsToFrames
 import convertMillisecondsToTimecode
 import convertTimecodeToFrames
 import convertTimecodeToMilliseconds
@@ -436,13 +437,28 @@ data class SongVoiceLine(
 ) {
     fun getFillTps(voice: SongVoice, horizonPositionPx: Int, opacityFillValue: Double): String {
         val result: MutableList<TransformProperty> = mutableListOf()
-        val endTpCurrLineMs = convertTimecodeToMilliseconds(endTp!!.time)
+
+        val endTpCurrLineMs = convertTimecodeToMilliseconds(endTp!!.time) // Конец текущей линии. В это время начинается движение линии
+        // Следующая линия - текстовая, с не пустым startTp, начало линии позже конца текущей линии
         val nextLine = voice.lines.firstOrNull {
             it.type == SongVoiceLineType.TEXT && it.startTp != null && convertTimecodeToMilliseconds(it.startTp!!.time) > endTpCurrLineMs
         }
+        // Начало следующией линии
         val startTpNextLineMs = if (nextLine != null) convertTimecodeToMilliseconds(nextLine.startTp!!.time) else -1
+        val endTpNextLineMs = if (nextLine != null) convertTimecodeToMilliseconds(nextLine.endTp!!.time) else -1
+
+        // Тек же надо найти линию (если есть) которая идёт за следующей
+        val nextNextLine : SongVoiceLine? = if (nextLine == null) {
+            null
+        } else {
+            voice.lines.firstOrNull {
+                it.type == SongVoiceLineType.TEXT && it.startTp != null && convertTimecodeToMilliseconds(it.startTp!!.time) > convertTimecodeToMilliseconds(nextLine.endTp!!.time)
+            }
+        }
 
         if (subtitles.isNotEmpty()) {
+
+            // Если в линии есть субтитры, то начало анимации заливки будет за 2 фрейма от начала первого субтитра.
             result.add(
                 TransformProperty(
                     time = convertFramesToTimecode(convertTimecodeToFrames(subtitles.first().startTimecode) - 2),
@@ -453,50 +469,12 @@ data class SongVoiceLine(
                     opacity = 0.0
                 )
             )
-        }
-        subtitles.forEachIndexed { indexSubtitle, subtitle ->
 
+            // Так же прописываем время начала анимации первого субтитра. Далее будем прописывать для субтитров только время конца анимации
+            val subtitle = subtitles.first()
             val timeFromMs = convertTimecodeToMilliseconds(subtitle.startTimecode)
-            val timeToMs = convertFramesToMilliseconds(convertTimecodeToFrames(subtitle.endTimecode) - 2)
             val timeFromTimecode = convertMillisecondsToTimecode(timeFromMs)
-            val timeToTimecode = convertMillisecondsToTimecode(timeToMs)
-
-            if (timeToMs <= endTpCurrLineMs) { // Начало и конец анимации титра полностью укладывается во время линии
-                result.add(
-                    TransformProperty(
-                        time = timeFromTimecode,
-                        x = Karaoke.songtextStartPositionXpx + (startTp?.x ?: 0),
-                        y = voice.getScreenY(this, subtitle.startTimecode, horizonPositionPx) + subtitle.deltaStartY,
-                        w = Integer.max(subtitle.xStartPx,1),
-                        h = subtitle.hPx - subtitle.deltaStartH,
-                        opacity = opacityFillValue
-                    )
-                )
-                result.add(
-                    TransformProperty(
-                        time = timeToTimecode,
-                        x = Karaoke.songtextStartPositionXpx + (startTp?.x ?: 0),
-                        y = voice.getScreenY(this, convertFramesToTimecode(convertTimecodeToFrames(subtitle.endTimecode) - 2), horizonPositionPx) + subtitle.deltaEndY,
-                        w = Integer.max(subtitle.xEndPx,1),
-                        h = subtitle.hPx - subtitle.deltaEndH,
-                        opacity = opacityFillValue
-                    )
-                )
-                if (subtitle == subtitles.last()) {
-                    result.add(
-                        TransformProperty(
-                            time = subtitle.endTimecode,
-                            x = Karaoke.songtextStartPositionXpx + (startTp?.x ?: 0),
-                            y = voice.getScreenY(this, subtitle.endTimecode, horizonPositionPx) + subtitle.deltaEndY,
-                            w = Integer.max(subtitle.xEndPx,1),
-                            h = subtitle.hPx - subtitle.deltaEndH,
-                            opacity = opacityFillValue
-                        )
-                    )
-                }
-            } else { // Анимация титра перекрывает конец времени линии
-                // От начала анимации титра до конца времени линии - анимация на уровне линии, пропорционально по времени
-                // От конца времени линии до конца анимации титра - на новый уровень, который надо рассчитать
+            result.add(
                 TransformProperty(
                     time = timeFromTimecode,
                     x = Karaoke.songtextStartPositionXpx + (startTp?.x ?: 0),
@@ -505,68 +483,126 @@ data class SongVoiceLine(
                     h = subtitle.hPx - subtitle.deltaStartH,
                     opacity = opacityFillValue
                 )
+            )
 
-                val coeff = (endTpCurrLineMs.toDouble() - timeFromMs.toDouble()) / (timeToMs.toDouble() - timeFromMs.toDouble())
+        }
 
-                TransformProperty(
-                    time = convertMillisecondsToTimecode(endTpCurrLineMs),
-                    x = Karaoke.songtextStartPositionXpx + (startTp?.x ?: 0),
-                    y = voice.getScreenY(this, subtitle.startTimecode, horizonPositionPx) + subtitle.deltaStartY,
-                    w = Integer.max(subtitle.xStartPx,1) + (subtitle.wPx * coeff).toInt(),
-                    h = subtitle.hPx - subtitle.deltaStartH,
-                    opacity = opacityFillValue
-                )
+        val timeToMsNextNext = if(nextNextLine != null) convertTimecodeToMilliseconds(nextNextLine.endTp!!.time) else 0
+        val timeToTimecodeNextNext = convertMillisecondsToTimecode(timeToMsNextNext)
 
+        var yEnd = 0
+        // Проходимся по каждому субтиру строки
+        subtitles.forEachIndexed { indexSubtitle, subtitle ->
+
+            // Время начала анимации текущего субтитра - время начала субтитра
+            val timeFromMs = convertTimecodeToMilliseconds(subtitle.startTimecode)
+            // Время конца анимации текущего субтитра - время конца субтитра
+            val timeToMs = convertFramesToMilliseconds(convertTimecodeToFrames(subtitle.endTimecode))
+
+            val timeFromTimecode = convertMillisecondsToTimecode(timeFromMs)
+            val timeToTimecode = convertMillisecondsToTimecode(timeToMs)
+
+            if (timeToMs <= endTpCurrLineMs) { // Начало и конец анимации титра полностью укладывается во время линии
+                // Находим положение текущей линии на момент окончания субтитра
+                yEnd = voice.getScreenY(this, subtitle.endTimecode, horizonPositionPx) + subtitle.deltaEndY
                 result.add(
                     TransformProperty(
                         time = timeToTimecode,
                         x = Karaoke.songtextStartPositionXpx + (startTp?.x ?: 0),
-                        y = voice.getScreenY(this, convertFramesToTimecode(convertTimecodeToFrames(subtitle.endTimecode) - 2), horizonPositionPx) + subtitle.deltaEndY,
+                        y = yEnd,
+                        w = Integer.max(subtitle.xEndPx,1),
+                        h = subtitle.hPx - subtitle.deltaEndH,
+                        opacity = opacityFillValue
+                    )
+                )
+
+            } else { // Анимация титра перекрывает конец времени линии
+                // От начала анимации титра до конца времени линии - анимация на уровне линии, пропорционально по времени
+                // От конца времени линии до конца анимации титра - на новый уровень, который надо рассчитать
+
+                val coeff = (endTpCurrLineMs.toDouble() - timeFromMs.toDouble()) / (timeToMs.toDouble() - timeFromMs.toDouble())
+
+                // Находим положение текущей линии на момент начала субтитра
+                val yStart = voice.getScreenY(this, subtitle.startTimecode, horizonPositionPx) + subtitle.deltaEndY
+                // Добавляем заливку до момента начала анимации строки на том же уровне, что пока находится строка пропорционально по ширине
+                result.add(
+                    TransformProperty(
+                        time = convertMillisecondsToTimecode(endTpCurrLineMs),
+                        x = Karaoke.songtextStartPositionXpx + (startTp?.x ?: 0),
+                        y = yStart,
+                        w = Integer.max(subtitle.xStartPx,1) + (subtitle.wPx * coeff).toInt(),
+                        h = subtitle.hPx - subtitle.deltaStartH,
+                        opacity = opacityFillValue
+                    )
+                )
+
+                // Находим положение текущей линии на момент конца субтитра
+                yEnd = voice.getScreenY(this, subtitle.endTimecode, horizonPositionPx) + subtitle.deltaEndY
+                result.add(
+                    TransformProperty(
+                        time = timeToTimecode,
+                        x = Karaoke.songtextStartPositionXpx + (startTp?.x ?: 0),
+                        y = yEnd,
                         w = Integer.max(subtitle.xEndPx,1),
                         h = subtitle.hPx - subtitle.deltaEndH,
                         opacity = opacityFillValue
                     )
                 )
             }
-
-
         }
+
+        // Мы закрасили все субтитры, и в переменной yEnd находится позиция строки на момент окончания заливки. Теперь надо фэйдить
+
         if (subtitles.isNotEmpty()) {
-            val endTimeFadeMs = convertTimecodeToMilliseconds(subtitles.last().endTimecode) + 1000
+            // По-умолчания время фейда - 1 секунда после окончания последнего субтитра строки
+            var endTimeFadeMs = convertTimecodeToMilliseconds(subtitles.last().endTimecode) + 1000
+            // Если следующая строка закончится раньше, чем это время, то время фейда - за 2 фрейма от конца следующей строки
+            endTimeFadeMs = if (endTpNextLineMs > 0 && endTpNextLineMs < endTimeFadeMs) {
+                convertFramesToMilliseconds(convertMillisecondsToFrames(endTpNextLineMs)-2)
+            } else {
+                endTimeFadeMs
+            }
+
+            // Если время окончания фейда закончится до начала следующей строки
             if (startTpNextLineMs >= endTimeFadeMs) {
+                // Находим положение текущей линии на момент окончания фэйда
+                yEnd = voice.getScreenY(this, convertMillisecondsToTimecode(endTimeFadeMs), horizonPositionPx) + subtitles.last().deltaEndY
                 result.add(
                     TransformProperty(
                         time = convertMillisecondsToTimecode(endTimeFadeMs),
                         x = Karaoke.songtextStartPositionXpx + (startTp?.x ?: 0),
-                        y = voice.getScreenY(this, convertMillisecondsToTimecode(convertTimecodeToMilliseconds(subtitles.last().endTimecode) + 1000), horizonPositionPx) + subtitles.last().deltaEndY,
+                        y = yEnd,
                         w = Integer.max(subtitles.last().xEndPx,1),
                         h = subtitles.last().hPx - subtitles.last().deltaEndH,
                         opacity = 0.0
                     )
                 )
             } else {
-
-                val coeff = (startTpNextLineMs.toDouble() - endTpCurrLineMs.toDouble()) / (endTimeFadeMs.toDouble() - endTpCurrLineMs.toDouble())
-
+                // Если время окончания фейда закончится после начала следующей строки
+                val coeff = (endTimeFadeMs.toDouble() - startTpNextLineMs.toDouble()) / (endTimeFadeMs.toDouble() - endTpCurrLineMs.toDouble())
+                // До начала анимации следующей линии фейдим до коэффициэнта
                 if (nextLine != null) {
+                    // Находим положение текущей линии на момент начала следующей линии
+                    yEnd = voice.getScreenY(this, convertMillisecondsToTimecode(startTpNextLineMs), horizonPositionPx) + subtitles.last().deltaEndY
                     result.add(
                         TransformProperty(
                             time = convertMillisecondsToTimecode(startTpNextLineMs),
                             x = Karaoke.songtextStartPositionXpx + (startTp?.x ?: 0),
-                            y = voice.getScreenY(this, convertMillisecondsToTimecode(convertTimecodeToMilliseconds(subtitles.last().endTimecode) + 1000), horizonPositionPx) + subtitles.last().deltaEndY,
+                            y = yEnd,
                             w = Integer.max(subtitles.last().xEndPx,1),
                             h = subtitles.last().hPx - subtitles.last().deltaEndH,
-                            opacity = opacityFillValue // - coeff
+                            opacity = opacityFillValue * coeff
                         )
                     )
                 }
 
-
+                // Находим положение текущей линии на момент окончания фэйда
+                yEnd = voice.getScreenY(this, convertMillisecondsToTimecode(endTimeFadeMs), horizonPositionPx) + subtitles.last().deltaEndY
                 result.add(
                     TransformProperty(
                         time = convertMillisecondsToTimecode(endTimeFadeMs),
                         x = Karaoke.songtextStartPositionXpx + (startTp?.x ?: 0),
-                        y = voice.getScreenY(this, convertMillisecondsToTimecode(convertTimecodeToMilliseconds(subtitles.last().endTimecode) + 1000), horizonPositionPx) + subtitles.last().deltaEndY,
+                        y = yEnd,
                         w = Integer.max(subtitles.last().xEndPx,1),
                         h = subtitles.last().hPx - subtitles.last().deltaEndH,
                         opacity = 0.0

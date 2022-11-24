@@ -505,6 +505,9 @@ data class SongVoiceLine(
             if (timeToMs <= endTpCurrLineMs) { // Начало и конец анимации титра полностью укладывается во время линии
                 // Находим положение текущей линии на момент окончания субтитра
                 yEnd = voice.getScreenY(this, subtitle.endTimecode, horizonPositionPx) + subtitle.deltaEndY
+
+//                println("${subtitle.mltText.text} - ${timeToMs} - ${endTpCurrLineMs} - ${yEnd}")
+
                 result.add(
                     TransformProperty(
                         time = timeToTimecode,
@@ -525,19 +528,25 @@ data class SongVoiceLine(
                 // Находим положение текущей линии на момент начала субтитра
                 val yStart = voice.getScreenY(this, subtitle.startTimecode, horizonPositionPx) + subtitle.deltaEndY
                 // Добавляем заливку до момента начала анимации строки на том же уровне, что пока находится строка пропорционально по ширине
-                result.add(
-                    TransformProperty(
-                        time = convertMillisecondsToTimecode(endTpCurrLineMs),
-                        x = Karaoke.songtextStartPositionXpx + (startTp?.x ?: 0),
-                        y = yStart,
-                        w = Integer.max(subtitle.xStartPx,1) + (subtitle.wPx * coeff).toInt(),
-                        h = subtitle.hPx - subtitle.deltaStartH,
-                        opacity = opacityFillValue
+                // В том случае, если конец предыдущего субтитра не совпадает с концом линии - в этом случае анимация уже была добавлена
+                if (subtitle != subtitles.first() &&
+                    convertTimecodeToMilliseconds(subtitles[indexSubtitle-1].endTimecode) != endTpCurrLineMs) {
+                    result.add(
+                        TransformProperty(
+                            time = convertMillisecondsToTimecode(endTpCurrLineMs),
+                            x = Karaoke.songtextStartPositionXpx + (startTp?.x ?: 0),
+                            y = yStart,
+                            w = Integer.max(subtitle.xStartPx,1) + (subtitle.wPx * coeff).toInt(),
+                            h = subtitle.hPx - subtitle.deltaStartH,
+                            opacity = opacityFillValue
+                        )
                     )
-                )
+                }
+
 
                 // Находим положение текущей линии на момент конца субтитра
                 yEnd = voice.getScreenY(this, subtitle.endTimecode, horizonPositionPx) + subtitle.deltaEndY
+//                println("${subtitle.mltText.text} - ${timeToMs} - ${endTpCurrLineMs} - ${yEnd}")
                 result.add(
                     TransformProperty(
                         time = timeToTimecode,

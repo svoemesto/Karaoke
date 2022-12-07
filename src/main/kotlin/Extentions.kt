@@ -58,3 +58,15 @@ fun String.deleteThisSymbols(symbolString: String): String {
     }
     return txt
 }
+fun String.uppercaseFirstLetter(): String {
+    var txt = this
+    var result = ""
+    txt.forEachIndexed { index, symbolInSymbolString ->
+        if (index == 0) {
+            result += symbolInSymbolString.uppercase()
+        } else {
+            result += symbolInSymbolString
+        }
+    }
+    return result
+}

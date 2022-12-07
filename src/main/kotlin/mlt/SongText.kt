@@ -127,7 +127,7 @@ fun getMltSongTextTractor(param: Map<String, Any?>, type:ProducerType = Producer
     return mlt
 }
 
-fun getTemplateSongText(param: Map<String, Any?>, voiceId: Int): MltNode {
+fun getTemplateSongText(param: Map<String, Any?>, voiceId: Int, ignoreCapo: Boolean = false): MltNode {
 
     val voiceLines = param["VOICE${voiceId}_VOICELINES_SONGTEXT"] as List<SongVoiceLine>
     val templateSongTextSymbolsGroup = mutableListOf<MltNode>()
@@ -140,7 +140,7 @@ fun getTemplateSongText(param: Map<String, Any?>, voiceId: Int): MltNode {
 
             val mltText: MltText = lineSymbol.mltText
             val text = if (voiceLineSongtext.type == SongVoiceLineType.CHORDS) {
-                if (capo == 0) {
+                if (capo == 0 || ignoreCapo) {
                     mltText.text.split("|")[0]
                 } else {
                     val chordNameAndFret = mltText.text.split("|")
@@ -155,7 +155,7 @@ fun getTemplateSongText(param: Map<String, Any?>, voiceId: Int): MltNode {
                     newNote.names.first() + chord!!.names.first()
                 }
             } else {
-                mltText.text
+                mltText.text.replace("&","&amp;amp;")
             }
 
             val x = lineSymbol.xStartPx + Karaoke.songtextStartPositionXpx // (startX + voiceLineSongtext.getSymbolXpx(indexSymbol)).toLong()

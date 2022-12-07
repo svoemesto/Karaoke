@@ -5,14 +5,13 @@ import mlt.MltObjectAlignmentY
 import mlt.MltObjectType
 import mlt.MltText
 import model.Fingerboard
-import model.GuitarString
 import model.Marker
+import model.MltNode
 import model.MusicChord
 import model.MusicNote
 import model.Song
 import model.SongVersion
 import model.Subtitle
-import model.getPrintedString
 import java.awt.AlphaComposite
 import java.awt.BasicStroke
 import java.awt.Color
@@ -336,6 +335,176 @@ fun getFileNameByMasks(pathToFolder: String, startWith: String, suffixes: List<S
     }
     return ""
 
+}
+
+fun getSongChordsPicture(song: Song, mltNode: MltNode): BufferedImage {
+
+    val songTextSymbolsGroup = mltNode.body as MutableList<MltNode>
+    val startViewport = songTextSymbolsGroup.first { it.name == "startviewport" }
+    val startViewportFields = startViewport.fields["rect"]!!.split(",")
+    val frameW = startViewportFields[2].toInt()
+    val frameH = startViewportFields[3].toInt()
+    // Находим количество страниц, на которые надо разделить текст, чтобы ширина была больше высоты
+    var countPages = 0
+    do {
+        countPages++
+    } while ((frameW.toDouble() * countPages) / (frameH.toDouble() / countPages) < 1.2 )
+
+    // Находим минимальную высоту страницы
+    var minPageH = frameH / (countPages)
+
+    val opaque: Float = 1f
+    val colorBack = Color(255,255,255,255)
+    val colorText = Color(0,0,0,255)
+    val colorChord = Color(255,0,0,255)
+    var fontText = Font("Montserrat SemiBold", 0, 10)
+    val imageType = BufferedImage.TYPE_INT_ARGB
+    val resultImage = BufferedImage(frameW, frameH, imageType)
+    val graphics2D = resultImage.graphics as Graphics2D
+    val alphaChannel = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opaque)
+
+    graphics2D.composite = alphaChannel
+    graphics2D.background = colorBack
+    graphics2D.color = colorBack
+    graphics2D.fillRect(0,0,frameW, frameH)
+    graphics2D.color = colorBack
+    graphics2D.font = fontText
+
+    var currPage = 1
+
+    data class PicturePage(
+        val number: Int,
+        var h: Int,
+        var lines: MutableList<MltNode>
+    )
+    val pages: MutableList<PicturePage> = mutableListOf()
+    var currentH = 0
+    var listLines: MutableList<MltNode> = mutableListOf()
+    songTextSymbolsGroup.filter {it.name == "item"} .forEach { songTextSymbols ->
+        val nodePosition = (songTextSymbols.body as MutableList<*>)[0] as MltNode
+        val nodeText = (songTextSymbols.body as MutableList<*>)[1] as MltNode
+        val x = nodePosition.fields["x"]!!.toInt()
+        val y = nodePosition.fields["y"]!!.toInt()
+        val textToOverlay = nodeText.body as String
+        val isChord = (nodeText.fields["font"]!!.split(" ")[0] == Karaoke.chordsFont.font.fontName.split(" ")[0])
+        val fontTextTmp = Font(nodeText.fields["font"], 0, nodeText.fields["font-pixel-size"]!!.toInt())
+        graphics2D.font = fontTextTmp
+        val fontMetrics = graphics2D.fontMetrics
+        val rectH = fontMetrics.getStringBounds(textToOverlay, graphics2D).height.toInt()
+        currentH = y + rectH
+        val totalH = minPageH + pages.sumOf { it.h } // Полная высота - минимальная высота плюс высоты уже найденных страниц
+        // Если текущая высота больше полной высоты и строчка не аккорд - переход на следующую страницу
+        if (currentH > totalH && isChord) {
+            val picturePage = PicturePage(number = currPage, h = currentH - pages.sumOf { it.h } - rectH, lines = listLines)
+            pages.add(picturePage)
+            currPage++
+            listLines = mutableListOf()
+            listLines.add(songTextSymbols)
+//            println("${picturePage.number} - ${picturePage.h} - ${picturePage.lines.last().body}")
+        } else {
+            listLines.add(songTextSymbols)
+        }
+    }
+    val picturePage = PicturePage(number = currPage, h = currentH - pages.sumOf { it.h }, lines = listLines)
+    pages.add(picturePage)
+
+    var totalH = 0
+    val bis: MutableList<BufferedImage> = mutableListOf()
+    pages.forEach { picturePage ->
+
+        val resultImagePage = BufferedImage(frameW, picturePage.h+20, imageType)
+        val graphics2Dpage = resultImagePage.graphics as Graphics2D
+        val alphaChannelPage = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opaque)
+
+        graphics2Dpage.composite = alphaChannelPage
+        graphics2Dpage.background = colorBack
+        graphics2Dpage.color = colorBack
+        graphics2Dpage.fillRect(0,0,frameW, picturePage.h+20)
+        graphics2Dpage.color = colorBack
+        graphics2Dpage.font = fontText
+
+        picturePage.lines.forEach { songTextSymbols ->
+            val nodePosition = (songTextSymbols.body as MutableList<*>)[0] as MltNode
+            val nodeText = (songTextSymbols.body as MutableList<*>)[1] as MltNode
+            val x = nodePosition.fields["x"]!!.toInt()
+            val y = nodePosition.fields["y"]!!.toInt() - totalH
+            val textToOverlay = (nodeText.body as String).replace("&amp;amp;", "&")
+            val isChord = (nodeText.fields["font"]!!.split(" ")[0] == Karaoke.chordsFont.font.fontName.split(" ")[0])
+            graphics2Dpage.color = if (isChord) colorChord else colorText
+            fontText = Font(nodeText.fields["font"], 0, (nodeText.fields["font-pixel-size"]!!.toInt() / if (isChord) Karaoke.chordsHeightCoefficient else 1.0).toInt())
+            graphics2Dpage.font = fontText
+            val fontMetrics = graphics2Dpage.fontMetrics
+            val rectH = fontMetrics.getStringBounds(textToOverlay, graphics2Dpage).height.toInt()
+            val newY = y + rectH
+            graphics2Dpage.drawString(textToOverlay, x, newY)
+        }
+        graphics2Dpage.dispose()
+        bis.add(resultImagePage)
+        totalH += picturePage.h
+    }
+
+    val fullW = frameW * pages.size
+    var fullH = (210 * fullW / 297.0).toInt()
+
+    val resultImages = BufferedImage(fullW, pages.maxOf { it.h } + 20, imageType)
+    val graphics2Dresult = resultImages.graphics as Graphics2D
+    graphics2Dresult.composite = alphaChannel
+    graphics2Dresult.background = colorBack
+    graphics2Dresult.color = colorBack
+    graphics2Dresult.fillRect(0,0,fullW, pages.maxOf { it.h } + 20)
+    bis.forEachIndexed{ index, bi ->
+        graphics2Dresult.drawImage(bi, frameW * index, 0, null)
+    }
+    graphics2Dresult.dispose()
+
+    val nameW = fullW
+    val nameH = Integer.max(fullH - (pages.maxOf { it.h } + 20),200)
+
+    val resultImageName = BufferedImage(nameW, nameH, imageType)
+    val graphics2name = resultImageName.graphics as Graphics2D
+    graphics2name.composite = alphaChannel
+    graphics2name.background = colorBack
+    graphics2name.color = colorBack
+    graphics2name.fillRect(0,0,nameW, nameH)
+    graphics2name.color = colorText
+    val textToOverlay = "${song.settings.author} - ${song.settings.year} - «${song.settings.songName}» (${song.settings.key}, ${song.settings.bpm} bpm)"
+    var rectW = 0
+    var rectH = 0
+    fontText = Font("Montserrat SemiBold", 0, 10)
+    do {
+        fontText = Font(fontText.name, fontText.style, fontText.size+1)
+        graphics2name.font = fontText
+        val fontMetrics = graphics2name.fontMetrics
+        val rect = fontMetrics.getStringBounds(textToOverlay, graphics2name)
+        rectW = rect.width.toInt()
+        rectH = rect.height.toInt()
+    } while (!(rectH > (nameH * 0.7) || rectW > (nameW * 0.7)))
+
+    var centerX = (nameW - rectW) / 2
+    var centerY = (nameH - rectH) / 2 + rectH
+    graphics2name.drawString(textToOverlay, centerX, centerY)
+    graphics2name.dispose()
+    fullH = resultImageName.height + resultImages.height
+    val resultImagesAndName = BufferedImage(fullW, fullH, imageType)
+    val graphics2DresultAndName = resultImagesAndName.graphics as Graphics2D
+    graphics2DresultAndName.composite = alphaChannel
+    graphics2DresultAndName.background = colorBack
+    graphics2DresultAndName.color = colorBack
+    graphics2DresultAndName.fillRect(0,0,fullW, fullH)
+    graphics2DresultAndName.drawImage(resultImageName, 0, 0, null)
+    graphics2DresultAndName.drawImage(resultImages, 0, nameH, null)
+
+    graphics2DresultAndName.dispose()
+
+    return resultImagesAndName
+}
+
+fun createSongChordsPicture(song: Song, fileName: String, songVersion: SongVersion, isBluetoothDelay: Boolean, mltNode: MltNode) {
+    if (songVersion == SongVersion.CHORDS && isBluetoothDelay == false) {
+        val resultImage = getSongChordsPicture(song, mltNode)
+        val file = File(fileName)
+        ImageIO.write(resultImage, "png", file)
+    }
 }
 fun createSongPicture(song: Song, fileName: String, songVersion: SongVersion, isBluetoothDelay: Boolean) {
     val caption = songVersion.text
@@ -689,4 +858,117 @@ fun replaceVowelOrConsonantLetters(str: String, isVowel: Boolean = true, replSym
         if ((symbol in LETTERS_VOWEL) == isVowel) result += replSymbol else result += symbol
     }
     return result
+}
+
+class Ribbon(private val input: String) {
+    private var position = -1
+    private val length: Int
+    private var flag = -1
+    private var startSyllableIndex = 0
+    private var endSyllableIndex = 0
+
+    init {
+        length = input.length
+    }
+
+    fun setEndSyllableIndex() {
+        endSyllableIndex = position
+    }
+
+    fun extractSyllable(): String {
+        val result = input.substring(startSyllableIndex, endSyllableIndex + 1)
+        startSyllableIndex = endSyllableIndex + 1
+        flag = position
+        endSyllableIndex = 0
+        return result
+    }
+
+    fun readCurrentPosition(): Char {
+        check(!(position < 0 || position > length - 1))
+        return input[position]
+    }
+
+    fun setFlag() {
+        flag = position
+    }
+
+    fun rewindToFlag() {
+        if (flag >= 0) {
+            position = flag
+        }
+    }
+
+    fun moveHeadForward(): Boolean {
+        return if (position + 1 < length) {
+            position++
+            true
+        } else {
+            false
+        }
+    }
+}
+
+class MainRibbon {
+    val vowels = "аеёиоуыюя"
+    val nonPairConsonant = "лйрнм!.,:«»"
+    fun syllables(input: String?): List<String> {
+        val result: MutableList<String> = ArrayList()
+        val ribbon = Ribbon(input!!)
+        while (ribbon.moveHeadForward()) {
+            ribbon.setFlag()
+            if (checkVowel(ribbon.readCurrentPosition())) {
+                if (ribbon.moveHeadForward() && ribbon.moveHeadForward()) {
+                    if (checkVowel(ribbon.readCurrentPosition())) {
+                        ribbon.rewindToFlag()
+                        ribbon.setEndSyllableIndex()
+                        result.add(ribbon.extractSyllable())
+                        continue
+                    }
+                }
+                ribbon.rewindToFlag()
+                if (ribbon.moveHeadForward() && checkSpecialConsonant(ribbon.readCurrentPosition())) {
+                    ribbon.setEndSyllableIndex()
+                    result.add(ribbon.extractSyllable())
+                    continue
+                }
+                ribbon.rewindToFlag()
+                if (hasMoreVowels(ribbon)) {
+                    ribbon.rewindToFlag()
+                    ribbon.setEndSyllableIndex()
+                    result.add(ribbon.extractSyllable())
+                    continue
+                } else {
+                    while (ribbon.moveHeadForward());
+                    ribbon.setEndSyllableIndex()
+                    result.add(ribbon.extractSyllable())
+                }
+            }
+        }
+        return result
+    }
+
+    fun checkVowel(ch: Char): Boolean {
+        return vowels.contains(ch.toString())
+    }
+
+    fun hasMoreVowels(ribbon: Ribbon): Boolean {
+        while (ribbon.moveHeadForward()) {
+            if (checkVowel(ribbon.readCurrentPosition())) {
+                return true
+            }
+        }
+        return false
+    }
+
+    fun checkSpecialConsonant(ch: Char): Boolean {
+        return nonPairConsonant.contains(ch.toString())
+    }
+
+    companion object {
+        @JvmStatic
+        fun main(args: Array<String>) {
+            val mainRibbon = MainRibbon()
+            println(mainRibbon.syllables("контразведчик длинношеее, может быть кое-кто еще! Как знать?"))
+        }
+    }
 }

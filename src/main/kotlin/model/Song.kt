@@ -18,12 +18,15 @@ import getNewTone
 import getTextWidthHeightPx
 import hashtag
 import mlt.MltText
+import uppercaseFirstLetter
 import java.io.File
+import java.nio.file.Files
+import kotlin.io.path.Path
 import kotlin.math.absoluteValue
 
 data class Song(val settings: Settings, val songVersion: SongVersion) {
     fun getOutputFilename(songOutputFile: SongOutputFile, idBluetoothDelay: Boolean): String {
-        return "${settings.rootFolder}/done_${if (songOutputFile == SongOutputFile.PROJECT || songOutputFile == SongOutputFile.SUBTITLE) "projects" else "files"}/${settings.year} ${settings.fileName}${songVersion.suffix}${if (idBluetoothDelay) " bluetooth" else ""}.${songOutputFile.extension}"
+        return "${settings.rootFolder}/done_${if (songOutputFile == SongOutputFile.PROJECT || songOutputFile == SongOutputFile.SUBTITLE || songOutputFile == SongOutputFile.TEXT) "projects" else if (songOutputFile == SongOutputFile.PICTURECHORDS) "chords" else "files"}/${settings.year} ${settings.fileName}${songVersion.suffix}${if (idBluetoothDelay) " bluetooth" else ""}${if (songOutputFile == SongOutputFile.PICTURECHORDS) " chords" else ""}.${songOutputFile.extension}"
     }
 
     fun getDescription(isBluetoothDelay: Boolean): String {
@@ -58,6 +61,17 @@ data class Song(val settings: Settings, val songVersion: SongVersion) {
 
     }
 
+    fun getText(): String {
+        var result = ""
+        voices.forEach { voice ->
+            voice.lines.forEach { line ->
+                result += line.text + "\n"
+            }
+        }
+        result += "\n\n--------------------------------------------\n\n"
+        return result
+    }
+
     var endTimecode: String = ""
     var capo: Int = 0
     var voices: MutableList<SongVoice> = mutableListOf()
@@ -70,8 +84,24 @@ data class Song(val settings: Settings, val songVersion: SongVersion) {
 
         val mapFiles = mutableListOf<String>()
         val listFile = getListFiles(settings.rootFolder, ".srt", "${settings.fileName}.kdenlive")
+        val listFileTxt = getListFiles(settings.rootFolder, ".txt", settings.fileName)
         listFile.sorted().forEach { mapFiles.add(it) }
-
+        if (listFileTxt.size == 1) {
+            val bodyText = File(listFileTxt[0]).readText(Charsets.UTF_8)
+            var bodySubs = File(mapFiles[0]).readText(Charsets.UTF_8)
+            if (bodySubs.contains("[REPLACE]")) {
+                val fileText = File("${mapFiles[0]}.backup")
+                fileText.writeText(bodySubs)
+                val slogs = bodyText.split("\n").filter { it != "" }
+                slogs.forEach { slog ->
+                    val index = bodySubs.indexOf("[REPLACE]")
+                    val before = bodySubs.substring(index-2,index)
+                    bodySubs = bodySubs.replaceFirst("[REPLACE]", if (before != "//") slog else slog.uppercaseFirstLetter())
+                }
+                val fileTextNew = File(mapFiles[0])
+                fileTextNew.writeText(bodySubs)
+            }
+        }
         val listVoices = mutableListOf<SongVoice>()
         for (voideId in listFile.indices) {
 
@@ -308,7 +338,13 @@ data class Song(val settings: Settings, val songVersion: SongVersion) {
         voices.forEachIndexed { indexVoice, currVoice ->
             val currVoiceTextLines = currVoice.lines.filter { it.type == SongVoiceLineType.TEXT }
             var currVoiceMaxLine = currVoiceTextLines[0]
+            var currVoiceMaxSingleLine = currVoiceTextLines[0]
             var maxLineWidthPx = 0
+            var maxSingleLineWidthPx = 0
+            if (indexVoice == 0) {
+                currVoiceMaxLine = currVoiceTextLines.maxBy { it.widthLinePx }
+                currVoiceMaxLine.isMaxSingleLine = true
+            }
             if (currVoice != voices.last() ) {
                 val nextVoice = voices[indexVoice+1]
                 currVoiceTextLines.forEach { currVoiceTextLine ->
@@ -360,10 +396,21 @@ data class SongVoice(
     get() {
         return lines.filter {it.type == SongVoiceLineType.TEXT}.first { it.isMaxLine }.widthLinePx
     }
+
+    val maxWidthSingleLinePx: Long
+    get() {
+        return lines.filter {it.type == SongVoiceLineType.TEXT}.firstOrNull() { it.isMaxSingleLine }?.widthLinePx ?: 0
+    }
+
     val maxWidthLineText: String
     get() {
         return lines.filter {it.type == SongVoiceLineType.TEXT}.first { it.isMaxLine }.text
     }
+
+    val maxWidthSingleLineText: String
+        get() {
+            return lines.filter {it.type == SongVoiceLineType.TEXT}.firstOrNull { it.isMaxSingleLine }?.text ?: ""
+        }
 
     fun getScreenY(line: SongVoiceLine, time: String, horizonPositionPx: Int): Int {
         var result = 0
@@ -432,6 +479,7 @@ data class SongVoiceLine(
     var isNeedCounter: Boolean = false,
     var isFadeLine: Boolean = false,
     var isMaxLine: Boolean = false,
+    var isMaxSingleLine: Boolean = false,
     var durationMs: Long = 0,
     var mltText: MltText,
 ) {

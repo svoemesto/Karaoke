@@ -14,6 +14,7 @@ import java.io.File
 import java.lang.Integer.min
 import java.nio.file.Files
 import java.util.StringJoiner
+import javax.print.attribute.IntegerSyntax
 //import java.nio.file.Path
 import kotlin.io.path.Path
 fun createKaraokeAll(pathToSettingsFile: String) {
@@ -49,7 +50,7 @@ fun createKaraoke(song: Song, isBluetoothDelay: Boolean) {
 
     // Ширина в пикселах суммарной самой длинной строки
     var maxTextWidthPxByFontSize =
-        song.voices.sumOf { it.maxWidthLinePx } + Karaoke.songtextStartPositionXpx * (song.voices.size - 1)
+        (Integer.max(song.voices.sumOf { it.maxWidthLinePx }.toInt(), song.voices.sumOf { it.maxWidthSingleLinePx }.toInt()) + Karaoke.songtextStartPositionXpx * (song.voices.size - 1)).toLong()
 
     // Максимальный размер шрифта берем из дефолтного значения
     var fontSongtextSizePt = Karaoke.voices[0].groups[0].mltText.font.size
@@ -57,19 +58,28 @@ fun createKaraoke(song: Song, isBluetoothDelay: Boolean) {
     while (true) {
         if ((maxTextWidthPxByFontSize > maxTextWidthPx && step < 0) || (maxTextWidthPxByFontSize < maxTextWidthPx && step > 0)) {
             fontSongtextSizePt += step
-            maxTextWidthPxByFontSize = (song.voices.sumOf {
+            val a1 = (song.voices.sumOf {
                 getTextWidthHeightPx(
                     it.maxWidthLineText,
                     Karaoke.voices[0].groups[0].mltText.font.name,
                     Karaoke.voices[0].groups[0].mltText.font.style,
                     fontSongtextSizePt
                 ).first
-            } + Karaoke.songtextStartPositionXpx * (song.voices.size - 1).toLong()).toLong()
+            } + Karaoke.songtextStartPositionXpx * (song.voices.size).toLong()).toInt()
+            val a2 = (song.voices.sumOf {
+                getTextWidthHeightPx(
+                    it.maxWidthSingleLineText,
+                    Karaoke.voices[0].groups[0].mltText.font.name,
+                    Karaoke.voices[0].groups[0].mltText.font.style,
+                    fontSongtextSizePt
+                ).first
+            } + Karaoke.songtextStartPositionXpx * (song.voices.size - 1).toLong()).toInt()
+
+            maxTextWidthPxByFontSize = Integer.max(a1, a2).toLong()
         } else {
             break
         }
     }
-
 
     val fontChordsSizePt = (fontSongtextSizePt * Karaoke.chordsHeightCoefficient).toInt()
 
@@ -145,7 +155,7 @@ fun createKaraoke(song: Song, isBluetoothDelay: Boolean) {
         )
 
         val voiceSetting = Karaoke.voices[min(voiceId, Karaoke.voices.size - 1)]
-//        voiceSetting.replaceFontSize(fontSongtextSizePt)
+        voiceSetting.replaceFontSize(fontSongtextSizePt)
 
         var currentGroup = 0 // Получаем номер текущей группы
         var groupSetting = voiceSetting.groups[min(
@@ -590,6 +600,7 @@ fun createKaraoke(song: Song, isBluetoothDelay: Boolean) {
 
 
         val templateSongText = getTemplateSongText(param, voiceId)
+        val templateSongTextIgnoreCapo = getTemplateSongText(param, voiceId, true)
         val templateHorizon = getTemplateHorizon(param)
         val templateFlash = getTemplateFlash(param)
         val templateProgress = getTemplateProgress(param)
@@ -634,6 +645,7 @@ fun createKaraoke(song: Song, isBluetoothDelay: Boolean) {
         param["${ProducerType.SONGTEXT.text.uppercase()}${voiceId}_WORK_AREA_SONGTEXT_HEIGHT_PX"] =
             workAreaSongtextHeightPx.toLong()
         param["${ProducerType.SONGTEXT.text.uppercase()}${voiceId}_XML_DATA"] = templateSongText
+        param["${ProducerType.SONGTEXT.text.uppercase()}${voiceId}_XML_DATA_IGNORE_CAPO"] = templateSongTextIgnoreCapo
         param["${ProducerType.SONGTEXT.text.uppercase()}${voiceId}_PROPERTY_RECT"] = propRectSongtextValue
         param["HIDE_TRACTOR_${ProducerType.SONGTEXT.text.uppercase()}${voiceId}"] = "audio"
 
@@ -747,8 +759,10 @@ fun createKaraoke(song: Song, isBluetoothDelay: Boolean) {
     param["SONG_PROJECT_FILENAME"] = song.getOutputFilename(SongOutputFile.PROJECT, isBluetoothDelay)
     param["SONG_VIDEO_FILENAME"] = song.getOutputFilename(SongOutputFile.VIDEO, isBluetoothDelay)
     param["SONG_PICTURE_FILENAME"] = song.getOutputFilename(SongOutputFile.PICTURE, isBluetoothDelay)
+    param["SONG_PICTURECHORDS_FILENAME"] = song.getOutputFilename(SongOutputFile.PICTURECHORDS, isBluetoothDelay)
     param["SONG_SUBTITLE_FILENAME"] = song.getOutputFilename(SongOutputFile.SUBTITLE, isBluetoothDelay)
     param["SONG_DESCRIPTION_FILENAME"] = song.getOutputFilename(SongOutputFile.DESCRIPTION, isBluetoothDelay)
+    param["SONG_TEXT_FILENAME"] = song.getOutputFilename(SongOutputFile.TEXT, isBluetoothDelay)
 
     val templateProject = "<?xml version='1.0' encoding='utf-8'?>\n${getMlt(param)}"
     val fileProject = File(param["SONG_PROJECT_FILENAME"].toString())
@@ -759,8 +773,16 @@ fun createKaraoke(song: Song, isBluetoothDelay: Boolean) {
     Files.createDirectories(Path(fileDescription.parent))
     fileDescription.writeText(song.getDescription(isBluetoothDelay))
 
+    val fileText = File(param["SONG_TEXT_FILENAME"].toString())
+    Files.createDirectories(Path(fileText.parent))
+    fileText.writeText(song.getText())
+
     val filePictures = File(param["SONG_DESCRIPTION_FILENAME"].toString())
     Files.createDirectories(Path(filePictures.parent))
     createSongPicture(song, param["SONG_PICTURE_FILENAME"].toString(), song.songVersion, isBluetoothDelay)
+
+    val filePictureChords = File(param["SONG_PICTURECHORDS_FILENAME"].toString())
+    Files.createDirectories(Path(filePictureChords.parent))
+    createSongChordsPicture(song, param["SONG_PICTURECHORDS_FILENAME"].toString(), song.songVersion, isBluetoothDelay, param["${ProducerType.SONGTEXT.text.uppercase()}${0}_XML_DATA_IGNORE_CAPO"] as MltNode)
 
 }

@@ -1,6 +1,7 @@
 package model
 
 import Karaoke
+import MainRibbon
 import NOTES_SYMBOLS
 import containOnlyThisSymbols
 import containThisSymbols
@@ -25,8 +26,11 @@ import kotlin.io.path.Path
 import kotlin.math.absoluteValue
 
 data class Song(val settings: Settings, val songVersion: SongVersion) {
+
+    private val REPLACE_STRING = "[R]"
+    private val END_STRING = "[E]"
     fun getOutputFilename(songOutputFile: SongOutputFile, idBluetoothDelay: Boolean): String {
-        return "${settings.rootFolder}/done_${if (songOutputFile == SongOutputFile.PROJECT || songOutputFile == SongOutputFile.SUBTITLE || songOutputFile == SongOutputFile.TEXT) "projects" else if (songOutputFile == SongOutputFile.PICTURECHORDS) "chords" else "files"}/${settings.year} ${settings.fileName}${songVersion.suffix}${if (idBluetoothDelay) " bluetooth" else ""}${if (songOutputFile == SongOutputFile.PICTURECHORDS) " chords" else ""}.${songOutputFile.extension}"
+        return "${settings.rootFolder}/done_${if (songOutputFile == SongOutputFile.PROJECT || songOutputFile == SongOutputFile.SUBTITLE || songOutputFile == SongOutputFile.TEXT) "projects" else if (songOutputFile == SongOutputFile.PICTURECHORDS) "chords" else "files"}/${if (!settings.fileName.startsWith (settings.year.toString())) "${settings.year} " else ""}${settings.fileName}${songVersion.suffix}${if (idBluetoothDelay) " bluetooth" else ""}${if (songOutputFile == SongOutputFile.PICTURECHORDS) " chords" else ""}.${songOutputFile.extension}"
     }
 
     fun getDescription(isBluetoothDelay: Boolean): String {
@@ -77,31 +81,123 @@ data class Song(val settings: Settings, val songVersion: SongVersion) {
     var voices: MutableList<SongVoice> = mutableListOf()
     val hasChords: Boolean get() = voices.sumOf { it.lines.filter { it.type == SongVoiceLineType.CHORDS }.size } > 0
 
+    data class SubtitleFileElement(
+        var startFrame: Long,
+        var endFrame: Long,
+        var text: String,
+        var isStartOfLine: Boolean,
+        var isEndOfLine: Boolean,
+        val isSetting: Boolean
+    )
 
     init {
 
         val beatMs = if (settings.ms == 0L) (60000.0 / settings.bpm).toLong() else settings.ms
 
         val mapFiles = mutableListOf<String>()
+        // Считываем сабы
         val listFile = getListFiles(settings.rootFolder, ".srt", "${settings.fileName}.kdenlive")
+        // Считываем текст
         val listFileTxt = getListFiles(settings.rootFolder, ".txt", settings.fileName)
         listFile.sorted().forEach { mapFiles.add(it) }
+        // Если текстовый файл один
         if (listFileTxt.size == 1) {
+            // Считываем текст из файла текста
             val bodyText = File(listFileTxt[0]).readText(Charsets.UTF_8)
+            // Считываем тест из первого файла сабов и заменяем в нём тильды
             var bodySubs = File(mapFiles[0]).readText(Charsets.UTF_8)
-            if (bodySubs.contains("[REPLACE]")) {
+                .replace("~","")
+                .replace("Введите текст","")
+                .replace("[G0]","[SETTING]|GROUP|0")
+                .replace("[G1]","[SETTING]|GROUP|1")
+                .replace("[G2]","[SETTING]|GROUP|2")
+                .replace("[G3]","[SETTING]|GROUP|3")
+            // Если в тексте сабов присутствует строка замены
+            if (bodySubs.contains(END_STRING)) {
+                // Бэкапим файл (если еще нет бэкапа)
                 val fileText = File("${mapFiles[0]}.backup")
-                fileText.writeText(bodySubs)
-                val slogs = bodyText.split("\n").filter { it != "" }
-                slogs.forEach { slog ->
-                    val index = bodySubs.indexOf("[REPLACE]")
-                    val before = bodySubs.substring(index-2,index)
-                    bodySubs = bodySubs.replaceFirst("[REPLACE]", if (before != "//") slog else slog.uppercaseFirstLetter())
+                if (fileText.exists()) {
+                    bodySubs = fileText.readText(Charsets.UTF_8)
+                        .replace("~","")
+                        .replace("Введите текст","")
+                        .replace("[G0]","[SETTING]|GROUP|0")
+                        .replace("[G1]","[SETTING]|GROUP|1")
+                        .replace("[G2]","[SETTING]|GROUP|2")
+                        .replace("[G3]","[SETTING]|GROUP|3")
+                } else {
+                    fileText.writeText(bodySubs)
                 }
-                val fileTextNew = File(mapFiles[0])
-                fileTextNew.writeText(bodySubs)
+
+                // Заполняем список слогов
+                val words = bodyText.replace("\n"," ").split(" ").filter { it != "" }
+                val slogs: MutableList<String> = mutableListOf()
+                val mainRibbon = MainRibbon()
+                var addBefore = ""
+                words.forEach { word ->
+                    val wordSlogs: MutableList<String> = mainRibbon.syllables(word).toMutableList()
+                    if (wordSlogs.isEmpty()) {
+                        addBefore += "${word}_"
+                    } else {
+                        if (wordSlogs.joinToString("") != word) wordSlogs[wordSlogs.size-1] = wordSlogs[wordSlogs.size-1] + word.substring(wordSlogs.joinToString("").length)
+                        wordSlogs[0] = addBefore + wordSlogs[0]
+                        addBefore = ""
+                        wordSlogs[wordSlogs.size-1] = wordSlogs[wordSlogs.size-1] + "_"
+                        slogs.addAll(wordSlogs)
+                    }
+                }
+                
+                println(bodySubs)
+                println(slogs)
+
+                val body = File(mapFiles[0]).readText(Charsets.UTF_8)
+                    .replace("~","")
+                    .replace("Введите текст","")
+                    .replace("[G0]","[SETTING]|GROUP|0")
+                    .replace("[G1]","[SETTING]|GROUP|1")
+                    .replace("[G2]","[SETTING]|GROUP|2")
+                    .replace("[G3]","[SETTING]|GROUP|3")
+                val blocks = body.split("\\n[\\n]+".toRegex())
+                val listSubtitleFileElements: MutableList<SubtitleFileElement> = mutableListOf()
+                blocks.forEach() { block ->
+                    val blocklines = block.split("\n")
+                    val id = if (blocklines.isNotEmpty() && blocklines[0]!= "" ) blocklines[0].toLong() else 0
+                    val startEnd = if (blocklines.size > 1) blocklines[1] else ""
+                    if (startEnd != "" && id != 0L) {
+                        var text = if (blocklines.size > 2) blocklines[2] else ""
+                        val se = startEnd.split(" --> ")
+                        val startFrame = convertTimecodeToFrames(se[0].replace(",","."))
+                        val endFrame = convertTimecodeToFrames(se[1].replace(",","."))
+                        listSubtitleFileElements.add(SubtitleFileElement(startFrame, endFrame, text, false, false, (text.uppercase().startsWith("[SETTING]|") || text == "//\\\\")))
+                    }
+                }
+                listSubtitleFileElements.sortBy { it.startFrame }
+                var isStartLine = true
+                var indexSlog = 0
+                for (i in 0 until listSubtitleFileElements.size - 1) {
+                    val currSubElement = listSubtitleFileElements[i]
+                    val nextSubElement = listSubtitleFileElements[i+1]
+                    if (!currSubElement.isSetting && !currSubElement.text.contains(END_STRING)) {
+                        currSubElement.endFrame = nextSubElement.startFrame
+                        currSubElement.isStartOfLine = isStartLine
+                        currSubElement.isEndOfLine = nextSubElement.text.contains(END_STRING)
+                        isStartLine = currSubElement.isEndOfLine
+                        if (indexSlog < slogs.size) {
+                            val txt = if (currSubElement.isEndOfLine) slogs[indexSlog].substring(0,slogs[indexSlog].length-1) else slogs[indexSlog]
+                            currSubElement.text = "${if (currSubElement.isStartOfLine) "//" else ""}${if (currSubElement.isStartOfLine) txt.uppercaseFirstLetter() else txt.lowercase()}${if (currSubElement.isEndOfLine) "\\\\" else ""}"
+                            indexSlog++
+                        }
+                    }
+                }
+
+                var newBody = ""
+                listSubtitleFileElements.filter { !it.text.contains(END_STRING) } .forEachIndexed { index, element ->
+                    newBody += "${index+1}\n${convertFramesToTimecode(element.startFrame).replace(".",",")} --> ${convertFramesToTimecode(element.endFrame).replace(".",",")}\n${element.text}\n\n"
+                }
+                File(mapFiles[0]).writeText(newBody)
+
             }
         }
+
         val listVoices = mutableListOf<SongVoice>()
         for (voideId in listFile.indices) {
 

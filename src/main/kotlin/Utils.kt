@@ -909,8 +909,8 @@ class Ribbon(private val input: String) {
 }
 
 class MainRibbon {
-    val vowels = "аеёиоуыюя"
-    val nonPairConsonant = "лйрнм!.,:«»"
+    val vowels = "аеёиоуыюяэАЕЁИОУЫЮЯЭ"
+    val nonPairConsonant = "лйрнмЛЙРНМ.,:-"
     fun syllables(input: String?): List<String> {
         val result: MutableList<String> = ArrayList()
         val ribbon = Ribbon(input!!)
@@ -968,7 +968,7 @@ class MainRibbon {
         @JvmStatic
         fun main(args: Array<String>) {
             val mainRibbon = MainRibbon()
-            println(mainRibbon.syllables("контразведчик длинношеее, может быть кое-кто еще! Как знать?"))
+            println(mainRibbon.syllables("Он"))
         }
     }
 }

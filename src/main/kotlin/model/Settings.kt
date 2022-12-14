@@ -73,10 +73,10 @@ data class Settings(val _pathToSettingsFile: String) {
             }
         }
 
-        if (audioMusicFileName == "") audioMusicFileName = getFileNameByMasks(rootFolder,fileName, listOf("-accompaniment-"," [music]"),".wav")
-        if (audioVocalFileName == "") audioVocalFileName = getFileNameByMasks(rootFolder,fileName, listOf("-vocals-"," [vocals]"),".wav")
-        if (audioBassFileName == "") audioBassFileName = getFileNameByMasks(rootFolder,fileName, listOf("-bass-"," [bass]"),".wav")
-        if (audioDrumsFileName == "") audioDrumsFileName = getFileNameByMasks(rootFolder,fileName, listOf("-drums-"," [drums]"),".wav")
+        if (audioMusicFileName == "") audioMusicFileName = getFileNameByMasks(rootFolder,fileName, listOf("-accompaniment"," [music]"),".wav")
+        if (audioVocalFileName == "") audioVocalFileName = getFileNameByMasks(rootFolder,fileName, listOf("-vocals"," [vocals]"),".wav")
+        if (audioBassFileName == "") audioBassFileName = getFileNameByMasks(rootFolder,fileName, listOf("-bass"," [bass]"),".wav")
+        if (audioDrumsFileName == "") audioDrumsFileName = getFileNameByMasks(rootFolder,fileName, listOf("-drums"," [drums]"),".wav")
 
     }
 }

@@ -29,6 +29,9 @@ import kotlin.streams.toList
 
 
 fun main() {
+
+    createSettingsFilesForAll("/home/nsa/Documents/Караоке/Павел Кашин")
+
 //    val musicChord = MusicChord.X7
 //    val musicNote = MusicNote.C
 //    GuitarString.values().forEach { gs ->
@@ -53,6 +56,327 @@ fun main() {
 //    convertMarkersToSubtitles("/home/nsa/Documents/Караоке/Ундервуд/2020 - Человек-Лук/9 сцена Явление антагониста.kdenlive")
 //    convertMarkersToSubtitles("/home/nsa/Documents/Караоке/Ундервуд/2020 - Человек-Лук/10 сцена Ботанический сад.kdenlive")
 //    convertMarkersToSubtitles("/home/nsa/Documents/Караоке/Ундервуд/2020 - Человек-Лук/11 сцена Казино.kdenlive")
+
+}
+
+fun createSettingsFilesForAll(startFolder: String, extention: String = "flac") {
+    val patternFileName = "(\\d{4}).*\\s\\((\\d{2})\\)\\s\\[(.*)\\]\\s-\\s(.*)\\.(.*)"
+    val regexpFileName = Regex(patternFileName)
+    val patternFolderName = "(\\d{4}).*\\s-\\s(.*)"
+    val regexpFolderName = Regex(patternFolderName)
+
+    val fileDemucs2tracks = File("$startFolder/demusc2track.run")
+    val fileDemucs4tracks = File("$startFolder/demusc4track.run")
+
+    var textFileDemucs2tracks = ""
+    var textFileDemucs4tracks = ""
+
+    val listFiles = getListFiles(startFolder,extention)
+    listFiles.map{File(it)}.forEach { file ->
+        val fileName = file.name
+
+        val fileAbsolutePath = file.absolutePath
+        val fileFolder = file.parent
+        val folderName = file.parentFile.name
+        val fileNamesMatchResult = regexpFileName.findAll(fileName).toList().firstOrNull()
+        val folderNamesMatchResult = regexpFolderName.findAll(folderName).toList().firstOrNull()
+        val songYear = fileNamesMatchResult?.let {fileNamesMatchResult.groups[1]?.value}
+        val songTrack = fileNamesMatchResult?.let {fileNamesMatchResult.groups[2]?.value}
+        val songAuthor = fileNamesMatchResult?.let {fileNamesMatchResult.groups[3]?.value}
+        val songName = fileNamesMatchResult?.let {fileNamesMatchResult.groups[4]?.value}
+        val songFormat = fileNamesMatchResult?.let {fileNamesMatchResult.groups[5]?.value}
+        val songAlbum = folderNamesMatchResult?.let {folderNamesMatchResult.groups[2]?.value}
+        val settingFileName = fileAbsolutePath.substring(0,fileAbsolutePath.length-songFormat!!.length-1)+".settings"
+        val textFileName = fileAbsolutePath.substring(0,fileAbsolutePath.length-songFormat!!.length-1)+".txt"
+        val kdenliveFileName = fileAbsolutePath.substring(0,fileAbsolutePath.length-songFormat!!.length-1)+".kdenlive"
+        val fileNameWOExt = fileName.substring(0, fileName.length-songFormat!!.length-1)
+
+        println("Year = $songYear")
+        println("Track = $songTrack")
+        println("Author = $songAuthor")
+        println("Name = $songName")
+        println("Format = $songFormat")
+        println("Album = $songAlbum")
+        println("settingFileName = $settingFileName")
+        println()
+
+        val modelName = "mdx"
+        val pathToResultedModel = "$fileFolder/$modelName"
+        val separatedStem = "vocals"
+        val oldNoStemName = "$pathToResultedModel/${fileNameWOExt}-no_$separatedStem.wav"
+        val newNoStemName = "$pathToResultedModel/${fileNameWOExt}-accompaniment.wav"
+
+        val textDemucs2track = "python3 -m demucs -n mdx -d cuda --filename \"{track}-{stem}.{ext}\" --two-stems=$separatedStem -o \"$fileFolder\" \"$fileAbsolutePath\"\n" +
+                "mv \"$oldNoStemName\" \"$newNoStemName\"" + "\n"
+        val textDemucs4track = "python3 -m demucs -n mdx -d cuda --filename \"{track}-{stem}.{ext}\" -o \"$fileFolder\" \"$fileAbsolutePath\"\n"
+
+        textFileDemucs2tracks += textDemucs2track
+        textFileDemucs4tracks += textDemucs4track
+
+        val settingFile = File(settingFileName)
+        if (!settingFile.exists()) {
+
+            val text =
+                "NAME=$songName"+"\n"+
+                        "AUTHOR=$songAuthor" + "\n" +
+                        "ALBUM=$songAlbum" + "\n" +
+                        "YEAR=$songYear" + "\n" +
+                        "FORMAT=$songFormat" + "\n" +
+                        "TRACK=$songTrack" + "\n" +
+                        "KEY=" + "\n" +
+                        "BPM=" + "\n"
+            settingFile.writeText(text)
+        }
+
+        val textFile = File(textFileName)
+        if (!textFile.exists()) {
+
+            val text = "\n"
+            textFile.writeText(text)
+        }
+
+        val kdenliveTemplate = "<?xml version='1.0' encoding='utf-8'?>\n" +
+                "<mlt LC_NUMERIC=\"C\" producer=\"main_bin\" version=\"7.10.0\" root=\"${fileFolder}\">\n" +
+                " <profile frame_rate_num=\"60\" sample_aspect_num=\"1\" display_aspect_den=\"9\" colorspace=\"709\" progressive=\"1\" description=\"HD 1080p 60 fps\" display_aspect_num=\"16\" frame_rate_den=\"1\" width=\"1920\" height=\"1080\" sample_aspect_den=\"1\"/>\n" +
+                " <producer id=\"producer0\" in=\"00:00:00.000\">\n" +
+                "  <property name=\"eof\">pause</property>\n" +
+                "  <property name=\"resource\">${modelName}/${fileNameWOExt}-vocals.wav</property>\n" +
+                "  <property name=\"seekable\">1</property>\n" +
+                "  <property name=\"audio_index\">0</property>\n" +
+                "  <property name=\"video_index\">-1</property>\n" +
+                "  <property name=\"mute_on_pause\">1</property>\n" +
+                "  <property name=\"mlt_service\">avformat</property>\n" +
+                "  <property name=\"kdenlive:clipname\">VOICE</property>\n" +
+                "  <property name=\"kdenlive:clip_type\">1</property>\n" +
+                "  <property name=\"kdenlive:folderid\">-1</property>\n" +
+                "  <property name=\"kdenlive:id\">3</property>\n" +
+                " </producer>\n" +
+                " <producer id=\"producer1\" in=\"00:00:00.000\">\n" +
+                "  <property name=\"eof\">pause</property>\n" +
+                "  <property name=\"resource\">${modelName}/${fileNameWOExt}-accompaniment.wav</property>\n" +
+                "  <property name=\"seekable\">1</property>\n" +
+                "  <property name=\"audio_index\">0</property>\n" +
+                "  <property name=\"video_index\">-1</property>\n" +
+                "  <property name=\"mute_on_pause\">1</property>\n" +
+                "  <property name=\"mlt_service\">avformat</property>\n" +
+                "  <property name=\"kdenlive:clipname\">MUSIC</property>\n" +
+                "  <property name=\"kdenlive:clip_type\">1</property>\n" +
+                "  <property name=\"kdenlive:folderid\">-1</property>\n" +
+                "  <property name=\"kdenlive:id\">2</property>\n" +
+                " </producer>\n" +
+                " <playlist id=\"main_bin\">\n" +
+                "  <property name=\"kdenlive:docproperties.activeTrack\">0</property>\n" +
+                "  <property name=\"kdenlive:docproperties.audioChannels\">2</property>\n" +
+                "  <property name=\"kdenlive:docproperties.audioTarget\">1</property>\n" +
+                "  <property name=\"kdenlive:docproperties.compositing\">1</property>\n" +
+                "  <property name=\"kdenlive:docproperties.disablepreview\">0</property>\n" +
+                "  <property name=\"kdenlive:docproperties.documentid\">1671265183813</property>\n" +
+                "  <property name=\"kdenlive:docproperties.enableTimelineZone\">0</property>\n" +
+                "  <property name=\"kdenlive:docproperties.enableexternalproxy\">0</property>\n" +
+                "  <property name=\"kdenlive:docproperties.enableproxy\">0</property>\n" +
+                "  <property name=\"kdenlive:docproperties.externalproxyparams\">./;GL;.LRV;./;GX;.MP4;./;GP;.LRV;./;GP;.MP4</property>\n" +
+                "  <property name=\"kdenlive:docproperties.generateimageproxy\">0</property>\n" +
+                "  <property name=\"kdenlive:docproperties.generateproxy\">0</property>\n" +
+                "  <property name=\"kdenlive:docproperties.groups\">[\n" +
+                "]\n" +
+                "</property>\n" +
+                "  <property name=\"kdenlive:docproperties.kdenliveversion\">22.08.3</property>\n" +
+                "  <property name=\"kdenlive:docproperties.position\">0</property>\n" +
+                "  <property name=\"kdenlive:docproperties.previewextension\"/>\n" +
+                "  <property name=\"kdenlive:docproperties.previewparameters\"/>\n" +
+                "  <property name=\"kdenlive:docproperties.profile\">atsc_1080p_60</property>\n" +
+                "  <property name=\"kdenlive:docproperties.proxyextension\"/>\n" +
+                "  <property name=\"kdenlive:docproperties.proxyimageminsize\">2000</property>\n" +
+                "  <property name=\"kdenlive:docproperties.proxyimagesize\">800</property>\n" +
+                "  <property name=\"kdenlive:docproperties.proxyminsize\">1000</property>\n" +
+                "  <property name=\"kdenlive:docproperties.proxyparams\"/>\n" +
+                "  <property name=\"kdenlive:docproperties.proxyresize\">640</property>\n" +
+                "  <property name=\"kdenlive:docproperties.scrollPos\">0</property>\n" +
+                "  <property name=\"kdenlive:docproperties.seekOffset\">30000</property>\n" +
+                "  <property name=\"kdenlive:docproperties.version\">1.04</property>\n" +
+                "  <property name=\"kdenlive:docproperties.verticalzoom\">1</property>\n" +
+                "  <property name=\"kdenlive:docproperties.videoTarget\">-1</property>\n" +
+                "  <property name=\"kdenlive:docproperties.zonein\">0</property>\n" +
+                "  <property name=\"kdenlive:docproperties.zoneout\">75</property>\n" +
+                "  <property name=\"kdenlive:docproperties.zoom\">8</property>\n" +
+                "  <property name=\"kdenlive:expandedFolders\"/>\n" +
+                "  <property name=\"kdenlive:documentnotes\"/>\n" +
+                "  <property name=\"xml_retain\">1</property>\n" +
+                "  <entry producer=\"producer0\" in=\"00:00:00.000\"/>\n" +
+                "  <entry producer=\"producer1\" in=\"00:00:00.000\"/>\n" +
+                " </playlist>\n" +
+                " <producer id=\"black_track\" in=\"00:00:00.000\" out=\"00:10:59.333\">\n" +
+                "  <property name=\"length\">2147483647</property>\n" +
+                "  <property name=\"eof\">continue</property>\n" +
+                "  <property name=\"resource\">black</property>\n" +
+                "  <property name=\"aspect_ratio\">1</property>\n" +
+                "  <property name=\"mlt_service\">color</property>\n" +
+                "  <property name=\"mlt_image_format\">rgba</property>\n" +
+                "  <property name=\"set.test_audio\">0</property>\n" +
+                " </producer>\n" +
+                " <producer id=\"producer2\" in=\"00:00:00.000\">\n" +
+                "  <property name=\"length\">9560</property>\n" +
+                "  <property name=\"eof\">pause</property>\n" +
+                "  <property name=\"resource\">${modelName}/${fileNameWOExt}-accompaniment.wav</property>\n" +
+                "  <property name=\"meta.media.nb_streams\">1</property>\n" +
+                "  <property name=\"seekable\">1</property>\n" +
+                "  <property name=\"audio_index\">0</property>\n" +
+                "  <property name=\"video_index\">-1</property>\n" +
+                "  <property name=\"mute_on_pause\">0</property>\n" +
+                "  <property name=\"mlt_service\">avformat-novalidate</property>\n" +
+                "  <property name=\"kdenlive:clipname\">MUSIC</property>\n" +
+                "  <property name=\"kdenlive:clip_type\">1</property>\n" +
+                "  <property name=\"kdenlive:folderid\">-1</property>\n" +
+                "  <property name=\"kdenlive:id\">2</property>\n" +
+                "  <property name=\"xml\">was here</property>\n" +
+                "  <property name=\"set.test_audio\">0</property>\n" +
+                "  <property name=\"set.test_image\">1</property>\n" +
+                " </producer>\n" +
+                " <playlist id=\"playlist0\">\n" +
+                "  <property name=\"kdenlive:audio_track\">1</property>\n" +
+                "  <entry producer=\"producer2\">\n" +
+                "   <property name=\"kdenlive:id\">2</property>\n" +
+                "  </entry>\n" +
+                " </playlist>\n" +
+                " <playlist id=\"playlist1\">\n" +
+                "  <property name=\"kdenlive:audio_track\">1</property>\n" +
+                " </playlist>\n" +
+                " <tractor id=\"tractor0\" in=\"00:00:00.000\">\n" +
+                "  <property name=\"kdenlive:audio_track\">1</property>\n" +
+                "  <property name=\"kdenlive:trackheight\">69</property>\n" +
+                "  <property name=\"kdenlive:timeline_active\">1</property>\n" +
+                "  <property name=\"kdenlive:collapsed\">28</property>\n" +
+                "  <property name=\"kdenlive:thumbs_format\"/>\n" +
+                "  <property name=\"kdenlive:audio_rec\"/>\n" +
+                "  <track hide=\"both\" producer=\"playlist0\"/>\n" +
+                "  <track hide=\"both\" producer=\"playlist1\"/>\n" +
+                "  <filter id=\"filter0\">\n" +
+                "   <property name=\"window\">75</property>\n" +
+                "   <property name=\"max_gain\">20dB</property>\n" +
+                "   <property name=\"mlt_service\">volume</property>\n" +
+                "   <property name=\"internal_added\">237</property>\n" +
+                "   <property name=\"disable\">1</property>\n" +
+                "  </filter>\n" +
+                "  <filter id=\"filter1\">\n" +
+                "   <property name=\"channel\">-1</property>\n" +
+                "   <property name=\"mlt_service\">panner</property>\n" +
+                "   <property name=\"internal_added\">237</property>\n" +
+                "   <property name=\"start\">0.5</property>\n" +
+                "   <property name=\"disable\">1</property>\n" +
+                "  </filter>\n" +
+                "  <filter id=\"filter2\">\n" +
+                "   <property name=\"iec_scale\">0</property>\n" +
+                "   <property name=\"mlt_service\">audiolevel</property>\n" +
+                "   <property name=\"dbpeak\">1</property>\n" +
+                "   <property name=\"disable\">1</property>\n" +
+                "  </filter>\n" +
+                " </tractor>\n" +
+                " <producer id=\"producer3\" in=\"00:00:00.000\">\n" +
+                "  <property name=\"length\">9560</property>\n" +
+                "  <property name=\"eof\">pause</property>\n" +
+                "  <property name=\"resource\">${modelName}/${fileNameWOExt}-vocals.wav</property>\n" +
+                "  <property name=\"seekable\">1</property>\n" +
+                "  <property name=\"audio_index\">0</property>\n" +
+                "  <property name=\"video_index\">-1</property>\n" +
+                "  <property name=\"mute_on_pause\">0</property>\n" +
+                "  <property name=\"mlt_service\">avformat-novalidate</property>\n" +
+                "  <property name=\"kdenlive:clipname\">VOICE</property>\n" +
+                "  <property name=\"kdenlive:clip_type\">1</property>\n" +
+                "  <property name=\"kdenlive:folderid\">-1</property>\n" +
+                "  <property name=\"kdenlive:id\">3</property>\n" +
+                "  <property name=\"xml\">was here</property>\n" +
+                "  <property name=\"set.test_audio\">0</property>\n" +
+                "  <property name=\"set.test_image\">1</property>\n" +
+                " </producer>\n" +
+                " <playlist id=\"playlist2\">\n" +
+                "  <property name=\"kdenlive:audio_track\">1</property>\n" +
+                "  <entry producer=\"producer3\">\n" +
+                "   <property name=\"kdenlive:id\">3</property>\n" +
+                "  </entry>\n" +
+                " </playlist>\n" +
+                " <playlist id=\"playlist3\">\n" +
+                "  <property name=\"kdenlive:audio_track\">1</property>\n" +
+                " </playlist>\n" +
+                " <tractor id=\"tractor1\" in=\"00:00:00.000\">\n" +
+                "  <property name=\"kdenlive:audio_track\">1</property>\n" +
+                "  <property name=\"kdenlive:trackheight\">246</property>\n" +
+                "  <property name=\"kdenlive:timeline_active\">1</property>\n" +
+                "  <property name=\"kdenlive:collapsed\">0</property>\n" +
+                "  <property name=\"kdenlive:thumbs_format\"/>\n" +
+                "  <property name=\"kdenlive:audio_rec\"/>\n" +
+                "  <track hide=\"video\" producer=\"playlist2\"/>\n" +
+                "  <track hide=\"video\" producer=\"playlist3\"/>\n" +
+                "  <filter id=\"filter3\">\n" +
+                "   <property name=\"window\">75</property>\n" +
+                "   <property name=\"max_gain\">20dB</property>\n" +
+                "   <property name=\"mlt_service\">volume</property>\n" +
+                "   <property name=\"internal_added\">237</property>\n" +
+                "   <property name=\"disable\">1</property>\n" +
+                "  </filter>\n" +
+                "  <filter id=\"filter4\">\n" +
+                "   <property name=\"channel\">-1</property>\n" +
+                "   <property name=\"mlt_service\">panner</property>\n" +
+                "   <property name=\"internal_added\">237</property>\n" +
+                "   <property name=\"start\">0.5</property>\n" +
+                "   <property name=\"disable\">1</property>\n" +
+                "  </filter>\n" +
+                "  <filter id=\"filter5\">\n" +
+                "   <property name=\"iec_scale\">0</property>\n" +
+                "   <property name=\"mlt_service\">audiolevel</property>\n" +
+                "   <property name=\"dbpeak\">1</property>\n" +
+                "   <property name=\"disable\">1</property>\n" +
+                "  </filter>\n" +
+                " </tractor>\n" +
+                " <tractor id=\"tractor2\" in=\"00:00:00.000\">\n" +
+                "  <track producer=\"black_track\"/>\n" +
+                "  <track producer=\"tractor0\"/>\n" +
+                "  <track producer=\"tractor1\"/>\n" +
+                "  <transition id=\"transition0\">\n" +
+                "   <property name=\"a_track\">0</property>\n" +
+                "   <property name=\"b_track\">1</property>\n" +
+                "   <property name=\"mlt_service\">mix</property>\n" +
+                "   <property name=\"kdenlive_id\">mix</property>\n" +
+                "   <property name=\"internal_added\">237</property>\n" +
+                "   <property name=\"always_active\">1</property>\n" +
+                "   <property name=\"accepts_blanks\">1</property>\n" +
+                "   <property name=\"sum\">1</property>\n" +
+                "  </transition>\n" +
+                "  <transition id=\"transition1\">\n" +
+                "   <property name=\"a_track\">0</property>\n" +
+                "   <property name=\"b_track\">2</property>\n" +
+                "   <property name=\"mlt_service\">mix</property>\n" +
+                "   <property name=\"kdenlive_id\">mix</property>\n" +
+                "   <property name=\"internal_added\">237</property>\n" +
+                "   <property name=\"always_active\">1</property>\n" +
+                "   <property name=\"accepts_blanks\">1</property>\n" +
+                "   <property name=\"sum\">1</property>\n" +
+                "  </transition>\n" +
+                "  <filter id=\"filter6\">\n" +
+                "   <property name=\"window\">75</property>\n" +
+                "   <property name=\"max_gain\">20dB</property>\n" +
+                "   <property name=\"mlt_service\">volume</property>\n" +
+                "   <property name=\"internal_added\">237</property>\n" +
+                "   <property name=\"disable\">1</property>\n" +
+                "  </filter>\n" +
+                "  <filter id=\"filter7\">\n" +
+                "   <property name=\"channel\">-1</property>\n" +
+                "   <property name=\"mlt_service\">panner</property>\n" +
+                "   <property name=\"internal_added\">237</property>\n" +
+                "   <property name=\"start\">0.5</property>\n" +
+                "   <property name=\"disable\">1</property>\n" +
+                "  </filter>\n" +
+                " </tractor>\n" +
+                "</mlt>\n"
+
+        val kdenliveFile = File(kdenliveFileName)
+        if (!kdenliveFile.exists()) {
+            kdenliveFile.writeText(kdenliveTemplate)
+        }
+
+    }
+
+    if (!fileDemucs2tracks.exists()) fileDemucs2tracks.writeText(textFileDemucs2tracks)
+    if (!fileDemucs4tracks.exists()) fileDemucs4tracks.writeText(textFileDemucs4tracks)
 
 }
 

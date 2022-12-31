@@ -1,5 +1,6 @@
 package model
 
+import DEMUCS_MODEL_NAME
 import getFileNameByMasks
 import java.io.File
 import kotlin.io.path.Path
@@ -55,14 +56,14 @@ data class Settings(val _pathToSettingsFile: String) {
                 val settingValue = settingList[1]
                 val settingValue2 = if (settingList.size == 3) "="+settingList[2] else ""
                 when (settingName) {
-                    "NAME" -> songName = settingValue+settingValue2
+                    "NAME" -> songName = (settingValue+settingValue2).trim()
                     "AUTHOR" -> author = settingValue
                     "ALBUM" -> album = settingValue
                     "YEAR" -> year = settingValue.toLong()
                     "TRACK" -> track = settingValue.toLong()
                     "KEY" -> key = settingValue
-                    "BPM" -> bpm = settingValue.toLong()
-                    "MS" -> ms = settingValue.toLong()
+                    "BPM" -> bpm = if (settingValue != "") settingValue.toLong() else 0
+                    "MS" -> ms = if (settingValue != "") settingValue.toLong() else 0
                     "FORMAT" -> audioSongFileName = "${settingFileName}.${settingValue}"
                     "AUDIOSONG" -> audioSongFileName = settingValue
                     "AUDIOMUSIC" -> audioMusicFileName = settingValue
@@ -77,6 +78,11 @@ data class Settings(val _pathToSettingsFile: String) {
         if (audioVocalFileName == "") audioVocalFileName = getFileNameByMasks(rootFolder,fileName, listOf("-vocals"," [vocals]"),".wav")
         if (audioBassFileName == "") audioBassFileName = getFileNameByMasks(rootFolder,fileName, listOf("-bass"," [bass]"),".wav")
         if (audioDrumsFileName == "") audioDrumsFileName = getFileNameByMasks(rootFolder,fileName, listOf("-drums"," [drums]"),".wav")
+
+        if (audioMusicFileName == "") audioMusicFileName = DEMUCS_MODEL_NAME + "/" + getFileNameByMasks("$rootFolder/$DEMUCS_MODEL_NAME",fileName, listOf("-accompaniment"," [music]"),".wav")
+        if (audioVocalFileName == "") audioVocalFileName = DEMUCS_MODEL_NAME + "/" + getFileNameByMasks("$rootFolder/$DEMUCS_MODEL_NAME",fileName, listOf("-vocals"," [vocals]"),".wav")
+        if (audioBassFileName == "") audioBassFileName = DEMUCS_MODEL_NAME + "/" + getFileNameByMasks("$rootFolder/$DEMUCS_MODEL_NAME",fileName, listOf("-bass"," [bass]"),".wav")
+        if (audioDrumsFileName == "") audioDrumsFileName = DEMUCS_MODEL_NAME + "/" + getFileNameByMasks("$rootFolder/$DEMUCS_MODEL_NAME",fileName, listOf("-drums"," [drums]"),".wav")
 
     }
 }

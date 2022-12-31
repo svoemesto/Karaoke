@@ -11,6 +11,7 @@ import convertMillisecondsToFrames
 import convertMillisecondsToTimecode
 import convertTimecodeToFrames
 import convertTimecodeToMilliseconds
+import cutByWords
 import deleteThisSymbols
 import getDurationInMilliseconds
 import getFirstVowelIndex
@@ -29,19 +30,26 @@ data class Song(val settings: Settings, val songVersion: SongVersion) {
 
     private val REPLACE_STRING = "[R]"
     private val END_STRING = "[E]"
+    private val COMMENT_STRING = "[C]"
+    private val REPEAT_START_STRING = "[RS]"
+    private val REPEAT_END_STRING = "[RE]"
+    private val REPEAT_PAST_STRING = "[RR]"
     fun getOutputFilename(songOutputFile: SongOutputFile, idBluetoothDelay: Boolean): String {
         return "${settings.rootFolder}/done_${if (songOutputFile == SongOutputFile.PROJECT || songOutputFile == SongOutputFile.SUBTITLE || songOutputFile == SongOutputFile.TEXT) "projects" else if (songOutputFile == SongOutputFile.PICTURECHORDS) "chords" else "files"}/${if (!settings.fileName.startsWith (settings.year.toString())) "${settings.year} " else ""}${settings.fileName}${songVersion.suffix}${if (idBluetoothDelay) " bluetooth" else ""}${if (songOutputFile == SongOutputFile.PICTURECHORDS) " chords" else ""}.${songOutputFile.extension}"
     }
 
     fun getDescription(isBluetoothDelay: Boolean): String {
 
-        return "${settings.songName} ★♫★ ${settings.author} ★♫★ ${songVersion.text} ★♫★ ${songVersion.textForDescription}${if (isBluetoothDelay) " ★♫★ video delay ${Karaoke.timeOffsetBluetoothSpeakerMs}ms for bluetooth speakers" else ""}" + "\n" +
+        return "${settings.songName} ★♫★ ${settings.author} ★♫★ ${songVersion.text} ★♫★ ${songVersion.textForDescription}${if (isBluetoothDelay) " ★♫★ video delay ${Karaoke.timeOffsetBluetoothSpeakerMs}ms for bluetooth speakers" else ""}".cutByWords() + "\n" +
                 "Версия: ${songVersion.text} (${songVersion.textForDescription})${if (isBluetoothDelay) " с задержкой видео на ${Karaoke.timeOffsetBluetoothSpeakerMs}ms для bluetooth-колонок" else ""}\n" +
                 "Композиция: ${settings.songName}\n" +
                 "Исполнитель: ${settings.author}\n" +
                 "Альбом: ${settings.album}\n" +
                 "Год: ${settings.year}\n" +
                 (if (getChordDescription() !="") "${getChordDescription()}\n" else "") +
+                "\n\n"+
+                getTextForDescription() +
+                "\n\n"+
                 "https://github.com/svoemesto/Karaoke\n" +
                 "${settings.songName.hashtag()} ${settings.author.hashtag()} ${"karaoke".hashtag()} ${"караоке".hashtag()}${if (songVersion == SongVersion.CHORDS) " ${"chords".hashtag()} ${"аккорды".hashtag()}" else ""}\n"
 
@@ -75,6 +83,16 @@ data class Song(val settings: Settings, val songVersion: SongVersion) {
         result += "\n\n--------------------------------------------\n\n"
         return result
     }
+
+    fun getTextForDescription(): String {
+        var result = ""
+        val voice = voices[0]
+        voice.lines.forEach { line ->
+            if (line.text.trim() != "") result += line.text + "\n"
+        }
+        return result
+    }
+
 
     var endTimecode: String = ""
     var capo: Int = 0
@@ -112,6 +130,7 @@ data class Song(val settings: Settings, val songVersion: SongVersion) {
                 .replace("[G1]","[SETTING]|GROUP|1")
                 .replace("[G2]","[SETTING]|GROUP|2")
                 .replace("[G3]","[SETTING]|GROUP|3")
+                .replace("[C]","[SETTING]|COMMENT| ")
             // Если в тексте сабов присутствует строка замены
             if (bodySubs.contains(END_STRING)) {
                 // Бэкапим файл (если еще нет бэкапа)
@@ -124,6 +143,7 @@ data class Song(val settings: Settings, val songVersion: SongVersion) {
                         .replace("[G1]","[SETTING]|GROUP|1")
                         .replace("[G2]","[SETTING]|GROUP|2")
                         .replace("[G3]","[SETTING]|GROUP|3")
+                        .replace("[C]","[SETTING]|COMMENT| ")
                 } else {
                     fileText.writeText(bodySubs)
                 }
@@ -156,8 +176,18 @@ data class Song(val settings: Settings, val songVersion: SongVersion) {
                     .replace("[G1]","[SETTING]|GROUP|1")
                     .replace("[G2]","[SETTING]|GROUP|2")
                     .replace("[G3]","[SETTING]|GROUP|3")
+                    .replace("[C]","[SETTING]|COMMENT| ")
+
+                // Считываем сабы в блоки
                 val blocks = body.split("\\n[\\n]+".toRegex())
                 val listSubtitleFileElements: MutableList<SubtitleFileElement> = mutableListOf()
+                val listSubtitleFileElementsRepeated: MutableList<SubtitleFileElement> = mutableListOf()
+
+                var isRepeated = false
+                var nextSubIsFirstRepeated = false
+                var repeatOffset = 0L
+
+                // Проходимся по блокам
                 blocks.forEach() { block ->
                     val blocklines = block.split("\n")
                     val id = if (blocklines.isNotEmpty() && blocklines[0]!= "" ) blocklines[0].toLong() else 0
@@ -167,9 +197,56 @@ data class Song(val settings: Settings, val songVersion: SongVersion) {
                         val se = startEnd.split(" --> ")
                         val startFrame = convertTimecodeToFrames(se[0].replace(",","."))
                         val endFrame = convertTimecodeToFrames(se[1].replace(",","."))
-                        listSubtitleFileElements.add(SubtitleFileElement(startFrame, endFrame, text, false, false, (text.uppercase().startsWith("[SETTING]|") || text == "//\\\\")))
+
+                        // Если текущий саб - отметка начала повтора
+                        if (text.contains(REPEAT_START_STRING)) {
+                            // Устанавливаем флаги и пропускаем этот саб
+                            isRepeated = true
+                            nextSubIsFirstRepeated = true
+                        } else {
+                            // Если текущий саб - отметка конца повтора
+                            if (text.contains(REPEAT_END_STRING)) {
+                                // Снимаем флаг и пропускаем этот саб
+                                isRepeated = false
+                            } else {
+
+                                // Если текущий саб - отметка начала вставки повтора
+                                if (text.contains(REPEAT_PAST_STRING)) {
+                                    // Надо добавить в общий лист все элементы из повторного листа со сдвигом на оффсет
+                                    val repeatPastOffset = startFrame
+                                    listSubtitleFileElementsRepeated.forEach {
+                                        listSubtitleFileElements.add(
+                                            SubtitleFileElement(
+                                                startFrame = it.startFrame - repeatOffset + repeatPastOffset,
+                                                endFrame = it.endFrame - repeatOffset + repeatPastOffset,
+                                                text = it.text,
+                                                isStartOfLine = it.isStartOfLine,
+                                                isEndOfLine = it.isEndOfLine,
+                                                isSetting = it.isSetting
+                                            )
+                                        )
+                                    }
+
+                                } else {
+                                    // Если текущий саб - первый в повторе - запоминаем оффсет
+                                    if (nextSubIsFirstRepeated) {
+                                        nextSubIsFirstRepeated = false
+                                        repeatOffset = startFrame
+                                    }
+                                    // Заносим саб в общий лист
+                                    listSubtitleFileElements.add(SubtitleFileElement(startFrame, endFrame, text, false, false, (text.uppercase().startsWith("[SETTING]|") || text == "//\\\\")))
+                                    // Если саб в поторе - заносим его еще и в лист повторов
+                                    if (isRepeated) {
+                                        listSubtitleFileElementsRepeated.add(SubtitleFileElement(startFrame, endFrame, text, false, false, (text.uppercase().startsWith("[SETTING]|") || text == "//\\\\")))
+                                    }
+                                }
+
+
+                            }
+                        }
                     }
                 }
+
                 listSubtitleFileElements.sortBy { it.startFrame }
                 var isStartLine = true
                 var indexSlog = 0
@@ -240,21 +317,22 @@ data class Song(val settings: Settings, val songVersion: SongVersion) {
                             }
                             "COMMENT" -> {
                                 val commentTimecode = startEnd.split(" --> ")[0].replace(",",".")
-                                val commentText = if (settingList.size > 2) settingList[2] else ""
+                                var commentText = if (settingList.size > 2) settingList[2] else ""
+                                if (commentText == "") commentText = " "
                                 if (commentText != "") {
                                     val subtitle = Subtitle(
                                         startTimecode = commentTimecode,
                                         endTimecode = commentTimecode,
-                                        mltText = Karaoke.voices[voideId].groups[group].mltText.copy(commentText),
-                                        mltTextBefore = Karaoke.voices[voideId].groups[group].mltText.copy(""),
+                                        mltText = Karaoke.voices[0].groups[group].mltText.copy(commentText),
+                                        mltTextBefore = Karaoke.voices[0].groups[group].mltText.copy(""),
                                         isLineStart = true,
                                         isLineEnd = true,
                                         indexFirstSymbolInLine = 0
                                     )
                                     val symbol = SongVoiceLineSymbol(
                                         start = commentTimecode,
-                                        mltText = Karaoke.voices[voideId].groups[group].mltText.copy(commentText),
-                                        mltTextBefore = Karaoke.voices[voideId].groups[group].mltText.copy("")
+                                        mltText = Karaoke.voices[0].groups[group].mltText.copy(commentText),
+                                        mltTextBefore = Karaoke.voices[0].groups[group].mltText.copy("")
                                     )
                                     listLines.add(
                                         SongVoiceLine(
@@ -266,7 +344,7 @@ data class Song(val settings: Settings, val songVersion: SongVersion) {
                                             start = subtitle.startTimecode,
                                             end = subtitle.endTimecode,
                                             durationMs = getDurationInMilliseconds(subtitle.startTimecode, subtitle.endTimecode),
-                                            mltText = Karaoke.voices[voideId].groups[group].mltText.copy(commentText)
+                                            mltText = Karaoke.voices[0].groups[group].mltText.copy(commentText)
                                         )
                                     )
                                 }
@@ -295,8 +373,10 @@ data class Song(val settings: Settings, val songVersion: SongVersion) {
                         val subtitle = Subtitle(
                             startTimecode = start,
                             endTimecode = end,
-                            mltText = Karaoke.voices[voideId].groups[group].mltText.copy(text),
-                            mltTextBefore = Karaoke.voices[voideId].groups[group].mltText.copy(lineText),
+//                            mltText = Karaoke.voices[0].groups[group].mltText.copy(text),
+                            mltText = Karaoke.voices[0].groups[group].mltText.copy(text),
+//                            mltTextBefore = Karaoke.voices[0].groups[group].mltText.copy(lineText),
+                            mltTextBefore = Karaoke.voices[0].groups[group].mltText.copy(lineText),
                             isLineStart = isLineStart,
                             isLineEnd = isLineEnd,
                             indexFirstSymbolInLine = lengthLine
@@ -310,7 +390,7 @@ data class Song(val settings: Settings, val songVersion: SongVersion) {
                         if (isLineEnd) {
                             maxLengthLine = Integer.max(maxLengthLine, lengthLine)
                             lengthLine = 0
-                            widthLinePx = getTextWidthHeightPx(lineText, Karaoke.voices[voideId].groups[group].mltText.font).first
+                            widthLinePx = getTextWidthHeightPx(lineText, Karaoke.voices[0].groups[group].mltText.font).first
                             if (maxWidthLinePx < widthLinePx) {
                                 maxWidthLinePx = java.lang.Double.max(maxWidthLinePx, widthLinePx)
                                 maxWidthLineText = lineText
@@ -326,7 +406,7 @@ data class Song(val settings: Settings, val songVersion: SongVersion) {
                                         start = songSubtitles.first().startTimecode,
                                         end = songSubtitles.last().endTimecode,
                                         durationMs = getDurationInMilliseconds(songSubtitles.first().startTimecode, songSubtitles.last().endTimecode),
-                                        mltText = Karaoke.voices[voideId].groups[group].mltText
+                                        mltText = Karaoke.voices[0].groups[group].mltText
                                     )
                                 )
                             } else {
@@ -345,7 +425,7 @@ data class Song(val settings: Settings, val songVersion: SongVersion) {
                                         start = songSubtitles.first().startTimecode,
                                         end = songSubtitles.last().endTimecode,
                                         durationMs = getDurationInMilliseconds(songSubtitles.first().startTimecode, songSubtitles.last().endTimecode),
-                                        mltText = Karaoke.voices[voideId].groups[group].mltText.copy(lineText)
+                                        mltText = Karaoke.voices[0].groups[group].mltText.copy(lineText)
                                     )
                                 )
                             }
@@ -406,7 +486,7 @@ data class Song(val settings: Settings, val songVersion: SongVersion) {
                             start = convertFramesToTimecode(convertTimecodeToFrames(voiceLine.start)-4),
                             end = convertFramesToTimecode(convertTimecodeToFrames(voiceLine.start)-2),
                             durationMs = getDurationInMilliseconds(voiceLine.start, voiceLine.end),
-                            mltText = Karaoke.voices[voideId].groups[group].mltText.copy("0")
+                            mltText = Karaoke.voices[0].groups[group].mltText.copy("0")
                         )
                     )
                 }

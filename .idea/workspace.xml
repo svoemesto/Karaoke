@@ -6,8 +6,14 @@
   <component name="ChangeListManager">
     <list default="true" id="19caf878-7ce0-44d7-94a1-cf0a31300a8b" name="Changes" comment="Переделываем под новую концепцию">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/Constants.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Constants.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/Extentions.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Extentions.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/Functions.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Functions.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/Main.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Main.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/Utils.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Utils.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/FillcolorSongtext.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/FillcolorSongtext.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/model/Settings.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/model/Settings.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/model/Song.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/model/Song.kt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -83,7 +89,7 @@
       <command value="templateSongTextSymbolsGroup.add(                 MltNode(                     name = &quot;item&quot;,                     fields = mutableMapOf(Pair(&quot;type&quot;,&quot;QGraphicsTextItem&quot;), Pair(&quot;z-index&quot;,&quot;1&quot;)),                     body = mutableListOf(                         MltNode(                             name = &quot;position&quot;,                             fields = mutableMapOf(Pair(&quot;x&quot;,&quot;$x&quot;), Pair(&quot;y&quot;,&quot;$y&quot;)),                             body = mutableListOf(MltNode(name = &quot;transform&quot;, fields = mutableMapOf(), body = &quot;1,0,0,0,1,0,0,0,1&quot;))                         ),                         mltText.mltNode(text)                     )                 )             )" />
     </option>
   </component>
-  <component name="RunManager" selected="Kotlin.UtilsKt">
+  <component name="RunManager" selected="Kotlin.MainKt">
     <configuration name="GuitarStringKt" type="JetRunConfigurationType" temporary="true" nameIsGenerated="true">
       <option name="MAIN_CLASS_NAME" value="model.GuitarStringKt" />
       <module name="Karaoke" />
@@ -121,8 +127,8 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Kotlin.UtilsKt" />
         <item itemvalue="Kotlin.MainKt" />
+        <item itemvalue="Kotlin.UtilsKt" />
         <item itemvalue="Kotlin.MainRibbon" />
         <item itemvalue="Kotlin.KaraokeKt" />
         <item itemvalue="Kotlin.GuitarStringKt" />
@@ -177,14 +183,8 @@
       <workItem from="1670830385200" duration="3964000" />
       <workItem from="1670862751806" duration="2915000" />
       <workItem from="1670868126046" duration="8012000" />
-      <workItem from="1671001411309" duration="49077000" />
-    </task>
-    <task id="LOCAL-00054" summary="Использование любого шрифта, а не только фиксированной ширины&#10;Настройки в файле">
-      <created>1664516093700</created>
-      <option name="number" value="00054" />
-      <option name="presentableId" value="LOCAL-00054" />
-      <option name="project" value="LOCAL" />
-      <updated>1664516093700</updated>
+      <workItem from="1671001411309" duration="171334000" />
+      <workItem from="1672039687032" duration="68232000" />
     </task>
     <task id="LOCAL-00055" summary="Перенос настроек в файл и класс (процесс)&#10;Заголовок - название песни, исполнитель, альбом, тональность, темп - шрифт и цвет">
       <created>1664518611307</created>
@@ -522,7 +522,14 @@
       <option name="project" value="LOCAL" />
       <updated>1671003739692</updated>
     </task>
-    <option name="localTasksCounter" value="103" />
+    <task id="LOCAL-00103" summary="Переделываем под новую концепцию">
+      <created>1671266867031</created>
+      <option name="number" value="00103" />
+      <option name="presentableId" value="LOCAL-00103" />
+      <option name="project" value="LOCAL" />
+      <updated>1671266867031</updated>
+    </task>
+    <option name="localTasksCounter" value="104" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -566,6 +573,17 @@
     <MESSAGE value="Начинаем добавлять аккорды..." />
     <MESSAGE value="Переделываем под новую концепцию" />
     <option name="LAST_COMMIT_MESSAGE" value="Переделываем под новую концепцию" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="kotlin-line">
+          <url>file://$PROJECT_DIR$/src/main/kotlin/Utils.kt</url>
+          <line>98</line>
+          <option name="timeStamp" value="4" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />

@@ -30,7 +30,11 @@ import kotlin.streams.toList
 
 fun main() {
 
-    createSettingsFilesForAll("/home/nsa/Documents/Караоке/Павел Кашин")
+//    createSettingsFilesForAll("/home/nsa/Documents/Караоке/Павел Кашин")
+//    createSettingsFilesForAll("/home/nsa/Documents/Караоке/Ария")
+//    createSettingsFilesForAll("/home/nsa/Documents/Караоке/Агата Кристи")
+//    createSettingsFilesForAll("/home/nsa/Documents/Караоке/Король и Шут","m4a")
+//    createSettingsFilesForAll("/home/nsa/Documents/Караоке/Високосный год","wav")
 
 //    val musicChord = MusicChord.X7
 //    val musicNote = MusicNote.C
@@ -67,11 +71,16 @@ fun createSettingsFilesForAll(startFolder: String, extention: String = "flac") {
 
     val fileDemucs2tracks = File("$startFolder/demusc2track.run")
     val fileDemucs4tracks = File("$startFolder/demusc4track.run")
+    val fileDemucs5tracks = File("$startFolder/demusc5track.run")
+    val fileMainPairs = File("$startFolder/mainPairs.txt")
 
     var textFileDemucs2tracks = ""
     var textFileDemucs4tracks = ""
+    var textFileDemucs5tracks = ""
+    var textFileMainPairs = ""
 
     val listFiles = getListFiles(startFolder,extention)
+    println("Всего файлов = ${listFiles.size}")
     listFiles.map{File(it)}.forEach { file ->
         val fileName = file.name
 
@@ -80,16 +89,21 @@ fun createSettingsFilesForAll(startFolder: String, extention: String = "flac") {
         val folderName = file.parentFile.name
         val fileNamesMatchResult = regexpFileName.findAll(fileName).toList().firstOrNull()
         val folderNamesMatchResult = regexpFolderName.findAll(folderName).toList().firstOrNull()
+
         val songYear = fileNamesMatchResult?.let {fileNamesMatchResult.groups[1]?.value}
         val songTrack = fileNamesMatchResult?.let {fileNamesMatchResult.groups[2]?.value}
         val songAuthor = fileNamesMatchResult?.let {fileNamesMatchResult.groups[3]?.value}
-        val songName = fileNamesMatchResult?.let {fileNamesMatchResult.groups[4]?.value}
-        val songFormat = fileNamesMatchResult?.let {fileNamesMatchResult.groups[5]?.value}
+        var songName = fileNamesMatchResult?.let {fileNamesMatchResult.groups[4]?.value}
+        val songFormat = extention //fileNamesMatchResult?.let {fileNamesMatchResult.groups[5]?.value}
         val songAlbum = folderNamesMatchResult?.let {folderNamesMatchResult.groups[2]?.value}
         val settingFileName = fileAbsolutePath.substring(0,fileAbsolutePath.length-songFormat!!.length-1)+".settings"
         val textFileName = fileAbsolutePath.substring(0,fileAbsolutePath.length-songFormat!!.length-1)+".txt"
         val kdenliveFileName = fileAbsolutePath.substring(0,fileAbsolutePath.length-songFormat!!.length-1)+".kdenlive"
         val fileNameWOExt = fileName.substring(0, fileName.length-songFormat!!.length-1)
+
+        if (songName != null) {
+            songName = songName.uppercaseFirstLetter()
+        }
 
         println("Year = $songYear")
         println("Track = $songTrack")
@@ -100,18 +114,22 @@ fun createSettingsFilesForAll(startFolder: String, extention: String = "flac") {
         println("settingFileName = $settingFileName")
         println()
 
-        val modelName = "mdx"
-        val pathToResultedModel = "$fileFolder/$modelName"
+        val pathToResultedModel = "$fileFolder/$DEMUCS_MODEL_NAME"
         val separatedStem = "vocals"
         val oldNoStemName = "$pathToResultedModel/${fileNameWOExt}-no_$separatedStem.wav"
         val newNoStemName = "$pathToResultedModel/${fileNameWOExt}-accompaniment.wav"
 
-        val textDemucs2track = "python3 -m demucs -n mdx -d cuda --filename \"{track}-{stem}.{ext}\" --two-stems=$separatedStem -o \"$fileFolder\" \"$fileAbsolutePath\"\n" +
+        val textDemucs2track = "python3 -m demucs -n $DEMUCS_MODEL_NAME -d cuda --filename \"{track}-{stem}.{ext}\" --two-stems=$separatedStem -o \"$fileFolder\" \"$fileAbsolutePath\"\n" +
                 "mv \"$oldNoStemName\" \"$newNoStemName\"" + "\n"
-        val textDemucs4track = "python3 -m demucs -n mdx -d cuda --filename \"{track}-{stem}.{ext}\" -o \"$fileFolder\" \"$fileAbsolutePath\"\n"
+        val textDemucs4track = "python3 -m demucs -n $DEMUCS_MODEL_NAME -d cuda --filename \"{track}-{stem}.{ext}\" -o \"$fileFolder\" \"$fileAbsolutePath\"\n"
 
         textFileDemucs2tracks += textDemucs2track
         textFileDemucs4tracks += textDemucs4track
+
+        textFileDemucs5tracks += textDemucs2track
+        textFileDemucs5tracks += textDemucs4track
+
+        textFileMainPairs += "//        Pair(\"$fileFolder\",\"$fileNameWOExt\"),\n"
 
         val settingFile = File(settingFileName)
         if (!settingFile.exists()) {
@@ -130,17 +148,17 @@ fun createSettingsFilesForAll(startFolder: String, extention: String = "flac") {
 
         val textFile = File(textFileName)
         if (!textFile.exists()) {
-
             val text = "\n"
             textFile.writeText(text)
         }
+
 
         val kdenliveTemplate = "<?xml version='1.0' encoding='utf-8'?>\n" +
                 "<mlt LC_NUMERIC=\"C\" producer=\"main_bin\" version=\"7.10.0\" root=\"${fileFolder}\">\n" +
                 " <profile frame_rate_num=\"60\" sample_aspect_num=\"1\" display_aspect_den=\"9\" colorspace=\"709\" progressive=\"1\" description=\"HD 1080p 60 fps\" display_aspect_num=\"16\" frame_rate_den=\"1\" width=\"1920\" height=\"1080\" sample_aspect_den=\"1\"/>\n" +
                 " <producer id=\"producer0\" in=\"00:00:00.000\">\n" +
                 "  <property name=\"eof\">pause</property>\n" +
-                "  <property name=\"resource\">${modelName}/${fileNameWOExt}-vocals.wav</property>\n" +
+                "  <property name=\"resource\">${DEMUCS_MODEL_NAME}/${fileNameWOExt}-vocals.wav</property>\n" +
                 "  <property name=\"seekable\">1</property>\n" +
                 "  <property name=\"audio_index\">0</property>\n" +
                 "  <property name=\"video_index\">-1</property>\n" +
@@ -153,7 +171,7 @@ fun createSettingsFilesForAll(startFolder: String, extention: String = "flac") {
                 " </producer>\n" +
                 " <producer id=\"producer1\" in=\"00:00:00.000\">\n" +
                 "  <property name=\"eof\">pause</property>\n" +
-                "  <property name=\"resource\">${modelName}/${fileNameWOExt}-accompaniment.wav</property>\n" +
+                "  <property name=\"resource\">${DEMUCS_MODEL_NAME}/${fileNameWOExt}-accompaniment.wav</property>\n" +
                 "  <property name=\"seekable\">1</property>\n" +
                 "  <property name=\"audio_index\">0</property>\n" +
                 "  <property name=\"video_index\">-1</property>\n" +
@@ -206,7 +224,6 @@ fun createSettingsFilesForAll(startFolder: String, extention: String = "flac") {
                 "  <entry producer=\"producer1\" in=\"00:00:00.000\"/>\n" +
                 " </playlist>\n" +
                 " <producer id=\"black_track\" in=\"00:00:00.000\" out=\"00:10:59.333\">\n" +
-                "  <property name=\"length\">2147483647</property>\n" +
                 "  <property name=\"eof\">continue</property>\n" +
                 "  <property name=\"resource\">black</property>\n" +
                 "  <property name=\"aspect_ratio\">1</property>\n" +
@@ -214,29 +231,8 @@ fun createSettingsFilesForAll(startFolder: String, extention: String = "flac") {
                 "  <property name=\"mlt_image_format\">rgba</property>\n" +
                 "  <property name=\"set.test_audio\">0</property>\n" +
                 " </producer>\n" +
-                " <producer id=\"producer2\" in=\"00:00:00.000\">\n" +
-                "  <property name=\"length\">9560</property>\n" +
-                "  <property name=\"eof\">pause</property>\n" +
-                "  <property name=\"resource\">${modelName}/${fileNameWOExt}-accompaniment.wav</property>\n" +
-                "  <property name=\"meta.media.nb_streams\">1</property>\n" +
-                "  <property name=\"seekable\">1</property>\n" +
-                "  <property name=\"audio_index\">0</property>\n" +
-                "  <property name=\"video_index\">-1</property>\n" +
-                "  <property name=\"mute_on_pause\">0</property>\n" +
-                "  <property name=\"mlt_service\">avformat-novalidate</property>\n" +
-                "  <property name=\"kdenlive:clipname\">MUSIC</property>\n" +
-                "  <property name=\"kdenlive:clip_type\">1</property>\n" +
-                "  <property name=\"kdenlive:folderid\">-1</property>\n" +
-                "  <property name=\"kdenlive:id\">2</property>\n" +
-                "  <property name=\"xml\">was here</property>\n" +
-                "  <property name=\"set.test_audio\">0</property>\n" +
-                "  <property name=\"set.test_image\">1</property>\n" +
-                " </producer>\n" +
                 " <playlist id=\"playlist0\">\n" +
                 "  <property name=\"kdenlive:audio_track\">1</property>\n" +
-                "  <entry producer=\"producer2\">\n" +
-                "   <property name=\"kdenlive:id\">2</property>\n" +
-                "  </entry>\n" +
                 " </playlist>\n" +
                 " <playlist id=\"playlist1\">\n" +
                 "  <property name=\"kdenlive:audio_track\">1</property>\n" +
@@ -271,28 +267,8 @@ fun createSettingsFilesForAll(startFolder: String, extention: String = "flac") {
                 "   <property name=\"disable\">1</property>\n" +
                 "  </filter>\n" +
                 " </tractor>\n" +
-                " <producer id=\"producer3\" in=\"00:00:00.000\">\n" +
-                "  <property name=\"length\">9560</property>\n" +
-                "  <property name=\"eof\">pause</property>\n" +
-                "  <property name=\"resource\">${modelName}/${fileNameWOExt}-vocals.wav</property>\n" +
-                "  <property name=\"seekable\">1</property>\n" +
-                "  <property name=\"audio_index\">0</property>\n" +
-                "  <property name=\"video_index\">-1</property>\n" +
-                "  <property name=\"mute_on_pause\">0</property>\n" +
-                "  <property name=\"mlt_service\">avformat-novalidate</property>\n" +
-                "  <property name=\"kdenlive:clipname\">VOICE</property>\n" +
-                "  <property name=\"kdenlive:clip_type\">1</property>\n" +
-                "  <property name=\"kdenlive:folderid\">-1</property>\n" +
-                "  <property name=\"kdenlive:id\">3</property>\n" +
-                "  <property name=\"xml\">was here</property>\n" +
-                "  <property name=\"set.test_audio\">0</property>\n" +
-                "  <property name=\"set.test_image\">1</property>\n" +
-                " </producer>\n" +
                 " <playlist id=\"playlist2\">\n" +
                 "  <property name=\"kdenlive:audio_track\">1</property>\n" +
-                "  <entry producer=\"producer3\">\n" +
-                "   <property name=\"kdenlive:id\">3</property>\n" +
-                "  </entry>\n" +
                 " </playlist>\n" +
                 " <playlist id=\"playlist3\">\n" +
                 "  <property name=\"kdenlive:audio_track\">1</property>\n" +
@@ -377,6 +353,8 @@ fun createSettingsFilesForAll(startFolder: String, extention: String = "flac") {
 
     if (!fileDemucs2tracks.exists()) fileDemucs2tracks.writeText(textFileDemucs2tracks)
     if (!fileDemucs4tracks.exists()) fileDemucs4tracks.writeText(textFileDemucs4tracks)
+    if (!fileDemucs5tracks.exists()) fileDemucs5tracks.writeText(textFileDemucs5tracks)
+    if (!fileMainPairs.exists()) fileMainPairs.writeText(textFileMainPairs)
 
 }
 
@@ -1067,7 +1045,7 @@ fun getRandomFile(pathToFolder: String, extention: String = ""): String {
 }
 
 fun getListFiles(pathToFolder: String, extention: String = "", startWith: String = ""): List<String> {
-    return Files.walk(Path(pathToFolder)).filter(Files::isRegularFile).map { it.toString() }.filter{ it.endsWith(extention) && it.startsWith("${pathToFolder}/$startWith")}.toList()
+    return Files.walk(Path(pathToFolder)).filter(Files::isRegularFile).map { it.toString() }.filter{ it.endsWith(extention) && it.startsWith("${pathToFolder}/$startWith")}.toList().sorted()
 }
 
 fun extractSubtitlesFromAutorecognizedFile(pathToFileFrom: String, pathToFileTo: String): String {
@@ -1233,7 +1211,7 @@ class Ribbon(private val input: String) {
 }
 
 class MainRibbon {
-    val vowels = "аеёиоуыюяэАЕЁИОУЫЮЯЭ"
+    val vowels = "аеёиоуыюяэАЕЁИОУЫЮЯЭeuioaEUIOAїіє"
     val nonPairConsonant = "лйрнмЛЙРНМ.,:-"
     fun syllables(input: String?): List<String> {
         val result: MutableList<String> = ArrayList()

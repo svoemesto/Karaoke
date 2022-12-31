@@ -14,7 +14,7 @@ fun getMltFillColorSongtextEvenProducer(param: Map<String, Any?>, type:ProducerT
         body = mutableListOf(
             MltNode(name = "property", fields = mutableMapOf(Pair("name","length")), body = param["SONG_LENGTH_FR"]),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","eof")), body = "pause"),
-            MltNode(name = "property", fields = mutableMapOf(Pair("name","resource")), body = Karaoke.voices[voiceId].fill.evenColor.hexRGB()),
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","resource")), body = Karaoke.voices[0].fill.evenColor.hexRGB()),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","aspect_ratio")), body = 1),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","mlt_service")), body = "color"),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:duration")), body = param["SONG_END_TIMECODE"]),
@@ -42,7 +42,7 @@ fun getMltFillColorSongtextOddProducer(param: Map<String, Any?>, type:ProducerTy
         body = mutableListOf(
             MltNode(name = "property", fields = mutableMapOf(Pair("name","length")), body = param["SONG_LENGTH_FR"]),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","eof")), body = "pause"),
-            MltNode(name = "property", fields = mutableMapOf(Pair("name","resource")), body = Karaoke.voices[voiceId].fill.oddColor.hexRGB()),
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","resource")), body = Karaoke.voices[0].fill.oddColor.hexRGB()),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","aspect_ratio")), body = 1),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","mlt_service")), body = "color"),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:duration")), body = param["SONG_END_TIMECODE"]),

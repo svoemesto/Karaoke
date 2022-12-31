@@ -96,7 +96,16 @@ fun createKaraoke(song: Song, isBluetoothDelay: Boolean) {
     val symbolSongtextWidthPx = mltTextSongtext.w
 
     val quarterNoteLengthMs =
-        if (song.settings.ms == 0L) (60000.0 / song.settings.bpm).toLong() else song.settings.ms // Находим длительность звучания 1/4 ноты в миллисекундах
+        if (song.settings.ms == 0L) {
+            if (song.settings.bpm == 0L) {
+                (60000.0 / 120.0).toLong()
+            } else {
+                (60000.0 / song.settings.bpm).toLong()
+            }
+
+        } else {
+            song.settings.ms
+        } // Находим длительность звучания 1/4 ноты в миллисекундах
     val halfNoteLengthMs = quarterNoteLengthMs * 2
 
     var currentVoiceOffset = 0

@@ -65,8 +65,26 @@ fun String.uppercaseFirstLetter(): String {
         if (index == 0) {
             result += symbolInSymbolString.uppercase()
         } else {
-            result += symbolInSymbolString
+            result += symbolInSymbolString.lowercase()
         }
     }
     return result
+}
+
+fun String.cutByWords(delimiter: String = " ", maxLength: Long = 100, excludingWords: List<String> = listOf("for")): String {
+    val listWords = this.split(delimiter)
+    var result = ""
+    var lastWord = ""
+    listWords.forEach { word ->
+        if (result.length + word.length + delimiter.length <= maxLength) {
+            result += delimiter + word
+            lastWord = word
+        } else {
+            if (lastWord in excludingWords) {
+                result = result.substring(0, result.length - lastWord.length - delimiter.length)
+            }
+            return result.trim()
+        }
+    }
+    return result.trim()
 }

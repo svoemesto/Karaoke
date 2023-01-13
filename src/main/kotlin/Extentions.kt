@@ -61,9 +61,11 @@ fun String.deleteThisSymbols(symbolString: String): String {
 fun String.uppercaseFirstLetter(): String {
     var txt = this
     var result = ""
+    var flag = false
     txt.forEachIndexed { index, symbolInSymbolString ->
-        if (index == 0) {
+        if (!flag && symbolInSymbolString !in ",.!@#№$;%^:&?*()[]{}|/\\\"'`~ «»") {
             result += symbolInSymbolString.uppercase()
+            flag = true
         } else {
             result += symbolInSymbolString.lowercase()
         }

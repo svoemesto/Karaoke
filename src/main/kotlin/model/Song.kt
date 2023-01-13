@@ -87,8 +87,12 @@ data class Song(val settings: Settings, val songVersion: SongVersion) {
     fun getTextForDescription(): String {
         var result = ""
         val voice = voices[0]
+        var prevLineText = ""
         voice.lines.forEach { line ->
-            if (line.text.trim() != "") result += line.text + "\n"
+            if (!(line.text.trim() == "" && prevLineText == "")) {
+                result += line.text + "\n"
+            }
+            prevLineText = line.text.trim()
         }
         return result
     }
@@ -235,7 +239,7 @@ data class Song(val settings: Settings, val songVersion: SongVersion) {
                                     }
                                     // Заносим саб в общий лист
                                     listSubtitleFileElements.add(SubtitleFileElement(startFrame, endFrame, text, false, false, (text.uppercase().startsWith("[SETTING]|") || text == "//\\\\")))
-                                    // Если саб в поторе - заносим его еще и в лист повторов
+                                    // Если саб в повторе - заносим его еще и в лист повторов
                                     if (isRepeated) {
                                         listSubtitleFileElementsRepeated.add(SubtitleFileElement(startFrame, endFrame, text, false, false, (text.uppercase().startsWith("[SETTING]|") || text == "//\\\\")))
                                     }
@@ -260,11 +264,29 @@ data class Song(val settings: Settings, val songVersion: SongVersion) {
                         isStartLine = currSubElement.isEndOfLine
                         if (indexSlog < slogs.size) {
                             val txt = if (currSubElement.isEndOfLine) slogs[indexSlog].substring(0,slogs[indexSlog].length-1) else slogs[indexSlog]
-                            currSubElement.text = "${if (currSubElement.isStartOfLine) "//" else ""}${if (currSubElement.isStartOfLine) txt.uppercaseFirstLetter() else txt.lowercase()}${if (currSubElement.isEndOfLine) "\\\\" else ""}"
+                            currSubElement.text = "${if (currSubElement.isStartOfLine) "//" else ""}${if (currSubElement.isStartOfLine) txt.uppercaseFirstLetter() else txt}${if (currSubElement.isEndOfLine) "\\\\" else ""}"
                             indexSlog++
+                            if (indexSlog == slogs.size) {
+                                val lastSymbol = currSubElement.text.substring(currSubElement.text.length - 3)
+                                currSubElement.text = currSubElement.text.substring(0,currSubElement.text.length - 3)
+                                currSubElement.isEndOfLine = false
+                                listSubtitleFileElements.add(
+                                    SubtitleFileElement(
+                                        startFrame = currSubElement.endFrame,
+                                        endFrame = currSubElement.endFrame+5,
+                                        text = lastSymbol,
+                                        isStartOfLine = false,
+                                        isEndOfLine = true,
+                                        isSetting = false
+                                    )
+                                )
+                            }
                         }
+
                     }
                 }
+
+                listSubtitleFileElements.sortBy { it.startFrame }
 
                 var newBody = ""
                 listSubtitleFileElements.filter { !it.text.contains(END_STRING) } .forEachIndexed { index, element ->

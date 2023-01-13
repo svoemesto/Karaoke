@@ -30,6 +30,7 @@ import kotlin.streams.toList
 
 fun main() {
 
+//    createSettingsFilesForAll("/home/nsa/Documents/Караоке/Пикник")
 //    createSettingsFilesForAll("/home/nsa/Documents/Караоке/Павел Кашин")
 //    createSettingsFilesForAll("/home/nsa/Documents/Караоке/Ария")
 //    createSettingsFilesForAll("/home/nsa/Documents/Караоке/Агата Кристи")
@@ -1211,7 +1212,7 @@ class Ribbon(private val input: String) {
 }
 
 class MainRibbon {
-    val vowels = "аеёиоуыюяэАЕЁИОУЫЮЯЭeuioaEUIOAїіє"
+    val vowels = "аеёиоуыюяэАЕЁИОУЫЮЯЭeuioayYEUIOAїіє"
     val nonPairConsonant = "лйрнмЛЙРНМ.,:-"
     fun syllables(input: String?): List<String> {
         val result: MutableList<String> = ArrayList()

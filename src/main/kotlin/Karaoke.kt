@@ -299,6 +299,18 @@ class Karaoke {
                 props.storeToXML(File(fileNameXml).outputStream(),null)
             }
 
+        // Время показа в миллисекундах boosty
+        var timeBoostyStartMs: Long
+            get() {
+                val defaultValue = "3000"
+                props.loadFromXML(File(fileNameXml).inputStream())
+                return props.getProperty("timeBoostyStartMs",defaultValue).toLong()
+            }
+            set(value) {
+                props.setProperty("timeBoostyStartMs", value.toString())
+                props.storeToXML(File(fileNameXml).outputStream(),null)
+            }
+
 
         // Минимальное время (в миллисекундах) между линиями, меньше которого заливка последнего титра будет во время смещения линии
         var transferMinimumMsBetweenLinesToScroll: Long
@@ -803,6 +815,36 @@ class Karaoke {
                 props.storeToXML(File(fileNameXml).outputStream(), null)
             }
 
+        // Бусти - шрифт
+        var boostyFont: MltText
+            get() {
+                val defaultValue = MltText(
+                    font = Font("Montserrat SemiBold", 0, 100),
+                    shapeColor = Color(255,255,255,255),
+                    shapeOutlineColor = Color(0,0,0,255),
+                    shapeOutline = 0,
+                    fontUnderline = 0
+                    ).setting()
+                props.loadFromXML(File(fileNameXml).inputStream())
+                return getMltFontFromString(props.getProperty("boostyFont", defaultValue))
+            }
+            set(value) {
+                props.setProperty("boostyFont", value.setting())
+                props.storeToXML(File(fileNameXml).outputStream(),null)
+            }
+
+        // Текст Бусти
+        var boostyText: String
+            get() {
+                val defaultValue = "Поддержи создание караоке\nна https://boosty.to/svoemesto"
+                props.loadFromXML(File(fileNameXml).inputStream())
+                return props.getProperty("boostyText",defaultValue)
+            }
+            set(value) {
+                props.setProperty("boostyText", value)
+                props.storeToXML(File(fileNameXml).outputStream(), null)
+            }
+
         // Водяной знак - шрифт
         var watermarkFont: MltText
             get() {
@@ -812,7 +854,7 @@ class Karaoke {
                     shapeOutlineColor = Color(0,0,0,255),
                     shapeOutline = 0,
                     fontUnderline = 0
-                    ).setting()
+                ).setting()
                 props.loadFromXML(File(fileNameXml).inputStream())
                 return getMltFontFromString(props.getProperty("watermarkFont", defaultValue))
             }
@@ -832,6 +874,7 @@ class Karaoke {
                 props.setProperty("watermarkText", value)
                 props.storeToXML(File(fileNameXml).outputStream(), null)
             }
+
 
         var splashstartSongNameFont: MltText
             get() {

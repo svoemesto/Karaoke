@@ -12,5 +12,7 @@
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="KotlinJavaRuntime" level="project" />
     <orderEntry type="library" name="google.code.gson" level="project" />
+    <orderEntry type="library" name="seleniumhq.selenium.java" level="project" />
+    <orderEntry type="library" name="seleniumhq.selenium.chrome.driver" level="project" />
   </component>
 </module>

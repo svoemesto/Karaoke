@@ -587,9 +587,9 @@ fun createKaraoke(song: Song, isBluetoothDelay: Boolean) {
         val propGuides = propGuidesValue.joinToString(",")
 
         val kdeInOffsetAudio =
-            convertMillisecondsToTimecode(Karaoke.timeSplashScreenStartMs - if (isBluetoothDelay) Karaoke.timeOffsetBluetoothSpeakerMs else 0) // convertMillisecondsToTimecode(convertTimecodeToMilliseconds(kdeIn) + max(Karaoke.timeOffsetStartFillingLineMs.toInt(),0).absoluteValue)
+            convertMillisecondsToTimecode(Karaoke.timeSplashScreenStartMs + Karaoke.timeBoostyStartMs - if (isBluetoothDelay) Karaoke.timeOffsetBluetoothSpeakerMs else 0) // convertMillisecondsToTimecode(convertTimecodeToMilliseconds(kdeIn) + max(Karaoke.timeOffsetStartFillingLineMs.toInt(),0).absoluteValue)
         val kdeInOffsetVideo =
-            convertMillisecondsToTimecode(Karaoke.timeSplashScreenStartMs) // convertMillisecondsToTimecode(convertTimecodeToMilliseconds(kdeIn) + max(-Karaoke.timeOffsetStartFillingLineMs.toInt(),0).absoluteValue)
+            convertMillisecondsToTimecode(Karaoke.timeSplashScreenStartMs + Karaoke.timeBoostyStartMs) // convertMillisecondsToTimecode(convertTimecodeToMilliseconds(kdeIn) + max(-Karaoke.timeOffsetStartFillingLineMs.toInt(),0).absoluteValue)
         val kdeLengthMs = convertTimecodeToMilliseconds(song.endTimecode)
         val kdeLengthFrames = convertTimecodeToFrames(song.endTimecode, Karaoke.frameFps)
 
@@ -597,10 +597,15 @@ fun createKaraoke(song: Song, isBluetoothDelay: Boolean) {
         param["SONG_START_TIMECODE"] = kdeIn
         param["SONG_END_TIMECODE"] = kdeOut
         param["SPLASHSTART_END_TIMECODE"] = convertMillisecondsToTimecode(Karaoke.timeSplashScreenStartMs)
+        param["BOOSTY_END_TIMECODE"] = convertMillisecondsToTimecode(Karaoke.timeSplashScreenStartMs + Karaoke.timeBoostyStartMs)
         param["SONG_FADEIN_TIMECODE"] = kdeFadeIn
         param["SONG_FADEOUT_TIMECODE"] = kdeFadeOut
         param["SPLASHSTART_FADEOUT_TIMECODE"] =
             convertMillisecondsToTimecode(Karaoke.timeSplashScreenStartMs - 1000).replace(",", ".")
+        param["BOOSTY_FADEIN_TIMECODE"] =
+            convertMillisecondsToTimecode(Karaoke.timeSplashScreenStartMs + 1000).replace(",", ".")
+        param["BOOSTY_FADEOUT_TIMECODE"] =
+            convertMillisecondsToTimecode(Karaoke.timeSplashScreenStartMs + Karaoke.timeBoostyStartMs - 1000).replace(",", ".")
         param["SONG_LENGTH_MS"] = kdeLengthMs
         param["SONG_LENGTH_FR"] = kdeLengthFrames
         param["GUIDES_PROPERTY"] = "[${propGuides}]"
@@ -619,6 +624,7 @@ fun createKaraoke(song: Song, isBluetoothDelay: Boolean) {
         val templateBackChords = getTemplateBackChords(param)
         val templateHeader = getTemplateHeader(param)
         val templateSplashstart = getTemplateSplashstart(param)
+        val templateBoosty = getTemplateBoosty(param)
         val templateCounter0 = getTemplateCounter(param, 0, voiceId)
         val templateCounter1 = getTemplateCounter(param, 1, voiceId)
         val templateCounter2 = getTemplateCounter(param, 2, voiceId)
@@ -716,6 +722,10 @@ fun createKaraoke(song: Song, isBluetoothDelay: Boolean) {
         param["${ProducerType.SPLASHSTART.text.uppercase()}${voiceId}_ID"] = idProducerSplashstart
         param["${ProducerType.SPLASHSTART.text.uppercase()}${voiceId}_XML_DATA"] = templateSplashstart
         param["HIDE_TRACTOR_${ProducerType.SPLASHSTART.text.uppercase()}${voiceId}"] = "audio"
+
+        param["${ProducerType.BOOSTY.text.uppercase()}${voiceId}_ID"] = idProducerBoosty
+        param["${ProducerType.BOOSTY.text.uppercase()}${voiceId}_XML_DATA"] = templateBoosty
+        param["HIDE_TRACTOR_${ProducerType.BOOSTY.text.uppercase()}${voiceId}"] = "audio"
 
         param["${ProducerType.BACKGROUND.text.uppercase()}${voiceId}_ID"] = idProducerBackground
         param["${ProducerType.BACKGROUND.text.uppercase()}${voiceId}_PATH"] =

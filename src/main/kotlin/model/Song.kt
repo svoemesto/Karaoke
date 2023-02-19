@@ -22,8 +22,6 @@ import hashtag
 import mlt.MltText
 import uppercaseFirstLetter
 import java.io.File
-import java.nio.file.Files
-import kotlin.io.path.Path
 import kotlin.math.absoluteValue
 
 data class Song(val settings: Settings, val songVersion: SongVersion) {
@@ -31,9 +29,12 @@ data class Song(val settings: Settings, val songVersion: SongVersion) {
     private val REPLACE_STRING = "[R]"
     private val END_STRING = "[E]"
     private val COMMENT_STRING = "[C]"
-    private val REPEAT_START_STRING = "[RS]"
-    private val REPEAT_END_STRING = "[RE]"
-    private val REPEAT_PAST_STRING = "[RR]"
+    private val REPEAT1_START_STRING = "[RS]"
+    private val REPEAT1_END_STRING = "[RE]"
+    private val REPEAT1_PAST_STRING = "[RR]"
+    private val REPEAT2_START_STRING = "[TS]"
+    private val REPEAT2_END_STRING = "[TE]"
+    private val REPEAT2_PAST_STRING = "[TR]"
     fun getOutputFilename(songOutputFile: SongOutputFile, idBluetoothDelay: Boolean): String {
         return "${settings.rootFolder}/done_${if (songOutputFile == SongOutputFile.PROJECT || songOutputFile == SongOutputFile.SUBTITLE || songOutputFile == SongOutputFile.TEXT) "projects" else if (songOutputFile == SongOutputFile.PICTURECHORDS) "chords" else "files"}/${if (!settings.fileName.startsWith (settings.year.toString())) "${settings.year} " else ""}${settings.fileName}${songVersion.suffix}${if (idBluetoothDelay) " bluetooth" else ""}${if (songOutputFile == SongOutputFile.PICTURECHORDS) " chords" else ""}.${songOutputFile.extension}"
     }
@@ -41,6 +42,7 @@ data class Song(val settings: Settings, val songVersion: SongVersion) {
     fun getDescription(isBluetoothDelay: Boolean): String {
 
         return "${settings.songName} ★♫★ ${settings.author} ★♫★ ${songVersion.text} ★♫★ ${songVersion.textForDescription}${if (isBluetoothDelay) " ★♫★ video delay ${Karaoke.timeOffsetBluetoothSpeakerMs}ms for bluetooth speakers" else ""}".cutByWords() + "\n" +
+                "Поддержать создание караоке на https://boosty.to/svoemesto\n" +
                 "Версия: ${songVersion.text} (${songVersion.textForDescription})${if (isBluetoothDelay) " с задержкой видео на ${Karaoke.timeOffsetBluetoothSpeakerMs}ms для bluetooth-колонок" else ""}\n" +
                 "Композиция: ${settings.songName}\n" +
                 "Исполнитель: ${settings.author}\n" +
@@ -185,11 +187,15 @@ data class Song(val settings: Settings, val songVersion: SongVersion) {
                 // Считываем сабы в блоки
                 val blocks = body.split("\\n[\\n]+".toRegex())
                 val listSubtitleFileElements: MutableList<SubtitleFileElement> = mutableListOf()
-                val listSubtitleFileElementsRepeated: MutableList<SubtitleFileElement> = mutableListOf()
+                val listSubtitleFileElementsRepeated1: MutableList<SubtitleFileElement> = mutableListOf()
+                val listSubtitleFileElementsRepeated2: MutableList<SubtitleFileElement> = mutableListOf()
 
-                var isRepeated = false
-                var nextSubIsFirstRepeated = false
-                var repeatOffset = 0L
+                var isRepeated1 = false
+                var nextSubIsFirstRepeated1 = false
+                var repeatOffset1 = 0L
+                var isRepeated2 = false
+                var nextSubIsFirstRepeated2 = false
+                var repeatOffset2 = 0L
 
                 // Проходимся по блокам
                 blocks.forEach() { block ->
@@ -203,26 +209,37 @@ data class Song(val settings: Settings, val songVersion: SongVersion) {
                         val endFrame = convertTimecodeToFrames(se[1].replace(",","."))
 
                         // Если текущий саб - отметка начала повтора
-                        if (text.contains(REPEAT_START_STRING)) {
+                        if (text.contains(REPEAT1_START_STRING) || text.contains(REPEAT2_START_STRING)) {
                             // Устанавливаем флаги и пропускаем этот саб
-                            isRepeated = true
-                            nextSubIsFirstRepeated = true
+                            if (text.contains(REPEAT1_START_STRING)) {
+                                isRepeated1 = true
+                                nextSubIsFirstRepeated1 = true
+                            }
+                            if (text.contains(REPEAT2_START_STRING)) {
+                                isRepeated2 = true
+                                nextSubIsFirstRepeated2 = true
+                            }
                         } else {
                             // Если текущий саб - отметка конца повтора
-                            if (text.contains(REPEAT_END_STRING)) {
+                            if (text.contains(REPEAT1_END_STRING) || text.contains(REPEAT2_END_STRING)) {
                                 // Снимаем флаг и пропускаем этот саб
-                                isRepeated = false
+                                if (text.contains(REPEAT1_END_STRING)) {
+                                    isRepeated1 = false
+                                }
+                                if (text.contains(REPEAT2_END_STRING)) {
+                                    isRepeated2 = false
+                                }
                             } else {
 
                                 // Если текущий саб - отметка начала вставки повтора
-                                if (text.contains(REPEAT_PAST_STRING)) {
+                                if (text.contains(REPEAT1_PAST_STRING)) {
                                     // Надо добавить в общий лист все элементы из повторного листа со сдвигом на оффсет
                                     val repeatPastOffset = startFrame
-                                    listSubtitleFileElementsRepeated.forEach {
+                                    listSubtitleFileElementsRepeated1.forEach {
                                         listSubtitleFileElements.add(
                                             SubtitleFileElement(
-                                                startFrame = it.startFrame - repeatOffset + repeatPastOffset,
-                                                endFrame = it.endFrame - repeatOffset + repeatPastOffset,
+                                                startFrame = it.startFrame - repeatOffset1 + repeatPastOffset,
+                                                endFrame = it.endFrame - repeatOffset1 + repeatPastOffset,
                                                 text = it.text,
                                                 isStartOfLine = it.isStartOfLine,
                                                 isEndOfLine = it.isEndOfLine,
@@ -230,18 +247,39 @@ data class Song(val settings: Settings, val songVersion: SongVersion) {
                                             )
                                         )
                                     }
-
+                                } else if (text.contains(REPEAT2_PAST_STRING)) {
+                                    // Надо добавить в общий лист все элементы из повторного листа со сдвигом на оффсет
+                                    val repeatPastOffset = startFrame
+                                    listSubtitleFileElementsRepeated2.forEach {
+                                        listSubtitleFileElements.add(
+                                            SubtitleFileElement(
+                                                startFrame = it.startFrame - repeatOffset2 + repeatPastOffset,
+                                                endFrame = it.endFrame - repeatOffset2 + repeatPastOffset,
+                                                text = it.text,
+                                                isStartOfLine = it.isStartOfLine,
+                                                isEndOfLine = it.isEndOfLine,
+                                                isSetting = it.isSetting
+                                            )
+                                        )
+                                    }
                                 } else {
                                     // Если текущий саб - первый в повторе - запоминаем оффсет
-                                    if (nextSubIsFirstRepeated) {
-                                        nextSubIsFirstRepeated = false
-                                        repeatOffset = startFrame
+                                    if (nextSubIsFirstRepeated1) {
+                                        nextSubIsFirstRepeated1 = false
+                                        repeatOffset1 = startFrame
+                                    }
+                                    if (nextSubIsFirstRepeated2) {
+                                        nextSubIsFirstRepeated2 = false
+                                        repeatOffset2 = startFrame
                                     }
                                     // Заносим саб в общий лист
                                     listSubtitleFileElements.add(SubtitleFileElement(startFrame, endFrame, text, false, false, (text.uppercase().startsWith("[SETTING]|") || text == "//\\\\")))
                                     // Если саб в повторе - заносим его еще и в лист повторов
-                                    if (isRepeated) {
-                                        listSubtitleFileElementsRepeated.add(SubtitleFileElement(startFrame, endFrame, text, false, false, (text.uppercase().startsWith("[SETTING]|") || text == "//\\\\")))
+                                    if (isRepeated1) {
+                                        listSubtitleFileElementsRepeated1.add(SubtitleFileElement(startFrame, endFrame, text, false, false, (text.uppercase().startsWith("[SETTING]|") || text == "//\\\\")))
+                                    }
+                                    if (isRepeated2) {
+                                        listSubtitleFileElementsRepeated2.add(SubtitleFileElement(startFrame, endFrame, text, false, false, (text.uppercase().startsWith("[SETTING]|") || text == "//\\\\")))
                                     }
                                 }
 

@@ -5,11 +5,20 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="19caf878-7ce0-44d7-94a1-cf0a31300a8b" name="Changes" comment="Переделываем под новую концепцию">
+      <change afterPath="$PROJECT_DIR$/src/main/kotlin/SeleniumUtils.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Boosty.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/Extentions.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Extentions.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Karaoke.iml" beforeDir="false" afterPath="$PROJECT_DIR$/Karaoke.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/Constants.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Constants.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/Functions.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Functions.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/Karaoke.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Karaoke.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/Main.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Main.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/Utils.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Utils.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/Background.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Background.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/Mlt.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Mlt.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/model/ProducerType.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/model/ProducerType.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/model/Song.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/model/Song.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/model/SongVersion.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/model/SongVersion.kt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -20,9 +29,9 @@
     <option name="RECENT_TEMPLATES">
       <list>
         <option value="Kotlin Data Class" />
-        <option value="Kotlin File" />
         <option value="Kotlin Class" />
         <option value="Kotlin Enum" />
+        <option value="Kotlin File" />
       </list>
     </option>
   </component>
@@ -47,29 +56,29 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;Downloaded.Files.Path.Enabled&quot;: &quot;false&quot;,
-    &quot;Repository.Attach.Annotations&quot;: &quot;false&quot;,
-    &quot;Repository.Attach.JavaDocs&quot;: &quot;false&quot;,
-    &quot;Repository.Attach.Sources&quot;: &quot;false&quot;,
-    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
-    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/home/nsa/KotlinProjects/StringBook/demo&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;project.structure.last.edited&quot;: &quot;Project&quot;,
-    &quot;project.structure.proportion&quot;: &quot;0.0&quot;,
-    &quot;project.structure.side.proportion&quot;: &quot;0.28704488&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;editor.preferences.tabs&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Downloaded.Files.Path.Enabled": "false",
+    "Repository.Attach.Annotations": "false",
+    "Repository.Attach.JavaDocs": "false",
+    "Repository.Attach.Sources": "false",
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "WebServerToolWindowFactoryState": "false",
+    "last_opened_file_path": "/home/nsa/Karaoke/src/main/kotlin/mlt",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "project.structure.last.edited": "Libraries",
+    "project.structure.proportion": "0.15",
+    "project.structure.side.proportion": "0.28704488",
+    "settings.editor.selected.configurable": "editor.preferences.tabs",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/src/main/kotlin/mlt" />
@@ -86,13 +95,6 @@
     </option>
   </component>
   <component name="RunManager" selected="Kotlin.MainKt">
-    <configuration name="GuitarStringKt" type="JetRunConfigurationType" temporary="true" nameIsGenerated="true">
-      <option name="MAIN_CLASS_NAME" value="model.GuitarStringKt" />
-      <module name="Karaoke" />
-      <method v="2">
-        <option name="Make" enabled="true" />
-      </method>
-    </configuration>
     <configuration name="KaraokeKt" type="JetRunConfigurationType" temporary="true" nameIsGenerated="true">
       <option name="MAIN_CLASS_NAME" value="KaraokeKt" />
       <module name="Karaoke" />
@@ -114,6 +116,13 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
+    <configuration name="SeleniumUtilsKt" type="JetRunConfigurationType" temporary="true" nameIsGenerated="true">
+      <option name="MAIN_CLASS_NAME" value="SeleniumUtilsKt" />
+      <module name="Karaoke" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="UtilsKt" type="JetRunConfigurationType" temporary="true" nameIsGenerated="true">
       <option name="MAIN_CLASS_NAME" value="UtilsKt" />
       <module name="Karaoke" />
@@ -125,9 +134,9 @@
       <list>
         <item itemvalue="Kotlin.MainKt" />
         <item itemvalue="Kotlin.UtilsKt" />
+        <item itemvalue="Kotlin.SeleniumUtilsKt" />
         <item itemvalue="Kotlin.MainRibbon" />
         <item itemvalue="Kotlin.KaraokeKt" />
-        <item itemvalue="Kotlin.GuitarStringKt" />
       </list>
     </recent_temporary>
   </component>
@@ -185,14 +194,16 @@
       <workItem from="1673241970520" duration="599000" />
       <workItem from="1673246593919" duration="47708000" />
       <workItem from="1673518521628" duration="9423000" />
-      <workItem from="1673582784577" duration="8023000" />
-    </task>
-    <task id="LOCAL-00056" summary="Перенос настроек в файл и класс (процесс)&#10;Заголовок - название песни, исполнитель, альбом, тональность, темп - шрифт и цвет">
-      <created>1664541415754</created>
-      <option name="number" value="00056" />
-      <option name="presentableId" value="LOCAL-00056" />
-      <option name="project" value="LOCAL" />
-      <updated>1664541415754</updated>
+      <workItem from="1673582784577" duration="8061000" />
+      <workItem from="1673680592098" duration="76878000" />
+      <workItem from="1674126579974" duration="13543000" />
+      <workItem from="1674374582249" duration="19679000" />
+      <workItem from="1674647889442" duration="1075000" />
+      <workItem from="1675320404271" duration="319000" />
+      <workItem from="1675322903415" duration="22486000" />
+      <workItem from="1675766158357" duration="3861000" />
+      <workItem from="1676203113118" duration="19567000" />
+      <workItem from="1676463020022" duration="21564000" />
     </task>
     <task id="LOCAL-00057" summary="Перенос настроек в файл и класс (процесс)">
       <created>1664558131397</created>
@@ -530,7 +541,14 @@
       <option name="project" value="LOCAL" />
       <updated>1672483748480</updated>
     </task>
-    <option name="localTasksCounter" value="105" />
+    <task id="LOCAL-00105" summary="Переделываем под новую концепцию">
+      <created>1673620658855</created>
+      <option name="number" value="00105" />
+      <option name="presentableId" value="LOCAL-00105" />
+      <option name="project" value="LOCAL" />
+      <updated>1673620658855</updated>
+    </task>
+    <option name="localTasksCounter" value="106" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -580,8 +598,18 @@
       <breakpoints>
         <line-breakpoint enabled="true" type="kotlin-line">
           <url>file://$PROJECT_DIR$/src/main/kotlin/Utils.kt</url>
-          <line>99</line>
+          <line>100</line>
           <option name="timeStamp" value="4" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="kotlin-line">
+          <url>file://$PROJECT_DIR$/src/main/kotlin/mlt/Boosty.kt</url>
+          <line>50</line>
+          <option name="timeStamp" value="5" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="kotlin-line">
+          <url>file://$PROJECT_DIR$/src/main/kotlin/Karaoke.kt</url>
+          <line>821</line>
+          <option name="timeStamp" value="6" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

@@ -20,5 +20,6 @@ enum class ProducerType(val text: String, val onlyOne: Boolean, val suffixes: Li
     FINGERBOARD(text ="fingerboard", onlyOne = true, suffixes = emptyList(), ids = emptyList()),
     HEADER(text ="header", onlyOne = true, suffixes = emptyList(), ids = emptyList()),
     WATERMARK(text ="watermark", onlyOne = true, suffixes = emptyList(), ids = emptyList()),
-    SPLASHSTART(text ="splashstart", onlyOne = true, suffixes = emptyList(), ids = emptyList())
+    SPLASHSTART(text ="splashstart", onlyOne = true, suffixes = emptyList(), ids = emptyList()),
+    BOOSTY(text ="boosty", onlyOne = true, suffixes = emptyList(), ids = emptyList())
 }

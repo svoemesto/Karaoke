@@ -61,6 +61,7 @@ fun main() {
 //    convertMarkersToSubtitles("/home/nsa/Documents/Караоке/Ундервуд/2020 - Человек-Лук/9 сцена Явление антагониста.kdenlive")
 //    convertMarkersToSubtitles("/home/nsa/Documents/Караоке/Ундервуд/2020 - Человек-Лук/10 сцена Ботанический сад.kdenlive")
 //    convertMarkersToSubtitles("/home/nsa/Documents/Караоке/Ундервуд/2020 - Человек-Лук/11 сцена Казино.kdenlive")
+    createSettingsFilesForAll("/home/nsa/Documents/Караоке/Вадим Самойлов/2022 - На Берлин", "wav")
 
 }
 

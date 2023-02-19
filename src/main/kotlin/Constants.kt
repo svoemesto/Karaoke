@@ -23,6 +23,7 @@ val idProducerFaderChords = ProducerType.FADERCHORDS.ordinal * 10 + 1
 val idProducerBackChords = ProducerType.BACKCHORDS.ordinal * 10 + 1
 val idProducerFingerboard = ProducerType.FINGERBOARD.ordinal * 10 + 1
 val idProducerSplashstart = ProducerType.SPLASHSTART.ordinal * 10 + 1
+val idProducerBoosty = ProducerType.BOOSTY.ordinal * 10 + 1
 val idProducerFlash = ProducerType.FLASH.ordinal * 10 + 1
 
 

@@ -428,53 +428,53 @@ class Karaoke {
         var voices: MutableList<KaraokeVoice>
             get() {
                 val defaultValue = "" +
-                        "songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",0,80), shapeColor = Color(255,255,255,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}" +
+                        "songtextTextMltFont|[NAME]|${MltText(font = Font(MAIN_FONT_NAME,0,80), shapeColor = Color(255,255,255,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 0, fontUnderline = 0).setting()}" +
                         "|[GROUP]|" +
-                        "songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",2,80), shapeColor = Color(255,255,155,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}" +
+                        "songtextTextMltFont|[NAME]|${MltText(font = Font(MAIN_FONT_NAME,2,80), shapeColor = Color(255,255,155,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 0, fontUnderline = 0).setting()}" +
                         "|[GROUP]|" +
-                        "songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",0,80), shapeColor = Color(155,255,255,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}" +
+                        "songtextTextMltFont|[NAME]|${MltText(font = Font(MAIN_FONT_NAME,0,80), shapeColor = Color(155,255,255,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 0, fontUnderline = 0).setting()}" +
                         "|[GROUP]|" +
-                        "songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",2,80), shapeColor = Color(155,255,155,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}" +
+                        "songtextTextMltFont|[NAME]|${MltText(font = Font(MAIN_FONT_NAME,2,80), shapeColor = Color(155,255,155,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 0, fontUnderline = 0).setting()}" +
                         "|[GROUP]|" +
-                        "songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",2,80), shapeColor = Color(127,127,127,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 1).setting()}" +
+                        "songtextTextMltFont|[NAME]|${MltText(font = Font(MAIN_FONT_NAME,2,80), shapeColor = Color(127,127,127,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 0, fontUnderline = 1).setting()}" +
                         "|[GROUP]|" +
-                        "songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",2,80), shapeColor = Color(255,127,127,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}" +
+                        "songtextTextMltFont|[NAME]|${MltText(font = Font(MAIN_FONT_NAME,2,80), shapeColor = Color(255,127,127,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 0, fontUnderline = 0).setting()}" +
                         "|[GROUP]|" +
-                        "songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",2,80), shapeColor = Color(255,255,255,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}" +
+                        "songtextTextMltFont|[NAME]|${MltText(font = Font(MAIN_FONT_NAME,2,80), shapeColor = Color(255,255,255,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 0, fontUnderline = 0).setting()}" +
                         "|[GROUP]|" +
-                        "songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",0,80), shapeColor = Color(255,255,155,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}" +
+                        "songtextTextMltFont|[NAME]|${MltText(font = Font(MAIN_FONT_NAME,0,80), shapeColor = Color(255,255,155,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 0, fontUnderline = 0).setting()}" +
                         "|[GROUP]|" +
-                        "songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",2,80), shapeColor = Color(155,255,255,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}" +
+                        "songtextTextMltFont|[NAME]|${MltText(font = Font(MAIN_FONT_NAME,2,80), shapeColor = Color(155,255,255,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 0, fontUnderline = 0).setting()}" +
                         "|[VOICEFIELDS]|" + "evenColor|[NAME]|${Color(255,128,0,255).setting()}" + "|[FIELD]|" + "evenOpacity|[NAME]|0.6" + "|[FIELD]|" + "oddColor|[NAME]|${Color(255,128,0,255).setting()}" + "|[FIELD]|" + "oddOpacity|[NAME]|0.6" +
                         ""
 //                        "|[VOICE]|" +
 //
-//                        "songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",0,80), shapeColor = Color(255,255,255,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}" +
+//                        "songtextTextMltFont|[NAME]|${MltText(font = Font(MAIN_FONT_NAME,0,80), shapeColor = Color(255,255,255,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 0, fontUnderline = 0).setting()}" +
 //                        "|[GROUP]|" +
-//                        "songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",2,80), shapeColor = Color(255,255,155,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}" +
+//                        "songtextTextMltFont|[NAME]|${MltText(font = Font(MAIN_FONT_NAME,2,80), shapeColor = Color(255,255,155,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 0, fontUnderline = 0).setting()}" +
 //                        "|[GROUP]|" +
-//                        "songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",0,80), shapeColor = Color(155,255,255,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}" +
+//                        "songtextTextMltFont|[NAME]|${MltText(font = Font(MAIN_FONT_NAME,0,80), shapeColor = Color(155,255,255,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 0, fontUnderline = 0).setting()}" +
 //                        "|[GROUP]|" +
-//                        "songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",2,80), shapeColor = Color(155,255,155,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}" +
+//                        "songtextTextMltFont|[NAME]|${MltText(font = Font(MAIN_FONT_NAME,2,80), shapeColor = Color(155,255,155,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 0, fontUnderline = 0).setting()}" +
 //                        "|[GROUP]|" +
-//                        "songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",2,80), shapeColor = Color(127,127,127,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 1).setting()}" +
+//                        "songtextTextMltFont|[NAME]|${MltText(font = Font(MAIN_FONT_NAME,2,80), shapeColor = Color(127,127,127,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 0, fontUnderline = 1).setting()}" +
 //                        "|[GROUP]|" +
-//                        "songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",2,80), shapeColor = Color(255,127,127,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}" +
+//                        "songtextTextMltFont|[NAME]|${MltText(font = Font(MAIN_FONT_NAME,2,80), shapeColor = Color(255,127,127,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 0, fontUnderline = 0).setting()}" +
 //                        "|[VOICEFIELDS]|" + "evenColor|[NAME]|${Color(255,128,0,255).setting()}" + "|[FIELD]|" + "evenOpacity|[NAME]|0.6" + "|[FIELD]|" + "oddColor|[NAME]|${Color(255,128,0,255).setting()}" + "|[FIELD]|" + "oddOpacity|[NAME]|0.6" +
 //
 //                        "|[VOICE]|" +
 //
-//                        "songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",0,80), shapeColor = Color(255,255,255,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}" +
+//                        "songtextTextMltFont|[NAME]|${MltText(font = Font(MAIN_FONT_NAME,0,80), shapeColor = Color(255,255,255,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 0, fontUnderline = 0).setting()}" +
 //                        "|[GROUP]|" +
-//                        "songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",2,80), shapeColor = Color(255,255,155,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}" +
+//                        "songtextTextMltFont|[NAME]|${MltText(font = Font(MAIN_FONT_NAME,2,80), shapeColor = Color(255,255,155,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 0, fontUnderline = 0).setting()}" +
 //                        "|[GROUP]|" +
-//                        "songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",0,80), shapeColor = Color(155,255,255,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}" +
+//                        "songtextTextMltFont|[NAME]|${MltText(font = Font(MAIN_FONT_NAME,0,80), shapeColor = Color(155,255,255,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 0, fontUnderline = 0).setting()}" +
 //                        "|[GROUP]|" +
-//                        "songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",2,80), shapeColor = Color(155,255,155,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}" +
+//                        "songtextTextMltFont|[NAME]|${MltText(font = Font(MAIN_FONT_NAME,2,80), shapeColor = Color(155,255,155,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 0, fontUnderline = 0).setting()}" +
 //                        "|[GROUP]|" +
-//                        "songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",2,80), shapeColor = Color(127,127,127,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 1).setting()}" +
+//                        "songtextTextMltFont|[NAME]|${MltText(font = Font(MAIN_FONT_NAME,2,80), shapeColor = Color(127,127,127,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 0, fontUnderline = 1).setting()}" +
 //                        "|[GROUP]|" +
-//                        "songtextTextMltFont|[NAME]|${MltText(font = Font("Montserrat SemiBold",2,80), shapeColor = Color(255,127,127,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 1, fontUnderline = 0).setting()}" +
+//                        "songtextTextMltFont|[NAME]|${MltText(font = Font(MAIN_FONT_NAME,2,80), shapeColor = Color(255,127,127,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 0, fontUnderline = 0).setting()}" +
 //                        "|[VOICEFIELDS]|" + "evenColor|[NAME]|${Color(255,128,0,255).setting()}" + "|[FIELD]|" + "evenOpacity|[NAME]|0.6" + "|[FIELD]|" + "oddColor|[NAME]|${Color(255,128,0,255).setting()}" + "|[FIELD]|" + "oddOpacity|[NAME]|0.6"
 
                 props.loadFromXML(File(fileNameXml).inputStream())
@@ -530,7 +530,7 @@ class Karaoke {
                     font = Font("Fira Sans Extra Condensed Medium", 0, 80),
                     shapeColor = Color(255,127,127,255),
                     shapeOutlineColor = Color(0,0,0,255),
-                    shapeOutline = 1,
+                    shapeOutline = 0,
                     fontUnderline = 0
                 ).setting()
                 props.loadFromXML(File(fileNameXml).inputStream())
@@ -575,7 +575,7 @@ class Karaoke {
         var headerSongnameFont: MltText
             get() {
                 val defaultValue = MltText(
-                    font = Font("Montserrat SemiBold", 0, 80),
+                    font = Font(MAIN_FONT_NAME, 0, 80),
                     shapeColor = Color(255,255,127,255),
                     shapeOutlineColor = Color(0,0,0,255),
                     shapeOutline = 0,
@@ -605,7 +605,7 @@ class Karaoke {
         var headerAuthorFont: MltText
             get() {
                 val defaultValue = MltText(
-                    font = Font("Montserrat SemiBold", 0, 30),
+                    font = Font(MAIN_FONT_NAME, 0, 30),
                     shapeColor = Color(255,255,127,255),
                     shapeOutlineColor = Color(0,0,0,255),
                     shapeOutline = 0,
@@ -622,7 +622,7 @@ class Karaoke {
         var headerAuthorNameFont: MltText
             get() {
                 val defaultValue = MltText(
-                    font = Font("Montserrat SemiBold", 0, 30),
+                    font = Font(MAIN_FONT_NAME, 0, 30),
                     shapeColor = Color(85,255,255,255),
                     shapeOutlineColor = Color(0,0,0,255),
                     shapeOutline = 0,
@@ -651,7 +651,7 @@ class Karaoke {
         var headerAlbumFont: MltText
             get() {
                 val defaultValue = MltText(
-                    font = Font("Montserrat SemiBold", 0, 30),
+                    font = Font(MAIN_FONT_NAME, 0, 30),
                     shapeColor = Color(255,255,127,255),
                     shapeOutlineColor = Color(0,0,0,255),
                     shapeOutline = 0,
@@ -668,7 +668,7 @@ class Karaoke {
         var headerAlbumNameFont: MltText
             get() {
                 val defaultValue = MltText(
-                    font = Font("Montserrat SemiBold", 0, 30),
+                    font = Font(MAIN_FONT_NAME, 0, 30),
                     shapeColor = Color(85,255,255,255),
                     shapeOutlineColor = Color(0,0,0,255),
                     shapeOutline = 0,
@@ -697,7 +697,7 @@ class Karaoke {
         var headerToneFont: MltText
             get() {
                 val defaultValue = MltText(
-                    font = Font("Montserrat SemiBold", 0, 30),
+                    font = Font(MAIN_FONT_NAME, 0, 30),
                     shapeColor = Color(255,255,127,255),
                     shapeOutlineColor = Color(0,0,0,255),
                     shapeOutline = 0,
@@ -714,7 +714,7 @@ class Karaoke {
         var headerToneNameFont: MltText
             get() {
                 val defaultValue = MltText(
-                    font = Font("Montserrat SemiBold", 0, 30),
+                    font = Font(MAIN_FONT_NAME, 0, 30),
                     shapeColor = Color(85,255,255,255),
                     shapeOutlineColor = Color(0,0,0,255),
                     shapeOutline = 0,
@@ -744,7 +744,7 @@ class Karaoke {
         var headerBpmFont: MltText
             get() {
                 val defaultValue = MltText(
-                    font = Font("Montserrat SemiBold", 0, 30),
+                    font = Font(MAIN_FONT_NAME, 0, 30),
                     shapeColor = Color(255,255,127,255),
                     shapeOutlineColor = Color(0,0,0,255),
                     shapeOutline = 0,
@@ -761,7 +761,7 @@ class Karaoke {
         var headerBpmNameFont: MltText
             get() {
                 val defaultValue = MltText(
-                    font = Font("Montserrat SemiBold", 0, 30),
+                    font = Font(MAIN_FONT_NAME, 0, 30),
                     shapeColor = Color(85,255,255,255),
                     shapeOutlineColor = Color(0,0,0,255),
                     shapeOutline = 0,
@@ -819,7 +819,7 @@ class Karaoke {
         var boostyFont: MltText
             get() {
                 val defaultValue = MltText(
-                    font = Font("Montserrat SemiBold", 0, 100),
+                    font = Font(MAIN_FONT_NAME, 0, 100),
                     shapeColor = Color(255,255,255,255),
                     shapeOutlineColor = Color(0,0,0,255),
                     shapeOutline = 0,
@@ -849,7 +849,7 @@ class Karaoke {
         var watermarkFont: MltText
             get() {
                 val defaultValue = MltText(
-                    font = Font("Montserrat SemiBold", 0, 10),
+                    font = Font(MAIN_FONT_NAME, 0, 10),
                     shapeColor = Color(255,255,255,127),
                     shapeOutlineColor = Color(0,0,0,255),
                     shapeOutline = 0,
@@ -879,10 +879,10 @@ class Karaoke {
         var splashstartSongNameFont: MltText
             get() {
                 val defaultValue = MltText(
-                    font = Font("Montserrat SemiBold", 0, 10),
+                    font = Font(MAIN_FONT_NAME, 0, 10),
                     shapeColor = Color(255,255,127,255),
                     shapeOutlineColor = Color(0,0,0,255),
-                    shapeOutline = 1,
+                    shapeOutline = 0,
                     fontUnderline = 0
                 ).setting()
                 props.loadFromXML(File(fileNameXml).inputStream())
@@ -896,10 +896,10 @@ class Karaoke {
         var splashstartSongVersionFont: MltText
             get() {
                 val defaultValue = MltText(
-                    font = Font("Montserrat SemiBold", 0, 150),
+                    font = Font(MAIN_FONT_NAME, 0, 150),
                     shapeColor = Color(85,255,255,255),
                     shapeOutlineColor = Color(0,0,0,255),
-                    shapeOutline = 1,
+                    shapeOutline = 0,
                     fontUnderline = 0
                 ).setting()
                 props.loadFromXML(File(fileNameXml).inputStream())
@@ -913,10 +913,10 @@ class Karaoke {
         var splashstartCommentFont: MltText
             get() {
                 val defaultValue = MltText(
-                    font = Font("Montserrat SemiBold", 0, 60),
+                    font = Font(MAIN_FONT_NAME, 0, 60),
                     shapeColor = Color(85,255,255,255),
                     shapeOutlineColor = Color(0,0,0,255),
-                    shapeOutline = 1,
+                    shapeOutline = 0,
                     fontUnderline = 0
                 ).setting()
                 props.loadFromXML(File(fileNameXml).inputStream())
@@ -933,7 +933,7 @@ class Karaoke {
                     font = Font("Fira Sans Extra Condensed Medium", 0, 40),
                     shapeColor = Color(255,127,127,255),
                     shapeOutlineColor = Color(0,0,0,255),
-                    shapeOutline = 1,
+                    shapeOutline = 0,
                     fontUnderline = 0
                 ).setting()
                 props.loadFromXML(File(fileNameXml).inputStream())
@@ -1015,7 +1015,7 @@ class Karaoke {
         var chordLayoutChordNameMltText: MltText
             get() {
                 val defaultValue = MltText(
-                    font = Font("Montserrat SemiBold", 0, 10),
+                    font = Font(MAIN_FONT_NAME, 0, 10),
                     shapeColor = Color(255,255,127,255),
                     shapeOutlineColor = Color(0,0,0,255),
                     shapeOutline = 0,
@@ -1032,10 +1032,10 @@ class Karaoke {
         var chordLayoutFretsNumbersMltText: MltText
             get() {
                 val defaultValue = MltText(
-                    font = Font("Montserrat SemiBold", 0, 10),
+                    font = Font(MAIN_FONT_NAME, 0, 10),
                     shapeColor = Color(127,127,127,255),
                     shapeOutlineColor = Color(0,0,0,255),
-                    shapeOutline = 1,
+                    shapeOutline = 0,
                     fontUnderline = 0
                 ).setting()
                 props.loadFromXML(File(fileNameXml).inputStream())

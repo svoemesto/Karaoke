@@ -96,7 +96,7 @@ data class MltText(
     val lineSpacing: Int = 0
     val letterSpacing: Int = 0
     val typewriter: String = "0;2;1;0;0"
-    val shadow: String = "0;#64000000;3;3;3"
+    val shadow: String = "1;#ff000000;3;3;3"
     val fontItalic: Int get() = if (font.isItalic) 1 else 0
 
     val w: Int get() = getTextWidthHeightPx(text, font).first.toInt()
@@ -142,23 +142,27 @@ open class MltShape(
 }
 
 fun MltText.mltNode(value: String): MltNode {
+    val fields = mutableMapOf<String,String>()
+    if (font.name != "") fields["font"] = font.name
+    if (font.size > 0) fields["font-pixel-size"] = font.size.toString()
+    if (fontWeight > 0) fields["font-weight"] = fontWeight.toString()
+    if (fontUnderline > 0) fields["font-underline"] = fontUnderline.toString()
+    if (fontItalic > 0) fields["font-italic"] = fontItalic.toString()
+    if (fontItalic > 0) fields["font-italic"] = fontItalic.toString()
+    fields["font-color"] = shapeColor.mlt()
+    if (shapeOutline > 0) {
+        fields["font-outline"] = shapeOutline.toString()
+        fields["font-outline-color"] = shapeOutlineColor.mlt()
+    }
+    if (lineSpacing > 0) fields["line-spacing"] = lineSpacing.toString()
+    if (letterSpacing > 0) fields["letter-spacing"] = letterSpacing.toString()
+   fields["shadow"] = shadow
+   fields["typewriter"] = typewriter
+   fields["alignment"] = alignment.toString()
+
     return MltNode(
         name = "content",
-        fields = mutableMapOf(
-            Pair("font", font.name),
-            Pair("font-pixel-size", font.size.toString()),
-            Pair("font-weight", fontWeight.toString()),
-            Pair("font-underline", fontUnderline.toString()),
-            Pair("font-italic", fontItalic.toString()),
-            Pair("font-color", shapeColor.mlt()),
-            Pair("font-outline", shapeOutline.toString()),
-            Pair("font-outline-color", shapeOutlineColor.mlt()),
-            Pair("line-spacing", lineSpacing.toString()),
-            Pair("letter-spacing", letterSpacing.toString()),
-            Pair("shadow", shadow),
-            Pair("typewriter", typewriter),
-            Pair("alignment", alignment.toString())
-        ),
+        fields = fields,
         body = value
     )
 }

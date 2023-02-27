@@ -608,6 +608,8 @@ fun createKaraoke(song: Song, isBluetoothDelay: Boolean) {
             convertMillisecondsToTimecode(Karaoke.timeSplashScreenStartMs + Karaoke.timeBoostyStartMs - 1000).replace(",", ".")
         param["SONG_LENGTH_MS"] = kdeLengthMs
         param["SONG_LENGTH_FR"] = kdeLengthFrames
+        param["TOTAL_LENGTH_MS"] = kdeLengthMs + Karaoke.timeSplashScreenStartMs + Karaoke.timeBoostyStartMs
+        param["TOTAL_LENGTH_FR"] = convertMillisecondsToFrames(kdeLengthMs + Karaoke.timeSplashScreenStartMs + Karaoke.timeBoostyStartMs, Karaoke.frameFps)
         param["GUIDES_PROPERTY"] = "[${propGuides}]"
         param["IN_OFFSET_AUDIO"] = kdeInOffsetAudio
         param["IN_OFFSET_VIDEO"] = kdeInOffsetVideo
@@ -791,6 +793,8 @@ fun createKaraoke(song: Song, isBluetoothDelay: Boolean) {
     val fileDescription = File(param["SONG_DESCRIPTION_FILENAME"].toString())
     Files.createDirectories(Path(fileDescription.parent))
     fileDescription.writeText(song.getDescription(isBluetoothDelay))
+
+    if (song.songVersion == SongVersion.LYRICS) createBoostyTeaserPicture(song, song.getOutputFilename(SongOutputFile.PICTUREBOOSTY, false))
 
     val fileText = File(param["SONG_TEXT_FILENAME"].toString())
     Files.createDirectories(Path(fileText.parent))

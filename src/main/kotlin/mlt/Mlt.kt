@@ -276,7 +276,7 @@ fun getMlt(param: Map<String, Any?>): MltNode {
         fields = mutableMapOf(
             Pair("LC_NUMERIC","C"),
             Pair("producer","main_bin"),
-            Pair("version","7.9.0"),
+            Pair("version","7.13.0"),
             Pair("root",param["SONG_ROOT_FOLDER"].toString()),
         ),
         body = body

@@ -33,6 +33,10 @@ val delimiterFields = "|[FIELD]|"
 val delimiterVoiceFields = "|[VOICEFIELDS]|"
 val delimiterNames = "|[NAME]|"
 
+const val MAIN_FONT_NAME = "Roboto"
+//const val MAIN_FONT_NAME = "Roboto Black"
+//const val MAIN_FONT_NAME = "Ubuntu Light"
+//const val MAIN_FONT_NAME = "Montserrat SemiBold"
 const val LINE_SPACING = 0L
 const val SHADOW = "1;#64000000;3;3;3"
 const val ALIGNMENT = 0L
@@ -41,3 +45,10 @@ const val LETTERS_VOWEL = "EUIOAeuioaЁУЕЫАОЭЯИЮёуеыаоэяию"
 const val NOTES_SYMBOLS = "♬♩♪△▲⬦⬥"
 
 const val DEMUCS_MODEL_NAME = "hdemucs_mmi"
+
+const val PATH_TO_FFMPEG = "/bin/ffmpeg"
+const val PATH_TO_FFPLAY = "/bin/ffplay"
+const val PATH_TO_FFPROBE = "/bin/ffprobe"
+const val PATH_TO_PROFILES = "/usr/share/mlt-7/profiles"
+const val PATH_TO_MELT = "/bin/melt"
+const val PATH_TO_MEDIAINFO = "/bin/mediainfo"

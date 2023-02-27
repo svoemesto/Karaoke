@@ -1,22 +1,7 @@
 import com.google.gson.GsonBuilder
-import mlt.MltObject
-import mlt.MltObjectAlignmentX
-import mlt.MltObjectAlignmentY
-import mlt.MltObjectType
-import mlt.MltText
-import model.Fingerboard
-import model.Marker
-import model.MltNode
-import model.MusicChord
-import model.MusicNote
-import model.Song
-import model.SongVersion
-import model.Subtitle
-import java.awt.AlphaComposite
-import java.awt.BasicStroke
-import java.awt.Color
-import java.awt.Font
-import java.awt.Graphics2D
+import mlt.*
+import model.*
+import java.awt.*
 import java.awt.image.BufferedImage
 import java.io.File
 import java.nio.file.Files
@@ -30,42 +15,23 @@ import kotlin.streams.toList
 
 fun main() {
 
-//    createSettingsFilesForAll("/home/nsa/Documents/Караоке/Пикник")
-//    createSettingsFilesForAll("/home/nsa/Documents/Караоке/Павел Кашин")
-//    createSettingsFilesForAll("/home/nsa/Documents/Караоке/Ария")
-//    createSettingsFilesForAll("/home/nsa/Documents/Караоке/Агата Кристи")
-//    createSettingsFilesForAll("/home/nsa/Documents/Караоке/Король и Шут","m4a")
-//    createSettingsFilesForAll("/home/nsa/Documents/Караоке/Високосный год","wav")
-
-//    val musicChord = MusicChord.X7
-//    val musicNote = MusicNote.C
-//    GuitarString.values().forEach { gs ->
-//        println(gs.getPrintedString(musicChord.getNotes(musicNote).map { it.first }))
-//    }
-//    for (i in 0 .. 12) {
-//        val result = musicChord.getFingerboard(musicNote,i)
-//
-//        if (result.isNotEmpty()) {
-//            println(result.joinToString("\n"))
-//            println()
-//        }
-//    }
-
-//    convertMarkersToSubtitles("/home/nsa/Documents/Караоке/Ундервуд/2020 - Человек-Лук/2 сцена Жить в эпоху перемен.kdenlive")
-//    convertMarkersToSubtitles("/home/nsa/Documents/Караоке/Ундервуд/2020 - Человек-Лук/3 сцена Встреча на рынке.kdenlive")
-//    convertMarkersToSubtitles("/home/nsa/Documents/Караоке/Ундервуд/2020 - Человек-Лук/4 сцена Мы справимся, мессир Конфликт.kdenlive")
-//    convertMarkersToSubtitles("/home/nsa/Documents/Караоке/Ундервуд/2020 - Человек-Лук/5 сцена За прогресс.kdenlive")
-//    convertMarkersToSubtitles("/home/nsa/Documents/Караоке/Ундервуд/2020 - Человек-Лук/6 сцена Welcome welcome welcome Танец Винегрет.kdenlive")
-//    convertMarkersToSubtitles("/home/nsa/Documents/Караоке/Ундервуд/2020 - Человек-Лук/7 сцена Трансформация.kdenlive")
-//    convertMarkersToSubtitles("/home/nsa/Documents/Караоке/Ундервуд/2020 - Человек-Лук/8 сцена Первый подвиг.kdenlive")
-//    convertMarkersToSubtitles("/home/nsa/Documents/Караоке/Ундервуд/2020 - Человек-Лук/9 сцена Явление антагониста.kdenlive")
-//    convertMarkersToSubtitles("/home/nsa/Documents/Караоке/Ундервуд/2020 - Человек-Лук/10 сцена Ботанический сад.kdenlive")
-//    convertMarkersToSubtitles("/home/nsa/Documents/Караоке/Ундервуд/2020 - Человек-Лук/11 сцена Казино.kdenlive")
-    createSettingsFilesForAll("/home/nsa/Documents/Караоке/Вадим Самойлов/2022 - На Берлин", "wav")
+//    createSettingsFilesForAll("/home/nsa/Documents/Караоке/Ундервуд/2022 - За горизонтом", "wav")
+    createSettingsFilesForAll("/home/nsa/Documents/Караоке/Сплин")
+//    createBoostyTeserPictures("/home/nsa/Documents/Караоке/Ария")
 
 }
 
-fun createSettingsFilesForAll(startFolder: String, extention: String = "flac") {
+fun createBoostyTeserPictures(startFolder: String) {
+    val listFiles = getListFiles(startFolder,"settings")
+    listFiles.forEach { pathToSettingsFile ->
+        val settings = Settings(pathToSettingsFile)
+        val song = Song(settings, SongVersion.LYRICS)
+        println(pathToSettingsFile)
+        createBoostyTeaserPicture(song, song.getOutputFilename(SongOutputFile.PICTUREBOOSTY, false))
+    }
+}
+
+fun createSettingsFilesForAll(startFolder: String) {
     val patternFileName = "(\\d{4}).*\\s\\((\\d{2})\\)\\s\\[(.*)\\]\\s-\\s(.*)\\.(.*)"
     val regexpFileName = Regex(patternFileName)
     val patternFolderName = "(\\d{4}).*\\s-\\s(.*)"
@@ -75,13 +41,19 @@ fun createSettingsFilesForAll(startFolder: String, extention: String = "flac") {
     val fileDemucs4tracks = File("$startFolder/demusc4track.run")
     val fileDemucs5tracks = File("$startFolder/demusc5track.run")
     val fileMainPairs = File("$startFolder/mainPairs.txt")
+    val fileMelt = File("$startFolder/melt.txt")
 
     var textFileDemucs2tracks = ""
     var textFileDemucs4tracks = ""
     var textFileDemucs5tracks = ""
     var textFileMainPairs = ""
+    var textFileMelt = ""
 
-    val listFiles = getListFiles(startFolder,extention)
+    val listFiles = getListFiles(
+        pathToFolder =  startFolder,
+        extentions = listOf("flac","wav"),
+        excludes = listOf("-accompaniment", "-bass", "-drums", "-guitars", "-metronome", "[music]", "[vocals]", "-vocals", "-other")
+    )
     println("Всего файлов = ${listFiles.size}")
     listFiles.map{File(it)}.forEach { file ->
         val fileName = file.name
@@ -96,7 +68,7 @@ fun createSettingsFilesForAll(startFolder: String, extention: String = "flac") {
         val songTrack = fileNamesMatchResult?.let {fileNamesMatchResult.groups[2]?.value}
         val songAuthor = fileNamesMatchResult?.let {fileNamesMatchResult.groups[3]?.value}
         var songName = fileNamesMatchResult?.let {fileNamesMatchResult.groups[4]?.value}
-        val songFormat = extention //fileNamesMatchResult?.let {fileNamesMatchResult.groups[5]?.value}
+        val songFormat = file.extension //    extention //fileNamesMatchResult?.let {fileNamesMatchResult.groups[5]?.value}
         val songAlbum = folderNamesMatchResult?.let {folderNamesMatchResult.groups[2]?.value}
         val settingFileName = fileAbsolutePath.substring(0,fileAbsolutePath.length-songFormat!!.length-1)+".settings"
         val textFileName = fileAbsolutePath.substring(0,fileAbsolutePath.length-songFormat!!.length-1)+".txt"
@@ -132,6 +104,11 @@ fun createSettingsFilesForAll(startFolder: String, extention: String = "flac") {
         textFileDemucs5tracks += textDemucs4track
 
         textFileMainPairs += "//        Pair(\"$fileFolder\",\"$fileNameWOExt\"),\n"
+
+        textFileMelt += "melt -progress \"$fileFolder/done_projects/$fileNameWOExt [lyrics].mlt\"\n"
+        textFileMelt += "melt -progress \"$fileFolder/done_projects/$fileNameWOExt [karaoke].mlt\"\n"
+        textFileMelt += "melt -progress \"$fileFolder/done_projects/$fileNameWOExt [lyrics] bluetooth.mlt\"\n"
+        textFileMelt += "melt -progress \"$fileFolder/done_projects/$fileNameWOExt [karaoke] bluetooth.mlt\"\n"
 
         val settingFile = File(settingFileName)
         if (!settingFile.exists()) {
@@ -357,6 +334,7 @@ fun createSettingsFilesForAll(startFolder: String, extention: String = "flac") {
     if (!fileDemucs4tracks.exists()) fileDemucs4tracks.writeText(textFileDemucs4tracks)
     if (!fileDemucs5tracks.exists()) fileDemucs5tracks.writeText(textFileDemucs5tracks)
     if (!fileMainPairs.exists()) fileMainPairs.writeText(textFileMainPairs)
+    if (!fileMelt.exists()) fileMelt.writeText(textFileMelt)
 
 }
 
@@ -661,7 +639,7 @@ fun getSongChordsPicture(song: Song, mltNode: MltNode): BufferedImage {
     val colorBack = Color(255,255,255,255)
     val colorText = Color(0,0,0,255)
     val colorChord = Color(255,0,0,255)
-    var fontText = Font("Montserrat SemiBold", 0, 10)
+    var fontText = Font(MAIN_FONT_NAME, 0, 10)
     val imageType = BufferedImage.TYPE_INT_ARGB
     val resultImage = BufferedImage(frameW, frameH, imageType)
     val graphics2D = resultImage.graphics as Graphics2D
@@ -774,7 +752,7 @@ fun getSongChordsPicture(song: Song, mltNode: MltNode): BufferedImage {
     val textToOverlay = "${song.settings.author} - ${song.settings.year} - «${song.settings.songName}» (${song.settings.key}, ${song.settings.bpm} bpm)"
     var rectW = 0
     var rectH = 0
-    fontText = Font("Montserrat SemiBold", 0, 10)
+    fontText = Font(MAIN_FONT_NAME, 0, 10)
     do {
         fontText = Font(fontText.name, fontText.style, fontText.size+1)
         graphics2name.font = fontText
@@ -819,9 +797,9 @@ fun createSongPicture(song: Song, fileName: String, songVersion: SongVersion, is
     val frameW = 1920
     val frameH = 1080
     val opaque: Float = 1f
-    var fontSongname = Font("Montserrat SemiBold", 0, 10)
-    var fontCaption = Font("Montserrat SemiBold", 0, 200)
-    var fontComment = Font("Montserrat SemiBold", 0, 60)
+    var fontSongname = Font(MAIN_FONT_NAME, 0, 10)
+    var fontCaption = Font(MAIN_FONT_NAME, 0, 200)
+    var fontComment = Font(MAIN_FONT_NAME, 0, 60)
     val colorSongname = Color(255,255,127,255)
     val colorCaption = Color(85,255,255,255)
     val colorComment = Color(85,255,255,255)
@@ -897,6 +875,67 @@ fun createSongPicture(song: Song, fileName: String, songVersion: SongVersion, is
     ImageIO.write(resultImage, "png", file)
 
 }
+
+fun resizeBufferedImage(img: BufferedImage, newW: Int, newH: Int): BufferedImage? {
+    val tmp = img.getScaledInstance(newW, newH, Image.SCALE_SMOOTH)
+    val dimg = BufferedImage(newW, newH, BufferedImage.TYPE_INT_ARGB)
+    val g2d = dimg.createGraphics()
+    g2d.drawImage(tmp, 0, 0, null)
+    g2d.dispose()
+    return dimg
+}
+
+fun createBoostyTeaserPicture(song: Song, fileName: String) {
+    val pathToLogoAlbum = "${song.settings.rootFolder}/LogoAlbum.png"
+    val pathToLogoAuthor = "${song.settings.rootFolder}/LogoAuthor.png"
+
+    val frameW = 575
+    val frameH = 625
+    val opaque: Float = 1f
+    var fontSongname = Font(MAIN_FONT_NAME, 0, 10)
+    val colorSongname = Color(255,255,127,255)
+    var textToOverlay = song.settings.songName
+    val imageType = BufferedImage.TYPE_INT_ARGB
+    var resultImage = BufferedImage(frameW, frameH, imageType)
+    val graphics2D = resultImage.graphics as Graphics2D
+    val alphaChannel = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opaque)
+
+    val biLogoAlbum = ImageIO.read(File(pathToLogoAlbum))
+    val biLogoAuthor = ImageIO.read(File(pathToLogoAuthor))
+
+    graphics2D.composite = alphaChannel
+    graphics2D.background = Color.BLACK
+    graphics2D.color = Color.BLACK
+    graphics2D.fillRect(0,0,frameW, frameH)
+    graphics2D.color = colorSongname
+    graphics2D.font = fontSongname
+
+    var rectW = 0
+    var rectH = 0
+    do {
+        fontSongname = Font(fontSongname.name, fontSongname.style, fontSongname.size+1)
+        graphics2D.font = fontSongname
+        val fontMetrics = graphics2D.fontMetrics
+        val rect = fontMetrics.getStringBounds(textToOverlay, graphics2D)
+        rectW = rect.width.toInt()
+        rectH = rect.height.toInt()
+    } while (!(rectH > 130 || rectW > (frameW * 0.95)))
+
+    var centerX = (frameW - rectW) / 2
+    var centerY = (frameH - rectH) / 2 + rectH + 50
+    graphics2D.drawString(textToOverlay, centerX, centerY)
+
+    graphics2D.drawImage(resizeBufferedImage(biLogoAlbum,148, 148), 20, 100, null)
+    graphics2D.drawImage(resizeBufferedImage(biLogoAuthor, 370, 148), 188, 100, null)
+
+    graphics2D.dispose()
+
+    val file = File(fileName.replace(" [lyrics] boosty"," [boosty]"))
+
+    ImageIO.write(resultImage, "png", file)
+
+}
+
 fun test() {
 
 
@@ -1049,6 +1088,39 @@ fun getRandomFile(pathToFolder: String, extention: String = ""): String {
 fun getListFiles(pathToFolder: String, extention: String = "", startWith: String = ""): List<String> {
     return Files.walk(Path(pathToFolder)).filter(Files::isRegularFile).map { it.toString() }.filter{ it.endsWith(extention) && it.startsWith("${pathToFolder}/$startWith")}.toList().sorted()
 }
+fun getListFiles(pathToFolder: String, extentions: List<String> = listOf(), startsWith: List<String> = listOf(), excludes: List<String> = listOf()): List<String> {
+    val result = mutableListOf<String>()
+    val preRes = getListFiles(pathToFolder)
+    val filteredEndRes = mutableListOf<String>()
+    val filteredStartRes = mutableListOf<String>()
+    val filteredExcludeRes = mutableListOf<String>()
+    if (extentions.isNotEmpty()) {
+        extentions.forEach { extention ->
+            filteredEndRes.addAll(preRes.filter { it.endsWith(extention) })
+        }
+    } else {
+        filteredEndRes.addAll(preRes)
+    }
+    if (startsWith.isNotEmpty()) {
+        startsWith.forEach { startWith ->
+            filteredStartRes.addAll(filteredEndRes.filter { it.startsWith("${pathToFolder}/$startWith") })
+        }
+    } else {
+        filteredStartRes.addAll(filteredEndRes)
+    }
+    if (excludes.isNotEmpty()) {
+        val excludeRes = mutableListOf<String>()
+        excludes.forEach { exclude ->
+            excludeRes.addAll(filteredStartRes.filter { it.contains(exclude) })
+        }
+        result.addAll(filteredStartRes.filter { it !in excludeRes })
+    } else {
+        result.addAll(filteredStartRes)
+    }
+
+    return result.sorted().toList()
+}
+
 
 fun extractSubtitlesFromAutorecognizedFile(pathToFileFrom: String, pathToFileTo: String): String {
     val text = File(pathToFileFrom).readText(Charsets.UTF_8)

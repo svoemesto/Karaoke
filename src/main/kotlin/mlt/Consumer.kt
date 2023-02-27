@@ -19,7 +19,7 @@ fun getMltConsumer(param: Map<String, Any?>): MltNode {
             Pair("preset","ultrafast"),
             Pair("acodec","aac"),
             Pair("in","0"),
-            Pair("out",param["SONG_LENGTH_MS"].toString())
+            Pair("out",param["TOTAL_LENGTH_FR"].toString())
         )
     )
 

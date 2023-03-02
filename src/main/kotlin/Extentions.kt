@@ -1,6 +1,9 @@
 import java.awt.Color
 import java.awt.Font
 
+fun String.xmldata(): String {
+    return "<?xml version=\"1.0\"?>${this}".replace("<","&lt;")
+}
 fun Font.weight(): Int {
     return if (isBold) 75 else 50
 }

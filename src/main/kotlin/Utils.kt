@@ -16,7 +16,20 @@ import kotlin.streams.toList
 fun main() {
 
 //    createSettingsFilesForAll("/home/nsa/Documents/Караоке/Ундервуд/2022 - За горизонтом", "wav")
+    createSettingsFilesForAll("/home/nsa/Documents/Караоке/Nautilus Pompilius")
+    createSettingsFilesForAll("/home/nsa/Documents/Караоке/Агата Кристи")
+    createSettingsFilesForAll("/home/nsa/Documents/Караоке/Ария")
+    createSettingsFilesForAll("/home/nsa/Documents/Караоке/Вадим Самойлов")
+    createSettingsFilesForAll("/home/nsa/Documents/Караоке/Високосный год")
+    createSettingsFilesForAll("/home/nsa/Documents/Караоке/Горшок")
+    createSettingsFilesForAll("/home/nsa/Documents/Караоке/КИНО")
+    createSettingsFilesForAll("/home/nsa/Documents/Караоке/КняZz")
+    createSettingsFilesForAll("/home/nsa/Documents/Караоке/Король и Шут")
+    createSettingsFilesForAll("/home/nsa/Documents/Караоке/Павел Кашин")
+    createSettingsFilesForAll("/home/nsa/Documents/Караоке/Пикник")
     createSettingsFilesForAll("/home/nsa/Documents/Караоке/Сплин")
+    createSettingsFilesForAll("/home/nsa/Documents/Караоке/Ундервуд")
+
 //    createBoostyTeserPictures("/home/nsa/Documents/Караоке/Ария")
 
 }
@@ -52,7 +65,7 @@ fun createSettingsFilesForAll(startFolder: String) {
     val listFiles = getListFiles(
         pathToFolder =  startFolder,
         extentions = listOf("flac","wav"),
-        excludes = listOf("-accompaniment", "-bass", "-drums", "-guitars", "-metronome", "[music]", "[vocals]", "-vocals", "-other")
+        excludes = listOf("-accompaniment", "-bass", "-drums", "-guitars", "-metronome", "[music", "[drums", "[bass", "[vocals]", "-vocals", "-other")
     )
     println("Всего файлов = ${listFiles.size}")
     listFiles.map{File(it)}.forEach { file ->
@@ -105,10 +118,19 @@ fun createSettingsFilesForAll(startFolder: String) {
 
         textFileMainPairs += "//        Pair(\"$fileFolder\",\"$fileNameWOExt\"),\n"
 
-        textFileMelt += "melt -progress \"$fileFolder/done_projects/$fileNameWOExt [lyrics].mlt\"\n"
-        textFileMelt += "melt -progress \"$fileFolder/done_projects/$fileNameWOExt [karaoke].mlt\"\n"
-        textFileMelt += "melt -progress \"$fileFolder/done_projects/$fileNameWOExt [lyrics] bluetooth.mlt\"\n"
-        textFileMelt += "melt -progress \"$fileFolder/done_projects/$fileNameWOExt [karaoke] bluetooth.mlt\"\n"
+        textFileMelt += "echo \"$fileFolder/done_projects/$fileNameWOExt [lyrics].mlt\"\n"
+        textFileMelt += "melt -progress \"$fileFolder/done_projects/$fileNameWOExt [lyrics].mlt\"\n\n"
+        textFileMelt += "echo \"$fileFolder/done_projects/$fileNameWOExt [karaoke].mlt\"\n"
+        textFileMelt += "melt -progress \"$fileFolder/done_projects/$fileNameWOExt [karaoke].mlt\"\n\n"
+        textFileMelt += "echo \"$fileFolder/done_projects/$fileNameWOExt [chords].mlt\"\n"
+        textFileMelt += "melt -progress \"$fileFolder/done_projects/$fileNameWOExt [chords].mlt\"\n\n"
+        textFileMelt += "echo \"$fileFolder/done_projects/$fileNameWOExt [lyrics] bluetooth.mlt\"\n"
+        textFileMelt += "melt -progress \"$fileFolder/done_projects/$fileNameWOExt [lyrics] bluetooth.mlt\"\n\n"
+        textFileMelt += "echo \"$fileFolder/done_projects/$fileNameWOExt [karaoke] bluetooth.mlt\"\n"
+        textFileMelt += "melt -progress \"$fileFolder/done_projects/$fileNameWOExt [karaoke] bluetooth.mlt\"\n\n"
+        textFileMelt += "echo \"$fileFolder/done_projects/$fileNameWOExt [chords] bluetooth.mlt\"\n"
+        textFileMelt += "melt -progress \"$fileFolder/done_projects/$fileNameWOExt [chords] bluetooth.mlt\"\n\n"
+        textFileMelt += "echo \"========================================================================================\"\n"
 
         val settingFile = File(settingFileName)
         if (!settingFile.exists()) {
@@ -330,11 +352,11 @@ fun createSettingsFilesForAll(startFolder: String) {
 
     }
 
-    if (!fileDemucs2tracks.exists()) fileDemucs2tracks.writeText(textFileDemucs2tracks)
-    if (!fileDemucs4tracks.exists()) fileDemucs4tracks.writeText(textFileDemucs4tracks)
-    if (!fileDemucs5tracks.exists()) fileDemucs5tracks.writeText(textFileDemucs5tracks)
-    if (!fileMainPairs.exists()) fileMainPairs.writeText(textFileMainPairs)
-    if (!fileMelt.exists()) fileMelt.writeText(textFileMelt)
+    fileDemucs2tracks.writeText(textFileDemucs2tracks)
+    fileDemucs4tracks.writeText(textFileDemucs4tracks)
+    fileDemucs5tracks.writeText(textFileDemucs5tracks)
+    fileMainPairs.writeText(textFileMainPairs)
+    fileMelt.writeText(textFileMelt)
 
 }
 

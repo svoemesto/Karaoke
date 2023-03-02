@@ -25,7 +25,7 @@ fun getMltSplashstartProducer(param: Map<String, Any?>, type:ProducerType = Prod
             MltNode(name = "property", fields = mutableMapOf(Pair("name","mlt_service")), body = "kdenlivetitle"),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:duration")), body = param["SPLASHSTART_END_TIMECODE"]),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:clipname")), body = "${type.text.uppercase()}${if (voiceId==0) "" else voiceId}"),
-            MltNode(name = "property", fields = mutableMapOf(Pair("name","xmldata")), body = param["${type.text.uppercase()}${voiceId}_XML_DATA"]),
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","xmldata")), body = param["${type.text.uppercase()}${voiceId}_XML_DATA"].toString().xmldata()),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:folderid")), body = -1),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:clip_type")), body = 2),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:id")), body = (param["${type.text.uppercase()}${voiceId}_ID"] as Int)+voiceId*1000),
@@ -64,6 +64,7 @@ fun getMltSplashstartFilePlaylist(param: Map<String, Any?>, type:ProducerType = 
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","compositing")), body = 0),
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","distort")), body = 0),
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:collapsed")), body = 0),
+                        MltNode(name = "property", fields = mutableMapOf(Pair("name","rotation")), body = "00:00:00.000=0")
                     )
                 ),
             ))
@@ -93,6 +94,38 @@ fun getMltSplashstartTractor(param: Map<String, Any?>, type:ProducerType = Produ
         name = "tractor",
         fields = mutableMapOf(
             Pair("id","tractor_${type.text}${voiceId}"),
+            Pair("in",param["SONG_START_TIMECODE"].toString()),
+            Pair("out",param["SONG_END_TIMECODE"].toString())
+        ),
+        body = mutableListOf(
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:trackheight")), body = 69),
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:timeline_active")), body = 1),
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:collapsed")), body = 28),
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:track_name")), body = "${type.text.uppercase()}${if (voiceId==0) "" else voiceId}"),
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:thumbs_format"))),
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:audio_rec"))),
+            MltNode(name = "track",
+                fields = mutableMapOf(
+                    Pair("hide",param["HIDE_TRACTOR_${type.text.uppercase()}${voiceId}"].toString()),
+                    Pair("producer","playlist_${type.text}${voiceId}_file"))),
+            MltNode(name = "track",
+                fields = mutableMapOf(
+                    Pair("hide",param["HIDE_TRACTOR_${type.text.uppercase()}${voiceId}"].toString()),
+                    Pair("producer","playlist_${type.text}${voiceId}_track"))),
+
+            )
+    )
+
+    return mlt
+}
+
+fun getMltSplashstartTransition(param: Map<String, Any?>, type:ProducerType = ProducerType.SPLASHSTART, voiceId: Int = 0): MltNode {
+
+    val mlt = MltNode(
+        type = type,
+        name = "transition",
+        fields = mutableMapOf(
+            Pair("id","transition_${type.text}${voiceId}"),
             Pair("in",param["SONG_START_TIMECODE"].toString()),
             Pair("out",param["SONG_END_TIMECODE"].toString())
         ),

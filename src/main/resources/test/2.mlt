@@ -1,11 +1,11 @@
 <?xml version='1.0' encoding='utf-8'?>
-<mlt LC_NUMERIC="C" producer="main_bin" version="7.13.0" root="/home/nsa/Documents/Караоке">
+<mlt LC_NUMERIC="C" producer="main_bin" version="7.13.0" root="/home/nsa/Documents/Караоке/Павел Кашин/1993 - По волшебной реке/done_projects">
  <profile frame_rate_num="60" sample_aspect_num="1" display_aspect_den="9" colorspace="709" progressive="1" description="HD 1080p 60 fps" display_aspect_num="16" frame_rate_den="1" width="1920" height="1080" sample_aspect_den="1"/>
- <consumer f="mp4" properties="x265-medium" channels="2" x265-param="crf=%quality" crf="15" target="/home/nsa/Documents/Караоке/2.mp4" mlt_service="avformat" real_time="-16" threads="0" vcodec="libx265" ab="160k" preset="ultrafast" acodec="aac" in="0" out="9237"/>
- <producer id="producer_audiosong0" in="00:00:00.000" out="00:02:25.950">
-  <property name="length">8758</property>
+ <consumer f="mp4" properties="x265-medium" channels="2" x265-param="crf=%quality" crf="15" target="/home/nsa/Documents/Караоке/Павел Кашин/1993 - По волшебной реке/done_files/1993 (01) [Павел Кашин] - Ручеёк [lyrics].mp4" mlt_service="avformat" real_time="-16" threads="0" vcodec="libx265" ab="160k" preset="ultrafast" acodec="aac" in="0" out="10039"/>
+ <producer id="producer_audiosong0" in="00:00:00.000" out="00:02:39.317">
+  <property name="length">9560</property>
   <property name="eof">pause</property>
-  <property name="resource">Павел Кашин/1993 - По волшебной реке/1993 (23) [Павел Кашин] - Пока.flac</property>
+  <property name="resource">/home/nsa/Documents/Караоке/Павел Кашин/1993 - По волшебной реке/1993 (01) [Павел Кашин] - Ручеёк.flac</property>
   <property name="meta.media.nb_streams">1</property>
   <property name="meta.media.0.stream.type">audio</property>
   <property name="meta.media.0.codec.sample_fmt">s16</property>
@@ -14,14 +14,14 @@
   <property name="meta.media.0.codec.name">flac</property>
   <property name="meta.media.0.codec.long_name">FLAC (Free Lossless Audio Codec)</property>
   <property name="meta.media.0.codec.bit_rate">0</property>
-  <property name="meta.attr.TITLE.markup">Пока</property>
+  <property name="meta.attr.TITLE.markup">Ручеёк</property>
   <property name="meta.attr.ARTIST.markup">Павел Кашин</property>
   <property name="meta.attr.album_artist.markup">Павел Кашин</property>
   <property name="meta.attr.ALBUM.markup">По волшебной реке (2017)</property>
   <property name="meta.attr.comment.markup">ExactAudioCopy v1.5</property>
   <property name="meta.attr.DISCTOTAL.markup">01</property>
   <property name="meta.attr.DATE.markup">1993</property>
-  <property name="meta.attr.track.markup">23</property>
+  <property name="meta.attr.track.markup">01</property>
   <property name="meta.attr.TRACKTOTAL.markup">23</property>
   <property name="meta.attr.GENRE.markup">Acoustic Rock</property>
   <property name="meta.attr.DISC.markup">1</property>
@@ -37,14 +37,14 @@
   <property name="kdenlive:clip_type">1</property>
   <property name="kdenlive:id">2</property>
   <property name="force_reload">0</property>
-  <property name="kdenlive:file_size">10460924</property>
-  <property name="kdenlive:file_hash">18d929eb5a88d69c2dc2462e35ed295d</property>
-  <property name="kdenlive:audio_max0">175</property>
+  <property name="kdenlive:file_size">12718629</property>
+  <property name="kdenlive:file_hash">0ad0996edeb677b6bb5e0bb5a91f0292</property>
+  <property name="kdenlive:audio_max0">188</property>
  </producer>
- <producer id="producer_background0" in="00:00:00.000" out="00:02:33.950">
-  <property name="length">9238</property>
+ <producer id="producer_background0" in="00:00:00.000" out="00:02:47.317">
+  <property name="length">10040</property>
   <property name="eof">pause</property>
-  <property name="resource">/home/nsa/Documents/SpaceBox4096/SpaceBox4096-Variable-Space-Series/Variable Space Series/High Definition (HD)/SpaceBoxHD_PNG_Seyn/Left.png</property>
+  <property name="resource">/home/nsa/Documents/SpaceBox4096/SpaceBox4096-Mono-Space-Series/Mono Space Series/High Definition (HD)/SpaceBoxHD_PNG_Lyekal/Left.png</property>
   <property name="ttl">25</property>
   <property name="aspect_ratio">1</property>
   <property name="progressive">1</property>
@@ -53,155 +53,149 @@
   <property name="meta.media.width">4096</property>
   <property name="meta.media.height">4096</property>
   <property name="mlt_service">qimage</property>
-  <property name="kdenlive:duration">00:02:33.967</property>
+  <property name="kdenlive:duration">00:02:47.333</property>
   <property name="kdenlive:clipname">BACKGROUND</property>
   <property name="kdenlive:folderid">-1</property>
   <property name="kdenlive:clip_type">2</property>
   <property name="kdenlive:id">3</property>
   <property name="force_reload">0</property>
-  <property name="kdenlive:file_size">5834208</property>
-  <property name="kdenlive:file_hash">29738e0abf6d7532d690542789cf9c91</property>
+  <property name="kdenlive:file_size">8975862</property>
+  <property name="kdenlive:file_hash">65ed18652c829c56228ce16d3b990f47</property>
  </producer>
- <producer id="producer_horizon0" in="00:00:00.000" out="00:02:25.950">
-  <property name="length">8758</property>
+ <producer id="producer_horizon0" in="00:00:00.000" out="00:02:39.317">
+  <property name="length">9560</property>
   <property name="eof">pause</property>
   <property name="resource"/>
   <property name="progressive">1</property>
   <property name="aspect_ratio">1</property>
   <property name="seekable">1</property>
   <property name="mlt_service">kdenlivetitle</property>
-  <property name="kdenlive:duration">00:02:25.967</property>
+  <property name="kdenlive:duration">00:02:39.333</property>
   <property name="kdenlive:clipname">HORIZON</property>
-  <property name="xmldata">&lt;?xml version="1.0"?>
-&lt;kdenlivetitle duration="0" LC_NUMERIC="C" width="1920" height="1080" out="0">
-    &lt;item type="QGraphicsRectItem" z-index="0">
-     &lt;position x="0" y="619">
-      &lt;transform zoom="100">1,0,0,0,1,0,0,0,1&lt;/transform>
-     &lt;/position>
-     &lt;content brushcolor="0,255,0,255" pencolor="0,0,0,255" penwidth="0" rect="0,0,1920,3"/>
-    &lt;/item>
-    &lt;item type="QGraphicsRectItem" z-index="0">
-     &lt;position x="0" y="469">
-      &lt;transform zoom="100">1,0,0,0,1,0,0,0,1&lt;/transform>
-     &lt;/position>
-     &lt;content brushcolor="0,255,0,255" pencolor="0,0,0,255" penwidth="0" rect="0,0,1920,3"/>
-    &lt;/item>
+  <property name="xmldata">&lt;?xml version="1.0"?>&lt;kdenlivetitle duration="0" LC_NUMERIC="C" width="1920" height="1080" out="0">
+  &lt;item type="QGraphicsRectItem" z-index="0">
+  &lt;position x="0" y="605">
+  &lt;transform zoom="100">1,0,0,0,1,0,0,0,1&lt;/transform>
+&lt;/position>
+  &lt;content brushcolor="0,255,0,255" pencolor="0,0,0,255" penwidth="0" rect="0,0,1920,3"/>
+&lt;/item>
+  &lt;item type="QGraphicsRectItem" z-index="0">
+  &lt;position x="0" y="483">
+  &lt;transform zoom="100">1,0,0,0,1,0,0,0,1&lt;/transform>
+&lt;/position>
+  &lt;content brushcolor="0,255,0,255" pencolor="0,0,0,255" penwidth="0" rect="0,0,1920,3"/>
+&lt;/item>
   []
   &lt;startviewport rect="0,0,1920,1080"/>
-    &lt;endviewport rect="0,0,1920,1080"/>
-    &lt;background color="0,0,0,0"/>
-   &lt;/kdenlivetitle>
-</property>
+  &lt;endviewport rect="0,0,1920,1080"/>
+  &lt;background color="0,0,0,0"/>
+&lt;/kdenlivetitle></property>
   <property name="kdenlive:folderid">-1</property>
   <property name="kdenlive:clip_type">2</property>
   <property name="kdenlive:id">4</property>
   <property name="force_reload">0</property>
   <property name="meta.media.width">1920</property>
   <property name="meta.media.height">1080</property>
-  <property name="kdenlive:file_hash">8578889858aa15698e05b12dcfdae6f5</property>
+  <property name="kdenlive:file_hash">496de7105aeff8c9028be485cc66d85e</property>
  </producer>
- <producer id="producer_flash0" in="00:00:00.000" out="00:02:25.950">
-  <property name="length">8758</property>
+ <producer id="producer_flash0" in="00:00:00.000" out="00:02:39.317">
+  <property name="length">9560</property>
   <property name="eof">pause</property>
   <property name="resource"/>
   <property name="progressive">1</property>
   <property name="aspect_ratio">1</property>
   <property name="seekable">1</property>
   <property name="mlt_service">kdenlivetitle</property>
-  <property name="kdenlive:duration">00:02:25.967</property>
+  <property name="kdenlive:duration">00:02:39.333</property>
   <property name="kdenlive:clipname">FLASH</property>
-  <property name="xmldata">&lt;?xml version="1.0"?>
-&lt;kdenlivetitle duration="0" LC_NUMERIC="C" width="1920" height="1080" out="0">
-    &lt;item type="QGraphicsRectItem" z-index="0">
-     &lt;position x="0" y="619">
-      &lt;transform zoom="100">1,0,0,0,1,0,0,0,1&lt;/transform>
-     &lt;/position>
-     &lt;content brushcolor="255,0,0,255" pencolor="0,0,0,255" penwidth="0" rect="0,0,1920,3"/>
-    &lt;/item>
-    &lt;item type="QGraphicsRectItem" z-index="0">
-     &lt;position x="0" y="469">
-      &lt;transform zoom="100">1,0,0,0,1,0,0,0,1&lt;/transform>
-     &lt;/position>
-     &lt;content brushcolor="255,0,0,255" pencolor="0,0,0,255" penwidth="0" rect="0,0,1920,3"/>
-    &lt;/item>
+  <property name="xmldata">&lt;?xml version="1.0"?>&lt;kdenlivetitle duration="0" LC_NUMERIC="C" width="1920" height="1080" out="0">
+  &lt;item type="QGraphicsRectItem" z-index="0">
+  &lt;position x="0" y="605">
+  &lt;transform zoom="100">1,0,0,0,1,0,0,0,1&lt;/transform>
+&lt;/position>
+  &lt;content brushcolor="255,0,0,255" pencolor="0,0,0,255" penwidth="0" rect="0,0,1920,3"/>
+&lt;/item>
+  &lt;item type="QGraphicsRectItem" z-index="0">
+  &lt;position x="0" y="483">
+  &lt;transform zoom="100">1,0,0,0,1,0,0,0,1&lt;/transform>
+&lt;/position>
+  &lt;content brushcolor="255,0,0,255" pencolor="0,0,0,255" penwidth="0" rect="0,0,1920,3"/>
+&lt;/item>
   []
   &lt;startviewport rect="0,0,1920,1080"/>
-    &lt;endviewport rect="0,0,1920,1080"/>
-    &lt;background color="0,0,0,0"/>
-   &lt;/kdenlivetitle>
-</property>
+  &lt;endviewport rect="0,0,1920,1080"/>
+  &lt;background color="0,0,0,0"/>
+&lt;/kdenlivetitle></property>
   <property name="kdenlive:folderid">-1</property>
   <property name="kdenlive:clip_type">2</property>
   <property name="kdenlive:id">5</property>
   <property name="force_reload">0</property>
   <property name="meta.media.width">1920</property>
   <property name="meta.media.height">1080</property>
-  <property name="kdenlive:file_hash">a534a1157649873f615e62a2e7533fa7</property>
+  <property name="kdenlive:file_hash">1cd6b2966075ad00c83b1de853a40acc</property>
   <filter id="filter_flash0_qtblend1">
    <property name="rotate_center">1</property>
    <property name="mlt_service">qtblend</property>
    <property name="kdenlive_id">qtblend</property>
-   <property name="rect">00:00:00.000=0 0 1920 1080 0.0;00:00:09.617=0 0 1920 1080 0.0;00:00:09.650=0 0 1920 1080 1.0;00:00:10.433=0 0 1920 1080 0.0;00:00:10.467=0 0 1920 1080 1.0;00:00:11.267=0 0 1920 1080 0.0;00:00:11.300=0 0 1920 1080 1.0;00:00:12.083=0 0 1920 1080 0.0;00:00:12.117=0 0 1920 1080 1.0;00:00:12.917=0 0 1920 1080 0.0;00:00:12.950=0 0 1920 1080 1.0;00:00:13.750=0 0 1920 1080 0.0;00:00:13.950=0 0 1920 1080 0.0;00:00:16.183=0 0 1920 1080 0.0;00:00:16.217=0 0 1920 1080 1.0;00:00:17.217=0 0 1920 1080 0.0;00:00:19.483=0 0 1920 1080 0.0;00:00:19.517=0 0 1920 1080 1.0;00:00:20.517=0 0 1920 1080 0.0;00:00:22.950=0 0 1920 1080 0.0;00:00:22.983=0 0 1920 1080 1.0;00:00:23.983=0 0 1920 1080 0.0;00:00:26.100=0 0 1920 1080 0.0;00:00:26.133=0 0 1920 1080 1.0;00:00:27.133=0 0 1920 1080 0.0;00:00:29.317=0 0 1920 1080 0.0;00:00:29.350=0 0 1920 1080 1.0;00:00:30.350=0 0 1920 1080 0.0;00:00:32.650=0 0 1920 1080 0.0;00:00:32.683=0 0 1920 1080 1.0;00:00:33.683=0 0 1920 1080 0.0;00:00:36.683=0 0 1920 1080 0.0;00:00:36.717=0 0 1920 1080 1.0;00:00:37.717=0 0 1920 1080 0.0;00:01:55.283=0 0 1920 1080 0.0;00:01:55.317=0 0 1920 1080 1.0;00:01:56.100=0 0 1920 1080 0.0;00:01:56.133=0 0 1920 1080 1.0;00:01:56.933=0 0 1920 1080 0.0;00:01:56.967=0 0 1920 1080 1.0;00:01:57.750=0 0 1920 1080 0.0;00:01:57.783=0 0 1920 1080 1.0;00:01:58.583=0 0 1920 1080 0.0;00:01:58.617=0 0 1920 1080 1.0;00:01:59.417=0 0 1920 1080 0.0;00:01:59.617=0 0 1920 1080 0.0;00:02:01.833=0 0 1920 1080 0.0;00:02:01.867=0 0 1920 1080 1.0;00:02:02.867=0 0 1920 1080 0.0;00:02:05.167=0 0 1920 1080 0.0;00:02:05.200=0 0 1920 1080 1.0;00:02:06.200=0 0 1920 1080 0.0;00:02:08.650=0 0 1920 1080 0.0;00:02:08.683=0 0 1920 1080 1.0;00:02:09.683=0 0 1920 1080 0.0;00:02:11.733=0 0 1920 1080 0.0;00:02:11.767=0 0 1920 1080 1.0;00:02:12.767=0 0 1920 1080 0.0;00:02:15.117=0 0 1920 1080 0.0;00:02:15.150=0 0 1920 1080 1.0;00:02:16.150=0 0 1920 1080 0.0;00:02:18.333=0 0 1920 1080 0.0;00:02:18.367=0 0 1920 1080 1.0;00:02:19.367=0 0 1920 1080 0.0;00:02:22.500=0 0 1920 1080 0.0;00:02:22.533=0 0 1920 1080 1.0;00:02:23.533=0 0 1920 1080 0.0</property>
+   <property name="rect">00:00:00.000=0 0 1920 1080 0.0;00:00:00.617=0 0 1920 1080 0.0;00:00:00.650=0 0 1920 1080 1.0;00:00:01.650=0 0 1920 1080 0.0;00:00:04.483=0 0 1920 1080 0.0;00:00:04.517=0 0 1920 1080 1.0;00:00:05.517=0 0 1920 1080 0.0;00:00:08.817=0 0 1920 1080 0.0;00:00:08.850=0 0 1920 1080 1.0;00:00:09.850=0 0 1920 1080 0.0;00:00:12.583=0 0 1920 1080 0.0;00:00:12.617=0 0 1920 1080 1.0;00:00:13.617=0 0 1920 1080 0.0;00:00:15.833=0 0 1920 1080 0.0;00:00:15.867=0 0 1920 1080 1.0;00:00:16.867=0 0 1920 1080 0.0;00:00:19.633=0 0 1920 1080 0.0;00:00:19.667=0 0 1920 1080 1.0;00:00:20.667=0 0 1920 1080 0.0;00:00:23.950=0 0 1920 1080 0.0;00:00:23.983=0 0 1920 1080 1.0;00:00:24.983=0 0 1920 1080 0.0;00:00:27.633=0 0 1920 1080 0.0;00:00:27.667=0 0 1920 1080 1.0;00:00:28.667=0 0 1920 1080 0.0;00:00:46.133=0 0 1920 1080 0.0;00:00:46.167=0 0 1920 1080 1.0;00:00:47.167=0 0 1920 1080 0.0;00:00:49.900=0 0 1920 1080 0.0;00:00:49.933=0 0 1920 1080 1.0;00:00:50.933=0 0 1920 1080 0.0;00:00:54.283=0 0 1920 1080 0.0;00:00:54.317=0 0 1920 1080 1.0;00:00:55.317=0 0 1920 1080 0.0;00:00:58.050=0 0 1920 1080 0.0;00:00:58.083=0 0 1920 1080 1.0;00:00:59.083=0 0 1920 1080 0.0;00:01:01.450=0 0 1920 1080 0.0;00:01:01.483=0 0 1920 1080 1.0;00:01:02.483=0 0 1920 1080 0.0;00:01:05.217=0 0 1920 1080 0.0;00:01:05.250=0 0 1920 1080 1.0;00:01:06.250=0 0 1920 1080 0.0;00:01:09.433=0 0 1920 1080 0.0;00:01:09.467=0 0 1920 1080 1.0;00:01:10.467=0 0 1920 1080 0.0;00:01:13.250=0 0 1920 1080 0.0;00:01:13.283=0 0 1920 1080 1.0;00:01:14.283=0 0 1920 1080 0.0;00:01:31.950=0 0 1920 1080 0.0;00:01:31.983=0 0 1920 1080 1.0;00:01:32.983=0 0 1920 1080 0.0;00:01:35.717=0 0 1920 1080 0.0;00:01:35.750=0 0 1920 1080 1.0;00:01:36.750=0 0 1920 1080 0.0;00:01:40.017=0 0 1920 1080 0.0;00:01:40.050=0 0 1920 1080 1.0;00:01:41.050=0 0 1920 1080 0.0;00:01:43.767=0 0 1920 1080 0.0;00:01:43.800=0 0 1920 1080 1.0;00:01:44.800=0 0 1920 1080 0.0;00:00:00.617=0 0 1920 1080 0.0;00:00:00.650=0 0 1920 1080 1.0;00:00:01.567=0 0 1920 1080 0.0;00:00:46.133=0 0 1920 1080 0.0;00:00:46.167=0 0 1920 1080 1.0;00:00:47.083=0 0 1920 1080 0.0;00:00:45.183=0 0 1920 1080 0.0;00:00:45.215=0 0 1920 1080 1.0;00:00:46.133=0 0 1920 1080 0.0;00:00:44.233=0 0 1920 1080 0.0;00:00:44.263=0 0 1920 1080 1.0;00:00:45.183=0 0 1920 1080 0.0;00:00:43.283=0 0 1920 1080 0.0;00:00:43.311=0 0 1920 1080 1.0;00:00:44.233=0 0 1920 1080 0.0;00:00:42.333=0 0 1920 1080 0.0;00:00:42.359=0 0 1920 1080 1.0;00:00:43.283=0 0 1920 1080 0.0;00:01:31.950=0 0 1920 1080 0.0;00:01:31.983=0 0 1920 1080 1.0;00:01:32.900=0 0 1920 1080 0.0;00:01:31.000=0 0 1920 1080 0.0;00:01:31.031=0 0 1920 1080 1.0;00:01:31.950=0 0 1920 1080 0.0;00:01:30.050=0 0 1920 1080 0.0;00:01:30.079=0 0 1920 1080 1.0;00:01:31.000=0 0 1920 1080 0.0;00:01:29.100=0 0 1920 1080 0.0;00:01:29.127=0 0 1920 1080 1.0;00:01:30.050=0 0 1920 1080 0.0;00:01:28.150=0 0 1920 1080 0.0;00:01:28.175=0 0 1920 1080 1.0;00:01:29.100=0 0 1920 1080 0.0</property>
    <property name="compositing">0</property>
    <property name="distort">0</property>
    <property name="kdenlive:collapsed">0</property>
    <property name="rotation">00:00:00.000=0</property>
   </filter>
  </producer>
- <producer id="producer_progress0" in="00:00:00.000" out="00:02:25.950">
-  <property name="length">8758</property>
+ <producer id="producer_progress0" in="00:00:00.000" out="00:02:39.317">
+  <property name="length">9560</property>
   <property name="eof">pause</property>
   <property name="resource"/>
   <property name="progressive">1</property>
   <property name="aspect_ratio">1</property>
   <property name="seekable">1</property>
   <property name="mlt_service">kdenlivetitle</property>
-  <property name="kdenlive:duration">00:02:25.967</property>
+  <property name="kdenlive:duration">00:02:39.333</property>
   <property name="kdenlive:clipname">PROGRESS</property>
-  <property name="xmldata">&lt;?xml version="1.0"?>
-&lt;kdenlivetitle duration="0" LC_NUMERIC="C" width="1920" height="1080" out="0">
-    &lt;item type="QGraphicsRectItem" z-index="10">
-     &lt;position x="0" y="619">
-      &lt;transform zoom="100">1,0,0,0,1,0,0,0,1&lt;/transform>
-     &lt;/position>
-     &lt;content brushcolor="0,0,0,170" pencolor="0,0,0,255" penwidth="0" rect="0,0,1920,3"/>
-    &lt;/item>
-    &lt;item type="QGraphicsRectItem" z-index="0">
-     &lt;position x="0" y="469">
-      &lt;transform zoom="100">1,0,0,0,1,0,0,0,1&lt;/transform>
-     &lt;/position>
-     &lt;content brushcolor="0,0,0,170" pencolor="0,0,0,255" penwidth="0" rect="0,0,1920,3"/>
-    &lt;/item>
-    &lt;startviewport rect="0,0,1920,1080"/>
-    &lt;endviewport rect="0,0,1920,1080"/>
-    &lt;background color="0,0,0,0"/>
-   &lt;/kdenlivetitle>
-</property>
+  <property name="xmldata">&lt;?xml version="1.0"?>&lt;kdenlivetitle duration="0" LC_NUMERIC="C" width="1920" height="1080" out="0">
+  &lt;item type="QGraphicsRectItem" z-index="10">
+  &lt;position x="0" y="605">
+  &lt;transform zoom="100">1,0,0,0,1,0,0,0,1&lt;/transform>
+&lt;/position>
+  &lt;content brushcolor="0,0,0,170" pencolor="0,0,0,255" penwidth="0" rect="0,0,1920,3"/>
+&lt;/item>
+  &lt;item type="QGraphicsRectItem" z-index="0">
+  &lt;position x="0" y="483">
+  &lt;transform zoom="100">1,0,0,0,1,0,0,0,1&lt;/transform>
+&lt;/position>
+  &lt;content brushcolor="0,0,0,170" pencolor="0,0,0,255" penwidth="0" rect="0,0,1920,3"/>
+&lt;/item>
+  &lt;startviewport rect="0,0,1920,1080"/>
+  &lt;endviewport rect="0,0,1920,1080"/>
+  &lt;background color="0,0,0,0"/>
+&lt;/kdenlivetitle></property>
   <property name="kdenlive:folderid">-1</property>
   <property name="kdenlive:clip_type">2</property>
   <property name="kdenlive:id">6</property>
   <property name="force_reload">0</property>
   <property name="meta.media.width">1920</property>
   <property name="meta.media.height">1080</property>
-  <property name="kdenlive:file_hash">0f0463f1a69493b1faeffb6bc516c606</property>
+  <property name="kdenlive:file_hash">41ea6b5db3b5ecc0b575f8160dc2c3c9</property>
   <filter id="filter_progress0_qtblend1">
    <property name="rotate_center">1</property>
    <property name="mlt_service">qtblend</property>
    <property name="kdenlive_id">qtblend</property>
-   <property name="rect">00:00:00.000=-0 0 1920 1080 1.0;00:02:25.967=1920 0 1920 1080 1.0</property>
+   <property name="rect">00:00:00.000=-0 0 1920 1080 1.0;00:02:39.333=1920 0 1920 1080 1.0</property>
    <property name="compositing">0</property>
    <property name="distort">0</property>
    <property name="kdenlive:collapsed">0</property>
    <property name="rotation">00:00:00.000=0</property>
   </filter>
  </producer>
- <producer id="producer_fillcolorsongtexteven0" in="00:00:00.000" out="00:02:25.950">
-  <property name="length">8758</property>
+ <producer id="producer_fillcolorsongtexteven0" in="00:00:00.000" out="00:02:39.317">
+  <property name="length">9560</property>
   <property name="eof">pause</property>
-  <property name="resource">0xff8000ff</property>
+  <property name="resource">/home/nsa/Documents/Караоке/Павел Кашин/1993 - По волшебной реке/0xff8000ff</property>
   <property name="aspect_ratio">1</property>
   <property name="mlt_service">color</property>
-  <property name="kdenlive:duration">00:02:25.967</property>
+  <property name="kdenlive:duration">00:02:39.333</property>
   <property name="kdenlive:clipname">FILLCOLORSONGTEXTEVEN</property>
   <property name="kdenlive:folderid">-1</property>
   <property name="kdenlive:clip_type">2</property>
@@ -209,13 +203,13 @@
   <property name="mlt_image_format">rgb</property>
   <property name="kdenlive:file_hash">cbd040369131080b5f1bfcd203118aad</property>
  </producer>
- <producer id="producer_fillcolorsongtextodd0" in="00:00:00.000" out="00:02:25.950">
-  <property name="length">8758</property>
+ <producer id="producer_fillcolorsongtextodd0" in="00:00:00.000" out="00:02:39.317">
+  <property name="length">9560</property>
   <property name="eof">pause</property>
-  <property name="resource">0xff8000ff</property>
+  <property name="resource">/home/nsa/Documents/Караоке/Павел Кашин/1993 - По волшебной реке/0xff8000ff</property>
   <property name="aspect_ratio">1</property>
   <property name="mlt_service">color</property>
-  <property name="kdenlive:duration">00:02:25.967</property>
+  <property name="kdenlive:duration">00:02:39.333</property>
   <property name="kdenlive:clipname">FILLCOLORSONGTEXTODD</property>
   <property name="kdenlive:folderid">-1</property>
   <property name="kdenlive:clip_type">2</property>
@@ -223,438 +217,444 @@
   <property name="mlt_image_format">rgb</property>
   <property name="kdenlive:file_hash">cbd040369131080b5f1bfcd203118aad</property>
  </producer>
- <producer id="producer_songtext0" in="00:00:00.000" out="00:02:25.950">
-  <property name="length">8758</property>
+ <producer id="producer_songtext0" in="00:00:00.000" out="00:02:39.317">
+  <property name="length">9560</property>
   <property name="eof">pause</property>
   <property name="resource"/>
   <property name="progressive">1</property>
   <property name="aspect_ratio">1</property>
   <property name="seekable">1</property>
   <property name="mlt_service">kdenlivetitle</property>
-  <property name="kdenlive:duration">00:02:25.967</property>
+  <property name="kdenlive:duration">00:02:39.333</property>
   <property name="kdenlive:clipname">SONGTEXT</property>
-  <property name="xmldata">&lt;?xml version="1.0"?>
-&lt;kdenlivetitle duration="0" LC_NUMERIC="C" width="1920" height="8352" out="0">
-    &lt;item type="QGraphicsTextItem" z-index="1">
-     &lt;position x="96" y="720">
-      &lt;transform>1,0,0,0,1,0,0,0,1&lt;/transform>
-     &lt;/position>
-     &lt;content shadow="1;#ff000000;3;3;3" font="Roboto" font-pixel-size="123" typewriter="0;2;1;0;0" alignment="1" font-weight="50" font-color="255,255,255,255">&amp;#x415;&amp;#x441;&amp;#x43B;&amp;#x438; &amp;#x442;&amp;#x44B; - &amp;#x432;&amp;#x43E;&amp;#x434;&amp;#x430;,&lt;/content>
-    &lt;/item>
-    &lt;item type="QGraphicsTextItem" z-index="1">
-     &lt;position x="96" y="864">
-      &lt;transform>1,0,0,0,1,0,0,0,1&lt;/transform>
-     &lt;/position>
-     &lt;content shadow="1;#ff000000;3;3;3" font="Roboto" font-pixel-size="123" typewriter="0;2;1;0;0" alignment="1" font-weight="50" font-color="255,255,255,255">&amp;#x415;&amp;#x441;&amp;#x43B;&amp;#x438; &amp;#x44F; - &amp;#x43E;&amp;#x433;&amp;#x43E;&amp;#x43D;&amp;#x44C;,&lt;/content>
-    &lt;/item>
-    &lt;item type="QGraphicsTextItem" z-index="1">
-     &lt;position x="96" y="1008">
-      &lt;transform>1,0,0,0,1,0,0,0,1&lt;/transform>
-     &lt;/position>
-     &lt;content shadow="1;#ff000000;3;3;3" font="Roboto" font-pixel-size="123" typewriter="0;2;1;0;0" alignment="1" font-weight="50" font-color="255,255,255,255">&amp;#x415;&amp;#x441;&amp;#x43B;&amp;#x438; &amp;#x43D;&amp;#x430;&amp;#x43C; &amp;#x441; &amp;#x442;&amp;#x43E;&amp;#x431;&amp;#x43E;&amp;#x439; &amp;#x43D;&amp;#x430; &amp;#x43B;&amp;#x430;&amp;#x434;&amp;#x43E;&amp;#x43D;&amp;#x44C;,&lt;/content>
-    &lt;/item>
-    &lt;item type="QGraphicsTextItem" z-index="1">
-     &lt;position x="96" y="1152">
-      &lt;transform>1,0,0,0,1,0,0,0,1&lt;/transform>
-     &lt;/position>
-     &lt;content shadow="1;#ff000000;3;3;3" font="Roboto" font-pixel-size="123" typewriter="0;2;1;0;0" alignment="1" font-weight="50" font-color="255,255,255,255">&amp;#x41E;&amp;#x439;, &amp;#x431;&amp;#x435;&amp;#x434;&amp;#x430;!&lt;/content>
-    &lt;/item>
-    &lt;item type="QGraphicsTextItem" z-index="1">
-     &lt;position x="96" y="1296">
-      &lt;transform>1,0,0,0,1,0,0,0,1&lt;/transform>
-     &lt;/position>
-     &lt;content shadow="1;#ff000000;3;3;3" font="Roboto" font-pixel-size="123" typewriter="0;2;1;0;0" alignment="1" font-weight="50" font-color="255,255,255,255">&amp;#x415;&amp;#x441;&amp;#x43B;&amp;#x438; &amp;#x442;&amp;#x44B; - &amp;#x43E;&amp;#x433;&amp;#x43E;&amp;#x43D;&amp;#x44C;,&lt;/content>
-    &lt;/item>
-    &lt;item type="QGraphicsTextItem" z-index="1">
-     &lt;position x="96" y="1440">
-      &lt;transform>1,0,0,0,1,0,0,0,1&lt;/transform>
-     &lt;/position>
-     &lt;content shadow="1;#ff000000;3;3;3" font="Roboto" font-pixel-size="123" typewriter="0;2;1;0;0" alignment="1" font-weight="50" font-color="255,255,255,255">&amp;#x415;&amp;#x441;&amp;#x43B;&amp;#x438; &amp;#x44F; - &amp;#x432;&amp;#x43E;&amp;#x434;&amp;#x430;,&lt;/content>
-    &lt;/item>
-    &lt;item type="QGraphicsTextItem" z-index="1">
-     &lt;position x="96" y="1584">
-      &lt;transform>1,0,0,0,1,0,0,0,1&lt;/transform>
-     &lt;/position>
-     &lt;content shadow="1;#ff000000;3;3;3" font="Roboto" font-pixel-size="123" typewriter="0;2;1;0;0" alignment="1" font-weight="50" font-color="255,255,255,255">&amp;#x415;&amp;#x441;&amp;#x43B;&amp;#x438; &amp;#x43D;&amp;#x430;&amp;#x43C; &amp;#x441; &amp;#x442;&amp;#x43E;&amp;#x431;&amp;#x43E;&amp;#x439; &amp;#x432; &amp;#x43E;&amp;#x431;&amp;#x43B;&amp;#x430;&amp;#x43A;&amp;#x430;,&lt;/content>
-    &lt;/item>
-    &lt;item type="QGraphicsTextItem" z-index="1">
-     &lt;position x="96" y="1728">
-      &lt;transform>1,0,0,0,1,0,0,0,1&lt;/transform>
-     &lt;/position>
-     &lt;content shadow="1;#ff000000;3;3;3" font="Roboto" font-pixel-size="123" typewriter="0;2;1;0;0" alignment="1" font-weight="50" font-color="255,255,255,255">&amp;#x41F;&amp;#x43E;&amp;#x43A;&amp;#x430;!&lt;/content>
-    &lt;/item>
-    &lt;item type="QGraphicsTextItem" z-index="1">
-     &lt;position x="96" y="6912">
-      &lt;transform>1,0,0,0,1,0,0,0,1&lt;/transform>
-     &lt;/position>
-     &lt;content shadow="1;#ff000000;3;3;3" font="Roboto" font-pixel-size="123" typewriter="0;2;1;0;0" alignment="1" font-weight="50" font-color="255,255,255,255">&amp;#x415;&amp;#x441;&amp;#x43B;&amp;#x438; &amp;#x442;&amp;#x44B; - &amp;#x432;&amp;#x43E;&amp;#x434;&amp;#x430;,&lt;/content>
-    &lt;/item>
-    &lt;item type="QGraphicsTextItem" z-index="1">
-     &lt;position x="96" y="7056">
-      &lt;transform>1,0,0,0,1,0,0,0,1&lt;/transform>
-     &lt;/position>
-     &lt;content shadow="1;#ff000000;3;3;3" font="Roboto" font-pixel-size="123" typewriter="0;2;1;0;0" alignment="1" font-weight="50" font-color="255,255,255,255">&amp;#x415;&amp;#x441;&amp;#x43B;&amp;#x438; &amp;#x44F; - &amp;#x43E;&amp;#x433;&amp;#x43E;&amp;#x43D;&amp;#x44C;,&lt;/content>
-    &lt;/item>
-    &lt;item type="QGraphicsTextItem" z-index="1">
-     &lt;position x="96" y="7200">
-      &lt;transform>1,0,0,0,1,0,0,0,1&lt;/transform>
-     &lt;/position>
-     &lt;content shadow="1;#ff000000;3;3;3" font="Roboto" font-pixel-size="123" typewriter="0;2;1;0;0" alignment="1" font-weight="50" font-color="255,255,255,255">&amp;#x415;&amp;#x441;&amp;#x43B;&amp;#x438; &amp;#x43D;&amp;#x430;&amp;#x43C; &amp;#x441; &amp;#x442;&amp;#x43E;&amp;#x431;&amp;#x43E;&amp;#x439; &amp;#x43D;&amp;#x430; &amp;#x43B;&amp;#x430;&amp;#x434;&amp;#x43E;&amp;#x43D;&amp;#x44C;,&lt;/content>
-    &lt;/item>
-    &lt;item type="QGraphicsTextItem" z-index="1">
-     &lt;position x="96" y="7344">
-      &lt;transform>1,0,0,0,1,0,0,0,1&lt;/transform>
-     &lt;/position>
-     &lt;content shadow="1;#ff000000;3;3;3" font="Roboto" font-pixel-size="123" typewriter="0;2;1;0;0" alignment="1" font-weight="50" font-color="255,255,255,255">&amp;#x41E;&amp;#x439;, &amp;#x431;&amp;#x435;&amp;#x434;&amp;#x430;!&lt;/content>
-    &lt;/item>
-    &lt;item type="QGraphicsTextItem" z-index="1">
-     &lt;position x="96" y="7488">
-      &lt;transform>1,0,0,0,1,0,0,0,1&lt;/transform>
-     &lt;/position>
-     &lt;content shadow="1;#ff000000;3;3;3" font="Roboto" font-pixel-size="123" typewriter="0;2;1;0;0" alignment="1" font-weight="50" font-color="255,255,255,255">&amp;#x415;&amp;#x441;&amp;#x43B;&amp;#x438; &amp;#x442;&amp;#x44B; - &amp;#x43E;&amp;#x433;&amp;#x43E;&amp;#x43D;&amp;#x44C;,&lt;/content>
-    &lt;/item>
-    &lt;item type="QGraphicsTextItem" z-index="1">
-     &lt;position x="96" y="7632">
-      &lt;transform>1,0,0,0,1,0,0,0,1&lt;/transform>
-     &lt;/position>
-     &lt;content shadow="1;#ff000000;3;3;3" font="Roboto" font-pixel-size="123" typewriter="0;2;1;0;0" alignment="1" font-weight="50" font-color="255,255,255,255">&amp;#x415;&amp;#x441;&amp;#x43B;&amp;#x438; &amp;#x44F; - &amp;#x432;&amp;#x43E;&amp;#x434;&amp;#x430;,&lt;/content>
-    &lt;/item>
-    &lt;item type="QGraphicsTextItem" z-index="1">
-     &lt;position x="96" y="7776">
-      &lt;transform>1,0,0,0,1,0,0,0,1&lt;/transform>
-     &lt;/position>
-     &lt;content shadow="1;#ff000000;3;3;3" font="Roboto" font-pixel-size="123" typewriter="0;2;1;0;0" alignment="1" font-weight="50" font-color="255,255,255,255">&amp;#x415;&amp;#x441;&amp;#x43B;&amp;#x438; &amp;#x43D;&amp;#x430;&amp;#x43C; &amp;#x441; &amp;#x442;&amp;#x43E;&amp;#x431;&amp;#x43E;&amp;#x439; &amp;#x432; &amp;#x43E;&amp;#x431;&amp;#x43B;&amp;#x430;&amp;#x43A;&amp;#x430;,&lt;/content>
-    &lt;/item>
-    &lt;item type="QGraphicsTextItem" z-index="1">
-     &lt;position x="96" y="7920">
-      &lt;transform>1,0,0,0,1,0,0,0,1&lt;/transform>
-     &lt;/position>
-     &lt;content shadow="1;#ff000000;3;3;3" font="Roboto" font-pixel-size="123" typewriter="0;2;1;0;0" alignment="1" font-weight="50" font-color="255,255,255,255">&amp;#x41F;&amp;#x43E;&amp;#x43A;&amp;#x430;!&lt;/content>
-    &lt;/item>
-    &lt;startviewport rect="0,0,1920,8352"/>
-    &lt;endviewport rect="0,0,1920,8352"/>
-    &lt;background color="0,0,0,0"/>
-   &lt;/kdenlivetitle>
-</property>
+  <property name="xmldata">&lt;?xml version="1.0"?>&lt;kdenlivetitle duration="0" LC_NUMERIC="C" width="1920" height="4756" out="0">
+  &lt;item type="QGraphicsTextItem" z-index="1">
+  &lt;position x="96" y="116">
+  &lt;transform >1,0,0,0,1,0,0,0,1&lt;/transform>
+&lt;/position>
+  &lt;content font="Roboto" font-pixel-size="99" font-weight="50" font-color="255,255,255,255" shadow="1;#ff000000;3;3;3" typewriter="0;2;1;0;0" alignment="1">Твою струну едва задев&lt;/content>
+&lt;/item>
+  &lt;item type="QGraphicsTextItem" z-index="1">
+  &lt;position x="96" y="232">
+  &lt;transform >1,0,0,0,1,0,0,0,1&lt;/transform>
+&lt;/position>
+  &lt;content font="Roboto" font-pixel-size="99" font-weight="50" font-color="255,255,255,255" shadow="1;#ff000000;3;3;3" typewriter="0;2;1;0;0" alignment="1">Неразличимым беглым взглядом.&lt;/content>
+&lt;/item>
+  &lt;item type="QGraphicsTextItem" z-index="1">
+  &lt;position x="96" y="348">
+  &lt;transform >1,0,0,0,1,0,0,0,1&lt;/transform>
+&lt;/position>
+  &lt;content font="Roboto" font-pixel-size="99" font-weight="50" font-color="255,255,255,255" shadow="1;#ff000000;3;3;3" typewriter="0;2;1;0;0" alignment="1">И я уже не то чтоб рядом,&lt;/content>
+&lt;/item>
+  &lt;item type="QGraphicsTextItem" z-index="1">
+  &lt;position x="96" y="464">
+  &lt;transform >1,0,0,0,1,0,0,0,1&lt;/transform>
+&lt;/position>
+  &lt;content font="Roboto" font-pixel-size="99" font-weight="50" font-color="255,255,255,255" shadow="1;#ff000000;3;3;3" typewriter="0;2;1;0;0" alignment="1">А я и есть тот самый нерв.&lt;/content>
+&lt;/item>
+  &lt;item type="QGraphicsTextItem" z-index="1">
+  &lt;position x="96" y="580">
+  &lt;transform >1,0,0,0,1,0,0,0,1&lt;/transform>
+&lt;/position>
+  &lt;content font="Roboto" font-pixel-size="99" font-weight="50" font-color="255,255,255,255" shadow="1;#ff000000;3;3;3" typewriter="0;2;1;0;0" alignment="1">И тонкой лаской родника&lt;/content>
+&lt;/item>
+  &lt;item type="QGraphicsTextItem" z-index="1">
+  &lt;position x="96" y="696">
+  &lt;transform >1,0,0,0,1,0,0,0,1&lt;/transform>
+&lt;/position>
+  &lt;content font="Roboto" font-pixel-size="99" font-weight="50" font-color="255,255,255,255" shadow="1;#ff000000;3;3;3" typewriter="0;2;1;0;0" alignment="1">Я проникаю в эти руки.&lt;/content>
+&lt;/item>
+  &lt;item type="QGraphicsTextItem" z-index="1">
+  &lt;position x="96" y="812">
+  &lt;transform >1,0,0,0,1,0,0,0,1&lt;/transform>
+&lt;/position>
+  &lt;content font="Roboto" font-pixel-size="99" font-weight="50" font-color="255,255,255,255" shadow="1;#ff000000;3;3;3" typewriter="0;2;1;0;0" alignment="1">Ах если б знать, какие муки&lt;/content>
+&lt;/item>
+  &lt;item type="QGraphicsTextItem" z-index="1">
+  &lt;position x="96" y="928">
+  &lt;transform >1,0,0,0,1,0,0,0,1&lt;/transform>
+&lt;/position>
+  &lt;content font="Roboto" font-pixel-size="99" font-weight="50" font-color="255,255,255,255" shadow="1;#ff000000;3;3;3" typewriter="0;2;1;0;0" alignment="1">Мне принесёт твоя река.&lt;/content>
+&lt;/item>
+  &lt;item type="QGraphicsTextItem" z-index="1">
+  &lt;position x="96" y="1392">
+  &lt;transform >1,0,0,0,1,0,0,0,1&lt;/transform>
+&lt;/position>
+  &lt;content font="Roboto" font-pixel-size="99" font-weight="50" font-color="255,255,255,255" shadow="1;#ff000000;3;3;3" typewriter="0;2;1;0;0" alignment="1">И мы взлетаем, мы парим,&lt;/content>
+&lt;/item>
+  &lt;item type="QGraphicsTextItem" z-index="1">
+  &lt;position x="96" y="1508">
+  &lt;transform >1,0,0,0,1,0,0,0,1&lt;/transform>
+&lt;/position>
+  &lt;content font="Roboto" font-pixel-size="99" font-weight="50" font-color="255,255,255,255" shadow="1;#ff000000;3;3;3" typewriter="0;2;1;0;0" alignment="1">Не разбирая под ногами.&lt;/content>
+&lt;/item>
+  &lt;item type="QGraphicsTextItem" z-index="1">
+  &lt;position x="96" y="1624">
+  &lt;transform >1,0,0,0,1,0,0,0,1&lt;/transform>
+&lt;/position>
+  &lt;content font="Roboto" font-pixel-size="99" font-weight="50" font-color="255,255,255,255" shadow="1;#ff000000;3;3;3" typewriter="0;2;1;0;0" alignment="1">И мир увенчанный рогами,&lt;/content>
+&lt;/item>
+  &lt;item type="QGraphicsTextItem" z-index="1">
+  &lt;position x="96" y="1740">
+  &lt;transform >1,0,0,0,1,0,0,0,1&lt;/transform>
+&lt;/position>
+  &lt;content font="Roboto" font-pixel-size="99" font-weight="50" font-color="255,255,255,255" shadow="1;#ff000000;3;3;3" typewriter="0;2;1;0;0" alignment="1">Ах, он не нов - ваш новый Рим.&lt;/content>
+&lt;/item>
+  &lt;item type="QGraphicsTextItem" z-index="1">
+  &lt;position x="96" y="1856">
+  &lt;transform >1,0,0,0,1,0,0,0,1&lt;/transform>
+&lt;/position>
+  &lt;content font="Roboto" font-pixel-size="99" font-weight="50" font-color="255,255,255,255" shadow="1;#ff000000;3;3;3" typewriter="0;2;1;0;0" alignment="1">И мы, плескаясь в облаках,&lt;/content>
+&lt;/item>
+  &lt;item type="QGraphicsTextItem" z-index="1">
+  &lt;position x="96" y="1972">
+  &lt;transform >1,0,0,0,1,0,0,0,1&lt;/transform>
+&lt;/position>
+  &lt;content font="Roboto" font-pixel-size="99" font-weight="50" font-color="255,255,255,255" shadow="1;#ff000000;3;3;3" typewriter="0;2;1;0;0" alignment="1">Уже не чувствуем тревоги.&lt;/content>
+&lt;/item>
+  &lt;item type="QGraphicsTextItem" z-index="1">
+  &lt;position x="96" y="2088">
+  &lt;transform >1,0,0,0,1,0,0,0,1&lt;/transform>
+&lt;/position>
+  &lt;content font="Roboto" font-pixel-size="99" font-weight="50" font-color="255,255,255,255" shadow="1;#ff000000;3;3;3" typewriter="0;2;1;0;0" alignment="1">Мы так спокойны, будто боги&lt;/content>
+&lt;/item>
+  &lt;item type="QGraphicsTextItem" z-index="1">
+  &lt;position x="96" y="2204">
+  &lt;transform >1,0,0,0,1,0,0,0,1&lt;/transform>
+&lt;/position>
+  &lt;content font="Roboto" font-pixel-size="99" font-weight="50" font-color="255,255,255,255" shadow="1;#ff000000;3;3;3" typewriter="0;2;1;0;0" alignment="1">Согрели нас в своих руках.&lt;/content>
+&lt;/item>
+  &lt;item type="QGraphicsTextItem" z-index="1">
+  &lt;position x="96" y="2668">
+  &lt;transform >1,0,0,0,1,0,0,0,1&lt;/transform>
+&lt;/position>
+  &lt;content font="Roboto" font-pixel-size="99" font-weight="50" font-color="255,255,255,255" shadow="1;#ff000000;3;3;3" typewriter="0;2;1;0;0" alignment="1">И вязкой краской на висок&lt;/content>
+&lt;/item>
+  &lt;item type="QGraphicsTextItem" z-index="1">
+  &lt;position x="96" y="2784">
+  &lt;transform >1,0,0,0,1,0,0,0,1&lt;/transform>
+&lt;/position>
+  &lt;content font="Roboto" font-pixel-size="99" font-weight="50" font-color="255,255,255,255" shadow="1;#ff000000;3;3;3" typewriter="0;2;1;0;0" alignment="1">Уже стекает наша радость,&lt;/content>
+&lt;/item>
+  &lt;item type="QGraphicsTextItem" z-index="1">
+  &lt;position x="96" y="2900">
+  &lt;transform >1,0,0,0,1,0,0,0,1&lt;/transform>
+&lt;/position>
+  &lt;content font="Roboto" font-pixel-size="99" font-weight="50" font-color="255,255,255,255" shadow="1;#ff000000;3;3;3" typewriter="0;2;1;0;0" alignment="1">А я уже не то, чтоб рядом,&lt;/content>
+&lt;/item>
+  &lt;item type="QGraphicsTextItem" z-index="1">
+  &lt;position x="96" y="3016">
+  &lt;transform >1,0,0,0,1,0,0,0,1&lt;/transform>
+&lt;/position>
+  &lt;content font="Roboto" font-pixel-size="99" font-weight="50" font-color="255,255,255,255" shadow="1;#ff000000;3;3;3" typewriter="0;2;1;0;0" alignment="1">А я и есть тот ручеёк.&lt;/content>
+&lt;/item>
+  &lt;startviewport rect="0,0,1920,4756"/>
+  &lt;endviewport rect="0,0,1920,4756"/>
+  &lt;background color="0,0,0,0"/>
+&lt;/kdenlivetitle></property>
   <property name="kdenlive:folderid">-1</property>
   <property name="kdenlive:clip_type">2</property>
   <property name="kdenlive:id">9</property>
   <property name="force_reload">0</property>
   <property name="meta.media.width">1920</property>
-  <property name="meta.media.height">8352</property>
-  <property name="kdenlive:file_hash">23e8eab4c57a6318d1dd60f7999d7364</property>
+  <property name="meta.media.height">4756</property>
+  <property name="kdenlive:file_hash">be1ed22a8c817a5d2c013ca2ebe84ef9</property>
  </producer>
- <producer id="producer_counter00" in="00:00:00.000" out="00:02:25.950">
-  <property name="length">8758</property>
+ <producer id="producer_counter00" in="00:00:00.000" out="00:02:39.317">
+  <property name="length">9560</property>
   <property name="eof">pause</property>
   <property name="resource"/>
   <property name="progressive">1</property>
   <property name="aspect_ratio">1</property>
   <property name="seekable">1</property>
   <property name="mlt_service">kdenlivetitle</property>
-  <property name="kdenlive:duration">00:02:25.967</property>
+  <property name="kdenlive:duration">00:02:39.333</property>
   <property name="kdenlive:clipname">COUNTER0</property>
-  <property name="xmldata">&lt;?xml version="1.0"?>
-&lt;kdenlivetitle duration="0" LC_NUMERIC="C" width="1920" height="1080" out="0">
-    &lt;item type="QGraphicsTextItem" z-index="0">
-     &lt;position x="5" y="475">
-      &lt;transform>1,0,0,0,1,0,0,0,1&lt;/transform>
-     &lt;/position>
-     &lt;content shadow="1;#ff000000;3;3;3" font="Roboto" font-pixel-size="123" typewriter="0;2;1;0;0" alignment="1" font-weight="50" font-color="0,255,0,255">0&lt;/content>
-    &lt;/item>
-    &lt;startviewport rect="0,0,1920,1080"/>
-    &lt;endviewport rect="0,0,1920,1080"/>
-    &lt;background color="0,0,0,0"/>
-   &lt;/kdenlivetitle>
-</property>
+  <property name="xmldata">&lt;?xml version="1.0"?>&lt;kdenlivetitle duration="0" LC_NUMERIC="C" width="1920" height="1080" out="0">
+  &lt;item type="QGraphicsTextItem" z-index="0">
+  &lt;position x="19" y="489">
+  &lt;transform >1,0,0,0,1,0,0,0,1&lt;/transform>
+&lt;/position>
+  &lt;content font="Roboto" font-pixel-size="99" font-weight="50" font-color="0,255,0,255" shadow="1;#ff000000;3;3;3" typewriter="0;2;1;0;0" alignment="1">0&lt;/content>
+&lt;/item>
+  &lt;startviewport rect="0,0,1920,1080"/>
+  &lt;endviewport rect="0,0,1920,1080"/>
+  &lt;background color="0,0,0,0"/>
+&lt;/kdenlivetitle></property>
   <property name="kdenlive:folderid">-1</property>
   <property name="kdenlive:clip_type">2</property>
   <property name="kdenlive:id">10</property>
   <property name="force_reload">0</property>
   <property name="meta.media.width">1920</property>
   <property name="meta.media.height">1080</property>
-  <property name="kdenlive:file_hash">4588373cf9e153cd1d50d6664a38e660</property>
+  <property name="kdenlive:file_hash">97e7974ecba88939338e002a76c45c17</property>
  </producer>
- <producer id="producer_counter01" in="00:00:00.000" out="00:02:25.950">
-  <property name="length">8758</property>
+ <producer id="producer_counter01" in="00:00:00.000" out="00:02:39.317">
+  <property name="length">9560</property>
   <property name="eof">pause</property>
   <property name="resource"/>
   <property name="progressive">1</property>
   <property name="aspect_ratio">1</property>
   <property name="seekable">1</property>
   <property name="mlt_service">kdenlivetitle</property>
-  <property name="kdenlive:duration">00:02:25.967</property>
+  <property name="kdenlive:duration">00:02:39.333</property>
   <property name="kdenlive:clipname">COUNTER1</property>
-  <property name="xmldata">&lt;?xml version="1.0"?>
-&lt;kdenlivetitle duration="0" LC_NUMERIC="C" width="1920" height="1080" out="0">
-    &lt;item type="QGraphicsTextItem" z-index="0">
-     &lt;position x="5" y="475">
-      &lt;transform>1,0,0,0,1,0,0,0,1&lt;/transform>
-     &lt;/position>
-     &lt;content shadow="1;#ff000000;3;3;3" font="Roboto" font-pixel-size="123" typewriter="0;2;1;0;0" alignment="1" font-weight="50" font-color="255,255,0,255">1&lt;/content>
-    &lt;/item>
-    &lt;startviewport rect="0,0,1920,1080"/>
-    &lt;endviewport rect="0,0,1920,1080"/>
-    &lt;background color="0,0,0,0"/>
-   &lt;/kdenlivetitle>
-</property>
+  <property name="xmldata">&lt;?xml version="1.0"?>&lt;kdenlivetitle duration="0" LC_NUMERIC="C" width="1920" height="1080" out="0">
+  &lt;item type="QGraphicsTextItem" z-index="0">
+  &lt;position x="19" y="489">
+  &lt;transform >1,0,0,0,1,0,0,0,1&lt;/transform>
+&lt;/position>
+  &lt;content font="Roboto" font-pixel-size="99" font-weight="50" font-color="255,255,0,255" shadow="1;#ff000000;3;3;3" typewriter="0;2;1;0;0" alignment="1">1&lt;/content>
+&lt;/item>
+  &lt;startviewport rect="0,0,1920,1080"/>
+  &lt;endviewport rect="0,0,1920,1080"/>
+  &lt;background color="0,0,0,0"/>
+&lt;/kdenlivetitle></property>
   <property name="kdenlive:folderid">-1</property>
   <property name="kdenlive:clip_type">2</property>
   <property name="kdenlive:id">11</property>
   <property name="force_reload">0</property>
   <property name="meta.media.width">1920</property>
   <property name="meta.media.height">1080</property>
-  <property name="kdenlive:file_hash">7a6a13687a64abaa15bb4721fd0c3e73</property>
+  <property name="kdenlive:file_hash">734e5e5891adeff5827ed49999af2948</property>
  </producer>
- <producer id="producer_counter02" in="00:00:00.000" out="00:02:25.950">
-  <property name="length">8758</property>
+ <producer id="producer_counter02" in="00:00:00.000" out="00:02:39.317">
+  <property name="length">9560</property>
   <property name="eof">pause</property>
   <property name="resource"/>
   <property name="progressive">1</property>
   <property name="aspect_ratio">1</property>
   <property name="seekable">1</property>
   <property name="mlt_service">kdenlivetitle</property>
-  <property name="kdenlive:duration">00:02:25.967</property>
+  <property name="kdenlive:duration">00:02:39.333</property>
   <property name="kdenlive:clipname">COUNTER2</property>
-  <property name="xmldata">&lt;?xml version="1.0"?>
-&lt;kdenlivetitle duration="0" LC_NUMERIC="C" width="1920" height="1080" out="0">
-    &lt;item type="QGraphicsTextItem" z-index="0">
-     &lt;position x="5" y="475">
-      &lt;transform>1,0,0,0,1,0,0,0,1&lt;/transform>
-     &lt;/position>
-     &lt;content shadow="1;#ff000000;3;3;3" font="Roboto" font-pixel-size="123" typewriter="0;2;1;0;0" alignment="1" font-weight="50" font-color="255,255,0,255">2&lt;/content>
-    &lt;/item>
-    &lt;startviewport rect="0,0,1920,1080"/>
-    &lt;endviewport rect="0,0,1920,1080"/>
-    &lt;background color="0,0,0,0"/>
-   &lt;/kdenlivetitle>
-</property>
+  <property name="xmldata">&lt;?xml version="1.0"?>&lt;kdenlivetitle duration="0" LC_NUMERIC="C" width="1920" height="1080" out="0">
+  &lt;item type="QGraphicsTextItem" z-index="0">
+  &lt;position x="19" y="489">
+  &lt;transform >1,0,0,0,1,0,0,0,1&lt;/transform>
+&lt;/position>
+  &lt;content font="Roboto" font-pixel-size="99" font-weight="50" font-color="255,255,0,255" shadow="1;#ff000000;3;3;3" typewriter="0;2;1;0;0" alignment="1">2&lt;/content>
+&lt;/item>
+  &lt;startviewport rect="0,0,1920,1080"/>
+  &lt;endviewport rect="0,0,1920,1080"/>
+  &lt;background color="0,0,0,0"/>
+&lt;/kdenlivetitle></property>
   <property name="kdenlive:folderid">-1</property>
   <property name="kdenlive:clip_type">2</property>
   <property name="kdenlive:id">12</property>
   <property name="force_reload">0</property>
   <property name="meta.media.width">1920</property>
   <property name="meta.media.height">1080</property>
-  <property name="kdenlive:file_hash">29004259f5b656095207b908e115f431</property>
+  <property name="kdenlive:file_hash">ceae83a2ab3a649642c1ece5a990ec1c</property>
  </producer>
- <producer id="producer_counter03" in="00:00:00.000" out="00:02:25.950">
-  <property name="length">8758</property>
+ <producer id="producer_counter03" in="00:00:00.000" out="00:02:39.317">
+  <property name="length">9560</property>
   <property name="eof">pause</property>
   <property name="resource"/>
   <property name="progressive">1</property>
   <property name="aspect_ratio">1</property>
   <property name="seekable">1</property>
   <property name="mlt_service">kdenlivetitle</property>
-  <property name="kdenlive:duration">00:02:25.967</property>
+  <property name="kdenlive:duration">00:02:39.333</property>
   <property name="kdenlive:clipname">COUNTER3</property>
-  <property name="xmldata">&lt;?xml version="1.0"?>
-&lt;kdenlivetitle duration="0" LC_NUMERIC="C" width="1920" height="1080" out="0">
-    &lt;item type="QGraphicsTextItem" z-index="0">
-     &lt;position x="5" y="475">
-      &lt;transform>1,0,0,0,1,0,0,0,1&lt;/transform>
-     &lt;/position>
-     &lt;content shadow="1;#ff000000;3;3;3" font="Roboto" font-pixel-size="123" typewriter="0;2;1;0;0" alignment="1" font-weight="50" font-color="255,0,0,255">3&lt;/content>
-    &lt;/item>
-    &lt;startviewport rect="0,0,1920,1080"/>
-    &lt;endviewport rect="0,0,1920,1080"/>
-    &lt;background color="0,0,0,0"/>
-   &lt;/kdenlivetitle>
-</property>
+  <property name="xmldata">&lt;?xml version="1.0"?>&lt;kdenlivetitle duration="0" LC_NUMERIC="C" width="1920" height="1080" out="0">
+  &lt;item type="QGraphicsTextItem" z-index="0">
+  &lt;position x="19" y="489">
+  &lt;transform >1,0,0,0,1,0,0,0,1&lt;/transform>
+&lt;/position>
+  &lt;content font="Roboto" font-pixel-size="99" font-weight="50" font-color="255,0,0,255" shadow="1;#ff000000;3;3;3" typewriter="0;2;1;0;0" alignment="1">3&lt;/content>
+&lt;/item>
+  &lt;startviewport rect="0,0,1920,1080"/>
+  &lt;endviewport rect="0,0,1920,1080"/>
+  &lt;background color="0,0,0,0"/>
+&lt;/kdenlivetitle></property>
   <property name="kdenlive:folderid">-1</property>
   <property name="kdenlive:clip_type">2</property>
   <property name="kdenlive:id">13</property>
   <property name="force_reload">0</property>
   <property name="meta.media.width">1920</property>
   <property name="meta.media.height">1080</property>
-  <property name="kdenlive:file_hash">0cd99a41aa9b480b1388b989aee4e587</property>
+  <property name="kdenlive:file_hash">47b8da5c55aa9829643108f9433a41b2</property>
  </producer>
- <producer id="producer_counter04" in="00:00:00.000" out="00:02:25.950">
-  <property name="length">8758</property>
+ <producer id="producer_counter04" in="00:00:00.000" out="00:02:39.317">
+  <property name="length">9560</property>
   <property name="eof">pause</property>
   <property name="resource"/>
   <property name="progressive">1</property>
   <property name="aspect_ratio">1</property>
   <property name="seekable">1</property>
   <property name="mlt_service">kdenlivetitle</property>
-  <property name="kdenlive:duration">00:02:25.967</property>
+  <property name="kdenlive:duration">00:02:39.333</property>
   <property name="kdenlive:clipname">COUNTER4</property>
-  <property name="xmldata">&lt;?xml version="1.0"?>
-&lt;kdenlivetitle duration="0" LC_NUMERIC="C" width="1920" height="1080" out="0">
-    &lt;item type="QGraphicsTextItem" z-index="0">
-     &lt;position x="5" y="475">
-      &lt;transform>1,0,0,0,1,0,0,0,1&lt;/transform>
-     &lt;/position>
-     &lt;content shadow="1;#ff000000;3;3;3" font="Roboto" font-pixel-size="123" typewriter="0;2;1;0;0" alignment="1" font-weight="50" font-color="255,0,0,255">4&lt;/content>
-    &lt;/item>
-    &lt;startviewport rect="0,0,1920,1080"/>
-    &lt;endviewport rect="0,0,1920,1080"/>
-    &lt;background color="0,0,0,0"/>
-   &lt;/kdenlivetitle>
-</property>
+  <property name="xmldata">&lt;?xml version="1.0"?>&lt;kdenlivetitle duration="0" LC_NUMERIC="C" width="1920" height="1080" out="0">
+  &lt;item type="QGraphicsTextItem" z-index="0">
+  &lt;position x="19" y="489">
+  &lt;transform >1,0,0,0,1,0,0,0,1&lt;/transform>
+&lt;/position>
+  &lt;content font="Roboto" font-pixel-size="99" font-weight="50" font-color="255,0,0,255" shadow="1;#ff000000;3;3;3" typewriter="0;2;1;0;0" alignment="1">4&lt;/content>
+&lt;/item>
+  &lt;startviewport rect="0,0,1920,1080"/>
+  &lt;endviewport rect="0,0,1920,1080"/>
+  &lt;background color="0,0,0,0"/>
+&lt;/kdenlivetitle></property>
   <property name="kdenlive:folderid">-1</property>
   <property name="kdenlive:clip_type">2</property>
   <property name="kdenlive:id">14</property>
   <property name="force_reload">0</property>
   <property name="meta.media.width">1920</property>
   <property name="meta.media.height">1080</property>
-  <property name="kdenlive:file_hash">21564651800e5cbb8be531aeabe1ab5d</property>
+  <property name="kdenlive:file_hash">97f40e52e99b6e52886400f68136e3d3</property>
  </producer>
- <producer id="producer_fadertext0" in="00:00:00.000" out="00:02:25.950">
-  <property name="length">8758</property>
+ <producer id="producer_fadertext0" in="00:00:00.000" out="00:02:39.317">
+  <property name="length">9560</property>
   <property name="eof">pause</property>
   <property name="resource"/>
   <property name="progressive">1</property>
   <property name="aspect_ratio">1</property>
   <property name="seekable">1</property>
   <property name="mlt_service">kdenlivetitle</property>
-  <property name="kdenlive:duration">00:02:25.967</property>
+  <property name="kdenlive:duration">00:02:39.333</property>
   <property name="kdenlive:clipname">FADERTEXT</property>
-  <property name="xmldata">&lt;?xml version="1.0"?>
-&lt;kdenlivetitle duration="0" LC_NUMERIC="C" width="1920" height="1080" out="0">
-    &lt;item type="QGraphicsRectItem" z-index="0">
-     &lt;position x="0" y="0">
-      &lt;transform zoom="100">1,0,0,0,1,0,0,0,1&lt;/transform>
-     &lt;/position>
-     &lt;content brushcolor="0,0,0,255" pencolor="0,0,0,255" penwidth="0" rect="0,0,1920,288" gradient="#ff000000;#00bf4040;0;100;90"/>
-    &lt;/item>
-    &lt;item type="QGraphicsRectItem" z-index="0">
-     &lt;position x="0" y="792">
-      &lt;transform zoom="100">1,0,0,0,1,0,0,0,1&lt;/transform>
-     &lt;/position>
-     &lt;content brushcolor="0,0,0,255" pencolor="0,0,0,255" penwidth="0" rect="0,0,1920,288" gradient="#ff000000;#00bf4040;100;0;90"/>
-    &lt;/item>
-    &lt;startviewport rect="0,0,1920,1080"/>
-    &lt;endviewport rect="0,0,1920,1080"/>
-    &lt;background color="0,0,0,0"/>
-   &lt;/kdenlivetitle>
-</property>
+  <property name="xmldata">&lt;?xml version="1.0"?>&lt;kdenlivetitle duration="0" LC_NUMERIC="C" width="1920" height="1080" out="0">
+  &lt;item type="QGraphicsRectItem" z-index="0">
+  &lt;position x="0" y="0">
+  &lt;transform zoom="100">1,0,0,0,1,0,0,0,1&lt;/transform>
+&lt;/position>
+  &lt;content brushcolor="0,0,0,255" pencolor="0,0,0,255" penwidth="0" rect="0,0,1920,232" gradient="#ff000000;#00bf4040;0;100;90"/>
+&lt;/item>
+  &lt;item type="QGraphicsRectItem" z-index="0">
+  &lt;position x="0" y="848">
+  &lt;transform zoom="100">1,0,0,0,1,0,0,0,1&lt;/transform>
+&lt;/position>
+  &lt;content brushcolor="0,0,0,255" pencolor="0,0,0,255" penwidth="0" rect="0,0,1920,232" gradient="#ff000000;#00bf4040;100;0;90"/>
+&lt;/item>
+  &lt;startviewport rect="0,0,1920,1080"/>
+  &lt;endviewport rect="0,0,1920,1080"/>
+  &lt;background color="0,0,0,0"/>
+&lt;/kdenlivetitle></property>
   <property name="kdenlive:folderid">-1</property>
   <property name="kdenlive:clip_type">2</property>
   <property name="kdenlive:id">15</property>
   <property name="force_reload">0</property>
   <property name="meta.media.width">1920</property>
   <property name="meta.media.height">1080</property>
-  <property name="kdenlive:file_hash">4da6f22de2e984725a9e8b7741a1e7cd</property>
+  <property name="kdenlive:file_hash">c5d763a277a962f2ff038332be371237</property>
  </producer>
- <producer id="producer_header0" in="00:00:00.000" out="00:02:25.950">
-  <property name="length">8758</property>
+ <producer id="producer_header0" in="00:00:00.000" out="00:02:39.317">
+  <property name="length">9560</property>
   <property name="eof">pause</property>
   <property name="resource"/>
   <property name="progressive">1</property>
   <property name="aspect_ratio">1</property>
   <property name="seekable">1</property>
   <property name="mlt_service">kdenlivetitle</property>
-  <property name="kdenlive:duration">00:02:25.967</property>
+  <property name="kdenlive:duration">00:02:39.333</property>
   <property name="kdenlive:clipname">HEADER</property>
-  <property name="xmldata">&lt;?xml version="1.0"?>
-&lt;kdenlivetitle duration="0" LC_NUMERIC="C" width="1920" height="1080" out="0">
-    &lt;item type="QGraphicsPixmapItem" z-index="6">
-     &lt;position x="1225" y="36">
-      &lt;transform>0.48,0,0,0,0.48,0,0,0,1&lt;/transform>
-     &lt;/position>
-     &lt;content url="/home/nsa/Documents/&amp;#x41A;&amp;#x430;&amp;#x440;&amp;#x430;&amp;#x43E;&amp;#x43A;&amp;#x435;/&amp;#x41F;&amp;#x430;&amp;#x432;&amp;#x435;&amp;#x43B; &amp;#x41A;&amp;#x430;&amp;#x448;&amp;#x438;&amp;#x43D;/1993 - &amp;#x41F;&amp;#x43E; &amp;#x432;&amp;#x43E;&amp;#x43B;&amp;#x448;&amp;#x435;&amp;#x431;&amp;#x43D;&amp;#x43E;&amp;#x439; &amp;#x440;&amp;#x435;&amp;#x43A;&amp;#x435;/LogoAuthor.png"/>
-    &lt;/item>
-    &lt;item type="QGraphicsPixmapItem" z-index="6">
-     &lt;position x="1713" y="36">
-      &lt;transform>0.48,0,0,0,0.48,0,0,0,1&lt;/transform>
-     &lt;/position>
-     &lt;content url="/home/nsa/Documents/&amp;#x41A;&amp;#x430;&amp;#x440;&amp;#x430;&amp;#x43E;&amp;#x43A;&amp;#x435;/&amp;#x41F;&amp;#x430;&amp;#x432;&amp;#x435;&amp;#x43B; &amp;#x41A;&amp;#x430;&amp;#x448;&amp;#x438;&amp;#x43D;/1993 - &amp;#x41F;&amp;#x43E; &amp;#x432;&amp;#x43E;&amp;#x43B;&amp;#x448;&amp;#x435;&amp;#x431;&amp;#x43D;&amp;#x43E;&amp;#x439; &amp;#x440;&amp;#x435;&amp;#x43A;&amp;#x435;/LogoAlbum.png"/>
-    &lt;/item>
-    &lt;item type="QGraphicsTextItem" z-index="6">
-     &lt;position x="96" y="0">
-      &lt;transform>1,0,0,0,1,0,0,0,1&lt;/transform>
-     &lt;/position>
-     &lt;content shadow="1;#ff000000;3;3;3" font="Roboto" font-pixel-size="80" typewriter="0;2;1;0;0" alignment="1" font-weight="50" font-color="255,255,127,255">&amp;#x41F;&amp;#x43E;&amp;#x43A;&amp;#x430;&lt;/content>
-    &lt;/item>
-    &lt;item type="QGraphicsTextItem" z-index="6">
-     &lt;position x="96" y="93">
-      &lt;transform>1,0,0,0,1,0,0,0,1&lt;/transform>
-     &lt;/position>
-     &lt;content shadow="1;#ff000000;3;3;3" font="Roboto" font-pixel-size="30" typewriter="0;2;1;0;0" alignment="1" font-weight="50" font-color="85,255,255,255">&amp;#x418;&amp;#x441;&amp;#x43F;&amp;#x43E;&amp;#x43B;&amp;#x43D;&amp;#x438;&amp;#x442;&amp;#x435;&amp;#x43B;&amp;#x44C;: &lt;/content>
-    &lt;/item>
-    &lt;item type="QGraphicsTextItem" z-index="6">
-     &lt;position x="298" y="93">
-      &lt;transform>1,0,0,0,1,0,0,0,1&lt;/transform>
-     &lt;/position>
-     &lt;content shadow="1;#ff000000;3;3;3" font="Roboto" font-pixel-size="30" typewriter="0;2;1;0;0" alignment="1" font-weight="50" font-color="255,255,127,255">&amp;#x41F;&amp;#x430;&amp;#x432;&amp;#x435;&amp;#x43B; &amp;#x41A;&amp;#x430;&amp;#x448;&amp;#x438;&amp;#x43D;&lt;/content>
-    &lt;/item>
-    &lt;item type="QGraphicsTextItem" z-index="6">
-     &lt;position x="172" y="128">
-      &lt;transform>1,0,0,0,1,0,0,0,1&lt;/transform>
-     &lt;/position>
-     &lt;content shadow="1;#ff000000;3;3;3" font="Roboto" font-pixel-size="30" typewriter="0;2;1;0;0" alignment="1" font-weight="50" font-color="85,255,255,255">&amp;#x410;&amp;#x43B;&amp;#x44C;&amp;#x431;&amp;#x43E;&amp;#x43C;: &lt;/content>
-    &lt;/item>
-    &lt;item type="QGraphicsTextItem" z-index="6">
-     &lt;position x="298" y="128">
-      &lt;transform>1,0,0,0,1,0,0,0,1&lt;/transform>
-     &lt;/position>
-     &lt;content shadow="1;#ff000000;3;3;3" font="Roboto" font-pixel-size="30" typewriter="0;2;1;0;0" alignment="1" font-weight="50" font-color="255,255,127,255">&amp;#x41F;&amp;#x43E; &amp;#x432;&amp;#x43E;&amp;#x43B;&amp;#x448;&amp;#x435;&amp;#x431;&amp;#x43D;&amp;#x43E;&amp;#x439; &amp;#x440;&amp;#x435;&amp;#x43A;&amp;#x435; (1993)&lt;/content>
-    &lt;/item>
-    &lt;item type="QGraphicsRectItem" z-index="5">
-     &lt;position x="0" y="0">
-      &lt;transform>1,0,0,0,1,0,0,0,1&lt;/transform>
-     &lt;/position>
-     &lt;content brushcolor="0,0,0,255" pencolor="0,0,0,255" penwidth="0" rect="0,0,1920,246"/>
-    &lt;/item>
-    &lt;item type="QGraphicsRectItem" z-index="5">
-     &lt;position x="0" y="246">
-      &lt;transform>1,0,0,0,1,0,0,0,1&lt;/transform>
-     &lt;/position>
-     &lt;content brushcolor="0,0,0,255" pencolor="0,0,0,255" penwidth="0" rect="0,0,1920,246" gradient="#ff000000;#00bf4040;0;100;90"/>
-    &lt;/item>
-    &lt;startviewport rect="0,0,1920,1080"/>
-    &lt;endviewport rect="0,0,1920,1080"/>
-    &lt;background color="0,0,0,0"/>
-   &lt;/kdenlivetitle>
-</property>
+  <property name="xmldata">&lt;?xml version="1.0"?>&lt;kdenlivetitle duration="0" LC_NUMERIC="C" width="1920" height="1080" out="0">
+  &lt;item type="QGraphicsPixmapItem" z-index="6">
+  &lt;position x="1225" y="36">
+  &lt;transform >0.48,0,0,0,0.48,0,0,0,1&lt;/transform>
+&lt;/position>
+  &lt;content url="/home/nsa/Documents/Караоке/Павел Кашин/1993 - По волшебной реке/LogoAuthor.png"/>
+&lt;/item>
+  &lt;item type="QGraphicsPixmapItem" z-index="6">
+  &lt;position x="1713" y="36">
+  &lt;transform >0.48,0,0,0,0.48,0,0,0,1&lt;/transform>
+&lt;/position>
+  &lt;content url="/home/nsa/Documents/Караоке/Павел Кашин/1993 - По волшебной реке/LogoAlbum.png"/>
+&lt;/item>
+  &lt;item type="QGraphicsTextItem" z-index="6">
+  &lt;position x="96" y="0">
+  &lt;transform >1,0,0,0,1,0,0,0,1&lt;/transform>
+&lt;/position>
+  &lt;content font="Roboto" font-pixel-size="80" font-weight="50" font-color="255,255,127,255" shadow="1;#ff000000;3;3;3" typewriter="0;2;1;0;0" alignment="1">Ручеёк&lt;/content>
+&lt;/item>
+  &lt;item type="QGraphicsTextItem" z-index="6">
+  &lt;position x="96" y="93">
+  &lt;transform >1,0,0,0,1,0,0,0,1&lt;/transform>
+&lt;/position>
+  &lt;content font="Roboto" font-pixel-size="30" font-weight="50" font-color="85,255,255,255" shadow="1;#ff000000;3;3;3" typewriter="0;2;1;0;0" alignment="1">Исполнитель: &lt;/content>
+&lt;/item>
+  &lt;item type="QGraphicsTextItem" z-index="6">
+  &lt;position x="298" y="93">
+  &lt;transform >1,0,0,0,1,0,0,0,1&lt;/transform>
+&lt;/position>
+  &lt;content font="Roboto" font-pixel-size="30" font-weight="50" font-color="255,255,127,255" shadow="1;#ff000000;3;3;3" typewriter="0;2;1;0;0" alignment="1">Павел Кашин&lt;/content>
+&lt;/item>
+  &lt;item type="QGraphicsTextItem" z-index="6">
+  &lt;position x="172" y="128">
+  &lt;transform >1,0,0,0,1,0,0,0,1&lt;/transform>
+&lt;/position>
+  &lt;content font="Roboto" font-pixel-size="30" font-weight="50" font-color="85,255,255,255" shadow="1;#ff000000;3;3;3" typewriter="0;2;1;0;0" alignment="1">Альбом: &lt;/content>
+&lt;/item>
+  &lt;item type="QGraphicsTextItem" z-index="6">
+  &lt;position x="298" y="128">
+  &lt;transform >1,0,0,0,1,0,0,0,1&lt;/transform>
+&lt;/position>
+  &lt;content font="Roboto" font-pixel-size="30" font-weight="50" font-color="255,255,127,255" shadow="1;#ff000000;3;3;3" typewriter="0;2;1;0;0" alignment="1">По волшебной реке (1993)&lt;/content>
+&lt;/item>
+  &lt;item type="QGraphicsRectItem" z-index="5">
+  &lt;position x="0" y="0">
+  &lt;transform >1,0,0,0,1,0,0,0,1&lt;/transform>
+&lt;/position>
+  &lt;content brushcolor="0,0,0,255" pencolor="0,0,0,255" penwidth="0" rect="0,0,1920,246"/>
+&lt;/item>
+  &lt;item type="QGraphicsRectItem" z-index="5">
+  &lt;position x="0" y="246">
+  &lt;transform >1,0,0,0,1,0,0,0,1&lt;/transform>
+&lt;/position>
+  &lt;content brushcolor="0,0,0,255" pencolor="0,0,0,255" penwidth="0" rect="0,0,1920,246" gradient="#ff000000;#00bf4040;0;100;90"/>
+&lt;/item>
+  &lt;startviewport rect="0,0,1920,1080"/>
+  &lt;endviewport rect="0,0,1920,1080"/>
+  &lt;background color="0,0,0,0"/>
+&lt;/kdenlivetitle></property>
   <property name="kdenlive:folderid">-1</property>
   <property name="kdenlive:clip_type">2</property>
   <property name="kdenlive:id">16</property>
   <property name="force_reload">0</property>
   <property name="meta.media.width">1920</property>
   <property name="meta.media.height">1080</property>
-  <property name="kdenlive:file_hash">5dbbe2129bf3e1961571ae61ac7e2012</property>
+  <property name="kdenlive:file_hash">0f44966f82b66537b7b42d77e757dc95</property>
   <filter id="filter_header0_qtblend1">
    <property name="rotate_center">1</property>
    <property name="mlt_service">qtblend</property>
    <property name="kdenlive_id">qtblend</property>
-   <property name="rect">00:00:09.650=0 0 1920 1080 1.0;00:00:12.950=0 -492 1920 1080 1.0;00:02:15.967=0 -492 1920 1080 1.0;00:02:19.267=0 0 1920 1080 1.0</property>
+   <property name="rect">00:00:03.000=0 0 1920 1080 1.0;00:00:06.808=0 -492 1920 1080 1.0;00:01:46.600=0 -492 1920 1080 1.0;00:01:50.408=0 0 1920 1080 1.0</property>
    <property name="compositing">0</property>
    <property name="distort">0</property>
    <property name="kdenlive:collapsed">0</property>
    <property name="rotation">00:00:00.000=0</property>
   </filter>
  </producer>
- <producer id="producer_watermark0" in="00:00:00.000" out="00:02:26.900">
-  <property name="length">8815</property>
+ <producer id="producer_watermark0" in="00:00:00.000" out="00:02:39.317">
+  <property name="length">9560</property>
   <property name="eof">pause</property>
   <property name="resource"/>
   <property name="progressive">1</property>
   <property name="aspect_ratio">1</property>
   <property name="seekable">1</property>
   <property name="mlt_service">kdenlivetitle</property>
-  <property name="kdenlive:duration">00:02:25.967</property>
+  <property name="kdenlive:duration">00:02:39.333</property>
   <property name="kdenlive:clipname">WATERMARK</property>
-  <property name="xmldata">&lt;?xml version="1.0"?>
-&lt;kdenlivetitle duration="0" LC_NUMERIC="C" width="1920" height="1080" out="0">
-    &lt;item type="QGraphicsTextItem" z-index="0">
-     &lt;position x="1730" y="1059">
-      &lt;transform zoom="100">1,0,0,0,1,0,0,0,1&lt;/transform>
-     &lt;/position>
-     &lt;content shadow="1;#ff000000;3;3;3" font="Roboto" font-pixel-size="10" typewriter="0;2;1;0;0" alignment="1" font-weight="50" font-color="255,255,255,127">https://github.com/svoemesto/Karaoke&lt;/content>
-    &lt;/item>
-    &lt;startviewport rect="0,0,1920,1080"/>
-    &lt;endviewport rect="0,0,1920,1080"/>
-    &lt;background color="0,0,0,0"/>
-   &lt;/kdenlivetitle>
-</property>
+  <property name="xmldata">&lt;?xml version="1.0"?>&lt;kdenlivetitle duration="0" LC_NUMERIC="C" width="1920" height="1080" out="0">
+  &lt;item type="QGraphicsTextItem" z-index="0">
+  &lt;position x="1730" y="1059">
+  &lt;transform zoom="100">1,0,0,0,1,0,0,0,1&lt;/transform>
+&lt;/position>
+  &lt;content font="Roboto" font-pixel-size="10" font-weight="50" font-color="255,255,255,127" shadow="1;#ff000000;3;3;3" typewriter="0;2;1;0;0" alignment="1">https://github.com/svoemesto/Karaoke&lt;/content>
+&lt;/item>
+  &lt;startviewport rect="0,0,1920,1080"/>
+  &lt;endviewport rect="0,0,1920,1080"/>
+  &lt;background color="0,0,0,0"/>
+&lt;/kdenlivetitle></property>
   <property name="kdenlive:folderid">-1</property>
   <property name="kdenlive:clip_type">2</property>
   <property name="kdenlive:id">17</property>
   <property name="force_reload">0</property>
   <property name="meta.media.width">1920</property>
   <property name="meta.media.height">1080</property>
-  <property name="kdenlive:file_hash">bc7fab43053a675b7b97633f0e808217</property>
+  <property name="kdenlive:file_hash">46cdd244efa7f56cec9556351018bd58</property>
  </producer>
  <producer id="producer_splashstart0" in="00:00:00.000" out="00:01:23.333">
   <property name="length">5001</property>
@@ -666,50 +666,48 @@
   <property name="mlt_service">kdenlivetitle</property>
   <property name="kdenlive:duration">00:00:05.000</property>
   <property name="kdenlive:clipname">SPLASHSTART</property>
-  <property name="xmldata">&lt;?xml version="1.0"?>
-&lt;kdenlivetitle duration="0" LC_NUMERIC="C" width="1920" height="1080" out="0">
-    &lt;item type="QGraphicsPixmapItem" z-index="6">
-     &lt;position x="687.0" y="54">
-      &lt;transform>1.0,0,0,0,1.0,0,0,0,1&lt;/transform>
-     &lt;/position>
-     &lt;content url="/home/nsa/Documents/&amp;#x41A;&amp;#x430;&amp;#x440;&amp;#x430;&amp;#x43E;&amp;#x43A;&amp;#x435;/&amp;#x41F;&amp;#x430;&amp;#x432;&amp;#x435;&amp;#x43B; &amp;#x41A;&amp;#x430;&amp;#x448;&amp;#x438;&amp;#x43D;/1993 - &amp;#x41F;&amp;#x43E; &amp;#x432;&amp;#x43E;&amp;#x43B;&amp;#x448;&amp;#x435;&amp;#x431;&amp;#x43D;&amp;#x43E;&amp;#x439; &amp;#x440;&amp;#x435;&amp;#x43A;&amp;#x435;/LogoAuthor.png"/>
-    &lt;/item>
-    &lt;item type="QGraphicsPixmapItem" z-index="6">
-     &lt;position x="233" y="54">
-      &lt;transform>1.0,0,0,0,1.0,0,0,0,1&lt;/transform>
-     &lt;/position>
-     &lt;content url="/home/nsa/Documents/&amp;#x41A;&amp;#x430;&amp;#x440;&amp;#x430;&amp;#x43E;&amp;#x43A;&amp;#x435;/&amp;#x41F;&amp;#x430;&amp;#x432;&amp;#x435;&amp;#x43B; &amp;#x41A;&amp;#x430;&amp;#x448;&amp;#x438;&amp;#x43D;/1993 - &amp;#x41F;&amp;#x43E; &amp;#x432;&amp;#x43E;&amp;#x43B;&amp;#x448;&amp;#x435;&amp;#x431;&amp;#x43D;&amp;#x43E;&amp;#x439; &amp;#x440;&amp;#x435;&amp;#x43A;&amp;#x435;/LogoAlbum.png"/>
-    &lt;/item>
-    &lt;item type="QGraphicsTextItem" z-index="6">
-     &lt;position x="603" y="454">
-      &lt;transform>1,0,0,0,1,0,0,0,1&lt;/transform>
-     &lt;/position>
-     &lt;content shadow="1;#ff000000;3;3;3" font="Roboto" font-pixel-size="301" typewriter="0;2;1;0;0" alignment="1" font-weight="50" font-color="255,255,127,255">&amp;#x41F;&amp;#x43E;&amp;#x43A;&amp;#x430;&lt;/content>
-    &lt;/item>
-    &lt;item type="QGraphicsTextItem" z-index="6">
-     &lt;position x="757" y="806">
-      &lt;transform>1,0,0,0,1,0,0,0,1&lt;/transform>
-     &lt;/position>
-     &lt;content shadow="1;#ff000000;3;3;3" font="Roboto" font-pixel-size="150" typewriter="0;2;1;0;0" alignment="1" font-weight="50" font-color="85,255,255,255">Lyrics&lt;/content>
-    &lt;/item>
-    &lt;item type="QGraphicsTextItem" z-index="6">
-     &lt;position x="890" y="982">
-      &lt;transform>1,0,0,0,1,0,0,0,1&lt;/transform>
-     &lt;/position>
-     &lt;content shadow="1;#ff000000;3;3;3" font="Roboto" font-pixel-size="60" typewriter="0;2;1;0;0" alignment="1" font-weight="50" font-color="85,255,255,255">Song&lt;/content>
-    &lt;/item>
-    &lt;startviewport rect="0,0,1920,1080"/>
-    &lt;endviewport rect="0,0,1920,1080"/>
-    &lt;background color="0,0,0,0"/>
-   &lt;/kdenlivetitle>
-</property>
+  <property name="xmldata">&lt;?xml version="1.0"?>&lt;kdenlivetitle duration="0" LC_NUMERIC="C" width="1920" height="1080" out="0">
+  &lt;item type="QGraphicsPixmapItem" z-index="6">
+  &lt;position x="687.0" y="54">
+  &lt;transform >1.0,0,0,0,1.0,0,0,0,1&lt;/transform>
+&lt;/position>
+  &lt;content url="/home/nsa/Documents/Караоке/Павел Кашин/1993 - По волшебной реке/LogoAuthor.png"/>
+&lt;/item>
+  &lt;item type="QGraphicsPixmapItem" z-index="6">
+  &lt;position x="233" y="54">
+  &lt;transform >1.0,0,0,0,1.0,0,0,0,1&lt;/transform>
+&lt;/position>
+  &lt;content url="/home/nsa/Documents/Караоке/Павел Кашин/1993 - По волшебной реке/LogoAlbum.png"/>
+&lt;/item>
+  &lt;item type="QGraphicsTextItem" z-index="6">
+  &lt;position x="456" y="454">
+  &lt;transform >1,0,0,0,1,0,0,0,1&lt;/transform>
+&lt;/position>
+  &lt;content font="Roboto" font-pixel-size="301" font-weight="50" font-color="255,255,127,255" shadow="1;#ff000000;3;3;3" typewriter="0;2;1;0;0" alignment="1">Ручеёк&lt;/content>
+&lt;/item>
+  &lt;item type="QGraphicsTextItem" z-index="6">
+  &lt;position x="757" y="806">
+  &lt;transform >1,0,0,0,1,0,0,0,1&lt;/transform>
+&lt;/position>
+  &lt;content font="Roboto" font-pixel-size="150" font-weight="50" font-color="85,255,255,255" shadow="1;#ff000000;3;3;3" typewriter="0;2;1;0;0" alignment="1">Lyrics&lt;/content>
+&lt;/item>
+  &lt;item type="QGraphicsTextItem" z-index="6">
+  &lt;position x="890" y="982">
+  &lt;transform >1,0,0,0,1,0,0,0,1&lt;/transform>
+&lt;/position>
+  &lt;content font="Roboto" font-pixel-size="60" font-weight="50" font-color="85,255,255,255" shadow="1;#ff000000;3;3;3" typewriter="0;2;1;0;0" alignment="1">Song&lt;/content>
+&lt;/item>
+  &lt;startviewport rect="0,0,1920,1080"/>
+  &lt;endviewport rect="0,0,1920,1080"/>
+  &lt;background color="0,0,0,0"/>
+&lt;/kdenlivetitle></property>
   <property name="kdenlive:folderid">-1</property>
   <property name="kdenlive:clip_type">2</property>
   <property name="kdenlive:id">18</property>
   <property name="force_reload">0</property>
   <property name="meta.media.width">1920</property>
   <property name="meta.media.height">1080</property>
-  <property name="kdenlive:file_hash">00c97ca84fb8d752941e2cd5a397c020</property>
+  <property name="kdenlive:file_hash">6c4a65bd9531afd6dc469c7c1be44312</property>
  </producer>
  <producer id="producer_boosty0" in="00:00:05.000" out="00:00:49.983">
   <property name="length">3000</property>
@@ -721,34 +719,32 @@
   <property name="mlt_service">kdenlivetitle</property>
   <property name="kdenlive:duration">00:00:08.000</property>
   <property name="kdenlive:clipname">BOOSTY</property>
-  <property name="xmldata">&lt;?xml version="1.0"?>
-&lt;kdenlivetitle duration="0" LC_NUMERIC="C" width="1920" height="1080" out="0">
-    &lt;item type="QGraphicsTextItem" z-index="0">
-     &lt;position x="257" y="423">
-      &lt;transform zoom="100">1,0,0,0,1,0,0,0,1&lt;/transform>
-     &lt;/position>
-     &lt;content shadow="1;#ff000000;3;3;3" font="Roboto" font-pixel-size="100" typewriter="0;2;1;0;0" alignment="1" font-weight="50" font-color="255,255,255,255">&amp;#x41F;&amp;#x43E;&amp;#x434;&amp;#x434;&amp;#x435;&amp;#x440;&amp;#x436;&amp;#x438; &amp;#x441;&amp;#x43E;&amp;#x437;&amp;#x434;&amp;#x430;&amp;#x43D;&amp;#x438;&amp;#x435; &amp;#x43A;&amp;#x430;&amp;#x440;&amp;#x430;&amp;#x43E;&amp;#x43A;&amp;#x435;
-&amp;#x43D;&amp;#x430; https://boosty.to/svoemesto&lt;/content>
-    &lt;/item>
-    &lt;startviewport rect="0,0,1920,1080"/>
-    &lt;endviewport rect="0,0,1920,1080"/>
-    &lt;background color="0,0,0,0"/>
-   &lt;/kdenlivetitle>
-</property>
+  <property name="xmldata">&lt;?xml version="1.0"?>&lt;kdenlivetitle duration="0" LC_NUMERIC="C" width="1920" height="1080" out="0">
+  &lt;item type="QGraphicsTextItem" z-index="0">
+  &lt;position x="257" y="423">
+  &lt;transform zoom="100">1,0,0,0,1,0,0,0,1&lt;/transform>
+&lt;/position>
+  &lt;content font="Roboto" font-pixel-size="100" font-weight="50" font-color="255,255,255,255" shadow="1;#ff000000;3;3;3" typewriter="0;2;1;0;0" alignment="1">Поддержи создание караоке
+на https://boosty.to/svoemesto&lt;/content>
+&lt;/item>
+  &lt;startviewport rect="0,0,1920,1080"/>
+  &lt;endviewport rect="0,0,1920,1080"/>
+  &lt;background color="0,0,0,0"/>
+&lt;/kdenlivetitle></property>
   <property name="kdenlive:folderid">-1</property>
   <property name="kdenlive:clip_type">2</property>
   <property name="kdenlive:id">19</property>
   <property name="force_reload">0</property>
   <property name="meta.media.width">1920</property>
   <property name="meta.media.height">1080</property>
-  <property name="kdenlive:file_hash">bfd143ee567deef94c5636b79cd1b445</property>
+  <property name="kdenlive:file_hash">a2856ea1afd700a628b2c07943e1c559</property>
  </producer>
  <playlist autoclose="1" id="main_bin">
   <property name="kdenlive:docproperties.activeTrack">0</property>
   <property name="kdenlive:docproperties.audioTarget">-1</property>
   <property name="kdenlive:docproperties.compositing">1</property>
   <property name="kdenlive:docproperties.disablepreview">0</property>
-  <property name="kdenlive:docproperties.documentid">1677318726843</property>
+  <property name="kdenlive:docproperties.documentid">1677567659563</property>
   <property name="kdenlive:docproperties.enableTimelineZone">0</property>
   <property name="kdenlive:docproperties.enableexternalproxy">0</property>
   <property name="kdenlive:docproperties.enableproxy">0</property>
@@ -805,7 +801,7 @@
 ]
 </property>
   <property name="kdenlive:docproperties.kdenliveversion">22.12.2</property>
-  <property name="kdenlive:docproperties.position">2538</property>
+  <property name="kdenlive:docproperties.position">400</property>
   <property name="kdenlive:docproperties.previewextension"/>
   <property name="kdenlive:docproperties.previewparameters"/>
   <property name="kdenlive:docproperties.profile">atsc_1080p_60</property>
@@ -830,7 +826,7 @@
   <property name="kdenlive:docproperties.rendertcoverlay">0</property>
   <property name="kdenlive:docproperties.rendertctype">-1</property>
   <property name="kdenlive:docproperties.rendertwopass">0</property>
-  <property name="kdenlive:docproperties.renderurl">2.mp4</property>
+  <property name="kdenlive:docproperties.renderurl">/home/nsa/Documents/Караоке/Павел Кашин/1993 - По волшебной реке/done_files/1993 (01) [Павел Кашин] - Ручеёк [lyrics].mp4</property>
   <property name="kdenlive:docproperties.scrollPos">0</property>
   <property name="kdenlive:docproperties.seekOffset">30000</property>
   <property name="kdenlive:docproperties.version">1.04</property>
@@ -844,27 +840,29 @@
   <property name="kdenlive:docproperties.groups">[
 ]
 </property>
+  <property name="kdenlive:docproperties.renderrescaleheight">540</property>
+  <property name="kdenlive:docproperties.renderrescalewidth">960</property>
   <property name="xml_retain">1</property>
-  <entry producer="producer_audiosong0" in="00:00:00.000" out="00:02:25.950"/>
-  <entry producer="producer_background0" in="00:00:00.000" out="00:02:33.950"/>
-  <entry producer="producer_horizon0" in="00:00:00.000" out="00:02:25.950"/>
-  <entry producer="producer_flash0" in="00:00:00.000" out="00:02:25.950"/>
-  <entry producer="producer_progress0" in="00:00:00.000" out="00:02:25.950"/>
-  <entry producer="producer_fillcolorsongtexteven0" in="00:00:00.000" out="00:02:25.950"/>
-  <entry producer="producer_fillcolorsongtextodd0" in="00:00:00.000" out="00:02:25.950"/>
-  <entry producer="producer_songtext0" in="00:00:00.000" out="00:02:25.950"/>
-  <entry producer="producer_counter00" in="00:00:00.000" out="00:02:25.950"/>
-  <entry producer="producer_counter01" in="00:00:00.000" out="00:02:25.950"/>
-  <entry producer="producer_counter02" in="00:00:00.000" out="00:02:25.950"/>
-  <entry producer="producer_counter03" in="00:00:00.000" out="00:02:25.950"/>
-  <entry producer="producer_counter04" in="00:00:00.000" out="00:02:25.950"/>
-  <entry producer="producer_fadertext0" in="00:00:00.000" out="00:02:25.950"/>
-  <entry producer="producer_header0" in="00:00:00.000" out="00:02:25.950"/>
-  <entry producer="producer_watermark0" in="00:00:00.000" out="00:02:25.950"/>
+  <entry producer="producer_audiosong0" in="00:00:00.000" out="00:02:39.317"/>
+  <entry producer="producer_background0" in="00:00:00.000" out="00:02:47.317"/>
+  <entry producer="producer_horizon0" in="00:00:00.000" out="00:02:39.317"/>
+  <entry producer="producer_flash0" in="00:00:00.000" out="00:02:39.317"/>
+  <entry producer="producer_progress0" in="00:00:00.000" out="00:02:39.317"/>
+  <entry producer="producer_fillcolorsongtexteven0" in="00:00:00.000" out="00:02:39.317"/>
+  <entry producer="producer_fillcolorsongtextodd0" in="00:00:00.000" out="00:02:39.317"/>
+  <entry producer="producer_songtext0" in="00:00:00.000" out="00:02:39.317"/>
+  <entry producer="producer_counter00" in="00:00:00.000" out="00:02:39.317"/>
+  <entry producer="producer_counter01" in="00:00:00.000" out="00:02:39.317"/>
+  <entry producer="producer_counter02" in="00:00:00.000" out="00:02:39.317"/>
+  <entry producer="producer_counter03" in="00:00:00.000" out="00:02:39.317"/>
+  <entry producer="producer_counter04" in="00:00:00.000" out="00:02:39.317"/>
+  <entry producer="producer_fadertext0" in="00:00:00.000" out="00:02:39.317"/>
+  <entry producer="producer_header0" in="00:00:00.000" out="00:02:39.317"/>
+  <entry producer="producer_watermark0" in="00:00:00.000" out="00:02:39.317"/>
   <entry producer="producer_splashstart0" in="00:00:00.000" out="00:00:05.000"/>
   <entry producer="producer_boosty0" in="00:00:00.000" out="00:00:03.000"/>
  </playlist>
- <producer id="black_track" in="00:00:00.000" out="00:10:53.967">
+ <producer id="black_track" in="00:00:00.000" out="00:11:07.333">
   <property name="length">2147483647</property>
   <property name="eof">continue</property>
   <property name="resource">black</property>
@@ -873,10 +871,10 @@
   <property name="mlt_image_format">rgba</property>
   <property name="set.test_audio">0</property>
  </producer>
- <producer id="producer_audiosong0_file" in="00:00:00.000" out="00:02:25.950">
-  <property name="length">8758</property>
+ <producer id="producer_audiosong0_file" in="00:00:00.000" out="00:02:39.317">
+  <property name="length">9560</property>
   <property name="eof">pause</property>
-  <property name="resource">Павел Кашин/1993 - По волшебной реке/1993 (23) [Павел Кашин] - Пока.flac</property>
+  <property name="resource">/home/nsa/Documents/Караоке/Павел Кашин/1993 - По волшебной реке/1993 (01) [Павел Кашин] - Ручеёк.flac</property>
   <property name="audio_index">0</property>
   <property name="video_index">-1</property>
   <property name="mute_on_pause">0</property>
@@ -889,39 +887,18 @@
   <property name="xml">was here</property>
   <property name="set.test_audio">0</property>
   <property name="set.test_image">1</property>
-  <property name="meta.media.nb_streams">1</property>
-  <property name="meta.media.0.stream.type">audio</property>
-  <property name="meta.media.0.codec.sample_fmt">s16</property>
-  <property name="meta.media.0.codec.sample_rate">44100</property>
-  <property name="meta.media.0.codec.channels">2</property>
-  <property name="meta.media.0.codec.name">flac</property>
-  <property name="meta.media.0.codec.long_name">FLAC (Free Lossless Audio Codec)</property>
-  <property name="meta.media.0.codec.bit_rate">0</property>
-  <property name="meta.attr.TITLE.markup">Пока</property>
-  <property name="meta.attr.ARTIST.markup">Павел Кашин</property>
-  <property name="meta.attr.album_artist.markup">Павел Кашин</property>
-  <property name="meta.attr.ALBUM.markup">По волшебной реке (2017)</property>
-  <property name="meta.attr.comment.markup">ExactAudioCopy v1.5</property>
-  <property name="meta.attr.DISCTOTAL.markup">01</property>
-  <property name="meta.attr.DATE.markup">1993</property>
-  <property name="meta.attr.track.markup">23</property>
-  <property name="meta.attr.TRACKTOTAL.markup">23</property>
-  <property name="meta.attr.GENRE.markup">Acoustic Rock</property>
-  <property name="meta.attr.DISC.markup">1</property>
-  <property name="meta.attr.TOTALTRACKS.markup">23</property>
-  <property name="meta.attr.DISCID.markup">4B0F0E17</property>
  </producer>
  <playlist autoclose="1" id="playlist0">
   <property name="kdenlive:audio_track">1</property>
   <blank length="00:00:08.000"/>
-  <entry producer="producer_audiosong0_file" in="00:00:00.000" out="00:02:25.950">
+  <entry producer="producer_audiosong0_file" in="00:00:00.000" out="00:02:39.317">
    <property name="kdenlive:id">2</property>
   </entry>
  </playlist>
  <playlist autoclose="1" id="playlist1">
   <property name="kdenlive:audio_track">1</property>
  </playlist>
- <tractor id="tractor0" in="00:00:00.000" out="00:02:33.950">
+ <tractor id="tractor0" in="00:00:00.000" out="00:02:47.317">
   <property name="kdenlive:audio_track">1</property>
   <property name="kdenlive:trackheight">69</property>
   <property name="kdenlive:timeline_active">1</property>
@@ -953,7 +930,7 @@
   </filter>
  </tractor>
  <playlist autoclose="1" id="playlist2">
-  <entry producer="producer_background0" in="00:00:00.000" out="00:02:33.950">
+  <entry producer="producer_background0" in="00:00:00.000" out="00:02:47.317">
    <property name="kdenlive:id">3</property>
    <property name="kdenlive:activeeffect">1</property>
    <filter id="filter_background0_gamma">
@@ -969,12 +946,13 @@
     <property name="mlt_service">lift_gamma_gain</property>
     <property name="kdenlive_id">lift_gamma_gain</property>
     <property name="kdenlive:collapsed">0</property>
+    <property name="rotation">00:00:00.000=0</property>
    </filter>
    <filter id="filter_background0_qtblend">
     <property name="rotate_center">1</property>
     <property name="mlt_service">qtblend</property>
     <property name="kdenlive_id">qtblend</property>
-    <property name="rect">00:00:00.000=0 0 4096 4096 0.000000;00:00:01.000=-13 -18 4096 4096 1.000000;00:02:32.967=-2163 -2998 4096 4096 1.000000;00:02:33.967=-2176 -3016 4096 4096 0.000000</property>
+    <property name="rect">00:00:00.000=0 0 4096 4096 0.000000;00:00:01.000=-13 -18 4096 4096 1.000000;00:02:46.333=-2163 -2998 4096 4096 1.000000;00:02:47.333=-2176 -3016 4096 4096 0.000000</property>
     <property name="compositing">0</property>
     <property name="distort">0</property>
     <property name="kdenlive:collapsed">0</property>
@@ -983,7 +961,7 @@
   </entry>
  </playlist>
  <playlist autoclose="1" id="playlist3"/>
- <tractor id="tractor1" in="00:00:00.000" out="00:02:33.950">
+ <tractor id="tractor1" in="00:00:00.000" out="00:02:47.317">
   <property name="kdenlive:trackheight">69</property>
   <property name="kdenlive:timeline_active">1</property>
   <property name="kdenlive:collapsed">28</property>
@@ -1031,7 +1009,7 @@
     <property name="compositing">0</property>
     <property name="distort">0</property>
     <property name="kdenlive:collapsed">0</property>
-    <property name="rotation">00:00:05.000=0</property>
+    <property name="rotation">00:00:00.000=0</property>
    </filter>
   </entry>
  </playlist>
@@ -1048,13 +1026,13 @@
  </tractor>
  <playlist autoclose="1" id="playlist8">
   <blank length="00:00:08.000"/>
-  <entry producer="producer_horizon0" in="00:00:00.000" out="00:02:25.950">
+  <entry producer="producer_horizon0" in="00:00:00.000" out="00:02:39.317">
    <property name="kdenlive:id">4</property>
    <filter id="filter_horizon0_qtblend">
     <property name="rotate_center">1</property>
     <property name="mlt_service">qtblend</property>
     <property name="kdenlive_id">qtblend</property>
-    <property name="rect">00:00:00.000=0 0 1920 1080 0.000000;00:00:01.000=0 0 1920 1080 1.000000;00:02:24.967=0 0 1920 1080 1.000000;00:02:25.967=0 0 1920 1080 0.000000</property>
+    <property name="rect">00:00:00.000=0 0 1920 1080 0.000000;00:00:01.000=0 0 1920 1080 1.000000;00:02:38.333=0 0 1920 1080 1.000000;00:02:39.333=0 0 1920 1080 0.000000</property>
     <property name="compositing">0</property>
     <property name="distort">0</property>
     <property name="kdenlive:collapsed">0</property>
@@ -1063,7 +1041,7 @@
   </entry>
  </playlist>
  <playlist autoclose="1" id="playlist9"/>
- <tractor id="tractor4" in="00:00:00.000" out="00:02:33.950">
+ <tractor id="tractor4" in="00:00:00.000" out="00:02:47.317">
   <property name="kdenlive:trackheight">69</property>
   <property name="kdenlive:timeline_active">1</property>
   <property name="kdenlive:collapsed">28</property>
@@ -1075,13 +1053,13 @@
  </tractor>
  <playlist autoclose="1" id="playlist10">
   <blank length="00:00:08.000"/>
-  <entry producer="producer_flash0" in="00:00:00.000" out="00:02:25.950">
+  <entry producer="producer_flash0" in="00:00:00.000" out="00:02:39.317">
    <property name="kdenlive:id">5</property>
    <filter id="filter_flash0_qtblend">
     <property name="rotate_center">1</property>
     <property name="mlt_service">qtblend</property>
     <property name="kdenlive_id">qtblend</property>
-    <property name="rect">00:00:00.000=0 0 1920 1080 0.000000;00:00:01.000=0 0 1920 1080 1.000000;00:02:24.967=0 0 1920 1080 1.000000;00:02:25.967=0 0 1920 1080 0.000000</property>
+    <property name="rect">00:00:00.000=0 0 1920 1080 0.000000;00:00:01.000=0 0 1920 1080 1.000000;00:02:38.333=0 0 1920 1080 1.000000;00:02:39.333=0 0 1920 1080 0.000000</property>
     <property name="compositing">0</property>
     <property name="distort">0</property>
     <property name="kdenlive:collapsed">0</property>
@@ -1090,7 +1068,7 @@
   </entry>
  </playlist>
  <playlist autoclose="1" id="playlist11"/>
- <tractor id="tractor5" in="00:00:00.000" out="00:02:33.950">
+ <tractor id="tractor5" in="00:00:00.000" out="00:02:47.317">
   <property name="kdenlive:trackheight">69</property>
   <property name="kdenlive:timeline_active">1</property>
   <property name="kdenlive:collapsed">28</property>
@@ -1102,13 +1080,13 @@
  </tractor>
  <playlist autoclose="1" id="playlist12">
   <blank length="00:00:08.000"/>
-  <entry producer="producer_progress0" in="00:00:00.000" out="00:02:25.950">
+  <entry producer="producer_progress0" in="00:00:00.000" out="00:02:39.317">
    <property name="kdenlive:id">6</property>
    <filter id="filter_progress0_qtblend">
     <property name="rotate_center">1</property>
     <property name="mlt_service">qtblend</property>
     <property name="kdenlive_id">qtblend</property>
-    <property name="rect">00:00:00.000=0 0 1920 1080 0.000000;00:00:01.000=0 0 1920 1080 1.000000;00:02:24.967=0 0 1920 1080 1.000000;00:02:25.967=0 0 1920 1080 0.000000</property>
+    <property name="rect">00:00:00.000=0 0 1920 1080 0.000000;00:00:01.000=0 0 1920 1080 1.000000;00:02:38.333=0 0 1920 1080 1.000000;00:02:39.333=0 0 1920 1080 0.000000</property>
     <property name="compositing">0</property>
     <property name="distort">0</property>
     <property name="kdenlive:collapsed">0</property>
@@ -1117,7 +1095,7 @@
   </entry>
  </playlist>
  <playlist autoclose="1" id="playlist13"/>
- <tractor id="tractor6" in="00:00:00.000" out="00:02:33.950">
+ <tractor id="tractor6" in="00:00:00.000" out="00:02:47.317">
   <property name="kdenlive:trackheight">69</property>
   <property name="kdenlive:timeline_active">1</property>
   <property name="kdenlive:collapsed">28</property>
@@ -1129,13 +1107,13 @@
  </tractor>
  <playlist autoclose="1" id="playlist14">
   <blank length="00:00:08.000"/>
-  <entry producer="producer_fillcolorsongtexteven0" in="00:00:00.000" out="00:02:25.950">
+  <entry producer="producer_fillcolorsongtexteven0" in="00:00:00.000" out="00:02:39.317">
    <property name="kdenlive:id">7</property>
    <filter id="filter_fillcolorsongtexteven0_qtblend">
     <property name="rotate_center">1</property>
     <property name="mlt_service">qtblend</property>
     <property name="kdenlive_id">qtblend</property>
-    <property name="rect">00:00:16.183=96 495 1 104 0.0;00:00:16.217=96 495 1 104 0.6;00:00:16.683=96 495 69 104 0.6;00:00:16.883=96 495 304 104 0.6;00:00:17.200=96 495 404 104 0.6;00:00:17.367=96 495 553 104 0.6;00:00:17.867=96 495 844 104 0.6;00:00:18.867=96 408 844 104 0.0;00:00:22.950=96 495 1 104 0.0;00:00:22.983=96 495 1 104 0.6;00:00:23.633=96 495 216 104 0.6;00:00:23.817=96 495 352 104 0.6;00:00:24.183=96 495 529 104 0.6;00:00:25.183=96 422 529 104 0.0;00:00:29.317=96 495 1 104 0.0;00:00:29.350=96 495 1 104 0.6;00:00:29.750=96 495 69 104 0.6;00:00:30.033=96 495 304 104 0.6;00:00:30.317=96 495 404 104 0.6;00:00:30.483=96 495 623 104 0.6;00:00:31.033=96 495 797 104 0.6;00:00:32.033=96 408 797 104 0.0;00:00:36.683=96 495 1 104 0.0;00:00:36.717=96 495 1 104 0.6;00:00:36.950=96 495 157 104 0.6;00:00:37.550=96 457 325 104 0.6;00:00:38.550=96 394 325 104 0.0;00:02:01.833=96 495 1 104 0.0;00:02:01.867=96 495 1 104 0.6;00:02:02.300=96 495 69 104 0.6;00:02:02.500=96 495 304 104 0.6;00:02:02.833=96 495 404 104 0.6;00:02:03.050=96 495 553 104 0.6;00:02:03.517=96 495 844 104 0.6;00:02:04.517=96 410 844 104 0.0;00:02:08.650=96 495 1 104 0.0;00:02:08.683=96 495 1 104 0.6;00:02:09.350=96 495 216 104 0.6;00:02:09.533=96 495 352 104 0.6;00:02:09.967=96 495 529 104 0.6;00:02:10.967=96 415 529 104 0.0;00:02:15.117=96 495 1 104 0.0;00:02:15.150=96 495 1 104 0.6;00:02:15.483=96 495 69 104 0.6;00:02:15.767=96 495 304 104 0.6;00:02:16.000=96 495 404 104 0.6;00:02:16.150=96 495 623 104 0.6;00:02:16.550=96 495 797 104 0.6;00:02:17.550=96 416 797 104 0.0;00:02:22.500=96 495 1 104 0.0;00:02:22.533=96 495 1 104 0.6;00:02:22.783=96 495 157 104 0.6;00:02:23.167=96 495 325 104 0.6;00:02:24.167=96 495 325 104 0.0</property>
+    <property name="rect">00:00:04.483=96 505 1 84 0.0;00:00:04.517=96 505 1 84 0.6;00:00:04.750=96 505 124 84 0.6;00:00:05.067=96 505 233 84 0.6;00:00:05.367=96 505 396 84 0.6;00:00:05.783=96 505 507 84 0.6;00:00:06.667=96 489 764 116 0.6;00:00:07.000=96 505 874 84 0.6;00:00:07.367=96 505 1153 84 0.6;00:00:07.900=96 505 1412 84 0.6;00:00:08.367=96 505 1635 84 0.6;00:00:08.850=96 389 1635 84 0.3102;00:00:09.367=96 389 1635 84 0.0;00:00:12.583=96 505 1 84 0.0;00:00:12.617=96 505 1 84 0.6;00:00:12.833=96 505 92 84 0.6;00:00:13.033=96 505 172 84 0.6;00:00:13.233=96 505 253 84 0.6;00:00:14.033=96 489 489 116 0.6;00:00:14.200=96 505 670 84 0.6;00:00:14.533=96 505 775 84 0.6;00:00:15.067=96 505 1013 84 0.6;00:00:15.633=96 505 1264 84 0.6;00:00:15.867=96 389 1264 84 0.4596;00:00:16.633=96 389 1264 84 0.0;00:00:19.633=96 505 1 84 0.0;00:00:19.667=96 505 1 84 0.6;00:00:20.250=96 505 84 84 0.6;00:00:20.500=96 505 252 84 0.6;00:00:20.717=96 505 364 84 0.6;00:00:21.017=96 505 473 84 0.6;00:00:21.717=96 505 578 84 0.6;00:00:22.133=96 505 710 84 0.6;00:00:22.517=96 505 841 84 0.6;00:00:23.100=96 505 947 84 0.6;00:00:23.550=96 505 1088 84 0.6;00:00:23.983=96 389 1088 84 0.34019999999999995;00:00:24.550=96 389 1088 84 0.0;00:00:27.633=96 505 1 84 0.0;00:00:27.667=96 505 1 84 0.6;00:00:28.083=96 505 222 84 0.6;00:00:28.267=96 505 390 84 0.6;00:00:28.400=96 505 500 84 0.6;00:00:29.133=96 505 681 84 0.6;00:00:29.400=96 505 843 84 0.6;00:00:30.017=96 505 923 84 0.6;00:00:30.283=96 505 1033 84 0.6;00:00:30.750=96 492 1171 84 0.6;00:00:31.750=96 463 1171 84 0.0;00:00:49.900=96 505 1 84 0.0;00:00:49.933=96 505 1 84 0.6;00:00:50.283=96 505 149 84 0.6;00:00:50.667=96 505 258 84 0.6;00:00:50.833=96 505 421 84 0.6;00:00:51.283=96 505 530 84 0.6;00:00:52.117=96 489 610 116 0.6;00:00:52.417=96 505 810 84 0.6;00:00:52.883=96 505 922 84 0.6;00:00:53.250=96 505 1016 84 0.6;00:00:53.733=96 505 1176 84 0.6;00:00:54.317=96 389 1176 84 0.2496;00:00:54.733=96 389 1176 84 0.0;00:00:58.050=96 505 1 84 0.0;00:00:58.083=96 505 1 84 0.6;00:00:58.333=96 505 166 84 0.6;00:00:58.650=96 505 303 84 0.6;00:00:58.800=96 505 438 84 0.6;00:00:59.567=96 489 631 116 0.6;00:00:59.900=96 505 910 84 0.6;00:01:00.217=96 505 1022 84 0.6;00:01:00.717=96 505 1241 84 0.6;00:01:01.200=96 505 1465 84 0.6;00:01:01.483=96 389 1465 84 0.43019999999999997;00:01:02.200=96 389 1465 84 0.0;00:01:05.217=96 505 1 84 0.0;00:01:05.250=96 505 1 84 0.6;00:01:05.483=96 505 63 84 0.6;00:01:06.067=96 505 227 84 0.6;00:01:06.300=96 505 362 84 0.6;00:01:06.850=96 505 467 84 0.6;00:01:07.200=96 505 731 84 0.6;00:01:07.783=96 505 885 84 0.6;00:01:08.100=96 505 1045 84 0.6;00:01:08.433=96 505 1157 84 0.6;00:01:08.867=96 505 1283 84 0.6;00:01:09.467=96 389 1283 84 0.24;00:01:09.867=96 389 1283 84 0.0;00:01:13.250=96 505 1 84 0.0;00:01:13.283=96 505 1 84 0.6;00:01:13.667=96 505 121 84 0.6;00:01:13.867=96 505 272 84 0.6;00:01:14.083=96 505 409 84 0.6;00:01:14.800=96 505 595 84 0.6;00:01:15.167=96 505 840 84 0.6;00:01:15.767=96 505 971 84 0.6;00:01:16.100=96 505 1077 84 0.6;00:01:16.800=96 485 1265 84 0.6;00:01:17.800=96 456 1265 84 0.0;00:01:35.717=96 505 1 84 0.0;00:01:35.750=96 505 1 84 0.6;00:01:35.917=96 505 63 84 0.6;00:01:36.567=96 505 227 84 0.6;00:01:36.933=96 505 383 84 0.6;00:01:37.217=96 505 492 84 0.6;00:01:37.750=96 505 621 84 0.6;00:01:38.083=96 505 730 84 0.6;00:01:38.683=96 505 890 84 0.6;00:01:39.050=96 505 999 84 0.6;00:01:39.550=96 505 1299 84 0.6;00:01:40.050=96 389 1299 84 0.3;00:01:40.550=96 389 1299 84 0.0;00:01:43.767=96 505 1 84 0.0;00:01:43.800=96 505 1 84 0.6;00:01:43.983=96 505 92 84 0.6;00:01:44.167=96 505 172 84 0.6;00:01:44.383=96 505 253 84 0.6;00:01:45.217=96 489 489 116 0.6;00:01:45.683=96 505 670 84 0.6;00:01:45.883=96 505 776 84 0.6;00:01:46.133=96 505 885 84 0.6;00:01:46.600=96 505 1024 84 0.6;00:01:47.600=96 505 1024 84 0.0</property>
     <property name="compositing">0</property>
     <property name="distort">1</property>
     <property name="kdenlive:collapsed">0</property>
@@ -1144,7 +1122,7 @@
   </entry>
  </playlist>
  <playlist autoclose="1" id="playlist15"/>
- <tractor id="tractor7" in="00:00:00.000" out="00:02:33.950">
+ <tractor id="tractor7" in="00:00:00.000" out="00:02:47.317">
   <property name="kdenlive:trackheight">69</property>
   <property name="kdenlive:timeline_active">1</property>
   <property name="kdenlive:collapsed">28</property>
@@ -1156,13 +1134,13 @@
  </tractor>
  <playlist autoclose="1" id="playlist16">
   <blank length="00:00:08.000"/>
-  <entry producer="producer_fillcolorsongtextodd0" in="00:00:00.000" out="00:02:25.950">
+  <entry producer="producer_fillcolorsongtextodd0" in="00:00:00.000" out="00:02:39.317">
    <property name="kdenlive:id">8</property>
    <filter id="filter_fillcolorsongtextodd0_qtblend">
     <property name="rotate_center">1</property>
     <property name="mlt_service">qtblend</property>
     <property name="kdenlive_id">qtblend</property>
-    <property name="rect">00:00:12.917=96 495 1 104 0.0;00:00:12.950=96 495 1 104 0.6;00:00:13.400=96 495 69 104 0.6;00:00:13.533=96 495 304 104 0.6;00:00:13.800=96 495 500 104 0.6;00:00:13.933=96 495 719 104 0.6;00:00:14.467=96 495 893 104 0.6;00:00:15.467=96 413 893 104 0.0;00:00:19.483=96 495 1 104 0.0;00:00:19.517=96 495 1 104 0.6;00:00:19.950=96 495 69 104 0.6;00:00:20.133=96 495 304 104 0.6;00:00:20.483=96 495 564 104 0.6;00:00:20.650=96 495 792 104 0.6;00:00:20.950=96 495 1033 104 0.6;00:00:21.100=96 495 1200 104 0.6;00:00:21.267=96 495 1336 104 0.6;00:00:21.783=96 495 1653 104 0.6;00:00:22.783=96 375 1653 104 0.0;00:00:26.100=96 495 1 104 0.0;00:00:26.133=96 495 1 104 0.6;00:00:26.483=96 495 69 104 0.6;00:00:26.633=96 495 304 104 0.6;00:00:26.933=96 495 500 104 0.6;00:00:27.067=96 495 649 104 0.6;00:00:27.617=96 495 940 104 0.6;00:00:28.617=96 412 940 104 0.0;00:00:32.650=96 495 1 104 0.0;00:00:32.683=96 495 1 104 0.6;00:00:33.050=96 495 69 104 0.6;00:00:33.233=96 495 304 104 0.6;00:00:33.450=96 495 564 104 0.6;00:00:33.833=96 495 792 104 0.6;00:00:34.083=96 495 1033 104 0.6;00:00:34.283=96 495 1204 104 0.6;00:00:34.500=96 495 1410 104 0.6;00:00:34.900=96 495 1575 104 0.6;00:00:35.900=96 416 1575 104 0.0;00:01:58.583=96 495 1 104 0.0;00:01:58.617=96 495 1 104 0.6;00:01:58.867=96 495 69 104 0.6;00:01:59.133=96 495 304 104 0.6;00:01:59.433=96 495 500 104 0.6;00:01:59.583=96 495 719 104 0.6;00:02:00.067=96 495 893 104 0.6;00:02:01.067=96 415 893 104 0.0;00:02:05.167=96 495 1 104 0.0;00:02:05.200=96 495 1 104 0.6;00:02:05.600=96 495 69 104 0.6;00:02:05.733=96 495 304 104 0.6;00:02:05.983=96 495 564 104 0.6;00:02:06.283=96 495 792 104 0.6;00:02:06.600=96 495 1033 104 0.6;00:02:06.783=96 495 1200 104 0.6;00:02:06.933=96 495 1336 104 0.6;00:02:07.483=96 495 1653 104 0.6;00:02:08.483=96 375 1653 104 0.0;00:02:11.733=96 495 1 104 0.0;00:02:11.767=96 495 1 104 0.6;00:02:12.200=96 495 69 104 0.6;00:02:12.383=96 495 304 104 0.6;00:02:12.667=96 495 500 104 0.6;00:02:12.900=96 495 649 104 0.6;00:02:13.617=96 495 940 104 0.6;00:02:14.617=96 402 940 104 0.0;00:02:18.333=96 495 1 104 0.0;00:02:18.367=96 495 1 104 0.6;00:02:18.867=96 495 69 104 0.6;00:02:19.017=96 495 304 104 0.6;00:02:19.217=96 495 564 104 0.6;00:02:19.517=96 495 792 104 0.6;00:02:19.800=96 495 1033 104 0.6;00:02:19.950=96 495 1204 104 0.6;00:02:20.150=96 495 1410 104 0.6;00:02:20.533=96 495 1575 104 0.6;00:02:21.533=96 423 1575 104 0.0</property>
+    <property name="rect">00:00:00.617=96 505 1 84 0.0;00:00:00.650=96 505 1 84 0.6;00:00:01.067=96 505 173 84 0.6;00:00:01.483=96 505 278 84 0.6;00:00:01.933=96 505 486 84 0.6;00:00:02.967=96 489 617 116 0.6;00:00:03.300=96 505 671 84 0.6;00:00:03.567=96 505 868 84 0.6;00:00:03.733=96 505 972 84 0.6;00:00:04.067=96 505 1145 84 0.6;00:00:04.517=96 389 1145 84 0.33;00:00:05.067=96 389 1145 84 0.0;00:00:08.817=96 505 1 84 0.0;00:00:08.850=96 505 1 84 0.6;00:00:09.083=96 505 94 84 0.6;00:00:09.250=96 505 174 84 0.6;00:00:09.400=96 505 224 84 0.6;00:00:10.167=96 489 388 116 0.6;00:00:10.450=96 505 523 84 0.6;00:00:10.683=96 505 654 84 0.6;00:00:11.150=96 505 896 84 0.6;00:00:11.683=96 505 1007 84 0.6;00:00:12.150=96 505 1225 84 0.6;00:00:12.617=96 389 1225 84 0.31980000000000003;00:00:13.150=96 389 1225 84 0.0;00:00:15.833=96 505 1 84 0.0;00:00:15.867=96 505 1 84 0.6;00:00:16.117=96 505 94 84 0.6;00:00:16.450=96 505 256 84 0.6;00:00:16.983=96 505 449 84 0.6;00:00:17.483=96 505 558 84 0.6;00:00:18.350=96 489 803 116 0.6;00:00:18.683=96 505 915 84 0.6;00:00:18.917=96 505 1090 84 0.6;00:00:19.417=96 505 1199 84 0.6;00:00:19.667=96 389 1199 84 0.44999999999999996;00:00:20.417=96 389 1199 84 0.0;00:00:23.950=96 505 1 84 0.0;00:00:23.983=96 505 1 84 0.6;00:00:24.233=96 505 142 84 0.6;00:00:24.467=96 505 196 84 0.6;00:00:24.667=96 505 385 84 0.6;00:00:25.400=96 505 780 84 0.6;00:00:25.650=96 505 889 84 0.6;00:00:25.917=96 505 1001 84 0.6;00:00:26.400=96 505 1080 84 0.6;00:00:26.900=96 505 1205 84 0.6;00:00:27.400=96 505 1317 84 0.6;00:00:27.667=96 389 1317 84 0.43979999999999997;00:00:28.400=96 389 1317 84 0.0;00:00:46.133=96 505 1 84 0.0;00:00:46.167=96 505 1 84 0.6;00:00:46.333=96 505 94 84 0.6;00:00:47.000=96 505 276 84 0.6;00:00:47.417=96 505 493 84 0.6;00:00:47.700=96 505 596 84 0.6;00:00:48.600=96 489 774 116 0.6;00:00:48.933=96 505 956 84 0.6;00:00:49.117=96 505 1065 84 0.6;00:00:49.650=96 505 1276 84 0.6;00:00:49.933=96 389 1276 84 0.43019999999999997;00:00:50.650=96 389 1276 84 0.0;00:00:54.283=96 505 1 84 0.0;00:00:54.317=96 505 1 84 0.6;00:00:54.517=96 505 94 84 0.6;00:00:54.867=96 505 306 84 0.6;00:00:55.083=96 505 356 84 0.6;00:00:55.433=96 505 522 84 0.6;00:00:55.700=96 505 686 84 0.6;00:00:56.350=96 505 905 84 0.6;00:00:56.717=96 505 1017 84 0.6;00:00:57.017=96 505 1111 84 0.6;00:00:57.450=96 505 1266 84 0.6;00:00:58.083=96 389 1266 84 0.22019999999999998;00:00:58.450=96 389 1266 84 0.0;00:01:01.450=96 505 1 84 0.0;00:01:01.483=96 505 1 84 0.6;00:01:01.700=96 505 94 84 0.6;00:01:02.383=96 505 300 84 0.6;00:01:02.800=96 505 466 84 0.6;00:01:03.017=96 505 627 84 0.6;00:01:03.800=96 489 814 116 0.6;00:01:04.183=96 505 951 84 0.6;00:01:04.483=96 505 1116 84 0.6;00:01:04.867=96 505 1299 84 0.6;00:01:05.250=96 389 1299 84 0.3702;00:01:05.867=96 389 1299 84 0.0;00:01:09.433=96 505 1 84 0.0;00:01:09.467=96 505 1 84 0.6;00:01:09.700=96 505 194 84 0.6;00:01:09.900=96 505 378 84 0.6;00:01:10.283=96 505 542 84 0.6;00:01:10.650=96 505 710 84 0.6;00:01:11.083=96 505 897 84 0.6;00:01:11.667=96 505 1003 84 0.6;00:01:11.917=96 505 1197 84 0.6;00:01:12.367=96 505 1309 84 0.6;00:01:12.900=96 505 1406 84 0.6;00:01:13.283=96 389 1406 84 0.3702;00:01:13.900=96 389 1406 84 0.0;00:01:31.950=96 505 1 84 0.0;00:01:31.983=96 505 1 84 0.6;00:01:32.183=96 505 94 84 0.6;00:01:32.583=96 505 205 84 0.6;00:01:32.950=96 505 449 84 0.6;00:01:33.417=96 505 614 84 0.6;00:01:34.383=96 489 859 116 0.6;00:01:34.767=96 505 993 84 0.6;00:01:34.917=96 505 1105 84 0.6;00:01:35.233=96 505 1269 84 0.6;00:01:35.750=96 389 1269 84 0.2898;00:01:36.233=96 389 1269 84 0.0;00:01:40.017=96 505 1 84 0.0;00:01:40.050=96 505 1 84 0.6;00:01:40.233=96 505 92 84 0.6;00:01:40.400=96 505 172 84 0.6;00:01:40.533=96 505 222 84 0.6;00:01:41.300=96 489 386 116 0.6;00:01:41.617=96 505 521 84 0.6;00:01:41.833=96 505 676 84 0.6;00:01:42.383=96 505 918 84 0.6;00:01:42.917=96 505 1029 84 0.6;00:01:43.467=96 505 1247 84 0.6;00:01:43.800=96 389 1247 84 0.4002;00:01:44.467=96 389 1247 84 0.0</property>
     <property name="compositing">0</property>
     <property name="distort">1</property>
     <property name="kdenlive:collapsed">0</property>
@@ -1171,7 +1149,7 @@
   </entry>
  </playlist>
  <playlist autoclose="1" id="playlist17"/>
- <tractor id="tractor8" in="00:00:00.000" out="00:02:33.950">
+ <tractor id="tractor8" in="00:00:00.000" out="00:02:47.317">
   <property name="kdenlive:trackheight">69</property>
   <property name="kdenlive:timeline_active">1</property>
   <property name="kdenlive:collapsed">28</property>
@@ -1183,13 +1161,13 @@
  </tractor>
  <playlist autoclose="1" id="playlist18">
   <blank length="00:00:08.000"/>
-  <entry producer="producer_songtext0" in="00:00:00.000" out="00:02:25.950">
+  <entry producer="producer_songtext0" in="00:00:00.000" out="00:02:39.317">
    <property name="kdenlive:id">9</property>
    <filter id="filter_songtext0_qtblend">
     <property name="rotate_center">1</property>
     <property name="mlt_service">qtblend</property>
     <property name="kdenlive_id">qtblend</property>
-    <property name="rect">00:00:00.000=0 475 1920 8352 0.0;00:00:02.583=0 475 1920 8352 0.0;00:00:12.950=0 -245 1920 8352 1.0;00:00:14.467=0 -245 1920 8352 1.0;00:00:16.217=0 -389 1920 8352 1.0;00:00:17.867=0 -389 1920 8352 1.0;00:00:19.517=0 -533 1920 8352 1.0;00:00:21.783=0 -533 1920 8352 1.0;00:00:22.983=0 -677 1920 8352 1.0;00:00:24.183=0 -677 1920 8352 1.0;00:00:26.133=0 -821 1920 8352 1.0;00:00:27.617=0 -821 1920 8352 1.0;00:00:29.350=0 -965 1920 8352 1.0;00:00:31.033=0 -965 1920 8352 1.0;00:00:32.683=0 -1109 1920 8352 1.0;00:00:34.900=0 -1109 1920 8352 1.0;00:00:36.717=0 -1253 1920 8352 1.0;00:00:36.950=0 -1253 1920 8352 1.0;00:01:58.617=0 -6437 1920 8352 1.0;00:02:00.067=0 -6437 1920 8352 1.0;00:02:01.867=0 -6581 1920 8352 1.0;00:02:03.517=0 -6581 1920 8352 1.0;00:02:05.200=0 -6725 1920 8352 1.0;00:02:07.483=0 -6725 1920 8352 1.0;00:02:08.683=0 -6869 1920 8352 1.0;00:02:09.967=0 -6869 1920 8352 1.0;00:02:11.767=0 -7013 1920 8352 1.0;00:02:13.617=0 -7013 1920 8352 1.0;00:02:15.150=0 -7157 1920 8352 1.0;00:02:16.550=0 -7157 1920 8352 1.0;00:02:18.367=0 -7301 1920 8352 1.0;00:02:20.533=0 -7301 1920 8352 1.0;00:02:22.533=0 -7445 1920 8352 1.0;00:02:22.783=0 -7445 1920 8352 1.0;00:02:25.950=0 -7733 1920 8352 0.0;00:02:25.967=0 -7733 1920 8352 0.0</property>
+    <property name="rect">00:00:00.000=0 489 1920 4756 0.0;00:00:00.650=0 489 1920 4756 0.0;00:00:00.650=0 373 1920 4756 1.0;00:00:04.067=0 373 1920 4756 1.0;00:00:04.517=0 257 1920 4756 1.0;00:00:08.367=0 257 1920 4756 1.0;00:00:08.850=0 141 1920 4756 1.0;00:00:12.150=0 141 1920 4756 1.0;00:00:12.617=0 25 1920 4756 1.0;00:00:15.633=0 25 1920 4756 1.0;00:00:15.867=0 -91 1920 4756 1.0;00:00:19.417=0 -91 1920 4756 1.0;00:00:19.667=0 -207 1920 4756 1.0;00:00:23.550=0 -207 1920 4756 1.0;00:00:23.983=0 -323 1920 4756 1.0;00:00:27.400=0 -323 1920 4756 1.0;00:00:27.667=0 -439 1920 4756 1.0;00:00:30.283=0 -439 1920 4756 1.0;00:00:46.167=0 -903 1920 4756 1.0;00:00:49.650=0 -903 1920 4756 1.0;00:00:49.933=0 -1019 1920 4756 1.0;00:00:53.733=0 -1019 1920 4756 1.0;00:00:54.317=0 -1135 1920 4756 1.0;00:00:57.450=0 -1135 1920 4756 1.0;00:00:58.083=0 -1251 1920 4756 1.0;00:01:01.200=0 -1251 1920 4756 1.0;00:01:01.483=0 -1367 1920 4756 1.0;00:01:04.867=0 -1367 1920 4756 1.0;00:01:05.250=0 -1483 1920 4756 1.0;00:01:08.867=0 -1483 1920 4756 1.0;00:01:09.467=0 -1599 1920 4756 1.0;00:01:12.900=0 -1599 1920 4756 1.0;00:01:13.283=0 -1715 1920 4756 1.0;00:01:16.100=0 -1715 1920 4756 1.0;00:01:31.983=0 -2179 1920 4756 1.0;00:01:35.233=0 -2179 1920 4756 1.0;00:01:35.750=0 -2295 1920 4756 1.0;00:01:39.550=0 -2295 1920 4756 1.0;00:01:40.050=0 -2411 1920 4756 1.0;00:01:43.467=0 -2411 1920 4756 1.0;00:01:43.800=0 -2527 1920 4756 1.0;00:01:46.133=0 -2527 1920 4756 1.0;00:02:39.317=0 -4151 1920 4756 0.0;00:02:39.333=0 -4151 1920 4756 0.0</property>
     <property name="compositing">0</property>
     <property name="distort">0</property>
     <property name="kdenlive:collapsed">0</property>
@@ -1198,7 +1176,7 @@
   </entry>
  </playlist>
  <playlist autoclose="1" id="playlist19"/>
- <tractor id="tractor9" in="00:00:00.000" out="00:02:33.950">
+ <tractor id="tractor9" in="00:00:00.000" out="00:02:47.317">
   <property name="kdenlive:trackheight">69</property>
   <property name="kdenlive:timeline_active">1</property>
   <property name="kdenlive:collapsed">28</property>
@@ -1210,13 +1188,13 @@
  </tractor>
  <playlist autoclose="1" id="playlist20">
   <blank length="00:00:08.000"/>
-  <entry producer="producer_counter04" in="00:00:00.000" out="00:02:25.950">
+  <entry producer="producer_counter04" in="00:00:00.000" out="00:02:39.317">
    <property name="kdenlive:id">14</property>
    <filter id="filter_counter04_qtblend">
     <property name="rotate_center">1</property>
     <property name="mlt_service">qtblend</property>
     <property name="kdenlive_id">qtblend</property>
-    <property name="rect">00:00:00.000=0 0 1920 1080 0.0;00:00:09.617=0 0 1920 1080 0.0;00:00:09.650=0 0 1920 1080 1.0;00:00:10.433=0 -144 1920 1080 0.0;00:01:55.283=0 0 1920 1080 0.0;00:01:55.317=0 0 1920 1080 1.0;00:01:56.100=0 -144 1920 1080 0.0</property>
+    <property name="rect">00:00:00.000=0 0 1920 1080 0.0;00:00:42.333=0 0 1920 1080 0.0;00:00:42.359=0 0 1920 1080 1.0;00:00:43.283=0 -116 1920 1080 0.0;00:01:28.150=0 0 1920 1080 0.0;00:01:28.175=0 0 1920 1080 1.0;00:01:29.100=0 -116 1920 1080 0.0</property>
     <property name="compositing">0</property>
     <property name="distort">0</property>
     <property name="kdenlive:collapsed">0</property>
@@ -1225,7 +1203,7 @@
   </entry>
  </playlist>
  <playlist autoclose="1" id="playlist21"/>
- <tractor id="tractor10" in="00:00:00.000" out="00:02:33.950">
+ <tractor id="tractor10" in="00:00:00.000" out="00:02:47.317">
   <property name="kdenlive:trackheight">69</property>
   <property name="kdenlive:timeline_active">1</property>
   <property name="kdenlive:collapsed">28</property>
@@ -1237,13 +1215,13 @@
  </tractor>
  <playlist autoclose="1" id="playlist22">
   <blank length="00:00:08.000"/>
-  <entry producer="producer_counter03" in="00:00:00.000" out="00:02:25.950">
+  <entry producer="producer_counter03" in="00:00:00.000" out="00:02:39.317">
    <property name="kdenlive:id">13</property>
    <filter id="filter_counter03_qtblend">
     <property name="rotate_center">1</property>
     <property name="mlt_service">qtblend</property>
     <property name="kdenlive_id">qtblend</property>
-    <property name="rect">00:00:00.000=0 0 1920 1080 0.0;00:00:10.433=0 0 1920 1080 0.0;00:00:10.467=0 0 1920 1080 1.0;00:00:11.267=0 -144 1920 1080 0.0;00:01:56.100=0 0 1920 1080 0.0;00:01:56.133=0 0 1920 1080 1.0;00:01:56.933=0 -144 1920 1080 0.0</property>
+    <property name="rect">00:00:00.000=0 0 1920 1080 0.0;00:00:43.283=0 0 1920 1080 0.0;00:00:43.311=0 0 1920 1080 1.0;00:00:44.233=0 -116 1920 1080 0.0;00:01:29.100=0 0 1920 1080 0.0;00:01:29.127=0 0 1920 1080 1.0;00:01:30.050=0 -116 1920 1080 0.0</property>
     <property name="compositing">0</property>
     <property name="distort">0</property>
     <property name="kdenlive:collapsed">0</property>
@@ -1252,7 +1230,7 @@
   </entry>
  </playlist>
  <playlist autoclose="1" id="playlist23"/>
- <tractor id="tractor11" in="00:00:00.000" out="00:02:33.950">
+ <tractor id="tractor11" in="00:00:00.000" out="00:02:47.317">
   <property name="kdenlive:trackheight">69</property>
   <property name="kdenlive:timeline_active">1</property>
   <property name="kdenlive:collapsed">28</property>
@@ -1264,13 +1242,13 @@
  </tractor>
  <playlist autoclose="1" id="playlist24">
   <blank length="00:00:08.000"/>
-  <entry producer="producer_counter02" in="00:00:00.000" out="00:02:25.950">
+  <entry producer="producer_counter02" in="00:00:00.000" out="00:02:39.317">
    <property name="kdenlive:id">12</property>
    <filter id="filter_counter02_qtblend">
     <property name="rotate_center">1</property>
     <property name="mlt_service">qtblend</property>
     <property name="kdenlive_id">qtblend</property>
-    <property name="rect">00:00:00.000=0 0 1920 1080 0.0;00:00:11.267=0 0 1920 1080 0.0;00:00:11.300=0 0 1920 1080 1.0;00:00:12.083=0 -144 1920 1080 0.0;00:01:56.933=0 0 1920 1080 0.0;00:01:56.967=0 0 1920 1080 1.0;00:01:57.750=0 -144 1920 1080 0.0</property>
+    <property name="rect">00:00:00.000=0 0 1920 1080 0.0;00:00:44.233=0 0 1920 1080 0.0;00:00:44.263=0 0 1920 1080 1.0;00:00:45.183=0 -116 1920 1080 0.0;00:01:30.050=0 0 1920 1080 0.0;00:01:30.079=0 0 1920 1080 1.0;00:01:31.000=0 -116 1920 1080 0.0</property>
     <property name="compositing">0</property>
     <property name="distort">0</property>
     <property name="kdenlive:collapsed">0</property>
@@ -1279,7 +1257,7 @@
   </entry>
  </playlist>
  <playlist autoclose="1" id="playlist25"/>
- <tractor id="tractor12" in="00:00:00.000" out="00:02:33.950">
+ <tractor id="tractor12" in="00:00:00.000" out="00:02:47.317">
   <property name="kdenlive:trackheight">69</property>
   <property name="kdenlive:timeline_active">1</property>
   <property name="kdenlive:collapsed">28</property>
@@ -1291,13 +1269,13 @@
  </tractor>
  <playlist autoclose="1" id="playlist26">
   <blank length="00:00:08.000"/>
-  <entry producer="producer_counter01" in="00:00:00.000" out="00:02:25.950">
+  <entry producer="producer_counter01" in="00:00:00.000" out="00:02:39.317">
    <property name="kdenlive:id">11</property>
    <filter id="filter_counter01_qtblend">
     <property name="rotate_center">1</property>
     <property name="mlt_service">qtblend</property>
     <property name="kdenlive_id">qtblend</property>
-    <property name="rect">00:00:00.000=0 0 1920 1080 0.0;00:00:12.083=0 0 1920 1080 0.0;00:00:12.117=0 0 1920 1080 1.0;00:00:12.917=0 -144 1920 1080 0.0;00:01:57.750=0 0 1920 1080 0.0;00:01:57.783=0 0 1920 1080 1.0;00:01:58.583=0 -144 1920 1080 0.0</property>
+    <property name="rect">00:00:00.000=0 0 1920 1080 0.0;00:00:45.183=0 0 1920 1080 0.0;00:00:45.215=0 0 1920 1080 1.0;00:00:46.133=0 -116 1920 1080 0.0;00:01:31.000=0 0 1920 1080 0.0;00:01:31.031=0 0 1920 1080 1.0;00:01:31.950=0 -116 1920 1080 0.0</property>
     <property name="compositing">0</property>
     <property name="distort">0</property>
     <property name="kdenlive:collapsed">0</property>
@@ -1306,7 +1284,7 @@
   </entry>
  </playlist>
  <playlist autoclose="1" id="playlist27"/>
- <tractor id="tractor13" in="00:00:00.000" out="00:02:33.950">
+ <tractor id="tractor13" in="00:00:00.000" out="00:02:47.317">
   <property name="kdenlive:trackheight">69</property>
   <property name="kdenlive:timeline_active">1</property>
   <property name="kdenlive:collapsed">28</property>
@@ -1318,13 +1296,13 @@
  </tractor>
  <playlist autoclose="1" id="playlist28">
   <blank length="00:00:08.000"/>
-  <entry producer="producer_counter00" in="00:00:00.000" out="00:02:25.950">
+  <entry producer="producer_counter00" in="00:00:00.000" out="00:02:39.317">
    <property name="kdenlive:id">10</property>
    <filter id="filter_counter00_qtblend">
     <property name="rotate_center">1</property>
     <property name="mlt_service">qtblend</property>
     <property name="kdenlive_id">qtblend</property>
-    <property name="rect">00:00:00.000=0 0 1920 1080 0.0;00:00:12.917=0 0 1920 1080 0.0;00:00:12.950=0 0 1920 1080 1.0;00:00:13.750=0 -144 1920 1080 0.0;00:01:58.583=0 0 1920 1080 0.0;00:01:58.617=0 0 1920 1080 1.0;00:01:59.417=0 -144 1920 1080 0.0</property>
+    <property name="rect">00:00:00.000=0 0 1920 1080 0.0;00:00:00.617=0 0 1920 1080 0.0;00:00:00.650=0 0 1920 1080 1.0;00:00:01.567=0 -116 1920 1080 0.0;00:00:46.133=0 0 1920 1080 0.0;00:00:46.167=0 0 1920 1080 1.0;00:00:47.083=0 -116 1920 1080 0.0;00:01:31.950=0 0 1920 1080 0.0;00:01:31.983=0 0 1920 1080 1.0;00:01:32.900=0 -116 1920 1080 0.0</property>
     <property name="compositing">0</property>
     <property name="distort">0</property>
     <property name="kdenlive:collapsed">0</property>
@@ -1333,7 +1311,7 @@
   </entry>
  </playlist>
  <playlist autoclose="1" id="playlist29"/>
- <tractor id="tractor14" in="00:00:00.000" out="00:02:33.950">
+ <tractor id="tractor14" in="00:00:00.000" out="00:02:47.317">
   <property name="kdenlive:trackheight">69</property>
   <property name="kdenlive:timeline_active">1</property>
   <property name="kdenlive:collapsed">28</property>
@@ -1345,13 +1323,13 @@
  </tractor>
  <playlist autoclose="1" id="playlist30">
   <blank length="00:00:08.000"/>
-  <entry producer="producer_fadertext0" in="00:00:00.000" out="00:02:25.950">
+  <entry producer="producer_fadertext0" in="00:00:00.000" out="00:02:39.317">
    <property name="kdenlive:id">15</property>
    <filter id="filter_fadertext0_qtblend">
     <property name="rotate_center">1</property>
     <property name="mlt_service">qtblend</property>
     <property name="kdenlive_id">qtblend</property>
-    <property name="rect">00:00:00.000=0 0 1920 1080 0.000000;00:00:01.000=0 0 1920 1080 1.000000;00:02:24.967=0 0 1920 1080 1.000000;00:02:25.967=0 0 1920 1080 0.000000</property>
+    <property name="rect">00:00:00.000=0 0 1920 1080 0.000000;00:00:01.000=0 0 1920 1080 1.000000;00:02:38.333=0 0 1920 1080 1.000000;00:02:39.333=0 0 1920 1080 0.000000</property>
     <property name="compositing">0</property>
     <property name="distort">0</property>
     <property name="kdenlive:collapsed">0</property>
@@ -1360,7 +1338,7 @@
   </entry>
  </playlist>
  <playlist autoclose="1" id="playlist31"/>
- <tractor id="tractor15" in="00:00:00.000" out="00:02:33.950">
+ <tractor id="tractor15" in="00:00:00.000" out="00:02:47.317">
   <property name="kdenlive:trackheight">69</property>
   <property name="kdenlive:timeline_active">1</property>
   <property name="kdenlive:collapsed">28</property>
@@ -1372,13 +1350,13 @@
  </tractor>
  <playlist autoclose="1" id="playlist32">
   <blank length="00:00:08.000"/>
-  <entry producer="producer_header0" in="00:00:00.000" out="00:02:25.950">
+  <entry producer="producer_header0" in="00:00:00.000" out="00:02:39.317">
    <property name="kdenlive:id">16</property>
    <filter id="filter_header0_qtblend">
     <property name="rotate_center">1</property>
     <property name="mlt_service">qtblend</property>
     <property name="kdenlive_id">qtblend</property>
-    <property name="rect">00:00:00.000=0 0 1920 1080 0.000000;00:00:01.000=0 0 1920 1080 1.000000;00:02:24.967=0 0 1920 1080 1.000000;00:02:25.967=0 0 1920 1080 0.000000</property>
+    <property name="rect">00:00:00.000=0 0 1920 1080 0.000000;00:00:01.000=0 0 1920 1080 1.000000;00:02:38.333=0 0 1920 1080 1.000000;00:02:39.333=0 0 1920 1080 0.000000</property>
     <property name="compositing">0</property>
     <property name="distort">0</property>
     <property name="kdenlive:collapsed">0</property>
@@ -1387,7 +1365,7 @@
   </entry>
  </playlist>
  <playlist autoclose="1" id="playlist33"/>
- <tractor id="tractor16" in="00:00:00.000" out="00:02:33.950">
+ <tractor id="tractor16" in="00:00:00.000" out="00:02:47.317">
   <property name="kdenlive:trackheight">69</property>
   <property name="kdenlive:timeline_active">1</property>
   <property name="kdenlive:collapsed">28</property>
@@ -1399,22 +1377,22 @@
  </tractor>
  <playlist autoclose="1" id="playlist34">
   <blank length="00:00:08.000"/>
-  <entry producer="producer_watermark0" in="00:00:00.000" out="00:02:25.950">
+  <entry producer="producer_watermark0" in="00:00:00.000" out="00:02:39.317">
    <property name="kdenlive:id">17</property>
    <filter id="filter_watermark0_qtblend">
     <property name="rotate_center">1</property>
     <property name="mlt_service">qtblend</property>
     <property name="kdenlive_id">qtblend</property>
-    <property name="rect">00:00:00.000=0 0 1920 1080 0.478261;00:00:01.000=0 0 1920 1080 1.000000;00:02:24.967=0 0 1920 1080 1.000000;00:02:25.967=0 0 1920 1080 0.000000</property>
+    <property name="rect">00:00:00.000=0 0 1920 1080 0.000000;00:00:01.000=0 0 1920 1080 1.000000;00:02:38.333=0 0 1920 1080 1.000000;00:02:39.333=0 0 1920 1080 0.000000</property>
     <property name="compositing">0</property>
     <property name="distort">0</property>
     <property name="kdenlive:collapsed">0</property>
-    <property name="rotation">00:00:00.000=0;00:00:01.000=0;00:02:24.967=0;00:02:25.967=0</property>
+    <property name="rotation">00:00:00.000=0</property>
    </filter>
   </entry>
  </playlist>
  <playlist autoclose="1" id="playlist35"/>
- <tractor id="tractor17" in="00:00:00.000" out="00:02:33.950">
+ <tractor id="tractor17" in="00:00:00.000" out="00:02:47.317">
   <property name="kdenlive:trackheight">69</property>
   <property name="kdenlive:timeline_active">1</property>
   <property name="kdenlive:collapsed">28</property>
@@ -1424,7 +1402,7 @@
   <track hide="audio" producer="playlist34"/>
   <track hide="audio" producer="playlist35"/>
  </tractor>
- <tractor id="tractor18" in="00:00:00.000" out="00:10:53.967">
+ <tractor id="tractor18" in="00:00:00.000" out="00:11:07.333">
   <track producer="black_track"/>
   <track producer="tractor0"/>
   <track producer="tractor1"/>

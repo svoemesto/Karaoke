@@ -9,4 +9,7 @@ enum class SongOutputFile(val extension: String) {
     SUBTITLE(extension = "kdenlive.srt"),
     DESCRIPTION(extension = "txt"),
     TEXT(extension = "txt"),
+    RUN(extension = "run"),
+    RUNALL(extension = "run"),
+    MLT(extension = "mlt"),
 }

@@ -83,6 +83,7 @@ fun getMltFillSongtextEvenFilePlaylist(param: Map<String, Any?>, type:ProducerTy
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","compositing")), body = 0),
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","distort")), body = 1),
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:collapsed")), body = 0),
+                        MltNode(name = "property", fields = mutableMapOf(Pair("name","rotation")), body = "00:00:00.000=0")
                     )
                 ),
             ))
@@ -163,6 +164,7 @@ fun getMltFillSongtextOddFilePlaylist(param: Map<String, Any?>, type:ProducerTyp
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","compositing")), body = 0),
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","distort")), body = 1),
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:collapsed")), body = 0),
+                        MltNode(name = "property", fields = mutableMapOf(Pair("name","rotation")), body = "00:00:00.000=0")
                     )
                 ),
             ))

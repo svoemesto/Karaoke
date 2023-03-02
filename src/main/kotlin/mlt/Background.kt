@@ -64,6 +64,7 @@ fun getMltBackgroundFilePlaylist(param: Map<String, Any?>, type:ProducerType = P
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","mlt_service")), body = "lift_gamma_gain"),
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive_id")), body = "lift_gamma_gain"),
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:collapsed")), body = 0),
+                        MltNode(name = "property", fields = mutableMapOf(Pair("name","rotation")), body = "00:00:00.000=0")
                     )
                 ),
                 MltNode(name = "filter",
@@ -76,6 +77,7 @@ fun getMltBackgroundFilePlaylist(param: Map<String, Any?>, type:ProducerType = P
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","compositing")), body = 0),
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","distort")), body = 0),
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:collapsed")), body = 0),
+                        MltNode(name = "property", fields = mutableMapOf(Pair("name","rotation")), body = "00:00:00.000=0")
                     )
                 ),
             ))

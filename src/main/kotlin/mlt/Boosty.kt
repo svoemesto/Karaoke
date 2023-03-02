@@ -10,7 +10,7 @@ fun getMltBoostyProducer(param: Map<String, Any?>, type:ProducerType = ProducerT
         fields = mutableMapOf(
             Pair("id","producer_${type.text}${voiceId}"),
             Pair("in",param["SPLASHSTART_END_TIMECODE"].toString()),
-            Pair("out",param["BOOSTY_END_TIMECODE"].toString())
+            Pair("out",param["SONG_END_TIMECODE"].toString())
         ),
         body = mutableListOf(
             MltNode(name = "property", fields = mutableMapOf(Pair("name","length")), body = Karaoke.timeBoostyStartMs.toString()),
@@ -22,7 +22,7 @@ fun getMltBoostyProducer(param: Map<String, Any?>, type:ProducerType = ProducerT
             MltNode(name = "property", fields = mutableMapOf(Pair("name","mlt_service")), body = "kdenlivetitle"),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:duration")), body = param["BOOSTY_END_TIMECODE"]),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:clipname")), body = "${type.text.uppercase()}${if (voiceId==0) "" else voiceId}"),
-            MltNode(name = "property", fields = mutableMapOf(Pair("name","xmldata")), body = param["${type.text.uppercase()}${voiceId}_XML_DATA"]),
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","xmldata")), body = param["${type.text.uppercase()}${voiceId}_XML_DATA"].toString().xmldata()),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:folderid")), body = -1),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:clip_type")), body = 2),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:id")), body = (param["${type.text.uppercase()}${voiceId}_ID"] as Int)+voiceId*1000),
@@ -62,6 +62,7 @@ fun getMltBoostyFilePlaylist(param: Map<String, Any?>, type:ProducerType = Produ
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","compositing")), body = 0),
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","distort")), body = 0),
                         MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:collapsed")), body = 0),
+                        MltNode(name = "property", fields = mutableMapOf(Pair("name","rotation")), body = "00:00:00.000=0")
                     )
                 ),
             ))

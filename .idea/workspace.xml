@@ -5,34 +5,33 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="19caf878-7ce0-44d7-94a1-cf0a31300a8b" name="Changes" comment="Переделываем под новую концепцию">
-      <change afterPath="$PROJECT_DIR$/src/main/resources/test/1.mlt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/codeStyles/Project.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/codeStyles/codeStyleConfig.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/compiler.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/jarRepositories.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/libraries/Maven__clojure_interop_javax_sound_1_0_5.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/libraries/Maven__com_fasterxml_jackson_core_jackson_annotations_2_14_2.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/libraries/Maven__com_fasterxml_jackson_core_jackson_core_2_14_2.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/libraries/Maven__com_fasterxml_jackson_core_jackson_databind_2_14_2.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/libraries/Maven__org_clojure_clojure_1_8_0.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/libraries/Maven__org_jetbrains_annotations_13_0.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/libraries/Maven__org_jetbrains_kotlin_kotlin_stdlib_1_8_0.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/libraries/Maven__org_jetbrains_kotlin_kotlin_stdlib_common_1_8_0.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/libraries/Maven__org_jetbrains_kotlinx_kotlinx_serialization_core_jvm_1_5_0.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/libraries/Maven__org_jetbrains_kotlinx_kotlinx_serialization_json_1_5_0.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/libraries/Maven__org_jetbrains_kotlinx_kotlinx_serialization_json_jvm_1_5_0.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/libraries/Maven__org_jflac_jflac_codec_1_5_2.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/libraries/seleniumhq_selenium_chrome_driver.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/libraries/seleniumhq_selenium_java.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/Extentions.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Extentions.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Karaoke.iml" beforeDir="false" afterPath="$PROJECT_DIR$/Karaoke.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/Functions.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Functions.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/Main.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Main.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/MediaInfo.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/MediaInfo.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/Utils.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Utils.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/BackChords.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/BackChords.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/Background.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Background.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/Boosty.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Boosty.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/Counter.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Counter.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/FaderChords.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/FaderChords.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/FaderText.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/FaderText.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/FillcolorSongtext.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/FillcolorSongtext.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/Fingerboard.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Fingerboard.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/Flash.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Flash.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/Header.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Header.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/Horizon.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Horizon.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/Mlt.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Mlt.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/Progress.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Progress.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/SongText.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/SongText.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/SplashStart.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/SplashStart.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/mlt/Watermark.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/mlt/Watermark.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/model/ProducerType.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/model/ProducerType.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/model/Song.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/model/Song.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/model/SongOutputFile.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/model/SongOutputFile.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/resources/test/1.kdenlive" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/resources/test/2.kdenlive" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/resources/test/3.mlt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/test/2.mlt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -64,35 +63,43 @@
   <component name="MarkdownSettingsMigration">
     <option name="stateVersion" value="1" />
   </component>
+  <component name="MavenImportPreferences">
+    <option name="generalSettings">
+      <MavenGeneralSettings>
+        <option name="useMavenConfig" value="true" />
+      </MavenGeneralSettings>
+    </option>
+  </component>
   <component name="ProjectId" id="2EqjFb8HMnhO1aGF7tZnYgPupjn" />
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Downloaded.Files.Path.Enabled": "false",
-    "Repository.Attach.Annotations": "false",
-    "Repository.Attach.JavaDocs": "false",
-    "Repository.Attach.Sources": "false",
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "WebServerToolWindowFactoryState": "false",
-    "last_opened_file_path": "/home/nsa/Karaoke/src/main/resources/test",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "project.structure.last.edited": "Libraries",
-    "project.structure.proportion": "0.15",
-    "project.structure.side.proportion": "0.28704488",
-    "settings.editor.selected.configurable": "editor.preferences.tabs",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Downloaded.Files.Path.Enabled&quot;: &quot;true&quot;,
+    &quot;Repository.Attach.Annotations&quot;: &quot;false&quot;,
+    &quot;Repository.Attach.JavaDocs&quot;: &quot;false&quot;,
+    &quot;Repository.Attach.Sources&quot;: &quot;false&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
+    &quot;jdk.selected.JAVA_MODULE&quot;: &quot;1.8 (2)&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/home/nsa/Karaoke/src/main/resources/test&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;Libraries&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.15&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.28704488&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;MavenSettings&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/src/main/resources/test" />
@@ -109,7 +116,7 @@
       <command value="templateSongTextSymbolsGroup.add(                 MltNode(                     name = &quot;item&quot;,                     fields = mutableMapOf(Pair(&quot;type&quot;,&quot;QGraphicsTextItem&quot;), Pair(&quot;z-index&quot;,&quot;1&quot;)),                     body = mutableListOf(                         MltNode(                             name = &quot;position&quot;,                             fields = mutableMapOf(Pair(&quot;x&quot;,&quot;$x&quot;), Pair(&quot;y&quot;,&quot;$y&quot;)),                             body = mutableListOf(MltNode(name = &quot;transform&quot;, fields = mutableMapOf(), body = &quot;1,0,0,0,1,0,0,0,1&quot;))                         ),                         mltText.mltNode(text)                     )                 )             )" />
     </option>
   </component>
-  <component name="RunManager" selected="Kotlin.MainKt">
+  <component name="RunManager" selected="Kotlin.UtilsKt">
     <configuration name="MainKt" type="JetRunConfigurationType" temporary="true" nameIsGenerated="true">
       <option name="MAIN_CLASS_NAME" value="MainKt" />
       <module name="Karaoke" />
@@ -147,9 +154,9 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Kotlin.MainKt" />
         <item itemvalue="Kotlin.UtilsKt" />
         <item itemvalue="Kotlin.MediaInfoKt" />
+        <item itemvalue="Kotlin.MainKt" />
         <item itemvalue="Kotlin.SeleniumUtilsKt" />
         <item itemvalue="Kotlin.MainRibbon" />
       </list>
@@ -219,14 +226,18 @@
       <workItem from="1675766158357" duration="3861000" />
       <workItem from="1676203113118" duration="19567000" />
       <workItem from="1676463020022" duration="24646000" />
-      <workItem from="1676987107373" duration="76508000" />
-    </task>
-    <task id="LOCAL-00059" summary="Перенос настроек в файл и класс (процесс)">
-      <created>1664573949838</created>
-      <option name="number" value="00059" />
-      <option name="presentableId" value="LOCAL-00059" />
-      <option name="project" value="LOCAL" />
-      <updated>1664573949838</updated>
+      <workItem from="1676987107373" duration="76588000" />
+      <workItem from="1677733685882" duration="13730000" />
+      <workItem from="1678102174271" duration="14641000" />
+      <workItem from="1678422316733" duration="94931000" />
+      <workItem from="1679138502300" duration="6143000" />
+      <workItem from="1679216972044" duration="7119000" />
+      <workItem from="1679291959445" duration="1909000" />
+      <workItem from="1679300922862" duration="5000" />
+      <workItem from="1679378622641" duration="1214000" />
+      <workItem from="1679491654264" duration="7349000" />
+      <workItem from="1679559253045" duration="46260000" />
+      <workItem from="1679998567385" duration="10631000" />
     </task>
     <task id="LOCAL-00060" summary="Перенос настроек в файл и класс (процесс)">
       <created>1664615552427</created>
@@ -564,7 +575,14 @@
       <option name="project" value="LOCAL" />
       <updated>1677478862942</updated>
     </task>
-    <option name="localTasksCounter" value="108" />
+    <task id="LOCAL-00108" summary="Переделываем под новую концепцию">
+      <created>1677732094789</created>
+      <option name="number" value="00108" />
+      <option name="presentableId" value="LOCAL-00108" />
+      <option name="project" value="LOCAL" />
+      <updated>1677732094789</updated>
+    </task>
+    <option name="localTasksCounter" value="109" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

@@ -836,7 +836,7 @@ class Karaoke {
         // Текст Бусти
         var boostyText: String
             get() {
-                val defaultValue = "Поддержи создание караоке\nна https://boosty.to/svoemesto"
+                val defaultValue = "Поддержи создание караоке\nна https://boosty.to/svoemesto\n\nГруппа ВКонтакте:\nhttps://vk.com/svoemestokaraoke\n\nВсе ссылки - в описании."
                 props.loadFromXML(File(fileNameXml).inputStream())
                 return props.getProperty("boostyText",defaultValue)
             }

@@ -120,8 +120,8 @@ fun getMltBoostyTractor(param: Map<String, Any?>, type:ProducerType = ProducerTy
 fun getTemplateBoosty(param: Map<String, Any?>): MltNode {
 
     val (w, h) = getTextWidthHeightPx(Karaoke.boostyText, Karaoke.boostyFont.font)
-    val x = Karaoke.frameWidthPx / 2 - w.toLong() / 4 //(Karaoke.frameWidthPx - w.toLong()) / 2
-    val y = Karaoke.frameHeightPx / 2 - h.toLong()
+    val x = Karaoke.frameWidthPx / 2 - w.toLong() / 8 //(Karaoke.frameWidthPx - w.toLong()) / 2
+    val y = Karaoke.frameHeightPx / 4 - h.toLong()
 
     return MltNode(
         name = "kdenlivetitle",

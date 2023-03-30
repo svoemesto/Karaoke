@@ -43,6 +43,7 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
 
         return "${settings.songName} ★♫★ ${settings.author} ★♫★ ${songVersion.text} ★♫★ ${songVersion.textForDescription}${if (isBluetoothDelay) " ★♫★ video delay ${Karaoke.timeOffsetBluetoothSpeakerMs}ms for bluetooth speakers" else ""}".cutByWords() + "\n" +
                 "Поддержать создание караоке на https://boosty.to/svoemesto\n" +
+                "Группа ВКонтакте: https://vk.com/svoemestokaraoke\n\n" +
                 "Версия: ${songVersion.text} (${songVersion.textForDescription})${if (isBluetoothDelay) " с задержкой видео на ${Karaoke.timeOffsetBluetoothSpeakerMs}ms для bluetooth-колонок" else ""}\n" +
                 "Композиция: ${settings.songName}\n" +
                 "Исполнитель: ${settings.author}\n" +

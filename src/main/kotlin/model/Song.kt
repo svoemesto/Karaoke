@@ -36,7 +36,7 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
     private val REPEAT2_END_STRING = "[TE]"
     private val REPEAT2_PAST_STRING = "[TR]"
     fun getOutputFilename(songOutputFile: SongOutputFile, idBluetoothDelay: Boolean): String {
-        return "${settings.rootFolder}/done_${if (songOutputFile == SongOutputFile.PROJECT || songOutputFile == SongOutputFile.SUBTITLE || songOutputFile == SongOutputFile.MLT || songOutputFile == SongOutputFile.RUN || songOutputFile == SongOutputFile.RUNALL || songOutputFile == SongOutputFile.TEXT) "projects" else if (songOutputFile == SongOutputFile.PICTURECHORDS) "chords" else "files"}/${if (!settings.fileName.startsWith (settings.year.toString())) "${settings.year} " else ""}${settings.fileName}${songVersion.suffix}${if (idBluetoothDelay && songOutputFile != SongOutputFile.RUNALL) " bluetooth" else ""}${if (songOutputFile == SongOutputFile.PICTURECHORDS) " chords" else ""}${if (songOutputFile == SongOutputFile.PICTUREBOOSTY) " boosty" else ""}.${songOutputFile.extension}"
+        return "${settings.rootFolder}/done_${if (songOutputFile in listOf(SongOutputFile.PROJECT, SongOutputFile.SUBTITLE, SongOutputFile.MLT, SongOutputFile.RUN, SongOutputFile.RUNALL, SongOutputFile.TEXT)) "projects" else if (songOutputFile == SongOutputFile.PICTURECHORDS) "chords" else "files"}/${if (songOutputFile == SongOutputFile.VK) "[{REPLACE_DATE}_{REPLACE_TIME}] " else ""}${if (!settings.fileName.startsWith (settings.year.toString())) "${settings.year} " else ""}${settings.fileName}${songVersion.suffix}${if (idBluetoothDelay && songOutputFile != SongOutputFile.RUNALL) " bluetooth" else ""}${if (songOutputFile == SongOutputFile.PICTURECHORDS) " chords" else ""}${if (songOutputFile == SongOutputFile.PICTUREBOOSTY) " boosty" else ""}${if (songOutputFile == SongOutputFile.PICTUREVK) " VK" else ""}${if (songOutputFile == SongOutputFile.VK) " [VK]" else ""}.${songOutputFile.extension}"
     }
 
     fun getDescription(isBluetoothDelay: Boolean): String {
@@ -56,6 +56,30 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
                 "https://github.com/svoemesto/Karaoke\n" +
                 "${settings.songName.hashtag()} ${settings.author.hashtag()} ${"karaoke".hashtag()} ${"караоке".hashtag()}${if (songVersion == SongVersion.CHORDS) " ${"chords".hashtag()} ${"аккорды".hashtag()}" else ""}\n"
 
+    }
+
+    fun getVKDescription(): String {
+
+        return "${settings.songName} ★♫★ ${settings.author}" + "\n\n" +
+                "На Boosty:\n" +
+                "{REPLACE_BOOSTY_NORMAL}\n\n" +
+                "На Youtube:\n" +
+                "{REPLACE_LYRICS_NORMAL}\n" +
+                "{REPLACE_KARAOKE_NORMAL}\n" +
+                "{REPLACE_CHORDS_NORMAL}\n" +
+                "{REPLACE_LYRICS_DELAY}\n" +
+                "{REPLACE_KARAOKE_DELAY}\n" +
+                "{REPLACE_CHORDS_DELAY}\n" +
+                "\n" +
+                "Поддержать создание караоке на https://boosty.to/svoemesto\n\n" +
+                "Композиция: ${settings.songName}\n" +
+                "Исполнитель: ${settings.author}\n" +
+                "Альбом: ${settings.album}\n" +
+                "Год: ${settings.year}\n" +
+                "\n\n"+
+                getTextForDescription() +
+                "\n\n"+
+                "${settings.songName.hashtag()} ${settings.author.hashtag()} ${"karaoke".hashtag()} ${"караоке".hashtag()}${if (songVersion == SongVersion.CHORDS) " ${"chords".hashtag()} ${"аккорды".hashtag()}" else ""}\n"
     }
 
     fun getChordDescription(): String {

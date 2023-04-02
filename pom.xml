@@ -55,6 +55,14 @@
         </dependency>
 
 
+        <dependency>
+            <groupId>org.odftoolkit</groupId>
+            <artifactId>simple-odf</artifactId>
+            <version>0.9.0</version>
+        </dependency>
+
+
+
     </dependencies>
 
     <build>

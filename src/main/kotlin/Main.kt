@@ -10,7 +10,6 @@ fun main(args: Array<String>) {
     val mapFiles = mutableListOf<Pair<String,String>>(
 
 
-
 //        Pair("/home/nsa/Documents/Караоке/Пикник/2010 - Театр абсурда","2010 (01) [Пикник] - Театр абсурда"),
 //        Pair("/home/nsa/Documents/Караоке/Пикник/2010 - Театр абсурда","2010 (02) [Пикник] - Пикник Кукла с человеческим лицом"),
 //        Pair("/home/nsa/Documents/Караоке/Пикник/2010 - Театр абсурда","2010 (03) [Пикник] - Не в опере венской"),

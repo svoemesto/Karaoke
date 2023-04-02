@@ -1,6 +1,8 @@
 import com.google.gson.GsonBuilder
 import mlt.*
 import model.*
+import org.apache.commons.io.FileUtils
+import org.odftoolkit.simple.SpreadsheetDocument
 import java.awt.*
 import java.awt.image.BufferedImage
 import java.io.File
@@ -20,23 +22,33 @@ fun main() {
 
 //    createRunMlt("/home/nsa/Documents/Караоке/Nautilus Pompilius")
 //    createRunMlt("/home/nsa/Documents/Караоке/Агата Кристи")
-//    createRunMlt("/home/nsa/Documents/Караоке/Ария")
-//    createRunMlt("/home/nsa/Documents/Караоке/Вадим Самойлов")
-//    createRunMlt("/home/nsa/Documents/Караоке/Високосный год")
-//    createRunMlt("/home/nsa/Documents/Караоке/Горшок")
-//    createRunMlt("/home/nsa/Documents/Караоке/КИНО")
-//    createRunMlt("/home/nsa/Documents/Караоке/КняZz")
-//    createRunMlt("/home/nsa/Documents/Караоке/Король и Шут")
-//    createRunMlt("/home/nsa/Documents/Караоке/Павел Кашин")
-//    createRunMlt("/home/nsa/Documents/Караоке/Пикник")
-//    createRunMlt("/home/nsa/Documents/Караоке/Сплин")
-//    createRunMlt("/home/nsa/Documents/Караоке/Ундервуд")
+
 
 //    createBoostyTeserPictures("/home/nsa/Documents/Караоке/Ария")
 //    createRunMlt("/home/nsa/Documents/Караоке/Ария")
 //    testSoundLib()
 
-    createSettingsFilesForAll("/home/nsa/Documents/Караоке/Пикник/2012 - Певец декаданса")
+//    createSettingsFilesForAll("/home/nsa/Documents/Караоке/Разное/LEDENEV - Давай с тобой уедем")
+
+//    createVKtext("/home/nsa/Documents/Караоке/Nautilus Pompilius")
+//    createVKtext("/home/nsa/Documents/Караоке/Агата Кристи")
+//    createVKtext("/home/nsa/Documents/Караоке/Ария")
+//    createVKtext("/home/nsa/Documents/Караоке/Вадим Самойлов")
+//    createVKtext("/home/nsa/Documents/Караоке/Високосный год")
+//    createVKtext("/home/nsa/Documents/Караоке/Горшок")
+//    createVKtext("/home/nsa/Documents/Караоке/Король и Шут")
+//    createVKtext("/home/nsa/Documents/Караоке/Павел Кашин")
+//    createVKtext("/home/nsa/Documents/Караоке/Пикник")
+//    createVKtext("/home/nsa/Documents/Караоке/Сплин")
+    createVKtext("/home/nsa/Documents/Караоке/_DONE/Ткаченко Владимир/2020 - Человек-Лук")
+
+
+//    createVKPictures("/home/nsa/Documents/Караоке/_DONE/Ткаченко Владимир/2020 - Человек-Лук")
+//    createVKPictures("/home/nsa/Documents/Караоке/Разное/LEDENEV - Давай с тобой уедем")
+//    createVKPictures("/home/nsa/Documents/Караоке/Разное/Юра Шатунов - Седая Ночь")
+
+//    createRunToDecodeKaraokeTo720p("/home/nsa/Documents/Караоке/720p/ALL_720p.run", "/home/nsa/Documents/Караоке" , "/home/nsa/Documents/Караоке/720p/ALL_720p")
+
 }
 
 fun testSoundLib() {
@@ -127,6 +139,28 @@ fun createRunMlt(startFolder: String) {
 
 }
 
+fun createVKtext(startFolder: String) {
+    val spreadsheetDocument = SpreadsheetDocument.loadDocument(File(PATH_TO_ODS))
+    val listFiles = getListFiles(startFolder,"settings")
+    listFiles.forEach { pathToSettingsFile ->
+        val settings = Settings(pathToSettingsFile)
+        val song = Song(settings, SongVersion.LYRICS)
+        val fileName = song.getOutputFilename(SongOutputFile.VK, false)
+        val decsAndName = Ods.getSongVKDescription(song, fileName, spreadsheetDocument)
+        decsAndName?.let { (text, name) ->
+            if (text != "") {
+                println(name)
+                File(name).writeText(text)
+                val vkPictNameOld = (song.getOutputFilename(SongOutputFile.PICTUREVK, false)).replace(" [lyrics] VK"," [VK]")
+                val vkPictNameNew = name.replace(" [VK].txt", " [VK].png")
+                FileUtils.copyFile(File(vkPictNameOld), File(vkPictNameNew))
+            } else {
+                return@forEach
+            }
+        }
+    }
+    spreadsheetDocument.close()
+}
 fun createBoostyTeserPictures(startFolder: String) {
     val listFiles = getListFiles(startFolder,"settings")
     listFiles.forEach { pathToSettingsFile ->
@@ -134,6 +168,27 @@ fun createBoostyTeserPictures(startFolder: String) {
         val song = Song(settings, SongVersion.LYRICS)
         println(pathToSettingsFile)
         createBoostyTeaserPicture(song, song.getOutputFilename(SongOutputFile.PICTUREBOOSTY, false))
+    }
+}
+
+fun createRunToDecodeKaraokeTo720p(runFileName: String, sourceFolder: String, destinationFolder: String) {
+    val listFiles = getListFiles(sourceFolder, " [karaoke].mp4")
+    var txt = ""
+    Files.createDirectories(Path(destinationFolder))
+    listFiles.forEach { sourceFile ->
+        val destinationFile = destinationFolder + "/" + sourceFile.split("/").last().replace(" [karaoke].mp4", " [karaoke] 720p.mp4")
+        txt += "ffmpeg -i \"${sourceFile}\" -c:v h264_nvenc -vf \"scale=1280:720,fps=30\" -c:a libmp3lame \"${destinationFile}\" -y\n"
+    }
+    File(runFileName).writeText(txt)
+}
+
+fun createVKPictures(startFolder: String) {
+    val listFiles = getListFiles(startFolder,"settings")
+    listFiles.forEach { pathToSettingsFile ->
+        val settings = Settings(pathToSettingsFile)
+        val song = Song(settings, SongVersion.LYRICS)
+        println(pathToSettingsFile)
+        createVKPicture(song, song.getOutputFilename(SongOutputFile.PICTUREVK, false))
     }
 }
 
@@ -1125,6 +1180,57 @@ fun createBoostyTeaserPicture(song: Song, fileName: String) {
     graphics2D.dispose()
 
     val file = File(fileName.replace(" [lyrics] boosty"," [boosty]"))
+
+    ImageIO.write(resultImage, "png", file)
+
+}
+
+fun createVKPicture(song: Song, fileName: String) {
+    val pathToLogoAlbum = "${song.settings.rootFolder}/LogoAlbum.png"
+    val pathToLogoAuthor = "${song.settings.rootFolder}/LogoAuthor.png"
+
+    val frameW = 575
+    val frameH = 300
+    val opaque: Float = 1f
+    var fontSongname = Font(MAIN_FONT_NAME, 0, 10)
+    val colorSongname = Color(255,255,127,255)
+    var textToOverlay = song.settings.songName
+    val imageType = BufferedImage.TYPE_INT_ARGB
+    var resultImage = BufferedImage(frameW, frameH, imageType)
+    val graphics2D = resultImage.graphics as Graphics2D
+    val alphaChannel = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opaque)
+
+    val biLogoAlbum = ImageIO.read(File(pathToLogoAlbum))
+    val biLogoAuthor = ImageIO.read(File(pathToLogoAuthor))
+
+    graphics2D.composite = alphaChannel
+    graphics2D.background = Color.BLACK
+    graphics2D.color = Color.BLACK
+    graphics2D.fillRect(0,0,frameW, frameH)
+    graphics2D.color = colorSongname
+    graphics2D.font = fontSongname
+
+    var rectW = 0
+    var rectH = 0
+    do {
+        fontSongname = Font(fontSongname.name, fontSongname.style, fontSongname.size+1)
+        graphics2D.font = fontSongname
+        val fontMetrics = graphics2D.fontMetrics
+        val rect = fontMetrics.getStringBounds(textToOverlay, graphics2D)
+        rectW = rect.width.toInt()
+        rectH = rect.height.toInt()
+    } while (!(rectH > 130 || rectW > (frameW * 0.95)))
+
+    var centerX = (frameW - rectW) / 2
+    var centerY = (frameH - rectH) / 2 + rectH + 60
+    graphics2D.drawString(textToOverlay, centerX, centerY)
+
+    graphics2D.drawImage(resizeBufferedImage(biLogoAlbum,148, 148), 20, 20, null)
+    graphics2D.drawImage(resizeBufferedImage(biLogoAuthor, 370, 148), 188, 20, null)
+
+    graphics2D.dispose()
+
+    val file = File(fileName.replace(" [lyrics] VK"," [VK]"))
 
     ImageIO.write(resultImage, "png", file)
 

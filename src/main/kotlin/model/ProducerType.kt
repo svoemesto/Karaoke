@@ -1,6 +1,6 @@
 package model
 
-import com.sun.org.apache.xpath.internal.operations.Bool
+//import com.sun.org.apache.xpath.internal.operations.Bool
 
 enum class ProducerType(val text: String, val onlyOne: Boolean, val suffixes: List<String>, val ids: List<Int>, val isAudio: Boolean, val isVideo: Boolean, val coeffStatic: Int, val coeffVoice:Int) {
     NONE(text = "none", onlyOne = false, suffixes = emptyList(), ids = emptyList(), isAudio = false, isVideo = false, coeffStatic = 0, coeffVoice = 0),

@@ -834,6 +834,7 @@ fun createKaraoke(song: Song, isBluetoothDelay: Boolean) {
     fileDescription.writeText(song.getDescription(isBluetoothDelay))
 
     if (song.songVersion == SongVersion.LYRICS) createBoostyTeaserPicture(song, song.getOutputFilename(SongOutputFile.PICTUREBOOSTY, false))
+    if (song.songVersion == SongVersion.LYRICS) createVKPicture(song, song.getOutputFilename(SongOutputFile.PICTUREVK, false))
 
     val fileText = File(param["SONG_TEXT_FILENAME"].toString())
     Files.createDirectories(Path(fileText.parent))

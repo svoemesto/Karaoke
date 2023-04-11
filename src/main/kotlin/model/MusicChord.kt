@@ -1,8 +1,9 @@
 package model
 
+import java.io.Serializable
 import kotlin.math.absoluteValue
 
-enum class MusicChord(val text: String, val names: List<String>, val intervals: List<MusicInterval>) {
+enum class MusicChord(val text: String, val names: List<String>, val intervals: List<MusicInterval>) : Serializable {
     X (text = "мажорный аккорд (мажорное трезвучие)",
         names = listOf("","M","maj"),
         intervals = listOf(
@@ -690,7 +691,7 @@ data class Fingerboard(
     val indexNote: Int,
     var barre: Boolean = false,
     var muted: Boolean = false
-) {
+) : Serializable {
     override fun toString(): String {
         var result = "струна ${guitarString.number} лад ${rootFret} "
         for (i in 0 until 4) {

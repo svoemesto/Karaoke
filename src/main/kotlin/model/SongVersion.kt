@@ -1,6 +1,8 @@
 package model
 
-enum class SongVersion(val text: String, val textForDescription: String, val suffix: String, val producers: List<ProducerType>) {
+import java.io.Serializable
+
+enum class SongVersion(val text: String, val textForDescription: String, val suffix: String, val producers: List<ProducerType>) : Serializable {
     LYRICS(text = "Lyrics", textForDescription = "Song", suffix = " [lyrics]",
         producers = listOf(
             ProducerType.AUDIOSONG,

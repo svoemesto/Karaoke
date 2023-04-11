@@ -1,6 +1,8 @@
 package model
 
-enum class MusicNote(val text: String, val names: List<String>, val defaultRootFret: Int, val frequencies: List<Double>) {
+import java.io.Serializable
+
+enum class MusicNote(val text: String, val names: List<String>, val defaultRootFret: Int, val frequencies: List<Double>) : Serializable {
     C (text = "до", names = listOf("C", "B#", "B♯"), defaultRootFret = 0, frequencies = listOf(16.35, 32.7, 65.41, 130.8, 261.6, 523.3, 1047.0, 2093.0, 4186.0)),
     C_SHARP (text = "до диез", names = listOf("C#", "C♯", "D♭", "Db"), defaultRootFret = 4, frequencies = listOf(17.32, 34.65, 69.3, 138.6, 277.2, 554.4, 1109.0, 2217.0, 4435.0)),
     D (text = "ре", names = listOf("D"), defaultRootFret = 0, frequencies = listOf(18.35, 36.71, 73.42, 146.8, 293.7, 587.3, 1175.0, 2349.0, 4699.0)),
@@ -25,7 +27,7 @@ enum class MusicNote(val text: String, val names: List<String>, val defaultRootF
     }
 }
 
-data class NoteOctaveFret(val musicNote: MusicNote, val octave: Int, val fret: Int)
+data class NoteOctaveFret(val musicNote: MusicNote, val octave: Int, val fret: Int) : Serializable
 
 fun MusicNote.getStringsFrets(): List<Pair<GuitarString, List<Int>>> {
     return GuitarString.values().map { gs -> Pair(gs, gs.getFrets(this).map { it.fret }) }

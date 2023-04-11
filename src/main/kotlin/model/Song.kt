@@ -22,9 +22,10 @@ import hashtag
 import mlt.MltText
 import uppercaseFirstLetter
 import java.io.File
+import java.io.Serializable
 import kotlin.math.absoluteValue
 
-data class Song(val settings: Settings, val songVersion: SongVersion, val woInit: Boolean = false) {
+data class Song(val settings: Settings, val songVersion: SongVersion, val woInit: Boolean = false) : Serializable {
 
     private val REPLACE_STRING = "[R]"
     private val END_STRING = "[E]"
@@ -51,6 +52,19 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
                 "Год: ${settings.year}\n" +
                 (if (getChordDescription() !="") "${getChordDescription()}\n" else "") +
                 "\n\n"+
+                (if (songVersion != SongVersion.LYRICS && settings.idYoutubeLyrics != null) "Версия Lyrics: ${settings.linkYoutubeLyricsPlay}\n" else "") +
+                (if (songVersion == SongVersion.LYRICS && isBluetoothDelay && settings.idYoutubeLyrics != null) "Версия Lyrics: ${settings.linkYoutubeLyricsPlay}\n" else "") +
+                (if (songVersion != SongVersion.KARAOKE && settings.idYoutubeKaraoke != null) "Версия Karaoke: ${settings.linkYoutubeKaraokePlay}\n" else "") +
+                (if (songVersion == SongVersion.KARAOKE && isBluetoothDelay && settings.idYoutubeKaraoke != null) "Версия Karaoke: ${settings.linkYoutubeKaraokePlay}\n" else "") +
+                (if (songVersion != SongVersion.CHORDS && settings.idYoutubeChords != null) "Версия Chords: ${settings.linkYoutubeChordsPlay}\n" else "") +
+                (if (songVersion == SongVersion.CHORDS && isBluetoothDelay && settings.idYoutubeChords != null) "Версия Chords: ${settings.linkYoutubeChordsPlay}\n" else "") +
+                (if (songVersion != SongVersion.LYRICS && settings.idYoutubeLyricsBt != null) "Версия Lyrics with delay: ${settings.linkYoutubeLyricsBtPlay}\n" else "") +
+                (if (songVersion == SongVersion.LYRICS && !isBluetoothDelay && settings.idYoutubeLyricsBt != null) "Версия Lyrics with delay: ${settings.linkYoutubeLyricsBtPlay}\n" else "") +
+                (if (songVersion != SongVersion.KARAOKE && settings.idYoutubeKaraokeBt != null) "Версия Karaoke with delay: ${settings.linkYoutubeKaraokeBtPlay}\n" else "") +
+                (if (songVersion == SongVersion.KARAOKE && !isBluetoothDelay && settings.idYoutubeKaraokeBt != null) "Версия Karaoke with delay: ${settings.linkYoutubeKaraokeBtPlay}\n" else "") +
+                (if (songVersion != SongVersion.CHORDS && settings.idYoutubeChordsBt != null) "Версия Chords with delay: ${settings.linkYoutubeChordsBtPlay}\n" else "") +
+                (if (songVersion == SongVersion.CHORDS && !isBluetoothDelay && settings.idYoutubeChordsBt != null) "Версия Chords with delay: ${settings.linkYoutubeChordsBtPlay}\n" else "") +
+                "\n" +
                 getTextForDescription() +
                 "\n\n"+
                 "https://github.com/svoemesto/Karaoke\n" +
@@ -137,7 +151,7 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
         var isStartOfLine: Boolean,
         var isEndOfLine: Boolean,
         val isSetting: Boolean
-    )
+    ) : Serializable
 
     init {
         if (!woInit) {
@@ -648,7 +662,7 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
 data class SongVoice(
     val srtFileBody: String = "",
     var lines: MutableList<SongVoiceLine> = mutableListOf()
-) {
+) : Serializable {
     val maxDurationMs: Long
     get() {
         return lines.maxOf { it.durationMs }
@@ -724,7 +738,7 @@ data class SongVoice(
     }
 }
 
-enum class SongVoiceLineType {
+enum class SongVoiceLineType : Serializable {
     EMPTY,
     TEXT,
     CHORDS,
@@ -747,7 +761,7 @@ data class SongVoiceLine(
     var isMaxSingleLine: Boolean = false,
     var durationMs: Long = 0,
     var mltText: MltText,
-) {
+) : Serializable {
     fun getFillTps(voice: SongVoice, horizonPositionPx: Int, opacityFillValue: Double): String {
         val result: MutableList<TransformProperty> = mutableListOf()
 
@@ -994,7 +1008,7 @@ data class SongVoiceLineSymbol(
     var start: String,
     var mltText: MltText = Karaoke.voices[0].groups[0].mltText.copy(""),
     var mltTextBefore: MltText = Karaoke.voices[0].groups[0].mltText.copy("")
-) {
+) : Serializable {
     val hPx: Int get() = getTextWidthHeightPx("0", mltText.font).second.toInt()
     val xStartPx: Int get() = getTextWidthHeightPx(mltTextBefore.text, mltTextBefore.font).first.toInt()
     val xEndPx: Int get() = getTextWidthHeightPx(mltTextBefore.text+mltText.text, mltTextBefore.font).first.toInt()
@@ -1019,7 +1033,7 @@ data class Subtitle(
     var indexFirstSymbolInLine: Int = 0,
     var mltText: MltText = Karaoke.voices[0].groups[0].mltText.copy(""),
     var mltTextBefore: MltText = Karaoke.voices[0].groups[0].mltText.copy("")
-) {
+) : Serializable {
     val hPx: Int get() = getTextWidthHeightPx("0", mltText.font).second.toInt()
     val xStartPx: Int get() = getTextWidthHeightPx(mltTextBefore.text, mltTextBefore.font).first.toInt()
     val xEndPx: Int get() = getTextWidthHeightPx(mltTextBefore.text+mltText.text, mltTextBefore.font).first.toInt()
@@ -1036,4 +1050,4 @@ data class Subtitle(
 data class Chord(
     val timecode: String = "",
     val text: String = ""
-)
+): Serializable

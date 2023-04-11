@@ -30,18 +30,19 @@ fun main() {
 
 //    createSettingsFilesForAll("/home/nsa/Documents/Караоке/Разное/LEDENEV - Давай с тобой уедем")
 
-//    createVKtext("/home/nsa/Documents/Караоке/Nautilus Pompilius")
-//    createVKtext("/home/nsa/Documents/Караоке/Агата Кристи")
-//    createVKtext("/home/nsa/Documents/Караоке/Ария")
-//    createVKtext("/home/nsa/Documents/Караоке/Вадим Самойлов")
-//    createVKtext("/home/nsa/Documents/Караоке/Високосный год")
-//    createVKtext("/home/nsa/Documents/Караоке/Горшок")
-//    createVKtext("/home/nsa/Documents/Караоке/Король и Шут")
-//    createVKtext("/home/nsa/Documents/Караоке/Павел Кашин")
-//    createVKtext("/home/nsa/Documents/Караоке/Пикник")
-//    createVKtext("/home/nsa/Documents/Караоке/Сплин")
-    createVKtext("/home/nsa/Documents/Караоке/_DONE/Ткаченко Владимир/2020 - Человек-Лук")
+//    updateSettingsFromDb("/home/nsa/Documents/Караоке/Nautilus Pompilius")
+//    updateSettingsFromDb("/home/nsa/Documents/Караоке/Агата Кристи")
+//    updateSettingsFromDb("/home/nsa/Documents/Караоке/Ария")
+//    updateSettingsFromDb("/home/nsa/Documents/Караоке/Вадим Самойлов")
+//    updateSettingsFromDb("/home/nsa/Documents/Караоке/Високосный год")
+//    updateSettingsFromDb("/home/nsa/Documents/Караоке/Король и Шут")
+//    updateSettingsFromDb("/home/nsa/Documents/Караоке/Павел Кашин")
+//    updateSettingsFromDb("/home/nsa/Documents/Караоке/Пикник")
+//    updateSettingsFromDb("/home/nsa/Documents/Караоке/Разное")
+//    updateSettingsFromDb("/home/nsa/Documents/Караоке/Сплин")
+//    updateSettingsFromDb("/home/nsa/Documents/Караоке/Ундервуд")
 
+    createDescriptionFilesForAll("/home/nsa/Documents/Караоке")
 
 //    createVKPictures("/home/nsa/Documents/Караоке/_DONE/Ткаченко Владимир/2020 - Человек-Лук")
 //    createVKPictures("/home/nsa/Documents/Караоке/Разное/LEDENEV - Давай с тобой уедем")
@@ -49,6 +50,16 @@ fun main() {
 
 //    createRunToDecodeKaraokeTo720p("/home/nsa/Documents/Караоке/720p/ALL_720p.run", "/home/nsa/Documents/Караоке" , "/home/nsa/Documents/Караоке/720p/ALL_720p")
 
+}
+
+fun updateSettingsFromDb(startFolder: String) {
+    val spreadsheetDocument = SpreadsheetDocument.loadDocument(File(PATH_TO_ODS))
+    val listFiles = getListFiles(startFolder,"settings")
+    listFiles.forEach { pathToSettingsFile ->
+        println("updateSettingsFromDb: $pathToSettingsFile")
+        Settings.updateFromDb(pathToSettingsFile, spreadsheetDocument)
+    }
+    spreadsheetDocument.close()
 }
 
 fun testSoundLib() {
@@ -139,8 +150,8 @@ fun createRunMlt(startFolder: String) {
 
 }
 
-fun createVKtext(startFolder: String) {
-    val spreadsheetDocument = SpreadsheetDocument.loadDocument(File(PATH_TO_ODS))
+fun createVKtext(startFolder: String, fromDb: Boolean = false) {
+    val spreadsheetDocument = if (fromDb) SpreadsheetDocument.loadDocument(File(PATH_TO_ODS)) else null
     val listFiles = getListFiles(startFolder,"settings")
     listFiles.forEach { pathToSettingsFile ->
         val settings = Settings(pathToSettingsFile)
@@ -159,7 +170,7 @@ fun createVKtext(startFolder: String) {
             }
         }
     }
-    spreadsheetDocument.close()
+    if (fromDb) spreadsheetDocument!!.close()
 }
 fun createBoostyTeserPictures(startFolder: String) {
     val listFiles = getListFiles(startFolder,"settings")
@@ -177,7 +188,7 @@ fun createRunToDecodeKaraokeTo720p(runFileName: String, sourceFolder: String, de
     Files.createDirectories(Path(destinationFolder))
     listFiles.forEach { sourceFile ->
         val destinationFile = destinationFolder + "/" + sourceFile.split("/").last().replace(" [karaoke].mp4", " [karaoke] 720p.mp4")
-        txt += "ffmpeg -i \"${sourceFile}\" -c:v h264_nvenc -vf \"scale=1280:720,fps=30\" -c:a libmp3lame \"${destinationFile}\" -y\n"
+        txt += "ffmpeg -i \"${sourceFile}\" -c:v hevc_nvenc -preset fast -b:v 1000k -vf \"scale=1280:720,fps=30\" -c:a aac \"${destinationFile}\" -y\n"
     }
     File(runFileName).writeText(txt)
 }
@@ -192,6 +203,35 @@ fun createVKPictures(startFolder: String) {
     }
 }
 
+fun createDescriptionFilesForAll(startFolder: String) {
+
+    val listFiles = getListFiles(startFolder,"settings")
+    listFiles.forEach { pathToSettingsFile ->
+
+        println(pathToSettingsFile)
+
+        try {
+            val settings = Settings(pathToSettingsFile)
+            val songLyric = Song(settings, SongVersion.LYRICS)
+            val songKaraoke = Song(settings, SongVersion.KARAOKE)
+            val songChords = Song(settings, SongVersion.CHORDS)
+
+
+            File(songLyric.getOutputFilename(SongOutputFile.DESCRIPTION, false)).writeText(songLyric.getDescription(false))
+            File(songLyric.getOutputFilename(SongOutputFile.DESCRIPTION, true)).writeText(songLyric.getDescription(true))
+
+            File(songKaraoke.getOutputFilename(SongOutputFile.DESCRIPTION, false)).writeText(songKaraoke.getDescription(false))
+            File(songKaraoke.getOutputFilename(SongOutputFile.DESCRIPTION, true)).writeText(songKaraoke.getDescription(true))
+
+            if (songChords.hasChords) {
+                File(songChords.getOutputFilename(SongOutputFile.DESCRIPTION, false)).writeText(songChords.getDescription(false))
+                File(songChords.getOutputFilename(SongOutputFile.DESCRIPTION, true)).writeText(songChords.getDescription(true))
+            }
+        } catch (e: Exception) {
+            println("Ошибка, продолжаем...")
+        }
+    }
+}
 fun createSettingsFilesForAll(startFolder: String) {
     val patternFileName = "(\\d{4}).*\\s\\((\\d{2})\\)\\s\\[(.*)\\]\\s-\\s(.*)\\.(.*)"
     val regexpFileName = Regex(patternFileName)

@@ -1,8 +1,10 @@
 package model
 
+import java.io.Serializable
+
 //import com.sun.org.apache.xpath.internal.operations.Bool
 
-enum class ProducerType(val text: String, val onlyOne: Boolean, val suffixes: List<String>, val ids: List<Int>, val isAudio: Boolean, val isVideo: Boolean, val coeffStatic: Int, val coeffVoice:Int) {
+enum class ProducerType(val text: String, val onlyOne: Boolean, val suffixes: List<String>, val ids: List<Int>, val isAudio: Boolean, val isVideo: Boolean, val coeffStatic: Int, val coeffVoice:Int) : Serializable {
     NONE(text = "none", onlyOne = false, suffixes = emptyList(), ids = emptyList(), isAudio = false, isVideo = false, coeffStatic = 0, coeffVoice = 0),
     AUDIOVOCAL(text = "audiovocal", onlyOne = true, suffixes = emptyList(), ids = emptyList(), isAudio = true, isVideo = false, coeffStatic = 1, coeffVoice = 0),
     AUDIOMUSIC(text ="audiomusic", onlyOne = true, suffixes = emptyList(), ids = emptyList(), isAudio = true, isVideo = false, coeffStatic = 1, coeffVoice = 0),

@@ -1,6 +1,8 @@
 package model
 
-enum class MusicInterval (val halfTones: Int, val text: String) {
+import java.io.Serializable
+
+enum class MusicInterval (val halfTones: Int, val text: String) : Serializable {
     UNISON (halfTones = 0, text ="чистая прима (унисон)"),
     MINOR_SECOND (halfTones = 1, text ="малая секунда (полутон)"),
     MAJOR_SECOND (halfTones = 2, text ="большая секунда (целый тон)"),

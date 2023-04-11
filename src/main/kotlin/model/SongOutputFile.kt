@@ -1,6 +1,8 @@
 package model
 
-enum class SongOutputFile(val extension: String) {
+import java.io.Serializable
+
+enum class SongOutputFile(val extension: String) : Serializable {
     PROJECT(extension = "kdenlive"),
     VIDEO(extension = "mp4"),
     PICTURE(extension = "png"),

@@ -1,5 +1,7 @@
 package model
 
+import java.io.Serializable
+
 fun main() {
 
     for (i in 0 .. 12) {
@@ -35,7 +37,7 @@ fun main() {
 
 }
 
-enum class GuitarString(val text: String, val number: Int, val musicNote: MusicNote, val octave: Int, val countFrets: Int = 25) {
+enum class GuitarString(val text: String, val number: Int, val musicNote: MusicNote, val octave: Int, val countFrets: Int = 25) : Serializable {
     GS1(text = "1-я струна", number = 1, musicNote = MusicNote.E, octave = 4),
     GS2(text = "2-я струна", number = 2, musicNote = MusicNote.B, octave = 3),
     GS3(text = "3-я струна", number = 3, musicNote = MusicNote.G, octave = 3),

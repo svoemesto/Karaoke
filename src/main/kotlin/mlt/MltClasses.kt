@@ -6,6 +6,7 @@ import mlt
 import model.MltNode
 import java.awt.Color
 import java.awt.Font
+import java.io.Serializable
 
 data class MltObject(
     val _shape: MltShape,
@@ -17,7 +18,7 @@ data class MltObject(
     val _h: Int = 0,
     val alignmentX: MltObjectAlignmentX = MltObjectAlignmentX.CENTER,
     val alignmentY: MltObjectAlignmentY = MltObjectAlignmentY.CENTER
-) {
+) : Serializable {
 
     val shape: MltShape
         get() {
@@ -74,13 +75,13 @@ data class MltObject(
         }
 
 }
-enum class MltObjectType {
+enum class MltObjectType : Serializable {
     TEXT, RECTANGLE, CIRCLE, ROUNDEDRECTANGLE
 }
-enum class MltObjectAlignmentY {
+enum class MltObjectAlignmentY : Serializable {
     TOP, CENTER, BOTTOM
 }
-enum class MltObjectAlignmentX {
+enum class MltObjectAlignmentX : Serializable {
     LEFT, CENTER, RIGHT
 }
 data class MltText(
@@ -130,7 +131,7 @@ open class MltShape(
     open var shapeColor: Color,
     open var shapeOutline: Int,
     open var shapeOutlineColor: Color
-) {
+) : Serializable {
     open fun copy(): MltShape {
         return MltShape(
             type = type,

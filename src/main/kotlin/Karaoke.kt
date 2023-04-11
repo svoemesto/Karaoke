@@ -11,9 +11,10 @@ import mlt.setting
 import java.awt.Color
 import java.awt.Font
 import java.io.File
+import java.io.Serializable
 import java.util.*
 
-class Karaoke {
+class Karaoke : Serializable {
     companion object {
         private val fileNameXml = "src/main/resources/settings.xml"
         private val props = Properties()

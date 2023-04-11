@@ -26,35 +26,6 @@ fun createKaraokeAll(pathToSettingsFile: String) {
     createKaraoke(Song(settings, SongVersion.KARAOKE), true)
     createKaraoke(Song(settings, SongVersion.CHORDS), true)
 
-//    val fileRunAll = File(Song(settings, SongVersion.LYRICS).getOutputFilename(SongOutputFile.RUNALL, false).replace("[lyrics]","[all]"))
-//    var txtRunAll = ""
-//    val hasChords = Song(settings, SongVersion.CHORDS).hasChords
-//    var mltName = Song(settings, SongVersion.LYRICS).getOutputFilename(SongOutputFile.MLT, false)
-//    txtRunAll += "echo \"$mltName\"\n"
-//    txtRunAll += "melt -progress \"$mltName\"\n\n"
-//    mltName = Song(settings, SongVersion.KARAOKE).getOutputFilename(SongOutputFile.MLT, false)
-//    txtRunAll += "echo \"$mltName\"\n"
-//    txtRunAll += "melt -progress \"$mltName\"\n\n"
-//    if (hasChords) {
-//        mltName = Song(settings, SongVersion.CHORDS).getOutputFilename(SongOutputFile.MLT, false)
-//        txtRunAll += "echo \"$mltName\"\n"
-//        txtRunAll += "melt -progress \"$mltName\"\n\n"
-//    }
-//
-//    mltName = Song(settings, SongVersion.LYRICS).getOutputFilename(SongOutputFile.MLT, true)
-//    txtRunAll += "echo \"$mltName\"\n"
-//    txtRunAll += "melt -progress \"$mltName\"\n\n"
-//    mltName = Song(settings, SongVersion.KARAOKE).getOutputFilename(SongOutputFile.MLT, true)
-//    txtRunAll += "echo \"$mltName\"\n"
-//    txtRunAll += "melt -progress \"$mltName\"\n\n"
-//    if (hasChords) {
-//        mltName = Song(settings, SongVersion.CHORDS).getOutputFilename(SongOutputFile.MLT, true)
-//        txtRunAll += "echo \"$mltName\"\n"
-//        txtRunAll += "melt -progress \"$mltName\"\n\n"
-//    }
-//
-//    fileRunAll.writeText(txtRunAll)
-
 }
 fun createKaraoke(song: Song, isBluetoothDelay: Boolean) {
 

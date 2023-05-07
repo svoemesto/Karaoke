@@ -1,0 +1,10 @@
+version: '3'
+services:
+  karaoke-db:
+    container_name: karaoke-db
+    build: ./karaoke-db
+    ports:
+      - "5430:5432"
+    volumes:
+      - /home/nsa/Documents/Караоке/db:/var/lib/postgresql/data
+    restart: always

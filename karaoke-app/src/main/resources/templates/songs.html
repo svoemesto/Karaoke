@@ -1,0 +1,2051 @@
+<!doctype html>
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css" integrity="sha384-B0vP5xmATw1+K9KRQjQERJvTumQW0nPEzvF6L/Z6nronJ3oUOFUFpCjEUQouq2+l" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-Piv4xVNRyMGpqkS2by6br4gNJ7DXjqk09RmUpJ8jgGtD7zP9yug3goQfGII0yAns" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://unpkg.com/wavesurfer.js"></script>
+    <title>Песни</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        #areaScreen {
+            padding: 1em;
+            display: flex;
+            min-height: 100vh;
+            flex-direction: column;
+            margin: 0;
+        }
+
+        #areaHeader {
+            padding: 5px;
+            background: whitesmoke;
+            height: 50px;
+        }
+
+        #areaBody {
+            padding: 5px;
+            display: flex;
+            flex: 1;
+            background: beige;
+            max-height: calc(100vh - 135px);
+        }
+
+            #areaLeftColumn {
+                order: -1;
+                flex: 0 0 200px;
+                background: cadetblue;
+            }
+
+                #areaLeftTable{
+                    flex: 1;
+                    overflow-y: scroll;
+                    max-height: calc(100vh - 350px);
+                    background: #d5e6ff;
+                }
+
+            #areaCenterColumn {
+                flex: 1;
+                background: white;
+            }
+
+            #areaRightColumn {
+                flex: 0 0 100px;
+                background: dodgerblue;
+            }
+
+        #areaFooter {
+            padding: 5px;
+            background: yellowgreen;
+            height: 50px;
+        }
+
+        tbody tr.sub-row0:hover {
+            background: #d5e6ff; /* Цвет фона */
+        }
+        tbody tr.sub-row1:hover {
+            background: #d5e6ff; /* Цвет фона */
+        }
+        tbody tr.sub-row2:hover {
+            background: #f00; /* Цвет фона */
+        }
+
+        .sub-row0 { color: #000; background: #FFF; }
+        .sub-row1 { color: #000; background: #EEE; }
+        .sub-row2 { color: #000; background: #EC8888; }
+        .nonselrec {  color: #000 }
+        .selrec { color: #000; background: #f00; }
+
+    </style>
+
+    <script type="text/javascript">
+        function mouseClickRow(row){
+            document.getElementById("settings_songName").disabled = false;
+            document.getElementById("settings_author").disabled = false;
+            document.getElementById("settings_year").disabled = false;
+            document.getElementById("settings_album").disabled = false;
+            document.getElementById("settings_track").disabled = false;
+            document.getElementById("settings_date").disabled = false;
+            document.getElementById("settings_time").disabled = false;
+            document.getElementById("settings_key").disabled = false;
+            document.getElementById("settings_bpm").disabled = false;
+            document.getElementById("settings_ms").disabled = false;
+            document.getElementById("settings_fileName").disabled = false;
+            document.getElementById("settings_rootFolder").disabled = false;
+            document.getElementById("settings_idBoosty").disabled = false;
+            document.getElementById("settings_idVk").disabled = false;
+            document.getElementById("settings_idYoutubeLyrics").disabled = false;
+            document.getElementById("settings_idYoutubeLyricsBt").disabled = false;
+            document.getElementById("settings_idYoutubeKaraoke").disabled = false;
+            document.getElementById("settings_idYoutubeKaraokeBt").disabled = false;
+            document.getElementById("settings_idYoutubeChords").disabled = false;
+            document.getElementById("settings_idYoutubeChordsBt").disabled = false;
+            document.getElementById("settings_idVkLyrics").disabled = false;
+            document.getElementById("settings_idVkLyricsBt").disabled = false;
+            document.getElementById("settings_idVkKaraoke").disabled = false;
+            document.getElementById("settings_idVkKaraokeBt").disabled = false;
+            document.getElementById("settings_idVkChords").disabled = false;
+            document.getElementById("settings_idVkChordsBt").disabled = false;
+            document.getElementById("select_status").disabled = false;
+
+            document.getElementById("settings_id_text").innerText = '«' + row.cells[1].innerText + '»';
+            var index = 0;
+            document.getElementById("settings_id").value = row.cells[index].innerText;
+            index++;
+            document.getElementById("settings_songName").value = row.cells[index].innerText;
+            index++;
+            document.getElementById("settings_author").value = row.cells[index].innerText;
+            index++;
+            document.getElementById("settings_year").value = row.cells[index].innerText;
+            index++;
+            document.getElementById("settings_album").value = row.cells[index].innerText;
+            index++;
+            document.getElementById("settings_track").value = row.cells[index].innerText;
+            index++;
+            document.getElementById("settings_date").value = row.cells[index].innerText;
+            index++;
+            document.getElementById("settings_time").value = row.cells[index].innerText;
+            index++;
+            document.getElementById("settings_key").value = row.cells[index].innerText;
+            index++;
+            document.getElementById("settings_bpm").value = row.cells[index].innerText;
+            index++;
+            document.getElementById("settings_ms").value = row.cells[index].innerText;
+            index++;
+            document.getElementById("settings_fileName").value = row.cells[index].innerText;
+            index++;
+            document.getElementById("settings_rootFolder").value = row.cells[index].innerText;
+            index++;
+            document.getElementById("settings_idBoosty").value = row.cells[index].innerText;
+            index++;
+            document.getElementById("settings_idVk").value = row.cells[index].innerText;
+            index++;
+            document.getElementById("settings_idYoutubeLyrics").value = row.cells[index].innerText;
+            index++;
+            document.getElementById("settings_idYoutubeLyricsBt").value = row.cells[index].innerText;
+            index++;
+            document.getElementById("settings_idYoutubeKaraoke").value = row.cells[index].innerText;
+            index++;
+            document.getElementById("settings_idYoutubeKaraokeBt").value = row.cells[index].innerText;
+            index++;
+            document.getElementById("settings_idYoutubeChords").value = row.cells[index].innerText;
+            index++;
+            document.getElementById("settings_idYoutubeChordsBt").value = row.cells[index].innerText;
+            index++;
+            document.getElementById("settings_idVkLyrics").value = row.cells[index].innerText;
+            index++;
+            document.getElementById("settings_idVkLyricsBt").value = row.cells[index].innerText;
+            index++;
+            document.getElementById("settings_idVkKaraoke").value = row.cells[index].innerText;
+            index++;
+            document.getElementById("settings_idVkKaraokeBt").value = row.cells[index].innerText;
+            index++;
+            document.getElementById("settings_idVkChords").value = row.cells[index].innerText;
+            index++;
+            document.getElementById("settings_idVkChordsBt").value = row.cells[index].innerText;
+
+            document.getElementById("button_link_boosty").disabled = (document.getElementById("settings_idBoosty").value === '');
+            document.getElementById("button_link_vk").disabled = (document.getElementById("settings_idVk").value === '');
+            document.getElementById("button_link_play_YoutubeLyrics").disabled = (document.getElementById("settings_idYoutubeLyrics").value === '');
+            document.getElementById("button_link_edit_YoutubeLyrics").disabled = (document.getElementById("settings_idYoutubeLyrics").value === '');
+            document.getElementById("button_link_play_YoutubeLyricsBt").disabled = (document.getElementById("settings_idYoutubeLyricsBt").value === '');
+            document.getElementById("button_link_edit_YoutubeLyricsBt").disabled = (document.getElementById("settings_idYoutubeLyricsBt").value === '');
+            document.getElementById("button_link_play_YoutubeKaraoke").disabled = (document.getElementById("settings_idYoutubeKaraoke").value === '');
+            document.getElementById("button_link_edit_YoutubeKaraoke").disabled = (document.getElementById("settings_idYoutubeKaraoke").value === '');
+            document.getElementById("button_link_play_YoutubeKaraokeBt").disabled = (document.getElementById("settings_idYoutubeKaraokeBt").value === '');
+            document.getElementById("button_link_edit_YoutubeKaraokeBt").disabled = (document.getElementById("settings_idYoutubeKaraokeBt").value === '');
+            document.getElementById("button_link_play_YoutubeChords").disabled = (document.getElementById("settings_idYoutubeChords").value === '');
+            document.getElementById("button_link_edit_YoutubeChords").disabled = (document.getElementById("settings_idYoutubeChords").value === '');
+            document.getElementById("button_link_play_YoutubeChordsBt").disabled = (document.getElementById("settings_idYoutubeChordsBt").value === '');
+            document.getElementById("button_link_edit_YoutubeChordsBt").disabled = (document.getElementById("settings_idYoutubeChordsBt").value === '');
+
+            document.getElementById("button_link_play_VkLyrics").disabled = (document.getElementById("settings_idVkLyrics").value === '');
+            document.getElementById("button_link_edit_VkLyrics").disabled = (document.getElementById("settings_idVkLyrics").value === '');
+            document.getElementById("button_link_play_VkLyricsBt").disabled = (document.getElementById("settings_idVkLyricsBt").value === '');
+            document.getElementById("button_link_edit_VkLyricsBt").disabled = (document.getElementById("settings_idVkLyricsBt").value === '');
+            document.getElementById("button_link_play_VkKaraoke").disabled = (document.getElementById("settings_idVkKaraoke").value === '');
+            document.getElementById("button_link_edit_VkKaraoke").disabled = (document.getElementById("settings_idVkKaraoke").value === '');
+            document.getElementById("button_link_play_VkKaraokeBt").disabled = (document.getElementById("settings_idVkKaraokeBt").value === '');
+            document.getElementById("button_link_edit_VkKaraokeBt").disabled = (document.getElementById("settings_idVkKaraokeBt").value === '');
+            document.getElementById("button_link_play_VkChords").disabled = (document.getElementById("settings_idVkChords").value === '');
+            document.getElementById("button_link_edit_VkChords").disabled = (document.getElementById("settings_idVkChords").value === '');
+            document.getElementById("button_link_play_VkChordsBt").disabled = (document.getElementById("settings_idVkChordsBt").value === '');
+            document.getElementById("button_link_edit_VkChordsBt").disabled = (document.getElementById("settings_idVkChordsBt").value === '');
+            
+            document.getElementById("button_link_boosty").href = "https://boosty.to/svoemesto/posts/" + document.getElementById("settings_idBoosty").value
+            document.getElementById("button_link_vk").href = "https://vk.com/wall-" + document.getElementById("settings_idVk").value;
+            document.getElementById("button_link_play_YoutubeLyrics").href = "https://youtu.be/" + document.getElementById("settings_idYoutubeLyrics").value
+            document.getElementById("button_link_edit_YoutubeLyrics").href = "https://studio.youtube.com/video/" + document.getElementById("settings_idYoutubeLyrics").value + "/edit"
+            document.getElementById("button_link_play_YoutubeLyricsBt").href = "https://youtu.be/" + document.getElementById("settings_idYoutubeLyricsBt").value
+            document.getElementById("button_link_edit_YoutubeLyricsBt").href = "https://studio.youtube.com/video/" + document.getElementById("settings_idYoutubeLyricsBt").value + "/edit"
+            document.getElementById("button_link_play_YoutubeKaraoke").href = "https://youtu.be/" + document.getElementById("settings_idYoutubeKaraoke").value
+            document.getElementById("button_link_edit_YoutubeKaraoke").href = "https://studio.youtube.com/video/" + document.getElementById("settings_idYoutubeKaraoke").value + "/edit"
+            document.getElementById("button_link_play_YoutubeKaraokeBt").href = "https://youtu.be/" + document.getElementById("settings_idYoutubeKaraokeBt").value
+            document.getElementById("button_link_edit_YoutubeKaraokeBt").href = "https://studio.youtube.com/video/" + document.getElementById("settings_idYoutubeKaraokeBt").value + "/edit"
+            document.getElementById("button_link_play_YoutubeChords").href = "https://youtu.be/" + document.getElementById("settings_idYoutubeChords").value
+            document.getElementById("button_link_edit_YoutubeChords").href = "https://studio.youtube.com/video/" + document.getElementById("settings_idYoutubeChords").value + "/edit"
+            document.getElementById("button_link_play_YoutubeChordsBt").href = "https://youtu.be/" + document.getElementById("settings_idYoutubeChordsBt").value
+            document.getElementById("button_link_edit_YoutubeChordsBt").href = "https://studio.youtube.com/video/" + document.getElementById("settings_idYoutubeChordsBt").value + "/edit"
+
+            document.getElementById("button_link_play_VkLyrics").href = "https://vk.com/video" + document.getElementById("settings_idVkLyrics").value
+            document.getElementById("button_link_edit_VkLyrics").href = "https://vk.com/video" + document.getElementById("settings_idVkLyrics").value 
+            document.getElementById("button_link_play_VkLyricsBt").href = "https://vk.com/video" + document.getElementById("settings_idVkLyricsBt").value
+            document.getElementById("button_link_edit_VkLyricsBt").href = "https://vk.com/video" + document.getElementById("settings_idVkLyricsBt").value
+            document.getElementById("button_link_play_VkKaraoke").href = "https://vk.com/video" + document.getElementById("settings_idVkKaraoke").value
+            document.getElementById("button_link_edit_VkKaraoke").href = "https://vk.com/video" + document.getElementById("settings_idVkKaraoke").value 
+            document.getElementById("button_link_play_VkKaraokeBt").href = "https://vk.com/video" + document.getElementById("settings_idVkKaraokeBt").value
+            document.getElementById("button_link_edit_VkKaraokeBt").href = "https://vk.com/video" + document.getElementById("settings_idVkKaraokeBt").value
+            document.getElementById("button_link_play_VkChords").href = "https://vk.com/video" + document.getElementById("settings_idVkChords").value
+            document.getElementById("button_link_edit_VkChords").href = "https://vk.com/video" + document.getElementById("settings_idVkChords").value 
+            document.getElementById("button_link_play_VkChordsBt").href = "https://vk.com/video" + document.getElementById("settings_idVkChordsBt").value
+            document.getElementById("button_link_edit_VkChordsBt").href = "https://vk.com/video" + document.getElementById("settings_idVkChordsBt").value 
+
+            
+            document.getElementById("select_status").selectedIndex = row.cells[41].innerText;
+
+            var tbl = document.getElementById("leftTable");
+            for (var i = 0, rows; rows = tbl.rows[i]; i++) {
+                rows.cells[0].className = "nonselrec"
+                rows.className = "sub-row" + i%2;
+            }
+            row.className = "sub-row2";
+            row.cells[0].className = "selrec";
+
+            document.getElementById("waveform").innerHTML = "";
+            var wavesurfer = WaveSurfer.create({
+                container: '#waveform',
+                waveColor: 'violet',
+                progressColor: 'purple',
+                backend: 'MediaElement'
+                });
+            wavesurfer.clear;
+            wavesurfer.load('/song/' + row.cells[0].innerText + '/file');
+            // wavesurfer.play();
+            // wavesurfer.zoom(100);
+            // wavesurfer.barWidth = 10;
+        }
+
+
+
+        function doPostForm() {
+
+            var dataString = $('#myForm').serialize();
+
+            $.ajax({
+                type: "POST",
+                url: "/songs_update",
+                data: dataString,
+                success: function() {
+                    doRowColor()
+                    var tbl = document.getElementById("leftTable");
+                    for (var i = 0, row; row = tbl.rows[i]; i++) {
+                        var col = row.cells;
+                        var index = 0;
+                        if (col[index].innerText == document.getElementById("settings_id").value) {
+                            index++;
+                            col[index].innerText = document.getElementById("settings_songName").value;
+                            index++;
+                            col[index].innerText = document.getElementById("settings_author").value;
+                            index++;
+                            col[index].innerText = document.getElementById("settings_year").value;
+                            index++;
+                            col[index].innerText = document.getElementById("settings_album").value;
+                            index++;
+                            col[index].innerText = document.getElementById("settings_track").value;
+                            index++;
+                            col[index].innerText = document.getElementById("settings_date").value;
+                            index++;
+                            col[index].innerText = document.getElementById("settings_time").value;
+                            index++;
+                            col[index].innerText = document.getElementById("settings_key").value;
+                            index++;
+                            col[index].innerText = document.getElementById("settings_bpm").value;
+                            index++;
+                            col[index].innerText = document.getElementById("settings_ms").value;
+                            index++;
+                            col[index].innerText = document.getElementById("settings_fileName").value;
+                            index++;
+                            col[index].innerText = document.getElementById("settings_rootFolder").value;
+                            index++;
+                            col[index].innerText = document.getElementById("settings_idBoosty").value;
+                            index++;
+                            col[index].innerText = document.getElementById("settings_idVk").value;
+                            index++;
+                            col[index].innerText = document.getElementById("settings_idYoutubeLyrics").value;
+                            index++;
+                            col[index].innerText = document.getElementById("settings_idYoutubeLyricsBt").value;
+                            index++;
+                            col[index].innerText = document.getElementById("settings_idYoutubeKaraoke").value;
+                            index++;
+                            col[index].innerText = document.getElementById("settings_idYoutubeKaraokeBt").value;
+                            index++;
+                            col[index].innerText = document.getElementById("settings_idYoutubeChords").value;
+                            index++;
+                            col[index].innerText = document.getElementById("settings_idYoutubeChordsBt").value;
+                            index++;
+                            col[index].innerText = document.getElementById("settings_idVkLyrics").value;
+                            index++;
+                            col[index].innerText = document.getElementById("settings_idVkLyricsBt").value;
+                            index++;
+                            col[index].innerText = document.getElementById("settings_idVkKaraoke").value;
+                            index++;
+                            col[index].innerText = document.getElementById("settings_idVkKaraokeBt").value;
+                            index++;
+                            col[index].innerText = document.getElementById("settings_idVkChords").value;
+                            index++;
+                            col[index].innerText = document.getElementById("settings_idVkChordsBt").value;
+                            index++;
+                            if (document.getElementById("settings_idBoosty").value != "") {
+                                col[index].innerText = '✓';
+                            } else {
+                                col[index].innerText = '';
+                            }
+
+                            index++;
+                            if (document.getElementById("settings_idVk").value != "") {
+                                col[index].innerText = '✓';
+                            } else {
+                                col[index].innerText = '';
+                            }
+
+                            index++;
+                            if (document.getElementById("settings_idYoutubeLyrics").value != "") {
+                                col[index].innerText = '✓';
+                            } else {
+                                col[index].innerText = '';
+                            }
+
+                            index++;
+                            if (document.getElementById("settings_idYoutubeKaraoke").value != "") {
+                                col[index].innerText = '✓';
+                            } else {
+                                col[index].innerText = '';
+                            }
+
+                            index++;
+                            if (document.getElementById("settings_idYoutubeLyricsBt").value != "") {
+                                col[index].innerText = '✓';
+                            } else {
+                                col[index].innerText = '';
+                            }
+
+                            index++;
+                            if (document.getElementById("settings_idYoutubeKaraokeBt").value != "") {
+                                col[index].innerText = '✓';
+                            } else {
+                                col[index].innerText = '';
+                            }
+
+                            index++;
+                            if (document.getElementById("settings_idYoutubeChords").value != "") {
+                                col[index].innerText = '✓';
+                            } else {
+                                col[index].innerText = '';
+                            }
+
+                            index++;
+                            if (document.getElementById("settings_idYoutubeChordsBt").value != "") {
+                                col[index].innerText = '✓';
+                            } else {
+                                col[index].innerText = '';
+                            }
+
+
+
+                            index++;
+                            if (document.getElementById("settings_idVkLyrics").value != "") {
+                                col[index].innerText = '✓';
+                            } else {
+                                col[index].innerText = '';
+                            }
+
+                            index++;
+                            if (document.getElementById("settings_idVkKaraoke").value != "") {
+                                col[index].innerText = '✓';
+                            } else {
+                                col[index].innerText = '';
+                            }
+
+                            index++;
+                            if (document.getElementById("settings_idVkLyricsBt").value != "") {
+                                col[index].innerText = '✓';
+                            } else {
+                                col[index].innerText = '';
+                            }
+
+                            index++;
+                            if (document.getElementById("settings_idVkKaraokeBt").value != "") {
+                                col[index].innerText = '✓';
+                            } else {
+                                col[index].innerText = '';
+                            }
+
+                            index++;
+                            if (document.getElementById("settings_idVkChords").value != "") {
+                                col[index].innerText = '✓';
+                            } else {
+                                col[index].innerText = '';
+                            }
+
+                            index++;
+                            if (document.getElementById("settings_idVkChordsBt").value != "") {
+                                col[index].innerText = '✓';
+                            } else {
+                                col[index].innerText = '';
+                            }
+                            
+                            
+                            var selectElement = document.getElementById("select_status");
+                            index++;
+                            col[index].innerText = selectElement.selectedIndex
+                            index++;
+                            col[index].innerText = selectElement.options[selectElement.selectedIndex].text;
+                        }
+                    }
+                }
+            });
+            return false;
+        }
+
+        function doFilterForm() {
+            var filter_id = encodeURIComponent(document.getElementById("filter_id").value);
+            var filter_songName = encodeURIComponent(document.getElementById("filter_songName").value);
+            var filter_author = encodeURIComponent(document.getElementById("filter_author").value);
+            var filter_year = encodeURIComponent(document.getElementById("filter_year").value);
+            var filter_album = encodeURIComponent(document.getElementById("filter_album").value);
+            var filter_track = encodeURIComponent(document.getElementById("filter_track").value);
+            var filter_date = encodeURIComponent(document.getElementById("filter_date").value);
+            var filter_time = encodeURIComponent(document.getElementById("filter_time").value);
+            var filter_flag_boosty = encodeURIComponent(document.getElementById("filter_flag_boosty").value);
+            var filter_flag_vk = encodeURIComponent(document.getElementById("filter_flag_vk").value);
+            var filter_flag_yl = encodeURIComponent(document.getElementById("filter_flag_yl").value);
+            var filter_flag_ylb = encodeURIComponent(document.getElementById("filter_flag_ylb").value);
+            var filter_flag_yk = encodeURIComponent(document.getElementById("filter_flag_yk").value);
+            var filter_flag_ykb = encodeURIComponent(document.getElementById("filter_flag_ykb").value);
+            var filter_flag_yc = encodeURIComponent(document.getElementById("filter_flag_yc").value);
+            var filter_flag_ycb = encodeURIComponent(document.getElementById("filter_flag_ycb").value);
+            var filter_flag_vkl = encodeURIComponent(document.getElementById("filter_flag_vkl").value);
+            var filter_flag_vklb = encodeURIComponent(document.getElementById("filter_flag_vklb").value);
+            var filter_flag_vkk = encodeURIComponent(document.getElementById("filter_flag_vkk").value);
+            var filter_flag_vkkb = encodeURIComponent(document.getElementById("filter_flag_vkkb").value);
+            var filter_flag_vkc = encodeURIComponent(document.getElementById("filter_flag_vkc").value);
+            var filter_flag_vkcb = encodeURIComponent(document.getElementById("filter_flag_vkcb").value);
+            var url = "/songs?filter_id=" + filter_id +
+                "&filter_songName=" + filter_songName +
+                "&filter_author=" + filter_author +
+                "&filter_year=" + filter_year +
+                "&filter_album=" + filter_album +
+                "&filter_track=" + filter_track +
+                "&filter_date=" + filter_date +
+                "&filter_time=" + filter_time +
+                "&flag_boosty=" + filter_flag_boosty +
+                "&flag_vk=" + filter_flag_vk +
+                "&flag_youtube_lyrics=" + filter_flag_yl +
+                "&flag_youtube_lyrics_bt=" + filter_flag_ylb +
+                "&flag_youtube_karaoke=" + filter_flag_yk +
+                "&flag_youtube_karaoke_bt=" + filter_flag_ykb +
+                "&flag_youtube_chords=" + filter_flag_yc +
+                "&flag_youtube_chords_bt=" + filter_flag_ycb +
+                "&flag_vk_lyrics=" + filter_flag_vkl +
+                "&flag_vk_lyrics_bt=" + filter_flag_vklb +
+                "&flag_vk_karaoke=" + filter_flag_vkk +
+                "&flag_vk_karaoke_bt=" + filter_flag_vkkb +
+                "&flag_vk_chords=" + filter_flag_vkc +
+                "&flag_vk_chords_bt=" + filter_flag_vkcb;
+            window.location.href = url;
+
+        }
+
+        function doRowColor() {
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/color", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                var row = document.getElementById("row" + id);
+                row.style.backgroundColor = result;
+            }
+        }
+
+        function doTextYoutubeLyricsWOHeader() {
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/textyoutubelyricswoheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                navigator.clipboard.writeText(result);
+                alert(result);
+            }
+        }
+
+        function doTextYoutubeLyricsBtWOHeader() {
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/textyoutubelyricsbtwoheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                navigator.clipboard.writeText(result);
+                alert(result);
+            }
+        }
+
+        function doTextYoutubeKaraokeWOHeader() {
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/textyoutubekaraokewoheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                navigator.clipboard.writeText(result);
+                alert(result);
+            }
+        }
+
+        function doTextYoutubeKaraokeBtWOHeader() {
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/textyoutubekaraokebtwoheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                navigator.clipboard.writeText(result);
+                alert(result);
+            }
+        }
+
+        function doTextYoutubeChordsWOHeader() {
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/textyoutubechordswoheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                navigator.clipboard.writeText(result);
+                alert(result);
+            }
+        }
+
+        function doTextYoutubeChordsBtWOHeader() {
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/textyoutubechordsbtwoheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                navigator.clipboard.writeText(result);
+                alert(result);
+            }
+        }
+
+
+        function doTextYoutubeLyricsHeader() {
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/textyoutubelyricsheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                navigator.clipboard.writeText(result);
+                alert(result);
+            }
+        }
+
+        function doTextYoutubeLyricsBtHeader() {
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/textyoutubelyricsbtheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                navigator.clipboard.writeText(result);
+                alert(result);
+            }
+        }
+
+        function doTextYoutubeKaraokeHeader() {
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/textyoutubekaraokeheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                navigator.clipboard.writeText(result);
+                alert(result);
+            }
+        }
+
+        function doTextYoutubeKaraokeBtHeader() {
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/textyoutubekaraokebtheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                navigator.clipboard.writeText(result);
+                alert(result);
+            }
+        }
+
+        function doTextYoutubeChordsHeader() {
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/textyoutubechordsheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                navigator.clipboard.writeText(result);
+                alert(result);
+            }
+        }
+
+        function doTextYoutubeChordsBtHeader() {
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/textyoutubechordsbtheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                navigator.clipboard.writeText(result);
+                alert(result);
+            }
+        }
+
+
+
+
+
+
+
+        function doTextVkLyricsWOHeader() {
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/textvklyricswoheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                navigator.clipboard.writeText(result);
+                // alert(result);
+            }
+        }
+
+        function doTextVkLyricsBtWOHeader() {
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/textvklyricsbtwoheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                navigator.clipboard.writeText(result);
+                // alert(result);
+            }
+        }
+
+        function doTextVkKaraokeWOHeader() {
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/textvkkaraokewoheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                navigator.clipboard.writeText(result);
+                // alert(result);
+            }
+        }
+
+        function doTextVkKaraokeBtWOHeader() {
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/textvkkaraokebtwoheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                navigator.clipboard.writeText(result);
+                // alert(result);
+            }
+        }
+
+        function doTextVkChordsWOHeader() {
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/textvkchordswoheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                navigator.clipboard.writeText(result);
+                // alert(result);
+            }
+        }
+
+        function doTextVkChordsBtWOHeader() {
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/textvkchordsbtwoheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                navigator.clipboard.writeText(result);
+                // alert(result);
+            }
+        }
+
+
+        function doTextVkLyricsHeader() {
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/textvklyricsheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                navigator.clipboard.writeText(result);
+                // alert(result);
+            }
+        }
+
+        function doTextVkLyricsBtHeader() {
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/textvklyricsbtheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                navigator.clipboard.writeText(result);
+                // alert(result);
+            }
+        }
+
+        function doTextVkKaraokeHeader() {
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/textvkkaraokeheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                navigator.clipboard.writeText(result);
+                // alert(result);
+            }
+        }
+
+        function doTextVkKaraokeBtHeader() {
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/textvkkaraokebtheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                navigator.clipboard.writeText(result);
+                // alert(result);
+            }
+        }
+
+        function doTextVkChordsHeader() {
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/textvkchordsheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                navigator.clipboard.writeText(result);
+                // alert(result);
+            }
+        }
+
+        function doTextVkChordsBtHeader() {
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/textvkchordsbtheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                navigator.clipboard.writeText(result);
+                // alert(result);
+            }
+        }
+
+
+        function doTextBoostyHead() {
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/textboostyhead", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                navigator.clipboard.writeText(result);
+                // alert(result);
+            }
+        }
+
+        function doTextBoostyBody() {
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/textboostybody", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                navigator.clipboard.writeText(result);
+                // alert(result);
+            }
+        }
+
+        function doTextVKBody() {
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/textvkbody", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                navigator.clipboard.writeText(result);
+                // alert(result);
+            }
+        }
+
+        function doCreateKaraoke() {
+            var id = document.getElementById("settings_id").value;
+            $.ajax({
+                type: "GET",
+                url: "/song/" + id + "/createkaraoke",
+                data: "",
+                success: function(data) {
+                    let startIndex = data.indexOf("<div>");
+                    let endIndex = data.indexOf("</div>", startIndex);
+                    let textBetweenDivs = data.substring(startIndex + 5, endIndex);
+                    alert(textBetweenDivs);
+                }
+            });
+        }
+
+
+        function doEditSubs(voice) {
+            var id = document.getElementById("settings_id").value;
+            var link = "song/" + id + "/" + voice + "/editsubs"
+            window.open(link, '_blank');
+        }
+
+        function doCreateKdenliveFiles() {
+            var id = document.getElementById("settings_id").value;
+            var dataString = {'overrideKdenliveFile':true, 'overrideKdenliveSubsFile':false}
+            $.ajax({
+                type: "GET",
+                url: "/song/" + id + "/createkdenlivefiles",
+                data: dataString,
+                success: function(data) {
+                    let startIndex = data.indexOf("<div>");
+                    let endIndex = data.indexOf("</div>", startIndex);
+                    let textBetweenDivs = data.substring(startIndex + 5, endIndex);
+                    alert(textBetweenDivs);
+                }
+            });
+        }
+
+        function doCreateKaraokeAll() {
+            var txt = ""
+            var tbl = document.getElementById("leftTable");
+            var cnt = 0;
+            for (var i = 0, row; row = tbl.rows[i]; i++) {
+                cnt++;
+                var col = row.cells;
+                txt = txt + col[0].innerText + ";"
+            }
+            if (confirm("Выбрано песен: " + cnt + "\nВы действительно хотите создать караоке для всех этих песен?")) {
+
+                console.log("txt: " + txt);
+                $.ajax({
+                    type: "POST",
+                    url: "/songs/createkaraokeall",
+                    data: {"txt": txt},
+                    success: function(data) {
+                        let startIndex = data.indexOf("<div>");
+                        let endIndex = data.indexOf("</div>", startIndex);
+                        let textBetweenDivs = data.substring(startIndex + 5, endIndex);
+                        alert(textBetweenDivs);
+                    }
+                });
+            }
+
+
+        }
+
+        function extractYoutubeVideoId(inputElement) {
+            // Получаем значение из поля ввода
+            var inputValue = inputElement.value.trim();
+
+            if (inputValue.startsWith('https://youtu.be/')) {
+                const id = inputValue.replace('https://youtu.be/', '');
+                inputElement.value = id;
+
+                document.getElementById("button_link_play_YoutubeLyrics").href = "https://youtu.be/" + document.getElementById("settings_idYoutubeLyrics").value
+                document.getElementById("button_link_edit_YoutubeLyrics").href = "https://studio.youtube.com/video/" + document.getElementById("settings_idYoutubeLyrics").value + "/edit"
+                document.getElementById("button_link_play_YoutubeLyricsBt").href = "https://youtu.be/" + document.getElementById("settings_idYoutubeLyricsBt").value
+                document.getElementById("button_link_edit_YoutubeLyricsBt").href = "https://studio.youtube.com/video/" + document.getElementById("settings_idYoutubeLyricsBt").value + "/edit"
+                document.getElementById("button_link_play_YoutubeKaraoke").href = "https://youtu.be/" + document.getElementById("settings_idYoutubeKaraoke").value
+                document.getElementById("button_link_edit_YoutubeKaraoke").href = "https://studio.youtube.com/video/" + document.getElementById("settings_idYoutubeKaraoke").value + "/edit"
+                document.getElementById("button_link_play_YoutubeKaraokeBt").href = "https://youtu.be/" + document.getElementById("settings_idYoutubeKaraokeBt").value
+                document.getElementById("button_link_edit_YoutubeKaraokeBt").href = "https://studio.youtube.com/video/" + document.getElementById("settings_idYoutubeKaraokeBt").value + "/edit"
+                document.getElementById("button_link_play_YoutubeChords").href = "https://youtu.be/" + document.getElementById("settings_idYoutubeChords").value
+                document.getElementById("button_link_edit_YoutubeChords").href = "https://studio.youtube.com/video/" + document.getElementById("settings_idYoutubeChords").value + "/edit"
+                document.getElementById("button_link_play_YoutubeChordsBt").href = "https://youtu.be/" + document.getElementById("settings_idYoutubeChordsBt").value
+                document.getElementById("button_link_edit_YoutubeChordsBt").href = "https://studio.youtube.com/video/" + document.getElementById("settings_idYoutubeChordsBt").value + "/edit"
+
+                document.getElementById("button_link_play_YoutubeLyrics").disabled = (document.getElementById("settings_idYoutubeLyrics").value === '');
+                document.getElementById("button_link_edit_YoutubeLyrics").disabled = (document.getElementById("settings_idYoutubeLyrics").value === '');
+                document.getElementById("button_link_play_YoutubeLyricsBt").disabled = (document.getElementById("settings_idYoutubeLyricsBt").value === '');
+                document.getElementById("button_link_edit_YoutubeLyricsBt").disabled = (document.getElementById("settings_idYoutubeLyricsBt").value === '');
+                document.getElementById("button_link_play_YoutubeKaraoke").disabled = (document.getElementById("settings_idYoutubeKaraoke").value === '');
+                document.getElementById("button_link_edit_YoutubeKaraoke").disabled = (document.getElementById("settings_idYoutubeKaraoke").value === '');
+                document.getElementById("button_link_play_YoutubeKaraokeBt").disabled = (document.getElementById("settings_idYoutubeKaraokeBt").value === '');
+                document.getElementById("button_link_edit_YoutubeKaraokeBt").disabled = (document.getElementById("settings_idYoutubeKaraokeBt").value === '');
+                document.getElementById("button_link_play_YoutubeChords").disabled = (document.getElementById("settings_idYoutubeChords").value === '');
+                document.getElementById("button_link_edit_YoutubeChords").disabled = (document.getElementById("settings_idYoutubeChords").value === '');
+                document.getElementById("button_link_play_YoutubeChordsBt").disabled = (document.getElementById("settings_idYoutubeChordsBt").value === '');
+                document.getElementById("button_link_edit_YoutubeChordsBt").disabled = (document.getElementById("settings_idYoutubeChordsBt").value === '');
+
+            }
+        }
+
+        function extractVkVideoId(inputElement) {
+            // Получаем значение из поля ввода
+            var inputValue = inputElement.value.trim();
+
+            if (inputValue.startsWith('https://vk.com/video')) {
+                const id = inputValue.replace('https://vk.com/video', '');
+                inputElement.value = id;
+
+                document.getElementById("button_link_play_VkLyrics").href = "https://vk.com/video" + document.getElementById("settings_idVkLyrics").value;
+                document.getElementById("button_link_edit_VkLyrics").href = "https://vk.com/video" + document.getElementById("settings_idVkLyrics").value;
+                document.getElementById("button_link_play_VkLyricsBt").href = "https://vk.com/video" + document.getElementById("settings_idVkLyricsBt").value;
+                document.getElementById("button_link_edit_VkLyricsBt").href = "https://vk.com/video" + document.getElementById("settings_idVkLyricsBt").value; 
+                document.getElementById("button_link_play_VkKaraoke").href = "https://vk.com/video" + document.getElementById("settings_idVkKaraoke").value;
+                document.getElementById("button_link_edit_VkKaraoke").href = "https://vk.com/video" + document.getElementById("settings_idVkKaraoke").value; 
+                document.getElementById("button_link_play_VkKaraokeBt").href = "https://vk.com/video" + document.getElementById("settings_idVkKaraokeBt").value;
+                document.getElementById("button_link_edit_VkKaraokeBt").href = "https://vk.com/video" + document.getElementById("settings_idVkKaraokeBt").value; 
+                document.getElementById("button_link_play_VkChords").href = "https://vk.com/video" + document.getElementById("settings_idVkChords").value;
+                document.getElementById("button_link_edit_VkChords").href = "https://vk.com/video" + document.getElementById("settings_idVkChords").value; 
+                document.getElementById("button_link_play_VkChordsBt").href = "https://vk.com/video" + document.getElementById("settings_idVkChordsBt").value;
+                document.getElementById("button_link_edit_VkChordsBt").href = "https://vk.com/video" + document.getElementById("settings_idVkChordsBt").value; 
+
+                document.getElementById("button_link_play_VkLyrics").disabled = (document.getElementById("settings_idVkLyrics").value === '');
+                document.getElementById("button_link_edit_VkLyrics").disabled = (document.getElementById("settings_idVkLyrics").value === '');
+                document.getElementById("button_link_play_VkLyricsBt").disabled = (document.getElementById("settings_idVkLyricsBt").value === '');
+                document.getElementById("button_link_edit_VkLyricsBt").disabled = (document.getElementById("settings_idVkLyricsBt").value === '');
+                document.getElementById("button_link_play_VkKaraoke").disabled = (document.getElementById("settings_idVkKaraoke").value === '');
+                document.getElementById("button_link_edit_VkKaraoke").disabled = (document.getElementById("settings_idVkKaraoke").value === '');
+                document.getElementById("button_link_play_VkKaraokeBt").disabled = (document.getElementById("settings_idVkKaraokeBt").value === '');
+                document.getElementById("button_link_edit_VkKaraokeBt").disabled = (document.getElementById("settings_idVkKaraokeBt").value === '');
+                document.getElementById("button_link_play_VkChords").disabled = (document.getElementById("settings_idVkChords").value === '');
+                document.getElementById("button_link_edit_VkChords").disabled = (document.getElementById("settings_idVkChords").value === '');
+                document.getElementById("button_link_play_VkChordsBt").disabled = (document.getElementById("settings_idVkChordsBt").value === '');
+                document.getElementById("button_link_edit_VkChordsBt").disabled = (document.getElementById("settings_idVkChordsBt").value === '');
+
+            }
+        }
+        
+        function extractBoostyId(inputElement) {
+            // Получаем значение из поля ввода
+            var inputValue = inputElement.value.trim();
+
+            if (inputValue.startsWith('https://boosty.to/svoemesto/posts/') && inputValue.endsWith('?share=post_link')) {
+                const id = inputValue.replace('https://boosty.to/svoemesto/posts/', '').replace('?share=post_link','');
+                inputElement.value = id;
+                document.getElementById("button_link_boosty").href = "https://boosty.to/svoemesto/posts/" + document.getElementById("settings_idBoosty").value
+                document.getElementById("button_link_boosty").disabled = (document.getElementById("settings_idBoosty").value === '');
+            }
+        }
+        function extractVkId(inputElement) {
+            // Получаем значение из поля ввода
+            var inputValue = inputElement.value.trim();
+
+            if (inputValue.startsWith('https://vk.com/wall-')) {
+                const id = inputValue.replace('https://vk.com/wall-', '');
+                inputElement.value = id;
+                document.getElementById("button_link_vk").href = "https://vk.com/wall-" + document.getElementById("settings_idVk").value;
+                document.getElementById("button_link_vk").disabled = (document.getElementById("settings_idVk").value === '');
+            }
+        }
+
+        function openLinkYoutubeEditKaraoke() {
+
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/textyoutubekaraokewoheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                copyToClipboard(result)
+                var link = "https://studio.youtube.com/video/" + document.getElementById("settings_idYoutubeKaraoke").value + "/edit"
+                window.open(link, '_blank');
+            }
+
+        }
+
+        function openLinkYoutubeEditKaraokeBt() {
+
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/textyoutubekaraokebtwoheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                copyToClipboard(result)
+                var link = "https://studio.youtube.com/video/" + document.getElementById("settings_idYoutubeKaraokeBt").value + "/edit"
+                window.open(link, '_blank');
+            }
+
+        }
+
+        function openLinkYoutubeEditLyrics() {
+
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/textyoutubelyricswoheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                copyToClipboard(result)
+                var link = "https://studio.youtube.com/video/" + document.getElementById("settings_idYoutubeLyrics").value + "/edit"
+                window.open(link, '_blank');
+            }
+
+        }
+
+        function openLinkYoutubeEditLyricsBt() {
+
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/textyoutubelyricsbtwoheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                copyToClipboard(result)
+                var link = "https://studio.youtube.com/video/" + document.getElementById("settings_idYoutubeLyricsBt").value + "/edit"
+                window.open(link, '_blank');
+            }
+
+        }
+
+        function openLinkYoutubeEditChords() {
+
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/textyoutubechordswoheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                copyToClipboard(result)
+                var link = "https://studio.youtube.com/video/" + document.getElementById("settings_idYoutubeChords").value + "/edit"
+                window.open(link, '_blank');
+            }
+
+        }
+
+        function openLinkYoutubeEditChordsBt() {
+
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/textyoutubechordsbtwoheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                copyToClipboard(result)
+                var link = "https://studio.youtube.com/video/" + document.getElementById("settings_idYoutubeChordsBt").value + "/edit"
+                window.open(link, '_blank');
+            }
+
+        }
+
+
+
+        function openLinkYoutubePlayKaraoke() {
+            var link = "https://youtu.be/" + document.getElementById("settings_idYoutubeKaraoke").value
+            window.open(link, '_blank');
+        }
+
+        function openLinkYoutubePlayKaraokeBt() {
+            var link = "https://youtu.be/" + document.getElementById("settings_idYoutubeKaraokeBt").value
+            window.open(link, '_blank');
+            var id = document.getElementById("settings_id").value;
+        }
+
+        function openLinkYoutubePlayLyrics() {
+            var link = "https://youtu.be/" + document.getElementById("settings_idYoutubeLyrics").value
+            window.open(link, '_blank');
+
+        }
+
+        function openLinkYoutubePlayLyricsBt() {
+            var link = "https://youtu.be/" + document.getElementById("settings_idYoutubeLyricsBt").value
+            window.open(link, '_blank');
+        }
+
+        function openLinkYoutubePlayChords() {
+            var link = "https://youtu.be/" + document.getElementById("settings_idYoutubeChords").value
+            window.open(link, '_blank');
+        }
+
+        function openLinkYoutubePlayChordsBt() {
+            var link = "https://youtu.be/" + document.getElementById("settings_idYoutubeChordsBt").value
+            window.open(link, '_blank');
+        }
+
+
+
+
+
+        function openLinkVkEditKaraoke() {
+
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/textvkkaraokewoheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                copyToClipboard(result)
+                var link = "https://vk.com/video/" + document.getElementById("settings_idVkKaraoke").value;
+                window.open(link, '_blank');
+            }
+
+        }
+
+        function openLinkVkEditKaraokeBt() {
+
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/textvkkaraokebtwoheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                copyToClipboard(result)
+                var link = "https://vk.com/video/" + document.getElementById("settings_idVkKaraokeBt").value;
+                window.open(link, '_blank');
+            }
+
+        }
+
+        function openLinkVkEditLyrics() {
+
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/textvklyricswoheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                copyToClipboard(result)
+                var link = "https://vk.com/video/" + document.getElementById("settings_idVkLyrics").value;
+                window.open(link, '_blank');
+            }
+
+        }
+
+        function openLinkVkEditLyricsBt() {
+
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/textvklyricsbtwoheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                copyToClipboard(result)
+                var link = "https://vk.com/video/" + document.getElementById("settings_idVkLyricsBt").value;
+                window.open(link, '_blank');
+            }
+
+        }
+
+        function openLinkVkEditChords() {
+
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/textvkchordswoheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                copyToClipboard(result)
+                var link = "https://vk.com/video/" + document.getElementById("settings_idVkChords").value;
+                window.open(link, '_blank');
+            }
+
+        }
+
+        function openLinkVkEditChordsBt() {
+
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/textvkchordsbtwoheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                copyToClipboard(result)
+                var link = "https://vk.com/video/" + document.getElementById("settings_idVkChordsBt").value;
+                window.open(link, '_blank');
+            }
+
+        }
+
+
+
+        function openLinkVkPlayKaraoke() {
+            var link = "https://vk.com/video" + document.getElementById("settings_idVkKaraoke").value
+            window.open(link, '_blank');
+        }
+
+        function openLinkVkPlayKaraokeBt() {
+            var link = "https://vk.com/video" + document.getElementById("settings_idVkKaraokeBt").value
+            window.open(link, '_blank');
+            var id = document.getElementById("settings_id").value;
+        }
+
+        function openLinkVkPlayLyrics() {
+            var link = "https://vk.com/video" + document.getElementById("settings_idVkLyrics").value
+            window.open(link, '_blank');
+
+        }
+
+        function openLinkVkPlayLyricsBt() {
+            var link = "https://vk.com/video" + document.getElementById("settings_idVkLyricsBt").value
+            window.open(link, '_blank');
+        }
+
+        function openLinkVkPlayChords() {
+            var link = "https://vk.com/video" + document.getElementById("settings_idVkChords").value
+            window.open(link, '_blank');
+        }
+
+        function openLinkVkPlayChordsBt() {
+            var link = "https://vk.com/video" + document.getElementById("settings_idVkChordsBt").value
+            window.open(link, '_blank');
+        }
+
+
+        function copyToClipboard(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.setAttribute('readonly', '');
+            textarea.style.position = 'absolute';
+            textarea.style.left = '-9999px';
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+        }
+
+        function doProcess(link) {
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/" + link, true);
+            request.send();
+            if (link === "doprocesslyrics") {
+                document.getElementById(`fld_${id}_flag_lyrics`).style.backgroundColor = "#FFFF00";
+            } else if (link === "doprocesskaraoke") {
+                document.getElementById(`fld_${id}_flag_karaoke`).style.backgroundColor = "#FFFF00";
+            } else if (link === "doprocesschords") {
+                document.getElementById(`fld_${id}_flag_chords`).style.backgroundColor = "#FFFF00";
+            } else if (link === "doprocesslyricsbt") {
+                document.getElementById(`fld_${id}_flag_lyricsbt`).style.backgroundColor = "#FFFF00";
+            } else if (link === "doprocesskaraokebt") {
+                document.getElementById(`fld_${id}_flag_karaokebt`).style.backgroundColor = "#FFFF00";
+            } else if (link === "doprocesschordsbt") {
+                document.getElementById(`fld_${id}_flag_chordsbt`).style.backgroundColor = "#FFFF00";
+            } else if (link === "doprocessall") {
+                document.getElementById(`fld_${id}_flag_lyrics`).style.backgroundColor = "#FFFF00";
+                document.getElementById(`fld_${id}_flag_karaoke`).style.backgroundColor = "#FFFF00";
+                document.getElementById(`fld_${id}_flag_lyricsbt`).style.backgroundColor = "#FFFF00";
+                document.getElementById(`fld_${id}_flag_karaokebt`).style.backgroundColor = "#FFFF00";
+            } else if (link === "doprocessallwolyrics") {
+                document.getElementById(`fld_${id}_flag_karaoke`).style.backgroundColor = "#FFFF00";
+                document.getElementById(`fld_${id}_flag_lyricsbt`).style.backgroundColor = "#FFFF00";
+                document.getElementById(`fld_${id}_flag_karaokebt`).style.backgroundColor = "#FFFF00";
+            }
+        }
+
+
+        $(function() {
+
+            var tbl = document.getElementById("leftTable");
+            for (var i = 0, rows; rows = tbl.rows[i]; i++) {
+                rows.className = "sub-row" + i%2;
+            }
+
+            document.getElementById("settings_songName").disabled = true;
+            document.getElementById("settings_author").disabled = true;
+            document.getElementById("settings_year").disabled = true;
+            document.getElementById("settings_album").disabled = true;
+            document.getElementById("settings_track").disabled = true;
+            document.getElementById("settings_date").disabled = true;
+            document.getElementById("settings_time").disabled = true;
+            document.getElementById("settings_key").disabled = true;
+            document.getElementById("settings_bpm").disabled = true;
+            document.getElementById("settings_ms").disabled = true;
+            document.getElementById("settings_fileName").disabled = true;
+            document.getElementById("settings_rootFolder").disabled = true;
+            document.getElementById("settings_idBoosty").disabled = true;
+            document.getElementById("settings_idVk").disabled = true;
+            document.getElementById("settings_idYoutubeLyrics").disabled = true;
+            document.getElementById("settings_idYoutubeLyricsBt").disabled = true;
+            document.getElementById("settings_idYoutubeKaraoke").disabled = true;
+            document.getElementById("settings_idYoutubeKaraokeBt").disabled = true;
+            document.getElementById("settings_idYoutubeChords").disabled = true;
+            document.getElementById("settings_idYoutubeChordsBt").disabled = true;
+            document.getElementById("select_status").disabled = true;
+            document.getElementById("button_link_boosty").disabled = true;
+            document.getElementById("button_link_play_YoutubeLyrics").disabled = true;
+            document.getElementById("button_link_edit_YoutubeLyrics").disabled = true;
+            document.getElementById("button_link_play_YoutubeLyricsBt").disabled = true;
+            document.getElementById("button_link_edit_YoutubeLyricsBt").disabled = true;
+            document.getElementById("button_link_play_YoutubeKaraoke").disabled = true;
+            document.getElementById("button_link_edit_YoutubeKaraoke").disabled = true;
+            document.getElementById("button_link_play_YoutubeKaraokeBt").disabled = true;
+            document.getElementById("button_link_edit_YoutubeKaraokeBt").disabled = true;
+            document.getElementById("button_link_play_YoutubeChords").disabled = true;
+            document.getElementById("button_link_edit_YoutubeChords").disabled = true;
+            document.getElementById("button_link_play_YoutubeChordsBt").disabled = true;
+            document.getElementById("button_link_edit_YoutubeChordsBt").disabled = true;
+
+        });
+
+        function doPlay(id, name) {
+            $.ajax({
+                type: "GET",
+                url: `/song/${id}/${name}`,
+                data: "",
+                success: function(data) {
+                }
+            });
+        }
+    </script>
+</head>
+
+<body>
+
+<div id="areaScreen">
+    <div id="areaHeader">
+        <div th:insert="navigation_bar.html"></div>
+    </div>
+    <div id="areaBody">
+        <div id="areaLeftColumn">
+            Левая область
+            <button name="button_doFilter" id="button_doFilter" class="form-control btn btn-primary btn-block" type="button" value="Сохранить" onclick="doFilterForm()">FILTER</button>
+            <table>
+                <thead>
+                    <tr>
+                        <td th:text="ID" style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin; text-align: center"></td>
+                        <td th:text="Композиция" style="min-width: 250px; max-width: 250px; border-style: solid; border-width: thin"></td>
+                        <td th:text="Исполнитель" style="min-width: 150px; max-width: 150px; border-style: solid; border-width: thin"></td>
+                        <td th:text="Год" style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin; text-align: center"></td>
+                        <td th:text="Альбом" style="min-width: 210px; max-width: 210px; border-style: solid; border-width: thin"></td>
+                        <td th:text="№" style="min-width: 35px; max-width: 35px; border-style: solid; border-width: thin; text-align: center"></td>
+                        <td th:text="Дата" style="min-width: 60px; max-width: 60px; border-style: solid; border-width: thin; text-align: center"></td>
+                        <td th:text="Время" style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin; text-align: center"></td>
+                        <td th:text="BOO" style="font-size: 8px; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+                        <td th:text="VK" style="font-size: 8px; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+                        <td th:text="YL" style="font-size: 8px; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+                        <td th:text="YK" style="font-size: 8px; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+                        <td th:text="YLB" style="font-size: 8px; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+                        <td th:text="YKB" style="font-size: 8px; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+                        <td th:text="YC" style="font-size: 8px; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+                        <td th:text="YCB" style="font-size: 8px; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+                        <td th:text="VKL" style="font-size: 8px; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+                        <td th:text="YKK" style="font-size: 8px; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+                        <td th:text="VKLB" style="font-size: 8px; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+                        <td th:text="YKKB" style="font-size: 8px; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+                        <td th:text="VKC" style="font-size: 8px; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+                        <td th:text="VKCB" style="font-size: 8px; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+                        <td th:text="STATUS" style="font-size: 14px; min-width: 100px; max-width: 100px; border-style: solid; border-width: thin; text-align: center"></td>
+                    </tr>
+                    <form action=""
+                          role="form"
+                          class="form-horizontal"
+                          id="filterForm"
+                          name="filterForm">
+                        <tr>
+                            <td style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin; text-align: center">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_id" name="filter_id" placeholder="ID">
+                            </td>
+                            <td style="min-width: 250px; max-width: 250px; border-style: solid; border-width: thin">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_songName" name="filter_songName" placeholder="Композиция">
+                            </td>
+                            <td style="min-width: 150px; max-width: 150px; border-style: solid; border-width: thin">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_author" name="filter_author" placeholder="Исполнитель">
+                            </td>
+                            <td style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin; text-align: center">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_year" name="filter_year" placeholder="Год">
+                            </td>
+                            <td style="min-width: 210px; max-width: 210px; border-style: solid; border-width: thin">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_album" name="filter_album" placeholder="Альбом">
+                            </td>
+                            <td style="min-width: 35px; max-width: 35px; border-style: solid; border-width: thin; text-align: center">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_track" name="filter_track" placeholder="№">
+                            </td>
+                            <td style="min-width: 60px; max-width: 60px; border-style: solid; border-width: thin; text-align: center">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_date" name="filter_date" placeholder="Дата">
+                            </td>
+                            <td style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin; text-align: center">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_time" name="filter_time" placeholder="Время">
+                            </td>
+                            <td style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_boosty" name="filter_flag_boosty" placeholder="BOO">
+                            </td>
+                            <td style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_vk" name="filter_flag_vk" placeholder="VK">
+                            </td>
+                            <td style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_yl" name="filter_flag_yl" placeholder="YL">
+                            </td>
+                            <td style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_yk" name="filter_flag_yk" placeholder="YK">
+                            </td>
+                            <td style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_ylb" name="filter_flag_ylb" placeholder="YLB">
+                            </td>
+                            <td style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_ykb" name="filter_flag_ykb" placeholder="YKB">
+                            </td>
+                            <td style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_yc" name="filter_flag_yc" placeholder="YC">
+                            </td>
+                            <td style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_ycb" name="filter_flag_ycb" placeholder="YCB">
+                            </td>
+                            <td style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_vkl" name="filter_flag_vkl" placeholder="VKL">
+                            </td>
+                            <td style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_vkk" name="filter_flag_vkk" placeholder="VKK">
+                            </td>
+                            <td style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_vklb" name="filter_flag_vklb" placeholder="VKLB">
+                            </td>
+                            <td style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_vkkb" name="filter_flag_vkkb" placeholder="VKKB">
+                            </td>
+                            <td style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_vkc" name="filter_flag_vkc" placeholder="VKC">
+                            </td>
+                            <td style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_vkcb" name="filter_flag_vkcb" placeholder="VKCB">
+                            </td>
+                            <td style="min-width: 100px; max-width: 100px; border-style: solid; border-width: thin; text-align: center">
+                                <input style="font-size: 12px; padding: 0;" type="text" class="form-control" id="filter_status" name="filter_status" placeholder="STATUS">
+                            </td>
+                        </tr>
+                    </form>
+
+                </thead>
+            </table>
+            <div id="areaLeftTable">
+                <table class="table table-sm table-hover" id="leftTable" style="font-size: small">
+                    <tbody>
+                        <tr th:each="settings:${sett}" onClick="mouseClickRow(this)" th:style="'background-color: ' + ${settings.color}" th:id="'row' + ${settings.id}">
+                            <td th:text="${settings.id}" style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin; text-align: center"></td>
+                            <td th:text="${settings.songName}" style="min-width: 250px; max-width: 250px; border-style: solid; border-width: thin"></td>
+                            <td th:text="${settings.author}" style="min-width: 150px; max-width: 150px; border-style: solid; border-width: thin"></td>
+                            <td th:text="${settings.year}" style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin; text-align: center"></td>
+                            <td th:text="${settings.album}" style="min-width: 210px; max-width: 210px; border-style: solid; border-width: thin"></td>
+                            <td th:text="${settings.track}" style="min-width: 35px; max-width: 35px; border-style: solid; border-width: thin; text-align: center"></td>
+                            <td th:text="${settings.date}" style="min-width: 60px; max-width: 60px; border-style: solid; border-width: thin; text-align: center"></td>
+                            <td th:text="${settings.time}" style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin; text-align: center"></td>
+                            <td hidden th:text="${settings.key}"></td>
+                            <td hidden th:text="${settings.bpm}"></td>
+                            <td hidden th:text="${settings.ms}"></td>
+                            <td hidden th:text="${settings.fileName}"></td>
+                            <td hidden th:text="${settings.rootFolder}"></td>
+                            <td hidden th:text="${settings.idBoosty}"></td>
+                            <td hidden th:text="${settings.idVk}"></td>
+                            <td hidden th:text="${settings.idYoutubeLyrics}"></td>
+                            <td hidden th:text="${settings.idYoutubeLyricsBt}"></td>
+                            <td hidden th:text="${settings.idYoutubeKaraoke}"></td>
+                            <td hidden th:text="${settings.idYoutubeKaraokeBt}"></td>
+                            <td hidden th:text="${settings.idYoutubeChords}"></td>
+                            <td hidden th:text="${settings.idYoutubeChordsBt}"></td>
+                            <td hidden th:text="${settings.idVkLyrics}"></td>
+                            <td hidden th:text="${settings.idVkLyricsBt}"></td>
+                            <td hidden th:text="${settings.idVkKaraoke}"></td>
+                            <td hidden th:text="${settings.idVkKaraokeBt}"></td>
+                            <td hidden th:text="${settings.idVkChords}"></td>
+                            <td hidden th:text="${settings.idVkChordsBt}"></td>
+                            <td th:text="${settings.flagBoosty}" style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+                            <td th:text="${settings.flagVk}" style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+                            <td th:text="${settings.flagYoutubeLyrics}" th:id="'fld_'+${settings.id}+'_flag_lyrics'" th:ondblclick="'doPlay('+${settings.id}+', \'playlyrics\')'" th:style="'background-color: ' + ${settings.processColorMeltLyrics} + '; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center'"></td>
+                            <td th:text="${settings.flagYoutubeKaraoke}" th:id="'fld_'+${settings.id}+'_flag_karaoke'" th:ondblclick="'doPlay('+${settings.id}+', \'playkaraoke\')'" th:style="'background-color: ' + ${settings.processColorMeltKaraoke} + ';min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center'"></td>
+                            <td th:text="${settings.flagYoutubeLyricsBt}" th:id="'fld_'+${settings.id}+'_flag_lyricsbt'" th:ondblclick="'doPlay('+${settings.id}+', \'playchords\')'" th:style="'background-color: ' + ${settings.processColorMeltLyricsBt} + ';min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center'"></td>
+                            <td th:text="${settings.flagYoutubeKaraokeBt}" th:id="'fld_'+${settings.id}+'_flag_karaokebt'" th:ondblclick="'doPlay('+${settings.id}+', \'playlyricsbt\')'" th:style="'background-color: ' + ${settings.processColorMeltKaraokeBt} + ';min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center'"></td>
+                            <td th:text="${settings.flagYoutubeChords}" th:id="'fld_'+${settings.id}+'_flag_chords'" th:ondblclick="'doPlay('+${settings.id}+', \'playkaraokebt\')'" th:style="'background-color: ' + ${settings.processColorMeltChords} + ';min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center'"></td>
+                            <td th:text="${settings.flagYoutubeChordsBt}" th:id="'fld_'+${settings.id}+'_flag_chordsbt'" th:ondblclick="'doPlay('+${settings.id}+', \'playchordsbt\')'" th:style="'background-color: ' + ${settings.processColorMeltChordsBt} + ';min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center'"></td>
+                            <td th:text="${settings.flagVkLyrics}" style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+                            <td th:text="${settings.flagVkKaraoke}" style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+                            <td th:text="${settings.flagVkLyricsBt}" style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+                            <td th:text="${settings.flagVkKaraokeBt}" style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+                            <td th:text="${settings.flagVkChords}" style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+                            <td th:text="${settings.flagVkChordsBt}" style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+                            <td hidden th:text="${settings.idStatus}"></td>
+                            <td th:text="${settings.status}" style="font-size: 10px; min-width: 100px; max-width: 100px; border-style: solid; border-width: thin; text-align: center"></td>
+                        </tr>
+                    </tbody>
+
+                </table>
+            </div>
+            <button name="button_create_karaoke_all" id="button_create_karaoke_all" class="form-control btn btn-primary btn-block" type="button" onclick="doCreateKaraokeAll()">Создать караоке для всех песен</button>
+        </div>
+        <div id="areaCenterColumn">
+            <div class="container">
+
+                <form action=""
+                      role="form"
+                      class="form-horizontal"
+                      id="myForm"
+                      name="myForm"
+                      style="border-spacing: 0; border-collapse: collapse; width: 100%; margin-bottom: 0;">
+
+                    <div class="container-fluid">
+
+                        <h1 id="settings_id_text" name="settings_id_text"></h1><input hidden type="text" class="form-control"  id="settings_id" name="settings_id">
+
+                        <table class="table table-hover table-bordered" style="margin: 1px;padding: 1px">
+                            <tr style="margin: 1px;padding: 1px">
+                                <td style="margin: 1px;padding: 1px; min-width: 200px">
+                                    <table style="width: 100%">
+                                        <tr>
+                                            <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 1px; vertical-align: middle">Исполнитель</td>
+                                        </tr>
+                                        <tr  style="width: max-content">
+                                            <td style="font-size: 14px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                                                <input style="font-size: 14px;" type="text" class="form-control" id="settings_author" name="settings_author" placeholder="Исполнитель">
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                                <td style="margin: 1px;padding: 1px; width: 80px; min-width: 80px; max-width: 80px;">
+                                    <table style="width: 100%">
+                                        <tr>
+                                            <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Год</td>
+                                        </tr>
+                                        <tr style="width: 80px">
+                                            <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                                <input style="margin: 0px; font-size: 14px; padding: 0;" type="text" class="form-control" id="settings_year" name="settings_year" placeholder="Год">
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                                <td style="margin: 1px;padding: 1px; min-width: 200px">
+                                    <table style="width: 100%">
+                                        <tr>
+                                            <td style="width: max-content; font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Альбом</td>
+                                        </tr>
+                                        <tr >
+                                            <td style="width: max-content; font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="settings_album" name="settings_album" placeholder="Альбом">
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+                        <table class="table table-hover table-bordered" style="margin: 1px;padding: 1px">
+                            <tr style="margin: 1px;padding: 1px">
+                                <td style="margin: 1px;padding: 1px;">
+                                    <table style="width: 100%">
+                                        <tr>
+                                            <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Трек</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                                <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_track" name="settings_track" placeholder="Трек">
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                                <td style="margin: 1px;padding: 1px;">
+                                    <table style="width: 100%">
+                                        <tr>
+                                            <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Композиция</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="settings_songName" name="settings_songName" placeholder="Композиция">
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+                        <table class="table table-hover table-bordered" style="margin: 1px;padding: 1px">
+                            <tr style="margin: 1px;padding: 1px">
+                                <td style="margin: 1px;padding: 1px;">
+                                    <table style="width: 100%">
+                                        <tr>
+                                            <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Дата публикации</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                                <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_date" name="settings_date" placeholder="Дата публикации">
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                                <td style="margin: 1px;padding: 1px;">
+                                    <table style="width: 100%">
+                                        <tr>
+                                            <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Время публикации</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                                <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_time" name="settings_time" placeholder="Время публикации">
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                                <td style="margin: 1px;padding: 1px;">
+                                    <table style="width: 100%">
+                                        <tr>
+                                            <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Тональность</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                                <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_key" name="settings_key" placeholder="Тональность">
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                                <td style="margin: 1px;padding: 1px;">
+                                    <table style="width: 100%">
+                                        <tr>
+                                            <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Темп</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                                <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_bpm" name="settings_bpm" placeholder="Темп">
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                                <td style="margin: 1px;padding: 1px;">
+                                    <table style="width: 100%">
+                                        <tr>
+                                            <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">MS</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                                <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_ms" name="settings_ms" placeholder="MS">
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+                        <table class="table table-hover table-bordered" style="margin: 1px;padding: 1px">
+                            <tr style="margin: 1px;padding: 1px">
+                                <td style="margin: 1px;padding: 1px;">
+                                    <table style="width: 100%">
+                                        <tr>
+                                            <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Имя файла</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                                <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_fileName" name="settings_fileName" placeholder="Имя файла">
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                                <td style="margin: 1px;padding: 1px;">
+                                    <table style="width: 100%">
+                                        <tr>
+                                            <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Корневая папка</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                                <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_rootFolder" name="settings_rootFolder" placeholder="Корневая папка">
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <table class="table table-hover table-bordered" style="margin: 1px;padding: 1px">
+                            <tr style="margin: 1px;padding: 1px">
+                                <td style="margin: 1px;padding: 1px;">
+                                    <table style="width: 100%">
+                                        <tr>
+                                            <td colspan="4" style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle; text-align: center">BOOSTY</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                                <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idBoosty" name="settings_idBoosty" placeholder="Boosty" oninput="extractBoostyId(this)">
+                                            </td>
+                                            <td style="font-size: 22px; padding: 0; padding-left: 10px; padding-right: 10px; width: 140px;">
+                                                <a style="width: 160px; height: 35px;" name="button_link_boosty" id="button_link_boosty" class="btn btn-info btn-block" type="button" target="_blank" href="">OPEN</a>
+                                            </td>
+                                            <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                                <button style="width: 35px; height: 35px;" name="button_link_boosty_head" id="button_link_boosty_head" class="form-control btn btn-primary btn-block" type="button" onclick="doTextBoostyHead()">H</button>
+                                            </td>
+                                            <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                                <button style="width: 35px; height: 35px;" name="button_link_boosty_body" id="button_link_boosty_body" class="form-control btn btn-primary btn-block" type="button" onclick="doTextBoostyBody()">B</button>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <table class="table table-hover table-bordered" style="margin: 1px;padding: 1px">
+                            <tr style="margin: 1px;padding: 1px">
+                                <td style="margin: 1px;padding: 1px;">
+                                    <table style="width: 100%">
+                                        <tr>
+                                            <td colspan="3" style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle; text-align: center">Группа VK</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                                <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idVk" name="settings_idVk" placeholder="Vk" oninput="extractVkId(this)">
+                                            </td>
+                                            <td style="font-size: 22px; padding: 0; padding-left: 10px; padding-right: 10px; width: 140px;">
+                                                <a style="width: 160px; height: 35px;" name="button_link_vk" id="button_link_vk" class="btn btn-info btn-block" type="button" target="_blank" href="">OPEN</a>
+                                            </td>
+                                            <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                                <button style="width: 35px; height: 35px;" name="button_link_vk_body" id="button_link_vk_body" class="form-control btn btn-primary btn-block" type="button" onclick="doTextVKBody()">B</button>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <table class="table table-hover table-bordered" style="margin: 1px;padding: 1px">
+                            <tr style="margin: 1px;padding: 1px">
+                                <td colspan="11" style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle; text-align: center">YOUTUBE</td>
+                            </tr>
+                            <tr style="margin: 1px;padding: 1px">
+                                <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Версия</td>
+                                <td colspan="5" style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle; text-align: center">Normal</td>
+                                <td colspan="5" style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle; text-align: center">Delay</td>
+                            </tr>
+                            <tr style="margin: 1px;padding: 1px">
+                                <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Karaoke</td>
+                                <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                    <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idYoutubeKaraoke" name="settings_idYoutubeKaraoke" placeholder="Karaoke" oninput="extractYoutubeVideoId(this)">
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_link_play_YoutubeKaraoke" id="button_link_play_YoutubeKaraoke" class="form-control btn btn-info btn-block" type="button" onclick="openLinkYoutubePlayKaraoke()">P</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_link_edit_YoutubeKaraoke" id="button_link_edit_YoutubeKaraoke" class="form-control btn btn-warning btn-block" type="button" onclick="openLinkYoutubeEditKaraoke()">E</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_head_YoutubeKaraoke" id="button_head_YoutubeKaraoke" class="form-control btn btn-primary btn-block" type="button" onclick="doTextYoutubeKaraokeHeader()">H</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_body_YoutubeKaraoke" id="button_body_YoutubeKaraoke" class="form-control btn btn-primary btn-block" type="button" onclick="doTextYoutubeKaraokeWOHeader()">B</button>
+                                </td>
+                                <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                    <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idYoutubeKaraokeBt" name="settings_idYoutubeKaraokeBt" placeholder="Karaoke BT" oninput="extractYoutubeVideoId(this)">
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_link_play_YoutubeKaraokeBt" id="button_link_play_YoutubeKaraokeBt" class="form-control btn btn-info btn-block" type="button" onclick="openLinkYoutubePlayKaraokeBt()">P</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_link_edit_YoutubeKaraokeBt" id="button_link_edit_YoutubeKaraokeBt" class="form-control btn btn-warning btn-block" type="button" onclick="openLinkYoutubeEditKaraokeBt()">E</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_head_YoutubeKaraokeBt" id="button_head_YoutubeKaraokeBt" class="form-control btn btn-primary btn-block" type="button" onclick="doTextYoutubeKaraokeBtHeader()">H</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_body_YoutubeKaraokeBt" id="button_body_YoutubeKaraokeBt" class="form-control btn btn-primary btn-block" type="button" onclick="doTextYoutubeKaraokeBtWOHeader()">B</button>
+                                </td>
+                            </tr>
+                            <tr style="margin: 1px;padding: 1px">
+                                <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Lyrics</td>
+                                <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                    <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idYoutubeLyrics" name="settings_idYoutubeLyrics" placeholder="Lyrics" oninput="extractYoutubeVideoId(this)">
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_link_play_YoutubeLyrics" id="button_link_play_YoutubeLyrics" class="form-control btn btn-info btn-block" type="button" onclick="openLinkYoutubePlayLyrics()">P</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_link_edit_YoutubeLyrics" id="button_link_edit_YoutubeLyrics" class="form-control btn btn-warning btn-block" type="button" onclick="openLinkYoutubeEditLyrics()">E</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_head_YoutubeLyrics" id="button_head_YoutubeLyrics" class="form-control btn btn-primary btn-block" type="button" onclick="doTextYoutubeLyricsHeader()">H</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_body_YoutubeLyrics" id="button_body_YoutubeLyrics" class="form-control btn btn-primary btn-block" type="button" onclick="doTextYoutubeLyricsWOHeader()">B</button>
+                                </td>
+                                <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                    <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idYoutubeLyricsBt" name="settings_idYoutubeLyricsBt" placeholder="Lyrics BT" oninput="extractYoutubeVideoId(this)">
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_link_play_YoutubeLyricsBt" id="button_link_play_YoutubeLyricsBt" class="form-control btn btn-info btn-block" type="button" onclick="openLinkYoutubePlayLyricsBt()">P</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_link_edit_YoutubeLyricsBt" id="button_link_edit_YoutubeLyricsBt" class="form-control btn btn-warning btn-block" type="button" onclick="openLinkYoutubeEditLyricsBt()">E</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_head_YoutubeLyricsBt" id="button_head_YoutubeLyricsBt" class="form-control btn btn-primary btn-block" type="button" onclick="doTextYoutubeLyricsBtHeader()">H</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_body_YoutubeLyricsBt" id="button_body_YoutubeLyricsBt" class="form-control btn btn-primary btn-block" type="button" onclick="doTextYoutubeLyricsBtWOHeader()">B</button>
+                                </td>
+                            </tr>
+                            <tr style="margin: 1px;padding: 1px">
+                                <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Chords</td>
+                                <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                    <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idYoutubeChords" name="settings_idYoutubeChords" placeholder="Chords" oninput="extractYoutubeVideoId(this)">
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_link_play_YoutubeChords" id="button_link_play_YoutubeChords" class="form-control btn btn-info btn-block" type="button" onclick="openLinkYoutubePlayChords()">P</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_link_edit_YoutubeChords" id="button_link_edit_YoutubeChords" class="form-control btn btn-warning btn-block" type="button" onclick="openLinkYoutubeEditChords()">E</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_head_YoutubeChords" id="button_head_YoutubeChords" class="form-control btn btn-primary btn-block" type="button" onclick="doTextYoutubeChordsHeader()">H</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_body_YoutubeChords" id="button_body_YoutubeChords" class="form-control btn btn-primary btn-block" type="button" onclick="doTextYoutubeChordsWOHeader()">B</button>
+                                </td>
+                                <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                    <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idYoutubeChordsBt" name="settings_idYoutubeChordsBt" placeholder="Chords BT" oninput="extractYoutubeVideoId(this)">
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_link_play_YoutubeChordsBt" id="button_link_play_YoutubeChordsBt" class="form-control btn btn-info btn-block" type="button" onclick="openLinkYoutubePlayChordsBt()">P</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_link_edit_YoutubeChordsBt" id="button_link_edit_YoutubeChordsBt" class="form-control btn btn-warning btn-block" type="button" onclick="openLinkYoutubeEditChordsBt()">E</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_head_YoutubeChordsBt" id="button_head_YoutubeChordsBt" class="form-control btn btn-primary btn-block" type="button" onclick="doTextYoutubeChordsBtHeader()">H</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_body_YoutubeChordsBt" id="button_body_YoutubeChordsBt" class="form-control btn btn-primary btn-block" type="button" onclick="doTextYoutubeChordsBtWOHeader()">B</button>
+                                </td>
+                            </tr>
+
+                        </table>
+
+                        <table class="table table-hover table-bordered" style="margin: 1px;padding: 1px">
+                            <tr style="margin: 1px;padding: 1px">
+                                <td colspan="11" style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle; text-align: center">VK</td>
+                            </tr>
+                            <tr style="margin: 1px;padding: 1px">
+                                <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Версия</td>
+                                <td colspan="5" style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle; text-align: center">Normal</td>
+                                <td colspan="5" style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle; text-align: center">Delay</td>
+                            </tr>
+                            <tr style="margin: 1px;padding: 1px">
+                                <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Karaoke</td>
+                                <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                    <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idVkKaraoke" name="settings_idVkKaraoke" placeholder="Karaoke" oninput="extractVkVideoId(this)">
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_link_play_VkKaraoke" id="button_link_play_VkKaraoke" class="form-control btn btn-info btn-block" type="button" onclick="openLinkVkPlayKaraoke()">P</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_link_edit_VkKaraoke" id="button_link_edit_VkKaraoke" class="form-control btn btn-warning btn-block" type="button" onclick="openLinkVkEditKaraoke()">E</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_head_VkKaraoke" id="button_head_VkKaraoke" class="form-control btn btn-primary btn-block" type="button" onclick="doTextVkKaraokeHeader()">H</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_body_VkKaraoke" id="button_body_VkKaraoke" class="form-control btn btn-primary btn-block" type="button" onclick="doTextVkKaraokeWOHeader()">B</button>
+                                </td>
+                                <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                    <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idVkKaraokeBt" name="settings_idVkKaraokeBt" placeholder="Karaoke BT" oninput="extractVkVideoId(this)">
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_link_play_VkKaraokeBt" id="button_link_play_VkKaraokeBt" class="form-control btn btn-info btn-block" type="button" onclick="openLinkVkPlayKaraokeBt()">P</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_link_edit_VkKaraokeBt" id="button_link_edit_VkKaraokeBt" class="form-control btn btn-warning btn-block" type="button" onclick="openLinkVkEditKaraokeBt()">E</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_head_VkKaraokeBt" id="button_head_VkKaraokeBt" class="form-control btn btn-primary btn-block" type="button" onclick="doTextVkKaraokeBtHeader()">H</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_body_VkKaraokeBt" id="button_body_VkKaraokeBt" class="form-control btn btn-primary btn-block" type="button" onclick="doTextVkKaraokeBtWOHeader()">B</button>
+                                </td>
+                            </tr>
+                            <tr style="margin: 1px;padding: 1px">
+                                <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Lyrics</td>
+                                <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                    <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idVkLyrics" name="settings_idVkLyrics" placeholder="Lyrics" oninput="extractVkVideoId(this)">
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_link_play_VkLyrics" id="button_link_play_VkLyrics" class="form-control btn btn-info btn-block" type="button" onclick="openLinkVkPlayLyrics()">P</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_link_edit_VkLyrics" id="button_link_edit_VkLyrics" class="form-control btn btn-warning btn-block" type="button" onclick="openLinkVkEditLyrics()">E</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_head_VkLyrics" id="button_head_VkLyrics" class="form-control btn btn-primary btn-block" type="button" onclick="doTextVkLyricsHeader()">H</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_body_VkLyrics" id="button_body_VkLyrics" class="form-control btn btn-primary btn-block" type="button" onclick="doTextVkLyricsWOHeader()">B</button>
+                                </td>
+                                <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                    <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idVkLyricsBt" name="settings_idVkLyricsBt" placeholder="Lyrics BT" oninput="extractVkVideoId(this)">
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_link_play_VkLyricsBt" id="button_link_play_VkLyricsBt" class="form-control btn btn-info btn-block" type="button" onclick="openLinkVkPlayLyricsBt()">P</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_link_edit_VkLyricsBt" id="button_link_edit_VkLyricsBt" class="form-control btn btn-warning btn-block" type="button" onclick="openLinkVkEditLyricsBt()">E</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_head_VkLyricsBt" id="button_head_VkLyricsBt" class="form-control btn btn-primary btn-block" type="button" onclick="doTextVkLyricsBtHeader()">H</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_body_VkLyricsBt" id="button_body_VkLyricsBt" class="form-control btn btn-primary btn-block" type="button" onclick="doTextVkLyricsBtWOHeader()">B</button>
+                                </td>
+                            </tr>
+                            <tr style="margin: 1px;padding: 1px">
+                                <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Chords</td>
+                                <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                    <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idVkChords" name="settings_idVkChords" placeholder="Chords" oninput="extractVkVideoId(this)">
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_link_play_VkChords" id="button_link_play_VkChords" class="form-control btn btn-info btn-block" type="button" onclick="openLinkVkPlayChords()">P</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_link_edit_VkChords" id="button_link_edit_VkChords" class="form-control btn btn-warning btn-block" type="button" onclick="openLinkVkEditChords()">E</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_head_VkChords" id="button_head_VkChords" class="form-control btn btn-primary btn-block" type="button" onclick="doTextVkChordsHeader()">H</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_body_VkChords" id="button_body_VkChords" class="form-control btn btn-primary btn-block" type="button" onclick="doTextVkChordsWOHeader()">B</button>
+                                </td>
+                                <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                    <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idVkChordsBt" name="settings_idVkChordsBt" placeholder="Chords BT" oninput="extractVkVideoId(this)">
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_link_play_VkChordsBt" id="button_link_play_VkChordsBt" class="form-control btn btn-info btn-block" type="button" onclick="openLinkVkPlayChordsBt()">P</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_link_edit_VkChordsBt" id="button_link_edit_VkChordsBt" class="form-control btn btn-warning btn-block" type="button" onclick="openLinkVkEditChordsBt()">E</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_head_VkChordsBt" id="button_head_VkChordsBt" class="form-control btn btn-primary btn-block" type="button" onclick="doTextVkChordsBtHeader()">H</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_body_VkChordsBt" id="button_body_VkChordsBt" class="form-control btn btn-primary btn-block" type="button" onclick="doTextVkChordsBtWOHeader()">B</button>
+                                </td>
+                            </tr>
+
+                        </table>
+                        
+                        <table class="table table-hover table-bordered" style="margin: 1px;padding: 1px">
+
+                            <tr style="margin: 1px;padding: 1px">
+                                <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Статус</td>
+                                <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                    <select id="select_status" name="select_status" class="form-control">
+                                        <option value="0">---</option>
+                                        <option value="1">Текст найден</option>
+                                        <option value="2">Текст проверен</option>
+                                        <option value="3">Проект создан</option>
+                                        <option value="4">Проект проверен</option>
+                                        <option value="5">На рендере</option>
+                                        <option value="6">ГОТОВО</option>
+                                    </select>
+                                </td>
+                            </tr>
+
+                        </table>
+
+                        <table class="table table-hover table-bordered" style="margin: 1px;padding: 1px">
+
+                            <tr style="margin: 1px;padding: 1px">
+                                <td style="font-size: 14px; padding: 0; padding-left: 1px; padding-right: 1px;">
+
+                                    <button name="button_submit" id="button_submit" class="form-control btn btn-primary btn-block" type="button" value="Сохранить" onclick="doPostForm()">Сохранить</button>
+
+                                </td>
+                                <td style="font-size: 14px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                                    <button name="button_edit_subs0" id="button_edit_subs0" class="form-control btn btn-primary btn-block" type="button" onclick="doEditSubs(0)">Редактировать (V0)</button>
+                                </td>
+                                <td style="font-size: 14px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                                    <button name="button_edit_subs1" id="button_edit_subs1" class="form-control btn btn-primary btn-block" type="button" onclick="doEditSubs(1)">Редактировать (V1)</button>
+                                </td>
+                                <td style="font-size: 14px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                                    <button name="button_create_karaoke" id="button_create_karaoke" class="form-control btn btn-primary btn-block" type="button" onclick="doCreateKaraoke()">Создать караоке</button>
+                                </td>
+                                <td style="font-size: 14px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                                    <button name="button_kdenlive_files" id="button_kdenlive_files" class="form-control btn btn-primary btn-block" type="button" onclick="doCreateKdenliveFiles()">Создать kdenlive files</button>
+                                </td>
+
+                            </tr>
+
+                        </table>
+
+                        <div id="waveform"></div>
+
+                        <table class="table table-hover table-bordered" style="margin: 1px;padding: 1px">
+                            <tr colspan="6" style="margin: 1px;padding: 1px">
+                                КОДИРОВАТЬ:
+                            </tr>
+                            <tr style="margin: 1px;padding: 1px">
+                                <td style="font-size: 14px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                                    <button name="button_melt_lyrics" id="button_melt_lyrics" class="form-control btn btn-primary btn-block" type="button" onclick="doProcess('doprocesslyrics')">LYRICS</button>
+                                </td>
+                                <td style="font-size: 14px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                                    <button name="button_melt_karaoke" id="button_melt_karaoke" class="form-control btn btn-primary btn-block" type="button" onclick="doProcess('doprocesskaraoke')">KARAOKE</button>
+                                </td>
+                                <td style="font-size: 14px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                                    <button name="button_melt_chords" id="button_melt_chords" class="form-control btn btn-primary btn-block" type="button" onclick="doProcess('doprocesschords')">CHORDS</button>
+                                </td>
+                                <td style="font-size: 14px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                                    <button name="button_melt_lyrics_bt" id="button_melt_lyrics_bt" class="form-control btn btn-primary btn-block" type="button" onclick="doProcess('doprocesslyricsbt')">LYRICS BT</button>
+                                </td>
+                                <td style="font-size: 14px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                                    <button name="button_melt_karaoke_bt" id="button_melt_karaoke_bt" class="form-control btn btn-primary btn-block" type="button" onclick="doProcess('doprocesskaraokebt')">KARAOKE BT</button>
+                                </td>
+                                <td style="font-size: 14px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                                    <button name="button_melt_chords_bt" id="button_melt_chords_bt" class="form-control btn btn-primary btn-block" type="button" onclick="doProcess('doprocesschordsbt')">CHORDS BT</button>
+                                </td>
+                            </tr>
+                            <tr style="margin: 1px;padding: 1px">
+                                <td style="font-size: 14px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                                    <button name="button_melt_all" id="button_melt_all" class="form-control btn btn-primary btn-block" type="button" onclick="doProcess('doprocessall')">ВСЁ</button>
+                                </td>
+                                <td colspan="5" style="font-size: 14px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                                    <button name="button_melt_all_wolyrics" id="button_melt_all_wolyrics" class="form-control btn btn-primary btn-block" type="button" onclick="doProcess('doprocessallwolyrics')">ВСЁ, кроме LYRICS</button>
+                                </td>
+                            </tr>
+                        </table>
+
+                    </div>
+                </form>
+
+            </div>
+        </div>
+        <div id="areaRightColumn">
+            Правая область
+        </div>
+    </div>
+    <div id="areaFooter">
+        Примечание
+    </div>
+</div>
+
+</body>

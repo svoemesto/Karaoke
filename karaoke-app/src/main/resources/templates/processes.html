@@ -1,0 +1,424 @@
+<!doctype html>
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css" integrity="sha384-B0vP5xmATw1+K9KRQjQERJvTumQW0nPEzvF6L/Z6nronJ3oUOFUFpCjEUQouq2+l" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-Piv4xVNRyMGpqkS2by6br4gNJ7DXjqk09RmUpJ8jgGtD7zP9yug3goQfGII0yAns" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <title>Процессы</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        #areaScreen {
+            padding: 1em;
+            display: flex;
+            min-height: 100vh;
+            flex-direction: column;
+            margin: 0;
+        }
+
+        #areaHeader {
+            padding: 5px;
+            background: whitesmoke;
+            height: 50px;
+        }
+
+        #areaBody {
+            padding: 5px;
+            display: flex;
+            flex: 1;
+            background: beige;
+            max-height: calc(100vh - 135px);
+        }
+
+            #areaLeftColumn {
+                order: -1;
+                flex: 0 0 200px;
+                background: cadetblue;
+            }
+
+                #areaLeftTable{
+                    flex: 1;
+                    overflow-y: scroll;
+                    max-height: calc(100vh - 350px);
+                    background: #d5e6ff;
+                }
+
+            #areaCenterColumn {
+                flex: 1;
+                background: white;
+            }
+
+            #areaRightColumn {
+                flex: 0 0 100px;
+                background: dodgerblue;
+            }
+
+        #areaFooter {
+            padding: 5px;
+            background: yellowgreen;
+            height: 50px;
+        }
+
+        tbody tr.sub-row0:hover {
+            background: #d5e6ff; /* Цвет фона */
+        }
+        tbody tr.sub-row1:hover {
+            background: #d5e6ff; /* Цвет фона */
+        }
+        tbody tr.sub-row2:hover {
+            background: #f00; /* Цвет фона */
+        }
+
+        .sub-row0 { color: #000; background: #FFF; }
+        .sub-row1 { color: #000; background: #EEE; }
+        .sub-row2 { color: #000; background: #EC8888; }
+        .nonselrec {  color: #000 }
+        .selrec { color: #000; background: #f00; }
+
+    </style>
+
+    <script type="text/javascript">
+
+        var prevWorkingId = 0;
+
+        function updateWorkingProcess() {
+
+            // if (document.visibilityState === 'visible') {
+            if (true) {
+                // console.log(document.visibilityState);
+                var isWorkingElement = document.getElementById("isworking");
+                isWorkingElement.innerText = getIsWorkingStatus();
+
+                var requestWorking = new XMLHttpRequest();
+                requestWorking.open('GET', "/process/working", false);
+                requestWorking.send();
+                if (requestWorking.status === 200) {
+                    console.log(requestWorking);
+                    if (requestWorking.responseText === "") {
+                        if (prevWorkingId != 0) {
+                            var requestPrevWorking = new XMLHttpRequest();
+                            requestPrevWorking.open('GET', "/process/" + prevWorkingId, false);
+                            requestPrevWorking.send();
+
+                            if (requestPrevWorking.status === 200) {
+                                console.log(requestPrevWorking);
+                                if (requestPrevWorking.responseText != "") {
+                                    var prevWorkingProcess = JSON.parse(requestPrevWorking.responseText);
+                                    console.log(prevWorkingProcess);
+                                    document.getElementById('fld_' + prevWorkingId + '_status').innerText = prevWorkingProcess.status;
+                                    document.getElementById('fld_' + prevWorkingId + '_priority').innerText = prevWorkingProcess.priority;
+                                    document.getElementById('fld_' + prevWorkingId + '_startStr').innerText = prevWorkingProcess.startStr;
+                                    document.getElementById('fld_' + prevWorkingId + '_endStr').innerText = prevWorkingProcess.endStr;
+                                    document.getElementById('fld_' + prevWorkingId + '_percentageStr').innerText = prevWorkingProcess.percentageStr;
+                                    document.getElementById('fld_' + prevWorkingId + '_timePassedStr').innerText = prevWorkingProcess.timePassedStr;
+                                    document.getElementById('fld_' + prevWorkingId + '_timeLeftStr').innerText = prevWorkingProcess.timeLeftStr;
+                                }
+                            }
+                            prevWorkingId = 0;
+                        }
+                    } else {
+                        console.log(requestWorking);
+                        if (requestWorking.responseText != "") {
+                            var workingProcess = JSON.parse(requestWorking.responseText);
+                            console.log(workingProcess);
+
+                            if (workingProcess != null) {
+
+                                console.log(workingProcess.id);
+                                console.log(prevWorkingId);
+
+                                if (workingProcess.id === prevWorkingId) {
+                                    // обновляем текущий процесс
+                                    document.getElementById('fld_' + workingProcess.id + '_percentageStr').innerText = workingProcess.percentageStr;
+                                    document.getElementById('fld_' + workingProcess.id + '_timePassedStr').innerText = workingProcess.timePassedStr;
+                                    document.getElementById('fld_' + workingProcess.id + '_timeLeftStr').innerText = workingProcess.timeLeftStr;
+                                } else {
+
+                                    // обновляем новый процесс и предыдущий
+                                    document.getElementById('fld_' + workingProcess.id + '_status').innerText = workingProcess.status;
+                                    document.getElementById('fld_' + workingProcess.id + '_priority').innerText = workingProcess.priority;
+                                    document.getElementById('fld_' + workingProcess.id + '_startStr').innerText = workingProcess.startStr;
+                                    document.getElementById('fld_' + workingProcess.id + '_endStr').innerText = workingProcess.endStr;
+                                    document.getElementById('fld_' + workingProcess.id + '_percentageStr').innerText = workingProcess.percentageStr;
+                                    document.getElementById('fld_' + workingProcess.id + '_timePassedStr').innerText = workingProcess.timePassedStr;
+                                    document.getElementById('fld_' + workingProcess.id + '_timeLeftStr').innerText = workingProcess.timeLeftStr;
+
+                                    var requestPrevWorking = new XMLHttpRequest();
+                                    requestPrevWorking.open('GET', "/process/" + prevWorkingId, false);
+                                    requestPrevWorking.send();
+
+                                    if (requestPrevWorking.status === 200) {
+                                        console.log(requestPrevWorking);
+                                        if (requestPrevWorking.responseText != "") {
+                                            var prevWorkingProcess = JSON.parse(requestPrevWorking.responseText);
+                                            console.log(prevWorkingProcess);
+                                            document.getElementById('fld_' + prevWorkingId + '_status').innerText = prevWorkingProcess.status;
+                                            document.getElementById('fld_' + prevWorkingId + '_priority').innerText = prevWorkingProcess.priority;
+                                            document.getElementById('fld_' + prevWorkingId + '_startStr').innerText = prevWorkingProcess.startStr;
+                                            document.getElementById('fld_' + prevWorkingId + '_endStr').innerText = prevWorkingProcess.endStr;
+                                            document.getElementById('fld_' + prevWorkingId + '_percentageStr').innerText = prevWorkingProcess.percentageStr;
+                                            document.getElementById('fld_' + prevWorkingId + '_timePassedStr').innerText = prevWorkingProcess.timePassedStr;
+                                            document.getElementById('fld_' + prevWorkingId + '_timeLeftStr').innerText = prevWorkingProcess.timeLeftStr;
+                                        }
+                                    }
+                                    prevWorkingId = workingProcess.id;
+                                }
+                            }
+                        }
+
+
+                    }
+
+                }
+            }
+
+
+        }
+
+        function mouseClickRow(row){
+
+        }
+        function doFilterForm() {
+            var filter_id = encodeURIComponent(document.getElementById("filter_id").value);
+            var filter_name = encodeURIComponent(document.getElementById("filter_name").value);
+            var filter_status = encodeURIComponent(document.getElementById("filter_status").value);
+            var filter_order = encodeURIComponent(document.getElementById("filter_order").value);
+            var filter_priority = encodeURIComponent(document.getElementById("filter_priority").value);
+            var filter_description = encodeURIComponent(document.getElementById("filter_description").value);
+            var filter_type = encodeURIComponent(document.getElementById("filter_type").value);
+            var url = "/processes?filter_id=" + filter_id +
+                "&filter_name=" + filter_name +
+                "&filter_status=" + filter_status +
+                "&filter_order=" + filter_order +
+                "&filter_priority=" + filter_priority +
+                "&filter_description=" + filter_description +
+                "&filter_type=" + filter_type;
+            window.location.href = url;
+
+        }
+
+        function getIsWorkingStatus() {
+            var result = "Ошибка"
+            var requestIsWorking = new XMLHttpRequest();
+            requestIsWorking.open('GET', "/process/isworking", false);
+            requestIsWorking.send();
+            if (requestIsWorking.status === 200) {
+                var isWorking = requestIsWorking.responseText;
+                var requestIsStopAfterThreadIsDone = new XMLHttpRequest();
+                requestIsStopAfterThreadIsDone.open('GET', "/process/isstopafterthreadssdone", false);
+                requestIsStopAfterThreadIsDone.send();
+                if (requestIsStopAfterThreadIsDone.status === 200) {
+                    var isStopAfterThreadIsDone = requestIsStopAfterThreadIsDone.responseText;
+                    if (isWorking === 'false') {
+                        result = "Остановлено"
+                    } else {
+                        if (isStopAfterThreadIsDone === 'false') {
+                            result = "Работает"
+                        } else {
+                            result = "Ожидает остановки"
+                        }
+                    }
+
+                }
+            }
+            return result
+        }
+
+        function doStartWorker() {
+            var requestStartWorker = new XMLHttpRequest();
+            requestStartWorker.open('GET', "/process/start", true);
+            requestStartWorker.send();
+        }
+
+        function doStopWorker() {
+            var requestStopWorker = new XMLHttpRequest();
+            requestStopWorker.open('GET', "/process/stop", true);
+            requestStopWorker.send();
+        }
+
+        $(function() {
+
+            var isWorkingElement = document.getElementById("isworking");
+            isWorkingElement.innerText = getIsWorkingStatus();
+
+            setInterval(updateWorkingProcess, 10000);
+
+            document.addEventListener("visibilitychange", function() {
+                if (document.visibilityState === 'visible') {
+                    console.log('Вкладка стала видимой');
+                    updateWorkingProcess();
+                } else {
+                    console.log('Вкладка стала невидимой');
+                    // выполнить необходимые действия при деактивации вкладки
+                }
+            });
+
+        });
+
+        function mouseClickElement(id, name) {
+            console.log('mouseClickElement(' + id + ', ' + name + ')');
+            var elementText = document.getElementById('fld_'+ id + '_' + name);
+            var elementEdit = document.getElementById('edit_'+ id +'_' + name);
+            var elementInput = document.getElementById('input_'+ id +'_' + name);
+            elementInput.value = elementText.innerText;
+            elementText.setAttribute("hidden", "true");
+            elementEdit.removeAttribute("hidden");
+        }
+        function focusOutElement(id, name) {
+            console.log('focusOutElement(' + id + ', ' + name + ')');
+            var elementText = document.getElementById('fld_'+ id + '_' + name);
+            var elementEdit = document.getElementById('edit_'+ id +'_' + name);
+            var elementInput = document.getElementById('input_'+ id +'_' + name);
+            elementText.innerText = elementInput.value;
+            elementEdit.setAttribute("hidden", "true");
+            elementText.removeAttribute("hidden");
+            updateProcess(id);
+        }
+
+        function updateProcess(id) {
+            $.ajax({
+                type: "POST",
+                url: "/process/update",
+                data: {
+                    "id": id,
+                    "process_name": document.getElementById('fld_'+ id + '_name').innerText,
+                    "process_status": document.getElementById('fld_'+ id + '_status').innerText,
+                    "process_order": document.getElementById('fld_'+ id + '_order').innerText,
+                    "process_priority": document.getElementById('fld_'+ id + '_priority').innerText,
+                    "process_description": document.getElementById('fld_'+ id + '_description').innerText,
+                    "process_type": document.getElementById('fld_'+ id + '_type').innerText
+                },
+                success: function(data) {
+                }
+            });
+        }
+
+    </script>
+</head>
+
+<body>
+
+<div id="areaScreen">
+    <div id="areaHeader">
+        <div th:insert="navigation_bar.html"></div>
+    </div>
+    <div id="areaBody">
+        <div id="areaCenterColumn">
+            <button name="button_doFilter" id="button_doFilter" class="form-control btn btn-primary btn-block" type="button" value="Сохранить" onclick="doFilterForm()">FILTER</button>
+            <table>
+                <thead>
+                    <tr>
+                        <td th:text="ID" style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin; text-align: center"></td>
+                        <td th:text="Name" style="min-width: 500px; max-width: 500px; border-style: solid; border-width: thin"></td>
+                        <td th:text="Status" style="min-width: 70px; max-width: 70px; border-style: solid; border-width: thin"></td>
+                        <td th:text="Order" style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin; text-align: center"></td>
+                        <td th:text="Prior" style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin"></td>
+                        <td th:text="Description" style="min-width: 200px; max-width: 200px; border-style: solid; border-width: thin; text-align: center"></td>
+                        <td th:text="Type" style="min-width: 130px; max-width: 130px; border-style: solid; border-width: thin; text-align: center"></td>
+                        <td th:text="Start" style="min-width: 130px; max-width: 130px; border-style: solid; border-width: thin; text-align: center"></td>
+                        <td th:text="End" style="min-width: 130px; max-width: 130px; border-style: solid; border-width: thin; text-align: center"></td>
+                        <td th:text="Perc" style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin; text-align: center"></td>
+                        <td th:text="Pass" style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin; text-align: center"></td>
+                        <td th:text="Left" style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin; text-align: center"></td>
+                    </tr>
+                    <form action=""
+                          role="form"
+                          class="form-horizontal"
+                          id="filterForm"
+                          name="filterForm">
+                        <tr>
+                            <td style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin; text-align: center">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_id" name="filter_id" placeholder="ID">
+                            </td>
+                            <td style="min-width: 500px; max-width: 500px; border-style: solid; border-width: thin">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_name" name="filter_name" placeholder="Name">
+                            </td>
+                            <td style="min-width: 70px; max-width: 70px; border-style: solid; border-width: thin">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_status" name="filter_status" placeholder="Status">
+                            </td>
+                            <td style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin; text-align: center">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_order" name="filter_order" placeholder="Order">
+                            </td>
+                            <td style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_priority" name="filter_priority" placeholder="Priority">
+                            </td>
+                            <td style="min-width: 200px; max-width: 200px; border-style: solid; border-width: thin; text-align: center">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_description" name="filter_description" placeholder="Description">
+                            </td>
+                            <td style="min-width: 130px; max-width: 130px; border-style: solid; border-width: thin; text-align: center">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_type" name="filter_type" placeholder="Type">
+                            </td>
+                            <td style="min-width: 130px; max-width: 130px; border-style: solid; border-width: thin; text-align: center">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_start" name="filter_start" placeholder="Start">
+                            </td>
+                            <td style="min-width: 130px; max-width: 130px; border-style: solid; border-width: thin; text-align: center">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_end" name="filter_end" placeholder="End">
+                            </td>
+                            <td style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin; text-align: center">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_perc" name="filter_perc" placeholder="Perc">
+                            </td>
+                            <td style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin; text-align: center">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_pass" name="filter_pass" placeholder="Pass">
+                            </td>
+                            <td style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin; text-align: center">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_left" name="filter_left" placeholder="Left">
+                            </td>
+
+
+                        </tr>
+                    </form>
+
+                </thead>
+            </table>
+            <div id="areaLeftTable">
+                <table class="table table-sm table-hover" id="leftTable" style="font-size: small; width: initial">
+                    <tbody>
+                        <tr th:each="process:${processes}" onClick="mouseClickRow(this)">
+                            <td th:text="${process.id}" th:id="'fld_'+${process.id}+'_id'" style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin; text-align: center"></td>
+                            <td th:text="${process.name}" th:id="'fld_'+${process.id}+'_name'" style="min-width: 500px; max-width: 500px; border-style: solid; border-width: thin"></td>
+                            <td th:text="${process.status}" th:id="'fld_'+${process.id}+'_status'" th:onclick="'mouseClickElement('+${process.id}+', \'status\')'" style="min-width: 70px; max-width: 70px; border-style: solid; border-width: thin"></td>
+                            <td hidden th:id="'edit_'+${process.id}+'_status'" style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin">
+                                <select th:id="'input_'+${process.id}+'_status'" th:name="'input_'+${process.id}+'_status'" th:value="${process.status}" th:onfocusout="'focusOutElement('+${process.id}+', \'status\')'" style="font-size: 14px;" class="form-control">
+                                    <option value="CREATING">CREATING</option>
+                                    <option value="WAITING">WAITING</option>
+                                    <option value="WORKING">WORKING</option>
+                                    <option value="DONE">DONE</option>
+                                    <option value="ERROR">ERROR</option>
+                                </select>
+                            </td>
+                            <td th:text="${process.order}" th:id="'fld_'+${process.id}+'_order'" style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin; text-align: center"></td>
+                            <td th:text="${process.priority}" th:id="'fld_'+${process.id}+'_priority'" th:onclick="'mouseClickElement('+${process.id}+', \'priority\')'" style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin"></td>
+                            <td hidden th:id="'edit_'+${process.id}+'_priority'" style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin">
+                                <input th:id="'input_'+${process.id}+'_priority'" th:name="'input_'+${process.id}+'_priority'" th:value="${process.priority}" th:onfocusout="'focusOutElement('+${process.id}+', \'priority\')'" style="font-size: 14px;" type="text" class="form-control">
+                            </td>
+                            <td th:text="${process.description}" th:id="'fld_'+${process.id}+'_description'" style="min-width: 200px; max-width: 200px; border-style: solid; border-width: thin; text-align: center"></td>
+                            <td th:text="${process.type}" th:id="'fld_'+${process.id}+'_type'" style="min-width: 130px; max-width: 130px; border-style: solid; border-width: thin; text-align: center"></td>
+                            <td th:text="${process.startStr}" th:id="'fld_'+${process.id}+'_startStr'" style="min-width: 130px; max-width: 130px; border-style: solid; border-width: thin; text-align: center"></td>
+                            <td th:text="${process.endStr}" th:id="'fld_'+${process.id}+'_endStr'" style="min-width: 130px; max-width: 130px; border-style: solid; border-width: thin; text-align: center"></td>
+                            <td th:text="${process.percentageStr}" th:id="'fld_'+${process.id}+'_percentageStr'" style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin; text-align: center"></td>
+                            <td th:text="${process.timePassedStr}" th:id="'fld_'+${process.id}+'_timePassedStr'" style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin; text-align: center"></td>
+                            <td th:text="${process.timeLeftStr}" th:id="'fld_'+${process.id}+'_timeLeftStr'" style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin; text-align: center"></td>
+                        </tr>
+                    </tbody>
+
+                </table>
+            </div>
+        </div>
+        <div id="areaRightColumn">
+            <div class="column">
+                <div id="isworking"></div>
+                <button name="button_doStartWorker" id="button_doStartWorker" class="form-control btn btn-primary btn-block" type="button" value="Start" onclick="doStartWorker()">Start</button>
+                <button name="button_doStopWorker" id="button_doStopWorker" class="form-control btn btn-primary btn-block" type="button" value="Start" onclick="doStopWorker()">Stop</button>
+            </div>
+
+
+        </div>
+    </div>
+    <div id="areaFooter">
+        Примечание
+    </div>
+</div>
+
+</body>

@@ -7,10 +7,9 @@
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <module name="Karaoke" />
+        <module name="karaoke" />
       </profile>
     </annotationProcessing>
-    <bytecodeTargetLevel>
-      <module name="Karaoke" target="1.8" />
-    </bytecodeTargetLevel>
+    <bytecodeTargetLevel target="13" />
   </component>
 </project>

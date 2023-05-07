@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/Karaoke.iml" filepath="$PROJECT_DIR$/Karaoke.iml" />
+      <module fileurl="file://$PROJECT_DIR$/karaoke-angular.iml" filepath="$PROJECT_DIR$/karaoke-angular.iml" />
     </modules>
   </component>
 </project>

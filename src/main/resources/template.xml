@@ -747,7 +747,7 @@
   <property name="kdenlive:trackheight">69</property>
   <property name="kdenlive:timeline_active">0</property>
   <property name="kdenlive:collapsed">28</property>
-  <property name="kdenlive:track_name">model.Song</property>
+  <property name="kdenlive:track_name">com.svoemesto.karaokeapp.model.Song</property>
   <property name="kdenlive:thumbs_format"/>
   <property name="kdenlive:audio_rec"/>
   <track hide="video" producer="playlist4"/>

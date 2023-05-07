@@ -1,0 +1,1013 @@
+<!doctype html>
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css" integrity="sha384-B0vP5xmATw1+K9KRQjQERJvTumQW0nPEzvF6L/Z6nronJ3oUOFUFpCjEUQouq2+l" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-Piv4xVNRyMGpqkS2by6br4gNJ7DXjqk09RmUpJ8jgGtD7zP9yug3goQfGII0yAns" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://unpkg.com/wavesurfer.js/dist/wavesurfer.js"></script>
+    <script src="https://unpkg.com/wavesurfer.js/dist/plugin/wavesurfer.cursor.js"></script>
+    <script src="https://unpkg.com/wavesurfer.js/dist/plugin/wavesurfer.timeline.js"></script>
+    <script src="https://unpkg.com/wavesurfer.js/dist/plugin/wavesurfer.markers.js"></script>
+    <script src="https://unpkg.com/wavesurfer.js/dist/plugin/wavesurfer.regions.js"></script>
+    <title>Песня</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        #areaScreen {
+            padding: 1em;
+            display: flex;
+            min-height: 100vh;
+            flex-direction: column;
+            margin: 0;
+        }
+
+        #areaHeader {
+            padding: 5px;
+            background: whitesmoke;
+            height: 50px;
+        }
+
+        #areaBody {
+            padding: 5px;
+            display: flex;
+            flex: 1;
+            background: beige;
+            max-height: calc(100vh - 135px);
+        }
+
+        #areaLeftColumn {
+            order: -1;
+            flex: 0 0 200px;
+            background: cadetblue;
+        }
+
+        #areaLeftTable{
+            flex: 1;
+            overflow-y: scroll;
+            max-height: calc(100vh - 350px);
+            background: #d5e6ff;
+        }
+
+        #areaCenterColumn {
+            flex: 1;
+            background: white;
+        }
+
+        #areaRightColumn {
+            flex: 0 0 100px;
+            background: dodgerblue;
+        }
+
+        #areaFooter {
+            padding: 5px;
+            background: yellowgreen;
+            height: 50px;
+        }
+
+        tbody tr.sub-row0:hover {
+            background: #d5e6ff; /* Цвет фона */
+        }
+        tbody tr.sub-row1:hover {
+            background: #d5e6ff; /* Цвет фона */
+        }
+        tbody tr.sub-row2:hover {
+            background: #f00; /* Цвет фона */
+        }
+
+        .sub-row0 { color: #000; background: #FFF; }
+        .sub-row1 { color: #000; background: #EEE; }
+        .sub-row2 { color: #000; background: #EC8888; }
+        .nonselrec {  color: #000 }
+        .selrec { color: #000; background: #f00; }
+
+    </style>
+    <script type="text/javascript">
+
+        var intervalSkipBackward;
+        var intervalSkipForward;
+        var intervalPressQ;
+        var intervalPressE;
+        var intervalPressA;
+        var intervalPressD;
+        var intervalPressZ;
+        var intervalPressC;
+        var keyPressedQ = false;
+        var keyPressedW = false;
+        var keyPressedE = false;
+        var keyPressedR = false;
+        var keyPressedT = false;
+        var keyPressedY = false;
+        var keyPressedU = false;
+        var keyPressedI = false;
+        var keyPressedO = false;
+        var keyPressedA = false;
+        var keyPressedS = false;
+        var keyPressedD = false;
+        var keyPressedZ = false;
+        var keyPressedC = false;
+        var dataSyllables = [];
+        var dataMarkers = [];
+        var wavesurfer;
+        const MARKER_COLOR_SYLLABLES = '#D2691E';
+        const MARKER_COLOR_ENDOFLINE = '#FF0000';
+        const MARKER_COLOR_FIRSTSYLLABLE = '#008000';
+        const MARKER_COLOR_SETTING = '#000080';
+        var pluginCursor;
+        var pluginMarkers;
+        var pluginTimeline;
+        var pluginRegion;
+        var checkboxEditMode;
+        var COUNT_MARKERS_IN_FAST_MODE = 50;
+        var SPEED_PLAY = 1.0;
+        var SPEED_EDIT = 0.5;
+
+        var SPAN_STYLE_TAIL_CURRENT = `<span style="color: #FF0000; font-size: 48px; font-style: normal;">`;
+        var SPAN_STYLE_TAIL_END = `<span style="color: #000000; font-size: 24px; font-style: normal;">`;
+        var SPAN_STYLE_CURRENT = `<span style="color: #FF0000; font-size: 18px; font-style: normal;">`;
+        var SPAN_STYLE_GROUP0 = `<span style="color: #FFFFFF; font-size: 18px; font-style: normal;">`;
+        var SPAN_STYLE_GROUP1 = `<span style="color: #FFFF00; font-size: 18px; font-style: italic;">`;
+        var SPAN_STYLE_GROUP2 = `<span style="color: #00BFFF; font-size: 18px; font-style: normal;">`;
+        var SPAN_STYLE_GROUP3 = `<span style="color: #00FF00; font-size: 18px; font-style: italic;">`;
+
+        var regionStart = 0;
+        var regionEnd = 0;
+
+        function doRegionStart() {
+            regionStart = wavesurfer.getCurrentTime();
+        }
+
+        function doRegionEnd() {
+            regionEnd = wavesurfer.getCurrentTime();
+            wavesurfer.clearRegions();
+            wavesurfer.addRegion({
+                id: "myRegion",
+                start: regionStart,
+                end: regionEnd
+            });
+        }
+
+        function doRegionDo() {
+            var region = wavesurfer.regions.list.myRegion;
+            var currTime = wavesurfer.getCurrentTime();
+            regionStart = region.start;
+            regionEnd = region.end;
+
+            var markersInRegion = [];
+            for (var i = 0; i < dataMarkers.length; i++) {
+                var currMarker = dataMarkers[i];
+                if (currMarker.time >= regionStart && currMarker.time <= regionEnd) {
+                    markersInRegion.push(currMarker);
+                }
+            }
+            console.log(markersInRegion);
+
+
+            for (var i = 0; i < markersInRegion.length; i++) {
+
+
+
+                var currMarker = markersInRegion[i];
+                var markerType = currMarker.markertype;
+
+                var currentTime = currTime +  currMarker.time - markersInRegion[0].time;
+
+                var previousMarkerIsEndOfLine = true;
+                var indexToInsertNewMarker = 0;
+                for (let i = 0; i < dataMarkers.length; i++) {
+                    var myMarker = dataMarkers[i];
+                    var markerTime = myMarker.time;
+
+                    if (markerTime > currentTime) {
+                        break;
+                    }
+                    indexToInsertNewMarker = i+1;
+                }
+                console.log("Индекс для вставки маркера: " + indexToInsertNewMarker);
+
+                if (indexToInsertNewMarker > 0) {
+                    for (let i = indexToInsertNewMarker-1; i >= 0; i--) {
+                        console.log(i);
+                        var myMarker = dataMarkers[i];
+                        if (myMarker.markertype === 'syllables') {
+                            previousMarkerIsEndOfLine = false;
+                            break;
+                        }
+                        if (myMarker.markertype === 'endofline') {
+                            previousMarkerIsEndOfLine = true;
+                            break;
+                        }
+                    }
+                }
+
+                var textCurrentMarker = "";
+                var colorCurrentMarker = MARKER_COLOR_SYLLABLES;
+                var positionCurrentMarker = 'bottom';
+
+                if (markerType === 'syllables') {
+                    // фильтруем массив маркеров, оставляя только маркеры со слогами и запоминаем его размер
+                    var countMarkersSyllables = dataMarkers.filter(function (currentMarker) {
+                        return currentMarker.markertype === 'syllables';
+                    }).length ;
+                    console.log("Уже есть маркеры-слоги: " + countMarkersSyllables);
+
+                    // получаем текст для текущего маркера
+                    if (dataSyllables.length > countMarkersSyllables) {
+                        textCurrentMarker = dataSyllables[countMarkersSyllables];
+                    }
+
+                    if (previousMarkerIsEndOfLine === true) {
+                        colorCurrentMarker = MARKER_COLOR_FIRSTSYLLABLE;
+                        textCurrentMarker = textCurrentMarker.charAt(0).toUpperCase() + textCurrentMarker.slice(1);
+                    }
+
+                } else if (markerType === 'endofline') {
+                    colorCurrentMarker = MARKER_COLOR_ENDOFLINE;
+                } else if (markerType === 'setting') {
+                    colorCurrentMarker = MARKER_COLOR_SETTING;
+                    positionCurrentMarker = 'top';
+                    textCurrentMarker = currMarker.label;
+                }
+
+                // создаем текущий маркер
+                var currentMarker = {
+                    time: currentTime,
+                    label: textCurrentMarker,
+                    color: colorCurrentMarker,
+                    position: positionCurrentMarker,
+                    markertype: markerType
+                };
+
+                // добавляем текущий маркер в массив маркеров по нужному индексу
+                dataMarkers.splice(indexToInsertNewMarker, 0, currentMarker);
+
+            }
+            createWavesurferMarkers();
+            setResultText();
+
+        }
+
+        function doRegionClear() {
+
+            var region = wavesurfer.regions.list.myRegion;
+            var currTime = wavesurfer.getCurrentTime();
+            regionStart = region.start;
+            regionEnd = region.end;
+
+            var markersInRegion = [];
+            for (var i = 0; i < dataMarkers.length; i++) {
+                var currMarker = dataMarkers[i];
+                if (currMarker.time >= regionStart && currMarker.time <= regionEnd) {
+                    markersInRegion.push(currMarker);
+                }
+            }
+
+            var wasDeleted = false;
+            for (var i = 0; i < markersInRegion.length; i++) {
+                var currMarker = markersInRegion[i];
+
+                for (let i = 0; i < dataMarkers.length; i++) {
+                    var myMarker = dataMarkers[i];
+                    if (myMarker === currMarker) {
+                        console.log("Удаляем маркер " + i);
+                        dataMarkers.splice(i, 1);
+                        wasDeleted = true;
+                        break;
+                    }
+                }
+            }
+
+            if (wasDeleted) {
+                createWavesurferMarkers();
+                setResultText();
+            }
+
+        }
+
+        function getSpeedPlay() {
+            const buttons = document.getElementsByName('btn_speed_play');
+            buttons.forEach(function(button) {
+                if (button.checked) {
+                    return button.value;
+                }
+            });
+            return 1.0;
+        }
+
+        function getSpeedEdit() {
+            const buttons = document.getElementsByName('btn_speed_edit');
+            buttons.forEach(function(button) {
+                if (button.checked) {
+                    return button.value;
+                }
+            });
+            return 1.0;
+        }
+
+        function setResultText() {
+            var textTemplate = "";
+            var currSpanStyle = SPAN_STYLE_GROUP0;
+            var currTime = wavesurfer.getCurrentTime();
+            for (var i = 0; i < dataMarkers.length; i++) {
+                var currMarkerIsHighlighted = false;
+                var currMarker = dataMarkers[i];
+                var nextMarker;
+                if (i !== dataMarkers.length - 1) {
+                    nextMarker = dataMarkers[i+1];
+                }  else {
+                    nextMarker = currMarker;
+                }
+
+                if (currMarker.markertype === 'setting') {
+                    if (currMarker.label === 'GROUP|0') {
+                        currSpanStyle = SPAN_STYLE_GROUP0;
+                    } else if (currMarker.label === 'GROUP|1') {
+                        currSpanStyle = SPAN_STYLE_GROUP1;
+                    } else if (currMarker.label === 'GROUP|2') {
+                        currSpanStyle = SPAN_STYLE_GROUP2;
+                    } else if (currMarker.label === 'GROUP|3') {
+                        currSpanStyle = SPAN_STYLE_GROUP3;
+                    } else if (currMarker.label === 'COMMENT| ') {
+                        textTemplate = textTemplate + '<br>';
+                    // } else {
+                    //     currSpanStyle = SPAN_STYLE_GROUP0;
+                    }
+                }
+
+                if ((currMarker.time <= currTime && nextMarker.time >= currTime) ||
+                    (currMarker.time >= currTime && currMarker === dataMarkers[0]) ||
+                    (currMarker.time <= currTime && currMarker === dataMarkers[dataMarkers.length-1])) {
+                    currMarkerIsHighlighted = true;
+                } else {
+                    currMarkerIsHighlighted = false;
+                }
+
+                var spanStyle = currSpanStyle;
+                if (currMarkerIsHighlighted) {
+                    spanStyle = SPAN_STYLE_CURRENT;
+                    console.log('Текущий маркер: ' + currMarker.label.replace("_", " "));
+                }
+                var textToAdd = "";
+                if (currMarker.markertype === 'endofline') {
+                    textToAdd = '<br>';
+                } else if (currMarker.markertype === 'syllables') {
+                    textToAdd = spanStyle + currMarker.label.replaceAll("_", " ") + '</span>';
+                }
+
+                textTemplate = textTemplate + textToAdd;
+                // console.log(textToAdd);
+            }
+
+            var textElement = document.getElementById("resultText");
+            textElement.style.backgroundColor = "black";
+            textElement.innerHTML = textTemplate;
+
+            document.getElementById("next_syllable_text").innerHTML = getTailText();
+
+        }
+
+        function getTailText() {
+            var countMarkersSyllables = dataMarkers.filter(function (currentMarker) {
+                return currentMarker.markertype === 'syllables';
+            }).length ;
+
+            var result = `${SPAN_STYLE_TAIL_CURRENT}${dataSyllables[countMarkersSyllables]}</span>${SPAN_STYLE_TAIL_END}${dataSyllables.slice(countMarkersSyllables+1).join("").slice(0, 50).replaceAll("_", " ")}</span>`;
+            return result;
+        }
+
+        function createWavesurferMarkers() {
+
+            var arrMarkers;
+            if (document.getElementById("check_fast_mode").checked && dataMarkers.length > COUNT_MARKERS_IN_FAST_MODE) {
+                arrMarkers = dataMarkers.slice(dataMarkers.length - COUNT_MARKERS_IN_FAST_MODE)
+            } else {
+                arrMarkers = dataMarkers;
+            }
+
+            wavesurfer.clearMarkers();
+            for (var i = 0; i < arrMarkers.length; i++) {
+                var myMarker = arrMarkers[i];
+                wavesurfer.addMarker({
+                    time: myMarker.time,
+                    label: myMarker.label,
+                    color: myMarker.color,
+                    position: myMarker.position
+                });
+            }
+        }
+
+        function deleteMarker() {
+            var currentTime = wavesurfer.getCurrentTime(); // текущее время
+            // ищем, есть ли уже маркер с таким временем. если есть - удаляем его.
+            var wasDeleted = false;
+            for (let i = 0; i < dataMarkers.length; i++) {
+                var myMarker = dataMarkers[i];
+                var markerTime = myMarker.time;
+                if (markerTime >= currentTime - 0.01 && markerTime <= currentTime + 0.01) {
+                    console.log("Удаляем маркер " + i);
+                    dataMarkers.splice(i, 1);
+                    wasDeleted = true;
+                    break;
+                }
+            }
+            if (wasDeleted) {
+                createWavesurferMarkers();
+                setResultText();
+            }
+        }
+
+        function addMarker(markerType, settingValue, notDelete = false) {
+            var currentTime = wavesurfer.getCurrentTime(); // текущее время
+            // ищем, есть ли уже маркер с таким временем. если есть - удаляем его.
+            var wadDelete = false;
+            if (!notDelete) {
+                for (let i = 0; i < dataMarkers.length; i++) {
+                    var myMarker = dataMarkers[i];
+                    var markerTime = myMarker.time;
+                    if (markerTime >= currentTime - 0.02 && markerTime <= currentTime + 0.02) {
+                        console.log("Удаляем маркер " + i);
+                        dataMarkers.splice(i, 1);
+                        wadDelete = true;
+                        break;
+                    }
+                }
+            }
+
+            // находим индекс элемента, перед которым нужно вставить маркер. его время должно быть больше текущего
+            var previousMarkerIsEndOfLine = true;
+            var indexToInsertNewMarker = 0;
+            for (let i = 0; i < dataMarkers.length; i++) {
+                var myMarker = dataMarkers[i];
+                var markerTime = myMarker.time;
+
+                if (markerTime > currentTime) {
+                    break;
+                }
+                indexToInsertNewMarker = i+1;
+            }
+            console.log("Индекс для вставки маркера: " + indexToInsertNewMarker);
+
+            if (indexToInsertNewMarker > 0) {
+                for (let i = indexToInsertNewMarker-1; i >= 0; i--) {
+                    console.log(i);
+                    var myMarker = dataMarkers[i];
+                    if (myMarker.markertype === 'syllables') {
+                        previousMarkerIsEndOfLine = false;
+                        break;
+                    }
+                    if (myMarker.markertype === 'endofline') {
+                        previousMarkerIsEndOfLine = true;
+                        break;
+                    }
+                }
+            }
+
+
+            var textCurrentMarker = "";
+            var colorCurrentMarker = MARKER_COLOR_SYLLABLES;
+            var positionCurrentMarker = 'bottom';
+
+            if (markerType === 'syllables') {
+                // фильтруем массив маркеров, оставляя только маркеры со слогами и запоминаем его размер
+                var countMarkersSyllables = dataMarkers.filter(function (currentMarker) {
+                    return currentMarker.markertype === 'syllables';
+                }).length ;
+                console.log("Уже есть маркеры-слоги: " + countMarkersSyllables);
+
+                // получаем текст для текущего маркера
+                if (dataSyllables.length > countMarkersSyllables) {
+                    textCurrentMarker = dataSyllables[countMarkersSyllables];
+                }
+
+                if (previousMarkerIsEndOfLine === true) {
+                    colorCurrentMarker = MARKER_COLOR_FIRSTSYLLABLE;
+                    textCurrentMarker = textCurrentMarker.charAt(0).toUpperCase() + textCurrentMarker.slice(1);
+                }
+
+            } else if (markerType === 'endofline') {
+                colorCurrentMarker = MARKER_COLOR_ENDOFLINE;
+            } else if (markerType === 'setting') {
+                colorCurrentMarker = MARKER_COLOR_SETTING;
+                positionCurrentMarker = 'top';
+                textCurrentMarker = settingValue;
+            }
+
+
+            console.log("Текст нового маркера: " + textCurrentMarker);
+
+            // создаем текущий маркер
+            var currentMarker = {
+                time: currentTime,
+                label: textCurrentMarker,
+                color: colorCurrentMarker,
+                position: positionCurrentMarker,
+                markertype: markerType
+            };
+
+            // добавляем текущий маркер в массив маркеров по нужному индексу
+            dataMarkers.splice(indexToInsertNewMarker, 0, currentMarker);
+
+            if (!wadDelete && indexToInsertNewMarker === dataMarkers.length - 1 || dataMarkers.length < COUNT_MARKERS_IN_FAST_MODE) {
+                wavesurfer.addMarker({
+                    time: currentMarker.time,
+                    label: currentMarker.label,
+                    color: currentMarker.color,
+                    position: currentMarker.position
+                });
+            } else {
+                createWavesurferMarkers();
+            }
+
+
+
+            setResultText();
+
+        }
+
+        function doSaveSourceText() {
+
+            const id = document.querySelector('[data-settings-id]').getAttribute('data-settings-id');
+            const voice = document.querySelector('[data-voice]').getAttribute('data-voice');
+            if (dataMarkers.length > 0) {
+                var lastMarker = dataMarkers[dataMarkers.length-1];
+                if (lastMarker.markertype !== 'setting' && lastMarker.label !== 'END') {
+                    var endMarker = {
+                        time: wavesurfer.getDuration(),
+                        label: 'END',
+                        color: MARKER_COLOR_SETTING,
+                        position: 'top',
+                        markertype: 'setting'
+                    };
+                    dataMarkers.splice(dataMarkers.length, 0, endMarker);
+                }
+            }
+            const text =  JSON.stringify(dataMarkers);
+            console.log(text);
+            var dataString = {'sourceMarkers':text}
+            $.ajax({
+                type: "POST",
+                url: "/song/" + id + "/" + voice + "/savesourcemarkers",
+                data: dataString,
+                success: function() {
+
+                    const text = document.getElementById("source_text").value;
+                    console.log(text);
+                    var dataString = {'sourceText':text}
+                    $.ajax({
+                        type: "POST",
+                        url: "/song/" + id + "/" + voice + "/savesourcetext",
+                        data: dataString,
+                        success: function() {
+                            var requestMarkers = new XMLHttpRequest();
+                            requestMarkers.open('GET', "/song/" + id + "/" + voice + "/sourcemarkers", false);
+                            requestMarkers.send();
+                            if (requestMarkers.status === 200) {
+                                dataMarkers = JSON.parse(requestMarkers.responseText);
+                            }
+
+                            var requestSyllables = new XMLHttpRequest();
+                            requestSyllables.open('GET', "/song/" + id + "/" + voice + "/sourcesyllables", false);
+                            requestSyllables.send();
+                            if (requestSyllables.status === 200) {
+                                dataSyllables = JSON.parse(requestSyllables.responseText);
+                            }
+
+                            // $.ajax({
+                            //     type: "GET",
+                            //     url: "/song/" + id + "/sourcemarkers",
+                            //     data: "",
+                            //     success: function(data) {
+                            //         let startIndex = data.indexOf("<div>");
+                            //         let endIndex = data.indexOf("</div>", startIndex);
+                            //         let textBetweenDivs = data.substring(startIndex + 5, endIndex).replaceAll("&quot;","\"");
+                            //         console.log(textBetweenDivs);
+                            //         document.querySelector('[data-markers]').setAttribute('data-markers', textBetweenDivs);
+                            //         dataMarkers = JSON.parse(textBetweenDivs);
+                            //         createWavesurferMarkers();
+                            //         $.ajax({
+                            //             type: "GET",
+                            //             url: "/song/" + id + "/sourcesyllables",
+                            //             data: "",
+                            //             success: function(data) {
+                            //                 let startIndex = data.indexOf("<div>");
+                            //                 let endIndex = data.indexOf("</div>", startIndex);
+                            //                 let textBetweenDivs = data.substring(startIndex + 5, endIndex).replaceAll("&quot;","\"");
+                            //                 console.log(textBetweenDivs);
+                            //                 document.querySelector('[data-syllables]').setAttribute('data-syllables', textBetweenDivs);
+                            //                 dataSyllables = JSON.parse(textBetweenDivs);
+                            //                 setResultText();
+                            //             }
+                            //         });
+                            //     }
+                            // });
+
+                        }
+                    });
+
+                }
+            });
+
+
+        }
+
+        function doSaveSourceMarkers() {
+            const id = document.querySelector('[data-settings-id]').getAttribute('data-settings-id');
+            const voice = document.querySelector('[data-voice]').getAttribute('data-voice');
+            if (dataMarkers.length > 0) {
+                var lastMarker = dataMarkers[dataMarkers.length-1];
+                if (lastMarker.markertype !== 'setting' && lastMarker.label !== 'END') {
+                    var endMarker = {
+                        time: wavesurfer.getDuration(),
+                        label: 'END',
+                        color: MARKER_COLOR_SETTING,
+                        position: 'top',
+                        markertype: 'setting'
+                    };
+                    dataMarkers.splice(dataMarkers.length, 0, endMarker);
+                }
+            }
+            const text =  JSON.stringify(dataMarkers);
+            console.log(text);
+            var dataString = {'sourceMarkers':text}
+            $.ajax({
+                type: "POST",
+                url: "/song/" + id + "/" + voice + "/savesourcemarkers",
+                data: dataString,
+                success: function(data) {
+                    let startIndex = data.indexOf("<div>");
+                    let endIndex = data.indexOf("</div>", startIndex);
+                    let textBetweenDivs = data.substring(startIndex + 5, endIndex);
+                }
+            });
+        }
+
+        $(document).ready(function() {
+            console.log('Страница полностью загружена');
+            var ds = document.querySelector('[data-syllables]').getAttribute('data-syllables');
+            dataSyllables = JSON.parse(ds);
+
+            var dm = document.querySelector('[data-markers]').getAttribute('data-markers');
+            dataMarkers = JSON.parse(dm);
+
+            console.log(dataSyllables);
+            console.log(dataMarkers);
+
+            document.getElementById("waveform").innerHTML = "";
+            wavesurfer = WaveSurfer.create({
+                container: '#waveform',
+                waveColor: 'violet',
+                progressColor: 'purple',
+                backend: 'MediaElement',
+                autoCenterImmediately: true,
+                barHeight: 1,
+                height: 256,
+                barWidth: 2,
+                barRadius: 2,
+                skipLength: 0.016666666666
+            });
+
+            pluginCursor = WaveSurfer.cursor.create({
+                showTime: true,
+                opacity: 1,
+                customShowTimeStyle: {
+                    'background-color': '#000',
+                    color: '#fff',
+                    padding: '2px',
+                    'font-size': '10px'
+                }
+            });
+            wavesurfer.addPlugin(pluginCursor).initPlugin('cursor');
+
+            pluginMarkers = WaveSurfer.markers.create({
+                markers: []
+            });
+            wavesurfer.addPlugin(pluginMarkers).initPlugin('markers');
+
+            pluginRegion = WaveSurfer.regions.create({
+                regions: []
+            });
+            wavesurfer.addPlugin(pluginRegion).initPlugin('regions');
+
+            pluginTimeline = WaveSurfer.timeline.create({
+                container: "#wave-timeline"
+            });
+            wavesurfer.addPlugin(pluginTimeline).initPlugin('timeline');
+
+            const settingsId = document.querySelector('[data-settings-id]').getAttribute('data-settings-id');
+            wavesurfer.clear;
+            wavesurfer.load('/song/' + settingsId + '/file');
+
+            checkboxEditMode = document.getElementById("check_edit_mode");
+
+            wavesurfer.on('interaction', function () {
+                setResultText();
+            });
+
+            wavesurfer.on('audioprocess', function () {
+                setResultText();
+            });
+
+            const sourceTextElement = document.getElementById("source_text");
+            const sourceTextValue = document.querySelector('[data-text]').getAttribute('data-text');
+            console.log(sourceTextValue);
+            sourceTextElement.innerHTML = sourceTextValue;
+
+        });
+
+        $(function() {
+
+            document.addEventListener('keydown', function (event) {
+               if (event.key === "a" && !keyPressedA && checkboxEditMode.checked) {
+                   keyPressedA = true;
+                   wavesurfer.setPlaybackRate(SPEED_EDIT);
+                   intervalSkipBackward = setInterval(doSkipBackward, 10);
+               } else if (event.key === "d" && !keyPressedD && checkboxEditMode.checked) {
+                   keyPressedD = true;
+                   wavesurfer.setPlaybackRate(SPEED_EDIT);
+                   intervalSkipForward = setInterval(doSkipForward, 16);
+               } else if (event.key === "q" && !keyPressedQ && checkboxEditMode.checked) {
+                   keyPressedQ = true;
+                   wavesurfer.skipBackward();
+               } else if (event.key === "e" && !keyPressedE && checkboxEditMode.checked) {
+                   keyPressedE = true;
+                   wavesurfer.skipForward();
+               } else if (event.key === "z" && !keyPressedZ && checkboxEditMode.checked) {
+                   keyPressedZ = true;
+                   intervalPressZ = setInterval(doSkipMinus01, 50);
+                   // wavesurfer.skip(-0.1);
+               } else if (event.key === "c" && !keyPressedC && checkboxEditMode.checked) {
+                   keyPressedC = true;
+                   intervalPressC = setInterval(doSkipPlus01, 50);
+                   // wavesurfer.skip(0.1);
+               } else if (event.key === "s" && checkboxEditMode.checked) {
+                   keyPressedS = true;
+                   deleteMarker();
+               } else if (event.key === "w" && checkboxEditMode.checked) {
+                   keyPressedW = true;
+                   addMarker('syllables', '');
+               } else if ((event.key === "r" || event.key === "2") && checkboxEditMode.checked) {
+                   keyPressedR = true;
+                   addMarker('endofline', '');
+               } else if ((event.key === "3") && checkboxEditMode.checked) {
+                   addMarker('endofline', '', true);
+                   addMarker('syllables', '', true);
+               } else if (event.key === "t" && checkboxEditMode.checked) {
+                   keyPressedT = true;
+                   addMarker('setting', 'GROUP|0');
+               } else if (event.key === "y" && checkboxEditMode.checked) {
+                   keyPressedY = true;
+                   addMarker('setting', 'GROUP|1');
+               } else if (event.key === "u" && checkboxEditMode.checked) {
+                   keyPressedU = true;
+                   addMarker('setting', 'GROUP|2');
+               } else if (event.key === "i" && checkboxEditMode.checked) {
+                   keyPressedI = true;
+                   addMarker('setting', 'GROUP|3');
+               } else if (event.key === "o" && checkboxEditMode.checked) {
+                   keyPressedO = true;
+                   addMarker('setting', 'COMMENT| ');
+               }
+            });
+
+            document.addEventListener('keyup', function (event) {
+                if (event.key === "a" && checkboxEditMode.checked) {
+                    keyPressedA = false;
+                    clearInterval(intervalSkipBackward);
+                    wavesurfer.setPlaybackRate(SPEED_PLAY);
+                    wavesurfer.pause();
+                } else if (event.key === "d" && checkboxEditMode.checked) {
+                    keyPressedD = false;
+                    clearInterval(intervalSkipForward);
+                    wavesurfer.setPlaybackRate(SPEED_PLAY);
+                    wavesurfer.pause();
+                } else if (event.key === "q" && checkboxEditMode.checked) {
+                    keyPressedQ = false;
+                } else if (event.key === "w" && checkboxEditMode.checked) {
+                    keyPressedW = false;
+                } else if (event.key === "e" && checkboxEditMode.checked) {
+                    keyPressedE = false;
+                } else if ((event.key === "r" || event.key === "2") && checkboxEditMode.checked) {
+                    keyPressedR = false;
+                } else if (event.key === "t" && checkboxEditMode.checked) {
+                    keyPressedT = false;
+                } else if (event.key === "y" && checkboxEditMode.checked) {
+                    keyPressedY = false;
+                } else if (event.key === "u" && checkboxEditMode.checked) {
+                    keyPressedU = false;
+                } else if (event.key === "i" && checkboxEditMode.checked) {
+                    keyPressedI = false;
+                } else if (event.key === "o" && checkboxEditMode.checked) {
+                    keyPressedO = false;
+                } else if (event.key === "s" && checkboxEditMode.checked) {
+                    keyPressedS = false;
+                } else if (event.key === "z" && checkboxEditMode.checked) {
+                    keyPressedZ = false;
+                    clearInterval(intervalPressZ);
+                } else if (event.key === "c" && checkboxEditMode.checked) {
+                    keyPressedC = false;
+                    clearInterval(intervalPressC);
+                }
+            });
+
+            function doSkipForward() {
+                if (!wavesurfer.isPlaying()) {
+                    wavesurfer.play();
+                }
+            }
+
+            function doSkipBackward() {
+                wavesurfer.skipBackward();
+            }
+
+            function doSkipPlus01() {
+                wavesurfer.skip(0.1);
+            }
+            function doSkipMinus01() {
+                wavesurfer.skip(-0.1);
+            }
+            document.querySelector('#slider').oninput = function () {
+                wavesurfer.zoom(Number(this.value));
+                createWavesurferMarkers();
+            };
+
+            document.querySelector('#source_text').addEventListener('focus', function(event) {
+                checkboxEditMode.checked = false;
+            });
+
+            document.querySelector('#waveform').addEventListener('click', function(event) {
+                checkboxEditMode.checked = true;
+            });
+
+
+            document.querySelector('#loadsubs').onclick = function () {
+                var dataSourceMarkers = JSON.parse(document.querySelector('[data-markers]').getAttribute('data-markers'));
+                wavesurfer.clearMarkers();
+                for (var i = 0; i < dataSourceMarkers.length; i++) {
+                    var myMarker = dataSourceMarkers[i];
+                    wavesurfer.addMarker({
+                        time: Number(myMarker.time),
+                        label: myMarker.label,
+                        color: myMarker.color,
+                        position: myMarker.position
+                    });
+                }
+            };
+
+            document.querySelector('#playpause').onclick = function () {
+                wavesurfer.playPause();
+            };
+
+            const buttonTogglesPlay = document.getElementsByName('btn_speed_play');
+            for (let i = 0; i < buttonTogglesPlay.length; i++) {
+                buttonTogglesPlay[i].addEventListener('click', function() {
+                    const selectedValue = this.value;
+                    for (let j = 0; j < buttonTogglesPlay.length; j++) {
+                        buttonTogglesPlay[j].classList.remove('active');
+                    }
+                    this.classList.add('active');
+                    SPEED_PLAY = selectedValue;
+                    wavesurfer.setPlaybackRate(SPEED_PLAY);
+                });
+            }
+
+            const buttonTogglesEdit = document.getElementsByName('btn_speed_edit');
+            for (let i = 0; i < buttonTogglesEdit.length; i++) {
+                buttonTogglesEdit[i].addEventListener('click', function() {
+                    const selectedValue = this.value;
+                    for (let j = 0; j < buttonTogglesEdit.length; j++) {
+                        buttonTogglesEdit[j].classList.remove('active');
+                    }
+                    this.classList.add('active');
+                    SPEED_EDIT = selectedValue;
+                });
+            }
+
+            SPEED_PLAY = getSpeedPlay();
+            SPEED_EDIT = getSpeedEdit();
+
+        });
+    </script>
+</head>
+
+<body>
+<div th:text="${settings.songName}"></div>
+<div th:data-settings-id="${settings.id}"></div>
+<div th:data-markers="${markers}"></div>
+<div th:data-syllables="${syllables}"></div>
+<div th:data-voice="${voice}"></div>
+<div th:data-text="${text}"></div>
+<div id="waveform"></div>
+<div id="wave-timeline"></div>
+
+<div class="row">
+    <div>
+        <button id="loadsubs" class="btn btn-primary">
+            Load Subs
+        </button>
+    </div>
+    <div class="col-sm-7">
+        <button id="playpause" class="btn btn-primary" data-action="play">
+            <i class="glyphicon glyphicon-play"></i>
+            Play
+            /
+            <i class="glyphicon glyphicon-pause"></i>
+            Pause
+        </button>
+    </div>
+
+    <div id="group_speed_play" class="btn-group btn-toggle">
+        <label for="group_speed_play">Скорость PLAY</label>
+        <button name="btn_speed_play" class="btn btn-sm btn-outline-primary active" value="0.5">0.5</button>
+        <button name="btn_speed_play" class="btn btn-sm btn-outline-primary" value="0.75">0.75</button>
+        <button name="btn_speed_play" class="btn btn-sm btn-outline-primary" value="1.0">1.0</button>
+        <button name="btn_speed_play" class="btn btn-sm btn-outline-primary" value="1.25">1.25</button>
+        <button name="btn_speed_play" class="btn btn-sm btn-outline-primary" value="1.5">1.5</button>
+        <button name="btn_speed_play" class="btn btn-sm btn-outline-primary" value="1.75">1.75</button>
+        <button name="btn_speed_play" class="btn btn-sm btn-outline-primary" value="2.0">2.0</button>
+        <button name="btn_speed_play" class="btn btn-sm btn-outline-primary" value="2.25">2.25</button>
+        <button name="btn_speed_play" class="btn btn-sm btn-outline-primary" value="2.5">2.5</button>
+        <button name="btn_speed_play" class="btn btn-sm btn-outline-primary" value="2.75">2.75</button>
+        <button name="btn_speed_play" class="btn btn-sm btn-outline-primary" value="3.0">3.0</button>
+    </div>
+
+    <div id="group_speed_edit" class="btn-group btn-toggle">
+        <label for="group_speed_edit">Скорость EDIT</label>
+        <button name="btn_speed_edit" class="btn btn-sm btn-outline-primary" value="0.3">0.3</button>
+        <button name="btn_speed_edit" class="btn btn-sm btn-outline-primary" value="0.4">0.4</button>
+        <button name="btn_speed_edit" class="btn btn-sm btn-outline-primary active" value="0.5">0.5</button>
+        <button name="btn_speed_edit" class="btn btn-sm btn-outline-primary" value="0.75">0.75</button>
+        <button name="btn_speed_edit" class="btn btn-sm btn-outline-primary" value="1.0">1.0</button>
+    </div>
+
+    <div class="col-sm-1">
+        <i class="glyphicon glyphicon-zoom-in"></i>
+    </div>
+
+    <div class="col-sm-3">
+        <input id="slider" data-action="zoom" type="range" min="20" max="1000" value="0" style="width: 100%">
+    </div>
+
+    <div class="col-sm-1">
+        <i class="glyphicon glyphicon-zoom-out"></i>
+    </div>
+</div>
+
+<div>
+    <table>
+        <tr>
+            <td>
+                <div class="column">
+                    <textarea
+                        id="source_text"
+                        class="form-control textarea"
+                        style="font-size: 14px;
+                        font-style: normal;
+                        width: 400px;
+                        height: 800px;" >
+                    </textarea>
+                    <button name="button_edit_subs" id="button_edit_subs" class="form-control btn btn-primary btn-block" type="button" onclick="doSaveSourceText()">Сохранить текст</button>
+                </div>
+            </td>
+            <td>
+                <div class="column">
+                    <button name="button_region_start" id="button_region_start" class="form-control btn btn-primary btn-block" type="button" onclick="doRegionStart()">Регион: начало</button>
+                    <button name="button_region_end" id="button_region_end" class="form-control btn btn-primary btn-block" type="button" onclick="doRegionEnd()">Регион: конец</button>
+                    <button name="button_region_do" id="button_region_do" class="form-control btn btn-primary btn-block" type="button" onclick="doRegionDo()">Регион: вставить</button>
+                    <button name="button_region_clear" id="button_region_clear" class="form-control btn btn-primary btn-block" type="button" onclick="doRegionClear()">Регион: очистить</button>
+                    <label for="check_edit_mode">Режим редактирования</label>
+                    <input type="checkbox" id="check_edit_mode" class="form-control checkbox">
+                    <label for="check_fast_mode">Режим FAST</label>
+                    <input type="checkbox" id="check_fast_mode" class="form-control checkbox">
+                    <span id="description" style="white-space: pre-line">
+                        q: шаг назад
+                        w: поставить маркер
+                        e: шаг вперед
+                        r: поставить маркер конца строки
+                        a: перемотка назад
+                        s: удалить маркер
+                        d: проигрывание вперед
+                        t: группа 0
+                        y: группа 1
+                        u: группа 2
+                        i: группа 3
+                        o: пустая строка
+                        z: быстрая перемотка назад
+                        c: быстрая перемотка вперед
+                    </span>
+                    <button name="button_save_markers" id="button_save_markers" class="form-control btn btn-primary btn-block" type="button" onclick="doSaveSourceMarkers()">Сохранить маркеры</button>
+                    <button name="button_load_markers" id="button_load_markers" class="form-control btn btn-primary btn-block" type="button" onclick="createWavesurferMarkers()">Загрузить маркеры</button>
+                </div>
+            </td>
+            <td>
+                <div class="column">
+                    <div id="next_syllable_text" style="font-size: 28px; padding-left: 500px;"></div>
+                    <div id="resultText" style="column-count: 4; column-fill: auto; height: 800px; overflow: auto"></div>
+                </div>
+            </td>
+        </tr>
+    </table>
+</div>
+
+</body>

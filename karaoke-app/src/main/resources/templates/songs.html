@@ -4,7 +4,6 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css" integrity="sha384-B0vP5xmATw1+K9KRQjQERJvTumQW0nPEzvF6L/Z6nronJ3oUOFUFpCjEUQouq2+l" crossorigin="anonymous">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-Piv4xVNRyMGpqkS2by6br4gNJ7DXjqk09RmUpJ8jgGtD7zP9yug3goQfGII0yAns" crossorigin="anonymous"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://unpkg.com/wavesurfer.js"></script>
     <title>Песни</title>
     <style>
         * {
@@ -72,99 +71,55 @@
             background: #f00; /* Цвет фона */
         }
 
-        .sub-row0 { color: #000; background: #FFF; }
-        .sub-row1 { color: #000; background: #EEE; }
-        .sub-row2 { color: #000; background: #EC8888; }
-        .nonselrec {  color: #000 }
-        .selrec { color: #000; background: #f00; }
+        .sub-row0 { color: #000; background: #FFF; border-width: thin; border-color: black }
+        .sub-row1 { color: #000; background: #EEE; border-width: thin; border-color: black }
+        .sub-row2 { color: #000; background: #EC8888; border-top-width: medium; border-bottom-width: medium; border-bottom-color: red; border-top-color: red }
+        .nonselrec {  color: #000; border-width: thin; border-color: black }
+        .selrec { color: #000; background: cyan}
 
     </style>
 
     <script type="text/javascript">
-        function mouseClickRow(row){
-            document.getElementById("settings_songName").disabled = false;
-            document.getElementById("settings_author").disabled = false;
-            document.getElementById("settings_year").disabled = false;
-            document.getElementById("settings_album").disabled = false;
-            document.getElementById("settings_track").disabled = false;
-            document.getElementById("settings_date").disabled = false;
-            document.getElementById("settings_time").disabled = false;
-            document.getElementById("settings_key").disabled = false;
-            document.getElementById("settings_bpm").disabled = false;
-            document.getElementById("settings_ms").disabled = false;
-            document.getElementById("settings_fileName").disabled = false;
-            document.getElementById("settings_rootFolder").disabled = false;
-            document.getElementById("settings_idBoosty").disabled = false;
-            document.getElementById("settings_idVk").disabled = false;
-            document.getElementById("settings_idYoutubeLyrics").disabled = false;
-            document.getElementById("settings_idYoutubeLyricsBt").disabled = false;
-            document.getElementById("settings_idYoutubeKaraoke").disabled = false;
-            document.getElementById("settings_idYoutubeKaraokeBt").disabled = false;
-            document.getElementById("settings_idYoutubeChords").disabled = false;
-            document.getElementById("settings_idYoutubeChordsBt").disabled = false;
-            document.getElementById("settings_idVkLyrics").disabled = false;
-            document.getElementById("settings_idVkLyricsBt").disabled = false;
-            document.getElementById("settings_idVkKaraoke").disabled = false;
-            document.getElementById("settings_idVkKaraokeBt").disabled = false;
-            document.getElementById("settings_idVkChords").disabled = false;
-            document.getElementById("settings_idVkChordsBt").disabled = false;
-            document.getElementById("select_status").disabled = false;
 
-            document.getElementById("settings_id_text").innerText = '«' + row.cells[1].innerText + '»';
-            var index = 0;
-            document.getElementById("settings_id").value = row.cells[index].innerText;
-            index++;
-            document.getElementById("settings_songName").value = row.cells[index].innerText;
-            index++;
-            document.getElementById("settings_author").value = row.cells[index].innerText;
-            index++;
-            document.getElementById("settings_year").value = row.cells[index].innerText;
-            index++;
-            document.getElementById("settings_album").value = row.cells[index].innerText;
-            index++;
-            document.getElementById("settings_track").value = row.cells[index].innerText;
-            index++;
-            document.getElementById("settings_date").value = row.cells[index].innerText;
-            index++;
-            document.getElementById("settings_time").value = row.cells[index].innerText;
-            index++;
-            document.getElementById("settings_key").value = row.cells[index].innerText;
-            index++;
-            document.getElementById("settings_bpm").value = row.cells[index].innerText;
-            index++;
-            document.getElementById("settings_ms").value = row.cells[index].innerText;
-            index++;
-            document.getElementById("settings_fileName").value = row.cells[index].innerText;
-            index++;
-            document.getElementById("settings_rootFolder").value = row.cells[index].innerText;
-            index++;
-            document.getElementById("settings_idBoosty").value = row.cells[index].innerText;
-            index++;
-            document.getElementById("settings_idVk").value = row.cells[index].innerText;
-            index++;
-            document.getElementById("settings_idYoutubeLyrics").value = row.cells[index].innerText;
-            index++;
-            document.getElementById("settings_idYoutubeLyricsBt").value = row.cells[index].innerText;
-            index++;
-            document.getElementById("settings_idYoutubeKaraoke").value = row.cells[index].innerText;
-            index++;
-            document.getElementById("settings_idYoutubeKaraokeBt").value = row.cells[index].innerText;
-            index++;
-            document.getElementById("settings_idYoutubeChords").value = row.cells[index].innerText;
-            index++;
-            document.getElementById("settings_idYoutubeChordsBt").value = row.cells[index].innerText;
-            index++;
-            document.getElementById("settings_idVkLyrics").value = row.cells[index].innerText;
-            index++;
-            document.getElementById("settings_idVkLyricsBt").value = row.cells[index].innerText;
-            index++;
-            document.getElementById("settings_idVkKaraoke").value = row.cells[index].innerText;
-            index++;
-            document.getElementById("settings_idVkKaraokeBt").value = row.cells[index].innerText;
-            index++;
-            document.getElementById("settings_idVkChords").value = row.cells[index].innerText;
-            index++;
-            document.getElementById("settings_idVkChordsBt").value = row.cells[index].innerText;
+        var currentTimeStamp = new Date().getTime();
+        var currentRow;
+
+        function setDisabledElements(value) {
+
+            document.getElementById("settings_songName").disabled = value;
+            document.getElementById("settings_author").disabled = value;
+            document.getElementById("settings_year").disabled = value;
+            document.getElementById("settings_album").disabled = value;
+            document.getElementById("settings_track").disabled = value;
+            document.getElementById("settings_date").disabled = value;
+            document.getElementById("settings_time").disabled = value;
+            document.getElementById("settings_key").disabled = value;
+            document.getElementById("settings_bpm").disabled = value;
+            document.getElementById("settings_ms").disabled = value;
+            document.getElementById("settings_fileName").disabled = value;
+            document.getElementById("settings_rootFolder").disabled = value;
+            document.getElementById("settings_idBoosty").disabled = value;
+            document.getElementById("settings_idVk").disabled = value;
+            document.getElementById("settings_idYoutubeLyrics").disabled = value;
+            document.getElementById("settings_idYoutubeLyricsBt").disabled = value;
+            document.getElementById("settings_idYoutubeKaraoke").disabled = value;
+            document.getElementById("settings_idYoutubeKaraokeBt").disabled = value;
+            document.getElementById("settings_idYoutubeChords").disabled = value;
+            document.getElementById("settings_idYoutubeChordsBt").disabled = value;
+            document.getElementById("settings_idVkLyrics").disabled = value;
+            document.getElementById("settings_idVkLyricsBt").disabled = value;
+            document.getElementById("settings_idVkKaraoke").disabled = value;
+            document.getElementById("settings_idVkKaraokeBt").disabled = value;
+            document.getElementById("settings_idVkChords").disabled = value;
+            document.getElementById("settings_idVkChordsBt").disabled = value;
+            document.getElementById("settings_idTelegramLyrics").disabled = value;
+            document.getElementById("settings_idTelegramLyricsBt").disabled = value;
+            document.getElementById("settings_idTelegramKaraoke").disabled = value;
+            document.getElementById("settings_idTelegramKaraokeBt").disabled = value;
+            document.getElementById("settings_idTelegramChords").disabled = value;
+            document.getElementById("settings_idTelegramChordsBt").disabled = value;
+            document.getElementById("select_status").disabled = value;
+            document.getElementById("settings_tags").disabled = value;
 
             document.getElementById("button_link_boosty").disabled = (document.getElementById("settings_idBoosty").value === '');
             document.getElementById("button_link_vk").disabled = (document.getElementById("settings_idVk").value === '');
@@ -193,61 +148,436 @@
             document.getElementById("button_link_edit_VkChords").disabled = (document.getElementById("settings_idVkChords").value === '');
             document.getElementById("button_link_play_VkChordsBt").disabled = (document.getElementById("settings_idVkChordsBt").value === '');
             document.getElementById("button_link_edit_VkChordsBt").disabled = (document.getElementById("settings_idVkChordsBt").value === '');
-            
+
+
+            document.getElementById("button_link_play_TelegramLyrics").disabled = (document.getElementById("settings_idTelegramLyrics").value === '');
+            document.getElementById("button_link_edit_TelegramLyrics").disabled = (document.getElementById("settings_idTelegramLyrics").value === '');
+            document.getElementById("button_link_play_TelegramLyricsBt").disabled = (document.getElementById("settings_idTelegramLyricsBt").value === '');
+            document.getElementById("button_link_edit_TelegramLyricsBt").disabled = (document.getElementById("settings_idTelegramLyricsBt").value === '');
+            document.getElementById("button_link_play_TelegramKaraoke").disabled = (document.getElementById("settings_idTelegramKaraoke").value === '');
+            document.getElementById("button_link_edit_TelegramKaraoke").disabled = (document.getElementById("settings_idTelegramKaraoke").value === '');
+            document.getElementById("button_link_play_TelegramKaraokeBt").disabled = (document.getElementById("settings_idTelegramKaraokeBt").value === '');
+            document.getElementById("button_link_edit_TelegramKaraokeBt").disabled = (document.getElementById("settings_idTelegramKaraokeBt").value === '');
+            document.getElementById("button_link_play_TelegramChords").disabled = (document.getElementById("settings_idTelegramChords").value === '');
+            document.getElementById("button_link_edit_TelegramChords").disabled = (document.getElementById("settings_idTelegramChords").value === '');
+            document.getElementById("button_link_play_TelegramChordsBt").disabled = (document.getElementById("settings_idTelegramChordsBt").value === '');
+            document.getElementById("button_link_edit_TelegramChordsBt").disabled = (document.getElementById("settings_idTelegramChordsBt").value === '');
+
+            const buttonTogglesStatus = document.getElementsByName('btn_status');
+            for (let i = 0; i < buttonTogglesStatus.length; i++) {
+                if (value === true) {
+                    buttonTogglesStatus[i].classList.remove('active');
+                }
+                buttonTogglesStatus[i].disabled = value;
+            }
+
+        }
+
+        function updateFormElementsFromTableRows(row) {
+
+            currentRow = row;
+
+            document.getElementById("settings_id_text").innerText = '«' + currentRow.cells[1].innerText + '»';
+            var index = 0;
+            document.getElementById("settings_id").value = currentRow.cells[index].innerText;
+            index++;
+            document.getElementById("settings_songName").value = currentRow.cells[index].innerText;
+            index++;
+            document.getElementById("settings_author").value = currentRow.cells[index].innerText;
+            index++;
+            document.getElementById("settings_year").value = currentRow.cells[index].innerText;
+            index++;
+            document.getElementById("settings_album").value = currentRow.cells[index].innerText;
+            index++;
+            document.getElementById("settings_track").value = currentRow.cells[index].innerText;
+            index++;
+            document.getElementById("settings_date").value = currentRow.cells[index].innerText;
+            index++;
+            document.getElementById("settings_time").value = currentRow.cells[index].innerText;
+            index++;
+            document.getElementById("settings_key").value = currentRow.cells[index].innerText;
+            index++;
+            document.getElementById("settings_bpm").value = currentRow.cells[index].innerText;
+            index++;
+            document.getElementById("settings_ms").value = currentRow.cells[index].innerText;
+            index++;
+            document.getElementById("settings_fileName").value = currentRow.cells[index].innerText;
+            index++;
+            document.getElementById("settings_rootFolder").value = currentRow.cells[index].innerText;
+            index++;
+            document.getElementById("settings_idBoosty").value = currentRow.cells[index].innerText;
+            index++;
+            document.getElementById("settings_idVk").value = currentRow.cells[index].innerText;
+            index++;
+            document.getElementById("settings_idYoutubeLyrics").value = currentRow.cells[index].innerText;
+            index++;
+            document.getElementById("settings_idYoutubeLyricsBt").value = currentRow.cells[index].innerText;
+            index++;
+            document.getElementById("settings_idYoutubeKaraoke").value = currentRow.cells[index].innerText;
+            index++;
+            document.getElementById("settings_idYoutubeKaraokeBt").value = currentRow.cells[index].innerText;
+            index++;
+            document.getElementById("settings_idYoutubeChords").value = currentRow.cells[index].innerText;
+            index++;
+            document.getElementById("settings_idYoutubeChordsBt").value = currentRow.cells[index].innerText;
+            index++;
+            document.getElementById("settings_idVkLyrics").value = currentRow.cells[index].innerText;
+            index++;
+            document.getElementById("settings_idVkLyricsBt").value = currentRow.cells[index].innerText;
+            index++;
+            document.getElementById("settings_idVkKaraoke").value = currentRow.cells[index].innerText;
+            index++;
+            document.getElementById("settings_idVkKaraokeBt").value = currentRow.cells[index].innerText;
+            index++;
+            document.getElementById("settings_idVkChords").value = currentRow.cells[index].innerText;
+            index++;
+            document.getElementById("settings_idVkChordsBt").value = currentRow.cells[index].innerText;
+            index++;
+            document.getElementById("settings_idTelegramLyrics").value = currentRow.cells[index].innerText;
+            index++;
+            document.getElementById("settings_idTelegramLyricsBt").value = currentRow.cells[index].innerText;
+            index++;
+            document.getElementById("settings_idTelegramKaraoke").value = currentRow.cells[index].innerText;
+            index++;
+            document.getElementById("settings_idTelegramKaraokeBt").value = currentRow.cells[index].innerText;
+            index++;
+            document.getElementById("settings_idTelegramChords").value = currentRow.cells[index].innerText;
+            index++;
+            document.getElementById("settings_idTelegramChordsBt").value = currentRow.cells[index].innerText;
+
+            document.getElementById("settings_tags").value = currentRow.cells[index+21].innerText;
+
+            document.getElementById("select_status").selectedIndex = currentRow.cells[index+22].innerText;
+
+            var buttonTogglesStatus = document.getElementsByName('btn_status');
+            for (let i = 0; i < buttonTogglesStatus.length; i++) {
+                buttonTogglesStatus[i].classList.remove('active');
+                if (buttonTogglesStatus[i].value === document.getElementById("select_status").selectedIndex.toString()) {
+                    buttonTogglesStatus[i].classList.add('active');
+                }
+            }
+
+
+        }
+
+        function updateTableRowFromFormElements() {
+            var tbl = document.getElementById("leftTable");
+            // for (var i = 0, row; row = tbl.rows[i]; i++) {
+                var cells = currentRow.cells;
+                var index = 0;
+                if (cells[index].innerText == document.getElementById("settings_id").value) {
+                    index++;
+                    cells[index].innerText = document.getElementById("settings_songName").value;
+                    index++;
+                    cells[index].innerText = document.getElementById("settings_author").value;
+                    index++;
+                    cells[index].innerText = document.getElementById("settings_year").value;
+                    index++;
+                    cells[index].innerText = document.getElementById("settings_album").value;
+                    index++;
+                    cells[index].innerText = document.getElementById("settings_track").value;
+                    index++;
+                    cells[index].innerText = document.getElementById("settings_date").value;
+                    index++;
+                    cells[index].innerText = document.getElementById("settings_time").value;
+                    index++;
+                    cells[index].innerText = document.getElementById("settings_key").value;
+                    index++;
+                    cells[index].innerText = document.getElementById("settings_bpm").value;
+                    index++;
+                    cells[index].innerText = document.getElementById("settings_ms").value;
+                    index++;
+                    cells[index].innerText = document.getElementById("settings_fileName").value;
+                    index++;
+                    cells[index].innerText = document.getElementById("settings_rootFolder").value;
+                    index++;
+                    cells[index].innerText = document.getElementById("settings_idBoosty").value;
+                    index++;
+                    cells[index].innerText = document.getElementById("settings_idVk").value;
+                    index++;
+                    cells[index].innerText = document.getElementById("settings_idYoutubeLyrics").value;
+                    index++;
+                    cells[index].innerText = document.getElementById("settings_idYoutubeLyricsBt").value;
+                    index++;
+                    cells[index].innerText = document.getElementById("settings_idYoutubeKaraoke").value;
+                    index++;
+                    cells[index].innerText = document.getElementById("settings_idYoutubeKaraokeBt").value;
+                    index++;
+                    cells[index].innerText = document.getElementById("settings_idYoutubeChords").value;
+                    index++;
+                    cells[index].innerText = document.getElementById("settings_idYoutubeChordsBt").value;
+                    index++;
+                    cells[index].innerText = document.getElementById("settings_idVkLyrics").value;
+                    index++;
+                    cells[index].innerText = document.getElementById("settings_idVkLyricsBt").value;
+                    index++;
+                    cells[index].innerText = document.getElementById("settings_idVkKaraoke").value;
+                    index++;
+                    cells[index].innerText = document.getElementById("settings_idVkKaraokeBt").value;
+                    index++;
+                    cells[index].innerText = document.getElementById("settings_idVkChords").value;
+                    index++;
+                    cells[index].innerText = document.getElementById("settings_idVkChordsBt").value;
+                    index++;
+                    cells[index].innerText = document.getElementById("settings_idTelegramLyrics").value;
+                    index++;
+                    cells[index].innerText = document.getElementById("settings_idTelegramLyricsBt").value;
+                    index++;
+                    cells[index].innerText = document.getElementById("settings_idTelegramKaraoke").value;
+                    index++;
+                    cells[index].innerText = document.getElementById("settings_idTelegramKaraokeBt").value;
+                    index++;
+                    cells[index].innerText = document.getElementById("settings_idTelegramChords").value;
+                    index++;
+                    cells[index].innerText = document.getElementById("settings_idTelegramChordsBt").value;
+                    index++;
+
+                    if (document.getElementById("settings_idBoosty").value != "") {
+                        cells[index].innerText = '✓';
+                    } else {
+                        cells[index].innerText = '';
+                    }
+
+                    index++;
+                    if (document.getElementById("settings_idVk").value != "") {
+                        cells[index].innerText = '✓';
+                    } else {
+                        cells[index].innerText = '';
+                    }
+
+                    index++;
+                    if (document.getElementById("settings_idYoutubeLyrics").value != "") {
+                        cells[index].innerText = '✓';
+                    } else {
+                        cells[index].innerText = '';
+                    }
+
+                    index++;
+                    if (document.getElementById("settings_idYoutubeKaraoke").value != "") {
+                        cells[index].innerText = '✓';
+                    } else {
+                        cells[index].innerText = '';
+                    }
+
+                    index++;
+                    if (document.getElementById("settings_idYoutubeLyricsBt").value != "") {
+                        cells[index].innerText = '✓';
+                    } else {
+                        cells[index].innerText = '';
+                    }
+
+                    index++;
+                    if (document.getElementById("settings_idYoutubeKaraokeBt").value != "") {
+                        cells[index].innerText = '✓';
+                    } else {
+                        cells[index].innerText = '';
+                    }
+
+                    index++;
+                    if (document.getElementById("settings_idYoutubeChords").value != "") {
+                        cells[index].innerText = '✓';
+                    } else {
+                        cells[index].innerText = '';
+                    }
+
+                    index++;
+                    if (document.getElementById("settings_idYoutubeChordsBt").value != "") {
+                        cells[index].innerText = '✓';
+                    } else {
+                        cells[index].innerText = '';
+                    }
+
+
+
+                    index++;
+                    if (document.getElementById("settings_idVkLyrics").value != "") {
+                        cells[index].innerText = '✓';
+                    } else {
+                        cells[index].innerText = '';
+                    }
+
+                    index++;
+                    if (document.getElementById("settings_idVkKaraoke").value != "") {
+                        cells[index].innerText = '✓';
+                    } else {
+                        cells[index].innerText = '';
+                    }
+
+                    index++;
+                    if (document.getElementById("settings_idVkLyricsBt").value != "") {
+                        cells[index].innerText = '✓';
+                    } else {
+                        cells[index].innerText = '';
+                    }
+
+                    index++;
+                    if (document.getElementById("settings_idVkKaraokeBt").value != "") {
+                        cells[index].innerText = '✓';
+                    } else {
+                        cells[index].innerText = '';
+                    }
+
+                    index++;
+                    if (document.getElementById("settings_idVkChords").value != "") {
+                        cells[index].innerText = '✓';
+                    } else {
+                        cells[index].innerText = '';
+                    }
+
+                    index++;
+                    if (document.getElementById("settings_idVkChordsBt").value != "") {
+                        cells[index].innerText = '✓';
+                    } else {
+                        cells[index].innerText = '';
+                    }
+
+
+                    index++;
+                    if (document.getElementById("settings_idTelegramLyrics").value != "") {
+                        cells[index].innerText = '✓';
+                    } else {
+                        cells[index].innerText = '';
+                    }
+
+                    index++;
+                    if (document.getElementById("settings_idTelegramKaraoke").value != "") {
+                        cells[index].innerText = '✓';
+                    } else {
+                        cells[index].innerText = '';
+                    }
+
+                    index++;
+                    if (document.getElementById("settings_idTelegramLyricsBt").value != "") {
+                        cells[index].innerText = '✓';
+                    } else {
+                        cells[index].innerText = '';
+                    }
+
+                    index++;
+                    if (document.getElementById("settings_idTelegramKaraokeBt").value != "") {
+                        cells[index].innerText = '✓';
+                    } else {
+                        cells[index].innerText = '';
+                    }
+
+                    index++;
+                    if (document.getElementById("settings_idTelegramChords").value != "") {
+                        cells[index].innerText = '✓';
+                    } else {
+                        cells[index].innerText = '';
+                    }
+
+                    index++;
+                    if (document.getElementById("settings_idTelegramChordsBt").value != "") {
+                        cells[index].innerText = '✓';
+                    } else {
+                        cells[index].innerText = '';
+                    }
+
+
+
+                    index++;
+                    cells[index].innerText = document.getElementById("settings_tags").value;
+
+                    var selectElement = document.getElementById("select_status");
+                    index++;
+                    cells[index].innerText = selectElement.selectedIndex
+                    index++;
+                    cells[index].innerText = selectElement.options[selectElement.selectedIndex].text;
+
+
+                }
+            // }
+        }
+
+        function updateButtonsLinks() {
+
             document.getElementById("button_link_boosty").href = "https://boosty.to/svoemesto/posts/" + document.getElementById("settings_idBoosty").value
             document.getElementById("button_link_vk").href = "https://vk.com/wall-" + document.getElementById("settings_idVk").value;
-            document.getElementById("button_link_play_YoutubeLyrics").href = "https://youtu.be/" + document.getElementById("settings_idYoutubeLyrics").value
-            document.getElementById("button_link_edit_YoutubeLyrics").href = "https://studio.youtube.com/video/" + document.getElementById("settings_idYoutubeLyrics").value + "/edit"
-            document.getElementById("button_link_play_YoutubeLyricsBt").href = "https://youtu.be/" + document.getElementById("settings_idYoutubeLyricsBt").value
-            document.getElementById("button_link_edit_YoutubeLyricsBt").href = "https://studio.youtube.com/video/" + document.getElementById("settings_idYoutubeLyricsBt").value + "/edit"
-            document.getElementById("button_link_play_YoutubeKaraoke").href = "https://youtu.be/" + document.getElementById("settings_idYoutubeKaraoke").value
-            document.getElementById("button_link_edit_YoutubeKaraoke").href = "https://studio.youtube.com/video/" + document.getElementById("settings_idYoutubeKaraoke").value + "/edit"
-            document.getElementById("button_link_play_YoutubeKaraokeBt").href = "https://youtu.be/" + document.getElementById("settings_idYoutubeKaraokeBt").value
-            document.getElementById("button_link_edit_YoutubeKaraokeBt").href = "https://studio.youtube.com/video/" + document.getElementById("settings_idYoutubeKaraokeBt").value + "/edit"
-            document.getElementById("button_link_play_YoutubeChords").href = "https://youtu.be/" + document.getElementById("settings_idYoutubeChords").value
-            document.getElementById("button_link_edit_YoutubeChords").href = "https://studio.youtube.com/video/" + document.getElementById("settings_idYoutubeChords").value + "/edit"
-            document.getElementById("button_link_play_YoutubeChordsBt").href = "https://youtu.be/" + document.getElementById("settings_idYoutubeChordsBt").value
-            document.getElementById("button_link_edit_YoutubeChordsBt").href = "https://studio.youtube.com/video/" + document.getElementById("settings_idYoutubeChordsBt").value + "/edit"
+            document.getElementById("button_link_play_YoutubeLyrics").href = "https://dzen.ru/video/watch/" + document.getElementById("settings_idYoutubeLyrics").value
+            document.getElementById("button_link_edit_YoutubeLyrics").href = "https://dzen.ru/profile/editor/svoemesto/publications?videoEditorPublicationId=" + document.getElementById("settings_idYoutubeLyrics").value
+            document.getElementById("button_link_play_YoutubeLyricsBt").href = "https://dzen.ru/video/watch/" + document.getElementById("settings_idYoutubeLyricsBt").value
+            document.getElementById("button_link_edit_YoutubeLyricsBt").href = "https://dzen.ru/profile/editor/svoemesto/publications?videoEditorPublicationId=" + document.getElementById("settings_idYoutubeLyricsBt").value
+            document.getElementById("button_link_play_YoutubeKaraoke").href = "https://dzen.ru/video/watch/" + document.getElementById("settings_idYoutubeKaraoke").value
+            document.getElementById("button_link_edit_YoutubeKaraoke").href = "https://dzen.ru/profile/editor/svoemesto/publications?videoEditorPublicationId=" + document.getElementById("settings_idYoutubeKaraoke").value
+            document.getElementById("button_link_play_YoutubeKaraokeBt").href = "https://dzen.ru/video/watch/" + document.getElementById("settings_idYoutubeKaraokeBt").value
+            document.getElementById("button_link_edit_YoutubeKaraokeBt").href = "https://dzen.ru/profile/editor/svoemesto/publications?videoEditorPublicationId=" + document.getElementById("settings_idYoutubeKaraokeBt").value
+            document.getElementById("button_link_play_YoutubeChords").href = "https://dzen.ru/video/watch/" + document.getElementById("settings_idYoutubeChords").value
+            document.getElementById("button_link_edit_YoutubeChords").href = "https://dzen.ru/profile/editor/svoemesto/publications?videoEditorPublicationId=" + document.getElementById("settings_idYoutubeChords").value
+            document.getElementById("button_link_play_YoutubeChordsBt").href = "https://dzen.ru/video/watch/" + document.getElementById("settings_idYoutubeChordsBt").value
+            document.getElementById("button_link_edit_YoutubeChordsBt").href = "https://dzen.ru/profile/editor/svoemesto/publications?videoEditorPublicationId=" + document.getElementById("settings_idYoutubeChordsBt").value
 
             document.getElementById("button_link_play_VkLyrics").href = "https://vk.com/video" + document.getElementById("settings_idVkLyrics").value
-            document.getElementById("button_link_edit_VkLyrics").href = "https://vk.com/video" + document.getElementById("settings_idVkLyrics").value 
+            document.getElementById("button_link_edit_VkLyrics").href = "https://vk.com/video" + document.getElementById("settings_idVkLyrics").value
             document.getElementById("button_link_play_VkLyricsBt").href = "https://vk.com/video" + document.getElementById("settings_idVkLyricsBt").value
             document.getElementById("button_link_edit_VkLyricsBt").href = "https://vk.com/video" + document.getElementById("settings_idVkLyricsBt").value
             document.getElementById("button_link_play_VkKaraoke").href = "https://vk.com/video" + document.getElementById("settings_idVkKaraoke").value
-            document.getElementById("button_link_edit_VkKaraoke").href = "https://vk.com/video" + document.getElementById("settings_idVkKaraoke").value 
+            document.getElementById("button_link_edit_VkKaraoke").href = "https://vk.com/video" + document.getElementById("settings_idVkKaraoke").value
             document.getElementById("button_link_play_VkKaraokeBt").href = "https://vk.com/video" + document.getElementById("settings_idVkKaraokeBt").value
             document.getElementById("button_link_edit_VkKaraokeBt").href = "https://vk.com/video" + document.getElementById("settings_idVkKaraokeBt").value
             document.getElementById("button_link_play_VkChords").href = "https://vk.com/video" + document.getElementById("settings_idVkChords").value
-            document.getElementById("button_link_edit_VkChords").href = "https://vk.com/video" + document.getElementById("settings_idVkChords").value 
+            document.getElementById("button_link_edit_VkChords").href = "https://vk.com/video" + document.getElementById("settings_idVkChords").value
             document.getElementById("button_link_play_VkChordsBt").href = "https://vk.com/video" + document.getElementById("settings_idVkChordsBt").value
-            document.getElementById("button_link_edit_VkChordsBt").href = "https://vk.com/video" + document.getElementById("settings_idVkChordsBt").value 
+            document.getElementById("button_link_edit_VkChordsBt").href = "https://vk.com/video" + document.getElementById("settings_idVkChordsBt").value
 
             
-            document.getElementById("select_status").selectedIndex = row.cells[41].innerText;
+            document.getElementById("button_link_play_TelegramLyrics").href = "https://t.me/svoemestokaraoke/" + document.getElementById("settings_idTelegramLyrics").value
+            document.getElementById("button_link_edit_TelegramLyrics").href = "https://t.me/svoemestokaraoke/" + document.getElementById("settings_idTelegramLyrics").value
+            document.getElementById("button_link_play_TelegramLyricsBt").href = "https://t.me/svoemestokaraoke/" + document.getElementById("settings_idTelegramLyricsBt").value
+            document.getElementById("button_link_edit_TelegramLyricsBt").href = "https://t.me/svoemestokaraoke/" + document.getElementById("settings_idTelegramLyricsBt").value
+            document.getElementById("button_link_play_TelegramKaraoke").href = "https://t.me/svoemestokaraoke/" + document.getElementById("settings_idTelegramKaraoke").value
+            document.getElementById("button_link_edit_TelegramKaraoke").href = "https://t.me/svoemestokaraoke/" + document.getElementById("settings_idTelegramKaraoke").value
+            document.getElementById("button_link_play_TelegramKaraokeBt").href = "https://t.me/svoemestokaraoke/" + document.getElementById("settings_idTelegramKaraokeBt").value
+            document.getElementById("button_link_edit_TelegramKaraokeBt").href = "https://t.me/svoemestokaraoke/" + document.getElementById("settings_idTelegramKaraokeBt").value
+            document.getElementById("button_link_play_TelegramChords").href = "https://t.me/svoemestokaraoke/" + document.getElementById("settings_idTelegramChords").value
+            document.getElementById("button_link_edit_TelegramChords").href = "https://t.me/svoemestokaraoke/" + document.getElementById("settings_idTelegramChords").value
+            document.getElementById("button_link_play_TelegramChordsBt").href = "https://t.me/svoemestokaraoke/" + document.getElementById("settings_idTelegramChordsBt").value
+            document.getElementById("button_link_edit_TelegramChordsBt").href = "https://t.me/svoemestokaraoke/" + document.getElementById("settings_idTelegramChordsBt").value
 
+        }
+
+        function highlightCurrentRow(row) {
             var tbl = document.getElementById("leftTable");
             for (var i = 0, rows; rows = tbl.rows[i]; i++) {
-                rows.cells[0].className = "nonselrec"
+                rows.cells[0].className = "nonselrec";
+                rows.cells[1].className = "nonselrec";
+                rows.cells[2].className = "nonselrec";
+                rows.cells[3].className = "nonselrec";
+                rows.cells[4].className = "nonselrec";
+                rows.cells[5].className = "nonselrec";
+                rows.cells[6].className = "nonselrec";
+                rows.cells[7].className = "nonselrec";
                 rows.className = "sub-row" + i%2;
             }
             row.className = "sub-row2";
+            // row.className = "selrec";
             row.cells[0].className = "selrec";
-
-            document.getElementById("waveform").innerHTML = "";
-            var wavesurfer = WaveSurfer.create({
-                container: '#waveform',
-                waveColor: 'violet',
-                progressColor: 'purple',
-                backend: 'MediaElement'
-                });
-            wavesurfer.clear;
-            wavesurfer.load('/song/' + row.cells[0].innerText + '/file');
-            // wavesurfer.play();
-            // wavesurfer.zoom(100);
-            // wavesurfer.barWidth = 10;
+            row.cells[1].className = "selrec";
+            row.cells[2].className = "selrec";
+            row.cells[3].className = "selrec";
+            row.cells[4].className = "selrec";
+            row.cells[5].className = "selrec";
+            row.cells[6].className = "selrec";
+            row.cells[7].className = "selrec";
         }
 
+        function mouseClickRow(row){
+            updateFormElementsFromTableRows(row);
+            setDisabledElements(false);
+            updateButtonsLinks();
+            highlightCurrentRow(row);
 
+            // document.getElementById("waveform").innerHTML = "";
+            // var wavesurfer = WaveSurfer.create({
+            //     container: '#waveform',
+            //     waveColor: 'violet',
+            //     progressColor: 'purple',
+            //     backend: 'MediaElement'
+            //     });
+            // wavesurfer.clear;
+            // wavesurfer.load('/song/' + row.cells[0].innerText + '/file');
+
+        }
 
         function doPostForm() {
 
@@ -258,172 +588,9 @@
                 url: "/songs_update",
                 data: dataString,
                 success: function() {
-                    doRowColor()
-                    var tbl = document.getElementById("leftTable");
-                    for (var i = 0, row; row = tbl.rows[i]; i++) {
-                        var col = row.cells;
-                        var index = 0;
-                        if (col[index].innerText == document.getElementById("settings_id").value) {
-                            index++;
-                            col[index].innerText = document.getElementById("settings_songName").value;
-                            index++;
-                            col[index].innerText = document.getElementById("settings_author").value;
-                            index++;
-                            col[index].innerText = document.getElementById("settings_year").value;
-                            index++;
-                            col[index].innerText = document.getElementById("settings_album").value;
-                            index++;
-                            col[index].innerText = document.getElementById("settings_track").value;
-                            index++;
-                            col[index].innerText = document.getElementById("settings_date").value;
-                            index++;
-                            col[index].innerText = document.getElementById("settings_time").value;
-                            index++;
-                            col[index].innerText = document.getElementById("settings_key").value;
-                            index++;
-                            col[index].innerText = document.getElementById("settings_bpm").value;
-                            index++;
-                            col[index].innerText = document.getElementById("settings_ms").value;
-                            index++;
-                            col[index].innerText = document.getElementById("settings_fileName").value;
-                            index++;
-                            col[index].innerText = document.getElementById("settings_rootFolder").value;
-                            index++;
-                            col[index].innerText = document.getElementById("settings_idBoosty").value;
-                            index++;
-                            col[index].innerText = document.getElementById("settings_idVk").value;
-                            index++;
-                            col[index].innerText = document.getElementById("settings_idYoutubeLyrics").value;
-                            index++;
-                            col[index].innerText = document.getElementById("settings_idYoutubeLyricsBt").value;
-                            index++;
-                            col[index].innerText = document.getElementById("settings_idYoutubeKaraoke").value;
-                            index++;
-                            col[index].innerText = document.getElementById("settings_idYoutubeKaraokeBt").value;
-                            index++;
-                            col[index].innerText = document.getElementById("settings_idYoutubeChords").value;
-                            index++;
-                            col[index].innerText = document.getElementById("settings_idYoutubeChordsBt").value;
-                            index++;
-                            col[index].innerText = document.getElementById("settings_idVkLyrics").value;
-                            index++;
-                            col[index].innerText = document.getElementById("settings_idVkLyricsBt").value;
-                            index++;
-                            col[index].innerText = document.getElementById("settings_idVkKaraoke").value;
-                            index++;
-                            col[index].innerText = document.getElementById("settings_idVkKaraokeBt").value;
-                            index++;
-                            col[index].innerText = document.getElementById("settings_idVkChords").value;
-                            index++;
-                            col[index].innerText = document.getElementById("settings_idVkChordsBt").value;
-                            index++;
-                            if (document.getElementById("settings_idBoosty").value != "") {
-                                col[index].innerText = '✓';
-                            } else {
-                                col[index].innerText = '';
-                            }
-
-                            index++;
-                            if (document.getElementById("settings_idVk").value != "") {
-                                col[index].innerText = '✓';
-                            } else {
-                                col[index].innerText = '';
-                            }
-
-                            index++;
-                            if (document.getElementById("settings_idYoutubeLyrics").value != "") {
-                                col[index].innerText = '✓';
-                            } else {
-                                col[index].innerText = '';
-                            }
-
-                            index++;
-                            if (document.getElementById("settings_idYoutubeKaraoke").value != "") {
-                                col[index].innerText = '✓';
-                            } else {
-                                col[index].innerText = '';
-                            }
-
-                            index++;
-                            if (document.getElementById("settings_idYoutubeLyricsBt").value != "") {
-                                col[index].innerText = '✓';
-                            } else {
-                                col[index].innerText = '';
-                            }
-
-                            index++;
-                            if (document.getElementById("settings_idYoutubeKaraokeBt").value != "") {
-                                col[index].innerText = '✓';
-                            } else {
-                                col[index].innerText = '';
-                            }
-
-                            index++;
-                            if (document.getElementById("settings_idYoutubeChords").value != "") {
-                                col[index].innerText = '✓';
-                            } else {
-                                col[index].innerText = '';
-                            }
-
-                            index++;
-                            if (document.getElementById("settings_idYoutubeChordsBt").value != "") {
-                                col[index].innerText = '✓';
-                            } else {
-                                col[index].innerText = '';
-                            }
-
-
-
-                            index++;
-                            if (document.getElementById("settings_idVkLyrics").value != "") {
-                                col[index].innerText = '✓';
-                            } else {
-                                col[index].innerText = '';
-                            }
-
-                            index++;
-                            if (document.getElementById("settings_idVkKaraoke").value != "") {
-                                col[index].innerText = '✓';
-                            } else {
-                                col[index].innerText = '';
-                            }
-
-                            index++;
-                            if (document.getElementById("settings_idVkLyricsBt").value != "") {
-                                col[index].innerText = '✓';
-                            } else {
-                                col[index].innerText = '';
-                            }
-
-                            index++;
-                            if (document.getElementById("settings_idVkKaraokeBt").value != "") {
-                                col[index].innerText = '✓';
-                            } else {
-                                col[index].innerText = '';
-                            }
-
-                            index++;
-                            if (document.getElementById("settings_idVkChords").value != "") {
-                                col[index].innerText = '✓';
-                            } else {
-                                col[index].innerText = '';
-                            }
-
-                            index++;
-                            if (document.getElementById("settings_idVkChordsBt").value != "") {
-                                col[index].innerText = '✓';
-                            } else {
-                                col[index].innerText = '';
-                            }
-                            
-                            
-                            var selectElement = document.getElementById("select_status");
-                            index++;
-                            col[index].innerText = selectElement.selectedIndex
-                            index++;
-                            col[index].innerText = selectElement.options[selectElement.selectedIndex].text;
-                        }
-                    }
+                    doRowColor();
+                    updateTableRowFromFormElements();
+                    updateButtonsLinks();
                 }
             });
             return false;
@@ -436,8 +603,10 @@
             var filter_year = encodeURIComponent(document.getElementById("filter_year").value);
             var filter_album = encodeURIComponent(document.getElementById("filter_album").value);
             var filter_track = encodeURIComponent(document.getElementById("filter_track").value);
+            var filter_tags = encodeURIComponent(document.getElementById("filter_tags").value);
             var filter_date = encodeURIComponent(document.getElementById("filter_date").value);
             var filter_time = encodeURIComponent(document.getElementById("filter_time").value);
+            var filter_status = encodeURIComponent(document.getElementById("filter_status").value);
             var filter_flag_boosty = encodeURIComponent(document.getElementById("filter_flag_boosty").value);
             var filter_flag_vk = encodeURIComponent(document.getElementById("filter_flag_vk").value);
             var filter_flag_yl = encodeURIComponent(document.getElementById("filter_flag_yl").value);
@@ -458,8 +627,10 @@
                 "&filter_year=" + filter_year +
                 "&filter_album=" + filter_album +
                 "&filter_track=" + filter_track +
+                "&filter_tags=" + filter_tags +
                 "&filter_date=" + filter_date +
                 "&filter_time=" + filter_time +
+                "&filter_status=" + filter_status +
                 "&flag_boosty=" + filter_flag_boosty +
                 "&flag_vk=" + filter_flag_vk +
                 "&flag_youtube_lyrics=" + filter_flag_yl +
@@ -498,7 +669,6 @@
             if (request.status === 200) {
                 var result = request.responseText;
                 navigator.clipboard.writeText(result);
-                alert(result);
             }
         }
 
@@ -510,7 +680,6 @@
             if (request.status === 200) {
                 var result = request.responseText;
                 navigator.clipboard.writeText(result);
-                alert(result);
             }
         }
 
@@ -522,7 +691,6 @@
             if (request.status === 200) {
                 var result = request.responseText;
                 navigator.clipboard.writeText(result);
-                alert(result);
             }
         }
 
@@ -534,7 +702,6 @@
             if (request.status === 200) {
                 var result = request.responseText;
                 navigator.clipboard.writeText(result);
-                alert(result);
             }
         }
 
@@ -546,7 +713,6 @@
             if (request.status === 200) {
                 var result = request.responseText;
                 navigator.clipboard.writeText(result);
-                alert(result);
             }
         }
 
@@ -558,7 +724,6 @@
             if (request.status === 200) {
                 var result = request.responseText;
                 navigator.clipboard.writeText(result);
-                alert(result);
             }
         }
 
@@ -571,7 +736,6 @@
             if (request.status === 200) {
                 var result = request.responseText;
                 navigator.clipboard.writeText(result);
-                alert(result);
             }
         }
 
@@ -583,7 +747,6 @@
             if (request.status === 200) {
                 var result = request.responseText;
                 navigator.clipboard.writeText(result);
-                alert(result);
             }
         }
 
@@ -595,7 +758,6 @@
             if (request.status === 200) {
                 var result = request.responseText;
                 navigator.clipboard.writeText(result);
-                alert(result);
             }
         }
 
@@ -607,7 +769,6 @@
             if (request.status === 200) {
                 var result = request.responseText;
                 navigator.clipboard.writeText(result);
-                alert(result);
             }
         }
 
@@ -619,7 +780,6 @@
             if (request.status === 200) {
                 var result = request.responseText;
                 navigator.clipboard.writeText(result);
-                alert(result);
             }
         }
 
@@ -631,7 +791,6 @@
             if (request.status === 200) {
                 var result = request.responseText;
                 navigator.clipboard.writeText(result);
-                alert(result);
             }
         }
 
@@ -787,6 +946,156 @@
         }
 
 
+
+
+        function doTextTelegramLyricsWOHeader() {
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/texttelegramlyricswoheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                navigator.clipboard.writeText(result);
+                // alert(result);
+            }
+        }
+
+        function doTextTelegramLyricsBtWOHeader() {
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/texttelegramlyricsbtwoheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                navigator.clipboard.writeText(result);
+                // alert(result);
+            }
+        }
+
+        function doTextTelegramKaraokeWOHeader() {
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/texttelegramkaraokewoheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                navigator.clipboard.writeText(result);
+                // alert(result);
+            }
+        }
+
+        function doTextTelegramKaraokeBtWOHeader() {
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/texttelegramkaraokebtwoheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                navigator.clipboard.writeText(result);
+                // alert(result);
+            }
+        }
+
+        function doTextTelegramChordsWOHeader() {
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/texttelegramchordswoheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                navigator.clipboard.writeText(result);
+                // alert(result);
+            }
+        }
+
+        function doTextTelegramChordsBtWOHeader() {
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/texttelegramchordsbtwoheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                navigator.clipboard.writeText(result);
+                // alert(result);
+            }
+        }
+
+
+        function doTextTelegramLyricsHeader() {
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/texttelegramlyricsheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                navigator.clipboard.writeText(result);
+                // alert(result);
+            }
+        }
+
+        function doTextTelegramLyricsBtHeader() {
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/texttelegramlyricsbtheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                navigator.clipboard.writeText(result);
+                // alert(result);
+            }
+        }
+
+        function doTextTelegramKaraokeHeader() {
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/texttelegramkaraokeheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                navigator.clipboard.writeText(result);
+                // alert(result);
+            }
+        }
+
+        function doTextTelegramKaraokeBtHeader() {
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/texttelegramkaraokebtheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                navigator.clipboard.writeText(result);
+                // alert(result);
+            }
+        }
+
+        function doTextTelegramChordsHeader() {
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/texttelegramchordsheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                navigator.clipboard.writeText(result);
+                // alert(result);
+            }
+        }
+
+        function doTextTelegramChordsBtHeader() {
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/texttelegramchordsbtheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                navigator.clipboard.writeText(result);
+                // alert(result);
+            }
+        }
+
+
+
+
         function doTextBoostyHead() {
             var id = document.getElementById("settings_id").value;
             var request = new XMLHttpRequest();
@@ -837,6 +1146,20 @@
                 }
             });
         }
+        function doSetDateTimeAuthor() {
+            if (confirm("Вы действительно хотите установить дату/время публикации для песен автора, начиная с текущей?")) {
+                var id = document.getElementById("settings_id").value;
+                $.ajax({
+                    type: "GET",
+                    url: "/song/" + id + "/setpublishdatetimetoauthor",
+                    data: "",
+                    success: function(data) {
+                        alert("Готово!");
+                    }
+                });
+            }
+
+        }
 
 
         function doEditSubs(voice) {
@@ -885,30 +1208,145 @@
                     }
                 });
             }
+        }
 
 
+        function doCreateDemucs2All() {
+            var txt = ""
+            var tbl = document.getElementById("leftTable");
+            var cnt = 0;
+            for (var i = 0, row; row = tbl.rows[i]; i++) {
+                cnt++;
+                var col = row.cells;
+                txt = txt + col[0].innerText + ";"
+            }
+            if (confirm("Выбрано песен: " + cnt + "\nВы действительно хотите создать DEMUCS2 для всех этих песен?")) {
+
+                console.log("txt: " + txt);
+                $.ajax({
+                    type: "POST",
+                    url: "/songs/createdemucs2all",
+                    data: {"txt": txt},
+                    success: function(data) {
+                        let startIndex = data.indexOf("<div>");
+                        let endIndex = data.indexOf("</div>", startIndex);
+                        let textBetweenDivs = data.substring(startIndex + 5, endIndex);
+                        alert(textBetweenDivs);
+                    }
+                });
+            }
+        }
+
+        function doCreate720pKaraokeAll() {
+            var txt = ""
+            var tbl = document.getElementById("leftTable");
+            var cnt = 0;
+            for (var i = 0, row; row = tbl.rows[i]; i++) {
+                cnt++;
+                var col = row.cells;
+                txt = txt + col[0].innerText + ";"
+            }
+            if (confirm("Выбрано песен: " + cnt + "\nВы действительно хотите создать 720p karaoke для всех этих песен?")) {
+
+                console.log("txt: " + txt);
+                $.ajax({
+                    type: "POST",
+                    url: "/songs/create720pkaraokeall",
+                    data: {"txt": txt},
+                    success: function(data) {
+                        let startIndex = data.indexOf("<div>");
+                        let endIndex = data.indexOf("</div>", startIndex);
+                        let textBetweenDivs = data.substring(startIndex + 5, endIndex);
+                        alert(textBetweenDivs);
+                    }
+                });
+            }
+        }
+
+
+        function doCreate720pLyricsAll() {
+            var txt = ""
+            var tbl = document.getElementById("leftTable");
+            var cnt = 0;
+            for (var i = 0, row; row = tbl.rows[i]; i++) {
+                cnt++;
+                var col = row.cells;
+                txt = txt + col[0].innerText + ";"
+            }
+            if (confirm("Выбрано песен: " + cnt + "\nВы действительно хотите создать 720p lyrics для всех этих песен?")) {
+
+                console.log("txt: " + txt);
+                $.ajax({
+                    type: "POST",
+                    url: "/songs/create720plyricsall",
+                    data: {"txt": txt},
+                    success: function(data) {
+                        let startIndex = data.indexOf("<div>");
+                        let endIndex = data.indexOf("</div>", startIndex);
+                        let textBetweenDivs = data.substring(startIndex + 5, endIndex);
+                        alert(textBetweenDivs);
+                    }
+                });
+            }
+        }
+
+        function doCreateTagsAll() {
+            $.ajax({
+                type: "GET",
+                url: "/songs/createtags",
+                data: "",
+                success: function(data) {
+                    alert("OK");
+                }
+            });
+        }
+
+        function doSearchTextAll() {
+            var txt = ""
+            var tbl = document.getElementById("leftTable");
+            var cnt = 0;
+            for (var i = 0, row; row = tbl.rows[i]; i++) {
+                cnt++;
+                var col = row.cells;
+                txt = txt + col[0].innerText + ";"
+            }
+            if (confirm("Выбрано песен: " + cnt + "\nВы действительно хотите найти в интернете тексты для всех песен, у которых еще нет текстов?")) {
+
+                console.log("txt: " + txt);
+                $.ajax({
+                    type: "POST",
+                    url: "/songs/searchsongtextall",
+                    data: {"txt": txt},
+                    success: function(data) {
+                        let startIndex = data.indexOf("<div>");
+                        let endIndex = data.indexOf("</div>", startIndex);
+                        let textBetweenDivs = data.substring(startIndex + 5, endIndex);
+                        alert(textBetweenDivs);
+                    }
+                });
+            }
         }
 
         function extractYoutubeVideoId(inputElement) {
             // Получаем значение из поля ввода
             var inputValue = inputElement.value.trim();
 
-            if (inputValue.startsWith('https://youtu.be/')) {
-                const id = inputValue.replace('https://youtu.be/', '');
+            if (inputValue.startsWith('https://dzen.ru/video/watch/')) {
+                const id = inputValue.replace('https://dzen.ru/video/watch/', '');
                 inputElement.value = id;
 
-                document.getElementById("button_link_play_YoutubeLyrics").href = "https://youtu.be/" + document.getElementById("settings_idYoutubeLyrics").value
-                document.getElementById("button_link_edit_YoutubeLyrics").href = "https://studio.youtube.com/video/" + document.getElementById("settings_idYoutubeLyrics").value + "/edit"
-                document.getElementById("button_link_play_YoutubeLyricsBt").href = "https://youtu.be/" + document.getElementById("settings_idYoutubeLyricsBt").value
-                document.getElementById("button_link_edit_YoutubeLyricsBt").href = "https://studio.youtube.com/video/" + document.getElementById("settings_idYoutubeLyricsBt").value + "/edit"
-                document.getElementById("button_link_play_YoutubeKaraoke").href = "https://youtu.be/" + document.getElementById("settings_idYoutubeKaraoke").value
-                document.getElementById("button_link_edit_YoutubeKaraoke").href = "https://studio.youtube.com/video/" + document.getElementById("settings_idYoutubeKaraoke").value + "/edit"
-                document.getElementById("button_link_play_YoutubeKaraokeBt").href = "https://youtu.be/" + document.getElementById("settings_idYoutubeKaraokeBt").value
-                document.getElementById("button_link_edit_YoutubeKaraokeBt").href = "https://studio.youtube.com/video/" + document.getElementById("settings_idYoutubeKaraokeBt").value + "/edit"
-                document.getElementById("button_link_play_YoutubeChords").href = "https://youtu.be/" + document.getElementById("settings_idYoutubeChords").value
-                document.getElementById("button_link_edit_YoutubeChords").href = "https://studio.youtube.com/video/" + document.getElementById("settings_idYoutubeChords").value + "/edit"
-                document.getElementById("button_link_play_YoutubeChordsBt").href = "https://youtu.be/" + document.getElementById("settings_idYoutubeChordsBt").value
-                document.getElementById("button_link_edit_YoutubeChordsBt").href = "https://studio.youtube.com/video/" + document.getElementById("settings_idYoutubeChordsBt").value + "/edit"
+                document.getElementById("button_link_play_YoutubeLyrics").href = "https://dzen.ru/video/watch/" + document.getElementById("settings_idYoutubeLyrics").value
+                document.getElementById("button_link_edit_YoutubeLyrics").href = "https://dzen.ru/profile/editor/svoemesto/publications?videoEditorPublicationId=" + document.getElementById("settings_idYoutubeLyrics").value
+                document.getElementById("button_link_play_YoutubeLyricsBt").href = "https://dzen.ru/video/watch/" + document.getElementById("settings_idYoutubeLyricsBt").value
+                document.getElementById("button_link_edit_YoutubeLyricsBt").href = "https://dzen.ru/profile/editor/svoemesto/publications?videoEditorPublicationId=" + document.getElementById("settings_idYoutubeLyricsBt").value
+                document.getElementById("button_link_play_YoutubeKaraoke").href = "https://dzen.ru/video/watch/" + document.getElementById("settings_idYoutubeKaraoke").value
+                document.getElementById("button_link_edit_YoutubeKaraoke").href = "https://dzen.ru/profile/editor/svoemesto/publications?videoEditorPublicationId=" + document.getElementById("settings_idYoutubeKaraoke").value
+                document.getElementById("button_link_play_YoutubeKaraokeBt").href = "https://dzen.ru/video/watch/" + document.getElementById("settings_idYoutubeKaraokeBt").value
+                document.getElementById("button_link_edit_YoutubeKaraokeBt").href = "https://dzen.ru/profile/editor/svoemesto/publications?videoEditorPublicationId=" + document.getElementById("settings_idYoutubeKaraokeBt").value
+                document.getElementById("button_link_play_YoutubeChords").href = "https://dzen.ru/video/watch/" + document.getElementById("settings_idYoutubeChords").value
+                document.getElementById("button_link_edit_YoutubeChords").href = "https://dzen.ru/profile/editor/svoemesto/publications?videoEditorPublicationId=" + document.getElementById("settings_idYoutubeChords").value
+                document.getElementById("button_link_play_YoutubeChordsBt").href = "https://dzen.ru/video/watch/" + document.getElementById("settings_idYoutubeChordsBt").value
+                document.getElementById("button_link_edit_YoutubeChordsBt").href = "https://dzen.ru/profile/editor/svoemesto/publications?videoEditorPublicationId=" + document.getElementById("settings_idYoutubeChordsBt").value
 
                 document.getElementById("button_link_play_YoutubeLyrics").disabled = (document.getElementById("settings_idYoutubeLyrics").value === '');
                 document.getElementById("button_link_edit_YoutubeLyrics").disabled = (document.getElementById("settings_idYoutubeLyrics").value === '');
@@ -962,6 +1400,44 @@
 
             }
         }
+
+
+        function extractTelegramVideoId(inputElement) {
+            // Получаем значение из поля ввода
+            var inputValue = inputElement.value.trim();
+
+            if (inputValue.startsWith('https://t.me/svoemestokaraoke/')) {
+                const id = inputValue.replace('https://t.me/svoemestokaraoke/', '');
+                inputElement.value = id;
+
+                document.getElementById("button_link_play_TelegramLyrics").href = "https://t.me/svoemestokaraoke/" + document.getElementById("settings_idTelegramLyrics").value;
+                document.getElementById("button_link_edit_TelegramLyrics").href = "https://t.me/svoemestokaraoke/" + document.getElementById("settings_idTelegramLyrics").value;
+                document.getElementById("button_link_play_TelegramLyricsBt").href = "https://t.me/svoemestokaraoke/" + document.getElementById("settings_idTelegramLyricsBt").value;
+                document.getElementById("button_link_edit_TelegramLyricsBt").href = "https://t.me/svoemestokaraoke/" + document.getElementById("settings_idTelegramLyricsBt").value;
+                document.getElementById("button_link_play_TelegramKaraoke").href = "https://t.me/svoemestokaraoke/" + document.getElementById("settings_idTelegramKaraoke").value;
+                document.getElementById("button_link_edit_TelegramKaraoke").href = "https://t.me/svoemestokaraoke/" + document.getElementById("settings_idTelegramKaraoke").value;
+                document.getElementById("button_link_play_TelegramKaraokeBt").href = "https://t.me/svoemestokaraoke/" + document.getElementById("settings_idTelegramKaraokeBt").value;
+                document.getElementById("button_link_edit_TelegramKaraokeBt").href = "https://t.me/svoemestokaraoke/" + document.getElementById("settings_idTelegramKaraokeBt").value;
+                document.getElementById("button_link_play_TelegramChords").href = "https://t.me/svoemestokaraoke/" + document.getElementById("settings_idTelegramChords").value;
+                document.getElementById("button_link_edit_TelegramChords").href = "https://t.me/svoemestokaraoke/" + document.getElementById("settings_idTelegramChords").value;
+                document.getElementById("button_link_play_TelegramChordsBt").href = "https://t.me/svoemestokaraoke/" + document.getElementById("settings_idTelegramChordsBt").value;
+                document.getElementById("button_link_edit_TelegramChordsBt").href = "https://t.me/svoemestokaraoke/" + document.getElementById("settings_idTelegramChordsBt").value;
+
+                document.getElementById("button_link_play_TelegramLyrics").disabled = (document.getElementById("settings_idTelegramLyrics").value === '');
+                document.getElementById("button_link_edit_TelegramLyrics").disabled = (document.getElementById("settings_idTelegramLyrics").value === '');
+                document.getElementById("button_link_play_TelegramLyricsBt").disabled = (document.getElementById("settings_idTelegramLyricsBt").value === '');
+                document.getElementById("button_link_edit_TelegramLyricsBt").disabled = (document.getElementById("settings_idTelegramLyricsBt").value === '');
+                document.getElementById("button_link_play_TelegramKaraoke").disabled = (document.getElementById("settings_idTelegramKaraoke").value === '');
+                document.getElementById("button_link_edit_TelegramKaraoke").disabled = (document.getElementById("settings_idTelegramKaraoke").value === '');
+                document.getElementById("button_link_play_TelegramKaraokeBt").disabled = (document.getElementById("settings_idTelegramKaraokeBt").value === '');
+                document.getElementById("button_link_edit_TelegramKaraokeBt").disabled = (document.getElementById("settings_idTelegramKaraokeBt").value === '');
+                document.getElementById("button_link_play_TelegramChords").disabled = (document.getElementById("settings_idTelegramChords").value === '');
+                document.getElementById("button_link_edit_TelegramChords").disabled = (document.getElementById("settings_idTelegramChords").value === '');
+                document.getElementById("button_link_play_TelegramChordsBt").disabled = (document.getElementById("settings_idTelegramChordsBt").value === '');
+                document.getElementById("button_link_edit_TelegramChordsBt").disabled = (document.getElementById("settings_idTelegramChordsBt").value === '');
+
+            }
+        }
         
         function extractBoostyId(inputElement) {
             // Получаем значение из поля ввода
@@ -995,7 +1471,7 @@
             if (request.status === 200) {
                 var result = request.responseText;
                 copyToClipboard(result)
-                var link = "https://studio.youtube.com/video/" + document.getElementById("settings_idYoutubeKaraoke").value + "/edit"
+                var link = "https://dzen.ru/profile/editor/svoemesto/publications?videoEditorPublicationId=" + document.getElementById("settings_idYoutubeKaraoke").value
                 window.open(link, '_blank');
             }
 
@@ -1010,7 +1486,7 @@
             if (request.status === 200) {
                 var result = request.responseText;
                 copyToClipboard(result)
-                var link = "https://studio.youtube.com/video/" + document.getElementById("settings_idYoutubeKaraokeBt").value + "/edit"
+                var link = "https://dzen.ru/profile/editor/svoemesto/publications?videoEditorPublicationId=" + document.getElementById("settings_idYoutubeKaraokeBt").value
                 window.open(link, '_blank');
             }
 
@@ -1025,7 +1501,7 @@
             if (request.status === 200) {
                 var result = request.responseText;
                 copyToClipboard(result)
-                var link = "https://studio.youtube.com/video/" + document.getElementById("settings_idYoutubeLyrics").value + "/edit"
+                var link = "https://dzen.ru/profile/editor/svoemesto/publications?videoEditorPublicationId=" + document.getElementById("settings_idYoutubeLyrics").value
                 window.open(link, '_blank');
             }
 
@@ -1040,7 +1516,7 @@
             if (request.status === 200) {
                 var result = request.responseText;
                 copyToClipboard(result)
-                var link = "https://studio.youtube.com/video/" + document.getElementById("settings_idYoutubeLyricsBt").value + "/edit"
+                var link = "https://dzen.ru/profile/editor/svoemesto/publications?videoEditorPublicationId=" + document.getElementById("settings_idYoutubeLyricsBt").value
                 window.open(link, '_blank');
             }
 
@@ -1055,7 +1531,7 @@
             if (request.status === 200) {
                 var result = request.responseText;
                 copyToClipboard(result)
-                var link = "https://studio.youtube.com/video/" + document.getElementById("settings_idYoutubeChords").value + "/edit"
+                var link = "https://dzen.ru/profile/editor/svoemesto/publications?videoEditorPublicationId=" + document.getElementById("settings_idYoutubeChords").value
                 window.open(link, '_blank');
             }
 
@@ -1070,7 +1546,7 @@
             if (request.status === 200) {
                 var result = request.responseText;
                 copyToClipboard(result)
-                var link = "https://studio.youtube.com/video/" + document.getElementById("settings_idYoutubeChordsBt").value + "/edit"
+                var link = "https://dzen.ru/profile/editor/svoemesto/publications?videoEditorPublicationId=" + document.getElementById("settings_idYoutubeChordsBt").value
                 window.open(link, '_blank');
             }
 
@@ -1079,34 +1555,34 @@
 
 
         function openLinkYoutubePlayKaraoke() {
-            var link = "https://youtu.be/" + document.getElementById("settings_idYoutubeKaraoke").value
+            var link = "https://dzen.ru/video/watch/" + document.getElementById("settings_idYoutubeKaraoke").value
             window.open(link, '_blank');
         }
 
         function openLinkYoutubePlayKaraokeBt() {
-            var link = "https://youtu.be/" + document.getElementById("settings_idYoutubeKaraokeBt").value
+            var link = "https://dzen.ru/video/watch/" + document.getElementById("settings_idYoutubeKaraokeBt").value
             window.open(link, '_blank');
             var id = document.getElementById("settings_id").value;
         }
 
         function openLinkYoutubePlayLyrics() {
-            var link = "https://youtu.be/" + document.getElementById("settings_idYoutubeLyrics").value
+            var link = "https://dzen.ru/video/watch/" + document.getElementById("settings_idYoutubeLyrics").value
             window.open(link, '_blank');
 
         }
 
         function openLinkYoutubePlayLyricsBt() {
-            var link = "https://youtu.be/" + document.getElementById("settings_idYoutubeLyricsBt").value
+            var link = "https://dzen.ru/video/watch/" + document.getElementById("settings_idYoutubeLyricsBt").value
             window.open(link, '_blank');
         }
 
         function openLinkYoutubePlayChords() {
-            var link = "https://youtu.be/" + document.getElementById("settings_idYoutubeChords").value
+            var link = "https://dzen.ru/video/watch/" + document.getElementById("settings_idYoutubeChords").value
             window.open(link, '_blank');
         }
 
         function openLinkYoutubePlayChordsBt() {
-            var link = "https://youtu.be/" + document.getElementById("settings_idYoutubeChordsBt").value
+            var link = "https://dzen.ru/video/watch/" + document.getElementById("settings_idYoutubeChordsBt").value
             window.open(link, '_blank');
         }
 
@@ -1239,6 +1715,143 @@
         }
 
 
+
+
+
+
+
+
+
+        function openLinkTelegramEditKaraoke() {
+
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/texttelegramkaraokewoheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                copyToClipboard(result)
+                var link = "https://t.me/svoemestokaraoke/" + document.getElementById("settings_idTelegramKaraoke").value;
+                window.open(link, '_blank');
+            }
+
+        }
+
+        function openLinkTelegramEditKaraokeBt() {
+
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/texttelegramkaraokebtwoheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                copyToClipboard(result)
+                var link = "https://t.me/svoemestokaraoke/" + document.getElementById("settings_idTelegramKaraokeBt").value;
+                window.open(link, '_blank');
+            }
+
+        }
+
+        function openLinkTelegramEditLyrics() {
+
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/texttelegramlyricswoheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                copyToClipboard(result)
+                var link = "https://t.me/svoemestokaraoke/" + document.getElementById("settings_idTelegramLyrics").value;
+                window.open(link, '_blank');
+            }
+
+        }
+
+        function openLinkTelegramEditLyricsBt() {
+
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/texttelegramlyricsbtwoheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                copyToClipboard(result)
+                var link = "https://t.me/svoemestokaraoke/" + document.getElementById("settings_idTelegramLyricsBt").value;
+                window.open(link, '_blank');
+            }
+
+        }
+
+        function openLinkTelegramEditChords() {
+
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/texttelegramchordswoheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                copyToClipboard(result)
+                var link = "https://t.me/svoemestokaraoke/" + document.getElementById("settings_idTelegramChords").value;
+                window.open(link, '_blank');
+            }
+
+        }
+
+        function openLinkTelegramEditChordsBt() {
+
+            var id = document.getElementById("settings_id").value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/texttelegramchordsbtwoheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                copyToClipboard(result)
+                var link = "https://t.me/svoemestokaraoke/" + document.getElementById("settings_idTelegramChordsBt").value;
+                window.open(link, '_blank');
+            }
+
+        }
+
+
+
+        function openLinkTelegramPlayKaraoke() {
+            var link = "https://t.me/svoemestokaraoke/" + document.getElementById("settings_idTelegramKaraoke").value
+            window.open(link, '_blank');
+        }
+
+        function openLinkTelegramPlayKaraokeBt() {
+            var link = "https://t.me/svoemestokaraoke/" + document.getElementById("settings_idTelegramKaraokeBt").value
+            window.open(link, '_blank');
+            var id = document.getElementById("settings_id").value;
+        }
+
+        function openLinkTelegramPlayLyrics() {
+            var link = "https://t.me/svoemestokaraoke/" + document.getElementById("settings_idTelegramLyrics").value
+            window.open(link, '_blank');
+
+        }
+
+        function openLinkTelegramPlayLyricsBt() {
+            var link = "https://t.me/svoemestokaraoke/" + document.getElementById("settings_idTelegramLyricsBt").value
+            window.open(link, '_blank');
+        }
+
+        function openLinkTelegramPlayChords() {
+            var link = "https://t.me/svoemestokaraoke/" + document.getElementById("settings_idTelegramChords").value
+            window.open(link, '_blank');
+        }
+
+        function openLinkTelegramPlayChordsBt() {
+            var link = "https://t.me/svoemestokaraoke/" + document.getElementById("settings_idTelegramChordsBt").value
+            window.open(link, '_blank');
+        }
+
+
+
+
+
+
+
         function copyToClipboard(text) {
             const textarea = document.createElement('textarea');
             textarea.value = text;
@@ -1288,40 +1901,30 @@
                 rows.className = "sub-row" + i%2;
             }
 
-            document.getElementById("settings_songName").disabled = true;
-            document.getElementById("settings_author").disabled = true;
-            document.getElementById("settings_year").disabled = true;
-            document.getElementById("settings_album").disabled = true;
-            document.getElementById("settings_track").disabled = true;
-            document.getElementById("settings_date").disabled = true;
-            document.getElementById("settings_time").disabled = true;
-            document.getElementById("settings_key").disabled = true;
-            document.getElementById("settings_bpm").disabled = true;
-            document.getElementById("settings_ms").disabled = true;
-            document.getElementById("settings_fileName").disabled = true;
-            document.getElementById("settings_rootFolder").disabled = true;
-            document.getElementById("settings_idBoosty").disabled = true;
-            document.getElementById("settings_idVk").disabled = true;
-            document.getElementById("settings_idYoutubeLyrics").disabled = true;
-            document.getElementById("settings_idYoutubeLyricsBt").disabled = true;
-            document.getElementById("settings_idYoutubeKaraoke").disabled = true;
-            document.getElementById("settings_idYoutubeKaraokeBt").disabled = true;
-            document.getElementById("settings_idYoutubeChords").disabled = true;
-            document.getElementById("settings_idYoutubeChordsBt").disabled = true;
-            document.getElementById("select_status").disabled = true;
-            document.getElementById("button_link_boosty").disabled = true;
-            document.getElementById("button_link_play_YoutubeLyrics").disabled = true;
-            document.getElementById("button_link_edit_YoutubeLyrics").disabled = true;
-            document.getElementById("button_link_play_YoutubeLyricsBt").disabled = true;
-            document.getElementById("button_link_edit_YoutubeLyricsBt").disabled = true;
-            document.getElementById("button_link_play_YoutubeKaraoke").disabled = true;
-            document.getElementById("button_link_edit_YoutubeKaraoke").disabled = true;
-            document.getElementById("button_link_play_YoutubeKaraokeBt").disabled = true;
-            document.getElementById("button_link_edit_YoutubeKaraokeBt").disabled = true;
-            document.getElementById("button_link_play_YoutubeChords").disabled = true;
-            document.getElementById("button_link_edit_YoutubeChords").disabled = true;
-            document.getElementById("button_link_play_YoutubeChordsBt").disabled = true;
-            document.getElementById("button_link_edit_YoutubeChordsBt").disabled = true;
+            const buttonTogglesStatus = document.getElementsByName('btn_status');
+            for (let i = 0; i < buttonTogglesStatus.length; i++) {
+                buttonTogglesStatus[i].addEventListener('click', function() {
+                    const selectedValue = this.value;
+                    for (let j = 0; j < buttonTogglesStatus.length; j++) {
+                        buttonTogglesStatus[j].classList.remove('active');
+                    }
+                    this.classList.add('active');
+                    var selectElement = document.getElementById("select_status");
+                    selectElement.selectedIndex = selectedValue;
+                    doPostForm();
+                });
+            }
+
+            const fieldsFilter = document.getElementsByName('filter_field');
+            for (let i = 0; i < fieldsFilter.length; i++) {
+                fieldsFilter[i].addEventListener('keydown', function(event) {
+                    if (event.keyCode === 13) {
+                        doFilterForm();
+                    }
+                });
+            }
+
+            setDisabledElements(true);
 
         });
 
@@ -1334,6 +1937,63 @@
                 }
             });
         }
+
+        function updateSettings(id) {
+
+            var currentId = document.getElementById("settings_id");
+
+            if (currentId.value !== id.value) {
+
+                var idRow = `row${id}`;
+                var idLyrics = `fld_${id}_flag_lyrics`;
+                var idKaraoke = `fld_${id}_flag_karaoke`;
+                var idLyricsBt = `fld_${id}_flag_lyricsbt`;
+                var idKaraokeBt = `fld_${id}_flag_karaokebt`;
+                var elementRow = document.getElementById(idRow);
+                var elementLyrics = document.getElementById(idLyrics);
+                var elementKaraoke = document.getElementById(idKaraoke);
+                var elementLyricsBt = document.getElementById(idLyricsBt);
+                var elementKaraokeBt = document.getElementById(idKaraokeBt);
+
+                if (elementRow !== null && elementLyrics !== null && elementKaraoke !== null && elementLyricsBt !== null && elementKaraokeBt !== null) {
+                    console.log(`Обновляем запись №${id}`)
+                    $.ajax({
+                        type: "GET",
+                        url: "/song/" + id,
+                        data: "",
+                        success: function(data) {
+                            elementRow.style.backgroundColor = data.color;
+                            elementLyrics.style.backgroundColor = data.processColorMeltLyrics;
+                            elementKaraoke.style.backgroundColor = data.processColorMeltKaraoke;
+                            elementLyricsBt.style.backgroundColor = data.processColorMeltLyricsBt;
+                            elementKaraokeBt.style.backgroundColor = data.processColorMeltKaraokeBt;
+                        }
+                    });
+                }
+
+            }
+
+        }
+
+        function updateCurrentTime() {
+
+            $.ajax({
+                type: "GET",
+                url: "/songs/lastupdated",
+                data: {'lastTime':currentTimeStamp},
+                success: function(data) {
+                    data.forEach((objId) => {
+                        updateSettings(objId);
+                    });
+                }
+            });
+            currentTimeStamp = new Date().getTime();
+        }
+
+        $(function() {
+            setInterval(updateCurrentTime, 5000);
+        });
+
     </script>
 </head>
 
@@ -1354,7 +2014,7 @@
                         <td th:text="Композиция" style="min-width: 250px; max-width: 250px; border-style: solid; border-width: thin"></td>
                         <td th:text="Исполнитель" style="min-width: 150px; max-width: 150px; border-style: solid; border-width: thin"></td>
                         <td th:text="Год" style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin; text-align: center"></td>
-                        <td th:text="Альбом" style="min-width: 210px; max-width: 210px; border-style: solid; border-width: thin"></td>
+                        <td th:text="Альбом" style="min-width: 175px; max-width: 175px; border-style: solid; border-width: thin"></td>
                         <td th:text="№" style="min-width: 35px; max-width: 35px; border-style: solid; border-width: thin; text-align: center"></td>
                         <td th:text="Дата" style="min-width: 60px; max-width: 60px; border-style: solid; border-width: thin; text-align: center"></td>
                         <td th:text="Время" style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin; text-align: center"></td>
@@ -1364,14 +2024,21 @@
                         <td th:text="YK" style="font-size: 8px; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
                         <td th:text="YLB" style="font-size: 8px; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
                         <td th:text="YKB" style="font-size: 8px; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
-                        <td th:text="YC" style="font-size: 8px; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
-                        <td th:text="YCB" style="font-size: 8px; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+                        <td hidden th:text="YC" style="font-size: 8px; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+                        <td hidden th:text="YCB" style="font-size: 8px; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
                         <td th:text="VKL" style="font-size: 8px; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
-                        <td th:text="YKK" style="font-size: 8px; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
-                        <td th:text="VKLB" style="font-size: 8px; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
-                        <td th:text="YKKB" style="font-size: 8px; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
-                        <td th:text="VKC" style="font-size: 8px; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
-                        <td th:text="VKCB" style="font-size: 8px; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+                        <td th:text="VKK" style="font-size: 8px; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+                        <td hidden th:text="VKLB" style="font-size: 8px; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+                        <td hidden th:text="YKKB" style="font-size: 8px; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+                        <td hidden th:text="VKC" style="font-size: 8px; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+                        <td hidden th:text="VKCB" style="font-size: 8px; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+                        <td th:text="TL" style="font-size: 8px; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+                        <td th:text="TK" style="font-size: 8px; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+                        <td hidden th:text="TLB" style="font-size: 8px; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+                        <td hidden th:text="TKB" style="font-size: 8px; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+                        <td hidden th:text="TC" style="font-size: 8px; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+                        <td hidden th:text="TCB" style="font-size: 8px; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+                        <td th:text="TAG" style="min-width: 35px; max-width: 35px; border-style: solid; border-width: thin; text-align: center"></td>
                         <td th:text="STATUS" style="font-size: 14px; min-width: 100px; max-width: 100px; border-style: solid; border-width: thin; text-align: center"></td>
                     </tr>
                     <form action=""
@@ -1381,73 +2048,96 @@
                           name="filterForm">
                         <tr>
                             <td style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin; text-align: center">
-                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_id" name="filter_id" placeholder="ID">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_id" name="filter_field" placeholder="ID">
                             </td>
                             <td style="min-width: 250px; max-width: 250px; border-style: solid; border-width: thin">
-                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_songName" name="filter_songName" placeholder="Композиция">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_songName" name="filter_field" placeholder="Композиция">
                             </td>
                             <td style="min-width: 150px; max-width: 150px; border-style: solid; border-width: thin">
-                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_author" name="filter_author" placeholder="Исполнитель">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_author" name="filter_field" placeholder="Исполнитель">
                             </td>
                             <td style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin; text-align: center">
-                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_year" name="filter_year" placeholder="Год">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_year" name="filter_field" placeholder="Год">
                             </td>
-                            <td style="min-width: 210px; max-width: 210px; border-style: solid; border-width: thin">
-                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_album" name="filter_album" placeholder="Альбом">
+                            <td style="min-width: 175px; max-width: 175px; border-style: solid; border-width: thin">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_album" name="filter_field" placeholder="Альбом">
                             </td>
                             <td style="min-width: 35px; max-width: 35px; border-style: solid; border-width: thin; text-align: center">
-                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_track" name="filter_track" placeholder="№">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_track" name="filter_field" placeholder="№">
                             </td>
                             <td style="min-width: 60px; max-width: 60px; border-style: solid; border-width: thin; text-align: center">
-                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_date" name="filter_date" placeholder="Дата">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_date" name="filter_field" placeholder="Дата">
                             </td>
                             <td style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin; text-align: center">
-                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_time" name="filter_time" placeholder="Время">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_time" name="filter_field" placeholder="Время">
                             </td>
                             <td style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center">
-                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_boosty" name="filter_flag_boosty" placeholder="BOO">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_boosty" name="filter_field" placeholder="BOO">
                             </td>
                             <td style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center">
-                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_vk" name="filter_flag_vk" placeholder="VK">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_vk" name="filter_field" placeholder="VK">
                             </td>
                             <td style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center">
-                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_yl" name="filter_flag_yl" placeholder="YL">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_yl" name="filter_field" placeholder="YL">
                             </td>
                             <td style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center">
-                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_yk" name="filter_flag_yk" placeholder="YK">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_yk" name="filter_field" placeholder="YK">
                             </td>
                             <td style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center">
-                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_ylb" name="filter_flag_ylb" placeholder="YLB">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_ylb" name="filter_field" placeholder="YLB">
                             </td>
                             <td style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center">
-                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_ykb" name="filter_flag_ykb" placeholder="YKB">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_ykb" name="filter_field" placeholder="YKB">
+                            </td>
+                            <td hidden style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_yc" name="filter_field" placeholder="YC">
+                            </td>
+                            <td hidden style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_ycb" name="filter_field" placeholder="YCB">
+                            </td>
+
+                            <td style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_vkl" name="filter_field" placeholder="VKL">
                             </td>
                             <td style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center">
-                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_yc" name="filter_flag_yc" placeholder="YC">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_vkk" name="filter_field" placeholder="VKK">
+                            </td>
+                            <td hidden style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_vklb" name="filter_field" placeholder="VKLB">
+                            </td>
+                            <td hidden style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_vkkb" name="filter_field" placeholder="VKKB">
+                            </td>
+                            <td hidden style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_vkc" name="filter_field" placeholder="VKC">
+                            </td>
+                            <td hidden style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_vkcb" name="filter_field" placeholder="VKCB">
+                            </td>
+
+                            <td style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_tl" name="filter_field" placeholder="TL">
                             </td>
                             <td style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center">
-                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_ycb" name="filter_flag_ycb" placeholder="YCB">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_tk" name="filter_field" placeholder="TK">
                             </td>
-                            <td style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center">
-                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_vkl" name="filter_flag_vkl" placeholder="VKL">
+                            <td hidden style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_tlb" name="filter_field" placeholder="TLB">
                             </td>
-                            <td style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center">
-                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_vkk" name="filter_flag_vkk" placeholder="VKK">
+                            <td hidden style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_tkb" name="filter_field" placeholder="TKB">
                             </td>
-                            <td style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center">
-                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_vklb" name="filter_flag_vklb" placeholder="VKLB">
+                            <td hidden style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_tc" name="filter_field" placeholder="TC">
                             </td>
-                            <td style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center">
-                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_vkkb" name="filter_flag_vkkb" placeholder="VKKB">
+                            <td hidden style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_tcb" name="filter_field" placeholder="TCB">
                             </td>
-                            <td style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center">
-                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_vkc" name="filter_flag_vkc" placeholder="VKC">
-                            </td>
-                            <td style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center">
-                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_vkcb" name="filter_flag_vkcb" placeholder="VKCB">
+                            <td style="min-width: 35px; max-width: 35px; border-style: solid; border-width: thin; text-align: center">
+                                <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_tags" name="filter_field" placeholder="TAG">
                             </td>
                             <td style="min-width: 100px; max-width: 100px; border-style: solid; border-width: thin; text-align: center">
-                                <input style="font-size: 12px; padding: 0;" type="text" class="form-control" id="filter_status" name="filter_status" placeholder="STATUS">
+                                <input style="font-size: 12px; padding: 0;" type="text" class="form-control" id="filter_status" name="filter_field" placeholder="STATUS">
                             </td>
                         </tr>
                     </form>
@@ -1462,7 +2152,7 @@
                             <td th:text="${settings.songName}" style="min-width: 250px; max-width: 250px; border-style: solid; border-width: thin"></td>
                             <td th:text="${settings.author}" style="min-width: 150px; max-width: 150px; border-style: solid; border-width: thin"></td>
                             <td th:text="${settings.year}" style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin; text-align: center"></td>
-                            <td th:text="${settings.album}" style="min-width: 210px; max-width: 210px; border-style: solid; border-width: thin"></td>
+                            <td th:text="${settings.album}" style="min-width: 175px; max-width: 175px; border-style: solid; border-width: thin"></td>
                             <td th:text="${settings.track}" style="min-width: 35px; max-width: 35px; border-style: solid; border-width: thin; text-align: center"></td>
                             <td th:text="${settings.date}" style="min-width: 60px; max-width: 60px; border-style: solid; border-width: thin; text-align: center"></td>
                             <td th:text="${settings.time}" style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin; text-align: center"></td>
@@ -1485,20 +2175,33 @@
                             <td hidden th:text="${settings.idVkKaraokeBt}"></td>
                             <td hidden th:text="${settings.idVkChords}"></td>
                             <td hidden th:text="${settings.idVkChordsBt}"></td>
+                            <td hidden th:text="${settings.idTelegramLyrics}"></td>
+                            <td hidden th:text="${settings.idTelegramLyricsBt}"></td>
+                            <td hidden th:text="${settings.idTelegramKaraoke}"></td>
+                            <td hidden th:text="${settings.idTelegramKaraokeBt}"></td>
+                            <td hidden th:text="${settings.idTelegramChords}"></td>
+                            <td hidden th:text="${settings.idTelegramChordsBt}"></td>
                             <td th:text="${settings.flagBoosty}" style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
                             <td th:text="${settings.flagVk}" style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
                             <td th:text="${settings.flagYoutubeLyrics}" th:id="'fld_'+${settings.id}+'_flag_lyrics'" th:ondblclick="'doPlay('+${settings.id}+', \'playlyrics\')'" th:style="'background-color: ' + ${settings.processColorMeltLyrics} + '; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center'"></td>
                             <td th:text="${settings.flagYoutubeKaraoke}" th:id="'fld_'+${settings.id}+'_flag_karaoke'" th:ondblclick="'doPlay('+${settings.id}+', \'playkaraoke\')'" th:style="'background-color: ' + ${settings.processColorMeltKaraoke} + ';min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center'"></td>
                             <td th:text="${settings.flagYoutubeLyricsBt}" th:id="'fld_'+${settings.id}+'_flag_lyricsbt'" th:ondblclick="'doPlay('+${settings.id}+', \'playchords\')'" th:style="'background-color: ' + ${settings.processColorMeltLyricsBt} + ';min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center'"></td>
                             <td th:text="${settings.flagYoutubeKaraokeBt}" th:id="'fld_'+${settings.id}+'_flag_karaokebt'" th:ondblclick="'doPlay('+${settings.id}+', \'playlyricsbt\')'" th:style="'background-color: ' + ${settings.processColorMeltKaraokeBt} + ';min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center'"></td>
-                            <td th:text="${settings.flagYoutubeChords}" th:id="'fld_'+${settings.id}+'_flag_chords'" th:ondblclick="'doPlay('+${settings.id}+', \'playkaraokebt\')'" th:style="'background-color: ' + ${settings.processColorMeltChords} + ';min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center'"></td>
-                            <td th:text="${settings.flagYoutubeChordsBt}" th:id="'fld_'+${settings.id}+'_flag_chordsbt'" th:ondblclick="'doPlay('+${settings.id}+', \'playchordsbt\')'" th:style="'background-color: ' + ${settings.processColorMeltChordsBt} + ';min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center'"></td>
+                            <td hidden th:text="${settings.flagYoutubeChords}" th:id="'fld_'+${settings.id}+'_flag_chords'" th:ondblclick="'doPlay('+${settings.id}+', \'playkaraokebt\')'" th:style="'background-color: ' + ${settings.processColorMeltChords} + ';min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center'"></td>
+                            <td hidden th:text="${settings.flagYoutubeChordsBt}" th:id="'fld_'+${settings.id}+'_flag_chordsbt'" th:ondblclick="'doPlay('+${settings.id}+', \'playchordsbt\')'" th:style="'background-color: ' + ${settings.processColorMeltChordsBt} + ';min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center'"></td>
                             <td th:text="${settings.flagVkLyrics}" style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
                             <td th:text="${settings.flagVkKaraoke}" style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
-                            <td th:text="${settings.flagVkLyricsBt}" style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
-                            <td th:text="${settings.flagVkKaraokeBt}" style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
-                            <td th:text="${settings.flagVkChords}" style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
-                            <td th:text="${settings.flagVkChordsBt}" style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+                            <td hidden th:text="${settings.flagVkLyricsBt}" style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+                            <td hidden th:text="${settings.flagVkKaraokeBt}" style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+                            <td hidden th:text="${settings.flagVkChords}" style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+                            <td hidden th:text="${settings.flagVkChordsBt}" style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+                            <td th:text="${settings.flagTelegramLyrics}" style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+                            <td th:text="${settings.flagTelegramKaraoke}" style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+                            <td hidden th:text="${settings.flagTelegramLyricsBt}" style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+                            <td hidden th:text="${settings.flagTelegramKaraokeBt}" style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+                            <td hidden th:text="${settings.flagTelegramChords}" style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+                            <td hidden th:text="${settings.flagTelegramChordsBt}" style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+                            <td th:text="${settings.tags}" style="min-width: 35px; max-width: 35px; border-style: solid; border-width: thin; text-align: center"></td>
                             <td hidden th:text="${settings.idStatus}"></td>
                             <td th:text="${settings.status}" style="font-size: 10px; min-width: 100px; max-width: 100px; border-style: solid; border-width: thin; text-align: center"></td>
                         </tr>
@@ -1506,7 +2209,29 @@
 
                 </table>
             </div>
-            <button name="button_create_karaoke_all" id="button_create_karaoke_all" class="form-control btn btn-primary btn-block" type="button" onclick="doCreateKaraokeAll()">Создать караоке для всех песен</button>
+            <table>
+                <tr>
+                    <td>
+                        <button name="button_create_karaoke_all" id="button_create_karaoke_all" class="form-control btn btn-primary btn-block" type="button" onclick="doCreateKaraokeAll()">Караоке for all</button>
+                    </td>
+                    <td>
+                        <button name="button_create_demucs2_all" id="button_create_demucs2_all" class="form-control btn btn-primary btn-block" type="button" onclick="doCreateDemucs2All()">DEMUCS2 for all</button>
+                    </td>
+                    <td>
+                        <button name="button_search_text_all" id="button_search_text_all" class="form-control btn btn-primary btn-block" type="button" onclick="doSearchTextAll()">Найти тексты for all</button>
+                    </td>
+                    <td>
+                        <button name="button_create_720p_karaoke_all" id="button_create_720p_karaoke_all" class="form-control btn btn-primary btn-block" type="button" onclick="doCreate720pKaraokeAll()">720p karaoke for all</button>
+                    </td>
+                    <td>
+                        <button name="button_create_720p_lyrics_all" id="button_create_720p_lyrics_all" class="form-control btn btn-primary btn-block" type="button" onclick="doCreate720pLyricsAll()">720p lyrics for all</button>
+                    </td>
+                    <td>
+                        <button name="button_create_tags_all" id="button_create_tags_all" class="form-control btn btn-primary btn-block" type="button" onclick="doCreateTagsAll()">TAGS</button>
+                    </td>
+                </tr>
+            </table>
+
         </div>
         <div id="areaCenterColumn">
             <div class="container">
@@ -1564,7 +2289,7 @@
                         </table>
                         <table class="table table-hover table-bordered" style="margin: 1px;padding: 1px">
                             <tr style="margin: 1px;padding: 1px">
-                                <td style="margin: 1px;padding: 1px;">
+                                <td style="margin: 1px;padding: 1px; max-width: 50px">
                                     <table style="width: 100%">
                                         <tr>
                                             <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Трек</td>
@@ -1584,6 +2309,18 @@
                                         <tr>
                                             <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
                                                 <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="settings_songName" name="settings_songName" placeholder="Композиция">
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                                <td style="margin: 1px;padding: 1px;">
+                                    <table style="width: 100%">
+                                        <tr>
+                                            <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Tags</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                                <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_tags" name="settings_tags" placeholder="Tags">
                                             </td>
                                         </tr>
                                     </table>
@@ -1734,7 +2471,7 @@
 
                         <table class="table table-hover table-bordered" style="margin: 1px;padding: 1px">
                             <tr style="margin: 1px;padding: 1px">
-                                <td colspan="11" style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle; text-align: center">YOUTUBE</td>
+                                <td colspan="11" style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle; text-align: center">DZEN</td>
                             </tr>
                             <tr style="margin: 1px;padding: 1px">
                                 <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Версия</td>
@@ -1953,6 +2690,123 @@
                             </tr>
 
                         </table>
+
+
+
+
+                        <table class="table table-hover table-bordered" style="margin: 1px;padding: 1px">
+                            <tr style="margin: 1px;padding: 1px">
+                                <td colspan="11" style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle; text-align: center">TELEGRAM</td>
+                            </tr>
+                            <tr style="margin: 1px;padding: 1px">
+                                <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Версия</td>
+                                <td colspan="5" style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle; text-align: center">Normal</td>
+                                <td colspan="5" style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle; text-align: center">Delay</td>
+                            </tr>
+                            <tr style="margin: 1px;padding: 1px">
+                                <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Karaoke</td>
+                                <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                    <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idTelegramKaraoke" name="settings_idTelegramKaraoke" placeholder="Karaoke" oninput="extractTelegramVideoId(this)">
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_link_play_TelegramKaraoke" id="button_link_play_TelegramKaraoke" class="form-control btn btn-info btn-block" type="button" onclick="openLinkTelegramPlayKaraoke()">P</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_link_edit_TelegramKaraoke" id="button_link_edit_TelegramKaraoke" class="form-control btn btn-warning btn-block" type="button" onclick="openLinkTelegramEditKaraoke()">E</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_head_TelegramKaraoke" id="button_head_TelegramKaraoke" class="form-control btn btn-primary btn-block" type="button" onclick="doTextTelegramKaraokeHeader()">H</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_body_TelegramKaraoke" id="button_body_TelegramKaraoke" class="form-control btn btn-primary btn-block" type="button" onclick="doTextTelegramKaraokeWOHeader()">B</button>
+                                </td>
+                                <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                    <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idTelegramKaraokeBt" name="settings_idTelegramKaraokeBt" placeholder="Karaoke BT" oninput="extractTelegramVideoId(this)">
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_link_play_TelegramKaraokeBt" id="button_link_play_TelegramKaraokeBt" class="form-control btn btn-info btn-block" type="button" onclick="openLinkTelegramPlayKaraokeBt()">P</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_link_edit_TelegramKaraokeBt" id="button_link_edit_TelegramKaraokeBt" class="form-control btn btn-warning btn-block" type="button" onclick="openLinkTelegramEditKaraokeBt()">E</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_head_TelegramKaraokeBt" id="button_head_TelegramKaraokeBt" class="form-control btn btn-primary btn-block" type="button" onclick="doTextTelegramKaraokeBtHeader()">H</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_body_TelegramKaraokeBt" id="button_body_TelegramKaraokeBt" class="form-control btn btn-primary btn-block" type="button" onclick="doTextTelegramKaraokeBtWOHeader()">B</button>
+                                </td>
+                            </tr>
+                            <tr style="margin: 1px;padding: 1px">
+                                <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Lyrics</td>
+                                <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                    <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idTelegramLyrics" name="settings_idTelegramLyrics" placeholder="Lyrics" oninput="extractTelegramVideoId(this)">
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_link_play_TelegramLyrics" id="button_link_play_TelegramLyrics" class="form-control btn btn-info btn-block" type="button" onclick="openLinkTelegramPlayLyrics()">P</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_link_edit_TelegramLyrics" id="button_link_edit_TelegramLyrics" class="form-control btn btn-warning btn-block" type="button" onclick="openLinkTelegramEditLyrics()">E</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_head_TelegramLyrics" id="button_head_TelegramLyrics" class="form-control btn btn-primary btn-block" type="button" onclick="doTextTelegramLyricsHeader()">H</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_body_TelegramLyrics" id="button_body_TelegramLyrics" class="form-control btn btn-primary btn-block" type="button" onclick="doTextTelegramLyricsWOHeader()">B</button>
+                                </td>
+                                <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                    <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idTelegramLyricsBt" name="settings_idTelegramLyricsBt" placeholder="Lyrics BT" oninput="extractTelegramVideoId(this)">
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_link_play_TelegramLyricsBt" id="button_link_play_TelegramLyricsBt" class="form-control btn btn-info btn-block" type="button" onclick="openLinkTelegramPlayLyricsBt()">P</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_link_edit_TelegramLyricsBt" id="button_link_edit_TelegramLyricsBt" class="form-control btn btn-warning btn-block" type="button" onclick="openLinkTelegramEditLyricsBt()">E</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_head_TelegramLyricsBt" id="button_head_TelegramLyricsBt" class="form-control btn btn-primary btn-block" type="button" onclick="doTextTelegramLyricsBtHeader()">H</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_body_TelegramLyricsBt" id="button_body_TelegramLyricsBt" class="form-control btn btn-primary btn-block" type="button" onclick="doTextTelegramLyricsBtWOHeader()">B</button>
+                                </td>
+                            </tr>
+                            <tr style="margin: 1px;padding: 1px">
+                                <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Chords</td>
+                                <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                    <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idTelegramChords" name="settings_idTelegramChords" placeholder="Chords" oninput="extractTelegramVideoId(this)">
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_link_play_TelegramChords" id="button_link_play_TelegramChords" class="form-control btn btn-info btn-block" type="button" onclick="openLinkTelegramPlayChords()">P</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_link_edit_TelegramChords" id="button_link_edit_TelegramChords" class="form-control btn btn-warning btn-block" type="button" onclick="openLinkTelegramEditChords()">E</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_head_TelegramChords" id="button_head_TelegramChords" class="form-control btn btn-primary btn-block" type="button" onclick="doTextTelegramChordsHeader()">H</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_body_TelegramChords" id="button_body_TelegramChords" class="form-control btn btn-primary btn-block" type="button" onclick="doTextTelegramChordsWOHeader()">B</button>
+                                </td>
+                                <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                    <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idTelegramChordsBt" name="settings_idTelegramChordsBt" placeholder="Chords BT" oninput="extractTelegramVideoId(this)">
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_link_play_TelegramChordsBt" id="button_link_play_TelegramChordsBt" class="form-control btn btn-info btn-block" type="button" onclick="openLinkTelegramPlayChordsBt()">P</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_link_edit_TelegramChordsBt" id="button_link_edit_TelegramChordsBt" class="form-control btn btn-warning btn-block" type="button" onclick="openLinkTelegramEditChordsBt()">E</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_head_TelegramChordsBt" id="button_head_TelegramChordsBt" class="form-control btn btn-primary btn-block" type="button" onclick="doTextTelegramChordsBtHeader()">H</button>
+                                </td>
+                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                    <button style="width: 35px; height: 35px;" name="button_body_TelegramChordsBt" id="button_body_TelegramChordsBt" class="form-control btn btn-primary btn-block" type="button" onclick="doTextTelegramChordsBtWOHeader()">B</button>
+                                </td>
+                            </tr>
+
+                        </table>
+                        
+                        
+                        
                         
                         <table class="table table-hover table-bordered" style="margin: 1px;padding: 1px">
 
@@ -1969,7 +2823,21 @@
                                         <option value="6">ГОТОВО</option>
                                     </select>
                                 </td>
+                                <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                    <div id="group_status" class="btn-group btn-toggle">
+                                        <label for="group_status">Статус:</label>
+                                        <button name="btn_status" class="btn btn-sm btn-outline-primary" type="button" value="0">---</button>
+                                        <button name="btn_status" class="btn btn-sm btn-outline-primary" type="button" value="1">TXT FIND</button>
+                                        <button name="btn_status" class="btn btn-sm btn-outline-primary" type="button" value="2">TXT CHECK</button>
+                                        <button name="btn_status" class="btn btn-sm btn-outline-primary" type="button" value="3">PRJ CREATE</button>
+                                        <button name="btn_status" class="btn btn-sm btn-outline-primary" type="button" value="4">PRJ CHECK</button>
+                                        <button name="btn_status" class="btn btn-sm btn-outline-primary" type="button" value="5">RENDER</button>
+                                        <button name="btn_status" class="btn btn-sm btn-outline-primary" type="button" value="6">DONE</button>
+                                    </div>
+                                </td>
+
                             </tr>
+
 
                         </table>
 
@@ -1982,10 +2850,16 @@
 
                                 </td>
                                 <td style="font-size: 14px; padding: 0; padding-left: 1px; padding-right: 1px;">
-                                    <button name="button_edit_subs0" id="button_edit_subs0" class="form-control btn btn-primary btn-block" type="button" onclick="doEditSubs(0)">Редактировать (V0)</button>
+                                    <button name="button_edit_subs0" id="button_edit_subs0" class="form-control btn btn-primary btn-block" type="button" onclick="doEditSubs(0)">Edit (V0)</button>
                                 </td>
                                 <td style="font-size: 14px; padding: 0; padding-left: 1px; padding-right: 1px;">
-                                    <button name="button_edit_subs1" id="button_edit_subs1" class="form-control btn btn-primary btn-block" type="button" onclick="doEditSubs(1)">Редактировать (V1)</button>
+                                    <button name="button_edit_subs1" id="button_edit_subs1" class="form-control btn btn-primary btn-block" type="button" onclick="doEditSubs(1)">Edit (V1)</button>
+                                </td>
+                                <td style="font-size: 14px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                                    <button name="button_edit_subs2" id="button_edit_subs2" class="form-control btn btn-primary btn-block" type="button" onclick="doEditSubs(2)">Edit (V2)</button>
+                                </td>
+                                <td style="font-size: 14px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                                    <button name="button_edit_subs3" id="button_edit_subs3" class="form-control btn btn-primary btn-block" type="button" onclick="doEditSubs(3)">Edit (V3)</button>
                                 </td>
                                 <td style="font-size: 14px; padding: 0; padding-left: 1px; padding-right: 1px;">
                                     <button name="button_create_karaoke" id="button_create_karaoke" class="form-control btn btn-primary btn-block" type="button" onclick="doCreateKaraoke()">Создать караоке</button>
@@ -1998,7 +2872,7 @@
 
                         </table>
 
-                        <div id="waveform"></div>
+<!--                        <div id="waveform"></div>-->
 
                         <table class="table table-hover table-bordered" style="margin: 1px;padding: 1px">
                             <tr colspan="6" style="margin: 1px;padding: 1px">
@@ -2012,16 +2886,19 @@
                                     <button name="button_melt_karaoke" id="button_melt_karaoke" class="form-control btn btn-primary btn-block" type="button" onclick="doProcess('doprocesskaraoke')">KARAOKE</button>
                                 </td>
                                 <td style="font-size: 14px; padding: 0; padding-left: 1px; padding-right: 1px;">
-                                    <button name="button_melt_chords" id="button_melt_chords" class="form-control btn btn-primary btn-block" type="button" onclick="doProcess('doprocesschords')">CHORDS</button>
-                                </td>
-                                <td style="font-size: 14px; padding: 0; padding-left: 1px; padding-right: 1px;">
                                     <button name="button_melt_lyrics_bt" id="button_melt_lyrics_bt" class="form-control btn btn-primary btn-block" type="button" onclick="doProcess('doprocesslyricsbt')">LYRICS BT</button>
                                 </td>
                                 <td style="font-size: 14px; padding: 0; padding-left: 1px; padding-right: 1px;">
                                     <button name="button_melt_karaoke_bt" id="button_melt_karaoke_bt" class="form-control btn btn-primary btn-block" type="button" onclick="doProcess('doprocesskaraokebt')">KARAOKE BT</button>
                                 </td>
                                 <td style="font-size: 14px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                                    <button name="button_melt_chords" id="button_melt_chords" class="form-control btn btn-primary btn-block" type="button" onclick="doProcess('doprocesschords')">CHORDS</button>
+                                </td>
+                                <td style="font-size: 14px; padding: 0; padding-left: 1px; padding-right: 1px;">
                                     <button name="button_melt_chords_bt" id="button_melt_chords_bt" class="form-control btn btn-primary btn-block" type="button" onclick="doProcess('doprocesschordsbt')">CHORDS BT</button>
+                                </td>
+                                <td style="font-size: 14px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                                    <button name="button_demucs2" id="button_demucs2" class="form-control btn btn-primary btn-block" type="button" onclick="doProcess('dodemucs2')">D2</button>
                                 </td>
                             </tr>
                             <tr style="margin: 1px;padding: 1px">
@@ -2030,6 +2907,9 @@
                                 </td>
                                 <td colspan="5" style="font-size: 14px; padding: 0; padding-left: 1px; padding-right: 1px;">
                                     <button name="button_melt_all_wolyrics" id="button_melt_all_wolyrics" class="form-control btn btn-primary btn-block" type="button" onclick="doProcess('doprocessallwolyrics')">ВСЁ, кроме LYRICS</button>
+                                </td>
+                                <td style="font-size: 14px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                                    <button name="button_set_datetimeauthor" id="button_set_datetimeauthor" class="form-control btn btn-primary btn-block" type="button" onclick="doSetDateTimeAuthor()">D/T</button>
                                 </td>
                             </tr>
                         </table>

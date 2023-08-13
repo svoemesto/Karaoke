@@ -1,0 +1,1 @@
+delete from tbl_processes where process_status = 'DONE'

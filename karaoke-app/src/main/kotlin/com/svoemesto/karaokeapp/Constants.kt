@@ -74,12 +74,22 @@ const val ODS_COLUMN_YOUTUBE_KARAOKE_BT = "Karaoke BT"
 const val ODS_COLUMN_YOUTUBE_CHORDS = "Chords"
 const val ODS_COLUMN_YOUTUBE_CHORDS_BT = "Chords BT"
 const val URL_PREFIX_BOOSTY = "https://boosty.to/svoemesto/posts/{REPLACE}"
-const val URL_PREFIX_YOUTUBE_PLAY = "https://youtu.be/{REPLACE}"
-const val URL_PREFIX_YOUTUBE_EDIT = "https://studio.youtube.com/video/{REPLACE}/edit"
+const val URL_PREFIX_YOUTUBE_PLAY = "https://dzen.ru/video/watch/{REPLACE}"
+const val URL_PREFIX_YOUTUBE_EDIT = "https://dzen.ru/profile/editor/svoemesto/publications?videoEditorPublicationId={REPLACE}"
 const val URL_PREFIX_VK_PLAY = "https://vk.com/video{REPLACE}"
 const val URL_PREFIX_VK_EDIT = "https://vk.com/video{REPLACE}"
 const val URL_PREFIX_VK = "https://vk.com/wall-{REPLACE}"
 
+const val URL_PREFIX_TELEGRAM_PLAY = "https://t.me/svoemestokaraoke/{REPLACE}"
+const val URL_PREFIX_TELEGRAM_EDIT = "https://t.me/svoemestokaraoke/{REPLACE}"
+
 const val CONNECTION_URL = "jdbc:postgresql://localhost:5430/karaoke?currentSchema=public"
 const val CONNECTION_USER = "postgres"
 const val CONNECTION_PASSWORD = "postgres"
+
+const val PATH_TO_STORE_FOLDER = "/files/Yandex.Disk/Karaoke"
+
+val PROJECT_ROOT_FOLDERS = listOf(
+    "/home/nsa/Documents/Караоке",
+    "/media/nsa/FilesSSD1Tb/KaraokeDone"
+)

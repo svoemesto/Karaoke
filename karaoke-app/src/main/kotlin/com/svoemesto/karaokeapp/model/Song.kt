@@ -75,10 +75,14 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
                 "\n\n"
     }
 
+
+
     fun getDescriptionWOHeader(isBluetoothDelay: Boolean): String {
 
         return "Поддержать создание караоке на https://boosty.to/svoemesto\n" +
-                "Группа ВКонтакте: https://vk.com/svoemestokaraoke\n\n" +
+                "Группа ВКонтакте: https://vk.com/svoemestokaraoke\n" +
+                "Канал Telegram: https://t.me/svoemestokaraoke\n" +
+                "Канал Дзен: https://dzen.ru/svoemesto\n\n" +
                 "Версия: ${songVersion.text} (${songVersion.textForDescription})${if (isBluetoothDelay) " с задержкой видео на ${Karaoke.timeOffsetBluetoothSpeakerMs}ms для bluetooth-колонок" else ""}\n" +
                 "Композиция: ${settings.songName}\n" +
                 "Исполнитель: ${settings.author}\n" +
@@ -86,19 +90,7 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
                 "Год: ${settings.year}\n" +
                 (if (getChordDescription() !="") "${getChordDescription()}\n" else "") +
                 "\n\n"+
-                (if (settings.idBoosty != null) "На Boosty все версии, включая версии с задержкой видео на ${Karaoke.timeOffsetBluetoothSpeakerMs}ms для bluetooth-колонок: ${settings.linkBoosty}\n" else "") +
-                (if (songVersion != SongVersion.LYRICS && settings.idYoutubeLyrics != null) "Версия Lyrics: ${settings.linkYoutubeLyricsPlay}\n" else "") +
-                (if (songVersion == SongVersion.LYRICS && isBluetoothDelay && settings.idYoutubeLyrics != null) "Версия Lyrics: ${settings.linkYoutubeLyricsPlay}\n" else "") +
-                (if (songVersion != SongVersion.KARAOKE && settings.idYoutubeKaraoke != null) "Версия Karaoke: ${settings.linkYoutubeKaraokePlay}\n" else "") +
-                (if (songVersion == SongVersion.KARAOKE && isBluetoothDelay && settings.idYoutubeKaraoke != null) "Версия Karaoke: ${settings.linkYoutubeKaraokePlay}\n" else "") +
-                (if (songVersion != SongVersion.CHORDS && settings.idYoutubeChords != null) "Версия Chords: ${settings.linkYoutubeChordsPlay}\n" else "") +
-                (if (songVersion == SongVersion.CHORDS && isBluetoothDelay && settings.idYoutubeChords != null) "Версия Chords: ${settings.linkYoutubeChordsPlay}\n" else "") +
-                (if (songVersion != SongVersion.LYRICS && settings.idYoutubeLyricsBt != null) "Версия Lyrics with delay: ${settings.linkYoutubeLyricsBtPlay}\n" else "") +
-                (if (songVersion == SongVersion.LYRICS && !isBluetoothDelay && settings.idYoutubeLyricsBt != null) "Версия Lyrics with delay: ${settings.linkYoutubeLyricsBtPlay}\n" else "") +
-                (if (songVersion != SongVersion.KARAOKE && settings.idYoutubeKaraokeBt != null) "Версия Karaoke with delay: ${settings.linkYoutubeKaraokeBtPlay}\n" else "") +
-                (if (songVersion == SongVersion.KARAOKE && !isBluetoothDelay && settings.idYoutubeKaraokeBt != null) "Версия Karaoke with delay: ${settings.linkYoutubeKaraokeBtPlay}\n" else "") +
-                (if (songVersion != SongVersion.CHORDS && settings.idYoutubeChordsBt != null) "Версия Chords with delay: ${settings.linkYoutubeChordsBtPlay}\n" else "") +
-                (if (songVersion == SongVersion.CHORDS && !isBluetoothDelay && settings.idYoutubeChordsBt != null) "Версия Chords with delay: ${settings.linkYoutubeChordsBtPlay}\n" else "") +
+                settings.getDescriptionLinks() +
                 "\n" +
                 getTextForDescription() +
                 "\n\n"+
@@ -109,8 +101,10 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
 
     fun getDescriptionYoutubeWOHeader(isBluetoothDelay: Boolean): String {
 
-        return "Поддержать создание караоке на boosty.to/svoemesto\n" +
-                "Группа ВКонтакте: vk.com/svoemestokaraoke\n\n" +
+        return "Поддержать создание караоке на https://boosty.to/svoemesto\n" +
+                "Группа ВКонтакте: https://vk.com/svoemestokaraoke\n" +
+                "Канал Telegram: https://t.me/svoemestokaraoke\n" +
+                "Канал Дзен: https://dzen.ru/svoemesto\n\n" +
                 "Версия: ${songVersion.text} (${songVersion.textForDescription})${if (isBluetoothDelay) " с задержкой видео на ${Karaoke.timeOffsetBluetoothSpeakerMs}ms для bluetooth-колонок" else ""}\n" +
                 "Композиция: ${settings.songName}\n" +
                 "Исполнитель: ${settings.author}\n" +
@@ -118,23 +112,11 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
                 "Год: ${settings.year}\n" +
                 (if (getChordDescription() !="") "${getChordDescription()}\n" else "") +
                 "\n\n"+
-                (if (settings.idBoosty != null) "На Boosty все версии, включая версии с задержкой видео на ${Karaoke.timeOffsetBluetoothSpeakerMs}ms для bluetooth-колонок: ${settings.linkBoosty}\n" else "") +
-                (if (songVersion != SongVersion.LYRICS && settings.idYoutubeLyrics != null) "Версия Lyrics: ${settings.linkYoutubeLyricsPlay}\n" else "") +
-                (if (songVersion == SongVersion.LYRICS && isBluetoothDelay && settings.idYoutubeLyrics != null) "Версия Lyrics: ${settings.linkYoutubeLyricsPlay}\n" else "") +
-                (if (songVersion != SongVersion.KARAOKE && settings.idYoutubeKaraoke != null) "Версия Karaoke: ${settings.linkYoutubeKaraokePlay}\n" else "") +
-                (if (songVersion == SongVersion.KARAOKE && isBluetoothDelay && settings.idYoutubeKaraoke != null) "Версия Karaoke: ${settings.linkYoutubeKaraokePlay}\n" else "") +
-                (if (songVersion != SongVersion.CHORDS && settings.idYoutubeChords != null) "Версия Chords: ${settings.linkYoutubeChordsPlay}\n" else "") +
-                (if (songVersion == SongVersion.CHORDS && isBluetoothDelay && settings.idYoutubeChords != null) "Версия Chords: ${settings.linkYoutubeChordsPlay}\n" else "") +
-                (if (songVersion != SongVersion.LYRICS && settings.idYoutubeLyricsBt != null) "Версия Lyrics with delay: ${settings.linkYoutubeLyricsBtPlay}\n" else "") +
-                (if (songVersion == SongVersion.LYRICS && !isBluetoothDelay && settings.idYoutubeLyricsBt != null) "Версия Lyrics with delay: ${settings.linkYoutubeLyricsBtPlay}\n" else "") +
-                (if (songVersion != SongVersion.KARAOKE && settings.idYoutubeKaraokeBt != null) "Версия Karaoke with delay: ${settings.linkYoutubeKaraokeBtPlay}\n" else "") +
-                (if (songVersion == SongVersion.KARAOKE && !isBluetoothDelay && settings.idYoutubeKaraokeBt != null) "Версия Karaoke with delay: ${settings.linkYoutubeKaraokeBtPlay}\n" else "") +
-                (if (songVersion != SongVersion.CHORDS && settings.idYoutubeChordsBt != null) "Версия Chords with delay: ${settings.linkYoutubeChordsBtPlay}\n" else "") +
-                (if (songVersion == SongVersion.CHORDS && !isBluetoothDelay && settings.idYoutubeChordsBt != null) "Версия Chords with delay: ${settings.linkYoutubeChordsBtPlay}\n" else "") +
+                settings.getDescriptionLinks() +
                 "\n" +
                 getTextForYoutubeDescription() +
                 "\n\n"+
-                "github.com/svoemesto/Karaoke\n" +
+                "https://github.com/svoemesto/Karaoke\n" +
                 "${settings.songName.hashtag()} ${settings.author.hashtag()} ${"karaoke".hashtag()} ${"караоке".hashtag()}${if (songVersion == SongVersion.CHORDS) " ${"chords".hashtag()} ${"аккорды".hashtag()}" else ""}\n"
 
     }
@@ -143,7 +125,9 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
     fun getDescriptionVkWOHeader(isBluetoothDelay: Boolean): String {
 
         return "Поддержать создание караоке на https://boosty.to/svoemesto\n" +
-                "Группа ВКонтакте: https://vk.com/svoemestokaraoke\n\n" +
+                "Группа ВКонтакте: https://vk.com/svoemestokaraoke\n" +
+                "Канал Telegram: https://t.me/svoemestokaraoke\n" +
+                "Канал Дзен: https://dzen.ru/svoemesto\n\n" +
                 "Версия: ${songVersion.text} (${songVersion.textForDescription})${if (isBluetoothDelay) " с задержкой видео на ${Karaoke.timeOffsetBluetoothSpeakerMs}ms для bluetooth-колонок" else ""}\n" +
                 "Композиция: ${settings.songName}\n" +
                 "Исполнитель: ${settings.author}\n" +
@@ -151,19 +135,7 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
                 "Год: ${settings.year}\n" +
                 (if (getChordDescription() !="") "${getChordDescription()}\n" else "") +
                 "\n\n"+
-                (if (settings.idBoosty != null) "На Boosty все версии, включая версии с задержкой видео на ${Karaoke.timeOffsetBluetoothSpeakerMs}ms для bluetooth-колонок: ${settings.linkBoosty}\n" else "") +
-                (if (songVersion != SongVersion.LYRICS && settings.idVkLyrics != null) "Версия Lyrics: ${settings.linkVkLyricsPlay}\n" else "") +
-                (if (songVersion == SongVersion.LYRICS && isBluetoothDelay && settings.idVkLyrics != null) "Версия Lyrics: ${settings.linkVkLyricsPlay}\n" else "") +
-                (if (songVersion != SongVersion.KARAOKE && settings.idVkKaraoke != null) "Версия Karaoke: ${settings.linkVkKaraokePlay}\n" else "") +
-                (if (songVersion == SongVersion.KARAOKE && isBluetoothDelay && settings.idVkKaraoke != null) "Версия Karaoke: ${settings.linkVkKaraokePlay}\n" else "") +
-                (if (songVersion != SongVersion.CHORDS && settings.idVkChords != null) "Версия Chords: ${settings.linkVkChordsPlay}\n" else "") +
-                (if (songVersion == SongVersion.CHORDS && isBluetoothDelay && settings.idVkChords != null) "Версия Chords: ${settings.linkVkChordsPlay}\n" else "") +
-                (if (songVersion != SongVersion.LYRICS && settings.idVkLyricsBt != null) "Версия Lyrics with delay: ${settings.linkVkLyricsBtPlay}\n" else "") +
-                (if (songVersion == SongVersion.LYRICS && !isBluetoothDelay && settings.idVkLyricsBt != null) "Версия Lyrics with delay: ${settings.linkVkLyricsBtPlay}\n" else "") +
-                (if (songVersion != SongVersion.KARAOKE && settings.idVkKaraokeBt != null) "Версия Karaoke with delay: ${settings.linkVkKaraokeBtPlay}\n" else "") +
-                (if (songVersion == SongVersion.KARAOKE && !isBluetoothDelay && settings.idVkKaraokeBt != null) "Версия Karaoke with delay: ${settings.linkVkKaraokeBtPlay}\n" else "") +
-                (if (songVersion != SongVersion.CHORDS && settings.idVkChordsBt != null) "Версия Chords with delay: ${settings.linkVkChordsBtPlay}\n" else "") +
-                (if (songVersion == SongVersion.CHORDS && !isBluetoothDelay && settings.idVkChordsBt != null) "Версия Chords with delay: ${settings.linkVkChordsBtPlay}\n" else "") +
+                settings.getDescriptionLinks() +
                 "\n" +
                 getTextForYoutubeDescription() +
                 "\n\n"+
@@ -171,21 +143,16 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
                 "${settings.songName.hashtag()} ${settings.author.hashtag()} ${"karaoke".hashtag()} ${"караоке".hashtag()}${if (songVersion == SongVersion.CHORDS) " ${"chords".hashtag()} ${"аккорды".hashtag()}" else ""}\n"
 
     }
-    
-    fun getVKDescription(): String {
+
+    fun getVKGroupDescription(): String {
 
         return "${settings.songName} ★♫★ ${settings.author}" + "\n\n" +
-                "На Boosty:\n" +
-                "{REPLACE_BOOSTY_NORMAL}\n\n" +
-//                "На Youtube:\n" +
-//                "{REPLACE_LYRICS_NORMAL}\n" +
-//                "{REPLACE_KARAOKE_NORMAL}\n" +
-//                "{REPLACE_CHORDS_NORMAL}\n" +
-//                "{REPLACE_LYRICS_DELAY}\n" +
-//                "{REPLACE_KARAOKE_DELAY}\n" +
-//                "{REPLACE_CHORDS_DELAY}\n" +
+                settings.getDescriptionLinks() +
                 "\n" +
-                "Поддержать создание караоке на https://boosty.to/svoemesto\n\n" +
+                "Поддержать создание караоке на https://boosty.to/svoemesto\n" +
+                "Группа ВКонтакте: https://vk.com/svoemestokaraoke\n" +
+                "Канал Telegram: https://t.me/svoemestokaraoke\n" +
+                "Канал Дзен: https://dzen.ru/svoemesto\n\n" +
                 "Композиция: ${settings.songName}\n" +
                 "Исполнитель: ${settings.author}\n" +
                 "Альбом: ${settings.album}\n" +
@@ -227,14 +194,18 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
 
     fun getTextForDescription(): String {
         var result = ""
-        val voice = voices[0]
-        var prevLineText = ""
-        voice.lines.forEach { line ->
-            if (!(line.text.trim() == "" && prevLineText == "")) {
-                result += line.text.trim() + "\n"
+
+        voices.forEach { voice ->
+            var prevLineText = ""
+            voice.lines.forEach { line ->
+                if (!(line.text.trim() == "" && prevLineText == "")) {
+                    result += line.text.trim() + "\n"
+                }
+                prevLineText = line.text.trim()
             }
-            prevLineText = line.text.trim()
+            if (voice != voices.last()) result += "\n" + "----------------------------------------------------" + "\n\n"
         }
+
         if (hasChords) {
             return result.replace("\n\n","\n").deleteThisSymbols(NOTES_SYMBOLS)
         }
@@ -243,18 +214,24 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
 
     fun getTextForYoutubeDescription(): String {
         var result = ""
-        val voice = voices[0]
-        var prevLineText = ""
-        voice.lines.forEach { line ->
-            if (!(line.text.trim() == "" && prevLineText == "")) {
-                if (line.text.trim() != "") {
-                    result += line.startYT + " " + line.text.trim() + "\n"
-                } else {
-                    result += "\n"
-                }
+        voices.forEach { voice ->
+            var prevLineText = ""
+            voice.lines.forEach { line ->
+                if (!(line.text.trim() == "" && prevLineText == "")) {
+                    if (line.text.trim() != "") {
+                        if (line.type == SongVoiceLineType.COMMENTS) {
+                            result += line.text.trim() + "\n"
+                        } else {
+                            result += line.startYT + " " + line.text.trim() + "\n"
+                        }
 
+                    } else {
+                        result += "\n"
+                    }
+                }
+                prevLineText = line.text.trim()
             }
-            prevLineText = line.text.trim()
+            if (voice != voices.last()) result += "\n" + "----------------------------------------------------" + "\n\n"
         }
         if (hasChords) {
             return result.replace("\n\n","\n").deleteThisSymbols(NOTES_SYMBOLS)

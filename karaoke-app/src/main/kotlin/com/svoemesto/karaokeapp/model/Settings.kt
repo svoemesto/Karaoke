@@ -1,22 +1,25 @@
 package com.svoemesto.karaokeapp.model
 
-import com.google.gson.reflect.TypeToken
 import com.svoemesto.karaokeapp.*
+import com.svoemesto.karaokeapp.controllers.MainController
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.apache.commons.io.FileUtils
 import org.odftoolkit.simple.SpreadsheetDocument
+import org.springframework.beans.BeansException
 import java.io.File
 import java.io.Serializable
 import java.nio.file.Files
 import java.nio.file.attribute.PosixFilePermissions
-import java.sql.DriverManager
-import java.sql.ResultSet
-import java.sql.SQLException
-import java.sql.Statement
 import kotlin.io.path.Path
+import org.springframework.stereotype.Component
+import org.springframework.context.ApplicationContext
+import org.springframework.context.ApplicationContextAware
+import java.sql.*
+import java.text.SimpleDateFormat
+import java.util.*
 
 enum class SettingField : Serializable {
     ID,
@@ -54,7 +57,13 @@ enum class SettingField : Serializable {
     ID_STATUS,
     COLOR,
     SOURCE_TEXT,
-    SOURCE_MARKERS
+    SOURCE_MARKERS,
+    ID_TELEGRAM_LYRICS,
+    ID_TELEGRAM_LYRICS_BT,
+    ID_TELEGRAM_KARAOKE,
+    ID_TELEGRAM_KARAOKE_BT,
+    ID_TELEGRAM_CHORDS,
+    ID_TELEGRAM_CHORDS_BT
 }
 
 
@@ -69,10 +78,51 @@ data class SourceMarker(
 
 }
 
+@Component
+class ApplicationContextProvider : ApplicationContextAware {
+    companion object {
+        private lateinit var context: ApplicationContext
+
+        fun getCurrentApplicationContext(): ApplicationContext {
+            return context
+        }
+    }
+
+    @Throws(BeansException::class)
+    override fun setApplicationContext(context: ApplicationContext) {
+        Companion.context = context
+    }
+}
+
+@Component
 class Settings : Serializable, Comparable<Settings> {
-    var rootFolder: String = ""
+
+
+    private var _rootFolder: String = ""
+    var readonly = false
+
+    var rootFolder: String
+        get() {
+            if (_rootFolder == "") return _rootFolder
+            if (File(_rootFolder).exists()) return _rootFolder
+            PROJECT_ROOT_FOLDERS.firstOrNull() { _rootFolder.startsWith(it) }?.let {
+                val subRootFolder = _rootFolder.substring(it.length)
+                PROJECT_ROOT_FOLDERS.forEach { rsf ->
+                    if (File("$rsf$subRootFolder").exists()) {
+                        _rootFolder = "$rsf$subRootFolder"
+                        return@let
+                    }
+                }
+            }
+            return _rootFolder
+        }
+        set(value) {_rootFolder = value}
+
     var fileName: String = ""
+    var tags: String = ""
     val fields: MutableMap<SettingField, String> = mutableMapOf()
+
+    var firstSongInAlbum: Boolean = false
 
     val id: Long get() = fields[SettingField.ID]?.toLongOrNull() ?: 0L
     val idStatus: Long get() = fields[SettingField.ID_STATUS]?.toLongOrNull() ?: 0L
@@ -192,6 +242,52 @@ class Settings : Serializable, Comparable<Settings> {
 //
 //        }
 //        set(value) {fields[SettingField.SOURCE_MARKERS] = value}
+
+
+    val pathToFileLyrics: String  get() = "${rootFolder.replace("'","''")}/done_files/$nameFileLyrics"
+    val pathToFileKaraoke: String  get() = "${rootFolder.replace("'","''")}/done_files/$nameFileKaraoke"
+    val pathToFileChords: String  get() = "${rootFolder.replace("'","''")}/done_files/$nameFileChords"
+    val pathToFileLyricsBt: String  get() = "${rootFolder.replace("'","''")}/done_files/$nameFileLyricsBt"
+    val pathToFileKaraokeBt: String  get() = "${rootFolder.replace("'","''")}/done_files/$nameFileKaraokeBt"
+    val pathToFileChordsBt: String  get() = "${rootFolder.replace("'","''")}/done_files/$nameFileChordsBt"
+
+    val pathToFile720Lyrics: String  get() = "$pathToFolder720Lyrics/${nameFileLyrics.replace(" [lyrics].mp4", " [lyrics] 720p.mp4")}"
+    val pathToFile720Karaoke: String  get() = "$pathToFolder720Karaoke/${nameFileKaraoke.replace(" [karaoke].mp4", " [karaoke] 720p.mp4")}"
+    val pathToFile720Chords: String  get() = "$pathToFolder720Chords/${nameFileChords.replace(" [chords].mp4", " [chords] 720p.mp4")}"
+    val pathToFile720LyricsBt: String  get() = "$pathToFolder720LyricsBt/${nameFileLyricsBt.replace(" [lyrics] bluetooth.mp4", " [lyrics] bluetooth 720p.mp4")}"
+    val pathToFile720KaraokeBt: String  get() = "$pathToFolder720KaraokeBt/${nameFileKaraokeBt.replace(" [karaoke] bluetooth.mp4", " [karaoke] bluetooth 720p.mp4")}"
+    val pathToFile720ChordsBt: String  get() = "$pathToFolder720ChordsBt/${nameFileChordsBt.replace(" [chords] bluetooth.mp4", " [chords] bluetooth 720p.mp4")}"
+
+    val pathToFolder720Lyrics: String  get() = "$PATH_TO_STORE_FOLDER/720p_Lyrics/${author} 720p"
+    val pathToFolder720Karaoke: String  get() = "$PATH_TO_STORE_FOLDER/720p_Karaoke/${author} 720p"
+    val pathToFolder720Chords: String  get() = "$PATH_TO_STORE_FOLDER/720p_Chords/${author} 720p"
+    val pathToFolder720LyricsBt: String  get() = "$PATH_TO_STORE_FOLDER/720p_LyricsBt/${author} 720p"
+    val pathToFolder720KaraokeBt: String  get() = "$PATH_TO_STORE_FOLDER/720p_KaraokeBt/${author} 720p"
+    val pathToFolder720ChordsBt: String  get() = "$PATH_TO_STORE_FOLDER/720p_ChordsBt/${author} 720p"
+
+    val pathToStoreFileLyrics: String  get() = "$pathToStoreFolderLyrics/$nameFileLyrics"
+    val pathToStoreFileKaraoke: String  get() = "$pathToStoreFolderKaraoke/$nameFileKaraoke"
+    val pathToStoreFileChords: String  get() = "$pathToStoreFolderChords/$nameFileChords"
+    val pathToStoreFileLyricsBt: String  get() = "$pathToStoreFolderLyricsBt/$nameFileLyricsBt"
+    val pathToStoreFileKaraokeBt: String  get() = "$pathToStoreFolderKaraokeBt/$nameFileKaraokeBt"
+    val pathToStoreFileChordsBt: String  get() = "$pathToStoreFolderChordsBt/$nameFileChordsBt"
+
+    val pathToStoreFolderLyrics: String  get() = "$PATH_TO_STORE_FOLDER/Lyrics/${author} - Lyrics"
+    val pathToStoreFolderKaraoke: String  get() = "$PATH_TO_STORE_FOLDER/Karaoke/${author} - Karaoke"
+    val pathToStoreFolderChords: String  get() = "$PATH_TO_STORE_FOLDER/Chords/${author} - Chords"
+    val pathToStoreFolderLyricsBt: String  get() = "$PATH_TO_STORE_FOLDER/LyricsBt/${author} - LyricsBt"
+    val pathToStoreFolderKaraokeBt: String  get() = "$PATH_TO_STORE_FOLDER/KaraokeBt/${author} - KaraokeBt"
+    val pathToStoreFolderChordsBt: String  get() = "$PATH_TO_STORE_FOLDER/ChordsBt/${author} - ChordsBt"
+
+
+    val nameFileLyrics: String  get() = "${if (!fileName.startsWith (year.toString())) "${year} " else ""}${fileName.replace("'","''")} [lyrics].mp4"
+    val nameFileKaraoke: String  get() = "${if (!fileName.startsWith (year.toString())) "${year} " else ""}${fileName.replace("'","''")} [karaoke].mp4"
+    val nameFileChords: String  get() = "$${if (!fileName.startsWith (year.toString())) "${year} " else ""}${fileName.replace("'","''")} [chords].mp4"
+    val nameFileLyricsBt: String  get() = "${if (!fileName.startsWith (year.toString())) "${year} " else ""}${fileName.replace("'","''")} [lyrics] bluetooth.mp4"
+    val nameFileKaraokeBt: String  get() = "${if (!fileName.startsWith (year.toString())) "${year} " else ""}${fileName.replace("'","''")} [karaoke] bluetooth.mp4"
+    val nameFileChordsBt: String  get() = "${if (!fileName.startsWith (year.toString())) "${year} " else ""}${fileName.replace("'","''")} [chords] bluetooth.mp4"
+
+
     val color: String get() = fields[SettingField.COLOR] ?: ""
     val songName: String get() = fields[SettingField.NAME] ?: ""
     val author: String get() = fields[SettingField.AUTHOR] ?: ""
@@ -281,6 +377,13 @@ class Settings : Serializable, Comparable<Settings> {
     val idVkChords: String get() = fields[SettingField.ID_VK_CHORDS]?.nullIfEmpty() ?: ""
     val idVkChordsBt: String get() = fields[SettingField.ID_VK_CHORDS_BT]?.nullIfEmpty() ?: ""
 
+    val idTelegramLyrics: String get() = fields[SettingField.ID_TELEGRAM_LYRICS]?.nullIfEmpty() ?: ""
+    val idTelegramLyricsBt: String get() = fields[SettingField.ID_TELEGRAM_LYRICS_BT]?.nullIfEmpty() ?: ""
+    val idTelegramKaraoke: String get() = fields[SettingField.ID_TELEGRAM_KARAOKE]?.nullIfEmpty() ?: ""
+    val idTelegramKaraokeBt: String get() = fields[SettingField.ID_TELEGRAM_KARAOKE_BT]?.nullIfEmpty() ?: ""
+    val idTelegramChords: String get() = fields[SettingField.ID_TELEGRAM_CHORDS]?.nullIfEmpty() ?: ""
+    val idTelegramChordsBt: String get() = fields[SettingField.ID_TELEGRAM_CHORDS_BT]?.nullIfEmpty() ?: ""
+    
     val linkBoosty: String? get() = idBoosty?.let {URL_PREFIX_BOOSTY.replace("{REPLACE}", idBoosty!!)}
     val linkVk: String? get() = idBoosty?.let {URL_PREFIX_VK.replace("{REPLACE}", idBoosty!!)}
     val linkYoutubeLyricsPlay: String? get() = idYoutubeLyrics?.let {URL_PREFIX_YOUTUBE_PLAY.replace("{REPLACE}", idYoutubeLyrics!!)}
@@ -307,11 +410,26 @@ class Settings : Serializable, Comparable<Settings> {
     val linkVkKaraokeEdit: String? get() = idVkKaraoke?.let {URL_PREFIX_VK_EDIT.replace("{REPLACE}", idVkKaraoke!!)}
     val linkVkKaraokeBtPlay: String? get() = idVkKaraokeBt?.let {URL_PREFIX_VK_PLAY.replace("{REPLACE}", idVkKaraokeBt!!)}
     val linkVkKaraokeBtEdit: String? get() = idVkKaraokeBt?.let {URL_PREFIX_VK_EDIT.replace("{REPLACE}", idVkKaraokeBt!!)}
-
+    
     val linkVkChordsPlay: String? get() = idVkChords?.let {URL_PREFIX_VK_PLAY.replace("{REPLACE}", idVkChords!!)}
     val linkVkChordsEdit: String? get() = idVkChords?.let {URL_PREFIX_VK_EDIT.replace("{REPLACE}", idVkChords!!)}
     val linkVkChordsBtPlay: String? get() = idVkChordsBt?.let {URL_PREFIX_VK_PLAY.replace("{REPLACE}", idVkChordsBt!!)}
     val linkVkChordsBtEdit: String? get() = idVkChordsBt?.let {URL_PREFIX_VK_EDIT.replace("{REPLACE}", idVkChordsBt!!)}
+
+    val linkTelegramLyricsPlay: String? get() = idTelegramLyrics?.let {URL_PREFIX_TELEGRAM_PLAY.replace("{REPLACE}", idTelegramLyrics!!)}
+    val linkTelegramLyricsEdit: String? get() = idTelegramLyrics?.let {URL_PREFIX_TELEGRAM_EDIT.replace("{REPLACE}", idTelegramLyrics!!)}
+    val linkTelegramLyricsBtPlay: String? get() = idTelegramLyricsBt?.let {URL_PREFIX_TELEGRAM_PLAY.replace("{REPLACE}", idTelegramLyricsBt!!)}
+    val linkTelegramLyricsBtEdit: String? get() = idTelegramLyricsBt?.let {URL_PREFIX_TELEGRAM_EDIT.replace("{REPLACE}", idTelegramLyricsBt!!)}
+
+    val linkTelegramKaraokePlay: String? get() = idTelegramKaraoke?.let {URL_PREFIX_TELEGRAM_PLAY.replace("{REPLACE}", idTelegramKaraoke!!)}
+    val linkTelegramKaraokeEdit: String? get() = idTelegramKaraoke?.let {URL_PREFIX_TELEGRAM_EDIT.replace("{REPLACE}", idTelegramKaraoke!!)}
+    val linkTelegramKaraokeBtPlay: String? get() = idTelegramKaraokeBt?.let {URL_PREFIX_TELEGRAM_PLAY.replace("{REPLACE}", idTelegramKaraokeBt!!)}
+    val linkTelegramKaraokeBtEdit: String? get() = idTelegramKaraokeBt?.let {URL_PREFIX_TELEGRAM_EDIT.replace("{REPLACE}", idTelegramKaraokeBt!!)}
+
+    val linkTelegramChordsPlay: String? get() = idTelegramChords?.let {URL_PREFIX_TELEGRAM_PLAY.replace("{REPLACE}", idTelegramChords!!)}
+    val linkTelegramChordsEdit: String? get() = idTelegramChords?.let {URL_PREFIX_TELEGRAM_EDIT.replace("{REPLACE}", idTelegramChords!!)}
+    val linkTelegramChordsBtPlay: String? get() = idTelegramChordsBt?.let {URL_PREFIX_TELEGRAM_PLAY.replace("{REPLACE}", idTelegramChordsBt!!)}
+    val linkTelegramChordsBtEdit: String? get() = idTelegramChordsBt?.let {URL_PREFIX_TELEGRAM_EDIT.replace("{REPLACE}", idTelegramChordsBt!!)}
 
     val flagBoosty: String get() = if (idBoosty == null || idBoosty == "null" || idBoosty == "") "" else "✓"
     val flagVk: String get() = if (idVk == null || idVk == "null" || idVk == "") "" else "✓"
@@ -328,6 +446,14 @@ class Settings : Serializable, Comparable<Settings> {
     val flagVkKaraokeBt: String get() = if (idVkKaraokeBt == null || idVkKaraokeBt == "null" || idVkKaraokeBt == "") "" else "✓"
     val flagVkChords: String get() = if (idVkChords == null || idVkChords == "null" || idVkChords == "") "" else "✓"
     val flagVkChordsBt: String get() = if (idVkChordsBt == null || idVkChordsBt == "null" || idVkChordsBt == "") "" else "✓"
+
+
+    val flagTelegramLyrics: String get() = if (idTelegramLyrics == null || idTelegramLyrics == "null" || idTelegramLyrics == "") "" else "✓"
+    val flagTelegramLyricsBt: String get() = if (idTelegramLyricsBt == null || idTelegramLyricsBt == "null" || idTelegramLyricsBt == "") "" else "✓"
+    val flagTelegramKaraoke: String get() = if (idTelegramKaraoke == null || idTelegramKaraoke == "null" || idTelegramKaraoke == "") "" else "✓"
+    val flagTelegramKaraokeBt: String get() = if (idTelegramKaraokeBt == null || idTelegramKaraokeBt == "null" || idTelegramKaraokeBt == "") "" else "✓"
+    val flagTelegramChords: String get() = if (idTelegramChords == null || idTelegramChords == "null" || idTelegramChords == "") "" else "✓"
+    val flagTelegramChordsBt: String get() = if (idTelegramChordsBt == null || idTelegramChordsBt == "null" || idTelegramChordsBt == "") "" else "✓"
 
     
     val pathToResultedModel: String get() = "$rootFolder/$DEMUCS_MODEL_NAME"
@@ -640,6 +766,78 @@ class Settings : Serializable, Comparable<Settings> {
     val processColorMeltKaraokeBt: String get() = getColorToProcessTypeName(statusProcessKaraokeBt)
     val processColorMeltChordsBt: String get() = getColorToProcessTypeName(statusProcessChordsBt)
 
+    val haveBoostyLink: Boolean get() = idBoosty.isNotBlank()
+    val haveVkGroupLink: Boolean get() = idVk.isNotBlank()
+    val haveYoutubeLinks: Boolean get() = idYoutubeLyrics.isNotBlank() ||
+            idYoutubeKaraoke.isNotBlank() ||
+            idYoutubeChords.isNotBlank() ||
+            idYoutubeLyricsBt.isNotBlank() ||
+            idYoutubeKaraokeBt.isNotBlank() ||
+            idYoutubeChordsBt.isNotBlank()
+
+    val haveVkLinks: Boolean get() = idVkLyrics.isNotBlank() ||
+            idVkKaraoke.isNotBlank() ||
+            idVkChords.isNotBlank() ||
+            idVkLyricsBt.isNotBlank() ||
+            idVkKaraokeBt.isNotBlank() ||
+            idVkChordsBt.isNotBlank()
+
+    val haveTelegramLinks: Boolean get() = idTelegramLyrics.isNotBlank() ||
+            idTelegramKaraoke.isNotBlank() ||
+            idTelegramChords.isNotBlank() ||
+            idTelegramLyricsBt.isNotBlank() ||
+            idTelegramKaraokeBt.isNotBlank() ||
+            idTelegramChordsBt.isNotBlank()
+
+    val flags: String get() = if (haveBoostyLink && haveVkGroupLink && haveVkLinks && haveTelegramLinks && haveYoutubeLinks) "" else "(${if (haveBoostyLink) "b" else "-"}${if (haveVkGroupLink) "g" else "-"}${if (haveVkLinks) "v" else "-"}${if (haveTelegramLinks) "t" else "-"}${if (haveYoutubeLinks) "z" else "-"}) "
+
+    val digest: String get() =
+       (if (firstSongInAlbum) "Альбом: «${album}» (${year})\n\n" else "") +
+       "$songName\n$linkBoosty\n" +
+                "${if (idVkKaraoke.isNotBlank()) "Karaoke VK $linkVkKaraokePlay\n" else ""}${if (idTelegramKaraoke.isNotBlank()) "Karaoke TG $linkTelegramKaraokePlay\n" else ""}${if (idYoutubeKaraoke.isNotBlank()) "Karaoke DZ $linkYoutubeKaraokePlay\n" else ""}" +
+                "${if (idVkLyrics.isNotBlank()) "Lyrics VK $linkVkLyricsPlay\n" else ""}${if (idTelegramLyrics.isNotBlank()) "Lyrics TG $linkTelegramLyricsPlay\n" else ""}${if (idYoutubeLyrics.isNotBlank()) "Lyrics DZ $linkYoutubeLyricsPlay\n" else ""}\n"
+
+    val digestIsFull: Boolean get() = idVkKaraoke.isNotBlank() && idTelegramKaraoke.isNotBlank() && idYoutubeKaraoke.isNotBlank() && idVkLyrics.isNotBlank() && idTelegramLyrics.isNotBlank() && idYoutubeLyrics.isNotBlank()
+
+    fun getDescriptionLinks(): String {
+
+        var result = if (idBoosty.isNotBlank()) "На Boosty (все версии): ${linkBoosty}\n\n" else ""
+
+        if (haveYoutubeLinks) {
+            result += "На Dzen:\n"
+            result += if (idYoutubeLyrics.isNotBlank()) "Версия Lyrics: ${linkYoutubeLyricsPlay}\n" else ""
+            result += if (idYoutubeKaraoke.isNotBlank()) "Версия Karaoke: ${linkYoutubeKaraokePlay}\n" else ""
+            result += if (idYoutubeChords.isNotBlank()) "Версия Chords: ${linkYoutubeChordsPlay}\n" else ""
+            result += if (idYoutubeLyricsBt.isNotBlank()) "Версия Lyrics with delay: ${linkYoutubeLyricsBtPlay}\n" else ""
+            result += if (idYoutubeKaraokeBt.isNotBlank()) "Версия Karaoke with delay: ${linkYoutubeKaraokeBtPlay}\n" else ""
+            result += if (idYoutubeChordsBt.isNotBlank()) "Версия Chords with delay: ${linkYoutubeChordsBtPlay}\n" else ""
+            result += "\n"
+        }
+
+        if (haveVkLinks) {
+            result += "В VK:\n"
+            result += if (idVkLyrics.isNotBlank()) "Версия Lyrics: ${linkVkLyricsPlay}\n" else ""
+            result += if (idVkKaraoke.isNotBlank()) "Версия Karaoke: ${linkVkKaraokePlay}\n" else ""
+            result += if (idVkChords.isNotBlank()) "Версия Chords: ${linkVkChordsPlay}\n" else ""
+            result += if (idVkLyricsBt.isNotBlank()) "Версия Lyrics with delay: ${linkVkLyricsBtPlay}\n" else ""
+            result += if (idVkKaraokeBt.isNotBlank()) "Версия Karaoke with delay: ${linkVkKaraokeBtPlay}\n" else ""
+            result += if (idVkChordsBt.isNotBlank()) "Версия Chords with delay: ${linkVkChordsBtPlay}\n" else ""
+            result += "\n"
+        }
+
+        if (haveTelegramLinks) {
+            result += "В Telegram:\n"
+            result += if (idTelegramLyrics.isNotBlank()) "Версия Lyrics: ${linkTelegramLyricsPlay}\n" else ""
+            result += if (idTelegramKaraoke.isNotBlank()) "Версия Karaoke: ${linkTelegramKaraokePlay}\n" else ""
+            result += if (idTelegramChords.isNotBlank()) "Версия Chords: ${linkTelegramChordsPlay}\n" else ""
+            result += if (idTelegramLyricsBt.isNotBlank()) "Версия Lyrics with delay: ${linkTelegramLyricsBtPlay}\n" else ""
+            result += if (idTelegramKaraokeBt.isNotBlank()) "Версия Karaoke with delay: ${linkTelegramKaraokeBtPlay}\n" else ""
+            result += if (idTelegramChordsBt.isNotBlank()) "Версия Chords with delay: ${linkTelegramChordsBtPlay}\n" else ""
+            result += "\n"
+        }
+
+        return result
+    }
     private fun getColorToProcessTypeName(statusName: String): String {
 
         return when (statusName) {
@@ -982,7 +1180,7 @@ class Settings : Serializable, Comparable<Settings> {
     }
 
     fun saveToDb() {
-
+        if (readonly) return
         if  (id == 0L) {
             val newSett = createDbInstance(this)
             newSett?.let {
@@ -1018,15 +1216,22 @@ class Settings : Serializable, Comparable<Settings> {
                     "id_vk_karaoke_bt = ?, " +
                     "id_vk_chords = ?, " +
                     "id_vk_chords_bt = ?, " +
+                    "id_telegram_lyrics = ?, " +
+                    "id_telegram_lyrics_bt = ?, " +
+                    "id_telegram_karaoke = ?, " +
+                    "id_telegram_karaoke_bt = ?, " +
+                    "id_telegram_chords = ?, " +
+                    "id_telegram_chords_bt = ?, " +
                     "id_status = ?, " +
                     "source_text = ?, " +
-                    "source_markers = ? ," +
-                    "status_process_lyrics = ? ," +
-                    "status_process_lyrics_bt = ? ," +
-                    "status_process_karaoke = ? ," +
-                    "status_process_karaoke_bt = ? ," +
-                    "status_process_chords = ? ," +
-                    "status_process_chords_bt = ? " +
+                    "source_markers = ?, " +
+                    "status_process_lyrics = ?, " +
+                    "status_process_lyrics_bt = ?, " +
+                    "status_process_karaoke = ?, " +
+                    "status_process_karaoke_bt = ?, " +
+                    "status_process_chords = ?, " +
+                    "status_process_chords_bt = ?, " +
+                    "tags = ? " +
                     "WHERE id = ?"
             val ps = connection.prepareStatement(sql)
             var index = 1
@@ -1082,6 +1287,18 @@ class Settings : Serializable, Comparable<Settings> {
             index++
             ps.setString(index, idVkChordsBt)
             index++
+            ps.setString(index, idTelegramLyrics)
+            index++
+            ps.setString(index, idTelegramLyricsBt)
+            index++
+            ps.setString(index, idTelegramKaraoke)
+            index++
+            ps.setString(index, idTelegramKaraokeBt)
+            index++
+            ps.setString(index, idTelegramChords)
+            index++
+            ps.setString(index, idTelegramChordsBt)
+            index++
             ps.setLong(index, idStatus)
             index++
             ps.setString(index, sourceText)
@@ -1100,10 +1317,16 @@ class Settings : Serializable, Comparable<Settings> {
             index++
             ps.setString(index, statusProcessChordsBt)
             index++
+            ps.setString(index, tags)
+            index++
             ps.setLong(index, id)
             ps.executeUpdate()
             ps.close()
             connection.close()
+
+//            val controller = ApplicationContextProvider.getCurrentApplicationContext().getBean(MainController::class.java)
+//            controller.publicationsUpdate(id)
+
         }
 
     }
@@ -1119,43 +1342,19 @@ class Settings : Serializable, Comparable<Settings> {
     fun createVKDescription() {
         val song = Song(this, SongVersion.LYRICS)
         val fileName = song.getOutputFilename(SongOutputFile.VK, false)
-        val template = song.getVKDescription()
         val date = date
         val time = time.replace(":",".")
-        val boostyNormal = idBoosty ?: ""
-        val lyricsNormal = idYoutubeLyrics ?: ""
-        val lyricsDelay = idYoutubeLyricsBt ?: ""
-        val karaokeNormal = idYoutubeKaraoke ?: ""
-        val karaokeDelay = idYoutubeKaraokeBt ?: ""
-        val chordsNormal = idYoutubeChords ?: ""
-        val chordsDelay = idYoutubeChordsBt ?: ""
 
-        if ("$lyricsNormal$lyricsDelay$karaokeNormal$karaokeDelay" != "") {
-            val trueDate = "${date.substring(6)}.${date.substring(3,5)}.${date.substring(0,2)}"
-            val name = fileName.replace("{REPLACE_DATE}",trueDate).replace("{REPLACE_TIME}",time).replace(" [lyrics]","")
-            val boostyNormalLink = if (boostyNormal == "") "" else URL_PREFIX_BOOSTY.replace("{REPLACE}", boostyNormal) +"\n"
-            val lyricsNormalLink = if (lyricsNormal == "") "" else "Lyrics: " + URL_PREFIX_YOUTUBE_PLAY.replace("{REPLACE}", lyricsNormal) +"\n"
-            val lyricsDelayLink = if (lyricsDelay == "") "" else "Lyrics with delay: " + URL_PREFIX_YOUTUBE_PLAY.replace("{REPLACE}", lyricsDelay) +"\n"
-            val karaokeNormalLink = if (karaokeNormal == "") "" else "Karaoke: " +  URL_PREFIX_YOUTUBE_PLAY.replace("{REPLACE}", karaokeNormal) +"\n"
-            val karaokeDelayLink = if (karaokeDelay == "") "" else "Karaoke with delay: " + URL_PREFIX_YOUTUBE_PLAY.replace("{REPLACE}", karaokeDelay) +"\n"
-            val chordsNormalLink = if (chordsNormal == "") "" else "Chords: " + URL_PREFIX_YOUTUBE_PLAY.replace("{REPLACE}", chordsNormal) +"\n"
-            val chordsDelayLink = if (chordsDelay == "") "" else "Chords with delay: " + URL_PREFIX_YOUTUBE_PLAY.replace("{REPLACE}", chordsDelay) +"\n"
-            val text = template
-                .replace("{REPLACE_BOOSTY_NORMAL}\n", boostyNormalLink)
-                .replace("{REPLACE_LYRICS_NORMAL}\n", lyricsNormalLink)
-                .replace("{REPLACE_KARAOKE_NORMAL}\n", karaokeNormalLink)
-                .replace("{REPLACE_CHORDS_NORMAL}\n", chordsNormalLink)
-                .replace("{REPLACE_LYRICS_DELAY}\n", lyricsDelayLink)
-                .replace("{REPLACE_KARAOKE_DELAY}\n", karaokeDelayLink)
-                .replace("{REPLACE_CHORDS_DELAY}\n", chordsDelayLink)
 
-            if (text != "") {
-                println(name)
-                File(name).writeText(text)
-                val vkPictNameOld = (song.getOutputFilename(SongOutputFile.PICTUREVK, false)).replace(" [lyrics] VK"," [VK]")
-                val vkPictNameNew = name.replace(" [VK].txt", " [VK].png")
-                FileUtils.copyFile(File(vkPictNameOld), File(vkPictNameNew))
-            }
+        val trueDate = "${date.substring(6)}.${date.substring(3,5)}.${date.substring(0,2)}"
+        val name = fileName.replace("{REPLACE_DATE}",trueDate).replace("{REPLACE_TIME}",time).replace(" [lyrics]","")
+        val text = song.getVKGroupDescription()
+
+        if (text != "") {
+            File(name).writeText(text)
+            val vkPictNameOld = (song.getOutputFilename(SongOutputFile.PICTUREVK, false)).replace(" [lyrics] VK"," [VK]")
+            val vkPictNameNew = name.replace(" [VK].txt", " [VK].png")
+            FileUtils.copyFile(File(vkPictNameOld), File(vkPictNameNew))
         }
 
     }
@@ -1198,6 +1397,7 @@ class Settings : Serializable, Comparable<Settings> {
         val songTxtWOLyrics = "$txtKaraoke${if (hasChords) txtChords else ""}$txtLyricBt$txtKaraokeBt${if (hasChords) txtChordsBt else ""}"
 
         var file = File(songLyrics.getOutputFilename(SongOutputFile.RUN,false))
+        Files.createDirectories(Path(file.parent))
         file.writeText(txtLyric)
         Files.setPosixFilePermissions(file.toPath(), permissions)
 
@@ -1242,6 +1442,39 @@ class Settings : Serializable, Comparable<Settings> {
 
     companion object {
 
+        fun getLastUpdated(lastTime: Long? = null): List<Int> {
+            if (lastTime == null) return emptyList()
+
+            Class.forName("org.postgresql.Driver")
+            val connection = DriverManager.getConnection(CONNECTION_URL, CONNECTION_USER, CONNECTION_PASSWORD)
+            var statement: Statement? = null
+            var rs: ResultSet? = null
+            val sql: String
+
+            val result: MutableList<Int> = mutableListOf()
+
+            try {
+                statement = connection.createStatement()
+                sql = "SELECT id FROM tbl_settings WHERE last_update > '${Timestamp(lastTime)}'::timestamp"
+                rs = statement.executeQuery(sql)
+                while (rs.next()) {
+                    result.add(rs.getInt("id"))
+                }
+                return result
+            } catch (e: SQLException) {
+                e.printStackTrace()
+            } finally {
+                try {
+                    rs?.close() // close result set
+                    statement?.close() // close statement
+                    connection?.close()
+                } catch (e: SQLException) {
+                    e.printStackTrace()
+                }
+            }
+            return emptyList()
+        }
+
         fun createDbInstance(settings: Settings? = null) : Settings? {
             val sql = if (settings != null) {
                 "INSERT INTO tbl_settings (" +
@@ -1271,15 +1504,22 @@ class Settings : Serializable, Comparable<Settings> {
                         "id_vk_karaoke_bt, " +
                         "id_vk_chords, " +
                         "id_vk_chords_bt, " +
+                        "id_telegram_lyrics, " +
+                        "id_telegram_lyrics_bt, " +
+                        "id_telegram_karaoke, " +
+                        "id_telegram_karaoke_bt, " +
+                        "id_telegram_chords, " +
+                        "id_telegram_chords_bt, " +
                         "id_status, " +
-                        "sourceText, " +
+                        "source_text, " +
                         "source_markers, " +
                         "status_process_lyrics, " +
                         "status_process_lyrics_bt, " +
                         "status_process_karaoke, " +
                         "status_process_karaoke_bt, " +
                         "status_process_chords, " +
-                        "status_process_chords_bt" +
+                        "status_process_chords_bt, " +
+                        "tags" +
                         ") VALUES(" +
                         "'${settings.songName.replace("'","''")}', " +
                         "'${settings.author}', " +
@@ -1307,6 +1547,12 @@ class Settings : Serializable, Comparable<Settings> {
                         "'${settings.idVkKaraokeBt}', " +
                         "'${settings.idVkChords}', " +
                         "'${settings.idVkChordsBt}', " +
+                        "'${settings.idTelegramLyrics}', " +
+                        "'${settings.idTelegramLyricsBt}', " +
+                        "'${settings.idTelegramKaraoke}', " +
+                        "'${settings.idTelegramKaraokeBt}', " +
+                        "'${settings.idTelegramChords}', " +
+                        "'${settings.idTelegramChordsBt}', " +
                         "'${settings.idStatus}', " +
                         "'${settings.sourceText}', " +
                         "'${settings.sourceMarkers}', " +
@@ -1315,7 +1561,8 @@ class Settings : Serializable, Comparable<Settings> {
                         "'${settings.statusProcessKaraoke}', " +
                         "'${settings.statusProcessKaraokeBt}', " +
                         "'${settings.statusProcessChords}', " +
-                        "'${settings.statusProcessChordsBt}'" +
+                        "'${settings.statusProcessChordsBt}', " +
+                        "'${settings.tags}'" +
                         ")"
             } else {
                 "INSERT INTO tbl_settings (song_name, song_author, id_status) VALUES('NEW SONG', 'NEW AUTHOR', 0)"
@@ -1376,37 +1623,57 @@ class Settings : Serializable, Comparable<Settings> {
                         "CASE WHEN id_vk_karaoke_bt IS NOT NULL AND id_vk_karaoke_bt <> 'null' AND id_vk_karaoke_bt <> '' THEN '✓' ELSE '' END AS flag_vk_karaoke_bt," +
                         "CASE WHEN id_vk_chords IS NOT NULL AND id_vk_chords <> 'null' AND id_vk_chords <> '' THEN '✓' ELSE '' END AS flag_vk_chords," +
                         "CASE WHEN id_vk_chords_bt IS NOT NULL AND id_vk_chords_bt <> 'null' AND id_vk_chords_bt <> '' THEN '✓' ELSE '' END AS flag_vk_chords_bt, " +
+                        "CASE WHEN id_telegram_lyrics IS NOT NULL AND id_telegram_lyrics <> 'null' AND id_telegram_lyrics <> '' THEN '✓' ELSE '' END AS flag_telegram_lyrics," +
+                        "CASE WHEN id_telegram_lyrics_bt IS NOT NULL AND id_telegram_lyrics_bt <> 'null' AND id_telegram_lyrics_bt <> '' THEN '✓' ELSE '' END AS flag_telegram_lyrics_bt," +
+                        "CASE WHEN id_telegram_karaoke IS NOT NULL AND id_telegram_karaoke <> 'null' AND id_telegram_karaoke <> '' THEN '✓' ELSE '' END AS flag_telegram_karaoke," +
+                        "CASE WHEN id_telegram_karaoke_bt IS NOT NULL AND id_telegram_karaoke_bt <> 'null' AND id_telegram_karaoke_bt <> '' THEN '✓' ELSE '' END AS flag_telegram_karaoke_bt," +
+                        "CASE WHEN id_telegram_chords IS NOT NULL AND id_telegram_chords <> 'null' AND id_telegram_chords <> '' THEN '✓' ELSE '' END AS flag_telegram_chords," +
+                        "CASE WHEN id_telegram_chords_bt IS NOT NULL AND id_telegram_chords_bt <> 'null' AND id_telegram_chords_bt <> '' THEN '✓' ELSE '' END AS flag_telegram_chords_bt, " +
                         "    CASE WHEN id_status < 6 THEN color1\n" +
                         "        WHEN to_date(publish_date, 'DD.MM.YY') < CURRENT_DATE AND\n" +
-                        "             id_youtube_lyrics != '' AND\n" +
-                        "             id_youtube_lyrics IS NOT NULL THEN '#98FB98'\n" +
-                        "         WHEN to_date(publish_date, 'DD.MM.YY') = CURRENT_DATE AND\n" +
-                        "              id_youtube_lyrics != '' AND\n" +
-                        "              id_youtube_lyrics IS NOT NULL THEN '#FFFF00'\n" +
-                        "         WHEN to_date(publish_date, 'DD.MM.YY') < CURRENT_DATE + INTERVAL '7 days' AND\n" +
+                        "              id_telegram_lyrics != '' AND\n" +
+                        "              id_telegram_lyrics IS NOT NULL AND\n" +
+                        "              id_telegram_karaoke != '' AND\n" +
+                        "              id_telegram_karaoke IS NOT NULL AND\n" +
+                        "              id_vk_lyrics != '' AND\n" +
+                        "              id_vk_lyrics IS NOT NULL AND\n" +
+                        "              id_vk_karaoke != '' AND\n" +
+                        "              id_vk_karaoke IS NOT NULL THEN '#7FFFD4'\n" +
+                        "        WHEN to_date(publish_date, 'DD.MM.YY') < CURRENT_DATE AND\n" +
+                        "              id_telegram_lyrics != '' AND\n" +
+                        "              id_telegram_lyrics IS NOT NULL AND\n" +
+                        "              id_telegram_karaoke != '' AND\n" +
+                        "              id_telegram_karaoke IS NOT NULL THEN '#1E90FF'\n" +
+                        "        WHEN to_date(publish_date, 'DD.MM.YY') < CURRENT_DATE AND\n" +
+                        "              id_vk_lyrics != '' AND\n" +
+                        "              id_vk_lyrics IS NOT NULL AND\n" +
+                        "              id_vk_karaoke != '' AND\n" +
+                        "              id_vk_karaoke IS NOT NULL THEN '#BDB76B'\n" +
+                        "        WHEN to_date(publish_date, 'DD.MM.YY') < CURRENT_DATE AND\n" +
                         "              id_boosty != '' AND\n" +
-                        "              id_boosty IS NOT NULL THEN '#00FA9A'\n" +
-                        "         WHEN to_date(publish_date, 'DD.MM.YY') = CURRENT_DATE + INTERVAL '7 days' AND\n" +
-                        "              id_boosty != '' AND\n" +
-                        "              id_boosty IS NOT NULL THEN '#FFD700'\n" +
+                        "              id_boosty IS NOT NULL THEN '#98FB98'\n" +
+                        "         WHEN to_date(publish_date, 'DD.MM.YY') = CURRENT_DATE THEN '#FFFF00'\n" +
                         "         WHEN to_date(publish_date, 'DD.MM.YY') > CURRENT_DATE AND\n" +
-                        "              id_youtube_lyrics != '' AND\n" +
-                        "              id_youtube_lyrics IS NOT NULL THEN '#F0E68C'\n" +
-                        "         WHEN to_date(publish_date, 'DD.MM.YY') > CURRENT_DATE + INTERVAL '7 days' AND\n" +
+                        "              id_vk != '' AND\n" +
+                        "              id_vk IS NOT NULL THEN '#FFDAB9'\n" +
+                        "         WHEN to_date(publish_date, 'DD.MM.YY') > CURRENT_DATE AND\n" +
                         "              id_boosty != '' AND\n" +
                         "              id_boosty IS NOT NULL THEN '#FFEFD5'\n" +
                         "        ELSE color1\n" +
                         "    END AS color" +
                         " FROM tbl_settings JOIN tbl_status ON id_status = tbl_status.id"
                 if (args.containsKey("id")) where += "tbl_settings.id=${args["id"]}"
-                if (args.containsKey("song_name")) where += "song_name LIKE '%${args["song_name"]}%'"
-                if (args.containsKey("song_author")) where += "song_author LIKE '%${args["song_author"]}%'"
-                if (args.containsKey("song_album")) where += "song_album LIKE '%${args["song_album"]}%'"
+                if (args.containsKey("file_name")) where += "LOWER(file_name)='${args["file_name"]?.replace("'","''")?.lowercase()}'"
+                if (args.containsKey("root_folder")) where += "LOWER(root_folder)='${args["root_folder"]?.replace("'","''")?.lowercase()}'"
+                if (args.containsKey("song_name")) where += "LOWER(song_name) LIKE '%${args["song_name"]?.replace("'","''")?.lowercase()}%'"
+                if (args.containsKey("song_author")) where += "LOWER(song_author) LIKE '%${args["song_author"]?.replace("'","''")?.lowercase()}%'"
+                if (args.containsKey("song_album")) where += "LOWER(song_album) LIKE '%${args["song_album"]?.replace("'","''")?.lowercase()}%'"
                 if (args.containsKey("publish_date")) where += "publish_date LIKE '%${args["publish_date"]}%'"
                 if (args.containsKey("publish_time")) where += "publish_time LIKE '%${args["publish_time"]}%'"
                 if (args.containsKey("status")) where += "status LIKE '%${args["status"]}%'"
                 if (args.containsKey("song_year")) where += "song_year=${args["song_year"]}"
                 if (args.containsKey("song_track")) where += "song_track=${args["song_track"]}"
+                if (args.containsKey("id_status")) where += "id_status=${args["id_status"]}"
                 if (args.containsKey("flag_boosty")) where += "CASE WHEN id_boosty IS NOT NULL AND id_boosty <> 'null' AND id_boosty <> '' THEN '+' ELSE '-' END='${args["flag_boosty"]}'"
                 if (args.containsKey("flag_vk")) where += "CASE WHEN id_vk IS NOT NULL AND id_vk <> 'null' AND id_vk <> '' THEN '+' ELSE '-' END='${args["flag_vk"]}'"
                 if (args.containsKey("flag_youtube_lyrics")) where += "CASE WHEN id_youtube_lyrics IS NOT NULL AND id_youtube_lyrics <> 'null' AND id_youtube_lyrics <> '' THEN '+' ELSE '-' END='${args["flag_youtube_lyrics"]}'"
@@ -1421,14 +1688,24 @@ class Settings : Serializable, Comparable<Settings> {
                 if (args.containsKey("flag_vk_karaoke_bt")) where += "CASE WHEN id_vk_karaoke_bt IS NOT NULL AND id_vk_karaoke_bt <> 'null' AND id_vk_karaoke_bt <> '' THEN '+' ELSE '-' END='${args["flag_vk_karaoke_bt"]}'"
                 if (args.containsKey("flag_vk_chords")) where += "CASE WHEN id_vk_chords IS NOT NULL AND id_vk_chords <> 'null' AND id_vk_chords <> '' THEN '+' ELSE '-' END='${args["flag_vk_chords"]}'"
                 if (args.containsKey("flag_vk_chords_bt")) where += "CASE WHEN id_vk_chords_bt IS NOT NULL AND id_vk_chords_bt <> 'null' AND id_vk_chords_bt <> '' THEN '+' ELSE '-' END='${args["flag_vk_chords_bt"]}'"
+                if (args.containsKey("flag_telegram_lyrics")) where += "CASE WHEN id_telegram_lyrics IS NOT NULL AND id_telegram_lyrics <> 'null' AND id_telegram_lyrics <> '' THEN '+' ELSE '-' END='${args["flag_telegram_lyrics"]}'"
+                if (args.containsKey("flag_telegram_lyrics_bt")) where += "CASE WHEN id_telegram_lyrics_bt IS NOT NULL AND id_telegram_lyrics_bt <> 'null' AND id_telegram_lyrics_bt <> '' THEN '+' ELSE '-' END='${args["flag_telegram_lyrics_bt"]}'"
+                if (args.containsKey("flag_telegram_karaoke")) where += "CASE WHEN id_telegram_karaoke IS NOT NULL AND id_telegram_karaoke <> 'null' AND id_telegram_karaoke <> '' THEN '+' ELSE '-' END='${args["flag_telegram_karaoke"]}'"
+                if (args.containsKey("flag_telegram_karaoke_bt")) where += "CASE WHEN id_telegram_karaoke_bt IS NOT NULL AND id_telegram_karaoke_bt <> 'null' AND id_telegram_karaoke_bt <> '' THEN '+' ELSE '-' END='${args["flag_telegram_karaoke_bt"]}'"
+                if (args.containsKey("flag_telegram_chords")) where += "CASE WHEN id_telegram_chords IS NOT NULL AND id_telegram_chords <> 'null' AND id_telegram_chords <> '' THEN '+' ELSE '-' END='${args["flag_telegram_chords"]}'"
+                if (args.containsKey("flag_telegram_chords_bt")) where += "CASE WHEN id_telegram_chords_bt IS NOT NULL AND id_telegram_chords_bt <> 'null' AND id_telegram_chords_bt <> '' THEN '+' ELSE '-' END='${args["flag_telegram_chords_bt"]}'"
+                if (args.containsKey("tags")) where += "LOWER(tags) LIKE '%${args["tags"]?.replace("'","''")?.lowercase()}%'"
 
                 if (where.size > 0) sql += " WHERE ${where.joinToString(" AND ")}"
+
+                sql += " ORDER BY tbl_settings.id"
 
 //                println(where)
 //                println(sql)
 
                 rs = statement.executeQuery(sql)
                 val result: MutableList<Settings> = mutableListOf()
+                var prevAlbum = ""
                 while (rs.next()) {
                     val settings = Settings()
                     settings.fileName = rs.getString("file_name")
@@ -1437,7 +1714,13 @@ class Settings : Serializable, Comparable<Settings> {
                     rs.getInt("id_status")?.let { value -> settings.fields[SettingField.ID_STATUS] = value.toString() }
                     rs.getString("song_name")?.let { value -> settings.fields[SettingField.NAME] = value }
                     rs.getString("song_author")?.let { value -> settings.fields[SettingField.AUTHOR] = value }
-                    rs.getString("song_album")?.let { value -> settings.fields[SettingField.ALBUM] = value }
+                    rs.getString("song_album")?.let { value ->
+                        settings.fields[SettingField.ALBUM] = value
+                        if (value != prevAlbum) {
+                            prevAlbum = value
+                            settings.firstSongInAlbum = true
+                        }
+                    }
                     rs.getString("publish_date")?.let { value -> settings.fields[SettingField.DATE] = value }
                     rs.getString("publish_time")?.let { value -> settings.fields[SettingField.TIME] = value }
                     rs.getInt("song_year")?.let { value -> settings.fields[SettingField.YEAR] = value.toString() }
@@ -1459,6 +1742,12 @@ class Settings : Serializable, Comparable<Settings> {
                     rs.getString("id_vk_karaoke_bt")?.let { value -> settings.fields[SettingField.ID_VK_KARAOKE_BT] = value }
                     rs.getString("id_vk_chords")?.let { value -> settings.fields[SettingField.ID_VK_CHORDS] = value }
                     rs.getString("id_vk_chords_bt")?.let { value -> settings.fields[SettingField.ID_VK_CHORDS_BT] = value }
+                    rs.getString("id_telegram_lyrics")?.let { value -> settings.fields[SettingField.ID_TELEGRAM_LYRICS] = value }
+                    rs.getString("id_telegram_lyrics_bt")?.let { value -> settings.fields[SettingField.ID_TELEGRAM_LYRICS_BT] = value }
+                    rs.getString("id_telegram_karaoke")?.let { value -> settings.fields[SettingField.ID_TELEGRAM_KARAOKE] = value }
+                    rs.getString("id_telegram_karaoke_bt")?.let { value -> settings.fields[SettingField.ID_TELEGRAM_KARAOKE_BT] = value }
+                    rs.getString("id_telegram_chords")?.let { value -> settings.fields[SettingField.ID_TELEGRAM_CHORDS] = value }
+                    rs.getString("id_telegram_chords_bt")?.let { value -> settings.fields[SettingField.ID_TELEGRAM_CHORDS_BT] = value }
                     rs.getString("color")?.let { value -> settings.fields[SettingField.COLOR] = value }
                     rs.getString("source_text")?.let { value -> settings.sourceText = value }
                     rs.getString("source_markers")?.let { value -> settings.sourceMarkers = value }
@@ -1468,6 +1757,7 @@ class Settings : Serializable, Comparable<Settings> {
                     settings.statusProcessKaraokeBt = rs.getString("status_process_karaoke_bt") ?: ""
                     settings.statusProcessChords = rs.getString("status_process_chords") ?: ""
                     settings.statusProcessChordsBt = rs.getString("status_process_chords_bt") ?: ""
+                    settings.tags = rs.getString("tags") ?: ""
 
                     result.add(settings)
 
@@ -1505,8 +1795,9 @@ class Settings : Serializable, Comparable<Settings> {
             }
             return settings
         }
-        fun loadFromFile(pathToSettingsFile: String): Settings {
+        fun loadFromFile(pathToSettingsFile: String, readonly: Boolean = false): Settings {
             val settings = Settings()
+            settings.readonly = readonly
             val settingFilePath = Path(pathToSettingsFile)
             val settingRoot = settingFilePath.parent.toString()
             val settingFileNameList = settingFilePath.fileName.toString()
@@ -1529,6 +1820,108 @@ class Settings : Serializable, Comparable<Settings> {
                 }
             }
             return settings
+        }
+
+        fun createFromPath(startFolder: String): MutableList<Settings> {
+            val result: MutableList<Settings> = mutableListOf()
+            val listFiles = getListFiles(startFolder,"flac")
+            listFiles.forEach { pathToFile ->
+
+                val file = File(pathToFile)
+                val fileName = file.nameWithoutExtension
+                val rootFolder = file.parent
+                val albumFolder = file.parentFile.name
+
+                val regexFile = Regex("(\\d+)\\s+\\((\\d+)\\)\\s+\\[([\\S|\\s]+)\\]\\s+-\\s+([\\S|\\s]+)")
+                val regexAlbum = Regex("(\\d+)\\s+-\\s+([\\S|\\s]+)")
+                val matchResultAlbum = regexAlbum.find(albumFolder)
+                val matchResultFile = regexFile.find(fileName)
+                if (matchResultAlbum != null) {
+                    val yearStr = matchResultAlbum.groupValues[1]
+                    val albumStr = matchResultAlbum.groupValues[2]
+                    if (matchResultFile != null) {
+                        val numberStr = matchResultFile.groupValues[2]
+                        val authorStr = matchResultFile.groupValues[3]
+                        val songNameStr = matchResultFile.groupValues[4]
+
+                        if (loadListFromDb(
+                                mapOf(
+                                    Pair("file_name", fileName),
+                                    Pair("root_folder", rootFolder)
+                                )
+                            ).isEmpty()
+                        ) {
+                            val settings = Settings()
+                            settings.fileName = fileName
+                            settings.rootFolder = rootFolder
+                            settings.fields[SettingField.NAME] = songNameStr
+                            settings.fields[SettingField.YEAR] = yearStr
+                            settings.fields[SettingField.ALBUM] = albumStr
+                            settings.fields[SettingField.TRACK] = numberStr
+                            settings.fields[SettingField.AUTHOR] = authorStr
+                            settings.saveToDb()
+                            result.add(settings)
+
+                        }
+
+                    }
+                }
+
+            }
+            return result
+        }
+
+        fun getSetOfTags(): Set<String> {
+
+            val result: MutableSet<String> = mutableSetOf()
+
+            Class.forName("org.postgresql.Driver")
+            val connection = DriverManager.getConnection(CONNECTION_URL, CONNECTION_USER, CONNECTION_PASSWORD)
+            var statement: Statement? = null
+            var rs: ResultSet? = null
+            var sql: String
+
+            try {
+                statement = connection.createStatement()
+                sql = "select DISTINCT tbl_settings.tags as tags " +
+                        "from tbl_settings " +
+                        "where tags != '' AND tags IS NOT NULL"
+
+                rs = statement.executeQuery(sql)
+                while (rs.next()) {
+                    result.addAll(rs.getString("tags").split(" ").map { it.uppercase() })
+                }
+                return result
+            } catch (e: SQLException) {
+                e.printStackTrace()
+            } finally {
+                try {
+                    rs?.close() // close result set
+                    statement?.close() // close statement
+                    connection?.close()
+                } catch (e: SQLException) {
+                    e.printStackTrace()
+                }
+            }
+            return emptySet()
+        }
+
+        fun setPublishDateTimeToAuthor(startSettings: Settings) {
+            var publishDate = SimpleDateFormat("dd.MM.yy").parse(startSettings.date)
+            val publishTime = startSettings.time
+            val listOfSettings = loadListFromDb(mapOf(Pair("song_author", startSettings.author))).filter { it.id > startSettings.id }
+            listOfSettings.forEach { settings ->
+                val calendar = Calendar.getInstance()
+                calendar.time = publishDate
+                calendar.add(Calendar.DAY_OF_MONTH, 1)
+                publishDate = calendar.time
+
+                settings.fields[SettingField.DATE] = SimpleDateFormat("dd.MM.yy").format(publishDate)
+                settings.fields[SettingField.TIME] = publishTime
+
+                settings.saveToDb()
+
+            }
         }
 
     }

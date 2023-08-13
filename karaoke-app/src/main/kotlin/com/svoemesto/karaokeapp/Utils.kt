@@ -4,6 +4,7 @@ import com.google.gson.GsonBuilder
 import com.svoemesto.karaokeapp.mlt.*
 import com.svoemesto.karaokeapp.model.*
 import org.apache.commons.io.FileUtils
+import org.jsoup.Jsoup
 import org.odftoolkit.simple.SpreadsheetDocument
 import java.awt.*
 import java.awt.image.BufferedImage
@@ -11,7 +12,12 @@ import java.io.BufferedReader
 import java.io.File
 import java.io.InputStreamReader
 import java.nio.file.Files
+import java.nio.file.Paths
 import java.nio.file.attribute.PosixFilePermissions
+import java.sql.DriverManager
+import java.sql.ResultSet
+import java.sql.SQLException
+import java.sql.Statement
 import java.util.*
 import javax.imageio.ImageIO
 import javax.sound.sampled.AudioSystem
@@ -22,21 +28,370 @@ import kotlin.random.Random
 
 fun main() {
 
-    testProcess2()
+//    Settings.createFromPath("/home/nsa/Documents/Караоке/ЭЛЕКТРОСЛАБОСТЬ/2023 - Два бомжа")
+
+
+//    Settings.loadListFromDb().forEach { sett ->
+//        if (sett.idBoosty != "") {
+//            sett.createVKDescription()
+//        }
+//    }
+
+//    createDigestForAllAuthors()
+//    createDigestForAllAuthorsForOper()
+
+//    collectDoneFilesToStoreFolder()
+//    create720pForAllUncreated()
+
+    testUpdateSongFromCloud()
+
+//    collectYo()
+
+//    createDzenPicture("/home/nsa/Documents/Караоке/Lumen")
+//    createDzenPicture("/home/nsa/Documents/Караоке/Nautilus Pompilius")
+//    createDzenPicture("/home/nsa/Documents/Караоке/Агата Кристи")
+//    createDzenPicture("/home/nsa/Documents/Караоке/АлисА")
+//    createDzenPicture("/home/nsa/Documents/Караоке/АнимациЯ")
+//    createDzenPicture("/home/nsa/Documents/Караоке/Ария")
+//    createDzenPicture("/home/nsa/Documents/Караоке/Бригада С")
+//    createDzenPicture("/home/nsa/Documents/Караоке/Вадим Самойлов")
+//    createDzenPicture("/home/nsa/Documents/Караоке/Високосный год")
+//    createDzenPicture("/home/nsa/Documents/Караоке/Гарик Сукачёв")
+//    createDzenPicture("/home/nsa/Documents/Караоке/ГОРШЕНЕВ")
+//    createDzenPicture("/home/nsa/Documents/Караоке/Горшок")
+//    createDzenPicture("/home/nsa/Documents/Караоке/Звери")
+//    createDzenPicture("/home/nsa/Documents/Караоке/КИНО")
+//    createDzenPicture("/home/nsa/Documents/Караоке/КняZz")
+//    createDzenPicture("/home/nsa/Documents/Караоке/Король и Шут")
+//    createDzenPicture("/home/nsa/Documents/Караоке/Кукрыниксы")
+//    createDzenPicture("/home/nsa/Documents/Караоке/Мельница")
+//    createDzenPicture("/home/nsa/Documents/Караоке/Неприкасаемые")
+//    createDzenPicture("/home/nsa/Documents/Караоке/Павел Кашин")
+//    createDzenPicture("/home/nsa/Documents/Караоке/Пикник")
+//    createDzenPicture("/home/nsa/Documents/Караоке/Сектор Газа")
+//    createDzenPicture("/home/nsa/Documents/Караоке/СерьГа")
+//    createDzenPicture("/home/nsa/Documents/Караоке/Сплин")
+//    createDzenPicture("/home/nsa/Documents/Караоке/Ундервуд")
+//    createDzenPicture("/home/nsa/Documents/Караоке/Чайф")
+//    createDzenPicture("/home/nsa/Documents/Караоке/ЭЛЕКТРОСЛАБОСТЬ")
+//    createDzenPicture("/home/nsa/Documents/Караоке/Юнона и Авось")
 
 }
 
+fun testUpdateSongFromCloud() {
+
+    val fileName = "/files/Yandex.Disk/Karaoke/_TMP/1993 (11) [СерьГа] - Новое утро.settings"
+
+    val tmpSettings = Settings.loadFromFile(fileName, readonly = true)
+
+    println(tmpSettings.id)
+
+    val settings = Settings.loadFromDbById(tmpSettings.id)
+
+    if (settings != null) {
+
+        if (settings.sourceText == tmpSettings.sourceText && settings.sourceMarkers == tmpSettings.sourceMarkers) {
+            println("Текст без изменений.")
+        } else {
+            println("В тексте есть изменения.")
+
+            settings.sourceText = tmpSettings.sourceText
+            settings.sourceMarkers = tmpSettings.sourceMarkers
+            settings.saveToDb()
+
+            File(fileName).delete()
+
+            settings.sourceMarkersList.forEachIndexed { voice, _ ->
+                val strText = settings.convertMarkersToSrt(voice)
+                File("${settings.rootFolder}/${settings.fileName}.voice${voice+1}.srt").writeText(strText)
+            }
+
+            settings.createKaraoke()
+
+            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, 0)
+            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, 1)
+            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS_BT, true, 3)
+            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE_BT, true, 3)
+
+        }
+
+    }
+
+
+}
+
+fun create720pForAllUncreated() {
+
+    val settingsList = Settings.loadListFromDb()
+    settingsList.forEach { settings ->
+        if (File(settings.pathToFileLyrics).exists() && !File(settings.pathToFile720Lyrics).exists()) {
+            if (!File(settings.pathToFolder720Lyrics).exists()) Files.createDirectories(Path(settings.pathToFolder720Lyrics))
+            println("Создаём задание на кодирование в 720р для файла: ${settings.nameFileLyrics}")
+            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_LYR, true, 1)
+        }
+        if (File(settings.pathToFileKaraoke).exists() && !File(settings.pathToFile720Karaoke).exists()) {
+            if (!File(settings.pathToFolder720Karaoke).exists()) Files.createDirectories(Path(settings.pathToFolder720Karaoke))
+            println("Создаём задание на кодирование в 720р для файла: ${settings.nameFileKaraoke}")
+            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_KAR, true, 1)
+        }
+    }
+
+}
+
+fun collectDoneFilesToStoreFolder() {
+    val settingsList = Settings.loadListFromDb()
+    settingsList.forEach { settings ->
+        if (File(settings.pathToFileLyrics).exists() && !File(settings.pathToStoreFileLyrics).exists()) {
+            if (!File(settings.pathToStoreFolderLyrics).exists()) Files.createDirectories(Path(settings.pathToStoreFolderLyrics))
+            println("Копируем в хранилище файл: ${settings.nameFileLyrics}")
+            Files.copy(Path(settings.pathToFileLyrics), Path(settings.pathToStoreFileLyrics))
+        }
+        if (File(settings.pathToFileKaraoke).exists() && !File(settings.pathToStoreFileKaraoke).exists()) {
+            if (!File(settings.pathToStoreFolderKaraoke).exists()) Files.createDirectories(Path(settings.pathToStoreFolderKaraoke))
+            println("Копируем в хранилище файл: ${settings.nameFileKaraoke}")
+            Files.copy(Path(settings.pathToFileKaraoke), Path(settings.pathToStoreFileKaraoke))
+        }
+        if (File(settings.pathToFileChords).exists() && !File(settings.pathToStoreFileChords).exists()) {
+            if (!File(settings.pathToStoreFolderChords).exists()) Files.createDirectories(Path(settings.pathToStoreFolderChords))
+            println("Копируем в хранилище файл: ${settings.nameFileChords}")
+            Files.copy(Path(settings.pathToFileChords), Path(settings.pathToStoreFileChords))
+        }
+//        if (File(settings.pathToFileLyricsBt).exists() && !File(settings.pathToStoreFileLyricsBt).exists()) {
+//            if (!File(settings.pathToStoreFolderLyricsBt).exists()) Files.createDirectories(Path(settings.pathToStoreFolderLyricsBt))
+//            println("Копируем в хранилище файл: ${settings.nameFileLyricsBt}")
+//            Files.copy(Path(settings.pathToFileLyricsBt), Path(settings.pathToStoreFileLyricsBt))
+//        }
+//        if (File(settings.pathToFileKaraokeBt).exists() && !File(settings.pathToStoreFileKaraokeBt).exists()) {
+//            if (!File(settings.pathToStoreFolderKaraokeBt).exists()) Files.createDirectories(Path(settings.pathToStoreFolderKaraokeBt))
+//            println("Копируем в хранилище файл: ${settings.nameFileKaraokeBt}")
+//            Files.copy(Path(settings.pathToFileKaraokeBt), Path(settings.pathToStoreFileKaraokeBt))
+//        }
+//        if (File(settings.pathToFileChordsBt).exists() && !File(settings.pathToStoreFileChordsBt).exists()) {
+//            if (!File(settings.pathToStoreFolderChordsBt).exists()) Files.createDirectories(Path(settings.pathToStoreFolderChordsBt))
+//            println("Копируем в хранилище файл: ${settings.nameFileChordsBt}")
+//            Files.copy(Path(settings.pathToFileChordsBt), Path(settings.pathToStoreFileChordsBt))
+//        }
+    }
+}
+
+class ResourceReader {
+    fun readTextResource(filename: String): String {
+        val uri = this.javaClass.getResource("/$filename").toURI()
+        return Files.readString(Paths.get(uri))
+    }
+}
+
+fun collectYo() {
+    val regexWord = """\b[а-яА-ЯёЁa-zA-Z0-9-]+\b""".toRegex()
+    val settingsList = Settings.loadListFromDb()
+    val setOfWordsYo: MutableSet<String> = mutableSetOf()
+    settingsList.forEach { settings ->
+        var songText = settings.getSourceText(0).replace("_"," ")
+        var matchResult = regexWord.findAll(songText)
+        setOfWordsYo.addAll(matchResult.map { it.value.lowercase() }.filter { it.contains("ё") && it != "всё" } .toSet())
+    }
+    File("/home/nsa/Documents/Караоке/Слова_с_буквой_ё.txt").writeText(setOfWordsYo.toList().sorted().joinToString("\n"))
+
+}
+fun replaceSymbolsInSong(sourceText: String): String {
+    var result = sourceText
+
+    val yo = File("/home/nsa/Documents/Караоке/Слова_с_буквой_ё.txt").readText().split("\n")
+
+    yo.forEach { wordWithYO ->
+        val replacedWord = wordWithYO.replace("ё", "е")
+        val patt1 = "\\b$replacedWord\\b".toRegex()
+        result = result.replace(patt1, wordWithYO)
+        val capWordWithYO = wordWithYO.uppercaseFirstLetter()
+        val capReplacedWord = capWordWithYO.replace("ё", "е")
+        val patt2 = "\\b$capReplacedWord\\b".toRegex()
+        result = result.replace(patt2, capWordWithYO)
+    }
+
+    result = result.replace("—","-")
+    result = result.replace("–","-")
+    result = result.replace("−","-")
+    result = result.replace(" - ","_- ")
+    result = result.replace(" -\n","_-\n")
+
+
+
+    return result
+}
+
+fun createFilesByTags(listOfTags: List<String> = emptyList()) {
+    val listTags = (if (listOfTags.isEmpty()) Settings.getSetOfTags() else listOfTags.map { it.uppercase() }.toSet()).toList()
+    listTags.forEach { tag ->
+
+        val pathToTagFolder = "$PATH_TO_STORE_FOLDER/TAGS/${tag}"
+        if (!File(pathToTagFolder).exists()) Files.createDirectories(Path(pathToTagFolder))
+
+        val pathToTagFolder720Karaoke = "$PATH_TO_STORE_FOLDER/720p_Karaoke/TAGS/${tag}"
+        if (!File(pathToTagFolder720Karaoke).exists()) Files.createDirectories(Path(pathToTagFolder720Karaoke))
+
+        val listOfSettings = Settings.loadListFromDb(mapOf(Pair("tags", tag)))
+        listOfSettings.forEach { settings ->
+            val sourceFileKaraoke = settings.pathToFileKaraoke
+            if (File(sourceFileKaraoke).exists()) {
+                val destinationFile = pathToTagFolder + "/" + sourceFileKaraoke.split("/").last().replace(" [karaoke].mp4", " [karaoke] {${tag}}.mp4")
+                if (!File(destinationFile).exists()) {
+                    Files.copy(Path(sourceFileKaraoke), Path(destinationFile))
+                }
+            }
+
+            val sourceFile720Karaoke = settings.pathToFile720Karaoke
+            if (File(sourceFile720Karaoke).exists()) {
+                val destinationFile = pathToTagFolder720Karaoke + "/" + sourceFile720Karaoke.split("/").last().replace(" [karaoke] 720p.mp4", " [karaoke] {${tag}} 720p.mp4")
+                if (!File(destinationFile).exists()) {
+                    Files.copy(Path(sourceFile720Karaoke), Path(destinationFile))
+                }
+            }
+        }
+
+    }
+}
+
+fun createDigestForAllAuthors(vararg authors: String) {
+
+    val listAuthors = getAuthorsForDigest()
+    listAuthors.forEach { author ->
+        if (authors.isEmpty() || author in authors) {
+            var txt = "ЗАКРОМА - «$author»\n\n${getAuthorDigest(author).first}"
+            val fileName = "/home/nsa/Documents/Караоке/Digest/${author} (digest).txt"
+            File(fileName).writeText(txt, Charsets.UTF_8)
+        }
+    }
+
+}
+
+fun createDigestForAllAuthorsForOper(vararg authors: String) {
+
+    val listAuthors = getAuthorsForDigest()
+    var txt = ""
+    var total = 0
+    listAuthors.forEach { author ->
+        if (authors.isEmpty() || author in authors) {
+            val (digest, count) = getAuthorDigest(author, false)
+            if (digest.isNotEmpty()) {
+                txt += "«$author»\nПесен: $count шт.\n[spoiler]\n${digest}[/spoiler]\n\n"
+                total += count
+            }
+        }
+    }
+    txt = "----------ЗАКРОМА----------\nВсего песен: $total шт.\n\n" + txt
+    val fileName = "/home/nsa/Documents/Караоке/Digest/OPER_digest.txt"
+    File(fileName).writeText(txt, Charsets.UTF_8)
+}
+
+fun getAuthorsForDigest(): List<String> {
+
+    Class.forName("org.postgresql.Driver")
+    val connection = DriverManager.getConnection(CONNECTION_URL, CONNECTION_USER, CONNECTION_PASSWORD)
+    var statement: Statement? = null
+    var rs: ResultSet? = null
+    var sql: String
+
+    try {
+        statement = connection.createStatement()
+        sql = "select song_author, count(DISTINCT song_album) as albums, count(DISTINCT id) as songs " +
+                "from tbl_settings " +
+//                "where id_boosty != '' AND id_boosty IS NOT NULL AND root_folder NOT LIKE '%/Разное/%' " +
+                "where id_boosty != '' AND id_boosty IS NOT NULL " +
+                "group by song_author"
+
+        rs = statement.executeQuery(sql)
+        val result: MutableList<String> = mutableListOf()
+        while (rs.next()) {
+            val author = rs.getString("song_author")
+            result.add(author)
+        }
+        result.sort()
+        return result
+    } catch (e: SQLException) {
+        e.printStackTrace()
+    } finally {
+        try {
+            rs?.close() // close result set
+            statement?.close() // close statement
+            connection?.close()
+        } catch (e: SQLException) {
+            e.printStackTrace()
+        }
+    }
+    return emptyList()
+
+}
+
+fun getAuthorDigest(author: String, withRazor: Boolean = true): Pair<String, Int> {
+
+    val MAX_SYMBOLS = 16300
+
+    val listDigest = Settings.loadListFromDb(mapOf(Pair("song_author", author)))
+        .filter { it.digestIsFull }
+        .map { it.digest }
+
+    var result = ""
+    var counter = 0
+
+    listDigest.forEach { digets ->
+        if (withRazor && (counter + digets.length > MAX_SYMBOLS)) {
+            result += "\n(ПРОДОЛЖЕНИЕ - В КОММЕНТАРИЯХ)\n\n----------------------------------------------------------------------------------------\n\n\n"
+            counter = 0
+        }
+        result += digets + "\n"
+        counter += digets.length
+    }
+
+    return result to listDigest.size
+}
+
+fun searchSongText(settings: Settings): String {
+
+    val searchQuery = "${settings.author} ${settings.songName}"
+    val searchUrl = "https://www.google.com/search?q=${searchQuery.replace(" ", "+")}+текст+песни"
+
+    // Загрузка страницы результатов поиска
+    val document = Jsoup.connect(searchUrl).get()
+
+    // Поиск текста песни на странице результатов
+    val lyricsElement = document.selectFirst("div[data-lyricid]")
+
+    println(lyricsElement?.text())
+
+    lyricsElement?.let { le ->
+        val spanElements = le.select("span")
+        val spanTexts = spanElements?.map { it.ownText() }
+        spanTexts?.let { st ->
+            return spanTexts.joinToString("\n")
+        }
+    }
+    return ""
+}
 fun testProcess2() {
 
-KaraokeProcess.loadList().forEach {
-    it.updateStatusProcessSettings()
-}
+    KaraokeProcess.loadList().forEach {
+        it.updateStatusProcessSettings()
+    }
 
 }
 fun testProcess() {
 
     val regex = Regex("Current Frame:\\s+(\\d+), percentage:\\s+(\\d+)")
-    val args = listOf("melt","-progress", "/home/nsa/Documents/Караоке/КИНО/1982 - 45/done_projects/1982 (02) [КИНО] - Просто хочешь ты знать [lyrics].mlt")
+    val args = listOf(
+        "python3",
+        "-m",
+        "demucs",
+        "-n",
+        DEMUCS_MODEL_NAME,
+        "-d",
+        "cuda",
+        "--filename",
+        "{track}-{stem}.{ext}",
+        "--two-stems=vocals",
+        "-o",
+        "/home/nsa/Documents/Караоке/Разное/Иосиф Кобзон - День Победы",
+        "/home/nsa/Documents/Караоке/Разное/Иосиф Кобзон - День Победы/2014 (1) [Иосиф Кобзон] - День Победы.flac"
+    )
     val processBuilder = ProcessBuilder(args)
     processBuilder.redirectErrorStream(true)
     val process = processBuilder.start()
@@ -47,14 +402,14 @@ fun testProcess() {
     var line: String? = reader.readLine()
     while (line != null) {
 
-        val matchResult = regex.find(line)
-        if (matchResult != null) {
-            val currentFrame = matchResult.groupValues[1]
-            val percentage = matchResult.groupValues[2]
-            println("Current Frame: $currentFrame, percentage: $percentage")
-        }
+//        val matchResult = regex.find(line)
+//        if (matchResult != null) {
+//            val currentFrame = matchResult.groupValues[1]
+//            val percentage = matchResult.groupValues[2]
+//            println("Current Frame: $currentFrame, percentage: $percentage")
+//        }
 
-//        println(line)
+        println(line)
         line = reader.readLine()
     }
 }
@@ -1381,6 +1736,96 @@ fun createVKPicture(song: Song, fileName: String) {
     val file = File(fileName.replace(" [lyrics] VK"," [VK]"))
 
     ImageIO.write(resultImage, "png", file)
+
+}
+
+fun createDzenPicture(pathToAuthor: String) {
+    val pathToLogoAuthor = "$pathToAuthor/LogoAuthor.png"
+
+    val frameW = 575
+    val frameH = 575
+    val opaque: Float = 1f
+    var fontSongname = Font(MAIN_FONT_NAME, 0, 10)
+    val colorCaption = Color(85,255,255,255)
+    var textToOverlay = "Karaoke"
+    val imageType = BufferedImage.TYPE_INT_ARGB
+    var resultImage = BufferedImage(frameW, frameH, imageType)
+    var graphics2D = resultImage.graphics as Graphics2D
+    var alphaChannel = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opaque)
+
+    var biLogoAuthor = ImageIO.read(File(pathToLogoAuthor))
+
+    graphics2D.composite = alphaChannel
+    graphics2D.background = Color.BLACK
+    graphics2D.color = Color.BLACK
+    graphics2D.fillRect(0,0,frameW, frameH)
+    graphics2D.color = colorCaption
+    graphics2D.font = fontSongname
+
+    var rectW = 0
+    var rectH = 0
+    do {
+        fontSongname = Font(fontSongname.name, fontSongname.style, fontSongname.size+1)
+        graphics2D.font = fontSongname
+        val fontMetrics = graphics2D.fontMetrics
+        val rect = fontMetrics.getStringBounds(textToOverlay, graphics2D)
+        rectW = rect.width.toInt()
+        rectH = rect.height.toInt()
+    } while (!(rectH > 130 || rectW > (frameW * 0.95)))
+
+    var centerX = (frameW - rectW) / 2
+    var centerY = (frameH - rectH) / 2 + rectH + 140
+    graphics2D.drawString(textToOverlay, centerX, centerY)
+
+    graphics2D.drawImage(resizeBufferedImage(biLogoAuthor, 575, 230), 0, 120, null)
+
+    graphics2D.dispose()
+
+    var file = File("$pathToAuthor/DZEN_$textToOverlay.png")
+
+    ImageIO.write(resultImage, "png", file)
+
+
+
+
+
+    textToOverlay = "Lyrics"
+    resultImage = BufferedImage(frameW, frameH, imageType)
+    graphics2D = resultImage.graphics as Graphics2D
+    alphaChannel = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opaque)
+
+    biLogoAuthor = ImageIO.read(File(pathToLogoAuthor))
+
+    graphics2D.composite = alphaChannel
+    graphics2D.background = Color.BLACK
+    graphics2D.color = Color.BLACK
+    graphics2D.fillRect(0,0,frameW, frameH)
+    graphics2D.color = colorCaption
+    graphics2D.font = fontSongname
+
+    rectW = 0
+    rectH = 0
+    do {
+        fontSongname = Font(fontSongname.name, fontSongname.style, fontSongname.size+1)
+        graphics2D.font = fontSongname
+        val fontMetrics = graphics2D.fontMetrics
+        val rect = fontMetrics.getStringBounds(textToOverlay, graphics2D)
+        rectW = rect.width.toInt()
+        rectH = rect.height.toInt()
+    } while (!(rectH > 130 || rectW > (frameW * 0.95)))
+
+    centerX = (frameW - rectW) / 2
+    centerY = (frameH - rectH) / 2 + rectH + 140
+    graphics2D.drawString(textToOverlay, centerX, centerY)
+
+    graphics2D.drawImage(resizeBufferedImage(biLogoAuthor, 575, 230), 0, 120, null)
+
+    graphics2D.dispose()
+
+    file = File("$pathToAuthor/DZEN_$textToOverlay.png")
+
+    ImageIO.write(resultImage, "png", file)
+
 
 }
 

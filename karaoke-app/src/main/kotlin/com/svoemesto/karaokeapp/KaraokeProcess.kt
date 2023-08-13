@@ -1,12 +1,16 @@
 package com.svoemesto.karaokeapp
 
+import com.svoemesto.karaokeapp.controllers.MainController
+import com.svoemesto.karaokeapp.model.ApplicationContextProvider
 import com.svoemesto.karaokeapp.model.SettingField
 import com.svoemesto.karaokeapp.model.Settings
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import java.io.File
 import java.io.Serializable
+import java.nio.file.Files
 import java.sql.DriverManager
 import java.sql.ResultSet
 import java.sql.SQLException
@@ -16,6 +20,7 @@ import java.text.SimpleDateFormat
 import java.time.Instant
 import java.util.Date
 import java.util.concurrent.TimeUnit
+import kotlin.io.path.Path
 
 class KaraokeProcess : Serializable, Comparable<KaraokeProcess>  {
     var id: Int = 0
@@ -30,6 +35,7 @@ class KaraokeProcess : Serializable, Comparable<KaraokeProcess>  {
     var type: String = KaraokeProcessTypes.NONE.name
     var start: Timestamp? = null
     var end: Timestamp? = null
+    var prioritet: Int = 0
 
     val argsJson: String get() {
         return Json.encodeToString(args)
@@ -157,7 +163,8 @@ class KaraokeProcess : Serializable, Comparable<KaraokeProcess>  {
                 "settings_id = ?, " +
                 "process_type = ?, " +
                 "process_start = ?, " +
-                "process_end = ? " +
+                "process_end = ?, " +
+                "process_prioritet = ? " +
                 "WHERE id = ?"
         val ps = connection.prepareStatement(sql)
         var index = 1
@@ -183,12 +190,17 @@ class KaraokeProcess : Serializable, Comparable<KaraokeProcess>  {
         index++
         if (end != null) ps.setTimestamp(index, end!!) else  ps.setNull(index, 0)
         index++
+        ps.setInt(index, prioritet)
+        index++
         ps.setInt(index, id)
         ps.executeUpdate()
         ps.close()
         connection.close()
 
         updateStatusProcessSettings()
+
+//        val controller = ApplicationContextProvider.getCurrentApplicationContext().getBean(MainController::class.java)
+//        controller.processesUpdate(id.toLong())
 
     }
 
@@ -283,8 +295,49 @@ class KaraokeProcess : Serializable, Comparable<KaraokeProcess>  {
 
     companion object {
 
+        fun getLastUpdated(lastTime: Long? = null): List<Int> {
+            if (lastTime == null) return emptyList()
+
+            Class.forName("org.postgresql.Driver")
+            val connection = DriverManager.getConnection(CONNECTION_URL, CONNECTION_USER, CONNECTION_PASSWORD)
+            var statement: Statement? = null
+            var rs: ResultSet? = null
+            val sql: String
+
+            val result: MutableList<Int> = mutableListOf()
+
+            try {
+                statement = connection.createStatement()
+                sql = "SELECT id FROM tbl_processes WHERE last_update > '${Timestamp(lastTime)}'::timestamp"
+                rs = statement.executeQuery(sql)
+                while (rs.next()) {
+                    result.add(rs.getInt("id"))
+                }
+                return result
+            } catch (e: SQLException) {
+                e.printStackTrace()
+            } finally {
+                try {
+                    rs?.close() // close result set
+                    statement?.close() // close statement
+                    connection?.close()
+                } catch (e: SQLException) {
+                    e.printStackTrace()
+                }
+            }
+            return emptyList()
+        }
+
         fun convertJsonToArgs(json: String): List<List<String>> {
             return Json.decodeFromString(ListSerializer(ListSerializer(String.serializer())), json)
+        }
+
+        fun createDbInstance(processes: List<KaraokeProcess>): List<KaraokeProcess?> {
+            val result: MutableList<KaraokeProcess?> = mutableListOf()
+            processes.forEach { process ->
+                result.add(createDbInstance(process))
+            }
+            return result
         }
 
         fun createDbInstance(process: KaraokeProcess) : KaraokeProcess? {
@@ -300,7 +353,8 @@ class KaraokeProcess : Serializable, Comparable<KaraokeProcess>  {
                         "settings_id, " +
                         "process_type, " +
                         "process_start, " +
-                        "process_end" +
+                        "process_end, " +
+                        "process_prioritet" +
                         ") VALUES(" +
                         "'${process.name.replace("'","''")}', " +
                         "'${process.status}', " +
@@ -312,7 +366,8 @@ class KaraokeProcess : Serializable, Comparable<KaraokeProcess>  {
                         "${process.settingsId}, " +
                         "'${process.type}', " +
                         "${process.start}, " +
-                        "${process.end}" +
+                        "${process.end}, " +
+                        "${process.prioritet}" +
                 ")"
 
             Class.forName("org.postgresql.Driver")
@@ -348,14 +403,15 @@ class KaraokeProcess : Serializable, Comparable<KaraokeProcess>  {
                         " FROM tbl_processes"
                 if (args.containsKey("id")) where += "id=${args["id"]}"
                 if (args.containsKey("process_name")) where += "process_name LIKE '%${args["process_name"]}%'"
-                if (args.containsKey("process_status")) where += "process_status LIKE '%${args["process_status"]}%'"
+                if (args.containsKey("process_status")) where += "process_status = '${args["process_status"]}'"
                 if (args.containsKey("process_order")) where += "process_order=${args["process_order"]}"
                 if (args.containsKey("process_priority")) where += "process_priority=${args["process_priority"]}"
                 if (args.containsKey("process_command")) where += "process_command LIKE '%${args["process_command"]}%'"
                 if (args.containsKey("process_args")) where += "process_args LIKE '%${args["process_args"]}%'"
                 if (args.containsKey("process_description")) where += "process_description LIKE '%${args["process_description"]}%'"
                 if (args.containsKey("settings_id")) where += "settings_id=${args["settings_id"]}"
-                if (args.containsKey("process_type")) where += "process_type LIKE '%${args["process_type"]}%'"
+                if (args.containsKey("process_type")) where += "process_type = '${args["process_type"]}'"
+                if (args.containsKey("process_prioritet")) where += "process_prioritet = '${args["process_prioritet"]}'"
 
                 if (where.size > 0) sql += " WHERE ${where.joinToString(" AND ")}"
 
@@ -378,6 +434,7 @@ class KaraokeProcess : Serializable, Comparable<KaraokeProcess>  {
                     process.type = rs.getString("process_type")
                     process.start = rs.getTimestamp("process_start")
                     process.end = rs.getTimestamp("process_end")
+                    process.prioritet = rs.getInt("process_prioritet")
                     result.add(process)
 
                 }
@@ -427,21 +484,24 @@ class KaraokeProcess : Serializable, Comparable<KaraokeProcess>  {
 
             // Находим есть ли уже такой процесс. Если нет - создаём. Если есть и не в статусе "в работе" - пересоздаём
 
-            val existedProcess = loadList(
+            val existedProcesses = loadList(
                 mapOf(
                     Pair("settings_id", settings.id.toString()),
                     Pair("process_type", action.name),
                 )
-            ).firstOrNull()
+            )
 
-            existedProcess?.let {
+            var wasWorking = false
+            existedProcesses.forEach { existedProcess ->
                 println(existedProcess.id)
                 if (existedProcess.status != KaraokeProcessStatuses.WORKING.name) {
                     delete(existedProcess.id)
                 } else {
-                    return 0
+                    wasWorking = true
                 }
             }
+            if (wasWorking) return 0
+
 
             val karaokeProcess = KaraokeProcess()
             with(karaokeProcess) {
@@ -456,61 +516,148 @@ class KaraokeProcess : Serializable, Comparable<KaraokeProcess>  {
                 when (action) {
                     KaraokeProcessTypes.MELT_LYRICS -> {
                         description = "Кодирование LYRICS"
+                        prioritet = 19
                         args = listOf(
                             listOf(
                                 "melt",
                                 "-progress",
-                                "${settings.rootFolder}/done_projects/${settings.fileName} [lyrics].mlt"
+                                "${settings.rootFolder.replace("'","''")}/done_projects/${if (!settings.fileName.startsWith (settings.year.toString())) "${settings.year} " else ""}${settings.fileName.replace("'","''")} [lyrics].mlt"
                             )
                         )
                     }
                     KaraokeProcessTypes.MELT_KARAOKE -> {
                         description = "Кодирование KARAOKE"
+                        prioritet = 19
                         args = listOf(
                             listOf(
                                 "melt",
                                 "-progress",
-                                "${settings.rootFolder}/done_projects/${settings.fileName} [karaoke].mlt"
+                                "${settings.rootFolder.replace("'","''")}/done_projects/${if (!settings.fileName.startsWith (settings.year.toString())) "${settings.year} " else ""}${settings.fileName.replace("'","''")} [karaoke].mlt"
                             )
                         )
                     }
                     KaraokeProcessTypes.MELT_CHORDS -> {
                         description = "Кодирование CHORDS"
+                        prioritet = 19
                         args = listOf(
                             listOf(
                                 "melt",
                                 "-progress",
-                                "${settings.rootFolder}/done_projects/${settings.fileName} [chords].mlt"
+                                "${settings.rootFolder.replace("'","''")}/done_projects/${if (!settings.fileName.startsWith (settings.year.toString())) "${settings.year} " else ""}${settings.fileName.replace("'","''")} [chords].mlt"
                             )
                         )
                     }
                     KaraokeProcessTypes.MELT_LYRICS_BT -> {
                         description = "Кодирование LYRICS_BT"
+                        prioritet = 19
                         args = listOf(
                             listOf(
                                 "melt",
                                 "-progress",
-                                "${settings.rootFolder}/done_projects/${settings.fileName} [lyrics] bluetooth.mlt"
+                                "${settings.rootFolder.replace("'","''")}/done_projects/${if (!settings.fileName.startsWith (settings.year.toString())) "${settings.year} " else ""}${settings.fileName.replace("'","''")} [lyrics] bluetooth.mlt"
                             )
                         )
                     }
                     KaraokeProcessTypes.MELT_KARAOKE_BT -> {
                         description = "Кодирование KARAOKE_BT"
+                        prioritet = 19
                         args = listOf(
                             listOf(
                                 "melt",
                                 "-progress",
-                                "${settings.rootFolder}/done_projects/${settings.fileName} [karaoke] bluetooth.mlt"
+                                "${settings.rootFolder.replace("'","''")}/done_projects/${if (!settings.fileName.startsWith (settings.year.toString())) "${settings.year} " else ""}${settings.fileName.replace("'","''")} [karaoke] bluetooth.mlt"
                             )
                         )
                     }
                     KaraokeProcessTypes.MELT_CHORDS_BT -> {
                         description = "Кодирование CHORDS_BT"
+                        prioritet = 19
                         args = listOf(
                             listOf(
                                 "melt",
                                 "-progress",
-                                "${settings.rootFolder}/done_projects/${settings.fileName} [chords] bluetooth.mlt"
+                                "${settings.rootFolder.replace("'","''")}/done_projects/${if (!settings.fileName.startsWith (settings.year.toString())) "${settings.year} " else ""}${settings.fileName.replace("'","''")} [chords] bluetooth.mlt"
+                            )
+                        )
+                    }
+                    KaraokeProcessTypes.DEMUCS2 -> {
+                        description = "Демукс 2"
+                        args = listOf(
+                            listOf(
+                                "python3",
+                                "-m",
+                                "demucs",
+                                "-n",
+                                DEMUCS_MODEL_NAME,
+                                "-d",
+                                "cuda",
+                                "--filename",
+                                "{track}-{stem}.{ext}",
+                                "--two-stems=${settings.separatedStem}",
+                                "-o",
+                                settings.rootFolder.replace("'","''"),
+                                settings.fileAbsolutePath.replace("'","''")
+                            ),
+                            listOf("mv", settings.oldNoStemNameWav.replace("'","''"), settings.newNoStemNameWav.replace("'","''")),
+                            listOf("ffmpeg", "-i", settings.newNoStemNameWav.replace("'","''"), "-compression_level", "8", settings.newNoStemNameFlac.replace("'","''"), "-y"),
+                            listOf("rm", settings.newNoStemNameWav.replace("'","''")),
+                            listOf("ffmpeg", "-i", settings.vocalsNameWav.replace("'","''"), "-compression_level", "8", settings.vocalsNameFlac.replace("'","''"), "-y"),
+                            listOf("rm", settings.vocalsNameWav.replace("'","''"))
+                        )
+                    }
+                    KaraokeProcessTypes.FF_720_KAR -> {
+                        val destinationFolder = settings.pathToFolder720Karaoke
+                        val sourceFile = settings.pathToFileKaraoke
+                        val destinationFile = settings.pathToFile720Karaoke
+                        if (File(destinationFile).exists()) return -1
+                        if (!File(destinationFolder).exists()) Files.createDirectories(Path(destinationFolder))
+                        description = "720P KARAOKE"
+                        args = listOf(
+                            listOf(
+                                "ffmpeg",
+                                "-i",
+                                sourceFile,
+                                "-c:v",
+                                "hevc_nvenc",
+                                "-preset",
+                                "fast",
+                                "-b:v",
+                                "1000k",
+                                "-vf",
+                                "scale=1280:720,fps=30",
+                                "-c:a",
+                                "aac",
+                                destinationFile,
+                                "-y"
+                            )
+                        )
+                    }
+                    KaraokeProcessTypes.FF_720_LYR -> {
+
+                        val destinationFolder = settings.pathToFolder720Lyrics
+                        val sourceFile = settings.pathToFileLyrics
+                        val destinationFile = settings.pathToFile720Lyrics
+                        if (File(destinationFile).exists()) return -1
+                        if (!File(destinationFolder).exists()) Files.createDirectories(Path(destinationFolder))
+
+                        description = "720P LYRICS"
+                        args = listOf(
+                            listOf(
+                                "ffmpeg",
+                                "-i",
+                                sourceFile,
+                                "-c:v",
+                                "hevc_nvenc",
+                                "-preset",
+                                "fast",
+                                "-b:v",
+                                "1000k",
+                                "-vf",
+                                "scale=1280:720,fps=30",
+                                "-c:a",
+                                "aac",
+                                destinationFile,
+                                "-y"
                             )
                         )
                     }
@@ -520,10 +667,34 @@ class KaraokeProcess : Serializable, Comparable<KaraokeProcess>  {
 
             karaokeProcess.updateStatusProcessSettings()
 
-            return createDbInstance(karaokeProcess)?.id ?: 0
+            val separatedProcesses = separate(karaokeProcess)
+
+            return createDbInstance(separatedProcesses)[0]?.id ?: 0
 
         }
 
+        fun separate(parentProcess: KaraokeProcess): List<KaraokeProcess> {
+            if (parentProcess.args.size == 1) return listOf(parentProcess)
+            val result: MutableList<KaraokeProcess> = mutableListOf()
+
+            parentProcess.args.forEach { childArgs ->
+                println(childArgs)
+                val childProcess = KaraokeProcess()
+                childProcess.name = parentProcess.name
+                childProcess.status = parentProcess.status
+                childProcess.order = parentProcess.order
+                childProcess.priority = parentProcess.priority
+                childProcess.command = parentProcess.command
+                childProcess.type = parentProcess.type
+                childProcess.settingsId = parentProcess.settingsId
+                childProcess.description = parentProcess.description
+                childProcess.prioritet = parentProcess.prioritet
+                childProcess.args = listOf(childArgs)
+                result.add(childProcess)
+            }
+
+            return result
+        }
 
     }
 }

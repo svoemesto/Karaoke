@@ -4,7 +4,9 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css" integrity="sha384-B0vP5xmATw1+K9KRQjQERJvTumQW0nPEzvF6L/Z6nronJ3oUOFUFpCjEUQouq2+l" crossorigin="anonymous">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-Piv4xVNRyMGpqkS2by6br4gNJ7DXjqk09RmUpJ8jgGtD7zP9yug3goQfGII0yAns" crossorigin="anonymous"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <title>Песни</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.2.0/socket.io.min.js"></script>
+
+    <title>Публикации</title>
     <style>
         * {
             box-sizing: border-box;
@@ -75,6 +77,102 @@
 
     <script type="text/javascript">
 
+        var currentTimeStamp = new Date().getTime();
+
+        function doPlay(id, name) {
+            $.ajax({
+                type: "GET",
+                url: `/song/${id}/${name}`,
+                data: "",
+                success: function(data) {
+                }
+            });
+        }
+
+        function updateSettings(id) {
+            console.log(`Обновляем запись №${id}`)
+            var nameText = `publishText${id}`;
+            var nameLyrics = `publishLyrics${id}`;
+            var nameKaraoke = `publishKaraoke${id}`;
+            var nameLyricsBt = `publishLyricsBt${id}`;
+            var nameKaraokeBt = `publishKaraokeBt${id}`;
+            var elements = document.getElementsByName(nameText);
+            if (elements.length > 0) {
+                var elementText = elements[0];
+                var elementLyrics = document.getElementsByName(nameLyrics)[0];
+                var elementKaraoke = document.getElementsByName(nameKaraoke)[0];
+                var elementLyricsBt = document.getElementsByName(nameLyricsBt)[0];
+                var elementKaraokeBt = document.getElementsByName(nameKaraokeBt)[0];
+
+                $.ajax({
+                    type: "GET",
+                    url: "/song/" + id,
+                    data: "",
+                    success: function(data) {
+                        elementText.style.backgroundColor = data.color;
+                        elementLyrics.style.backgroundColor = data.processColorMeltLyrics;
+                        elementKaraoke.style.backgroundColor = data.processColorMeltKaraoke;
+                        elementLyricsBt.style.backgroundColor = data.processColorMeltLyricsBt;
+                        elementKaraokeBt.style.backgroundColor = data.processColorMeltKaraokeBt;
+                    }
+                });
+
+            }
+        }
+
+        function updateCurrentTime() {
+
+            $.ajax({
+                type: "GET",
+                url: "/songs/lastupdated",
+                data: {'lastTime':currentTimeStamp},
+                success: function(data) {
+                    data.forEach((objId) => {
+                        updateSettings(objId);
+                    });
+                }
+            });
+            currentTimeStamp = new Date().getTime();
+        }
+
+        $(function() {
+            setInterval(updateCurrentTime, 5000);
+        });
+
+        // $(function() {
+        //
+        //     const eventSource = new EventSource('/publications/subscribe');
+        //
+        //     eventSource.onmessage = function(event) {
+        //         const data = JSON.parse(event.data);
+        //         const objType = data.objType;
+        //         const objId = data.objId;
+        //         const eventName = data.eventName;
+        //         console.log('Received object:', objType, objId, eventName);
+        //         if (objId != 0 && objType === 'Settings' && eventName === 'Update') {
+        //             updateSettings(objId);
+        //         }
+        //     };
+        //
+        //     eventSource.onerror = function() {
+        //         console.log('Ошибка при получении сообщений');
+        //     };
+        //
+        // });
+
+        // const socket = io('http://localhost:8888');
+        //
+        // socket.on('receive-message', (message) => {
+        //     console.log('Получено сообщение:', message);
+        //
+        //     // Дальнейшая обработка полученного сообщения на фронтенде
+        //     // ...
+        // });
+        //
+        // function sendMessage(message) {
+        //     socket.emit('send-message', message);
+        // }
+
     </script>
 </head>
 
@@ -91,20 +189,20 @@
                 <thead>
                     <tr>
                         <td style="min-width: 70px; max-width: 70px; border-style: solid; border-width: thin; text-align: center">Дата</td>
-                        <td style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin; text-align: center">10:00</td>
-                        <td style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin; text-align: center">11:00</td>
-                        <td style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin; text-align: center">12:00</td>
-                        <td style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin; text-align: center">13:00</td>
-                        <td style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin; text-align: center">14:00</td>
-                        <td style="min-width: 300px; max-width: 300px; border-style: solid; border-width: thin; text-align: center">15:00</td>
-                        <td style="min-width: 300px; max-width: 300px; border-style: solid; border-width: thin; text-align: center">16:00</td>
-                        <td style="min-width: 300px; max-width: 300px; border-style: solid; border-width: thin; text-align: center">17:00</td>
-                        <td style="min-width: 300px; max-width: 300px; border-style: solid; border-width: thin; text-align: center">18:00</td>
-                        <td style="min-width: 300px; max-width: 300px; border-style: solid; border-width: thin; text-align: center">19:00</td>
-                        <td style="min-width: 300px; max-width: 300px; border-style: solid; border-width: thin; text-align: center">20:00</td>
-                        <td style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin; text-align: center">21:00</td>
-                        <td style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin; text-align: center">22:00</td>
-                        <td style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin; text-align: center">23:00</td>
+                        <td style="min-width: 53px; max-width: 53px; border-style: solid; border-width: thin; text-align: center">10:00</td>
+                        <td style="min-width: 302px; max-width: 302px; border-style: solid; border-width: thin; text-align: center">11:00</td>
+                        <td style="min-width: 303px; max-width: 303px; border-style: solid; border-width: thin; text-align: center">12:00</td>
+                        <td style="min-width: 302px; max-width: 302px; border-style: solid; border-width: thin; text-align: center">13:00</td>
+                        <td style="min-width: 302px; max-width: 302px; border-style: solid; border-width: thin; text-align: center">14:00</td>
+                        <td style="min-width: 303px; max-width: 303px; border-style: solid; border-width: thin; text-align: center">15:00</td>
+                        <td style="min-width: 302px; max-width: 302px; border-style: solid; border-width: thin; text-align: center">16:00</td>
+                        <td style="min-width: 303px; max-width: 303px; border-style: solid; border-width: thin; text-align: center">17:00</td>
+                        <td style="min-width: 302px; max-width: 302px; border-style: solid; border-width: thin; text-align: center">18:00</td>
+                        <td style="min-width: 302px; max-width: 302px; border-style: solid; border-width: thin; text-align: center">19:00</td>
+                        <td style="min-width: 303px; max-width: 303px; border-style: solid; border-width: thin; text-align: center">20:00</td>
+                        <td style="min-width: 53px; max-width: 53px; border-style: solid; border-width: thin; text-align: center">21:00</td>
+                        <td style="min-width: 53px; max-width: 53px; border-style: solid; border-width: thin; text-align: center">22:00</td>
+                        <td style="min-width: 53px; max-width: 53px; border-style: solid; border-width: thin; text-align: center">23:00</td>
                     </tr>
                 </thead>
             </table>
@@ -113,20 +211,76 @@
                     <tbody>
                     <tr th:each="publication:${publications}">
                         <td th:text="${publication.publishDate}" style="font-size: 10px; width: 70px; min-width: 70px; max-width: 70px; border-style: solid; border-width: thin; text-align: center"></td>
-                        <td th:text="${publication.publish10text}" th:style="'background-color: ' + ${publication.publish10color} + '; font-size: 10px; width: 50px; min-width: 50px; max-width: 50px; border-style: solid; border-width: thin'"></td>
-                        <td th:text="${publication.publish11text}" th:style="'background-color: ' + ${publication.publish11color} + '; font-size: 10px; width: 50px; min-width: 50px; max-width: 50px; border-style: solid; border-width: thin'"></td>
-                        <td th:text="${publication.publish12text}" th:style="'background-color: ' + ${publication.publish12color} + '; font-size: 10px; width: 50px; min-width: 50px; max-width: 50px; border-style: solid; border-width: thin'"></td>
-                        <td th:text="${publication.publish13text}" th:style="'background-color: ' + ${publication.publish13color} + '; font-size: 10px; width: 50px; min-width: 50px; max-width: 50px; border-style: solid; border-width: thin'"></td>
-                        <td th:text="${publication.publish14text}" th:style="'background-color: ' + ${publication.publish14color} + '; font-size: 10px; width: 50px; min-width: 50px; max-width: 50px; border-style: solid; border-width: thin'"></td>
-                        <td th:text="${publication.publish15text}" th:style="'background-color: ' + ${publication.publish15color} + '; font-size: 10px; width: 300px; min-width: 300px; max-width: 300px; border-style: solid; border-width: thin'"></td>
-                        <td th:text="${publication.publish16text}" th:style="'background-color: ' + ${publication.publish16color} + '; font-size: 10px; width: 300px; min-width: 300px; max-width: 300px; border-style: solid; border-width: thin'"></td>
-                        <td th:text="${publication.publish17text}" th:style="'background-color: ' + ${publication.publish17color} + '; font-size: 10px; width: 300px; min-width: 300px; max-width: 300px; border-style: solid; border-width: thin'"></td>
-                        <td th:text="${publication.publish18text}" th:style="'background-color: ' + ${publication.publish18color} + '; font-size: 10px; width: 300px; min-width: 300px; max-width: 300px; border-style: solid; border-width: thin'"></td>
-                        <td th:text="${publication.publish19text}" th:style="'background-color: ' + ${publication.publish19color} + '; font-size: 10px; width: 300px; min-width: 300px; max-width: 300px; border-style: solid; border-width: thin'"></td>
-                        <td th:text="${publication.publish20text}" th:style="'background-color: ' + ${publication.publish20color} + '; font-size: 10px; width: 300px; min-width: 300px; max-width: 300px; border-style: solid; border-width: thin'"></td>
-                        <td th:text="${publication.publish21text}" th:style="'background-color: ' + ${publication.publish21color} + '; font-size: 10px; width: 50px; min-width: 50px; max-width: 50px; border-style: solid; border-width: thin'"></td>
-                        <td th:text="${publication.publish22text}" th:style="'background-color: ' + ${publication.publish22color} + '; font-size: 10px; width: 50px; min-width: 50px; max-width: 50px; border-style: solid; border-width: thin'"></td>
-                        <td th:text="${publication.publish23text}" th:style="'background-color: ' + ${publication.publish23color} + '; font-size: 10px; width: 50px; min-width: 50px; max-width: 50px; border-style: solid; border-width: thin'"></td>
+                        <td th:name="'publishText'+${publication.publish10id}" th:text="${publication.publish10text}" th:style="'background-color: ' + ${publication.publish10color} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
+                        <td th:name="'publishLyrics'+${publication.publish10id}" th:style="'background-color: ' + ${publication.publish10colorMeltLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish10id}+', \'playlyrics\')'"></td>
+                        <td th:name="'publishKaraoke'+${publication.publish10id}" th:style="'background-color: ' + ${publication.publish10colorMeltKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish10id}+', \'playkaraoke\')'"></td>
+                        <td th:name="'publishLyricsBt'+${publication.publish10id}" th:style="'background-color: ' + ${publication.publish10colorMeltLyricsBt} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish10id}+', \'playlyricsbt\')'"></td>
+                        <td th:name="'publishKaraokeBt'+${publication.publish10id}" th:style="'background-color: ' + ${publication.publish10colorMeltKaraokeBt} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish10id}+', \'playkaraokebt\')'"></td>
+                        <td th:name="'publishText'+${publication.publish11id}" th:text="${publication.publish11text}" th:style="'background-color: ' + ${publication.publish11color} + '; font-size: 10px; width: 260px; min-width: 260px; max-width: 260px; border-style: solid; border-width: thin'"></td>
+                        <td th:name="'publishLyrics'+${publication.publish11id}" th:style="'background-color: ' + ${publication.publish11colorMeltLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish11id}+', \'playlyrics\')'"></td>
+                        <td th:name="'publishKaraoke'+${publication.publish11id}" th:style="'background-color: ' + ${publication.publish11colorMeltKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish11id}+', \'playkaraoke\')'"></td>
+                        <td th:name="'publishLyricsBt'+${publication.publish11id}" th:style="'background-color: ' + ${publication.publish11colorMeltLyricsBt} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish11id}+', \'playlyricsbt\')'"></td>
+                        <td th:name="'publishKaraokeBt'+${publication.publish11id}" th:style="'background-color: ' + ${publication.publish11colorMeltKaraokeBt} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish11id}+', \'playkaraokebt\')'"></td>
+                        <td th:name="'publishText'+${publication.publish12id}" th:text="${publication.publish12text}" th:style="'background-color: ' + ${publication.publish12color} + '; font-size: 10px; width: 260px; min-width: 260px; max-width: 260px; border-style: solid; border-width: thin'"></td>
+                        <td th:name="'publishLyrics'+${publication.publish12id}" th:style="'background-color: ' + ${publication.publish12colorMeltLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish12id}+', \'playlyrics\')'"></td>
+                        <td th:name="'publishKaraoke'+${publication.publish12id}" th:style="'background-color: ' + ${publication.publish12colorMeltKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish12id}+', \'playkaraoke\')'"></td>
+                        <td th:name="'publishLyricsBt'+${publication.publish12id}" th:style="'background-color: ' + ${publication.publish12colorMeltLyricsBt} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish12id}+', \'playlyricsbt\')'"></td>
+                        <td th:name="'publishKaraokeBt'+${publication.publish12id}" th:style="'background-color: ' + ${publication.publish12colorMeltKaraokeBt} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish12id}+', \'playkaraokebt\')'"></td>
+                        <td th:name="'publishText'+${publication.publish13id}" th:text="${publication.publish13text}" th:style="'background-color: ' + ${publication.publish13color} + '; font-size: 10px; width: 260px; min-width: 260px; max-width: 260px; border-style: solid; border-width: thin'"></td>
+                        <td th:name="'publishLyrics'+${publication.publish13id}" th:style="'background-color: ' + ${publication.publish13colorMeltLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish13id}+', \'playlyrics\')'"></td>
+                        <td th:name="'publishKaraoke'+${publication.publish13id}" th:style="'background-color: ' + ${publication.publish13colorMeltKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish13id}+', \'playkaraoke\')'"></td>
+                        <td th:name="'publishLyricsBt'+${publication.publish13id}" th:style="'background-color: ' + ${publication.publish13colorMeltLyricsBt} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish13id}+', \'playlyricsbt\')'"></td>
+                        <td th:name="'publishKaraokeBt'+${publication.publish13id}" th:style="'background-color: ' + ${publication.publish13colorMeltKaraokeBt} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish13id}+', \'playkaraokebt\')'"></td>
+                        <td th:name="'publishText'+${publication.publish14id}" th:text="${publication.publish14text}" th:style="'background-color: ' + ${publication.publish14color} + '; font-size: 10px; width: 260px; min-width: 260px; max-width: 260px; border-style: solid; border-width: thin'"></td>
+                        <td th:name="'publishLyrics'+${publication.publish14id}" th:style="'background-color: ' + ${publication.publish14colorMeltLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish14id}+', \'playlyrics\')'"></td>
+                        <td th:name="'publishKaraoke'+${publication.publish14id}" th:style="'background-color: ' + ${publication.publish14colorMeltKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish14id}+', \'playkaraoke\')'"></td>
+                        <td th:name="'publishLyricsBt'+${publication.publish14id}" th:style="'background-color: ' + ${publication.publish14colorMeltLyricsBt} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish14id}+', \'playlyricsbt\')'"></td>
+                        <td th:name="'publishKaraokeBt'+${publication.publish14id}" th:style="'background-color: ' + ${publication.publish14colorMeltKaraokeBt} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish14id}+', \'playkaraokebt\')'"></td>
+                        <td th:name="'publishText'+${publication.publish15id}" th:text="${publication.publish15text}" th:style="'background-color: ' + ${publication.publish15color} + '; font-size: 10px; width: 260px; min-width: 260px; max-width: 260px; border-style: solid; border-width: thin'"></td>
+                        <td th:name="'publishLyrics'+${publication.publish15id}" th:style="'background-color: ' + ${publication.publish15colorMeltLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish15id}+', \'playlyrics\')'"></td>
+                        <td th:name="'publishKaraoke'+${publication.publish15id}" th:style="'background-color: ' + ${publication.publish15colorMeltKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish15id}+', \'playkaraoke\')'"></td>
+                        <td th:name="'publishLyricsBt'+${publication.publish15id}" th:style="'background-color: ' + ${publication.publish15colorMeltLyricsBt} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish15id}+', \'playlyricsbt\')'"></td>
+                        <td th:name="'publishKaraokeBt'+${publication.publish15id}" th:style="'background-color: ' + ${publication.publish15colorMeltKaraokeBt} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish15id}+', \'playkaraokebt\')'"></td>
+                        <td th:name="'publishText'+${publication.publish16id}" th:text="${publication.publish16text}" th:style="'background-color: ' + ${publication.publish16color} + '; font-size: 10px; width: 260px; min-width: 260px; max-width: 260px; border-style: solid; border-width: thin'"></td>
+                        <td th:name="'publishLyrics'+${publication.publish16id}" th:style="'background-color: ' + ${publication.publish16colorMeltLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish16id}+', \'playlyrics\')'"></td>
+                        <td th:name="'publishKaraoke'+${publication.publish16id}" th:style="'background-color: ' + ${publication.publish16colorMeltKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish16id}+', \'playkaraoke\')'"></td>
+                        <td th:name="'publishLyricsBt'+${publication.publish16id}" th:style="'background-color: ' + ${publication.publish16colorMeltLyricsBt} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish16id}+', \'playlyricsbt\')'"></td>
+                        <td th:name="'publishKaraokeBt'+${publication.publish16id}" th:style="'background-color: ' + ${publication.publish16colorMeltKaraokeBt} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish16id}+', \'playkaraokebt\')'"></td>
+                        <td th:name="'publishText'+${publication.publish17id}" th:text="${publication.publish17text}" th:style="'background-color: ' + ${publication.publish17color} + '; font-size: 10px; width: 260px; min-width: 260px; max-width: 260px; border-style: solid; border-width: thin'"></td>
+                        <td th:name="'publishLyrics'+${publication.publish17id}" th:style="'background-color: ' + ${publication.publish17colorMeltLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish17id}+', \'playlyrics\')'"></td>
+                        <td th:name="'publishKaraoke'+${publication.publish17id}" th:style="'background-color: ' + ${publication.publish17colorMeltKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish17id}+', \'playkaraoke\')'"></td>
+                        <td th:name="'publishLyricsBt'+${publication.publish17id}" th:style="'background-color: ' + ${publication.publish17colorMeltLyricsBt} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish17id}+', \'playlyricsbt\')'"></td>
+                        <td th:name="'publishKaraokeBt'+${publication.publish17id}" th:style="'background-color: ' + ${publication.publish17colorMeltKaraokeBt} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish17id}+', \'playkaraokebt\')'"></td>
+                        <td th:name="'publishText'+${publication.publish18id}" th:text="${publication.publish18text}" th:style="'background-color: ' + ${publication.publish18color} + '; font-size: 10px; width: 260px; min-width: 260px; max-width: 260px; border-style: solid; border-width: thin'"></td>
+                        <td th:name="'publishLyrics'+${publication.publish18id}" th:style="'background-color: ' + ${publication.publish18colorMeltLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish18id}+', \'playlyrics\')'"></td>
+                        <td th:name="'publishKaraoke'+${publication.publish18id}" th:style="'background-color: ' + ${publication.publish18colorMeltKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish18id}+', \'playkaraoke\')'"></td>
+                        <td th:name="'publishLyricsBt'+${publication.publish18id}" th:style="'background-color: ' + ${publication.publish18colorMeltLyricsBt} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish18id}+', \'playlyricsbt\')'"></td>
+                        <td th:name="'publishKaraokeBt'+${publication.publish18id}" th:style="'background-color: ' + ${publication.publish18colorMeltKaraokeBt} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish18id}+', \'playkaraokebt\')'"></td>
+                        <td th:name="'publishText'+${publication.publish19id}" th:text="${publication.publish19text}" th:style="'background-color: ' + ${publication.publish19color} + '; font-size: 10px; width: 260px; min-width: 260px; max-width: 260px; border-style: solid; border-width: thin'"></td>
+                        <td th:name="'publishLyrics'+${publication.publish19id}" th:style="'background-color: ' + ${publication.publish19colorMeltLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish19id}+', \'playlyrics\')'"></td>
+                        <td th:name="'publishKaraoke'+${publication.publish19id}" th:style="'background-color: ' + ${publication.publish19colorMeltKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish19id}+', \'playkaraoke\')'"></td>
+                        <td th:name="'publishLyricsBt'+${publication.publish19id}" th:style="'background-color: ' + ${publication.publish19colorMeltLyricsBt} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish19id}+', \'playlyricsbt\')'"></td>
+                        <td th:name="'publishKaraokeBt'+${publication.publish19id}" th:style="'background-color: ' + ${publication.publish19colorMeltKaraokeBt} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish19id}+', \'playkaraokebt\')'"></td>
+                        <td th:name="'publishText'+${publication.publish20id}" th:text="${publication.publish20text}" th:style="'background-color: ' + ${publication.publish20color} + '; font-size: 10px; width: 260px; min-width: 260px; max-width: 260px; border-style: solid; border-width: thin'"></td>
+                        <td th:name="'publishLyrics'+${publication.publish20id}" th:style="'background-color: ' + ${publication.publish20colorMeltLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish20id}+', \'playlyrics\')'"></td>
+                        <td th:name="'publishKaraoke'+${publication.publish20id}" th:style="'background-color: ' + ${publication.publish20colorMeltKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish20id}+', \'playkaraoke\')'"></td>
+                        <td th:name="'publishLyricsBt'+${publication.publish20id}" th:style="'background-color: ' + ${publication.publish20colorMeltLyricsBt} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish20id}+', \'playlyricsbt\')'"></td>
+                        <td th:name="'publishKaraokeBt'+${publication.publish20id}" th:style="'background-color: ' + ${publication.publish20colorMeltKaraokeBt} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish20id}+', \'playkaraokebt\')'"></td>
+                        <td th:name="'publishText'+${publication.publish21id}" th:text="${publication.publish21text}" th:style="'background-color: ' + ${publication.publish21color} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
+                        <td th:name="'publishLyrics'+${publication.publish21id}" th:style="'background-color: ' + ${publication.publish21colorMeltLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish21id}+', \'playlyrics\')'"></td>
+                        <td th:name="'publishKaraoke'+${publication.publish21id}" th:style="'background-color: ' + ${publication.publish21colorMeltKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish21id}+', \'playkaraoke\')'"></td>
+                        <td th:name="'publishLyricsBt'+${publication.publish21id}" th:style="'background-color: ' + ${publication.publish21colorMeltLyricsBt} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish21id}+', \'playlyricsbt\')'"></td>
+                        <td th:name="'publishKaraokeBt'+${publication.publish21id}" th:style="'background-color: ' + ${publication.publish21colorMeltKaraokeBt} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish21id}+', \'playkaraokebt\')'"></td>
+                        <td th:name="'publishText'+${publication.publish22id}" th:text="${publication.publish22text}" th:style="'background-color: ' + ${publication.publish22color} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
+                        <td th:name="'publishLyrics'+${publication.publish22id}" th:style="'background-color: ' + ${publication.publish22colorMeltLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish22id}+', \'playlyrics\')'"></td>
+                        <td th:name="'publishKaraoke'+${publication.publish22id}" th:style="'background-color: ' + ${publication.publish22colorMeltKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish22id}+', \'playkaraoke\')'"></td>
+                        <td th:name="'publishLyricsBt'+${publication.publish22id}" th:style="'background-color: ' + ${publication.publish22colorMeltLyricsBt} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish22id}+', \'playlyricsbt\')'"></td>
+                        <td th:name="'publishKaraokeBt'+${publication.publish22id}" th:style="'background-color: ' + ${publication.publish22colorMeltKaraokeBt} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish22id}+', \'playkaraokebt\')'"></td>
+                        <td th:name="'publishText'+${publication.publish23id}" th:text="${publication.publish23text}" th:style="'background-color: ' + ${publication.publish23color} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
+                        <td th:name="'publishLyrics'+${publication.publish23id}" th:style="'background-color: ' + ${publication.publish23colorMeltLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish23id}+', \'playlyrics\')'"></td>
+                        <td th:name="'publishKaraoke'+${publication.publish23id}" th:style="'background-color: ' + ${publication.publish23colorMeltKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish23id}+', \'playkaraoke\')'"></td>
+                        <td th:name="'publishLyricsBt'+${publication.publish23id}" th:style="'background-color: ' + ${publication.publish23colorMeltLyricsBt} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish23id}+', \'playlyricsbt\')'"></td>
+                        <td th:name="'publishKaraokeBt'+${publication.publish23id}" th:style="'background-color: ' + ${publication.publish23colorMeltKaraokeBt} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish23id}+', \'playkaraokebt\')'"></td>
                     </tr>
                     </tbody>
 

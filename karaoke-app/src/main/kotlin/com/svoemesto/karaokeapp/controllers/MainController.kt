@@ -13,11 +13,14 @@ import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.*
 import java.io.File
-import java.nio.file.Files
-import java.nio.file.attribute.PosixFilePermissions
+import java.sql.Timestamp
 
 @Controller
 class MainController {
+//
+//    private val emittersSettings = CopyOnWriteArrayList<SseEmitter>()
+//    private val emittersProcesses = CopyOnWriteArrayList<SseEmitter>()
+
     @GetMapping("/")
     fun main(): String {
         return "main"
@@ -53,6 +56,25 @@ class MainController {
         return "redirect:/processes"
     }
 
+    @GetMapping("/songs/lastupdated")
+    @ResponseBody
+    fun getLastUpdatedSettings(@RequestParam(required = false) lastTime: Long? = null): List<Int> {
+        return Settings.getLastUpdated(lastTime)
+    }
+
+    @GetMapping("/process/lastupdated")
+    @ResponseBody
+    fun getLastUpdatedProcesses(@RequestParam(required = false) lastTime: Long? = null): List<Int> {
+        return KaraokeProcess.getLastUpdated(lastTime)
+    }
+
+    @GetMapping("/songs/createtags")
+    @ResponseBody
+    fun doCreateTags(): Boolean {
+        createFilesByTags()
+        return true
+    }
+
     @GetMapping("/process/start")
     @ResponseBody
     fun doProcessWorkerStart(): Boolean {
@@ -67,6 +89,13 @@ class MainController {
         return KaraokeProcessWorker.isWork
     }
 
+    @GetMapping("/process/deletedone")
+    @ResponseBody
+    fun doProcessDeleteDone(): Boolean {
+        KaraokeProcessWorker.deleteDone()
+        return true
+    }
+
     @GetMapping("/process/isworking")
     @ResponseBody
     fun doProcessWorkerIsWorking(): Boolean {
@@ -77,6 +106,16 @@ class MainController {
     @ResponseBody
     fun doProcessWorkerIsStopAfterThreadIsDone(): Boolean {
         return KaraokeProcessWorker.stopAfterThreadIsDone
+    }
+
+    @GetMapping("/song/{id}/setpublishdatetimetoauthor")
+    @ResponseBody
+    fun doSetPublishDateTimeToAuthor(@PathVariable id: Long): Int {
+        val settings = Settings.loadFromDbById(id)
+        settings?.let {
+            Settings.setPublishDateTimeToAuthor(settings)
+        }
+        return 0
     }
 
     @GetMapping("/song/{id}/playlyrics")
@@ -264,7 +303,7 @@ class MainController {
         val result: MutableList<Int> = mutableListOf()
         settings?.let {
             val hasChords = Song(settings, SongVersion.LYRICS).hasChords
-            result.add(KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, 3))
+            result.add(KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, 2))
             if (hasChords) {
                 result.add(KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDS, true, 3))
             }
@@ -275,6 +314,17 @@ class MainController {
             }
         }
         return result
+    }
+
+    @GetMapping("/song/{id}/dodemucs2")
+    @ResponseBody
+    fun doProcessDemucs2(@PathVariable id: Long): Int {
+        println("doProcessDemucs2")
+        val settings = Settings.loadFromDbById(id)
+        settings?.let {
+            return  KaraokeProcess.createProcess(settings, KaraokeProcessTypes.DEMUCS2, true, -1)
+        }
+        return 0
     }
 
     @GetMapping("/process/{id}")
@@ -617,6 +667,14 @@ class MainController {
         return text
     }
 
+    @PostMapping("/replacesymbolsinsong")
+    @ResponseBody
+    fun getReplaceSymbolsInSong(@RequestParam(required = true) txt: String): String {
+//        println(txt)
+        val result = replaceSymbolsInSong(txt)
+        println(result)
+        return result
+    }
 
 
 
@@ -844,6 +902,232 @@ class MainController {
 
 
 
+    @GetMapping("/song/{id}/texttelegramlyrics")
+    @ResponseBody
+    fun getSongTextTelegramLyrics(@PathVariable id: Long): String {
+        val settings = Settings.loadFromDbById(id)
+        val text = settings?.let {
+            val song = Song(settings, SongVersion.LYRICS)
+            val text = song.getDescriptionVk(isBluetoothDelay = false)
+            text
+        } ?: ""
+        return text
+    }
+
+    @GetMapping("/song/{id}/texttelegramlyricsbt")
+    @ResponseBody
+    fun getSongTextTelegramLyricsBt(@PathVariable id: Long): String {
+        val settings = Settings.loadFromDbById(id)
+        val text = settings?.let {
+            val song = Song(settings, SongVersion.LYRICS)
+            val text = song.getDescriptionVk(isBluetoothDelay = true)
+            text
+        } ?: ""
+        return text
+    }
+
+    @GetMapping("/song/{id}/texttelegramkaraoke")
+    @ResponseBody
+    fun getSongTextTelegramKaraoke(@PathVariable id: Long): String {
+        val settings = Settings.loadFromDbById(id)
+        val text = settings?.let {
+            val song = Song(settings, SongVersion.KARAOKE)
+            val text = song.getDescriptionVk(isBluetoothDelay = false)
+            text
+        } ?: ""
+        return text
+    }
+
+    @GetMapping("/song/{id}/texttelegramkaraokebt")
+    @ResponseBody
+    fun getSongTextTelegramKaraokeBt(@PathVariable id: Long): String {
+        val settings = Settings.loadFromDbById(id)
+        val text = settings?.let {
+            val song = Song(settings, SongVersion.KARAOKE)
+            val text = song.getDescriptionVk(isBluetoothDelay = true)
+            text
+        } ?: ""
+        return text
+    }
+
+    @GetMapping("/song/{id}/texttelegramchords")
+    @ResponseBody
+    fun getSongTextTelegramChords(@PathVariable id: Long): String {
+        val settings = Settings.loadFromDbById(id)
+        val text = settings?.let {
+            val song = Song(settings, SongVersion.CHORDS)
+            val text = song.getDescriptionVk(isBluetoothDelay = false)
+            text
+        } ?: ""
+        return text
+    }
+
+    @GetMapping("/song/{id}/texttelegramchordsbt")
+    @ResponseBody
+    fun getSongTextTelegramChordsBt(@PathVariable id: Long): String {
+        val settings = Settings.loadFromDbById(id)
+        val text = settings?.let {
+            val song = Song(settings, SongVersion.CHORDS)
+            val text = song.getDescriptionVk(isBluetoothDelay = true)
+            text
+        } ?: ""
+        return text
+    }
+
+
+    @GetMapping("/song/{id}/texttelegramlyricsheader")
+    @ResponseBody
+    fun getSongTextTelegramLyricsHeader(@PathVariable id: Long): String {
+        val settings = Settings.loadFromDbById(id)
+        val text = settings?.let {
+            val song = Song(settings, SongVersion.LYRICS)
+            val text = song.getDescriptionVkHeader(isBluetoothDelay = false)
+            text
+        } ?: ""
+        return text
+    }
+
+    @GetMapping("/song/{id}/texttelegramlyricsbtheader")
+    @ResponseBody
+    fun getSongTextTelegramLyricsBtHeader(@PathVariable id: Long): String {
+        val settings = Settings.loadFromDbById(id)
+        val text = settings?.let {
+            val song = Song(settings, SongVersion.LYRICS)
+            val text = song.getDescriptionVkHeader(isBluetoothDelay = true)
+            text
+        } ?: ""
+        return text
+    }
+
+    @GetMapping("/song/{id}/texttelegramkaraokeheader")
+    @ResponseBody
+    fun getSongTextTelegramKaraokeHeader(@PathVariable id: Long): String {
+        val settings = Settings.loadFromDbById(id)
+        val text = settings?.let {
+            val song = Song(settings, SongVersion.KARAOKE)
+            val text = song.getDescriptionVkHeader(isBluetoothDelay = false)
+            text
+        } ?: ""
+        return text
+    }
+
+    @GetMapping("/song/{id}/texttelegramkaraokebtheader")
+    @ResponseBody
+    fun getSongTextTelegramKaraokeBtHeader(@PathVariable id: Long): String {
+        val settings = Settings.loadFromDbById(id)
+        val text = settings?.let {
+            val song = Song(settings, SongVersion.KARAOKE)
+            val text = song.getDescriptionVkHeader(isBluetoothDelay = true)
+            text
+        } ?: ""
+        return text
+    }
+
+    @GetMapping("/song/{id}/texttelegramchordsheader")
+    @ResponseBody
+    fun getSongTextTelegramChordsHeader(@PathVariable id: Long): String {
+        val settings = Settings.loadFromDbById(id)
+        val text = settings?.let {
+            val song = Song(settings, SongVersion.CHORDS)
+            val text = song.getDescriptionVkHeader(isBluetoothDelay = false)
+            text
+        } ?: ""
+        return text
+    }
+
+    @GetMapping("/song/{id}/texttelegramchordsbtheader")
+    @ResponseBody
+    fun getSongTextTelegramChordsBtHeader(@PathVariable id: Long): String {
+        val settings = Settings.loadFromDbById(id)
+        val text = settings?.let {
+            val song = Song(settings, SongVersion.CHORDS)
+            val text = song.getDescriptionVkHeader(isBluetoothDelay = true)
+            text
+        } ?: ""
+        return text
+    }
+
+
+    @GetMapping("/song/{id}/texttelegramlyricswoheader")
+    @ResponseBody
+    fun getSongTextTelegramLyricsWOHeader(@PathVariable id: Long): String {
+        val settings = Settings.loadFromDbById(id)
+        val text = settings?.let {
+            val song = Song(settings, SongVersion.LYRICS)
+            val text = song.getDescriptionVkWOHeader(isBluetoothDelay = false)
+            text
+        } ?: ""
+        return text
+    }
+
+    @GetMapping("/song/{id}/texttelegramlyricsbtwoheader")
+    @ResponseBody
+    fun getSongTextTelegramLyricsBtWOHeader(@PathVariable id: Long): String {
+        val settings = Settings.loadFromDbById(id)
+        val text = settings?.let {
+            val song = Song(settings, SongVersion.LYRICS)
+            val text = song.getDescriptionVkWOHeader(isBluetoothDelay = true)
+            text
+        } ?: ""
+        return text
+    }
+
+    @GetMapping("/song/{id}/texttelegramkaraokewoheader")
+    @ResponseBody
+    fun getSongTextTelegramKaraokeWOHeader(@PathVariable id: Long): String {
+        val settings = Settings.loadFromDbById(id)
+        val text = settings?.let {
+            val song = Song(settings, SongVersion.KARAOKE)
+            val text = song.getDescriptionVkWOHeader(isBluetoothDelay = false)
+            text
+        } ?: ""
+        return text
+    }
+
+    @GetMapping("/song/{id}/texttelegramkaraokebtwoheader")
+    @ResponseBody
+    fun getSongTextTelegramKaraokeBtWOHeader(@PathVariable id: Long): String {
+        val settings = Settings.loadFromDbById(id)
+        val text = settings?.let {
+            val song = Song(settings, SongVersion.KARAOKE)
+            val text = song.getDescriptionVkWOHeader(isBluetoothDelay = true)
+            text
+        } ?: ""
+        return text
+    }
+
+    @GetMapping("/song/{id}/texttelegramchordswoheader")
+    @ResponseBody
+    fun getSongTextTelegramChordsWOHeader(@PathVariable id: Long): String {
+        val settings = Settings.loadFromDbById(id)
+        val text = settings?.let {
+            val song = Song(settings, SongVersion.CHORDS)
+            val text = song.getDescriptionVkWOHeader(isBluetoothDelay = false)
+            text
+        } ?: ""
+        return text
+    }
+
+    @GetMapping("/song/{id}/texttelegramchordsbtwoheader")
+    @ResponseBody
+    fun getSongTextTelegramChordsBtWOHeader(@PathVariable id: Long): String {
+        val settings = Settings.loadFromDbById(id)
+        val text = settings?.let {
+            val song = Song(settings, SongVersion.CHORDS)
+            val text = song.getDescriptionVkWOHeader(isBluetoothDelay = true)
+            text
+        } ?: ""
+        return text
+    }
+
+
+
+
+
+
+
+
+
     @GetMapping("/song/{id}/textboostyhead")
     @ResponseBody
     fun getSongTextBoostyHead(@PathVariable id: Long): String {
@@ -875,10 +1159,19 @@ class MainController {
         val settings = Settings.loadFromDbById(id)
         val text = settings?.let {
             val song = Song(settings, SongVersion.LYRICS)
-            val text = song.getVKDescription()
+            val text = song.getVKGroupDescription()
             text
         } ?: ""
         return text
+    }
+
+    @GetMapping("/song/{id}/searchsongtext")
+    @ResponseBody
+    fun getSearchSongText(@PathVariable id: Long): String {
+        val settings = Settings.loadFromDbById(id)
+        return  settings?.let {
+            searchSongText(settings)
+        } ?: ""
     }
 
     @GetMapping("/song/{id}/createkaraoke")
@@ -926,6 +1219,92 @@ class MainController {
         return "text"
     }
 
+
+    @PostMapping("/songs/createdemucs2all")
+    fun getSongsCreateDemucs2All(
+        @RequestParam(required = false) txt: String?,
+        model: Model): String {
+        var result = "Error"
+        txt?.let {
+            val ids = txt.split(";").mapNotNull { it }.filter { it != "" }.map { it.toLong() }
+            ids.forEach { id ->
+                val settings = Settings.loadFromDbById(id)
+                settings?.let {
+                    KaraokeProcess.createProcess(settings, KaraokeProcessTypes.DEMUCS2, true, -1)
+                }
+                result = "OK"
+            }
+        }
+        model.addAttribute("text", result)
+        return "text"
+    }
+
+
+    @PostMapping("/songs/create720pkaraokeall")
+    fun getSongsCreate720pKaraokeAll(
+        @RequestParam(required = false) txt: String?,
+        model: Model): String {
+        var result = "Error"
+        txt?.let {
+            val ids = txt.split(";").mapNotNull { it }.filter { it != "" }.map { it.toLong() }
+            ids.forEach { id ->
+                val settings = Settings.loadFromDbById(id)
+                settings?.let {
+                    KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_KAR, true, 1)
+                }
+                result = "OK"
+            }
+        }
+        model.addAttribute("text", result)
+        return "text"
+    }
+
+    @PostMapping("/songs/create720plyricsall")
+    fun getSongsCreate720pLyricsAll(
+        @RequestParam(required = false) txt: String?,
+        model: Model): String {
+        var result = "Error"
+        txt?.let {
+            val ids = txt.split(";").mapNotNull { it }.filter { it != "" }.map { it.toLong() }
+            ids.forEach { id ->
+                val settings = Settings.loadFromDbById(id)
+                settings?.let {
+                    KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_LYR, true, 1)
+                }
+                result = "OK"
+            }
+        }
+        model.addAttribute("text", result)
+        return "text"
+    }
+
+    @PostMapping("/songs/searchsongtextall")
+    fun getSearchSongTextAll(
+        @RequestParam(required = false) txt: String?,
+        model: Model): String {
+        var result = "Error"
+        txt?.let {
+            val ids = txt.split(";").mapNotNull { it }.filter { it != "" }.map { it.toLong() }
+            ids.forEach { id ->
+                val settings = Settings.loadFromDbById(id)
+                settings?.let {
+                    if (settings.sourceText.isBlank()) {
+                        val text = searchSongText(settings)
+                        if (text.isNotBlank()) {
+                            settings.sourceText = text
+                            settings.fields[SettingField.ID_STATUS] = "1"
+                            settings.saveToDb()
+                        }
+                    }
+
+                }
+                result = "OK"
+            }
+        }
+        model.addAttribute("text", result)
+        return "text"
+    }
+
     @PostMapping("/songs/createtextandmarkersfromoldversion")
     fun createTextAndMarkersFromOldVersion(
         @RequestParam(required = false) txt: String?,
@@ -945,11 +1324,7 @@ class MainController {
         return "text"
     }
 
-    @GetMapping("/publications")
-    fun publications(model: Model): String {
-        model.addAttribute("publications", Publication.getPublicationList())
-        return "publications"
-    }
+
     @GetMapping("/processes")
     fun processes(
         @RequestParam(required = false) filter_id: String?,
@@ -986,8 +1361,10 @@ class MainController {
         @RequestParam(required = false) filter_year: String?,
         @RequestParam(required = false) filter_album: String?,
         @RequestParam(required = false) filter_track: String?,
+        @RequestParam(required = false) filter_tags: String?,
         @RequestParam(required = false) filter_date: String?,
         @RequestParam(required = false) filter_time: String?,
+        @RequestParam(required = false) filter_status: String?,
         @RequestParam(required = false) flag_boosty: String?,
         @RequestParam(required = false) flag_vk: String?,
         @RequestParam(required = false) flag_youtube_lyrics: String?,
@@ -1002,6 +1379,12 @@ class MainController {
         @RequestParam(required = false) flag_vk_karaoke_bt: String?,
         @RequestParam(required = false) flag_vk_chords: String?,
         @RequestParam(required = false) flag_vk_chords_bt: String?,
+        @RequestParam(required = false) flag_telegram_lyrics: String?,
+        @RequestParam(required = false) flag_telegram_lyrics_bt: String?,
+        @RequestParam(required = false) flag_telegram_karaoke: String?,
+        @RequestParam(required = false) flag_telegram_karaoke_bt: String?,
+        @RequestParam(required = false) flag_telegram_chords: String?,
+        @RequestParam(required = false) flag_telegram_chords_bt: String?,
         model: Model): String {
 
         val args: MutableMap<String, String> = mutableMapOf()
@@ -1013,6 +1396,8 @@ class MainController {
         filter_time?.let { if (filter_time != "") args["publish_time"] = filter_time }
         filter_year?.let { if (filter_year != "") args["song_year"] = filter_year }
         filter_track?.let { if (filter_track != "") args["song_track"] = filter_track }
+        filter_tags?.let { if (filter_tags != "") args["tags"] = filter_tags }
+        filter_status?.let { if (filter_status != "") args["id_status"] = filter_status }
         flag_boosty?.let { if (flag_boosty != "") args["flag_boosty"] = flag_boosty }
         flag_vk?.let { if (flag_vk != "") args["flag_vk"] = flag_vk }
         flag_youtube_lyrics?.let { if (flag_youtube_lyrics != "") args["flag_youtube_lyrics"] = flag_youtube_lyrics }
@@ -1027,6 +1412,12 @@ class MainController {
         flag_vk_karaoke_bt?.let { if (flag_vk_karaoke_bt != "") args["flag_vk_karaoke_bt"] = flag_vk_karaoke_bt }
         flag_vk_chords?.let { if (flag_vk_chords != "") args["flag_vk_chords"] = flag_vk_chords }
         flag_vk_chords_bt?.let { if (flag_vk_chords_bt != "") args["flag_vk_chords_bt"] = flag_vk_chords_bt }
+        flag_telegram_lyrics?.let { if (flag_telegram_lyrics != "") args["flag_telegram_lyrics"] = flag_telegram_lyrics }
+        flag_telegram_lyrics_bt?.let { if (flag_telegram_lyrics_bt != "") args["flag_telegram_lyrics_bt"] = flag_telegram_lyrics_bt }
+        flag_telegram_karaoke?.let { if (flag_telegram_karaoke != "") args["flag_telegram_karaoke"] = flag_telegram_karaoke }
+        flag_telegram_karaoke_bt?.let { if (flag_telegram_karaoke_bt != "") args["flag_telegram_karaoke_bt"] = flag_telegram_karaoke_bt }
+        flag_telegram_chords?.let { if (flag_telegram_chords != "") args["flag_telegram_chords"] = flag_telegram_chords }
+        flag_telegram_chords_bt?.let { if (flag_telegram_chords_bt != "") args["flag_telegram_chords_bt"] = flag_telegram_chords_bt }
         model.addAttribute("sett", Settings.loadListFromDb(args))
         return "songs"
     }
@@ -1038,6 +1429,7 @@ class MainController {
         @RequestParam(required = false) settings_year: String,
         @RequestParam(required = false) settings_album: String,
         @RequestParam(required = false) settings_track: String,
+        @RequestParam(required = false) settings_tags: String,
         @RequestParam(required = false) settings_date: String,
         @RequestParam(required = false) settings_time: String,
         @RequestParam(required = false) settings_key: String,
@@ -1059,6 +1451,12 @@ class MainController {
         @RequestParam(required = false) settings_idVkKaraokeBt: String,
         @RequestParam(required = false) settings_idVkChords: String,
         @RequestParam(required = false) settings_idVkChordsBt: String,
+        @RequestParam(required = false) settings_idTelegramLyrics: String,
+        @RequestParam(required = false) settings_idTelegramLyricsBt: String,
+        @RequestParam(required = false) settings_idTelegramKaraoke: String,
+        @RequestParam(required = false) settings_idTelegramKaraokeBt: String,
+        @RequestParam(required = false) settings_idTelegramChords: String,
+        @RequestParam(required = false) settings_idTelegramChordsBt: String,
         @RequestParam(required = false) select_status: String,
         model: Model): String {
         val settingsId: Long = settings_id.toLong()
@@ -1066,6 +1464,7 @@ class MainController {
         settings?.let { sett ->
             sett.fileName = settings_fileName
             sett.rootFolder = settings_rootFolder
+            sett.tags = settings_tags
             sett.fields[SettingField.ID] = settings_id
             sett.fields[SettingField.NAME] = settings_songName
             sett.fields[SettingField.AUTHOR] = settings_author
@@ -1091,16 +1490,83 @@ class MainController {
             sett.fields[SettingField.ID_VK_KARAOKE_BT] = settings_idVkKaraokeBt
             sett.fields[SettingField.ID_VK_CHORDS] = settings_idVkChords
             sett.fields[SettingField.ID_VK_CHORDS_BT] = settings_idVkChordsBt
+            sett.fields[SettingField.ID_TELEGRAM_LYRICS] = settings_idTelegramLyrics
+            sett.fields[SettingField.ID_TELEGRAM_LYRICS_BT] = settings_idTelegramLyricsBt
+            sett.fields[SettingField.ID_TELEGRAM_KARAOKE] = settings_idTelegramKaraoke
+            sett.fields[SettingField.ID_TELEGRAM_KARAOKE_BT] = settings_idTelegramKaraokeBt
+            sett.fields[SettingField.ID_TELEGRAM_CHORDS] = settings_idTelegramChords
+            sett.fields[SettingField.ID_TELEGRAM_CHORDS_BT] = settings_idTelegramChordsBt
             sett.fields[SettingField.ID_STATUS] = select_status
             sett.saveToDb()
             sett.saveToFile()
-            if (settings_idBoosty != "" && settings_idYoutubeLyrics != "" && settings_idYoutubeLyricsBt != "" && settings_idYoutubeKaraoke != "" && settings_idYoutubeKaraokeBt !="") {
+            if (settings_idBoosty != "") {
                 sett.createVKDescription()
             }
+
+//            publicationsUpdate(settingsId)
+
         }
         return "redirect:/songs"
     }
 
 
+
+    @GetMapping("/publications")
+    fun publications(model: Model): String {
+
+//        publicationsSubscribe()
+
+        model.addAttribute("publications", Publication.getPublicationList())
+        return "publications"
+    }
+
+//    @GetMapping("/publications/subscribe")
+//    fun publicationsSubscribe(): SseEmitter {
+//
+//        val emitter = SseEmitter()
+//        emittersSettings.add(emitter)
+//        emitter.onCompletion { emittersSettings.remove(emitter) }
+////        emitter.onTimeout { emittersSettings.remove(emitter) }
+//        return emitter
+//
+//    }
+
+//    @PostMapping("/publications")
+//    fun publicationsUpdate(@RequestBody id: Long): String {
+//        val json = Json.encodeToString(SseMessage.serializer(), SseMessage(objType = "Settings", objId = id, eventName = "Update"))
+//        for (emitter in emittersSettings) {
+//            println("emitter: $emitter")
+//            try {
+//                emitter.send(SseEmitter.event().data(json))
+//            } catch (e: IOException) {
+//                emittersSettings.remove(emitter)
+//            }
+//        }
+//        return "redirect:/publications"
+//    }
+
+//    @GetMapping("/processes/subscribe")
+//    fun processesSubscribe(): SseEmitter {
+//
+//        val emitter = SseEmitter()
+//        emittersProcesses.add(emitter)
+////        emitter.onCompletion { emittersProcesses.remove(emitter) }
+////        emitter.onTimeout { emittersProcesses.remove(emitter) }
+//        return emitter
+//
+//    }
+
+//    @PostMapping("/processes")
+//    fun processesUpdate(@RequestBody id: Long): String {
+//        val json = Json.encodeToString(SseMessage.serializer(), SseMessage(objType = "Process", objId = id, eventName = "Update"))
+//        for (emitter in emittersProcesses) {
+//            try {
+//                emitter.send(SseEmitter.event().data(json))
+//            } catch (e: IOException) {
+//                emittersProcesses.remove(emitter)
+//            }
+//        }
+//        return "redirect:/processes"
+//    }
 
 }

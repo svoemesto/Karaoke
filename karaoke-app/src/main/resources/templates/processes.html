@@ -238,6 +238,13 @@
             requestStopWorker.send();
         }
 
+        function doDeleteDone() {
+            var requestStopWorker = new XMLHttpRequest();
+            requestStopWorker.open('GET', "/process/deletedone", true);
+            requestStopWorker.send();
+
+        }
+
         $(function() {
 
             var isWorkingElement = document.getElementById("isworking");
@@ -411,6 +418,7 @@
                 <div id="isworking"></div>
                 <button name="button_doStartWorker" id="button_doStartWorker" class="form-control btn btn-primary btn-block" type="button" value="Start" onclick="doStartWorker()">Start</button>
                 <button name="button_doStopWorker" id="button_doStopWorker" class="form-control btn btn-primary btn-block" type="button" value="Start" onclick="doStopWorker()">Stop</button>
+                <button name="button_doDeleteDone" id="button_doDeleteDone" class="form-control btn btn-primary btn-block" type="button" value="DelDone" onclick="doDeleteDone()">DelDone</button>
             </div>
 
 

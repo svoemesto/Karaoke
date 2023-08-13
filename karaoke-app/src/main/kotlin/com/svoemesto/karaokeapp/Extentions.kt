@@ -75,7 +75,7 @@ fun String.uppercaseFirstLetter(): String {
             result += symbolInSymbolString.uppercase()
             flag = true
         } else {
-            result += symbolInSymbolString.lowercase()
+            result += symbolInSymbolString //.lowercase()
         }
     }
     return result

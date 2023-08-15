@@ -37,13 +37,13 @@ fun main() {
 //        }
 //    }
 
-//    createDigestForAllAuthors()
-//    createDigestForAllAuthorsForOper()
+    createDigestForAllAuthors()
+    createDigestForAllAuthorsForOper()
 
 //    collectDoneFilesToStoreFolder()
 //    create720pForAllUncreated()
 
-    testUpdateSongFromCloud()
+//    testUpdateSongFromCloud()
 
 //    collectYo()
 

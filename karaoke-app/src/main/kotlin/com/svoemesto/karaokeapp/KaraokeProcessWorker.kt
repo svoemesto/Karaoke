@@ -125,7 +125,7 @@ class KaraokeProcessWorker {
 
                 if (counter % 120 == 0) {
                     // Каждые 120 секунд проверяем наличие файлов на обновление
-                    val listFiles = getListFiles("/files/Yandex.Disk/Karaoke/_TMP","settings")
+                    val listFiles = getListFiles("/clouds/Yandex.Disk/Karaoke/_TMP","settings")
                     listFiles.forEach {fileName ->
                         val tmpSettings = Settings.loadFromFile(fileName, readonly = true)
                         File(fileName).delete()
@@ -146,6 +146,7 @@ class KaraokeProcessWorker {
                                 settings.createKaraoke()
 
                                 KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, 0)
+                                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_LYR, true, 0)
                                 KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, 1)
                                 KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS_BT, true, 3)
                                 KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE_BT, true, 3)

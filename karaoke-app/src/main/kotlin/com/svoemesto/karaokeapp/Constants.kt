@@ -87,7 +87,7 @@ const val CONNECTION_URL = "jdbc:postgresql://localhost:5430/karaoke?currentSche
 const val CONNECTION_USER = "postgres"
 const val CONNECTION_PASSWORD = "postgres"
 
-const val PATH_TO_STORE_FOLDER = "/files/Yandex.Disk/Karaoke"
+const val PATH_TO_STORE_FOLDER = "/clouds/Yandex.Disk/Karaoke"
 
 val PROJECT_ROOT_FOLDERS = listOf(
     "/home/nsa/Documents/Караоке",

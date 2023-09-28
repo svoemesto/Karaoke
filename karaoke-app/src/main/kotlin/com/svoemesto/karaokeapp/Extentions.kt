@@ -35,7 +35,7 @@ fun List<Color>.setting(): String {
 
 fun String.hashtag(): String {
     var result = "#"
-    forEach { if (it.lowercase() in "qwertyuiopasdfghjklzxcvbnmйцукенгшщзхъёфывапролджэячсмитьбю1234567890") result += it  }
+    forEach { if (it.lowercase() in "qwertyuiopasdfghjklzxcvbnmйцукенгшщзхъёфывапролджэячсмитьбюѣ1234567890") result += it  }
     return result
 }
 

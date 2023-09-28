@@ -1,15 +1,253 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
 <head>
     <meta charset="UTF-8">
-    <title>Main Page Karaok</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css" integrity="sha384-B0vP5xmATw1+K9KRQjQERJvTumQW0nPEzvF6L/Z6nronJ3oUOFUFpCjEUQouq2+l" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-Piv4xVNRyMGpqkS2by6br4gNJ7DXjqk09RmUpJ8jgGtD7zP9yug3goQfGII0yAns" crossorigin="anonymous"></script>
+    <title>Main page Karaoke</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        #areaScreen {
+            padding: 1em;
+            display: flex;
+            min-height: 100vh;
+            flex-direction: column;
+            margin: 0;
+        }
+
+        #areaHeader {
+            padding: 5px;
+            background: whitesmoke;
+            height: 50px;
+        }
+
+        #areaBody {
+            padding: 5px;
+            display: flex;
+            flex: 1;
+            background: white;
+        }
+
+
+        tbody tr.sub-row0:hover {
+            background: #d5e6ff; /* Цвет фона */
+        }
+        tbody tr.sub-row1:hover {
+            background: #d5e6ff; /* Цвет фона */
+        }
+        tbody tr.sub-row2:hover {
+            background: #f00; /* Цвет фона */
+        }
+
+        .sub-row0 { color: #000; background: #FFF; border-width: thin; border-color: black }
+        .sub-row1 { color: #000; background: #EEE; border-width: thin; border-color: black }
+        .sub-row2 { color: #000; background: #EC8888; border-top-width: medium; border-bottom-width: medium; border-bottom-color: red; border-top-color: red }
+        .nonselrec {  color: #000; border-width: thin; border-color: black }
+        .selrec { color: #000; background: cyan}
+
+    </style>
+
+    <script type="text/javascript">
+
+        function doAddKaraokeByFolder() {
+
+            var folder = document.getElementById("field_folder_path").value;
+
+            if (confirm(`Добавить файлы из папки «${folder}»?`)) {
+
+                $.ajax({
+                    type: "POST",
+                    url: "/utils/createfromfolder",
+                    data: {"folder": folder},
+                    success: function(data) {
+                        alert(`Добавлено файлов: ${data}`);
+                    }
+                });
+
+            }
+        }
+        function doCreateDzenPicturesForFolder() {
+
+            var folder = document.getElementById("field_folder_path").value;
+
+            if (confirm(`Создать файлы картинок Dzen-плейлистов для папки «${folder}»?`)) {
+
+                $.ajax({
+                    type: "POST",
+                    url: "/utils/createdzenpicturesforfolder",
+                    data: {"folder": folder},
+                    success: function(data) {
+                        alert(`Картинки созданы.`);
+                    }
+                });
+
+            }
+        }
+
+        function doCreateDigest() {
+            if (confirm("Создать дайджест?")) {
+                $.ajax({
+                    type: "GET",
+                    url: "/utils/createdigest",
+                    data: "",
+                    success: function(data) {
+                        alert("Дайджест создан.");
+                    }
+                });
+            }
+        }
+
+        function doUpdateBpmAndKey() {
+            if (confirm("Обновить пустые BPM и KEY из фалов CSV?")) {
+                $.ajax({
+                    type: "GET",
+                    url: "/utils/updatebpmandkey",
+                    data: "",
+                    success: function(data) {
+                        alert(`Обновлено песен: ${data}`);
+                    }
+                });
+            }
+        }
+
+        function doCopyToStore() {
+            if (confirm("Обновить хранилище?")) {
+                $.ajax({
+                    type: "GET",
+                    url: "/utils/collectstore",
+                    data: "",
+                    success: function(data) {
+                        alert("Хранилище обновлено, сформированы задания на кодирование 720р.");
+                    }
+                });
+            }
+        }
+
+        function doMarkDublicates() {
+
+            var author = document.getElementById("field_author").value;
+
+            if (confirm(`Найти и пометить дубликаты песен автора «${author}»?`)) {
+
+                $.ajax({
+                    type: "POST",
+                    url: "/utils/markdublicates",
+                    data: {"author": author},
+                    success: function(data) {
+                        alert(`Найдено и помечено ${data} дубликатов песен автора «${author}»?`);
+                    }
+                });
+
+            }
+        }
+
+        function doDelDublicates() {
+            if (confirm("Удалить дубликаты?")) {
+                $.ajax({
+                    type: "GET",
+                    url: "/utils/deldublicates",
+                    data: "",
+                    success: function(data) {
+                        alert(`Удалено дубликатов: ${data}`);
+                    }
+                });
+            }
+        }
+
+
+        function doClearPreDublicates() {
+            if (confirm("Очистить информацию о пре-дубликатах?")) {
+                $.ajax({
+                    type: "GET",
+                    url: "/utils/clearpredublicates",
+                    data: "",
+                    success: function(data) {
+                        alert(`Очишено информации о пре-дубликатах: ${data}`);
+                    }
+                });
+            }
+        }
+
+    </script>
 </head>
+
 <body>
-<div th:insert="navigation_bar.html"></div>
-<strong>Main Page Karaoke</strong>
-<br>
-<br>
+
+<div id="areaScreen">
+    <div id="areaHeader">
+        <div th:insert="~{navigation_bar.html}"></div>
+    </div>
+    <div id="areaBody">
+        <datalist id="list_authors">
+            <option th:each="author:${authors}" th:value="${author}">
+        </datalist>
+        <table class="table table-hover table-bordered" style="margin: 1px;padding: 1px; height: fit-content;">
+            <tr style="margin: 1px;padding: 1px;height: auto;">
+                <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                    <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="field_folder_path" name="field_folder_path" placeholder="Путь к папке">
+                </td>
+            </tr>
+            <tr style="margin: 1px;padding: 1px;height: auto;">
+                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                    <button style="height: 35px;" name="button_add_karaoke_by_folder" id="button_add_karaoke_by_folder" class="form-control btn btn-primary btn-block" type="button" onclick="doAddKaraokeByFolder()">Добавить файлы из папки</button>
+                </td>
+            </tr>
+
+            <tr style="margin: 1px;padding: 1px;height: auto;">
+                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                    <button style="height: 35px;" name="button_create_dzen_pictures" id="button_create_dzen_pictures" class="form-control btn btn-primary btn-block" type="button" onclick="doCreateDzenPicturesForFolder()">Создать картинки плейлистов Dzen для папки</button>
+                </td>
+            </tr>
+
+            <tr style="margin: 1px;padding: 1px;height: auto;">
+                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                    <button style="height: 35px;" name="button_create_digest" id="button_create_digest" class="form-control btn btn-primary btn-block" type="button" onclick="doCreateDigest()">Создать дайджест</button>
+                </td>
+            </tr>
+
+            <tr style="margin: 1px;padding: 1px;height: auto;">
+                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                    <button style="height: 35px;" name="button_copy_to_store" id="button_copy_to_store" class="form-control btn btn-primary btn-block" type="button" onclick="doCopyToStore()">Обновить хранилище</button>
+                </td>
+            </tr>
+
+            <tr style="margin: 1px;padding: 1px;height: auto;">
+                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                    <button style="height: 35px;" name="button_update_bpm_and_key" id="button_update_bpm_and_key" class="form-control btn btn-primary btn-block" type="button" onclick="doUpdateBpmAndKey()">Обновить пустые BPM и KEY из фалов CSV</button>
+                </td>
+            </tr>
+
+            <tr style="margin: 1px;padding: 1px;height: auto;">
+                <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                    <input list="list_authors" style="font-size: 14px; padding: 0;" class="form-control" type="text" id="field_author" name="field_author" placeholder="Автор">
+                </td>
+            </tr>
+
+            <tr style="margin: 1px;padding: 1px;height: auto;">
+                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                    <button style="height: 35px;" name="button_mark_dublicates" id="button_mark_dublicates" class="form-control btn btn-primary btn-block" type="button" onclick="doMarkDublicates()">Найти и пометить дубликаты песен автора</button>
+                </td>
+            </tr>
+
+            <tr style="margin: 1px;padding: 1px;height: auto;">
+                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                    <button style="height: 35px;" name="button_del_dublicates" id="button_del_dublicates" class="form-control btn btn-primary btn-block" type="button" onclick="doDelDublicates()">Удалить дубликаты</button>
+                </td>
+            </tr>
+
+            <tr style="margin: 1px;padding: 1px;height: auto;">
+                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                    <button style="height: 35px;" name="button_clear_pre_dublicates" id="button_clear_pre_dublicates" class="form-control btn btn-primary btn-block" type="button" onclick="doClearPreDublicates()">Очистить информацию о пре-дубликатах</button>
+                </td>
+            </tr>
+
+        </table>
+
+    </div>
+</div>
+
 </body>
 </html>

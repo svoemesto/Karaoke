@@ -43,6 +43,8 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.0")
     implementation("org.jsoup:jsoup:1.14.1")
     implementation("io.ktor:ktor-server-core:2.3.0")
+    implementation("org.apache.commons:commons-csv:1.8")
+
 //    implementation("org.springframework:spring-messaging:6.0.9")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")

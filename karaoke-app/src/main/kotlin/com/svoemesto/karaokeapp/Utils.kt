@@ -4,7 +4,12 @@ import com.google.gson.GsonBuilder
 import com.svoemesto.karaokeapp.mlt.*
 import com.svoemesto.karaokeapp.model.*
 import org.apache.commons.io.FileUtils
+import org.apache.commons.csv.CSVFormat
+import org.apache.commons.csv.CSVParser
+import java.io.FileReader
+import java.io.IOException
 import org.jsoup.Jsoup
+import org.jsoup.nodes.Element
 import org.odftoolkit.simple.SpreadsheetDocument
 import java.awt.*
 import java.awt.image.BufferedImage
@@ -13,6 +18,7 @@ import java.io.File
 import java.io.InputStreamReader
 import java.nio.file.Files
 import java.nio.file.Paths
+import java.nio.file.StandardCopyOption
 import java.nio.file.attribute.PosixFilePermissions
 import java.sql.DriverManager
 import java.sql.ResultSet
@@ -28,7 +34,23 @@ import kotlin.random.Random
 
 fun main() {
 
-//    Settings.createFromPath("/home/nsa/Documents/Караоке/ЭЛЕКТРОСЛАБОСТЬ/2023 - Два бомжа")
+//    updateBpmAndKey()
+
+//    Settings.createFromPath("/home/nsa/Documents/Караоке/По заявкам/Дом Кукол")
+//    markDublicates("Несчастный Случай")
+//    delDublicates()
+//    markDublicates("Блуждающие Огни")
+//    markDublicates("Глеб Самойлоff & The MatriXX")
+//    markDublicates("Несчастный Случай")
+//    markDublicates("Белая Гвардия")
+//    markDublicates("Спектакль Джо")
+//    markDublicates("Ленинград")
+//    markDublicates("Эпидемия")
+//    markDublicates("Тимур Шаов")
+//    markDublicates("Гражданская Оборона")
+//    markDublicates("Хитобои")
+//    markDublicates("Дореволюціонный совѣтчикъ")
+//    markDublicates("Бригадный подряд")
 
 
 //    Settings.loadListFromDb().forEach { sett ->
@@ -40,25 +62,25 @@ fun main() {
     createDigestForAllAuthors()
     createDigestForAllAuthorsForOper()
 
-//    collectDoneFilesToStoreFolder()
-//    create720pForAllUncreated()
+
+//    collectDoneFilesToStoreFolderAndCreate720pForAllUncreated()
 
 //    testUpdateSongFromCloud()
 
 //    collectYo()
 
-//    createDzenPicture("/home/nsa/Documents/Караоке/Lumen")
-//    createDzenPicture("/home/nsa/Documents/Караоке/Nautilus Pompilius")
-//    createDzenPicture("/home/nsa/Documents/Караоке/Агата Кристи")
-//    createDzenPicture("/home/nsa/Documents/Караоке/АлисА")
-//    createDzenPicture("/home/nsa/Documents/Караоке/АнимациЯ")
-//    createDzenPicture("/home/nsa/Documents/Караоке/Ария")
-//    createDzenPicture("/home/nsa/Documents/Караоке/Бригада С")
-//    createDzenPicture("/home/nsa/Documents/Караоке/Вадим Самойлов")
-//    createDzenPicture("/home/nsa/Documents/Караоке/Високосный год")
-//    createDzenPicture("/home/nsa/Documents/Караоке/Гарик Сукачёв")
-//    createDzenPicture("/home/nsa/Documents/Караоке/ГОРШЕНЕВ")
-//    createDzenPicture("/home/nsa/Documents/Караоке/Горшок")
+//    createDzenPicture("/home/nsa/Documents/Караоке/Несчастный Случай")
+//    createDzenPicture("/home/nsa/Documents/Караоке/Блуждающие Огни")
+//    createDzenPicture("/home/nsa/Documents/Караоке/Глеб Самойлоff & The MatriXX")
+//    createDzenPicture("/home/nsa/Documents/Караоке/Белая Гвардия")
+//    createDzenPicture("/home/nsa/Documents/Караоке/Спектакль Джо")
+//    createDzenPicture("/home/nsa/Documents/Караоке/Ленинград")
+//    createDzenPicture("/home/nsa/Documents/Караоке/Эпидемия")
+//    createDzenPicture("/home/nsa/Documents/Караоке/Тимур Шаов")
+//    createDzenPicture("/home/nsa/Documents/Караоке/Гражданская Оборона")
+//    createDzenPicture("/home/nsa/Documents/Караоке/Хитобои")
+//    createDzenPicture("/home/nsa/Documents/Караоке/Дореволюціонный совѣтчикъ")
+//    createDzenPicture("/home/nsa/Documents/Караоке/Бригадный подряд")
 //    createDzenPicture("/home/nsa/Documents/Караоке/Звери")
 //    createDzenPicture("/home/nsa/Documents/Караоке/КИНО")
 //    createDzenPicture("/home/nsa/Documents/Караоке/КняZz")
@@ -78,46 +100,101 @@ fun main() {
 
 }
 
-fun testUpdateSongFromCloud() {
 
-    val fileName = "/files/Yandex.Disk/Karaoke/_TMP/1993 (11) [СерьГа] - Новое утро.settings"
-
-    val tmpSettings = Settings.loadFromFile(fileName, readonly = true)
-
-    println(tmpSettings.id)
-
-    val settings = Settings.loadFromDbById(tmpSettings.id)
-
-    if (settings != null) {
-
-        if (settings.sourceText == tmpSettings.sourceText && settings.sourceMarkers == tmpSettings.sourceMarkers) {
-            println("Текст без изменений.")
-        } else {
-            println("В тексте есть изменения.")
-
-            settings.sourceText = tmpSettings.sourceText
-            settings.sourceMarkers = tmpSettings.sourceMarkers
+fun updateBpmAndKey(): Int {
+    val listSettings = Settings.loadListFromDb(mapOf("song_tone" to "''", "song_bpm" to "0"))
+    var counter = 0
+    listSettings.forEach { settings ->
+        val (bpm, key) = getBpmAndKeyFromCsv(settings)
+        if (bpm != 0L && key != "") {
+            println("${settings.fileName} : bpm = ${bpm}, tone = ${key}")
+            settings.fields[SettingField.BPM] = bpm.toString()
+            settings.fields[SettingField.KEY] = key
             settings.saveToDb()
-
-            File(fileName).delete()
-
-            settings.sourceMarkersList.forEachIndexed { voice, _ ->
-                val strText = settings.convertMarkersToSrt(voice)
-                File("${settings.rootFolder}/${settings.fileName}.voice${voice+1}.srt").writeText(strText)
-            }
-
-            settings.createKaraoke()
-
-            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, 0)
-            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, 1)
-            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS_BT, true, 3)
-            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE_BT, true, 3)
-
+            counter++
         }
-
     }
+    return counter
+}
+
+fun getBpmAndKeyFromCsv(settings: Settings): Pair<Long, String> {
+    val csvFilePath = settings.rootFolder + "/key_bpm.csv"
+    if (File(csvFilePath).exists()) {
+        try {
+            FileReader(csvFilePath).use { fileReader ->
+                val csvParser = CSVParser(fileReader, CSVFormat.DEFAULT)
+
+                // Проходимся по записям CSV и читаем данные
+                for (csvRecord in csvParser) {
+                    val fileName = csvRecord.get(0)
+                    val bpm = csvRecord.get(3)
+                    val key = csvRecord.get(4)
+                    if (fileName == settings.fileName + ".flac") {
+                        return Pair(bpm.toLong(), key)
+                    }
+                }
+            }
+        } catch (e: IOException) {
+            e.printStackTrace()
+        }
+    }
+    return Pair(0, "")
+
+}
 
 
+
+fun delDublicates(): Int {
+    var counter = 0
+    val listSettings = Settings.loadListFromDb(
+        mapOf(Pair("tags", "DD"))
+    )
+    listSettings.forEach { settings ->
+        if (settings.tags == "DD") {
+            settings.deleteFromDb()
+            counter++
+        }
+    }
+    return counter
+}
+
+fun clearPreDublicates(): Int {
+    var counter = 0
+    val listSettings = Settings.loadListFromDb(
+        mapOf(Pair("tags", "D"))
+    )
+    listSettings.forEach { settings ->
+        if (settings.tags == "D") {
+            settings.tags = ""
+            settings.saveToDb()
+            counter++
+        }
+    }
+    return counter
+}
+
+fun markDublicates(autor: String): Int {
+    var counter = 0
+    val listSettings = Settings.loadListFromDb(
+        mapOf(Pair("song_author", autor))
+    )
+    listSettings.forEach { settings ->
+        if (settings.tags == "") {
+            val listDoubles = listSettings.filter {
+                it.songName == settings.songName && it.id > settings.id
+            }
+            if (listDoubles.isNotEmpty()) {
+                settings.tags = "D"
+                settings.saveToDb()
+                listDoubles.forEach{
+                    it.tags = "DD"
+                    it.saveToDb()
+                    counter++
+                }
+            }
+        }
+    }
+    return counter
 }
 
 fun create720pForAllUncreated() {
@@ -138,24 +215,36 @@ fun create720pForAllUncreated() {
 
 }
 
-fun collectDoneFilesToStoreFolder() {
+
+fun copyIfNeed(pathFrom: String, pathTo: String, folderTo: String, log: String = ""): Boolean {
+    val fileFrom = File(pathFrom)
+    val fileTo = File(pathTo)
+    if (fileFrom.exists()) {
+        if (!fileTo.exists() || (fileFrom.length() != fileTo.length())) {
+            if (!File(folderTo).exists()) Files.createDirectories(Path(folderTo))
+            if (log != "") println(log)
+            Files.copy(Path(pathFrom), Path(pathTo), StandardCopyOption.REPLACE_EXISTING)
+            return true
+        }
+    }
+    return false
+}
+
+fun collectDoneFilesToStoreFolderAndCreate720pForAllUncreated() {
+    println("Копирование в хранилище и создание заданий на кодирование в 720р")
     val settingsList = Settings.loadListFromDb()
     settingsList.forEach { settings ->
-        if (File(settings.pathToFileLyrics).exists() && !File(settings.pathToStoreFileLyrics).exists()) {
-            if (!File(settings.pathToStoreFolderLyrics).exists()) Files.createDirectories(Path(settings.pathToStoreFolderLyrics))
-            println("Копируем в хранилище файл: ${settings.nameFileLyrics}")
-            Files.copy(Path(settings.pathToFileLyrics), Path(settings.pathToStoreFileLyrics))
+        if (copyIfNeed(settings.pathToFileLyrics, settings.pathToStoreFileLyrics, settings.pathToStoreFolderLyrics, "Копируем в хранилище файл: ${settings.nameFileLyrics}")) {
+            println("Создаём задание на кодирование в 720р для файла: ${settings.nameFileLyrics}")
+            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_LYR, true, 1)
         }
-        if (File(settings.pathToFileKaraoke).exists() && !File(settings.pathToStoreFileKaraoke).exists()) {
-            if (!File(settings.pathToStoreFolderKaraoke).exists()) Files.createDirectories(Path(settings.pathToStoreFolderKaraoke))
-            println("Копируем в хранилище файл: ${settings.nameFileKaraoke}")
-            Files.copy(Path(settings.pathToFileKaraoke), Path(settings.pathToStoreFileKaraoke))
+        if (copyIfNeed(settings.pathToFileKaraoke, settings.pathToStoreFileKaraoke, settings.pathToStoreFolderKaraoke, "Копируем в хранилище файл: ${settings.nameFileKaraoke}")) {
+            println("Создаём задание на кодирование в 720р для файла: ${settings.nameFileKaraoke}")
+            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_KAR, true, 1)
         }
-        if (File(settings.pathToFileChords).exists() && !File(settings.pathToStoreFileChords).exists()) {
-            if (!File(settings.pathToStoreFolderChords).exists()) Files.createDirectories(Path(settings.pathToStoreFolderChords))
-            println("Копируем в хранилище файл: ${settings.nameFileChords}")
-            Files.copy(Path(settings.pathToFileChords), Path(settings.pathToStoreFileChords))
-        }
+        copyIfNeed(settings.pathToFileChords, settings.pathToStoreFileChords, settings.pathToStoreFolderChords, "Копируем в хранилище файл: ${settings.nameFileChords}")
+
+
 //        if (File(settings.pathToFileLyricsBt).exists() && !File(settings.pathToStoreFileLyricsBt).exists()) {
 //            if (!File(settings.pathToStoreFolderLyricsBt).exists()) Files.createDirectories(Path(settings.pathToStoreFolderLyricsBt))
 //            println("Копируем в хранилище файл: ${settings.nameFileLyricsBt}")
@@ -256,7 +345,7 @@ fun createDigestForAllAuthors(vararg authors: String) {
     val listAuthors = getAuthorsForDigest()
     listAuthors.forEach { author ->
         if (authors.isEmpty() || author in authors) {
-            var txt = "ЗАКРОМА - «$author»\n\n${getAuthorDigest(author).first}"
+            var txt = "ЗАКРОМА - «$author»\n\n${getAuthorDigest(author, false).first}"
             val fileName = "/home/nsa/Documents/Караоке/Digest/${author} (digest).txt"
             File(fileName).writeText(txt, Charsets.UTF_8)
         }
@@ -345,7 +434,7 @@ fun getAuthorDigest(author: String, withRazor: Boolean = true): Pair<String, Int
     return result to listDigest.size
 }
 
-fun searchSongText(settings: Settings): String {
+fun searchSongText2(settings: Settings) {
 
     val searchQuery = "${settings.author} ${settings.songName}"
     val searchUrl = "https://www.google.com/search?q=${searchQuery.replace(" ", "+")}+текст+песни"
@@ -353,8 +442,27 @@ fun searchSongText(settings: Settings): String {
     // Загрузка страницы результатов поиска
     val document = Jsoup.connect(searchUrl).get()
 
+    val links: List<Element> = document.select("a")
+
+    // Пройтись по найденным ссылкам и вывести их href (URL)
+    for (link in links) {
+        val href = link.attr("href")
+        println(href)
+    }
+
+}
+
+fun searchSongText(settings: Settings): String {
+
+    val searchQuery = "${settings.author} ${settings.songName}".replace("&", "")
+    val searchUrl = "https://www.google.com/search?q=${searchQuery.replace(" ", "+")}+текст+песни"
+
+    // Загрузка страницы результатов поиска
+    var document = Jsoup.connect(searchUrl).get()
+
+
     // Поиск текста песни на странице результатов
-    val lyricsElement = document.selectFirst("div[data-lyricid]")
+    var lyricsElement = document.selectFirst("div[data-lyricid]")
 
     println(lyricsElement?.text())
 
@@ -365,6 +473,225 @@ fun searchSongText(settings: Settings): String {
             return spanTexts.joinToString("\n")
         }
     }
+
+    val links: List<Element> = document.select("a")
+
+    println("Ссылок найдено: ${links.size}")
+
+    for (link in links) {
+        if (link.attr("href").startsWith("http")) {
+            println(link.attr("href"))
+        }
+
+    }
+    // Пройтись по найденным ссылкам и вывести их href (URL)
+    for (link in links) {
+        val href = link.attr("href")
+        if (href.startsWith("https://learnsongs.ru/")) {
+
+            println(href)
+
+            document = Jsoup.connect(href).get()
+
+            val h2Elements = document.select("h2")
+            for (h2Element in h2Elements) {
+                h2Element.remove()
+            }
+
+            lyricsElement = document.getElementById("tab01")
+//            println(lyricsElement?.ownText())
+//            println(lyricsElement?.html())
+
+            var text = lyricsElement?.html()
+
+            if (text != null) {
+                text = text.replace("<br> &nbsp;", "")
+                text = text.replace("<br> ", "")
+                text = text.replace("<br>", "")
+                return text
+            }
+
+        } else if (href.startsWith("https://textypesen.com/")) {
+
+            println(href)
+
+            document = Jsoup.connect(href).get()
+
+            val h2Elements = document.select("h2")
+            for (h2Element in h2Elements) {
+                h2Element.remove()
+            }
+
+            lyricsElement = document.selectFirst("div.col-sm-100.text-center")
+            println(lyricsElement?.ownText())
+            println(lyricsElement?.html())
+
+            var text = lyricsElement?.html()
+
+            if (text != null) {
+                text = text.replace("<br> ", "\n")
+                text = text.replace("<br>", "\n")
+                text = text.replace("&nbsp;", " ")
+                text = text.replace("<p class=\"font-size-20\">", "")
+                text = text.replace("</p>", "")
+                println(text)
+                return text
+            }
+
+        } else if (href.startsWith("https://musictxt.ru/")) {
+
+            println(href)
+
+            document = Jsoup.connect(href).get()
+
+            val h1Elements = document.select("h1")
+            for (h1Element in h1Elements) {
+                h1Element.remove()
+            }
+
+            val aElements = document.select("a")
+            for (aElements in aElements) {
+                aElements.remove()
+            }
+
+            lyricsElement = document.getElementById("layer2")
+            println("text()")
+            println(lyricsElement?.text())
+            println("ownText()")
+            println(lyricsElement?.ownText())
+            println("html()")
+            println(lyricsElement?.html())
+
+            var text = lyricsElement?.html()
+
+            if (text != null) {
+                text = text.replace("<br> ", "\n")
+                text = text.replace("<br>", "\n")
+                text = text.replace("<!-- Yandex.RTB R-A-587487-5 -->", "")
+                text = text.replace("""<div id="yandex_rtb_R-A-587487-5"></div><script>window.yaContextCb.push(()=>{Ya.Context.AdvManager.render({"blockId": "R-A-587487-5","renderTo": "yandex_rtb_R-A-587487-5"})})</script></pre>""", "")
+                text = text.replace("<pre>", "")
+                println(text)
+                return text
+            }
+
+        } else if (href.startsWith("https://textocat.ru/")) {
+
+            println(href)
+
+            document = Jsoup.connect(href).get()
+
+            val h1Elements = document.select("h1")
+            for (h1Element in h1Elements) {
+                h1Element.remove()
+            }
+
+            val aElements = document.select("a")
+            for (aElements in aElements) {
+                aElements.remove()
+            }
+
+            lyricsElement = document.selectFirst("div.entry-content")
+            println("text()")
+            println(lyricsElement?.text())
+            println("ownText()")
+            println(lyricsElement?.ownText())
+            println("html()")
+            println(lyricsElement?.html())
+
+            var text = lyricsElement?.text()
+
+            if (text != null) {
+                text = text.replace("<br> ", "\n")
+                text = text.replace("<br>", "\n")
+
+                println(text)
+                return text
+            }
+
+
+        } else if (href.startsWith("https://txtsong.ru/")) {
+
+            println(href)
+
+            document = Jsoup.connect(href).get()
+
+            val h2Elements = document.select("h2")
+            for (h2Element in h2Elements) {
+                h2Element.remove()
+            }
+
+            lyricsElement = document.selectFirst("div.the_content")
+            println("text()")
+            println(lyricsElement?.text())
+            println("ownText()")
+            println(lyricsElement?.ownText())
+            println("html()")
+            println(lyricsElement?.html())
+
+            var text = lyricsElement?.text()
+
+            if (text != null) {
+                println(text)
+                return text
+            }
+
+        } else if (href.startsWith("https://pesni.guru/")) {
+
+            println(href)
+
+            document = Jsoup.connect(href).get()
+
+            val h2Elements = document.select("h2")
+            for (h2Element in h2Elements) {
+                h2Element.remove()
+            }
+
+            lyricsElement = document.selectFirst("div.songtext")
+            println(lyricsElement?.text())
+            println(lyricsElement?.ownText())
+            println(lyricsElement?.html())
+
+            var text = lyricsElement?.ownText()
+
+            if (text != null) {
+                return text
+            }
+
+        } else if (href.startsWith("https://teksti-pesenok.pro/")) {
+
+            println(href)
+
+            document = Jsoup.connect(href).get()
+
+            val h2Elements = document.select("h2")
+            for (h2Element in h2Elements) {
+                h2Element.remove()
+            }
+
+            lyricsElement = document.getElementById("text")
+            println("text()")
+            println(lyricsElement?.text())
+            println("ownText()")
+            println(lyricsElement?.ownText())
+            println("html()")
+            println(lyricsElement?.html())
+
+            var text = lyricsElement?.html()
+
+            if (text != null) {
+
+                text = text.replace("<br> ", "\n")
+                text = text.replace("<br>", "\n")
+                text = text.replace("&nbsp;", " ")
+                text = text.replace("""<span class="status_select" itemprop="lyrics">""", "")
+                text = text.replace("</span>", "")
+
+                return text
+            }
+        }
+
+    }
+
     return ""
 }
 fun testProcess2() {
@@ -2186,7 +2513,7 @@ class Ribbon(private val input: String) {
 }
 
 class MainRibbon {
-    val vowels = "аеёиоуыюяэАЕЁИОУЫЮЯЭeuioayYEUIOAїіє"
+    val vowels = "аеёиоуыюяэАЕЁИОУЫЮЯЭeuioayYEUIOAїієѣ"
     val nonPairConsonant = "лйрнмЛЙРНМ.,:-"
     fun syllables(input: String?): List<String> {
         val result: MutableList<String> = ArrayList()

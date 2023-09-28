@@ -1,5 +1,6 @@
 package com.svoemesto.karaokeapp
 
+import com.svoemesto.karaokeapp.model.SettingField
 import com.svoemesto.karaokeapp.model.Settings
 import org.springframework.stereotype.Component
 import java.io.BufferedReader
@@ -132,10 +133,15 @@ class KaraokeProcessWorker {
                         val settings = Settings.loadFromDbById(tmpSettings.id)
                         if (settings != null) {
 
-                            if (settings.sourceText != tmpSettings.sourceText || settings.sourceMarkers != tmpSettings.sourceMarkers) {
+                            if (
+                                settings.sourceText != tmpSettings.sourceText ||
+                                settings.sourceMarkers != tmpSettings.sourceMarkers ||
+                                settings.songName != tmpSettings.songName
+                                ) {
 
                                 settings.sourceText = tmpSettings.sourceText
                                 settings.sourceMarkers = tmpSettings.sourceMarkers
+                                settings.fields[SettingField.NAME] = tmpSettings.songName
                                 settings.saveToDb()
 
                                 settings.sourceMarkersList.forEachIndexed { voice, _ ->

@@ -3,8 +3,8 @@
     <meta charset="UTF-8">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css" integrity="sha384-B0vP5xmATw1+K9KRQjQERJvTumQW0nPEzvF6L/Z6nronJ3oUOFUFpCjEUQouq2+l" crossorigin="anonymous">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-Piv4xVNRyMGpqkS2by6br4gNJ7DXjqk09RmUpJ8jgGtD7zP9yug3goQfGII0yAns" crossorigin="anonymous"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-Piv4xVNRyMGpqkS2by6br4gNJ7DXjqk09RmUpJ8jgGtD7zP9yug3goQfGII0yAns" crossorigin="anonymous"></script>
     <script src="https://unpkg.com/wavesurfer.js@6.6.3/dist/wavesurfer.js"></script>
     <script src="https://unpkg.com/wavesurfer.js@6.6.3/dist/plugin/wavesurfer.cursor.js"></script>
     <script src="https://unpkg.com/wavesurfer.js@6.6.3/dist/plugin/wavesurfer.timeline.js"></script>
@@ -247,6 +247,64 @@
             }
             createWavesurferMarkers();
             setResultText();
+
+        }
+
+        function doMoveLeft() {
+            var pointToStart = wavesurfer.getCurrentTime();
+            var markersToMove = [];
+            var timeFirstMarker = -1;
+            var firstMarker = dataMarkers[0]
+            for (var i = 0; i < dataMarkers.length; i++) {
+                var currMarker = dataMarkers[i];
+                if (currMarker.time > pointToStart && (timeFirstMarker == -1 || currMarker.time < timeFirstMarker)) {
+                    timeFirstMarker = currMarker.time
+                    firstMarker = currMarker
+                }
+            }
+            for (var i = 0; i < dataMarkers.length; i++) {
+                var currMarker = dataMarkers[i];
+                if (currMarker.time >= timeFirstMarker) {
+                    markersToMove.push(currMarker);
+                }
+            }
+
+            var delta = timeFirstMarker - pointToStart;
+            for (var i = 0; i < markersToMove.length; i++) {
+                var currMarker = markersToMove[i];
+                currMarker.time = currMarker.time - delta;
+            }
+
+            createWavesurferMarkers();
+
+        }
+
+        function doMoveRight() {
+            var pointToStart = wavesurfer.getCurrentTime();
+            var markersToMove = [];
+            var timeFirstMarker = -1;
+            var firstMarker = dataMarkers[0]
+            for (var i = 0; i < dataMarkers.length; i++) {
+                var currMarker = dataMarkers[i];
+                if (currMarker.time < pointToStart && (currMarker.time > timeFirstMarker)) {
+                    timeFirstMarker = currMarker.time
+                    firstMarker = currMarker
+                }
+            }
+            for (var i = 0; i < dataMarkers.length; i++) {
+                var currMarker = dataMarkers[i];
+                if (currMarker.time >= timeFirstMarker) {
+                    markersToMove.push(currMarker);
+                }
+            }
+
+            var delta = timeFirstMarker - pointToStart;
+            for (var i = 0; i < markersToMove.length; i++) {
+                var currMarker = markersToMove[i];
+                currMarker.time = currMarker.time - delta;
+            }
+
+            createWavesurferMarkers();
 
         }
 
@@ -620,6 +678,24 @@
             }
         }
 
+        function doLoadVoice() {
+            const settingsId = document.querySelector('[data-settings-id]').getAttribute('data-settings-id');
+            wavesurfer.clear;
+            wavesurfer.load('/song/' + settingsId + '/fileVocal');
+        }
+
+        function doLoadMusic() {
+            const settingsId = document.querySelector('[data-settings-id]').getAttribute('data-settings-id');
+            wavesurfer.clear;
+            wavesurfer.load('/song/' + settingsId + '/fileMusic');
+        }
+
+        function doLoadSong() {
+            const settingsId = document.querySelector('[data-settings-id]').getAttribute('data-settings-id');
+            wavesurfer.clear;
+            wavesurfer.load('/song/' + settingsId + '/fileSong');
+        }
+
         function doSaveSourceMarkers() {
             const id = document.querySelector('[data-settings-id]').getAttribute('data-settings-id');
             const voice = document.querySelector('[data-voice]').getAttribute('data-voice');
@@ -705,7 +781,7 @@
 
             const settingsId = document.querySelector('[data-settings-id]').getAttribute('data-settings-id');
             wavesurfer.clear;
-            wavesurfer.load('/song/' + settingsId + '/file');
+            wavesurfer.load('/song/' + settingsId + '/fileVocal');
 
             checkboxEditMode = document.getElementById("check_edit_mode");
 
@@ -929,6 +1005,15 @@
             Pause
         </button>
     </div>
+    <div>
+        <button name="button_load_voice" id="button_load_voice" class="form-control btn btn-primary btn-block" type="button" onclick="doLoadVoice()">Voice</button>
+    </div>
+    <div>
+        <button name="button_load_music" id="button_load_music" class="form-control btn btn-primary btn-block" type="button" onclick="doLoadMusic()">Music</button>
+    </div>
+    <div>
+        <button name="button_load_song" id="button_load_song" class="form-control btn btn-primary btn-block" type="button" onclick="doLoadSong()">Song</button>
+    </div>
 
     <div id="group_speed_play" class="btn-group btn-toggle">
         <label for="group_speed_play">Скорость PLAY</label>
@@ -996,26 +1081,12 @@
                     <button name="button_region_end" id="button_region_end" class="form-control btn btn-primary btn-block" type="button" onclick="doRegionEnd()">Регион: конец</button>
                     <button name="button_region_do" id="button_region_do" class="form-control btn btn-primary btn-block" type="button" onclick="doRegionDo()">Регион: вставить</button>
                     <button name="button_region_clear" id="button_region_clear" class="form-control btn btn-primary btn-block" type="button" onclick="doRegionClear()">Регион: очистить</button>
+                    <button name="button_move_left" id="button_move_left" class="form-control btn btn-primary btn-block" type="button" onclick="doMoveLeft()"><--</button>
+                    <button name="button_move_rigth" id="button_move_rigth" class="form-control btn btn-primary btn-block" type="button" onclick="doMoveRight()">--></button>
                     <label for="check_edit_mode">Режим редактирования</label>
                     <input type="checkbox" id="check_edit_mode" class="form-control checkbox">
                     <label for="check_fast_mode">Режим FAST</label>
                     <input type="checkbox" id="check_fast_mode" class="form-control checkbox">
-                    <span id="description" style="white-space: pre-line">
-                        q: шаг назад
-                        w: поставить маркер
-                        e: шаг вперед
-                        r: поставить маркер конца строки
-                        a: перемотка назад
-                        s: удалить маркер
-                        d: проигрывание вперед
-                        t: группа 0
-                        y: группа 1
-                        u: группа 2
-                        i: группа 3
-                        o: пустая строка
-                        z: быстрая перемотка назад
-                        c: быстрая перемотка вперед
-                    </span>
                     <button name="button_save_markers" id="button_save_markers" class="form-control btn btn-primary btn-block" type="button" onclick="doSaveSourceMarkers()">Сохранить маркеры</button>
                     <button name="button_load_markers" id="button_load_markers" class="form-control btn btn-primary btn-block" type="button" onclick="createWavesurferMarkers()">Загрузить маркеры</button>
                     <button name="button_replace_text" id="button_replace_text" class="form-control btn btn-primary btn-block" type="button" onclick="replaceText()">Заменить текст</button>

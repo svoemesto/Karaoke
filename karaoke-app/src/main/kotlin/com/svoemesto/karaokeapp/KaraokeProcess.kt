@@ -216,7 +216,7 @@ class KaraokeProcess : Serializable, Comparable<KaraokeProcess>  {
                                 settings.statusProcessLyricsBt == KaraokeProcessStatuses.DONE.name &&
                                 settings.statusProcessKaraoke == KaraokeProcessStatuses.DONE.name &&
                                 settings.statusProcessKaraokeBt == KaraokeProcessStatuses.DONE.name &&
-                                settings.idStatus < 6L) {
+                                settings.idStatus == 4L) {
                                 settings.fields[SettingField.ID_STATUS] = "6"
                             }
                             settings.saveToDb()
@@ -229,7 +229,7 @@ class KaraokeProcess : Serializable, Comparable<KaraokeProcess>  {
                                 settings.statusProcessLyricsBt == KaraokeProcessStatuses.DONE.name &&
                                 settings.statusProcessKaraoke == KaraokeProcessStatuses.DONE.name &&
                                 settings.statusProcessKaraokeBt == KaraokeProcessStatuses.DONE.name &&
-                                settings.idStatus < 6L) {
+                                settings.idStatus == 4L) {
                                 settings.fields[SettingField.ID_STATUS] = "6"
                             }
                             settings.saveToDb()
@@ -242,7 +242,7 @@ class KaraokeProcess : Serializable, Comparable<KaraokeProcess>  {
                                 settings.statusProcessLyricsBt == KaraokeProcessStatuses.DONE.name &&
                                 settings.statusProcessKaraoke == KaraokeProcessStatuses.DONE.name &&
                                 settings.statusProcessKaraokeBt == KaraokeProcessStatuses.DONE.name &&
-                                settings.idStatus < 6L) {
+                                settings.idStatus == 4L) {
                                 settings.fields[SettingField.ID_STATUS] = "6"
                             }
                             settings.saveToDb()
@@ -255,7 +255,7 @@ class KaraokeProcess : Serializable, Comparable<KaraokeProcess>  {
                                 settings.statusProcessLyricsBt == KaraokeProcessStatuses.DONE.name &&
                                 settings.statusProcessKaraoke == KaraokeProcessStatuses.DONE.name &&
                                 settings.statusProcessKaraokeBt == KaraokeProcessStatuses.DONE.name &&
-                                settings.idStatus < 6L) {
+                                settings.idStatus == 4L) {
                                 settings.fields[SettingField.ID_STATUS] = "6"
                             }
                             settings.saveToDb()
@@ -268,7 +268,7 @@ class KaraokeProcess : Serializable, Comparable<KaraokeProcess>  {
                                 settings.statusProcessLyricsBt == KaraokeProcessStatuses.DONE.name &&
                                 settings.statusProcessKaraoke == KaraokeProcessStatuses.DONE.name &&
                                 settings.statusProcessKaraokeBt == KaraokeProcessStatuses.DONE.name &&
-                                settings.idStatus < 6L) {
+                                settings.idStatus == 4L) {
                                 settings.fields[SettingField.ID_STATUS] = "6"
                             }
                             settings.saveToDb()
@@ -281,7 +281,7 @@ class KaraokeProcess : Serializable, Comparable<KaraokeProcess>  {
                                 settings.statusProcessLyricsBt == KaraokeProcessStatuses.DONE.name &&
                                 settings.statusProcessKaraoke == KaraokeProcessStatuses.DONE.name &&
                                 settings.statusProcessKaraokeBt == KaraokeProcessStatuses.DONE.name &&
-                                settings.idStatus < 6L) {
+                                settings.idStatus == 4L) {
                                 settings.fields[SettingField.ID_STATUS] = "6"
                             }
                             settings.saveToDb()

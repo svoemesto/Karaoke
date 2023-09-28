@@ -42,15 +42,19 @@ class MediaInfo {
 
         fun getInfoBySectionAndParameter(media: String, section: String, parameter: String): String? {
 
-            val mediaInfo = getInfo(media)
-            val media = mediaInfo["media"] as HashMap<String, Any>
-            val tracks = media["track"] as List<HashMap<String, Any>>
+            try {
+                val mediaInfo = getInfo(media)
+                val media = mediaInfo["media"] as HashMap<String, Any>
+                val tracks = media["track"] as List<HashMap<String, Any>>
 
-            tracks.forEach {
-                val track = it as HashMap<String, String>
-                if (track["@type"] == section) {
-                    return track[parameter]
+                tracks.forEach {
+                    val track = it as HashMap<String, String>
+                    if (track["@type"] == section) {
+                        return track[parameter]
+                    }
                 }
+            } catch (e: Exception) {
+                println("${media} exeption: ${e.message}")
             }
             return null
         }

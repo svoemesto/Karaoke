@@ -13,7 +13,6 @@ import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.*
 import java.io.File
-import java.sql.Timestamp
 
 @Controller
 class MainController {
@@ -22,8 +21,67 @@ class MainController {
 //    private val emittersProcesses = CopyOnWriteArrayList<SseEmitter>()
 
     @GetMapping("/")
-    fun main(): String {
+    fun main(model: Model): String {
+        model.addAttribute("authors", Settings.loadListAuthors())
         return "main"
+    }
+
+    @GetMapping("/utils/createdigest")
+    @ResponseBody
+    fun doCreateDigest(): Boolean {
+        createDigestForAllAuthors()
+        createDigestForAllAuthorsForOper()
+        return true
+    }
+
+    @GetMapping("/utils/collectstore")
+    @ResponseBody
+    fun doCollectStore(): Boolean {
+        collectDoneFilesToStoreFolderAndCreate720pForAllUncreated()
+        return true
+    }
+
+    @PostMapping("/utils/createfromfolder")
+    @ResponseBody
+    fun doCreateFromFolder(
+        @RequestParam(required = true) folder: String,
+        model: Model): Int {
+        return Settings.createFromPath(folder).size
+    }
+
+    @PostMapping("/utils/createdzenpicturesforfolder")
+    @ResponseBody
+    fun doCreateDzenPicturesForFolder(
+        @RequestParam(required = true) folder: String,
+        model: Model): Boolean {
+        createDzenPicture(folder)
+        return true
+    }
+
+    @GetMapping("/utils/updatebpmandkey")
+    @ResponseBody
+    fun doUpdateBpmAndKey(): Int {
+        return updateBpmAndKey()
+    }
+
+    @PostMapping("/utils/markdublicates")
+    @ResponseBody
+    fun doMarkDublicates(
+        @RequestParam(required = true) author: String,
+        model: Model): Int {
+        return markDublicates(author)
+    }
+
+    @GetMapping("/utils/deldublicates")
+    @ResponseBody
+    fun doDelDublicates(): Int {
+        return delDublicates()
+    }
+
+    @GetMapping("/utils/clearpredublicates")
+    @ResponseBody
+    fun doClearPreDublicates(): Int {
+        return clearPreDublicates()
     }
 
     @PostMapping("/process/update")
@@ -106,6 +164,16 @@ class MainController {
     @ResponseBody
     fun doProcessWorkerIsStopAfterThreadIsDone(): Boolean {
         return KaraokeProcessWorker.stopAfterThreadIsDone
+    }
+
+    @GetMapping("/song/{id}/delete")
+    @ResponseBody
+    fun doDeleteSong(@PathVariable id: Long): Int {
+        val settings = Settings.loadFromDbById(id)
+        settings?.let {
+            it.deleteFromDb()
+        }
+        return 0
     }
 
     @GetMapping("/song/{id}/setpublishdatetimetoauthor")
@@ -191,14 +259,14 @@ class MainController {
         @RequestParam(required = false) sourceText: String = "",
         model: Model): String {
         var text = "Error"
-        if (sourceText.trim() != "") {
+//        if (sourceText.trim() != "") {
             val settings = Settings.loadFromDbById(id)
             text = settings?.let {
                 settings.setSourceText(voice, sourceText)
                 settings.updateMarkersFromSourceText(voice)
                 "OK"
             } ?: "Error"
-        }
+//        }
         model.addAttribute("text", text)
         return "text"
     }
@@ -395,13 +463,47 @@ class MainController {
     }
 
 
-    @GetMapping("/song/{id}/file")
-    fun getSongFile(
+    @GetMapping("/song/{id}/fileVocal")
+    fun getSongFileVocal(
         @PathVariable id: Long,
         model: Model
     ): ResponseEntity<Resource> {
         val settings = Settings.loadFromDbById(id)
         val filename = File(settings?.vocalsNameFlac)
+        val resource = FileSystemResource(filename)
+        if (resource.exists()) {
+            return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment") //; filename=\"${filename.name}\"")
+                .body(resource)
+        } else {
+            return ResponseEntity.notFound().build()
+        }
+    }
+
+    @GetMapping("/song/{id}/fileMusic")
+    fun getSongFileMusic(
+        @PathVariable id: Long,
+        model: Model
+    ): ResponseEntity<Resource> {
+        val settings = Settings.loadFromDbById(id)
+        val filename = File(settings?.newNoStemNameFlac)
+        val resource = FileSystemResource(filename)
+        if (resource.exists()) {
+            return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment") //; filename=\"${filename.name}\"")
+                .body(resource)
+        } else {
+            return ResponseEntity.notFound().build()
+        }
+    }
+
+    @GetMapping("/song/{id}/fileSong")
+    fun getSongFileSong(
+        @PathVariable id: Long,
+        model: Model
+    ): ResponseEntity<Resource> {
+        val settings = Settings.loadFromDbById(id)
+        val filename = File(settings?.fileAbsolutePath)
         val resource = FileSystemResource(filename)
         if (resource.exists()) {
             return ResponseEntity.ok()
@@ -1290,6 +1392,9 @@ class MainController {
                 settings?.let {
                     if (settings.sourceText.isBlank()) {
                         val text = searchSongText(settings)
+
+                        Thread.sleep(2000)
+
                         if (text.isNotBlank()) {
                             settings.sourceText = text
                             settings.fields[SettingField.ID_STATUS] = "1"
@@ -1419,6 +1524,8 @@ class MainController {
         flag_telegram_chords?.let { if (flag_telegram_chords != "") args["flag_telegram_chords"] = flag_telegram_chords }
         flag_telegram_chords_bt?.let { if (flag_telegram_chords_bt != "") args["flag_telegram_chords_bt"] = flag_telegram_chords_bt }
         model.addAttribute("sett", Settings.loadListFromDb(args))
+        model.addAttribute("authors", Settings.loadListAuthors())
+        model.addAttribute("albums", Settings.loadListAlbums())
         return "songs"
     }
     @PostMapping("/songs_update")
@@ -1512,61 +1619,21 @@ class MainController {
 
 
     @GetMapping("/publications")
-    fun publications(model: Model): String {
+    fun publications(
+        @RequestParam(required = false) filter_date_from: String?,
+        @RequestParam(required = false) filter_date_to: String?,
+        @RequestParam(required = false) filter_cond: String?,
+        model: Model
+    ): String {
 
-//        publicationsSubscribe()
+        val args: MutableMap<String, String> = mutableMapOf()
+        filter_date_from?.let { if (filter_date_from != "") args["publish_date_from"] = filter_date_from }
+        filter_date_to?.let { if (filter_date_to != "") args["filter_date_to"] = filter_date_to }
+        filter_cond?.let { if (filter_cond != "") args["filter_cond"] = filter_cond }
 
-        model.addAttribute("publications", Publication.getPublicationList())
+        model.addAttribute("publications", Publication.getPublicationList(args))
         return "publications"
     }
 
-//    @GetMapping("/publications/subscribe")
-//    fun publicationsSubscribe(): SseEmitter {
-//
-//        val emitter = SseEmitter()
-//        emittersSettings.add(emitter)
-//        emitter.onCompletion { emittersSettings.remove(emitter) }
-////        emitter.onTimeout { emittersSettings.remove(emitter) }
-//        return emitter
-//
-//    }
-
-//    @PostMapping("/publications")
-//    fun publicationsUpdate(@RequestBody id: Long): String {
-//        val json = Json.encodeToString(SseMessage.serializer(), SseMessage(objType = "Settings", objId = id, eventName = "Update"))
-//        for (emitter in emittersSettings) {
-//            println("emitter: $emitter")
-//            try {
-//                emitter.send(SseEmitter.event().data(json))
-//            } catch (e: IOException) {
-//                emittersSettings.remove(emitter)
-//            }
-//        }
-//        return "redirect:/publications"
-//    }
-
-//    @GetMapping("/processes/subscribe")
-//    fun processesSubscribe(): SseEmitter {
-//
-//        val emitter = SseEmitter()
-//        emittersProcesses.add(emitter)
-////        emitter.onCompletion { emittersProcesses.remove(emitter) }
-////        emitter.onTimeout { emittersProcesses.remove(emitter) }
-//        return emitter
-//
-//    }
-
-//    @PostMapping("/processes")
-//    fun processesUpdate(@RequestBody id: Long): String {
-//        val json = Json.encodeToString(SseMessage.serializer(), SseMessage(objType = "Process", objId = id, eventName = "Update"))
-//        for (emitter in emittersProcesses) {
-//            try {
-//                emitter.send(SseEmitter.event().data(json))
-//            } catch (e: IOException) {
-//                emittersProcesses.remove(emitter)
-//            }
-//        }
-//        return "redirect:/processes"
-//    }
 
 }

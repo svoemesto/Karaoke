@@ -1,7 +1,6 @@
 package com.svoemesto.karaokeapp.model
 
 import com.svoemesto.karaokeapp.*
-import com.svoemesto.karaokeapp.controllers.MainController
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.encodeToString
@@ -20,6 +19,7 @@ import org.springframework.context.ApplicationContextAware
 import java.sql.*
 import java.text.SimpleDateFormat
 import java.util.*
+import java.util.Date
 
 enum class SettingField : Serializable {
     ID,
@@ -101,6 +101,7 @@ class Settings : Serializable, Comparable<Settings> {
     private var _rootFolder: String = ""
     var readonly = false
 
+
     var rootFolder: String
         get() {
             if (_rootFolder == "") return _rootFolder
@@ -117,6 +118,7 @@ class Settings : Serializable, Comparable<Settings> {
             return _rootFolder
         }
         set(value) {_rootFolder = value}
+
 
     var fileName: String = ""
     var tags: String = ""
@@ -142,24 +144,25 @@ class Settings : Serializable, Comparable<Settings> {
     var sourceText: String
         get() {
             val txt = fields[SettingField.SOURCE_TEXT] ?: ""
-            return if (txt == "") {
-                val fileName = "$rootFolder/$fileName.txt"
-                val file = File(fileName)
-                if (file.exists()) {
-                    val fileBody = file.readText(Charsets.UTF_8)
-                    if (fileBody.trim() != "") {
-                        fields[SettingField.SOURCE_TEXT] = Json.encodeToString(listOf(fileBody))
-                        saveToDb()
-                        fields[SettingField.SOURCE_TEXT]!!
-                    } else {
-                       txt
-                    }
-                } else {
-                    txt
-                }
-            } else {
-                txt
-            }
+            return txt
+//            return if (txt == "") {
+//                val fileName = "$rootFolder/$fileName.txt"
+//                val file = File(fileName)
+//                if (file.exists()) {
+//                    val fileBody = file.readText(Charsets.UTF_8)
+//                    if (fileBody.trim() != "") {
+//                        fields[SettingField.SOURCE_TEXT] = Json.encodeToString(listOf(fileBody))
+//                        saveToDb()
+//                        fields[SettingField.SOURCE_TEXT]!!
+//                    } else {
+//                       txt
+//                    }
+//                } else {
+//                    txt
+//                }
+//            } else {
+//                txt
+//            }
         }
         set(value) {fields[SettingField.SOURCE_TEXT] = value}
 
@@ -177,7 +180,7 @@ class Settings : Serializable, Comparable<Settings> {
             } catch (e: Exception) {
                 val data = listOf(sourceText)
 //                fields[SettingField.SOURCE_TEXT] = Json.encodeToString(data)
-                saveToDb()
+//                saveToDb()
                 data
             }
         }
@@ -294,6 +297,13 @@ class Settings : Serializable, Comparable<Settings> {
     val album: String get() = fields[SettingField.ALBUM] ?: ""
     val date: String get() = fields[SettingField.DATE] ?: ""
     val time: String get() = fields[SettingField.TIME] ?: ""
+    val dateTimePublish: Date? get() {
+        return if (date == "" || time == "") {
+            null
+        } else {
+            SimpleDateFormat("dd.MM.yy HH:mm").parse("$date $time")
+        }
+    }
     val year: Long get() = fields[SettingField.YEAR]?.toLongOrNull() ?: 0L
     val track: Long get() = fields[SettingField.TRACK]?.toLongOrNull() ?: 0L
     val key: String get() = fields[SettingField.KEY] ?: ""
@@ -472,6 +482,7 @@ class Settings : Serializable, Comparable<Settings> {
     val otherNameWav: String get() = "$pathToResultedModel/$fileName-other.wav"
     val otherNameFlac: String get() = "$pathToResultedModel/$fileName}-other.flac"
     val fileAbsolutePath: String get() = "$rootFolder/$fileName.flac"
+    val fileSettingsAbsolutePath: String get() = "$rootFolder/$fileName.settings"
 
     val fileNameVocals: String get() = "${fileName}-vocals.flac"
     val fileNameAccompaniment: String get() = "${fileName}-accompaniment.flac"
@@ -488,12 +499,12 @@ class Settings : Serializable, Comparable<Settings> {
     val durationFrames: Long get() = convertMillisecondsToFrames(durationInMilliseconds)
 
     val kdenliveTemplate: String get() = "<?xml version='1.0' encoding='utf-8'?>\n" +
-            "<mlt LC_NUMERIC=\"C\" producer=\"main_bin\" version=\"7.15.0\" root=\"${rootFolder}\">\n" +
+            "<mlt LC_NUMERIC=\"C\" producer=\"main_bin\" version=\"7.15.0\" root=\"${rootFolder.replace("&", "&amp;")}\">\n" +
             " <profile frame_rate_num=\"60\" sample_aspect_num=\"1\" display_aspect_den=\"9\" colorspace=\"709\" progressive=\"1\" description=\"HD 1080p 60 fps\" display_aspect_num=\"16\" frame_rate_den=\"1\" width=\"1920\" height=\"1080\" sample_aspect_den=\"1\"/>\n" +
             " <producer id=\"producer0\" in=\"00:00:00.000\" out=\"${durationTimecode}\">\n" +
             "  <property name=\"length\">${durationFrames}</property>\n" +
             "  <property name=\"eof\">pause</property>\n" +
-            "  <property name=\"resource\">${DEMUCS_MODEL_NAME}/${fileNameVocals}</property>\n" +
+            "  <property name=\"resource\">${DEMUCS_MODEL_NAME}/${fileNameVocals.replace("&", "&amp;")}</property>\n" +
             "  <property name=\"seekable\">1</property>\n" +
             "  <property name=\"audio_index\">0</property>\n" +
             "  <property name=\"video_index\">-1</property>\n" +
@@ -507,7 +518,7 @@ class Settings : Serializable, Comparable<Settings> {
             " <producer id=\"producer1\" in=\"00:00:00.000\" out=\"${durationTimecode}\">\n" +
             "  <property name=\"length\">${durationFrames}</property>\n" +
             "  <property name=\"eof\">pause</property>\n" +
-            "  <property name=\"resource\">${DEMUCS_MODEL_NAME}/${fileNameAccompaniment}</property>\n" +
+            "  <property name=\"resource\">${DEMUCS_MODEL_NAME}/${fileNameAccompaniment.replace("&", "&amp;")}</property>\n" +
             "  <property name=\"seekable\">1</property>\n" +
             "  <property name=\"audio_index\">0</property>\n" +
             "  <property name=\"video_index\">-1</property>\n" +
@@ -570,7 +581,7 @@ class Settings : Serializable, Comparable<Settings> {
             " <producer id=\"producer2\" in=\"00:00:00.000\" out=\"${durationTimecode}\">\n" +
             "  <property name=\"length\">${durationFrames}</property>\n" +
             "  <property name=\"eof\">pause</property>\n" +
-            "  <property name=\"resource\">${DEMUCS_MODEL_NAME}/${fileNameAccompaniment}</property>\n" +
+            "  <property name=\"resource\">${DEMUCS_MODEL_NAME}/${fileNameAccompaniment.replace("&", "&amp;")}</property>\n" +
             "  <property name=\"seekable\">1</property>\n" +
             "  <property name=\"audio_index\">0</property>\n" +
             "  <property name=\"video_index\">-1</property>\n" +
@@ -627,7 +638,7 @@ class Settings : Serializable, Comparable<Settings> {
             " <producer id=\"producer3\" in=\"00:00:00.000\" out=\"${durationTimecode}\">\n" +
             "  <property name=\"length\">${durationFrames}</property>\n" +
             "  <property name=\"eof\">pause</property>\n" +
-            "  <property name=\"resource\">${DEMUCS_MODEL_NAME}/${fileNameVocals}</property>\n" +
+            "  <property name=\"resource\">${DEMUCS_MODEL_NAME}/${fileNameVocals.replace("&", "&amp;")}</property>\n" +
             "  <property name=\"seekable\">1</property>\n" +
             "  <property name=\"audio_index\">0</property>\n" +
             "  <property name=\"video_index\">-1</property>\n" +
@@ -766,6 +777,34 @@ class Settings : Serializable, Comparable<Settings> {
     val processColorMeltKaraokeBt: String get() = getColorToProcessTypeName(statusProcessKaraokeBt)
     val processColorMeltChordsBt: String get() = getColorToProcessTypeName(statusProcessChordsBt)
 
+    val processColorVk: String get() = if (idVk.isNotBlank()) "#00FF00" else "#A9A9A9"
+    val processColorBoosty: String get() = if (idBoosty.isNotBlank()) "#00FF00" else "#A9A9A9"
+
+    val processColorVkLyrics: String get() = if (idVkLyrics.isNotBlank()) "#00FF00" else "#A9A9A9"
+    val processColorVkKaraoke: String get() = if (idVkKaraoke.isNotBlank()) "#00FF00" else "#A9A9A9"
+
+    val processColorYoutubeLyrics: String get() = if (idYoutubeLyrics.isNotBlank()) "#00FF00" else "#A9A9A9"
+    val processColorYoutubeKaraoke: String get() = if (idYoutubeKaraoke.isNotBlank()) "#00FF00" else "#A9A9A9"
+
+    val processColorTelegramLyrics: String get() =
+        if (idTelegramLyrics == "-" || idTelegramKaraoke == "-" ) {
+            "#F08080"
+        } else if (idTelegramLyrics.isNotBlank()) {
+            "#00FF00"
+        } else {
+            "#A9A9A9"
+        }
+
+    val processColorTelegramKaraoke: String get() =
+        if (idTelegramLyrics == "-" || idTelegramKaraoke == "-" ) {
+            "#F08080"
+        } else if (idTelegramKaraoke.isNotBlank()) {
+            "#00FF00"
+        } else {
+            "#A9A9A9"
+        }
+
+
     val haveBoostyLink: Boolean get() = idBoosty.isNotBlank()
     val haveVkGroupLink: Boolean get() = idVk.isNotBlank()
     val haveYoutubeLinks: Boolean get() = idYoutubeLyrics.isNotBlank() ||
@@ -782,22 +821,17 @@ class Settings : Serializable, Comparable<Settings> {
             idVkKaraokeBt.isNotBlank() ||
             idVkChordsBt.isNotBlank()
 
-    val haveTelegramLinks: Boolean get() = idTelegramLyrics.isNotBlank() ||
-            idTelegramKaraoke.isNotBlank() ||
-            idTelegramChords.isNotBlank() ||
-            idTelegramLyricsBt.isNotBlank() ||
-            idTelegramKaraokeBt.isNotBlank() ||
-            idTelegramChordsBt.isNotBlank()
+    val haveTelegramLinks: Boolean get() = idTelegramLyrics.isNotBlank() && idTelegramKaraoke.isNotBlank() && idTelegramKaraoke != "-"
 
     val flags: String get() = if (haveBoostyLink && haveVkGroupLink && haveVkLinks && haveTelegramLinks && haveYoutubeLinks) "" else "(${if (haveBoostyLink) "b" else "-"}${if (haveVkGroupLink) "g" else "-"}${if (haveVkLinks) "v" else "-"}${if (haveTelegramLinks) "t" else "-"}${if (haveYoutubeLinks) "z" else "-"}) "
 
     val digest: String get() =
        (if (firstSongInAlbum) "Альбом: «${album}» (${year})\n\n" else "") +
        "$songName\n$linkBoosty\n" +
-                "${if (idVkKaraoke.isNotBlank()) "Karaoke VK $linkVkKaraokePlay\n" else ""}${if (idTelegramKaraoke.isNotBlank()) "Karaoke TG $linkTelegramKaraokePlay\n" else ""}${if (idYoutubeKaraoke.isNotBlank()) "Karaoke DZ $linkYoutubeKaraokePlay\n" else ""}" +
+                "${if (idVkKaraoke.isNotBlank()) "Karaoke VK $linkVkKaraokePlay\n" else ""}${if (idTelegramKaraoke.isNotBlank() && idTelegramKaraoke != "-") "Karaoke TG $linkTelegramKaraokePlay\n" else ""}${if (idYoutubeKaraoke.isNotBlank()) "Karaoke DZ $linkYoutubeKaraokePlay\n" else ""}" +
                 "${if (idVkLyrics.isNotBlank()) "Lyrics VK $linkVkLyricsPlay\n" else ""}${if (idTelegramLyrics.isNotBlank()) "Lyrics TG $linkTelegramLyricsPlay\n" else ""}${if (idYoutubeLyrics.isNotBlank()) "Lyrics DZ $linkYoutubeLyricsPlay\n" else ""}\n"
 
-    val digestIsFull: Boolean get() = idVkKaraoke.isNotBlank() && idTelegramKaraoke.isNotBlank() && idYoutubeKaraoke.isNotBlank() && idVkLyrics.isNotBlank() && idTelegramLyrics.isNotBlank() && idYoutubeLyrics.isNotBlank()
+    val digestIsFull: Boolean get() = idVkKaraoke.isNotBlank() && (idTelegramKaraoke.isNotBlank() && idTelegramKaraoke != "-") && idYoutubeKaraoke.isNotBlank() && idVkLyrics.isNotBlank() && idTelegramLyrics.isNotBlank() && idYoutubeLyrics.isNotBlank()
 
     fun getDescriptionLinks(): String {
 
@@ -828,7 +862,7 @@ class Settings : Serializable, Comparable<Settings> {
         if (haveTelegramLinks) {
             result += "В Telegram:\n"
             result += if (idTelegramLyrics.isNotBlank()) "Версия Lyrics: ${linkTelegramLyricsPlay}\n" else ""
-            result += if (idTelegramKaraoke.isNotBlank()) "Версия Karaoke: ${linkTelegramKaraokePlay}\n" else ""
+            result += if (idTelegramKaraoke.isNotBlank() && idTelegramKaraoke != "-") "Версия Karaoke: ${linkTelegramKaraokePlay}\n" else ""
             result += if (idTelegramChords.isNotBlank()) "Версия Chords: ${linkTelegramChordsPlay}\n" else ""
             result += if (idTelegramLyricsBt.isNotBlank()) "Версия Lyrics with delay: ${linkTelegramLyricsBtPlay}\n" else ""
             result += if (idTelegramKaraokeBt.isNotBlank()) "Версия Karaoke with delay: ${linkTelegramKaraokeBtPlay}\n" else ""
@@ -1180,6 +1214,7 @@ class Settings : Serializable, Comparable<Settings> {
     }
 
     fun saveToDb() {
+
         if (readonly) return
         if  (id == 0L) {
             val newSett = createDbInstance(this)
@@ -1187,147 +1222,58 @@ class Settings : Serializable, Comparable<Settings> {
                 newSett.saveToFile()
             }
         } else {
+
+            val diff = getDiff(this, loadFromDbById(id))
+            if (diff.isEmpty()) return
+            val setStr = diff.map { "${it.first} = ?" }.joinToString(", ")
+            val sql = "UPDATE tbl_settings SET $setStr WHERE id = ?"
+
             Class.forName("org.postgresql.Driver")
             val connection = DriverManager.getConnection(CONNECTION_URL, CONNECTION_USER, CONNECTION_PASSWORD)
-            val sql = "UPDATE tbl_settings SET " +
-                    "song_name = ?, " +
-                    "song_author = ?, " +
-                    "song_album = ?, " +
-                    "publish_date = ?, " +
-                    "publish_time = ?, " +
-                    "song_year = ?, " +
-                    "song_track = ?, " +
-                    "song_tone = ?, " +
-                    "song_bpm = ?, " +
-                    "song_ms = ?, " +
-                    "file_name = ?, " +
-                    "root_folder = ?, " +
-                    "id_boosty = ?, " +
-                    "id_vk = ?, " +
-                    "id_youtube_lyrics = ?, " +
-                    "id_youtube_lyrics_bt = ?, " +
-                    "id_youtube_karaoke = ?, " +
-                    "id_youtube_karaoke_bt = ?, " +
-                    "id_youtube_chords = ?, " +
-                    "id_youtube_chords_bt = ?, " +
-                    "id_vk_lyrics = ?, " +
-                    "id_vk_lyrics_bt = ?, " +
-                    "id_vk_karaoke = ?, " +
-                    "id_vk_karaoke_bt = ?, " +
-                    "id_vk_chords = ?, " +
-                    "id_vk_chords_bt = ?, " +
-                    "id_telegram_lyrics = ?, " +
-                    "id_telegram_lyrics_bt = ?, " +
-                    "id_telegram_karaoke = ?, " +
-                    "id_telegram_karaoke_bt = ?, " +
-                    "id_telegram_chords = ?, " +
-                    "id_telegram_chords_bt = ?, " +
-                    "id_status = ?, " +
-                    "source_text = ?, " +
-                    "source_markers = ?, " +
-                    "status_process_lyrics = ?, " +
-                    "status_process_lyrics_bt = ?, " +
-                    "status_process_karaoke = ?, " +
-                    "status_process_karaoke_bt = ?, " +
-                    "status_process_chords = ?, " +
-                    "status_process_chords_bt = ?, " +
-                    "tags = ? " +
-                    "WHERE id = ?"
             val ps = connection.prepareStatement(sql)
+
+            println("Saved To Database:")
+            println("Setting id = $id, diffs:")
+
             var index = 1
-            ps.setString(index, songName)
-            index++
-            ps.setString(index, author)
-            index++
-            ps.setString(index, album)
-            index++
-            ps.setString(index, date)
-            index++
-            ps.setString(index, time)
-            index++
-            ps.setLong(index, year)
-            index++
-            ps.setLong(index, track)
-            index++
-            ps.setString(index, key)
-            index++
-            ps.setLong(index, bpm)
-            index++
-            ps.setLong(index, ms)
-            index++
-            ps.setString(index, fileName)
-            index++
-            ps.setString(index, rootFolder)
-            index++
-            ps.setString(index, idBoosty)
-            index++
-            ps.setString(index, idVk)
-            index++
-            ps.setString(index, idYoutubeLyrics)
-            index++
-            ps.setString(index, idYoutubeLyricsBt)
-            index++
-            ps.setString(index, idYoutubeKaraoke)
-            index++
-            ps.setString(index, idYoutubeKaraokeBt)
-            index++
-            ps.setString(index, idYoutubeChords)
-            index++
-            ps.setString(index, idYoutubeChordsBt)
-            index++
-            ps.setString(index, idVkLyrics)
-            index++
-            ps.setString(index, idVkLyricsBt)
-            index++
-            ps.setString(index, idVkKaraoke)
-            index++
-            ps.setString(index, idVkKaraokeBt)
-            index++
-            ps.setString(index, idVkChords)
-            index++
-            ps.setString(index, idVkChordsBt)
-            index++
-            ps.setString(index, idTelegramLyrics)
-            index++
-            ps.setString(index, idTelegramLyricsBt)
-            index++
-            ps.setString(index, idTelegramKaraoke)
-            index++
-            ps.setString(index, idTelegramKaraokeBt)
-            index++
-            ps.setString(index, idTelegramChords)
-            index++
-            ps.setString(index, idTelegramChordsBt)
-            index++
-            ps.setLong(index, idStatus)
-            index++
-            ps.setString(index, sourceText)
-            index++
-            ps.setString(index, sourceMarkers)
-            index++
-            ps.setString(index, statusProcessLyrics)
-            index++
-            ps.setString(index, statusProcessLyricsBt)
-            index++
-            ps.setString(index, statusProcessKaraoke)
-            index++
-            ps.setString(index, statusProcessKaraokeBt)
-            index++
-            ps.setString(index, statusProcessChords)
-            index++
-            ps.setString(index, statusProcessChordsBt)
-            index++
-            ps.setString(index, tags)
-            index++
+            diff.forEach {
+                val (diffName, diffNewValue, diffOldValue) = it
+                println("Field: $diffName")
+                println("Old value = $diffOldValue")
+                println("New value = $diffNewValue")
+                println("-----------------------------")
+                if (diffNewValue is Long) {
+                    ps.setLong(index, diffNewValue.toLong())
+                } else {
+                    ps.setString(index, diffNewValue.toString())
+                }
+                index++
+            }
             ps.setLong(index, id)
             ps.executeUpdate()
             ps.close()
             connection.close()
 
-//            val controller = ApplicationContextProvider.getCurrentApplicationContext().getBean(MainController::class.java)
-//            controller.publicationsUpdate(id)
-
         }
+
+    }
+
+    fun deleteFromDb(withFiles: Boolean = true) {
+        if (withFiles) {
+            if (File(fileAbsolutePath).exists()) File(fileAbsolutePath).delete()
+            if (File(fileSettingsAbsolutePath).exists()) File(fileSettingsAbsolutePath).deleteOnExit()
+            if (File(vocalsNameFlac).exists()) File(vocalsNameFlac).deleteOnExit()
+            if (File(newNoStemNameFlac).exists()) File(newNoStemNameFlac).deleteOnExit()
+        }
+
+        Class.forName("org.postgresql.Driver")
+        val connection = DriverManager.getConnection(CONNECTION_URL, CONNECTION_USER, CONNECTION_PASSWORD)
+        val sql = "DELETE FROM tbl_settings WHERE id = ?"
+        val ps = connection.prepareStatement(sql)
+        ps.setLong(1, id)
+        ps.executeUpdate()
+        ps.close()
+        connection.close()
 
     }
 
@@ -1441,6 +1387,55 @@ class Settings : Serializable, Comparable<Settings> {
     }
 
     companion object {
+
+        fun getDiff(settA: Settings, settB: Settings?): List<Triple<String, Any, Any>> {
+            val result: MutableList<Triple<String, Any, Any>> = mutableListOf()
+            if (settB != null) {
+                if (settA.songName != settB.songName) result.add(Triple("song_name", settA.songName, settB.songName))
+                if (settA.author != settB.author) result.add(Triple("song_author", settA.author, settB.author))
+                if (settA.album != settB.album) result.add(Triple("song_album", settA.album, settB.album))
+                if (settA.date != settB.date) result.add(Triple("publish_date", settA.date, settB.date))
+                if (settA.time != settB.time) result.add(Triple("publish_time", settA.time, settB.time))
+                if (settA.year != settB.year) result.add(Triple("song_year", settA.year, settB.year))
+                if (settA.track != settB.track) result.add(Triple("song_track", settA.track, settB.track))
+                if (settA.key != settB.key) result.add(Triple("song_tone", settA.key, settB.key))
+                if (settA.bpm != settB.bpm) result.add(Triple("song_bpm", settA.bpm, settB.bpm))
+                if (settA.ms != settB.ms) result.add(Triple("song_ms", settA.ms, settB.ms))
+                if (settA.fileName != settB.fileName) result.add(Triple("file_name", settA.fileName, settB.fileName))
+                if (settA.rootFolder != settB.rootFolder) result.add(Triple("root_folder", settA.rootFolder, settB.rootFolder))
+                if (settA.idBoosty != settB.idBoosty) result.add(Triple("id_boosty", settA.idBoosty, settB.idBoosty))
+                if (settA.idVk != settB.idVk) result.add(Triple("id_vk", settA.idVk, settB.idVk))
+                if (settA.idYoutubeLyrics != settB.idYoutubeLyrics) result.add(Triple("id_youtube_lyrics", settA.idYoutubeLyrics, settB.idYoutubeLyrics))
+                if (settA.idYoutubeLyricsBt != settB.idYoutubeLyricsBt) result.add(Triple("id_youtube_lyrics_bt", settA.idYoutubeLyricsBt, settB.idYoutubeLyricsBt))
+                if (settA.idYoutubeKaraoke != settB.idYoutubeKaraoke) result.add(Triple("id_youtube_karaoke", settA.idYoutubeKaraoke, settB.idYoutubeKaraoke))
+                if (settA.idYoutubeKaraokeBt != settB.idYoutubeKaraokeBt) result.add(Triple("id_youtube_karaoke_bt", settA.idYoutubeKaraokeBt, settB.idYoutubeKaraokeBt))
+                if (settA.idYoutubeChords != settB.idYoutubeChords) result.add(Triple("id_youtube_chords", settA.idYoutubeChords, settB.idYoutubeChords))
+                if (settA.idYoutubeChordsBt != settB.idYoutubeChordsBt) result.add(Triple("id_youtube_chords_bt", settA.idYoutubeChordsBt, settB.idYoutubeChordsBt))
+                if (settA.idVkLyrics != settB.idVkLyrics) result.add(Triple("id_vk_lyrics", settA.idVkLyrics, settB.idVkLyrics))
+                if (settA.idVkLyricsBt != settB.idVkLyricsBt) result.add(Triple("id_vk_lyrics_bt", settA.idVkLyricsBt, settB.idVkLyricsBt))
+                if (settA.idVkKaraoke != settB.idVkKaraoke) result.add(Triple("id_vk_karaoke", settA.idVkKaraoke, settB.idVkKaraoke))
+                if (settA.idVkKaraokeBt != settB.idVkKaraokeBt) result.add(Triple("id_vk_karaoke_bt", settA.idVkKaraokeBt, settB.idVkKaraokeBt))
+                if (settA.idVkChords != settB.idVkChords) result.add(Triple("id_vk_chords", settA.idVkChords, settB.idVkChords))
+                if (settA.idVkChordsBt != settB.idVkChordsBt) result.add(Triple("id_vk_chords_bt", settA.idVkChordsBt, settB.idVkChordsBt))
+                if (settA.idTelegramLyrics != settB.idTelegramLyrics) result.add(Triple("id_telegram_lyrics", settA.idTelegramLyrics, settB.idTelegramLyrics))
+                if (settA.idTelegramLyricsBt != settB.idTelegramLyricsBt) result.add(Triple("id_telegram_lyrics_bt", settA.idTelegramLyricsBt, settB.idTelegramLyricsBt))
+                if (settA.idTelegramKaraoke != settB.idTelegramKaraoke) result.add(Triple("id_telegram_karaoke", settA.idTelegramKaraoke, settB.idTelegramKaraoke))
+                if (settA.idTelegramKaraokeBt != settB.idTelegramKaraokeBt) result.add(Triple("id_telegram_karaoke_bt", settA.idTelegramKaraokeBt, settB.idTelegramKaraokeBt))
+                if (settA.idTelegramChords != settB.idTelegramChords) result.add(Triple("id_telegram_chords", settA.idTelegramChords, settB.idTelegramChords))
+                if (settA.idTelegramChordsBt != settB.idTelegramChordsBt) result.add(Triple("id_telegram_chords_bt", settA.idTelegramChordsBt, settB.idTelegramChordsBt))
+                if (settA.idStatus != settB.idStatus) result.add(Triple("id_status", settA.idStatus, settB.idStatus))
+                if (settA.sourceText != settB.sourceText) result.add(Triple("source_text", settA.sourceText, settB.sourceText))
+                if (settA.sourceMarkers != settB.sourceMarkers) result.add(Triple("source_markers", settA.sourceMarkers, settB.sourceMarkers))
+                if (settA.statusProcessLyrics != settB.statusProcessLyrics) result.add(Triple("status_process_lyrics", settA.statusProcessLyrics, settB.statusProcessLyrics))
+                if (settA.statusProcessLyricsBt != settB.statusProcessLyricsBt) result.add(Triple("status_process_lyrics_bt", settA.statusProcessLyricsBt, settB.statusProcessLyricsBt))
+                if (settA.statusProcessKaraoke != settB.statusProcessKaraoke) result.add(Triple("status_process_karaoke", settA.statusProcessKaraoke, settB.statusProcessKaraoke))
+                if (settA.statusProcessKaraokeBt != settB.statusProcessKaraokeBt) result.add(Triple("status_process_karaoke_bt", settA.statusProcessKaraokeBt, settB.statusProcessKaraokeBt))
+                if (settA.statusProcessChords != settB.statusProcessChords) result.add(Triple("status_process_chords", settA.statusProcessChords, settB.statusProcessChords))
+                if (settA.statusProcessChordsBt != settB.statusProcessChordsBt) result.add(Triple("status_process_chords_bt", settA.statusProcessChordsBt, settB.statusProcessChordsBt))
+                if (settA.tags != settB.tags) result.add(Triple("tags", settA.tags, settB.tags))
+            }
+            return result
+        }
 
         fun getLastUpdated(lastTime: Long? = null): List<Int> {
             if (lastTime == null) return emptyList()
@@ -1597,6 +1592,70 @@ class Settings : Serializable, Comparable<Settings> {
 
         }
 
+        fun loadListAuthors(): List<String> {
+            Class.forName("org.postgresql.Driver")
+            val connection = DriverManager.getConnection(CONNECTION_URL, CONNECTION_USER, CONNECTION_PASSWORD)
+            var statement: Statement? = null
+            var rs: ResultSet? = null
+            var sql: String
+
+            try {
+                statement = connection.createStatement()
+                sql = "select DISTINCT song_author from tbl_settings order by song_author"
+
+                rs = statement.executeQuery(sql)
+                val result: MutableList<String> = mutableListOf()
+                while (rs.next()) {
+                    result.add(rs.getString("song_author"))
+                }
+                result.sort()
+                return result
+            } catch (e: SQLException) {
+                e.printStackTrace()
+            } finally {
+                try {
+                    rs?.close() // close result set
+                    statement?.close() // close statement
+                    connection?.close()
+                } catch (e: SQLException) {
+                    e.printStackTrace()
+                }
+            }
+            return emptyList()
+        }
+
+        fun loadListAlbums(): List<String> {
+            Class.forName("org.postgresql.Driver")
+            val connection = DriverManager.getConnection(CONNECTION_URL, CONNECTION_USER, CONNECTION_PASSWORD)
+            var statement: Statement? = null
+            var rs: ResultSet? = null
+            var sql: String
+
+            try {
+                statement = connection.createStatement()
+                sql = "select DISTINCT song_album from tbl_settings order by song_album"
+
+                rs = statement.executeQuery(sql)
+                val result: MutableList<String> = mutableListOf()
+                while (rs.next()) {
+                    result.add(rs.getString("song_album"))
+                }
+                result.sort()
+                return result
+            } catch (e: SQLException) {
+                e.printStackTrace()
+            } finally {
+                try {
+                    rs?.close() // close result set
+                    statement?.close() // close statement
+                    connection?.close()
+                } catch (e: SQLException) {
+                    e.printStackTrace()
+                }
+            }
+            return emptyList()
+        }
+
         fun loadListFromDb(args: Map<String, String> = emptyMap()): List<Settings> {
 
             Class.forName("org.postgresql.Driver")
@@ -1630,6 +1689,26 @@ class Settings : Serializable, Comparable<Settings> {
                         "CASE WHEN id_telegram_chords IS NOT NULL AND id_telegram_chords <> 'null' AND id_telegram_chords <> '' THEN '✓' ELSE '' END AS flag_telegram_chords," +
                         "CASE WHEN id_telegram_chords_bt IS NOT NULL AND id_telegram_chords_bt <> 'null' AND id_telegram_chords_bt <> '' THEN '✓' ELSE '' END AS flag_telegram_chords_bt, " +
                         "    CASE WHEN id_status < 6 THEN color1\n" +
+                        "        WHEN to_date(publish_date, 'DD.MM.YY') = CURRENT_DATE AND\n" +
+                        "              id_telegram_lyrics = '' AND\n" +
+                        "              id_telegram_karaoke = '-' AND\n" +
+                        "              id_vk_lyrics != '' AND\n" +
+                        "              id_vk_karaoke != '' THEN '#FFA500'\n" +
+                        "        WHEN to_date(publish_date, 'DD.MM.YY') < CURRENT_DATE AND\n" +
+                        "              id_telegram_lyrics = '' AND\n" +
+                        "              id_telegram_karaoke = '-' AND\n" +
+                        "              id_vk_lyrics != '' AND\n" +
+                        "              id_vk_karaoke != '' THEN '#BDB76B'\n" +
+                        "        WHEN to_date(publish_date, 'DD.MM.YY') > CURRENT_DATE AND\n" +
+                        "              id_telegram_lyrics = '' AND\n" +
+                        "              id_telegram_karaoke = '-' AND\n" +
+                        "              id_vk_lyrics != '' AND\n" +
+                        "              id_vk_karaoke != '' THEN '#DCDCDC'\n" +
+                        "        WHEN to_date(publish_date, 'DD.MM.YY') > CURRENT_DATE AND\n" +
+                        "              id_telegram_lyrics = '' AND\n" +
+                        "              id_telegram_karaoke = '' AND\n" +
+                        "              id_vk_lyrics != '' AND\n" +
+                        "              id_vk_karaoke != '' THEN '#87CEFA'\n" +
                         "        WHEN to_date(publish_date, 'DD.MM.YY') < CURRENT_DATE AND\n" +
                         "              id_telegram_lyrics != '' AND\n" +
                         "              id_telegram_lyrics IS NOT NULL AND\n" +
@@ -1671,6 +1750,8 @@ class Settings : Serializable, Comparable<Settings> {
                 if (args.containsKey("publish_date")) where += "publish_date LIKE '%${args["publish_date"]}%'"
                 if (args.containsKey("publish_time")) where += "publish_time LIKE '%${args["publish_time"]}%'"
                 if (args.containsKey("status")) where += "status LIKE '%${args["status"]}%'"
+                if (args.containsKey("song_bpm")) where += "song_bpm=${args["song_bpm"]}"
+                if (args.containsKey("song_tone")) where += "song_tone=${args["song_tone"]}"
                 if (args.containsKey("song_year")) where += "song_year=${args["song_year"]}"
                 if (args.containsKey("song_track")) where += "song_track=${args["song_track"]}"
                 if (args.containsKey("id_status")) where += "id_status=${args["id_status"]}"
@@ -1927,6 +2008,13 @@ class Settings : Serializable, Comparable<Settings> {
     }
 
     override fun compareTo(other: Settings): Int {
+        try {
+            if (dateTimePublish != null && other.dateTimePublish != null) {
+                return dateTimePublish!!.compareTo(other.dateTimePublish)
+            }
+        } catch (e: Exception) {
+            return id.compareTo(other.id)
+        }
         return id.compareTo(other.id)
     }
 

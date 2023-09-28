@@ -43,7 +43,7 @@ const val LINE_SPACING = 0L
 const val SHADOW = "1;#64000000;3;3;3"
 const val ALIGNMENT = 0L
 const val TYPEWRITER = "0;2;1;0;0"
-const val LETTERS_VOWEL = "EUIOAeuioaЁУЕЫАОЭЯИЮёуеыаоэяию"
+const val LETTERS_VOWEL = "EUIOAeuioaЁУЕЫАОЭЯИЮёуеыаоэяиюѣ"
 const val NOTES_SYMBOLS = "♬♩♪△▲⬦⬥"
 
 const val DEMUCS_MODEL_NAME = "hdemucs_mmi"
@@ -91,5 +91,6 @@ const val PATH_TO_STORE_FOLDER = "/clouds/Yandex.Disk/Karaoke"
 
 val PROJECT_ROOT_FOLDERS = listOf(
     "/home/nsa/Documents/Караоке",
-    "/media/nsa/FilesSSD1Tb/KaraokeDone"
+    "/media/nsa/FilesSSD1Tb/KaraokeDone",
+    "/clouds/KaraokeDone"
 )

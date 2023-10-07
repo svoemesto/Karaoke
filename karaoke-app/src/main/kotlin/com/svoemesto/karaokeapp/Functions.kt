@@ -25,9 +25,9 @@ fun createKaraokeAll(pathToSettingsFile: String) {
     createKaraoke(Song(settings, SongVersion.LYRICS), false)
     createKaraoke(Song(settings, SongVersion.KARAOKE), false)
     createKaraoke(Song(settings, SongVersion.CHORDS), false)
-    createKaraoke(Song(settings, SongVersion.LYRICS), true)
-    createKaraoke(Song(settings, SongVersion.KARAOKE), true)
-    createKaraoke(Song(settings, SongVersion.CHORDS), true)
+//    createKaraoke(Song(settings, SongVersion.LYRICS), true)
+//    createKaraoke(Song(settings, SongVersion.KARAOKE), true)
+//    createKaraoke(Song(settings, SongVersion.CHORDS), true)
 
 }
 fun createKaraoke(song: Song, isBluetoothDelay: Boolean) {

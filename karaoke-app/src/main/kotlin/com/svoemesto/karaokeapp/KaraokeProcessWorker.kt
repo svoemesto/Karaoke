@@ -133,17 +133,44 @@ class KaraokeProcessWorker {
                         val settings = Settings.loadFromDbById(tmpSettings.id)
                         if (settings != null) {
 
-                            if (
-                                settings.sourceText != tmpSettings.sourceText ||
-                                settings.sourceMarkers != tmpSettings.sourceMarkers ||
-                                settings.songName != tmpSettings.songName
-                                ) {
+                            val needCreateKaraoke = (settings.idStatus < tmpSettings.idStatus && tmpSettings.idStatus == 3L && settings.sourceMarkers != tmpSettings.sourceMarkers)
 
-                                settings.sourceText = tmpSettings.sourceText
-                                settings.sourceMarkers = tmpSettings.sourceMarkers
-                                settings.fields[SettingField.NAME] = tmpSettings.songName
-                                settings.saveToDb()
+                            settings.fields[SettingField.ID_STATUS] != tmpSettings.fields[SettingField.ID_STATUS]
+                            settings.fields[SettingField.NAME] != tmpSettings.fields[SettingField.NAME]
+                            settings.fields[SettingField.AUTHOR] != tmpSettings.fields[SettingField.AUTHOR]
+                            settings.fields[SettingField.ALBUM] != tmpSettings.fields[SettingField.ALBUM]
+                            settings.fields[SettingField.DATE] != tmpSettings.fields[SettingField.DATE]
+                            settings.fields[SettingField.TIME] != tmpSettings.fields[SettingField.TIME]
+                            settings.fields[SettingField.YEAR] != tmpSettings.fields[SettingField.YEAR]
+                            settings.fields[SettingField.TRACK] != tmpSettings.fields[SettingField.TRACK]
+                            settings.fields[SettingField.KEY] != tmpSettings.fields[SettingField.KEY]
+                            settings.fields[SettingField.BPM] != tmpSettings.fields[SettingField.BPM]
+                            settings.fields[SettingField.ID_BOOSTY] != tmpSettings.fields[SettingField.ID_BOOSTY]
+                            settings.fields[SettingField.ID_VK] != tmpSettings.fields[SettingField.ID_VK]
+                            settings.fields[SettingField.ID_YOUTUBE_LYRICS] != tmpSettings.fields[SettingField.ID_YOUTUBE_LYRICS]
+//                            settings.fields[SettingField.ID_YOUTUBE_LYRICS_BT] != tmpSettings.fields[SettingField.ID_YOUTUBE_LYRICS_BT]
+                            settings.fields[SettingField.ID_YOUTUBE_KARAOKE] != tmpSettings.fields[SettingField.ID_YOUTUBE_KARAOKE]
+//                            settings.fields[SettingField.ID_YOUTUBE_KARAOKE_BT] != tmpSettings.fields[SettingField.ID_YOUTUBE_KARAOKE_BT]
+                            settings.fields[SettingField.ID_YOUTUBE_CHORDS] != tmpSettings.fields[SettingField.ID_YOUTUBE_CHORDS]
+//                            settings.fields[SettingField.ID_YOUTUBE_CHORDS_BT] != tmpSettings.fields[SettingField.ID_YOUTUBE_CHORDS_BT]
+                            settings.fields[SettingField.ID_VK_LYRICS] != tmpSettings.fields[SettingField.ID_VK_LYRICS]
+//                            settings.fields[SettingField.ID_VK_LYRICS_BT] != tmpSettings.fields[SettingField.ID_VK_LYRICS_BT]
+                            settings.fields[SettingField.ID_VK_KARAOKE] != tmpSettings.fields[SettingField.ID_VK_KARAOKE]
+//                            settings.fields[SettingField.ID_VK_KARAOKE_BT] != tmpSettings.fields[SettingField.ID_VK_KARAOKE_BT]
+                            settings.fields[SettingField.ID_VK_CHORDS] != tmpSettings.fields[SettingField.ID_VK_CHORDS]
+//                            settings.fields[SettingField.ID_VK_CHORDS_BT] != tmpSettings.fields[SettingField.ID_VK_CHORDS_BT]
+                            settings.fields[SettingField.ID_TELEGRAM_LYRICS] != tmpSettings.fields[SettingField.ID_TELEGRAM_LYRICS]
+//                            settings.fields[SettingField.ID_TELEGRAM_LYRICS_BT] != tmpSettings.fields[SettingField.ID_TELEGRAM_LYRICS_BT]
+                            settings.fields[SettingField.ID_TELEGRAM_KARAOKE] != tmpSettings.fields[SettingField.ID_TELEGRAM_KARAOKE]
+//                            settings.fields[SettingField.ID_TELEGRAM_KARAOKE_BT] != tmpSettings.fields[SettingField.ID_TELEGRAM_KARAOKE_BT]
+                            settings.fields[SettingField.ID_TELEGRAM_CHORDS] != tmpSettings.fields[SettingField.ID_TELEGRAM_CHORDS]
+//                            settings.fields[SettingField.ID_TELEGRAM_CHORDS_BT] != tmpSettings.fields[SettingField.ID_TELEGRAM_CHORDS_BT]
+                            settings.fields[SettingField.COLOR] != tmpSettings.fields[SettingField.COLOR]
+                            settings.sourceText = tmpSettings.sourceText
+                            settings.sourceMarkers = tmpSettings.sourceMarkers
+                            settings.saveToDb()
 
+                            if (needCreateKaraoke) {
                                 settings.sourceMarkersList.forEachIndexed { voice, _ ->
                                     val strText = settings.convertMarkersToSrt(voice)
                                     File("${settings.rootFolder}/${settings.fileName}.voice${voice+1}.srt").writeText(strText)
@@ -154,9 +181,8 @@ class KaraokeProcessWorker {
                                 KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, 0)
                                 KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_LYR, true, 0)
                                 KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, 1)
-                                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS_BT, true, 3)
-                                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE_BT, true, 3)
-
+//                                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS_BT, true, 3)
+//                                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE_BT, true, 3)
                             }
 
                         }

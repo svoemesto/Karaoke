@@ -5,6 +5,7 @@ import com.svoemesto.karaokeapp.model.*
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import org.apache.xerces.impl.dv.util.Base64
 import org.springframework.core.io.FileSystemResource
 import org.springframework.core.io.Resource
 import org.springframework.http.HttpHeaders
@@ -166,6 +167,32 @@ class MainController {
         return KaraokeProcessWorker.stopAfterThreadIsDone
     }
 
+    @GetMapping("/song/{id}/pictureauthor")
+    @ResponseBody
+    fun getPictureAuthor(@PathVariable id: Long): String {
+        val settings = Settings.loadFromDbById(id)
+        settings?.let {
+            val file = File("${it.rootFolder}/LogoAuthor.png")
+            if (file.exists()) {
+                return java.util.Base64.getEncoder().encodeToString(file.inputStream().readAllBytes())
+            }
+        }
+        return ""
+    }
+
+    @GetMapping("/song/{id}/picturealbum")
+    @ResponseBody
+    fun getPictureAlbum(@PathVariable id: Long): String {
+        val settings = Settings.loadFromDbById(id)
+        settings?.let {
+            val file = File("${it.rootFolder}/LogoAlbum.png")
+            if (file.exists()) {
+                return java.util.Base64.getEncoder().encodeToString(file.inputStream().readAllBytes())
+            }
+        }
+        return ""
+    }
+
     @GetMapping("/song/{id}/delete")
     @ResponseBody
     fun doDeleteSong(@PathVariable id: Long): Int {
@@ -306,40 +333,40 @@ class MainController {
         return 0
     }
 
-    @GetMapping("/song/{id}/doprocesslyricsbt")
-    @ResponseBody
-    fun doProcessLyricsBt(@PathVariable id: Long): Int {
-        println("doProcessLyricsBt")
-        val settings = Settings.loadFromDbById(id)
-        settings?.let {
-            return KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS_BT, true, 1)
-        }
-        return 0
-    }
+//    @GetMapping("/song/{id}/doprocesslyricsbt")
+//    @ResponseBody
+//    fun doProcessLyricsBt(@PathVariable id: Long): Int {
+//        println("doProcessLyricsBt")
+//        val settings = Settings.loadFromDbById(id)
+//        settings?.let {
+//            return KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS_BT, true, 1)
+//        }
+//        return 0
+//    }
 
-    @GetMapping("/song/{id}/doprocesskaraokebt")
-    @ResponseBody
-    fun doProcessKaraokeBt(@PathVariable id: Long): Int {
-        println("doProcessKaraokeBt")
-        val settings = Settings.loadFromDbById(id)
-        settings?.let {
-            return KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE_BT, true, 1)
-        }
-        return 0
-    }
+//    @GetMapping("/song/{id}/doprocesskaraokebt")
+//    @ResponseBody
+//    fun doProcessKaraokeBt(@PathVariable id: Long): Int {
+//        println("doProcessKaraokeBt")
+//        val settings = Settings.loadFromDbById(id)
+//        settings?.let {
+//            return KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE_BT, true, 1)
+//        }
+//        return 0
+//    }
 
-    @GetMapping("/song/{id}/doprocesschordsbt")
-    @ResponseBody
-    fun doProcessChordsBt(@PathVariable id: Long): Int {
-        println("doProcessChordsBt")
-        val settings = Settings.loadFromDbById(id)
-        settings?.let {
-            if (Song(settings, SongVersion.LYRICS).hasChords) {
-                return  KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDS_BT, true, 1)
-            }
-        }
-        return 0
-    }
+//    @GetMapping("/song/{id}/doprocesschordsbt")
+//    @ResponseBody
+//    fun doProcessChordsBt(@PathVariable id: Long): Int {
+//        println("doProcessChordsBt")
+//        val settings = Settings.loadFromDbById(id)
+//        settings?.let {
+//            if (Song(settings, SongVersion.LYRICS).hasChords) {
+//                return  KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDS_BT, true, 1)
+//            }
+//        }
+//        return 0
+//    }
 
     @GetMapping("/song/{id}/doprocessall")
     @ResponseBody
@@ -354,11 +381,11 @@ class MainController {
             if (hasChords) {
                 result.add(KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDS, true, 4))
             }
-            result.add(KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS_BT, true, 10))
-            result.add(KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE_BT, true, 10))
-            if (hasChords) {
-                result.add(KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDS_BT, true, 10))
-            }
+//            result.add(KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS_BT, true, 10))
+//            result.add(KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE_BT, true, 10))
+//            if (hasChords) {
+//                result.add(KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDS_BT, true, 10))
+//            }
         }
         return result
     }
@@ -375,11 +402,11 @@ class MainController {
             if (hasChords) {
                 result.add(KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDS, true, 3))
             }
-            result.add(KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS_BT, true, 3))
-            result.add(KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE_BT, true, 3))
-            if (hasChords) {
-                result.add(KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDS_BT, true, 3))
-            }
+//            result.add(KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS_BT, true, 3))
+//            result.add(KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE_BT, true, 3))
+//            if (hasChords) {
+//                result.add(KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDS_BT, true, 3))
+//            }
         }
         return result
     }
@@ -1473,23 +1500,23 @@ class MainController {
         @RequestParam(required = false) flag_boosty: String?,
         @RequestParam(required = false) flag_vk: String?,
         @RequestParam(required = false) flag_youtube_lyrics: String?,
-        @RequestParam(required = false) flag_youtube_lyrics_bt: String?,
+//        @RequestParam(required = false) flag_youtube_lyrics_bt: String?,
         @RequestParam(required = false) flag_youtube_karaoke: String?,
-        @RequestParam(required = false) flag_youtube_karaoke_bt: String?,
+//        @RequestParam(required = false) flag_youtube_karaoke_bt: String?,
         @RequestParam(required = false) flag_youtube_chords: String?,
-        @RequestParam(required = false) flag_youtube_chords_bt: String?,
+//        @RequestParam(required = false) flag_youtube_chords_bt: String?,
         @RequestParam(required = false) flag_vk_lyrics: String?,
-        @RequestParam(required = false) flag_vk_lyrics_bt: String?,
+//        @RequestParam(required = false) flag_vk_lyrics_bt: String?,
         @RequestParam(required = false) flag_vk_karaoke: String?,
-        @RequestParam(required = false) flag_vk_karaoke_bt: String?,
+//        @RequestParam(required = false) flag_vk_karaoke_bt: String?,
         @RequestParam(required = false) flag_vk_chords: String?,
-        @RequestParam(required = false) flag_vk_chords_bt: String?,
+//        @RequestParam(required = false) flag_vk_chords_bt: String?,
         @RequestParam(required = false) flag_telegram_lyrics: String?,
-        @RequestParam(required = false) flag_telegram_lyrics_bt: String?,
+//        @RequestParam(required = false) flag_telegram_lyrics_bt: String?,
         @RequestParam(required = false) flag_telegram_karaoke: String?,
-        @RequestParam(required = false) flag_telegram_karaoke_bt: String?,
+//        @RequestParam(required = false) flag_telegram_karaoke_bt: String?,
         @RequestParam(required = false) flag_telegram_chords: String?,
-        @RequestParam(required = false) flag_telegram_chords_bt: String?,
+//        @RequestParam(required = false) flag_telegram_chords_bt: String?,
         model: Model): String {
 
         val args: MutableMap<String, String> = mutableMapOf()
@@ -1506,23 +1533,23 @@ class MainController {
         flag_boosty?.let { if (flag_boosty != "") args["flag_boosty"] = flag_boosty }
         flag_vk?.let { if (flag_vk != "") args["flag_vk"] = flag_vk }
         flag_youtube_lyrics?.let { if (flag_youtube_lyrics != "") args["flag_youtube_lyrics"] = flag_youtube_lyrics }
-        flag_youtube_lyrics_bt?.let { if (flag_youtube_lyrics_bt != "") args["flag_youtube_lyrics_bt"] = flag_youtube_lyrics_bt }
+//        flag_youtube_lyrics_bt?.let { if (flag_youtube_lyrics_bt != "") args["flag_youtube_lyrics_bt"] = flag_youtube_lyrics_bt }
         flag_youtube_karaoke?.let { if (flag_youtube_karaoke != "") args["flag_youtube_karaoke"] = flag_youtube_karaoke }
-        flag_youtube_karaoke_bt?.let { if (flag_youtube_karaoke_bt != "") args["flag_youtube_karaoke_bt"] = flag_youtube_karaoke_bt }
+//        flag_youtube_karaoke_bt?.let { if (flag_youtube_karaoke_bt != "") args["flag_youtube_karaoke_bt"] = flag_youtube_karaoke_bt }
         flag_youtube_chords?.let { if (flag_youtube_chords != "") args["flag_youtube_chords"] = flag_youtube_chords }
-        flag_youtube_chords_bt?.let { if (flag_youtube_chords_bt != "") args["flag_youtube_chords_bt"] = flag_youtube_chords_bt }
+//        flag_youtube_chords_bt?.let { if (flag_youtube_chords_bt != "") args["flag_youtube_chords_bt"] = flag_youtube_chords_bt }
         flag_vk_lyrics?.let { if (flag_vk_lyrics != "") args["flag_vk_lyrics"] = flag_vk_lyrics }
-        flag_vk_lyrics_bt?.let { if (flag_vk_lyrics_bt != "") args["flag_vk_lyrics_bt"] = flag_vk_lyrics_bt }
+//        flag_vk_lyrics_bt?.let { if (flag_vk_lyrics_bt != "") args["flag_vk_lyrics_bt"] = flag_vk_lyrics_bt }
         flag_vk_karaoke?.let { if (flag_vk_karaoke != "") args["flag_vk_karaoke"] = flag_vk_karaoke }
-        flag_vk_karaoke_bt?.let { if (flag_vk_karaoke_bt != "") args["flag_vk_karaoke_bt"] = flag_vk_karaoke_bt }
+//        flag_vk_karaoke_bt?.let { if (flag_vk_karaoke_bt != "") args["flag_vk_karaoke_bt"] = flag_vk_karaoke_bt }
         flag_vk_chords?.let { if (flag_vk_chords != "") args["flag_vk_chords"] = flag_vk_chords }
-        flag_vk_chords_bt?.let { if (flag_vk_chords_bt != "") args["flag_vk_chords_bt"] = flag_vk_chords_bt }
+//        flag_vk_chords_bt?.let { if (flag_vk_chords_bt != "") args["flag_vk_chords_bt"] = flag_vk_chords_bt }
         flag_telegram_lyrics?.let { if (flag_telegram_lyrics != "") args["flag_telegram_lyrics"] = flag_telegram_lyrics }
-        flag_telegram_lyrics_bt?.let { if (flag_telegram_lyrics_bt != "") args["flag_telegram_lyrics_bt"] = flag_telegram_lyrics_bt }
+//        flag_telegram_lyrics_bt?.let { if (flag_telegram_lyrics_bt != "") args["flag_telegram_lyrics_bt"] = flag_telegram_lyrics_bt }
         flag_telegram_karaoke?.let { if (flag_telegram_karaoke != "") args["flag_telegram_karaoke"] = flag_telegram_karaoke }
-        flag_telegram_karaoke_bt?.let { if (flag_telegram_karaoke_bt != "") args["flag_telegram_karaoke_bt"] = flag_telegram_karaoke_bt }
+//        flag_telegram_karaoke_bt?.let { if (flag_telegram_karaoke_bt != "") args["flag_telegram_karaoke_bt"] = flag_telegram_karaoke_bt }
         flag_telegram_chords?.let { if (flag_telegram_chords != "") args["flag_telegram_chords"] = flag_telegram_chords }
-        flag_telegram_chords_bt?.let { if (flag_telegram_chords_bt != "") args["flag_telegram_chords_bt"] = flag_telegram_chords_bt }
+//        flag_telegram_chords_bt?.let { if (flag_telegram_chords_bt != "") args["flag_telegram_chords_bt"] = flag_telegram_chords_bt }
         model.addAttribute("sett", Settings.loadListFromDb(args))
         model.addAttribute("authors", Settings.loadListAuthors())
         model.addAttribute("albums", Settings.loadListAlbums())
@@ -1547,23 +1574,23 @@ class MainController {
         @RequestParam(required = false) settings_idBoosty: String,
         @RequestParam(required = false) settings_idVk: String,
         @RequestParam(required = false) settings_idYoutubeLyrics: String,
-        @RequestParam(required = false) settings_idYoutubeLyricsBt: String,
+//        @RequestParam(required = false) settings_idYoutubeLyricsBt: String,
         @RequestParam(required = false) settings_idYoutubeKaraoke: String,
-        @RequestParam(required = false) settings_idYoutubeKaraokeBt: String,
+//        @RequestParam(required = false) settings_idYoutubeKaraokeBt: String,
         @RequestParam(required = false) settings_idYoutubeChords: String,
-        @RequestParam(required = false) settings_idYoutubeChordsBt: String,
+//        @RequestParam(required = false) settings_idYoutubeChordsBt: String,
         @RequestParam(required = false) settings_idVkLyrics: String,
-        @RequestParam(required = false) settings_idVkLyricsBt: String,
+//        @RequestParam(required = false) settings_idVkLyricsBt: String,
         @RequestParam(required = false) settings_idVkKaraoke: String,
-        @RequestParam(required = false) settings_idVkKaraokeBt: String,
+//        @RequestParam(required = false) settings_idVkKaraokeBt: String,
         @RequestParam(required = false) settings_idVkChords: String,
-        @RequestParam(required = false) settings_idVkChordsBt: String,
+//        @RequestParam(required = false) settings_idVkChordsBt: String,
         @RequestParam(required = false) settings_idTelegramLyrics: String,
-        @RequestParam(required = false) settings_idTelegramLyricsBt: String,
+//        @RequestParam(required = false) settings_idTelegramLyricsBt: String,
         @RequestParam(required = false) settings_idTelegramKaraoke: String,
-        @RequestParam(required = false) settings_idTelegramKaraokeBt: String,
+//        @RequestParam(required = false) settings_idTelegramKaraokeBt: String,
         @RequestParam(required = false) settings_idTelegramChords: String,
-        @RequestParam(required = false) settings_idTelegramChordsBt: String,
+//        @RequestParam(required = false) settings_idTelegramChordsBt: String,
         @RequestParam(required = false) select_status: String,
         model: Model): String {
         val settingsId: Long = settings_id.toLong()
@@ -1586,23 +1613,23 @@ class MainController {
             sett.fields[SettingField.ID_BOOSTY] = settings_idBoosty
             sett.fields[SettingField.ID_VK] = settings_idVk
             sett.fields[SettingField.ID_YOUTUBE_LYRICS] = settings_idYoutubeLyrics
-            sett.fields[SettingField.ID_YOUTUBE_LYRICS_BT] = settings_idYoutubeLyricsBt
+//            sett.fields[SettingField.ID_YOUTUBE_LYRICS_BT] = settings_idYoutubeLyricsBt
             sett.fields[SettingField.ID_YOUTUBE_KARAOKE] = settings_idYoutubeKaraoke
-            sett.fields[SettingField.ID_YOUTUBE_KARAOKE_BT] = settings_idYoutubeKaraokeBt
+//            sett.fields[SettingField.ID_YOUTUBE_KARAOKE_BT] = settings_idYoutubeKaraokeBt
             sett.fields[SettingField.ID_YOUTUBE_CHORDS] = settings_idYoutubeChords
-            sett.fields[SettingField.ID_YOUTUBE_CHORDS_BT] = settings_idYoutubeChordsBt
+//            sett.fields[SettingField.ID_YOUTUBE_CHORDS_BT] = settings_idYoutubeChordsBt
             sett.fields[SettingField.ID_VK_LYRICS] = settings_idVkLyrics
-            sett.fields[SettingField.ID_VK_LYRICS_BT] = settings_idVkLyricsBt
+//            sett.fields[SettingField.ID_VK_LYRICS_BT] = settings_idVkLyricsBt
             sett.fields[SettingField.ID_VK_KARAOKE] = settings_idVkKaraoke
-            sett.fields[SettingField.ID_VK_KARAOKE_BT] = settings_idVkKaraokeBt
+//            sett.fields[SettingField.ID_VK_KARAOKE_BT] = settings_idVkKaraokeBt
             sett.fields[SettingField.ID_VK_CHORDS] = settings_idVkChords
-            sett.fields[SettingField.ID_VK_CHORDS_BT] = settings_idVkChordsBt
+//            sett.fields[SettingField.ID_VK_CHORDS_BT] = settings_idVkChordsBt
             sett.fields[SettingField.ID_TELEGRAM_LYRICS] = settings_idTelegramLyrics
-            sett.fields[SettingField.ID_TELEGRAM_LYRICS_BT] = settings_idTelegramLyricsBt
+//            sett.fields[SettingField.ID_TELEGRAM_LYRICS_BT] = settings_idTelegramLyricsBt
             sett.fields[SettingField.ID_TELEGRAM_KARAOKE] = settings_idTelegramKaraoke
-            sett.fields[SettingField.ID_TELEGRAM_KARAOKE_BT] = settings_idTelegramKaraokeBt
+//            sett.fields[SettingField.ID_TELEGRAM_KARAOKE_BT] = settings_idTelegramKaraokeBt
             sett.fields[SettingField.ID_TELEGRAM_CHORDS] = settings_idTelegramChords
-            sett.fields[SettingField.ID_TELEGRAM_CHORDS_BT] = settings_idTelegramChordsBt
+//            sett.fields[SettingField.ID_TELEGRAM_CHORDS_BT] = settings_idTelegramChordsBt
             sett.fields[SettingField.ID_STATUS] = select_status
             sett.saveToDb()
             sett.saveToFile()

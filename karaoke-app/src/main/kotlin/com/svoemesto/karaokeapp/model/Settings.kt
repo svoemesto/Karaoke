@@ -43,27 +43,27 @@ enum class SettingField : Serializable {
     ID_BOOSTY,
     ID_VK,
     ID_YOUTUBE_LYRICS,
-    ID_YOUTUBE_LYRICS_BT,
+//    ID_YOUTUBE_LYRICS_BT,
     ID_YOUTUBE_KARAOKE,
-    ID_YOUTUBE_KARAOKE_BT,
+//    ID_YOUTUBE_KARAOKE_BT,
     ID_YOUTUBE_CHORDS,
-    ID_YOUTUBE_CHORDS_BT,
+//    ID_YOUTUBE_CHORDS_BT,
     ID_VK_LYRICS,
-    ID_VK_LYRICS_BT,
+//    ID_VK_LYRICS_BT,
     ID_VK_KARAOKE,
-    ID_VK_KARAOKE_BT,
+//    ID_VK_KARAOKE_BT,
     ID_VK_CHORDS,
-    ID_VK_CHORDS_BT,
+//    ID_VK_CHORDS_BT,
     ID_STATUS,
     COLOR,
     SOURCE_TEXT,
     SOURCE_MARKERS,
     ID_TELEGRAM_LYRICS,
-    ID_TELEGRAM_LYRICS_BT,
+//    ID_TELEGRAM_LYRICS_BT,
     ID_TELEGRAM_KARAOKE,
-    ID_TELEGRAM_KARAOKE_BT,
+//    ID_TELEGRAM_KARAOKE_BT,
     ID_TELEGRAM_CHORDS,
-    ID_TELEGRAM_CHORDS_BT
+//    ID_TELEGRAM_CHORDS_BT
 }
 
 
@@ -374,96 +374,96 @@ class Settings : Serializable, Comparable<Settings> {
     val idBoosty: String get() = fields[SettingField.ID_BOOSTY]?.nullIfEmpty() ?: ""
     val idVk: String get() = fields[SettingField.ID_VK]?.nullIfEmpty() ?: ""
     val idYoutubeLyrics: String get() = fields[SettingField.ID_YOUTUBE_LYRICS]?.nullIfEmpty() ?: ""
-    val idYoutubeLyricsBt: String get() = fields[SettingField.ID_YOUTUBE_LYRICS_BT]?.nullIfEmpty() ?: ""
+//    val idYoutubeLyricsBt: String get() = fields[SettingField.ID_YOUTUBE_LYRICS_BT]?.nullIfEmpty() ?: ""
     val idYoutubeKaraoke: String get() = fields[SettingField.ID_YOUTUBE_KARAOKE]?.nullIfEmpty() ?: ""
-    val idYoutubeKaraokeBt: String get() = fields[SettingField.ID_YOUTUBE_KARAOKE_BT]?.nullIfEmpty() ?: ""
+//    val idYoutubeKaraokeBt: String get() = fields[SettingField.ID_YOUTUBE_KARAOKE_BT]?.nullIfEmpty() ?: ""
     val idYoutubeChords: String get() = fields[SettingField.ID_YOUTUBE_CHORDS]?.nullIfEmpty() ?: ""
-    val idYoutubeChordsBt: String get() = fields[SettingField.ID_YOUTUBE_CHORDS_BT]?.nullIfEmpty() ?: ""
+//    val idYoutubeChordsBt: String get() = fields[SettingField.ID_YOUTUBE_CHORDS_BT]?.nullIfEmpty() ?: ""
 
     val idVkLyrics: String get() = fields[SettingField.ID_VK_LYRICS]?.nullIfEmpty() ?: ""
-    val idVkLyricsBt: String get() = fields[SettingField.ID_VK_LYRICS_BT]?.nullIfEmpty() ?: ""
+//    val idVkLyricsBt: String get() = fields[SettingField.ID_VK_LYRICS_BT]?.nullIfEmpty() ?: ""
     val idVkKaraoke: String get() = fields[SettingField.ID_VK_KARAOKE]?.nullIfEmpty() ?: ""
-    val idVkKaraokeBt: String get() = fields[SettingField.ID_VK_KARAOKE_BT]?.nullIfEmpty() ?: ""
+//    val idVkKaraokeBt: String get() = fields[SettingField.ID_VK_KARAOKE_BT]?.nullIfEmpty() ?: ""
     val idVkChords: String get() = fields[SettingField.ID_VK_CHORDS]?.nullIfEmpty() ?: ""
-    val idVkChordsBt: String get() = fields[SettingField.ID_VK_CHORDS_BT]?.nullIfEmpty() ?: ""
+//    val idVkChordsBt: String get() = fields[SettingField.ID_VK_CHORDS_BT]?.nullIfEmpty() ?: ""
 
     val idTelegramLyrics: String get() = fields[SettingField.ID_TELEGRAM_LYRICS]?.nullIfEmpty() ?: ""
-    val idTelegramLyricsBt: String get() = fields[SettingField.ID_TELEGRAM_LYRICS_BT]?.nullIfEmpty() ?: ""
+//    val idTelegramLyricsBt: String get() = fields[SettingField.ID_TELEGRAM_LYRICS_BT]?.nullIfEmpty() ?: ""
     val idTelegramKaraoke: String get() = fields[SettingField.ID_TELEGRAM_KARAOKE]?.nullIfEmpty() ?: ""
-    val idTelegramKaraokeBt: String get() = fields[SettingField.ID_TELEGRAM_KARAOKE_BT]?.nullIfEmpty() ?: ""
+//    val idTelegramKaraokeBt: String get() = fields[SettingField.ID_TELEGRAM_KARAOKE_BT]?.nullIfEmpty() ?: ""
     val idTelegramChords: String get() = fields[SettingField.ID_TELEGRAM_CHORDS]?.nullIfEmpty() ?: ""
-    val idTelegramChordsBt: String get() = fields[SettingField.ID_TELEGRAM_CHORDS_BT]?.nullIfEmpty() ?: ""
+//    val idTelegramChordsBt: String get() = fields[SettingField.ID_TELEGRAM_CHORDS_BT]?.nullIfEmpty() ?: ""
     
     val linkBoosty: String? get() = idBoosty?.let {URL_PREFIX_BOOSTY.replace("{REPLACE}", idBoosty!!)}
     val linkVk: String? get() = idBoosty?.let {URL_PREFIX_VK.replace("{REPLACE}", idBoosty!!)}
     val linkYoutubeLyricsPlay: String? get() = idYoutubeLyrics?.let {URL_PREFIX_YOUTUBE_PLAY.replace("{REPLACE}", idYoutubeLyrics!!)}
     val linkYoutubeLyricsEdit: String? get() = idYoutubeLyrics?.let {URL_PREFIX_YOUTUBE_EDIT.replace("{REPLACE}", idYoutubeLyrics!!)}
-    val linkYoutubeLyricsBtPlay: String? get() = idYoutubeLyricsBt?.let {URL_PREFIX_YOUTUBE_PLAY.replace("{REPLACE}", idYoutubeLyricsBt!!)}
-    val linkYoutubeLyricsBtEdit: String? get() = idYoutubeLyricsBt?.let {URL_PREFIX_YOUTUBE_EDIT.replace("{REPLACE}", idYoutubeLyricsBt!!)}
+//    val linkYoutubeLyricsBtPlay: String? get() = idYoutubeLyricsBt?.let {URL_PREFIX_YOUTUBE_PLAY.replace("{REPLACE}", idYoutubeLyricsBt!!)}
+//    val linkYoutubeLyricsBtEdit: String? get() = idYoutubeLyricsBt?.let {URL_PREFIX_YOUTUBE_EDIT.replace("{REPLACE}", idYoutubeLyricsBt!!)}
 
     val linkYoutubeKaraokePlay: String? get() = idYoutubeKaraoke?.let {URL_PREFIX_YOUTUBE_PLAY.replace("{REPLACE}", idYoutubeKaraoke!!)}
     val linkYoutubeKaraokeEdit: String? get() = idYoutubeKaraoke?.let {URL_PREFIX_YOUTUBE_EDIT.replace("{REPLACE}", idYoutubeKaraoke!!)}
-    val linkYoutubeKaraokeBtPlay: String? get() = idYoutubeKaraokeBt?.let {URL_PREFIX_YOUTUBE_PLAY.replace("{REPLACE}", idYoutubeKaraokeBt!!)}
-    val linkYoutubeKaraokeBtEdit: String? get() = idYoutubeKaraokeBt?.let {URL_PREFIX_YOUTUBE_EDIT.replace("{REPLACE}", idYoutubeKaraokeBt!!)}
+//    val linkYoutubeKaraokeBtPlay: String? get() = idYoutubeKaraokeBt?.let {URL_PREFIX_YOUTUBE_PLAY.replace("{REPLACE}", idYoutubeKaraokeBt!!)}
+//    val linkYoutubeKaraokeBtEdit: String? get() = idYoutubeKaraokeBt?.let {URL_PREFIX_YOUTUBE_EDIT.replace("{REPLACE}", idYoutubeKaraokeBt!!)}
 
     val linkYoutubeChordsPlay: String? get() = idYoutubeChords?.let {URL_PREFIX_YOUTUBE_PLAY.replace("{REPLACE}", idYoutubeChords!!)}
     val linkYoutubeChordsEdit: String? get() = idYoutubeChords?.let {URL_PREFIX_YOUTUBE_EDIT.replace("{REPLACE}", idYoutubeChords!!)}
-    val linkYoutubeChordsBtPlay: String? get() = idYoutubeChordsBt?.let {URL_PREFIX_YOUTUBE_PLAY.replace("{REPLACE}", idYoutubeChordsBt!!)}
-    val linkYoutubeChordsBtEdit: String? get() = idYoutubeChordsBt?.let {URL_PREFIX_YOUTUBE_EDIT.replace("{REPLACE}", idYoutubeChordsBt!!)}
+//    val linkYoutubeChordsBtPlay: String? get() = idYoutubeChordsBt?.let {URL_PREFIX_YOUTUBE_PLAY.replace("{REPLACE}", idYoutubeChordsBt!!)}
+//    val linkYoutubeChordsBtEdit: String? get() = idYoutubeChordsBt?.let {URL_PREFIX_YOUTUBE_EDIT.replace("{REPLACE}", idYoutubeChordsBt!!)}
 
     val linkVkLyricsPlay: String? get() = idVkLyrics?.let {URL_PREFIX_VK_PLAY.replace("{REPLACE}", idVkLyrics!!)}
     val linkVkLyricsEdit: String? get() = idVkLyrics?.let {URL_PREFIX_VK_EDIT.replace("{REPLACE}", idVkLyrics!!)}
-    val linkVkLyricsBtPlay: String? get() = idVkLyricsBt?.let {URL_PREFIX_VK_PLAY.replace("{REPLACE}", idVkLyricsBt!!)}
-    val linkVkLyricsBtEdit: String? get() = idVkLyricsBt?.let {URL_PREFIX_VK_EDIT.replace("{REPLACE}", idVkLyricsBt!!)}
+//    val linkVkLyricsBtPlay: String? get() = idVkLyricsBt?.let {URL_PREFIX_VK_PLAY.replace("{REPLACE}", idVkLyricsBt!!)}
+//    val linkVkLyricsBtEdit: String? get() = idVkLyricsBt?.let {URL_PREFIX_VK_EDIT.replace("{REPLACE}", idVkLyricsBt!!)}
 
     val linkVkKaraokePlay: String? get() = idVkKaraoke?.let {URL_PREFIX_VK_PLAY.replace("{REPLACE}", idVkKaraoke!!)}
     val linkVkKaraokeEdit: String? get() = idVkKaraoke?.let {URL_PREFIX_VK_EDIT.replace("{REPLACE}", idVkKaraoke!!)}
-    val linkVkKaraokeBtPlay: String? get() = idVkKaraokeBt?.let {URL_PREFIX_VK_PLAY.replace("{REPLACE}", idVkKaraokeBt!!)}
-    val linkVkKaraokeBtEdit: String? get() = idVkKaraokeBt?.let {URL_PREFIX_VK_EDIT.replace("{REPLACE}", idVkKaraokeBt!!)}
+//    val linkVkKaraokeBtPlay: String? get() = idVkKaraokeBt?.let {URL_PREFIX_VK_PLAY.replace("{REPLACE}", idVkKaraokeBt!!)}
+//    val linkVkKaraokeBtEdit: String? get() = idVkKaraokeBt?.let {URL_PREFIX_VK_EDIT.replace("{REPLACE}", idVkKaraokeBt!!)}
     
     val linkVkChordsPlay: String? get() = idVkChords?.let {URL_PREFIX_VK_PLAY.replace("{REPLACE}", idVkChords!!)}
     val linkVkChordsEdit: String? get() = idVkChords?.let {URL_PREFIX_VK_EDIT.replace("{REPLACE}", idVkChords!!)}
-    val linkVkChordsBtPlay: String? get() = idVkChordsBt?.let {URL_PREFIX_VK_PLAY.replace("{REPLACE}", idVkChordsBt!!)}
-    val linkVkChordsBtEdit: String? get() = idVkChordsBt?.let {URL_PREFIX_VK_EDIT.replace("{REPLACE}", idVkChordsBt!!)}
+//    val linkVkChordsBtPlay: String? get() = idVkChordsBt?.let {URL_PREFIX_VK_PLAY.replace("{REPLACE}", idVkChordsBt!!)}
+//    val linkVkChordsBtEdit: String? get() = idVkChordsBt?.let {URL_PREFIX_VK_EDIT.replace("{REPLACE}", idVkChordsBt!!)}
 
     val linkTelegramLyricsPlay: String? get() = idTelegramLyrics?.let {URL_PREFIX_TELEGRAM_PLAY.replace("{REPLACE}", idTelegramLyrics!!)}
     val linkTelegramLyricsEdit: String? get() = idTelegramLyrics?.let {URL_PREFIX_TELEGRAM_EDIT.replace("{REPLACE}", idTelegramLyrics!!)}
-    val linkTelegramLyricsBtPlay: String? get() = idTelegramLyricsBt?.let {URL_PREFIX_TELEGRAM_PLAY.replace("{REPLACE}", idTelegramLyricsBt!!)}
-    val linkTelegramLyricsBtEdit: String? get() = idTelegramLyricsBt?.let {URL_PREFIX_TELEGRAM_EDIT.replace("{REPLACE}", idTelegramLyricsBt!!)}
+//    val linkTelegramLyricsBtPlay: String? get() = idTelegramLyricsBt?.let {URL_PREFIX_TELEGRAM_PLAY.replace("{REPLACE}", idTelegramLyricsBt!!)}
+//    val linkTelegramLyricsBtEdit: String? get() = idTelegramLyricsBt?.let {URL_PREFIX_TELEGRAM_EDIT.replace("{REPLACE}", idTelegramLyricsBt!!)}
 
     val linkTelegramKaraokePlay: String? get() = idTelegramKaraoke?.let {URL_PREFIX_TELEGRAM_PLAY.replace("{REPLACE}", idTelegramKaraoke!!)}
     val linkTelegramKaraokeEdit: String? get() = idTelegramKaraoke?.let {URL_PREFIX_TELEGRAM_EDIT.replace("{REPLACE}", idTelegramKaraoke!!)}
-    val linkTelegramKaraokeBtPlay: String? get() = idTelegramKaraokeBt?.let {URL_PREFIX_TELEGRAM_PLAY.replace("{REPLACE}", idTelegramKaraokeBt!!)}
-    val linkTelegramKaraokeBtEdit: String? get() = idTelegramKaraokeBt?.let {URL_PREFIX_TELEGRAM_EDIT.replace("{REPLACE}", idTelegramKaraokeBt!!)}
+//    val linkTelegramKaraokeBtPlay: String? get() = idTelegramKaraokeBt?.let {URL_PREFIX_TELEGRAM_PLAY.replace("{REPLACE}", idTelegramKaraokeBt!!)}
+//    val linkTelegramKaraokeBtEdit: String? get() = idTelegramKaraokeBt?.let {URL_PREFIX_TELEGRAM_EDIT.replace("{REPLACE}", idTelegramKaraokeBt!!)}
 
     val linkTelegramChordsPlay: String? get() = idTelegramChords?.let {URL_PREFIX_TELEGRAM_PLAY.replace("{REPLACE}", idTelegramChords!!)}
     val linkTelegramChordsEdit: String? get() = idTelegramChords?.let {URL_PREFIX_TELEGRAM_EDIT.replace("{REPLACE}", idTelegramChords!!)}
-    val linkTelegramChordsBtPlay: String? get() = idTelegramChordsBt?.let {URL_PREFIX_TELEGRAM_PLAY.replace("{REPLACE}", idTelegramChordsBt!!)}
-    val linkTelegramChordsBtEdit: String? get() = idTelegramChordsBt?.let {URL_PREFIX_TELEGRAM_EDIT.replace("{REPLACE}", idTelegramChordsBt!!)}
+//    val linkTelegramChordsBtPlay: String? get() = idTelegramChordsBt?.let {URL_PREFIX_TELEGRAM_PLAY.replace("{REPLACE}", idTelegramChordsBt!!)}
+//    val linkTelegramChordsBtEdit: String? get() = idTelegramChordsBt?.let {URL_PREFIX_TELEGRAM_EDIT.replace("{REPLACE}", idTelegramChordsBt!!)}
 
     val flagBoosty: String get() = if (idBoosty == null || idBoosty == "null" || idBoosty == "") "" else "✓"
     val flagVk: String get() = if (idVk == null || idVk == "null" || idVk == "") "" else "✓"
     val flagYoutubeLyrics: String get() = if (idYoutubeLyrics == null || idYoutubeLyrics == "null" || idYoutubeLyrics == "") "" else "✓"
-    val flagYoutubeLyricsBt: String get() = if (idYoutubeLyricsBt == null || idYoutubeLyricsBt == "null" || idYoutubeLyricsBt == "") "" else "✓"
+//    val flagYoutubeLyricsBt: String get() = if (idYoutubeLyricsBt == null || idYoutubeLyricsBt == "null" || idYoutubeLyricsBt == "") "" else "✓"
     val flagYoutubeKaraoke: String get() = if (idYoutubeKaraoke == null || idYoutubeKaraoke == "null" || idYoutubeKaraoke == "") "" else "✓"
-    val flagYoutubeKaraokeBt: String get() = if (idYoutubeKaraokeBt == null || idYoutubeKaraokeBt == "null" || idYoutubeKaraokeBt == "") "" else "✓"
+//    val flagYoutubeKaraokeBt: String get() = if (idYoutubeKaraokeBt == null || idYoutubeKaraokeBt == "null" || idYoutubeKaraokeBt == "") "" else "✓"
     val flagYoutubeChords: String get() = if (idYoutubeChords == null || idYoutubeChords == "null" || idYoutubeChords == "") "" else "✓"
-    val flagYoutubeChordsBt: String get() = if (idYoutubeChordsBt == null || idYoutubeChordsBt == "null" || idYoutubeChordsBt == "") "" else "✓"
+//    val flagYoutubeChordsBt: String get() = if (idYoutubeChordsBt == null || idYoutubeChordsBt == "null" || idYoutubeChordsBt == "") "" else "✓"
 
     val flagVkLyrics: String get() = if (idVkLyrics == null || idVkLyrics == "null" || idVkLyrics == "") "" else "✓"
-    val flagVkLyricsBt: String get() = if (idVkLyricsBt == null || idVkLyricsBt == "null" || idVkLyricsBt == "") "" else "✓"
+//    val flagVkLyricsBt: String get() = if (idVkLyricsBt == null || idVkLyricsBt == "null" || idVkLyricsBt == "") "" else "✓"
     val flagVkKaraoke: String get() = if (idVkKaraoke == null || idVkKaraoke == "null" || idVkKaraoke == "") "" else "✓"
-    val flagVkKaraokeBt: String get() = if (idVkKaraokeBt == null || idVkKaraokeBt == "null" || idVkKaraokeBt == "") "" else "✓"
+//    val flagVkKaraokeBt: String get() = if (idVkKaraokeBt == null || idVkKaraokeBt == "null" || idVkKaraokeBt == "") "" else "✓"
     val flagVkChords: String get() = if (idVkChords == null || idVkChords == "null" || idVkChords == "") "" else "✓"
-    val flagVkChordsBt: String get() = if (idVkChordsBt == null || idVkChordsBt == "null" || idVkChordsBt == "") "" else "✓"
+//    val flagVkChordsBt: String get() = if (idVkChordsBt == null || idVkChordsBt == "null" || idVkChordsBt == "") "" else "✓"
 
 
     val flagTelegramLyrics: String get() = if (idTelegramLyrics == null || idTelegramLyrics == "null" || idTelegramLyrics == "") "" else "✓"
-    val flagTelegramLyricsBt: String get() = if (idTelegramLyricsBt == null || idTelegramLyricsBt == "null" || idTelegramLyricsBt == "") "" else "✓"
+//    val flagTelegramLyricsBt: String get() = if (idTelegramLyricsBt == null || idTelegramLyricsBt == "null" || idTelegramLyricsBt == "") "" else "✓"
     val flagTelegramKaraoke: String get() = if (idTelegramKaraoke == null || idTelegramKaraoke == "null" || idTelegramKaraoke == "") "" else "✓"
-    val flagTelegramKaraokeBt: String get() = if (idTelegramKaraokeBt == null || idTelegramKaraokeBt == "null" || idTelegramKaraokeBt == "") "" else "✓"
+//    val flagTelegramKaraokeBt: String get() = if (idTelegramKaraokeBt == null || idTelegramKaraokeBt == "null" || idTelegramKaraokeBt == "") "" else "✓"
     val flagTelegramChords: String get() = if (idTelegramChords == null || idTelegramChords == "null" || idTelegramChords == "") "" else "✓"
-    val flagTelegramChordsBt: String get() = if (idTelegramChordsBt == null || idTelegramChordsBt == "null" || idTelegramChordsBt == "") "" else "✓"
+//    val flagTelegramChordsBt: String get() = if (idTelegramChordsBt == null || idTelegramChordsBt == "null" || idTelegramChordsBt == "") "" else "✓"
 
     
     val pathToResultedModel: String get() = "$rootFolder/$DEMUCS_MODEL_NAME"
@@ -809,17 +809,17 @@ class Settings : Serializable, Comparable<Settings> {
     val haveVkGroupLink: Boolean get() = idVk.isNotBlank()
     val haveYoutubeLinks: Boolean get() = idYoutubeLyrics.isNotBlank() ||
             idYoutubeKaraoke.isNotBlank() ||
-            idYoutubeChords.isNotBlank() ||
-            idYoutubeLyricsBt.isNotBlank() ||
-            idYoutubeKaraokeBt.isNotBlank() ||
-            idYoutubeChordsBt.isNotBlank()
+            idYoutubeChords.isNotBlank()
+//            idYoutubeLyricsBt.isNotBlank() ||
+//            idYoutubeKaraokeBt.isNotBlank() ||
+//            idYoutubeChordsBt.isNotBlank()
 
     val haveVkLinks: Boolean get() = idVkLyrics.isNotBlank() ||
             idVkKaraoke.isNotBlank() ||
-            idVkChords.isNotBlank() ||
-            idVkLyricsBt.isNotBlank() ||
-            idVkKaraokeBt.isNotBlank() ||
-            idVkChordsBt.isNotBlank()
+            idVkChords.isNotBlank()
+//            idVkLyricsBt.isNotBlank() ||
+//            idVkKaraokeBt.isNotBlank() ||
+//            idVkChordsBt.isNotBlank()
 
     val haveTelegramLinks: Boolean get() = idTelegramLyrics.isNotBlank() && idTelegramKaraoke.isNotBlank() && idTelegramKaraoke != "-"
 
@@ -842,9 +842,9 @@ class Settings : Serializable, Comparable<Settings> {
             result += if (idYoutubeLyrics.isNotBlank()) "Версия Lyrics: ${linkYoutubeLyricsPlay}\n" else ""
             result += if (idYoutubeKaraoke.isNotBlank()) "Версия Karaoke: ${linkYoutubeKaraokePlay}\n" else ""
             result += if (idYoutubeChords.isNotBlank()) "Версия Chords: ${linkYoutubeChordsPlay}\n" else ""
-            result += if (idYoutubeLyricsBt.isNotBlank()) "Версия Lyrics with delay: ${linkYoutubeLyricsBtPlay}\n" else ""
-            result += if (idYoutubeKaraokeBt.isNotBlank()) "Версия Karaoke with delay: ${linkYoutubeKaraokeBtPlay}\n" else ""
-            result += if (idYoutubeChordsBt.isNotBlank()) "Версия Chords with delay: ${linkYoutubeChordsBtPlay}\n" else ""
+//            result += if (idYoutubeLyricsBt.isNotBlank()) "Версия Lyrics with delay: ${linkYoutubeLyricsBtPlay}\n" else ""
+//            result += if (idYoutubeKaraokeBt.isNotBlank()) "Версия Karaoke with delay: ${linkYoutubeKaraokeBtPlay}\n" else ""
+//            result += if (idYoutubeChordsBt.isNotBlank()) "Версия Chords with delay: ${linkYoutubeChordsBtPlay}\n" else ""
             result += "\n"
         }
 
@@ -853,9 +853,9 @@ class Settings : Serializable, Comparable<Settings> {
             result += if (idVkLyrics.isNotBlank()) "Версия Lyrics: ${linkVkLyricsPlay}\n" else ""
             result += if (idVkKaraoke.isNotBlank()) "Версия Karaoke: ${linkVkKaraokePlay}\n" else ""
             result += if (idVkChords.isNotBlank()) "Версия Chords: ${linkVkChordsPlay}\n" else ""
-            result += if (idVkLyricsBt.isNotBlank()) "Версия Lyrics with delay: ${linkVkLyricsBtPlay}\n" else ""
-            result += if (idVkKaraokeBt.isNotBlank()) "Версия Karaoke with delay: ${linkVkKaraokeBtPlay}\n" else ""
-            result += if (idVkChordsBt.isNotBlank()) "Версия Chords with delay: ${linkVkChordsBtPlay}\n" else ""
+//            result += if (idVkLyricsBt.isNotBlank()) "Версия Lyrics with delay: ${linkVkLyricsBtPlay}\n" else ""
+//            result += if (idVkKaraokeBt.isNotBlank()) "Версия Karaoke with delay: ${linkVkKaraokeBtPlay}\n" else ""
+//            result += if (idVkChordsBt.isNotBlank()) "Версия Chords with delay: ${linkVkChordsBtPlay}\n" else ""
             result += "\n"
         }
 
@@ -864,9 +864,9 @@ class Settings : Serializable, Comparable<Settings> {
             result += if (idTelegramLyrics.isNotBlank()) "Версия Lyrics: ${linkTelegramLyricsPlay}\n" else ""
             result += if (idTelegramKaraoke.isNotBlank() && idTelegramKaraoke != "-") "Версия Karaoke: ${linkTelegramKaraokePlay}\n" else ""
             result += if (idTelegramChords.isNotBlank()) "Версия Chords: ${linkTelegramChordsPlay}\n" else ""
-            result += if (idTelegramLyricsBt.isNotBlank()) "Версия Lyrics with delay: ${linkTelegramLyricsBtPlay}\n" else ""
-            result += if (idTelegramKaraokeBt.isNotBlank()) "Версия Karaoke with delay: ${linkTelegramKaraokeBtPlay}\n" else ""
-            result += if (idTelegramChordsBt.isNotBlank()) "Версия Chords with delay: ${linkTelegramChordsBtPlay}\n" else ""
+//            result += if (idTelegramLyricsBt.isNotBlank()) "Версия Lyrics with delay: ${linkTelegramLyricsBtPlay}\n" else ""
+//            result += if (idTelegramKaraokeBt.isNotBlank()) "Версия Karaoke with delay: ${linkTelegramKaraokeBtPlay}\n" else ""
+//            result += if (idTelegramChordsBt.isNotBlank()) "Версия Chords with delay: ${linkTelegramChordsBtPlay}\n" else ""
             result += "\n"
         }
 
@@ -1380,9 +1380,9 @@ class Settings : Serializable, Comparable<Settings> {
         createKaraoke(songLyrics, false)
         createKaraoke(songKaraoke, false)
         createKaraoke(songChords, false)
-        createKaraoke(songLyrics, true)
-        createKaraoke(songKaraoke, true)
-        createKaraoke(songChords, true)
+//        createKaraoke(songLyrics, true)
+//        createKaraoke(songKaraoke, true)
+//        createKaraoke(songChords, true)
 
     }
 
@@ -1406,23 +1406,23 @@ class Settings : Serializable, Comparable<Settings> {
                 if (settA.idBoosty != settB.idBoosty) result.add(Triple("id_boosty", settA.idBoosty, settB.idBoosty))
                 if (settA.idVk != settB.idVk) result.add(Triple("id_vk", settA.idVk, settB.idVk))
                 if (settA.idYoutubeLyrics != settB.idYoutubeLyrics) result.add(Triple("id_youtube_lyrics", settA.idYoutubeLyrics, settB.idYoutubeLyrics))
-                if (settA.idYoutubeLyricsBt != settB.idYoutubeLyricsBt) result.add(Triple("id_youtube_lyrics_bt", settA.idYoutubeLyricsBt, settB.idYoutubeLyricsBt))
+//                if (settA.idYoutubeLyricsBt != settB.idYoutubeLyricsBt) result.add(Triple("id_youtube_lyrics_bt", settA.idYoutubeLyricsBt, settB.idYoutubeLyricsBt))
                 if (settA.idYoutubeKaraoke != settB.idYoutubeKaraoke) result.add(Triple("id_youtube_karaoke", settA.idYoutubeKaraoke, settB.idYoutubeKaraoke))
-                if (settA.idYoutubeKaraokeBt != settB.idYoutubeKaraokeBt) result.add(Triple("id_youtube_karaoke_bt", settA.idYoutubeKaraokeBt, settB.idYoutubeKaraokeBt))
+//                if (settA.idYoutubeKaraokeBt != settB.idYoutubeKaraokeBt) result.add(Triple("id_youtube_karaoke_bt", settA.idYoutubeKaraokeBt, settB.idYoutubeKaraokeBt))
                 if (settA.idYoutubeChords != settB.idYoutubeChords) result.add(Triple("id_youtube_chords", settA.idYoutubeChords, settB.idYoutubeChords))
-                if (settA.idYoutubeChordsBt != settB.idYoutubeChordsBt) result.add(Triple("id_youtube_chords_bt", settA.idYoutubeChordsBt, settB.idYoutubeChordsBt))
+//                if (settA.idYoutubeChordsBt != settB.idYoutubeChordsBt) result.add(Triple("id_youtube_chords_bt", settA.idYoutubeChordsBt, settB.idYoutubeChordsBt))
                 if (settA.idVkLyrics != settB.idVkLyrics) result.add(Triple("id_vk_lyrics", settA.idVkLyrics, settB.idVkLyrics))
-                if (settA.idVkLyricsBt != settB.idVkLyricsBt) result.add(Triple("id_vk_lyrics_bt", settA.idVkLyricsBt, settB.idVkLyricsBt))
+//                if (settA.idVkLyricsBt != settB.idVkLyricsBt) result.add(Triple("id_vk_lyrics_bt", settA.idVkLyricsBt, settB.idVkLyricsBt))
                 if (settA.idVkKaraoke != settB.idVkKaraoke) result.add(Triple("id_vk_karaoke", settA.idVkKaraoke, settB.idVkKaraoke))
-                if (settA.idVkKaraokeBt != settB.idVkKaraokeBt) result.add(Triple("id_vk_karaoke_bt", settA.idVkKaraokeBt, settB.idVkKaraokeBt))
+//                if (settA.idVkKaraokeBt != settB.idVkKaraokeBt) result.add(Triple("id_vk_karaoke_bt", settA.idVkKaraokeBt, settB.idVkKaraokeBt))
                 if (settA.idVkChords != settB.idVkChords) result.add(Triple("id_vk_chords", settA.idVkChords, settB.idVkChords))
-                if (settA.idVkChordsBt != settB.idVkChordsBt) result.add(Triple("id_vk_chords_bt", settA.idVkChordsBt, settB.idVkChordsBt))
+//                if (settA.idVkChordsBt != settB.idVkChordsBt) result.add(Triple("id_vk_chords_bt", settA.idVkChordsBt, settB.idVkChordsBt))
                 if (settA.idTelegramLyrics != settB.idTelegramLyrics) result.add(Triple("id_telegram_lyrics", settA.idTelegramLyrics, settB.idTelegramLyrics))
-                if (settA.idTelegramLyricsBt != settB.idTelegramLyricsBt) result.add(Triple("id_telegram_lyrics_bt", settA.idTelegramLyricsBt, settB.idTelegramLyricsBt))
+//                if (settA.idTelegramLyricsBt != settB.idTelegramLyricsBt) result.add(Triple("id_telegram_lyrics_bt", settA.idTelegramLyricsBt, settB.idTelegramLyricsBt))
                 if (settA.idTelegramKaraoke != settB.idTelegramKaraoke) result.add(Triple("id_telegram_karaoke", settA.idTelegramKaraoke, settB.idTelegramKaraoke))
-                if (settA.idTelegramKaraokeBt != settB.idTelegramKaraokeBt) result.add(Triple("id_telegram_karaoke_bt", settA.idTelegramKaraokeBt, settB.idTelegramKaraokeBt))
+//                if (settA.idTelegramKaraokeBt != settB.idTelegramKaraokeBt) result.add(Triple("id_telegram_karaoke_bt", settA.idTelegramKaraokeBt, settB.idTelegramKaraokeBt))
                 if (settA.idTelegramChords != settB.idTelegramChords) result.add(Triple("id_telegram_chords", settA.idTelegramChords, settB.idTelegramChords))
-                if (settA.idTelegramChordsBt != settB.idTelegramChordsBt) result.add(Triple("id_telegram_chords_bt", settA.idTelegramChordsBt, settB.idTelegramChordsBt))
+//                if (settA.idTelegramChordsBt != settB.idTelegramChordsBt) result.add(Triple("id_telegram_chords_bt", settA.idTelegramChordsBt, settB.idTelegramChordsBt))
                 if (settA.idStatus != settB.idStatus) result.add(Triple("id_status", settA.idStatus, settB.idStatus))
                 if (settA.sourceText != settB.sourceText) result.add(Triple("source_text", settA.sourceText, settB.sourceText))
                 if (settA.sourceMarkers != settB.sourceMarkers) result.add(Triple("source_markers", settA.sourceMarkers, settB.sourceMarkers))
@@ -1488,32 +1488,32 @@ class Settings : Serializable, Comparable<Settings> {
                         "id_boosty, " +
                         "id_vk, " +
                         "id_youtube_lyrics, " +
-                        "id_youtube_lyrics_bt, " +
+//                        "id_youtube_lyrics_bt, " +
                         "id_youtube_karaoke, " +
-                        "id_youtube_karaoke_bt, " +
+//                        "id_youtube_karaoke_bt, " +
                         "id_youtube_chords, " +
-                        "id_youtube_chords_bt, " +
+//                        "id_youtube_chords_bt, " +
                         "id_vk_lyrics, " +
-                        "id_vk_lyrics_bt, " +
+//                        "id_vk_lyrics_bt, " +
                         "id_vk_karaoke, " +
-                        "id_vk_karaoke_bt, " +
+//                        "id_vk_karaoke_bt, " +
                         "id_vk_chords, " +
-                        "id_vk_chords_bt, " +
+//                        "id_vk_chords_bt, " +
                         "id_telegram_lyrics, " +
-                        "id_telegram_lyrics_bt, " +
+//                        "id_telegram_lyrics_bt, " +
                         "id_telegram_karaoke, " +
-                        "id_telegram_karaoke_bt, " +
+//                        "id_telegram_karaoke_bt, " +
                         "id_telegram_chords, " +
-                        "id_telegram_chords_bt, " +
+//                        "id_telegram_chords_bt, " +
                         "id_status, " +
                         "source_text, " +
                         "source_markers, " +
                         "status_process_lyrics, " +
-                        "status_process_lyrics_bt, " +
+//                        "status_process_lyrics_bt, " +
                         "status_process_karaoke, " +
-                        "status_process_karaoke_bt, " +
+//                        "status_process_karaoke_bt, " +
                         "status_process_chords, " +
-                        "status_process_chords_bt, " +
+//                        "status_process_chords_bt, " +
                         "tags" +
                         ") VALUES(" +
                         "'${settings.songName.replace("'","''")}', " +
@@ -1531,32 +1531,32 @@ class Settings : Serializable, Comparable<Settings> {
                         "'${settings.idBoosty}', " +
                         "'${settings.idVk}', " +
                         "'${settings.idYoutubeLyrics}', " +
-                        "'${settings.idYoutubeLyricsBt}', " +
+//                        "'${settings.idYoutubeLyricsBt}', " +
                         "'${settings.idYoutubeKaraoke}', " +
-                        "'${settings.idYoutubeKaraokeBt}', " +
+//                        "'${settings.idYoutubeKaraokeBt}', " +
                         "'${settings.idYoutubeChords}', " +
-                        "'${settings.idYoutubeChordsBt}', " +
+//                        "'${settings.idYoutubeChordsBt}', " +
                         "'${settings.idVkLyrics}', " +
-                        "'${settings.idVkLyricsBt}', " +
+//                        "'${settings.idVkLyricsBt}', " +
                         "'${settings.idVkKaraoke}', " +
-                        "'${settings.idVkKaraokeBt}', " +
+//                        "'${settings.idVkKaraokeBt}', " +
                         "'${settings.idVkChords}', " +
-                        "'${settings.idVkChordsBt}', " +
+//                        "'${settings.idVkChordsBt}', " +
                         "'${settings.idTelegramLyrics}', " +
-                        "'${settings.idTelegramLyricsBt}', " +
+//                        "'${settings.idTelegramLyricsBt}', " +
                         "'${settings.idTelegramKaraoke}', " +
-                        "'${settings.idTelegramKaraokeBt}', " +
+//                        "'${settings.idTelegramKaraokeBt}', " +
                         "'${settings.idTelegramChords}', " +
-                        "'${settings.idTelegramChordsBt}', " +
+//                        "'${settings.idTelegramChordsBt}', " +
                         "'${settings.idStatus}', " +
                         "'${settings.sourceText}', " +
                         "'${settings.sourceMarkers}', " +
                         "'${settings.statusProcessLyrics}', " +
-                        "'${settings.statusProcessLyricsBt}', " +
+//                        "'${settings.statusProcessLyricsBt}', " +
                         "'${settings.statusProcessKaraoke}', " +
-                        "'${settings.statusProcessKaraokeBt}', " +
+//                        "'${settings.statusProcessKaraokeBt}', " +
                         "'${settings.statusProcessChords}', " +
-                        "'${settings.statusProcessChordsBt}', " +
+//                        "'${settings.statusProcessChordsBt}', " +
                         "'${settings.tags}'" +
                         ")"
             } else {
@@ -1671,23 +1671,23 @@ class Settings : Serializable, Comparable<Settings> {
                         "CASE WHEN id_boosty IS NOT NULL AND id_boosty <> 'null' AND id_boosty <> '' THEN '✓' ELSE '' END AS flag_boosty," +
                         "CASE WHEN id_vk IS NOT NULL AND id_vk <> 'null' AND id_vk <> '' THEN '✓' ELSE '' END AS flag_vk," +
                         "CASE WHEN id_youtube_lyrics IS NOT NULL AND id_youtube_lyrics <> 'null' AND id_youtube_lyrics <> '' THEN '✓' ELSE '' END AS flag_youtube_lyrics," +
-                        "CASE WHEN id_youtube_lyrics_bt IS NOT NULL AND id_youtube_lyrics_bt <> 'null' AND id_youtube_lyrics_bt <> '' THEN '✓' ELSE '' END AS flag_youtube_lyrics_bt," +
+//                        "CASE WHEN id_youtube_lyrics_bt IS NOT NULL AND id_youtube_lyrics_bt <> 'null' AND id_youtube_lyrics_bt <> '' THEN '✓' ELSE '' END AS flag_youtube_lyrics_bt," +
                         "CASE WHEN id_youtube_karaoke IS NOT NULL AND id_youtube_karaoke <> 'null' AND id_youtube_karaoke <> '' THEN '✓' ELSE '' END AS flag_youtube_karaoke," +
-                        "CASE WHEN id_youtube_karaoke_bt IS NOT NULL AND id_youtube_karaoke_bt <> 'null' AND id_youtube_karaoke_bt <> '' THEN '✓' ELSE '' END AS flag_youtube_karaoke_bt," +
+//                        "CASE WHEN id_youtube_karaoke_bt IS NOT NULL AND id_youtube_karaoke_bt <> 'null' AND id_youtube_karaoke_bt <> '' THEN '✓' ELSE '' END AS flag_youtube_karaoke_bt," +
                         "CASE WHEN id_youtube_chords IS NOT NULL AND id_youtube_chords <> 'null' AND id_youtube_chords <> '' THEN '✓' ELSE '' END AS flag_youtube_chords," +
-                        "CASE WHEN id_youtube_chords_bt IS NOT NULL AND id_youtube_chords_bt <> 'null' AND id_youtube_chords_bt <> '' THEN '✓' ELSE '' END AS flag_youtube_chords_bt, " +
+//                        "CASE WHEN id_youtube_chords_bt IS NOT NULL AND id_youtube_chords_bt <> 'null' AND id_youtube_chords_bt <> '' THEN '✓' ELSE '' END AS flag_youtube_chords_bt, " +
                         "CASE WHEN id_vk_lyrics IS NOT NULL AND id_vk_lyrics <> 'null' AND id_vk_lyrics <> '' THEN '✓' ELSE '' END AS flag_vk_lyrics," +
-                        "CASE WHEN id_vk_lyrics_bt IS NOT NULL AND id_vk_lyrics_bt <> 'null' AND id_vk_lyrics_bt <> '' THEN '✓' ELSE '' END AS flag_vk_lyrics_bt," +
+//                        "CASE WHEN id_vk_lyrics_bt IS NOT NULL AND id_vk_lyrics_bt <> 'null' AND id_vk_lyrics_bt <> '' THEN '✓' ELSE '' END AS flag_vk_lyrics_bt," +
                         "CASE WHEN id_vk_karaoke IS NOT NULL AND id_vk_karaoke <> 'null' AND id_vk_karaoke <> '' THEN '✓' ELSE '' END AS flag_vk_karaoke," +
-                        "CASE WHEN id_vk_karaoke_bt IS NOT NULL AND id_vk_karaoke_bt <> 'null' AND id_vk_karaoke_bt <> '' THEN '✓' ELSE '' END AS flag_vk_karaoke_bt," +
+//                        "CASE WHEN id_vk_karaoke_bt IS NOT NULL AND id_vk_karaoke_bt <> 'null' AND id_vk_karaoke_bt <> '' THEN '✓' ELSE '' END AS flag_vk_karaoke_bt," +
                         "CASE WHEN id_vk_chords IS NOT NULL AND id_vk_chords <> 'null' AND id_vk_chords <> '' THEN '✓' ELSE '' END AS flag_vk_chords," +
-                        "CASE WHEN id_vk_chords_bt IS NOT NULL AND id_vk_chords_bt <> 'null' AND id_vk_chords_bt <> '' THEN '✓' ELSE '' END AS flag_vk_chords_bt, " +
+//                        "CASE WHEN id_vk_chords_bt IS NOT NULL AND id_vk_chords_bt <> 'null' AND id_vk_chords_bt <> '' THEN '✓' ELSE '' END AS flag_vk_chords_bt, " +
                         "CASE WHEN id_telegram_lyrics IS NOT NULL AND id_telegram_lyrics <> 'null' AND id_telegram_lyrics <> '' THEN '✓' ELSE '' END AS flag_telegram_lyrics," +
-                        "CASE WHEN id_telegram_lyrics_bt IS NOT NULL AND id_telegram_lyrics_bt <> 'null' AND id_telegram_lyrics_bt <> '' THEN '✓' ELSE '' END AS flag_telegram_lyrics_bt," +
+//                        "CASE WHEN id_telegram_lyrics_bt IS NOT NULL AND id_telegram_lyrics_bt <> 'null' AND id_telegram_lyrics_bt <> '' THEN '✓' ELSE '' END AS flag_telegram_lyrics_bt," +
                         "CASE WHEN id_telegram_karaoke IS NOT NULL AND id_telegram_karaoke <> 'null' AND id_telegram_karaoke <> '' THEN '✓' ELSE '' END AS flag_telegram_karaoke," +
-                        "CASE WHEN id_telegram_karaoke_bt IS NOT NULL AND id_telegram_karaoke_bt <> 'null' AND id_telegram_karaoke_bt <> '' THEN '✓' ELSE '' END AS flag_telegram_karaoke_bt," +
+//                        "CASE WHEN id_telegram_karaoke_bt IS NOT NULL AND id_telegram_karaoke_bt <> 'null' AND id_telegram_karaoke_bt <> '' THEN '✓' ELSE '' END AS flag_telegram_karaoke_bt," +
                         "CASE WHEN id_telegram_chords IS NOT NULL AND id_telegram_chords <> 'null' AND id_telegram_chords <> '' THEN '✓' ELSE '' END AS flag_telegram_chords," +
-                        "CASE WHEN id_telegram_chords_bt IS NOT NULL AND id_telegram_chords_bt <> 'null' AND id_telegram_chords_bt <> '' THEN '✓' ELSE '' END AS flag_telegram_chords_bt, " +
+//                        "CASE WHEN id_telegram_chords_bt IS NOT NULL AND id_telegram_chords_bt <> 'null' AND id_telegram_chords_bt <> '' THEN '✓' ELSE '' END AS flag_telegram_chords_bt, " +
                         "    CASE WHEN id_status < 6 THEN color1\n" +
                         "        WHEN to_date(publish_date, 'DD.MM.YY') = CURRENT_DATE AND\n" +
                         "              id_telegram_lyrics = '' AND\n" +
@@ -1758,23 +1758,23 @@ class Settings : Serializable, Comparable<Settings> {
                 if (args.containsKey("flag_boosty")) where += "CASE WHEN id_boosty IS NOT NULL AND id_boosty <> 'null' AND id_boosty <> '' THEN '+' ELSE '-' END='${args["flag_boosty"]}'"
                 if (args.containsKey("flag_vk")) where += "CASE WHEN id_vk IS NOT NULL AND id_vk <> 'null' AND id_vk <> '' THEN '+' ELSE '-' END='${args["flag_vk"]}'"
                 if (args.containsKey("flag_youtube_lyrics")) where += "CASE WHEN id_youtube_lyrics IS NOT NULL AND id_youtube_lyrics <> 'null' AND id_youtube_lyrics <> '' THEN '+' ELSE '-' END='${args["flag_youtube_lyrics"]}'"
-                if (args.containsKey("flag_youtube_lyrics_bt")) where += "CASE WHEN id_youtube_lyrics_bt IS NOT NULL AND id_youtube_lyrics_bt <> 'null' AND id_youtube_lyrics_bt <> '' THEN '+' ELSE '-' END='${args["flag_youtube_lyrics_bt"]}'"
+//                if (args.containsKey("flag_youtube_lyrics_bt")) where += "CASE WHEN id_youtube_lyrics_bt IS NOT NULL AND id_youtube_lyrics_bt <> 'null' AND id_youtube_lyrics_bt <> '' THEN '+' ELSE '-' END='${args["flag_youtube_lyrics_bt"]}'"
                 if (args.containsKey("flag_youtube_karaoke")) where += "CASE WHEN id_youtube_karaoke IS NOT NULL AND id_youtube_karaoke <> 'null' AND id_youtube_karaoke <> '' THEN '+' ELSE '-' END='${args["flag_youtube_karaoke"]}'"
-                if (args.containsKey("flag_youtube_karaoke_bt")) where += "CASE WHEN id_youtube_karaoke_bt IS NOT NULL AND id_youtube_karaoke_bt <> 'null' AND id_youtube_karaoke_bt <> '' THEN '+' ELSE '-' END='${args["flag_youtube_karaoke_bt"]}'"
+//                if (args.containsKey("flag_youtube_karaoke_bt")) where += "CASE WHEN id_youtube_karaoke_bt IS NOT NULL AND id_youtube_karaoke_bt <> 'null' AND id_youtube_karaoke_bt <> '' THEN '+' ELSE '-' END='${args["flag_youtube_karaoke_bt"]}'"
                 if (args.containsKey("flag_youtube_chords")) where += "CASE WHEN id_youtube_chords IS NOT NULL AND id_youtube_chords <> 'null' AND id_youtube_chords <> '' THEN '+' ELSE '-' END='${args["flag_youtube_chords"]}'"
-                if (args.containsKey("flag_youtube_chords_bt")) where += "CASE WHEN id_youtube_chords_bt IS NOT NULL AND id_youtube_chords_bt <> 'null' AND id_youtube_chords_bt <> '' THEN '+' ELSE '-' END='${args["flag_youtube_chords_bt"]}'"
+//                if (args.containsKey("flag_youtube_chords_bt")) where += "CASE WHEN id_youtube_chords_bt IS NOT NULL AND id_youtube_chords_bt <> 'null' AND id_youtube_chords_bt <> '' THEN '+' ELSE '-' END='${args["flag_youtube_chords_bt"]}'"
                 if (args.containsKey("flag_vk_lyrics")) where += "CASE WHEN id_vk_lyrics IS NOT NULL AND id_vk_lyrics <> 'null' AND id_vk_lyrics <> '' THEN '+' ELSE '-' END='${args["flag_vk_lyrics"]}'"
-                if (args.containsKey("flag_vk_lyrics_bt")) where += "CASE WHEN id_vk_lyrics_bt IS NOT NULL AND id_vk_lyrics_bt <> 'null' AND id_vk_lyrics_bt <> '' THEN '+' ELSE '-' END='${args["flag_vk_lyrics_bt"]}'"
+//                if (args.containsKey("flag_vk_lyrics_bt")) where += "CASE WHEN id_vk_lyrics_bt IS NOT NULL AND id_vk_lyrics_bt <> 'null' AND id_vk_lyrics_bt <> '' THEN '+' ELSE '-' END='${args["flag_vk_lyrics_bt"]}'"
                 if (args.containsKey("flag_vk_karaoke")) where += "CASE WHEN id_vk_karaoke IS NOT NULL AND id_vk_karaoke <> 'null' AND id_vk_karaoke <> '' THEN '+' ELSE '-' END='${args["flag_vk_karaoke"]}'"
-                if (args.containsKey("flag_vk_karaoke_bt")) where += "CASE WHEN id_vk_karaoke_bt IS NOT NULL AND id_vk_karaoke_bt <> 'null' AND id_vk_karaoke_bt <> '' THEN '+' ELSE '-' END='${args["flag_vk_karaoke_bt"]}'"
+//                if (args.containsKey("flag_vk_karaoke_bt")) where += "CASE WHEN id_vk_karaoke_bt IS NOT NULL AND id_vk_karaoke_bt <> 'null' AND id_vk_karaoke_bt <> '' THEN '+' ELSE '-' END='${args["flag_vk_karaoke_bt"]}'"
                 if (args.containsKey("flag_vk_chords")) where += "CASE WHEN id_vk_chords IS NOT NULL AND id_vk_chords <> 'null' AND id_vk_chords <> '' THEN '+' ELSE '-' END='${args["flag_vk_chords"]}'"
-                if (args.containsKey("flag_vk_chords_bt")) where += "CASE WHEN id_vk_chords_bt IS NOT NULL AND id_vk_chords_bt <> 'null' AND id_vk_chords_bt <> '' THEN '+' ELSE '-' END='${args["flag_vk_chords_bt"]}'"
+//                if (args.containsKey("flag_vk_chords_bt")) where += "CASE WHEN id_vk_chords_bt IS NOT NULL AND id_vk_chords_bt <> 'null' AND id_vk_chords_bt <> '' THEN '+' ELSE '-' END='${args["flag_vk_chords_bt"]}'"
                 if (args.containsKey("flag_telegram_lyrics")) where += "CASE WHEN id_telegram_lyrics IS NOT NULL AND id_telegram_lyrics <> 'null' AND id_telegram_lyrics <> '' THEN '+' ELSE '-' END='${args["flag_telegram_lyrics"]}'"
-                if (args.containsKey("flag_telegram_lyrics_bt")) where += "CASE WHEN id_telegram_lyrics_bt IS NOT NULL AND id_telegram_lyrics_bt <> 'null' AND id_telegram_lyrics_bt <> '' THEN '+' ELSE '-' END='${args["flag_telegram_lyrics_bt"]}'"
+//                if (args.containsKey("flag_telegram_lyrics_bt")) where += "CASE WHEN id_telegram_lyrics_bt IS NOT NULL AND id_telegram_lyrics_bt <> 'null' AND id_telegram_lyrics_bt <> '' THEN '+' ELSE '-' END='${args["flag_telegram_lyrics_bt"]}'"
                 if (args.containsKey("flag_telegram_karaoke")) where += "CASE WHEN id_telegram_karaoke IS NOT NULL AND id_telegram_karaoke <> 'null' AND id_telegram_karaoke <> '' THEN '+' ELSE '-' END='${args["flag_telegram_karaoke"]}'"
-                if (args.containsKey("flag_telegram_karaoke_bt")) where += "CASE WHEN id_telegram_karaoke_bt IS NOT NULL AND id_telegram_karaoke_bt <> 'null' AND id_telegram_karaoke_bt <> '' THEN '+' ELSE '-' END='${args["flag_telegram_karaoke_bt"]}'"
+//                if (args.containsKey("flag_telegram_karaoke_bt")) where += "CASE WHEN id_telegram_karaoke_bt IS NOT NULL AND id_telegram_karaoke_bt <> 'null' AND id_telegram_karaoke_bt <> '' THEN '+' ELSE '-' END='${args["flag_telegram_karaoke_bt"]}'"
                 if (args.containsKey("flag_telegram_chords")) where += "CASE WHEN id_telegram_chords IS NOT NULL AND id_telegram_chords <> 'null' AND id_telegram_chords <> '' THEN '+' ELSE '-' END='${args["flag_telegram_chords"]}'"
-                if (args.containsKey("flag_telegram_chords_bt")) where += "CASE WHEN id_telegram_chords_bt IS NOT NULL AND id_telegram_chords_bt <> 'null' AND id_telegram_chords_bt <> '' THEN '+' ELSE '-' END='${args["flag_telegram_chords_bt"]}'"
+//                if (args.containsKey("flag_telegram_chords_bt")) where += "CASE WHEN id_telegram_chords_bt IS NOT NULL AND id_telegram_chords_bt <> 'null' AND id_telegram_chords_bt <> '' THEN '+' ELSE '-' END='${args["flag_telegram_chords_bt"]}'"
                 if (args.containsKey("tags")) where += "LOWER(tags) LIKE '%${args["tags"]?.replace("'","''")?.lowercase()}%'"
 
                 if (where.size > 0) sql += " WHERE ${where.joinToString(" AND ")}"
@@ -1812,32 +1812,32 @@ class Settings : Serializable, Comparable<Settings> {
                     rs.getString("id_boosty")?.let { value -> settings.fields[SettingField.ID_BOOSTY] = value }
                     rs.getString("id_vk")?.let { value -> settings.fields[SettingField.ID_VK] = value }
                     rs.getString("id_youtube_lyrics")?.let { value -> settings.fields[SettingField.ID_YOUTUBE_LYRICS] = value }
-                    rs.getString("id_youtube_lyrics_bt")?.let { value -> settings.fields[SettingField.ID_YOUTUBE_LYRICS_BT] = value }
+//                    rs.getString("id_youtube_lyrics_bt")?.let { value -> settings.fields[SettingField.ID_YOUTUBE_LYRICS_BT] = value }
                     rs.getString("id_youtube_karaoke")?.let { value -> settings.fields[SettingField.ID_YOUTUBE_KARAOKE] = value }
-                    rs.getString("id_youtube_karaoke_bt")?.let { value -> settings.fields[SettingField.ID_YOUTUBE_KARAOKE_BT] = value }
+//                    rs.getString("id_youtube_karaoke_bt")?.let { value -> settings.fields[SettingField.ID_YOUTUBE_KARAOKE_BT] = value }
                     rs.getString("id_youtube_chords")?.let { value -> settings.fields[SettingField.ID_YOUTUBE_CHORDS] = value }
-                    rs.getString("id_youtube_chords_bt")?.let { value -> settings.fields[SettingField.ID_YOUTUBE_CHORDS_BT] = value }
+//                    rs.getString("id_youtube_chords_bt")?.let { value -> settings.fields[SettingField.ID_YOUTUBE_CHORDS_BT] = value }
                     rs.getString("id_vk_lyrics")?.let { value -> settings.fields[SettingField.ID_VK_LYRICS] = value }
-                    rs.getString("id_vk_lyrics_bt")?.let { value -> settings.fields[SettingField.ID_VK_LYRICS_BT] = value }
+//                    rs.getString("id_vk_lyrics_bt")?.let { value -> settings.fields[SettingField.ID_VK_LYRICS_BT] = value }
                     rs.getString("id_vk_karaoke")?.let { value -> settings.fields[SettingField.ID_VK_KARAOKE] = value }
-                    rs.getString("id_vk_karaoke_bt")?.let { value -> settings.fields[SettingField.ID_VK_KARAOKE_BT] = value }
+//                    rs.getString("id_vk_karaoke_bt")?.let { value -> settings.fields[SettingField.ID_VK_KARAOKE_BT] = value }
                     rs.getString("id_vk_chords")?.let { value -> settings.fields[SettingField.ID_VK_CHORDS] = value }
-                    rs.getString("id_vk_chords_bt")?.let { value -> settings.fields[SettingField.ID_VK_CHORDS_BT] = value }
+//                    rs.getString("id_vk_chords_bt")?.let { value -> settings.fields[SettingField.ID_VK_CHORDS_BT] = value }
                     rs.getString("id_telegram_lyrics")?.let { value -> settings.fields[SettingField.ID_TELEGRAM_LYRICS] = value }
-                    rs.getString("id_telegram_lyrics_bt")?.let { value -> settings.fields[SettingField.ID_TELEGRAM_LYRICS_BT] = value }
+//                    rs.getString("id_telegram_lyrics_bt")?.let { value -> settings.fields[SettingField.ID_TELEGRAM_LYRICS_BT] = value }
                     rs.getString("id_telegram_karaoke")?.let { value -> settings.fields[SettingField.ID_TELEGRAM_KARAOKE] = value }
-                    rs.getString("id_telegram_karaoke_bt")?.let { value -> settings.fields[SettingField.ID_TELEGRAM_KARAOKE_BT] = value }
+//                    rs.getString("id_telegram_karaoke_bt")?.let { value -> settings.fields[SettingField.ID_TELEGRAM_KARAOKE_BT] = value }
                     rs.getString("id_telegram_chords")?.let { value -> settings.fields[SettingField.ID_TELEGRAM_CHORDS] = value }
-                    rs.getString("id_telegram_chords_bt")?.let { value -> settings.fields[SettingField.ID_TELEGRAM_CHORDS_BT] = value }
+//                    rs.getString("id_telegram_chords_bt")?.let { value -> settings.fields[SettingField.ID_TELEGRAM_CHORDS_BT] = value }
                     rs.getString("color")?.let { value -> settings.fields[SettingField.COLOR] = value }
                     rs.getString("source_text")?.let { value -> settings.sourceText = value }
                     rs.getString("source_markers")?.let { value -> settings.sourceMarkers = value }
                     settings.statusProcessLyrics = rs.getString("status_process_lyrics") ?: ""
-                    settings.statusProcessLyricsBt = rs.getString("status_process_lyrics_bt") ?: ""
+//                    settings.statusProcessLyricsBt = rs.getString("status_process_lyrics_bt") ?: ""
                     settings.statusProcessKaraoke = rs.getString("status_process_karaoke") ?: ""
-                    settings.statusProcessKaraokeBt = rs.getString("status_process_karaoke_bt") ?: ""
+//                    settings.statusProcessKaraokeBt = rs.getString("status_process_karaoke_bt") ?: ""
                     settings.statusProcessChords = rs.getString("status_process_chords") ?: ""
-                    settings.statusProcessChordsBt = rs.getString("status_process_chords_bt") ?: ""
+//                    settings.statusProcessChordsBt = rs.getString("status_process_chords_bt") ?: ""
                     settings.tags = rs.getString("tags") ?: ""
 
                     result.add(settings)

@@ -156,7 +156,6 @@ fun getMltSplashstartTransition(param: Map<String, Any?>, type: ProducerType = P
 fun getTemplateSplashstart(param: Map<String, Any?>): MltNode {
 
     val songVersion = param["SONG_VERSION"] as SongVersion
-    val isBluetoothDelay = param["ID_BLUETOOTH_DELAY"] as Boolean
     val chordDescriptionText = (param["SONG_CHORD_DESCRIPTION"] as String).replace("\n",", ")
 
     var songnameTextFontMlt = Karaoke.splashstartSongNameFont
@@ -165,7 +164,7 @@ fun getTemplateSplashstart(param: Map<String, Any?>): MltNode {
     val commentTextFontMlt = Karaoke.splashstartCommentFont
     val chordDescriptionTextFontMlt = Karaoke.splashstartChordDescriptionFont
 
-    val commentText = "${songVersion.textForDescription}${if (isBluetoothDelay) " с задержкой видео на ${Karaoke.timeOffsetBluetoothSpeakerMs}ms" else ""}"
+    val commentText = "${songVersion.textForDescription}"
     val songversionText = songVersion.text
     val songnameText = param["SONG_NAME"] as String
 

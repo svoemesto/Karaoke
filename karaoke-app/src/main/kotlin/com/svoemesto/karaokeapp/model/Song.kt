@@ -17,7 +17,7 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
     private val REPEAT2_START_STRING = "[TS]"
     private val REPEAT2_END_STRING = "[TE]"
     private val REPEAT2_PAST_STRING = "[TR]"
-    fun getOutputFilename(songOutputFile: SongOutputFile, idBluetoothDelay: Boolean): String {
+    fun getOutputFilename(songOutputFile: SongOutputFile): String {
         return "${settings.rootFolder}/done_${if (songOutputFile in listOf(
                 SongOutputFile.PROJECT,
                 SongOutputFile.SUBTITLE,
@@ -25,39 +25,39 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
                 SongOutputFile.RUN,
                 SongOutputFile.RUNALL,
                 SongOutputFile.TEXT
-            )) "projects" else if (songOutputFile == SongOutputFile.PICTURECHORDS) "chords" else "files"}/${if (songOutputFile == SongOutputFile.VK) "[{REPLACE_DATE}_{REPLACE_TIME}] " else ""}${if (!settings.fileName.startsWith (settings.year.toString())) "${settings.year} " else ""}${settings.fileName}${songVersion.suffix}${if (idBluetoothDelay && songOutputFile != SongOutputFile.RUNALL) " bluetooth" else ""}${if (songOutputFile == SongOutputFile.PICTURECHORDS) " chords" else ""}${if (songOutputFile == SongOutputFile.PICTUREBOOSTY) " boosty" else ""}${if (songOutputFile == SongOutputFile.PICTUREVK) " VK" else ""}${if (songOutputFile == SongOutputFile.VK) " [VK]" else ""}.${songOutputFile.extension}"
+            )) "projects" else if (songOutputFile == SongOutputFile.PICTURECHORDS) "chords" else "files"}/${if (songOutputFile == SongOutputFile.VK) "[{REPLACE_DATE}_{REPLACE_TIME}] " else ""}${if (!settings.fileName.startsWith (settings.year.toString())) "${settings.year} " else ""}${settings.fileName}${songVersion.suffix}${if (songOutputFile == SongOutputFile.PICTURECHORDS) " chords" else ""}${if (songOutputFile == SongOutputFile.PICTUREBOOSTY) " boosty" else ""}${if (songOutputFile == SongOutputFile.PICTUREVK) " VK" else ""}${if (songOutputFile == SongOutputFile.VK) " [VK]" else ""}.${songOutputFile.extension}"
     }
 
-    fun getDescription(isBluetoothDelay: Boolean): String {
+    fun getDescription(): String {
 
-        return getDescriptionHeader(isBluetoothDelay) + "\n" +
-                getDescriptionWOHeader(isBluetoothDelay)
+        return getDescriptionHeader() + "\n" +
+                getDescriptionWOHeader()
 
     }
 
-    fun getDescriptionVk(isBluetoothDelay: Boolean): String {
+    fun getDescriptionVk(): String {
 
-        return getDescriptionVkHeader(isBluetoothDelay) + "\n" +
-                getDescriptionVkWOHeader(isBluetoothDelay)
+        return getDescriptionVkHeader() + "\n" +
+                getDescriptionVkWOHeader()
 
     }
     
-    fun getDescriptionYoutube(isBluetoothDelay: Boolean): String {
+    fun getDescriptionYoutube(): String {
 
-        return getDescriptionHeader(isBluetoothDelay) + "\n" +
-                getDescriptionYoutubeWOHeader(isBluetoothDelay)
-
-    }
-
-    fun getDescriptionHeader(isBluetoothDelay: Boolean): String {
-
-        return "${settings.songName} ★♫★ ${settings.author} ★♫★ ${songVersion.text} ★♫★ ${songVersion.textForDescription}${if (isBluetoothDelay) " ★♫★ video delay ${Karaoke.timeOffsetBluetoothSpeakerMs}ms for bluetooth speakers" else ""}".cutByWords()
+        return getDescriptionHeader() + "\n" +
+                getDescriptionYoutubeWOHeader()
 
     }
 
-    fun getDescriptionVkHeader(isBluetoothDelay: Boolean): String {
+    fun getDescriptionHeader(): String {
 
-        return "${settings.songName} ★♫★ ${settings.author} ★♫★ ${songVersion.text} ★♫★ ${songVersion.textForDescription}${if (isBluetoothDelay) " ★♫★ video delay ${Karaoke.timeOffsetBluetoothSpeakerMs}ms for bluetooth speakers" else ""}".cutByWords()
+        return "${settings.songName} ★♫★ ${settings.author} ★♫★ ${songVersion.text} ★♫★ ${songVersion.textForDescription}".cutByWords()
+
+    }
+
+    fun getDescriptionVkHeader(): String {
+
+        return "${settings.songName} ★♫★ ${settings.author} ★♫★ ${songVersion.text} ★♫★ ${songVersion.textForDescription}".cutByWords()
 
     }
     
@@ -77,13 +77,13 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
 
 
 
-    fun getDescriptionWOHeader(isBluetoothDelay: Boolean): String {
+    fun getDescriptionWOHeader(): String {
 
         return "Поддержать создание караоке на https://boosty.to/svoemesto\n" +
                 "Группа ВКонтакте: https://vk.com/svoemestokaraoke\n" +
                 "Канал Telegram: https://t.me/svoemestokaraoke\n" +
                 "Канал Дзен: https://dzen.ru/svoemesto\n\n" +
-                "Версия: ${songVersion.text} (${songVersion.textForDescription})${if (isBluetoothDelay) " с задержкой видео на ${Karaoke.timeOffsetBluetoothSpeakerMs}ms для bluetooth-колонок" else ""}\n" +
+                "Версия: ${songVersion.text} (${songVersion.textForDescription})\n" +
                 "Композиция: ${settings.songName}\n" +
                 "Исполнитель: ${settings.author}\n" +
                 "Альбом: ${settings.album}\n" +
@@ -99,13 +99,13 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
 
     }
 
-    fun getDescriptionYoutubeWOHeader(isBluetoothDelay: Boolean): String {
+    fun getDescriptionYoutubeWOHeader(): String {
 
         return "Поддержать создание караоке на https://boosty.to/svoemesto\n" +
                 "Группа ВКонтакте: https://vk.com/svoemestokaraoke\n" +
                 "Канал Telegram: https://t.me/svoemestokaraoke\n" +
                 "Канал Дзен: https://dzen.ru/svoemesto\n\n" +
-                "Версия: ${songVersion.text} (${songVersion.textForDescription})${if (isBluetoothDelay) " с задержкой видео на ${Karaoke.timeOffsetBluetoothSpeakerMs}ms для bluetooth-колонок" else ""}\n" +
+                "Версия: ${songVersion.text} (${songVersion.textForDescription})\n" +
                 "Композиция: ${settings.songName}\n" +
                 "Исполнитель: ${settings.author}\n" +
                 "Альбом: ${settings.album}\n" +
@@ -122,13 +122,13 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
     }
 
 
-    fun getDescriptionVkWOHeader(isBluetoothDelay: Boolean): String {
+    fun getDescriptionVkWOHeader(): String {
 
         return "Поддержать создание караоке на https://boosty.to/svoemesto\n" +
                 "Группа ВКонтакте: https://vk.com/svoemestokaraoke\n" +
                 "Канал Telegram: https://t.me/svoemestokaraoke\n" +
                 "Канал Дзен: https://dzen.ru/svoemesto\n\n" +
-                "Версия: ${songVersion.text} (${songVersion.textForDescription})${if (isBluetoothDelay) " с задержкой видео на ${Karaoke.timeOffsetBluetoothSpeakerMs}ms для bluetooth-колонок" else ""}\n" +
+                "Версия: ${songVersion.text} (${songVersion.textForDescription})\n" +
                 "Композиция: ${settings.songName}\n" +
                 "Исполнитель: ${settings.author}\n" +
                 "Альбом: ${settings.album}\n" +

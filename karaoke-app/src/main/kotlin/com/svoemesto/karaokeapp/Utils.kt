@@ -799,22 +799,16 @@ fun createRunMlt(startFolder: String) {
             val songKaraoke = Song(settings, SongVersion.KARAOKE, woInit = true)
             val songChords = Song(settings, SongVersion.CHORDS, woInit = false)
             val hasChords = songChords.hasChords
-            val pathToMltLyrics = songLyrics.getOutputFilename(SongOutputFile.MLT,false)
-            val pathToMltLyricsBt = songLyrics.getOutputFilename(SongOutputFile.MLT,true)
-            val pathToMltKaraoke = songKaraoke.getOutputFilename(SongOutputFile.MLT,false)
-            val pathToMltKaraokeBt = songKaraoke.getOutputFilename(SongOutputFile.MLT,true)
-            val pathToMltChords = songChords.getOutputFilename(SongOutputFile.MLT,false)
-            val pathToMltChordsBt = songChords.getOutputFilename(SongOutputFile.MLT,true)
+            val pathToMltLyrics = songLyrics.getOutputFilename(SongOutputFile.MLT)
+            val pathToMltKaraoke = songKaraoke.getOutputFilename(SongOutputFile.MLT)
+            val pathToMltChords = songChords.getOutputFilename(SongOutputFile.MLT)
 
             val txtLyric = "echo \"$pathToMltLyrics\"\nmelt -progress \"$pathToMltLyrics\"\n\n"
             val txtKaraoke = "echo \"$pathToMltKaraoke\"\nmelt -progress \"$pathToMltKaraoke\"\n\n"
             val txtChords = "echo \"$pathToMltChords\"\nmelt -progress \"$pathToMltChords\"\n\n"
-            val txtLyricBt = "echo \"$pathToMltLyricsBt\"\nmelt -progress \"$pathToMltLyricsBt\"\n\n"
-            val txtKaraokeBt = "echo \"$pathToMltKaraokeBt\"\nmelt -progress \"$pathToMltKaraokeBt\"\n\n"
-            val txtChordsBt = "echo \"$pathToMltChordsBt\"\nmelt -progress \"$pathToMltChordsBt\"\n\n"
 
-            val songTxtAll = "$txtLyric$txtKaraoke${if (hasChords) txtChords else ""}$txtLyricBt$txtKaraokeBt${if (hasChords) txtChordsBt else ""}"
-            val songTxtWOLyrics = "$txtKaraoke${if (hasChords) txtChords else ""}$txtLyricBt$txtKaraokeBt${if (hasChords) txtChordsBt else ""}"
+            val songTxtAll = "$txtLyric$txtKaraoke${if (hasChords) txtChords else ""}"
+            val songTxtWOLyrics = "$txtKaraoke${if (hasChords) txtChords else ""}"
 
             albumTxtAll += "echo \"---------------------------------------------------------------------------------------\"\n\n"
             albumTxtLyrics += "echo \"---------------------------------------------------------------------------------------\"\n\n"
@@ -824,37 +818,26 @@ fun createRunMlt(startFolder: String) {
             albumTxtWOLyrics += songTxtWOLyrics
 
 
-            var file = File(songLyrics.getOutputFilename(SongOutputFile.RUN,false))
+            var file = File(songLyrics.getOutputFilename(SongOutputFile.RUN))
             file.writeText(txtLyric)
             Files.setPosixFilePermissions(file.toPath(), permissions)
 
-            file = File(songLyrics.getOutputFilename(SongOutputFile.RUN,true))
-            file.writeText(txtLyricBt)
-            Files.setPosixFilePermissions(file.toPath(), permissions)
 
-            file = File(songKaraoke.getOutputFilename(SongOutputFile.RUN,false))
+            file = File(songKaraoke.getOutputFilename(SongOutputFile.RUN))
             file.writeText(txtKaraoke)
             Files.setPosixFilePermissions(file.toPath(), permissions)
 
-            file = File(songKaraoke.getOutputFilename(SongOutputFile.RUN,true))
-            file.writeText(txtKaraokeBt)
-            Files.setPosixFilePermissions(file.toPath(), permissions)
-
             if (hasChords) {
-                file = File(songChords.getOutputFilename(SongOutputFile.RUN,false))
+                file = File(songChords.getOutputFilename(SongOutputFile.RUN))
                 file.writeText(txtChords)
-                Files.setPosixFilePermissions(file.toPath(), permissions)
-
-                file = File(songChords.getOutputFilename(SongOutputFile.RUN,true))
-                file.writeText(txtChordsBt)
                 Files.setPosixFilePermissions(file.toPath(), permissions)
             }
 
-            file = File(songLyrics.getOutputFilename(SongOutputFile.RUNALL,false).replace("[lyrics]","[ALL]"))
+            file = File(songLyrics.getOutputFilename(SongOutputFile.RUNALL).replace("[lyrics]","[ALL]"))
             file.writeText(songTxtAll)
             Files.setPosixFilePermissions(file.toPath(), permissions)
 
-            file = File(songLyrics.getOutputFilename(SongOutputFile.RUNALL,false).replace("[lyrics]","[ALLwoLYRICS]"))
+            file = File(songLyrics.getOutputFilename(SongOutputFile.RUNALL).replace("[lyrics]","[ALLwoLYRICS]"))
             file.writeText(songTxtWOLyrics)
             Files.setPosixFilePermissions(file.toPath(), permissions)
 
@@ -901,13 +884,13 @@ fun createVKtext(startFolder: String, fromDb: Boolean = false) {
     listFiles.forEach { pathToSettingsFile ->
         val settings = Settings.loadFromFile(pathToSettingsFile)
         val song = Song(settings, SongVersion.LYRICS)
-        val fileName = song.getOutputFilename(SongOutputFile.VK, false)
+        val fileName = song.getOutputFilename(SongOutputFile.VK)
         val decsAndName = Ods.getSongVKDescription(song, fileName, spreadsheetDocument)
         decsAndName?.let { (text, name) ->
             if (text != "") {
                 println(name)
                 File(name).writeText(text)
-                val vkPictNameOld = (song.getOutputFilename(SongOutputFile.PICTUREVK, false)).replace(" [lyrics] VK"," [VK]")
+                val vkPictNameOld = (song.getOutputFilename(SongOutputFile.PICTUREVK)).replace(" [lyrics] VK"," [VK]")
                 val vkPictNameNew = name.replace(" [VK].txt", " [VK].png")
                 FileUtils.copyFile(File(vkPictNameOld), File(vkPictNameNew))
             } else {
@@ -923,7 +906,7 @@ fun createBoostyTeserPictures(startFolder: String) {
         val settings = Settings.loadFromFile(pathToSettingsFile)
         val song = Song(settings, SongVersion.LYRICS)
         println(pathToSettingsFile)
-        createBoostyTeaserPicture(song, song.getOutputFilename(SongOutputFile.PICTUREBOOSTY, false))
+        createBoostyTeaserPicture(song, song.getOutputFilename(SongOutputFile.PICTUREBOOSTY))
     }
 }
 
@@ -947,7 +930,7 @@ fun createVKPictures(startFolder: String) {
         val settings = Settings.loadFromFile(pathToSettingsFile)
         val song = Song(settings, SongVersion.LYRICS)
         println(pathToSettingsFile)
-        createVKPicture(song, song.getOutputFilename(SongOutputFile.PICTUREVK, false))
+        createVKPicture(song, song.getOutputFilename(SongOutputFile.PICTUREVK))
     }
 }
 
@@ -965,15 +948,12 @@ fun createDescriptionFilesForAll(startFolder: String) {
             val songChords = Song(settings, SongVersion.CHORDS)
 
 
-            File(songLyric.getOutputFilename(SongOutputFile.DESCRIPTION, false)).writeText(songLyric.getDescription(false))
-            File(songLyric.getOutputFilename(SongOutputFile.DESCRIPTION, true)).writeText(songLyric.getDescription(true))
+            File(songLyric.getOutputFilename(SongOutputFile.DESCRIPTION)).writeText(songLyric.getDescription())
 
-            File(songKaraoke.getOutputFilename(SongOutputFile.DESCRIPTION, false)).writeText(songKaraoke.getDescription(false))
-            File(songKaraoke.getOutputFilename(SongOutputFile.DESCRIPTION, true)).writeText(songKaraoke.getDescription(true))
+            File(songKaraoke.getOutputFilename(SongOutputFile.DESCRIPTION)).writeText(songKaraoke.getDescription())
 
             if (songChords.hasChords) {
-                File(songChords.getOutputFilename(SongOutputFile.DESCRIPTION, false)).writeText(songChords.getDescription(false))
-                File(songChords.getOutputFilename(SongOutputFile.DESCRIPTION, true)).writeText(songChords.getDescription(true))
+                File(songChords.getOutputFilename(SongOutputFile.DESCRIPTION)).writeText(songChords.getDescription())
             }
         } catch (e: Exception) {
             println("Ошибка, продолжаем...")
@@ -1860,16 +1840,16 @@ fun getSongChordsPicture(song: Song, mltNode: MltNode): BufferedImage {
     return resultImagesAndName
 }
 
-fun createSongChordsPicture(song: Song, fileName: String, songVersion: SongVersion, isBluetoothDelay: Boolean, mltNode: MltNode) {
-    if (songVersion == SongVersion.CHORDS && isBluetoothDelay == false) {
+fun createSongChordsPicture(song: Song, fileName: String, songVersion: SongVersion, mltNode: MltNode) {
+    if (songVersion == SongVersion.CHORDS) {
         val resultImage = getSongChordsPicture(song, mltNode)
         val file = File(fileName)
         ImageIO.write(resultImage, "png", file)
     }
 }
-fun createSongPicture(song: Song, fileName: String, songVersion: SongVersion, isBluetoothDelay: Boolean) {
+fun createSongPicture(song: Song, fileName: String, songVersion: SongVersion) {
     val caption = songVersion.text
-    val comment: String = "${songVersion.textForDescription}${if (isBluetoothDelay) " с задержкой видео на ${Karaoke.timeOffsetBluetoothSpeakerMs}ms" else ""}"
+    val comment: String = "${songVersion.textForDescription}"
     val pathToLogoAlbum = "${song.settings.rootFolder}/LogoAlbum.png"
     val pathToLogoAuthor = "${song.settings.rootFolder}/LogoAuthor.png"
 

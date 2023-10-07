@@ -333,41 +333,6 @@ class MainController {
         return 0
     }
 
-//    @GetMapping("/song/{id}/doprocesslyricsbt")
-//    @ResponseBody
-//    fun doProcessLyricsBt(@PathVariable id: Long): Int {
-//        println("doProcessLyricsBt")
-//        val settings = Settings.loadFromDbById(id)
-//        settings?.let {
-//            return KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS_BT, true, 1)
-//        }
-//        return 0
-//    }
-
-//    @GetMapping("/song/{id}/doprocesskaraokebt")
-//    @ResponseBody
-//    fun doProcessKaraokeBt(@PathVariable id: Long): Int {
-//        println("doProcessKaraokeBt")
-//        val settings = Settings.loadFromDbById(id)
-//        settings?.let {
-//            return KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE_BT, true, 1)
-//        }
-//        return 0
-//    }
-
-//    @GetMapping("/song/{id}/doprocesschordsbt")
-//    @ResponseBody
-//    fun doProcessChordsBt(@PathVariable id: Long): Int {
-//        println("doProcessChordsBt")
-//        val settings = Settings.loadFromDbById(id)
-//        settings?.let {
-//            if (Song(settings, SongVersion.LYRICS).hasChords) {
-//                return  KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDS_BT, true, 1)
-//            }
-//        }
-//        return 0
-//    }
-
     @GetMapping("/song/{id}/doprocessall")
     @ResponseBody
     fun doProcessAll(@PathVariable id: Long): List<Int> {
@@ -381,11 +346,6 @@ class MainController {
             if (hasChords) {
                 result.add(KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDS, true, 4))
             }
-//            result.add(KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS_BT, true, 10))
-//            result.add(KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE_BT, true, 10))
-//            if (hasChords) {
-//                result.add(KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDS_BT, true, 10))
-//            }
         }
         return result
     }
@@ -402,11 +362,6 @@ class MainController {
             if (hasChords) {
                 result.add(KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDS, true, 3))
             }
-//            result.add(KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS_BT, true, 3))
-//            result.add(KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE_BT, true, 3))
-//            if (hasChords) {
-//                result.add(KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDS_BT, true, 3))
-//            }
         }
         return result
     }
@@ -584,19 +539,7 @@ class MainController {
         val settings = Settings.loadFromDbById(id)
         val text = settings?.let {
             val song = Song(settings, SongVersion.LYRICS)
-            val text = song.getDescription(isBluetoothDelay = false)
-            text
-        } ?: ""
-        return text
-    }
-
-    @GetMapping("/song/{id}/textyoutubelyricsbt")
-    @ResponseBody
-    fun getSongTextYoutubeLyricsBt(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
-        val text = settings?.let {
-            val song = Song(settings, SongVersion.LYRICS)
-            val text = song.getDescription(isBluetoothDelay = true)
+            val text = song.getDescription()
             text
         } ?: ""
         return text
@@ -608,19 +551,7 @@ class MainController {
         val settings = Settings.loadFromDbById(id)
         val text = settings?.let {
             val song = Song(settings, SongVersion.KARAOKE)
-            val text = song.getDescription(isBluetoothDelay = false)
-            text
-        } ?: ""
-        return text
-    }
-
-    @GetMapping("/song/{id}/textyoutubekaraokebt")
-    @ResponseBody
-    fun getSongTextYoutubeKaraokeBt(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
-        val text = settings?.let {
-            val song = Song(settings, SongVersion.KARAOKE)
-            val text = song.getDescription(isBluetoothDelay = true)
+            val text = song.getDescription()
             text
         } ?: ""
         return text
@@ -632,19 +563,7 @@ class MainController {
         val settings = Settings.loadFromDbById(id)
         val text = settings?.let {
             val song = Song(settings, SongVersion.CHORDS)
-            val text = song.getDescription(isBluetoothDelay = false)
-            text
-        } ?: ""
-        return text
-    }
-
-    @GetMapping("/song/{id}/textyoutubechordsbt")
-    @ResponseBody
-    fun getSongTextYoutubeChordsBt(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
-        val text = settings?.let {
-            val song = Song(settings, SongVersion.CHORDS)
-            val text = song.getDescription(isBluetoothDelay = true)
+            val text = song.getDescription()
             text
         } ?: ""
         return text
@@ -657,23 +576,12 @@ class MainController {
         val settings = Settings.loadFromDbById(id)
         val text = settings?.let {
             val song = Song(settings, SongVersion.LYRICS)
-            val text = song.getDescriptionHeader(isBluetoothDelay = false)
+            val text = song.getDescriptionHeader()
             text
         } ?: ""
         return text
     }
 
-    @GetMapping("/song/{id}/textyoutubelyricsbtheader")
-    @ResponseBody
-    fun getSongTextYoutubeLyricsBtHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
-        val text = settings?.let {
-            val song = Song(settings, SongVersion.LYRICS)
-            val text = song.getDescriptionHeader(isBluetoothDelay = true)
-            text
-        } ?: ""
-        return text
-    }
 
     @GetMapping("/song/{id}/textyoutubekaraokeheader")
     @ResponseBody
@@ -681,23 +589,12 @@ class MainController {
         val settings = Settings.loadFromDbById(id)
         val text = settings?.let {
             val song = Song(settings, SongVersion.KARAOKE)
-            val text = song.getDescriptionHeader(isBluetoothDelay = false)
+            val text = song.getDescriptionHeader()
             text
         } ?: ""
         return text
     }
 
-    @GetMapping("/song/{id}/textyoutubekaraokebtheader")
-    @ResponseBody
-    fun getSongTextYoutubeKaraokeBtHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
-        val text = settings?.let {
-            val song = Song(settings, SongVersion.KARAOKE)
-            val text = song.getDescriptionHeader(isBluetoothDelay = true)
-            text
-        } ?: ""
-        return text
-    }
 
     @GetMapping("/song/{id}/textyoutubechordsheader")
     @ResponseBody
@@ -705,19 +602,7 @@ class MainController {
         val settings = Settings.loadFromDbById(id)
         val text = settings?.let {
             val song = Song(settings, SongVersion.CHORDS)
-            val text = song.getDescriptionHeader(isBluetoothDelay = false)
-            text
-        } ?: ""
-        return text
-    }
-
-    @GetMapping("/song/{id}/textyoutubechordsbtheader")
-    @ResponseBody
-    fun getSongTextYoutubeChordsBtHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
-        val text = settings?.let {
-            val song = Song(settings, SongVersion.CHORDS)
-            val text = song.getDescriptionHeader(isBluetoothDelay = true)
+            val text = song.getDescriptionHeader()
             text
         } ?: ""
         return text
@@ -730,23 +615,12 @@ class MainController {
         val settings = Settings.loadFromDbById(id)
         val text = settings?.let {
             val song = Song(settings, SongVersion.LYRICS)
-            val text = song.getDescriptionYoutubeWOHeader(isBluetoothDelay = false)
+            val text = song.getDescriptionYoutubeWOHeader()
             text
         } ?: ""
         return text
     }
 
-    @GetMapping("/song/{id}/textyoutubelyricsbtwoheader")
-    @ResponseBody
-    fun getSongTextYoutubeLyricsBtWOHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
-        val text = settings?.let {
-            val song = Song(settings, SongVersion.LYRICS)
-            val text = song.getDescriptionYoutubeWOHeader(isBluetoothDelay = true)
-            text
-        } ?: ""
-        return text
-    }
 
     @GetMapping("/song/{id}/textyoutubekaraokewoheader")
     @ResponseBody
@@ -754,23 +628,12 @@ class MainController {
         val settings = Settings.loadFromDbById(id)
         val text = settings?.let {
             val song = Song(settings, SongVersion.KARAOKE)
-            val text = song.getDescriptionYoutubeWOHeader(isBluetoothDelay = false)
+            val text = song.getDescriptionYoutubeWOHeader()
             text
         } ?: ""
         return text
     }
 
-    @GetMapping("/song/{id}/textyoutubekaraokebtwoheader")
-    @ResponseBody
-    fun getSongTextYoutubeKaraokeBtWOHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
-        val text = settings?.let {
-            val song = Song(settings, SongVersion.KARAOKE)
-            val text = song.getDescriptionYoutubeWOHeader(isBluetoothDelay = true)
-            text
-        } ?: ""
-        return text
-    }
 
     @GetMapping("/song/{id}/textyoutubechordswoheader")
     @ResponseBody
@@ -778,23 +641,12 @@ class MainController {
         val settings = Settings.loadFromDbById(id)
         val text = settings?.let {
             val song = Song(settings, SongVersion.CHORDS)
-            val text = song.getDescriptionYoutubeWOHeader(isBluetoothDelay = false)
+            val text = song.getDescriptionYoutubeWOHeader()
             text
         } ?: ""
         return text
     }
 
-    @GetMapping("/song/{id}/textyoutubechordsbtwoheader")
-    @ResponseBody
-    fun getSongTextYoutubeChordsBtWOHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
-        val text = settings?.let {
-            val song = Song(settings, SongVersion.CHORDS)
-            val text = song.getDescriptionYoutubeWOHeader(isBluetoothDelay = true)
-            text
-        } ?: ""
-        return text
-    }
 
     @PostMapping("/replacesymbolsinsong")
     @ResponseBody
@@ -814,19 +666,7 @@ class MainController {
         val settings = Settings.loadFromDbById(id)
         val text = settings?.let {
             val song = Song(settings, SongVersion.LYRICS)
-            val text = song.getDescriptionVk(isBluetoothDelay = false)
-            text
-        } ?: ""
-        return text
-    }
-
-    @GetMapping("/song/{id}/textvklyricsbt")
-    @ResponseBody
-    fun getSongTextVkLyricsBt(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
-        val text = settings?.let {
-            val song = Song(settings, SongVersion.LYRICS)
-            val text = song.getDescriptionVk(isBluetoothDelay = true)
+            val text = song.getDescriptionVk()
             text
         } ?: ""
         return text
@@ -838,23 +678,12 @@ class MainController {
         val settings = Settings.loadFromDbById(id)
         val text = settings?.let {
             val song = Song(settings, SongVersion.KARAOKE)
-            val text = song.getDescriptionVk(isBluetoothDelay = false)
+            val text = song.getDescriptionVk()
             text
         } ?: ""
         return text
     }
 
-    @GetMapping("/song/{id}/textvkkaraokebt")
-    @ResponseBody
-    fun getSongTextVkKaraokeBt(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
-        val text = settings?.let {
-            val song = Song(settings, SongVersion.KARAOKE)
-            val text = song.getDescriptionVk(isBluetoothDelay = true)
-            text
-        } ?: ""
-        return text
-    }
 
     @GetMapping("/song/{id}/textvkchords")
     @ResponseBody
@@ -862,19 +691,7 @@ class MainController {
         val settings = Settings.loadFromDbById(id)
         val text = settings?.let {
             val song = Song(settings, SongVersion.CHORDS)
-            val text = song.getDescriptionVk(isBluetoothDelay = false)
-            text
-        } ?: ""
-        return text
-    }
-
-    @GetMapping("/song/{id}/textvkchordsbt")
-    @ResponseBody
-    fun getSongTextVkChordsBt(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
-        val text = settings?.let {
-            val song = Song(settings, SongVersion.CHORDS)
-            val text = song.getDescriptionVk(isBluetoothDelay = true)
+            val text = song.getDescriptionVk()
             text
         } ?: ""
         return text
@@ -887,19 +704,7 @@ class MainController {
         val settings = Settings.loadFromDbById(id)
         val text = settings?.let {
             val song = Song(settings, SongVersion.LYRICS)
-            val text = song.getDescriptionVkHeader(isBluetoothDelay = false)
-            text
-        } ?: ""
-        return text
-    }
-
-    @GetMapping("/song/{id}/textvklyricsbtheader")
-    @ResponseBody
-    fun getSongTextVkLyricsBtHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
-        val text = settings?.let {
-            val song = Song(settings, SongVersion.LYRICS)
-            val text = song.getDescriptionVkHeader(isBluetoothDelay = true)
+            val text = song.getDescriptionVkHeader()
             text
         } ?: ""
         return text
@@ -911,23 +716,12 @@ class MainController {
         val settings = Settings.loadFromDbById(id)
         val text = settings?.let {
             val song = Song(settings, SongVersion.KARAOKE)
-            val text = song.getDescriptionVkHeader(isBluetoothDelay = false)
+            val text = song.getDescriptionVkHeader()
             text
         } ?: ""
         return text
     }
 
-    @GetMapping("/song/{id}/textvkkaraokebtheader")
-    @ResponseBody
-    fun getSongTextVkKaraokeBtHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
-        val text = settings?.let {
-            val song = Song(settings, SongVersion.KARAOKE)
-            val text = song.getDescriptionVkHeader(isBluetoothDelay = true)
-            text
-        } ?: ""
-        return text
-    }
 
     @GetMapping("/song/{id}/textvkchordsheader")
     @ResponseBody
@@ -935,19 +729,7 @@ class MainController {
         val settings = Settings.loadFromDbById(id)
         val text = settings?.let {
             val song = Song(settings, SongVersion.CHORDS)
-            val text = song.getDescriptionVkHeader(isBluetoothDelay = false)
-            text
-        } ?: ""
-        return text
-    }
-
-    @GetMapping("/song/{id}/textvkchordsbtheader")
-    @ResponseBody
-    fun getSongTextVkChordsBtHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
-        val text = settings?.let {
-            val song = Song(settings, SongVersion.CHORDS)
-            val text = song.getDescriptionVkHeader(isBluetoothDelay = true)
+            val text = song.getDescriptionVkHeader()
             text
         } ?: ""
         return text
@@ -960,23 +742,12 @@ class MainController {
         val settings = Settings.loadFromDbById(id)
         val text = settings?.let {
             val song = Song(settings, SongVersion.LYRICS)
-            val text = song.getDescriptionVkWOHeader(isBluetoothDelay = false)
+            val text = song.getDescriptionVkWOHeader()
             text
         } ?: ""
         return text
     }
 
-    @GetMapping("/song/{id}/textvklyricsbtwoheader")
-    @ResponseBody
-    fun getSongTextVkLyricsBtWOHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
-        val text = settings?.let {
-            val song = Song(settings, SongVersion.LYRICS)
-            val text = song.getDescriptionVkWOHeader(isBluetoothDelay = true)
-            text
-        } ?: ""
-        return text
-    }
 
     @GetMapping("/song/{id}/textvkkaraokewoheader")
     @ResponseBody
@@ -984,23 +755,12 @@ class MainController {
         val settings = Settings.loadFromDbById(id)
         val text = settings?.let {
             val song = Song(settings, SongVersion.KARAOKE)
-            val text = song.getDescriptionVkWOHeader(isBluetoothDelay = false)
+            val text = song.getDescriptionVkWOHeader()
             text
         } ?: ""
         return text
     }
 
-    @GetMapping("/song/{id}/textvkkaraokebtwoheader")
-    @ResponseBody
-    fun getSongTextVkKaraokeBtWOHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
-        val text = settings?.let {
-            val song = Song(settings, SongVersion.KARAOKE)
-            val text = song.getDescriptionVkWOHeader(isBluetoothDelay = true)
-            text
-        } ?: ""
-        return text
-    }
 
     @GetMapping("/song/{id}/textvkchordswoheader")
     @ResponseBody
@@ -1008,25 +768,11 @@ class MainController {
         val settings = Settings.loadFromDbById(id)
         val text = settings?.let {
             val song = Song(settings, SongVersion.CHORDS)
-            val text = song.getDescriptionVkWOHeader(isBluetoothDelay = false)
+            val text = song.getDescriptionVkWOHeader()
             text
         } ?: ""
         return text
     }
-
-    @GetMapping("/song/{id}/textvkchordsbtwoheader")
-    @ResponseBody
-    fun getSongTextVkChordsBtWOHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
-        val text = settings?.let {
-            val song = Song(settings, SongVersion.CHORDS)
-            val text = song.getDescriptionVkWOHeader(isBluetoothDelay = true)
-            text
-        } ?: ""
-        return text
-    }
-
-
 
 
 
@@ -1037,19 +783,7 @@ class MainController {
         val settings = Settings.loadFromDbById(id)
         val text = settings?.let {
             val song = Song(settings, SongVersion.LYRICS)
-            val text = song.getDescriptionVk(isBluetoothDelay = false)
-            text
-        } ?: ""
-        return text
-    }
-
-    @GetMapping("/song/{id}/texttelegramlyricsbt")
-    @ResponseBody
-    fun getSongTextTelegramLyricsBt(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
-        val text = settings?.let {
-            val song = Song(settings, SongVersion.LYRICS)
-            val text = song.getDescriptionVk(isBluetoothDelay = true)
+            val text = song.getDescriptionVk()
             text
         } ?: ""
         return text
@@ -1061,23 +795,12 @@ class MainController {
         val settings = Settings.loadFromDbById(id)
         val text = settings?.let {
             val song = Song(settings, SongVersion.KARAOKE)
-            val text = song.getDescriptionVk(isBluetoothDelay = false)
+            val text = song.getDescriptionVk()
             text
         } ?: ""
         return text
     }
 
-    @GetMapping("/song/{id}/texttelegramkaraokebt")
-    @ResponseBody
-    fun getSongTextTelegramKaraokeBt(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
-        val text = settings?.let {
-            val song = Song(settings, SongVersion.KARAOKE)
-            val text = song.getDescriptionVk(isBluetoothDelay = true)
-            text
-        } ?: ""
-        return text
-    }
 
     @GetMapping("/song/{id}/texttelegramchords")
     @ResponseBody
@@ -1085,19 +808,7 @@ class MainController {
         val settings = Settings.loadFromDbById(id)
         val text = settings?.let {
             val song = Song(settings, SongVersion.CHORDS)
-            val text = song.getDescriptionVk(isBluetoothDelay = false)
-            text
-        } ?: ""
-        return text
-    }
-
-    @GetMapping("/song/{id}/texttelegramchordsbt")
-    @ResponseBody
-    fun getSongTextTelegramChordsBt(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
-        val text = settings?.let {
-            val song = Song(settings, SongVersion.CHORDS)
-            val text = song.getDescriptionVk(isBluetoothDelay = true)
+            val text = song.getDescriptionVk()
             text
         } ?: ""
         return text
@@ -1110,19 +821,7 @@ class MainController {
         val settings = Settings.loadFromDbById(id)
         val text = settings?.let {
             val song = Song(settings, SongVersion.LYRICS)
-            val text = song.getDescriptionVkHeader(isBluetoothDelay = false)
-            text
-        } ?: ""
-        return text
-    }
-
-    @GetMapping("/song/{id}/texttelegramlyricsbtheader")
-    @ResponseBody
-    fun getSongTextTelegramLyricsBtHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
-        val text = settings?.let {
-            val song = Song(settings, SongVersion.LYRICS)
-            val text = song.getDescriptionVkHeader(isBluetoothDelay = true)
+            val text = song.getDescriptionVkHeader()
             text
         } ?: ""
         return text
@@ -1134,23 +833,12 @@ class MainController {
         val settings = Settings.loadFromDbById(id)
         val text = settings?.let {
             val song = Song(settings, SongVersion.KARAOKE)
-            val text = song.getDescriptionVkHeader(isBluetoothDelay = false)
+            val text = song.getDescriptionVkHeader()
             text
         } ?: ""
         return text
     }
 
-    @GetMapping("/song/{id}/texttelegramkaraokebtheader")
-    @ResponseBody
-    fun getSongTextTelegramKaraokeBtHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
-        val text = settings?.let {
-            val song = Song(settings, SongVersion.KARAOKE)
-            val text = song.getDescriptionVkHeader(isBluetoothDelay = true)
-            text
-        } ?: ""
-        return text
-    }
 
     @GetMapping("/song/{id}/texttelegramchordsheader")
     @ResponseBody
@@ -1158,19 +846,7 @@ class MainController {
         val settings = Settings.loadFromDbById(id)
         val text = settings?.let {
             val song = Song(settings, SongVersion.CHORDS)
-            val text = song.getDescriptionVkHeader(isBluetoothDelay = false)
-            text
-        } ?: ""
-        return text
-    }
-
-    @GetMapping("/song/{id}/texttelegramchordsbtheader")
-    @ResponseBody
-    fun getSongTextTelegramChordsBtHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
-        val text = settings?.let {
-            val song = Song(settings, SongVersion.CHORDS)
-            val text = song.getDescriptionVkHeader(isBluetoothDelay = true)
+            val text = song.getDescriptionVkHeader()
             text
         } ?: ""
         return text
@@ -1183,19 +859,7 @@ class MainController {
         val settings = Settings.loadFromDbById(id)
         val text = settings?.let {
             val song = Song(settings, SongVersion.LYRICS)
-            val text = song.getDescriptionVkWOHeader(isBluetoothDelay = false)
-            text
-        } ?: ""
-        return text
-    }
-
-    @GetMapping("/song/{id}/texttelegramlyricsbtwoheader")
-    @ResponseBody
-    fun getSongTextTelegramLyricsBtWOHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
-        val text = settings?.let {
-            val song = Song(settings, SongVersion.LYRICS)
-            val text = song.getDescriptionVkWOHeader(isBluetoothDelay = true)
+            val text = song.getDescriptionVkWOHeader()
             text
         } ?: ""
         return text
@@ -1207,19 +871,7 @@ class MainController {
         val settings = Settings.loadFromDbById(id)
         val text = settings?.let {
             val song = Song(settings, SongVersion.KARAOKE)
-            val text = song.getDescriptionVkWOHeader(isBluetoothDelay = false)
-            text
-        } ?: ""
-        return text
-    }
-
-    @GetMapping("/song/{id}/texttelegramkaraokebtwoheader")
-    @ResponseBody
-    fun getSongTextTelegramKaraokeBtWOHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
-        val text = settings?.let {
-            val song = Song(settings, SongVersion.KARAOKE)
-            val text = song.getDescriptionVkWOHeader(isBluetoothDelay = true)
+            val text = song.getDescriptionVkWOHeader()
             text
         } ?: ""
         return text
@@ -1231,29 +883,11 @@ class MainController {
         val settings = Settings.loadFromDbById(id)
         val text = settings?.let {
             val song = Song(settings, SongVersion.CHORDS)
-            val text = song.getDescriptionVkWOHeader(isBluetoothDelay = false)
+            val text = song.getDescriptionVkWOHeader()
             text
         } ?: ""
         return text
     }
-
-    @GetMapping("/song/{id}/texttelegramchordsbtwoheader")
-    @ResponseBody
-    fun getSongTextTelegramChordsBtWOHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
-        val text = settings?.let {
-            val song = Song(settings, SongVersion.CHORDS)
-            val text = song.getDescriptionVkWOHeader(isBluetoothDelay = true)
-            text
-        } ?: ""
-        return text
-    }
-
-
-
-
-
-
 
 
 

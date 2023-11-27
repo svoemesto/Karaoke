@@ -1,18 +1,6 @@
 package com.svoemesto.karaokeapp//import model.Lyric
-import getTemplateBackChords
-import getTemplateBoosty
-import getTemplateCounter
-import getTemplateFaderChords
-import getTemplateFaderText
-import getTemplateFingerboard
-import getTemplateFlash
-import getTemplateHeader
-import getTemplateHorizon
-import getTemplateProgress
-import getTemplateSongText
-import getTemplateSplashstart
-import getTemplateWatermark
 import com.svoemesto.karaokeapp.mlt.getMlt
+import com.svoemesto.karaokeapp.mlt.mko.*
 import com.svoemesto.karaokeapp.model.*
 import java.io.File
 import java.lang.Integer.min
@@ -20,16 +8,7 @@ import java.nio.file.Files
 import java.nio.file.attribute.PosixFilePermissions
 //import java.nio.file.Path
 import kotlin.io.path.Path
-fun createKaraokeAll(pathToSettingsFile: String) {
-    val settings = Settings.loadFromFile(pathToSettingsFile)
-    createKaraoke(Song(settings, SongVersion.LYRICS))
-    createKaraoke(Song(settings, SongVersion.KARAOKE))
-    createKaraoke(Song(settings, SongVersion.CHORDS))
-//    createKaraoke(Song(settings, SongVersion.LYRICS), true)
-//    createKaraoke(Song(settings, SongVersion.KARAOKE), true)
-//    createKaraoke(Song(settings, SongVersion.CHORDS), true)
 
-}
 fun createKaraoke(song: Song) {
 
     if (song.songVersion == SongVersion.CHORDS && !song.hasChords) return
@@ -110,6 +89,32 @@ fun createKaraoke(song: Song) {
             song.settings.ms
         } // Находим длительность звучания 1/4 ноты в миллисекундах
     val halfNoteLengthMs = quarterNoteLengthMs * 2
+
+    val propAudioVolumeOnLineValue = mutableListOf<String>()
+    val propAudioVolumeOffLineValue = mutableListOf<String>()
+    val propAudioVolumeCustomLineValue = mutableListOf<String>()
+
+    propAudioVolumeOnLineValue.add("00:00:00.000=0")
+    propAudioVolumeOnLineValue.add("${song.endTimecode}=0")
+
+    propAudioVolumeOffLineValue.add("00:00:00.000=-100")
+    propAudioVolumeOffLineValue.add("${song.endTimecode}=-100")
+
+    propAudioVolumeCustomLineValue.add("00:00:00.000=-100")
+
+    song.settings.sourceUnmute.forEach { (unMuteStart, unMuteEnd) ->
+        propAudioVolumeCustomLineValue.add("${convertFramesToTimecode(convertMillisecondsToFrames((unMuteStart*1000).toLong())- 2)}=-100")
+        propAudioVolumeCustomLineValue.add("${convertFramesToTimecode(convertMillisecondsToFrames((unMuteStart*1000).toLong()))}=0")
+        propAudioVolumeCustomLineValue.add("${convertFramesToTimecode(convertMillisecondsToFrames((unMuteEnd*1000).toLong()))}=0")
+        propAudioVolumeCustomLineValue.add("${convertFramesToTimecode(convertMillisecondsToFrames((unMuteEnd*1000).toLong())+ 2)}=-100")
+    }
+//    propAudioVolumeCustomLineValue.add("00:00:05.000=0")
+//    propAudioVolumeCustomLineValue.add("00:00:10.000=0")
+    propAudioVolumeCustomLineValue.add("${song.endTimecode}=-100")
+
+    val propAudioVolumeOnValue = propAudioVolumeOnLineValue.joinToString(";")
+    val propAudioVolumeOffValue = propAudioVolumeOffLineValue.joinToString(";")
+    val propAudioVolumeCustomValue = propAudioVolumeCustomLineValue.joinToString(";")
 
     var currentVoiceOffset = 0
 
@@ -432,8 +437,9 @@ fun createKaraoke(song: Song) {
         param["HEADER_TRACK"] = kdeHeaderTrack
         param["HEADER_SONG_NAME"] = kdeHeaderSongName.replace("&", "&amp;amp;")
         param["HEADER_SONG_NAME_FONT_SIZE"] = fontNameSizePt
-        param["LOGOAUTHOR_PATH"] = "${song.settings.rootFolder.replace("&", "&amp;amp;")}/LogoAuthor.png"
-        param["LOGOALBUM_PATH"] = "${song.settings.rootFolder.replace("&", "&amp;amp;")}/LogoAlbum.png"
+        param["LOGOAUTHOR_PATH"] = "${song.settings.pathToFileLogoAuthor.replace("&", "&amp;amp;")}"
+        param["LOGOALBUM_PATH"] = "${song.settings.pathToFileLogoAlbum.replace("&", "&amp;amp;")}"
+        param["SPLASH_PATH"] = "/home/nsa/Documents/Караоке/SPLASH.png"
 
         // Настало время прописать classes.TransformProperty для заливок
 
@@ -580,6 +586,7 @@ fun createKaraoke(song: Song) {
         val propProgressValue = propProgressLineValue.joinToString(";")
         val propHeaderValue = propHeaderLineValue.joinToString(";")
         val propFlashValue = propFlashLineValue.joinToString(";")
+
         val propSongtextFillOddValue = propRectSongtextValueLineOddEven[0].joinToString(";")
         val propSongtextFillEvenValue = propRectSongtextValueLineOddEven[1].joinToString(";")
         val propFillCounter0Value = counters[0].joinToString(";")
@@ -618,28 +625,28 @@ fun createKaraoke(song: Song) {
         param["IN_OFFSET_VIDEO"] = kdeInOffsetVideo
 
 
-        val templateSongText = getTemplateSongText(param, voiceId)
-        val templateSongTextIgnoreCapo = getTemplateSongText(param, voiceId, true)
-        val templateHorizon = getTemplateHorizon(param)
-        val templateFlash = getTemplateFlash(param)
-        val templateProgress = getTemplateProgress(param)
-        val templateWatermark = getTemplateWatermark(param)
-        val templateFaderText = getTemplateFaderText(param)
-        val templateFaderChords = getTemplateFaderChords(param)
-        val templateBackChords = getTemplateBackChords(param)
-        val templateHeader = getTemplateHeader(param)
-        val templateSplashstart = getTemplateSplashstart(param)
-        val templateBoosty = getTemplateBoosty(param)
-        val templateCounter0 = getTemplateCounter(param, 0, voiceId)
-        val templateCounter1 = getTemplateCounter(param, 1, voiceId)
-        val templateCounter2 = getTemplateCounter(param, 2, voiceId)
-        val templateCounter3 = getTemplateCounter(param, 3, voiceId)
-        val templateCounter4 = getTemplateCounter(param, 4, voiceId)
+        val templateSongText = MkoSongText(param, voiceId, ignoreCapo = false).template()
+        val templateSongTextIgnoreCapo = MkoSongText(param, voiceId, ignoreCapo = true).template()
+        val templateHorizon = MkoHorizon(param).template()
+        val templateFlash = MkoFlash(param).template()
+        val templateProgress = MkoProgress(param).template()
+        val templateWatermark = MkoWatermark(param).template()
+        val templateFaderText = MkoFaderText(param).template()
+        val templateFaderChords = MkoFaderChords(param).template()
+        val templateBackChords = MkoBackChords(param).template()
+        val templateHeader = MkoHeader(param).template()
+        val templateSplashstart = MkoSplashStart(param).template()
+        val templateBoosty = MkoBoosty(param).template()
+        val templateCounter0 = MkoCounter(param, 0, voiceId).template()
+        val templateCounter1 = MkoCounter(param, 1, voiceId).template()
+        val templateCounter2 = MkoCounter(param, 2, voiceId).template()
+        val templateCounter3 = MkoCounter(param, 3, voiceId).template()
+        val templateCounter4 = MkoCounter(param, 4, voiceId).template()
 
         val templateFingerboards: MutableMap<Int, MltNode> = mutableMapOf()
         if (song.songVersion == SongVersion.CHORDS) {
             for (i in 0 until countFingerboards) {
-                templateFingerboards[i] = getTemplateFingerboard(param, i)
+                templateFingerboards[i] = MkoFingerboard(param, i).template()
             }
         }
 
@@ -653,7 +660,7 @@ fun createKaraoke(song: Song) {
 
         param["${ProducerType.AUDIOVOCAL.text.uppercase()}${voiceId}_ID"] = idProducerAudioVocal
         param["${ProducerType.AUDIOVOCAL.text.uppercase()}${voiceId}_PATH"] = song.settings.audioVocalFileName.replace("&", "&amp;")
-        param["HIDE_TRACTOR_${ProducerType.AUDIOVOCAL.text.uppercase()}${voiceId}"] = "both"
+//        param["HIDE_TRACTOR_${ProducerType.AUDIOVOCAL.text.uppercase()}${voiceId}"] = "both"
 
         param["${ProducerType.AUDIOBASS.text.uppercase()}${voiceId}_ID"] = idProducerAudioBass
         param["${ProducerType.AUDIOBASS.text.uppercase()}${voiceId}_PATH"] = song.settings.audioBassFileName.replace("&", "&amp;")
@@ -779,6 +786,31 @@ fun createKaraoke(song: Song) {
         param["${ProducerType.WATERMARK.text.uppercase()}${voiceId}_ENABLED"] = Karaoke.createWatermark
 
     }
+
+    when(song.songVersion) {
+        SongVersion.LYRICS -> {
+            param["${ProducerType.AUDIOVOCAL.text.uppercase()}_VOLUME"] = propAudioVolumeOffValue
+            param["${ProducerType.AUDIOMUSIC.text.uppercase()}_VOLUME"] = propAudioVolumeOffValue
+            param["${ProducerType.AUDIOSONG.text.uppercase()}_VOLUME"] = propAudioVolumeOnValue
+            param["${ProducerType.AUDIOBASS.text.uppercase()}_VOLUME"] = propAudioVolumeOffValue
+            param["${ProducerType.AUDIODRUMS.text.uppercase()}_VOLUME"] = propAudioVolumeOffValue
+        }
+        SongVersion.KARAOKE -> {
+            param["${ProducerType.AUDIOVOCAL.text.uppercase()}_VOLUME"] = propAudioVolumeCustomValue
+            param["${ProducerType.AUDIOMUSIC.text.uppercase()}_VOLUME"] = propAudioVolumeOnValue
+            param["${ProducerType.AUDIOSONG.text.uppercase()}_VOLUME"] = propAudioVolumeOffValue
+            param["${ProducerType.AUDIOBASS.text.uppercase()}_VOLUME"] = propAudioVolumeOffValue
+            param["${ProducerType.AUDIODRUMS.text.uppercase()}_VOLUME"] = propAudioVolumeOffValue
+        }
+        SongVersion.CHORDS -> {
+            param["${ProducerType.AUDIOVOCAL.text.uppercase()}_VOLUME"] = propAudioVolumeOffValue
+            param["${ProducerType.AUDIOMUSIC.text.uppercase()}_VOLUME"] = propAudioVolumeOffValue
+            param["${ProducerType.AUDIOSONG.text.uppercase()}_VOLUME"] = propAudioVolumeOffValue
+            param["${ProducerType.AUDIOBASS.text.uppercase()}_VOLUME"] = propAudioVolumeOnValue
+            param["${ProducerType.AUDIODRUMS.text.uppercase()}_VOLUME"] = propAudioVolumeOnValue
+        }
+    }
+
 
     param["SONG_PROJECT_RUNALL_FILENAME"] = song.getOutputFilename(SongOutputFile.RUNALL).replace("&", "&amp;")
     param["SONG_PROJECT_RUN_FILENAME"] = song.getOutputFilename(SongOutputFile.RUN,).replace("&", "&amp;")

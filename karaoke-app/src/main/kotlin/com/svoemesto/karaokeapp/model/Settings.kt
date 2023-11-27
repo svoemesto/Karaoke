@@ -6,20 +6,20 @@ import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.apache.commons.io.FileUtils
-import org.odftoolkit.simple.SpreadsheetDocument
 import org.springframework.beans.BeansException
+import org.springframework.context.ApplicationContext
+import org.springframework.context.ApplicationContextAware
+import org.springframework.stereotype.Component
 import java.io.File
 import java.io.Serializable
 import java.nio.file.Files
 import java.nio.file.attribute.PosixFilePermissions
-import kotlin.io.path.Path
-import org.springframework.stereotype.Component
-import org.springframework.context.ApplicationContext
-import org.springframework.context.ApplicationContextAware
 import java.sql.*
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.Date
+import kotlin.io.path.Path
+
 
 enum class SettingField : Serializable {
     ID,
@@ -86,8 +86,7 @@ class ApplicationContextProvider : ApplicationContextAware {
 }
 
 @Component
-class Settings : Serializable, Comparable<Settings> {
-
+class Settings: Serializable, Comparable<Settings> {
 
     private var _rootFolder: String = ""
     var readonly = false
@@ -218,6 +217,18 @@ class Settings : Serializable, Comparable<Settings> {
         }
     }
 
+    val sourceUnmute: List<Pair<Double, Double>> get() {
+        if (sourceMarkersList.isEmpty()) return emptyList()
+        val unMuteTimeList = sourceMarkersList[0].filter { it.markertype == "unmute" }.map { it.time }
+        if (unMuteTimeList.isEmpty()) return emptyList()
+        if (unMuteTimeList.size % 2 != 0) return emptyList()
+        val result: MutableList<Pair<Double, Double>> = mutableListOf()
+        for (i in unMuteTimeList.indices step 2) {
+            result.add(Pair(unMuteTimeList[i], unMuteTimeList[i+1]))
+        }
+        return result
+    }
+
 //    fun getSourceMarkersList(): List<SourceMarker> {
 //        return if (sourceMarkers != "") {
 //            Json.decodeFromString(ListSerializer(SourceMarker.serializer()), sourceMarkers)
@@ -258,14 +269,36 @@ class Settings : Serializable, Comparable<Settings> {
     val pathToStoreFolderKaraoke: String  get() = "$PATH_TO_STORE_FOLDER/Karaoke/${author} - Karaoke"
     val pathToStoreFolderChords: String  get() = "$PATH_TO_STORE_FOLDER/Chords/${author} - Chords"
 
-
+    val nameFileLogoAlbum: String  get() = "${if (!fileName.startsWith (year.toString())) "${year} " else ""}${fileName.replace("'","''")} [album].png"
+    val nameFileLogoAuthor: String  get() = "${if (!fileName.startsWith (year.toString())) "${year} " else ""}${fileName.replace("'","''")} [author].png"
     val nameFileLyrics: String  get() = "${if (!fileName.startsWith (year.toString())) "${year} " else ""}${fileName.replace("'","''")} [lyrics].mp4"
     val nameFileKaraoke: String  get() = "${if (!fileName.startsWith (year.toString())) "${year} " else ""}${fileName.replace("'","''")} [karaoke].mp4"
     val nameFileChords: String  get() = "$${if (!fileName.startsWith (year.toString())) "${year} " else ""}${fileName.replace("'","''")} [chords].mp4"
 
+    val pathToFileLogoAlbum: String  get() {
+        var path = "$rootFolder/$nameFileLogoAlbum"
+        if (File(path).exists()) return path
+        path = "$rootFolder/LogoAlbum.png"
+        if (File(path).exists()) return path
+        path = "${File(rootFolder).parentFile.absolutePath}/LogoAlbum.png"
+        if (File(path).exists()) return path
+        return ""
+    }
+
+    val pathToFileLogoAuthor: String  get() {
+        var path = "$rootFolder/$nameFileLogoAuthor"
+        if (File(path).exists()) return path
+        path = "$rootFolder/LogoAuthor.png"
+        if (File(path).exists()) return path
+        path = "${File(rootFolder).parentFile.absolutePath}/LogoAuthor.png"
+        if (File(path).exists()) return path
+        return ""
+    }
 
     val color: String get() = fields[SettingField.COLOR] ?: ""
     val songName: String get() = fields[SettingField.NAME] ?: ""
+
+    val songNameCensored: String get() = songName.censored()
     val author: String get() = fields[SettingField.AUTHOR] ?: ""
     val album: String get() = fields[SettingField.ALBUM] ?: ""
     val date: String get() = fields[SettingField.DATE] ?: ""
@@ -293,6 +326,41 @@ class Settings : Serializable, Comparable<Settings> {
 //                "${fileName}.flac"
 //            }
 //        }
+
+
+    val pictureNameAuthor: String get() = author
+    val pictureNameAlbum: String get() = "$author - $year - $album"
+
+    val pictureAuthor: Pictures? get() {
+        var pic = Pictures.load(pictureNameAuthor)
+        if (pic == null) {
+            val pathToFile = pathToFileLogoAuthor
+            if (pathToFile != "") {
+                val fullPicture = java.util.Base64.getEncoder().encodeToString(File(pathToFile).inputStream().readAllBytes())
+                val pict = Pictures()
+                pict.name = pictureNameAuthor
+                pict.full = fullPicture
+                pic = Pictures.createDbInstance(pict)
+            }
+        }
+        return pic
+    }
+
+    val pictureAlbum: Pictures? get() {
+        var pic = Pictures.load(pictureNameAlbum)
+        if (pic == null) {
+            val pathToFile = pathToFileLogoAlbum
+            if (pathToFile != "") {
+                val fullPicture = java.util.Base64.getEncoder().encodeToString(File(pathToFile).inputStream().readAllBytes())
+                val pict = Pictures()
+                pict.name = pictureNameAlbum
+                pict.full = fullPicture
+                pic = Pictures.createDbInstance(pict)
+            }
+        }
+        return pic
+    }
+
     val projectLyricsFileName: String get() = "$fileName [lyrics].kdenlive"
     val videoLyricsFileName: String get() = "done/$year $fileName [lyrics].mp4"
     val projectKaraokeFileName: String get() = "$fileName [karaoke].kdenlive"
@@ -1091,12 +1159,13 @@ class Settings : Serializable, Comparable<Settings> {
     }
 
     fun convertMarkersToSrt(voice: Int): String {
-        val listMarkers = getSourceMarkers(voice)
+        val listMarkers = getSourceMarkers(voice).filter { it.markertype != "unmute" }
         var perviousMarkerIsEndOfLine = true
         var numberSrt = 0
         var result = ""
 
         listMarkers.forEachIndexed { index, sourceMarker ->
+
             if (sourceMarker.markertype != "endofline") numberSrt++
             val nextMarker = if (index == listMarkers.size - 1) null else listMarkers[index + 1]
             val srtNumber =  numberSrt.toString()
@@ -1143,28 +1212,21 @@ class Settings : Serializable, Comparable<Settings> {
         } else {
 
             val diff = getDiff(this, loadFromDbById(id))
+            val messageRecordChange = RecordChangeMessage(recordChangeTableName = "tbl_settings",  recordChangeId = id, recordChangeDiffs = diff)
             if (diff.isEmpty()) return
-            val setStr = diff.map { "${it.first} = ?" }.joinToString(", ")
+            val setStr = diff.filter{ it.recordDiffRealField }.map { "${it.recordDiffName} = ?" }.joinToString(", ")
             val sql = "UPDATE tbl_settings SET $setStr WHERE id = ?"
 
             Class.forName("org.postgresql.Driver")
             val connection = DriverManager.getConnection(CONNECTION_URL, CONNECTION_USER, CONNECTION_PASSWORD)
             val ps = connection.prepareStatement(sql)
 
-            println("Saved To Database:")
-            println("Setting id = $id, diffs:")
-
             var index = 1
-            diff.forEach {
-                val (diffName, diffNewValue, diffOldValue) = it
-                println("Field: $diffName")
-                println("Old value = $diffOldValue")
-                println("New value = $diffNewValue")
-                println("-----------------------------")
-                if (diffNewValue is Long) {
-                    ps.setLong(index, diffNewValue.toLong())
+            diff.filter{ it.recordDiffRealField }.forEach {
+                if (it.recordDiffValueNew is Long) {
+                    ps.setLong(index, it.recordDiffValueNew.toLong())
                 } else {
-                    ps.setString(index, diffNewValue.toString())
+                    ps.setString(index, it.recordDiffValueNew.toString())
                 }
                 index++
             }
@@ -1173,6 +1235,24 @@ class Settings : Serializable, Comparable<Settings> {
             ps.close()
             connection.close()
 
+            println(messageRecordChange.toString())
+
+            try {
+                WEBSOCKET.convertAndSend("/messages/recordchange", messageRecordChange)
+            } catch (e: Exception) {
+                println(e.message)
+            }
+
+            val diffNew = getDiff(loadFromDbById(id),this)
+            if (diffNew.isNotEmpty()) {
+                val messageRecordChangeNew = RecordChangeMessage(recordChangeTableName = "tbl_settings",  recordChangeId = id, recordChangeDiffs = diffNew)
+                println(messageRecordChangeNew.toString())
+                try {
+                    WEBSOCKET.convertAndSend("/messages/recordchange", messageRecordChangeNew)
+                } catch (e: Exception) {
+                    println(e.message)
+                }
+            }
         }
 
     }
@@ -1287,42 +1367,57 @@ class Settings : Serializable, Comparable<Settings> {
 
     companion object {
 
-        fun getDiff(settA: Settings, settB: Settings?): List<Triple<String, Any, Any>> {
-            val result: MutableList<Triple<String, Any, Any>> = mutableListOf()
-            if (settB != null) {
-                if (settA.songName != settB.songName) result.add(Triple("song_name", settA.songName, settB.songName))
-                if (settA.author != settB.author) result.add(Triple("song_author", settA.author, settB.author))
-                if (settA.album != settB.album) result.add(Triple("song_album", settA.album, settB.album))
-                if (settA.date != settB.date) result.add(Triple("publish_date", settA.date, settB.date))
-                if (settA.time != settB.time) result.add(Triple("publish_time", settA.time, settB.time))
-                if (settA.year != settB.year) result.add(Triple("song_year", settA.year, settB.year))
-                if (settA.track != settB.track) result.add(Triple("song_track", settA.track, settB.track))
-                if (settA.key != settB.key) result.add(Triple("song_tone", settA.key, settB.key))
-                if (settA.bpm != settB.bpm) result.add(Triple("song_bpm", settA.bpm, settB.bpm))
-                if (settA.ms != settB.ms) result.add(Triple("song_ms", settA.ms, settB.ms))
-                if (settA.fileName != settB.fileName) result.add(Triple("file_name", settA.fileName, settB.fileName))
-                if (settA.rootFolder != settB.rootFolder) result.add(Triple("root_folder", settA.rootFolder, settB.rootFolder))
-                if (settA.idBoosty != settB.idBoosty) result.add(Triple("id_boosty", settA.idBoosty, settB.idBoosty))
-                if (settA.idVk != settB.idVk) result.add(Triple("id_vk", settA.idVk, settB.idVk))
-                if (settA.idYoutubeLyrics != settB.idYoutubeLyrics) result.add(Triple("id_youtube_lyrics", settA.idYoutubeLyrics, settB.idYoutubeLyrics))
-                if (settA.idYoutubeKaraoke != settB.idYoutubeKaraoke) result.add(Triple("id_youtube_karaoke", settA.idYoutubeKaraoke, settB.idYoutubeKaraoke))
-                if (settA.idYoutubeChords != settB.idYoutubeChords) result.add(Triple("id_youtube_chords", settA.idYoutubeChords, settB.idYoutubeChords))
-                if (settA.idVkLyrics != settB.idVkLyrics) result.add(Triple("id_vk_lyrics", settA.idVkLyrics, settB.idVkLyrics))
-                if (settA.idVkKaraoke != settB.idVkKaraoke) result.add(Triple("id_vk_karaoke", settA.idVkKaraoke, settB.idVkKaraoke))
-                if (settA.idVkChords != settB.idVkChords) result.add(Triple("id_vk_chords", settA.idVkChords, settB.idVkChords))
-                if (settA.idTelegramLyrics != settB.idTelegramLyrics) result.add(Triple("id_telegram_lyrics", settA.idTelegramLyrics, settB.idTelegramLyrics))
-                if (settA.idTelegramKaraoke != settB.idTelegramKaraoke) result.add(Triple("id_telegram_karaoke", settA.idTelegramKaraoke, settB.idTelegramKaraoke))
-                if (settA.idTelegramChords != settB.idTelegramChords) result.add(Triple("id_telegram_chords", settA.idTelegramChords, settB.idTelegramChords))
-                if (settA.idStatus != settB.idStatus) result.add(Triple("id_status", settA.idStatus, settB.idStatus))
-                if (settA.sourceText != settB.sourceText) result.add(Triple("source_text", settA.sourceText, settB.sourceText))
-                if (settA.sourceMarkers != settB.sourceMarkers) result.add(Triple("source_markers", settA.sourceMarkers, settB.sourceMarkers))
-                if (settA.statusProcessLyrics != settB.statusProcessLyrics) result.add(Triple("status_process_lyrics", settA.statusProcessLyrics, settB.statusProcessLyrics))
-                if (settA.statusProcessLyricsBt != settB.statusProcessLyricsBt) result.add(Triple("status_process_lyrics_bt", settA.statusProcessLyricsBt, settB.statusProcessLyricsBt))
-                if (settA.statusProcessKaraoke != settB.statusProcessKaraoke) result.add(Triple("status_process_karaoke", settA.statusProcessKaraoke, settB.statusProcessKaraoke))
-                if (settA.statusProcessKaraokeBt != settB.statusProcessKaraokeBt) result.add(Triple("status_process_karaoke_bt", settA.statusProcessKaraokeBt, settB.statusProcessKaraokeBt))
-                if (settA.statusProcessChords != settB.statusProcessChords) result.add(Triple("status_process_chords", settA.statusProcessChords, settB.statusProcessChords))
-                if (settA.statusProcessChordsBt != settB.statusProcessChordsBt) result.add(Triple("status_process_chords_bt", settA.statusProcessChordsBt, settB.statusProcessChordsBt))
-                if (settA.tags != settB.tags) result.add(Triple("tags", settA.tags, settB.tags))
+        fun getDiff(settA: Settings?, settB: Settings?): List<RecordDiff> {
+            val result: MutableList<RecordDiff> = mutableListOf()
+            if (settA != null && settB != null) {
+                if (settA.songName != settB.songName) result.add(RecordDiff("song_name", settA.songName, settB.songName))
+                if (settA.author != settB.author) result.add(RecordDiff("song_author", settA.author, settB.author))
+                if (settA.album != settB.album) result.add(RecordDiff("song_album", settA.album, settB.album))
+                if (settA.date != settB.date) result.add(RecordDiff("publish_date", settA.date, settB.date))
+                if (settA.time != settB.time) result.add(RecordDiff("publish_time", settA.time, settB.time))
+                if (settA.year != settB.year) result.add(RecordDiff("song_year", settA.year, settB.year))
+                if (settA.track != settB.track) result.add(RecordDiff("song_track", settA.track, settB.track))
+                if (settA.key != settB.key) result.add(RecordDiff("song_tone", settA.key, settB.key))
+                if (settA.bpm != settB.bpm) result.add(RecordDiff("song_bpm", settA.bpm, settB.bpm))
+                if (settA.ms != settB.ms) result.add(RecordDiff("song_ms", settA.ms, settB.ms))
+                if (settA.fileName != settB.fileName) result.add(RecordDiff("file_name", settA.fileName, settB.fileName))
+                if (settA.rootFolder != settB.rootFolder) result.add(RecordDiff("root_folder", settA.rootFolder, settB.rootFolder))
+                if (settA.idBoosty != settB.idBoosty) result.add(RecordDiff("id_boosty", settA.idBoosty, settB.idBoosty))
+                if (settA.idVk != settB.idVk) result.add(RecordDiff("id_vk", settA.idVk, settB.idVk))
+                if (settA.idYoutubeLyrics != settB.idYoutubeLyrics) result.add(RecordDiff("id_youtube_lyrics", settA.idYoutubeLyrics, settB.idYoutubeLyrics))
+                if (settA.idYoutubeKaraoke != settB.idYoutubeKaraoke) result.add(RecordDiff("id_youtube_karaoke", settA.idYoutubeKaraoke, settB.idYoutubeKaraoke))
+                if (settA.idYoutubeChords != settB.idYoutubeChords) result.add(RecordDiff("id_youtube_chords", settA.idYoutubeChords, settB.idYoutubeChords))
+                if (settA.idVkLyrics != settB.idVkLyrics) result.add(RecordDiff("id_vk_lyrics", settA.idVkLyrics, settB.idVkLyrics))
+                if (settA.idVkKaraoke != settB.idVkKaraoke) result.add(RecordDiff("id_vk_karaoke", settA.idVkKaraoke, settB.idVkKaraoke))
+                if (settA.idVkChords != settB.idVkChords) result.add(RecordDiff("id_vk_chords", settA.idVkChords, settB.idVkChords))
+                if (settA.idTelegramLyrics != settB.idTelegramLyrics) result.add(RecordDiff("id_telegram_lyrics", settA.idTelegramLyrics, settB.idTelegramLyrics))
+                if (settA.idTelegramKaraoke != settB.idTelegramKaraoke) result.add(RecordDiff("id_telegram_karaoke", settA.idTelegramKaraoke, settB.idTelegramKaraoke))
+                if (settA.idTelegramChords != settB.idTelegramChords) result.add(RecordDiff("id_telegram_chords", settA.idTelegramChords, settB.idTelegramChords))
+                if (settA.idStatus != settB.idStatus) result.add(RecordDiff("id_status", settA.idStatus, settB.idStatus))
+                if (settA.sourceText != settB.sourceText) result.add(RecordDiff("source_text", settA.sourceText, settB.sourceText))
+                if (settA.sourceMarkers != settB.sourceMarkers) result.add(RecordDiff("source_markers", settA.sourceMarkers, settB.sourceMarkers))
+                if (settA.statusProcessLyrics != settB.statusProcessLyrics) result.add(RecordDiff("status_process_lyrics", settA.statusProcessLyrics, settB.statusProcessLyrics))
+                if (settA.statusProcessLyricsBt != settB.statusProcessLyricsBt) result.add(RecordDiff("status_process_lyrics_bt", settA.statusProcessLyricsBt, settB.statusProcessLyricsBt))
+                if (settA.statusProcessKaraoke != settB.statusProcessKaraoke) result.add(RecordDiff("status_process_karaoke", settA.statusProcessKaraoke, settB.statusProcessKaraoke))
+                if (settA.statusProcessKaraokeBt != settB.statusProcessKaraokeBt) result.add(RecordDiff("status_process_karaoke_bt", settA.statusProcessKaraokeBt, settB.statusProcessKaraokeBt))
+                if (settA.statusProcessChords != settB.statusProcessChords) result.add(RecordDiff("status_process_chords", settA.statusProcessChords, settB.statusProcessChords))
+                if (settA.statusProcessChordsBt != settB.statusProcessChordsBt) result.add(RecordDiff("status_process_chords_bt", settA.statusProcessChordsBt, settB.statusProcessChordsBt))
+                if (settA.tags != settB.tags) result.add(RecordDiff("tags", settA.tags, settB.tags))
+                if (settA.status != settB.status) result.add(RecordDiff("status", settA.status, settB.status, false))
+
+                if (settA.color != settB.color) result.add(RecordDiff("color", settA.color, settB.color, false))
+                if (settA.processColorMeltLyrics != settB.processColorMeltLyrics) result.add(RecordDiff("processColorMeltLyrics", settA.processColorMeltLyrics, settB.processColorMeltLyrics, false))
+                if (settA.processColorMeltKaraoke != settB.processColorMeltKaraoke) result.add(RecordDiff("processColorMeltKaraoke", settA.processColorMeltKaraoke, settB.processColorMeltKaraoke, false))
+                if (settA.processColorYoutubeLyrics != settB.processColorYoutubeLyrics) result.add(RecordDiff("processColorYoutubeLyrics", settA.processColorYoutubeLyrics, settB.processColorYoutubeLyrics, false))
+                if (settA.processColorYoutubeKaraoke != settB.processColorYoutubeKaraoke) result.add(RecordDiff("processColorYoutubeKaraoke", settA.processColorYoutubeKaraoke, settB.processColorYoutubeKaraoke, false))
+                if (settA.processColorVkLyrics != settB.processColorVkLyrics) result.add(RecordDiff("processColorVkLyrics", settA.processColorVkLyrics, settB.processColorVkLyrics, false))
+                if (settA.processColorVkKaraoke != settB.processColorVkKaraoke) result.add(RecordDiff("processColorVkKaraoke", settA.processColorVkKaraoke, settB.processColorVkKaraoke, false))
+                if (settA.processColorTelegramLyrics != settB.processColorTelegramLyrics) result.add(RecordDiff("processColorTelegramLyrics", settA.processColorTelegramLyrics, settB.processColorTelegramLyrics, false))
+                if (settA.processColorTelegramKaraoke != settB.processColorTelegramKaraoke) result.add(RecordDiff("processColorTelegramKaraoke", settA.processColorTelegramKaraoke, settB.processColorTelegramKaraoke, false))
+                if (settA.processColorVk != settB.processColorVk) result.add(RecordDiff("processColorVk", settA.processColorVk, settB.processColorVk, false))
+                if (settA.processColorBoosty != settB.processColorBoosty) result.add(RecordDiff("processColorBoosty", settA.processColorBoosty, settB.processColorBoosty, false))
+
+
             }
             return result
         }
@@ -1604,8 +1699,34 @@ class Settings : Serializable, Comparable<Settings> {
                 if (args.containsKey("song_name")) where += "LOWER(song_name) LIKE '%${args["song_name"]?.replace("'","''")?.lowercase()}%'"
                 if (args.containsKey("song_author")) where += "LOWER(song_author) LIKE '%${args["song_author"]?.replace("'","''")?.lowercase()}%'"
                 if (args.containsKey("song_album")) where += "LOWER(song_album) LIKE '%${args["song_album"]?.replace("'","''")?.lowercase()}%'"
-                if (args.containsKey("publish_date")) where += "publish_date LIKE '%${args["publish_date"]}%'"
-                if (args.containsKey("publish_time")) where += "publish_time LIKE '%${args["publish_time"]}%'"
+                if (args.containsKey("publish_date")) {
+                    var pd = args["publish_date"]!!
+                    if (pd[0] == '>') {
+                        pd = pd.substring(1)
+                        where += "to_date(publish_date, 'DD.MM.YY') >= to_date('$pd', 'DD.MM.YY')"
+                    } else if (pd.last() == '<') {
+                        pd = pd.dropLast(1)
+                        where += "to_date(publish_date, 'DD.MM.YY') <= to_date('$pd', 'DD.MM.YY')"
+                    } else {
+                        if (pd == "-") {
+                            where += "publish_date = ''"
+                        } else if (pd == "+") {
+                            where += "publish_date <> ''"
+                        } else {
+                            where += "publish_date LIKE '%$pd%'"
+                        }
+                    }
+
+                }
+                if (args.containsKey("publish_time")) {
+                    if (args["publish_time"] == "-") {
+                        where += "publish_time = ''"
+                    } else if (args["publish_time"] == "+") {
+                        where += "publish_date <> ''"
+                    } else {
+                        where += "publish_time LIKE '%${args["publish_time"]}%'"
+                    }
+                }
                 if (args.containsKey("status")) where += "status LIKE '%${args["status"]}%'"
                 if (args.containsKey("song_bpm")) where += "song_bpm=${args["song_bpm"]}"
                 if (args.containsKey("song_tone")) where += "song_tone=${args["song_tone"]}"
@@ -1702,16 +1823,6 @@ class Settings : Serializable, Comparable<Settings> {
         }
 
 
-        fun loadFromOds(author: String, songName: String, spreadsheetDocument: SpreadsheetDocument): Settings {
-            val settings = Settings()
-            val mapFromOds = Ods.getSettingFields(author, songName, spreadsheetDocument)
-            mapFromOds?.let {
-                mapFromOds.forEach{ (mapKey, mapValue) ->
-                    settings.fields[mapKey] = mapValue
-                }
-            }
-            return settings
-        }
         fun loadFromFile(pathToSettingsFile: String, readonly: Boolean = false): Settings {
             val settings = Settings()
             settings.readonly = readonly
@@ -1844,14 +1955,9 @@ class Settings : Serializable, Comparable<Settings> {
     }
 
     override fun compareTo(other: Settings): Int {
-        try {
-            if (dateTimePublish != null && other.dateTimePublish != null) {
-                return dateTimePublish!!.compareTo(other.dateTimePublish)
-            }
-        } catch (e: Exception) {
-            return id.compareTo(other.id)
-        }
-        return id.compareTo(other.id)
+        val a = dateTimePublish?.time ?: id
+        val b = other.dateTimePublish?.time ?: other.id
+        return a.compareTo(b)
     }
 
 }

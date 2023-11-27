@@ -23,6 +23,7 @@ enum class SongVersion(val text: String, val textForDescription: String, val suf
     KARAOKE(text = "Karaoke", textForDescription = "Accompaniment", suffix = " [karaoke]",
         producers = listOf(
             ProducerType.AUDIOMUSIC,
+            ProducerType.AUDIOVOCAL,
             ProducerType.BACKGROUND,
             ProducerType.SPLASHSTART,
             ProducerType.BOOSTY,

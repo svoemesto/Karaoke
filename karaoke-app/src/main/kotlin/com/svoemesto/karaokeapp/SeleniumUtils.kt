@@ -2,6 +2,10 @@ package com.svoemesto.karaokeapp
 
 import java.io.File
 import java.util.*
+import org.openqa.selenium.*
+import org.openqa.selenium.chrome.ChromeDriver
+import org.openqa.selenium.chrome.ChromeOptions
+import java.util.concurrent.TimeUnit
 
 const val PATH_TO_SELENIUM_SETTINGS = "/home/nsa/Documents/Караоке/SeleniumProperties.xml"
 //const val PATH_TO_SELENIUM_SETTINGS = "/home/nsa/Documents/Караоке/SeleniumProperties.txt"
@@ -9,14 +13,27 @@ const val WEBDRIVER_CHROMEDRIVER = "webdriver.chrome.driver"
 const val PATH_TO_CHROMEDRIVER = "/usr/local/bin/chromedriver"
 
 fun main() {
-//    System.setProperty(WEBDRIVER_CHROMEDRIVER, PATH_TO_CHROMEDRIVER)
-//    val driver = ChromeDriver()
-//    driver.get(urlYoutubeStudio)
+    System.setProperty(WEBDRIVER_CHROMEDRIVER, PATH_TO_CHROMEDRIVER)
+    val options = ChromeOptions()
+    options.addArguments("--remote-allow-origins=*")
+    val driver = ChromeDriver(options)
+    driver.get(SeleniumSettings.urlBoosty)
 
-    SeleniumSettings.urlYoutubeStudio = "https://studio.youtube.com/234"
-//    SeleniumSettings.login = "https://studio.youtube.com/"
-    println(SeleniumSettings.login)
-    println(SeleniumSettings.password)
+    driver.manage().timeouts().implicitlyWait(500, TimeUnit.MILLISECONDS)
+
+
+    try {
+        val element = driver.findElement(By.xpath("//button[contains(@class,'ContainedButton_colorDefault_fJta6')]"))
+        println("Кнопка найдена")
+        element.click()
+        driver.manage().timeouts().implicitlyWait(1000, TimeUnit.MILLISECONDS)
+    } catch (e: Exception) {
+        println("Кнопка не найдена")
+    }
+
+
+    driver.quit()
+
 
 }
 
@@ -50,13 +67,17 @@ class SeleniumSettings {
             get() = getProp("urlYoutubeStudio", "https://studio.youtube.com/")
             set(value) = setProp("urlYoutubeStudio",value)
 
-        var login: String
-            get() = getProp("login", "nsa")
-            set(value) = setProp("login",value)
+        var urlBoosty: String
+            get() = getProp("urlBoosty", "https://boosty.to/svoemesto")
+            set(value) = setProp("urlBoosty",value)
 
-        var password: String
-            get() = getProp("password", "password")
-            set(value) = setProp("password",value)
+        var loginBoosty: String
+            get() = getProp("loginBoosty", "nsa")
+            set(value) = setProp("loginBoosty",value)
+
+        var passwordBoosty: String
+            get() = getProp("passwordBoosty", "password")
+            set(value) = setProp("passwordBoosty",value)
 
     }
 }

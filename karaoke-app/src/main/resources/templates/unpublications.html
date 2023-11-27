@@ -1,0 +1,342 @@
+<!doctype html>
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css" integrity="sha384-B0vP5xmATw1+K9KRQjQERJvTumQW0nPEzvF6L/Z6nronJ3oUOFUFpCjEUQouq2+l" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-Piv4xVNRyMGpqkS2by6br4gNJ7DXjqk09RmUpJ8jgGtD7zP9yug3goQfGII0yAns" crossorigin="anonymous"></script>
+<!--    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.2.0/socket.io.min.js"></script>-->
+
+    <script src="sockjs.js"></script>
+    <script src="stomp.js"></script>
+
+    <link rel="stylesheet" href="http://fonts.googleapis.com/css?family=Roboto:400,300">
+    <link rel="stylesheet" href="settings_context.css">
+
+    <title>Un-Публикации</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Roboto", sans-serif;
+            font-weight: 300;
+        }
+
+        #areaScreen {
+            padding: 1em;
+            display: flex;
+            min-height: 100vh;
+            flex-direction: column;
+            margin: 0;
+        }
+
+        #areaHeader {
+            padding: 5px;
+            background: whitesmoke;
+            height: 50px;
+        }
+
+        #areaBody {
+            padding: 5px;
+            display: flex;
+            flex: 1;
+            background: beige;
+            max-height: calc(100vh - 135px);
+        }
+
+            #areaLeftColumn {
+                order: -1;
+                flex: 0 0 200px;
+                background: cadetblue;
+            }
+
+                #areaLeftTable{
+                    flex: 1;
+                    overflow-y: scroll;
+                    max-height: calc(100vh - 200px);
+                    background: #d5e6ff;
+                }
+
+            #areaCenterColumn {
+                flex: 1;
+                background: white;
+            }
+
+            #areaRightColumn {
+                flex: 0 0 100px;
+                background: dodgerblue;
+            }
+
+        #areaFooter {
+            padding: 5px;
+            background: yellowgreen;
+            height: 50px;
+        }
+
+        tbody tr.sub-row0:hover {
+            background: #d5e6ff; /* Цвет фона */
+        }
+        tbody tr.sub-row1:hover {
+            background: #d5e6ff; /* Цвет фона */
+        }
+        tbody tr.sub-row2:hover {
+            background: #f00; /* Цвет фона */
+        }
+
+    </style>
+
+
+</head>
+
+<body>
+
+<div id="areaScreen">
+    <div id="areaHeader">
+        <div th:insert="~{navigation_bar.html}"></div>
+    </div>
+    <div id="areaBody">
+        <div id="areaCenterColumn">
+            Центральная область
+            <div id="areaLeftTable">
+                <table class="table table-sm table-hover" id="leftTable" style="font-size: small; width: initial; height: 100%;">
+                    <tbody>
+                    <tr th:each="publicationlist:${publications}">
+                        <div th:each="publication:${publicationlist}">
+                            <td class="task" th:data-id="${publication.publish10id}" style="padding: 0; font-size: 0; min-width: 180px; max-width: 180px; border-style: solid; border-width: thin">
+                                <div
+                                        class="task__content"
+                                        th:data-id="${publication.publish10id}"
+                                        th:name="'publishText'+${publication.publish10id}"
+                                        th:text="${publication.publish10text}"
+                                        th:style="'background-color: ' + ${publication.publish10color} + '; height: 100%; padding: 4px; font-size: 10px; width: 180px; min-width: 180px; max-width: 180px; border-width: 0;'"
+                                ></div>
+                                <div class="task__actions" th:insert="~{settings_contextmenu_task_actions.html}"></div>
+
+                            </td>
+                            <td th:name="'publishColors'+${publication.publish10id}" style="padding: 0; font-size: 0; min-width: 13px; max-width: 13px; border-style: solid; border-width: thin">
+                                <div th:name="'publishLyrics'+${publication.publish10id}" th:style="'background-color: ' + ${publication.publish10colorMeltLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'" th:ondblclick="'doPlay('+${publication.publish10id}+', \'playlyrics\')'"></div>
+                                <div th:name="'publishKaraoke'+${publication.publish10id}" th:style="'background-color: ' + ${publication.publish10colorMeltKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish10id}+', \'playkaraoke\')'"></div>
+                            </td>
+                        </div>
+                    </tr>
+                    </tbody>
+
+                </table>
+            </div>
+        </div>
+    </div>
+    <div id="areaFooter">
+
+        <table class="table table-hover table-bordered" style="margin: 1px;padding: 1px">
+
+            <tr style="margin: 1px;padding: 1px">
+                <td style="font-size: 14px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                    <button name="button_filter_all" id="button_filter_all" class="form-control btn btn-primary btn-block" type="button" value="Filter all" onclick="doFilterAll()">Всё</button>
+                </td>
+                <td style="font-size: 14px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                    <button name="button_filter_from_today" id="button_filter_from_today" class="form-control btn btn-primary btn-block" type="button" value="Filter from today" onclick="doFilterFromToday()">С сегодня</button>
+                </td>
+                <td style="font-size: 14px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                    <button name="button_filter_from_not_publish" id="button_filter_from_not_publish" class="form-control btn btn-primary btn-block" type="button" value="Filter from not done" onclick="doFilterFromNotPublish()">С незавершенной</button>
+                </td>
+                <td style="font-size: 14px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                    <button name="button_filter_from_not_check" id="button_filter_from_not_check" class="form-control btn btn-primary btn-block" type="button" value="Filter from not check" onclick="doFilterFromNotCheck()">С не проверенной</button>
+                </td>
+                <td style="font-size: 14px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                    <button name="button_filter_from_not_done" id="button_filter_from_not_done" class="form-control btn btn-primary btn-block" type="button" value="Filter from not done" onclick="doFilterFromNotDone()">С не готовой</button>
+                </td>
+            </tr>
+
+        </table>
+
+    </div>
+</div>
+
+<nav id="context-menu" class="context-menu" th:insert="~{settings_contextmenu.html}"></nav>
+
+
+<script type="text/javascript">
+
+    var stompClient = null;
+
+    function connect() {
+        var socket = new SockJS('/message');
+        stompClient = Stomp.over(socket);
+        stompClient.connect({}, function(frame) {
+            console.log('Connected: ' + frame);
+            stompClient.subscribe('/messages/recordchange', function(recordchange){
+                console.log("Получено сообщение...");
+                updateSettingsFromMessage(JSON.parse(recordchange.body));
+            });
+        });
+    }
+
+    function doPlay(id, name) {
+        $.ajax({
+            type: "GET",
+            url: `/song/${id}/${name}`,
+            data: "",
+            success: function(data) {
+            }
+        });
+    }
+
+    function updateSettingsFromMessage(recordchange) {
+        var id = recordchange.recordChangeId;
+        var table = recordchange.recordChangeTableName;
+        var diffs = recordchange.recordChangeDiffs;
+        if (table === 'tbl_settings') {
+            diffs.forEach((diff) => {
+                var recordDiffName = diff.recordDiffName;
+                var recordDiffValueNew = diff.recordDiffValueNew;
+                switch (recordDiffName) {
+                    case 'color':
+                        var nameText = `publishText${id}`;
+                        var nameColors = `publishColors${id}`;
+                        var elements = document.getElementsByName(nameText);
+                        if (elements.length > 0) {
+                            var elementText = elements[0];
+                            var elementColors = document.getElementsByName(nameColors)[0];
+                            elementText.style.backgroundColor = recordDiffValueNew;
+                            elementColors.style.backgroundColor = recordDiffValueNew;
+                        }
+                        break;
+
+                    case 'processColorMeltLyrics':
+                        if (document.getElementsByName(`publishText${id}`).length > 0) {
+                            document.getElementsByName(`publishLyrics${id}`)[0].style.backgroundColor = recordDiffValueNew;
+                        }
+                        break;
+
+                    case 'processColorMeltKaraoke':
+                        if (document.getElementsByName(`publishText${id}`).length > 0) {
+                            document.getElementsByName(`publishKaraoke${id}`)[0].style.backgroundColor = recordDiffValueNew;
+                        }
+                        break;
+
+                    case 'MELT_LYRICS':
+                        if (document.getElementsByName(`publishText${id}`).length > 0) {
+                            document.getElementsByName(`publishLyrics${id}`)[0].style.width = recordDiffValueNew;
+                        }
+                        break;
+
+                    case 'MELT_KARAOKE':
+                        if (document.getElementsByName(`publishText${id}`).length > 0) {
+                            document.getElementsByName(`publishKaraoke${id}`)[0].style.width = recordDiffValueNew;
+                        }
+                        break;
+
+                    case 'FF_720_LYR':
+                        if (document.getElementsByName(`publishText${id}`).length > 0) {
+                            document.getElementsByName(`publishLyrics${id}`)[0].style.width = recordDiffValueNew;
+                            if (recordDiffValueNew !== "100%") {
+                                document.getElementsByName(`publishLyrics${id}`)[0].style.backgroundColor = "#0000FF";
+                            } else {
+                                document.getElementsByName(`publishLyrics${id}`)[0].style.backgroundColor = "#FF00FF";
+                            }
+                        }
+                        break;
+
+                    case 'FF_720_KAR':
+                        if (document.getElementsByName(`publishText${id}`).length > 0) {
+                            document.getElementsByName(`publishKaraoke${id}`)[0].style.width = recordDiffValueNew;
+                            if (recordDiffValueNew !== "100%") {
+                                document.getElementsByName(`publishKaraoke${id}`)[0].style.backgroundColor = "#0000FF";
+                            } else {
+                                document.getElementsByName(`publishKaraoke${id}`)[0].style.backgroundColor = "#FF00FF";
+                            }
+                        }
+                        break;
+
+                    default:
+                }
+            });
+        }
+    }
+
+    function updateSettings(id) {
+        console.log(`Обновляем запись №${id}`)
+        var nameText = `publishText${id}`;
+        var nameColors = `publishColors${id}`;
+        var nameLyrics = `publishLyrics${id}`;
+        var nameKaraoke = `publishKaraoke${id}`;
+        var nameYoutubeLyrics = `publishYoutubeLyrics${id}`;
+        var nameYoutubeKaraoke = `publishYoutubeKaraoke${id}`;
+        var nameVkLyrics = `publishVkLyrics${id}`;
+        var nameVkKaraoke = `publishVkKaraoke${id}`;
+        var nameTelegramLyrics = `publishTelegramLyrics${id}`;
+        var nameTelegramKaraoke = `publishTelegramKaraoke${id}`;
+        var nameVk = `publishVk${id}`;
+        var nameBoosty = `publishBoosty${id}`;
+        var elements = document.getElementsByName(nameText);
+        if (elements.length > 0) {
+            var elementText = elements[0];
+            var elementColors = document.getElementsByName(nameColors)[0];
+            var elementLyrics = document.getElementsByName(nameLyrics)[0];
+            var elementKaraoke = document.getElementsByName(nameKaraoke)[0];
+            var elementYoutubeLyrics = document.getElementsByName(nameYoutubeLyrics)[0];
+            var elementYoutubeKaraoke = document.getElementsByName(nameYoutubeKaraoke)[0];
+            var elementVkLyrics = document.getElementsByName(nameVkLyrics)[0];
+            var elementVkKaraoke = document.getElementsByName(nameVkKaraoke)[0];
+            var elementTelegramLyrics = document.getElementsByName(nameTelegramLyrics)[0];
+            var elementTelegramKaraoke = document.getElementsByName(nameTelegramKaraoke)[0];
+            var elementVk = document.getElementsByName(nameVk)[0];
+            var elementBoosty = document.getElementsByName(nameBoosty)[0];
+
+            $.ajax({
+                type: "GET",
+                url: "/song/" + id,
+                data: "",
+                success: function(data) {
+                    elementText.style.backgroundColor = data.color;
+                    elementColors.style.backgroundColor = data.color;
+                    elementLyrics.style.backgroundColor = data.processColorMeltLyrics;
+                    elementKaraoke.style.backgroundColor = data.processColorMeltKaraoke;
+                    elementYoutubeLyrics.style.backgroundColor = data.processColorYoutubeLyrics;
+                    elementYoutubeKaraoke.style.backgroundColor = data.processColorYoutubeKaraoke;
+                    elementVkLyrics.style.backgroundColor = data.processColorVkLyrics;
+                    elementVkKaraoke.style.backgroundColor = data.processColorVkKaraoke;
+                    elementTelegramLyrics.style.backgroundColor = data.processColorTelegramLyrics;
+                    elementTelegramKaraoke.style.backgroundColor = data.processColorTelegramKaraoke;
+                    elementVk.style.backgroundColor = data.processColorVk;
+                    elementBoosty.style.backgroundColor = data.processColorBoosty;
+                }
+            });
+
+        }
+    }
+
+    function doFilterAll() {
+        var url = "/publications?filter_cond=all";
+        window.location.href = url;
+    }
+
+    function doFilterFromToday() {
+        var url = "/publications?filter_cond=fromtoday";
+        window.location.href = url;
+    }
+
+    function doFilterFromNotPublish() {
+        var url = "/publications?filter_cond=fromnotpublish";
+        window.location.href = url;
+    }
+    function doFilterFromNotDone() {
+        var url = "/publications?filter_cond=fromnotdone";
+        window.location.href = url;
+    }
+
+    function doFilterFromNotCheck() {
+        var url = "/publications?filter_cond=fromnotcheck";
+        window.location.href = url;
+    }
+
+    $(function() {
+        connect();
+    });
+
+</script>
+
+<script src="settings_context.js"></script>
+
+</body>

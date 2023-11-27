@@ -1,13 +1,13 @@
 package com.svoemesto.karaokeapp
 
-import com.svoemesto.karaokeapp.controllers.MainController
-import com.svoemesto.karaokeapp.model.ApplicationContextProvider
+import com.svoemesto.karaokeapp.model.RecordDiff
 import com.svoemesto.karaokeapp.model.SettingField
 import com.svoemesto.karaokeapp.model.Settings
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import org.springframework.stereotype.Component
 import java.io.File
 import java.io.Serializable
 import java.nio.file.Files
@@ -22,6 +22,7 @@ import java.util.Date
 import java.util.concurrent.TimeUnit
 import kotlin.io.path.Path
 
+@Component
 class KaraokeProcess : Serializable, Comparable<KaraokeProcess>  {
     var id: Int = 0
     var name: String = "Process name"
@@ -36,6 +37,24 @@ class KaraokeProcess : Serializable, Comparable<KaraokeProcess>  {
     var start: Timestamp? = null
     var end: Timestamp? = null
     var prioritet: Int = 0
+
+    fun copy(): KaraokeProcess {
+        val result = KaraokeProcess()
+        result.id = id
+        result.name = name
+        result.status = status
+        result.order = order
+        result.priority = priority
+        result.command = command
+        result.args = args
+        result.description = description
+        result.settingsId = settingsId
+        result.type = type
+        result.start = start
+        result.end = end
+        result.prioritet = prioritet
+        return result
+    }
 
     val argsJson: String get() {
         return Json.encodeToString(args)
@@ -213,80 +232,38 @@ class KaraokeProcess : Serializable, Comparable<KaraokeProcess>  {
                         if (settings.statusProcessLyrics != status) {
                             settings.statusProcessLyrics = status
                             if (settings.statusProcessLyrics == KaraokeProcessStatuses.DONE.name &&
-//                                settings.statusProcessLyricsBt == KaraokeProcessStatuses.DONE.name &&
                                 settings.statusProcessKaraoke == KaraokeProcessStatuses.DONE.name &&
-//                                settings.statusProcessKaraokeBt == KaraokeProcessStatuses.DONE.name &&
                                 settings.idStatus == 4L) {
                                 settings.fields[SettingField.ID_STATUS] = "6"
                             }
                             settings.saveToDb()
                         } else {}
                     }
-//                    KaraokeProcessTypes.MELT_LYRICS_BT.name -> {
-//                        if (settings.statusProcessLyricsBt != status) {
-//                            settings.statusProcessLyricsBt = status
-//                            if (settings.statusProcessLyrics == KaraokeProcessStatuses.DONE.name &&
-//                                settings.statusProcessLyricsBt == KaraokeProcessStatuses.DONE.name &&
-//                                settings.statusProcessKaraoke == KaraokeProcessStatuses.DONE.name &&
-//                                settings.statusProcessKaraokeBt == KaraokeProcessStatuses.DONE.name &&
-//                                settings.idStatus == 4L) {
-//                                settings.fields[SettingField.ID_STATUS] = "6"
-//                            }
-//                            settings.saveToDb()
-//                        } else {}
-//                    }
+
                     KaraokeProcessTypes.MELT_KARAOKE.name -> {
                         if (settings.statusProcessKaraoke != status) {
                             settings.statusProcessKaraoke = status
                             if (settings.statusProcessLyrics == KaraokeProcessStatuses.DONE.name &&
-//                                settings.statusProcessLyricsBt == KaraokeProcessStatuses.DONE.name &&
                                 settings.statusProcessKaraoke == KaraokeProcessStatuses.DONE.name &&
-//                                settings.statusProcessKaraokeBt == KaraokeProcessStatuses.DONE.name &&
                                 settings.idStatus == 4L) {
                                 settings.fields[SettingField.ID_STATUS] = "6"
                             }
                             settings.saveToDb()
                         } else {}
                     }
-//                    KaraokeProcessTypes.MELT_KARAOKE_BT.name -> {
-//                        if (settings.statusProcessKaraokeBt != status) {
-//                            settings.statusProcessKaraokeBt = status
-//                            if (settings.statusProcessLyrics == KaraokeProcessStatuses.DONE.name &&
-//                                settings.statusProcessLyricsBt == KaraokeProcessStatuses.DONE.name &&
-//                                settings.statusProcessKaraoke == KaraokeProcessStatuses.DONE.name &&
-//                                settings.statusProcessKaraokeBt == KaraokeProcessStatuses.DONE.name &&
-//                                settings.idStatus == 4L) {
-//                                settings.fields[SettingField.ID_STATUS] = "6"
-//                            }
-//                            settings.saveToDb()
-//                        } else {}
-//                    }
+
                     KaraokeProcessTypes.MELT_CHORDS.name -> {
                         if (settings.statusProcessChords != status) {
                             settings.statusProcessChords = status
                             if (settings.statusProcessLyrics == KaraokeProcessStatuses.DONE.name &&
-//                                settings.statusProcessLyricsBt == KaraokeProcessStatuses.DONE.name &&
                                 settings.statusProcessKaraoke == KaraokeProcessStatuses.DONE.name &&
-//                                settings.statusProcessKaraokeBt == KaraokeProcessStatuses.DONE.name &&
                                 settings.idStatus == 4L) {
                                 settings.fields[SettingField.ID_STATUS] = "6"
                             }
                             settings.saveToDb()
                         } else {}
                     }
-//                    KaraokeProcessTypes.MELT_CHORDS_BT.name -> {
-//                        if (settings.statusProcessChordsBt != status) {
-//                            settings.statusProcessChordsBt = status
-//                            if (settings.statusProcessLyrics == KaraokeProcessStatuses.DONE.name &&
-//                                settings.statusProcessLyricsBt == KaraokeProcessStatuses.DONE.name &&
-//                                settings.statusProcessKaraoke == KaraokeProcessStatuses.DONE.name &&
-//                                settings.statusProcessKaraokeBt == KaraokeProcessStatuses.DONE.name &&
-//                                settings.idStatus == 4L) {
-//                                settings.fields[SettingField.ID_STATUS] = "6"
-//                            }
-//                            settings.saveToDb()
-//                        } else {}
-//                    }
+
                     else -> {}
                 }
             }
@@ -294,6 +271,26 @@ class KaraokeProcess : Serializable, Comparable<KaraokeProcess>  {
     }
 
     companion object {
+
+        fun getDiff(procA: KaraokeProcess?): List<RecordDiff> {
+            val result: MutableList<RecordDiff> = mutableListOf()
+            if (procA != null) {
+                result.add(RecordDiff("process_name", procA.name, ""))
+                result.add(RecordDiff("process_status", procA.status, ""))
+                result.add(RecordDiff("process_order", procA.order, ""))
+                result.add(RecordDiff("process_priority", procA.priority, ""))
+                result.add(RecordDiff("process_start", procA.start, ""))
+                result.add(RecordDiff("process_end", procA.end, ""))
+
+                result.add(RecordDiff("startStr", procA.startStr, "", false))
+                result.add(RecordDiff("endStr", procA.endStr, "", false))
+                result.add(RecordDiff("percentageStr", procA.percentageStr, "", false))
+                result.add(RecordDiff("timePassedStr", procA.timePassedStr, "", false))
+                result.add(RecordDiff("timeLeftStr", procA.timeLeftStr, "", false))
+
+            }
+            return result
+        }
 
         fun getLastUpdated(lastTime: Long? = null): List<Int> {
             if (lastTime == null) return emptyList()
@@ -415,6 +412,7 @@ class KaraokeProcess : Serializable, Comparable<KaraokeProcess>  {
 
                 if (where.size > 0) sql += " WHERE ${where.joinToString(" AND ")}"
 
+
 //                println(sql)
 
                 rs = statement.executeQuery(sql)
@@ -439,7 +437,18 @@ class KaraokeProcess : Serializable, Comparable<KaraokeProcess>  {
 
                 }
                 result.sort()
+
+                if (args.containsKey("filter_limit")) {
+                    val limit = args["filter_limit"]?.toInt() ?: return result
+                    val resultLimit: MutableList<KaraokeProcess> = mutableListOf()
+                    for (i in 0 until limit) {
+                        resultLimit.add(result[i])
+                    }
+                    return resultLimit
+                }
+
                 return result
+
             } catch (e: SQLException) {
                 e.printStackTrace()
             } finally {
@@ -547,39 +556,7 @@ class KaraokeProcess : Serializable, Comparable<KaraokeProcess>  {
                             )
                         )
                     }
-//                    KaraokeProcessTypes.MELT_LYRICS_BT -> {
-//                        description = "Кодирование LYRICS_BT"
-//                        prioritet = 19
-//                        args = listOf(
-//                            listOf(
-//                                "melt",
-//                                "-progress",
-//                                "${settings.rootFolder.replace("'","''")}/done_projects/${if (!settings.fileName.startsWith (settings.year.toString())) "${settings.year} " else ""}${settings.fileName.replace("'","''")} [lyrics] bluetooth.mlt"
-//                            )
-//                        )
-//                    }
-//                    KaraokeProcessTypes.MELT_KARAOKE_BT -> {
-//                        description = "Кодирование KARAOKE_BT"
-//                        prioritet = 19
-//                        args = listOf(
-//                            listOf(
-//                                "melt",
-//                                "-progress",
-//                                "${settings.rootFolder.replace("'","''")}/done_projects/${if (!settings.fileName.startsWith (settings.year.toString())) "${settings.year} " else ""}${settings.fileName.replace("'","''")} [karaoke] bluetooth.mlt"
-//                            )
-//                        )
-//                    }
-//                    KaraokeProcessTypes.MELT_CHORDS_BT -> {
-//                        description = "Кодирование CHORDS_BT"
-//                        prioritet = 19
-//                        args = listOf(
-//                            listOf(
-//                                "melt",
-//                                "-progress",
-//                                "${settings.rootFolder.replace("'","''")}/done_projects/${if (!settings.fileName.startsWith (settings.year.toString())) "${settings.year} " else ""}${settings.fileName.replace("'","''")} [chords] bluetooth.mlt"
-//                            )
-//                        )
-//                    }
+
                     KaraokeProcessTypes.DEMUCS2 -> {
                         description = "Демукс 2"
                         args = listOf(

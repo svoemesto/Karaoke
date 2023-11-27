@@ -1,5 +1,7 @@
 package com.svoemesto.karaokeapp.model
 
+import com.svoemesto.karaokeapp.censored
+import org.springframework.messaging.simp.SimpMessagingTemplate
 import java.io.Serializable
 import java.text.SimpleDateFormat
 import java.util.*
@@ -22,20 +24,20 @@ class Publication : Serializable, Comparable<Publication> {
     var publish22: Settings? = null
     var publish23: Settings? = null
 
-    val publish10text: String get() = if (publish10 != null) "${if (publish10!!.firstSongInAlbum) "[${publish10!!.author}] ★ " else ""} ${publish10!!.songName}" else ""
-    val publish11text: String get() = if (publish11 != null) "${if (publish11!!.firstSongInAlbum) "[${publish11!!.author}] ★ " else ""} ${publish11!!.songName}" else ""
-    val publish12text: String get() = if (publish12 != null) "${if (publish12!!.firstSongInAlbum) "[${publish12!!.author}] ★ " else ""} ${publish12!!.songName}" else ""
-    val publish13text: String get() = if (publish13 != null) "${if (publish13!!.firstSongInAlbum) "[${publish13!!.author}] ★ " else ""} ${publish13!!.songName}" else ""
-    val publish14text: String get() = if (publish14 != null) "${if (publish14!!.firstSongInAlbum) "[${publish14!!.author}] ★ " else ""} ${publish14!!.songName}" else ""
-    val publish15text: String get() = if (publish15 != null) "${if (publish15!!.firstSongInAlbum) "[${publish15!!.author}] ★ " else ""} ${publish15!!.songName}" else ""
-    val publish16text: String get() = if (publish16 != null) "${if (publish16!!.firstSongInAlbum) "[${publish16!!.author}] ★ " else ""} ${publish16!!.songName}" else ""
-    val publish17text: String get() = if (publish17 != null) "${if (publish17!!.firstSongInAlbum) "[${publish17!!.author}] ★ " else ""} ${publish17!!.songName}" else ""
-    val publish18text: String get() = if (publish18 != null) "${if (publish18!!.firstSongInAlbum) "[${publish18!!.author}] ★ " else ""} ${publish18!!.songName}" else ""
-    val publish19text: String get() = if (publish19 != null) "${if (publish19!!.firstSongInAlbum) "[${publish19!!.author}] ★ " else ""} ${publish19!!.songName}" else ""
-    val publish20text: String get() = if (publish20 != null) "${if (publish20!!.firstSongInAlbum) "[${publish20!!.author}] ★ " else ""} ${publish20!!.songName}" else ""
-    val publish21text: String get() = if (publish21 != null) "${if (publish21!!.firstSongInAlbum) "[${publish21!!.author}] ★ " else ""} ${publish21!!.songName}" else ""
-    val publish22text: String get() = if (publish22 != null) "${if (publish22!!.firstSongInAlbum) "[${publish22!!.author}] ★ " else ""} ${publish22!!.songName}" else ""
-    val publish23text: String get() = if (publish23 != null) "${if (publish23!!.firstSongInAlbum) "[${publish23!!.author}] ★ " else ""} ${publish23!!.songName}" else ""
+    val publish10text: String get() = if (publish10 != null) "${if (publish10!!.firstSongInAlbum) "[${publish10!!.author}] ★ " else ""} ${publish10!!.songName.censored()}" else ""
+    val publish11text: String get() = if (publish11 != null) "${if (publish11!!.firstSongInAlbum) "[${publish11!!.author}] ★ " else ""} ${publish11!!.songName.censored()}" else ""
+    val publish12text: String get() = if (publish12 != null) "${if (publish12!!.firstSongInAlbum) "[${publish12!!.author}] ★ " else ""} ${publish12!!.songName.censored()}" else ""
+    val publish13text: String get() = if (publish13 != null) "${if (publish13!!.firstSongInAlbum) "[${publish13!!.author}] ★ " else ""} ${publish13!!.songName.censored()}" else ""
+    val publish14text: String get() = if (publish14 != null) "${if (publish14!!.firstSongInAlbum) "[${publish14!!.author}] ★ " else ""} ${publish14!!.songName.censored()}" else ""
+    val publish15text: String get() = if (publish15 != null) "${if (publish15!!.firstSongInAlbum) "[${publish15!!.author}] ★ " else ""} ${publish15!!.songName.censored()}" else ""
+    val publish16text: String get() = if (publish16 != null) "${if (publish16!!.firstSongInAlbum) "[${publish16!!.author}] ★ " else ""} ${publish16!!.songName.censored()}" else ""
+    val publish17text: String get() = if (publish17 != null) "${if (publish17!!.firstSongInAlbum) "[${publish17!!.author}] ★ " else ""} ${publish17!!.songName.censored()}" else ""
+    val publish18text: String get() = if (publish18 != null) "${if (publish18!!.firstSongInAlbum) "[${publish18!!.author}] ★ " else ""} ${publish18!!.songName.censored()}" else ""
+    val publish19text: String get() = if (publish19 != null) "${if (publish19!!.firstSongInAlbum) "[${publish19!!.author}] ★ " else ""} ${publish19!!.songName.censored()}" else ""
+    val publish20text: String get() = if (publish20 != null) "${if (publish20!!.firstSongInAlbum) "[${publish20!!.author}] ★ " else ""} ${publish20!!.songName.censored()}" else ""
+    val publish21text: String get() = if (publish21 != null) "${if (publish21!!.firstSongInAlbum) "[${publish21!!.author}] ★ " else ""} ${publish21!!.songName.censored()}" else ""
+    val publish22text: String get() = if (publish22 != null) "${if (publish22!!.firstSongInAlbum) "[${publish22!!.author}] ★ " else ""} ${publish22!!.songName.censored()}" else ""
+    val publish23text: String get() = if (publish23 != null) "${if (publish23!!.firstSongInAlbum) "[${publish23!!.author}] ★ " else ""} ${publish23!!.songName.censored()}" else ""
 
 //    val publish23text: String get() = if (publish23 != null) "${publish23!!.flags}[${publish23!!.author}] ${if (publish23!!.firstSongInAlbum) "★" else "-"} ${publish23!!.songName}" else ""
 
@@ -360,5 +362,46 @@ class Publication : Serializable, Comparable<Publication> {
             result.sort()
             return result
         }
+
+        fun getUnPublicationList(): MutableList<MutableList<Publication>> {
+            var result: MutableList<MutableList<Publication>> = mutableListOf()
+
+            val listUnpublished =
+                Settings.loadListFromDb(mapOf("publish_date" to "-", "publish_time" to "-"))
+                    .groupBy { it.author }
+                    .map { it.value }
+                    .sortedBy { it.size }
+
+            val listStack: MutableList<Stack<Settings?>> = mutableListOf()
+            for (i in listUnpublished.indices) {
+                listStack.add(Stack<Settings?>())
+            }
+
+            listUnpublished.forEachIndexed { index, settings ->
+                for (i in (settings.size-1)downTo 0 ) {
+                    listStack[index].push(settings[i])
+                }
+            }
+
+            var i = 0
+            while (listStack.map { it.size }.max() > 0) {
+                i++
+                val publicationInList: MutableList<Publication> = mutableListOf()
+                for (i in listUnpublished.indices) {
+                    val publication = Publication()
+                    publication.publish10 =
+                        if (listStack[i].size > 0) {
+                            listStack[i].pop()
+                        } else {
+                            null
+                        }
+                    publicationInList.add(publication)
+                }
+                result.add(publicationInList)
+            }
+
+            return result
+        }
+
     }
 }

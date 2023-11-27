@@ -1,0 +1,413 @@
+<div id="areaLeftColumn">
+    Левая область
+    <button name="button_doFilter" id="button_doFilter" class="form-control btn btn-primary btn-block" type="button" value="Сохранить" onclick="doFilterForm()">FILTER</button>
+    <table>
+        <datalist id="list_authors">
+            <option th:each="author:${authors}" th:value="${author}">
+        </datalist>
+        <datalist id="list_albums">
+            <option th:each="album:${albums}" th:value="${album}">
+        </datalist>
+        <thead>
+        <tr>
+            <td th:text="ID" style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin; text-align: center"></td>
+            <td th:text="Композиция" style="min-width: 250px; max-width: 250px; border-style: solid; border-width: thin"></td>
+            <td th:text="Исполнитель" style="min-width: 150px; max-width: 150px; border-style: solid; border-width: thin"></td>
+            <td th:text="Год" style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin; text-align: center"></td>
+            <td th:text="Альбом" style="min-width: 175px; max-width: 175px; border-style: solid; border-width: thin"></td>
+            <td th:text="№" style="min-width: 35px; max-width: 35px; border-style: solid; border-width: thin; text-align: center"></td>
+            <td th:text="Дата" style="min-width: 60px; max-width: 60px; border-style: solid; border-width: thin; text-align: center"></td>
+            <td th:text="Время" style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin; text-align: center"></td>
+            <td hidden th:text="TC" style="font-size: 8px; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+            <td th:text="TAG" style="min-width: 35px; max-width: 35px; border-style: solid; border-width: thin; text-align: center"></td>
+            <td th:text="STATUS" style="font-size: 14px; min-width: 100px; max-width: 100px; border-style: solid; border-width: thin; text-align: center"></td>
+            <td th:text="BOO" style="font-size: 8px; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+            <td th:text="VK" style="font-size: 8px; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+            <td th:text="YL" style="font-size: 8px; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+            <td th:text="YK" style="font-size: 8px; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+            <td hidden th:text="YC" style="font-size: 8px; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+            <td th:text="VKL" style="font-size: 8px; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+            <td th:text="VKK" style="font-size: 8px; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+            <td hidden th:text="VKC" style="font-size: 8px; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+            <td th:text="TL" style="font-size: 8px; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+            <td th:text="TK" style="font-size: 8px; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
+
+        </tr>
+        <form action=""
+              role="form"
+              class="form-horizontal"
+              id="filterForm"
+              name="filterForm">
+            <tr>
+                <td style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin; text-align: center">
+                    <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_id" name="filter_field" placeholder="ID">
+                </td>
+                <td style="min-width: 250px; max-width: 250px; border-style: solid; border-width: thin">
+                    <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_songName" name="filter_field" placeholder="Композиция">
+                </td>
+                <td style="min-width: 150px; max-width: 150px; border-style: solid; border-width: thin">
+                    <input list="list_authors" style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_author" name="filter_field" placeholder="Исполнитель">
+                </td>
+                <td style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin; text-align: center">
+                    <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_year" name="filter_field" placeholder="Год">
+                </td>
+                <td style="min-width: 175px; max-width: 175px; border-style: solid; border-width: thin">
+                    <input list="list_albums" style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_album" name="filter_field" placeholder="Альбом">
+                </td>
+                <td style="min-width: 35px; max-width: 35px; border-style: solid; border-width: thin; text-align: center">
+                    <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_track" name="filter_field" placeholder="№">
+                </td>
+                <td style="min-width: 60px; max-width: 60px; border-style: solid; border-width: thin; text-align: center">
+                    <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_date" name="filter_field" placeholder="Дата">
+                </td>
+                <td style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin; text-align: center">
+                    <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_time" name="filter_field" placeholder="Время">
+                </td>
+                <td style="min-width: 35px; max-width: 35px; border-style: solid; border-width: thin; text-align: center">
+                    <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_tags" name="filter_field" placeholder="TAG">
+                </td>
+                <td style="min-width: 100px; max-width: 100px; border-style: solid; border-width: thin; text-align: center">
+                    <input style="font-size: 12px; padding: 0;" type="text" class="form-control" id="filter_status" name="filter_field" placeholder="STATUS">
+                </td>
+                <td style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center">
+                    <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_boosty" name="filter_field" placeholder="BOO">
+                </td>
+                <td style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center">
+                    <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_vk" name="filter_field" placeholder="VK">
+                </td>
+                <td style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center">
+                    <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_yl" name="filter_field" placeholder="YL">
+                </td>
+                <td style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center">
+                    <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_yk" name="filter_field" placeholder="YK">
+                </td>
+                <td hidden style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center">
+                    <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_yc" name="filter_field" placeholder="YC">
+                </td>
+
+                <td style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center">
+                    <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_vkl" name="filter_field" placeholder="VKL">
+                </td>
+                <td style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center">
+                    <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_vkk" name="filter_field" placeholder="VKK">
+                </td>
+                <td hidden style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center">
+                    <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_vkc" name="filter_field" placeholder="VKC">
+                </td>
+
+                <td style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center">
+                    <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_tl" name="filter_field" placeholder="TL">
+                </td>
+                <td style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center">
+                    <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_tk" name="filter_field" placeholder="TK">
+                </td>
+                <td hidden style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center">
+                    <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_flag_tc" name="filter_field" placeholder="TC">
+                </td>
+            </tr>
+        </form>
+
+        </thead>
+    </table>
+    <div id="areaLeftTable">
+        <table class="table table-sm table-hover" id="leftTable" style="font-size: small; width: 100%; height: 100%;">
+            <tbody>
+            <tr th:each="settings:${sett}" onClick="mouseClickRow(this)" th:id="'row' + ${settings.id}" th:recordId="${settings.id}">
+                <td style="padding: 0; font-size: 0; min-width: 50px; max-width: 50px; border-style: solid; border-width: thin;">
+                    <div
+                            th:id="'fld_'+${settings.id}+'_id'"
+                            th:text="${settings.id}"
+                            th:style="'background-color: ' + ${settings.color} + '; height: 100%; padding: 4px; border-style: none; text-align: center; font-size: small;'"
+                    ></div>
+                </td>
+                <td style="padding: 0; font-size: 0; min-width: 250px; max-width: 250px; border-style: solid; border-width: thin;">
+                    <div
+                            th:id="'fld_'+${settings.id}+'_songName'"
+                            th:text="${settings.songName}"
+                            th:style="'background-color: ' + ${settings.color} + '; height: 100%; padding: 4px; border-style: none; text-align: left; font-size: small;'"
+                    ></div>
+                </td>
+                <td style="padding: 0; font-size: 0; min-width: 150px; max-width: 150px; border-style: solid; border-width: thin;">
+                    <div
+                            th:id="'fld_'+${settings.id}+'_author'"
+                            th:text="${settings.author}"
+                            th:style="'background-color: ' + ${settings.color} + '; height: 100%; padding: 4px; border-style: none; text-align: left; font-size: small;'"
+                    ></div>
+                </td>
+                <td style="padding: 0; font-size: 0; min-width: 50px; max-width: 50px; border-style: solid; border-width: thin;">
+                    <div
+                            th:id="'fld_'+${settings.id}+'_year'"
+                            th:text="${settings.year}"
+                            th:style="'background-color: ' + ${settings.color} + '; height: 100%; padding: 4px; border-style: none; text-align: center; font-size: small;'"
+                    ></div>
+                </td>
+                <td style="padding: 0; font-size: 0; min-width: 175px; max-width: 175px; border-style: solid; border-width: thin;">
+                    <div
+                            th:id="'fld_'+${settings.id}+'_album'"
+                            th:text="${settings.album}"
+                            th:style="'background-color: ' + ${settings.color} + '; height: 100%; padding: 4px; border-style: none; text-align: left; font-size: small;'"
+                    ></div>
+                </td>
+                <td style="padding: 0; font-size: 0; min-width: 35px; max-width: 35px; border-style: solid; border-width: thin;">
+                    <div
+                            th:id="'fld_'+${settings.id}+'_track'"
+                            th:text="${settings.track}"
+                            th:style="'background-color: ' + ${settings.color} + '; height: 100%; padding: 4px; border-style: none; text-align: center; font-size: small;'"
+                    ></div>
+                </td>
+                <td style="padding: 0; font-size: 0; min-width: 60px; max-width: 60px; border-style: solid; border-width: thin;">
+                    <div
+                            th:id="'fld_'+${settings.id}+'_date'"
+                            th:text="${settings.date}"
+                            th:style="'background-color: ' + ${settings.color} + '; height: 100%; padding: 4px; border-style: none; text-align: center; font-size: small;'"
+                    ></div>
+                </td>
+                <td style="padding: 0; font-size: 0; min-width: 50px; max-width: 50px; border-style: solid; border-width: thin;">
+                    <div
+                            th:id="'fld_'+${settings.id}+'_time'"
+                            th:text="${settings.time}"
+                            th:style="'background-color: ' + ${settings.color} + '; height: 100%; padding: 4px; border-style: none; text-align: center; font-size: small;'"
+                    ></div>
+                </td>
+                <td style="padding: 0; font-size: 0; min-width: 35px; max-width: 35px; border-style: solid; border-width: thin;">
+                    <div
+                            th:id="'fld_'+${settings.id}+'_tags'"
+                            th:text="${settings.tags}"
+                            th:style="'background-color: ' + ${settings.color} + '; height: 100%; padding: 4px; border-style: none; text-align: left; font-size: small;'"
+                    ></div>
+                </td>
+                <td hidden style="padding: 0; font-size: 0; min-width: 35px; max-width: 35px; border-style: solid; border-width: thin;">
+                    <div
+                            th:id="'fld_'+${settings.id}+'_idStatus'"
+                            th:text="${settings.idStatus}"
+                            th:style="'background-color: ' + ${settings.color} + '; height: 100%; padding: 4px; border-style: none; text-align: left; font-size: small;'"
+                    ></div>
+                </td>
+                <td style="padding: 0; font-size: 0; min-width: 100px; max-width: 100px; border-style: solid; border-width: thin;">
+                    <div
+                            th:id="'fld_'+${settings.id}+'_status'"
+                            th:text="${settings.status}"
+                            th:style="'background-color: ' + ${settings.color} + '; height: 100%; padding: 4px; border-style: none; text-align: center; font-size: 10px;'"
+                    ></div>
+                </td>
+                <td hidden style="padding: 0; font-size: 0; min-width: 50px; max-width: 50px; border-style: solid; border-width: thin;">
+                    <div
+                            th:id="'fld_'+${settings.id}+'_key'"
+                            th:text="${settings.key}"
+                            th:style="'background-color: ' + ${settings.color} + '; height: 100%; padding: 4px; border-style: none; text-align: center; font-size: small;'"
+                    ></div>
+                </td>
+                <td hidden style="padding: 0; font-size: 0; min-width: 50px; max-width: 50px; border-style: solid; border-width: thin;">
+                    <div
+                            th:id="'fld_'+${settings.id}+'_bpm'"
+                            th:text="${settings.bpm}"
+                            th:style="'background-color: ' + ${settings.color} + '; height: 100%; padding: 4px; border-style: none; text-align: center; font-size: small;'"
+                    ></div>
+                </td>
+                <td hidden style="padding: 0; font-size: 0; min-width: 50px; max-width: 50px; border-style: solid; border-width: thin;">
+                    <div
+                            th:id="'fld_'+${settings.id}+'_ms'"
+                            th:text="${settings.ms}"
+                            th:style="'background-color: ' + ${settings.color} + '; height: 100%; padding: 4px; border-style: none; text-align: center; font-size: small;'"
+                    ></div>
+                </td>
+                <td hidden style="padding: 0; font-size: 0; min-width: 50px; max-width: 50px; border-style: solid; border-width: thin;">
+                    <div
+                            th:id="'fld_'+${settings.id}+'_fileName'"
+                            th:text="${settings.fileName}"
+                            th:style="'background-color: ' + ${settings.color} + '; height: 100%; padding: 4px; border-style: none; text-align: center; font-size: small;'"
+                    ></div>
+                </td>
+                <td hidden style="padding: 0; font-size: 0; min-width: 50px; max-width: 50px; border-style: solid; border-width: thin;">
+                    <div
+                            th:id="'fld_'+${settings.id}+'_rootFolder'"
+                            th:text="${settings.rootFolder}"
+                            th:style="'background-color: ' + ${settings.color} + '; height: 100%; padding: 4px; border-style: none; text-align: center; font-size: small;'"
+                    ></div>
+                </td>
+                <td hidden style="padding: 0; font-size: 0; min-width: 50px; max-width: 50px; border-style: solid; border-width: thin;">
+                    <div
+                            th:id="'fld_'+${settings.id}+'_idBoosty'"
+                            th:text="${settings.idBoosty}"
+                            th:style="'background-color: ' + ${settings.color} + '; height: 100%; padding: 4px; border-style: none; text-align: center; font-size: small;'"
+                    ></div>
+                </td>
+                <td hidden style="padding: 0; font-size: 0; min-width: 50px; max-width: 50px; border-style: solid; border-width: thin;">
+                    <div
+                            th:id="'fld_'+${settings.id}+'_idVk'"
+                            th:text="${settings.idVk}"
+                            th:style="'background-color: ' + ${settings.color} + '; height: 100%; padding: 4px; border-style: none; text-align: center; font-size: small;'"
+                    ></div>
+                </td>
+                <td hidden style="padding: 0; font-size: 0; min-width: 50px; max-width: 50px; border-style: solid; border-width: thin;">
+                    <div
+                            th:id="'fld_'+${settings.id}+'_idYoutubeLyrics'"
+                            th:text="${settings.idYoutubeLyrics}"
+                            th:style="'background-color: ' + ${settings.color} + '; height: 100%; padding: 4px; border-style: none; text-align: center; font-size: small;'"
+                    ></div>
+                </td>
+                <td hidden style="padding: 0; font-size: 0; min-width: 50px; max-width: 50px; border-style: solid; border-width: thin;">
+                    <div
+                            th:id="'fld_'+${settings.id}+'_idYoutubeKaraoke'"
+                            th:text="${settings.idYoutubeKaraoke}"
+                            th:style="'background-color: ' + ${settings.color} + '; height: 100%; padding: 4px; border-style: none; text-align: center; font-size: small;'"
+                    ></div>
+                </td>
+                <td hidden style="padding: 0; font-size: 0; min-width: 50px; max-width: 50px; border-style: solid; border-width: thin;">
+                    <div
+                            th:id="'fld_'+${settings.id}+'_idYoutubeChords'"
+                            th:text="${settings.idYoutubeChords}"
+                            th:style="'background-color: ' + ${settings.color} + '; height: 100%; padding: 4px; border-style: none; text-align: center; font-size: small;'"
+                    ></div>
+                </td>
+                <td hidden style="padding: 0; font-size: 0; min-width: 50px; max-width: 50px; border-style: solid; border-width: thin;">
+                    <div
+                            th:id="'fld_'+${settings.id}+'_idVkLyrics'"
+                            th:text="${settings.idVkLyrics}"
+                            th:style="'background-color: ' + ${settings.color} + '; height: 100%; padding: 4px; border-style: none; text-align: center; font-size: small;'"
+                    ></div>
+                </td>
+                <td hidden style="padding: 0; font-size: 0; min-width: 50px; max-width: 50px; border-style: solid; border-width: thin;">
+                    <div
+                            th:id="'fld_'+${settings.id}+'_idVkKaraoke'"
+                            th:text="${settings.idVkKaraoke}"
+                            th:style="'background-color: ' + ${settings.color} + '; height: 100%; padding: 4px; border-style: none; text-align: center; font-size: small;'"
+                    ></div>
+                </td>
+                <td hidden style="padding: 0; font-size: 0; min-width: 50px; max-width: 50px; border-style: solid; border-width: thin;">
+                    <div
+                            th:id="'fld_'+${settings.id}+'_idVkChords'"
+                            th:text="${settings.idVkChords}"
+                            th:style="'background-color: ' + ${settings.color} + '; height: 100%; padding: 4px; border-style: none; text-align: center; font-size: small;'"
+                    ></div>
+                </td>
+                <td hidden style="padding: 0; font-size: 0; min-width: 50px; max-width: 50px; border-style: solid; border-width: thin;">
+                    <div
+                            th:id="'fld_'+${settings.id}+'_idTelegramLyrics'"
+                            th:text="${settings.idTelegramLyrics}"
+                            th:style="'background-color: ' + ${settings.color} + '; height: 100%; padding: 4px; border-style: none; text-align: center; font-size: small;'"
+                    ></div>
+                </td>
+                <td hidden style="padding: 0; font-size: 0; min-width: 50px; max-width: 50px; border-style: solid; border-width: thin;">
+                    <div
+                            th:id="'fld_'+${settings.id}+'_idTelegramKaraoke'"
+                            th:text="${settings.idTelegramKaraoke}"
+                            th:style="'background-color: ' + ${settings.color} + '; height: 100%; padding: 4px; border-style: none; text-align: center; font-size: small;'"
+                    ></div>
+                </td>
+                <td hidden style="padding: 0; font-size: 0; min-width: 50px; max-width: 50px; border-style: solid; border-width: thin;">
+                    <div
+                            th:id="'fld_'+${settings.id}+'_idTelegramChords'"
+                            th:text="${settings.idTelegramChords}"
+                            th:style="'background-color: ' + ${settings.color} + '; height: 100%; padding: 4px; border-style: none; text-align: center; font-size: small;'"
+                    ></div>
+                </td>
+                <td style="padding: 0; font-size: 0; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin;">
+                    <div
+                            th:id="'fld_'+${settings.id}+'_flagBoosty'"
+                            th:text="${settings.flagBoosty}"
+                            th:style="'background-color: ' + ${settings.processColorBoosty} + '; height: 100%; padding: 4px; border-style: none; text-align: center; font-size: small;'"
+                    ></div>
+                </td>
+                <td style="padding: 0; font-size: 0; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin;">
+                    <div
+                            th:id="'fld_'+${settings.id}+'_flagVk'"
+                            th:text="${settings.flagVk}"
+                            th:style="'background-color: ' + ${settings.processColorVk} + '; height: 100%; padding: 4px; border-style: none; text-align: center; font-size: small;'"
+                    ></div>
+                </td>
+                <td style="padding: 0; font-size: 0; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin;">
+                    <div
+                            th:id="'fld_'+${settings.id}+'_flagYoutubeLyrics'"
+                            th:text="${settings.flagYoutubeLyrics}"
+                            th:style="'background-color: ' + ${settings.processColorMeltLyrics} + '; height: 100%; border-style: none; text-align: center; font-size: small;'"
+                            th:ondblclick="'doPlay('+${settings.id}+', \'playlyrics\')'"
+                    ></div>
+                </td>
+                <td style="padding: 0; font-size: 0; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin;">
+                    <div
+                            th:id="'fld_'+${settings.id}+'_flagYoutubeKaraoke'"
+                            th:text="${settings.flagYoutubeKaraoke}"
+                            th:style="'background-color: ' + ${settings.processColorMeltKaraoke} + '; height: 100%; border-style: none; text-align: center; font-size: small;'"
+                            th:ondblclick="'doPlay('+${settings.id}+', \'playkaraoke\')'"
+                    ></div>
+                </td>
+                <td hidden style="padding: 0; font-size: 0; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin;">
+                    <div
+                            th:id="'fld_'+${settings.id}+'_flagYoutubeChords'"
+                            th:text="${settings.flagYoutubeChords}"
+                            th:style="'background-color: ' + ${settings.processColorMeltChords} + '; height: 100%; border-style: none; text-align: center; font-size: small;'"
+                            th:ondblclick="'doPlay('+${settings.id}+', \'playchords\')'"
+                    ></div>
+                </td>
+                <td style="padding: 0; font-size: 0; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin;">
+                    <div
+                            th:id="'fld_'+${settings.id}+'_flagVkLyrics'"
+                            th:text="${settings.flagVkLyrics}"
+                            th:style="'background-color: ' + ${settings.processColorVkLyrics} + '; height: 100%; padding: 4px; border-style: none; text-align: center; font-size: small;'"
+                    ></div>
+                </td>
+                <td style="padding: 0; font-size: 0; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin;">
+                    <div
+                            th:id="'fld_'+${settings.id}+'_flagVkKaraoke'"
+                            th:text="${settings.flagVkKaraoke}"
+                            th:style="'background-color: ' + ${settings.processColorVkKaraoke} + '; height: 100%; padding: 4px; border-style: none; text-align: center; font-size: small;'"
+                    ></div>
+                </td>
+                <td hidden style="padding: 0; font-size: 0; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin;">
+                    <div
+                            th:id="'fld_'+${settings.id}+'_flagVkChords'"
+                            th:text="${settings.flagVkChords}"
+                            th:style="'background-color: ' + ${settings.color} + '; height: 100%; padding: 4px; border-style: none; text-align: center; font-size: small;'"
+                    ></div>
+                </td>
+                <td style="padding: 0; font-size: 0; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin;">
+                    <div
+                            th:id="'fld_'+${settings.id}+'_flagTelegramLyrics'"
+                            th:text="${settings.flagTelegramLyrics}"
+                            th:style="'background-color: ' + ${settings.processColorTelegramLyrics} + '; height: 100%; padding: 4px; border-style: none; text-align: center; font-size: small;'"
+                    ></div>
+                </td>
+                <td style="padding: 0; font-size: 0; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin;">
+                    <div
+                            th:id="'fld_'+${settings.id}+'_flagTelegramKaraoke'"
+                            th:text="${settings.flagTelegramKaraoke}"
+                            th:style="'background-color: ' + ${settings.processColorTelegramKaraoke} + '; height: 100%; padding: 4px; border-style: none; text-align: center; font-size: small;'"
+                    ></div>
+                </td>
+                <td hidden style="padding: 0; font-size: 0; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin;">
+                    <div
+                            th:id="'fld_'+${settings.id}+'_flagTelegramChords'"
+                            th:text="${settings.flagTelegramChords}"
+                            th:style="'background-color: ' + ${settings.color} + '; height: 100%; padding: 4px; border-style: none; text-align: center; font-size: small;'"
+                    ></div>
+                </td>
+            </tr>
+            </tbody>
+
+        </table>
+    </div>
+    <table>
+        <tr>
+            <td>
+                <button name="button_create_karaoke_all" id="button_create_karaoke_all" class="form-control btn btn-primary btn-block" type="button" onclick="doCreateKaraokeAll()">Караоке for all</button>
+            </td>
+            <td>
+                <button name="button_create_demucs2_all" id="button_create_demucs2_all" class="form-control btn btn-primary btn-block" type="button" onclick="doCreateDemucs2All()">DEMUCS2 for all</button>
+            </td>
+            <td>
+                <button name="button_search_text_all" id="button_search_text_all" class="form-control btn btn-primary btn-block" type="button" onclick="doSearchTextAll()">Найти тексты for all</button>
+            </td>
+            <td>
+                <button name="button_create_720p_karaoke_all" id="button_create_720p_karaoke_all" class="form-control btn btn-primary btn-block" type="button" onclick="doCreate720pKaraokeAll()">720p karaoke for all</button>
+            </td>
+            <td>
+                <button name="button_create_720p_lyrics_all" id="button_create_720p_lyrics_all" class="form-control btn btn-primary btn-block" type="button" onclick="doCreate720pLyricsAll()">720p lyrics for all</button>
+            </td>
+            <td>
+                <button name="button_create_tags_all" id="button_create_tags_all" class="form-control btn btn-primary btn-block" type="button" onclick="doCreateTagsAll()">TAGS</button>
+            </td>
+        </tr>
+    </table>
+
+</div>

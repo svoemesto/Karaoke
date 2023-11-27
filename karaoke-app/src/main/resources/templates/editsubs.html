@@ -116,14 +116,16 @@
         const MARKER_COLOR_ENDOFLINE = '#FF0000';
         const MARKER_COLOR_FIRSTSYLLABLE = '#008000';
         const MARKER_COLOR_SETTING = '#000080';
+        const MARKER_COLOR_UNMUTE = '#FFFF00';
         var pluginCursor;
         var pluginMarkers;
         var pluginTimeline;
         var pluginRegion;
         var checkboxEditMode;
+        var checkboxFastMode;
         var COUNT_MARKERS_IN_FAST_MODE = 30;
         var SPEED_PLAY = 1.0;
-        var SPEED_EDIT = 0.5;
+        var SPEED_EDIT = 0.75;
 
         var SPAN_STYLE_TAIL_CURRENT = `<span style="color: #FF0000; font-size: 48px; font-style: normal;">`;
         var SPAN_STYLE_TAIL_END = `<span style="color: #000000; font-size: 24px; font-style: normal;">`;
@@ -151,6 +153,9 @@
         }
 
         function doRegionDo() {
+
+            checkboxFastMode.checked = false;
+
             var region = wavesurfer.regions.list.myRegion;
             var currTime = wavesurfer.getCurrentTime();
             regionStart = region.start;
@@ -230,6 +235,10 @@
                     colorCurrentMarker = MARKER_COLOR_SETTING;
                     positionCurrentMarker = 'top';
                     textCurrentMarker = currMarker.label;
+                } else if (markerType === 'unmute') {
+                    colorCurrentMarker = MARKER_COLOR_UNMUTE;
+                    positionCurrentMarker = 'top';
+                    textCurrentMarker = 'UNMUTE';
                 }
 
                 // создаем текущий маркер
@@ -497,6 +506,7 @@
             if (wasDeleted) {
                 createWavesurferMarkers();
                 setResultText();
+                setResultText();
             }
         }
 
@@ -574,6 +584,10 @@
                 colorCurrentMarker = MARKER_COLOR_SETTING;
                 positionCurrentMarker = 'top';
                 textCurrentMarker = settingValue;
+            } else if (markerType === 'unmute') {
+                colorCurrentMarker = MARKER_COLOR_UNMUTE;
+                positionCurrentMarker = 'top';
+                textCurrentMarker = 'UNMUTE';
             }
 
 
@@ -654,6 +668,7 @@
                             requestSyllables.send();
                             if (requestSyllables.status === 200) {
                                 dataSyllables = JSON.parse(requestSyllables.responseText);
+                                document.getElementById("next_syllable_text").innerHTML = getTailText();
                             }
 
                         }
@@ -729,6 +744,10 @@
 
         $(document).ready(function() {
             console.log('Страница полностью загружена');
+
+            SPEED_PLAY = getSpeedPlay();
+            SPEED_EDIT = getSpeedEdit();
+
             var ds = document.querySelector('[data-syllables]').getAttribute('data-syllables');
             dataSyllables = JSON.parse(ds);
 
@@ -784,6 +803,7 @@
             wavesurfer.load('/song/' + settingsId + '/fileVocal');
 
             checkboxEditMode = document.getElementById("check_edit_mode");
+            checkboxFastMode = document.getElementById("check_fast_mode");
 
             wavesurfer.on('interaction', function () {
                 setResultText();
@@ -837,6 +857,8 @@
                } else if ((event.key === "3") && checkboxEditMode.checked) {
                    addMarker('endofline', '', true);
                    addMarker('syllables', '', true);
+               } else if ((event.key === "0") && checkboxEditMode.checked) {
+                   addMarker('unmute', '');
                } else if ((event.key === "t" || event.key === "е") && checkboxEditMode.checked) {
                    keyPressedT = true;
                    addMarker('setting', 'GROUP|0');
@@ -931,6 +953,10 @@
                 checkboxEditMode.checked = true;
             });
 
+            document.querySelector('#check_fast_mode').addEventListener('click', function(event) {
+                createWavesurferMarkers();
+            });
+
 
             // document.querySelector('#loadsubs').onclick = function () {
             //     var dataSourceMarkers = JSON.parse(document.querySelector('[data-markers]').getAttribute('data-markers'));
@@ -975,9 +1001,6 @@
                 });
             }
 
-            SPEED_PLAY = getSpeedPlay();
-            SPEED_EDIT = getSpeedEdit();
-
         });
     </script>
 </head>
@@ -1017,9 +1040,9 @@
 
     <div id="group_speed_play" class="btn-group btn-toggle">
         <label for="group_speed_play">Скорость PLAY</label>
-        <button name="btn_speed_play" class="btn btn-sm btn-outline-primary active" value="0.5">0.5</button>
+        <button name="btn_speed_play" class="btn btn-sm btn-outline-primary" value="0.5">0.5</button>
         <button name="btn_speed_play" class="btn btn-sm btn-outline-primary" value="0.75">0.75</button>
-        <button name="btn_speed_play" class="btn btn-sm btn-outline-primary" value="1.0">1.0</button>
+        <button name="btn_speed_play" class="btn btn-sm btn-outline-primary active" value="1.0">1.0</button>
         <button name="btn_speed_play" class="btn btn-sm btn-outline-primary" value="1.25">1.25</button>
         <button name="btn_speed_play" class="btn btn-sm btn-outline-primary" value="1.5">1.5</button>
         <button name="btn_speed_play" class="btn btn-sm btn-outline-primary" value="1.75">1.75</button>
@@ -1034,8 +1057,8 @@
         <label for="group_speed_edit">Скорость EDIT</label>
         <button name="btn_speed_edit" class="btn btn-sm btn-outline-primary" value="0.3">0.3</button>
         <button name="btn_speed_edit" class="btn btn-sm btn-outline-primary" value="0.4">0.4</button>
-        <button name="btn_speed_edit" class="btn btn-sm btn-outline-primary active" value="0.5">0.5</button>
-        <button name="btn_speed_edit" class="btn btn-sm btn-outline-primary" value="0.75">0.75</button>
+        <button name="btn_speed_edit" class="btn btn-sm btn-outline-primary" value="0.5">0.5</button>
+        <button name="btn_speed_edit" class="btn btn-sm btn-outline-primary active" value="0.75">0.75</button>
         <button name="btn_speed_edit" class="btn btn-sm btn-outline-primary" value="1.0">1.0</button>
     </div>
 

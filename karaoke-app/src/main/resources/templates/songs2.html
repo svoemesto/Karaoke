@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="bootstrap.min.css" integrity="sha384-B0vP5xmATw1+K9KRQjQERJvTumQW0nPEzvF6L/Z6nronJ3oUOFUFpCjEUQouq2+l" crossorigin="anonymous">
+    <script src="jquery-3.6.0.min.js"></script>
+    <script src="bootstrap.bundle.min.js" integrity="sha384-Piv4xVNRyMGpqkS2by6br4gNJ7DXjqk09RmUpJ8jgGtD7zP9yug3goQfGII0yAns" crossorigin="anonymous"></script>
+    <script src="sockjs.js"></script>
+    <script src="stomp.js"></script>
+
+    <link rel="stylesheet" href="songs2.css">
+    <script src="songs2.js"></script>
+
+    <link rel="stylesheet" href="http://fonts.googleapis.com/css?family=Roboto:400,300">
+
+    <title>Песни-2</title>
+
+    <style>
+        body {
+            font-family: "Roboto", sans-serif;
+            font-weight: 300;
+        }
+    </style>
+
+</head>
+<body>
+
+<div id="areaHeader">
+    <div th:insert="~{navigation_bar.html}"></div>
+</div>
+
+<div id="areaBody" th:insert="~{area_body.html}"></div>
+
+</body>
+</html>

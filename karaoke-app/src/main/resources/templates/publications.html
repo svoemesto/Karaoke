@@ -4,12 +4,22 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css" integrity="sha384-B0vP5xmATw1+K9KRQjQERJvTumQW0nPEzvF6L/Z6nronJ3oUOFUFpCjEUQouq2+l" crossorigin="anonymous">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-Piv4xVNRyMGpqkS2by6br4gNJ7DXjqk09RmUpJ8jgGtD7zP9yug3goQfGII0yAns" crossorigin="anonymous"></script>
-<!--    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.2.0/socket.io.min.js"></script>-->
+
+    <script src="sockjs.js"></script>
+    <script src="stomp.js"></script>
+
+    <link rel="stylesheet" href="http://fonts.googleapis.com/css?family=Roboto:400,300">
+    <link rel="stylesheet" href="settings_context.css">
 
     <title>Публикации</title>
     <style>
         * {
             box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Roboto", sans-serif;
+            font-weight: 300;
         }
 
         #areaScreen {
@@ -75,116 +85,7 @@
 
     </style>
 
-    <script type="text/javascript">
 
-        var currentTimeStamp = new Date().getTime();
-
-        function doPlay(id, name) {
-            $.ajax({
-                type: "GET",
-                url: `/song/${id}/${name}`,
-                data: "",
-                success: function(data) {
-                }
-            });
-        }
-
-        function updateSettings(id) {
-            console.log(`Обновляем запись №${id}`)
-            var nameText = `publishText${id}`;
-            var nameColors = `publishColors${id}`;
-            var nameLyrics = `publishLyrics${id}`;
-            var nameKaraoke = `publishKaraoke${id}`;
-            var nameYoutubeLyrics = `publishYoutubeLyrics${id}`;
-            var nameYoutubeKaraoke = `publishYoutubeKaraoke${id}`;
-            var nameVkLyrics = `publishVkLyrics${id}`;
-            var nameVkKaraoke = `publishVkKaraoke${id}`;
-            var nameTelegramLyrics = `publishTelegramLyrics${id}`;
-            var nameTelegramKaraoke = `publishTelegramKaraoke${id}`;
-            var nameVk = `publishVk${id}`;
-            var nameBoosty = `publishBoosty${id}`;
-            var elements = document.getElementsByName(nameText);
-            if (elements.length > 0) {
-                var elementText = elements[0];
-                var elementColors = document.getElementsByName(nameColors)[0];
-                var elementLyrics = document.getElementsByName(nameLyrics)[0];
-                var elementKaraoke = document.getElementsByName(nameKaraoke)[0];
-                var elementYoutubeLyrics = document.getElementsByName(nameYoutubeLyrics)[0];
-                var elementYoutubeKaraoke = document.getElementsByName(nameYoutubeKaraoke)[0];
-                var elementVkLyrics = document.getElementsByName(nameVkLyrics)[0];
-                var elementVkKaraoke = document.getElementsByName(nameVkKaraoke)[0];
-                var elementTelegramLyrics = document.getElementsByName(nameTelegramLyrics)[0];
-                var elementTelegramKaraoke = document.getElementsByName(nameTelegramKaraoke)[0];
-                var elementVk = document.getElementsByName(nameVk)[0];
-                var elementBoosty = document.getElementsByName(nameBoosty)[0];
-                
-                $.ajax({
-                    type: "GET",
-                    url: "/song/" + id,
-                    data: "",
-                    success: function(data) {
-                        elementText.style.backgroundColor = data.color;
-                        elementColors.style.backgroundColor = data.color;
-                        elementLyrics.style.backgroundColor = data.processColorMeltLyrics;
-                        elementKaraoke.style.backgroundColor = data.processColorMeltKaraoke;
-                        elementYoutubeLyrics.style.backgroundColor = data.processColorYoutubeLyrics;
-                        elementYoutubeKaraoke.style.backgroundColor = data.processColorYoutubeKaraoke;
-                        elementVkLyrics.style.backgroundColor = data.processColorVkLyrics;
-                        elementVkKaraoke.style.backgroundColor = data.processColorVkKaraoke;
-                        elementTelegramLyrics.style.backgroundColor = data.processColorTelegramLyrics;
-                        elementTelegramKaraoke.style.backgroundColor = data.processColorTelegramKaraoke;
-                        elementVk.style.backgroundColor = data.processColorVk;
-                        elementBoosty.style.backgroundColor = data.processColorBoosty;
-                    }
-                });
-
-            }
-        }
-
-        function updateCurrentTime() {
-
-            $.ajax({
-                type: "GET",
-                url: "/songs/lastupdated",
-                data: {'lastTime':currentTimeStamp},
-                success: function(data) {
-                    data.forEach((objId) => {
-                        updateSettings(objId);
-                    });
-                }
-            });
-            currentTimeStamp = new Date().getTime();
-        }
-
-        function doFilterAll() {
-            var url = "/publications?filter_cond=all";
-            window.location.href = url;
-        }
-
-        function doFilterFromToday() {
-            var url = "/publications?filter_cond=fromtoday";
-            window.location.href = url;
-        }
-
-        function doFilterFromNotPublish() {
-            var url = "/publications?filter_cond=fromnotpublish";
-            window.location.href = url;
-        }
-        function doFilterFromNotDone() {
-            var url = "/publications?filter_cond=fromnotdone";
-            window.location.href = url;
-        }
-
-        function doFilterFromNotCheck() {
-            var url = "/publications?filter_cond=fromnotcheck";
-            window.location.href = url;
-        }
-
-        $(function() {
-            setInterval(updateCurrentTime, 5000);
-        });
-
-    </script>
 </head>
 
 <body>
@@ -200,295 +101,463 @@
                 <thead>
                     <tr>
                         <td style="min-width: 70px; max-width: 70px; border-style: solid; border-width: thin; text-align: center">Дата</td>
-                        <td style="min-width: 235px; max-width: 235px; border-style: solid; border-width: thin; text-align: center">10:00</td>
-                        <td style="min-width: 235px; max-width: 235px; border-style: solid; border-width: thin; text-align: center">11:00</td>
-                        <td style="min-width: 235px; max-width: 235px; border-style: solid; border-width: thin; text-align: center">12:00</td>
-                        <td style="min-width: 235px; max-width: 235px; border-style: solid; border-width: thin; text-align: center">13:00</td>
-                        <td style="min-width: 235px; max-width: 235px; border-style: solid; border-width: thin; text-align: center">14:00</td>
-                        <td style="min-width: 235px; max-width: 235px; border-style: solid; border-width: thin; text-align: center">15:00</td>
-                        <td style="min-width: 235px; max-width: 235px; border-style: solid; border-width: thin; text-align: center">16:00</td>
-                        <td style="min-width: 235px; max-width: 235px; border-style: solid; border-width: thin; text-align: center">17:00</td>
-                        <td style="min-width: 235px; max-width: 235px; border-style: solid; border-width: thin; text-align: center">18:00</td>
-                        <td style="min-width: 235px; max-width: 235px; border-style: solid; border-width: thin; text-align: center">19:00</td>
-                        <td style="min-width: 235px; max-width: 235px; border-style: solid; border-width: thin; text-align: center">20:00</td>
-                        <td style="min-width: 235px; max-width: 235px; border-style: solid; border-width: thin; text-align: center">21:00</td>
-                        <td style="min-width: 235px; max-width: 235px; border-style: solid; border-width: thin; text-align: center">22:00</td>
-                        <td style="min-width: 235px; max-width: 235px; border-style: solid; border-width: thin; text-align: center">23:00</td>
+                        <td style="min-width: 230px; max-width: 230px; border-style: solid; border-width: thin; text-align: center">10:00</td>
+                        <td style="min-width: 230px; max-width: 230px; border-style: solid; border-width: thin; text-align: center">11:00</td>
+                        <td style="min-width: 230px; max-width: 230px; border-style: solid; border-width: thin; text-align: center">12:00</td>
+                        <td style="min-width: 230px; max-width: 230px; border-style: solid; border-width: thin; text-align: center">13:00</td>
+                        <td style="min-width: 230px; max-width: 230px; border-style: solid; border-width: thin; text-align: center">14:00</td>
+                        <td style="min-width: 230px; max-width: 230px; border-style: solid; border-width: thin; text-align: center">15:00</td>
+                        <td style="min-width: 230px; max-width: 230px; border-style: solid; border-width: thin; text-align: center">16:00</td>
+                        <td style="min-width: 230px; max-width: 230px; border-style: solid; border-width: thin; text-align: center">17:00</td>
+                        <td style="min-width: 230px; max-width: 230px; border-style: solid; border-width: thin; text-align: center">18:00</td>
+                        <td style="min-width: 230px; max-width: 230px; border-style: solid; border-width: thin; text-align: center">19:00</td>
+                        <td style="min-width: 230px; max-width: 230px; border-style: solid; border-width: thin; text-align: center">20:00</td>
+                        <td style="min-width: 230px; max-width: 230px; border-style: solid; border-width: thin; text-align: center">21:00</td>
+                        <td style="min-width: 230px; max-width: 230px; border-style: solid; border-width: thin; text-align: center">22:00</td>
+                        <td style="min-width: 230px; max-width: 230px; border-style: solid; border-width: thin; text-align: center">23:00</td>
                         <td style="min-width: 70px; max-width: 70px; border-style: solid; border-width: thin; text-align: center">Дата</td>
                     </tr>
                 </thead>
             </table>
             <div id="areaLeftTable">
-                <table class="table table-sm table-hover" id="leftTable" style="font-size: small; width: fit-content;">
+                <table class="table table-sm table-hover" id="leftTable" style="font-size: small; width: initial; height: 100%;">
                     <tbody>
                     <tr th:each="publication:${publications}">
                         <td th:text="${publication.publishDate}" style="font-size: 10px; width: 70px; min-width: 70px; max-width: 70px; border-style: solid; border-width: thin; text-align: center;"></td>
-                        <td th:name="'publishText'+${publication.publish10id}" th:text="${publication.publish10text}" th:style="'background-color: ' + ${publication.publish10color} + '; font-size: 10px; width: 180px; min-width: 180px; max-width: 180px; border-style: solid; border-width: thin'"></td>
-                        <td th:name="'publishColors'+${publication.publish10id}" th:style="'background-color: ' + ${publication.publish10color} + '; height: available; padding: 0;margin: 0; width: 55px; min-width: 55px; max-width: 55px; border-style: none; border-width: 0; padding: 0;margin: 0;'">
-                            <table style="padding: 1px; height: available; ">
-                                <tr style="padding: 1px; height: available; ">
-                                    <td th:name="'publishBoosty'+${publication.publish10id}" th:style="'background-color: ' + ${publication.publish10colorBoosty} + '; height: available; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishYoutubeLyrics'+${publication.publish10id}" th:style="'background-color: ' + ${publication.publish10colorYoutubeLyrics} + '; height: available; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishVkLyrics'+${publication.publish10id}" th:style="'background-color: ' + ${publication.publish10colorVkLyrics} + '; height: available; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishTelegramLyrics'+${publication.publish10id}" th:style="'background-color: ' + ${publication.publish10colorTelegramLyrics} + '; height: available; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishLyrics'+${publication.publish10id}" th:style="'background-color: ' + ${publication.publish10colorMeltLyrics} + '; height: available; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish10id}+', \'playlyrics\')'"></td>
-                                </tr>
-                                <tr style="padding: 0; margin: 0; height: 100%; ">
-                                    <td th:name="'publishVk'+${publication.publish10id}" th:style="'background-color: ' + ${publication.publish10colorVk} + '; height: available; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishYoutubeKaraoke'+${publication.publish10id}" th:style="'background-color: ' + ${publication.publish10colorYoutubeKaraoke} + '; height: available; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishVkKaraoke'+${publication.publish10id}" th:style="'background-color: ' + ${publication.publish10colorVkKaraoke} + '; height: available; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishTelegramKaraoke'+${publication.publish10id}" th:style="'background-color: ' + ${publication.publish10colorTelegramKaraoke} + '; height: available; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishKaraoke'+${publication.publish10id}" th:style="'background-color: ' + ${publication.publish10colorMeltKaraoke} + '; height: available; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish10id}+', \'playkaraoke\')'"></td>
-                                </tr>
-                            </table>
+                        <td class="task" th:data-id="${publication.publish10id}" style="padding: 0; font-size: 0; min-width: 180px; max-width: 180px; border-style: solid; border-width: thin">
+                            <div
+                                    class="task__content"
+                                    th:data-id="${publication.publish10id}"
+                                    th:name="'publishText'+${publication.publish10id}"
+                                    th:text="${publication.publish10text}"
+                                    th:style="'background-color: ' + ${publication.publish10color} + '; height: 100%; padding: 4px; font-size: 10px; width: 180px; min-width: 180px; max-width: 180px; border-width: 0;'"
+                            ></div>
+                            <div class="task__actions" th:insert="~{settings_contextmenu_task_actions.html}"></div>
                         </td>
-                        <td th:name="'publishText'+${publication.publish11id}" th:text="${publication.publish11text}" th:style="'background-color: ' + ${publication.publish11color} + '; font-size: 10px; width: 180px; min-width: 180px; max-width: 180px; border-style: solid; border-width: thin'"></td>
-                        <td th:name="'publishColors'+${publication.publish11id}" th:style="'background-color: ' + ${publication.publish11color} + '; padding: 0;margin: 0; width: 55px; min-width: 55px; max-width: 55px; border-style: none; border-width: 0; padding: 0;margin: 0;'">
-                            <table style="padding: 1px;">
-                                <tr style="padding: 1px;">
-                                    <td th:name="'publishBoosty'+${publication.publish11id}" th:style="'background-color: ' + ${publication.publish11colorBoosty} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishYoutubeLyrics'+${publication.publish11id}" th:style="'background-color: ' + ${publication.publish11colorYoutubeLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishVkLyrics'+${publication.publish11id}" th:style="'background-color: ' + ${publication.publish11colorVkLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishTelegramLyrics'+${publication.publish11id}" th:style="'background-color: ' + ${publication.publish11colorTelegramLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishLyrics'+${publication.publish11id}" th:style="'background-color: ' + ${publication.publish11colorMeltLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish11id}+', \'playlyrics\')'"></td>
-                                </tr>
-                                <tr style="padding: 0; margin: 0;">
-                                    <td th:name="'publishVk'+${publication.publish11id}" th:style="'background-color: ' + ${publication.publish11colorVk} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishYoutubeKaraoke'+${publication.publish11id}" th:style="'background-color: ' + ${publication.publish11colorYoutubeKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishVkKaraoke'+${publication.publish11id}" th:style="'background-color: ' + ${publication.publish11colorVkKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishTelegramKaraoke'+${publication.publish11id}" th:style="'background-color: ' + ${publication.publish11colorTelegramKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishKaraoke'+${publication.publish11id}" th:style="'background-color: ' + ${publication.publish11colorMeltKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish11id}+', \'playkaraoke\')'"></td>
-                                </tr>
-                            </table>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishBoosty'+${publication.publish10id}" th:style="'background-color: ' + ${publication.publish10colorBoosty} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishVk'+${publication.publish10id}" th:style="'background-color: ' + ${publication.publish10colorVk} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
                         </td>
-                        <td th:name="'publishText'+${publication.publish12id}" th:text="${publication.publish12text}" th:style="'background-color: ' + ${publication.publish12color} + '; font-size: 10px; width: 180px; min-width: 180px; max-width: 180px; border-style: solid; border-width: thin'"></td>
-                        <td th:name="'publishColors'+${publication.publish12id}" th:style="'background-color: ' + ${publication.publish12color} + '; padding: 0;margin: 0; width: 55px; min-width: 55px; max-width: 55px; border-style: none; border-width: 0; padding: 0;margin: 0;'">
-                            <table style="padding: 1px;">
-                                <tr style="padding: 1px;">
-                                    <td th:name="'publishBoosty'+${publication.publish12id}" th:style="'background-color: ' + ${publication.publish12colorBoosty} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishYoutubeLyrics'+${publication.publish12id}" th:style="'background-color: ' + ${publication.publish12colorYoutubeLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishVkLyrics'+${publication.publish12id}" th:style="'background-color: ' + ${publication.publish12colorVkLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishTelegramLyrics'+${publication.publish12id}" th:style="'background-color: ' + ${publication.publish12colorTelegramLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishLyrics'+${publication.publish12id}" th:style="'background-color: ' + ${publication.publish12colorMeltLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish12id}+', \'playlyrics\')'"></td>
-                                </tr>
-                                <tr style="padding: 0; margin: 0;">
-                                    <td th:name="'publishVk'+${publication.publish12id}" th:style="'background-color: ' + ${publication.publish12colorVk} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishYoutubeKaraoke'+${publication.publish12id}" th:style="'background-color: ' + ${publication.publish12colorYoutubeKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishVkKaraoke'+${publication.publish12id}" th:style="'background-color: ' + ${publication.publish12colorVkKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishTelegramKaraoke'+${publication.publish12id}" th:style="'background-color: ' + ${publication.publish12colorTelegramKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishKaraoke'+${publication.publish12id}" th:style="'background-color: ' + ${publication.publish12colorMeltKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish12id}+', \'playkaraoke\')'"></td>
-                                </tr>
-                            </table>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishYoutubeLyrics'+${publication.publish10id}" th:style="'background-color: ' + ${publication.publish10colorYoutubeLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishYoutubeKaraoke'+${publication.publish10id}" th:style="'background-color: ' + ${publication.publish10colorYoutubeKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
                         </td>
-                        <td th:name="'publishText'+${publication.publish13id}" th:text="${publication.publish13text}" th:style="'background-color: ' + ${publication.publish13color} + '; font-size: 10px; width: 180px; min-width: 180px; max-width: 180px; border-style: solid; border-width: thin'"></td>
-                        <td th:name="'publishColors'+${publication.publish13id}" th:style="'background-color: ' + ${publication.publish13color} + '; padding: 0;margin: 0; width: 55px; min-width: 55px; max-width: 55px; border-style: none; border-width: 0; padding: 0;margin: 0;'">
-                            <table style="padding: 1px;">
-                                <tr style="padding: 1px;">
-                                    <td th:name="'publishBoosty'+${publication.publish13id}" th:style="'background-color: ' + ${publication.publish13colorBoosty} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishYoutubeLyrics'+${publication.publish13id}" th:style="'background-color: ' + ${publication.publish13colorYoutubeLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishVkLyrics'+${publication.publish13id}" th:style="'background-color: ' + ${publication.publish13colorVkLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishTelegramLyrics'+${publication.publish13id}" th:style="'background-color: ' + ${publication.publish13colorTelegramLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishLyrics'+${publication.publish13id}" th:style="'background-color: ' + ${publication.publish13colorMeltLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish13id}+', \'playlyrics\')'"></td>
-                                </tr>
-                                <tr style="padding: 0; margin: 0;">
-                                    <td th:name="'publishVk'+${publication.publish13id}" th:style="'background-color: ' + ${publication.publish13colorVk} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishYoutubeKaraoke'+${publication.publish13id}" th:style="'background-color: ' + ${publication.publish13colorYoutubeKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishVkKaraoke'+${publication.publish13id}" th:style="'background-color: ' + ${publication.publish13colorVkKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishTelegramKaraoke'+${publication.publish13id}" th:style="'background-color: ' + ${publication.publish13colorTelegramKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishKaraoke'+${publication.publish13id}" th:style="'background-color: ' + ${publication.publish13colorMeltKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish13id}+', \'playkaraoke\')'"></td>
-                                </tr>
-                            </table>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishVkLyrics'+${publication.publish10id}" th:style="'background-color: ' + ${publication.publish10colorVkLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishVkKaraoke'+${publication.publish10id}" th:style="'background-color: ' + ${publication.publish10colorVkKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
                         </td>
-                        <td th:name="'publishText'+${publication.publish14id}" th:text="${publication.publish14text}" th:style="'background-color: ' + ${publication.publish14color} + '; font-size: 10px; width: 180px; min-width: 180px; max-width: 180px; border-style: solid; border-width: thin'"></td>
-                        <td th:name="'publishColors'+${publication.publish14id}" th:style="'background-color: ' + ${publication.publish14color} + '; padding: 0;margin: 0; width: 55px; min-width: 55px; max-width: 55px; border-style: none; border-width: 0; padding: 0;margin: 0;'">
-                            <table style="padding: 1px;">
-                                <tr style="padding: 1px;">
-                                    <td th:name="'publishBoosty'+${publication.publish14id}" th:style="'background-color: ' + ${publication.publish14colorBoosty} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishYoutubeLyrics'+${publication.publish14id}" th:style="'background-color: ' + ${publication.publish14colorYoutubeLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishVkLyrics'+${publication.publish14id}" th:style="'background-color: ' + ${publication.publish14colorVkLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishTelegramLyrics'+${publication.publish14id}" th:style="'background-color: ' + ${publication.publish14colorTelegramLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishLyrics'+${publication.publish14id}" th:style="'background-color: ' + ${publication.publish14colorMeltLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish14id}+', \'playlyrics\')'"></td>
-                                </tr>
-                                <tr style="padding: 0; margin: 0;">
-                                    <td th:name="'publishVk'+${publication.publish14id}" th:style="'background-color: ' + ${publication.publish14colorVk} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishYoutubeKaraoke'+${publication.publish14id}" th:style="'background-color: ' + ${publication.publish14colorYoutubeKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishVkKaraoke'+${publication.publish14id}" th:style="'background-color: ' + ${publication.publish14colorVkKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishTelegramKaraoke'+${publication.publish14id}" th:style="'background-color: ' + ${publication.publish14colorTelegramKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishKaraoke'+${publication.publish14id}" th:style="'background-color: ' + ${publication.publish14colorMeltKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish14id}+', \'playkaraoke\')'"></td>
-                                </tr>
-                            </table>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishTelegramLyrics'+${publication.publish10id}" th:style="'background-color: ' + ${publication.publish10colorTelegramLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishTelegramKaraoke'+${publication.publish10id}" th:style="'background-color: ' + ${publication.publish10colorTelegramKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
                         </td>
-                        <td th:name="'publishText'+${publication.publish15id}" th:text="${publication.publish15text}" th:style="'background-color: ' + ${publication.publish15color} + '; font-size: 10px; width: 180px; min-width: 180px; max-width: 180px; border-style: solid; border-width: thin'"></td>
-                        <td th:name="'publishColors'+${publication.publish15id}" th:style="'background-color: ' + ${publication.publish15color} + '; padding: 0;margin: 0; width: 55px; min-width: 55px; max-width: 55px; border-style: none; border-width: 0; padding: 0;margin: 0;'">
-                            <table style="padding: 1px;">
-                                <tr style="padding: 1px;">
-                                    <td th:name="'publishBoosty'+${publication.publish15id}" th:style="'background-color: ' + ${publication.publish15colorBoosty} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishYoutubeLyrics'+${publication.publish15id}" th:style="'background-color: ' + ${publication.publish15colorYoutubeLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishVkLyrics'+${publication.publish15id}" th:style="'background-color: ' + ${publication.publish15colorVkLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishTelegramLyrics'+${publication.publish15id}" th:style="'background-color: ' + ${publication.publish15colorTelegramLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishLyrics'+${publication.publish15id}" th:style="'background-color: ' + ${publication.publish15colorMeltLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish15id}+', \'playlyrics\')'"></td>
-                                </tr>
-                                <tr style="padding: 0; margin: 0;">
-                                    <td th:name="'publishVk'+${publication.publish15id}" th:style="'background-color: ' + ${publication.publish15colorVk} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishYoutubeKaraoke'+${publication.publish15id}" th:style="'background-color: ' + ${publication.publish15colorYoutubeKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishVkKaraoke'+${publication.publish15id}" th:style="'background-color: ' + ${publication.publish15colorVkKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishTelegramKaraoke'+${publication.publish15id}" th:style="'background-color: ' + ${publication.publish15colorTelegramKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishKaraoke'+${publication.publish15id}" th:style="'background-color: ' + ${publication.publish15colorMeltKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish15id}+', \'playkaraoke\')'"></td>
-                                </tr>
-                            </table>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishLyrics'+${publication.publish10id}" th:style="'background-color: ' + ${publication.publish10colorMeltLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'" th:ondblclick="'doPlay('+${publication.publish10id}+', \'playlyrics\')'"></div>
+                            <div th:name="'publishKaraoke'+${publication.publish10id}" th:style="'background-color: ' + ${publication.publish10colorMeltKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'" th:ondblclick="'doPlay('+${publication.publish10id}+', \'playkaraoke\')'"></div>
                         </td>
-                        <td th:name="'publishText'+${publication.publish16id}" th:text="${publication.publish16text}" th:style="'background-color: ' + ${publication.publish16color} + '; font-size: 10px; width: 180px; min-width: 180px; max-width: 180px; border-style: solid; border-width: thin'"></td>
-                        <td th:name="'publishColors'+${publication.publish16id}" th:style="'background-color: ' + ${publication.publish16color} + '; padding: 0;margin: 0; width: 55px; min-width: 55px; max-width: 55px; border-style: none; border-width: 0; padding: 0;margin: 0;'">
-                            <table style="padding: 1px;">
-                                <tr style="padding: 1px;">
-                                    <td th:name="'publishBoosty'+${publication.publish16id}" th:style="'background-color: ' + ${publication.publish16colorBoosty} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishYoutubeLyrics'+${publication.publish16id}" th:style="'background-color: ' + ${publication.publish16colorYoutubeLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishVkLyrics'+${publication.publish16id}" th:style="'background-color: ' + ${publication.publish16colorVkLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishTelegramLyrics'+${publication.publish16id}" th:style="'background-color: ' + ${publication.publish16colorTelegramLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishLyrics'+${publication.publish16id}" th:style="'background-color: ' + ${publication.publish16colorMeltLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish16id}+', \'playlyrics\')'"></td>
-                                </tr>
-                                <tr style="padding: 0; margin: 0;">
-                                    <td th:name="'publishVk'+${publication.publish16id}" th:style="'background-color: ' + ${publication.publish16colorVk} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishYoutubeKaraoke'+${publication.publish16id}" th:style="'background-color: ' + ${publication.publish16colorYoutubeKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishVkKaraoke'+${publication.publish16id}" th:style="'background-color: ' + ${publication.publish16colorVkKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishTelegramKaraoke'+${publication.publish16id}" th:style="'background-color: ' + ${publication.publish16colorTelegramKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishKaraoke'+${publication.publish16id}" th:style="'background-color: ' + ${publication.publish16colorMeltKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish16id}+', \'playkaraoke\')'"></td>
-                                </tr>
-                            </table>
+
+                        <td class="task" th:data-id="${publication.publish11id}" style="padding: 0; font-size: 0; min-width: 180px; max-width: 180px; border-style: solid; border-width: thin">
+                            <div
+                                    class="task__content"
+                                    th:data-id="${publication.publish11id}"
+                                    th:name="'publishText'+${publication.publish11id}"
+                                    th:text="${publication.publish11text}"
+                                    th:style="'background-color: ' + ${publication.publish11color} + '; height: 100%; padding: 4px; font-size: 10px; width: 180px; min-width: 180px; max-width: 180px; border-width: 0;'"
+                            ></div>
+                            <div class="task__actions" th:insert="~{settings_contextmenu_task_actions.html}"></div>
                         </td>
-                        <td th:name="'publishText'+${publication.publish17id}" th:text="${publication.publish17text}" th:style="'background-color: ' + ${publication.publish17color} + '; font-size: 10px; width: 180px; min-width: 180px; max-width: 180px; border-style: solid; border-width: thin'"></td>
-                        <td th:name="'publishColors'+${publication.publish17id}" th:style="'background-color: ' + ${publication.publish17color} + '; padding: 0;margin: 0; width: 55px; min-width: 55px; max-width: 55px; border-style: none; border-width: 0; padding: 0;margin: 0;'">
-                            <table style="padding: 1px;">
-                                <tr style="padding: 1px;">
-                                    <td th:name="'publishBoosty'+${publication.publish17id}" th:style="'background-color: ' + ${publication.publish17colorBoosty} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishYoutubeLyrics'+${publication.publish17id}" th:style="'background-color: ' + ${publication.publish17colorYoutubeLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishVkLyrics'+${publication.publish17id}" th:style="'background-color: ' + ${publication.publish17colorVkLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishTelegramLyrics'+${publication.publish17id}" th:style="'background-color: ' + ${publication.publish17colorTelegramLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishLyrics'+${publication.publish17id}" th:style="'background-color: ' + ${publication.publish17colorMeltLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish17id}+', \'playlyrics\')'"></td>
-                                </tr>
-                                <tr style="padding: 0; margin: 0;">
-                                    <td th:name="'publishVk'+${publication.publish17id}" th:style="'background-color: ' + ${publication.publish17colorVk} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishYoutubeKaraoke'+${publication.publish17id}" th:style="'background-color: ' + ${publication.publish17colorYoutubeKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishVkKaraoke'+${publication.publish17id}" th:style="'background-color: ' + ${publication.publish17colorVkKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishTelegramKaraoke'+${publication.publish17id}" th:style="'background-color: ' + ${publication.publish17colorTelegramKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishKaraoke'+${publication.publish17id}" th:style="'background-color: ' + ${publication.publish17colorMeltKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish17id}+', \'playkaraoke\')'"></td>
-                                </tr>
-                            </table>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishBoosty'+${publication.publish11id}" th:style="'background-color: ' + ${publication.publish11colorBoosty} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishVk'+${publication.publish11id}" th:style="'background-color: ' + ${publication.publish11colorVk} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
                         </td>
-                        <td th:name="'publishText'+${publication.publish18id}" th:text="${publication.publish18text}" th:style="'background-color: ' + ${publication.publish18color} + '; font-size: 10px; width: 180px; min-width: 180px; max-width: 180px; border-style: solid; border-width: thin'"></td>
-                        <td th:name="'publishColors'+${publication.publish18id}" th:style="'background-color: ' + ${publication.publish18color} + '; padding: 0;margin: 0; width: 55px; min-width: 55px; max-width: 55px; border-style: none; border-width: 0; padding: 0;margin: 0;'">
-                            <table style="padding: 1px;">
-                                <tr style="padding: 1px;">
-                                    <td th:name="'publishBoosty'+${publication.publish18id}" th:style="'background-color: ' + ${publication.publish18colorBoosty} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishYoutubeLyrics'+${publication.publish18id}" th:style="'background-color: ' + ${publication.publish18colorYoutubeLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishVkLyrics'+${publication.publish18id}" th:style="'background-color: ' + ${publication.publish18colorVkLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishTelegramLyrics'+${publication.publish18id}" th:style="'background-color: ' + ${publication.publish18colorTelegramLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishLyrics'+${publication.publish18id}" th:style="'background-color: ' + ${publication.publish18colorMeltLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish18id}+', \'playlyrics\')'"></td>
-                                </tr>
-                                <tr style="padding: 0; margin: 0;">
-                                    <td th:name="'publishVk'+${publication.publish18id}" th:style="'background-color: ' + ${publication.publish18colorVk} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishYoutubeKaraoke'+${publication.publish18id}" th:style="'background-color: ' + ${publication.publish18colorYoutubeKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishVkKaraoke'+${publication.publish18id}" th:style="'background-color: ' + ${publication.publish18colorVkKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishTelegramKaraoke'+${publication.publish18id}" th:style="'background-color: ' + ${publication.publish18colorTelegramKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishKaraoke'+${publication.publish18id}" th:style="'background-color: ' + ${publication.publish18colorMeltKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish18id}+', \'playkaraoke\')'"></td>
-                                </tr>
-                            </table>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishYoutubeLyrics'+${publication.publish11id}" th:style="'background-color: ' + ${publication.publish11colorYoutubeLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishYoutubeKaraoke'+${publication.publish11id}" th:style="'background-color: ' + ${publication.publish11colorYoutubeKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
                         </td>
-                        <td th:name="'publishText'+${publication.publish19id}" th:text="${publication.publish19text}" th:style="'background-color: ' + ${publication.publish19color} + '; font-size: 10px; width: 180px; min-width: 180px; max-width: 180px; border-style: solid; border-width: thin'"></td>
-                        <td th:name="'publishColors'+${publication.publish19id}" th:style="'background-color: ' + ${publication.publish19color} + '; padding: 0;margin: 0; width: 55px; min-width: 55px; max-width: 55px; border-style: none; border-width: 0; padding: 0;margin: 0;'">
-                            <table style="padding: 1px;">
-                                <tr style="padding: 1px;">
-                                    <td th:name="'publishBoosty'+${publication.publish19id}" th:style="'background-color: ' + ${publication.publish19colorBoosty} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishYoutubeLyrics'+${publication.publish19id}" th:style="'background-color: ' + ${publication.publish19colorYoutubeLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishVkLyrics'+${publication.publish19id}" th:style="'background-color: ' + ${publication.publish19colorVkLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishTelegramLyrics'+${publication.publish19id}" th:style="'background-color: ' + ${publication.publish19colorTelegramLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishLyrics'+${publication.publish19id}" th:style="'background-color: ' + ${publication.publish19colorMeltLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish19id}+', \'playlyrics\')'"></td>
-                                </tr>
-                                <tr style="padding: 0; margin: 0;">
-                                    <td th:name="'publishVk'+${publication.publish19id}" th:style="'background-color: ' + ${publication.publish19colorVk} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishYoutubeKaraoke'+${publication.publish19id}" th:style="'background-color: ' + ${publication.publish19colorYoutubeKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishVkKaraoke'+${publication.publish19id}" th:style="'background-color: ' + ${publication.publish19colorVkKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishTelegramKaraoke'+${publication.publish19id}" th:style="'background-color: ' + ${publication.publish19colorTelegramKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishKaraoke'+${publication.publish19id}" th:style="'background-color: ' + ${publication.publish19colorMeltKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish19id}+', \'playkaraoke\')'"></td>
-                                </tr>
-                            </table>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishVkLyrics'+${publication.publish11id}" th:style="'background-color: ' + ${publication.publish11colorVkLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishVkKaraoke'+${publication.publish11id}" th:style="'background-color: ' + ${publication.publish11colorVkKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
                         </td>
-                        <td th:name="'publishText'+${publication.publish20id}" th:text="${publication.publish20text}" th:style="'background-color: ' + ${publication.publish20color} + '; font-size: 10px; width: 180px; min-width: 180px; max-width: 180px; border-style: solid; border-width: thin'"></td>
-                        <td th:name="'publishColors'+${publication.publish20id}" th:style="'background-color: ' + ${publication.publish20color} + '; padding: 0;margin: 0; width: 55px; min-width: 55px; max-width: 55px; border-style: none; border-width: 0; padding: 0;margin: 0;'">
-                            <table style="padding: 1px;">
-                                <tr style="padding: 1px;">
-                                    <td th:name="'publishBoosty'+${publication.publish20id}" th:style="'background-color: ' + ${publication.publish20colorBoosty} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishYoutubeLyrics'+${publication.publish20id}" th:style="'background-color: ' + ${publication.publish20colorYoutubeLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishVkLyrics'+${publication.publish20id}" th:style="'background-color: ' + ${publication.publish20colorVkLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishTelegramLyrics'+${publication.publish20id}" th:style="'background-color: ' + ${publication.publish20colorTelegramLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishLyrics'+${publication.publish20id}" th:style="'background-color: ' + ${publication.publish20colorMeltLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish20id}+', \'playlyrics\')'"></td>
-                                </tr>
-                                <tr style="padding: 0; margin: 0;">
-                                    <td th:name="'publishVk'+${publication.publish20id}" th:style="'background-color: ' + ${publication.publish20colorVk} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishYoutubeKaraoke'+${publication.publish20id}" th:style="'background-color: ' + ${publication.publish20colorYoutubeKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishVkKaraoke'+${publication.publish20id}" th:style="'background-color: ' + ${publication.publish20colorVkKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishTelegramKaraoke'+${publication.publish20id}" th:style="'background-color: ' + ${publication.publish20colorTelegramKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishKaraoke'+${publication.publish20id}" th:style="'background-color: ' + ${publication.publish20colorMeltKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish20id}+', \'playkaraoke\')'"></td>
-                                </tr>
-                            </table>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishTelegramLyrics'+${publication.publish11id}" th:style="'background-color: ' + ${publication.publish11colorTelegramLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishTelegramKaraoke'+${publication.publish11id}" th:style="'background-color: ' + ${publication.publish11colorTelegramKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
                         </td>
-                        <td th:name="'publishText'+${publication.publish21id}" th:text="${publication.publish21text}" th:style="'background-color: ' + ${publication.publish21color} + '; font-size: 10px; width: 180px; min-width: 180px; max-width: 180px; border-style: solid; border-width: thin'"></td>
-                        <td th:name="'publishColors'+${publication.publish21id}" th:style="'background-color: ' + ${publication.publish21color} + '; padding: 0;margin: 0; width: 55px; min-width: 55px; max-width: 55px; border-style: none; border-width: 0; padding: 0;margin: 0;'">
-                            <table style="padding: 1px;">
-                                <tr style="padding: 1px;">
-                                    <td th:name="'publishBoosty'+${publication.publish21id}" th:style="'background-color: ' + ${publication.publish21colorBoosty} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishYoutubeLyrics'+${publication.publish21id}" th:style="'background-color: ' + ${publication.publish21colorYoutubeLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishVkLyrics'+${publication.publish21id}" th:style="'background-color: ' + ${publication.publish21colorVkLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishTelegramLyrics'+${publication.publish21id}" th:style="'background-color: ' + ${publication.publish21colorTelegramLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishLyrics'+${publication.publish21id}" th:style="'background-color: ' + ${publication.publish21colorMeltLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish21id}+', \'playlyrics\')'"></td>
-                                </tr>
-                                <tr style="padding: 0; margin: 0;">
-                                    <td th:name="'publishVk'+${publication.publish21id}" th:style="'background-color: ' + ${publication.publish21colorVk} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishYoutubeKaraoke'+${publication.publish21id}" th:style="'background-color: ' + ${publication.publish21colorYoutubeKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishVkKaraoke'+${publication.publish21id}" th:style="'background-color: ' + ${publication.publish21colorVkKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishTelegramKaraoke'+${publication.publish21id}" th:style="'background-color: ' + ${publication.publish21colorTelegramKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishKaraoke'+${publication.publish21id}" th:style="'background-color: ' + ${publication.publish21colorMeltKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish21id}+', \'playkaraoke\')'"></td>
-                                </tr>
-                            </table>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishLyrics'+${publication.publish11id}" th:style="'background-color: ' + ${publication.publish11colorMeltLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'" th:ondblclick="'doPlay('+${publication.publish11id}+', \'playlyrics\')'"></div>
+                            <div th:name="'publishKaraoke'+${publication.publish11id}" th:style="'background-color: ' + ${publication.publish11colorMeltKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'" th:ondblclick="'doPlay('+${publication.publish11id}+', \'playkaraoke\')'"></div>
                         </td>
-                        <td th:name="'publishText'+${publication.publish22id}" th:text="${publication.publish22text}" th:style="'background-color: ' + ${publication.publish22color} + '; font-size: 10px; width: 180px; min-width: 180px; max-width: 180px; border-style: solid; border-width: thin'"></td>
-                        <td th:name="'publishColors'+${publication.publish22id}" th:style="'background-color: ' + ${publication.publish22color} + '; padding: 0;margin: 0; width: 55px; min-width: 55px; max-width: 55px; border-style: none; border-width: 0; padding: 0;margin: 0;'">
-                            <table style="padding: 1px;">
-                                <tr style="padding: 1px;">
-                                    <td th:name="'publishBoosty'+${publication.publish22id}" th:style="'background-color: ' + ${publication.publish22colorBoosty} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishYoutubeLyrics'+${publication.publish22id}" th:style="'background-color: ' + ${publication.publish22colorYoutubeLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishVkLyrics'+${publication.publish22id}" th:style="'background-color: ' + ${publication.publish22colorVkLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishTelegramLyrics'+${publication.publish22id}" th:style="'background-color: ' + ${publication.publish22colorTelegramLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishLyrics'+${publication.publish22id}" th:style="'background-color: ' + ${publication.publish22colorMeltLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish22id}+', \'playlyrics\')'"></td>
-                                </tr>
-                                <tr style="padding: 0; margin: 0;">
-                                    <td th:name="'publishVk'+${publication.publish22id}" th:style="'background-color: ' + ${publication.publish22colorVk} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishYoutubeKaraoke'+${publication.publish22id}" th:style="'background-color: ' + ${publication.publish22colorYoutubeKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishVkKaraoke'+${publication.publish22id}" th:style="'background-color: ' + ${publication.publish22colorVkKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishTelegramKaraoke'+${publication.publish22id}" th:style="'background-color: ' + ${publication.publish22colorTelegramKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishKaraoke'+${publication.publish22id}" th:style="'background-color: ' + ${publication.publish22colorMeltKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish22id}+', \'playkaraoke\')'"></td>
-                                </tr>
-                            </table>
+
+                        <td class="task" th:data-id="${publication.publish12id}" style="padding: 0; font-size: 0; min-width: 180px; max-width: 180px; border-style: solid; border-width: thin">
+                            <div
+                                    class="task__content"
+                                    th:data-id="${publication.publish12id}"
+                                    th:name="'publishText'+${publication.publish12id}"
+                                    th:text="${publication.publish12text}"
+                                    th:style="'background-color: ' + ${publication.publish12color} + '; height: 100%; padding: 4px; font-size: 10px; width: 180px; min-width: 180px; max-width: 180px; border-width: 0;'"
+                            ></div>
+                            <div class="task__actions" th:insert="~{settings_contextmenu_task_actions.html}"></div>
                         </td>
-                        <td th:name="'publishText'+${publication.publish23id}" th:text="${publication.publish23text}" th:style="'background-color: ' + ${publication.publish23color} + '; font-size: 10px; width: 180px; min-width: 180px; max-width: 180px; border-style: solid; border-width: thin'"></td>
-                        <td th:name="'publishColors'+${publication.publish23id}" th:style="'background-color: ' + ${publication.publish23color} + '; padding: 0;margin: 0; width: 55px; min-width: 55px; max-width: 55px; border-style: none; border-width: 0; padding: 0;margin: 0;'">
-                            <table style="padding: 1px;">
-                                <tr style="padding: 1px;">
-                                    <td th:name="'publishBoosty'+${publication.publish23id}" th:style="'background-color: ' + ${publication.publish23colorBoosty} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishYoutubeLyrics'+${publication.publish23id}" th:style="'background-color: ' + ${publication.publish23colorYoutubeLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishVkLyrics'+${publication.publish23id}" th:style="'background-color: ' + ${publication.publish23colorVkLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishTelegramLyrics'+${publication.publish23id}" th:style="'background-color: ' + ${publication.publish23colorTelegramLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishLyrics'+${publication.publish23id}" th:style="'background-color: ' + ${publication.publish23colorMeltLyrics} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish23id}+', \'playlyrics\')'"></td>
-                                </tr>
-                                <tr style="padding: 0; margin: 0;">
-                                    <td th:name="'publishVk'+${publication.publish23id}" th:style="'background-color: ' + ${publication.publish23colorVk} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishYoutubeKaraoke'+${publication.publish23id}" th:style="'background-color: ' + ${publication.publish23colorYoutubeKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishVkKaraoke'+${publication.publish23id}" th:style="'background-color: ' + ${publication.publish23colorVkKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishTelegramKaraoke'+${publication.publish23id}" th:style="'background-color: ' + ${publication.publish23colorTelegramKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'"></td>
-                                    <td th:name="'publishKaraoke'+${publication.publish23id}" th:style="'background-color: ' + ${publication.publish23colorMeltKaraoke} + '; font-size: 10px; width: 10px; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin'" th:ondblclick="'doPlay('+${publication.publish23id}+', \'playkaraoke\')'"></td>
-                                </tr>
-                            </table>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishBoosty'+${publication.publish12id}" th:style="'background-color: ' + ${publication.publish12colorBoosty} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishVk'+${publication.publish12id}" th:style="'background-color: ' + ${publication.publish12colorVk} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
                         </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishYoutubeLyrics'+${publication.publish12id}" th:style="'background-color: ' + ${publication.publish12colorYoutubeLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishYoutubeKaraoke'+${publication.publish12id}" th:style="'background-color: ' + ${publication.publish12colorYoutubeKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishVkLyrics'+${publication.publish12id}" th:style="'background-color: ' + ${publication.publish12colorVkLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishVkKaraoke'+${publication.publish12id}" th:style="'background-color: ' + ${publication.publish12colorVkKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishTelegramLyrics'+${publication.publish12id}" th:style="'background-color: ' + ${publication.publish12colorTelegramLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishTelegramKaraoke'+${publication.publish12id}" th:style="'background-color: ' + ${publication.publish12colorTelegramKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishLyrics'+${publication.publish12id}" th:style="'background-color: ' + ${publication.publish12colorMeltLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'" th:ondblclick="'doPlay('+${publication.publish12id}+', \'playlyrics\')'"></div>
+                            <div th:name="'publishKaraoke'+${publication.publish12id}" th:style="'background-color: ' + ${publication.publish12colorMeltKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'" th:ondblclick="'doPlay('+${publication.publish12id}+', \'playkaraoke\')'"></div>
+                        </td>
+
+                        <td class="task" th:data-id="${publication.publish13id}" style="padding: 0; font-size: 0; min-width: 180px; max-width: 180px; border-style: solid; border-width: thin">
+                            <div
+                                    class="task__content"
+                                    th:data-id="${publication.publish13id}"
+                                    th:name="'publishText'+${publication.publish13id}"
+                                    th:text="${publication.publish13text}"
+                                    th:style="'background-color: ' + ${publication.publish13color} + '; height: 100%; padding: 4px; font-size: 10px; width: 180px; min-width: 180px; max-width: 180px; border-width: 0;'"
+                            ></div>
+                            <div class="task__actions" th:insert="~{settings_contextmenu_task_actions.html}"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishBoosty'+${publication.publish13id}" th:style="'background-color: ' + ${publication.publish13colorBoosty} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishVk'+${publication.publish13id}" th:style="'background-color: ' + ${publication.publish13colorVk} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishYoutubeLyrics'+${publication.publish13id}" th:style="'background-color: ' + ${publication.publish13colorYoutubeLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishYoutubeKaraoke'+${publication.publish13id}" th:style="'background-color: ' + ${publication.publish13colorYoutubeKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishVkLyrics'+${publication.publish13id}" th:style="'background-color: ' + ${publication.publish13colorVkLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishVkKaraoke'+${publication.publish13id}" th:style="'background-color: ' + ${publication.publish13colorVkKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishTelegramLyrics'+${publication.publish13id}" th:style="'background-color: ' + ${publication.publish13colorTelegramLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishTelegramKaraoke'+${publication.publish13id}" th:style="'background-color: ' + ${publication.publish13colorTelegramKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishLyrics'+${publication.publish13id}" th:style="'background-color: ' + ${publication.publish13colorMeltLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'" th:ondblclick="'doPlay('+${publication.publish13id}+', \'playlyrics\')'"></div>
+                            <div th:name="'publishKaraoke'+${publication.publish13id}" th:style="'background-color: ' + ${publication.publish13colorMeltKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'" th:ondblclick="'doPlay('+${publication.publish13id}+', \'playkaraoke\')'"></div>
+                        </td>
+
+                        <td class="task" th:data-id="${publication.publish14id}" style="padding: 0; font-size: 0; min-width: 180px; max-width: 180px; border-style: solid; border-width: thin">
+                            <div
+                                    class="task__content"
+                                    th:data-id="${publication.publish14id}"
+                                    th:name="'publishText'+${publication.publish14id}"
+                                    th:text="${publication.publish14text}"
+                                    th:style="'background-color: ' + ${publication.publish14color} + '; height: 100%; padding: 4px; font-size: 10px; width: 180px; min-width: 180px; max-width: 180px; border-width: 0;'"
+                            ></div>
+                            <div class="task__actions" th:insert="~{settings_contextmenu_task_actions.html}"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishBoosty'+${publication.publish14id}" th:style="'background-color: ' + ${publication.publish14colorBoosty} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishVk'+${publication.publish14id}" th:style="'background-color: ' + ${publication.publish14colorVk} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishYoutubeLyrics'+${publication.publish14id}" th:style="'background-color: ' + ${publication.publish14colorYoutubeLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishYoutubeKaraoke'+${publication.publish14id}" th:style="'background-color: ' + ${publication.publish14colorYoutubeKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishVkLyrics'+${publication.publish14id}" th:style="'background-color: ' + ${publication.publish14colorVkLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishVkKaraoke'+${publication.publish14id}" th:style="'background-color: ' + ${publication.publish14colorVkKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishTelegramLyrics'+${publication.publish14id}" th:style="'background-color: ' + ${publication.publish14colorTelegramLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishTelegramKaraoke'+${publication.publish14id}" th:style="'background-color: ' + ${publication.publish14colorTelegramKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishLyrics'+${publication.publish14id}" th:style="'background-color: ' + ${publication.publish14colorMeltLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'" th:ondblclick="'doPlay('+${publication.publish14id}+', \'playlyrics\')'"></div>
+                            <div th:name="'publishKaraoke'+${publication.publish14id}" th:style="'background-color: ' + ${publication.publish14colorMeltKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'" th:ondblclick="'doPlay('+${publication.publish14id}+', \'playkaraoke\')'"></div>
+                        </td>
+
+                        <td class="task" th:data-id="${publication.publish15id}" style="padding: 0; font-size: 0; min-width: 180px; max-width: 180px; border-style: solid; border-width: thin">
+                            <div
+                                    class="task__content"
+                                    th:data-id="${publication.publish15id}"
+                                    th:name="'publishText'+${publication.publish15id}"
+                                    th:text="${publication.publish15text}"
+                                    th:style="'background-color: ' + ${publication.publish15color} + '; height: 100%; padding: 4px; font-size: 10px; width: 180px; min-width: 180px; max-width: 180px; border-width: 0;'"
+                            ></div>
+                            <div class="task__actions" th:insert="~{settings_contextmenu_task_actions.html}"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishBoosty'+${publication.publish15id}" th:style="'background-color: ' + ${publication.publish15colorBoosty} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishVk'+${publication.publish15id}" th:style="'background-color: ' + ${publication.publish15colorVk} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishYoutubeLyrics'+${publication.publish15id}" th:style="'background-color: ' + ${publication.publish15colorYoutubeLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishYoutubeKaraoke'+${publication.publish15id}" th:style="'background-color: ' + ${publication.publish15colorYoutubeKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishVkLyrics'+${publication.publish15id}" th:style="'background-color: ' + ${publication.publish15colorVkLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishVkKaraoke'+${publication.publish15id}" th:style="'background-color: ' + ${publication.publish15colorVkKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishTelegramLyrics'+${publication.publish15id}" th:style="'background-color: ' + ${publication.publish15colorTelegramLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishTelegramKaraoke'+${publication.publish15id}" th:style="'background-color: ' + ${publication.publish15colorTelegramKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishLyrics'+${publication.publish15id}" th:style="'background-color: ' + ${publication.publish15colorMeltLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'" th:ondblclick="'doPlay('+${publication.publish15id}+', \'playlyrics\')'"></div>
+                            <div th:name="'publishKaraoke'+${publication.publish15id}" th:style="'background-color: ' + ${publication.publish15colorMeltKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'" th:ondblclick="'doPlay('+${publication.publish15id}+', \'playkaraoke\')'"></div>
+                        </td>
+
+                        <td class="task" th:data-id="${publication.publish16id}" style="padding: 0; font-size: 0; min-width: 180px; max-width: 180px; border-style: solid; border-width: thin">
+                            <div
+                                    class="task__content"
+                                    th:data-id="${publication.publish16id}"
+                                    th:name="'publishText'+${publication.publish16id}"
+                                    th:text="${publication.publish16text}"
+                                    th:style="'background-color: ' + ${publication.publish16color} + '; height: 100%; padding: 4px; font-size: 10px; width: 180px; min-width: 180px; max-width: 180px; border-width: 0;'"
+                            ></div>
+                            <div class="task__actions" th:insert="~{settings_contextmenu_task_actions.html}"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishBoosty'+${publication.publish16id}" th:style="'background-color: ' + ${publication.publish16colorBoosty} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishVk'+${publication.publish16id}" th:style="'background-color: ' + ${publication.publish16colorVk} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishYoutubeLyrics'+${publication.publish16id}" th:style="'background-color: ' + ${publication.publish16colorYoutubeLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishYoutubeKaraoke'+${publication.publish16id}" th:style="'background-color: ' + ${publication.publish16colorYoutubeKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishVkLyrics'+${publication.publish16id}" th:style="'background-color: ' + ${publication.publish16colorVkLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishVkKaraoke'+${publication.publish16id}" th:style="'background-color: ' + ${publication.publish16colorVkKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishTelegramLyrics'+${publication.publish16id}" th:style="'background-color: ' + ${publication.publish16colorTelegramLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishTelegramKaraoke'+${publication.publish16id}" th:style="'background-color: ' + ${publication.publish16colorTelegramKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishLyrics'+${publication.publish16id}" th:style="'background-color: ' + ${publication.publish16colorMeltLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'" th:ondblclick="'doPlay('+${publication.publish16id}+', \'playlyrics\')'"></div>
+                            <div th:name="'publishKaraoke'+${publication.publish16id}" th:style="'background-color: ' + ${publication.publish16colorMeltKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'" th:ondblclick="'doPlay('+${publication.publish16id}+', \'playkaraoke\')'"></div>
+                        </td>
+
+                        <td class="task" th:data-id="${publication.publish17id}" style="padding: 0; font-size: 0; min-width: 180px; max-width: 180px; border-style: solid; border-width: thin">
+                            <div
+                                    class="task__content"
+                                    th:data-id="${publication.publish17id}"
+                                    th:name="'publishText'+${publication.publish17id}"
+                                    th:text="${publication.publish17text}"
+                                    th:style="'background-color: ' + ${publication.publish17color} + '; height: 100%; padding: 4px; font-size: 10px; width: 180px; min-width: 180px; max-width: 180px; border-width: 0;'"
+                            ></div>
+                            <div class="task__actions" th:insert="~{settings_contextmenu_task_actions.html}"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishBoosty'+${publication.publish17id}" th:style="'background-color: ' + ${publication.publish17colorBoosty} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishVk'+${publication.publish17id}" th:style="'background-color: ' + ${publication.publish17colorVk} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishYoutubeLyrics'+${publication.publish17id}" th:style="'background-color: ' + ${publication.publish17colorYoutubeLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishYoutubeKaraoke'+${publication.publish17id}" th:style="'background-color: ' + ${publication.publish17colorYoutubeKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishVkLyrics'+${publication.publish17id}" th:style="'background-color: ' + ${publication.publish17colorVkLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishVkKaraoke'+${publication.publish17id}" th:style="'background-color: ' + ${publication.publish17colorVkKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishTelegramLyrics'+${publication.publish17id}" th:style="'background-color: ' + ${publication.publish17colorTelegramLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishTelegramKaraoke'+${publication.publish17id}" th:style="'background-color: ' + ${publication.publish17colorTelegramKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishLyrics'+${publication.publish17id}" th:style="'background-color: ' + ${publication.publish17colorMeltLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'" th:ondblclick="'doPlay('+${publication.publish17id}+', \'playlyrics\')'"></div>
+                            <div th:name="'publishKaraoke'+${publication.publish17id}" th:style="'background-color: ' + ${publication.publish17colorMeltKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'" th:ondblclick="'doPlay('+${publication.publish17id}+', \'playkaraoke\')'"></div>
+                        </td>
+
+                        <td class="task" th:data-id="${publication.publish18id}" style="padding: 0; font-size: 0; min-width: 180px; max-width: 180px; border-style: solid; border-width: thin">
+                            <div
+                                    class="task__content"
+                                    th:data-id="${publication.publish18id}"
+                                    th:name="'publishText'+${publication.publish18id}"
+                                    th:text="${publication.publish18text}"
+                                    th:style="'background-color: ' + ${publication.publish18color} + '; height: 100%; padding: 4px; font-size: 10px; width: 180px; min-width: 180px; max-width: 180px; border-width: 0;'"
+                            ></div>
+                            <div class="task__actions" th:insert="~{settings_contextmenu_task_actions.html}"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishBoosty'+${publication.publish18id}" th:style="'background-color: ' + ${publication.publish18colorBoosty} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishVk'+${publication.publish18id}" th:style="'background-color: ' + ${publication.publish18colorVk} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishYoutubeLyrics'+${publication.publish18id}" th:style="'background-color: ' + ${publication.publish18colorYoutubeLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishYoutubeKaraoke'+${publication.publish18id}" th:style="'background-color: ' + ${publication.publish18colorYoutubeKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishVkLyrics'+${publication.publish18id}" th:style="'background-color: ' + ${publication.publish18colorVkLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishVkKaraoke'+${publication.publish18id}" th:style="'background-color: ' + ${publication.publish18colorVkKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishTelegramLyrics'+${publication.publish18id}" th:style="'background-color: ' + ${publication.publish18colorTelegramLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishTelegramKaraoke'+${publication.publish18id}" th:style="'background-color: ' + ${publication.publish18colorTelegramKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishLyrics'+${publication.publish18id}" th:style="'background-color: ' + ${publication.publish18colorMeltLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'" th:ondblclick="'doPlay('+${publication.publish18id}+', \'playlyrics\')'"></div>
+                            <div th:name="'publishKaraoke'+${publication.publish18id}" th:style="'background-color: ' + ${publication.publish18colorMeltKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'" th:ondblclick="'doPlay('+${publication.publish18id}+', \'playkaraoke\')'"></div>
+                        </td>
+
+                        <td class="task" th:data-id="${publication.publish19id}" style="padding: 0; font-size: 0; min-width: 180px; max-width: 180px; border-style: solid; border-width: thin">
+                            <div
+                                    class="task__content"
+                                    th:data-id="${publication.publish19id}"
+                                    th:name="'publishText'+${publication.publish19id}"
+                                    th:text="${publication.publish19text}"
+                                    th:style="'background-color: ' + ${publication.publish19color} + '; height: 100%; padding: 4px; font-size: 10px; width: 180px; min-width: 180px; max-width: 180px; border-width: 0;'"
+                            ></div>
+                            <div class="task__actions" th:insert="~{settings_contextmenu_task_actions.html}"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishBoosty'+${publication.publish19id}" th:style="'background-color: ' + ${publication.publish19colorBoosty} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishVk'+${publication.publish19id}" th:style="'background-color: ' + ${publication.publish19colorVk} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishYoutubeLyrics'+${publication.publish19id}" th:style="'background-color: ' + ${publication.publish19colorYoutubeLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishYoutubeKaraoke'+${publication.publish19id}" th:style="'background-color: ' + ${publication.publish19colorYoutubeKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishVkLyrics'+${publication.publish19id}" th:style="'background-color: ' + ${publication.publish19colorVkLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishVkKaraoke'+${publication.publish19id}" th:style="'background-color: ' + ${publication.publish19colorVkKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishTelegramLyrics'+${publication.publish19id}" th:style="'background-color: ' + ${publication.publish19colorTelegramLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishTelegramKaraoke'+${publication.publish19id}" th:style="'background-color: ' + ${publication.publish19colorTelegramKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishLyrics'+${publication.publish19id}" th:style="'background-color: ' + ${publication.publish19colorMeltLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'" th:ondblclick="'doPlay('+${publication.publish19id}+', \'playlyrics\')'"></div>
+                            <div th:name="'publishKaraoke'+${publication.publish19id}" th:style="'background-color: ' + ${publication.publish19colorMeltKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'" th:ondblclick="'doPlay('+${publication.publish19id}+', \'playkaraoke\')'"></div>
+                        </td>
+
+                        <td class="task" th:data-id="${publication.publish20id}" style="padding: 0; font-size: 0; min-width: 180px; max-width: 180px; border-style: solid; border-width: thin">
+                            <div
+                                    class="task__content"
+                                    th:data-id="${publication.publish20id}"
+                                    th:name="'publishText'+${publication.publish20id}"
+                                    th:text="${publication.publish20text}"
+                                    th:style="'background-color: ' + ${publication.publish20color} + '; height: 100%; padding: 4px; font-size: 10px; width: 180px; min-width: 180px; max-width: 180px; border-width: 0;'"
+                            ></div>
+                            <div class="task__actions" th:insert="~{settings_contextmenu_task_actions.html}"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishBoosty'+${publication.publish20id}" th:style="'background-color: ' + ${publication.publish20colorBoosty} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishVk'+${publication.publish20id}" th:style="'background-color: ' + ${publication.publish20colorVk} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishYoutubeLyrics'+${publication.publish20id}" th:style="'background-color: ' + ${publication.publish20colorYoutubeLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishYoutubeKaraoke'+${publication.publish20id}" th:style="'background-color: ' + ${publication.publish20colorYoutubeKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishVkLyrics'+${publication.publish20id}" th:style="'background-color: ' + ${publication.publish20colorVkLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishVkKaraoke'+${publication.publish20id}" th:style="'background-color: ' + ${publication.publish20colorVkKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishTelegramLyrics'+${publication.publish20id}" th:style="'background-color: ' + ${publication.publish20colorTelegramLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishTelegramKaraoke'+${publication.publish20id}" th:style="'background-color: ' + ${publication.publish20colorTelegramKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishLyrics'+${publication.publish20id}" th:style="'background-color: ' + ${publication.publish20colorMeltLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'" th:ondblclick="'doPlay('+${publication.publish20id}+', \'playlyrics\')'"></div>
+                            <div th:name="'publishKaraoke'+${publication.publish20id}" th:style="'background-color: ' + ${publication.publish20colorMeltKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'" th:ondblclick="'doPlay('+${publication.publish20id}+', \'playkaraoke\')'"></div>
+                        </td>
+
+                        <td class="task" th:data-id="${publication.publish21id}" style="padding: 0; font-size: 0; min-width: 180px; max-width: 180px; border-style: solid; border-width: thin">
+                            <div
+                                    class="task__content"
+                                    th:data-id="${publication.publish21id}"
+                                    th:name="'publishText'+${publication.publish21id}"
+                                    th:text="${publication.publish21text}"
+                                    th:style="'background-color: ' + ${publication.publish21color} + '; height: 100%; padding: 4px; font-size: 10px; width: 180px; min-width: 180px; max-width: 180px; border-width: 0;'"
+                            ></div>
+                            <div class="task__actions" th:insert="~{settings_contextmenu_task_actions.html}"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishBoosty'+${publication.publish21id}" th:style="'background-color: ' + ${publication.publish21colorBoosty} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishVk'+${publication.publish21id}" th:style="'background-color: ' + ${publication.publish21colorVk} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishYoutubeLyrics'+${publication.publish21id}" th:style="'background-color: ' + ${publication.publish21colorYoutubeLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishYoutubeKaraoke'+${publication.publish21id}" th:style="'background-color: ' + ${publication.publish21colorYoutubeKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishVkLyrics'+${publication.publish21id}" th:style="'background-color: ' + ${publication.publish21colorVkLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishVkKaraoke'+${publication.publish21id}" th:style="'background-color: ' + ${publication.publish21colorVkKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishTelegramLyrics'+${publication.publish21id}" th:style="'background-color: ' + ${publication.publish21colorTelegramLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishTelegramKaraoke'+${publication.publish21id}" th:style="'background-color: ' + ${publication.publish21colorTelegramKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishLyrics'+${publication.publish21id}" th:style="'background-color: ' + ${publication.publish21colorMeltLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'" th:ondblclick="'doPlay('+${publication.publish21id}+', \'playlyrics\')'"></div>
+                            <div th:name="'publishKaraoke'+${publication.publish21id}" th:style="'background-color: ' + ${publication.publish21colorMeltKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'" th:ondblclick="'doPlay('+${publication.publish21id}+', \'playkaraoke\')'"></div>
+                        </td>
+
+                        <td class="task" th:data-id="${publication.publish22id}" style="padding: 0; font-size: 0; min-width: 180px; max-width: 180px; border-style: solid; border-width: thin">
+                            <div
+                                    class="task__content"
+                                    th:data-id="${publication.publish22id}"
+                                    th:name="'publishText'+${publication.publish22id}"
+                                    th:text="${publication.publish22text}"
+                                    th:style="'background-color: ' + ${publication.publish22color} + '; height: 100%; padding: 4px; font-size: 10px; width: 180px; min-width: 180px; max-width: 180px; border-width: 0;'"
+                            ></div>
+                            <div class="task__actions" th:insert="~{settings_contextmenu_task_actions.html}"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishBoosty'+${publication.publish22id}" th:style="'background-color: ' + ${publication.publish22colorBoosty} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishVk'+${publication.publish22id}" th:style="'background-color: ' + ${publication.publish22colorVk} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishYoutubeLyrics'+${publication.publish22id}" th:style="'background-color: ' + ${publication.publish22colorYoutubeLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishYoutubeKaraoke'+${publication.publish22id}" th:style="'background-color: ' + ${publication.publish22colorYoutubeKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishVkLyrics'+${publication.publish22id}" th:style="'background-color: ' + ${publication.publish22colorVkLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishVkKaraoke'+${publication.publish22id}" th:style="'background-color: ' + ${publication.publish22colorVkKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishTelegramLyrics'+${publication.publish22id}" th:style="'background-color: ' + ${publication.publish22colorTelegramLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishTelegramKaraoke'+${publication.publish22id}" th:style="'background-color: ' + ${publication.publish22colorTelegramKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishLyrics'+${publication.publish22id}" th:style="'background-color: ' + ${publication.publish22colorMeltLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'" th:ondblclick="'doPlay('+${publication.publish22id}+', \'playlyrics\')'"></div>
+                            <div th:name="'publishKaraoke'+${publication.publish22id}" th:style="'background-color: ' + ${publication.publish22colorMeltKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'" th:ondblclick="'doPlay('+${publication.publish22id}+', \'playkaraoke\')'"></div>
+                        </td>
+
+                        <td class="task" th:data-id="${publication.publish23id}" style="padding: 0; font-size: 0; min-width: 180px; max-width: 180px; border-style: solid; border-width: thin">
+                            <div
+                                    class="task__content"
+                                    th:data-id="${publication.publish23id}"
+                                    th:name="'publishText'+${publication.publish23id}"
+                                    th:text="${publication.publish23text}"
+                                    th:style="'background-color: ' + ${publication.publish23color} + '; height: 100%; padding: 4px; font-size: 10px; width: 180px; min-width: 180px; max-width: 180px; border-width: 0;'"
+                            ></div>
+                            <div class="task__actions" th:insert="~{settings_contextmenu_task_actions.html}"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishBoosty'+${publication.publish23id}" th:style="'background-color: ' + ${publication.publish23colorBoosty} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishVk'+${publication.publish23id}" th:style="'background-color: ' + ${publication.publish23colorVk} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishYoutubeLyrics'+${publication.publish23id}" th:style="'background-color: ' + ${publication.publish23colorYoutubeLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishYoutubeKaraoke'+${publication.publish23id}" th:style="'background-color: ' + ${publication.publish23colorYoutubeKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishVkLyrics'+${publication.publish23id}" th:style="'background-color: ' + ${publication.publish23colorVkLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishVkKaraoke'+${publication.publish23id}" th:style="'background-color: ' + ${publication.publish23colorVkKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishTelegramLyrics'+${publication.publish23id}" th:style="'background-color: ' + ${publication.publish23colorTelegramLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'"></div>
+                            <div th:name="'publishTelegramKaraoke'+${publication.publish23id}" th:style="'background-color: ' + ${publication.publish23colorTelegramKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'"></div>
+                        </td>
+                        <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
+                            <div th:name="'publishLyrics'+${publication.publish23id}" th:style="'background-color: ' + ${publication.publish23colorMeltLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'" th:ondblclick="'doPlay('+${publication.publish23id}+', \'playlyrics\')'"></div>
+                            <div th:name="'publishKaraoke'+${publication.publish23id}" th:style="'background-color: ' + ${publication.publish23colorMeltKaraoke} + '; height: 50%; font-size: 0; border-style: none; border-width: thin;'" th:ondblclick="'doPlay('+${publication.publish23id}+', \'playkaraoke\')'"></div>
+                        </td>
+                        
                         <td th:text="${publication.publishDate}" style="font-size: 10px; width: 70px; min-width: 70px; max-width: 70px; border-style: solid; border-width: thin; text-align: center;"></td>
                     </tr>
                     </tbody>
@@ -523,5 +592,261 @@
 
     </div>
 </div>
+
+<nav id="context-menu" class="context-menu" th:insert="~{settings_contextmenu.html}"></nav>
+<script src="settings_context.js"></script>
+
+<script type="text/javascript">
+
+    var stompClient = null;
+
+    function connect() {
+        var socket = new SockJS('/message');
+        stompClient = Stomp.over(socket);
+        stompClient.connect({}, function(frame) {
+            console.log('Connected: ' + frame);
+            stompClient.subscribe('/messages/recordchange', function(recordchange){
+                console.log("Получено сообщение...");
+                updateSettingsFromMessage(JSON.parse(recordchange.body));
+            });
+        });
+    }
+
+    function doRecordChange(recordchange) {
+        console.log(recordchange);
+    }
+
+
+    var currentTimeStamp = new Date().getTime();
+
+    function doPlay(id, name) {
+        $.ajax({
+            type: "GET",
+            url: `/song/${id}/${name}`,
+            data: "",
+            success: function(data) {
+            }
+        });
+    }
+
+    function updateSettingsFromMessage(recordchange) {
+        var id = recordchange.recordChangeId;
+        var table = recordchange.recordChangeTableName;
+        var diffs = recordchange.recordChangeDiffs;
+        if (table === 'tbl_settings') {
+            diffs.forEach((diff) => {
+                var recordDiffName = diff.recordDiffName;
+                var recordDiffValueNew = diff.recordDiffValueNew;
+                switch (recordDiffName) {
+                    case 'color':
+                        var nameText = `publishText${id}`;
+                        var nameColors = `publishColors${id}`;
+                        var elements = document.getElementsByName(nameText);
+                        if (elements.length > 0) {
+                            var elementText = elements[0];
+                            var elementColors = document.getElementsByName(nameColors)[0];
+                            elementText.style.backgroundColor = recordDiffValueNew;
+                            elementColors.style.backgroundColor = recordDiffValueNew;
+                        }
+                        break;
+
+                    case 'processColorMeltLyrics':
+                        if (document.getElementsByName(`publishText${id}`).length > 0) {
+                            document.getElementsByName(`publishLyrics${id}`)[0].style.backgroundColor = recordDiffValueNew;
+                        }
+                        break;
+
+
+                    case 'processColorMeltKaraoke':
+                        if (document.getElementsByName(`publishText${id}`).length > 0) {
+                            document.getElementsByName(`publishKaraoke${id}`)[0].style.backgroundColor = recordDiffValueNew;
+                        }
+                        break;
+
+                    case 'MELT_LYRICS':
+                        if (document.getElementsByName(`publishText${id}`).length > 0) {
+                            document.getElementsByName(`publishLyrics${id}`)[0].style.width = recordDiffValueNew;
+                        }
+                        break;
+
+                    case 'MELT_KARAOKE':
+                        if (document.getElementsByName(`publishText${id}`).length > 0) {
+                            document.getElementsByName(`publishKaraoke${id}`)[0].style.width = recordDiffValueNew;
+                        }
+                        break;
+
+                    case 'processColorYoutubeLyrics':
+                        if (document.getElementsByName(`publishText${id}`).length > 0) {
+                            document.getElementsByName(`publishYoutubeLyrics${id}`)[0].style.backgroundColor = recordDiffValueNew;
+                        }
+                        break;
+
+                    case 'processColorYoutubeKaraoke':
+                        if (document.getElementsByName(`publishText${id}`).length > 0) {
+                            document.getElementsByName(`publishYoutubeKaraoke${id}`)[0].style.backgroundColor = recordDiffValueNew;
+                        }
+                        break;
+
+                    case 'processColorVkLyrics':
+                        if (document.getElementsByName(`publishText${id}`).length > 0) {
+                            document.getElementsByName(`publishVkLyrics${id}`)[0].style.backgroundColor = recordDiffValueNew;
+                        }
+                        break;
+
+                    case 'processColorVkKaraoke':
+                        if (document.getElementsByName(`publishText${id}`).length > 0) {
+                            document.getElementsByName(`publishVkKaraoke${id}`)[0].style.backgroundColor = recordDiffValueNew;
+                        }
+                        break;
+
+                    case 'processColorTelegramLyrics':
+                        if (document.getElementsByName(`publishText${id}`).length > 0) {
+                            document.getElementsByName(`publishTelegramLyrics${id}`)[0].style.backgroundColor = recordDiffValueNew;
+                        }
+                        break;
+
+                    case 'processColorTelegramKaraoke':
+                        if (document.getElementsByName(`publishText${id}`).length > 0) {
+                            document.getElementsByName(`publishTelegramKaraoke${id}`)[0].style.backgroundColor = recordDiffValueNew;
+                        }
+                        break;
+
+                    case 'processColorVk':
+                        if (document.getElementsByName(`publishText${id}`).length > 0) {
+                            document.getElementsByName(`publishVk${id}`)[0].style.backgroundColor = recordDiffValueNew;
+                        }
+                        break;
+
+                    case 'processColorBoosty':
+                        if (document.getElementsByName(`publishText${id}`).length > 0) {
+                            document.getElementsByName(`publishBoosty${id}`)[0].style.backgroundColor = recordDiffValueNew;
+                        }
+                        break;
+
+                    case 'FF_720_LYR':
+                        if (document.getElementsByName(`publishText${id}`).length > 0) {
+                            document.getElementsByName(`publishLyrics${id}`)[0].style.width = recordDiffValueNew;
+                            if (recordDiffValueNew !== "100%") {
+                                document.getElementsByName(`publishLyrics${id}`)[0].style.backgroundColor = "#0000FF";
+                            } else {
+                                document.getElementsByName(`publishLyrics${id}`)[0].style.backgroundColor = "#FF00FF";
+                            }
+                        }
+                        break;
+
+                    case 'FF_720_KAR':
+                        if (document.getElementsByName(`publishText${id}`).length > 0) {
+                            document.getElementsByName(`publishKaraoke${id}`)[0].style.width = recordDiffValueNew;
+                            if (recordDiffValueNew !== "100%") {
+                                document.getElementsByName(`publishKaraoke${id}`)[0].style.backgroundColor = "#0000FF";
+                            } else {
+                                document.getElementsByName(`publishKaraoke${id}`)[0].style.backgroundColor = "#FF00FF";
+                            }
+                        }
+                        break;
+
+                    default:
+                }
+            });
+        }
+    }
+
+    function updateSettings(id) {
+        console.log(`Обновляем запись №${id}`)
+        var nameText = `publishText${id}`;
+        var nameColors = `publishColors${id}`;
+        var nameLyrics = `publishLyrics${id}`;
+        var nameKaraoke = `publishKaraoke${id}`;
+        var nameYoutubeLyrics = `publishYoutubeLyrics${id}`;
+        var nameYoutubeKaraoke = `publishYoutubeKaraoke${id}`;
+        var nameVkLyrics = `publishVkLyrics${id}`;
+        var nameVkKaraoke = `publishVkKaraoke${id}`;
+        var nameTelegramLyrics = `publishTelegramLyrics${id}`;
+        var nameTelegramKaraoke = `publishTelegramKaraoke${id}`;
+        var nameVk = `publishVk${id}`;
+        var nameBoosty = `publishBoosty${id}`;
+        var elements = document.getElementsByName(nameText);
+        if (elements.length > 0) {
+            var elementText = elements[0];
+            var elementColors = document.getElementsByName(nameColors)[0];
+            var elementLyrics = document.getElementsByName(nameLyrics)[0];
+            var elementKaraoke = document.getElementsByName(nameKaraoke)[0];
+            var elementYoutubeLyrics = document.getElementsByName(nameYoutubeLyrics)[0];
+            var elementYoutubeKaraoke = document.getElementsByName(nameYoutubeKaraoke)[0];
+            var elementVkLyrics = document.getElementsByName(nameVkLyrics)[0];
+            var elementVkKaraoke = document.getElementsByName(nameVkKaraoke)[0];
+            var elementTelegramLyrics = document.getElementsByName(nameTelegramLyrics)[0];
+            var elementTelegramKaraoke = document.getElementsByName(nameTelegramKaraoke)[0];
+            var elementVk = document.getElementsByName(nameVk)[0];
+            var elementBoosty = document.getElementsByName(nameBoosty)[0];
+
+            $.ajax({
+                type: "GET",
+                url: "/song/" + id,
+                data: "",
+                success: function(data) {
+                    elementText.style.backgroundColor = data.color;
+                    elementColors.style.backgroundColor = data.color;
+                    elementLyrics.style.backgroundColor = data.processColorMeltLyrics;
+                    elementKaraoke.style.backgroundColor = data.processColorMeltKaraoke;
+                    elementYoutubeLyrics.style.backgroundColor = data.processColorYoutubeLyrics;
+                    elementYoutubeKaraoke.style.backgroundColor = data.processColorYoutubeKaraoke;
+                    elementVkLyrics.style.backgroundColor = data.processColorVkLyrics;
+                    elementVkKaraoke.style.backgroundColor = data.processColorVkKaraoke;
+                    elementTelegramLyrics.style.backgroundColor = data.processColorTelegramLyrics;
+                    elementTelegramKaraoke.style.backgroundColor = data.processColorTelegramKaraoke;
+                    elementVk.style.backgroundColor = data.processColorVk;
+                    elementBoosty.style.backgroundColor = data.processColorBoosty;
+                }
+            });
+
+        }
+    }
+
+    function updateCurrentTime() {
+
+        $.ajax({
+            type: "GET",
+            url: "/songs/lastupdated",
+            data: {'lastTime':currentTimeStamp},
+            success: function(data) {
+                data.forEach((objId) => {
+                    updateSettings(objId);
+                });
+            }
+        });
+        currentTimeStamp = new Date().getTime();
+    }
+
+    function doFilterAll() {
+        var url = "/publications?filter_cond=all";
+        window.location.href = url;
+    }
+
+    function doFilterFromToday() {
+        var url = "/publications?filter_cond=fromtoday";
+        window.location.href = url;
+    }
+
+    function doFilterFromNotPublish() {
+        var url = "/publications?filter_cond=fromnotpublish";
+        window.location.href = url;
+    }
+    function doFilterFromNotDone() {
+        var url = "/publications?filter_cond=fromnotdone";
+        window.location.href = url;
+    }
+
+    function doFilterFromNotCheck() {
+        var url = "/publications?filter_cond=fromnotcheck";
+        window.location.href = url;
+    }
+
+    $(function() {
+        // setInterval(updateCurrentTime, 5000);
+        connect();
+    });
+
+</script>
 
 </body>

@@ -3,19 +3,17 @@ package com.svoemesto.karaokeapp
 import com.google.gson.GsonBuilder
 import com.svoemesto.karaokeapp.mlt.*
 import com.svoemesto.karaokeapp.model.*
+import com.svoemesto.karaokeapp.textfiledictionary.YoWordsDictionary
 import org.apache.commons.io.FileUtils
 import org.apache.commons.csv.CSVFormat
 import org.apache.commons.csv.CSVParser
-import java.io.FileReader
-import java.io.IOException
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import org.odftoolkit.simple.SpreadsheetDocument
+import org.springframework.messaging.simp.SimpMessagingTemplate
 import java.awt.*
 import java.awt.image.BufferedImage
-import java.io.BufferedReader
-import java.io.File
-import java.io.InputStreamReader
+import java.io.*
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
@@ -24,6 +22,7 @@ import java.sql.DriverManager
 import java.sql.ResultSet
 import java.sql.SQLException
 import java.sql.Statement
+import java.text.SimpleDateFormat
 import java.util.*
 import javax.imageio.ImageIO
 import javax.sound.sampled.AudioSystem
@@ -52,15 +51,8 @@ fun main() {
 //    markDublicates("Дореволюціонный совѣтчикъ")
 //    markDublicates("Бригадный подряд")
 
-
-//    Settings.loadListFromDb().forEach { sett ->
-//        if (sett.idBoosty != "") {
-//            sett.createVKDescription()
-//        }
-//    }
-
-    createDigestForAllAuthors()
-    createDigestForAllAuthorsForOper()
+//    createDigestForAllAuthors()
+//    createDigestForAllAuthorsForOper()
 
 
 //    collectDoneFilesToStoreFolderAndCreate720pForAllUncreated()
@@ -100,6 +92,63 @@ fun main() {
 
 }
 
+fun customFunction(): String {
+    var result = ""
+
+//    Settings.loadListFromDb(mapOf("publish_date" to ">06.12.23"))
+//        .filter { it.statusProcessKaraoke == "WAITING" && it.statusProcessLyrics == "WAITING" && it.date != ""}
+//        .forEach { settings ->
+//            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, 100)
+//            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_LYR, true, 100)
+//            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, 100)
+//            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_KAR, true, 100)
+//        }
+//
+//    Settings.loadListFromDb(mapOf("publish_date" to "21.11.23<"))
+//        .filter { it.statusProcessKaraoke == "WAITING" && it.statusProcessLyrics == "WAITING" && it.date != ""}
+//        .forEach { settings ->
+//            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, 100)
+//            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_LYR, true, 100)
+//            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, 100)
+//            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_KAR, true, 100)
+//        }
+
+    return result
+}
+
+fun <T : java.io.Serializable> deepCopy(obj: T?): T? {
+    if (obj == null) return null
+    val baos = ByteArrayOutputStream()
+    val oos  = ObjectOutputStream(baos)
+    oos.writeObject(obj)
+    oos.close()
+    val bais = ByteArrayInputStream(baos.toByteArray())
+    val ois  = ObjectInputStream(bais)
+    @Suppress("unchecked_cast")
+    return ois.readObject() as T
+}
+fun organizeUnpublished() {
+
+    val listUnpublished =
+        Settings.loadListFromDb(mapOf("publish_date" to "-", "publish_time" to "-"))
+            .groupBy { it.author }
+            .map { Pair(it.key, it.value.size) }
+
+    var slotes: MutableList<Pair<String, Long>> = mutableListOf()
+    slotes.add("11:00" to SimpleDateFormat("dd.MM.yy").parse(Settings.loadListFromDb(mapOf("publish_time" to "11:00")).last().date).time)
+    slotes.add("12:00" to SimpleDateFormat("dd.MM.yy").parse(Settings.loadListFromDb(mapOf("publish_time" to "12:00")).last().date).time)
+    slotes.add("13:00" to SimpleDateFormat("dd.MM.yy").parse(Settings.loadListFromDb(mapOf("publish_time" to "13:00")).last().date).time)
+    slotes.add("14:00" to SimpleDateFormat("dd.MM.yy").parse(Settings.loadListFromDb(mapOf("publish_time" to "14:00")).last().date).time)
+    slotes.add("15:00" to SimpleDateFormat("dd.MM.yy").parse(Settings.loadListFromDb(mapOf("publish_time" to "15:00")).last().date).time)
+    slotes.add("16:00" to SimpleDateFormat("dd.MM.yy").parse(Settings.loadListFromDb(mapOf("publish_time" to "16:00")).last().date).time)
+    slotes.add("17:00" to SimpleDateFormat("dd.MM.yy").parse(Settings.loadListFromDb(mapOf("publish_time" to "17:00")).last().date).time)
+    slotes.add("18:00" to SimpleDateFormat("dd.MM.yy").parse(Settings.loadListFromDb(mapOf("publish_time" to "18:00")).last().date).time)
+    slotes.add("19:00" to SimpleDateFormat("dd.MM.yy").parse(Settings.loadListFromDb(mapOf("publish_time" to "19:00")).last().date).time)
+    slotes.add("20:00" to SimpleDateFormat("dd.MM.yy").parse(Settings.loadListFromDb(mapOf("publish_time" to "20:00")).last().date).time)
+    val minDate = slotes.minOfOrNull { it.second } ?: 0L
+    slotes = slotes.map {Pair(it.first, it.second - minDate) }.toMutableList()
+
+}
 
 fun updateBpmAndKey(): Int {
     val listSettings = Settings.loadListFromDb(mapOf("song_tone" to "''", "song_bpm" to "0"))
@@ -118,26 +167,35 @@ fun updateBpmAndKey(): Int {
 }
 
 fun getBpmAndKeyFromCsv(settings: Settings): Pair<Long, String> {
-    val csvFilePath = settings.rootFolder + "/key_bpm.csv"
-    if (File(csvFilePath).exists()) {
-        try {
-            FileReader(csvFilePath).use { fileReader ->
-                val csvParser = CSVParser(fileReader, CSVFormat.DEFAULT)
-
-                // Проходимся по записям CSV и читаем данные
-                for (csvRecord in csvParser) {
-                    val fileName = csvRecord.get(0)
-                    val bpm = csvRecord.get(3)
-                    val key = csvRecord.get(4)
-                    if (fileName == settings.fileName + ".flac") {
-                        return Pair(bpm.toLong(), key)
-                    }
-                }
-            }
-        } catch (e: IOException) {
-            e.printStackTrace()
+    var csvFilePath = settings.rootFolder + "/key_bpm.csv"
+    var file = File(csvFilePath)
+    if (!file.exists()) {
+        csvFilePath = Path(settings.rootFolder).parent.toString() + "/key_bpm.csv"
+        file = File(csvFilePath)
+        if (!file.exists()) {
+            return Pair(0, "")
         }
     }
+
+    try {
+        FileReader(csvFilePath).use { fileReader ->
+            val csvParser = CSVParser(fileReader, CSVFormat.DEFAULT)
+
+            // Проходимся по записям CSV и читаем данные
+            for (csvRecord in csvParser) {
+                val fileName = csvRecord.get(0)
+                val bpm = csvRecord.get(3)
+                val key = csvRecord.get(4)
+                if (fileName == settings.fileName + ".flac") {
+                    return Pair(bpm.toLong(), key)
+                }
+            }
+        }
+    } catch (e: IOException) {
+        e.printStackTrace()
+    }
+
+
     return Pair(0, "")
 
 }
@@ -270,22 +328,10 @@ class ResourceReader {
     }
 }
 
-fun collectYo() {
-    val regexWord = """\b[а-яА-ЯёЁa-zA-Z0-9-]+\b""".toRegex()
-    val settingsList = Settings.loadListFromDb()
-    val setOfWordsYo: MutableSet<String> = mutableSetOf()
-    settingsList.forEach { settings ->
-        var songText = settings.getSourceText(0).replace("_"," ")
-        var matchResult = regexWord.findAll(songText)
-        setOfWordsYo.addAll(matchResult.map { it.value.lowercase() }.filter { it.contains("ё") && it != "всё" } .toSet())
-    }
-    File("/home/nsa/Documents/Караоке/Слова_с_буквой_ё.txt").writeText(setOfWordsYo.toList().sorted().joinToString("\n"))
-
-}
 fun replaceSymbolsInSong(sourceText: String): String {
-    var result = sourceText
+    var result = sourceText.addNewLinesByUpperCase()
 
-    val yo = File("/home/nsa/Documents/Караоке/Слова_с_буквой_ё.txt").readText().split("\n")
+    val yo = YoWordsDictionary().dict
 
     yo.forEach { wordWithYO ->
         val replacedWord = wordWithYO.replace("ё", "е")
@@ -297,6 +343,11 @@ fun replaceSymbolsInSong(sourceText: String): String {
         result = result.replace(patt2, capWordWithYO)
     }
 
+    result = result.replaceQuotes()
+
+    result = result.replace(",",", ")
+    result = result.replace(",  ",", ")
+    result = result.replace("--","-")
     result = result.replace("—","-")
     result = result.replace("–","-")
     result = result.replace("−","-")
@@ -688,64 +739,38 @@ fun searchSongText(settings: Settings): String {
 
                 return text
             }
+        } else if (href.startsWith("https://text-lyrics.ru/")) {
+
+            println(href)
+
+            try {
+                document = Jsoup.connect(href).get()
+                lyricsElement = document.selectFirst("div.entry_content")
+                println("text()")
+                println(lyricsElement?.text())
+                println("ownText()")
+                println(lyricsElement?.ownText())
+                println("html()")
+                println(lyricsElement?.html())
+
+                var text = lyricsElement?.text()
+                if (text != null) {
+                    println(text)
+                    return text
+                }
+            } catch (e: Exception) {
+                return ""
+            }
+
+
+
         }
 
     }
 
     return ""
 }
-fun testProcess2() {
 
-    KaraokeProcess.loadList().forEach {
-        it.updateStatusProcessSettings()
-    }
-
-}
-fun testProcess() {
-
-    val regex = Regex("Current Frame:\\s+(\\d+), percentage:\\s+(\\d+)")
-    val args = listOf(
-        "python3",
-        "-m",
-        "demucs",
-        "-n",
-        DEMUCS_MODEL_NAME,
-        "-d",
-        "cuda",
-        "--filename",
-        "{track}-{stem}.{ext}",
-        "--two-stems=vocals",
-        "-o",
-        "/home/nsa/Documents/Караоке/Разное/Иосиф Кобзон - День Победы",
-        "/home/nsa/Documents/Караоке/Разное/Иосиф Кобзон - День Победы/2014 (1) [Иосиф Кобзон] - День Победы.flac"
-    )
-    val processBuilder = ProcessBuilder(args)
-    processBuilder.redirectErrorStream(true)
-    val process = processBuilder.start()
-
-    val inputStream = process.inputStream
-
-    val reader = BufferedReader(InputStreamReader(inputStream))
-    var line: String? = reader.readLine()
-    while (line != null) {
-
-//        val matchResult = regex.find(line)
-//        if (matchResult != null) {
-//            val currentFrame = matchResult.groupValues[1]
-//            val percentage = matchResult.groupValues[2]
-//            println("Current Frame: $currentFrame, percentage: $percentage")
-//        }
-
-        println(line)
-        line = reader.readLine()
-    }
-}
-fun testDbConnection() {
-
-    val settings = Settings.loadFromFile("/home/nsa/Documents/Караоке/Ундервуд/2002 - Все пройдет, Милая/(01) [Ундервуд] Все что надо.settings")
-    settings.saveToDb()
-
-}
 
 fun updateSettingsFromDb(startFolder: String) {
     val listFiles = getListFiles(startFolder,"settings")
@@ -756,15 +781,6 @@ fun updateSettingsFromDb(startFolder: String) {
     }
 }
 
-//fun updateSettingsFromDb(startFolder: String) {
-//    val spreadsheetDocument = SpreadsheetDocument.loadDocument(File(PATH_TO_ODS))
-//    val listFiles = getListFiles(startFolder,"settings")
-//    listFiles.forEach { pathToSettingsFile ->
-//        println("updateSettingsFromDb: $pathToSettingsFile")
-//        Settings.updateFromOds(pathToSettingsFile, spreadsheetDocument)
-//    }
-//    spreadsheetDocument.close()
-//}
 
 fun testSoundLib() {
     val audioFile = File("/home/nsa/Documents/Караоке/Nautilus Pompilius/1997 - Атлантида/1997 (02) [Nautilus Pompilius] - Умершие во сне.flac")
@@ -1664,15 +1680,19 @@ fun getFontSizeByHeight(heightPx: Int, font: Font): Int {
 
 fun getFileNameByMasks(pathToFolder: String, startWith: String, suffixes: List<String>,extension: String): String {
 
-    val files = Files.walk(Path(pathToFolder))
-        .filter(Files::isRegularFile)
-        .map { it.toString() }
-        .filter{ it.endsWith(extension) && it.startsWith("${pathToFolder}/$startWith")}
-        .map { Path(it).toFile().name }
-        .toList()
-    suffixes.forEach { suffix ->
-        val filename = files.firstOrNull{it.startsWith("${startWith}${suffix}")}
-        if (filename != null) return filename
+    try {
+        val files = Files.walk(Path(pathToFolder))
+            .filter(Files::isRegularFile)
+            .map { it.toString() }
+            .filter{ it.endsWith(extension) && it.startsWith("${pathToFolder}/$startWith")}
+            .map { Path(it).toFile().name }
+            .toList()
+        suffixes.forEach { suffix ->
+            val filename = files.firstOrNull{it.startsWith("${startWith}${suffix}")}
+            if (filename != null) return filename
+        }
+    } catch (e: Exception) {
+        return ""
     }
     return ""
 
@@ -1850,8 +1870,8 @@ fun createSongChordsPicture(song: Song, fileName: String, songVersion: SongVersi
 fun createSongPicture(song: Song, fileName: String, songVersion: SongVersion) {
     val caption = songVersion.text
     val comment: String = "${songVersion.textForDescription}"
-    val pathToLogoAlbum = "${song.settings.rootFolder}/LogoAlbum.png"
-    val pathToLogoAuthor = "${song.settings.rootFolder}/LogoAuthor.png"
+    val pathToLogoAlbum = "${song.settings.pathToFileLogoAlbum}"
+    val pathToLogoAuthor = "${song.settings.pathToFileLogoAuthor}"
 
     val frameW = 1920
     val frameH = 1080
@@ -1862,7 +1882,7 @@ fun createSongPicture(song: Song, fileName: String, songVersion: SongVersion) {
     val colorSongname = Color(255,255,127,255)
     val colorCaption = Color(85,255,255,255)
     val colorComment = Color(85,255,255,255)
-    var textToOverlay = song.settings.songName
+    var textToOverlay = song.settings.songName.censored()
     val imageType = BufferedImage.TYPE_INT_ARGB
     var resultImage = BufferedImage(frameW, frameH, imageType)
     val graphics2D = resultImage.graphics as Graphics2D
@@ -1945,15 +1965,15 @@ fun resizeBufferedImage(img: BufferedImage, newW: Int, newH: Int): BufferedImage
 }
 
 fun createBoostyTeaserPicture(song: Song, fileName: String) {
-    val pathToLogoAlbum = "${song.settings.rootFolder}/LogoAlbum.png"
-    val pathToLogoAuthor = "${song.settings.rootFolder}/LogoAuthor.png"
+    val pathToLogoAlbum = "${song.settings.pathToFileLogoAlbum}"
+    val pathToLogoAuthor = "${song.settings.pathToFileLogoAuthor}"
 
     val frameW = 575
     val frameH = 625
     val opaque: Float = 1f
     var fontSongname = Font(MAIN_FONT_NAME, 0, 10)
     val colorSongname = Color(255,255,127,255)
-    var textToOverlay = song.settings.songName
+    var textToOverlay = song.settings.songName.censored()
     val imageType = BufferedImage.TYPE_INT_ARGB
     var resultImage = BufferedImage(frameW, frameH, imageType)
     val graphics2D = resultImage.graphics as Graphics2D
@@ -1996,15 +2016,15 @@ fun createBoostyTeaserPicture(song: Song, fileName: String) {
 }
 
 fun createVKPicture(song: Song, fileName: String) {
-    val pathToLogoAlbum = "${song.settings.rootFolder}/LogoAlbum.png"
-    val pathToLogoAuthor = "${song.settings.rootFolder}/LogoAuthor.png"
+    val pathToLogoAlbum = "${song.settings.pathToFileLogoAlbum}"
+    val pathToLogoAuthor = "${song.settings.pathToFileLogoAuthor}"
 
     val frameW = 575
     val frameH = 300
     val opaque: Float = 1f
     var fontSongname = Font(MAIN_FONT_NAME, 0, 10)
     val colorSongname = Color(255,255,127,255)
-    var textToOverlay = song.settings.songName
+    var textToOverlay = song.settings.songName.censored()
     val imageType = BufferedImage.TYPE_INT_ARGB
     var resultImage = BufferedImage(frameW, frameH, imageType)
     val graphics2D = resultImage.graphics as Graphics2D
@@ -2495,39 +2515,50 @@ class Ribbon(private val input: String) {
 class MainRibbon {
     val vowels = "аеёиоуыюяэАЕЁИОУЫЮЯЭeuioayYEUIOAїієѣ"
     val nonPairConsonant = "лйрнмЛЙРНМ.,:-"
-    fun syllables(input: String?): List<String> {
+    fun syllables(inputString: String?, delimiter: String = "|"): List<String> {
+        if (inputString == null) return emptyList()
         val result: MutableList<String> = ArrayList()
-        val ribbon = Ribbon(input!!)
-        while (ribbon.moveHeadForward()) {
-            ribbon.setFlag()
-            if (checkVowel(ribbon.readCurrentPosition())) {
-                if (ribbon.moveHeadForward() && ribbon.moveHeadForward()) {
+        val inputList = inputString.split(delimiter)
+//        val inputList = listOf(inputString)
+        inputList.forEach { input ->
+//            if (!input.containThisSymbols(vowels)) {
+//                result.add(input)
+//            } else {
+                val ribbon = Ribbon(input)
+                while (ribbon.moveHeadForward()) {
+                    ribbon.setFlag()
                     if (checkVowel(ribbon.readCurrentPosition())) {
+                        if (ribbon.moveHeadForward() && ribbon.moveHeadForward()) {
+                            if (checkVowel(ribbon.readCurrentPosition())) {
+                                ribbon.rewindToFlag()
+                                ribbon.setEndSyllableIndex()
+                                result.add(ribbon.extractSyllable())
+                                continue
+                            }
+                        }
                         ribbon.rewindToFlag()
-                        ribbon.setEndSyllableIndex()
-                        result.add(ribbon.extractSyllable())
-                        continue
+                        if (ribbon.moveHeadForward() && checkSpecialConsonant(ribbon.readCurrentPosition())) {
+                            ribbon.setEndSyllableIndex()
+                            result.add(ribbon.extractSyllable())
+                            continue
+                        }
+                        ribbon.rewindToFlag()
+                        if (hasMoreVowels(ribbon)) {
+                            ribbon.rewindToFlag()
+                            ribbon.setEndSyllableIndex()
+                            result.add(ribbon.extractSyllable())
+                            continue
+                        } else {
+                            while (ribbon.moveHeadForward());
+                            ribbon.setEndSyllableIndex()
+                            result.add(ribbon.extractSyllable())
+                        }
                     }
                 }
-                ribbon.rewindToFlag()
-                if (ribbon.moveHeadForward() && checkSpecialConsonant(ribbon.readCurrentPosition())) {
-                    ribbon.setEndSyllableIndex()
-                    result.add(ribbon.extractSyllable())
-                    continue
-                }
-                ribbon.rewindToFlag()
-                if (hasMoreVowels(ribbon)) {
-                    ribbon.rewindToFlag()
-                    ribbon.setEndSyllableIndex()
-                    result.add(ribbon.extractSyllable())
-                    continue
-                } else {
-                    while (ribbon.moveHeadForward());
-                    ribbon.setEndSyllableIndex()
-                    result.add(ribbon.extractSyllable())
-                }
-            }
+//            }
+
         }
+
         return result
     }
 
@@ -2552,7 +2583,7 @@ class MainRibbon {
         @JvmStatic
         fun main(args: Array<String>) {
             val mainRibbon = MainRibbon()
-            println(mainRibbon.syllables("Он"))
+            println(mainRibbon.syllables("Я однажды проснусь оттого, что пойму: в эту ночь"))
         }
     }
 }

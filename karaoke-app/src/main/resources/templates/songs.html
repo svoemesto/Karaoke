@@ -4,6 +4,10 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css" integrity="sha384-B0vP5xmATw1+K9KRQjQERJvTumQW0nPEzvF6L/Z6nronJ3oUOFUFpCjEUQouq2+l" crossorigin="anonymous">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-Piv4xVNRyMGpqkS2by6br4gNJ7DXjqk09RmUpJ8jgGtD7zP9yug3goQfGII0yAns" crossorigin="anonymous"></script>
+
+    <script src="sockjs.js"></script>
+    <script src="stomp.js"></script>
+
     <title>Песни</title>
     <style>
         * {
@@ -80,6 +84,20 @@
     </style>
 
     <script type="text/javascript">
+
+        var stompClient = null;
+
+        function connect() {
+            var socket = new SockJS('/message');
+            stompClient = Stomp.over(socket);
+            stompClient.connect({}, function(frame) {
+                console.log('Connected: ' + frame);
+                stompClient.subscribe('/messages/recordchange', function(recordchange){
+                    console.log("Получено сообщение...");
+                    updateSettingsFromMessage(JSON.parse(recordchange.body));
+                });
+            });
+        }
 
         var currentTimeStamp = new Date().getTime();
         var currentRow;
@@ -313,9 +331,10 @@
             prev_author = el_author.value;
 
             currentRow = row;
-            el_id_text.innerText = '«' + currentRow.cells[indCell_songName].innerText + '»';
+            // el_id_text.innerText = '«' + currentRow.cells[indCell_songName].innerText + '»';
             el_id.value =  currentRow.cells[indCell_id].innerText;
             el_songName.value =  currentRow.cells[indCell_songName].innerText;
+            doCensored();
             el_author.value =  currentRow.cells[indCell_author].innerText;
             el_year.value =  currentRow.cells[indCell_year].innerText;
             el_album.value =  currentRow.cells[indCell_album].innerText;
@@ -656,7 +675,7 @@
             var dataString = $('#myForm').serialize();
             var id = el_id.value;
 
-            doRowColor();
+            // doRowColor();
             updateTableRowFromFormElements();
             updateButtonsLinks();
 
@@ -666,7 +685,7 @@
                 data: dataString,
                 success: function() {
 
-                    updateSettings(id)
+                    // updateSettings(id)
                 }
             });
             return false;
@@ -861,12 +880,6 @@
                 navigator.clipboard.writeText(result);
             }
         }
-
-
-
-
-
-
 
         function doTextVkLyricsWOHeader() {
             var id = el_id.value;
@@ -1277,6 +1290,18 @@
                 });
             }
         }
+
+        function doCensored() {
+            $.ajax({
+                type: "POST",
+                url: "/utils/censored",
+                data: {"source": el_songName.value},
+                success: function(data) {
+                    el_id_text.innerText = '«' + data + '»';
+                }
+            });
+        }
+
         function doCreateKaraokeAll() {
             var txt = ""
             var tbl = document.getElementById("leftTable");
@@ -2098,6 +2123,222 @@
             });
         }
 
+        function updateSettingsFromMessage(recordchange) {
+            var id = recordchange.recordChangeId;
+            var table = recordchange.recordChangeTableName;
+            var diffs = recordchange.recordChangeDiffs;
+            if (table === 'tbl_settings') {
+
+                var idRow = `row${id}`;
+                var elementRow = document.getElementById(idRow);
+                if (elementRow !== null) {
+                    var cells = elementRow.cells;
+
+                    diffs.forEach((diff) => {
+                        var recordDiffName = diff.recordDiffName;
+                        var recordDiffValueNew = diff.recordDiffValueNew;
+                        switch (recordDiffName) {
+
+                            case 'song_name':
+                                cells[indCell_songName].innerText = recordDiffValueNew;
+                                break;
+
+                            case 'song_author':
+                                cells[indCell_author].innerText = recordDiffValueNew;
+                                break;
+
+                            case 'song_album':
+                                cells[indCell_album].innerText = recordDiffValueNew;
+                                break;
+
+                            case 'publish_date':
+                                cells[indCell_date].innerText = recordDiffValueNew;
+                                break;
+
+                            case 'publish_time':
+                                cells[indCell_time].innerText = recordDiffValueNew;
+                                break;
+
+                            case 'song_year':
+                                cells[indCell_year].innerText = recordDiffValueNew;
+                                break;
+
+                            case 'song_track':
+                                cells[indCell_track].innerText = recordDiffValueNew;
+                                break;
+
+                            case 'song_tone':
+                                cells[indCell_key].innerText = recordDiffValueNew;
+                                break;
+
+                            case 'song_bpm':
+                                cells[indCell_bpm].innerText = recordDiffValueNew;
+                                break;
+
+                            case 'song_ms':
+                                cells[indCell_ms].innerText = recordDiffValueNew;
+                                break;
+
+                            case 'file_name':
+                                cells[indCell_fileName].innerText = recordDiffValueNew;
+                                break;
+
+                            case 'root_folder':
+                                cells[indCell_rootFolder].innerText = recordDiffValueNew;
+                                break;
+
+                            case 'id_boosty':
+                                cells[indCell_idBoosty].innerText = recordDiffValueNew;
+                                if (recordDiffValueNew !== "") {
+                                    cells[indCell_check_idBoosty].innerText = '✓';
+                                } else {
+                                    cells[indCell_check_idBoosty].innerText = '';
+                                }
+                                break;
+
+                            case 'id_vk':
+                                cells[indCell_idVk].innerText = recordDiffValueNew;
+                                if (recordDiffValueNew !== "") {
+                                    cells[indCell_check_idVk].innerText = '✓';
+                                } else {
+                                    cells[indCell_check_idVk].innerText = '';
+                                }
+                                break;
+
+                            case 'id_youtube_lyrics':
+                                cells[indCell_idYoutubeLyrics].innerText = recordDiffValueNew;
+                                if (recordDiffValueNew !== "") {
+                                    cells[indCell_check_idYoutubeLyrics].innerText = '✓';
+                                } else {
+                                    cells[indCell_check_idYoutubeLyrics].innerText = '';
+                                }
+                                break;
+
+                            case 'id_youtube_karaoke':
+                                cells[indCell_idYoutubeKaraoke].innerText = recordDiffValueNew;
+                                if (recordDiffValueNew !== "") {
+                                    cells[indCell_check_idYoutubeKaraoke].innerText = '✓';
+                                } else {
+                                    cells[indCell_check_idYoutubeKaraoke].innerText = '';
+                                }
+                                break;
+
+                            case 'id_youtube_chords':
+                                cells[indCell_idYoutubeChords].innerText = recordDiffValueNew;
+                                if (recordDiffValueNew !== "") {
+                                    cells[indCell_check_idYoutubeChords].innerText = '✓';
+                                } else {
+                                    cells[indCell_check_idYoutubeChords].innerText = '';
+                                }
+                                break;
+
+                            case 'id_vk_lyrics':
+                                cells[indCell_idVkLyrics].innerText = recordDiffValueNew;
+                                if (recordDiffValueNew !== "") {
+                                    cells[indCell_check_idVkLyrics].innerText = '✓';
+                                } else {
+                                    cells[indCell_check_idVkLyrics].innerText = '';
+                                }
+                                break;
+
+                            case 'id_vk_karaoke':
+                                cells[indCell_idVkKaraoke].innerText = recordDiffValueNew;
+                                if (recordDiffValueNew !== "") {
+                                    cells[indCell_check_idVkKaraoke].innerText = '✓';
+                                } else {
+                                    cells[indCell_check_idVkKaraoke].innerText = '';
+                                }
+                                break;
+
+                            case 'id_vk_chords':
+                                cells[indCell_idVkChords].innerText = recordDiffValueNew;
+                                if (recordDiffValueNew !== "") {
+                                    cells[indCell_check_idVkChords].innerText = '✓';
+                                } else {
+                                    cells[indCell_check_idVkChords].innerText = '';
+                                }
+                                break;
+
+                            case 'id_telegram_lyrics':
+                                cells[indCell_idTelegramLyrics].innerText = recordDiffValueNew;
+                                if (recordDiffValueNew !== "") {
+                                    cells[indCell_check_idTelegramLyrics].innerText = '✓';
+                                } else {
+                                    cells[indCell_check_idTelegramLyrics].innerText = '';
+                                }
+                                break;
+
+                            case 'id_telegram_karaoke':
+                                cells[indCell_idTelegramKaraoke].innerText = recordDiffValueNew;
+                                if (recordDiffValueNew !== "") {
+                                    cells[indCell_check_idTelegramKaraoke].innerText = '✓';
+                                } else {
+                                    cells[indCell_check_idTelegramKaraoke].innerText = '';
+                                }
+                                break;
+
+                            case 'id_telegram_chords':
+                                cells[indCell_idTelegramChords].innerText = recordDiffValueNew;
+                                if (recordDiffValueNew !== "") {
+                                    cells[indCell_check_idTelegramChords].innerText = '✓';
+                                } else {
+                                    cells[indCell_check_idTelegramChords].innerText = '';
+                                }
+                                break;
+
+                            case 'id_status':
+                                cells[indCell_status].innerText = recordDiffValueNew;
+                                break;
+
+                            case 'tags':
+                                cells[indCell_tags].innerText = recordDiffValueNew;
+                                break;
+
+                            case 'processColorMeltLyrics':
+                                cells[indCell_check_idYoutubeLyrics].style.backgroundColor = recordDiffValueNew;
+                                break;
+
+                            case 'processColorMeltKaraoke':
+                                cells[indCell_check_idYoutubeKaraoke].style.backgroundColor = recordDiffValueNew;
+                                break;
+
+                            case 'processColorVkLyrics':
+                                cells[indCell_check_idVkLyrics].style.backgroundColor = recordDiffValueNew;
+                                break;
+
+                            case 'processColorVkKaraoke':
+                                cells[indCell_check_idVkKaraoke].style.backgroundColor = recordDiffValueNew;
+                                break;
+
+                            case 'processColorTelegramLyrics':
+                                cells[indCell_check_idTelegramLyrics].style.backgroundColor = recordDiffValueNew;
+                                break;
+
+                            case 'processColorTelegramKaraoke':
+                                cells[indCell_check_idTelegramKaraoke].style.backgroundColor = recordDiffValueNew;
+                                break;
+
+                            case 'processColorVk':
+                                cells[indCell_check_idVk].style.backgroundColor = recordDiffValueNew;
+                                break;
+
+                            case 'processColorBoosty':
+                                cells[indCell_check_idBoosty].style.backgroundColor = recordDiffValueNew;
+                                break;
+
+                            case 'color':
+                                elementRow.style.backgroundColor = recordDiffValueNew;
+                                break;
+
+                            default:
+                        }
+                    });
+
+                }
+
+            }
+        }
+
         function updateSettings(id) {
 
             var currentId = el_id;
@@ -2293,7 +2534,8 @@
         }
 
         $(function() {
-            setInterval(updateCurrentTime, 5000);
+            // setInterval(updateCurrentTime, 5000);
+            connect();
         });
 
         function getSongPictureAlbum() {
@@ -2471,7 +2713,7 @@
                             <td hidden th:text="${settings.idTelegramChords}"></td>
                             <td th:text="${settings.flagBoosty}" style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
                             <td th:text="${settings.flagVk}" style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
-                            <td th:text="${settings.flagYoutubeLyrics}" th:id="'fld_'+${settings.id}+'_flag_lyrics'" th:ondblclick="'doPlay('+${settings.id}+', \'playlyrics\')'" th:style="'background-color: ' + ${settings.processColorMeltLyrics} + '; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center'"></td>
+                            <td th:text="${settings.flagYoutubeLyrics}" th:id="'fld_'+${settings.id}+'_flag_lyrics'" th:ondblclick="'doPlay('+${settings.id}+', \'playlyrics\')'" th:style="'background-color: ' + ${settings.processColorMeltLyrics} + ';min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center'"></td>
                             <td th:text="${settings.flagYoutubeKaraoke}" th:id="'fld_'+${settings.id}+'_flag_karaoke'" th:ondblclick="'doPlay('+${settings.id}+', \'playkaraoke\')'" th:style="'background-color: ' + ${settings.processColorMeltKaraoke} + ';min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center'"></td>
                             <td hidden th:text="${settings.flagYoutubeChords}" th:id="'fld_'+${settings.id}+'_flag_chords'" th:ondblclick="'doPlay('+${settings.id}+', \'playkaraokebt\')'" th:style="'background-color: ' + ${settings.processColorMeltChords} + ';min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center'"></td>
                             <td th:text="${settings.flagVkLyrics}" style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
@@ -3180,13 +3422,13 @@
                                 <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Статус</td>
                                 <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
                                     <select id="select_status" name="select_status" class="form-control">
-                                        <option value="0">---</option>
-                                        <option value="1">Текст найден</option>
-                                        <option value="2">Текст проверен</option>
-                                        <option value="3">Проект создан</option>
-                                        <option value="4">Проект проверен</option>
-                                        <option value="5">На рендере</option>
-                                        <option value="6">ГОТОВО</option>
+                                        <option value="0">NONE</option>
+                                        <option value="1">TEXT_CREATE</option>
+                                        <option value="2">TEXT_CHECK</option>
+                                        <option value="3">PROJECT_CREATE</option>
+                                        <option value="4">PROJECT_CHECK</option>
+                                        <option value="5">RENDERING</option>
+                                        <option value="6">DONE</option>
                                     </select>
                                 </td>
                                 <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">

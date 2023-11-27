@@ -1,6 +1,11 @@
 package com.svoemesto.karaokeapp
 
+import com.svoemesto.karaokeapp.mlt.mko.*
 import com.svoemesto.karaokeapp.model.ProducerType
+import com.svoemesto.karaokeapp.textfiledictionary.CensoredWordsDictionary
+import com.svoemesto.karaokeapp.textfiledictionary.TestDictionary
+import com.svoemesto.karaokeapp.textfiledictionary.YoWordsDictionary
+import org.springframework.messaging.simp.SimpMessagingTemplate
 
 val idProducerSongText = ProducerType.SONGTEXT.ordinal * 10
 val idProducerHorizon = ProducerType.HORIZON.ordinal * 10
@@ -93,4 +98,40 @@ val PROJECT_ROOT_FOLDERS = listOf(
     "/home/nsa/Documents/Караоке",
     "/media/nsa/FilesSSD1Tb/KaraokeDone",
     "/clouds/KaraokeDone"
+)
+
+const val YO_FILE_PATH = "/home/nsa/Documents/Караоке/Слова_с_буквой_ё.txt"
+const val CENSORED_FILE_PATH = "/home/nsa/Documents/Караоке/censored.txt"
+const val TESTDICT_FILE_PATH = "/home/nsa/Documents/Караоке/test_dict.txt"
+
+val TEXT_FILE_DICTS = mapOf(
+    "Слова с Ё" to YoWordsDictionary::class.java,
+    "Censored" to CensoredWordsDictionary::class.java,
+    "Тестовый словарь" to TestDictionary::class.java
+)
+
+lateinit var WEBSOCKET: SimpMessagingTemplate
+
+val producerTypeClass = mapOf(
+    ProducerType.AUDIOVOCAL to MkoAudio::class.java,
+    ProducerType.AUDIOMUSIC to MkoAudio::class.java,
+    ProducerType.AUDIOSONG to MkoAudio::class.java,
+    ProducerType.AUDIOBASS to MkoAudio::class.java,
+    ProducerType.AUDIODRUMS to MkoAudio::class.java,
+    ProducerType.BACKGROUND to MkoBackground::class.java,
+    ProducerType.HORIZON to MkoHorizon::class.java,
+    ProducerType.FLASH to MkoFlash::class.java,
+    ProducerType.PROGRESS to MkoProgress::class.java,
+    ProducerType.FILLCOLORSONGTEXT to MkoFillcolorSongtext::class.java,
+    ProducerType.SONGTEXT to MkoSongText::class.java,
+    ProducerType.SONGTEXTLINE to MkoSongTextLine::class.java,
+    ProducerType.COUNTER to MkoCounter::class.java,
+    ProducerType.FADERTEXT to MkoFaderText::class.java,
+    ProducerType.FADERCHORDS to MkoFaderChords::class.java,
+    ProducerType.BACKCHORDS to MkoBackChords::class.java,
+    ProducerType.FINGERBOARD to MkoFingerboard::class.java,
+    ProducerType.HEADER to MkoHeader::class.java,
+    ProducerType.WATERMARK to MkoWatermark::class.java,
+    ProducerType.SPLASHSTART to MkoSplashStart::class.java,
+    ProducerType.BOOSTY to MkoBoosty::class.java
 )

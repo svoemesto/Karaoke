@@ -1,0 +1,762 @@
+<div id="areaCenterColumn">
+    <div class="container">
+
+        <form action=""
+              role="form"
+              class="form-horizontal"
+              id="myForm"
+              name="myForm"
+              style="border-spacing: 0; border-collapse: collapse; width: 100%; margin-bottom: 0;">
+
+            <div class="container-fluid">
+
+                <h1 id="settings_id_text" name="settings_id_text"></h1><input hidden type="text" class="form-control"  id="settings_id" name="settings_id">
+
+                <table class="table table-hover table-bordered" style="margin: 1px;padding: 1px">
+                    <tr style="margin: 1px;padding: 1px">
+                        <td style="margin: 1px;padding: 1px; min-width: 200px">
+                            <table style="width: 100%">
+                                <tr>
+                                    <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 1px; vertical-align: middle">Исполнитель</td>
+                                </tr>
+                                <tr  style="width: max-content">
+                                    <td style="font-size: 14px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                                        <input style="font-size: 14px;" type="text" class="form-control" id="settings_author" name="settings_author" placeholder="Исполнитель">
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                        <td style="margin: 1px;padding: 1px; width: 80px; min-width: 80px; max-width: 80px;">
+                            <table style="width: 100%">
+                                <tr>
+                                    <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Год</td>
+                                </tr>
+                                <tr style="width: 80px">
+                                    <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                        <input style="margin: 0px; font-size: 14px; padding: 0;" type="text" class="form-control" id="settings_year" name="settings_year" placeholder="Год">
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                        <td style="margin: 1px;padding: 1px; min-width: 200px">
+                            <table style="width: 100%">
+                                <tr>
+                                    <td style="width: max-content; font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Альбом</td>
+                                </tr>
+                                <tr >
+                                    <td style="width: max-content; font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                        <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="settings_album" name="settings_album" placeholder="Альбом">
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+                <table class="table table-hover table-bordered" style="margin: 1px;padding: 1px">
+                    <tr style="margin: 1px;padding: 1px">
+                        <td style="margin: 1px;padding: 1px; max-width: 50px">
+                            <table style="width: 100%">
+                                <tr>
+                                    <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Трек</td>
+                                </tr>
+                                <tr>
+                                    <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_track" name="settings_track" placeholder="Трек">
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                        <td style="margin: 1px;padding: 1px;">
+                            <table style="width: 100%">
+                                <tr>
+                                    <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Композиция</td>
+                                </tr>
+                                <tr>
+                                    <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                        <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="settings_songName" name="settings_songName" placeholder="Композиция">
+                                    </td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                        <button style="width: 35px; height: 35px;" name="button_copy_songName" id="button_copy_songName" class="form-control btn btn-info btn-block" type="button" onclick="copySongName()">📋</button>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                        <td style="margin: 1px;padding: 1px;">
+                            <table style="width: 100%">
+                                <tr>
+                                    <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Tags</td>
+                                </tr>
+                                <tr>
+                                    <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_tags" name="settings_tags" placeholder="Tags">
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+                <table class="table table-hover table-bordered" style="margin: 1px;padding: 1px">
+                    <tr style="margin: 1px;padding: 1px">
+                        <td style="margin: 1px;padding: 1px;">
+                            <table style="width: 100%">
+                                <tr>
+                                    <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Дата публикации</td>
+                                </tr>
+                                <tr>
+                                    <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_date" name="settings_date" placeholder="Дата публикации">
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                        <td style="margin: 1px;padding: 1px;">
+                            <table style="width: 100%">
+                                <tr>
+                                    <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Время публикации</td>
+                                </tr>
+                                <tr>
+                                    <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_time" name="settings_time" placeholder="Время публикации">
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                        <td style="margin: 1px;padding: 1px;">
+                            <table style="width: 100%">
+                                <tr>
+                                    <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Тональность</td>
+                                </tr>
+                                <tr>
+                                    <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_key" name="settings_key" placeholder="Тональность">
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                        <td style="margin: 1px;padding: 1px;">
+                            <table style="width: 100%">
+                                <tr>
+                                    <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Темп</td>
+                                </tr>
+                                <tr>
+                                    <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_bpm" name="settings_bpm" placeholder="Темп">
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                        <td style="margin: 1px;padding: 1px;">
+                            <table style="width: 100%">
+                                <tr>
+                                    <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">MS</td>
+                                </tr>
+                                <tr>
+                                    <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_ms" name="settings_ms" placeholder="MS">
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+                <table class="table table-hover table-bordered" style="margin: 1px;padding: 1px">
+                    <tr style="margin: 1px;padding: 1px">
+                        <td style="margin: 1px;padding: 1px;">
+                            <table style="width: 100%">
+                                <tr>
+                                    <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Имя файла</td>
+                                </tr>
+                                <tr>
+                                    <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_fileName" name="settings_fileName" placeholder="Имя файла">
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                        <td style="margin: 1px;padding: 1px;">
+                            <table style="width: 100%">
+                                <tr>
+                                    <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Корневая папка</td>
+                                </tr>
+                                <tr>
+                                    <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_rootFolder" name="settings_rootFolder" placeholder="Корневая папка">
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+
+                <table class="table table-hover table-bordered" style="margin: 1px;padding: 1px">
+                    <tr style="margin: 1px;padding: 1px">
+                        <td style="margin: 1px;padding: 1px;">
+                            <table style="width: 100%">
+                                <tr>
+                                    <td colspan="5" style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle; text-align: center">BOOSTY</td>
+                                </tr>
+                                <tr>
+                                    <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idBoosty" name="settings_idBoosty" placeholder="Boosty" oninput="extractBoostyId(this)">
+                                    </td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 10px; padding-right: 10px; width: 140px;">
+                                        <a style="width: 160px; height: 35px;" name="button_link_boosty" id="button_link_boosty" class="btn btn-info btn-block" type="button" target="_blank" href="">OPEN</a>
+                                    </td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                        <button style="width: 35px; height: 35px;" name="button_link_boosty_head" id="button_link_boosty_head" class="form-control btn btn-primary btn-block" type="button" onclick="doTextBoostyHead()">H</button>
+                                    </td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                        <button style="width: 35px; height: 35px;" name="button_link_boosty_body" id="button_link_boosty_body" class="form-control btn btn-primary btn-block" type="button" onclick="doTextBoostyBody()">B</button>
+                                    </td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                        <button style="width: 35px; height: 35px;" name="button_link_boosty_link" id="button_link_boosty_link" class="form-control btn btn-primary btn-block" type="button" onclick="doBoostyLink()">L</button>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+
+                <table class="table table-hover table-bordered" style="margin: 1px;padding: 1px">
+                    <tr style="margin: 1px;padding: 1px">
+                        <td style="margin: 1px;padding: 1px;">
+                            <table style="width: 100%">
+                                <tr>
+                                    <td colspan="4" style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle; text-align: center">Группа VK</td>
+                                </tr>
+                                <tr>
+                                    <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idVk" name="settings_idVk" placeholder="Vk" oninput="extractVkId(this)">
+                                    </td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 10px; padding-right: 10px; width: 140px;">
+                                        <a style="width: 160px; height: 35px;" name="button_link_vk" id="button_link_vk" class="btn btn-info btn-block" type="button" target="_blank" href="">OPEN</a>
+                                    </td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                        <button style="width: 35px; height: 35px;" name="button_link_vk_body" id="button_link_vk_body" class="form-control btn btn-primary btn-block" type="button" onclick="doTextVKBody()">B</button>
+                                    </td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                        <button style="width: 35px; height: 35px;" name="button_link_vk_link" id="button_link_vk_link" class="form-control btn btn-primary btn-block" type="button" onclick="doVKLink()">L</button>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+                <table class="table table-hover table-bordered" style="margin: 1px;padding: 1px">
+                    <tr>
+                        <td>
+                            <table class="table table-hover table-bordered" style="margin: 1px;padding: 1px">
+                                <tr style="margin: 1px;padding: 1px">
+                                    <td colspan="13" style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle; text-align: center">DZEN</td>
+                                </tr>
+                                <tr style="margin: 1px;padding: 1px">
+                                    <td style="width: 70px; font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Версия</td>
+                                    <td colspan="6" style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle; text-align: center">Normal</td>
+                                    <!--                                <td colspan="6" style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle; text-align: center">Delay</td>-->
+                                </tr>
+                                <tr style="margin: 1px;padding: 1px">
+                                    <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Karaoke</td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                        <button style="width: 35px; height: 35px;" name="button_link_play_YoutubeKaraoke" id="button_link_play_YoutubeKaraoke" class="form-control btn btn-info btn-block" type="button" onclick="openLinkYoutubePlayKaraoke()">P</button>
+                                    </td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                        <button style="width: 35px; height: 35px;" name="button_link_edit_YoutubeKaraoke" id="button_link_edit_YoutubeKaraoke" class="form-control btn btn-warning btn-block" type="button" onclick="openLinkYoutubeEditKaraoke()">E</button>
+                                    </td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                        <button style="width: 35px; height: 35px;" name="button_head_YoutubeKaraoke" id="button_head_YoutubeKaraoke" class="form-control btn btn-primary btn-block" type="button" onclick="doTextYoutubeKaraokeHeader()">H</button>
+                                    </td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                        <button style="width: 35px; height: 35px;" name="button_body_YoutubeKaraoke" id="button_body_YoutubeKaraoke" class="form-control btn btn-primary btn-block" type="button" onclick="doTextYoutubeKaraokeWOHeader()">B</button>
+                                    </td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                        <button style="width: 35px; height: 35px;" name="button_link_YoutubeKaraoke_link" id="button_link_YoutubeKaraoke_link" class="form-control btn btn-primary btn-block" type="button" onclick="doYoutubeKaraokeLink()">L</button>
+                                    </td>
+                                    <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idYoutubeKaraoke" name="settings_idYoutubeKaraoke" placeholder="Karaoke" oninput="extractYoutubeVideoId(this)">
+                                    </td>
+                                    <!--                                <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">-->
+                                    <!--                                    <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idYoutubeKaraokeBt" name="settings_idYoutubeKaraokeBt" placeholder="Karaoke BT" oninput="extractYoutubeVideoId(this)">-->
+                                    <!--                                </td>-->
+                                    <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
+                                    <!--                                    <button style="width: 35px; height: 35px;" name="button_link_play_YoutubeKaraokeBt" id="button_link_play_YoutubeKaraokeBt" class="form-control btn btn-info btn-block" type="button" onclick="openLinkYoutubePlayKaraokeBt()">P</button>-->
+                                    <!--                                </td>-->
+                                    <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
+                                    <!--                                    <button style="width: 35px; height: 35px;" name="button_link_edit_YoutubeKaraokeBt" id="button_link_edit_YoutubeKaraokeBt" class="form-control btn btn-warning btn-block" type="button" onclick="openLinkYoutubeEditKaraokeBt()">E</button>-->
+                                    <!--                                </td>-->
+                                    <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
+                                    <!--                                    <button style="width: 35px; height: 35px;" name="button_head_YoutubeKaraokeBt" id="button_head_YoutubeKaraokeBt" class="form-control btn btn-primary btn-block" type="button" onclick="doTextYoutubeKaraokeBtHeader()">H</button>-->
+                                    <!--                                </td>-->
+                                    <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
+                                    <!--                                    <button style="width: 35px; height: 35px;" name="button_body_YoutubeKaraokeBt" id="button_body_YoutubeKaraokeBt" class="form-control btn btn-primary btn-block" type="button" onclick="doTextYoutubeKaraokeBtWOHeader()">B</button>-->
+                                    <!--                                </td>-->
+                                    <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
+                                    <!--                                    <button style="width: 35px; height: 35px;" name="button_link_YoutubeKaraokeBt_link" id="button_link_YoutubeKaraokeBt_link" class="form-control btn btn-primary btn-block" type="button" onclick="doYoutubeKaraokeBtLink()">L</button>-->
+                                    <!--                                </td>-->
+                                </tr>
+                                <tr style="margin: 1px;padding: 1px">
+                                    <td style="width: 70px; font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Lyrics</td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                        <button style="width: 35px; height: 35px;" name="button_link_play_YoutubeLyrics" id="button_link_play_YoutubeLyrics" class="form-control btn btn-info btn-block" type="button" onclick="openLinkYoutubePlayLyrics()">P</button>
+                                    </td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                        <button style="width: 35px; height: 35px;" name="button_link_edit_YoutubeLyrics" id="button_link_edit_YoutubeLyrics" class="form-control btn btn-warning btn-block" type="button" onclick="openLinkYoutubeEditLyrics()">E</button>
+                                    </td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                        <button style="width: 35px; height: 35px;" name="button_head_YoutubeLyrics" id="button_head_YoutubeLyrics" class="form-control btn btn-primary btn-block" type="button" onclick="doTextYoutubeLyricsHeader()">H</button>
+                                    </td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                        <button style="width: 35px; height: 35px;" name="button_body_YoutubeLyrics" id="button_body_YoutubeLyrics" class="form-control btn btn-primary btn-block" type="button" onclick="doTextYoutubeLyricsWOHeader()">B</button>
+                                    </td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                        <button style="width: 35px; height: 35px;" name="button_link_YoutubeLyrics_link" id="button_link_YoutubeLyrics_link" class="form-control btn btn-primary btn-block" type="button" onclick="doYoutubeLyricsLink()">L</button>
+                                    </td>
+                                    <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idYoutubeLyrics" name="settings_idYoutubeLyrics" placeholder="Lyrics" oninput="extractYoutubeVideoId(this)">
+                                    </td>
+                                    <!--                                <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">-->
+                                    <!--                                    <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idYoutubeLyricsBt" name="settings_idYoutubeLyricsBt" placeholder="Lyrics BT" oninput="extractYoutubeVideoId(this)">-->
+                                    <!--                                </td>-->
+                                    <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
+                                    <!--                                    <button style="width: 35px; height: 35px;" name="button_link_play_YoutubeLyricsBt" id="button_link_play_YoutubeLyricsBt" class="form-control btn btn-info btn-block" type="button" onclick="openLinkYoutubePlayLyricsBt()">P</button>-->
+                                    <!--                                </td>-->
+                                    <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
+                                    <!--                                    <button style="width: 35px; height: 35px;" name="button_link_edit_YoutubeLyricsBt" id="button_link_edit_YoutubeLyricsBt" class="form-control btn btn-warning btn-block" type="button" onclick="openLinkYoutubeEditLyricsBt()">E</button>-->
+                                    <!--                                </td>-->
+                                    <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
+                                    <!--                                    <button style="width: 35px; height: 35px;" name="button_head_YoutubeLyricsBt" id="button_head_YoutubeLyricsBt" class="form-control btn btn-primary btn-block" type="button" onclick="doTextYoutubeLyricsBtHeader()">H</button>-->
+                                    <!--                                </td>-->
+                                    <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
+                                    <!--                                    <button style="width: 35px; height: 35px;" name="button_body_YoutubeLyricsBt" id="button_body_YoutubeLyricsBt" class="form-control btn btn-primary btn-block" type="button" onclick="doTextYoutubeLyricsBtWOHeader()">B</button>-->
+                                    <!--                                </td>-->
+                                    <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
+                                    <!--                                    <button style="width: 35px; height: 35px;" name="button_link_YoutubeLyricsBt_link" id="button_link_YoutubeLyricsBt_link" class="form-control btn btn-primary btn-block" type="button" onclick="doYoutubeLyricsBtLink()">L</button>-->
+                                    <!--                                </td>-->
+                                </tr>
+                                <tr style="margin: 1px;padding: 1px">
+                                    <td style="width: 70px; font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Chords</td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                        <button style="width: 35px; height: 35px;" name="button_link_play_YoutubeChords" id="button_link_play_YoutubeChords" class="form-control btn btn-info btn-block" type="button" onclick="openLinkYoutubePlayChords()">P</button>
+                                    </td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                        <button style="width: 35px; height: 35px;" name="button_link_edit_YoutubeChords" id="button_link_edit_YoutubeChords" class="form-control btn btn-warning btn-block" type="button" onclick="openLinkYoutubeEditChords()">E</button>
+                                    </td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                        <button style="width: 35px; height: 35px;" name="button_head_YoutubeChords" id="button_head_YoutubeChords" class="form-control btn btn-primary btn-block" type="button" onclick="doTextYoutubeChordsHeader()">H</button>
+                                    </td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                        <button style="width: 35px; height: 35px;" name="button_body_YoutubeChords" id="button_body_YoutubeChords" class="form-control btn btn-primary btn-block" type="button" onclick="doTextYoutubeChordsWOHeader()">B</button>
+                                    </td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                        <button style="width: 35px; height: 35px;" name="button_link_YoutubeChords_link" id="button_link_YoutubeChords_link" class="form-control btn btn-primary btn-block" type="button" onclick="doYoutubeChordsLink()">L</button>
+                                    </td>
+                                    <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idYoutubeChords" name="settings_idYoutubeChords" placeholder="Chords" oninput="extractYoutubeVideoId(this)">
+                                    </td>
+                                    <!--                                <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">-->
+                                    <!--                                    <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idYoutubeChordsBt" name="settings_idYoutubeChordsBt" placeholder="Chords BT" oninput="extractYoutubeVideoId(this)">-->
+                                    <!--                                </td>-->
+                                    <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
+                                    <!--                                    <button style="width: 35px; height: 35px;" name="button_link_play_YoutubeChordsBt" id="button_link_play_YoutubeChordsBt" class="form-control btn btn-info btn-block" type="button" onclick="openLinkYoutubePlayChordsBt()">P</button>-->
+                                    <!--                                </td>-->
+                                    <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
+                                    <!--                                    <button style="width: 35px; height: 35px;" name="button_link_edit_YoutubeChordsBt" id="button_link_edit_YoutubeChordsBt" class="form-control btn btn-warning btn-block" type="button" onclick="openLinkYoutubeEditChordsBt()">E</button>-->
+                                    <!--                                </td>-->
+                                    <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
+                                    <!--                                    <button style="width: 35px; height: 35px;" name="button_head_YoutubeChordsBt" id="button_head_YoutubeChordsBt" class="form-control btn btn-primary btn-block" type="button" onclick="doTextYoutubeChordsBtHeader()">H</button>-->
+                                    <!--                                </td>-->
+                                    <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
+                                    <!--                                    <button style="width: 35px; height: 35px;" name="button_body_YoutubeChordsBt" id="button_body_YoutubeChordsBt" class="form-control btn btn-primary btn-block" type="button" onclick="doTextYoutubeChordsBtWOHeader()">B</button>-->
+                                    <!--                                </td>-->
+                                    <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
+                                    <!--                                    <button style="width: 35px; height: 35px;" name="button_link_YoutubeChordsBt_link" id="button_link_YoutubeChordsBt_link" class="form-control btn btn-primary btn-block" type="button" onclick="doYoutubeChordsBtLink()">L</button>-->
+                                    <!--                                </td>-->
+                                </tr>
+
+                            </table>
+                        </td>
+                        <td rowspan="3" style="min-width: 200px; max-width: 200px;">
+                            <table class="table table-hover table-bordered" style="margin: 1px;padding: 1px">
+                                <tr>
+                                    <td style="min-width: 250px; max-width: 250px; min-height: 100px; background-color: black">
+                                        <div>
+                                            <img id="image_author" width="250" height="100">
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="min-width: 250px; max-width: 250px; min-height: 250px; background-color: black">
+                                        <div>
+                                            <img id="image_album"  width="250" height="250">
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <table class="table table-hover table-bordered" style="margin: 1px;padding: 1px">
+                                <tr style="margin: 1px;padding: 1px">
+                                    <td colspan="13" style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle; text-align: center">VK</td>
+                                </tr>
+                                <tr style="margin: 1px;padding: 1px">
+                                    <td style="width: 70px; font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Версия</td>
+                                    <td colspan="6" style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle; text-align: center">Normal</td>
+                                    <!--                                <td colspan="6" style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle; text-align: center">Delay</td>-->
+                                </tr>
+                                <tr style="margin: 1px;padding: 1px">
+                                    <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Karaoke</td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                        <button style="width: 35px; height: 35px;" name="button_link_play_VkKaraoke" id="button_link_play_VkKaraoke" class="form-control btn btn-info btn-block" type="button" onclick="openLinkVkPlayKaraoke()">P</button>
+                                    </td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                        <button style="width: 35px; height: 35px;" name="button_link_edit_VkKaraoke" id="button_link_edit_VkKaraoke" class="form-control btn btn-warning btn-block" type="button" onclick="openLinkVkEditKaraoke()">E</button>
+                                    </td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                        <button style="width: 35px; height: 35px;" name="button_head_VkKaraoke" id="button_head_VkKaraoke" class="form-control btn btn-primary btn-block" type="button" onclick="doTextVkKaraokeHeader()">H</button>
+                                    </td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                        <button style="width: 35px; height: 35px;" name="button_body_VkKaraoke" id="button_body_VkKaraoke" class="form-control btn btn-primary btn-block" type="button" onclick="doTextVkKaraokeWOHeader()">B</button>
+                                    </td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                        <button style="width: 35px; height: 35px;" name="button_link_VkKaraoke_link" id="button_link_VkKaraoke_link" class="form-control btn btn-primary btn-block" type="button" onclick="doVkKaraokeLink()">L</button>
+                                    </td>
+                                    <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idVkKaraoke" name="settings_idVkKaraoke" placeholder="Karaoke" oninput="extractVkVideoId(this)">
+                                    </td>
+                                    <!--                                <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">-->
+                                    <!--                                    <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idVkKaraokeBt" name="settings_idVkKaraokeBt" placeholder="Karaoke BT" oninput="extractVkVideoId(this)">-->
+                                    <!--                                </td>-->
+                                    <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
+                                    <!--                                    <button style="width: 35px; height: 35px;" name="button_link_play_VkKaraokeBt" id="button_link_play_VkKaraokeBt" class="form-control btn btn-info btn-block" type="button" onclick="openLinkVkPlayKaraokeBt()">P</button>-->
+                                    <!--                                </td>-->
+                                    <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
+                                    <!--                                    <button style="width: 35px; height: 35px;" name="button_link_edit_VkKaraokeBt" id="button_link_edit_VkKaraokeBt" class="form-control btn btn-warning btn-block" type="button" onclick="openLinkVkEditKaraokeBt()">E</button>-->
+                                    <!--                                </td>-->
+                                    <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
+                                    <!--                                    <button style="width: 35px; height: 35px;" name="button_head_VkKaraokeBt" id="button_head_VkKaraokeBt" class="form-control btn btn-primary btn-block" type="button" onclick="doTextVkKaraokeBtHeader()">H</button>-->
+                                    <!--                                </td>-->
+                                    <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
+                                    <!--                                    <button style="width: 35px; height: 35px;" name="button_body_VkKaraokeBt" id="button_body_VkKaraokeBt" class="form-control btn btn-primary btn-block" type="button" onclick="doTextVkKaraokeBtWOHeader()">B</button>-->
+                                    <!--                                </td>-->
+                                    <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
+                                    <!--                                    <button style="width: 35px; height: 35px;" name="button_link_VkKaraokeBt_link" id="button_link_VkKaraokeBt_link" class="form-control btn btn-primary btn-block" type="button" onclick="doVkKaraokeBtLink()">L</button>-->
+                                    <!--                                </td>-->
+                                </tr>
+                                <tr style="margin: 1px;padding: 1px">
+                                    <td style="width: 70px; font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Lyrics</td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                        <button style="width: 35px; height: 35px;" name="button_link_play_VkLyrics" id="button_link_play_VkLyrics" class="form-control btn btn-info btn-block" type="button" onclick="openLinkVkPlayLyrics()">P</button>
+                                    </td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                        <button style="width: 35px; height: 35px;" name="button_link_edit_VkLyrics" id="button_link_edit_VkLyrics" class="form-control btn btn-warning btn-block" type="button" onclick="openLinkVkEditLyrics()">E</button>
+                                    </td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                        <button style="width: 35px; height: 35px;" name="button_head_VkLyrics" id="button_head_VkLyrics" class="form-control btn btn-primary btn-block" type="button" onclick="doTextVkLyricsHeader()">H</button>
+                                    </td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                        <button style="width: 35px; height: 35px;" name="button_body_VkLyrics" id="button_body_VkLyrics" class="form-control btn btn-primary btn-block" type="button" onclick="doTextVkLyricsWOHeader()">B</button>
+                                    </td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                        <button style="width: 35px; height: 35px;" name="button_link_VkLyrics_link" id="button_link_VkLyrics_link" class="form-control btn btn-primary btn-block" type="button" onclick="doVkLyricsLink()">L</button>
+                                    </td>
+                                    <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idVkLyrics" name="settings_idVkLyrics" placeholder="Lyrics" oninput="extractVkVideoId(this)">
+                                    </td>
+                                    <!--                                <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">-->
+                                    <!--                                    <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idVkLyricsBt" name="settings_idVkLyricsBt" placeholder="Lyrics BT" oninput="extractVkVideoId(this)">-->
+                                    <!--                                </td>-->
+                                    <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
+                                    <!--                                    <button style="width: 35px; height: 35px;" name="button_link_play_VkLyricsBt" id="button_link_play_VkLyricsBt" class="form-control btn btn-info btn-block" type="button" onclick="openLinkVkPlayLyricsBt()">P</button>-->
+                                    <!--                                </td>-->
+                                    <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
+                                    <!--                                    <button style="width: 35px; height: 35px;" name="button_link_edit_VkLyricsBt" id="button_link_edit_VkLyricsBt" class="form-control btn btn-warning btn-block" type="button" onclick="openLinkVkEditLyricsBt()">E</button>-->
+                                    <!--                                </td>-->
+                                    <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
+                                    <!--                                    <button style="width: 35px; height: 35px;" name="button_head_VkLyricsBt" id="button_head_VkLyricsBt" class="form-control btn btn-primary btn-block" type="button" onclick="doTextVkLyricsBtHeader()">H</button>-->
+                                    <!--                                </td>-->
+                                    <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
+                                    <!--                                    <button style="width: 35px; height: 35px;" name="button_body_VkLyricsBt" id="button_body_VkLyricsBt" class="form-control btn btn-primary btn-block" type="button" onclick="doTextVkLyricsBtWOHeader()">B</button>-->
+                                    <!--                                </td>-->
+                                    <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
+                                    <!--                                    <button style="width: 35px; height: 35px;" name="button_link_VkLyricsBt_link" id="button_link_VkLyricsBt_link" class="form-control btn btn-primary btn-block" type="button" onclick="doVkLyricsLink()">L</button>-->
+                                    <!--                                </td>-->
+                                </tr>
+                                <tr style="margin: 1px;padding: 1px">
+                                    <td style="width: 70px; font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Chords</td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                        <button style="width: 35px; height: 35px;" name="button_link_play_VkChords" id="button_link_play_VkChords" class="form-control btn btn-info btn-block" type="button" onclick="openLinkVkPlayChords()">P</button>
+                                    </td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                        <button style="width: 35px; height: 35px;" name="button_link_edit_VkChords" id="button_link_edit_VkChords" class="form-control btn btn-warning btn-block" type="button" onclick="openLinkVkEditChords()">E</button>
+                                    </td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                        <button style="width: 35px; height: 35px;" name="button_head_VkChords" id="button_head_VkChords" class="form-control btn btn-primary btn-block" type="button" onclick="doTextVkChordsHeader()">H</button>
+                                    </td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                        <button style="width: 35px; height: 35px;" name="button_body_VkChords" id="button_body_VkChords" class="form-control btn btn-primary btn-block" type="button" onclick="doTextVkChordsWOHeader()">B</button>
+                                    </td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                        <button style="width: 35px; height: 35px;" name="button_link_VkChords_link" id="button_link_VkChords_link" class="form-control btn btn-primary btn-block" type="button" onclick="doVkChordsLink()">L</button>
+                                    </td>
+                                    <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idVkChords" name="settings_idVkChords" placeholder="Chords" oninput="extractVkVideoId(this)">
+                                    </td>
+                                    <!--                                <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">-->
+                                    <!--                                    <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idVkChordsBt" name="settings_idVkChordsBt" placeholder="Chords BT" oninput="extractVkVideoId(this)">-->
+                                    <!--                                </td>-->
+                                    <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
+                                    <!--                                    <button style="width: 35px; height: 35px;" name="button_link_play_VkChordsBt" id="button_link_play_VkChordsBt" class="form-control btn btn-info btn-block" type="button" onclick="openLinkVkPlayChordsBt()">P</button>-->
+                                    <!--                                </td>-->
+                                    <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
+                                    <!--                                    <button style="width: 35px; height: 35px;" name="button_link_edit_VkChordsBt" id="button_link_edit_VkChordsBt" class="form-control btn btn-warning btn-block" type="button" onclick="openLinkVkEditChordsBt()">E</button>-->
+                                    <!--                                </td>-->
+                                    <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
+                                    <!--                                    <button style="width: 35px; height: 35px;" name="button_head_VkChordsBt" id="button_head_VkChordsBt" class="form-control btn btn-primary btn-block" type="button" onclick="doTextVkChordsBtHeader()">H</button>-->
+                                    <!--                                </td>-->
+                                    <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
+                                    <!--                                    <button style="width: 35px; height: 35px;" name="button_body_VkChordsBt" id="button_body_VkChordsBt" class="form-control btn btn-primary btn-block" type="button" onclick="doTextVkChordsBtWOHeader()">B</button>-->
+                                    <!--                                </td>-->
+                                    <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
+                                    <!--                                    <button style="width: 35px; height: 35px;" name="button_link_VkChordsBt_link" id="button_link_VkChordsBt_link" class="form-control btn btn-primary btn-block" type="button" onclick="doVkChordsBtLink()">L</button>-->
+                                    <!--                                </td>-->
+                                </tr>
+
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <table class="table table-hover table-bordered" style="margin: 1px;padding: 1px">
+                                <tr style="margin: 1px;padding: 1px">
+                                    <td colspan="13" style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle; text-align: center">TELEGRAM</td>
+                                </tr>
+                                <tr style="margin: 1px;padding: 1px">
+                                    <td style="width: 70px; font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Версия</td>
+                                    <td colspan="6" style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle; text-align: center">Normal</td>
+                                    <!--                                <td colspan="6" style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle; text-align: center">Delay</td>-->
+                                </tr>
+                                <tr style="margin: 1px;padding: 1px">
+                                    <td style="width: 70px; font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Karaoke</td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                        <button style="width: 35px; height: 35px;" name="button_link_play_TelegramKaraoke" id="button_link_play_TelegramKaraoke" class="form-control btn btn-info btn-block" type="button" onclick="openLinkTelegramPlayKaraoke()">P</button>
+                                    </td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                        <button style="width: 35px; height: 35px;" name="button_link_edit_TelegramKaraoke" id="button_link_edit_TelegramKaraoke" class="form-control btn btn-warning btn-block" type="button" onclick="openLinkTelegramEditKaraoke()">E</button>
+                                    </td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                        <button style="width: 35px; height: 35px;" name="button_head_TelegramKaraoke" id="button_head_TelegramKaraoke" class="form-control btn btn-primary btn-block" type="button" onclick="doTextTelegramKaraokeHeader()">H</button>
+                                    </td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                        <button style="width: 35px; height: 35px;" name="button_body_TelegramKaraoke" id="button_body_TelegramKaraoke" class="form-control btn btn-primary btn-block" type="button" onclick="doTextTelegramKaraokeWOHeader()">B</button>
+                                    </td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                        <button style="width: 35px; height: 35px;" name="button_link_TelegramKaraoke_link" id="button_link_TelegramKaraoke_link" class="form-control btn btn-primary btn-block" type="button" onclick="doTelegramKaraokeLink()">L</button>
+                                    </td>
+                                    <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idTelegramKaraoke" name="settings_idTelegramKaraoke" placeholder="Karaoke" oninput="extractTelegramVideoId(this)">
+                                    </td>
+                                    <!--                                <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">-->
+                                    <!--                                    <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idTelegramKaraokeBt" name="settings_idTelegramKaraokeBt" placeholder="Karaoke BT" oninput="extractTelegramVideoId(this)">-->
+                                    <!--                                </td>-->
+                                    <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
+                                    <!--                                    <button style="width: 35px; height: 35px;" name="button_link_play_TelegramKaraokeBt" id="button_link_play_TelegramKaraokeBt" class="form-control btn btn-info btn-block" type="button" onclick="openLinkTelegramPlayKaraokeBt()">P</button>-->
+                                    <!--                                </td>-->
+                                    <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
+                                    <!--                                    <button style="width: 35px; height: 35px;" name="button_link_edit_TelegramKaraokeBt" id="button_link_edit_TelegramKaraokeBt" class="form-control btn btn-warning btn-block" type="button" onclick="openLinkTelegramEditKaraokeBt()">E</button>-->
+                                    <!--                                </td>-->
+                                    <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
+                                    <!--                                    <button style="width: 35px; height: 35px;" name="button_head_TelegramKaraokeBt" id="button_head_TelegramKaraokeBt" class="form-control btn btn-primary btn-block" type="button" onclick="doTextTelegramKaraokeBtHeader()">H</button>-->
+                                    <!--                                </td>-->
+                                    <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
+                                    <!--                                    <button style="width: 35px; height: 35px;" name="button_body_TelegramKaraokeBt" id="button_body_TelegramKaraokeBt" class="form-control btn btn-primary btn-block" type="button" onclick="doTextTelegramKaraokeBtWOHeader()">B</button>-->
+                                    <!--                                </td>-->
+                                    <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
+                                    <!--                                    <button style="width: 35px; height: 35px;" name="button_link_TelegramKaraokeBt_link" id="button_link_TelegramKaraokeBt_link" class="form-control btn btn-primary btn-block" type="button" onclick="doTelegramKaraokeBtLink()">L</button>-->
+                                    <!--                                </td>-->
+                                </tr>
+                                <tr style="margin: 1px;padding: 1px">
+                                    <td style="width: 70px; font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Lyrics</td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                        <button style="width: 35px; height: 35px;" name="button_link_play_TelegramLyrics" id="button_link_play_TelegramLyrics" class="form-control btn btn-info btn-block" type="button" onclick="openLinkTelegramPlayLyrics()">P</button>
+                                    </td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                        <button style="width: 35px; height: 35px;" name="button_link_edit_TelegramLyrics" id="button_link_edit_TelegramLyrics" class="form-control btn btn-warning btn-block" type="button" onclick="openLinkTelegramEditLyrics()">E</button>
+                                    </td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                        <button style="width: 35px; height: 35px;" name="button_head_TelegramLyrics" id="button_head_TelegramLyrics" class="form-control btn btn-primary btn-block" type="button" onclick="doTextTelegramLyricsHeader()">H</button>
+                                    </td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                        <button style="width: 35px; height: 35px;" name="button_body_TelegramLyrics" id="button_body_TelegramLyrics" class="form-control btn btn-primary btn-block" type="button" onclick="doTextTelegramLyricsWOHeader()">B</button>
+                                    </td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                        <button style="width: 35px; height: 35px;" name="button_link_TelegramLyrics_link" id="button_link_TelegramLyrics_link" class="form-control btn btn-primary btn-block" type="button" onclick="doTelegramLyricsLink()">L</button>
+                                    </td>
+                                    <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idTelegramLyrics" name="settings_idTelegramLyrics" placeholder="Lyrics" oninput="extractTelegramVideoId(this)">
+                                    </td>
+                                    <!--                                <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">-->
+                                    <!--                                    <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idTelegramLyricsBt" name="settings_idTelegramLyricsBt" placeholder="Lyrics BT" oninput="extractTelegramVideoId(this)">-->
+                                    <!--                                </td>-->
+                                    <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
+                                    <!--                                    <button style="width: 35px; height: 35px;" name="button_link_play_TelegramLyricsBt" id="button_link_play_TelegramLyricsBt" class="form-control btn btn-info btn-block" type="button" onclick="openLinkTelegramPlayLyricsBt()">P</button>-->
+                                    <!--                                </td>-->
+                                    <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
+                                    <!--                                    <button style="width: 35px; height: 35px;" name="button_link_edit_TelegramLyricsBt" id="button_link_edit_TelegramLyricsBt" class="form-control btn btn-warning btn-block" type="button" onclick="openLinkTelegramEditLyricsBt()">E</button>-->
+                                    <!--                                </td>-->
+                                    <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
+                                    <!--                                    <button style="width: 35px; height: 35px;" name="button_head_TelegramLyricsBt" id="button_head_TelegramLyricsBt" class="form-control btn btn-primary btn-block" type="button" onclick="doTextTelegramLyricsBtHeader()">H</button>-->
+                                    <!--                                </td>-->
+                                    <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
+                                    <!--                                    <button style="width: 35px; height: 35px;" name="button_body_TelegramLyricsBt" id="button_body_TelegramLyricsBt" class="form-control btn btn-primary btn-block" type="button" onclick="doTextTelegramLyricsBtWOHeader()">B</button>-->
+                                    <!--                                </td>-->
+                                    <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
+                                    <!--                                    <button style="width: 35px; height: 35px;" name="button_link_TelegramLyricsBt_link" id="button_link_TelegramLyricsBt_link" class="form-control btn btn-primary btn-block" type="button" onclick="doTelegramLyricsBtLink()">L</button>-->
+                                    <!--                                </td>-->
+                                </tr>
+                                <tr style="margin: 1px;padding: 1px">
+                                    <td style="width: 70px; font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Chords</td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                        <button style="width: 35px; height: 35px;" name="button_link_play_TelegramChords" id="button_link_play_TelegramChords" class="form-control btn btn-info btn-block" type="button" onclick="openLinkTelegramPlayChords()">P</button>
+                                    </td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                        <button style="width: 35px; height: 35px;" name="button_link_edit_TelegramChords" id="button_link_edit_TelegramChords" class="form-control btn btn-warning btn-block" type="button" onclick="openLinkTelegramEditChords()">E</button>
+                                    </td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                        <button style="width: 35px; height: 35px;" name="button_head_TelegramChords" id="button_head_TelegramChords" class="form-control btn btn-primary btn-block" type="button" onclick="doTextTelegramChordsHeader()">H</button>
+                                    </td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                        <button style="width: 35px; height: 35px;" name="button_body_TelegramChords" id="button_body_TelegramChords" class="form-control btn btn-primary btn-block" type="button" onclick="doTextTelegramChordsWOHeader()">B</button>
+                                    </td>
+                                    <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
+                                        <button style="width: 35px; height: 35px;" name="button_link_TelegramChords_link" id="button_link_TelegramChords_link" class="form-control btn btn-primary btn-block" type="button" onclick="doTelegramChordsLink()">L</button>
+                                    </td>
+                                    <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                                        <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idTelegramChords" name="settings_idTelegramChords" placeholder="Chords" oninput="extractTelegramVideoId(this)">
+                                    </td>
+                                    <!--                                <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">-->
+                                    <!--                                    <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idTelegramChordsBt" name="settings_idTelegramChordsBt" placeholder="Chords BT" oninput="extractTelegramVideoId(this)">-->
+                                    <!--                                </td>-->
+                                    <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
+                                    <!--                                    <button style="width: 35px; height: 35px;" name="button_link_play_TelegramChordsBt" id="button_link_play_TelegramChordsBt" class="form-control btn btn-info btn-block" type="button" onclick="openLinkTelegramPlayChordsBt()">P</button>-->
+                                    <!--                                </td>-->
+                                    <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
+                                    <!--                                    <button style="width: 35px; height: 35px;" name="button_link_edit_TelegramChordsBt" id="button_link_edit_TelegramChordsBt" class="form-control btn btn-warning btn-block" type="button" onclick="openLinkTelegramEditChordsBt()">E</button>-->
+                                    <!--                                </td>-->
+                                    <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
+                                    <!--                                    <button style="width: 35px; height: 35px;" name="button_head_TelegramChordsBt" id="button_head_TelegramChordsBt" class="form-control btn btn-primary btn-block" type="button" onclick="doTextTelegramChordsBtHeader()">H</button>-->
+                                    <!--                                </td>-->
+                                    <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
+                                    <!--                                    <button style="width: 35px; height: 35px;" name="button_body_TelegramChordsBt" id="button_body_TelegramChordsBt" class="form-control btn btn-primary btn-block" type="button" onclick="doTextTelegramChordsBtWOHeader()">B</button>-->
+                                    <!--                                </td>-->
+                                    <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
+                                    <!--                                    <button style="width: 35px; height: 35px;" name="button_link_TelegramChordsBt_link" id="button_link_TelegramChordsBt_link" class="form-control btn btn-primary btn-block" type="button" onclick="doTelegramChordsBtLink()">L</button>-->
+                                    <!--                                </td>-->
+                                </tr>
+
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+
+
+                <table class="table table-hover table-bordered" style="margin: 1px;padding: 1px">
+
+                    <tr style="margin: 1px;padding: 1px">
+                        <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Статус</td>
+                        <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                            <select id="select_status" name="select_status" class="form-control">
+                                <option value="0">NONE</option>
+                                <option value="1">TEXT_CREATE</option>
+                                <option value="2">TEXT_CHECK</option>
+                                <option value="3">PROJECT_CREATE</option>
+                                <option value="4">PROJECT_CHECK</option>
+                                <option value="5">RENDERING</option>
+                                <option value="6">DONE</option>
+                            </select>
+                        </td>
+                        <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                            <div id="group_status" class="btn-group btn-toggle">
+                                <label for="group_status">Статус:</label>
+                                <button name="btn_status" class="btn btn-sm btn-outline-primary" type="button" value="0">---</button>
+                                <button name="btn_status" class="btn btn-sm btn-outline-primary" type="button" value="1">TXT FIND</button>
+                                <button name="btn_status" class="btn btn-sm btn-outline-primary" type="button" value="2">TXT CHECK</button>
+                                <button name="btn_status" class="btn btn-sm btn-outline-primary" type="button" value="3">PRJ CREATE</button>
+                                <button name="btn_status" class="btn btn-sm btn-outline-primary" type="button" value="4">PRJ CHECK</button>
+                                <button name="btn_status" class="btn btn-sm btn-outline-primary" type="button" value="5">RENDER</button>
+                                <button name="btn_status" class="btn btn-sm btn-outline-primary" type="button" value="6">DONE</button>
+                            </div>
+                        </td>
+
+                    </tr>
+
+
+                </table>
+
+                <table class="table table-hover table-bordered" style="margin: 1px;padding: 1px">
+
+                    <tr style="margin: 1px;padding: 1px">
+                        <td style="font-size: 14px; padding: 0; padding-left: 1px; padding-right: 1px;">
+
+                            <button name="button_submit" id="button_submit" class="form-control btn btn-primary btn-block" type="button" value="Сохранить" onclick="doPostForm()">Сохранить</button>
+
+                        </td>
+                        <td style="font-size: 14px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                            <button name="button_edit_subs0" id="button_edit_subs0" class="form-control btn btn-primary btn-block" type="button" onclick="doEditSubs(0)">Edit (V0)</button>
+                        </td>
+                        <td style="font-size: 14px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                            <button name="button_edit_subs1" id="button_edit_subs1" class="form-control btn btn-primary btn-block" type="button" onclick="doEditSubs(1)">Edit (V1)</button>
+                        </td>
+                        <td style="font-size: 14px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                            <button name="button_edit_subs2" id="button_edit_subs2" class="form-control btn btn-primary btn-block" type="button" onclick="doEditSubs(2)">Edit (V2)</button>
+                        </td>
+                        <td style="font-size: 14px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                            <button name="button_edit_subs3" id="button_edit_subs3" class="form-control btn btn-primary btn-block" type="button" onclick="doEditSubs(3)">Edit (V3)</button>
+                        </td>
+                        <td style="font-size: 14px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                            <button name="button_create_karaoke" id="button_create_karaoke" class="form-control btn btn-primary btn-block" type="button" onclick="doCreateKaraoke()">Создать караоке</button>
+                        </td>
+                        <td style="font-size: 14px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                            <button name="button_kdenlive_files" id="button_kdenlive_files" class="form-control btn btn-primary btn-block" type="button" onclick="doCreateKdenliveFiles()">Создать kdenlive files</button>
+                        </td>
+                        <td style="font-size: 14px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                            <button name="button_delete" id="button_delete" class="form-control btn btn-primary btn-block" type="button" onclick="doDelete()">DEL</button>
+                        </td>
+
+                    </tr>
+
+                </table>
+
+                <table class="table table-hover table-bordered" style="margin: 1px;padding: 1px">
+                    <tr colspan="2" style="margin: 1px;padding: 1px">
+                        КОДИРОВАТЬ:
+                    </tr>
+                    <tr style="margin: 1px;padding: 1px">
+                        <td style="font-size: 14px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                            <button name="button_melt_lyrics" id="button_melt_lyrics" class="form-control btn btn-primary btn-block" type="button" onclick="doProcess('doprocesslyrics')">LYRICS</button>
+                        </td>
+                        <td style="font-size: 14px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                            <button name="button_melt_karaoke" id="button_melt_karaoke" class="form-control btn btn-primary btn-block" type="button" onclick="doProcess('doprocesskaraoke')">KARAOKE</button>
+                        </td>
+                        <td style="font-size: 14px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                            <button name="button_melt_chords" id="button_melt_chords" class="form-control btn btn-primary btn-block" type="button" onclick="doProcess('doprocesschords')">CHORDS</button>
+                        </td>
+                    </tr>
+                    <tr style="margin: 1px;padding: 1px">
+                        <td style="font-size: 14px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                            <button name="button_melt_all" id="button_melt_all" class="form-control btn btn-primary btn-block" type="button" onclick="doProcess('doprocessall')">ВСЁ</button>
+                        </td>
+                        <td style="font-size: 14px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                            <button name="button_set_datetimeauthor" id="button_set_datetimeauthor" class="form-control btn btn-primary btn-block" type="button" onclick="doSetDateTimeAuthor()">Пересчитать Дату/время</button>
+                        </td>
+                        <td style="font-size: 14px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                            <button name="button_demucs2" id="button_demucs2" class="form-control btn btn-primary btn-block" type="button" onclick="doProcess('dodemucs2')">DEMUX 2</button>
+                        </td>
+                    </tr>
+                </table>
+
+            </div>
+        </form>
+
+    </div>
+</div>

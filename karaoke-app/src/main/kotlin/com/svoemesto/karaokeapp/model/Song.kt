@@ -42,27 +42,27 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
 
     }
     
-    fun getDescriptionYoutube(): String {
+    fun getDescriptionDzen(): String {
 
         return getDescriptionHeader() + "\n" +
-                getDescriptionYoutubeWOHeader()
+                getDescriptionDzenWOHeader(5000)
 
     }
 
-    fun getDescriptionHeader(): String {
+    fun getDescriptionHeader(maxSymbols: Int = 0): String {
 
-        return "${settings.songName} ★♫★ ${settings.author} ★♫★ ${songVersion.text} ★♫★ ${songVersion.textForDescription}".cutByWords()
+        return "${settings.songName.censored()} ★♫★ ${settings.author} ★♫★ ${songVersion.text} ★♫★ ${songVersion.textForDescription}".cutByWords(maxLength = maxSymbols)
 
     }
 
-    fun getDescriptionVkHeader(): String {
+    fun getDescriptionVkHeader(maxSymbols: Int = 0): String {
 
-        return "${settings.songName} ★♫★ ${settings.author} ★♫★ ${songVersion.text} ★♫★ ${songVersion.textForDescription}".cutByWords()
+        return "${settings.songName.censored()} ★♫★ ${settings.author} ★♫★ ${songVersion.text} ★♫★ ${songVersion.textForDescription}".cutByWords(maxLength = maxSymbols)
 
     }
     
     fun getTextBoostyHead(): String {
-        return "${settings.songName} ★♫★ ${settings.author}"
+        return "${settings.songName.censored()} ★♫★ ${settings.author}"
     }
 
     fun getTextBoostyBody(): String {
@@ -77,9 +77,9 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
 
 
 
-    fun getDescriptionWOHeader(): String {
+    fun getDescriptionWOHeader(maxSymbols: Int = 0): String {
 
-        return "Поддержать создание караоке на https://boosty.to/svoemesto\n" +
+        val txtStart = "Поддержать создание караоке на https://boosty.to/svoemesto\n" +
                 "Группа ВКонтакте: https://vk.com/svoemestokaraoke\n" +
                 "Канал Telegram: https://t.me/svoemestokaraoke\n" +
                 "Канал Дзен: https://dzen.ru/svoemesto\n\n" +
@@ -91,17 +91,20 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
                 (if (getChordDescription() !="") "${getChordDescription()}\n" else "") +
                 "\n\n"+
                 settings.getDescriptionLinks() +
-                "\n" +
-                getTextForDescription() +
-                "\n\n"+
+                "\n"
+        val txtEnd = "\n\n"+
                 "https://github.com/svoemesto/Karaoke\n" +
                 "${settings.songName.hashtag()} ${settings.author.hashtag()} ${"karaoke".hashtag()} ${"караоке".hashtag()}${if (songVersion == SongVersion.CHORDS) " ${"chords".hashtag()} ${"аккорды".hashtag()}" else ""}\n"
 
+        val txtDescription = getTextForDescription(maxSymbols - txtStart.length - txtEnd.length)
+
+        return txtStart + txtDescription + txtEnd
+
     }
 
-    fun getDescriptionYoutubeWOHeader(): String {
+    fun getDescriptionDzenWOHeader(maxSymbols: Int = 0): String {
 
-        return "Поддержать создание караоке на https://boosty.to/svoemesto\n" +
+        val txtStart = "Поддержать создание караоке на https://boosty.to/svoemesto\n" +
                 "Группа ВКонтакте: https://vk.com/svoemestokaraoke\n" +
                 "Канал Telegram: https://t.me/svoemestokaraoke\n" +
                 "Канал Дзен: https://dzen.ru/svoemesto\n\n" +
@@ -113,18 +116,21 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
                 (if (getChordDescription() !="") "${getChordDescription()}\n" else "") +
                 "\n\n"+
                 settings.getDescriptionLinks() +
-                "\n" +
-                getTextForYoutubeDescription() +
-                "\n\n"+
+                "\n"
+
+        val txtEnd = "\n\n"+
                 "https://github.com/svoemesto/Karaoke\n" +
                 "${settings.songName.hashtag()} ${settings.author.hashtag()} ${"karaoke".hashtag()} ${"караоке".hashtag()}${if (songVersion == SongVersion.CHORDS) " ${"chords".hashtag()} ${"аккорды".hashtag()}" else ""}\n"
 
+        val txtDescription = getTextForDescriptionWithTimecodes(maxSymbols - txtStart.length - txtEnd.length)
+
+        return txtStart + txtDescription + txtEnd
     }
 
 
-    fun getDescriptionVkWOHeader(): String {
+    fun getDescriptionVkWOHeader(maxSymbols: Int = 0): String {
 
-        return "Поддержать создание караоке на https://boosty.to/svoemesto\n" +
+        val txtStart = "Поддержать создание караоке на https://boosty.to/svoemesto\n" +
                 "Группа ВКонтакте: https://vk.com/svoemestokaraoke\n" +
                 "Канал Telegram: https://t.me/svoemestokaraoke\n" +
                 "Канал Дзен: https://dzen.ru/svoemesto\n\n" +
@@ -136,17 +142,19 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
                 (if (getChordDescription() !="") "${getChordDescription()}\n" else "") +
                 "\n\n"+
                 settings.getDescriptionLinks() +
-                "\n" +
-                getTextForYoutubeDescription() +
-                "\n\n"+
+                "\n"
+        val txtEnd = "\n\n"+
                 "https://github.com/svoemesto/Karaoke\n" +
                 "${settings.songName.hashtag()} ${settings.author.hashtag()} ${"karaoke".hashtag()} ${"караоке".hashtag()}${if (songVersion == SongVersion.CHORDS) " ${"chords".hashtag()} ${"аккорды".hashtag()}" else ""}\n"
 
+        val txtDescription = getTextForDescriptionWithTimecodes(maxSymbols - txtStart.length - txtEnd.length)
+
+        return txtStart + txtDescription + txtEnd
     }
 
-    fun getVKGroupDescription(): String {
+    fun getVKGroupDescription(maxSymbols: Int = 0): String {
 
-        return "${settings.songName} ★♫★ ${settings.author}" + "\n\n" +
+        val txtStart = "${settings.songName.censored()} ★♫★ ${settings.author}" + "\n\n" +
                 settings.getDescriptionLinks() +
                 "\n" +
                 "Поддержать создание караоке на https://boosty.to/svoemesto\n" +
@@ -157,10 +165,13 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
                 "Исполнитель: ${settings.author}\n" +
                 "Альбом: ${settings.album}\n" +
                 "Год: ${settings.year}\n" +
-                "\n\n"+
-                getTextForDescription() +
-                "\n\n"+
+                "\n\n"
+        val txtEnd = "\n\n"+
                 "${settings.songName.hashtag()} ${settings.author.hashtag()} ${"karaoke".hashtag()} ${"караоке".hashtag()}${if (songVersion == SongVersion.CHORDS) " ${"chords".hashtag()} ${"аккорды".hashtag()}" else ""}\n"
+        val txtDescription = getTextForDescription(maxSymbols - txtStart.length - txtEnd.length)
+
+        return txtStart + txtDescription + txtEnd
+
     }
 
     fun getChordDescription(): String {
@@ -192,12 +203,17 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
         return result
     }
 
-    fun getTextForDescription(): String {
+    fun getTextForDescription(maxSymbols: Int = 0): String {
         var result = ""
 
         voices.forEach { voice ->
             var prevLineText = ""
+            var prevLineGroup = 0
             voice.lines.forEach { line ->
+                if (line.group != prevLineGroup) {
+                    result += "\n"
+                }
+                prevLineGroup = line.group
                 if (!(line.text.trim() == "" && prevLineText == "")) {
                     result += line.text.trim() + "\n"
                 }
@@ -209,14 +225,29 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
         if (hasChords) {
             return result.replace("\n\n","\n").deleteThisSymbols(NOTES_SYMBOLS)
         }
+
+        while (maxSymbols > 0 && result.length > maxSymbols) {
+            val lst = result.split("\n").toMutableList()
+            lst.removeLast()
+            result = lst.joinToString("\n")
+        }
+
         return result
     }
 
-    fun getTextForYoutubeDescription(): String {
+    fun getTextForDescriptionWithTimecodes(maxSymbols: Int = 0): String {
         var result = ""
+        var prevLineGroup = 0
         voices.forEach { voice ->
             var prevLineText = ""
             voice.lines.forEach { line ->
+                prevLineText = line.text.trim()
+
+                if (line.group != prevLineGroup) {
+                    result += "\n"
+                }
+                prevLineGroup = line.group
+
                 if (!(line.text.trim() == "" && prevLineText == "")) {
                     if (line.text.trim() != "") {
                         if (line.type == SongVoiceLineType.COMMENTS) {
@@ -229,13 +260,20 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
                         result += "\n"
                     }
                 }
-                prevLineText = line.text.trim()
             }
             if (voice != voices.last()) result += "\n" + "----------------------------------------------------" + "\n\n"
         }
         if (hasChords) {
             return result.replace("\n\n","\n").deleteThisSymbols(NOTES_SYMBOLS)
         }
+
+        while (maxSymbols > 0 && result.length > maxSymbols) {
+            val lst = result.split("\n").toMutableList()
+            lst.removeLast()
+            result = lst.joinToString("\n")
+        }
+
+
         return result
     }
 
@@ -740,7 +778,7 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
 
             voices = listVoices
 //        endTimecode = voices.first().lines.last().subtitles.last().endTimecode
-            if (listVoices.isNotEmpty()) endTimecode = voices.first().lines.last().end
+            if (listVoices.isNotEmpty() && listVoices.first().lines.isNotEmpty()) endTimecode = voices.first().lines.last().end
             setMaxLines()
         }
 
@@ -750,6 +788,7 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
 
         voices.forEachIndexed { indexVoice, currVoice ->
             val currVoiceTextLines = currVoice.lines.filter { it.type == SongVoiceLineType.TEXT }
+            if (currVoiceTextLines.isEmpty()) return
             var currVoiceMaxLine = currVoiceTextLines[0]
             var currVoiceMaxSingleLine = currVoiceTextLines[0]
             var maxLineWidthPx = 0
@@ -1180,7 +1219,9 @@ data class Subtitle(
     val xStartPx: Int get() = getTextWidthHeightPx(mltTextBefore.text, mltTextBefore.font).first.toInt()
     val xEndPx: Int get() = getTextWidthHeightPx(mltTextBefore.text+mltText.text, mltTextBefore.font).first.toInt()
     val wPx: Int get() = xEndPx - xStartPx
-    val durationMs: Long get() = convertTimecodeToMilliseconds(endTimecode) - convertTimecodeToMilliseconds(startTimecode)
+    val startMs: Long get() = convertTimecodeToMilliseconds(startTimecode)
+    val endMs: Long get() = convertTimecodeToMilliseconds(endTimecode)
+    val durationMs: Long get() = endMs - startMs
     val isShortSubtitleInt: Int get() = if (durationMs <= Karaoke.shortSubtitleMs) 1 else 0
     val deltaStartY: Int get() = hPx / 7
     val deltaStartH: Int get() = 2 * deltaStartY

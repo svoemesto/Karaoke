@@ -4,6 +4,10 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css" integrity="sha384-B0vP5xmATw1+K9KRQjQERJvTumQW0nPEzvF6L/Z6nronJ3oUOFUFpCjEUQouq2+l" crossorigin="anonymous">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-Piv4xVNRyMGpqkS2by6br4gNJ7DXjqk09RmUpJ8jgGtD7zP9yug3goQfGII0yAns" crossorigin="anonymous"></script>
+
+    <script src="sockjs.js"></script>
+    <script src="stomp.js"></script>
+
     <title>Процессы</title>
     <style>
         * {
@@ -80,6 +84,22 @@
     </style>
 
     <script type="text/javascript">
+
+        var stompClient = null;
+
+        function connect() {
+            var socket = new SockJS('/message');
+            stompClient = Stomp.over(socket);
+            stompClient.connect({}, function(frame) {
+                console.log('Connected: ' + frame);
+                stompClient.subscribe('/messages/processesrecordchange', function(recordchange){
+                    console.log("Получено сообщение...");
+                    updateProcessesFromMessage(JSON.parse(recordchange.body));
+                });
+            });
+        }
+
+
 
         var prevWorkingId = 0;
 
@@ -247,20 +267,21 @@
 
         $(function() {
 
+            connect();
             var isWorkingElement = document.getElementById("isworking");
             isWorkingElement.innerText = getIsWorkingStatus();
-
-            setInterval(updateWorkingProcess, 10000);
-
-            document.addEventListener("visibilitychange", function() {
-                if (document.visibilityState === 'visible') {
-                    console.log('Вкладка стала видимой');
-                    updateWorkingProcess();
-                } else {
-                    console.log('Вкладка стала невидимой');
-                    // выполнить необходимые действия при деактивации вкладки
-                }
-            });
+            //
+            // // setInterval(updateWorkingProcess, 10000);
+            //
+            // document.addEventListener("visibilitychange", function() {
+            //     if (document.visibilityState === 'visible') {
+            //         console.log('Вкладка стала видимой');
+            //         // updateWorkingProcess();
+            //     } else {
+            //         console.log('Вкладка стала невидимой');
+            //         // выполнить необходимые действия при деактивации вкладки
+            //     }
+            // });
 
         });
 
@@ -302,6 +323,105 @@
             });
         }
 
+        function doNewPrior() {
+            var tbl = document.getElementById("leftTable");
+            for (var i = 0, row; row = tbl.rows[i]; i++) {
+                var col = row.cells;
+                var id = col[0].innerText
+                console.log(id)
+                document.getElementById('fld_'+ id + '_priority').innerText = document.getElementById("field_new_prior").value;
+                updateProcess(id)
+            }
+        }
+
+        function updateProcessesFromMessage(recordchange) {
+            var id = recordchange.recordChangeId;
+            var table = recordchange.recordChangeTableName;
+            var diffs = recordchange.recordChangeDiffs;
+            if (table === 'tbl_processes') {
+                if (id === 0) {
+                    diffs.forEach((diff) => {
+                        var recordDiffName = diff.recordDiffName;
+                        if (recordDiffName === 'isWorkAndStopAfterThreadIsDone') {
+                            var isWorking = diff.recordDiffValueNew;
+                            var isStopAfterThreadIsDone = diff.recordDiffValueOld;
+                            var result = "";
+                            if (isWorking === false) {
+                                result = "Остановлено";
+                            } else {
+                                if (isStopAfterThreadIsDone === false) {
+                                    result = "Работает";
+                                } else {
+                                    result = "Ожидает остановки";
+                                }
+                            }
+                            var isWorkingElement = document.getElementById("isworking");
+                            isWorkingElement.innerText = result;
+                        }
+
+
+                    });
+                } else {
+                    diffs.forEach((diff) => {
+                        var recordDiffName = diff.recordDiffName;
+                        var recordDiffValueNew = diff.recordDiffValueNew;
+                        if (document.getElementsByName(`fld_${id}_id`).length > 0) {
+                            switch (recordDiffName) {
+
+                                case 'process_name':
+                                    document.getElementById(`fld_${id}_name`).innerText = recordDiffValueNew;
+                                    break;
+
+                                case 'process_status':
+                                    document.getElementById(`fld_${id}_status`).innerText = recordDiffValueNew;
+                                    break;
+
+                                case 'process_order':
+                                    document.getElementById(`fld_${id}_order`).innerText = recordDiffValueNew;
+                                    break;
+
+                                case 'process_priority':
+                                    document.getElementById(`fld_${id}_priority`).innerText = recordDiffValueNew;
+                                    break;
+
+                                case 'process_description':
+                                    document.getElementById(`fld_${id}_description`).innerText = recordDiffValueNew;
+                                    break;
+
+                                case 'process_type':
+                                    document.getElementById(`fld_${id}_type`).innerText = recordDiffValueNew;
+                                    break;
+
+                                case 'startStr':
+                                    document.getElementById(`fld_${id}_startStr`).innerText = recordDiffValueNew;
+                                    break;
+
+                                case 'endStr':
+                                    document.getElementById(`fld_${id}_endStr`).innerText = recordDiffValueNew;
+                                    break;
+
+                                case 'percentageStr':
+                                    document.getElementById(`fld_${id}_percentageStr`).innerText = recordDiffValueNew;
+                                    break;
+
+                                case 'timePassedStr':
+                                    document.getElementById(`fld_${id}_timePassedStr`).innerText = recordDiffValueNew;
+                                    break;
+
+                                case 'timeLeftStr':
+                                    document.getElementById(`fld_${id}_timeLeftStr`).innerText = recordDiffValueNew;
+                                    break;
+
+                                default:
+                            }
+                        }
+
+                    });
+                }
+
+            }
+        }
+
     </script>
 </head>
 
@@ -319,9 +439,9 @@
                     <tr>
                         <td th:text="ID" style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin; text-align: center"></td>
                         <td th:text="Name" style="min-width: 500px; max-width: 500px; border-style: solid; border-width: thin"></td>
-                        <td th:text="Status" style="min-width: 70px; max-width: 70px; border-style: solid; border-width: thin"></td>
+                        <td th:text="Status" style="min-width: 150px; max-width: 150px; border-style: solid; border-width: thin"></td>
                         <td th:text="Order" style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin; text-align: center"></td>
-                        <td th:text="Prior" style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin"></td>
+                        <td th:text="Prior" style="min-width: 150px; max-width: 150px; border-style: solid; border-width: thin"></td>
                         <td th:text="Description" style="min-width: 200px; max-width: 200px; border-style: solid; border-width: thin; text-align: center"></td>
                         <td th:text="Type" style="min-width: 130px; max-width: 130px; border-style: solid; border-width: thin; text-align: center"></td>
                         <td th:text="Start" style="min-width: 130px; max-width: 130px; border-style: solid; border-width: thin; text-align: center"></td>
@@ -342,13 +462,13 @@
                             <td style="min-width: 500px; max-width: 500px; border-style: solid; border-width: thin">
                                 <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_name" name="filter_name" placeholder="Name">
                             </td>
-                            <td style="min-width: 70px; max-width: 70px; border-style: solid; border-width: thin">
+                            <td style="min-width: 150px; max-width: 150px; border-style: solid; border-width: thin">
                                 <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_status" name="filter_status" placeholder="Status">
                             </td>
                             <td style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin; text-align: center">
                                 <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_order" name="filter_order" placeholder="Order">
                             </td>
-                            <td style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin">
+                            <td style="min-width: 150px; max-width: 150px; border-style: solid; border-width: thin">
                                 <input style="font-size: 14px; padding: 0;" type="text" class="form-control" id="filter_priority" name="filter_priority" placeholder="Priority">
                             </td>
                             <td style="min-width: 200px; max-width: 200px; border-style: solid; border-width: thin; text-align: center">
@@ -383,9 +503,9 @@
                 <table class="table table-sm table-hover" id="leftTable" style="font-size: small; width: initial">
                     <tbody>
                         <tr th:each="process:${processes}" onClick="mouseClickRow(this)">
-                            <td th:text="${process.id}" th:id="'fld_'+${process.id}+'_id'" style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin; text-align: center"></td>
+                            <td th:text="${process.id}" th:id="'fld_'+${process.id}+'_id'" th:name="'fld_'+${process.id}+'_id'" style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin; text-align: center"></td>
                             <td th:text="${process.name}" th:id="'fld_'+${process.id}+'_name'" style="min-width: 500px; max-width: 500px; border-style: solid; border-width: thin"></td>
-                            <td th:text="${process.status}" th:id="'fld_'+${process.id}+'_status'" th:onclick="'mouseClickElement('+${process.id}+', \'status\')'" style="min-width: 70px; max-width: 70px; border-style: solid; border-width: thin"></td>
+                            <td th:text="${process.status}" th:id="'fld_'+${process.id}+'_status'" th:onclick="'mouseClickElement('+${process.id}+', \'status\')'" style="min-width: 150px; max-width: 150px; border-style: solid; border-width: thin"></td>
                             <td hidden th:id="'edit_'+${process.id}+'_status'" style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin">
                                 <select th:id="'input_'+${process.id}+'_status'" th:name="'input_'+${process.id}+'_status'" th:value="${process.status}" th:onfocusout="'focusOutElement('+${process.id}+', \'status\')'" style="font-size: 14px;" class="form-control">
                                     <option value="CREATING">CREATING</option>
@@ -396,7 +516,7 @@
                                 </select>
                             </td>
                             <td th:text="${process.order}" th:id="'fld_'+${process.id}+'_order'" style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin; text-align: center"></td>
-                            <td th:text="${process.priority}" th:id="'fld_'+${process.id}+'_priority'" th:onclick="'mouseClickElement('+${process.id}+', \'priority\')'" style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin"></td>
+                            <td th:text="${process.priority}" th:id="'fld_'+${process.id}+'_priority'" th:onclick="'mouseClickElement('+${process.id}+', \'priority\')'" style="min-width: 150px; max-width: 150px; border-style: solid; border-width: thin"></td>
                             <td hidden th:id="'edit_'+${process.id}+'_priority'" style="min-width: 50px; max-width: 50px; border-style: solid; border-width: thin">
                                 <input th:id="'input_'+${process.id}+'_priority'" th:name="'input_'+${process.id}+'_priority'" th:value="${process.priority}" th:onfocusout="'focusOutElement('+${process.id}+', \'priority\')'" style="font-size: 14px;" type="text" class="form-control">
                             </td>
@@ -425,7 +545,18 @@
         </div>
     </div>
     <div id="areaFooter">
-        Примечание
+        <table class="table table-hover table-bordered" style="margin: 1px;padding: 1px">
+
+            <tr style="margin: 1px;padding: 1px">
+                <td style="font-size: 14px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                    <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="field_new_prior" name="field_new_prior" placeholder="New prior">
+                </td>
+                <td style="font-size: 14px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                    <button name="button_new_prior" id="button_new_prior" class="form-control btn btn-primary btn-block" type="button" value="New prior" onclick="doNewPrior()">New prior</button>
+                </td>
+            </tr>
+
+        </table>
     </div>
 </div>
 

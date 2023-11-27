@@ -2,21 +2,25 @@ package com.svoemesto.karaokeapp.controllers
 
 import com.svoemesto.karaokeapp.*
 import com.svoemesto.karaokeapp.model.*
+import com.svoemesto.karaokeapp.textfiledictionary.CensoredWordsDictionary
+import com.svoemesto.karaokeapp.textfiledictionary.TestDictionary
+import com.svoemesto.karaokeapp.textfiledictionary.TextFileDictionary
+import com.svoemesto.karaokeapp.textfiledictionary.YoWordsDictionary
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import org.apache.xerces.impl.dv.util.Base64
 import org.springframework.core.io.FileSystemResource
 import org.springframework.core.io.Resource
 import org.springframework.http.HttpHeaders
 import org.springframework.http.ResponseEntity
+import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.*
 import java.io.File
 
 @Controller
-class MainController {
+class MainController(private val webSocket: SimpMessagingTemplate) {
 //
 //    private val emittersSettings = CopyOnWriteArrayList<SseEmitter>()
 //    private val emittersProcesses = CopyOnWriteArrayList<SseEmitter>()
@@ -24,6 +28,7 @@ class MainController {
     @GetMapping("/")
     fun main(model: Model): String {
         model.addAttribute("authors", Settings.loadListAuthors())
+        model.addAttribute("dicts", TEXT_FILE_DICTS.keys.toMutableList().sorted().toList())
         return "main"
     }
 
@@ -40,6 +45,14 @@ class MainController {
     fun doCollectStore(): Boolean {
         collectDoneFilesToStoreFolderAndCreate720pForAllUncreated()
         return true
+    }
+
+    @PostMapping("/utils/censored")
+    @ResponseBody
+    fun doCensored(
+        @RequestParam(required = true) source: String,
+        model: Model): String {
+        return source.censored()
     }
 
     @PostMapping("/utils/createfromfolder")
@@ -83,6 +96,24 @@ class MainController {
     @ResponseBody
     fun doClearPreDublicates(): Int {
         return clearPreDublicates()
+    }
+
+    @GetMapping("/utils/customfunction")
+    @ResponseBody
+    fun doCustomFunction(): String {
+        return customFunction()
+    }
+
+    @PostMapping("/changesettingsstatus")
+    @ResponseBody
+    fun doCreateFromFolder(
+        @RequestParam(required = true) settingsId: Long,
+        @RequestParam(required = true) statusId: Long,
+        model: Model) {
+        Settings.loadFromDbById(settingsId)?.let {
+            it.fields[SettingField.ID_STATUS] = statusId.toString()
+            it.saveToDb()
+        }
     }
 
     @PostMapping("/process/update")
@@ -172,10 +203,7 @@ class MainController {
     fun getPictureAuthor(@PathVariable id: Long): String {
         val settings = Settings.loadFromDbById(id)
         settings?.let {
-            val file = File("${it.rootFolder}/LogoAuthor.png")
-            if (file.exists()) {
-                return java.util.Base64.getEncoder().encodeToString(file.inputStream().readAllBytes())
-            }
+            return it.pictureAuthor?.full ?: ""
         }
         return ""
     }
@@ -185,10 +213,7 @@ class MainController {
     fun getPictureAlbum(@PathVariable id: Long): String {
         val settings = Settings.loadFromDbById(id)
         settings?.let {
-            val file = File("${it.rootFolder}/LogoAlbum.png")
-            if (file.exists()) {
-                return java.util.Base64.getEncoder().encodeToString(file.inputStream().readAllBytes())
-            }
+            return it.pictureAlbum?.full ?: ""
         }
         return ""
     }
@@ -499,9 +524,6 @@ class MainController {
     @GetMapping("/song/{id}/{voice}/editsubs")
     fun getSongEditSubs(@PathVariable id: Long, @PathVariable voice: Int, model: Model): String {
         val settings = Settings.loadFromDbById(id)
-//        val markers = settings?.let {
-//            Song(settings,SongVersion.LYRICS).getMarkers()
-//        } ?: emptyList()
 
         val textValue = Json.encodeToString(settings!!.getSourceText(voice))
         val markersValue = Json.encodeToString(settings!!.getSourceMarkers(voice))
@@ -576,7 +598,7 @@ class MainController {
         val settings = Settings.loadFromDbById(id)
         val text = settings?.let {
             val song = Song(settings, SongVersion.LYRICS)
-            val text = song.getDescriptionHeader()
+            val text = song.getDescriptionHeader(140)
             text
         } ?: ""
         return text
@@ -589,7 +611,7 @@ class MainController {
         val settings = Settings.loadFromDbById(id)
         val text = settings?.let {
             val song = Song(settings, SongVersion.KARAOKE)
-            val text = song.getDescriptionHeader()
+            val text = song.getDescriptionHeader(140)
             text
         } ?: ""
         return text
@@ -602,7 +624,7 @@ class MainController {
         val settings = Settings.loadFromDbById(id)
         val text = settings?.let {
             val song = Song(settings, SongVersion.CHORDS)
-            val text = song.getDescriptionHeader()
+            val text = song.getDescriptionHeader(140)
             text
         } ?: ""
         return text
@@ -615,7 +637,7 @@ class MainController {
         val settings = Settings.loadFromDbById(id)
         val text = settings?.let {
             val song = Song(settings, SongVersion.LYRICS)
-            val text = song.getDescriptionYoutubeWOHeader()
+            val text = song.getDescriptionDzenWOHeader(5000)
             text
         } ?: ""
         return text
@@ -628,7 +650,7 @@ class MainController {
         val settings = Settings.loadFromDbById(id)
         val text = settings?.let {
             val song = Song(settings, SongVersion.KARAOKE)
-            val text = song.getDescriptionYoutubeWOHeader()
+            val text = song.getDescriptionDzenWOHeader(5000)
             text
         } ?: ""
         return text
@@ -641,7 +663,7 @@ class MainController {
         val settings = Settings.loadFromDbById(id)
         val text = settings?.let {
             val song = Song(settings, SongVersion.CHORDS)
-            val text = song.getDescriptionYoutubeWOHeader()
+            val text = song.getDescriptionDzenWOHeader(5000)
             text
         } ?: ""
         return text
@@ -974,6 +996,10 @@ class MainController {
                 val settings = Settings.loadFromDbById(id)
                 settings?.let {
                     settings.createKaraoke()
+
+                    KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, 10)
+                    KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, 10)
+
                 }
                 result = "OK"
             }
@@ -1101,6 +1127,7 @@ class MainController {
         @RequestParam(required = false) filter_description: String?,
         @RequestParam(required = false) filter_settings_id: String?,
         @RequestParam(required = false) filter_type: String?,
+        @RequestParam(required = false) filter_limit: String?,
         model: Model
 
     ): String {
@@ -1114,6 +1141,7 @@ class MainController {
         filter_description?.let { if (filter_description != "") args["process_description"] = filter_description }
         filter_settings_id?.let { if (filter_settings_id != "") args["settings_id"] = filter_settings_id }
         filter_type?.let { if (filter_type != "") args["process_type"] = filter_type }
+        filter_limit?.let { if (filter_limit != "") args["filter_limit"] = filter_limit }
         model.addAttribute("processes", KaraokeProcess.loadList(args))
 
         return "processes"
@@ -1134,23 +1162,14 @@ class MainController {
         @RequestParam(required = false) flag_boosty: String?,
         @RequestParam(required = false) flag_vk: String?,
         @RequestParam(required = false) flag_youtube_lyrics: String?,
-//        @RequestParam(required = false) flag_youtube_lyrics_bt: String?,
         @RequestParam(required = false) flag_youtube_karaoke: String?,
-//        @RequestParam(required = false) flag_youtube_karaoke_bt: String?,
         @RequestParam(required = false) flag_youtube_chords: String?,
-//        @RequestParam(required = false) flag_youtube_chords_bt: String?,
         @RequestParam(required = false) flag_vk_lyrics: String?,
-//        @RequestParam(required = false) flag_vk_lyrics_bt: String?,
         @RequestParam(required = false) flag_vk_karaoke: String?,
-//        @RequestParam(required = false) flag_vk_karaoke_bt: String?,
         @RequestParam(required = false) flag_vk_chords: String?,
-//        @RequestParam(required = false) flag_vk_chords_bt: String?,
         @RequestParam(required = false) flag_telegram_lyrics: String?,
-//        @RequestParam(required = false) flag_telegram_lyrics_bt: String?,
         @RequestParam(required = false) flag_telegram_karaoke: String?,
-//        @RequestParam(required = false) flag_telegram_karaoke_bt: String?,
         @RequestParam(required = false) flag_telegram_chords: String?,
-//        @RequestParam(required = false) flag_telegram_chords_bt: String?,
         model: Model): String {
 
         val args: MutableMap<String, String> = mutableMapOf()
@@ -1167,23 +1186,14 @@ class MainController {
         flag_boosty?.let { if (flag_boosty != "") args["flag_boosty"] = flag_boosty }
         flag_vk?.let { if (flag_vk != "") args["flag_vk"] = flag_vk }
         flag_youtube_lyrics?.let { if (flag_youtube_lyrics != "") args["flag_youtube_lyrics"] = flag_youtube_lyrics }
-//        flag_youtube_lyrics_bt?.let { if (flag_youtube_lyrics_bt != "") args["flag_youtube_lyrics_bt"] = flag_youtube_lyrics_bt }
         flag_youtube_karaoke?.let { if (flag_youtube_karaoke != "") args["flag_youtube_karaoke"] = flag_youtube_karaoke }
-//        flag_youtube_karaoke_bt?.let { if (flag_youtube_karaoke_bt != "") args["flag_youtube_karaoke_bt"] = flag_youtube_karaoke_bt }
         flag_youtube_chords?.let { if (flag_youtube_chords != "") args["flag_youtube_chords"] = flag_youtube_chords }
-//        flag_youtube_chords_bt?.let { if (flag_youtube_chords_bt != "") args["flag_youtube_chords_bt"] = flag_youtube_chords_bt }
         flag_vk_lyrics?.let { if (flag_vk_lyrics != "") args["flag_vk_lyrics"] = flag_vk_lyrics }
-//        flag_vk_lyrics_bt?.let { if (flag_vk_lyrics_bt != "") args["flag_vk_lyrics_bt"] = flag_vk_lyrics_bt }
         flag_vk_karaoke?.let { if (flag_vk_karaoke != "") args["flag_vk_karaoke"] = flag_vk_karaoke }
-//        flag_vk_karaoke_bt?.let { if (flag_vk_karaoke_bt != "") args["flag_vk_karaoke_bt"] = flag_vk_karaoke_bt }
         flag_vk_chords?.let { if (flag_vk_chords != "") args["flag_vk_chords"] = flag_vk_chords }
-//        flag_vk_chords_bt?.let { if (flag_vk_chords_bt != "") args["flag_vk_chords_bt"] = flag_vk_chords_bt }
         flag_telegram_lyrics?.let { if (flag_telegram_lyrics != "") args["flag_telegram_lyrics"] = flag_telegram_lyrics }
-//        flag_telegram_lyrics_bt?.let { if (flag_telegram_lyrics_bt != "") args["flag_telegram_lyrics_bt"] = flag_telegram_lyrics_bt }
         flag_telegram_karaoke?.let { if (flag_telegram_karaoke != "") args["flag_telegram_karaoke"] = flag_telegram_karaoke }
-//        flag_telegram_karaoke_bt?.let { if (flag_telegram_karaoke_bt != "") args["flag_telegram_karaoke_bt"] = flag_telegram_karaoke_bt }
         flag_telegram_chords?.let { if (flag_telegram_chords != "") args["flag_telegram_chords"] = flag_telegram_chords }
-//        flag_telegram_chords_bt?.let { if (flag_telegram_chords_bt != "") args["flag_telegram_chords_bt"] = flag_telegram_chords_bt }
         model.addAttribute("sett", Settings.loadListFromDb(args))
         model.addAttribute("authors", Settings.loadListAuthors())
         model.addAttribute("albums", Settings.loadListAlbums())
@@ -1208,23 +1218,14 @@ class MainController {
         @RequestParam(required = false) settings_idBoosty: String,
         @RequestParam(required = false) settings_idVk: String,
         @RequestParam(required = false) settings_idYoutubeLyrics: String,
-//        @RequestParam(required = false) settings_idYoutubeLyricsBt: String,
         @RequestParam(required = false) settings_idYoutubeKaraoke: String,
-//        @RequestParam(required = false) settings_idYoutubeKaraokeBt: String,
         @RequestParam(required = false) settings_idYoutubeChords: String,
-//        @RequestParam(required = false) settings_idYoutubeChordsBt: String,
         @RequestParam(required = false) settings_idVkLyrics: String,
-//        @RequestParam(required = false) settings_idVkLyricsBt: String,
         @RequestParam(required = false) settings_idVkKaraoke: String,
-//        @RequestParam(required = false) settings_idVkKaraokeBt: String,
         @RequestParam(required = false) settings_idVkChords: String,
-//        @RequestParam(required = false) settings_idVkChordsBt: String,
         @RequestParam(required = false) settings_idTelegramLyrics: String,
-//        @RequestParam(required = false) settings_idTelegramLyricsBt: String,
         @RequestParam(required = false) settings_idTelegramKaraoke: String,
-//        @RequestParam(required = false) settings_idTelegramKaraokeBt: String,
         @RequestParam(required = false) settings_idTelegramChords: String,
-//        @RequestParam(required = false) settings_idTelegramChordsBt: String,
         @RequestParam(required = false) select_status: String,
         model: Model): String {
         val settingsId: Long = settings_id.toLong()
@@ -1247,31 +1248,20 @@ class MainController {
             sett.fields[SettingField.ID_BOOSTY] = settings_idBoosty
             sett.fields[SettingField.ID_VK] = settings_idVk
             sett.fields[SettingField.ID_YOUTUBE_LYRICS] = settings_idYoutubeLyrics
-//            sett.fields[SettingField.ID_YOUTUBE_LYRICS_BT] = settings_idYoutubeLyricsBt
             sett.fields[SettingField.ID_YOUTUBE_KARAOKE] = settings_idYoutubeKaraoke
-//            sett.fields[SettingField.ID_YOUTUBE_KARAOKE_BT] = settings_idYoutubeKaraokeBt
             sett.fields[SettingField.ID_YOUTUBE_CHORDS] = settings_idYoutubeChords
-//            sett.fields[SettingField.ID_YOUTUBE_CHORDS_BT] = settings_idYoutubeChordsBt
             sett.fields[SettingField.ID_VK_LYRICS] = settings_idVkLyrics
-//            sett.fields[SettingField.ID_VK_LYRICS_BT] = settings_idVkLyricsBt
             sett.fields[SettingField.ID_VK_KARAOKE] = settings_idVkKaraoke
-//            sett.fields[SettingField.ID_VK_KARAOKE_BT] = settings_idVkKaraokeBt
             sett.fields[SettingField.ID_VK_CHORDS] = settings_idVkChords
-//            sett.fields[SettingField.ID_VK_CHORDS_BT] = settings_idVkChordsBt
             sett.fields[SettingField.ID_TELEGRAM_LYRICS] = settings_idTelegramLyrics
-//            sett.fields[SettingField.ID_TELEGRAM_LYRICS_BT] = settings_idTelegramLyricsBt
             sett.fields[SettingField.ID_TELEGRAM_KARAOKE] = settings_idTelegramKaraoke
-//            sett.fields[SettingField.ID_TELEGRAM_KARAOKE_BT] = settings_idTelegramKaraokeBt
             sett.fields[SettingField.ID_TELEGRAM_CHORDS] = settings_idTelegramChords
-//            sett.fields[SettingField.ID_TELEGRAM_CHORDS_BT] = settings_idTelegramChordsBt
             sett.fields[SettingField.ID_STATUS] = select_status
             sett.saveToDb()
             sett.saveToFile()
             if (settings_idBoosty != "") {
                 sett.createVKDescription()
             }
-
-//            publicationsUpdate(settingsId)
 
         }
         return "redirect:/songs"
@@ -1296,5 +1286,150 @@ class MainController {
         return "publications"
     }
 
+    @GetMapping("/unpublications")
+    fun unpublications(
+        model: Model
+    ): String {
+        model.addAttribute("publications", Publication.getUnPublicationList())
+        return "unpublications"
+    }
 
+
+    @PostMapping("/utils/tfd")
+    @ResponseBody
+    fun doTextFileDictionary(
+        @RequestParam(required = true) dictName: String,
+        @RequestParam(required = true) dictValue: String,
+        @RequestParam(required = true) dictAction: String,
+        model: Model): Boolean {
+
+        return TextFileDictionary.doAction(dictName, dictAction, listOf(dictValue))
+
+    }
+
+
+
+
+
+    @GetMapping("/songs2")
+    fun songs2(
+        @RequestParam(required = false) filter_id: String?,
+        @RequestParam(required = false) filter_songName: String?,
+        @RequestParam(required = false) filter_author: String?,
+        @RequestParam(required = false) filter_year: String?,
+        @RequestParam(required = false) filter_album: String?,
+        @RequestParam(required = false) filter_track: String?,
+        @RequestParam(required = false) filter_tags: String?,
+        @RequestParam(required = false) filter_date: String?,
+        @RequestParam(required = false) filter_time: String?,
+        @RequestParam(required = false) filter_status: String?,
+        @RequestParam(required = false) flag_boosty: String?,
+        @RequestParam(required = false) flag_vk: String?,
+        @RequestParam(required = false) flag_youtube_lyrics: String?,
+        @RequestParam(required = false) flag_youtube_karaoke: String?,
+        @RequestParam(required = false) flag_youtube_chords: String?,
+        @RequestParam(required = false) flag_vk_lyrics: String?,
+        @RequestParam(required = false) flag_vk_karaoke: String?,
+        @RequestParam(required = false) flag_vk_chords: String?,
+        @RequestParam(required = false) flag_telegram_lyrics: String?,
+        @RequestParam(required = false) flag_telegram_karaoke: String?,
+        @RequestParam(required = false) flag_telegram_chords: String?,
+        model: Model): String {
+
+        val args: MutableMap<String, String> = mutableMapOf()
+        filter_id?.let { if (filter_id != "") args["id"] = filter_id }
+        filter_songName?.let { if (filter_songName != "") args["song_name"] = filter_songName }
+        filter_author?.let { if (filter_author != "") args["song_author"] = filter_author }
+        filter_album?.let { if (filter_album != "") args["song_album"] = filter_album }
+        filter_date?.let { if (filter_date != "") args["publish_date"] = filter_date }
+        filter_time?.let { if (filter_time != "") args["publish_time"] = filter_time }
+        filter_year?.let { if (filter_year != "") args["song_year"] = filter_year }
+        filter_track?.let { if (filter_track != "") args["song_track"] = filter_track }
+        filter_tags?.let { if (filter_tags != "") args["tags"] = filter_tags }
+        filter_status?.let { if (filter_status != "") args["id_status"] = filter_status }
+        flag_boosty?.let { if (flag_boosty != "") args["flag_boosty"] = flag_boosty }
+        flag_vk?.let { if (flag_vk != "") args["flag_vk"] = flag_vk }
+        flag_youtube_lyrics?.let { if (flag_youtube_lyrics != "") args["flag_youtube_lyrics"] = flag_youtube_lyrics }
+        flag_youtube_karaoke?.let { if (flag_youtube_karaoke != "") args["flag_youtube_karaoke"] = flag_youtube_karaoke }
+        flag_youtube_chords?.let { if (flag_youtube_chords != "") args["flag_youtube_chords"] = flag_youtube_chords }
+        flag_vk_lyrics?.let { if (flag_vk_lyrics != "") args["flag_vk_lyrics"] = flag_vk_lyrics }
+        flag_vk_karaoke?.let { if (flag_vk_karaoke != "") args["flag_vk_karaoke"] = flag_vk_karaoke }
+        flag_vk_chords?.let { if (flag_vk_chords != "") args["flag_vk_chords"] = flag_vk_chords }
+        flag_telegram_lyrics?.let { if (flag_telegram_lyrics != "") args["flag_telegram_lyrics"] = flag_telegram_lyrics }
+        flag_telegram_karaoke?.let { if (flag_telegram_karaoke != "") args["flag_telegram_karaoke"] = flag_telegram_karaoke }
+        flag_telegram_chords?.let { if (flag_telegram_chords != "") args["flag_telegram_chords"] = flag_telegram_chords }
+        model.addAttribute("sett", Settings.loadListFromDb(args))
+        model.addAttribute("authors", Settings.loadListAuthors())
+        model.addAttribute("albums", Settings.loadListAlbums())
+        return "songs2"
+    }
+
+
+    @PostMapping("/songs2_update")
+    fun songs2Update(
+        @RequestParam(required = false) settings_id: String,
+        @RequestParam(required = false) settings_songName: String,
+        @RequestParam(required = false) settings_author: String,
+        @RequestParam(required = false) settings_year: String,
+        @RequestParam(required = false) settings_album: String,
+        @RequestParam(required = false) settings_track: String,
+        @RequestParam(required = false) settings_tags: String,
+        @RequestParam(required = false) settings_date: String,
+        @RequestParam(required = false) settings_time: String,
+        @RequestParam(required = false) settings_key: String,
+        @RequestParam(required = false) settings_bpm: String,
+        @RequestParam(required = false) settings_ms: String,
+        @RequestParam(required = false) settings_fileName: String,
+        @RequestParam(required = false) settings_rootFolder: String,
+        @RequestParam(required = false) settings_idBoosty: String,
+        @RequestParam(required = false) settings_idVk: String,
+        @RequestParam(required = false) settings_idYoutubeLyrics: String,
+        @RequestParam(required = false) settings_idYoutubeKaraoke: String,
+        @RequestParam(required = false) settings_idYoutubeChords: String,
+        @RequestParam(required = false) settings_idVkLyrics: String,
+        @RequestParam(required = false) settings_idVkKaraoke: String,
+        @RequestParam(required = false) settings_idVkChords: String,
+        @RequestParam(required = false) settings_idTelegramLyrics: String,
+        @RequestParam(required = false) settings_idTelegramKaraoke: String,
+        @RequestParam(required = false) settings_idTelegramChords: String,
+        @RequestParam(required = false) select_status: String,
+        model: Model): String {
+        val settingsId: Long = settings_id.toLong()
+        val settings = Settings.loadFromDbById(settingsId)
+        settings?.let { sett ->
+            sett.fileName = settings_fileName
+            sett.rootFolder = settings_rootFolder
+            sett.tags = settings_tags
+            sett.fields[SettingField.ID] = settings_id
+            sett.fields[SettingField.NAME] = settings_songName
+            sett.fields[SettingField.AUTHOR] = settings_author
+            sett.fields[SettingField.YEAR] = settings_year
+            sett.fields[SettingField.ALBUM] = settings_album
+            sett.fields[SettingField.TRACK] = settings_track
+            sett.fields[SettingField.DATE] = settings_date
+            sett.fields[SettingField.TIME] = settings_time
+            sett.fields[SettingField.KEY] = settings_key
+            sett.fields[SettingField.BPM] = settings_bpm
+            sett.fields[SettingField.MS] = settings_ms
+            sett.fields[SettingField.ID_BOOSTY] = settings_idBoosty
+            sett.fields[SettingField.ID_VK] = settings_idVk
+            sett.fields[SettingField.ID_YOUTUBE_LYRICS] = settings_idYoutubeLyrics
+            sett.fields[SettingField.ID_YOUTUBE_KARAOKE] = settings_idYoutubeKaraoke
+            sett.fields[SettingField.ID_YOUTUBE_CHORDS] = settings_idYoutubeChords
+            sett.fields[SettingField.ID_VK_LYRICS] = settings_idVkLyrics
+            sett.fields[SettingField.ID_VK_KARAOKE] = settings_idVkKaraoke
+            sett.fields[SettingField.ID_VK_CHORDS] = settings_idVkChords
+            sett.fields[SettingField.ID_TELEGRAM_LYRICS] = settings_idTelegramLyrics
+            sett.fields[SettingField.ID_TELEGRAM_KARAOKE] = settings_idTelegramKaraoke
+            sett.fields[SettingField.ID_TELEGRAM_CHORDS] = settings_idTelegramChords
+            sett.fields[SettingField.ID_STATUS] = select_status
+            sett.saveToDb()
+            sett.saveToFile()
+            if (settings_idBoosty != "") {
+                sett.createVKDescription()
+            }
+
+        }
+        return "redirect:/songs2"
+    }
 }

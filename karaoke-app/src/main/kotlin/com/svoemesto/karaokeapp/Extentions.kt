@@ -1,7 +1,9 @@
 package com.svoemesto.karaokeapp
 
+import com.svoemesto.karaokeapp.textfiledictionary.CensoredWordsDictionary
 import java.awt.Color
 import java.awt.Font
+import java.io.File
 
 fun String.nullIfEmpty(): String? {
     return if (this.trim() == "" || this == "null") null else this
@@ -81,12 +83,12 @@ fun String.uppercaseFirstLetter(): String {
     return result
 }
 
-fun String.cutByWords(delimiter: String = " ", maxLength: Long = 100, excludingWords: List<String> = listOf("for")): String {
+fun String.cutByWords(delimiter: String = " ", maxLength: Int = 0, excludingWords: List<String> = listOf("for")): String {
     val listWords = this.split(delimiter)
     var result = ""
     var lastWord = ""
     listWords.forEach { word ->
-        if (result.length + word.length + delimiter.length <= maxLength) {
+        if (result.length + word.length + delimiter.length <= maxLength || maxLength == 0) {
             result += delimiter + word
             lastWord = word
         } else {
@@ -97,4 +99,47 @@ fun String.cutByWords(delimiter: String = " ", maxLength: Long = 100, excludingW
         }
     }
     return result.trim()
+}
+
+fun getCensoredPair(censored: String, charOpen: String = "[", charClose: String = "]", replacement: String = "█"): Pair<String, String> {
+    val s1 = censored.replace(charOpen,"").replace(charClose,"")
+    val s2 = censored.replace("(\\[.\\])".toRegex(), replacement)
+    return Pair(s1, s2)
+}
+fun String.censored(): String {
+
+    val censoredMap = CensoredWordsDictionary().dict.associate { getCensoredPair(it) }
+
+    var result = this
+    censoredMap.forEach { (uncensored, censored) ->
+        val patt1 = "\\b$uncensored\\b".toRegex()
+        result = result.replace(patt1, censored)
+        val patt2 = "\\b${uncensored.uppercaseFirstLetter()}\\b".toRegex()
+        result = result.replace(patt2, censored.uppercaseFirstLetter())
+    }
+    return result
+}
+
+fun String.addNewLinesByUpperCase(minNewLine: Int = 2): String {
+    if (this.split("\n").size >=  minNewLine) return this
+    var result = ""
+    for (symbol in this) {
+        result += if (symbol.isUpperCase()) "\n" else ""
+        result += symbol.toString()
+    }
+    return result
+}
+
+fun String.replaceQuotes(): String {
+    var result = this
+    val regex = "\"[\\s\\S]+?\"".toRegex()
+    val matchResults = regex.findAll(result)
+    matchResults.forEach { matchResult ->
+        matchResult.groupValues.forEach { replaceFrom ->
+            val replaceTo = "«" + replaceFrom.substring(1,replaceFrom.length-1) + "»"
+            result = result.replace(replaceFrom, replaceTo)
+        }
+    }
+
+    return result
 }

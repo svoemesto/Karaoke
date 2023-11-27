@@ -1,3 +1,3 @@
-select DISTINCT song_author
+select song_author, count(DISTINCT song_album) as albums, count(DISTINCT id) as songs
 from tbl_settings
-order by song_author
+group by song_author

@@ -17,6 +17,7 @@ enum class ProducerType(val text: String, val onlyOne: Boolean, val suffixes: Li
     PROGRESS(text ="progress", onlyOne = true, suffixes = emptyList(), ids = emptyList(), isAudio = false, isVideo = true, coeffStatic = 1, coeffVoice = 0),
     FILLCOLORSONGTEXT(text ="fillcolorsongtext", onlyOne = false, suffixes = listOf("even", "odd"), ids = emptyList(), isAudio = false, isVideo = true, coeffStatic = 0, coeffVoice = 2),
     SONGTEXT(text ="songtext", onlyOne = false, suffixes = emptyList(), ids = emptyList(), isAudio = false, isVideo = true, coeffStatic = 0, coeffVoice = 1),
+    SONGTEXTLINE(text ="songtextline", onlyOne = false, suffixes = emptyList(), ids = emptyList(), isAudio = false, isVideo = true, coeffStatic = 0, coeffVoice = 1),
     COUNTER(text ="counter", onlyOne = false, suffixes = emptyList(), ids = listOf(4,3,2,1,0), isAudio = false, isVideo = true, coeffStatic = 0, coeffVoice = 5),
     FADERTEXT(text ="fadertext", onlyOne = true, suffixes = emptyList(), ids = emptyList(), isAudio = false, isVideo = true, coeffStatic = 1, coeffVoice = 0),
     FADERCHORDS(text ="faderchords", onlyOne = true, suffixes = emptyList(), ids = emptyList(), isAudio = false, isVideo = true, coeffStatic = 1, coeffVoice = 0),

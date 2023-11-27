@@ -50,7 +50,34 @@
 
     </style>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.0/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+
     <script type="text/javascript">
+
+        // const socket = new SockJS('/ws');
+        // const stompClient = Stomp.over(socket);
+        //
+        // stompClient.connect({}, function() {
+        //     stompClient.subscribe('/topic/messages', function(message) {
+        //         // Обработка полученного сообщения
+        //         console.log(message.body)
+        //     });
+        // });
+
+        // const socket = new WebSocket("ws://localhost/:8888/ws");
+        //
+        // socket.onopen = function() {
+        //     console.log("WebSocket connection established.");
+        // };
+        //
+        // socket.onclose = function() {
+        //     console.log("WebSocket connection closed.");
+        // };
+        //
+        // socket.onerror = function() {
+        //     console.error("WebSocket connection error.");
+        // };
 
         function doAddKaraokeByFolder() {
 
@@ -170,6 +197,54 @@
                 });
             }
         }
+        function doCustomFunction() {
+            if (confirm("Запустить Custom Function?")) {
+                $.ajax({
+                    type: "GET",
+                    url: "/utils/customfunction",
+                    data: "",
+                    success: function(data) {
+                        alert(`Custom Function result: ${data}`);
+                    }
+                });
+            }
+        }
+
+        function doDictAdd() {
+            var dictName = document.getElementById("field_dict_name").value;
+            var dictValue = document.getElementById("field_dict_value").value;
+            var dictAction = "add";
+            $.ajax({
+                type: "POST",
+                url: "/utils/tfd",
+                data: {
+                    "dictName": dictName,
+                    "dictValue": dictValue,
+                    "dictAction": dictAction
+                },
+                success: function(data) {
+                    alert(`Результат: ${data}`);
+                }
+            });
+        }
+
+        function doDictRemove() {
+            var dictName = document.getElementById("field_dict_name").value;
+            var dictValue = document.getElementById("field_dict_value").value;
+            var dictAction = "remove";
+            $.ajax({
+                type: "POST",
+                url: "/utils/tfd",
+                data: {
+                    "dictName": dictName,
+                    "dictValue": dictValue,
+                    "dictAction": dictAction
+                },
+                success: function(data) {
+                    alert(`Результат: ${data}`);
+                }
+            });
+        }
 
     </script>
 </head>
@@ -183,6 +258,9 @@
     <div id="areaBody">
         <datalist id="list_authors">
             <option th:each="author:${authors}" th:value="${author}">
+        </datalist>
+        <datalist id="list_dicts">
+            <option th:each="dict:${dicts}" th:value="${dict}">
         </datalist>
         <table class="table table-hover table-bordered" style="margin: 1px;padding: 1px; height: fit-content;">
             <tr style="margin: 1px;padding: 1px;height: auto;">
@@ -243,6 +321,34 @@
                     <button style="height: 35px;" name="button_clear_pre_dublicates" id="button_clear_pre_dublicates" class="form-control btn btn-primary btn-block" type="button" onclick="doClearPreDublicates()">Очистить информацию о пре-дубликатах</button>
                 </td>
             </tr>
+
+            <tr style="margin: 1px;padding: 1px;height: auto;">
+                <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                    <input list="list_dicts" style="font-size: 14px; padding: 0;" class="form-control" type="text" id="field_dict_name" name="field_dict_name" placeholder="Словарь">
+                </td>
+            </tr>
+            <tr style="margin: 1px;padding: 1px;height: auto;">
+                <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
+                    <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="field_dict_value" name="field_dict_value" placeholder="Значение">
+                </td>
+            </tr>
+            <tr style="margin: 1px;padding: 1px;height: auto;">
+                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                    <button style="height: 35px;" name="button_dict_add" id="button_dict_add" class="form-control btn btn-primary btn-block" type="button" onclick="doDictAdd()">Добавить в словарь</button>
+                </td>
+            </tr>
+            <tr style="margin: 1px;padding: 1px;height: auto;">
+                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                    <button style="height: 35px;" name="button_dict_remove" id="button_dict_remove" class="form-control btn btn-primary btn-block" type="button" onclick="doDictRemove()">Удалить из словаря</button>
+                </td>
+            </tr>
+
+            <tr style="margin: 1px;padding: 1px;height: auto;">
+                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                    <button style="height: 35px;" name="button_custom_function" id="button_custom_function" class="form-control btn btn-primary btn-block" type="button" onclick="doCustomFunction()">Выполнить Custom Function</button>
+                </td>
+            </tr>
+
 
         </table>
 

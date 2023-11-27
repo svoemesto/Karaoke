@@ -1,0 +1,70 @@
+* {
+    box-sizing: border-box;
+}
+
+#areaScreen {
+    padding: 1em;
+    display: flex;
+    min-height: 100vh;
+    flex-direction: column;
+    margin: 0;
+}
+
+#areaHeader {
+    padding: 5px;
+    background: whitesmoke;
+    height: 50px;
+}
+
+#areaBody {
+    padding: 5px;
+    display: flex;
+    flex: 1;
+    background: beige;
+    max-height: calc(100vh - 135px);
+}
+
+#areaLeftColumn {
+    order: -1;
+    flex: 0 0 200px;
+    background: cadetblue;
+}
+
+#areaLeftTable{
+    flex: 1;
+    overflow-y: scroll;
+    max-height: calc(100vh - 350px);
+    background: #d5e6ff;
+}
+
+#areaCenterColumn {
+    flex: 1;
+    background: white;
+}
+
+#areaRightColumn {
+    flex: 0 0 100px;
+    background: dodgerblue;
+}
+
+#areaFooter {
+    padding: 5px;
+    background: yellowgreen;
+    height: 50px;
+}
+
+tbody tr.sub-row0:hover {
+    background: #d5e6ff; /* Цвет фона */
+}
+tbody tr.sub-row1:hover {
+    background: #d5e6ff; /* Цвет фона */
+}
+tbody tr.sub-row2:hover {
+    background: #f00; /* Цвет фона */
+}
+
+.sub-row0 { color: #000; background: #FFF; border-width: thin; border-color: black }
+.sub-row1 { color: #000; background: #EEE; border-width: thin; border-color: black }
+.sub-row2 { color: #000; background: #EC8888; border-top-width: medium; border-bottom-width: medium; border-bottom-color: red; border-top-color: red }
+.nonselrec {  color: #000; border-width: thin; border-color: black }
+.selrec { color: #000; background: cyan}

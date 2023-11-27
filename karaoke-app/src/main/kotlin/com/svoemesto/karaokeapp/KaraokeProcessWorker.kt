@@ -1,13 +1,17 @@
 package com.svoemesto.karaokeapp
 
+import com.svoemesto.karaokeapp.model.RecordChangeMessage
+import com.svoemesto.karaokeapp.model.RecordDiff
 import com.svoemesto.karaokeapp.model.SettingField
 import com.svoemesto.karaokeapp.model.Settings
+import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.stereotype.Component
 import java.io.BufferedReader
 import java.io.File
 import java.io.InputStreamReader
 import java.sql.Timestamp
 import java.time.Instant
+
 
 class KaraokeProcessThread(val karaokeProcess: KaraokeProcess? = null, var percentage: String? = null): Thread() {
     override fun run() {
@@ -91,6 +95,7 @@ class KaraokeProcessWorker {
         var isWork: Boolean = false
         var stopAfterThreadIsDone: Boolean = false
 
+
         var workThread: KaraokeProcessThread? = null
 
         fun start() {
@@ -98,12 +103,29 @@ class KaraokeProcessWorker {
                 doStart()
             } else {
                 stopAfterThreadIsDone = false
+                sendStateMessage()
             }
         }
 
         fun stop() {
             if (isWork) {
                 doStop()
+                sendStateMessage()
+            }
+        }
+
+        fun sendStateMessage() {
+            val messageRecordChange = RecordChangeMessage(
+                recordChangeTableName = "tbl_processes",
+                recordChangeId = 0,
+                recordChangeDiffs = listOf(
+                    RecordDiff("isWorkAndStopAfterThreadIsDone", isWork, stopAfterThreadIsDone, false)
+                )
+            )
+            try {
+                WEBSOCKET.convertAndSend("/messages/processesrecordchange", messageRecordChange)
+            } catch (e: Exception) {
+                println(e.message)
             }
         }
 
@@ -118,8 +140,14 @@ class KaraokeProcessWorker {
         private fun doStart() {
             val timeout = 1000L
             var counter = 0
+            var id = 0L
+            var settingsId = 0L
+            var processType = ""
+            var percentage = 0
+
             isWork = true
             stopAfterThreadIsDone = false
+            sendStateMessage()
             while (isWork) {
                 counter++
                 Thread.sleep(timeout)
@@ -188,15 +216,100 @@ class KaraokeProcessWorker {
                         if (karaokeProcess != null) {
                             val args = karaokeProcess.args[0]
                             if (args.isNotEmpty()) {
+                                if (id > 0) {
+
+                                    val diffs = KaraokeProcess.getDiff(KaraokeProcess.load(id))
+                                    if (diffs.isNotEmpty()) {
+                                        val messageRecordChange = RecordChangeMessage(recordChangeTableName = "tbl_processes",  recordChangeId = id, recordChangeDiffs = diffs)
+                                        try {
+                                            WEBSOCKET.convertAndSend("/messages/processesrecordchange", messageRecordChange)
+                                            WEBSOCKET.convertAndSend("/messages/recordchange",
+                                                RecordChangeMessage(
+                                                    recordChangeId = settingsId,
+                                                    recordChangeTableName = "tbl_settings",
+                                                    recordChangeDiffs = listOf(
+                                                        RecordDiff(
+                                                            recordDiffName = processType,
+                                                            recordDiffValueNew = "100%",
+                                                            recordDiffValueOld = "",
+                                                            recordDiffRealField = false
+                                                        )
+                                                    )
+                                                )
+                                            )
+
+                                        } catch (e: Exception) {
+                                            println(e.message)
+                                        }
+                                    }
+
+                                }
                                 workThread = KaraokeProcessThread(karaokeProcess)
+                                id = karaokeProcess.id.toLong()
+                                settingsId = karaokeProcess.settingsId.toLong()
+                                processType = karaokeProcess.type
+                                percentage = 0
                                 workThread!!.start()
                             }
                         }
                     } else {
+
+                        val diffs = KaraokeProcess.getDiff(KaraokeProcess.load(id))
+                        if (diffs.isNotEmpty()) {
+                            val messageRecordChange = RecordChangeMessage(recordChangeTableName = "tbl_processes",  recordChangeId = id, recordChangeDiffs = diffs)
+                            try {
+                                WEBSOCKET.convertAndSend("/messages/processesrecordchange", messageRecordChange)
+                                WEBSOCKET.convertAndSend("/messages/recordchange",
+                                    RecordChangeMessage(
+                                        recordChangeId = settingsId,
+                                        recordChangeTableName = "tbl_settings",
+                                        recordChangeDiffs = listOf(
+                                            RecordDiff(
+                                                recordDiffName = processType,
+                                                recordDiffValueNew = "100%",
+                                                recordDiffValueOld = "",
+                                                recordDiffRealField = false
+                                            )
+                                        )
+                                    )
+                                )
+                            } catch (e: Exception) {
+                                println(e.message)
+                            }
+                        }
+
                         stopAfterThreadIsDone = false
                         isWork = false
+                        sendStateMessage()
                     }
+                } else {
 
+                    val diffs = KaraokeProcess.getDiff(workThread?.karaokeProcess)
+                    if (diffs.isNotEmpty()) {
+                        val messageRecordChange = RecordChangeMessage(recordChangeTableName = "tbl_processes",  recordChangeId = id, recordChangeDiffs = diffs)
+                        try {
+                            WEBSOCKET.convertAndSend("/messages/processesrecordchange", messageRecordChange)
+                            if (percentage != workThread?.karaokeProcess?.percentage ?: 0) {
+                                percentage = workThread?.karaokeProcess?.percentage ?: 0
+                                WEBSOCKET.convertAndSend("/messages/recordchange",
+                                    RecordChangeMessage(
+                                        recordChangeId = settingsId,
+                                        recordChangeTableName = "tbl_settings",
+                                        recordChangeDiffs = listOf(
+                                            RecordDiff(
+                                                recordDiffName = processType,
+                                                recordDiffValueNew = "${percentage}%",
+                                                recordDiffValueOld = "",
+                                                recordDiffRealField = false
+                                            )
+                                        )
+                                    )
+                                )
+                            }
+                        } catch (e: Exception) {
+                            println(e.message)
+                        }
+                    }
                 }
             }
         }

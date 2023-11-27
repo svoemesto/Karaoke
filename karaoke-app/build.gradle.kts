@@ -45,9 +45,27 @@ dependencies {
     implementation("io.ktor:ktor-server-core:2.3.0")
     implementation("org.apache.commons:commons-csv:1.8")
 
+    implementation("org.seleniumhq.selenium:selenium-java:4.8.0")
+//    implementation("org.seleniumhq.selenium:selenium-chrome-driver:4.14.1")
+//    implementation("org.seleniumhq.selenium:selenium-support:4.14.1")
+//    implementation("org.seleniumhq.selenium:selenium-api:4.14.1")
+
+//    implementation ("org.seleniumhq.selenium:selenium-java:3.141.59")
+//    implementation ("org.seleniumhq.selenium:selenium-chrome-driver:3.141.59")
+//    implementation ("org.seleniumhq.selenium:selenium-support:3.141.59")
+
 //    implementation("org.springframework:spring-messaging:6.0.9")
 
+    // https://mvnrepository.com/artifact/javax.websocket/javax.websocket-all
+    implementation("javax.websocket:javax.websocket-all:1.1")
+
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+
+
+    testImplementation ("org.seleniumhq.selenium:selenium-java:4.8.0")
+//    testImplementation ("org.seleniumhq.selenium:selenium-chrome-driver:3.141.59")
+//    testImplementation ("org.seleniumhq.selenium:selenium-support:3.141.59")
+//    testImplementation("org.seleniumhq.selenium:selenium-api:3.141.59")
 }
 
 tasks.withType<KotlinCompile> {

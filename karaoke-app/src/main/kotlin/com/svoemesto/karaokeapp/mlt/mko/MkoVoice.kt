@@ -17,16 +17,7 @@ data class MkoVoice(val mltProp: MltProp,
                     val voiceId: Int = 0) : MltKaraokeObject {
     val type: ProducerType = ProducerType.VOICE
     val mltGenerator = MltGenerator(mltProp, type)
-    override fun producer(): MltNode = MltNode()
 
-    override fun fileProducer(): MltNode = MltNode()
-    override fun filePlaylist(): MltNode = MltNode()
-
-    override fun trackPlaylist(): MltNode = MltNode()
-
-    override fun tractor(): MltNode = MltNode()
-
-    override fun template(): MltNode = MltNode()
 
 
 }

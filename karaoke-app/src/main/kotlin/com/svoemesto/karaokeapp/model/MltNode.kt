@@ -16,14 +16,79 @@ data class MltNode (
 
 data class MltNodeBuilder(val nodes: MutableList<MltNode> = mutableListOf()) {
 
-    fun propertyName(name: String, value: Any? = null) = apply {
+    fun node(node: MltNode) = apply {
+        nodes.add(node)
+    }
+
+    fun transitionsAndFilters(parentName: String, count: Int) = apply {
+        for (i in 0  until  count) {
+            nodes.add(
+                MltNode(
+                    name = "transition",
+                    fields = mutableMapOf("id" to "${parentName}_transition_${i}"),
+                    body = MltNodeBuilder()
+                        .propertyName("a_track", 0)
+                        .propertyName("b_track", i+1)
+                        .propertyName("compositing", 0)
+                        .propertyName("distort", 0)
+                        .propertyName("rotate_center", 0)
+                        .propertyName("mlt_service", "qtblend")
+                        .propertyName("kdenlive_id", "qtblend")
+                        .propertyName("internal_added", 237)
+                        .propertyName("always_active", 1)
+                        .build()
+                )
+            )
+        }
         nodes.add(
             MltNode(
-                name = "property",
-                fields = mutableMapOf("name" to name),
-                body = value
+                name = "filter",
+                fields = mutableMapOf("id" to "${parentName}_filter_volume"),
+                body = MltNodeBuilder()
+                    .propertyName("window", 75)
+                    .propertyName("max_gain", "20dB")
+                    .propertyName("mlt_service", "volume")
+                    .propertyName("internal_added", 237)
+                    .propertyName("disable", 1)
+                    .build()
             )
         )
+        nodes.add(
+            MltNode(
+                name = "filter",
+                fields = mutableMapOf("id" to "${parentName}_filter_panner"),
+                body = MltNodeBuilder()
+                    .propertyName("channel", -1)
+                    .propertyName("mlt_service", "panner")
+                    .propertyName("internal_added", 237)
+                    .propertyName("disable", 1)
+                    .propertyName("start", "0.5")
+                    .build()
+            )
+        )
+    }
+
+
+    fun propertyName(name: String, value: Any? = null) = apply {
+
+        val result = MltNode(
+            name = "property",
+            fields = mutableMapOf("name" to name),
+            body = value
+        )
+        val findedNode = nodes.firstOrNull { it.name == result.name && it.fields == result.fields }
+
+        if (findedNode == null) {
+            nodes.add(
+                MltNode(
+                    name = "property",
+                    fields = mutableMapOf("name" to name),
+                    body = value
+                )
+            )
+        } else {
+            findedNode.body = result.body
+        }
     }
 
     fun property(fields: MutableMap<String, String> = mutableMapOf(), body: Any? = null, type: ProducerType? = null) = apply {

@@ -33,7 +33,6 @@ data class MkoFillcolorSongtext(
                 .propertyName("kdenlive:id", mltGenerator.id)
                 .build()
         )
-    override fun fileProducer(): MltNode = MltNode()
 
     override fun filePlaylist(): MltNode {
         val result = mltGenerator.filePlaylist()
@@ -58,5 +57,4 @@ data class MkoFillcolorSongtext(
 
     override fun tractor(): MltNode = mltGenerator.tractor()
 
-    override fun template(): MltNode = MltNode()
 }

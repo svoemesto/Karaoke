@@ -14,6 +14,7 @@ data class MltGenerator(
 
     companion object {
         fun name(type: ProducerType, voiceId: Int = 0, childId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId).name
+        fun nameBlackTrack(type: ProducerType, voiceId: Int = 0, childId: Int = 0) = "${MltGenerator(MltProp(), type, voiceId, childId).name}_black_track"
     }
 
     val id: Int get() = (if (type.ids.isEmpty()) mltProp.getId(listOf(type, voiceId)) else mltProp.getId(listOf(type, voiceId, childId))) + voiceId*1000 + childId*10000
@@ -100,13 +101,14 @@ data class MltGenerator(
     fun producer(
         timecodeIn: String = mltProp.getStartTimecode("Song"),
         timecodeOut: String = mltProp.getEndTimecode("Song"),
-        props: MutableList<MltNode> = mutableListOf()
+        props: MutableList<MltNode> = mutableListOf(),
+        id: String? = null
     ): MltNode {
         return MltNode(
             type = type,
             name = "producer",
             fields = PropertiesMltNodeBuilder()
-                .id(nameProducer)
+                .id(id ?: nameProducer)
                 .`in`(timecodeIn)
                 .`out`(timecodeOut)
                 .build(),
@@ -134,15 +136,17 @@ data class MltGenerator(
     fun tractor(
         timecodeIn: String = mltProp.getStartTimecode("Song"),
         timecodeOut: String = mltProp.getEndTimecode("Song"),
+        id: String = nameTractor,
+        body: MutableList<MltNode> = tractorBody()
     ): MltNode = MltNode(
         type = type,
         name = "tractor",
         fields = PropertiesMltNodeBuilder()
-            .id(nameTractor)
+            .id(id)
             .`in`(timecodeIn)
             .`out`(timecodeOut)
             .build(),
-        body = tractorBody()
+        body = body
     )
     private fun tractorBody(): MutableList<MltNode> {
         val result: MutableList<MltNode> = MltNodeBuilder(propsTractor)

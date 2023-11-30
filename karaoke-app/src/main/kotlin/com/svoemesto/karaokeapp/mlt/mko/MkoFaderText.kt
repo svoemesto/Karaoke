@@ -28,7 +28,6 @@ data class MkoFaderText(
                 .build()
         )
 
-    override fun fileProducer(): MltNode = MltNode()
 
     override fun filePlaylist(): MltNode {
         val result = mltGenerator.filePlaylist()

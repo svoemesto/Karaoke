@@ -26,7 +26,6 @@ data class MkoWatermark(
                 .propertyName("meta.media.height", Karaoke.frameHeightPx)
                 .build()
         )
-    override fun fileProducer(): MltNode = MltNode()
 
     override fun filePlaylist(): MltNode {
 

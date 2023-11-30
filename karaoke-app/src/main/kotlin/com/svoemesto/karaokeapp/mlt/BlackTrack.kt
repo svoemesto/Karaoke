@@ -1,16 +1,17 @@
+import com.svoemesto.karaokeapp.mlt.MltProp
 import com.svoemesto.karaokeapp.model.MltNode
 
-fun getMltBlackTrackProducer(param: Map<String, Any?>): MltNode {
+fun getMltBlackTrackProducer(mltProp: MltProp): MltNode {
 
     val mlt = MltNode(
         name = "producer",
         fields = mutableMapOf(
             Pair("id","black_track"),
-            Pair("in",param["SONG_START_TIMECODE"].toString()),
-            Pair("out",param["SONG_END_TIMECODE"].toString())
+            Pair("in",mltProp.getStartTimecode("Song")),
+            Pair("out",mltProp.getEndTimecode("Song"))
         ),
         body = mutableListOf(
-            MltNode(name = "property", fields = mutableMapOf(Pair("name","length")), body = param["SONG_LENGTH_FR"]),
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","length")), body = mltProp.getLengthFr("Song")),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","eof")), body = "continue"),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","resource")), body = "black"),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","aspect_ratio")), body = 1),

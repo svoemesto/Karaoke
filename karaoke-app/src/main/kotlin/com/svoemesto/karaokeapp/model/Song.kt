@@ -8,6 +8,34 @@ import kotlin.math.absoluteValue
 
 data class Song(val settings: Settings, val songVersion: SongVersion, val woInit: Boolean = false) : Serializable {
 
+    val propAudioVolumeOn: String get() {
+        val prop = mutableListOf<String>()
+        prop.add("00:00:00.000=0")
+        prop.add("${endTimecode}=0")
+        return prop.joinToString(";")
+    }
+
+    val propAudioVolumeOff: String get() {
+        val prop = mutableListOf<String>()
+        prop.add("00:00:00.000=-100")
+        prop.add("${endTimecode}=-100")
+        return prop.joinToString(";")
+    }
+
+    val propAudioVolumeCustom: String get() {
+        val prop = mutableListOf<String>()
+        prop.add("00:00:00.000=-100")
+        settings.sourceUnmute.forEach { (unMuteStart, unMuteEnd) ->
+            prop.add("${convertFramesToTimecode(convertMillisecondsToFrames((unMuteStart*1000).toLong())- 2)}=-100")
+            prop.add("${convertFramesToTimecode(convertMillisecondsToFrames((unMuteStart*1000).toLong()))}=0")
+            prop.add("${convertFramesToTimecode(convertMillisecondsToFrames((unMuteEnd*1000).toLong()))}=0")
+            prop.add("${convertFramesToTimecode(convertMillisecondsToFrames((unMuteEnd*1000).toLong())+ 2)}=-100")
+        }
+        prop.add("${endTimecode}=-100")
+        return prop.joinToString(";")
+    }
+
+
     private val REPLACE_STRING = "[R]"
     private val END_STRING = "[E]"
     private val COMMENT_STRING = "[C]"

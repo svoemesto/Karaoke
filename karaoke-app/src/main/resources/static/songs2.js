@@ -13,7 +13,7 @@ function connect() {
 }
 
 var currentTimeStamp = new Date().getTime();
-var currentRow;
+var currentRow = null;
 var prev_album;
 var prev_author;
 const prefix_link_boosty = "https://boosty.to/svoemesto/posts/";
@@ -276,7 +276,7 @@ function updateButtonsLinks() {
 
 function highlightCurrentRow(row, isSelected) {
 
-    if (row !== undefined) {
+    if (row !== undefined && row !== null) {
         var id = row.id.substring(3);
         highlightElement(document.getElementById(`fld_${id}_id`), isSelected);
         highlightElement(document.getElementById(`fld_${id}_songName`), isSelected);
@@ -1769,6 +1769,8 @@ function updateSettingsFromMessage(recordchange) {
     if (table === 'tbl_settings') {
 
         var idRow = `row${id}`;
+        var idCurrentRow = "";
+        if (currentRow !== undefined && currentRow !== null) idCurrentRow = currentRow.id;
         var elementRow = document.getElementById(idRow);
         if (elementRow !== null) {
 
@@ -2012,6 +2014,8 @@ function updateSettingsFromMessage(recordchange) {
                     default:
                 }
             });
+
+            if (idRow === idCurrentRow) updateFormElementsFromTableRows(elementRow);
 
         }
 

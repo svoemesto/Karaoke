@@ -10,19 +10,23 @@ import com.svoemesto.karaokeapp.model.ProducerType
 import com.svoemesto.karaokeapp.model.SongVersion
 import com.svoemesto.karaokeapp.producerTypeClass
 
-fun getMlt(param: Map<String, Any?>): MltNode {
+fun getMlt(mltProp: MltProp): MltNode {
 
-    val songVersion = param["SONG_VERSION"] as SongVersion
-    val countVoices = (param["COUNT_VOICES"] as Int)
-    val countFingerboards = param["VOICE0_COUNT_FINGERBOARDS"] as Int
+//    val songVersion = param["SONG_VERSION"] as SongVersion
+//    val countVoices = (param["COUNT_VOICES"] as Int)
+//    val countFingerboards = param["VOICE0_COUNT_FINGERBOARDS"] as Int
 
+    val songVersion = mltProp.getSongVersion()
+    val countVoices = mltProp.getCountVoices()
+    val countFingerboards = mltProp.getCountFingerboards(0)
+    
     val countAudioTracks = songVersion.producers.filter { it.isAudio }.sumOf { it.coeffStatic + it.coeffVoice * countVoices }
     val countVideoTracks = songVersion.producers.filter { it.isVideo }.sumOf { it.coeffStatic + it.coeffVoice * countVoices }
 
     val body = mutableListOf<MltNode>()
 
-    body.add(getMltProfile(param))
-    body.add(getMltConsumer(param))
+    body.add(getMltProfile())
+    body.add(getMltConsumer(mltProp))
 
     for (voiceId in 0 until countVoices) {
         songVersion.producers.forEach { type ->
@@ -33,8 +37,8 @@ fun getMlt(param: Map<String, Any?>): MltNode {
                         for (indexFingerboard in (countFingerboards-1) downTo 0 ) {
                             val pct = producerTypeClass[type] ?: return@forEach
                             val pctInstance = pct
-                                .getDeclaredConstructor(*arrayOf(Map::class.java, Int::class.java))
-                                .newInstance(*arrayOf(param, indexFingerboard))
+                                .getDeclaredConstructor(*arrayOf(MltProp::class.java, Int::class.java))
+                                .newInstance(*arrayOf(mltProp, indexFingerboard))
                             val producer = pctInstance.javaClass.declaredMethods.firstOrNull() { it.name == "producer" } ?: return@forEach
                             val resultProducer = producer.invoke(pctInstance) as MltNode
                             body.add(resultProducer)
@@ -47,8 +51,8 @@ fun getMlt(param: Map<String, Any?>): MltNode {
                     ProducerType.AUDIODRUMS -> {
                         val pct = producerTypeClass[type] ?: return@forEach
                         val pctInstance = pct
-                            .getDeclaredConstructor(*arrayOf(Map::class.java, ProducerType::class.java))
-                            .newInstance(*arrayOf(param, type))
+                            .getDeclaredConstructor(*arrayOf(MltProp::class.java, ProducerType::class.java))
+                            .newInstance(*arrayOf(mltProp, type))
                         val producer = pctInstance.javaClass.declaredMethods.firstOrNull() { it.name == "producer" } ?: return@forEach
                         val resultProducer = producer.invoke(pctInstance) as MltNode
                         body.add(resultProducer)
@@ -57,11 +61,11 @@ fun getMlt(param: Map<String, Any?>): MltNode {
                         val pctEven = producerTypeClass[type] ?: return@forEach
                         val pctOdd = producerTypeClass[type] ?: return@forEach
                         val pctInstanceEven = pctEven
-                            .getDeclaredConstructor(*arrayOf(Map::class.java, Boolean::class.java, Int::class.java))
-                            .newInstance(*arrayOf(param, true, voiceId))
+                            .getDeclaredConstructor(*arrayOf(MltProp::class.java, Boolean::class.java, Int::class.java))
+                            .newInstance(*arrayOf(mltProp, true, voiceId))
                         val pctInstanceOdd = pctOdd
-                            .getDeclaredConstructor(*arrayOf(Map::class.java, Boolean::class.java, Int::class.java))
-                            .newInstance(*arrayOf(param, false, voiceId))
+                            .getDeclaredConstructor(*arrayOf(MltProp::class.java, Boolean::class.java, Int::class.java))
+                            .newInstance(*arrayOf(mltProp, false, voiceId))
 
                         val producerEven = pctInstanceEven.javaClass.declaredMethods.firstOrNull() { it.name == "producer" } ?: return@forEach
                         val resultProducerEven = producerEven.invoke(pctInstanceEven) as MltNode
@@ -75,8 +79,8 @@ fun getMlt(param: Map<String, Any?>): MltNode {
                         for (id in 4 downTo 0 ) {
                             val pct = producerTypeClass[type] ?: return@forEach
                             val pctInstance = pct
-                                .getDeclaredConstructor(*arrayOf(Map::class.java, Int::class.java, Int::class.java))
-                                .newInstance(*arrayOf(param, id, voiceId))
+                                .getDeclaredConstructor(*arrayOf(MltProp::class.java, Int::class.java, Int::class.java))
+                                .newInstance(*arrayOf(mltProp, id, voiceId))
                             val producer = pctInstance.javaClass.declaredMethods.firstOrNull() { it.name == "producer" } ?: return@forEach
                             val resultProducer = producer.invoke(pctInstance) as MltNode
                             body.add(resultProducer)
@@ -87,13 +91,13 @@ fun getMlt(param: Map<String, Any?>): MltNode {
                         val pctInstance = when(type) {
                             ProducerType.SONGTEXT -> {
                                 pct
-                                    .getDeclaredConstructor(*arrayOf(Map::class.java, Int::class.java, Boolean::class.java))
-                                    .newInstance(*arrayOf(param, voiceId, false))
+                                    .getDeclaredConstructor(*arrayOf(MltProp::class.java, Int::class.java, Boolean::class.java))
+                                    .newInstance(*arrayOf(mltProp, voiceId, false))
                             }
                             else -> {
                                 pct
-                                    .getDeclaredConstructor(*arrayOf(Map::class.java))
-                                    .newInstance(*arrayOf(param))
+                                    .getDeclaredConstructor(*arrayOf(MltProp::class.java))
+                                    .newInstance(*arrayOf(mltProp))
                             }
                         }
 
@@ -107,8 +111,8 @@ fun getMlt(param: Map<String, Any?>): MltNode {
         }
     }
 
-    body.add(getMltMainBinPlaylist(param))
-    body.add(getMltBlackTrackProducer(param))
+    body.add(getMltMainBinPlaylist(mltProp))
+    body.add(getMltBlackTrackProducer(mltProp))
 
     for (voiceId in 0 until countVoices) {
         songVersion.producers.forEach { type ->
@@ -122,8 +126,8 @@ fun getMlt(param: Map<String, Any?>): MltNode {
                     ProducerType.AUDIODRUMS -> {
                         val pct = producerTypeClass[type] ?: return@forEach
                         val pctInstance = pct
-                            .getDeclaredConstructor(*arrayOf(Map::class.java, ProducerType::class.java))
-                            .newInstance(*arrayOf(param, type))
+                            .getDeclaredConstructor(*arrayOf(MltProp::class.java, ProducerType::class.java))
+                            .newInstance(*arrayOf(mltProp, type))
                         val fileProducer = pctInstance.javaClass.declaredMethods.firstOrNull() { it.name == "fileProducer" } ?: return@forEach
                         val filePlaylist = pctInstance.javaClass.declaredMethods.firstOrNull() { it.name == "filePlaylist" } ?: return@forEach
                         val trackPlaylist = pctInstance.javaClass.declaredMethods.firstOrNull() { it.name == "trackPlaylist" } ?: return@forEach
@@ -142,8 +146,8 @@ fun getMlt(param: Map<String, Any?>): MltNode {
 
                             val pct = producerTypeClass[type] ?: return@forEach
                             val pctInstance = pct
-                                .getDeclaredConstructor(*arrayOf(Map::class.java, Int::class.java))
-                                .newInstance(*arrayOf(param, indexFingerboard))
+                                .getDeclaredConstructor(*arrayOf(MltProp::class.java, Int::class.java))
+                                .newInstance(*arrayOf(mltProp, indexFingerboard))
                             val filePlaylist = pctInstance.javaClass.declaredMethods.firstOrNull() { it.name == "filePlaylist" } ?: return@forEach
                             val trackPlaylist = pctInstance.javaClass.declaredMethods.firstOrNull() { it.name == "trackPlaylist" } ?: return@forEach
                             val tractor = pctInstance.javaClass.declaredMethods.firstOrNull() { it.name == "tractor" } ?: return@forEach
@@ -160,11 +164,11 @@ fun getMlt(param: Map<String, Any?>): MltNode {
                         val pctEven = producerTypeClass[type] ?: return@forEach
                         val pctOdd = producerTypeClass[type] ?: return@forEach
                         val pctInstanceEven = pctEven
-                            .getDeclaredConstructor(*arrayOf(Map::class.java, Boolean::class.java, Int::class.java))
-                            .newInstance(*arrayOf(param, true, voiceId))
+                            .getDeclaredConstructor(*arrayOf(MltProp::class.java, Boolean::class.java, Int::class.java))
+                            .newInstance(*arrayOf(mltProp, true, voiceId))
                         val pctInstanceOdd = pctOdd
-                            .getDeclaredConstructor(*arrayOf(Map::class.java, Boolean::class.java, Int::class.java))
-                            .newInstance(*arrayOf(param, false, voiceId))
+                            .getDeclaredConstructor(*arrayOf(MltProp::class.java, Boolean::class.java, Int::class.java))
+                            .newInstance(*arrayOf(mltProp, false, voiceId))
 
                         val filePlaylistEven = pctInstanceEven.javaClass.declaredMethods.firstOrNull() { it.name == "filePlaylist" } ?: return@forEach
                         val trackPlaylistEven = pctInstanceEven.javaClass.declaredMethods.firstOrNull() { it.name == "trackPlaylist" } ?: return@forEach
@@ -191,8 +195,8 @@ fun getMlt(param: Map<String, Any?>): MltNode {
                         for (id in 4 downTo 0 ) {
                             val pct = producerTypeClass[type] ?: return@forEach
                             val pctInstance = pct
-                                .getDeclaredConstructor(*arrayOf(Map::class.java, Int::class.java, Int::class.java))
-                                .newInstance(*arrayOf(param, id, voiceId))
+                                .getDeclaredConstructor(*arrayOf(MltProp::class.java, Int::class.java, Int::class.java))
+                                .newInstance(*arrayOf(mltProp, id, voiceId))
                             val filePlaylist = pctInstance.javaClass.declaredMethods.firstOrNull() { it.name == "filePlaylist" } ?: return@forEach
                             val trackPlaylist = pctInstance.javaClass.declaredMethods.firstOrNull() { it.name == "trackPlaylist" } ?: return@forEach
                             val tractor = pctInstance.javaClass.declaredMethods.firstOrNull() { it.name == "tractor" } ?: return@forEach
@@ -209,13 +213,13 @@ fun getMlt(param: Map<String, Any?>): MltNode {
                         val pctInstance = when(type) {
                             ProducerType.SONGTEXT -> {
                                 pct
-                                    .getDeclaredConstructor(*arrayOf(Map::class.java, Int::class.java, Boolean::class.java))
-                                    .newInstance(*arrayOf(param, voiceId, false))
+                                    .getDeclaredConstructor(*arrayOf(MltProp::class.java, Int::class.java, Boolean::class.java))
+                                    .newInstance(*arrayOf(mltProp, voiceId, false))
                             }
                             else -> {
                                 pct
-                                    .getDeclaredConstructor(*arrayOf(Map::class.java))
-                                    .newInstance(*arrayOf(param))
+                                    .getDeclaredConstructor(*arrayOf(MltProp::class.java))
+                                    .newInstance(*arrayOf(mltProp))
                             }
                         }
 
@@ -232,154 +236,34 @@ fun getMlt(param: Map<String, Any?>): MltNode {
                     }
                 }
 
-
-
-                when(type) {
-
-//                    ProducerType.SPLASHSTART -> {
-//                        val pct = producerTypeClass[type] ?: return@forEach
-//                        val pctInstance = pct
-//                            .getDeclaredConstructor(*arrayOf(Map::class.java))
-//                            .newInstance(*arrayOf(param))
-//                        val filePlaylist = pctInstance.javaClass.declaredMethods.firstOrNull() { it.name == "filePlaylist" } ?: return@forEach
-//                        val trackPlaylist = pctInstance.javaClass.declaredMethods.firstOrNull() { it.name == "trackPlaylist" } ?: return@forEach
-//                        val tractor = pctInstance.javaClass.declaredMethods.firstOrNull() { it.name == "tractor" } ?: return@forEach
-//                        val resultFilePlaylist = filePlaylist.invoke(pctInstance) as MltNode
-//                        val resultTrackPlaylist = trackPlaylist.invoke(pctInstance) as MltNode
-//                        val resultTractor = tractor.invoke(pctInstance) as MltNode
-//                        body.add(resultFilePlaylist)
-//                        body.add(resultTrackPlaylist)
-//                        body.add(resultTractor)
-//                    }
-
-//                    ProducerType.BOOSTY -> {
-//                        val mko = MkoBoosty(param)
-//                        body.add(mko.filePlaylist())
-//                        body.add(mko.trackPlaylist())
-//                        body.add(mko.tractor())
-//                    }
-
-//                    ProducerType.SONGTEXT -> {
-//                        val mko = MkoSongText(param, voiceId)
-//                        body.add(mko.filePlaylist())
-//                        body.add(mko.trackPlaylist())
-//                        body.add(mko.tractor())
-//                    }
-//
-//                    ProducerType.HORIZON -> {
-//                        val mko = MkoHorizon(param)
-//                        body.add(mko.filePlaylist())
-//                        body.add(mko.trackPlaylist())
-//                        body.add(mko.tractor())
-//                    }
-//                    ProducerType.FLASH -> {
-//                        val mko = MkoFlash(param)
-//                        body.add(mko.filePlaylist())
-//                        body.add(mko.trackPlaylist())
-//                        body.add(mko.tractor())
-//                    }
-//                    ProducerType.WATERMARK -> {
-//                        val mko = MkoWatermark(param)
-//                        body.add(mko.filePlaylist())
-//                        body.add(mko.trackPlaylist())
-//                        body.add(mko.tractor())
-//                    }
-//                    ProducerType.PROGRESS -> {
-//                        val mko = MkoProgress(param)
-//                        body.add(mko.filePlaylist())
-//                        body.add(mko.trackPlaylist())
-//                        body.add(mko.tractor())
-//                    }
-//                    ProducerType.FADERTEXT -> {
-//                        val mko = MkoFaderText(param)
-//                        body.add(mko.filePlaylist())
-//                        body.add(mko.trackPlaylist())
-//                        body.add(mko.tractor())
-//                    }
-//                    ProducerType.FADERCHORDS -> {
-//                        val mko = MkoFaderChords(param)
-//                        body.add(mko.filePlaylist())
-//                        body.add(mko.trackPlaylist())
-//                        body.add(mko.tractor())
-//                    }
-//                    ProducerType.BACKCHORDS -> {
-//                        val mko = MkoBackChords(param)
-//                        body.add(mko.filePlaylist())
-//                        body.add(mko.trackPlaylist())
-//                        body.add(mko.tractor())
-//                    }
-//                    ProducerType.FINGERBOARD -> {
-//                        for (indexFingerboard in (countFingerboards-1) downTo 0 ) {
-//                            val mko = MkoFingerboard(param, indexFingerboard)
-//                            body.add(mko.filePlaylist())
-//                            body.add(mko.trackPlaylist())
-//                            body.add(mko.tractor())
-//                        }
-//                    }
-//                    ProducerType.HEADER -> {
-//                        val mko = MkoHeader(param)
-//                        body.add(mko.filePlaylist())
-//                        body.add(mko.trackPlaylist())
-//                        body.add(mko.tractor())
-//                    }
-//                    ProducerType.BACKGROUND -> {
-//                        val mko = MkoBackground(param)
-//                        body.add(mko.filePlaylist())
-//                        body.add(mko.trackPlaylist())
-//                        body.add(mko.tractor())
-//                    }
-//                    ProducerType.AUDIOVOCAL,
-//                    ProducerType.AUDIOMUSIC,
-//                    ProducerType.AUDIOSONG,
-//                    ProducerType.AUDIOBASS,
-//                    ProducerType.AUDIODRUMS -> {
-//                        val mko = MkoAudio(param, type)
-//                        body.add(mko.fileProducer())
-//                        body.add(mko.filePlaylist())
-//                        body.add(mko.trackPlaylist())
-//                        body.add(mko.tractor())
-//                    }
-
-//                    ProducerType.FILLCOLORSONGTEXT -> {
-//                        val mkoEven = MkoFillcolorSongtext(param, isEven = true, voiceId)
-//                        val mkoOdd = MkoFillcolorSongtext(param, isEven = false, voiceId)
-//                        body.add(mkoEven.filePlaylist())
-//                        body.add(mkoEven.trackPlaylist())
-//                        body.add(mkoEven.tractor())
-//                        body.add(mkoOdd.filePlaylist())
-//                        body.add(mkoOdd.trackPlaylist())
-//                        body.add(mkoOdd.tractor())
-//                    }
-
-//                    ProducerType.COUNTER -> {
-//                        for (id in 4 downTo 0 ) {
-//                            val mko = MkoCounter(param, id, voiceId)
-//                            body.add(mko.filePlaylist())
-//                            body.add(mko.trackPlaylist())
-//                            body.add(mko.tractor())
-//                        }
-//                    }
-
-                    else -> {}
-                }
             }
         }
     }
 
-    body.add(getMltTimelineTractor(param))
+    body.add(getMltTimelineTractor(mltProp))
     body.addAll(getMltTransitions(countAudioTracks, countVideoTracks))
 
+//    val mlt = MltNode(
+//        name = "mlt",
+//        fields = mutableMapOf(
+//            Pair("LC_NUMERIC","C"),
+//            Pair("producer","main_bin"),
+//            Pair("version","7.13.0"),
+//            Pair("root",param["SONG_ROOT_FOLDER"].toString()),
+//        ),
+//        body = body
+//    )
     val mlt = MltNode(
         name = "mlt",
         fields = mutableMapOf(
             Pair("LC_NUMERIC","C"),
             Pair("producer","main_bin"),
             Pair("version","7.13.0"),
-            Pair("root",param["SONG_ROOT_FOLDER"].toString()),
+            Pair("root",mltProp.getRootFolder("Song")),
         ),
         body = body
     )
-    
+
     return mlt
 }
 

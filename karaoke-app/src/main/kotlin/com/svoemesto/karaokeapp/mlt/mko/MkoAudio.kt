@@ -1,183 +1,92 @@
 package com.svoemesto.karaokeapp.mlt.mko
 
+import com.svoemesto.karaokeapp.mlt.MltGenerator
+import com.svoemesto.karaokeapp.mlt.MltProp
 import com.svoemesto.karaokeapp.model.MltNode
+import com.svoemesto.karaokeapp.model.MltNodeBuilder
 import com.svoemesto.karaokeapp.model.ProducerType
+import com.svoemesto.karaokeapp.model.PropertiesMltNodeBuilder
 
-data class MkoAudio(val param: Map<String, Any?>,
+data class MkoAudio(
+                    val mltProp: MltProp,
                     val type: ProducerType
                     ): MltKaraokeObject {
     val voiceId: Int = 0
-    override fun producer(): MltNode {
-        val mlt = MltNode(
-            type = type,
-            name = "producer",
-            fields = mutableMapOf(
-                Pair("id","producer_${type.text}${voiceId}"),
-                Pair("in",param["SONG_START_TIMECODE"].toString()),
-                Pair("out",param["SONG_END_TIMECODE"].toString())
-            ),
-            body = mutableListOf(
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","length")), body = param["SONG_LENGTH_FR"]),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","eof")), body = "pause"),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","resource")), body = param["${type.text.uppercase()}${voiceId}_PATH"]),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","seekable")), body = 1),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","audio_index")), body = 0),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","video_index")), body = -1),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","mute_on_pause")), body = 1),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","mlt_service")), body = "avformat"),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:clipname")), body = "${type.text.uppercase()}${if (voiceId==0) "" else voiceId}"),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:folderid")), body = -1),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:clip_type")), body = 1),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:id")), body = (param["${type.text.uppercase()}${voiceId}_ID"] as Int)+voiceId*1000),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","force_reload")), body = 0)
-            )
-        )
+    val mltGenerator = MltGenerator(mltProp, type)
 
-        return mlt
-    }
+    override fun producer(): MltNode = mltGenerator
+        .producer(
+            props = MltNodeBuilder()
+                .propertyName("length", mltProp.getLengthFr("Song"))
+                .propertyName("eof", "pause")
+                .propertyName("resource", mltProp.getPath(listOf(type, voiceId)))
+                .propertyName("seekable", 1)
+                .propertyName("audio_index", 0)
+                .propertyName("video_index", -1)
+                .propertyName("mute_on_pause", 1)
+                .propertyName("mlt_service", "avformat")
+                .propertyName("kdenlive:clipname", mltGenerator.name)
+                .propertyName("kdenlive:folderid", -1)
+                .propertyName("kdenlive:clip_type", if (type.isAudio) 1 else 2)
+                .propertyName("kdenlive:id", mltGenerator.id)
+                .propertyName("kdenlive:audio_max0", 185)
+                .propertyName("astream", 0)
+                .build()
+        )
 
     override fun fileProducer(): MltNode {
         val mlt = MltNode(
             type = type,
             name = "producer",
-            fields = mutableMapOf(
-                Pair("id","producer_${type.text}${voiceId}_file"),
-                Pair("in",param["SONG_START_TIMECODE"].toString()),
-                Pair("out",param["SONG_END_TIMECODE"].toString())
-            ),
-            body = mutableListOf(
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","length")), body = param["SONG_LENGTH_FR"]),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","eof")), body = "pause"),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","resource")), body = param["${type.text.uppercase()}${voiceId}_PATH"]),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","seekable")), body = 1),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","audio_index")), body = 0),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","video_index")), body = -1),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","mute_on_pause")), body = 0),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","mlt_service")), body = "avformat-novalidate"),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:clipname"))),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:folderid")), body = -1),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:clip_type")), body = 1),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:id")), body = (param["${type.text.uppercase()}${voiceId}_ID"] as Int)+voiceId*1000),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","xml")), body = "was here"),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","set.test_audio")), body = 0),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","set.test_image")), body = 1),
-            )
+            fields = PropertiesMltNodeBuilder()
+                .id(mltGenerator.nameFileProducer)
+                .`in`(mltProp.getStartTimecode("Song"))
+                .`out`(mltProp.getEndTimecode("Song"))
+                .build(),
+            body = MltNodeBuilder()
+                .propertyName("length", mltProp.getLengthFr("Song"))
+                .propertyName("eof", "pause")
+                .propertyName("resource", mltProp.getPath(listOf(type, voiceId)))
+                .propertyName("seekable", 1)
+                .propertyName("audio_index", 0)
+                .propertyName("video_index", -1)
+                .propertyName("mute_on_pause", 0)
+                .propertyName("mlt_service", "avformat-novalidate")
+                .propertyName("kdenlive:clipname")
+                .propertyName("kdenlive:folderid", -1)
+                .propertyName("kdenlive:clip_type", 1)
+                .propertyName("kdenlive:id", "fileProducer${mltGenerator.id}")
+                .propertyName("xml", "was here")
+                .propertyName("set.test_audio", 0)
+                .propertyName("set.test_image", 1)
+                .build()
         )
 
         return mlt
     }
 
     override fun filePlaylist(): MltNode {
-        val mlt = MltNode(
-            type = type,
-            name = "playlist",
-            fields = mutableMapOf(
-                Pair("id","playlist_${type.text}${voiceId}_file")
-            ),
-            body = mutableListOf(
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:audio_track")), body = 1),
-                MltNode(name = "blank", fields = mutableMapOf(Pair("length", param["IN_OFFSET_AUDIO"].toString()))),
-                MltNode(name = "entry", fields = mutableMapOf(
-                    Pair("producer","producer_${type.text}${voiceId}_file"),
-                    Pair("in",param["SONG_START_TIMECODE"].toString()),
-                    Pair("out",param["SONG_END_TIMECODE"].toString()),
-                ), body = mutableListOf(
-                    MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:id")), body = (param["${type.text.uppercase()}${voiceId}_ID"] as Int)+voiceId*1000),
-                    MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:activeeffect")), body = 0),
-                    MltNode(name = "filter",
-                        fields = mutableMapOf(Pair("id","filter_${type.text}${voiceId}_levels")),
-                        body = mutableListOf(
-                            MltNode(name = "property", fields = mutableMapOf(Pair("name","window")), body = 75),
-                            MltNode(name = "property", fields = mutableMapOf(Pair("name","max_gain")), body = "20dB"),
-                            MltNode(name = "property", fields = mutableMapOf(Pair("name","level")), body = param["${type.text.uppercase()}_VOLUME"]),
-                            MltNode(name = "property", fields = mutableMapOf(Pair("name","mlt_service")), body = "volume"),
-                            MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive_id")), body = "volume"),
-                            MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:collapsed")), body = 0),
-                        )
-                    )
-                )
+        val result = mltGenerator.filePlaylist()
+        result.body?.let {
+            val body = it as MutableList<MltNode>
+            body.addAll(MltNodeBuilder().blank(mltProp.getInOffsetAudio()).build())
+            body.add(
+                mltGenerator.entry(
+                    id = mltGenerator.nameFileProducer,
+                    nodes = MltNodeBuilder()
+                        .propertyName("kdenlive:id", "filePlaylist${mltGenerator.id}")
+                        .propertyName("kdenlive:activeeffect", 0)
+                        .filterVolume(mltGenerator.nameFilterVolume, mltProp.getVolume(type))
+                        .build()
                 )
             )
-        )
-
-        return mlt
+        }
+        return result
     }
 
-    override fun trackPlaylist(): MltNode {
-        val mlt = MltNode(
-            type = type,
-            name = "playlist",
-            fields = mutableMapOf(
-                Pair("id","playlist_${type.text}${voiceId}_track")
-            ),
-            body = mutableListOf(
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:audio_track")), body = 1)
-            )
-        )
+    override fun trackPlaylist(): MltNode = mltGenerator.trackPlaylist()
 
-        return mlt
-    }
-
-    override fun tractor(): MltNode {
-        val mlt = MltNode(
-            type = type,
-            name = "tractor",
-            fields = mutableMapOf(
-                Pair("id","tractor_${type.text}${voiceId}"),
-                Pair("in",param["SONG_START_TIMECODE"].toString()),
-                Pair("out",param["SONG_END_TIMECODE"].toString())
-            ),
-            body = mutableListOf(
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:audio_track")), body = 1),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:trackheight")), body = 69),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:timeline_active")), body = 1),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:collapsed")), body = 0),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:track_name")), body = "${type.text.uppercase()}${if (voiceId==0) "" else voiceId}"),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:thumbs_format"))),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:audio_rec"))),
-                MltNode(name = "track",
-                    fields = mutableMapOf(
-                        Pair("hide",param["HIDE_TRACTOR_${type.text.uppercase()}${voiceId}"].toString()),
-                        Pair("producer","playlist_${type.text}${voiceId}_file"))),
-                MltNode(name = "track",
-                    fields = mutableMapOf(
-                        Pair("hide",param["HIDE_TRACTOR_${type.text.uppercase()}${voiceId}"].toString()),
-                        Pair("producer","playlist_${type.text}${voiceId}_track"))),
-                MltNode(name = "filter",
-                    fields = mutableMapOf(Pair("id","filter_${type.text}${voiceId}_volume")),
-                    body = mutableListOf(
-                        MltNode(name = "property", fields = mutableMapOf(Pair("name","window")), body = 75),
-                        MltNode(name = "property", fields = mutableMapOf(Pair("name","max_gain")), body = "20dB"),
-//                    MltNode(name = "property", fields = mutableMapOf(Pair("name","level")), body = param["${type.text.uppercase()}_VOLUME"]),
-                        MltNode(name = "property", fields = mutableMapOf(Pair("name","mlt_service")), body = "volume"),
-                        MltNode(name = "property", fields = mutableMapOf(Pair("name","internal_added")), body = 237),
-                        MltNode(name = "property", fields = mutableMapOf(Pair("name","disable")), body = 1),
-                    )
-                ),
-                MltNode(name = "filter",
-                    fields = mutableMapOf(Pair("id","filter_${type.text}${voiceId}_panner")),
-                    body = mutableListOf(
-                        MltNode(name = "property", fields = mutableMapOf(Pair("name","channel")), body = -1),
-                        MltNode(name = "property", fields = mutableMapOf(Pair("name","mlt_service")), body = "panner"),
-                        MltNode(name = "property", fields = mutableMapOf(Pair("name","internal_added")), body = 237),
-                        MltNode(name = "property", fields = mutableMapOf(Pair("name","start")), body = "0.5"),
-                        MltNode(name = "property", fields = mutableMapOf(Pair("name","disable")), body = 1),
-                    )
-                ),
-                MltNode(name = "filter",
-                    fields = mutableMapOf(Pair("id","filter_${type.text}${voiceId}_audiolevel")),
-                    body = mutableListOf(
-                        MltNode(name = "property", fields = mutableMapOf(Pair("name","iec_scale")), body = 0),
-                        MltNode(name = "property", fields = mutableMapOf(Pair("name","mlt_service")), body = "audiolevel"),
-                        MltNode(name = "property", fields = mutableMapOf(Pair("name","peak")), body = 1),
-                        MltNode(name = "property", fields = mutableMapOf(Pair("name","disable")), body = 1),
-                    )
-                ),
-            )
-        )
-
-        return mlt
-    }
+    override fun tractor(): MltNode = mltGenerator.tractor()
 
     override fun template(): MltNode = MltNode()
 

@@ -1,39 +1,36 @@
+import com.svoemesto.karaokeapp.mlt.MltGenerator
+import com.svoemesto.karaokeapp.mlt.MltProp
 import com.svoemesto.karaokeapp.model.MltNode
 import com.svoemesto.karaokeapp.model.ProducerType
+import com.svoemesto.karaokeapp.model.SongOutputFile
 import com.svoemesto.karaokeapp.model.SongVersion
 
-fun getMltMainBinPlaylist(param: Map<String, Any?>): MltNode {
+fun getMltMainBinPlaylist(mltProp: MltProp): MltNode {
 
-    val songVersion = param["SONG_VERSION"] as SongVersion
-    val countFingerboards = param["VOICE0_COUNT_FINGERBOARDS"] as Int
-    val countVoices = (param["COUNT_VOICES"] as Int)
     val entries = mutableListOf<MltNode>()
-//    var type = ProducerType.NONE
+
+    val songVersion = mltProp.getSongVersion()
+    val countVoices = mltProp.getCountVoices()
+    val countFingerboards = mltProp.getCountFingerboards(0)
 
 
     songVersion.producers.forEach { type ->
+
         for (voiceId in 0 until countVoices) {
             if ((type.onlyOne && voiceId == 0) || !type.onlyOne ) {
                 if (type == ProducerType.FINGERBOARD) {
                     for (indexFingerboard in (countFingerboards-1) downTo 0 ) {
-                        entries.add(MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_${type.text}${voiceId}${indexFingerboard}"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))))
+                        val mltGenerator = MltGenerator(mltProp, type, voiceId, indexFingerboard)
+                        entries.add(MltNode(name = "entry", fields = mutableMapOf(Pair("producer", mltGenerator.nameProducer),Pair("in", mltProp.getStartTimecode("Song")),Pair("out", mltProp.getEndTimecode("Song")))))
                     }
                 } else {
-                    if (type.suffixes.isEmpty() && type.ids.isEmpty()) {
-                        entries.add(MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_${type.text}${voiceId}"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))))
-                    } else if (type.suffixes.isEmpty() && type.ids.isNotEmpty()) {
-                        for (id in type.ids) {
-                            entries.add(MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_${type.text}${voiceId}${id}"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))))
-                        }
-                    } else if (type.suffixes.isNotEmpty() && type.ids.isEmpty()) {
-                        for (suffix in type.suffixes) {
-                            entries.add(MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_${type.text}${suffix}${voiceId}"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))))
-                        }
+                    if (type.ids.isEmpty()) {
+                        val mltGenerator = MltGenerator(mltProp, type, voiceId)
+                        entries.add(MltNode(name = "entry", fields = mutableMapOf(Pair("producer",mltGenerator.nameProducer),Pair("in", mltProp.getStartTimecode("Song")),Pair("out", mltProp.getEndTimecode("Song")))))
                     } else {
                         for (id in type.ids) {
-                            for (suffix in type.suffixes) {
-                                entries.add(MltNode(name = "entry", fields = mutableMapOf(Pair("producer","producer_${type.text}${suffix}${voiceId}${id}"),Pair("in", param["SONG_START_TIMECODE"].toString()),Pair("out", param["SONG_END_TIMECODE"].toString()))))
-                            }
+                            val mltGenerator = MltGenerator(mltProp, type, voiceId, id)
+                            entries.add(MltNode(name = "entry", fields = mutableMapOf(Pair("producer",mltGenerator.nameProducer),Pair("in", mltProp.getStartTimecode("Song")),Pair("out", mltProp.getEndTimecode("Song")))))
                         }
                     }
                 }
@@ -63,8 +60,9 @@ fun getMltMainBinPlaylist(param: Map<String, Any?>): MltNode {
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:docproperties.rendertcoverlay")), body = 0),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:docproperties.rendertctype")), body = -1),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:docproperties.rendertwopass")), body = 0),
-            MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:docproperties.guides")), body = param["GUIDES_PROPERTY"]),
-            MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:docproperties.renderurl")), body = param["SONG_VIDEO_FILENAME"]),
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:docproperties.guides")), body = mltProp.getGuidesProperty()),
+            MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:docproperties.renderurl")), body = mltProp.getFileName(
+                SongOutputFile.VIDEO)),
             MltNode(name = "property", fields = mutableMapOf(Pair("name","xml_retain")), body = 1),
             entries
         )

@@ -964,6 +964,12 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
         val settings = Settings.loadFromDbById(id)
         val text = settings?.let {
             settings.createKaraoke()
+            if (settings.idStatus < 3) {
+                settings.fields[SettingField.ID_STATUS] = "3"
+                settings.saveToDb()
+            }
+            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, 0)
+            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, 1)
             "OK"
         } ?: "Error"
         model.addAttribute("text", text)

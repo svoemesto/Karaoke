@@ -1,6 +1,9 @@
+import com.svoemesto.karaokeapp.mlt.MltProp
 import com.svoemesto.karaokeapp.model.MltNode
+import com.svoemesto.karaokeapp.model.SongOutputFile
 
-fun getMltConsumer(param: Map<String, Any?>): MltNode {
+fun getMltConsumer(mltProp: MltProp): MltNode {
+
 
     val mlt = MltNode(
         name = "consumer",
@@ -10,7 +13,7 @@ fun getMltConsumer(param: Map<String, Any?>): MltNode {
             Pair("channels","2"),
             Pair("x265-param","crf=%quality"),
             Pair("crf","15"),
-            Pair("target",param["SONG_VIDEO_FILENAME"].toString()),
+            Pair("target",mltProp.getFileName(SongOutputFile.VIDEO)),
             Pair("mlt_service","avformat"),
             Pair("real_time","-16"),
             Pair("threads","0"),
@@ -19,7 +22,7 @@ fun getMltConsumer(param: Map<String, Any?>): MltNode {
             Pair("preset","ultrafast"),
             Pair("acodec","aac"),
             Pair("in","0"),
-            Pair("out",param["TOTAL_LENGTH_FR"].toString())
+            Pair("out",mltProp.getLengthFr("Total").toString())
         )
     )
 

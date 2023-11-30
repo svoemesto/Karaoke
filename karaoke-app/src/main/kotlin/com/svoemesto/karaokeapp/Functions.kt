@@ -1,4 +1,6 @@
 package com.svoemesto.karaokeapp//import model.Lyric
+import com.svoemesto.karaokeapp.mlt.MltGenerator
+import com.svoemesto.karaokeapp.mlt.MltProp
 import com.svoemesto.karaokeapp.mlt.getMlt
 import com.svoemesto.karaokeapp.mlt.mko.*
 import com.svoemesto.karaokeapp.model.*
@@ -11,21 +13,22 @@ import kotlin.io.path.Path
 
 fun createKaraoke(song: Song) {
 
+    val mltProp = MltProp()
+
     if (song.songVersion == SongVersion.CHORDS && !song.hasChords) return
     println("Создаём ${song.songVersion.name}: ${song.settings.author} / ${song.settings.songName}")
 
-    val param = mutableMapOf<String, Any?>()
+//    val param = mutableMapOf<String, Any?>()
 
-    param["SONG_VERSION"] = song.songVersion
-    param["SONG_CAPO"] = song.capo
-    param["SONG_CHORD_DESCRIPTION"] = song.getChordDescription()
-    param["SONG_NAME"] = song.settings.songName.replace("&", "&amp;")
-
-    param["COUNT_VOICES"] = song.voices.size
-    param["LINE_SPACING"] = LINE_SPACING
-    param["SHADOW"] = SHADOW
-    param["TYPEWRITER"] = TYPEWRITER
-    param["ALIGNMENT"] = ALIGNMENT
+    mltProp.setSongVersion(song.songVersion)
+    mltProp.setSongCapo(song.capo)
+    mltProp.setSongChordDescription(song.getChordDescription())
+    mltProp.setSongName(song.settings.songName.replace("&", "&amp;"))
+    mltProp.setCountVoices(song.voices.size)
+    mltProp.setLineSpacing(LINE_SPACING)
+    mltProp.setShadow(SHADOW)
+    mltProp.setTypeWriter(TYPEWRITER)
+    mltProp.setAlignment(ALIGNMENT)
 
     val maxTextWidthPx =
         Karaoke.frameWidthPx.toDouble() - Karaoke.songtextStartPositionXpx * 2      // maxTextWidth - максимальная ширина текста = ширина экрана минус 2 отступа
@@ -90,31 +93,9 @@ fun createKaraoke(song: Song) {
         } // Находим длительность звучания 1/4 ноты в миллисекундах
     val halfNoteLengthMs = quarterNoteLengthMs * 2
 
-    val propAudioVolumeOnLineValue = mutableListOf<String>()
-    val propAudioVolumeOffLineValue = mutableListOf<String>()
-    val propAudioVolumeCustomLineValue = mutableListOf<String>()
-
-    propAudioVolumeOnLineValue.add("00:00:00.000=0")
-    propAudioVolumeOnLineValue.add("${song.endTimecode}=0")
-
-    propAudioVolumeOffLineValue.add("00:00:00.000=-100")
-    propAudioVolumeOffLineValue.add("${song.endTimecode}=-100")
-
-    propAudioVolumeCustomLineValue.add("00:00:00.000=-100")
-
-    song.settings.sourceUnmute.forEach { (unMuteStart, unMuteEnd) ->
-        propAudioVolumeCustomLineValue.add("${convertFramesToTimecode(convertMillisecondsToFrames((unMuteStart*1000).toLong())- 2)}=-100")
-        propAudioVolumeCustomLineValue.add("${convertFramesToTimecode(convertMillisecondsToFrames((unMuteStart*1000).toLong()))}=0")
-        propAudioVolumeCustomLineValue.add("${convertFramesToTimecode(convertMillisecondsToFrames((unMuteEnd*1000).toLong()))}=0")
-        propAudioVolumeCustomLineValue.add("${convertFramesToTimecode(convertMillisecondsToFrames((unMuteEnd*1000).toLong())+ 2)}=-100")
-    }
-//    propAudioVolumeCustomLineValue.add("00:00:05.000=0")
-//    propAudioVolumeCustomLineValue.add("00:00:10.000=0")
-    propAudioVolumeCustomLineValue.add("${song.endTimecode}=-100")
-
-    val propAudioVolumeOnValue = propAudioVolumeOnLineValue.joinToString(";")
-    val propAudioVolumeOffValue = propAudioVolumeOffLineValue.joinToString(";")
-    val propAudioVolumeCustomValue = propAudioVolumeCustomLineValue.joinToString(";")
+    val propAudioVolumeOnValue = song.propAudioVolumeOn
+    val propAudioVolumeOffValue = song.propAudioVolumeOff
+    val propAudioVolumeCustomValue = song.propAudioVolumeCustom
 
     var currentVoiceOffset = 0
 
@@ -415,31 +396,33 @@ fun createKaraoke(song: Song) {
         propProgressLineValue.add("${song.endTimecode}=${Karaoke.frameWidthPx - progressSymbolHalfWidth} $yOffset ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 1.0")
         propFlashLineValue.add("00:00:00.000=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.0")
 
-        param["VOICE${voiceId}_SETTING"] = voiceSetting
-        param["VOICE${voiceId}_OFFSET"] = currentVoiceOffset
-        param["VOICE${voiceId}_WORK_AREA_SONGTEXT_HEIGHT_PX"] = workAreaSongtextHeightPx
-        param["VOICE${voiceId}_VOICELINES_SONGTEXT"] = voiceLines
-
-        param["SYMBOL_SONGTEXT_HEIGHT_PX"] = symbolSongtextHeightPx
-        param["HORIZON_POSITION_PX"] = horizonPositionPx
-        param["COUNTER_POSITION_Y_PX"] = (horizonPositionPx - symbolSongtextHeightPx).toLong()
-        param["VOICE${voiceId}_COUNTER_POSITION_X_PX"] =
-            currentVoiceOffset + Karaoke.songtextStartPositionXpx - Karaoke.songtextStartOffsetXpx - symbolSongtextWidthPx
-        param["SONG_LENGTH_MS"] = songLengthMs
-        param["FONT_SONGTEXT_SIZE_PT"] = fontSongtextSizePt
-        param["FONT_CHORDS_SIZE_PT"] = fontChordsSizePt
-
-        param["HEADER_AUTHOR"] = kdeHeaderAuthor.replace("&", "&amp;amp;")
-        param["HEADER_TONE"] = kdeHeaderTone
-        param["HEADER_BPM"] = kdeHeaderBpm
-        param["HEADER_ALBUM"] = kdeHeaderAlbum.replace("&", "&amp;amp;")
-        param["HEADER_YEAR"] = kdeHeaderYear
-        param["HEADER_TRACK"] = kdeHeaderTrack
-        param["HEADER_SONG_NAME"] = kdeHeaderSongName.replace("&", "&amp;amp;")
-        param["HEADER_SONG_NAME_FONT_SIZE"] = fontNameSizePt
-        param["LOGOAUTHOR_PATH"] = "${song.settings.pathToFileLogoAuthor.replace("&", "&amp;amp;")}"
-        param["LOGOALBUM_PATH"] = "${song.settings.pathToFileLogoAlbum.replace("&", "&amp;amp;")}"
-        param["SPLASH_PATH"] = "/home/nsa/Documents/Караоке/SPLASH.png"
+        mltProp.setVoiceSetting(voiceSetting, voiceId)
+        mltProp.setOffset(currentVoiceOffset, voiceId)
+        mltProp.setWorkAreaHeightPx(workAreaSongtextHeightPx.toLong(), listOf(ProducerType.SONGTEXT,voiceId))
+        mltProp.setVoicelines(voiceLines, listOf(ProducerType.SONGTEXT,voiceId))
+        mltProp.setSymbolHeightPx(symbolSongtextHeightPx, ProducerType.SONGTEXT)
+        mltProp.setPositionYPx(horizonPositionPx.toLong(), ProducerType.HORIZON)
+        mltProp.setPositionYPx((horizonPositionPx - symbolSongtextHeightPx).toLong(), ProducerType.COUNTER)
+        mltProp.setPositionXPx(
+            currentVoiceOffset + Karaoke.songtextStartPositionXpx - Karaoke.songtextStartOffsetXpx - symbolSongtextWidthPx,
+            listOf(ProducerType.COUNTER, voiceId))
+        mltProp.setLengthMs(songLengthMs, "Song")
+        mltProp.setFontSizePt(fontSongtextSizePt, ProducerType.SONGTEXT)
+        mltProp.setFontSizePt(fontChordsSizePt, ProducerType.FADERCHORDS)
+        mltProp.setAuthor(kdeHeaderAuthor.replace("&", "&amp;amp;"), ProducerType.HEADER)
+        mltProp.setTone(kdeHeaderTone, ProducerType.HEADER)
+        mltProp.setBpm(kdeHeaderBpm, ProducerType.HEADER)
+        mltProp.setAlbum(kdeHeaderAlbum.replace("&", "&amp;amp;"), ProducerType.HEADER)
+        mltProp.setYear(kdeHeaderYear, ProducerType.HEADER)
+        mltProp.setTrack(kdeHeaderTrack, ProducerType.HEADER)
+        mltProp.setSongName(kdeHeaderSongName.replace("&", "&amp;amp;"), ProducerType.HEADER)
+        mltProp.setFontSizePt(fontNameSizePt, listOf(ProducerType.HEADER, "SongName"))
+        mltProp.setPath("${song.settings.pathToFileLogoAuthor.replace("&", "&amp;amp;")}", "LogoAuthor")
+        mltProp.setPath("${song.settings.pathToFileLogoAlbum.replace("&", "&amp;amp;")}", "LogoAlbum")
+        mltProp.setBase64(song.settings.pathToFileLogoAuthor.base64ifFileExists(), "LogoAuthor")
+        mltProp.setBase64(song.settings.pathToFileLogoAlbum.base64ifFileExists(), "LogoAlbum")
+        mltProp.setPath("/home/nsa/Documents/Караоке/SPLASH.png", ProducerType.BOOSTY)
+        mltProp.setBase64("/home/nsa/Documents/Караоке/SPLASH.png".base64ifFileExists(), ProducerType.BOOSTY)
 
         // Настало время прописать classes.TransformProperty для заливок
 
@@ -493,10 +476,11 @@ fun createKaraoke(song: Song) {
         val fingerboardW: MutableMap<Int, Int> = mutableMapOf()
         val fingerboardH = chordW
 
-        param["VOICE${voiceId}_FINGERBOARD_H"] = fingerboardH
-        param["VOICE${voiceId}_CHORD_W"] = chordW
-        param["VOICE${voiceId}_CHORD_H"] = chordW
-        param["VOICE${voiceId}_COUNT_FINGERBOARDS"] = 0
+        mltProp.setFingerboardH(fingerboardH, voiceId)
+        mltProp.setChordW(chordW, voiceId)
+        mltProp.setChordH(chordW, voiceId)
+        mltProp.setCountFingerboards(0, voiceId)
+
         if (song.songVersion == SongVersion.CHORDS && voiceId == 0) {
 
             propRectFaderChordsLineValue.add("${kdeIn}=0 -${fingerboardH + 50} ${Karaoke.frameWidthPx} ${fingerboardH + 50} 1.0")
@@ -556,11 +540,11 @@ fun createKaraoke(song: Song) {
 
             for (i in 0 until countFingerboards) {
                 propRectFingerboardValues[i] = propRectFingerboardLineValue[i]?.joinToString(";") ?: ""
-                param["VOICE${voiceId}${i}_CHORDS"] = chordsInFingerboards[i]
-                param["VOICE${voiceId}${i}_FINGERBOARD_W"] = fingerboardW[i]
+                chordsInFingerboards[i]?.let { mltProp.setChords(it, listOf(voiceId, i)) }
+                fingerboardW[i]?.let { mltProp.setFingerboardW(it, listOf(voiceId, i)) }
             }
 
-            param["VOICE${voiceId}_COUNT_FINGERBOARDS"] = countFingerboards
+            mltProp.setCountFingerboards(countFingerboards, voiceId)
 
             propRectFaderChordsLineValue.add("${endMoveTimecode}=0 0 ${Karaoke.frameWidthPx} ${fingerboardH + 50} 1.0")
             propRectFaderChordsLineValue.add("${convertMillisecondsToTimecode(endTimeHidingHeaderMs!! + halfNoteLengthMs * 4)}=0 -${fingerboardH + 50} ${Karaoke.frameWidthPx} ${fingerboardH + 50} 1.0")
@@ -603,229 +587,203 @@ fun createKaraoke(song: Song) {
         val kdeLengthMs = convertTimecodeToMilliseconds(song.endTimecode)
         val kdeLengthFrames = convertTimecodeToFrames(song.endTimecode, Karaoke.frameFps)
 
-        param["SONG_ROOT_FOLDER"] = song.settings.rootFolder.replace("&", "&amp;")
-        param["SONG_START_TIMECODE"] = kdeIn
-        param["SONG_END_TIMECODE"] = kdeOut
-        param["SPLASHSTART_END_TIMECODE"] = convertMillisecondsToTimecode(Karaoke.timeSplashScreenStartMs)
-        param["BOOSTY_END_TIMECODE"] = convertMillisecondsToTimecode(Karaoke.timeSplashScreenStartMs + Karaoke.timeBoostyStartMs)
-        param["SONG_FADEIN_TIMECODE"] = kdeFadeIn
-        param["SONG_FADEOUT_TIMECODE"] = kdeFadeOut
-        param["SPLASHSTART_FADEOUT_TIMECODE"] =
+        mltProp.setRootFolder(song.settings.rootFolder.replace("&", "&amp;"), "Song")
+        mltProp.setStartTimecode(kdeIn, "Song")
+        mltProp.setEndTimecode(kdeOut, "Song")
+        mltProp.setEndTimecode(convertMillisecondsToTimecode(Karaoke.timeSplashScreenStartMs), ProducerType.SPLASHSTART)
+        mltProp.setEndTimecode(convertMillisecondsToTimecode(Karaoke.timeSplashScreenStartMs + Karaoke.timeBoostyStartMs), ProducerType.BOOSTY)
+        mltProp.setFadeInTimecode(kdeFadeIn, "Song")
+        mltProp.setFadeOutTimecode(kdeFadeOut, "Song")
             convertMillisecondsToTimecode(Karaoke.timeSplashScreenStartMs - 1000).replace(",", ".")
-        param["BOOSTY_FADEIN_TIMECODE"] =
+        mltProp.setFadeOutTimecode(convertMillisecondsToTimecode(Karaoke.timeSplashScreenStartMs - 1000).replace(",", "."), ProducerType.SPLASHSTART)
             convertMillisecondsToTimecode(Karaoke.timeSplashScreenStartMs + 1000).replace(",", ".")
-        param["BOOSTY_FADEOUT_TIMECODE"] =
+        mltProp.setFadeInTimecode(convertMillisecondsToTimecode(Karaoke.timeSplashScreenStartMs + 1000).replace(",", "."), ProducerType.BOOSTY)
             convertMillisecondsToTimecode(Karaoke.timeSplashScreenStartMs + Karaoke.timeBoostyStartMs - 1000).replace(",", ".")
-        param["SONG_LENGTH_MS"] = kdeLengthMs
-        param["SONG_LENGTH_FR"] = kdeLengthFrames
-        param["TOTAL_LENGTH_MS"] = kdeLengthMs + Karaoke.timeSplashScreenStartMs + Karaoke.timeBoostyStartMs
-        param["TOTAL_LENGTH_FR"] = convertMillisecondsToFrames(kdeLengthMs + Karaoke.timeSplashScreenStartMs + Karaoke.timeBoostyStartMs, Karaoke.frameFps)
-        param["GUIDES_PROPERTY"] = "[${propGuides}]"
-        param["IN_OFFSET_AUDIO"] = kdeInOffsetAudio
-        param["IN_OFFSET_VIDEO"] = kdeInOffsetVideo
+        mltProp.setFadeOutTimecode(convertMillisecondsToTimecode(Karaoke.timeSplashScreenStartMs + Karaoke.timeBoostyStartMs - 1000).replace(",", "."), ProducerType.BOOSTY)
+        mltProp.setLengthMs(kdeLengthMs, "Song")
+        mltProp.setLengthFr(kdeLengthFrames, "Song")
+        mltProp.setLengthMs(kdeLengthMs + Karaoke.timeSplashScreenStartMs + Karaoke.timeBoostyStartMs, "Total")
+        mltProp.setLengthFr(convertMillisecondsToFrames(kdeLengthMs + Karaoke.timeSplashScreenStartMs + Karaoke.timeBoostyStartMs, Karaoke.frameFps), "Total")
+        mltProp.setGuidesProperty("[${propGuides}]")
+        mltProp.setInOffsetAudio(kdeInOffsetAudio)
+        mltProp.setInOffsetVideo(kdeInOffsetVideo)
 
-
-        val templateSongText = MkoSongText(param, voiceId, ignoreCapo = false).template()
-        val templateSongTextIgnoreCapo = MkoSongText(param, voiceId, ignoreCapo = true).template()
-        val templateHorizon = MkoHorizon(param).template()
-        val templateFlash = MkoFlash(param).template()
-        val templateProgress = MkoProgress(param).template()
-        val templateWatermark = MkoWatermark(param).template()
-        val templateFaderText = MkoFaderText(param).template()
-        val templateFaderChords = MkoFaderChords(param).template()
-        val templateBackChords = MkoBackChords(param).template()
-        val templateHeader = MkoHeader(param).template()
-        val templateSplashstart = MkoSplashStart(param).template()
-        val templateBoosty = MkoBoosty(param).template()
-        val templateCounter0 = MkoCounter(param, 0, voiceId).template()
-        val templateCounter1 = MkoCounter(param, 1, voiceId).template()
-        val templateCounter2 = MkoCounter(param, 2, voiceId).template()
-        val templateCounter3 = MkoCounter(param, 3, voiceId).template()
-        val templateCounter4 = MkoCounter(param, 4, voiceId).template()
+        val templateSongText = MkoSongText(mltProp, voiceId, ignoreCapo = false).template()
+        val templateSongTextIgnoreCapo = MkoSongText(mltProp, voiceId, ignoreCapo = true).template()
+        val templateSongTextLine = MkoSongTextLine(mltProp).template()
+        val templateHorizon = MkoHorizon(mltProp).template()
+        val templateFlash = MkoFlash(mltProp).template()
+        val templateProgress = MkoProgress(mltProp).template()
+        val templateWatermark = MkoWatermark(mltProp).template()
+        val templateFaderText = MkoFaderText(mltProp).template()
+        val templateFaderChords = MkoFaderChords(mltProp).template()
+        val templateBackChords = MkoBackChords(mltProp).template()
+        val templateHeader = MkoHeader(mltProp).template()
+        val templateSplashstart = MkoSplashStart(mltProp).template()
+        val templateBoosty = MkoBoosty(mltProp).template()
+        val templateCounter0 = MkoCounter(mltProp, 0, voiceId).template()
+        val templateCounter1 = MkoCounter(mltProp, 1, voiceId).template()
+        val templateCounter2 = MkoCounter(mltProp, 2, voiceId).template()
+        val templateCounter3 = MkoCounter(mltProp, 3, voiceId).template()
+        val templateCounter4 = MkoCounter(mltProp, 4, voiceId).template()
 
         val templateFingerboards: MutableMap<Int, MltNode> = mutableMapOf()
         if (song.songVersion == SongVersion.CHORDS) {
             for (i in 0 until countFingerboards) {
-                templateFingerboards[i] = MkoFingerboard(param, i).template()
+                templateFingerboards[i] = MkoFingerboard(mltProp, i).template()
             }
         }
 
 //        val templateFingerboard = getTemplateFingerboard(param)
 
-        param["${ProducerType.AUDIOSONG.text.uppercase()}${voiceId}_ID"] = idProducerAudioSong
-        param["${ProducerType.AUDIOSONG.text.uppercase()}${voiceId}_PATH"] = song.settings.audioSongFileName.replace("&", "&amp;")
+        mltProp.setId(idProducerAudioSong, listOf(ProducerType.AUDIOSONG, voiceId))
+        mltProp.setPath(song.settings.audioSongFileName.replace("&", "&amp;"), listOf(ProducerType.AUDIOSONG, voiceId))
 
-        param["${ProducerType.AUDIOMUSIC.text.uppercase()}${voiceId}_ID"] = idProducerAudioMusic
-        param["${ProducerType.AUDIOMUSIC.text.uppercase()}${voiceId}_PATH"] = song.settings.audioMusicFileName.replace("&", "&amp;")
+        mltProp.setId(idProducerAudioMusic, listOf(ProducerType.AUDIOMUSIC, voiceId))
+        mltProp.setPath(song.settings.audioMusicFileName.replace("&", "&amp;"), listOf(ProducerType.AUDIOMUSIC, voiceId))
 
-        param["${ProducerType.AUDIOVOCAL.text.uppercase()}${voiceId}_ID"] = idProducerAudioVocal
-        param["${ProducerType.AUDIOVOCAL.text.uppercase()}${voiceId}_PATH"] = song.settings.audioVocalFileName.replace("&", "&amp;")
-//        param["HIDE_TRACTOR_${ProducerType.AUDIOVOCAL.text.uppercase()}${voiceId}"] = "both"
+        mltProp.setId(idProducerAudioVocal, listOf(ProducerType.AUDIOVOCAL, voiceId))
+        mltProp.setPath(song.settings.audioVocalFileName.replace("&", "&amp;"), listOf(ProducerType.AUDIOVOCAL, voiceId))
 
-        param["${ProducerType.AUDIOBASS.text.uppercase()}${voiceId}_ID"] = idProducerAudioBass
-        param["${ProducerType.AUDIOBASS.text.uppercase()}${voiceId}_PATH"] = song.settings.audioBassFileName.replace("&", "&amp;")
+        mltProp.setId(idProducerAudioBass, listOf(ProducerType.AUDIOBASS, voiceId))
+        mltProp.setPath(song.settings.audioBassFileName.replace("&", "&amp;"), listOf(ProducerType.AUDIOBASS, voiceId))
 
-        param["${ProducerType.AUDIODRUMS.text.uppercase()}${voiceId}_ID"] = idProducerAudioDrums
-        param["${ProducerType.AUDIODRUMS.text.uppercase()}${voiceId}_PATH"] = song.settings.audioDrumsFileName.replace("&", "&amp;")
+        mltProp.setId(idProducerAudioDrums, listOf(ProducerType.AUDIODRUMS, voiceId))
+        mltProp.setPath(song.settings.audioDrumsFileName.replace("&", "&amp;"), listOf(ProducerType.AUDIODRUMS, voiceId))
 
-        param["${ProducerType.SONGTEXT.text.uppercase()}${voiceId}_ID"] = idProducerSongText
-        param["${ProducerType.SONGTEXT.text.uppercase()}${voiceId}_WORK_AREA_SONGTEXT_HEIGHT_PX"] =
-            workAreaSongtextHeightPx.toLong()
-        param["${ProducerType.SONGTEXT.text.uppercase()}${voiceId}_XML_DATA"] = templateSongText
-        param["${ProducerType.SONGTEXT.text.uppercase()}${voiceId}_XML_DATA_IGNORE_CAPO"] = templateSongTextIgnoreCapo
-        param["${ProducerType.SONGTEXT.text.uppercase()}${voiceId}_PROPERTY_RECT"] = propRectSongtextValue
-        param["HIDE_TRACTOR_${ProducerType.SONGTEXT.text.uppercase()}${voiceId}"] = "audio"
+        mltProp.setId(idProducerSongText, listOf(ProducerType.SONGTEXT, voiceId))
+        mltProp.setWorkAreaHeightPx(workAreaSongtextHeightPx.toLong(), listOf(ProducerType.SONGTEXT, voiceId))
+        mltProp.setXmlData(templateSongText, listOf(ProducerType.SONGTEXT, voiceId))
+        mltProp.setXmlData(templateSongTextIgnoreCapo, listOf(ProducerType.SONGTEXT, voiceId, "IgnoreCapo"))
+        mltProp.setRect(propRectSongtextValue, listOf(ProducerType.SONGTEXT, voiceId))
 
-        param["${ProducerType.HORIZON.text.uppercase()}${voiceId}_ID"] = idProducerHorizon
-        param["${ProducerType.HORIZON.text.uppercase()}${voiceId}_XML_DATA"] = templateHorizon
-        param["HIDE_TRACTOR_${ProducerType.HORIZON.text.uppercase()}${voiceId}"] = "audio"
+        mltProp.setId(idProducerSongTextLine, listOf(ProducerType.SONGTEXTLINE, voiceId))
+        mltProp.setXmlData(templateSongTextLine, listOf(ProducerType.SONGTEXTLINE, voiceId))
 
-        param["${ProducerType.FLASH.text.uppercase()}${voiceId}_ID"] = idProducerFlash
-        param["${ProducerType.FLASH.text.uppercase()}${voiceId}_XML_DATA"] = templateFlash
-        param["${ProducerType.FLASH.text.uppercase()}${voiceId}_PROPERTY_RECT"] = propFlashValue
-        param["HIDE_TRACTOR_${ProducerType.FLASH.text.uppercase()}${voiceId}"] = "audio"
+        mltProp.setId(idProducerHorizon, listOf(ProducerType.HORIZON, voiceId))
+        mltProp.setXmlData(templateHorizon, listOf(ProducerType.HORIZON, voiceId))
 
-        param["${ProducerType.WATERMARK.text.uppercase()}${voiceId}_ID"] = idProducerWatermark
-        param["${ProducerType.WATERMARK.text.uppercase()}${voiceId}_XML_DATA"] = templateWatermark
-        param["HIDE_TRACTOR_${ProducerType.WATERMARK.text.uppercase()}${voiceId}"] = "audio"
+        mltProp.setId(idProducerFlash, listOf(ProducerType.FLASH, voiceId))
+        mltProp.setXmlData(templateFlash, listOf(ProducerType.FLASH, voiceId))
+        mltProp.setRect(propFlashValue, listOf(ProducerType.FLASH, voiceId))
 
-        param["${ProducerType.FADERTEXT.text.uppercase()}${voiceId}_ID"] = idProducerFaderText
-        param["${ProducerType.FADERTEXT.text.uppercase()}${voiceId}_XML_DATA"] = templateFaderText
-        param["HIDE_TRACTOR_${ProducerType.FADERTEXT.text.uppercase()}${voiceId}"] = "audio"
+        mltProp.setId(idProducerWatermark, listOf(ProducerType.WATERMARK, voiceId))
+        mltProp.setXmlData(templateWatermark, listOf(ProducerType.WATERMARK, voiceId))
 
-        param["${ProducerType.FADERCHORDS.text.uppercase()}${voiceId}_ID"] = idProducerFaderChords
-        param["${ProducerType.FADERCHORDS.text.uppercase()}${voiceId}_XML_DATA"] = templateFaderChords
-        param["${ProducerType.FADERCHORDS.text.uppercase()}${voiceId}_PROPERTY_RECT"] = propRectFaderChordsValue
-        param["HIDE_TRACTOR_${ProducerType.FADERCHORDS.text.uppercase()}${voiceId}"] = "audio"
+        mltProp.setId(idProducerFaderText, listOf(ProducerType.FADERTEXT, voiceId))
+        mltProp.setXmlData(templateFaderText, listOf(ProducerType.FADERTEXT, voiceId))
 
-        param["${ProducerType.BACKCHORDS.text.uppercase()}${voiceId}_ID"] = idProducerBackChords
-        param["${ProducerType.BACKCHORDS.text.uppercase()}${voiceId}_XML_DATA"] = templateBackChords
-        param["${ProducerType.BACKCHORDS.text.uppercase()}${voiceId}_PROPERTY_RECT"] = propRectBackChordsValue
-        param["HIDE_TRACTOR_${ProducerType.BACKCHORDS.text.uppercase()}${voiceId}"] = "audio"
+        mltProp.setId(idProducerFaderChords, listOf(ProducerType.FADERCHORDS, voiceId))
+        mltProp.setXmlData(templateFaderChords, listOf(ProducerType.FADERCHORDS, voiceId))
+        mltProp.setRect(propRectFaderChordsValue, listOf(ProducerType.FADERCHORDS, voiceId))
 
-        param["${ProducerType.FINGERBOARD.text.uppercase()}${voiceId}_ID"] = idProducerFingerboard
+        mltProp.setId(idProducerBackChords, listOf(ProducerType.BACKCHORDS, voiceId))
+        mltProp.setXmlData(templateBackChords, listOf(ProducerType.BACKCHORDS, voiceId))
+        mltProp.setRect(propRectBackChordsValue, listOf(ProducerType.BACKCHORDS, voiceId))
+
+        mltProp.setId(idProducerFingerboard, listOf(ProducerType.FADERTEXT, voiceId))
 
         for (i in 0 until countFingerboards) {
-            param["${ProducerType.FINGERBOARD.text.uppercase()}${voiceId}${i}_XML_DATA"] = templateFingerboards[i]
-            param["${ProducerType.FINGERBOARD.text.uppercase()}${voiceId}${i}_PROPERTY_RECT"] =
-                propRectFingerboardValues[i]
+            templateFingerboards[i]?.let { mltProp.setXmlData(it, listOf(ProducerType.FINGERBOARD, voiceId, i)) }
+            propRectFingerboardValues[i]?.let { mltProp.setRect(it, listOf(ProducerType.FINGERBOARD, voiceId, i)) }
         }
-        param["HIDE_TRACTOR_${ProducerType.FINGERBOARD.text.uppercase()}${voiceId}"] = "audio"
 
-        param["${ProducerType.PROGRESS.text.uppercase()}${voiceId}_ID"] = idProducerProgress
-        param["${ProducerType.PROGRESS.text.uppercase()}${voiceId}_XML_DATA"] = templateProgress
-        param["${ProducerType.PROGRESS.text.uppercase()}${voiceId}_PROPERTY_RECT"] = propProgressValue
-        param["HIDE_TRACTOR_${ProducerType.PROGRESS.text.uppercase()}${voiceId}"] = "audio"
+        mltProp.setId(idProducerProgress, listOf(ProducerType.PROGRESS, voiceId))
+        mltProp.setXmlData(templateProgress, listOf(ProducerType.PROGRESS, voiceId))
+        mltProp.setRect(propProgressValue, listOf(ProducerType.PROGRESS, voiceId))
+
+        mltProp.setId(idProducerFillColorSongtextEven, listOf(ProducerType.FILLCOLORSONGTEXT, voiceId, 0))
+        mltProp.setRect(propSongtextFillEvenValue, listOf(ProducerType.FILLCOLORSONGTEXT, voiceId, 0))
+        mltProp.setId(idProducerFillColorSongtextOdd, listOf(ProducerType.FILLCOLORSONGTEXT, voiceId, 1))
+        mltProp.setRect(propSongtextFillOddValue, listOf(ProducerType.FILLCOLORSONGTEXT, voiceId, 1))
+
+        mltProp.setId(idProducerHeader, listOf(ProducerType.HEADER, voiceId))
+        mltProp.setXmlData(templateHeader, listOf(ProducerType.HEADER, voiceId))
+        mltProp.setRect(propHeaderValue, listOf(ProducerType.HEADER, voiceId))
+
+        mltProp.setId(idProducerSplashstart, listOf(ProducerType.SPLASHSTART, voiceId))
+        mltProp.setXmlData(templateSplashstart, listOf(ProducerType.SPLASHSTART, voiceId))
+
+        mltProp.setId(idProducerBoosty, listOf(ProducerType.BOOSTY, voiceId))
+        mltProp.setXmlData(templateBoosty, listOf(ProducerType.BOOSTY, voiceId))
+
+        mltProp.setId(idProducerBackground, listOf(ProducerType.BACKGROUND, voiceId))
+        mltProp.setPath(getRandomFile(Karaoke.backgroundFolderPath, ".png"), listOf(ProducerType.BACKGROUND, voiceId))
 
 
-        param["${ProducerType.FILLCOLORSONGTEXT.text.uppercase()}${voiceId}_EVEN_ID"] = idProducerFillColorSongtextEven
-        param["${ProducerType.FILLCOLORSONGTEXT.text.uppercase()}${voiceId}_EVEN_PROPERTY_RECT"] =
-            propSongtextFillEvenValue
+        mltProp.setId(idProducerCounter0, listOf(ProducerType.COUNTER, voiceId, 0))
+        mltProp.setXmlData(templateCounter0, listOf(ProducerType.COUNTER, voiceId, 0))
+        mltProp.setRect(propFillCounter0Value, listOf(ProducerType.COUNTER, voiceId, 0))
+        mltProp.setId(idProducerCounter1, listOf(ProducerType.COUNTER, voiceId, 1))
+        mltProp.setXmlData(templateCounter1, listOf(ProducerType.COUNTER, voiceId, 1))
+        mltProp.setRect(propFillCounter1Value, listOf(ProducerType.COUNTER, voiceId, 1))
+        mltProp.setId(idProducerCounter2, listOf(ProducerType.COUNTER, voiceId, 2))
+        mltProp.setXmlData(templateCounter2, listOf(ProducerType.COUNTER, voiceId, 2))
+        mltProp.setRect(propFillCounter2Value, listOf(ProducerType.COUNTER, voiceId, 2))
+        mltProp.setId(idProducerCounter3, listOf(ProducerType.COUNTER, voiceId, 3))
+        mltProp.setXmlData(templateCounter3, listOf(ProducerType.COUNTER, voiceId, 3))
+        mltProp.setRect(propFillCounter3Value, listOf(ProducerType.COUNTER, voiceId, 3))
+        mltProp.setId(idProducerCounter4, listOf(ProducerType.COUNTER, voiceId, 4))
+        mltProp.setXmlData(templateCounter4, listOf(ProducerType.COUNTER, voiceId, 4))
+        mltProp.setRect(propFillCounter4Value, listOf(ProducerType.COUNTER, voiceId, 4))
 
-        param["${ProducerType.FILLCOLORSONGTEXT.text.uppercase()}${voiceId}_ODD_ID"] = idProducerFillColorSongtextOdd
-        param["${ProducerType.FILLCOLORSONGTEXT.text.uppercase()}${voiceId}_ODD_PROPERTY_RECT"] =
-            propSongtextFillOddValue
-
-        param["${ProducerType.HEADER.text.uppercase()}${voiceId}_ID"] = idProducerHeader
-        param["${ProducerType.HEADER.text.uppercase()}${voiceId}_XML_DATA"] = templateHeader
-        param["${ProducerType.HEADER.text.uppercase()}${voiceId}_PROPERTY_RECT"] = propHeaderValue
-        param["HIDE_TRACTOR_${ProducerType.HEADER.text.uppercase()}${voiceId}"] = "audio"
-
-        param["${ProducerType.SPLASHSTART.text.uppercase()}${voiceId}_ID"] = idProducerSplashstart
-        param["${ProducerType.SPLASHSTART.text.uppercase()}${voiceId}_XML_DATA"] = templateSplashstart
-        param["HIDE_TRACTOR_${ProducerType.SPLASHSTART.text.uppercase()}${voiceId}"] = "audio"
-
-        param["${ProducerType.BOOSTY.text.uppercase()}${voiceId}_ID"] = idProducerBoosty
-        param["${ProducerType.BOOSTY.text.uppercase()}${voiceId}_XML_DATA"] = templateBoosty
-        param["HIDE_TRACTOR_${ProducerType.BOOSTY.text.uppercase()}${voiceId}"] = "audio"
-
-        param["${ProducerType.BACKGROUND.text.uppercase()}${voiceId}_ID"] = idProducerBackground
-        param["${ProducerType.BACKGROUND.text.uppercase()}${voiceId}_PATH"] =
-            getRandomFile(Karaoke.backgroundFolderPath, ".png")
-        param["HIDE_TRACTOR_${ProducerType.BACKGROUND.text.uppercase()}${voiceId}"] = "audio"
-
-        param["${ProducerType.COUNTER.text.uppercase()}${voiceId}0_ID"] = idProducerCounter0
-        param["${ProducerType.COUNTER.text.uppercase()}${voiceId}0_XML_DATA"] = templateCounter0
-        param["${ProducerType.COUNTER.text.uppercase()}${voiceId}0_PROPERTY_RECT"] = propFillCounter0Value
-        param["HIDE_TRACTOR_${ProducerType.COUNTER.text.uppercase()}${voiceId}0"] = "audio"
-
-        param["${ProducerType.COUNTER.text.uppercase()}${voiceId}1_ID"] = idProducerCounter1
-        param["${ProducerType.COUNTER.text.uppercase()}${voiceId}1_XML_DATA"] = templateCounter1
-        param["${ProducerType.COUNTER.text.uppercase()}${voiceId}1_PROPERTY_RECT"] = propFillCounter1Value
-        param["HIDE_TRACTOR_${ProducerType.COUNTER.text.uppercase()}${voiceId}1"] = "audio"
-
-        param["${ProducerType.COUNTER.text.uppercase()}${voiceId}2_ID"] = idProducerCounter2
-        param["${ProducerType.COUNTER.text.uppercase()}${voiceId}2_XML_DATA"] = templateCounter2
-        param["${ProducerType.COUNTER.text.uppercase()}${voiceId}2_PROPERTY_RECT"] = propFillCounter2Value
-        param["HIDE_TRACTOR_${ProducerType.COUNTER.text.uppercase()}${voiceId}2"] = "audio"
-
-        param["${ProducerType.COUNTER.text.uppercase()}${voiceId}3_ID"] = idProducerCounter3
-        param["${ProducerType.COUNTER.text.uppercase()}${voiceId}3_XML_DATA"] = templateCounter3
-        param["${ProducerType.COUNTER.text.uppercase()}${voiceId}3_PROPERTY_RECT"] = propFillCounter3Value
-        param["HIDE_TRACTOR_${ProducerType.COUNTER.text.uppercase()}${voiceId}3"] = "audio"
-
-        param["${ProducerType.COUNTER.text.uppercase()}${voiceId}4_ID"] = idProducerCounter4
-        param["${ProducerType.COUNTER.text.uppercase()}${voiceId}4_XML_DATA"] = templateCounter4
-        param["${ProducerType.COUNTER.text.uppercase()}${voiceId}4_PROPERTY_RECT"] = propFillCounter4Value
-        param["HIDE_TRACTOR_${ProducerType.COUNTER.text.uppercase()}${voiceId}4"] = "audio"
-
-        param["${ProducerType.AUDIOVOCAL.text.uppercase()}${voiceId}_ENABLED"] = Karaoke.createAudioVocal
-        param["${ProducerType.AUDIOMUSIC.text.uppercase()}${voiceId}_ENABLED"] = Karaoke.createAudioMusic
-        param["${ProducerType.AUDIOSONG.text.uppercase()}${voiceId}_ENABLED"] = Karaoke.createAudioSong
-        param["${ProducerType.AUDIOBASS.text.uppercase()}${voiceId}_ENABLED"] = Karaoke.createAudioBass
-        param["${ProducerType.AUDIODRUMS.text.uppercase()}${voiceId}_ENABLED"] = Karaoke.createAudioDrums
-        param["${ProducerType.BACKGROUND.text.uppercase()}${voiceId}_ENABLED"] = Karaoke.createBackground
-        param["${ProducerType.HORIZON.text.uppercase()}${voiceId}_ENABLED"] = Karaoke.createHorizon
-        param["${ProducerType.PROGRESS.text.uppercase()}${voiceId}_ENABLED"] = Karaoke.createProgress
-        param["${ProducerType.FILLCOLORSONGTEXT.text.uppercase()}${voiceId}_ENABLED"] = Karaoke.createFillsSongtext
-        param["${ProducerType.SONGTEXT.text.uppercase()}${voiceId}_ENABLED"] = Karaoke.createSongtext
-        param["${ProducerType.FADERTEXT.text.uppercase()}${voiceId}_ENABLED"] = Karaoke.createFader
-        param["${ProducerType.FADERCHORDS.text.uppercase()}${voiceId}_ENABLED"] = Karaoke.createFader
-        param["${ProducerType.HEADER.text.uppercase()}${voiceId}_ENABLED"] = Karaoke.createHeader
-        param["${ProducerType.COUNTER.text.uppercase()}${voiceId}_ENABLED"] = Karaoke.createCounters
-        param["${ProducerType.WATERMARK.text.uppercase()}${voiceId}_ENABLED"] = Karaoke.createWatermark
+        mltProp.setEnabled(Karaoke.createAudioVocal, listOf(ProducerType.AUDIOVOCAL, voiceId))
+        mltProp.setEnabled(Karaoke.createAudioMusic, listOf(ProducerType.AUDIOMUSIC, voiceId))
+        mltProp.setEnabled(Karaoke.createAudioSong, listOf(ProducerType.AUDIOSONG, voiceId))
+        mltProp.setEnabled(Karaoke.createAudioBass, listOf(ProducerType.AUDIOBASS, voiceId))
+        mltProp.setEnabled(Karaoke.createAudioDrums, listOf(ProducerType.AUDIODRUMS, voiceId))
+        mltProp.setEnabled(Karaoke.createBackground, listOf(ProducerType.BACKGROUND, voiceId))
+        mltProp.setEnabled(Karaoke.createHorizon, listOf(ProducerType.HORIZON, voiceId))
+        mltProp.setEnabled(Karaoke.createProgress, listOf(ProducerType.PROGRESS, voiceId))
+        mltProp.setEnabled(Karaoke.createFillsSongtext, listOf(ProducerType.FILLCOLORSONGTEXT, voiceId))
+        mltProp.setEnabled(Karaoke.createSongtext, listOf(ProducerType.SONGTEXT, voiceId))
+        mltProp.setEnabled(Karaoke.createFader, listOf(ProducerType.FADERTEXT, voiceId))
+        mltProp.setEnabled(Karaoke.createFader, listOf(ProducerType.FADERCHORDS, voiceId))
+        mltProp.setEnabled(Karaoke.createHeader, listOf(ProducerType.HEADER, voiceId))
+        mltProp.setEnabled(Karaoke.createCounters, listOf(ProducerType.COUNTER, voiceId))
+        mltProp.setEnabled(Karaoke.createWatermark, listOf(ProducerType.WATERMARK, voiceId))
 
     }
 
     when(song.songVersion) {
         SongVersion.LYRICS -> {
-            param["${ProducerType.AUDIOVOCAL.text.uppercase()}_VOLUME"] = propAudioVolumeOffValue
-            param["${ProducerType.AUDIOMUSIC.text.uppercase()}_VOLUME"] = propAudioVolumeOffValue
-            param["${ProducerType.AUDIOSONG.text.uppercase()}_VOLUME"] = propAudioVolumeOnValue
-            param["${ProducerType.AUDIOBASS.text.uppercase()}_VOLUME"] = propAudioVolumeOffValue
-            param["${ProducerType.AUDIODRUMS.text.uppercase()}_VOLUME"] = propAudioVolumeOffValue
+            mltProp.setVolume(propAudioVolumeOffValue, ProducerType.AUDIOVOCAL)
+            mltProp.setVolume(propAudioVolumeOffValue, ProducerType.AUDIOMUSIC)
+            mltProp.setVolume(propAudioVolumeOnValue, ProducerType.AUDIOSONG)
+            mltProp.setVolume(propAudioVolumeOffValue, ProducerType.AUDIOBASS)
+            mltProp.setVolume(propAudioVolumeOffValue, ProducerType.AUDIODRUMS)
         }
         SongVersion.KARAOKE -> {
-            param["${ProducerType.AUDIOVOCAL.text.uppercase()}_VOLUME"] = propAudioVolumeCustomValue
-            param["${ProducerType.AUDIOMUSIC.text.uppercase()}_VOLUME"] = propAudioVolumeOnValue
-            param["${ProducerType.AUDIOSONG.text.uppercase()}_VOLUME"] = propAudioVolumeOffValue
-            param["${ProducerType.AUDIOBASS.text.uppercase()}_VOLUME"] = propAudioVolumeOffValue
-            param["${ProducerType.AUDIODRUMS.text.uppercase()}_VOLUME"] = propAudioVolumeOffValue
+            mltProp.setVolume(propAudioVolumeCustomValue, ProducerType.AUDIOVOCAL)
+            mltProp.setVolume(propAudioVolumeOnValue, ProducerType.AUDIOMUSIC)
+            mltProp.setVolume(propAudioVolumeOffValue, ProducerType.AUDIOSONG)
+            mltProp.setVolume(propAudioVolumeOffValue, ProducerType.AUDIOBASS)
+            mltProp.setVolume(propAudioVolumeOffValue, ProducerType.AUDIODRUMS)
         }
         SongVersion.CHORDS -> {
-            param["${ProducerType.AUDIOVOCAL.text.uppercase()}_VOLUME"] = propAudioVolumeOffValue
-            param["${ProducerType.AUDIOMUSIC.text.uppercase()}_VOLUME"] = propAudioVolumeOffValue
-            param["${ProducerType.AUDIOSONG.text.uppercase()}_VOLUME"] = propAudioVolumeOffValue
-            param["${ProducerType.AUDIOBASS.text.uppercase()}_VOLUME"] = propAudioVolumeOnValue
-            param["${ProducerType.AUDIODRUMS.text.uppercase()}_VOLUME"] = propAudioVolumeOnValue
+            mltProp.setVolume(propAudioVolumeOffValue, ProducerType.AUDIOVOCAL)
+            mltProp.setVolume(propAudioVolumeOffValue, ProducerType.AUDIOMUSIC)
+            mltProp.setVolume(propAudioVolumeOffValue, ProducerType.AUDIOSONG)
+            mltProp.setVolume(propAudioVolumeOnValue, ProducerType.AUDIOBASS)
+            mltProp.setVolume(propAudioVolumeOnValue, ProducerType.AUDIODRUMS)
         }
     }
 
 
-    param["SONG_PROJECT_RUNALL_FILENAME"] = song.getOutputFilename(SongOutputFile.RUNALL).replace("&", "&amp;")
-    param["SONG_PROJECT_RUN_FILENAME"] = song.getOutputFilename(SongOutputFile.RUN,).replace("&", "&amp;")
-    param["SONG_PROJECT_MELT_FILENAME"] = song.getOutputFilename(SongOutputFile.MLT).replace("&", "&amp;")
-    param["SONG_PROJECT_FILENAME"] = song.getOutputFilename(SongOutputFile.PROJECT).replace("&", "&amp;")
-    param["SONG_VIDEO_FILENAME"] = song.getOutputFilename(SongOutputFile.VIDEO).replace("&", "&amp;")
-    param["SONG_PICTURE_FILENAME"] = song.getOutputFilename(SongOutputFile.PICTURE).replace("&", "&amp;")
-    param["SONG_PICTURECHORDS_FILENAME"] = song.getOutputFilename(SongOutputFile.PICTURECHORDS).replace("&", "&amp;")
-    param["SONG_SUBTITLE_FILENAME"] = song.getOutputFilename(SongOutputFile.SUBTITLE).replace("&", "&amp;")
-    param["SONG_DESCRIPTION_FILENAME"] = song.getOutputFilename(SongOutputFile.DESCRIPTION).replace("&", "&amp;")
-    param["SONG_TEXT_FILENAME"] = song.getOutputFilename(SongOutputFile.TEXT).replace("&", "&amp;")
+    mltProp.setFileName(song.getOutputFilename(SongOutputFile.RUNALL).replace("&", "&amp;"), SongOutputFile.RUNALL)
+    mltProp.setFileName(song.getOutputFilename(SongOutputFile.RUN,).replace("&", "&amp;"), SongOutputFile.RUN)
+    mltProp.setFileName(song.getOutputFilename(SongOutputFile.MLT).replace("&", "&amp;"), SongOutputFile.MLT)
+    mltProp.setFileName(song.getOutputFilename(SongOutputFile.PROJECT).replace("&", "&amp;"), SongOutputFile.PROJECT)
+    mltProp.setFileName(song.getOutputFilename(SongOutputFile.VIDEO).replace("&", "&amp;"), SongOutputFile.VIDEO)
+    mltProp.setFileName(song.getOutputFilename(SongOutputFile.PICTURE).replace("&", "&amp;"), SongOutputFile.PICTURE)
+    mltProp.setFileName(song.getOutputFilename(SongOutputFile.PICTURECHORDS).replace("&", "&amp;"), SongOutputFile.PICTURECHORDS)
+    mltProp.setFileName(song.getOutputFilename(SongOutputFile.SUBTITLE).replace("&", "&amp;"), SongOutputFile.SUBTITLE)
+    mltProp.setFileName(song.getOutputFilename(SongOutputFile.DESCRIPTION).replace("&", "&amp;"), SongOutputFile.DESCRIPTION)
+    mltProp.setFileName(song.getOutputFilename(SongOutputFile.TEXT).replace("&", "&amp;"), SongOutputFile.TEXT)
 
     val permissions = PosixFilePermissions.fromString("rwxr-x---")
 
-    val templateProject = "<?xml version='1.0' encoding='utf-8'?>\n${getMlt(param)}"
+    val templateProject = "<?xml version='1.0' encoding='utf-8'?>\n${getMlt(mltProp)}"
     val fileProject = File(song.getOutputFilename(SongOutputFile.PROJECT))
     val fileMlt = File(song.getOutputFilename(SongOutputFile.MLT))
     Files.createDirectories(Path(fileProject.parent))
@@ -853,6 +811,6 @@ fun createKaraoke(song: Song) {
 
     val filePictureChords = File(song.getOutputFilename(SongOutputFile.PICTURECHORDS))
     Files.createDirectories(Path(filePictureChords.parent))
-    createSongChordsPicture(song, song.getOutputFilename(SongOutputFile.PICTURECHORDS), song.songVersion, param["${ProducerType.SONGTEXT.text.uppercase()}${0}_XML_DATA_IGNORE_CAPO"] as MltNode)
+    createSongChordsPicture(song, song.getOutputFilename(SongOutputFile.PICTURECHORDS), song.songVersion, mltProp.getXmlData(listOf(ProducerType.SONGTEXT, 0, "IgnoreCapo")))
 
 }

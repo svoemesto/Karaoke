@@ -1,141 +1,67 @@
 package com.svoemesto.karaokeapp.mlt.mko
 
 import com.svoemesto.karaokeapp.Karaoke
+import com.svoemesto.karaokeapp.mlt.MltGenerator
+import com.svoemesto.karaokeapp.mlt.MltProp
 import com.svoemesto.karaokeapp.xmldata
 import com.svoemesto.karaokeapp.mlt.MltText
 import com.svoemesto.karaokeapp.mlt.mltNode
-import com.svoemesto.karaokeapp.model.SongVoiceLine
-import com.svoemesto.karaokeapp.model.MltNode
-import com.svoemesto.karaokeapp.model.MusicChord
-import com.svoemesto.karaokeapp.model.MusicNote
-import com.svoemesto.karaokeapp.model.ProducerType
-import com.svoemesto.karaokeapp.model.SongVoiceLineType
+import com.svoemesto.karaokeapp.model.*
 
-data class MkoSongText(val param: Map<String, Any?>,
+data class MkoSongText(
+//    val param: Map<String, Any?>,
+    val mltProp: MltProp,
                        val voiceId: Int = 0,
                        val ignoreCapo: Boolean = false) : MltKaraokeObject {
     val type: ProducerType = ProducerType.SONGTEXT
-    override fun producer(): MltNode {
-        val mlt = MltNode(
-            type = type,
-            name = "producer",
-            fields = mutableMapOf(
-                Pair("id","producer_${type.text}${voiceId}"),
-                Pair("in",param["SONG_START_TIMECODE"].toString()),
-                Pair("out",param["SONG_END_TIMECODE"].toString())
-            ),
-            body = mutableListOf(
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","length")), body = param["SONG_LENGTH_FR"]),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","eof")), body = "pause"),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","resource"))),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","progressive")), body = 1),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","aspect_ratio")), body = 1),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","seekable")), body = 1),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","mlt_service")), body = "kdenlivetitle"),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:duration")), body = param["SONG_END_TIMECODE"]),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:clipname")), body = "${type.text.uppercase()}${if (voiceId==0) "" else voiceId}"),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","xmldata")), body = param["${type.text.uppercase()}${voiceId}_XML_DATA"].toString().xmldata()),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:folderid")), body = -1),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:clip_type")), body = 2),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:id")), body = (param["${type.text.uppercase()}${voiceId}_ID"] as Int)+voiceId*100),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","force_reload")), body = 0),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","meta.media.width")), body = Karaoke.frameWidthPx),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","meta.media.height")), body = param["${type.text.uppercase()}${voiceId}_WORK_AREA_SONGTEXT_HEIGHT_PX"])
-            )
-        )
+    val mltGenerator = MltGenerator(mltProp, type)
 
-        return mlt
-    }
+    override fun producer(): MltNode = mltGenerator
+        .producer(
+            props = MltNodeBuilder(mltGenerator.defaultProducerPropertiesForMltService("kdenlivetitle"))
+                .propertyName("length", mltProp.getLengthFr("Song"))
+                .propertyName("kdenlive:duration", mltProp.getEndTimecode("Song"))
+                .propertyName("xmldata", mltProp.getXmlData(listOf(type, voiceId)).toString().xmldata())
+                .propertyName("meta.media.width", Karaoke.frameWidthPx)
+                .propertyName("meta.media.height", mltProp.getWorkAreaHeightPx(listOf(ProducerType.SONGTEXT, voiceId)))
+                .build()
+        )
 
     override fun fileProducer(): MltNode = MltNode()
 
     override fun filePlaylist(): MltNode {
-        val voiceLines = param["VOICE${voiceId}_VOICELINES_SONGTEXT"] as List<SongVoiceLine>
+
+        val voiceLines = mltProp.getVoicelines(listOf(ProducerType.SONGTEXT,voiceId))
         val propRect = voiceLines
             .filter {it.startTp != null && it.endTp != null && (it.type == SongVoiceLineType.TEXT || it == voiceLines.first() || it == voiceLines.last())}
             .map { listOf(it.startTp.toString(), it.endTp.toString()).joinToString(";") }.joinToString(";")
-        val mlt = MltNode(
-            type = type,
-            name = "playlist",
-            fields = mutableMapOf(
-                Pair("id","playlist_${type.text}${voiceId}_file")
-            ),
-            body = mutableListOf(
-                MltNode(name = "blank", fields = mutableMapOf(Pair("length", param["IN_OFFSET_VIDEO"].toString()))),
-                MltNode(name = "entry", fields = mutableMapOf(
-                    Pair("producer","producer_${type.text}${voiceId}"),
-                    Pair("in",param["SONG_START_TIMECODE"].toString()),
-                    Pair("out",param["SONG_END_TIMECODE"].toString()),
-                ), body = mutableListOf(
-                    MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:id")), body = (param["${type.text.uppercase()}${voiceId}_ID"] as Int)+voiceId*100),
-                    MltNode(name = "filter",
-                        fields = mutableMapOf(Pair("id","filter_${type.text}${voiceId}_qtblend")),
-                        body = mutableListOf(
-                            MltNode(name = "property", fields = mutableMapOf(Pair("name","rotate_center")), body = 1),
-                            MltNode(name = "property", fields = mutableMapOf(Pair("name","mlt_service")), body = "qtblend"),
-                            MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive_id")), body = "qtblend"),
-                            MltNode(name = "property", fields = mutableMapOf(Pair("name","rect")), body = propRect),
-                            MltNode(name = "property", fields = mutableMapOf(Pair("name","compositing")), body = 0),
-                            MltNode(name = "property", fields = mutableMapOf(Pair("name","distort")), body = 0),
-                            MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:collapsed")), body = 0),
-                            MltNode(name = "property", fields = mutableMapOf(Pair("name","rotation")), body = "00:00:00.000=0")
-                        )
-                    ),
-                ))
-            )
-        )
 
-        return mlt
-    }
-
-    override fun trackPlaylist(): MltNode {
-        val mlt = MltNode(
-            type = type,
-            name = "playlist",
-            fields = mutableMapOf(
-                Pair("id","playlist_${type.text}${voiceId}_track")
-            )
-        )
-
-        return mlt
-    }
-
-    override fun tractor(): MltNode {
-        val mlt = MltNode(
-            type = type,
-            name = "tractor",
-            fields = mutableMapOf(
-                Pair("id","tractor_${type.text}${voiceId}"),
-                Pair("in",param["SONG_START_TIMECODE"].toString()),
-                Pair("out",param["SONG_END_TIMECODE"].toString())
-            ),
-            body = mutableListOf(
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:trackheight")), body = 69),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:timeline_active")), body = 1),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:collapsed")), body = 28),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:track_name")), body = "${type.text.uppercase()}${if (voiceId==0) "" else voiceId}"),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:thumbs_format"))),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:audio_rec"))),
-                MltNode(name = "track",
-                    fields = mutableMapOf(
-                        Pair("hide",param["HIDE_TRACTOR_${type.text.uppercase()}${voiceId}"].toString()),
-                        Pair("producer","playlist_${type.text}${voiceId}_file"))),
-                MltNode(name = "track",
-                    fields = mutableMapOf(
-                        Pair("hide",param["HIDE_TRACTOR_${type.text.uppercase()}${voiceId}"].toString()),
-                        Pair("producer","playlist_${type.text}${voiceId}_track"))),
-
+        val result = mltGenerator.filePlaylist()
+        result.body?.let {
+            val body = it as MutableList<MltNode>
+            body.addAll(MltNodeBuilder().blank(mltProp.getInOffsetVideo()).build())
+            body.add(
+                mltGenerator.entry(
+                    nodes = MltNodeBuilder()
+                        .propertyName("kdenlive:id", "filePlaylist${mltGenerator.id}")
+                        .filterQtblend(mltGenerator.nameFilterQtblend, propRect)
+                        .build()
                 )
-        )
-
-        return mlt
+            )
+        }
+        return result
     }
+
+    override fun trackPlaylist(): MltNode = mltGenerator.trackPlaylist()
+
+    override fun tractor(): MltNode = mltGenerator.tractor()
+
 
     override fun template(): MltNode {
-        val voiceLines = param["VOICE${voiceId}_VOICELINES_SONGTEXT"] as List<SongVoiceLine>
+        val voiceLines = mltProp.getVoicelines(listOf(ProducerType.SONGTEXT,voiceId))
         val templateSongTextSymbolsGroup = mutableListOf<MltNode>()
-        val workAreaSongtextHeightPx = param["VOICE${voiceId}_WORK_AREA_SONGTEXT_HEIGHT_PX"] as Int
-        val capo = param["SONG_CAPO"] as Int
+        val workAreaSongtextHeightPx = mltProp.getWorkAreaHeightPx(listOf(ProducerType.SONGTEXT, voiceId))
+        val capo = mltProp.getSongCapo()
 
         voiceLines.forEachIndexed { indexLine, it ->
             val voiceLineSongtext = it as SongVoiceLine

@@ -40,8 +40,6 @@ data class MkoBackground(
                 .build()
         )
 
-    override fun fileProducer(): MltNode = MltNode()
-
 
     override fun filePlaylist(): MltNode {
         val result = mltGenerator.filePlaylist()
@@ -86,6 +84,5 @@ data class MkoBackground(
             timecodeOut = convertMillisecondsToTimecode(Karaoke.timeSplashScreenStartMs + Karaoke.timeBoostyStartMs + convertTimecodeToMilliseconds(mltProp.getEndTimecode("Song")))
         )
 
-    override fun template(): MltNode = MltNode()
 
 }

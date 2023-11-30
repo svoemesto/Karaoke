@@ -88,7 +88,6 @@ data class MkoAudio(
 
     override fun tractor(): MltNode = mltGenerator.tractor()
 
-    override fun template(): MltNode = MltNode()
 
 }
 

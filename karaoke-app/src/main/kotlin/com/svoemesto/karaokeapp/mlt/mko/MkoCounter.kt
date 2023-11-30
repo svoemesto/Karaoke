@@ -28,8 +28,6 @@ data class MkoCounter(
                 .propertyName("meta.media.height", Karaoke.frameHeightPx)
                 .build()
         )
-    override fun fileProducer(): MltNode = MltNode()
-
 
     override fun filePlaylist(): MltNode {
         val result = mltGenerator.filePlaylist()

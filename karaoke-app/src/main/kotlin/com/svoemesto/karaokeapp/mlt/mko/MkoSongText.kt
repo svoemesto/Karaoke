@@ -27,8 +27,6 @@ data class MkoSongText(
                 .build()
         )
 
-    override fun fileProducer(): MltNode = MltNode()
-
     override fun filePlaylist(): MltNode {
 
         val voiceLines = mltProp.getVoicelines(listOf(ProducerType.SONGTEXT,voiceId))

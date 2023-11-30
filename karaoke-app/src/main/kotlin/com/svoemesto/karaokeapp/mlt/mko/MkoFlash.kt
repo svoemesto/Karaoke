@@ -27,7 +27,6 @@ data class MkoFlash(
                 .filterQtblend(mltGenerator.nameFilterQtblend, mltProp.getRect(listOf(type, voiceId)))
                 .build()
         )
-    override fun fileProducer(): MltNode = MltNode()
 
     override fun filePlaylist(): MltNode {
         val result = mltGenerator.filePlaylist()

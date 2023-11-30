@@ -116,6 +116,17 @@ class Settings: Serializable, Comparable<Settings> {
 
     var firstSongInAlbum: Boolean = false
 
+    val sortString: String get() {
+        return if (dateTimePublish == null) {
+            listOf(
+                author, year.toString(), album, "%3d".format(track)
+            ).joinToString(" - ")
+        } else
+        {
+            "%15d".format(dateTimePublish!!.time)
+        }
+    }
+
     val id: Long get() = fields[SettingField.ID]?.toLongOrNull() ?: 0L
     val idStatus: Long get() = fields[SettingField.ID_STATUS]?.toLongOrNull() ?: 0L
     val status: String get() {
@@ -228,6 +239,7 @@ class Settings: Serializable, Comparable<Settings> {
         }
         return result
     }
+
 
 //    fun getSourceMarkersList(): List<SourceMarker> {
 //        return if (sourceMarkers != "") {
@@ -1955,9 +1967,10 @@ class Settings: Serializable, Comparable<Settings> {
     }
 
     override fun compareTo(other: Settings): Int {
-        val a = dateTimePublish?.time ?: id
-        val b = other.dateTimePublish?.time ?: other.id
-        return a.compareTo(b)
+//        val a = dateTimePublish?.time ?: id
+//        val b = other.dateTimePublish?.time ?: other.id
+//        return a.compareTo(b)
+        return sortString.compareTo(other.sortString)
     }
 
 }

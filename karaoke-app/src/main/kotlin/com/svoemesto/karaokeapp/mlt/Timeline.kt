@@ -4,11 +4,13 @@ import com.svoemesto.karaokeapp.model.MltNode
 import com.svoemesto.karaokeapp.model.ProducerType
 import com.svoemesto.karaokeapp.model.SongVersion
 
-fun getMltTimelineTractor(param: Map<String, Any?>): MltNode {
+fun getMltTimelineTractor(mltProp: MltProp): MltNode {
 
-    val songVersion = param["SONG_VERSION"] as SongVersion
-    val countVoices = (param["COUNT_VOICES"] as Int)
-    val countFingerboards = param["VOICE0_COUNT_FINGERBOARDS"] as Int
+
+    val songVersion = mltProp.getSongVersion()
+    val countVoices = mltProp.getCountVoices()
+    val countFingerboards = mltProp.getCountFingerboards(0)
+
     val body = mutableListOf<MltNode>()
     body.add(MltNode(name = "track", fields = mutableMapOf(Pair("producer","black_track"))))
 
@@ -19,24 +21,17 @@ fun getMltTimelineTractor(param: Map<String, Any?>): MltNode {
             if ((type.onlyOne && voiceId == 0) || !type.onlyOne ) {
                 if (type == ProducerType.FINGERBOARD) {
                     for (indexFingerboard in (countFingerboards-1) downTo 0 ) {
-                        body.add(MltNode(name = "track", fields = mutableMapOf(Pair("producer", "tractor_${type.text}${voiceId}${indexFingerboard}"))))
+                        val mltGenerator = MltGenerator(mltProp, type, voiceId, indexFingerboard)
+                        body.add(MltNode(name = "track", fields = mutableMapOf(Pair("producer", mltGenerator.nameTractor))))
                     }
                 } else {
-                    if (type.suffixes.isEmpty() && type.ids.isEmpty()) {
-                        body.add(MltNode(name = "track", fields = mutableMapOf(Pair("producer", "tractor_${type.text}${voiceId}"))))
-                    } else if (type.suffixes.isEmpty() && type.ids.isNotEmpty()) {
-                        for (id in type.ids) {
-                            body.add(MltNode(name = "track", fields = mutableMapOf(Pair("producer", "tractor_${type.text}${voiceId}${id}"))))
-                        }
-                    } else if (type.suffixes.isNotEmpty() && type.ids.isEmpty()) {
-                        for (suffix in type.suffixes) {
-                            body.add(MltNode(name = "track", fields = mutableMapOf(Pair("producer", "tractor_${type.text}${suffix}${voiceId}"))))
-                        }
+                    if (type.ids.isEmpty()) {
+                        val mltGenerator = MltGenerator(mltProp, type, voiceId)
+                        body.add(MltNode(name = "track", fields = mutableMapOf(Pair("producer", mltGenerator.nameTractor))))
                     } else {
                         for (id in type.ids) {
-                            for (suffix in type.suffixes) {
-                                body.add(MltNode(name = "track", fields = mutableMapOf(Pair("producer", "tractor_${type.text}${suffix}${voiceId}${id}"))))
-                            }
+                            val mltGenerator = MltGenerator(mltProp, type, voiceId, id)
+                            body.add(MltNode(name = "track", fields = mutableMapOf(Pair("producer", mltGenerator.nameTractor))))
                         }
                     }
                 }
@@ -63,8 +58,8 @@ fun getMltTimelineTractor(param: Map<String, Any?>): MltNode {
         name = "tractor",
         fields = mutableMapOf(
             Pair("id","tractor_timeline"),
-            Pair("in",param["SONG_START_TIMECODE"].toString()),
-            Pair("out",param["SONG_END_TIMECODE"].toString())
+            Pair("in",mltProp.getStartTimecode("Song")),
+            Pair("out",mltProp.getEndTimecode("Song"))
         ),
         body = body
     )

@@ -1,7 +1,8 @@
 import com.svoemesto.karaokeapp.Karaoke
+import com.svoemesto.karaokeapp.mlt.MltProp
 import com.svoemesto.karaokeapp.model.MltNode
 
-fun getMltProfile(param: Map<String, Any?>): MltNode {
+fun getMltProfile(): MltNode {
 
     val mlt = MltNode(
         name = "profile",

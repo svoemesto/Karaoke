@@ -13,9 +13,9 @@ import com.svoemesto.karaokeapp.model.MusicNote
 import com.svoemesto.karaokeapp.model.ProducerType
 import com.svoemesto.karaokeapp.model.SongVoiceLineType
 
-data class MkoSongTextLine(val mltProp: MltProp,
-                           val voiceId: Int = 0) : MltKaraokeObject {
-    val type: ProducerType = ProducerType.SONGTEXTLINE
+data class MkoBlackTrack(val mltProp: MltProp,
+                         val voiceId: Int = 0) : MltKaraokeObject {
+    val type: ProducerType = ProducerType.BLACKTRACK
     val mltGenerator = MltGenerator(mltProp, type)
     override fun producer(): MltNode = MltNode()
 

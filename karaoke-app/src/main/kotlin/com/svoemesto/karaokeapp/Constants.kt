@@ -1,6 +1,7 @@
 package com.svoemesto.karaokeapp
 
 import com.svoemesto.karaokeapp.mlt.mko.*
+import com.svoemesto.karaokeapp.mlt.mko2.*
 import com.svoemesto.karaokeapp.model.ProducerType
 import com.svoemesto.karaokeapp.textfiledictionary.CensoredWordsDictionary
 import com.svoemesto.karaokeapp.textfiledictionary.TestDictionary
@@ -8,6 +9,7 @@ import com.svoemesto.karaokeapp.textfiledictionary.YoWordsDictionary
 import org.springframework.messaging.simp.SimpMessagingTemplate
 
 val idProducerSongText = ProducerType.SONGTEXT.ordinal * 10
+val idProducerSongTextLine = ProducerType.SONGTEXTLINE.ordinal * 10
 val idProducerHorizon = ProducerType.HORIZON.ordinal * 10
 val idProducerFillColorSongtextEven = ProducerType.FILLCOLORSONGTEXT.ordinal * 10
 val idProducerFillColorSongtextOdd = ProducerType.FILLCOLORSONGTEXT.ordinal * 10 + 1
@@ -135,3 +137,27 @@ val producerTypeClass = mapOf(
     ProducerType.SPLASHSTART to MkoSplashStart::class.java,
     ProducerType.BOOSTY to MkoBoosty::class.java
 )
+
+//val producerTypeClass2 = mapOf(
+//    ProducerType.AUDIOVOCAL to Mko2Audio::class.java,
+//    ProducerType.AUDIOMUSIC to Mko2Audio::class.java,
+//    ProducerType.AUDIOSONG to Mko2Audio::class.java,
+//    ProducerType.AUDIOBASS to Mko2Audio::class.java,
+//    ProducerType.AUDIODRUMS to Mko2Audio::class.java,
+//    ProducerType.BACKGROUND to Mko2Background::class.java,
+//    ProducerType.HORIZON to Mko2Horizon::class.java,
+//    ProducerType.FLASH to Mko2Flash::class.java,
+//    ProducerType.PROGRESS to Mko2Progress::class.java,
+//    ProducerType.FILLCOLORSONGTEXT to Mko2FillcolorSongtext::class.java,
+//    ProducerType.SONGTEXT to Mko2SongText::class.java,
+//    ProducerType.SONGTEXTLINE to Mko2SongTextLine::class.java,
+//    ProducerType.COUNTER to Mko2Counter::class.java,
+//    ProducerType.FADERTEXT to Mko2FaderText::class.java,
+//    ProducerType.FADERCHORDS to Mko2FaderChords::class.java,
+//    ProducerType.BACKCHORDS to Mko2BackChords::class.java,
+//    ProducerType.FINGERBOARD to Mko2Fingerboard::class.java,
+//    ProducerType.HEADER to Mko2Header::class.java,
+//    ProducerType.WATERMARK to Mko2Watermark::class.java,
+//    ProducerType.SPLASHSTART to Mko2SplashStart::class.java,
+//    ProducerType.BOOSTY to Mko2Boosty::class.java
+//)

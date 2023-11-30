@@ -4,13 +4,12 @@ import com.google.gson.GsonBuilder
 import com.svoemesto.karaokeapp.mlt.*
 import com.svoemesto.karaokeapp.model.*
 import com.svoemesto.karaokeapp.textfiledictionary.YoWordsDictionary
-import org.apache.commons.io.FileUtils
 import org.apache.commons.csv.CSVFormat
 import org.apache.commons.csv.CSVParser
+import org.apache.commons.io.FileUtils
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import org.odftoolkit.simple.SpreadsheetDocument
-import org.springframework.messaging.simp.SimpMessagingTemplate
 import java.awt.*
 import java.awt.image.BufferedImage
 import java.io.*
@@ -18,6 +17,8 @@ import java.nio.file.Files
 import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
 import java.nio.file.attribute.PosixFilePermissions
+import java.security.MessageDigest
+import java.security.NoSuchAlgorithmException
 import java.sql.DriverManager
 import java.sql.ResultSet
 import java.sql.SQLException
@@ -126,6 +127,44 @@ fun <T : java.io.Serializable> deepCopy(obj: T?): T? {
     val ois  = ObjectInputStream(bais)
     @Suppress("unchecked_cast")
     return ois.readObject() as T
+}
+
+@Throws(IOException::class)
+fun getMd5HashForFile(filename: String?): String? {
+    return try {
+        val md: MessageDigest? = MessageDigest.getInstance("MD5")
+        val buffer = ByteArray(8192)
+        Files.newInputStream(Paths.get(filename)).use { `is` ->
+            var read: Int
+            while (`is`.read(buffer).also { read = it } > 0) {
+                if (md != null) {
+                    md.update(buffer, 0, read)
+                }
+            }
+        }
+        val digest: ByteArray = md?.digest() ?: byteArrayOf()
+        bytesToHex(digest)
+    } catch (e: NoSuchAlgorithmException) {
+        throw RuntimeException(e)
+    }
+}
+
+fun getMd5Hash(source: String): String? {
+    return try {
+        val md = MessageDigest.getInstance("MD5")
+        md.update(source.toByteArray())
+        val digest = md.digest()
+        bytesToHex(digest)
+    } catch (e: NoSuchAlgorithmException) {
+        throw java.lang.RuntimeException(e)
+    }
+}
+fun bytesToHex(bytes: ByteArray): String? {
+    val builder = StringBuilder()
+    for (b in bytes) {
+        builder.append(String.format("%02x", b.toInt() and 0xff))
+    }
+    return builder.toString()
 }
 fun organizeUnpublished() {
 

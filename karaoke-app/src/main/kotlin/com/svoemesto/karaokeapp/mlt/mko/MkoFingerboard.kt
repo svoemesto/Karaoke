@@ -1,153 +1,63 @@
 package com.svoemesto.karaokeapp.mlt.mko
 
-import com.svoemesto.karaokeapp.KaraokeVoice
-import com.svoemesto.karaokeapp.generateChordLayout
-import com.svoemesto.karaokeapp.getChordLayoutPicture
-import com.svoemesto.karaokeapp.xmldata
+import com.svoemesto.karaokeapp.*
+import com.svoemesto.karaokeapp.mlt.MltGenerator
+import com.svoemesto.karaokeapp.mlt.MltProp
 import com.svoemesto.karaokeapp.model.MltNode
+import com.svoemesto.karaokeapp.model.MltNodeBuilder
 import com.svoemesto.karaokeapp.model.ProducerType
 import com.svoemesto.karaokeapp.model.SongVoiceLineSymbol
 import java.io.ByteArrayOutputStream
 import java.util.*
 import javax.imageio.ImageIO
 
-data class MkoFingerboard(val param: Map<String, Any?>,
+data class MkoFingerboard(
+    val mltProp: MltProp,
                           val indexFingerboard: Int = 0) : MltKaraokeObject {
 
     val type: ProducerType = ProducerType.FINGERBOARD
     val voiceId: Int = 0
+    val mltGenerator = MltGenerator(mltProp, type, voiceId, indexFingerboard)
 
-    override fun producer(): MltNode {
-        val fingerboardW = param["VOICE0${indexFingerboard}_FINGERBOARD_W"] as Int
-        val fingerboardH = param["VOICE0_FINGERBOARD_H"] as Int
-
-        val mlt = MltNode(
-            type = type,
-            name = "producer",
-            fields = mutableMapOf(
-                Pair("id","producer_${type.text}${voiceId}${indexFingerboard}"),
-                Pair("in",param["SONG_START_TIMECODE"].toString()),
-                Pair("out",param["SONG_END_TIMECODE"].toString())
-            ),
-            body = mutableListOf(
-                MltNode(
-                    name = "filter",
-                    fields = mutableMapOf(Pair("id","filter_${type.text}${voiceId}${indexFingerboard}_qtblend1")),
-                    body = mutableListOf(
-                        MltNode(name = "property", fields = mutableMapOf(Pair("name","rotate_center")), body = 1),
-                        MltNode(name = "property", fields = mutableMapOf(Pair("name","mlt_service")), body = "qtblend"),
-                        MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive_id")), body = "qtblend"),
-                        MltNode(name = "property", fields = mutableMapOf(Pair("name","rect")), body = param["${type.text.uppercase()}${voiceId}${indexFingerboard}_PROPERTY_RECT"]),
-                        MltNode(name = "property", fields = mutableMapOf(Pair("name","compositing")), body = 0),
-                        MltNode(name = "property", fields = mutableMapOf(Pair("name","distort")), body = 0),
-                        MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:collapsed")), body = 0),
-                        MltNode(name = "property", fields = mutableMapOf(Pair("name","rotation")), body = "00:00:00.000=0")
-                    )),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","length")), body = param["SONG_LENGTH_FR"]),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","eof")), body = "pause"),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","resource"))),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","progressive")), body = 1),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","aspect_ratio")), body = 1),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","seekable")), body = 1),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","mlt_service")), body = "kdenlivetitle"),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:duration")), body = param["SONG_END_TIMECODE"]),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:clipname")), body = "${type.text.uppercase()}${if (indexFingerboard==0) "" else indexFingerboard}${if (voiceId==0) "" else voiceId}"),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","xmldata")), body = param["${type.text.uppercase()}${voiceId}${indexFingerboard}_XML_DATA"].toString().xmldata()),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:folderid")), body = -1),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:clip_type")), body = 2),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:id")), body = (param["${type.text.uppercase()}${voiceId}_ID"] as Int)+voiceId*1000+indexFingerboard*10000),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","force_reload")), body = 0),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","meta.media.width")), body = fingerboardW),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","meta.media.height")), body = fingerboardH+50)
-            )
+    override fun producer(): MltNode = mltGenerator
+        .producer(
+            props = MltNodeBuilder(mltGenerator.defaultProducerPropertiesForMltService("kdenlivetitle"))
+                .propertyName("kdenlive:duration", mltProp.getEndTimecode("Song"))
+                .propertyName("xmldata", mltProp.getXmlData(listOf(type, voiceId)).toString().xmldata())
+                .propertyName("meta.media.width", mltProp.getFingerboardW(listOf(0, indexFingerboard))!!)
+                .propertyName("meta.media.height", mltProp.getFingerboardH(0) + 50)
+                .filterQtblend(mltGenerator.nameFilterQtblend, mltProp.getRect(listOf(type, voiceId)))
+                .build()
         )
-
-        return mlt
-    }
-
     override fun fileProducer(): MltNode = MltNode()
 
     override fun filePlaylist(): MltNode {
-        //    val fingerboardW = param["VOICE0_FINGERBOARD_W"] as Int
-//    val fingerboardH = param["VOICE0_FINGERBOARD_H"] as Int
-        val countFingerboards = param["VOICE0_COUNT_FINGERBOARDS"] as Int
-
-        val body: MutableList<MltNode> = mutableListOf()
-        body.add(MltNode(name = "blank", fields = mutableMapOf(Pair("length", param["IN_OFFSET_VIDEO"].toString()))))
-        body.add(
-            MltNode(name = "entry", fields = mutableMapOf(
-                Pair("producer","producer_${type.text}${voiceId}${indexFingerboard}"),
-                Pair("in",param["SONG_START_TIMECODE"].toString()),
-                Pair("out",param["SONG_END_TIMECODE"].toString()),
-            ), body = mutableListOf(
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:id")), body = (param["${type.text.uppercase()}${voiceId}_ID"] as Int)+voiceId*1000+indexFingerboard*10000),
-            ))
-        )
-
-
-        val mlt = MltNode(
-            type = type,
-            name = "playlist",
-            fields = mutableMapOf(
-                Pair("id","playlist_${type.text}${voiceId}${indexFingerboard}_file")
-            ),
-            body = body
-        )
-
-        return mlt
-    }
-
-    override fun trackPlaylist(): MltNode {
-        val mlt = MltNode(
-            type = type,
-            name = "playlist",
-            fields = mutableMapOf(
-                Pair("id","playlist_${type.text}${voiceId}${indexFingerboard}_track")
-            )
-        )
-
-        return mlt
-    }
-
-    override fun tractor(): MltNode {
-        val mlt = MltNode(
-            type = type,
-            name = "tractor",
-            fields = mutableMapOf(
-                Pair("id","tractor_${type.text}${voiceId}${indexFingerboard}"),
-                Pair("in",param["SONG_START_TIMECODE"].toString()),
-                Pair("out",param["SONG_END_TIMECODE"].toString())
-            ),
-            body = mutableListOf(
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:trackheight")), body = 69),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:timeline_active")), body = 1),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:collapsed")), body = 28),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:track_name")), body = "${type.text.uppercase()}${if (indexFingerboard==0) "" else indexFingerboard}${if (voiceId==0) "" else voiceId}"),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:thumbs_format"))),
-                MltNode(name = "property", fields = mutableMapOf(Pair("name","kdenlive:audio_rec"))),
-                MltNode(name = "track",
-                    fields = mutableMapOf(
-                        Pair("hide",param["HIDE_TRACTOR_${type.text.uppercase()}${voiceId}"].toString()),
-                        Pair("producer","playlist_${type.text}${voiceId}${indexFingerboard}_file"))),
-                MltNode(name = "track",
-                    fields = mutableMapOf(
-                        Pair("hide",param["HIDE_TRACTOR_${type.text.uppercase()}${voiceId}"].toString()),
-                        Pair("producer","playlist_${type.text}${voiceId}${indexFingerboard}_track"))),
-
+        val result = mltGenerator.filePlaylist()
+        result.body?.let {
+            val body = it as MutableList<MltNode>
+            body.addAll(MltNodeBuilder().blank(mltProp.getInOffsetVideo()).build())
+            body.add(
+                mltGenerator.entry(
+                    nodes = MltNodeBuilder()
+                        .propertyName("kdenlive:id", "filePlaylist${mltGenerator.id}")
+                        .build()
                 )
-        )
-
-        return mlt
+            )
+        }
+        return result
     }
+    override fun trackPlaylist(): MltNode = mltGenerator.trackPlaylist()
+
+    override fun tractor(): MltNode = mltGenerator.tractor()
 
     override fun template(): MltNode {
-        val voiceSetting = param["VOICE0_SETTING"] as KaraokeVoice
-        val fingerboardW = param["VOICE0${indexFingerboard}_FINGERBOARD_W"] as Int
-        val capo = param["SONG_CAPO"] as Int
-        val fingerboardH = param["VOICE0_FINGERBOARD_H"] as Int
-        val chordW = param["VOICE0_CHORD_W"] as Int
-        val chordH = param["VOICE0_CHORD_H"] as Int
-        val chords = param["VOICE0${indexFingerboard}_CHORDS"] as List<SongVoiceLineSymbol>
+        val voiceSetting = mltProp.getVoiceSetting(0)
+        val fingerboardW = mltProp.getFingerboardW(listOf(0, indexFingerboard))!!
+        val capo = mltProp.getSongCapo()
+        val fingerboardH = mltProp.getFingerboardH(0)
+        val chordW = mltProp.getChordW(0)
+        val chordH = mltProp.getChordH(0)
+        val chords = mltProp.getChords(listOf(0, indexFingerboard))
         val startChordX = 0 // (Karaoke.frameWidthPx / 2 - chordW /2 + chordW).toInt()
 
         val body: MutableList<MltNode> = mutableListOf()

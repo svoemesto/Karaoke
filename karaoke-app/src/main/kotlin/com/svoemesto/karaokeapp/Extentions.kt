@@ -4,6 +4,7 @@ import com.svoemesto.karaokeapp.textfiledictionary.CensoredWordsDictionary
 import java.awt.Color
 import java.awt.Font
 import java.io.File
+import java.util.*
 
 fun String.nullIfEmpty(): String? {
     return if (this.trim() == "" || this == "null") null else this
@@ -142,4 +143,18 @@ fun String.replaceQuotes(): String {
     }
 
     return result
+}
+
+fun String.base64ifFileExists(): String {
+    val file = File(this)
+    return if (file.exists()) {
+        try {
+            Base64.getEncoder().encodeToString(file.inputStream().readAllBytes())
+        } catch (e: Exception) {
+            this
+        }
+    } else {
+        this
+    }
+
 }

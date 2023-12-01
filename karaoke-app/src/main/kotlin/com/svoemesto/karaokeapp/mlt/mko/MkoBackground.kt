@@ -7,19 +7,15 @@ import com.svoemesto.karaokeapp.model.MltNode
 import com.svoemesto.karaokeapp.model.MltNodeBuilder
 import com.svoemesto.karaokeapp.model.ProducerType
 
-data class MkoBackground(
-    val mltProp: MltProp
-                         ): MltKaraokeObject {
-    val type: ProducerType = ProducerType.BACKGROUND
-    val voiceId: Int = 0
+data class MkoBackground(val mltProp: MltProp, val type: ProducerType, val voiceId: Int = 0, val childId: Int = 0): MltKaraokeObject {
     val mltGenerator = MltGenerator(mltProp, type)
 
     override fun producer(): MltNode = mltGenerator
         .producer(
             timecodeIn = mltProp.getStartTimecode("Song"),
-            timecodeOut = convertMillisecondsToTimecode(Karaoke.timeSplashScreenStartMs + Karaoke.timeBoostyStartMs + convertTimecodeToMilliseconds(mltProp.getEndTimecode("Song"))),
+            timecodeOut = mltProp.getEndTimecode("Total"),
             props = MltNodeBuilder()
-                .propertyName("length", mltProp.getLengthFr("Song"))
+                .propertyName("length", mltProp.getLengthFr("Total"))
                 .propertyName("eof", "pause")
                 .propertyName("resource", mltProp.getPath(listOf(type, voiceId)))
                 .propertyName("ttl", 25)
@@ -32,7 +28,7 @@ data class MkoBackground(
                 .propertyName("mlt_service", "qimage")
                 .propertyName("progressive", 1)
                 .propertyName("force_reload", 0)
-                .propertyName("kdenlive:duration", convertMillisecondsToTimecode(Karaoke.timeSplashScreenStartMs + Karaoke.timeBoostyStartMs + convertTimecodeToMilliseconds(mltProp.getEndTimecode("Song"))))
+                .propertyName("kdenlive:duration", convertMillisecondsToTimecode(Karaoke.timeSplashScreenLengthMs + Karaoke.timeBoostyLengthMs + convertTimecodeToMilliseconds(mltProp.getEndTimecode("Song"))))
                 .propertyName("kdenlive:clipname", mltGenerator.name)
                 .propertyName("kdenlive:folderid", -1)
                 .propertyName("kdenlive:clip_type", if (type.isAudio) 1 else 2)
@@ -48,7 +44,7 @@ data class MkoBackground(
             body.add(
                 mltGenerator.entry(
                     timecodeIn = mltProp.getStartTimecode("Song"),
-                    timecodeOut = convertMillisecondsToTimecode(Karaoke.timeSplashScreenStartMs + Karaoke.timeBoostyStartMs + convertTimecodeToMilliseconds(mltProp.getEndTimecode("Song"))),
+                    timecodeOut = mltProp.getEndTimecode("Total"),
                     nodes = MltNodeBuilder()
                         .propertyName("kdenlive:id", "filePlaylist${mltGenerator.id}")
                         .propertyName("kdenlive:activeeffect", 1)
@@ -68,7 +64,7 @@ data class MkoBackground(
                             .propertyName("rotation", "00:00:00.000=0")
                             .build()
                         )
-                        .filterQtblend(mltGenerator.nameFilterQtblend, "${mltProp.getStartTimecode("Song")}=0 0 4096 4096 0.000000;${mltProp.getFadeInTimecode("Song")}=-13 -18 4096 4096 1.000000;${convertMillisecondsToTimecode(Karaoke.timeSplashScreenStartMs + Karaoke.timeBoostyStartMs - 1000 + convertTimecodeToMilliseconds(mltProp.getFadeOutTimecode("Song")))}=-2163 -2998 4096 4096 1.000000;${convertMillisecondsToTimecode(Karaoke.timeSplashScreenStartMs + Karaoke.timeBoostyStartMs + convertTimecodeToMilliseconds(mltProp.getEndTimecode("Song")))}=-2176 -3016 4096 4096 0.000000")
+                        .filterQtblend(mltGenerator.nameFilterQtblend, "${mltProp.getStartTimecode("Song")}=0 0 4096 4096 0.000000;${mltProp.getFadeInTimecode("Song")}=-13 -18 4096 4096 1.000000;${convertMillisecondsToTimecode(Karaoke.timeSplashScreenLengthMs + Karaoke.timeBoostyLengthMs - 1000 + convertTimecodeToMilliseconds(mltProp.getFadeOutTimecode("Song")))}=-2163 -2998 4096 4096 1.000000;${convertMillisecondsToTimecode(Karaoke.timeSplashScreenLengthMs + Karaoke.timeBoostyLengthMs + convertTimecodeToMilliseconds(mltProp.getEndTimecode("Song")))}=-2176 -3016 4096 4096 0.000000")
                         .build()
                 )
             )
@@ -81,7 +77,7 @@ data class MkoBackground(
     override fun tractor(): MltNode = mltGenerator
         .tractor(
             timecodeIn = mltProp.getStartTimecode("Song"),
-            timecodeOut = convertMillisecondsToTimecode(Karaoke.timeSplashScreenStartMs + Karaoke.timeBoostyStartMs + convertTimecodeToMilliseconds(mltProp.getEndTimecode("Song")))
+            timecodeOut = mltProp.getEndTimecode("Total")
         )
 
 

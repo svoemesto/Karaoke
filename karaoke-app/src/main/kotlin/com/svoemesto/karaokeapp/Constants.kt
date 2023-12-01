@@ -135,7 +135,14 @@ val producerTypeClass = mapOf(
     ProducerType.HEADER to MkoHeader::class.java,
     ProducerType.WATERMARK to MkoWatermark::class.java,
     ProducerType.SPLASHSTART to MkoSplashStart::class.java,
-    ProducerType.BOOSTY to MkoBoosty::class.java
+    ProducerType.BOOSTY to MkoBoosty::class.java,
+    ProducerType.MAINBIN to MkoMainBin::class.java,
+    ProducerType.BLACKTRACK to MkoBlackTrack::class.java,
+    ProducerType.VOICES to MkoVoices::class.java,
+    ProducerType.VOICE to MkoVoice::class.java,
+    ProducerType.COUNTERS to MkoCounters::class.java,
+    ProducerType.FILLCOLORSONGTEXTS to MkoFillcolorSongtexts::class.java,
+
 )
 
 //val producerTypeClass2 = mapOf(

@@ -29,7 +29,7 @@ enum class ProducerType(val text: String, val onlyOne: Boolean, val ids: List<In
     BOOSTY(text ="boosty", onlyOne = true, ids = emptyList(), isAudio = false, isVideo = true, coeffStatic = 1, coeffVoice = 0, isSequence = false),
 
     MAINBIN(text ="mainbin", onlyOne = true, ids = emptyList(), isAudio = true, isVideo = true, coeffStatic = 1, coeffVoice = 0, isSequence = true),
-    BLACKTRACK(text ="mainbin", onlyOne = false, ids = emptyList(), isAudio = true, isVideo = true, coeffStatic = 1, coeffVoice = 3, isSequence = true),
+    BLACKTRACK(text ="mainbin", onlyOne = false, ids = emptyList(), isAudio = true, isVideo = true, coeffStatic = 1, coeffVoice = 3, isSequence = false),
     VOICES(text ="voices", onlyOne = true, ids = emptyList(), isAudio = false, isVideo = true, coeffStatic = 1, coeffVoice = 0, isSequence = true),
     VOICE(text ="voice", onlyOne = true, ids = emptyList(), isAudio = false, isVideo = true, coeffStatic = 0, coeffVoice = 1, isSequence = true),
     COUNTERS(text ="counters", onlyOne = false, ids = listOf(), isAudio = false, isVideo = true, coeffStatic = 0, coeffVoice = 1, isSequence = true),

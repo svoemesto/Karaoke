@@ -11,20 +11,15 @@ import java.io.ByteArrayOutputStream
 import java.util.*
 import javax.imageio.ImageIO
 
-data class MkoFingerboard(
-    val mltProp: MltProp,
-                          val indexFingerboard: Int = 0) : MltKaraokeObject {
-
-    val type: ProducerType = ProducerType.FINGERBOARD
-    val voiceId: Int = 0
-    val mltGenerator = MltGenerator(mltProp, type, voiceId, indexFingerboard)
+data class MkoFingerboard(val mltProp: MltProp, val type: ProducerType, val voiceId: Int = 0, val childId: Int = 0): MltKaraokeObject {
+    val mltGenerator = MltGenerator(mltProp, type, voiceId, childId)
 
     override fun producer(): MltNode = mltGenerator
         .producer(
             props = MltNodeBuilder(mltGenerator.defaultProducerPropertiesForMltService("kdenlivetitle"))
                 .propertyName("kdenlive:duration", mltProp.getEndTimecode("Song"))
                 .propertyName("xmldata", mltProp.getXmlData(listOf(type, voiceId)).toString().xmldata())
-                .propertyName("meta.media.width", mltProp.getFingerboardW(listOf(0, indexFingerboard))!!)
+                .propertyName("meta.media.width", mltProp.getFingerboardW(listOf(0, childId))!!)
                 .propertyName("meta.media.height", mltProp.getFingerboardH(0) + 50)
                 .filterQtblend(mltGenerator.nameFilterQtblend, mltProp.getRect(listOf(type, voiceId)))
                 .build()
@@ -51,12 +46,12 @@ data class MkoFingerboard(
 
     override fun template(): MltNode {
         val voiceSetting = mltProp.getVoiceSetting(0)
-        val fingerboardW = mltProp.getFingerboardW(listOf(0, indexFingerboard))!!
+        val fingerboardW = mltProp.getFingerboardW(listOf(0, childId))!!
         val capo = mltProp.getSongCapo()
         val fingerboardH = mltProp.getFingerboardH(0)
         val chordW = mltProp.getChordW(0)
         val chordH = mltProp.getChordH(0)
-        val chords = mltProp.getChords(listOf(0, indexFingerboard))
+        val chords = mltProp.getChords(listOf(0, childId))
         val startChordX = 0 // (Karaoke.frameWidthPx / 2 - chordW /2 + chordW).toInt()
 
         val body: MutableList<MltNode> = mutableListOf()

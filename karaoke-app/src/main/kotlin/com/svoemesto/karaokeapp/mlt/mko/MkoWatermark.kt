@@ -10,10 +10,7 @@ import com.svoemesto.karaokeapp.model.MltNode
 import com.svoemesto.karaokeapp.model.MltNodeBuilder
 import com.svoemesto.karaokeapp.model.ProducerType
 
-data class MkoWatermark(
-    val mltProp: MltProp) : MltKaraokeObject {
-    val type: ProducerType = ProducerType.WATERMARK
-    val voiceId: Int = 0
+data class MkoWatermark(val mltProp: MltProp, val type: ProducerType, val voiceId: Int = 0, val childId: Int = 0): MltKaraokeObject {
     val mltGenerator = MltGenerator(mltProp, type)
 
     override fun producer(): MltNode = mltGenerator

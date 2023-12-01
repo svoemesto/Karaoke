@@ -9,10 +9,7 @@ import com.svoemesto.karaokeapp.mlt.mltNode
 import com.svoemesto.karaokeapp.model.*
 import java.awt.Font
 
-data class MkoSplashStart(
-    val mltProp: MltProp) : MltKaraokeObject {
-    val type: ProducerType = ProducerType.SPLASHSTART
-    val voiceId: Int = 0
+data class MkoSplashStart(val mltProp: MltProp, val type: ProducerType, val voiceId: Int = 0, val childId: Int = 0): MltKaraokeObject {
     val mltGenerator = MltGenerator(mltProp, type)
 
 
@@ -21,7 +18,7 @@ data class MkoSplashStart(
             timecodeIn = mltProp.getStartTimecode("Song"),
             timecodeOut = mltProp.getEndTimecode(ProducerType.SPLASHSTART),
             props = MltNodeBuilder(mltGenerator.defaultProducerPropertiesForMltService("kdenlivetitle"))
-                .propertyName("length", Karaoke.timeSplashScreenStartMs.toString())
+                .propertyName("length", mltProp.getLengthFr(ProducerType.SPLASHSTART))
                 .propertyName("kdenlive:duration", mltProp.getEndTimecode(ProducerType.SPLASHSTART))
                 .propertyName("xmldata", mltProp.getXmlData(listOf(type, voiceId)).toString().xmldata())
                 .propertyName("meta.media.width", Karaoke.frameWidthPx)

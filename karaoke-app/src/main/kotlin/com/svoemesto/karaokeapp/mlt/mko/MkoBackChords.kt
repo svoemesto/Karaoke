@@ -8,10 +8,7 @@ import com.svoemesto.karaokeapp.model.MltNode
 import com.svoemesto.karaokeapp.model.MltNodeBuilder
 import com.svoemesto.karaokeapp.model.ProducerType
 
-data class MkoBackChords(
-    val mltProp: MltProp): MltKaraokeObject {
-    val type: ProducerType = ProducerType.BACKCHORDS
-    val voiceId: Int = 0
+data class MkoBackChords(val mltProp: MltProp, val type: ProducerType, val voiceId: Int = 0, val childId: Int = 0): MltKaraokeObject {
     val mltGenerator = MltGenerator(mltProp, type)
 
 

@@ -12,10 +12,7 @@ import com.svoemesto.karaokeapp.model.ProducerType
 import com.svoemesto.karaokeapp.model.SongVersion
 import java.awt.Font
 
-data class MkoHeader(
-    val mltProp: MltProp) : MltKaraokeObject {
-    val type: ProducerType = ProducerType.HEADER
-    val voiceId: Int = 0
+data class MkoHeader(val mltProp: MltProp, val type: ProducerType, val voiceId: Int = 0, val childId: Int = 0): MltKaraokeObject {
     val mltGenerator = MltGenerator(mltProp, type)
 
     override fun producer(): MltNode = mltGenerator

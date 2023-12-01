@@ -291,26 +291,26 @@ class Karaoke : Serializable {
             }
 
         // Время показа в миллисекундах начальной заставки
-        var timeSplashScreenStartMs: Long
+        var timeSplashScreenLengthMs: Long
             get() {
                 val defaultValue = "5000"
                 props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("timeSplashScreenStartMs",defaultValue).toLong()
+                return props.getProperty("timeSplashScreenLengthMs",defaultValue).toLong()
             }
             set(value) {
-                props.setProperty("timeSplashScreenStartMs", value.toString())
+                props.setProperty("timeSplashScreenLengthMs", value.toString())
                 props.storeToXML(File(fileNameXml).outputStream(),null)
             }
 
         // Время показа в миллисекундах boosty
-        var timeBoostyStartMs: Long
+        var timeBoostyLengthMs: Long
             get() {
                 val defaultValue = "3000"
                 props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("timeBoostyStartMs",defaultValue).toLong()
+                return props.getProperty("timeBoostyLengthMs",defaultValue).toLong()
             }
             set(value) {
-                props.setProperty("timeBoostyStartMs", value.toString())
+                props.setProperty("timeBoostyLengthMs", value.toString())
                 props.storeToXML(File(fileNameXml).outputStream(),null)
             }
 

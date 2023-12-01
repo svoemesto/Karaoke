@@ -6,10 +6,7 @@ import com.svoemesto.karaokeapp.mlt.MltProp
 import com.svoemesto.karaokeapp.model.*
 import com.svoemesto.karaokeapp.xmldata
 
-data class MkoBoosty(
-    val mltProp: MltProp) : MltKaraokeObject {
-    val type: ProducerType = ProducerType.BOOSTY
-    val voiceId: Int = 0
+data class MkoBoosty(val mltProp: MltProp, val type: ProducerType, val voiceId: Int = 0, val childId: Int = 0): MltKaraokeObject {
     val mltGenerator = MltGenerator(mltProp, type)
 
     override fun producer(): MltNode = mltGenerator
@@ -17,7 +14,7 @@ data class MkoBoosty(
             timecodeIn =  mltProp.getEndTimecode(ProducerType.SPLASHSTART),
             timecodeOut = mltProp.getEndTimecode("Song"),
             props = MltNodeBuilder(mltGenerator.defaultProducerPropertiesForMltService("kdenlivetitle"))
-                .propertyName("length", Karaoke.timeBoostyStartMs.toString())
+                .propertyName("length", Karaoke.timeBoostyLengthMs.toString())
                 .propertyName("kdenlive:duration", mltProp.getEndTimecode(ProducerType.BOOSTY))
                 .propertyName("xmldata", mltProp.getXmlData(listOf(type, voiceId)).toString().xmldata())
                 .propertyName("meta.media.width", Karaoke.frameWidthPx)

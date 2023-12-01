@@ -1,5 +1,8 @@
 package com.svoemesto.karaokeapp.mlt
 
+import com.svoemesto.karaokeapp.Karaoke
+import com.svoemesto.karaokeapp.convertMillisecondsToTimecode
+import com.svoemesto.karaokeapp.convertTimecodeToMilliseconds
 import com.svoemesto.karaokeapp.model.MltNode
 import com.svoemesto.karaokeapp.model.MltNodeBuilder
 import com.svoemesto.karaokeapp.model.ProducerType
@@ -14,7 +17,17 @@ data class MltGenerator(
 
     companion object {
         fun name(type: ProducerType, voiceId: Int = 0, childId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId).name
-        fun nameBlackTrack(type: ProducerType, voiceId: Int = 0, childId: Int = 0) = "${MltGenerator(MltProp(), type, voiceId, childId).name}_black_track"
+        fun namePlaylistFile(type: ProducerType, voiceId: Int = 0, childId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId).namePlaylistFile
+        fun namePlaylistTrack(type: ProducerType, voiceId: Int = 0, childId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId).namePlaylistTrack
+        fun nameTractor(type: ProducerType, voiceId: Int = 0, childId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId).nameTractor
+        fun nameProducer(type: ProducerType, voiceId: Int = 0, childId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId).nameProducer
+        fun nameFileProducer(type: ProducerType, voiceId: Int = 0, childId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId).nameFileProducer
+        fun nameFilterVolume(type: ProducerType, voiceId: Int = 0, childId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId).nameFilterVolume
+        fun nameFilterPanner(type: ProducerType, voiceId: Int = 0, childId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId).nameFilterPanner
+        fun nameFilterAudiolevel(type: ProducerType, voiceId: Int = 0, childId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId).nameFilterAudiolevel
+        fun nameFilterQtblend(type: ProducerType, voiceId: Int = 0, childId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId).nameFilterQtblend
+        fun nameFilterGamma(type: ProducerType, voiceId: Int = 0, childId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId).nameFilterGamma
+        fun nameProducerBlackTrack(type: ProducerType, voiceId: Int = 0, childId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId).nameProducerBlackTrack
     }
 
     val id: Int get() = (if (type.ids.isEmpty()) mltProp.getId(listOf(type, voiceId)) else mltProp.getId(listOf(type, voiceId, childId))) + voiceId*1000 + childId*10000
@@ -24,6 +37,7 @@ data class MltGenerator(
     val namePlaylistTrack: String get() = "playlist_${name.lowercase()}${voiceId}_track"
     val nameTractor: String get() = "tractor_${name.lowercase()}${voiceId}"
     val nameProducer: String get() = "producer_${name.lowercase()}${voiceId}"
+    val nameProducerBlackTrack: String get() = "producer_${name.lowercase()}${voiceId}_black_track"
     val nameFileProducer: String get() = "producer_${name.lowercase()}${voiceId}_file"
     val nameFilterVolume: String get() = "filter_${name.lowercase()}${voiceId}_volume"
     val nameFilterPanner: String get() = "filter_${name.lowercase()}${voiceId}_panner"
@@ -55,7 +69,7 @@ data class MltGenerator(
 
     val propsTractor: MutableList<MltNode> get() {
         val result = MltNodeBuilder()
-            .propertyName("kdenlive:trackheight", 69)
+            .propertyName("kdenlive:trackheight", 67)
             .propertyName("kdenlive:timeline_active", 1)
             .propertyName("kdenlive:collapsed", 28)
             .propertyName("kdenlive:track_name", name)
@@ -135,7 +149,7 @@ data class MltGenerator(
 
     fun tractor(
         timecodeIn: String = mltProp.getStartTimecode("Song"),
-        timecodeOut: String = mltProp.getEndTimecode("Song"),
+        timecodeOut: String = mltProp.getEndTimecode("Total"),
         id: String = nameTractor,
         body: MutableList<MltNode> = tractorBody()
     ): MltNode = MltNode(

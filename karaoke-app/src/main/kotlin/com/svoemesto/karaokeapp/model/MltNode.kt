@@ -20,6 +20,10 @@ data class MltNodeBuilder(val nodes: MutableList<MltNode> = mutableListOf()) {
         nodes.add(node)
     }
 
+    fun nodes(nodesToAdd: List<MltNode>) = apply {
+        nodes.addAll(nodesToAdd)
+    }
+
     fun transitionsAndFilters(parentName: String, count: Int) = apply {
         for (i in 0  until  count) {
             nodes.add(
@@ -238,7 +242,7 @@ data class MltNodeBuilder(val nodes: MutableList<MltNode> = mutableListOf()) {
                 body = MltNodeBuilder()
                     .propertyName("iec_scale",0)
                     .propertyName("mlt_service","audiolevel")
-                    .propertyName("peak",1)
+                    .propertyName("dbpeak",1)
                     .propertyName("disable",1)
                     .build()
             )

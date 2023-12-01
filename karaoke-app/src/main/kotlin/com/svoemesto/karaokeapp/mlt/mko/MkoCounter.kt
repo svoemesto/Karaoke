@@ -11,19 +11,16 @@ import com.svoemesto.karaokeapp.model.MltNode
 import com.svoemesto.karaokeapp.model.MltNodeBuilder
 import com.svoemesto.karaokeapp.model.ProducerType
 
-data class MkoCounter(
-    val mltProp: MltProp,
-                      var id: Int,
-                      val voiceId: Int = 0): MltKaraokeObject {
-    val type: ProducerType = ProducerType.COUNTER
-    val mltGenerator = MltGenerator(mltProp, type, voiceId, id)
+data class MkoCounter(val mltProp: MltProp, val type: ProducerType, val voiceId: Int = 0, val childId: Int = 0): MltKaraokeObject {
+
+    val mltGenerator = MltGenerator(mltProp, type, voiceId, childId)
 
     override fun producer(): MltNode = mltGenerator
         .producer(
             props = MltNodeBuilder(mltGenerator.defaultProducerPropertiesForMltService("kdenlivetitle"))
                 .propertyName("length", mltProp.getLengthFr("Song"))
                 .propertyName("kdenlive:duration", mltProp.getEndTimecode("Song"))
-                .propertyName("xmldata", mltProp.getXmlData(listOf(type, voiceId, id)).toString().xmldata())
+                .propertyName("xmldata", mltProp.getXmlData(listOf(type, voiceId, childId)).toString().xmldata())
                 .propertyName("meta.media.width", Karaoke.frameWidthPx)
                 .propertyName("meta.media.height", Karaoke.frameHeightPx)
                 .build()
@@ -33,12 +30,11 @@ data class MkoCounter(
         val result = mltGenerator.filePlaylist()
         result.body?.let {
             val body = it as MutableList<MltNode>
-            body.addAll(MltNodeBuilder().blank(mltProp.getInOffsetVideo()).build())
             body.add(
                 mltGenerator.entry(
                     nodes = MltNodeBuilder()
                         .propertyName("kdenlive:id", "filePlaylist${mltGenerator.id}")
-                        .filterQtblend(mltGenerator.nameFilterQtblend, mltProp.getRect(listOf(type, voiceId, id)))
+                        .filterQtblend(mltGenerator.nameFilterQtblend, mltProp.getRect(listOf(type, voiceId, childId)))
                         .build()
                 )
             )
@@ -53,7 +49,7 @@ data class MkoCounter(
     override fun template(): MltNode {
         val voiceSetting = mltProp.getVoiceSetting(voiceId)
         val mltText: MltText = voiceSetting!!.groups[0].mltText
-        mltText.shapeColor =  Karaoke.countersColors[id]
+        mltText.shapeColor =  Karaoke.countersColors[childId]
 
         return MltNode(
             name = "kdenlivetitle",
@@ -74,7 +70,7 @@ data class MkoCounter(
                             name = "position",
                             fields = mutableMapOf(Pair("x","${mltProp.getPositionXPx(listOf(ProducerType.COUNTER, voiceId))}"),Pair("y","${mltProp.getPositionYPx(ProducerType.COUNTER)}")),
                             body = mutableListOf(MltNode(name = "transform", body = "1,0,0,0,1,0,0,0,1"))),
-                        mltText.mltNode(id.toString())
+                        mltText.mltNode(childId.toString())
                     )
                 ),
                 MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${Karaoke.frameHeightPx}"))),

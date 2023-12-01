@@ -8,11 +8,24 @@ import com.svoemesto.karaokeapp.mlt.MltText
 import com.svoemesto.karaokeapp.mlt.mltNode
 import com.svoemesto.karaokeapp.model.*
 
-data class MkoCounters(val mltProp: MltProp,
-                       val voiceId: Int = 0) : MltKaraokeObject {
-    val type: ProducerType = ProducerType.COUNTERS
+data class MkoCounters(val mltProp: MltProp, val type: ProducerType, val voiceId: Int = 0, val childId: Int = 0): MltKaraokeObject {
     val mltGenerator = MltGenerator(mltProp, type)
 
+    override fun producerBlackTrack(): MltNode = mltGenerator
+        .producer(
+            id = MltGenerator.nameProducerBlackTrack(type, voiceId),
+            props = MltNodeBuilder()
+                .propertyName("length", mltProp.getLengthFr("Song"))
+                .propertyName("eof", "pause")
+                .propertyName("resource", 0)
+                .propertyName("aspect_ratio", 1)
+                .propertyName("mlt_service", "color")
+                .propertyName("kdenlive:duration", mltProp.getEndTimecode("Song"))
+                .propertyName("mlt_image_format", "rgba")
+                .propertyName("kdenlive:playlistid", "black_track")
+                .propertyName("set.test_audio", 0)
+                .build()
+        )
     override fun filePlaylist(): MltNode {
         val result = mltGenerator.filePlaylist()
         result.body?.let {
@@ -36,6 +49,8 @@ data class MkoCounters(val mltProp: MltProp,
     override fun tractorSequence(): MltNode = mltGenerator
         .tractor(
             id = "{${mltProp.getUUID(listOf(type, voiceId))}}",
+            timecodeIn = mltProp.getStartTimecode("Song"),
+            timecodeOut = mltProp.getEndTimecode("Song"),
             body = MltNodeBuilder()
                 .propertyName("kdenlive:sequenceproperties.hasAudio", 0)
                 .propertyName("kdenlive:sequenceproperties.hasVideo", 1)
@@ -57,12 +72,12 @@ data class MkoCounters(val mltProp: MltProp,
                 .propertyName("kdenlive:sequenceproperties.zoom", 8)
                 .propertyName("kdenlive:sequenceproperties.groups", "[]")
                 .propertyName("kdenlive:sequenceproperties.guides", "[]")
-                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameBlackTrack(ProducerType.COUNTER, voiceId))))
-                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.name(ProducerType.COUNTER, voiceId, 0))))
-                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.name(ProducerType.COUNTER, voiceId, 1))))
-                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.name(ProducerType.COUNTER, voiceId, 2))))
-                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.name(ProducerType.COUNTER, voiceId, 3))))
-                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.name(ProducerType.COUNTER, voiceId, 4))))
+                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameProducerBlackTrack(ProducerType.COUNTERS, voiceId))))
+                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.COUNTER, voiceId, 0))))
+                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.COUNTER, voiceId, 1))))
+                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.COUNTER, voiceId, 2))))
+                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.COUNTER, voiceId, 3))))
+                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.COUNTER, voiceId, 4))))
                 .transitionsAndFilters(mltGenerator.name, ProducerType.COUNTER.ids.size)
                 .build()
         )

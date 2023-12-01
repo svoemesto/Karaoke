@@ -8,12 +8,7 @@ import com.svoemesto.karaokeapp.mlt.MltText
 import com.svoemesto.karaokeapp.mlt.mltNode
 import com.svoemesto.karaokeapp.model.*
 
-data class MkoSongText(
-//    val param: Map<String, Any?>,
-    val mltProp: MltProp,
-                       val voiceId: Int = 0,
-                       val ignoreCapo: Boolean = false) : MltKaraokeObject {
-    val type: ProducerType = ProducerType.SONGTEXT
+data class MkoSongText(val mltProp: MltProp, val type: ProducerType, val voiceId: Int = 0, val childId: Int = 0): MltKaraokeObject {
     val mltGenerator = MltGenerator(mltProp, type)
 
     override fun producer(): MltNode = mltGenerator
@@ -37,7 +32,7 @@ data class MkoSongText(
         val result = mltGenerator.filePlaylist()
         result.body?.let {
             val body = it as MutableList<MltNode>
-            body.addAll(MltNodeBuilder().blank(mltProp.getInOffsetVideo()).build())
+//            body.addAll(MltNodeBuilder().blank(mltProp.getInOffsetVideo()).build())
             body.add(
                 mltGenerator.entry(
                     nodes = MltNodeBuilder()
@@ -67,7 +62,7 @@ data class MkoSongText(
 
                 val mltText: MltText = lineSymbol.mltText
                 val text = if (voiceLineSongtext.type == SongVoiceLineType.CHORDS) {
-                    if (capo == 0 || ignoreCapo) {
+                    if (capo == 0 || mltProp.getIgnoreCapo()) {
                         mltText.text.split("|")[0]
                     } else {
                         val chordNameAndFret = mltText.text.split("|")

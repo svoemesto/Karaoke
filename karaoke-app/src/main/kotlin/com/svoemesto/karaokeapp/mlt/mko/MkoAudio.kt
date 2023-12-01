@@ -7,11 +7,7 @@ import com.svoemesto.karaokeapp.model.MltNodeBuilder
 import com.svoemesto.karaokeapp.model.ProducerType
 import com.svoemesto.karaokeapp.model.PropertiesMltNodeBuilder
 
-data class MkoAudio(
-                    val mltProp: MltProp,
-                    val type: ProducerType
-                    ): MltKaraokeObject {
-    val voiceId: Int = 0
+data class MkoAudio(val mltProp: MltProp, val type: ProducerType, val voiceId: Int = 0, val childId: Int = 0): MltKaraokeObject {
     val mltGenerator = MltGenerator(mltProp, type)
 
     override fun producer(): MltNode = mltGenerator
@@ -23,7 +19,7 @@ data class MkoAudio(
                 .propertyName("seekable", 1)
                 .propertyName("audio_index", 0)
                 .propertyName("video_index", -1)
-                .propertyName("mute_on_pause", 1)
+                .propertyName("mute_on_pause", 0)
                 .propertyName("mlt_service", "avformat")
                 .propertyName("kdenlive:clipname", mltGenerator.name)
                 .propertyName("kdenlive:folderid", -1)
@@ -55,7 +51,7 @@ data class MkoAudio(
                 .propertyName("kdenlive:clipname")
                 .propertyName("kdenlive:folderid", -1)
                 .propertyName("kdenlive:clip_type", 1)
-                .propertyName("kdenlive:id", "fileProducer${mltGenerator.id}")
+                .propertyName("kdenlive:id", mltGenerator.id)
                 .propertyName("xml", "was here")
                 .propertyName("set.test_audio", 0)
                 .propertyName("set.test_image", 1)
@@ -74,7 +70,7 @@ data class MkoAudio(
                 mltGenerator.entry(
                     id = mltGenerator.nameFileProducer,
                     nodes = MltNodeBuilder()
-                        .propertyName("kdenlive:id", "filePlaylist${mltGenerator.id}")
+                        .propertyName("kdenlive:id", mltGenerator.id)
                         .propertyName("kdenlive:activeeffect", 0)
                         .filterVolume(mltGenerator.nameFilterVolume, mltProp.getVolume(type))
                         .build()

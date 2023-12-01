@@ -19,6 +19,7 @@ fun createKaraoke(song: Song) {
 
     val countVoices = song.voices.size
     val songLengthMs = convertTimecodeToMilliseconds(song.endTimecode)
+    val totalLengthMs = songLengthMs + Karaoke.timeSplashScreenLengthMs + Karaoke.timeBoostyLengthMs
     val progressSymbolHalfWidth = 0 //(getTextWidthHeightPx(Karaoke.progressSymbol, Karaoke.progressFont.font).first/2).toLong()
     val kdeHeaderAuthor = song.settings.author
     val kdeHeaderTone = song.settings.key
@@ -33,9 +34,9 @@ fun createKaraoke(song: Song) {
     val propAudioVolumeOffValue = song.propAudioVolumeOff
     val propAudioVolumeCustomValue = song.propAudioVolumeCustom
     val kdeInOffsetAudio =
-        convertMillisecondsToTimecode(Karaoke.timeSplashScreenStartMs + Karaoke.timeBoostyStartMs) // convertMillisecondsToTimecode(convertTimecodeToMilliseconds(kdeIn) + max(Karaoke.timeOffsetStartFillingLineMs.toInt(),0).absoluteValue)
+        convertMillisecondsToTimecode(Karaoke.timeSplashScreenLengthMs + Karaoke.timeBoostyLengthMs) // convertMillisecondsToTimecode(convertTimecodeToMilliseconds(kdeIn) + max(Karaoke.timeOffsetStartFillingLineMs.toInt(),0).absoluteValue)
     val kdeInOffsetVideo =
-        convertMillisecondsToTimecode(Karaoke.timeSplashScreenStartMs + Karaoke.timeBoostyStartMs) // convertMillisecondsToTimecode(convertTimecodeToMilliseconds(kdeIn) + max(-Karaoke.timeOffsetStartFillingLineMs.toInt(),0).absoluteValue)
+        convertMillisecondsToTimecode(Karaoke.timeSplashScreenLengthMs + Karaoke.timeBoostyLengthMs) // convertMillisecondsToTimecode(convertTimecodeToMilliseconds(kdeIn) + max(-Karaoke.timeOffsetStartFillingLineMs.toInt(),0).absoluteValue)
     val kdeLengthMs = convertTimecodeToMilliseconds(song.endTimecode)
     val kdeLengthFrames = convertTimecodeToFrames(song.endTimecode, Karaoke.frameFps)
     val propGuidesValue = mutableListOf<String>()
@@ -110,20 +111,23 @@ fun createKaraoke(song: Song) {
     mltProp.setRootFolder(song.settings.rootFolder.replace("&", "&amp;"), "Song")
     mltProp.setStartTimecode(kdeIn, "Song")
     mltProp.setEndTimecode(kdeOut, "Song")
-    mltProp.setEndTimecode(convertMillisecondsToTimecode(Karaoke.timeSplashScreenStartMs), ProducerType.SPLASHSTART)
-    mltProp.setEndTimecode(convertMillisecondsToTimecode(Karaoke.timeSplashScreenStartMs + Karaoke.timeBoostyStartMs), ProducerType.BOOSTY)
+    mltProp.setEndTimecode(convertMillisecondsToTimecode(Karaoke.timeSplashScreenLengthMs), ProducerType.SPLASHSTART)
+    mltProp.setEndTimecode(convertMillisecondsToTimecode(Karaoke.timeSplashScreenLengthMs + Karaoke.timeBoostyLengthMs), ProducerType.BOOSTY)
     mltProp.setFadeInTimecode(kdeFadeIn, "Song")
     mltProp.setFadeOutTimecode(kdeFadeOut, "Song")
-    convertMillisecondsToTimecode(Karaoke.timeSplashScreenStartMs - 1000).replace(",", ".")
-    mltProp.setFadeOutTimecode(convertMillisecondsToTimecode(Karaoke.timeSplashScreenStartMs - 1000).replace(",", "."), ProducerType.SPLASHSTART)
-    convertMillisecondsToTimecode(Karaoke.timeSplashScreenStartMs + 1000).replace(",", ".")
-    mltProp.setFadeInTimecode(convertMillisecondsToTimecode(Karaoke.timeSplashScreenStartMs + 1000).replace(",", "."), ProducerType.BOOSTY)
-    convertMillisecondsToTimecode(Karaoke.timeSplashScreenStartMs + Karaoke.timeBoostyStartMs - 1000).replace(",", ".")
-    mltProp.setFadeOutTimecode(convertMillisecondsToTimecode(Karaoke.timeSplashScreenStartMs + Karaoke.timeBoostyStartMs - 1000).replace(",", "."), ProducerType.BOOSTY)
+    convertMillisecondsToTimecode(Karaoke.timeSplashScreenLengthMs - 1000).replace(",", ".")
+    mltProp.setFadeOutTimecode(convertMillisecondsToTimecode(Karaoke.timeSplashScreenLengthMs - 1000).replace(",", "."), ProducerType.SPLASHSTART)
+    convertMillisecondsToTimecode(Karaoke.timeSplashScreenLengthMs + 1000).replace(",", ".")
+    mltProp.setFadeInTimecode(convertMillisecondsToTimecode(Karaoke.timeSplashScreenLengthMs + 1000).replace(",", "."), ProducerType.BOOSTY)
+    convertMillisecondsToTimecode(Karaoke.timeSplashScreenLengthMs + Karaoke.timeBoostyLengthMs - 1000).replace(",", ".")
+    mltProp.setFadeOutTimecode(convertMillisecondsToTimecode(Karaoke.timeSplashScreenLengthMs + Karaoke.timeBoostyLengthMs - 1000).replace(",", "."), ProducerType.BOOSTY)
     mltProp.setLengthMs(kdeLengthMs, "Song")
     mltProp.setLengthFr(kdeLengthFrames, "Song")
-    mltProp.setLengthMs(kdeLengthMs + Karaoke.timeSplashScreenStartMs + Karaoke.timeBoostyStartMs, "Total")
-    mltProp.setLengthFr(convertMillisecondsToFrames(kdeLengthMs + Karaoke.timeSplashScreenStartMs + Karaoke.timeBoostyStartMs, Karaoke.frameFps), "Total")
+    mltProp.setLengthMs(totalLengthMs, "Total")
+    mltProp.setLengthFr(convertMillisecondsToFrames(totalLengthMs, Karaoke.frameFps), "Total")
+    mltProp.setLengthFr(convertMillisecondsToFrames(Karaoke.timeSplashScreenLengthMs, Karaoke.frameFps), ProducerType.SPLASHSTART)
+    mltProp.setLengthFr(convertMillisecondsToFrames(Karaoke.timeBoostyLengthMs, Karaoke.frameFps), ProducerType.BOOSTY)
+    mltProp.setEndTimecode(convertMillisecondsToTimecode(totalLengthMs), "Total")
     mltProp.setGuidesProperty("[${propGuides}]")
     mltProp.setInOffsetAudio(kdeInOffsetAudio)
     mltProp.setInOffsetVideo(kdeInOffsetVideo)
@@ -692,30 +696,32 @@ fun createKaraoke(song: Song) {
 
 
 
+        mltProp.setIgnoreCapo(false)
+        val templateSongText = MkoSongText(mltProp, ProducerType.SONGTEXT, voiceId, 0).template()
+        mltProp.setIgnoreCapo(true)
+        val templateSongTextIgnoreCapo = MkoSongText(mltProp, ProducerType.SONGTEXT, voiceId, 0).template()
 
-        val templateSongText = MkoSongText(mltProp, voiceId, ignoreCapo = false).template()
-        val templateSongTextIgnoreCapo = MkoSongText(mltProp, voiceId, ignoreCapo = true).template()
-        val templateSongTextLine = MkoSongTextLine(mltProp).template()
-        val templateHorizon = MkoHorizon(mltProp).template()
-        val templateFlash = MkoFlash(mltProp).template()
-        val templateProgress = MkoProgress(mltProp).template()
-        val templateWatermark = MkoWatermark(mltProp).template()
-        val templateFaderText = MkoFaderText(mltProp).template()
-        val templateFaderChords = MkoFaderChords(mltProp).template()
-        val templateBackChords = MkoBackChords(mltProp).template()
-        val templateHeader = MkoHeader(mltProp).template()
-        val templateSplashstart = MkoSplashStart(mltProp).template()
-        val templateBoosty = MkoBoosty(mltProp).template()
-        val templateCounter0 = MkoCounter(mltProp, 0, voiceId).template()
-        val templateCounter1 = MkoCounter(mltProp, 1, voiceId).template()
-        val templateCounter2 = MkoCounter(mltProp, 2, voiceId).template()
-        val templateCounter3 = MkoCounter(mltProp, 3, voiceId).template()
-        val templateCounter4 = MkoCounter(mltProp, 4, voiceId).template()
+//        val templateSongTextLine = MkoSongTextLine(mltProp, ProducerType.SONGTEXTLINE, voiceId, 0).template()
+        val templateHorizon = MkoHorizon(mltProp, ProducerType.HORIZON, voiceId, 0).template()
+        val templateFlash = MkoFlash(mltProp, ProducerType.FLASH, voiceId, 0).template()
+        val templateProgress = MkoProgress(mltProp, ProducerType.PROGRESS, voiceId, 0).template()
+        val templateWatermark = MkoWatermark(mltProp, ProducerType.WATERMARK, voiceId, 0).template()
+        val templateFaderText = MkoFaderText(mltProp, ProducerType.FADERTEXT, voiceId, 0).template()
+        val templateFaderChords = MkoFaderChords(mltProp, ProducerType.FADERCHORDS, voiceId, 0).template()
+        val templateBackChords = MkoBackChords(mltProp, ProducerType.BACKCHORDS, voiceId, 0).template()
+        val templateHeader = MkoHeader(mltProp, ProducerType.HEADER, voiceId, 0).template()
+        val templateSplashstart = MkoSplashStart(mltProp, ProducerType.SPLASHSTART, voiceId, 0).template()
+        val templateBoosty = MkoBoosty(mltProp, ProducerType.BOOSTY, voiceId, 0).template()
+        val templateCounter0 = MkoCounter(mltProp, ProducerType.COUNTER, voiceId, 0).template()
+        val templateCounter1 = MkoCounter(mltProp, ProducerType.COUNTER, voiceId, 1).template()
+        val templateCounter2 = MkoCounter(mltProp, ProducerType.COUNTER, voiceId, 2).template()
+        val templateCounter3 = MkoCounter(mltProp, ProducerType.COUNTER, voiceId, 3).template()
+        val templateCounter4 = MkoCounter(mltProp, ProducerType.COUNTER, voiceId, 4).template()
 
         val templateFingerboards: MutableMap<Int, MltNode> = mutableMapOf()
         if (song.songVersion == SongVersion.CHORDS) {
             for (i in 0 until countFingerboards) {
-                templateFingerboards[i] = MkoFingerboard(mltProp, i).template()
+                templateFingerboards[i] = MkoFingerboard(mltProp, ProducerType.FINGERBOARD, voiceId, i).template()
             }
         }
 
@@ -728,7 +734,7 @@ fun createKaraoke(song: Song) {
         mltProp.setXmlData(templateSongTextIgnoreCapo, listOf(ProducerType.SONGTEXT, voiceId, "IgnoreCapo"))
         mltProp.setRect(propRectSongtextValue, listOf(ProducerType.SONGTEXT, voiceId))
 
-        mltProp.setXmlData(templateSongTextLine, listOf(ProducerType.SONGTEXTLINE, voiceId))
+//        mltProp.setXmlData(templateSongTextLine, listOf(ProducerType.SONGTEXTLINE, voiceId))
         mltProp.setXmlData(templateHorizon, listOf(ProducerType.HORIZON, voiceId))
         mltProp.setXmlData(templateFlash, listOf(ProducerType.FLASH, voiceId))
         mltProp.setRect(propFlashValue, listOf(ProducerType.FLASH, voiceId))

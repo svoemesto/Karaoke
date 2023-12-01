@@ -17,7 +17,14 @@ enum class SongVersion(val text: String, val textForDescription: String, val suf
             ProducerType.COUNTER,
             ProducerType.FADERTEXT,
             ProducerType.HEADER,
-            ProducerType.WATERMARK
+            ProducerType.WATERMARK,
+
+            ProducerType.FILLCOLORSONGTEXTS,
+            ProducerType.COUNTERS,
+            ProducerType.VOICE,
+            ProducerType.BLACKTRACK,
+            ProducerType.VOICES,
+            ProducerType.MAINBIN
         )
     ),
     KARAOKE(text = "Karaoke", textForDescription = "Accompaniment", suffix = " [karaoke]",
@@ -35,7 +42,14 @@ enum class SongVersion(val text: String, val textForDescription: String, val suf
             ProducerType.COUNTER,
             ProducerType.FADERTEXT,
             ProducerType.HEADER,
-            ProducerType.WATERMARK
+            ProducerType.WATERMARK,
+
+            ProducerType.FILLCOLORSONGTEXTS,
+            ProducerType.COUNTERS,
+            ProducerType.VOICE,
+            ProducerType.BLACKTRACK,
+            ProducerType.VOICES,
+            ProducerType.MAINBIN
         )
     ),
     CHORDS(text = "Chords", textForDescription = "Bass + Drums", suffix = " [chords]",
@@ -56,6 +70,13 @@ enum class SongVersion(val text: String, val textForDescription: String, val suf
             ProducerType.FINGERBOARD,
             ProducerType.FADERCHORDS,
             ProducerType.HEADER,
-            ProducerType.WATERMARK
+            ProducerType.WATERMARK,
+
+            ProducerType.FILLCOLORSONGTEXTS,
+            ProducerType.COUNTERS,
+            ProducerType.VOICE,
+            ProducerType.BLACKTRACK,
+            ProducerType.VOICES,
+            ProducerType.MAINBIN
         ))
 }

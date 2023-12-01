@@ -15,8 +15,8 @@ data class MltProp(
         COUNT_VOICES, LINE_SPACING, SHADOW, TYPEWRITER, ALIGNMENT, WORK_AREA_HEIGHT_PX, VOICELINES,
         SYMBOL_HEIGHT_PX, POSITION_Y_PX, POSITION_X_PX, UUID, AUTHOR, TONE, BPM, ALBUM, YEAR, TRACK,
         FONT_SIZE_PT, PATH, BASE64, FINGERBOARD_H, FINGERBOARD_W, CHORD_W, CHORD_H, COUNT_FINGERBOARDS, CHORDS, ROOT_FOLDER,
-        START_TIMECODE, END_TIMECODE, FADEIN_TIMECODE, FADEOUT_TIMECODE, LENGTH_MS, LENGTH_FR, GUIDES_PROPERTY,
-        IN_OFFSET_AUDIO, IN_OFFSET_VIDEO, ENABLED, VOLUME, FILE_NAME
+        START_TIMECODE, END_TIMECODE, FADEIN_TIMECODE, FADEOUT_TIMECODE, LENGTH_MS, LENGTH_FR, LENGTH_TIMECODE, GUIDES_PROPERTY,
+        IN_OFFSET_AUDIO, IN_OFFSET_VIDEO, ENABLED, VOLUME, FILE_NAME, IGNORE_CAPO
 
     }
     private fun propsNode(key: Any = KEYS.ROOT): MutableMap<Any, Any> {
@@ -27,6 +27,10 @@ data class MltProp(
         }
     }
 
+
+    fun getLengthTimecode(key: Any = KEYS.ROOT): String = props[key.convertToList(KEYS.LENGTH_TIMECODE)]?.let { it as String } ?: ""
+    fun setLengthTimecode(value: String, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.LENGTH_TIMECODE)] = value}
+
     fun getUUID(key: Any = KEYS.ROOT): String = props[key.convertToList(KEYS.UUID)]?.let { it as String } ?: ""
     fun setUUID(value: String, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.UUID)] = value}
 
@@ -36,6 +40,9 @@ data class MltProp(
     fun getVolume(key: Any = KEYS.ROOT): String = props[key.convertToList(KEYS.VOLUME)]?.let { it as String } ?: ""
     fun setVolume(value: String, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.VOLUME)] = value}
 
+
+    fun getIgnoreCapo(key: Any = KEYS.ROOT): Boolean = props[key.convertToList(KEYS.IGNORE_CAPO)]?.let { it as Boolean } ?: false
+    fun setIgnoreCapo(value: Boolean, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.IGNORE_CAPO)] = value}
     fun getEnabled(key: Any = KEYS.ROOT): Boolean = props[key.convertToList(KEYS.ENABLED)]?.let { it as Boolean } ?: false
     fun setEnabled(value: Boolean, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.ENABLED)] = value}
 

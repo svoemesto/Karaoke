@@ -18,8 +18,9 @@ data class MkoCounter(val mltProp: MltProp, val type: ProducerType, val voiceId:
     override fun producer(): MltNode = mltGenerator
         .producer(
             props = MltNodeBuilder(mltGenerator.defaultProducerPropertiesForMltService("kdenlivetitle"))
-                .propertyName("length", mltProp.getLengthFr("Song"))
-                .propertyName("kdenlive:duration", mltProp.getEndTimecode("Song"))
+                .propertyName("kdenlive:folderid", mltProp.getId(listOf(ProducerType.COUNTERS, voiceId)))
+                .propertyName("length", mltProp.getSongLengthFr())
+                .propertyName("kdenlive:duration", mltProp.getSongEndTimecode())
                 .propertyName("xmldata", mltProp.getXmlData(listOf(type, voiceId, childId)).toString().xmldata())
                 .propertyName("meta.media.width", Karaoke.frameWidthPx)
                 .propertyName("meta.media.height", Karaoke.frameHeightPx)

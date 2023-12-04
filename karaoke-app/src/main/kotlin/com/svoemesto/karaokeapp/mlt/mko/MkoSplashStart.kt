@@ -15,11 +15,11 @@ data class MkoSplashStart(val mltProp: MltProp, val type: ProducerType, val voic
 
     override fun producer(): MltNode = mltGenerator
         .producer(
-            timecodeIn = mltProp.getStartTimecode("Song"),
-            timecodeOut = mltProp.getEndTimecode(ProducerType.SPLASHSTART),
+            timecodeIn = mltProp.getSplashStartTimecode(),
+            timecodeOut = mltProp.getSplashEndTimecode(),
             props = MltNodeBuilder(mltGenerator.defaultProducerPropertiesForMltService("kdenlivetitle"))
-                .propertyName("length", mltProp.getLengthFr(ProducerType.SPLASHSTART))
-                .propertyName("kdenlive:duration", mltProp.getEndTimecode(ProducerType.SPLASHSTART))
+                .propertyName("length", mltProp.getSplashLengthMs())
+                .propertyName("kdenlive:duration", mltProp.getSplashEndTimecode())
                 .propertyName("xmldata", mltProp.getXmlData(listOf(type, voiceId)).toString().xmldata())
                 .propertyName("meta.media.width", Karaoke.frameWidthPx)
                 .propertyName("meta.media.height", Karaoke.frameHeightPx)
@@ -33,9 +33,11 @@ data class MkoSplashStart(val mltProp: MltProp, val type: ProducerType, val voic
             val body = it as MutableList<MltNode>
             body.add(
                 mltGenerator.entry(
+                    timecodeIn = mltProp.getSplashStartTimecode(),
+                    timecodeOut = mltProp.getSplashEndTimecode(),
                     nodes = MltNodeBuilder()
                         .propertyName("kdenlive:id", "filePlaylist${mltGenerator.id}")
-                        .filterQtblend(mltGenerator.nameFilterQtblend, "${mltProp.getStartTimecode("Song")}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.000000;${mltProp.getFadeInTimecode("Song")}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 1.000000;${mltProp.getFadeOutTimecode(ProducerType.SPLASHSTART)}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 1.000000;${mltProp.getEndTimecode(ProducerType.SPLASHSTART)}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.000000")
+                        .filterQtblend(mltGenerator.nameFilterQtblend, "${mltProp.getSplashStartTimecode()}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.000000;${mltProp.getSplashFadeInTimecode()}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 1.000000;${mltProp.getSplashFadeOutTimecode()}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 1.000000;${mltProp.getSplashEndTimecode()}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.000000")
                         .build()
                 )
             )
@@ -44,7 +46,10 @@ data class MkoSplashStart(val mltProp: MltProp, val type: ProducerType, val voic
     }
     override fun trackPlaylist(): MltNode = mltGenerator.trackPlaylist()
 
-    override fun tractor(): MltNode = mltGenerator.tractor()
+    override fun tractor(): MltNode = mltGenerator.tractor(
+        timecodeIn = mltProp.getSplashStartTimecode(),
+        timecodeOut = mltProp.getSplashEndTimecode()
+    )
 
     override fun template(): MltNode {
         val songVersion = mltProp.getSongVersion()

@@ -11,11 +11,9 @@ data class MkoBoosty(val mltProp: MltProp, val type: ProducerType, val voiceId: 
 
     override fun producer(): MltNode = mltGenerator
         .producer(
-            timecodeIn =  mltProp.getEndTimecode(ProducerType.SPLASHSTART),
-            timecodeOut = mltProp.getEndTimecode("Song"),
             props = MltNodeBuilder(mltGenerator.defaultProducerPropertiesForMltService("kdenlivetitle"))
-                .propertyName("length", Karaoke.timeBoostyLengthMs.toString())
-                .propertyName("kdenlive:duration", mltProp.getEndTimecode(ProducerType.BOOSTY))
+                .propertyName("length", mltProp.getBoostyLengthMs())
+                .propertyName("kdenlive:duration", mltProp.getBoostyEndTimecode())
                 .propertyName("xmldata", mltProp.getXmlData(listOf(type, voiceId)).toString().xmldata())
                 .propertyName("meta.media.width", Karaoke.frameWidthPx)
                 .propertyName("meta.media.height", Karaoke.frameHeightPx)
@@ -26,14 +24,14 @@ data class MkoBoosty(val mltProp: MltProp, val type: ProducerType, val voiceId: 
         val result = mltGenerator.filePlaylist()
         result.body?.let {
             val body = it as MutableList<MltNode>
-            body.addAll(MltNodeBuilder().blank(mltProp.getEndTimecode(ProducerType.SPLASHSTART)).build())
+            body.addAll(MltNodeBuilder().blank(mltProp.getBoostyBlankTimecode()).build())
             body.add(
                 mltGenerator.entry(
-                    timecodeIn = mltProp.getEndTimecode(ProducerType.SPLASHSTART),
-                    timecodeOut = mltProp.getEndTimecode(ProducerType.BOOSTY),
+                    timecodeIn = mltProp.getBoostyStartTimecode(),
+                    timecodeOut = mltProp.getBoostyEndTimecode(),
                     nodes = MltNodeBuilder()
                         .propertyName("kdenlive:id", "filePlaylist${mltGenerator.id}")
-                        .filterQtblend(mltGenerator.nameFilterQtblend, "${mltProp.getEndTimecode(ProducerType.SPLASHSTART)}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.000000;${mltProp.getFadeInTimecode(ProducerType.BOOSTY)}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 1.000000;${mltProp.getFadeOutTimecode(ProducerType.BOOSTY)}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 1.000000;${mltProp.getEndTimecode(ProducerType.BOOSTY)}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.000000")
+                        .filterQtblend(mltGenerator.nameFilterQtblend, "${mltProp.getBoostyStartTimecode()}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.000000;${mltProp.getBoostyFadeInTimecode()}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 1.000000;${mltProp.getBoostyFadeOutTimecode()}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 1.000000;${mltProp.getBoostyEndTimecode()}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.000000")
                         .build()
                 )
             )
@@ -45,8 +43,8 @@ data class MkoBoosty(val mltProp: MltProp, val type: ProducerType, val voiceId: 
 
     override fun tractor(): MltNode = mltGenerator
         .tractor(
-            timecodeIn = mltProp.getEndTimecode(ProducerType.SPLASHSTART),
-            timecodeOut = mltProp.getEndTimecode(ProducerType.BOOSTY)
+            timecodeIn = mltProp.getBoostyStartTimecode(),
+            timecodeOut = mltProp.getBoostyEndTimecode()
         )
 
     override fun template(): MltNode = MltNode(

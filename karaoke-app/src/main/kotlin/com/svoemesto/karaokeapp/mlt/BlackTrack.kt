@@ -7,8 +7,8 @@ fun getMltBlackTrackProducer(mltProp: MltProp): MltNode {
         name = "producer",
         fields = mutableMapOf(
             Pair("id","black_track"),
-            Pair("in",mltProp.getStartTimecode("Song")),
-            Pair("out",mltProp.getEndTimecode("Song"))
+            Pair("in",mltProp.getSongStartTimecode()),
+            Pair("out",mltProp.getSongEndTimecode())
         ),
         body = mutableListOf(
             MltNode(name = "property", fields = mutableMapOf(Pair("name","length")), body = mltProp.getLengthFr("Song")),

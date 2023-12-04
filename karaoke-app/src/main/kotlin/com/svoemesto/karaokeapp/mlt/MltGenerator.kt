@@ -58,7 +58,6 @@ data class MltGenerator(
                     .propertyName("progressive", 1)
                     .propertyName("force_reload", 0)
                     .propertyName("kdenlive:clipname", name)
-                    .propertyName("kdenlive:folderid", -1)
                     .propertyName("kdenlive:clip_type", if (type.isAudio) 1 else 2)
                     .propertyName("kdenlive:id", id)
                     .build()
@@ -95,8 +94,8 @@ data class MltGenerator(
 
 
     fun entry(
-        timecodeIn: String = mltProp.getStartTimecode("Song"),
-        timecodeOut: String = mltProp.getEndTimecode("Song"),
+        timecodeIn: String = mltProp.getSongStartTimecode(),
+        timecodeOut: String = mltProp.getSongEndTimecode(),
         nodes: MutableList<MltNode> = mutableListOf(),
         id: String? = null
     ): MltNode {
@@ -108,13 +107,14 @@ data class MltGenerator(
                 .`in`(timecodeIn)
                 .`out`(timecodeOut)
                 .build(),
-            body = nodes
+            body = nodes,
+            comment = "entry $nameProducer"
         )
     }
 
     fun producer(
-        timecodeIn: String = mltProp.getStartTimecode("Song"),
-        timecodeOut: String = mltProp.getEndTimecode("Song"),
+        timecodeIn: String = mltProp.getSongStartTimecode(),
+        timecodeOut: String = mltProp.getSongEndTimecode(),
         props: MutableList<MltNode> = mutableListOf(),
         id: String? = null
     ): MltNode {
@@ -126,7 +126,8 @@ data class MltGenerator(
                 .`in`(timecodeIn)
                 .`out`(timecodeOut)
                 .build(),
-            body = props
+            body = props,
+            comment = "producer $nameProducer"
         )
     }
     fun trackPlaylist(): MltNode = MltNode(
@@ -135,7 +136,8 @@ data class MltGenerator(
         fields = PropertiesMltNodeBuilder().id(namePlaylistTrack).build(),
         body = if (type.isAudio) {
             MltNodeBuilder().propertyName("kdenlive:audio_track", 1).build()
-        } else null
+        } else null,
+        comment = "playlist $namePlaylistTrack"
     )
 
     fun filePlaylist(): MltNode = MltNode(
@@ -144,14 +146,15 @@ data class MltGenerator(
         fields = PropertiesMltNodeBuilder().id(namePlaylistFile).build(),
         body = if (type.isAudio) {
             MltNodeBuilder().propertyName("kdenlive:audio_track", 1).build()
-        } else mutableListOf()
+        } else mutableListOf(),
+        comment = "playlist $namePlaylistFile"
     )
 
     fun tractor(
-        timecodeIn: String = mltProp.getStartTimecode("Song"),
-        timecodeOut: String = mltProp.getEndTimecode("Total"),
+        timecodeIn: String = mltProp.getTotalStartTimecode(),
+        timecodeOut: String = mltProp.getTotalEndTimecode(),
         id: String = nameTractor,
-        body: MutableList<MltNode> = tractorBody()
+        body: MutableList<MltNode> = tractorBody(),
     ): MltNode = MltNode(
         type = type,
         name = "tractor",
@@ -160,7 +163,8 @@ data class MltGenerator(
             .`in`(timecodeIn)
             .`out`(timecodeOut)
             .build(),
-        body = body
+        body = body,
+        comment = "tractor $namePlaylistFile"
     )
     private fun tractorBody(): MutableList<MltNode> {
         val result: MutableList<MltNode> = MltNodeBuilder(propsTractor)

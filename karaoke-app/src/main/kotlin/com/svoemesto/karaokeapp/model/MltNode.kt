@@ -7,10 +7,11 @@ data class MltNode (
     var name: String = "",
     var fields: MutableMap<String, String> = mutableMapOf(),
     var body: Any? = null,
-    var type: ProducerType? = null
+    var type: ProducerType? = null,
+    var comment: String = ""
 ) : Serializable {
     override fun toString(): String {
-        return "<${name} ${fields.map { "${it.key}=\"${it.value}\"" }.joinToString(" ")}${if (body == null) "/>" else ">${if (body is List<*>) "\n  ${(body as List<*>).map {it.toString()}.joinToString("\n  ")}\n" else "${body}"}</${name}>"}"
+        return "${if(comment=="") "" else "<!-- ${comment} -->\n"}<${name} ${fields.map { "${it.key}=\"${it.value}\"" }.joinToString(" ")}${if (body == null) "/>" else ">${if (body is List<*>) "\n  ${(body as List<*>).map {it.toString()}.joinToString("\n  ")}\n" else "${body}"}</${name}>"}"
     }
 }
 
@@ -24,8 +25,26 @@ data class MltNodeBuilder(val nodes: MutableList<MltNode> = mutableListOf()) {
         nodes.addAll(nodesToAdd)
     }
 
-    fun transitionsAndFilters(parentName: String, count: Int) = apply {
-        for (i in 0  until  count) {
+    fun transitionsAndFilters(parentName: String, countAudioTracks: Int, countVideoTracks: Int) = apply {
+        for (i in 0  until  countAudioTracks) {
+            nodes.add(
+                MltNode(
+                    name = "transition",
+                    fields = mutableMapOf("id" to "${parentName}_transition_${i}"),
+                    body = MltNodeBuilder()
+                        .propertyName("a_track", 0)
+                        .propertyName("b_track", i+1)
+                        .propertyName("mlt_service", "mix")
+                        .propertyName("kdenlive_id", "mix")
+                        .propertyName("internal_added", 237)
+                        .propertyName("always_active", 1)
+                        .propertyName("accepts_blanks", 1)
+                        .propertyName("sum", 1)
+                        .build()
+                )
+            )
+        }
+        for (i in countAudioTracks  until  (countVideoTracks+countAudioTracks)) {
             nodes.add(
                 MltNode(
                     name = "transition",
@@ -37,9 +56,17 @@ data class MltNodeBuilder(val nodes: MutableList<MltNode> = mutableListOf()) {
                         .propertyName("distort", 0)
                         .propertyName("rotate_center", 0)
                         .propertyName("mlt_service", "qtblend")
-                        .propertyName("kdenlive_id", "qtblend")
                         .propertyName("internal_added", 237)
                         .propertyName("always_active", 1)
+
+//                        .propertyName("a_track", 0)
+//                        .propertyName("b_track", i+1)
+//                        .propertyName("version", "0.1")
+//                        .propertyName("mlt_service", "frei0r.cairoblend")
+//                        .propertyName("always_active", 1)
+//                        .propertyName("internal_added", 237)
+
+
                         .build()
                 )
             )

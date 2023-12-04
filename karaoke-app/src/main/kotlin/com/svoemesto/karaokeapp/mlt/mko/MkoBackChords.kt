@@ -15,8 +15,8 @@ data class MkoBackChords(val mltProp: MltProp, val type: ProducerType, val voice
     override fun producer(): MltNode = mltGenerator
         .producer(
             props = MltNodeBuilder(mltGenerator.defaultProducerPropertiesForMltService("kdenlivetitle"))
-                .propertyName("length", mltProp.getLengthFr("Song"))
-                .propertyName("kdenlive:duration", mltProp.getEndTimecode("Song"))
+                .propertyName("length", mltProp.getSongLengthFr())
+                .propertyName("kdenlive:duration", mltProp.getSongEndTimecode())
                 .propertyName("xmldata", mltProp.getXmlData(listOf(type, voiceId)).toString().xmldata())
                 .propertyName("meta.media.width", Karaoke.frameWidthPx)
                 .propertyName("meta.media.height", mltProp.getFingerboardH(0) + 50)

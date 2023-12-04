@@ -13,14 +13,17 @@ data class MkoMainBin(val mltProp: MltProp, val type: ProducerType, val voiceId:
 
     override fun producerBlackTrack(): MltNode = mltGenerator
         .producer(
+            timecodeIn = mltProp.getTimelineStartTimecode(),
+            timecodeOut = mltProp.getTimelineEndTimecode(),
             id = MltGenerator.nameProducerBlackTrack(type, voiceId),
             props = MltNodeBuilder()
-                .propertyName("length", mltProp.getLengthFr("Song"))
+                .propertyName("length", 2147483647)
+//                .propertyName("length", mltProp.getTimelineLengthFr())
                 .propertyName("eof", "pause")
-                .propertyName("resource", 0)
+                .propertyName("resource", "black")
                 .propertyName("aspect_ratio", 1)
                 .propertyName("mlt_service", "color")
-                .propertyName("kdenlive:duration", mltProp.getEndTimecode("Song"))
+                .propertyName("kdenlive:duration", mltProp.getTotalEndTimecode())
                 .propertyName("mlt_image_format", "rgba")
                 .propertyName("kdenlive:playlistid", "black_track")
                 .propertyName("set.test_audio", 0)
@@ -34,6 +37,18 @@ data class MkoMainBin(val mltProp: MltProp, val type: ProducerType, val voiceId:
         body = MltNodeBuilder()
             .propertyName("kdenlive:folder.-1.21", "Клипы")
             .propertyName("kdenlive:sequenceFolder", 21)
+            .propertyName("kdenlive:folder.-1.${mltProp.getId(ProducerType.VOICES)}", "${ProducerType.VOICES.name}")
+            .nodes({
+                    val result = MltNodeBuilder()
+                    for (voiceI in 0 until mltProp.getCountVoices()) {
+                        result.propertyName("kdenlive:folder.${mltProp.getId(ProducerType.VOICES)}.${mltProp.getId(listOf(ProducerType.VOICE, voiceI))}", "${ProducerType.VOICE.name}${voiceI}")
+                        result.propertyName("kdenlive:folder.${mltProp.getId(listOf(ProducerType.VOICE, voiceI))}.${mltProp.getId(listOf(ProducerType.COUNTERS, voiceI))}", "${ProducerType.COUNTERS.name}")
+                        result.propertyName("kdenlive:folder.${mltProp.getId(listOf(ProducerType.VOICE, voiceI))}.${mltProp.getId(listOf(ProducerType.FILLCOLORSONGTEXTS, voiceI))}", "${ProducerType.FILLCOLORSONGTEXTS.name}")
+                    }
+                    result.build()
+                    result.nodes
+                }()
+            )
             .propertyName("kdenlive:docproperties.audioChannels", 2)
             .propertyName("kdenlive:docproperties.browserurl", mltProp.getRootFolder("Song"))
             .propertyName("kdenlive:docproperties.compositing", 1)
@@ -72,147 +87,26 @@ data class MkoMainBin(val mltProp: MltProp, val type: ProducerType, val voiceId:
                 )
             .propertyName("kdenlive:docproperties.activetimeline", "{${mltProp.getUUID(listOf(ProducerType.MAINBIN, voiceId))}}")
             .propertyName("xml_retain", 1)
-//            .nodes(
-//                {
-//                    val result: MutableList<MltNode> = mutableListOf()
-//                    mltProp.getSongVersion().producers.filter { !it.isSequence }. forEach { typeI ->
-//                        for (voiceI in 0 until mltProp.getCountVoices()) {
-//                            for (childI in 0 until if (typeI.ids.isEmpty()) 1 else typeI.ids.size) {
-//                                if ((typeI.onlyOne && voiceI == 0) || !typeI.onlyOne ) {
-//                                    result.add(MltNode(name = "entry", fields = mutableMapOf(
-//                                        "producer" to MltGenerator.nameProducer(typeI, voiceI, childI),
-//                                        "in" to "00:00:00.000", "out" to mltProp.getEndTimecode("Song"))))
-//                                }
-//                            }
-//                        }
-//
-//
-//                    }
-//                    result
-//                }()
-//            )
-
-            .node(MltNode(name = "entry", fields = mutableMapOf(
-                "producer" to MltGenerator.nameProducer(ProducerType.BACKGROUND, voiceId),
-                "in" to "00:00:00.000", "out" to mltProp.getEndTimecode("Song"))))
-            .node(MltNode(name = "entry", fields = mutableMapOf(
-                "producer" to MltGenerator.nameProducer(ProducerType.BOOSTY, voiceId),
-                "in" to "00:00:00.000", "out" to mltProp.getEndTimecode(listOf(ProducerType.BOOSTY, voiceId)))))
-            .node(MltNode(name = "entry", fields = mutableMapOf(
-                "producer" to MltGenerator.nameProducer(ProducerType.HORIZON, voiceId),
-                "in" to "00:00:00.000", "out" to mltProp.getEndTimecode("Song"))))
-            .node(MltNode(name = "entry", fields = mutableMapOf(
-                "producer" to MltGenerator.nameProducer(ProducerType.FLASH, voiceId),
-                "in" to "00:00:00.000", "out" to mltProp.getEndTimecode("Song"))))
-            .node(MltNode(name = "entry", fields = mutableMapOf(
-                "producer" to MltGenerator.nameProducer(ProducerType.PROGRESS, voiceId),
-                "in" to "00:00:00.000", "out" to mltProp.getEndTimecode("Song"))))
-            .node(MltNode(name = "entry", fields = mutableMapOf(
-                "producer" to MltGenerator.nameProducer(ProducerType.FADERTEXT, voiceId),
-                "in" to "00:00:00.000", "out" to mltProp.getEndTimecode("Song"))))
-            .node(MltNode(name = "entry", fields = mutableMapOf(
-                "producer" to MltGenerator.nameProducer(ProducerType.HEADER, voiceId),
-                "in" to "00:00:00.000", "out" to mltProp.getEndTimecode("Song"))))
-            .node(MltNode(name = "entry", fields = mutableMapOf(
-                "producer" to MltGenerator.nameProducer(ProducerType.WATERMARK, voiceId),
-                "in" to "00:00:00.000", "out" to mltProp.getEndTimecode("Song"))))
-            .node(MltNode(name = "entry", fields = mutableMapOf(
-                "producer" to MltGenerator.nameProducer(ProducerType.SPLASHSTART, voiceId),
-                "in" to "00:00:00.000", "out" to mltProp.getEndTimecode("Song"))))
-            .node(MltNode(name = "entry", fields = mutableMapOf(
-                "producer" to MltGenerator.nameProducer(ProducerType.AUDIOMUSIC, voiceId),
-                "in" to "00:00:00.000", "out" to mltProp.getEndTimecode("Song"))))
-            .node(MltNode(name = "entry", fields = mutableMapOf(
-                "producer" to MltGenerator.nameProducer(ProducerType.AUDIOVOCAL, voiceId),
-                "in" to "00:00:00.000", "out" to mltProp.getEndTimecode("Song"))))
-            .nodes(
-                (0 until mltProp.getCountVoices()).map {
-                    MltNode(name = "entry", fields = mutableMapOf(
-                        "producer" to MltGenerator.nameProducer(ProducerType.SONGTEXT, it),
-                        "in" to "00:00:00.000", "out" to mltProp.getEndTimecode("Song")))
-                }
-            )
-            .nodes(
-                (0 until mltProp.getCountVoices()).map {
-                    MltNode(name = "entry", fields = mutableMapOf(
-                        "producer" to MltGenerator.nameProducer(ProducerType.FILLCOLORSONGTEXT, it, 0),
-                        "in" to "00:00:00.000", "out" to mltProp.getEndTimecode("Song")))
-                }
-            )
-            .nodes(
-                (0 until mltProp.getCountVoices()).map {
-                    MltNode(name = "entry", fields = mutableMapOf(
-                        "producer" to MltGenerator.nameProducer(ProducerType.FILLCOLORSONGTEXT, it, 1),
-                        "in" to "00:00:00.000", "out" to mltProp.getEndTimecode("Song")))
-                }
-            )
-            .nodes(
-                (0 until mltProp.getCountVoices()).map {
-                    MltNode(name = "entry", fields = mutableMapOf(
-                        "producer" to MltGenerator.nameProducer(ProducerType.COUNTER, it, 0),
-                        "in" to "00:00:00.000", "out" to mltProp.getEndTimecode("Song")))
-                }
-            )
-            .nodes(
-                (0 until mltProp.getCountVoices()).map {
-                    MltNode(name = "entry", fields = mutableMapOf(
-                        "producer" to MltGenerator.nameProducer(ProducerType.COUNTER, it, 1),
-                        "in" to "00:00:00.000", "out" to mltProp.getEndTimecode("Song")))
-                }
-            )
-            .nodes(
-                (0 until mltProp.getCountVoices()).map {
-                    MltNode(name = "entry", fields = mutableMapOf(
-                        "producer" to MltGenerator.nameProducer(ProducerType.COUNTER, it, 2),
-                        "in" to "00:00:00.000", "out" to mltProp.getEndTimecode("Song")))
-                }
-            )
-            .nodes(
-                (0 until mltProp.getCountVoices()).map {
-                    MltNode(name = "entry", fields = mutableMapOf(
-                        "producer" to MltGenerator.nameProducer(ProducerType.COUNTER, it, 3),
-                        "in" to "00:00:00.000", "out" to mltProp.getEndTimecode("Song")))
-                }
-            )
-            .nodes(
-                (0 until mltProp.getCountVoices()).map {
-                    MltNode(name = "entry", fields = mutableMapOf(
-                        "producer" to MltGenerator.nameProducer(ProducerType.COUNTER, it, 4),
-                        "in" to "00:00:00.000", "out" to mltProp.getEndTimecode("Song")))
-                }
-            )
 
 
             .nodes(
-                (0 until mltProp.getCountVoices()).map {
-                    MltNode(name = "entry", fields = mutableMapOf(
-                        "producer" to "{${mltProp.getUUID(listOf(ProducerType.VOICE, it))}}",
-                        "in" to "00:00:00.000", "out" to "00:00:00.000"))
-                }
-            )
-            .nodes(
-                (0 until mltProp.getCountVoices()).map {
-                    MltNode(name = "entry", fields = mutableMapOf(
-                        "producer" to "{${mltProp.getUUID(listOf(ProducerType.COUNTERS, it))}}",
-                        "in" to "00:00:00.000", "out" to "00:00:00.000"))
-                }
-            )
-            .nodes(
-                (0 until mltProp.getCountVoices()).map {
-                    MltNode(name = "entry", fields = mutableMapOf(
-                        "producer" to "{${mltProp.getUUID(listOf(ProducerType.FILLCOLORSONGTEXTS, it))}}",
-                        "in" to "00:00:00.000", "out" to "00:00:00.000"))
-                }
-            )
-            .node(
-                MltNode(name = "entry", fields = mutableMapOf(
-                    "producer" to "{${mltProp.getUUID(listOf(ProducerType.VOICES, voiceId))}}",
-                    "in" to "00:00:00.000", "out" to "00:00:00.000"))
-            )
-            .node(
-                MltNode(name = "entry", fields = mutableMapOf(
-                    "producer" to "{${mltProp.getUUID(listOf(ProducerType.MAINBIN, voiceId))}}",
-                    "in" to "00:00:00.000", "out" to mltProp.getEndTimecode("Song")))
+                {
+                    val result: MutableList<MltNode> = mutableListOf()
+                    mltProp.getSongVersion().producers.sortedByLevelsDesc().forEach { typeI ->
+                        for (voiceI in 0 until mltProp.getCountVoices()) {
+                            for (childI in 0 until if (typeI.ids.isEmpty()) 1 else typeI.ids.size) {
+                                if ((typeI.onlyOne && voiceI == 0) || !typeI.onlyOne ) {
+                                    result.add(MltNode(name = "entry", fields = mutableMapOf(
+                                        "producer" to if (typeI.isSequence) "{${mltProp.getUUID(listOf(typeI, voiceI))}}" else MltGenerator.nameProducer(typeI, voiceI, childI),
+                                        "in" to "00:00:00.000", "out" to (if (typeI==ProducerType.MAINBIN) mltProp.getTotalEndTimecode() else mltProp.getSongEndTimecode()))))
+                                }
+                            }
+                        }
+
+
+                    }
+                    result
+                }()
             )
             .build()
 
@@ -224,14 +118,14 @@ data class MkoMainBin(val mltProp: MltProp, val type: ProducerType, val voiceId:
         fields = PropertiesMltNodeBuilder()
             .id("tractor_project")
             .`in`("00:00:00.000")
-            .`out`(mltProp.getEndTimecode("Song"))
+            .`out`(mltProp.getTotalEndTimecode())
             .build(),
         body = MltNodeBuilder()
             .propertyName("kdenlive:projectTractor", 1)
             .node(
                 MltNode(name = "track", fields = mutableMapOf(
                     "producer" to "{${mltProp.getUUID(listOf(ProducerType.MAINBIN, voiceId))}}",
-                    "in" to "00:00:00.000", "out" to mltProp.getEndTimecode("Song")))
+                    "in" to "00:00:00.000", "out" to mltProp.getTotalEndTimecode()))
             )
             .build()
         )
@@ -239,11 +133,13 @@ data class MkoMainBin(val mltProp: MltProp, val type: ProducerType, val voiceId:
     override fun tractorSequence(): MltNode = mltGenerator
         .tractor(
             id = "{${mltProp.getUUID(listOf(type, voiceId))}}",
+            timecodeIn = mltProp.getTimelineStartTimecode(),
+            timecodeOut = mltProp.getTimelineEndTimecode(),
             body = MltNodeBuilder()
                 .propertyName("kdenlive:sequenceproperties.hasAudio", 1)
                 .propertyName("kdenlive:sequenceproperties.hasVideo", 1)
                 .propertyName("kdenlive:clip_type", 2)
-                .propertyName("kdenlive:duration", mltProp.getEndTimecode("Song"))
+                .propertyName("kdenlive:duration", mltProp.getTotalEndTimecode())
                 .propertyName("kdenlive:clipname", "Основной клип")
                 .propertyName("kdenlive:description")
                 .propertyName("kdenlive:uuid", "{${mltProp.getUUID(listOf(type, voiceId))}}")
@@ -252,8 +148,8 @@ data class MkoMainBin(val mltProp: MltProp, val type: ProducerType, val voiceId:
                 .propertyName("kdenlive:id", mltGenerator.id)
                 .propertyName("kdenlive:sequenceproperties.activeTrack", 0)
                 .propertyName("kdenlive:sequenceproperties.documentuuid", "{${mltProp.getUUID(listOf(ProducerType.MAINBIN, voiceId))}}")
-                .propertyName("kdenlive:sequenceproperties.tracks", 12)
-                .propertyName("kdenlive:sequenceproperties.tracksCount", 12)
+                .propertyName("kdenlive:sequenceproperties.tracks", mltProp.getCountAllTracks())
+                .propertyName("kdenlive:sequenceproperties.tracksCount", mltProp.getCountAllTracks())
                 .propertyName("kdenlive:sequenceproperties.verticalzoom", 1)
                 .propertyName("kdenlive:sequenceproperties.zonein", 0)
                 .propertyName("kdenlive:sequenceproperties.zoneout", 75)
@@ -262,30 +158,31 @@ data class MkoMainBin(val mltProp: MltProp, val type: ProducerType, val voiceId:
                 .propertyName("kdenlive:sequenceproperties.guides", "[]")
                 .propertyName("kdenlive:docproperties.renderurl", mltProp.getFileName(SongOutputFile.VIDEO))
                 .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameProducerBlackTrack(ProducerType.MAINBIN, voiceId))))
-//                .nodes(
-//                    {
-//                        val result: MutableList<MltNode> = mutableListOf()
-//                        mltProp.getSongVersion().producers.filter { !it.isSequence }. forEach {
-//                            result.add(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(it, voiceId))))
-//                        }
-//                        result
-//                    }()
-//                )
 
-                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.AUDIOMUSIC, voiceId))))
-                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.AUDIOVOCAL, voiceId))))
-                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.BACKGROUND, voiceId))))
-                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.SPLASHSTART, voiceId))))
-                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.BOOSTY, voiceId))))
-                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.HORIZON, voiceId))))
-                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.FLASH, voiceId))))
-                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.PROGRESS, voiceId))))
-                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.VOICES, voiceId))))
-                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.FADERTEXT, voiceId))))
-                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.HEADER, voiceId))))
-                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.WATERMARK, voiceId))))
+                .nodes(
+                    {
+                        val result: MutableList<MltNode> = mutableListOf()
+                        mltProp.getSongVersion().producersInMainBin. forEach {
+                            result.add(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(it, voiceId))))
+                        }
+                        result
+                    }()
+                )
 
-                .transitionsAndFilters(mltGenerator.name, 12)
+//                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.AUDIOMUSIC, voiceId))))
+//                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.AUDIOVOCAL, voiceId))))
+//                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.BACKGROUND, voiceId))))
+//                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.SPLASHSTART, voiceId))))
+//                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.BOOSTY, voiceId))))
+//                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.HORIZON, voiceId))))
+//                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.FLASH, voiceId))))
+//                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.PROGRESS, voiceId))))
+//                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.VOICES, voiceId))))
+//                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.FADERTEXT, voiceId))))
+//                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.HEADER, voiceId))))
+//                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.WATERMARK, voiceId))))
+
+                .transitionsAndFilters(mltGenerator.name, mltProp.getCountAudioTracks(), mltProp.getCountAllTracks() - mltProp.getCountAudioTracks())
                 .build()
         )
 

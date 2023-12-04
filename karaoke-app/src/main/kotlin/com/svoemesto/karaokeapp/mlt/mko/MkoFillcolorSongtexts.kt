@@ -15,14 +15,17 @@ data class MkoFillcolorSongtexts(val mltProp: MltProp, val type: ProducerType, v
 
     override fun producerBlackTrack(): MltNode = mltGenerator
         .producer(
+            timecodeIn = mltProp.getTimelineStartTimecode(),
+            timecodeOut = mltProp.getTimelineEndTimecode(),
             id = MltGenerator.nameProducerBlackTrack(type, voiceId),
             props = MltNodeBuilder()
-                .propertyName("length", mltProp.getLengthFr("Song"))
+                .propertyName("length", 2147483647)
+//                .propertyName("length", mltProp.getTimelineLengthFr())
                 .propertyName("eof", "pause")
                 .propertyName("resource", 0)
                 .propertyName("aspect_ratio", 1)
                 .propertyName("mlt_service", "color")
-                .propertyName("kdenlive:duration", mltProp.getEndTimecode("Song"))
+                .propertyName("kdenlive:duration", mltProp.getTotalEndTimecode())
                 .propertyName("mlt_image_format", "rgba")
                 .propertyName("kdenlive:playlistid", "black_track")
                 .propertyName("set.test_audio", 0)
@@ -51,18 +54,18 @@ data class MkoFillcolorSongtexts(val mltProp: MltProp, val type: ProducerType, v
     override fun tractorSequence(): MltNode = mltGenerator
         .tractor(
             id = "{${mltProp.getUUID(listOf(type, voiceId))}}",
-            timecodeIn = mltProp.getStartTimecode("Song"),
-            timecodeOut = mltProp.getEndTimecode("Song"),
+            timecodeIn = mltProp.getSongStartTimecode(),
+            timecodeOut = mltProp.getSongEndTimecode(),
             body = MltNodeBuilder()
                 .propertyName("kdenlive:sequenceproperties.hasAudio", 0)
                 .propertyName("kdenlive:sequenceproperties.hasVideo", 1)
                 .propertyName("kdenlive:clip_type", 2)
-                .propertyName("kdenlive:duration", mltProp.getEndTimecode("Song"))
+                .propertyName("kdenlive:duration", mltProp.getSongEndTimecode())
                 .propertyName("kdenlive:clipname", mltGenerator.name)
+                .propertyName("kdenlive:folderid", mltProp.getId(listOf(ProducerType.FILLCOLORSONGTEXTS, voiceId)))
                 .propertyName("kdenlive:description")
                 .propertyName("kdenlive:uuid", "{${mltProp.getUUID(listOf(type, voiceId))}}")
                 .propertyName("kdenlive:producer_type", 17)
-                .propertyName("kdenlive:folderid", -1)
                 .propertyName("kdenlive:id", mltGenerator.id)
                 .propertyName("kdenlive:sequenceproperties.activeTrack", 0)
                 .propertyName("kdenlive:sequenceproperties.documentuuid", "{${mltProp.getUUID(listOf(ProducerType.MAINBIN, voiceId))}}")
@@ -77,7 +80,7 @@ data class MkoFillcolorSongtexts(val mltProp: MltProp, val type: ProducerType, v
                 .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameProducerBlackTrack(ProducerType.FILLCOLORSONGTEXTS, voiceId))))
                 .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.FILLCOLORSONGTEXT, voiceId, 0))))
                 .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.FILLCOLORSONGTEXT, voiceId, 1))))
-                .transitionsAndFilters(mltGenerator.name, ProducerType.FILLCOLORSONGTEXT.ids.size)
+                .transitionsAndFilters(mltGenerator.name, 0, ProducerType.FILLCOLORSONGTEXT.ids.size)
                 .build()
         )
 

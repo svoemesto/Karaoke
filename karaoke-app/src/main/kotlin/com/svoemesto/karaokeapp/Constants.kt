@@ -9,7 +9,6 @@ import com.svoemesto.karaokeapp.textfiledictionary.YoWordsDictionary
 import org.springframework.messaging.simp.SimpMessagingTemplate
 
 val idProducerSongText = ProducerType.SONGTEXT.ordinal * 10
-val idProducerSongTextLine = ProducerType.SONGTEXTLINE.ordinal * 10
 val idProducerHorizon = ProducerType.HORIZON.ordinal * 10
 val idProducerFillColorSongtextEven = ProducerType.FILLCOLORSONGTEXT.ordinal * 10
 val idProducerFillColorSongtextOdd = ProducerType.FILLCOLORSONGTEXT.ordinal * 10 + 1
@@ -126,7 +125,6 @@ val producerTypeClass = mapOf(
     ProducerType.PROGRESS to MkoProgress::class.java,
     ProducerType.FILLCOLORSONGTEXT to MkoFillcolorSongtext::class.java,
     ProducerType.SONGTEXT to MkoSongText::class.java,
-    ProducerType.SONGTEXTLINE to MkoSongTextLine::class.java,
     ProducerType.COUNTER to MkoCounter::class.java,
     ProducerType.FADERTEXT to MkoFaderText::class.java,
     ProducerType.FADERCHORDS to MkoFaderChords::class.java,
@@ -137,7 +135,6 @@ val producerTypeClass = mapOf(
     ProducerType.SPLASHSTART to MkoSplashStart::class.java,
     ProducerType.BOOSTY to MkoBoosty::class.java,
     ProducerType.MAINBIN to MkoMainBin::class.java,
-    ProducerType.BLACKTRACK to MkoBlackTrack::class.java,
     ProducerType.VOICES to MkoVoices::class.java,
     ProducerType.VOICE to MkoVoice::class.java,
     ProducerType.COUNTERS to MkoCounters::class.java,

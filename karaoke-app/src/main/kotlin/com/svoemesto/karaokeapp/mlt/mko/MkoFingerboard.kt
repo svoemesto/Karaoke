@@ -17,7 +17,7 @@ data class MkoFingerboard(val mltProp: MltProp, val type: ProducerType, val voic
     override fun producer(): MltNode = mltGenerator
         .producer(
             props = MltNodeBuilder(mltGenerator.defaultProducerPropertiesForMltService("kdenlivetitle"))
-                .propertyName("kdenlive:duration", mltProp.getEndTimecode("Song"))
+                .propertyName("kdenlive:duration", mltProp.getSongLengthFr())
                 .propertyName("xmldata", mltProp.getXmlData(listOf(type, voiceId)).toString().xmldata())
                 .propertyName("meta.media.width", mltProp.getFingerboardW(listOf(0, childId))!!)
                 .propertyName("meta.media.height", mltProp.getFingerboardH(0) + 50)

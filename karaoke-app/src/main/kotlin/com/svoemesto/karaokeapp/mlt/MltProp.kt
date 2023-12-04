@@ -12,11 +12,11 @@ data class MltProp(
     val props: MutableMap<Any, Any> = mutableMapOf()
 ) {
     enum class KEYS {ROOT, SONG_VERSION, OFFSET, ID, COUNTER, VOICE_SETTING, RECT, XML_DATA, SONG_CAPO, SONG_CHORD_DESCRIPTION, SONG_NAME,
-        COUNT_VOICES, LINE_SPACING, SHADOW, TYPEWRITER, ALIGNMENT, WORK_AREA_HEIGHT_PX, VOICELINES,
+        COUNT_VOICES, COUNT_AUDIO_TRACKS, COUNT_ALL_TRACKS, LINE_SPACING, SHADOW, TYPEWRITER, ALIGNMENT, WORK_AREA_HEIGHT_PX, VOICELINES,
         SYMBOL_HEIGHT_PX, POSITION_Y_PX, POSITION_X_PX, UUID, AUTHOR, TONE, BPM, ALBUM, YEAR, TRACK,
         FONT_SIZE_PT, PATH, BASE64, FINGERBOARD_H, FINGERBOARD_W, CHORD_W, CHORD_H, COUNT_FINGERBOARDS, CHORDS, ROOT_FOLDER,
         START_TIMECODE, END_TIMECODE, FADEIN_TIMECODE, FADEOUT_TIMECODE, LENGTH_MS, LENGTH_FR, LENGTH_TIMECODE, GUIDES_PROPERTY,
-        IN_OFFSET_AUDIO, IN_OFFSET_VIDEO, ENABLED, VOLUME, FILE_NAME, IGNORE_CAPO
+        IN_OFFSET_AUDIO, IN_OFFSET_VIDEO, ENABLED, VOLUME, FILE_NAME, IGNORE_CAPO, TIMECODE
 
     }
     private fun propsNode(key: Any = KEYS.ROOT): MutableMap<Any, Any> {
@@ -55,11 +55,116 @@ data class MltProp(
     fun getGuidesProperty(key: Any = KEYS.ROOT): String = props[key.convertToList(KEYS.GUIDES_PROPERTY)]?.let { it as String } ?: ""
     fun setGuidesProperty(value: String, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.GUIDES_PROPERTY)] = value}
 
+    fun getTimelineLengthFr(): Long = props["Timeline".convertToList(KEYS.LENGTH_FR)]?.let { it as Long } ?: 0
+    fun setTimelineLengthFr(value: Long) {props["Timeline".convertToList(KEYS.LENGTH_FR)] = value}
+    fun getSplashLengthFr(): Long = props["Splash".convertToList(KEYS.LENGTH_FR)]?.let { it as Long } ?: 0
+    fun setSplashLengthFr(value: Long) {props["Splash".convertToList(KEYS.LENGTH_FR)] = value}
+    fun getBoostyLengthFr(): Long = props["Boosty".convertToList(KEYS.LENGTH_FR)]?.let { it as Long } ?: 0
+    fun setBoostyLengthFr(value: Long) {props["Boosty".convertToList(KEYS.LENGTH_FR)] = value}
+    fun getTotalLengthFr(): Long = props["Total".convertToList(KEYS.LENGTH_FR)]?.let { it as Long } ?: 0
+    fun setTotalLengthFr(value: Long) {props["Total".convertToList(KEYS.LENGTH_FR)] = value}
+    fun getSongLengthFr(): Long = props["Song".convertToList(KEYS.LENGTH_FR)]?.let { it as Long } ?: 0
+    fun setSongLengthFr(value: Long) {props["Song".convertToList(KEYS.LENGTH_FR)] = value}
     fun getLengthFr(key: Any = KEYS.ROOT): Long = props[key.convertToList(KEYS.LENGTH_FR)]?.let { it as Long } ?: 0
     fun setLengthFr(value: Long, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.LENGTH_FR)] = value}
 
+    fun getBoostyLengthMs(): Long = props["Boosty".convertToList(KEYS.LENGTH_MS)]?.let { it as Long } ?: 0
+    fun setBoostyLengthMs(value: Long) {props["Boosty".convertToList(KEYS.LENGTH_MS)] = value}
+
+    fun getSplashLengthMs(): Long = props["Splash".convertToList(KEYS.LENGTH_MS)]?.let { it as Long } ?: 0
+    fun setSplashLengthMs(value: Long) {props["Splash".convertToList(KEYS.LENGTH_MS)] = value}
+
+    fun getTimelineLengthMs(): Long = props["Timeline".convertToList(KEYS.LENGTH_MS)]?.let { it as Long } ?: 0
+    fun setTimelineLengthMs(value: Long) {props["Timeline".convertToList(KEYS.LENGTH_MS)] = value}
+
+    fun getTotalLengthMs(): Long = props["Total".convertToList(KEYS.LENGTH_MS)]?.let { it as Long } ?: 0
+    fun setTotalLengthMs(value: Long) {props["Total".convertToList(KEYS.LENGTH_MS)] = value}
+    fun getSongLengthMs(): Long = props["Song".convertToList(KEYS.LENGTH_MS)]?.let { it as Long } ?: 0
+    fun setSongLengthMs(value: Long) {props["Song".convertToList(KEYS.LENGTH_MS)] = value}
+    fun getFadeLengthMs(): Long = props["Fade".convertToList(KEYS.LENGTH_MS)]?.let { it as Long } ?: 0
+    fun setFadeLengthMs(value: Long) {props["Fade".convertToList(KEYS.LENGTH_MS)] = value}
     fun getLengthMs(key: Any = KEYS.ROOT): Long = props[key.convertToList(KEYS.LENGTH_MS)]?.let { it as Long } ?: 0
     fun setLengthMs(value: Long, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.LENGTH_MS)] = value}
+
+    fun getTimecode(key: Any = KEYS.ROOT): String = props[key.convertToList(KEYS.TIMECODE)]?.let { it as String } ?: ""
+    fun setTimecode(value: String, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.TIMECODE)] = value}
+
+    fun getSongStartTimecode(): String = props["SongStart".convertToList(KEYS.TIMECODE)]?.let { it as String } ?: ""
+    fun setSongStartTimecode(value: String) {props["SongStart".convertToList(KEYS.TIMECODE)] = value}
+
+    fun getSongEndTimecode(): String = props["SongEnd".convertToList(KEYS.TIMECODE)]?.let { it as String } ?: ""
+    fun setSongEndTimecode(value: String) {props["SongEnd".convertToList(KEYS.TIMECODE)] = value}
+
+    fun getTotalStartTimecode(): String = props["TotalStart".convertToList(KEYS.TIMECODE)]?.let { it as String } ?: ""
+    fun setTotalStartTimecode(value: String) {props["TotalStart".convertToList(KEYS.TIMECODE)] = value}
+
+    fun getTotalEndTimecode(): String = props["TotalEnd".convertToList(KEYS.TIMECODE)]?.let { it as String } ?: ""
+    fun setTotalEndTimecode(value: String) {props["TotalEnd".convertToList(KEYS.TIMECODE)] = value}
+
+    fun getBoostyStartTimecode(): String = props["BoostyStart".convertToList(KEYS.TIMECODE)]?.let { it as String } ?: ""
+    fun setBoostyStartTimecode(value: String) {props["BoostyStart".convertToList(KEYS.TIMECODE)] = value}
+
+    fun getBoostyEndTimecode(): String = props["BoostyEnd".convertToList(KEYS.TIMECODE)]?.let { it as String } ?: ""
+    fun setBoostyEndTimecode(value: String) {props["BoostyEnd".convertToList(KEYS.TIMECODE)] = value}
+
+    fun getSplashStartTimecode(): String = props["SplashStart".convertToList(KEYS.TIMECODE)]?.let { it as String } ?: ""
+    fun setSplashStartTimecode(value: String) {props["SplashStart".convertToList(KEYS.TIMECODE)] = value}
+
+    fun getSplashEndTimecode(): String = props["SplashEnd".convertToList(KEYS.TIMECODE)]?.let { it as String } ?: ""
+    fun setSplashEndTimecode(value: String) {props["SplashEnd".convertToList(KEYS.TIMECODE)] = value}
+
+    fun getTimelineStartTimecode(): String = props["Timeline".convertToList(KEYS.TIMECODE)]?.let { it as String } ?: ""
+    fun setTimelineStartTimecode(value: String) {props["Timeline".convertToList(KEYS.TIMECODE)] = value}
+
+    fun getTimelineEndTimecode(): String = props["Timeline".convertToList(KEYS.TIMECODE)]?.let { it as String } ?: ""
+    fun setTimelineEndTimecode(value: String) {props["Timeline".convertToList(KEYS.TIMECODE)] = value}
+
+    fun getVoiceStartTimecode(): String = props["VoiceStart".convertToList(KEYS.TIMECODE)]?.let { it as String } ?: ""
+    fun setVoiceStartTimecode(value: String) {props["VoiceStart".convertToList(KEYS.TIMECODE)] = value}
+
+    fun getVoiceEndTimecode(): String = props["VoiceEnd".convertToList(KEYS.TIMECODE)]?.let { it as String } ?: ""
+    fun setVoiceEndTimecode(value: String) {props["VoiceEnd".convertToList(KEYS.TIMECODE)] = value}
+
+    fun getSongFadeInTimecode(): String = props["SongFadeIn".convertToList(KEYS.TIMECODE)]?.let { it as String } ?: ""
+    fun setSongFadeInTimecode(value: String) {props["SongFadeIn".convertToList(KEYS.TIMECODE)] = value}
+
+    fun getSongFadeOutTimecode(): String = props["SongFadeOut".convertToList(KEYS.TIMECODE)]?.let { it as String } ?: ""
+    fun setSongFadeOutTimecode(value: String) {props["SongFadeOut".convertToList(KEYS.TIMECODE)] = value}
+
+    fun getTotalFadeInTimecode(): String = props["TotalFadeIn".convertToList(KEYS.TIMECODE)]?.let { it as String } ?: ""
+    fun setTotalFadeInTimecode(value: String) {props["TotalFadeIn".convertToList(KEYS.TIMECODE)] = value}
+
+    fun getTotalFadeOutTimecode(): String = props["TotalFadeOut".convertToList(KEYS.TIMECODE)]?.let { it as String } ?: ""
+    fun setTotalFadeOutTimecode(value: String) {props["TotalFadeOut".convertToList(KEYS.TIMECODE)] = value}
+
+    fun getBoostyFadeInTimecode(): String = props["BoostyFadeIn".convertToList(KEYS.TIMECODE)]?.let { it as String } ?: ""
+    fun setBoostyFadeInTimecode(value: String) {props["BoostyFadeIn".convertToList(KEYS.TIMECODE)] = value}
+
+    fun getBoostyFadeOutTimecode(): String = props["BoostyFadeOut".convertToList(KEYS.TIMECODE)]?.let { it as String } ?: ""
+    fun setBoostyFadeOutTimecode(value: String) {props["BoostyFadeOut".convertToList(KEYS.TIMECODE)] = value}
+
+    fun getSplashFadeInTimecode(): String = props["SplashFadeIn".convertToList(KEYS.TIMECODE)]?.let { it as String } ?: ""
+    fun setSplashFadeInTimecode(value: String) {props["SplashFadeIn".convertToList(KEYS.TIMECODE)] = value}
+
+    fun getSplashFadeOutTimecode(): String = props["SplashFadeOut".convertToList(KEYS.TIMECODE)]?.let { it as String } ?: ""
+    fun setSplashFadeOutTimecode(value: String) {props["SplashFadeOut".convertToList(KEYS.TIMECODE)] = value}
+
+    fun getVoiceFadeInTimecode(): String = props["VoiceFadeIn".convertToList(KEYS.TIMECODE)]?.let { it as String } ?: ""
+    fun setVoiceFadeInTimecode(value: String) {props["VoiceFadeIn".convertToList(KEYS.TIMECODE)] = value}
+
+    fun getVoiceFadeOutTimecode(): String = props["VoiceFadeOut".convertToList(KEYS.TIMECODE)]?.let { it as String } ?: ""
+    fun setVoiceFadeOutTimecode(value: String) {props["VoiceFadeOut".convertToList(KEYS.TIMECODE)] = value}
+
+    fun getBoostyBlankTimecode(): String = props["BoostyBlank".convertToList(KEYS.TIMECODE)]?.let { it as String } ?: ""
+    fun setBoostyBlankTimecode(value: String) {props["BoostyBlank".convertToList(KEYS.TIMECODE)] = value}
+
+    fun getVoiceBlankTimecode(): String = props["VoiceBlank".convertToList(KEYS.TIMECODE)]?.let { it as String } ?: ""
+    fun setVoiceBlankTimecode(value: String) {props["VoiceBlank".convertToList(KEYS.TIMECODE)] = value}
+
+
+
+
+
 
     fun getFadeOutTimecode(key: Any = KEYS.ROOT): String = props[key.convertToList(KEYS.FADEOUT_TIMECODE)]?.let { it as String } ?: ""
     fun setFadeOutTimecode(value: String, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.FADEOUT_TIMECODE)] = value}
@@ -106,6 +211,11 @@ data class MltProp(
     fun getSongName(key: Any = KEYS.ROOT): String = props[key.convertToList(KEYS.SONG_NAME)]?.let { it as String } ?: ""
     fun setSongName(value: String, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.SONG_NAME)] = value}
 
+    fun getCountAllTracks(key: Any = KEYS.ROOT): Int = props[key.convertToList(KEYS.COUNT_ALL_TRACKS)]?.let { it as Int } ?: 0
+    fun setCountAllTracks(value: Int, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.COUNT_ALL_TRACKS)] = value}
+
+    fun getCountAudioTracks(key: Any = KEYS.ROOT): Int = props[key.convertToList(KEYS.COUNT_AUDIO_TRACKS)]?.let { it as Int } ?: 0
+    fun setCountAudioTracks(value: Int, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.COUNT_AUDIO_TRACKS)] = value}
     fun getCountVoices(key: Any = KEYS.ROOT): Int = props[key.convertToList(KEYS.COUNT_VOICES)]?.let { it as Int } ?: 0
     fun setCountVoices(value: Int, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.COUNT_VOICES)] = value}
     fun getLineSpacing(key: Any = KEYS.ROOT): Long = props[key.convertToList(KEYS.LINE_SPACING)]?.let { it as Long } ?: 0

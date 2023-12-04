@@ -12,10 +12,10 @@ data class MkoBackground(val mltProp: MltProp, val type: ProducerType, val voice
 
     override fun producer(): MltNode = mltGenerator
         .producer(
-            timecodeIn = mltProp.getStartTimecode("Song"),
-            timecodeOut = mltProp.getEndTimecode("Total"),
+            timecodeIn = mltProp.getTotalStartTimecode(),
+            timecodeOut = mltProp.getTotalEndTimecode(),
             props = MltNodeBuilder()
-                .propertyName("length", mltProp.getLengthFr("Total"))
+                .propertyName("length", mltProp.getTotalLengthFr())
                 .propertyName("eof", "pause")
                 .propertyName("resource", mltProp.getPath(listOf(type, voiceId)))
                 .propertyName("ttl", 25)
@@ -28,7 +28,7 @@ data class MkoBackground(val mltProp: MltProp, val type: ProducerType, val voice
                 .propertyName("mlt_service", "qimage")
                 .propertyName("progressive", 1)
                 .propertyName("force_reload", 0)
-                .propertyName("kdenlive:duration", convertMillisecondsToTimecode(Karaoke.timeSplashScreenLengthMs + Karaoke.timeBoostyLengthMs + convertTimecodeToMilliseconds(mltProp.getEndTimecode("Song"))))
+                .propertyName("kdenlive:duration", mltProp.getTotalEndTimecode())
                 .propertyName("kdenlive:clipname", mltGenerator.name)
                 .propertyName("kdenlive:folderid", -1)
                 .propertyName("kdenlive:clip_type", if (type.isAudio) 1 else 2)
@@ -43,28 +43,28 @@ data class MkoBackground(val mltProp: MltProp, val type: ProducerType, val voice
             val body = it as MutableList<MltNode>
             body.add(
                 mltGenerator.entry(
-                    timecodeIn = mltProp.getStartTimecode("Song"),
-                    timecodeOut = mltProp.getEndTimecode("Total"),
+                    timecodeIn = mltProp.getTotalStartTimecode(),
+                    timecodeOut = mltProp.getTotalEndTimecode(),
                     nodes = MltNodeBuilder()
                         .propertyName("kdenlive:id", "filePlaylist${mltGenerator.id}")
                         .propertyName("kdenlive:activeeffect", 1)
                         .filterGamma(mltGenerator.nameFilterGamma, MltNodeBuilder()
-                            .propertyName("lift_r", "${mltProp.getStartTimecode("Song")}=-0.199985")
-                            .propertyName("lift_g", "${mltProp.getStartTimecode("Song")}=-0.199985")
-                            .propertyName("lift_b", "${mltProp.getStartTimecode("Song")}=-0.199985")
-                            .propertyName("gamma_r", "${mltProp.getStartTimecode("Song")}=0.724987")
-                            .propertyName("gamma_g", "${mltProp.getStartTimecode("Song")}=0.724987")
-                            .propertyName("gamma_b", "${mltProp.getStartTimecode("Song")}=0.724987")
-                            .propertyName("gain_r", "${mltProp.getStartTimecode("Song")}=1")
-                            .propertyName("gain_g", "${mltProp.getStartTimecode("Song")}=1")
-                            .propertyName("gain_b", "${mltProp.getStartTimecode("Song")}=1")
+                            .propertyName("lift_r", "${mltProp.getSongStartTimecode()}=-0.199985")
+                            .propertyName("lift_g", "${mltProp.getSongStartTimecode()}=-0.199985")
+                            .propertyName("lift_b", "${mltProp.getSongStartTimecode()}=-0.199985")
+                            .propertyName("gamma_r", "${mltProp.getSongStartTimecode()}=0.724987")
+                            .propertyName("gamma_g", "${mltProp.getSongStartTimecode()}=0.724987")
+                            .propertyName("gamma_b", "${mltProp.getSongStartTimecode()}=0.724987")
+                            .propertyName("gain_r", "${mltProp.getSongStartTimecode()}=1")
+                            .propertyName("gain_g", "${mltProp.getSongStartTimecode()}=1")
+                            .propertyName("gain_b", "${mltProp.getSongStartTimecode()}=1")
                             .propertyName("mlt_service", "lift_gamma_gain")
                             .propertyName("kdenlive_id", "lift_gamma_gain")
                             .propertyName("kdenlive:collapsed", 0)
                             .propertyName("rotation", "00:00:00.000=0")
                             .build()
                         )
-                        .filterQtblend(mltGenerator.nameFilterQtblend, "${mltProp.getStartTimecode("Song")}=0 0 4096 4096 0.000000;${mltProp.getFadeInTimecode("Song")}=-13 -18 4096 4096 1.000000;${convertMillisecondsToTimecode(Karaoke.timeSplashScreenLengthMs + Karaoke.timeBoostyLengthMs - 1000 + convertTimecodeToMilliseconds(mltProp.getFadeOutTimecode("Song")))}=-2163 -2998 4096 4096 1.000000;${convertMillisecondsToTimecode(Karaoke.timeSplashScreenLengthMs + Karaoke.timeBoostyLengthMs + convertTimecodeToMilliseconds(mltProp.getEndTimecode("Song")))}=-2176 -3016 4096 4096 0.000000")
+                        .filterQtblend(mltGenerator.nameFilterQtblend, "${mltProp.getTotalStartTimecode()}=0 0 4096 4096 0.000000;${mltProp.getTotalFadeInTimecode()}=-13 -18 4096 4096 1.000000;${mltProp.getTotalFadeOutTimecode()}=-2163 -2998 4096 4096 1.000000;${mltProp.getTotalEndTimecode()}=-2176 -3016 4096 4096 0.000000")
                         .build()
                 )
             )
@@ -76,8 +76,8 @@ data class MkoBackground(val mltProp: MltProp, val type: ProducerType, val voice
 
     override fun tractor(): MltNode = mltGenerator
         .tractor(
-            timecodeIn = mltProp.getStartTimecode("Song"),
-            timecodeOut = mltProp.getEndTimecode("Total")
+            timecodeIn = mltProp.getTotalStartTimecode(),
+            timecodeOut = mltProp.getTotalEndTimecode()
         )
 
 

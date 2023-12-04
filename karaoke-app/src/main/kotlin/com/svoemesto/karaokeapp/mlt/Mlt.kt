@@ -3,7 +3,6 @@ package com.svoemesto.karaokeapp.mlt
 import com.svoemesto.karaokeapp.mlt.mko.*
 import getMltBlackTrackProducer
 import getMltConsumer
-import getMltMainBinPlaylist
 import getMltProfile
 import com.svoemesto.karaokeapp.model.MltNode
 import com.svoemesto.karaokeapp.model.ProducerType
@@ -20,6 +19,17 @@ fun getMlt(mltProp: MltProp): MltNode {
     val countVideoTracks = songVersion.producers.filter { it.isVideo }.sumOf { it.coeffStatic + it.coeffVoice * countVoices }
 
     val body = mutableListOf<MltNode>()
+
+    val bodyProducerBlackTrack = mutableListOf<MltNode>()
+    val bodyProducer = mutableListOf<MltNode>()
+    val bodyFileProducer = mutableListOf<MltNode>()
+    val bodyTractorSequence = mutableListOf<MltNode>()
+    val bodyFilePlaylist = mutableListOf<MltNode>()
+    val bodyTrackPlaylist = mutableListOf<MltNode>()
+    val bodyTractor = mutableListOf<MltNode>()
+
+    val bodyProducers = mutableListOf<MltNode>()
+    val bodyOthers = mutableListOf<MltNode>()
 
     body.add(getMltProfile())
     body.add(getMltConsumer(mltProp))
@@ -41,13 +51,22 @@ fun getMlt(mltProp: MltProp): MltNode {
                     val resultTractor = pctInstance.javaClass.declaredMethods.firstOrNull() { it.name == "tractor" }?.let {it.invoke(pctInstance) as MltNode? }
                     val resultTractorSequence = pctInstance.javaClass.declaredMethods.firstOrNull() { it.name == "tractorSequence" }?.let {it.invoke(pctInstance) as MltNode? }
 
-                    resultProducer?.let { body.add(it) }
-                    resultProducerBlackTrack?.let { body.add(it) }
-                    resultFileProducer?.let { body.add(it) }
-                    resultTractorSequence?.let { body.add(it) }
-                    resultFilePlaylist?.let { body.add(it) }
-                    resultTrackPlaylist?.let { body.add(it) }
-                    resultTractor?.let { body.add(it) }
+//                    resultProducerBlackTrack?.let { bodyProducerBlackTrack.add(it) }
+//                    resultProducer?.let { bodyProducer.add(it) }
+//                    resultFileProducer?.let { bodyFileProducer.add(it) }
+//                    resultTractorSequence?.let { bodyTractorSequence.add(it) }
+//                    resultFilePlaylist?.let { bodyFilePlaylist.add(it) }
+//                    resultTrackPlaylist?.let { bodyTrackPlaylist.add(it) }
+//                    resultTractor?.let { bodyTractor.add(it) }
+
+                    resultProducerBlackTrack?.let { bodyProducers.add(it) }
+                    resultProducer?.let { bodyProducers.add(it) }
+                    resultFileProducer?.let { bodyProducers.add(it) }
+
+                    resultTractorSequence?.let { bodyOthers.add(it) }
+                    resultFilePlaylist?.let { bodyOthers.add(it) }
+                    resultTrackPlaylist?.let { bodyOthers.add(it) }
+                    resultTractor?.let { bodyOthers.add(it) }
 
                 }
 
@@ -57,6 +76,17 @@ fun getMlt(mltProp: MltProp): MltNode {
 
         }
     }
+
+//    body.addAll(bodyProducerBlackTrack)
+//    body.addAll(bodyProducer)
+//    body.addAll(bodyFileProducer)
+//    body.addAll(bodyFilePlaylist)
+//    body.addAll(bodyTrackPlaylist)
+//    body.addAll(bodyTractorSequence)
+//    body.addAll(bodyTractor)
+
+    body.addAll(bodyProducers)
+    body.addAll(bodyOthers)
 
     val mlt = MltNode(
         name = "mlt",

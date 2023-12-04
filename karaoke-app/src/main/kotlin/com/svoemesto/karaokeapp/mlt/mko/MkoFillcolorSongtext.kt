@@ -15,15 +15,15 @@ data class MkoFillcolorSongtext(val mltProp: MltProp, val type: ProducerType, va
     override fun producer(): MltNode = mltGenerator
         .producer(
             props = MltNodeBuilder()
-                .propertyName("length", mltProp.getLengthFr("Song"))
+                .propertyName("length", mltProp.getSongLengthFr())
                 .propertyName("eof", "pause")
                 .propertyName("resource", Karaoke.voices[0].fill.evenColor.hexRGB())
                 .propertyName("aspect_ratio", 1)
                 .propertyName("mlt_service", "color")
-                .propertyName("kdenlive:duration", mltProp.getEndTimecode("Song"))
+                .propertyName("kdenlive:duration", mltProp.getSongEndTimecode())
                 .propertyName("mlt_image_format", "rgb")
                 .propertyName("kdenlive:clipname", mltGenerator.name)
-                .propertyName("kdenlive:folderid", -1)
+                .propertyName("kdenlive:folderid", mltProp.getId(listOf(ProducerType.FILLCOLORSONGTEXTS, voiceId)))
                 .propertyName("kdenlive:clip_type", if (type.isAudio) 1 else 2)
                 .propertyName("kdenlive:id", mltGenerator.id)
                 .build()

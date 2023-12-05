@@ -138,30 +138,10 @@ val producerTypeClass = mapOf(
     ProducerType.VOICES to MkoVoices::class.java,
     ProducerType.VOICE to MkoVoice::class.java,
     ProducerType.COUNTERS to MkoCounters::class.java,
+    ProducerType.SCROLLERS to MkoScrollers::class.java,
+    ProducerType.SCROLLER to MkoScroller::class.java,
+    ProducerType.SCROLLERTRACK to MkoScrollerTrack::class.java,
     ProducerType.FILLCOLORSONGTEXTS to MkoFillcolorSongtexts::class.java,
 
 )
 
-//val producerTypeClass2 = mapOf(
-//    ProducerType.AUDIOVOCAL to Mko2Audio::class.java,
-//    ProducerType.AUDIOMUSIC to Mko2Audio::class.java,
-//    ProducerType.AUDIOSONG to Mko2Audio::class.java,
-//    ProducerType.AUDIOBASS to Mko2Audio::class.java,
-//    ProducerType.AUDIODRUMS to Mko2Audio::class.java,
-//    ProducerType.BACKGROUND to Mko2Background::class.java,
-//    ProducerType.HORIZON to Mko2Horizon::class.java,
-//    ProducerType.FLASH to Mko2Flash::class.java,
-//    ProducerType.PROGRESS to Mko2Progress::class.java,
-//    ProducerType.FILLCOLORSONGTEXT to Mko2FillcolorSongtext::class.java,
-//    ProducerType.SONGTEXT to Mko2SongText::class.java,
-//    ProducerType.SONGTEXTLINE to Mko2SongTextLine::class.java,
-//    ProducerType.COUNTER to Mko2Counter::class.java,
-//    ProducerType.FADERTEXT to Mko2FaderText::class.java,
-//    ProducerType.FADERCHORDS to Mko2FaderChords::class.java,
-//    ProducerType.BACKCHORDS to Mko2BackChords::class.java,
-//    ProducerType.FINGERBOARD to Mko2Fingerboard::class.java,
-//    ProducerType.HEADER to Mko2Header::class.java,
-//    ProducerType.WATERMARK to Mko2Watermark::class.java,
-//    ProducerType.SPLASHSTART to Mko2SplashStart::class.java,
-//    ProducerType.BOOSTY to Mko2Boosty::class.java
-//)

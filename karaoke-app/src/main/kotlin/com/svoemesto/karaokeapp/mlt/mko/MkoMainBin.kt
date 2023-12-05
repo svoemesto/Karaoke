@@ -43,6 +43,7 @@ data class MkoMainBin(val mltProp: MltProp, val type: ProducerType, val voiceId:
                     for (voiceI in 0 until mltProp.getCountVoices()) {
                         result.propertyName("kdenlive:folder.${mltProp.getId(ProducerType.VOICES)}.${mltProp.getId(listOf(ProducerType.VOICE, voiceI))}", "${ProducerType.VOICE.name}${voiceI}")
                         result.propertyName("kdenlive:folder.${mltProp.getId(listOf(ProducerType.VOICE, voiceI))}.${mltProp.getId(listOf(ProducerType.COUNTERS, voiceI))}", "${ProducerType.COUNTERS.name}")
+                        result.propertyName("kdenlive:folder.${mltProp.getId(listOf(ProducerType.VOICE, voiceI))}.${mltProp.getId(listOf(ProducerType.SCROLLERS, voiceI))}", "${ProducerType.SCROLLERS.name}")
                         result.propertyName("kdenlive:folder.${mltProp.getId(listOf(ProducerType.VOICE, voiceI))}.${mltProp.getId(listOf(ProducerType.FILLCOLORSONGTEXTS, voiceI))}", "${ProducerType.FILLCOLORSONGTEXTS.name}")
                     }
                     result.build()
@@ -94,7 +95,12 @@ data class MkoMainBin(val mltProp: MltProp, val type: ProducerType, val voiceId:
                     val result: MutableList<MltNode> = mutableListOf()
                     mltProp.getSongVersion().producers.sortedByLevelsDesc().forEach { typeI ->
                         for (voiceI in 0 until mltProp.getCountVoices()) {
-                            for (childI in 0 until if (typeI.ids.isEmpty()) 1 else typeI.ids.size) {
+                            val countChilds = if (!typeI.isCalculatedCount) {
+                                if (typeI.ids.isEmpty()) 1 else typeI.ids.size
+                            } else {
+                                mltProp.getCountChilds(listOf(typeI, voiceId))
+                            }
+                            for (childI in 0 until countChilds) {
                                 if ((typeI.onlyOne && voiceI == 0) || !typeI.onlyOne ) {
                                     result.add(MltNode(name = "entry", fields = mutableMapOf(
                                         "producer" to if (typeI.isSequence) "{${mltProp.getUUID(listOf(typeI, voiceI))}}" else MltGenerator.nameProducer(typeI, voiceI, childI),

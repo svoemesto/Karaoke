@@ -1,7 +1,6 @@
 package com.svoemesto.karaokeapp.mlt
 
 import com.svoemesto.karaokeapp.KaraokeVoice
-import com.svoemesto.karaokeapp.SHADOW
 import com.svoemesto.karaokeapp.model.MltNode
 import com.svoemesto.karaokeapp.model.SongVersion
 import com.svoemesto.karaokeapp.model.SongVoiceLine
@@ -16,7 +15,9 @@ data class MltProp(
         SYMBOL_HEIGHT_PX, POSITION_Y_PX, POSITION_X_PX, UUID, AUTHOR, TONE, BPM, ALBUM, YEAR, TRACK,
         FONT_SIZE_PT, PATH, BASE64, FINGERBOARD_H, FINGERBOARD_W, CHORD_W, CHORD_H, COUNT_FINGERBOARDS, CHORDS, ROOT_FOLDER,
         START_TIMECODE, END_TIMECODE, FADEIN_TIMECODE, FADEOUT_TIMECODE, LENGTH_MS, LENGTH_FR, LENGTH_TIMECODE, GUIDES_PROPERTY,
-        IN_OFFSET_AUDIO, IN_OFFSET_VIDEO, ENABLED, VOLUME, FILE_NAME, IGNORE_CAPO, TIMECODE
+        IN_OFFSET_AUDIO, IN_OFFSET_VIDEO, ENABLED, VOLUME, FILE_NAME, IGNORE_CAPO, TIMECODE, HEIGHT_PX_PER_MS_COEFF, WIDTH_PX_PER_MS_COEFF, SCROLL_LINES,
+        COUNT_CHILDS, HEIGHT_SCROLLER_PX, SCROLL_LINE_TRACK_ID, SCROLL_LINE_START_MS, SCROLL_LINE_END_MS, SCROLL_LINE_DURATION_MS, SCROLL_TRACK,
+        TIME_TO_SCROLL_SCREEN_MS, INDEX_LINE_TRACK_ID
 
     }
     private fun propsNode(key: Any = KEYS.ROOT): MutableMap<Any, Any> {
@@ -27,6 +28,38 @@ data class MltProp(
         }
     }
 
+
+    fun getScrollTrack(key: Any = KEYS.ROOT): MutableList<Pair<SongVoiceLine, Int>> = props[key.convertToList(KEYS.SCROLL_TRACK)]?.let { it as MutableList<Pair<SongVoiceLine, Int>> } ?: mutableListOf()
+    fun setScrollTrack(value: MutableList<Pair<SongVoiceLine, Int>>, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.SCROLL_TRACK)] = value}
+    fun getScrollLineDurationMs(key: Any = KEYS.ROOT): Long = props[key.convertToList(KEYS.SCROLL_LINE_DURATION_MS)]?.let { it as Long } ?: 0L
+    fun setScrollLineDurationMs(value: Long, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.SCROLL_LINE_DURATION_MS)] = value}
+
+    fun getScrollLineEndMs(key: Any = KEYS.ROOT): Long = props[key.convertToList(KEYS.SCROLL_LINE_END_MS)]?.let { it as Long } ?: 0L
+    fun setScrollLineEndMs(value: Long, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.SCROLL_LINE_END_MS)] = value}
+
+    fun getScrollLineStartMs(key: Any = KEYS.ROOT): Long = props[key.convertToList(KEYS.SCROLL_LINE_START_MS)]?.let { it as Long } ?: 0L
+    fun setScrollLineStartMs(value: Long, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.SCROLL_LINE_START_MS)] = value}
+
+    fun getTimeToScrollScreenMs(): Long = props[KEYS.ROOT.convertToList(KEYS.TIME_TO_SCROLL_SCREEN_MS)]?.let { it as Long } ?: 0L
+    fun setTimeToScrollScreenMs(value: Long) {props[KEYS.ROOT.convertToList(KEYS.TIME_TO_SCROLL_SCREEN_MS)] = value}
+
+
+    fun getIndexLineToTrackId(key: Any = KEYS.ROOT): Int = props[key.convertToList(KEYS.INDEX_LINE_TRACK_ID)]?.let { it as Int } ?: 0
+    fun setIndexLineToTrackId(value: Int, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.INDEX_LINE_TRACK_ID)] = value}
+
+    fun getScrollLineTrackId(key: Any = KEYS.ROOT): Int = props[key.convertToList(KEYS.SCROLL_LINE_TRACK_ID)]?.let { it as Int } ?: 0
+    fun setScrollLineTrackId(value: Int, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.SCROLL_LINE_TRACK_ID)] = value}
+    fun getHeightScrollerPx(): Long = props[KEYS.ROOT.convertToList(KEYS.HEIGHT_SCROLLER_PX)]?.let { it as Long } ?: 100L
+    fun setHeightScrollerPx(value: Long) {props[KEYS.ROOT.convertToList(KEYS.HEIGHT_SCROLLER_PX)] = value}
+
+    fun getCountChilds(key: Any = KEYS.ROOT): Int = props[key.convertToList(KEYS.COUNT_CHILDS)]?.let { it as Int } ?: 0
+    fun setCountChilds(value: Int, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.COUNT_CHILDS)] = value}
+    fun getScrollLines(key: Any = KEYS.ROOT): List<SongVoiceLine> = props[key.convertToList(KEYS.SCROLL_LINES)]?.let { it as List<SongVoiceLine> } ?: listOf()
+    fun setScrollLines(value: List<SongVoiceLine>, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.SCROLL_LINES)] = value}
+    fun getWidthPxPerMsCoeff(): Double = props[KEYS.ROOT.convertToList(KEYS.WIDTH_PX_PER_MS_COEFF)]?.let { it as Double } ?: 1.0
+    fun setWidthPxPerMsCoeff(value: Double) {props[KEYS.ROOT.convertToList(KEYS.WIDTH_PX_PER_MS_COEFF)] = value}
+    fun getHeightPxPerMsCoeff(): Double = props[KEYS.ROOT.convertToList(KEYS.HEIGHT_PX_PER_MS_COEFF)]?.let { it as Double } ?: 1.0
+    fun setHeightPxPerMsCoeff(value: Double) {props[KEYS.ROOT.convertToList(KEYS.HEIGHT_PX_PER_MS_COEFF)] = value}
 
     fun getLengthTimecode(key: Any = KEYS.ROOT): String = props[key.convertToList(KEYS.LENGTH_TIMECODE)]?.let { it as String } ?: ""
     fun setLengthTimecode(value: String, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.LENGTH_TIMECODE)] = value}

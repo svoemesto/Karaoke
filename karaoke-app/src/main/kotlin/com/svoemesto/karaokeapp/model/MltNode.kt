@@ -318,7 +318,10 @@ data class PropertiesMltNodeBuilder(val properties: MutableMap<String, String> =
     fun `in`(value: String) = apply { properties["in"] = value }
     fun `out`(value: String) = apply { properties["out"] = value }
     fun hide(value: String) = apply { properties["hide"] = value }
-    fun hideByType(type: ProducerType) = apply { properties["hide"] = if (!type.isAudio) "audio" else "video" }
+
+    // ***NSA***
+//    fun hideByType(type: ProducerType) = apply { properties["hide"] = if (!type.isAudio) "audio" else "video" }
+    fun hideByType(type: ProducerType) = apply { properties["hide"] = if (type == ProducerType.SCROLLERS) "both" else if (!type.isAudio) "audio" else "video" }
     fun producer(value: String) = apply { properties["producer"] = value }
     fun type(value: String) = apply { properties["type"] = value }
     fun `z-index`(value: String) = apply { properties["z-index"] = value }

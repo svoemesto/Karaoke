@@ -332,16 +332,96 @@ fun createKaraoke(song: Song) {
         } // Находим длительность звучания 1/4 ноты в миллисекундах
     val halfNoteLengthMs = quarterNoteLengthMs * 2
 
+    val heightScrollerPx = 200L
+    mltProp.setHeightScrollerPx(heightScrollerPx)
 
+    val heightPxPerMsCoeff = heightScrollerPx / song.voices[0].lines.filter { it.type == SongVoiceLineType.TEXT }.first().mltText.h.toDouble()
+
+    val widthPxPerMsCoeff = song.voices.flatMap { voice ->
+        voice.lines.filter{it.type == SongVoiceLineType.TEXT}.flatMap { line ->
+            line.subtitles.map { subtitle ->
+                subtitle.mltText
+                subtitle.wPx / subtitle.durationMs.toDouble()
+            }
+        }
+    }.max() * heightPxPerMsCoeff
+
+    mltProp.setWidthPxPerMsCoeff(widthPxPerMsCoeff)
+    mltProp.setHeightPxPerMsCoeff(heightPxPerMsCoeff)
 
     var currentVoiceOffset = 0
 
+    val timeToScrollScreenMs = (Karaoke.frameWidthPx / widthPxPerMsCoeff).toLong()
+    mltProp.setTimeToScrollScreenMs(timeToScrollScreenMs)
 
 
     // Цикл по голосам
     for (voiceId in 0 until countVoices) {
 
         val songVoice = song.voices[voiceId]
+
+        val scrollLines = songVoice.lines.filter { it.type == SongVoiceLineType.TEXT }
+        mltProp.setScrollLines(scrollLines, voiceId)
+
+        val scrollTracks: MutableList<MutableList<Pair<SongVoiceLine, Int>>> = mutableListOf()
+
+        scrollLines.forEachIndexed { indexLine, scrollLine ->
+            val scrollLineStartMs = scrollLine.subtitles.first().startMs - timeToScrollScreenMs
+            val scrollLineEndMs = scrollLine.subtitles.last().startMs + scrollLine.subtitles.last().durationMs + timeToScrollScreenMs
+            val scrollLineDurationMs = scrollLineEndMs - scrollLineStartMs
+
+            mltProp.setScrollLineStartMs(scrollLineStartMs, listOf(voiceId, indexLine))
+            mltProp.setScrollLineEndMs(scrollLineEndMs, listOf(voiceId, indexLine))
+            mltProp.setScrollLineDurationMs(scrollLineDurationMs, listOf(voiceId, indexLine))
+
+            var scrollLineWasAddedToTrack = false
+            scrollTracks.forEachIndexed { indexTrack, scrollTrack ->
+                if (!scrollLineWasAddedToTrack) {
+                    val lastLineInTrack = scrollTrack.last().first
+                    val lastLineEndMs = lastLineInTrack.subtitles.last().startMs + lastLineInTrack.subtitles.last().durationMs + timeToScrollScreenMs
+                    if (lastLineEndMs < scrollLineStartMs) {
+                        scrollTrack.add(Pair(scrollLine, indexLine))
+                        mltProp.setScrollLineTrackId(indexTrack, listOf(voiceId, indexLine))
+                        scrollLineWasAddedToTrack = true
+                        return@forEachIndexed
+                    }
+                }
+            }
+            if (!scrollLineWasAddedToTrack) {
+                scrollTracks.add(mutableListOf(Pair(scrollLine, indexLine)))
+                mltProp.setScrollLineTrackId(scrollTracks.size-1, listOf(voiceId, indexLine))
+            }
+
+
+
+        }
+
+        scrollTracks.forEachIndexed { indexTrack, scrollTrack ->
+            mltProp.setScrollTrack(scrollTrack, listOf(voiceId, indexTrack))
+        }
+
+        mltProp.setCountChilds(scrollTracks.size, listOf(ProducerType.SCROLLERS, voiceId))
+        mltProp.setCountChilds(scrollTracks.size, listOf(ProducerType.SCROLLERTRACK, voiceId))
+        mltProp.setCountChilds(scrollLines.size, listOf(ProducerType.SCROLLER, voiceId))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         if (voiceId > 0) {
             currentVoiceOffset += (getTextWidthHeightPx(
@@ -820,6 +900,11 @@ fun createKaraoke(song: Song) {
             for (i in 0 until countFingerboards) {
                 templateFingerboards[i] = MkoFingerboard(mltProp, ProducerType.FINGERBOARD, voiceId, i).template()
             }
+        }
+
+        scrollLines.forEachIndexed { indexLine, scrollLine ->
+            val templateScroller = MkoScroller(mltProp, ProducerType.SCROLLER, voiceId, indexLine).template()
+            mltProp.setXmlData(templateScroller, listOf(ProducerType.SCROLLER, voiceId, indexLine))
         }
 
 //        val templateFingerboard = getTemplateFingerboard(param)

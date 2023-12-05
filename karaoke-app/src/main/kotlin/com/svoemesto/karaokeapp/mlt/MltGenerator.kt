@@ -31,7 +31,7 @@ data class MltGenerator(
     }
 
     val id: Int get() = (if (type.ids.isEmpty()) mltProp.getId(listOf(type, voiceId)) else mltProp.getId(listOf(type, voiceId, childId))) + voiceId*1000 + childId*10000
-    val name: String get() = "${type.text.uppercase()}${if (voiceId==0 && type.coeffVoice==0) "" else "_V${voiceId}"}${if (childId==0 && type.ids.isEmpty()) "" else "_C${childId}"}"
+    val name: String get() = "${type.text.uppercase()}${if (voiceId==0 && type.coeffVoice==0) "" else "_V${voiceId}"}${if (childId==0 && (type.ids.isEmpty() && !type.isCalculatedCount)) "" else "_C${childId}"}"
 
     val namePlaylistFile: String get() = "playlist_${name.lowercase()}${voiceId}_file"
     val namePlaylistTrack: String get() = "playlist_${name.lowercase()}${voiceId}_track"

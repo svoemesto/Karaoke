@@ -36,7 +36,13 @@ fun getMlt(mltProp: MltProp): MltNode {
 
     for (voiceId in 0 until countVoices) {
         songVersion.producers.forEach { type ->
-            for (childId in 0 until if (type.ids.isEmpty()) 1 else type.ids.size) {
+            val countChilds = if (!type.isCalculatedCount) {
+                if (type.ids.isEmpty()) 1 else type.ids.size
+            } else {
+                mltProp.getCountChilds(listOf(type, voiceId))
+            }
+
+            for (childId in 0 until countChilds) {
                 if ((type.onlyOne && voiceId == 0) || !type.onlyOne ) {
 
                     val pct = producerTypeClass[type] ?: return@forEach

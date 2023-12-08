@@ -24,6 +24,9 @@ enum class SongVersion(val text: String, val textForDescription: String, val suf
 
             ProducerType.FILLCOLORSONGTEXTS,
             ProducerType.COUNTERS,
+            ProducerType.SCROLLER,
+            ProducerType.SCROLLERTRACK,
+            ProducerType.SCROLLERS,
             ProducerType.VOICE,
             ProducerType.VOICES,
             ProducerType.MAINBIN
@@ -105,6 +108,9 @@ enum class SongVersion(val text: String, val textForDescription: String, val suf
 
             ProducerType.FILLCOLORSONGTEXTS,
             ProducerType.COUNTERS,
+            ProducerType.SCROLLER,
+            ProducerType.SCROLLERTRACK,
+            ProducerType.SCROLLERS,
             ProducerType.VOICE,
             ProducerType.VOICES,
             ProducerType.MAINBIN

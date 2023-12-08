@@ -5,10 +5,25 @@
     <option name="linkedExternalProjectsSettings">
       <GradleProjectSettings>
         <option name="distributionType" value="DEFAULT_WRAPPED" />
+        <option name="externalProjectPath" value="$PROJECT_DIR$" />
+        <option name="modules">
+          <set>
+            <option value="$PROJECT_DIR$" />
+            <option value="$PROJECT_DIR$/karaoke-app" />
+            <option value="$PROJECT_DIR$/karaoke-db" />
+            <option value="$PROJECT_DIR$/karaoke-web" />
+          </set>
+        </option>
+      </GradleProjectSettings>
+      <GradleProjectSettings>
+        <option name="distributionType" value="DEFAULT_WRAPPED" />
         <option name="externalProjectPath" value="$PROJECT_DIR$/karaoke-app" />
         <option name="modules">
           <set>
+            <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/karaoke-app" />
+            <option value="$PROJECT_DIR$/karaoke-db" />
+            <option value="$PROJECT_DIR$/karaoke-web" />
           </set>
         </option>
       </GradleProjectSettings>
@@ -16,7 +31,10 @@
         <option name="externalProjectPath" value="$PROJECT_DIR$/karaoke-db" />
         <option name="modules">
           <set>
+            <option value="$PROJECT_DIR$" />
+            <option value="$PROJECT_DIR$/karaoke-app" />
             <option value="$PROJECT_DIR$/karaoke-db" />
+            <option value="$PROJECT_DIR$/karaoke-web" />
           </set>
         </option>
       </GradleProjectSettings>
@@ -25,6 +43,9 @@
         <option name="externalProjectPath" value="$PROJECT_DIR$/karaoke-web" />
         <option name="modules">
           <set>
+            <option value="$PROJECT_DIR$" />
+            <option value="$PROJECT_DIR$/karaoke-app" />
+            <option value="$PROJECT_DIR$/karaoke-db" />
             <option value="$PROJECT_DIR$/karaoke-web" />
           </set>
         </option>

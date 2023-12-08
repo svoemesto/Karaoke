@@ -332,10 +332,10 @@ fun createKaraoke(song: Song) {
         } // Находим длительность звучания 1/4 ноты в миллисекундах
     val halfNoteLengthMs = quarterNoteLengthMs * 2
 
-    val heightScrollerPx = 200L
+    val heightScrollerPx = 100L
     mltProp.setHeightScrollerPx(heightScrollerPx)
 
-    val heightPxPerMsCoeff = heightScrollerPx / song.voices[0].lines.filter { it.type == SongVoiceLineType.TEXT }.first().mltText.h.toDouble()
+    val heightPxPerMsCoeff = (heightScrollerPx / song.voices[0].lines.filter { it.type == SongVoiceLineType.TEXT }.first().mltText.h.toDouble()) / 2
 
     val widthPxPerMsCoeff = song.voices.flatMap { voice ->
         voice.lines.filter{it.type == SongVoiceLineType.TEXT}.flatMap { line ->

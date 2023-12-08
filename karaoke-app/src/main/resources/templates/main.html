@@ -140,6 +140,31 @@
             }
         }
 
+        function doUpdateRemoteDatabaseFromLocalDatabase() {
+            if (confirm("Обновить REMOTE_DATABASE данными из LOCAL_DATABASE?")) {
+                $.ajax({
+                    type: "GET",
+                    url: "/utils/updateremotedatabasefromlocaldatabase",
+                    data: "",
+                    success: function(data) {
+                        alert(`Добавлено записей: ${data[0]}, Обновлено записей: ${data[1]}, Удалено записей: ${data[2]}`);
+                    }
+                });
+            }
+        }
+
+        function doUpdateLocalDatabaseFromRemoteDatabase() {
+            if (confirm("Обновить LOCAL_DATABASE данными из REMOTE_DATABASE?")) {
+                $.ajax({
+                    type: "GET",
+                    url: "/utils/updatelocaldatabasefromremotedatabase",
+                    data: "",
+                    success: function(data) {
+                        alert(`Добавлено записей: ${data[0]}, Обновлено записей: ${data[1]}, Удалено записей: ${data[2]}`);
+                    }
+                });
+            }
+        }
         function doCopyToStore() {
             if (confirm("Обновить хранилище?")) {
                 $.ajax({
@@ -349,6 +374,18 @@
                 </td>
             </tr>
 
+            <tr style="margin: 1px;padding: 1px;height: auto;">
+                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                    <button style="height: 35px;" name="button_update_remote" id="button_update_remote" class="form-control btn btn-primary btn-block" type="button" onclick="doUpdateRemoteDatabaseFromLocalDatabase()">Обновить REMOTE Database</button>
+                </td>
+            </tr>
+
+
+            <tr style="margin: 1px;padding: 1px;height: auto;">
+                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                    <button style="height: 35px;" name="button_update_local" id="button_update_local" class="form-control btn btn-primary btn-block" type="button" onclick="doUpdateLocalDatabaseFromRemoteDatabase()">Обновить LOCAL Database</button>
+                </td>
+            </tr>
 
         </table>
 

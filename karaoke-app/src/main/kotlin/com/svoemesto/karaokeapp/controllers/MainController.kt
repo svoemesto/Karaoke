@@ -27,23 +27,38 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
 
     @GetMapping("/")
     fun main(model: Model): String {
-        model.addAttribute("authors", Settings.loadListAuthors())
+        model.addAttribute("authors", Settings.loadListAuthors(WORKING_DATABASE))
         model.addAttribute("dicts", TEXT_FILE_DICTS.keys.toMutableList().sorted().toList())
         return "main"
     }
 
+    @GetMapping("/zakroma")
+    fun zakroma(
+        @RequestParam(required = false) author: String?,
+        model: Model
+    ): String {
+
+        val args: MutableMap<String, String> = mutableMapOf()
+        author?.let { if (author != "") args["author"] = author }
+
+        model.addAttribute("authors", Settings.loadListAuthors(WORKING_DATABASE))
+        model.addAttribute("zakroma", Zakroma.getZakroma(author ?: "", WORKING_DATABASE))
+        return "zakroma"
+    }
+
+
     @GetMapping("/utils/createdigest")
     @ResponseBody
     fun doCreateDigest(): Boolean {
-        createDigestForAllAuthors()
-        createDigestForAllAuthorsForOper()
+        createDigestForAllAuthors(database = WORKING_DATABASE)
+        createDigestForAllAuthorsForOper(database = WORKING_DATABASE)
         return true
     }
 
     @GetMapping("/utils/collectstore")
     @ResponseBody
     fun doCollectStore(): Boolean {
-        collectDoneFilesToStoreFolderAndCreate720pForAllUncreated()
+        collectDoneFilesToStoreFolderAndCreate720pForAllUncreated(WORKING_DATABASE)
         return true
     }
 
@@ -60,7 +75,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     fun doCreateFromFolder(
         @RequestParam(required = true) folder: String,
         model: Model): Int {
-        return Settings.createFromPath(folder).size
+        return Settings.createFromPath(folder, WORKING_DATABASE).size
     }
 
     @PostMapping("/utils/createdzenpicturesforfolder")
@@ -75,7 +90,23 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @GetMapping("/utils/updatebpmandkey")
     @ResponseBody
     fun doUpdateBpmAndKey(): Int {
-        return updateBpmAndKey()
+        return updateBpmAndKey(WORKING_DATABASE)
+    }
+
+    @GetMapping("/utils/updateremotedatabasefromlocaldatabase")
+    @ResponseBody
+    fun doUpdateRemoteDatabaseFromLocalDatabase(): List<Int> {
+        val result = updateRemoteDatabaseFromLocalDatabase()
+
+        return listOf(result.first, result.second, result.third)
+    }
+
+    @GetMapping("/utils/updatelocaldatabasefromremotedatabase")
+    @ResponseBody
+    fun doUpdateLocalDatabaseFromRemoteDatabase(): List<Int> {
+        val result = updateLocalDatabaseFromRemoteDatabase()
+
+        return listOf(result.first, result.second, result.third)
     }
 
     @PostMapping("/utils/markdublicates")
@@ -83,19 +114,19 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     fun doMarkDublicates(
         @RequestParam(required = true) author: String,
         model: Model): Int {
-        return markDublicates(author)
+        return markDublicates(author, WORKING_DATABASE)
     }
 
     @GetMapping("/utils/deldublicates")
     @ResponseBody
     fun doDelDublicates(): Int {
-        return delDublicates()
+        return delDublicates(WORKING_DATABASE)
     }
 
     @GetMapping("/utils/clearpredublicates")
     @ResponseBody
     fun doClearPreDublicates(): Int {
-        return clearPreDublicates()
+        return clearPreDublicates(WORKING_DATABASE)
     }
 
     @GetMapping("/utils/customfunction")
@@ -110,7 +141,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
         @RequestParam(required = true) settingsId: Long,
         @RequestParam(required = true) statusId: Long,
         model: Model) {
-        Settings.loadFromDbById(settingsId)?.let {
+        Settings.loadFromDbById(settingsId, WORKING_DATABASE)?.let {
             it.fields[SettingField.ID_STATUS] = statusId.toString()
             it.saveToDb()
         }
@@ -128,7 +159,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
         model: Model): String {
 
         val processId: Long = id.toLong()
-        val process = KaraokeProcess.load(processId)
+        val process = KaraokeProcess.load(processId, WORKING_DATABASE)
         process?.let {
 
             process.name = process_name
@@ -139,7 +170,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
             process.type = process_type
 
             process.save()
-            process.updateStatusProcessSettings()
+            process.updateStatusProcessSettings(WORKING_DATABASE)
 
         }
 
@@ -149,40 +180,40 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @GetMapping("/songs/lastupdated")
     @ResponseBody
     fun getLastUpdatedSettings(@RequestParam(required = false) lastTime: Long? = null): List<Int> {
-        return Settings.getLastUpdated(lastTime)
+        return Settings.getLastUpdated(lastTime, WORKING_DATABASE)
     }
 
     @GetMapping("/process/lastupdated")
     @ResponseBody
     fun getLastUpdatedProcesses(@RequestParam(required = false) lastTime: Long? = null): List<Int> {
-        return KaraokeProcess.getLastUpdated(lastTime)
+        return KaraokeProcess.getLastUpdated(lastTime, WORKING_DATABASE)
     }
 
     @GetMapping("/songs/createtags")
     @ResponseBody
     fun doCreateTags(): Boolean {
-        createFilesByTags()
+        createFilesByTags(database = WORKING_DATABASE)
         return true
     }
 
     @GetMapping("/process/start")
     @ResponseBody
     fun doProcessWorkerStart(): Boolean {
-        KaraokeProcessWorker.start()
+        KaraokeProcessWorker.start(WORKING_DATABASE)
         return KaraokeProcessWorker.isWork
     }
 
     @GetMapping("/process/stop")
     @ResponseBody
     fun doProcessWorkerStop(): Boolean {
-        KaraokeProcessWorker.stop()
+        KaraokeProcessWorker.stop(WORKING_DATABASE)
         return KaraokeProcessWorker.isWork
     }
 
     @GetMapping("/process/deletedone")
     @ResponseBody
     fun doProcessDeleteDone(): Boolean {
-        KaraokeProcessWorker.deleteDone()
+        KaraokeProcessWorker.deleteDone(WORKING_DATABASE)
         return true
     }
 
@@ -201,7 +232,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @GetMapping("/song/{id}/pictureauthor")
     @ResponseBody
     fun getPictureAuthor(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         settings?.let {
             return it.pictureAuthor?.full ?: ""
         }
@@ -211,7 +242,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @GetMapping("/song/{id}/picturealbum")
     @ResponseBody
     fun getPictureAlbum(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         settings?.let {
             return it.pictureAlbum?.full ?: ""
         }
@@ -221,7 +252,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @GetMapping("/song/{id}/delete")
     @ResponseBody
     fun doDeleteSong(@PathVariable id: Long): Int {
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         settings?.let {
             it.deleteFromDb()
         }
@@ -231,7 +262,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @GetMapping("/song/{id}/setpublishdatetimetoauthor")
     @ResponseBody
     fun doSetPublishDateTimeToAuthor(@PathVariable id: Long): Int {
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         settings?.let {
             Settings.setPublishDateTimeToAuthor(settings)
         }
@@ -242,7 +273,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @ResponseBody
     fun doPlayLyrics(@PathVariable id: Long): Int {
         println("doPlayLyrics")
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         settings?.let {
             settings.playLyrics()
         }
@@ -253,7 +284,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @ResponseBody
     fun doPlayKaraoke(@PathVariable id: Long): Int {
         println("doPlayKaraoke")
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         settings?.let {
             settings.playKaraoke()
         }
@@ -264,7 +295,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @ResponseBody
     fun doPlayChords(@PathVariable id: Long): Int {
         println("doPlayChords")
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         settings?.let {
             settings.playChords()
         }
@@ -275,7 +306,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @ResponseBody
     fun doPlayLyricsBt(@PathVariable id: Long): Int {
         println("doPlayLyricsBt")
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         settings?.let {
             settings.playLyricsBt()
         }
@@ -286,7 +317,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @ResponseBody
     fun doPlayKaraokeBt(@PathVariable id: Long): Int {
         println("doPlayKaraokeBt")
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         settings?.let {
             settings.playKaraokeBt()
         }
@@ -297,7 +328,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @ResponseBody
     fun doPlayChordsBt(@PathVariable id: Long): Int {
         println("doPlayChordsBt")
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         settings?.let {
             settings.playChordsBt()
         }
@@ -312,7 +343,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
         model: Model): String {
         var text = "Error"
 //        if (sourceText.trim() != "") {
-            val settings = Settings.loadFromDbById(id)
+            val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
             text = settings?.let {
                 settings.setSourceText(voice, sourceText)
                 settings.updateMarkersFromSourceText(voice)
@@ -327,7 +358,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @ResponseBody
     fun doProcessLyrics(@PathVariable id: Long): Int {
         println("doProcessLyrics")
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         settings?.let {
             return KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, 0)
         }
@@ -338,7 +369,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @ResponseBody
     fun doProcessKaraoke(@PathVariable id: Long): Int {
         println("doProcessKaraoke")
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         settings?.let {
             return KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, 1)
         }
@@ -349,7 +380,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @ResponseBody
     fun doProcessChords(@PathVariable id: Long): Int {
         println("doProcessChords")
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         settings?.let {
             if (Song(settings, SongVersion.LYRICS).hasChords) {
                 return KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDS, true, 1)
@@ -362,7 +393,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @ResponseBody
     fun doProcessAll(@PathVariable id: Long): List<Int> {
         println("doProcessAll")
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val result: MutableList<Int> = mutableListOf()
         settings?.let {
             val hasChords = Song(settings, SongVersion.LYRICS).hasChords
@@ -379,7 +410,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @ResponseBody
     fun doProcessAllWOLyrics(@PathVariable id: Long): List<Int> {
         println("doProcessAllWOLyrics")
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val result: MutableList<Int> = mutableListOf()
         settings?.let {
             val hasChords = Song(settings, SongVersion.LYRICS).hasChords
@@ -395,7 +426,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @ResponseBody
     fun doProcessDemucs2(@PathVariable id: Long): Int {
         println("doProcessDemucs2")
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         settings?.let {
             return  KaraokeProcess.createProcess(settings, KaraokeProcessTypes.DEMUCS2, true, -1)
         }
@@ -405,25 +436,25 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @GetMapping("/process/{id}")
     @ResponseBody
     fun getProcess(@PathVariable id: Long): KaraokeProcess? {
-        return KaraokeProcess.load(id)
+        return KaraokeProcess.load(id, WORKING_DATABASE)
     }
 
     @GetMapping("/process/working")
     @ResponseBody
     fun getWorkingProcess(): KaraokeProcess? {
-        return KaraokeProcess.loadList(mapOf(Pair("process_status",KaraokeProcessStatuses.WORKING.name))).firstOrNull()
+        return KaraokeProcess.loadList(mapOf(Pair("process_status",KaraokeProcessStatuses.WORKING.name)), WORKING_DATABASE).firstOrNull()
     }
 
     @GetMapping("/song/{id}")
     @ResponseBody
     fun getSong(@PathVariable id: Long): Settings? {
-        return Settings.loadFromDbById(id)
+        return Settings.loadFromDbById(id, WORKING_DATABASE)
     }
 
     @GetMapping("/song/{id}/{voice}/sourcetext")
     @ResponseBody
     fun getSourceText(@PathVariable id: Long, @PathVariable voice: Int): String {
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             settings.getSourceText(voice)
         } ?: ""
@@ -434,7 +465,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @GetMapping("/song/{id}/{voice}/sourcemarkers")
     @ResponseBody
     fun getSourceMarkers(@PathVariable id: Long, @PathVariable voice: Int): List<SourceMarker> {
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         return settings?.let {
             settings.getSourceMarkers(voice)
         } ?: emptyList()
@@ -443,7 +474,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @GetMapping("/song/{id}/{voice}/sourcesyllables")
     @ResponseBody
     fun getSourceSyllables(@PathVariable id: Long, @PathVariable voice: Int): List<String> {
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         return settings?.let {
             settings.getSourceSyllables(voice)
         } ?: emptyList()
@@ -457,7 +488,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
         model: Model): String {
         var text = "Error"
         if (sourceMarkers.trim() != "") {
-            val settings = Settings.loadFromDbById(id)
+            val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
             text = settings?.let {
                 settings.setSourceMarkers(voice, Json.decodeFromString(ListSerializer(SourceMarker.serializer()), sourceMarkers))
                 val strText = settings.convertMarkersToSrt(voice)
@@ -475,7 +506,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
         @PathVariable id: Long,
         model: Model
     ): ResponseEntity<Resource> {
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val filename = File(settings?.vocalsNameFlac)
         val resource = FileSystemResource(filename)
         if (resource.exists()) {
@@ -492,7 +523,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
         @PathVariable id: Long,
         model: Model
     ): ResponseEntity<Resource> {
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val filename = File(settings?.newNoStemNameFlac)
         val resource = FileSystemResource(filename)
         if (resource.exists()) {
@@ -509,7 +540,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
         @PathVariable id: Long,
         model: Model
     ): ResponseEntity<Resource> {
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val filename = File(settings?.fileAbsolutePath)
         val resource = FileSystemResource(filename)
         if (resource.exists()) {
@@ -523,7 +554,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
 
     @GetMapping("/song/{id}/{voice}/editsubs")
     fun getSongEditSubs(@PathVariable id: Long, @PathVariable voice: Int, model: Model): String {
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
 
         val textValue = Json.encodeToString(settings!!.getSourceText(voice))
         val markersValue = Json.encodeToString(settings!!.getSourceMarkers(voice))
@@ -548,7 +579,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @GetMapping("/song/{id}/color")
     @ResponseBody
     fun getSongColor(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             settings.color
         } ?: "#FFFFFF"
@@ -558,7 +589,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @GetMapping("/song/{id}/textyoutubelyrics")
     @ResponseBody
     fun getSongTextYoutubeLyrics(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val song = Song(settings, SongVersion.LYRICS)
             val text = song.getDescription()
@@ -570,7 +601,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @GetMapping("/song/{id}/textyoutubekaraoke")
     @ResponseBody
     fun getSongTextYoutubeKaraoke(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val song = Song(settings, SongVersion.KARAOKE)
             val text = song.getDescription()
@@ -582,7 +613,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @GetMapping("/song/{id}/textyoutubechords")
     @ResponseBody
     fun getSongTextYoutubeChords(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val song = Song(settings, SongVersion.CHORDS)
             val text = song.getDescription()
@@ -595,7 +626,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @GetMapping("/song/{id}/textyoutubelyricsheader")
     @ResponseBody
     fun getSongTextYoutubeLyricsHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val song = Song(settings, SongVersion.LYRICS)
             val text = song.getDescriptionHeader(140)
@@ -608,7 +639,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @GetMapping("/song/{id}/textyoutubekaraokeheader")
     @ResponseBody
     fun getSongTextYoutubeKaraokeHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val song = Song(settings, SongVersion.KARAOKE)
             val text = song.getDescriptionHeader(140)
@@ -621,7 +652,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @GetMapping("/song/{id}/textyoutubechordsheader")
     @ResponseBody
     fun getSongTextYoutubeChordsHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val song = Song(settings, SongVersion.CHORDS)
             val text = song.getDescriptionHeader(140)
@@ -634,7 +665,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @GetMapping("/song/{id}/textyoutubelyricswoheader")
     @ResponseBody
     fun getSongTextYoutubeLyricsWOHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val song = Song(settings, SongVersion.LYRICS)
             val text = song.getDescriptionDzenWOHeader(5000)
@@ -647,7 +678,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @GetMapping("/song/{id}/textyoutubekaraokewoheader")
     @ResponseBody
     fun getSongTextYoutubeKaraokeWOHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val song = Song(settings, SongVersion.KARAOKE)
             val text = song.getDescriptionDzenWOHeader(5000)
@@ -660,7 +691,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @GetMapping("/song/{id}/textyoutubechordswoheader")
     @ResponseBody
     fun getSongTextYoutubeChordsWOHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val song = Song(settings, SongVersion.CHORDS)
             val text = song.getDescriptionDzenWOHeader(5000)
@@ -685,7 +716,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @GetMapping("/song/{id}/textvklyrics")
     @ResponseBody
     fun getSongTextVkLyrics(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val song = Song(settings, SongVersion.LYRICS)
             val text = song.getDescriptionVk()
@@ -697,7 +728,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @GetMapping("/song/{id}/textvkkaraoke")
     @ResponseBody
     fun getSongTextVkKaraoke(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val song = Song(settings, SongVersion.KARAOKE)
             val text = song.getDescriptionVk()
@@ -710,7 +741,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @GetMapping("/song/{id}/textvkchords")
     @ResponseBody
     fun getSongTextVkChords(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val song = Song(settings, SongVersion.CHORDS)
             val text = song.getDescriptionVk()
@@ -723,7 +754,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @GetMapping("/song/{id}/textvklyricsheader")
     @ResponseBody
     fun getSongTextVkLyricsHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val song = Song(settings, SongVersion.LYRICS)
             val text = song.getDescriptionVkHeader()
@@ -735,7 +766,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @GetMapping("/song/{id}/textvkkaraokeheader")
     @ResponseBody
     fun getSongTextVkKaraokeHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val song = Song(settings, SongVersion.KARAOKE)
             val text = song.getDescriptionVkHeader()
@@ -748,7 +779,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @GetMapping("/song/{id}/textvkchordsheader")
     @ResponseBody
     fun getSongTextVkChordsHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val song = Song(settings, SongVersion.CHORDS)
             val text = song.getDescriptionVkHeader()
@@ -761,7 +792,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @GetMapping("/song/{id}/textvklyricswoheader")
     @ResponseBody
     fun getSongTextVkLyricsWOHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val song = Song(settings, SongVersion.LYRICS)
             val text = song.getDescriptionVkWOHeader()
@@ -774,7 +805,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @GetMapping("/song/{id}/textvkkaraokewoheader")
     @ResponseBody
     fun getSongTextVkKaraokeWOHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val song = Song(settings, SongVersion.KARAOKE)
             val text = song.getDescriptionVkWOHeader()
@@ -787,7 +818,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @GetMapping("/song/{id}/textvkchordswoheader")
     @ResponseBody
     fun getSongTextVkChordsWOHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val song = Song(settings, SongVersion.CHORDS)
             val text = song.getDescriptionVkWOHeader()
@@ -802,7 +833,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @GetMapping("/song/{id}/texttelegramlyrics")
     @ResponseBody
     fun getSongTextTelegramLyrics(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val song = Song(settings, SongVersion.LYRICS)
             val text = song.getDescriptionVk()
@@ -814,7 +845,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @GetMapping("/song/{id}/texttelegramkaraoke")
     @ResponseBody
     fun getSongTextTelegramKaraoke(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val song = Song(settings, SongVersion.KARAOKE)
             val text = song.getDescriptionVk()
@@ -827,7 +858,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @GetMapping("/song/{id}/texttelegramchords")
     @ResponseBody
     fun getSongTextTelegramChords(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val song = Song(settings, SongVersion.CHORDS)
             val text = song.getDescriptionVk()
@@ -840,7 +871,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @GetMapping("/song/{id}/texttelegramlyricsheader")
     @ResponseBody
     fun getSongTextTelegramLyricsHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val song = Song(settings, SongVersion.LYRICS)
             val text = song.getDescriptionVkHeader()
@@ -852,7 +883,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @GetMapping("/song/{id}/texttelegramkaraokeheader")
     @ResponseBody
     fun getSongTextTelegramKaraokeHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val song = Song(settings, SongVersion.KARAOKE)
             val text = song.getDescriptionVkHeader()
@@ -865,7 +896,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @GetMapping("/song/{id}/texttelegramchordsheader")
     @ResponseBody
     fun getSongTextTelegramChordsHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val song = Song(settings, SongVersion.CHORDS)
             val text = song.getDescriptionVkHeader()
@@ -878,7 +909,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @GetMapping("/song/{id}/texttelegramlyricswoheader")
     @ResponseBody
     fun getSongTextTelegramLyricsWOHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val song = Song(settings, SongVersion.LYRICS)
             val text = song.getDescriptionVkWOHeader()
@@ -890,7 +921,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @GetMapping("/song/{id}/texttelegramkaraokewoheader")
     @ResponseBody
     fun getSongTextTelegramKaraokeWOHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val song = Song(settings, SongVersion.KARAOKE)
             val text = song.getDescriptionVkWOHeader()
@@ -902,7 +933,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @GetMapping("/song/{id}/texttelegramchordswoheader")
     @ResponseBody
     fun getSongTextTelegramChordsWOHeader(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val song = Song(settings, SongVersion.CHORDS)
             val text = song.getDescriptionVkWOHeader()
@@ -916,7 +947,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @GetMapping("/song/{id}/textboostyhead")
     @ResponseBody
     fun getSongTextBoostyHead(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val song = Song(settings, SongVersion.LYRICS)
             val text = song.getTextBoostyHead()
@@ -928,7 +959,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @GetMapping("/song/{id}/textboostybody")
     @ResponseBody
     fun getSongTextBoostyBody(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val song = Song(settings, SongVersion.LYRICS)
             val text = song.getTextBoostyBody()
@@ -941,7 +972,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @GetMapping("/song/{id}/textvkbody")
     @ResponseBody
     fun getSongTextVkBody(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val song = Song(settings, SongVersion.LYRICS)
             val text = song.getVKGroupDescription()
@@ -953,7 +984,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     @GetMapping("/song/{id}/searchsongtext")
     @ResponseBody
     fun getSearchSongText(@PathVariable id: Long): String {
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         return  settings?.let {
             searchSongText(settings)
         } ?: ""
@@ -961,7 +992,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
 
     @GetMapping("/song/{id}/createkaraoke")
     fun getSongCreateKaraoke(@PathVariable id: Long, model: Model): String {
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             settings.createKaraoke()
             if (settings.idStatus < 3) {
@@ -982,7 +1013,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
         @RequestParam(required = false) overrideKdenliveFile: Boolean = true,
         @RequestParam(required = false) overrideKdenliveSubsFile: Boolean = false,
         model: Model): String {
-        val settings = Settings.loadFromDbById(id)
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             settings.createKdenliveFiles(overrideKdenliveFile, overrideKdenliveSubsFile)
             "OK"
@@ -999,7 +1030,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
         txt?.let {
             val ids = txt.split(";").mapNotNull { it }.filter { it != "" }.map { it.toLong() }
             ids.forEach { id ->
-                val settings = Settings.loadFromDbById(id)
+                val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
                 settings?.let {
                     settings.createKaraoke()
 
@@ -1023,7 +1054,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
         txt?.let {
             val ids = txt.split(";").mapNotNull { it }.filter { it != "" }.map { it.toLong() }
             ids.forEach { id ->
-                val settings = Settings.loadFromDbById(id)
+                val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
                 settings?.let {
                     KaraokeProcess.createProcess(settings, KaraokeProcessTypes.DEMUCS2, true, -1)
                 }
@@ -1043,7 +1074,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
         txt?.let {
             val ids = txt.split(";").mapNotNull { it }.filter { it != "" }.map { it.toLong() }
             ids.forEach { id ->
-                val settings = Settings.loadFromDbById(id)
+                val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
                 settings?.let {
                     KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_KAR, true, 1)
                 }
@@ -1062,7 +1093,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
         txt?.let {
             val ids = txt.split(";").mapNotNull { it }.filter { it != "" }.map { it.toLong() }
             ids.forEach { id ->
-                val settings = Settings.loadFromDbById(id)
+                val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
                 settings?.let {
                     KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_LYR, true, 1)
                 }
@@ -1081,7 +1112,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
         txt?.let {
             val ids = txt.split(";").mapNotNull { it }.filter { it != "" }.map { it.toLong() }
             ids.forEach { id ->
-                val settings = Settings.loadFromDbById(id)
+                val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
                 settings?.let {
                     if (settings.sourceText.isBlank()) {
                         val text = searchSongText(settings)
@@ -1111,7 +1142,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
         txt?.let {
             val ids = txt.split(";").mapNotNull { it }.filter { it != "" }.map { it.toLong() }
             ids.forEach { id ->
-                val settings = Settings.loadFromDbById(id)
+                val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
                 settings?.let {
                     settings.createTextAndMarkersFromOldVersion()
                 }
@@ -1148,7 +1179,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
         filter_settings_id?.let { if (filter_settings_id != "") args["settings_id"] = filter_settings_id }
         filter_type?.let { if (filter_type != "") args["process_type"] = filter_type }
         filter_limit?.let { if (filter_limit != "") args["filter_limit"] = filter_limit }
-        model.addAttribute("processes", KaraokeProcess.loadList(args))
+        model.addAttribute("processes", KaraokeProcess.loadList(args, WORKING_DATABASE))
 
         return "processes"
     }
@@ -1200,9 +1231,9 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
         flag_telegram_lyrics?.let { if (flag_telegram_lyrics != "") args["flag_telegram_lyrics"] = flag_telegram_lyrics }
         flag_telegram_karaoke?.let { if (flag_telegram_karaoke != "") args["flag_telegram_karaoke"] = flag_telegram_karaoke }
         flag_telegram_chords?.let { if (flag_telegram_chords != "") args["flag_telegram_chords"] = flag_telegram_chords }
-        model.addAttribute("sett", Settings.loadListFromDb(args))
-        model.addAttribute("authors", Settings.loadListAuthors())
-        model.addAttribute("albums", Settings.loadListAlbums())
+        model.addAttribute("sett", Settings.loadListFromDb(args, WORKING_DATABASE))
+        model.addAttribute("authors", Settings.loadListAuthors(WORKING_DATABASE))
+        model.addAttribute("albums", Settings.loadListAlbums(WORKING_DATABASE))
         return "songs"
     }
     @PostMapping("/songs_update")
@@ -1235,7 +1266,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
         @RequestParam(required = false) select_status: String,
         model: Model): String {
         val settingsId: Long = settings_id.toLong()
-        val settings = Settings.loadFromDbById(settingsId)
+        val settings = Settings.loadFromDbById(settingsId, WORKING_DATABASE)
         settings?.let { sett ->
             sett.fileName = settings_fileName
             sett.rootFolder = settings_rootFolder
@@ -1288,7 +1319,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
         filter_date_to?.let { if (filter_date_to != "") args["filter_date_to"] = filter_date_to }
         filter_cond?.let { if (filter_cond != "") args["filter_cond"] = filter_cond }
 
-        model.addAttribute("publications", Publication.getPublicationList(args))
+        model.addAttribute("publications", Publication.getPublicationList(args, WORKING_DATABASE))
         return "publications"
     }
 
@@ -1296,7 +1327,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     fun unpublications(
         model: Model
     ): String {
-        model.addAttribute("publications", Publication.getUnPublicationList())
+        model.addAttribute("publications", Publication.getUnPublicationList(WORKING_DATABASE))
         return "unpublications"
     }
 
@@ -1364,9 +1395,9 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
         flag_telegram_lyrics?.let { if (flag_telegram_lyrics != "") args["flag_telegram_lyrics"] = flag_telegram_lyrics }
         flag_telegram_karaoke?.let { if (flag_telegram_karaoke != "") args["flag_telegram_karaoke"] = flag_telegram_karaoke }
         flag_telegram_chords?.let { if (flag_telegram_chords != "") args["flag_telegram_chords"] = flag_telegram_chords }
-        model.addAttribute("sett", Settings.loadListFromDb(args))
-        model.addAttribute("authors", Settings.loadListAuthors())
-        model.addAttribute("albums", Settings.loadListAlbums())
+        model.addAttribute("sett", Settings.loadListFromDb(args, WORKING_DATABASE))
+        model.addAttribute("authors", Settings.loadListAuthors(WORKING_DATABASE))
+        model.addAttribute("albums", Settings.loadListAlbums(WORKING_DATABASE))
         return "songs2"
     }
 
@@ -1401,7 +1432,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
         @RequestParam(required = false) select_status: String,
         model: Model): String {
         val settingsId: Long = settings_id.toLong()
-        val settings = Settings.loadFromDbById(settingsId)
+        val settings = Settings.loadFromDbById(settingsId, WORKING_DATABASE)
         settings?.let { sett ->
             sett.fileName = settings_fileName
             sett.rootFolder = settings_rootFolder

@@ -71,7 +71,7 @@ class KaraokeProcessThread(val karaokeProcess: KaraokeProcess? = null, var perce
                 karaokeProcess.save()
 
                 if (karaokeProcess.type == KaraokeProcessTypes.DEMUCS2.name) {
-                    KaraokeProcess.delete(karaokeProcess.id)
+                    KaraokeProcess.delete(karaokeProcess.id, karaokeProcess.database)
                 }
 
 
@@ -98,29 +98,29 @@ class KaraokeProcessWorker {
 
         var workThread: KaraokeProcessThread? = null
 
-        fun start() {
+        fun start(database: Connection) {
             if (!isWork) {
-                doStart()
+                doStart(database)
             } else {
                 stopAfterThreadIsDone = false
-                sendStateMessage()
+                sendStateMessage(database = database)
             }
         }
 
-        fun stop() {
+        fun stop(database: Connection) {
             if (isWork) {
                 doStop()
-                sendStateMessage()
+                sendStateMessage(database = database)
             }
         }
 
-        fun sendStateMessage() {
+        fun sendStateMessage(database: Connection) {
             val messageRecordChange = RecordChangeMessage(
                 recordChangeTableName = "tbl_processes",
                 recordChangeId = 0,
                 recordChangeDiffs = listOf(
                     RecordDiff("isWorkAndStopAfterThreadIsDone", isWork, stopAfterThreadIsDone, false)
-                )
+                ), database = database
             )
             try {
                 WEBSOCKET.convertAndSend("/messages/processesrecordchange", messageRecordChange)
@@ -129,15 +129,15 @@ class KaraokeProcessWorker {
             }
         }
 
-        fun deleteDone() {
-            KaraokeProcess.loadList(mapOf(Pair("process_status","DONE"))).forEach { KaraokeProcess.delete(it.id) }
+        fun deleteDone(database: Connection) {
+            KaraokeProcess.loadList(mapOf(Pair("process_status","DONE")), database = database).forEach { KaraokeProcess.delete(it.id, database) }
         }
 
-        private fun getKaraokeProcessToStart(): KaraokeProcess? {
-            return KaraokeProcess.getProcessToStart()
+        private fun getKaraokeProcessToStart(database: Connection): KaraokeProcess? {
+            return KaraokeProcess.getProcessToStart(database)
         }
 
-        private fun doStart() {
+        private fun doStart(database: Connection) {
             val timeout = 1000L
             var counter = 0
             var id = 0L
@@ -147,7 +147,7 @@ class KaraokeProcessWorker {
 
             isWork = true
             stopAfterThreadIsDone = false
-            sendStateMessage()
+            sendStateMessage(database = database)
             while (isWork) {
                 counter++
                 Thread.sleep(timeout)
@@ -156,9 +156,9 @@ class KaraokeProcessWorker {
                     // Каждые 120 секунд проверяем наличие файлов на обновление
                     val listFiles = getListFiles("/clouds/Yandex.Disk/Karaoke/_TMP","settings")
                     listFiles.forEach {fileName ->
-                        val tmpSettings = Settings.loadFromFile(fileName, readonly = true)
+                        val tmpSettings = Settings.loadFromFile(fileName, readonly = true, database)
                         File(fileName).delete()
-                        val settings = Settings.loadFromDbById(tmpSettings.id)
+                        val settings = Settings.loadFromDbById(tmpSettings.id, database)
                         if (settings != null) {
 
                             val needCreateKaraoke = (settings.idStatus < tmpSettings.idStatus && tmpSettings.idStatus == 3L && settings.sourceMarkers != tmpSettings.sourceMarkers)
@@ -212,15 +212,15 @@ class KaraokeProcessWorker {
                 // Если да - ждём, если нет запускаем новое задание (если оно есть в очереди)
                 if (workThread == null || !workThread!!.isAlive) {
                     if (!stopAfterThreadIsDone) {
-                        val karaokeProcess = getKaraokeProcessToStart()
+                        val karaokeProcess = getKaraokeProcessToStart(database)
                         if (karaokeProcess != null) {
                             val args = karaokeProcess.args[0]
                             if (args.isNotEmpty()) {
                                 if (id > 0) {
 
-                                    val diffs = KaraokeProcess.getDiff(KaraokeProcess.load(id))
+                                    val diffs = KaraokeProcess.getDiff(KaraokeProcess.load(id, database))
                                     if (diffs.isNotEmpty()) {
-                                        val messageRecordChange = RecordChangeMessage(recordChangeTableName = "tbl_processes",  recordChangeId = id, recordChangeDiffs = diffs)
+                                        val messageRecordChange = RecordChangeMessage(recordChangeTableName = "tbl_processes",  recordChangeId = id, recordChangeDiffs = diffs, database = database)
                                         try {
                                             WEBSOCKET.convertAndSend("/messages/processesrecordchange", messageRecordChange)
                                             WEBSOCKET.convertAndSend("/messages/recordchange",
@@ -234,7 +234,7 @@ class KaraokeProcessWorker {
                                                             recordDiffValueOld = "",
                                                             recordDiffRealField = false
                                                         )
-                                                    )
+                                                    ), database = database
                                                 )
                                             )
 
@@ -254,9 +254,9 @@ class KaraokeProcessWorker {
                         }
                     } else {
 
-                        val diffs = KaraokeProcess.getDiff(KaraokeProcess.load(id))
+                        val diffs = KaraokeProcess.getDiff(KaraokeProcess.load(id, database))
                         if (diffs.isNotEmpty()) {
-                            val messageRecordChange = RecordChangeMessage(recordChangeTableName = "tbl_processes",  recordChangeId = id, recordChangeDiffs = diffs)
+                            val messageRecordChange = RecordChangeMessage(recordChangeTableName = "tbl_processes",  recordChangeId = id, recordChangeDiffs = diffs, database = database)
                             try {
                                 WEBSOCKET.convertAndSend("/messages/processesrecordchange", messageRecordChange)
                                 WEBSOCKET.convertAndSend("/messages/recordchange",
@@ -270,7 +270,7 @@ class KaraokeProcessWorker {
                                                 recordDiffValueOld = "",
                                                 recordDiffRealField = false
                                             )
-                                        )
+                                        ), database = database
                                     )
                                 )
                             } catch (e: Exception) {
@@ -280,13 +280,13 @@ class KaraokeProcessWorker {
 
                         stopAfterThreadIsDone = false
                         isWork = false
-                        sendStateMessage()
+                        sendStateMessage(database = database)
                     }
                 } else {
 
                     val diffs = KaraokeProcess.getDiff(workThread?.karaokeProcess)
                     if (diffs.isNotEmpty()) {
-                        val messageRecordChange = RecordChangeMessage(recordChangeTableName = "tbl_processes",  recordChangeId = id, recordChangeDiffs = diffs)
+                        val messageRecordChange = RecordChangeMessage(recordChangeTableName = "tbl_processes",  recordChangeId = id, recordChangeDiffs = diffs, database = database)
                         try {
                             WEBSOCKET.convertAndSend("/messages/processesrecordchange", messageRecordChange)
                             if (percentage != workThread?.karaokeProcess?.percentage ?: 0) {
@@ -302,7 +302,7 @@ class KaraokeProcessWorker {
                                                 recordDiffValueOld = "",
                                                 recordDiffRealField = false
                                             )
-                                        )
+                                        ), database = database
                                     )
                                 )
                             }

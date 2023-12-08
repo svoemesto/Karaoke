@@ -13,14 +13,14 @@ COMPOSE=$(which docker-compose)
 source ${DEPLOY_DIR}/do.env
 
 function do_build() {
-  build_db
+#  build_db
 }
 
-function build_db() {
-  echo "Building DB module"
-  cd ${BASE_DIR} && ${GRADLE_DB} clean karaoke-db:bootJar
-  ${DOCKER} image build $BASE_DIR/karaoke-db/build/libs/ -t "karaoke-db" -f $DEPLOY_DIR/karaoke-db/Dockerfile
-}
+#function build_db() {
+#  echo "Building DB module"
+#  cd ${BASE_DIR} && ${GRADLE_DB} clean karaoke-db:bootJar
+#  ${DOCKER} image build $BASE_DIR/karaoke-db/build/libs/ -t "karaoke-db" -f $DEPLOY_DIR/karaoke-db/Dockerfile
+#}
 
 function do_start() {
   do_stop

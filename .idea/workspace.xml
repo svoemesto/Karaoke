@@ -5,24 +5,73 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="19caf878-7ce0-44d7-94a1-cf0a31300a8b" name="Changes" comment="Переделываем под новую концепцию">
-      <change afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoScroller.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoScrollerTrack.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoScrollers.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/karaoke-app/src/test/kotlin/1" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/karaoke-app/src/test/kotlin/2.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/karaoke-app/src/test/kotlin/Неправильный.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/karaoke-app/src/test/kotlin/Правильный.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/build.gradle.kts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deploy/Настройка виртуальной машины.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deploy/Настройка сервера.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Connection.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Zakroma.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/MainController.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/WebSocketConfig.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/karaoke-web/src/main/resources/static/KARAOKE_LOGO.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/settings.gradle.kts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/compiler.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/compiler.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dataSources.local.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dataSources.local.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dataSources.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dataSources.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dataSources/634632a9-979c-44fa-ae82-7c5176e26ce8.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dataSources/634632a9-979c-44fa-ae82-7c5176e26ce8.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/gradle.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/gradle.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deploy/.env" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/.env" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deploy/do.sh" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/do.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deploy/docker-compose.yml" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/docker-compose.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-angular/.editorconfig" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-angular/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-angular/README.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-angular/angular.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-angular/package-lock.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-angular/package.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-angular/src/app/app.component.css" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/karaoke-db/initdb.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-angular/src/app/app.component.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-angular/src/app/app.component.spec.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-angular/src/app/app.component.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-angular/src/app/app.module.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-angular/src/app/navigation_bar.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-angular/src/assets/.gitkeep" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/Комманды Linux.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-angular/src/favicon.ico" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-angular/src/index.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-angular/src/main.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-angular/src/styles.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-angular/tsconfig.app.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-angular/tsconfig.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-angular/tsconfig.spec.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/build.gradle.kts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/settings.gradle.kts" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Constants.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Constants.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Functions.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Functions.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/Mlt.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/Mlt.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/MltGenerator.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/MltGenerator.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/MltProp.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/MltProp.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoMainBin.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoMainBin.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessWorker.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessWorker.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/MainController.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/MainController.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoScroller.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoScroller.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoScrollerTrack.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoScrollerTrack.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoVoice.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoVoice.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/MltNode.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/MltNode.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/ProducerType.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/ProducerType.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Pictures.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Pictures.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Publication.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Publication.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/RecordDiff.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/RecordDiff.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Settings.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Settings.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SongVersion.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SongVersion.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/resources/static/songs2.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/resources/templates/main.html" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/resources/templates/main.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/resources/templates/navigation_bar.html" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/resources/templates/navigation_bar.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/resources/templates/songs2.html" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/resources/templates/songs2.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/resources/templates/unpublications.html" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/resources/templates/unpublications.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/test/kotlin/2.xml" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/test/kotlin/2.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/test/kotlin/Неправильный.xml" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/test/kotlin/Неправильный.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-db/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-db/build.gradle.kts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-db/settings.gradle.kts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-web/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-web/build.gradle.kts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-web/settings.gradle.kts" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -30,6 +79,9 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="ExternalProjectsData">
+    <projectState path="$PROJECT_DIR$">
+      <ProjectState />
+    </projectState>
     <projectState path="$PROJECT_DIR$/karaoke-app">
       <ProjectState />
     </projectState>
@@ -59,30 +111,7 @@
               <path>
                 <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
                 <item name="karaoke-app" type="f1a62948:ProjectNode" />
-                <item name="Tasks" type="e4a08cd1:TasksNode" />
-              </path>
-              <path>
-                <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
-                <item name="karaoke-app" type="f1a62948:ProjectNode" />
-                <item name="Dependencies" type="6de06a37:ExternalSystemViewDefaultContributor$MyDependenciesNode" />
-              </path>
-              <path>
-                <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
-                <item name="karaoke-app" type="f1a62948:ProjectNode" />
-                <item name="Dependencies" type="6de06a37:ExternalSystemViewDefaultContributor$MyDependenciesNode" />
-                <item name="compileClasspath" type="62daadca:ExternalSystemViewDefaultContributor$DependencyScopeExternalSystemNode" />
-              </path>
-              <path>
-                <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
-                <item name="karaoke-app" type="f1a62948:ProjectNode" />
-                <item name="Dependencies" type="6de06a37:ExternalSystemViewDefaultContributor$MyDependenciesNode" />
-                <item name="testCompileClasspath" type="62daadca:ExternalSystemViewDefaultContributor$DependencyScopeExternalSystemNode" />
-              </path>
-              <path>
-                <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
-                <item name="karaoke-app" type="f1a62948:ProjectNode" />
-                <item name="Dependencies" type="6de06a37:ExternalSystemViewDefaultContributor$MyDependenciesNode" />
-                <item name="testRuntimeClasspath" type="62daadca:ExternalSystemViewDefaultContributor$DependencyScopeExternalSystemNode" />
+                <item name="Run Configurations" type="7b0102dc:RunConfigurationsNode" />
               </path>
             </expand>
             <select />
@@ -94,13 +123,13 @@
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
-        <option value="Kotlin Enum" />
         <option value="Kotlin Data Class" />
         <option value="Kotlin File" />
-        <option value="HTML File" />
         <option value="JavaScript File" />
         <option value="CSS File" />
         <option value="Kotlin Interface" />
+        <option value="HTML File" />
+        <option value="Kotlin Enum" />
         <option value="Kotlin Class" />
       </list>
     </option>
@@ -133,61 +162,62 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;DefaultHtmlFileTemplate&quot;: &quot;HTML File&quot;,
-    &quot;Downloaded.Files.Path.Enabled&quot;: &quot;true&quot;,
-    &quot;Repository.Attach.Annotations&quot;: &quot;false&quot;,
-    &quot;Repository.Attach.JavaDocs&quot;: &quot;false&quot;,
-    &quot;Repository.Attach.Sources&quot;: &quot;false&quot;,
-    &quot;RequestMappingsPanelOrder0&quot;: &quot;0&quot;,
-    &quot;RequestMappingsPanelOrder1&quot;: &quot;1&quot;,
-    &quot;RequestMappingsPanelOrder2&quot;: &quot;2&quot;,
-    &quot;RequestMappingsPanelWidth0&quot;: &quot;75&quot;,
-    &quot;RequestMappingsPanelWidth1&quot;: &quot;75&quot;,
-    &quot;RequestMappingsPanelWidth2&quot;: &quot;75&quot;,
-    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
-    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
-    &quot;jdk.selected.JAVA_MODULE&quot;: &quot;17&quot;,
-    &quot;ktor.last.update.timestamp&quot;: &quot;1701693120914&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/home/nsa/Karaoke/karaoke-app/src/test/kotlin/Правильный.xml&quot;,
-    &quot;list.type.of.created.stylesheet&quot;: &quot;CSS&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_interpreter_path&quot;: &quot;node&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;project.structure.last.edited&quot;: &quot;Modules&quot;,
-    &quot;project.structure.proportion&quot;: &quot;0.15&quot;,
-    &quot;project.structure.side.proportion&quot;: &quot;0.28704488&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;configurable.group.appearance&quot;,
-    &quot;spring.configuration.checksum&quot;: &quot;1007d703338a1437b7244ae0c701b59e&quot;,
-    &quot;ts.external.directory.path&quot;: &quot;/home/nsa/Karaoke/karaoke-angular/node_modules/typescript/lib&quot;,
-    &quot;two.files.diff.last.used.file&quot;: &quot;/home/nsa/Karaoke/karaoke-app/src/test/kotlin/Правильный.xml&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "DefaultHtmlFileTemplate": "HTML File",
+    "Downloaded.Files.Path.Enabled": "true",
+    "Repository.Attach.Annotations": "false",
+    "Repository.Attach.JavaDocs": "false",
+    "Repository.Attach.Sources": "false",
+    "RequestMappingsPanelOrder0": "0",
+    "RequestMappingsPanelOrder1": "1",
+    "RequestMappingsPanelOrder2": "2",
+    "RequestMappingsPanelWidth0": "75",
+    "RequestMappingsPanelWidth1": "75",
+    "RequestMappingsPanelWidth2": "75",
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "WebServerToolWindowFactoryState": "false",
+    "git-widget-placeholder": "master",
+    "jdk.selected.JAVA_MODULE": "17",
+    "ktor.last.update.timestamp": "1702031879673",
+    "last_opened_file_path": "/home/nsa/Karaoke/settings.gradle.kts",
+    "list.type.of.created.stylesheet": "CSS",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_interpreter_path": "node",
+    "nodejs_package_manager_path": "npm",
+    "project.structure.last.edited": "Modules",
+    "project.structure.proportion": "0.15",
+    "project.structure.side.proportion": "0.28704488",
+    "settings.editor.selected.configurable": "configurable.group.appearance",
+    "spring.configuration.checksum": "1007d703338a1437b7244ae0c701b59e",
+    "ts.external.directory.path": "/home/nsa/Karaoke/karaoke-angular/node_modules/typescript/lib",
+    "two.files.diff.last.used.file": "/home/nsa/Karaoke/karaoke-app/src/test/kotlin/Правильный.xml",
+    "vue.rearranger.settings.migration": "true"
   },
-  &quot;keyToStringList&quot;: {
-    &quot;DatabaseDriversLRU&quot;: [
-      &quot;postgresql&quot;
+  "keyToStringList": {
+    "DatabaseDriversLRU": [
+      "postgresql"
     ]
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$" />
+      <recent name="$PROJECT_DIR$/karaoke-web/src/main/resources/static" />
       <recent name="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko2" />
       <recent name="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt" />
       <recent name="$PROJECT_DIR$/karaoke-app/src/main/resources/templates" />
-      <recent name="$PROJECT_DIR$/karaoke-app/src/main/resources/static" />
-      <recent name="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/docs" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/karaoke-app/src/main/resources/templates" />
+      <recent name="$PROJECT_DIR$/karaoke-app/src/main/resources/static" />
       <recent name="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt" />
       <recent name="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko" />
-      <recent name="$PROJECT_DIR$/karaoke-app/src/main/resources/templates" />
       <recent name="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp" />
     </key>
     <key name="MoveKotlinTopLevelDeclarationsDialog.RECENTS_KEY">
@@ -197,6 +227,7 @@
       <recent name="classes" />
     </key>
     <key name="CopyKotlinDeclarationDialog.RECENTS_KEY">
+      <recent name="com.svoemesto.karaokeweb.controllers" />
       <recent name="com.svoemesto.karaokeapp.mlt.mko" />
       <recent name="com.svoemesto.karaokeapp.textfiledictionary" />
     </key>
@@ -230,15 +261,50 @@
       <DebugAllEnabled>false</DebugAllEnabled>
       <method v="2" />
     </configuration>
-    <configuration name="Angular Application (karaoke-angular)" type="JavascriptDebugType" uri="http://localhost:4200">
+    <configuration name="karaoke-app [assemble]" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
+      <ExternalSystemSettings>
+        <option name="executionName" />
+        <option name="externalProjectPath" value="$PROJECT_DIR$/karaoke-app" />
+        <option name="externalSystemIdString" value="GRADLE" />
+        <option name="scriptParameters" />
+        <option name="taskDescriptions">
+          <list />
+        </option>
+        <option name="taskNames">
+          <list>
+            <option value="assemble" />
+          </list>
+        </option>
+        <option name="vmOptions" />
+      </ExternalSystemSettings>
+      <ExternalSystemDebugServerProcess>true</ExternalSystemDebugServerProcess>
+      <ExternalSystemReattachDebugProcess>true</ExternalSystemReattachDebugProcess>
+      <DebugAllEnabled>false</DebugAllEnabled>
       <method v="2" />
     </configuration>
-    <configuration name="MainRibbon (1)" type="JetRunConfigurationType" temporary="true" nameIsGenerated="true">
-      <option name="MAIN_CLASS_NAME" value="com.svoemesto.karaokeapp.MainRibbon" />
-      <module name="karaoke-app.main" />
-      <method v="2">
-        <option name="Make" enabled="true" />
-      </method>
+    <configuration name="karaoke-app [clean]" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
+      <ExternalSystemSettings>
+        <option name="executionName" />
+        <option name="externalProjectPath" value="$PROJECT_DIR$/karaoke-app" />
+        <option name="externalSystemIdString" value="GRADLE" />
+        <option name="scriptParameters" />
+        <option name="taskDescriptions">
+          <list />
+        </option>
+        <option name="taskNames">
+          <list>
+            <option value="clean" />
+          </list>
+        </option>
+        <option name="vmOptions" />
+      </ExternalSystemSettings>
+      <ExternalSystemDebugServerProcess>true</ExternalSystemDebugServerProcess>
+      <ExternalSystemReattachDebugProcess>true</ExternalSystemReattachDebugProcess>
+      <DebugAllEnabled>false</DebugAllEnabled>
+      <method v="2" />
+    </configuration>
+    <configuration name="Angular Application (karaoke-angular)" type="JavascriptDebugType" uri="http://localhost:4200">
+      <method v="2" />
     </configuration>
     <configuration name="SeleniumUtilsKt" type="JetRunConfigurationType" temporary="true" nameIsGenerated="true">
       <option name="MAIN_CLASS_NAME" value="com.svoemesto.karaokeapp.SeleniumUtilsKt" />
@@ -254,6 +320,13 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
+    <configuration name="KaraokeAppApplication (1)" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
+      <module name="Karaoke.karaoke-app.main" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="com.svoemesto.karaokeapp.KaraokeAppApplication" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="KaraokeAppApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
       <module name="karaoke-app.main" />
       <option name="SPRING_BOOT_MAIN_CLASS" value="com.svoemesto.karaokeapp.KaraokeAppApplication" />
@@ -261,22 +334,23 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
-    <configuration name="KaraokeWebApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
-      <module name="karaoke-web.main" />
+    <configuration name="KaraokeWebApplication (1)" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
+      <module name="Karaoke.karaoke-web.main" />
       <option name="SPRING_BOOT_MAIN_CLASS" value="com.svoemesto.karaokeweb.KaraokeWebApplication" />
       <method v="2">
         <option name="Make" enabled="true" />
       </method>
     </configuration>
-    <configuration name="MessagingStompWebsocketApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" temporary="true" nameIsGenerated="true">
-      <module name="karaoke-app.main" />
-      <option name="SPRING_BOOT_MAIN_CLASS" value="com.svoemesto.karaokeapp.MessagingStompWebsocketApplication" />
-      <extension name="coverage">
-        <pattern>
-          <option name="PATTERN" value="com.svoemesto.karaokeapp.*" />
-          <option name="ENABLED" value="true" />
-        </pattern>
-      </extension>
+    <configuration name="KaraokeWebApplication (2)" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
+      <module name="com.svoemesto.Karaoke.main" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="com.svoemesto.karaokeweb.KaraokeWebApplication" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="KaraokeWebApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
+      <module name="karaoke-web.main" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="com.svoemesto.karaokeweb.KaraokeWebApplication" />
       <method v="2">
         <option name="Make" enabled="true" />
       </method>
@@ -293,11 +367,11 @@
     </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Gradle.karaoke-app [assemble]" />
+        <item itemvalue="Gradle.karaoke-app [clean]" />
         <item itemvalue="Kotlin.UtilsKt" />
         <item itemvalue="Kotlin.SeleniumUtilsKt" />
         <item itemvalue="Gradle.FirstScriptTest.eightComponents" />
-        <item itemvalue="Spring Boot.MessagingStompWebsocketApplication" />
-        <item itemvalue="Kotlin.MainRibbon (1)" />
       </list>
     </recent_temporary>
   </component>
@@ -442,14 +516,11 @@
       <workItem from="1701021389948" duration="3785000" />
       <workItem from="1701056495244" duration="110378000" />
       <workItem from="1701319625069" duration="129351000" />
-      <workItem from="1701751143715" duration="23987000" />
-    </task>
-    <task id="LOCAL-00077" summary="Начинаем добавлять аккорды...">
-      <created>1664946127427</created>
-      <option name="number" value="00077" />
-      <option name="presentableId" value="LOCAL-00077" />
-      <option name="project" value="LOCAL" />
-      <updated>1664946127428</updated>
+      <workItem from="1701751143715" duration="39620000" />
+      <workItem from="1701793662161" duration="28942000" />
+      <workItem from="1702010336572" duration="5641000" />
+      <workItem from="1702017380440" duration="238000" />
+      <workItem from="1702017636066" duration="25595000" />
     </task>
     <task id="LOCAL-00078" summary="Начинаем добавлять аккорды...">
       <created>1664956143036</created>
@@ -787,7 +858,14 @@
       <option name="project" value="LOCAL" />
       <updated>1701694870810</updated>
     </task>
-    <option name="localTasksCounter" value="126" />
+    <task id="LOCAL-00126" summary="Переделываем под новую концепцию">
+      <created>1701775423289</created>
+      <option name="number" value="00126" />
+      <option name="presentableId" value="LOCAL-00126" />
+      <option name="project" value="LOCAL" />
+      <updated>1701775423289</updated>
+    </task>
+    <option name="localTasksCounter" value="127" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -861,21 +939,6 @@
           <url>file://$PROJECT_DIR$/karaoke-app/src/main/resources/templates/songs.html</url>
           <line>2341</line>
           <option name="timeStamp" value="3" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="kotlin-line">
-          <url>file://$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoScrollerTrack.kt</url>
-          <line>50</line>
-          <option name="timeStamp" value="12" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="kotlin-line">
-          <url>file://$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Functions.kt</url>
-          <line>402</line>
-          <option name="timeStamp" value="14" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="kotlin-line">
-          <url>file://$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Functions.kt</url>
-          <line>376</line>
-          <option name="timeStamp" value="15" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

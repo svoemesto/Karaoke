@@ -25,6 +25,39 @@ data class MltNodeBuilder(val nodes: MutableList<MltNode> = mutableListOf()) {
         nodes.addAll(nodesToAdd)
     }
 
+    fun startviewport(rect: String) = apply {
+        nodes.add(
+            MltNode(
+                name = "startviewport",
+                fields = PropertiesMltNodeBuilder()
+                    .rect(rect)
+                    .build()
+            )
+        )
+    }
+
+    fun endviewport(rect: String) = apply {
+        nodes.add(
+            MltNode(
+                name = "endviewport",
+                fields = PropertiesMltNodeBuilder()
+                    .rect(rect)
+                    .build()
+            )
+        )
+    }
+
+    fun background(color: String) = apply {
+        nodes.add(
+            MltNode(
+                name = "background",
+                fields = PropertiesMltNodeBuilder()
+                    .color(color)
+                    .build()
+            )
+        )
+    }
+
     fun transitionsAndFilters(parentName: String, countAudioTracks: Int, countVideoTracks: Int) = apply {
         for (i in 0  until  countAudioTracks) {
             nodes.add(
@@ -327,6 +360,12 @@ data class PropertiesMltNodeBuilder(val properties: MutableMap<String, String> =
     fun `z-index`(value: String) = apply { properties["z-index"] = value }
     fun x(value: String) = apply { properties["x"] = value }
     fun y(value: String) = apply { properties["y"] = value }
+    fun zoom(value: String) = apply { properties["zoom"] = value }
+    fun brushcolor(value: String) = apply { properties["brushcolor"] = value }
+    fun pencolor(value: String) = apply { properties["pencolor"] = value }
+    fun penwidth(value: String) = apply { properties["penwidth"] = value }
+    fun rect(value: String) = apply { properties["rect"] = value }
+    fun color(value: String) = apply { properties["color"] = value }
     fun base64(value: String) = apply { properties["base64"] = value }
     fun duration(value: String) = apply { properties["duration"] = value }
     fun LC_NUMERIC(value: String) = apply { properties["LC_NUMERIC"] = value }

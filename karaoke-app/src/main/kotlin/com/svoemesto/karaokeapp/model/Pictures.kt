@@ -1,16 +1,14 @@
 package com.svoemesto.karaokeapp.model
 
-import com.svoemesto.karaokeapp.CONNECTION_PASSWORD
-import com.svoemesto.karaokeapp.CONNECTION_URL
-import com.svoemesto.karaokeapp.CONNECTION_USER
-import com.svoemesto.karaokeapp.KaraokeProcess
+import com.svoemesto.karaokeapp.Connection
+import com.svoemesto.karaokeapp.WORKING_DATABASE
 import java.io.Serializable
 import java.sql.DriverManager
 import java.sql.ResultSet
 import java.sql.SQLException
 import java.sql.Statement
 
-class Pictures : Serializable, Comparable<Pictures> {
+class Pictures(val database: Connection = WORKING_DATABASE) : Serializable, Comparable<Pictures> {
 
     var id: Int = 0
     var name: String = "Picture name"
@@ -24,7 +22,7 @@ class Pictures : Serializable, Comparable<Pictures> {
     fun save() {
 
         Class.forName("org.postgresql.Driver")
-        val connection = DriverManager.getConnection(CONNECTION_URL, CONNECTION_USER, CONNECTION_PASSWORD)
+        val connection = DriverManager.getConnection(database.url, database.username, database.password)
         val sql = "UPDATE tbl_pictures SET " +
                 "picture_name = ?, " +
                 "picture_full = ?, " +
@@ -46,7 +44,18 @@ class Pictures : Serializable, Comparable<Pictures> {
     }
 
     companion object {
-        fun createDbInstance(picture: Pictures) : Pictures? {
+
+        fun getDiff(picA: Pictures?, picB: Pictures?): List<RecordDiff> {
+            val result: MutableList<RecordDiff> = mutableListOf()
+            if (picA != null && picB != null) {
+                if (picA.name != picB.name) result.add(RecordDiff("picture_name", picA.name, picB.name))
+                if (picA.full != picB.full) result.add(RecordDiff("picture_full", picA.full, picB.full))
+                if (picA.preview != picB.preview) result.add(RecordDiff("picture_preview", picA.preview, picB.preview))
+            }
+            return result
+        }
+
+        fun createDbInstance(picture: Pictures, database: Connection) : Pictures? {
             val sql =
                 "INSERT INTO tbl_pictures (" +
                         "picture_name, " +
@@ -59,7 +68,7 @@ class Pictures : Serializable, Comparable<Pictures> {
                         ")"
 
             Class.forName("org.postgresql.Driver")
-            val connection = DriverManager.getConnection(CONNECTION_URL, CONNECTION_USER, CONNECTION_PASSWORD)
+            val connection = DriverManager.getConnection(database.url, database.username, database.password)
             val ps = connection.prepareStatement(sql)
             ps.executeUpdate(sql, Statement.RETURN_GENERATED_KEYS)
             val rs = ps.generatedKeys
@@ -76,10 +85,10 @@ class Pictures : Serializable, Comparable<Pictures> {
 
         }
 
-        fun loadList(args: Map<String, String> = emptyMap()): List<Pictures> {
+        fun loadList(args: Map<String, String> = emptyMap(), database: Connection): List<Pictures> {
 
             Class.forName("org.postgresql.Driver")
-            val connection = DriverManager.getConnection(CONNECTION_URL, CONNECTION_USER, CONNECTION_PASSWORD)
+            val connection = DriverManager.getConnection(database.url, database.username, database.password)
             var statement: Statement? = null
             var rs: ResultSet? = null
             var sql: String
@@ -96,7 +105,7 @@ class Pictures : Serializable, Comparable<Pictures> {
                 rs = statement.executeQuery(sql)
                 val result: MutableList<Pictures> = mutableListOf()
                 while (rs.next()) {
-                    val picture = Pictures()
+                    val picture = Pictures(database)
                     picture.id = rs.getInt("id")
                     picture.name = rs.getString("picture_name")
                     picture.full = rs.getString("picture_full")
@@ -122,10 +131,10 @@ class Pictures : Serializable, Comparable<Pictures> {
             return emptyList()
         }
 
-        fun delete(id: Int) {
+        fun delete(id: Int, database: Connection) {
 
             Class.forName("org.postgresql.Driver")
-            val connection = DriverManager.getConnection(CONNECTION_URL, CONNECTION_USER, CONNECTION_PASSWORD)
+            val connection = DriverManager.getConnection(database.url, database.username, database.password)
             val sql = "DELETE FROM tbl_pictures WHERE id = ?"
             val ps = connection.prepareStatement(sql)
             var index = 1
@@ -136,15 +145,15 @@ class Pictures : Serializable, Comparable<Pictures> {
 
         }
 
-        fun load(id: Long): Pictures? {
+        fun load(id: Long, database: Connection): Pictures? {
 
-            return Pictures.loadList(mapOf(Pair("id", id.toString()))).firstOrNull()
+            return Pictures.loadList(mapOf(Pair("id", id.toString())), database).firstOrNull()
 
         }
 
-        fun load(name: String): Pictures? {
+        fun load(name: String, database: Connection): Pictures? {
 
-            return Pictures.loadList(mapOf(Pair("picture_name", name))).firstOrNull()
+            return Pictures.loadList(mapOf(Pair("picture_name", name)), database).firstOrNull()
 
         }
 

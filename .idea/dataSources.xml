@@ -8,5 +8,12 @@
       <jdbc-url>jdbc:postgresql://localhost:5430/karaoke</jdbc-url>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
+    <data-source source="LOCAL" name="karaoke@virtualbox" uuid="3ff29dff-5abc-482b-8483-d566a0162362">
+      <driver-ref>postgresql</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>org.postgresql.Driver</jdbc-driver>
+      <jdbc-url>jdbc:postgresql://localhost:2230/karaoke</jdbc-url>
+      <working-dir>$ProjectFileDir$</working-dir>
+    </data-source>
   </component>
 </project>

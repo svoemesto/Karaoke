@@ -89,9 +89,9 @@ const val URL_PREFIX_VK = "https://vk.com/wall-{REPLACE}"
 const val URL_PREFIX_TELEGRAM_PLAY = "https://t.me/svoemestokaraoke/{REPLACE}"
 const val URL_PREFIX_TELEGRAM_EDIT = "https://t.me/svoemestokaraoke/{REPLACE}"
 
-const val CONNECTION_URL = "jdbc:postgresql://localhost:5430/karaoke?currentSchema=public"
-const val CONNECTION_USER = "postgres"
-const val CONNECTION_PASSWORD = "postgres"
+//const val CONNECTION_URL = "jdbc:postgresql://localhost:5430/karaoke?currentSchema=public"
+//const val CONNECTION_USER = "postgres"
+//const val CONNECTION_PASSWORD = "postgres"
 
 const val PATH_TO_STORE_FOLDER = "/clouds/Yandex.Disk/Karaoke"
 
@@ -145,3 +145,5 @@ val producerTypeClass = mapOf(
 
 )
 
+val WORKING_DATABASE = Connection.LOCAL
+//val WORKING_DATABASE = Connection.REMOTE

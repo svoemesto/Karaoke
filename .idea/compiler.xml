@@ -10,6 +10,19 @@
         <module name="karaoke" />
       </profile>
     </annotationProcessing>
-    <bytecodeTargetLevel target="13" />
+    <bytecodeTargetLevel target="13">
+      <module name="com.svoemesto.Karaoke" target="17" />
+      <module name="com.svoemesto.Karaoke.main" target="17" />
+      <module name="com.svoemesto.Karaoke.test" target="17" />
+      <module name="karaoke-app" target="17" />
+      <module name="karaoke-app.main" target="17" />
+      <module name="karaoke-app.test" target="17" />
+      <module name="karaoke-db" target="17" />
+      <module name="karaoke-db.main" target="17" />
+      <module name="karaoke-db.test" target="17" />
+      <module name="karaoke-web" target="17" />
+      <module name="karaoke-web.main" target="17" />
+      <module name="karaoke-web.test" target="17" />
+    </bytecodeTargetLevel>
   </component>
 </project>

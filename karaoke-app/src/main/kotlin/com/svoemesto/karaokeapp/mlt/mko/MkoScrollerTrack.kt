@@ -42,9 +42,7 @@ data class MkoScrollerTrack(val mltProp: MltProp, val type: ProducerType, val vo
             var scrollLineEndMsPrev = 0L
             var scrollLineDurationMsPrev = 0L
 
-            val nodes = MltNodeBuilder()
-                .propertyName("kdenlive:id", "filePlaylist${mltGenerator.id}")
-                .build()
+
 
             scrollTrack.forEachIndexed { indexLine, sl ->
 
@@ -60,6 +58,11 @@ data class MkoScrollerTrack(val mltProp: MltProp, val type: ProducerType, val vo
                         .blank(convertMillisecondsToTimecode(blankDurationMs))
                         .build()
                 )
+
+                val nodes = MltNodeBuilder()
+                    .propertyName("kdenlive:id", "filePlaylist${mltGenerator.id}")
+                    .filterQtblend(mltGenerator.nameFilterQtblend, mltProp.getRect(listOf(ProducerType.SCROLLER, voiceId, indexLine)))
+                    .build()
 
                 body.add(
                     mltGenerator.entry(

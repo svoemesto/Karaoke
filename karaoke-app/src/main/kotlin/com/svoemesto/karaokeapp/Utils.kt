@@ -117,6 +117,150 @@ fun customFunction(): String {
     return result
 }
 
+fun updateRemoteDatabaseFromLocalDatabase(): Triple<Int, Int, Int> {
+    return updateDatabases(Connection.LOCAL, Connection.REMOTE)
+}
+
+fun updateLocalDatabaseFromRemoteDatabase(): Triple<Int, Int, Int> {
+    return updateDatabases(Connection.REMOTE, Connection.LOCAL)
+}
+fun updateDatabases(fromDatabase: Connection, toDatabase: Connection): Triple<Int, Int, Int> {
+    if (fromDatabase == toDatabase) return Triple(0,0,0)
+
+    var countCreate = 0
+    var countUpdate = 0
+    var countDelete = 0
+
+    val listSettingsFrom = Settings.loadListFromDb(database = fromDatabase)
+    val listSettingsTo = Settings.loadListFromDb(database = toDatabase).toMutableList()
+
+    listSettingsFrom.forEach { settingsFrom ->
+        val settingsTo = listSettingsTo.firstOrNull { it.id == settingsFrom.id }
+        if (settingsTo == null) {
+            val newRecord = Settings.createDbInstance(settingsFrom, toDatabase)
+            if (newRecord != null) {
+                newRecord.fields[SettingField.ID] = settingsFrom.id.toString()
+                newRecord.saveToDb()
+                listSettingsTo.add(newRecord)
+                countCreate++
+            }
+        } else {
+
+            val diff = Settings.getDiff(settingsFrom, settingsTo)
+
+            if (diff.isNotEmpty()) {
+                val messageRecordChange = RecordChangeMessage(recordChangeTableName = "tbl_settings",  recordChangeId = settingsTo.id, recordChangeDiffs = diff, database = toDatabase)
+                val setStr = diff.filter{ it.recordDiffRealField }.map { "${it.recordDiffName} = ?" }.joinToString(", ")
+                val sql = "UPDATE tbl_settings SET $setStr WHERE id = ?"
+
+                Class.forName("org.postgresql.Driver")
+                val connection = DriverManager.getConnection(toDatabase.url, toDatabase.username, toDatabase.password)
+                val ps = connection.prepareStatement(sql)
+
+                var index = 1
+                diff.filter{ it.recordDiffRealField }.forEach {
+                    if (it.recordDiffValueNew is Long) {
+                        ps.setLong(index, it.recordDiffValueNew.toLong())
+                    } else {
+                        ps.setString(index, it.recordDiffValueNew.toString())
+                    }
+                    index++
+                }
+                ps.setLong(index, settingsTo.id)
+                ps.executeUpdate()
+                ps.close()
+                connection.close()
+
+                println(messageRecordChange.toString())
+
+                countUpdate++
+            }
+
+        }
+    }
+
+    val listSettingsToDel: MutableList<Settings> = mutableListOf()
+    listSettingsTo.forEach { settingsTo ->
+        val settingsFrom = listSettingsFrom.firstOrNull { it.id == settingsTo.id }
+        if (settingsFrom == null) {
+            listSettingsToDel.add(settingsTo)
+        }
+    }
+
+    listSettingsToDel.forEach { toDel ->
+        toDel.deleteFromDb()
+        countDelete++
+    }
+
+
+
+    val listPicturesFrom = Pictures.loadList(database = fromDatabase)
+    val listPicturesTo = Pictures.loadList(database = toDatabase).toMutableList()
+
+    listPicturesFrom.forEach { pictureFrom ->
+        val pictureTo = listPicturesTo.firstOrNull { it.id == pictureFrom.id }
+        if (pictureTo == null) {
+            val newRecord = Pictures.createDbInstance(pictureFrom, toDatabase)
+            if (newRecord != null) {
+                newRecord.id = pictureFrom.id
+                newRecord.save()
+                listPicturesTo.add(newRecord)
+                countCreate++
+            }
+        } else {
+
+            val diff = Pictures.getDiff(pictureFrom, pictureTo)
+
+            if (diff.isNotEmpty()) {
+                val messageRecordChange = RecordChangeMessage(recordChangeTableName = "tbl_pictures",  recordChangeId = pictureTo.id.toLong(), recordChangeDiffs = diff, database = toDatabase)
+                val setStr = diff.filter{ it.recordDiffRealField }.map { "${it.recordDiffName} = ?" }.joinToString(", ")
+                val sql = "UPDATE tbl_pictures SET $setStr WHERE id = ?"
+
+                Class.forName("org.postgresql.Driver")
+                val connection = DriverManager.getConnection(toDatabase.url, toDatabase.username, toDatabase.password)
+                val ps = connection.prepareStatement(sql)
+
+                var index = 1
+                diff.filter{ it.recordDiffRealField }.forEach {
+                    if (it.recordDiffValueNew is Long) {
+                        ps.setLong(index, it.recordDiffValueNew.toLong())
+                    } else {
+                        ps.setString(index, it.recordDiffValueNew.toString())
+                    }
+                    index++
+                }
+                ps.setLong(index, pictureTo.id.toLong())
+                ps.executeUpdate()
+                ps.close()
+                connection.close()
+
+                println(messageRecordChange.toString())
+
+                countUpdate++
+            }
+
+        }
+    }
+
+    val listPicturesToDel: MutableList<Pictures> = mutableListOf()
+    listPicturesTo.forEach { picturesTo ->
+        val picturesFrom = listPicturesFrom.firstOrNull { it.id == picturesTo.id }
+        if (picturesFrom == null) {
+            listPicturesToDel.add(picturesTo)
+        }
+    }
+
+    listPicturesToDel.forEach { toDel ->
+        Pictures.delete(toDel.id, toDatabase)
+        countDelete++
+    }
+
+
+
+    return Triple(countCreate, countUpdate, countDelete)
+
+}
+
 fun <T : java.io.Serializable> deepCopy(obj: T?): T? {
     if (obj == null) return null
     val baos = ByteArrayOutputStream()
@@ -166,31 +310,31 @@ fun bytesToHex(bytes: ByteArray): String? {
     }
     return builder.toString()
 }
-fun organizeUnpublished() {
+fun organizeUnpublished(database: Connection) {
 
     val listUnpublished =
-        Settings.loadListFromDb(mapOf("publish_date" to "-", "publish_time" to "-"))
+        Settings.loadListFromDb(mapOf("publish_date" to "-", "publish_time" to "-"), database)
             .groupBy { it.author }
             .map { Pair(it.key, it.value.size) }
 
     var slotes: MutableList<Pair<String, Long>> = mutableListOf()
-    slotes.add("11:00" to SimpleDateFormat("dd.MM.yy").parse(Settings.loadListFromDb(mapOf("publish_time" to "11:00")).last().date).time)
-    slotes.add("12:00" to SimpleDateFormat("dd.MM.yy").parse(Settings.loadListFromDb(mapOf("publish_time" to "12:00")).last().date).time)
-    slotes.add("13:00" to SimpleDateFormat("dd.MM.yy").parse(Settings.loadListFromDb(mapOf("publish_time" to "13:00")).last().date).time)
-    slotes.add("14:00" to SimpleDateFormat("dd.MM.yy").parse(Settings.loadListFromDb(mapOf("publish_time" to "14:00")).last().date).time)
-    slotes.add("15:00" to SimpleDateFormat("dd.MM.yy").parse(Settings.loadListFromDb(mapOf("publish_time" to "15:00")).last().date).time)
-    slotes.add("16:00" to SimpleDateFormat("dd.MM.yy").parse(Settings.loadListFromDb(mapOf("publish_time" to "16:00")).last().date).time)
-    slotes.add("17:00" to SimpleDateFormat("dd.MM.yy").parse(Settings.loadListFromDb(mapOf("publish_time" to "17:00")).last().date).time)
-    slotes.add("18:00" to SimpleDateFormat("dd.MM.yy").parse(Settings.loadListFromDb(mapOf("publish_time" to "18:00")).last().date).time)
-    slotes.add("19:00" to SimpleDateFormat("dd.MM.yy").parse(Settings.loadListFromDb(mapOf("publish_time" to "19:00")).last().date).time)
-    slotes.add("20:00" to SimpleDateFormat("dd.MM.yy").parse(Settings.loadListFromDb(mapOf("publish_time" to "20:00")).last().date).time)
+    slotes.add("11:00" to SimpleDateFormat("dd.MM.yy").parse(Settings.loadListFromDb(mapOf("publish_time" to "11:00"), database).last().date).time)
+    slotes.add("12:00" to SimpleDateFormat("dd.MM.yy").parse(Settings.loadListFromDb(mapOf("publish_time" to "12:00"), database).last().date).time)
+    slotes.add("13:00" to SimpleDateFormat("dd.MM.yy").parse(Settings.loadListFromDb(mapOf("publish_time" to "13:00"), database).last().date).time)
+    slotes.add("14:00" to SimpleDateFormat("dd.MM.yy").parse(Settings.loadListFromDb(mapOf("publish_time" to "14:00"), database).last().date).time)
+    slotes.add("15:00" to SimpleDateFormat("dd.MM.yy").parse(Settings.loadListFromDb(mapOf("publish_time" to "15:00"), database).last().date).time)
+    slotes.add("16:00" to SimpleDateFormat("dd.MM.yy").parse(Settings.loadListFromDb(mapOf("publish_time" to "16:00"), database).last().date).time)
+    slotes.add("17:00" to SimpleDateFormat("dd.MM.yy").parse(Settings.loadListFromDb(mapOf("publish_time" to "17:00"), database).last().date).time)
+    slotes.add("18:00" to SimpleDateFormat("dd.MM.yy").parse(Settings.loadListFromDb(mapOf("publish_time" to "18:00"), database).last().date).time)
+    slotes.add("19:00" to SimpleDateFormat("dd.MM.yy").parse(Settings.loadListFromDb(mapOf("publish_time" to "19:00"), database).last().date).time)
+    slotes.add("20:00" to SimpleDateFormat("dd.MM.yy").parse(Settings.loadListFromDb(mapOf("publish_time" to "20:00"), database).last().date).time)
     val minDate = slotes.minOfOrNull { it.second } ?: 0L
     slotes = slotes.map {Pair(it.first, it.second - minDate) }.toMutableList()
 
 }
 
-fun updateBpmAndKey(): Int {
-    val listSettings = Settings.loadListFromDb(mapOf("song_tone" to "''", "song_bpm" to "0"))
+fun updateBpmAndKey(database: Connection): Int {
+    val listSettings = Settings.loadListFromDb(mapOf("song_tone" to "''", "song_bpm" to "0"), database)
     var counter = 0
     listSettings.forEach { settings ->
         val (bpm, key) = getBpmAndKeyFromCsv(settings)
@@ -241,10 +385,10 @@ fun getBpmAndKeyFromCsv(settings: Settings): Pair<Long, String> {
 
 
 
-fun delDublicates(): Int {
+fun delDublicates(database: Connection): Int {
     var counter = 0
     val listSettings = Settings.loadListFromDb(
-        mapOf(Pair("tags", "DD"))
+        mapOf(Pair("tags", "DD")), database
     )
     listSettings.forEach { settings ->
         if (settings.tags == "DD") {
@@ -255,10 +399,10 @@ fun delDublicates(): Int {
     return counter
 }
 
-fun clearPreDublicates(): Int {
+fun clearPreDublicates(database: Connection): Int {
     var counter = 0
     val listSettings = Settings.loadListFromDb(
-        mapOf(Pair("tags", "D"))
+        mapOf(Pair("tags", "D")), database
     )
     listSettings.forEach { settings ->
         if (settings.tags == "D") {
@@ -270,10 +414,10 @@ fun clearPreDublicates(): Int {
     return counter
 }
 
-fun markDublicates(autor: String): Int {
+fun markDublicates(autor: String, database: Connection): Int {
     var counter = 0
     val listSettings = Settings.loadListFromDb(
-        mapOf(Pair("song_author", autor))
+        mapOf(Pair("song_author", autor)), database
     )
     listSettings.forEach { settings ->
         if (settings.tags == "") {
@@ -294,9 +438,9 @@ fun markDublicates(autor: String): Int {
     return counter
 }
 
-fun create720pForAllUncreated() {
+fun create720pForAllUncreated(database: Connection) {
 
-    val settingsList = Settings.loadListFromDb()
+    val settingsList = Settings.loadListFromDb(database = database)
     settingsList.forEach { settings ->
         if (File(settings.pathToFileLyrics).exists() && !File(settings.pathToFile720Lyrics).exists()) {
             if (!File(settings.pathToFolder720Lyrics).exists()) Files.createDirectories(Path(settings.pathToFolder720Lyrics))
@@ -327,9 +471,9 @@ fun copyIfNeed(pathFrom: String, pathTo: String, folderTo: String, log: String =
     return false
 }
 
-fun collectDoneFilesToStoreFolderAndCreate720pForAllUncreated() {
+fun collectDoneFilesToStoreFolderAndCreate720pForAllUncreated(database: Connection) {
     println("Копирование в хранилище и создание заданий на кодирование в 720р")
-    val settingsList = Settings.loadListFromDb()
+    val settingsList = Settings.loadListFromDb(database = database)
     settingsList.forEach { settings ->
         if (copyIfNeed(settings.pathToFileLyrics, settings.pathToStoreFileLyrics, settings.pathToStoreFolderLyrics, "Копируем в хранилище файл: ${settings.nameFileLyrics}")) {
             println("Создаём задание на кодирование в 720р для файла: ${settings.nameFileLyrics}")
@@ -398,8 +542,8 @@ fun replaceSymbolsInSong(sourceText: String): String {
     return result
 }
 
-fun createFilesByTags(listOfTags: List<String> = emptyList()) {
-    val listTags = (if (listOfTags.isEmpty()) Settings.getSetOfTags() else listOfTags.map { it.uppercase() }.toSet()).toList()
+fun createFilesByTags(listOfTags: List<String> = emptyList(), database: Connection) {
+    val listTags = (if (listOfTags.isEmpty()) Settings.getSetOfTags(database = database) else listOfTags.map { it.uppercase() }.toSet()).toList()
     listTags.forEach { tag ->
 
         val pathToTagFolder = "$PATH_TO_STORE_FOLDER/TAGS/${tag}"
@@ -408,7 +552,7 @@ fun createFilesByTags(listOfTags: List<String> = emptyList()) {
         val pathToTagFolder720Karaoke = "$PATH_TO_STORE_FOLDER/720p_Karaoke/TAGS/${tag}"
         if (!File(pathToTagFolder720Karaoke).exists()) Files.createDirectories(Path(pathToTagFolder720Karaoke))
 
-        val listOfSettings = Settings.loadListFromDb(mapOf(Pair("tags", tag)))
+        val listOfSettings = Settings.loadListFromDb(mapOf(Pair("tags", tag)), database = database)
         listOfSettings.forEach { settings ->
             val sourceFileKaraoke = settings.pathToFileKaraoke
             if (File(sourceFileKaraoke).exists()) {
@@ -430,12 +574,12 @@ fun createFilesByTags(listOfTags: List<String> = emptyList()) {
     }
 }
 
-fun createDigestForAllAuthors(vararg authors: String) {
+fun createDigestForAllAuthors(vararg authors: String, database: Connection) {
 
-    val listAuthors = getAuthorsForDigest()
+    val listAuthors = getAuthorsForDigest(database = database)
     listAuthors.forEach { author ->
         if (authors.isEmpty() || author in authors) {
-            var txt = "ЗАКРОМА - «$author»\n\n${getAuthorDigest(author, false).first}"
+            var txt = "ЗАКРОМА - «$author»\n\n${getAuthorDigest(author, false, database).first}"
             val fileName = "/home/nsa/Documents/Караоке/Digest/${author} (digest).txt"
             File(fileName).writeText(txt, Charsets.UTF_8)
         }
@@ -443,14 +587,14 @@ fun createDigestForAllAuthors(vararg authors: String) {
 
 }
 
-fun createDigestForAllAuthorsForOper(vararg authors: String) {
+fun createDigestForAllAuthorsForOper(vararg authors: String, database: Connection) {
 
-    val listAuthors = getAuthorsForDigest()
+    val listAuthors = getAuthorsForDigest(database = database)
     var txt = ""
     var total = 0
     listAuthors.forEach { author ->
         if (authors.isEmpty() || author in authors) {
-            val (digest, count) = getAuthorDigest(author, false)
+            val (digest, count) = getAuthorDigest(author, false, database)
             if (digest.isNotEmpty()) {
                 txt += "«$author»\nПесен: $count шт.\n[spoiler]\n${digest}[/spoiler]\n\n"
                 total += count
@@ -462,10 +606,10 @@ fun createDigestForAllAuthorsForOper(vararg authors: String) {
     File(fileName).writeText(txt, Charsets.UTF_8)
 }
 
-fun getAuthorsForDigest(): List<String> {
+fun getAuthorsForDigest(database: Connection): List<String> {
 
     Class.forName("org.postgresql.Driver")
-    val connection = DriverManager.getConnection(CONNECTION_URL, CONNECTION_USER, CONNECTION_PASSWORD)
+    val connection = DriverManager.getConnection(database.url, database.username, database.password)
     var statement: Statement? = null
     var rs: ResultSet? = null
     var sql: String
@@ -501,11 +645,11 @@ fun getAuthorsForDigest(): List<String> {
 
 }
 
-fun getAuthorDigest(author: String, withRazor: Boolean = true): Pair<String, Int> {
+fun getAuthorDigest(author: String, withRazor: Boolean = true, database: Connection): Pair<String, Int> {
 
     val MAX_SYMBOLS = 16300
 
-    val listDigest = Settings.loadListFromDb(mapOf(Pair("song_author", author)))
+    val listDigest = Settings.loadListFromDb(mapOf(Pair("song_author", author)), database)
         .filter { it.digestIsFull }
         .map { it.digest }
 
@@ -811,11 +955,11 @@ fun searchSongText(settings: Settings): String {
 }
 
 
-fun updateSettingsFromDb(startFolder: String) {
+fun updateSettingsFromDb(startFolder: String, database: Connection) {
     val listFiles = getListFiles(startFolder,"settings")
     listFiles.forEach { pathToSettingsFile ->
         println("updateSettingsFromDb: $pathToSettingsFile")
-        val settings = Settings.loadFromFile(pathToSettingsFile)
+        val settings = Settings.loadFromFile(pathToSettingsFile, database = database)
         settings.saveToDb()
     }
 }
@@ -832,7 +976,7 @@ fun testSoundLib() {
     println("Duration of audio file: $durationInSeconds seconds")
 }
 
-fun createRunMlt(startFolder: String) {
+fun createRunMlt(startFolder: String, database: Connection) {
     val listFiles = getListFiles(startFolder,"settings")
     val albums = listFiles.groupBy { File(it).parentFile.absolutePath }
     var authorTxtAll = ""
@@ -849,7 +993,7 @@ fun createRunMlt(startFolder: String) {
 
             println(pathToSettingsFile)
 
-            val settings = Settings.loadFromFile(pathToSettingsFile)
+            val settings = Settings.loadFromFile(pathToSettingsFile, database = database)
             val songLyrics = Song(settings, SongVersion.LYRICS, woInit = true)
             val songKaraoke = Song(settings, SongVersion.KARAOKE, woInit = true)
             val songChords = Song(settings, SongVersion.CHORDS, woInit = false)
@@ -933,11 +1077,11 @@ fun createRunMlt(startFolder: String) {
 
 }
 
-fun createVKtext(startFolder: String, fromDb: Boolean = false) {
+fun createVKtext(startFolder: String, fromDb: Boolean = false, database: Connection) {
     val spreadsheetDocument = if (fromDb) SpreadsheetDocument.loadDocument(File(PATH_TO_ODS)) else null
     val listFiles = getListFiles(startFolder,"settings")
     listFiles.forEach { pathToSettingsFile ->
-        val settings = Settings.loadFromFile(pathToSettingsFile)
+        val settings = Settings.loadFromFile(pathToSettingsFile, database = database)
         val song = Song(settings, SongVersion.LYRICS)
         val fileName = song.getOutputFilename(SongOutputFile.VK)
         val decsAndName = Ods.getSongVKDescription(song, fileName, spreadsheetDocument)
@@ -955,10 +1099,10 @@ fun createVKtext(startFolder: String, fromDb: Boolean = false) {
     }
     if (fromDb) spreadsheetDocument!!.close()
 }
-fun createBoostyTeserPictures(startFolder: String) {
+fun createBoostyTeserPictures(startFolder: String, database: Connection) {
     val listFiles = getListFiles(startFolder,"settings")
     listFiles.forEach { pathToSettingsFile ->
-        val settings = Settings.loadFromFile(pathToSettingsFile)
+        val settings = Settings.loadFromFile(pathToSettingsFile, database = database)
         val song = Song(settings, SongVersion.LYRICS)
         println(pathToSettingsFile)
         createBoostyTeaserPicture(song, song.getOutputFilename(SongOutputFile.PICTUREBOOSTY))
@@ -979,17 +1123,17 @@ fun createRunToDecodeKaraokeTo720p(runFileName: String, sourceFolder: String, de
     Files.setPosixFilePermissions(file.toPath(), permissions)
 }
 
-fun createVKPictures(startFolder: String) {
+fun createVKPictures(startFolder: String, database: Connection) {
     val listFiles = getListFiles(startFolder,"settings")
     listFiles.forEach { pathToSettingsFile ->
-        val settings = Settings.loadFromFile(pathToSettingsFile)
+        val settings = Settings.loadFromFile(pathToSettingsFile, database = database)
         val song = Song(settings, SongVersion.LYRICS)
         println(pathToSettingsFile)
         createVKPicture(song, song.getOutputFilename(SongOutputFile.PICTUREVK))
     }
 }
 
-fun createDescriptionFilesForAll(startFolder: String) {
+fun createDescriptionFilesForAll(startFolder: String, database: Connection) {
 
     val listFiles = getListFiles(startFolder,"settings")
     listFiles.forEach { pathToSettingsFile ->
@@ -997,7 +1141,7 @@ fun createDescriptionFilesForAll(startFolder: String) {
         println(pathToSettingsFile)
 
         try {
-            val settings = Settings.loadFromFile(pathToSettingsFile)
+            val settings = Settings.loadFromFile(pathToSettingsFile, database = database)
             val songLyric = Song(settings, SongVersion.LYRICS)
             val songKaraoke = Song(settings, SongVersion.KARAOKE)
             val songChords = Song(settings, SongVersion.CHORDS)

@@ -84,7 +84,7 @@ data class MkoVoice(val mltProp: MltProp, val type: ProducerType, val voiceId: I
                 .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.SONGTEXT, voiceId))))
                 .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.COUNTERS, voiceId))))
                 .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.SCROLLERS, voiceId))))
-                .transitionsAndFilters(mltGenerator.name, 0,3)
+                .transitionsAndFilters(mltGenerator.name, 0,4)
                 .build()
         )
 

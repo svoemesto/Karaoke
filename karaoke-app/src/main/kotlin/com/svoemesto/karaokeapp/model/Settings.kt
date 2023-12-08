@@ -1,6 +1,7 @@
 package com.svoemesto.karaokeapp.model
 
 import com.svoemesto.karaokeapp.*
+import com.svoemesto.karaokeapp.Connection
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.encodeToString
@@ -86,7 +87,7 @@ class ApplicationContextProvider : ApplicationContextAware {
 }
 
 @Component
-class Settings: Serializable, Comparable<Settings> {
+class Settings(val database: Connection = WORKING_DATABASE): Serializable, Comparable<Settings> {
 
     private var _rootFolder: String = ""
     var readonly = false
@@ -322,6 +323,7 @@ class Settings: Serializable, Comparable<Settings> {
             SimpleDateFormat("dd.MM.yy HH:mm").parse("$date $time")
         }
     }
+    val onAir: Boolean get() = (dateTimePublish != null && dateTimePublish!! <= Calendar.getInstance().time)
     val year: Long get() = fields[SettingField.YEAR]?.toLongOrNull() ?: 0L
     val track: Long get() = fields[SettingField.TRACK]?.toLongOrNull() ?: 0L
     val key: String get() = fields[SettingField.KEY] ?: ""
@@ -344,30 +346,30 @@ class Settings: Serializable, Comparable<Settings> {
     val pictureNameAlbum: String get() = "$author - $year - $album"
 
     val pictureAuthor: Pictures? get() {
-        var pic = Pictures.load(pictureNameAuthor)
+        var pic = Pictures.load(pictureNameAuthor, database)
         if (pic == null) {
             val pathToFile = pathToFileLogoAuthor
             if (pathToFile != "") {
                 val fullPicture = java.util.Base64.getEncoder().encodeToString(File(pathToFile).inputStream().readAllBytes())
-                val pict = Pictures()
+                val pict = Pictures(database)
                 pict.name = pictureNameAuthor
                 pict.full = fullPicture
-                pic = Pictures.createDbInstance(pict)
+                pic = Pictures.createDbInstance(pict, database)
             }
         }
         return pic
     }
 
     val pictureAlbum: Pictures? get() {
-        var pic = Pictures.load(pictureNameAlbum)
+        var pic = Pictures.load(pictureNameAlbum, database)
         if (pic == null) {
             val pathToFile = pathToFileLogoAlbum
             if (pathToFile != "") {
                 val fullPicture = java.util.Base64.getEncoder().encodeToString(File(pathToFile).inputStream().readAllBytes())
-                val pict = Pictures()
+                val pict = Pictures(database)
                 pict.name = pictureNameAlbum
                 pict.full = fullPicture
-                pic = Pictures.createDbInstance(pict)
+                pic = Pictures.createDbInstance(pict, database)
             }
         }
         return pic
@@ -1217,20 +1219,20 @@ class Settings: Serializable, Comparable<Settings> {
 
         if (readonly) return
         if  (id == 0L) {
-            val newSett = createDbInstance(this)
+            val newSett = createDbInstance(this, database)
             newSett?.let {
                 newSett.saveToFile()
             }
         } else {
 
-            val diff = getDiff(this, loadFromDbById(id))
-            val messageRecordChange = RecordChangeMessage(recordChangeTableName = "tbl_settings",  recordChangeId = id, recordChangeDiffs = diff)
+            val diff = getDiff(this, loadFromDbById(id,database))
+            val messageRecordChange = RecordChangeMessage(recordChangeTableName = "tbl_settings",  recordChangeId = id, recordChangeDiffs = diff, database = database)
             if (diff.isEmpty()) return
             val setStr = diff.filter{ it.recordDiffRealField }.map { "${it.recordDiffName} = ?" }.joinToString(", ")
             val sql = "UPDATE tbl_settings SET $setStr WHERE id = ?"
 
             Class.forName("org.postgresql.Driver")
-            val connection = DriverManager.getConnection(CONNECTION_URL, CONNECTION_USER, CONNECTION_PASSWORD)
+            val connection = DriverManager.getConnection(database.url, database.username, database.password)
             val ps = connection.prepareStatement(sql)
 
             var index = 1
@@ -1255,9 +1257,9 @@ class Settings: Serializable, Comparable<Settings> {
                 println(e.message)
             }
 
-            val diffNew = getDiff(loadFromDbById(id),this)
+            val diffNew = getDiff(loadFromDbById(id, database),this)
             if (diffNew.isNotEmpty()) {
-                val messageRecordChangeNew = RecordChangeMessage(recordChangeTableName = "tbl_settings",  recordChangeId = id, recordChangeDiffs = diffNew)
+                val messageRecordChangeNew = RecordChangeMessage(recordChangeTableName = "tbl_settings",  recordChangeId = id, recordChangeDiffs = diffNew, database = database)
                 println(messageRecordChangeNew.toString())
                 try {
                     WEBSOCKET.convertAndSend("/messages/recordchange", messageRecordChangeNew)
@@ -1278,7 +1280,7 @@ class Settings: Serializable, Comparable<Settings> {
         }
 
         Class.forName("org.postgresql.Driver")
-        val connection = DriverManager.getConnection(CONNECTION_URL, CONNECTION_USER, CONNECTION_PASSWORD)
+        val connection = DriverManager.getConnection(database.url, database.username, database.password)
         val sql = "DELETE FROM tbl_settings WHERE id = ?"
         val ps = connection.prepareStatement(sql)
         ps.setLong(1, id)
@@ -1434,11 +1436,11 @@ class Settings: Serializable, Comparable<Settings> {
             return result
         }
 
-        fun getLastUpdated(lastTime: Long? = null): List<Int> {
+        fun getLastUpdated(lastTime: Long? = null, database: Connection): List<Int> {
             if (lastTime == null) return emptyList()
 
             Class.forName("org.postgresql.Driver")
-            val connection = DriverManager.getConnection(CONNECTION_URL, CONNECTION_USER, CONNECTION_PASSWORD)
+            val connection = DriverManager.getConnection(database.url, database.username, database.password)
             var statement: Statement? = null
             var rs: ResultSet? = null
             val sql: String
@@ -1467,7 +1469,7 @@ class Settings: Serializable, Comparable<Settings> {
             return emptyList()
         }
 
-        fun createDbInstance(settings: Settings? = null) : Settings? {
+        fun createDbInstance(settings: Settings? = null, database: Connection) : Settings? {
             val sql = if (settings != null) {
                 "INSERT INTO tbl_settings (" +
                         "song_name, " +
@@ -1539,7 +1541,7 @@ class Settings: Serializable, Comparable<Settings> {
             println(sql)
 
             Class.forName("org.postgresql.Driver")
-            val connection = DriverManager.getConnection(CONNECTION_URL, CONNECTION_USER, CONNECTION_PASSWORD)
+            val connection = DriverManager.getConnection(database.url, database.username, database.password)
             val ps = connection.prepareStatement(sql)
             ps.executeUpdate(sql, Statement.RETURN_GENERATED_KEYS)
             val rs = ps.generatedKeys
@@ -1549,7 +1551,7 @@ class Settings: Serializable, Comparable<Settings> {
                     settings.fields[SettingField.ID] = rs.getInt(1).toString()
                     settings
                 } else {
-                    val newSet = Settings()
+                    val newSet = Settings(database)
                     newSet.fields[SettingField.ID] = rs.getInt(1).toString()
                     newSet.fields[SettingField.NAME] = "NEW SONG"
                     newSet.fields[SettingField.AUTHOR] = "NEW AUTHOR"
@@ -1565,9 +1567,9 @@ class Settings: Serializable, Comparable<Settings> {
 
         }
 
-        fun loadListAuthors(): List<String> {
+        fun loadListAuthors(database: Connection): List<String> {
             Class.forName("org.postgresql.Driver")
-            val connection = DriverManager.getConnection(CONNECTION_URL, CONNECTION_USER, CONNECTION_PASSWORD)
+            val connection = DriverManager.getConnection(database.url, database.username, database.password)
             var statement: Statement? = null
             var rs: ResultSet? = null
             var sql: String
@@ -1597,9 +1599,9 @@ class Settings: Serializable, Comparable<Settings> {
             return emptyList()
         }
 
-        fun loadListAlbums(): List<String> {
+        fun loadListAlbums(database: Connection): List<String> {
             Class.forName("org.postgresql.Driver")
-            val connection = DriverManager.getConnection(CONNECTION_URL, CONNECTION_USER, CONNECTION_PASSWORD)
+            val connection = DriverManager.getConnection(database.url, database.username, database.password)
             var statement: Statement? = null
             var rs: ResultSet? = null
             var sql: String
@@ -1629,10 +1631,10 @@ class Settings: Serializable, Comparable<Settings> {
             return emptyList()
         }
 
-        fun loadListFromDb(args: Map<String, String> = emptyMap()): List<Settings> {
+        fun loadListFromDb(args: Map<String, String> = emptyMap(), database: Connection): List<Settings> {
 
             Class.forName("org.postgresql.Driver")
-            val connection = DriverManager.getConnection(CONNECTION_URL, CONNECTION_USER, CONNECTION_PASSWORD)
+            val connection = DriverManager.getConnection(database.url, database.username, database.password)
             var statement: Statement? = null
             var rs: ResultSet? = null
             var sql: String
@@ -1710,6 +1712,7 @@ class Settings: Serializable, Comparable<Settings> {
                 if (args.containsKey("root_folder")) where += "LOWER(root_folder)='${args["root_folder"]?.replace("'","''")?.lowercase()}'"
                 if (args.containsKey("song_name")) where += "LOWER(song_name) LIKE '%${args["song_name"]?.replace("'","''")?.lowercase()}%'"
                 if (args.containsKey("song_author")) where += "LOWER(song_author) LIKE '%${args["song_author"]?.replace("'","''")?.lowercase()}%'"
+                if (args.containsKey("author")) where += "LOWER(song_author) = '${args["author"]?.replace("'","''")?.lowercase()}'"
                 if (args.containsKey("song_album")) where += "LOWER(song_album) LIKE '%${args["song_album"]?.replace("'","''")?.lowercase()}%'"
                 if (args.containsKey("publish_date")) {
                     var pd = args["publish_date"]!!
@@ -1769,7 +1772,7 @@ class Settings: Serializable, Comparable<Settings> {
                 val result: MutableList<Settings> = mutableListOf()
                 var prevAlbum = ""
                 while (rs.next()) {
-                    val settings = Settings()
+                    val settings = Settings(database)
                     settings.fileName = rs.getString("file_name")
                     settings.rootFolder = rs.getString("root_folder")
                     rs.getInt("id")?.let { value -> settings.fields[SettingField.ID] = value.toString() }
@@ -1828,15 +1831,15 @@ class Settings: Serializable, Comparable<Settings> {
             return emptyList()
         }
 
-        fun loadFromDbById(id: Long): Settings? {
+        fun loadFromDbById(id: Long, database: Connection): Settings? {
 
-            return loadListFromDb(mapOf(Pair("id", id.toString()))).firstOrNull()
+            return loadListFromDb(mapOf(Pair("id", id.toString())), database).firstOrNull()
 
         }
 
 
-        fun loadFromFile(pathToSettingsFile: String, readonly: Boolean = false): Settings {
-            val settings = Settings()
+        fun loadFromFile(pathToSettingsFile: String, readonly: Boolean = false, database: Connection): Settings {
+            val settings = Settings(database)
             settings.readonly = readonly
             val settingFilePath = Path(pathToSettingsFile)
             val settingRoot = settingFilePath.parent.toString()
@@ -1862,7 +1865,7 @@ class Settings: Serializable, Comparable<Settings> {
             return settings
         }
 
-        fun createFromPath(startFolder: String): MutableList<Settings> {
+        fun createFromPath(startFolder: String, database: Connection): MutableList<Settings> {
             val result: MutableList<Settings> = mutableListOf()
             val listFiles = getListFiles(startFolder,"flac")
             listFiles.forEach { pathToFile ->
@@ -1888,10 +1891,10 @@ class Settings: Serializable, Comparable<Settings> {
                                 mapOf(
                                     Pair("file_name", fileName),
                                     Pair("root_folder", rootFolder)
-                                )
+                                ), database
                             ).isEmpty()
                         ) {
-                            val settings = Settings()
+                            val settings = Settings(database)
                             settings.fileName = fileName
                             settings.rootFolder = rootFolder
                             settings.fields[SettingField.NAME] = songNameStr
@@ -1911,12 +1914,12 @@ class Settings: Serializable, Comparable<Settings> {
             return result
         }
 
-        fun getSetOfTags(): Set<String> {
+        fun getSetOfTags(database: Connection): Set<String> {
 
             val result: MutableSet<String> = mutableSetOf()
 
             Class.forName("org.postgresql.Driver")
-            val connection = DriverManager.getConnection(CONNECTION_URL, CONNECTION_USER, CONNECTION_PASSWORD)
+            val connection = DriverManager.getConnection(database.url, database.username, database.password)
             var statement: Statement? = null
             var rs: ResultSet? = null
             var sql: String
@@ -1949,7 +1952,7 @@ class Settings: Serializable, Comparable<Settings> {
         fun setPublishDateTimeToAuthor(startSettings: Settings) {
             var publishDate = SimpleDateFormat("dd.MM.yy").parse(startSettings.date)
             val publishTime = startSettings.time
-            val listOfSettings = loadListFromDb(mapOf(Pair("song_author", startSettings.author))).filter { it.id > startSettings.id }
+            val listOfSettings = loadListFromDb(mapOf(Pair("song_author", startSettings.author)), startSettings.database).filter { it.id > startSettings.id }
             listOfSettings.forEach { settings ->
                 val calendar = Calendar.getInstance()
                 calendar.time = publishDate

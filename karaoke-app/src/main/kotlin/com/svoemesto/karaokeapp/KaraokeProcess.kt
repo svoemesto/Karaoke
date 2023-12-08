@@ -23,7 +23,7 @@ import java.util.concurrent.TimeUnit
 import kotlin.io.path.Path
 
 @Component
-class KaraokeProcess : Serializable, Comparable<KaraokeProcess>  {
+class KaraokeProcess(val database: Connection = WORKING_DATABASE) : Serializable, Comparable<KaraokeProcess>  {
     var id: Int = 0
     var name: String = "Process name"
     var status: String = KaraokeProcessStatuses.CREATING.name
@@ -39,7 +39,7 @@ class KaraokeProcess : Serializable, Comparable<KaraokeProcess>  {
     var prioritet: Int = 0
 
     fun copy(): KaraokeProcess {
-        val result = KaraokeProcess()
+        val result = KaraokeProcess(database)
         result.id = id
         result.name = name
         result.status = status
@@ -170,7 +170,7 @@ class KaraokeProcess : Serializable, Comparable<KaraokeProcess>  {
     fun save() {
 
         Class.forName("org.postgresql.Driver")
-        val connection = DriverManager.getConnection(CONNECTION_URL, CONNECTION_USER, CONNECTION_PASSWORD)
+        val connection = DriverManager.getConnection(database.url, database.username, database.password)
         val sql = "UPDATE tbl_processes SET " +
                 "process_name = ?, " +
                 "process_status = ?, " +
@@ -216,16 +216,16 @@ class KaraokeProcess : Serializable, Comparable<KaraokeProcess>  {
         ps.close()
         connection.close()
 
-        updateStatusProcessSettings()
+        updateStatusProcessSettings(database)
 
 //        val controller = ApplicationContextProvider.getCurrentApplicationContext().getBean(MainController::class.java)
 //        controller.processesUpdate(id.toLong())
 
     }
 
-    fun updateStatusProcessSettings() {
+    fun updateStatusProcessSettings(database: Connection) {
         if (settingsId != 0) {
-            val settings = Settings.loadFromDbById(settingsId.toLong())
+            val settings = Settings.loadFromDbById(settingsId.toLong(), database)
             settings?.let {
                 when (type) {
                     KaraokeProcessTypes.MELT_LYRICS.name -> {
@@ -292,11 +292,11 @@ class KaraokeProcess : Serializable, Comparable<KaraokeProcess>  {
             return result
         }
 
-        fun getLastUpdated(lastTime: Long? = null): List<Int> {
+        fun getLastUpdated(lastTime: Long? = null, database: Connection): List<Int> {
             if (lastTime == null) return emptyList()
 
             Class.forName("org.postgresql.Driver")
-            val connection = DriverManager.getConnection(CONNECTION_URL, CONNECTION_USER, CONNECTION_PASSWORD)
+            val connection = DriverManager.getConnection(database.url, database.username, database.password)
             var statement: Statement? = null
             var rs: ResultSet? = null
             val sql: String
@@ -368,7 +368,7 @@ class KaraokeProcess : Serializable, Comparable<KaraokeProcess>  {
                 ")"
 
             Class.forName("org.postgresql.Driver")
-            val connection = DriverManager.getConnection(CONNECTION_URL, CONNECTION_USER, CONNECTION_PASSWORD)
+            val connection = DriverManager.getConnection(process.database.url, process.database.username, process.database.password)
             val ps = connection.prepareStatement(sql)
             ps.executeUpdate(sql, Statement.RETURN_GENERATED_KEYS)
             val rs = ps.generatedKeys
@@ -385,10 +385,10 @@ class KaraokeProcess : Serializable, Comparable<KaraokeProcess>  {
 
         }
 
-        fun loadList(args: Map<String, String> = emptyMap()): List<KaraokeProcess> {
+        fun loadList(args: Map<String, String> = emptyMap(), database: Connection): List<KaraokeProcess> {
 
             Class.forName("org.postgresql.Driver")
-            val connection = DriverManager.getConnection(CONNECTION_URL, CONNECTION_USER, CONNECTION_PASSWORD)
+            val connection = DriverManager.getConnection(database.url, database.username, database.password)
             var statement: Statement? = null
             var rs: ResultSet? = null
             var sql: String
@@ -418,7 +418,7 @@ class KaraokeProcess : Serializable, Comparable<KaraokeProcess>  {
                 rs = statement.executeQuery(sql)
                 val result: MutableList<KaraokeProcess> = mutableListOf()
                 while (rs.next()) {
-                    val process = KaraokeProcess()
+                    val process = KaraokeProcess(database)
 
                     process.id = rs.getInt("id")
                     process.name = rs.getString("process_name")
@@ -463,10 +463,10 @@ class KaraokeProcess : Serializable, Comparable<KaraokeProcess>  {
             return emptyList()
         }
 
-        fun delete(id: Int) {
+        fun delete(id: Int, database: Connection) {
 
             Class.forName("org.postgresql.Driver")
-            val connection = DriverManager.getConnection(CONNECTION_URL, CONNECTION_USER, CONNECTION_PASSWORD)
+            val connection = DriverManager.getConnection(database.url, database.username, database.password)
             val sql = "DELETE FROM tbl_processes WHERE id = ?"
             val ps = connection.prepareStatement(sql)
             var index = 1
@@ -477,15 +477,15 @@ class KaraokeProcess : Serializable, Comparable<KaraokeProcess>  {
 
         }
 
-        fun load(id: Long): KaraokeProcess? {
+        fun load(id: Long, database: Connection): KaraokeProcess? {
 
-            return loadList(mapOf(Pair("id", id.toString()))).firstOrNull()
+            return loadList(mapOf(Pair("id", id.toString())), database).firstOrNull()
 
         }
 
-        fun getProcessToStart(): KaraokeProcess? {
+        fun getProcessToStart(database: Connection): KaraokeProcess? {
 
-            return loadList(mapOf(Pair("process_status", KaraokeProcessStatuses.WAITING.name))).firstOrNull()
+            return loadList(mapOf(Pair("process_status", KaraokeProcessStatuses.WAITING.name)), database).firstOrNull()
 
         }
 
@@ -497,14 +497,14 @@ class KaraokeProcess : Serializable, Comparable<KaraokeProcess>  {
                 mapOf(
                     Pair("settings_id", settings.id.toString()),
                     Pair("process_type", action.name),
-                )
+                ), settings.database
             )
 
             var wasWorking = false
             existedProcesses.forEach { existedProcess ->
                 println(existedProcess.id)
                 if (existedProcess.status != KaraokeProcessStatuses.WORKING.name) {
-                    delete(existedProcess.id)
+                    delete(existedProcess.id, settings.database)
                 } else {
                     wasWorking = true
                 }
@@ -512,7 +512,7 @@ class KaraokeProcess : Serializable, Comparable<KaraokeProcess>  {
             if (wasWorking) return 0
 
 
-            val karaokeProcess = KaraokeProcess()
+            val karaokeProcess = KaraokeProcess(settings.database)
             with(karaokeProcess) {
                 name = "[${settings.author}] - [${settings.album}] - «${settings.songName}»"
                 status = if (doWait) KaraokeProcessStatuses.WAITING.name else KaraokeProcessStatuses.CREATING.name
@@ -642,7 +642,7 @@ class KaraokeProcess : Serializable, Comparable<KaraokeProcess>  {
                 }
             }
 
-            karaokeProcess.updateStatusProcessSettings()
+            karaokeProcess.updateStatusProcessSettings(settings.database)
 
             val separatedProcesses = separate(karaokeProcess)
 
@@ -656,7 +656,7 @@ class KaraokeProcess : Serializable, Comparable<KaraokeProcess>  {
 
             parentProcess.args.forEach { childArgs ->
                 println(childArgs)
-                val childProcess = KaraokeProcess()
+                val childProcess = KaraokeProcess(parentProcess.database)
                 childProcess.name = parentProcess.name
                 childProcess.status = parentProcess.status
                 childProcess.order = parentProcess.order

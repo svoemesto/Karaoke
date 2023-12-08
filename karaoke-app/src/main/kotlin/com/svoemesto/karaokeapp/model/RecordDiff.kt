@@ -1,5 +1,7 @@
 package com.svoemesto.karaokeapp.model
 
+import com.svoemesto.karaokeapp.Connection
+
 data class RecordDiff(
     val recordDiffName: String,
     val recordDiffValueNew: Any?,
@@ -10,10 +12,12 @@ data class RecordDiff(
 data class RecordChangeMessage(
     val recordChangeId: Long,
     val recordChangeTableName: String,
-    val recordChangeDiffs: List<RecordDiff>
+    val recordChangeDiffs: List<RecordDiff>,
+    val database: Connection
 ) {
     override fun toString(): String {
         val stringBuilder = StringBuilder()
+        stringBuilder.append("База данных: $database\n")
         stringBuilder.append("Таблица: $recordChangeTableName\n")
         stringBuilder.append("ID: $recordChangeId\n")
         recordChangeDiffs.forEach { diff ->

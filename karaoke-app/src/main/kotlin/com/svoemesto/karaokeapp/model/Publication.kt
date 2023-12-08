@@ -1,12 +1,14 @@
 package com.svoemesto.karaokeapp.model
 
+import com.svoemesto.karaokeapp.Connection
+import com.svoemesto.karaokeapp.WORKING_DATABASE
 import com.svoemesto.karaokeapp.censored
 import org.springframework.messaging.simp.SimpMessagingTemplate
 import java.io.Serializable
 import java.text.SimpleDateFormat
 import java.util.*
 
-class Publication : Serializable, Comparable<Publication> {
+class Publication(val database: Connection = WORKING_DATABASE) : Serializable, Comparable<Publication> {
     var id: Int? = null
     var publishDate: String? = null
     var publish10: Settings? = null
@@ -260,7 +262,7 @@ class Publication : Serializable, Comparable<Publication> {
     }
 
     companion object {
-        fun getPublicationList(args: Map<String, String> = emptyMap()): List<Publication> {
+        fun getPublicationList(args: Map<String, String> = emptyMap(), database: Connection): List<Publication> {
             var result: MutableList<Publication> = mutableListOf()
 
             var filterDateFrom =  args["filter_date_from"] ?: ""
@@ -274,7 +276,7 @@ class Publication : Serializable, Comparable<Publication> {
                 filterDateFrom = SimpleDateFormat("dd.MM.yy").format(Date())
                 filterDateTo = ""
             } else if (filterCond == "fromnotpublish") {
-                val listOfSettingsTemp = Settings.loadListFromDb().filter {
+                val listOfSettingsTemp = Settings.loadListFromDb(database = database).filter {
                     it.date != "" &&
                     it.time != "" &&
                     it.flags != ""
@@ -291,7 +293,7 @@ class Publication : Serializable, Comparable<Publication> {
                     filterDateTo = ""
                 }
             } else if (filterCond == "fromnotdone") {
-                val listOfSettingsTemp = Settings.loadListFromDb().filter {
+                val listOfSettingsTemp = Settings.loadListFromDb(database = database).filter {
                     it.date != "" &&
                     it.time != "" &&
                     it.idStatus < 3L
@@ -308,7 +310,7 @@ class Publication : Serializable, Comparable<Publication> {
                     filterDateTo = ""
                 }
             } else if (filterCond == "fromnotcheck") {
-                val listOfSettingsTemp = Settings.loadListFromDb().filter {
+                val listOfSettingsTemp = Settings.loadListFromDb(database = database).filter {
                     it.date != "" &&
                     it.time != "" &&
                     it.idStatus < 4L
@@ -328,7 +330,7 @@ class Publication : Serializable, Comparable<Publication> {
             }
 
 
-            val listOfSettings = Settings.loadListFromDb().filter {
+            val listOfSettings = Settings.loadListFromDb(database = database).filter {
                 it.date != "" &&
                 it.time != "" &&
                 (if (filterDateFrom != "") SimpleDateFormat("dd.MM.yy").parse(it.date)  >= SimpleDateFormat("dd.MM.yy").parse(filterDateFrom) else true) &&
@@ -337,7 +339,7 @@ class Publication : Serializable, Comparable<Publication> {
             listOfSettings.forEach { settings ->
                 var publicationInList = result.filter { it.publishDate == settings.date }.firstOrNull()
                 if (publicationInList == null) {
-                    publicationInList = Publication()
+                    publicationInList = Publication(database)
                     publicationInList.publishDate = settings.date
                     publicationInList.id = (settings.date.split(".")[2]+settings.date.split(".")[1]+settings.date.split(".")[0]).toInt()
                     result.add(publicationInList)
@@ -363,11 +365,11 @@ class Publication : Serializable, Comparable<Publication> {
             return result
         }
 
-        fun getUnPublicationList(): MutableList<MutableList<Publication>> {
+        fun getUnPublicationList(database: Connection): MutableList<MutableList<Publication>> {
             var result: MutableList<MutableList<Publication>> = mutableListOf()
 
             val listUnpublished =
-                Settings.loadListFromDb(mapOf("publish_date" to "-", "publish_time" to "-"))
+                Settings.loadListFromDb(mapOf("publish_date" to "-", "publish_time" to "-"), database)
                     .groupBy { it.author }
                     .map { it.value }
                     .sortedBy { it.size }
@@ -388,7 +390,7 @@ class Publication : Serializable, Comparable<Publication> {
                 i++
                 val publicationInList: MutableList<Publication> = mutableListOf()
                 for (i in listUnpublished.indices) {
-                    val publication = Publication()
+                    val publication = Publication(database)
                     publication.publish10 =
                         if (listStack[i].size > 0) {
                             listStack[i].pop()

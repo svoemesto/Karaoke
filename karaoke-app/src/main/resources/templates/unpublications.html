@@ -103,15 +103,30 @@
                     <tr th:each="publicationlist:${publications}">
                         <div th:each="publication:${publicationlist}">
                             <td class="task" th:data-id="${publication.publish10id}" style="padding: 0; font-size: 0; min-width: 180px; max-width: 180px; border-style: solid; border-width: thin">
+<!--                                <div-->
+<!--                                        class="task__content"-->
+<!--                                        th:data-id="${publication.publish10id}"-->
+<!--                                        th:name="'publishText'+${publication.publish10id}"-->
+<!--                                        th:text="${publication.publish10text}"-->
+<!--                                        th:style="'background-color: ' + ${publication.publish10color} + '; height: 100%; padding: 4px; font-size: 10px; width: 180px; min-width: 180px; max-width: 180px; border-width: 0;'"-->
+<!--                                >-->
                                 <div
-                                        class="task__content"
-                                        th:data-id="${publication.publish10id}"
                                         th:name="'publishText'+${publication.publish10id}"
-                                        th:text="${publication.publish10text}"
                                         th:style="'background-color: ' + ${publication.publish10color} + '; height: 100%; padding: 4px; font-size: 10px; width: 180px; min-width: 180px; max-width: 180px; border-width: 0;'"
-                                ></div>
+                                >
+                                    <a
+                                        class="task__content"
+                                        style="color: black;"
+                                        th:data-id="${publication.publish10id}"
+                                        th:text="${publication.publish10text}"
+                                        th:href="'http://sm-karaoke.ru/song?id='+${publication.publish10id}"
+                                        target="_blank">
+                                    </a>
+                                </div>
                                 <div class="task__actions" th:insert="~{settings_contextmenu_task_actions.html}"></div>
-
+                            </td>
+                            <td style="padding: 0; font-size: 0; min-width: 13px; max-width: 13px; border-style: solid; border-width: thin">
+                                <div th:name="'publishBoosty'+${publication.publish10id}" th:style="'background-color: ' + ${publication.publish10colorBoosty} + '; height: 100%; font-size: 0; border-bottom-style: none; border-width: thin;'"></div>
                             </td>
                             <td th:name="'publishColors'+${publication.publish10id}" style="padding: 0; font-size: 0; min-width: 13px; max-width: 13px; border-style: solid; border-width: thin">
                                 <div th:name="'publishLyrics'+${publication.publish10id}" th:style="'background-color: ' + ${publication.publish10colorMeltLyrics} + '; height: 50%; font-size: 0; border-bottom-style: solid; border-width: thin;'" th:ondblclick="'doPlay('+${publication.publish10id}+', \'playlyrics\')'"></div>
@@ -199,6 +214,12 @@
                             var elementColors = document.getElementsByName(nameColors)[0];
                             elementText.style.backgroundColor = recordDiffValueNew;
                             elementColors.style.backgroundColor = recordDiffValueNew;
+                        }
+                        break;
+
+                    case 'processColorBoosty':
+                        if (document.getElementsByName(`publishText${id}`).length > 0) {
+                            document.getElementsByName(`publishBoosty${id}`)[0].style.backgroundColor = recordDiffValueNew;
                         }
                         break;
 

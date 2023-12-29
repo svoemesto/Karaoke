@@ -140,12 +140,12 @@
             }
         }
 
-        function doUpdateRemoteDatabaseFromLocalDatabase() {
+        function doUpdateRemoteDatabaseFromLocalDatabase(updateSettings,updatePictures) {
             if (confirm("Обновить REMOTE_DATABASE данными из LOCAL_DATABASE?")) {
                 $.ajax({
-                    type: "GET",
+                    type: "POST",
                     url: "/utils/updateremotedatabasefromlocaldatabase",
-                    data: "",
+                    data: {"updateSettings": updateSettings, "updatePictures": updatePictures},
                     success: function(data) {
                         alert(`Добавлено записей: ${data[0]}, Обновлено записей: ${data[1]}, Удалено записей: ${data[2]}`);
                     }
@@ -153,12 +153,12 @@
             }
         }
 
-        function doUpdateLocalDatabaseFromRemoteDatabase() {
+        function doUpdateLocalDatabaseFromRemoteDatabase(updateSettings,updatePictures) {
             if (confirm("Обновить LOCAL_DATABASE данными из REMOTE_DATABASE?")) {
                 $.ajax({
-                    type: "GET",
+                    type: "POST",
                     url: "/utils/updatelocaldatabasefromremotedatabase",
-                    data: "",
+                    data: {"updateSettings": updateSettings, "updatePictures": updatePictures},
                     success: function(data) {
                         alert(`Добавлено записей: ${data[0]}, Обновлено записей: ${data[1]}, Удалено записей: ${data[2]}`);
                     }
@@ -376,14 +376,23 @@
 
             <tr style="margin: 1px;padding: 1px;height: auto;">
                 <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px;">
-                    <button style="height: 35px;" name="button_update_remote" id="button_update_remote" class="form-control btn btn-primary btn-block" type="button" onclick="doUpdateRemoteDatabaseFromLocalDatabase()">Обновить REMOTE Database</button>
+                    <button style="height: 35px;" name="button_update_remote_sett" id="button_update_remote_sett" class="form-control btn btn-primary btn-block" type="button" onclick="doUpdateRemoteDatabaseFromLocalDatabase(true, false)">Обновить REMOTE Database SETTINGS</button>
+                </td>
+            </tr>
+            <tr style="margin: 1px;padding: 1px;height: auto;">
+                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                    <button style="height: 35px;" name="button_update_remote_pic" id="button_update_remote_pic" class="form-control btn btn-primary btn-block" type="button" onclick="doUpdateRemoteDatabaseFromLocalDatabase(false, true)">Обновить REMOTE Database PICTURES</button>
                 </td>
             </tr>
 
-
             <tr style="margin: 1px;padding: 1px;height: auto;">
                 <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px;">
-                    <button style="height: 35px;" name="button_update_local" id="button_update_local" class="form-control btn btn-primary btn-block" type="button" onclick="doUpdateLocalDatabaseFromRemoteDatabase()">Обновить LOCAL Database</button>
+                    <button style="height: 35px;" name="button_update_local_sett" id="button_update_local_sett" class="form-control btn btn-primary btn-block" type="button" onclick="doUpdateLocalDatabaseFromRemoteDatabase(true, false)">Обновить LOCAL Database SETTINGS</button>
+                </td>
+            </tr>
+            <tr style="margin: 1px;padding: 1px;height: auto;">
+                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                    <button style="height: 35px;" name="button_update_local_pic" id="button_update_local_pic" class="form-control btn btn-primary btn-block" type="button" onclick="doUpdateLocalDatabaseFromRemoteDatabase(false, true)">Обновить LOCAL Database PICTURES</button>
                 </td>
             </tr>
 

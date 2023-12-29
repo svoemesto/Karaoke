@@ -175,18 +175,6 @@ data class MkoMainBin(val mltProp: MltProp, val type: ProducerType, val voiceId:
                     }()
                 )
 
-//                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.AUDIOMUSIC, voiceId))))
-//                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.AUDIOVOCAL, voiceId))))
-//                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.BACKGROUND, voiceId))))
-//                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.SPLASHSTART, voiceId))))
-//                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.BOOSTY, voiceId))))
-//                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.HORIZON, voiceId))))
-//                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.FLASH, voiceId))))
-//                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.PROGRESS, voiceId))))
-//                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.VOICES, voiceId))))
-//                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.FADERTEXT, voiceId))))
-//                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.HEADER, voiceId))))
-//                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.WATERMARK, voiceId))))
 
                 .transitionsAndFilters(mltGenerator.name, mltProp.getCountAudioTracks(), mltProp.getCountAllTracks() - mltProp.getCountAudioTracks())
                 .build()

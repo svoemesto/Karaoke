@@ -1,5 +1,6 @@
 package com.svoemesto.karaokeapp
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.google.gson.GsonBuilder
 import com.svoemesto.karaokeapp.mlt.*
 import com.svoemesto.karaokeapp.model.*
@@ -19,7 +20,6 @@ import java.nio.file.StandardCopyOption
 import java.nio.file.attribute.PosixFilePermissions
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
-import java.sql.DriverManager
 import java.sql.ResultSet
 import java.sql.SQLException
 import java.sql.Statement
@@ -30,232 +30,355 @@ import javax.sound.sampled.AudioSystem
 import kotlin.io.path.Path
 import kotlin.math.roundToInt
 import kotlin.random.Random
+import java.net.http.HttpClient
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
+import java.net.URI
 
-
-fun main() {
-
-//    updateBpmAndKey()
-
-//    Settings.createFromPath("/home/nsa/Documents/Караоке/По заявкам/Дом Кукол")
-//    markDublicates("Несчастный Случай")
-//    delDublicates()
-//    markDublicates("Блуждающие Огни")
-//    markDublicates("Глеб Самойлоff & The MatriXX")
-//    markDublicates("Несчастный Случай")
-//    markDublicates("Белая Гвардия")
-//    markDublicates("Спектакль Джо")
-//    markDublicates("Ленинград")
-//    markDublicates("Эпидемия")
-//    markDublicates("Тимур Шаов")
-//    markDublicates("Гражданская Оборона")
-//    markDublicates("Хитобои")
-//    markDublicates("Дореволюціонный совѣтчикъ")
-//    markDublicates("Бригадный подряд")
-
-//    createDigestForAllAuthors()
-//    createDigestForAllAuthorsForOper()
-
-
-//    collectDoneFilesToStoreFolderAndCreate720pForAllUncreated()
-
-//    testUpdateSongFromCloud()
-
-//    collectYo()
-
-//    createDzenPicture("/home/nsa/Documents/Караоке/Несчастный Случай")
-//    createDzenPicture("/home/nsa/Documents/Караоке/Блуждающие Огни")
-//    createDzenPicture("/home/nsa/Documents/Караоке/Глеб Самойлоff & The MatriXX")
-//    createDzenPicture("/home/nsa/Documents/Караоке/Белая Гвардия")
-//    createDzenPicture("/home/nsa/Documents/Караоке/Спектакль Джо")
-//    createDzenPicture("/home/nsa/Documents/Караоке/Ленинград")
-//    createDzenPicture("/home/nsa/Documents/Караоке/Эпидемия")
-//    createDzenPicture("/home/nsa/Documents/Караоке/Тимур Шаов")
-//    createDzenPicture("/home/nsa/Documents/Караоке/Гражданская Оборона")
-//    createDzenPicture("/home/nsa/Documents/Караоке/Хитобои")
-//    createDzenPicture("/home/nsa/Documents/Караоке/Дореволюціонный совѣтчикъ")
-//    createDzenPicture("/home/nsa/Documents/Караоке/Бригадный подряд")
-//    createDzenPicture("/home/nsa/Documents/Караоке/Звери")
-//    createDzenPicture("/home/nsa/Documents/Караоке/КИНО")
-//    createDzenPicture("/home/nsa/Documents/Караоке/КняZz")
-//    createDzenPicture("/home/nsa/Documents/Караоке/Король и Шут")
-//    createDzenPicture("/home/nsa/Documents/Караоке/Кукрыниксы")
-//    createDzenPicture("/home/nsa/Documents/Караоке/Мельница")
-//    createDzenPicture("/home/nsa/Documents/Караоке/Неприкасаемые")
-//    createDzenPicture("/home/nsa/Documents/Караоке/Павел Кашин")
-//    createDzenPicture("/home/nsa/Documents/Караоке/Пикник")
-//    createDzenPicture("/home/nsa/Documents/Караоке/Сектор Газа")
-//    createDzenPicture("/home/nsa/Documents/Караоке/СерьГа")
-//    createDzenPicture("/home/nsa/Documents/Караоке/Сплин")
-//    createDzenPicture("/home/nsa/Documents/Караоке/Ундервуд")
-//    createDzenPicture("/home/nsa/Documents/Караоке/Чайф")
-//    createDzenPicture("/home/nsa/Documents/Караоке/ЭЛЕКТРОСЛАБОСТЬ")
-//    createDzenPicture("/home/nsa/Documents/Караоке/Юнона и Авось")
+fun mainUtils() {
 
 }
 
 fun customFunction(): String {
     var result = ""
 
-//    Settings.loadListFromDb(mapOf("publish_date" to ">06.12.23"))
-//        .filter { it.statusProcessKaraoke == "WAITING" && it.statusProcessLyrics == "WAITING" && it.date != ""}
+//    recodePictures()
+
+//    val settings = Settings.loadFromDbById(10538, WORKING_DATABASE)
+//    val song = Song(settings!!, SongVersion.LYRICS)
+//    createVKLinkPicture(song, song.getOutputFilename(SongOutputFile.PICTUREVK))
+
+    Settings.loadListFromDb(database = WORKING_DATABASE)
+        .forEach { settings ->
+            settings.resultText = settings.getText()
+            settings.saveToDb()
+        }
+
+
+//    Settings.loadListFromDb(mapOf("publish_date" to ">15.12.23", "id_status" to "6"), WORKING_DATABASE)
 //        .forEach { settings ->
+//            settings.createKaraoke()
 //            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, 100)
-//            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_LYR, true, 100)
 //            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, 100)
-//            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_KAR, true, 100)
 //        }
-//
-//    Settings.loadListFromDb(mapOf("publish_date" to "21.11.23<"))
-//        .filter { it.statusProcessKaraoke == "WAITING" && it.statusProcessLyrics == "WAITING" && it.date != ""}
+//    Settings.loadListFromDb(mapOf("publish_date" to "14.12.23<", "id_status" to "6"), WORKING_DATABASE)
 //        .forEach { settings ->
+//            settings.createKaraoke()
 //            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, 100)
-//            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_LYR, true, 100)
 //            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, 100)
-//            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_KAR, true, 100)
 //        }
+
 
     return result
 }
 
-fun updateRemoteDatabaseFromLocalDatabase(): Triple<Int, Int, Int> {
-    return updateDatabases(Connection.LOCAL, Connection.REMOTE)
+fun recodePictures() {
+    var totalOld: Long = 0
+    var totalNew: Long = 0
+
+    Pictures.loadList(database = WORKING_DATABASE)
+        .forEach { picture ->
+            val picBase64 = picture.full
+            val picBytes = Base64.getDecoder().decode(picBase64)
+            val picSize = picBytes.size
+            val picBi = ImageIO.read(ByteArrayInputStream(Base64.getDecoder().decode(picBase64)))
+            val picW = picBi.width
+            val picH = picBi.height
+
+            val ios = ByteArrayOutputStream()
+            ImageIO.write(picBi, "png", ios)
+            val picBytesNew = ios.toByteArray()
+            val picSizeNew = picBytesNew.size
+            val picBase64New = Base64.getEncoder().encodeToString(picBytesNew)
+            totalOld += picSize
+            totalNew += picSizeNew
+            println("${picture.name} : ${picW} x ${picH} экономия ${picSize - picSizeNew} байт.")
+//            picture.full = picBase64New
+//            picture.save()
+        }
+    println("Общая экономия: ${totalOld - totalNew} байт.")
 }
 
-fun updateLocalDatabaseFromRemoteDatabase(): Triple<Int, Int, Int> {
-    return updateDatabases(Connection.REMOTE, Connection.LOCAL)
+
+fun updateRemoteDatabaseFromLocalDatabase(updateSettings: Boolean = true, updatePictures: Boolean = true): Triple<Int, Int, Int> {
+    return updateDatabases(Connection.local(), Connection.remote(), updateSettings, updatePictures)
 }
-fun updateDatabases(fromDatabase: Connection, toDatabase: Connection): Triple<Int, Int, Int> {
+
+fun updateLocalDatabaseFromRemoteDatabase(updateSettings: Boolean = true, updatePictures: Boolean = true): Triple<Int, Int, Int> {
+    return updateDatabases(Connection.remote(), Connection.local(), updateSettings, updatePictures)
+}
+fun updateDatabases(fromDatabase: KaraokeConnection, toDatabase: KaraokeConnection, updateSettings: Boolean = true, updatePictures: Boolean = true): Triple<Int, Int, Int> {
     if (fromDatabase == toDatabase) return Triple(0,0,0)
 
     var countCreate = 0
     var countUpdate = 0
     var countDelete = 0
 
-    val listSettingsFrom = Settings.loadListFromDb(database = fromDatabase)
-    val listSettingsTo = Settings.loadListFromDb(database = toDatabase).toMutableList()
+    val listToCreate: MutableList<Map<String, Any>> = mutableListOf()
+    val listToUpdate: MutableList<Map<String, Any>> = mutableListOf()
+    val listToDelete: MutableList<Map<String, Any>> = mutableListOf()
 
-    listSettingsFrom.forEach { settingsFrom ->
-        val settingsTo = listSettingsTo.firstOrNull { it.id == settingsFrom.id }
-        if (settingsTo == null) {
-            val newRecord = Settings.createDbInstance(settingsFrom, toDatabase)
-            if (newRecord != null) {
-                newRecord.fields[SettingField.ID] = settingsFrom.id.toString()
-                newRecord.saveToDb()
-                listSettingsTo.add(newRecord)
-                countCreate++
-            }
-        } else {
+    if (updateSettings) {
 
-            val diff = Settings.getDiff(settingsFrom, settingsTo)
+        // Список айдишников базы ИЗ
+        val listSettingsFrom = Settings.loadListFromDb(database = fromDatabase)
+        println("Таблица tbl_settings, записей в базе ${fromDatabase.name}: ${listSettingsFrom.size}")
 
-            if (diff.isNotEmpty()) {
-                val messageRecordChange = RecordChangeMessage(recordChangeTableName = "tbl_settings",  recordChangeId = settingsTo.id, recordChangeDiffs = diff, database = toDatabase)
-                val setStr = diff.filter{ it.recordDiffRealField }.map { "${it.recordDiffName} = ?" }.joinToString(", ")
-                val sql = "UPDATE tbl_settings SET $setStr WHERE id = ?"
+        // Список айдишников базы В
+        val listSettingsTo = Settings.loadListFromDb(database = toDatabase).toMutableList()
+        println("Таблица tbl_settings, записей в базе ${toDatabase.name}: ${listSettingsTo.size}")
 
-                Class.forName("org.postgresql.Driver")
-                val connection = DriverManager.getConnection(toDatabase.url, toDatabase.username, toDatabase.password)
-                val ps = connection.prepareStatement(sql)
+        // Проходимся по айдишникам ИЗ
+        listSettingsFrom.forEachIndexed { indexFrom, settingsFrom ->
 
-                var index = 1
-                diff.filter{ it.recordDiffRealField }.forEach {
-                    if (it.recordDiffValueNew is Long) {
-                        ps.setLong(index, it.recordDiffValueNew.toLong())
-                    } else {
-                        ps.setString(index, it.recordDiffValueNew.toString())
-                    }
-                    index++
+            println("Таблица tbl_settings, ${fromDatabase.name}: ${indexFrom+1} из ${listSettingsFrom.size} - id=${settingsFrom.id}, author=${settingsFrom.author}, album=${settingsFrom.album}, name=${settingsFrom.songName}")
+
+            // Считываем записи с текущим айди из ИЗ и В
+            val settingsTo = listSettingsTo.firstOrNull { it.id == settingsFrom.id }
+
+            // Если в В записи нету - создаём её на основе записи из ИЗ и изменяем айдишник
+            if (settingsTo == null) {
+                println("Добавляем запись: id=${settingsFrom.id}, author=${settingsFrom.author}, album=${settingsFrom.album}, name=${settingsFrom.songName}")
+                val sqlToInsert = settingsFrom.getSqlToInsert()
+                if (toDatabase.name == "SERVER") {
+
+                    val setStrEncrypted = Crypto.encrypt(sqlToInsert)
+                    val values: Map<String, Any> = mapOf(
+                        "sqlToInsert" to (setStrEncrypted ?: "")
+                    )
+                    listToCreate.add(values)
+                } else {
+                    val connection = toDatabase.getConnection()
+                    val ps = connection.prepareStatement(sqlToInsert)
+                    ps.executeUpdate()
+                    ps.close()
                 }
-                ps.setLong(index, settingsTo.id)
-                ps.executeUpdate()
-                ps.close()
-                connection.close()
-
-                println(messageRecordChange.toString())
-
-                countUpdate++
-            }
-
-        }
-    }
-
-    val listSettingsToDel: MutableList<Settings> = mutableListOf()
-    listSettingsTo.forEach { settingsTo ->
-        val settingsFrom = listSettingsFrom.firstOrNull { it.id == settingsTo.id }
-        if (settingsFrom == null) {
-            listSettingsToDel.add(settingsTo)
-        }
-    }
-
-    listSettingsToDel.forEach { toDel ->
-        toDel.deleteFromDb()
-        countDelete++
-    }
-
-
-
-    val listPicturesFrom = Pictures.loadList(database = fromDatabase)
-    val listPicturesTo = Pictures.loadList(database = toDatabase).toMutableList()
-
-    listPicturesFrom.forEach { pictureFrom ->
-        val pictureTo = listPicturesTo.firstOrNull { it.id == pictureFrom.id }
-        if (pictureTo == null) {
-            val newRecord = Pictures.createDbInstance(pictureFrom, toDatabase)
-            if (newRecord != null) {
-                newRecord.id = pictureFrom.id
-                newRecord.save()
-                listPicturesTo.add(newRecord)
                 countCreate++
-            }
-        } else {
 
-            val diff = Pictures.getDiff(pictureFrom, pictureTo)
+            } else {
 
-            if (diff.isNotEmpty()) {
-                val messageRecordChange = RecordChangeMessage(recordChangeTableName = "tbl_pictures",  recordChangeId = pictureTo.id.toLong(), recordChangeDiffs = diff, database = toDatabase)
-                val setStr = diff.filter{ it.recordDiffRealField }.map { "${it.recordDiffName} = ?" }.joinToString(", ")
-                val sql = "UPDATE tbl_pictures SET $setStr WHERE id = ?"
+                // Если записи есть в обоих базах - получаем их дифы
+                val diff = Settings.getDiff(settingsFrom, settingsTo)
 
-                Class.forName("org.postgresql.Driver")
-                val connection = DriverManager.getConnection(toDatabase.url, toDatabase.username, toDatabase.password)
-                val ps = connection.prepareStatement(sql)
+                // Если диффы есть - вносим изменения в базу В
+                if (diff.isNotEmpty()) {
+                    println("Изменяем запись: id=${settingsFrom.id}, author=${settingsFrom.author}, album=${settingsFrom.album}, name=${settingsFrom.songName}")
+                    val messageRecordChange = RecordChangeMessage(recordChangeTableName = "tbl_settings",  recordChangeId = settingsTo.id, recordChangeDiffs = diff, databaseName = toDatabase.name)
 
-                var index = 1
-                diff.filter{ it.recordDiffRealField }.forEach {
-                    if (it.recordDiffValueNew is Long) {
-                        ps.setLong(index, it.recordDiffValueNew.toLong())
+                    if (toDatabase.name == "SERVER") {
+
+                        val setStr = messageRecordChange.getSetString()
+                        if (setStr != "") {
+                            println(setStr)
+
+                            val setStrEncrypted = Crypto.encrypt(setStr)
+                            val values: Map<String, Any> = mapOf(
+                                "tableName" to messageRecordChange.recordChangeTableName,
+                                "idRecord" to messageRecordChange.recordChangeId,
+                                "setText" to (setStrEncrypted ?: "")
+                                )
+                            listToUpdate.add(values)
+                        }
+
                     } else {
-                        ps.setString(index, it.recordDiffValueNew.toString())
+                        val setStr = diff.filter{ it.recordDiffRealField }.map { "${it.recordDiffName} = ?" }.joinToString(", ")
+                        if (setStr != "") {
+                            val sql = "UPDATE tbl_settings SET $setStr WHERE id = ?"
+
+                            val connection = toDatabase.getConnection()
+                            val ps = connection.prepareStatement(sql)
+
+                            var index = 1
+                            diff.filter{ it.recordDiffRealField }.forEach {
+                                if (it.recordDiffValueNew is Long) {
+                                    ps.setLong(index, it.recordDiffValueNew.toLong())
+                                } else {
+                                    ps.setString(index, it.recordDiffValueNew.toString())
+                                }
+                                index++
+                            }
+                            ps.setLong(index, settingsTo.id)
+                            ps.executeUpdate()
+                            ps.close()
+
+                            println(messageRecordChange.toString())
+
+
+                        }
                     }
-                    index++
+                    countUpdate++
+
+
                 }
-                ps.setLong(index, pictureTo.id.toLong())
-                ps.executeUpdate()
-                ps.close()
-                connection.close()
 
-                println(messageRecordChange.toString())
+            }
+        }
 
-                countUpdate++
+        val listSettingsToDel: MutableList<Settings> = mutableListOf()
+        listSettingsTo.forEach { settingsTo ->
+            println("Проверка на необходимость удаления записи: id=${settingsTo.id}, author=${settingsTo.author}, album=${settingsTo.album}, name=${settingsTo.songName}")
+            val settingsFrom = listSettingsFrom.firstOrNull { it.id == settingsTo.id }
+            if (settingsFrom == null) {
+                listSettingsToDel.add(settingsTo)
+            }
+        }
+
+        listSettingsToDel.forEach { toDel ->
+            if (toDatabase.name == "SERVER") {
+                val sqlToDelete = "DELETE FROM tbl_settings WHERE id = ${toDel.id}"
+                val setStrEncrypted = Crypto.encrypt(sqlToDelete)
+                val values: Map<String, Any> = mapOf(
+                    "sqlToDelete" to (setStrEncrypted ?: "")
+                )
+                listToDelete.add(values)
+            } else {
+                Settings.deleteFromDb(id = toDel.id, database = toDatabase)
             }
 
+            countDelete++
         }
+
     }
 
-    val listPicturesToDel: MutableList<Pictures> = mutableListOf()
-    listPicturesTo.forEach { picturesTo ->
-        val picturesFrom = listPicturesFrom.firstOrNull { it.id == picturesTo.id }
-        if (picturesFrom == null) {
-            listPicturesToDel.add(picturesTo)
+
+    if (updatePictures) {
+
+        val listPicturesFrom = Pictures.loadList(database = fromDatabase)
+        println("Таблица tbl_pictures, записей в базе ${fromDatabase.name}: ${listPicturesFrom.size}")
+        val listPicturesTo = Pictures.loadList(database = toDatabase).toMutableList()
+        println("Таблица tbl_pictures, записей в базе ${toDatabase.name}: ${listPicturesTo.size}")
+
+        listPicturesFrom.forEachIndexed {indexFrom, pictureFrom ->
+
+            println("Таблица tbl_pictures, ${fromDatabase.name}: ${indexFrom+1} из ${listPicturesFrom.size}")
+
+            val pictureTo = listPicturesTo.firstOrNull { it.id == pictureFrom.id }
+            if (pictureTo == null) {
+
+                println("Добавляем запись: id=${pictureFrom.id}, name=${pictureFrom.name}")
+                val sqlToInsert = pictureFrom.getSqlToInsert()
+                if (toDatabase.name == "SERVER") {
+
+                    val setStrEncrypted = Crypto.encrypt(sqlToInsert)
+                    val values: Map<String, Any> = mapOf(
+                        "sqlToInsert" to (setStrEncrypted ?: "")
+                    )
+                    listToCreate.add(values)
+
+                } else {
+                    val connection = toDatabase.getConnection()
+                    val ps = connection.prepareStatement(sqlToInsert)
+                    ps.executeUpdate()
+                    ps.close()
+                }
+                countCreate++
+
+            } else {
+
+                val diff = Pictures.getDiff(pictureFrom, pictureTo)
+
+                if (diff.isNotEmpty()) {
+                    println("Изменяем запись: id=${pictureFrom.id}, name=${pictureFrom.name}")
+                    val messageRecordChange = RecordChangeMessage(recordChangeTableName = "tbl_pictures",  recordChangeId = pictureTo.id.toLong(), recordChangeDiffs = diff, databaseName = toDatabase.name)
+
+                    if (toDatabase.name == "SERVER") {
+
+                        val setStr = messageRecordChange.getSetString()
+                        if (setStr != "") {
+                            println(setStr)
+
+                            val setStrEncrypted = Crypto.encrypt(setStr)
+                            val values: Map<String, Any> = mapOf(
+                                "tableName" to messageRecordChange.recordChangeTableName,
+                                "idRecord" to messageRecordChange.recordChangeId,
+                                "setText" to (setStrEncrypted ?: "")
+                            )
+                            listToUpdate.add(values)
+                        }
+
+                    } else {
+                        val setStr = diff.filter{ it.recordDiffRealField }.map { "${it.recordDiffName} = ?" }.joinToString(", ")
+
+                        if (setStr != "") {
+                            val sql = "UPDATE tbl_pictures SET $setStr WHERE id = ?"
+
+                            val connection = toDatabase.getConnection()
+                            val ps = connection.prepareStatement(sql)
+
+                            var index = 1
+                            diff.filter{ it.recordDiffRealField }.forEach {
+                                if (it.recordDiffValueNew is Long) {
+                                    ps.setLong(index, it.recordDiffValueNew.toLong())
+                                } else {
+                                    ps.setString(index, it.recordDiffValueNew.toString())
+                                }
+                                index++
+                            }
+                            ps.setLong(index, pictureTo.id.toLong())
+                            ps.executeUpdate()
+                            ps.close()
+
+                            println(messageRecordChange.toString())
+
+
+                        }
+                    }
+
+                    countUpdate++
+
+
+                }
+
+            }
         }
+
+        val listPicturesToDel: MutableList<Pictures> = mutableListOf()
+        listPicturesTo.forEach { picturesTo ->
+            println("Проверка на необходимость удаления записи: id=${picturesTo.id}, name=${picturesTo.name}")
+            val picturesFrom = listPicturesFrom.firstOrNull { it.id == picturesTo.id }
+            if (picturesFrom == null) {
+                listPicturesToDel.add(picturesTo)
+            }
+        }
+
+        listPicturesToDel.forEach { toDel ->
+            if (toDatabase.name == "SERVER") {
+                val sqlToDelete = "DELETE FROM tbl_pictures WHERE id = ${toDel.id}"
+                val setStrEncrypted = Crypto.encrypt(sqlToDelete)
+                val values: Map<String, Any> = mapOf(
+                    "sqlToDelete" to (setStrEncrypted ?: "")
+                )
+                listToDelete.add(values)
+            } else {
+                Pictures.delete(toDel.id, toDatabase)
+            }
+
+            countDelete++
+        }
+
     }
 
-    listPicturesToDel.forEach { toDel ->
-        Pictures.delete(toDel.id, toDatabase)
-        countDelete++
+    if (toDatabase.name == "SERVER") {
+        println("Запрос на сервер на изменение/добавление/удаление.")
+
+        val values: Map<String, Any> = mapOf(
+            "dataCreate" to listToCreate,
+            "dataUpdate" to listToUpdate,
+            "dataDelete" to listToDelete,
+            "word" to (Crypto.encrypt(Crypto.wordsToChesk) ?: "")
+        )
+
+        val objectMapper = ObjectMapper()
+        val requestBody: String = objectMapper.writeValueAsString(values)
+        val client = HttpClient.newBuilder().build();
+        val request = HttpRequest.newBuilder()
+            .uri(URI.create("http://79.174.95.69/changerecords"))
+            .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+            .header("Content-Type", "application/json")
+            .build()
+        val response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        println(response.body())
     }
-
-
 
     return Triple(countCreate, countUpdate, countDelete)
 
@@ -310,30 +433,8 @@ fun bytesToHex(bytes: ByteArray): String? {
     }
     return builder.toString()
 }
-fun organizeUnpublished(database: Connection) {
 
-    val listUnpublished =
-        Settings.loadListFromDb(mapOf("publish_date" to "-", "publish_time" to "-"), database)
-            .groupBy { it.author }
-            .map { Pair(it.key, it.value.size) }
-
-    var slotes: MutableList<Pair<String, Long>> = mutableListOf()
-    slotes.add("11:00" to SimpleDateFormat("dd.MM.yy").parse(Settings.loadListFromDb(mapOf("publish_time" to "11:00"), database).last().date).time)
-    slotes.add("12:00" to SimpleDateFormat("dd.MM.yy").parse(Settings.loadListFromDb(mapOf("publish_time" to "12:00"), database).last().date).time)
-    slotes.add("13:00" to SimpleDateFormat("dd.MM.yy").parse(Settings.loadListFromDb(mapOf("publish_time" to "13:00"), database).last().date).time)
-    slotes.add("14:00" to SimpleDateFormat("dd.MM.yy").parse(Settings.loadListFromDb(mapOf("publish_time" to "14:00"), database).last().date).time)
-    slotes.add("15:00" to SimpleDateFormat("dd.MM.yy").parse(Settings.loadListFromDb(mapOf("publish_time" to "15:00"), database).last().date).time)
-    slotes.add("16:00" to SimpleDateFormat("dd.MM.yy").parse(Settings.loadListFromDb(mapOf("publish_time" to "16:00"), database).last().date).time)
-    slotes.add("17:00" to SimpleDateFormat("dd.MM.yy").parse(Settings.loadListFromDb(mapOf("publish_time" to "17:00"), database).last().date).time)
-    slotes.add("18:00" to SimpleDateFormat("dd.MM.yy").parse(Settings.loadListFromDb(mapOf("publish_time" to "18:00"), database).last().date).time)
-    slotes.add("19:00" to SimpleDateFormat("dd.MM.yy").parse(Settings.loadListFromDb(mapOf("publish_time" to "19:00"), database).last().date).time)
-    slotes.add("20:00" to SimpleDateFormat("dd.MM.yy").parse(Settings.loadListFromDb(mapOf("publish_time" to "20:00"), database).last().date).time)
-    val minDate = slotes.minOfOrNull { it.second } ?: 0L
-    slotes = slotes.map {Pair(it.first, it.second - minDate) }.toMutableList()
-
-}
-
-fun updateBpmAndKey(database: Connection): Int {
+fun updateBpmAndKey(database: KaraokeConnection): Int {
     val listSettings = Settings.loadListFromDb(mapOf("song_tone" to "''", "song_bpm" to "0"), database)
     var counter = 0
     listSettings.forEach { settings ->
@@ -385,7 +486,7 @@ fun getBpmAndKeyFromCsv(settings: Settings): Pair<Long, String> {
 
 
 
-fun delDublicates(database: Connection): Int {
+fun delDublicates(database: KaraokeConnection): Int {
     var counter = 0
     val listSettings = Settings.loadListFromDb(
         mapOf(Pair("tags", "DD")), database
@@ -399,7 +500,7 @@ fun delDublicates(database: Connection): Int {
     return counter
 }
 
-fun clearPreDublicates(database: Connection): Int {
+fun clearPreDublicates(database: KaraokeConnection): Int {
     var counter = 0
     val listSettings = Settings.loadListFromDb(
         mapOf(Pair("tags", "D")), database
@@ -414,7 +515,7 @@ fun clearPreDublicates(database: Connection): Int {
     return counter
 }
 
-fun markDublicates(autor: String, database: Connection): Int {
+fun markDublicates(autor: String, database: KaraokeConnection): Int {
     var counter = 0
     val listSettings = Settings.loadListFromDb(
         mapOf(Pair("song_author", autor)), database
@@ -438,7 +539,7 @@ fun markDublicates(autor: String, database: Connection): Int {
     return counter
 }
 
-fun create720pForAllUncreated(database: Connection) {
+fun create720pForAllUncreated(database: KaraokeConnection) {
 
     val settingsList = Settings.loadListFromDb(database = database)
     settingsList.forEach { settings ->
@@ -471,7 +572,7 @@ fun copyIfNeed(pathFrom: String, pathTo: String, folderTo: String, log: String =
     return false
 }
 
-fun collectDoneFilesToStoreFolderAndCreate720pForAllUncreated(database: Connection) {
+fun collectDoneFilesToStoreFolderAndCreate720pForAllUncreated(database: KaraokeConnection) {
     println("Копирование в хранилище и создание заданий на кодирование в 720р")
     val settingsList = Settings.loadListFromDb(database = database)
     settingsList.forEach { settings ->
@@ -485,22 +586,6 @@ fun collectDoneFilesToStoreFolderAndCreate720pForAllUncreated(database: Connecti
         }
         copyIfNeed(settings.pathToFileChords, settings.pathToStoreFileChords, settings.pathToStoreFolderChords, "Копируем в хранилище файл: ${settings.nameFileChords}")
 
-
-//        if (File(settings.pathToFileLyricsBt).exists() && !File(settings.pathToStoreFileLyricsBt).exists()) {
-//            if (!File(settings.pathToStoreFolderLyricsBt).exists()) Files.createDirectories(Path(settings.pathToStoreFolderLyricsBt))
-//            println("Копируем в хранилище файл: ${settings.nameFileLyricsBt}")
-//            Files.copy(Path(settings.pathToFileLyricsBt), Path(settings.pathToStoreFileLyricsBt))
-//        }
-//        if (File(settings.pathToFileKaraokeBt).exists() && !File(settings.pathToStoreFileKaraokeBt).exists()) {
-//            if (!File(settings.pathToStoreFolderKaraokeBt).exists()) Files.createDirectories(Path(settings.pathToStoreFolderKaraokeBt))
-//            println("Копируем в хранилище файл: ${settings.nameFileKaraokeBt}")
-//            Files.copy(Path(settings.pathToFileKaraokeBt), Path(settings.pathToStoreFileKaraokeBt))
-//        }
-//        if (File(settings.pathToFileChordsBt).exists() && !File(settings.pathToStoreFileChordsBt).exists()) {
-//            if (!File(settings.pathToStoreFolderChordsBt).exists()) Files.createDirectories(Path(settings.pathToStoreFolderChordsBt))
-//            println("Копируем в хранилище файл: ${settings.nameFileChordsBt}")
-//            Files.copy(Path(settings.pathToFileChordsBt), Path(settings.pathToStoreFileChordsBt))
-//        }
     }
 }
 
@@ -542,7 +627,7 @@ fun replaceSymbolsInSong(sourceText: String): String {
     return result
 }
 
-fun createFilesByTags(listOfTags: List<String> = emptyList(), database: Connection) {
+fun createFilesByTags(listOfTags: List<String> = emptyList(), database: KaraokeConnection) {
     val listTags = (if (listOfTags.isEmpty()) Settings.getSetOfTags(database = database) else listOfTags.map { it.uppercase() }.toSet()).toList()
     listTags.forEach { tag ->
 
@@ -574,7 +659,7 @@ fun createFilesByTags(listOfTags: List<String> = emptyList(), database: Connecti
     }
 }
 
-fun createDigestForAllAuthors(vararg authors: String, database: Connection) {
+fun createDigestForAllAuthors(vararg authors: String, database: KaraokeConnection) {
 
     val listAuthors = getAuthorsForDigest(database = database)
     listAuthors.forEach { author ->
@@ -587,7 +672,7 @@ fun createDigestForAllAuthors(vararg authors: String, database: Connection) {
 
 }
 
-fun createDigestForAllAuthorsForOper(vararg authors: String, database: Connection) {
+fun createDigestForAllAuthorsForOper(vararg authors: String, database: KaraokeConnection) {
 
     val listAuthors = getAuthorsForDigest(database = database)
     var txt = ""
@@ -606,10 +691,9 @@ fun createDigestForAllAuthorsForOper(vararg authors: String, database: Connectio
     File(fileName).writeText(txt, Charsets.UTF_8)
 }
 
-fun getAuthorsForDigest(database: Connection): List<String> {
+fun getAuthorsForDigest(database: KaraokeConnection): List<String> {
 
-    Class.forName("org.postgresql.Driver")
-    val connection = DriverManager.getConnection(database.url, database.username, database.password)
+    val connection = database.getConnection()
     var statement: Statement? = null
     var rs: ResultSet? = null
     var sql: String
@@ -636,7 +720,6 @@ fun getAuthorsForDigest(database: Connection): List<String> {
         try {
             rs?.close() // close result set
             statement?.close() // close statement
-            connection?.close()
         } catch (e: SQLException) {
             e.printStackTrace()
         }
@@ -645,7 +728,7 @@ fun getAuthorsForDigest(database: Connection): List<String> {
 
 }
 
-fun getAuthorDigest(author: String, withRazor: Boolean = true, database: Connection): Pair<String, Int> {
+fun getAuthorDigest(author: String, withRazor: Boolean = true, database: KaraokeConnection): Pair<String, Int> {
 
     val MAX_SYMBOLS = 16300
 
@@ -955,7 +1038,7 @@ fun searchSongText(settings: Settings): String {
 }
 
 
-fun updateSettingsFromDb(startFolder: String, database: Connection) {
+fun updateSettingsFromDb(startFolder: String, database: KaraokeConnection) {
     val listFiles = getListFiles(startFolder,"settings")
     listFiles.forEach { pathToSettingsFile ->
         println("updateSettingsFromDb: $pathToSettingsFile")
@@ -976,7 +1059,7 @@ fun testSoundLib() {
     println("Duration of audio file: $durationInSeconds seconds")
 }
 
-fun createRunMlt(startFolder: String, database: Connection) {
+fun createRunMlt(startFolder: String, database: KaraokeConnection) {
     val listFiles = getListFiles(startFolder,"settings")
     val albums = listFiles.groupBy { File(it).parentFile.absolutePath }
     var authorTxtAll = ""
@@ -1077,7 +1160,7 @@ fun createRunMlt(startFolder: String, database: Connection) {
 
 }
 
-fun createVKtext(startFolder: String, fromDb: Boolean = false, database: Connection) {
+fun createVKtext(startFolder: String, fromDb: Boolean = false, database: KaraokeConnection) {
     val spreadsheetDocument = if (fromDb) SpreadsheetDocument.loadDocument(File(PATH_TO_ODS)) else null
     val listFiles = getListFiles(startFolder,"settings")
     listFiles.forEach { pathToSettingsFile ->
@@ -1099,7 +1182,7 @@ fun createVKtext(startFolder: String, fromDb: Boolean = false, database: Connect
     }
     if (fromDb) spreadsheetDocument!!.close()
 }
-fun createBoostyTeserPictures(startFolder: String, database: Connection) {
+fun createBoostyTeserPictures(startFolder: String, database: KaraokeConnection) {
     val listFiles = getListFiles(startFolder,"settings")
     listFiles.forEach { pathToSettingsFile ->
         val settings = Settings.loadFromFile(pathToSettingsFile, database = database)
@@ -1123,17 +1206,20 @@ fun createRunToDecodeKaraokeTo720p(runFileName: String, sourceFolder: String, de
     Files.setPosixFilePermissions(file.toPath(), permissions)
 }
 
-fun createVKPictures(startFolder: String, database: Connection) {
-    val listFiles = getListFiles(startFolder,"settings")
-    listFiles.forEach { pathToSettingsFile ->
-        val settings = Settings.loadFromFile(pathToSettingsFile, database = database)
+fun createVKLinkPictures(database: KaraokeConnection) {
+    val listSettings = Settings.loadListFromDb(database = database)
+    listSettings.forEach { settings ->
         val song = Song(settings, SongVersion.LYRICS)
-        println(pathToSettingsFile)
-        createVKPicture(song, song.getOutputFilename(SongOutputFile.PICTUREVK))
+        println("${settings.datePublish} - ${settings.author} - ${settings.year} - ${settings.album} - ${settings.songName}")
+        try {
+            createVKLinkPicture(song, song.getOutputFilename(SongOutputFile.PICTUREVK))
+        } catch (e: Exception) {
+            println("Пропускаем.")
+        }
     }
 }
 
-fun createDescriptionFilesForAll(startFolder: String, database: Connection) {
+fun createDescriptionFilesForAll(startFolder: String, database: KaraokeConnection) {
 
     val listFiles = getListFiles(startFolder,"settings")
     listFiles.forEach { pathToSettingsFile ->
@@ -2249,6 +2335,102 @@ fun createVKPicture(song: Song, fileName: String) {
 
 }
 
+fun createVKLinkPicture(song: Song, fileName: String) {
+    val pathToLogoAlbum = "${song.settings.pathToFileLogoAlbum}"
+    val pathToLogoAuthor = "${song.settings.pathToFileLogoAuthor}"
+
+    val padding = 20
+
+    val frameW = 537
+    val frameH = 240
+
+    val albumW = ((frameW - 3*padding) / 3.5).toInt()
+    val albumH = albumW
+    val authorW = (albumW * 2.5).toInt()
+    val authorH = albumH
+
+    val picAreaW = frameW
+    val picAreaH = 2*padding + albumH
+
+    val textAreaW = frameW
+    val textAreaH = frameH - picAreaH
+
+    val opaque: Float = 1f
+    var fontSongname = Font(MAIN_FONT_NAME, 0, 10)
+    val colorSongname = Color(255,255,127,255)
+    val textToOverlay = song.settings.songName.censored()
+    val imageType = BufferedImage.TYPE_INT_ARGB
+    val resultImage = BufferedImage(frameW, frameH, imageType)
+    val graphics2D = resultImage.graphics as Graphics2D
+    val alphaChannel = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opaque)
+
+    val biLogoAlbum = ImageIO.read(File(pathToLogoAlbum))
+    val biLogoAuthor = ImageIO.read(File(pathToLogoAuthor))
+
+    graphics2D.composite = alphaChannel
+    graphics2D.background = Color.BLACK
+    graphics2D.color = Color.BLACK
+    graphics2D.fillRect(0,0,frameW, frameH)
+    graphics2D.color = colorSongname
+    graphics2D.font = fontSongname
+
+    var rectW = 0
+    var rectH = 0
+    do {
+        fontSongname = Font(fontSongname.name, fontSongname.style, fontSongname.size+1)
+        graphics2D.font = fontSongname
+        val fontMetrics = graphics2D.fontMetrics
+        val rect = fontMetrics.getStringBounds(textToOverlay, graphics2D)
+        rectW = rect.width.toInt()
+        rectH = rect.height.toInt()
+    } while (!(rectH > textAreaH || rectW > (textAreaW - padding)))
+
+    val centerX = (textAreaW - rectW) / 2
+    val centerY = picAreaH + textAreaH / 2 + (textAreaH - rectH) / 2
+    graphics2D.drawString(textToOverlay, centerX, centerY)
+
+    graphics2D.drawImage(resizeBufferedImage(biLogoAlbum, albumW, albumH), padding, padding, null)
+    graphics2D.drawImage(resizeBufferedImage(biLogoAuthor, authorW, authorH), albumW + 2*padding, padding, null)
+
+    graphics2D.dispose()
+
+    val file = File(fileName.replace(" [lyrics] VK"," [VKlink]"))
+
+    ImageIO.write(resultImage, "png", file)
+
+}
+
+fun getVKPictureBase64(settings: Settings): String {
+
+    val frameW = 600
+    val frameH = 194
+    val opaque: Float = 1f
+    val imageType = BufferedImage.TYPE_INT_ARGB
+    var resultImage = BufferedImage(frameW, frameH, imageType)
+    val graphics2D = resultImage.graphics as Graphics2D
+    val alphaChannel = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opaque)
+
+    val biLogoAlbum = ImageIO.read(ByteArrayInputStream(Base64.getDecoder().decode(settings.pictureAlbum?.full ?:"")))
+    val biLogoAuthor = ImageIO.read(ByteArrayInputStream(Base64.getDecoder().decode(settings.pictureAuthor?.full ?:"")))
+
+    graphics2D.composite = alphaChannel
+    graphics2D.background = Color.BLACK
+    graphics2D.color = Color.BLACK
+    graphics2D.fillRect(0,0,frameW, frameH)
+
+    graphics2D.drawImage(resizeBufferedImage(biLogoAlbum,154, 154), 20, 20, null)
+    graphics2D.drawImage(resizeBufferedImage(biLogoAuthor, 385, 154), 194, 20, null)
+
+    graphics2D.dispose()
+
+    val ios = ByteArrayOutputStream()
+
+    ImageIO.write(resultImage, "png", ios)
+
+    return Base64.getEncoder().encodeToString(ios.toByteArray())
+
+}
+
 fun createDzenPicture(pathToAuthor: String) {
     val pathToLogoAuthor = "$pathToAuthor/LogoAuthor.png"
 
@@ -2764,7 +2946,7 @@ class MainRibbon {
 
     companion object {
         @JvmStatic
-        fun main(args: Array<String>) {
+        fun mainn(args: Array<String>) {
             val mainRibbon = MainRibbon()
             println(mainRibbon.syllables("Я однажды проснусь оттого, что пойму: в эту ночь"))
         }

@@ -1,14 +1,13 @@
 package com.svoemesto.karaokeapp.model
 
-import com.svoemesto.karaokeapp.Connection
+import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.WORKING_DATABASE
 import com.svoemesto.karaokeapp.censored
-import org.springframework.messaging.simp.SimpMessagingTemplate
 import java.io.Serializable
 import java.text.SimpleDateFormat
 import java.util.*
 
-class Publication(val database: Connection = WORKING_DATABASE) : Serializable, Comparable<Publication> {
+class Publication(val database: KaraokeConnection = WORKING_DATABASE) : Serializable, Comparable<Publication> {
     var id: Int? = null
     var publishDate: String? = null
     var publish10: Settings? = null
@@ -262,7 +261,7 @@ class Publication(val database: Connection = WORKING_DATABASE) : Serializable, C
     }
 
     companion object {
-        fun getPublicationList(args: Map<String, String> = emptyMap(), database: Connection): List<Publication> {
+        fun getPublicationList(args: Map<String, String> = emptyMap(), database: KaraokeConnection): List<Publication> {
             var result: MutableList<Publication> = mutableListOf()
 
             var filterDateFrom =  args["filter_date_from"] ?: ""
@@ -365,7 +364,7 @@ class Publication(val database: Connection = WORKING_DATABASE) : Serializable, C
             return result
         }
 
-        fun getUnPublicationList(database: Connection): MutableList<MutableList<Publication>> {
+        fun getUnPublicationList(database: KaraokeConnection): MutableList<MutableList<Publication>> {
             var result: MutableList<MutableList<Publication>> = mutableListOf()
 
             val listUnpublished =

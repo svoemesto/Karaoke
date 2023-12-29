@@ -1,0 +1,14 @@
+FROM ubuntu:24.04
+RUN apt-get update && apt-get install -q -y default-jdk
+RUN java -version
+ARG VERSION
+ARG APP_VERSION
+
+COPY karaoke-app-${APP_VERSION}.jar /home/Karaoke/app.jar
+
+RUN ls /home/Karaoke
+
+ENV APP_VERSION ${VERSION}
+ENV TZ="Europe/Moscow"
+
+ENTRYPOINT ["java","-jar","/home/Karaoke/app.jar"]

@@ -24,18 +24,30 @@
     <script type="text/javascript">
 
 
-        var stompClient = null;
+        var stompClientSettings = null;
+        var stompClientProcesses = null;
 
         function connect() {
-            var socket = new SockJS('/message');
-            stompClient = Stomp.over(socket);
-            stompClient.connect({}, function (frame) {
+            var socketSettings = new SockJS('/message');
+            stompClientSettings = Stomp.over(socketSettings);
+            stompClientSettings.connect({}, function (frame) {
                 console.log('Connected: ' + frame);
-                stompClient.subscribe('/messages/recordchange', function (recordchange) {
+                stompClientSettings.subscribe('/messages/recordchange', function (recordchange) {
                     console.log("Получено сообщение...");
                     updateSettingsFromMessage(JSON.parse(recordchange.body));
                 });
             });
+
+            var socketProgress = new SockJS('/message');
+            stompClientProcesses = Stomp.over(socketProgress);
+            stompClientProcesses.connect({}, function (frame) {
+                console.log('Connected: ' + frame);
+                stompClientProcesses.subscribe('/messages/processesrecordchange', function (recordchange) {
+                    console.log("Получено сообщение...");
+                    updateProcessesFromMessage(JSON.parse(recordchange.body));
+                });
+            });
+
         }
 
         var currentTimeStamp = new Date().getTime();
@@ -2048,6 +2060,82 @@
             }
         }
 
+        function updateProcessesFromMessage(recordchange) {
+            var id = recordchange.recordChangeId;
+            var table = recordchange.recordChangeTableName;
+            var diffs = recordchange.recordChangeDiffs;
+            if (table === 'tbl_processes') {
+                if (id === 0) {
+                    // diffs.forEach((diff) => {
+                    //     var recordDiffName = diff.recordDiffName;
+                    //     if (recordDiffName === 'isWorkAndStopAfterThreadIsDone') {
+                    //         var isWorking = diff.recordDiffValueNew;
+                    //         var isStopAfterThreadIsDone = diff.recordDiffValueOld;
+                    //         var result = "";
+                    //         if (isWorking === false) {
+                    //             result = "Остановлено";
+                    //         } else {
+                    //             if (isStopAfterThreadIsDone === false) {
+                    //                 result = "Работает";
+                    //             } else {
+                    //                 result = "Ожидает остановки";
+                    //             }
+                    //         }
+                    //         var isWorkingElement = document.getElementById("isworking");
+                    //         isWorkingElement.innerText = result;
+                    //     }
+                    //
+                    //
+                    // });
+                } else {
+                    var processName = "";
+                    var processType = "";
+                    var processPassed = "";
+                    var processLeft = "";
+                    var processPercentage = "";
+
+                    diffs.forEach((diff) => {
+                        var recordDiffName = diff.recordDiffName;
+                        var recordDiffValueNew = diff.recordDiffValueNew;
+                        switch (recordDiffName) {
+
+                            case 'process_name':
+                                processName = recordDiffValueNew;
+                                break;
+
+                            case 'process_type':
+                                processType = recordDiffValueNew;
+                                break;
+
+                            case 'percentageNum':
+                                processPercentage = recordDiffValueNew;
+                                break;
+
+                            case 'timePassedStr':
+                                processPassed = recordDiffValueNew;
+                                break;
+
+                            case 'timeLeftStr':
+                                processLeft = recordDiffValueNew;
+                                break;
+
+                            default:
+                        }
+
+                    });
+
+                    var processText = `${processName} /${processType}/ [${processLeft}]`
+                    var processProgressBarText = `${processPercentage}%`
+                    var elemProcessText = document.getElementById("process_text");
+                    var elemProcessProgressBar = document.getElementById("process_progress_bar");
+                    elemProcessText.innerText = processText;
+                    elemProcessProgressBar.innerText = processProgressBarText;
+                    elemProcessProgressBar.style.width = processProgressBarText;
+
+                }
+
+            }
+        }
 
         $(function () {
             connect();

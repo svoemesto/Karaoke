@@ -9,7 +9,7 @@ import com.svoemesto.karaokeapp.mlt.mltNode
 import com.svoemesto.karaokeapp.model.*
 
 data class MkoSongText(val mltProp: MltProp, val type: ProducerType, val voiceId: Int = 0, val childId: Int = 0): MltKaraokeObject {
-    val mltGenerator = MltGenerator(mltProp, type)
+    val mltGenerator = MltGenerator(mltProp, type, voiceId)
 
     override fun producer(): MltNode = mltGenerator
         .producer(

@@ -6,6 +6,18 @@ import java.awt.Font
 import java.io.File
 import java.util.*
 
+fun String.getWords(): List<String> {
+    val result: MutableList<String> = mutableListOf()
+    val regex = "([a-zA-Zа-яА-ЯёЁ\\-]+)".toRegex()
+    val matchResults = regex.findAll(this)
+    matchResults.forEach { matchResult ->
+        matchResult.groupValues.forEach { word ->
+            result.add(word.lowercase())
+        }
+    }
+    return result.toSet().toList()
+}
+
 fun String.nullIfEmpty(): String? {
     return if (this.trim() == "" || this == "null") null else this
 }

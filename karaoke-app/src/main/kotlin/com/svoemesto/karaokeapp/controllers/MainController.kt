@@ -2,10 +2,8 @@ package com.svoemesto.karaokeapp.controllers
 
 import com.svoemesto.karaokeapp.*
 import com.svoemesto.karaokeapp.model.*
-import com.svoemesto.karaokeapp.textfiledictionary.CensoredWordsDictionary
-import com.svoemesto.karaokeapp.textfiledictionary.TestDictionary
+import com.svoemesto.karaokeapp.services.APP_WORK_IN_CONTAINER
 import com.svoemesto.karaokeapp.textfiledictionary.TextFileDictionary
-import com.svoemesto.karaokeapp.textfiledictionary.YoWordsDictionary
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -18,15 +16,14 @@ import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.*
 import java.io.File
+import java.util.*
 
 @Controller
 class MainController(private val webSocket: SimpMessagingTemplate) {
-//
-//    private val emittersSettings = CopyOnWriteArrayList<SseEmitter>()
-//    private val emittersProcesses = CopyOnWriteArrayList<SseEmitter>()
 
     @GetMapping("/")
     fun main(model: Model): String {
+        model.addAttribute("workInContainer", APP_WORK_IN_CONTAINER)
         model.addAttribute("authors", Settings.loadListAuthors(WORKING_DATABASE))
         model.addAttribute("dicts", TEXT_FILE_DICTS.keys.toMutableList().sorted().toList())
         return "main"
@@ -40,7 +37,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
 
         val args: MutableMap<String, String> = mutableMapOf()
         author?.let { if (author != "") args["author"] = author }
-
+        model.addAttribute("workInContainer", APP_WORK_IN_CONTAINER)
         model.addAttribute("authors", Settings.loadListAuthors(WORKING_DATABASE))
         model.addAttribute("zakroma", Zakroma.getZakroma(author ?: "", WORKING_DATABASE))
         return "zakroma"
@@ -93,18 +90,24 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
         return updateBpmAndKey(WORKING_DATABASE)
     }
 
-    @GetMapping("/utils/updateremotedatabasefromlocaldatabase")
+    @PostMapping("/utils/updateremotedatabasefromlocaldatabase")
     @ResponseBody
-    fun doUpdateRemoteDatabaseFromLocalDatabase(): List<Int> {
-        val result = updateRemoteDatabaseFromLocalDatabase()
+    fun doUpdateRemoteDatabaseFromLocalDatabase(
+        @RequestParam(required = true) updateSettings: Boolean = true,
+        @RequestParam(required = true) updatePictures: Boolean = true
+    ): List<Int> {
+        val result = updateRemoteDatabaseFromLocalDatabase(updateSettings,updatePictures)
 
         return listOf(result.first, result.second, result.third)
     }
 
-    @GetMapping("/utils/updatelocaldatabasefromremotedatabase")
+    @PostMapping("/utils/updatelocaldatabasefromremotedatabase")
     @ResponseBody
-    fun doUpdateLocalDatabaseFromRemoteDatabase(): List<Int> {
-        val result = updateLocalDatabaseFromRemoteDatabase()
+    fun doUpdateLocalDatabaseFromRemoteDatabase(
+        @RequestParam(required = true) updateSettings: Boolean = true,
+        @RequestParam(required = true) updatePictures: Boolean = true
+    ): List<Int> {
+        val result = updateLocalDatabaseFromRemoteDatabase(updateSettings,updatePictures)
 
         return listOf(result.first, result.second, result.third)
     }
@@ -567,7 +570,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
         println(textValue)
         println(markersValue)
         println(syllablesValue)
-
+        model.addAttribute("workInContainer", APP_WORK_IN_CONTAINER)
         model.addAttribute("settings", settings)
         model.addAttribute("text", settings!!.getSourceText(voice))
         model.addAttribute("markers", markersValue)
@@ -668,7 +671,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val song = Song(settings, SongVersion.LYRICS)
-            val text = song.getDescriptionDzenWOHeader(5000)
+            val text = song.getDescriptionWOHeaderWithTimecodes(5000)
             text
         } ?: ""
         return text
@@ -681,7 +684,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val song = Song(settings, SongVersion.KARAOKE)
-            val text = song.getDescriptionDzenWOHeader(5000)
+            val text = song.getDescriptionWOHeaderWithTimecodes(5000)
             text
         } ?: ""
         return text
@@ -694,7 +697,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val song = Song(settings, SongVersion.CHORDS)
-            val text = song.getDescriptionDzenWOHeader(5000)
+            val text = song.getDescriptionWOHeaderWithTimecodes(5000)
             text
         } ?: ""
         return text
@@ -795,7 +798,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val song = Song(settings, SongVersion.LYRICS)
-            val text = song.getDescriptionVkWOHeader()
+            val text = song.getDescriptionWOHeaderWithTimecodes()
             text
         } ?: ""
         return text
@@ -808,7 +811,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val song = Song(settings, SongVersion.KARAOKE)
-            val text = song.getDescriptionVkWOHeader()
+            val text = song.getDescriptionWOHeaderWithTimecodes()
             text
         } ?: ""
         return text
@@ -821,7 +824,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val song = Song(settings, SongVersion.CHORDS)
-            val text = song.getDescriptionVkWOHeader()
+            val text = song.getDescriptionWOHeaderWithTimecodes()
             text
         } ?: ""
         return text
@@ -912,7 +915,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val song = Song(settings, SongVersion.LYRICS)
-            val text = song.getDescriptionVkWOHeader()
+            val text = song.getDescriptionWOHeaderWithTimecodes()
             text
         } ?: ""
         return text
@@ -924,7 +927,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val song = Song(settings, SongVersion.KARAOKE)
-            val text = song.getDescriptionVkWOHeader()
+            val text = song.getDescriptionWOHeaderWithTimecodes()
             text
         } ?: ""
         return text
@@ -936,7 +939,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val song = Song(settings, SongVersion.CHORDS)
-            val text = song.getDescriptionVkWOHeader()
+            val text = song.getDescriptionWOHeaderWithTimecodes()
             text
         } ?: ""
         return text
@@ -1179,6 +1182,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
         filter_settings_id?.let { if (filter_settings_id != "") args["settings_id"] = filter_settings_id }
         filter_type?.let { if (filter_type != "") args["process_type"] = filter_type }
         filter_limit?.let { if (filter_limit != "") args["filter_limit"] = filter_limit }
+        model.addAttribute("workInContainer", APP_WORK_IN_CONTAINER)
         model.addAttribute("processes", KaraokeProcess.loadList(args, WORKING_DATABASE))
 
         return "processes"
@@ -1231,6 +1235,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
         flag_telegram_lyrics?.let { if (flag_telegram_lyrics != "") args["flag_telegram_lyrics"] = flag_telegram_lyrics }
         flag_telegram_karaoke?.let { if (flag_telegram_karaoke != "") args["flag_telegram_karaoke"] = flag_telegram_karaoke }
         flag_telegram_chords?.let { if (flag_telegram_chords != "") args["flag_telegram_chords"] = flag_telegram_chords }
+        model.addAttribute("workInContainer", APP_WORK_IN_CONTAINER)
         model.addAttribute("sett", Settings.loadListFromDb(args, WORKING_DATABASE))
         model.addAttribute("authors", Settings.loadListAuthors(WORKING_DATABASE))
         model.addAttribute("albums", Settings.loadListAlbums(WORKING_DATABASE))
@@ -1319,6 +1324,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
         filter_date_to?.let { if (filter_date_to != "") args["filter_date_to"] = filter_date_to }
         filter_cond?.let { if (filter_cond != "") args["filter_cond"] = filter_cond }
 
+        model.addAttribute("workInContainer", APP_WORK_IN_CONTAINER)
         model.addAttribute("publications", Publication.getPublicationList(args, WORKING_DATABASE))
         return "publications"
     }
@@ -1327,6 +1333,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
     fun unpublications(
         model: Model
     ): String {
+        model.addAttribute("workInContainer", APP_WORK_IN_CONTAINER)
         model.addAttribute("publications", Publication.getUnPublicationList(WORKING_DATABASE))
         return "unpublications"
     }
@@ -1395,6 +1402,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
         flag_telegram_lyrics?.let { if (flag_telegram_lyrics != "") args["flag_telegram_lyrics"] = flag_telegram_lyrics }
         flag_telegram_karaoke?.let { if (flag_telegram_karaoke != "") args["flag_telegram_karaoke"] = flag_telegram_karaoke }
         flag_telegram_chords?.let { if (flag_telegram_chords != "") args["flag_telegram_chords"] = flag_telegram_chords }
+        model.addAttribute("workInContainer", APP_WORK_IN_CONTAINER)
         model.addAttribute("sett", Settings.loadListFromDb(args, WORKING_DATABASE))
         model.addAttribute("authors", Settings.loadListAuthors(WORKING_DATABASE))
         model.addAttribute("albums", Settings.loadListAlbums(WORKING_DATABASE))

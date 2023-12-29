@@ -27,7 +27,7 @@ class MyOnsetHandler : OnsetHandler {
         return bpm
     }
 }
-fun main() {
+fun mainAudioAnalize2() {
     val audioFile = File("/home/nsa/Documents/Караоке/Разное/Infornal Fuckъ - Конунг Олаф Моржовый Хер/Конунг Олаф Моржовый Хер.wav")
     val audioInputStream = AudioSystem.getAudioInputStream(audioFile)
     val jVMAudioInputStream = JVMAudioInputStream(audioInputStream)

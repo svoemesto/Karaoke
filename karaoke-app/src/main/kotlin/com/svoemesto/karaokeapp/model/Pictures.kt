@@ -1,14 +1,13 @@
 package com.svoemesto.karaokeapp.model
 
-import com.svoemesto.karaokeapp.Connection
+import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.WORKING_DATABASE
 import java.io.Serializable
-import java.sql.DriverManager
 import java.sql.ResultSet
 import java.sql.SQLException
 import java.sql.Statement
 
-class Pictures(val database: Connection = WORKING_DATABASE) : Serializable, Comparable<Pictures> {
+class Pictures(val database: KaraokeConnection = WORKING_DATABASE) : Serializable, Comparable<Pictures> {
 
     var id: Int = 0
     var name: String = "Picture name"
@@ -21,8 +20,7 @@ class Pictures(val database: Connection = WORKING_DATABASE) : Serializable, Comp
 
     fun save() {
 
-        Class.forName("org.postgresql.Driver")
-        val connection = DriverManager.getConnection(database.url, database.username, database.password)
+        val connection = database.getConnection()
         val sql = "UPDATE tbl_pictures SET " +
                 "picture_name = ?, " +
                 "picture_full = ?, " +
@@ -39,7 +37,19 @@ class Pictures(val database: Connection = WORKING_DATABASE) : Serializable, Comp
         ps.setInt(index, id)
         ps.executeUpdate()
         ps.close()
-        connection.close()
+
+    }
+
+    fun getSqlToInsert(): String {
+        val picture = this
+        val fieldsValues: MutableList<Pair<String, Any>> = mutableListOf()
+
+        if (picture.id > 0) fieldsValues.add(Pair("id", picture.id))
+        fieldsValues.add(Pair("picture_name", picture.name))
+        fieldsValues.add(Pair("picture_full", picture.full))
+        fieldsValues.add(Pair("picture_preview", picture.preview))
+
+        return "INSERT INTO tbl_pictures (${fieldsValues.map {it.first}.joinToString(", ")}) OVERRIDING SYSTEM VALUE VALUES(${fieldsValues.map {if (it.second is Long) "${it.second}" else "'${it.second.toString().replace("'","''")}'"}.joinToString(", ")})"
 
     }
 
@@ -55,20 +65,10 @@ class Pictures(val database: Connection = WORKING_DATABASE) : Serializable, Comp
             return result
         }
 
-        fun createDbInstance(picture: Pictures, database: Connection) : Pictures? {
-            val sql =
-                "INSERT INTO tbl_pictures (" +
-                        "picture_name, " +
-                        "picture_full, " +
-                        "picture_preview " +
-                        ") VALUES(" +
-                        "'${picture.name.replace("'","''")}', " +
-                        "'${picture.full}', " +
-                        "'${picture.preview}'" +
-                        ")"
+        fun createDbInstance(picture: Pictures, database: KaraokeConnection) : Pictures? {
+            val sql = picture.getSqlToInsert()
 
-            Class.forName("org.postgresql.Driver")
-            val connection = DriverManager.getConnection(database.url, database.username, database.password)
+            val connection = database.getConnection()
             val ps = connection.prepareStatement(sql)
             ps.executeUpdate(sql, Statement.RETURN_GENERATED_KEYS)
             val rs = ps.generatedKeys
@@ -79,16 +79,14 @@ class Pictures(val database: Connection = WORKING_DATABASE) : Serializable, Comp
             } else null
 
             ps.close()
-            connection.close()
 
             return result
 
         }
 
-        fun loadList(args: Map<String, String> = emptyMap(), database: Connection): List<Pictures> {
+        fun loadList(args: Map<String, String> = emptyMap(), database: KaraokeConnection): List<Pictures> {
 
-            Class.forName("org.postgresql.Driver")
-            val connection = DriverManager.getConnection(database.url, database.username, database.password)
+            val connection = database.getConnection()
             var statement: Statement? = null
             var rs: ResultSet? = null
             var sql: String
@@ -123,7 +121,6 @@ class Pictures(val database: Connection = WORKING_DATABASE) : Serializable, Comp
                 try {
                     rs?.close() // close result set
                     statement?.close() // close statement
-                    connection?.close()
                 } catch (e: SQLException) {
                     e.printStackTrace()
                 }
@@ -131,27 +128,25 @@ class Pictures(val database: Connection = WORKING_DATABASE) : Serializable, Comp
             return emptyList()
         }
 
-        fun delete(id: Int, database: Connection) {
+        fun delete(id: Int, database: KaraokeConnection) {
 
-            Class.forName("org.postgresql.Driver")
-            val connection = DriverManager.getConnection(database.url, database.username, database.password)
+            val connection = database.getConnection()
             val sql = "DELETE FROM tbl_pictures WHERE id = ?"
             val ps = connection.prepareStatement(sql)
             var index = 1
             ps.setInt(index, id)
             ps.executeUpdate()
             ps.close()
-            connection.close()
 
         }
 
-        fun load(id: Long, database: Connection): Pictures? {
+        fun load(id: Long, database: KaraokeConnection): Pictures? {
 
             return Pictures.loadList(mapOf(Pair("id", id.toString())), database).firstOrNull()
 
         }
 
-        fun load(name: String, database: Connection): Pictures? {
+        fun load(name: String, database: KaraokeConnection): Pictures? {
 
             return Pictures.loadList(mapOf(Pair("picture_name", name)), database).firstOrNull()
 

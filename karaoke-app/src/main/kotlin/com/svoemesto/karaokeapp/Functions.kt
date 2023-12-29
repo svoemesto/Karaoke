@@ -233,11 +233,11 @@ fun createKaraoke(song: Song) {
     for (voiceId in 0 until countVoices) {
         ProducerType.values().forEach { type ->
             if (type.ids.isEmpty()) {
-                mltProp.setId(type.ordinal*10, listOf(type, voiceId))
+                mltProp.setId(type.ordinal*100 + voiceId*10, listOf(type, voiceId))
                 mltProp.setUUID(UUID.randomUUID().toString(), listOf(type, voiceId))
             } else {
                 for (childId in 0 until type.ids.size) {
-                    mltProp.setId(type.ordinal*10 + childId, listOf(type, voiceId, childId))
+                    mltProp.setId(type.ordinal*100 + voiceId*10 + childId, listOf(type, voiceId, childId))
                     mltProp.setUUID(UUID.randomUUID().toString(), listOf(type, voiceId, childId))
                 }
             }
@@ -983,6 +983,7 @@ fun createKaraoke(song: Song) {
 
     if (song.songVersion == SongVersion.LYRICS) createBoostyTeaserPicture(song, song.getOutputFilename(SongOutputFile.PICTUREBOOSTY))
     if (song.songVersion == SongVersion.LYRICS) createVKPicture(song, song.getOutputFilename(SongOutputFile.PICTUREVK))
+    if (song.songVersion == SongVersion.LYRICS) createVKLinkPicture(song, song.getOutputFilename(SongOutputFile.PICTUREVK))
 
     val fileText = File(song.getOutputFilename(SongOutputFile.TEXT))
     Files.createDirectories(Path(fileText.parent))

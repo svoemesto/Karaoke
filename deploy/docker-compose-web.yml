@@ -1,0 +1,24 @@
+version: "3.9"
+services:
+
+  karaoke-web:
+    container_name: karaoke-web
+    image: ${DOCKER_REGISTRY}/karaoke-web:${BUILD_VERSION}
+    ports:
+      - ${WEB_PORT_HOST}:${WEB_PORT_INSIDE_CONTAINER}
+    environment:
+      WORK_IN_CONTAINER: 1
+    networks:
+      - karaokenet
+    entrypoint:
+      - java
+      - -Dfile.encoding=UTF-8
+      - -Djava.security.egd=file:/dev/./urandom
+      - -XX:+HeapDumpOnOutOfMemoryError
+      - -XX:HeapDumpPath=/dumps
+    command: ${APP_JAVA_OPTS} -jar /app.jar
+    restart: always
+
+networks:
+  karaokenet:
+    driver: bridge

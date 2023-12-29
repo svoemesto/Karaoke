@@ -114,6 +114,7 @@
         var wavesurfer;
         const MARKER_COLOR_SYLLABLES = '#D2691E';
         const MARKER_COLOR_ENDOFLINE = '#FF0000';
+        const MARKER_COLOR_NEWLINE = '#FF0000';
         const MARKER_COLOR_FIRSTSYLLABLE = '#008000';
         const MARKER_COLOR_SETTING = '#000080';
         const MARKER_COLOR_UNMUTE = '#FFFF00';
@@ -205,6 +206,10 @@
                             previousMarkerIsEndOfLine = true;
                             break;
                         }
+                        if (myMarker.markertype === 'newline') {
+                            previousMarkerIsEndOfLine = true;
+                            break;
+                        }
                     }
                 }
 
@@ -231,6 +236,9 @@
 
                 } else if (markerType === 'endofline') {
                     colorCurrentMarker = MARKER_COLOR_ENDOFLINE;
+                } else if (markerType === 'newline') {
+                    positionCurrentMarker = 'top';
+                    colorCurrentMarker = MARKER_COLOR_NEWLINE;
                 } else if (markerType === 'setting') {
                     colorCurrentMarker = MARKER_COLOR_SETTING;
                     positionCurrentMarker = 'top';
@@ -420,6 +428,8 @@
                 var textToAdd = "";
                 if (currMarker.markertype === 'endofline') {
                     textToAdd = '<br>';
+                } else if (currMarker.markertype === 'newline') {
+                    textToAdd = '<br>';
                 } else if (currMarker.markertype === 'syllables') {
                     textToAdd = spanStyle + currMarker.label.replaceAll("_", " ") + '</span>';
                 }
@@ -553,6 +563,10 @@
                         previousMarkerIsEndOfLine = true;
                         break;
                     }
+                    if (myMarker.markertype === 'newline') {
+                        previousMarkerIsEndOfLine = true;
+                        break;
+                    }
                 }
             }
 
@@ -580,6 +594,9 @@
 
             } else if (markerType === 'endofline') {
                 colorCurrentMarker = MARKER_COLOR_ENDOFLINE;
+            } else if (markerType === 'newline') {
+                positionCurrentMarker = 'top';
+                colorCurrentMarker = MARKER_COLOR_NEWLINE;
             } else if (markerType === 'setting') {
                 colorCurrentMarker = MARKER_COLOR_SETTING;
                 positionCurrentMarker = 'top';
@@ -857,6 +874,8 @@
                } else if ((event.key === "3") && checkboxEditMode.checked) {
                    addMarker('endofline', '', true);
                    addMarker('syllables', '', true);
+               } else if ((event.key === "4") && checkboxEditMode.checked) {
+                   addMarker('newline', '');
                } else if ((event.key === "0") && checkboxEditMode.checked) {
                    addMarker('unmute', '');
                } else if ((event.key === "t" || event.key === "е") && checkboxEditMode.checked) {

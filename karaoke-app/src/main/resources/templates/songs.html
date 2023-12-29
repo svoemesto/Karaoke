@@ -2545,7 +2545,7 @@
                 request.open('GET', "/song/" + id + "/picturealbum", false);
                 request.send();
                 if (request.status === 200) {
-                    el_image_album.src = 'data:image/gif;base64,' + request.responseText;
+                    el_image_album.src = 'data:image/jpg;base64,' + request.responseText;
                 }
             }
         }

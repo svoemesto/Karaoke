@@ -6,7 +6,7 @@ import java.io.File
 import org.odftoolkit.simple.SpreadsheetDocument
 import org.odftoolkit.simple.table.Row
 
-fun main() {
+fun mainPoi() {
     val artist = "Павел Кашин"
     val songName = "Барышня"
 

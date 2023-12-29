@@ -30,20 +30,36 @@ data class MltGenerator(
         fun nameProducerBlackTrack(type: ProducerType, voiceId: Int = 0, childId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId).nameProducerBlackTrack
     }
 
-    val id: Int get() = (if (type.ids.isEmpty()) mltProp.getId(listOf(type, voiceId)) else mltProp.getId(listOf(type, voiceId, childId))) + voiceId*1000 + childId*10000
-    val name: String get() = "${type.text.uppercase()}${if (voiceId==0 && type.coeffVoice==0) "" else "_V${voiceId}"}${if (childId==0 && (type.ids.isEmpty() && !type.isCalculatedCount)) "" else "_C${childId}"}"
+    val id: Int get() = (if (type.ids.isEmpty() && !type.isCalculatedCount) mltProp.getId(listOf(type, voiceId)) else mltProp.getId(listOf(type, voiceId, childId))) + voiceId*1000 + childId*10000
+    val name: String get() {
+        val text = type.text.uppercase()
+        val numVoice = if (type.onlyOne) {
+            ""
+        } else {
+            "_V$voiceId"
+        }
+        val numChild = if (childId==0 && (type.ids.isEmpty() && !type.isCalculatedCount)) {
+            ""
+        } else {
+            "_C${childId}"
+        }
+        return "$text$numVoice$numChild"
+//        "${type.text.uppercase()}${if (voiceId==0 && type.coeffVoice==0) "" else "_V${voiceId}"}${if (childId==0 && (type.ids.isEmpty() && !type.isCalculatedCount)) "" else "_C${childId}"}"
+    }
 
-    val namePlaylistFile: String get() = "playlist_${name.lowercase()}${voiceId}_file"
-    val namePlaylistTrack: String get() = "playlist_${name.lowercase()}${voiceId}_track"
-    val nameTractor: String get() = "tractor_${name.lowercase()}${voiceId}"
-    val nameProducer: String get() = "producer_${name.lowercase()}${voiceId}"
-    val nameProducerBlackTrack: String get() = "producer_${name.lowercase()}${voiceId}_black_track"
-    val nameFileProducer: String get() = "producer_${name.lowercase()}${voiceId}_file"
-    val nameFilterVolume: String get() = "filter_${name.lowercase()}${voiceId}_volume"
-    val nameFilterPanner: String get() = "filter_${name.lowercase()}${voiceId}_panner"
-    val nameFilterAudiolevel: String get() = "filter_${name.lowercase()}${voiceId}_audiolevel"
-    val nameFilterQtblend: String get() = "filter_${name.lowercase()}${voiceId}_qtblend"
-    val nameFilterGamma: String get() = "filter_${name.lowercase()}${voiceId}_gamma"
+
+
+    val namePlaylistFile: String get() = "playlist_file_${name.lowercase()}"
+    val namePlaylistTrack: String get() = "playlist_track_${name.lowercase()}"
+    val nameTractor: String get() = "tractor_${name.lowercase()}"
+    val nameProducer: String get() = "producer_${name.lowercase()}"
+    val nameProducerBlackTrack: String get() = "producer_black_track_${name.lowercase()}"
+    val nameFileProducer: String get() = "producer_file_${name.lowercase()}"
+    val nameFilterVolume: String get() = "filter_volume_${name.lowercase()}"
+    val nameFilterPanner: String get() = "filter_panner_${name.lowercase()}"
+    val nameFilterAudiolevel: String get() = "filter_audiolevel_${name.lowercase()}"
+    val nameFilterQtblend: String get() = "filter_qtblend_${name.lowercase()}"
+    val nameFilterGamma: String get() = "filter_gamma_${name.lowercase()}"
 
     fun defaultProducerPropertiesForMltService(mltServiceName: String) : MutableList<MltNode> {
         return when (mltServiceName) {
@@ -108,7 +124,7 @@ data class MltGenerator(
                 .`out`(timecodeOut)
                 .build(),
             body = nodes,
-            comment = "entry $nameProducer"
+            comment = "" // "entry $nameProducer"
         )
     }
 
@@ -127,7 +143,7 @@ data class MltGenerator(
                 .`out`(timecodeOut)
                 .build(),
             body = props,
-            comment = "producer $nameProducer"
+            comment = "" // "producer $nameProducer"
         )
     }
     fun trackPlaylist(): MltNode = MltNode(
@@ -137,7 +153,7 @@ data class MltGenerator(
         body = if (type.isAudio) {
             MltNodeBuilder().propertyName("kdenlive:audio_track", 1).build()
         } else null,
-        comment = "playlist $namePlaylistTrack"
+        comment = "" // "playlist $namePlaylistTrack"
     )
 
     fun filePlaylist(): MltNode = MltNode(
@@ -147,7 +163,7 @@ data class MltGenerator(
         body = if (type.isAudio) {
             MltNodeBuilder().propertyName("kdenlive:audio_track", 1).build()
         } else mutableListOf(),
-        comment = "playlist $namePlaylistFile"
+        comment = "" // "playlist $namePlaylistFile"
     )
 
     fun tractor(
@@ -164,7 +180,7 @@ data class MltGenerator(
             .`out`(timecodeOut)
             .build(),
         body = body,
-        comment = "tractor $namePlaylistFile"
+        comment = "" // "tractor $namePlaylistFile"
     )
     private fun tractorBody(): MutableList<MltNode> {
         val result: MutableList<MltNode> = MltNodeBuilder(propsTractor)

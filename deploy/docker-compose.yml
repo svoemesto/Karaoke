@@ -1,17 +1,44 @@
 version: "3.9"
 services:
-  karaoke-db:
-    image: postgres:16
-    environment:
-      POSTGRES_USER: "postgres"
-      POSTGRES_PASSWORD: "postgres"
-      POSTGRES_DB: "karaoke"
-      PGDATA: "/var/lib/postgresql/data/16"
-    container_name: karaoke-db
-#    build: ./karaoke-db
+
+  karaoke-app:
+    container_name: karaoke-app
+    image: ${DOCKER_REGISTRY}/karaoke-app:${BUILD_VERSION}
     ports:
-      - "5430:5432" # порт хоста : порт внутри контейнера
-    volumes: # локальная папка : папка внутри контейнера
-      - ${DB_FOLDER}:/var/lib/postgresql/data/16 # мапим локальную папку /home/nsa/Documents/Караоке/db в контейнер по пути /var/lib/postgresql/data/16
-      - ./karaoke-db:/docker-entrypoint-initdb.d # мапим папку karaoke-db из текущего каталога (deploy) в контейнер по пути docker-entrypoint-initdb.d - из нее будут запускаться скрипты для инициализации бд
+      - ${APP_PORT_HOST}:${APP_PORT_INSIDE_CONTAINER}
+    environment:
+      WORK_IN_CONTAINER: 1
+    volumes:
+      - ${APP_FOLDER_HOST}:${APP_FOLDER_IN_CONTAINER}
+    networks:
+      - karaokenet
+    entrypoint:
+      - java
+      - -Dfile.encoding=UTF-8
+      - -Djava.security.egd=file:/dev/./urandom
+      - -XX:+HeapDumpOnOutOfMemoryError
+      - -XX:HeapDumpPath=/dumps
+    command: ${APP_JAVA_OPTS} -jar /app.jar
     restart: always
+
+  karaoke-web:
+    container_name: karaoke-web
+    image: ${DOCKER_REGISTRY}/karaoke-web:${BUILD_VERSION}
+    ports:
+      - ${WEB_PORT_HOST}:${WEB_PORT_INSIDE_CONTAINER}
+    environment:
+      WORK_IN_CONTAINER: 1
+    networks:
+      - karaokenet
+    entrypoint:
+      - java
+      - -Dfile.encoding=UTF-8
+      - -Djava.security.egd=file:/dev/./urandom
+      - -XX:+HeapDumpOnOutOfMemoryError
+      - -XX:HeapDumpPath=/dumps
+    command: ${APP_JAVA_OPTS} -jar /app.jar
+    restart: always
+
+networks:
+  karaokenet:
+    driver: bridge

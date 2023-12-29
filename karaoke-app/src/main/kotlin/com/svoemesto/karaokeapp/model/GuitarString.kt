@@ -2,7 +2,7 @@ package com.svoemesto.karaokeapp.model
 
 import java.io.Serializable
 
-fun main() {
+fun mainGuitarString() {
 
     for (i in 0 .. 12) {
         val result = MusicChord.Xm.getFingerboard(MusicNote.G,i)

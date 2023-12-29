@@ -34,7 +34,7 @@ fun getMlt(mltProp: MltProp): MltNode {
     body.add(getMltProfile())
     body.add(getMltConsumer(mltProp))
 
-    for (voiceId in 0 until countVoices) {
+    for (voiceId in (countVoices-1) downTo  0) {
         songVersion.producers.forEach { type ->
             val countChilds = if (!type.isCalculatedCount) {
                 if (type.ids.isEmpty()) 1 else type.ids.size

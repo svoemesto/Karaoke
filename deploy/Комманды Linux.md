@@ -22,3 +22,23 @@ scp -P [порт] [путь к файлу на локальной машине] 
 Если нужно скопировать папку - указываем параметр -r
 
 `scp -r -P 2222 "/home/nsa/Documents/Караоке/Digest" nsa@localhost:~/Karaoke`
+
+Очистка корневой файловой системы:
+
+`sudo apt autoremove`
+
+`sudo apt autoclean`
+
+`sudo apt clean`
+
+Запустить bash в контейнере:
+
+`docker exec -it <container-name-or-id> bash`
+
+Смена версии Java:
+
+`sudo update-alternatives --config java`
+
+Регулярно чистить докер от мусора:
+
+`docker system prune -a`

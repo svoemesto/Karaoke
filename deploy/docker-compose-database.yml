@@ -1,0 +1,23 @@
+version: "3.9"
+services:
+  karaoke-db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "bp4QuC5L2Tv~vpKQkUcg"
+      POSTGRES_DB: "karaoke"
+      PGDATA: "/var/lib/postgresql/data/16"
+      WORK_IN_CONTAINER: 1
+    container_name: karaoke-db
+    ports:
+      - ${DB_PORT_HOST}:${DB_PORT_INSIDE_CONTAINER} # порт хоста : порт внутри контейнера
+    networks:
+      - karaokenet
+    volumes: # локальная папка : папка внутри контейнера
+      - ${DB_FOLDER}:/var/lib/postgresql/data/16 # мапим локальную папку /home/nsa/Documents/Караоке-db в контейнер по пути /var/lib/postgresql/data/16
+      - ./karaoke-db:/docker-entrypoint-initdb.d # мапим папку karaoke-db из текущего каталога (deploy) в контейнер по пути docker-entrypoint-initdb.d - из нее будут запускаться скрипты для инициализации бд
+    restart: always
+
+networks:
+  karaokenet:
+    driver: bridge

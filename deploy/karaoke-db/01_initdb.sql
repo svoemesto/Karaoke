@@ -92,6 +92,7 @@ CREATE TABLE public.tbl_settings (
                                      id_status integer DEFAULT 0,
                                      source_text text,
                                      source_markers text,
+                                     result_text text,
                                      id_vk_lyrics character varying(20),
                                      id_vk_lyrics_bt character varying(20),
                                      id_vk_karaoke character varying(20),
@@ -178,5 +179,6 @@ CREATE INDEX tbl_settings_status_process_karaoke_bt_index ON public.tbl_settings
 CREATE INDEX tbl_settings_status_process_karaoke_index ON public.tbl_settings USING btree (status_process_karaoke);
 CREATE INDEX tbl_settings_status_process_lyrics_bt_index ON public.tbl_settings USING btree (status_process_lyrics_bt);
 CREATE INDEX tbl_settings_status_process_lyrics_index ON public.tbl_settings USING btree (status_process_lyrics);
+CREATE INDEX idx_gin_result_text ON public.tbl_settings USING gin (to_tsvector('russian'::regconfig, 'result_text'));
 CREATE TRIGGER update_last_updated_process_trigger BEFORE UPDATE ON public.tbl_processes FOR EACH ROW EXECUTE FUNCTION public.update_last_updated();
 CREATE TRIGGER update_last_updated_trigger BEFORE UPDATE ON public.tbl_settings FOR EACH ROW EXECUTE FUNCTION public.update_last_updated();

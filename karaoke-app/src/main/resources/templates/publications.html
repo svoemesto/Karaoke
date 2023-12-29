@@ -126,12 +126,18 @@
                         <td th:text="${publication.publishDate}" style="font-size: 10px; width: 70px; min-width: 70px; max-width: 70px; border-style: solid; border-width: thin; text-align: center;"></td>
                         <td class="task" th:data-id="${publication.publish10id}" style="padding: 0; font-size: 0; min-width: 180px; max-width: 180px; border-style: solid; border-width: thin">
                             <div
-                                    class="task__content"
-                                    th:data-id="${publication.publish10id}"
                                     th:name="'publishText'+${publication.publish10id}"
-                                    th:text="${publication.publish10text}"
                                     th:style="'background-color: ' + ${publication.publish10color} + '; height: 100%; padding: 4px; font-size: 10px; width: 180px; min-width: 180px; max-width: 180px; border-width: 0;'"
-                            ></div>
+                            >
+                                <a
+                                    class="task__content"
+                                    style="color: black;"
+                                    th:data-id="${publication.publish10id}"
+                                    th:text="${publication.publish10text}"
+                                    th:href="'http://sm-karaoke.ru/song?id='+${publication.publish10id}"
+                                    target="_blank">
+                                </a>
+                            </div>
                             <div class="task__actions" th:insert="~{settings_contextmenu_task_actions.html}"></div>
                         </td>
                         <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
@@ -157,12 +163,18 @@
 
                         <td class="task" th:data-id="${publication.publish11id}" style="padding: 0; font-size: 0; min-width: 180px; max-width: 180px; border-style: solid; border-width: thin">
                             <div
-                                    class="task__content"
-                                    th:data-id="${publication.publish11id}"
                                     th:name="'publishText'+${publication.publish11id}"
-                                    th:text="${publication.publish11text}"
                                     th:style="'background-color: ' + ${publication.publish11color} + '; height: 100%; padding: 4px; font-size: 10px; width: 180px; min-width: 180px; max-width: 180px; border-width: 0;'"
-                            ></div>
+                            >
+                                <a
+                                    class="task__content"
+                                    style="color: black;"
+                                    th:data-id="${publication.publish11id}"
+                                    th:text="${publication.publish11text}"
+                                    th:href="'http://sm-karaoke.ru/song?id='+${publication.publish11id}"
+                                    target="_blank">
+                                </a>
+                            </div>
                             <div class="task__actions" th:insert="~{settings_contextmenu_task_actions.html}"></div>
                         </td>
                         <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
@@ -188,12 +200,18 @@
 
                         <td class="task" th:data-id="${publication.publish12id}" style="padding: 0; font-size: 0; min-width: 180px; max-width: 180px; border-style: solid; border-width: thin">
                             <div
-                                    class="task__content"
-                                    th:data-id="${publication.publish12id}"
                                     th:name="'publishText'+${publication.publish12id}"
-                                    th:text="${publication.publish12text}"
                                     th:style="'background-color: ' + ${publication.publish12color} + '; height: 100%; padding: 4px; font-size: 10px; width: 180px; min-width: 180px; max-width: 180px; border-width: 0;'"
-                            ></div>
+                            >
+                                <a
+                                    class="task__content"
+                                    style="color: black;"
+                                    th:data-id="${publication.publish12id}"
+                                    th:text="${publication.publish12text}"
+                                    th:href="'http://sm-karaoke.ru/song?id='+${publication.publish12id}"
+                                    target="_blank">
+                                </a>
+                            </div>
                             <div class="task__actions" th:insert="~{settings_contextmenu_task_actions.html}"></div>
                         </td>
                         <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
@@ -219,12 +237,18 @@
 
                         <td class="task" th:data-id="${publication.publish13id}" style="padding: 0; font-size: 0; min-width: 180px; max-width: 180px; border-style: solid; border-width: thin">
                             <div
-                                    class="task__content"
-                                    th:data-id="${publication.publish13id}"
                                     th:name="'publishText'+${publication.publish13id}"
-                                    th:text="${publication.publish13text}"
                                     th:style="'background-color: ' + ${publication.publish13color} + '; height: 100%; padding: 4px; font-size: 10px; width: 180px; min-width: 180px; max-width: 180px; border-width: 0;'"
-                            ></div>
+                            >
+                                <a
+                                    class="task__content"
+                                    style="color: black;"
+                                    th:data-id="${publication.publish13id}"
+                                    th:text="${publication.publish13text}"
+                                    th:href="'http://sm-karaoke.ru/song?id='+${publication.publish13id}"
+                                    target="_blank">
+                                </a>
+                            </div>
                             <div class="task__actions" th:insert="~{settings_contextmenu_task_actions.html}"></div>
                         </td>
                         <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
@@ -250,12 +274,18 @@
 
                         <td class="task" th:data-id="${publication.publish14id}" style="padding: 0; font-size: 0; min-width: 180px; max-width: 180px; border-style: solid; border-width: thin">
                             <div
-                                    class="task__content"
-                                    th:data-id="${publication.publish14id}"
                                     th:name="'publishText'+${publication.publish14id}"
-                                    th:text="${publication.publish14text}"
                                     th:style="'background-color: ' + ${publication.publish14color} + '; height: 100%; padding: 4px; font-size: 10px; width: 180px; min-width: 180px; max-width: 180px; border-width: 0;'"
-                            ></div>
+                            >
+                                <a
+                                    class="task__content"
+                                    style="color: black;"
+                                    th:data-id="${publication.publish14id}"
+                                    th:text="${publication.publish14text}"
+                                    th:href="'http://sm-karaoke.ru/song?id='+${publication.publish14id}"
+                                    target="_blank">
+                                </a>
+                            </div>
                             <div class="task__actions" th:insert="~{settings_contextmenu_task_actions.html}"></div>
                         </td>
                         <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
@@ -281,12 +311,18 @@
 
                         <td class="task" th:data-id="${publication.publish15id}" style="padding: 0; font-size: 0; min-width: 180px; max-width: 180px; border-style: solid; border-width: thin">
                             <div
-                                    class="task__content"
-                                    th:data-id="${publication.publish15id}"
                                     th:name="'publishText'+${publication.publish15id}"
-                                    th:text="${publication.publish15text}"
                                     th:style="'background-color: ' + ${publication.publish15color} + '; height: 100%; padding: 4px; font-size: 10px; width: 180px; min-width: 180px; max-width: 180px; border-width: 0;'"
-                            ></div>
+                            >
+                                <a
+                                    class="task__content"
+                                    style="color: black;"
+                                    th:data-id="${publication.publish15id}"
+                                    th:text="${publication.publish15text}"
+                                    th:href="'http://sm-karaoke.ru/song?id='+${publication.publish15id}"
+                                    target="_blank">
+                                </a>
+                            </div>
                             <div class="task__actions" th:insert="~{settings_contextmenu_task_actions.html}"></div>
                         </td>
                         <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
@@ -312,12 +348,18 @@
 
                         <td class="task" th:data-id="${publication.publish16id}" style="padding: 0; font-size: 0; min-width: 180px; max-width: 180px; border-style: solid; border-width: thin">
                             <div
-                                    class="task__content"
-                                    th:data-id="${publication.publish16id}"
                                     th:name="'publishText'+${publication.publish16id}"
-                                    th:text="${publication.publish16text}"
                                     th:style="'background-color: ' + ${publication.publish16color} + '; height: 100%; padding: 4px; font-size: 10px; width: 180px; min-width: 180px; max-width: 180px; border-width: 0;'"
-                            ></div>
+                            >
+                                <a
+                                    class="task__content"
+                                    style="color: black;"
+                                    th:data-id="${publication.publish16id}"
+                                    th:text="${publication.publish16text}"
+                                    th:href="'http://sm-karaoke.ru/song?id='+${publication.publish16id}"
+                                    target="_blank">
+                                </a>
+                            </div>
                             <div class="task__actions" th:insert="~{settings_contextmenu_task_actions.html}"></div>
                         </td>
                         <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
@@ -343,12 +385,18 @@
 
                         <td class="task" th:data-id="${publication.publish17id}" style="padding: 0; font-size: 0; min-width: 180px; max-width: 180px; border-style: solid; border-width: thin">
                             <div
-                                    class="task__content"
-                                    th:data-id="${publication.publish17id}"
                                     th:name="'publishText'+${publication.publish17id}"
-                                    th:text="${publication.publish17text}"
                                     th:style="'background-color: ' + ${publication.publish17color} + '; height: 100%; padding: 4px; font-size: 10px; width: 180px; min-width: 180px; max-width: 180px; border-width: 0;'"
-                            ></div>
+                            >
+                                <a
+                                    class="task__content"
+                                    style="color: black;"
+                                    th:data-id="${publication.publish17id}"
+                                    th:text="${publication.publish17text}"
+                                    th:href="'http://sm-karaoke.ru/song?id='+${publication.publish17id}"
+                                    target="_blank">
+                                </a>
+                            </div>
                             <div class="task__actions" th:insert="~{settings_contextmenu_task_actions.html}"></div>
                         </td>
                         <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
@@ -374,12 +422,18 @@
 
                         <td class="task" th:data-id="${publication.publish18id}" style="padding: 0; font-size: 0; min-width: 180px; max-width: 180px; border-style: solid; border-width: thin">
                             <div
-                                    class="task__content"
-                                    th:data-id="${publication.publish18id}"
                                     th:name="'publishText'+${publication.publish18id}"
-                                    th:text="${publication.publish18text}"
                                     th:style="'background-color: ' + ${publication.publish18color} + '; height: 100%; padding: 4px; font-size: 10px; width: 180px; min-width: 180px; max-width: 180px; border-width: 0;'"
-                            ></div>
+                            >
+                                <a
+                                    class="task__content"
+                                    style="color: black;"
+                                    th:data-id="${publication.publish18id}"
+                                    th:text="${publication.publish18text}"
+                                    th:href="'http://sm-karaoke.ru/song?id='+${publication.publish18id}"
+                                    target="_blank">
+                                </a>
+                            </div>
                             <div class="task__actions" th:insert="~{settings_contextmenu_task_actions.html}"></div>
                         </td>
                         <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
@@ -405,12 +459,18 @@
 
                         <td class="task" th:data-id="${publication.publish19id}" style="padding: 0; font-size: 0; min-width: 180px; max-width: 180px; border-style: solid; border-width: thin">
                             <div
-                                    class="task__content"
-                                    th:data-id="${publication.publish19id}"
                                     th:name="'publishText'+${publication.publish19id}"
-                                    th:text="${publication.publish19text}"
                                     th:style="'background-color: ' + ${publication.publish19color} + '; height: 100%; padding: 4px; font-size: 10px; width: 180px; min-width: 180px; max-width: 180px; border-width: 0;'"
-                            ></div>
+                            >
+                                <a
+                                    class="task__content"
+                                    style="color: black;"
+                                    th:data-id="${publication.publish19id}"
+                                    th:text="${publication.publish19text}"
+                                    th:href="'http://sm-karaoke.ru/song?id='+${publication.publish19id}"
+                                    target="_blank">
+                                </a>
+                            </div>
                             <div class="task__actions" th:insert="~{settings_contextmenu_task_actions.html}"></div>
                         </td>
                         <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
@@ -436,12 +496,18 @@
 
                         <td class="task" th:data-id="${publication.publish20id}" style="padding: 0; font-size: 0; min-width: 180px; max-width: 180px; border-style: solid; border-width: thin">
                             <div
-                                    class="task__content"
-                                    th:data-id="${publication.publish20id}"
                                     th:name="'publishText'+${publication.publish20id}"
-                                    th:text="${publication.publish20text}"
                                     th:style="'background-color: ' + ${publication.publish20color} + '; height: 100%; padding: 4px; font-size: 10px; width: 180px; min-width: 180px; max-width: 180px; border-width: 0;'"
-                            ></div>
+                            >
+                                <a
+                                    class="task__content"
+                                    style="color: black;"
+                                    th:data-id="${publication.publish20id}"
+                                    th:text="${publication.publish20text}"
+                                    th:href="'http://sm-karaoke.ru/song?id='+${publication.publish20id}"
+                                    target="_blank">
+                                </a>
+                            </div>
                             <div class="task__actions" th:insert="~{settings_contextmenu_task_actions.html}"></div>
                         </td>
                         <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
@@ -467,12 +533,18 @@
 
                         <td class="task" th:data-id="${publication.publish21id}" style="padding: 0; font-size: 0; min-width: 180px; max-width: 180px; border-style: solid; border-width: thin">
                             <div
-                                    class="task__content"
-                                    th:data-id="${publication.publish21id}"
                                     th:name="'publishText'+${publication.publish21id}"
-                                    th:text="${publication.publish21text}"
                                     th:style="'background-color: ' + ${publication.publish21color} + '; height: 100%; padding: 4px; font-size: 10px; width: 180px; min-width: 180px; max-width: 180px; border-width: 0;'"
-                            ></div>
+                            >
+                                <a
+                                    class="task__content"
+                                    style="color: black;"
+                                    th:data-id="${publication.publish21id}"
+                                    th:text="${publication.publish21text}"
+                                    th:href="'http://sm-karaoke.ru/song?id='+${publication.publish21id}"
+                                    target="_blank">
+                                </a>
+                            </div>
                             <div class="task__actions" th:insert="~{settings_contextmenu_task_actions.html}"></div>
                         </td>
                         <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
@@ -498,12 +570,18 @@
 
                         <td class="task" th:data-id="${publication.publish22id}" style="padding: 0; font-size: 0; min-width: 180px; max-width: 180px; border-style: solid; border-width: thin">
                             <div
-                                    class="task__content"
-                                    th:data-id="${publication.publish22id}"
                                     th:name="'publishText'+${publication.publish22id}"
-                                    th:text="${publication.publish22text}"
                                     th:style="'background-color: ' + ${publication.publish22color} + '; height: 100%; padding: 4px; font-size: 10px; width: 180px; min-width: 180px; max-width: 180px; border-width: 0;'"
-                            ></div>
+                            >
+                                <a
+                                    class="task__content"
+                                    style="color: black;"
+                                    th:data-id="${publication.publish22id}"
+                                    th:text="${publication.publish22text}"
+                                    th:href="'http://sm-karaoke.ru/song?id='+${publication.publish22id}"
+                                    target="_blank">
+                                </a>
+                            </div>
                             <div class="task__actions" th:insert="~{settings_contextmenu_task_actions.html}"></div>
                         </td>
                         <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">
@@ -529,12 +607,18 @@
 
                         <td class="task" th:data-id="${publication.publish23id}" style="padding: 0; font-size: 0; min-width: 180px; max-width: 180px; border-style: solid; border-width: thin">
                             <div
-                                    class="task__content"
-                                    th:data-id="${publication.publish23id}"
                                     th:name="'publishText'+${publication.publish23id}"
-                                    th:text="${publication.publish23text}"
                                     th:style="'background-color: ' + ${publication.publish23color} + '; height: 100%; padding: 4px; font-size: 10px; width: 180px; min-width: 180px; max-width: 180px; border-width: 0;'"
-                            ></div>
+                            >
+                                <a
+                                    class="task__content"
+                                    style="color: black;"
+                                    th:data-id="${publication.publish23id}"
+                                    th:text="${publication.publish23text}"
+                                    th:href="'http://sm-karaoke.ru/song?id='+${publication.publish23id}"
+                                    target="_blank">
+                                </a>
+                            </div>
                             <div class="task__actions" th:insert="~{settings_contextmenu_task_actions.html}"></div>
                         </td>
                         <td style="padding: 0; font-size: 0; min-width: 10px; max-width: 10px; border-style: solid; border-width: thin;">

@@ -12,7 +12,7 @@ const val PATH_TO_SELENIUM_SETTINGS = "/home/nsa/Documents/Караоке/Seleni
 const val WEBDRIVER_CHROMEDRIVER = "webdriver.chrome.driver"
 const val PATH_TO_CHROMEDRIVER = "/usr/local/bin/chromedriver"
 
-fun main() {
+fun mainSeleniumUtils() {
     System.setProperty(WEBDRIVER_CHROMEDRIVER, PATH_TO_CHROMEDRIVER)
     val options = ChromeOptions()
     options.addArguments("--remote-allow-origins=*")

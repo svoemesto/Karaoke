@@ -144,7 +144,7 @@ data class MkoSplashStart(val mltProp: MltProp, val type: ProducerType, val voic
                 ), body = mutableListOf(
                     MltNode(name = "position", fields = mutableMapOf(Pair("x","$songnameTextX"),Pair("y","$songnameTextY")),
                         body = mutableListOf(MltNode(name = "transform", body = "1,0,0,0,1,0,0,0,1"))),
-                    songnameTextFontMlt.mltNode(songnameText)
+                    songnameTextFontMlt.mltNode(songnameText.replace("&","&amp;"))
                 )
             )
         )

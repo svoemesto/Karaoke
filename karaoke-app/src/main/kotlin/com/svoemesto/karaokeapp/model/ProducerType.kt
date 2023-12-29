@@ -42,7 +42,7 @@ enum class ProducerType(
 
     MAINBIN(level = 0, isCalculatedCount = false, text ="mainbin", onlyOne = true, ids = mutableListOf(), isAudio = true, isVideo = true, coeffStatic = 1, coeffVoice = 0, isSequence = true),
     VOICES(level = 1, isCalculatedCount = false, text ="voices", onlyOne = true, ids = mutableListOf(), isAudio = false, isVideo = true, coeffStatic = 1, coeffVoice = 0, isSequence = true),
-    VOICE(level = 2, isCalculatedCount = false, text ="voice", onlyOne = true, ids = mutableListOf(), isAudio = false, isVideo = true, coeffStatic = 0, coeffVoice = 1, isSequence = true),
+    VOICE(level = 2, isCalculatedCount = false, text ="voice", onlyOne = false, ids = mutableListOf(), isAudio = false, isVideo = true, coeffStatic = 0, coeffVoice = 1, isSequence = true),
     COUNTERS(level = 3, isCalculatedCount = false, text ="counters", onlyOne = false, ids = mutableListOf(), isAudio = false, isVideo = true, coeffStatic = 0, coeffVoice = 1, isSequence = true),
     SCROLLERS(level = 3, isCalculatedCount = false, text ="scrollers", onlyOne = false, ids = mutableListOf(), isAudio = false, isVideo = true, coeffStatic = 0, coeffVoice = 1, isSequence = true),
     FILLCOLORSONGTEXTS(level = 3, isCalculatedCount = false, text ="fillcolorsongtexts", onlyOne = false, ids = mutableListOf(), isAudio = false, isVideo = true, coeffStatic = 0, coeffVoice = 1, isSequence = true),

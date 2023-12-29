@@ -1,38 +1,10 @@
 package com.svoemesto.karaokeapp
 
 import com.svoemesto.karaokeapp.mlt.mko.*
-import com.svoemesto.karaokeapp.mlt.mko2.*
 import com.svoemesto.karaokeapp.model.ProducerType
 import com.svoemesto.karaokeapp.textfiledictionary.CensoredWordsDictionary
 import com.svoemesto.karaokeapp.textfiledictionary.TestDictionary
 import com.svoemesto.karaokeapp.textfiledictionary.YoWordsDictionary
-import org.springframework.messaging.simp.SimpMessagingTemplate
-
-val idProducerSongText = ProducerType.SONGTEXT.ordinal * 10
-val idProducerHorizon = ProducerType.HORIZON.ordinal * 10
-val idProducerFillColorSongtextEven = ProducerType.FILLCOLORSONGTEXT.ordinal * 10
-val idProducerFillColorSongtextOdd = ProducerType.FILLCOLORSONGTEXT.ordinal * 10 + 1
-val idProducerHeader = ProducerType.HEADER.ordinal * 10
-val idProducerBackground = ProducerType.BACKGROUND.ordinal * 10
-val idProducerCounter4 = ProducerType.COUNTER.ordinal * 10 + 4
-val idProducerCounter3 = ProducerType.COUNTER.ordinal * 10 + 3
-val idProducerCounter2 = ProducerType.COUNTER.ordinal * 10 + 2
-val idProducerCounter1 = ProducerType.COUNTER.ordinal * 10 + 1
-val idProducerCounter0 = ProducerType.COUNTER.ordinal * 10
-val idProducerAudioSong = ProducerType.AUDIOSONG.ordinal * 10
-val idProducerAudioMusic = ProducerType.AUDIOMUSIC.ordinal * 10
-val idProducerAudioVocal = ProducerType.AUDIOVOCAL.ordinal * 10
-val idProducerAudioBass = ProducerType.AUDIOBASS.ordinal * 10
-val idProducerAudioDrums = ProducerType.AUDIODRUMS.ordinal * 10
-val idProducerProgress = ProducerType.PROGRESS.ordinal * 10 + 1
-val idProducerWatermark = ProducerType.WATERMARK.ordinal * 10 + 1
-val idProducerFaderText = ProducerType.FADERTEXT.ordinal * 10 + 1
-val idProducerFaderChords = ProducerType.FADERCHORDS.ordinal * 10 + 1
-val idProducerBackChords = ProducerType.BACKCHORDS.ordinal * 10 + 1
-val idProducerFingerboard = ProducerType.FINGERBOARD.ordinal * 10 + 1
-val idProducerSplashstart = ProducerType.SPLASHSTART.ordinal * 10 + 1
-val idProducerBoosty = ProducerType.BOOSTY.ordinal * 10 + 1
-val idProducerFlash = ProducerType.FLASH.ordinal * 10 + 1
 
 
 val delimiterVoices = "|[VOICE]|"
@@ -79,6 +51,7 @@ const val ODS_COLUMN_YOUTUBE_KARAOKE = "Karaoke"
 const val ODS_COLUMN_YOUTUBE_KARAOKE_BT = "Karaoke BT"
 const val ODS_COLUMN_YOUTUBE_CHORDS = "Chords"
 const val ODS_COLUMN_YOUTUBE_CHORDS_BT = "Chords BT"
+const val URL_PREFIX_SM = "http://sm-karaoke.ru/song?id={REPLACE}"
 const val URL_PREFIX_BOOSTY = "https://boosty.to/svoemesto/posts/{REPLACE}"
 const val URL_PREFIX_YOUTUBE_PLAY = "https://dzen.ru/video/watch/{REPLACE}"
 const val URL_PREFIX_YOUTUBE_EDIT = "https://dzen.ru/profile/editor/svoemesto/publications?videoEditorPublicationId={REPLACE}"
@@ -110,8 +83,6 @@ val TEXT_FILE_DICTS = mapOf(
     "Censored" to CensoredWordsDictionary::class.java,
     "Тестовый словарь" to TestDictionary::class.java
 )
-
-lateinit var WEBSOCKET: SimpMessagingTemplate
 
 val producerTypeClass = mapOf(
     ProducerType.AUDIOVOCAL to MkoAudio::class.java,
@@ -145,5 +116,6 @@ val producerTypeClass = mapOf(
 
 )
 
-val WORKING_DATABASE = Connection.LOCAL
+val WORKING_DATABASE = Connection.local()
+//val WORKING_DATABASE = Connection.LOCAL
 //val WORKING_DATABASE = Connection.REMOTE

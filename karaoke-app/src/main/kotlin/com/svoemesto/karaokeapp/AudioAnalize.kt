@@ -4,7 +4,7 @@ import be.tarsos.dsp.pitch.PitchProcessor
 import java.io.File
 import javax.sound.sampled.AudioSystem
 
-fun main(args: Array<String>) {
+fun mainAudioAnalize(args: Array<String>) {
     val file = File("/home/nsa/Documents/Караоке/Разное/Infornal Fuckъ - Конунг Олаф Моржовый Хер/Конунг Олаф Моржовый Хер.wav")
     val audioInputStream = AudioSystem.getAudioInputStream(file)
     val dispatcher = AudioDispatcherFactory.fromFile(file, 2048, 0)

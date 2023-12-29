@@ -136,7 +136,7 @@ data class MkoScroller(val mltProp: MltProp, val type: ProducerType, val voiceId
                                 .build()
                         )
                         .node(
-                            subtitle.mltText.copy(subtitle.mltText.text, Font(MAIN_FONT_NAME, initFont.style, fontSize)).mltNode(subtitle.mltText.text)
+                            subtitle.mltText.copy(subtitle.mltText.text.replace("&","&amp;amp;"), Font(MAIN_FONT_NAME, initFont.style, fontSize)).mltNode(subtitle.mltText.text.replace("&","&amp;amp;"))
                         )
                         .build()
                 )

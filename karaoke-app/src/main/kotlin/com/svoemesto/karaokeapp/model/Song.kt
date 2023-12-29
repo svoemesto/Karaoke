@@ -56,26 +56,7 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
             )) "projects" else if (songOutputFile == SongOutputFile.PICTURECHORDS) "chords" else "files"}/${if (songOutputFile == SongOutputFile.VK) "[{REPLACE_DATE}_{REPLACE_TIME}] " else ""}${if (!settings.fileName.startsWith (settings.year.toString())) "${settings.year} " else ""}${settings.fileName}${songVersion.suffix}${if (songOutputFile == SongOutputFile.PICTURECHORDS) " chords" else ""}${if (songOutputFile == SongOutputFile.PICTUREBOOSTY) " boosty" else ""}${if (songOutputFile == SongOutputFile.PICTUREVK) " VK" else ""}${if (songOutputFile == SongOutputFile.VK) " [VK]" else ""}.${songOutputFile.extension}"
     }
 
-    fun getDescription(): String {
 
-        return getDescriptionHeader() + "\n" +
-                getDescriptionWOHeader()
-
-    }
-
-    fun getDescriptionVk(): String {
-
-        return getDescriptionVkHeader() + "\n" +
-                getDescriptionVkWOHeader()
-
-    }
-    
-    fun getDescriptionDzen(): String {
-
-        return getDescriptionHeader() + "\n" +
-                getDescriptionDzenWOHeader(5000)
-
-    }
 
     fun getDescriptionHeader(maxSymbols: Int = 0): String {
 
@@ -83,124 +64,89 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
 
     }
 
-    fun getDescriptionVkHeader(maxSymbols: Int = 0): String {
+    fun getDescription(): String {
 
-        return "${settings.songName.censored()} ★♫★ ${settings.author} ★♫★ ${songVersion.text} ★♫★ ${songVersion.textForDescription}".cutByWords(maxLength = maxSymbols)
+        return getDescriptionHeader() + "\n" +
+                getDescriptionWOHeaderWOTimecodes()
 
     }
-    
+    fun getDescriptionVk(): String {
+
+        return getDescriptionVkHeader() + "\n" +
+                getDescriptionWOHeaderWithTimecodes()
+
+    }
+
     fun getTextBoostyHead(): String {
         return "${settings.songName.censored()} ★♫★ ${settings.author}"
     }
 
-    fun getTextBoostyBody(): String {
-        return  "Композиция: ${settings.songName}\n" +
+    fun getTextForDescriptionHeader(withVersion: Boolean = true): String {
+        return "${settings.linkSM} ⇐ Страница песни на официальном сайте проекта\n\n" +
+                (if (!withVersion) "" else "Версия: ${songVersion.text} (${songVersion.textForDescription})\n") +
+                "Композиция: ${settings.songName}\n" +
                 "Исполнитель: ${settings.author}\n" +
                 "Альбом: ${settings.album}\n" +
                 "Год: ${settings.year}\n" +
+                "Темп: ${settings.bpm} bpm\n" +
+                "Тональность: ${settings.key}" +
+                "\n\n"
+    }
+
+    fun getTextForDescriptionFooter(): String {
+        return "\n\n"+
+                "Официальный сайт проекта: http://sm-karaoke.ru\n" +
+                "Поддержать проект на Boosty: https://boosty.to/svoemesto\n" +
+                "Группа ВКонтакте: https://vk.com/svoemestokaraoke\n" +
+                "Канал Telegram: https://t.me/svoemestokaraoke\n" +
+                "Канал Дзен: https://dzen.ru/svoemesto\n" +
+                "${settings.songName.hashtag()} ${settings.author.hashtag()} ${"karaoke".hashtag()} ${"караоке".hashtag()}\n"
+    }
+
+    fun getTextBoostyBody(): String {
+        return  getTextForDescriptionHeader(false) +
                 "\n\n"+
                 getTextForDescription() +
                 "\n\n"
     }
 
+    fun getDescriptionVkHeader(maxSymbols: Int = 0): String {
 
+        return "${settings.songName.censored()} ★♫★ ${settings.author} ★♫★ ${songVersion.text} ★♫★ ${songVersion.textForDescription}".cutByWords(maxLength = maxSymbols)
 
-    fun getDescriptionWOHeader(maxSymbols: Int = 0): String {
+    }
 
-        val txtStart = "Поддержать создание караоке на https://boosty.to/svoemesto\n" +
-                "Группа ВКонтакте: https://vk.com/svoemestokaraoke\n" +
-                "Канал Telegram: https://t.me/svoemestokaraoke\n" +
-                "Канал Дзен: https://dzen.ru/svoemesto\n\n" +
-                "Версия: ${songVersion.text} (${songVersion.textForDescription})\n" +
-                "Композиция: ${settings.songName}\n" +
-                "Исполнитель: ${settings.author}\n" +
-                "Альбом: ${settings.album}\n" +
-                "Год: ${settings.year}\n" +
-                (if (getChordDescription() !="") "${getChordDescription()}\n" else "") +
-                "\n\n"+
-                settings.getDescriptionLinks() +
-                "\n"
-        val txtEnd = "\n\n"+
-                "https://github.com/svoemesto/Karaoke\n" +
-                "${settings.songName.hashtag()} ${settings.author.hashtag()} ${"karaoke".hashtag()} ${"караоке".hashtag()}${if (songVersion == SongVersion.CHORDS) " ${"chords".hashtag()} ${"аккорды".hashtag()}" else ""}\n"
+    fun getDescriptionWOHeaderWOTimecodes(maxSymbols: Int = 0): String {
 
+        val txtStart = getTextForDescriptionHeader()
+        val txtEnd = getTextForDescriptionFooter()
         val txtDescription = getTextForDescription(maxSymbols - txtStart.length - txtEnd.length)
 
         return txtStart + txtDescription + txtEnd
 
     }
 
-    fun getDescriptionDzenWOHeader(maxSymbols: Int = 0): String {
+    fun getDescriptionWOHeaderWithTimecodes(maxSymbols: Int = 0): String {
 
-        val txtStart = "Поддержать создание караоке на https://boosty.to/svoemesto\n" +
-                "Группа ВКонтакте: https://vk.com/svoemestokaraoke\n" +
-                "Канал Telegram: https://t.me/svoemestokaraoke\n" +
-                "Канал Дзен: https://dzen.ru/svoemesto\n\n" +
-                "Версия: ${songVersion.text} (${songVersion.textForDescription})\n" +
-                "Композиция: ${settings.songName}\n" +
-                "Исполнитель: ${settings.author}\n" +
-                "Альбом: ${settings.album}\n" +
-                "Год: ${settings.year}\n" +
-                (if (getChordDescription() !="") "${getChordDescription()}\n" else "") +
-                "\n\n"+
-                settings.getDescriptionLinks() +
-                "\n"
-
-        val txtEnd = "\n\n"+
-                "https://github.com/svoemesto/Karaoke\n" +
-                "${settings.songName.hashtag()} ${settings.author.hashtag()} ${"karaoke".hashtag()} ${"караоке".hashtag()}${if (songVersion == SongVersion.CHORDS) " ${"chords".hashtag()} ${"аккорды".hashtag()}" else ""}\n"
-
+        val txtStart = getTextForDescriptionHeader()
+        val txtEnd = getTextForDescriptionFooter()
         val txtDescription = getTextForDescriptionWithTimecodes(maxSymbols - txtStart.length - txtEnd.length)
 
         return txtStart + txtDescription + txtEnd
-    }
 
-
-    fun getDescriptionVkWOHeader(maxSymbols: Int = 0): String {
-
-        val txtStart = "Поддержать создание караоке на https://boosty.to/svoemesto\n" +
-                "Группа ВКонтакте: https://vk.com/svoemestokaraoke\n" +
-                "Канал Telegram: https://t.me/svoemestokaraoke\n" +
-                "Канал Дзен: https://dzen.ru/svoemesto\n\n" +
-                "Версия: ${songVersion.text} (${songVersion.textForDescription})\n" +
-                "Композиция: ${settings.songName}\n" +
-                "Исполнитель: ${settings.author}\n" +
-                "Альбом: ${settings.album}\n" +
-                "Год: ${settings.year}\n" +
-                (if (getChordDescription() !="") "${getChordDescription()}\n" else "") +
-                "\n\n"+
-                settings.getDescriptionLinks() +
-                "\n"
-        val txtEnd = "\n\n"+
-                "https://github.com/svoemesto/Karaoke\n" +
-                "${settings.songName.hashtag()} ${settings.author.hashtag()} ${"karaoke".hashtag()} ${"караоке".hashtag()}${if (songVersion == SongVersion.CHORDS) " ${"chords".hashtag()} ${"аккорды".hashtag()}" else ""}\n"
-
-        val txtDescription = getTextForDescriptionWithTimecodes(maxSymbols - txtStart.length - txtEnd.length)
-
-        return txtStart + txtDescription + txtEnd
     }
 
     fun getVKGroupDescription(maxSymbols: Int = 0): String {
 
-        val txtStart = "${settings.songName.censored()} ★♫★ ${settings.author}" + "\n\n" +
-                settings.getDescriptionLinks() +
-                "\n" +
-                "Поддержать создание караоке на https://boosty.to/svoemesto\n" +
-                "Группа ВКонтакте: https://vk.com/svoemestokaraoke\n" +
-                "Канал Telegram: https://t.me/svoemestokaraoke\n" +
-                "Канал Дзен: https://dzen.ru/svoemesto\n\n" +
-                "Композиция: ${settings.songName}\n" +
-                "Исполнитель: ${settings.author}\n" +
-                "Альбом: ${settings.album}\n" +
-                "Год: ${settings.year}\n" +
-                "\n\n"
-        val txtEnd = "\n\n"+
-                "${settings.songName.hashtag()} ${settings.author.hashtag()} ${"karaoke".hashtag()} ${"караоке".hashtag()}${if (songVersion == SongVersion.CHORDS) " ${"chords".hashtag()} ${"аккорды".hashtag()}" else ""}\n"
-        val txtDescription = getTextForDescription(maxSymbols - txtStart.length - txtEnd.length)
+//        return "${settings.songName.censored()} ★♫★ ${settings.author}" + "\n\n" +
+//                getTextForDescriptionHeader(false)
 
-        return txtStart + txtDescription + txtEnd
-
+        return  "${settings.songName.censored()} ★♫★ ${settings.author}" + "\n\n" +
+                getTextForDescriptionHeader(false) +
+                getTextForDescription()
     }
+
+
 
     fun getChordDescription(): String {
 
@@ -224,7 +170,7 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
         var result = ""
         voices.forEach { voice ->
             voice.lines.forEach { line ->
-                result += line.text + "\n"
+                result += line.text.uppercaseFirstLetter() + "\n"
             }
         }
         result += "\n\n--------------------------------------------\n\n"
@@ -243,9 +189,9 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
                 }
                 prevLineGroup = line.group
                 if (!(line.text.trim() == "" && prevLineText == "")) {
-                    result += line.text.trim() + "\n"
+                    result += line.text.trim().uppercaseFirstLetter() + "\n"
                 }
-                prevLineText = line.text.trim()
+                prevLineText = line.text.trim().uppercaseFirstLetter()
             }
             if (voice != voices.last()) result += "\n" + "----------------------------------------------------" + "\n\n"
         }
@@ -269,7 +215,7 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
         voices.forEach { voice ->
             var prevLineText = ""
             voice.lines.forEach { line ->
-                prevLineText = line.text.trim()
+                prevLineText = line.text.trim().uppercaseFirstLetter()
 
                 if (line.group != prevLineGroup) {
                     result += "\n"
@@ -281,7 +227,7 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
                         if (line.type == SongVoiceLineType.COMMENTS) {
                             result += line.text.trim() + "\n"
                         } else {
-                            result += line.startYT + " " + line.text.trim() + "\n"
+                            result += line.startYT + " " + line.text.trim().uppercaseFirstLetter() + "\n"
                         }
 
                     } else {

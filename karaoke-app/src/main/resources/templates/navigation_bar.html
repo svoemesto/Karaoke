@@ -1,13 +1,21 @@
 
 <ul class="nav nav-pills">
   <li class="nav-item">
+    <span th:if="${workInContainer == true}">
+      <div style="color: red;">Docker</div>
+    </span>
+    <span th:unless="${workInContainer == true}">
+      <div style="color: blue;">Idea</div>
+    </span>
+  </li>
+  <li class="nav-item">
     <a class="nav-link" aria-current="page" href="/">Главная</a>
   </li>
   <li class="nav-item">
-    <a class="nav-link" href="/songs">Песни</a>
+    <a class="nav-link" href="/songs?filter_author=Ундервуд">Песни</a>
   </li>
   <li class="nav-item">
-    <a class="nav-link" href="/songs2">Песни-2</a>
+    <a class="nav-link" href="/songs2?filter_author=Ундервуд">Песни-2</a>
   </li>
   <li class="nav-item">
     <a class="nav-link" href="/publications?filter_cond=fromnotpublish">Публикации</a>
@@ -20,5 +28,15 @@
   </li>
   <li class="nav-item">
     <a class="nav-link" href="/processes?filter_limit=100">Процессы</a>
+  </li>
+  <li>
+    <div>
+      <div id="process_text" style="font-size: 10pt">Название процесса</div>
+      <div class="progress"  style="height: 20px;">
+        <div id="process_progress_bar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" >
+        </div>
+
+      </div>
+    </div>
   </li>
 </ul>

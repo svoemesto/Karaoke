@@ -9,7 +9,7 @@ plugins {
 }
 
 group = "com.svoemesto"
-version = "0.0.1-SNAPSHOT"
+version = "1"
 
 java.sourceCompatibility = JavaVersion.VERSION_17
 
@@ -50,6 +50,10 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation ("org.seleniumhq.selenium:selenium-java:4.8.0")
 
+//    implementation("org.apache.http:httpcore:4.2")
+// https://mvnrepository.com/artifact/org.apache.commons/commons-lang3
+    implementation("org.apache.commons:commons-lang3:3.14.0")
+
 }
 
 tasks.withType<KotlinCompile> {
@@ -62,3 +66,5 @@ tasks.withType<KotlinCompile> {
 tasks.withType<Test> {
     useJUnitPlatform()
 }
+
+println("KaraokeVersion: ${project.version}")

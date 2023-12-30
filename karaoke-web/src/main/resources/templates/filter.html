@@ -214,40 +214,7 @@
         }
     </style>
 
-    <script type="text/javascript">
 
-        $(function() {
-            const fieldAuthor = document.getElementById('field_author');
-            fieldAuthor.addEventListener('keydown', function(event) {
-                if (event.key === 'Enter') {
-                    var url = "/zakroma?author=" + fieldAuthor.value.replaceAll('&', '%26');
-                    window.location.href = url;
-                }
-            });
-
-            // fieldAuthor.onchange = e => window.location.href = "/zakroma?author=" + e.target.value;
-
-            fieldAuthor.addEventListener('change', function(event) {
-                var sel = event.target.value;
-                var url = "/zakroma?author=" + sel.replaceAll('&', '%26');
-                window.location.href = url;
-                fieldAuthor.value = sel;
-            });
-
-        });
-
-        function doFind() {
-            var btn = document.getElementById("btn_find");
-            var author = document.getElementById("fld_songauthor").value;
-            var name = document.getElementById("fld_songname").value;
-            var text = document.getElementById("fld_songtext").value;
-            var url = "/filter?author=" + author.replaceAll('&', '%26') + '&song_name=' + name.replaceAll('&', '%26') + '&text=' + text.replaceAll('&', '%26');
-            btn.disabled = true
-            btn.innerText = "Ищу..."
-            window.location.href = url;
-        }
-
-    </script>
 
 </head>
 
@@ -394,14 +361,21 @@
                             </td>
                             <td class="td_cell" style="padding: 0; border-left-width: 0; width: 20px;">
                                 <div class="boosty">
-                                        <span th:if="${sett.linkBoosty == ''}">
+                                        <span th:if="${sett.linkBoostyTxt == ''}">
                                             <div>
                                                 <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-boosty-none"></use></svg>
                                             </div>
                                         </span>
-                                    <span th:unless="${sett.linkBoosty == ''}">
-                                            <div>
-                                                <a th:href="${sett.linkBoosty}" target="_blank"><svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-boosty"></use></svg></a>
+                                    <span th:unless="${sett.linkBoostyTxt == ''}">
+                                            <div
+                                                    style="cursor: pointer"
+                                                    name="link"
+                                                    linkName="boosty"
+                                                    th:linkValue="${sett.linkBoostyTxt}"
+                                                    th:songId="${sett.id}"
+                                                    songVersion="all"
+                                            >
+                                                <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-boosty"></use></svg>
                                             </div>
                                         </span>
                                 </div>
@@ -413,9 +387,18 @@
                                             <span th:if="${sett.linkDzenKaraoke == ''}">
                                                 <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-dzen-none"></use></svg>
                                             </span>
-                                            <span th:unless="${sett.linkDzenKaraoke == ''}">
-                                                <a th:href="${sett.linkDzenKaraoke}" target="_blank"><svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-dzen"></use></svg></a>
-                                            </span>
+                                                <span th:unless="${sett.linkDzenKaraoke == ''}">
+                                                     <div
+                                                             style="cursor: pointer"
+                                                             name="link"
+                                                             linkName="dzen"
+                                                             th:linkValue="${sett.linkDzenKaraoke}"
+                                                             th:songId="${sett.id}"
+                                                             songVersion="karaoke"
+                                                     >
+                                                        <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-dzen"></use></svg>
+                                                    </div>
+                                                </span>
                                         </div>
                                     </td>
                                     <td class="td_cell" style="padding: 0; border-right-width: 0; border-left-width: 0; width: 20px;">
@@ -423,9 +406,18 @@
                                             <span th:if="${sett.linkVkKaraoke == ''}">
                                                 <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-vk-none"></use></svg>
                                             </span>
-                                            <span th:unless="${sett.linkVkKaraoke == ''}">
-                                                <a th:href="${sett.linkVkKaraoke}" target="_blank"><svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-vk"></use></svg></a>
-                                            </span>
+                                                <span th:unless="${sett.linkVkKaraoke == ''}">
+                                                     <div
+                                                             style="cursor: pointer"
+                                                             name="link"
+                                                             linkName="vk"
+                                                             th:linkValue="${sett.linkVkKaraoke}"
+                                                             th:songId="${sett.id}"
+                                                             songVersion="karaoke"
+                                                     >
+                                                        <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-vk"></use></svg>
+                                                    </div>
+                                                </span>
                                         </div>
                                     </td>
                                     <td class="td_cell" style="padding: 0; border-left-width: 0; width: 20px;">
@@ -434,7 +426,16 @@
                                                 <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-tg-none"></use></svg>
                                             </span>
                                             <span th:unless="${sett.linkTgKaraoke == ''}">
-                                                <a th:href="${sett.linkTgKaraoke}" target="_blank"><svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-tg"></use></svg></a>
+                                                 <div
+                                                         style="cursor: pointer"
+                                                         name="link"
+                                                         linkName="tg"
+                                                         th:linkValue="${sett.linkTgKaraoke}"
+                                                         th:songId="${sett.id}"
+                                                         songVersion="karaoke"
+                                                 >
+                                                    <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-tg"></use></svg>
+                                                </div>
                                             </span>
                                         </div>
                                     </td>
@@ -444,9 +445,18 @@
                                             <span th:if="${sett.linkDzenLyrics == ''}">
                                                 <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-dzen-none"></use></svg>
                                             </span>
-                                            <span th:unless="${sett.linkDzenLyrics == ''}">
-                                                <a th:href="${sett.linkDzenLyrics}" target="_blank"><svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-dzen"></use></svg></a>
-                                            </span>
+                                                <span th:unless="${sett.linkDzenLyrics == ''}">
+                                                     <div
+                                                             style="cursor: pointer"
+                                                             name="link"
+                                                             linkName="dzen"
+                                                             th:linkValue="${sett.linkDzenLyrics}"
+                                                             th:songId="${sett.id}"
+                                                             songVersion="lyrics"
+                                                     >
+                                                        <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-dzen"></use></svg>
+                                                    </div>
+                                                </span>
                                         </div>
                                     </td>
                                     <td class="td_cell" style="padding: 0; border-right-width: 0; border-left-width: 0; width: 20px;">
@@ -454,9 +464,18 @@
                                             <span th:if="${sett.linkVkLyrics == ''}">
                                                 <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-vk-none"></use></svg>
                                             </span>
-                                            <span th:unless="${sett.linkVkLyrics == ''}">
-                                                <a th:href="${sett.linkVkLyrics}" target="_blank"><svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-vk"></use></svg></a>
-                                            </span>
+                                                <span th:unless="${sett.linkVkLyrics == ''}">
+                                                     <div
+                                                             style="cursor: pointer"
+                                                             name="link"
+                                                             linkName="vk"
+                                                             th:linkValue="${sett.linkVkLyrics}"
+                                                             th:songId="${sett.id}"
+                                                             songVersion="lyrics"
+                                                     >
+                                                        <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-vk"></use></svg>
+                                                    </div>
+                                                </span>
                                         </div>
                                     </td>
                                     <td class="td_cell" style="padding: 0; border-left-width: 0; width: 20px;">
@@ -467,11 +486,18 @@
                                                 </div>
 
                                             </span>
-                                            <span th:unless="${sett.linkTgLyrics == ''}">
-                                                <div>
-                                                    <a th:href="${sett.linkTgLyrics}" target="_blank"><svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-tg"></use></svg></a>
-                                                </div>
-                                            </span>
+                                                <span th:unless="${sett.linkTgLyrics == ''}">
+                                                     <div
+                                                             style="cursor: pointer"
+                                                             name="link"
+                                                             linkName="tg"
+                                                             th:linkValue="${sett.linkTgLyrics}"
+                                                             th:songId="${sett.id}"
+                                                             songVersion="lyrics"
+                                                     >
+                                                        <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-tg"></use></svg>
+                                                    </div>
+                                                </span>
                                         </div>
                                     </td>
                                 </span>
@@ -492,3 +518,55 @@
 </div>
 
 </body>
+
+<script type="text/javascript">
+
+    $(function() {
+        const fieldAuthor = document.getElementById('field_author');
+        fieldAuthor.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                var url = "/zakroma?author=" + fieldAuthor.value.replaceAll('&', '%26');
+                window.location.href = url;
+            }
+        });
+
+        // fieldAuthor.onchange = e => window.location.href = "/zakroma?author=" + e.target.value;
+
+        fieldAuthor.addEventListener('change', function(event) {
+            var sel = event.target.value;
+            var url = "/zakroma?author=" + sel.replaceAll('&', '%26');
+            window.location.href = url;
+            fieldAuthor.value = sel;
+        });
+
+        const linkElements = document.getElementsByName('link');
+        for (let i = 0; i < linkElements.length; i++) {
+            let element = linkElements[i];
+            let linkValue = element.getAttribute('linkValue');
+            let linkName = element.getAttribute('linkName');
+            let songId = element.getAttribute('songId');
+            let songVersion = element.getAttribute('songVersion');
+            element.addEventListener('click', function (event) {
+                $.ajax({
+                    type: "POST",
+                    url: "/registerevent",
+                    data: {"eventType": "clickToLink", "linkType": "linkToSong", "linkName": linkName, "songId": songId, "songVersion": songVersion}
+                });
+                window.open(linkValue, '_blank');
+            });
+        }
+
+    });
+
+    function doFind() {
+        var btn = document.getElementById("btn_find");
+        var author = document.getElementById("fld_songauthor").value;
+        var name = document.getElementById("fld_songname").value;
+        var text = document.getElementById("fld_songtext").value;
+        var url = "/filter?author=" + author.replaceAll('&', '%26') + '&song_name=' + name.replaceAll('&', '%26') + '&text=' + text.replaceAll('&', '%26');
+        btn.disabled = true
+        btn.innerText = "Ищу..."
+        window.location.href = url;
+    }
+
+</script>

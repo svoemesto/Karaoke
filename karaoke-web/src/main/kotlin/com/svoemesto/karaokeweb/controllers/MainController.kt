@@ -3,6 +3,7 @@ package com.svoemesto.karaokeweb.controllers
 
 import com.svoemesto.karaokeapp.Crypto
 import com.svoemesto.karaokeapp.model.Settings
+import com.svoemesto.karaokeweb.StatBySong
 import com.svoemesto.karaokeapp.model.Zakroma
 import com.svoemesto.karaokeapp.services.WEB_WORK_IN_CONTAINER
 import com.svoemesto.karaokeweb.WORKING_DATABASE
@@ -23,6 +24,7 @@ class MainController(private val webSocket: SimpMessagingTemplate, @Value("\${wo
     fun main(
         model: Model
     ): String {
+        doRegisterEvent(mapOf("eventType" to "callRest", "restName" to "main", "parameters" to emptyMap<String, Any>()))
         return "main"
     }
 
@@ -31,52 +33,103 @@ class MainController(private val webSocket: SimpMessagingTemplate, @Value("\${wo
         @RequestParam(required = false) author: String?,
         model: Model
     ): String {
+        val data: MutableMap<String, Any> = mutableMapOf()
+        author?.let { data["author"] = it }
         model.addAttribute("authors", Settings.loadListAuthors(WORKING_DATABASE))
         model.addAttribute("zakroma", Zakroma.getZakroma(author ?: "", WORKING_DATABASE))
+        doRegisterEvent(mapOf("eventType" to "callRest", "restName" to "zakroma", "parameters" to data))
         return "zakroma"
     }
 
-    @PostMapping("/updaterecord")
-    @ResponseBody
-    fun doUpdateRecord(
-        @RequestBody(required = true) data: Map<String, Any>
-    ): String {
-        try {
-            val tableName = data["tableName"] as String
-            val idRecord = data["idRecord"] as Integer
-            val setText = data["setText"] as String
-            val word = data["word"] as String
-            if (Crypto.decrypt(word) != Crypto.wordsToChesk) return "Не удалось расшифровать кодовое слово"
-            val setTextDecrypted = Crypto.decrypt(setText)
-            val sql = "UPDATE $tableName SET $setTextDecrypted WHERE id = $idRecord"
-            val connection = WORKING_DATABASE.getConnection()
-            val ps = connection.prepareStatement(sql)
-            ps.executeUpdate()
-            ps.close()
-        } catch (e: Exception) {
-            return e.message!!
-        }
-        return "OK"
-    }
+//    @PostMapping("/registerevent")
 
-    @PostMapping("/insertrecord")
+    @PostMapping("/registerevent")
     @ResponseBody
-    fun doInsertRecord(
-        @RequestBody(required = true) data: Map<String, Any>
-    ): String {
-        try {
-            val sqlToInsert = data["sqlToInsert"] as String
-            val word = data["word"] as String
-            if (Crypto.decrypt(word) != Crypto.wordsToChesk) return "Не удалось расшифровать кодовое слово"
-            val setTextDecrypted = Crypto.decrypt(sqlToInsert)
-            val connection = WORKING_DATABASE.getConnection()
-            val ps = connection.prepareStatement(setTextDecrypted)
-            ps.executeUpdate()
-            ps.close()
-        } catch (e: Exception) {
-            return e.message!!
+    fun doRegisterEvent(
+        @RequestParam(required = true) data: Map<String, Any>
+    ): Boolean {
+        println("Вызов registerevent $data")
+        if (!data.containsKey("eventType")) return false
+        val eventType = data["eventType"] as String
+        when (eventType) {
+            "clickToLink" -> {
+                if (!data.containsKey("linkType")) return false
+                val linkType = data["linkType"] as String
+                when (linkType) {
+                    "linkToSocialNetwork" -> {
+                        if (!data.containsKey("linkName")) return false
+                        val linkName = data["linkName"] as String
+                        println("Переход в соцсеть: $linkName")
+                        val fieldsValues: MutableList<Pair<String, Any>> = mutableListOf()
+                        fieldsValues.add(Pair("event_type", "clickToLink"))
+                        fieldsValues.add(Pair("link_type", "linkToSocialNetwork"))
+                        fieldsValues.add(Pair("link_name", linkName))
+                        val connection = WORKING_DATABASE.getConnection()
+                        val sqlToInsert = "INSERT INTO tbl_events (${fieldsValues.map {it.first}.joinToString(", ")}) OVERRIDING SYSTEM VALUE VALUES(${fieldsValues.map {if (it.second is Long) "${it.second}" else "'${it.second.toString().replace("'","''")}'"}.joinToString(", ")})"
+                        val ps = connection.prepareStatement(sqlToInsert)
+                        ps.executeUpdate()
+                        ps.close()
+                    }
+                    "linkToSong" -> {
+                        if (!data.containsKey("linkName")) return false
+                        val linkName = data["linkName"] as String
+                        if (!data.containsKey("songId")) return false
+                        val songId = (data["songId"] as String).toLong()
+                        if (!data.containsKey("songVersion")) return false
+                        val songVersion = data["songVersion"] as String
+                        println("Переход на просмотр: сайт $linkName, id=$songId, Версия: $songVersion")
+                        val fieldsValues: MutableList<Pair<String, Any>> = mutableListOf()
+                        fieldsValues.add(Pair("event_type", "clickToLink"))
+                        fieldsValues.add(Pair("link_type", "linkToSong"))
+                        fieldsValues.add(Pair("link_name", linkName))
+                        fieldsValues.add(Pair("song_id", songId))
+                        fieldsValues.add(Pair("song_version", songVersion))
+                        val connection = WORKING_DATABASE.getConnection()
+                        val sqlToInsert = "INSERT INTO tbl_events (${fieldsValues.map {it.first}.joinToString(", ")}) OVERRIDING SYSTEM VALUE VALUES(${fieldsValues.map {if (it.second is Long) "${it.second}" else "'${it.second.toString().replace("'","''")}'"}.joinToString(", ")})"
+                        val ps = connection.prepareStatement(sqlToInsert)
+                        ps.executeUpdate()
+                        ps.close()
+                    }
+
+                    else -> {}
+                }
+
+
+            }
+            "play" -> {
+                if (!data.containsKey("songId")) return false
+                val songId = (data["songId"] as String).toLong()
+                if (!data.containsKey("songVersion")) return false
+                val songVersion = data["songVersion"] as String
+                println("Просмотр на странице: id=$songId, Версия: $songVersion")
+                val fieldsValues: MutableList<Pair<String, Any>> = mutableListOf()
+                fieldsValues.add(Pair("event_type", "play"))
+                fieldsValues.add(Pair("song_id", songId))
+                fieldsValues.add(Pair("song_version", songVersion))
+                val connection = WORKING_DATABASE.getConnection()
+                val sqlToInsert = "INSERT INTO tbl_events (${fieldsValues.map {it.first}.joinToString(", ")}) OVERRIDING SYSTEM VALUE VALUES(${fieldsValues.map {if (it.second is Long) "${it.second}" else "'${it.second.toString().replace("'","''")}'"}.joinToString(", ")})"
+                val ps = connection.prepareStatement(sqlToInsert)
+                ps.executeUpdate()
+                ps.close()
+            }
+            "callRest" -> {
+                val restName = data["restName"] as String
+                val parameters = data["parameters"] as Map<*, *>
+                println("Вызван рест $restName с параметрами $parameters")
+                val fieldsValues: MutableList<Pair<String, Any>> = mutableListOf()
+                fieldsValues.add(Pair("event_type", "callRest"))
+                fieldsValues.add(Pair("rest_name", restName))
+                fieldsValues.add(Pair("rest_parameters", parameters.toString()))
+                val connection = WORKING_DATABASE.getConnection()
+                if (parameters.containsKey("id")) fieldsValues.add(Pair("song_id", parameters["id"]!!.toString().toLong()))
+                val sqlToInsert = "INSERT INTO tbl_events (${fieldsValues.map {it.first}.joinToString(", ")}) OVERRIDING SYSTEM VALUE VALUES(${fieldsValues.map {if (it.second is Long) "${it.second}" else "'${it.second.toString().replace("'","''")}'"}.joinToString(", ")})"
+                val ps = connection.prepareStatement(sqlToInsert)
+                ps.executeUpdate()
+                ps.close()
+            }
+            else -> {}
         }
-        return "OK"
+        return true
     }
 
     @PostMapping("/changerecords")
@@ -144,6 +197,14 @@ class MainController(private val webSocket: SimpMessagingTemplate, @Value("\${wo
         val settings: List<Settings> = if ("${song_name ?: ""}${author ?: ""}${album ?: ""}${text ?: ""}".length < 3) emptyList() else Settings.loadListFromDb(attr, WORKING_DATABASE)
 
         model.addAttribute("settings", settings)
+
+        val data: MutableMap<String, Any> = mutableMapOf()
+        if (song_name != null && song_name != "") data["song_name"] = song_name
+        if (author != null && author != "") data["author"] = author
+        if (text != null && text != "") data["text"] = text
+        if (album != null && album != "") data["album"] = album
+        doRegisterEvent(mapOf("eventType" to "callRest", "restName" to "filter", "parameters" to data))
+
         return "filter"
     }
 
@@ -153,7 +214,16 @@ class MainController(private val webSocket: SimpMessagingTemplate, @Value("\${wo
         model: Model
     ): String {
         model.addAttribute("sett", Settings.loadFromDbById(id, WORKING_DATABASE))
+        doRegisterEvent(mapOf("eventType" to "callRest", "restName" to "song", "parameters" to mapOf("id" to id)))
         return "song"
+    }
+
+    @GetMapping("/statbysong")
+    fun doStatBySong(
+        model: Model
+    ): String {
+        model.addAttribute("stats", StatBySong.getStatBySong(WORKING_DATABASE))
+        return "statbysong"
     }
 
 }

@@ -405,9 +405,14 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     val idYoutubeChords: String get() = fields[SettingField.ID_YOUTUBE_CHORDS]?.nullIfEmpty() ?: ""
 
     val idVkLyrics: String get() = fields[SettingField.ID_VK_LYRICS]?.nullIfEmpty() ?: ""
+    val idVkLyricsOID: String get() = if (idVkLyrics!="" && idVkLyrics.contains("_")) idVkLyrics.split("_")[0] else ""
+    val idVkLyricsID: String get() = if (idVkLyrics!="" && idVkLyrics.contains("_")) idVkLyrics.split("_")[1] else ""
     val idVkKaraoke: String get() = fields[SettingField.ID_VK_KARAOKE]?.nullIfEmpty() ?: ""
+    val idVkKaraokeOID: String get() = if (idVkKaraoke!="" && idVkLyrics.contains("_")) idVkKaraoke.split("_")[0] else ""
+    val idVkKaraokeID: String get() = if (idVkKaraoke!="" && idVkLyrics.contains("_")) idVkKaraoke.split("_")[1] else ""
     val idVkChords: String get() = fields[SettingField.ID_VK_CHORDS]?.nullIfEmpty() ?: ""
-
+    val idVkChordsOID: String get() = if (idVkChords!="" && idVkLyrics.contains("_")) idVkChords.split("_")[0] else ""
+    val idVkChordsID: String get() = if (idVkChords!="" && idVkLyrics.contains("_")) idVkChords.split("_")[1] else ""
     val idTelegramLyrics: String get() = fields[SettingField.ID_TELEGRAM_LYRICS]?.nullIfEmpty() ?: ""
     val idTelegramKaraoke: String get() = fields[SettingField.ID_TELEGRAM_KARAOKE]?.nullIfEmpty() ?: ""
     val idTelegramChords: String get() = fields[SettingField.ID_TELEGRAM_CHORDS]?.nullIfEmpty() ?: ""

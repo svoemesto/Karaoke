@@ -1,9 +1,13 @@
 package com.svoemesto.karaokeapp.controllers
 
+import com.fasterxml.jackson.databind.DeserializationFeature
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.SerializationFeature
 import com.svoemesto.karaokeapp.*
 import com.svoemesto.karaokeapp.model.*
 import com.svoemesto.karaokeapp.services.APP_WORK_IN_CONTAINER
 import com.svoemesto.karaokeapp.textfiledictionary.TextFileDictionary
+import jakarta.servlet.http.HttpServletRequest
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -19,10 +23,15 @@ import java.io.File
 import java.util.*
 
 @Controller
-class MainController(private val webSocket: SimpMessagingTemplate) {
+class MainController(
+    private val webSocket: SimpMessagingTemplate,
+    private val objectMapper: ObjectMapper
+) {
+
+
 
     @GetMapping("/")
-    fun main(model: Model): String {
+    fun main(model: Model, request: HttpServletRequest): String {
         model.addAttribute("workInContainer", APP_WORK_IN_CONTAINER)
         model.addAttribute("authors", Settings.loadListAuthors(WORKING_DATABASE))
         model.addAttribute("dicts", TEXT_FILE_DICTS.keys.toMutableList().sorted().toList())
@@ -252,6 +261,16 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
         return ""
     }
 
+    @GetMapping("/song/{id}/symlink")
+    @ResponseBody
+    fun doSymlink(@PathVariable id: Long): Int {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        settings?.let {
+            it.doSymlink()
+        }
+        return 0
+    }
+
     @GetMapping("/song/{id}/delete")
     @ResponseBody
     fun doDeleteSong(@PathVariable id: Long): Int {
@@ -305,38 +324,9 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
         return 0
     }
 
-    @GetMapping("/song/{id}/playlyricsbt")
-    @ResponseBody
-    fun doPlayLyricsBt(@PathVariable id: Long): Int {
-        println("doPlayLyricsBt")
-        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
-        settings?.let {
-            settings.playLyricsBt()
-        }
-        return 0
-    }
 
-    @GetMapping("/song/{id}/playkaraokebt")
-    @ResponseBody
-    fun doPlayKaraokeBt(@PathVariable id: Long): Int {
-        println("doPlayKaraokeBt")
-        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
-        settings?.let {
-            settings.playKaraokeBt()
-        }
-        return 0
-    }
 
-    @GetMapping("/song/{id}/playchordsbt")
-    @ResponseBody
-    fun doPlayChordsBt(@PathVariable id: Long): Int {
-        println("doPlayChordsBt")
-        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
-        settings?.let {
-            settings.playChordsBt()
-        }
-        return 0
-    }
+
 
     @PostMapping("/song/{id}/{voice}/savesourcetext")
     fun saveSourceText(
@@ -798,7 +788,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val song = Song(settings, SongVersion.LYRICS)
-            val text = song.getDescriptionWOHeaderWithTimecodes()
+            val text = song.getDescriptionWOHeaderWithTimecodes(4785)
             text
         } ?: ""
         return text
@@ -811,7 +801,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val song = Song(settings, SongVersion.KARAOKE)
-            val text = song.getDescriptionWOHeaderWithTimecodes()
+            val text = song.getDescriptionWOHeaderWithTimecodes(4785)
             text
         } ?: ""
         return text
@@ -824,7 +814,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val song = Song(settings, SongVersion.CHORDS)
-            val text = song.getDescriptionWOHeaderWithTimecodes()
+            val text = song.getDescriptionWOHeaderWithTimecodes(4893)
             text
         } ?: ""
         return text
@@ -1258,6 +1248,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
         @RequestParam(required = false) settings_fileName: String,
         @RequestParam(required = false) settings_rootFolder: String,
         @RequestParam(required = false) settings_idBoosty: String,
+        @RequestParam(required = false) settings_idBoostyFiles: String,
         @RequestParam(required = false) settings_idVk: String,
         @RequestParam(required = false) settings_idYoutubeLyrics: String,
         @RequestParam(required = false) settings_idYoutubeKaraoke: String,
@@ -1288,6 +1279,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
             sett.fields[SettingField.BPM] = settings_bpm
             sett.fields[SettingField.MS] = settings_ms
             sett.fields[SettingField.ID_BOOSTY] = settings_idBoosty
+            sett.fields[SettingField.ID_BOOSTY_FILES] = settings_idBoostyFiles
             sett.fields[SettingField.ID_VK] = settings_idVk
             sett.fields[SettingField.ID_YOUTUBE_LYRICS] = settings_idYoutubeLyrics
             sett.fields[SettingField.ID_YOUTUBE_KARAOKE] = settings_idYoutubeKaraoke
@@ -1301,9 +1293,9 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
             sett.fields[SettingField.ID_STATUS] = select_status
             sett.saveToDb()
             sett.saveToFile()
-            if (settings_idBoosty != "") {
-                sett.createVKDescription()
-            }
+//            if (settings_idBoosty != "") {
+//                sett.createVKDescription()
+//            }
 
         }
         return "redirect:/songs"
@@ -1427,6 +1419,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
         @RequestParam(required = false) settings_fileName: String,
         @RequestParam(required = false) settings_rootFolder: String,
         @RequestParam(required = false) settings_idBoosty: String,
+        @RequestParam(required = false) settings_idBoostyFiles: String,
         @RequestParam(required = false) settings_idVk: String,
         @RequestParam(required = false) settings_idYoutubeLyrics: String,
         @RequestParam(required = false) settings_idYoutubeKaraoke: String,
@@ -1457,6 +1450,7 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
             sett.fields[SettingField.BPM] = settings_bpm
             sett.fields[SettingField.MS] = settings_ms
             sett.fields[SettingField.ID_BOOSTY] = settings_idBoosty
+            sett.fields[SettingField.ID_BOOSTY_FILES] = settings_idBoostyFiles
             sett.fields[SettingField.ID_VK] = settings_idVk
             sett.fields[SettingField.ID_YOUTUBE_LYRICS] = settings_idYoutubeLyrics
             sett.fields[SettingField.ID_YOUTUBE_KARAOKE] = settings_idYoutubeKaraoke
@@ -1470,9 +1464,9 @@ class MainController(private val webSocket: SimpMessagingTemplate) {
             sett.fields[SettingField.ID_STATUS] = select_status
             sett.saveToDb()
             sett.saveToFile()
-            if (settings_idBoosty != "") {
-                sett.createVKDescription()
-            }
+//            if (settings_idBoosty != "") {
+//                sett.createVKDescription()
+//            }
 
         }
         return "redirect:/songs2"

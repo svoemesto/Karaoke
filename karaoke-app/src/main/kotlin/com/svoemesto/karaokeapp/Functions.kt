@@ -982,6 +982,7 @@ fun createKaraoke(song: Song) {
     fileDescription.writeText(song.getDescription())
 
     if (song.songVersion == SongVersion.LYRICS) createBoostyTeaserPicture(song, song.getOutputFilename(SongOutputFile.PICTUREBOOSTY))
+    if (song.songVersion == SongVersion.LYRICS) createBoostyFilesPicture(song, song.getOutputFilename(SongOutputFile.PICTUREBOOSTY))
     if (song.songVersion == SongVersion.LYRICS) createVKPicture(song, song.getOutputFilename(SongOutputFile.PICTUREVK))
     if (song.songVersion == SongVersion.LYRICS) createVKLinkPicture(song, song.getOutputFilename(SongOutputFile.PICTUREVK))
 

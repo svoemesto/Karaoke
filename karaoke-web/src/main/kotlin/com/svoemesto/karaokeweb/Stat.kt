@@ -1,6 +1,7 @@
 package com.svoemesto.karaokeweb
 
 import com.svoemesto.karaokeapp.KaraokeConnection
+import com.svoemesto.karaokeapp.model.Settings
 import com.svoemesto.karaokeweb.WORKING_DATABASE
 import java.io.Serializable
 import java.sql.ResultSet
@@ -22,6 +23,176 @@ class StatBySong(val database: KaraokeConnection = WORKING_DATABASE): Serializab
     var cntTgLyrics: Int = 0
 
     companion object {
+
+        fun getCountSongsOnAir(database: KaraokeConnection = WORKING_DATABASE): Int {
+            val sql = """
+                select count(DISTINCT id) as cnt
+                from tbl_settings
+                where publish_date != ''
+                  and publish_date is not null
+                  and publish_time != ''
+                  and publish_time is not null
+                  and to_timestamp(CONCAT(publish_date, ' ', publish_time), 'DD.MM.YY HH24:MI') <= current_timestamp;
+            """.trimIndent()
+            val connection = database.getConnection()
+            var statement: Statement? = null
+            var rs: ResultSet? = null
+            try {
+                statement = connection.createStatement()
+                rs = statement.executeQuery(sql)
+                while (rs.next()) {
+                    return rs.getInt("cnt")
+                }
+            } catch (e: SQLException) {
+                e.printStackTrace()
+            } finally {
+                try {
+                    rs?.close() // close result set
+                    statement?.close() // close statement
+                } catch (e: SQLException) {
+                    e.printStackTrace()
+                }
+            }
+            return 0
+        }
+
+        fun getCountSongsOnBoosty(database: KaraokeConnection = WORKING_DATABASE): Int {
+            val sql = "select count(DISTINCT id) as cnt from tbl_settings where id_boosty != '' AND id_boosty IS NOT NULL"
+            val connection = database.getConnection()
+            var statement: Statement? = null
+            var rs: ResultSet? = null
+            try {
+                statement = connection.createStatement()
+                rs = statement.executeQuery(sql)
+                while (rs.next()) {
+                    return rs.getInt("cnt")
+                }
+            } catch (e: SQLException) {
+                e.printStackTrace()
+            } finally {
+                try {
+                    rs?.close() // close result set
+                    statement?.close() // close statement
+                } catch (e: SQLException) {
+                    e.printStackTrace()
+                }
+            }
+            return 0
+        }
+
+        fun getWebEvents(database: KaraokeConnection = WORKING_DATABASE, limit: Int = 500): List<WebEvent> {
+
+            val result: MutableList<WebEvent> = mutableListOf()
+            val sql = """
+                select * from tbl_events where last_update is not null order by last_update desc limit $limit
+            """.trimIndent()
+
+            val connection = database.getConnection()
+            var statement: Statement? = null
+            var rs: ResultSet? = null
+            try {
+                statement = connection.createStatement()
+                rs = statement.executeQuery(sql)
+                while (rs.next()) {
+                    val eventType = rs.getString("event_type")
+                    when (eventType) {
+                        "callRest" -> {
+                            val restName = rs.getString("rest_name")
+                            when (restName) {
+                                "main" -> {
+                                    result.add(
+                                        WebEvent(
+                                            eventType = "Главная страница сайта",
+                                            eventDescription = "",
+                                            eventDate = rs.getTimestamp("last_update"),
+                                            eventReferer = rs.getString("referer")?:""
+                                        )
+                                    )
+                                }
+                                "filter" -> {
+                                    result.add(
+                                        WebEvent(
+                                            eventType = "Фильтр",
+                                            eventDescription = rs.getString("rest_parameters"),
+                                            eventDate = rs.getTimestamp("last_update"),
+                                            eventReferer = rs.getString("referer")?:""
+                                        )
+                                    )
+                                }
+                                "zakroma" -> {
+                                    val parameters = rs.getString("rest_parameters")
+                                    result.add(
+                                        WebEvent(
+                                            eventType = "Закрома",
+                                            eventDescription = if (parameters.contains("=")) parameters.split("=")[1].dropLast(1) else "",
+                                            eventDate = rs.getTimestamp("last_update"),
+                                            eventReferer = rs.getString("referer")?:""
+                                        )
+                                    )
+                                }
+                                "song" -> {
+                                    val songId = rs.getInt("song_id")
+                                    val sett = Settings.loadFromDbById(songId.toLong(),database)
+                                    sett?.let {
+                                        result.add(
+                                            WebEvent(
+                                                eventType = "Песня",
+                                                eventDescription = "[${sett.author}] - [${sett.album}] - «${sett.songName}»",
+                                                eventDate = rs.getTimestamp("last_update"),
+                                                eventReferer = rs.getString("referer")?:""
+                                            )
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        "clickToLink" -> {
+                            val linkType = rs.getString("link_type")
+                            when (linkType) {
+                                "linkToSong" -> {
+                                    val songId = rs.getInt("song_id")
+                                    val sett = Settings.loadFromDbById(songId.toLong(),database)
+                                    sett?.let {
+                                        result.add(
+                                            WebEvent(
+                                                eventType = "Клик ${rs.getString("link_name")} ${rs.getString("song_version")}",
+                                                eventDescription = "[${sett.author}] - [${sett.album}] - «${sett.songName}»",
+                                                eventDate = rs.getTimestamp("last_update"),
+                                                eventReferer = ""
+                                            )
+                                        )
+                                    }
+                                }
+                                "linkToSocialNetwork" -> {
+                                    result.add(
+                                        WebEvent(
+                                            eventType = "Соцсеть",
+                                            eventDescription = rs.getString("link_name"),
+                                            eventDate = rs.getTimestamp("last_update"),
+                                            eventReferer = ""
+                                        )
+                                    )
+                                }
+                                else -> {}
+                            }
+                        }
+                        else -> {}
+                    }
+                }
+            } catch (e: SQLException) {
+                e.printStackTrace()
+            } finally {
+                try {
+                    rs?.close() // close result set
+                    statement?.close() // close statement
+                } catch (e: SQLException) {
+                    e.printStackTrace()
+                }
+            }
+
+            return result
+        }
+
         fun getStatBySong(database: KaraokeConnection = WORKING_DATABASE): List<StatBySong> {
             val result: MutableList<StatBySong> = mutableListOf()
             val sql = """

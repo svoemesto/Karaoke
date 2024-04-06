@@ -124,7 +124,7 @@ class KaraokeProcessWorker {
                 ), databaseName = database.name
             )
             try {
-                WEBSOCKET.convertAndSend("/messages/processesrecordchange", messageRecordChange)
+                WEBSOCKET.convertAndSend("/apis/messages/processesrecordchange", messageRecordChange)
             } catch (e: Exception) {
                 println(e.message)
             }
@@ -175,6 +175,7 @@ class KaraokeProcessWorker {
                             settings.fields[SettingField.KEY] = tmpSettings.fields[SettingField.KEY] ?: ""
                             settings.fields[SettingField.BPM] = tmpSettings.fields[SettingField.BPM] ?: ""
                             settings.fields[SettingField.ID_BOOSTY] = tmpSettings.fields[SettingField.ID_BOOSTY] ?: ""
+                            settings.fields[SettingField.ID_BOOSTY_FILES] = tmpSettings.fields[SettingField.ID_BOOSTY_FILES] ?: ""
                             settings.fields[SettingField.ID_VK] = tmpSettings.fields[SettingField.ID_VK] ?: ""
                             settings.fields[SettingField.ID_YOUTUBE_LYRICS] = tmpSettings.fields[SettingField.ID_YOUTUBE_LYRICS] ?: ""
                             settings.fields[SettingField.ID_YOUTUBE_KARAOKE] = tmpSettings.fields[SettingField.ID_YOUTUBE_KARAOKE] ?: ""
@@ -224,8 +225,8 @@ class KaraokeProcessWorker {
                                     if (diffs.isNotEmpty()) {
                                         val messageRecordChange = RecordChangeMessage(recordChangeTableName = "tbl_processes",  recordChangeId = id, recordChangeDiffs = diffs, databaseName = database.name)
                                         try {
-                                            WEBSOCKET.convertAndSend("/messages/processesrecordchange", messageRecordChange)
-                                            WEBSOCKET.convertAndSend("/messages/recordchange",
+                                            WEBSOCKET.convertAndSend("/apis/messages/processesrecordchange", messageRecordChange)
+                                            WEBSOCKET.convertAndSend("/apis/messages/recordchange",
                                                 RecordChangeMessage(
                                                     recordChangeId = settingsId,
                                                     recordChangeTableName = "tbl_settings",
@@ -260,8 +261,8 @@ class KaraokeProcessWorker {
                         if (diffs.isNotEmpty()) {
                             val messageRecordChange = RecordChangeMessage(recordChangeTableName = "tbl_processes",  recordChangeId = id, recordChangeDiffs = diffs, databaseName = database.name)
                             try {
-                                WEBSOCKET.convertAndSend("/messages/processesrecordchange", messageRecordChange)
-                                WEBSOCKET.convertAndSend("/messages/recordchange",
+                                WEBSOCKET.convertAndSend("/apis/messages/processesrecordchange", messageRecordChange)
+                                WEBSOCKET.convertAndSend("/apis/messages/recordchange",
                                     RecordChangeMessage(
                                         recordChangeId = settingsId,
                                         recordChangeTableName = "tbl_settings",
@@ -290,10 +291,10 @@ class KaraokeProcessWorker {
                     if (diffs.isNotEmpty()) {
                         val messageRecordChange = RecordChangeMessage(recordChangeTableName = "tbl_processes",  recordChangeId = id, recordChangeDiffs = diffs, databaseName = database.name)
                         try {
-                            WEBSOCKET.convertAndSend("/messages/processesrecordchange", messageRecordChange)
+                            WEBSOCKET.convertAndSend("/apis/messages/processesrecordchange", messageRecordChange)
                             if (percentage != workThread?.karaokeProcess?.percentage ?: 0) {
                                 percentage = workThread?.karaokeProcess?.percentage ?: 0
-                                WEBSOCKET.convertAndSend("/messages/recordchange",
+                                WEBSOCKET.convertAndSend("/apis/messages/recordchange",
                                     RecordChangeMessage(
                                         recordChangeId = settingsId,
                                         recordChangeTableName = "tbl_settings",

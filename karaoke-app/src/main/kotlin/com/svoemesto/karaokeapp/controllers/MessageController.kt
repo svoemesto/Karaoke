@@ -9,8 +9,8 @@ import org.springframework.stereotype.Controller
 @Controller
 class MessageController(webSocket: SimpMessagingTemplate) {
 
-    @MessageMapping("/message")
-    @SendTo("/messages/recordchange")
+    @MessageMapping("/apis/message")
+    @SendTo("/apis/messages/recordchange")
     @Throws(Exception::class)
     fun sendRecordChangeMessage(recordChangeMessage: RecordChangeMessage): RecordChangeMessage {
         return recordChangeMessage

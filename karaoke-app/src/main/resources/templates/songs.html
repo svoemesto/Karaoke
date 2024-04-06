@@ -36,28 +36,28 @@
             max-height: calc(100vh - 135px);
         }
 
-            #areaLeftColumn {
-                order: -1;
-                flex: 0 0 200px;
-                background: cadetblue;
-            }
+        #areaLeftColumn {
+            order: -1;
+            flex: 0 0 200px;
+            background: cadetblue;
+        }
 
-                #areaLeftTable{
-                    flex: 1;
-                    overflow-y: scroll;
-                    max-height: calc(100vh - 350px);
-                    background: #d5e6ff;
-                }
+        #areaLeftTable{
+            flex: 1;
+            overflow-y: scroll;
+            max-height: calc(100vh - 350px);
+            background: #d5e6ff;
+        }
 
-            #areaCenterColumn {
-                flex: 1;
-                background: white;
-            }
+        #areaCenterColumn {
+            flex: 1;
+            background: white;
+        }
 
-            #areaRightColumn {
-                flex: 0 0 100px;
-                background: dodgerblue;
-            }
+        #areaRightColumn {
+            flex: 0 0 100px;
+            background: dodgerblue;
+        }
 
         #areaFooter {
             padding: 5px;
@@ -88,11 +88,11 @@
         var stompClient = null;
 
         function connect() {
-            var socket = new SockJS('/message');
+            var socket = new SockJS('/apis/message');
             stompClient = Stomp.over(socket);
             stompClient.connect({}, function(frame) {
                 console.log('Connected: ' + frame);
-                stompClient.subscribe('/messages/recordchange', function(recordchange){
+                stompClient.subscribe('/apis/messages/recordchange', function(recordchange){
                     console.log("Получено сообщение...");
                     updateSettingsFromMessage(JSON.parse(recordchange.body));
                 });
@@ -1289,6 +1289,17 @@
                     }
                 });
             }
+        }
+
+        function doSymlink() {
+            var id = el_id.value;
+            $.ajax({
+                type: "GET",
+                url: "/song/" + id + "/symlink",
+                data: "",
+                success: function(data) {
+                }
+            });
         }
 
         function doCensored() {

@@ -24,6 +24,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-websocket")
+    implementation("org.springframework.boot:spring-boot-starter-webflux")
 
     implementation("org.jetbrains.kotlin:kotlin-stdlib:1.8.0")
     implementation("clojure-interop:javax.sound:1.0.5")

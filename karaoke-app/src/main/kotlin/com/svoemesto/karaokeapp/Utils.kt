@@ -23,7 +23,6 @@ import java.security.NoSuchAlgorithmException
 import java.sql.ResultSet
 import java.sql.SQLException
 import java.sql.Statement
-import java.text.SimpleDateFormat
 import java.util.*
 import javax.imageio.ImageIO
 import javax.sound.sampled.AudioSystem
@@ -44,15 +43,21 @@ fun customFunction(): String {
 
 //    recodePictures()
 
-//    val settings = Settings.loadFromDbById(10538, WORKING_DATABASE)
-//    val song = Song(settings!!, SongVersion.LYRICS)
-//    createVKLinkPicture(song, song.getOutputFilename(SongOutputFile.PICTUREVK))
+//    val settings = Settings.loadFromDbById(5489, WORKING_DATABASE)
+//    val song = Song(settings!!, SongVersion.LYRICS, true)
+//    createSongPicture(song, song.getOutputFilename(SongOutputFile.PICTURE), song.songVersion)
 
-    Settings.loadListFromDb(database = WORKING_DATABASE)
-        .forEach { settings ->
-            settings.resultText = settings.getText()
-            settings.saveToDb()
-        }
+    Settings.loadListFromDb(database = WORKING_DATABASE).forEach { settings ->
+        println("id=${settings.id}, author=${settings.author}, album=${settings.album}, name=${settings.songName}")
+        val songLyrics = Song(settings, SongVersion.LYRICS, true)
+        val songKaraoke = Song(settings, SongVersion.KARAOKE, true)
+        createSongPicture(songLyrics, songLyrics.getOutputFilename(SongOutputFile.PICTURE), songLyrics.songVersion)
+        createSongPicture(songKaraoke, songKaraoke.getOutputFilename(SongOutputFile.PICTURE), songKaraoke.songVersion)
+        createVKPicture(songLyrics, songLyrics.getOutputFilename(SongOutputFile.PICTUREVK))
+        createVKLinkPicture(songLyrics, songLyrics.getOutputFilename(SongOutputFile.PICTUREVK))
+        createBoostyTeaserPicture(songLyrics, songLyrics.getOutputFilename(SongOutputFile.PICTUREBOOSTY))
+        createBoostyFilesPicture(songLyrics, songLyrics.getOutputFilename(SongOutputFile.PICTUREBOOSTY))
+    }
 
 
 //    Settings.loadListFromDb(mapOf("publish_date" to ">15.12.23", "id_status" to "6"), WORKING_DATABASE)
@@ -372,7 +377,7 @@ fun updateDatabases(fromDatabase: KaraokeConnection, toDatabase: KaraokeConnecti
         val requestBody: String = objectMapper.writeValueAsString(values)
         val client = HttpClient.newBuilder().build();
         val request = HttpRequest.newBuilder()
-            .uri(URI.create("http://79.174.95.69/changerecords"))
+            .uri(URI.create("https://sm-karaoke.ru/changerecords"))
             .POST(HttpRequest.BodyPublishers.ofString(requestBody))
             .header("Content-Type", "application/json")
             .build()
@@ -576,15 +581,53 @@ fun collectDoneFilesToStoreFolderAndCreate720pForAllUncreated(database: KaraokeC
     println("Копирование в хранилище и создание заданий на кодирование в 720р")
     val settingsList = Settings.loadListFromDb(database = database)
     settingsList.forEach { settings ->
-        if (copyIfNeed(settings.pathToFileLyrics, settings.pathToStoreFileLyrics, settings.pathToStoreFolderLyrics, "Копируем в хранилище файл: ${settings.nameFileLyrics}")) {
+
+        copyIfNeed(settings.pathToFileLyrics, settings.pathToStoreFileLyrics, settings.pathToStoreFolderLyrics, "Копируем в хранилище файл: ${settings.nameFileLyrics}")
+        copyIfNeed(settings.pathToFileKaraoke, settings.pathToStoreFileKaraoke, settings.pathToStoreFolderKaraoke, "Копируем в хранилище файл: ${settings.nameFileKaraoke}")
+        copyIfNeed(settings.pathToFileChords, settings.pathToStoreFileChords, settings.pathToStoreFolderChords, "Копируем в хранилище файл: ${settings.nameFileChords}")
+
+        val sourceFileLyrics = File(settings.pathToFileLyrics)
+        val destinationFileLyrics720 = File(settings.pathToFile720Lyrics)
+        val needCreateLyrics720 = if (!sourceFileLyrics.exists()) {
+            false
+        } else {
+            if (!destinationFileLyrics720.exists()) {
+                true
+            } else {
+                if (sourceFileLyrics.lastModified() > destinationFileLyrics720.lastModified()) {
+                    destinationFileLyrics720.delete()
+                    true
+                } else {
+                    false
+                }
+            }
+        }
+        if (needCreateLyrics720) {
             println("Создаём задание на кодирование в 720р для файла: ${settings.nameFileLyrics}")
             KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_LYR, true, 1)
         }
-        if (copyIfNeed(settings.pathToFileKaraoke, settings.pathToStoreFileKaraoke, settings.pathToStoreFolderKaraoke, "Копируем в хранилище файл: ${settings.nameFileKaraoke}")) {
+
+
+        val sourceFileKaraoke = File(settings.pathToFileKaraoke)
+        val destinationFileKaraoke720 = File(settings.pathToFile720Karaoke)
+        val needCreateKaraoke720 = if (!sourceFileKaraoke.exists()) {
+            false
+        } else {
+            if (!destinationFileKaraoke720.exists()) {
+                true
+            } else {
+                if (sourceFileKaraoke.lastModified() > destinationFileKaraoke720.lastModified()) {
+                    destinationFileKaraoke720.delete()
+                    true
+                } else {
+                    false
+                }
+            }
+        }
+        if (needCreateKaraoke720) {
             println("Создаём задание на кодирование в 720р для файла: ${settings.nameFileKaraoke}")
             KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_KAR, true, 1)
         }
-        copyIfNeed(settings.pathToFileChords, settings.pathToStoreFileChords, settings.pathToStoreFolderChords, "Копируем в хранилище файл: ${settings.nameFileChords}")
 
     }
 }
@@ -2136,92 +2179,88 @@ fun createSongChordsPicture(song: Song, fileName: String, songVersion: SongVersi
         ImageIO.write(resultImage, "png", file)
     }
 }
+
 fun createSongPicture(song: Song, fileName: String, songVersion: SongVersion) {
+
     val caption = songVersion.text
     val comment: String = "${songVersion.textForDescription}"
     val pathToLogoAlbum = "${song.settings.pathToFileLogoAlbum}"
     val pathToLogoAuthor = "${song.settings.pathToFileLogoAuthor}"
-
     val frameW = 1920
     val frameH = 1080
-    val opaque: Float = 1f
-    var fontSongname = Font(MAIN_FONT_NAME, 0, 10)
-    var fontCaption = Font(MAIN_FONT_NAME, 0, 200)
-    var fontComment = Font(MAIN_FONT_NAME, 0, 60)
-    val colorSongname = Color(255,255,127,255)
-    val colorCaption = Color(85,255,255,255)
-    val colorComment = Color(85,255,255,255)
-    var textToOverlay = song.settings.songName.censored()
-    val imageType = BufferedImage.TYPE_INT_ARGB
-    var resultImage = BufferedImage(frameW, frameH, imageType)
-    val graphics2D = resultImage.graphics as Graphics2D
-    val alphaChannel = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opaque)
+    val padding = 50
 
-    val biLogoAlbum = ImageIO.read(File(pathToLogoAlbum))
-    val biLogoAuthor = ImageIO.read(File(pathToLogoAuthor))
+    val albumW = 400
+    val albumH = 400
+    val authorW = 1000
+    val authorH = 400
+    val picAreaH = 2*padding + albumH
 
-    graphics2D.composite = alphaChannel
-    graphics2D.background = Color.BLACK
-    graphics2D.color = Color.BLACK
-    graphics2D.fillRect(0,0,frameW, frameH)
-    graphics2D.color = colorSongname
-    graphics2D.font = fontSongname
+    val pictureOffset = (frameW - albumW - authorW - padding) / 2
 
-    var rectW = 0
-    var rectH = 0
-    do {
-        fontSongname = Font(fontSongname.name, fontSongname.style, fontSongname.size+1)
-        graphics2D.font = fontSongname
-        val fontMetrics = graphics2D.fontMetrics
-        val rect = fontMetrics.getStringBounds(textToOverlay, graphics2D)
-        rectW = rect.width.toInt()
-        rectH = rect.height.toInt()
-    } while (!(rectH > 430 || rectW > (frameW * 0.95)))
+    val textAreaW = frameW - 2*padding
+    val textAreaH = 400
 
-    var centerX = (frameW - rectW) / 2
-    var centerY = (frameH - rectH) / 2 + rectH
-    graphics2D.drawString(textToOverlay, centerX, centerY)
+    val albumPic = Picture(params = ImageParams(w = albumW, h = albumH, pathToFile = pathToLogoAlbum))
+    val authorPic = Picture(params = ImageParams(w = authorW, h = authorH, pathToFile = pathToLogoAuthor))
 
-    textToOverlay = caption.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
-    graphics2D.color = colorCaption
-    graphics2D.font = fontCaption
-    var fontMetrics = graphics2D.fontMetrics
-    var rect = fontMetrics.getStringBounds(textToOverlay, graphics2D)
-    rectW = rect.width.toInt()
-    rectH = rect.height.toInt()
-
-    centerX = (frameW - rectW) / 2
-    centerY = frameH - 100
-    graphics2D.drawString(textToOverlay, centerX, centerY)
-
-    graphics2D.drawImage(biLogoAlbum, 260, 50, null)
-    graphics2D.drawImage(biLogoAuthor, 710, 50, null)
-
-    if (comment != "") {
-        textToOverlay = comment
-        graphics2D.color = colorComment
-        graphics2D.font = fontComment
-        var fontMetrics = graphics2D.fontMetrics
-        var rect = fontMetrics.getStringBounds(textToOverlay, graphics2D)
-        rectW = rect.width.toInt()
-        rectH = rect.height.toInt()
-
-        centerX = (frameW - rectW) / 2
-        centerY = frameH - 20
-        graphics2D.drawString(textToOverlay, centerX, centerY)
-
-
-    }
-
-//    graphics2D.drawImage(biLogoAlbum, 50, 50, null)
-//    graphics2D.drawImage(biLogoAuthor, 710, 50, null)
-
-    graphics2D.dispose()
+    val areaText = Picture(
+        params = TextParams(
+            w = textAreaW,
+            h = textAreaH,
+            color = Color(255,255,127,255),
+            text = song.settings.songName.censored(),
+            fontName = MAIN_FONT_NAME,
+            fontStyle = 0,
+            fontSize = 50,
+            isCalculatedSize = true,
+            isLineBreak = true
+        )
+    )
+    val areaTextCaption = Picture(
+        params = TextParams(
+            w = textAreaW,
+            h = 250,
+            color = Color(85,255,255,255),
+            text = caption,
+            fontName = MAIN_FONT_NAME,
+            fontStyle = 0,
+            fontSize = 185,
+            isCalculatedSize = false,
+            isLineBreak = false
+        )
+    )
+    val areaTextComment = Picture(
+        params = TextParams(
+            w = textAreaW,
+            h = 100,
+            color = Color(85,255,255,255),
+            text = comment,
+            fontName = MAIN_FONT_NAME,
+            fontStyle = 0,
+            fontSize = 60,
+            isCalculatedSize = false,
+            isLineBreak = false
+        )
+    )
+    val area = Picture(
+        params = AreaParams(w = frameW, h = frameH, color = Color.BLACK),
+        childs = mutableListOf(
+            PictureChild(x = pictureOffset, y = padding, child = albumPic),
+            PictureChild(x = pictureOffset + albumW + padding, y = padding, child = authorPic),
+            PictureChild(x = padding, y = picAreaH - padding, child = areaText),
+            PictureChild(x = padding, y = 850, child = areaTextCaption),
+            PictureChild(x = padding, y = 1080-70, child = areaTextComment)
+        )
+    )
 
     val file = File(fileName)
 
-    ImageIO.write(resultImage, "png", file)
-
+    try {
+        ImageIO.write(area.bi(), "png", file)
+    } catch (e: Exception) {
+        println(e.message)
+    }
 }
 
 fun resizeBufferedImage(img: BufferedImage, newW: Int, newH: Int): BufferedImage? {
@@ -2234,53 +2273,127 @@ fun resizeBufferedImage(img: BufferedImage, newW: Int, newH: Int): BufferedImage
 }
 
 fun createBoostyTeaserPicture(song: Song, fileName: String) {
+
     val pathToLogoAlbum = "${song.settings.pathToFileLogoAlbum}"
     val pathToLogoAuthor = "${song.settings.pathToFileLogoAuthor}"
 
     val frameW = 575
     val frameH = 625
-    val opaque: Float = 1f
-    var fontSongname = Font(MAIN_FONT_NAME, 0, 10)
-    val colorSongname = Color(255,255,127,255)
-    var textToOverlay = song.settings.songName.censored()
-    val imageType = BufferedImage.TYPE_INT_ARGB
-    var resultImage = BufferedImage(frameW, frameH, imageType)
-    val graphics2D = resultImage.graphics as Graphics2D
-    val alphaChannel = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opaque)
+    val padding = 20
 
-    val biLogoAlbum = ImageIO.read(File(pathToLogoAlbum))
-    val biLogoAuthor = ImageIO.read(File(pathToLogoAuthor))
+    val albumW = ((frameW - 3*padding) / 3.5).toInt()
+    val albumH = albumW
+    val authorW = (albumW * 2.5).toInt()
+    val authorH = albumH
+    val picAreaH = 2*padding + albumH
 
-    graphics2D.composite = alphaChannel
-    graphics2D.background = Color.BLACK
-    graphics2D.color = Color.BLACK
-    graphics2D.fillRect(0,0,frameW, frameH)
-    graphics2D.color = colorSongname
-    graphics2D.font = fontSongname
+    val textAreaW = frameW - 2*padding
+    val textAreaH = frameH - picAreaH
 
-    var rectW = 0
-    var rectH = 0
-    do {
-        fontSongname = Font(fontSongname.name, fontSongname.style, fontSongname.size+1)
-        graphics2D.font = fontSongname
-        val fontMetrics = graphics2D.fontMetrics
-        val rect = fontMetrics.getStringBounds(textToOverlay, graphics2D)
-        rectW = rect.width.toInt()
-        rectH = rect.height.toInt()
-    } while (!(rectH > 130 || rectW > (frameW * 0.95)))
+    val albumPic = Picture(params = ImageParams(w = albumW, h = albumH, pathToFile = pathToLogoAlbum))
+    val authorPic = Picture(params = ImageParams(w = authorW, h = authorH, pathToFile = pathToLogoAuthor))
+    val areaText = Picture(
+        params = TextParams(
+            w = textAreaW,
+            h = textAreaH,
+            color = Color(255,255,127,255),
+            text = song.settings.songName.censored(),
+            fontName = MAIN_FONT_NAME,
+            fontStyle = 0,
+            fontSize = 4,
+            isCalculatedSize = true,
+            isLineBreak = true
+        )
+    )
 
-    var centerX = (frameW - rectW) / 2
-    var centerY = (frameH - rectH) / 2 + rectH + 50
-    graphics2D.drawString(textToOverlay, centerX, centerY)
 
-    graphics2D.drawImage(resizeBufferedImage(biLogoAlbum,148, 148), 20, 100, null)
-    graphics2D.drawImage(resizeBufferedImage(biLogoAuthor, 370, 148), 188, 100, null)
-
-    graphics2D.dispose()
+    val area = Picture(
+        params = AreaParams(w = frameW, h = frameH, color = Color.BLACK),
+        childs = mutableListOf(
+            PictureChild(x = padding, y = padding, child = albumPic),
+            PictureChild(x = albumW + 2*padding, y = padding, child = authorPic),
+            PictureChild(x = padding, y = picAreaH, child = areaText)
+        )
+    )
 
     val file = File(fileName.replace(" [lyrics] boosty"," [boosty]"))
 
-    ImageIO.write(resultImage, "png", file)
+    try {
+        ImageIO.write(area.bi(), "png", file)
+    } catch (e: Exception) {
+        println(e.message)
+    }
+
+}
+
+fun createBoostyFilesPicture(song: Song, fileName: String) {
+    val caption = "Файлы"
+    val pathToLogoAlbum = "${song.settings.pathToFileLogoAlbum}"
+    val pathToLogoAuthor = "${song.settings.pathToFileLogoAuthor}"
+
+    val frameW = 575
+    val frameH = 625
+
+    val padding = 20
+
+    val albumW = ((frameW - 3*padding) / 3.5).toInt()
+    val albumH = albumW
+    val authorW = (albumW * 2.5).toInt()
+    val authorH = albumH
+    val picAreaH = 2*padding + albumH
+
+    val textAreaW = frameW - 2*padding
+    val textAreaH = 350
+
+    val albumPic = Picture(params = ImageParams(w = albumW, h = albumH, pathToFile = pathToLogoAlbum))
+    val authorPic = Picture(params = ImageParams(w = authorW, h = authorH, pathToFile = pathToLogoAuthor))
+
+    val areaText = Picture(
+        params = TextParams(
+            w = textAreaW,
+            h = textAreaH,
+            color = Color(255,255,127,255),
+            text = song.settings.songName.censored(),
+            fontName = MAIN_FONT_NAME,
+            fontStyle = 0,
+            fontSize = 50,
+            isCalculatedSize = true,
+            isLineBreak = true
+        )
+    )
+
+    val areaTextCaption = Picture(
+        params = TextParams(
+            w = textAreaW,
+            h = 250,
+            color = Color(85,255,255,255),
+            text = caption,
+            fontName = MAIN_FONT_NAME,
+            fontStyle = 0,
+            fontSize = 100,
+            isCalculatedSize = false,
+            isLineBreak = false
+        )
+    )
+
+    val area = Picture(
+        params = AreaParams(w = frameW, h = frameH, color = Color.BLACK),
+        childs = mutableListOf(
+            PictureChild(x = padding, y = padding, child = albumPic),
+            PictureChild(x = albumW + 2*padding, y = padding, child = authorPic),
+            PictureChild(x = padding, y = picAreaH, child = areaText),
+            PictureChild(x = padding, y = 475, child = areaTextCaption)
+
+        )
+    )
+
+    val file = File(fileName.replace(" [lyrics] boosty"," [files]"))
+
+    try {
+        ImageIO.write(area.bi(), "png", file)
+    } catch (e: Exception) {
+        println(e.message)
+    }
 
 }
 
@@ -2290,48 +2403,50 @@ fun createVKPicture(song: Song, fileName: String) {
 
     val frameW = 575
     val frameH = 300
-    val opaque: Float = 1f
-    var fontSongname = Font(MAIN_FONT_NAME, 0, 10)
-    val colorSongname = Color(255,255,127,255)
-    var textToOverlay = song.settings.songName.censored()
-    val imageType = BufferedImage.TYPE_INT_ARGB
-    var resultImage = BufferedImage(frameW, frameH, imageType)
-    val graphics2D = resultImage.graphics as Graphics2D
-    val alphaChannel = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opaque)
+    val padding = 20
 
-    val biLogoAlbum = ImageIO.read(File(pathToLogoAlbum))
-    val biLogoAuthor = ImageIO.read(File(pathToLogoAuthor))
+    val albumW = ((frameW - 3*padding) / 3.5).toInt()
+    val albumH = albumW
+    val authorW = (albumW * 2.5).toInt()
+    val authorH = albumH
+    val picAreaH = 2*padding + albumH
 
-    graphics2D.composite = alphaChannel
-    graphics2D.background = Color.BLACK
-    graphics2D.color = Color.BLACK
-    graphics2D.fillRect(0,0,frameW, frameH)
-    graphics2D.color = colorSongname
-    graphics2D.font = fontSongname
+    val textAreaW = frameW - 2*padding
+    val textAreaH = frameH - picAreaH
 
-    var rectW = 0
-    var rectH = 0
-    do {
-        fontSongname = Font(fontSongname.name, fontSongname.style, fontSongname.size+1)
-        graphics2D.font = fontSongname
-        val fontMetrics = graphics2D.fontMetrics
-        val rect = fontMetrics.getStringBounds(textToOverlay, graphics2D)
-        rectW = rect.width.toInt()
-        rectH = rect.height.toInt()
-    } while (!(rectH > 130 || rectW > (frameW * 0.95)))
+    val albumPic = Picture(params = ImageParams(w = albumW, h = albumH, pathToFile = pathToLogoAlbum))
+    val authorPic = Picture(params = ImageParams(w = authorW, h = authorH, pathToFile = pathToLogoAuthor))
 
-    var centerX = (frameW - rectW) / 2
-    var centerY = (frameH - rectH) / 2 + rectH + 60
-    graphics2D.drawString(textToOverlay, centerX, centerY)
+    val areaText = Picture(
+        params = TextParams(
+            w = textAreaW,
+            h = textAreaH,
+            color = Color(255,255,127,255),
+            text = song.settings.songName.censored(),
+            fontName = MAIN_FONT_NAME,
+            fontStyle = 0,
+            fontSize = 4,
+            isCalculatedSize = true,
+            isLineBreak = true
+        )
+    )
 
-    graphics2D.drawImage(resizeBufferedImage(biLogoAlbum,148, 148), 20, 20, null)
-    graphics2D.drawImage(resizeBufferedImage(biLogoAuthor, 370, 148), 188, 20, null)
-
-    graphics2D.dispose()
+    val area = Picture(
+        params = AreaParams(w = frameW, h = frameH, color = Color.BLACK),
+        childs = mutableListOf(
+            PictureChild(x = padding, y = padding, child = albumPic),
+            PictureChild(x = albumW + 2*padding, y = padding, child = authorPic),
+            PictureChild(x = padding, y = picAreaH, child = areaText)
+        )
+    )
 
     val file = File(fileName.replace(" [lyrics] VK"," [VK]"))
 
-    ImageIO.write(resultImage, "png", file)
+    try {
+        ImageIO.write(area.bi(), "png", file)
+    } catch (e: Exception) {
+        println(e.message)
+    }
 
 }
 
@@ -2339,64 +2454,52 @@ fun createVKLinkPicture(song: Song, fileName: String) {
     val pathToLogoAlbum = "${song.settings.pathToFileLogoAlbum}"
     val pathToLogoAuthor = "${song.settings.pathToFileLogoAuthor}"
 
-    val padding = 20
 
     val frameW = 537
     val frameH = 240
+    val padding = 20
 
     val albumW = ((frameW - 3*padding) / 3.5).toInt()
     val albumH = albumW
     val authorW = (albumW * 2.5).toInt()
     val authorH = albumH
-
-    val picAreaW = frameW
     val picAreaH = 2*padding + albumH
-
-    val textAreaW = frameW
+    val textAreaW = frameW - 2*padding
     val textAreaH = frameH - picAreaH
 
-    val opaque: Float = 1f
-    var fontSongname = Font(MAIN_FONT_NAME, 0, 10)
-    val colorSongname = Color(255,255,127,255)
-    val textToOverlay = song.settings.songName.censored()
-    val imageType = BufferedImage.TYPE_INT_ARGB
-    val resultImage = BufferedImage(frameW, frameH, imageType)
-    val graphics2D = resultImage.graphics as Graphics2D
-    val alphaChannel = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opaque)
+    val albumPic = Picture(params = ImageParams(w = albumW, h = albumH, pathToFile = pathToLogoAlbum))
+    val authorPic = Picture(params = ImageParams(w = authorW, h = authorH, pathToFile = pathToLogoAuthor))
 
-    val biLogoAlbum = ImageIO.read(File(pathToLogoAlbum))
-    val biLogoAuthor = ImageIO.read(File(pathToLogoAuthor))
+    val areaText = Picture(
+        params = TextParams(
+            w = textAreaW,
+            h = textAreaH,
+            color = Color(255,255,127,255),
+            text = song.settings.songName.censored(),
+            fontName = MAIN_FONT_NAME,
+            fontStyle = 0,
+            fontSize = 4,
+            isCalculatedSize = true,
+            isLineBreak = true
+        )
+    )
 
-    graphics2D.composite = alphaChannel
-    graphics2D.background = Color.BLACK
-    graphics2D.color = Color.BLACK
-    graphics2D.fillRect(0,0,frameW, frameH)
-    graphics2D.color = colorSongname
-    graphics2D.font = fontSongname
-
-    var rectW = 0
-    var rectH = 0
-    do {
-        fontSongname = Font(fontSongname.name, fontSongname.style, fontSongname.size+1)
-        graphics2D.font = fontSongname
-        val fontMetrics = graphics2D.fontMetrics
-        val rect = fontMetrics.getStringBounds(textToOverlay, graphics2D)
-        rectW = rect.width.toInt()
-        rectH = rect.height.toInt()
-    } while (!(rectH > textAreaH || rectW > (textAreaW - padding)))
-
-    val centerX = (textAreaW - rectW) / 2
-    val centerY = picAreaH + textAreaH / 2 + (textAreaH - rectH) / 2
-    graphics2D.drawString(textToOverlay, centerX, centerY)
-
-    graphics2D.drawImage(resizeBufferedImage(biLogoAlbum, albumW, albumH), padding, padding, null)
-    graphics2D.drawImage(resizeBufferedImage(biLogoAuthor, authorW, authorH), albumW + 2*padding, padding, null)
-
-    graphics2D.dispose()
+    val area = Picture(
+        params = AreaParams(w = frameW, h = frameH, color = Color.BLACK),
+        childs = mutableListOf(
+            PictureChild(x = padding, y = padding, child = albumPic),
+            PictureChild(x = albumW + 2*padding, y = padding, child = authorPic),
+            PictureChild(x = padding, y = picAreaH, child = areaText)
+        )
+    )
 
     val file = File(fileName.replace(" [lyrics] VK"," [VKlink]"))
 
-    ImageIO.write(resultImage, "png", file)
+    try {
+        ImageIO.write(area.bi(), "png", file)
+    } catch (e: Exception) {
+        println(e.message)
+    }
 
 }
 
@@ -2671,7 +2774,11 @@ fun getRandomFile(pathToFolder: String, extention: String = ""): String {
 }
 
 fun getListFiles(pathToFolder: String, extention: String = "", startWith: String = ""): List<String> {
-    return Files.walk(Path(pathToFolder)).filter(Files::isRegularFile).map { it.toString() }.filter{ it.endsWith(extention) && it.startsWith("${pathToFolder}/$startWith")}.toList().sorted()
+    return try {
+        Files.walk(Path(pathToFolder)).filter(Files::isRegularFile).map { it.toString() }.filter{ it.endsWith(extention) && it.startsWith("${pathToFolder}/$startWith")}.toList().sorted()
+    } catch (e: Exception) {
+        emptyList()
+    }
 }
 fun getListFiles(pathToFolder: String, extentions: List<String> = listOf(), startsWith: List<String> = listOf(), excludes: List<String> = listOf()): List<String> {
     val result = mutableListOf<String>()

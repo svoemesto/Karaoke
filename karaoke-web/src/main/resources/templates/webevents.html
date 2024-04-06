@@ -1,0 +1,188 @@
+<!doctype html>
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css" integrity="sha384-B0vP5xmATw1+K9KRQjQERJvTumQW0nPEzvF6L/Z6nronJ3oUOFUFpCjEUQouq2+l" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:400,300">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-Piv4xVNRyMGpqkS2by6br4gNJ7DXjqk09RmUpJ8jgGtD7zP9yug3goQfGII0yAns" crossorigin="anonymous"></script>
+
+    <title>События</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Roboto", sans-serif;
+            font-weight: 300;
+        }
+
+        #areaScreen {
+            padding: 1em;
+            display: flex;
+            min-height: 100vh;
+            flex-direction: column;
+            margin: 0;
+        }
+
+        #areaHeader {
+            padding: 5px;
+            background: whitesmoke;
+            height: 50px;
+        }
+
+        #areaBody {
+            align-self: center;
+            padding: 5px;
+            display: flex;
+            flex: 1;
+            /*background: beige;*/
+            max-height: calc(100vh - 30px);
+        }
+
+        #areaLeftColumn {
+            order: -1;
+            flex: 0 0 200px;
+            background: cadetblue;
+        }
+
+        #areaLeftTable{
+            flex: 1;
+            overflow-y: scroll;
+            max-height: calc(100vh - 50px);
+            background: #d5e6ff;
+        }
+
+        #areaCenterColumn {
+            flex: 1;
+            background: white;
+        }
+
+        #areaRightColumn {
+            flex: 0 0 100px;
+            background: dodgerblue;
+        }
+
+        #areaFooter {
+            padding: 5px;
+            background: yellowgreen;
+            height: 50px;
+        }
+
+        tbody tr.sub-row0:hover {
+            background: #d5e6ff; /* Цвет фона */
+        }
+        tbody tr.sub-row1:hover {
+            background: #d5e6ff; /* Цвет фона */
+        }
+        tbody tr.sub-row2:hover {
+            background: #f00; /* Цвет фона */
+        }
+
+        .tr_song {
+            padding: 0;
+            font-size: 0;
+            border-style: none;
+            border-width: thin;
+        }
+
+        .td_cell {
+            border-style: solid;
+            border-width: thin;
+        }
+
+        .head_songtrack {
+            height: 100%;
+            padding: 2px;
+            font-size: small;
+            text-align: center;
+            /*min-width: 20px;*/
+            /*max-width: 20px;*/
+            border-style: none;
+            border-width: thin;
+            background-color: #0c5460;
+            color: white;
+        }
+        .head_songname {
+            height: 100%;
+            padding: 2px;
+            font-size: small;
+            text-align: center;
+            min-width: auto;
+            border-style: none;
+            border-width: thin;
+            background-color: #0c5460;
+            color: white;
+        }
+
+        .description {
+            height: 100%;
+            padding: 2px;
+            font-size: small;
+            /*min-width: 300px;*/
+            /*max-width: 300px;*/
+            border-style: none;
+            border-width: thin;
+        }
+        .cnt {
+            height: 100%;
+            padding: 2px;
+            font-size: small;
+            text-align: center;
+            min-width: 30px;
+            max-width: 30px;
+            border-style: none;
+            border-width: thin;
+        }
+    </style>
+
+</head>
+
+<body>
+
+<div id="areaScreen">
+    <div id="areaBody">
+
+        <div id="areaCenterColumn" style="width: 1200px; alignment: center">
+
+            <div id="areaLeftTable">
+                <table class="table-sm table-hover" id="songsTable" style="width: 1180px; height: 100%;">
+                    <thead>
+                    <td class="td_cell" style="padding: 0">
+                        <div class="head_songname">Дата</div>
+                    </td>
+                    <td class="td_cell" style="padding: 0">
+                        <div class="head_songname">Событие</div>
+                    </td>
+                    <td class="td_cell" style="padding: 0">
+                        <div class="head_songname">Описание</div>
+                    </td>
+                    <td class="td_cell" style="padding: 0">
+                        <div class="head_songname">Referer</div>
+                    </td>
+                    </thead>
+                    <div th:each="webevent:${webevents}">
+                        <tbody>
+                        <tr>
+                            <td class="td_cell" style="padding: 0; width: 180px;">
+                                <div th:text="${webevent.eventDate}" class="description"></div>
+                            </td>
+                            <td class="td_cell" style="padding: 0; width: 180px;">
+                                <div th:text="${webevent.eventType}" class="description"></div>
+                            </td>
+                            <td class="td_cell" style="padding: 0; width: 450px;">
+                                <div th:text="${webevent.eventDescription}" class="description"></div>
+                            </td>
+                            <td class="td_cell" style="padding: 0">
+                                <div th:text="${webevent.eventReferer}" class="description"></div>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </div>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>

@@ -1,7 +1,7 @@
 <template>
   <div :style="styleRoot">
     <div v-if="song">
-      <subs-edit :voices="voices" v-if="isSubsEditVisible" @close="closeSubsEdit"/>
+      <subs-edit :voices="voices" :song="song" v-if="isSubsEditVisible" @close="closeSubsEdit"/>
       <div class="header">
         <div class="header-song-name">«{{song.songName}}»</div>
         <div class="header-song-description">«{{song.author}}», альбом: «{{song.album}}», год: {{song.year}}</div>

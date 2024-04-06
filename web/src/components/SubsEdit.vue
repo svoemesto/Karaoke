@@ -25,6 +25,8 @@
               </div>
             </div>
             <div class="body">
+              <div id="waveform"></div>
+              <div id="wave-timeline"></div>
               <div style="width: 100%; height: 100%">
                 {{text}}
               </div>
@@ -45,13 +47,51 @@
 </template>
 
 <script>
+
+// import ws from '../assets/js/wavesurfer/wavesurfer'
+// import wsMarkers from '../assets/js/wavesurfer/wavesurfer.markers'
+// import wsRegions from '../assets/js/wavesurfer/wavesurfer.regions'
+// import wsTimeline from '../assets/js/wavesurfer/wavesurfer.timeline'
+// import wsCursor from '../assets/js/wavesurfer/wavesurfer.cursor'
+
 export default {
   name: "SubsEdit",
   data() {
     return {
       currentVoice: 0,
       dataVoices: this.voices,
-      sound: 'voice'
+      sound: 'voice',
+      // wavesurfer: ws.create({
+      //   container: '#waveform',
+      //   waveColor: 'violet',
+      //   progressColor: 'purple',
+      //   backend: 'MediaElement',
+      //   autoCenterImmediately: true,
+      //   barHeight: 1,
+      //   height: 256,
+      //   barWidth: 2,
+      //   barRadius: 2,
+      //   skipLength: 0.016666666666
+      // }),
+      // pluginCursor: wsCursor.WaveSurfer.cursor.create({
+      //   showTime: true,
+      //   opacity: 1,
+      //   customShowTimeStyle: {
+      //     'background-color': '#000',
+      //     color: '#fff',
+      //     padding: '2px',
+      //     'font-size': '10px'
+      //   }
+      // }),
+      // pluginMarkers: wsMarkers.WaveSurfer.markers.create({
+      //   markers: []
+      // }),
+      // pluginRegion: wsRegions.WaveSurfer.regions.create({
+      //   regions: []
+      // }),
+      // pluginTimeline: wsTimeline.WaveSurfer.timeline.create({
+      //   container: "#wave-timeline"
+      // })
     }
   },
   props: {

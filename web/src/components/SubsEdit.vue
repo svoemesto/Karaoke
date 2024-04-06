@@ -1,15 +1,43 @@
 <template>
   <transition name="modal-fade">
     <div class="modal-backdrop">
-      <div class="modal" role="dialog" aria-labelledby="modalTitle" aria-describedby="modalDescription">
+      <div class="area">
         <header class="modal-header" id="modalTitle">
-          This is the default tile!
-          <button type="button" class="btn-close" @click="close" aria-label="Close modal">x</button>
+          <div class="header-song-name">«{{song.songName}}»</div>
+          <div class="header-song-description">«{{song.author}}», альбом: «{{song.album}}», год: {{song.year}}</div>
+          <button type="button" class="btn-close" @click="close">x</button>
         </header>
-        {{text}}
+        <body>
+
+          <div class="area">
+            <div class="header">
+              <div class="voice">
+                <label for="select-voice" class="label-for-check">Голос:</label>
+                <select id="select-voice" v-model="currentVoice" style="width: 100px;">
+                  <option v-for="value in lstVoices" :key="value.value" :value="value.value" :label="value.text"/>
+                </select>
+              </div>
+              <div class="sound">
+                <label for="sound" class="label-for-sound">Звук:</label>
+                <button class="group-button" :class="soundButtonClass('voice')" name="button-sound" type="button" value="voice" @click="setSound('voice')">Голос</button>
+                <button class="group-button" :class="soundButtonClass('song')" name="button-sound" type="button" value="song" @click="setSound('song')">Песня</button>
+                <button class="group-button" :class="soundButtonClass('minus')" name="button-sound" type="button" value="minus" @click="setSound('minus')">Минус</button>
+              </div>
+            </div>
+            <div class="body">
+              <div style="width: 100%; height: 100%">
+                {{text}}
+              </div>
+
+            </div>
+            <div class="footer">
+            </div>
+          </div>
+
+        </body>
         <footer class="modal-footer">
           I'm the default footer!
-          <button type="button" class="btn-green" @click="close" aria-label="Close modal">Close me!</button>
+          <button type="button" class="btn-green" @click="close">Close me!</button>
         </footer>
       </div>
     </div>
@@ -21,7 +49,9 @@ export default {
   name: "SubsEdit",
   data() {
     return {
-      currentVoice: 0
+      currentVoice: 0,
+      dataVoices: this.voices,
+      sound: 'voice'
     }
   },
   props: {
@@ -29,11 +59,29 @@ export default {
       type: Array,
       required: true,
       default: () => []
+    },
+    song: {
+      type: Object,
+      required: true
     }
+  },
+  watch: {
+    currentVoice: {
+      handler () {
+        if (this.currentVoice === this.dataVoices.length) {
+          this.dataVoices.push({
+            text: '',
+            markers: [],
+            syllables: []
+          })
+        }
+      }
+    }
+
   },
   computed: {
     voice() {
-      return this.voices.length ? this.voices[this.currentVoice] : [];
+      return this.dataVoices.length ? this.dataVoices[this.currentVoice] : [];
     },
     text() {
       return this.voice ? this.voice.text : '';
@@ -43,9 +91,25 @@ export default {
     },
     syllables() {
       return this.voice ? this.voice.syllables : [];
+    },
+    lstVoices() {
+      let result = [];
+      if (this.dataVoices.length > 0) {
+        for (let i = 0; i < this.dataVoices.length; i++) {
+          result.push( { value: i, text: i + 1 } );
+        }
+        result.push( { value: this.dataVoices.length, text: "Добавить" } );
+      }
+      return result;
     }
   },
   methods: {
+    soundButtonClass(sound) {
+      return sound === this.sound ? 'group-button-active' : ''
+    },
+    setSound(sound) {
+      this.sound = sound;
+    },
     close() {
       this.$emit('close');
     }
@@ -54,6 +118,49 @@ export default {
 </script>
 
 <style scoped>
+.group-button {
+  border: solid black thin;
+  border-radius: 5px;
+  background-color: white;
+}
+.group-button-active {
+  background-color: dodgerblue;
+}
+.area {
+  background-color: #4AAE9B;
+  display: flex;
+  flex-direction: column;
+  width: 1280px;
+  /*height: 720px;*/
+}
+.header {
+  background-color: lightskyblue;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100px;
+}
+.header-song-name {
+  text-align: center;
+  font-size: 24pt;
+  line-height: 75%;
+}
+.header-song-description {
+  text-align: center;
+  font-size: 16pt;
+}
+.body {
+  background-color: #eeeeee;
+  width: 1280px;
+  height: 500px;
+}
+.footer {
+  background-color: #2c3e50;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 50px;
+}
 
 .modal-backdrop {
   position: fixed;
@@ -67,7 +174,7 @@ export default {
   align-items: center;
 }
 
-.modal {
+.area {
   background: #FFFFFF;
   box-shadow: 2px 2px 20px 1px;
   overflow-x: auto;

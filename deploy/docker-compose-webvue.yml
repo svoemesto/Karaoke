@@ -1,0 +1,16 @@
+version: "3.9"
+services:
+
+  karaoke-webvue:
+    container_name: karaoke-webvue
+    image: ${DOCKER_REGISTRY}/karaoke-webvue:${BUILD_VERSION}
+    ports:
+      - "7905:7905"
+    networks:
+      - karaokenet
+    command: /bin/bash -c "exec nginx -g 'daemon off;'"
+
+networks:
+  karaokenet:
+    driver: bridge
+

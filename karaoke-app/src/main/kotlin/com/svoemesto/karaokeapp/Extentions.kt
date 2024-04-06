@@ -140,6 +140,7 @@ fun String.addNewLinesByUpperCase(minNewLine: Int = 2): String {
         result += if (symbol.isUpperCase()) "\n" else ""
         result += symbol.toString()
     }
+    result = result.replace(" \n", "\n")
     return result
 }
 

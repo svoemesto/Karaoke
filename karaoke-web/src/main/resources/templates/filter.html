@@ -2,7 +2,7 @@
 <head>
     <meta charset="UTF-8">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css" integrity="sha384-B0vP5xmATw1+K9KRQjQERJvTumQW0nPEzvF6L/Z6nronJ3oUOFUFpCjEUQouq2+l" crossorigin="anonymous">
-    <link rel="stylesheet" href="http://fonts.googleapis.com/css?family=Roboto:400,300">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:400,300">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-Piv4xVNRyMGpqkS2by6br4gNJ7DXjqk09RmUpJ8jgGtD7zP9yug3goQfGII0yAns" crossorigin="anonymous"></script>
 
@@ -276,6 +276,9 @@
             </div>
             <div id="areaLeftTable">
                 <table class="table-sm" id="filterTable" style="width: 580px; height: 100%;">
+                    <datalist id="list_authors">
+                        <option th:each="author:${authors}" th:value="${author}">
+                    </datalist>
                     <tr>
                         <td>
                             <div style="text-align: right; width: 150px; padding: 0">
@@ -284,7 +287,7 @@
                         </td>
                         <td>
                             <div>
-                                <input id="fld_songauthor" class="form-control" style="font-size: 14px; padding: 0; height: 25px; width: 300px" />
+                                <input list="list_authors" id="fld_songauthor" class="form-control" style="font-size: 14px; padding: 0; height: 25px; width: 300px" />
                             </div>
                         </td>
                         <td rowspan="3">

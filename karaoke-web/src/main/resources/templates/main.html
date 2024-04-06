@@ -2,7 +2,7 @@
 <head>
     <meta charset="UTF-8">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css" integrity="sha384-B0vP5xmATw1+K9KRQjQERJvTumQW0nPEzvF6L/Z6nronJ3oUOFUFpCjEUQouq2+l" crossorigin="anonymous">
-    <link rel="stylesheet" href="http://fonts.googleapis.com/css?family=Roboto:400,300">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:400,300">
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-Piv4xVNRyMGpqkS2by6br4gNJ7DXjqk09RmUpJ8jgGtD7zP9yug3goQfGII0yAns" crossorigin="anonymous"></script>
@@ -101,12 +101,74 @@
             </tr>
             <tr>
                 <td colspan="5" style="width: 400px">
+                    <div style="text-align: center">
+                        <span style="color: white; font-size: x-large">Песен в коллекции: </span>
+                        <span style="color: #EC8888; font-size: x-large; font-weight: bolder" th:text="${onBoosty}"></span>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="5" style="width: 400px">
+                    <div style="text-align: center">
+                        <span style="color: white; font-size: x-large">Песен в открытом доступе: </span>
+                        <span style="color: #EC8888; font-size: x-large; font-weight: bolder" th:text="${onAir}"></span>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="5" style="width: 400px">
+                    <div style="text-align: center">
+                        <span style="color: white; font-size: medium">
+                            Каждый день в открытый доступ (в «эфир») выходит 10 песен на 4-х площадках:
+                            Boosty, Dzen, VK и Telegram.
+                        </span>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="5" style="width: 400px">
+                    <div style="text-align: center">
+                        <span style="color: white; font-size: medium">
+                            Вся коллекция доступна по подписке на Boosty.
+                        </span>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="5" style="width: 400px">
+                    <div style="text-align: center">
+                        <span style="color: #9fcdff; font-size: medium">
+                            Каталог песен по исполнителям «Закрома»:
+                        </span>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="5" style="width: 400px">
                     <a href="/zakroma" style="width: 400px; display: block; margin: auto; text-align: center; font-size: 48pt">Закрома</a>
                 </td>
             </tr>
             <tr>
                 <td colspan="5" style="width: 400px">
+                    <div style="text-align: center">
+                        <span style="color: #9fcdff; font-size: medium">
+                            Поиск по исполнителю, названию и тексту песни:
+                        </span>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="5" style="width: 400px">
                     <a href="/filter" style="width: 400px; display: block; margin: auto; text-align: center; font-size: 48pt">Поиск песен</a>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="5" style="width: 400px">
+                    <div style="text-align: center">
+                        <span style="color: #9fcdff; font-size: medium">
+                            Соцсети:
+                        </span>
+                    </div>
                 </td>
             </tr>
             <tr>

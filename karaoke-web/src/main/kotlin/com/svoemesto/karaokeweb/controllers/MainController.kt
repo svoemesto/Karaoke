@@ -7,6 +7,7 @@ import com.svoemesto.karaokeweb.StatBySong
 import com.svoemesto.karaokeapp.model.Zakroma
 import com.svoemesto.karaokeapp.services.WEB_WORK_IN_CONTAINER
 import com.svoemesto.karaokeweb.WORKING_DATABASE
+import jakarta.servlet.http.HttpServletRequest
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Controller
 import org.springframework.messaging.simp.SimpMessagingTemplate
@@ -22,22 +23,26 @@ class MainController(private val webSocket: SimpMessagingTemplate, @Value("\${wo
 
     @GetMapping("/")
     fun main(
-        model: Model
+        model: Model,
+        request: HttpServletRequest
     ): String {
-        doRegisterEvent(mapOf("eventType" to "callRest", "restName" to "main", "parameters" to emptyMap<String, Any>()))
+        model.addAttribute("onBoosty", StatBySong.getCountSongsOnBoosty(WORKING_DATABASE))
+        model.addAttribute("onAir", StatBySong.getCountSongsOnAir(WORKING_DATABASE))
+        doRegisterEvent(mapOf("eventType" to "callRest", "restName" to "main", "parameters" to emptyMap<String, Any>(), "referer" to request.remoteHost))
         return "main"
     }
 
     @GetMapping("/zakroma")
     fun zakroma(
         @RequestParam(required = false) author: String?,
-        model: Model
+        model: Model,
+        request: HttpServletRequest
     ): String {
         val data: MutableMap<String, Any> = mutableMapOf()
         author?.let { data["author"] = it }
         model.addAttribute("authors", Settings.loadListAuthors(WORKING_DATABASE))
         model.addAttribute("zakroma", Zakroma.getZakroma(author ?: "", WORKING_DATABASE))
-        doRegisterEvent(mapOf("eventType" to "callRest", "restName" to "zakroma", "parameters" to data))
+        doRegisterEvent(mapOf("eventType" to "callRest", "restName" to "zakroma", "parameters" to data, "referer" to request.remoteHost))
         return "zakroma"
     }
 
@@ -120,6 +125,7 @@ class MainController(private val webSocket: SimpMessagingTemplate, @Value("\${wo
                 fieldsValues.add(Pair("event_type", "callRest"))
                 fieldsValues.add(Pair("rest_name", restName))
                 fieldsValues.add(Pair("rest_parameters", parameters.toString()))
+                fieldsValues.add(Pair("referer", data["referer"]?:""))
                 val connection = WORKING_DATABASE.getConnection()
                 if (parameters.containsKey("id")) fieldsValues.add(Pair("song_id", parameters["id"]!!.toString().toLong()))
                 val sqlToInsert = "INSERT INTO tbl_events (${fieldsValues.map {it.first}.joinToString(", ")}) OVERRIDING SYSTEM VALUE VALUES(${fieldsValues.map {if (it.second is Long) "${it.second}" else "'${it.second.toString().replace("'","''")}'"}.joinToString(", ")})"
@@ -186,7 +192,8 @@ class MainController(private val webSocket: SimpMessagingTemplate, @Value("\${wo
         @RequestParam(required = false) author: String?,
         @RequestParam(required = false) text: String?,
         @RequestParam(required = false) album: String?,
-        model: Model
+        model: Model,
+        request: HttpServletRequest
     ): String {
         val attr: MutableMap<String, String> = mutableMapOf()
         if (song_name != null && song_name != "") attr["song_name"] = song_name
@@ -196,6 +203,7 @@ class MainController(private val webSocket: SimpMessagingTemplate, @Value("\${wo
 
         val settings: List<Settings> = if ("${song_name ?: ""}${author ?: ""}${album ?: ""}${text ?: ""}".length < 3) emptyList() else Settings.loadListFromDb(attr, WORKING_DATABASE)
 
+        model.addAttribute("authors", Settings.loadListAuthors(WORKING_DATABASE))
         model.addAttribute("settings", settings)
 
         val data: MutableMap<String, Any> = mutableMapOf()
@@ -203,7 +211,7 @@ class MainController(private val webSocket: SimpMessagingTemplate, @Value("\${wo
         if (author != null && author != "") data["author"] = author
         if (text != null && text != "") data["text"] = text
         if (album != null && album != "") data["album"] = album
-        doRegisterEvent(mapOf("eventType" to "callRest", "restName" to "filter", "parameters" to data))
+        doRegisterEvent(mapOf("eventType" to "callRest", "restName" to "filter", "parameters" to data, "referer" to request.remoteHost))
 
         return "filter"
     }
@@ -211,10 +219,11 @@ class MainController(private val webSocket: SimpMessagingTemplate, @Value("\${wo
     @GetMapping("/song")
     fun song(
         @RequestParam(required = true) id: Long,
-        model: Model
+        model: Model,
+        request: HttpServletRequest
     ): String {
         model.addAttribute("sett", Settings.loadFromDbById(id, WORKING_DATABASE))
-        doRegisterEvent(mapOf("eventType" to "callRest", "restName" to "song", "parameters" to mapOf("id" to id)))
+        doRegisterEvent(mapOf("eventType" to "callRest", "restName" to "song", "parameters" to mapOf("id" to id), "referer" to request.remoteHost))
         return "song"
     }
 
@@ -224,6 +233,14 @@ class MainController(private val webSocket: SimpMessagingTemplate, @Value("\${wo
     ): String {
         model.addAttribute("stats", StatBySong.getStatBySong(WORKING_DATABASE))
         return "statbysong"
+    }
+
+    @GetMapping("/webevents")
+    fun doWebEvents(
+        model: Model
+    ): String {
+        model.addAttribute("webevents", StatBySong.getWebEvents(WORKING_DATABASE))
+        return "webevents"
     }
 
 }

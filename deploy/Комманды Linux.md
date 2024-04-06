@@ -34,6 +34,7 @@ scp -P [порт] [путь к файлу на локальной машине] 
 Запустить bash в контейнере:
 
 `docker exec -it <container-name-or-id> bash`
+`docker exec -it karaoke-app bash`
 
 Смена версии Java:
 

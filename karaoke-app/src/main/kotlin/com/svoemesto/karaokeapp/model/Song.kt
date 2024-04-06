@@ -81,6 +81,10 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
         return "${settings.songName.censored()} ★♫★ ${settings.author}"
     }
 
+    fun getTextBoostyFilesHead(): String {
+        return "[ФАЙЛЫ] ${settings.songName.censored()} ★♫★ ${settings.author}"
+    }
+
     fun getTextForDescriptionHeader(withVersion: Boolean = true): String {
         return "${settings.linkSM} ⇐ Страница песни на официальном сайте проекта\n\n" +
                 (if (!withVersion) "" else "Версия: ${songVersion.text} (${songVersion.textForDescription})\n") +
@@ -95,7 +99,7 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
 
     fun getTextForDescriptionFooter(): String {
         return "\n\n"+
-                "Официальный сайт проекта: http://sm-karaoke.ru\n" +
+                "Официальный сайт проекта: https://sm-karaoke.ru\n" +
                 "Поддержать проект на Boosty: https://boosty.to/svoemesto\n" +
                 "Группа ВКонтакте: https://vk.com/svoemestokaraoke\n" +
                 "Канал Telegram: https://t.me/svoemestokaraoke\n" +

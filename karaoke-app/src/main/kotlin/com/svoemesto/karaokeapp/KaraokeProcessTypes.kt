@@ -10,5 +10,6 @@ enum class KaraokeProcessTypes {
 //    MELT_CHORDS_BT,
     DEMUCS2,
     FF_720_KAR,
-    FF_720_LYR
+    FF_720_LYR,
+    SYMLINK
 }

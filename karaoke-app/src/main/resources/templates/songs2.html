@@ -10,7 +10,7 @@
 
     <link rel="stylesheet" href="songs2.css">
 
-    <link rel="stylesheet" href="http://fonts.googleapis.com/css?family=Roboto:400,300">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:400,300">
 
     <title>Песни-2</title>
 
@@ -23,26 +23,34 @@
 
     <script type="text/javascript">
 
+        var cntClick_button_link_edit_YoutubeKaraoke = 0;
+        var cntClick_button_link_edit_YoutubeLyrics = 0;
+        var cntClick_button_link_edit_VkKaraoke = 0;
+        var cntClick_button_link_edit_VkLyrics = 0;
+        var cntClick_button_head_VkKaraoke = 0;
+        var cntClick_button_head_VkLyrics = 0;
+        var cntClick_button_body_VkKaraoke = 0;
+        var cntClick_button_body_VkLyrics = 0;
 
         var stompClientSettings = null;
         var stompClientProcesses = null;
 
         function connect() {
-            var socketSettings = new SockJS('/message');
+            var socketSettings = new SockJS('/apis/message');
             stompClientSettings = Stomp.over(socketSettings);
             stompClientSettings.connect({}, function (frame) {
                 console.log('Connected: ' + frame);
-                stompClientSettings.subscribe('/messages/recordchange', function (recordchange) {
+                stompClientSettings.subscribe('/apis/messages/recordchange', function (recordchange) {
                     console.log("Получено сообщение...");
                     updateSettingsFromMessage(JSON.parse(recordchange.body));
                 });
             });
 
-            var socketProgress = new SockJS('/message');
+            var socketProgress = new SockJS('/apis/message');
             stompClientProcesses = Stomp.over(socketProgress);
             stompClientProcesses.connect({}, function (frame) {
                 console.log('Connected: ' + frame);
-                stompClientProcesses.subscribe('/messages/processesrecordchange', function (recordchange) {
+                stompClientProcesses.subscribe('/apis/messages/processesrecordchange', function (recordchange) {
                     console.log("Получено сообщение...");
                     updateProcessesFromMessage(JSON.parse(recordchange.body));
                 });
@@ -55,6 +63,7 @@
         var prev_album;
         var prev_author;
         const prefix_link_boosty = "https://boosty.to/svoemesto/posts/";
+        const prefix_link_boosty_create = "https://boosty.to/svoemesto/new-post";
         const prefix_link_vk_wall = "https://vk.com/wall-";
         const prefix_link_dzen_play = "https://dzen.ru/video/watch/";
         const prefix_link_dzen_edit = "https://dzen.ru/profile/editor/svoemesto/publications?videoEditorPublicationId=";
@@ -80,6 +89,7 @@
         var el_fileName = document.getElementById("settings_fileName");
         var el_rootFolder = document.getElementById("settings_rootFolder");
         var el_idBoosty = document.getElementById("settings_idBoosty");
+        var el_idBoostyFiles = document.getElementById("settings_idBoostyFiles");
         var el_idVk = document.getElementById("settings_idVk");
         var el_idYoutubeLyrics = document.getElementById("settings_idYoutubeLyrics");
         var el_idYoutubeKaraoke = document.getElementById("settings_idYoutubeKaraoke");
@@ -94,6 +104,7 @@
         var el_status = document.getElementById("select_status");
 
         var el_button_link_boosty = document.getElementById("button_link_boosty");
+        var el_button_link_boostyFiles = document.getElementById("button_link_boostyFiles");
         var el_button_link_vk = document.getElementById("button_link_vk");
         var el_button_link_play_YoutubeLyrics = document.getElementById("button_link_play_YoutubeLyrics");
         var el_button_link_edit_YoutubeLyrics = document.getElementById("button_link_edit_YoutubeLyrics");
@@ -135,6 +146,7 @@
             el_fileName = document.getElementById("settings_fileName");
             el_rootFolder = document.getElementById("settings_rootFolder");
             el_idBoosty = document.getElementById("settings_idBoosty");
+            el_idBoostyFiles = document.getElementById("settings_idBoostyFiles");
             el_idVk = document.getElementById("settings_idVk");
             el_idYoutubeLyrics = document.getElementById("settings_idYoutubeLyrics");
             el_idYoutubeKaraoke = document.getElementById("settings_idYoutubeKaraoke");
@@ -149,6 +161,7 @@
             el_status = document.getElementById("select_status");
 
             el_button_link_boosty = document.getElementById("button_link_boosty");
+            el_button_link_boostyFiles = document.getElementById("button_link_boostyFiles");
             el_button_link_vk = document.getElementById("button_link_vk");
             el_button_link_play_YoutubeLyrics = document.getElementById("button_link_play_YoutubeLyrics");
             el_button_link_edit_YoutubeLyrics = document.getElementById("button_link_edit_YoutubeLyrics");
@@ -187,6 +200,7 @@
             el_fileName.disabled = value;
             el_rootFolder.disabled = value;
             el_idBoosty.disabled = value;
+            el_idBoostyFiles.disabled = value;
             el_idVk.disabled = value;
             el_idYoutubeLyrics.disabled = value;
             el_idYoutubeKaraoke.disabled = value;
@@ -200,7 +214,8 @@
             el_status.disabled = value;
             el_tags.disabled = value;
 
-            el_button_link_boosty.disabled = (el_idBoosty.value === '');
+            el_button_link_boosty.disabled = value; // (el_idBoosty.value === '');
+            el_button_link_boostyFiles.disabled = value; //(el_idBoostyFiles.value === '');
             el_button_link_vk.disabled = (el_idVk.value === '');
             el_button_link_play_YoutubeLyrics.disabled = (el_idYoutubeLyrics.value === '');
             el_button_link_edit_YoutubeLyrics.disabled = (el_idYoutubeLyrics.value === '');
@@ -246,7 +261,7 @@
             var id = currentRow.id.substring(3);
             el_id.value = document.getElementById(`fld_${id}_id`).innerText;
             el_songName.value = document.getElementById(`fld_${id}_songName`).innerText;
-            doCensored();
+            el_id_text.innerText = '«' + document.getElementById(`fld_${id}_songNameCensored`).innerText + '»';
             el_author.value = document.getElementById(`fld_${id}_author`).innerText;
             el_year.value = document.getElementById(`fld_${id}_year`).innerText;
             el_album.value = document.getElementById(`fld_${id}_album`).innerText;
@@ -259,6 +274,7 @@
             el_fileName.value = document.getElementById(`fld_${id}_fileName`).innerText;
             el_rootFolder.value = document.getElementById(`fld_${id}_rootFolder`).innerText;
             el_idBoosty.value = document.getElementById(`fld_${id}_idBoosty`).innerText;
+            el_idBoostyFiles.value = document.getElementById(`fld_${id}_idBoostyFiles`).innerText;
             el_idVk.value = document.getElementById(`fld_${id}_idVk`).innerText;
             el_idYoutubeLyrics.value = document.getElementById(`fld_${id}_idYoutubeLyrics`).innerText;
             el_idYoutubeKaraoke.value = document.getElementById(`fld_${id}_idYoutubeKaraoke`).innerText;
@@ -283,11 +299,35 @@
             getSongPictureAuthor();
             getSongPictureAlbum();
 
+            cntClick_button_link_edit_YoutubeKaraoke = 0;
+            cntClick_button_link_edit_YoutubeLyrics = 0;
+            cntClick_button_link_edit_VkKaraoke = 0;
+            cntClick_button_link_edit_VkLyrics = 0;
+            cntClick_button_head_VkKaraoke = 0;
+            cntClick_button_head_VkLyrics = 0;
+            cntClick_button_body_VkKaraoke = 0;
+            cntClick_button_body_VkLyrics = 0;
+            setButtonLinkEditStyle();
         }
 
         function updateButtonsLinks() {
 
-            el_button_link_boosty.href = prefix_link_boosty + el_idBoosty.value
+            if (el_idBoosty.value === '') {
+                el_button_link_boosty.href = prefix_link_boosty_create
+                el_button_link_boosty.innerText = "CREATE"
+            } else {
+                el_button_link_boosty.href = prefix_link_boosty + el_idBoosty.value
+                el_button_link_boosty.innerText = "OPEN"
+            }
+
+            if (el_idBoostyFiles.value === '') {
+                el_button_link_boostyFiles.href = prefix_link_boosty_create
+                el_button_link_boostyFiles.innerText = "CREATE"
+            } else {
+                el_button_link_boostyFiles.href = prefix_link_boosty + el_idBoostyFiles.value
+                el_button_link_boostyFiles.innerText = "OPEN"
+            }
+
             el_button_link_vk.href = prefix_link_vk_wall + el_idVk.value;
             el_button_link_play_YoutubeLyrics.href = prefix_link_dzen_play + el_idYoutubeLyrics.value
             el_button_link_edit_YoutubeLyrics.href = prefix_link_dzen_edit + el_idYoutubeLyrics.value
@@ -358,6 +398,158 @@
             }
         }
 
+        function setButtonLinkEditStyle() {
+            var el2 = document.getElementById("button_link_edit_YoutubeKaraoke");
+            var el3 = document.getElementById("button_link_edit_YoutubeLyrics");
+            var el4 = document.getElementById("button_link_edit_VkKaraoke");
+            var el1 = document.getElementById("button_link_edit_VkLyrics");
+            var el5 = document.getElementById("button_head_VkKaraoke");
+            var el6 = document.getElementById("button_head_VkLyrics");
+            var el7 = document.getElementById("button_body_VkKaraoke");
+            var el8 = document.getElementById("button_body_VkLyrics");
+            switch (cntClick_button_link_edit_YoutubeKaraoke) {
+                case 1:
+                    el2.classList.remove('btn-warning');
+                    el2.classList.remove('btn-info');
+                    el2.className = "form-control btn btn-block btn-danger";
+                    break;
+                case 2:
+                    el2.classList.remove('btn-warning');
+                    el2.classList.remove('btn-danger');
+                    el2.className = "form-control btn btn-block btn-info";
+                    break;
+                default:
+                    el2.classList.remove('btn-danger');
+                    el2.classList.remove('btn-info');
+                    el2.className = "form-control btn btn-block btn-warning";
+            }
+
+            switch (cntClick_button_link_edit_YoutubeLyrics) {
+
+                case 1:
+                    el3.classList.remove('btn-warning');
+                    el3.classList.remove('btn-info');
+                    el3.className = "form-control btn btn-block btn-danger";
+                    break;
+                case 2:
+                    el3.classList.remove('btn-warning');
+                    el3.classList.remove('btn-danger');
+                    el3.className = "form-control btn btn-block btn-info";
+                    break;
+                default:
+                    el3.classList.remove('btn-danger');
+                    el3.classList.remove('btn-info');
+                    el3.className = "form-control btn btn-block btn-warning";
+            }
+
+            switch (cntClick_button_link_edit_VkKaraoke) {
+
+                case 1:
+                    el4.classList.remove('btn-warning');
+                    el4.classList.remove('btn-info');
+                    el4.className = "form-control btn btn-block btn-danger";
+                    break;
+                case 2:
+                    el4.classList.remove('btn-warning');
+                    el4.classList.remove('btn-danger');
+                    el4.className = "form-control btn btn-block btn-info";
+                    break;
+                default:
+                    el4.classList.remove('btn-danger');
+                    el4.classList.remove('btn-info');
+                    el4.className = "form-control btn btn-block btn-warning";
+            }
+
+            switch (cntClick_button_link_edit_VkLyrics) {
+
+                case 1:
+                    el1.classList.remove('btn-warning');
+                    el1.classList.remove('btn-info');
+                    el1.className = "form-control btn btn-block btn-danger";
+                    break;
+                case 2:
+                    el1.classList.remove('btn-warning');
+                    el1.classList.remove('btn-danger');
+                    el1.className = "form-control btn btn-block btn-info";
+                    break;
+                default:
+                    el1.classList.remove('btn-danger');
+                    el1.classList.remove('btn-info');
+                    el1.className = "form-control btn btn-block btn-warning";
+            }
+
+            switch (cntClick_button_head_VkKaraoke) {
+
+                case 1:
+                    el5.classList.remove('btn-primary');
+                    el5.classList.remove('btn-info');
+                    el5.className = "form-control btn btn-block btn-danger";
+                    break;
+                case 2:
+                    el5.classList.remove('btn-primary');
+                    el5.classList.remove('btn-danger');
+                    el5.className = "form-control btn btn-block btn-info";
+                    break;
+                default:
+                    el5.classList.remove('btn-danger');
+                    el5.classList.remove('btn-info');
+                    el5.className = "form-control btn btn-block btn-primary";
+            }
+
+            switch (cntClick_button_head_VkLyrics) {
+
+                case 1:
+                    el6.classList.remove('btn-primary');
+                    el6.classList.remove('btn-info');
+                    el6.className = "form-control btn btn-block btn-danger";
+                    break;
+                case 2:
+                    el6.classList.remove('btn-primary');
+                    el6.classList.remove('btn-danger');
+                    el6.className = "form-control btn btn-block btn-info";
+                    break;
+                default:
+                    el6.classList.remove('btn-danger');
+                    el6.classList.remove('btn-info');
+                    el6.className = "form-control btn btn-block btn-primary";
+            }
+
+            switch (cntClick_button_body_VkKaraoke) {
+
+                case 1:
+                    el7.classList.remove('btn-primary');
+                    el7.classList.remove('btn-info');
+                    el7.className = "form-control btn btn-block btn-danger";
+                    break;
+                case 2:
+                    el7.classList.remove('btn-primary');
+                    el7.classList.remove('btn-danger');
+                    el7.className = "form-control btn btn-block btn-info";
+                    break;
+                default:
+                    el7.classList.remove('btn-danger');
+                    el7.classList.remove('btn-info');
+                    el7.className = "form-control btn btn-block btn-primary";
+            }
+
+            switch (cntClick_button_body_VkLyrics) {
+
+                case 1:
+                    el8.classList.remove('btn-primary');
+                    el8.classList.remove('btn-info');
+                    el8.className = "form-control btn btn-block btn-danger";
+                    break;
+                case 2:
+                    el8.classList.remove('btn-primary');
+                    el8.classList.remove('btn-danger');
+                    el8.className = "form-control btn btn-block btn-info";
+                    break;
+                default:
+                    el8.classList.remove('btn-danger');
+                    el8.classList.remove('btn-info');
+                    el8.className = "form-control btn btn-block btn-primary";
+            }
+        }
 
         function mouseClickRow(row) {
             updateFormElementsFromTableRows(row);
@@ -575,6 +767,8 @@
         }
 
         function doTextVkLyricsWOHeader() {
+
+
             var id = el_id.value;
             var request = new XMLHttpRequest();
             request.open('GET', "/song/" + id + "/textvklyricswoheader", false);
@@ -582,7 +776,10 @@
             if (request.status === 200) {
                 var result = request.responseText;
                 navigator.clipboard.writeText(result);
-                // alert(result);
+
+                cntClick_button_body_VkLyrics++;
+                if (cntClick_button_body_VkLyrics > 2) cntClick_button_body_VkLyrics = 0;
+                setButtonLinkEditStyle();
             }
         }
 
@@ -599,6 +796,8 @@
         }
 
         function doTextVkKaraokeWOHeader() {
+
+
             var id = el_id.value;
             var request = new XMLHttpRequest();
             request.open('GET', "/song/" + id + "/textvkkaraokewoheader", false);
@@ -606,7 +805,10 @@
             if (request.status === 200) {
                 var result = request.responseText;
                 navigator.clipboard.writeText(result);
-                // alert(result);
+
+                cntClick_button_body_VkKaraoke++;
+                if (cntClick_button_body_VkKaraoke > 2) cntClick_button_body_VkKaraoke = 0;
+                setButtonLinkEditStyle();
             }
         }
 
@@ -648,6 +850,8 @@
 
 
         function doTextVkLyricsHeader() {
+
+
             var id = el_id.value;
             var request = new XMLHttpRequest();
             request.open('GET', "/song/" + id + "/textvklyricsheader", false);
@@ -655,7 +859,10 @@
             if (request.status === 200) {
                 var result = request.responseText;
                 navigator.clipboard.writeText(result);
-                // alert(result);
+
+                cntClick_button_head_VkLyrics++;
+                if (cntClick_button_head_VkLyrics > 2) cntClick_button_head_VkLyrics = 0;
+                setButtonLinkEditStyle();
             }
         }
 
@@ -672,6 +879,9 @@
         }
 
         function doTextVkKaraokeHeader() {
+
+
+
             var id = el_id.value;
             var request = new XMLHttpRequest();
             request.open('GET', "/song/" + id + "/textvkkaraokeheader", false);
@@ -679,7 +889,10 @@
             if (request.status === 200) {
                 var result = request.responseText;
                 navigator.clipboard.writeText(result);
-                // alert(result);
+
+                cntClick_button_head_VkKaraoke++;
+                if (cntClick_button_head_VkKaraoke > 2) cntClick_button_head_VkKaraoke = 0;
+                setButtonLinkEditStyle();
             }
         }
 
@@ -878,7 +1091,31 @@
             }
         }
 
+        function doTextBoostyFilesHead() {
+            var id = el_id.value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/textboostyhead", false);
+            request.send();
+            if (request.status === 200) {
+                var result = "[ФАЙЛЫ] " + request.responseText;
+                navigator.clipboard.writeText(result);
+                // alert(result);
+            }
+        }
+
         function doTextBoostyBody() {
+            var id = el_id.value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/textboostybody", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                navigator.clipboard.writeText(result);
+                // alert(result);
+            }
+        }
+
+        function doTextBoostyFilesBody() {
             var id = el_id.value;
             var request = new XMLHttpRequest();
             request.open('GET', "/song/" + id + "/textboostybody", false);
@@ -892,6 +1129,11 @@
 
         function doBoostyLink() {
             var link = "https://boosty.to/svoemesto/posts/" + document.getElementById("settings_idBoosty").value
+            navigator.clipboard.writeText(link);
+        }
+
+        function doBoostyFilesLink() {
+            var link = "https://boosty.to/svoemesto/posts/" + document.getElementById("settings_idBoostyFiles").value
             navigator.clipboard.writeText(link);
         }
 
@@ -1223,6 +1465,18 @@
             }
         }
 
+        function extractBoostyFilesId(inputElement) {
+            // Получаем значение из поля ввода
+            var inputValue = inputElement.value.trim();
+
+            if (inputValue.startsWith(prefix_link_boosty) && inputValue.endsWith('?share=post_link')) {
+                const id = inputValue.replace(prefix_link_boosty, '').replace('?share=post_link', '');
+                inputElement.value = id;
+                el_button_link_boostyFiles.href = prefix_link_boosty + el_idBoostyFiles.value;
+                el_button_link_boostyFiles.disabled = (el_idBoostyFiles.value === '');
+            }
+        }
+
         function extractVkId(inputElement) {
             // Получаем значение из поля ввода
             var inputValue = inputElement.value.trim();
@@ -1235,8 +1489,22 @@
             }
         }
 
+        function doSymlink() {
+            var id = el_id.value;
+            $.ajax({
+                type: "GET",
+                url: "/song/" + id + "/symlink",
+                data: "",
+                success: function(data) {
+                }
+            });
+        }
+
         function openLinkYoutubeEditKaraoke() {
 
+            cntClick_button_link_edit_YoutubeKaraoke++;
+            if (cntClick_button_link_edit_YoutubeKaraoke > 2) cntClick_button_link_edit_YoutubeKaraoke = 0;
+            setButtonLinkEditStyle();
             var id = el_id.value;
             var request = new XMLHttpRequest();
             request.open('GET', "/song/" + id + "/textyoutubekaraokewoheader", false);
@@ -1266,6 +1534,10 @@
         }
 
         function openLinkYoutubeEditLyrics() {
+
+            cntClick_button_link_edit_YoutubeLyrics++;
+            if (cntClick_button_link_edit_YoutubeLyrics > 2) cntClick_button_link_edit_YoutubeLyrics = 0;
+            setButtonLinkEditStyle();
 
             var id = el_id.value;
             var request = new XMLHttpRequest();
@@ -1391,6 +1663,10 @@
 
         function openLinkVkEditKaraoke() {
 
+            cntClick_button_link_edit_VkKaraoke++;
+            if (cntClick_button_link_edit_VkKaraoke > 2) cntClick_button_link_edit_VkKaraoke = 0;
+            setButtonLinkEditStyle();
+
             var id = el_id.value;
             var request = new XMLHttpRequest();
             request.open('GET', "/song/" + id + "/textvkkaraokewoheader", false);
@@ -1430,6 +1706,10 @@
         }
 
         function openLinkVkEditLyrics() {
+
+            cntClick_button_link_edit_VkLyrics++;
+            if (cntClick_button_link_edit_VkLyrics > 2) cntClick_button_link_edit_VkLyrics = 0;
+            setButtonLinkEditStyle();
 
             var id = el_id.value;
             var request = new XMLHttpRequest();
@@ -1874,6 +2154,15 @@
                                 }
                                 break;
 
+                            case 'id_boosty_files':
+                                document.getElementById(`fld_${id}_idBoostyFiles`).innerText = recordDiffValueNew;
+                                if (recordDiffValueNew !== "") {
+                                    document.getElementById(`fld_${id}_flagBoosty`).innerText = '✔';
+                                } else {
+                                    document.getElementById(`fld_${id}_flagBoosty`).innerText = '✓';
+                                }
+                                break;
+
                             case 'id_vk':
                                 document.getElementById(`fld_${id}_idVk`).innerText = recordDiffValueNew;
                                 if (recordDiffValueNew !== "") {
@@ -2066,27 +2355,7 @@
             var diffs = recordchange.recordChangeDiffs;
             if (table === 'tbl_processes') {
                 if (id === 0) {
-                    // diffs.forEach((diff) => {
-                    //     var recordDiffName = diff.recordDiffName;
-                    //     if (recordDiffName === 'isWorkAndStopAfterThreadIsDone') {
-                    //         var isWorking = diff.recordDiffValueNew;
-                    //         var isStopAfterThreadIsDone = diff.recordDiffValueOld;
-                    //         var result = "";
-                    //         if (isWorking === false) {
-                    //             result = "Остановлено";
-                    //         } else {
-                    //             if (isStopAfterThreadIsDone === false) {
-                    //                 result = "Работает";
-                    //             } else {
-                    //                 result = "Ожидает остановки";
-                    //             }
-                    //         }
-                    //         var isWorkingElement = document.getElementById("isworking");
-                    //         isWorkingElement.innerText = result;
-                    //     }
-                    //
-                    //
-                    // });
+
                 } else {
                     var processName = "";
                     var processType = "";
@@ -2165,6 +2434,11 @@
                 }
             }
         }
+
+        function fillVkIdFromPrevious(currId) {
+
+        }
+
 
     </script>
 

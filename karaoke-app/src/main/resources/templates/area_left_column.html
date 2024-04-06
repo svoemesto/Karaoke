@@ -127,6 +127,13 @@
                             th:style="'background-color: ' + ${settings.color} + '; height: 100%; padding: 4px; border-style: none; text-align: left; font-size: small;'"
                     ></div>
                 </td>
+                <td hidden style="padding: 0; font-size: 0; min-width: 250px; max-width: 250px; border-style: solid; border-width: thin;">
+                    <div
+                            th:id="'fld_'+${settings.id}+'_songNameCensored'"
+                            th:text="${settings.songNameCensored}"
+                            th:style="'background-color: ' + ${settings.color} + '; height: 100%; padding: 4px; border-style: none; text-align: left; font-size: small;'"
+                    ></div>
+                </td>
                 <td style="padding: 0; font-size: 0; min-width: 150px; max-width: 150px; border-style: solid; border-width: thin;">
                     <div
                             th:id="'fld_'+${settings.id}+'_author'"
@@ -173,7 +180,7 @@
                     <div
                             th:id="'fld_'+${settings.id}+'_tags'"
                             th:text="${settings.tags}"
-                            th:style="'background-color: ' + ${settings.color} + '; height: 100%; padding: 4px; border-style: none; text-align: left; font-size: small;'"
+                            th:style="'background-color: ' + ${settings.color} + '; height: 100%; padding: 4px; border-style: none; text-align: left; font-size: 10px;'"
                     ></div>
                 </td>
                 <td hidden style="padding: 0; font-size: 0; min-width: 35px; max-width: 35px; border-style: solid; border-width: thin;">
@@ -229,6 +236,13 @@
                     <div
                             th:id="'fld_'+${settings.id}+'_idBoosty'"
                             th:text="${settings.idBoosty}"
+                            th:style="'background-color: ' + ${settings.color} + '; height: 100%; padding: 4px; border-style: none; text-align: center; font-size: small;'"
+                    ></div>
+                </td>
+                <td hidden style="padding: 0; font-size: 0; min-width: 50px; max-width: 50px; border-style: solid; border-width: thin;">
+                    <div
+                            th:id="'fld_'+${settings.id}+'_idBoostyFiles'"
+                            th:text="${settings.idBoostyFiles}"
                             th:style="'background-color: ' + ${settings.color} + '; height: 100%; padding: 4px; border-style: none; text-align: center; font-size: small;'"
                     ></div>
                 </td>

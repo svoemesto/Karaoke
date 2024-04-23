@@ -344,22 +344,23 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
                         }
 
                         // Заполняем список слогов
-                        val words = bodyText.replace("\n"," ").split(" ").filter { it != "" }
-                        val slogs: MutableList<String> = mutableListOf()
-                        val mainRibbon = MainRibbon()
-                        var addBefore = ""
-                        words.forEach { word ->
-                            val wordSlogs: MutableList<String> = mainRibbon.syllables(word).toMutableList()
-                            if (wordSlogs.isEmpty()) {
-                                addBefore += "${word}_"
-                            } else {
-                                if (wordSlogs.joinToString("") != word) wordSlogs[wordSlogs.size-1] = wordSlogs[wordSlogs.size-1] + word.substring(wordSlogs.joinToString("").length)
-                                wordSlogs[0] = addBefore + wordSlogs[0]
-                                addBefore = ""
-                                wordSlogs[wordSlogs.size-1] = wordSlogs[wordSlogs.size-1] + "_"
-                                slogs.addAll(wordSlogs)
-                            }
-                        }
+                        val slogs = getSyllables(bodyText)
+//                        val words = bodyText.replace("\n"," ").split(" ").filter { it != "" }
+//                        val slogs: MutableList<String> = mutableListOf()
+//                        val mainRibbon = MainRibbon()
+//                        var addBefore = ""
+//                        words.forEach { word ->
+//                            val wordSlogs: MutableList<String> = mainRibbon.syllables(word).toMutableList()
+//                            if (wordSlogs.isEmpty()) {
+//                                addBefore += "${word}_"
+//                            } else {
+//                                if (wordSlogs.joinToString("") != word) wordSlogs[wordSlogs.size-1] = wordSlogs[wordSlogs.size-1] + word.substring(wordSlogs.joinToString("").length)
+//                                wordSlogs[0] = addBefore + wordSlogs[0]
+//                                addBefore = ""
+//                                wordSlogs[wordSlogs.size-1] = wordSlogs[wordSlogs.size-1] + "_"
+//                                slogs.addAll(wordSlogs)
+//                            }
+//                        }
 
                         println(bodySubs)
                         println(slogs)

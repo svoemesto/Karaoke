@@ -61,6 +61,7 @@ class MainController(
         return true
     }
 
+    // Обновить хранилище
     @GetMapping("/utils/collectstore")
     @ResponseBody
     fun doCollectStore(): Boolean {
@@ -1338,9 +1339,7 @@ class MainController(
         @RequestParam(required = true) dictValue: String,
         @RequestParam(required = true) dictAction: String,
         model: Model): Boolean {
-
         return TextFileDictionary.doAction(dictName, dictAction, listOf(dictValue))
-
     }
 
 

@@ -21,7 +21,8 @@ const val LINE_SPACING = 0L
 const val SHADOW = "1;#64000000;3;3;3"
 const val ALIGNMENT = 0L
 const val TYPEWRITER = "0;2;1;0;0"
-const val LETTERS_VOWEL = "EUIOAeuioaЁУЕЫАОЭЯИЮёуеыаоэяиюѣ"
+val vovels = "ёуеыаоэяиюeuioaїієѣ"
+val LETTERS_VOWEL = "${vovels}${vovels.uppercase()}"
 const val NOTES_SYMBOLS = "♬♩♪△▲⬦⬥"
 
 const val DEMUCS_MODEL_NAME = "hdemucs_mmi"

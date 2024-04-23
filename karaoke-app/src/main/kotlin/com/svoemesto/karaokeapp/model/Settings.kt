@@ -188,26 +188,27 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     }
     @get:JsonIgnore
     val sourceSyllablesList: List<List<String>> get() {
-        val result: MutableList<MutableList<String>> = mutableListOf()
+        val result: MutableList<List<String>> = mutableListOf()
         sourceTextList.forEachIndexed{ index, _ ->
             val voiceText = getSourceText(index)
-            val words = voiceText.replace("\n"," ").split(" ").filter { it != "" }
-            val slogs: MutableList<String> = mutableListOf()
-            val mainRibbon = MainRibbon()
-            var addBefore = ""
-            words.forEach { word ->
-                val wordSlogs: MutableList<String> = mainRibbon.syllables(word).toMutableList()
-                if (wordSlogs.isEmpty()) {
-                    addBefore += "${word}_"
-                } else {
-                    if (wordSlogs.joinToString("") != word) wordSlogs[wordSlogs.size-1] = wordSlogs[wordSlogs.size-1] + word.substring(wordSlogs.joinToString("").length)
-                    wordSlogs[0] = addBefore + wordSlogs[0]
-                    addBefore = ""
-                    wordSlogs[wordSlogs.size-1] = wordSlogs[wordSlogs.size-1] + "_"
-                    slogs.addAll(wordSlogs)
-                }
-            }
-            result.add(slogs)
+//            val words = voiceText.replace("\n"," ").split(" ").filter { it != "" }
+//            val slogs: MutableList<String> = mutableListOf()
+//            val mainRibbon = MainRibbon()
+//            var addBefore = ""
+//            words.forEach { word ->
+//                val wordSlogs: MutableList<String> = mainRibbon.syllables(word).toMutableList()
+//                if (wordSlogs.isEmpty()) {
+//                    addBefore += "${word}_"
+//                } else {
+//                    if (wordSlogs.joinToString("") != word) wordSlogs[wordSlogs.size-1] = wordSlogs[wordSlogs.size-1] + word.substring(wordSlogs.joinToString("").length)
+//                    wordSlogs[0] = addBefore + wordSlogs[0]
+//                    addBefore = ""
+//                    wordSlogs[wordSlogs.size-1] = wordSlogs[wordSlogs.size-1] + "_"
+//                    slogs.addAll(wordSlogs)
+//                }
+//            }
+//            result.add(slogs)
+            result.add(getSyllables(voiceText))
         }
         return result
     }
@@ -837,8 +838,8 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     val processColorVkLyrics: String get() = if (idVkLyrics.isNotBlank()) "#00FF00" else "#A9A9A9"
     val processColorVkKaraoke: String get() = if (idVkKaraoke.isNotBlank()) "#00FF00" else "#A9A9A9"
 
-    val processColorYoutubeLyrics: String get() = if (idYoutubeLyrics.isNotBlank()) "#00FF00" else "#A9A9A9"
-    val processColorYoutubeKaraoke: String get() = if (idYoutubeKaraoke.isNotBlank()) "#00FF00" else "#A9A9A9"
+    val processColorDzenLyrics: String get() = if (idYoutubeLyrics.isNotBlank()) "#00FF00" else "#A9A9A9"
+    val processColorDzenKaraoke: String get() = if (idYoutubeKaraoke.isNotBlank()) "#00FF00" else "#A9A9A9"
 
     val processColorTelegramLyrics: String get() =
         if (idTelegramLyrics == "-" || idTelegramKaraoke == "-" ) {
@@ -1029,11 +1030,11 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         val result = StringBuilder()
         for (voice in 0 until countVoices) {
 
-            val SPAN_STYLE_GROUP0 = """<span style="color: #FFFFFF; font-size: 18px; font-style: normal; font-weight: bolder;">"""
-            val SPAN_STYLE_GROUP1 = """<span style="color: #FFFF00; font-size: 18px; font-style: italic; font-weight: bolder;">"""
-            val SPAN_STYLE_GROUP2 = """<span style="color: #00BFFF; font-size: 18px; font-style: normal; font-weight: bolder;">"""
-            val SPAN_STYLE_GROUP3 = """<span style="color: #00FF00; font-size: 18px; font-style: italic; font-weight: bolder;">"""
-            val SPAN_STYLE_COMMENT = """<span style="color: #D2691E; font-size: 14px; font-style: italic; font-weight: bolder;">"""
+            val SPAN_STYLE_GROUP0 = """<span style="color: #FFFFFF; font-size: smaller; font-style: normal; font-weight: bolder;">"""
+            val SPAN_STYLE_GROUP1 = """<span style="color: #FFFF00; font-size: smaller; font-style: italic; font-weight: bolder;">"""
+            val SPAN_STYLE_GROUP2 = """<span style="color: #00BFFF; font-size: smaller; font-style: normal; font-weight: bolder;">"""
+            val SPAN_STYLE_GROUP3 = """<span style="color: #00FF00; font-size: smaller; font-style: italic; font-weight: bolder;">"""
+            val SPAN_STYLE_COMMENT = """<span style="color: #D2691E; font-size: small; font-style: italic; font-weight: bolder;">"""
 
 
             val markers = getSourceMarkers(voice)
@@ -1100,13 +1101,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             var wasBr = true
             markers.forEach { marker ->
                 when (marker.markertype) {
-                    "setting" -> {}
-                    "endofline", "newline" -> {
-                        result.append("\n")
-                        wasBr = true
-                    }
-                    "unmute" -> {}
-                    else -> {
+                    "syllables" -> {
                         var txt = marker.label.replace("_", " ")
                         if (wasBr) {
                             txt = txt.uppercaseFirstLetter()
@@ -1114,6 +1109,11 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                         }
                         result.append(txt)
                     }
+                    "endofline", "newline" -> {
+                        result.append("\n")
+                        wasBr = true
+                    }
+                    else -> {}
                 }
             }
             if (countVoices > 1 && voice != countVoices-1) {
@@ -1595,8 +1595,8 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                 if (settA.color != settB.color) result.add(RecordDiff("color", settA.color, settB.color, false))
                 if (settA.processColorMeltLyrics != settB.processColorMeltLyrics) result.add(RecordDiff("processColorMeltLyrics", settA.processColorMeltLyrics, settB.processColorMeltLyrics, false))
                 if (settA.processColorMeltKaraoke != settB.processColorMeltKaraoke) result.add(RecordDiff("processColorMeltKaraoke", settA.processColorMeltKaraoke, settB.processColorMeltKaraoke, false))
-                if (settA.processColorYoutubeLyrics != settB.processColorYoutubeLyrics) result.add(RecordDiff("processColorYoutubeLyrics", settA.processColorYoutubeLyrics, settB.processColorYoutubeLyrics, false))
-                if (settA.processColorYoutubeKaraoke != settB.processColorYoutubeKaraoke) result.add(RecordDiff("processColorYoutubeKaraoke", settA.processColorYoutubeKaraoke, settB.processColorYoutubeKaraoke, false))
+                if (settA.processColorDzenLyrics != settB.processColorDzenLyrics) result.add(RecordDiff("processColorYoutubeLyrics", settA.processColorDzenLyrics, settB.processColorDzenLyrics, false))
+                if (settA.processColorDzenKaraoke != settB.processColorDzenKaraoke) result.add(RecordDiff("processColorYoutubeKaraoke", settA.processColorDzenKaraoke, settB.processColorDzenKaraoke, false))
                 if (settA.processColorVkLyrics != settB.processColorVkLyrics) result.add(RecordDiff("processColorVkLyrics", settA.processColorVkLyrics, settB.processColorVkLyrics, false))
                 if (settA.processColorVkKaraoke != settB.processColorVkKaraoke) result.add(RecordDiff("processColorVkKaraoke", settA.processColorVkKaraoke, settB.processColorVkKaraoke, false))
                 if (settA.processColorTelegramLyrics != settB.processColorTelegramLyrics) result.add(RecordDiff("processColorTelegramLyrics", settA.processColorTelegramLyrics, settB.processColorTelegramLyrics, false))
@@ -2141,7 +2141,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         return sortString.compareTo(other.sortString)
     }
 
-    fun getDTO(): SettingsDTO {
+    fun toDTO(): SettingsDTO {
         return SettingsDTO(
             id = id,
             rootFolder = rootFolder,
@@ -2178,6 +2178,8 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             processColorVk = processColorVk,
             processColorMeltLyrics = processColorMeltLyrics,
             processColorMeltKaraoke = processColorMeltKaraoke,
+            processColorDzenLyrics = processColorDzenLyrics,
+            processColorDzenKaraoke = processColorDzenKaraoke,
             processColorVkLyrics = processColorVkLyrics,
             processColorVkKaraoke = processColorVkKaraoke,
             processColorTelegramLyrics = processColorTelegramLyrics,
@@ -2237,6 +2239,8 @@ data class SettingsDTO(
     val processColorVk: String,
     val processColorMeltLyrics: String,
     val processColorMeltKaraoke: String,
+    val processColorDzenLyrics: String,
+    val processColorDzenKaraoke: String,
     val processColorVkLyrics: String,
     val processColorVkKaraoke: String,
     val processColorTelegramLyrics: String,

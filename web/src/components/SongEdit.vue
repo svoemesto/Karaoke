@@ -1,12 +1,17 @@
 <template>
   <div :style="styleRoot">
     <div v-if="song">
-      <subs-edit :voices="voices" :song="song" v-if="isSubsEditVisible" @close="closeSubsEdit"/>
+      <subs-edit v-if="isSubsEditVisible" :voices="voices" :song="song" @close="closeSubsEdit"/>
+      <custom-confirm v-if="isCustomConfirmVisible" :params="customConfirmParams" @close="closeCustomConfirm" />
+      <!-- Заголовок с названием песни и автора-->
       <div class="header">
-        <div class="header-song-name">«{{song.songName}}»</div>
-        <div class="header-song-description">«{{song.author}}», альбом: «{{song.album}}», год: {{song.year}}</div>
+        <div class="header-song-author">{{song.author}}</div>
+        <div class="header-song-album">{{song.year}} - {{song.album}}</div>
+        <div class="header-song-name">{{song.songName}}</div>
       </div>
+      <!-- Тело-->
       <div class="body">
+        <!-- Первый столбец тела -->
         <div class="column-1">
           <div class="label-and-input">
             <div class="label">Композиция:</div>
@@ -231,15 +236,45 @@
             </div>
           </div>
 
-        </div>
-        <div class="column-2">
+          <div class="links-table">
+            <div class="links-table-column-1">
+              Статус
+            </div>
+            <div class="links-table-column-2">
+              <button class="group-button" :class="statusButtonClass(0)" type="button" value="0" @click="setStatus(0)">❎</button>
+              <button class="group-button" :class="statusButtonClass(1)" type="button" value="1" @click="setStatus(1)">Тxt🛠</button>
+              <button class="group-button" :class="statusButtonClass(2)" type="button" value="2" @click="setStatus(2)">Txt✅</button>
+              <button class="group-button" :class="statusButtonClass(3)" type="button" value="3" @click="setStatus(3)">Prj🛠</button>
+              <button class="group-button" :class="statusButtonClass(4)" type="button" value="4" @click="setStatus(4)">Prj✅</button>
+              <button class="group-button" :class="statusButtonClass(6)" type="button" value="6" @click="setStatus(6)">✅</button>
+            </div>
+          </div>
 
         </div>
+        <!-- Второй столбец тела -->
+        <div class="column-2">
+          <div class="picture-author">
+            <img class="image-author" alt="Author image" :src="imageAuthorBase64">
+          </div>
+          <div class="picture-album">
+            <img class="image-album" alt="Album image" :src="imageAlbumBase64">
+          </div>
+        </div>
+        <!-- Третий столбец тела -->
+        <div class="column-3">
+          <div class="formatted-text-area" v-if="textFormatted">
+            <div class="formatted-text" v-html="textFormatted"></div>
+          </div>
+        </div>
       </div>
+      <!-- Подвал -->
       <div class="footer">
-        <button class="btn-round-save-double" @click="save" :disabled="notChanged()"><img alt="save" class="icon-save-double" src="../assets/svg/icon_save.svg"></button>
-        <button class="btn-round-double" @click="showSubsEdit"><img alt="save" class="icon-edit-double" src="../assets/svg/icon_edit.svg"></button>
-<!--        <div>{{diff}}</div>-->
+        <button class="btn-round-save-double" @click="save" :disabled="notChanged()" title="Сохранить"><img alt="save" class="icon-save-double" src="../assets/svg/icon_save.svg"></button>
+        <button class="btn-round-double" @click="showSubsEdit" title="Редактировать субтитры"><img alt="edit subs" class="icon-edit-double" src="../assets/svg/icon_edit.svg"></button>
+        <button class="btn-round-double" @click="createKaraoke" title="Создать караоке"><img alt="create karaoke" class="icon-40" src="../assets/svg/icon_song.svg"></button>
+        <button class="btn-round-double" @click="createDemucs2" title="Создать DEMUCS2"><img alt="create demucs2" class="icon-40" src="../assets/svg/icon_demucs2.svg"></button>
+        <button class="btn-round-double" @click="createSymlinks" title="Создать SYMLINKS"><img alt="create symlink" class="icon-40" src="../assets/svg/icon_symlink.svg"></button>
+        <button class="btn-round-double" @click="deleteSong" title="Удалить песню"><img alt="delete" class="icon-40" src="../assets/svg/icon_delete.svg"></button>
       </div>
     </div>
     <div v-else>
@@ -250,17 +285,29 @@
 
 <script>
 import SubsEdit from './SubsEdit'
+import CustomConfirm from "./CustomConfirm.vue";
 
 export default {
   name: "SongEdit",
   components: {
+    CustomConfirm,
     SubsEdit
   },
   data () {
     return {
       isSubsEditVisible: false,
-      voices: []
+      isCustomConfirmVisible: false,
+      voices: [],
+      customConfirmParams: undefined,
+      imageAuthorBase64: '',
+      imageAlbumBase64: '',
+      textFormatted: ''
     };
+  },
+  mounted() {
+    this.$store.dispatch('getAuthorPictureBase64Promise').then(image => this.imageAuthorBase64 = image);
+    this.$store.dispatch('getAlbumPictureBase64Promise').then(image => this.imageAlbumBase64 = image);
+    this.$store.dispatch('getTextFormattedPromise').then(textFormatted => this.textFormatted = textFormatted);
   },
   computed: {
     styleRoot() {
@@ -270,8 +317,8 @@ export default {
         width: 'auto',
         height: '100%',
         display: 'flex',
-        flexDirection: 'column',
-        backgroundColor: 'lightyellow'
+        flexDirection: 'column'
+        // backgroundColor: 'lightyellow'
       }
     },
     song() { return this.$store.getters.getCurrentSong },
@@ -300,6 +347,13 @@ export default {
     prefixLinkTelegram: () => { return 'https://t.me/svoemestokaraoke/'; }
   },
   watch: {
+    song: {
+      handler () {
+        this.$store.dispatch('getAuthorPictureBase64Promise').then(image => this.imageAuthorBase64 = image);
+        this.$store.dispatch('getAlbumPictureBase64Promise').then(image => this.imageAlbumBase64 = image);
+        this.$store.dispatch('getTextFormattedPromise').then(textFormatted => this.textFormatted = textFormatted);
+      }
+    },
     'song.idBoosty.value': {
       deep: true,
       handler () {
@@ -411,6 +465,102 @@ export default {
   },
 
   methods: {
+    setStatus(idStatus) {
+      this.song.idStatus = idStatus;
+      let status = "N/A";
+      switch (idStatus) {
+        case 0: {status = 'NONE'; break;}
+        case 1: {status = 'TEXT_CREATE'; break;}
+        case 2: {status = 'TEXT_CHECK'; break;}
+        case 3: {status = 'PROJECT_CREATE'; break;}
+        case 4: {status = 'PROJECT_CHECK'; break;}
+        case 5: {status = 'RENDERING'; break;}
+        case 6: {status = 'DONE'; break;}
+      }
+      this.song.status = status;
+    },
+    statusButtonClass(status) {
+      return status === this.song.idStatus ? 'group-button-active' : ''
+    },
+    createKaraoke() {
+      this.customConfirmParams = {
+        header: 'Подтвердите создание караоке',
+        body: `Создать караоке для песни <strong>«${this.song.songName}»</strong>?`,
+        timeout: 10,
+        callback: this.doCreateKaraoke
+      }
+      this.isCustomConfirmVisible = true;
+    },
+    doCreateKaraoke() {
+      this.$store.dispatch('createKaraokePromise').then(data => {
+        let response = JSON.parse(data);
+        this.customConfirmParams = {
+          isAlert: true,
+          alertType: response ? 'info' : 'error',
+          header: 'Создание караоке',
+          body: `Создание караоке для песни <strong>«${this.song.songName}»</strong> прошло успешно.`,
+          timeout: 10
+        }
+        this.isCustomConfirmVisible = true;
+      })
+    },
+    createDemucs2() {
+      this.customConfirmParams = {
+        header: 'Подтвердите создание DEMUCS2',
+        body: `Создать DEMUCS2 для песни <strong>«${this.song.songName}»</strong>?`,
+        timeout: 10,
+        callback: this.doCreateDemucs2
+      }
+      this.isCustomConfirmVisible = true;
+    },
+    doCreateDemucs2() {
+      this.$store.dispatch('createDemucs2Promise').then(data => {
+        let response = JSON.parse(data);
+        this.customConfirmParams = {
+          isAlert: true,
+          alertType: response ? 'info' : 'error',
+          header: 'Создание DEMUCS2',
+          body: `Создание DEMUCS2 для песни <strong>«${this.song.songName}»</strong> прошло успешно.`,
+          timeout: 10
+        }
+        this.isCustomConfirmVisible = true;
+      })
+    },
+    createSymlinks() {
+      this.customConfirmParams = {
+        header: 'Подтвердите создание SYMLINKs',
+        body: `Создать SYMLINKs для песни <strong>«${this.song.songName}»</strong>?`,
+        timeout: 10,
+        callback: this.doCreateSymlinks
+      }
+      this.isCustomConfirmVisible = true;
+    },
+    doCreateSymlinks() {
+      this.$store.dispatch('createSymlinksPromise').then(data => {
+        let response = JSON.parse(data);
+        this.customConfirmParams = {
+          isAlert: true,
+          alertType: response ? 'info' : 'error',
+          header: 'Создание SYMLINKs',
+          body: `Создание SYMLINKs для песни <strong>«${this.song.songName}»</strong> прошло успешно.`,
+          timeout: 10
+        }
+        this.isCustomConfirmVisible = true;
+      })
+    },
+    deleteSong() {
+      this.customConfirmParams = {
+        header: 'Подтвердите удаление песни',
+        body: `Удалить песню <strong>«${this.song.songName}»</strong>?`,
+        timeout: 10,
+        callback: this.doDeleteSong
+      }
+      this.isCustomConfirmVisible = true;
+    },
+    doDeleteSong() {
+      this.$store.commit('deleteCurrentSong');
+      this.$emit('close');
+    },
     async showSubsEdit() {
       this.voices = JSON.parse(await this.$store.getters.getVoices).voices;
       console.log('voices length: ', this.voices.length);
@@ -419,7 +569,11 @@ export default {
       this.isSubsEditVisible = true;
     },
     closeSubsEdit() {
+      this.$store.dispatch('getTextFormattedPromise').then(textFormatted => this.textFormatted = textFormatted);
       this.isSubsEditVisible = false;
+    },
+    closeCustomConfirm() {
+      this.isCustomConfirmVisible = false;
     },
 
     async getLinkBoosty() {
@@ -624,34 +778,45 @@ export default {
 <style scoped>
 
 .header {
-  height: 100px;
+  border: thin dashed darkgray;
+  border-radius: 10px;
+  padding: 5px 0;
+}
+
+.body {
   margin: 0;
-  margin-bottom: auto;
-  padding: 0;
-  width: 500px;
-  background-color: aquamarine;
+  display: flex;
+  flex-direction: row;
+}
+
+.footer {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  border: thin dashed darkgray;
+  border-radius: 10px;
+  padding: 5px 0;
 }
 
 .header-song-name {
   text-align: center;
   font-size: 24pt;
-  line-height: 75%;
-  padding-top: 10px;
+  font-weight: 400;
 }
 
-.header-song-description {
+.header-song-author {
   text-align: center;
-  font-size: 16pt;
-  padding-top: 5px;
+  font-size: 12pt;
+  margin: 0 auto;
 }
 
-.body {
-  margin: 0;
-  background-color:brown;
-  width: 800px;
-  display: flex;
-  flex-direction: row;
+.header-song-album {
+  text-align: center;
+  font-size: 12pt;
+  margin: 0 auto;
 }
+
+
 
 .links-table {
   margin-top: 10px;
@@ -672,6 +837,15 @@ export default {
 .links-table-column-2 {
   width: max-content;
   background-color: white;
+}
+
+.group-button {
+  border: solid black thin;
+  border-radius: 5px;
+  background-color: white;
+}
+.group-button-active {
+  background-color: dodgerblue;
 }
 
 .label-and-input {
@@ -797,7 +971,7 @@ export default {
   width: 24px;
   height: 24px;
   margin-left: -6px;
-  margin-top: -6px;
+  margin-top: -10px;
 }
 
 
@@ -806,14 +980,14 @@ export default {
   width: 24px;
   height: 24px;
   margin-left: -6px;
-  margin-top: -6px;
+  margin-top: -10px;
 }
 
 .icon-save {
   width: 18px;
   height: 18px;
   margin-left: -4px;
-  margin-top: -5px;
+  margin-top: -10px;
 }
 
 .icon-save-double {
@@ -827,49 +1001,49 @@ export default {
   width: 18px;
   height: 18px;
   margin-left: -4px;
-  margin-top: -5px;
+  margin-top: -10px;
 }
 
 .icon-new-wide {
   width: 18px;
   height: 18px;
   margin-left: 0;
-  margin-top: -5px;
+  margin-top: -10px;
 }
 
 .icon-open-wide {
   width: 18px;
   height: 18px;
   margin-left: 0;
-  margin-top: -5px;
+  margin-top: -10px;
 }
 
 .icon-texthead {
   width: 18px;
   height: 18px;
   margin-left: -4px;
-  margin-top: -5px;
+  margin-top: -10px;
 }
 
 .icon-texthead-wide {
   width: 18px;
   height: 18px;
   margin-left: 0;
-  margin-top: -5px;
+  margin-top: -10px;
 }
 
 .icon-textbody {
   width: 18px;
   height: 18px;
   margin-left: -4px;
-  margin-top: -5px;
+  margin-top: -10px;
 }
 
 .icon-textlink {
   width: 18px;
   height: 18px;
   margin-left: -4px;
-  margin-top: -5px;
+  margin-top: -10px;
 }
 
 .icon-36 {
@@ -886,54 +1060,95 @@ export default {
   width: 24px;
   height: 24px;
   margin-left: -5px;
-  margin-top: -5px;
+  margin-top: -10px;
 }
 
 .icon-play-wide {
   width: 50px;
   height: 24px;
   margin-left: -5px;
-  margin-top: -5px;
+  margin-top: -10px;
 }
 
 .icon-edit {
   width: 24px;
   height: 24px;
   margin-left: -5px;
-  margin-top: -5px;
+  margin-top: -10px;
 }
 
 .icon-edit-double {
+  width: 40px;
+  height: 40px;
+  margin-left: -5px;
+  margin-top: -10px;
+}
+
+.icon-song-double {
   width: 50px;
   height: 50px;
   margin-left: -5px;
-  margin-top: -5px;
+  margin-top: -10px;
 }
-
 
 .icon-24 {
   width: 24px;
   height: 24px;
 }
 
-.footer {
-  margin: 0;
-  margin-top: auto;
-  width: 800px;
-  background-color: dodgerblue;
-  display: flex;
-  flex-direction: row;
+.icon-40 {
+  width: 40px;
+  height: 40px;
+}
+
+.picture-author {
+  background-color: black;
+  width: 250px;
+  height: 100px;
+}
+.image-author {
+  width: 250px;
+  height: 100px;
+}
+
+.picture-album {
+  background-color: black;
+  width: 250px;
+  height: 250px;
+}
+.image-album {
+  width: 250px;
+  height: 250px;
+}
+
+.formatted-text-area {
+  width: auto;
+  height: 100%;
+}
+
+.formatted-text {
+  overflow-y: scroll;
+  background-color: black;
+  max-height: 630px;
+  text-align: left;
+  padding: 10px;
+  font-size: smaller;
 }
 
 .column-1 {
-  width: 500px;
-  background-color: white;
-  height: calc(100vh - 40px - 200px);
+  width: max-content;
+  /*background-color: white;*/
+  margin: 5px 5px 5px 0;
 }
 
 .column-2 {
   width: max-content;
-  background-color: antiquewhite;
-  height: calc(100vh - 40px - 200px);
+  margin: 5px 0;
 }
+
+.column-3 {
+  width: max-content;
+  margin: 5px 5px 5px 5px;
+}
+
 </style>

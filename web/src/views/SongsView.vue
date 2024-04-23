@@ -1,20 +1,17 @@
 <template>
   <div class="songs">
     <SongsTable/>
-    <SongEdit/>
   </div>
 </template>
 
 <script>
 // @ is an alias to /src
 import SongsTable from '@/components/SongsTable'
-import SongEdit from '@/components/SongEdit'
 
 export default {
-  name: 'HomeView',
+  name: 'SongView',
   components: {
-    SongsTable,
-    SongEdit
+    SongsTable
   }
 }
 </script>
@@ -22,12 +19,12 @@ export default {
 <style scoped>
 
   .songs {
-    padding: 0;
-    display: grid;
-    justify-content: start;
-    column-gap: 10px;
-    grid-template-columns: auto auto;
-    min-height: calc(100vh - 40px);
-    margin: 0;
+    display: flex;
+    flex-direction: column;
+    /*max-width: calc(100vw - 20px);*/
+    /*max-height: calc(100vh - 50px);*/
+    margin: 10px auto;
+    justify-content: center;
+    align-items: center;
   }
 </style>

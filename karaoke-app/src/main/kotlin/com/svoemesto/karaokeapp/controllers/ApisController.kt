@@ -1,15 +1,18 @@
 package com.svoemesto.karaokeapp.controllers
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.svoemesto.karaokeapp.WORKING_DATABASE
+import com.svoemesto.karaokeapp.*
 import com.svoemesto.karaokeapp.model.*
 import com.svoemesto.karaokeapp.services.APP_WORK_IN_CONTAINER
+import com.svoemesto.karaokeapp.textfiledictionary.TextFileDictionary
 import kotlinx.serialization.builtins.ListSerializer
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import org.springframework.core.io.FileSystemResource
+import org.springframework.core.io.Resource
+import org.springframework.http.HttpHeaders
+import org.springframework.http.ResponseEntity
 import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.stereotype.Controller
-import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.*
 import java.io.File
 import java.sql.ResultSet
@@ -21,6 +24,60 @@ import java.sql.Statement
 class ApisController(private val webSocket: SimpMessagingTemplate,
                      private val objectMapper: ObjectMapper
 ) {
+
+    @GetMapping("/song/{id}/filevoice")
+    fun getSongFileVocal(
+        @PathVariable id: Long
+    ): ResponseEntity<Resource> {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        val filename = File(settings?.vocalsNameFlac)
+        println("filevoice: ${settings?.vocalsNameFlac}");
+        val resource = FileSystemResource(filename)
+        if (resource.exists()) {
+            return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment") //; filename=\"${filename.name}\"")
+                .body(resource)
+        } else {
+            println("filevoice notFound");
+            return ResponseEntity.notFound().build()
+        }
+    }
+
+    @GetMapping("/song/{id}/fileminus")
+    fun getSongFileMusic(
+        @PathVariable id: Long
+    ): ResponseEntity<Resource> {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        val filename = File(settings?.newNoStemNameFlac)
+        println("fileminus: ${settings?.newNoStemNameFlac}");
+        val resource = FileSystemResource(filename)
+        if (resource.exists()) {
+            return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment") //; filename=\"${filename.name}\"")
+                .body(resource)
+        } else {
+            println("fileminus notFound");
+            return ResponseEntity.notFound().build()
+        }
+    }
+
+    @GetMapping("/song/{id}/filesong")
+    fun getSongFileSong(
+        @PathVariable id: Long
+    ): ResponseEntity<Resource> {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        val filename = File(settings?.fileAbsolutePath)
+        println("filesong: ${settings?.fileAbsolutePath}");
+        val resource = FileSystemResource(filename)
+        if (resource.exists()) {
+            return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment") //; filename=\"${filename.name}\"")
+                .body(resource)
+        } else {
+            println("filesong notFound");
+            return ResponseEntity.notFound().build()
+        }
+    }
 
     // Получение списка id песен, изменившихся с указанного момента
     @PostMapping("/songs/changed")
@@ -54,6 +111,54 @@ class ApisController(private val webSocket: SimpMessagingTemplate,
             }
         }
         return emptyList()
+    }
+
+    // Получение исходного текста для голоса
+    @PostMapping("/song/voicesourcetext")
+    @ResponseBody
+    fun getSongSourceText(@RequestParam id: Long, @RequestParam voiceId: Int): String {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        val text = settings?.let {
+            settings.getSourceText(voiceId)
+        } ?: ""
+        println("voicesourcetext: ${text}");
+        return text
+    }
+
+    // Получение слогов для голоса
+    @PostMapping("/song/voicesourcesyllables")
+    @ResponseBody
+    fun getSongSourceSyllables(@RequestParam id: Long, @RequestParam voiceId: Int): List<String> {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        val syllables = settings?.let {
+            settings.getSourceSyllables(voiceId)
+        } ?: emptyList()
+        println("voicesourcesyllables: ${syllables}");
+        return syllables
+    }
+
+    // Получение маркеров для голоса
+    @PostMapping("/song/voicesourcemarkers")
+    @ResponseBody
+    fun getSongSourceMarkers(@RequestParam id: Long, @RequestParam voiceId: Int): List<SourceMarker> {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        val markers = settings?.let {
+            settings.getSourceMarkers(voiceId)
+        } ?: emptyList()
+        println("voicesourcemarkers: ${markers}");
+        return markers
+    }
+
+    // Получение форматированного текста
+    @PostMapping("/song/textformatted")
+    @ResponseBody
+    fun getSongTextFormatted(@RequestParam id: Long): String {
+        println("getSongTextFormatted called")
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        val text = settings?.let {
+            settings.getTextFormatted()
+        } ?: ""
+        return text
     }
 
     // Получение текста заголовка для boosty
@@ -253,11 +358,57 @@ class ApisController(private val webSocket: SimpMessagingTemplate,
         return text
     }
 
+    // Получение списка авторов
+    @PostMapping("/songs/authors")
+    @ResponseBody
+    fun authors(): Map<String, Any> {
+        return mapOf(
+            "authors" to Settings.loadListAuthors(WORKING_DATABASE)
+        )
+    }
+
+    // Получение списка словарей
+    @PostMapping("/songs/dicts")
+    @ResponseBody
+    fun dicts(): Map<String, Any> {
+        return mapOf(
+            "dicts" to TEXT_FILE_DICTS.keys.toMutableList().sorted().toList()
+        )
+    }
+
     // Получение списка песен по списку id
     @PostMapping("/songs/ids")
     @ResponseBody
     fun apisSongsByIds(@RequestParam ids: List<Long>): List<SettingsDTO> {
-        return Settings.loadListFromDb(mapOf(Pair("ids", ids.joinToString(","))), WORKING_DATABASE).map { it.getDTO() }
+        return Settings.loadListFromDb(mapOf(Pair("ids", ids.joinToString(","))), WORKING_DATABASE).map { it.toDTO() }
+    }
+
+    @PostMapping("/publications")
+    @ResponseBody
+    fun publications(
+        @RequestParam(required = false) filterDateFrom: String?,
+        @RequestParam(required = false) filterDateTo: String?,
+        @RequestParam(required = false) filterCond: String?
+    ): Map<String, Any> {
+
+        val args: MutableMap<String, String> = mutableMapOf()
+        filterDateFrom?.let { if (filterDateFrom != "") args["publish_date_from"] = filterDateFrom }
+        filterDateTo?.let { if (filterDateTo != "") args["filter_date_to"] = filterDateTo }
+        filterCond?.let { if (filterCond != "") args["filter_cond"] = filterCond }
+
+        return mapOf(
+            "workInContainer" to APP_WORK_IN_CONTAINER,
+            "publications" to Publication.getPublicationList(args, WORKING_DATABASE).map { it.toDTO() }
+        )
+    }
+
+    @PostMapping("/unpublications")
+    @ResponseBody
+    fun unpublications(): Map<String, Any> {
+        return mapOf(
+            "workInContainer" to APP_WORK_IN_CONTAINER,
+            "publications" to Publication.getUnPublicationList(WORKING_DATABASE).map { it.map { it.toDTO() } }
+        )
     }
 
     // Получение списка песен
@@ -315,7 +466,7 @@ class ApisController(private val webSocket: SimpMessagingTemplate,
 
         return mapOf(
             "workInContainer" to APP_WORK_IN_CONTAINER,
-            "pages" to Settings.loadListFromDb(args, WORKING_DATABASE).map { it.getDTO() }.chunked(pageSize),
+            "pages" to Settings.loadListFromDb(args, WORKING_DATABASE).map { it.toDTO() }.chunked(pageSize),
             "authors" to Settings.loadListAuthors(WORKING_DATABASE),
             "albums" to Settings.loadListAlbums(WORKING_DATABASE)
         )
@@ -349,7 +500,7 @@ class ApisController(private val webSocket: SimpMessagingTemplate,
     @PostMapping("/song")
     @ResponseBody
     fun apisSong(@RequestParam id: String): Any? {
-        return Settings.loadFromDbById(id.toLong(), WORKING_DATABASE)?.getDTO()
+        return Settings.loadFromDbById(id.toLong(), WORKING_DATABASE)?.toDTO()
     }
 
     @PostMapping("/update")
@@ -427,6 +578,7 @@ class ApisController(private val webSocket: SimpMessagingTemplate,
     @PostMapping("/song/voices")
     @ResponseBody
     fun getSongVoices(@RequestParam id: Long): Map<String, Any> {
+        println("getSongVoices for song id = ${id}")
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
 
         settings?.let {
@@ -443,6 +595,28 @@ class ApisController(private val webSocket: SimpMessagingTemplate,
         }
 
         return emptyMap()
+    }
+
+    // Получаем картинку в BASE64 для альбома
+    @PostMapping("/song/picturealbum")
+    @ResponseBody
+    fun getPictureAlbum(@RequestParam id: Long): String {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        settings?.let {
+            return "data:image/gif;base64,${it.pictureAlbum?.full}" ?: ""
+        }
+        return ""
+    }
+
+    // Получаем картинку в BASE64 для автора
+    @PostMapping("/song/pictureauthor")
+    @ResponseBody
+    fun getPictureAuthor(@RequestParam id: Long): String {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        settings?.let {
+            return "data:image/gif;base64,${it.pictureAuthor?.full}" ?: ""
+        }
+        return ""
     }
 
     // Сохраняем маркеры для войса
@@ -478,6 +652,292 @@ class ApisController(private val webSocket: SimpMessagingTemplate,
             settings.updateMarkersFromSourceText(voice)
             true
         } ?: false
+    }
+
+    // Сохраняем исходный текст и маркеры для войса
+    @PostMapping("/song/savesourcetextmarkers")
+    @ResponseBody
+    fun saveSourceTextAndMarkers(
+        @RequestParam id: Long,
+        @RequestParam voice: Int,
+        @RequestParam sourceText: String,
+        @RequestParam sourceMarkers: String
+        ): Boolean {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        return settings?.let {
+            val markers = try {
+                Json.decodeFromString(ListSerializer(SourceMarker.serializer()), sourceMarkers)
+            } catch (e: Exception) {
+                println("Ошибка при парсинге маркеров.")
+                emptyList()
+            }
+            settings.setSourceMarkers(voice, Json.decodeFromString(ListSerializer(SourceMarker.serializer()), sourceMarkers))
+            val strText = settings.convertMarkersToSrt(voice)
+            try {
+                File("${settings.rootFolder}/${settings.fileName}.voice${voice+1}.srt").writeText(strText)
+            } catch (e: Exception) {
+                println("Ошибка при создании файла субтитров.")
+            }
+            settings.setSourceText(voice, sourceText)
+            true
+        } ?: false
+    }
+
+    // Создаём караоке
+    @PostMapping("/song/createkaraoke")
+    @ResponseBody
+    fun getSongCreateKaraoke(@RequestParam id: Long): Boolean {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        return settings?.let {
+            settings.createKaraoke()
+            if (settings.idStatus < 3) {
+                settings.fields[SettingField.ID_STATUS] = "3"
+                settings.saveToDb()
+            }
+            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, 0)
+            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, 1)
+            true
+        } ?: false
+    }
+
+    // Создаём караоке для всех
+    @PostMapping("/songs/createkaraokeall")
+    @ResponseBody
+    fun getSongsCreateKaraokeAll(@RequestParam songsIds: String): Boolean {
+        var result = false
+        songsIds.let {
+            val ids = songsIds.split(";").map { it }.filter { it != "" }.map { it.toLong() }
+            ids.forEach { id ->
+                val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+                settings?.let {
+                    settings.createKaraoke()
+                    KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, 10)
+                    KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, 10)
+                }
+                result = true
+            }
+        }
+        return result
+    }
+
+    // DEMUCS2 для песни
+    @PostMapping("/song/demucs2")
+    @ResponseBody
+    fun doProcessDemucs2(@RequestParam id: Long): Int {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        settings?.let {
+            return  KaraokeProcess.createProcess(settings, KaraokeProcessTypes.DEMUCS2, true, -1)
+        }
+        return 0
+    }
+
+    // DEMUCS2 для всех
+    @PostMapping("/songs/createdemucs2all")
+    @ResponseBody
+    fun getSongsCreateDemucs2All(@RequestParam songsIds: String): Boolean {
+        var result = false
+        songsIds.let {
+            val ids = songsIds.split(";").map { it }.filter { it != "" }.map { it.toLong() }
+            ids.forEach { id ->
+                val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+                settings?.let {
+                    KaraokeProcess.createProcess(settings, KaraokeProcessTypes.DEMUCS2, true, -1)
+                }
+                result = true
+            }
+        }
+        return result
+    }
+
+    // Удаляем песню
+    @PostMapping("/song/delete")
+    @ResponseBody
+    fun doDeleteSong(@RequestParam id: Long): Boolean {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        settings?.let {
+            it.deleteFromDb()
+        }
+        return true
+    }
+
+    // Создаём SYMLINKs для песни
+    @PostMapping("/song/symlink")
+    @ResponseBody
+    fun doSymlink(@RequestParam id: Long): Int {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        settings?.let {
+            it.doSymlink()
+        }
+        return 0
+    }
+
+    // Создаём SYMLINKs для всех
+    @PostMapping("/songs/createsymlinksall")
+    @ResponseBody
+    fun getSongsCreateSymlinksAll(@RequestParam songsIds: String): Boolean {
+        var result = false
+        songsIds.let {
+            val ids = songsIds.split(";").map { it }.filter { it != "" }.map { it.toLong() }
+            ids.forEach { id ->
+                val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+                settings?.let {
+                    it.doSymlink()
+                }
+                result = true
+            }
+        }
+        return result
+    }
+
+    // Ищем и возвращаем текст
+    @PostMapping("/song/searchsongtext")
+    @ResponseBody
+    fun getSearchSongText(@RequestParam id: Long): String {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        return  settings?.let {
+            searchSongText(settings)
+        } ?: ""
+    }
+
+    // Ищем тексты для всех
+    @PostMapping("/songs/searchsongtextall")
+    @ResponseBody
+    fun getSearchSongTextAll(@RequestParam songsIds: String): Boolean {
+        var result = false
+        songsIds.let {
+            val ids = songsIds.split(";").map { it }.filter { it != "" }.map { it.toLong() }
+            ids.forEach { id ->
+                val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+                settings?.let {
+                    if (settings.sourceText.isBlank()) {
+                        val text = searchSongText(settings)
+
+                        Thread.sleep(2000)
+
+                        if (text.isNotBlank()) {
+                            settings.sourceText = text
+                            settings.fields[SettingField.ID_STATUS] = "1"
+                            settings.saveToDb()
+                        }
+                    }
+                }
+                result = true
+            }
+        }
+        return result
+    }
+
+    @PostMapping("/song/setpublishdatetimetoauthor")
+    @ResponseBody
+    fun doSetPublishDateTimeToAuthor(@RequestParam id: Long): Boolean {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        settings?.let {
+            Settings.setPublishDateTimeToAuthor(settings)
+        }
+        return true
+    }
+
+    // Заменяем символы в тексте
+    @PostMapping("/replacesymbolsinsong")
+    @ResponseBody
+    fun getReplaceSymbolsInSong(@RequestParam(required = true) txt: String): String {
+        return replaceSymbolsInSong(txt)
+    }
+
+    // Действия со словарями
+    @PostMapping("/utils/tfd")
+    @ResponseBody
+    fun doTextFileDictionary(
+        @RequestParam(required = true) dictName: String,
+        @RequestParam(required = true) dictValue: String,
+        @RequestParam(required = true) dictAction: String
+    ): Boolean {
+        return TextFileDictionary.doAction(dictName, dictAction, listOf(dictValue))
+    }
+
+    // Обновляем RemoteDatabase
+    @PostMapping("/utils/updateremotedatabasefromlocaldatabase")
+    @ResponseBody
+    fun doUpdateRemoteDatabaseFromLocalDatabase(
+        @RequestParam(required = true) updateSettings: Boolean = true,
+        @RequestParam(required = true) updatePictures: Boolean = true
+    ): List<Int> {
+        val result = updateRemoteDatabaseFromLocalDatabase(updateSettings,updatePictures)
+
+        return listOf(result.first, result.second, result.third)
+    }
+
+    // Обновляем LocalDatabase
+    @PostMapping("/utils/updatelocaldatabasefromremotedatabase")
+    @ResponseBody
+    fun doUpdateLocalDatabaseFromRemoteDatabase(
+        @RequestParam(required = true) updateSettings: Boolean = true,
+        @RequestParam(required = true) updatePictures: Boolean = true
+    ): List<Int> {
+        val result = updateLocalDatabaseFromRemoteDatabase(updateSettings,updatePictures)
+
+        return listOf(result.first, result.second, result.third)
+    }
+
+    // Добавление файлов из папки
+    @PostMapping("/utils/createfromfolder")
+    @ResponseBody
+    fun doCreateFromFolder(
+        @RequestParam(required = true) folder: String): Int {
+        return Settings.createFromPath(folder, WORKING_DATABASE).size
+    }
+
+    // Создание картинок Dzen для папки
+    @PostMapping("/utils/createdzenpicturesforfolder")
+    @ResponseBody
+    fun doCreateDzenPicturesForFolder(
+        @RequestParam(required = true) folder: String): Boolean {
+        createDzenPicture(folder)
+        return true
+    }
+
+    @PostMapping("/utils/collectstore")
+    @ResponseBody
+    fun doCollectStore(): Any {
+        val result = collectDoneFilesToStoreFolderAndCreate720pForAllUncreated(WORKING_DATABASE)
+        return listOf(result.first, result.second)
+    }
+
+
+    // Обновить пустые BPM и KEY из фалов CSV
+    @PostMapping("/utils/updatebpmandkey")
+    @ResponseBody
+    fun doUpdateBpmAndKey(): Int {
+        return updateBpmAndKey(WORKING_DATABASE)
+    }
+
+    // Найти и пометить дубликаты песен автора
+    @PostMapping("/utils/markdublicates")
+    @ResponseBody
+    fun doMarkDublicates(
+        @RequestParam(required = true) author: String): Int {
+        return markDublicates(author, WORKING_DATABASE)
+    }
+
+    // Удалить дубликаты
+    @PostMapping("/utils/deldublicates")
+    @ResponseBody
+    fun doDelDublicates(): Int {
+        return delDublicates(WORKING_DATABASE)
+    }
+
+    // Очистить информацию о пре-дубликатах
+    @PostMapping("/utils/clearpredublicates")
+    @ResponseBody
+    fun doClearPreDublicates(): Int {
+        return clearPreDublicates(WORKING_DATABASE)
+    }
+
+    // Выполнить Custom Function
+    @PostMapping("/utils/customfunction")
+    @ResponseBody
+    fun doCustomFunction(): String {
+        return customFunction()
     }
 
 }

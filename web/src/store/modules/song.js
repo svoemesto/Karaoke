@@ -6,9 +6,12 @@ export default {
         currentPageIndex: 0,
         currentSongIndex: 0,
         currentSongId: 0,
+        previousSongId: undefined,
+        nextSongId: undefined,
         currentSong: undefined,
         pageSize: 45,
         snapshotSong: undefined,
+        publications: [],
         lastUpdate: Date.now(),
         fieldParams: [
             {
@@ -247,9 +250,22 @@ export default {
             }
         ]
     },
+    watch: {
+        currentSongId: {
+            async handler () {
+                await this.$store.dispatch('setPreviousAndNextSongId');
+            }
+        }
+    },
     getters: {
         getSongs(state) {
             return state.pages.length ? state.pages[state.currentPageIndex] : [];
+        },
+        getPublications(state) {
+            return state.publications;
+        },
+        getAllSongsIds(state) {
+            return state.pages.length ? state.pages.flatMap(page => page.flatMap(song => song.id)) : [];
         },
         getAuthors(state) {
             return state.authors.length ? state.authors : [];
@@ -276,6 +292,12 @@ export default {
         },
         getCurrentSongId(state) {
             return state.currentSongId;
+        },
+        getPreviousSongId(state) {
+            return state.previousSongId;
+        },
+        getNextSongId(state) {
+            return state.nextSongId;
         },
         getPageSize(state) {
             return state.pageSize;
@@ -326,6 +348,27 @@ export default {
                 }
             }
             return result.length > 0
+        },
+        getReplacedSymbolsInText: () => async (txt) => {
+            return await promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/apis/replacesymbolsinsong",
+                params: { txt: txt }
+            });
+        },
+        async getSearchSongText(state) {
+            return await promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/apis/searchsongtext",
+                params: { id: state.currentSongId }
+            });
+        },
+        doTfd: () => async (params) =>  {
+            return await promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/apis/utils/tfd",
+                params: params
+            });
         },
         async getVoices(state) {
             return await promisedXMLHttpRequest({
@@ -432,6 +475,40 @@ export default {
                 params: { id: state.currentSongId }
             });
         },
+        getSourceText: (state) => async (voiceId) => {
+            return await promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/apis/song/voicesourcetext",
+                params: { id: state.currentSongId, voiceId: voiceId }
+            });
+        },
+        getSourceSyllables: (state) => async (voiceId) => {
+            return JSON.parse(await promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/apis/song/voicesourcesyllables",
+                params: { id: state.currentSongId, voiceId: voiceId }
+            }));
+        },
+        getSourceMarkers: (state) => async (voiceId) => {
+            let markers = JSON.parse(await promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/apis/song/voicesourcemarkers",
+                params: { id: state.currentSongId, voiceId: voiceId }
+            }));
+            markers.sort(function (a,b) {
+                if (a.time > b.time) return 1;
+                if (a.time < b.time) return -1;
+                return 0;
+            });
+            return markers;
+        },
+        async getTextFormatted(state) {
+            return await promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/apis/song/textformatted",
+                params: { id: state.currentSongId }
+            });
+        },
         // TODO перенести в actions
         async playKaraoke(state) {
             return await promisedXMLHttpRequest({
@@ -467,6 +544,16 @@ export default {
             let params = { ids: ids };
             let request = { method: 'POST', url: "/apis/songs/ids", params: params };
             return await promisedXMLHttpRequest(request);
+        },
+        async authors() {
+            let request = { method: 'POST', url: "/apis/songs/authors"};
+            let result = JSON.parse(await promisedXMLHttpRequest(request)).authors;
+            return result;
+        },
+        async dicst() {
+            let request = { method: 'POST', url: "/apis/songs/dicts"};
+            let result = JSON.parse(await promisedXMLHttpRequest(request)).dicts;
+            return result;
         }
     },
     mutations: {
@@ -482,6 +569,9 @@ export default {
             state.currentSongIndex = state.pages && state.pages.length && state.pages[0].length ? 0 : undefined;
             state.currentSongId = !state.currentSong ? 0 : state.currentSong.id;
             state.snapshotSong = !state.currentSong ? undefined : Object.assign({}, state.currentSong)
+        },
+        updatePublications(state, result) {
+            state.publications = result.publications;
         },
         updateSong(state, songFromRest) {
             if (songFromRest) {
@@ -516,7 +606,6 @@ export default {
           state.lastUpdate = lastUpdate;
         },
         setCurrentSongId(state, currId) {
-
             let songWithIndexesFiltered = state.pages.map(function (page, pageIndex) {
                 return page.map(function (song, songIndex) {
                     return { song: song, songIndex: songIndex, songId: song.id, pageIndex: pageIndex }
@@ -526,11 +615,37 @@ export default {
             let songWithIndexes = songWithIndexesFiltered.length ? songWithIndexesFiltered[0] : undefined;
             if (songWithIndexes) {
                 state.currentSong = songWithIndexes.song;
-                state.currentSongId = songWithIndexes.song.id;
                 state.currentSongIndex = songWithIndexes.songIndex;
                 state.currentPageIndex = songWithIndexes.pageIndex;
+                state.currentSongId = songWithIndexes.song.id;
                 state.snapshotSong = Object.assign({}, state.currentSong)
             }
+        },
+        async deleteCurrentSong(state) {
+            let previousSongId = state.previousSongId;
+            let nextSongId = state.nextSongId;
+            let params = { id: state.currentSongId };
+            let request = { method: 'POST', url: "/apis/song/delete", params: params };
+            state.pages[state.currentPageIndex].splice(state.currentSongIndex, 1);
+            await promisedXMLHttpRequest(request);
+
+            if (previousSongId) {
+                await state.commit('setCurrentSongId', previousSongId)
+            } else {
+                await state.commit('setCurrentSongId', nextSongId)
+            }
+            if (state.currentSongId) {
+                let params = { id: state.currentSongId };
+                let request = { method: 'POST', url: "/apis/song/setpublishdatetimetoauthor", params: params };
+                promisedXMLHttpRequest(request).then(r => console.log('setDateTimeAuthor result: ', r));
+            }
+
+        },
+        setPreviousSongId(state, previousSongId) {
+            state.previousSongId = previousSongId
+        },
+        setNextSongId(state, nextSongId) {
+            state.nextSongId = nextSongId
         },
         setCurrentPageIndex(state, pageNum) {
             if (state.pages.length > pageNum) {
@@ -585,22 +700,166 @@ export default {
         }
     },
     actions: {
-        async saveSourceMarkers(ctx, payload) {
+        setPreviousAndNextSongId(ctx) {
+            let previousSongId = undefined;
+            let nextSongId = undefined;
+            let currentSongIndex = ctx.state.currentSongIndex;
+            let currentPageIndex = ctx.state.currentPageIndex;
+            let currentPageLength = ctx.state.pages[currentPageIndex].length;
+            if (currentSongIndex > 0) {
+                previousSongId = ctx.state.pages[currentPageIndex][currentSongIndex-1].id;
+            } else {
+                if (currentPageIndex > 0) {
+                    previousSongId = ctx.state.pages[currentPageIndex-1][ctx.state.pages[currentPageIndex-1].length-1].id;
+                }
+            }
+            if (currentSongIndex < currentPageLength-1) {
+                nextSongId = ctx.state.pages[currentPageIndex][currentSongIndex+1].id;
+            } else {
+                if (currentPageIndex < ctx.state.pages.length-1) {
+                    nextSongId = ctx.state.pages[currentPageIndex+1][ctx.state.pages[currentPageIndex+1][0]].id;
+                }
+            }
+            this.$store.commit('setPreviousSongId', previousSongId);
+            this.$store.commit('setNextSongId', nextSongId);
+        },
+        getTextFormattedPromise: (ctx) => {
+            return promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/apis/song/textformatted",
+                params: { id: ctx.state.currentSongId }
+            });
+        },
+        getAlbumPictureBase64Promise(ctx) {
+            return promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/apis/song/picturealbum",
+                params: { id: ctx.state.currentSongId }
+            });
+        },
+        getAuthorPictureBase64Promise(ctx) {
+            return promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/apis/song/pictureauthor",
+                params: { id: ctx.state.currentSongId }
+            });
+        },
+        updateRemoteSettingsPromise() {
+            return promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/apis/utils/updateremotedatabasefromlocaldatabase",
+                params: { updateSettings: true, updatePictures: false }
+            });
+        },
+        updateRemotePicturesPromise() {
+            return promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/apis/utils/updateremotedatabasefromlocaldatabase",
+                params: { updateSettings: false, updatePictures: true }
+            });
+        },
+        updateLocalSettingsPromise() {
+            return promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/apis/utils/updatelocaldatabasefromremotedatabase",
+                params: { updateSettings: true, updatePictures: false }
+            });
+        },
+        updateLocalPicturesPromise() {
+            return promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/apis/utils/updatelocaldatabasefromremotedatabase",
+                params: { updateSettings: false, updatePictures: true }
+            });
+        },
+        searchTextForAll(ctx) {
+            let params = { songsIds: ctx.getters.getAllSongsIds.join(';') };
+            let request = { method: 'POST', url: "/apis/songs/searchsongtextall", params: params };
+            promisedXMLHttpRequest(request).then(r => console.log('searchTextForAll result: ', r));
+        },
+        createKaraokeForAll(ctx) {
+            let params = { songsIds: ctx.getters.getAllSongsIds.join(';') };
+            let request = { method: 'POST', url: "/apis/songs/createkaraokeall", params: params };
+            promisedXMLHttpRequest(request).then(r => console.log('createKaraokeForAll result: ', r));
+        },
+        createDemucs2ForAll(ctx) {
+            let params = { songsIds: ctx.getters.getAllSongsIds.join(';') };
+            let request = { method: 'POST', url: "/apis/songs/createdemucs2all", params: params };
+            promisedXMLHttpRequest(request).then(r => console.log('createDemucs2ForAll result: ', r));
+        },
+        createSymlinksForAll(ctx) {
+            let params = { songsIds: ctx.getters.getAllSongsIds.join(';') };
+            let request = { method: 'POST', url: "/apis/songs/createsymlinksall", params: params };
+            promisedXMLHttpRequest(request).then(r => console.log('createSymlinksForAll result: ', r));
+        },
+        setDateTimeAuthor(ctx) {
+            let params = { id: ctx.state.currentSongId };
+            let request = { method: 'POST', url: "/apis/song/setpublishdatetimetoauthor", params: params };
+            promisedXMLHttpRequest(request).then(r => console.log('setDateTimeAuthor result: ', r));
+        },
+        // async deleteSong(ctx) {
+        //     let params = { id: ctx.state.currentSongId };
+        //     let request = { method: 'POST', url: "/apis/song/delete", params: params };
+        //     ctx.pages[ctx.currentPageIndex].splice(ctx.currentSongIndex, 1);
+        //     return await promisedXMLHttpRequest(request);
+        // },
+        createSymlinksPromise(ctx) {
+            let params = { id: ctx.state.currentSongId };
+            let request = { method: 'POST', url: "/apis/song/symlink", params: params };
+            return promisedXMLHttpRequest(request);
+        },
+        createDemucs2Promise(ctx) {
+            let params = { id: ctx.state.currentSongId };
+            let request = { method: 'POST', url: "/apis/song/demucs2", params: params };
+            return promisedXMLHttpRequest(request);
+        },
+        createKaraokePromise(ctx) {
+            let params = { id: ctx.state.currentSongId };
+            let request = { method: 'POST', url: "/apis/song/createkaraoke", params: params };
+            return promisedXMLHttpRequest(request);
+        },
+        createFromFolderPromise(ctx, payload) {
+            let params = { folder: payload.folder };
+            let request = { method: 'POST', url: "/apis/utils/createfromfolder", params: params };
+            return promisedXMLHttpRequest(request);
+        },
+        createDzenPicturesForFolderPromise(ctx, payload) {
+            let params = { folder: payload.folder };
+            let request = { method: 'POST', url: "/apis/utils/createdzenpicturesforfolder", params: params };
+            return promisedXMLHttpRequest(request);
+        },
+        collectStorePromise() {
+            let request = { method: 'POST', url: "/apis/utils/collectstore" };
+            return promisedXMLHttpRequest(request);
+        },
+        updateBpmAndKeyPromise() {
+            let request = { method: 'POST', url: "/apis/utils/updatebpmandkey" };
+            return promisedXMLHttpRequest(request);
+        },
+        markDublicatesPromise(ctx, payload) {
+            let request = { method: 'POST', url: "/apis/utils/markdublicates", params: { author: payload.author } };
+            return promisedXMLHttpRequest(request);
+        },
+        deleteDublicatesPromise() {
+            let request = { method: 'POST', url: "/apis/utils/deldublicates" };
+            return promisedXMLHttpRequest(request);
+        },
+        clearPreDublicatesPromise() {
+            let request = { method: 'POST', url: "/apis/utils/clearpredublicates" };
+            return promisedXMLHttpRequest(request);
+        },
+        customFunctionPromise() {
+            let request = { method: 'POST', url: "/apis/utils/customfunction" };
+            return promisedXMLHttpRequest(request);
+        },
+        async saveSourceTextAndMarkers(ctx, payload) {
             let params = {
-                id: payload.id,
+                id: ctx.state.currentSongId,
                 voice: payload.voice,
+                sourceText: payload.sourceText,
                 sourceMarkers: payload.sourceMarkers
             };
-            let request = { method: 'POST', url: "/apis/song/savesourcemarkers", params: params };
-            return await promisedXMLHttpRequest(request);
-        },
-        async saveSourceText(ctx, payload) {
-            let params = {
-                id: payload.id,
-                voice: payload.voice,
-                sourceText: payload.sourceText
-            };
-            let request = { method: 'POST', url: "/apis/song/savesourcetext", params: params };
+            let request = { method: 'POST', url: "/apis/song/savesourcetextmarkers", params: params };
             return await promisedXMLHttpRequest(request);
         },
         updateSongsByIds(ctx, payload) {
@@ -628,7 +887,7 @@ export default {
             let request = { method: 'POST', url: "/apis/songs", params: params };
             promisedXMLHttpRequest(request).then(data => {
                 let result = JSON.parse(data);
-                console.log('result: ', result);
+                console.log('SongsAndDictionaries: ', result);
                 ctx.commit('updateSongsAndDictionaries', result)
             }).catch(error => {
                 console.log(error);
@@ -640,8 +899,18 @@ export default {
             let request = { method: 'POST', url: "/apis/song", params: params };
             promisedXMLHttpRequest(request).then(data => {
                 let result = JSON.parse(data);
-                console.log('result: ', result);
+                console.log('Song: ', result);
                 ctx.commit('updateSong', result)
+            }).catch(error => {
+                console.log(error);
+            });
+        },
+        async loadPublications(ctx, params) {
+            let request = { method: 'POST', url: "/apis/publications", params: params };
+            promisedXMLHttpRequest(request).then(data => {
+                let result = JSON.parse(data);
+                console.log('Publications: ', result);
+                ctx.commit('updatePublications', result)
             }).catch(error => {
                 console.log(error);
             });

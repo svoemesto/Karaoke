@@ -58,7 +58,7 @@ export default {
       return this.currId === this.song.id;
     },
     styleRoot() {
-      return {
+      let result = {
         margin: 0,
         alignContent: 'center',
         backgroundColor: this.disabled && !this.isCurrent ? 'lightgray' : !this.color ? this.song.color : this.color,
@@ -71,6 +71,7 @@ export default {
         borderWidth: `${ this.isCurrent ? '3px' : 'thin' } ${ this.isCurrent && this.position === 'right' ? '3px' : 'thin' } ${ this.isCurrent ? '2px' : 'thin' } ${ this.isCurrent && this.position === 'left' ? '3px' : 'thin' }`,
         borderColor: `${ this.isCurrent ? 'red' : 'black' } ${ this.isCurrent && this.position === 'right' ? 'red' : 'black' } ${ this.isCurrent ? 'red' : 'black' } ${ this.isCurrent && this.position === 'left' ? 'red' : 'black' }`
       }
+      return result
     },
     styleVal() {
       return {

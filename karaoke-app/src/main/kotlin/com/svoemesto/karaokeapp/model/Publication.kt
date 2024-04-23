@@ -7,6 +7,25 @@ import java.io.Serializable
 import java.text.SimpleDateFormat
 import java.util.*
 
+data class PublicationDTO(
+    val id: Int?,
+    val publishDate: String?,
+    val publish10: SettingsDTO?,
+    val publish11: SettingsDTO?,
+    val publish12: SettingsDTO?,
+    val publish13: SettingsDTO?,
+    val publish14: SettingsDTO?,
+    val publish15: SettingsDTO?,
+    val publish16: SettingsDTO?,
+    val publish17: SettingsDTO?,
+    val publish18: SettingsDTO?,
+    val publish19: SettingsDTO?,
+    val publish20: SettingsDTO?,
+    val publish21: SettingsDTO?,
+    val publish22: SettingsDTO?,
+    val publish23: SettingsDTO?
+)
+
 class Publication(val database: KaraokeConnection = WORKING_DATABASE) : Serializable, Comparable<Publication> {
     var id: Int? = null
     var publishDate: String? = null
@@ -138,36 +157,36 @@ class Publication(val database: KaraokeConnection = WORKING_DATABASE) : Serializ
 
 
 
-    val publish10colorYoutubeLyrics: String get() = if (publish10 != null) publish10!!.processColorYoutubeLyrics else "#A9A9A9"
-    val publish11colorYoutubeLyrics: String get() = if (publish11 != null) publish11!!.processColorYoutubeLyrics else "#A9A9A9"
-    val publish12colorYoutubeLyrics: String get() = if (publish12 != null) publish12!!.processColorYoutubeLyrics else "#A9A9A9"
-    val publish13colorYoutubeLyrics: String get() = if (publish13 != null) publish13!!.processColorYoutubeLyrics else "#A9A9A9"
-    val publish14colorYoutubeLyrics: String get() = if (publish14 != null) publish14!!.processColorYoutubeLyrics else "#A9A9A9"
-    val publish15colorYoutubeLyrics: String get() = if (publish15 != null) publish15!!.processColorYoutubeLyrics else "#A9A9A9"
-    val publish16colorYoutubeLyrics: String get() = if (publish16 != null) publish16!!.processColorYoutubeLyrics else "#A9A9A9"
-    val publish17colorYoutubeLyrics: String get() = if (publish17 != null) publish17!!.processColorYoutubeLyrics else "#A9A9A9"
-    val publish18colorYoutubeLyrics: String get() = if (publish18 != null) publish18!!.processColorYoutubeLyrics else "#A9A9A9"
-    val publish19colorYoutubeLyrics: String get() = if (publish19 != null) publish19!!.processColorYoutubeLyrics else "#A9A9A9"
-    val publish20colorYoutubeLyrics: String get() = if (publish20 != null) publish20!!.processColorYoutubeLyrics else "#A9A9A9"
-    val publish21colorYoutubeLyrics: String get() = if (publish21 != null) publish21!!.processColorYoutubeLyrics else "#A9A9A9"
-    val publish22colorYoutubeLyrics: String get() = if (publish22 != null) publish22!!.processColorYoutubeLyrics else "#A9A9A9"
-    val publish23colorYoutubeLyrics: String get() = if (publish23 != null) publish23!!.processColorYoutubeLyrics else "#A9A9A9"
+    val publish10colorYoutubeLyrics: String get() = if (publish10 != null) publish10!!.processColorDzenLyrics else "#A9A9A9"
+    val publish11colorYoutubeLyrics: String get() = if (publish11 != null) publish11!!.processColorDzenLyrics else "#A9A9A9"
+    val publish12colorYoutubeLyrics: String get() = if (publish12 != null) publish12!!.processColorDzenLyrics else "#A9A9A9"
+    val publish13colorYoutubeLyrics: String get() = if (publish13 != null) publish13!!.processColorDzenLyrics else "#A9A9A9"
+    val publish14colorYoutubeLyrics: String get() = if (publish14 != null) publish14!!.processColorDzenLyrics else "#A9A9A9"
+    val publish15colorYoutubeLyrics: String get() = if (publish15 != null) publish15!!.processColorDzenLyrics else "#A9A9A9"
+    val publish16colorYoutubeLyrics: String get() = if (publish16 != null) publish16!!.processColorDzenLyrics else "#A9A9A9"
+    val publish17colorYoutubeLyrics: String get() = if (publish17 != null) publish17!!.processColorDzenLyrics else "#A9A9A9"
+    val publish18colorYoutubeLyrics: String get() = if (publish18 != null) publish18!!.processColorDzenLyrics else "#A9A9A9"
+    val publish19colorYoutubeLyrics: String get() = if (publish19 != null) publish19!!.processColorDzenLyrics else "#A9A9A9"
+    val publish20colorYoutubeLyrics: String get() = if (publish20 != null) publish20!!.processColorDzenLyrics else "#A9A9A9"
+    val publish21colorYoutubeLyrics: String get() = if (publish21 != null) publish21!!.processColorDzenLyrics else "#A9A9A9"
+    val publish22colorYoutubeLyrics: String get() = if (publish22 != null) publish22!!.processColorDzenLyrics else "#A9A9A9"
+    val publish23colorYoutubeLyrics: String get() = if (publish23 != null) publish23!!.processColorDzenLyrics else "#A9A9A9"
 
 
-    val publish10colorYoutubeKaraoke: String get() = if (publish10 != null) publish10!!.processColorYoutubeKaraoke else "#A9A9A9"
-    val publish11colorYoutubeKaraoke: String get() = if (publish11 != null) publish11!!.processColorYoutubeKaraoke else "#A9A9A9"
-    val publish12colorYoutubeKaraoke: String get() = if (publish12 != null) publish12!!.processColorYoutubeKaraoke else "#A9A9A9"
-    val publish13colorYoutubeKaraoke: String get() = if (publish13 != null) publish13!!.processColorYoutubeKaraoke else "#A9A9A9"
-    val publish14colorYoutubeKaraoke: String get() = if (publish14 != null) publish14!!.processColorYoutubeKaraoke else "#A9A9A9"
-    val publish15colorYoutubeKaraoke: String get() = if (publish15 != null) publish15!!.processColorYoutubeKaraoke else "#A9A9A9"
-    val publish16colorYoutubeKaraoke: String get() = if (publish16 != null) publish16!!.processColorYoutubeKaraoke else "#A9A9A9"
-    val publish17colorYoutubeKaraoke: String get() = if (publish17 != null) publish17!!.processColorYoutubeKaraoke else "#A9A9A9"
-    val publish18colorYoutubeKaraoke: String get() = if (publish18 != null) publish18!!.processColorYoutubeKaraoke else "#A9A9A9"
-    val publish19colorYoutubeKaraoke: String get() = if (publish19 != null) publish19!!.processColorYoutubeKaraoke else "#A9A9A9"
-    val publish20colorYoutubeKaraoke: String get() = if (publish20 != null) publish20!!.processColorYoutubeKaraoke else "#A9A9A9"
-    val publish21colorYoutubeKaraoke: String get() = if (publish21 != null) publish21!!.processColorYoutubeKaraoke else "#A9A9A9"
-    val publish22colorYoutubeKaraoke: String get() = if (publish22 != null) publish22!!.processColorYoutubeKaraoke else "#A9A9A9"
-    val publish23colorYoutubeKaraoke: String get() = if (publish23 != null) publish23!!.processColorYoutubeKaraoke else "#A9A9A9"
+    val publish10colorYoutubeKaraoke: String get() = if (publish10 != null) publish10!!.processColorDzenKaraoke else "#A9A9A9"
+    val publish11colorYoutubeKaraoke: String get() = if (publish11 != null) publish11!!.processColorDzenKaraoke else "#A9A9A9"
+    val publish12colorYoutubeKaraoke: String get() = if (publish12 != null) publish12!!.processColorDzenKaraoke else "#A9A9A9"
+    val publish13colorYoutubeKaraoke: String get() = if (publish13 != null) publish13!!.processColorDzenKaraoke else "#A9A9A9"
+    val publish14colorYoutubeKaraoke: String get() = if (publish14 != null) publish14!!.processColorDzenKaraoke else "#A9A9A9"
+    val publish15colorYoutubeKaraoke: String get() = if (publish15 != null) publish15!!.processColorDzenKaraoke else "#A9A9A9"
+    val publish16colorYoutubeKaraoke: String get() = if (publish16 != null) publish16!!.processColorDzenKaraoke else "#A9A9A9"
+    val publish17colorYoutubeKaraoke: String get() = if (publish17 != null) publish17!!.processColorDzenKaraoke else "#A9A9A9"
+    val publish18colorYoutubeKaraoke: String get() = if (publish18 != null) publish18!!.processColorDzenKaraoke else "#A9A9A9"
+    val publish19colorYoutubeKaraoke: String get() = if (publish19 != null) publish19!!.processColorDzenKaraoke else "#A9A9A9"
+    val publish20colorYoutubeKaraoke: String get() = if (publish20 != null) publish20!!.processColorDzenKaraoke else "#A9A9A9"
+    val publish21colorYoutubeKaraoke: String get() = if (publish21 != null) publish21!!.processColorDzenKaraoke else "#A9A9A9"
+    val publish22colorYoutubeKaraoke: String get() = if (publish22 != null) publish22!!.processColorDzenKaraoke else "#A9A9A9"
+    val publish23colorYoutubeKaraoke: String get() = if (publish23 != null) publish23!!.processColorDzenKaraoke else "#A9A9A9"
 
 
 
@@ -258,6 +277,27 @@ class Publication(val database: KaraokeConnection = WORKING_DATABASE) : Serializ
         if (publish22 != null) text += "22:00 ${publish22!!.author} - ${publish22!!.songName}\n"
         if (publish23 != null) text += "23:00 ${publish23!!.author} - ${publish23!!.songName}\n"
         return text
+    }
+
+    fun toDTO(): PublicationDTO {
+        return PublicationDTO(
+            id = id,
+            publishDate = publishDate,
+            publish10 = publish10?.toDTO(),
+            publish11 = publish11?.toDTO(),
+            publish12 = publish12?.toDTO(),
+            publish13 = publish13?.toDTO(),
+            publish14 = publish14?.toDTO(),
+            publish15 = publish15?.toDTO(),
+            publish16 = publish16?.toDTO(),
+            publish17 = publish17?.toDTO(),
+            publish18 = publish18?.toDTO(),
+            publish19 = publish19?.toDTO(),
+            publish20 = publish20?.toDTO(),
+            publish21 = publish21?.toDTO(),
+            publish22 = publish22?.toDTO(),
+            publish23 = publish23?.toDTO()
+        )
     }
 
     companion object {

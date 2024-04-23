@@ -69,6 +69,9 @@ new Vue({
     loadSongs(params) {
       return this.$store.dispatch('loadSongsAndDictionaries', params)
     },
+    loadPublications(params) {
+      return this.$store.dispatch('loadPublications', params)
+    },
     async checkUpdateSongs() {
       // Получаем с бэка список айдишников песен, измененных с момента последней проверки
       let ids = JSON.parse(await this.$store.getters.getSongsIdsForUpdate);
@@ -95,6 +98,7 @@ new Vue({
   async mounted () {
     // this.connect();
     await this.loadSongs({ filter_author: 'Ундервуд'});
+    await this.loadPublications({ filterCond: 'fromnotpublish'});
     setInterval(this.checkUpdateSongs, 10_000);
   }
 }).$mount('#app')

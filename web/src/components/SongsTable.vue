@@ -19,7 +19,7 @@ export default {
   components: {
     SongTableBody,
     SongTableHead,
-    SongTableFooter,
+    SongTableFooter
   },
   computed: {
     songs() {
@@ -41,6 +41,8 @@ export default {
         backgroundColor: 'lightblue'
       }
     }
+  },
+  methods: {
   }
 }
 </script>

@@ -69,6 +69,9 @@ fun String.containThisSymbols(symbolString: String): Boolean {
     }
     return false
 }
+fun String.haveVowel(): Boolean {
+    return this.containThisSymbols(LETTERS_VOWEL)
+}
 
 fun String.containOnlyThisSymbols(symbolString: String): Boolean {
     return this.deleteThisSymbols(symbolString).trim() == ""

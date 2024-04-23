@@ -563,7 +563,7 @@ fun create720pForAllUncreated(database: KaraokeConnection) {
 }
 
 
-fun copyIfNeed(pathFrom: String, pathTo: String, folderTo: String, log: String = ""): Boolean {
+fun copyIfNeed(pathFrom: String, pathTo: String, folderTo: String, log: String = ""): Int {
     val fileFrom = File(pathFrom)
     val fileTo = File(pathTo)
     if (fileFrom.exists()) {
@@ -571,20 +571,22 @@ fun copyIfNeed(pathFrom: String, pathTo: String, folderTo: String, log: String =
             if (!File(folderTo).exists()) Files.createDirectories(Path(folderTo))
             if (log != "") println(log)
             Files.copy(Path(pathFrom), Path(pathTo), StandardCopyOption.REPLACE_EXISTING)
-            return true
+            return 1
         }
     }
-    return false
+    return 0
 }
 
-fun collectDoneFilesToStoreFolderAndCreate720pForAllUncreated(database: KaraokeConnection) {
+fun collectDoneFilesToStoreFolderAndCreate720pForAllUncreated(database: KaraokeConnection): Pair<Int, Int> {
     println("Копирование в хранилище и создание заданий на кодирование в 720р")
     val settingsList = Settings.loadListFromDb(database = database)
+    var countCopy = 0;
+    var countCode = 0;
     settingsList.forEach { settings ->
 
-        copyIfNeed(settings.pathToFileLyrics, settings.pathToStoreFileLyrics, settings.pathToStoreFolderLyrics, "Копируем в хранилище файл: ${settings.nameFileLyrics}")
-        copyIfNeed(settings.pathToFileKaraoke, settings.pathToStoreFileKaraoke, settings.pathToStoreFolderKaraoke, "Копируем в хранилище файл: ${settings.nameFileKaraoke}")
-        copyIfNeed(settings.pathToFileChords, settings.pathToStoreFileChords, settings.pathToStoreFolderChords, "Копируем в хранилище файл: ${settings.nameFileChords}")
+        countCopy += copyIfNeed(settings.pathToFileLyrics, settings.pathToStoreFileLyrics, settings.pathToStoreFolderLyrics, "Копируем в хранилище файл: ${settings.nameFileLyrics}")
+        countCopy += copyIfNeed(settings.pathToFileKaraoke, settings.pathToStoreFileKaraoke, settings.pathToStoreFolderKaraoke, "Копируем в хранилище файл: ${settings.nameFileKaraoke}")
+        countCopy += copyIfNeed(settings.pathToFileChords, settings.pathToStoreFileChords, settings.pathToStoreFolderChords, "Копируем в хранилище файл: ${settings.nameFileChords}")
 
         val sourceFileLyrics = File(settings.pathToFileLyrics)
         val destinationFileLyrics720 = File(settings.pathToFile720Lyrics)
@@ -605,6 +607,7 @@ fun collectDoneFilesToStoreFolderAndCreate720pForAllUncreated(database: KaraokeC
         if (needCreateLyrics720) {
             println("Создаём задание на кодирование в 720р для файла: ${settings.nameFileLyrics}")
             KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_LYR, true, 1)
+            countCode++
         }
 
 
@@ -627,9 +630,11 @@ fun collectDoneFilesToStoreFolderAndCreate720pForAllUncreated(database: KaraokeC
         if (needCreateKaraoke720) {
             println("Создаём задание на кодирование в 720р для файла: ${settings.nameFileKaraoke}")
             KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_KAR, true, 1)
+            countCode++
         }
 
     }
+    return Pair(countCopy, countCode)
 }
 
 class ResourceReader {
@@ -656,16 +661,14 @@ fun replaceSymbolsInSong(sourceText: String): String {
 
     result = result.replaceQuotes()
 
+    result = result.replace("_"," ")
     result = result.replace(",",", ")
     result = result.replace(",  ",", ")
     result = result.replace("--","-")
     result = result.replace("—","-")
     result = result.replace("–","-")
     result = result.replace("−","-")
-    result = result.replace(" - ","_- ")
-    result = result.replace(" -\n","_-\n")
-
-
+//    result = result.replace(" -\n","_-\n")
 
     return result
 }
@@ -2936,126 +2939,164 @@ fun replaceVowelOrConsonantLetters(str: String, isVowel: Boolean = true, replSym
     return result
 }
 
-class Ribbon(private val input: String) {
-    private var position = -1
-    private val length: Int
-    private var flag = -1
-    private var startSyllableIndex = 0
-    private var endSyllableIndex = 0
+fun getSyllables(text: String): List<String> {
+    val result: MutableList<String> = mutableListOf();
+    val regexWords = """\S+""".toRegex(setOf(RegexOption.IGNORE_CASE))
+    val words = regexWords.find(text)?.groupValues ?: emptyList()
 
-    init {
-        length = input.length
-    }
+    val regexSyllables = """[ЙЦКНГШЩЗХЪФВПРЛДЖЧСМТЬБQWRTYPSDFGHJKLZXCVBNM-]*[ЁУЕЫАОЭЯИЮEUIOAїієѣ][ЙЦКНГШЩЗХЪФВПРЛДЖЧСМТЬБQWRTYPSDFGHJKLZXCVBNM-]*?(?=[ЦКНГШЩЗХФВПРЛДЖЧСМТБQWRTYPSDFGHJKLZXCVBNM-]?[ЁУЕЫАОЭЯИЮEUIOAїієѣ]|[Й|Y][АИУЕОEUIOAїієѣ])""".toRegex(setOf(RegexOption.IGNORE_CASE))
 
-    fun setEndSyllableIndex() {
-        endSyllableIndex = position
-    }
-
-    fun extractSyllable(): String {
-        val result = input.substring(startSyllableIndex, endSyllableIndex + 1)
-        startSyllableIndex = endSyllableIndex + 1
-        flag = position
-        endSyllableIndex = 0
-        return result
-    }
-
-    fun readCurrentPosition(): Char {
-        check(!(position < 0 || position > length - 1))
-        return input[position]
-    }
-
-    fun setFlag() {
-        flag = position
-    }
-
-    fun rewindToFlag() {
-        if (flag >= 0) {
-            position = flag
-        }
-    }
-
-    fun moveHeadForward(): Boolean {
-        return if (position + 1 < length) {
-            position++
-            true
+    words.forEach { word ->
+        val syllables = regexSyllables.replace(word) { m -> "${m.value} " }.split(" ")
+        if (syllables.isEmpty()) {
+            result.add("${word}_")
         } else {
-            false
-        }
-    }
-}
-
-class MainRibbon {
-    val vowels = "аеёиоуыюяэАЕЁИОУЫЮЯЭeuioayYEUIOAїієѣ"
-    val nonPairConsonant = "лйрнмЛЙРНМ.,:-"
-    fun syllables(inputString: String?, delimiter: String = "|"): List<String> {
-        if (inputString == null) return emptyList()
-        val result: MutableList<String> = ArrayList()
-        val inputList = inputString.split(delimiter)
-//        val inputList = listOf(inputString)
-        inputList.forEach { input ->
-//            if (!input.containThisSymbols(vowels)) {
-//                result.add(input)
-//            } else {
-                val ribbon = Ribbon(input)
-                while (ribbon.moveHeadForward()) {
-                    ribbon.setFlag()
-                    if (checkVowel(ribbon.readCurrentPosition())) {
-                        if (ribbon.moveHeadForward() && ribbon.moveHeadForward()) {
-                            if (checkVowel(ribbon.readCurrentPosition())) {
-                                ribbon.rewindToFlag()
-                                ribbon.setEndSyllableIndex()
-                                result.add(ribbon.extractSyllable())
-                                continue
-                            }
-                        }
-                        ribbon.rewindToFlag()
-                        if (ribbon.moveHeadForward() && checkSpecialConsonant(ribbon.readCurrentPosition())) {
-                            ribbon.setEndSyllableIndex()
-                            result.add(ribbon.extractSyllable())
-                            continue
-                        }
-                        ribbon.rewindToFlag()
-                        if (hasMoreVowels(ribbon)) {
-                            ribbon.rewindToFlag()
-                            ribbon.setEndSyllableIndex()
-                            result.add(ribbon.extractSyllable())
-                            continue
-                        } else {
-                            while (ribbon.moveHeadForward());
-                            ribbon.setEndSyllableIndex()
-                            result.add(ribbon.extractSyllable())
-                        }
-                    }
-                }
-//            }
-
-        }
-
-        return result
-    }
-
-    fun checkVowel(ch: Char): Boolean {
-        return vowels.contains(ch.toString())
-    }
-
-    fun hasMoreVowels(ribbon: Ribbon): Boolean {
-        while (ribbon.moveHeadForward()) {
-            if (checkVowel(ribbon.readCurrentPosition())) {
-                return true
+            syllables.forEachIndexed { j, syllable ->
+                result.add("${syllable}${if (j == syllables.size -1) "_" else ""}")
             }
         }
-        return false
     }
 
-    fun checkSpecialConsonant(ch: Char): Boolean {
-        return nonPairConsonant.contains(ch.toString())
-    }
-
-    companion object {
-        @JvmStatic
-        fun mainn(args: Array<String>) {
-            val mainRibbon = MainRibbon()
-            println(mainRibbon.syllables("Я однажды проснусь оттого, что пойму: в эту ночь"))
+    var i = 0
+    while (i < result.size) {
+        val word = result[i]
+        if (!word.haveVowel()) {
+            if (i == result.size-1 && (word == "-_" && i != 0)) {
+                result[i-1] = "${result[i-1]}${word}"
+                result.removeAt(i)
+                i--
+            } else if (i < result.size-2) {
+                result[i+1] = "${word}${result[i+1]}"
+                result.removeAt(i)
+                i--
+            }
         }
+        i++
     }
+    return result
+
 }
+
+//class Ribbon(private val input: String) {
+//    private var position = -1
+//    private val length: Int
+//    private var flag = -1
+//    private var startSyllableIndex = 0
+//    private var endSyllableIndex = 0
+//
+//    init {
+//        length = input.length
+//    }
+//
+//    fun setEndSyllableIndex() {
+//        endSyllableIndex = position
+//    }
+//
+//    fun extractSyllable(): String {
+//        val result = input.substring(startSyllableIndex, endSyllableIndex + 1)
+//        startSyllableIndex = endSyllableIndex + 1
+//        flag = position
+//        endSyllableIndex = 0
+//        return result
+//    }
+//
+//    fun readCurrentPosition(): Char {
+//        check(!(position < 0 || position > length - 1))
+//        return input[position]
+//    }
+//
+//    fun setFlag() {
+//        flag = position
+//    }
+//
+//    fun rewindToFlag() {
+//        if (flag >= 0) {
+//            position = flag
+//        }
+//    }
+//
+//    fun moveHeadForward(): Boolean {
+//        return if (position + 1 < length) {
+//            position++
+//            true
+//        } else {
+//            false
+//        }
+//    }
+//}
+//
+//class MainRibbon {
+//    val vowels = "аеёиоуыюяэАЕЁИОУЫЮЯЭeuioayYEUIOAїієѣ"
+//    val nonPairConsonant = "лйрнмЛЙРНМ.,:-"
+//    fun syllables(inputString: String?, delimiter: String = "|"): List<String> {
+//        if (inputString == null) return emptyList()
+//        val result: MutableList<String> = ArrayList()
+//        val inputList = inputString.split(delimiter)
+////        val inputList = listOf(inputString)
+//        inputList.forEach { input ->
+////            if (!input.containThisSymbols(vowels)) {
+////                result.add(input)
+////            } else {
+//                val ribbon = Ribbon(input)
+//                while (ribbon.moveHeadForward()) {
+//                    ribbon.setFlag()
+//                    if (checkVowel(ribbon.readCurrentPosition())) {
+//                        if (ribbon.moveHeadForward() && ribbon.moveHeadForward()) {
+//                            if (checkVowel(ribbon.readCurrentPosition())) {
+//                                ribbon.rewindToFlag()
+//                                ribbon.setEndSyllableIndex()
+//                                result.add(ribbon.extractSyllable())
+//                                continue
+//                            }
+//                        }
+//                        ribbon.rewindToFlag()
+//                        if (ribbon.moveHeadForward() && checkSpecialConsonant(ribbon.readCurrentPosition())) {
+//                            ribbon.setEndSyllableIndex()
+//                            result.add(ribbon.extractSyllable())
+//                            continue
+//                        }
+//                        ribbon.rewindToFlag()
+//                        if (hasMoreVowels(ribbon)) {
+//                            ribbon.rewindToFlag()
+//                            ribbon.setEndSyllableIndex()
+//                            result.add(ribbon.extractSyllable())
+//                            continue
+//                        } else {
+//                            while (ribbon.moveHeadForward());
+//                            ribbon.setEndSyllableIndex()
+//                            result.add(ribbon.extractSyllable())
+//                        }
+//                    }
+//                }
+////            }
+//
+//        }
+//
+//        return result
+//    }
+//
+//    fun checkVowel(ch: Char): Boolean {
+//        return vowels.contains(ch.toString())
+//    }
+//
+//    fun hasMoreVowels(ribbon: Ribbon): Boolean {
+//        while (ribbon.moveHeadForward()) {
+//            if (checkVowel(ribbon.readCurrentPosition())) {
+//                return true
+//            }
+//        }
+//        return false
+//    }
+//
+//    fun checkSpecialConsonant(ch: Char): Boolean {
+//        return nonPairConsonant.contains(ch.toString())
+//    }
+//
+//    companion object {
+//        @JvmStatic
+//        fun mainn(args: Array<String>) {
+//            val mainRibbon = MainRibbon()
+//            println(mainRibbon.syllables("Я однажды проснусь оттого, что пойму: в эту ночь"))
+//        }
+//    }
+//}

@@ -49,6 +49,10 @@
   padding-right: 5px;
   padding-left: 5px;
 }
+.nav {
+  display: flex;
+  justify-content: center;
+}
 nav a {
   font-weight: bold;
   color: #2c3e50;

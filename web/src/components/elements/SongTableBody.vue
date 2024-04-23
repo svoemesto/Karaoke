@@ -1,8 +1,9 @@
 <template>
   <div :style="styleRoot" class="table-song-body">
+    <SongEditModal v-if="isSongEditVisible" @close="closeSongEdit"/>
     <div v-for="song in songs" :key="song.id" @click="clickRow(song.id)" :style="styleRow">
       <song-table-body-td name="id" :song="song" :isFirst="song===firstSong" :isLast="song===lastSong" position="left"/>
-      <song-table-body-td name="songName" :song="song" :isFirst="song===firstSong" :isLast="song===lastSong"/>
+      <song-table-body-td name="songName" @dblclick="dblClickSongName" :song="song" :isFirst="song===firstSong" :isLast="song===lastSong"/>
       <song-table-body-td name="author" :song="song" :isFirst="song===firstSong" :isLast="song===lastSong"/>
       <song-table-body-td name="year" :song="song" :isFirst="song===firstSong" :isLast="song===lastSong"/>
       <song-table-body-td name="album" :song="song" :isFirst="song===firstSong" :isLast="song===lastSong"/>
@@ -27,11 +28,18 @@
 
 <script>
 import SongTableBodyTd from './SongTableBodyTd'
+import SongEditModal from "@/components/SongEditModal.vue";
 
 export default {
   name: "SongTableBody",
   components: {
+    SongEditModal,
     SongTableBodyTd
+  },
+  data () {
+    return {
+      isSongEditVisible: false,
+    };
   },
   props: {
     songs: {
@@ -63,7 +71,7 @@ export default {
         overflowY: 'scroll',
         width: this.width,
         padding: 0,
-        height: 'calc(100vh - 120px)'
+        height: 'calc(100vh - 150px)'
       }
     },
     styleRow() {
@@ -77,6 +85,7 @@ export default {
   methods: {
     clickRow(songId) {
       if (!this.$store.getters.isChanged) {
+        console.log('Called clickRow');
         this.$store.commit('setCurrentSongId', songId)
       }
     },
@@ -89,6 +98,13 @@ export default {
       if (!this.$store.getters.isChanged) {
         return this.$store.getters.playLyrics;
       }
+    },
+    dblClickSongName() {
+      console.log('Called dblClickSongName');
+      this.isSongEditVisible = true;
+    },
+    closeSongEdit() {
+      this.isSongEditVisible = false;
     }
   }
 }

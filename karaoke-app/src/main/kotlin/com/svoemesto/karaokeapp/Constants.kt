@@ -6,6 +6,17 @@ import com.svoemesto.karaokeapp.textfiledictionary.CensoredWordsDictionary
 import com.svoemesto.karaokeapp.textfiledictionary.TestDictionary
 import com.svoemesto.karaokeapp.textfiledictionary.YoWordsDictionary
 
+const val CURRENT_RESULT_VERSION = 4L
+
+const val COLOR_ALL_DONE = "#7FFFD4"        // Полностью готово
+const val COLOR_OVERDUE = "#BDB76B"         // Публикация прошла, но не все ссылки заполнены
+const val COLOR_TODAY = "#FFFF00"           // Сегодня
+const val COLOR_ALL_UPLOADED = "#DCDCDC"    // Готово к публикации (всё загружено)
+const val COLOR_WO_TG = "#87CEFA"           // Нет TG
+const val COLOR_WO_VK = "#FFDAB9"           // Нет VK
+const val COLOR_WO_DZEN = "#FF8000"         // Нет DZEN
+const val COLOR_WO_VKG = "#FFC880"         // Нет VKG
+
 
 val delimiterVoices = "|[VOICE]|"
 val delimiterGroups = "|[GROUP]|"
@@ -24,7 +35,7 @@ const val TYPEWRITER = "0;2;1;0;0"
 val vovels = "ёуеыаоэяиюeuioaїієѣ"
 val LETTERS_VOWEL = "${vovels}${vovels.uppercase()}"
 const val NOTES_SYMBOLS = "♬♩♪△▲⬦⬥"
-
+const val RUSSIN_LETTERS = "ЙЦУКЕНГШЩЗХЪФЫВАПРОЛДЖЭЯЧСМИТЬБЮЁйцукенгшщзхъфывапролджэячсмитьбюё"
 const val DEMUCS_MODEL_NAME = "hdemucs_mmi"
 
 const val PATH_TO_FFMPEG = "/bin/ffmpeg"
@@ -62,6 +73,9 @@ const val URL_PREFIX_VK = "https://vk.com/wall-{REPLACE}"
 
 const val URL_PREFIX_TELEGRAM_PLAY = "https://t.me/svoemestokaraoke/{REPLACE}"
 const val URL_PREFIX_TELEGRAM_EDIT = "https://t.me/svoemestokaraoke/{REPLACE}"
+
+const val URL_PREFIX_PL_PLAY = "https://plvideo.ru/watch?v={REPLACE}"
+const val URL_PREFIX_PL_EDIT = "https://studio.plvideo.ru/channel/bbj0HWC8H7ii/video/{REPLACE}/edit"
 
 //const val CONNECTION_URL = "jdbc:postgresql://localhost:5430/karaoke?currentSchema=public"
 //const val CONNECTION_USER = "postgres"

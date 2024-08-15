@@ -54,6 +54,8 @@ dependencies {
 //    implementation("org.apache.http:httpcore:4.2")
 // https://mvnrepository.com/artifact/org.apache.commons/commons-lang3
     implementation("org.apache.commons:commons-lang3:3.14.0")
+// https://mvnrepository.com/artifact/org.apache.httpcomponents.client5/httpclient5
+    implementation("org.apache.httpcomponents.client5:httpclient5:5.3.1")
 
 }
 

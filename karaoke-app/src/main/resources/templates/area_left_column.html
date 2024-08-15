@@ -3,10 +3,10 @@
     <button name="button_doFilter" id="button_doFilter" class="form-control btn btn-primary btn-block" type="button" value="Сохранить" onclick="doFilterForm()">FILTER</button>
     <table>
         <datalist id="list_authors">
-            <option th:each="author:${authors}" th:value="${author}">
+            <option th:each="author:${songAuthors}" th:value="${author}">
         </datalist>
         <datalist id="list_albums">
-            <option th:each="album:${albums}" th:value="${album}">
+            <option th:each="album:${songAlbums}" th:value="${album}">
         </datalist>
         <thead>
         <tr>

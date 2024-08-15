@@ -5,6 +5,7 @@ import com.svoemesto.karaokeapp.Crypto
 import com.svoemesto.karaokeapp.model.Settings
 import com.svoemesto.karaokeweb.StatBySong
 import com.svoemesto.karaokeapp.model.Zakroma
+import com.svoemesto.karaokeapp.rightFileName
 import com.svoemesto.karaokeapp.services.WEB_WORK_IN_CONTAINER
 import com.svoemesto.karaokeweb.WORKING_DATABASE
 import jakarta.servlet.http.HttpServletRequest
@@ -70,7 +71,7 @@ class MainController(private val webSocket: SimpMessagingTemplate, @Value("\${wo
                         fieldsValues.add(Pair("link_type", "linkToSocialNetwork"))
                         fieldsValues.add(Pair("link_name", linkName))
                         val connection = WORKING_DATABASE.getConnection()
-                        val sqlToInsert = "INSERT INTO tbl_events (${fieldsValues.map {it.first}.joinToString(", ")}) OVERRIDING SYSTEM VALUE VALUES(${fieldsValues.map {if (it.second is Long) "${it.second}" else "'${it.second.toString().replace("'","''")}'"}.joinToString(", ")})"
+                        val sqlToInsert = "INSERT INTO tbl_events (${fieldsValues.map {it.first}.joinToString(", ")}) OVERRIDING SYSTEM VALUE VALUES(${fieldsValues.map {if (it.second is Long) "${it.second}" else "'${it.second.toString().rightFileName()}'"}.joinToString(", ")})"
                         val ps = connection.prepareStatement(sqlToInsert)
                         ps.executeUpdate()
                         ps.close()
@@ -90,7 +91,7 @@ class MainController(private val webSocket: SimpMessagingTemplate, @Value("\${wo
                         fieldsValues.add(Pair("song_id", songId))
                         fieldsValues.add(Pair("song_version", songVersion))
                         val connection = WORKING_DATABASE.getConnection()
-                        val sqlToInsert = "INSERT INTO tbl_events (${fieldsValues.map {it.first}.joinToString(", ")}) OVERRIDING SYSTEM VALUE VALUES(${fieldsValues.map {if (it.second is Long) "${it.second}" else "'${it.second.toString().replace("'","''")}'"}.joinToString(", ")})"
+                        val sqlToInsert = "INSERT INTO tbl_events (${fieldsValues.map {it.first}.joinToString(", ")}) OVERRIDING SYSTEM VALUE VALUES(${fieldsValues.map {if (it.second is Long) "${it.second}" else "'${it.second.toString().rightFileName()}'"}.joinToString(", ")})"
                         val ps = connection.prepareStatement(sqlToInsert)
                         ps.executeUpdate()
                         ps.close()
@@ -112,7 +113,7 @@ class MainController(private val webSocket: SimpMessagingTemplate, @Value("\${wo
                 fieldsValues.add(Pair("song_id", songId))
                 fieldsValues.add(Pair("song_version", songVersion))
                 val connection = WORKING_DATABASE.getConnection()
-                val sqlToInsert = "INSERT INTO tbl_events (${fieldsValues.map {it.first}.joinToString(", ")}) OVERRIDING SYSTEM VALUE VALUES(${fieldsValues.map {if (it.second is Long) "${it.second}" else "'${it.second.toString().replace("'","''")}'"}.joinToString(", ")})"
+                val sqlToInsert = "INSERT INTO tbl_events (${fieldsValues.map {it.first}.joinToString(", ")}) OVERRIDING SYSTEM VALUE VALUES(${fieldsValues.map {if (it.second is Long) "${it.second}" else "'${it.second.toString().rightFileName()}'"}.joinToString(", ")})"
                 val ps = connection.prepareStatement(sqlToInsert)
                 ps.executeUpdate()
                 ps.close()
@@ -128,7 +129,7 @@ class MainController(private val webSocket: SimpMessagingTemplate, @Value("\${wo
                 fieldsValues.add(Pair("referer", data["referer"]?:""))
                 val connection = WORKING_DATABASE.getConnection()
                 if (parameters.containsKey("id")) fieldsValues.add(Pair("song_id", parameters["id"]!!.toString().toLong()))
-                val sqlToInsert = "INSERT INTO tbl_events (${fieldsValues.map {it.first}.joinToString(", ")}) OVERRIDING SYSTEM VALUE VALUES(${fieldsValues.map {if (it.second is Long) "${it.second}" else "'${it.second.toString().replace("'","''")}'"}.joinToString(", ")})"
+                val sqlToInsert = "INSERT INTO tbl_events (${fieldsValues.map {it.first}.joinToString(", ")}) OVERRIDING SYSTEM VALUE VALUES(${fieldsValues.map {if (it.second is Long) "${it.second}" else "'${it.second.toString().rightFileName()}'"}.joinToString(", ")})"
                 val ps = connection.prepareStatement(sqlToInsert)
                 ps.executeUpdate()
                 ps.close()

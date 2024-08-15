@@ -6,7 +6,7 @@
 
 <script>
 // @ is an alias to /src
-import PublicationsTable from "@/components/PublicationsTable.vue";
+import PublicationsTable from "@/components/Publications/PublicationsTable.vue";
 
 export default {
   name: 'PublicationsView',

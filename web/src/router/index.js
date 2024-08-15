@@ -1,7 +1,15 @@
 import Vue from 'vue'
 import VueRouter from 'vue-router'
 import HomeView from '../views/HomeView'
-// import SongsView from '../views/SongsView'
+import SongsView from '../views/SongsView'
+import SongsBvView from '../views/SongsBvView'
+import PublishView from '../views/PublishView'
+import PublicationsBvView from '../views/PublicationsBvView'
+import PublicationsView from '../views/PublicationsView'
+import UnpublicationsView from '../views/UnpublicationsView'
+import ZakromaView from '../views/ZakromaView'
+import ProcessesView from '../views/ProcessesView'
+import ProcessesBvView from '../views/ProcessesBvView'
 
 Vue.use(VueRouter)
 
@@ -14,31 +22,50 @@ const routes = [
   {
     path: '/songs',
     name: 'songs',
-    // route level code-splitting
-    // this generates a separate chunk (about.[hash].js) for this route
-    // which is lazy-loaded when the route is visited.
-    // component: SongsView
-    component: () => import(/* webpackChunkName: "about" */ '../views/SongsView.vue')
+    component: SongsView
+  },
+  {
+    path: '/songsbv',
+    name: 'songsbv',
+    component: SongsBvView
+  },
+  {
+    path: '/publish',
+    name: 'publish',
+    component: PublishView
+  },
+  {
+    path: '/publicationsbv',
+    name: 'publicationsbv',
+    component: PublicationsBvView
   },
   {
     path: '/publications',
     name: 'publications',
-    component: () => import(/* webpackChunkName: "about" */ '../views/PublicationsView.vue')
+    component: PublicationsView
   },
   {
     path: '/unpublications',
     name: 'unpublications',
-    component: () => import(/* webpackChunkName: "about" */ '../views/UnpublicationsView.vue')
+    component: UnpublicationsView
   },
   {
     path: '/zakroma',
     name: 'zakroma',
-    component: () => import(/* webpackChunkName: "about" */ '../views/ZakromaView.vue')
+    component: ZakromaView
   },
   {
     path: '/processes',
     name: 'processes',
-    component: () => import(/* webpackChunkName: "about" */ '../views/ProcessesView.vue')
+    component: ProcessesView
+    // component: () => import(/* webpackChunkName: "about" */ '../views/ProcessesView.vue')
+  }
+  ,
+  {
+    path: '/processesbv',
+    name: 'processesbv',
+    component: ProcessesBvView
+    // component: () => import(/* webpackChunkName: "about" */ '../views/ProcessesView.vue')
   }
 ]
 

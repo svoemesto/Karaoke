@@ -1,29 +1,31 @@
 package com.svoemesto.karaokeapp.controllers
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import com.svoemesto.karaokeapp.*
 import com.svoemesto.karaokeapp.model.*
 import com.svoemesto.karaokeapp.services.APP_WORK_IN_CONTAINER
+import com.svoemesto.karaokeapp.services.SNS
 import com.svoemesto.karaokeapp.textfiledictionary.TextFileDictionary
+import jakarta.servlet.http.HttpServletResponse
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import org.springframework.core.io.FileSystemResource
 import org.springframework.core.io.Resource
 import org.springframework.http.HttpHeaders
+import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
-import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.stereotype.Controller
 import org.springframework.web.bind.annotation.*
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter
 import java.io.File
 import java.sql.ResultSet
 import java.sql.SQLException
 import java.sql.Statement
+import java.text.SimpleDateFormat
+import java.util.*
 
 @Controller
 @RequestMapping("/apis")
-class ApisController(private val webSocket: SimpMessagingTemplate,
-                     private val objectMapper: ObjectMapper
-) {
+class ApisController(private val sseNotificationService: SseNotificationService) {
 
     @GetMapping("/song/{id}/filevoice")
     fun getSongFileVocal(
@@ -95,9 +97,43 @@ class ApisController(private val webSocket: SimpMessagingTemplate,
             while (rs.next()) {
                 result.add(rs.getLong("id"))
             }
-            if (result.isNotEmpty()) {
-                println("time = $time, ids = $result");
+//            if (result.isNotEmpty()) {
+//                println("time = $time, ids = $result");
+//            }
+
+            return result
+        } catch (e: SQLException) {
+            e.printStackTrace()
+        } finally {
+            try {
+                rs?.close()
+                statement?.close()
+            } catch (e: SQLException) {
+                e.printStackTrace()
             }
+        }
+        return emptyList()
+    }
+
+    // Получение списка id процессов, изменившихся с указанного момента
+    @PostMapping("/processes/changed")
+    @ResponseBody
+    fun getChangedProcessesIds(@RequestParam time: Long): List<Long> {
+        val result: MutableList<Long> = mutableListOf()
+
+        val connection = WORKING_DATABASE.getConnection()
+        var statement: Statement? = null
+        var rs: ResultSet? = null
+        var sql = "select id from tbl_processes where EXTRACT(EPOCH FROM last_update at time zone 'UTC-3')*1000 > $time;"
+        statement = connection.createStatement()
+        try {
+            rs = statement.executeQuery(sql)
+            while (rs.next()) {
+                result.add(rs.getLong("id"))
+            }
+//            if (result.isNotEmpty()) {
+//                println("time = $time, ids = $result");
+//            }
 
             return result
         } catch (e: SQLException) {
@@ -274,6 +310,62 @@ class ApisController(private val webSocket: SimpMessagingTemplate,
     }
 
 
+    // Получение текста заголовка для Platforma Karaoke
+    @PostMapping("/song/textplkaraokeheader")
+    @ResponseBody
+    fun getSongTextPlKaraokeHeader(@RequestParam id: Long): String {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        val text = settings?.let {
+            val song = Song(settings, SongVersion.KARAOKE)
+            val text = song.getDescriptionHeader(140)
+            text
+        } ?: ""
+        println("id = ${id}, text = ${text}")
+        return text
+    }
+
+    // Получение текста тела для Platforma Karaoke
+    @PostMapping("/song/textplkaraokewoheader")
+    @ResponseBody
+    fun getSongTextPlKaraokeWOHeader(@RequestParam id: Long): String {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        val text = settings?.let {
+            val song = Song(settings, SongVersion.KARAOKE)
+            val text = song.getDescriptionWOHeaderWithTimecodes(5000, 100)
+            text
+        } ?: ""
+        println("id = ${id}, text = ${text}")
+        return text
+    }
+
+    // Получение текста заголовка для Platforma Lyrics
+    @PostMapping("/song/textpllyricsheader")
+    @ResponseBody
+    fun getSongTextPlLyricsHeader(@RequestParam id: Long): String {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        val text = settings?.let {
+            val song = Song(settings, SongVersion.LYRICS)
+            val text = song.getDescriptionHeader(140)
+            text
+        } ?: ""
+        println("id = ${id}, text = ${text}")
+        return text
+    }
+
+    // Получение текста тела для Platforma Lyrics
+    @PostMapping("/song/textpllyricswoheader")
+    @ResponseBody
+    fun getSongTextPlLyricsWOHeader(@RequestParam id: Long): String {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        val text = settings?.let {
+            val song = Song(settings, SongVersion.LYRICS)
+            val text = song.getDescriptionWOHeaderWithTimecodes(5000, 100)
+            text
+        } ?: ""
+        println("id = ${id}, text = ${text}")
+        return text
+    }
+    
     // Получение текста заголовка для Vk Karaoke
     @PostMapping("/song/textvkkaraokeheader")
     @ResponseBody
@@ -376,6 +468,24 @@ class ApisController(private val webSocket: SimpMessagingTemplate,
         )
     }
 
+    // Получение списка статусов процессов
+    @PostMapping("/processes/statuses")
+    @ResponseBody
+    fun processesStatuses(): Map<String, Any> {
+        return mapOf(
+            "statuses" to KaraokeProcessStatuses.values()
+        )
+    }
+
+    // Получение списка типов процессов
+    @PostMapping("/processes/types")
+    @ResponseBody
+    fun processesTypes(): Map<String, Any> {
+        return mapOf(
+            "authors" to KaraokeProcessStatuses.values()
+        )
+    }
+
     // Получение списка песен по списку id
     @PostMapping("/songs/ids")
     @ResponseBody
@@ -383,6 +493,14 @@ class ApisController(private val webSocket: SimpMessagingTemplate,
         return Settings.loadListFromDb(mapOf(Pair("ids", ids.joinToString(","))), WORKING_DATABASE).map { it.toDTO() }
     }
 
+    // Получение списка процессов по списку id
+    @PostMapping("/processes/ids")
+    @ResponseBody
+    fun apisProcessesByIds(@RequestParam ids: List<Long>): List<ProcessesDTO> {
+        return KaraokeProcess.loadList(mapOf(Pair("ids", ids.joinToString(","))), WORKING_DATABASE).map { it.toDTO() }
+    }
+
+    // список publications
     @PostMapping("/publications")
     @ResponseBody
     fun publications(
@@ -402,12 +520,169 @@ class ApisController(private val webSocket: SimpMessagingTemplate,
         )
     }
 
+    // список unpublications
     @PostMapping("/unpublications")
     @ResponseBody
     fun unpublications(): Map<String, Any> {
         return mapOf(
             "workInContainer" to APP_WORK_IN_CONTAINER,
             "publications" to Publication.getUnPublicationList(WORKING_DATABASE).map { it.map { it.toDTO() } }
+        )
+    }
+
+    // список publications
+    @PostMapping("/publications2")
+    @ResponseBody
+    fun publications2(
+        @RequestParam(required = false) filterDateFrom: String?,
+        @RequestParam(required = false) filterDateTo: String?,
+        @RequestParam(required = false) filterCond: String?
+    ): Map<String, Any> {
+
+        val args: MutableMap<String, String> = mutableMapOf()
+        filterDateFrom?.let { if (filterDateFrom != "") args["publish_date_from"] = filterDateFrom }
+        filterDateTo?.let { if (filterDateTo != "") args["filter_date_to"] = filterDateTo }
+        filterCond?.let { if (filterCond != "") args["filter_cond"] = filterCond }
+
+        return mapOf(
+            "workInContainer" to APP_WORK_IN_CONTAINER,
+            "publications" to CrossSettings.publications(Publication.getSettingsListForPublications(args, WORKING_DATABASE))
+        )
+    }
+
+    // список unpublications
+    @PostMapping("/unpublications2")
+    @ResponseBody
+    fun unpublications2(): Map<String, Any> {
+        return mapOf(
+            "workInContainer" to APP_WORK_IN_CONTAINER,
+            "publications" to CrossSettings.unpublications(Publication.getSettingsListForUnpublications(WORKING_DATABASE))
+        )
+    }
+
+    @PostMapping("/publicationsdigest")
+    @ResponseBody
+    fun publicationsDigest(
+        @RequestParam(required = false) filterDateFrom: String?,
+        @RequestParam(required = false) filterDateTo: String?,
+        @RequestParam(required = false) filterCond: String?
+    ): Map<String, Any> {
+
+        val args: MutableMap<String, String> = mutableMapOf()
+        filterDateFrom?.let { if (filterDateFrom != "") args["filter_date_from"] = filterDateFrom }
+        filterDateTo?.let { if (filterDateTo != "") args["filter_date_to"] = filterDateTo }
+        filterCond?.let { if (filterCond != "") args["filter_cond"] = filterCond }
+        val listOfSettings = Publication.getSettingsListForPublications(args, WORKING_DATABASE)
+        val publications = if (filterCond == "unpublish") {
+            CrossSettings.unpublications(listOfSettings)
+        } else {
+            CrossSettings.publications(listOfSettings)
+        }
+        return mapOf(
+            "workInContainer" to APP_WORK_IN_CONTAINER,
+            "publicationsDigest" to publications
+        )
+    }
+
+    @PostMapping("/processesdigests")
+    @ResponseBody
+    fun apisProcessesDigest(
+        @RequestParam(required = false) filter_id: String?,
+        @RequestParam(required = false) filter_name: String?,
+        @RequestParam(required = false) filter_status: String?,
+        @RequestParam(required = false) filter_order: String?,
+        @RequestParam(required = false) filter_priority: String?,
+        @RequestParam(required = false) filter_description: String?,
+        @RequestParam(required = false) filter_settings_id: String?,
+        @RequestParam(required = false) filter_type: String?,
+        @RequestParam(required = false) filter_limit: String?,
+        @RequestParam(required = false) filter_notail: String?
+
+    ): Map<String, Any> {
+
+        val args: MutableMap<String, String> = mutableMapOf()
+        filter_id?.let { if (filter_id != "") args["id"] = filter_id }
+        filter_name?.let { if (filter_name != "") args["process_name"] = filter_name }
+        filter_status?.let { if (filter_status != "") args["process_status"] = filter_status }
+        filter_order?.let { if (filter_order != "") args["process_order"] = filter_order }
+        filter_priority?.let { if (filter_priority != "") args["process_priority"] = filter_priority }
+        filter_description?.let { if (filter_description != "") args["process_description"] = filter_description }
+        filter_settings_id?.let { if (filter_settings_id != "") args["settings_id"] = filter_settings_id }
+        filter_type?.let { if (filter_type != "") args["process_type"] = filter_type }
+        filter_limit?.let { if (filter_limit != "") args["filter_limit"] = filter_limit }
+        filter_notail?.let { if (filter_notail != "") args["filter_notail"] = filter_notail }
+
+        return mapOf(
+            "workInContainer" to APP_WORK_IN_CONTAINER,
+            "processesDigests" to KaraokeProcess.loadList(args, WORKING_DATABASE).map { it.toDTO() },
+            "statuses" to KaraokeProcessStatuses.values(),
+            "types" to KaraokeProcessTypes.values()
+        )
+    }
+
+    // Получение списка песен
+    @PostMapping("/songsdigests")
+    @ResponseBody
+    fun apisSongsDigests(
+        @RequestParam(required = false) filter_id: String?,
+        @RequestParam(required = false) filter_songName: String?,
+        @RequestParam(required = false) filter_author: String?,
+        @RequestParam(required = false) filter_year: String?,
+        @RequestParam(required = false) filter_album: String?,
+        @RequestParam(required = false) filter_track: String?,
+        @RequestParam(required = false) filter_tags: String?,
+        @RequestParam(required = false) filter_date: String?,
+        @RequestParam(required = false) filter_time: String?,
+        @RequestParam(required = false) filter_status: String?,
+        @RequestParam(required = false) flag_boosty: String?,
+        @RequestParam(required = false) flag_vk: String?,
+        @RequestParam(required = false) flag_youtube_lyrics: String?,
+        @RequestParam(required = false) flag_youtube_karaoke: String?,
+        @RequestParam(required = false) flag_youtube_chords: String?,
+        @RequestParam(required = false) flag_vk_lyrics: String?,
+        @RequestParam(required = false) flag_vk_karaoke: String?,
+        @RequestParam(required = false) flag_vk_chords: String?,
+        @RequestParam(required = false) flag_telegram_lyrics: String?,
+        @RequestParam(required = false) flag_telegram_karaoke: String?,
+        @RequestParam(required = false) flag_telegram_chords: String?,
+        @RequestParam(required = false) flag_pl_lyrics: String?,
+        @RequestParam(required = false) flag_pl_karaoke: String?,
+        @RequestParam(required = false) filter_result_version: String?
+    ): Map<String, Any> {
+
+        val args: MutableMap<String, String> = mutableMapOf()
+        filter_id?.let { if (filter_id != "") args["id"] = filter_id }
+        filter_songName?.let { if (filter_songName != "") args["song_name"] = filter_songName }
+        filter_author?.let { if (filter_author != "") args["song_author"] = filter_author }
+        filter_album?.let { if (filter_album != "") args["song_album"] = filter_album }
+        filter_date?.let { if (filter_date != "") args["publish_date"] = filter_date }
+        filter_time?.let { if (filter_time != "") args["publish_time"] = filter_time }
+        filter_year?.let { if (filter_year != "") args["song_year"] = filter_year }
+        filter_track?.let { if (filter_track != "") args["song_track"] = filter_track }
+        filter_tags?.let { if (filter_tags != "") args["tags"] = filter_tags }
+        filter_status?.let { if (filter_status != "") args["id_status"] = filter_status }
+        flag_boosty?.let { if (flag_boosty != "") args["flag_boosty"] = flag_boosty }
+        flag_vk?.let { if (flag_vk != "") args["flag_vk"] = flag_vk }
+        flag_youtube_lyrics?.let { if (flag_youtube_lyrics != "") args["flag_youtube_lyrics"] = flag_youtube_lyrics }
+        flag_youtube_karaoke?.let { if (flag_youtube_karaoke != "") args["flag_youtube_karaoke"] = flag_youtube_karaoke }
+        flag_youtube_chords?.let { if (flag_youtube_chords != "") args["flag_youtube_chords"] = flag_youtube_chords }
+        flag_vk_lyrics?.let { if (flag_vk_lyrics != "") args["flag_vk_lyrics"] = flag_vk_lyrics }
+        flag_vk_karaoke?.let { if (flag_vk_karaoke != "") args["flag_vk_karaoke"] = flag_vk_karaoke }
+        flag_vk_chords?.let { if (flag_vk_chords != "") args["flag_vk_chords"] = flag_vk_chords }
+        flag_telegram_lyrics?.let { if (flag_telegram_lyrics != "") args["flag_telegram_lyrics"] = flag_telegram_lyrics }
+        flag_telegram_karaoke?.let { if (flag_telegram_karaoke != "") args["flag_telegram_karaoke"] = flag_telegram_karaoke }
+        flag_telegram_chords?.let { if (flag_telegram_chords != "") args["flag_telegram_chords"] = flag_telegram_chords }
+        flag_pl_lyrics?.let { if (flag_pl_lyrics != "") args["flag_pl_lyrics"] = flag_pl_lyrics }
+        flag_pl_karaoke?.let { if (flag_pl_karaoke != "") args["flag_pl_karaoke"] = flag_pl_karaoke }
+        filter_result_version?.let { if (filter_result_version != "") args["filter_result_version"] = filter_result_version }
+
+        println("args: $args")
+
+        return mapOf(
+            "workInContainer" to APP_WORK_IN_CONTAINER,
+            "songsDigests" to Settings.loadListFromDb(args, WORKING_DATABASE).map { it.toDTO().toDtoDigest() },
+            "authors" to Settings.loadListAuthors(WORKING_DATABASE),
+            "albums" to Settings.loadListAlbums(WORKING_DATABASE)
         )
     }
 
@@ -436,6 +711,9 @@ class ApisController(private val webSocket: SimpMessagingTemplate,
         @RequestParam(required = false) flag_telegram_lyrics: String?,
         @RequestParam(required = false) flag_telegram_karaoke: String?,
         @RequestParam(required = false) flag_telegram_chords: String?,
+        @RequestParam(required = false) flag_pl_lyrics: String?,
+        @RequestParam(required = false) flag_pl_karaoke: String?,
+        @RequestParam(required = false) filter_result_version: String?,
         @RequestParam(required = false) pageSize: Int = 30
     ): Map<String, Any> {
 
@@ -461,6 +739,9 @@ class ApisController(private val webSocket: SimpMessagingTemplate,
         flag_telegram_lyrics?.let { if (flag_telegram_lyrics != "") args["flag_telegram_lyrics"] = flag_telegram_lyrics }
         flag_telegram_karaoke?.let { if (flag_telegram_karaoke != "") args["flag_telegram_karaoke"] = flag_telegram_karaoke }
         flag_telegram_chords?.let { if (flag_telegram_chords != "") args["flag_telegram_chords"] = flag_telegram_chords }
+        flag_pl_lyrics?.let { if (flag_pl_lyrics != "") args["flag_pl_lyrics"] = flag_pl_lyrics }
+        flag_pl_karaoke?.let { if (flag_pl_karaoke != "") args["flag_pl_karaoke"] = flag_pl_karaoke }
+        filter_result_version?.let { if (filter_result_version != "") args["filter_result_version"] = filter_result_version }
 
         println("args: $args")
 
@@ -469,6 +750,42 @@ class ApisController(private val webSocket: SimpMessagingTemplate,
             "pages" to Settings.loadListFromDb(args, WORKING_DATABASE).map { it.toDTO() }.chunked(pageSize),
             "authors" to Settings.loadListAuthors(WORKING_DATABASE),
             "albums" to Settings.loadListAlbums(WORKING_DATABASE)
+        )
+    }
+
+    // Получение списка процессов
+    @PostMapping("/processes")
+    @ResponseBody
+    fun apisProcesses(
+        @RequestParam(required = false) filter_id: String?,
+        @RequestParam(required = false) filter_name: String?,
+        @RequestParam(required = false) filter_status: String?,
+        @RequestParam(required = false) filter_order: String?,
+        @RequestParam(required = false) filter_priority: String?,
+        @RequestParam(required = false) filter_description: String?,
+        @RequestParam(required = false) filter_settings_id: String?,
+        @RequestParam(required = false) filter_type: String?,
+        @RequestParam(required = false) filter_limit: String?,
+        @RequestParam(required = false) pageSize: Int = 30
+
+    ): Map<String, Any> {
+
+        val args: MutableMap<String, String> = mutableMapOf()
+        filter_id?.let { if (filter_id != "") args["id"] = filter_id }
+        filter_name?.let { if (filter_name != "") args["process_name"] = filter_name }
+        filter_status?.let { if (filter_status != "") args["process_status"] = filter_status }
+        filter_order?.let { if (filter_order != "") args["process_order"] = filter_order }
+        filter_priority?.let { if (filter_priority != "") args["process_priority"] = filter_priority }
+        filter_description?.let { if (filter_description != "") args["process_description"] = filter_description }
+        filter_settings_id?.let { if (filter_settings_id != "") args["settings_id"] = filter_settings_id }
+        filter_type?.let { if (filter_type != "") args["process_type"] = filter_type }
+        filter_limit?.let { if (filter_limit != "") args["filter_limit"] = filter_limit }
+
+        return mapOf(
+            "workInContainer" to APP_WORK_IN_CONTAINER,
+            "pages" to KaraokeProcess.loadList(args, WORKING_DATABASE).map { it.toDTO() }.chunked(pageSize),
+            "statuses" to KaraokeProcessStatuses.values(),
+            "types" to KaraokeProcessTypes.values()
         )
     }
 
@@ -503,7 +820,8 @@ class ApisController(private val webSocket: SimpMessagingTemplate,
         return Settings.loadFromDbById(id.toLong(), WORKING_DATABASE)?.toDTO()
     }
 
-    @PostMapping("/update")
+    // Обновление песни
+    @PostMapping("/song/update")
     @ResponseBody
     fun songs2Update(
         @RequestParam(required = false) id: String,
@@ -532,7 +850,10 @@ class ApisController(private val webSocket: SimpMessagingTemplate,
         @RequestParam(required = false) idVkChords: String?,
         @RequestParam(required = false) idTelegramLyrics: String?,
         @RequestParam(required = false) idTelegramKaraoke: String?,
-        @RequestParam(required = false) idTelegramChords: String?
+        @RequestParam(required = false) idTelegramChords: String?,
+        @RequestParam(required = false) idPlLyrics: String?,
+        @RequestParam(required = false) idPlKaraoke: String?,
+        @RequestParam(required = false) resultVersion: String?
     ): Boolean {
         val settingsId: Long = id.toLong()
         val settings = Settings.loadFromDbById(settingsId, WORKING_DATABASE)
@@ -563,12 +884,49 @@ class ApisController(private val webSocket: SimpMessagingTemplate,
             idTelegramLyrics?.let { sett.fields[SettingField.ID_TELEGRAM_LYRICS] = it }
             idTelegramKaraoke?.let { sett.fields[SettingField.ID_TELEGRAM_KARAOKE] = it }
             idTelegramChords?.let { sett.fields[SettingField.ID_TELEGRAM_CHORDS] = it }
+            idPlLyrics?.let { sett.fields[SettingField.ID_PL_LYRICS] = it }
+            idPlKaraoke?.let { sett.fields[SettingField.ID_PL_KARAOKE] = it }
+            resultVersion?.let { sett.fields[SettingField.RESULT_VERSION] = it }
             idStatus?.let { sett.fields[SettingField.ID_STATUS] =  it }
             sett.saveToDb()
             sett.saveToFile()
-//            if (idBoosty != "" && idBoosty != null) {
-//                sett.createVKDescription()
-//            }
+        }
+
+        return true
+    }
+
+    // Получение процесса
+    @PostMapping("/process")
+    @ResponseBody
+    fun apisProcess(@RequestParam id: String): Any? {
+        return KaraokeProcess.load(id.toLong(), WORKING_DATABASE)?.toDTO()
+    }
+
+    // Обновление процесса
+    @PostMapping("/process/update")
+    @ResponseBody
+    fun processes2Update(
+        @RequestParam(required = false) id: Int,
+        @RequestParam(required = false) name: String,
+        @RequestParam(required = false) status: String,
+        @RequestParam(required = false) order: Int,
+        @RequestParam(required = false) priority: Int,
+        @RequestParam(required = false) command: String,
+        @RequestParam(required = false) description: String,
+        @RequestParam(required = false) type: String
+
+    ): Boolean {
+        val processId: Long = id.toLong()
+        val processes = KaraokeProcess.load(processId, WORKING_DATABASE)
+        processes?.let { process ->
+            name.let { process.name = it }
+            status.let { process.status = it }
+            order.let { process.order = it }
+            priority.let { process.priority = it }
+            command.let { process.command = it }
+            description.let { process.description = it }
+            type.let { process.type = it }
+            process.save()
         }
 
         return true
@@ -617,6 +975,38 @@ class ApisController(private val webSocket: SimpMessagingTemplate,
             return "data:image/gif;base64,${it.pictureAuthor?.full}" ?: ""
         }
         return ""
+    }
+
+    // Получаем дату начала для публикаций
+    @PostMapping("/publications/date")
+    @ResponseBody
+    fun getPublicationsDateFrom(@RequestParam param: String): String {
+
+        val currentCalendar = Calendar.getInstance()
+        val currentDateTime = currentCalendar.time
+
+        val formatter = SimpleDateFormat("dd/MM/yyyy")
+        val currentDate = formatter.parse(formatter.format(currentDateTime))
+
+        val settings = Settings.loadListFromDb(emptyMap(), WORKING_DATABASE)
+        val sett = when (param) {
+            "STATE_ALL_DONE" -> settings.firstOrNull { it.state == SettingState.ALL_DONE } ?: settings.firstOrNull { it.dateTimePublish != null && formatter.parse(formatter.format(it.dateTimePublish)) == currentDate }
+            "STATE_OVERDUE" -> settings.firstOrNull { it.state == SettingState.OVERDUE } ?: settings.firstOrNull { it.dateTimePublish != null && formatter.parse(formatter.format(it.dateTimePublish)) == currentDate }
+            "STATE_TODAY" -> settings.firstOrNull { it.dateTimePublish != null && formatter.parse(formatter.format(it.dateTimePublish)) == currentDate }
+            "STATE_ALL_UPLOADED" -> settings.firstOrNull { it.state == SettingState.ALL_UPLOADED } ?: settings.firstOrNull { it.dateTimePublish != null && formatter.parse(formatter.format(it.dateTimePublish)) == currentDate }
+            "STATE_WO_TG" -> settings.firstOrNull { it.state == SettingState.WO_TG } ?: settings.firstOrNull { it.dateTimePublish != null && formatter.parse(formatter.format(it.dateTimePublish)) == currentDate }
+            "STATE_WO_VK" -> settings.firstOrNull { it.state == SettingState.WO_VK } ?: settings.firstOrNull { it.dateTimePublish != null && formatter.parse(formatter.format(it.dateTimePublish)) == currentDate }
+            "STATE_WO_DZEN" -> settings.firstOrNull { it.state == SettingState.WO_DZEN } ?: settings.firstOrNull { it.dateTimePublish != null && formatter.parse(formatter.format(it.dateTimePublish)) == currentDate }
+            "STATE_WO_VKG" -> settings.firstOrNull { it.state == SettingState.WO_VKG } ?: settings.firstOrNull { it.dateTimePublish != null && formatter.parse(formatter.format(it.dateTimePublish)) == currentDate }
+            "STATUS_0" -> settings.firstOrNull { it.state == SettingState.IN_WORK && it.idStatus == 0L } ?: settings.firstOrNull { it.dateTimePublish != null && formatter.parse(formatter.format(it.dateTimePublish)) == currentDate }
+            "STATUS_1" -> settings.firstOrNull { it.state == SettingState.IN_WORK && it.idStatus == 1L } ?: settings.firstOrNull { it.dateTimePublish != null && formatter.parse(formatter.format(it.dateTimePublish)) == currentDate }
+            "STATUS_2" -> settings.firstOrNull { it.state == SettingState.IN_WORK && it.idStatus == 2L } ?: settings.firstOrNull { it.dateTimePublish != null && formatter.parse(formatter.format(it.dateTimePublish)) == currentDate }
+            "STATUS_3" -> settings.firstOrNull { it.state == SettingState.IN_WORK && it.idStatus == 3L } ?: settings.firstOrNull { it.dateTimePublish != null && formatter.parse(formatter.format(it.dateTimePublish)) == currentDate }
+            "STATUS_4" -> settings.firstOrNull { it.state == SettingState.IN_WORK && it.idStatus == 4L } ?: settings.firstOrNull { it.dateTimePublish != null && formatter.parse(formatter.format(it.dateTimePublish)) == currentDate }
+            "STATUS_6" -> settings.firstOrNull { it.state == SettingState.IN_WORK && it.idStatus == 6L } ?: settings.firstOrNull { it.dateTimePublish != null && formatter.parse(formatter.format(it.dateTimePublish)) == currentDate }
+            else -> null
+        } ?: return ""
+        return sett.date
     }
 
     // Сохраняем маркеры для войса
@@ -686,24 +1076,36 @@ class ApisController(private val webSocket: SimpMessagingTemplate,
     // Создаём караоке
     @PostMapping("/song/createkaraoke")
     @ResponseBody
-    fun getSongCreateKaraoke(@RequestParam id: Long): Boolean {
+    fun getSongCreateKaraoke(@RequestParam id: Long,
+                             @RequestParam(required = false) priorLyrics: Int = 0,
+                             @RequestParam(required = false) priorKaraoke: Int = 1
+    ): Boolean {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
-        return settings?.let {
+
+
+        var type = "danger"
+        val head = "Создание караоке"
+        var body = "Что-то пошло не так"
+        var result = false
+        settings?.let {
             settings.createKaraoke()
-            if (settings.idStatus < 3) {
-                settings.fields[SettingField.ID_STATUS] = "3"
-                settings.saveToDb()
-            }
-            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, 0)
-            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, 1)
-            true
-        } ?: false
+            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, priorLyrics)
+            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, priorKaraoke)
+            type = "info"
+            body = "Создание караоке для песни «${it.songName}» прошло успешно."
+            result = true
+        }
+        SNS.send(SseNotification.message(Message(type = type, head = head, body = body)))
+        return result
     }
 
     // Создаём караоке для всех
     @PostMapping("/songs/createkaraokeall")
     @ResponseBody
-    fun getSongsCreateKaraokeAll(@RequestParam songsIds: String): Boolean {
+    fun getSongsCreateKaraokeAll(@RequestParam songsIds: String,
+                                 @RequestParam(required = false) priorLyrics: Int = 10,
+                                 @RequestParam(required = false) priorKaraoke: Int = 10
+    ) {
         var result = false
         songsIds.let {
             val ids = songsIds.split(";").map { it }.filter { it != "" }.map { it.toLong() }
@@ -711,82 +1113,266 @@ class ApisController(private val webSocket: SimpMessagingTemplate,
                 val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
                 settings?.let {
                     settings.createKaraoke()
-                    KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, 10)
-                    KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, 10)
+                    KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, priorLyrics)
+                    KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, priorKaraoke)
                 }
                 result = true
             }
         }
-        return result
+        if (result) {
+            SNS.send(SseNotification.message(Message(
+                type = "info",
+                head = "Создание караоке для всех",
+                body = "Создание караоке для всех прошло успешно"
+            )))
+        } else {
+            SNS.send(SseNotification.message(Message(
+                type = "warning",
+                head = "Создание караоке для всех",
+                body = "Что-то пошло не так"
+            )))
+        }
     }
 
     // DEMUCS2 для песни
     @PostMapping("/song/demucs2")
     @ResponseBody
-    fun doProcessDemucs2(@RequestParam id: Long): Int {
+    fun doProcessDemucs2(@RequestParam id: Long, @RequestParam(required = false) prior: Int = -1) {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         settings?.let {
-            return  KaraokeProcess.createProcess(settings, KaraokeProcessTypes.DEMUCS2, true, -1)
+            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.DEMUCS2, true, prior)
+            SNS.send(SseNotification.message(Message(
+                type = "info",
+                head = "Создание DEMUCS2",
+                body = "Создание DEMUCS2 прошло успешно"
+            )))
+            return
         }
-        return 0
+        SNS.send(SseNotification.message(Message(
+            type = "warning",
+            head = "Создание DEMUCS2",
+            body = "Что-то пошло не так"
+        )))
     }
 
     // DEMUCS2 для всех
     @PostMapping("/songs/createdemucs2all")
     @ResponseBody
-    fun getSongsCreateDemucs2All(@RequestParam songsIds: String): Boolean {
+    fun getSongsCreateDemucs2All(@RequestParam songsIds: String, @RequestParam(required = false) prior: Int = -1) {
         var result = false
         songsIds.let {
             val ids = songsIds.split(";").map { it }.filter { it != "" }.map { it.toLong() }
             ids.forEach { id ->
                 val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
                 settings?.let {
-                    KaraokeProcess.createProcess(settings, KaraokeProcessTypes.DEMUCS2, true, -1)
+                    KaraokeProcess.createProcess(settings, KaraokeProcessTypes.DEMUCS2, true, prior)
                 }
                 result = true
             }
         }
-        return result
+        if (result) {
+            SNS.send(SseNotification.message(Message(
+                type = "info",
+                head = "Создание DEMUCS2",
+                body = "Создание DEMUCS2 прошло успешно"
+            )))
+        } else {
+            SNS.send(SseNotification.message(Message(
+                type = "warning",
+                head = "Создание DEMUCS2",
+                body = "Что-то пошло не так"
+            )))
+        }
+    }
+
+    // DEMUCS5 для песни
+    @PostMapping("/song/demucs5")
+    @ResponseBody
+    fun doProcessDemucs5(@RequestParam id: Long, @RequestParam(required = false) prior: Int = -1) {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        settings?.let {
+            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.DEMUCS5, true, prior)
+            SNS.send(SseNotification.message(Message(
+                type = "info",
+                head = "Создание DEMUCS5",
+                body = "Создание DEMUCS5 прошло успешно"
+            )))
+            return
+        }
+        SNS.send(SseNotification.message(Message(
+            type = "warning",
+            head = "Создание DEMUCS5",
+            body = "Что-то пошло не так"
+        )))
+    }
+
+    // DEMUCS5 для всех
+    @PostMapping("/songs/createdemucs5all")
+    @ResponseBody
+    fun getSongsCreateDemucs5All(@RequestParam songsIds: String, @RequestParam(required = false) prior: Int = -1) {
+        var result = false
+        songsIds.let {
+            val ids = songsIds.split(";").map { it }.filter { it != "" }.map { it.toLong() }
+            ids.forEach { id ->
+                val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+                settings?.let {
+                    KaraokeProcess.createProcess(settings, KaraokeProcessTypes.DEMUCS5, true, prior)
+                }
+                result = true
+            }
+        }
+        if (result) {
+            SNS.send(SseNotification.message(Message(
+                type = "info",
+                head = "Создание DEMUCS5",
+                body = "Создание DEMUCS5 прошло успешно"
+            )))
+        } else {
+            SNS.send(SseNotification.message(Message(
+                type = "warning",
+                head = "Создание DEMUCS5",
+                body = "Что-то пошло не так"
+            )))
+        }
     }
 
     // Удаляем песню
     @PostMapping("/song/delete")
     @ResponseBody
-    fun doDeleteSong(@RequestParam id: Long): Boolean {
+    fun doDeleteSong(@RequestParam id: Long) {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         settings?.let {
             it.deleteFromDb()
         }
-        return true
     }
 
-    // Создаём SYMLINKs для песни
-    @PostMapping("/song/symlink")
+    // Создаём MP3 KARAOKE для песни
+    @PostMapping("/song/mp3karaoke")
     @ResponseBody
-    fun doSymlink(@RequestParam id: Long): Int {
+    fun doMP3Karaoke(@RequestParam id: Long, @RequestParam(required = false) prior: Int = -1) {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
-        settings?.let {
-            it.doSymlink()
-        }
-        return 0
+        settings?.doMP3Karaoke(prior)
+        SNS.send(SseNotification.message(Message(
+            type = "info",
+            head = "Создание MP3 KARAOKE",
+            body = "Создание MP3 KARAOKE прошло успешно"
+        )))
     }
 
-    // Создаём SYMLINKs для всех
-    @PostMapping("/songs/createsymlinksall")
+    // Создаём MP3 KARAOKE для всех
+    @PostMapping("/songs/createmp3karaokeall")
     @ResponseBody
-    fun getSongsCreateSymlinksAll(@RequestParam songsIds: String): Boolean {
+    fun getSongsCreateMP3KaraokeAll(@RequestParam songsIds: String, @RequestParam(required = false) prior: Int = -1) {
         var result = false
         songsIds.let {
             val ids = songsIds.split(";").map { it }.filter { it != "" }.map { it.toLong() }
             ids.forEach { id ->
                 val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
                 settings?.let {
-                    it.doSymlink()
+                    it.doMP3Karaoke(prior)
                 }
                 result = true
             }
         }
-        return result
+        if (result) {
+            SNS.send(SseNotification.message(Message(
+                type = "info",
+                head = "Создание MP3 KARAOKE",
+                body = "Создание MP3 KARAOKE прошло успешно"
+            )))
+        } else {
+            SNS.send(SseNotification.message(Message(
+                type = "warning",
+                head = "Создание MP3 KARAOKE",
+                body = "Что-то пошло не так"
+            )))
+        }
+    }
+
+    // Создаём MP3 LYRICS для песни
+    @PostMapping("/song/mp3lyrics")
+    @ResponseBody
+    fun doMP3Lyrics(@RequestParam id: Long, @RequestParam(required = false) prior: Int = -1) {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        settings?.doMP3Lyrics(prior)
+        SNS.send(SseNotification.message(Message(
+            type = "info",
+            head = "Создание MP3 LYRICS",
+            body = "Создание MP3 LYRICS прошло успешно"
+        )))
+    }
+
+    // Создаём MP3 LYRICS для всех
+    @PostMapping("/songs/createmp3lyricsall")
+    @ResponseBody
+    fun getSongsCreateMP3LyricsAll(@RequestParam songsIds: String, @RequestParam(required = false) prior: Int = -1) {
+        var result = false
+        songsIds.let {
+            val ids = songsIds.split(";").map { it }.filter { it != "" }.map { it.toLong() }
+            ids.forEach { id ->
+                val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+                settings?.let {
+                    it.doMP3Lyrics(prior)
+                }
+                result = true
+            }
+        }
+        if (result) {
+            SNS.send(SseNotification.message(Message(
+                type = "info",
+                head = "Создание MP3 LYRICS",
+                body = "Создание MP3 LYRICS прошло успешно"
+            )))
+        } else {
+            SNS.send(SseNotification.message(Message(
+                type = "warning",
+                head = "Создание MP3 LYRICS",
+                body = "Что-то пошло не так"
+            )))
+        }
+    }
+
+    // Создаём SYMLINKs для песни
+    @PostMapping("/song/symlink")
+    @ResponseBody
+    fun doSymlink(@RequestParam id: Long, @RequestParam(required = false) prior: Int = -1) {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        settings?.doSymlink(prior)
+        SNS.send(SseNotification.message(Message(
+            type = "info",
+            head = "Создание SYMLINK",
+            body = "Создание SYMLINK прошло успешно"
+        )))
+    }
+
+    // Создаём SYMLINKs для всех
+    @PostMapping("/songs/createsymlinksall")
+    @ResponseBody
+    fun getSongsCreateSymlinksAll(@RequestParam songsIds: String, @RequestParam(required = false) prior: Int = -1) {
+        var result = false
+        songsIds.let {
+            val ids = songsIds.split(";").map { it }.filter { it != "" }.map { it.toLong() }
+            ids.forEach { id ->
+                val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+                settings?.let {
+                    it.doSymlink(prior)
+                }
+                result = true
+            }
+        }
+        if (result) {
+            SNS.send(SseNotification.message(Message(
+                type = "info",
+                head = "Создание SYMLINKs",
+                body = "Создание SYMLINKs прошло успешно"
+            )))
+        } else {
+            SNS.send(SseNotification.message(Message(
+                type = "warning",
+                head = "Создание SYMLINKs",
+                body = "Что-то пошло не так"
+            )))
+        }
     }
 
     // Ищем и возвращаем текст
@@ -829,12 +1415,16 @@ class ApisController(private val webSocket: SimpMessagingTemplate,
 
     @PostMapping("/song/setpublishdatetimetoauthor")
     @ResponseBody
-    fun doSetPublishDateTimeToAuthor(@RequestParam id: Long): Boolean {
+    fun doSetPublishDateTimeToAuthor(@RequestParam id: Long) {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         settings?.let {
             Settings.setPublishDateTimeToAuthor(settings)
         }
-        return true
+        SNS.send(SseNotification.message(Message(
+            type = "info",
+            head = "Даты публикации",
+            body = "Изменение дат публикаций для автора прошло успешно"
+        )))
     }
 
     // Заменяем символы в тексте
@@ -851,8 +1441,13 @@ class ApisController(private val webSocket: SimpMessagingTemplate,
         @RequestParam(required = true) dictName: String,
         @RequestParam(required = true) dictValue: String,
         @RequestParam(required = true) dictAction: String
-    ): Boolean {
-        return TextFileDictionary.doAction(dictName, dictAction, listOf(dictValue))
+    ) {
+        TextFileDictionary.doAction(dictName, dictAction, listOf(dictValue))
+        SNS.send(SseNotification.message(Message(
+            type = "info",
+            head = "Действия со словарями",
+            body = "Действие «$dictAction», словарь «$dictName», слово «$dictValue» прошло успешно"
+        )))
     }
 
     // Обновляем RemoteDatabase
@@ -862,9 +1457,15 @@ class ApisController(private val webSocket: SimpMessagingTemplate,
         @RequestParam(required = true) updateSettings: Boolean = true,
         @RequestParam(required = true) updatePictures: Boolean = true
     ): List<Int> {
-        val result = updateRemoteDatabaseFromLocalDatabase(updateSettings,updatePictures)
-
-        return listOf(result.first, result.second, result.third)
+        val (countCreate, countUpdate, countDelete) = updateRemoteDatabaseFromLocalDatabase(updateSettings,updatePictures)
+        SNS.send(SseNotification.message(
+            Message(
+            type = "info",
+            head = "Обновление БД",
+            body = "Создано записей: $countCreate, обновлено записей: $countUpdate, удалено записей: $countDelete"
+        )
+        ))
+        return listOf(countCreate, countUpdate, countDelete)
     }
 
     // Обновляем LocalDatabase
@@ -874,70 +1475,171 @@ class ApisController(private val webSocket: SimpMessagingTemplate,
         @RequestParam(required = true) updateSettings: Boolean = true,
         @RequestParam(required = true) updatePictures: Boolean = true
     ): List<Int> {
-        val result = updateLocalDatabaseFromRemoteDatabase(updateSettings,updatePictures)
-
-        return listOf(result.first, result.second, result.third)
+        val (countCreate, countUpdate, countDelete) = updateLocalDatabaseFromRemoteDatabase(updateSettings,updatePictures)
+        SNS.send(SseNotification.message(Message(
+            type = "info",
+            head = "Обновление БД",
+            body = "Создано записей: $countCreate, обновлено записей: $countUpdate, удалено записей: $countDelete"
+        )))
+        return listOf(countCreate, countUpdate, countDelete)
     }
 
     // Добавление файлов из папки
     @PostMapping("/utils/createfromfolder")
     @ResponseBody
     fun doCreateFromFolder(
-        @RequestParam(required = true) folder: String): Int {
-        return Settings.createFromPath(folder, WORKING_DATABASE).size
+        @RequestParam(required = true) folder: String) {
+        val result =  Settings.createFromPath(folder, WORKING_DATABASE).size
+        SNS.send(SseNotification.message(Message(
+            type = "info",
+            head = "Добавление файлов из папки",
+            body = "Добавлено файлов из папки «$folder»: $result"
+        )))
     }
 
     // Создание картинок Dzen для папки
     @PostMapping("/utils/createdzenpicturesforfolder")
     @ResponseBody
     fun doCreateDzenPicturesForFolder(
-        @RequestParam(required = true) folder: String): Boolean {
+        @RequestParam(required = true) folder: String) {
         createDzenPicture(folder)
-        return true
+        SNS.send(SseNotification.message(Message(
+            type = "info",
+            head = "Создание картинок Dzen для папки",
+            body = "Создание картинок Dzen для папки «$folder» прошло успешно"
+        )))
     }
 
     @PostMapping("/utils/collectstore")
     @ResponseBody
-    fun doCollectStore(): Any {
-        val result = collectDoneFilesToStoreFolderAndCreate720pForAllUncreated(WORKING_DATABASE)
-        return listOf(result.first, result.second)
+    fun doCollectStore(@RequestParam(required = false) songsIds: String = "",
+                       @RequestParam(required = false) priorLyrics: Int = 10,
+                       @RequestParam(required = false) priorKaraoke: Int = 10): Any {
+        val settingsList = if (songsIds == "") {
+            Settings.loadListFromDb(database = WORKING_DATABASE)
+        } else {
+            val ids = songsIds.split(";").map { it }.filter { it != "" }.map { it.toLong() }
+            val result: MutableList<Settings> = mutableListOf()
+            ids.forEach { id ->
+                val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+                settings?.let { result.add(it) }
+            }
+            result.toList()
+        }
+
+        val (countCopy, countCode) = collectDoneFilesToStoreFolderAndCreate720pForAllUncreated(
+            settingsList = settingsList, priorLyrics = priorLyrics, priorKaraoke = priorKaraoke)
+        SNS.send(SseNotification.message(Message(
+            type = "info",
+            head = "Обновление хранилища",
+            body = "Скопировано песен в хранилище: $countCopy, создано заданий на кодирование: $countCode"
+        )))
+        return listOf(countCopy, countCode)
     }
 
 
     // Обновить пустые BPM и KEY из фалов CSV
     @PostMapping("/utils/updatebpmandkey")
     @ResponseBody
-    fun doUpdateBpmAndKey(): Int {
-        return updateBpmAndKey(WORKING_DATABASE)
+    fun doUpdateBpmAndKey() {
+        val result =  updateBpmAndKey(WORKING_DATABASE)
+        SNS.send(SseNotification.message(Message(
+            type = "info",
+            head = "Обновление BPM и KEY из фалов CSV",
+            body = "Обновлено пустых BPM и KEY из фалов CSV: $result"
+        )))
     }
 
     // Найти и пометить дубликаты песен автора
     @PostMapping("/utils/markdublicates")
     @ResponseBody
     fun doMarkDublicates(
-        @RequestParam(required = true) author: String): Int {
-        return markDublicates(author, WORKING_DATABASE)
+        @RequestParam(required = true) author: String) {
+        val result = markDublicates(author, WORKING_DATABASE)
+        SNS.send(SseNotification.message(Message(
+            type = "info",
+            head = "Нахождение дубликатов",
+            body = "Найдено и отмечено дубликатов: $result"
+        )))
     }
 
     // Удалить дубликаты
     @PostMapping("/utils/deldublicates")
     @ResponseBody
-    fun doDelDublicates(): Int {
-        return delDublicates(WORKING_DATABASE)
+    fun doDelDublicates() {
+        val result = delDublicates(WORKING_DATABASE)
+        SNS.send(SseNotification.message(Message(
+            type = "info",
+            head = "Удаление дубликатов",
+            body = "Удалено дубликатов: $result"
+        )))
     }
 
     // Очистить информацию о пре-дубликатах
     @PostMapping("/utils/clearpredublicates")
     @ResponseBody
-    fun doClearPreDublicates(): Int {
-        return clearPreDublicates(WORKING_DATABASE)
+    fun doClearPreDublicates() {
+        val result = clearPreDublicates(WORKING_DATABASE)
+        SNS.send(SseNotification.message(Message(
+            type = "info",
+            head = "Очистка пре-дубликатов",
+            body = "Очищено пре-дубликатов: $result"
+        )))
     }
 
     // Выполнить Custom Function
     @PostMapping("/utils/customfunction")
     @ResponseBody
-    fun doCustomFunction(): String {
-        return customFunction()
+    fun doCustomFunction() {
+        val result = customFunction()
+        SNS.send(SseNotification.message(Message(
+            type = "info",
+            head = "Custom Function",
+            body = "CustomFunction выполнена с результатом: «$result»"
+        )))
     }
+
+    @PostMapping("/processes/deletedone")
+    @ResponseBody
+    fun doProcessDeleteDone() {
+        KaraokeProcessWorker.deleteDone(WORKING_DATABASE)
+    }
+
+    @PostMapping("/processes/workerstatus")
+    @ResponseBody
+    fun getProcessWorkerStatus(): Map<String, Any> {
+        return mapOf("isWork" to KaraokeProcessWorker.isWork, "stopAfterThreadIsDone" to KaraokeProcessWorker.stopAfterThreadIsDone)
+    }
+
+    @PostMapping("/processes/workerstartstop")
+    @ResponseBody
+    fun getProcessWorkerStartStop() {
+        if (KaraokeProcessWorker.isWork) {
+            KaraokeProcessWorker.stop()
+        } else {
+            KaraokeProcessWorker.start(WORKING_DATABASE)
+        }
+    }
+
+    @GetMapping("/subscribe")
+    fun subscribeSse(
+        response: HttpServletResponse
+    ): SseEmitter {
+
+        response.setHeader("Cache-Control", "no-store")
+        response.setHeader("Cache-Control", "no-cache")
+        response.setHeader("Content-Type", MediaType.TEXT_EVENT_STREAM_VALUE)
+        response.setHeader("X-Accel-Buffering", "no")
+
+//        val tabId: String = "tabId"
+//        val userId: Long = 1L
+
+        return sseNotificationService.subscribe()
+    }
+
+//    @PostMapping("/send/{targetUserId}")
+//    suspend fun sendSse(@PathVariable targetUserId: Long, @RequestBody payload: RecordChangeMessage) {
+//        sseNotificationService.send(targetUserId, payload)
+//    }
 
 }

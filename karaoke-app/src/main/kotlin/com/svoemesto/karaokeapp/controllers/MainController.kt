@@ -23,12 +23,7 @@ import java.io.File
 import java.util.*
 
 @Controller
-class MainController(
-    private val webSocket: SimpMessagingTemplate,
-    private val objectMapper: ObjectMapper
-) {
-
-
+class MainController {
 
     @GetMapping("/")
     fun main(model: Model, request: HttpServletRequest): String {
@@ -65,7 +60,7 @@ class MainController(
     @GetMapping("/utils/collectstore")
     @ResponseBody
     fun doCollectStore(): Boolean {
-        collectDoneFilesToStoreFolderAndCreate720pForAllUncreated(WORKING_DATABASE)
+        collectDoneFilesToStoreFolderAndCreate720pForAllUncreated(emptyList())
         return true
     }
 
@@ -219,7 +214,7 @@ class MainController(
     @GetMapping("/process/stop")
     @ResponseBody
     fun doProcessWorkerStop(): Boolean {
-        KaraokeProcessWorker.stop(WORKING_DATABASE)
+        KaraokeProcessWorker.stop()
         return KaraokeProcessWorker.isWork
     }
 
@@ -1202,6 +1197,7 @@ class MainController(
         @RequestParam(required = false) flag_telegram_lyrics: String?,
         @RequestParam(required = false) flag_telegram_karaoke: String?,
         @RequestParam(required = false) flag_telegram_chords: String?,
+        @RequestParam(required = false) filter_result_version: String?,
         model: Model): String {
 
         val args: MutableMap<String, String> = mutableMapOf()
@@ -1226,6 +1222,7 @@ class MainController(
         flag_telegram_lyrics?.let { if (flag_telegram_lyrics != "") args["flag_telegram_lyrics"] = flag_telegram_lyrics }
         flag_telegram_karaoke?.let { if (flag_telegram_karaoke != "") args["flag_telegram_karaoke"] = flag_telegram_karaoke }
         flag_telegram_chords?.let { if (flag_telegram_chords != "") args["flag_telegram_chords"] = flag_telegram_chords }
+        filter_result_version?.let { if (filter_result_version != "") args["filter_result_version"] = filter_result_version }
         model.addAttribute("workInContainer", APP_WORK_IN_CONTAINER)
         model.addAttribute("sett", Settings.loadListFromDb(args, WORKING_DATABASE))
         model.addAttribute("authors", Settings.loadListAuthors(WORKING_DATABASE))
@@ -1260,6 +1257,7 @@ class MainController(
         @RequestParam(required = false) settings_idTelegramLyrics: String,
         @RequestParam(required = false) settings_idTelegramKaraoke: String,
         @RequestParam(required = false) settings_idTelegramChords: String,
+        @RequestParam(required = false) settings_resultVersion: String,
         @RequestParam(required = false) select_status: String,
         model: Model): String {
         val settingsId: Long = settings_id.toLong()
@@ -1291,6 +1289,7 @@ class MainController(
             sett.fields[SettingField.ID_TELEGRAM_LYRICS] = settings_idTelegramLyrics
             sett.fields[SettingField.ID_TELEGRAM_KARAOKE] = settings_idTelegramKaraoke
             sett.fields[SettingField.ID_TELEGRAM_CHORDS] = settings_idTelegramChords
+            sett.fields[SettingField.RESULT_VERSION] = settings_resultVersion
             sett.fields[SettingField.ID_STATUS] = select_status
             sett.saveToDb()
             sett.saveToFile()
@@ -1369,6 +1368,7 @@ class MainController(
         @RequestParam(required = false) flag_telegram_lyrics: String?,
         @RequestParam(required = false) flag_telegram_karaoke: String?,
         @RequestParam(required = false) flag_telegram_chords: String?,
+        @RequestParam(required = false) filter_result_version: String?,
         model: Model): String {
 
         val args: MutableMap<String, String> = mutableMapOf()
@@ -1393,6 +1393,7 @@ class MainController(
         flag_telegram_lyrics?.let { if (flag_telegram_lyrics != "") args["flag_telegram_lyrics"] = flag_telegram_lyrics }
         flag_telegram_karaoke?.let { if (flag_telegram_karaoke != "") args["flag_telegram_karaoke"] = flag_telegram_karaoke }
         flag_telegram_chords?.let { if (flag_telegram_chords != "") args["flag_telegram_chords"] = flag_telegram_chords }
+        filter_result_version?.let { if (filter_result_version != "") args["filter_result_version"] = filter_result_version }
         model.addAttribute("workInContainer", APP_WORK_IN_CONTAINER)
         model.addAttribute("sett", Settings.loadListFromDb(args, WORKING_DATABASE))
         model.addAttribute("authors", Settings.loadListAuthors(WORKING_DATABASE))
@@ -1429,6 +1430,7 @@ class MainController(
         @RequestParam(required = false) settings_idTelegramLyrics: String,
         @RequestParam(required = false) settings_idTelegramKaraoke: String,
         @RequestParam(required = false) settings_idTelegramChords: String,
+        @RequestParam(required = false) settings_resultVersion: String,
         @RequestParam(required = false) select_status: String,
         model: Model): String {
         val settingsId: Long = settings_id.toLong()
@@ -1460,6 +1462,7 @@ class MainController(
             sett.fields[SettingField.ID_TELEGRAM_LYRICS] = settings_idTelegramLyrics
             sett.fields[SettingField.ID_TELEGRAM_KARAOKE] = settings_idTelegramKaraoke
             sett.fields[SettingField.ID_TELEGRAM_CHORDS] = settings_idTelegramChords
+            sett.fields[SettingField.RESULT_VERSION] = settings_resultVersion
             sett.fields[SettingField.ID_STATUS] = select_status
             sett.saveToDb()
             sett.saveToFile()

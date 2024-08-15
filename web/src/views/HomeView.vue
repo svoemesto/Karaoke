@@ -4,7 +4,7 @@
 
     <div class="home-wrapper">
       <datalist id="list_authors">
-        <option v-for="author in authors" :key="author" :value="author"/>
+        <option v-for="author in songAuthors" :key="author" :value="author"/>
       </datalist>
       <datalist id="list_dicts">
         <option v-for="dict in dicts" :key="dict" :value="dict"/>
@@ -43,7 +43,7 @@
 
 <script>
 
-import CustomConfirm from '../components/CustomConfirm.vue';
+import CustomConfirm from '../components/Common/CustomConfirm.vue';
 // import { useFileDialog } from '@vueuse/core'
 export default {
   name: 'HomeView',
@@ -58,14 +58,14 @@ export default {
       author: '',
       dictType: '',
       dictValue: '',
-      authors: [],
+      songAuthors: [],
       dicts:[]
     }
   },
   async mounted() {
-    let authors = await this.$store.getters.authors;
+    let songAuthors = await this.$store.getters.songAuthors;
     let dicts = await this.$store.getters.dicst;
-    this.authors = authors;
+    this.songAuthors = songAuthors;
     this.dicts = dicts;
   },
   methods: {
@@ -122,13 +122,28 @@ export default {
       this.customConfirmParams = {
         header: 'Обновление хранилища',
         body: `Скопировать недостающие файлы в хранилище<br>и создать задачи на кодирование недостающих 720p?`,
-        timeout: 10,
-        callback: this.doCopyToStore
+        callback: this.doCopyToStore,
+        fields: [
+          {
+            fldName: 'priorLyrics',
+            fldLabel: 'Приоритет Lyrics:',
+            fldValue: 10,
+            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
+            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
+          },
+          {
+            fldName: 'priorKaraoke',
+            fldLabel: 'Приоритет Karaoke:',
+            fldValue: 10,
+            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
+            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
+          }
+        ]
       }
       this.isCustomConfirmVisible = true;
     },
-    doCopyToStore() {
-      this.$store.dispatch('collectStorePromise').then(data => {
+    doCopyToStore(result) {
+      this.$store.dispatch('collectStorePromise', {priorLyrics: result.priorLyrics, priorKaraoke: result.priorKaraoke}).then(data => {
         let result = JSON.parse(data);
         this.customConfirmParams = {
           isAlert: true,
@@ -408,7 +423,7 @@ export default {
 }
 </script>
 
-<style>
+<style scoped>
 
 .home {
   display: flex;

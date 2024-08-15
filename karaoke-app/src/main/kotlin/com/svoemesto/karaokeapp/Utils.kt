@@ -168,7 +168,7 @@ fun updateDatabases(fromDatabase: KaraokeConnection, toDatabase: KaraokeConnecti
                 // Если диффы есть - вносим изменения в базу В
                 if (diff.isNotEmpty()) {
                     println("Изменяем запись: id=${settingsFrom.id}, author=${settingsFrom.author}, album=${settingsFrom.album}, name=${settingsFrom.songName}")
-                    val messageRecordChange = RecordChangeMessage(recordChangeTableName = "tbl_settings",  recordChangeId = settingsTo.id, recordChangeDiffs = diff, databaseName = toDatabase.name)
+                    val messageRecordChange = RecordChangeMessage(tableName = "tbl_settings",  recordId = settingsTo.id, diffs = diff, databaseName = toDatabase.name, record = settingsFrom.toDTO())
 
                     if (toDatabase.name == "SERVER") {
 
@@ -178,8 +178,8 @@ fun updateDatabases(fromDatabase: KaraokeConnection, toDatabase: KaraokeConnecti
 
                             val setStrEncrypted = Crypto.encrypt(setStr)
                             val values: Map<String, Any> = mapOf(
-                                "tableName" to messageRecordChange.recordChangeTableName,
-                                "idRecord" to messageRecordChange.recordChangeId,
+                                "tableName" to messageRecordChange.tableName,
+                                "idRecord" to messageRecordChange.recordId,
                                 "setText" to (setStrEncrypted ?: "")
                                 )
                             listToUpdate.add(values)
@@ -284,7 +284,7 @@ fun updateDatabases(fromDatabase: KaraokeConnection, toDatabase: KaraokeConnecti
 
                 if (diff.isNotEmpty()) {
                     println("Изменяем запись: id=${pictureFrom.id}, name=${pictureFrom.name}")
-                    val messageRecordChange = RecordChangeMessage(recordChangeTableName = "tbl_pictures",  recordChangeId = pictureTo.id.toLong(), recordChangeDiffs = diff, databaseName = toDatabase.name)
+                    val messageRecordChange = RecordChangeMessage(tableName = "tbl_pictures",  recordId = pictureTo.id.toLong(), diffs = diff, databaseName = toDatabase.name, record = pictureFrom)
 
                     if (toDatabase.name == "SERVER") {
 
@@ -294,8 +294,8 @@ fun updateDatabases(fromDatabase: KaraokeConnection, toDatabase: KaraokeConnecti
 
                             val setStrEncrypted = Crypto.encrypt(setStr)
                             val values: Map<String, Any> = mapOf(
-                                "tableName" to messageRecordChange.recordChangeTableName,
-                                "idRecord" to messageRecordChange.recordChangeId,
+                                "tableName" to messageRecordChange.tableName,
+                                "idRecord" to messageRecordChange.recordId,
                                 "setText" to (setStrEncrypted ?: "")
                             )
                             listToUpdate.add(values)
@@ -366,23 +366,96 @@ fun updateDatabases(fromDatabase: KaraokeConnection, toDatabase: KaraokeConnecti
     if (toDatabase.name == "SERVER") {
         println("Запрос на сервер на изменение/добавление/удаление.")
 
-        val values: Map<String, Any> = mapOf(
-            "dataCreate" to listToCreate,
-            "dataUpdate" to listToUpdate,
-            "dataDelete" to listToDelete,
-            "word" to (Crypto.encrypt(Crypto.wordsToChesk) ?: "")
-        )
+        if (listToCreate.isNotEmpty()) {
+            println("Запрос на сервер на добавление.")
 
-        val objectMapper = ObjectMapper()
-        val requestBody: String = objectMapper.writeValueAsString(values)
-        val client = HttpClient.newBuilder().build();
-        val request = HttpRequest.newBuilder()
-            .uri(URI.create("https://sm-karaoke.ru/changerecords"))
-            .POST(HttpRequest.BodyPublishers.ofString(requestBody))
-            .header("Content-Type", "application/json")
-            .build()
-        val response = client.send(request, HttpResponse.BodyHandlers.ofString());
-        println(response.body())
+            val values: Map<String, Any> = mapOf(
+                "dataCreate" to listToCreate,
+                "dataUpdate" to emptyList<Map<String, Any>>(),
+                "dataDelete" to emptyList<Map<String, Any>>(),
+                "word" to (Crypto.encrypt(Crypto.wordsToChesk) ?: "")
+            )
+
+            val objectMapper = ObjectMapper()
+            val requestBody: String = objectMapper.writeValueAsString(values)
+            val client = HttpClient.newBuilder().build();
+            val request = HttpRequest.newBuilder()
+                .uri(URI.create("https://sm-karaoke.ru/changerecords"))
+                .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                .header("Content-Type", "application/json")
+                .build()
+            val response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            println(response.body())
+
+        }
+
+        if (listToDelete.isNotEmpty()) {
+            println("Запрос на сервер на удаление.")
+
+            val values: Map<String, Any> = mapOf(
+                "dataCreate" to emptyList<Map<String, Any>>(),
+                "dataUpdate" to emptyList<Map<String, Any>>(),
+                "dataDelete" to listToDelete,
+                "word" to (Crypto.encrypt(Crypto.wordsToChesk) ?: "")
+            )
+
+            val objectMapper = ObjectMapper()
+            val requestBody: String = objectMapper.writeValueAsString(values)
+            val client = HttpClient.newBuilder().build();
+            val request = HttpRequest.newBuilder()
+                .uri(URI.create("https://sm-karaoke.ru/changerecords"))
+                .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                .header("Content-Type", "application/json")
+                .build()
+            val response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            println(response.body())
+
+        }
+
+        if (listToUpdate.isNotEmpty()) {
+            println("Запрос на сервер на изменение.")
+
+            val chunked = listToUpdate.chunked(10)
+            chunked.forEach { lstToUpdate ->
+                val values: Map<String, Any> = mapOf(
+                    "dataCreate" to emptyList<Map<String, Any>>(),
+                    "dataUpdate" to lstToUpdate,
+                    "dataDelete" to emptyList<Map<String, Any>>(),
+                    "word" to (Crypto.encrypt(Crypto.wordsToChesk) ?: "")
+                )
+
+                val objectMapper = ObjectMapper()
+                val requestBody: String = objectMapper.writeValueAsString(values)
+                val client = HttpClient.newBuilder().build();
+                val request = HttpRequest.newBuilder()
+                    .uri(URI.create("https://sm-karaoke.ru/changerecords"))
+                    .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                    .header("Content-Type", "application/json")
+                    .build()
+                val response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                println(response.body())
+            }
+
+        }
+
+//        val values: Map<String, Any> = mapOf(
+//            "dataCreate" to listToCreate,
+//            "dataUpdate" to listToUpdate,
+//            "dataDelete" to listToDelete,
+//            "word" to (Crypto.encrypt(Crypto.wordsToChesk) ?: "")
+//        )
+//
+//        val objectMapper = ObjectMapper()
+//        val requestBody: String = objectMapper.writeValueAsString(values)
+//        val client = HttpClient.newBuilder().build();
+//        val request = HttpRequest.newBuilder()
+//            .uri(URI.create("https://sm-karaoke.ru/changerecords"))
+//            .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+//            .header("Content-Type", "application/json")
+//            .build()
+//        val response = client.send(request, HttpResponse.BodyHandlers.ofString());
+//        println(response.body())
+
     }
 
     return Triple(countCreate, countUpdate, countDelete)
@@ -577,9 +650,9 @@ fun copyIfNeed(pathFrom: String, pathTo: String, folderTo: String, log: String =
     return 0
 }
 
-fun collectDoneFilesToStoreFolderAndCreate720pForAllUncreated(database: KaraokeConnection): Pair<Int, Int> {
+fun collectDoneFilesToStoreFolderAndCreate720pForAllUncreated(settingsList: List<Settings>, priorLyrics: Int = 10, priorKaraoke: Int = 10): Pair<Int, Int> {
     println("Копирование в хранилище и создание заданий на кодирование в 720р")
-    val settingsList = Settings.loadListFromDb(database = database)
+//    val settingsList = Settings.loadListFromDb(database = database)
     var countCopy = 0;
     var countCode = 0;
     settingsList.forEach { settings ->
@@ -606,7 +679,7 @@ fun collectDoneFilesToStoreFolderAndCreate720pForAllUncreated(database: KaraokeC
         }
         if (needCreateLyrics720) {
             println("Создаём задание на кодирование в 720р для файла: ${settings.nameFileLyrics}")
-            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_LYR, true, 1)
+            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_LYR, true, priorLyrics)
             countCode++
         }
 
@@ -629,7 +702,7 @@ fun collectDoneFilesToStoreFolderAndCreate720pForAllUncreated(database: KaraokeC
         }
         if (needCreateKaraoke720) {
             println("Создаём задание на кодирование в 720р для файла: ${settings.nameFileKaraoke}")
-            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_KAR, true, 1)
+            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_KAR, true, priorKaraoke)
             countCode++
         }
 
@@ -668,6 +741,27 @@ fun replaceSymbolsInSong(sourceText: String): String {
     result = result.replace("—","-")
     result = result.replace("–","-")
     result = result.replace("−","-")
+
+    if (sourceText.containThisSymbols(RUSSIN_LETTERS)) {
+        result = result.replace("p","р")
+        result = result.replace("y","у")
+        result = result.replace("e","е")
+        result = result.replace("o","о")
+        result = result.replace("a","а")
+        result = result.replace("x","х")
+        result = result.replace("c","с")
+        result = result.replace("A","А")
+        result = result.replace("T","Т")
+        result = result.replace("O","О")
+        result = result.replace("P","Р")
+        result = result.replace("H","Н")
+        result = result.replace("K","К")
+        result = result.replace("X","Х")
+        result = result.replace("C","С")
+        result = result.replace("B","В")
+        result = result.replace("M","М")
+    }
+
 //    result = result.replace(" -\n","_-\n")
 
     return result
@@ -3100,3 +3194,13 @@ fun getSyllables(text: String): List<String> {
 //        }
 //    }
 //}
+
+class Solution {
+    fun merge(nums1: IntArray, m: Int, nums2: IntArray, n: Int): Unit {
+        val result: MutableList<Int> = mutableListOf()
+        result.addAll(nums1.filterIndexed { index, _ -> index < m })
+        result.addAll(nums2.filterIndexed { index, _ -> index < n })
+        result.sort()
+        println(result)
+    }
+}

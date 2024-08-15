@@ -104,6 +104,7 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
                 "Группа ВКонтакте: https://vk.com/svoemestokaraoke\n" +
                 "Канал Telegram: https://t.me/svoemestokaraoke\n" +
                 "Канал Дзен: https://dzen.ru/svoemesto\n" +
+                "Канал Платформа: https://plvideo.ru/channel/@sm-karaoke\n" +
                 "${settings.songName.hashtag()} ${settings.author.hashtag()} ${"karaoke".hashtag()} ${"караоке".hashtag()}\n"
     }
 
@@ -130,11 +131,11 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
 
     }
 
-    fun getDescriptionWOHeaderWithTimecodes(maxSymbols: Int = 0): String {
+    fun getDescriptionWOHeaderWithTimecodes(maxSymbols: Int = 0, maxTimeCodes: Int? = null): String {
 
         val txtStart = getTextForDescriptionHeader()
         val txtEnd = getTextForDescriptionFooter()
-        val txtDescription = getTextForDescriptionWithTimecodes(maxSymbols - txtStart.length - txtEnd.length)
+        val txtDescription = getTextForDescriptionWithTimecodes(maxSymbols - txtStart.length - txtEnd.length, maxTimeCodes)
 
         return txtStart + txtDescription + txtEnd
 
@@ -182,27 +183,27 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
     }
 
     fun getTextForDescription(maxSymbols: Int = 0): String {
-        var result = ""
+        var result = settings.getTextBody()
 
-        voices.forEach { voice ->
-            var prevLineText = ""
-            var prevLineGroup = 0
-            voice.lines.forEach { line ->
-                if (line.group != prevLineGroup) {
-                    result += "\n"
-                }
-                prevLineGroup = line.group
-                if (!(line.text.trim() == "" && prevLineText == "")) {
-                    result += line.text.trim().uppercaseFirstLetter() + "\n"
-                }
-                prevLineText = line.text.trim().uppercaseFirstLetter()
-            }
-            if (voice != voices.last()) result += "\n" + "----------------------------------------------------" + "\n\n"
-        }
-
-        if (hasChords) {
-            return result.replace("\n\n","\n").deleteThisSymbols(NOTES_SYMBOLS)
-        }
+//        voices.forEach { voice ->
+//            var prevLineText = ""
+//            var prevLineGroup = 0
+//            voice.lines.forEach { line ->
+//                if (line.group != prevLineGroup) {
+//                    result += "\n"
+//                }
+//                prevLineGroup = line.group
+//                if (!(line.text.trim() == "" && prevLineText == "")) {
+//                    result += line.text.trim().uppercaseFirstLetter() + "\n"
+//                }
+//                prevLineText = line.text.trim().uppercaseFirstLetter()
+//            }
+//            if (voice != voices.last()) result += "\n" + "----------------------------------------------------" + "\n\n"
+//        }
+//
+//        if (hasChords) {
+//            return result.replace("\n\n","\n").deleteThisSymbols(NOTES_SYMBOLS)
+//        }
 
         while (maxSymbols > 0 && result.length > maxSymbols) {
             val lst = result.split("\n").toMutableList()
@@ -213,9 +214,10 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
         return result
     }
 
-    fun getTextForDescriptionWithTimecodes(maxSymbols: Int = 0): String {
+    fun getTextForDescriptionWithTimecodes(maxSymbols: Int = 0, maxTimeCodes: Int? = null): String {
         var result = ""
         var prevLineGroup = 0
+        var timeCodeCounter = 0;
         voices.forEach { voice ->
             var prevLineText = ""
             voice.lines.forEach { line ->
@@ -231,7 +233,9 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
                         if (line.type == SongVoiceLineType.COMMENTS) {
                             result += line.text.trim() + "\n"
                         } else {
-                            result += line.startYT + " " + line.text.trim().uppercaseFirstLetter() + "\n"
+                            timeCodeCounter++
+                            val timeCodeText = if (maxTimeCodes == null || timeCodeCounter > maxTimeCodes) "" else line.startYT + " "
+                            result += timeCodeText + line.text.trim().uppercaseFirstLetter() + "\n"
                         }
 
                     } else {

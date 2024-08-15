@@ -1,6 +1,7 @@
 package com.svoemesto.karaokeapp
 
 import com.svoemesto.karaokeapp.model.*
+import com.svoemesto.karaokeapp.services.SNS
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.encodeToString
@@ -19,6 +20,41 @@ import java.time.Instant
 import java.util.Date
 import java.util.concurrent.TimeUnit
 import kotlin.io.path.Path
+
+data class ProcessesDTO(
+    val id: Int,
+    val name: String,
+    val status: String,
+    val order: Int,
+    val priority: Int,
+    val command: String,
+    val args: List<List<String>>,
+    val argsDescription: List<String>,
+    val description: String,
+    val settingsId: Int,
+    val type: String,
+    val start: Timestamp?,
+    val end: Timestamp?,
+    val prioritet: Int,
+    val startStr: String,
+    val endStr: String,
+    val percentage: Double,
+    val percentageStr: String,
+    val timePassedMs: Long,
+    val timePassedStr: String,
+    val timeLeftMs: Long,
+    val timeLeftStr: String
+) : Serializable, Comparable<ProcessesDTO> {
+
+    override fun compareTo(other: ProcessesDTO): Int {
+        var result = priority.compareTo(other.priority)
+        if (result != 0) return result
+        result = order.compareTo(other.order)
+        if (result != 0) return result
+        return id.compareTo(other.id)
+
+    }
+}
 
 //@Component
 class KaraokeProcess(
@@ -39,6 +75,32 @@ class KaraokeProcess(
     var end: Timestamp? = null
     var prioritet: Int = 0
 
+    fun toDTO(): ProcessesDTO {
+        return ProcessesDTO(
+            id = id,
+            name = name,
+            status = status,
+            order = order,
+            priority = priority,
+            command = command,
+            args = args,
+            argsDescription = argsDescription,
+            description = description,
+            settingsId = settingsId,
+            type = type,
+            start = start,
+            end = end,
+            prioritet = prioritet,
+            startStr = startStr,
+            endStr = endStr,
+            percentage = percentage,
+            percentageStr = percentageStr,
+            timePassedMs = timePassedMs,
+            timePassedStr = timePassedStr,
+            timeLeftMs = timeLeftMs,
+            timeLeftStr = timeLeftStr
+        )
+    }
     fun copy(): KaraokeProcess {
         val result = KaraokeProcess(database)
         result.id = id
@@ -82,26 +144,26 @@ class KaraokeProcess(
         }
     }
 
-    val percentage: Int get() {
+    val percentage: Double get() {
         return when (status) {
             KaraokeProcessStatuses.DONE.name -> {
-                100
+                100.0
             }
             KaraokeProcessStatuses.WORKING.name -> {
                 val percentString = KaraokeProcessWorker.getPercentage(this)
                 if (percentString == "---") {
-                    0
+                    0.0
                 } else {
-                    percentString.toInt()
+                    percentString.toDouble()
                 }
             }
-            else -> {0}
+            else -> {0.0}
         }
     }
 
     val percentageStr: String get() {
         val perc = percentage
-        return if (perc == 0) {
+        return if (perc == 0.0) {
             ""
         } else {
             "${perc} %"
@@ -137,11 +199,11 @@ class KaraokeProcess(
 
     val timeLeftMs: Long get() {
         val perc = percentage
-        if (start == null || perc == 0) return -1L
+        if (start == null || perc == 0.0) return -1L
         return when (status) {
             KaraokeProcessStatuses.WORKING.name -> {
                 val passed = timePassedMs
-                val fullMs = passed * 100 / perc
+                val fullMs = (passed * 100.0 / perc).toLong()
                 val tail = fullMs - passed
                 tail
             }
@@ -184,7 +246,15 @@ class KaraokeProcess(
                 "process_type = ?, " +
                 "process_start = ?, " +
                 "process_end = ?, " +
-                "process_prioritet = ? " +
+                "process_prioritet = ?, " +
+                "process_start_str = ?, " +
+                "process_end_str = ?, " +
+                "process_percentage = ?, " +
+                "process_percentage_str = ?, " +
+                "process_time_passed_ms = ?, " +
+                "process_time_passed_str = ?, " +
+                "process_time_left_ms = ?, " +
+                "process_time_left_str = ? " +
                 "WHERE id = ?"
         val ps = connection.prepareStatement(sql)
         var index = 1
@@ -212,11 +282,42 @@ class KaraokeProcess(
         index++
         ps.setInt(index, prioritet)
         index++
+        ps.setString(index, startStr)
+        index++
+        ps.setString(index, endStr)
+        index++
+        ps.setDouble(index, percentage)
+        index++
+        ps.setString(index, percentageStr)
+        index++
+        ps.setLong(index, timePassedMs)
+        index++
+        ps.setString(index, timePassedStr)
+        index++
+        ps.setLong(index, timeLeftMs)
+        index++
+        ps.setString(index, timeLeftStr)
+        index++
         ps.setInt(index, id)
         ps.executeUpdate()
         ps.close()
 
+        val messageRecordChange = SseNotification.recordChange(
+            RecordChangeMessage(
+                tableName = "tbl_processes",
+                recordId = id.toLong(),
+                diffs = emptyList(),
+                databaseName = database.name,
+                record = this.toDTO()
+            )
+        )
+
         updateStatusProcessSettings(database)
+        SNS.send(messageRecordChange)
+
+        if (status == KaraokeProcessStatuses.DONE.name) {
+            delete(id, database)
+        }
 
 //        val controller = ApplicationContextProvider.getCurrentApplicationContext().getBean(MainController::class.java)
 //        controller.processesUpdate(id.toLong())
@@ -283,13 +384,14 @@ class KaraokeProcess(
                 result.add(RecordDiff("process_start", procA.start, ""))
                 result.add(RecordDiff("process_end", procA.end, ""))
 
-                result.add(RecordDiff("startStr", procA.startStr, "", false))
-                result.add(RecordDiff("endStr", procA.endStr, "", false))
-                result.add(RecordDiff("percentageStr", procA.percentageStr, "", false))
-                result.add(RecordDiff("percentageNum", procA.percentage, "", false))
-                result.add(RecordDiff("timePassedStr", procA.timePassedStr, "", false))
-                result.add(RecordDiff("timeLeftStr", procA.timeLeftStr, "", false))
-
+                result.add(RecordDiff("process_start_str", procA.startStr, ""))
+                result.add(RecordDiff("process_end_str", procA.endStr, ""))
+                result.add(RecordDiff("process_percentage_str", procA.percentageStr, ""))
+                result.add(RecordDiff("process_percentage", procA.percentage, ""))
+                result.add(RecordDiff("process_time_passed_str", procA.timePassedStr, ""))
+                result.add(RecordDiff("process_time_left_str", procA.timeLeftStr, ""))
+                result.add(RecordDiff("process_time_passed_ms", procA.timePassedMs, ""))
+                result.add(RecordDiff("process_time_left_ms", procA.timeLeftMs, ""))
             }
             return result
         }
@@ -351,9 +453,17 @@ class KaraokeProcess(
                         "process_type, " +
                         "process_start, " +
                         "process_end, " +
-                        "process_prioritet" +
+                        "process_prioritet, " +
+                        "process_start_str, " +
+                        "process_end_str, " +
+                        "process_percentage, " +
+                        "process_percentage_str, " +
+                        "process_time_passed_ms, " +
+                        "process_time_passed_str, " +
+                        "process_time_left_ms, " +
+                        "process_time_left_str " +
                         ") VALUES(" +
-                        "'${process.name.replace("'","''")}', " +
+                        "'${process.name.rightFileName()}', " +
                         "'${process.status}', " +
                         "${process.order}, " +
                         "${process.priority}, " +
@@ -364,7 +474,15 @@ class KaraokeProcess(
                         "'${process.type}', " +
                         "${process.start}, " +
                         "${process.end}, " +
-                        "${process.prioritet}" +
+                        "${process.prioritet}, " +
+                        "'${process.startStr}', " +
+                        "'${process.endStr}', " +
+                        "${process.percentage}, " +
+                        "'${process.percentageStr}', " +
+                        "${process.timePassedMs}, " +
+                        "'${process.timePassedStr}', " +
+                        "${process.timeLeftMs}, " +
+                        "'${process.timeLeftStr}' " +
                 ")"
 
             val connection = process.database.getConnection()
@@ -378,6 +496,18 @@ class KaraokeProcess(
             } else null
 
             ps.close()
+
+            result?.let {
+                val messageRecordAdd = SseNotification.recordAdd(
+                    RecordAddMessage(
+                        tableName = "tbl_processes",
+                        recordId = result.id.toLong(),
+                        databaseName = process.database.name,
+                        record = result.toDTO()
+                    )
+                )
+                SNS.send(messageRecordAdd)
+            }
 
             return result
 
@@ -396,6 +526,7 @@ class KaraokeProcess(
                 sql = "SELECT tbl_processes.*" +
                         " FROM tbl_processes"
                 if (args.containsKey("id")) where += "id=${args["id"]}"
+                if (args.containsKey("ids")) where += "tbl_processes.id in (${args["ids"]})"
                 if (args.containsKey("process_name")) where += "process_name LIKE '%${args["process_name"]}%'"
                 if (args.containsKey("process_status")) where += "process_status = '${args["process_status"]}'"
                 if (args.containsKey("process_order")) where += "process_order=${args["process_order"]}"
@@ -406,6 +537,8 @@ class KaraokeProcess(
                 if (args.containsKey("settings_id")) where += "settings_id=${args["settings_id"]}"
                 if (args.containsKey("process_type")) where += "process_type = '${args["process_type"]}'"
                 if (args.containsKey("process_prioritet")) where += "process_prioritet = '${args["process_prioritet"]}'"
+                if (args.containsKey("filter_notail")) where += "process_command <> 'tail'"
+
 
                 if (where.size > 0) sql += " WHERE ${where.joinToString(" AND ")}"
 
@@ -469,6 +602,15 @@ class KaraokeProcess(
             ps.executeUpdate()
             ps.close()
 
+            val messageRecordDelete = SseNotification.recordDelete(
+                RecordDeleteMessage(
+                    recordId = id.toLong(),
+                    tableName = "tbl_processes",
+                    databaseName = database.name
+                )
+            )
+            SNS.send(messageRecordDelete)
+
         }
 
         fun load(id: Long, database: KaraokeConnection): KaraokeProcess? {
@@ -521,12 +663,12 @@ class KaraokeProcess(
                         if (!File(settings.pathToSymlinkFolder).exists()) Files.createDirectories(Path(settings.pathToSymlinkFolder))
                         val songKaraoke = Song(settings, SongVersion.KARAOKE, true)
                         val songLyrics = Song(settings, SongVersion.LYRICS, true)
-                        val songKaraokeMp4 = songKaraoke.getOutputFilename(SongOutputFile.VIDEO).replace("'","''")
-                        val songKaraokeTxt = songKaraoke.getOutputFilename(SongOutputFile.DESCRIPTION).replace("'","''")
-                        val songLyricsMp4 = songLyrics.getOutputFilename(SongOutputFile.VIDEO).replace("'","''")
-                        val songKaraokeMp4Symlink = "${settings.pathToSymlinkFolder}/${File(songKaraokeMp4).name}".replace("'","''")
-                        val songKaraokeTxtSymlink = "${settings.pathToSymlinkFolder}/${File(songKaraokeTxt).name}".replace("'","''")
-                        val songLyricsMp4Symlink = "${settings.pathToSymlinkFolder}/${File(songLyricsMp4).name}".replace("'","''")
+                        val songKaraokeMp4 = songKaraoke.getOutputFilename(SongOutputFile.VIDEO).rightFileName()
+                        val songKaraokeTxt = songKaraoke.getOutputFilename(SongOutputFile.DESCRIPTION).rightFileName()
+                        val songLyricsMp4 = songLyrics.getOutputFilename(SongOutputFile.VIDEO).rightFileName()
+                        val songKaraokeMp4Symlink = "${settings.pathToSymlinkFolder}/${File(songKaraokeMp4).name}".rightFileName()
+                        val songKaraokeTxtSymlink = "${settings.pathToSymlinkFolder}/${File(songKaraokeTxt).name}".rightFileName()
+                        val songLyricsMp4Symlink = "${settings.pathToSymlinkFolder}/${File(songLyricsMp4).name}".rightFileName()
 
                         description = "Кодирование LYRICS"
                         prioritet = 19
@@ -534,35 +676,73 @@ class KaraokeProcess(
                             listOf(
                                 "melt",
                                 "-progress",
-                                "${settings.rootFolder.replace("'","''")}/done_projects/${if (!settings.fileName.startsWith (settings.year.toString())) "${settings.year} " else ""}${settings.fileName.replace("'","''")} [lyrics].mlt"
+                                "${settings.rootFolder.rightFileName()}/done_projects/${if (!settings.fileName.startsWith (settings.year.toString())) "${settings.year} " else ""}${settings.fileName.rightFileName()} [lyrics].mlt"
                             ),
-                            listOf("ln", "-s", "${settings.fileAbsolutePath.replace("'","''")}", "${settings.fileAbsolutePathSymlink.replace("'","''")}"),
-                            listOf("ln", "-s", "${settings.newNoStemNameFlac.replace("'","''")}", "${settings.newNoStemNameFlacSymlink.replace("'","''")}"),
-                            listOf("ln", "-s", "${settings.vocalsNameFlac.replace("'","''")}", "${settings.vocalsNameFlacSymlink.replace("'","''")}"),
-                            listOf("ln", "-s", "$songKaraokeMp4", "$songKaraokeMp4Symlink"),
-                            listOf("ln", "-s", "$songKaraokeTxt", "$songKaraokeTxtSymlink"),
-                            listOf("ln", "-s", "$songLyricsMp4", "$songLyricsMp4Symlink")
+                            listOf("mkdir", "-p", settings.pathToStoreFolderLyrics),
+                            listOf("cp", settings.pathToFileLyrics, settings.pathToStoreFileLyrics),
+                            listOf("mkdir", "-p", settings.pathToFolder720Lyrics),
+                            listOf("rm", settings.pathToFile720Lyrics),
+                            listOf(
+                                "ffmpeg",
+                                "-i",
+                                settings.pathToFileLyrics,
+                                "-c:v",
+                                "hevc_nvenc",
+                                "-preset",
+                                "fast",
+                                "-b:v",
+                                "1000k",
+                                "-vf",
+                                "scale=1280:720,fps=30",
+                                "-c:a",
+                                "aac",
+                                settings.pathToFile720Lyrics,
+                                "-y"
+                            ),
+                            listOf("rm", settings.fileAbsolutePathSymlink.rightFileName().wrapInQuotes()),
+                            listOf("rm", settings.newNoStemNameFlacSymlink.rightFileName().wrapInQuotes()),
+                            listOf("rm", settings.vocalsNameFlacSymlink.rightFileName().wrapInQuotes()),
+                            listOf("rm", songKaraokeMp4Symlink.rightFileName().wrapInQuotes()),
+                            listOf("rm", songKaraokeTxtSymlink.rightFileName().wrapInQuotes()),
+                            listOf("rm", songLyricsMp4Symlink.rightFileName().wrapInQuotes()),
+                            listOf("ln", "-s", settings.fileAbsolutePath.rightFileName().wrapInQuotes(), settings.fileAbsolutePathSymlink.rightFileName().wrapInQuotes()),
+                            listOf("ln", "-s", settings.newNoStemNameFlac.rightFileName().wrapInQuotes(), settings.newNoStemNameFlacSymlink.rightFileName().wrapInQuotes()),
+                            listOf("ln", "-s", settings.vocalsNameFlac.rightFileName().wrapInQuotes(), settings.vocalsNameFlacSymlink.rightFileName().wrapInQuotes()),
+                            listOf("ln", "-s", songKaraokeMp4.wrapInQuotes(), songKaraokeMp4Symlink.wrapInQuotes()),
+                            listOf("ln", "-s", songKaraokeTxt.wrapInQuotes(), songKaraokeTxtSymlink.wrapInQuotes()),
+                            listOf("ln", "-s", songLyricsMp4.wrapInQuotes(), songLyricsMp4Symlink.wrapInQuotes())
                         )
                         argsDescription = listOf(
                             "Кодирование LYRICS",
-                            "SYMLINK flac song",
-                            "SYMLINK flac music",
-                            "SYMLINK flac vocal",
-                            "SYMLINK KARAOKE MP4",
-                            "SYMLINK KARAOKE TXT",
-                            "SYMLINK LYRICS MP4"
+                            "Create folder (if need)",
+                            "Copy LYRICS to store",
+                            "Create folder (if need)",
+                            "Delete 720P LYRICS",
+                            "720P LYRICS",
+                            "Delete SYMLINK flac song",
+                            "Delete SYMLINK flac music",
+                            "Delete SYMLINK flac vocal",
+                            "Delete SYMLINK KARAOKE MP4",
+                            "Delete SYMLINK KARAOKE TXT",
+                            "Delete SYMLINK LYRICS MP4",
+                            "Create SYMLINK flac song",
+                            "Create SYMLINK flac music",
+                            "Create SYMLINK flac vocal",
+                            "Create SYMLINK KARAOKE MP4",
+                            "Create SYMLINK KARAOKE TXT",
+                            "Create SYMLINK LYRICS MP4"
                         )
                     }
                     KaraokeProcessTypes.MELT_KARAOKE -> {
                         if (!File(settings.pathToSymlinkFolder).exists()) Files.createDirectories(Path(settings.pathToSymlinkFolder))
                         val songKaraoke = Song(settings, SongVersion.KARAOKE, true)
                         val songLyrics = Song(settings, SongVersion.LYRICS, true)
-                        val songKaraokeMp4 = songKaraoke.getOutputFilename(SongOutputFile.VIDEO).replace("'","''")
-                        val songKaraokeTxt = songKaraoke.getOutputFilename(SongOutputFile.DESCRIPTION).replace("'","''")
-                        val songLyricsMp4 = songLyrics.getOutputFilename(SongOutputFile.VIDEO).replace("'","''")
-                        val songKaraokeMp4Symlink = "${settings.pathToSymlinkFolder}/${File(songKaraokeMp4).name}".replace("'","''")
-                        val songKaraokeTxtSymlink = "${settings.pathToSymlinkFolder}/${File(songKaraokeTxt).name}".replace("'","''")
-                        val songLyricsMp4Symlink = "${settings.pathToSymlinkFolder}/${File(songLyricsMp4).name}".replace("'","''")
+                        val songKaraokeMp4 = songKaraoke.getOutputFilename(SongOutputFile.VIDEO).rightFileName()
+                        val songKaraokeTxt = songKaraoke.getOutputFilename(SongOutputFile.DESCRIPTION).rightFileName()
+                        val songLyricsMp4 = songLyrics.getOutputFilename(SongOutputFile.VIDEO).rightFileName()
+                        val songKaraokeMp4Symlink = "${settings.pathToSymlinkFolder}/${File(songKaraokeMp4).name}".rightFileName()
+                        val songKaraokeTxtSymlink = "${settings.pathToSymlinkFolder}/${File(songKaraokeTxt).name}".rightFileName()
+                        val songLyricsMp4Symlink = "${settings.pathToSymlinkFolder}/${File(songLyricsMp4).name}".rightFileName()
 
                         description = "Кодирование KARAOKE"
                         prioritet = 19
@@ -570,23 +750,61 @@ class KaraokeProcess(
                             listOf(
                                 "melt",
                                 "-progress",
-                                "${settings.rootFolder.replace("'","''")}/done_projects/${if (!settings.fileName.startsWith (settings.year.toString())) "${settings.year} " else ""}${settings.fileName.replace("'","''")} [karaoke].mlt"
+                                "${settings.rootFolder.rightFileName()}/done_projects/${if (!settings.fileName.startsWith (settings.year.toString())) "${settings.year} " else ""}${settings.fileName.rightFileName()} [karaoke].mlt"
                             ),
-                            listOf("ln", "-s", "${settings.fileAbsolutePath.replace("'","''")}", "${settings.fileAbsolutePathSymlink.replace("'","''")}"),
-                            listOf("ln", "-s", "${settings.newNoStemNameFlac.replace("'","''")}", "${settings.newNoStemNameFlacSymlink.replace("'","''")}"),
-                            listOf("ln", "-s", "${settings.vocalsNameFlac.replace("'","''")}", "${settings.vocalsNameFlacSymlink.replace("'","''")}"),
-                            listOf("ln", "-s", "$songKaraokeMp4", "$songKaraokeMp4Symlink"),
-                            listOf("ln", "-s", "$songKaraokeTxt", "$songKaraokeTxtSymlink"),
-                            listOf("ln", "-s", "$songLyricsMp4", "$songLyricsMp4Symlink")
+                            listOf("mkdir", "-p", settings.pathToStoreFolderKaraoke),
+                            listOf("cp", settings.pathToFileKaraoke, settings.pathToStoreFileKaraoke),
+                            listOf("mkdir", "-p", settings.pathToFolder720Karaoke),
+                            listOf("rm", settings.pathToFile720Karaoke),
+                            listOf(
+                                "ffmpeg",
+                                "-i",
+                                settings.pathToFileKaraoke,
+                                "-c:v",
+                                "hevc_nvenc",
+                                "-preset",
+                                "fast",
+                                "-b:v",
+                                "1000k",
+                                "-vf",
+                                "scale=1280:720,fps=30",
+                                "-c:a",
+                                "aac",
+                                settings.pathToFile720Karaoke,
+                                "-y"
+                            ),
+                            listOf("rm", settings.fileAbsolutePathSymlink.rightFileName().wrapInQuotes()),
+                            listOf("rm", settings.newNoStemNameFlacSymlink.rightFileName().wrapInQuotes()),
+                            listOf("rm", settings.vocalsNameFlacSymlink.rightFileName().wrapInQuotes()),
+                            listOf("rm", songKaraokeMp4Symlink.rightFileName().wrapInQuotes()),
+                            listOf("rm", songKaraokeTxtSymlink.rightFileName().wrapInQuotes()),
+                            listOf("rm", songLyricsMp4Symlink.rightFileName().wrapInQuotes()),
+                            listOf("ln", "-s", settings.fileAbsolutePath.rightFileName().wrapInQuotes(), settings.fileAbsolutePathSymlink.rightFileName().wrapInQuotes()),
+                            listOf("ln", "-s", settings.newNoStemNameFlac.rightFileName().wrapInQuotes(), settings.newNoStemNameFlacSymlink.rightFileName().wrapInQuotes()),
+                            listOf("ln", "-s", settings.vocalsNameFlac.rightFileName().wrapInQuotes(), settings.vocalsNameFlacSymlink.rightFileName().wrapInQuotes()),
+                            listOf("ln", "-s", songKaraokeMp4.wrapInQuotes(), songKaraokeMp4Symlink.wrapInQuotes()),
+                            listOf("ln", "-s", songKaraokeTxt.wrapInQuotes(), songKaraokeTxtSymlink.wrapInQuotes()),
+                            listOf("ln", "-s", songLyricsMp4.wrapInQuotes(), songLyricsMp4Symlink.wrapInQuotes())
                         )
                         argsDescription = listOf(
                             "Кодирование KARAOKE",
-                            "SYMLINK flac song",
-                            "SYMLINK flac music",
-                            "SYMLINK flac vocal",
-                            "SYMLINK KARAOKE MP4",
-                            "SYMLINK KARAOKE TXT",
-                            "SYMLINK LYRICS MP4"
+                            "Create folder (if need)",
+                            "Copy KARAOKE to store",
+                            "Create folder (if need)",
+                            "Delete 720P KARAOKE",
+                            "720P KARAOKE",
+                            "Delete SYMLINK flac song",
+                            "Delete SYMLINK flac music",
+                            "Delete SYMLINK flac vocal",
+                            "Delete SYMLINK KARAOKE MP4",
+                            "Delete SYMLINK KARAOKE TXT",
+                            "Delete SYMLINK LYRICS MP4",
+                            "Create SYMLINK flac song",
+                            "Create SYMLINK flac music",
+                            "Create SYMLINK flac vocal",
+                            "Create SYMLINK KARAOKE MP4",
+                            "Create SYMLINK KARAOKE TXT",
+                            "Create SYMLINK LYRICS MP4"
                         )
                     }
                     KaraokeProcessTypes.MELT_CHORDS -> {
@@ -596,7 +814,7 @@ class KaraokeProcess(
                             listOf(
                                 "melt",
                                 "-progress",
-                                "${settings.rootFolder.replace("'","''")}/done_projects/${if (!settings.fileName.startsWith (settings.year.toString())) "${settings.year} " else ""}${settings.fileName.replace("'","''")} [chords].mlt"
+                                "${settings.rootFolder.rightFileName()}/done_projects/${if (!settings.fileName.startsWith (settings.year.toString())) "${settings.year} " else ""}${settings.fileName.rightFileName()} [chords].mlt"
                             )
                         )
                     }
@@ -616,14 +834,14 @@ class KaraokeProcess(
                                 "{track}-{stem}.{ext}",
                                 "--two-stems=${settings.separatedStem}",
                                 "-o",
-                                settings.rootFolder.replace("'","''"),
-                                settings.fileAbsolutePath.replace("'","''")
+                                settings.rootFolder.rightFileName(),
+                                settings.fileAbsolutePath.rightFileName()
                             ),
-                            listOf("mv", settings.oldNoStemNameWav.replace("'","''"), settings.newNoStemNameWav.replace("'","''")),
-                            listOf("ffmpeg", "-i", settings.newNoStemNameWav.replace("'","''"), "-compression_level", "8", settings.newNoStemNameFlac.replace("'","''"), "-y"),
-                            listOf("rm", settings.newNoStemNameWav.replace("'","''")),
-                            listOf("ffmpeg", "-i", settings.vocalsNameWav.replace("'","''"), "-compression_level", "8", settings.vocalsNameFlac.replace("'","''"), "-y"),
-                            listOf("rm", settings.vocalsNameWav.replace("'","''"))
+                            listOf("mv", settings.oldNoStemNameWav.rightFileName(), settings.newNoStemNameWav.rightFileName()),
+                            listOf("ffmpeg", "-i", settings.newNoStemNameWav.rightFileName(), "-compression_level", "8", settings.newNoStemNameFlac.rightFileName(), "-y"),
+                            listOf("rm", settings.newNoStemNameWav.rightFileName()),
+                            listOf("ffmpeg", "-i", settings.vocalsNameWav.rightFileName(), "-compression_level", "8", settings.vocalsNameFlac.rightFileName(), "-y"),
+                            listOf("rm", settings.vocalsNameWav.rightFileName())
                         )
                         argsDescription = listOf(
                             "Демукс 2 - demucs",
@@ -632,6 +850,74 @@ class KaraokeProcess(
                             "Демукс 2 - del music wav",
                             "Демукс 2 - vocal to flac",
                             "Демукс 2 - del vocal wav"
+                        )
+                    }
+                    KaraokeProcessTypes.DEMUCS5 -> {
+                        description = "Демукс 5"
+                        args = listOf(
+                            listOf(
+                                "python3",
+                                "-m",
+                                "demucs",
+                                "-n",
+                                DEMUCS_MODEL_NAME,
+                                "-d",
+                                "cuda",
+                                "--filename",
+                                "{track}-{stem}.{ext}",
+                                "--two-stems=${settings.separatedStem}",
+                                "-o",
+                                settings.rootFolder.rightFileName(),
+                                settings.fileAbsolutePath.rightFileName()
+                            ),
+                            listOf("mv", settings.oldNoStemNameWav.rightFileName(), settings.newNoStemNameWav.rightFileName()),
+                            listOf("ffmpeg", "-i", settings.newNoStemNameWav.rightFileName(), "-compression_level", "8", settings.newNoStemNameFlac.rightFileName(), "-y"),
+                            listOf("rm", settings.newNoStemNameWav.rightFileName()),
+                            listOf("ffmpeg", "-i", settings.vocalsNameWav.rightFileName(), "-compression_level", "8", settings.vocalsNameFlac.rightFileName(), "-y"),
+                            listOf("rm", settings.vocalsNameWav.rightFileName()),
+                            listOf(
+                                "python3",
+                                "-m",
+                                "demucs",
+                                "-n",
+                                DEMUCS_MODEL_NAME,
+                                "-d",
+                                "cuda",
+                                "--filename",
+                                "{track}-{stem}.{ext}",
+                                "-o",
+                                settings.rootFolder.rightFileName(),
+                                settings.fileAbsolutePath.rightFileName()
+                            ),
+                            listOf("ffmpeg", "-i", settings.drumsNameWav.rightFileName(), "-compression_level", "8", settings.drumsNameFlac.rightFileName(), "-y"),
+                            listOf("rm", settings.drumsNameWav.rightFileName()),
+                            listOf("ffmpeg", "-i", settings.bassNameWav.rightFileName(), "-compression_level", "8", settings.bassNameFlac.rightFileName(), "-y"),
+                            listOf("rm", settings.bassNameWav.rightFileName()),
+                            listOf("ffmpeg", "-i", settings.guitarsNameWav.rightFileName(), "-compression_level", "8", settings.guitarsNameFlac.rightFileName(), "-y"),
+                            listOf("rm", settings.guitarsNameWav.rightFileName()),
+                            listOf("ffmpeg", "-i", settings.otherNameWav.rightFileName(), "-compression_level", "8", settings.otherNameFlac.rightFileName(), "-y"),
+                            listOf("rm", settings.otherNameWav.rightFileName()),
+                            listOf("ffmpeg", "-i", settings.vocalsNameWav.rightFileName(), "-compression_level", "8", settings.vocalsNameFlac.rightFileName(), "-y"),
+                            listOf("rm", settings.vocalsNameWav.rightFileName())
+                        )
+                        argsDescription = listOf(
+                            "Демукс 5 - demucs 2",
+                            "Демукс 5 - rename music file",
+                            "Демукс 5 - music to flac",
+                            "Демукс 5 - del music wav",
+                            "Демукс 5 - vocal to flac",
+                            "Демукс 5 - del vocal wav",
+                            "Демукс 5 - demucs 5",
+                            "Демукс 5 - drums to flac",
+                            "Демукс 5 - del drums wav",
+                            "Демукс 5 - bass to flac",
+                            "Демукс 5 - del bass wav",
+                            "Демукс 5 - guitars to flac",
+                            "Демукс 5 - del guitars wav",
+                            "Демукс 5 - other to flac",
+                            "Демукс 5 - del other wav",
+                            "Демукс 5 - vocal to flac",
+                            "Демукс 5 - del vocal wav"
                         )
                     }
                     KaraokeProcessTypes.FF_720_KAR -> {
@@ -693,30 +979,92 @@ class KaraokeProcess(
                     KaraokeProcessTypes.SYMLINK -> {
                         val songKaraoke = Song(settings, SongVersion.KARAOKE, true)
                         val songLyrics = Song(settings, SongVersion.LYRICS, true)
-                        val songKaraokeMp4 = songKaraoke.getOutputFilename(SongOutputFile.VIDEO).replace("'","''")
-                        val songKaraokeTxt = songKaraoke.getOutputFilename(SongOutputFile.DESCRIPTION).replace("'","''")
-                        val songLyricsMp4 = songLyrics.getOutputFilename(SongOutputFile.VIDEO).replace("'","''")
+                        val songKaraokeMp4 = songKaraoke.getOutputFilename(SongOutputFile.VIDEO).rightFileName()
+                        val songKaraokeTxt = songKaraoke.getOutputFilename(SongOutputFile.DESCRIPTION).rightFileName()
+                        val songLyricsMp4 = songLyrics.getOutputFilename(SongOutputFile.VIDEO).rightFileName()
                         if (!File(settings.pathToSymlinkFolder).exists()) Files.createDirectories(Path(settings.pathToSymlinkFolder))
-                        val songKaraokeMp4Symlink = "${settings.pathToSymlinkFolder}/${File(songKaraokeMp4).name}".replace("'","''")
-                        val songKaraokeTxtSymlink = "${settings.pathToSymlinkFolder}/${File(songKaraokeTxt).name}".replace("'","''")
-                        val songLyricsMp4Symlink = "${settings.pathToSymlinkFolder}/${File(songLyricsMp4).name}".replace("'","''")
+                        val songKaraokeMp4Symlink = "${settings.pathToSymlinkFolder}/${File(songKaraokeMp4).name}".rightFileName()
+                        val songKaraokeTxtSymlink = "${settings.pathToSymlinkFolder}/${File(songKaraokeTxt).name}".rightFileName()
+                        val songLyricsMp4Symlink = "${settings.pathToSymlinkFolder}/${File(songLyricsMp4).name}".rightFileName()
 
                         description = "SYMLINK"
                         args = listOf(
-                            listOf("ln", "-s", "${settings.fileAbsolutePath.replace("'","''")}", "${settings.fileAbsolutePathSymlink.replace("'","''")}"),
-                            listOf("ln", "-s", "${settings.newNoStemNameFlac.replace("'","''")}", "${settings.newNoStemNameFlacSymlink.replace("'","''")}"),
-                            listOf("ln", "-s", "${settings.vocalsNameFlac.replace("'","''")}", "${settings.vocalsNameFlacSymlink.replace("'","''")}"),
-                            listOf("ln", "-s", "$songKaraokeMp4", "$songKaraokeMp4Symlink"),
-                            listOf("ln", "-s", "$songKaraokeTxt", "$songKaraokeTxtSymlink"),
-                            listOf("ln", "-s", "$songLyricsMp4", "$songLyricsMp4Symlink")
+                            listOf("rm", settings.fileAbsolutePathSymlink.rightFileName().wrapInQuotes()),
+                            listOf("rm", settings.newNoStemNameFlacSymlink.rightFileName().wrapInQuotes()),
+                            listOf("rm", settings.vocalsNameFlacSymlink.rightFileName().wrapInQuotes()),
+                            listOf("rm", songKaraokeMp4Symlink.rightFileName().wrapInQuotes()),
+                            listOf("rm", songKaraokeTxtSymlink.rightFileName().wrapInQuotes()),
+                            listOf("rm", songLyricsMp4Symlink.rightFileName().wrapInQuotes()),
+                            listOf("ln", "-s", settings.fileAbsolutePath.rightFileName().wrapInQuotes(), settings.fileAbsolutePathSymlink.rightFileName().wrapInQuotes()),
+                            listOf("ln", "-s", settings.newNoStemNameFlac.rightFileName().wrapInQuotes(), settings.newNoStemNameFlacSymlink.rightFileName().wrapInQuotes()),
+                            listOf("ln", "-s", settings.vocalsNameFlac.rightFileName().wrapInQuotes(), settings.vocalsNameFlacSymlink.rightFileName().wrapInQuotes()),
+                            listOf("ln", "-s", songKaraokeMp4.wrapInQuotes(), songKaraokeMp4Symlink.wrapInQuotes()),
+                            listOf("ln", "-s", songKaraokeTxt.wrapInQuotes(), songKaraokeTxtSymlink.wrapInQuotes()),
+                            listOf("ln", "-s", songLyricsMp4.wrapInQuotes(), songLyricsMp4Symlink.wrapInQuotes())
                         )
                         argsDescription = listOf(
-                            "SYMLINK flac song",
-                            "SYMLINK flac music",
-                            "SYMLINK flac vocal",
-                            "SYMLINK KARAOKE MP4",
-                            "SYMLINK KARAOKE TXT",
-                            "SYMLINK LYRICS MP4"
+                            "Delete SYMLINK flac song",
+                            "Delete SYMLINK flac music",
+                            "Delete SYMLINK flac vocal",
+                            "Delete SYMLINK KARAOKE MP4",
+                            "Delete SYMLINK KARAOKE TXT",
+                            "Delete SYMLINK LYRICS MP4",
+                            "Create SYMLINK flac song",
+                            "Create SYMLINK flac music",
+                            "Create SYMLINK flac vocal",
+                            "Create SYMLINK KARAOKE MP4",
+                            "Create SYMLINK KARAOKE TXT",
+                            "Create SYMLINK LYRICS MP4"
+                        )
+                    }
+                    KaraokeProcessTypes.FF_MP3_KAR -> {
+                        description = "MP3 KARAOKE"
+                        args = listOf(
+                            listOf("mkdir", "-p", settings.pathToFolderMP3Karaoke),
+                            listOf("rm", settings.pathToFileMP3Karaoke),
+                            listOf(
+                                "ffmpeg",
+                                "-i",
+                                settings.newNoStemNameFlac.rightFileName(),
+                                "-ab",
+                                "320k",
+                                "-map_metadata",
+                                "0",
+                                "-id3v2_version",
+                                "3",
+                                settings.pathToFileMP3Karaoke,
+                                "-y"
+                            )
+                        )
+                        argsDescription = listOf(
+                            "Create folder (if need)",
+                            "Delete MP3 KARAOKE",
+                            "MP3 KARAOKE"
+                        )
+                    }
+                    KaraokeProcessTypes.FF_MP3_LYR -> {
+                        description = "MP3 LYRICS"
+                        args = listOf(
+                            listOf("mkdir", "-p", settings.pathToFolderMP3Lyrics),
+                            listOf("rm", settings.pathToFileMP3Lyrics),
+                            listOf(
+                                "ffmpeg",
+                                "-i",
+                                settings.fileAbsolutePath.rightFileName(),
+                                "-ab",
+                                "320k",
+                                "-map_metadata",
+                                "0",
+                                "-id3v2_version",
+                                "3",
+                                settings.pathToFileMP3Lyrics,
+                                "-y"
+                            )
+                        )
+                        argsDescription = listOf(
+                            "Create folder (if need)",
+                            "Delete MP3 LYRICS",
+                            "MP3 LYRICS"
                         )
                     }
                     else -> {}
@@ -742,12 +1090,13 @@ class KaraokeProcess(
                 } else {
                     parentProcess.description
                 }
+                val command = if (index == 0) "" else "tail"
                 val childProcess = KaraokeProcess(parentProcess.database)
                 childProcess.name = parentProcess.name
                 childProcess.status = parentProcess.status
                 childProcess.order = parentProcess.order
                 childProcess.priority = parentProcess.priority
-                childProcess.command = parentProcess.command
+                childProcess.command = command
                 childProcess.type = parentProcess.type
                 childProcess.settingsId = parentProcess.settingsId
                 childProcess.description = desc

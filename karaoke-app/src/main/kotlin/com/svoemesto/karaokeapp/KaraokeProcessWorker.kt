@@ -1,11 +1,7 @@
 package com.svoemesto.karaokeapp
 
-import com.svoemesto.karaokeapp.model.RecordChangeMessage
-import com.svoemesto.karaokeapp.model.RecordDiff
-import com.svoemesto.karaokeapp.model.SettingField
-import com.svoemesto.karaokeapp.model.Settings
-import com.svoemesto.karaokeapp.services.WEBSOCKET
-import org.springframework.messaging.simp.SimpMessagingTemplate
+import com.svoemesto.karaokeapp.model.*
+import com.svoemesto.karaokeapp.services.SNS
 import org.springframework.stereotype.Component
 import java.io.BufferedReader
 import java.io.File
@@ -37,7 +33,6 @@ class KaraokeProcessThread(val karaokeProcess: KaraokeProcess? = null, var perce
             }
             try {
 
-
                 val inputStream = process.inputStream
                 var duration: String? = null
                 val reader = BufferedReader(InputStreamReader(inputStream))
@@ -54,7 +49,7 @@ class KaraokeProcessThread(val karaokeProcess: KaraokeProcess? = null, var perce
                             val matchResultCurrent = regexCurrent.find(line)
                             if (matchResultCurrent != null) {
                                 val current = matchResultCurrent.groupValues[1]
-                                this.percentage = ((convertTimecodeToMilliseconds(current).toDouble() / convertTimecodeToMilliseconds(duration).toDouble()) * 100).toInt().toString()
+                                this.percentage = (((convertTimecodeToMilliseconds(current).toDouble() / convertTimecodeToMilliseconds(duration).toDouble()) * 10000).toInt().toDouble() / 100).toString()
                             }
                         } else {
                             val matchResultDuration = regexDuration.find(line)
@@ -71,9 +66,9 @@ class KaraokeProcessThread(val karaokeProcess: KaraokeProcess? = null, var perce
                 karaokeProcess.priority = 999
                 karaokeProcess.save()
 
-                if (karaokeProcess.type == KaraokeProcessTypes.DEMUCS2.name) {
-                    KaraokeProcess.delete(karaokeProcess.id, karaokeProcess.database)
-                }
+//                if (karaokeProcess.type == KaraokeProcessTypes.DEMUCS2.name) {
+//                    KaraokeProcess.delete(karaokeProcess.id, karaokeProcess.database)
+//                }
 
 
             } catch (e: Exception) {
@@ -104,27 +99,26 @@ class KaraokeProcessWorker {
                 doStart(database)
             } else {
                 stopAfterThreadIsDone = false
-                sendStateMessage(database = database)
+                sendStateMessage()
             }
         }
 
-        fun stop(database: KaraokeConnection) {
+        fun stop() {
             if (isWork) {
                 doStop()
-                sendStateMessage(database = database)
+                sendStateMessage()
             }
         }
 
-        fun sendStateMessage(database: KaraokeConnection) {
-            val messageRecordChange = RecordChangeMessage(
-                recordChangeTableName = "tbl_processes",
-                recordChangeId = 0,
-                recordChangeDiffs = listOf(
-                    RecordDiff("isWorkAndStopAfterThreadIsDone", isWork, stopAfterThreadIsDone, false)
-                ), databaseName = database.name
+        fun sendStateMessage() {
+            val messageProcessWorkerState = SseNotification.processWorkerState(
+                ProcessWorkerStateMessage(
+                    isWork = isWork,
+                    stopAfterThreadIsDone = stopAfterThreadIsDone
+                )
             )
             try {
-                WEBSOCKET.convertAndSend("/apis/messages/processesrecordchange", messageRecordChange)
+                SNS.send(messageProcessWorkerState)
             } catch (e: Exception) {
                 println(e.message)
             }
@@ -139,21 +133,28 @@ class KaraokeProcessWorker {
         }
 
         private fun doStart(database: KaraokeConnection) {
-            val timeout = 1000L
-            var counter = 0
+            val timeout = 100L
+            var counter = 0L
             var id = 0L
             var settingsId = 0L
             var processType = ""
-            var percentage = 0
+            var percentage = 0.0
+
+            val intervalCheckDummy = 60_000
+            val intervalCheckFiles = 240_000
 
             isWork = true
             stopAfterThreadIsDone = false
-            sendStateMessage(database = database)
+            sendStateMessage()
             while (isWork) {
                 counter++
                 Thread.sleep(timeout)
 
-                if (counter % 120 == 0) {
+                if (counter % (intervalCheckDummy / timeout) == 0L) {
+                    SNS.send(SseNotification.dummy())
+                }
+
+                if (counter % (intervalCheckFiles / timeout) == 0L) {
                     // Каждые 120 секунд проверяем наличие файлов на обновление
                     val listFiles = getListFiles("/clouds/Yandex.Disk/Karaoke/_TMP","settings")
                     listFiles.forEach {fileName ->
@@ -186,6 +187,7 @@ class KaraokeProcessWorker {
                             settings.fields[SettingField.ID_TELEGRAM_LYRICS] = tmpSettings.fields[SettingField.ID_TELEGRAM_LYRICS] ?: ""
                             settings.fields[SettingField.ID_TELEGRAM_KARAOKE] = tmpSettings.fields[SettingField.ID_TELEGRAM_KARAOKE] ?: ""
                             settings.fields[SettingField.ID_TELEGRAM_CHORDS] = tmpSettings.fields[SettingField.ID_TELEGRAM_CHORDS] ?: ""
+                            settings.fields[SettingField.RESULT_VERSION] = tmpSettings.fields[SettingField.RESULT_VERSION] ?: ""
                             settings.fields[SettingField.COLOR] = tmpSettings.fields[SettingField.COLOR] ?: ""
                             settings.sourceText = tmpSettings.sourceText
                             settings.resultText = tmpSettings.resultText
@@ -203,8 +205,6 @@ class KaraokeProcessWorker {
                                 KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, 0)
                                 KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_LYR, true, 0)
                                 KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, 1)
-//                                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS_BT, true, 3)
-//                                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE_BT, true, 3)
                             }
 
                         }
@@ -214,104 +214,47 @@ class KaraokeProcessWorker {
                 // Проверяем, выполняется ли в данный момент какое-то задание
                 // Если да - ждём, если нет запускаем новое задание (если оно есть в очереди)
                 if (workThread == null || !workThread!!.isAlive) {
-                    if (!stopAfterThreadIsDone) {
-                        val karaokeProcess = getKaraokeProcessToStart(database)
-                        if (karaokeProcess != null) {
-                            val args = karaokeProcess.args[0]
-                            if (args.isNotEmpty()) {
-                                if (id > 0) {
+                    val karaokeProcess = getKaraokeProcessToStart(database)
+                    if (karaokeProcess != null && (!stopAfterThreadIsDone || karaokeProcess.command == "tail")) {
+                        val args = karaokeProcess.args[0]
+                        if (args.isNotEmpty()) {
+                            if (id > 0) {
 
-                                    val diffs = KaraokeProcess.getDiff(KaraokeProcess.load(id, database))
-                                    if (diffs.isNotEmpty()) {
-                                        val messageRecordChange = RecordChangeMessage(recordChangeTableName = "tbl_processes",  recordChangeId = id, recordChangeDiffs = diffs, databaseName = database.name)
-                                        try {
-                                            WEBSOCKET.convertAndSend("/apis/messages/processesrecordchange", messageRecordChange)
-                                            WEBSOCKET.convertAndSend("/apis/messages/recordchange",
-                                                RecordChangeMessage(
-                                                    recordChangeId = settingsId,
-                                                    recordChangeTableName = "tbl_settings",
-                                                    recordChangeDiffs = listOf(
-                                                        RecordDiff(
-                                                            recordDiffName = processType,
-                                                            recordDiffValueNew = "100%",
-                                                            recordDiffValueOld = "",
-                                                            recordDiffRealField = false
-                                                        )
-                                                    ), databaseName = database.name
-                                                )
-                                            )
-
-                                        } catch (e: Exception) {
-                                            println(e.message)
-                                        }
-                                    }
-
+                                val kp = KaraokeProcess.load(id, database)
+                                val diffs = KaraokeProcess.getDiff(kp)
+                                if (diffs.isNotEmpty()) {
+                                    karaokeProcess.save()
                                 }
-                                workThread = KaraokeProcessThread(karaokeProcess)
-                                id = karaokeProcess.id.toLong()
-                                settingsId = karaokeProcess.settingsId.toLong()
-                                processType = karaokeProcess.type
-                                percentage = 0
-                                workThread!!.start()
+
                             }
+                            workThread = KaraokeProcessThread(karaokeProcess)
+                            id = karaokeProcess.id.toLong()
+                            settingsId = karaokeProcess.settingsId.toLong()
+                            processType = karaokeProcess.type
+                            percentage = 0.0
+                            workThread!!.start()
                         }
                     } else {
-
-                        val diffs = KaraokeProcess.getDiff(KaraokeProcess.load(id, database))
+                        val kp = KaraokeProcess.load(id, database)
+                        val diffs = KaraokeProcess.getDiff(kp)
                         if (diffs.isNotEmpty()) {
-                            val messageRecordChange = RecordChangeMessage(recordChangeTableName = "tbl_processes",  recordChangeId = id, recordChangeDiffs = diffs, databaseName = database.name)
-                            try {
-                                WEBSOCKET.convertAndSend("/apis/messages/processesrecordchange", messageRecordChange)
-                                WEBSOCKET.convertAndSend("/apis/messages/recordchange",
-                                    RecordChangeMessage(
-                                        recordChangeId = settingsId,
-                                        recordChangeTableName = "tbl_settings",
-                                        recordChangeDiffs = listOf(
-                                            RecordDiff(
-                                                recordDiffName = processType,
-                                                recordDiffValueNew = "100%",
-                                                recordDiffValueOld = "",
-                                                recordDiffRealField = false
-                                            )
-                                        ), databaseName = database.name
-                                    )
-                                )
-                            } catch (e: Exception) {
-                                println(e.message)
-                            }
+                            workThread?.karaokeProcess?.save()
                         }
 
                         stopAfterThreadIsDone = false
                         isWork = false
-                        sendStateMessage(database = database)
+                        sendStateMessage()
                     }
                 } else {
 
-                    val diffs = KaraokeProcess.getDiff(workThread?.karaokeProcess)
+                    val kp = workThread?.karaokeProcess
+                    val diffs = KaraokeProcess.getDiff(kp)
                     if (diffs.isNotEmpty()) {
-                        val messageRecordChange = RecordChangeMessage(recordChangeTableName = "tbl_processes",  recordChangeId = id, recordChangeDiffs = diffs, databaseName = database.name)
-                        try {
-                            WEBSOCKET.convertAndSend("/apis/messages/processesrecordchange", messageRecordChange)
-                            if (percentage != workThread?.karaokeProcess?.percentage ?: 0) {
-                                percentage = workThread?.karaokeProcess?.percentage ?: 0
-                                WEBSOCKET.convertAndSend("/apis/messages/recordchange",
-                                    RecordChangeMessage(
-                                        recordChangeId = settingsId,
-                                        recordChangeTableName = "tbl_settings",
-                                        recordChangeDiffs = listOf(
-                                            RecordDiff(
-                                                recordDiffName = processType,
-                                                recordDiffValueNew = "${percentage}%",
-                                                recordDiffValueOld = "",
-                                                recordDiffRealField = false
-                                            )
-                                        ), databaseName = database.name
-                                    )
-                                )
-                            }
-                        } catch (e: Exception) {
-                            println(e.message)
+                        if (percentage != (workThread?.karaokeProcess?.percentage ?: 0.0)) {
+                            percentage = workThread?.karaokeProcess?.percentage ?: 0.0
                         }
+                        workThread?.karaokeProcess?.save()
+
                     }
                 }
             }

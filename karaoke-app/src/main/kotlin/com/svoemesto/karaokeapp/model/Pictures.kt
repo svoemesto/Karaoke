@@ -2,6 +2,7 @@ package com.svoemesto.karaokeapp.model
 
 import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.WORKING_DATABASE
+import com.svoemesto.karaokeapp.rightFileName
 import java.io.Serializable
 import java.sql.ResultSet
 import java.sql.SQLException
@@ -49,7 +50,7 @@ class Pictures(val database: KaraokeConnection = WORKING_DATABASE) : Serializabl
         fieldsValues.add(Pair("picture_full", picture.full))
         fieldsValues.add(Pair("picture_preview", picture.preview))
 
-        return "INSERT INTO tbl_pictures (${fieldsValues.map {it.first}.joinToString(", ")}) OVERRIDING SYSTEM VALUE VALUES(${fieldsValues.map {if (it.second is Long) "${it.second}" else "'${it.second.toString().replace("'","''")}'"}.joinToString(", ")})"
+        return "INSERT INTO tbl_pictures (${fieldsValues.map {it.first}.joinToString(", ")}) OVERRIDING SYSTEM VALUE VALUES(${fieldsValues.map {if (it.second is Long) "${it.second}" else "'${it.second.toString().rightFileName()}'"}.joinToString(", ")})"
 
     }
 

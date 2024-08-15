@@ -34,6 +34,8 @@ class Zakroma(val database: KaraokeConnection): Serializable, Comparable<Zakroma
                         zakromaAlbumSettings.linkVkLyrics = settings.linkVkLyrics
                         zakromaAlbumSettings.linkTgKaraoke = settings.linkTgKaraoke
                         zakromaAlbumSettings.linkTgLyrics = settings.linkTgLyrics
+                        zakromaAlbumSettings.linkPlKaraoke = settings.linkPlKaraoke
+                        zakromaAlbumSettings.linkPlLyrics = settings.linkPlLyrics
                         zakromaAlbumSettings
                     }.sorted().toMutableList()
                     album
@@ -66,6 +68,8 @@ class ZakromaAlbumSettings: Serializable, Comparable<ZakromaAlbumSettings> {
     var linkVkLyrics: String = ""
     var linkTgKaraoke: String = ""
     var linkTgLyrics: String = ""
+    var linkPlKaraoke: String = ""
+    var linkPlLyrics: String = ""
     var onAir: Boolean = false
     var datePublish: String = ""
     override fun compareTo(other: ZakromaAlbumSettings): Int {

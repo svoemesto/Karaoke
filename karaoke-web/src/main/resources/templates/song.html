@@ -196,6 +196,16 @@
             border-style: none;
             border-width: thin;
         }
+        .pl {
+            height: 100%;
+            padding: 2px;
+            font-size: small;
+            text-align: center;
+            min-width: 25px;
+            max-width: 25px;
+            border-style: none;
+            border-width: thin;
+        }
         .tg {
             height: 100%;
             padding: 2px;
@@ -254,6 +264,17 @@
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" id="svg-icon-tg-none">
         <path fill="#CBCBCB" d="M19.314.036a2.572 2.572 0 0 0-.83.198c-.227.09-1.043.432-2.342.977-1.298.545-3.02 1.267-4.853 2.038-3.67 1.543-7.792 3.279-9.904 4.168-.072.03-.367.12-.692.369-.327.249-.689.79-.689 1.38 0 .478.238.963.526 1.242.287.278.579.408.822.505v-.003l3.867 1.546c.207.622 1.098 3.286 1.31 3.956h-.002c.15.474.296.782.5 1.04.1.13.222.246.37.338.057.036.12.063.184.089.008.004.018.005.026.008l-.024-.006c.018.007.035.018.053.025.03.01.052.01.093.018.145.045.289.075.423.075.573 0 .925-.312.925-.312l.023-.016 2.477-2.096 3.034 2.807c.055.078.49.666 1.494.666.6 0 1.074-.297 1.377-.608.303-.312.492-.63.577-1.062l.002-.002c.068-.348 2.972-14.932 2.972-14.932l-.006.024c.09-.403.117-.793.01-1.191a1.71 1.71 0 0 0-.742-.99 1.742 1.742 0 0 0-.98-.25zm-.416 2.31c-.115.577-2.716 13.648-2.877 14.467l-4.382-4.054-2.962 2.504.82-3.207s5.66-5.728 6-6.061c.275-.267.332-.36.332-.454 0-.123-.064-.212-.21-.212-.132 0-.311.127-.406.186-1.207.752-6.347 3.681-8.875 5.12-.152-.062-2.436-.979-3.667-1.47A47417.361 47417.361 0 0 1 16.96 3.157a450.66 450.66 0 0 1 1.939-.81z"></path>
     </svg>
+
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none" id="svg-icon-pl">
+        <circle cx="100" cy="100" r="100" fill="black"></circle>
+        <path d="M140.364 53.9091V147H118.182V71.9091H83.6363V147H61.4545V53.9091H140.364Z" fill="white"></path>
+    </svg>
+
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none" id="svg-icon-pl-none">
+        <circle cx="100" cy="100" r="100" fill="#CBCBCB"></circle>
+        <path d="M140.364 53.9091V147H118.182V71.9091H83.6363V147H61.4545V53.9091H140.364Z" fill="white"></path>
+    </svg>
+
 </div>
 
 <div hidden="hidden" style="width: 0; height: 0" id="text_formatted_html" th:text="${sett.getTextFormatted()}">
@@ -278,7 +299,7 @@
                         <td colspan="2">
                             <table style="width: 100%">
                                 <tr>
-                                    <td class="td_cell" style="padding: 0" colspan="7">
+                                    <td class="td_cell" style="padding: 0" colspan="9">
                                         <div style="text-align: center">Ссылки на просмотр:</div>
                                     </td>
                                 </tr>
@@ -286,10 +307,10 @@
                                     <td class="td_cell" style="padding: 0">
                                         <div style="text-align: center">All</div>
                                     </td>
-                                    <td class="td_cell" style="padding: 0" colspan="3">
+                                    <td class="td_cell" style="padding: 0" colspan="4">
                                         <div style="text-align: center">Karaoke</div>
                                     </td>
-                                    <td class="td_cell" style="padding: 0" colspan="3">
+                                    <td class="td_cell" style="padding: 0" colspan="4">
                                         <div style="text-align: center">Lyrics</div>
                                     </td>
                                 </tr>
@@ -331,6 +352,25 @@
                                                              songVersion="karaoke"
                                                      >
                                                         <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-dzen"></use></svg>
+                                                    </div>
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td class="td_cell" style="padding: 0; border-right-width: 0; border-left-width: 0">
+                                            <div class="pl">
+                                                <span th:if="${sett.linkPlKaraoke == ''}">
+                                                    <svg style="margin-left: 100%; height: 20px; width: 20px;"><use xlink:href="#svg-icon-pl-none"></use></svg>
+                                                </span>
+                                                <span th:unless="${sett.linkPlKaraoke == ''}">
+                                                     <div
+                                                             style="cursor: pointer; margin-left: 100%"
+                                                             name="link"
+                                                             linkName="pl"
+                                                             th:linkValue="${sett.linkPlKaraoke}"
+                                                             th:songId="${sett.id}"
+                                                             songVersion="karaoke"
+                                                     >
+                                                        <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-pl"></use></svg>
                                                     </div>
                                                 </span>
                                             </div>
@@ -394,6 +434,25 @@
                                             </div>
                                         </td>
                                         <td class="td_cell" style="padding: 0; border-right-width: 0; border-left-width: 0">
+                                            <div class="pl">
+                                                <span th:if="${sett.linkPlLyrics == ''}">
+                                                    <svg style="margin-left: 100%; height: 20px; width: 20px;"><use xlink:href="#svg-icon-pl-none"></use></svg>
+                                                </span>
+                                                <span th:unless="${sett.linkPlLyrics == ''}">
+                                                     <div
+                                                             style="cursor: pointer; margin-left: 100%"
+                                                             name="link"
+                                                             linkName="pl"
+                                                             th:linkValue="${sett.linkPlLyrics}"
+                                                             th:songId="${sett.id}"
+                                                             songVersion="lyrics"
+                                                     >
+                                                        <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-pl"></use></svg>
+                                                    </div>
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td class="td_cell" style="padding: 0; border-right-width: 0; border-left-width: 0">
                                             <div class="vk">
                                                 <span th:if="${sett.linkVkLyrics == ''}">
                                                     <svg style="margin-left: 100%; height: 20px; width: 20px;"><use xlink:href="#svg-icon-vk-none"></use></svg>
@@ -436,14 +495,14 @@
                                     </span>
 
                                     <span th:unless="${sett.onAir == true}">
-                                        <td class="td_cell" style="padding: 0" colspan="6">
+                                        <td class="td_cell" style="padding: 0" colspan="8">
                                             <div th:text="${sett.datePublish}" class="date_publish"></div>
                                         </td>
                                     </span>
                                 </tr>
 
                                 <tr th:unless="${sett.linkBoostyFilesTxt == ''}">
-                                    <td class="td_cell" style="padding: 0" colspan="7">
+                                    <td class="td_cell" style="padding: 0" colspan="9">
 
                                         <div
                                                 style="cursor: pointer; text-align: center; text-underline: auto"
@@ -569,7 +628,7 @@
                     </span>
                     <tr>
                         <td colspan="2">
-                            <div id="text_formatted" style="background-color: black; padding: 10px;"></div>
+                            <div id="text_formatted" style="background-color: black; padding: 10px; font-size: x-large; line-height: normal;"></div>
                         </td>
                     </tr>
                 </table>

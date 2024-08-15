@@ -9,7 +9,12 @@ enum class KaraokeProcessTypes {
 //    MELT_KARAOKE_BT,
 //    MELT_CHORDS_BT,
     DEMUCS2,
+    DEMUCS5,
     FF_720_KAR,
     FF_720_LYR,
-    SYMLINK
+    SYMLINK,
+    COPY_TO_STORE_LYRICS,
+    COPY_TO_STORE_KARAOKE,
+    FF_MP3_KAR,
+    FF_MP3_LYR,
 }

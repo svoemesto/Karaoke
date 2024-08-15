@@ -6,6 +6,13 @@ import java.awt.Font
 import java.io.File
 import java.util.*
 
+fun String.wrapInQuotes(): String {
+    return this
+//    return "\"\"" + this + "\"\""
+}
+fun String.rightFileName(): String {
+    return this.replace("'","''")
+}
 fun String.getWords(): List<String> {
     val result: MutableList<String> = mutableListOf()
     val regex = "([a-zA-Zа-яА-ЯёЁ\\-]+)".toRegex()

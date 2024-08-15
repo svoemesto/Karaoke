@@ -23,7 +23,21 @@ data class PublicationDTO(
     val publish20: SettingsDTO?,
     val publish21: SettingsDTO?,
     val publish22: SettingsDTO?,
-    val publish23: SettingsDTO?
+    val publish23: SettingsDTO?,
+    val publish10text: String,
+    val publish11text: String,
+    val publish12text: String,
+    val publish13text: String,
+    val publish14text: String,
+    val publish15text: String,
+    val publish16text: String,
+    val publish17text: String,
+    val publish18text: String,
+    val publish19text: String,
+    val publish20text: String,
+    val publish21text: String,
+    val publish22text: String,
+    val publish23text: String
 )
 
 class Publication(val database: KaraokeConnection = WORKING_DATABASE) : Serializable, Comparable<Publication> {
@@ -296,7 +310,21 @@ class Publication(val database: KaraokeConnection = WORKING_DATABASE) : Serializ
             publish20 = publish20?.toDTO(),
             publish21 = publish21?.toDTO(),
             publish22 = publish22?.toDTO(),
-            publish23 = publish23?.toDTO()
+            publish23 = publish23?.toDTO(),
+            publish10text = publish10text,
+            publish11text = publish11text,
+            publish12text = publish12text,
+            publish13text = publish13text,
+            publish14text = publish14text,
+            publish15text = publish15text,
+            publish16text = publish16text,
+            publish17text = publish17text,
+            publish18text = publish18text,
+            publish19text = publish19text,
+            publish20text = publish20text,
+            publish21text = publish21text,
+            publish22text = publish22text,
+            publish23text = publish23text
         )
     }
 
@@ -375,6 +403,7 @@ class Publication(val database: KaraokeConnection = WORKING_DATABASE) : Serializ
                 (if (filterDateFrom != "") SimpleDateFormat("dd.MM.yy").parse(it.date)  >= SimpleDateFormat("dd.MM.yy").parse(filterDateFrom) else true) &&
                 (if (filterDateTo != "") SimpleDateFormat("dd.MM.yy").parse(it.date)  <= SimpleDateFormat("dd.MM.yy").parse(filterDateTo) else true)
             }
+
             listOfSettings.forEach { settings ->
                 var publicationInList = result.filter { it.publishDate == settings.date }.firstOrNull()
                 if (publicationInList == null) {
@@ -442,6 +471,89 @@ class Publication(val database: KaraokeConnection = WORKING_DATABASE) : Serializ
             }
 
             return result
+        }
+
+        fun getSettingsListForPublications(args: Map<String, String> = emptyMap(), database: KaraokeConnection): List<Settings> {
+
+            var filterDateFrom =  args["filter_date_from"] ?: ""
+            var filterDateTo =  args["filter_date_to"] ?: ""
+            val filterCond =  args["filter_cond"] ?: ""
+
+            if (filterCond == "all") {
+                filterDateFrom = ""
+                filterDateTo = ""
+            } else if (filterCond == "fromtoday") {
+                filterDateFrom = SimpleDateFormat("dd.MM.yy").format(Date())
+                filterDateTo = ""
+            } else if (filterCond == "fromnotpublish") {
+                val listOfSettingsTemp = Settings.loadListFromDb(database = database).filter {
+                    it.date != "" &&
+                            it.time != "" &&
+                            it.flags != ""
+                }
+                if (listOfSettingsTemp.isNotEmpty()) {
+                    var minDate = ""
+                    listOfSettingsTemp.forEach {
+                        if (minDate == "" || SimpleDateFormat("dd.MM.yy").parse(it.date) < SimpleDateFormat("dd.MM.yy").parse(minDate)) {
+                            minDate = it.date
+                        }
+                    }
+                    println(minDate)
+                    filterDateFrom = minDate
+                    filterDateTo = ""
+                }
+            } else if (filterCond == "fromnotdone") {
+                val listOfSettingsTemp = Settings.loadListFromDb(database = database).filter {
+                    it.date != "" &&
+                            it.time != "" &&
+                            it.idStatus < 3L
+                }
+                if (listOfSettingsTemp.isNotEmpty()) {
+                    var minDate = ""
+                    listOfSettingsTemp.forEach {
+                        if (minDate == "" || SimpleDateFormat("dd.MM.yy").parse(it.date) < SimpleDateFormat("dd.MM.yy").parse(minDate)) {
+                            minDate = it.date
+                        }
+                    }
+                    println(minDate)
+                    filterDateFrom = minDate
+                    filterDateTo = ""
+                }
+            } else if (filterCond == "fromnotcheck") {
+                val listOfSettingsTemp = Settings.loadListFromDb(database = database).filter {
+                    it.date != "" &&
+                            it.time != "" &&
+                            it.idStatus < 4L
+                }
+                if (listOfSettingsTemp.isNotEmpty()) {
+                    var minDate = ""
+                    listOfSettingsTemp.forEach {
+                        if (minDate == "" || SimpleDateFormat("dd.MM.yy").parse(it.date) < SimpleDateFormat("dd.MM.yy").parse(minDate)) {
+                            minDate = it.date
+                        }
+                    }
+                    println(minDate)
+                    filterDateFrom = minDate
+                    filterDateTo = ""
+                }
+
+            } else if (filterCond == "unpublish") {
+                return Settings.loadListFromDb(mapOf("publish_date" to "-", "publish_time" to "-"), database)
+            }
+
+            return Settings.loadListFromDb(database = database).filter {
+                it.date != "" &&
+                        it.time != "" &&
+                        (if (filterDateFrom != "") SimpleDateFormat("dd.MM.yy").parse(it.date)  >= SimpleDateFormat("dd.MM.yy").parse(filterDateFrom) else true) &&
+                        (if (filterDateTo != "") SimpleDateFormat("dd.MM.yy").parse(it.date)  <= SimpleDateFormat("dd.MM.yy").parse(filterDateTo) else true)
+            }
+
+        }
+
+        fun getSettingsListForUnpublications(database: KaraokeConnection): List<Settings> {
+
+            return Settings.loadListFromDb(mapOf("publish_date" to "-", "publish_time" to "-"), database)
+
         }
 
     }

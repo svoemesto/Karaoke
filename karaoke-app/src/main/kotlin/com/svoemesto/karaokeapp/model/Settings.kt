@@ -3,7 +3,7 @@ package com.svoemesto.karaokeapp.model
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.svoemesto.karaokeapp.*
-import com.svoemesto.karaokeapp.services.WEBSOCKET
+import com.svoemesto.karaokeapp.services.SNS
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.encodeToString
@@ -60,13 +60,16 @@ enum class SettingField : Serializable {
     ID_TELEGRAM_LYRICS,
     ID_TELEGRAM_KARAOKE,
     ID_TELEGRAM_CHORDS,
+    ID_PL_LYRICS,
+    ID_PL_KARAOKE,
+    RESULT_VERSION,
 }
 
 
 @kotlinx.serialization.Serializable
 data class SourceMarker(
     var time: Double,
-    var label: String,
+    var label: String = "",
     var color: String,
     var position: String,
     var markertype: String
@@ -191,23 +194,6 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         val result: MutableList<List<String>> = mutableListOf()
         sourceTextList.forEachIndexed{ index, _ ->
             val voiceText = getSourceText(index)
-//            val words = voiceText.replace("\n"," ").split(" ").filter { it != "" }
-//            val slogs: MutableList<String> = mutableListOf()
-//            val mainRibbon = MainRibbon()
-//            var addBefore = ""
-//            words.forEach { word ->
-//                val wordSlogs: MutableList<String> = mainRibbon.syllables(word).toMutableList()
-//                if (wordSlogs.isEmpty()) {
-//                    addBefore += "${word}_"
-//                } else {
-//                    if (wordSlogs.joinToString("") != word) wordSlogs[wordSlogs.size-1] = wordSlogs[wordSlogs.size-1] + word.substring(wordSlogs.joinToString("").length)
-//                    wordSlogs[0] = addBefore + wordSlogs[0]
-//                    addBefore = ""
-//                    wordSlogs[wordSlogs.size-1] = wordSlogs[wordSlogs.size-1] + "_"
-//                    slogs.addAll(wordSlogs)
-//                }
-//            }
-//            result.add(slogs)
             result.add(getSyllables(voiceText))
         }
         return result
@@ -246,16 +232,20 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     }
 
 
-    val pathToFileLyrics: String  get() = "${rootFolder.replace("'","''")}/done_files/$nameFileLyrics"
-    val pathToFileKaraoke: String  get() = "${rootFolder.replace("'","''")}/done_files/$nameFileKaraoke"
-    val pathToFileChords: String  get() = "${rootFolder.replace("'","''")}/done_files/$nameFileChords"
+    val pathToFileLyrics: String  get() = "${rootFolder.rightFileName()}/done_files/$nameFileLyrics"
+    val pathToFileKaraoke: String  get() = "${rootFolder.rightFileName()}/done_files/$nameFileKaraoke"
+    val pathToFileChords: String  get() = "${rootFolder.rightFileName()}/done_files/$nameFileChords"
 
     val pathToFile720Lyrics: String  get() = "$pathToFolder720Lyrics/${nameFileLyrics.replace(" [lyrics].mp4", " [lyrics] 720p.mp4")}"
+    val pathToFileMP3Lyrics: String  get() = "$pathToFolderMP3Lyrics/${nameFileLyrics.replace(" [lyrics].mp4", " [lyrics].mp3")}"
     val pathToFile720Karaoke: String  get() = "$pathToFolder720Karaoke/${nameFileKaraoke.replace(" [karaoke].mp4", " [karaoke] 720p.mp4")}"
+    val pathToFileMP3Karaoke: String  get() = "$pathToFolderMP3Karaoke/${nameFileKaraoke.replace(" [karaoke].mp4", " [karaoke].mp3")}"
     val pathToFile720Chords: String  get() = "$pathToFolder720Chords/${nameFileChords.replace(" [chords].mp4", " [chords] 720p.mp4")}"
 
     val pathToFolder720Lyrics: String  get() = "$PATH_TO_STORE_FOLDER/720p_Lyrics/${author} 720p"
+    val pathToFolderMP3Lyrics: String  get() = "$PATH_TO_STORE_FOLDER/MP3_Lyrics/${author} MP3"
     val pathToFolder720Karaoke: String  get() = "$PATH_TO_STORE_FOLDER/720p_Karaoke/${author} 720p"
+    val pathToFolderMP3Karaoke: String  get() = "$PATH_TO_STORE_FOLDER/MP3_Karaoke/${author} MP3"
     val pathToFolder720Chords: String  get() = "$PATH_TO_STORE_FOLDER/720p_Chords/${author} 720p"
 
     val pathToStoreFileLyrics: String  get() = "$pathToStoreFolderLyrics/$nameFileLyrics"
@@ -266,11 +256,11 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     val pathToStoreFolderKaraoke: String  get() = "$PATH_TO_STORE_FOLDER/Karaoke/${author} - Karaoke"
     val pathToStoreFolderChords: String  get() = "$PATH_TO_STORE_FOLDER/Chords/${author} - Chords"
 
-    val nameFileLogoAlbum: String  get() = "${if (!fileName.startsWith (year.toString())) "${year} " else ""}${fileName.replace("'","''")} [album].png"
-    val nameFileLogoAuthor: String  get() = "${if (!fileName.startsWith (year.toString())) "${year} " else ""}${fileName.replace("'","''")} [author].png"
-    val nameFileLyrics: String  get() = "${if (!fileName.startsWith (year.toString())) "${year} " else ""}${fileName.replace("'","''")} [lyrics].mp4"
-    val nameFileKaraoke: String  get() = "${if (!fileName.startsWith (year.toString())) "${year} " else ""}${fileName.replace("'","''")} [karaoke].mp4"
-    val nameFileChords: String  get() = "$${if (!fileName.startsWith (year.toString())) "${year} " else ""}${fileName.replace("'","''")} [chords].mp4"
+    val nameFileLogoAlbum: String  get() = "${if (!fileName.startsWith (year.toString())) "${year} " else ""}${fileName.rightFileName()} [album].png"
+    val nameFileLogoAuthor: String  get() = "${if (!fileName.startsWith (year.toString())) "${year} " else ""}${fileName.rightFileName()} [author].png"
+    val nameFileLyrics: String  get() = "${if (!fileName.startsWith (year.toString())) "${year} " else ""}${fileName.rightFileName()} [lyrics].mp4"
+    val nameFileKaraoke: String  get() = "${if (!fileName.startsWith (year.toString())) "${year} " else ""}${fileName.rightFileName()} [karaoke].mp4"
+    val nameFileChords: String  get() = "$${if (!fileName.startsWith (year.toString())) "${year} " else ""}${fileName.rightFileName()} [chords].mp4"
 
     @get:JsonIgnore
     val pathToFileLogoAlbum: String  get() {
@@ -314,6 +304,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     val key: String get() = fields[SettingField.KEY] ?: ""
     val bpm: Long get() = fields[SettingField.BPM]?.toLongOrNull() ?: 0L
     val ms: Long get() = fields[SettingField.MS]?.toLongOrNull() ?: 0L
+    val resultVersion: Long get() = fields[SettingField.RESULT_VERSION]?.toLongOrNull() ?: 0L
     val subtitleFileName: String get() = "${fileName}.kdenlive.srt"
     val audioSongFileName: String get() = "${fileName}.flac"
 //        if (fields.contains(SettingField.FORMAT)) {
@@ -436,6 +427,8 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     val idTelegramLyrics: String get() = fields[SettingField.ID_TELEGRAM_LYRICS]?.nullIfEmpty() ?: ""
     val idTelegramKaraoke: String get() = fields[SettingField.ID_TELEGRAM_KARAOKE]?.nullIfEmpty() ?: ""
     val idTelegramChords: String get() = fields[SettingField.ID_TELEGRAM_CHORDS]?.nullIfEmpty() ?: ""
+    val idPlLyrics: String get() = fields[SettingField.ID_PL_LYRICS]?.nullIfEmpty() ?: ""
+    val idPlKaraoke: String get() = fields[SettingField.ID_PL_KARAOKE]?.nullIfEmpty() ?: ""
 
     val linkSM: String get() = URL_PREFIX_SM.replace("{REPLACE}", id.toString())
     val linkBoosty: String? get() = idBoosty?.let {URL_PREFIX_BOOSTY.replace("{REPLACE}", idBoosty!!)}
@@ -468,30 +461,39 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     val linkTelegramChordsPlay: String? get() = idTelegramChords?.let {URL_PREFIX_TELEGRAM_PLAY.replace("{REPLACE}", idTelegramChords!!)}
     val linkTelegramChordsEdit: String? get() = idTelegramChords?.let {URL_PREFIX_TELEGRAM_EDIT.replace("{REPLACE}", idTelegramChords!!)}
 
+    val linkPlLyricsPlay: String? get() = idPlLyrics?.let {URL_PREFIX_PL_PLAY.replace("{REPLACE}", idPlLyrics!!)}
+    val linkPlLyricsEdit: String? get() = idPlLyrics?.let {URL_PREFIX_PL_EDIT.replace("{REPLACE}", idPlLyrics!!)}
+
+    val linkPlKaraokePlay: String? get() = idPlKaraoke?.let {URL_PREFIX_PL_PLAY.replace("{REPLACE}", idPlKaraoke!!)}
+    val linkPlKaraokeEdit: String? get() = idPlKaraoke?.let {URL_PREFIX_PL_EDIT.replace("{REPLACE}", idPlKaraoke!!)}
+
+    
     val flagBoosty: String get() =
         if (idBoosty == null || idBoosty == "null" || idBoosty == "") {
-            ""
+            "-"
         } else if (idBoostyFiles == null || idBoostyFiles == "null" || idBoostyFiles == "") {
             "✅"
         } else {
             "✔"
         }
 
-    val flagBoostyFiles: String get() = if (idBoostyFiles == null || idBoostyFiles == "null" || idBoostyFiles == "") "" else "✓"
-    val flagVk: String get() = if (idVk == null || idVk == "null" || idVk == "") "" else "✓"
-    val flagYoutubeLyrics: String get() = if (idYoutubeLyrics == null || idYoutubeLyrics == "null" || idYoutubeLyrics == "") "" else "✓"
-    val flagYoutubeKaraoke: String get() = if (idYoutubeKaraoke == null || idYoutubeKaraoke == "null" || idYoutubeKaraoke == "") "" else "✓"
-    val flagYoutubeChords: String get() = if (idYoutubeChords == null || idYoutubeChords == "null" || idYoutubeChords == "") "" else "✓"
+    val flagBoostyFiles: String get() = if (idBoostyFiles == null || idBoostyFiles == "null" || idBoostyFiles == "") "-" else "✓"
+    val flagVk: String get() = if (idVk == null || idVk == "null" || idVk == "") "-" else "✓"
+    val flagYoutubeLyrics: String get() = if (idYoutubeLyrics == null || idYoutubeLyrics == "null" || idYoutubeLyrics == "") "-" else "✓"
+    val flagYoutubeKaraoke: String get() = if (idYoutubeKaraoke == null || idYoutubeKaraoke == "null" || idYoutubeKaraoke == "") "-" else "✓"
+    val flagYoutubeChords: String get() = if (idYoutubeChords == null || idYoutubeChords == "null" || idYoutubeChords == "") "-" else "✓"
 
-    val flagVkLyrics: String get() = if (idVkLyrics == null || idVkLyrics == "null" || idVkLyrics == "") "" else "✓"
-    val flagVkKaraoke: String get() = if (idVkKaraoke == null || idVkKaraoke == "null" || idVkKaraoke == "") "" else "✓"
-    val flagVkChords: String get() = if (idVkChords == null || idVkChords == "null" || idVkChords == "") "" else "✓"
+    val flagVkLyrics: String get() = if (idVkLyrics == null || idVkLyrics == "null" || idVkLyrics == "") "-" else "✓"
+    val flagVkKaraoke: String get() = if (idVkKaraoke == null || idVkKaraoke == "null" || idVkKaraoke == "") "-" else "✓"
+    val flagVkChords: String get() = if (idVkChords == null || idVkChords == "null" || idVkChords == "") "-" else "✓"
 
 
-    val flagTelegramLyrics: String get() = if (idTelegramLyrics == null || idTelegramLyrics == "null" || idTelegramLyrics == "") "" else "✓"
-    val flagTelegramKaraoke: String get() = if (idTelegramKaraoke == null || idTelegramKaraoke == "null" || idTelegramKaraoke == "") "" else "✓"
-    val flagTelegramChords: String get() = if (idTelegramChords == null || idTelegramChords == "null" || idTelegramChords == "") "" else "✓"
+    val flagTelegramLyrics: String get() = if (idTelegramLyrics == null || idTelegramLyrics == "null" || idTelegramLyrics == "") "-" else "✓"
+    val flagTelegramKaraoke: String get() = if (idTelegramKaraoke == null || idTelegramKaraoke == "null" || idTelegramKaraoke == "") "-" else "✓"
+    val flagTelegramChords: String get() = if (idTelegramChords == null || idTelegramChords == "null" || idTelegramChords == "") "-" else "✓"
 
+    val flagPlLyrics: String get() = if (idPlLyrics == null || idPlLyrics == "null" || idPlLyrics == "") "-" else "✓"
+    val flagPlKaraoke: String get() = if (idPlKaraoke == null || idPlKaraoke == "null" || idPlKaraoke == "") "-" else "✓"
     
     val pathToResultedModel: String get() = "$rootFolder/$DEMUCS_MODEL_NAME"
     val pathToSymlinkFolder: String get() = "$rootFolder/symlink"
@@ -510,7 +512,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     val guitarsNameWav: String get() = "$pathToResultedModel/$fileName-guitars.wav"
     val guitarsNameFlac: String get() = "$pathToResultedModel/$fileName-guitars.flac"
     val otherNameWav: String get() = "$pathToResultedModel/$fileName-other.wav"
-    val otherNameFlac: String get() = "$pathToResultedModel/$fileName}-other.flac"
+    val otherNameFlac: String get() = "$pathToResultedModel/$fileName-other.flac"
     val fileAbsolutePath: String get() = "$rootFolder/$fileName.flac"
     val fileAbsolutePathSymlink: String get() = "$pathToSymlinkFolder/$fileName.flac"
     val fileSettingsAbsolutePath: String get() = "$rootFolder/$fileName.settings"
@@ -541,6 +543,8 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
     val linkTgKaraoke: String get() = if (idTelegramKaraoke == "" || idTelegramKaraoke == "-") "" else linkTelegramKaraokePlay!!
     val linkTgLyrics: String get() = if (idTelegramLyrics == "" || idTelegramLyrics == "-") "" else linkTelegramLyricsPlay!!
+    val linkPlKaraoke: String get() = if (idPlKaraoke == "") "" else linkPlKaraokePlay!!
+    val linkPlLyrics: String get() = if (idPlLyrics == "") "" else linkPlLyricsPlay!!
     val datePublish: String get() = if (date == "" || time == "") "Дата пока не определена" else "${date} ${time}"
 
     fun getVKPictureBase64(): String = getVKPictureBase64(this)
@@ -859,6 +863,9 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             "#A9A9A9"
         }
 
+    val processColorPlLyrics: String get() = if (idPlLyrics.isNotBlank()) "#00FF00" else "#A9A9A9"
+    val processColorPlKaraoke: String get() = if (idPlKaraoke.isNotBlank()) "#00FF00" else "#A9A9A9"
+
     @get:JsonIgnore
     val haveBoostyLink: Boolean get() = idBoosty.isNotBlank()
     @get:JsonIgnore
@@ -879,6 +886,10 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     val flags: String get() = if (haveBoostyLink && haveVkGroupLink && haveVkLinks && haveTelegramLinks && haveYoutubeLinks) "" else "(${if (haveBoostyLink) "b" else "-"}${if (haveVkGroupLink) "g" else "-"}${if (haveVkLinks) "v" else "-"}${if (haveTelegramLinks) "t" else "-"}${if (haveYoutubeLinks) "z" else "-"}) "
 
     @get:JsonIgnore
+    val havePlLinks: Boolean get() = idPlLyrics.isNotBlank() ||
+            idPlKaraoke.isNotBlank()
+
+    @get:JsonIgnore
     val digest: String get() =
        (if (firstSongInAlbum) "Альбом: «${album}» (${year})\n\n" else "") +
        "$songName\n$linkBoosty\n" +
@@ -892,32 +903,6 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     fun getDescriptionLinks(): String {
 
         var result = "Все версии этой песни: ${linkSM}\n\n"
-
-//        result += if (idBoosty.isNotBlank()) "На Boosty (все версии): ${linkBoosty}\n\n" else ""
-
-//        if (haveYoutubeLinks) {
-//            result += "На Dzen:\n"
-//            result += if (idYoutubeLyrics.isNotBlank()) "Версия Lyrics: ${linkYoutubeLyricsPlay}\n" else ""
-//            result += if (idYoutubeKaraoke.isNotBlank()) "Версия Karaoke: ${linkYoutubeKaraokePlay}\n" else ""
-//            result += if (idYoutubeChords.isNotBlank()) "Версия Chords: ${linkYoutubeChordsPlay}\n" else ""
-//            result += "\n"
-//        }
-//
-//        if (haveVkLinks) {
-//            result += "В VK:\n"
-//            result += if (idVkLyrics.isNotBlank()) "Версия Lyrics: ${linkVkLyricsPlay}\n" else ""
-//            result += if (idVkKaraoke.isNotBlank()) "Версия Karaoke: ${linkVkKaraokePlay}\n" else ""
-//            result += if (idVkChords.isNotBlank()) "Версия Chords: ${linkVkChordsPlay}\n" else ""
-//            result += "\n"
-//        }
-//
-//        if (haveTelegramLinks) {
-//            result += "В Telegram:\n"
-//            result += if (idTelegramLyrics.isNotBlank()) "Версия Lyrics: ${linkTelegramLyricsPlay}\n" else ""
-//            result += if (idTelegramKaraoke.isNotBlank() && idTelegramKaraoke != "-") "Версия Karaoke: ${linkTelegramKaraokePlay}\n" else ""
-//            result += if (idTelegramChords.isNotBlank()) "Версия Chords: ${linkTelegramChordsPlay}\n" else ""
-//            result += "\n"
-//        }
 
         return result
     }
@@ -1067,8 +1052,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                         wasBr = true
 //                    result.append("""<span style="font-size: 0">Источник: sm-karaoke.ru</span>""")
                     }
-                    "unmute" -> {}
-                    else -> {
+                    "syllables" -> {
                         result.append(spanStyle)
                         var txt = marker.label.replace("_", " ")
                         if (wasBr) {
@@ -1078,6 +1062,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                         result.append(txt)
                         result.append("</span>")
                     }
+                    else -> {} // unmute, note
                 }
 
                 if (spanStyle != spanStylePrev) result.append("<br>")
@@ -1093,6 +1078,67 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         return result.toString().deleteThisSymbols(NOTES_SYMBOLS)
     }
 
+    fun getTextBody(): String {
+        val result = StringBuilder()
+        for (voice in 0 until countVoices) {
+
+            val SPAN_STYLE_GROUP0 = """<span style="color: #FFFFFF; font-size: smaller; font-style: normal; font-weight: bolder;">"""
+            val SPAN_STYLE_GROUP1 = """<span style="color: #FFFF00; font-size: smaller; font-style: italic; font-weight: bolder;">"""
+            val SPAN_STYLE_GROUP2 = """<span style="color: #00BFFF; font-size: smaller; font-style: normal; font-weight: bolder;">"""
+            val SPAN_STYLE_GROUP3 = """<span style="color: #00FF00; font-size: smaller; font-style: italic; font-weight: bolder;">"""
+            val SPAN_STYLE_COMMENT = """<span style="color: #D2691E; font-size: small; font-style: italic; font-weight: bolder;">"""
+
+
+            val markers = getSourceMarkers(voice)
+            var spanStyle = SPAN_STYLE_GROUP0
+            var spanStylePrev = spanStyle
+            var wasBr = true
+            markers.forEach { marker ->
+
+                when (marker.markertype) {
+                    "setting" -> {
+                        when (marker.label) {
+                            "GROUP|0" -> spanStyle = SPAN_STYLE_GROUP0
+                            "GROUP|1" -> spanStyle = SPAN_STYLE_GROUP1
+                            "GROUP|2" -> spanStyle = SPAN_STYLE_GROUP2
+                            "GROUP|3" -> spanStyle = SPAN_STYLE_GROUP3
+                            "COMMENT| " -> result.append("\n")
+                            else -> {
+                                if (marker.label.startsWith("COMMENT|")) {
+                                    val txt = marker.label.split("|")[1]
+                                    result.append(txt.replace("_", " ").uppercaseFirstLetter())
+                                    result.append("\n")
+                                }
+                            }
+                        }
+                    }
+                    "endofline", "newline" -> {
+                        result.append("\n")
+                        wasBr = true
+                    }
+                    "syllables" -> {
+                        var txt = marker.label.replace("_", " ")
+                        if (wasBr) {
+                            txt = txt.uppercaseFirstLetter()
+                            wasBr = false
+                        }
+                        result.append(txt)
+                    }
+                    else -> {} // unmute, note
+                }
+
+                if (spanStyle != spanStylePrev) result.append("\n")
+                spanStylePrev = spanStyle
+            }
+
+            if (countVoices > 1 && voice != countVoices-1) {
+                result.append("\n-----------------------------\n")
+            }
+
+        }
+
+        return result.toString().deleteThisSymbols(NOTES_SYMBOLS)
+    }
 
     fun getText(): String {
         val result = StringBuilder()
@@ -1351,7 +1397,16 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
             val diff = getDiff(this, loadFromDbById(id,database))
             if (diff.isEmpty()) return
-            val messageRecordChange = RecordChangeMessage(recordChangeTableName = "tbl_settings",  recordChangeId = id, recordChangeDiffs = diff, databaseName = database.name)
+            val messageRecordChange = SseNotification.recordChange(
+                RecordChangeMessage(
+                    tableName = "tbl_settings",
+                    recordId = id,
+                    diffs = diff,
+                    databaseName = database.name,
+                    record = this.toDTO()
+                )
+            )
+
             val setStr = diff.filter{ it.recordDiffRealField }.map { "${it.recordDiffName} = ?" }.joinToString(", ")
             if (setStr != "") {
 
@@ -1376,17 +1431,26 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                 println(messageRecordChange.toString())
 
                 try {
-                    WEBSOCKET.convertAndSend("/apis/messages/recordchange", messageRecordChange)
+                    SNS.send(messageRecordChange)
                 } catch (e: Exception) {
                     println(e.message)
                 }
-
-                val diffNew = getDiff(loadFromDbById(id, database),this)
+                val saved = loadFromDbById(id, database)
+                val diffNew = getDiff(saved,this)
                 if (diffNew.isNotEmpty()) {
-                    val messageRecordChangeNew = RecordChangeMessage(recordChangeTableName = "tbl_settings",  recordChangeId = id, recordChangeDiffs = diffNew, databaseName = database.name)
+                    val messageRecordChangeNew = SseNotification.recordChange(
+                        RecordChangeMessage(
+                            tableName = "tbl_settings",
+                            recordId = id,
+                            diffs = diffNew,
+                            databaseName = database.name,
+                            record = saved?.toDTO()
+                        )
+                    )
+
                     println(messageRecordChangeNew.toString())
                     try {
-                        WEBSOCKET.convertAndSend("/apis/messages/recordchange", messageRecordChangeNew)
+                        SNS.send(messageRecordChangeNew)
                     } catch (e: Exception) {
                         println(e.message)
                     }
@@ -1398,10 +1462,15 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
     }
 
-    fun doSymlink() {
-        KaraokeProcess.createProcess(this, KaraokeProcessTypes.SYMLINK, true, -1)
+    fun doSymlink(prior: Int = -1) {
+        KaraokeProcess.createProcess(this, KaraokeProcessTypes.SYMLINK, true, prior)
     }
-
+    fun doMP3Karaoke(prior: Int = -1) {
+        KaraokeProcess.createProcess(this, KaraokeProcessTypes.FF_MP3_KAR, true, prior)
+    }
+    fun doMP3Lyrics(prior: Int = -1) {
+        KaraokeProcess.createProcess(this, KaraokeProcessTypes.FF_MP3_LYR, true, prior)
+    }
     fun deleteFromDb(withFiles: Boolean = true) {
         if (withFiles) {
             if (File(fileAbsolutePath).exists()) File(fileAbsolutePath).delete()
@@ -1416,6 +1485,15 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         ps.setLong(1, id)
         ps.executeUpdate()
         ps.close()
+
+        val messageRecordDelete = SseNotification.recordDelete(
+            RecordDeleteMessage(
+                recordId = id,
+                tableName = "tbl_settings",
+                databaseName = database.name
+            )
+        )
+        SNS.send(messageRecordDelete)
 
     }
 
@@ -1506,6 +1584,12 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         createKaraoke(songKaraoke)
         createKaraoke(songChords)
 
+        if (idStatus < 3) {
+            fields[SettingField.ID_STATUS] = "3"
+        }
+        fields[SettingField.RESULT_VERSION] = CURRENT_RESULT_VERSION.toString()
+        saveToDb()
+
     }
 
     fun getSqlToInsert(): String {
@@ -1522,6 +1606,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         fieldsValues.add(Pair("song_track", settings.track))
         fieldsValues.add(Pair("song_tone", settings.key))
         fieldsValues.add(Pair("song_bpm", settings.bpm))
+        fieldsValues.add(Pair("result_version", settings.resultVersion))
         fieldsValues.add(Pair("song_ms", settings.ms))
         fieldsValues.add(Pair("file_name", settings.fileName))
         fieldsValues.add(Pair("root_folder", settings.rootFolder))
@@ -1546,8 +1631,158 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         fieldsValues.add(Pair("status_process_chords", settings.statusProcessChords))
         fieldsValues.add(Pair("tags", settings.tags))
 
-       return "INSERT INTO tbl_settings (${fieldsValues.map {it.first}.joinToString(", ")}) OVERRIDING SYSTEM VALUE VALUES(${fieldsValues.map {if (it.second is Long) "${it.second}" else "'${it.second.toString().replace("'","''")}'"}.joinToString(", ")})"
+       return "INSERT INTO tbl_settings (${fieldsValues.map {it.first}.joinToString(", ")}) OVERRIDING SYSTEM VALUE VALUES(${fieldsValues.map {if (it.second is Long) "${it.second}" else "'${it.second.toString().rightFileName()}'"}.joinToString(", ")})"
 
+    }
+
+    val state: SettingState get() {
+        val currentCalendar = Calendar.getInstance()
+        val currentDateTime = currentCalendar.time
+
+        val formatter = SimpleDateFormat("dd/MM/yyyy")
+        val currentDate = formatter.parse(formatter.format(currentDateTime))
+        val datePublish = if (dateTimePublish == null) null else formatter.parse(formatter.format(dateTimePublish))
+        if (datePublish == null || idStatus < 6) return SettingState.IN_WORK
+
+        if (datePublish == currentDate) {
+            if (idTelegramKaraoke != "-" &&
+                idTelegramKaraoke != "" &&
+                idTelegramLyrics != "" &&
+                idVkKaraoke != "" &&
+                idVkLyrics != "" &&
+                idYoutubeKaraoke != "" &&
+                idYoutubeLyrics != "" &&
+                idPlKaraoke != "" &&
+                idPlLyrics != "" &&
+                idVk != "" &&
+                idBoosty != ""
+            ) {
+                return SettingState.ALL_DONE
+            } else if (idTelegramKaraoke != "-" &&
+                idTelegramKaraoke != "" &&
+                idTelegramLyrics != "" &&
+                idVkKaraoke != "" &&
+                idVkLyrics != "" &&
+                idYoutubeKaraoke != "" &&
+                idYoutubeLyrics != "" &&
+                idVk != "" &&
+                idBoosty != ""
+            ) {
+                return SettingState.ALL_DONE_WO_PL
+            } else {
+                return SettingState.TODAY
+            }
+        }
+
+        if (datePublish < currentDate) {
+            if (idTelegramKaraoke != "-" &&
+                idTelegramKaraoke != "" &&
+                idTelegramLyrics != "" &&
+                idVkKaraoke != "" &&
+                idVkLyrics != "" &&
+                idYoutubeKaraoke != "" &&
+                idYoutubeLyrics != "" &&
+                idPlKaraoke != "" &&
+                idPlLyrics != "" &&
+                idVk != "" &&
+                idBoosty != ""
+            ) {
+                return SettingState.ALL_DONE
+            } else if (idTelegramKaraoke != "-" &&
+                idTelegramKaraoke != "" &&
+                idTelegramLyrics != "" &&
+                idVkKaraoke != "" &&
+                idVkLyrics != "" &&
+                idYoutubeKaraoke != "" &&
+                idYoutubeLyrics != "" &&
+                idVk != "" &&
+                idBoosty != ""
+            ) {
+                return SettingState.ALL_DONE_WO_PL
+            } else {
+                return SettingState.OVERDUE
+            }
+        }
+
+        if (idTelegramKaraoke == "-" &&
+            idTelegramLyrics == "" &&
+            idVkKaraoke != "" &&
+            idVkLyrics != "" &&
+            idYoutubeKaraoke != "" &&
+            idYoutubeLyrics != "" &&
+            idVk != "" &&
+            idBoosty != "" &&
+            idBoostyFiles != ""
+        ) return SettingState.ALL_UPLOADED
+
+        if (idTelegramKaraoke == "" &&
+            idTelegramLyrics == "" &&
+            idVkKaraoke != "" &&
+            idVkLyrics != "" &&
+            idYoutubeKaraoke != "" &&
+            idYoutubeLyrics != "" &&
+            idPlKaraoke != "" &&
+            idPlLyrics != "" &&
+            idVk != "" &&
+            idBoosty != "" &&
+            idBoostyFiles != ""
+        ) return SettingState.WO_TG
+
+        if (idTelegramKaraoke == "" &&
+            idTelegramLyrics == "" &&
+            idVkKaraoke != "" &&
+            idVkLyrics != "" &&
+            idYoutubeKaraoke != "" &&
+            idYoutubeLyrics != "" &&
+            (idPlKaraoke == "" ||
+            idPlLyrics == "") &&
+            idVk != "" &&
+            idBoosty != "" &&
+            idBoostyFiles != ""
+        ) return SettingState.WO_PL
+
+        if (idTelegramKaraoke == "" &&
+            idTelegramLyrics == "" &&
+            (idVkKaraoke == "" ||
+            idVkLyrics == "") &&
+            idYoutubeKaraoke != "" &&
+            idYoutubeLyrics != "" &&
+            idBoosty != "" &&
+            idBoostyFiles != ""
+        ) return SettingState.WO_VK
+
+        if (idTelegramKaraoke == "" &&
+            idTelegramLyrics == "" &&
+            idVkKaraoke != "" &&
+            idVkLyrics != "" &&
+            (idYoutubeKaraoke == "" ||
+            idYoutubeLyrics == "") &&
+            idBoosty != "" &&
+            idBoostyFiles != ""
+        ) return SettingState.WO_DZEN_WITH_VK
+
+        if (idTelegramKaraoke == "" &&
+            idTelegramLyrics == "" &&
+            (idVkKaraoke == "" ||
+            idVkLyrics == "") &&
+            (idYoutubeKaraoke == "" ||
+            idYoutubeLyrics == "") &&
+            idBoosty != "" &&
+            idBoostyFiles != ""
+        ) return SettingState.WO_DZEN
+
+        if (idTelegramKaraoke == "" &&
+            idTelegramLyrics == "" &&
+//            idVkKaraoke == "" &&
+//            idVkLyrics == "" &&
+//            idYoutubeKaraoke == "" &&
+//            idYoutubeLyrics == "" &&
+            idVk == "" &&
+            idBoosty != "" &&
+            idBoostyFiles != ""
+        ) return SettingState.WO_VKG
+
+        return SettingState.IN_WORK
     }
 
     companion object {
@@ -1564,6 +1799,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                 if (settA.track != settB.track) result.add(RecordDiff("song_track", settA.track, settB.track))
                 if (settA.key != settB.key) result.add(RecordDiff("song_tone", settA.key, settB.key))
                 if (settA.bpm != settB.bpm) result.add(RecordDiff("song_bpm", settA.bpm, settB.bpm))
+                if (settA.resultVersion != settB.resultVersion) result.add(RecordDiff("result_version", settA.resultVersion, settB.resultVersion))
                 if (settA.ms != settB.ms) result.add(RecordDiff("song_ms", settA.ms, settB.ms))
                 if (settA.fileName != settB.fileName) result.add(RecordDiff("file_name", settA.fileName, settB.fileName))
                 if (settA.rootFolder != settB.rootFolder) result.add(RecordDiff("root_folder", settA.rootFolder, settB.rootFolder))
@@ -1579,6 +1815,8 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                 if (settA.idTelegramLyrics != settB.idTelegramLyrics) result.add(RecordDiff("id_telegram_lyrics", settA.idTelegramLyrics, settB.idTelegramLyrics))
                 if (settA.idTelegramKaraoke != settB.idTelegramKaraoke) result.add(RecordDiff("id_telegram_karaoke", settA.idTelegramKaraoke, settB.idTelegramKaraoke))
                 if (settA.idTelegramChords != settB.idTelegramChords) result.add(RecordDiff("id_telegram_chords", settA.idTelegramChords, settB.idTelegramChords))
+                if (settA.idPlLyrics != settB.idPlLyrics) result.add(RecordDiff("id_pl_lyrics", settA.idPlLyrics, settB.idPlLyrics))
+                if (settA.idPlKaraoke != settB.idPlKaraoke) result.add(RecordDiff("id_pl_karaoke", settA.idPlKaraoke, settB.idPlKaraoke))
                 if (settA.idStatus != settB.idStatus) result.add(RecordDiff("id_status", settA.idStatus, settB.idStatus))
                 if (settA.sourceText != settB.sourceText) result.add(RecordDiff("source_text", settA.sourceText, settB.sourceText))
                 if (settA.resultText != settB.resultText) result.add(RecordDiff("result_text", settA.resultText, settB.resultText))
@@ -1603,7 +1841,8 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                 if (settA.processColorTelegramKaraoke != settB.processColorTelegramKaraoke) result.add(RecordDiff("processColorTelegramKaraoke", settA.processColorTelegramKaraoke, settB.processColorTelegramKaraoke, false))
                 if (settA.processColorVk != settB.processColorVk) result.add(RecordDiff("processColorVk", settA.processColorVk, settB.processColorVk, false))
                 if (settA.processColorBoosty != settB.processColorBoosty) result.add(RecordDiff("processColorBoosty", settA.processColorBoosty, settB.processColorBoosty, false))
-
+                if (settA.processColorPlLyrics != settB.processColorPlLyrics) result.add(RecordDiff("processColorPlLyrics", settA.processColorPlLyrics, settB.processColorPlLyrics, false))
+                if (settA.processColorPlKaraoke != settB.processColorPlKaraoke) result.add(RecordDiff("processColorPlKaraoke", settA.processColorPlKaraoke, settB.processColorPlKaraoke, false))
             }
             return result
         }
@@ -1642,7 +1881,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         fun createDbInstance(settings: Settings, database: KaraokeConnection) : Settings? {
 
             val sql = settings.getSqlToInsert()
-            println(sql)
+//            println(sql)
 
             val connection = database.getConnection()
             val ps = connection.prepareStatement(sql)
@@ -1655,6 +1894,18 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             } else null
 
             ps.close()
+            result?.let {
+                val messageRecordAdd = SseNotification.recordAdd(
+                    RecordAddMessage(
+                        tableName = "tbl_settings",
+                        recordId = result.id,
+                        databaseName = database.name,
+                        record = result.toDTO()
+                    )
+                )
+                SNS.send(messageRecordAdd)
+            }
+
 
             return result
 
@@ -1763,12 +2014,12 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                 sql = "SELECT * FROM tbl_settings"
                 if (args.containsKey("id")) where += "tbl_settings.id=${args["id"]}"
                 if (args.containsKey("ids")) where += "tbl_settings.id in (${args["ids"]})"
-                if (args.containsKey("file_name")) where += "LOWER(file_name)='${args["file_name"]?.replace("'","''")?.lowercase()}'"
-                if (args.containsKey("root_folder")) where += "LOWER(root_folder)='${args["root_folder"]?.replace("'","''")?.lowercase()}'"
-                if (args.containsKey("song_name")) where += "LOWER(song_name) LIKE '%${args["song_name"]?.replace("'","''")?.lowercase()}%'"
-                if (args.containsKey("song_author")) where += "LOWER(song_author) LIKE '%${args["song_author"]?.replace("'","''")?.lowercase()}%'"
-                if (args.containsKey("author")) where += "LOWER(song_author) = '${args["author"]?.replace("'","''")?.lowercase()}'"
-                if (args.containsKey("song_album")) where += "LOWER(song_album) LIKE '%${args["song_album"]?.replace("'","''")?.lowercase()}%'"
+                if (args.containsKey("file_name")) where += "LOWER(file_name)='${args["file_name"]?.rightFileName()?.lowercase()}'"
+                if (args.containsKey("root_folder")) where += "LOWER(root_folder)='${args["root_folder"]?.rightFileName()?.lowercase()}'"
+                if (args.containsKey("song_name")) where += "LOWER(song_name) LIKE '%${args["song_name"]?.rightFileName()?.lowercase()}%'"
+                if (args.containsKey("song_author")) where += "LOWER(song_author) LIKE '%${args["song_author"]?.rightFileName()?.lowercase()}%'"
+                if (args.containsKey("author")) where += "LOWER(song_author) = '${args["author"]?.rightFileName()?.lowercase()}'"
+                if (args.containsKey("song_album")) where += "LOWER(song_album) LIKE '%${args["song_album"]?.rightFileName()?.lowercase()}%'"
                 if (args.containsKey("publish_date")) {
                     var pd = args["publish_date"]!!
                     if (pd[0] == '>') {
@@ -1814,27 +2065,30 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                 if (args.containsKey("flag_telegram_lyrics")) where += "CASE WHEN id_telegram_lyrics IS NOT NULL AND id_telegram_lyrics <> 'null' AND id_telegram_lyrics <> '' THEN '+' ELSE '-' END='${args["flag_telegram_lyrics"]}'"
                 if (args.containsKey("flag_telegram_karaoke")) where += "CASE WHEN id_telegram_karaoke IS NOT NULL AND id_telegram_karaoke <> 'null' AND id_telegram_karaoke <> '' THEN '+' ELSE '-' END='${args["flag_telegram_karaoke"]}'"
                 if (args.containsKey("flag_telegram_chords")) where += "CASE WHEN id_telegram_chords IS NOT NULL AND id_telegram_chords <> 'null' AND id_telegram_chords <> '' THEN '+' ELSE '-' END='${args["flag_telegram_chords"]}'"
+                if (args.containsKey("flag_pl_lyrics")) where += "CASE WHEN id_pl_lyrics IS NOT NULL AND id_pl_lyrics <> 'null' AND id_pl_lyrics <> '' THEN '+' ELSE '-' END='${args["flag_pl_lyrics"]}'"
+                if (args.containsKey("flag_pl_karaoke")) where += "CASE WHEN id_pl_karaoke IS NOT NULL AND id_pl_karaoke <> 'null' AND id_pl_karaoke <> '' THEN '+' ELSE '-' END='${args["flag_pl_karaoke"]}'"
+                if (args.containsKey("filter_result_version")) where += "result_version=${args["filter_result_version"]}"
                 if (args.containsKey("tags")) {
                     var tg = args["tags"]!!
                     if (tg[0] == '~') {
                         tg = tg.substring(1)
-                        where += "tags='${tg.replace("'","''")}'"
+                        where += "tags='${tg.rightFileName()}'"
                     } else if (tg.length > 2 && tg.startsWith("!~")) {
                         tg = tg.substring(2)
-                        where += "tags NOT LIKE '%${tg.replace("'","''")}%'"
+                        where += "tags NOT LIKE '%${tg.rightFileName()}%'"
                     } else {
-                        where += "LOWER(tags) LIKE '%${tg.replace("'","''").lowercase()}%'"
+                        where += "LOWER(tags) LIKE '%${tg.rightFileName().lowercase()}%'"
                     }
 
                 }
-                if (args.containsKey("text")) where += "to_tsvector('russian', result_text) @@ plainto_tsquery('russian', '${args["text"]?.replace("'","''")?.lowercase()}')"
+                if (args.containsKey("text")) where += "to_tsvector('russian', result_text) @@ plainto_tsquery('russian', '${args["text"]?.rightFileName()?.lowercase()}')"
 
                 if (where.size > 0) sql += " WHERE ${where.joinToString(" AND ")}"
 
                 sql += " ORDER BY tbl_settings.id"
 
 //                println(where)
-                println(sql)
+//                println(sql)
 
                 rs = statement.executeQuery(sql)
                 val result: MutableList<Settings> = mutableListOf()
@@ -1873,7 +2127,10 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                     rs.getString("id_vk_chords")?.let { value -> settings.fields[SettingField.ID_VK_CHORDS] = value }
                     rs.getString("id_telegram_lyrics")?.let { value -> settings.fields[SettingField.ID_TELEGRAM_LYRICS] = value }
                     rs.getString("id_telegram_karaoke")?.let { value -> settings.fields[SettingField.ID_TELEGRAM_KARAOKE] = value }
+                    rs.getString("id_pl_lyrics")?.let { value -> settings.fields[SettingField.ID_PL_LYRICS] = value }
+                    rs.getString("id_pl_karaoke")?.let { value -> settings.fields[SettingField.ID_PL_KARAOKE] = value }
                     rs.getString("id_telegram_chords")?.let { value -> settings.fields[SettingField.ID_TELEGRAM_CHORDS] = value }
+                    rs.getInt("result_version")?.let { value -> settings.fields[SettingField.RESULT_VERSION] = value.toString() }
                     rs.getString("source_text")?.let { value -> settings.sourceText = value }
                     rs.getString("result_text")?.let { value -> settings.resultText = value }
                     rs.getString("source_markers")?.let { value -> settings.sourceMarkers = value }
@@ -1900,69 +2157,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                         else -> "#FFFFFF"
                     }
 
-
-                    settings.fields[SettingField.COLOR] = when {
-
-                        settings.idStatus < 6 || datePublish == null -> color1
-
-                        datePublish < currentDate &&
-                        settings.idTelegramKaraoke == "-" &&
-                        settings.idTelegramLyrics == "" &&
-                        settings.idVkKaraoke == "" &&
-                        settings.idVkLyrics == "" -> "#BDB76B"
-
-                        datePublish < currentDate &&
-                        settings.idTelegramKaraoke != "" &&
-                        settings.idTelegramLyrics != "" &&
-                        settings.idVkKaraoke != "" &&
-                        settings.idVkLyrics != "" -> "#7FFFD4"
-
-                        datePublish < currentDate &&
-                        settings.idVkKaraoke != "" &&
-                        settings.idVkLyrics != "" -> "#BDB76B"
-
-                        datePublish < currentDate &&
-                        settings.idTelegramKaraoke != "" &&
-                        settings.idTelegramLyrics != "" -> "#1E90FF"
-
-                        datePublish < currentDate &&
-                        settings.idBoosty != "" &&
-                        settings.idBoostyFiles == "" -> "#98FB98"
-
-                        datePublish < currentDate &&
-                        settings.idBoostyFiles != "" -> "#64FF64"
-
-                        datePublish > currentDate &&
-                        settings.idTelegramKaraoke == "-" &&
-                        settings.idTelegramLyrics == "" &&
-                        settings.idVkKaraoke != "" &&
-                        settings.idVkLyrics != "" -> "#DCDCDC"
-
-                        datePublish > currentDate &&
-                        settings.idTelegramKaraoke == "" &&
-                        settings.idTelegramLyrics == "" &&
-                        settings.idVkKaraoke != "" &&
-                        settings.idVkLyrics != "" -> "#87CEFA"
-
-                        datePublish > currentDate &&
-                        settings.idVk != "" -> "#FFDAB9"
-
-                        datePublish > currentDate &&
-                        settings.idBoosty != "" &&
-                        settings.idBoostyFiles == "" -> "#FFEFD5"
-
-                        datePublish > currentDate &&
-                        settings.idBoostyFiles != "" -> "#FFC880"
-
-                        datePublish == currentDate &&
-                        settings.dateTimePublish!! < currentDateTime -> "#FF8000"
-
-                        datePublish == currentDate &&
-                        settings.dateTimePublish!! > currentDateTime -> "#FFFF00"
-
-                        else -> color1
-                    }
-
+                    settings.fields[SettingField.COLOR] = if (settings.state.color == "") color1 else settings.state.color
 
 //                    if (args.containsKey("text")) {
 //                        if (settings.getWords().containsAll((args["text"]?:"").getWords())) result.add(settings)
@@ -1986,6 +2181,8 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             }
             return emptyList()
         }
+
+
 
         fun loadFromDbById(id: Long, database: KaraokeConnection): Settings? {
 
@@ -2115,21 +2312,33 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         }
 
         fun setPublishDateTimeToAuthor(startSettings: Settings) {
-            var publishDate = SimpleDateFormat("dd.MM.yy").parse(startSettings.date)
-            val publishTime = startSettings.time
+
             val listOfSettings = loadListFromDb(mapOf(Pair("song_author", startSettings.author)), startSettings.database).filter { it.id > startSettings.id }
-            listOfSettings.forEach { settings ->
-                val calendar = Calendar.getInstance(TimeZone.getTimeZone("Europe/Moscow"))
-                calendar.time = publishDate
-                calendar.add(Calendar.DAY_OF_MONTH, 1)
-                publishDate = calendar.time
 
-                settings.fields[SettingField.DATE] = SimpleDateFormat("dd.MM.yy").format(publishDate)
-                settings.fields[SettingField.TIME] = publishTime
+            if (startSettings.date == "") {
+                listOfSettings.forEach { settings ->
+                    settings.fields[SettingField.DATE] = ""
+                    settings.fields[SettingField.TIME] = ""
+                    settings.saveToDb()
+                }
+            } else {
+                var publishDate = SimpleDateFormat("dd.MM.yy").parse(startSettings.date)
+                val publishTime = startSettings.time
+                listOfSettings.forEach { settings ->
+                    val calendar = Calendar.getInstance(TimeZone.getTimeZone("Europe/Moscow"))
+                    calendar.time = publishDate
+                    calendar.add(Calendar.DAY_OF_MONTH, 1)
+                    publishDate = calendar.time
 
-                settings.saveToDb()
+                    settings.fields[SettingField.DATE] = SimpleDateFormat("dd.MM.yy").format(publishDate)
+                    settings.fields[SettingField.TIME] = publishTime
 
+                    settings.saveToDb()
+
+                }
             }
+
+
         }
 
     }
@@ -2162,7 +2371,10 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             track = track,
             key = key,
             bpm = bpm,
+            resultVersion = resultVersion,
             ms = ms,
+            countVoices = countVoices,
+            firstSongInAlbum = firstSongInAlbum,
             flagBoosty = flagBoosty,
             flagVk = flagVk,
             flagYoutubeLyrics = flagYoutubeLyrics,
@@ -2173,6 +2385,8 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             flagVkChords = flagVkChords,
             flagTelegramLyrics = flagTelegramLyrics,
             flagTelegramKaraoke = flagTelegramKaraoke,
+            flagPlLyrics = flagPlLyrics,
+            flagPlKaraoke = flagPlKaraoke,
             flagTelegramChords = flagTelegramChords,
             processColorBoosty = processColorBoosty,
             processColorVk = processColorVk,
@@ -2184,6 +2398,8 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             processColorVkKaraoke = processColorVkKaraoke,
             processColorTelegramLyrics = processColorTelegramLyrics,
             processColorTelegramKaraoke = processColorTelegramKaraoke,
+            processColorPlLyrics = processColorPlLyrics,
+            processColorPlKaraoke = processColorPlKaraoke,
             idBoosty = idBoosty,
             idBoostyFiles = idBoostyFiles,
             idVk = idVk,
@@ -2196,7 +2412,9 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             idVkKaraokeOID = idVkKaraokeOID,
             idVkKaraokeID = idVkKaraokeID,
             idTelegramLyrics = idTelegramLyrics,
-            idTelegramKaraoke = idTelegramKaraoke
+            idTelegramKaraoke = idTelegramKaraoke,
+            idPlLyrics = idPlLyrics,
+            idPlKaraoke = idPlKaraoke
         )
     }
 
@@ -2224,6 +2442,8 @@ data class SettingsDTO(
     val key: String,
     val bpm: Long,
     val ms: Long,
+    val countVoices: Int,
+    val firstSongInAlbum: Boolean,
     val flagBoosty: String,
     val flagVk: String,
     val flagYoutubeLyrics: String,
@@ -2235,6 +2455,8 @@ data class SettingsDTO(
     val flagTelegramLyrics: String,
     val flagTelegramKaraoke: String,
     val flagTelegramChords: String,
+    val flagPlLyrics: String,
+    val flagPlKaraoke: String,
     val processColorBoosty: String,
     val processColorVk: String,
     val processColorMeltLyrics: String,
@@ -2245,6 +2467,8 @@ data class SettingsDTO(
     val processColorVkKaraoke: String,
     val processColorTelegramLyrics: String,
     val processColorTelegramKaraoke: String,
+    val processColorPlLyrics: String,
+    val processColorPlKaraoke: String,
     val idBoosty: String,
     val idBoostyFiles: String,
     val idVk: String,
@@ -2257,7 +2481,10 @@ data class SettingsDTO(
     val idVkKaraokeOID: String,
     val idVkKaraokeID: String,
     val idTelegramLyrics: String,
-    val idTelegramKaraoke: String
+    val idTelegramKaraoke: String,
+    val idPlLyrics: String,
+    val idPlKaraoke: String,
+    val resultVersion: Long
 ): Serializable, Comparable<SettingsDTO> {
 
     private val sortString: String get() {
@@ -2272,6 +2499,112 @@ data class SettingsDTO(
     }
 
     override fun compareTo(other: SettingsDTO): Int {
+        return sortString.compareTo(other.sortString)
+    }
+
+    fun toDtoDigest(): SettingsDTOdigest {
+        return SettingsDTOdigest(
+            id = id,
+            status = status,
+            tags = tags,
+            color = color,
+            songName = songName,
+            songNameCensored = songNameCensored,
+            author = author,
+            album = album,
+            date = date,
+            time = time,
+            dateTimePublish = dateTimePublish,
+            year = year,
+            track = track,
+            countVoices = countVoices,
+            firstSongInAlbum = firstSongInAlbum,
+            flagBoosty = flagBoosty,
+            flagVk = flagVk,
+            flagYoutubeLyrics = flagYoutubeLyrics,
+            flagYoutubeKaraoke = flagYoutubeKaraoke,
+            flagYoutubeChords = flagYoutubeChords,
+            flagVkLyrics = flagVkLyrics,
+            flagVkKaraoke = flagVkKaraoke,
+            flagVkChords = flagVkChords,
+            flagTelegramLyrics = flagTelegramLyrics,
+            flagTelegramKaraoke = flagTelegramKaraoke,
+            flagPlLyrics = flagPlLyrics,
+            flagPlKaraoke = flagPlKaraoke,
+            flagTelegramChords = flagTelegramChords,
+            processColorBoosty = processColorBoosty,
+            processColorVk = processColorVk,
+            processColorMeltLyrics = processColorMeltLyrics,
+            processColorMeltKaraoke = processColorMeltKaraoke,
+            processColorDzenLyrics = processColorDzenLyrics,
+            processColorDzenKaraoke = processColorDzenKaraoke,
+            processColorVkLyrics = processColorVkLyrics,
+            processColorVkKaraoke = processColorVkKaraoke,
+            processColorTelegramLyrics = processColorTelegramLyrics,
+            processColorTelegramKaraoke = processColorTelegramKaraoke,
+            processColorPlLyrics = processColorPlLyrics,
+            processColorPlKaraoke = processColorPlKaraoke,
+            resultVersion = resultVersion,
+        )
+    }
+}
+
+data class SettingsDTOdigest(
+    val id: Long,
+    val status: String,
+    val tags: String,
+    val color: String,
+    val songName: String,
+    val songNameCensored: String,
+    val author: String,
+    val album: String,
+    val date: String,
+    val time: String,
+    val dateTimePublish: Date?,
+    val year: Long,
+    val track: Long,
+    val countVoices: Int,
+    val firstSongInAlbum: Boolean,
+    val flagBoosty: String,
+    val flagVk: String,
+    val flagYoutubeLyrics: String,
+    val flagYoutubeKaraoke: String,
+    val flagYoutubeChords: String,
+    val flagVkLyrics: String,
+    val flagVkKaraoke: String,
+    val flagVkChords: String,
+    val flagTelegramLyrics: String,
+    val flagTelegramKaraoke: String,
+    val flagTelegramChords: String,
+    val flagPlLyrics: String,
+    val flagPlKaraoke: String,
+    val processColorBoosty: String,
+    val processColorVk: String,
+    val processColorMeltLyrics: String,
+    val processColorMeltKaraoke: String,
+    val processColorDzenLyrics: String,
+    val processColorDzenKaraoke: String,
+    val processColorVkLyrics: String,
+    val processColorVkKaraoke: String,
+    val processColorTelegramLyrics: String,
+    val processColorTelegramKaraoke: String,
+    val processColorPlLyrics: String,
+    val processColorPlKaraoke: String,
+    val resultVersion: Long
+): Serializable, Comparable<SettingsDTOdigest> {
+
+    private val sortString: String get() {
+        return if (dateTimePublish == null) {
+            listOf(
+                author, year.toString(), album, "%3d".format(track)
+            ).joinToString(" - ")
+        } else
+        {
+            "%15d".format(dateTimePublish.time)
+        }
+    }
+
+    override fun compareTo(other: SettingsDTOdigest): Int {
         return sortString.compareTo(other.sortString)
     }
 }

@@ -271,13 +271,13 @@
                 <a href="/"><img src="KARAOKE_LOGO.png" style="width: 300px; display: block; margin: auto"></a>
 <!--                <select style="font-size: 14px; padding: 0;" class="form-control" type="text" id="field_author" name="field_author">-->
 <!--                    <option value="">(Выберите автора)</option>-->
-<!--                    <option th:each="author:${authors}" th:value="${author}" th:text="${author}">-->
+<!--                    <option th:each="author:${songAuthors}" th:value="${author}" th:text="${author}">-->
 <!--                </select>-->
             </div>
             <div id="areaLeftTable">
                 <table class="table-sm" id="filterTable" style="width: 580px; height: 100%;">
                     <datalist id="list_authors">
-                        <option th:each="author:${authors}" th:value="${author}">
+                        <option th:each="author:${songAuthors}" th:value="${author}">
                     </datalist>
                     <tr>
                         <td>

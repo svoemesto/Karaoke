@@ -174,6 +174,7 @@ class KaraokeProcess(
         if (start == null) return -1L
         return when (status) {
             KaraokeProcessStatuses.DONE.name -> {
+                if (end == null) return -1L
                 val diffMs = end!!.time - start!!.time
                 diffMs
             }

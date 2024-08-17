@@ -44,3 +44,5 @@ docker exec -it karaoke-webvue bash
 Регулярно чистить докер от мусора:
 
 `docker system prune -a`
+
+

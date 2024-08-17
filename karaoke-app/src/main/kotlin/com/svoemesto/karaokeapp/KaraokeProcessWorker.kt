@@ -184,6 +184,8 @@ class KaraokeProcessWorker {
                             settings.fields[SettingField.ID_VK_LYRICS] = tmpSettings.fields[SettingField.ID_VK_LYRICS] ?: ""
                             settings.fields[SettingField.ID_VK_KARAOKE] = tmpSettings.fields[SettingField.ID_VK_KARAOKE] ?: ""
                             settings.fields[SettingField.ID_VK_CHORDS] = tmpSettings.fields[SettingField.ID_VK_CHORDS] ?: ""
+                            settings.fields[SettingField.ID_PL_LYRICS] = tmpSettings.fields[SettingField.ID_PL_LYRICS] ?: ""
+                            settings.fields[SettingField.ID_PL_KARAOKE] = tmpSettings.fields[SettingField.ID_PL_KARAOKE] ?: ""
                             settings.fields[SettingField.ID_TELEGRAM_LYRICS] = tmpSettings.fields[SettingField.ID_TELEGRAM_LYRICS] ?: ""
                             settings.fields[SettingField.ID_TELEGRAM_KARAOKE] = tmpSettings.fields[SettingField.ID_TELEGRAM_KARAOKE] ?: ""
                             settings.fields[SettingField.ID_TELEGRAM_CHORDS] = tmpSettings.fields[SettingField.ID_TELEGRAM_CHORDS] ?: ""
@@ -203,7 +205,6 @@ class KaraokeProcessWorker {
                                 settings.createKaraoke()
 
                                 KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, 0)
-                                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_LYR, true, 0)
                                 KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, 1)
                             }
 

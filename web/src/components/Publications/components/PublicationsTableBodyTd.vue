@@ -67,12 +67,19 @@ export default {
     processColorVk() { return { backgroundColor: this.publish.processColorVk } },
     processColorVkLyrics() { return { backgroundColor: this.publish.processColorVkLyrics } },
     processColorVkKaraoke() { return { backgroundColor: this.publish.processColorVkKaraoke } },
+    processColorVkChords() { return { backgroundColor: this.publish.processColorVkChords } },
     processColorDzenLyrics() { return { backgroundColor: this.publish.processColorDzenLyrics } },
     processColorDzenKaraoke() { return { backgroundColor: this.publish.processColorDzenKaraoke } },
+    processColorDzenChords() { return { backgroundColor: this.publish.processColorDzenChords } },
     processColorMeltLyrics() { return { backgroundColor: this.publish.processColorMeltLyrics } },
     processColorMeltKaraoke() { return { backgroundColor: this.publish.processColorMeltKaraoke } },
+    processColorMeltChords() { return { backgroundColor: this.publish.processColorMeltChords } },
     processColorTelegramLyrics() { return { backgroundColor: this.publish.processColorTelegramLyrics } },
     processColorTelegramKaraoke() { return { backgroundColor: this.publish.processColorTelegramKaraoke } },
+    processColorTelegramChords() { return { backgroundColor: this.publish.processColorTelegramChords } },
+    processColorPlLyrics() { return { backgroundColor: this.publish.processColorPlLyrics } },
+    processColorPlKaraoke() { return { backgroundColor: this.publish.processColorPlKaraoke } },
+    processColorPlChords() { return { backgroundColor: this.publish.processColorPlChords } },
   },
   methods: {
     editSong() {
@@ -87,6 +94,9 @@ export default {
     },
     dblClickLyrics() {
       return this.$store.getters.playLyrics(this.publish.id);
+    },
+    dblClickChords() {
+      return this.$store.getters.playChords(this.publish.id);
     }
   }
 }

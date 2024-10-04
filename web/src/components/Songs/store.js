@@ -2,8 +2,11 @@ import { promisedXMLHttpRequest } from '@/lib/utils'
 // import {useIntervalFn} from "@vueuse/core";
 export default {
     state: {
+        lastSettingType: 'COMMENT',
+        lastSettingValue: 'Комментарий',
         lastPriorLyrics: 0,
         lastPriorKaraoke: 1,
+        lastPriorChords: '',
         lastPriorCodeLyrics: 10,
         lastPriorCodeKaraoke: 10,
         lastPriorDemucs: -1,
@@ -281,11 +284,20 @@ export default {
         }
     },
     getters: {
+        getLastSettingType(state) {
+            return state.lastSettingType;
+        },
+        getLastSettingValue(state) {
+            return state.lastSettingValue;
+        },
         getLastPriorLyrics(state) {
             return state.lastPriorLyrics;
         },
         getLastPriorKaraoke(state) {
             return state.lastPriorKaraoke;
+        },
+        getLastPriorChords(state) {
+            return state.lastPriorChords;
         },
         getLastPriorCodeLyrics(state) {
             return state.lastPriorCodeLyrics;
@@ -438,6 +450,13 @@ export default {
                 params: params
             });
         },
+        async getSheetsageinfoBpm(state) {
+            return await promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/apis/song/sheetsageinfobpm",
+                params: { id: state.currentSongId }
+            });
+        },
         async getVoices(state) {
             return await promisedXMLHttpRequest({
                 method: 'POST',
@@ -502,6 +521,20 @@ export default {
                 params: { id: state.currentSongId }
             });
         },
+        async getDzenChordsHeader(state) {
+            return await promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/apis/song/textyoutubechordsheader",
+                params: { id: state.currentSongId }
+            });
+        },
+        async getDzenChordsBody(state) {
+            return await promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/apis/song/textyoutubechordswoheader",
+                params: { id: state.currentSongId }
+            });
+        },
 
         async getPlKaraokeHeader(state) {
             return await promisedXMLHttpRequest({
@@ -531,7 +564,21 @@ export default {
                 params: { id: state.currentSongId }
             });
         },
-        
+        async getPlChordsHeader(state) {
+            return await promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/apis/song/textplchordsheader",
+                params: { id: state.currentSongId }
+            });
+        },
+        async getPlChordsBody(state) {
+            return await promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/apis/song/textplchordswoheader",
+                params: { id: state.currentSongId }
+            });
+        },
+
         async getVkKaraokeHeader(state) {
             return await promisedXMLHttpRequest({
                 method: 'POST',
@@ -560,6 +607,21 @@ export default {
                 params: { id: state.currentSongId }
             });
         },
+        async getVkChordsHeader(state) {
+            return await promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/apis/song/textvkchordsheader",
+                params: { id: state.currentSongId }
+            });
+        },
+        async getVkChordsBody(state) {
+            return await promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/apis/song/textvkchords",
+                params: { id: state.currentSongId }
+            });
+        },
+
         async getTelegramKaraokeHeader(state) {
             return await promisedXMLHttpRequest({
                 method: 'POST',
@@ -574,6 +636,14 @@ export default {
                 params: { id: state.currentSongId }
             });
         },
+        async getTelegramChordsHeader(state) {
+            return await promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/apis/song/texttelegramchordsheader",
+                params: { id: state.currentSongId }
+            });
+        },
+
         getSourceText: (state) => async (voiceId) => {
             return await promisedXMLHttpRequest({
                 method: 'POST',
@@ -624,7 +694,14 @@ export default {
                 params: { id: id }
             });
         },
-
+        // TODO перенести в actions
+        playChords: (state) => async (id = state.currentSongId) => {
+            return await promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/apis/song/playchords",
+                params: { id: id }
+            });
+        },
 
         getPublications(state) {
             return state.publications;
@@ -635,11 +712,20 @@ export default {
         }
     },
     mutations: {
+        setLastSettingType(state, value) {
+            state.lastSettingType = value;
+        },
+        setLastSettingValue(state, value) {
+            state.lastSettingValue = value;
+        },
         setLastPriorLyrics(state, value) {
           state.lastPriorLyrics = value;
         },
         setLastPriorKaraoke(state, value) {
             state.lastPriorKaraoke = value;
+        },
+        setLastPriorChords(state, value) {
+            state.lastPriorChords = value;
         },
         setLastPriorCodeLyrics(state, value) {
             state.lastPriorCodeLyrics = value;
@@ -990,11 +1076,20 @@ export default {
         }
     },
     actions: {
+        setLastSettingType(ctx, payload) {
+            ctx.commit('setLastSettingType', payload.value);
+        },
+        setLastSettingValue(ctx, payload) {
+            ctx.commit('setLastSettingValue', payload.value);
+        },
         setLastPriorLyrics(ctx, payload) {
             ctx.commit('setLastPriorLyrics', payload.value);
         },
         setLastPriorKaraoke(ctx, payload) {
             ctx.commit('setLastPriorKaraoke', payload.value);
+        },
+        setLastPriorChords(ctx, payload) {
+            ctx.commit('setLastPriorChords', payload.value);
         },
         setLastPriorCodeLyrics(ctx, payload) {
             ctx.commit('setLastPriorCodeLyrics', payload.value);
@@ -1079,9 +1174,34 @@ export default {
                 console.log(error);
             });
         },
-
-
-
+        async getSheetsageinfoChords(ctx) {
+            return await promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/apis/song/sheetsageinfochords",
+                params: { id: ctx.state.currentSongId }
+            });
+        },
+        async getSheetsageinfoBeattimes(ctx) {
+            return await promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/apis/song/sheetsageinfobeattimes",
+                params: { id: ctx.state.currentSongId }
+            });
+        },
+        async getDiffBeatsInc(ctx) {
+            return await promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/apis/song/diffbeatsinc",
+                params: { id: ctx.state.currentSongId }
+            });
+        },
+        async getDiffBeatsDec(ctx) {
+            return await promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/apis/song/diffbeatsdec",
+                params: { id: ctx.state.currentSongId }
+            });
+        },
         getTextFormattedPromise: (ctx) => {
             return promisedXMLHttpRequest({
                 method: 'POST',
@@ -1152,6 +1272,11 @@ export default {
             let request = { method: 'POST', url: "/apis/song/demucs5", params: params };
             return promisedXMLHttpRequest(request);
         },
+        createSheetsagePromise(ctx, payload) {
+            let params = { id: ctx.state.currentSongId, prior: payload.prior };
+            let request = { method: 'POST', url: "/apis/song/sheetsage", params: params };
+            return promisedXMLHttpRequest(request);
+        },
         createMP3KaraokePromise(ctx, payload) {
             let params = { id: ctx.state.currentSongId, prior: payload.prior };
             let request = { method: 'POST', url: "/apis/song/mp3karaoke", params: params };
@@ -1163,7 +1288,7 @@ export default {
             return promisedXMLHttpRequest(request);
         },
         createKaraokePromise(ctx, payload) {
-            let params = { id: ctx.state.currentSongId, priorLyrics: payload.priorLyrics, priorKaraoke: payload.priorKaraoke };
+            let params = { id: ctx.state.currentSongId, priorLyrics: payload.priorLyrics, priorKaraoke: payload.priorKaraoke, priorChords: payload.priorChords };
             let request = { method: 'POST', url: "/apis/song/createkaraoke", params: params };
             return promisedXMLHttpRequest(request);
         },
@@ -1184,6 +1309,10 @@ export default {
         },
         updateBpmAndKeyPromise() {
             let request = { method: 'POST', url: "/apis/utils/updatebpmandkey" };
+            return promisedXMLHttpRequest(request);
+        },
+        updateBpmAndKeyLVPromise() {
+            let request = { method: 'POST', url: "/apis/utils/updatebpmandkeylv" };
             return promisedXMLHttpRequest(request);
         },
         markDublicatesPromise(ctx, payload) {

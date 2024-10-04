@@ -24,8 +24,8 @@ val delimiterFields = "|[FIELD]|"
 val delimiterVoiceFields = "|[VOICEFIELDS]|"
 val delimiterNames = "|[NAME]|"
 
-const val MAIN_FONT_NAME = "Roboto"
-//const val MAIN_FONT_NAME = "Roboto Black"
+//const val MAIN_FONT_NAME = "Roboto"
+const val MAIN_FONT_NAME = "Roboto Black"
 //const val MAIN_FONT_NAME = "Ubuntu Light"
 //const val MAIN_FONT_NAME = "Montserrat SemiBold"
 const val LINE_SPACING = 0L

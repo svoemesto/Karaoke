@@ -62,7 +62,9 @@ enum class SettingField : Serializable {
     ID_TELEGRAM_CHORDS,
     ID_PL_LYRICS,
     ID_PL_KARAOKE,
+    ID_PL_CHORDS,
     RESULT_VERSION,
+    DIFFBEATS
 }
 
 
@@ -70,6 +72,9 @@ enum class SettingField : Serializable {
 data class SourceMarker(
     var time: Double,
     var label: String = "",
+    var note: String = "",
+    var chord: String = "",
+    var tag: String = "",
     var color: String,
     var position: String,
     var markertype: String
@@ -262,6 +267,16 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     val nameFileKaraoke: String  get() = "${if (!fileName.startsWith (year.toString())) "${year} " else ""}${fileName.rightFileName()} [karaoke].mp4"
     val nameFileChords: String  get() = "$${if (!fileName.startsWith (year.toString())) "${year} " else ""}${fileName.rightFileName()} [chords].mp4"
 
+    val pathToFolderSheetsage: String  get() = "${rootFolder.rightFileName()}/sheetsage"
+    val nameFileSheetsagePDF: String  get() = "${if (!fileName.startsWith (year.toString())) "${year} " else ""}${fileName.rightFileName()} [sheetsage].pdf"
+    val nameFileSheetsageMIDI: String  get() = "${if (!fileName.startsWith (year.toString())) "${year} " else ""}${fileName.rightFileName()} [sheetsage].midi"
+    val nameFileSheetsageLY: String  get() = "${if (!fileName.startsWith (year.toString())) "${year} " else ""}${fileName.rightFileName()} [sheetsage].ly"
+    val nameFileSheetsageBeattimes: String  get() = "${if (!fileName.startsWith (year.toString())) "${year} " else ""}${fileName.rightFileName()} [beattimes].txt"
+    val pathToFileSheetsagePDF: String  get() = "$pathToFolderSheetsage/$nameFileSheetsagePDF"
+    val pathToFileSheetsageMIDI: String  get() = "$pathToFolderSheetsage/$nameFileSheetsageMIDI"
+    val pathToFileSheetsageLY: String  get() = "$pathToFolderSheetsage/$nameFileSheetsageLY"
+    val pathToFileSheetsageBeattimes: String  get() = "$pathToFolderSheetsage/$nameFileSheetsageBeattimes"
+
     @get:JsonIgnore
     val pathToFileLogoAlbum: String  get() {
         var path = "$rootFolder/$nameFileLogoAlbum"
@@ -305,6 +320,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     val bpm: Long get() = fields[SettingField.BPM]?.toLongOrNull() ?: 0L
     val ms: Long get() = fields[SettingField.MS]?.toLongOrNull() ?: 0L
     val resultVersion: Long get() = fields[SettingField.RESULT_VERSION]?.toLongOrNull() ?: 0L
+    val diffBeats: Long get() = fields[SettingField.DIFFBEATS]?.toLongOrNull() ?: 0L
     val subtitleFileName: String get() = "${fileName}.kdenlive.srt"
     val audioSongFileName: String get() = "${fileName}.flac"
 //        if (fields.contains(SettingField.FORMAT)) {
@@ -419,16 +435,17 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     val idVkLyricsOID: String get() = if (idVkLyrics!="" && idVkLyrics.contains("_")) idVkLyrics.split("_")[0] else ""
     val idVkLyricsID: String get() = if (idVkLyrics!="" && idVkLyrics.contains("_")) idVkLyrics.split("_")[1] else ""
     val idVkKaraoke: String get() = fields[SettingField.ID_VK_KARAOKE]?.nullIfEmpty() ?: ""
-    val idVkKaraokeOID: String get() = if (idVkKaraoke!="" && idVkLyrics.contains("_")) idVkKaraoke.split("_")[0] else ""
-    val idVkKaraokeID: String get() = if (idVkKaraoke!="" && idVkLyrics.contains("_")) idVkKaraoke.split("_")[1] else ""
+    val idVkKaraokeOID: String get() = if (idVkKaraoke!="" && idVkKaraoke.contains("_")) idVkKaraoke.split("_")[0] else ""
+    val idVkKaraokeID: String get() = if (idVkKaraoke!="" && idVkKaraoke.contains("_")) idVkKaraoke.split("_")[1] else ""
     val idVkChords: String get() = fields[SettingField.ID_VK_CHORDS]?.nullIfEmpty() ?: ""
-    val idVkChordsOID: String get() = if (idVkChords!="" && idVkLyrics.contains("_")) idVkChords.split("_")[0] else ""
-    val idVkChordsID: String get() = if (idVkChords!="" && idVkLyrics.contains("_")) idVkChords.split("_")[1] else ""
+    val idVkChordsOID: String get() = if (idVkChords!="" && idVkChords.contains("_")) idVkChords.split("_")[0] else ""
+    val idVkChordsID: String get() = if (idVkChords!="" && idVkChords.contains("_")) idVkChords.split("_")[1] else ""
     val idTelegramLyrics: String get() = fields[SettingField.ID_TELEGRAM_LYRICS]?.nullIfEmpty() ?: ""
     val idTelegramKaraoke: String get() = fields[SettingField.ID_TELEGRAM_KARAOKE]?.nullIfEmpty() ?: ""
     val idTelegramChords: String get() = fields[SettingField.ID_TELEGRAM_CHORDS]?.nullIfEmpty() ?: ""
     val idPlLyrics: String get() = fields[SettingField.ID_PL_LYRICS]?.nullIfEmpty() ?: ""
     val idPlKaraoke: String get() = fields[SettingField.ID_PL_KARAOKE]?.nullIfEmpty() ?: ""
+    val idPlChords: String get() = fields[SettingField.ID_PL_CHORDS]?.nullIfEmpty() ?: ""
 
     val linkSM: String get() = URL_PREFIX_SM.replace("{REPLACE}", id.toString())
     val linkBoosty: String? get() = idBoosty?.let {URL_PREFIX_BOOSTY.replace("{REPLACE}", idBoosty!!)}
@@ -467,7 +484,9 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     val linkPlKaraokePlay: String? get() = idPlKaraoke?.let {URL_PREFIX_PL_PLAY.replace("{REPLACE}", idPlKaraoke!!)}
     val linkPlKaraokeEdit: String? get() = idPlKaraoke?.let {URL_PREFIX_PL_EDIT.replace("{REPLACE}", idPlKaraoke!!)}
 
-    
+    val linkPlChordsPlay: String? get() = idPlChords?.let {URL_PREFIX_PL_PLAY.replace("{REPLACE}", idPlChords!!)}
+    val linkPlChordsEdit: String? get() = idPlChords?.let {URL_PREFIX_PL_EDIT.replace("{REPLACE}", idPlChords!!)}
+
     val flagBoosty: String get() =
         if (idBoosty == null || idBoosty == "null" || idBoosty == "") {
             "-"
@@ -494,7 +513,8 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
     val flagPlLyrics: String get() = if (idPlLyrics == null || idPlLyrics == "null" || idPlLyrics == "") "-" else "✓"
     val flagPlKaraoke: String get() = if (idPlKaraoke == null || idPlKaraoke == "null" || idPlKaraoke == "") "-" else "✓"
-    
+    val flagPlChords: String get() = if (idPlChords == null || idPlChords == "null" || idPlChords == "") "-" else "✓"
+
     val pathToResultedModel: String get() = "$rootFolder/$DEMUCS_MODEL_NAME"
     val pathToSymlinkFolder: String get() = "$rootFolder/symlink"
     val separatedStem: String get() = "vocals"
@@ -545,7 +565,114 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     val linkTgLyrics: String get() = if (idTelegramLyrics == "" || idTelegramLyrics == "-") "" else linkTelegramLyricsPlay!!
     val linkPlKaraoke: String get() = if (idPlKaraoke == "") "" else linkPlKaraokePlay!!
     val linkPlLyrics: String get() = if (idPlLyrics == "") "" else linkPlLyricsPlay!!
+    val linkPlChords: String get() = if (idPlChords == "") "" else linkPlChordsPlay!!
     val datePublish: String get() = if (date == "" || time == "") "Дата пока не определена" else "${date} ${time}"
+
+    val sheetstageInfo: Map<String, Any> get() {
+        // key - тональность
+        // tempo - bpm
+        // chords - аккорды в формате "аккорд время длительность_в_битах бит_по_счёту"
+        // beattimes - времена каждой 1/16 такта
+        val result: MutableMap<String, Any> = mutableMapOf()
+
+        val file = File(pathToFileSheetsageLY)
+        val fileBeattime = File(pathToFileSheetsageBeattimes)
+        if (!file.exists() || !fileBeattime.exists()) return result
+        val bodyLY = try {
+            file.readText(Charsets.UTF_8)
+        } catch (e: Exception) {
+            return result
+        }
+        val bodyBeattimes = try {
+            fileBeattime.readText(Charsets.UTF_8)
+        } catch (e: Exception) {
+            return result
+        }
+
+        println(pathToFileSheetsageLY)
+        println(bodyLY)
+
+        println(pathToFileSheetsageBeattimes)
+        println(bodyBeattimes)
+
+        val beattimesSource = bodyBeattimes.substring(1,bodyBeattimes.length-2).split(", ").map { it.toDouble() }
+        val beattimes: MutableList<Double> = mutableListOf()
+        for (i in 0 until beattimesSource.size-1) {
+            val currentBeatTime = beattimesSource[i]
+            val nextBeatTime = beattimesSource[i+1]
+            val lenOneBeat = (nextBeatTime - currentBeatTime) / 4
+            beattimes.add(currentBeatTime)
+            beattimes.add(currentBeatTime + lenOneBeat)
+            beattimes.add(currentBeatTime + lenOneBeat*2)
+            beattimes.add(currentBeatTime + lenOneBeat*3)
+        }
+        result["beattimes"] = beattimes
+
+        val regexChords = Regex("\\\\chordmode \\{([\\n?|\\s?|\\S?|.?]*?)}")
+        val regexKey = Regex("\\\\key\\s([\\S|\\s]*?)\\n")
+        val regexTempo = Regex("\\\\tempo\\s([\\S|\\s]*?)\\n")
+        val regexChord = Regex("(\\D)(\\D{0,2})(\\d{1,2})\\*(\\d{1,3})(:|)(\\S*|)")
+
+        val matchResultChords = regexChords.find(bodyLY)
+        val matchResultKey = regexKey.find(bodyLY)
+        val matchResultTempo = regexTempo.find(bodyLY)
+
+        if (matchResultKey != null) {
+            val (v1, v2) = matchResultKey.groupValues[1].split(" \\")
+            val key = v1[0].toString().uppercase() +
+                    (if (v1.length == 3 && v1.endsWith("is"))
+                        "#"
+                    else
+                        if (v1.length == 3 && v1.endsWith("es"))
+                            "♭"
+                        else "") + " " + v2
+            result["key"] = key
+        }
+
+        if (matchResultTempo != null) {
+            val (_, tempo) = matchResultTempo.groupValues[1].split("=")
+            result["tempo"] = tempo.trim()
+        }
+
+        if (matchResultChords != null) {
+            val chords = matchResultChords.groupValues[1].trim().split(" ")
+            val chordsList: MutableList<String> = mutableListOf()
+            var indexBeat = diffBeats.toInt()
+            println("DiffBeats = $indexBeat")
+            var chordTime = beattimes[indexBeat]
+
+            chords.forEach { chordText ->
+                val matchResultChord = regexChord.find(chordText)
+                if (matchResultChord != null) {
+                    println(chordText)
+                    var chord = matchResultChord.groupValues[1].uppercase() +
+                            if (matchResultChord.groupValues[2] == "is") "#" else if (matchResultChord.groupValues[2] == "es") "♭" else ""
+
+                    chord = chord + try {
+                        matchResultChord.groupValues[6]
+                    } catch (e: Exception) {
+                        ""
+                    }
+
+                    val beats = (matchResultChord.groupValues[3].toLong()) * (matchResultChord.groupValues[4].toLong()) / 16
+                    chord = chord + " " + chordTime.toString() + " " + beats + " " + indexBeat
+                    for (i in 0 until beats) {
+                        indexBeat++
+                        if (indexBeat < beattimes.size) {
+                            chordTime = beattimes[indexBeat]
+                        }
+                    }
+
+                    println(chord)
+                    chordsList.add(chord)
+                }
+
+            }
+            result["chords"] = chordsList
+        }
+
+        return result
+    }
 
     fun getVKPictureBase64(): String = getVKPictureBase64(this)
     @get:JsonIgnore
@@ -841,9 +968,11 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
     val processColorVkLyrics: String get() = if (idVkLyrics.isNotBlank()) "#00FF00" else "#A9A9A9"
     val processColorVkKaraoke: String get() = if (idVkKaraoke.isNotBlank()) "#00FF00" else "#A9A9A9"
+    val processColorVkChords: String get() = if (idVkChords.isNotBlank()) "#00FF00" else "#A9A9A9"
 
     val processColorDzenLyrics: String get() = if (idYoutubeLyrics.isNotBlank()) "#00FF00" else "#A9A9A9"
     val processColorDzenKaraoke: String get() = if (idYoutubeKaraoke.isNotBlank()) "#00FF00" else "#A9A9A9"
+    val processColorDzenChords: String get() = if (idYoutubeChords.isNotBlank()) "#00FF00" else "#A9A9A9"
 
     val processColorTelegramLyrics: String get() =
         if (idTelegramLyrics == "-" || idTelegramKaraoke == "-" ) {
@@ -863,8 +992,18 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             "#A9A9A9"
         }
 
+    val processColorTelegramChords: String get() =
+        if (idTelegramChords == "-" || idTelegramChords == "-" ) {
+            "#F08080"
+        } else if (idTelegramChords.isNotBlank()) {
+            "#00FF00"
+        } else {
+            "#A9A9A9"
+        }
+
     val processColorPlLyrics: String get() = if (idPlLyrics.isNotBlank()) "#00FF00" else "#A9A9A9"
     val processColorPlKaraoke: String get() = if (idPlKaraoke.isNotBlank()) "#00FF00" else "#A9A9A9"
+    val processColorPlChords: String get() = if (idPlChords.isNotBlank()) "#00FF00" else "#A9A9A9"
 
     @get:JsonIgnore
     val haveBoostyLink: Boolean get() = idBoosty.isNotBlank()
@@ -887,7 +1026,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
     @get:JsonIgnore
     val havePlLinks: Boolean get() = idPlLyrics.isNotBlank() ||
-            idPlKaraoke.isNotBlank()
+            idPlKaraoke.isNotBlank() || idPlChords.isNotBlank()
 
     @get:JsonIgnore
     val digest: String get() =
@@ -1053,16 +1192,18 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 //                    result.append("""<span style="font-size: 0">Источник: sm-karaoke.ru</span>""")
                     }
                     "syllables" -> {
-                        result.append(spanStyle)
-                        var txt = marker.label.replace("_", " ")
-                        if (wasBr) {
-                            txt = txt.uppercaseFirstLetter()
-                            wasBr = false
+                        if (marker.label.length > 0) {
+                            result.append(spanStyle)
+                            var txt = marker.label.replace("_", " ")
+                            if (wasBr) {
+                                txt = txt.uppercaseFirstLetter()
+                                wasBr = false
+                            }
+                            result.append(txt)
+                            result.append("</span>")
                         }
-                        result.append(txt)
-                        result.append("</span>")
                     }
-                    else -> {} // unmute, note
+                    else -> {} // unmute, note, chord
                 }
 
                 if (spanStyle != spanStylePrev) result.append("<br>")
@@ -1124,7 +1265,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                         }
                         result.append(txt)
                     }
-                    else -> {} // unmute, note
+                    else -> {} // unmute, note, chord
                 }
 
                 if (spanStyle != spanStylePrev) result.append("\n")
@@ -1139,6 +1280,74 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
         return result.toString().deleteThisSymbols(NOTES_SYMBOLS)
     }
+
+    fun getTextBodyWithTimecodes(maxTimeCodes: Int? = null): String {
+    val result = StringBuilder()
+    for (voice in 0 until countVoices) {
+
+        val SPAN_STYLE_GROUP0 = """<span style="color: #FFFFFF; font-size: smaller; font-style: normal; font-weight: bolder;">"""
+        val SPAN_STYLE_GROUP1 = """<span style="color: #FFFF00; font-size: smaller; font-style: italic; font-weight: bolder;">"""
+        val SPAN_STYLE_GROUP2 = """<span style="color: #00BFFF; font-size: smaller; font-style: normal; font-weight: bolder;">"""
+        val SPAN_STYLE_GROUP3 = """<span style="color: #00FF00; font-size: smaller; font-style: italic; font-weight: bolder;">"""
+        val SPAN_STYLE_COMMENT = """<span style="color: #D2691E; font-size: small; font-style: italic; font-weight: bolder;">"""
+
+
+        val markers = getSourceMarkers(voice)
+        var spanStyle = SPAN_STYLE_GROUP0
+        var spanStylePrev = spanStyle
+        var wasBr = true
+        var timecodeCounter = 0
+        markers.forEach { marker ->
+            val timecode = convertMillisecondsToYoutubeTimecode((marker.time * 1000 + 8000).toLong())
+            when (marker.markertype) {
+                "setting" -> {
+                    when (marker.label) {
+                        "GROUP|0" -> spanStyle = SPAN_STYLE_GROUP0
+                        "GROUP|1" -> spanStyle = SPAN_STYLE_GROUP1
+                        "GROUP|2" -> spanStyle = SPAN_STYLE_GROUP2
+                        "GROUP|3" -> spanStyle = SPAN_STYLE_GROUP3
+                        "COMMENT| " -> result.append("\n")
+                        else -> {
+                            if (marker.label.startsWith("COMMENT|")) {
+                                val txt = marker.label.split("|")[1]
+                                result.append(txt.replace("_", " ").uppercaseFirstLetter())
+                                result.append("\n")
+                            }
+                        }
+                    }
+                }
+                "endofline", "newline" -> {
+                    result.append("\n")
+                    wasBr = true
+                }
+                "syllables" -> {
+                    var txt = marker.label.replace("_", " ")
+                    if (wasBr) {
+                        timecodeCounter++
+                        if (maxTimeCodes != null && timecodeCounter >= maxTimeCodes) {
+                            txt = txt.uppercaseFirstLetter()
+                        } else {
+                            txt = timecode + " " + txt.uppercaseFirstLetter()
+                        }
+                        wasBr = false
+                    }
+                    result.append(txt)
+                }
+                else -> {} // unmute, note, chord
+            }
+
+            if (spanStyle != spanStylePrev) result.append("\n")
+            spanStylePrev = spanStyle
+        }
+
+        if (countVoices > 1 && voice != countVoices-1) {
+            result.append("\n-----------------------------\n")
+        }
+
+    }
+
+    return result.toString().deleteThisSymbols(NOTES_SYMBOLS)
+}
 
     fun getText(): String {
         val result = StringBuilder()
@@ -1346,7 +1555,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     }
 
     fun convertMarkersToSrt(voice: Int): String {
-        val listMarkers = getSourceMarkers(voice).filter { it.markertype != "unmute" && it.markertype != "newline"}
+        val listMarkers = getSourceMarkers(voice).filter { it.markertype != "unmute" && it.markertype != "newline" && it.markertype != "chord" && it.markertype != "beat" && it.markertype != "note"}
         var perviousMarkerIsEndOfLine = true
         var numberSrt = 0
         var result = ""
@@ -1536,7 +1745,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         }
     }
 
-    fun createKaraoke() {
+    fun createKaraoke(createLyrics: Boolean = true, createKaraoke: Boolean = true, createChords: Boolean = false) {
 
         val permissions = PosixFilePermissions.fromString("rwxr-x---")
 
@@ -1566,7 +1775,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         Files.setPosixFilePermissions(file.toPath(), permissions)
 
 
-        if (hasChords) {
+        if (createChords && hasChords) {
             file = File(songChords.getOutputFilename(SongOutputFile.RUN))
             file.writeText(txtChords)
             Files.setPosixFilePermissions(file.toPath(), permissions)
@@ -1580,9 +1789,9 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         file.writeText(songTxtWOLyrics)
         Files.setPosixFilePermissions(file.toPath(), permissions)
 
-        createKaraoke(songLyrics)
-        createKaraoke(songKaraoke)
-        createKaraoke(songChords)
+        if (createLyrics) createKaraoke(songLyrics)
+        if (createKaraoke) createKaraoke(songKaraoke)
+        if (createChords) createKaraoke(songChords)
 
         if (idStatus < 3) {
             fields[SettingField.ID_STATUS] = "3"
@@ -1607,6 +1816,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         fieldsValues.add(Pair("song_tone", settings.key))
         fieldsValues.add(Pair("song_bpm", settings.bpm))
         fieldsValues.add(Pair("result_version", settings.resultVersion))
+        fieldsValues.add(Pair("diff_beats", settings.diffBeats))
         fieldsValues.add(Pair("song_ms", settings.ms))
         fieldsValues.add(Pair("file_name", settings.fileName))
         fieldsValues.add(Pair("root_folder", settings.rootFolder))
@@ -1755,11 +1965,25 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             idTelegramLyrics == "" &&
             idVkKaraoke != "" &&
             idVkLyrics != "" &&
+            idPlKaraoke != "" &&
+            idPlLyrics != "" &&
+            (idYoutubeKaraoke == "" ||
+                    idYoutubeLyrics == "") &&
+            idBoosty != "" &&
+            idBoostyFiles != ""
+        ) return SettingState.WO_DZEN_WITH_VK_WITH_PL
+        
+        if (idTelegramKaraoke == "" &&
+            idTelegramLyrics == "" &&
+            idVkKaraoke != "" &&
+            idVkLyrics != "" &&
             (idYoutubeKaraoke == "" ||
             idYoutubeLyrics == "") &&
             idBoosty != "" &&
             idBoostyFiles != ""
         ) return SettingState.WO_DZEN_WITH_VK
+
+
 
         if (idTelegramKaraoke == "" &&
             idTelegramLyrics == "" &&
@@ -1800,6 +2024,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                 if (settA.key != settB.key) result.add(RecordDiff("song_tone", settA.key, settB.key))
                 if (settA.bpm != settB.bpm) result.add(RecordDiff("song_bpm", settA.bpm, settB.bpm))
                 if (settA.resultVersion != settB.resultVersion) result.add(RecordDiff("result_version", settA.resultVersion, settB.resultVersion))
+                if (settA.diffBeats != settB.diffBeats) result.add(RecordDiff("diff_beats", settA.diffBeats, settB.diffBeats))
                 if (settA.ms != settB.ms) result.add(RecordDiff("song_ms", settA.ms, settB.ms))
                 if (settA.fileName != settB.fileName) result.add(RecordDiff("file_name", settA.fileName, settB.fileName))
                 if (settA.rootFolder != settB.rootFolder) result.add(RecordDiff("root_folder", settA.rootFolder, settB.rootFolder))
@@ -1817,6 +2042,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                 if (settA.idTelegramChords != settB.idTelegramChords) result.add(RecordDiff("id_telegram_chords", settA.idTelegramChords, settB.idTelegramChords))
                 if (settA.idPlLyrics != settB.idPlLyrics) result.add(RecordDiff("id_pl_lyrics", settA.idPlLyrics, settB.idPlLyrics))
                 if (settA.idPlKaraoke != settB.idPlKaraoke) result.add(RecordDiff("id_pl_karaoke", settA.idPlKaraoke, settB.idPlKaraoke))
+                if (settA.idPlChords != settB.idPlChords) result.add(RecordDiff("id_pl_chords", settA.idPlChords, settB.idPlChords))
                 if (settA.idStatus != settB.idStatus) result.add(RecordDiff("id_status", settA.idStatus, settB.idStatus))
                 if (settA.sourceText != settB.sourceText) result.add(RecordDiff("source_text", settA.sourceText, settB.sourceText))
                 if (settA.resultText != settB.resultText) result.add(RecordDiff("result_text", settA.resultText, settB.resultText))
@@ -1833,16 +2059,21 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                 if (settA.color != settB.color) result.add(RecordDiff("color", settA.color, settB.color, false))
                 if (settA.processColorMeltLyrics != settB.processColorMeltLyrics) result.add(RecordDiff("processColorMeltLyrics", settA.processColorMeltLyrics, settB.processColorMeltLyrics, false))
                 if (settA.processColorMeltKaraoke != settB.processColorMeltKaraoke) result.add(RecordDiff("processColorMeltKaraoke", settA.processColorMeltKaraoke, settB.processColorMeltKaraoke, false))
+                if (settA.processColorMeltChords != settB.processColorMeltChords) result.add(RecordDiff("processColorMeltChords", settA.processColorMeltChords, settB.processColorMeltChords, false))
                 if (settA.processColorDzenLyrics != settB.processColorDzenLyrics) result.add(RecordDiff("processColorYoutubeLyrics", settA.processColorDzenLyrics, settB.processColorDzenLyrics, false))
                 if (settA.processColorDzenKaraoke != settB.processColorDzenKaraoke) result.add(RecordDiff("processColorYoutubeKaraoke", settA.processColorDzenKaraoke, settB.processColorDzenKaraoke, false))
+                if (settA.processColorDzenChords != settB.processColorDzenChords) result.add(RecordDiff("processColorYoutubeChords", settA.processColorDzenChords, settB.processColorDzenChords, false))
                 if (settA.processColorVkLyrics != settB.processColorVkLyrics) result.add(RecordDiff("processColorVkLyrics", settA.processColorVkLyrics, settB.processColorVkLyrics, false))
                 if (settA.processColorVkKaraoke != settB.processColorVkKaraoke) result.add(RecordDiff("processColorVkKaraoke", settA.processColorVkKaraoke, settB.processColorVkKaraoke, false))
+                if (settA.processColorVkChords != settB.processColorVkChords) result.add(RecordDiff("processColorVkChords", settA.processColorVkChords, settB.processColorVkChords, false))
                 if (settA.processColorTelegramLyrics != settB.processColorTelegramLyrics) result.add(RecordDiff("processColorTelegramLyrics", settA.processColorTelegramLyrics, settB.processColorTelegramLyrics, false))
                 if (settA.processColorTelegramKaraoke != settB.processColorTelegramKaraoke) result.add(RecordDiff("processColorTelegramKaraoke", settA.processColorTelegramKaraoke, settB.processColorTelegramKaraoke, false))
+                if (settA.processColorTelegramChords != settB.processColorTelegramChords) result.add(RecordDiff("processColorTelegramChords", settA.processColorTelegramChords, settB.processColorTelegramChords, false))
                 if (settA.processColorVk != settB.processColorVk) result.add(RecordDiff("processColorVk", settA.processColorVk, settB.processColorVk, false))
                 if (settA.processColorBoosty != settB.processColorBoosty) result.add(RecordDiff("processColorBoosty", settA.processColorBoosty, settB.processColorBoosty, false))
                 if (settA.processColorPlLyrics != settB.processColorPlLyrics) result.add(RecordDiff("processColorPlLyrics", settA.processColorPlLyrics, settB.processColorPlLyrics, false))
                 if (settA.processColorPlKaraoke != settB.processColorPlKaraoke) result.add(RecordDiff("processColorPlKaraoke", settA.processColorPlKaraoke, settB.processColorPlKaraoke, false))
+                if (settA.processColorPlChords != settB.processColorPlChords) result.add(RecordDiff("processColorPlChords", settA.processColorPlChords, settB.processColorPlChords, false))
             }
             return result
         }
@@ -2129,8 +2360,10 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                     rs.getString("id_telegram_karaoke")?.let { value -> settings.fields[SettingField.ID_TELEGRAM_KARAOKE] = value }
                     rs.getString("id_pl_lyrics")?.let { value -> settings.fields[SettingField.ID_PL_LYRICS] = value }
                     rs.getString("id_pl_karaoke")?.let { value -> settings.fields[SettingField.ID_PL_KARAOKE] = value }
+                    rs.getString("id_pl_chords")?.let { value -> settings.fields[SettingField.ID_PL_CHORDS] = value }
                     rs.getString("id_telegram_chords")?.let { value -> settings.fields[SettingField.ID_TELEGRAM_CHORDS] = value }
                     rs.getInt("result_version")?.let { value -> settings.fields[SettingField.RESULT_VERSION] = value.toString() }
+                    rs.getInt("diff_beats")?.let { value -> settings.fields[SettingField.DIFFBEATS] = value.toString() }
                     rs.getString("source_text")?.let { value -> settings.sourceText = value }
                     rs.getString("result_text")?.let { value -> settings.resultText = value }
                     rs.getString("source_markers")?.let { value -> settings.sourceMarkers = value }
@@ -2387,34 +2620,46 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             flagTelegramKaraoke = flagTelegramKaraoke,
             flagPlLyrics = flagPlLyrics,
             flagPlKaraoke = flagPlKaraoke,
+            flagPlChords = flagPlChords,
             flagTelegramChords = flagTelegramChords,
             processColorBoosty = processColorBoosty,
             processColorVk = processColorVk,
             processColorMeltLyrics = processColorMeltLyrics,
             processColorMeltKaraoke = processColorMeltKaraoke,
+            processColorMeltChords = processColorMeltChords,
             processColorDzenLyrics = processColorDzenLyrics,
             processColorDzenKaraoke = processColorDzenKaraoke,
+            processColorDzenChords = processColorDzenChords,
             processColorVkLyrics = processColorVkLyrics,
             processColorVkKaraoke = processColorVkKaraoke,
+            processColorVkChords = processColorVkChords,
             processColorTelegramLyrics = processColorTelegramLyrics,
             processColorTelegramKaraoke = processColorTelegramKaraoke,
+            processColorTelegramChords = processColorTelegramChords,
             processColorPlLyrics = processColorPlLyrics,
             processColorPlKaraoke = processColorPlKaraoke,
+            processColorPlChords = processColorPlChords,
             idBoosty = idBoosty,
             idBoostyFiles = idBoostyFiles,
             idVk = idVk,
             idYoutubeLyrics = idYoutubeLyrics,
             idYoutubeKaraoke = idYoutubeKaraoke,
+            idYoutubeChords = idYoutubeChords,
             idVkLyrics = idVkLyrics,
             idVkLyricsOID = idVkLyricsOID,
             idVkLyricsID = idVkLyricsID,
             idVkKaraoke = idVkKaraoke,
             idVkKaraokeOID = idVkKaraokeOID,
             idVkKaraokeID = idVkKaraokeID,
+            idVkChords = idVkChords,
+            idVkChordsOID = idVkChordsOID,
+            idVkChordsID = idVkChordsID,
             idTelegramLyrics = idTelegramLyrics,
             idTelegramKaraoke = idTelegramKaraoke,
+            idTelegramChords = idTelegramChords,
             idPlLyrics = idPlLyrics,
-            idPlKaraoke = idPlKaraoke
+            idPlKaraoke = idPlKaraoke,
+            idPlChords = idPlChords
         )
     }
 
@@ -2457,33 +2702,45 @@ data class SettingsDTO(
     val flagTelegramChords: String,
     val flagPlLyrics: String,
     val flagPlKaraoke: String,
+    val flagPlChords: String,
     val processColorBoosty: String,
     val processColorVk: String,
     val processColorMeltLyrics: String,
     val processColorMeltKaraoke: String,
+    val processColorMeltChords: String,
     val processColorDzenLyrics: String,
     val processColorDzenKaraoke: String,
+    val processColorDzenChords: String,
     val processColorVkLyrics: String,
     val processColorVkKaraoke: String,
+    val processColorVkChords: String,
     val processColorTelegramLyrics: String,
     val processColorTelegramKaraoke: String,
+    val processColorTelegramChords: String,
     val processColorPlLyrics: String,
     val processColorPlKaraoke: String,
+    val processColorPlChords: String,
     val idBoosty: String,
     val idBoostyFiles: String,
     val idVk: String,
     val idYoutubeLyrics: String,
     val idYoutubeKaraoke: String,
+    val idYoutubeChords: String,
     val idVkLyrics: String,
     val idVkLyricsOID: String,
     val idVkLyricsID: String,
     val idVkKaraoke: String,
     val idVkKaraokeOID: String,
     val idVkKaraokeID: String,
+    val idVkChords: String,
+    val idVkChordsOID: String,
+    val idVkChordsID: String,
     val idTelegramLyrics: String,
     val idTelegramKaraoke: String,
+    val idTelegramChords: String,
     val idPlLyrics: String,
     val idPlKaraoke: String,
+    val idPlChords: String,
     val resultVersion: Long
 ): Serializable, Comparable<SettingsDTO> {
 
@@ -2529,21 +2786,27 @@ data class SettingsDTO(
             flagVkChords = flagVkChords,
             flagTelegramLyrics = flagTelegramLyrics,
             flagTelegramKaraoke = flagTelegramKaraoke,
+            flagTelegramChords = flagTelegramChords,
             flagPlLyrics = flagPlLyrics,
             flagPlKaraoke = flagPlKaraoke,
-            flagTelegramChords = flagTelegramChords,
+            flagPlChords = flagPlChords,
             processColorBoosty = processColorBoosty,
             processColorVk = processColorVk,
             processColorMeltLyrics = processColorMeltLyrics,
             processColorMeltKaraoke = processColorMeltKaraoke,
+            processColorMeltChords = processColorMeltChords,
             processColorDzenLyrics = processColorDzenLyrics,
             processColorDzenKaraoke = processColorDzenKaraoke,
+            processColorDzenChords = processColorDzenChords,
             processColorVkLyrics = processColorVkLyrics,
             processColorVkKaraoke = processColorVkKaraoke,
+            processColorVkChords = processColorVkChords,
             processColorTelegramLyrics = processColorTelegramLyrics,
             processColorTelegramKaraoke = processColorTelegramKaraoke,
+            processColorTelegramChords = processColorTelegramChords,
             processColorPlLyrics = processColorPlLyrics,
             processColorPlKaraoke = processColorPlKaraoke,
+            processColorPlChords = processColorPlChords,
             resultVersion = resultVersion,
         )
     }
@@ -2578,18 +2841,24 @@ data class SettingsDTOdigest(
     val flagTelegramChords: String,
     val flagPlLyrics: String,
     val flagPlKaraoke: String,
+    val flagPlChords: String,
     val processColorBoosty: String,
     val processColorVk: String,
     val processColorMeltLyrics: String,
     val processColorMeltKaraoke: String,
+    val processColorMeltChords: String,
     val processColorDzenLyrics: String,
     val processColorDzenKaraoke: String,
+    val processColorDzenChords: String,
     val processColorVkLyrics: String,
     val processColorVkKaraoke: String,
+    val processColorVkChords: String,
     val processColorTelegramLyrics: String,
     val processColorTelegramKaraoke: String,
+    val processColorTelegramChords: String,
     val processColorPlLyrics: String,
     val processColorPlKaraoke: String,
+    val processColorPlChords: String,
     val resultVersion: Long
 ): Serializable, Comparable<SettingsDTOdigest> {
 

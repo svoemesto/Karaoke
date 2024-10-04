@@ -4,124 +4,36 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="19caf878-7ce0-44d7-94a1-cf0a31300a8b" name="Changes" comment="Переделываем под новую концепцию">
-      <change afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/SseNotificationService.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/CrossSettings.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Messages.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SettingState.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SseNotification.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SseNotificationType.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/web/src/assets/svg/icon_accent.svg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/web/src/assets/svg/icon_demucs5.svg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/web/src/assets/svg/icon_erase.svg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/web/src/assets/svg/icon_filter.svg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/web/src/assets/svg/icon_mp3karaoke.svg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/web/src/assets/svg/icon_mp3lyrics.svg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/web/src/assets/svg/icon_pl.svg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/web/src/assets/svg/icon_stop.svg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/web/src/assets/svg/icon_update_store.svg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/web/src/components/Common/ProcessWorker.vue" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/web/src/components/Processes/ProcessesTable.vue" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/web/src/components/Processes/components/ProcessTableBody.vue" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/web/src/components/Processes/components/ProcessTableBodyTd.vue" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/web/src/components/Processes/components/ProcessTableFooter.vue" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/web/src/components/Processes/components/ProcessTableHead.vue" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/web/src/components/Processes/components/ProcessTableHeadTd.vue" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/web/src/components/Processes/store.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/web/src/components/ProcessesBv/ProcessesBvTable.vue" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/web/src/components/ProcessesBv/store.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/web/src/components/ProcessesFilter/ProcessesFilterModal.vue" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/web/src/components/ProcessesFilter/store.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/web/src/components/Publications/components/PublicationsTableBodyTd.vue" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/web/src/components/PublicationsBv/PublicationsBvTable.vue" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/web/src/components/PublicationsBv/store.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/web/src/components/Publish/PublishTable.vue" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/web/src/components/Publish/components/PublishTableBody.vue" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/web/src/components/Publish/components/PublishTableBodyTd.vue" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/web/src/components/Publish/components/PublishTableFooter.vue" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/web/src/components/Publish/components/PublishTableHead.vue" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/web/src/components/Publish/store.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/web/src/components/Songs/components/SongTableBody.vue" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/web/src/components/Songs/store.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/web/src/components/SongsBv/SongsBvTable.vue" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/web/src/components/SongsBv/store.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/web/src/components/SongsFilter/SongsFilterModal.vue" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/web/src/components/SongsFilter/store.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/web/src/components/Unpublications/UnpublicationsTable.vue" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/web/src/components/Unpublications/components/UnpublicationsTableBody.vue" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/web/src/components/Unpublications/components/UnpublicationsTableFooter.vue" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/web/src/components/Unpublications/components/UnpublicationsTableHead.vue" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/web/src/lib/utils.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/web/src/views/ProcessesBvView.vue" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/web/src/views/PublicationsBvView.vue" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/web/src/views/PublishView.vue" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/web/src/views/SongsBvView.vue" afterDir="false" />
+    <list default="true" id="19caf878-7ce0-44d7-94a1-cf0a31300a8b" name="Changes" comment="Текущие изменения по состоянию на 17.08.2024">
+      <change afterPath="$PROJECT_DIR$/src/main/resources/test/test.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/web/src/assets/svg/icon_bpm.svg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/web/src/assets/svg/icon_chords.svg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/web/src/assets/svg/icon_chords_add.svg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/web/src/assets/svg/icon_chords_del.svg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/web/src/assets/svg/icon_diffbeatsdec.svg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/web/src/assets/svg/icon_diffbeatsinc.svg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/deploy/do.sh" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/do.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/build.gradle.kts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/gradlew.bat" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/gradlew.bat" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Constants.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Constants.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Extentions.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Extentions.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessTypes.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessTypes.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessWorker.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessWorker.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApisController.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApisController.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/AsyncConfig.kt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/AsyncTaskExecutorExample.kt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/MainController.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/MainController.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/MessageController.kt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/SseController.kt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/WebSocketConfig.kt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/docs/На бусти по авторам.sql" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/docs/На бусти по авторам.sql" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/docs/По авторам.sql" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/docs/По авторам.sql" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Pictures.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Pictures.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Publication.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Publication.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/RecordDiff.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/RecordDiff.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/MltClasses.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/MltClasses.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SettingState.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SettingState.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Settings.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Settings.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Zakroma.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Zakroma.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/KaraokeAppService.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/KaraokeAppService.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/resources/templates/area_left_column.html" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/resources/templates/area_left_column.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/resources/templates/main.html" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/resources/templates/main.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/resources/templates/songs.html" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/resources/templates/songs.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-db/gradlew.bat" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-db/gradlew.bat" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-web/gradlew.bat" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-web/gradlew.bat" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/MainController.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/MainController.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-web/src/main/resources/templates/filter.html" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-web/src/main/resources/templates/filter.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-web/src/main/resources/templates/main.html" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-web/src/main/resources/templates/main.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-web/src/main/resources/templates/song.html" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-web/src/main/resources/templates/song.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-web/src/main/resources/templates/zakroma.html" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-web/src/main/resources/templates/zakroma.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/sockjs-client/AUTHORS" beforeDir="false" afterPath="$PROJECT_DIR$/lib/sockjs-client/AUTHORS" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/web/package.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/src/App.vue" beforeDir="false" afterPath="$PROJECT_DIR$/web/src/App.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/src/assets/exsample.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/src/assets/svg/icon_demucs2.svg" beforeDir="false" afterPath="$PROJECT_DIR$/web/src/assets/svg/icon_demucs2.svg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/src/components/CustomConfirm.vue" beforeDir="false" afterPath="$PROJECT_DIR$/web/src/components/Common/CustomConfirm.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/src/components/PublicationsTable.vue" beforeDir="false" afterPath="$PROJECT_DIR$/web/src/components/Publications/PublicationsTable.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/src/components/SongEdit.vue" beforeDir="false" afterPath="$PROJECT_DIR$/web/src/components/Songs/edit/SongEdit.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/src/components/SongEditModal.vue" beforeDir="false" afterPath="$PROJECT_DIR$/web/src/components/Songs/edit/SongEditModal.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/src/components/SongsTable.vue" beforeDir="false" afterPath="$PROJECT_DIR$/web/src/components/Songs/SongsTable.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/src/components/SubsEdit.vue" beforeDir="false" afterPath="$PROJECT_DIR$/web/src/components/Songs/edit/SubsEdit.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/src/components/elements/PublicationsTableBody.vue" beforeDir="false" afterPath="$PROJECT_DIR$/web/src/components/Publications/components/PublicationsTableBody.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/src/components/elements/PublicationsTableBodyTd.vue" beforeDir="false" afterPath="$PROJECT_DIR$/web/src/components/Unpublications/components/UnpublicationsTableBodyTd.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/src/components/elements/PublicationsTableFooter.vue" beforeDir="false" afterPath="$PROJECT_DIR$/web/src/components/Publications/components/PublicationsTableFooter.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/src/components/elements/PublicationsTableHead.vue" beforeDir="false" afterPath="$PROJECT_DIR$/web/src/components/Publications/components/PublicationsTableHead.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/src/components/elements/SongTableBody.vue" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/src/components/elements/SongTableBodyTd.vue" beforeDir="false" afterPath="$PROJECT_DIR$/web/src/components/Songs/components/SongTableBodyTd.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/src/components/elements/SongTableFooter.vue" beforeDir="false" afterPath="$PROJECT_DIR$/web/src/components/Songs/components/SongTableFooter.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/src/components/elements/SongTableHead.vue" beforeDir="false" afterPath="$PROJECT_DIR$/web/src/components/Songs/components/SongTableHead.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/src/components/elements/SongTableHeadTd.vue" beforeDir="false" afterPath="$PROJECT_DIR$/web/src/components/Songs/components/SongTableHeadTd.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/src/lib/sockjs-client/AUTHORS" beforeDir="false" afterPath="$PROJECT_DIR$/web/src/lib/sockjs-client/AUTHORS" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/src/main.js" beforeDir="false" afterPath="$PROJECT_DIR$/web/src/main.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/src/router/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/web/src/router/index.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/src/store/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/web/src/store/index.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/src/store/modules/song.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/web/src/components/Publications/components/PublicationsTableBodyTd.vue" beforeDir="false" afterPath="$PROJECT_DIR$/web/src/components/Publications/components/PublicationsTableBodyTd.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/web/src/components/Publish/components/PublishTableBody.vue" beforeDir="false" afterPath="$PROJECT_DIR$/web/src/components/Publish/components/PublishTableBody.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/web/src/components/Publish/components/PublishTableBodyTd.vue" beforeDir="false" afterPath="$PROJECT_DIR$/web/src/components/Publish/components/PublishTableBodyTd.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/web/src/components/Songs/edit/SongEdit.vue" beforeDir="false" afterPath="$PROJECT_DIR$/web/src/components/Songs/edit/SongEdit.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/web/src/components/Songs/edit/SubsEdit.vue" beforeDir="false" afterPath="$PROJECT_DIR$/web/src/components/Songs/edit/SubsEdit.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/web/src/components/Songs/store.js" beforeDir="false" afterPath="$PROJECT_DIR$/web/src/components/Songs/store.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/web/src/components/SongsBv/SongsBvTable.vue" beforeDir="false" afterPath="$PROJECT_DIR$/web/src/components/SongsBv/SongsBvTable.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/web/src/components/SongsBv/store.js" beforeDir="false" afterPath="$PROJECT_DIR$/web/src/components/SongsBv/store.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/web/src/components/Unpublications/components/UnpublicationsTableBodyTd.vue" beforeDir="false" afterPath="$PROJECT_DIR$/web/src/components/Unpublications/components/UnpublicationsTableBodyTd.vue" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/web/src/views/HomeView.vue" beforeDir="false" afterPath="$PROJECT_DIR$/web/src/views/HomeView.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/src/views/ProcessesView.vue" beforeDir="false" afterPath="$PROJECT_DIR$/web/src/views/ProcessesView.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/src/views/PublicationsView.vue" beforeDir="false" afterPath="$PROJECT_DIR$/web/src/views/PublicationsView.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/src/views/SongsView.vue" beforeDir="false" afterPath="$PROJECT_DIR$/web/src/views/SongsView.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/src/views/UnpublicationsView.vue" beforeDir="false" afterPath="$PROJECT_DIR$/web/src/views/UnpublicationsView.vue" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -228,7 +140,7 @@
     "database.data.extractors.current.export.id": "Comma-separated (CSV)_id",
     "git-widget-placeholder": "master",
     "jdk.selected.JAVA_MODULE": "17",
-    "ktor.last.update.timestamp": "1723712286719",
+    "ktor.last.update.timestamp": "1727673938085",
     "last_opened_file_path": "/home/nsa/Karaoke/web/src/assets/svg",
     "list.type.of.created.stylesheet": "CSS",
     "node.js.detected.package.eslint": "true",
@@ -241,7 +153,7 @@
     "project.structure.proportion": "0.15",
     "project.structure.side.proportion": "0.28704488",
     "settings.editor.selected.configurable": "database.query.execution",
-    "spring.configuration.checksum": "185641f1624d9f8a4b794037f2c5903d",
+    "spring.configuration.checksum": "55c91a0e370cecdf6013f589d81fe839",
     "ts.external.directory.path": "/home/nsa/.local/share/JetBrains/Toolbox/apps/IDEA-U/ch-0/223.8836.41/plugins/javascript-impl/jsLanguageServicesImpl/external",
     "two.files.diff.last.used.file": "/home/nsa/Karaoke/karaoke-app/src/test/kotlin/Правильный.xml",
     "vue.rearranger.settings.migration": "true"
@@ -611,21 +523,20 @@
       <workItem from="1721140842221" duration="7891000" />
       <workItem from="1721887999271" duration="629000" />
       <workItem from="1722339445381" duration="3608000" />
-      <workItem from="1723130562853" duration="10577000" />
-    </task>
-    <task id="LOCAL-00084" summary="Переделываем под новую концепцию">
-      <created>1665305773024</created>
-      <option name="number" value="00084" />
-      <option name="presentableId" value="LOCAL-00084" />
-      <option name="project" value="LOCAL" />
-      <updated>1665305773024</updated>
-    </task>
-    <task id="LOCAL-00085" summary="Переделываем под новую концепцию">
-      <created>1665318686270</created>
-      <option name="number" value="00085" />
-      <option name="presentableId" value="LOCAL-00085" />
-      <option name="project" value="LOCAL" />
-      <updated>1665318686270</updated>
+      <workItem from="1723130562853" duration="18777000" />
+      <workItem from="1723870571943" duration="2394000" />
+      <workItem from="1725086651455" duration="631000" />
+      <workItem from="1725094121650" duration="50347000" />
+      <workItem from="1725529380388" duration="14278000" />
+      <workItem from="1725868755632" duration="2425000" />
+      <workItem from="1726202401033" duration="10675000" />
+      <workItem from="1726518590832" duration="1306000" />
+      <workItem from="1726552634459" duration="77157000" />
+      <workItem from="1726918548387" duration="2649000" />
+      <workItem from="1727152131338" duration="1742000" />
+      <workItem from="1727349043837" duration="617000" />
+      <workItem from="1727350791027" duration="2412000" />
+      <workItem from="1727411825077" duration="6822000" />
     </task>
     <task id="LOCAL-00086" summary="Переделываем под новую концепцию">
       <created>1665328666037</created>
@@ -956,7 +867,21 @@
       <option name="project" value="LOCAL" />
       <updated>1713893450168</updated>
     </task>
-    <option name="localTasksCounter" value="133" />
+    <task id="LOCAL-00133" summary="Текущие изменения по состоянию на 15.08.2024">
+      <created>1723724238175</created>
+      <option name="number" value="00133" />
+      <option name="presentableId" value="LOCAL-00133" />
+      <option name="project" value="LOCAL" />
+      <updated>1723724238175</updated>
+    </task>
+    <task id="LOCAL-00134" summary="Текущие изменения по состоянию на 17.08.2024">
+      <created>1723869635989</created>
+      <option name="number" value="00134" />
+      <option name="presentableId" value="LOCAL-00134" />
+      <option name="project" value="LOCAL" />
+      <updated>1723869635990</updated>
+    </task>
+    <option name="localTasksCounter" value="135" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -992,8 +917,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Рефакторинг, рандомный выбор фона, исправление ошибки &quot;послендей строчки&quot;" />
-    <MESSAGE value="Рефакторинг, рандомный выбор фона, исправление ошибки &quot;последней строчки&quot;" />
     <MESSAGE value="Рефакторинг, переработаны настройки, исправление ошибки &quot;первой строчки&quot;" />
     <MESSAGE value="Вычисляемый размер шрифта названия песни" />
     <MESSAGE value="Цвета горизонта" />
@@ -1017,7 +940,9 @@
     <MESSAGE value="По всем ощущениям - первая финальная версия" />
     <MESSAGE value="Начинаем добавлять аккорды..." />
     <MESSAGE value="Переделываем под новую концепцию" />
-    <option name="LAST_COMMIT_MESSAGE" value="Переделываем под новую концепцию" />
+    <MESSAGE value="Текущие изменения по состоянию на 15.08.2024" />
+    <MESSAGE value="Текущие изменения по состоянию на 17.08.2024" />
+    <option name="LAST_COMMIT_MESSAGE" value="Текущие изменения по состоянию на 17.08.2024" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

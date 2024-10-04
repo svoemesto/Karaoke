@@ -154,6 +154,14 @@
               :style="{ backgroundColor: data.item.processColorMeltKaraoke, color: currentSongId === data.item.id ? 'blue' : 'black' }"
           ></div>
         </template>
+        <template #cell(flagYoutubeChords)="data">
+          <div
+              class="fld-flag-dzen-chords"
+              v-text="data.value"
+              @dblclick.left="playChords(data.item.id)"
+              :style="{ backgroundColor: data.item.processColorMeltChords, color: currentSongId === data.item.id ? 'blue' : 'black' }"
+          ></div>
+        </template>
         <template #cell(flagVkLyrics)="data">
           <div
               class="fld-flag-vk-lyrics"
@@ -166,6 +174,13 @@
               class="fld-flag-vk-karaoke"
               v-text="data.value"
               :style="{ backgroundColor: data.item.processColorVkKaraoke, color: currentSongId === data.item.id ? 'blue' : 'black' }"
+          ></div>
+        </template>
+        <template #cell(flagVkChords)="data">
+          <div
+              class="fld-flag-vk-chords"
+              v-text="data.value"
+              :style="{ backgroundColor: data.item.processColorVkChords, color: currentSongId === data.item.id ? 'blue' : 'black' }"
           ></div>
         </template>
         <template #cell(flagTelegramLyrics)="data">
@@ -182,6 +197,13 @@
               :style="{ backgroundColor: data.item.processColorTelegramKaraoke, color: currentSongId === data.item.id ? 'blue' : 'black' }"
           ></div>
         </template>
+        <template #cell(flagTelegramChords)="data">
+          <div
+              class="fld-flag-tg-chords"
+              v-text="data.value"
+              :style="{ backgroundColor: data.item.processColorTelegramChords, color: currentSongId === data.item.id ? 'blue' : 'black' }"
+          ></div>
+        </template>
         <template #cell(flagPlLyrics)="data">
           <div
               class="fld-flag-pl-lyrics"
@@ -194,6 +216,13 @@
               class="fld-flag-pl-karaoke"
               v-text="data.value"
               :style="{ backgroundColor: data.item.processColorPlKaraoke, color: currentSongId === data.item.id ? 'blue' : 'black' }"
+          ></div>
+        </template>
+        <template #cell(flagPlChords)="data">
+          <div
+              class="fld-flag-pl-chords"
+              v-text="data.value"
+              :style="{ backgroundColor: data.item.processColorPlChords, color: currentSongId === data.item.id ? 'blue' : 'black' }"
           ></div>
         </template>
       </b-table>
@@ -209,6 +238,7 @@
       <button class="btn-round-double" @click="createMP3KaraokeForAll" :disabled="countRows===0" title="Создать MP3 KARAOKE для всех песен"><img alt="create mp3 karaoke for all" class="icon-40" src="../../assets/svg/icon_mp3karaoke.svg"></button>
       <button class="btn-round-double" @click="createMP3LyricsForAll" :disabled="countRows===0" title="Создать MP3 LYRICS для всех песен"><img alt="create mp3 lyrics for all" class="icon-40" src="../../assets/svg/icon_mp3lyrics.svg"></button>
       <button class="btn-round-double" @click="createSymlinksForAll" :disabled="countRows===0" title="Создать SYMLINKS для всех песен"><img alt="create symlink for all" class="icon-40" src="../../assets/svg/icon_symlink.svg"></button>
+      <button class="btn-round-double" @click="createSheetsageForAll" :disabled="countRows===0" title="Создать SHEETSAGE для всех песен"><img alt="create sheetsage for all" class="icon-40" src="../../assets/svg/icon_chords.svg"></button>
       <button class="btn-round-double" @click="updateStoreForAll" :disabled="countRows===0" title="Обновить хранилище для всех песен"><img alt="update store for all" class="icon-40" src="../../assets/svg/icon_update_store.svg"></button>
     </div>
 
@@ -432,6 +462,16 @@ export default {
           }
         },
         {
+          key: 'flagYoutubeChords',
+          label: 'ZC',
+          style: {
+            minWidth: '20px',
+            maxWidth: '20px',
+            textAlign: 'center',
+            fontSize: 'small'
+          }
+        },
+        {
           key: 'flagVkLyrics',
           label: 'VL',
           style: {
@@ -444,6 +484,16 @@ export default {
         {
           key: 'flagVkKaraoke',
           label: 'VK',
+          style: {
+            minWidth: '20px',
+            maxWidth: '20px',
+            textAlign: 'center',
+            fontSize: 'small'
+          }
+        },
+        {
+          key: 'flagVkChords',
+          label: 'VC',
           style: {
             minWidth: '20px',
             maxWidth: '20px',
@@ -472,6 +522,16 @@ export default {
           }
         },
         {
+          key: 'flagTelegramChords',
+          label: 'TC',
+          style: {
+            minWidth: '20px',
+            maxWidth: '20px',
+            textAlign: 'center',
+            fontSize: 'small'
+          }
+        },
+        {
           key: 'flagPlLyrics',
           label: 'PL',
           style: {
@@ -484,6 +544,16 @@ export default {
         {
           key: 'flagPlKaraoke',
           label: 'PK',
+          style: {
+            minWidth: '20px',
+            maxWidth: '20px',
+            textAlign: 'center',
+            fontSize: 'small'
+          }
+        },
+        {
+          key: 'flagPlChords',
+          label: 'PC',
           style: {
             minWidth: '20px',
             maxWidth: '20px',
@@ -526,6 +596,13 @@ export default {
             fldValue: this.$store.getters.getLastPriorKaraoke,
             fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
             fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
+          },
+          {
+            fldName: 'priorChords',
+            fldLabel: 'Приоритет Chords:',
+            fldValue: this.$store.getters.getLastPriorChords,
+            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
+            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
           }
         ]
       }
@@ -534,7 +611,8 @@ export default {
     doCreateKaraokeForAll(result) {
       this.$store.dispatch('setLastPriorLyrics', {value: result.priorLyrics});
       this.$store.dispatch('setLastPriorKaraoke', {value: result.priorKaraoke});
-      this.$store.dispatch('createKaraokeForAllPromise', {priorLyrics: result.priorLyrics, priorKaraoke: result.priorKaraoke}).then(data => {
+      this.$store.dispatch('setLastPriorChords', {value: result.priorChords});
+      this.$store.dispatch('createKaraokeForAllPromise', {priorLyrics: result.priorLyrics, priorKaraoke: result.priorKaraoke, priorChords: result.priorChords}).then(data => {
         let response = JSON.parse(data);
         this.customConfirmParams = {
           isAlert: true,
@@ -603,6 +681,37 @@ export default {
           alertType: response ? 'info' : 'error',
           header: 'Создание DEMUCS5',
           body: `Создание DEMUCS5 для всех песен прошло успешно.`,
+          timeout: 10
+        }
+        this.isCustomConfirmVisible = true;
+      })
+    },
+    createSheetsageForAll() {
+      this.customConfirmParams = {
+        header: 'Подтвердите создание SHEETSAGE',
+        body: `Выбрано песен: <strong>${this.countRows}.</strong><br>Создать SHEETSAGE для всех песен?`,
+        callback: this.doCreateSheetsageForAll,
+        fields: [
+          {
+            fldName: 'prior',
+            fldLabel: 'Приоритет:',
+            fldValue: this.$store.getters.getLastPriorDemucs,
+            fldLabelStyle: { width: '100px', textAlign: 'right', paddingRight: '5px'},
+            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
+          }
+        ]
+      }
+      this.isCustomConfirmVisible = true;
+    },
+    doCreateSheetsageForAll(result) {
+      this.$store.dispatch('setLastPriorDemucs', {value: result.prior});
+      this.$store.dispatch('createSheetsageForAllPromise', { prior: result.prior }).then(data => {
+        let response = JSON.parse(data);
+        this.customConfirmParams = {
+          isAlert: true,
+          alertType: response ? 'info' : 'error',
+          header: 'Создание SHEETSAGE',
+          body: `Создание SHEETSAGE для всех песен прошло успешно.`,
           timeout: 10
         }
         this.isCustomConfirmVisible = true;
@@ -758,6 +867,9 @@ export default {
     },
     playKaraoke(id) {
       this.$store.getters.playKaraoke(id);
+    },
+    playChords(id) {
+      this.$store.getters.playChords(id);
     },
     closeSongEdit() {
       this.isSongEditVisible = false;
@@ -940,6 +1052,14 @@ export default {
   white-space: nowrap;
   overflow: hidden;
 }
+.fld-flag-dzen-chords {
+  min-width: 20px;
+  max-width: 20px;
+  text-align: center;
+  font-size: small;
+  white-space: nowrap;
+  overflow: hidden;
+}
 .fld-flag-vk-lyrics {
   min-width: 20px;
   max-width: 20px;
@@ -949,6 +1069,14 @@ export default {
   overflow: hidden;
 }
 .fld-flag-vk-karaoke {
+  min-width: 20px;
+  max-width: 20px;
+  text-align: center;
+  font-size: small;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.fld-flag-vk-chords {
   min-width: 20px;
   max-width: 20px;
   text-align: center;
@@ -972,6 +1100,14 @@ export default {
   white-space: nowrap;
   overflow: hidden;
 }
+.fld-flag-tg-chords {
+  min-width: 20px;
+  max-width: 20px;
+  text-align: center;
+  font-size: small;
+  white-space: nowrap;
+  overflow: hidden;
+}
 .fld-flag-pl-lyrics {
   min-width: 20px;
   max-width: 20px;
@@ -981,6 +1117,14 @@ export default {
   overflow: hidden;
 }
 .fld-flag-pl-karaoke {
+  min-width: 20px;
+  max-width: 20px;
+  text-align: center;
+  font-size: small;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.fld-flag-pl-chords {
   min-width: 20px;
   max-width: 20px;
   text-align: center;

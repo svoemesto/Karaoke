@@ -86,7 +86,7 @@ export default {
             return promisedXMLHttpRequest(request);
         },
         createKaraokeForAllPromise(ctx, payload) {
-            let params = { songsIds: ctx.getters.getSongsDigestIds.join(';'), priorLyrics: payload.priorLyrics, priorKaraoke: payload.priorKaraoke };
+            let params = { songsIds: ctx.getters.getSongsDigestIds.join(';'), priorLyrics: payload.priorLyrics, priorKaraoke: payload.priorKaraoke, priorChords: payload.priorChords };
             let request = { method: 'POST', url: "/apis/songs/createkaraokeall", params: params };
             return promisedXMLHttpRequest(request);
         },
@@ -98,6 +98,11 @@ export default {
         createDemucs5ForAllPromise(ctx, payload) {
             let params = { songsIds: ctx.getters.getSongsDigestIds.join(';'), prior: payload.prior };
             let request = { method: 'POST', url: "/apis/songs/createdemucs5all", params: params };
+            return promisedXMLHttpRequest(request);
+        },
+        createSheetsageForAllPromise(ctx, payload) {
+            let params = { songsIds: ctx.getters.getSongsDigestIds.join(';'), prior: payload.prior };
+            let request = { method: 'POST', url: "/apis/songs/sheetsageall", params: params };
             return promisedXMLHttpRequest(request);
         },
         createMP3KaraokeForAllPromise(ctx, payload) {

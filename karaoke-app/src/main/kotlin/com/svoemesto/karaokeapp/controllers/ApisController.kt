@@ -1491,6 +1491,7 @@ class ApisController(private val sseNotificationService: SseNotificationService)
     fun doProcessSheetsage(@RequestParam id: Long, @RequestParam(required = false) prior: Int = -1) {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         settings?.let {
+            if (File(it.pathToFileSheetsageMIDI).exists()) return
             KaraokeProcess.createProcess(settings, KaraokeProcessTypes.SHEETSAGE, true, prior)
             SNS.send(SseNotification.message(Message(
                 type = "info",
@@ -1516,7 +1517,9 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             ids.forEach { id ->
                 val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
                 settings?.let {
-                    KaraokeProcess.createProcess(settings, KaraokeProcessTypes.SHEETSAGE, true, prior)
+                    if (!File(it.pathToFileSheetsageMIDI).exists()) {
+                        KaraokeProcess.createProcess(settings, KaraokeProcessTypes.SHEETSAGE, true, prior)
+                    }
                 }
                 result = true
             }

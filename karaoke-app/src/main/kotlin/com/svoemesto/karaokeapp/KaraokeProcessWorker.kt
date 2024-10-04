@@ -59,6 +59,7 @@ class KaraokeProcessThread(val karaokeProcess: KaraokeProcess? = null, var perce
                         }
                     }
                     line = reader.readLine()
+//                    println(line)
                 }
 
                 karaokeProcess.status = KaraokeProcessStatuses.DONE.name
@@ -147,12 +148,12 @@ class KaraokeProcessWorker {
             stopAfterThreadIsDone = false
             sendStateMessage()
             while (isWork) {
-                counter++
-                Thread.sleep(timeout)
 
                 if (counter % (intervalCheckDummy / timeout) == 0L) {
                     SNS.send(SseNotification.dummy())
                 }
+                counter++
+                Thread.sleep(timeout)
 
                 if (counter % (intervalCheckFiles / timeout) == 0L) {
                     // Каждые 120 секунд проверяем наличие файлов на обновление
@@ -186,10 +187,12 @@ class KaraokeProcessWorker {
                             settings.fields[SettingField.ID_VK_CHORDS] = tmpSettings.fields[SettingField.ID_VK_CHORDS] ?: ""
                             settings.fields[SettingField.ID_PL_LYRICS] = tmpSettings.fields[SettingField.ID_PL_LYRICS] ?: ""
                             settings.fields[SettingField.ID_PL_KARAOKE] = tmpSettings.fields[SettingField.ID_PL_KARAOKE] ?: ""
+                            settings.fields[SettingField.ID_PL_CHORDS] = tmpSettings.fields[SettingField.ID_PL_CHORDS] ?: ""
                             settings.fields[SettingField.ID_TELEGRAM_LYRICS] = tmpSettings.fields[SettingField.ID_TELEGRAM_LYRICS] ?: ""
                             settings.fields[SettingField.ID_TELEGRAM_KARAOKE] = tmpSettings.fields[SettingField.ID_TELEGRAM_KARAOKE] ?: ""
                             settings.fields[SettingField.ID_TELEGRAM_CHORDS] = tmpSettings.fields[SettingField.ID_TELEGRAM_CHORDS] ?: ""
                             settings.fields[SettingField.RESULT_VERSION] = tmpSettings.fields[SettingField.RESULT_VERSION] ?: ""
+                            settings.fields[SettingField.DIFFBEATS] = tmpSettings.fields[SettingField.DIFFBEATS] ?: ""
                             settings.fields[SettingField.COLOR] = tmpSettings.fields[SettingField.COLOR] ?: ""
                             settings.sourceText = tmpSettings.sourceText
                             settings.resultText = tmpSettings.resultText
@@ -202,7 +205,7 @@ class KaraokeProcessWorker {
                                     File("${settings.rootFolder}/${settings.fileName}.voice${voice+1}.srt").writeText(strText)
                                 }
 
-                                settings.createKaraoke()
+                                settings.createKaraoke(createLyrics = true, createKaraoke = true)
 
                                 KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, 0)
                                 KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, 1)
@@ -241,10 +244,12 @@ class KaraokeProcessWorker {
                         if (diffs.isNotEmpty()) {
                             workThread?.karaokeProcess?.save()
                         }
+                        if (stopAfterThreadIsDone) {
+                            stopAfterThreadIsDone = false
+                            isWork = false
+                            sendStateMessage()
+                        }
 
-                        stopAfterThreadIsDone = false
-                        isWork = false
-                        sendStateMessage()
                     }
                 } else {
 

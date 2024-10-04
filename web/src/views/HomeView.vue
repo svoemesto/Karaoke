@@ -16,6 +16,7 @@
       </div>
       <button class="button-action" @click="copyToStore">Обновить хранилище</button>
       <button class="button-action" @click="updateBpmAndKey">Обновить пустые BPM и KEY из фалов CSV</button>
+      <button class="button-action" @click="updateBpmAndKeyLV">Обновить пустые BPM и KEY из фалов LV</button>
       <div class="field-and-buttons-wrapper">
         <input list="list_authors" class="input-author" type="text" placeholder="Автор" v-model="author">
         <button class="button-action" @click="markDublicates" :disabled="!author">Найти и пометить дубликаты песен автора</button>
@@ -137,13 +138,20 @@ export default {
             fldValue: 10,
             fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
             fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
+          },
+          {
+            fldName: 'priorChords',
+            fldLabel: 'Приоритет Chords:',
+            fldValue: 10,
+            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
+            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
           }
         ]
       }
       this.isCustomConfirmVisible = true;
     },
     doCopyToStore(result) {
-      this.$store.dispatch('collectStorePromise', {priorLyrics: result.priorLyrics, priorKaraoke: result.priorKaraoke}).then(data => {
+      this.$store.dispatch('collectStorePromise', {priorLyrics: result.priorLyrics, priorKaraoke: result.priorKaraoke, priorChords: result.priorChords}).then(data => {
         let result = JSON.parse(data);
         this.customConfirmParams = {
           isAlert: true,
@@ -178,6 +186,18 @@ export default {
         }
         this.isCustomConfirmVisible = true;
       })
+    },
+    updateBpmAndKeyLV() {
+      this.customConfirmParams = {
+        header: 'Подтвердите действие',
+        body: `Обновить пустые BPM и KEY из фалов LV?`,
+        timeout: 10,
+        callback: this.doUpdateBpmAndKeyLV
+      }
+      this.isCustomConfirmVisible = true;
+    },
+    doUpdateBpmAndKeyLV() {
+      this.$store.dispatch('updateBpmAndKeyLVPromise')
     },
     markDublicates() {
       this.customConfirmParams = {

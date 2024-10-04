@@ -92,7 +92,7 @@ data class MltText(
     override var shapeOutline: Int,
     override var shapeOutlineColor: Color
 ): MltShape(MltObjectType.TEXT,shapeColor,shapeOutline,shapeOutlineColor) {
-    val fontWeight: Int get() = if (font.isBold) 75 else 50
+    val fontWeight: Int get() = if (font.isBold) 700 else 300
     val alignment: Int = 1
     val lineSpacing: Int = 0
     val letterSpacing: Int = 0

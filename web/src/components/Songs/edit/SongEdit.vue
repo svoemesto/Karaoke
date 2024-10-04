@@ -182,6 +182,18 @@
                 <button class="btn-round" @click="copyToClipboard(song.idYoutubeLyrics)" :disabled="!song.idYoutubeLyrics"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>
                 <button class="btn-round" @click="pasteFromClipboard('idYoutubeLyrics')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"></button>
               </div>
+              <div class="label-and-input">
+                <img class="icon-24" alt="chords" src="../../../assets/svg/icon_chords.svg">
+                <button class="btn-round" @click="openLinkDzenChordsPlay" :disabled="!song.idYoutubeChords"><img alt="play" class="icon-play" src="../../../assets/svg/icon_play.svg"></button>
+                <button class="btn-round" @click="openLinkDzenChordsEdit" :disabled="!song.idYoutubeChords"><img alt="edit" class="icon-edit" src="../../../assets/svg/icon_edit.svg"></button>
+                <button class="btn-round" @click="getDzenChordsHeader"><img alt="head" class="icon-texthead" src="../../../assets/svg/icon_head.svg"></button>
+                <button class="btn-round" @click="getDzenChordsBody"><img alt="body" class="icon-textbody" src="../../../assets/svg/icon_body.svg"></button>
+                <button class="btn-round" @click="getLinkDzenChordsPlay" :disabled="!song.idYoutubeChords"><img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg"></button>
+                <input class="input-link-field" v-model="song.idYoutubeChords">
+                <button class="btn-round" @click="undoField('idYoutubeChords')" :disabled="notChanged('idYoutubeChords')"><img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg"></button>
+                <button class="btn-round" @click="copyToClipboard(song.idYoutubeChords)" :disabled="!song.idYoutubeChords"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>
+                <button class="btn-round" @click="pasteFromClipboard('idYoutubeChords')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"></button>
+              </div>
             </div>
           </div>
 
@@ -212,6 +224,17 @@
                 <button class="btn-round" @click="copyToClipboard(song.idVkLyrics)" :disabled="!song.idVkLyrics"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>
                 <button class="btn-round" @click="pasteFromClipboard('idVkLyrics')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"></button>
               </div>
+              <div class="label-and-input">
+                <img class="icon-24" alt="song" src="../../../assets/svg/icon_chords.svg">
+                <button class="btn-round-wide" @click="openLinkVkChords" :disabled="!song.idVkChords"><img alt="play" class="icon-play-wide" src="../../../assets/svg/icon_play.svg"></button>
+                <button class="btn-round" @click="getVkChordsHeader"><img alt="head" class="icon-texthead" src="../../../assets/svg/icon_head.svg"></button>
+                <button class="btn-round" @click="getVkChordsBody"><img alt="body" class="icon-textbody" src="../../../assets/svg/icon_body.svg"></button>
+                <button class="btn-round"  @click="getLinkVkChords" :disabled="!song.idVkChords"><img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg"></button>
+                <input class="input-link-field" v-model="song.idVkChords">
+                <button class="btn-round" @click="undoField('idVkChords')" :disabled="notChanged('idVkChords')"><img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg"></button>
+                <button class="btn-round" @click="copyToClipboard(song.idVkChords)" :disabled="!song.idVkChords"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>
+                <button class="btn-round" @click="pasteFromClipboard('idVkChords')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"></button>
+              </div>
             </div>
           </div>
 
@@ -239,6 +262,16 @@
                 <button class="btn-round" @click="undoField('idTelegramLyrics')" :disabled="notChanged('idTelegramLyrics')"><img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg"></button>
                 <button class="btn-round" @click="copyToClipboard(song.idTelegramLyrics)" :disabled="!song.idTelegramLyrics"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>
                 <button class="btn-round" @click="pasteFromClipboard('idTelegramLyrics')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"></button>
+              </div>
+              <div class="label-and-input">
+                <img class="icon-24" alt="song" src="../../../assets/svg/icon_chords.svg">
+                <button class="btn-round-wide" @click="openLinkTelegramChords" :disabled="!song.idTelegramChords"><img alt="play" class="icon-play-wide" src="../../../assets/svg/icon_play.svg"></button>
+                <button class="btn-round-wide" @click="getTelegramChordsHeader"><img alt="head" class="icon-texthead-wide" src="../../../assets/svg/icon_head.svg"></button>
+                <button class="btn-round" @click="getLinkTelegramChords" :disabled="!song.idTelegramChords"><img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg"></button>
+                <input class="input-link-field" v-model="song.idTelegramChords">
+                <button class="btn-round" @click="undoField('idTelegramChords')" :disabled="notChanged('idTelegramChords')"><img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg"></button>
+                <button class="btn-round" @click="copyToClipboard(song.idTelegramChords)" :disabled="!song.idTelegramChords"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>
+                <button class="btn-round" @click="pasteFromClipboard('idTelegramChords')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"></button>
               </div>
             </div>
           </div>
@@ -271,6 +304,18 @@
                 <button class="btn-round" @click="undoField('idPlLyrics')" :disabled="notChanged('idPlLyrics')"><img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg"></button>
                 <button class="btn-round" @click="copyToClipboard(song.idPlLyrics)" :disabled="!song.idPlLyrics"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>
                 <button class="btn-round" @click="pasteFromClipboard('idPlLyrics')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"></button>
+              </div>
+              <div class="label-and-input">
+                <img class="icon-24" alt="song" src="../../../assets/svg/icon_chords.svg">
+                <button class="btn-round" @click="openLinkPlChordsPlay" :disabled="!song.idPlChords"><img alt="play" class="icon-play" src="../../../assets/svg/icon_play.svg"></button>
+                <button class="btn-round" @click="openLinkPlChordsEdit" :disabled="!song.idPlChords"><img alt="edit" class="icon-edit" src="../../../assets/svg/icon_edit.svg"></button>
+                <button class="btn-round" @click="getPlChordsHeader"><img alt="head" class="icon-texthead" src="../../../assets/svg/icon_head.svg"></button>
+                <button class="btn-round" @click="getPlChordsBody"><img alt="body" class="icon-textbody" src="../../../assets/svg/icon_body.svg"></button>
+                <button class="btn-round" @click="getLinkPlChordsPlay" :disabled="!song.idPlChords"><img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg"></button>
+                <input class="input-link-field" v-model="song.idPlChords">
+                <button class="btn-round" @click="undoField('idPlChords')" :disabled="notChanged('idPlChords')"><img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg"></button>
+                <button class="btn-round" @click="copyToClipboard(song.idPlChords)" :disabled="!song.idPlChords"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>
+                <button class="btn-round" @click="pasteFromClipboard('idPlChords')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"></button>
               </div>
             </div>
           </div>
@@ -316,6 +361,7 @@
         <button class="btn-round-double" @click="createMP3Karaoke" title="Создать MP3 Karaoke"><img alt="create mp3 karaoke" class="icon-40" src="../../../assets/svg/icon_mp3karaoke.svg"></button>
         <button class="btn-round-double" @click="createMP3Lyrics" title="Создать MP3 Lyrics"><img alt="create mp3 lyrics" class="icon-40" src="../../../assets/svg/icon_mp3lyrics.svg"></button>
         <button class="btn-round-double" @click="createSymlinks" title="Создать SYMLINKS"><img alt="create symlink" class="icon-40" src="../../../assets/svg/icon_symlink.svg"></button>
+        <button class="btn-round-double" @click="createSheetsage" title="Создать SHEETSAGE"><img alt="create sheetsage" class="icon-40" src="../../../assets/svg/icon_chords.svg"></button>
         <button class="btn-round-double" @click="setDateTimeAuthor" title="установить дату/время публикации для песен автора, начиная с текущей"><img alt="calendar" class="icon-40" src="../../../assets/svg/icon_calendar_later.svg"></button>
         <button class="btn-round-double" @click="deleteSong" title="Удалить песню"><img alt="delete" class="icon-40" src="../../../assets/svg/icon_delete.svg"></button>
       </div>
@@ -378,15 +424,20 @@ export default {
     linkDzenKaraokeEdit() { return this.prefixLinkDzenEdit + this.song.idYoutubeKaraoke; },
     linkDzenLyricsPlay() { return this.prefixLinkDzenPlay + this.song.idYoutubeLyrics; },
     linkDzenLyricsEdit() { return this.prefixLinkDzenEdit + this.song.idYoutubeLyrics; },
+    linkDzenChordsPlay() { return this.prefixLinkDzenPlay + this.song.idYoutubeChords; },
+    linkDzenChordsEdit() { return this.prefixLinkDzenEdit + this.song.idYoutubeChords; },
     linkVkKaraoke() { return this.prefixLinkVk + this.song.idVkKaraoke; },
     linkVkLyrics() { return this.prefixLinkVk + this.song.idVkLyrics; },
     linkTelegramKaraoke() { return this.prefixLinkTelegram + this.song.idTelegramKaraoke; },
     linkTelegramLyrics() { return this.prefixLinkTelegram + this.song.idTelegramLyrics; },
+    linkTelegramChords() { return this.prefixLinkTelegram + this.song.idTelegramChords; },
     linkPlKaraokePlay() { return this.prefixLinkPlPlay + this.song.idPlKaraoke; },
     linkPlKaraokeEdit() { return this.prefixLinkPlEdit + this.song.idPlKaraoke + this.suffixLinkPlEdit; },
     linkPlLyricsPlay() { return this.prefixLinkPlPlay + this.song.idPlLyrics; },
     linkPlLyricsEdit() { return this.prefixLinkPlEdit + this.song.idPlLyrics + this.suffixLinkPlEdit; },
-    
+    linkPlChordsPlay() { return this.prefixLinkPlPlay + this.song.idPlChords; },
+    linkPlChordsEdit() { return this.prefixLinkPlEdit + this.song.idPlChords + this.suffixLinkPlEdit; },
+
     prefixLinkBoosty: () => { return 'https://boosty.to/svoemesto/posts/'; },
     prefixLinkBoostyNew: () => { return 'https://boosty.to/svoemesto/new-post'; },
     prefixLinkVkGroup: () => { return 'https://vk.com/wall-'; },
@@ -468,6 +519,18 @@ export default {
         }
       }
     },
+    'song.idYoutubeChords.value': {
+      deep: true,
+      handler () {
+        if (this.song) {
+          const value = this.song.idYoutubeChords;
+          if (value && value.startsWith(this.prefixLinkDzenPlay)) {
+            const newValue = value.replace(this.prefixLinkDzenPlay, '');
+            this.$store.dispatch('setCurrentSongField', {name: 'idYoutubeChords', value: newValue})
+          }
+        }
+      }
+    },
     'song.idPlKaraoke.value': {
       deep: true,
       handler () {
@@ -488,6 +551,18 @@ export default {
           if (value && value.startsWith(this.prefixLinkPlPlay)) {
             const newValue = value.replace(this.prefixLinkPlPlay, '');
             this.$store.dispatch('setCurrentSongField', {name: 'idPlLyrics', value: newValue})
+          }
+        }
+      }
+    },
+    'song.idPlChords.value': {
+      deep: true,
+      handler () {
+        if (this.song) {
+          const value = this.song.idPlChords;
+          if (value && value.startsWith(this.prefixLinkPlPlay)) {
+            const newValue = value.replace(this.prefixLinkPlPlay, '');
+            this.$store.dispatch('setCurrentSongField', {name: 'idPlChords', value: newValue})
           }
         }
       }
@@ -516,6 +591,18 @@ export default {
         }
       }
     },
+    'song.idVkChords.value': {
+      deep: true,
+      handler () {
+        if (this.song) {
+          const value = this.song.idVkChords;
+          if (value && value.startsWith(this.prefixLinkVk)) {
+            const newValue = value.replace(this.prefixLinkVk, '');
+            this.$store.dispatch('setCurrentSongField', {name: 'idVkChords', value: newValue})
+          }
+        }
+      }
+    },
     'song.idTelegramKaraoke.value': {
       deep: true,
       handler () {
@@ -536,6 +623,18 @@ export default {
           if (value && value.startsWith(this.prefixLinkTelegram)) {
             const newValue = value.replace(this.prefixLinkTelegram, '');
             this.$store.dispatch('setCurrentSongField', {name: 'idTelegramLyrics', value: newValue})
+          }
+        }
+      }
+    },
+    'song.idTelegramChords.value': {
+      deep: true,
+      handler () {
+        if (this.song) {
+          const value = this.song.idTelegramChords;
+          if (value && value.startsWith(this.prefixLinkTelegram)) {
+            const newValue = value.replace(this.prefixLinkTelegram, '');
+            this.$store.dispatch('setCurrentSongField', {name: 'idTelegramChords', value: newValue})
           }
         }
       }
@@ -579,6 +678,13 @@ export default {
             fldValue: this.$store.getters.getLastPriorKaraoke,
             fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
             fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
+          },
+          {
+            fldName: 'priorChords',
+            fldLabel: 'Приоритет Chords:',
+            fldValue: this.$store.getters.getLastPriorChords,
+            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
+            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
           }
         ]
       }
@@ -587,7 +693,8 @@ export default {
     doCreateKaraoke(result) {
       this.$store.dispatch('setLastPriorLyrics', {value: result.priorLyrics});
       this.$store.dispatch('setLastPriorKaraoke', {value: result.priorKaraoke});
-      this.$store.dispatch('createKaraokePromise', {priorLyrics: result.priorLyrics, priorKaraoke: result.priorKaraoke});
+      this.$store.dispatch('setLastPriorChords', {value: result.priorChords});
+      this.$store.dispatch('createKaraokePromise', {priorLyrics: result.priorLyrics, priorKaraoke: result.priorKaraoke, priorChords: result.priorChords});
     },
     createDemucs2() {
       this.customConfirmParams = {
@@ -611,6 +718,23 @@ export default {
         header: 'Подтвердите создание DEMUCS5',
         body: `Создать DEMUCS5 для песни <strong>«${this.song.songName}»</strong>?`,
         callback: this.doCreateDemucs5,
+        fields: [
+          {
+            fldName: 'prior',
+            fldLabel: 'Приоритет:',
+            fldValue: this.$store.getters.getLastPriorDemucs,
+            fldLabelStyle: { width: '100px', textAlign: 'right', paddingRight: '5px'},
+            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
+          }
+        ]
+      }
+      this.isCustomConfirmVisible = true;
+    },
+    createSheetsage() {
+      this.customConfirmParams = {
+        header: 'Подтвердите создание SHEETSAGE',
+        body: `Создать SHEETSAGE для песни <strong>«${this.song.songName}»</strong>?`,
+        callback: this.doCreateSheetsage,
         fields: [
           {
             fldName: 'prior',
@@ -664,6 +788,10 @@ export default {
     doCreateDemucs5(result) {
       this.$store.dispatch('setLastPriorDemucs', {value: result.prior});
       this.$store.dispatch('createDemucs5Promise', { prior: result.prior })
+    },
+    doCreateSheetsage(result) {
+      this.$store.dispatch('setLastPriorDemucs', {value: result.prior});
+      this.$store.dispatch('createSheetsagePromise', { prior: result.prior })
     },
     doCreateMP3Karaoke(result) {
       this.$store.dispatch('setLastPriorDemucs', {value: result.prior});
@@ -810,6 +938,17 @@ export default {
     openLinkDzenLyricsEdit() {
       window.open(this.linkDzenLyricsEdit, '_blank');
     },
+    async getLinkDzenChordsPlay() {
+      let value = this.linkDzenChordsPlay;
+      await navigator.clipboard.writeText(value)
+      // console.log('LinkDzenLyricsPlay: ', value);
+    },
+    openLinkDzenChordsPlay() {
+      window.open(this.linkDzenChordsPlay, '_blank');
+    },
+    openLinkDzenChordsEdit() {
+      window.open(this.linkDzenChordsEdit, '_blank');
+    },
     async getDzenKaraokeHeader() {
       let value = await this.$store.getters.getDzenKaraokeHeader;
       await navigator.clipboard.writeText(value)
@@ -830,7 +969,16 @@ export default {
       await navigator.clipboard.writeText(value)
       // console.log('DzenLyricsBody: ', value);
     },
-
+    async getDzenChordsHeader() {
+      let value = await this.$store.getters.getDzenChordsHeader;
+      await navigator.clipboard.writeText(value)
+      // console.log('DzenLyricsHeader: ', value);
+    },
+    async getDzenChordsBody() {
+      let value = await this.$store.getters.getDzenChordsBody;
+      await navigator.clipboard.writeText(value)
+      // console.log('DzenLyricsBody: ', value);
+    },
 
 
     async getLinkPlKaraokePlay() {
@@ -855,6 +1003,18 @@ export default {
     openLinkPlLyricsEdit() {
       window.open(this.linkPlLyricsEdit, '_blank');
     },
+    async getLinkPlChordsPlay() {
+      let value = this.linkPlChordsPlay;
+      await navigator.clipboard.writeText(value)
+      // console.log('LinkPlLyricsPlay: ', value);
+    },
+    openLinkPlChordsPlay() {
+      window.open(this.linkPlChordsPlay, '_blank');
+    },
+    openLinkPlChordsEdit() {
+      window.open(this.linkPlChordsEdit, '_blank');
+    },
+
     async getPlKaraokeHeader() {
       let value = await this.$store.getters.getPlKaraokeHeader;
       await navigator.clipboard.writeText(value)
@@ -875,7 +1035,16 @@ export default {
       await navigator.clipboard.writeText(value)
       // console.log('PlLyricsBody: ', value);
     },
-    
+    async getPlChordsHeader() {
+      let value = await this.$store.getters.getPlChordsHeader;
+      await navigator.clipboard.writeText(value)
+      // console.log('PlLyricsHeader: ', value);
+    },
+    async getPlChordsBody() {
+      let value = await this.$store.getters.getPlChordsBody;
+      await navigator.clipboard.writeText(value)
+      // console.log('PlLyricsBody: ', value);
+    },
 
     async getLinkVkKaraoke() {
       let value = this.linkVkKaraoke;
@@ -892,6 +1061,14 @@ export default {
     },
     openLinkVkLyrics() {
       window.open(this.linkVkLyrics, '_blank');
+    },
+    async getLinkVkChords() {
+      let value = this.linkVkChords;
+      await navigator.clipboard.writeText(value)
+      // console.log('LinkVkLyrics: ', value);
+    },
+    openLinkVkChords() {
+      window.open(this.linkVkChords, '_blank');
     },
     async getVkKaraokeHeader() {
       let value = await this.$store.getters.getVkKaraokeHeader;
@@ -913,7 +1090,16 @@ export default {
       await navigator.clipboard.writeText(value)
       // console.log('getVkLyricsBody: ', value);
     },
-
+    async getVkChordsHeader() {
+      let value = await this.$store.getters.getVkChordsHeader;
+      await navigator.clipboard.writeText(value)
+      // console.log('VkLyricsHeader: ', value);
+    },
+    async getVkChordsBody() {
+      let value = await this.$store.getters.getVkChordsBody;
+      await navigator.clipboard.writeText(value)
+      // console.log('getVkLyricsBody: ', value);
+    },
 
     async getLinkTelegramKaraoke() {
       let value = this.linkTelegramKaraoke;
@@ -931,6 +1117,14 @@ export default {
     openLinkTelegramLyrics() {
       window.open(this.linkTelegramLyrics, '_blank');
     },
+    async getLinkTelegramChords() {
+      let value = this.linkTelegramChords;
+      await navigator.clipboard.writeText(value)
+      // console.log('LinkTelegramLyrics: ', value);
+    },
+    openLinkTelegramChords() {
+      window.open(this.linkTelegramChords, '_blank');
+    },
     async getTelegramKaraokeHeader() {
       let value = await this.$store.getters.getTelegramKaraokeHeader;
       await navigator.clipboard.writeText(value)
@@ -938,6 +1132,11 @@ export default {
     },
     async getTelegramLyricsHeader() {
       let value = await this.$store.getters.getTelegramLyricsHeader;
+      await navigator.clipboard.writeText(value)
+      // console.log('TelegramLyricsHeader: ', value);
+    },
+    async getTelegramChordsHeader() {
+      let value = await this.$store.getters.getTelegramChordsHeader;
       await navigator.clipboard.writeText(value)
       // console.log('TelegramLyricsHeader: ', value);
     },

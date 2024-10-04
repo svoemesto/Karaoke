@@ -20,6 +20,17 @@
               <button class="group-button" :class="soundButtonClass('voice')" type="button" value="voice" @click="setSound('voice')">Голос</button>
               <button class="group-button" :class="soundButtonClass('song')" type="button" value="song" @click="setSound('song')">Песня</button>
               <button class="group-button" :class="soundButtonClass('minus')" type="button" value="minus" @click="setSound('minus')">Минус</button>
+              <button class="group-button" :class="soundButtonClass('drums')" type="button" value="minus" @click="setSound('drums')">Ударные</button>
+              <button class="group-button" :class="soundButtonClass('bass')" type="button" value="minus" @click="setSound('bass')">Бас</button>
+            </div>
+            <div class="beat">
+              <label class="label-for-sound">Такты:</label>
+              <button class="group-button" :class="beatButtonClass(1)" type="button" value="1" @click="setBeat(1)">1/1</button>
+              <button class="group-button" :class="beatButtonClass(2)" type="button" value="2" @click="setBeat(2)">1/2</button>
+              <button class="group-button" :class="beatButtonClass(4)" type="button" value="3" @click="setBeat(4)">1/4</button>
+              <button class="group-button" :class="beatButtonClass(8)" type="button" value="8" @click="setBeat(8)">1/8</button>
+              <button class="group-button" :class="beatButtonClass(16)" type="button" value="16" @click="setBeat(16)">1/16</button>
+              <button class="group-button" :class="beatButtonClass(32)" type="button" value="32" @click="setBeat(32)">1/32</button>
             </div>
             <div class="markers">
               <button class="group-button" :value="isShowMarkerTypeSyllables" :class="merkerButtonClass(isShowMarkerTypeSyllables)" type="button" @click="onOffShowMarkerType('syllables')">syllables</button>
@@ -28,9 +39,36 @@
               <button class="group-button" :value="isShowMarkerTypeNewline" :class="merkerButtonClass(isShowMarkerTypeNewline)" type="button" @click="onOffShowMarkerType('newline')">newline</button>
               <button class="group-button" :value="isShowMarkerTypeUnmute" :class="merkerButtonClass(isShowMarkerTypeUnmute)" type="button" @click="onOffShowMarkerType('unmute')">unmute</button>
               <button class="group-button" :value="isShowMarkerTypeNote" :class="merkerButtonClass(isShowMarkerTypeNote)" type="button" @click="onOffShowMarkerType('note')">note</button>
+              <button class="group-button" :value="isShowMarkerTypeChord" :class="merkerButtonClass(isShowMarkerTypeChord)" type="button" @click="onOffShowMarkerType('chord')">chord</button>
+              <button class="group-button" :value="isShowMarkerTypeBeat" :class="merkerButtonClass(isShowMarkerTypeBeat)" type="button" @click="onOffShowMarkerType('beat')">beat</button>
             </div>
           </div>
-          <div class="grid-item-waveform" id="waveform"></div>
+          <div class="grid-item-waveform">
+            <div class="item-left-waveform">
+              <div class="item-left-label-and-input">
+                <div class="item-left-label">Type:</div>
+                <input class="item-left-input-field" v-model="currentMarker.markertype" @focus="setEditMode(false)" @blur="setEditMode(true)">
+              </div>
+              <div class="item-left-label-and-input">
+                <div class="item-left-label">Time:</div>
+                <input class="item-left-input-field" v-model="currentMarker.time" @focus="setEditMode(false)" @blur="setEditMode(true)">
+              </div>
+              <div class="item-left-label-and-input">
+                <div class="item-left-label">Label:</div>
+                <input class="item-left-input-field" v-model="currentMarker.label" @focus="setEditMode(false)" @blur="setEditMode(true)">
+              </div>
+              <div class="item-left-label-and-input">
+                <div class="item-left-label">Note:</div>
+                <input class="item-left-input-field" v-model="currentMarker.note" @focus="setEditMode(false)" @blur="setEditMode(true)">
+              </div>
+              <div class="item-left-label-and-input">
+                <div class="item-left-label">Chord:</div>
+                <input class="item-left-input-field" v-model="currentMarker.chord" @focus="setEditMode(false)" @blur="setEditMode(true)">
+              </div>
+            </div>
+            <div class="item-waveform" id="waveform"></div>
+            <div class="item-right-waveform"></div>
+          </div>
           <div class="grid-item-slider">
             <input class="item-slider-zoom" id="slider-zoom" data-action="zoom" type="range" min="12" max="1000" value="12">
             <input class="item-slider-volume" id="slider-volume" data-action="volume" type="range" step="0.05" min="0" max="1" value="1">
@@ -149,6 +187,21 @@
               <button class="group-button" type="button" @click="doReplaceText">
                 <img alt="replace text" class="icon-40" title="Произвести замену текста согласно правилам" src="../../../assets/svg/icon_replace_text.svg">
               </button>
+              <button class="group-button" type="button" @click="doBpmAdd">
+                <img alt="add bpm" class="icon-40" title="Добавить BPM из файла sheetsage" src="../../../assets/svg/icon_bpm.svg">
+              </button>
+              <button class="group-button" type="button" @click="doChordsAdd">
+                <img alt="add chords" class="icon-40" title="Добавить аккорды из файла sheetsage" src="../../../assets/svg/icon_chords_add.svg">
+              </button>
+              <button class="group-button" type="button" @click="doChordsDel">
+                <img alt="clear chords" class="icon-40" title="Очистить аккорды" src="../../../assets/svg/icon_chords_del.svg">
+              </button>
+              <button class="group-button" type="button" @click="doDiffBeatsInc">
+                <img alt="diffbeatsinc" class="icon-40" title="Сдвинуть аккорды вправо" src="../../../assets/svg/icon_diffbeatsinc.svg">
+              </button>
+              <button class="group-button" type="button" @click="doDiffBeatsDec">
+                <img alt="diffbeatsdec" class="icon-40" title="Сдвинуть аккорды влево" src="../../../assets/svg/icon_diffbeatsdec.svg">
+              </button>
               <button class="group-button" type="button" @click="save">
                 <img alt="saveSong" class="icon-40" title="Save" src="../../../assets/svg/icon_save.svg">
               </button>
@@ -161,12 +214,23 @@
           <div class="grid-item-tail">
             <div class="tail" v-html="tail"></div>
           </div>
-          <div class="grid-item-text" v-html="textFormatted">
+          <div class="grid-item-wrapper-text">
+            <b-tabs>
+              <b-tab title="Текст" active>
+                <div class="grid-item-text" v-html="textFormatted"></div>
+              </b-tab>
+              <b-tab title="Ноты">
+                <div class="grid-item-notes" v-html="notesFormatted"></div>
+              </b-tab>
+              <b-tab title="Аккорды">
+                <div class="grid-item-chords" v-html="chordsFormatted"></div>
+              </b-tab>
+            </b-tabs>
           </div>
+
           <div class="grid-item-footer">
             <button type="button" class="btn-close" @click="close">Выход</button>
           </div>
-
         </div>
       </div>
     </div>
@@ -181,6 +245,9 @@ import RegionsPlugin from 'wavesurfer.js/dist/plugins/regions.esm.js'
 import TimelinePlugin from 'wavesurfer.js/dist/plugins/timeline.esm.js'
 import Minimap from 'wavesurfer.js/dist/plugins/minimap.esm.js'
 import CustomConfirm from "../../Common/CustomConfirm.vue";
+import {TabsPlugin} from 'bootstrap-vue'
+import Vue from "vue";
+Vue.use(TabsPlugin)
 // import ZoomPlugin from 'wavesurfer.js/dist/plugins/zoom.esm.js'
 // import { isStringContainThisSymbols } from '@/lib/utils'
 export default {
@@ -194,14 +261,26 @@ export default {
       currentTime: 0,
       currentSyllablesIndex: 0,
       currentMarkersIndex: 0,
+      currentMarker: {
+        markertype: '',
+        time: '',
+        label: '',
+        note: '',
+        chord: '',
+        position: '',
+        color: ''
+      },
       visibleStartTime: -1,
       visibleEndTime: -1,
       duration: 0,
       tail: '',
       dataVoices: this.voices,
       sound: 'voice',
+      beat: 4,
       sourceText: '',
       textFormatted: '',
+      notesFormatted: '',
+      chordsFormatted: '',
       sourceSyllables: [],
       loadedMarkers: [],
       sourceMarkers: [],
@@ -218,6 +297,8 @@ export default {
       pressedC: false, // быстро вперёд, C
       pressedBL: false, // предыдущий маркер, [
       pressedBR: false, // следующий маркер, ]
+      pressedComma: false, // предыдущий слоговый маркер, <
+      pressedPeriod: false, // следующий слоговый маркер, >
       pressedS: false, // удалить маркер, S
       pressedW: false, // оранжевый маркер "слог", W
       pressed2: false, // красный маркер "конец строки", 2
@@ -241,6 +322,8 @@ export default {
       intervalPressC: undefined,
       intervalPressBL: undefined,
       intervalPressBR: undefined,
+      intervalPressComma: undefined,
+      intervalPressPeriod: undefined,
       firstVisibleMarkerTime: 0,
       lastVisibleMarkerTime: 0,
       activeRegion: null,
@@ -254,6 +337,8 @@ export default {
       isShowMarkerTypeNewline: true,
       isShowMarkerTypeUnmute: true,
       isShowMarkerTypeNote: true,
+      isShowMarkerTypeChord: true,
+      isShowMarkerTypeBeat: true,
     }
   },
   props: {
@@ -297,12 +382,18 @@ export default {
               this.sourceMarkers.push(marker)
             }
           }
+          this.createBeatMarkers();
         }
       }
     },
     sound: {
       handler () {
         this.loadSong();
+      }
+    },
+    beat: {
+      handler () {
+        this.createBeatMarkers();
       }
     },
     playSpeed: {
@@ -320,6 +411,7 @@ export default {
         this.currentSyllablesIndex = this.getCurrentSyllablesIndex;
         this.currentMarkersIndex = this.getCurrentMarkersIndex;
         this.textFormatted = this.getFormattedText;
+        this.notesFormatted = this.getFormattedNotes;
       }
     },
     sourceText: {
@@ -328,6 +420,7 @@ export default {
         this.updateMarkersBySyllables();
         this.tail = this.getTail;
         this.textFormatted = this.getFormattedText;
+        this.notesFormatted = this.getFormattedNotes;
       }
     },
     currentTime: {
@@ -340,6 +433,29 @@ export default {
       handler () {
         this.tail = this.getTail;
         this.textFormatted = this.getFormattedText;
+        this.notesFormatted = this.getFormattedNotes;
+      }
+    },
+    currentMarkersIndex: {
+      handler () {
+        if (this.sourceMarkers === undefined || this.currentMarkersIndex === undefined) {
+          this.currentMarker = this.dummyMarker;
+        } else {
+          if (this.sourceMarkers[this.currentMarkersIndex] === undefined) {
+            this.currentMarker = this.dummyMarker;
+          } else {
+            this.currentMarker = this.sourceMarkers[this.currentMarkersIndex];
+          }
+        }
+      }
+    },
+    currentMarker: {
+      handler () {
+        this.currentMarker.region.setContent(this.getRegionContentFromMarker(this.currentMarker));
+        this.tail = this.getTail;
+        this.textFormatted = this.getFormattedText;
+        this.notesFormatted = this.getFormattedNotes;
+        this.sourceMarkers.splice(0,1,this.sourceMarkers[0]);
       }
     },
     pressedX: {
@@ -440,7 +556,7 @@ export default {
     pressedU: { handler () { if (!this.isEditMode) return; if (this.pressedU) { this.addMarker('setting', 'GROUP|2'); } } },
     pressedI: { handler () { if (!this.isEditMode) return; if (this.pressedI) { this.addMarker('setting', 'GROUP|3'); } } },
     pressedP: { handler () { if (!this.isEditMode) return; if (this.pressedP) { this.addMarker('setting', 'GROUP|4'); } } },
-    pressedO: { handler () { if (!this.isEditMode) return; if (this.pressedO) { this.addMarker('setting', 'COMMENT|' + 'ddd' + ' '); } } },
+    pressedO: { handler () { if (!this.isEditMode) return; if (this.pressedO) { this.addSettingMarker(); } } },
     pressedBL: {
       handler () {
         if (!this.isEditMode) return;
@@ -460,6 +576,28 @@ export default {
           this.intervalPressBR = setInterval(() => { this.goToNextMarker(); }, 100);
         }  else {
           clearInterval(this.intervalPressBR);
+        }
+      }
+    },
+    pressedComma: {
+      handler () {
+        if (!this.isEditMode) return;
+        if (this.pressedComma) {
+          this.goToPreviousMarker('syllables');
+          this.intervalPressComma = setInterval(() => { this.goToPreviousMarker('syllables'); }, 100);
+        }  else {
+          clearInterval(this.intervalPressComma);
+        }
+      }
+    },
+    pressedPeriod: {
+      handler () {
+        if (!this.isEditMode) return;
+        if (this.pressedPeriod) {
+          this.goToNextMarker('syllables');
+          this.intervalPressPeriod = setInterval(() => { this.goToNextMarker('syllables'); }, 100);
+        }  else {
+          clearInterval(this.intervalPressPeriod);
         }
       }
     },
@@ -487,6 +625,17 @@ export default {
     }
   },
   computed: {
+    dummyMarker() {
+      return {
+        markertype: '',
+        time: '',
+        label: '',
+        note: '',
+        chord: '',
+        position: '',
+        color: ''
+      }
+    },
     markerTypesToShow() {
       let result = [];
       if (this.isShowMarkerTypeSyllables) { result.push('syllables') }
@@ -495,6 +644,145 @@ export default {
       if (this.isShowMarkerTypeNewline) { result.push('newline') }
       if (this.isShowMarkerTypeUnmute) { result.push('unmute') }
       if (this.isShowMarkerTypeNote) { result.push('note') }
+      if (this.isShowMarkerTypeChord) { result.push('chord') }
+      if (this.isShowMarkerTypeBeat) { result.push('beat') }
+      return result;
+    },
+    getFormattedChords() {
+      let result = '';
+      return result;
+    },
+    getFormattedNotes() {
+      const SPAN_STYLE_NOTE = `<span style="color: #00BFFF; font-family: monospace; font-size: 15px; font-style: normal; font-weight: bolder;">`
+      const SPAN_STYLE_TABLINE = `<span style="color: #66BFFF; font-family: monospace; font-size: 15px; font-style: normal; font-weight: bolder;">`
+      const SPAN_STYLE_TEXT = `<span style="color: #FFFFFF; font-family: monospace; font-size: 15px; font-style: normal; font-weight: bolder;">`
+      const SPAN_STYLE_OCTAVE = `<span style="color: #444444; font-family: monospace; font-size: 15px; font-style: normal; font-weight: bolder;">`
+      const SPAN_STYLE_DEFIS = `<span style="color: #666666; font-family: monospace; font-size: 15px; font-style: normal; font-weight: bolder;">`
+      const SPAN_END = '</span>';
+      const BR = '<br>';
+      const stringsForAllNotes = this.getStringsForAllNotesInSong();
+      let stringsForAllNotesIndex = 0;
+      const markers = this.sourceMarkers;
+      let wasBr = true;
+      let result = '';
+      let lineNotes = '';
+      let lineText = '';
+      let strings = ['E‖⎼','B‖⎼','G‖⎼','D‖⎼','A‖⎼','e‖⎼'];
+      for (let i = 0; i < markers.length; i++) {
+        const marker = markers[i];
+        switch (marker.markertype) {
+          case 'setting': {
+            break;
+          }
+          case 'endofline':
+          case 'newline': {
+            if (!wasBr) {
+              for (let j = 0; j < strings.length; j++) {
+                const sn = strings[j];
+                result += SPAN_STYLE_TABLINE + sn + '⎼‖' + SPAN_END + BR;
+              }
+              result += lineNotes + BR + lineText + BR + BR;
+              lineNotes = '';
+              lineText = '';
+              wasBr = true;
+            }
+            break;
+          }
+          case 'syllables': {
+            let txt = '';
+            let txtHtml = '';
+            let endOfWord = true;
+            if (marker.label) {
+              endOfWord = marker.label.endsWith('_');
+              txt = marker.label.replaceAll('_', ' ');
+              txtHtml = marker.label.replaceAll('_', '&nbsp;');
+              if (wasBr) {
+                txt = '   ' + this.uppercaseFirstLetter(txt);
+                txtHtml = '&nbsp;&nbsp;&nbsp;' + this.uppercaseFirstLetter(txtHtml);
+                strings = ['E‖⎼','B‖⎼','G‖⎼','D‖⎼','A‖⎼','e‖⎼'];
+              }
+            } else {
+              txt = ' ';
+              txtHtml = '&nbsp;';
+            }
+            let note = '';
+            let noteHtml = '';
+            let noteOctave = '';
+            let stringNote = ['⎼⎼','⎼⎼','⎼⎼','⎼⎼','⎼⎼','⎼⎼'];
+            if (marker.note) {
+              const noteParts = marker.note.split('|');
+              note = noteParts[0];
+              noteHtml = noteParts[0];
+              if (noteParts.length > 1) {
+                noteOctave = noteParts[1];
+              }
+              const sn = stringsForAllNotes[stringsForAllNotesIndex];
+              let stringIndex = sn[0];
+              let lad = sn[1] + (sn[1] < 10 ? '⎼' : '');
+              stringNote.splice(stringIndex, 1, lad);
+              stringsForAllNotesIndex++;
+            } else {
+              note = ' ';
+              noteHtml = '&nbsp;';
+              stringNote = ['⎼','⎼','⎼','⎼','⎼','⎼'];
+            }
+            let vowelPosition = 0;
+            for (let i = 0; i < txt.length; i++) {
+              if ('ЁУЕЫАОЭЯИЮёуеыаоэяиюEUIOAeuioaїієѣ'.includes(txt[i])) {
+                vowelPosition = i;
+                break;
+              }
+            }
+
+            for (let i = 0; i < vowelPosition; i++) {
+              note = ' ' + note;
+              noteHtml = '&nbsp;' + noteHtml;
+            }
+
+            let diff = 0;
+            if (wasBr) {
+              diff = 3;
+              wasBr = false;
+            }
+            for (let i = 0; i < vowelPosition - diff; i++) {
+              for (let j = 0; j < stringNote.length; j++) {
+                const lad = '⎼' + stringNote[j];
+                stringNote.splice(j, 1, lad);
+              }
+            }
+            lineNotes += SPAN_STYLE_NOTE + noteHtml + SPAN_END + SPAN_STYLE_OCTAVE + noteOctave + SPAN_END;
+            lineText += SPAN_STYLE_TEXT + txtHtml + SPAN_END;
+            if (!endOfWord) {
+              lineText += SPAN_STYLE_DEFIS + '-' + SPAN_END;
+            }
+            const lengthNote = note.length + noteOctave.length;
+            const lengthText = txt.length + (endOfWord ? 0 : 1);
+            if (lengthNote > lengthText) {
+              lineText += SPAN_STYLE_TEXT;
+              for (let i = 0; i < lengthNote-lengthText; i++) {
+                lineText += '&nbsp;';
+              }
+              lineText += SPAN_END;
+            } else if (lengthText > lengthNote) {
+              lineNotes += SPAN_STYLE_NOTE;
+              for (let i = 0; i < lengthText-lengthNote; i++) {
+                lineNotes += '&nbsp;';
+                for (let j = 0; j < stringNote.length; j++) {
+                  const lad = stringNote[j] + '⎼';
+                  stringNote.splice(j, 1, lad);
+                }
+              }
+              lineNotes += SPAN_END;
+            }
+            for (let j = 0; j < strings.length; j++) {
+              const sn = strings[j] + stringNote[j];
+              strings.splice(j, 1, sn);
+            }
+            break;
+          }
+          default: {break;}
+        }
+      }
       return result;
     },
     getFormattedText() {
@@ -554,7 +842,7 @@ export default {
             result += '</span>';
             break;
           }
-          default: {break;} // unmute, note
+          default: {break;} // unmute, note, chord
         }
         if (spanStyle !== spanStylePrev) result += '<br>';
         spanStylePrev = spanStyle;
@@ -743,6 +1031,7 @@ export default {
             this.sourceMarkers.push(marker)
           }
         }
+        this.createBeatMarkers();
       }
       // console.log('Wavesurfer decode end');
     });
@@ -775,23 +1064,30 @@ export default {
 
     // eslint-disable-next-line
     this.wsRegions.on('region-updated', (region) => {
-      // console.log('Updated region', region)
+      console.log('Updated region', region);
+      let marker = this.sourceMarkers.filter(item => item.region === region)[0];
+      marker.time = region.start;
+      let label = marker.label;
+      let labels = label.split('|');
+      if (marker.markertype === 'setting' && labels[0] === 'BPM') {
+        this.createBeatMarkers();
+      }
       this.updateMarkersBySyllables();
     })
 
     this.wsRegions.on('region-clicked', (region, e) => {
       e.stopPropagation() // prevent triggering a click on the waveform
-      // console.log('region-clicked', region)
+      console.log('region-clicked', region)
       this.activeRegion = region
     })
 
     this.wsRegions.on('region-in', (region) => {
-      // console.log('region-in', region)
+      console.log('region-in', region)
       this.activeRegion = region
     })
 
     this.wsRegions.on('region-out', (region) => {
-      // console.log('region-out', region)
+      console.log('region-out', region)
       if (this.activeRegion === region) {
         this.activeRegion = null
       }
@@ -833,6 +1129,8 @@ export default {
         return {
           time: marker.time,
           label: marker.label,
+          note: marker.note,
+          chord: marker.chord,
           color: marker.color,
           position: marker.position,
           markertype: marker.markertype
@@ -865,6 +1163,8 @@ export default {
         case 'KeyC': { if (!this.pressedC) { this.pressedC = true; } break; }
         case 'BracketLeft': { if (!this.pressedBL) { this.pressedBL = true; } break; }
         case 'BracketRight': { if (!this.pressedBR) { this.pressedBR = true; } break; }
+        case 'Comma': { if (!this.pressedComma) { this.pressedComma = true; } break; }
+        case 'Period': { if (!this.pressedPeriod) { this.pressedPeriod = true; } break; }
         case 'KeyW': { if (!this.pressedW) { this.pressedW = true; } break; }
         case 'KeyS': { if (!this.pressedS) { this.pressedS = true; } break; }
         case 'Digit2': { if (!this.pressed2) { this.pressed2 = true; } break; }
@@ -891,6 +1191,8 @@ export default {
         case 'KeyC': { if (this.pressedC) { this.pressedC = false; } break; }
         case 'BracketLeft': { if (this.pressedBL) { this.pressedBL = false; } break; }
         case 'BracketRight': { if (this.pressedBR) { this.pressedBR = false; } break; }
+        case 'Comma': { if (this.pressedComma) { this.pressedComma = false; } break; }
+        case 'Period': { if (this.pressedPeriod) { this.pressedPeriod = false; } break; }
         case 'KeyW': { if (this.pressedW) { this.pressedW = false; } break; }
         case 'KeyS': { if (this.pressedS) { this.pressedS = false; } break; }
         case 'Digit2': { if (this.pressed2) { this.pressed2 = false; } break; }
@@ -984,16 +1286,30 @@ export default {
     getRegionContentFromMarker(marker) {
       if (!marker || !marker.label) return '';
       let text = marker.label.replaceAll("_"," ").trim();
+      let textNote = !marker.note ? '' : '♪' + marker.note.replaceAll("_"," ").trim();
+      let textChord = !marker.chord ? '' : '🎼' + marker.chord.replaceAll("_"," ").trim();
       let template = '';
       switch (marker.markertype) {
         case 'syllables': {
-          template = `<div><div
-                        style="
+          template = `<div><div style="display: flex; flex-direction: column">
+                        <div style="
                             background-color: beige;
                             display: block;
-                            width: fit-content;
-                        ">
+                            width: fit-content;">
                         ${text}
+                        </div>
+                        <div style="
+                            background-color: lightpink;
+                            display: block;
+                            width: fit-content;">
+                        ${textNote}
+                        </div>
+                        <div style="
+                            background-color: lightgoldenrodyellow;
+                            display: block;
+                            width: fit-content;">
+                        ${textChord}
+                        </div>
                       </div></div>`
           break; }
         case 'endofline': {
@@ -1130,6 +1446,16 @@ export default {
                 break;
               }
               case 'COMMENT': {
+                text = labels[1];
+                template = `<div><div
+                        style="
+                            background-color: beige;
+                            display: block;
+                            width: fit-content;
+                            margin-top: 10px;
+                        ">
+                        ${text}
+                      </div></div>`
                 break;
               }
               case 'CAPO': {
@@ -1140,6 +1466,19 @@ export default {
                             display: block;
                             width: fit-content;
                             margin-top: 216px;
+                        ">
+                        ${text}
+                      </div></div>`
+                break;
+              }
+              default: {
+                text = labels[0] + ': ' + labels[1];
+                template = `<div><div
+                        style="
+                            background-color: beige;
+                            display: block;
+                            width: fit-content;
+                            margin-top: 10px;
                         ">
                         ${text}
                       </div></div>`
@@ -1159,6 +1498,22 @@ export default {
                         ${text}
                       </div></div>`
           break; }
+        case 'chord': {
+          let label = marker.label;
+          let labels = label.split('|');
+          text = '🎼' + labels[0] + (labels.length > 1 ? '['+ labels[1] +']' : '');
+          template = `<div><div
+                        style="
+                            background-color: beige;
+                            display: block;
+                            width: fit-content;
+                            margin-top: 216px;
+                        ">
+                        ${text}
+                      </div></div>`
+          break; }
+        case 'beat0': { break; }
+        case 'beat': { break; }
       }
 
       return this.fromHTML(template);
@@ -1192,11 +1547,11 @@ export default {
       }
       return result
     },
-    goToPreviousMarker() {
+    goToPreviousMarker(markertype) {
 
       for (let i = this.currentMarkersIndex-1; i >= 0; i--) {
         let currentMarker = this.sourceMarkers[i];
-        if (this.isShowMarkerType(currentMarker.markertype)) {
+        if (this.isShowMarkerType(currentMarker.markertype) && (markertype === undefined || currentMarker.markertype === markertype)) {
           this.ws.setTime(currentMarker.time);
           return;
         }
@@ -1209,17 +1564,47 @@ export default {
       // }
       // this.ws.setTime(currentMarker.time);
     },
-    goToNextMarker() {
+    goToNextMarker(markertype) {
 
       for (let i = this.currentMarkersIndex+1; i < this.sourceMarkers.length; i++) {
         let currentMarker = this.sourceMarkers[i];
-        if (this.isShowMarkerType(currentMarker.markertype)) {
+        if (this.isShowMarkerType(currentMarker.markertype) && (markertype === undefined || currentMarker.markertype === markertype)) {
           this.ws.setTime(currentMarker.time);
           return;
         }
       }
       // let currentMarker = this.currentMarkersIndex < this.sourceMarkers.length - 1 ? this.sourceMarkers[this.currentMarkersIndex+1] : this.sourceMarkers[this.currentMarkersIndex];
       // this.ws.setTime(currentMarker.time);
+    },
+    addSettingMarker() {
+      this.isEditMode = false;
+      this.customConfirmParams = {
+        header: 'Добавление маркера настройки',
+        body: `Укажите тип и значение маркера`,
+        callback: this.doAddSettingMarker,
+        fields: [
+          {
+            fldName: 'settingType',
+            fldLabel: 'Тип:',
+            fldValue: this.$store.getters.getLastSettingType,
+            fldLabelStyle: { width: '100px', textAlign: 'right', paddingRight: '5px'},
+            fldValueStyle: { width: '250px', textAlign: 'left', borderRadius: '10px'}
+          },
+          {
+            fldName: 'settingValue',
+            fldLabel: 'Значение:',
+            fldValue: this.$store.getters.getLastSettingValue,
+            fldLabelStyle: { width: '100px', textAlign: 'right', paddingRight: '5px'},
+            fldValueStyle: { width: '250px', textAlign: 'left', borderRadius: '10px'}
+          }
+        ]
+      }
+      this.isCustomConfirmVisible = true;
+    },
+    doAddSettingMarker(result) {
+      this.$store.dispatch('setLastSettingType', {value: result.settingType});
+      this.$store.dispatch('setLastSettingValue', {value: result.settingValue});
+      this.addMarker('setting', result.settingType + '|' + result.settingValue);
     },
     addMarker(markerType, settingValue = '', notDelete = false, withEndOfLine = false) {
       // console.log(`addMarker called: ${markerType}, ${settingValue}, ${notDelete}`);
@@ -1230,6 +1615,8 @@ export default {
       const MARKER_COLOR_NEWLINE = '#FF0000';
       const MARKER_COLOR_SETTING = '#000080';
       const MARKER_COLOR_UNMUTE = '#FFFF00';
+      const MARKER_COLOR_BEAT0 = '#303030';
+      const MARKER_COLOR_BEAT = '#606060';
 
       let timeToAdd = this.currentTime;
       let currentMarkerTime = this.currentMarkersIndex >= 0 ? this.sourceMarkers[this.currentMarkersIndex].time : 0;
@@ -1237,12 +1624,20 @@ export default {
       let position = 'bottom';
       let label = '';
       let color = '';
+      let needAddBeats = false;
+      let needCalcBpm = false;
 
       switch (markerType) {
         case 'setting': {
           label = settingValue;
           position = 'top';
           color = MARKER_COLOR_SETTING;
+          if (settingValue.startsWith('BPM|')) {
+            needAddBeats = true;
+          }
+          if (settingValue.startsWith('CALC|')) {
+            needCalcBpm = true;
+          }
           break;
         }
         case 'syllables':{
@@ -1271,7 +1666,41 @@ export default {
           color = MARKER_COLOR_NOTE;
           break;
         }
+        case 'chord':{
+          label = settingValue;
+          position = 'bottom';
+          color = MARKER_COLOR_NOTE;
+          break;
+        }
+        case 'beat0':{
+          position = 'top';
+          color = MARKER_COLOR_BEAT0;
+          break;
+        }
+        case 'beat':{
+          position = 'top';
+          color = MARKER_COLOR_BEAT;
+          break;
+        }
       }
+
+      if (needCalcBpm) {
+        // Находим ближайший слева BPM-маркер
+        let bpmMarkers = this.sourceMarkers.filter(marker => marker.markertype === 'setting' && marker.label.startsWith('BPM|') && marker.time < this.currentTime);
+        if (bpmMarkers.length === 0) return;
+        let bpmMarker = bpmMarkers.reverse()[0];
+        console.log('bpmMarker', bpmMarker);
+        console.log('this.currentTime', this.currentTime);
+        // Время текущее минус время этого маркера = время такта
+        let bpm = Math.round(60 / ((this.currentTime - bpmMarker.time) / 4));
+        console.log('this.bpm', bpm);
+        // Записываем новое значение BPM в маркер
+        bpmMarker.label = 'BPM|' + bpm;
+        bpmMarker.region.setContent(this.getRegionContentFromMarker(bpmMarker));
+        this.createBeatMarkers();
+        return;
+      }
+
       let newMarker = {
         time: timeToAdd,
         label: label,
@@ -1313,7 +1742,9 @@ export default {
 
       this.updateMarkersBySyllables();
       // this.createMarkers(true);
-
+      if (needAddBeats) {
+        this.createBeatMarkers();
+      }
     },
     createRegionMarker(marker) {
       if (this.isShowMarkerType(marker.markertype)) {
@@ -1321,14 +1752,30 @@ export default {
           start: marker.time,
           content: this.getRegionContentFromMarker(marker),
           color: marker.color,
-          id: marker.markertype
+          id: this.generateUUID() //marker.markertype
         });
       } else {
         return null;
       }
     },
+    generateUUID() { // Public Domain/MIT
+      let d = new Date().getTime();//Timestamp
+      let d2 = ((typeof performance !== 'undefined') && performance.now && (performance.now() * 1000)) || 0;//Time in microseconds since page-load or 0 if unsupported
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        let r = Math.random() * 16;//random number between 0 and 16
+        if(d > 0){//Use timestamp until depleted
+          r = (d + r)%16 | 0;
+          d = Math.floor(d/16);
+        } else {//Use microseconds since page-load if supported
+          r = (d2 + r)%16 | 0;
+          d2 = Math.floor(d2/16);
+        }
+        return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+      });
+    },
     deleteMarker() {
       let currentMarker = this.sourceMarkers[this.currentMarkersIndex];
+      let isBpm = currentMarker.markertype === 'setting' && currentMarker.label.startsWith('BPM|');
       let diff = Math.abs(currentMarker.time - this.currentTime);
       if (diff < 0.002) {
         if (this.currentMarkersIndex > 0 && Math.abs(this.sourceMarkers[this.currentMarkersIndex-1].time - currentMarker.time) < 0.002) {
@@ -1347,11 +1794,293 @@ export default {
             this.ws.setTime(this.sourceMarkers[this.currentMarkersIndex-1].time);
           }
         }
+        if (isBpm) {
+          this.createBeatMarkers();
+        }
       }
+    },
+    createBeatMarkers() {
+      // Удаляем все бит-маркеры
+      let countBeatMarkers = this.sourceMarkers.filter(marker => marker.markertype === 'beat').length;
+      console.log('countBeatMarkers', countBeatMarkers);
+      while (countBeatMarkers !== 0) {
+        for (let i = 0; i < this.sourceMarkers.length; i++) {
+          let marker = this.sourceMarkers[i];
+          if (marker.markertype === 'beat') {
+            marker.region.remove();
+            marker.region = null;
+            this.sourceMarkers.splice(i,1);
+            break;
+          }
+        }
+        countBeatMarkers = this.sourceMarkers.filter(marker => marker.markertype === 'beat').length;
+      }
+      const MARKER_COLOR_BEAT0 = '#808080';
+      const MARKER_COLOR_BEAT2 = '#909090';
+      const MARKER_COLOR_BEAT4 = '#AAAAAA';
+      const MARKER_COLOR_BEAT8 = '#BBBBBB';
+      const MARKER_COLOR_BEAT16 = '#CCCCCC';
+      const MARKER_COLOR_BEAT32 = '#DDDDDD';
+      const beat = this.beat;
+      // Получаем список BPM-маркеров
+      let bpmMarkers = this.sourceMarkers.filter(marker => marker.markertype === 'setting' && marker.label.startsWith('BPM|'));
+      console.log('bpmMarkers', bpmMarkers);
+      for (let indexBpmMarker = 0; indexBpmMarker < bpmMarkers.length; indexBpmMarker++) {
+        let bpmMarker = bpmMarkers[indexBpmMarker];
+        let label = bpmMarker.label;
+        let labels = label.split('|');
+        let bpm = labels[1];
+        // Для BPM-маркера вычисляем время такта
+        let noteLength4 = 60.0 / bpm;
+        let noteLength8 = noteLength4 / 2;
+        let noteLength16 = noteLength8 / 2;
+        let noteLength32 = noteLength16 / 2;
+        console.log('noteLength4', noteLength4);
+        // Если это первый BPM-маркер - создаём бит-маркеры к началу
+        if (indexBpmMarker === 0) {
+          let currentTime = bpmMarker.time - noteLength32;
+          let counter = 1;
+          while (currentTime > 0) {
+            let timeToAdd = currentTime;
+            let position = 'bottom';
+            let label = '';
+            let color = MARKER_COLOR_BEAT32;
+            let needAdd = false;
+            if (counter % 32 === 0) {
+              color = MARKER_COLOR_BEAT0;
+              needAdd = true;
+            }
+            if (counter % 16 === 0 && beat >= 2) {
+              color = MARKER_COLOR_BEAT2;
+              needAdd = true;
+            }
+            if (counter % 8 === 0 && beat >= 4) {
+              color = MARKER_COLOR_BEAT4;
+              needAdd = true;
+            }
+            if (counter % 4 === 0 && beat >= 8) {
+              color = MARKER_COLOR_BEAT8;
+              needAdd = true;
+            }
+            if (counter % 2 === 0 && beat >= 16) {
+              color = MARKER_COLOR_BEAT16;
+              needAdd = true;
+            }
+            if (beat >= 32) {
+              color = MARKER_COLOR_BEAT32;
+              needAdd = true;
+            }
+
+            let newMarker = {
+              time: timeToAdd,
+              label: label,
+              color: color,
+              position: position,
+              markertype: 'beat'
+            }
+
+            if (needAdd) {
+              newMarker.region = this.createRegionMarker(newMarker);
+              this.sourceMarkers.push(newMarker);
+            }
+
+            counter++;
+            currentTime = currentTime - noteLength32;
+          }
+        }
+
+        // Создаём бит-маркеры до следующего BPM-маркера или до конца
+        let currentTime = bpmMarker.time + noteLength32;
+        let counter = 1;
+        let nextBpmMarkerTime = bpmMarker.region.totalDuration;
+        if (indexBpmMarker < bpmMarkers.length - 1) {
+          nextBpmMarkerTime = bpmMarkers[indexBpmMarker+1].time;
+        }
+        while (currentTime < nextBpmMarkerTime) {
+          let timeToAdd = currentTime;
+          let position = 'bottom';
+          let label = '';
+          let color = MARKER_COLOR_BEAT32;
+          let needAdd = false;
+          if (counter % 32 === 0) {
+            color = MARKER_COLOR_BEAT0;
+            needAdd = true;
+          }
+          if (counter % 16 === 0 && beat >= 2) {
+            color = MARKER_COLOR_BEAT2;
+            needAdd = true;
+          }
+          if (counter % 8 === 0 && beat >= 4) {
+            color = MARKER_COLOR_BEAT4;
+            needAdd = true;
+          }
+          if (counter % 4 === 0 && beat >= 8) {
+            color = MARKER_COLOR_BEAT8;
+            needAdd = true;
+          }
+          if (counter % 2 === 0 && beat >= 16) {
+            color = MARKER_COLOR_BEAT16;
+            needAdd = true;
+          }
+          if (beat >= 32) {
+            color = MARKER_COLOR_BEAT32;
+            needAdd = true;
+          }
+          let newMarker = {
+            time: timeToAdd,
+            label: label,
+            color: color,
+            position: position,
+            markertype: 'beat'
+          }
+          if (needAdd) {
+            newMarker.region = this.createRegionMarker(newMarker);
+            this.sourceMarkers.push(newMarker);
+          }
+
+          counter++;
+          currentTime = currentTime + noteLength32;
+        }
+
+      }
+      // this.updateMarkersBySyllables();
+      this.sortSourceMarkers();
     },
     async doReplaceText() {
       this.sourceText = await this.$store.getters.getReplacedSymbolsInText(this.sourceText);
       this.doReplaceBrokenMarkers();
+    },
+    async doBpmAdd() {
+      let bpm = await this.$store.getters.getSheetsageinfoBpm;
+      const MARKER_COLOR_SETTING = '#000080';
+      if (bpm !== '') {
+        let newMarker = {
+          time: this.currentTime,
+          label: "BPM|" + bpm,
+          color: MARKER_COLOR_SETTING,
+          position: 'top',
+          markertype: 'setting'
+        }
+        newMarker.region = this.createRegionMarker(newMarker);
+        this.sourceMarkers.push(newMarker);
+      }
+    },
+    async doChordsAdd() {
+      const MARKER_COLOR_CHORD = '#FFFF00';
+      const SPAN_STYLE_NOTE = `<span style="color: #00BFFF; font-family: monospace; font-size: 15px; font-style: normal; font-weight: bolder;">`
+      const SPAN_STYLE_TEXT = `<span style="color: #FFFFFF; font-family: monospace; font-size: 15px; font-style: normal; font-weight: bolder;">`
+      const SPAN_END = '</span>';
+      const BR = '<br>';
+      const BEAT_SYMBOL_MOD16 = '◉';
+      const BEAT_SYMBOL_MOD4 = '•';
+      const BEAT_SYMBOL_MOD1 = '◦';
+      let result = '';
+      let beattimesString = await this.$store.dispatch('getSheetsageinfoBeattimes');
+      let beattimes = JSON.parse(beattimesString);
+
+      let strChords = '';
+      let strBeats = '';
+
+      for (let beattimesIndex = 0; beattimesIndex < beattimes.length; beattimesIndex++) {
+        let symbol = BEAT_SYMBOL_MOD1;
+        if (beattimesIndex % 4 === 0) symbol = BEAT_SYMBOL_MOD4;
+        if (beattimesIndex % 16 === 0) symbol = BEAT_SYMBOL_MOD16;
+        strChords += symbol;
+        strBeats += symbol;
+      }
+
+      let chordsString = await this.$store.dispatch('getSheetsageinfoChords');
+      let chords = JSON.parse(chordsString);
+      for (let i = 0; i < chords.length; i++) {
+        let chordParams = chords[i].split(' ');
+        let chordName = chordParams[0];
+        let chordDuration = chordParams[1];
+        let chordBeatIndex = chordParams[3];
+        if (chordName !== 'S') {
+          strChords = strChords.substring(0,chordBeatIndex) + chordName + strChords.substring(Number(chordBeatIndex) + Number(chordName.length));
+          let newMarker = {
+            time: chordDuration,
+            label: chordName,
+            color: MARKER_COLOR_CHORD,
+            position: 'top',
+            markertype: 'chord',
+            tag: chords[i]
+          }
+          newMarker.region = this.createRegionMarker(newMarker);
+          this.sourceMarkers.push(newMarker);
+        }
+      }
+      let beattimeIndex = 0;
+      let currentBeattime = beattimes[beattimeIndex];
+      let nextBeattime = beattimes[beattimeIndex+1];
+      let markers = this.sourceMarkers.filter(item => item.markertype === 'syllables' && item.label);
+      for (let markerIndex = 0; markerIndex < markers.length; markerIndex++) {
+        const marker = markers[markerIndex];
+        while (!(currentBeattime < marker.time && nextBeattime >= marker.time)) {
+          if (beattimeIndex > beattimes.length - 2) {
+            break;
+          }
+          beattimeIndex++;
+          currentBeattime = beattimes[beattimeIndex];
+          nextBeattime = beattimes[beattimeIndex+1];
+        }
+        let markerBeattimeIndex = beattimeIndex+1;
+        // if (Math.abs(currentBeattime - marker.time) < Math.abs(nextBeattime - marker.time)) {
+        //   markerBeattimeIndex = beattimeIndex
+        // }
+        let text = marker.label.replaceAll('_',' ').trim()
+        strBeats = strBeats.substring(0,markerBeattimeIndex) + text + strBeats.substring(Number(markerBeattimeIndex) + Number(text.length));
+      }
+      while (strChords.length > 0) {
+        const lineChord = strChords.substring(0,64);
+        strChords = strChords.length < 64 ? '' : strChords.substring(64);
+        const lineBeats = strBeats.substring(0,64);
+        strBeats = strBeats.length < 64 ? '' : strBeats.substring(64);
+        result += SPAN_STYLE_NOTE + lineChord.replaceAll(BEAT_SYMBOL_MOD1,'&nbsp;') + SPAN_END + BR
+        result += SPAN_STYLE_TEXT + lineBeats.replaceAll(BEAT_SYMBOL_MOD1,'&nbsp;').replaceAll(BEAT_SYMBOL_MOD4,'&nbsp;').replaceAll(BEAT_SYMBOL_MOD16,'&nbsp;') + SPAN_END + BR + BR
+        console.log('lineChord', lineChord);
+        console.log('lineBeats', lineBeats);
+      }
+      this.chordsFormatted = result;
+    },
+    doChordsDel() {
+      // Удаляем все chord-маркеры
+      let countChordsMarkers = this.sourceMarkers.filter(marker => marker.markertype === 'chord').length;
+      console.log('countChordsMarkers', countChordsMarkers);
+      while (countChordsMarkers !== 0) {
+        for (let i = 0; i < this.sourceMarkers.length; i++) {
+          let marker = this.sourceMarkers[i];
+          if (marker.markertype === 'chord') {
+            marker.region.remove();
+            marker.region = null;
+            this.sourceMarkers.splice(i,1);
+            break;
+          }
+        }
+        countChordsMarkers = this.sourceMarkers.filter(marker => marker.markertype === 'chord').length;
+      }
+    },
+    async doDiffBeatsInc() {
+      let diff = await this.$store.dispatch('getDiffBeatsInc');
+      diff = await this.$store.dispatch('getDiffBeatsInc');
+      diff = await this.$store.dispatch('getDiffBeatsInc');
+      diff = await this.$store.dispatch('getDiffBeatsInc');
+      console.log('diff', diff);
+      if (diff >= 0) {
+        this.doChordsDel();
+        await this.doChordsAdd();
+      }
+    },
+    async doDiffBeatsDec() {
+      let diff = await this.$store.dispatch('getDiffBeatsDec');
+      diff = await this.$store.dispatch('getDiffBeatsDec');
+      diff = await this.$store.dispatch('getDiffBeatsDec');
+      diff = await this.$store.dispatch('getDiffBeatsDec');
+      console.log('diff', diff);
+      if (diff >= 0) {
+        this.doChordsDel();
+        await this.doChordsAdd();
+      }
     },
     doReplaceBrokenMarkers() {
       for (let i = 0; i < this.sourceMarkers.length; i++) {
@@ -1542,6 +2271,9 @@ export default {
     soundButtonClass(sound) {
       return sound === this.sound ? 'group-button-active' : ''
     },
+    beatButtonClass(beat) {
+      return beat === this.beat ? 'group-button-active' : ''
+    },
     editSpeedButtonClass(editSpeed) {
       return editSpeed === this.editSpeed ? 'group-button-active' : ''
     },
@@ -1560,6 +2292,9 @@ export default {
     setSound(sound) {
       this.sound = sound;
     },
+    setBeat(beat) {
+      this.beat = beat;
+    },
     onOffShowMarkerType(markerType) {
       switch (markerType) {
         case 'syllables': {this.isShowMarkerTypeSyllables = !this.isShowMarkerTypeSyllables; break;}
@@ -1568,6 +2303,8 @@ export default {
         case 'endofline': {this.isShowMarkerTypeEndofline = !this.isShowMarkerTypeEndofline; break;}
         case 'unmute': {this.isShowMarkerTypeUnmute = !this.isShowMarkerTypeUnmute; break;}
         case 'note': {this.isShowMarkerTypeNote = !this.isShowMarkerTypeNote; break;}
+        case 'chord': {this.isShowMarkerTypeChord = !this.isShowMarkerTypeChord; break;}
+        case 'beat': {this.isShowMarkerTypeBeat = !this.isShowMarkerTypeBeat; break;}
       }
     },
     setEditSpeed(editSpeed) {
@@ -1620,7 +2357,15 @@ export default {
         } else {
           console.log(`${note} - нажато с силой ${volume}`);
           if (this.isEditMode) {
-            this.addMarker('note', note, true);
+            if (this.currentMarker !== undefined) {
+              if (this.currentMarker.markertype === 'syllables') {
+                this.currentMarker.note = note;
+                this.currentMarker.region.setContent(this.getRegionContentFromMarker(this.currentMarker));
+                this.sourceMarkers.splice(0,1,this.sourceMarkers[0]);
+                this.goToNextMarker('syllables');
+              }
+            }
+            // this.addMarker('note', note, true);
           }
         }
 
@@ -1649,6 +2394,77 @@ export default {
           marker.region = this.createRegionMarker(marker);
         }
       }
+    },
+    getStringsForAllNotesInSong() {
+      const markersList = this.sourceMarkers
+          .filter(marker => marker.markertype === 'syllables')
+          .filter(marker => marker.note)
+      const notesList = markersList.map(marker => marker.note)
+      const notesSetArray = Array.from(new Set(notesList));
+      let notesAndStringsArray = [];
+      for (let i = 0; i < notesSetArray.length; i++) {
+        const note = notesSetArray[i];
+        notesAndStringsArray.push([note, this.getStrings(note)]);
+      }
+      let variants = [];
+      for (let startLad = 0; startLad < 20; startLad++) {
+        let variant = []; // вариант для startLad
+        let minLad = 20;
+        let maxLad = 0;
+        for (let markerIndex = 0; markerIndex < markersList.length; markerIndex++) {
+          const marker = markersList[markerIndex];
+          const stringsForNote = notesAndStringsArray.filter(item => item[0] === marker.note)[0][1]; // массив пар струна-лад
+          let tmpArray = stringsForNote.map(item => [Math.abs(item[1]-startLad), item]);
+          let minDiffIndex = 0;
+          let minDiff = tmpArray[minDiffIndex][0];
+          for (let i = 0; i < tmpArray.length; i++) {
+            if (minDiff > tmpArray[i][0]) {
+              minDiffIndex = i;
+              minDiff = tmpArray[i][0];
+            }
+          }
+          if (minLad > tmpArray[minDiffIndex][1][1]) {
+            minLad = tmpArray[minDiffIndex][1][1];
+          }
+          if (maxLad < tmpArray[minDiffIndex][1][1]) {
+            maxLad = tmpArray[minDiffIndex][1][1];
+          }
+          variant.push(tmpArray[minDiffIndex][1]);
+        }
+        variants.push({variant: variant, diff: Math.abs(maxLad - minLad)});
+      }
+      let minVariantIndex = 0;
+      let minDiff =  variants[minVariantIndex].diff
+      for (let i = 0; i < variants.length; i++) {
+        let variant = variants[i];
+        if (minDiff > variant.diff) {
+          minVariantIndex = i;
+          minDiff = variants[minVariantIndex].diff
+        }
+      }
+      let minVariant = variants[minVariantIndex];
+      return minVariant.variant;
+    },
+    getStrings(note) {
+      let result = [];
+      const guitar = [
+          ['E|4','F|4','F#|4','G|4','G#|4','A|4','A#|4','B|4','C|5','C#|5','D|5','D#|5','E|5','F|5','F#|5','G|5','G#|5','A|5','A#|5','B|5','C|6'],
+          ['B|3','C|4','C#|4','D|4','D#|4','E|4','F|4','F#|4','G|4','G#|4','A|4','A#|4','B|4','C|5','C#|5','D|5','D#|5','E|5','F|5','F#|5','G|5'],
+          ['G|3','G#|3','A|3','A#|3','B|3','C|4','C#|4','D|4','D#|4','E|4','F|4','F#|4','G|4','G#|4','A|4','A#|4','B|4','C|5','C#|5','D|5','D#|5'],
+          ['D|3','D#|3','E|3','F|3','F#|3','G|3','G#|3','A|3','A#|3','B|3','C|4','C#|4','D|4','D#|4','E|4','F|4','F#|4','G|4','G#|4','A|4','A#|4'],
+          ['A|2','A#|2','B|2','C|3','C#|3','D|3','D#|3','E|3','F|3','F#|3','G|3','G#|3','A|3','A#|3','B|3','C|4','C#|4','D|4','D#|4','E|4','F|4'],
+          ['E|2','F|2','F#|2','G|2','G#|2','A|2','A#|2','B|2','C|3','C#|3','D|3','D#|3','E|3','F|3','F#|3','G|3','G#|3','A|3','A#|3','B|3','C|4']
+      ]
+      for (let stringIndex = 0; stringIndex < guitar.length; stringIndex++) {
+        const string = guitar[stringIndex];
+        for (let lad = 0; lad < string.length; lad++) {
+          if (note === string[lad]) {
+            result.push([stringIndex, lad]);
+            break;
+          }
+        }
+      }
+      return result
     }
   }
 }
@@ -1698,6 +2514,9 @@ export default {
 }
 
 .sound {
+  margin: 0 auto;
+}
+.beat {
   margin: 0 auto;
 }
 .markers {
@@ -1819,11 +2638,46 @@ export default {
 .grid-item-waveform {
   grid-column: 1 / -1;
   grid-row: 2 / 2;
-  width: auto;
-  height: auto;
-  background-color: #FFFFFF;
+  display: flex;
 }
 
+.item-waveform {
+  width: 80%;
+  /*height: auto;*/
+  background-color: #FFFFFF;
+  display: block;
+}
+.item-left-waveform {
+  width: 10%;
+  margin: 5px 5px 5px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+.item-left-label-and-input {
+  display: flex;
+}
+.item-left-label {
+  font-size: small;
+  text-align: right;
+  width: 50px;
+  padding-right: 2px;
+  padding-top: 2px;
+}
+.item-left-input-field {
+  display: block;
+  padding-bottom: 3px;
+  width: 100px;
+  text-align: left;
+  font-size: small;
+  border-radius: 5px;
+  border-color: black;
+  border-width: thin;
+}
+.item-right-waveform {
+  width: 10%;
+  display: block;
+}
 .grid-item-slider {
   grid-column: 1 / 3;
   grid-row: 3 / 3;
@@ -1891,17 +2745,38 @@ export default {
   /*margin-left: -125px;*/
 }
 
-.grid-item-text {
+.grid-item-wrapper-text {
   grid-column: 3 / 3;
   grid-row: 5 / 5;
+  display: block;
+}
+.grid-item-text {
   column-count: 4;
   column-fill: auto;
   overflow: auto;
   background-color: black;
   display: block;
   text-align: left;
+  max-height: 619px;
 }
-
+.grid-item-notes {
+  column-count: 5;
+  column-fill: auto;
+  overflow: auto;
+  background-color: black;
+  display: block;
+  text-align: left;
+  max-height: 619px;
+}
+.grid-item-chords {
+  column-count: 5;
+  column-fill: auto;
+  overflow: auto;
+  background-color: black;
+  display: block;
+  text-align: left;
+  max-height: 619px;
+}
 .grid-item-footer {
   grid-column: 1 / -1;
   grid-row: 6 / 6;

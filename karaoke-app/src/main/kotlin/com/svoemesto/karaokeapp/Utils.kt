@@ -528,6 +528,27 @@ fun updateBpmAndKey(database: KaraokeConnection): Int {
     return counter
 }
 
+fun updateBpmAndKeyLV(database: KaraokeConnection): Pair<Int, Int> {
+    val listSettings = Settings.loadListFromDb(mapOf("song_tone" to "''", "song_bpm" to "0"), database)
+    var counterSuccess = 0
+    var counterFailed = 0
+    listSettings.forEach { settings ->
+        val sheetstageInfo = settings.sheetstageInfo
+        val bpm = sheetstageInfo["tempo"] as String
+        val key = sheetstageInfo["key"] as String
+        if (bpm != "" && key != "") {
+            println("${settings.fileName} : bpm = ${bpm}, tone = ${key}")
+            settings.fields[SettingField.BPM] = bpm
+            settings.fields[SettingField.KEY] = key
+            settings.saveToDb()
+            counterSuccess++
+        } else {
+            counterFailed++
+        }
+    }
+    return Pair(counterSuccess, counterFailed)
+}
+
 fun getBpmAndKeyFromCsv(settings: Settings): Pair<Long, String> {
     var csvFilePath = settings.rootFolder + "/key_bpm.csv"
     var file = File(csvFilePath)

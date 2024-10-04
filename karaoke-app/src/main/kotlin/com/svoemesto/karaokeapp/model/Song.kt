@@ -185,26 +185,6 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
     fun getTextForDescription(maxSymbols: Int = 0): String {
         var result = settings.getTextBody()
 
-//        voices.forEach { voice ->
-//            var prevLineText = ""
-//            var prevLineGroup = 0
-//            voice.lines.forEach { line ->
-//                if (line.group != prevLineGroup) {
-//                    result += "\n"
-//                }
-//                prevLineGroup = line.group
-//                if (!(line.text.trim() == "" && prevLineText == "")) {
-//                    result += line.text.trim().uppercaseFirstLetter() + "\n"
-//                }
-//                prevLineText = line.text.trim().uppercaseFirstLetter()
-//            }
-//            if (voice != voices.last()) result += "\n" + "----------------------------------------------------" + "\n\n"
-//        }
-//
-//        if (hasChords) {
-//            return result.replace("\n\n","\n").deleteThisSymbols(NOTES_SYMBOLS)
-//        }
-
         while (maxSymbols > 0 && result.length > maxSymbols) {
             val lst = result.split("\n").toMutableList()
             lst.removeLast()
@@ -215,39 +195,7 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
     }
 
     fun getTextForDescriptionWithTimecodes(maxSymbols: Int = 0, maxTimeCodes: Int? = null): String {
-        var result = ""
-        var prevLineGroup = 0
-        var timeCodeCounter = 0;
-        voices.forEach { voice ->
-            var prevLineText = ""
-            voice.lines.forEach { line ->
-                prevLineText = line.text.trim().uppercaseFirstLetter()
-
-                if (line.group != prevLineGroup) {
-                    result += "\n"
-                }
-                prevLineGroup = line.group
-
-                if (!(line.text.trim() == "" && prevLineText == "")) {
-                    if (line.text.trim() != "") {
-                        if (line.type == SongVoiceLineType.COMMENTS) {
-                            result += line.text.trim() + "\n"
-                        } else {
-                            timeCodeCounter++
-                            val timeCodeText = if (maxTimeCodes == null || timeCodeCounter > maxTimeCodes) "" else line.startYT + " "
-                            result += timeCodeText + line.text.trim().uppercaseFirstLetter() + "\n"
-                        }
-
-                    } else {
-                        result += "\n"
-                    }
-                }
-            }
-            if (voice != voices.last()) result += "\n" + "----------------------------------------------------" + "\n\n"
-        }
-        if (hasChords) {
-            return result.replace("\n\n","\n").deleteThisSymbols(NOTES_SYMBOLS)
-        }
+        var result = settings.getTextBodyWithTimecodes(maxTimeCodes)
 
         while (maxSymbols > 0 && result.length > maxSymbols) {
             val lst = result.split("\n").toMutableList()
@@ -255,8 +203,8 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
             result = lst.joinToString("\n")
         }
 
-
         return result
+
     }
 
     fun getMarkers(): List<WaveSurferMarker> {
@@ -349,22 +297,6 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
 
                         // Заполняем список слогов
                         val slogs = getSyllables(bodyText)
-//                        val words = bodyText.replace("\n"," ").split(" ").filter { it != "" }
-//                        val slogs: MutableList<String> = mutableListOf()
-//                        val mainRibbon = MainRibbon()
-//                        var addBefore = ""
-//                        words.forEach { word ->
-//                            val wordSlogs: MutableList<String> = mainRibbon.syllables(word).toMutableList()
-//                            if (wordSlogs.isEmpty()) {
-//                                addBefore += "${word}_"
-//                            } else {
-//                                if (wordSlogs.joinToString("") != word) wordSlogs[wordSlogs.size-1] = wordSlogs[wordSlogs.size-1] + word.substring(wordSlogs.joinToString("").length)
-//                                wordSlogs[0] = addBefore + wordSlogs[0]
-//                                addBefore = ""
-//                                wordSlogs[wordSlogs.size-1] = wordSlogs[wordSlogs.size-1] + "_"
-//                                slogs.addAll(wordSlogs)
-//                            }
-//                        }
 
                         println(bodySubs)
                         println(slogs)

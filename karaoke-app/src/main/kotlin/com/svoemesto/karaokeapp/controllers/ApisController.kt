@@ -27,6 +27,42 @@ import java.util.*
 @RequestMapping("/apis")
 class ApisController(private val sseNotificationService: SseNotificationService) {
 
+    @GetMapping("/song/{id}/filedrums")
+    fun getSongFileDrums(
+        @PathVariable id: Long
+    ): ResponseEntity<Resource> {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        val filename = File(settings?.drumsNameFlac)
+        println("filedrums: ${settings?.drumsNameFlac}");
+        val resource = FileSystemResource(filename)
+        if (resource.exists()) {
+            return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment") //; filename=\"${filename.name}\"")
+                .body(resource)
+        } else {
+            println("filedrums notFound");
+            return ResponseEntity.notFound().build()
+        }
+    }
+
+    @GetMapping("/song/{id}/filebass")
+    fun getSongFileBass(
+        @PathVariable id: Long
+    ): ResponseEntity<Resource> {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        val filename = File(settings?.bassNameFlac)
+        println("filebass: ${settings?.bassNameFlac}");
+        val resource = FileSystemResource(filename)
+        if (resource.exists()) {
+            return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment") //; filename=\"${filename.name}\"")
+                .body(resource)
+        } else {
+            println("filebass notFound");
+            return ResponseEntity.notFound().build()
+        }
+    }
+
     @GetMapping("/song/{id}/filevoice")
     fun getSongFileVocal(
         @PathVariable id: Long
@@ -160,6 +196,93 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         println("voicesourcetext: ${text}");
         return text
     }
+
+    // diffbeats + 1
+    @PostMapping("/song/diffbeatsinc")
+    @ResponseBody
+    fun diffBeatsIncrement(@RequestParam id: Long): Long {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        return settings?.let {
+            settings.fields[SettingField.DIFFBEATS] = (settings.diffBeats+1).toString()
+            settings.saveToDb()
+            settings.diffBeats
+        }?: -1
+    }
+
+    // diffbeats -+ 1
+    @PostMapping("/song/diffbeatsdec")
+    @ResponseBody
+    fun diffBeatsDecrement(@RequestParam id: Long): Long {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        return settings?.let {
+            if (settings.diffBeats > 0) {
+                settings.fields[SettingField.DIFFBEATS] = (settings.diffBeats-1).toString()
+                settings.saveToDb()
+            }
+            settings.diffBeats
+        }?: -1
+    }
+
+    // Получение sheetsageinfo
+    @PostMapping("/song/sheetsageinfo")
+    @ResponseBody
+    fun getSheetsageinfo(@RequestParam id: Long): Map<String, Any> {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        val sheetsageinfo = settings?.let {
+            settings.sheetstageInfo
+        } ?: emptyMap()
+        println("sheetsageinfo: ${sheetsageinfo}");
+        return sheetsageinfo
+    }
+
+    // Получение sheetsageinfo - tempo
+    @PostMapping("/song/sheetsageinfobpm")
+    @ResponseBody
+    fun getSheetsageinfoBpm(@RequestParam id: Long): String {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        val sheetsageinfotempo = settings?.let {
+            settings.sheetstageInfo["tempo"] as String
+        } ?: ""
+        println("sheetsageinfobpm: ${sheetsageinfotempo}");
+        return sheetsageinfotempo
+    }
+
+    // Получение sheetsageinfo - key
+    @PostMapping("/song/sheetsageinfokey")
+    @ResponseBody
+    fun getSheetsageinfoKey(@RequestParam id: Long): String {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        val sheetsageinfokey = settings?.let {
+            settings.sheetstageInfo["key"] as String
+        } ?: ""
+        println("sheetsageinfokey: ${sheetsageinfokey}");
+        return sheetsageinfokey
+    }
+
+    // Получение sheetsageinfo - chords
+    @PostMapping("/song/sheetsageinfochords")
+    @ResponseBody
+    fun getSheetsageinfoChords(@RequestParam id: Long): List<String> {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        val sheetsageinfochords = settings?.let {
+            settings.sheetstageInfo["chords"] as List<String>
+        } ?: emptyList()
+        println("sheetsageinfochords: ${sheetsageinfochords}");
+        return sheetsageinfochords
+    }
+
+    // Получение sheetsageinfo - beattimes
+    @PostMapping("/song/sheetsageinfobeattimes")
+    @ResponseBody
+    fun getSheetsageinfoBeattimes(@RequestParam id: Long): List<Double> {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        val sheetsageinfobeattimes = settings?.let {
+            settings.sheetstageInfo["beattimes"] as List<Double>
+        } ?: emptyList()
+        println("sheetsageinfobeattimes: ${sheetsageinfobeattimes}");
+        return sheetsageinfobeattimes
+    }
+
 
     // Получение слогов для голоса
     @PostMapping("/song/voicesourcesyllables")
@@ -309,6 +432,33 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         return text
     }
 
+    // Получение текста заголовка для Dzen Chords
+    @PostMapping("/song/textyoutubechordsheader")
+    @ResponseBody
+    fun getSongTextYoutubeChordsHeader(@RequestParam id: Long): String {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        val text = settings?.let {
+            val song = Song(settings, SongVersion.LYRICS)
+            val text = song.getDescriptionHeader(140)
+            text
+        } ?: ""
+        println("id = ${id}, text = ${text}")
+        return text
+    }
+
+    // Получение текста тела для Dzen Lyrics
+    @PostMapping("/song/textyoutubechordswoheader")
+    @ResponseBody
+    fun getSongTextYoutubeChordsWOHeader(@RequestParam id: Long): String {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        val text = settings?.let {
+            val song = Song(settings, SongVersion.LYRICS)
+            val text = song.getDescriptionWOHeaderWithTimecodes(5000)
+            text
+        } ?: ""
+        println("id = ${id}, text = ${text}")
+        return text
+    }
 
     // Получение текста заголовка для Platforma Karaoke
     @PostMapping("/song/textplkaraokeheader")
@@ -365,7 +515,36 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         println("id = ${id}, text = ${text}")
         return text
     }
-    
+
+    // Получение текста заголовка для Platforma Chords
+    @PostMapping("/song/textplchordsheader")
+    @ResponseBody
+    fun getSongTextPlChordsHeader(@RequestParam id: Long): String {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        val text = settings?.let {
+            val song = Song(settings, SongVersion.LYRICS)
+            val text = song.getDescriptionHeader(140)
+            text
+        } ?: ""
+        println("id = ${id}, text = ${text}")
+        return text
+    }
+
+    // Получение текста тела для Platforma Chords
+    @PostMapping("/song/textplchordswoheader")
+    @ResponseBody
+    fun getSongTextPlChordsWOHeader(@RequestParam id: Long): String {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        val text = settings?.let {
+            val song = Song(settings, SongVersion.LYRICS)
+            val text = song.getDescriptionWOHeaderWithTimecodes(5000, 100)
+            text
+        } ?: ""
+        println("id = ${id}, text = ${text}")
+        return text
+    }
+
+
     // Получение текста заголовка для Vk Karaoke
     @PostMapping("/song/textvkkaraokeheader")
     @ResponseBody
@@ -422,6 +601,35 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         return text
     }
 
+    // Получение текста заголовка для Vk Chords
+    @PostMapping("/song/textvkchordsheader")
+    @ResponseBody
+    fun getSongTextVkChordsHeader(@RequestParam id: Long): String {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        val text = settings?.let {
+            val song = Song(settings, SongVersion.LYRICS)
+            val text = song.getDescriptionVkHeader()
+            text
+        } ?: ""
+        println("id = ${id}, text = ${text}")
+        return text
+    }
+
+    // Получение текста тела для Vk Chords
+    @PostMapping("/song/textvkchords")
+    @ResponseBody
+    fun getSongTextVkChords(@RequestParam id: Long): String {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        val text = settings?.let {
+            val song = Song(settings, SongVersion.LYRICS)
+            val text = song.getDescriptionVk()
+            text
+        } ?: ""
+        println("id = ${id}, text = ${text}")
+        return text
+    }
+
+
     // Получение текста заголовка для Telegram Karaoke
     @PostMapping("/song/texttelegramkaraokeheader")
     @ResponseBody
@@ -440,6 +648,20 @@ class ApisController(private val sseNotificationService: SseNotificationService)
     @PostMapping("/song/texttelegramlyricsheader")
     @ResponseBody
     fun getSongTextTelegramLyricsHeader(@RequestParam id: Long): String {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        val text = settings?.let {
+            val song = Song(settings, SongVersion.LYRICS)
+            val text = song.getDescriptionVkHeader()
+            text
+        } ?: ""
+        println("id = ${id}, text = ${text}")
+        return text
+    }
+
+    // Получение текста заголовка для Telegram Chords
+    @PostMapping("/song/texttelegramchordsheader")
+    @ResponseBody
+    fun getSongTextTelegramChordsHeader(@RequestParam id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val song = Song(settings, SongVersion.LYRICS)
@@ -813,6 +1035,19 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         return true
     }
 
+
+    // Видеопроигрыватель: Chords
+    @PostMapping("/song/playchords")
+    @ResponseBody
+    fun doPlayChords(@RequestParam id: Long): Boolean {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        settings?.let {
+            println("doPlayChords")
+            settings.playChords()
+        }
+        return true
+    }
+
     // Получение песени
     @PostMapping("/song")
     @ResponseBody
@@ -853,7 +1088,9 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         @RequestParam(required = false) idTelegramChords: String?,
         @RequestParam(required = false) idPlLyrics: String?,
         @RequestParam(required = false) idPlKaraoke: String?,
-        @RequestParam(required = false) resultVersion: String?
+        @RequestParam(required = false) idPlChords: String?,
+        @RequestParam(required = false) resultVersion: String?,
+        @RequestParam(required = false) diffBeats: String?
     ): Boolean {
         val settingsId: Long = id.toLong()
         val settings = Settings.loadFromDbById(settingsId, WORKING_DATABASE)
@@ -886,7 +1123,9 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             idTelegramChords?.let { sett.fields[SettingField.ID_TELEGRAM_CHORDS] = it }
             idPlLyrics?.let { sett.fields[SettingField.ID_PL_LYRICS] = it }
             idPlKaraoke?.let { sett.fields[SettingField.ID_PL_KARAOKE] = it }
+            idPlChords?.let { sett.fields[SettingField.ID_PL_CHORDS] = it }
             resultVersion?.let { sett.fields[SettingField.RESULT_VERSION] = it }
+            diffBeats?.let { sett.fields[SettingField.DIFFBEATS] = it }
             idStatus?.let { sett.fields[SettingField.ID_STATUS] =  it }
             sett.saveToDb()
             sett.saveToFile()
@@ -1077,8 +1316,9 @@ class ApisController(private val sseNotificationService: SseNotificationService)
     @PostMapping("/song/createkaraoke")
     @ResponseBody
     fun getSongCreateKaraoke(@RequestParam id: Long,
-                             @RequestParam(required = false) priorLyrics: Int = 0,
-                             @RequestParam(required = false) priorKaraoke: Int = 1
+                             @RequestParam(required = false) priorLyrics: String = "0",
+                             @RequestParam(required = false) priorKaraoke: String = "1",
+                             @RequestParam(required = false) priorChords: String = "",
     ): Boolean {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
 
@@ -1088,9 +1328,13 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         var body = "Что-то пошло не так"
         var result = false
         settings?.let {
-            settings.createKaraoke()
-            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, priorLyrics)
-            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, priorKaraoke)
+            val createLyrics = priorLyrics != ""
+            val createKaraoke = priorKaraoke != ""
+            val createChords = priorChords != ""
+            settings.createKaraoke(createLyrics = createLyrics, createKaraoke = createKaraoke, createChords = createChords)
+            if (createLyrics) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, priorLyrics.toInt())
+            if (createKaraoke) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, priorKaraoke.toInt())
+            if (createChords) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDS, true, priorChords.toInt())
             type = "info"
             body = "Создание караоке для песни «${it.songName}» прошло успешно."
             result = true
@@ -1103,8 +1347,9 @@ class ApisController(private val sseNotificationService: SseNotificationService)
     @PostMapping("/songs/createkaraokeall")
     @ResponseBody
     fun getSongsCreateKaraokeAll(@RequestParam songsIds: String,
-                                 @RequestParam(required = false) priorLyrics: Int = 10,
-                                 @RequestParam(required = false) priorKaraoke: Int = 10
+                                 @RequestParam(required = false) priorLyrics: String = "10",
+                                 @RequestParam(required = false) priorKaraoke: String = "10",
+                                 @RequestParam(required = false) priorChords: String = ""
     ) {
         var result = false
         songsIds.let {
@@ -1112,9 +1357,13 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             ids.forEach { id ->
                 val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
                 settings?.let {
-                    settings.createKaraoke()
-                    KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, priorLyrics)
-                    KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, priorKaraoke)
+                    val createLyrics = priorLyrics != ""
+                    val createKaraoke = priorKaraoke != ""
+                    val createChords = priorChords != ""
+                    settings.createKaraoke(createLyrics = createLyrics, createKaraoke = createKaraoke, createChords = createChords)
+                    if (createLyrics) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, priorLyrics.toInt())
+                    if (createKaraoke) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, priorKaraoke.toInt())
+                    if (createChords) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDS, true, priorChords.toInt())
                 }
                 result = true
             }
@@ -1231,6 +1480,57 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             SNS.send(SseNotification.message(Message(
                 type = "warning",
                 head = "Создание DEMUCS5",
+                body = "Что-то пошло не так"
+            )))
+        }
+    }
+
+    // SHEETSAGE для песни
+    @PostMapping("/song/sheetsage")
+    @ResponseBody
+    fun doProcessSheetsage(@RequestParam id: Long, @RequestParam(required = false) prior: Int = -1) {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        settings?.let {
+            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.SHEETSAGE, true, prior)
+            SNS.send(SseNotification.message(Message(
+                type = "info",
+                head = "Создание SHEETSAGE",
+                body = "Создание SHEETSAGE прошло успешно"
+            )))
+            return
+        }
+        SNS.send(SseNotification.message(Message(
+            type = "warning",
+            head = "Создание SHEETSAGE",
+            body = "Что-то пошло не так"
+        )))
+    }
+
+    // SHEETSAGE для всех
+    @PostMapping("/songs/sheetsageall")
+    @ResponseBody
+    fun getSongsCreateSheetsageAll(@RequestParam songsIds: String, @RequestParam(required = false) prior: Int = -1) {
+        var result = false
+        songsIds.let {
+            val ids = songsIds.split(";").map { it }.filter { it != "" }.map { it.toLong() }
+            ids.forEach { id ->
+                val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+                settings?.let {
+                    KaraokeProcess.createProcess(settings, KaraokeProcessTypes.SHEETSAGE, true, prior)
+                }
+                result = true
+            }
+        }
+        if (result) {
+            SNS.send(SseNotification.message(Message(
+                type = "info",
+                head = "Создание SHEETSAGE",
+                body = "Создание SHEETSAGE прошло успешно"
+            )))
+        } else {
+            SNS.send(SseNotification.message(Message(
+                type = "warning",
+                head = "Создание SHEETSAGE",
                 body = "Что-то пошло не так"
             )))
         }
@@ -1547,6 +1847,18 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             type = "info",
             head = "Обновление BPM и KEY из фалов CSV",
             body = "Обновлено пустых BPM и KEY из фалов CSV: $result"
+        )))
+    }
+
+    // Обновить пустые BPM и KEY из фалов LV
+    @PostMapping("/utils/updatebpmandkeylv")
+    @ResponseBody
+    fun doUpdateBpmAndKeyLV() {
+        val (resultSuccess, resultFailed) =  updateBpmAndKeyLV(WORKING_DATABASE)
+        SNS.send(SseNotification.message(Message(
+            type = "info",
+            head = "Обновление BPM и KEY из фалов LV",
+            body = "Обновлено пустых BPM и KEY из фалов LV: $resultSuccess" + if(resultFailed == 0) "" else ", Не удалось обновить файлов: $resultFailed"
         )))
     }
 

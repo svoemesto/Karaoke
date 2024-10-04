@@ -6,11 +6,9 @@ import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import org.springframework.stereotype.Component
 import java.io.File
 import java.io.Serializable
 import java.nio.file.Files
-import java.sql.DriverManager
 import java.sql.ResultSet
 import java.sql.SQLException
 import java.sql.Statement
@@ -830,7 +828,8 @@ class KaraokeProcess(
                                 "-n",
                                 DEMUCS_MODEL_NAME,
                                 "-d",
-                                "cuda",
+//                                "cuda",
+                                "cpu",
                                 "--filename",
                                 "{track}-{stem}.{ext}",
                                 "--two-stems=${settings.separatedStem}",
@@ -863,7 +862,8 @@ class KaraokeProcess(
                                 "-n",
                                 DEMUCS_MODEL_NAME,
                                 "-d",
-                                "cuda",
+//                                "cuda",
+                                "cpu",
                                 "--filename",
                                 "{track}-{stem}.{ext}",
                                 "--two-stems=${settings.separatedStem}",
@@ -883,7 +883,8 @@ class KaraokeProcess(
                                 "-n",
                                 DEMUCS_MODEL_NAME,
                                 "-d",
-                                "cuda",
+//                                "cuda",
+                                "cpu",
                                 "--filename",
                                 "{track}-{stem}.{ext}",
                                 "-o",
@@ -919,6 +920,37 @@ class KaraokeProcess(
                             "Демукс 5 - del other wav",
                             "Демукс 5 - vocal to flac",
                             "Демукс 5 - del vocal wav"
+                        )
+                    }
+                    KaraokeProcessTypes.SHEETSAGE -> {
+                        val srcWav = "/home/nsa/Documents/sheetsage/source.wav"
+                        val resultFolder = "/home/nsa/Karaoke/output/output"
+                        val resultPdf = "$resultFolder/output.pdf"
+                        val resultMidi = "$resultFolder/output.midi"
+                        val resultLy = "$resultFolder/output.ly"
+                        val resultBeattimes = "$resultFolder/beattimes"
+                        description = "SHEETSAGE"
+                        args = listOf(
+                            listOf("mkdir", "-p", resultFolder),
+                            listOf("rm", "-f", srcWav, resultPdf, resultMidi, resultLy, resultBeattimes),
+                            listOf("ffmpeg", "-i", settings.fileAbsolutePath.rightFileName(), "-compression_level", "8", srcWav, "-y"),
+                            listOf("/home/nsa/sheetsage/sheetsage.sh", "-j", "-o", "output/output", srcWav),
+                            listOf("mkdir", "-p", settings.pathToFolderSheetsage),
+                            listOf("mv", resultPdf.rightFileName(), settings.pathToFileSheetsagePDF.rightFileName()),
+                            listOf("mv", resultMidi.rightFileName(), settings.pathToFileSheetsageMIDI.rightFileName()),
+                            listOf("mv", resultLy.rightFileName(), settings.pathToFileSheetsageLY.rightFileName()),
+                            listOf("mv", resultBeattimes.rightFileName(), settings.pathToFileSheetsageBeattimes.rightFileName())
+                        )
+                        argsDescription = listOf(
+                            "SHEETSAGE - Создание папки output",
+                            "SHEETSAGE - Удаление старых файлов",
+                            "SHEETSAGE - Декодирование FLAC в WAV",
+                            "SHEETSAGE - Распознавание аккордов",
+                            "SHEETSAGE - Создание папки sheetsage",
+                            "SHEETSAGE - Копирование файла PDF",
+                            "SHEETSAGE - Копирование файла MIDI",
+                            "SHEETSAGE - Копирование файла LY",
+                            "SHEETSAGE - Копирование файла Beattimes"
                         )
                     }
                     KaraokeProcessTypes.FF_720_KAR -> {
@@ -990,12 +1022,14 @@ class KaraokeProcess(
 
                         description = "SYMLINK"
                         args = listOf(
-                            listOf("rm", settings.fileAbsolutePathSymlink.rightFileName().wrapInQuotes()),
-                            listOf("rm", settings.newNoStemNameFlacSymlink.rightFileName().wrapInQuotes()),
-                            listOf("rm", settings.vocalsNameFlacSymlink.rightFileName().wrapInQuotes()),
-                            listOf("rm", songKaraokeMp4Symlink.rightFileName().wrapInQuotes()),
-                            listOf("rm", songKaraokeTxtSymlink.rightFileName().wrapInQuotes()),
-                            listOf("rm", songLyricsMp4Symlink.rightFileName().wrapInQuotes()),
+                            listOf("rm", "-f",
+                                settings.fileAbsolutePathSymlink.rightFileName().wrapInQuotes(),
+                                settings.newNoStemNameFlacSymlink.rightFileName().wrapInQuotes(),
+                                settings.vocalsNameFlacSymlink.rightFileName().wrapInQuotes(),
+                                songKaraokeMp4Symlink.rightFileName().wrapInQuotes(),
+                                songKaraokeTxtSymlink.rightFileName().wrapInQuotes(),
+                                songLyricsMp4Symlink.rightFileName().wrapInQuotes()
+                            ),
                             listOf("ln", "-s", settings.fileAbsolutePath.rightFileName().wrapInQuotes(), settings.fileAbsolutePathSymlink.rightFileName().wrapInQuotes()),
                             listOf("ln", "-s", settings.newNoStemNameFlac.rightFileName().wrapInQuotes(), settings.newNoStemNameFlacSymlink.rightFileName().wrapInQuotes()),
                             listOf("ln", "-s", settings.vocalsNameFlac.rightFileName().wrapInQuotes(), settings.vocalsNameFlacSymlink.rightFileName().wrapInQuotes()),
@@ -1004,12 +1038,7 @@ class KaraokeProcess(
                             listOf("ln", "-s", songLyricsMp4.wrapInQuotes(), songLyricsMp4Symlink.wrapInQuotes())
                         )
                         argsDescription = listOf(
-                            "Delete SYMLINK flac song",
-                            "Delete SYMLINK flac music",
-                            "Delete SYMLINK flac vocal",
-                            "Delete SYMLINK KARAOKE MP4",
-                            "Delete SYMLINK KARAOKE TXT",
-                            "Delete SYMLINK LYRICS MP4",
+                            "Delete old SYMLINKs",
                             "Create SYMLINK flac song",
                             "Create SYMLINK flac music",
                             "Create SYMLINK flac vocal",

@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="Gradle: org.odftoolkit:simple-odf:0.9.0">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/../.gradle/caches/modules-2/files-2.1/org.odftoolkit/simple-odf/0.9.0/50335254070bd95dbf2128e59fe3c32f0810067a/simple-odf-0.9.0.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$PROJECT_DIR$/../.gradle/caches/modules-2/files-2.1/org.odftoolkit/simple-odf/0.9.0/27742b2aee039add107a27c1ebdbc72b2722ecbe/simple-odf-0.9.0-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <bytecodeTargetLevel>
+      <module name="Karaoke" target="17" />
+      <module name="Karaoke.karaoke-app" target="17" />
+      <module name="Karaoke.karaoke-app.main" target="17" />
+      <module name="Karaoke.karaoke-app.test" target="17" />
+      <module name="Karaoke.karaoke-db" target="21" />
+      <module name="Karaoke.karaoke-db.main" target="21" />
+      <module name="Karaoke.karaoke-db.test" target="21" />
+      <module name="Karaoke.karaoke-web" target="17" />
+      <module name="Karaoke.karaoke-web.main" target="17" />
+      <module name="Karaoke.karaoke-web.test" target="17" />
+      <module name="Karaoke.main" target="17" />
+      <module name="Karaoke.test" target="17" />
+    </bytecodeTargetLevel>
+  </component>
+</project>

@@ -11,6 +11,7 @@ enum class KaraokeProcessTypes {
     DEMUCS2,
     DEMUCS5,
     SHEETSAGE,
+    SHEETSAGE2,
     FF_720_KAR,
     FF_720_LYR,
     SYMLINK,

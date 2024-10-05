@@ -22,6 +22,7 @@ class KaraokeProcessThread(val karaokeProcess: KaraokeProcess? = null, var perce
             val regex = Regex("Current Frame:\\s+(\\d+), percentage:\\s+(\\d+)")
             val regexDuration = Regex("Duration:\\s+(\\d\\d:\\d\\d:\\d\\d\\.\\d\\d),")
             val regexCurrent = Regex("time=(\\d\\d:\\d\\d:\\d\\d\\.\\d\\d)")
+            val regexPercentageSheetsage = Regex("^\\s{0,2}(\\d{1,3})%\\|")
             val args = karaokeProcess.args[0]
             val processBuilder = ProcessBuilder(args)
             processBuilder.redirectErrorStream(true)
@@ -37,7 +38,11 @@ class KaraokeProcessThread(val karaokeProcess: KaraokeProcess? = null, var perce
                 var duration: String? = null
                 val reader = BufferedReader(InputStreamReader(inputStream))
                 var line: String? = reader.readLine()
+                var log = ""
+                var lastLine = ""
                 while (line != null) {
+                    lastLine = line
+                    log += "[${Timestamp.from(Instant.now())}] $line\n"
                     val matchResult = regex.find(line)
                     if (matchResult != null) {
                         val currentFrame = matchResult.groupValues[1]
@@ -55,17 +60,41 @@ class KaraokeProcessThread(val karaokeProcess: KaraokeProcess? = null, var perce
                             val matchResultDuration = regexDuration.find(line)
                             if (matchResultDuration != null) {
                                 duration = matchResultDuration.groupValues[1]
+                            } else {
+                                val matchResultPercentageSheetsage = regexPercentageSheetsage.find(line)
+                                if (matchResultPercentageSheetsage != null) {
+                                    val percentage = matchResultPercentageSheetsage.groupValues[1]
+                                    this.percentage = percentage
+                                }
                             }
                         }
                     }
                     line = reader.readLine()
 //                    println(line)
                 }
+                if (log != "") {
+                    val logFileName = "$PATH_TO_LOGS/[${Timestamp.from(Instant.now())}] ${karaokeProcess.name} - ${karaokeProcess.description}.log".rightFileName()
+                    try {
+                        File(logFileName).writeText(log, Charsets.UTF_8)
+                    } catch (e: Exception) {
+                        println(e.message)
+                    }
+                }
+
+                if (karaokeProcess.type == "SHEETSAGE" &&  lastLine == "NotImplementedError: Dynamic chunking not implemented. Try halving measures_per_chunk.") {
+                    // Если процесс SHEETSAGE завершился ошибкой - создаём для этой же песни процесс SHEETSAGE2 с таким же приоритетом
+                    val settings = Settings.loadFromDbById(karaokeProcess.settingsId.toLong(), WORKING_DATABASE)
+                    settings?.let {
+                        KaraokeProcess.createProcess(settings, KaraokeProcessTypes.SHEETSAGE2, true, karaokeProcess.priority)
+                    }
+                }
 
                 karaokeProcess.status = KaraokeProcessStatuses.DONE.name
                 karaokeProcess.end = Timestamp.from(Instant.now())
                 karaokeProcess.priority = 999
                 karaokeProcess.save()
+
+
 
 //                if (karaokeProcess.type == KaraokeProcessTypes.DEMUCS2.name) {
 //                    KaraokeProcess.delete(karaokeProcess.id, karaokeProcess.database)

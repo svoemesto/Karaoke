@@ -45,6 +45,7 @@ const val PATH_TO_PROFILES = "/usr/share/mlt-7/profiles"
 const val PATH_TO_MELT = "/bin/melt"
 const val PATH_TO_MEDIAINFO = "/bin/mediainfo"
 const val PATH_TO_ODS = "/home/nsa/Documents/Караоке/Караоке.ods"
+const val PATH_TO_LOGS = "/home/nsa/Documents/Караоке/logs"
 
 const val ODS_COLUMN_DATE = "Дата"
 const val ODS_COLUMN_TIME = "Время"

@@ -953,6 +953,37 @@ class KaraokeProcess(
                             "SHEETSAGE - Копирование файла Beattimes"
                         )
                     }
+                    KaraokeProcessTypes.SHEETSAGE2 -> {
+                        val srcWav = "/home/nsa/Documents/sheetsage/source.wav"
+                        val resultFolder = "/home/nsa/Karaoke/output/output"
+                        val resultPdf = "$resultFolder/output.pdf"
+                        val resultMidi = "$resultFolder/output.midi"
+                        val resultLy = "$resultFolder/output.ly"
+                        val resultBeattimes = "$resultFolder/beattimes"
+                        description = "SHEETSAGE2"
+                        args = listOf(
+                            listOf("mkdir", "-p", resultFolder),
+                            listOf("rm", "-f", srcWav, resultPdf, resultMidi, resultLy, resultBeattimes),
+                            listOf("ffmpeg", "-i", settings.fileAbsolutePath.rightFileName(), "-compression_level", "8", srcWav, "-y"),
+                            listOf("/home/nsa/sheetsage/sheetsage.sh", "-j", "-o", "output/output", "--measures_per_chunk", "4", srcWav),
+                            listOf("mkdir", "-p", settings.pathToFolderSheetsage),
+                            listOf("mv", resultPdf.rightFileName(), settings.pathToFileSheetsagePDF.rightFileName()),
+                            listOf("mv", resultMidi.rightFileName(), settings.pathToFileSheetsageMIDI.rightFileName()),
+                            listOf("mv", resultLy.rightFileName(), settings.pathToFileSheetsageLY.rightFileName()),
+                            listOf("mv", resultBeattimes.rightFileName(), settings.pathToFileSheetsageBeattimes.rightFileName())
+                        )
+                        argsDescription = listOf(
+                            "SHEETSAGE2 - Создание папки output",
+                            "SHEETSAGE2 - Удаление старых файлов",
+                            "SHEETSAGE2 - Декодирование FLAC в WAV",
+                            "SHEETSAGE2 - Распознавание аккордов",
+                            "SHEETSAGE2 - Создание папки sheetsage",
+                            "SHEETSAGE2 - Копирование файла PDF",
+                            "SHEETSAGE2 - Копирование файла MIDI",
+                            "SHEETSAGE2 - Копирование файла LY",
+                            "SHEETSAGE2 - Копирование файла Beattimes"
+                        )
+                    }
                     KaraokeProcessTypes.FF_720_KAR -> {
                         val destinationFolder = settings.pathToFolder720Karaoke
                         val sourceFile = settings.pathToFileKaraoke

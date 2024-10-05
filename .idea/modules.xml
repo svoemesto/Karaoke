@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/Karaoke.iml" filepath="$PROJECT_DIR$/Karaoke.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/karaoke-app/Karaoke.karaoke-app.iml" filepath="$PROJECT_DIR$/.idea/modules/karaoke-app/Karaoke.karaoke-app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/-248496615/Karaoke.karaoke-app.integrationTest.iml" filepath="$PROJECT_DIR$/.idea/modules/-248496615/Karaoke.karaoke-app.integrationTest.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/karaoke-app/Karaoke.karaoke-app.main.iml" filepath="$PROJECT_DIR$/.idea/modules/karaoke-app/Karaoke.karaoke-app.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/karaoke-app/Karaoke.karaoke-app.test.iml" filepath="$PROJECT_DIR$/.idea/modules/karaoke-app/Karaoke.karaoke-app.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/karaoke-db/Karaoke.karaoke-db.iml" filepath="$PROJECT_DIR$/.idea/modules/karaoke-db/Karaoke.karaoke-db.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/-1670583930/Karaoke.karaoke-db.integrationTest.iml" filepath="$PROJECT_DIR$/.idea/modules/-1670583930/Karaoke.karaoke-db.integrationTest.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/karaoke-db/Karaoke.karaoke-db.main.iml" filepath="$PROJECT_DIR$/.idea/modules/karaoke-db/Karaoke.karaoke-db.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/karaoke-db/Karaoke.karaoke-db.test.iml" filepath="$PROJECT_DIR$/.idea/modules/karaoke-db/Karaoke.karaoke-db.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/Karaoke.karaoke-web.iml" filepath="$PROJECT_DIR$/.idea/modules/Karaoke.karaoke-web.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/Karaoke.karaoke-web.integrationTest.iml" filepath="$PROJECT_DIR$/.idea/modules/Karaoke.karaoke-web.integrationTest.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/Karaoke.karaoke-web.main.iml" filepath="$PROJECT_DIR$/.idea/modules/Karaoke.karaoke-web.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/Karaoke.karaoke-web.test.iml" filepath="$PROJECT_DIR$/.idea/modules/Karaoke.karaoke-web.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/Karaoke.main.iml" filepath="$PROJECT_DIR$/.idea/modules/Karaoke.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/Karaoke.test.iml" filepath="$PROJECT_DIR$/.idea/modules/Karaoke.test.iml" />
+    </modules>
+  </component>
+</project>

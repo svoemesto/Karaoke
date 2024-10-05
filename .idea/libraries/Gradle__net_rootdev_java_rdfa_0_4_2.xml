@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="Gradle: net.rootdev:java-rdfa:0.4.2">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/../.gradle/caches/modules-2/files-2.1/net.rootdev/java-rdfa/0.4.2/83009cabe2029f1e07f564e509634b7c168b7c7a/java-rdfa-0.4.2.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$PROJECT_DIR$/../.gradle/caches/modules-2/files-2.1/net.rootdev/java-rdfa/0.4.2/9210dd9276efe5ce953584861e9196bcddfb2d17/java-rdfa-0.4.2-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

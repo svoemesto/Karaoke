@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="Gradle: com.github.st-h:TarsosDSP:2.4.1">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/../.gradle/caches/modules-2/files-2.1/com.github.st-h/TarsosDSP/2.4.1/200ce95bef15cfb72a22acbac5f27cf5d15a948f/TarsosDSP-2.4.1.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$PROJECT_DIR$/../.gradle/caches/modules-2/files-2.1/com.github.st-h/TarsosDSP/2.4.1/3cfce9df5ebffa8d13c777418ef7fc492864daab/TarsosDSP-2.4.1-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

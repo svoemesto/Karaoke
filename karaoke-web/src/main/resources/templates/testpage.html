@@ -1,0 +1,688 @@
+<!doctype html>
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css" integrity="sha384-B0vP5xmATw1+K9KRQjQERJvTumQW0nPEzvF6L/Z6nronJ3oUOFUFpCjEUQouq2+l" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:400,300">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-Piv4xVNRyMGpqkS2by6br4gNJ7DXjqk09RmUpJ8jgGtD7zP9yug3goQfGII0yAns" crossorigin="anonymous"></script>
+
+    <title th:text="${sett.songName} + ' ★♫★ ' + ${sett.author}">Закрома</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Roboto", sans-serif;
+            font-weight: 300;
+        }
+
+        #areaScreen {
+            padding: 1em;
+            display: flex;
+            /*min-height: 100vh;*/
+            flex-direction: column;
+            margin: 0;
+        }
+
+        #areaHeader {
+            padding: 5px;
+            background: whitesmoke;
+            height: 50px;
+        }
+
+        #areaBody {
+            align-self: center;
+            padding: 5px;
+            display: flex;
+            flex: 1;
+            /*background: beige;*/
+            /*max-height: calc(100vh - 135px);*/
+        }
+
+        #areaLeftColumn {
+            order: -1;
+            flex: 0 0 200px;
+            background: cadetblue;
+        }
+
+        #areaLeftTable{
+            flex: 1;
+            /*overflow-y: scroll;*/
+            /*max-height: calc(100vh - 200px);*/
+            /*background: #d5e6ff;*/
+        }
+
+        #areaCenterColumn {
+            flex: 1;
+            background: white;
+        }
+
+        #areaRightColumn {
+            flex: 0 0 100px;
+            background: dodgerblue;
+        }
+
+        #areaFooter {
+            padding: 5px;
+            background: yellowgreen;
+            height: 50px;
+        }
+
+        tbody tr.sub-row0:hover {
+            background: #d5e6ff; /* Цвет фона */
+        }
+        tbody tr.sub-row1:hover {
+            background: #d5e6ff; /* Цвет фона */
+        }
+        tbody tr.sub-row2:hover {
+            background: #f00; /* Цвет фона */
+        }
+
+        .author {
+            padding: 0;
+            font-size: medium;
+            text-align: center;
+            font-weight: bold;
+            /*min-width: 300px;*/
+            /*max-width: 300px;*/
+            border-style: none;
+            border-width: thin;
+        }
+
+        .album {
+            padding: 0;
+            padding-top: 10px;
+            font-size: small;
+            font-weight: bold;
+            min-width: 300px;
+            max-width: 300px;
+            border-style: none;
+            border-width: thin;
+        }
+
+        .tr_song {
+            padding: 0;
+            font-size: 0;
+            border-style: none;
+            border-width: thin;
+        }
+
+        .td_cell {
+            border-style: solid;
+            border-width: thin;
+        }
+
+        .head_songtrack {
+            height: 100%;
+            padding: 2px;
+            font-size: small;
+            text-align: center;
+            /*min-width: 20px;*/
+            /*max-width: 20px;*/
+            border-style: none;
+            border-width: thin;
+            background-color: #0c5460;
+            color: white;
+        }
+        .head_songname {
+            height: 100%;
+            padding: 2px;
+            font-size: small;
+            text-align: center;
+            min-width: auto;
+            border-style: none;
+            border-width: thin;
+            background-color: #0c5460;
+            color: white;
+        }
+
+        .songtrack {
+            height: 100%;
+            padding: 2px;
+            font-size: small;
+            text-align: center;
+            min-width: 20px;
+            max-width: 20px;
+            border-style: none;
+            border-width: thin;
+        }
+        .songname {
+            height: 100%;
+            padding: 2px;
+            font-size: small;
+            min-width: 300px;
+            max-width: 300px;
+            border-style: none;
+            border-width: thin;
+        }
+        .date_publish {
+            height: 100%;
+            padding: 2px;
+            font-size: small;
+            text-align: center;
+            min-width: auto;
+            border-style: none;
+            border-width: thin;
+        }
+
+        .boosty {
+            height: 100%;
+            padding: 2px;
+            font-size: small;
+            text-align: center;
+            min-width: 25px;
+            max-width: 25px;
+            border-style: none;
+            border-width: thin;
+        }
+        .dzen {
+            height: 100%;
+            padding: 2px;
+            font-size: small;
+            text-align: center;
+            min-width: 25px;
+            max-width: 25px;
+            border-style: none;
+            border-width: thin;
+        }
+        .vk {
+            height: 100%;
+            padding: 2px;
+            font-size: small;
+            text-align: center;
+            min-width: 25px;
+            max-width: 25px;
+            border-style: none;
+            border-width: thin;
+        }
+        .pl {
+            height: 100%;
+            padding: 2px;
+            font-size: small;
+            text-align: center;
+            min-width: 25px;
+            max-width: 25px;
+            border-style: none;
+            border-width: thin;
+        }
+        .tg {
+            height: 100%;
+            padding: 2px;
+            font-size: small;
+            text-align: center;
+            min-width: 25px;
+            max-width: 25px;
+            border-style: none;
+            border-width: thin;
+        }
+
+    </style>
+
+
+
+</head>
+
+<body>
+<div style="width: 0; height: 0">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" id="svg-icon-boosty">
+        <path fill="#F57507" d="M2.52164 11.9462L5.9255 0H11.1491L10.0928 3.70385C10.0817 3.72498 10.0726 3.74714 10.0658 3.77L7.29168 13.55H9.88032C8.80005 16.2923 7.95391 18.4423 7.34268 20C2.56645 19.9462 1.22732 16.4738 2.39955 12.3662L2.52164 11.9462ZM7.36046 20L13.6574 10.8H10.9853L13.3097 4.90692C17.2985 5.33 19.1693 8.51462 18.0697 12.3654C16.889 16.5077 12.1104 20 7.45782 20H7.36046Z"></path>
+    </svg>
+
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" id="svg-icon-boosty-none">
+        <path fill="#CBCBCB" d="M2.52164 11.9462L5.9255 0H11.1491L10.0928 3.70385C10.0817 3.72498 10.0726 3.74714 10.0658 3.77L7.29168 13.55H9.88032C8.80005 16.2923 7.95391 18.4423 7.34268 20C2.56645 19.9462 1.22732 16.4738 2.39955 12.3662L2.52164 11.9462ZM7.36046 20L13.6574 10.8H10.9853L13.3097 4.90692C17.2985 5.33 19.1693 8.51462 18.0697 12.3654C16.889 16.5077 12.1104 20 7.45782 20H7.36046Z"></path>
+    </svg>
+
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" id="svg-icon-dzen">
+        <path fill="#000" d="M0 12C0 5.373 5.373 0 12 0s12 5.373 12 12-5.373 12-12 12S0 18.627 0 12Z"></path>
+        <path fill="#000" d="M0 12C0 5.373 5.373 0 12 0s12 5.373 12 12-5.373 12-12 12S0 18.627 0 12Z"></path>
+        <path fill="#fff" fill-rule="evenodd" d="M11.64 0c-.06 4.865-.392 7.599-2.217 9.423C7.6 11.248 4.865 11.58 0 11.64v.72c4.865.06 7.599.392 9.423 2.217C11.248 16.4 11.58 19.135 11.64 24h.72c.06-4.865.392-7.599 2.217-9.423C16.4 12.752 19.135 12.42 24 12.36v-.72c-4.865-.06-7.599-.392-9.423-2.217C12.752 7.6 12.42 4.865 12.36 0h-.72Z" clip-rule="evenodd"></path>
+    </svg>
+
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" id="svg-icon-dzen-none">
+        <path fill="#CBCBCB" d="M0 12C0 5.373 5.373 0 12 0s12 5.373 12 12-5.373 12-12 12S0 18.627 0 12Z"></path>
+        <path fill="#CBCBCB" d="M0 12C0 5.373 5.373 0 12 0s12 5.373 12 12-5.373 12-12 12S0 18.627 0 12Z"></path>
+        <path fill="#fff" fill-rule="evenodd" d="M11.64 0c-.06 4.865-.392 7.599-2.217 9.423C7.6 11.248 4.865 11.58 0 11.64v.72c4.865.06 7.599.392 9.423 2.217C11.248 16.4 11.58 19.135 11.64 24h.72c.06-4.865.392-7.599 2.217-9.423C16.4 12.752 19.135 12.42 24 12.36v-.72c-4.865-.06-7.599-.392-9.423-2.217C12.752 7.6 12.42 4.865 12.36 0h-.72Z" clip-rule="evenodd"></path>
+    </svg>
+
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" id="svg-icon-vk">
+        <path fill="#07F" d="M0 8.77C0 1.55 1.55 0 8.77 0h6.46C22.45 0 24 1.55 24 8.77v6.46c0 7.22-1.55 8.77-8.77 8.77H8.77C1.55 24 0 22.45 0 15.23V8.77Z"></path>
+        <path fill="#FF2B42" d="M12.9 24h2.28c7.1 0 8.74-1.48 8.82-8.28V8.24C23.92 1.47 22.26 0 15.18 0H12.9C5.64 0 4.08 1.55 4.08 8.77v6.46c0 7.22 1.56 8.77 8.82 8.77Z"></path>
+        <path fill="#fff" d="M16.93 9.92c1.22.7 1.82 1.05 2.03 1.51.18.4.18.86 0 1.25-.2.46-.81.81-2.03 1.51l-3.32 1.92c-1.21.7-1.82 1.05-2.32 1a1.54 1.54 0 0 1-1.08-.63c-.3-.4-.3-1.1-.3-2.5v-3.84c0-1.4 0-2.1.3-2.5A1.54 1.54 0 0 1 11.29 7c.5-.06 1.1.3 2.32 1l3.32 1.91Z"></path>
+    </svg>
+
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" id="svg-icon-vk-none">
+        <path fill="#323232" d="M0 8.77C0 1.55 1.55 0 8.77 0h6.46C22.45 0 24 1.55 24 8.77v6.46c0 7.22-1.55 8.77-8.77 8.77H8.77C1.55 24 0 22.45 0 15.23V8.77Z"></path>
+        <path fill="#ACACAC" d="M12.9 24h2.28c7.1 0 8.74-1.48 8.82-8.28V8.24C23.92 1.47 22.26 0 15.18 0H12.9C5.64 0 4.08 1.55 4.08 8.77v6.46c0 7.22 1.56 8.77 8.82 8.77Z"></path>
+        <path fill="#fff" d="M16.93 9.92c1.22.7 1.82 1.05 2.03 1.51.18.4.18.86 0 1.25-.2.46-.81.81-2.03 1.51l-3.32 1.92c-1.21.7-1.82 1.05-2.32 1a1.54 1.54 0 0 1-1.08-.63c-.3-.4-.3-1.1-.3-2.5v-3.84c0-1.4 0-2.1.3-2.5A1.54 1.54 0 0 1 11.29 7c.5-.06 1.1.3 2.32 1l3.32 1.91Z"></path>
+    </svg>
+
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" id="svg-icon-tg">
+        <path fill="#07F" d="M19.314.036a2.572 2.572 0 0 0-.83.198c-.227.09-1.043.432-2.342.977-1.298.545-3.02 1.267-4.853 2.038-3.67 1.543-7.792 3.279-9.904 4.168-.072.03-.367.12-.692.369-.327.249-.689.79-.689 1.38 0 .478.238.963.526 1.242.287.278.579.408.822.505v-.003l3.867 1.546c.207.622 1.098 3.286 1.31 3.956h-.002c.15.474.296.782.5 1.04.1.13.222.246.37.338.057.036.12.063.184.089.008.004.018.005.026.008l-.024-.006c.018.007.035.018.053.025.03.01.052.01.093.018.145.045.289.075.423.075.573 0 .925-.312.925-.312l.023-.016 2.477-2.096 3.034 2.807c.055.078.49.666 1.494.666.6 0 1.074-.297 1.377-.608.303-.312.492-.63.577-1.062l.002-.002c.068-.348 2.972-14.932 2.972-14.932l-.006.024c.09-.403.117-.793.01-1.191a1.71 1.71 0 0 0-.742-.99 1.742 1.742 0 0 0-.98-.25zm-.416 2.31c-.115.577-2.716 13.648-2.877 14.467l-4.382-4.054-2.962 2.504.82-3.207s5.66-5.728 6-6.061c.275-.267.332-.36.332-.454 0-.123-.064-.212-.21-.212-.132 0-.311.127-.406.186-1.207.752-6.347 3.681-8.875 5.12-.152-.062-2.436-.979-3.667-1.47A47417.361 47417.361 0 0 1 16.96 3.157a450.66 450.66 0 0 1 1.939-.81z"></path>
+    </svg>
+
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" id="svg-icon-tg-none">
+        <path fill="#CBCBCB" d="M19.314.036a2.572 2.572 0 0 0-.83.198c-.227.09-1.043.432-2.342.977-1.298.545-3.02 1.267-4.853 2.038-3.67 1.543-7.792 3.279-9.904 4.168-.072.03-.367.12-.692.369-.327.249-.689.79-.689 1.38 0 .478.238.963.526 1.242.287.278.579.408.822.505v-.003l3.867 1.546c.207.622 1.098 3.286 1.31 3.956h-.002c.15.474.296.782.5 1.04.1.13.222.246.37.338.057.036.12.063.184.089.008.004.018.005.026.008l-.024-.006c.018.007.035.018.053.025.03.01.052.01.093.018.145.045.289.075.423.075.573 0 .925-.312.925-.312l.023-.016 2.477-2.096 3.034 2.807c.055.078.49.666 1.494.666.6 0 1.074-.297 1.377-.608.303-.312.492-.63.577-1.062l.002-.002c.068-.348 2.972-14.932 2.972-14.932l-.006.024c.09-.403.117-.793.01-1.191a1.71 1.71 0 0 0-.742-.99 1.742 1.742 0 0 0-.98-.25zm-.416 2.31c-.115.577-2.716 13.648-2.877 14.467l-4.382-4.054-2.962 2.504.82-3.207s5.66-5.728 6-6.061c.275-.267.332-.36.332-.454 0-.123-.064-.212-.21-.212-.132 0-.311.127-.406.186-1.207.752-6.347 3.681-8.875 5.12-.152-.062-2.436-.979-3.667-1.47A47417.361 47417.361 0 0 1 16.96 3.157a450.66 450.66 0 0 1 1.939-.81z"></path>
+    </svg>
+
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none" id="svg-icon-pl">
+        <circle cx="100" cy="100" r="100" fill="black"></circle>
+        <path d="M140.364 53.9091V147H118.182V71.9091H83.6363V147H61.4545V53.9091H140.364Z" fill="white"></path>
+    </svg>
+
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none" id="svg-icon-pl-none">
+        <circle cx="100" cy="100" r="100" fill="#CBCBCB"></circle>
+        <path d="M140.364 53.9091V147H118.182V71.9091H83.6363V147H61.4545V53.9091H140.364Z" fill="white"></path>
+    </svg>
+
+</div>
+
+<div hidden="hidden" style="width: 0; height: 0" id="text_formatted_html" th:text="${sett.getTextFormatted()}">
+
+</div>
+
+<div id="areaScreen">
+    <div id="areaBody">
+
+        <div id="areaCenterColumn" style="alignment: center">
+
+            <div id="areaLeftTable">
+<!--/*                <img src="/tmp/test.png" style="width: 1px; height: 1px;">*/-->
+                <a href="/">
+                    <img th:if="${!sett.haveVkGroupLink && sett.idStatus >= 3}" th:src="'/tmp/' + ${sett.id}+ '.png'" style="width: 537px; display: block; margin: auto">
+                    <img th:unless="${!sett.haveVkGroupLink && sett.idStatus >= 3}" src="../KARAOKE_LOGO.png" style="width: 300px; display: block; margin: auto">
+<!--                    <img src="../KARAOKE_LOGO.png" style="width: 300px; display: block; margin: auto">-->
+<!--                    <img src="/tmp/test.png" style="width: 300px; display: block; margin: auto">-->
+                </a>
+                <table style="width: 100%">
+                    <tr>
+                        <td colspan="2">
+                            <img th:src="'data:image/jpg;base64,' + ${sett.getVKPictureBase64()}" style="alignment: center">
+                            <div th:text="'«'+${sett.songName}+'»'" style="padding: 10px; max-width: 600px; font-weight: bold; font-size: 32pt; text-align: center; color: #ffff88; background-color: black"></div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="2">
+                            <table style="width: 100%">
+                                <tr>
+                                    <td class="td_cell" style="padding: 0" colspan="9">
+                                        <div style="text-align: center">Ссылки на просмотр:</div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="td_cell" style="padding: 0">
+                                        <div style="text-align: center">All</div>
+                                    </td>
+                                    <td class="td_cell" style="padding: 0" colspan="4">
+                                        <div style="text-align: center">Karaoke</div>
+                                    </td>
+                                    <td class="td_cell" style="padding: 0" colspan="4">
+                                        <div style="text-align: center">Lyrics</div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="td_cell" style="padding: 0">
+                                        <div class="boosty">
+                                            <span th:if="${sett.linkBoostyTxt == ''}">
+                                                <div>
+                                                    <svg style="margin-left: 100%; height: 20px; width: 20px;"><use xlink:href="#svg-icon-boosty-none"></use></svg>
+                                                </div>
+                                            </span>
+                                            <span th:unless="${sett.linkBoostyTxt == ''}">
+                                                <div
+                                                        style="cursor: pointer; margin-left: 100%"
+                                                        name="link"
+                                                        linkName="boosty"
+                                                        th:linkValue="${sett.linkBoostyTxt}"
+                                                        th:songId="${sett.id}"
+                                                        songVersion="all"
+                                                >
+                                                    <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-boosty"></use></svg>
+                                                </div>
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <span th:if="${sett.onAir == true}">
+                                        <td class="td_cell" style="padding: 0; border-right-width: 0">
+                                            <div class="dzen">
+                                                <span th:if="${sett.linkDzenKaraoke == ''}">
+                                                    <svg style="margin-left: 100%; height: 20px; width: 20px;"><use xlink:href="#svg-icon-dzen-none"></use></svg>
+                                                </span>
+                                                <span th:unless="${sett.linkDzenKaraoke == ''}">
+                                                     <div
+                                                             style="cursor: pointer; margin-left: 100%"
+                                                             name="link"
+                                                             linkName="dzen"
+                                                             th:linkValue="${sett.linkDzenKaraoke}"
+                                                             th:songId="${sett.id}"
+                                                             songVersion="karaoke"
+                                                     >
+                                                        <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-dzen"></use></svg>
+                                                    </div>
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td class="td_cell" style="padding: 0; border-right-width: 0; border-left-width: 0">
+                                            <div class="pl">
+                                                <span th:if="${sett.linkPlKaraoke == ''}">
+                                                    <svg style="margin-left: 100%; height: 20px; width: 20px;"><use xlink:href="#svg-icon-pl-none"></use></svg>
+                                                </span>
+                                                <span th:unless="${sett.linkPlKaraoke == ''}">
+                                                     <div
+                                                             style="cursor: pointer; margin-left: 100%"
+                                                             name="link"
+                                                             linkName="pl"
+                                                             th:linkValue="${sett.linkPlKaraoke}"
+                                                             th:songId="${sett.id}"
+                                                             songVersion="karaoke"
+                                                     >
+                                                        <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-pl"></use></svg>
+                                                    </div>
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td class="td_cell" style="padding: 0; border-right-width: 0; border-left-width: 0">
+                                            <div class="vk">
+                                                <span th:if="${sett.linkVkKaraoke == ''}">
+                                                    <svg style="margin-left: 100%; height: 20px; width: 20px;"><use xlink:href="#svg-icon-vk-none"></use></svg>
+                                                </span>
+                                                <span th:unless="${sett.linkVkKaraoke == ''}">
+                                                     <div
+                                                             style="cursor: pointer; margin-left: 100%"
+                                                             name="link"
+                                                             linkName="vk"
+                                                             th:linkValue="${sett.linkVkKaraoke}"
+                                                             th:songId="${sett.id}"
+                                                             songVersion="karaoke"
+                                                     >
+                                                        <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-vk"></use></svg>
+                                                    </div>
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td class="td_cell" style="padding: 0; border-left-width: 0">
+                                            <div class="tg">
+                                                <span th:if="${sett.linkTgKaraoke == ''}">
+                                                    <svg style="margin-left: 100%; height: 20px; width: 20px;"><use xlink:href="#svg-icon-tg-none"></use></svg>
+                                                </span>
+                                                <span th:unless="${sett.linkTgKaraoke == ''}">
+                                                     <div
+                                                             style="cursor: pointer; margin-left: 100%"
+                                                             name="link"
+                                                             linkName="tg"
+                                                             th:linkValue="${sett.linkTgKaraoke}"
+                                                             th:songId="${sett.id}"
+                                                             songVersion="karaoke"
+                                                     >
+                                                        <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-tg"></use></svg>
+                                                    </div>
+                                                </span>
+                                            </div>
+                                        </td>
+
+                                        <td class="td_cell" style="padding: 0; border-right-width: 0">
+                                            <div class="dzen">
+                                                <span th:if="${sett.linkDzenLyrics == ''}">
+                                                    <svg style="margin-left: 100%; height: 20px; width: 20px;"><use xlink:href="#svg-icon-dzen-none"></use></svg>
+                                                </span>
+                                                <span th:unless="${sett.linkDzenLyrics == ''}">
+                                                     <div
+                                                             style="cursor: pointer; margin-left: 100%"
+                                                             name="link"
+                                                             linkName="dzen"
+                                                             th:linkValue="${sett.linkDzenLyrics}"
+                                                             th:songId="${sett.id}"
+                                                             songVersion="lyrics"
+                                                     >
+                                                        <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-dzen"></use></svg>
+                                                    </div>
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td class="td_cell" style="padding: 0; border-right-width: 0; border-left-width: 0">
+                                            <div class="pl">
+                                                <span th:if="${sett.linkPlLyrics == ''}">
+                                                    <svg style="margin-left: 100%; height: 20px; width: 20px;"><use xlink:href="#svg-icon-pl-none"></use></svg>
+                                                </span>
+                                                <span th:unless="${sett.linkPlLyrics == ''}">
+                                                     <div
+                                                             style="cursor: pointer; margin-left: 100%"
+                                                             name="link"
+                                                             linkName="pl"
+                                                             th:linkValue="${sett.linkPlLyrics}"
+                                                             th:songId="${sett.id}"
+                                                             songVersion="lyrics"
+                                                     >
+                                                        <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-pl"></use></svg>
+                                                    </div>
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td class="td_cell" style="padding: 0; border-right-width: 0; border-left-width: 0">
+                                            <div class="vk">
+                                                <span th:if="${sett.linkVkLyrics == ''}">
+                                                    <svg style="margin-left: 100%; height: 20px; width: 20px;"><use xlink:href="#svg-icon-vk-none"></use></svg>
+                                                </span>
+                                                <span th:unless="${sett.linkVkLyrics == ''}">
+                                                     <div
+                                                             style="cursor: pointer; margin-left: 100%"
+                                                             name="link"
+                                                             linkName="vk"
+                                                             th:linkValue="${sett.linkVkLyrics}"
+                                                             th:songId="${sett.id}"
+                                                             songVersion="lyrics"
+                                                     >
+                                                        <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-vk"></use></svg>
+                                                    </div>
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td class="td_cell" style="padding: 0; border-left-width: 0">
+                                            <div class="tg">
+                                                <span th:if="${sett.linkTgLyrics == ''}">
+                                                    <div title="Скоро...">
+                                                        <svg style="margin-left: 100%; height: 20px; width: 20px;"><use xlink:href="#svg-icon-tg-none"></use></svg>
+                                                    </div>
+                                                </span>
+                                                <span th:unless="${sett.linkTgLyrics == ''}">
+                                                     <div
+                                                             style="cursor: pointer; margin-left: 100%"
+                                                             name="link"
+                                                             linkName="tg"
+                                                             th:linkValue="${sett.linkTgLyrics}"
+                                                             th:songId="${sett.id}"
+                                                             songVersion="lyrics"
+                                                     >
+                                                        <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-tg"></use></svg>
+                                                    </div>
+                                                </span>
+                                            </div>
+                                        </td>
+                                    </span>
+
+                                    <span th:unless="${sett.onAir == true}">
+                                        <td class="td_cell" style="padding: 0" colspan="8">
+                                            <div th:text="${sett.datePublish}" class="date_publish"></div>
+                                        </td>
+                                    </span>
+                                </tr>
+
+                                <tr th:unless="${sett.linkBoostyFilesTxt == ''}">
+                                    <td class="td_cell" style="padding: 0" colspan="9">
+
+                                        <div
+                                                style="cursor: pointer; text-align: center; text-underline: auto"
+                                                name="link"
+                                                linkName="files"
+                                                th:linkValue="${sett.linkBoostyFilesTxt}"
+                                                th:songId="${sett.id}"
+                                                songVersion="all"
+                                        >
+                                            >>> Скачать файлы <<<
+                                        </div>
+
+                                    </td>
+                                </tr>
+
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div style="text-align: right; padding-right: 5px">Исполнитель:</div>
+                        </td>
+                        <td>
+                            <div th:text="${sett.author}" style="font-weight: bolder"></div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div style="text-align: right; padding-right: 5px">Год:</div>
+                        </td>
+                        <td>
+                            <div th:text="${sett.year}" style="font-weight: bolder"></div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div style="text-align: right; padding-right: 5px">Альбом:</div>
+                        </td>
+                        <td>
+                            <div th:text="${sett.album}" style="font-weight: bolder"></div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div style="text-align: right; padding-right: 5px">Трек:</div>
+                        </td>
+                        <td>
+                            <div th:text="${sett.track}" style="font-weight: bolder"></div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div style="text-align: right; padding-right: 5px">Композиция:</div>
+                        </td>
+                        <td>
+                            <div th:text="${sett.songName}" style="font-weight: bolder"></div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div style="text-align: right; padding-right: 5px">Тональность:</div>
+                        </td>
+                        <td>
+                            <div th:text="${sett.key}" style="font-weight: bolder"></div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div style="text-align: right; padding-right: 5px">Темп (уд/м):</div>
+                        </td>
+                        <td>
+                            <div th:text="${sett.bpm}" style="font-weight: bolder"></div>
+                        </td>
+                    </tr>
+                    <span th:if="${sett.onAir == true && sett.idVkKaraoke != ''}">
+                        <tr>
+                            <td colspan="2">
+                                <div name="play" th:songId="${sett.id}" songVersion="karaoke">
+                                    <iframe
+                                            th:src="'https://vkvideo.ru/video_ext.php?hd=3&oid=' + ${sett.idVkKaraokeOID} + '&id=' + ${sett.idVkKaraokeID}"
+                                            width="600"
+                                            height="338"
+                                            allow="autoplay; encrypted-media; fullscreen; picture-in-picture;"
+                                            frameborder="0"
+                                            allowfullscreen>
+                                    </iframe>
+                                </div>
+
+                            </td>
+                        </tr>
+                    </span>
+                    <span th:if="${sett.onAir == true && sett.idVkLyrics != ''}">
+                        <tr>
+                            <td colspan="2">
+                                <div name="play" th:songId="${sett.id}" songVersion="lyrics">
+                                    <iframe
+                                            th:src="'https://vkvideo.ru/video_ext.php?hd=3&oid=' + ${sett.idVkLyricsOID} + '&id=' + ${sett.idVkLyricsID}"
+                                            width="600"
+                                            height="338"
+                                            allow="autoplay; encrypted-media; fullscreen; picture-in-picture;"
+                                            frameborder="0"
+                                            allowfullscreen>
+                                    </iframe>
+                                </div>
+                            </td>
+                        </tr>
+                    </span>
+                    <span th:if="${sett.onAir == true && sett.idVkChords != ''}">
+                        <tr>
+                            <td colspan="2">
+                                <div name="play" th:songId="${sett.id}" songVersion="chords">
+                                     <iframe
+                                             th:src="'https://vkvideo.ru/video_ext.php?hd=3&oid=' + ${sett.idVkChordsOID} + '&id=' + ${sett.idVkChordsID}"
+                                             width="600"
+                                             height="338"
+                                             allow="autoplay; encrypted-media; fullscreen; picture-in-picture;"
+                                             frameborder="0"
+                                             allowfullscreen>
+                                    </iframe>
+                                </div>
+                            </td>
+                        </tr>
+                    </span>
+                    <tr>
+                        <td colspan="2">
+                            <div id="text_formatted" style="background-color: black; padding: 10px; font-size: x-large; line-height: normal;"></div>
+                        </td>
+                    </tr>
+                </table>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    $(function() {
+        let textFormattedHtml = document.getElementById("text_formatted_html");
+        let textFormatted = document.getElementById("text_formatted");
+        textFormatted.innerHTML = textFormattedHtml.innerText
+        }
+    );
+
+    const linkElements = document.getElementsByName('link');
+    for (let i = 0; i < linkElements.length; i++) {
+        let element = linkElements[i];
+        let linkValue = element.getAttribute('linkValue');
+        let linkName = element.getAttribute('linkName');
+        let songId = element.getAttribute('songId');
+        let songVersion = element.getAttribute('songVersion');
+        element.addEventListener('click', function (event) {
+            $.ajax({
+                type: "POST",
+                url: "/registerevent",
+                data: {"eventType": "clickToLink", "linkType": "linkToSong", "linkName": linkName, "songId": songId, "songVersion": songVersion}
+            });
+            window.open(linkValue, '_blank');
+        });
+    }
+
+    const playElements = document.getElementsByName('play');
+    for (let i = 0; i < playElements.length; i++) {
+        let element = playElements[i];
+        let songId = element.getAttribute('songId');
+        let songVersion = element.getAttribute('songVersion');
+        element.addEventListener('click', function (event) {
+            $.ajax({
+                type: "POST",
+                url: "/registerevent",
+                data: {"eventType": "play", "songId": songId, "songVersion": songVersion}
+            });
+        });
+    }
+
+</script>
+
+</body>

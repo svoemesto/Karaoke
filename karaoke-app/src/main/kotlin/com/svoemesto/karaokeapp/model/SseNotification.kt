@@ -24,5 +24,8 @@ data class SseNotification(
         fun dummy(): SseNotification {
             return SseNotification(SseNotificationType.DUMMY, "dummy")
         }
+        fun log(text: String): SseNotification {
+            return SseNotification(SseNotificationType.LOG, text)
+        }
     }
 }

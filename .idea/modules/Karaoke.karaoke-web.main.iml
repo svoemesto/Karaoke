@@ -118,7 +118,7 @@
       </configuration>
     </facet>
   </component>
-  <component name="NewModuleRootManager" LANGUAGE_LEVEL="JDK_17">
+  <component name="NewModuleRootManager">
     <output url="file://$MODULE_DIR$/../../karaoke-web/build/classes/kotlin/main" />
     <exclude-output />
     <content url="file://$MODULE_DIR$/../../karaoke-web/src/main">

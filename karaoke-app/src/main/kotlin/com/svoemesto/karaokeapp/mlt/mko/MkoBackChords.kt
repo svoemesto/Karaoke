@@ -8,19 +8,26 @@ import com.svoemesto.karaokeapp.model.MltNode
 import com.svoemesto.karaokeapp.model.MltNodeBuilder
 import com.svoemesto.karaokeapp.model.ProducerType
 
-data class MkoBackChords(val mltProp: MltProp, val type: ProducerType, val voiceId: Int = 0, val childId: Int = 0): MltKaraokeObject {
+data class MkoBackChords(val mltProp: MltProp, val type: ProducerType, val voiceId: Int = 0, val childId: Int = 0, val elementId: Int = 0): MltKaraokeObject {
     val mltGenerator = MltGenerator(mltProp, type)
 
+    private val songLengthFr = mltProp.getSongLengthFr()
+    private val songEndTimecode = mltProp.getSongEndTimecode()
+    private val frameWidthPx = mltProp.getFrameWidthPx()
+    private val frameHeightPx = mltProp.getFrameHeightPx()
+    private val fingerboardH = mltProp.getFingerboardH(0)
+    private val inOffsetVideo = mltProp.getInOffsetVideo()
+    private val mkoBackChordsProducerRect = mltProp.getRect(listOf(type))
 
     override fun producer(): MltNode = mltGenerator
         .producer(
             props = MltNodeBuilder(mltGenerator.defaultProducerPropertiesForMltService("kdenlivetitle"))
-                .propertyName("length", mltProp.getSongLengthFr())
-                .propertyName("kdenlive:duration", mltProp.getSongEndTimecode())
-                .propertyName("xmldata", mltProp.getXmlData(listOf(type, voiceId)).toString().xmldata())
-                .propertyName("meta.media.width", Karaoke.frameWidthPx)
-                .propertyName("meta.media.height", mltProp.getFingerboardH(0) + 50)
-                .filterQtblend(mltGenerator.nameFilterQtblend, mltProp.getRect(listOf(type, voiceId)))
+                .propertyName("length", songLengthFr)
+                .propertyName("kdenlive:duration", songEndTimecode)
+                .propertyName("xmldata", template().toString().xmldata())
+                .propertyName("meta.media.width", frameWidthPx)
+                .propertyName("meta.media.height", fingerboardH + 50)
+                .filterQtblend(mltGenerator.nameFilterQtblend, mkoBackChordsProducerRect)
                 .build()
         )
 
@@ -28,7 +35,7 @@ data class MkoBackChords(val mltProp: MltProp, val type: ProducerType, val voice
         val result = mltGenerator.filePlaylist()
         result.body?.let {
             val body = it as MutableList<MltNode>
-            body.addAll(MltNodeBuilder().blank(mltProp.getInOffsetVideo()).build())
+            body.addAll(MltNodeBuilder().blank(inOffsetVideo).build())
             body.add(
                 mltGenerator.entry(
                     nodes = MltNodeBuilder()
@@ -39,17 +46,15 @@ data class MkoBackChords(val mltProp: MltProp, val type: ProducerType, val voice
         }
         return result
     }
-
+    override fun mainFilePlaylistTransformProperties(): String = ""
     override fun trackPlaylist(): MltNode = mltGenerator.trackPlaylist()
 
     override fun tractor(): MltNode = mltGenerator.tractor()
 
     override fun template(): MltNode {
 
-        val fingerboardH = mltProp.getFingerboardH(0)
-
-        val w = Karaoke.frameWidthPx
-        val h = Karaoke.frameHeightPx / 4
+        val w = frameWidthPx
+        val h = frameHeightPx / 4
         val x = 0
         val y = 0
 
@@ -58,8 +63,8 @@ data class MkoBackChords(val mltProp: MltProp, val type: ProducerType, val voice
             fields = mutableMapOf(
                 Pair("duration","0"),
                 Pair("LC_NUMERIC","C"),
-                Pair("width","${Karaoke.frameWidthPx}"),
-                Pair("height","${fingerboardH}"),
+                Pair("width","$frameWidthPx"),
+                Pair("height","$fingerboardH"),
                 Pair("out","0"),
             ),
             body = mutableListOf(
@@ -90,8 +95,8 @@ data class MkoBackChords(val mltProp: MltProp, val type: ProducerType, val voice
                         )
                     )
                 ),
-                MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${fingerboardH}"))),
-                MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${fingerboardH}"))),
+                MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${frameWidthPx},${fingerboardH}"))),
+                MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${frameWidthPx},${fingerboardH}"))),
                 MltNode(name = "background", fields = mutableMapOf(Pair("color","0,0,0,0")))
             )
         )

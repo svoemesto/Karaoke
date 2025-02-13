@@ -2,6 +2,7 @@ package com.svoemesto.karaokeweb.controllers
 
 
 import com.svoemesto.karaokeapp.Crypto
+import com.svoemesto.karaokeapp.createVKLinkPicture
 import com.svoemesto.karaokeapp.model.Settings
 import com.svoemesto.karaokeweb.StatBySong
 import com.svoemesto.karaokeapp.model.Zakroma
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Controller
 import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.*
+import java.io.File
 
 @Controller
 class MainController(private val webSocket: SimpMessagingTemplate, @Value("\${work-in-container}") val wic: Long) {
@@ -40,7 +42,10 @@ class MainController(private val webSocket: SimpMessagingTemplate, @Value("\${wo
         request: HttpServletRequest
     ): String {
         val data: MutableMap<String, Any> = mutableMapOf()
-        author?.let { data["author"] = it }
+        author?.let {
+            data["author"] = it
+        }
+        model.addAttribute("author_init", author ?: "")
         model.addAttribute("authors", Settings.loadListAuthors(WORKING_DATABASE))
         model.addAttribute("zakroma", Zakroma.getZakroma(author ?: "", WORKING_DATABASE))
         doRegisterEvent(mapOf("eventType" to "callRest", "restName" to "zakroma", "parameters" to data, "referer" to request.remoteHost))
@@ -223,7 +228,17 @@ class MainController(private val webSocket: SimpMessagingTemplate, @Value("\${wo
         model: Model,
         request: HttpServletRequest
     ): String {
-        model.addAttribute("sett", Settings.loadFromDbById(id, WORKING_DATABASE))
+        val sett = Settings.loadFromDbById(id, WORKING_DATABASE)
+//        sett?.let {
+//            if (!sett.haveVkGroupLink) {
+//                val pathToPictureVkGroupLink = "/home/Karaoke/webpictures/${sett.id}.png"
+//                val filePictureVkGroupLink = File(pathToPictureVkGroupLink)
+//                if (!filePictureVkGroupLink.exists()) {
+//                    createVKLinkPicture(sett, pathToPictureVkGroupLink)
+//                }
+//            }
+//        }
+        model.addAttribute("sett", sett)
         doRegisterEvent(mapOf("eventType" to "callRest", "restName" to "song", "parameters" to mapOf("id" to id), "referer" to request.remoteHost))
         return "song"
     }
@@ -242,6 +257,15 @@ class MainController(private val webSocket: SimpMessagingTemplate, @Value("\${wo
     ): String {
         model.addAttribute("webevents", StatBySong.getWebEvents(WORKING_DATABASE))
         return "webevents"
+    }
+
+    @GetMapping("/testpage/{id}")
+    fun doTestPage(@PathVariable id: Long,
+        model: Model
+    ): String {
+        val sett = Settings.loadFromDbById(id, WORKING_DATABASE)
+        model.addAttribute("sett", sett)
+        return "testpage"
     }
 
 }

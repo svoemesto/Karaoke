@@ -117,7 +117,7 @@ class Ods {
 
         fun getSongVKDescription(song: Song, fileName: String, spreadsheetDocument: SpreadsheetDocument?): Pair<String, String>? {
 
-            val template = song.getVKGroupDescription()
+            val template = song.settings.getVKGroupDescription()
             val author = song.settings.author
             val songName = song.settings.songName
 

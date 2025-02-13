@@ -10,8 +10,35 @@ fun String.wrapInQuotes(): String {
     return this
 //    return "\"\"" + this + "\"\""
 }
+fun String.rightFileNameSymbols(): String {
+    return this.replace("'","''").replace("?","")
+}
 fun String.rightFileName(): String {
-    return this.replace("'","''")
+    // Если имя у файла очень длинное - его надо образать до размера 200 байт
+    // Имя может быть в формате /путь/до/файла/2024 (14) [Автор] - Длинное название трека может с точками в конце... [кое-что в квадратных скобках].расширение
+    var result = this.rightFileNameSymbols()
+    val file = File(result)
+    val filePath = file.parent // путь - /путь/до/файла
+    var fileName = file.name  // имя - 2024 (14) [Автор] - Длинное название трека может с точками в конце... [кое-что в квадратных скобках].расширение
+    var fileNameWithoutExtension = file.nameWithoutExtension // имя без расширения - 2024 (14) [Автор] - Длинное название трека может с точками в конце... [кое-что в квадратных скобках]
+    val fileNameExtension = file.extension // расширение - расширение
+    if (fileNameWithoutExtension.endsWith("]")) {
+        while ("$fileNameWithoutExtension${if (fileNameExtension == "") "" else ".$fileNameExtension"}".toByteArray(Charsets.UTF_8).size > 200) {
+            val parts = fileNameWithoutExtension.split("[")
+
+            val partsReversed = parts.reversed().toMutableList()
+            val index = Math.min(1, (parts.size - 1))
+            partsReversed[index] = partsReversed[index].substring(0, partsReversed[index].length-1)
+            fileNameWithoutExtension = partsReversed.reversed().joinToString("[")
+        }
+    } else {
+        while ("$fileNameWithoutExtension${if (fileNameExtension == "") "" else ".$fileNameExtension"}".toByteArray(Charsets.UTF_8).size > 200) {
+            fileNameWithoutExtension = fileNameWithoutExtension.substring(0, fileNameWithoutExtension.length-1)
+        }
+    }
+    fileName = "$fileNameWithoutExtension${if (fileNameExtension == "") "" else ".$fileNameExtension"}"
+    result = "${if (filePath == null) "" else "$filePath/" }$fileName"
+    return result
 }
 fun String.getWords(): List<String> {
     val result: MutableList<String> = mutableListOf()

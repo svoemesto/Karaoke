@@ -8,106 +8,141 @@
         </div>
 
         <div class="area-modal-body">
-          <div class="root-wrapper">
+          <b-tabs content-class="mt-3">
+            <b-tab title="Поля для поиска" active>
+              <div class="root-wrapper">
 
-            <div class="filter-row">
-              <datalist id="dictAuthorsId">
-                <option v-for="val in dictAuthors" :key="val" :value="val"/>
-              </datalist>
-              <div class="row-label">
-                <div v-text="'Исполнитель:'"></div>
-              </div>
-              <div class="row-input">
-                <input class="input-field" v-model="songsFilterSongAuthor" list="dictAuthorsId">
-              </div>
-              <button :disabled="!songsFilterSongAuthor" class="button-clear-field" @click.left="songsFilterSongAuthor=''" v-text="'X'"></button>
-            </div>
+                <div class="filter-row">
+                  <datalist id="dictAuthorsId">
+                    <option v-for="val in dictAuthors" :key="val" :value="val"/>
+                  </datalist>
+                  <div class="row-label">
+                    <div v-text="'Исполнитель:'"></div>
+                  </div>
+                  <div class="row-input">
+                    <input class="input-field" v-model="songsFilterSongAuthor" list="dictAuthorsId">
+                  </div>
+                  <button :disabled="!songsFilterSongAuthor" class="button-clear-field" @click.left="songsFilterSongAuthor=''" v-text="'X'"></button>
+                </div>
 
-            <div class="filter-row">
-              <datalist id="dictDatesId">
-                <option v-for="val in dictDates" :key="val" :value="val"/>
-              </datalist>
-              <div class="row-label">
-                <div v-text="'Дата:'"></div>
-              </div>
-              <div class="row-input">
-                <input class="input-field" v-model="songsFilterPublishDate" list="dictDatesId">
-              </div>
-              <button :disabled="!songsFilterPublishDate" class="button-clear-field" @click.left="songsFilterPublishDate=''" v-text="'X'"></button>
-            </div>
+                <div class="filter-row">
+                  <datalist id="dictDatesId">
+                    <option v-for="val in dictDates" :key="val" :value="val"/>
+                  </datalist>
+                  <div class="row-label">
+                    <div v-text="'Дата:'"></div>
+                  </div>
+                  <div class="row-input">
+                    <input class="input-field" v-model="songsFilterPublishDate" list="dictDatesId">
+                  </div>
+                  <button :disabled="!songsFilterPublishDate" class="button-clear-field" @click.left="songsFilterPublishDate=''" v-text="'X'"></button>
+                </div>
 
-            <div class="filter-row">
-              <div class="row-label">
-                <div v-text="'Время:'"></div>
-              </div>
-              <div class="row-input">
-                <input class="input-field" v-model="songsFilterPublishTime">
-              </div>
-              <button :disabled="!songsFilterPublishTime" class="button-clear-field" @click.left="songsFilterPublishTime=''" v-text="'X'"></button>
-            </div>
+                <div class="filter-row">
+                  <div class="row-label">
+                    <div v-text="'Время:'"></div>
+                  </div>
+                  <div class="row-input">
+                    <input class="input-field" v-model="songsFilterPublishTime">
+                  </div>
+                  <button :disabled="!songsFilterPublishTime" class="button-clear-field" @click.left="songsFilterPublishTime=''" v-text="'X'"></button>
+                </div>
 
-            <div class="filter-row">
-              <div class="row-label">
-                <div v-text="'ID:'"></div>
-              </div>
-              <div class="row-input">
-                <input class="input-field" v-model="songsFilterId">
-              </div>
-              <button :disabled="!songsFilterId" class="button-clear-field" @click.left="songsFilterId=''" v-text="'X'"></button>
-            </div>
+                <div class="filter-row">
+                  <div class="row-label">
+                    <div v-text="'ID:'"></div>
+                  </div>
+                  <div class="row-input">
+                    <input class="input-field" v-model="songsFilterId">
+                  </div>
+                  <button :disabled="!songsFilterId" class="button-clear-field" @click.left="songsFilterId=''" v-text="'X'"></button>
+                </div>
 
-            <div class="filter-row">
-              <div class="row-label">
-                <div v-text="'Композиция:'"></div>
-              </div>
-              <div class="row-input">
-                <input class="input-field" v-model="songsFilterSongName">
-              </div>
-              <button :disabled="!songsFilterSongName" class="button-clear-field" @click.left="songsFilterSongName=''" v-text="'X'"></button>
-            </div>
+                <div class="filter-row">
+                  <div class="row-label">
+                    <div v-text="'Композиция:'"></div>
+                  </div>
+                  <div class="row-input">
+                    <input class="input-field" v-model="songsFilterSongName">
+                  </div>
+                  <button :disabled="!songsFilterSongName" class="button-clear-field" @click.left="songsFilterSongName=''" v-text="'X'"></button>
+                </div>
 
-            <div class="filter-row">
-              <div class="row-label">
-                <div v-text="'Альбом:'"></div>
-              </div>
-              <div class="row-input">
-                <input class="input-field" v-model="songsFilterSongAlbum">
-              </div>
-              <button :disabled="!songsFilterSongAlbum" class="button-clear-field" @click.left="songsFilterSongAlbum=''" v-text="'X'"></button>
-            </div>
+                <div class="filter-row">
+                  <div class="row-label">
+                    <div v-text="'Альбом:'"></div>
+                  </div>
+                  <div class="row-input">
+                    <input class="input-field" v-model="songsFilterSongAlbum">
+                  </div>
+                  <button :disabled="!songsFilterSongAlbum" class="button-clear-field" @click.left="songsFilterSongAlbum=''" v-text="'X'"></button>
+                </div>
 
 
-            <div class="filter-row">
-              <div class="row-label">
-                <div v-text="'ID статуса:'"></div>
-              </div>
-              <div class="row-input">
-                <input class="input-field" v-model="songsFilterIdStatus">
-              </div>
-              <button :disabled="!songsFilterIdStatus" class="button-clear-field" @click.left="songsFilterIdStatus=''" v-text="'X'"></button>
-            </div>
+                <div class="filter-row">
+                  <div class="row-label">
+                    <div v-text="'ID статуса:'"></div>
+                  </div>
+                  <div class="row-input">
+                    <input class="input-field" v-model="songsFilterIdStatus">
+                  </div>
+                  <button :disabled="!songsFilterIdStatus" class="button-clear-field" @click.left="songsFilterIdStatus=''" v-text="'X'"></button>
+                </div>
 
-            <div class="filter-row">
-              <div class="row-label">
-                <div v-text="'Tags:'"></div>
-              </div>
-              <div class="row-input">
-                <input class="input-field" v-model="songsFilterTags">
-              </div>
-              <button :disabled="!songsFilterTags" class="button-clear-field" @click.left="songsFilterTags=''" v-text="'X'"></button>
-            </div>
+                <div class="filter-row">
+                  <div class="row-label">
+                    <div v-text="'Кол-во голосов:'"></div>
+                  </div>
+                  <div class="row-input">
+                    <input class="input-field" v-model="songsFilterCountVoices">
+                  </div>
+                  <button :disabled="!songsFilterCountVoices" class="button-clear-field" @click.left="songsFilterCountVoices=''" v-text="'X'"></button>
+                </div>
 
-            <div class="filter-row">
-              <div class="row-label">
-                <div v-text="'Version:'"></div>
-              </div>
-              <div class="row-input">
-                <input class="input-field" v-model="songsFilterResultVersion">
-              </div>
-              <button :disabled="!songsFilterResultVersion" class="button-clear-field" @click.left="songsFilterResultVersion=''" v-text="'X'"></button>
-            </div>
+                <div class="filter-row">
+                  <div class="row-label">
+                    <div v-text="'Tags:'"></div>
+                  </div>
+                  <div class="row-input">
+                    <input class="input-field" v-model="songsFilterTags">
+                  </div>
+                  <button :disabled="!songsFilterTags" class="button-clear-field" @click.left="songsFilterTags=''" v-text="'X'"></button>
+                </div>
 
-          </div>
+                <div class="filter-row">
+                  <div class="row-label">
+                    <div v-text="'Version:'"></div>
+                  </div>
+                  <div class="row-input">
+                    <input class="input-field" v-model="songsFilterResultVersion">
+                  </div>
+                  <button :disabled="!songsFilterResultVersion" class="button-clear-field" @click.left="songsFilterResultVersion=''" v-text="'X'"></button>
+                </div>
+
+              </div>
+            </b-tab>
+            <b-tab title="История">
+              <div class="history-table-body">
+                <b-table
+                    :items="songsHistory"
+                    :fields="songHistoryFields"
+                    small
+                    fixed
+                    bordered
+                    hover
+                    @row-clicked="onRowClicked"
+                >
+                  <template #cell(historyName)="data">
+                    <div
+                        class="fld-history-name"
+                        v-text="data.value"
+                    ></div>
+                  </template>
+                </b-table>
+              </div>
+            </b-tab>
+          </b-tabs>
+
         </div>
 
         <div class="area-modal-footer">
@@ -122,6 +157,12 @@
 
 <script>
 
+import Vue from "vue";
+import {TabsPlugin} from 'bootstrap-vue'
+import { TablePlugin } from 'bootstrap-vue'
+Vue.use(TabsPlugin)
+Vue.use(TablePlugin)
+
 export default {
   name: "SongsFilterModal",
   data() {
@@ -133,6 +174,7 @@ export default {
       songsFilterPublishDate: this.$store.getters.getSongsFilterPublishDate,
       songsFilterPublishTime: this.$store.getters.getSongsFilterPublishTime,
       songsFilterIdStatus: this.$store.getters.getSongsFilterIdStatus,
+      songsFilterCountVoices: this.$store.getters.getSongsFilterCountVoices,
       songsFilterTags: this.$store.getters.getSongsFilterTags,
       songsFilterResultVersion: this.$store.getters.getSongsFilterResultVersion,
       dictAuthors: []
@@ -141,9 +183,13 @@ export default {
   mounted() {
     this.$store.getters.songAuthorsPromise.then(data => {
       this.dictAuthors = JSON.parse(data).authors;
+      this.$store.dispatch('loadSongsHistory' );
     });
   },
   computed: {
+    songsHistory() {
+      return this.$store.getters.getSongsHistory;
+    },
     dictDates() {
       function addZero(num) {
         if (num >= 0 && num <= 9) {
@@ -159,6 +205,18 @@ export default {
         result.push(`${addZero(date.getDate())}.${addZero(date.getMonth() + 1)}.${date.getFullYear().toString().substring(2)}`);
       }
       return result;
+    },
+    songHistoryFields() {
+      return [
+        {
+          key: 'historyName',
+          label: 'Название'
+        },
+        // {
+        //   key: 'historyArgs',
+        //   label: 'Аргументы'
+        // }
+      ]
     }
   },
   methods: {
@@ -170,6 +228,7 @@ export default {
       this.$store.dispatch('setSongsFilterPublishDate', { songsFilterPublishDate: this.songsFilterPublishDate });
       this.$store.dispatch('setSongsFilterPublishTime', { songsFilterPublishTime: this.songsFilterPublishTime });
       this.$store.dispatch('setSongsFilterIdStatus', { songsFilterIdStatus: this.songsFilterIdStatus });
+      this.$store.dispatch('setSongsFilterCountVoices', { songsFilterCountVoices: this.songsFilterCountVoices });
       this.$store.dispatch('setSongsFilterTags', { songsFilterTags: this.songsFilterTags });
       this.$store.dispatch('setSongsFilterResultVersion', { songsFilterResultVersion: this.songsFilterResultVersion });
 
@@ -181,20 +240,56 @@ export default {
       if (this.songsFilterPublishDate) params.filter_date = this.songsFilterPublishDate;
       if (this.songsFilterPublishTime) params.filter_time = this.songsFilterPublishTime;
       if (this.songsFilterIdStatus) params.filter_status = this.songsFilterIdStatus;
+      if (this.songsFilterCountVoices) params.filter_count_voices = this.songsFilterCountVoices;
       if (this.songsFilterTags) params.filter_tags = this.songsFilterTags;
       if (this.songsFilterResultVersion !== '') params.filter_result_version = this.songsFilterResultVersion;
-      this.$store.dispatch('loadSongsDigests', params )
+      this.$store.dispatch('loadSongsDigests', params );
+      this.$store.dispatch('loadSongsHistory' );
 
       this.$emit('close');
     },
     cancel() {
       this.$emit('close');
+    },
+    onRowClicked(item) {
+      let args = item.historyArgs;
+      this.songsFilterId = args['id'] ? args['id'] : ''
+      this.songsFilterSongName = args['song_name'] ? args['song_name'] : ''
+      this.songsFilterSongAuthor = args['song_author'] ? args['song_author'] : ''
+      this.songsFilterSongAlbum = args['song_album'] ? args['song_album'] : ''
+      this.songsFilterPublishDate = args['publish_date'] ? args['publish_date'] : ''
+      this.songsFilterPublishTime = args['publish_time'] ? args['publish_time'] : ''
+      this.songsFilterIdStatus = args['id_status'] ? args['id_status'] : ''
+      this.songsFilterCountVoices = args['filter_count_voices'] ? args['filter_count_voices'] : ''
+      this.songsFilterTags = args['tags'] ? args['tags'] : ''
+      this.songsFilterResultVersion = args['filter_result_version'] ? args['filter_result_version'] : ''
+
+      this.ok();
     }
   }
 }
 </script>
 
 <style scoped>
+
+.history-table-body {
+  width: fit-content;
+}
+
+.fld-history-name {
+  min-width: 300px;
+  max-width: 300px;
+  text-align: left;
+  font-size: small;
+  cursor: default;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.fld-history-name:hover {
+  text-decoration: underline;
+  cursor: pointer;
+}
 
 .modal-fade-enter,
 .modal-fade-leave-active {

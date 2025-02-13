@@ -45,7 +45,7 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
     private val REPEAT2_START_STRING = "[TS]"
     private val REPEAT2_END_STRING = "[TE]"
     private val REPEAT2_PAST_STRING = "[TR]"
-    fun getOutputFilename(songOutputFile: SongOutputFile): String {
+    fun getOutputFilename2(songOutputFile: SongOutputFile): String {
         return "${settings.rootFolder}/done_${if (songOutputFile in listOf(
                 SongOutputFile.PROJECT,
                 SongOutputFile.SUBTITLE,
@@ -53,182 +53,8 @@ data class Song(val settings: Settings, val songVersion: SongVersion, val woInit
                 SongOutputFile.RUN,
                 SongOutputFile.RUNALL,
                 SongOutputFile.TEXT
-            )) "projects" else if (songOutputFile == SongOutputFile.PICTURECHORDS) "chords" else "files"}/${if (songOutputFile == SongOutputFile.VK) "[{REPLACE_DATE}_{REPLACE_TIME}] " else ""}${if (!settings.fileName.startsWith (settings.year.toString())) "${settings.year} " else ""}${settings.fileName}${songVersion.suffix}${if (songOutputFile == SongOutputFile.PICTURECHORDS) " chords" else ""}${if (songOutputFile == SongOutputFile.PICTUREBOOSTY) " boosty" else ""}${if (songOutputFile == SongOutputFile.PICTUREVK) " VK" else ""}${if (songOutputFile == SongOutputFile.VK) " [VK]" else ""}.${songOutputFile.extension}"
+            )) "projects" else if (songOutputFile == SongOutputFile.PICTURECHORDS) "chords" else "files"}/${if (songOutputFile == SongOutputFile.VK) "[{REPLACE_DATE}_{REPLACE_TIME}] " else ""}${settings.rightSettingFileName}${songVersion.suffix}${if (songOutputFile == SongOutputFile.PICTURECHORDS) " chords" else ""}${if (songOutputFile == SongOutputFile.PICTUREBOOSTY) " boosty" else ""}${if (songOutputFile == SongOutputFile.PICTUREVK) " VK" else ""}${if (songOutputFile == SongOutputFile.VK) " [VK]" else ""}.${songOutputFile.extension}"
     }
-
-
-
-    fun getDescriptionHeader(maxSymbols: Int = 0): String {
-
-        return "${settings.songName.censored()} ★♫★ ${settings.author} ★♫★ ${songVersion.text} ★♫★ ${songVersion.textForDescription}".cutByWords(maxLength = maxSymbols)
-
-    }
-
-    fun getDescription(): String {
-
-        return getDescriptionHeader() + "\n" +
-                getDescriptionWOHeaderWOTimecodes()
-
-    }
-    fun getDescriptionVk(): String {
-
-        return getDescriptionVkHeader() + "\n" +
-                getDescriptionWOHeaderWithTimecodes()
-
-    }
-
-    fun getTextBoostyHead(): String {
-        return "${settings.songName.censored()} ★♫★ ${settings.author}"
-    }
-
-    fun getTextBoostyFilesHead(): String {
-        return "[ФАЙЛЫ] ${settings.songName.censored()} ★♫★ ${settings.author}"
-    }
-
-    fun getTextForDescriptionHeader(withVersion: Boolean = true): String {
-        return "${settings.linkSM} ⇐ Страница песни на официальном сайте проекта\n\n" +
-                (if (!withVersion) "" else "Версия: ${songVersion.text} (${songVersion.textForDescription})\n") +
-                "Композиция: ${settings.songName}\n" +
-                "Исполнитель: ${settings.author}\n" +
-                "Альбом: ${settings.album}\n" +
-                "Год: ${settings.year}\n" +
-                "Темп: ${settings.bpm} bpm\n" +
-                "Тональность: ${settings.key}" +
-                "\n\n"
-    }
-
-    fun getTextForDescriptionFooter(): String {
-        return "\n\n"+
-                "Официальный сайт проекта: https://sm-karaoke.ru\n" +
-                "Поддержать проект на Boosty: https://boosty.to/svoemesto\n" +
-                "Группа ВКонтакте: https://vk.com/svoemestokaraoke\n" +
-                "Канал Telegram: https://t.me/svoemestokaraoke\n" +
-                "Канал Дзен: https://dzen.ru/svoemesto\n" +
-                "Канал Платформа: https://plvideo.ru/channel/@sm-karaoke\n" +
-                "${settings.songName.hashtag()} ${settings.author.hashtag()} ${"karaoke".hashtag()} ${"караоке".hashtag()}\n"
-    }
-
-    fun getTextBoostyBody(): String {
-        return  getTextForDescriptionHeader(false) +
-                "\n\n"+
-                getTextForDescription() +
-                "\n\n"
-    }
-
-    fun getDescriptionVkHeader(maxSymbols: Int = 0): String {
-
-        return "${settings.songName.censored()} ★♫★ ${settings.author} ★♫★ ${songVersion.text} ★♫★ ${songVersion.textForDescription}".cutByWords(maxLength = maxSymbols)
-
-    }
-
-    fun getDescriptionWOHeaderWOTimecodes(maxSymbols: Int = 0): String {
-
-        val txtStart = getTextForDescriptionHeader()
-        val txtEnd = getTextForDescriptionFooter()
-        val txtDescription = getTextForDescription(maxSymbols - txtStart.length - txtEnd.length)
-
-        return txtStart + txtDescription + txtEnd
-
-    }
-
-    fun getDescriptionWOHeaderWithTimecodes(maxSymbols: Int = 0, maxTimeCodes: Int? = null): String {
-
-        val txtStart = getTextForDescriptionHeader()
-        val txtEnd = getTextForDescriptionFooter()
-        val txtDescription = getTextForDescriptionWithTimecodes(maxSymbols - txtStart.length - txtEnd.length, maxTimeCodes)
-
-        return txtStart + txtDescription + txtEnd
-
-    }
-
-    fun getVKGroupDescription(maxSymbols: Int = 0): String {
-
-//        return "${settings.songName.censored()} ★♫★ ${settings.author}" + "\n\n" +
-//                getTextForDescriptionHeader(false)
-
-        return  "${settings.songName.censored()} ★♫★ ${settings.author}" + "\n\n" +
-                getTextForDescriptionHeader(false) +
-                getTextForDescription()
-    }
-
-
-
-    fun getChordDescription(): String {
-
-        if (songVersion == SongVersion.CHORDS) {
-            if (capo == 0) {
-                return  "Темп: ${settings.bpm} bpm\n" +
-                        "Тональность: ${settings.key}"
-            } else {
-                return  "Темп: ${settings.bpm} bpm\n" +
-                        "Оригинальная тональность: ${settings.key}\n" +
-                        "Аккорды и аппликатуры: ${getNewTone(settings.key, capo)}\n" +
-                        "Каподастр на ${capo}-м ладу"
-            }
-        } else {
-            return ""
-        }
-
-    }
-
-    fun getText(): String {
-        var result = ""
-        voices.forEach { voice ->
-            voice.lines.forEach { line ->
-                result += line.text.uppercaseFirstLetter() + "\n"
-            }
-        }
-        result += "\n\n--------------------------------------------\n\n"
-        return result
-    }
-
-    fun getTextForDescription(maxSymbols: Int = 0): String {
-        var result = settings.getTextBody()
-
-        while (maxSymbols > 0 && result.length > maxSymbols) {
-            val lst = result.split("\n").toMutableList()
-            lst.removeLast()
-            result = lst.joinToString("\n")
-        }
-
-        return result
-    }
-
-    fun getTextForDescriptionWithTimecodes(maxSymbols: Int = 0, maxTimeCodes: Int? = null): String {
-        var result = settings.getTextBodyWithTimecodes(maxTimeCodes)
-
-        while (maxSymbols > 0 && result.length > maxSymbols) {
-            val lst = result.split("\n").toMutableList()
-            lst.removeLast()
-            result = lst.joinToString("\n")
-        }
-
-        return result
-
-    }
-
-    fun getMarkers(): List<WaveSurferMarker> {
-        val result = mutableListOf<WaveSurferMarker>()
-        voices[0].lines.flatMap { line -> line.subtitles }.forEach { sub ->
-            val markerColor = if (sub.isLineStart) "#008000" else "#D2691E"
-            val marker = WaveSurferMarker(
-                time = convertTimecodeToMilliseconds(sub.startTimecode).toDouble() / 1000 ,
-                label = sub.mltText.text,
-                color = markerColor,
-                position = "top")
-            result.add(marker)
-            if (sub.isLineEnd) {
-                val marker = WaveSurferMarker(
-                    time = convertTimecodeToMilliseconds(sub.endTimecode).toDouble() / 1000 ,
-                    label = "",
-                    color = "#FF0000",
-                    position = "top")
-                result.add(marker)
-            }
-        }
-        return result
-    }
-
 
     var endTimecode: String = ""
     var capo: Int = 0
@@ -757,11 +583,11 @@ data class SongVoice(
     }
     val maxCountSymbolsInLine: Int
     get() {
-        return lines.filter {it.type == SongVoiceLineType.TEXT }.first { it.isMaxLine }.text.length
+        return lines.filter {it.type == SongVoiceLineType.TEXT }.firstOrNull { it.isMaxLine }?.text?.length ?: 0
     }
     val maxWidthLinePx: Long
     get() {
-        return lines.filter {it.type == SongVoiceLineType.TEXT }.first { it.isMaxLine }.widthLinePx
+        return lines.filter {it.type == SongVoiceLineType.TEXT }.firstOrNull { it.isMaxLine }?.widthLinePx ?: 0
     }
 
     val maxWidthSingleLinePx: Long
@@ -771,7 +597,7 @@ data class SongVoice(
 
     val maxWidthLineText: String
     get() {
-        return lines.filter {it.type == SongVoiceLineType.TEXT }.first { it.isMaxLine }.text
+        return lines.filter {it.type == SongVoiceLineType.TEXT }.firstOrNull { it.isMaxLine }?.text ?: ""
     }
 
     val maxWidthSingleLineText: String
@@ -866,11 +692,11 @@ data class SongVoiceLine(
         val nextLine = voice.lines.firstOrNull {
             it.type == SongVoiceLineType.TEXT && it.startTp != null && convertTimecodeToMilliseconds(it.startTp!!.time) > endTpCurrLineMs
         }
-        // Начало следующией линии
+        // Начало следующей линии
         val startTpNextLineMs = if (nextLine != null) convertTimecodeToMilliseconds(nextLine.startTp!!.time) else -1
         val endTpNextLineMs = if (nextLine != null) convertTimecodeToMilliseconds(nextLine.endTp!!.time) else -1
 
-        // Тек же надо найти линию (если есть) которая идёт за следующей
+        // Так же надо найти линию (если есть) которая идёт за следующей
         val nextNextLine : SongVoiceLine? = if (nextLine == null) {
             null
         } else {
@@ -1122,7 +948,7 @@ data class SongVoiceLineSymbol(
 }
 
 data class Subtitle(
-    val startTimecode: String = "",
+    var startTimecode: String = "",
     var endTimecode: String = "",
     var isLineStart: Boolean = false,
     var isLineEnd: Boolean = false,

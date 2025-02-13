@@ -7,4 +7,5 @@ enum class SseNotificationType(val value: String) {
     PROCESS_WORKER_STATE("processWorkerState"),
     MESSAGE("message"),
     DUMMY("dummy"),
+    LOG("log")
 }

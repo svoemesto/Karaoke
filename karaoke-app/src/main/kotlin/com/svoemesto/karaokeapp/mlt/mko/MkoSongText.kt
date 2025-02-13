@@ -8,7 +8,7 @@ import com.svoemesto.karaokeapp.mlt.MltText
 import com.svoemesto.karaokeapp.mlt.mltNode
 import com.svoemesto.karaokeapp.model.*
 
-data class MkoSongText(val mltProp: MltProp, val type: ProducerType, val voiceId: Int = 0, val childId: Int = 0): MltKaraokeObject {
+data class MkoSongText(val mltProp: MltProp, val type: ProducerType, val voiceId: Int = 0, val childId: Int = 0, val elementId: Int = 0): MltKaraokeObject {
     val mltGenerator = MltGenerator(mltProp, type, voiceId)
 
     override fun producer(): MltNode = mltGenerator
@@ -17,18 +17,14 @@ data class MkoSongText(val mltProp: MltProp, val type: ProducerType, val voiceId
                 .propertyName("kdenlive:folderid", mltProp.getId(listOf(ProducerType.VOICE, voiceId)))
                 .propertyName("length", mltProp.getSongLengthFr())
                 .propertyName("kdenlive:duration", mltProp.getSongEndTimecode())
-                .propertyName("xmldata", mltProp.getXmlData(listOf(type, voiceId)).toString().xmldata())
-                .propertyName("meta.media.width", Karaoke.frameWidthPx)
+//                .propertyName("xmldata", mltProp.getXmlData(listOf(type, voiceId)).toString().xmldata())
+                .propertyName("xmldata", template().toString().xmldata())
+                .propertyName("meta.media.width", mltProp.getFrameWidthPx())
                 .propertyName("meta.media.height", mltProp.getWorkAreaHeightPx(listOf(ProducerType.SONGTEXT, voiceId)))
                 .build()
         )
 
     override fun filePlaylist(): MltNode {
-
-        val voiceLines = mltProp.getVoicelines(listOf(ProducerType.SONGTEXT,voiceId))
-        val propRect = voiceLines
-            .filter {it.startTp != null && it.endTp != null && (it.type == SongVoiceLineType.TEXT || it == voiceLines.first() || it == voiceLines.last())}
-            .map { listOf(it.startTp.toString(), it.endTp.toString()).joinToString(";") }.joinToString(";")
 
         val result = mltGenerator.filePlaylist()
         result.body?.let {
@@ -38,12 +34,20 @@ data class MkoSongText(val mltProp: MltProp, val type: ProducerType, val voiceId
                 mltGenerator.entry(
                     nodes = MltNodeBuilder()
                         .propertyName("kdenlive:id", "filePlaylist${mltGenerator.id}")
-                        .filterQtblend(mltGenerator.nameFilterQtblend, propRect)
+                        .filterQtblend(mltGenerator.nameFilterQtblend, mainFilePlaylistTransformProperties())
                         .build()
                 )
             )
         }
         return result
+    }
+
+    override fun mainFilePlaylistTransformProperties(): String {
+        val voiceLines = mltProp.getVoicelines(listOf(ProducerType.SONGTEXT,voiceId))
+        val propRect = voiceLines
+            .filter {it.startTp != null && it.endTp != null && (it.type == SongVoiceLineType.TEXT || it == voiceLines.first() || it == voiceLines.last())}
+            .map { listOf(it.startTp.toString(), it.endTp.toString()).joinToString(";") }.joinToString(";")
+        return propRect
     }
 
     override fun trackPlaylist(): MltNode = mltGenerator.trackPlaylist()
@@ -101,8 +105,8 @@ data class MkoSongText(val mltProp: MltProp, val type: ProducerType, val voiceId
             }
 
         }
-        templateSongTextSymbolsGroup.add(MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},$workAreaSongtextHeightPx"))))
-        templateSongTextSymbolsGroup.add(MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},$workAreaSongtextHeightPx"))))
+        templateSongTextSymbolsGroup.add(MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${mltProp.getFrameWidthPx()},$workAreaSongtextHeightPx"))))
+        templateSongTextSymbolsGroup.add(MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${mltProp.getFrameWidthPx()},$workAreaSongtextHeightPx"))))
         templateSongTextSymbolsGroup.add(MltNode(name = "background", fields = mutableMapOf(Pair("color","0,0,0,0"))))
 
         val templateSongText = MltNode(
@@ -110,7 +114,7 @@ data class MkoSongText(val mltProp: MltProp, val type: ProducerType, val voiceId
             fields = mutableMapOf(
                 Pair("duration","0"),
                 Pair("LC_NUMERIC","C"),
-                Pair("width","${Karaoke.frameWidthPx}"),
+                Pair("width","${mltProp.getFrameWidthPx()}"),
                 Pair("height","$workAreaSongtextHeightPx"),
                 Pair("out","0"),
             ),

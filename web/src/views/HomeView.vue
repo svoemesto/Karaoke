@@ -15,6 +15,8 @@
         <button class="button-action" @click="createDzenPicturesForFolder" :disabled="!pathToFolder">Создать картинки плейлистов Dzen для папки</button>
       </div>
       <button class="button-action" @click="copyToStore">Обновить хранилище</button>
+      <button class="button-action" @click="actualizeVKLinkPictureWeb">Актуализация VKLinkPictureWeb</button>
+      <button class="button-action" @click="checkLastAlbumYm">Поиск новых альбомов</button>
       <button class="button-action" @click="updateBpmAndKey">Обновить пустые BPM и KEY из фалов CSV</button>
       <button class="button-action" @click="updateBpmAndKeyLV">Обновить пустые BPM и KEY из фалов LV</button>
       <div class="field-and-buttons-wrapper">
@@ -33,7 +35,7 @@
           <button class="button-action button-action-inline" @click="dictActionRemove" :disabled="!dictType || !dictValue">Удалить слово из словаря</button>
         </div>
       </div>
-      <button disabled="disabled" class="button-action" @click="customFunction">Выполнить Custom Function</button>
+      <button class="button-action" @click="customFunction">Выполнить Custom Function</button>
       <button class="button-action" @click="updateRemoteSettings">Обновить REMOTE Database SETTINGS</button>
       <button class="button-action" @click="updateRemotePictures">Обновить REMOTE Database PICTURES</button>
       <button class="button-action" @click="updateLocalSettings">Обновить LOCAL Database SETTINGS</button>
@@ -164,6 +166,27 @@ export default {
         }
         this.isCustomConfirmVisible = true;
       })
+    },
+    actualizeVKLinkPictureWeb() {
+      this.customConfirmParams = {
+        header: 'Подтвердите действие',
+        body: `Актуализировать VKLinkPictureWeb?`,
+        timeout: 10,
+        callback: this.$store.dispatch('actualizeVKLinkPictureWebPromise')
+      }
+      this.isCustomConfirmVisible = true;
+    },
+    checkLastAlbumYm() {
+      this.customConfirmParams = {
+        header: 'Подтвердите действие',
+        body: `Найти новые альбомы авторов?`,
+        timeout: 10,
+        callback: this.doCheckLastAlbumYm
+      }
+      this.isCustomConfirmVisible = true;
+    },
+    doCheckLastAlbumYm() {
+      this.$store.dispatch('checkLastAlbumYmPromise')
     },
     updateBpmAndKey() {
       this.customConfirmParams = {

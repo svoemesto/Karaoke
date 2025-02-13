@@ -28,6 +28,7 @@ class Zakroma(val database: KaraokeConnection): Serializable, Comparable<Zakroma
                         zakromaAlbumSettings.track = settings.track
                         zakromaAlbumSettings.songName = settings.songName.censored()
                         zakromaAlbumSettings.linkBoosty = settings.linkBoostyTxt
+                        zakromaAlbumSettings.linkSponsrPlay = settings.linkSponsrPlay
                         zakromaAlbumSettings.linkDzenKaraoke = settings.linkDzenKaraoke
                         zakromaAlbumSettings.linkDzenLyrics = settings.linkDzenLyrics
                         zakromaAlbumSettings.linkVkKaraoke = settings.linkVkKaraoke
@@ -62,6 +63,7 @@ class ZakromaAlbumSettings: Serializable, Comparable<ZakromaAlbumSettings> {
     var track: Long = 0
     var songName: String = ""
     var linkBoosty: String = ""
+    var linkSponsrPlay: String = ""
     var linkDzenKaraoke: String = ""
     var linkDzenLyrics: String = ""
     var linkVkKaraoke: String = ""

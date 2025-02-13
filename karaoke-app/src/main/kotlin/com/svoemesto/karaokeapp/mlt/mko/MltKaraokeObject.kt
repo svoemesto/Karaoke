@@ -16,5 +16,5 @@ interface MltKaraokeObject {
     fun tractor(): MltNode? = null
     fun tractorSequence(): MltNode? = null
     fun template(): MltNode? = null
-
+    fun mainFilePlaylistTransformProperties(): String
 }

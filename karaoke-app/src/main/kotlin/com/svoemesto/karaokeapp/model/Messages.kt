@@ -60,7 +60,7 @@ data class RecordChangeMessage(
             if (recordDiff.recordDiffValueNew is Long) {
                 txt.append("${recordDiff.recordDiffValueNew}")
             } else {
-                txt.append("'${recordDiff.recordDiffValueNew.toString().rightFileName()}'")
+                txt.append("'${recordDiff.recordDiffValueNew.toString().replace("'","''")}'")
             }
             result.add(txt.toString())
         }

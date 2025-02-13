@@ -100,8 +100,9 @@ data class MltText(
     val shadow: String = "1;#ff000000;3;3;3"
     val fontItalic: Int get() = if (font.isItalic) 1 else 0
 
-    val w: Int get() = getTextWidthHeightPx(text, font).first.toInt()
-    val h: Int get() = getTextWidthHeightPx(text, font).second.toInt()
+    fun w(): Int = getTextWidthHeightPx(text, font).first.toInt()
+    fun h(): Int = getTextWidthHeightPx(text, font).second.toInt()
+    var x: Int = 0
 
     fun copy(newText: String, fontScaleCoeff: Double = 1.0): MltText {
         return MltText(

@@ -1,23 +1,21 @@
 package com.svoemesto.karaokeapp.mlt
 
 import com.svoemesto.karaokeapp.KaraokeVoice
-import com.svoemesto.karaokeapp.model.MltNode
-import com.svoemesto.karaokeapp.model.SongVersion
-import com.svoemesto.karaokeapp.model.SongVoiceLine
-import com.svoemesto.karaokeapp.model.SongVoiceLineSymbol
+import com.svoemesto.karaokeapp.mlt.mko.*
+import com.svoemesto.karaokeapp.model.*
 
 
 data class MltProp(
     val props: MutableMap<Any, Any> = mutableMapOf()
 ) {
-    enum class KEYS {ROOT, SONG_VERSION, OFFSET, ID, COUNTER, VOICE_SETTING, RECT, XML_DATA, SONG_CAPO, SONG_CHORD_DESCRIPTION, SONG_NAME,
+    enum class KEYS {ROOT, SETTINGS, FRAME_WIDTH_PX, FRAME_HEIGHT_PX, START_LINE_OFFSET_MS, SONG_VERSION, OFFSET, ID, COUNTER, VOICE_SETTING, RECT, XML_DATA, SONG_CAPO, SONG_CHORD_DESCRIPTION, SONG_NAME,
         COUNT_VOICES, COUNT_AUDIO_TRACKS, COUNT_ALL_TRACKS, LINE_SPACING, SHADOW, TYPEWRITER, ALIGNMENT, WORK_AREA_HEIGHT_PX, VOICELINES,
         SYMBOL_HEIGHT_PX, POSITION_Y_PX, POSITION_X_PX, UUID, AUTHOR, TONE, BPM, ALBUM, YEAR, TRACK,
         FONT_SIZE_PT, PATH, BASE64, FINGERBOARD_H, FINGERBOARD_W, CHORD_W, CHORD_H, COUNT_FINGERBOARDS, CHORDS, ROOT_FOLDER,
         START_TIMECODE, END_TIMECODE, FADEIN_TIMECODE, FADEOUT_TIMECODE, LENGTH_MS, LENGTH_FR, LENGTH_TIMECODE, GUIDES_PROPERTY,
         IN_OFFSET_AUDIO, IN_OFFSET_VIDEO, ENABLED, VOLUME, FILE_NAME, IGNORE_CAPO, TIMECODE, HEIGHT_PX_PER_MS_COEFF, WIDTH_PX_PER_MS_COEFF, SCROLL_LINES,
         COUNT_CHILDS, HEIGHT_SCROLLER_PX, SCROLL_LINE_TRACK_ID, SCROLL_LINE_START_MS, SCROLL_LINE_END_MS, SCROLL_LINE_DURATION_MS, SCROLL_TRACK,
-        TIME_TO_SCROLL_SCREEN_MS, INDEX_LINE_TRACK_ID
+        TIME_TO_SCROLL_SCREEN_MS, INDEX_LINE_TRACK_ID, DURATION_ON_SCREEN, FONT_SIZE
 
     }
     private fun propsNode(key: Any = KEYS.ROOT): MutableMap<Any, Any> {
@@ -28,6 +26,8 @@ data class MltProp(
         }
     }
 
+    fun getSettings(key: Any = KEYS.ROOT): Settings? = props[key.convertToList(KEYS.SETTINGS)]?.let { it as Settings }
+    fun setSettings(value: Settings, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.SETTINGS)] = value}
 
     fun getScrollTrack(key: Any = KEYS.ROOT): MutableList<Pair<SongVoiceLine, Int>> = props[key.convertToList(KEYS.SCROLL_TRACK)]?.let { it as MutableList<Pair<SongVoiceLine, Int>> } ?: mutableListOf()
     fun setScrollTrack(value: MutableList<Pair<SongVoiceLine, Int>>, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.SCROLL_TRACK)] = value}
@@ -51,6 +51,9 @@ data class MltProp(
     fun setScrollLineTrackId(value: Int, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.SCROLL_LINE_TRACK_ID)] = value}
     fun getHeightScrollerPx(): Long = props[KEYS.ROOT.convertToList(KEYS.HEIGHT_SCROLLER_PX)]?.let { it as Long } ?: 100L
     fun setHeightScrollerPx(value: Long) {props[KEYS.ROOT.convertToList(KEYS.HEIGHT_SCROLLER_PX)] = value}
+
+    fun getDurationOnScreen(key: Any = KEYS.ROOT): Long = props[key.convertToList(KEYS.DURATION_ON_SCREEN)]?.let { it as Long } ?: 0
+    fun setDurationOnScreen(value: Long, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.DURATION_ON_SCREEN)] = value}
 
     fun getCountChilds(key: Any = KEYS.ROOT): Int = props[key.convertToList(KEYS.COUNT_CHILDS)]?.let { it as Int } ?: 0
     fun setCountChilds(value: Int, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.COUNT_CHILDS)] = value}
@@ -98,6 +101,8 @@ data class MltProp(
     fun setTotalLengthFr(value: Long) {props["Total".convertToList(KEYS.LENGTH_FR)] = value}
     fun getSongLengthFr(): Long = props["Song".convertToList(KEYS.LENGTH_FR)]?.let { it as Long } ?: 0
     fun setSongLengthFr(value: Long) {props["Song".convertToList(KEYS.LENGTH_FR)] = value}
+    fun getAudioLengthFr(): Long = props["Audio".convertToList(KEYS.LENGTH_FR)]?.let { it as Long } ?: 0
+    fun setAudioLengthFr(value: Long) {props["Audio".convertToList(KEYS.LENGTH_FR)] = value}
     fun getLengthFr(key: Any = KEYS.ROOT): Long = props[key.convertToList(KEYS.LENGTH_FR)]?.let { it as Long } ?: 0
     fun setLengthFr(value: Long, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.LENGTH_FR)] = value}
 
@@ -127,6 +132,9 @@ data class MltProp(
 
     fun getSongEndTimecode(): String = props["SongEnd".convertToList(KEYS.TIMECODE)]?.let { it as String } ?: ""
     fun setSongEndTimecode(value: String) {props["SongEnd".convertToList(KEYS.TIMECODE)] = value}
+
+    fun getAudioEndTimecode(): String = props["AudioEnd".convertToList(KEYS.TIMECODE)]?.let { it as String } ?: ""
+    fun setAudioEndTimecode(value: String) {props["AudioEnd".convertToList(KEYS.TIMECODE)] = value}
 
     fun getTotalStartTimecode(): String = props["TotalStart".convertToList(KEYS.TIMECODE)]?.let { it as String } ?: ""
     fun setTotalStartTimecode(value: String) {props["TotalStart".convertToList(KEYS.TIMECODE)] = value}
@@ -217,6 +225,14 @@ data class MltProp(
     fun getSongVersion(key: Any = KEYS.ROOT): SongVersion = props[key.convertToList(KEYS.SONG_VERSION)]?.let { it as SongVersion } ?: SongVersion.LYRICS
     fun setSongVersion(value: SongVersion, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.SONG_VERSION)] = value}
 
+    fun getStartSilentOffsetMs(key: Any = KEYS.ROOT): Long = props[key.convertToList(KEYS.START_LINE_OFFSET_MS)]?.let { it as Long } ?: 0
+    fun setStartSilentOffsetMs(value: Long, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.START_LINE_OFFSET_MS)] = value}
+
+    fun getFrameWidthPx(key: Any = KEYS.ROOT): Int = props[key.convertToList(KEYS.FRAME_WIDTH_PX)]?.let { it as Int } ?: 0
+    fun setFrameWidthPx(value: Int, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.FRAME_WIDTH_PX)] = value}
+    fun getFrameHeightPx(key: Any = KEYS.ROOT): Int = props[key.convertToList(KEYS.FRAME_HEIGHT_PX)]?.let { it as Int } ?: 0
+    fun setFrameHeightPx(value: Int, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.FRAME_HEIGHT_PX)] = value}
+
     fun getSongCapo(key: Any = KEYS.ROOT): Int = props[key.convertToList(KEYS.SONG_CAPO)]?.let { it as Int } ?: 0
     fun setSongCapo(value: Int, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.SONG_CAPO)] = value}
 
@@ -273,6 +289,9 @@ data class MltProp(
 
     fun getVoicelines(key: Any = KEYS.ROOT): MutableList<SongVoiceLine> = props[key.convertToList(KEYS.VOICELINES)]?.let { it as MutableList<SongVoiceLine> } ?: mutableListOf()
     fun setVoicelines(value: MutableList<SongVoiceLine>, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.VOICELINES)] = value}
+
+    fun getFontSize(key: Any = KEYS.ROOT): Int = props[key.convertToList(KEYS.FONT_SIZE)]?.let { it as Int } ?: 0
+    fun setFontSize(value: Int, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.FONT_SIZE)] = value}
 
     fun getSymbolHeightPx(key: Any = KEYS.ROOT): Int = props[key.convertToList(KEYS.SYMBOL_HEIGHT_PX)]?.let { it as Int } ?: 0
     fun setSymbolHeightPx(value: Int, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.SYMBOL_HEIGHT_PX)] = value}

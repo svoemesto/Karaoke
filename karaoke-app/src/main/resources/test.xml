@@ -1,0 +1,463 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<EGRNRequest xmlns:addr="http://rosreestr.ru/services/v0.26/commons/Address"
+             xmlns:com="http://rosreestr.ru/services/v0.26/commons/Commons"
+             xmlns:tObj="http://rosreestr.ru/services/v0.26/commons/TObject"
+             xmlns:subj="http://rosreestr.ru/services/v0.26/commons/Subjects"
+             xmlns:stCom="http://rosreestr.ru/services/v0.26/TStatementCommons"
+             xmlns:docs="http://rosreestr.ru/services/v0.26/commons/Documents"
+             xmlns="http://rosreestr.ru/services/v0.26/TStatementRequestEGRN"
+             _id="52e27ba8-eadf-4090-9219-0ba62b1620f2">
+
+    <header>
+        <stCom:actionCode>659511111112</stCom:actionCode>
+        <stCom:statementType>558630200000</stCom:statementType>
+        <stCom:creationDate>2024-10-30T16:34:54</stCom:creationDate>
+        <stCom:appliedDocument>
+            <docs:powerOfAttorney _id="1807927999094326286">
+                <docs:documentTypes>
+                    <docs:representativeDocTypeCode>558301010000</docs:representativeDocTypeCode>
+                </docs:documentTypes>
+                <docs:name>Доверенность</docs:name>
+                <docs:number>81125</docs:number>
+                <docs:issueDate>1995-04-20</docs:issueDate>
+                <docs:attachment>
+                    <docs:fileDesc>
+                        <docs:file>
+                            <docs:fileURI>embedded://doc-1807927999094326286.pdf</docs:fileURI>
+                            <docs:md5sum>b3650d4299b8050c7442d97558058b94</docs:md5sum>
+                        </docs:file>
+                        <docs:signature>
+                            <docs:fileURI>embedded://doc-1807927999094326286.pdf.sig</docs:fileURI>
+                            <docs:md5sum>md5sum</docs:md5sum>
+                        </docs:signature>
+                    </docs:fileDesc>
+                    <docs:receivedInPaper>
+                        <docs:original>
+                            <docs:pageCount>4</docs:pageCount>
+                            <docs:docCount>1</docs:docCount>
+                        </docs:original>
+                    </docs:receivedInPaper>
+                </docs:attachment>
+                <docs:series>5985</docs:series>
+                <docs:issuer>
+                    <docs:code>0261</docs:code>
+                    <docs:name>Таргарянищев Эймон Мейкарович</docs:name>
+                </docs:issuer>
+            </docs:powerOfAttorney>
+        </stCom:appliedDocument>
+        <stCom:appliedDocument>
+            <docs:powerOfAttorney _id="1807928004538532890">
+                <docs:documentTypes>
+                    <docs:representativeDocTypeCode>558301010000</docs:representativeDocTypeCode>
+                </docs:documentTypes>
+                <docs:name>Доверенность</docs:name>
+                <docs:number>77874</docs:number>
+                <docs:issueDate>1994-08-21</docs:issueDate>
+                <docs:attachment>
+                    <docs:fileDesc>
+                        <docs:file>
+                            <docs:fileURI>embedded://doc-1807928004538532890.pdf</docs:fileURI>
+                            <docs:md5sum>b3650d4299b8050c7442d97558058b94</docs:md5sum>
+                        </docs:file>
+                        <docs:signature>
+                            <docs:fileURI>embedded://doc-1807928004538532890.pdf.sig</docs:fileURI>
+                            <docs:md5sum>md5sum</docs:md5sum>
+                        </docs:signature>
+                    </docs:fileDesc>
+                    <docs:receivedInPaper>
+                        <docs:original>
+                            <docs:pageCount>1</docs:pageCount>
+                            <docs:docCount>1</docs:docCount>
+                        </docs:original>
+                    </docs:receivedInPaper>
+                </docs:attachment>
+                <docs:series>5642</docs:series>
+                <docs:issuer>
+                    <docs:code>9980</docs:code>
+                    <docs:name>Багартеоновян Ренли Стеффонович</docs:name>
+                </docs:issuer>
+            </docs:powerOfAttorney>
+        </stCom:appliedDocument>
+        <stCom:appliedDocument>
+            <docs:idDocument _id="7cc6f9ab-7f21-4c1b-a4a9-c835d71f31ca">
+                <docs:documentTypes>
+                    <docs:documentTypeCode>008001014000</docs:documentTypeCode>
+                </docs:documentTypes>
+                <docs:name>Справка об освобождении из мест лишения свободы</docs:name>
+                <docs:number>402885</docs:number>
+                <docs:issueDate>1990-10-20</docs:issueDate>
+                <docs:series>3147</docs:series>
+                <docs:issuer>
+                    <docs:code>915-574</docs:code>
+                    <docs:name>ВЫДАВАЛЬЩИК ДОКУМЕНТОВ №706609</docs:name>
+                </docs:issuer>
+            </docs:idDocument>
+        </stCom:appliedDocument>
+        <stCom:appliedDocument>
+            <docs:idDocument _id="59f023fd-43e6-4043-bd1d-86572f5addff">
+                <docs:documentTypes>
+                    <docs:documentTypeCode>008001003000</docs:documentTypeCode>
+                </docs:documentTypes>
+                <docs:name>Паспорт гражданина иностранного государства</docs:name>
+                <docs:number>867224</docs:number>
+                <docs:issueDate>1993-10-21</docs:issueDate>
+                <docs:series>6302</docs:series>
+                <docs:issuer>
+                    <docs:code>582-915</docs:code>
+                    <docs:name>ВЫДАВАЛЬЩИК ДОКУМЕНТОВ №866310</docs:name>
+                </docs:issuer>
+            </docs:idDocument>
+        </stCom:appliedDocument>
+        <stCom:appliedDocument>
+            <docs:idDocument _id="7cc6f9ab-7f21-4c1b-a4a9-c835d71f31ca">
+                <docs:documentTypes>
+                    <docs:documentTypeCode>008001014000</docs:documentTypeCode>
+                </docs:documentTypes>
+                <docs:name>Справка об освобождении из мест лишения свободы</docs:name>
+                <docs:number>402885</docs:number>
+                <docs:issueDate>1990-10-20</docs:issueDate>
+                <docs:series>3147</docs:series>
+                <docs:issuer>
+                    <docs:code>915-574</docs:code>
+                    <docs:name>ВЫДАВАЛЬЩИК ДОКУМЕНТОВ №706609</docs:name>
+                </docs:issuer>
+            </docs:idDocument>
+        </stCom:appliedDocument>
+        <stCom:appliedDocument>
+            <docs:idDocument _id="59f023fd-43e6-4043-bd1d-86572f5addff">
+                <docs:documentTypes>
+                    <docs:documentTypeCode>008001003000</docs:documentTypeCode>
+                </docs:documentTypes>
+                <docs:name>Паспорт гражданина иностранного государства</docs:name>
+                <docs:number>867224</docs:number>
+                <docs:issueDate>1993-10-21</docs:issueDate>
+                <docs:series>6302</docs:series>
+                <docs:issuer>
+                    <docs:code>582-915</docs:code>
+                    <docs:name>ВЫДАВАЛЬЩИК ДОКУМЕНТОВ №866310</docs:name>
+                </docs:issuer>
+            </docs:idDocument>
+        </stCom:appliedDocument>
+        <stCom:appliedDocument>
+            <docs:idDocument _id="ebeee91b-e811-445f-9004-ecf40e834eab">
+                <docs:documentTypes>
+                    <docs:documentTypeCode>008001011000</docs:documentTypeCode>
+                </docs:documentTypes>
+                <docs:name>Свидетельство о рождении</docs:name>
+                <docs:number>726653</docs:number>
+                <docs:issueDate>2000-01-22</docs:issueDate>
+                <docs:series>1799</docs:series>
+                <docs:issuer>
+                    <docs:code>801-222</docs:code>
+                    <docs:name>ВЫДАВАЛЬЩИК ДОКУМЕНТОВ №581260</docs:name>
+                </docs:issuer>
+            </docs:idDocument>
+        </stCom:appliedDocument>
+        <stCom:appliedDocument>
+            <docs:idDocument _id="02518a45-f8bc-4da9-82c1-b7320f8796be">
+                <docs:documentTypes>
+                    <docs:documentTypeCode>008001011000</docs:documentTypeCode>
+                </docs:documentTypes>
+                <docs:name>Свидетельство о рождении</docs:name>
+                <docs:number>125842</docs:number>
+                <docs:issueDate>1995-02-09</docs:issueDate>
+                <docs:series>2340</docs:series>
+                <docs:issuer>
+                    <docs:code>497-076</docs:code>
+                    <docs:name>ВЫДАВАЛЬЩИК ДОКУМЕНТОВ №189683</docs:name>
+                </docs:issuer>
+            </docs:idDocument>
+        </stCom:appliedDocument>
+        <stCom:appliedDocument>
+            <docs:idDocument _id="4e490781-9eee-431d-8506-b45a6d69811e">
+                <docs:documentTypes>
+                    <docs:documentTypeCode>008001013000</docs:documentTypeCode>
+                </docs:documentTypes>
+                <docs:name>Вид на жительство иностранного гражданина или лица без гражданства</docs:name>
+                <docs:number>136689</docs:number>
+                <docs:issueDate>1991-05-02</docs:issueDate>
+                <docs:series>2147</docs:series>
+                <docs:issuer>
+                    <docs:code>683-118</docs:code>
+                    <docs:name>ВЫДАВАЛЬЩИК ДОКУМЕНТОВ №494524</docs:name>
+                </docs:issuer>
+            </docs:idDocument>
+        </stCom:appliedDocument>
+    </header>
+
+    <declarant _id="d960252f-e547-428d-9023-59d3ab7440df">
+        <subj:person>
+            <subj:contactInfo>
+                <subj:phoneNumber>+76539675321</subj:phoneNumber>
+                <subj:email>rbfadqbtrbi@badwavmdmwxsk.vv</subj:email>
+            </subj:contactInfo>
+            <subj:surname>Пескова</subj:surname>
+            <subj:firstname>Обара</subj:firstname>
+            <subj:patronymic>Обериновна</subj:patronymic>
+            <subj:birthDate>2004-08-30</subj:birthDate>
+            <subj:birthPlace>г.Валирия</subj:birthPlace>
+            <subj:idDocumentRef documentID="7cc6f9ab-7f21-4c1b-a4a9-c835d71f31ca" />
+            <subj:address>
+                <addr:fias>449372c9-c8a1-4283-bf43-fea691bb8c19</addr:fias>
+                <addr:okato>03401000000</addr:okato>
+                <addr:oktmo>03701000001</addr:oktmo>
+                <addr:kladr>2300000100010820004</addr:kladr>
+                <addr:postalCode>350061</addr:postalCode>
+                <addr:region>
+                    <addr:code>23</addr:code>
+                    <addr:type>край</addr:type>
+                    <addr:name>Краснодарский</addr:name>
+                </addr:region>
+                <addr:city>
+                    <addr:code>001</addr:code>
+                    <addr:type>г</addr:type>
+                    <addr:name>Краснодар</addr:name>
+                </addr:city>
+                <addr:street>
+                    <addr:code>1082</addr:code>
+                    <addr:type>ул</addr:type>
+                    <addr:name>Парусная</addr:name>
+                </addr:street>
+
+                <addr:house>
+                    <addr:type>д</addr:type>
+                    <addr:value>20</addr:value>
+                </addr:house>
+                <addr:apartment>
+                    <addr:type>кв</addr:type>
+                    <addr:name>104</addr:name>
+                </addr:apartment>
+                <addr:note>г Краснодар, ул Парусная, д 20, кв 104</addr:note>
+            </subj:address>
+            <subj:citizenship><subj:country>848000000474</subj:country></subj:citizenship>
+            <subj:snils>018-705-893 70</subj:snils>
+        </subj:person>
+        <subj:declarantKind>357099000000</subj:declarantKind>
+        <subj:representative>
+            <subj:subject _id="07fc1dcb-1e0a-4a12-ae47-20d5c36bb245">
+                <subj:person>
+                    <subj:contactInfo>
+                        <subj:phoneNumber>+77710918804</subj:phoneNumber>
+                        <subj:email>oijwdxraiww@xqgqufophytvd.hv</subj:email>
+                    </subj:contactInfo>
+                    <subj:surname>Ланнистерова</subj:surname>
+                    <subj:firstname>Серсея</subj:firstname>
+                    <subj:patronymic>Тайвиновна</subj:patronymic>
+                    <subj:birthDate>2007-11-11</subj:birthDate>
+                    <subj:birthPlace>пос.Вэйс Дотрак</subj:birthPlace>
+                    <subj:idDocumentRef documentID="59f023fd-43e6-4043-bd1d-86572f5addff" />
+                    <subj:address>
+                        <addr:fias>68c85062-2f2a-49d9-b150-1daf933634d5</addr:fias>
+                        <addr:okato>45290572000</addr:okato>
+                        <addr:oktmo>45390000</addr:oktmo>
+                        <addr:kladr>7700000000041410007</addr:kladr>
+                        <addr:postalCode>109341</addr:postalCode>
+                        <addr:region>
+                            <addr:code>77</addr:code>
+                            <addr:type>г</addr:type>
+                            <addr:name>Москва</addr:name>
+                        </addr:region>
+                        <addr:city>
+                            <addr:code>000</addr:code>
+                            <addr:type>г</addr:type>
+                            <addr:name>Москва</addr:name>
+                        </addr:city>
+                        <addr:street>
+                            <addr:code>4141</addr:code>
+                            <addr:type>б-р</addr:type>
+                            <addr:name>Мячковский</addr:name>
+                        </addr:street>
+
+                        <addr:house>
+                            <addr:type>д</addr:type>
+                            <addr:value>8</addr:value>
+                        </addr:house>
+                        <addr:building>
+                            <addr:type>к</addr:type>
+                            <addr:value>2</addr:value>
+                        </addr:building>
+                        <addr:apartment>
+                            <addr:type>кв</addr:type>
+                            <addr:name>44</addr:name>
+                        </addr:apartment>
+                        <addr:note>г Москва, Мячковский б-р, д 8 к 2, кв 44</addr:note>
+                    </subj:address>
+                    <subj:citizenship><subj:country>848000000583</subj:country></subj:citizenship>
+                    <subj:snils>933-545-785 36</subj:snils>
+                </subj:person>
+                <subj:declarantKind>357099000000</subj:declarantKind>
+            </subj:subject>
+            <subj:representativeDocumentRef documentID="1807928004538532890" />
+        </subj:representative>
+    </declarant>
+    <requestDetails>
+        <requestEGRNDataAction>
+            <extractSubject>
+                <owner>
+                    <person>
+                        <subj:contactInfo>
+                            <subj:phoneNumber>+76539675321</subj:phoneNumber>
+                            <subj:email>rbfadqbtrbi@badwavmdmwxsk.vv</subj:email>
+                        </subj:contactInfo>
+                        <subj:surname>Пескова</subj:surname>
+                        <subj:firstname>Обара</subj:firstname>
+                        <subj:patronymic>Обериновна</subj:patronymic>
+                        <subj:birthDate>2004-08-30</subj:birthDate>
+                        <subj:idDocumentRef documentID="7cc6f9ab-7f21-4c1b-a4a9-c835d71f31ca"/>
+                        <subj:address>
+                            <addr:fias>449372c9-c8a1-4283-bf43-fea691bb8c19</addr:fias>
+                            <addr:okato>03401000000</addr:okato>
+                            <addr:oktmo>03701000001</addr:oktmo>
+                            <addr:kladr>2300000100010820004</addr:kladr>
+                            <addr:postalCode>350061</addr:postalCode>
+                            <addr:region>
+                                <addr:code>23</addr:code>
+                                <addr:type>край</addr:type>
+                                <addr:name>Краснодарский</addr:name>
+                            </addr:region>
+                            <addr:city>
+                                <addr:code>001</addr:code>
+                                <addr:type>г</addr:type>
+                                <addr:name>Краснодар</addr:name>
+                            </addr:city>
+                            <addr:street>
+                                <addr:code>1082</addr:code>
+                                <addr:type>ул</addr:type>
+                                <addr:name>Парусная</addr:name>
+                            </addr:street>
+
+                            <addr:house>
+                                <addr:type>д</addr:type>
+                                <addr:value>20</addr:value>
+                            </addr:house>
+                            <addr:apartment>
+                                <addr:type>кв</addr:type>
+                                <addr:name>104</addr:name>
+                            </addr:apartment>
+                            <addr:note>г Краснодар, ул Парусная, д 20, кв 104</addr:note>
+                        </subj:address>
+                        <subj:snils>018-705-893 70</subj:snils>
+                        <subj:previousData>
+                            <subj:FIO>
+                                <subj:surname>Мартеллова</subj:surname>
+                                <subj:firstname>Элия</subj:firstname>
+                            </subj:FIO>
+                            <subj:FIO>
+                                <subj:surname>Песчанкова</subj:surname>
+                                <subj:firstname>Нимерия</subj:firstname>
+                                <subj:patronymic>Обериновна</subj:patronymic>
+                            </subj:FIO>
+                            <subj:address>
+                                <addr:fias>7b2df2d9-6bce-481a-8d4b-fab7a418a25e</addr:fias>
+                                <addr:okato>20401000000</addr:okato>
+                                <addr:oktmo>20701000001</addr:oktmo>
+                                <addr:kladr>3600000100000110684</addr:kladr>
+                                <addr:postalCode>394024</addr:postalCode>
+                                <addr:region>
+                                    <addr:code>36</addr:code>
+                                    <addr:type>обл</addr:type>
+                                    <addr:name>Воронежская</addr:name>
+                                </addr:region>
+                                <addr:city>
+                                    <addr:code>001</addr:code>
+                                    <addr:type>г</addr:type>
+                                    <addr:name>Воронеж</addr:name>
+                                </addr:city>
+                                <addr:street>
+                                    <addr:code>0011</addr:code>
+                                    <addr:type>ул</addr:type>
+                                    <addr:name>45 стрелковой дивизии</addr:name>
+                                </addr:street>
+
+                                <addr:house>
+                                    <addr:type>д</addr:type>
+                                    <addr:value>64/2</addr:value>
+                                </addr:house>
+                                <addr:building>
+                                    <addr:type>к</addr:type>
+                                    <addr:value>1</addr:value>
+                                </addr:building>
+                                <addr:apartment>
+                                    <addr:type>кв</addr:type>
+                                    <addr:name>35</addr:name>
+                                </addr:apartment>
+                                <addr:note>г Воронеж, ул 45 стрелковой дивизии, д 64/2 к 1, кв 35</addr:note>
+                            </subj:address>
+                            <subj:address>
+                                <addr:fias>68c85062-2f2a-49d9-b150-1daf933634d5</addr:fias>
+                                <addr:okato>45290572000</addr:okato>
+                                <addr:oktmo>45390000</addr:oktmo>
+                                <addr:kladr>7700000000041410007</addr:kladr>
+                                <addr:postalCode>109341</addr:postalCode>
+                                <addr:region>
+                                    <addr:code>77</addr:code>
+                                    <addr:type>г</addr:type>
+                                    <addr:name>Москва</addr:name>
+                                </addr:region>
+                                <addr:city>
+                                    <addr:code>000</addr:code>
+                                    <addr:type>г</addr:type>
+                                    <addr:name>Москва</addr:name>
+                                </addr:city>
+                                <addr:street>
+                                    <addr:code>4141</addr:code>
+                                    <addr:type>б-р</addr:type>
+                                    <addr:name>Мячковский</addr:name>
+                                </addr:street>
+
+                                <addr:house>
+                                    <addr:type>д</addr:type>
+                                    <addr:value>8</addr:value>
+                                </addr:house>
+                                <addr:building>
+                                    <addr:type>к</addr:type>
+                                    <addr:value>2</addr:value>
+                                </addr:building>
+                                <addr:apartment>
+                                    <addr:type>кв</addr:type>
+                                    <addr:name>44</addr:name>
+                                </addr:apartment>
+                                <addr:note>г Москва, Мячковский б-р, д 8 к 2, кв 44</addr:note>
+                            </subj:address>
+                            <subj:idDocumentRef documentID="ebeee91b-e811-445f-9004-ecf40e834eab"/>
+                            <subj:idDocumentRef documentID="02518a45-f8bc-4da9-82c1-b7320f8796be"/>
+                            <subj:idDocumentRef documentID="4e490781-9eee-431d-8506-b45a6d69811e"/>
+                        </subj:previousData>
+                    </person>
+                </owner>
+
+                <period>
+                    <dateEnd>1996-11-09</dateEnd>
+                </period>
+                <realtyTypes>
+                    <realtyType>
+                        <other>
+                            <objectType>002001008000</objectType>
+                        </other>
+                    </realtyType>
+                </realtyTypes>
+                <territory>
+                    <regions>
+                        <region>01</region>
+                    </regions>
+                </territory>
+            </extractSubject>
+        </requestEGRNDataAction>
+    </requestDetails>
+    <deliveryDetails>
+        <stCom:requestDeliveryMethod>
+            <stCom:receivingMethodCode>electronically</stCom:receivingMethodCode>
+            <stCom:regRightAuthority>Управление Росреестра по Республике Адыгея</stCom:regRightAuthority>
+            <stCom:code>1.028</stCom:code>
+        </stCom:requestDeliveryMethod>
+        <stCom:resultDeliveryMethod>
+            <stCom:recieveResultTypeCode>webService</stCom:recieveResultTypeCode>
+        </stCom:resultDeliveryMethod>
+    </deliveryDetails>
+    <statementAgreements>
+        <stCom:persDataProcessingAgreement>01</stCom:persDataProcessingAgreement>
+        <stCom:actualDataAgreement>01</stCom:actualDataAgreement>
+    </statementAgreements>
+</EGRNRequest>
+
+

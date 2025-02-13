@@ -85,6 +85,200 @@ class Picture(
 
         }
     }
+
+    data class MultiLine(
+        val fontName: String,
+        val fontStyle: Int,
+        val fontSize: Int,
+        val text: String,
+        val centerX: Int,
+        val centerY: Int,
+        val topY: Int
+    )
+    fun multiLines(): List<MultiLine> {
+
+        val result: MutableList<MultiLine> = mutableListOf()
+
+        if (params is TextParams) {
+
+            val imageType = BufferedImage.TYPE_INT_ARGB
+            val resultImage = BufferedImage(params.w, params.h, imageType)
+            val graphics2D = resultImage.graphics as Graphics2D
+            graphics2D.setRenderingHint(
+                RenderingHints.KEY_TEXT_ANTIALIASING,
+                RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
+            val alphaChannel = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1f)
+            graphics2D.composite = alphaChannel
+
+            var font = Font(params.fontName, params.fontStyle, params.fontSize)
+
+            var rectW = 0
+            var rectWprev = 0
+            var rectH = 0
+            var rectHprev = 0
+            var rectY = 0
+            var rectYprev = 0
+
+            graphics2D.color = params.color
+            graphics2D.font = font
+
+            if (params.isCalculatedSize) {
+
+                val fontSizeAndWHYsingleLine = calcFontSizeAndWHY(
+                    text = params.text,
+                    w = params.w,
+                    h = params.h,
+                    font = Font(params.fontName, params.fontStyle, params.fontSize)
+                )
+                val fontSizeSingleLine = fontSizeAndWHYsingleLine.fontSize
+
+                val words = params.text.split(" ")
+
+                if (params.isLineBreak && words.size > 1) {
+
+                    val vol = getVariantsOfLines(params.text)
+
+                    val a = vol.map { lines ->
+                        val fssl = lines.map { line ->
+                            calcFontSizeAndWHY(
+                                text = line,
+                                w = params.w,
+                                h = params.h / lines.size,
+                                font = Font(params.fontName, params.fontStyle, params.fontSize)
+                            )
+                        }
+                        val mfs = fssl.minOf { it.fontSize }
+                        val minFontSizeSingleLine = fssl.filter { it.fontSize == mfs }.maxBy { it.w }
+                        Pair(lines, minFontSizeSingleLine)
+                    }
+                    val maxFontSizeLines = a.maxOf { it.second.fontSize }
+                    val filteredA = a.filter { it.second.fontSize == maxFontSizeLines }
+                    val (lines, fswhy) = filteredA.minBy { it.second.w }
+
+                    if (fswhy.fontSize > fontSizeSingleLine) {
+
+                        lines.forEachIndexed { index, line ->
+
+                            val lineSizeAndWHY = calcFontSizeAndWHY(
+                                text = line,
+                                w = params.w,
+                                h = params.h,
+                                font = Font(params.fontName, params.fontStyle, fswhy.fontSize),
+                                isFix = true
+                            )
+
+                            val deltaH = fswhy.h * index - fswhy.h/4 + params.h / lines.size
+
+                            val centerX = (params.w - lineSizeAndWHY.w) / 2
+                            val centerY = deltaH
+
+                            val topY = fswhy.h * index + (params.h - fswhy.h * lines.size) / 2
+
+                            graphics2D.font = Font(params.fontName, params.fontStyle, lineSizeAndWHY.fontSize)
+                            graphics2D.color = params.shadowColor
+                            graphics2D.drawString(line, centerX+params.shadowOffset, centerY+params.shadowOffset)
+                            graphics2D.color = params.color
+                            graphics2D.drawString(line, centerX, centerY)
+                            result.add(
+                                MultiLine(
+                                    fontName = params.fontName,
+                                    fontStyle = params.fontStyle,
+                                    fontSize = lineSizeAndWHY.fontSize,
+                                    text = line,
+                                    centerX = centerX,
+                                    centerY = centerY,
+                                    topY = topY
+                                )
+                            )
+
+                        }
+
+                    } else {
+
+                        val centerX = (params.w - fontSizeAndWHYsingleLine.w) / 2
+                        val centerY = (params.h + fontSizeAndWHYsingleLine.h) / 2  + fontSizeAndWHYsingleLine.y/4
+                        val topY = (params.h - fontSizeAndWHYsingleLine.h) / 2
+
+                        graphics2D.font = Font(params.fontName, params.fontStyle, fontSizeAndWHYsingleLine.fontSize)
+                        graphics2D.color = params.shadowColor
+                        graphics2D.drawString(params.text, centerX+params.shadowOffset, centerY+params.shadowOffset)
+                        graphics2D.color = params.color
+                        graphics2D.drawString(params.text, centerX, centerY)
+                        result.add(
+                            MultiLine(
+                                fontName = params.fontName,
+                                fontStyle = params.fontStyle,
+                                fontSize = fontSizeAndWHYsingleLine.fontSize,
+                                text = params.text,
+                                centerX = centerX,
+                                centerY = centerY,
+                                topY = topY
+                            )
+                        )
+
+                    }
+
+                } else {
+
+                    val centerX = (params.w - fontSizeAndWHYsingleLine.w) / 2
+                    val centerY = (params.h + fontSizeAndWHYsingleLine.h) / 2  + fontSizeAndWHYsingleLine.y/4
+                    val topY = (params.h - fontSizeAndWHYsingleLine.h) / 2
+                    graphics2D.font = Font(params.fontName, params.fontStyle, fontSizeAndWHYsingleLine.fontSize)
+                    graphics2D.color = params.shadowColor
+                    graphics2D.drawString(params.text, centerX+params.shadowOffset, centerY+params.shadowOffset)
+                    graphics2D.color = params.color
+                    graphics2D.drawString(params.text, centerX, centerY)
+                    result.add(
+                        MultiLine(
+                            fontName = params.fontName,
+                            fontStyle = params.fontStyle,
+                            fontSize = fontSizeAndWHYsingleLine.fontSize,
+                            text = params.text,
+                            centerX = centerX,
+                            centerY = centerY,
+                            topY = topY
+                        )
+                    )
+                }
+
+            } else {
+
+                val fontSizeAndWHY = calcFontSizeAndWHY(
+                    text = params.text,
+                    w = params.w,
+                    h = params.h,
+                    font = Font(params.fontName, params.fontStyle, params.fontSize),
+                    isFix = true
+                )
+
+                val centerX = (params.w - fontSizeAndWHY.w) / 2
+                val centerY = (params.h + fontSizeAndWHY.h/2) / 2 + fontSizeAndWHY.y/4
+                val topY = (params.h - fontSizeAndWHY.h/2) / 2
+
+                graphics2D.font = Font(params.fontName, params.fontStyle, fontSizeAndWHY.fontSize)
+                graphics2D.color = params.shadowColor
+                graphics2D.drawString(params.text, centerX+params.shadowOffset, centerY+params.shadowOffset)
+                graphics2D.color = params.color
+                graphics2D.drawString(params.text, centerX, centerY)
+                result.add(
+                    MultiLine(
+                        fontName = params.fontName,
+                        fontStyle = params.fontStyle,
+                        fontSize = fontSizeAndWHY.fontSize,
+                        text = params.text,
+                        centerX = centerX,
+                        centerY = centerY,
+                        topY = topY
+                    )
+                )
+
+            }
+
+        }
+
+        return result
+    }
+
     fun bi(): BufferedImage {
 
         if (params is AreaParams) {
@@ -102,7 +296,7 @@ class Picture(
             graphics2D.dispose()
             return resultImage
         } else if (params is ImageParams) {
-            val biImage = resizeBufferedImage(ImageIO.read(File(params.pathToFile)), params.w, params.h)
+            val biImage = params.biImage ?: resizeBufferedImage(ImageIO.read(File(params.pathToFile)), params.w, params.h)
 
             val imageType = BufferedImage.TYPE_INT_ARGB
             val resultImage = BufferedImage(params.w, params.h, imageType)
@@ -272,7 +466,7 @@ class Picture(
         return result
     }
 
-    private fun calcFontSizeAndWHY(text: String, w: Int, h: Int, font: Font, isFix: Boolean = false): FontSizeAndWHY {
+    fun calcFontSizeAndWHY(text: String, w: Int, h: Int, font: Font, isFix: Boolean = false): FontSizeAndWHY {
         val imageType = BufferedImage.TYPE_INT_ARGB
         val resultImage = BufferedImage(w, h, imageType)
         val graphics2D = resultImage.graphics as Graphics2D
@@ -328,7 +522,8 @@ data class AreaParams(
 data class ImageParams(
     val w: Int,
     val h: Int,
-    val pathToFile: String
+    val pathToFile: String = "",
+    val biImage: BufferedImage? = null
 ): PictureParams
 
 data class TextParams(

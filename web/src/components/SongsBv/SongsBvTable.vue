@@ -124,6 +124,13 @@
               :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
           ></div>
         </template>
+        <template #cell(flagSponsr)="data">
+          <div
+              class="fld-flag-sponsr"
+              v-text="data.value"
+              :style="{ backgroundColor: data.item.processColorSponsr, color: currentSongId === data.item.id ? 'blue' : 'black' }"
+          ></div>
+        </template>
         <template #cell(flagBoosty)="data">
           <div
               class="fld-flag-boosty"
@@ -276,7 +283,9 @@ export default {
       isCustomConfirmVisible: false,
       customConfirmParams: undefined,
       isBusy: false,
-      currentSongId: 0
+      currentSongId: 0,
+      previousSongId: 0,
+      nextSongId: 0
     }
   },
   watch: {
@@ -295,6 +304,9 @@ export default {
     },
     songsDigests() {
       return this.$store.getters.getSongsDigest;
+    },
+    songsHistory() {
+      return this.$store.getters.getSongsHistory;
     },
     countRows() {
       return this.songsDigests.length;
@@ -414,6 +426,16 @@ export default {
         {
           key: 'resultVersion',
           label: 'V',
+          style: {
+            minWidth: '20px',
+            maxWidth: '20px',
+            textAlign: 'center',
+            fontSize: 'small'
+          }
+        },
+        {
+          key: 'flagSponsr',
+          label: 'SP',
           style: {
             minWidth: '20px',
             maxWidth: '20px',
@@ -879,6 +901,8 @@ export default {
     },
     onRowClicked(item, index) {
       this.currentSongId = item.id;
+      this.previousSongId = item.idPrevious;
+      this.nextSongId = item.idNext;
       console.log(`Row '${index}' clicked: `, item.songName);
     },
     getCellStyle(data) {
@@ -1023,6 +1047,14 @@ export default {
 .fld-flag-boosty {
   min-width: 100%;
   max-width: 100%;
+  text-align: center;
+  font-size: small;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.fld-flag-sponsr {
+  min-width: 20px;
+  max-width: 20px;
   text-align: center;
   font-size: small;
   white-space: nowrap;

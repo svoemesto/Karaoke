@@ -7,6 +7,7 @@ import processesBv from '../components/ProcessesBv/store'
 import processFilter from '../components/ProcessesFilter/store'
 import publish from '../components/Publish/store'
 import publicationBv from '../components/PublicationsBv/store'
+import common from '../components/Common/store'
 // import process from '../components/Processes/store'
 Vue.use(Vuex)
 
@@ -18,6 +19,7 @@ export default new Vuex.Store({
     songBv,
     processesBv,
     publicationBv,
+    common,
     songFilter,
     processFilter,
     // process

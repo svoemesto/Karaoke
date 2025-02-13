@@ -5,22 +5,34 @@ import com.svoemesto.karaokeapp.KaraokeVoice
 import com.svoemesto.karaokeapp.getTextWidthHeightPx
 import com.svoemesto.karaokeapp.mlt.MltGenerator
 import com.svoemesto.karaokeapp.mlt.MltProp
+import com.svoemesto.karaokeapp.mlt.MltText
 import com.svoemesto.karaokeapp.xmldata
 import com.svoemesto.karaokeapp.model.MltNode
 import com.svoemesto.karaokeapp.model.MltNodeBuilder
 import com.svoemesto.karaokeapp.model.ProducerType
+import com.svoemesto.karaokeapp.model.TransformProperty
 
-data class MkoFaderText(val mltProp: MltProp, val type: ProducerType, val voiceId: Int = 0, val childId: Int = 0): MltKaraokeObject {
+data class MkoFaderText(val mltProp: MltProp, val type: ProducerType, val voiceId: Int = 0, val childId: Int = 0, val elementId: Int = 0): MltKaraokeObject {
     val mltGenerator = MltGenerator(mltProp, type)
+
+    private val frameWidthPx = mltProp.getFrameWidthPx()
+    private val frameHeightPx = mltProp.getFrameHeightPx()
+    private val songLengthFr = mltProp.getSongLengthFr()
+    private val songStartTimecode = mltProp.getSongStartTimecode()
+    private val songEndTimecode = mltProp.getSongEndTimecode()
+    private val songFadeInTimecode = mltProp.getSongFadeInTimecode()
+    private val songFadeOutTimecode = mltProp.getSongFadeOutTimecode()
+    private val fontSize = mltProp.getFontSize()
+    private val inOffsetVideo = mltProp.getInOffsetVideo()
 
     override fun producer(): MltNode = mltGenerator
         .producer(
             props = MltNodeBuilder(mltGenerator.defaultProducerPropertiesForMltService("kdenlivetitle"))
-                .propertyName("length", mltProp.getSongLengthFr())
-                .propertyName("kdenlive:duration", mltProp.getSongEndTimecode())
-                .propertyName("xmldata", mltProp.getXmlData(listOf(type, voiceId)).toString().xmldata())
-                .propertyName("meta.media.width", Karaoke.frameWidthPx)
-                .propertyName("meta.media.height", Karaoke.frameHeightPx)
+                .propertyName("length", songLengthFr)
+                .propertyName("kdenlive:duration", songEndTimecode)
+                .propertyName("xmldata", template().toString().xmldata())
+                .propertyName("meta.media.width", frameWidthPx)
+                .propertyName("meta.media.height", frameHeightPx)
                 .build()
         )
 
@@ -29,37 +41,44 @@ data class MkoFaderText(val mltProp: MltProp, val type: ProducerType, val voiceI
         val result = mltGenerator.filePlaylist()
         result.body?.let {
             val body = it as MutableList<MltNode>
-            body.addAll(MltNodeBuilder().blank(mltProp.getInOffsetVideo()).build())
+            body.addAll(MltNodeBuilder().blank(inOffsetVideo).build())
             body.add(
                 mltGenerator.entry(
                     nodes = MltNodeBuilder()
                         .propertyName("kdenlive:id", "filePlaylist${mltGenerator.id}")
-                        .filterQtblend(mltGenerator.nameFilterQtblend, "${mltProp.getSongStartTimecode()}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.000000;${mltProp.getSongFadeInTimecode()}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 1.000000;${mltProp.getSongFadeOutTimecode()}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 1.000000;${mltProp.getSongEndTimecode()}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.000000")
+                        .filterQtblend(mltGenerator.nameFilterQtblend, mainFilePlaylistTransformProperties())
                         .build()
                 )
             )
         }
         return result
     }
+    override fun mainFilePlaylistTransformProperties(): String {
+        val tpStart = TransformProperty(time = songStartTimecode, x = 0, y = 0, w = frameWidthPx, h = frameHeightPx, opacity = 0.0)
+        val tpFadeIn = TransformProperty(time = songFadeInTimecode, x = 0, y = 0, w = frameWidthPx, h = frameHeightPx, opacity = 1.0)
+        val tpFadeOut = TransformProperty(time = songFadeOutTimecode, x = 0, y = 0, w = frameWidthPx, h = frameHeightPx, opacity = 1.0)
+        val tpEnd = TransformProperty(time = songEndTimecode, x = 0, y = 0, w = frameWidthPx, h = frameHeightPx, opacity = 0.0)
+        val resultListTp = listOf(tpStart, tpFadeIn, tpFadeOut, tpEnd)
+        return resultListTp.joinToString(";")
+    }
     override fun trackPlaylist(): MltNode = mltGenerator.trackPlaylist()
 
     override fun tractor(): MltNode = mltGenerator.tractor()
 
     override fun template(): MltNode {
-        val voiceSetting = mltProp.getVoiceSetting(0)
-        val w = Karaoke.frameWidthPx
-        val h = getTextWidthHeightPx("W", voiceSetting!!.groups[0].mltText.font).second.toLong() * 2
+        val w = frameWidthPx
+        val h = Karaoke.voices[0].groups[0].mltText.copy("W", fontSize).h().toLong() * 2
         val x = 0
         val yTop = 0
-        val yBottom = Karaoke.frameHeightPx - h
+        val yBottom = frameHeightPx - h
 
         return MltNode(
             name = "kdenlivetitle",
             fields = mutableMapOf(
                 Pair("duration","0"),
                 Pair("LC_NUMERIC","C"),
-                Pair("width","${Karaoke.frameWidthPx}"),
-                Pair("height","${Karaoke.frameHeightPx}"),
+                Pair("width","$frameWidthPx"),
+                Pair("height","$frameHeightPx"),
                 Pair("out","0"),
             ),
             body = mutableListOf(
@@ -119,8 +138,8 @@ data class MkoFaderText(val mltProp: MltProp, val type: ProducerType, val voiceI
                         )
                     )
                 ),
-                MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${Karaoke.frameHeightPx}"))),
-                MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${Karaoke.frameHeightPx}"))),
+                MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${frameWidthPx},${frameHeightPx}"))),
+                MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${frameWidthPx},${frameHeightPx}"))),
                 MltNode(name = "background", fields = mutableMapOf(Pair("color","0,0,0,0")))
             )
         )

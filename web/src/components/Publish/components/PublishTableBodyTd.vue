@@ -11,7 +11,7 @@
       <div class="publish-column">
         <div class="publish-column-cell-top" :style="processColorBoosty" ></div>
         <div class="publish-column-cell-top" :style="processColorVk" ></div>
-        <div class="publish-column-cell-bottom" :style="processColorVk" ></div>
+        <div class="publish-column-cell-bottom" :style="processColorSponsr" ></div>
       </div>
       <div class="publish-column">
         <div class="publish-column-cell-top" :style="processColorDzenLyrics" ></div>
@@ -71,6 +71,7 @@ export default {
     },
     styleSongName() { return { backgroundColor: this.publish.color } },
     processColorBoosty() { return { backgroundColor: this.publish.processColorBoosty } },
+    processColorSponsr() { return { backgroundColor: this.publish.processColorSponsr } },
     processColorVk() { return { backgroundColor: this.publish.processColorVk } },
     processColorVkLyrics() { return { backgroundColor: this.publish.processColorVkLyrics } },
     processColorVkKaraoke() { return { backgroundColor: this.publish.processColorVkKaraoke } },

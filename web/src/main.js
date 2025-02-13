@@ -111,7 +111,9 @@ new Vue({
       console.log('methods addProcessByUserEvent from main.js');
       this.$store.dispatch('addProcessByUserEvent', userEventData);
     },
-
+    logMessageByUserEvent(text) {
+      this.$store.dispatch('setLogMessage', text);
+    },
     showMessageByUserEvent(userEvent) {
       console.log("Message from server: ", userEvent);
       this.$bvToast.toast(userEvent.body, {
@@ -151,6 +153,7 @@ new Vue({
         case 'PROCESS_WORKER_STATE': { this.updateProcessWorkerStateByUserEvent(userEvent.data); break; }
         case 'MESSAGE': { this.showMessageByUserEvent(userEvent.data); break; }
         case 'DUMMY': { console.log("DUMMY MESSAGE"); break; }
+        case 'LOG': { this.logMessageByUserEvent(userEvent.data); break; }
         default: { console.log("Неизвестный тип события: ", userEvent.type); }
       }
     }

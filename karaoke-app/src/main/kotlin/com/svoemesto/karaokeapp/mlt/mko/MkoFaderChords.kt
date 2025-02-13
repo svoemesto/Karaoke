@@ -10,18 +10,28 @@ import com.svoemesto.karaokeapp.model.MltNode
 import com.svoemesto.karaokeapp.model.MltNodeBuilder
 import com.svoemesto.karaokeapp.model.ProducerType
 
-data class MkoFaderChords(val mltProp: MltProp, val type: ProducerType, val voiceId: Int = 0, val childId: Int = 0): MltKaraokeObject {
+data class MkoFaderChords(val mltProp: MltProp, val type: ProducerType, val voiceId: Int = 0, val childId: Int = 0, val elementId: Int = 0): MltKaraokeObject {
     val mltGenerator = MltGenerator(mltProp, type)
+
+    private val frameWidthPx = mltProp.getFrameWidthPx()
+    private val frameHeightPx = mltProp.getFrameHeightPx()
+    private val songEndTimecode = mltProp.getSongEndTimecode()
+    private val songLengthFr = mltProp.getSongLengthFr()
+    private val fingerboardH = mltProp.getFingerboardH(0)
+    private val mkoFaderChordsProducerRect = mltProp.getRect(listOf(type, voiceId))
+    private val inOffsetVideo = mltProp.getInOffsetVideo()
+    private val songCapo = mltProp.getSongCapo()
+    private val songChordDescription = mltProp.getSongChordDescription()
 
     override fun producer(): MltNode = mltGenerator
         .producer(
             props = MltNodeBuilder(mltGenerator.defaultProducerPropertiesForMltService("kdenlivetitle"))
-                .propertyName("length", mltProp.getSongLengthFr())
-                .propertyName("kdenlive:duration", mltProp.getSongEndTimecode())
-                .propertyName("xmldata", mltProp.getXmlData(listOf(type, voiceId)).toString().xmldata())
-                .propertyName("meta.media.width", Karaoke.frameWidthPx)
-                .propertyName("meta.media.height", mltProp.getFingerboardH(0) + 50)
-                .filterQtblend(mltGenerator.nameFilterQtblend, mltProp.getRect(listOf(type, voiceId)))
+                .propertyName("length", songLengthFr)
+                .propertyName("kdenlive:duration", songEndTimecode)
+                .propertyName("xmldata", template().toString().xmldata())
+                .propertyName("meta.media.width", frameWidthPx)
+                .propertyName("meta.media.height", fingerboardH + 50)
+                .filterQtblend(mltGenerator.nameFilterQtblend, mkoFaderChordsProducerRect)
                 .build()
         )
 
@@ -29,7 +39,7 @@ data class MkoFaderChords(val mltProp: MltProp, val type: ProducerType, val voic
         val result = mltGenerator.filePlaylist()
         result.body?.let {
             val body = it as MutableList<MltNode>
-            body.addAll(MltNodeBuilder().blank(mltProp.getInOffsetVideo()).build())
+            body.addAll(MltNodeBuilder().blank(inOffsetVideo).build())
             body.add(
                 mltGenerator.entry(
                     nodes = MltNodeBuilder()
@@ -40,24 +50,23 @@ data class MkoFaderChords(val mltProp: MltProp, val type: ProducerType, val voic
         }
         return result
     }
-
+    override fun mainFilePlaylistTransformProperties(): String = ""
     override fun trackPlaylist(): MltNode = mltGenerator.trackPlaylist()
 
     override fun tractor(): MltNode = mltGenerator.tractor()
 
     override fun template(): MltNode {
         //    val fingerboardW = param["VOICE0_FINGERBOARD_W"] as Int
-        val fingerboardH = mltProp.getFingerboardH(0)
-        val capo = mltProp.getSongCapo()
-        val chordDescription = mltProp.getSongChordDescription()
 
-        val voiceSetting = mltProp.getVoiceSetting(0)
-        val w = Karaoke.frameWidthPx / 4
-        val h = Karaoke.frameHeightPx / 4
+        val capo = songCapo
+        val chordDescription = songChordDescription
+
+        val w = frameWidthPx / 4
+        val h = frameHeightPx / 4
         val x = 0
         val y = 0
-        val xRight = Karaoke.frameWidthPx - w
-        val yBottom = Karaoke.frameHeightPx - h
+        val xRight = frameWidthPx - w
+        val yBottom = frameHeightPx - h
         val chordsCapoMltFont = Karaoke.chordsCapoFont
 
         val body: MutableList<MltNode> = mutableListOf()
@@ -192,7 +201,7 @@ data class MkoFaderChords(val mltProp: MltProp, val type: ProducerType, val voic
                         name = "position",
                         fields = mutableMapOf(
                             Pair("x","0"),
-                            Pair("y","${h}")
+                            Pair("y","$h")
                         ),
                         body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(Pair("zoom","100")), body = "1,0,0,0,1,0,0,0,1"))
                     ),
@@ -203,7 +212,7 @@ data class MkoFaderChords(val mltProp: MltProp, val type: ProducerType, val voic
                             Pair("pencolor","0,0,0,255"),
                             Pair("penwidth","0"),
                             Pair("penwidth","0"),
-                            Pair("rect","0,0,${Karaoke.frameWidthPx},50"),
+                            Pair("rect","0,0,${frameWidthPx},50"),
                             Pair("gradient","#ff000000;#00bf4040;0;100;90")
                         )
                     )
@@ -225,8 +234,8 @@ data class MkoFaderChords(val mltProp: MltProp, val type: ProducerType, val voic
             )
         )
 
-        body.add(MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${fingerboardH+50}"))))
-        body.add(MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${fingerboardH+50}"))))
+        body.add(MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${frameWidthPx},${fingerboardH+50}"))))
+        body.add(MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${frameWidthPx},${fingerboardH+50}"))))
         body.add(MltNode(name = "background", fields = mutableMapOf(Pair("color","0,0,0,0"))))
 
         return MltNode(
@@ -234,7 +243,7 @@ data class MkoFaderChords(val mltProp: MltProp, val type: ProducerType, val voic
             fields = mutableMapOf(
                 Pair("duration","0"),
                 Pair("LC_NUMERIC","C"),
-                Pair("width","${Karaoke.frameWidthPx}"),
+                Pair("width","$frameWidthPx"),
                 Pair("height","${fingerboardH+50}"),
                 Pair("out","0"),
             ),

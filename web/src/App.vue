@@ -13,6 +13,7 @@
 <!--        <li class="nav-item"><router-link to="/processes">Процессы</router-link></li>-->
         <li class="nav-item"><router-link to="/processesbv">Процессы</router-link></li>
       </ul>
+      <backend-console/>
       <process-worker/>
     </div>
     <router-view/>
@@ -35,16 +36,16 @@
   justify-content: space-between;
   align-items: center;
 }
-.nav-item {
-  padding: 5px;
-  border: thin solid darkslategray;
-  border-radius: 1rem;
-  background-color: aquamarine;
-  color: blue;
-  text-decoration: none;
-  margin: 0 5px;
-  width: 120px;
-}
+/*.nav-item {*/
+/*  padding: 5px;*/
+/*  border: thin solid darkslategray;*/
+/*  border-radius: 1rem;*/
+/*  background-color: aquamarine;*/
+/*  color: blue;*/
+/*  text-decoration: none;*/
+/*  margin: 0 5px;*/
+/*  width: 120px;*/
+/*}*/
 .nav-item:hover {
   text-decoration: none;
   background-color: #4AAE9B;
@@ -58,6 +59,12 @@ nav a {
   color: #2c3e50;
 }
 
+li a {
+  padding: 0 5px 0 5px;
+}
+.router-link-active {
+  padding: 0 5px 0 5px;
+}
 .router-link-exact-active {
   /*text-decoration: none;*/
   color: red;
@@ -100,5 +107,6 @@ nav a {
 </style>
 <script setup>
 import ProcessWorker from "@/components/Common/ProcessWorker.vue";
+import BackendConsole from "@/components/Common/BackendConsole.vue";
 
 </script>

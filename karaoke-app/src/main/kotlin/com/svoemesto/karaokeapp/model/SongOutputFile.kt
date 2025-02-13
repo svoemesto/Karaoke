@@ -8,6 +8,8 @@ enum class SongOutputFile(val extension: String) : Serializable {
     PICTURE(extension = "png"),
     PICTURECHORDS(extension = "png"),
     PICTUREBOOSTY(extension = "png"),
+    PICTUREBOOSTYTEASER(extension = "png"),
+    PICTUREBOOSTYFILES(extension = "png"),
     PICTUREVK(extension = "png"),
     PICTUREVKLINK(extension = "png"),
     SUBTITLE(extension = "kdenlive.srt"),

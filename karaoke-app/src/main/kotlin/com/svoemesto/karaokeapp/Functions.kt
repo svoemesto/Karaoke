@@ -7,13 +7,498 @@ import java.io.File
 import java.lang.Integer.min
 import java.nio.file.Files
 import java.nio.file.attribute.PosixFilePermissions
-import java.util.UUID
 //import java.nio.file.Path
 import kotlin.io.path.Path
 
+fun getVoices(settings: Settings, songVersion: SongVersion) : List<SettingVoice> {
+
+    val listOfVoices: MutableList<SettingVoice> = mutableListOf()
+    val countNotEmptyVoices = settings.sourceMarkersList.filter { it.isNotEmpty() }.size
+
+    if (countNotEmptyVoices == 0) return listOfVoices
+    val startSilentOffsetMs = settings.getStartSilentOffsetMs()
+    for (voiceIndex in 0 until settings.countVoices) {
+
+        val voice = SettingVoice(rootId = settings.id)
+        voice.voiceId = voiceIndex
+        voice.rootSongLengthMs = settings.songLengthMs
+        voice.rootStartSilentOffsetMs = settings.getStartSilentOffsetMs()
+
+        val voiceMarkers = settings.sourceMarkersList[voiceIndex]
+        var groupId = 0
+        var endTimeMs = 0L
+        val lines: MutableList<SettingVoiceLine> = mutableListOf()
+        var tmpLines: MutableList<SettingVoiceLine> = mutableListOf()
+        var tmpElements: MutableList<SettingVoiceLineElement> = mutableListOf()
+        var tmpTextSyllables: MutableList<SettingVoiceLineElementSyllable> = mutableListOf()
+        var tmpChordSyllables: MutableList<SettingVoiceLineElementSyllable> = mutableListOf()
+        var tmpNoteSyllables: MutableList<SettingVoiceLineElementSyllable> = mutableListOf()
+        var prevTextSyllable: SettingVoiceLineElementSyllable? = null
+
+        var lastTextLineWasComment = false
+
+        voiceMarkers.forEachIndexed { markerIndex, sourceMarker ->
+
+            // Время слога - время маркера + стартовый оффсет
+            val timeMs = (sourceMarker.time * 1000).toLong() + startSilentOffsetMs
+            var currentText = ""
+
+            when (sourceMarker.markertype) {
+                "setting" -> {
+                    val values = sourceMarker.label.split("|")
+
+                    if (values.size == 1) {
+                        if (values[0] == "END") {
+                            endTimeMs = timeMs
+                        }
+                    } else if (values.size == 2) {
+                        val (labelType, labelValue) = values
+                        when (labelType) {
+                            "GROUP" -> {
+                                if (groupId != labelValue.toInt()) {
+                                    groupId = labelValue.toInt()
+                                    if (tmpLines.isNotEmpty() && !lastTextLineWasComment) {
+                                        tmpLines.add(SettingVoiceLine.newLine(settings.id,timeMs,groupId))
+                                    }
+                                }
+                            }
+                            "COMMENT" -> {
+                                // Создаём элемент "комментарий" и добавляем его в список временных элементов
+                                val element = SettingVoiceLineElement(
+                                    rootId = settings.id,
+                                    type = SettingVoiceLineElementTypes.COMMENT
+                                )
+                                element.groupId = groupId
+                                element.addSyllable(
+                                    SettingVoiceLineElementSyllable(
+                                        rootId = settings.id,
+                                        text = labelValue,
+                                        syllableStartMs = timeMs,
+                                        syllableEndMs = timeMs,
+                                        previous = null
+                                    )
+                                )
+
+                                val lineToAdd = SettingVoiceLine(
+                                    rootId = settings.id,
+                                    lineStartMs = timeMs,
+                                    lineEndMs = timeMs
+                                )
+                                lineToAdd.addElement(element)
+                                tmpLines.add(lineToAdd)
+
+                                lastTextLineWasComment = true
+
+                            }
+                            else -> {}
+                        }
+                    }
+                    currentText = ""
+                }
+                "syllables" -> {
+                    if (sourceMarker.chord.isNotEmpty() && songVersion == SongVersion.CHORDS) {
+                        var txt = sourceMarker.label.replace("_", " ")
+                        if (txt.haveVowel()) {
+                            val firstVowelIndex = txt.getFirstVowelIndex()
+                            txt = txt.substring(0 until  firstVowelIndex)
+                        } else {
+                            txt = ""
+                        }
+                        val prevSyllableToChord = SettingVoiceLineElementSyllable(
+                            rootId = settings.id,
+                            text = currentText + txt,
+                            syllableStartMs = timeMs,
+                            syllableEndMs = timeMs,
+                            previous = null
+                        )
+                        val chordSyllable = SettingVoiceLineElementSyllable(
+                            rootId = settings.id,
+                            text = sourceMarker.chord,
+                            syllableStartMs = timeMs,
+                            syllableEndMs = timeMs,
+                            previous = prevSyllableToChord
+                        )
+                        tmpChordSyllables.add(chordSyllable)
+                    }
+                    if (sourceMarker.label.isNotEmpty()) {
+                        var txt = sourceMarker.label.replace("_", " ")
+                        if (tmpTextSyllables.isEmpty()){
+                            txt = txt.uppercaseFirstLetter()
+                            prevTextSyllable = null
+                        }
+                        val textSyllable = SettingVoiceLineElementSyllable(
+                            rootId = settings.id,
+                            text = txt,
+                            syllableStartMs = timeMs,
+                            syllableEndMs = timeMs,
+                            previous = prevTextSyllable
+                        )
+                        tmpTextSyllables.add(textSyllable)
+                        prevTextSyllable = textSyllable
+                        currentText += txt
+                    }
+
+                    if (sourceMarker.note.isNotEmpty() && songVersion == SongVersion.CHORDS) {
+                        val noteSyllable = SettingVoiceLineElementSyllable(
+                            rootId = settings.id,
+                            text = sourceMarker.note,
+                            syllableStartMs = timeMs,
+                            syllableEndMs = timeMs,
+                            previous = null
+                        )
+                        tmpNoteSyllables.add(noteSyllable)
+                    }
+                    lastTextLineWasComment = false
+                }
+                "endofsyllable" -> {
+
+                    var txt = "⸳"
+
+                    if (tmpTextSyllables.isEmpty()){
+                        txt = txt.uppercaseFirstLetter()
+                        prevTextSyllable = null
+                    } else {
+                        prevTextSyllable = tmpTextSyllables.last()
+                        prevTextSyllable?.let {it.syllableEndMs = timeMs}
+                    }
+
+                    val textSyllable = SettingVoiceLineElementSyllable(
+                        rootId = settings.id,
+                        text = txt,
+                        syllableStartMs = timeMs,
+                        syllableEndMs = timeMs,
+                        previous = prevTextSyllable
+                    )
+                    tmpTextSyllables.add(textSyllable)
+                    prevTextSyllable = textSyllable
+                    currentText += txt
+                }
+                "endofline" -> {
+
+                    prevTextSyllable = null
+                    currentText = ""
+
+                    if (tmpTextSyllables.isNotEmpty()) {
+
+                        tmpTextSyllables.last().syllableEndMs = timeMs
+                        for (indexSyllable in 0 until tmpTextSyllables.size-1) {
+                            val currSyllable = tmpTextSyllables[indexSyllable]
+                            val nextSyllable = tmpTextSyllables[indexSyllable+1]
+                            if (currSyllable.syllableStartMs == currSyllable.syllableEndMs) {
+                                currSyllable.syllableEndMs = nextSyllable.syllableStartMs
+                            }
+                        }
+
+                        val element = SettingVoiceLineElement(
+                            rootId = settings.id,
+                            type = SettingVoiceLineElementTypes.TEXT
+                        )
+                        element.groupId = groupId
+                        element.addSyllables(tmpTextSyllables)
+                        tmpElements.add(element)
+                        tmpTextSyllables = mutableListOf()
+                    }
+
+                    if (tmpChordSyllables.isNotEmpty()) {
+                        val chordElement = SettingVoiceLineElement(
+                            rootId = settings.id,
+                            type = SettingVoiceLineElementTypes.ACCORD
+                        )
+                        chordElement.groupId = groupId
+                        chordElement.addSyllables(tmpChordSyllables)
+                        tmpElements.add(chordElement)
+                        tmpChordSyllables = mutableListOf()
+                    }
+
+                    if (tmpNoteSyllables.isNotEmpty()) {
+                        val noteElement = SettingVoiceLineElement(
+                            rootId = settings.id,
+                            type = SettingVoiceLineElementTypes.NOTE
+                        )
+                        noteElement.groupId = groupId
+                        noteElement.addSyllables(tmpNoteSyllables)
+                        tmpElements.add(noteElement)
+                        tmpNoteSyllables = mutableListOf()
+                    }
+
+                    if (tmpElements.isNotEmpty()) {
+                        val lineToAdd = SettingVoiceLine(
+                            rootId = settings.id,
+                            lineStartMs = tmpElements.minOf { element ->  element.getSyllables().minOf { it.syllableStartMs } },
+                            lineEndMs = tmpElements.minOf { element ->  element.getSyllables().maxOf { it.syllableEndMs } }
+                        )
+                        lineToAdd.addElements(tmpElements)
+                        tmpLines.add(lineToAdd)
+                        tmpElements = mutableListOf()
+                    } else {
+                        if (tmpLines.isNotEmpty()) {
+                            tmpLines.add(SettingVoiceLine.emptyLine(settings.id,timeMs,groupId))
+                            tmpLines.add(SettingVoiceLine.newLine(settings.id,timeMs,groupId))
+                        }
+
+                    }
+
+                }
+                "newline" -> {
+                    currentText = ""
+                    if (tmpLines.isNotEmpty()) {
+                        tmpLines.add(SettingVoiceLine.newLine(settings.id,timeMs,groupId))
+                    }
+                }
+                else -> {} // "unmute", "chord", "beat", "note"
+            }
+        }
+
+        for (lineIndex in 0 until tmpLines.size - 1) {
+            val currLine = tmpLines[lineIndex]
+            val nextLine = tmpLines[lineIndex + 1]
+            val diff = nextLine.lineStartMs - currLine.lineEndMs
+            if (diff < 1000) {
+                currLine.lineEndMs = Math.max(currLine.lineStartMs, nextLine.lineStartMs - 1000)
+            }
+        }
+
+        // На данный момент у нас заполнен список tmpLines
+        // Надо найти время самой долгой строки и навставлять пустых строк если надо
+        if (tmpLines.isNotEmpty()) {
+
+            // Время самой "длинной" строки
+            val maxDuration = tmpLines.maxOf { it.lineDurationMs() }
+
+            // Кол-во пустых строк с начала = начало старта первой строки / время длинной строки
+            val countStartEmptyLines = (tmpLines.first().lineStartMs / maxDuration)
+
+            // В любом случае добавляем пустую строку в самое начало
+            lines.add(SettingVoiceLine.emptyLine(settings.id,0,groupId))
+
+            // Если кол-во пустых строк которые нужно вставить в начало > 0
+            if (countStartEmptyLines > 0) {
+
+                // Длительность одной "пустой" строки (а точнее расстояние между их "стартами")
+                // равна начало старта первой строки / кол-во пустых строк
+                val silentDuration = tmpLines.first().lineStartMs / (countStartEmptyLines + 1)
+                for (emptyLineIndex in 0 until countStartEmptyLines) {
+                    val timeMs = (emptyLineIndex + 1) * silentDuration
+                    lines.add(SettingVoiceLine.emptyLine(settings.id,timeMs,groupId))
+                }
+            }
+
+            // Проходимся по временным линиям - от первой до последней
+            // (используем while а не for т.к. в процессе возможно необходимо будет менять индекс)
+            var lineIndex = 0
+            while (lineIndex < tmpLines.size) {
+
+                // Получаем текущую линию
+                val currLine = tmpLines[lineIndex]
+                // Добавляем текущую линию к финальному списку если она не пустая
+                if (currLine.haveTextElementOrComment(songVersion)) {
+                    lines.add(currLine)
+
+                    for (nextLineIndex in lineIndex + 1 until tmpLines.size) {
+
+                        // Получаем следующую НЕ ПУСТУЮ ЛИНИЮ
+                        val nextLine = tmpLines[nextLineIndex]
+                        if (nextLine.haveTextElementOrComment(songVersion)) {
+                            // Находим кол-во уже имеющихся пустых линий между текущей или следующей
+                            val countEmptyLinesBetweenCurrentAndNext = nextLineIndex - lineIndex - 1
+
+                            // Начало "пустого" интервала - с конца текущей линии
+                            val startTimeMs = currLine.lineEndMs
+                            // Конец "пустого" интервала - с начала следующей линии
+                            val endTimeMs = nextLine.lineStartMs
+                            // Количество пустых линий, которые должны быть в этом интервале
+                            val countNeededEmptyLines = (endTimeMs - startTimeMs) / maxDuration
+
+                            // Вычислем реальное кол-во пустых строк, которые должны быть в этом интервале
+                            val countEmptyLinesToAdd =
+                                Integer.max(countEmptyLinesBetweenCurrentAndNext, countNeededEmptyLines.toInt())
+
+                            // Если такие строки должны быть - добавляем их
+                            if (countEmptyLinesToAdd > 0) {
+                                val durationEmptyLine = (endTimeMs - startTimeMs) / (countEmptyLinesToAdd + 1)
+                                for (emptyLineIndex in 0 until countEmptyLinesToAdd) {
+                                    val timeMs = startTimeMs + (emptyLineIndex + 1) * durationEmptyLine
+                                    lines.add(SettingVoiceLine.emptyLine(settings.id, timeMs, groupId))
+                                }
+
+                                // Устанавливаем указатель цикла на линию перед следующей, чтобы на следующей итерации цикла
+                                // Встать на следующую линию и её добавить как положено
+                                lineIndex = nextLineIndex - 1
+                            }
+                            break
+                        }
+
+                    }
+
+                }
+                lineIndex++
+            }
+            // Добавили все линии - надо добавить пустые линии в конце
+
+            val lastTextLine = lines.last()
+            val startTime = lastTextLine.lineEndMs
+            val endTime = settings.songLengthMs + startSilentOffsetMs
+
+            if (endTime > startTime) {
+
+
+                // Кол-во пустых строк с начала = начало старта первой строки / время длинной строки
+                val countEndEmptyLines = (endTime - startTime) / maxDuration
+
+                // Если кол-во пустых строк которые нужно вставить в начало > 0
+                if (countEndEmptyLines > 0) {
+
+                    // Длительность одной "пустой" строки (а точнее расстояние между их "стартами")
+                    // равна начало старта первой строки / кол-во пустых строк
+                    val silentDuration =  (endTime - startTime) / (countEndEmptyLines + 1)
+                    for (emptyLineIndex in 0 until countEndEmptyLines) {
+                        val timeMs = startTime + (emptyLineIndex + 1) * silentDuration
+                        lines.add(SettingVoiceLine.emptyLine(settings.id,timeMs,groupId))
+                    }
+                }
+
+                // В любом случае добавляем пустую строку в самый конец
+                lines.add(SettingVoiceLine.emptyLine(settings.id,endTime,groupId))
+            }
+
+            /*
+            Теперь нужно нормализовать промежутки пустых линий и комментариев
+            Ищем линии (пустые и комментарии) между двумя текстовыми линиями (или от начала, или до конца)
+            Делаем так, чтобы временные интервалы между пустыми линиями и комментариями были одинаковыми
+             */
+            lineIndex = 0
+            while (lineIndex < lines.size - 1) {
+
+                val currLine = lines[lineIndex]
+
+                // Если текущая линия - первая или текстовая
+                if (lineIndex == 0 || currLine.haveTextElement(songVersion)) {
+                    var nextIndexLine = lineIndex + 1
+                    while (nextIndexLine < lines.size) {
+                        val nextLine = lines[nextIndexLine]
+                        if (nextIndexLine == lines.size -1 || nextLine.haveTextElement(songVersion)) {
+                            break
+                        }
+                        nextIndexLine++
+                    }
+                    // Если между currLine и nextLine есть еще линии - их и надо нормализовать
+                    if (nextIndexLine - lineIndex > 1) {
+                        val startTime = currLine.lineEndMs
+                        val endTime = lines[nextIndexLine].lineStartMs
+                        val durationNormal = (endTime - startTime) / (nextIndexLine - lineIndex)
+                        for (i in lineIndex + 1 until nextIndexLine) {
+                            val line = lines[i]
+                            val time = currLine.lineEndMs + durationNormal * (i - lineIndex)
+                            line.lineStartMs = time
+                            line.lineEndMs = time
+                        }
+                    }
+                }
+                lineIndex++
+            }
+
+        }
+
+        tmpLines = mutableListOf()
+
+        voice.addLines(songVersion, lines)
+
+//        voice.fillParents()
+
+        listOfVoices.add(voice)
+
+    }
+    // Заполняем longerElementPreviousVoice для войсов (если войсов больше 1)
+    if (listOfVoices.size > 1) {
+        for (indexVoice in 0 until listOfVoices.size - 1) {
+            val currVoice = listOfVoices[indexVoice]
+            val nextVoice = listOfVoices[indexVoice + 1]
+            val currCrossingLines = currVoice.textLines(songVersion).filter { line -> nextVoice.textLines(songVersion).any { nextLine -> nextLine.isCrossing(line) } }
+            // Если есть пересечения со следующим войсом - находим самый длинный элемент с пересечением
+            // Если пересечений нет - формируем новый элемент равный примерно половине ширины самого длинного
+            val longerCrossingElement = if (currCrossingLines.isNotEmpty()) {
+                currCrossingLines.maxBy { it.w(songVersion) }.textElement(songVersion)!!
+            } else {
+                val longerCurrElement = currVoice.textLines(songVersion).maxBy { it.w(songVersion) }.textElement(songVersion)!!
+                val halfSyllables: MutableList<SettingVoiceLineElementSyllable> = mutableListOf()
+                for (indexSyllable in 0 .. longerCurrElement.getSyllables().size / 2) {
+                    halfSyllables.add(longerCurrElement.getSyllables()[indexSyllable])
+                }
+                val halfElement = SettingVoiceLineElement(
+                    rootId = settings.id,
+                    type = longerCurrElement.type
+                )
+                halfElement.groupId = longerCurrElement.groupId
+                halfElement.fontSize = longerCurrElement.fontSize
+                halfElement.addSyllables(halfSyllables)
+                halfElement
+            }
+            nextVoice.longerElementPreviousVoice = longerCrossingElement
+        }
+    }
+
+    if (listOfVoices.isNotEmpty()) {
+        val fontSize = getFontSize(songVersion, listOfVoices)
+        listOfVoices.forEach { voice ->
+            voice.getLines().forEach { line ->
+                line.getElements(songVersion).forEach { element ->
+                    element.fontSize = fontSize
+                }
+            }
+            voice._countLineTracks = null
+        }
+    }
+
+    listOfVoices.forEach { it.actuateChilds(songVersion) }
+
+    return listOfVoices
+}
+fun createKaraoke(settings: Settings, songVersion: SongVersion) {
+
+//    val voices = getVoices(settings, songVersion)
+    val mltProp = settings.getMltProp(songVersion)
+
+    val permissions = PosixFilePermissions.fromString("rwxr-x---")
+
+    val templateProject = "<?xml version='1.0' encoding='utf-8'?>\n${getMlt(mltProp)}"
+    val fileProject = File(settings.getOutputFilename(SongOutputFile.PROJECT, songVersion))
+    val fileMlt = File(settings.getOutputFilename(SongOutputFile.MLT, songVersion))
+    Files.createDirectories(Path(fileProject.parent))
+    fileProject.writeText(templateProject)
+    fileMlt.writeText(templateProject)
+    val fileRun = File(settings.getOutputFilename(SongOutputFile.RUN, songVersion))
+    fileRun.writeText("echo \"${settings.getOutputFilename(SongOutputFile.MLT, songVersion)}\"\n" +
+            "melt -progress \"${settings.getOutputFilename(SongOutputFile.MLT, songVersion)}\"\n")
+    Files.setPosixFilePermissions(fileRun.toPath(), permissions)
+
+//    val fileDescription = File(settings.getOutputFilename(SongOutputFile.DESCRIPTION, songVersion))
+//    Files.createDirectories(Path(fileDescription.parent))
+//    fileDescription.writeText(song.getDescription())
+
+    createBoostyTeaserPicture(settings)
+    createBoostyFilesPicture(settings)
+//    createVKPicture(settings)
+//    createVKLinkPicture(settings)
+    createVKLinkPictureWeb(settings)
+
+    createSongTextFile(settings, songVersion)
+    createSongDescriptionFile(settings, songVersion)
+    createSongPicture(settings, songVersion)
+
+//    val filePictureChords = File(settings.getOutputFilename(SongOutputFile.PICTURECHORDS, songVersion))
+//    Files.createDirectories(Path(filePictureChords.parent))
+//    createSongChordsPicture(settings, settings.getOutputFilename(SongOutputFile.PICTURECHORDS, songVersion), songVersion, mltProp.getXmlData(listOf(ProducerType.SONGTEXT, 0, "IgnoreCapo")))
+
+
+}
+
+
 fun createKaraoke(song: Song) {
 
+    createKaraoke(song.settings, song.songVersion)
+
     val songVersion = song.songVersion
+
 
     if (songVersion == SongVersion.CHORDS && !song.hasChords) return
     println("Создаём ${songVersion.name}: ${song.settings.author} / ${song.settings.songName}")
@@ -23,18 +508,35 @@ fun createKaraoke(song: Song) {
 
     mltProp.setSongVersion(songVersion)
 
+    mltProp.setSettings(song.settings)
+    song.settings.voicesForMlt = getVoices(song.settings, songVersion) // song.settings.voices()
+
+    val startSilentOffsetMs = song.settings.getStartSilentOffsetMs()
+
+    mltProp.setStartSilentOffsetMs(startSilentOffsetMs)
+
+    mltProp.setFrameWidthPx(Karaoke.frameWidthPx)
+    mltProp.setFrameHeightPx(Karaoke.frameHeightPx)
+    mltProp.getFrameHeightPx()
+
+
+
+
     val countAudioTracks = songVersion.producers.count { it.isAudio && it != ProducerType.MAINBIN }
     val countAllTracks = countAudioTracks + 10
     mltProp.setCountAudioTracks(countAudioTracks)
     mltProp.setCountAllTracks(countAllTracks)
 
-    val countVoices = song.voices.size
+    val countVoices = song.settings.voicesForMlt.size
     mltProp.setCountVoices(countVoices)
 
-    val songLengthMs = convertTimecodeToMilliseconds(song.endTimecode)
+    val songLengthMs = song.settings.songLengthMs + startSilentOffsetMs
+    val audioLengthMs = song.settings.songLengthMs
     val songLengthFr = convertMillisecondsToFrames(songLengthMs)
+    val audioLengthFr = convertMillisecondsToFrames(audioLengthMs)
     mltProp.setSongLengthMs(songLengthMs)
     mltProp.setSongLengthFr(songLengthFr)
+    mltProp.setAudioLengthFr(audioLengthFr)
 
     val timelineLengthMs = songLengthMs + 600_000
     val timelineLengthFr = convertMillisecondsToFrames(timelineLengthMs)
@@ -65,10 +567,12 @@ fun createKaraoke(song: Song) {
 
     val songStartTimecode = convertMillisecondsToTimecode(0L)
     val songEndTimecode = convertMillisecondsToTimecode(songLengthMs)
+    val audioEndTimecode = convertMillisecondsToTimecode(songLengthMs - startSilentOffsetMs)
     val songFadeInTimecode = convertMillisecondsToTimecode(fadeMs)
     val songFadeOutTimecode = convertMillisecondsToTimecode(songLengthMs-fadeMs)
     mltProp.setSongStartTimecode(songStartTimecode)
     mltProp.setSongEndTimecode(songEndTimecode)
+    mltProp.setAudioEndTimecode(audioEndTimecode)
     mltProp.setSongFadeInTimecode(songFadeInTimecode)
     mltProp.setSongFadeOutTimecode(songFadeOutTimecode)
 
@@ -84,11 +588,12 @@ fun createKaraoke(song: Song) {
 
 
     val boostyBlankTimecode = convertMillisecondsToTimecode(splashLengthMs)
-    val voiceBlankTimecode = convertMillisecondsToTimecode(splashLengthMs + boostyLengthMs)
+    val boostyEndTimecode = convertMillisecondsToTimecode(splashLengthMs + boostyLengthMs)
+    val voiceBlankTimecode = convertMillisecondsToTimecode(splashLengthMs + boostyLengthMs + startSilentOffsetMs)
     val boostyFadeInTimecode = convertMillisecondsToTimecode(splashLengthMs+fadeMs)
     val boostyFadeOutTimecode = convertMillisecondsToTimecode(splashLengthMs + boostyLengthMs-fadeMs)
     mltProp.setBoostyStartTimecode(boostyBlankTimecode)
-    mltProp.setBoostyEndTimecode(voiceBlankTimecode)
+    mltProp.setBoostyEndTimecode(boostyEndTimecode)
     mltProp.setBoostyFadeInTimecode(boostyFadeInTimecode)
     mltProp.setBoostyFadeOutTimecode(boostyFadeOutTimecode)
     mltProp.setBoostyBlankTimecode(boostyBlankTimecode)
@@ -115,7 +620,7 @@ fun createKaraoke(song: Song) {
 
 
 
-    val offsetInAudioMs = splashLengthMs + boostyLengthMs
+    val offsetInAudioMs = splashLengthMs + boostyLengthMs + startSilentOffsetMs
     val offsetInVideoMs = splashLengthMs + boostyLengthMs
     val offsetInAudioTimecode = convertMillisecondsToTimecode(offsetInAudioMs)
     val offsetInVideoTimecode = convertMillisecondsToTimecode(offsetInVideoMs)
@@ -147,7 +652,7 @@ fun createKaraoke(song: Song) {
 
 
     mltProp.setSongCapo(song.capo)
-    mltProp.setSongChordDescription(song.getChordDescription())
+    mltProp.setSongChordDescription(song.settings.getChordDescription(SongVersion.CHORDS))
     mltProp.setSongName(song.settings.songName.replace("&", "&amp;"))
 
     mltProp.setLineSpacing(LINE_SPACING)
@@ -179,16 +684,16 @@ fun createKaraoke(song: Song) {
         }
     }
 
-    mltProp.setFileName(song.getOutputFilename(SongOutputFile.RUNALL).replace("&", "&amp;"), SongOutputFile.RUNALL)
-    mltProp.setFileName(song.getOutputFilename(SongOutputFile.RUN,).replace("&", "&amp;"), SongOutputFile.RUN)
-    mltProp.setFileName(song.getOutputFilename(SongOutputFile.MLT).replace("&", "&amp;"), SongOutputFile.MLT)
-    mltProp.setFileName(song.getOutputFilename(SongOutputFile.PROJECT).replace("&", "&amp;"), SongOutputFile.PROJECT)
-    mltProp.setFileName(song.getOutputFilename(SongOutputFile.VIDEO).replace("&", "&amp;"), SongOutputFile.VIDEO)
-    mltProp.setFileName(song.getOutputFilename(SongOutputFile.PICTURE).replace("&", "&amp;"), SongOutputFile.PICTURE)
-    mltProp.setFileName(song.getOutputFilename(SongOutputFile.PICTURECHORDS).replace("&", "&amp;"), SongOutputFile.PICTURECHORDS)
-    mltProp.setFileName(song.getOutputFilename(SongOutputFile.SUBTITLE).replace("&", "&amp;"), SongOutputFile.SUBTITLE)
-    mltProp.setFileName(song.getOutputFilename(SongOutputFile.DESCRIPTION).replace("&", "&amp;"), SongOutputFile.DESCRIPTION)
-    mltProp.setFileName(song.getOutputFilename(SongOutputFile.TEXT).replace("&", "&amp;"), SongOutputFile.TEXT)
+    mltProp.setFileName(song.settings.getOutputFilename(SongOutputFile.RUNALL, songVersion).replace("&", "&amp;"), SongOutputFile.RUNALL)
+    mltProp.setFileName(song.settings.getOutputFilename(SongOutputFile.RUN, songVersion).replace("&", "&amp;"), SongOutputFile.RUN)
+    mltProp.setFileName(song.settings.getOutputFilename(SongOutputFile.MLT, songVersion).replace("&", "&amp;"), SongOutputFile.MLT)
+    mltProp.setFileName(song.settings.getOutputFilename(SongOutputFile.PROJECT, songVersion).replace("&", "&amp;"), SongOutputFile.PROJECT)
+    mltProp.setFileName(song.settings.getOutputFilename(SongOutputFile.VIDEO, songVersion).replace("&", "&amp;"), SongOutputFile.VIDEO)
+    mltProp.setFileName(song.settings.getOutputFilename(SongOutputFile.PICTURE, songVersion).replace("&", "&amp;"), SongOutputFile.PICTURE)
+    mltProp.setFileName(song.settings.getOutputFilename(SongOutputFile.PICTURECHORDS, songVersion).replace("&", "&amp;"), SongOutputFile.PICTURECHORDS)
+    mltProp.setFileName(song.settings.getOutputFilename(SongOutputFile.SUBTITLE, songVersion).replace("&", "&amp;"), SongOutputFile.SUBTITLE)
+    mltProp.setFileName(song.settings.getOutputFilename(SongOutputFile.DESCRIPTION, songVersion).replace("&", "&amp;"), SongOutputFile.DESCRIPTION)
+    mltProp.setFileName(song.settings.getOutputFilename(SongOutputFile.TEXT, songVersion).replace("&", "&amp;"), SongOutputFile.TEXT)
 
 
     mltProp.setTone(headerTone, ProducerType.HEADER)
@@ -234,11 +739,13 @@ fun createKaraoke(song: Song) {
         ProducerType.values().forEach { type ->
             if (type.ids.isEmpty()) {
                 mltProp.setId(type.ordinal*100 + voiceId*10, listOf(type, voiceId))
-                mltProp.setUUID(UUID.randomUUID().toString(), listOf(type, voiceId))
+                val key = listOf(type, voiceId)
+                if (mltProp.getUUID(key) == "") mltProp.setUUID(getStoredUuid(key), key)
             } else {
                 for (childId in 0 until type.ids.size) {
-                    mltProp.setId(type.ordinal*100 + voiceId*10 + childId, listOf(type, voiceId, childId))
-                    mltProp.setUUID(UUID.randomUUID().toString(), listOf(type, voiceId, childId))
+                    mltProp.setId(type.ordinal*100 + voiceId*10 + childId*1, listOf(type, voiceId, childId))
+                    val key = listOf(type, voiceId, childId)
+                    if (mltProp.getUUID(key) == "") mltProp.setUUID(getStoredUuid(key), key)
                 }
             }
 
@@ -268,6 +775,27 @@ fun createKaraoke(song: Song) {
 
     }
 
+    mltProp.setPath(song.settings.audioSongFileName.replace("&", "&amp;"), listOf(ProducerType.AUDIOSONG))
+    mltProp.setPath(song.settings.audioMusicFileName.replace("&", "&amp;"), listOf(ProducerType.AUDIOMUSIC))
+    mltProp.setPath(song.settings.audioVocalFileName.replace("&", "&amp;"), listOf(ProducerType.AUDIOVOCAL))
+    mltProp.setPath(song.settings.audioBassFileName.replace("&", "&amp;"), listOf(ProducerType.AUDIOBASS))
+    mltProp.setPath(song.settings.audioDrumsFileName.replace("&", "&amp;"), listOf(ProducerType.AUDIODRUMS))
+
+    mltProp.setEnabled(Karaoke.createAudioVocal, listOf(ProducerType.AUDIOVOCAL))
+    mltProp.setEnabled(Karaoke.createAudioMusic, listOf(ProducerType.AUDIOMUSIC))
+    mltProp.setEnabled(Karaoke.createAudioSong, listOf(ProducerType.AUDIOSONG))
+    mltProp.setEnabled(Karaoke.createAudioBass, listOf(ProducerType.AUDIOBASS))
+    mltProp.setEnabled(Karaoke.createAudioDrums, listOf(ProducerType.AUDIODRUMS))
+    mltProp.setEnabled(Karaoke.createBackground, listOf(ProducerType.BACKGROUND))
+    mltProp.setEnabled(Karaoke.createHorizon, listOf(ProducerType.HORIZON))
+    mltProp.setEnabled(Karaoke.createProgress, listOf(ProducerType.PROGRESS))
+    mltProp.setEnabled(Karaoke.createFillsSongtext, listOf(ProducerType.FILLCOLORSONGTEXT))
+    mltProp.setEnabled(Karaoke.createSongtext, listOf(ProducerType.SONGTEXT))
+    mltProp.setEnabled(Karaoke.createFader, listOf(ProducerType.FADERTEXT))
+    mltProp.setEnabled(Karaoke.createFader, listOf(ProducerType.FADERCHORDS))
+    mltProp.setEnabled(Karaoke.createHeader, listOf(ProducerType.HEADER))
+    mltProp.setEnabled(Karaoke.createCounters, listOf(ProducerType.COUNTER))
+    mltProp.setEnabled(Karaoke.createWatermark, listOf(ProducerType.WATERMARK))
 
     val maxTextWidthPx =
         Karaoke.frameWidthPx.toDouble() - Karaoke.songtextStartPositionXpx * 2      // maxTextWidth - максимальная ширина текста = ширина экрана минус 2 отступа
@@ -316,26 +844,23 @@ fun createKaraoke(song: Song) {
         fontChordsSizePt
     ) //Font(Karaoke.chordsFont.font.name, Karaoke.chordsFont.font.style, fontChordsSizePt)
 
-    val symbolSongtextHeightPx = mltTextSongtext.h
-    val symbolSongtextWidthPx = mltTextSongtext.w
+    val symbolSongtextHeightPx = mltTextSongtext.h()
+    val symbolSongtextWidthPx = mltTextSongtext.w()
 
     val quarterNoteLengthMs =
-        if (song.settings.ms == 0L) {
-            if (song.settings.bpm == 0L) {
-                (60000.0 / 120.0).toLong()
-            } else {
-                (60000.0 / song.settings.bpm).toLong()
-            }
-
+        if (song.settings.bpm == 0L) {
+            (60000.0 / 120.0).toLong()
         } else {
-            song.settings.ms
-        } // Находим длительность звучания 1/4 ноты в миллисекундах
+            (60000.0 / song.settings.bpm).toLong()
+        }
+    // Находим длительность звучания 1/4 ноты в миллисекундах
+    println("quarterNoteLengthMs = $quarterNoteLengthMs")
     val halfNoteLengthMs = quarterNoteLengthMs * 2
 
     val heightScrollerPx = 100L
     mltProp.setHeightScrollerPx(heightScrollerPx)
 
-    val heightPxPerMsCoeff = (heightScrollerPx / song.voices[0].lines.filter { it.type == SongVoiceLineType.TEXT }.first().mltText.h.toDouble()) / 2
+    val heightPxPerMsCoeff = (heightScrollerPx / song.voices[0].lines.filter { it.type == SongVoiceLineType.TEXT }.first().mltText.h().toDouble()) / 2
 
     val widthPxPerMsCoeff = song.voices.flatMap { voice ->
         voice.lines.filter{it.type == SongVoiceLineType.TEXT}.flatMap { line ->
@@ -354,7 +879,6 @@ fun createKaraoke(song: Song) {
     val timeToScrollScreenMs = (Karaoke.frameWidthPx / widthPxPerMsCoeff).toLong()
     mltProp.setTimeToScrollScreenMs(timeToScrollScreenMs)
 
-
     // Цикл по голосам
     for (voiceId in 0 until countVoices) {
 
@@ -366,8 +890,8 @@ fun createKaraoke(song: Song) {
         val scrollTracks: MutableList<MutableList<Pair<SongVoiceLine, Int>>> = mutableListOf()
 
         scrollLines.forEachIndexed { indexLine, scrollLine ->
-            val scrollLineStartMs = scrollLine.subtitles.first().startMs - timeToScrollScreenMs
-            val scrollLineEndMs = scrollLine.subtitles.last().startMs + scrollLine.subtitles.last().durationMs + timeToScrollScreenMs
+            val scrollLineStartMs = scrollLine.subtitles.first().startMs - timeToScrollScreenMs + startSilentOffsetMs
+            val scrollLineEndMs = scrollLine.subtitles.last().startMs + scrollLine.subtitles.last().durationMs + timeToScrollScreenMs + startSilentOffsetMs
             val scrollLineDurationMs = scrollLineEndMs - scrollLineStartMs
 
             mltProp.setScrollLineStartMs(scrollLineStartMs, listOf(voiceId, indexLine))
@@ -378,7 +902,7 @@ fun createKaraoke(song: Song) {
             scrollTracks.forEachIndexed { indexTrack, scrollTrack ->
                 if (!scrollLineWasAddedToTrack) {
                     val lastLineInTrack = scrollTrack.last().first
-                    val lastLineEndMs = lastLineInTrack.subtitles.last().startMs + lastLineInTrack.subtitles.last().durationMs + timeToScrollScreenMs
+                    val lastLineEndMs = lastLineInTrack.subtitles.last().startMs + lastLineInTrack.subtitles.last().durationMs + timeToScrollScreenMs + startSilentOffsetMs
                     if (lastLineEndMs < scrollLineStartMs) {
                         scrollTrack.add(Pair(scrollLine, indexLine))
                         mltProp.setScrollLineTrackId(indexTrack, listOf(voiceId, indexLine))
@@ -403,23 +927,6 @@ fun createKaraoke(song: Song) {
         mltProp.setCountChilds(scrollTracks.size, listOf(ProducerType.SCROLLERS, voiceId))
         mltProp.setCountChilds(scrollTracks.size, listOf(ProducerType.SCROLLERTRACK, voiceId))
         mltProp.setCountChilds(scrollLines.size, listOf(ProducerType.SCROLLER, voiceId))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -497,7 +1004,7 @@ fun createKaraoke(song: Song) {
                     for (i in 1..linesToInsert) {
                         val startDuration =
                             convertMillisecondsToTimecode(currentPositionEnd) //  + silentLineDuration / 2
-                        val endDuration = convertMillisecondsToTimecode(currentPositionEnd + silentLineDuration)
+                        val endDuration = convertMillisecondsToTimecode(currentPositionEnd + silentLineDuration + startSilentOffsetMs)
                         val emptyVoiceLine = SongVoiceLine(
                             type = SongVoiceLineType.EMPTY,
                             subtitles = mutableListOf(),
@@ -519,7 +1026,7 @@ fun createKaraoke(song: Song) {
                             currentPositionEnd + silentLineDuration //convertTimecodeToMilliseconds(endDuration)
                     }
                 }
-                currentPositionEnd = convertTimecodeToMilliseconds(voiceLineText.end)
+                currentPositionEnd = convertTimecodeToMilliseconds(voiceLineText.end) + startSilentOffsetMs
                 if (voiceLineText.type != SongVoiceLineType.EMPTY) endTimeHidingHeaderMs = currentPositionEnd
             }
         if (convertTimecodeToMilliseconds(song.endTimecode) - endTimeHidingHeaderMs!! < 10000) endTimeHidingHeaderMs =
@@ -540,6 +1047,18 @@ fun createKaraoke(song: Song) {
         // Для каждого титра строки - шрифт и текст
 
         voiceLines.forEach { voiceLine ->
+
+            // Смещаем время начало и конца линии на startSilentOffsetMs
+            voiceLine.start = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(voiceLine.start) + startSilentOffsetMs)
+            voiceLine.end = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(voiceLine.end) + startSilentOffsetMs)
+            voiceLine.symbols.forEach { voiceLineSymbol ->
+                if (voiceLineSymbol.start != "") voiceLineSymbol.start = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(voiceLineSymbol.start) + startSilentOffsetMs)
+            }
+            voiceLine.subtitles.forEach { subtitle ->
+                if (subtitle.startTimecode != "") subtitle.startTimecode = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(subtitle.startTimecode) + startSilentOffsetMs)
+                if (subtitle.endTimecode != "") subtitle.endTimecode = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(subtitle.endTimecode) + startSilentOffsetMs)
+            }
+
             val fontSizeCoeff = when (voiceLine.type) {
                 SongVoiceLineType.COMMENTS -> Karaoke.shortLineFontScaleCoeff
                 SongVoiceLineType.CHORDS -> Karaoke.chordsHeightCoefficient
@@ -809,7 +1328,7 @@ fun createKaraoke(song: Song) {
                 val movingMs = if (diffChordsMs > 500) 500 else (diffChordsMs / 2).toInt()
                 val startMoveTimecode =
                     convertMillisecondsToTimecode(convertTimecodeToMilliseconds(chordTimecode) - movingMs)
-                endMoveTimecode = chordTimecode
+                endMoveTimecode = chordTimecode + startSilentOffsetMs
                 currChordX = prevChordX - chordW
                 for (i in 0 until countFingerboards) {
                     propRectFingerboardLineValue[i]?.add("${startMoveTimecode}=${prevChordX + chordXoffsetPx + (i * Karaoke.maxCountChordsInFingerboard * chordW)} 0 ${fingerboardW[i]} ${fingerboardH + 50} 1.0")
@@ -920,15 +1439,18 @@ fun createKaraoke(song: Song) {
         mltProp.setXmlData(templateHorizon, listOf(ProducerType.HORIZON, voiceId))
         mltProp.setXmlData(templateFlash, listOf(ProducerType.FLASH, voiceId))
         mltProp.setRect(propFlashValue, listOf(ProducerType.FLASH, voiceId))
+        mltProp.setRect(propFlashValue, listOf(ProducerType.FLASH))
 
         mltProp.setXmlData(templateWatermark, listOf(ProducerType.WATERMARK, voiceId))
         mltProp.setXmlData(templateFaderText, listOf(ProducerType.FADERTEXT, voiceId))
 
         mltProp.setXmlData(templateFaderChords, listOf(ProducerType.FADERCHORDS, voiceId))
         mltProp.setRect(propRectFaderChordsValue, listOf(ProducerType.FADERCHORDS, voiceId))
+        mltProp.setRect(propRectFaderChordsValue, listOf(ProducerType.FADERCHORDS))
 
         mltProp.setXmlData(templateBackChords, listOf(ProducerType.BACKCHORDS, voiceId))
         mltProp.setRect(propRectBackChordsValue, listOf(ProducerType.BACKCHORDS, voiceId))
+        mltProp.setRect(propRectBackChordsValue, listOf(ProducerType.BACKCHORDS))
 
         for (i in 0 until countFingerboards) {
             templateFingerboards[i]?.let { mltProp.setXmlData(it, listOf(ProducerType.FINGERBOARD, voiceId, i)) }
@@ -937,16 +1459,19 @@ fun createKaraoke(song: Song) {
 
         mltProp.setXmlData(templateProgress, listOf(ProducerType.PROGRESS, voiceId))
         mltProp.setRect(propProgressValue, listOf(ProducerType.PROGRESS, voiceId))
+        mltProp.setRect(propProgressValue, listOf(ProducerType.PROGRESS))
 
         mltProp.setRect(propSongtextFillEvenValue, listOf(ProducerType.FILLCOLORSONGTEXT, voiceId, 0))
         mltProp.setRect(propSongtextFillOddValue, listOf(ProducerType.FILLCOLORSONGTEXT, voiceId, 1))
 
         mltProp.setXmlData(templateHeader, listOf(ProducerType.HEADER, voiceId))
         mltProp.setRect(propHeaderValue, listOf(ProducerType.HEADER, voiceId))
+        mltProp.setRect(propHeaderValue, listOf(ProducerType.HEADER))
 
         mltProp.setXmlData(templateSplashstart, listOf(ProducerType.SPLASHSTART, voiceId))
         mltProp.setXmlData(templateBoosty, listOf(ProducerType.BOOSTY, voiceId))
         mltProp.setPath(getRandomFile(Karaoke.backgroundFolderPath, ".png"), listOf(ProducerType.BACKGROUND, voiceId))
+        mltProp.setPath(getRandomFile(Karaoke.backgroundFolderPath, ".png"), listOf(ProducerType.BACKGROUND))
 
 
         mltProp.setXmlData(templateCounter0, listOf(ProducerType.COUNTER, voiceId, 0))
@@ -967,35 +1492,33 @@ fun createKaraoke(song: Song) {
     val permissions = PosixFilePermissions.fromString("rwxr-x---")
 
     val templateProject = "<?xml version='1.0' encoding='utf-8'?>\n${getMlt(mltProp)}"
-    val fileProject = File(song.getOutputFilename(SongOutputFile.PROJECT))
-    val fileMlt = File(song.getOutputFilename(SongOutputFile.MLT))
+    val fileProject = File(song.settings.getOutputFilename(SongOutputFile.PROJECT, song.songVersion))
+    val fileMlt = File(song.settings.getOutputFilename(SongOutputFile.MLT, song.songVersion))
     Files.createDirectories(Path(fileProject.parent))
     fileProject.writeText(templateProject)
     fileMlt.writeText(templateProject)
-    val fileRun = File(song.getOutputFilename(SongOutputFile.RUN))
-    fileRun.writeText("echo \"${song.getOutputFilename(SongOutputFile.MLT)}\"\n" +
-            "melt -progress \"${song.getOutputFilename(SongOutputFile.MLT).toString()}\"\n")
+    val fileRun = File(song.settings.getOutputFilename(SongOutputFile.RUN, song.songVersion))
+    fileRun.writeText("echo \"${song.settings.getOutputFilename(SongOutputFile.MLT, song.songVersion)}\"\n" +
+            "melt -progress \"${song.settings.getOutputFilename(SongOutputFile.MLT, song.songVersion).toString()}\"\n")
     Files.setPosixFilePermissions(fileRun.toPath(), permissions)
 
-    val fileDescription = File(song.getOutputFilename(SongOutputFile.DESCRIPTION))
+    val fileDescription = File(song.settings.getOutputFilename(SongOutputFile.DESCRIPTION, song.songVersion))
     Files.createDirectories(Path(fileDescription.parent))
-    fileDescription.writeText(song.getDescription())
+    fileDescription.writeText(song.settings.getDescription(songVersion))
 
-    if (song.songVersion == SongVersion.LYRICS) createBoostyTeaserPicture(song, song.getOutputFilename(SongOutputFile.PICTUREBOOSTY))
-    if (song.songVersion == SongVersion.LYRICS) createBoostyFilesPicture(song, song.getOutputFilename(SongOutputFile.PICTUREBOOSTY))
-    if (song.songVersion == SongVersion.LYRICS) createVKPicture(song, song.getOutputFilename(SongOutputFile.PICTUREVK))
-    if (song.songVersion == SongVersion.LYRICS) createVKLinkPicture(song, song.getOutputFilename(SongOutputFile.PICTUREVK))
+    createBoostyTeaserPicture(song.settings)
+    createBoostyFilesPicture(song.settings)
+//    createVKPicture(song.settings)
+//    createVKLinkPicture(song.settings)
+    createVKLinkPictureWeb(song.settings)
 
-    val fileText = File(song.getOutputFilename(SongOutputFile.TEXT))
-    Files.createDirectories(Path(fileText.parent))
-    fileText.writeText(song.getText())
+    createSongTextFile(song.settings, song.songVersion)
+    createSongDescriptionFile(song.settings, song.songVersion)
 
-    val filePictures = File(song.getOutputFilename(SongOutputFile.DESCRIPTION))
-    Files.createDirectories(Path(filePictures.parent))
-    createSongPicture(song, song.getOutputFilename(SongOutputFile.PICTURE), song.songVersion)
+    createSongPicture(song.settings, song.songVersion)
 
-    val filePictureChords = File(song.getOutputFilename(SongOutputFile.PICTURECHORDS))
+    val filePictureChords = File(song.settings.getOutputFilename(SongOutputFile.PICTURECHORDS, song.songVersion))
     Files.createDirectories(Path(filePictureChords.parent))
-    createSongChordsPicture(song, song.getOutputFilename(SongOutputFile.PICTURECHORDS), song.songVersion, mltProp.getXmlData(listOf(ProducerType.SONGTEXT, 0, "IgnoreCapo")))
+    createSongChordsPicture(song.settings, song.settings.getOutputFilename(SongOutputFile.PICTURECHORDS, song.songVersion), song.songVersion, mltProp.getXmlData(listOf(ProducerType.SONGTEXT, 0, "IgnoreCapo")))
 
 }

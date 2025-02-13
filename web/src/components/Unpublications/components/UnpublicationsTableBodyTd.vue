@@ -64,6 +64,7 @@ export default {
     },
     styleSongName() { return { backgroundColor: this.publish.color } },
     processColorBoosty() { return { backgroundColor: this.publish.processColorBoosty } },
+    processColorSponsr() { return { backgroundColor: this.publish.processColorSponsr } },
     processColorVk() { return { backgroundColor: this.publish.processColorVk } },
     processColorVkLyrics() { return { backgroundColor: this.publish.processColorVkLyrics } },
     processColorVkKaraoke() { return { backgroundColor: this.publish.processColorVkKaraoke } },

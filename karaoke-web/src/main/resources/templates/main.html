@@ -44,6 +44,16 @@
 <body>
 
 <div style="width: 0; height: 0">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" id="svg-icon-sponsr">
+        <circle cx="10" cy="10" r="10" fill="#E75B44"/>
+        <path d="M1.33782 15C3.06687 17.989 6.29859 20 10 20C13.7014 20 16.9331 17.989 18.6622 15H1.33782Z" fill="#B2125C"/>
+    </svg>
+
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" id="svg-icon-sponsr-none">
+        <circle cx="10" cy="10" r="10" fill="#E6E6E6"/>
+        <path d="M1.33782 15C3.06687 17.989 6.29859 20 10 20C13.7014 20 16.9331 17.989 18.6622 15H1.33782Z" fill="#919191"/>
+    </svg>
+
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" id="svg-icon-boosty">
         <path fill="#F57507" d="M2.52164 11.9462L5.9255 0H11.1491L10.0928 3.70385C10.0817 3.72498 10.0726 3.74714 10.0658 3.77L7.29168 13.55H9.88032C8.80005 16.2923 7.95391 18.4423 7.34268 20C2.56645 19.9462 1.22732 16.4738 2.39955 12.3662L2.52164 11.9462ZM7.36046 20L13.6574 10.8H10.9853L13.3097 4.90692C17.2985 5.33 19.1693 8.51462 18.0697 12.3654C16.889 16.5077 12.1104 20 7.45782 20H7.36046Z"></path>
     </svg>
@@ -129,8 +139,8 @@
                 <td colspan="6" style="width: 400px">
                     <div style="text-align: center">
                         <span style="color: white; font-size: medium">
-                            Каждый день в открытый доступ (в «эфир») выходит 10 песен на 4-х площадках:
-                            Boosty, Dzen, VK и Telegram.
+                            Каждый день в открытый доступ (в «эфир») выходит 10 песен на 6-х площадках:
+                            Sponsr, Boosty, Dzen, VK, Платформа и Telegram.
                         </span>
                     </div>
                 </td>
@@ -139,7 +149,7 @@
                 <td colspan="6" style="width: 400px">
                     <div style="text-align: center">
                         <span style="color: white; font-size: medium">
-                            Вся коллекция доступна по подписке на Boosty.
+                            Вся коллекция доступна по подпискам на Sponsr и Boosty.
                         </span>
                     </div>
                 </td>
@@ -194,6 +204,16 @@
                 </td>
                 <td style="width: 80px; height: 80px">
                     <div
+                            style="cursor: pointer"
+                            name="link"
+                            linkName="sponsr"
+                            linkValue="https://sponsr.ru/smkaraoke"
+                    >
+                        <svg style="width: 80px;"><use xlink:href="#svg-icon-sponsr"></use></svg>
+                    </div>
+                </td>
+                <td style="width: 80px; height: 80px">
+                    <div
                         style="cursor: pointer"
                         name="link"
                         linkName="boosty"
@@ -217,7 +237,7 @@
                             style="cursor: pointer"
                             name="link"
                             linkName="vkvideo"
-                            linkValue="https://vk.com/video/@nsasvoemesto"
+                            linkValue="https://vkvideo.ru/video/@nsasvoemesto"
                     >
                         <svg style="width: 80px;"><use xlink:href="#svg-icon-vk"></use></svg>
                     </div>

@@ -6,24 +6,39 @@ import com.svoemesto.karaokeapp.mlt.MltGenerator
 import com.svoemesto.karaokeapp.mlt.MltProp
 import com.svoemesto.karaokeapp.xmldata
 import com.svoemesto.karaokeapp.mlt.mltNode
-import com.svoemesto.karaokeapp.model.MltNode
-import com.svoemesto.karaokeapp.model.MltNodeBuilder
-import com.svoemesto.karaokeapp.model.ProducerType
-import com.svoemesto.karaokeapp.model.SongVersion
+import com.svoemesto.karaokeapp.model.*
 import java.awt.Font
 
-data class MkoHeader(val mltProp: MltProp, val type: ProducerType, val voiceId: Int = 0, val childId: Int = 0): MltKaraokeObject {
+data class MkoHeader(val mltProp: MltProp, val type: ProducerType, val voiceId: Int = 0, val childId: Int = 0, val elementId: Int = 0): MltKaraokeObject {
     val mltGenerator = MltGenerator(mltProp, type)
 
+    private val frameWidthPx = mltProp.getFrameWidthPx()
+    private val frameHeightPx = mltProp.getFrameHeightPx()
+    private val songLengthFr = mltProp.getSongLengthFr()
+    private val songStartTimecode = mltProp.getSongStartTimecode()
+    private val songEndTimecode = mltProp.getSongEndTimecode()
+    private val songFadeInTimecode = mltProp.getSongFadeInTimecode()
+    private val songFadeOutTimecode = mltProp.getSongFadeOutTimecode()
+    private val mkoHeaderProducerRect = mltProp.getRect(listOf(type))
+    private val inOffsetVideo = mltProp.getInOffsetVideo()
+    private val songVersion = mltProp.getSongVersion()
+    private val songName = mltProp.getSongName(ProducerType.HEADER)
+    private val author = mltProp.getAuthor(ProducerType.HEADER)
+    private val album = mltProp.getAlbum(ProducerType.HEADER)
+    private val tone = mltProp.getTone(ProducerType.HEADER)
+    private val year = mltProp.getYear(ProducerType.HEADER)
+    private val bpm = mltProp.getBpm(ProducerType.HEADER)
+    private val logoAuthorBase64 = mltProp.getBase64("LogoAuthor")
+    private val logoAlbumBase64 = mltProp.getBase64("LogoAlbum")
     override fun producer(): MltNode = mltGenerator
         .producer(
             props = MltNodeBuilder(mltGenerator.defaultProducerPropertiesForMltService("kdenlivetitle"))
-                .propertyName("length", mltProp.getSongLengthFr())
-                .propertyName("kdenlive:duration", mltProp.getSongEndTimecode())
-                .propertyName("xmldata", mltProp.getXmlData(listOf(type, voiceId)).toString().xmldata())
-                .propertyName("meta.media.width", Karaoke.frameWidthPx)
-                .propertyName("meta.media.height", Karaoke.frameHeightPx)
-                .filterQtblend(mltGenerator.nameFilterQtblend, mltProp.getRect(listOf(type, voiceId)))
+                .propertyName("length", songLengthFr)
+                .propertyName("kdenlive:duration", songEndTimecode)
+                .propertyName("xmldata", template().toString().xmldata())
+                .propertyName("meta.media.width", frameWidthPx)
+                .propertyName("meta.media.height", frameHeightPx)
+                .filterQtblend(mltGenerator.nameFilterQtblend, mkoHeaderProducerRect)
                 .build()
         )
 
@@ -31,30 +46,37 @@ data class MkoHeader(val mltProp: MltProp, val type: ProducerType, val voiceId: 
         val result = mltGenerator.filePlaylist()
         result.body?.let {
             val body = it as MutableList<MltNode>
-            body.addAll(MltNodeBuilder().blank(mltProp.getInOffsetVideo()).build())
+            body.addAll(MltNodeBuilder().blank(inOffsetVideo).build())
             body.add(
                 mltGenerator.entry(
                     nodes = MltNodeBuilder()
                         .propertyName("kdenlive:id", "filePlaylist${mltGenerator.id}")
-                        .filterQtblend(mltGenerator.nameFilterQtblend, "${mltProp.getSongStartTimecode()}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.000000;${mltProp.getSongFadeInTimecode()}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 1.000000;${mltProp.getSongFadeOutTimecode()}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 1.000000;${mltProp.getSongEndTimecode()}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.000000")
+                        .filterQtblend(mltGenerator.nameFilterQtblend, mainFilePlaylistTransformProperties())
                         .build()
                 )
             )
         }
         return result
     }
+    override fun mainFilePlaylistTransformProperties(): String {
+        val tpStart = TransformProperty(time = songStartTimecode, x = 0, y = 0, w = frameWidthPx, h = frameHeightPx, opacity = 0.0)
+        val tpFadeIn = TransformProperty(time = songFadeInTimecode, x = 0, y = 0, w = frameWidthPx, h = frameHeightPx, opacity = 1.0)
+        val tpFadeOut = TransformProperty(time = songFadeOutTimecode, x = 0, y = 0, w = frameWidthPx, h = frameHeightPx, opacity = 1.0)
+        val tpEnd = TransformProperty(time = songEndTimecode, x = 0, y = 0, w = frameWidthPx, h = frameHeightPx, opacity = 0.0)
+        val resultListTp = listOf(tpStart, tpFadeIn, tpFadeOut, tpEnd)
+        return resultListTp.joinToString(";")
+    }
     override fun trackPlaylist(): MltNode = mltGenerator.trackPlaylist()
 
     override fun tractor(): MltNode = mltGenerator.tractor()
 
     override fun template(): MltNode {
-        val songVersion = mltProp.getSongVersion()
 
         val offsetX = Karaoke.songtextStartPositionXpx
         val maxSongnameW = Karaoke.headerSongnameMaxX - offsetX
         val songnameNameMltFont = Karaoke.headerSongnameFont
 
-        var (songnameW, songnameH1) = getTextWidthHeightPx(mltProp.getSongName(ProducerType.HEADER), songnameNameMltFont.font)
+        var (songnameW, songnameH1) = getTextWidthHeightPx(songName, songnameNameMltFont.font)
         val (authorW, authorH) = getTextWidthHeightPx(Karaoke.headerAuthorName, Karaoke.headerAuthorFont.font)
         val (albumW, albumH) = getTextWidthHeightPx(Karaoke.headerAlbumName, Karaoke.headerAlbumFont.font)
         val (toneW, toneH) = getTextWidthHeightPx(Karaoke.headerToneName, Karaoke.headerToneFont.font)
@@ -63,15 +85,15 @@ data class MkoHeader(val mltProp: MltProp, val type: ProducerType, val voiceId: 
 
         while (songnameW > maxSongnameW) {
             songnameNameMltFont.font = Font(songnameNameMltFont.font.name, songnameNameMltFont.font.style, songnameNameMltFont.font.size -1)
-            songnameW = getTextWidthHeightPx(mltProp.getSongName(ProducerType.HEADER), songnameNameMltFont.font).first
-            songnameH = getTextWidthHeightPx(mltProp.getSongName(ProducerType.HEADER), songnameNameMltFont.font).second
+            songnameW = getTextWidthHeightPx(songName, songnameNameMltFont.font).first
+            songnameH = getTextWidthHeightPx(songName, songnameNameMltFont.font).second
         }
 
         val songnameY = songnameH1 - songnameH
-        val authorY = songnameY + (getTextWidthHeightPx(mltProp.getSongName(ProducerType.HEADER).toString(), Karaoke.headerSongnameFont.font).second).toLong()
-        val albumY = authorY + (getTextWidthHeightPx(mltProp.getAuthor(ProducerType.HEADER), Karaoke.headerAuthorFont.font).second).toLong()
-        val toneY = albumY + (getTextWidthHeightPx(mltProp.getAlbum(ProducerType.HEADER), Karaoke.headerAlbumFont.font).second).toLong()
-        val bpmY = toneY + (getTextWidthHeightPx(mltProp.getTone(ProducerType.HEADER), Karaoke.headerToneFont.font).second).toLong()
+        val authorY = songnameY + (getTextWidthHeightPx(songName, Karaoke.headerSongnameFont.font).second).toLong()
+        val albumY = authorY + (getTextWidthHeightPx(author, Karaoke.headerAuthorFont.font).second).toLong()
+        val toneY = albumY + (getTextWidthHeightPx(album, Karaoke.headerAlbumFont.font).second).toLong()
+        val bpmY = toneY + (getTextWidthHeightPx(tone, Karaoke.headerToneFont.font).second).toLong()
 
 
         val maxW = listOf(authorW, albumW, toneW, bpmW).maxBy { it }
@@ -90,10 +112,10 @@ data class MkoHeader(val mltProp: MltProp, val type: ProducerType, val voiceId: 
                         Pair("type","QGraphicsPixmapItem"),
                         Pair("z-index","6"),
                     ), body = mutableListOf(
-                        MltNode(name = "position", fields = mutableMapOf(Pair("x","${(Karaoke.frameWidthPx * 0.6385).toLong()}"),Pair("y","36")), body = mutableListOf(
-                            MltNode(name = "transform", body = "${Karaoke.frameWidthPx*0.00025},0,0,0,${Karaoke.frameWidthPx*0.00025},0,0,0,1")
+                        MltNode(name = "position", fields = mutableMapOf(Pair("x","${(frameWidthPx * 0.6385).toLong()}"),Pair("y","36")), body = mutableListOf(
+                            MltNode(name = "transform", body = "${frameWidthPx*0.00025},0,0,0,${frameWidthPx*0.00025},0,0,0,1")
                         )),
-                        MltNode(name = "content", fields = mutableMapOf(Pair("base64", mltProp.getBase64("LogoAuthor"))))
+                        MltNode(name = "content", fields = mutableMapOf(Pair("base64", logoAuthorBase64)))
                     )
                 )
             )
@@ -104,10 +126,10 @@ data class MkoHeader(val mltProp: MltProp, val type: ProducerType, val voiceId: 
                         Pair("type","QGraphicsPixmapItem"),
                         Pair("z-index","6"),
                     ), body = mutableListOf(
-                        MltNode(name = "position", fields = mutableMapOf(Pair("x","${(Karaoke.frameWidthPx * 0.8927).toLong()}"),Pair("y","36")), body = mutableListOf(
-                            MltNode(name = "transform", body = "${Karaoke.frameWidthPx*0.00025},0,0,0,${Karaoke.frameWidthPx*0.00025},0,0,0,1")
+                        MltNode(name = "position", fields = mutableMapOf(Pair("x","${(frameWidthPx * 0.8927).toLong()}"),Pair("y","36")), body = mutableListOf(
+                            MltNode(name = "transform", body = "${frameWidthPx*0.00025},0,0,0,${frameWidthPx*0.00025},0,0,0,1")
                         )),
-                        MltNode(name = "content", fields = mutableMapOf(Pair("base64", mltProp.getBase64("LogoAlbum"))))
+                        MltNode(name = "content", fields = mutableMapOf(Pair("base64", logoAlbumBase64)))
                     )
                 )
             )
@@ -123,7 +145,7 @@ data class MkoHeader(val mltProp: MltProp, val type: ProducerType, val voiceId: 
                     MltNode(name = "position", fields = mutableMapOf(Pair("x","$offsetX"),Pair("y","${songnameY.toLong()}")), body = mutableListOf(
                         MltNode(name = "transform", body = "1,0,0,0,1,0,0,0,1")
                     )),
-                    songnameNameMltFont.mltNode(mltProp.getSongName(ProducerType.HEADER))
+                    songnameNameMltFont.mltNode(songName)
                 )
             )
         )
@@ -152,7 +174,7 @@ data class MkoHeader(val mltProp: MltProp, val type: ProducerType, val voiceId: 
                     MltNode(name = "position", fields = mutableMapOf(Pair("x","${valueX.toLong()}"),Pair("y","${authorY.toLong()}")), body = mutableListOf(
                         MltNode(name = "transform", body = "1,0,0,0,1,0,0,0,1")
                     )),
-                    Karaoke.headerAuthorFont.mltNode(mltProp.getAuthor(ProducerType.HEADER))
+                    Karaoke.headerAuthorFont.mltNode(author)
                 )
             )
         )
@@ -182,7 +204,7 @@ data class MkoHeader(val mltProp: MltProp, val type: ProducerType, val voiceId: 
                     MltNode(name = "position", fields = mutableMapOf(Pair("x","${valueX.toLong()}"),Pair("y","${albumY.toLong()}")), body = mutableListOf(
                         MltNode(name = "transform", body = "1,0,0,0,1,0,0,0,1")
                     )),
-                    Karaoke.headerAlbumFont.mltNode("${mltProp.getAlbum(ProducerType.HEADER)} (${mltProp.getYear(ProducerType.HEADER)})")
+                    Karaoke.headerAlbumFont.mltNode("$album (${year})")
                 )
             )
         )
@@ -213,7 +235,7 @@ data class MkoHeader(val mltProp: MltProp, val type: ProducerType, val voiceId: 
                         MltNode(name = "position", fields = mutableMapOf(Pair("x","${valueX.toLong()}"),Pair("y","${toneY.toLong()}")), body = mutableListOf(
                             MltNode(name = "transform", body = "1,0,0,0,1,0,0,0,1")
                         )),
-                        Karaoke.headerToneFont.mltNode(mltProp.getTone(ProducerType.HEADER))
+                        Karaoke.headerToneFont.mltNode(tone)
                     )
                 )
             )
@@ -243,7 +265,7 @@ data class MkoHeader(val mltProp: MltProp, val type: ProducerType, val voiceId: 
                         MltNode(name = "position", fields = mutableMapOf(Pair("x","${valueX.toLong()}"),Pair("y","${bpmY.toLong()}")), body = mutableListOf(
                             MltNode(name = "transform", body = "1,0,0,0,1,0,0,0,1")
                         )),
-                        Karaoke.headerBpmFont.mltNode("${mltProp.getBpm(ProducerType.HEADER)} bpm")
+                        Karaoke.headerBpmFont.mltNode("$bpm bpm")
                     )
                 )
             )
@@ -265,7 +287,7 @@ data class MkoHeader(val mltProp: MltProp, val type: ProducerType, val voiceId: 
                         Pair("brushcolor","0,0,0,255"),
                         Pair("pencolor","0,0,0,255"),
                         Pair("penwidth","0"),
-                        Pair("rect","0,0,${Karaoke.frameWidthPx},246"))
+                        Pair("rect","0,0,${frameWidthPx},246"))
                     )
                 )
             )
@@ -285,15 +307,15 @@ data class MkoHeader(val mltProp: MltProp, val type: ProducerType, val voiceId: 
                         Pair("brushcolor","0,0,0,255"),
                         Pair("pencolor","0,0,0,255"),
                         Pair("penwidth","0"),
-                        Pair("rect","0,0,${Karaoke.frameWidthPx},246"),
+                        Pair("rect","0,0,${frameWidthPx},246"),
                         Pair("gradient","#ff000000;#00bf4040;0;100;90"))
                     )
                 )
             )
         )
 
-        body.add(MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${Karaoke.frameHeightPx}"))))
-        body.add(MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${Karaoke.frameHeightPx}"))))
+        body.add(MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${frameWidthPx},${frameHeightPx}"))))
+        body.add(MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${frameWidthPx},${frameHeightPx}"))))
         body.add(MltNode(name = "background", fields = mutableMapOf(Pair("color","0,0,0,0"))))
 
         return MltNode(
@@ -301,8 +323,8 @@ data class MkoHeader(val mltProp: MltProp, val type: ProducerType, val voiceId: 
             fields = mutableMapOf(
                 Pair("duration","0"),
                 Pair("LC_NUMERIC","C"),
-                Pair("width","${Karaoke.frameWidthPx}"),
-                Pair("height","${Karaoke.frameHeightPx}"),
+                Pair("width","$frameWidthPx"),
+                Pair("height","$frameHeightPx"),
                 Pair("out","0"),
             ),
             body = body

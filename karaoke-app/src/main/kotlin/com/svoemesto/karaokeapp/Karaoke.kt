@@ -1,5 +1,6 @@
 package com.svoemesto.karaokeapp
 
+import com.fasterxml.jackson.databind.ser.std.StringSerializer
 import com.svoemesto.karaokeapp.Converter.Companion.getColorFromString
 import com.svoemesto.karaokeapp.Converter.Companion.getColorsFromString
 import com.svoemesto.karaokeapp.Converter.Companion.getMltFontFromString
@@ -10,347 +11,272 @@ import com.svoemesto.karaokeapp.mlt.MltObjectType
 import com.svoemesto.karaokeapp.mlt.MltShape
 import com.svoemesto.karaokeapp.mlt.MltText
 import com.svoemesto.karaokeapp.mlt.setting
+import com.svoemesto.karaokeapp.textfilehistory.HistoryMap
+import kotlinx.serialization.SerializationStrategy
+import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.decodeFromStream
+import kotlinx.serialization.json.encodeToStream
 import java.awt.Color
 import java.awt.Font
-import java.io.File
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
 import java.io.Serializable
 import java.util.*
 
+@kotlinx.serialization.Serializable
+data class KaraokePropertySerializable(
+    val key: String,
+    val serializableValue: String
+) {
+    companion object {
+        fun create(key: String, value: Any): KaraokePropertySerializable {
+            val kpInList = listKaraokeProperties.firstOrNull { it.key == key }
+            val serializableValue = if (kpInList == null) {
+                value.toString()
+            } else {
+                when(value) {
+                    is String -> {
+                        val bout = ByteArrayOutputStream()
+                        Json.encodeToStream(String.serializer(), value, bout)
+                        Base64.getEncoder().encodeToString(bout.toByteArray())
+                    }
+                    is Long -> {
+                        val bout = ByteArrayOutputStream()
+                        Json.encodeToStream(Long.serializer(), value, bout)
+                        Base64.getEncoder().encodeToString(bout.toByteArray())
+                    }
+                    is Int -> {
+                        val bout = ByteArrayOutputStream()
+                        Json.encodeToStream(Int.serializer(), value, bout)
+                        Base64.getEncoder().encodeToString(bout.toByteArray())
+                    }
+                    is Double -> {
+                        val bout = ByteArrayOutputStream()
+                        Json.encodeToStream(Double.serializer(), value, bout)
+                        Base64.getEncoder().encodeToString(bout.toByteArray())
+                    }
+                    is Boolean -> {
+                        val bout = ByteArrayOutputStream()
+                        Json.encodeToStream(Boolean.serializer(), value, bout)
+                        Base64.getEncoder().encodeToString(bout.toByteArray())
+                    }
+                    else -> ""
+                }
+            }
+            return KaraokePropertySerializable(
+                key = key,
+                serializableValue = serializableValue
+            )
+        }
+    }
+    fun value(): Any {
+
+        val kpInList = listKaraokeProperties.firstOrNull { it.key == key } ?: return ""
+        val ba = Base64.getDecoder().decode(serializableValue)
+
+        return when(kpInList.defaultValue) {
+            is String -> {
+                val tmp: String = Json.decodeFromStream(ByteArrayInputStream(ba))
+                tmp
+            }
+            is Long -> {
+                val tmp: Long = Json.decodeFromStream(ByteArrayInputStream(ba))
+                tmp
+            }
+            is Int -> {
+                val tmp: Int = Json.decodeFromStream(ByteArrayInputStream(ba))
+                tmp
+            }
+            is Double -> {
+                val tmp: Double = Json.decodeFromStream(ByteArrayInputStream(ba))
+                tmp
+            }
+            is Boolean -> {
+                val tmp: Boolean = Json.decodeFromStream(ByteArrayInputStream(ba))
+                tmp
+            }
+            is Color -> {
+                val tmp: Color = Json.decodeFromStream(ByteArrayInputStream(ba))
+                tmp
+            }
+            is List<*> -> {
+                val tmp: List<String> = Json.decodeFromStream(ByteArrayInputStream(ba))
+                tmp
+            }
+            is MltText -> {
+                val tmp: MltText = Json.decodeFromStream(ByteArrayInputStream(ba))
+                tmp
+            }
+            is MltShape -> {
+                val tmp: MltShape = Json.decodeFromStream(ByteArrayInputStream(ba))
+                tmp
+            }
+            else -> ""
+        }
+    }
+}
+data class KaraokeProperty(
+    val key: String,
+    val defaultValue: Any,
+    val description: String
+)
+
+data class KaraokePropertyDTO(
+    val key: String = "",
+    val value: String = "",
+    val defaultValue: String = "",
+    val description: String = "",
+    val type: String = ""
+) : Serializable
+
 class Karaoke : Serializable {
     companion object {
-        private val fileNameXml = "src/main/resources/settings.xml"
-        private val props = Properties()
+
+
+
+        //Автосохранение
+        var autoSave: Boolean
+            get() = KaraokeProperties.getBoolean("autoSave")
+            set(value) { KaraokeProperties.set("autoSave", value) }
+
+        // Время (в миллисекундах) задержки перед автосохранением
+        var autoSaveDelayMs: Long
+            get() = KaraokeProperties.getLong("autoSaveDelayMs")
+            set(value) { KaraokeProperties.set("autoSaveDelayMs", value) }
 
         // Путь к папке с фонами
         var backgroundFolderPath: String
-            get() {
-                val defaultValue = "/home/nsa/Documents/SpaceBox4096"
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("backgroundFolderPath",defaultValue)
-            }
-            set(value) {
-                props.setProperty("backgroundFolderPath", value)
-                // props.storeToXML(File(fileNameXml).outputStream(), null)
-            }
-
+            get() = KaraokeProperties.getString("backgroundFolderPath")
+            set(value) { KaraokeProperties.set("backgroundFolderPath", value) }
 
         // Создавать логотип
         var createLogotype: Boolean
-            get() {
-                val defaultValue = "true"
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("createLogotype",defaultValue).toBoolean()
-            }
-            set(value) {
-                props.setProperty("createLogotype", value.toString())
-                // props.storeToXML(File(fileNameXml).outputStream(), null)
-            }
-
+            get() = KaraokeProperties.getBoolean("createLogotype")
+            set(value) { KaraokeProperties.set("createLogotype", value) }
 
         // Создавать микрофон
         var createMicrophone: Boolean
-            get() {
-                val defaultValue = "true"
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("createMicrophone",defaultValue).toBoolean()
-            }
-            set(value) {
-                props.setProperty("createMicrophone", value.toString())
-                // props.storeToXML(File(fileNameXml).outputStream(), null)
-            }
-
+            get() = KaraokeProperties.getBoolean("createMicrophone")
+            set(value) { KaraokeProperties.set("createMicrophone", value) }
 
         // Создавать заголовок
         var createHeader: Boolean
-            get() {
-                val defaultValue = "true"
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("createHeader",defaultValue).toBoolean()
-            }
-            set(value) {
-                props.setProperty("createHeader", value.toString())
-                // props.storeToXML(File(fileNameXml).outputStream(), null)
-            }
-
+            get() = KaraokeProperties.getBoolean("createHeader")
+            set(value) { KaraokeProperties.set("createHeader", value) }
 
         // Создавать аудио ударных
         var createAudioDrums: Boolean
-            get() {
-                val defaultValue = "true"
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("createAudioDrums",defaultValue).toBoolean()
-            }
-            set(value) {
-                props.setProperty("createAudioDrums", value.toString())
-                // props.storeToXML(File(fileNameXml).outputStream(), null)
-            }
-
+            get() = KaraokeProperties.getBoolean("createAudioDrums")
+            set(value) { KaraokeProperties.set("createAudioDrums", value) }
 
         // Создавать аудио баса
         var createAudioBass: Boolean
-            get() {
-                val defaultValue = "true"
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("createAudioBass",defaultValue).toBoolean()
-            }
-            set(value) {
-                props.setProperty("createAudioBass", value.toString())
-                // props.storeToXML(File(fileNameXml).outputStream(), null)
-            }
+            get() = KaraokeProperties.getBoolean("createAudioBass")
+            set(value) { KaraokeProperties.set("createAudioBass", value) }
 
         // Создавать аудио вокала
         var createAudioVocal: Boolean
-            get() {
-                val defaultValue = "true"
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("createAudioVocal",defaultValue).toBoolean()
-            }
-            set(value) {
-                props.setProperty("createAudioVocal", value.toString())
-                // props.storeToXML(File(fileNameXml).outputStream(), null)
-            }
-
+            get() = KaraokeProperties.getBoolean("createAudioVocal")
+            set(value) { KaraokeProperties.set("createAudioVocal", value) }
 
         // Создавать аудио музыки
         var createAudioMusic: Boolean
-            get() {
-                val defaultValue = "true"
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("createAudioMusic",defaultValue).toBoolean()
-            }
-            set(value) {
-                props.setProperty("createAudioMusic", value.toString())
-                // props.storeToXML(File(fileNameXml).outputStream(), null)
-            }
+            get() = KaraokeProperties.getBoolean("createAudioMusic")
+            set(value) { KaraokeProperties.set("createAudioMusic", value) }
 
         // Создавать аудио песни
         var createAudioSong: Boolean
-            get() {
-                val defaultValue = "true"
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("createAudioSong",defaultValue).toBoolean()
-            }
-            set(value) {
-                props.setProperty("createAudioSong", value.toString())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
+            get() = KaraokeProperties.getBoolean("createAudioSong")
+            set(value) { KaraokeProperties.set("createAudioSong", value) }
 
         // Создавать фэйдер
         var createFader: Boolean
-            get() {
-                val defaultValue = "true"
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("createFader",defaultValue).toBoolean()
-            }
-            set(value) {
-                props.setProperty("createFader", value.toString())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
-
+            get() = KaraokeProperties.getBoolean("createFader")
+            set(value) { KaraokeProperties.set("createFader", value) }
 
         // Создавать заливки
         var createFillsSongtext: Boolean
-            get() {
-                val defaultValue = "true"
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("createFillsSongtext",defaultValue).toBoolean()
-            }
-            set(value) {
-                props.setProperty("createFillsSongtext", value.toString())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
+            get() = KaraokeProperties.getBoolean("createFillsSongtext")
+            set(value) { KaraokeProperties.set("createFillsSongtext", value) }
 
         var createFillsChords: Boolean
-            get() {
-                val defaultValue = "true"
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("createFillsChords",defaultValue).toBoolean()
-            }
-            set(value) {
-                props.setProperty("createFillsChords", value.toString())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
+            get() = KaraokeProperties.getBoolean("createFillsChords")
+            set(value) { KaraokeProperties.set("createFillsChords", value) }
 
         // Раскрашивать горизонт
         var paintHorizon: Boolean
-            get() {
-                val defaultValue = "false"
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("paintHorizon",defaultValue).toBoolean()
-            }
-            set(value) {
-                props.setProperty("paintHorizon", value.toString())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
+            get() = KaraokeProperties.getBoolean("paintHorizon")
+            set(value) { KaraokeProperties.set("paintHorizon", value) }
 
         // Создавать горизонт
         var createHorizon: Boolean
-            get() {
-                val defaultValue = "true"
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("createHorizon",defaultValue).toBoolean()
-            }
-            set(value) {
-                props.setProperty("createHorizon", value.toString())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
+            get() = KaraokeProperties.getBoolean("createHorizon")
+            set(value) { KaraokeProperties.set("createHorizon", value) }
 
         // Создавать прогрессометр
         var createProgress: Boolean
-            get() {
-                val defaultValue = "true"
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("createProgress",defaultValue).toBoolean()
-            }
-            set(value) {
-                props.setProperty("createProgress", value.toString())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
+            get() = KaraokeProperties.getBoolean("createProgress")
+            set(value) { KaraokeProperties.set("createProgress", value) }
 
         // Создавать фон
         var createBackground: Boolean
-            get() {
-                val defaultValue = "true"
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("createBackground",defaultValue).toBoolean()
-            }
-            set(value) {
-                props.setProperty("createBackground", value.toString())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
+            get() = KaraokeProperties.getBoolean("createBackground")
+            set(value) { KaraokeProperties.set("createBackground", value) }
 
         // Создавать водяной знак
         var createWatermark: Boolean
-            get() {
-                val defaultValue = "true"
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("createWatermark",defaultValue).toBoolean()
-            }
-            set(value) {
-                props.setProperty("createWatermark", value.toString())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
+            get() = KaraokeProperties.getBoolean("createWatermark")
+            set(value) { KaraokeProperties.set("createWatermark", value) }
 
         // Создавать счётчики
         var createCounters: Boolean
-            get() {
-                val defaultValue = "true"
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("createCounters",defaultValue).toBoolean()
-            }
-            set(value) {
-                props.setProperty("createCounters", value.toString())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
+            get() = KaraokeProperties.getBoolean("createCounters")
+            set(value) { KaraokeProperties.set("createCounters", value) }
 
         // Создавать такты
         var createBeats: Boolean
-            get() {
-                val defaultValue = "false"
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("createBeats",defaultValue).toBoolean()
-            }
-            set(value) {
-                props.setProperty("createBeats", value.toString())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
+            get() = KaraokeProperties.getBoolean("createBeats")
+            set(value) { KaraokeProperties.set("createBeats", value) }
 
         // Создавать текст песни
         var createSongtext: Boolean
-            get() {
-                val defaultValue = "true"
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("createSongtext",defaultValue).toBoolean()
-            }
-            set(value) {
-                props.setProperty("createSongtext", value.toString())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
+            get() = KaraokeProperties.getBoolean("createSongtext")
+            set(value) { KaraokeProperties.set("createSongtext", value) }
 
         // Время (в миллисекундах) задержки звука от начала анимации
         var timeOffsetStartFillingLineMs: Long
-            get() {
-                val defaultValue = "170"
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("timeOffsetStartFillingLineMs",defaultValue).toLong()
-            }
-            set(value) {
-                props.setProperty("timeOffsetStartFillingLineMs", value.toString())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
+            get() = KaraokeProperties.getLong("timeOffsetStartFillingLineMs")
+            set(value) { KaraokeProperties.set("timeOffsetStartFillingLineMs", value) }
 
         var timeOffsetBluetoothSpeakerMs: Long
-            get() {
-                val defaultValue = "300"
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("timeOffsetBluetoothSpeakerMs",defaultValue).toLong()
-            }
-            set(value) {
-                props.setProperty("timeOffsetBluetoothSpeakerMs", value.toString())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
+            get() = KaraokeProperties.getLong("timeOffsetBluetoothSpeakerMs")
+            set(value) { KaraokeProperties.set("timeOffsetBluetoothSpeakerMs", value) }
 
         // Время показа в миллисекундах начальной заставки
         var timeSplashScreenLengthMs: Long
-            get() {
-                val defaultValue = "5000"
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("timeSplashScreenLengthMs",defaultValue).toLong()
-            }
-            set(value) {
-                props.setProperty("timeSplashScreenLengthMs", value.toString())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
+            get() = KaraokeProperties.getLong("timeSplashScreenLengthMs")
+            set(value) { KaraokeProperties.set("timeSplashScreenLengthMs", value) }
 
         // Время показа в миллисекундах boosty
         var timeBoostyLengthMs: Long
-            get() {
-                val defaultValue = "3000"
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("timeBoostyLengthMs",defaultValue).toLong()
-            }
-            set(value) {
-                props.setProperty("timeBoostyLengthMs", value.toString())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
-
+            get() = KaraokeProperties.getLong("timeBoostyLengthMs")
+            set(value) { KaraokeProperties.set("timeBoostyLengthMs", value) }
 
         // Минимальное время (в миллисекундах) между линиями, меньше которого заливка последнего титра будет во время смещения линии
         var transferMinimumMsBetweenLinesToScroll: Long
-            get() {
-                val defaultValue = "200"
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("transferMinimumMsBetweenLinesToScroll",defaultValue).toLong()
-            }
-            set(value) {
-                props.setProperty("transferMinimumMsBetweenLinesToScroll", value.toString())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
+            get() = KaraokeProperties.getLong("transferMinimumMsBetweenLinesToScroll")
+            set(value) { KaraokeProperties.set("transferMinimumMsBetweenLinesToScroll", value) }
 
         // Отступ начала заливки от первого символа в строке (в пикселах)
         var songtextStartOffsetXpx: Long
-            get() {
-                val defaultValue = "20"
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("songtextStartOffsetXpx",defaultValue).toLong()
-            }
-            set(value) {
-                props.setProperty("songtextStartOffsetXpx", value.toString())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
-
+            get() = KaraokeProperties.getLong("songtextStartOffsetXpx")
+            set(value) { KaraokeProperties.set("songtextStartOffsetXpx", value) }
 
         // Начальная позиция по Х текста песни на экране (в % от ширины экрана)
         var songtextStartPositionXpercent: Double
-            get() {
-                val defaultValue = "5.0"
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("songtextStartPositionXpercent",defaultValue).toDouble()
-            }
-            set(value) {
-                props.setProperty("songtextStartPositionXpercent", value.toString())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
+            get() = KaraokeProperties.getDouble("songtextStartPositionXpercent")
+            set(value) { KaraokeProperties.set("songtextStartPositionXpercent", value) }
 
         // Начальная позиция по Х текста песни на экране (в пикселах)
         val songtextStartPositionXpx: Int
@@ -360,759 +286,251 @@ class Karaoke : Serializable {
 
         // Смещение горизонта (в пикселах)
         var horizonOffsetPx: Long
-            get() {
-                val defaultValue = "-7"
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("horizonOffsetPx",defaultValue).toLong()
-            }
-            set(value) {
-                props.setProperty("horizonOffsetPx", value.toString())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
+            get() = KaraokeProperties.getLong("horizonOffsetPx")
+            set(value) { KaraokeProperties.set("horizonOffsetPx", value) }
 
-        // Цвета горизонта для групп
+        // Цвета каунтеров
         var countersColors: MutableList<Color>
-            get() {
-                val defaultValue = listOf(
-                    Color(0,255,0,255),
-                    Color(255,255,0,255),
-                    Color(255,255,0,255),
-                    Color(255,0,0,255),
-                    Color(255,0,0,255)
-                ).setting()
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return getColorsFromString(props.getProperty("countersColors", defaultValue))
-            }
-            set(value) {
-                props.setProperty("countersColors", value.setting())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
+            get() = getColorsFromString(KaraokeProperties.getString("countersColors"))
+            set(value) { KaraokeProperties.set("countersColors", value.setting()) }
 
         // Цвета горизонта для групп
         var horizonColors: MutableList<Color>
-            get() {
-                val defaultValue = listOf(
-                    Color(255,255,255,255),
-                    Color(255,255,0,255),
-                    Color(85,255,255,255)
-                ).setting()
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return getColorsFromString(props.getProperty("horizonColors", defaultValue))
-            }
-            set(value) {
-                props.setProperty("horizonColors", value.setting())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
+            get() = getColorsFromString(KaraokeProperties.getString("horizonColors"))
+            set(value) { KaraokeProperties.set("horizonColors", value.setting()) }
 
         // Цвет горизонта
         var horizonColor: Color
-            get() {
-                val defaultValue = Color(0,255,0,255).setting()
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return getColorFromString(props.getProperty("horizonColor", defaultValue))
-            }
-            set(value) {
-                props.setProperty("horizonColor", value.setting())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
+            get() = getColorFromString(KaraokeProperties.getString("horizonColor"))
+            set(value) { KaraokeProperties.set("horizonColor", value.setting()) }
 
+        // Цвет флеша горизонта
         var flashColor: Color
-            get() {
-                val defaultValue = Color(255,0,0,255).setting()
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return getColorFromString(props.getProperty("flashColor", defaultValue))
-            }
-            set(value) {
-                props.setProperty("flashColor", value.setting())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
+            get() = getColorFromString(KaraokeProperties.getString("flashColor"))
+            set(value) { KaraokeProperties.set("flashColor", value.setting()) }
 
         // Настройки текста для голосов - групп
         var voices: MutableList<KaraokeVoice>
-            get() {
-                val defaultValue = "" +
-                        "songtextTextMltFont|[NAME]|${MltText(font = Font(MAIN_FONT_NAME,0,80), shapeColor = Color(255,255,255,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 0, fontUnderline = 0).setting()}" +
-                        "|[GROUP]|" +
-                        "songtextTextMltFont|[NAME]|${MltText(font = Font(MAIN_FONT_NAME,2,80), shapeColor = Color(255,255,155,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 0, fontUnderline = 0).setting()}" +
-                        "|[GROUP]|" +
-                        "songtextTextMltFont|[NAME]|${MltText(font = Font(MAIN_FONT_NAME,0,80), shapeColor = Color(155,255,255,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 0, fontUnderline = 0).setting()}" +
-                        "|[GROUP]|" +
-                        "songtextTextMltFont|[NAME]|${MltText(font = Font(MAIN_FONT_NAME,2,80), shapeColor = Color(155,255,155,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 0, fontUnderline = 0).setting()}" +
-                        "|[GROUP]|" +
-                        "songtextTextMltFont|[NAME]|${MltText(font = Font(MAIN_FONT_NAME,2,80), shapeColor = Color(127,127,127,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 0, fontUnderline = 1).setting()}" +
-                        "|[GROUP]|" +
-                        "songtextTextMltFont|[NAME]|${MltText(font = Font(MAIN_FONT_NAME,2,80), shapeColor = Color(255,127,127,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 0, fontUnderline = 0).setting()}" +
-                        "|[GROUP]|" +
-                        "songtextTextMltFont|[NAME]|${MltText(font = Font(MAIN_FONT_NAME,2,80), shapeColor = Color(255,255,255,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 0, fontUnderline = 0).setting()}" +
-                        "|[GROUP]|" +
-                        "songtextTextMltFont|[NAME]|${MltText(font = Font(MAIN_FONT_NAME,0,80), shapeColor = Color(255,255,155,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 0, fontUnderline = 0).setting()}" +
-                        "|[GROUP]|" +
-                        "songtextTextMltFont|[NAME]|${MltText(font = Font(MAIN_FONT_NAME,2,80), shapeColor = Color(155,255,255,255), shapeOutlineColor = Color(0,0,0,255) , shapeOutline = 0, fontUnderline = 0).setting()}" +
-                        "|[VOICEFIELDS]|" + "evenColor|[NAME]|${Color(255,128,0,255).setting()}" + "|[FIELD]|" + "evenOpacity|[NAME]|1.0" + "|[FIELD]|" + "oddColor|[NAME]|${Color(255,128,0,255).setting()}" + "|[FIELD]|" + "oddOpacity|[NAME]|1.0" +
-                        ""
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return getVoicesFromString(props.getProperty("voices", defaultValue))
-            }
-            set(value) {
-                props.setProperty("voices", getStringFromVoices(value))
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
+            get() = getVoicesFromString(KaraokeProperties.getString("voices"))
+            set(value) { KaraokeProperties.set("flashColor", getStringFromVoices(value)) }
 
         // Ширина экрана в пикселах
         var frameWidthPx: Int
-            get() {
-                val defaultValue = "1920"
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("frameWidthPx",defaultValue).toInt()
-            }
-            set(value) {
-                props.setProperty("frameWidthPx", value.toString())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
+            get() = KaraokeProperties.getInt("frameWidthPx")
+            set(value) { KaraokeProperties.set("frameWidthPx", value) }
 
         // Высота экрана в пикселах
         var frameHeightPx: Int
-            get() {
-                val defaultValue = "1080"
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("frameHeightPx",defaultValue).toInt()
-            }
-            set(value) {
-                props.setProperty("frameHeightPx", value.toString())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
+            get() = KaraokeProperties.getInt("frameHeightPx")
+            set(value) { KaraokeProperties.set("frameHeightPx", value) }
 
         // Frames per seconds
         var frameFps: Double
-            get() {
-                val defaultValue = "60"
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("frameFps",defaultValue).toDouble()
-            }
-            set(value) {
-                props.setProperty("frameFps", value.toString())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
+            get() = KaraokeProperties.getDouble("frameFps")
+            set(value) { KaraokeProperties.set("frameFps", value) }
 
         // HEADER
 
-
+        // Фонт аккордов
         var chordsFont: MltText
-            get() {
-                val defaultValue = MltText(
-                    font = Font("Fira Sans Extra Condensed Medium", 0, 80),
-                    shapeColor = Color(255,127,127,255),
-                    shapeOutlineColor = Color(0,0,0,255),
-                    shapeOutline = 0,
-                    fontUnderline = 0
-                ).setting()
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return getMltFontFromString(props.getProperty("chordsFont", defaultValue))
-            }
-            set(value) {
-                props.setProperty("chordsFont", value.setting())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
-
+            get() = getMltFontFromString(KaraokeProperties.getString("chordsFont"))
+            set(value) { KaraokeProperties.set("chordsFont", value.setting()) }
 
         // Коэффициэнт размера шрифта аккорда относительно размера шрифта текста песни
         var chordsHeightCoefficient: Double
-            get() {
-                val defaultValue = "0.72"
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("chordsHeightCoefficient",defaultValue).toDouble()
-            }
-            set(value) {
-                props.setProperty("chordsHeightCoefficient", value.toString())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
+            get() = KaraokeProperties.getDouble("chordsHeightCoefficient")
+            set(value) { KaraokeProperties.set("chordsHeightCoefficient", value) }
 
+        // Фонт каподастра
         var chordsCapoFont: MltText
-            get() {
-                val defaultValue = MltText(
-                    font = Font("Fira Sans Extra Condensed Medium", 0, 35),
-                    shapeColor = Color(255,127,127,255),
-                    shapeOutlineColor = Color(255,127,127,255),
-                    shapeOutline = 0,
-                    fontUnderline = 0
-                ).setting()
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return getMltFontFromString(props.getProperty("chordsCapoFont", defaultValue))
-            }
-            set(value) {
-                props.setProperty("chordsCapoFont", value.setting())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
+            get() = getMltFontFromString(KaraokeProperties.getString("chordsCapoFont"))
+            set(value) { KaraokeProperties.set("chordsCapoFont", value.setting()) }
 
         // Заголовок - Название песни - шрифт
         var headerSongnameFont: MltText
-            get() {
-                val defaultValue = MltText(
-                    font = Font(MAIN_FONT_NAME, 0, 80),
-                    shapeColor = Color(255,255,127,255),
-                    shapeOutlineColor = Color(0,0,0,255),
-                    shapeOutline = 0,
-                    fontUnderline = 0
-                ).setting()
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return getMltFontFromString(props.getProperty("headerSongnameFont", defaultValue))
-            }
-            set(value) {
-                props.setProperty("headerSongnameFont", value.setting())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
+            get() = getMltFontFromString(KaraokeProperties.getString("headerSongnameFont"))
+            set(value) { KaraokeProperties.set("headerSongnameFont", value.setting()) }
 
         // Максимальная позиция по X до которой должна быть надпись названия песни, чтобы не перекрывать логотип
         var headerSongnameMaxX: Long
-            get() {
-                val defaultValue = "1200"
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("headerSongnameMaxX",defaultValue).toLong()
-            }
-            set(value) {
-                props.setProperty("headerSongnameMaxX", value.toString())
-                // props.storeToXML(File(fileNameXml).outputStream(), null)
-            }
+            get() = KaraokeProperties.getLong("headerSongnameMaxX")
+            set(value) { KaraokeProperties.set("headerSongnameMaxX", value) }
 
         // Заголовок - Автор - шрифт
         var headerAuthorFont: MltText
-            get() {
-                val defaultValue = MltText(
-                    font = Font(MAIN_FONT_NAME, 0, 30),
-                    shapeColor = Color(255,255,127,255),
-                    shapeOutlineColor = Color(0,0,0,255),
-                    shapeOutline = 0,
-                    fontUnderline = 0
-                ).setting()
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return getMltFontFromString(props.getProperty("headerAuthorFont", defaultValue))
-            }
-            set(value) {
-                props.setProperty("headerAuthorFont", value.setting())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
+            get() = getMltFontFromString(KaraokeProperties.getString("headerAuthorFont"))
+            set(value) { KaraokeProperties.set("headerAuthorFont", value.setting()) }
 
+        // Заголовок - Автор (название) - шрифт
         var headerAuthorNameFont: MltText
-            get() {
-                val defaultValue = MltText(
-                    font = Font(MAIN_FONT_NAME, 0, 30),
-                    shapeColor = Color(85,255,255,255),
-                    shapeOutlineColor = Color(0,0,0,255),
-                    shapeOutline = 0,
-                    fontUnderline = 0
-                ).setting()
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return getMltFontFromString(props.getProperty("headerAuthorNameFont", defaultValue))
-            }
-            set(value) {
-                props.setProperty("headerAuthorNameFont", value.setting())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
+            get() = getMltFontFromString(KaraokeProperties.getString("headerAuthorNameFont"))
+            set(value) { KaraokeProperties.set("headerAuthorNameFont", value.setting()) }
 
+        // Заголовок - Автор (название) - текст
         var headerAuthorName: String
-            get() {
-                val defaultValue = "Исполнитель: "
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("headerAuthorName",defaultValue)
-            }
-            set(value) {
-                props.setProperty("headerAuthorName", value)
-                // props.storeToXML(File(fileNameXml).outputStream(), null)
-            }
+            get() = KaraokeProperties.getString("headerAuthorName")
+            set(value) { KaraokeProperties.set("headerAuthorName", value) }
 
         // Заголовок - Название альбома - шрифт
         var headerAlbumFont: MltText
-            get() {
-                val defaultValue = MltText(
-                    font = Font(MAIN_FONT_NAME, 0, 30),
-                    shapeColor = Color(255,255,127,255),
-                    shapeOutlineColor = Color(0,0,0,255),
-                    shapeOutline = 0,
-                    fontUnderline = 0
-                ).setting()
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return getMltFontFromString(props.getProperty("headerAlbumFont", defaultValue))
-            }
-            set(value) {
-                props.setProperty("headerAlbumFont", value.setting())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
+            get() = getMltFontFromString(KaraokeProperties.getString("headerAlbumFont"))
+            set(value) { KaraokeProperties.set("headerAlbumFont", value.setting()) }
 
+        // Заголовок - Название альбома (название) - шрифт
         var headerAlbumNameFont: MltText
-            get() {
-                val defaultValue = MltText(
-                    font = Font(MAIN_FONT_NAME, 0, 30),
-                    shapeColor = Color(85,255,255,255),
-                    shapeOutlineColor = Color(0,0,0,255),
-                    shapeOutline = 0,
-                    fontUnderline = 0
-                ).setting()
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return getMltFontFromString(props.getProperty("headerAlbumNameFont", defaultValue))
-            }
-            set(value) {
-                props.setProperty("headerAlbumNameFont", value.setting())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
+            get() = getMltFontFromString(KaraokeProperties.getString("headerAlbumNameFont"))
+            set(value) { KaraokeProperties.set("headerAlbumNameFont", value.setting()) }
 
+        // Заголовок - Название альбома (название) - текст
         var headerAlbumName: String
-            get() {
-                val defaultValue = "Альбом: "
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("headerAlbumName",defaultValue)
-            }
-            set(value) {
-                props.setProperty("headerAlbumName", value)
-                // props.storeToXML(File(fileNameXml).outputStream(), null)
-            }
+            get() = KaraokeProperties.getString("headerAlbumName")
+            set(value) { KaraokeProperties.set("headerAlbumName", value) }
 
         // Заголовок - Тональность - шрифт
         var headerToneFont: MltText
-            get() {
-                val defaultValue = MltText(
-                    font = Font(MAIN_FONT_NAME, 0, 30),
-                    shapeColor = Color(255,255,127,255),
-                    shapeOutlineColor = Color(0,0,0,255),
-                    shapeOutline = 0,
-                    fontUnderline = 0
-                ).setting()
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return getMltFontFromString(props.getProperty("headerToneFont", defaultValue))
-            }
-            set(value) {
-                props.setProperty("headerAlbumFont", value.setting())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
+            get() = getMltFontFromString(KaraokeProperties.getString("headerToneFont"))
+            set(value) { KaraokeProperties.set("headerToneFont", value.setting()) }
 
+        // Заголовок - Тональность (название) - шрифт
         var headerToneNameFont: MltText
-            get() {
-                val defaultValue = MltText(
-                    font = Font(MAIN_FONT_NAME, 0, 30),
-                    shapeColor = Color(85,255,255,255),
-                    shapeOutlineColor = Color(0,0,0,255),
-                    shapeOutline = 0,
-                    fontUnderline = 0
-                ).setting()
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return getMltFontFromString(props.getProperty("headerToneNameFont", defaultValue))
-            }
-            set(value) {
-                props.setProperty("headerToneNameFont", value.setting())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
+            get() = getMltFontFromString(KaraokeProperties.getString("headerToneNameFont"))
+            set(value) { KaraokeProperties.set("headerToneNameFont", value.setting()) }
 
+        // Заголовок - Тональность (название) - текст
         var headerToneName: String
-            get() {
-                val defaultValue = "Тональность: "
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("headerToneName",defaultValue)
-            }
-            set(value) {
-                props.setProperty("headerToneName", value)
-                // props.storeToXML(File(fileNameXml).outputStream(), null)
-            }
-
+            get() = KaraokeProperties.getString("headerToneName")
+            set(value) { KaraokeProperties.set("headerToneName", value) }
 
         // Заголовок - Темп - шрифт
         var headerBpmFont: MltText
-            get() {
-                val defaultValue = MltText(
-                    font = Font(MAIN_FONT_NAME, 0, 30),
-                    shapeColor = Color(255,255,127,255),
-                    shapeOutlineColor = Color(0,0,0,255),
-                    shapeOutline = 0,
-                    fontUnderline = 0
-                ).setting()
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return getMltFontFromString(props.getProperty("headerBpmFont", defaultValue))
-            }
-            set(value) {
-                props.setProperty("headerBpmFont", value.setting())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
+            get() = getMltFontFromString(KaraokeProperties.getString("headerBpmFont"))
+            set(value) { KaraokeProperties.set("headerBpmFont", value.setting()) }
 
+        // Заголовок - Темп (название) - шрифт
         var headerBpmNameFont: MltText
-            get() {
-                val defaultValue = MltText(
-                    font = Font(MAIN_FONT_NAME, 0, 30),
-                    shapeColor = Color(85,255,255,255),
-                    shapeOutlineColor = Color(0,0,0,255),
-                    shapeOutline = 0,
-                    fontUnderline = 0
-                ).setting()
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return getMltFontFromString(props.getProperty("headerBpmNameFont", defaultValue))
-            }
-            set(value) {
-                props.setProperty("headerBpmNameFont", value.setting())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
+            get() = getMltFontFromString(KaraokeProperties.getString("headerBpmNameFont"))
+            set(value) { KaraokeProperties.set("headerBpmNameFont", value.setting()) }
 
+        // Заголовок - Темп (название) - текст
         var headerBpmName: String
-            get() {
-                val defaultValue = "Темп: "
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("headerBpmName",defaultValue)
-            }
-            set(value) {
-                props.setProperty("headerBpmName", value)
-                // props.storeToXML(File(fileNameXml).outputStream(), null)
-            }
+            get() = KaraokeProperties.getString("headerBpmName")
+            set(value) { KaraokeProperties.set("headerBpmName", value) }
 
         // Прогрессометр - шрифт
         var progressFont: MltText
-            get() {
-                val defaultValue = MltText(
-                    font = Font("Tahoma", 0, 20),
-                    shapeColor = Color(255,255,255,255),
-                    shapeOutlineColor = Color(0,0,0,255),
-                    shapeOutline = 0,
-                    fontUnderline = 0
-                ).setting()
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return getMltFontFromString(props.getProperty("progressFont", defaultValue))
-            }
-            set(value) {
-                props.setProperty("progressFont", value.setting())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
+            get() = getMltFontFromString(KaraokeProperties.getString("progressFont"))
+            set(value) { KaraokeProperties.set("progressFont", value.setting()) }
 
+        // Прогрессометр - указатель
         var progressSymbol: String
-            get() {
-                val defaultValue = "▲"
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("progressSymbol",defaultValue)
-            }
-            set(value) {
-                props.setProperty("progressSymbol", value)
-                // props.storeToXML(File(fileNameXml).outputStream(), null)
-            }
+            get() = KaraokeProperties.getString("progressSymbol")
+            set(value) { KaraokeProperties.set("progressSymbol", value) }
 
         // Бусти - шрифт
         var boostyFont: MltText
-            get() {
-                val defaultValue = MltText(
-                    font = Font(MAIN_FONT_NAME, 0, 100),
-                    shapeColor = Color(255,255,255,255),
-                    shapeOutlineColor = Color(0,0,0,255),
-                    shapeOutline = 0,
-                    fontUnderline = 0
-                    ).setting()
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return getMltFontFromString(props.getProperty("boostyFont", defaultValue))
-            }
-            set(value) {
-                props.setProperty("boostyFont", value.setting())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
+            get() = getMltFontFromString(KaraokeProperties.getString("boostyFont"))
+            set(value) { KaraokeProperties.set("boostyFont", value.setting()) }
 
         // Текст Бусти
         var boostyText: String
-            get() {
-                val defaultValue = "Поддержи создание караоке\nна https://boosty.to/svoemesto\n\nГруппа ВКонтакте:\nhttps://vk.com/svoemestokaraoke\n\nВсе ссылки - в описании."
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("boostyText",defaultValue)
-            }
-            set(value) {
-                props.setProperty("boostyText", value)
-                // props.storeToXML(File(fileNameXml).outputStream(), null)
-            }
+            get() = KaraokeProperties.getString("boostyText")
+            set(value) { KaraokeProperties.set("boostyText", value) }
 
         // Водяной знак - шрифт
         var watermarkFont: MltText
-            get() {
-                val defaultValue = MltText(
-                    font = Font(MAIN_FONT_NAME, 0, 10),
-                    shapeColor = Color(255,255,255,127),
-                    shapeOutlineColor = Color(0,0,0,255),
-                    shapeOutline = 0,
-                    fontUnderline = 0
-                ).setting()
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return getMltFontFromString(props.getProperty("watermarkFont", defaultValue))
-            }
-            set(value) {
-                props.setProperty("watermarkFont", value.setting())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
+            get() = getMltFontFromString(KaraokeProperties.getString("watermarkFont"))
+            set(value) { KaraokeProperties.set("watermarkFont", value.setting()) }
 
         // Текст водяного знака
         var watermarkText: String
-            get() {
-                val defaultValue = "https://github.com/svoemesto/Karaoke"
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("watermarkText",defaultValue)
-            }
-            set(value) {
-                props.setProperty("watermarkText", value)
-                // props.storeToXML(File(fileNameXml).outputStream(), null)
-            }
+            get() = KaraokeProperties.getString("watermarkText")
+            set(value) { KaraokeProperties.set("watermarkText", value) }
 
-
+        // Заставка - Название песни - шрифт
         var splashstartSongNameFont: MltText
-            get() {
-                val defaultValue = MltText(
-                    font = Font(MAIN_FONT_NAME, 0, 10),
-                    shapeColor = Color(255,255,127,255),
-                    shapeOutlineColor = Color(0,0,0,255),
-                    shapeOutline = 0,
-                    fontUnderline = 0
-                ).setting()
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return getMltFontFromString(props.getProperty("splashstartSongNameFont", defaultValue))
-            }
-            set(value) {
-                props.setProperty("splashstartSongNameFont", value.setting())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
+            get() = getMltFontFromString(KaraokeProperties.getString("splashstartSongNameFont"))
+            set(value) { KaraokeProperties.set("splashstartSongNameFont", value.setting()) }
 
+        // Заставка - Версия песни - шрифт
         var splashstartSongVersionFont: MltText
-            get() {
-                val defaultValue = MltText(
-                    font = Font(MAIN_FONT_NAME, 0, 150),
-                    shapeColor = Color(85,255,255,255),
-                    shapeOutlineColor = Color(0,0,0,255),
-                    shapeOutline = 0,
-                    fontUnderline = 0
-                ).setting()
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return getMltFontFromString(props.getProperty("splashstartSongVersionFont", defaultValue))
-            }
-            set(value) {
-                props.setProperty("splashstartSongVersionFont", value.setting())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
+            get() = getMltFontFromString(KaraokeProperties.getString("splashstartSongVersionFont"))
+            set(value) { KaraokeProperties.set("splashstartSongVersionFont", value.setting()) }
 
+        // Заставка - Комментарий - шрифт
         var splashstartCommentFont: MltText
-            get() {
-                val defaultValue = MltText(
-                    font = Font(MAIN_FONT_NAME, 0, 60),
-                    shapeColor = Color(85,255,255,255),
-                    shapeOutlineColor = Color(0,0,0,255),
-                    shapeOutline = 0,
-                    fontUnderline = 0
-                ).setting()
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return getMltFontFromString(props.getProperty("splashstartCommentFont", defaultValue))
-            }
-            set(value) {
-                props.setProperty("splashstartSongVersionFont", value.setting())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
+            get() = getMltFontFromString(KaraokeProperties.getString("splashstartCommentFont"))
+            set(value) { KaraokeProperties.set("splashstartCommentFont", value.setting()) }
 
+        // Заставка - Подпись аккордов - шрифт
         var splashstartChordDescriptionFont: MltText
-            get() {
-                val defaultValue = MltText(
-                    font = Font("Fira Sans Extra Condensed Medium", 0, 40),
-                    shapeColor = Color(255,127,127,255),
-                    shapeOutlineColor = Color(0,0,0,255),
-                    shapeOutline = 0,
-                    fontUnderline = 0
-                ).setting()
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return getMltFontFromString(props.getProperty("splashstartChordDescriptionFont", defaultValue))
-            }
-            set(value) {
-                props.setProperty("splashstartChordDescriptionFont", value.setting())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
+            get() = getMltFontFromString(KaraokeProperties.getString("splashstartChordDescriptionFont"))
+            set(value) { KaraokeProperties.set("splashstartChordDescriptionFont", value.setting()) }
 
         // Время в миллисекундах. Если субтитр длится дольше этого времени - закраска увеличивается
         var shortSubtitleMs: Long
-            get() {
-                val defaultValue = "750"
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("shortSubtitleMs",defaultValue).toLong()
-            }
-            set(value) {
-                props.setProperty("shortSubtitleMs", value.toString())
-                // props.storeToXML(File(fileNameXml).outputStream(), null)
-            }
+            get() = KaraokeProperties.getLong("shortSubtitleMs")
+            set(value) { KaraokeProperties.set("shortSubtitleMs", value) }
 
         var chordLayoutW: Int
-            get() {
-                val defaultValue = "800"
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("chordLayoutW",defaultValue).toInt()
-            }
-            set(value) {
-                props.setProperty("chordLayoutW", value.toString())
-                // props.storeToXML(File(fileNameXml).outputStream(), null)
-            }
+            get() = KaraokeProperties.getInt("chordLayoutW")
+            set(value) { KaraokeProperties.set("chordLayoutW", value) }
 
         var chordLayoutH: Int
-            get() {
-                val defaultValue = "800"
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("chordLayoutH",defaultValue).toInt()
-            }
-            set(value) {
-                props.setProperty("chordLayoutH", value.toString())
-                // props.storeToXML(File(fileNameXml).outputStream(), null)
-            }
+            get() = KaraokeProperties.getInt("chordLayoutH")
+            set(value) { KaraokeProperties.set("chordLayoutH", value) }
 
         var shortLineMs: Long
-            get() {
-                val defaultValue = "200"
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("shortLineMs",defaultValue).toLong()
-            }
-            set(value) {
-                props.setProperty("shortLineMs", value.toString())
-                // props.storeToXML(File(fileNameXml).outputStream(), null)
-            }
+            get() = KaraokeProperties.getLong("shortLineMs")
+            set(value) { KaraokeProperties.set("shortLineMs", value) }
 
         var maxCountChordsInFingerboard: Int
-            get() {
-                val defaultValue = "100"
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("maxCountChordsInFingerboard",defaultValue).toInt()
-            }
-            set(value) {
-                props.setProperty("maxCountChordsInFingerboard", value.toString())
-                // props.storeToXML(File(fileNameXml).outputStream(), null)
-            }
-
+            get() = KaraokeProperties.getInt("maxCountChordsInFingerboard")
+            set(value) { KaraokeProperties.set("maxCountChordsInFingerboard", value) }
 
         var shortLineFontScaleCoeff: Double
-            get() {
-                val defaultValue = "0.75"
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return props.getProperty("shortLineFontScaleCoeff",defaultValue).toDouble()
-            }
-            set(value) {
-                props.setProperty("shortLineFontScaleCoeff", value.toString())
-                // props.storeToXML(File(fileNameXml).outputStream(), null)
-            }
+            get() = KaraokeProperties.getDouble("shortLineFontScaleCoeff")
+            set(value) { KaraokeProperties.set("shortLineFontScaleCoeff", value) }
 
+
+        // Табулатура аккорда - Название аккорда - фонт
         var chordLayoutChordNameMltText: MltText
-            get() {
-                val defaultValue = MltText(
-                    font = Font(MAIN_FONT_NAME, 0, 10),
-                    shapeColor = Color(255,255,127,255),
-                    shapeOutlineColor = Color(0,0,0,255),
-                    shapeOutline = 0,
-                    fontUnderline = 0
-                ).setting()
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return getMltFontFromString(props.getProperty("chordLayoutChordNameMltText", defaultValue))
-            }
-            set(value) {
-                props.setProperty("chordLayoutChordNameMltText", value.setting())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
+            get() = getMltFontFromString(KaraokeProperties.getString("chordLayoutChordNameMltText"))
+            set(value) { KaraokeProperties.set("chordLayoutChordNameMltText", value.setting()) }
 
+        // Табулатура аккорда - Номер струны - фонт
         var chordLayoutFretsNumbersMltText: MltText
-            get() {
-                val defaultValue = MltText(
-                    font = Font(MAIN_FONT_NAME, 0, 10),
-                    shapeColor = Color(127,127,127,255),
-                    shapeOutlineColor = Color(0,0,0,255),
-                    shapeOutline = 0,
-                    fontUnderline = 0
-                ).setting()
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return getMltFontFromString(props.getProperty("chordLayoutFretsNumbersMltText", defaultValue))
-            }
-            set(value) {
-                props.setProperty("chordLayoutFretsNumbersMltText", value.setting())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
+            get() = getMltFontFromString(KaraokeProperties.getString("chordLayoutFretsNumbersMltText"))
+            set(value) { KaraokeProperties.set("chordLayoutFretsNumbersMltText", value.setting()) }
 
+        // Табулатура аккорда - Frets - Shape
         var chordLayoutFretsRectangleMltShape: MltShape
-            get() {
-                val defaultValue = MltShape(
-                    type = MltObjectType.RECTANGLE,
-                    shapeColor = Color(255,255,255,127),
-                    shapeOutlineColor = Color(255,255,255,255),
-                    shapeOutline = 2
-                ).setting()
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return getMltShapeFromString(props.getProperty("chordLayoutFretsRectangleMltShape", defaultValue))
-            }
-            set(value) {
-                props.setProperty("chordLayoutFretsRectangleMltShape", value.setting())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
+            get() = getMltShapeFromString(KaraokeProperties.getString("chordLayoutFretsRectangleMltShape"))
+            set(value) { KaraokeProperties.set("chordLayoutFretsRectangleMltShape", value.setting()) }
 
+        // Табулатура аккорда - Nuts - Shape
         var chordLayoutNutsRectangleMltShape: MltShape
-            get() {
-                val defaultValue = MltShape(
-                    type = MltObjectType.RECTANGLE,
-                    shapeColor = Color(255,255,255,255),
-                    shapeOutlineColor = Color(255,255,255,255),
-                    shapeOutline = 2
-                ).setting()
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return getMltShapeFromString(props.getProperty("chordLayoutNutsRectangleMltShape", defaultValue))
-            }
-            set(value) {
-                props.setProperty("chordLayoutNutsRectangleMltShape", value.setting())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
+            get() = getMltShapeFromString(KaraokeProperties.getString("chordLayoutNutsRectangleMltShape"))
+            set(value) { KaraokeProperties.set("chordLayoutNutsRectangleMltShape", value.setting()) }
 
-        var chordLayoutСapoRectangleMltShape: MltShape
-            get() {
-                val defaultValue = MltShape(
-                    type = MltObjectType.RECTANGLE,
-                    shapeColor = Color(255,0,0,255),
-                    shapeOutlineColor = Color(255,0,0,255),
-                    shapeOutline = 2
-                ).setting()
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return getMltShapeFromString(props.getProperty("chordLayoutСapoRectangleMltShape", defaultValue))
-            }
-            set(value) {
-                props.setProperty("chordLayoutСapoRectangleMltShape", value.setting())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
+        // Табулатура аккорда - Capo - Shape
+        var chordLayoutCapoRectangleMltShape: MltShape
+            get() = getMltShapeFromString(KaraokeProperties.getString("chordLayoutCapoRectangleMltShape"))
+            set(value) { KaraokeProperties.set("chordLayoutCapoRectangleMltShape", value.setting()) }
 
+        // Табулатура аккорда - Background - Shape
         var chordLayoutBackgroundRectangleMltShape: MltShape
-            get() {
-                val defaultValue = MltShape(
-                    type = MltObjectType.RECTANGLE,
-                    shapeColor = Color(0,0,0,255),
-                    shapeOutlineColor = Color(255,255,255,20),
-                    shapeOutline = 2
-                ).setting()
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return getMltShapeFromString(props.getProperty("chordLayoutBackgroundRectangleMltShape", defaultValue))
-            }
-            set(value) {
-                props.setProperty("chordLayoutBackgroundRectangleMltShape", value.setting())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
+            get() = getMltShapeFromString(KaraokeProperties.getString("chordLayoutBackgroundRectangleMltShape"))
+            set(value) { KaraokeProperties.set("chordLayoutBackgroundRectangleMltShape", value.setting()) }
 
+        // Табулатура аккорда - Muted - Shape
         var chordLayoutMutedRectangleMltShape: MltShape
-            get() {
-                val defaultValue = MltShape(
-                    type = MltObjectType.RECTANGLE,
-                    shapeColor = Color(255,0,0,200),
-                    shapeOutlineColor = Color(255,0,0,0),
-                    shapeOutline = 0
-                ).setting()
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return getMltShapeFromString(props.getProperty("chordLayoutMutedRectangleMltShape", defaultValue))
-            }
-            set(value) {
-                props.setProperty("chordLayoutMutedRectangleMltShape", value.setting())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
+            get() = getMltShapeFromString(KaraokeProperties.getString("chordLayoutMutedRectangleMltShape"))
+            set(value) { KaraokeProperties.set("chordLayoutMutedRectangleMltShape", value.setting()) }
 
+        // Табулатура аккорда - Finger - Shape
         var chordLayoutFingerCircleMltShape: MltShape
-            get() {
-                val defaultValue = MltShape(
-                    type = MltObjectType.CIRCLE,
-                    shapeColor = Color(255,0,0,255),
-                    shapeOutlineColor = Color(255,255,255,255),
-                    shapeOutline = 2
-                ).setting()
-                // props.loadFromXML(File(fileNameXml).inputStream())
-                return getMltShapeFromString(props.getProperty("chordLayoutFingerCircleMltShape", defaultValue))
-            }
-            set(value) {
-                props.setProperty("chordLayoutFingerCircleMltShape", value.setting())
-                // props.storeToXML(File(fileNameXml).outputStream(),null)
-            }
+            get() = getMltShapeFromString(KaraokeProperties.getString("chordLayoutFingerCircleMltShape"))
+            set(value) { KaraokeProperties.set("chordLayoutFingerCircleMltShape", value.setting()) }
+
     }
 }

@@ -39,43 +39,20 @@ fun mainUtils() {
 }
 
 fun customFunction(): String {
-    var result = ""
 
-//    recodePictures()
-
-//    val settings = Settings.loadFromDbById(5489, WORKING_DATABASE)
-//    val song = Song(settings!!, SongVersion.LYRICS, true)
-//    createSongPicture(song, song.getOutputFilename(SongOutputFile.PICTURE), song.songVersion)
-
+    var cnt1 = 0
+    var cnt2 = 0
     Settings.loadListFromDb(database = WORKING_DATABASE).forEach { settings ->
-        println("id=${settings.id}, author=${settings.author}, album=${settings.album}, name=${settings.songName}")
-        val songLyrics = Song(settings, SongVersion.LYRICS, true)
-        val songKaraoke = Song(settings, SongVersion.KARAOKE, true)
-        createSongPicture(songLyrics, songLyrics.getOutputFilename(SongOutputFile.PICTURE), songLyrics.songVersion)
-        createSongPicture(songKaraoke, songKaraoke.getOutputFilename(SongOutputFile.PICTURE), songKaraoke.songVersion)
-        createVKPicture(songLyrics, songLyrics.getOutputFilename(SongOutputFile.PICTUREVK))
-        createVKLinkPicture(songLyrics, songLyrics.getOutputFilename(SongOutputFile.PICTUREVK))
-        createBoostyTeaserPicture(songLyrics, songLyrics.getOutputFilename(SongOutputFile.PICTUREBOOSTY))
-        createBoostyFilesPicture(songLyrics, songLyrics.getOutputFilename(SongOutputFile.PICTUREBOOSTY))
+        val clone = settings.clone()
+        val (was1, was2) = Settings.renameFilesIfDiff(settings, clone!!)
+        if (was1) cnt1++
+        if (was2) cnt2++
+        if (was2) println(settings.rightSettingFileName)
     }
-
-
-//    Settings.loadListFromDb(mapOf("publish_date" to ">15.12.23", "id_status" to "6"), WORKING_DATABASE)
-//        .forEach { settings ->
-//            settings.createKaraoke()
-//            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, 100)
-//            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, 100)
-//        }
-//    Settings.loadListFromDb(mapOf("publish_date" to "14.12.23<", "id_status" to "6"), WORKING_DATABASE)
-//        .forEach { settings ->
-//            settings.createKaraoke()
-//            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, 100)
-//            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, 100)
-//        }
-
-
-    return result
+    return cnt2.toString()
 }
+
+
 
 fun recodePictures() {
     var totalOld: Long = 0
@@ -518,7 +495,7 @@ fun updateBpmAndKey(database: KaraokeConnection): Int {
     listSettings.forEach { settings ->
         val (bpm, key) = getBpmAndKeyFromCsv(settings)
         if (bpm != 0L && key != "") {
-            println("${settings.fileName} : bpm = ${bpm}, tone = ${key}")
+            println("${settings.rightSettingFileName} : bpm = ${bpm}, tone = ${key}")
             settings.fields[SettingField.BPM] = bpm.toString()
             settings.fields[SettingField.KEY] = key
             settings.saveToDb()
@@ -534,16 +511,18 @@ fun updateBpmAndKeyLV(database: KaraokeConnection): Pair<Int, Int> {
     var counterFailed = 0
     listSettings.forEach { settings ->
         val sheetstageInfo = settings.sheetstageInfo
-        val bpm = sheetstageInfo["tempo"] as String
-        val key = sheetstageInfo["key"] as String
-        if (bpm != "" && key != "") {
-            println("${settings.fileName} : bpm = ${bpm}, tone = ${key}")
-            settings.fields[SettingField.BPM] = bpm
-            settings.fields[SettingField.KEY] = key
-            settings.saveToDb()
-            counterSuccess++
-        } else {
-            counterFailed++
+        if (sheetstageInfo.isNotEmpty()) {
+            val bpm = sheetstageInfo["tempo"] as String
+            val key = sheetstageInfo["key"] as String
+            if (bpm != "" && key != "") {
+                println("${settings.rightSettingFileName} : bpm = ${bpm}, tone = ${key}")
+                settings.fields[SettingField.BPM] = bpm
+                settings.fields[SettingField.KEY] = key
+                settings.saveToDb()
+                counterSuccess++
+            } else {
+                counterFailed++
+            }
         }
     }
     return Pair(counterSuccess, counterFailed)
@@ -1238,13 +1217,10 @@ fun createRunMlt(startFolder: String, database: KaraokeConnection) {
             println(pathToSettingsFile)
 
             val settings = Settings.loadFromFile(pathToSettingsFile, database = database)
-            val songLyrics = Song(settings, SongVersion.LYRICS, woInit = true)
-            val songKaraoke = Song(settings, SongVersion.KARAOKE, woInit = true)
-            val songChords = Song(settings, SongVersion.CHORDS, woInit = false)
-            val hasChords = songChords.hasChords
-            val pathToMltLyrics = songLyrics.getOutputFilename(SongOutputFile.MLT)
-            val pathToMltKaraoke = songKaraoke.getOutputFilename(SongOutputFile.MLT)
-            val pathToMltChords = songChords.getOutputFilename(SongOutputFile.MLT)
+            val hasChords = true
+            val pathToMltLyrics = settings.getOutputFilename(SongOutputFile.MLT, SongVersion.LYRICS)
+            val pathToMltKaraoke = settings.getOutputFilename(SongOutputFile.MLT, SongVersion.KARAOKE)
+            val pathToMltChords = settings.getOutputFilename(SongOutputFile.MLT, SongVersion.CHORDS)
 
             val txtLyric = "echo \"$pathToMltLyrics\"\nmelt -progress \"$pathToMltLyrics\"\n\n"
             val txtKaraoke = "echo \"$pathToMltKaraoke\"\nmelt -progress \"$pathToMltKaraoke\"\n\n"
@@ -1261,26 +1237,26 @@ fun createRunMlt(startFolder: String, database: KaraokeConnection) {
             albumTxtWOLyrics += songTxtWOLyrics
 
 
-            var file = File(songLyrics.getOutputFilename(SongOutputFile.RUN))
+            var file = File(settings.getOutputFilename(SongOutputFile.RUN, SongVersion.LYRICS))
             file.writeText(txtLyric)
             Files.setPosixFilePermissions(file.toPath(), permissions)
 
 
-            file = File(songKaraoke.getOutputFilename(SongOutputFile.RUN))
+            file = File(settings.getOutputFilename(SongOutputFile.RUN, SongVersion.KARAOKE))
             file.writeText(txtKaraoke)
             Files.setPosixFilePermissions(file.toPath(), permissions)
 
             if (hasChords) {
-                file = File(songChords.getOutputFilename(SongOutputFile.RUN))
+                file = File(settings.getOutputFilename(SongOutputFile.RUN, SongVersion.CHORDS))
                 file.writeText(txtChords)
                 Files.setPosixFilePermissions(file.toPath(), permissions)
             }
 
-            file = File(songLyrics.getOutputFilename(SongOutputFile.RUNALL).replace("[lyrics]","[ALL]"))
+            file = File(settings.getOutputFilename(SongOutputFile.RUNALL, SongVersion.LYRICS).replace("[lyrics]","[ALL]"))
             file.writeText(songTxtAll)
             Files.setPosixFilePermissions(file.toPath(), permissions)
 
-            file = File(songLyrics.getOutputFilename(SongOutputFile.RUNALL).replace("[lyrics]","[ALLwoLYRICS]"))
+            file = File(settings.getOutputFilename(SongOutputFile.RUNALL, SongVersion.LYRICS).replace("[lyrics]","[ALLwoLYRICS]"))
             file.writeText(songTxtWOLyrics)
             Files.setPosixFilePermissions(file.toPath(), permissions)
 
@@ -1327,13 +1303,13 @@ fun createVKtext(startFolder: String, fromDb: Boolean = false, database: Karaoke
     listFiles.forEach { pathToSettingsFile ->
         val settings = Settings.loadFromFile(pathToSettingsFile, database = database)
         val song = Song(settings, SongVersion.LYRICS)
-        val fileName = song.getOutputFilename(SongOutputFile.VK)
+        val fileName = settings.getOutputFilename(SongOutputFile.VK, SongVersion.LYRICS)
         val decsAndName = Ods.getSongVKDescription(song, fileName, spreadsheetDocument)
         decsAndName?.let { (text, name) ->
             if (text != "") {
                 println(name)
                 File(name).writeText(text)
-                val vkPictNameOld = (song.getOutputFilename(SongOutputFile.PICTUREVK)).replace(" [lyrics] VK"," [VK]")
+                val vkPictNameOld = (settings.getOutputFilename(SongOutputFile.PICTUREVK, SongVersion.LYRICS)).replace(" [lyrics] VK"," [VK]")
                 val vkPictNameNew = name.replace(" [VK].txt", " [VK].png")
                 FileUtils.copyFile(File(vkPictNameOld), File(vkPictNameNew))
             } else {
@@ -1347,9 +1323,8 @@ fun createBoostyTeserPictures(startFolder: String, database: KaraokeConnection) 
     val listFiles = getListFiles(startFolder,"settings")
     listFiles.forEach { pathToSettingsFile ->
         val settings = Settings.loadFromFile(pathToSettingsFile, database = database)
-        val song = Song(settings, SongVersion.LYRICS)
         println(pathToSettingsFile)
-        createBoostyTeaserPicture(song, song.getOutputFilename(SongOutputFile.PICTUREBOOSTY))
+        createBoostyTeaserPicture(settings)
     }
 }
 
@@ -1370,10 +1345,9 @@ fun createRunToDecodeKaraokeTo720p(runFileName: String, sourceFolder: String, de
 fun createVKLinkPictures(database: KaraokeConnection) {
     val listSettings = Settings.loadListFromDb(database = database)
     listSettings.forEach { settings ->
-        val song = Song(settings, SongVersion.LYRICS)
         println("${settings.datePublish} - ${settings.author} - ${settings.year} - ${settings.album} - ${settings.songName}")
         try {
-            createVKLinkPicture(song, song.getOutputFilename(SongOutputFile.PICTUREVK))
+            createVKLinkPicture(settings)
         } catch (e: Exception) {
             println("Пропускаем.")
         }
@@ -1389,18 +1363,13 @@ fun createDescriptionFilesForAll(startFolder: String, database: KaraokeConnectio
 
         try {
             val settings = Settings.loadFromFile(pathToSettingsFile, database = database)
-            val songLyric = Song(settings, SongVersion.LYRICS)
-            val songKaraoke = Song(settings, SongVersion.KARAOKE)
-            val songChords = Song(settings, SongVersion.CHORDS)
 
+            File(settings.getOutputFilename(SongOutputFile.DESCRIPTION, SongVersion.LYRICS)).writeText(settings.getDescription(SongVersion.LYRICS))
 
-            File(songLyric.getOutputFilename(SongOutputFile.DESCRIPTION)).writeText(songLyric.getDescription())
+            File(settings.getOutputFilename(SongOutputFile.DESCRIPTION, SongVersion.KARAOKE)).writeText(settings.getDescription(SongVersion.KARAOKE))
 
-            File(songKaraoke.getOutputFilename(SongOutputFile.DESCRIPTION)).writeText(songKaraoke.getDescription())
+            File(settings.getOutputFilename(SongOutputFile.DESCRIPTION, SongVersion.CHORDS)).writeText(settings.getDescription(SongVersion.CHORDS))
 
-            if (songChords.hasChords) {
-                File(songChords.getOutputFilename(SongOutputFile.DESCRIPTION)).writeText(songChords.getDescription())
-            }
         } catch (e: Exception) {
             println("Ошибка, продолжаем...")
         }
@@ -1565,7 +1534,7 @@ fun createSettingsFilesForAll(startFolder: String) {
         val durationFrames = convertMillisecondsToFrames(durationInMilliseconds)
 
         val kdenliveTemplate = "<?xml version='1.0' encoding='utf-8'?>\n" +
-                "<mlt LC_NUMERIC=\"C\" producer=\"main_bin\" version=\"7.15.0\" root=\"${fileFolder}\">\n" +
+                "<mlt LC_NUMERIC=\"C\" producer=\"main_bin\" version=\"7.28.0\" root=\"${fileFolder}\">\n" +
                 " <profile frame_rate_num=\"60\" sample_aspect_num=\"1\" display_aspect_den=\"9\" colorspace=\"709\" progressive=\"1\" description=\"HD 1080p 60 fps\" display_aspect_num=\"16\" frame_rate_den=\"1\" width=\"1920\" height=\"1080\" sample_aspect_den=\"1\"/>\n" +
                 " <producer id=\"producer0\" in=\"00:00:00.000\" out=\"${durationTimecode}\">\n" +
                 "  <property name=\"length\">${durationFrames}</property>\n" +
@@ -1942,7 +1911,7 @@ fun generateChordLayout(chord: MusicChord, startRootNote: MusicNote, startInitFr
     for (string in 0..4) {
         // Порожек или каподастр
         if (initFret == 0) {
-            val nutRectangleMltShape = if (capo == 0) Karaoke.chordLayoutNutsRectangleMltShape.copy() else Karaoke.chordLayoutСapoRectangleMltShape.copy()
+            val nutRectangleMltShape = if (capo == 0) Karaoke.chordLayoutNutsRectangleMltShape.copy() else Karaoke.chordLayoutCapoRectangleMltShape.copy()
             val mltShapeNutRectangle = MltObject(
                 layoutW = chordLayoutW,
                 layoutH = chordLayoutH,
@@ -2128,7 +2097,7 @@ fun getFileNameByMasks(pathToFolder: String, startWith: String, suffixes: List<S
 
 }
 
-fun getSongChordsPicture(song: Song, mltNode: MltNode): BufferedImage {
+fun getSongChordsPicture(settings: Settings, mltNode: MltNode): BufferedImage {
 
     val songTextSymbolsGroup = mltNode.body as MutableList<MltNode>
     val startViewport = songTextSymbolsGroup.first { it.name == "startviewport" }
@@ -2258,7 +2227,7 @@ fun getSongChordsPicture(song: Song, mltNode: MltNode): BufferedImage {
     graphics2name.color = colorBack
     graphics2name.fillRect(0,0,nameW, nameH)
     graphics2name.color = colorText
-    val textToOverlay = "${song.settings.author} - ${song.settings.year} - «${song.settings.songName}» (${song.settings.key}, ${song.settings.bpm} bpm)"
+    val textToOverlay = "${settings.author} - ${settings.year} - «${settings.songName}» (${settings.key}, ${settings.bpm} bpm)"
     var rectW = 0
     var rectH = 0
     fontText = Font(MAIN_FONT_NAME, 0, 10)
@@ -2290,20 +2259,41 @@ fun getSongChordsPicture(song: Song, mltNode: MltNode): BufferedImage {
     return resultImagesAndName
 }
 
-fun createSongChordsPicture(song: Song, fileName: String, songVersion: SongVersion, mltNode: MltNode) {
+fun createSongChordsPicture(settings: Settings, fileName: String, songVersion: SongVersion, mltNode: MltNode) {
     if (songVersion == SongVersion.CHORDS) {
-        val resultImage = getSongChordsPicture(song, mltNode)
+        val resultImage = getSongChordsPicture(settings, mltNode)
         val file = File(fileName)
         ImageIO.write(resultImage, "png", file)
     }
 }
 
-fun createSongPicture(song: Song, fileName: String, songVersion: SongVersion) {
+fun createSongTextFile(settings: Settings, songVersion: SongVersion) {
+
+    val fileText = File(settings.getOutputFilename(SongOutputFile.TEXT, songVersion))
+    Files.createDirectories(Path(fileText.parent))
+    val text = settings.getTextBody()
+    fileText.writeText(text)
+
+}
+
+fun createSongDescriptionFile(settings: Settings, songVersion: SongVersion) {
+
+    val fileText = File(settings.getOutputFilename(SongOutputFile.DESCRIPTION, songVersion))
+    Files.createDirectories(Path(fileText.parent))
+    val text = settings.getDescriptionWithHeaderWOTimecodes(songVersion)
+    fileText.writeText(text)
+
+}
+
+fun createSongPicture(settings: Settings, songVersion: SongVersion) {
+
+    val fileName = settings.getOutputFilename(SongOutputFile.PICTURE, songVersion)
+    Files.createDirectories(Path(File(fileName).parent))
 
     val caption = songVersion.text
-    val comment: String = "${songVersion.textForDescription}"
-    val pathToLogoAlbum = "${song.settings.pathToFileLogoAlbum}"
-    val pathToLogoAuthor = "${song.settings.pathToFileLogoAuthor}"
+    val comment = songVersion.textForDescription
+    val pathToLogoAlbum = settings.pathToFileLogoAlbum
+    val pathToLogoAuthor = settings.pathToFileLogoAuthor
     val frameW = 1920
     val frameH = 1080
     val padding = 50
@@ -2327,7 +2317,7 @@ fun createSongPicture(song: Song, fileName: String, songVersion: SongVersion) {
             w = textAreaW,
             h = textAreaH,
             color = Color(255,255,127,255),
-            text = song.settings.songName.censored(),
+            text = settings.songName.censored(),
             fontName = MAIN_FONT_NAME,
             fontStyle = 0,
             fontSize = 50,
@@ -2390,10 +2380,16 @@ fun resizeBufferedImage(img: BufferedImage, newW: Int, newH: Int): BufferedImage
     return dimg
 }
 
-fun createBoostyTeaserPicture(song: Song, fileName: String) {
+fun createBoostyTeaserPicture(settings: Settings, fileName: String = "") {
 
-    val pathToLogoAlbum = "${song.settings.pathToFileLogoAlbum}"
-    val pathToLogoAuthor = "${song.settings.pathToFileLogoAuthor}"
+    val fName = if (fileName == "") {
+        settings.getOutputFilename(SongOutputFile.PICTUREBOOSTYTEASER)
+    } else {
+        fileName
+    }
+
+    val pathToLogoAlbum = settings.pathToFileLogoAlbum
+    val pathToLogoAuthor = settings.pathToFileLogoAuthor
 
     val frameW = 575
     val frameH = 625
@@ -2415,7 +2411,7 @@ fun createBoostyTeaserPicture(song: Song, fileName: String) {
             w = textAreaW,
             h = textAreaH,
             color = Color(255,255,127,255),
-            text = song.settings.songName.censored(),
+            text = settings.songName.censored(),
             fontName = MAIN_FONT_NAME,
             fontStyle = 0,
             fontSize = 4,
@@ -2434,7 +2430,7 @@ fun createBoostyTeaserPicture(song: Song, fileName: String) {
         )
     )
 
-    val file = File(fileName.replace(" [lyrics] boosty"," [boosty]"))
+    val file = File(fName)
 
     try {
         ImageIO.write(area.bi(), "png", file)
@@ -2444,10 +2440,17 @@ fun createBoostyTeaserPicture(song: Song, fileName: String) {
 
 }
 
-fun createBoostyFilesPicture(song: Song, fileName: String) {
+fun createBoostyFilesPicture(settings: Settings, fileName: String = "") {
+
+    val fName = if (fileName == "") {
+        settings.getOutputFilename(SongOutputFile.PICTUREBOOSTYFILES)
+    } else {
+        fileName
+    }
+
     val caption = "Файлы"
-    val pathToLogoAlbum = "${song.settings.pathToFileLogoAlbum}"
-    val pathToLogoAuthor = "${song.settings.pathToFileLogoAuthor}"
+    val pathToLogoAlbum = settings.pathToFileLogoAlbum
+    val pathToLogoAuthor = settings.pathToFileLogoAuthor
 
     val frameW = 575
     val frameH = 625
@@ -2471,7 +2474,7 @@ fun createBoostyFilesPicture(song: Song, fileName: String) {
             w = textAreaW,
             h = textAreaH,
             color = Color(255,255,127,255),
-            text = song.settings.songName.censored(),
+            text = settings.songName.censored(),
             fontName = MAIN_FONT_NAME,
             fontStyle = 0,
             fontSize = 50,
@@ -2505,7 +2508,7 @@ fun createBoostyFilesPicture(song: Song, fileName: String) {
         )
     )
 
-    val file = File(fileName.replace(" [lyrics] boosty"," [files]"))
+    val file = File(fName)
 
     try {
         ImageIO.write(area.bi(), "png", file)
@@ -2515,9 +2518,16 @@ fun createBoostyFilesPicture(song: Song, fileName: String) {
 
 }
 
-fun createVKPicture(song: Song, fileName: String) {
-    val pathToLogoAlbum = "${song.settings.pathToFileLogoAlbum}"
-    val pathToLogoAuthor = "${song.settings.pathToFileLogoAuthor}"
+fun createVKPicture(settings: Settings, fileName: String = "") {
+
+    val fName = if (fileName == "") {
+        settings.getOutputFilename(SongOutputFile.PICTUREVK, SongVersion.LYRICS).replace(" [lyrics] VK"," [VK]")
+    } else {
+        fileName
+    }
+
+    val pathToLogoAlbum = settings.pathToFileLogoAlbum
+    val pathToLogoAuthor = settings.pathToFileLogoAuthor
 
     val frameW = 575
     val frameH = 300
@@ -2540,7 +2550,7 @@ fun createVKPicture(song: Song, fileName: String) {
             w = textAreaW,
             h = textAreaH,
             color = Color(255,255,127,255),
-            text = song.settings.songName.censored(),
+            text = settings.songName.censored(),
             fontName = MAIN_FONT_NAME,
             fontStyle = 0,
             fontSize = 4,
@@ -2558,7 +2568,7 @@ fun createVKPicture(song: Song, fileName: String) {
         )
     )
 
-    val file = File(fileName.replace(" [lyrics] VK"," [VK]"))
+    val file = File(fName)
 
     try {
         ImageIO.write(area.bi(), "png", file)
@@ -2568,9 +2578,16 @@ fun createVKPicture(song: Song, fileName: String) {
 
 }
 
-fun createVKLinkPicture(song: Song, fileName: String) {
-    val pathToLogoAlbum = "${song.settings.pathToFileLogoAlbum}"
-    val pathToLogoAuthor = "${song.settings.pathToFileLogoAuthor}"
+fun createVKLinkPicture(settings: Settings, fileName: String = "") {
+
+    val fName = if (fileName == "") {
+        settings.getOutputFilename(SongOutputFile.PICTUREVK, SongVersion.LYRICS).replace(" [lyrics] VK"," [VKlink]")
+    } else {
+        fileName
+    }
+
+    val pathToLogoAlbum = settings.pathToFileLogoAlbum
+    val pathToLogoAuthor = settings.pathToFileLogoAuthor
 
 
     val frameW = 537
@@ -2585,15 +2602,21 @@ fun createVKLinkPicture(song: Song, fileName: String) {
     val textAreaW = frameW - 2*padding
     val textAreaH = frameH - picAreaH
 
+//    val biLogoAlbum = ImageIO.read(ByteArrayInputStream(Base64.getDecoder().decode(settings.pictureAlbum?.full ?:"")))
+//    val biLogoAuthor = ImageIO.read(ByteArrayInputStream(Base64.getDecoder().decode(settings.pictureAuthor?.full ?:"")))
+
     val albumPic = Picture(params = ImageParams(w = albumW, h = albumH, pathToFile = pathToLogoAlbum))
     val authorPic = Picture(params = ImageParams(w = authorW, h = authorH, pathToFile = pathToLogoAuthor))
+
+//    val albumPic = Picture(params = ImageParams(w = albumW, h = albumH, biImage = biLogoAlbum))
+//    val authorPic = Picture(params = ImageParams(w = authorW, h = authorH, biImage = biLogoAuthor))
 
     val areaText = Picture(
         params = TextParams(
             w = textAreaW,
             h = textAreaH,
             color = Color(255,255,127,255),
-            text = song.settings.songName.censored(),
+            text = settings.songName.censored(),
             fontName = MAIN_FONT_NAME,
             fontStyle = 0,
             fontSize = 4,
@@ -2611,7 +2634,7 @@ fun createVKLinkPicture(song: Song, fileName: String) {
         )
     )
 
-    val file = File(fileName.replace(" [lyrics] VK"," [VKlink]"))
+    val file = File(fName)
 
     try {
         ImageIO.write(area.bi(), "png", file)
@@ -2621,6 +2644,84 @@ fun createVKLinkPicture(song: Song, fileName: String) {
 
 }
 
+fun createVKLinkPictureWeb(settings: Settings, reCreateIfExist: Boolean = true): String {
+
+    val fName = "/home/nsa/Karaoke/karaoke-web/src/main/resources/static/tmp/${settings.id}.png"
+
+    if (settings.onAir && File(fName).exists()) {
+        println("${settings.rightSettingFileName} - в эфире, удаляем файл картинки")
+        File(fName).delete()
+        return "delete"
+    } else if (settings.onAir) {
+        println("${settings.rightSettingFileName} - в эфире, пропускаем создание файла картинки")
+        return "skip"
+//    } else if (!settings.onAir && settings.idStatus < 3) {
+//        println("${settings.rightSettingFileName} - не в эфире и не готов, пропускаем создание файла картинки")
+//        return "skip"
+    } else if (!settings.onAir && File(fName).exists() && !reCreateIfExist) {
+        println("${settings.rightSettingFileName} - не в эфире, не нужно пересоздавать, пропускаем создание файл картинки")
+        return "skip"
+    }
+    println("${settings.rightSettingFileName} - не в эфире, создаём файл картинки")
+
+    val pathToLogoAlbum = settings.pathToFileLogoAlbum
+    val pathToLogoAuthor = settings.pathToFileLogoAuthor
+
+
+    val frameW = 537
+    val frameH = 240
+    val padding = 20
+
+    val albumW = ((frameW - 3*padding) / 3.5).toInt()
+    val albumH = albumW
+    val authorW = (albumW * 2.5).toInt()
+    val authorH = albumH
+    val picAreaH = 2*padding + albumH
+    val textAreaW = frameW - 2*padding
+    val textAreaH = frameH - picAreaH
+
+//    val biLogoAlbum = ImageIO.read(ByteArrayInputStream(Base64.getDecoder().decode(settings.pictureAlbum?.full ?:"")))
+//    val biLogoAuthor = ImageIO.read(ByteArrayInputStream(Base64.getDecoder().decode(settings.pictureAuthor?.full ?:"")))
+
+    val albumPic = Picture(params = ImageParams(w = albumW, h = albumH, pathToFile = pathToLogoAlbum))
+    val authorPic = Picture(params = ImageParams(w = authorW, h = authorH, pathToFile = pathToLogoAuthor))
+
+//    val albumPic = Picture(params = ImageParams(w = albumW, h = albumH, biImage = biLogoAlbum))
+//    val authorPic = Picture(params = ImageParams(w = authorW, h = authorH, biImage = biLogoAuthor))
+
+    val areaText = Picture(
+        params = TextParams(
+            w = textAreaW,
+            h = textAreaH,
+            color = Color(255,255,127,255),
+            text = settings.songName.censored(),
+            fontName = MAIN_FONT_NAME,
+            fontStyle = 0,
+            fontSize = 4,
+            isCalculatedSize = true,
+            isLineBreak = true
+        )
+    )
+
+    val area = Picture(
+        params = AreaParams(w = frameW, h = frameH, color = Color.BLACK),
+        childs = mutableListOf(
+            PictureChild(x = padding, y = padding, child = albumPic),
+            PictureChild(x = albumW + 2*padding, y = padding, child = authorPic),
+            PictureChild(x = padding, y = picAreaH, child = areaText)
+        )
+    )
+
+    val file = File(fName)
+
+    try {
+        ImageIO.write(area.bi(), "png", file)
+    } catch (e: Exception) {
+        println(e.message)
+    }
+
+    return "create"
+}
 fun getVKPictureBase64(settings: Settings): String {
 
     val frameW = 600
@@ -3223,5 +3324,176 @@ class Solution {
         result.addAll(nums2.filterIndexed { index, _ -> index < n })
         result.sort()
         println(result)
+    }
+}
+
+// Возвращает "самый длинный элемент", состоящий из слогов самой длинной комбинированной строки всех голосов
+fun getLongerElement(songVersion: SongVersion, listOfVoices: List<SettingVoice>): SettingVoiceLineElement? {
+    if (listOfVoices.isEmpty()) return null
+
+    val longerElementLastVoice = listOfVoices.last().longerTextElement(songVersion) ?: return null
+    val listLongerElementPreviousVoices = listOfVoices.filterIndexed { index, _ -> index < listOfVoices.size }.mapNotNull { it.longerElementPreviousVoice }
+    if (listLongerElementPreviousVoices.isEmpty()) {
+        return longerElementLastVoice
+    } else {
+        val syls: MutableList<SettingVoiceLineElementSyllable> = mutableListOf()
+        var prevSyl: SettingVoiceLineElementSyllable? = null
+        listLongerElementPreviousVoices.forEach { el ->
+            val elGetSylls = el.getSyllables()
+            elGetSylls.first().previous = prevSyl
+            syls.addAll(elGetSylls)
+            prevSyl = elGetSylls.last()
+        }
+        val elGetSylls = longerElementLastVoice.getSyllables()
+        elGetSylls.first().previous = prevSyl
+        syls.addAll(elGetSylls)
+        val result = SettingVoiceLineElement(
+            rootId = listOfVoices[0].rootId,
+            type = longerElementLastVoice.type,
+        )
+        result.addSyllables(syls)
+
+        return result
+    }
+}
+
+// Вычисляет максимальный размер шрифта, чтобы все голоса поместились на экране по ширине
+fun getFontSize(songVersion: SongVersion, listOfVoices: List<SettingVoice>): Int {
+
+    var fontSize = 10
+    if (listOfVoices.isEmpty()) return fontSize
+    val cntVoices = listOfVoices.size
+    // maxTextWidth - максимальная ширина текста = ширина экрана минус 2 отступа
+    val maxTextWidthPx = Karaoke.frameWidthPx.toDouble() - Karaoke.songtextStartPositionXpx * 2
+    val longerElement = getLongerElement(songVersion, listOfVoices) ?: return fontSize
+    // Ширина в пикселах суммарной самой длинной строки
+    var maxTextWidthPxByFontSize = longerElement.w() + Karaoke.songtextStartPositionXpx * (cntVoices - 1)
+    val stepIncrease = if (maxTextWidthPxByFontSize > maxTextWidthPx) -1 else 1
+    while (true) {
+        if ((maxTextWidthPxByFontSize > maxTextWidthPx && stepIncrease < 0) || (maxTextWidthPxByFontSize < maxTextWidthPx && stepIncrease > 0)) {
+            fontSize += stepIncrease
+            longerElement.fontSize = fontSize
+            val longerElementW = longerElement.w()
+            maxTextWidthPxByFontSize = longerElementW + Karaoke.songtextStartPositionXpx * (cntVoices - 1)
+        } else {
+            break
+        }
+    }
+
+//        voices().forEach { voice ->
+//            voice.lines.forEach { line ->
+//                line.elements.forEach { element ->
+//                    element.fontSize = fontSize
+//                }
+//            }
+//        }
+    val longerElementLastVoice = listOfVoices.last().longerTextElement(songVersion) ?: return fontSize
+    val elGetSylls = longerElementLastVoice.getSyllables()
+    elGetSylls.first().previous = null
+    return fontSize
+}
+
+fun searchLastAlbumYm(authorYmId: String): String {
+    val searchUrl = "https://music.yandex.ru/artist/$authorYmId/albums"
+    val document = Jsoup.connect(searchUrl).get()
+    val html = document.html()
+    val result = (document.getElementsByClass("album__title").first()?.text() ?: "").trim()
+    if (result == "") {
+        if (html.contains("Нам очень жаль, но запросы с вашего устройства похожи на автоматические")) {
+            println("Нам очень жаль, но запросы с вашего устройства похожи на автоматические")
+            throw Exception("Нам очень жаль, но запросы с вашего устройства похожи на автоматические")
+        }
+    }
+    return result
+
+}
+
+fun checkLastAlbumYm(): String {
+    val listSongAuthors = Settings.loadListAuthors(WORKING_DATABASE)
+    val setAuthorsWithNewAlbums: MutableSet<String> = mutableSetOf()
+    var counter = 0
+    listSongAuthors.forEach { songAuthor ->
+        val author = Author.load(author = songAuthor, database = WORKING_DATABASE)
+        println("Проверка автора «$songAuthor»")
+        if (author == null) {
+            val newAuthor = Author()
+            newAuthor.author = songAuthor
+            Author.createDbInstance(author = newAuthor, database = WORKING_DATABASE)
+            setAuthorsWithNewAlbums.add(songAuthor)
+            println("Автор «$songAuthor» отсутствует в таблице tbl_authors. Создаём запись.")
+        } else {
+            if (author.ymId !== "") {
+                var wasFound = false
+                if (author.lastAlbumYm == "") {
+                    println("У автора «$songAuthor» отсутствует lastAlbumYm. Ищем.")
+                    val lastAlbumYm = try {
+                        searchLastAlbumYm(author.ymId)
+                    } catch (e: Exception) {
+                        println("Нам очень жаль, но запросы с вашего устройства похожи на автоматические. Удачных запросов: $counter")
+                        return "Нам очень жаль, но запросы с вашего устройства похожи на автоматические. Удачных запросов: $counter"
+                    }
+                    counter++
+                    wasFound = true
+                    if (lastAlbumYm == "") {
+                        println("У автора «$songAuthor» НЕ НАЙДЕН lastAlbumYm. Пауза.")
+                    } else {
+                        println("У автора «$songAuthor» нашли новый lastAlbumYm «$lastAlbumYm». Пауза.")
+                        author.lastAlbumYm = lastAlbumYm
+                        author.save()
+                    }
+                    Thread.sleep(300_000)
+                }
+                if (author.lastAlbumProcessed == "") {
+                    val lastAlbum = Settings.loadListFromDb(args = mapOf("song_author" to songAuthor), database = WORKING_DATABASE).lastOrNull()?.album ?: ""
+                    author.lastAlbumProcessed = lastAlbum
+                    author.save()
+                }
+//                if (author.watched && !wasFound && author.lastAlbumYm == author.lastAlbumProcessed) {
+//                    println("У автора «$songAuthor» ищем новый lastAlbumYm.")
+//                    val lastAlbumYm = try {
+//                        searchLastAlbumYm(author.ymId)
+//                    } catch (e: Exception) {
+//                        println("Нам очень жаль, но запросы с вашего устройства похожи на автоматические. Удачных запросов: $counter")
+//                        return "Нам очень жаль, но запросы с вашего устройства похожи на автоматические. Удачных запросов: $counter"
+//                    }
+//                    counter++
+//                    if (lastAlbumYm == "") {
+//                        println("У автора «$songAuthor» НЕ НАЙДЕН lastAlbumYm. Пауза.")
+//                    } else {
+//                        if (author.lastAlbumYm != lastAlbumYm) {
+//                            author.lastAlbumYm = lastAlbumYm
+//                            author.save()
+//                            if (author.lastAlbumYm != author.lastAlbumProcessed) {
+//                                setAuthorsWithNewAlbums.add(songAuthor)
+//                                println("У автора «$songAuthor» найден новый альбом «$lastAlbumYm». Пауза.")
+//                            }
+//                        } else {
+//                            println("У автора «$songAuthor» найден альбом «$lastAlbumYm», но ону уже обработан. Пауза.")
+//                        }
+//                    }
+//                    Thread.sleep(300_000)
+//                }
+            }
+        }
+    }
+    return "Авторы с новыми альбомами${if (setAuthorsWithNewAlbums.isEmpty()) " не найдены." else ": ${setAuthorsWithNewAlbums.toList().joinToString(", ")}"}"
+}
+
+fun setProcessPriority(pid: Long, priority: Int) {
+    try {
+        // Используем команду renice для изменения приоритета процесса
+        val reniceCommand = listOf("renice", "-n", priority.toString(), "-p", pid.toString())
+        val processBuilder = ProcessBuilder(reniceCommand)
+        val process = processBuilder.start()
+
+        // Проверяем результат выполнения команды
+        val exitCode = process.waitFor()
+        if (exitCode == 0) {
+            println("Приоритет процесса успешно изменен на $priority")
+        } else {
+            println("Не удалось изменить приоритет процесса")
+        }
+    } catch (e: Exception) {
+        e.printStackTrace()
     }
 }

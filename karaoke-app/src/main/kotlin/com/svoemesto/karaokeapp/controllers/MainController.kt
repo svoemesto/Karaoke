@@ -580,8 +580,7 @@ class MainController {
     fun getSongTextYoutubeLyrics(@PathVariable id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
-            val song = Song(settings, SongVersion.LYRICS)
-            val text = song.getDescription()
+            val text = it.getDescription(SongVersion.LYRICS)
             text
         } ?: ""
         return text
@@ -592,8 +591,7 @@ class MainController {
     fun getSongTextYoutubeKaraoke(@PathVariable id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
-            val song = Song(settings, SongVersion.KARAOKE)
-            val text = song.getDescription()
+            val text = it.getDescription(SongVersion.KARAOKE)
             text
         } ?: ""
         return text
@@ -604,8 +602,7 @@ class MainController {
     fun getSongTextYoutubeChords(@PathVariable id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
-            val song = Song(settings, SongVersion.CHORDS)
-            val text = song.getDescription()
+            val text = it.getDescription(SongVersion.CHORDS)
             text
         } ?: ""
         return text
@@ -617,8 +614,7 @@ class MainController {
     fun getSongTextYoutubeLyricsHeader(@PathVariable id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
-            val song = Song(settings, SongVersion.LYRICS)
-            val text = song.getDescriptionHeader(140)
+            val text = it.getDescriptionHeader(SongVersion.LYRICS, 140)
             text
         } ?: ""
         return text
@@ -630,8 +626,7 @@ class MainController {
     fun getSongTextYoutubeKaraokeHeader(@PathVariable id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
-            val song = Song(settings, SongVersion.KARAOKE)
-            val text = song.getDescriptionHeader(140)
+            val text = it.getDescriptionHeader(SongVersion.KARAOKE, 140)
             text
         } ?: ""
         return text
@@ -643,8 +638,7 @@ class MainController {
     fun getSongTextYoutubeChordsHeader(@PathVariable id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
-            val song = Song(settings, SongVersion.CHORDS)
-            val text = song.getDescriptionHeader(140)
+            val text = it.getDescriptionHeader(SongVersion.CHORDS, 140)
             text
         } ?: ""
         return text
@@ -656,8 +650,7 @@ class MainController {
     fun getSongTextYoutubeLyricsWOHeader(@PathVariable id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
-            val song = Song(settings, SongVersion.LYRICS)
-            val text = song.getDescriptionWOHeaderWithTimecodes(5000)
+            val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.LYRICS, 5000)
             text
         } ?: ""
         return text
@@ -669,8 +662,7 @@ class MainController {
     fun getSongTextYoutubeKaraokeWOHeader(@PathVariable id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
-            val song = Song(settings, SongVersion.KARAOKE)
-            val text = song.getDescriptionWOHeaderWithTimecodes(5000)
+            val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.KARAOKE, 5000)
             text
         } ?: ""
         return text
@@ -682,8 +674,7 @@ class MainController {
     fun getSongTextYoutubeChordsWOHeader(@PathVariable id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
-            val song = Song(settings, SongVersion.CHORDS)
-            val text = song.getDescriptionWOHeaderWithTimecodes(5000)
+            val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.CHORDS, 5000)
             text
         } ?: ""
         return text
@@ -707,8 +698,7 @@ class MainController {
     fun getSongTextVkLyrics(@PathVariable id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
-            val song = Song(settings, SongVersion.LYRICS)
-            val text = song.getDescriptionVk()
+            val text = it.getDescriptionVk(SongVersion.LYRICS)
             text
         } ?: ""
         return text
@@ -719,8 +709,7 @@ class MainController {
     fun getSongTextVkKaraoke(@PathVariable id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
-            val song = Song(settings, SongVersion.KARAOKE)
-            val text = song.getDescriptionVk()
+            val text = it.getDescriptionVk(SongVersion.KARAOKE)
             text
         } ?: ""
         return text
@@ -732,8 +721,7 @@ class MainController {
     fun getSongTextVkChords(@PathVariable id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
-            val song = Song(settings, SongVersion.CHORDS)
-            val text = song.getDescriptionVk()
+            val text = it.getDescriptionVk(SongVersion.CHORDS)
             text
         } ?: ""
         return text
@@ -745,8 +733,7 @@ class MainController {
     fun getSongTextVkLyricsHeader(@PathVariable id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
-            val song = Song(settings, SongVersion.LYRICS)
-            val text = song.getDescriptionVkHeader()
+            val text = it.getDescriptionVkHeader(SongVersion.LYRICS)
             text
         } ?: ""
         return text
@@ -757,8 +744,7 @@ class MainController {
     fun getSongTextVkKaraokeHeader(@PathVariable id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
-            val song = Song(settings, SongVersion.KARAOKE)
-            val text = song.getDescriptionVkHeader()
+            val text = it.getDescriptionVkHeader(SongVersion.KARAOKE)
             text
         } ?: ""
         return text
@@ -770,8 +756,7 @@ class MainController {
     fun getSongTextVkChordsHeader(@PathVariable id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
-            val song = Song(settings, SongVersion.CHORDS)
-            val text = song.getDescriptionVkHeader()
+            val text = it.getDescriptionVkHeader(SongVersion.CHORDS)
             text
         } ?: ""
         return text
@@ -783,8 +768,7 @@ class MainController {
     fun getSongTextVkLyricsWOHeader(@PathVariable id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
-            val song = Song(settings, SongVersion.LYRICS)
-            val text = song.getDescriptionWOHeaderWithTimecodes(4785)
+            val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.LYRICS, 4785)
             text
         } ?: ""
         return text
@@ -796,8 +780,7 @@ class MainController {
     fun getSongTextVkKaraokeWOHeader(@PathVariable id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
-            val song = Song(settings, SongVersion.KARAOKE)
-            val text = song.getDescriptionWOHeaderWithTimecodes(4785)
+            val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.KARAOKE, 4785)
             text
         } ?: ""
         return text
@@ -809,8 +792,7 @@ class MainController {
     fun getSongTextVkChordsWOHeader(@PathVariable id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
-            val song = Song(settings, SongVersion.CHORDS)
-            val text = song.getDescriptionWOHeaderWithTimecodes(4893)
+            val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.CHORDS, 4893)
             text
         } ?: ""
         return text
@@ -824,8 +806,7 @@ class MainController {
     fun getSongTextTelegramLyrics(@PathVariable id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
-            val song = Song(settings, SongVersion.LYRICS)
-            val text = song.getDescriptionVk()
+            val text = it.getDescriptionVk(SongVersion.LYRICS)
             text
         } ?: ""
         return text
@@ -836,8 +817,7 @@ class MainController {
     fun getSongTextTelegramKaraoke(@PathVariable id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
-            val song = Song(settings, SongVersion.KARAOKE)
-            val text = song.getDescriptionVk()
+            val text = it.getDescriptionVk(SongVersion.KARAOKE)
             text
         } ?: ""
         return text
@@ -849,8 +829,7 @@ class MainController {
     fun getSongTextTelegramChords(@PathVariable id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
-            val song = Song(settings, SongVersion.CHORDS)
-            val text = song.getDescriptionVk()
+            val text = it.getDescriptionVk(SongVersion.CHORDS)
             text
         } ?: ""
         return text
@@ -862,8 +841,7 @@ class MainController {
     fun getSongTextTelegramLyricsHeader(@PathVariable id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
-            val song = Song(settings, SongVersion.LYRICS)
-            val text = song.getDescriptionVkHeader()
+            val text = it.getDescriptionVkHeader(SongVersion.LYRICS)
             text
         } ?: ""
         return text
@@ -874,8 +852,7 @@ class MainController {
     fun getSongTextTelegramKaraokeHeader(@PathVariable id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
-            val song = Song(settings, SongVersion.KARAOKE)
-            val text = song.getDescriptionVkHeader()
+            val text = it.getDescriptionVkHeader(SongVersion.KARAOKE)
             text
         } ?: ""
         return text
@@ -887,8 +864,7 @@ class MainController {
     fun getSongTextTelegramChordsHeader(@PathVariable id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
-            val song = Song(settings, SongVersion.CHORDS)
-            val text = song.getDescriptionVkHeader()
+            val text = it.getDescriptionVkHeader(SongVersion.CHORDS)
             text
         } ?: ""
         return text
@@ -900,8 +876,7 @@ class MainController {
     fun getSongTextTelegramLyricsWOHeader(@PathVariable id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
-            val song = Song(settings, SongVersion.LYRICS)
-            val text = song.getDescriptionWOHeaderWithTimecodes()
+            val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.LYRICS)
             text
         } ?: ""
         return text
@@ -912,8 +887,7 @@ class MainController {
     fun getSongTextTelegramKaraokeWOHeader(@PathVariable id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
-            val song = Song(settings, SongVersion.KARAOKE)
-            val text = song.getDescriptionWOHeaderWithTimecodes()
+            val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.KARAOKE)
             text
         } ?: ""
         return text
@@ -924,8 +898,7 @@ class MainController {
     fun getSongTextTelegramChordsWOHeader(@PathVariable id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
-            val song = Song(settings, SongVersion.CHORDS)
-            val text = song.getDescriptionWOHeaderWithTimecodes()
+            val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.CHORDS)
             text
         } ?: ""
         return text
@@ -938,8 +911,7 @@ class MainController {
     fun getSongTextBoostyHead(@PathVariable id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
-            val song = Song(settings, SongVersion.LYRICS)
-            val text = song.getTextBoostyHead()
+            val text = it.getTextBoostyHead()
             text
         } ?: ""
         return text
@@ -950,8 +922,7 @@ class MainController {
     fun getSongTextBoostyBody(@PathVariable id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
-            val song = Song(settings, SongVersion.LYRICS)
-            val text = song.getTextBoostyBody()
+            val text = it.getTextBoostyBody()
             text
         } ?: ""
         return text
@@ -963,8 +934,7 @@ class MainController {
     fun getSongTextVkBody(@PathVariable id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
-            val song = Song(settings, SongVersion.LYRICS)
-            val text = song.getVKGroupDescription()
+            val text = it.getVKGroupDescription()
             text
         } ?: ""
         return text
@@ -1115,25 +1085,6 @@ class MainController {
                         }
                     }
 
-                }
-                result = "OK"
-            }
-        }
-        model.addAttribute("text", result)
-        return "text"
-    }
-
-    @PostMapping("/songs/createtextandmarkersfromoldversion")
-    fun createTextAndMarkersFromOldVersion(
-        @RequestParam(required = false) txt: String?,
-        model: Model): String {
-        var result = "Error"
-        txt?.let {
-            val ids = txt.split(";").mapNotNull { it }.filter { it != "" }.map { it.toLong() }
-            ids.forEach { id ->
-                val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
-                settings?.let {
-                    settings.createTextAndMarkersFromOldVersion()
                 }
                 result = "OK"
             }

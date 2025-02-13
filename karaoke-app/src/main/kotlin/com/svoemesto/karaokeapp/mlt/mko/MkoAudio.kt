@@ -7,15 +7,22 @@ import com.svoemesto.karaokeapp.model.MltNodeBuilder
 import com.svoemesto.karaokeapp.model.ProducerType
 import com.svoemesto.karaokeapp.model.PropertiesMltNodeBuilder
 
-data class MkoAudio(val mltProp: MltProp, val type: ProducerType, val voiceId: Int = 0, val childId: Int = 0): MltKaraokeObject {
+data class MkoAudio(val mltProp: MltProp, val type: ProducerType, val voiceId: Int = 0, val childId: Int = 0, val elementId: Int = 0): MltKaraokeObject {
     val mltGenerator = MltGenerator(mltProp, type)
 
+    private val songLengthFr = mltProp.getSongLengthFr()
+    private val audioLengthFr = mltProp.getAudioLengthFr()
+    private val mkoAudioPath = mltProp.getPath(listOf(type))
+    private val volume = mltProp.getVolume(listOf(type))
+    private val songStartTimecode = mltProp.getSongStartTimecode()
+    private val audioEndTimecode = mltProp.getAudioEndTimecode()
+    private val voiceBlankTimecode = mltProp.getVoiceBlankTimecode()
     override fun producer(): MltNode = mltGenerator
         .producer(
             props = MltNodeBuilder()
-                .propertyName("length", mltProp.getSongLengthFr())
+                .propertyName("length", songLengthFr)
                 .propertyName("eof", "pause")
-                .propertyName("resource", mltProp.getPath(listOf(type, voiceId)))
+                .propertyName("resource", mkoAudioPath)
                 .propertyName("seekable", 1)
                 .propertyName("audio_index", 0)
                 .propertyName("video_index", -1)
@@ -36,13 +43,13 @@ data class MkoAudio(val mltProp: MltProp, val type: ProducerType, val voiceId: I
             name = "producer",
             fields = PropertiesMltNodeBuilder()
                 .id(mltGenerator.nameFileProducer)
-                .`in`(mltProp.getSongStartTimecode())
-                .`out`(mltProp.getSongEndTimecode())
+                .`in`(songStartTimecode)
+                .`out`(audioEndTimecode)
                 .build(),
             body = MltNodeBuilder()
-                .propertyName("length", mltProp.getSongLengthFr())
+                .propertyName("length", audioLengthFr)
                 .propertyName("eof", "pause")
-                .propertyName("resource", mltProp.getPath(listOf(type, voiceId)))
+                .propertyName("resource", mkoAudioPath)
                 .propertyName("seekable", 1)
                 .propertyName("audio_index", 0)
                 .propertyName("video_index", -1)
@@ -65,21 +72,23 @@ data class MkoAudio(val mltProp: MltProp, val type: ProducerType, val voiceId: I
         val result = mltGenerator.filePlaylist()
         result.body?.let {
             val body = it as MutableList<MltNode>
-            body.addAll(MltNodeBuilder().blank(mltProp.getVoiceBlankTimecode()).build())
+            body.addAll(MltNodeBuilder().blank(voiceBlankTimecode).build())
             body.add(
                 mltGenerator.entry(
                     id = mltGenerator.nameFileProducer,
                     nodes = MltNodeBuilder()
                         .propertyName("kdenlive:id", mltGenerator.id)
                         .propertyName("kdenlive:activeeffect", 0)
-                        .filterVolume(mltGenerator.nameFilterVolume, mltProp.getVolume(type))
+                        .filterVolume(mltGenerator.nameFilterVolume, mainFilePlaylistTransformProperties())
                         .build()
                 )
             )
         }
         return result
     }
-
+    override fun mainFilePlaylistTransformProperties(): String {
+        return volume
+    }
     override fun trackPlaylist(): MltNode = mltGenerator.trackPlaylist()
 
     override fun tractor(): MltNode = mltGenerator.tractor()

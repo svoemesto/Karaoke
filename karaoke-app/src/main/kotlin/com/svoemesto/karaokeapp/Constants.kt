@@ -1,12 +1,19 @@
 package com.svoemesto.karaokeapp
 
+import com.svoemesto.karaokeapp.mlt.MltObjectType
+import com.svoemesto.karaokeapp.mlt.MltShape
+import com.svoemesto.karaokeapp.mlt.MltText
 import com.svoemesto.karaokeapp.mlt.mko.*
+import com.svoemesto.karaokeapp.mlt.setting
 import com.svoemesto.karaokeapp.model.ProducerType
 import com.svoemesto.karaokeapp.textfiledictionary.CensoredWordsDictionary
 import com.svoemesto.karaokeapp.textfiledictionary.TestDictionary
 import com.svoemesto.karaokeapp.textfiledictionary.YoWordsDictionary
+import java.awt.Color
+import java.awt.Font
 
-const val CURRENT_RESULT_VERSION = 4L
+const val CURRENT_RESULT_VERSION = 8L
+const val COUNT_HISTORY_LINES = 10
 
 const val COLOR_ALL_DONE = "#7FFFD4"        // Полностью готово
 const val COLOR_OVERDUE = "#BDB76B"         // Публикация прошла, но не все ссылки заполнены
@@ -68,8 +75,8 @@ const val URL_PREFIX_SM = "https://sm-karaoke.ru/song?id={REPLACE}"
 const val URL_PREFIX_BOOSTY = "https://boosty.to/svoemesto/posts/{REPLACE}"
 const val URL_PREFIX_YOUTUBE_PLAY = "https://dzen.ru/video/watch/{REPLACE}"
 const val URL_PREFIX_YOUTUBE_EDIT = "https://dzen.ru/profile/editor/svoemesto/publications?videoEditorPublicationId={REPLACE}"
-const val URL_PREFIX_VK_PLAY = "https://vk.com/video{REPLACE}"
-const val URL_PREFIX_VK_EDIT = "https://vk.com/video{REPLACE}"
+const val URL_PREFIX_VK_PLAY = "https://vkvideo.ru/video{REPLACE}"
+const val URL_PREFIX_VK_EDIT = "https://vkvideo.ru/video{REPLACE}"
 const val URL_PREFIX_VK = "https://vk.com/wall-{REPLACE}"
 
 const val URL_PREFIX_TELEGRAM_PLAY = "https://t.me/svoemestokaraoke/{REPLACE}"
@@ -77,6 +84,9 @@ const val URL_PREFIX_TELEGRAM_EDIT = "https://t.me/svoemestokaraoke/{REPLACE}"
 
 const val URL_PREFIX_PL_PLAY = "https://plvideo.ru/watch?v={REPLACE}"
 const val URL_PREFIX_PL_EDIT = "https://studio.plvideo.ru/channel/bbj0HWC8H7ii/video/{REPLACE}/edit"
+
+const val URL_PREFIX_SPONSR_PLAY = "https://sponsr.ru/smkaraoke/manage/post/{REPLACE}/"
+const val URL_PREFIX_SPONSR_EDIT = "https://sponsr.ru/smkaraoke/{REPLACE}/"
 
 //const val CONNECTION_URL = "jdbc:postgresql://localhost:5430/karaoke?currentSchema=public"
 //const val CONNECTION_USER = "postgres"
@@ -93,6 +103,7 @@ val PROJECT_ROOT_FOLDERS = listOf(
 const val YO_FILE_PATH = "/home/nsa/Documents/Караоке/Слова_с_буквой_ё.txt"
 const val CENSORED_FILE_PATH = "/home/nsa/Documents/Караоке/censored.txt"
 const val TESTDICT_FILE_PATH = "/home/nsa/Documents/Караоке/test_dict.txt"
+const val SONGS_HISTORY_FILE_PATH = "/home/nsa/Documents/Караоке/songs_history.txt"
 
 val TEXT_FILE_DICTS = mapOf(
     "Слова с Ё" to YoWordsDictionary::class.java,
@@ -129,6 +140,12 @@ val producerTypeClass = mapOf(
     ProducerType.SCROLLER to MkoScroller::class.java,
     ProducerType.SCROLLERTRACK to MkoScrollerTrack::class.java,
     ProducerType.FILLCOLORSONGTEXTS to MkoFillcolorSongtexts::class.java,
+    ProducerType.LINES to MkoLines::class.java,
+    ProducerType.LINETRACK to MkoLineTrack::class.java,
+    ProducerType.LINE to MkoLine::class.java,
+    ProducerType.ELEMENT to MkoElement::class.java,
+    ProducerType.STRING to MkoString::class.java,
+    ProducerType.FILL to MkoFill::class.java,
 
 )
 

@@ -1,14 +1,12 @@
 package com.svoemesto.karaokeapp.mlt.mko
 
-import com.svoemesto.karaokeapp.Karaoke
 import com.svoemesto.karaokeapp.mlt.MltGenerator
 import com.svoemesto.karaokeapp.mlt.MltProp
-import com.svoemesto.karaokeapp.xmldata
-import com.svoemesto.karaokeapp.mlt.MltText
-import com.svoemesto.karaokeapp.mlt.mltNode
-import com.svoemesto.karaokeapp.model.*
+import com.svoemesto.karaokeapp.model.MltNode
+import com.svoemesto.karaokeapp.model.MltNodeBuilder
+import com.svoemesto.karaokeapp.model.ProducerType
 
-data class MkoScrollers(val mltProp: MltProp, val type: ProducerType, val voiceId: Int = 0, val childId: Int = 0): MltKaraokeObject {
+data class MkoScrollers(val mltProp: MltProp, val type: ProducerType, val voiceId: Int = 0, val childId: Int = 0, val elementId: Int = 0): MltKaraokeObject {
     val mltGenerator = MltGenerator(mltProp, type, voiceId)
 
     override fun producerBlackTrack(): MltNode = mltGenerator
@@ -43,6 +41,7 @@ data class MkoScrollers(val mltProp: MltProp, val type: ProducerType, val voiceI
         }
         return result
     }
+    override fun mainFilePlaylistTransformProperties(): String = ""
 
     override fun trackPlaylist(): MltNode = mltGenerator.trackPlaylist()
 
@@ -65,7 +64,7 @@ data class MkoScrollers(val mltProp: MltProp, val type: ProducerType, val voiceI
                 .propertyName("kdenlive:folderid", mltProp.getId(listOf(type, voiceId)))
                 .propertyName("kdenlive:id", mltGenerator.id)
                 .propertyName("kdenlive:sequenceproperties.activeTrack", 0)
-                .propertyName("kdenlive:sequenceproperties.documentuuid", "{${mltProp.getUUID(listOf(ProducerType.MAINBIN, voiceId))}}")
+                .propertyName("kdenlive:sequenceproperties.documentuuid", "{${mltProp.getUUID(listOf(ProducerType.MAINBIN))}}")
                 .propertyName("kdenlive:sequenceproperties.tracks", mltProp.getCountChilds(listOf(type, voiceId)))
                 .propertyName("kdenlive:sequenceproperties.tracksCount", mltProp.getCountChilds(listOf(type, voiceId)))
                 .propertyName("kdenlive:sequenceproperties.verticalzoom", 1)
@@ -76,13 +75,15 @@ data class MkoScrollers(val mltProp: MltProp, val type: ProducerType, val voiceI
                 .propertyName("kdenlive:sequenceproperties.guides", "[]")
                 .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameProducerBlackTrack(type, voiceId))))
                 .nodes(
+//                    (0 until mltProp.getCountChilds(listOf(type, voiceId))).map { childI ->
+//                        MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.SCROLLERTRACK, voiceId, childI)))
+//                    }
                     {
                         val result: MutableList<MltNode> = mutableListOf()
                         val countChilds = mltProp.getCountChilds(listOf(type, voiceId))
                         for (childI in 0 until countChilds) {
                             result.add(
                                 MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.SCROLLERTRACK, voiceId, childI)))
-//                                MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.COUNTER, voiceId, childI)))
                             )
                         }
                         result

@@ -3,7 +3,7 @@ import { promisedXMLHttpRequest } from '@/lib/utils'
 export default {
     state: {
         songsDigest: [],
-        songsDigestIsLoading: false
+        songsDigestIsLoading: false,
     },
     getters: {
         getSongsDigest(state) {

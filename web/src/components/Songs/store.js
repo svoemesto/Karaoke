@@ -19,6 +19,8 @@ export default {
         currentSongId: 0,
         previousSongId: undefined,
         nextSongId: undefined,
+        leftSongId: undefined,
+        rightSongId: undefined,
         currentSong: undefined,
         songPageSize: 50,
         snapshotSong: undefined,
@@ -176,6 +178,19 @@ export default {
                     fontSize: 'small',
                     labelFontSize: '4pt',
                     labelPadding: '6px 4px 0 4px',
+                    filterWidth: '16',
+                    filterFontSize: 'small'
+                }
+            },
+            {
+                name: 'flagSponsr',
+                params: {
+                    width: '20',
+                    label: 'SP',
+                    textAlign: 'center',
+                    fontSize: 'small',
+                    labelFontSize: '6pt',
+                    labelPadding: '3px 4px 0 4px',
                     filterWidth: '16',
                     filterFontSize: 'small'
                 }
@@ -344,10 +359,20 @@ export default {
             return state.currentSongId;
         },
         getPreviousSongId(state) {
+            console.log('getPreviousSongId', state.previousSongId);
             return state.previousSongId;
         },
         getNextSongId(state) {
+            console.log('getNextSongId', state.nextSongId);
             return state.nextSongId;
+        },
+        getLeftSongId(state) {
+            console.log('getLeftSongId', state.leftSongId);
+            return state.leftSongId;
+        },
+        getRightSongId(state) {
+            console.log('getRightSongId', state.rightSongId);
+            return state.rightSongId;
         },
         getSongPageSize(state) {
             return state.songPageSize;
@@ -363,6 +388,9 @@ export default {
                   return accumulator + +currentValue;
               },0);
         },
+        // getProp: (state) => (key) => {
+        //     return state.fieldSongParams.filter(fieldParam => fieldParam.name === name)[0].params;
+        // },
         getFirstSong(state) {
             return state.currentSongPageIndex >=0 && state.songPages.length && state.songPages[state.currentSongPageIndex][0] ? state.songPages[state.currentSongPageIndex][0] : [];
         },
@@ -471,10 +499,24 @@ export default {
                 params: { id: state.currentSongId }
             });
         },
+        async getSponsrHeader(state) {
+            return await promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/apis/song/textsponsrhead",
+                params: { id: state.currentSongId }
+            });
+        },
         async getBoostyBody(state) {
             return await promisedXMLHttpRequest({
                 method: 'POST',
                 url: "/apis/song/textboostybody",
+                params: { id: state.currentSongId }
+            });
+        },
+        async getSponsrBody(state) {
+            return await promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/apis/song/textsponsrbody",
                 params: { id: state.currentSongId }
             });
         },
@@ -670,6 +712,15 @@ export default {
                 return 0;
             });
             return markers;
+        },
+        getPropValue: () => async (key) => {
+            let prop = JSON.parse(await promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/apis/properties/getproperty",
+                params: { key: key }
+            }));
+            console.log(`key ${key} prop.property`, prop.property);
+            return prop.property.value;
         },
         async getTextFormatted(state) {
             return await promisedXMLHttpRequest({
@@ -946,6 +997,7 @@ export default {
           state.lastUpdateSong = lastUpdateSong;
         },
         setCurrentSongId(state, currId) {
+            console.log('state.songsDigest', state.songsDigest);
             let songWithIndexesFiltered = state.songPages.map(function (page, pageIndex) {
                 return page.map(function (song, songIndex) {
                     return { song: song, songIndex: songIndex, songId: song.id, pageIndex: pageIndex }
@@ -958,6 +1010,10 @@ export default {
                 state.currentSongIndex = songWithIndexes.songIndex;
                 state.currentSongPageIndex = songWithIndexes.pageIndex;
                 state.currentSongId = songWithIndexes.song.id;
+                state.previousSongId = songWithIndexes.song.idPrevious;
+                state.nextSongId = songWithIndexes.song.idNext;
+                state.rightSongId = songWithIndexes.song.idRight;
+                state.leftSongId = songWithIndexes.song.idLeft;
                 state.snapshotSong = Object.assign({}, state.currentSong)
             } else {
                 let request = { method: 'POST', url: "/apis/song", params: {id: currId} };
@@ -983,6 +1039,10 @@ export default {
                         } else {
                             state.currentSong = Object.assign({}, songFromRest);
                             state.currentSongId = songFromRest.id;
+                            state.previousSongId = songFromRest.idPrevious;
+                            state.nextSongId = songFromRest.idNext;
+                            state.rightSongId = songFromRest.idRight;
+                            state.leftSongId = songFromRest.idLeft;
                             state.snapshotSong = Object.assign({}, state.currentSong)
                         }
                     }
@@ -1123,6 +1183,8 @@ export default {
                     nextSongId = ctx.state.pages[currentPageIndex+1][ctx.state.pages[currentPageIndex+1][0]].id;
                 }
             }
+            console.log('previousSongId', previousSongId);
+            console.log('nextSongId', nextSongId);
             this.$store.commit('setPreviousSongId', previousSongId);
             this.$store.commit('setNextSongId', nextSongId);
         },
@@ -1277,6 +1339,56 @@ export default {
             let request = { method: 'POST', url: "/apis/song/sheetsage", params: params };
             return promisedXMLHttpRequest(request);
         },
+        createPictureBoostyTeaserPromise(ctx) {
+            let params = { id: ctx.state.currentSongId };
+            let request = { method: 'POST', url: "/apis/song/createpictureboostyteaser", params: params };
+            return promisedXMLHttpRequest(request);
+        },
+        createPictureBoostyFilesPromise(ctx) {
+            let params = { id: ctx.state.currentSongId };
+            let request = { method: 'POST', url: "/apis/song/createpictureboostyfiles", params: params };
+            return promisedXMLHttpRequest(request);
+        },
+        createPictureVKPromise(ctx) {
+            let params = { id: ctx.state.currentSongId };
+            let request = { method: 'POST', url: "/apis/song/createpicturevk", params: params };
+            return promisedXMLHttpRequest(request);
+        },
+        createPictureVKlinkPromise(ctx) {
+            let params = { id: ctx.state.currentSongId };
+            let request = { method: 'POST', url: "/apis/song/createpicturevklink", params: params };
+            return promisedXMLHttpRequest(request);
+        },
+        createPictureKaraokePromise(ctx) {
+            let params = { id: ctx.state.currentSongId };
+            let request = { method: 'POST', url: "/apis/song/createpicturekaraoke", params: params };
+            return promisedXMLHttpRequest(request);
+        },
+        createPictureLyricsPromise(ctx) {
+            let params = { id: ctx.state.currentSongId };
+            let request = { method: 'POST', url: "/apis/song/createpicturelyrics", params: params };
+            return promisedXMLHttpRequest(request);
+        },
+        createPictureChordsPromise(ctx) {
+            let params = { id: ctx.state.currentSongId };
+            let request = { method: 'POST', url: "/apis/song/createpicturechords", params: params };
+            return promisedXMLHttpRequest(request);
+        },
+        createDescriptionFileKaraokePromise(ctx) {
+            let params = { id: ctx.state.currentSongId };
+            let request = { method: 'POST', url: "/apis/song/createdescriptionfilekaraoke", params: params };
+            return promisedXMLHttpRequest(request);
+        },
+        createDescriptionFileLyricsPromise(ctx) {
+            let params = { id: ctx.state.currentSongId };
+            let request = { method: 'POST', url: "/apis/song/createdescriptionfilelyrics", params: params };
+            return promisedXMLHttpRequest(request);
+        },
+        createDescriptionFileChordsPromise(ctx) {
+            let params = { id: ctx.state.currentSongId };
+            let request = { method: 'POST', url: "/apis/song/createdescriptionfilechords", params: params };
+            return promisedXMLHttpRequest(request);
+        },
         createMP3KaraokePromise(ctx, payload) {
             let params = { id: ctx.state.currentSongId, prior: payload.prior };
             let request = { method: 'POST', url: "/apis/song/mp3karaoke", params: params };
@@ -1305,6 +1417,14 @@ export default {
         collectStorePromise(ctx, payload) {
             let params = { songsIds: payload.songsIds ? payload.songsIds : '', priorLyrics: payload.priorLyrics, priorKaraoke: payload.priorKaraoke };
             let request = { method: 'POST', url: "/apis/utils/collectstore", params: params };
+            return promisedXMLHttpRequest(request);
+        },
+        actualizeVKLinkPictureWebPromise() {
+            let request = { method: 'POST', url: "/apis/utils/actualizevklinkpictureweb" };
+            return promisedXMLHttpRequest(request);
+        },
+        checkLastAlbumYmPromise() {
+            let request = { method: 'POST', url: "/apis/utils/checklastalbumym" };
             return promisedXMLHttpRequest(request);
         },
         updateBpmAndKeyPromise() {

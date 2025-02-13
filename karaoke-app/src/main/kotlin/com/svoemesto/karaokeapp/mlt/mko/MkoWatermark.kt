@@ -1,5 +1,6 @@
 package com.svoemesto.karaokeapp.mlt.mko
 
+import com.svoemesto.karaokeapp.CURRENT_RESULT_VERSION
 import com.svoemesto.karaokeapp.Karaoke
 import com.svoemesto.karaokeapp.getTextWidthHeightPx
 import com.svoemesto.karaokeapp.mlt.MltGenerator
@@ -9,18 +10,28 @@ import com.svoemesto.karaokeapp.mlt.mltNode
 import com.svoemesto.karaokeapp.model.MltNode
 import com.svoemesto.karaokeapp.model.MltNodeBuilder
 import com.svoemesto.karaokeapp.model.ProducerType
+import com.svoemesto.karaokeapp.model.TransformProperty
 
-data class MkoWatermark(val mltProp: MltProp, val type: ProducerType, val voiceId: Int = 0, val childId: Int = 0): MltKaraokeObject {
+data class MkoWatermark(val mltProp: MltProp, val type: ProducerType, val voiceId: Int = 0, val childId: Int = 0, val elementId: Int = 0): MltKaraokeObject {
     val mltGenerator = MltGenerator(mltProp, type)
+
+    private val frameWidthPx = mltProp.getFrameWidthPx()
+    private val frameHeightPx = mltProp.getFrameHeightPx()
+    private val songLengthFr = mltProp.getSongLengthFr()
+    private val songStartTimecode = mltProp.getSongStartTimecode()
+    private val songEndTimecode = mltProp.getSongEndTimecode()
+    private val songFadeInTimecode = mltProp.getSongFadeInTimecode()
+    private val songFadeOutTimecode = mltProp.getSongFadeOutTimecode()
+    private val inOffsetVideo = mltProp.getInOffsetVideo()
 
     override fun producer(): MltNode = mltGenerator
         .producer(
             props = MltNodeBuilder(mltGenerator.defaultProducerPropertiesForMltService("kdenlivetitle"))
-                .propertyName("length", mltProp.getSongLengthFr())
-                .propertyName("kdenlive:duration", mltProp.getSongEndTimecode())
-                .propertyName("xmldata", mltProp.getXmlData(listOf(type, voiceId)).toString().xmldata())
-                .propertyName("meta.media.width", Karaoke.frameWidthPx)
-                .propertyName("meta.media.height", Karaoke.frameHeightPx)
+                .propertyName("length", songLengthFr)
+                .propertyName("kdenlive:duration", songEndTimecode)
+                .propertyName("xmldata", template().toString().xmldata())
+                .propertyName("meta.media.width", frameWidthPx)
+                .propertyName("meta.media.height", frameHeightPx)
                 .build()
         )
 
@@ -29,17 +40,26 @@ data class MkoWatermark(val mltProp: MltProp, val type: ProducerType, val voiceI
         val result = mltGenerator.filePlaylist()
         result.body?.let {
             val body = it as MutableList<MltNode>
-            body.addAll(MltNodeBuilder().blank(mltProp.getInOffsetVideo()).build())
+            body.addAll(MltNodeBuilder().blank(inOffsetVideo).build())
             body.add(
                 mltGenerator.entry(
                     nodes = MltNodeBuilder()
                         .propertyName("kdenlive:id", "filePlaylist${mltGenerator.id}")
-                        .filterQtblend(mltGenerator.nameFilterQtblend, "${mltProp.getSongStartTimecode()}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.000000;${mltProp.getSongFadeInTimecode()}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 1.000000;${mltProp.getSongFadeOutTimecode()}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 1.000000;${mltProp.getSongEndTimecode()}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.000000")
+                        .filterQtblend(mltGenerator.nameFilterQtblend, mainFilePlaylistTransformProperties())
                         .build()
                 )
             )
         }
         return result
+    }
+
+    override fun mainFilePlaylistTransformProperties(): String {
+        val tpStart = TransformProperty(time = songStartTimecode, x = 0, y = 0, w = frameWidthPx, h = frameHeightPx, opacity = 0.0)
+        val tpFadeIn = TransformProperty(time = songFadeInTimecode, x = 0, y = 0, w = frameWidthPx, h = frameHeightPx, opacity = 1.0)
+        val tpFadeOut = TransformProperty(time = songFadeOutTimecode, x = 0, y = 0, w = frameWidthPx, h = frameHeightPx, opacity = 1.0)
+        val tpEnd = TransformProperty(time = songEndTimecode, x = 0, y = 0, w = frameWidthPx, h = frameHeightPx, opacity = 0.0)
+        val resultListTp = listOf(tpStart, tpFadeIn, tpFadeOut, tpEnd)
+        return resultListTp.joinToString(";")
     }
 
     override fun trackPlaylist(): MltNode = mltGenerator.trackPlaylist()
@@ -48,17 +68,18 @@ data class MkoWatermark(val mltProp: MltProp, val type: ProducerType, val voiceI
 
 
     override fun template(): MltNode {
-        val (w, h) = getTextWidthHeightPx(Karaoke.watermarkText, Karaoke.watermarkFont.font)
-        val x = Karaoke.frameWidthPx - w.toLong() - 10
-        val y = Karaoke.frameHeightPx - h.toLong() - 10
+        val watermarkText = "(v${CURRENT_RESULT_VERSION}) | ${Karaoke.watermarkText}"
+        val (w, h) = getTextWidthHeightPx(watermarkText, Karaoke.watermarkFont.font)
+        val x = frameWidthPx - w.toLong() - 10
+        val y = frameHeightPx - h.toLong() - 10
 
         return MltNode(
             name = "kdenlivetitle",
             fields = mutableMapOf(
                 Pair("duration","0"),
                 Pair("LC_NUMERIC","C"),
-                Pair("width","${Karaoke.frameWidthPx}"),
-                Pair("height","${Karaoke.frameHeightPx}"),
+                Pair("width","$frameWidthPx"),
+                Pair("height","$frameHeightPx"),
                 Pair("out","0"),
             ),
             body = mutableListOf(
@@ -77,11 +98,11 @@ data class MkoWatermark(val mltProp: MltProp, val type: ProducerType, val voiceI
                             ),
                             body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(Pair("zoom","100")), body = "1,0,0,0,1,0,0,0,1"))
                         ),
-                        Karaoke.watermarkFont.mltNode(Karaoke.watermarkText)
+                        Karaoke.watermarkFont.mltNode(watermarkText)
                     )
                 ),
-                MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${Karaoke.frameHeightPx}"))),
-                MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${Karaoke.frameHeightPx}"))),
+                MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${frameWidthPx},${frameHeightPx}"))),
+                MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${frameWidthPx},${frameHeightPx}"))),
                 MltNode(name = "background", fields = mutableMapOf(Pair("color","0,0,0,0")))
             )
         )

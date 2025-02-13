@@ -8,29 +8,33 @@ import com.svoemesto.karaokeapp.model.MltNodeBuilder
 import com.svoemesto.karaokeapp.model.ProducerType
 import com.svoemesto.karaokeapp.model.PropertiesMltNodeBuilder
 
+
 data class MltGenerator(
     var mltProp: MltProp,
     var type: ProducerType,
     var voiceId: Int = 0,
-    var childId: Int = 0
+    var childId: Int = 0,
+    var elementId: Int = 0
 ) {
 
     companion object {
-        fun name(type: ProducerType, voiceId: Int = 0, childId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId).name
-        fun namePlaylistFile(type: ProducerType, voiceId: Int = 0, childId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId).namePlaylistFile
-        fun namePlaylistTrack(type: ProducerType, voiceId: Int = 0, childId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId).namePlaylistTrack
-        fun nameTractor(type: ProducerType, voiceId: Int = 0, childId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId).nameTractor
-        fun nameProducer(type: ProducerType, voiceId: Int = 0, childId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId).nameProducer
-        fun nameFileProducer(type: ProducerType, voiceId: Int = 0, childId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId).nameFileProducer
-        fun nameFilterVolume(type: ProducerType, voiceId: Int = 0, childId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId).nameFilterVolume
-        fun nameFilterPanner(type: ProducerType, voiceId: Int = 0, childId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId).nameFilterPanner
-        fun nameFilterAudiolevel(type: ProducerType, voiceId: Int = 0, childId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId).nameFilterAudiolevel
-        fun nameFilterQtblend(type: ProducerType, voiceId: Int = 0, childId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId).nameFilterQtblend
-        fun nameFilterGamma(type: ProducerType, voiceId: Int = 0, childId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId).nameFilterGamma
-        fun nameProducerBlackTrack(type: ProducerType, voiceId: Int = 0, childId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId).nameProducerBlackTrack
+        fun name(type: ProducerType, voiceId: Int = 0, childId: Int = 0, elementId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId, elementId).name
+        fun namePlaylistFile(type: ProducerType, voiceId: Int = 0, childId: Int = 0, elementId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId, elementId).namePlaylistFile
+        fun namePlaylistTrack(type: ProducerType, voiceId: Int = 0, childId: Int = 0, elementId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId, elementId).namePlaylistTrack
+        fun nameTractor(type: ProducerType, voiceId: Int = 0, childId: Int = 0, elementId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId, elementId).nameTractor
+        fun nameProducer(type: ProducerType, voiceId: Int = 0, childId: Int = 0, elementId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId, elementId).nameProducer
+        fun nameFileProducer(type: ProducerType, voiceId: Int = 0, childId: Int = 0, elementId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId, elementId).nameFileProducer
+        fun nameFilterVolume(type: ProducerType, voiceId: Int = 0, childId: Int = 0, elementId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId, elementId).nameFilterVolume
+        fun nameFilterPanner(type: ProducerType, voiceId: Int = 0, childId: Int = 0, elementId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId, elementId).nameFilterPanner
+        fun nameFilterAudiolevel(type: ProducerType, voiceId: Int = 0, childId: Int = 0, elementId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId, elementId).nameFilterAudiolevel
+        fun nameFilterQtblend(type: ProducerType, voiceId: Int = 0, childId: Int = 0, elementId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId, elementId).nameFilterQtblend
+        fun nameFilterGamma(type: ProducerType, voiceId: Int = 0, childId: Int = 0, elementId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId, elementId).nameFilterGamma
+        fun nameProducerBlackTrack(type: ProducerType, voiceId: Int = 0, childId: Int = 0, elementId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId, elementId).nameProducerBlackTrack
+//        fun id(type: ProducerType, voiceId: Int = 0, childId: Int = 0, elementId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId, elementId).id
     }
 
-    val id: Int get() = (if (type.ids.isEmpty() && !type.isCalculatedCount) mltProp.getId(listOf(type, voiceId)) else mltProp.getId(listOf(type, voiceId, childId))) + voiceId*1000 + childId*10000
+//    val id: Int get() = (if (type.ids.isEmpty() && !type.isCalculatedCount) mltProp.getId(listOf(type, voiceId)) else mltProp.getId(listOf(type, voiceId, childId))) + voiceId*1000 + childId*10000
+    val id: Int get() = listOf(type.name, voiceId, childId, elementId).hashCode()
     val name: String get() {
         val text = type.text.uppercase()
         val numVoice = if (type.onlyOne) {
@@ -43,7 +47,12 @@ data class MltGenerator(
         } else {
             "_C${childId}"
         }
-        return "$text$numVoice$numChild"
+        val numElement = if (elementId==0 && (type.ids.isEmpty() && !type.isCalculatedCount)) {
+            ""
+        } else {
+            "_E${elementId}"
+        }
+        return "$text$numVoice$numChild$numElement"
 //        "${type.text.uppercase()}${if (voiceId==0 && type.coeffVoice==0) "" else "_V${voiceId}"}${if (childId==0 && (type.ids.isEmpty() && !type.isCalculatedCount)) "" else "_C${childId}"}"
     }
 

@@ -266,7 +266,7 @@
       </configuration>
     </facet>
   </component>
-  <component name="NewModuleRootManager" LANGUAGE_LEVEL="JDK_17">
+  <component name="NewModuleRootManager">
     <output-test url="file://$MODULE_DIR$/../../../karaoke-app/build/classes/kotlin/test" />
     <exclude-output />
     <content url="file://$MODULE_DIR$/../../../karaoke-app/src/test">

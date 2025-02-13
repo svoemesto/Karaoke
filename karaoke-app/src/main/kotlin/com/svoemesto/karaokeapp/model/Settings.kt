@@ -3,6 +3,7 @@ package com.svoemesto.karaokeapp.model
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.svoemesto.karaokeapp.*
+import com.svoemesto.karaokeapp.mlt.MltProp
 import com.svoemesto.karaokeapp.services.SNS
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Component
 import java.io.File
 import java.io.Serializable
 import java.nio.file.Files
+import java.nio.file.Paths
 import java.nio.file.attribute.PosixFilePermissions
 import java.sql.*
 import java.text.SimpleDateFormat
@@ -64,7 +66,8 @@ enum class SettingField : Serializable {
     ID_PL_KARAOKE,
     ID_PL_CHORDS,
     RESULT_VERSION,
-    DIFFBEATS
+    DIFFBEATS,
+    ID_SPONSR
 }
 
 
@@ -125,8 +128,17 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
 
     var fileName: String = ""
+    val rightSettingFileName: String get() {
+        val resultList: MutableList<String> = mutableListOf()
+        if (year != 0L ) resultList.add("$year")
+        if (track != 0L ) resultList.add("(${"%02d".format(track)})")
+        resultList.add("[$author] -")
+        resultList.add(songName)
+        return resultList.joinToString(" ") //.rightFileName()
+    }
+
     var tags: String = ""
-    val fields: MutableMap<SettingField, String> = mutableMapOf()
+    var fields: MutableMap<SettingField, String> = mutableMapOf()
 
     var firstSongInAlbum: Boolean = false
 
@@ -222,6 +234,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
     @get:JsonIgnore
     val countVoices: Int get() = sourceMarkersList.size
+    val countNotEmptyVoices: Int get() = sourceMarkersList.filter { it.isNotEmpty() }.size
 
     @get:JsonIgnore
     val sourceUnmute: List<Pair<Double, Double>> get() {
@@ -237,45 +250,45 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     }
 
 
-    val pathToFileLyrics: String  get() = "${rootFolder.rightFileName()}/done_files/$nameFileLyrics"
-    val pathToFileKaraoke: String  get() = "${rootFolder.rightFileName()}/done_files/$nameFileKaraoke"
-    val pathToFileChords: String  get() = "${rootFolder.rightFileName()}/done_files/$nameFileChords"
+    val pathToFileLyrics: String  get() = "${rootFolder}/done_files/$nameFileLyrics".rightFileName()
+    val pathToFileKaraoke: String  get() = "${rootFolder}/done_files/$nameFileKaraoke".rightFileName()
+    val pathToFileChords: String  get() = "${rootFolder}/done_files/$nameFileChords".rightFileName()
 
-    val pathToFile720Lyrics: String  get() = "$pathToFolder720Lyrics/${nameFileLyrics.replace(" [lyrics].mp4", " [lyrics] 720p.mp4")}"
-    val pathToFileMP3Lyrics: String  get() = "$pathToFolderMP3Lyrics/${nameFileLyrics.replace(" [lyrics].mp4", " [lyrics].mp3")}"
-    val pathToFile720Karaoke: String  get() = "$pathToFolder720Karaoke/${nameFileKaraoke.replace(" [karaoke].mp4", " [karaoke] 720p.mp4")}"
-    val pathToFileMP3Karaoke: String  get() = "$pathToFolderMP3Karaoke/${nameFileKaraoke.replace(" [karaoke].mp4", " [karaoke].mp3")}"
-    val pathToFile720Chords: String  get() = "$pathToFolder720Chords/${nameFileChords.replace(" [chords].mp4", " [chords] 720p.mp4")}"
+    val pathToFile720Lyrics: String  get() = "$pathToFolder720Lyrics/${nameFileLyrics.replace(" [lyrics].mp4", " [lyrics] 720p.mp4")}".rightFileName()
+    val pathToFileMP3Lyrics: String  get() = "$pathToFolderMP3Lyrics/${nameFileLyrics.replace(" [lyrics].mp4", " [lyrics].mp3")}".rightFileName()
+    val pathToFile720Karaoke: String  get() = "$pathToFolder720Karaoke/${nameFileKaraoke.replace(" [karaoke].mp4", " [karaoke] 720p.mp4")}".rightFileName()
+    val pathToFileMP3Karaoke: String  get() = "$pathToFolderMP3Karaoke/${nameFileKaraoke.replace(" [karaoke].mp4", " [karaoke].mp3")}".rightFileName()
+    val pathToFile720Chords: String  get() = "$pathToFolder720Chords/${nameFileChords.replace(" [chords].mp4", " [chords] 720p.mp4")}".rightFileName()
 
-    val pathToFolder720Lyrics: String  get() = "$PATH_TO_STORE_FOLDER/720p_Lyrics/${author} 720p"
-    val pathToFolderMP3Lyrics: String  get() = "$PATH_TO_STORE_FOLDER/MP3_Lyrics/${author} MP3"
-    val pathToFolder720Karaoke: String  get() = "$PATH_TO_STORE_FOLDER/720p_Karaoke/${author} 720p"
-    val pathToFolderMP3Karaoke: String  get() = "$PATH_TO_STORE_FOLDER/MP3_Karaoke/${author} MP3"
-    val pathToFolder720Chords: String  get() = "$PATH_TO_STORE_FOLDER/720p_Chords/${author} 720p"
+    val pathToFolder720Lyrics: String  get() = "$PATH_TO_STORE_FOLDER/720p_Lyrics/${author} 720p".rightFileName()
+    val pathToFolderMP3Lyrics: String  get() = "$PATH_TO_STORE_FOLDER/MP3_Lyrics/${author} MP3".rightFileName()
+    val pathToFolder720Karaoke: String  get() = "$PATH_TO_STORE_FOLDER/720p_Karaoke/${author} 720p".rightFileName()
+    val pathToFolderMP3Karaoke: String  get() = "$PATH_TO_STORE_FOLDER/MP3_Karaoke/${author} MP3".rightFileName()
+    val pathToFolder720Chords: String  get() = "$PATH_TO_STORE_FOLDER/720p_Chords/${author} 720p".rightFileName()
 
-    val pathToStoreFileLyrics: String  get() = "$pathToStoreFolderLyrics/$nameFileLyrics"
-    val pathToStoreFileKaraoke: String  get() = "$pathToStoreFolderKaraoke/$nameFileKaraoke"
-    val pathToStoreFileChords: String  get() = "$pathToStoreFolderChords/$nameFileChords"
+    val pathToStoreFileLyrics: String  get() = "$pathToStoreFolderLyrics/$nameFileLyrics".rightFileName()
+    val pathToStoreFileKaraoke: String  get() = "$pathToStoreFolderKaraoke/$nameFileKaraoke".rightFileName()
+    val pathToStoreFileChords: String  get() = "$pathToStoreFolderChords/$nameFileChords".rightFileName()
 
-    val pathToStoreFolderLyrics: String  get() = "$PATH_TO_STORE_FOLDER/Lyrics/${author} - Lyrics"
-    val pathToStoreFolderKaraoke: String  get() = "$PATH_TO_STORE_FOLDER/Karaoke/${author} - Karaoke"
-    val pathToStoreFolderChords: String  get() = "$PATH_TO_STORE_FOLDER/Chords/${author} - Chords"
+    val pathToStoreFolderLyrics: String  get() = "$PATH_TO_STORE_FOLDER/Lyrics/${author} - Lyrics".rightFileName()
+    val pathToStoreFolderKaraoke: String  get() = "$PATH_TO_STORE_FOLDER/Karaoke/${author} - Karaoke".rightFileName()
+    val pathToStoreFolderChords: String  get() = "$PATH_TO_STORE_FOLDER/Chords/${author} - Chords".rightFileName()
 
-    val nameFileLogoAlbum: String  get() = "${if (!fileName.startsWith (year.toString())) "${year} " else ""}${fileName.rightFileName()} [album].png"
-    val nameFileLogoAuthor: String  get() = "${if (!fileName.startsWith (year.toString())) "${year} " else ""}${fileName.rightFileName()} [author].png"
-    val nameFileLyrics: String  get() = "${if (!fileName.startsWith (year.toString())) "${year} " else ""}${fileName.rightFileName()} [lyrics].mp4"
-    val nameFileKaraoke: String  get() = "${if (!fileName.startsWith (year.toString())) "${year} " else ""}${fileName.rightFileName()} [karaoke].mp4"
-    val nameFileChords: String  get() = "$${if (!fileName.startsWith (year.toString())) "${year} " else ""}${fileName.rightFileName()} [chords].mp4"
+    val nameFileLogoAlbum: String  get() = "${rightSettingFileName} [album].png".rightFileName()
+    val nameFileLogoAuthor: String  get() = "${rightSettingFileName} [author].png".rightFileName()
+    val nameFileLyrics: String  get() = "${rightSettingFileName} [lyrics].mp4".rightFileName()
+    val nameFileKaraoke: String  get() = "${rightSettingFileName} [karaoke].mp4".rightFileName()
+    val nameFileChords: String  get() = "${rightSettingFileName} [chords].mp4".rightFileName()
 
-    val pathToFolderSheetsage: String  get() = "${rootFolder.rightFileName()}/sheetsage"
-    val nameFileSheetsagePDF: String  get() = "${if (!fileName.startsWith (year.toString())) "${year} " else ""}${fileName.rightFileName()} [sheetsage].pdf"
-    val nameFileSheetsageMIDI: String  get() = "${if (!fileName.startsWith (year.toString())) "${year} " else ""}${fileName.rightFileName()} [sheetsage].midi"
-    val nameFileSheetsageLY: String  get() = "${if (!fileName.startsWith (year.toString())) "${year} " else ""}${fileName.rightFileName()} [sheetsage].ly"
-    val nameFileSheetsageBeattimes: String  get() = "${if (!fileName.startsWith (year.toString())) "${year} " else ""}${fileName.rightFileName()} [beattimes].txt"
-    val pathToFileSheetsagePDF: String  get() = "$pathToFolderSheetsage/$nameFileSheetsagePDF"
-    val pathToFileSheetsageMIDI: String  get() = "$pathToFolderSheetsage/$nameFileSheetsageMIDI"
-    val pathToFileSheetsageLY: String  get() = "$pathToFolderSheetsage/$nameFileSheetsageLY"
-    val pathToFileSheetsageBeattimes: String  get() = "$pathToFolderSheetsage/$nameFileSheetsageBeattimes"
+    val pathToFolderSheetsage: String  get() = "${rootFolder}/sheetsage".rightFileName()
+    val nameFileSheetsagePDF: String  get() = "${rightSettingFileName} [sheetsage].pdf".rightFileName()
+    val nameFileSheetsageMIDI: String  get() = "${rightSettingFileName} [sheetsage].midi".rightFileName()
+    val nameFileSheetsageLY: String  get() = "${rightSettingFileName} [sheetsage].ly".rightFileName()
+    val nameFileSheetsageBeattimes: String  get() = "${rightSettingFileName} [beattimes].txt".rightFileName()
+    val pathToFileSheetsagePDF: String  get() = "$pathToFolderSheetsage/$nameFileSheetsagePDF".rightFileName()
+    val pathToFileSheetsageMIDI: String  get() = "$pathToFolderSheetsage/$nameFileSheetsageMIDI".rightFileName()
+    val pathToFileSheetsageLY: String  get() = "$pathToFolderSheetsage/$nameFileSheetsageLY".rightFileName()
+    val pathToFileSheetsageBeattimes: String  get() = "$pathToFolderSheetsage/$nameFileSheetsageBeattimes".rightFileName()
 
     @get:JsonIgnore
     val pathToFileLogoAlbum: String  get() {
@@ -321,7 +334,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     val ms: Long get() = fields[SettingField.MS]?.toLongOrNull() ?: 0L
     val resultVersion: Long get() = fields[SettingField.RESULT_VERSION]?.toLongOrNull() ?: 0L
     val diffBeats: Long get() = fields[SettingField.DIFFBEATS]?.toLongOrNull() ?: 0L
-    val subtitleFileName: String get() = "${fileName}.kdenlive.srt"
+    val subtitleFileName: String get() = "${rightSettingFileName}.kdenlive.srt"
     val audioSongFileName: String get() = "${fileName}.flac"
 //        if (fields.contains(SettingField.FORMAT)) {
 //            "${fileName}.${fields[SettingField.FORMAT]}"
@@ -369,12 +382,6 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         return pic
     }
 
-    val projectLyricsFileName: String get() = "$fileName [lyrics].kdenlive"
-    val videoLyricsFileName: String get() = "done/$year $fileName [lyrics].mp4"
-    val projectKaraokeFileName: String get() = "$fileName [karaoke].kdenlive"
-    val videoKaraokeFileName: String get() = "done/$year $fileName [karaoke].mp4"
-    val projectChordsFileName: String get() = "$fileName [chords].kdenlive"
-    val videoChordsFileName: String get() = "done/$year $fileName [chords].mp4"
     @get:JsonIgnore
     val audioMusicFileName: String get() =
         if (fields.contains(SettingField.AUDIOMUSIC)) {
@@ -447,6 +454,8 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     val idPlKaraoke: String get() = fields[SettingField.ID_PL_KARAOKE]?.nullIfEmpty() ?: ""
     val idPlChords: String get() = fields[SettingField.ID_PL_CHORDS]?.nullIfEmpty() ?: ""
 
+    val idSponsr: String get() = fields[SettingField.ID_SPONSR]?.nullIfEmpty() ?: ""
+
     val linkSM: String get() = URL_PREFIX_SM.replace("{REPLACE}", id.toString())
     val linkBoosty: String? get() = idBoosty?.let {URL_PREFIX_BOOSTY.replace("{REPLACE}", idBoosty!!)}
     val linkBoostyFiles: String? get() = idBoostyFiles?.let {URL_PREFIX_BOOSTY.replace("{REPLACE}", idBoostyFiles!!)}
@@ -487,6 +496,9 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     val linkPlChordsPlay: String? get() = idPlChords?.let {URL_PREFIX_PL_PLAY.replace("{REPLACE}", idPlChords!!)}
     val linkPlChordsEdit: String? get() = idPlChords?.let {URL_PREFIX_PL_EDIT.replace("{REPLACE}", idPlChords!!)}
 
+    val linkSponsrPlay: String get() = if (idSponsr == "") "" else URL_PREFIX_SPONSR_PLAY.replace("{REPLACE}", idSponsr)
+    val linkSponsrEdit: String get() = if (idSponsr == "") "" else URL_PREFIX_SPONSR_EDIT.replace("{REPLACE}", idSponsr)
+
     val flagBoosty: String get() =
         if (idBoosty == null || idBoosty == "null" || idBoosty == "") {
             "-"
@@ -496,6 +508,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             "✔"
         }
 
+    val flagSponsr: String get() = if (idSponsr == null || idSponsr == "null" || idSponsr == "") "-" else "✓"
     val flagBoostyFiles: String get() = if (idBoostyFiles == null || idBoostyFiles == "null" || idBoostyFiles == "") "-" else "✓"
     val flagVk: String get() = if (idVk == null || idVk == "null" || idVk == "") "-" else "✓"
     val flagYoutubeLyrics: String get() = if (idYoutubeLyrics == null || idYoutubeLyrics == "null" || idYoutubeLyrics == "") "-" else "✓"
@@ -516,15 +529,19 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     val flagPlChords: String get() = if (idPlChords == null || idPlChords == "null" || idPlChords == "") "-" else "✓"
 
     val pathToResultedModel: String get() = "$rootFolder/$DEMUCS_MODEL_NAME"
-    val pathToSymlinkFolder: String get() = "$rootFolder/symlink"
+//    val pathToSymlinkFolder: String get() = "$rootFolder/symlink"
+    val pathToSymlinkFolderMP4: String get() = "$rootFolder/symlink_mp4"
+    val pathToSymlinkFolderPNG: String get() = "$rootFolder/symlink_png"
+    val pathToSymlinkFolderBoostyPNG: String get() = "$rootFolder/symlink_boosty_png"
+    val pathToSymlinkFolderBoostyFiles: String get() = "$rootFolder/symlink_boosty_files"
     val separatedStem: String get() = "vocals"
     val oldNoStemNameWav: String get() = "$pathToResultedModel/$fileName-no_$separatedStem.wav"
     val newNoStemNameWav: String get() = "$pathToResultedModel/$fileName-accompaniment.wav"
     val newNoStemNameFlac: String get() = "$pathToResultedModel/$fileName-accompaniment.flac"
-    val newNoStemNameFlacSymlink: String get() = "$pathToSymlinkFolder/$fileName-accompaniment.flac"
+    val newNoStemNameFlacSymlink: String get() = "$pathToSymlinkFolderBoostyFiles/$fileName-accompaniment.flac"
     val vocalsNameWav: String get() = "$pathToResultedModel/$fileName-vocals.wav"
     val vocalsNameFlac: String get() = "$pathToResultedModel/$fileName-vocals.flac"
-    val vocalsNameFlacSymlink: String get() = "$pathToSymlinkFolder/$fileName-vocals.flac"
+    val vocalsNameFlacSymlink: String get() = "$pathToSymlinkFolderBoostyFiles/$fileName-vocals.flac"
     val drumsNameWav: String get() = "$pathToResultedModel/$fileName-drums.wav"
     val drumsNameFlac: String get() = "$pathToResultedModel/$fileName-drums.flac"
     val bassNameWav: String get() = "$pathToResultedModel/$fileName-bass.wav"
@@ -534,14 +551,18 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     val otherNameWav: String get() = "$pathToResultedModel/$fileName-other.wav"
     val otherNameFlac: String get() = "$pathToResultedModel/$fileName-other.flac"
     val fileAbsolutePath: String get() = "$rootFolder/$fileName.flac"
-    val fileAbsolutePathSymlink: String get() = "$pathToSymlinkFolder/$fileName.flac"
-    val fileSettingsAbsolutePath: String get() = "$rootFolder/$fileName.settings"
+    val fileAbsolutePathSymlink: String get() = "$pathToSymlinkFolderBoostyFiles/$fileName.flac"
+    val fileSettingsAbsolutePath: String get() = "$rootFolder/$rightSettingFileName.settings"
+
+    val relativePathToFile: String get() = "../$fileName.flac"
+    val relativePathToNoStemNameFlac: String get() = "../$DEMUCS_MODEL_NAME/$fileName-accompaniment.flac"
+    val relativePathToVocalsNameFlac: String get() = "../$DEMUCS_MODEL_NAME/$fileName-vocals.flac"
 
     val fileNameVocals: String get() = "${fileName}-vocals.flac"
     val fileNameAccompaniment: String get() = "${fileName}-accompaniment.flac"
 
-    val kdenliveFileName: String get() = "$rootFolder/$fileName.kdenlive"
-    val kdenliveSubsFileName: String get() = "$rootFolder/$fileName.kdenlive.srt"
+    val kdenliveFileName: String get() = "$rootFolder/$rightSettingFileName.kdenlive"
+    val kdenliveSubsFileName: String get() = "$rootFolder/$rightSettingFileName.kdenlive.srt"
     @get:JsonIgnore
     val durationInMilliseconds: Long get() = ((MediaInfo.getInfoBySectionAndParameter(
         "$fileAbsolutePath",
@@ -677,7 +698,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     fun getVKPictureBase64(): String = getVKPictureBase64(this)
     @get:JsonIgnore
     val kdenliveTemplate: String get() = "<?xml version='1.0' encoding='utf-8'?>\n" +
-            "<mlt LC_NUMERIC=\"C\" producer=\"main_bin\" version=\"7.15.0\" root=\"${rootFolder.replace("&", "&amp;")}\">\n" +
+            "<mlt LC_NUMERIC=\"C\" producer=\"main_bin\" version=\"7.28.0\" root=\"${rootFolder.replace("&", "&amp;")}\">\n" +
             " <profile frame_rate_num=\"60\" sample_aspect_num=\"1\" display_aspect_den=\"9\" colorspace=\"709\" progressive=\"1\" description=\"HD 1080p 60 fps\" display_aspect_num=\"16\" frame_rate_den=\"1\" width=\"1920\" height=\"1080\" sample_aspect_den=\"1\"/>\n" +
             " <producer id=\"producer0\" in=\"00:00:00.000\" out=\"${durationTimecode}\">\n" +
             "  <property name=\"length\">${durationFrames}</property>\n" +
@@ -964,6 +985,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         } else {
             "#A9A9A9"
         }
+    val processColorSponsr: String get() = if (idSponsr.isNotBlank()) "#00FF00" else "#A9A9A9"
     val processColorBoostyFiles: String get() = if (idBoostyFiles.isNotBlank()) "#00FF00" else "#A9A9A9"
 
     val processColorVkLyrics: String get() = if (idVkLyrics.isNotBlank()) "#00FF00" else "#A9A9A9"
@@ -1008,6 +1030,8 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     @get:JsonIgnore
     val haveBoostyLink: Boolean get() = idBoosty.isNotBlank()
     @get:JsonIgnore
+    val haveSponsrLink: Boolean get() = idSponsr.isNotBlank()
+    @get:JsonIgnore
     val haveBoostyFilesLink: Boolean get() = idBoostyFiles.isNotBlank()
     @get:JsonIgnore
     val haveVkGroupLink: Boolean get() = idVk.isNotBlank()
@@ -1037,6 +1061,486 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     @get:JsonIgnore
     val digestIsFull: Boolean get() = idVkKaraoke.isNotBlank() && (idTelegramKaraoke.isNotBlank() && idTelegramKaraoke != "-") && idYoutubeKaraoke.isNotBlank() && idVkLyrics.isNotBlank() && idTelegramLyrics.isNotBlank() && idYoutubeLyrics.isNotBlank()
 
+    @get:JsonIgnore
+    var voicesForMlt: List<SettingVoice> = emptyList()
+
+
+    val songLengthMs: Long get()  = (sourceMarkersList.maxOf { it.firstOrNull { it.markertype == "setting" && it.label == "END" }?.time ?: 0.0 } * 1000).toLong()
+
+    val endTimecode: String get() = convertMillisecondsToTimecode(songLengthMs)
+
+    val propAudioVolumeOn: String get() {
+        val prop = mutableListOf<String>()
+        prop.add("00:00:00.000=0")
+        prop.add("${endTimecode}=0")
+        return prop.joinToString(";")
+    }
+
+    val propAudioVolumeOff: String get() {
+        val prop = mutableListOf<String>()
+        prop.add("00:00:00.000=-100")
+        prop.add("${endTimecode}=-100")
+        return prop.joinToString(";")
+    }
+
+    val propAudioVolumeCustom: String get() {
+        val prop = mutableListOf<String>()
+        prop.add("00:00:00.000=-100")
+        sourceUnmute.forEach { (unMuteStart, unMuteEnd) ->
+            prop.add("${convertFramesToTimecode(convertMillisecondsToFrames((unMuteStart*1000).toLong())- 2)}=-100")
+            prop.add("${convertFramesToTimecode(convertMillisecondsToFrames((unMuteStart*1000).toLong()))}=0")
+            prop.add("${convertFramesToTimecode(convertMillisecondsToFrames((unMuteEnd*1000).toLong()))}=0")
+            prop.add("${convertFramesToTimecode(convertMillisecondsToFrames((unMuteEnd*1000).toLong())+ 2)}=-100")
+        }
+        prop.add("${endTimecode}=-100")
+        return prop.joinToString(";")
+    }
+
+    fun getOutputFilename(songOutputFile: SongOutputFile, songVersion: SongVersion? = null, relative: Boolean = false): String {
+        val folderName = when (songOutputFile) {
+            SongOutputFile.PROJECT,
+            SongOutputFile.SUBTITLE,
+            SongOutputFile.MLT,
+            SongOutputFile.RUN,
+            SongOutputFile.RUNALL,
+            SongOutputFile.TEXT -> "done_projects"
+            SongOutputFile.PICTURECHORDS -> "done_chords"
+            else -> "done_files"
+        }
+
+        val fileName = "${rightSettingFileName}${if (songVersion == null) "" else songVersion.suffix}"
+        val fileNameSuffix = when (songOutputFile) {
+            SongOutputFile.PICTURECHORDS -> " chords"
+            SongOutputFile.PICTUREBOOSTY -> " boosty"
+            SongOutputFile.PICTUREVK -> " VK"
+            SongOutputFile.VK -> " [VK]"
+            SongOutputFile.PICTUREBOOSTYTEASER -> " [boosty]"
+            SongOutputFile.PICTUREBOOSTYFILES -> " [files]"
+            else -> ""
+        }
+
+        return "${if (relative) ".." else rootFolder}/$folderName/$fileName$fileNameSuffix.${songOutputFile.extension}".rightFileName()
+    }
+
+    fun clone(): Settings {
+        val result = Settings()
+        result._rootFolder = this._rootFolder
+        result.readonly = this.readonly
+        result.fileName = this.fileName
+        result.tags = this.tags
+        result.firstSongInAlbum = this.firstSongInAlbum
+        result.sourceText = this.sourceText
+        result.resultText = this.resultText
+        result.statusProcessLyrics = this.statusProcessLyrics
+        result.statusProcessLyricsBt = this.statusProcessLyricsBt
+        result.statusProcessKaraoke = this.statusProcessKaraoke
+        result.statusProcessKaraokeBt = this.statusProcessKaraokeBt
+        result.statusProcessChords = this.statusProcessChords
+        result.statusProcessChordsBt = this.statusProcessChordsBt
+        result.sourceMarkers = this.sourceMarkers
+        result.voicesForMlt = this.voicesForMlt
+        result.fields = this.fields
+        return result
+    }
+
+    fun getMltProp(songVersion: SongVersion): MltProp {
+        val mltProp = MltProp()
+
+        // setSettings - текущий settings
+        mltProp.setSettings(this)
+
+        this.voicesForMlt = getVoices(this, songVersion)
+
+        val startSilentOffsetMs = getStartSilentOffsetMs()
+
+        // setFrameWidthPx - ширина экрана в пикселях
+        mltProp.setFrameWidthPx(Karaoke.frameWidthPx)
+
+        // setFrameHeightPx - высота экрана в пикселях
+        mltProp.setFrameHeightPx(Karaoke.frameHeightPx)
+
+        // setSongVersion - версия (Lyrics, Karaoke и т.п.)
+        mltProp.setSongVersion(songVersion)
+
+        // setCountAudioTracks - кол-во аудиодорожек. Зависит от songVersion
+        val countAudioTracks = songVersion.producers.count { it.isAudio && it != ProducerType.MAINBIN }
+        mltProp.setCountAudioTracks(countAudioTracks)
+
+        /** setCountAllTracks - кол-во треков. треки аудио + 10 видео треков.
+         V1 - BACKGROUND
+         V2 - SPLASHSTART
+         V3 - BOOSTY
+         V4 - HORIZON
+         V5 - FLASH
+         V6 - PROGRESS
+         V7 - VOICES
+         V8 - FADERTEXT
+         V9 - HEADER
+         V10 - WATERMARK
+        **/
+        val countAllTracks = countAudioTracks + 10
+        mltProp.setCountAllTracks(countAllTracks)
+
+        // setCountVoices - кол-во голосов. Минимум 1
+        val countVoices = voicesForMlt.size
+        mltProp.setCountVoices(countVoices)
+
+        // setSongLengthFr - длительность песни в кадрах
+        val songLengthFr = convertMillisecondsToFrames(songLengthMs + startSilentOffsetMs)
+        mltProp.setSongLengthFr(songLengthFr)
+
+        // setSplashLengthMs - длительность заставки (5 секунд) в миллисекундах
+        val splashLengthMs = Karaoke.timeSplashScreenLengthMs
+        mltProp.setSplashLengthMs(splashLengthMs)
+
+        // setBoostyLengthMs - длительность бусти (3 секунды) в миллисекундах
+        val boostyLengthMs = Karaoke.timeBoostyLengthMs
+        mltProp.setBoostyLengthMs(boostyLengthMs)
+
+        // НЕ ИСПОЛЬЗУЕТСЯ
+        // setTimelineLengthMs - длительность таймлайна в миллисекундах
+        val timelineLengthMs = songLengthMs + splashLengthMs + boostyLengthMs
+
+        // setTimelineStartTimecode - таймкод начала таймлайна
+        val timelineStartTimecode = convertMillisecondsToTimecode(0L)
+        mltProp.setTimelineStartTimecode(timelineStartTimecode)
+
+        // setTimelineEndTimecode - таймкод конца таймлайна
+        val timelineEndTimecode = convertMillisecondsToTimecode(timelineLengthMs)
+        mltProp.setTimelineEndTimecode(timelineEndTimecode)
+
+
+        // setTotalLengthFr - общая длительность в кадрах
+        val totalLengthFr = convertMillisecondsToFrames(timelineLengthMs + startSilentOffsetMs)
+        mltProp.setTotalLengthFr(totalLengthFr)
+
+        // setFadeLengthMs - время затухания в миллисекундах (1 сек)
+        val fadeMs = 1000L
+//        mltProp.setFadeLengthMs(fadeMs)
+
+        // setSongStartTimecode - таймкод начала песни (0)
+        val songStartTimecode = convertMillisecondsToTimecode(0L)
+        mltProp.setSongStartTimecode(songStartTimecode)
+
+        // setSongEndTimecode - таймкод конца песни
+        val songEndTimecode = convertMillisecondsToTimecode(songLengthMs + startSilentOffsetMs)
+        mltProp.setSongEndTimecode(songEndTimecode)
+
+        // setSongFadeInTimecode - таймкод начала фейда (fadeMs)
+        val songFadeInTimecode = convertMillisecondsToTimecode(fadeMs)
+        mltProp.setSongFadeInTimecode(songFadeInTimecode)
+
+        // songFadeOutTimecode - таймкод конча фейда (за fadeMs до конца песни)
+        val songFadeOutTimecode = convertMillisecondsToTimecode(songLengthMs-fadeMs + startSilentOffsetMs)
+        mltProp.setSongFadeOutTimecode(songFadeOutTimecode)
+
+
+        // setTotalStartTimecode - таймкод начала всего (0)
+        val totalStartTimecode = convertMillisecondsToTimecode(0L)
+        mltProp.setTotalStartTimecode(totalStartTimecode)
+
+        // setTotalEndTimecode - таймкод конца всего (общая длительность)
+        val totalEndTimecode = convertMillisecondsToTimecode(timelineLengthMs + startSilentOffsetMs)
+        mltProp.setTotalEndTimecode(totalEndTimecode)
+
+        // setTotalFadeInTimecode - таймкод начала фейда всего (fadeMs)
+        val totalFadeInTimecode = convertMillisecondsToTimecode(fadeMs)
+        mltProp.setTotalFadeInTimecode(totalFadeInTimecode)
+
+        // setTotalFadeOutTimecode - таймкод конча фейда всего (за fadeMs до конца всего)
+        val totalFadeOutTimecode = convertMillisecondsToTimecode(timelineLengthMs-fadeMs + startSilentOffsetMs)
+        mltProp.setTotalFadeOutTimecode(totalFadeOutTimecode)
+
+
+        // setBoostyStartTimecode - таймкод начала бусти (длина заставки)
+        val boostyBlankTimecode = convertMillisecondsToTimecode(splashLengthMs)
+        mltProp.setBoostyStartTimecode(boostyBlankTimecode)
+
+
+
+        // setBoostyEndTimecode - таймкод конца бусти (длина заставки + длина бусти)
+        val boostyEndTimecode = convertMillisecondsToTimecode(splashLengthMs + boostyLengthMs)
+        val voiceBlankTimecode = convertMillisecondsToTimecode(splashLengthMs + boostyLengthMs + startSilentOffsetMs)
+        mltProp.setBoostyEndTimecode(boostyEndTimecode)
+
+        // setBoostyFadeInTimecode - начало фейда бусти (начало бусти + fadeMs)
+        val boostyFadeInTimecode = convertMillisecondsToTimecode(splashLengthMs+fadeMs)
+        mltProp.setBoostyFadeInTimecode(boostyFadeInTimecode)
+
+        // setBoostyFadeOutTimecode - конец фейда бусти (за fadeMs до конца бусти)
+        val boostyFadeOutTimecode = convertMillisecondsToTimecode(splashLengthMs + boostyLengthMs-fadeMs)
+        mltProp.setBoostyFadeOutTimecode(boostyFadeOutTimecode)
+
+        // setBoostyBlankTimecode - то же, что и setBoostyStartTimecode
+        mltProp.setBoostyBlankTimecode(boostyBlankTimecode)
+
+        // setVoiceBlankTimecode - то же, что и setBoostyEndTimecode
+        mltProp.setVoiceBlankTimecode(voiceBlankTimecode)
+
+
+        // setSplashStartTimecode - таймкод начала заставки (0)
+        mltProp.setSplashStartTimecode(songStartTimecode)
+
+        // setSplashEndTimecode - таймкод конца заставки (длина заставки)
+        mltProp.setSplashEndTimecode(boostyBlankTimecode)
+
+        // setSplashFadeInTimecode - таймкод начала фейда заставки (fadeMs)
+        val splashFadeInTimecode = songFadeInTimecode
+        mltProp.setSplashFadeInTimecode(splashFadeInTimecode)
+
+        // setSplashFadeOutTimecode - таймкод конца фейда заставки (за fadeMs до конца заставки)
+        val splashFadeOutTimecode = convertMillisecondsToTimecode(splashLengthMs-fadeMs)
+        mltProp.setSplashFadeOutTimecode(splashFadeOutTimecode)
+
+        val offsetInAudioMs = splashLengthMs + boostyLengthMs
+        val offsetInVideoMs = splashLengthMs + boostyLengthMs
+        val offsetInAudioTimecode = convertMillisecondsToTimecode(offsetInAudioMs)
+        val offsetInVideoTimecode = convertMillisecondsToTimecode(offsetInVideoMs)
+
+        val audioLengthFr = convertMillisecondsToFrames(songLengthMs)
+        mltProp.setAudioLengthFr(audioLengthFr)
+        val audioEndTimecode = convertMillisecondsToTimecode(songLengthMs - startSilentOffsetMs)
+        mltProp.setAudioEndTimecode(audioEndTimecode)
+//        val progressSymbolHalfWidth = 0 //(getTextWidthHeightPx(Karaoke.progressSymbol, Karaoke.progressFont.font).first/2).toLong()
+//        val fontNameSizePt = Integer.min(getFontSizeBySymbolWidth(1100.0 / songName.length), 80)
+//        val yOffset = 0 //-5
+
+        // setSongName - название песни
+        mltProp.setSongName(songName.replace("&", "&amp;"))
+
+        // setVolume - громкость определенного аудиотрека в зависимости от songVersion
+        when(songVersion) {
+            SongVersion.LYRICS -> {
+                mltProp.setVolume(propAudioVolumeOff, ProducerType.AUDIOVOCAL)
+                mltProp.setVolume(propAudioVolumeOff, ProducerType.AUDIOMUSIC)
+                mltProp.setVolume(propAudioVolumeOn, ProducerType.AUDIOSONG)
+                mltProp.setVolume(propAudioVolumeOff, ProducerType.AUDIOBASS)
+                mltProp.setVolume(propAudioVolumeOff, ProducerType.AUDIODRUMS)
+            }
+            SongVersion.KARAOKE -> {
+                mltProp.setVolume(propAudioVolumeCustom, ProducerType.AUDIOVOCAL)
+                mltProp.setVolume(propAudioVolumeOn, ProducerType.AUDIOMUSIC)
+                mltProp.setVolume(propAudioVolumeOff, ProducerType.AUDIOSONG)
+                mltProp.setVolume(propAudioVolumeOff, ProducerType.AUDIOBASS)
+                mltProp.setVolume(propAudioVolumeOff, ProducerType.AUDIODRUMS)
+            }
+            SongVersion.CHORDS -> {
+                mltProp.setVolume(propAudioVolumeOff, ProducerType.AUDIOVOCAL)
+                mltProp.setVolume(propAudioVolumeOff, ProducerType.AUDIOMUSIC)
+                mltProp.setVolume(propAudioVolumeOff, ProducerType.AUDIOSONG)
+                mltProp.setVolume(propAudioVolumeOn, ProducerType.AUDIOBASS)
+                mltProp.setVolume(propAudioVolumeOn, ProducerType.AUDIODRUMS)
+            }
+        }
+
+        // setFileName - имя файла в зависимости от SongOutputFile
+        mltProp.setFileName(getOutputFilename(SongOutputFile.VIDEO, songVersion).replace("&", "&amp;"), SongOutputFile.VIDEO)
+
+        // setTone - тональность песни (для HEADER)
+        mltProp.setTone(key, ProducerType.HEADER)
+
+        // setBpm - Bpm песни (для HEADER)
+        mltProp.setBpm(bpm, ProducerType.HEADER)
+
+        // setYear - Year песни (для HEADER)
+        mltProp.setYear(year, ProducerType.HEADER)
+
+        // setAuthor - Author песни (для HEADER)
+        mltProp.setAuthor(author.replace("&", "&amp;amp;"), ProducerType.HEADER)
+
+        // setAlbum - Album песни (для HEADER)
+        mltProp.setAlbum(album.replace("&", "&amp;amp;"), ProducerType.HEADER)
+
+        // setSongName - Название песни (для HEADER)
+        mltProp.setSongName(songName.replace("&", "&amp;amp;"), ProducerType.HEADER)
+
+        // setPath - путь к файлу логотипа автора для песни
+        mltProp.setPath(pathToFileLogoAuthor.replace("&", "&amp;amp;"), "LogoAuthor")
+
+        // setPath - путь к файлу логотипа альбома для песни
+        mltProp.setPath(pathToFileLogoAlbum.replace("&", "&amp;amp;"), "LogoAlbum")
+
+        // setBase64 - base64 файла логотипа автора для песни
+        mltProp.setBase64(pathToFileLogoAuthor.base64ifFileExists(), "LogoAuthor")
+
+        // setBase64 - base64 файла логотипа альбома для песни
+        mltProp.setBase64(pathToFileLogoAlbum.base64ifFileExists(), "LogoAlbum")
+
+        // setPath - путь к файлу бусти-заставки для песни
+        mltProp.setPath("/home/nsa/Documents/Караоке/SPLASH.png", ProducerType.BOOSTY)
+
+        // setBase64 - base64 файла бусти-заставки для песни
+        mltProp.setBase64("/home/nsa/Documents/Караоке/SPLASH.png".base64ifFileExists(), ProducerType.BOOSTY)
+
+        mltProp.setRootFolder(rootFolder.replace("&", "&amp;"), "Song")
+        mltProp.setLengthMs(songLengthMs, "Song")
+//        mltProp.setLengthFr(songLengthFr, "Song")
+//        mltProp.setLengthFr(convertMillisecondsToFrames(timelineLengthMs, Karaoke.frameFps), "Total")
+        mltProp.setInOffsetVideo(offsetInVideoTimecode)
+
+        val listOfVoices = voicesForMlt
+
+        listOfVoices.forEachIndexed { indexVoice, voice ->
+            mltProp.setCountChilds(voice.linesForMlt().size, listOf(ProducerType.LINES, indexVoice))
+            mltProp.setId(ProducerType.LINES.ordinal*1000 + indexVoice*100, listOf(ProducerType.LINES, indexVoice))
+            val key = listOf(ProducerType.LINES, indexVoice)
+            if (mltProp.getUUID(key) == "") mltProp.setUUID(getStoredUuid(key), key)
+
+            voice.linesForMlt().forEachIndexed { indexLine, line ->
+                mltProp.setCountChilds(line.getElements(songVersion).size, listOf(ProducerType.ELEMENT, indexVoice, indexLine))
+                mltProp.setId(ProducerType.ELEMENT.ordinal*1000 + indexVoice*100 + indexLine*10, listOf(ProducerType.ELEMENT, indexVoice, indexLine))
+                var key = listOf(ProducerType.ELEMENT, indexVoice, indexLine)
+                if (mltProp.getUUID(key) == "") mltProp.setUUID(getStoredUuid(key), key)
+
+                mltProp.setCountChilds(line.getElements(songVersion).size, listOf(ProducerType.STRING, indexVoice, indexLine))
+                mltProp.setId(ProducerType.STRING.ordinal*1000 + indexVoice*100 + indexLine*10, listOf(ProducerType.STRING, indexVoice, indexLine))
+                key = listOf(ProducerType.STRING, indexVoice, indexLine)
+                if (mltProp.getUUID(key) == "") mltProp.setUUID(getStoredUuid(key), key)
+
+                mltProp.setCountChilds(line.getElements(songVersion).size, listOf(ProducerType.FILL, indexVoice, indexLine))
+                mltProp.setId(ProducerType.FILL.ordinal*1000 + indexVoice*100 + indexLine*10, listOf(ProducerType.FILL, indexVoice, indexLine))
+                key = listOf(ProducerType.FILL, indexVoice, indexLine)
+                if (mltProp.getUUID(key) == "") mltProp.setUUID(getStoredUuid(key), key)
+            }
+        }
+
+        // Цикл по голосам для предварительной инициализации параметров
+        for (voiceId in 0 until countVoices) {
+            ProducerType.values().forEach { type ->
+                if (type.ids.isEmpty()) {
+                    mltProp.setId(type.ordinal*100 + voiceId*10, listOf(type, voiceId))
+                    val key = listOf(type, voiceId)
+                    if (mltProp.getUUID(key) == "") mltProp.setUUID(getStoredUuid(key), key)
+                } else {
+                    for (childId in 0 until type.ids.size) {
+                        mltProp.setId(type.ordinal*100 + voiceId*10 + childId*1, listOf(type, voiceId, childId))
+                        val key = listOf(type, voiceId, childId)
+                        if (mltProp.getUUID(key) == "") mltProp.setUUID(getStoredUuid(key), key)
+                    }
+                }
+
+            }
+
+        }
+
+        mltProp.setPath(audioSongFileName.replace("&", "&amp;"), listOf(ProducerType.AUDIOSONG))
+        mltProp.setPath(audioMusicFileName.replace("&", "&amp;"), listOf(ProducerType.AUDIOMUSIC))
+        mltProp.setPath(audioVocalFileName.replace("&", "&amp;"), listOf(ProducerType.AUDIOVOCAL))
+        mltProp.setPath(audioBassFileName.replace("&", "&amp;"), listOf(ProducerType.AUDIOBASS))
+        mltProp.setPath(audioDrumsFileName.replace("&", "&amp;"), listOf(ProducerType.AUDIODRUMS))
+
+        mltProp.setEnabled(Karaoke.createAudioVocal, listOf(ProducerType.AUDIOVOCAL))
+        mltProp.setEnabled(Karaoke.createAudioMusic, listOf(ProducerType.AUDIOMUSIC))
+        mltProp.setEnabled(Karaoke.createAudioSong, listOf(ProducerType.AUDIOSONG))
+        mltProp.setEnabled(Karaoke.createAudioBass, listOf(ProducerType.AUDIOBASS))
+        mltProp.setEnabled(Karaoke.createAudioDrums, listOf(ProducerType.AUDIODRUMS))
+        mltProp.setEnabled(Karaoke.createBackground, listOf(ProducerType.BACKGROUND))
+        mltProp.setEnabled(Karaoke.createHorizon, listOf(ProducerType.HORIZON))
+        mltProp.setEnabled(Karaoke.createProgress, listOf(ProducerType.PROGRESS))
+        mltProp.setEnabled(Karaoke.createFillsSongtext, listOf(ProducerType.FILLCOLORSONGTEXT))
+        mltProp.setEnabled(Karaoke.createSongtext, listOf(ProducerType.SONGTEXT))
+        mltProp.setEnabled(Karaoke.createFader, listOf(ProducerType.FADERTEXT))
+        mltProp.setEnabled(Karaoke.createFader, listOf(ProducerType.FADERCHORDS))
+        mltProp.setEnabled(Karaoke.createHeader, listOf(ProducerType.HEADER))
+        mltProp.setEnabled(Karaoke.createCounters, listOf(ProducerType.COUNTER))
+        mltProp.setEnabled(Karaoke.createWatermark, listOf(ProducerType.WATERMARK))
+
+        val quarterNoteLengthMs =
+            if (bpm == 0L) {
+                (60000.0 / 120.0).toLong()
+            } else {
+                (60000.0 / bpm).toLong()
+            }
+        // Находим длительность звучания 1/4 ноты в миллисекундах
+        val halfNoteLengthMs = quarterNoteLengthMs * 2
+
+        // Времена для "вспыхивания" Тут времена всех каунтеров и времена начала всех текстовых линий
+        val timesForFlashSet: MutableSet<Long> = mutableSetOf()
+
+        // Находим первый текстовый элемент, из него получаем размер шрифта
+        val textElement = this.voicesForMlt.firstOrNull()?.getLinesForCounters(songVersion)?.firstOrNull()?.textElement(songVersion)
+        val fontSize = textElement?.fontSize ?: 10
+        mltProp.setFontSize(fontSize)
+
+        // Вычисляем ширину и высоту одного символа с найденным размером шрифта
+        val symbolHeightPx = Karaoke.voices[0].groups[0].mltText.copy("0", fontSize).h()
+        mltProp.setSymbolHeightPx(symbolHeightPx)
+        val symbolWidthPx = Karaoke.voices[0].groups[0].mltText.copy("0", fontSize).w()
+
+        // Позиция горизонта в пикселах по Y = половина экрана + половина высоты символа минус оффтсет (-7)
+        val horizonPositionPx = ((Karaoke.frameHeightPx / 2 + symbolHeightPx.toLong() / 2) - Karaoke.horizonOffsetPx).toInt()
+
+        mltProp.setPositionYPx(horizonPositionPx.toLong(), ProducerType.HORIZON)
+
+        // Позиция каунтеров по Y = позиция горизонта минут высота символа
+        mltProp.setPositionYPx((horizonPositionPx - symbolHeightPx).toLong(), ProducerType.COUNTER)
+
+        val frameWPx = Karaoke.frameWidthPx
+        val frameHPx = Karaoke.frameHeightPx
+
+        for (voiceId in 0 until countVoices) {
+            val voice = this.voicesForMlt[voiceId]
+            // Расстояние по X в пикселях, на которое сдвинут голос относительно левого края экрана
+            val deltaX = voice.longerElementPreviousVoice?.w() ?: 0
+            val offsetX = Karaoke.songtextStartPositionXpx
+            val currentVoiceOffset = deltaX + offsetX * (voiceId + 1)
+
+            // Позиция каунтеров для голоса по X - посередине левого отступа
+            mltProp.setPositionXPx((currentVoiceOffset - offsetX + Math.max((offsetX - symbolWidthPx) / 2, 0)).toLong(), listOf(ProducerType.COUNTER, voiceId))
+
+            // Добавляем в сет флешеров времена начала текстовых линий и каунтеров
+            timesForFlashSet.addAll(voice.getLines().filter { it.haveTextElement(songVersion) }.map { it.lineStartMs })
+            val timesForCounters = voice.getLinesForCounters(songVersion).map { it.lineStartMs }
+            // Для каждого каунтера заполняем TransformProperty
+            for (counter in 0..4) {
+                timesForFlashSet.addAll(timesForCounters.map { it - counter * halfNoteLengthMs }.filter { it > 0 })
+                val counterTimesMs = timesForCounters.map { it - counter * halfNoteLengthMs }.filter { it > 0 }
+                val counterTps: MutableList<TransformProperty> = mutableListOf()
+                counterTimesMs.forEach { timeMs ->
+                    counterTps.add(TransformProperty(time = convertFramesToTimecode(convertMillisecondsToFrames(timeMs) - 2),x=0,y=0,w=frameWPx,h=frameHPx,opacity = 0.0))
+                    counterTps.add(TransformProperty(time = convertMillisecondsToTimecode(timeMs),x=0,y=0,w=frameWPx,h=frameHPx,opacity = 1.0))
+                    counterTps.add(TransformProperty(time = convertFramesToTimecode(convertMillisecondsToFrames(timeMs + halfNoteLengthMs) - 2),x=0,y=-symbolHeightPx,w=frameWPx,h=frameHPx,opacity = 0.0))
+                }
+                mltProp.setRect(counterTps.joinToString(";") { it.toString() }, listOf(ProducerType.COUNTER, voiceId, counter))
+            }
+        }
+
+        // В timesForFlashSet находятся времена начала всех текстовых линий всех голосов и времена всех каунтеров
+        // Нужно преобразовать сет в лист, отсортировать, сформировать TransformProperty
+        val timesForFlashList = timesForFlashSet.toList().sorted()
+        val flashTps: MutableList<TransformProperty> = mutableListOf()
+        timesForFlashList.forEachIndexed { index, timeMs ->
+            val nextTime = if (index != timesForFlashList.size -1) timesForFlashList[index+1] else songLengthMs + startSilentOffsetMs
+            val durationMs = convertFramesToMilliseconds(convertMillisecondsToFrames(Math.min(nextTime - timeMs, 1000)) - 2)
+            flashTps.add(TransformProperty(time = convertFramesToTimecode(convertMillisecondsToFrames(timeMs) - 2),x=0,y=0,w=frameWPx,h=frameHPx,opacity = 0.0))
+            flashTps.add(TransformProperty(time = convertMillisecondsToTimecode(timeMs),x=0,y=0,w=frameWPx,h=frameHPx,opacity = 1.0))
+            flashTps.add(TransformProperty(time = convertMillisecondsToTimecode(timeMs + durationMs),x=0,y=0,w=frameWPx,h=frameHPx,opacity = 0.0))
+        }
+        mltProp.setRect(flashTps.joinToString(";") { it.toString() }, listOf(ProducerType.FLASH))
+
+        // Заполняем TransformProperty для HEADER
+        // Изначально HEADER на экране. Начинать убираться вверх он должен в момент появления первого каунтера и делать это в течение 2 тактов (4 полуноты)
+        // Начинать показываться сверху в конце песни HEADER должен в момен окончания последней текстовой строки, но не позже чем за 4 таката до конца песни
+        val startTimeFirstCounterMs = timesForFlashList[0]
+        val endTimeHidingHeaderMs = startSilentOffsetMs +
+                Math.min((this.voicesForMlt.maxOfOrNull { voice -> (voice.getLastTextLine(songVersion)?.lineEndMs ?: songLengthMs) }
+                    ?: (songLengthMs - halfNoteLengthMs * 8)), (songLengthMs - halfNoteLengthMs * 8))
+        val propHeaderLineTps: MutableList<TransformProperty> = mutableListOf()
+        propHeaderLineTps.add(TransformProperty(time = convertMillisecondsToTimecode(startTimeFirstCounterMs),x=0,y=0,w=frameWPx,h=frameHPx,opacity = 1.0))
+        propHeaderLineTps.add(TransformProperty(time = convertMillisecondsToTimecode(startTimeFirstCounterMs + halfNoteLengthMs * 4),x=0,y=-492,w=frameWPx,h=frameHPx,opacity = 1.0))
+        propHeaderLineTps.add(TransformProperty(time = convertMillisecondsToTimecode(endTimeHidingHeaderMs),x=0,y=-492,w=frameWPx,h=frameHPx,opacity = 1.0))
+        propHeaderLineTps.add(TransformProperty(time = convertMillisecondsToTimecode(endTimeHidingHeaderMs + halfNoteLengthMs * 4),x=0,y=0,w=frameWPx,h=frameHPx,opacity = 1.0))
+        mltProp.setRect(propHeaderLineTps.joinToString(";") { it.toString() }, listOf(ProducerType.HEADER))
+
+        mltProp.setPath(getRandomFile(Karaoke.backgroundFolderPath, ".png"), listOf(ProducerType.BACKGROUND))
+
+        val propProgressLineTps: MutableList<TransformProperty> = mutableListOf()
+        propProgressLineTps.add(TransformProperty(time = convertMillisecondsToTimecode(0),x=0,y=0,w=frameWPx,h=frameHPx,opacity = 1.0))
+        propProgressLineTps.add(TransformProperty(time = convertMillisecondsToTimecode(songLengthMs + startSilentOffsetMs),x=frameWPx,y=0,w=frameWPx,h=frameHPx,opacity = 1.0))
+        mltProp.setRect(propProgressLineTps.joinToString(";") { it.toString() }, listOf(ProducerType.PROGRESS))
+
+        return mltProp
+    }
 
 
     fun getDescriptionLinks(): String {
@@ -1087,7 +1591,16 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             println("Не найден ${pathToFileChords}")
         }
     }
-    
+
+    fun getStartSilentOffsetMs(): Long {
+        val timeFirstSyllable = try {
+            (sourceMarkersList.minOf { lstMarkers -> lstMarkers.filter { marker -> marker.markertype == "syllables"}.map { it.time }.minOf { it } } * 1000).toLong()
+        } catch (e: Exception) {
+            0L
+        }
+        return  if (timeFirstSyllable > 5000L) 0L else 5000L - timeFirstSyllable
+    }
+
     fun getSourceMarkers(voice: Int): List<SourceMarker> {
         return if (sourceMarkersList.size > voice) {
             sourceMarkersList[voice]
@@ -1378,6 +1891,153 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         return result.toString().deleteThisSymbols(NOTES_SYMBOLS)
     }
 
+    fun getDescriptionHeader(songVersion: SongVersion, maxSymbols: Int = 0): String {
+
+        return "${songName.censored()} ★♫★ ${author} ★♫★ ${songVersion.text} ★♫★ ${songVersion.textForDescription}".cutByWords(maxLength = maxSymbols)
+
+    }
+
+    fun getDescription(songVersion: SongVersion): String {
+
+        return getDescriptionHeader(songVersion = songVersion) + "\n" +
+                getDescriptionWOHeaderWOTimecodes(songVersion = songVersion)
+
+    }
+
+    fun getDescriptionVk(songVersion: SongVersion): String {
+
+        return getDescriptionVkHeader(songVersion = songVersion) + "\n" +
+                getDescriptionWOHeaderWithTimecodes(songVersion = songVersion)
+
+    }
+
+    fun getTextBoostyHead(): String {
+        return "${songName.censored()} ★♫★ ${author}"
+    }
+
+    fun getTextBoostyFilesHead(): String {
+        return "[ФАЙЛЫ] ${songName.censored()} ★♫★ ${author}"
+    }
+
+    fun getTextForDescriptionHeader(songVersion: SongVersion? = null): String {
+        return "${linkSM} ⇐ Страница песни на официальном сайте проекта\n\n" +
+                (if (songVersion == null) "" else "Версия: ${songVersion.text} (${songVersion.textForDescription})\n") +
+                "Композиция: ${songName}\n" +
+                "Исполнитель: ${author}\n" +
+                "Альбом: ${album}\n" +
+                "Год: ${year}\n" +
+                "Темп: ${bpm} bpm\n" +
+                "Тональность: ${key}" +
+                "\n\n"
+    }
+
+    fun getTextForDescriptionFooter(): String {
+        return "\n\n"+
+                "Официальный сайт проекта: https://sm-karaoke.ru\n" +
+                "Поддержать проект на Sponsr: https://sponsr.ru/smkaraoke\n" +
+                "Поддержать проект на Boosty: https://boosty.to/svoemesto\n" +
+                "Группа ВКонтакте: https://vk.com/svoemestokaraoke\n" +
+                "Канал Telegram: https://t.me/svoemestokaraoke\n" +
+                "Канал Дзен: https://dzen.ru/svoemesto\n" +
+                "Канал Платформа: https://plvideo.ru/channel/@sm-karaoke\n" +
+                "${songName.hashtag()} ${author.hashtag()} ${"karaoke".hashtag()} ${"караоке".hashtag()}\n"
+    }
+
+    fun getTextBoostyBody(): String {
+        return  getTextForDescriptionHeader() +
+                "\n\n"+
+                getTextForDescription() +
+                "\n\n"
+    }
+
+    fun getDescriptionVkHeader(songVersion: SongVersion, maxSymbols: Int = 0): String {
+
+        return "${songName.censored()} ★♫★ ${author} ★♫★ ${songVersion.text} ★♫★ ${songVersion.textForDescription}".cutByWords(maxLength = maxSymbols)
+
+    }
+
+    fun getDescriptionWOHeaderWOTimecodes(songVersion: SongVersion, maxSymbols: Int = 0): String {
+
+        val txtStart = getTextForDescriptionHeader(songVersion = songVersion)
+        val txtEnd = getTextForDescriptionFooter()
+        val txtDescription = getTextForDescription(maxSymbols - txtStart.length - txtEnd.length)
+
+        return txtStart + txtDescription + txtEnd
+
+    }
+
+    fun getDescriptionWithHeaderWOTimecodes(songVersion: SongVersion, maxSymbols: Int = 0): String {
+
+        val txtStart = getDescriptionHeader(songVersion = songVersion) + "\n\n" + getTextForDescriptionHeader(songVersion = songVersion)
+        val txtEnd = getTextForDescriptionFooter()
+        val txtDescription = getTextForDescription(maxSymbols - txtStart.length - txtEnd.length)
+
+        return txtStart + txtDescription + txtEnd
+
+    }
+
+    fun getDescriptionWOHeaderWithTimecodes(songVersion: SongVersion, maxSymbols: Int = 0, maxTimeCodes: Int? = null): String {
+
+        val txtStart = getTextForDescriptionHeader(songVersion = songVersion)
+        val txtEnd = getTextForDescriptionFooter()
+        val txtDescription = getTextForDescriptionWithTimecodes(maxSymbols - txtStart.length - txtEnd.length, maxTimeCodes)
+
+        return txtStart + txtDescription + txtEnd
+
+    }
+
+    fun getVKGroupDescription(maxSymbols: Int = 0): String {
+
+        return  "${songName.censored()} ★♫★ ${author}" + "\n\n" +
+                getTextForDescriptionHeader() +
+                getTextForDescription()
+    }
+
+    fun getChordDescription(songVersion: SongVersion): String {
+
+        if (songVersion == SongVersion.CHORDS) {
+            val capo = 0
+            if (capo == 0) {
+                return  "Темп: ${bpm} bpm\n" +
+                        "Тональность: ${key}"
+            } else {
+                return  "Темп: ${bpm} bpm\n" +
+                        "Оригинальная тональность: ${key}\n" +
+                        "Аккорды и аппликатуры: ${getNewTone(key, capo)}\n" +
+                        "Каподастр на ${capo}-м ладу"
+            }
+        } else {
+            return ""
+        }
+
+    }
+
+
+    fun getTextForDescription(maxSymbols: Int = 0): String {
+        var result = getTextBody()
+
+        while (maxSymbols > 0 && result.length > maxSymbols) {
+            val lst = result.split("\n").toMutableList()
+            lst.removeLast()
+            result = lst.joinToString("\n")
+        }
+
+        return result
+    }
+
+    fun getTextForDescriptionWithTimecodes(maxSymbols: Int = 0, maxTimeCodes: Int? = null): String {
+        var result = getTextBodyWithTimecodes(maxTimeCodes)
+
+        while (maxSymbols > 0 && result.length > maxSymbols) {
+            val lst = result.split("\n").toMutableList()
+            lst.removeLast()
+            result = lst.joinToString("\n")
+        }
+
+        return result
+
+    }
+
     fun getWords(): List<String> {
         return getText().getWords()
     }
@@ -1505,57 +2165,11 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     }
 
 
-    fun createTextAndMarkersFromOldVersion() {
-        /***
-         * Проверяем наличие маркеров - если они есть - пропускаем
-         * Проверяем наличие файла *.voice1.srt - если он есть - пропускаем
-         * Проверяем наличие файла *.srt - если он есть - переименовываем в *.voice1.srt и пропускаем
-         * Проверяем наличие файла *.kdenlive.srt. Если он есть проверяем его содержимое. Если оно шаблонное - пропускаем
-         * Если нет - обрабатываем все файлы *.kdenlive.srt, формируем из них тексты и маркеры, записываем в базу, формируем файлы *.versionX.srt
-         */
 
-        if (sourceMarkersList.isNotEmpty() && sourceMarkersList[0].isNotEmpty()) {
-            println("createTextAndMarkersFromOldVersion: ${fileName}: Список маркеров не пустой, выходим.")
-            return
-        }
-
-        if(getListFiles(rootFolder, ".srt", "${fileName}.voice").size > 0) {
-            println("createTextAndMarkersFromOldVersion: ${fileName}: Список файлов *.voiceX.srt не пустой, выходим.")
-            return
-        }
-
-        if (File("$rootFolder/$fileName.srt").exists()) {
-            println("createTextAndMarkersFromOldVersion: ${fileName}: Найден файл *.srt. Переименовываем в *.voice1.srt и выходим.")
-            File("$rootFolder/$fileName.srt").renameTo(File("$rootFolder/$fileName.voice1.srt"))
-            return
-        }
-
-        if (File("$rootFolder/$fileName.kdenlive.srt").exists()) {
-            val body = File("$rootFolder/$fileName.kdenlive.srt").readText(Charsets.UTF_8)
-            if (body.contains("~[G0]")) {
-                println("createTextAndMarkersFromOldVersion: ${fileName}: Найден шаблонный файл *.kdenlive.srt, выходим.")
-                return
-            }
-        } else {
-            println("createTextAndMarkersFromOldVersion: ${fileName}: Не найден файл *.kdenlive.srt, выходим.")
-            return
-        }
-
-        println("createTextAndMarkersFromOldVersion: ${fileName}: Найден файл *.kdenlive.srt, работаем.")
-
-        val listSrtFiles = getListFiles(rootFolder, ".srt", "${fileName}.kdenlive").sorted()
-        listSrtFiles.forEachIndexed { voice, srtFileName ->
-            val body = File(srtFileName).readText(Charsets.UTF_8)
-            val markers = convertSrtToMarkers(body)
-            val text = convertMarkersToText(markers)
-            setSourceText(voice, text)
-            setSourceMarkers(voice, markers)
-            File("$rootFolder/$fileName.voice${voice+1}.srt").writeText(convertMarkersToSrt(voice))
-        }
-    }
 
     fun convertMarkersToSrt(voice: Int): String {
-        val listMarkers = getSourceMarkers(voice).filter { it.markertype != "unmute" && it.markertype != "newline" && it.markertype != "chord" && it.markertype != "beat" && it.markertype != "note"}
+        val notSkippedTypes = listOf("endofline", "syllables", "setting")
+        val listMarkers = getSourceMarkers(voice).filter { it.markertype in notSkippedTypes}
         var perviousMarkerIsEndOfLine = true
         var numberSrt = 0
         var result = ""
@@ -1604,7 +2218,9 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             }
         } else {
 
-            val diff = getDiff(this, loadFromDbById(id,database))
+            val savedSettings = loadFromDbById(id,database)
+
+            val diff = getDiff(this, savedSettings)
             if (diff.isEmpty()) return
             val messageRecordChange = SseNotification.recordChange(
                 RecordChangeMessage(
@@ -1615,6 +2231,8 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                     record = this.toDTO()
                 )
             )
+
+
 
             val setStr = diff.filter{ it.recordDiffRealField }.map { "${it.recordDiffName} = ?" }.joinToString(", ")
             if (setStr != "") {
@@ -1667,6 +2285,8 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
             }
 
+            if (savedSettings != null) renameFilesIfDiff(this, savedSettings)
+
         }
 
     }
@@ -1711,23 +2331,22 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         SettingField.values().forEach { settingField ->
             if (fields.contains(settingField)) txt += "${settingField.name}=${fields[settingField]}\n"
         }
-        File("$rootFolder/$fileName.settings").writeText(txt)
+        File("$rootFolder/$rightSettingFileName.settings".rightFileName()).writeText(txt)
     }
 
     fun createVKDescription() {
-        val song = Song(this, SongVersion.LYRICS)
-        val fileName = song.getOutputFilename(SongOutputFile.VK)
+        val fileName = getOutputFilename(SongOutputFile.VK, SongVersion.LYRICS)
         val date = date
         val time = time.replace(":",".")
 
 
         val trueDate = "${date.substring(6)}.${date.substring(3,5)}.${date.substring(0,2)}"
         val name = fileName.replace("{REPLACE_DATE}",trueDate).replace("{REPLACE_TIME}",time).replace(" [lyrics]","")
-        val text = song.getVKGroupDescription()
+        val text = getVKGroupDescription()
 
         if (text != "") {
             File(name).writeText(text)
-            val vkPictNameOld = (song.getOutputFilename(SongOutputFile.PICTUREVK)).replace(" [lyrics] VK"," [VK]")
+            val vkPictNameOld = (getOutputFilename(SongOutputFile.PICTUREVK, SongVersion.LYRICS)).replace(" [lyrics] VK"," [VK]")
             val vkPictNameNew = name.replace(" [VK].txt", " [VK].png")
             FileUtils.copyFile(File(vkPictNameOld), File(vkPictNameNew))
         }
@@ -1749,14 +2368,11 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
         val permissions = PosixFilePermissions.fromString("rwxr-x---")
 
-        val songLyrics = Song(this, SongVersion.LYRICS)
-        val songKaraoke = Song(this, SongVersion.KARAOKE)
-        val songChords = Song(this, SongVersion.CHORDS)
-        val hasChords = songChords.hasChords
+        val hasChords = true // songChords.hasChords
 
-        val pathToMltLyrics = songLyrics.getOutputFilename(SongOutputFile.MLT)
-        val pathToMltKaraoke = songKaraoke.getOutputFilename(SongOutputFile.MLT)
-        val pathToMltChords = songChords.getOutputFilename(SongOutputFile.MLT)
+        val pathToMltLyrics = getOutputFilename(SongOutputFile.MLT, SongVersion.LYRICS)
+        val pathToMltKaraoke = getOutputFilename(SongOutputFile.MLT, SongVersion.KARAOKE)
+        val pathToMltChords = getOutputFilename(SongOutputFile.MLT, SongVersion.CHORDS)
 
         val txtLyric = "echo \"$pathToMltLyrics\"\nmelt -progress \"$pathToMltLyrics\"\n\n"
         val txtKaraoke = "echo \"$pathToMltKaraoke\"\nmelt -progress \"$pathToMltKaraoke\"\n\n"
@@ -1765,33 +2381,37 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         val songTxtAll = "$txtLyric$txtKaraoke${if (hasChords) txtChords else ""}"
         val songTxtWOLyrics = "$txtKaraoke${if (hasChords) txtChords else ""}"
 
-        var file = File(songLyrics.getOutputFilename(SongOutputFile.RUN))
+        var file = File(getOutputFilename(SongOutputFile.RUN, SongVersion.LYRICS))
         Files.createDirectories(Path(file.parent))
         file.writeText(txtLyric)
         Files.setPosixFilePermissions(file.toPath(), permissions)
 
-        file = File(songKaraoke.getOutputFilename(SongOutputFile.RUN))
+        file = File(getOutputFilename(SongOutputFile.RUN, SongVersion.KARAOKE))
         file.writeText(txtKaraoke)
         Files.setPosixFilePermissions(file.toPath(), permissions)
 
 
         if (createChords && hasChords) {
-            file = File(songChords.getOutputFilename(SongOutputFile.RUN))
+            file = File(getOutputFilename(SongOutputFile.RUN, SongVersion.CHORDS))
             file.writeText(txtChords)
             Files.setPosixFilePermissions(file.toPath(), permissions)
         }
 
-        file = File(songLyrics.getOutputFilename(SongOutputFile.RUNALL).replace("[lyrics]","[ALL]"))
+        file = File(getOutputFilename(SongOutputFile.RUNALL, SongVersion.LYRICS).replace("[lyrics]","[ALL]"))
         file.writeText(songTxtAll)
         Files.setPosixFilePermissions(file.toPath(), permissions)
 
-        file = File(songLyrics.getOutputFilename(SongOutputFile.RUNALL).replace("[lyrics]","[ALLwoLYRICS]"))
+        file = File(getOutputFilename(SongOutputFile.RUNALL, SongVersion.LYRICS).replace("[lyrics]","[ALLwoLYRICS]"))
         file.writeText(songTxtWOLyrics)
         Files.setPosixFilePermissions(file.toPath(), permissions)
 
-        if (createLyrics) createKaraoke(songLyrics)
-        if (createKaraoke) createKaraoke(songKaraoke)
-        if (createChords) createKaraoke(songChords)
+        if (createLyrics) createKaraoke(this, SongVersion.LYRICS)
+        if (createKaraoke) createKaraoke(this, SongVersion.KARAOKE)
+        if (createChords) createKaraoke(this, SongVersion.CHORDS)
+
+//        if (createLyrics) createKaraoke(songLyrics)
+//        if (createKaraoke) createKaraoke(songKaraoke)
+//        if (createChords) createKaraoke(songChords)
 
         if (idStatus < 3) {
             fields[SettingField.ID_STATUS] = "3"
@@ -1822,6 +2442,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         fieldsValues.add(Pair("root_folder", settings.rootFolder))
         fieldsValues.add(Pair("id_boosty", settings.idBoosty))
         fieldsValues.add(Pair("id_boosty_files", settings.idBoostyFiles))
+        fieldsValues.add(Pair("id_sponsr", settings.idSponsr))
         fieldsValues.add(Pair("id_vk", settings.idVk))
         fieldsValues.add(Pair("id_youtube_lyrics", settings.idYoutubeLyrics))
         fieldsValues.add(Pair("id_youtube_karaoke", settings.idYoutubeKaraoke))
@@ -1865,7 +2486,8 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                 idPlKaraoke != "" &&
                 idPlLyrics != "" &&
                 idVk != "" &&
-                idBoosty != ""
+                idBoosty != "" &&
+                idSponsr != ""
             ) {
                 return SettingState.ALL_DONE
             } else if (idTelegramKaraoke != "-" &&
@@ -1875,10 +2497,13 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                 idVkLyrics != "" &&
                 idYoutubeKaraoke != "" &&
                 idYoutubeLyrics != "" &&
+                idPlKaraoke != "" &&
+                idPlLyrics != "" &&
                 idVk != "" &&
-                idBoosty != ""
+                idBoosty != "" &&
+                idSponsr == ""
             ) {
-                return SettingState.ALL_DONE_WO_PL
+                return SettingState.ALL_DONE_WO_SPONSR
             } else {
                 return SettingState.TODAY
             }
@@ -1895,7 +2520,8 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                 idPlKaraoke != "" &&
                 idPlLyrics != "" &&
                 idVk != "" &&
-                idBoosty != ""
+                idBoosty != "" &&
+                idSponsr != ""
             ) {
                 return SettingState.ALL_DONE
             } else if (idTelegramKaraoke != "-" &&
@@ -1905,10 +2531,13 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                 idVkLyrics != "" &&
                 idYoutubeKaraoke != "" &&
                 idYoutubeLyrics != "" &&
+                idPlKaraoke != "" &&
+                idPlLyrics != "" &&
                 idVk != "" &&
-                idBoosty != ""
+                idBoosty != "" &&
+                idSponsr == ""
             ) {
-                return SettingState.ALL_DONE_WO_PL
+                return SettingState.ALL_DONE_WO_SPONSR
             } else {
                 return SettingState.OVERDUE
             }
@@ -1935,8 +2564,23 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             idPlLyrics != "" &&
             idVk != "" &&
             idBoosty != "" &&
-            idBoostyFiles != ""
+            idBoostyFiles != "" &&
+            idSponsr == ""
         ) return SettingState.WO_TG
+
+        if (idTelegramKaraoke == "" &&
+            idTelegramLyrics == "" &&
+            idVkKaraoke != "" &&
+            idVkLyrics != "" &&
+            idYoutubeKaraoke != "" &&
+            idYoutubeLyrics != "" &&
+            idPlKaraoke != "" &&
+            idPlLyrics != "" &&
+            idVk != "" &&
+            idBoosty != "" &&
+            idBoostyFiles != "" &&
+            idSponsr != ""
+        ) return SettingState.WO_TG_WITH_SPONSR
 
         if (idTelegramKaraoke == "" &&
             idTelegramLyrics == "" &&
@@ -1992,8 +2636,20 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             (idYoutubeKaraoke == "" ||
             idYoutubeLyrics == "") &&
             idBoosty != "" &&
-            idBoostyFiles != ""
+            idBoostyFiles != "" &&
+            idSponsr == ""
         ) return SettingState.WO_DZEN
+
+        if (idTelegramKaraoke == "" &&
+            idTelegramLyrics == "" &&
+            (idVkKaraoke == "" ||
+                    idVkLyrics == "") &&
+            (idYoutubeKaraoke == "" ||
+                    idYoutubeLyrics == "") &&
+            idBoosty != "" &&
+            idBoostyFiles != "" &&
+            idSponsr != ""
+        ) return SettingState.BOOSTY_SPONSR
 
         if (idTelegramKaraoke == "" &&
             idTelegramLyrics == "" &&
@@ -2010,6 +2666,59 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     }
 
     companion object {
+
+        fun renameFilesIfDiff(settNewVersion: Settings, settOldVersion: Settings): Pair<Boolean, Boolean> {
+            val rsfnNew = settNewVersion.rightSettingFileName
+            val rsfnOld = settOldVersion.rightSettingFileName
+            var was1 = false
+            var was2 = false
+            if (rsfnNew != rsfnOld) {
+                if (Paths.get(settOldVersion.pathToFileLyrics).toFile().exists()) Paths.get(settOldVersion.pathToFileLyrics).toFile().renameTo(Paths.get(settNewVersion.pathToFileLyrics).toFile())
+                if (Paths.get(settOldVersion.pathToFileKaraoke).toFile().exists()) Paths.get(settOldVersion.pathToFileKaraoke).toFile().renameTo(Paths.get(settNewVersion.pathToFileKaraoke).toFile())
+                if (Paths.get(settOldVersion.pathToFileChords).toFile().exists()) Paths.get(settOldVersion.pathToFileChords).toFile().renameTo(Paths.get(settNewVersion.pathToFileChords).toFile())
+                if (Paths.get(settOldVersion.pathToFile720Lyrics).toFile().exists()) Paths.get(settOldVersion.pathToFile720Lyrics).toFile().renameTo(Paths.get(settNewVersion.pathToFile720Lyrics).toFile())
+                if (Paths.get(settOldVersion.pathToFile720Karaoke).toFile().exists()) Paths.get(settOldVersion.pathToFile720Karaoke).toFile().renameTo(Paths.get(settNewVersion.pathToFile720Karaoke).toFile())
+                if (Paths.get(settOldVersion.pathToFile720Chords).toFile().exists()) Paths.get(settOldVersion.pathToFile720Chords).toFile().renameTo(Paths.get(settNewVersion.pathToFile720Chords).toFile())
+                if (Paths.get(settOldVersion.pathToFileMP3Lyrics).toFile().exists()) Paths.get(settOldVersion.pathToFileMP3Lyrics).toFile().renameTo(Paths.get(settNewVersion.pathToFileMP3Lyrics).toFile())
+                if (Paths.get(settOldVersion.pathToFileMP3Karaoke).toFile().exists()) Paths.get(settOldVersion.pathToFileMP3Karaoke).toFile().renameTo(Paths.get(settNewVersion.pathToFileMP3Karaoke).toFile())
+                if (Paths.get(settOldVersion.pathToStoreFileLyrics).toFile().exists()) Paths.get(settOldVersion.pathToStoreFileLyrics).toFile().renameTo(Paths.get(settNewVersion.pathToStoreFileLyrics).toFile())
+                if (Paths.get(settOldVersion.pathToStoreFileKaraoke).toFile().exists()) Paths.get(settOldVersion.pathToStoreFileKaraoke).toFile().renameTo(Paths.get(settNewVersion.pathToStoreFileKaraoke).toFile())
+                if (Paths.get(settOldVersion.pathToStoreFileChords).toFile().exists()) Paths.get(settOldVersion.pathToStoreFileChords).toFile().renameTo(Paths.get(settNewVersion.pathToStoreFileChords).toFile())
+                if (Paths.get(settOldVersion.pathToFileSheetsagePDF).toFile().exists()) Paths.get(settOldVersion.pathToFileSheetsagePDF).toFile().renameTo(Paths.get(settNewVersion.pathToFileSheetsagePDF).toFile())
+                if (Paths.get(settOldVersion.pathToFileSheetsageLY).toFile().exists()) Paths.get(settOldVersion.pathToFileSheetsageLY).toFile().renameTo(Paths.get(settNewVersion.pathToFileSheetsageLY).toFile())
+                if (Paths.get(settOldVersion.pathToFileSheetsageMIDI).toFile().exists()) Paths.get(settOldVersion.pathToFileSheetsageMIDI).toFile().renameTo(Paths.get(settNewVersion.pathToFileSheetsageMIDI).toFile())
+                if (Paths.get(settOldVersion.pathToFileSheetsageBeattimes).toFile().exists()) Paths.get(settOldVersion.pathToFileSheetsageBeattimes).toFile().renameTo(Paths.get(settNewVersion.pathToFileSheetsageBeattimes).toFile())
+                if (Paths.get(settOldVersion.fileSettingsAbsolutePath).toFile().exists()) Paths.get(settOldVersion.fileSettingsAbsolutePath).toFile().renameTo(Paths.get(settNewVersion.fileSettingsAbsolutePath).toFile())
+                if (Paths.get("/home/nsa/Karaoke/karaoke-web/src/main/resources/static/tmp/${settNewVersion.id}.png").toFile().exists()) createVKLinkPictureWeb(settNewVersion)
+                if (Paths.get(settNewVersion.getOutputFilename(SongOutputFile.PICTUREBOOSTYFILES)).toFile().exists()) createBoostyFilesPicture(settNewVersion)
+                if (Paths.get(settNewVersion.getOutputFilename(SongOutputFile.PICTUREBOOSTYTEASER)).toFile().exists()) createBoostyTeaserPicture(settNewVersion)
+                if (Paths.get(settNewVersion.getOutputFilename(SongOutputFile.PICTURE, SongVersion.LYRICS)).toFile().exists()) createSongPicture(settNewVersion, SongVersion.LYRICS)
+                if (Paths.get(settNewVersion.getOutputFilename(SongOutputFile.PICTURE, SongVersion.KARAOKE)).toFile().exists()) createSongPicture(settNewVersion, SongVersion.KARAOKE)
+                if (Paths.get(settNewVersion.getOutputFilename(SongOutputFile.PICTURE, SongVersion.CHORDS)).toFile().exists()) createSongPicture(settNewVersion, SongVersion.CHORDS)
+                was1 = true
+            }
+
+            if (rsfnNew != settNewVersion.fileName) {
+                settNewVersion.fileName = rsfnNew
+                if (Paths.get(settOldVersion.fileAbsolutePath).toFile().exists()) Paths.get(settOldVersion.fileAbsolutePath).toFile().renameTo(Paths.get(settNewVersion.fileAbsolutePath).toFile())
+                if (Paths.get(settOldVersion.oldNoStemNameWav).toFile().exists()) Paths.get(settOldVersion.oldNoStemNameWav).toFile().renameTo(Paths.get(settNewVersion.oldNoStemNameWav).toFile())
+                if (Paths.get(settOldVersion.newNoStemNameWav).toFile().exists()) Paths.get(settOldVersion.newNoStemNameWav).toFile().renameTo(Paths.get(settNewVersion.newNoStemNameWav).toFile())
+                if (Paths.get(settOldVersion.newNoStemNameFlac).toFile().exists()) Paths.get(settOldVersion.newNoStemNameFlac).toFile().renameTo(Paths.get(settNewVersion.newNoStemNameFlac).toFile())
+                if (Paths.get(settOldVersion.vocalsNameWav).toFile().exists()) Paths.get(settOldVersion.vocalsNameWav).toFile().renameTo(Paths.get(settNewVersion.vocalsNameWav).toFile())
+                if (Paths.get(settOldVersion.vocalsNameFlac).toFile().exists()) Paths.get(settOldVersion.vocalsNameFlac).toFile().renameTo(Paths.get(settNewVersion.vocalsNameFlac).toFile())
+                if (Paths.get(settOldVersion.drumsNameWav).toFile().exists()) Paths.get(settOldVersion.drumsNameWav).toFile().renameTo(Paths.get(settNewVersion.drumsNameWav).toFile())
+                if (Paths.get(settOldVersion.drumsNameFlac).toFile().exists()) Paths.get(settOldVersion.drumsNameFlac).toFile().renameTo(Paths.get(settNewVersion.drumsNameFlac).toFile())
+                if (Paths.get(settOldVersion.bassNameWav).toFile().exists()) Paths.get(settOldVersion.bassNameWav).toFile().renameTo(Paths.get(settNewVersion.bassNameWav).toFile())
+                if (Paths.get(settOldVersion.bassNameFlac).toFile().exists()) Paths.get(settOldVersion.bassNameFlac).toFile().renameTo(Paths.get(settNewVersion.bassNameFlac).toFile())
+                if (Paths.get(settOldVersion.guitarsNameWav).toFile().exists()) Paths.get(settOldVersion.guitarsNameWav).toFile().renameTo(Paths.get(settNewVersion.guitarsNameWav).toFile())
+                if (Paths.get(settOldVersion.guitarsNameFlac).toFile().exists()) Paths.get(settOldVersion.guitarsNameFlac).toFile().renameTo(Paths.get(settNewVersion.guitarsNameFlac).toFile())
+                if (Paths.get(settOldVersion.otherNameWav).toFile().exists()) Paths.get(settOldVersion.otherNameWav).toFile().renameTo(Paths.get(settNewVersion.otherNameWav).toFile())
+                if (Paths.get(settOldVersion.otherNameFlac).toFile().exists()) Paths.get(settOldVersion.otherNameFlac).toFile().renameTo(Paths.get(settNewVersion.otherNameFlac).toFile())
+                settNewVersion.saveToDb()
+                was2 = true
+            }
+            return Pair(was1, was2)
+        }
 
         fun getDiff(settA: Settings?, settB: Settings?): List<RecordDiff> {
             val result: MutableList<RecordDiff> = mutableListOf()
@@ -2030,6 +2739,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                 if (settA.rootFolder != settB.rootFolder) result.add(RecordDiff("root_folder", settA.rootFolder, settB.rootFolder))
                 if (settA.idBoosty != settB.idBoosty) result.add(RecordDiff("id_boosty", settA.idBoosty, settB.idBoosty))
                 if (settA.idBoostyFiles != settB.idBoostyFiles) result.add(RecordDiff("id_boosty_files", settA.idBoostyFiles, settB.idBoostyFiles))
+                if (settA.idSponsr != settB.idSponsr) result.add(RecordDiff("id_sponsr", settA.idSponsr, settB.idSponsr))
                 if (settA.idVk != settB.idVk) result.add(RecordDiff("id_vk", settA.idVk, settB.idVk))
                 if (settA.idYoutubeLyrics != settB.idYoutubeLyrics) result.add(RecordDiff("id_youtube_lyrics", settA.idYoutubeLyrics, settB.idYoutubeLyrics))
                 if (settA.idYoutubeKaraoke != settB.idYoutubeKaraoke) result.add(RecordDiff("id_youtube_karaoke", settA.idYoutubeKaraoke, settB.idYoutubeKaraoke))
@@ -2071,6 +2781,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                 if (settA.processColorTelegramChords != settB.processColorTelegramChords) result.add(RecordDiff("processColorTelegramChords", settA.processColorTelegramChords, settB.processColorTelegramChords, false))
                 if (settA.processColorVk != settB.processColorVk) result.add(RecordDiff("processColorVk", settA.processColorVk, settB.processColorVk, false))
                 if (settA.processColorBoosty != settB.processColorBoosty) result.add(RecordDiff("processColorBoosty", settA.processColorBoosty, settB.processColorBoosty, false))
+                if (settA.processColorSponsr != settB.processColorSponsr) result.add(RecordDiff("processColorSponsr", settA.processColorSponsr, settB.processColorSponsr, false))
                 if (settA.processColorPlLyrics != settB.processColorPlLyrics) result.add(RecordDiff("processColorPlLyrics", settA.processColorPlLyrics, settB.processColorPlLyrics, false))
                 if (settA.processColorPlKaraoke != settB.processColorPlKaraoke) result.add(RecordDiff("processColorPlKaraoke", settA.processColorPlKaraoke, settB.processColorPlKaraoke, false))
                 if (settA.processColorPlChords != settB.processColorPlChords) result.add(RecordDiff("processColorPlChords", settA.processColorPlChords, settB.processColorPlChords, false))
@@ -2286,6 +2997,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                 if (args.containsKey("song_track")) where += "song_track=${args["song_track"]}"
                 if (args.containsKey("id_status")) where += "id_status=${args["id_status"]}"
                 if (args.containsKey("flag_boosty")) where += "CASE WHEN id_boosty IS NOT NULL AND id_boosty <> 'null' AND id_boosty <> '' THEN '+' ELSE '-' END='${args["flag_boosty"]}'"
+                if (args.containsKey("flag_sponsr")) where += "CASE WHEN id_sponsr IS NOT NULL AND id_sponsr <> 'null' AND id_sponsr <> '' THEN '+' ELSE '-' END='${args["flag_sponsr"]}'"
                 if (args.containsKey("flag_vk")) where += "CASE WHEN id_vk IS NOT NULL AND id_vk <> 'null' AND id_vk <> '' THEN '+' ELSE '-' END='${args["flag_vk"]}'"
                 if (args.containsKey("flag_youtube_lyrics")) where += "CASE WHEN id_youtube_lyrics IS NOT NULL AND id_youtube_lyrics <> 'null' AND id_youtube_lyrics <> '' THEN '+' ELSE '-' END='${args["flag_youtube_lyrics"]}'"
                 if (args.containsKey("flag_youtube_karaoke")) where += "CASE WHEN id_youtube_karaoke IS NOT NULL AND id_youtube_karaoke <> 'null' AND id_youtube_karaoke <> '' THEN '+' ELSE '-' END='${args["flag_youtube_karaoke"]}'"
@@ -2349,6 +3061,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                     rs.getInt("song_ms")?.let { value -> settings.fields[SettingField.MS] = value.toString() }
                     rs.getString("id_boosty")?.let { value -> settings.fields[SettingField.ID_BOOSTY] = value }
                     rs.getString("id_boosty_files")?.let { value -> settings.fields[SettingField.ID_BOOSTY_FILES] = value }
+                    rs.getString("id_sponsr")?.let { value -> settings.fields[SettingField.ID_SPONSR] = value }
                     rs.getString("id_vk")?.let { value -> settings.fields[SettingField.ID_VK] = value }
                     rs.getString("id_youtube_lyrics")?.let { value -> settings.fields[SettingField.ID_YOUTUBE_LYRICS] = value }
                     rs.getString("id_youtube_karaoke")?.let { value -> settings.fields[SettingField.ID_YOUTUBE_KARAOKE] = value }
@@ -2398,7 +3111,8 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 //                        result.add(settings)
 //                    }
 
-                    result.add(settings)
+                    if (!args.containsKey("filter_count_voices") || (args.containsKey("filter_count_voices") && args["filter_count_voices"] == settings.countVoices.toString())) result.add(settings)
+
                 }
                 result.sort()
                 return result
@@ -2418,8 +3132,15 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
 
         fun loadFromDbById(id: Long, database: KaraokeConnection): Settings? {
-
-            return loadListFromDb(mapOf(Pair("id", id.toString())), database).firstOrNull()
+            val setting = loadListFromDb(mapOf(Pair("id", id.toString())), database).firstOrNull()
+//            setting?.let {
+//                if (setting.countNotEmptyVoices > 0) {
+//                    println(it.getTextFromVoices(maxTimeCodes = -1))
+//                    println("getLongerElement = ${it.getLongerElement()?.syllables?.map { it.text }?.joinToString("")}")
+//                    println("getFontSize = ${it.getFontSize()}")
+//                }
+//            }
+            return setting
 
         }
 
@@ -2586,6 +3307,10 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     fun toDTO(): SettingsDTO {
         return SettingsDTO(
             id = id,
+            idPrevious = id,
+            idNext = id,
+            idLeft = id,
+            idRight = id,
             rootFolder = rootFolder,
             fileName = fileName,
             idStatus = idStatus,
@@ -2609,6 +3334,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             countVoices = countVoices,
             firstSongInAlbum = firstSongInAlbum,
             flagBoosty = flagBoosty,
+            flagSponsr = flagSponsr,
             flagVk = flagVk,
             flagYoutubeLyrics = flagYoutubeLyrics,
             flagYoutubeKaraoke = flagYoutubeKaraoke,
@@ -2623,6 +3349,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             flagPlChords = flagPlChords,
             flagTelegramChords = flagTelegramChords,
             processColorBoosty = processColorBoosty,
+            processColorSponsr = processColorSponsr,
             processColorVk = processColorVk,
             processColorMeltLyrics = processColorMeltLyrics,
             processColorMeltKaraoke = processColorMeltKaraoke,
@@ -2641,6 +3368,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             processColorPlChords = processColorPlChords,
             idBoosty = idBoosty,
             idBoostyFiles = idBoostyFiles,
+            idSponsr = idSponsr,
             idVk = idVk,
             idYoutubeLyrics = idYoutubeLyrics,
             idYoutubeKaraoke = idYoutubeKaraoke,
@@ -2668,6 +3396,10 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
 data class SettingsDTO(
     val id: Long,
+    var idPrevious: Long,
+    var idNext: Long,
+    var idLeft: Long,
+    var idRight: Long,
     val rootFolder: String,
     val fileName: String,
     val idStatus: Long,
@@ -2690,6 +3422,7 @@ data class SettingsDTO(
     val countVoices: Int,
     val firstSongInAlbum: Boolean,
     val flagBoosty: String,
+    val flagSponsr: String,
     val flagVk: String,
     val flagYoutubeLyrics: String,
     val flagYoutubeKaraoke: String,
@@ -2704,6 +3437,7 @@ data class SettingsDTO(
     val flagPlKaraoke: String,
     val flagPlChords: String,
     val processColorBoosty: String,
+    val processColorSponsr: String,
     val processColorVk: String,
     val processColorMeltLyrics: String,
     val processColorMeltKaraoke: String,
@@ -2722,6 +3456,7 @@ data class SettingsDTO(
     val processColorPlChords: String,
     val idBoosty: String,
     val idBoostyFiles: String,
+    val idSponsr: String,
     val idVk: String,
     val idYoutubeLyrics: String,
     val idYoutubeKaraoke: String,
@@ -2762,6 +3497,10 @@ data class SettingsDTO(
     fun toDtoDigest(): SettingsDTOdigest {
         return SettingsDTOdigest(
             id = id,
+            idPrevious = idPrevious,
+            idNext = idNext,
+            idLeft = idLeft,
+            idRight = idRight,
             status = status,
             tags = tags,
             color = color,
@@ -2777,6 +3516,7 @@ data class SettingsDTO(
             countVoices = countVoices,
             firstSongInAlbum = firstSongInAlbum,
             flagBoosty = flagBoosty,
+            flagSponsr = flagSponsr,
             flagVk = flagVk,
             flagYoutubeLyrics = flagYoutubeLyrics,
             flagYoutubeKaraoke = flagYoutubeKaraoke,
@@ -2791,6 +3531,7 @@ data class SettingsDTO(
             flagPlKaraoke = flagPlKaraoke,
             flagPlChords = flagPlChords,
             processColorBoosty = processColorBoosty,
+            processColorSponsr = processColorSponsr,
             processColorVk = processColorVk,
             processColorMeltLyrics = processColorMeltLyrics,
             processColorMeltKaraoke = processColorMeltKaraoke,
@@ -2814,6 +3555,10 @@ data class SettingsDTO(
 
 data class SettingsDTOdigest(
     val id: Long,
+    var idPrevious: Long,
+    var idNext: Long,
+    var idLeft: Long,
+    var idRight: Long,
     val status: String,
     val tags: String,
     val color: String,
@@ -2829,6 +3574,7 @@ data class SettingsDTOdigest(
     val countVoices: Int,
     val firstSongInAlbum: Boolean,
     val flagBoosty: String,
+    val flagSponsr: String,
     val flagVk: String,
     val flagYoutubeLyrics: String,
     val flagYoutubeKaraoke: String,
@@ -2843,6 +3589,7 @@ data class SettingsDTOdigest(
     val flagPlKaraoke: String,
     val flagPlChords: String,
     val processColorBoosty: String,
+    val processColorSponsr: String,
     val processColorVk: String,
     val processColorMeltLyrics: String,
     val processColorMeltKaraoke: String,

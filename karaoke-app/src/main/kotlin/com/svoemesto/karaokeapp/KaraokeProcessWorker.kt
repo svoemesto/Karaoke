@@ -29,9 +29,9 @@ class KaraokeProcessThread(val karaokeProcess: KaraokeProcess? = null, var perce
 
             val process = processBuilder.start()
             if (process.isAlive) {
-                val niceCommand = "nice -n ${karaokeProcess.prioritet} ${process.pid()}"
-                Runtime.getRuntime().exec(niceCommand)
+                setProcessPriority(process.pid(), karaokeProcess.prioritet)
             }
+
             try {
 
                 val inputStream = process.inputStream
@@ -120,7 +120,7 @@ class KaraokeProcessWorker {
     companion object {
         var isWork: Boolean = false
         var stopAfterThreadIsDone: Boolean = false
-
+        var withoutControl = false
 
         var workThread: KaraokeProcessThread? = null
 
@@ -163,15 +163,15 @@ class KaraokeProcessWorker {
         }
 
         private fun doStart(database: KaraokeConnection) {
-            val timeout = 100L
+            val timeout = 10L
             var counter = 0L
             var id = 0L
             var settingsId = 0L
             var processType = ""
             var percentage = 0.0
 
-            val intervalCheckDummy = 60_000
-            val intervalCheckFiles = 240_000
+            val intervalCheckDummy = 6_000
+            val intervalCheckFiles = 24_000
 
             isWork = true
             stopAfterThreadIsDone = false
@@ -182,67 +182,72 @@ class KaraokeProcessWorker {
                     SNS.send(SseNotification.dummy())
                 }
                 counter++
-                Thread.sleep(timeout)
+                if (!withoutControl) {
+                    Thread.sleep(timeout)
 
-                if (counter % (intervalCheckFiles / timeout) == 0L) {
-                    // Каждые 120 секунд проверяем наличие файлов на обновление
-                    val listFiles = getListFiles("/clouds/Yandex.Disk/Karaoke/_TMP","settings")
-                    listFiles.forEach {fileName ->
-                        val tmpSettings = Settings.loadFromFile(fileName, readonly = true, database)
-                        File(fileName).delete()
-                        val settings = Settings.loadFromDbById(tmpSettings.id, database)
-                        if (settings != null) {
+                    if (counter % (intervalCheckFiles / timeout) == 0L) {
+                        // Каждые 120 секунд проверяем наличие файлов на обновление
+                        val listFiles = getListFiles("/clouds/Yandex.Disk/Karaoke/_TMP","settings")
+                        listFiles.forEach {fileName ->
+                            val tmpSettings = Settings.loadFromFile(fileName, readonly = true, database)
+                            File(fileName).delete()
+                            val settings = Settings.loadFromDbById(tmpSettings.id, database)
+                            if (settings != null) {
 
-                            val needCreateKaraoke = (settings.idStatus < tmpSettings.idStatus && tmpSettings.idStatus == 3L && settings.sourceMarkers != tmpSettings.sourceMarkers)
+                                val needCreateKaraoke = (settings.idStatus < tmpSettings.idStatus && tmpSettings.idStatus == 3L && settings.sourceMarkers != tmpSettings.sourceMarkers)
 
-                            settings.fields[SettingField.ID_STATUS] = tmpSettings.fields[SettingField.ID_STATUS] ?: ""
-                            settings.fields[SettingField.NAME] = tmpSettings.fields[SettingField.NAME] ?: ""
-                            settings.fields[SettingField.AUTHOR] = tmpSettings.fields[SettingField.AUTHOR] ?: ""
-                            settings.fields[SettingField.ALBUM] = tmpSettings.fields[SettingField.ALBUM] ?: ""
-                            settings.fields[SettingField.DATE] = tmpSettings.fields[SettingField.DATE] ?: ""
-                            settings.fields[SettingField.TIME] = tmpSettings.fields[SettingField.TIME] ?: ""
-                            settings.fields[SettingField.YEAR] = tmpSettings.fields[SettingField.YEAR] ?: ""
-                            settings.fields[SettingField.TRACK] = tmpSettings.fields[SettingField.TRACK] ?: ""
-                            settings.fields[SettingField.KEY] = tmpSettings.fields[SettingField.KEY] ?: ""
-                            settings.fields[SettingField.BPM] = tmpSettings.fields[SettingField.BPM] ?: ""
-                            settings.fields[SettingField.ID_BOOSTY] = tmpSettings.fields[SettingField.ID_BOOSTY] ?: ""
-                            settings.fields[SettingField.ID_BOOSTY_FILES] = tmpSettings.fields[SettingField.ID_BOOSTY_FILES] ?: ""
-                            settings.fields[SettingField.ID_VK] = tmpSettings.fields[SettingField.ID_VK] ?: ""
-                            settings.fields[SettingField.ID_YOUTUBE_LYRICS] = tmpSettings.fields[SettingField.ID_YOUTUBE_LYRICS] ?: ""
-                            settings.fields[SettingField.ID_YOUTUBE_KARAOKE] = tmpSettings.fields[SettingField.ID_YOUTUBE_KARAOKE] ?: ""
-                            settings.fields[SettingField.ID_YOUTUBE_CHORDS] = tmpSettings.fields[SettingField.ID_YOUTUBE_CHORDS] ?: ""
-                            settings.fields[SettingField.ID_VK_LYRICS] = tmpSettings.fields[SettingField.ID_VK_LYRICS] ?: ""
-                            settings.fields[SettingField.ID_VK_KARAOKE] = tmpSettings.fields[SettingField.ID_VK_KARAOKE] ?: ""
-                            settings.fields[SettingField.ID_VK_CHORDS] = tmpSettings.fields[SettingField.ID_VK_CHORDS] ?: ""
-                            settings.fields[SettingField.ID_PL_LYRICS] = tmpSettings.fields[SettingField.ID_PL_LYRICS] ?: ""
-                            settings.fields[SettingField.ID_PL_KARAOKE] = tmpSettings.fields[SettingField.ID_PL_KARAOKE] ?: ""
-                            settings.fields[SettingField.ID_PL_CHORDS] = tmpSettings.fields[SettingField.ID_PL_CHORDS] ?: ""
-                            settings.fields[SettingField.ID_TELEGRAM_LYRICS] = tmpSettings.fields[SettingField.ID_TELEGRAM_LYRICS] ?: ""
-                            settings.fields[SettingField.ID_TELEGRAM_KARAOKE] = tmpSettings.fields[SettingField.ID_TELEGRAM_KARAOKE] ?: ""
-                            settings.fields[SettingField.ID_TELEGRAM_CHORDS] = tmpSettings.fields[SettingField.ID_TELEGRAM_CHORDS] ?: ""
-                            settings.fields[SettingField.RESULT_VERSION] = tmpSettings.fields[SettingField.RESULT_VERSION] ?: ""
-                            settings.fields[SettingField.DIFFBEATS] = tmpSettings.fields[SettingField.DIFFBEATS] ?: ""
-                            settings.fields[SettingField.COLOR] = tmpSettings.fields[SettingField.COLOR] ?: ""
-                            settings.sourceText = tmpSettings.sourceText
-                            settings.resultText = tmpSettings.resultText
-                            settings.sourceMarkers = tmpSettings.sourceMarkers
-                            settings.saveToDb()
+                                settings.fields[SettingField.ID_STATUS] = tmpSettings.fields[SettingField.ID_STATUS] ?: ""
+                                settings.fields[SettingField.NAME] = tmpSettings.fields[SettingField.NAME] ?: ""
+                                settings.fields[SettingField.AUTHOR] = tmpSettings.fields[SettingField.AUTHOR] ?: ""
+                                settings.fields[SettingField.ALBUM] = tmpSettings.fields[SettingField.ALBUM] ?: ""
+                                settings.fields[SettingField.DATE] = tmpSettings.fields[SettingField.DATE] ?: ""
+                                settings.fields[SettingField.TIME] = tmpSettings.fields[SettingField.TIME] ?: ""
+                                settings.fields[SettingField.YEAR] = tmpSettings.fields[SettingField.YEAR] ?: ""
+                                settings.fields[SettingField.TRACK] = tmpSettings.fields[SettingField.TRACK] ?: ""
+                                settings.fields[SettingField.KEY] = tmpSettings.fields[SettingField.KEY] ?: ""
+                                settings.fields[SettingField.BPM] = tmpSettings.fields[SettingField.BPM] ?: ""
+                                settings.fields[SettingField.ID_BOOSTY] = tmpSettings.fields[SettingField.ID_BOOSTY] ?: ""
+                                settings.fields[SettingField.ID_BOOSTY_FILES] = tmpSettings.fields[SettingField.ID_BOOSTY_FILES] ?: ""
+                                settings.fields[SettingField.ID_VK] = tmpSettings.fields[SettingField.ID_VK] ?: ""
+                                settings.fields[SettingField.ID_YOUTUBE_LYRICS] = tmpSettings.fields[SettingField.ID_YOUTUBE_LYRICS] ?: ""
+                                settings.fields[SettingField.ID_YOUTUBE_KARAOKE] = tmpSettings.fields[SettingField.ID_YOUTUBE_KARAOKE] ?: ""
+                                settings.fields[SettingField.ID_YOUTUBE_CHORDS] = tmpSettings.fields[SettingField.ID_YOUTUBE_CHORDS] ?: ""
+                                settings.fields[SettingField.ID_VK_LYRICS] = tmpSettings.fields[SettingField.ID_VK_LYRICS] ?: ""
+                                settings.fields[SettingField.ID_VK_KARAOKE] = tmpSettings.fields[SettingField.ID_VK_KARAOKE] ?: ""
+                                settings.fields[SettingField.ID_VK_CHORDS] = tmpSettings.fields[SettingField.ID_VK_CHORDS] ?: ""
+                                settings.fields[SettingField.ID_PL_LYRICS] = tmpSettings.fields[SettingField.ID_PL_LYRICS] ?: ""
+                                settings.fields[SettingField.ID_PL_KARAOKE] = tmpSettings.fields[SettingField.ID_PL_KARAOKE] ?: ""
+                                settings.fields[SettingField.ID_PL_CHORDS] = tmpSettings.fields[SettingField.ID_PL_CHORDS] ?: ""
+                                settings.fields[SettingField.ID_TELEGRAM_LYRICS] = tmpSettings.fields[SettingField.ID_TELEGRAM_LYRICS] ?: ""
+                                settings.fields[SettingField.ID_TELEGRAM_KARAOKE] = tmpSettings.fields[SettingField.ID_TELEGRAM_KARAOKE] ?: ""
+                                settings.fields[SettingField.ID_TELEGRAM_CHORDS] = tmpSettings.fields[SettingField.ID_TELEGRAM_CHORDS] ?: ""
+                                settings.fields[SettingField.RESULT_VERSION] = tmpSettings.fields[SettingField.RESULT_VERSION] ?: ""
+                                settings.fields[SettingField.DIFFBEATS] = tmpSettings.fields[SettingField.DIFFBEATS] ?: ""
+                                settings.fields[SettingField.COLOR] = tmpSettings.fields[SettingField.COLOR] ?: ""
+                                settings.sourceText = tmpSettings.sourceText
+                                settings.resultText = tmpSettings.resultText
+                                settings.sourceMarkers = tmpSettings.sourceMarkers
+                                settings.saveToDb()
 
-                            if (needCreateKaraoke) {
-                                settings.sourceMarkersList.forEachIndexed { voice, _ ->
-                                    val strText = settings.convertMarkersToSrt(voice)
-                                    File("${settings.rootFolder}/${settings.fileName}.voice${voice+1}.srt").writeText(strText)
+                                if (needCreateKaraoke) {
+                                    settings.sourceMarkersList.forEachIndexed { voice, _ ->
+                                        val strText = settings.convertMarkersToSrt(voice)
+                                        File("${settings.rootFolder}/${settings.rightSettingFileName}.voice${voice+1}.srt").writeText(strText)
+                                    }
+
+                                    settings.createKaraoke(createLyrics = true, createKaraoke = true)
+
+                                    KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, 0)
+                                    KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, 1)
                                 }
 
-                                settings.createKaraoke(createLyrics = true, createKaraoke = true)
-
-                                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, 0)
-                                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, 1)
                             }
-
                         }
                     }
+
                 }
+
+
 
                 // Проверяем, выполняется ли в данный момент какое-то задание
                 // Если да - ждём, если нет запускаем новое задание (если оно есть в очереди)
@@ -265,6 +270,7 @@ class KaraokeProcessWorker {
                             settingsId = karaokeProcess.settingsId.toLong()
                             processType = karaokeProcess.type
                             percentage = 0.0
+                            withoutControl = karaokeProcess.withoutControl
                             workThread!!.start()
                         }
                     } else {
@@ -276,21 +282,26 @@ class KaraokeProcessWorker {
                         if (stopAfterThreadIsDone) {
                             stopAfterThreadIsDone = false
                             isWork = false
+                            withoutControl = false
                             sendStateMessage()
                         }
 
                     }
                 } else {
 
-                    val kp = workThread?.karaokeProcess
-                    val diffs = KaraokeProcess.getDiff(kp)
-                    if (diffs.isNotEmpty()) {
-                        if (percentage != (workThread?.karaokeProcess?.percentage ?: 0.0)) {
-                            percentage = workThread?.karaokeProcess?.percentage ?: 0.0
-                        }
-                        workThread?.karaokeProcess?.save()
+                    if (!withoutControl) {
 
+                        val kp = workThread?.karaokeProcess
+                        val diffs = KaraokeProcess.getDiff(kp)
+                        if (diffs.isNotEmpty()) {
+                            if (percentage != (workThread?.karaokeProcess?.percentage ?: 0.0)) {
+                                percentage = workThread?.karaokeProcess?.percentage ?: 0.0
+                            }
+                            workThread?.karaokeProcess?.save()
+
+                        }
                     }
+
                 }
             }
         }

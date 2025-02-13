@@ -36,6 +36,7 @@
               <button class="group-button" :value="isShowMarkerTypeSyllables" :class="merkerButtonClass(isShowMarkerTypeSyllables)" type="button" @click="onOffShowMarkerType('syllables')">syllables</button>
               <button class="group-button" :value="isShowMarkerTypeSetting" :class="merkerButtonClass(isShowMarkerTypeSetting)" type="button" @click="onOffShowMarkerType('setting')">setting</button>
               <button class="group-button" :value="isShowMarkerTypeEndofline" :class="merkerButtonClass(isShowMarkerTypeEndofline)" type="button" @click="onOffShowMarkerType('endofline')">endofline</button>
+              <button class="group-button" :value="isShowMarkerTypeEndofsyllable" :class="merkerButtonClass(isShowMarkerTypeEndofsyllable)" type="button" @click="onOffShowMarkerType('endofsyllable')">endofsyllable</button>
               <button class="group-button" :value="isShowMarkerTypeNewline" :class="merkerButtonClass(isShowMarkerTypeNewline)" type="button" @click="onOffShowMarkerType('newline')">newline</button>
               <button class="group-button" :value="isShowMarkerTypeUnmute" :class="merkerButtonClass(isShowMarkerTypeUnmute)" type="button" @click="onOffShowMarkerType('unmute')">unmute</button>
               <button class="group-button" :value="isShowMarkerTypeNote" :class="merkerButtonClass(isShowMarkerTypeNote)" type="button" @click="onOffShowMarkerType('note')">note</button>
@@ -135,6 +136,9 @@
                 </button>
                 <button class="group-button" :class="pressedButtonClass(pressedS)" @mousedown.left="pressedS = true" @mouseup.left="pressedS = false">
                   <img alt="delete marker" class="icon-delete-marker" title="S" src="../../../assets/svg/icon_delete_marker.svg">
+                </button>
+                <button class="group-button" :class="pressedButtonClass(pressed1)" @mousedown.left="pressed1 = true" @mouseup.left="pressed1 = false">
+                  <img alt="end of line marker" class="icon-end-of-line-marker" title="1" src="../../../assets/svg/icon_add_marker_red.svg">
                 </button>
                 <button class="group-button" :class="pressedButtonClass(pressed2)" @mousedown.left="pressed2 = true" @mouseup.left="pressed2 = false">
                   <img alt="end of line marker" class="icon-end-of-line-marker" title="2" src="../../../assets/svg/icon_add_marker_red.svg">
@@ -301,6 +305,7 @@ export default {
       pressedPeriod: false, // следующий слоговый маркер, >
       pressedS: false, // удалить маркер, S
       pressedW: false, // оранжевый маркер "слог", W
+      pressed1: false, // красно-оранжевый маркер "конец слога", 1
       pressed2: false, // красный маркер "конец строки", 2
       pressed3: false, // красно-оранжевый маркер "конец строки + слог", 3
       pressed4: false, // малиновый маркер "новая строка", 4
@@ -334,6 +339,7 @@ export default {
       isShowMarkerTypeSyllables: true,
       isShowMarkerTypeSetting: true,
       isShowMarkerTypeEndofline: true,
+      isShowMarkerTypeEndofsyllable: true,
       isShowMarkerTypeNewline: true,
       isShowMarkerTypeUnmute: true,
       isShowMarkerTypeNote: true,
@@ -537,6 +543,7 @@ export default {
     },
     pressedS: { handler () { if (!this.isEditMode) return; if (this.pressedS) { this.deleteMarker(); } } },
     pressedW: { handler () { if (!this.isEditMode) return; if (this.pressedW) { this.addMarker('syllables'); } } },
+    pressed1: { handler () { if (!this.isEditMode) return; if (this.pressed1) { this.addMarker('endofsyllable'); } } },
     pressed2: { handler () { if (!this.isEditMode) return; if (this.pressed2) { this.addMarker('endofline'); } } },
     pressed3: { handler () { if (!this.isEditMode) return; if (this.pressed3) {
       // this.addMarker('syllables', '', true, true);
@@ -641,6 +648,7 @@ export default {
       if (this.isShowMarkerTypeSyllables) { result.push('syllables') }
       if (this.isShowMarkerTypeSetting) { result.push('setting') }
       if (this.isShowMarkerTypeEndofline) { result.push('endofline') }
+      if (this.isShowMarkerTypeEndofsyllable) { result.push('endofsyllable') }
       if (this.isShowMarkerTypeNewline) { result.push('newline') }
       if (this.isShowMarkerTypeUnmute) { result.push('unmute') }
       if (this.isShowMarkerTypeNote) { result.push('note') }
@@ -1167,6 +1175,7 @@ export default {
         case 'Period': { if (!this.pressedPeriod) { this.pressedPeriod = true; } break; }
         case 'KeyW': { if (!this.pressedW) { this.pressedW = true; } break; }
         case 'KeyS': { if (!this.pressedS) { this.pressedS = true; } break; }
+        case 'Digit1': { if (!this.pressed1) { this.pressed1 = true; } break; }
         case 'Digit2': { if (!this.pressed2) { this.pressed2 = true; } break; }
         case 'Digit3': { if (!this.pressed3) { this.pressed3 = true; } break; }
         case 'Digit4': { if (!this.pressed4) { this.pressed4 = true; } break; }
@@ -1195,6 +1204,7 @@ export default {
         case 'Period': { if (this.pressedPeriod) { this.pressedPeriod = false; } break; }
         case 'KeyW': { if (this.pressedW) { this.pressedW = false; } break; }
         case 'KeyS': { if (this.pressedS) { this.pressedS = false; } break; }
+        case 'Digit1': { if (this.pressed1) { this.pressed1 = false; } break; }
         case 'Digit2': { if (this.pressed2) { this.pressed2 = false; } break; }
         case 'Digit3': { if (this.pressed3) { this.pressed3 = false; } break; }
         case 'Digit4': { if (this.pressed4) { this.pressed4 = false; } break; }
@@ -1322,6 +1332,21 @@ export default {
                         ">
                         <svg width="20" height="20" viewBox="0 0 480 800" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M46 731V208L233 36L437 224V731H46Z" fill="red" stroke="black"/>
+                        <path fill-rule="evenodd" clip-rule="evenodd" d="M400 679.976C400 702.056 374.6 719.976 352.48 719.976H112.48C90.3999 719.976 80 702.056 80 679.976V244.507C80 239.107 78.4003 233.95 82.2803 230.19L206.44 107.222C221.96 92.0617 245.84 92.0617 261.36 107.222L390.68 230.19C394.52 233.95 400 239.107 400 244.507V679.976ZM464.16 190.581L290.24 22.71C259.16 -7.57 208.64 -7.57 177.56 22.71L8.75977 190.581C1.03977 198.101 0 208.433 0 219.233V719.976C0 764.176 28.3199 799.976 72.4799 799.976H392.48C436.68 799.976 480 764.176 480 719.976V219.233C480 208.433 471.88 198.101 464.16 190.581Z" fill="black"/>
+                        </svg>
+                      </div></div>`
+          break;
+        }
+        case 'endofsyllable': {
+          template = `<div><div
+                        style="
+                            display: block;
+                            width: fit-content;
+                            margin-top: 216px;
+                            margin-left: -13px;
+                        ">
+                        <svg width="20" height="20" viewBox="0 0 480 800" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M46 731V208L233 36L437 224V731H46Z" fill="crimson" stroke="black"/>
                         <path fill-rule="evenodd" clip-rule="evenodd" d="M400 679.976C400 702.056 374.6 719.976 352.48 719.976H112.48C90.3999 719.976 80 702.056 80 679.976V244.507C80 239.107 78.4003 233.95 82.2803 230.19L206.44 107.222C221.96 92.0617 245.84 92.0617 261.36 107.222L390.68 230.19C394.52 233.95 400 239.107 400 244.507V679.976ZM464.16 190.581L290.24 22.71C259.16 -7.57 208.64 -7.57 177.56 22.71L8.75977 190.581C1.03977 198.101 0 208.433 0 219.233V719.976C0 764.176 28.3199 799.976 72.4799 799.976H392.48C436.68 799.976 480 764.176 480 719.976V219.233C480 208.433 471.88 198.101 464.16 190.581Z" fill="black"/>
                         </svg>
                       </div></div>`
@@ -1612,6 +1637,7 @@ export default {
       const MARKER_COLOR_SYLLABLES = '#D2691E';
       const MARKER_COLOR_NOTE = '#009900';
       const MARKER_COLOR_ENDOFLINE = '#FF0000';
+      const MARKER_COLOR_ENDOFSYLLABLE = '#99004C';
       const MARKER_COLOR_NEWLINE = '#FF0000';
       const MARKER_COLOR_SETTING = '#000080';
       const MARKER_COLOR_UNMUTE = '#FFFF00';
@@ -1653,6 +1679,11 @@ export default {
         case 'endofline':{
           position = 'bottom';
           color = MARKER_COLOR_ENDOFLINE;
+          break;
+        }
+        case 'endofsyllable':{
+          position = 'bottom';
+          color = MARKER_COLOR_ENDOFSYLLABLE;
           break;
         }
         case 'unmute':{
@@ -2301,6 +2332,7 @@ export default {
         case 'setting': {this.isShowMarkerTypeSetting = !this.isShowMarkerTypeSetting; break;}
         case 'newline': {this.isShowMarkerTypeNewline = !this.isShowMarkerTypeNewline; break;}
         case 'endofline': {this.isShowMarkerTypeEndofline = !this.isShowMarkerTypeEndofline; break;}
+        case 'endofsyllable': {this.isShowMarkerTypeEndofsyllable = !this.isShowMarkerTypeEndofsyllable; break;}
         case 'unmute': {this.isShowMarkerTypeUnmute = !this.isShowMarkerTypeUnmute; break;}
         case 'note': {this.isShowMarkerTypeNote = !this.isShowMarkerTypeNote; break;}
         case 'chord': {this.isShowMarkerTypeChord = !this.isShowMarkerTypeChord; break;}
@@ -2870,6 +2902,14 @@ export default {
 }
 
 #waveform ::part(endofline) {
+  text-indent: 3px;
+  font-family: sans-serif;
+  font-size: 18px;
+  font-weight: 900;
+  color: red;
+}
+
+#waveform ::part(endofsyllable) {
   text-indent: 3px;
   font-family: sans-serif;
   font-size: 18px;

@@ -11,7 +11,7 @@ import com.svoemesto.karaokeapp.model.ProducerType
 import com.svoemesto.karaokeapp.model.PropertiesMltNodeBuilder
 import java.awt.Font
 
-data class MkoScroller(val mltProp: MltProp, val type: ProducerType, val voiceId: Int = 0, val childId: Int = 0): MltKaraokeObject {
+data class MkoScroller(val mltProp: MltProp, val type: ProducerType, val voiceId: Int = 0, val childId: Int = 0, val elementId: Int = 0): MltKaraokeObject {
 
     val mltGenerator = MltGenerator(mltProp, type, voiceId, childId)
 
@@ -22,9 +22,10 @@ data class MkoScroller(val mltProp: MltProp, val type: ProducerType, val voiceId
                 .propertyName("length", mltProp.getSongLengthFr())
                 .propertyName("kdenlive:duration", mltProp.getSongEndTimecode())
 //                .propertyName("xmldata", mltProp.getXmlData(listOf(type, voiceId, childId)).toString().xmldata())
-                .propertyName("xmldata", mltProp.getXmlData(listOf(ProducerType.SCROLLER, voiceId, childId)).toString().xmldata())
-                .propertyName("meta.media.width", Karaoke.frameWidthPx)
-                .propertyName("meta.media.height", Karaoke.frameHeightPx)
+//                .propertyName("xmldata", mltProp.getXmlData(listOf(ProducerType.SCROLLER, voiceId, childId)).toString().xmldata())
+                .propertyName("xmldata", template().toString().xmldata())
+                .propertyName("meta.media.width", mltProp.getFrameWidthPx())
+                .propertyName("meta.media.height", mltProp.getFrameHeightPx())
                 .build()
         )
 
@@ -43,6 +44,7 @@ data class MkoScroller(val mltProp: MltProp, val type: ProducerType, val voiceId
         }
         return result
     }
+    override fun mainFilePlaylistTransformProperties(): String = ""
 
     override fun trackPlaylist(): MltNode = mltGenerator.trackPlaylist()
 
@@ -158,13 +160,13 @@ data class MkoScroller(val mltProp: MltProp, val type: ProducerType, val voiceId
         val rectStartTimecode = mltProp.getSongStartTimecode()
         val rectEndTimecode = convertMillisecondsToTimecode(scrollLineDurationMs)
 
-        val rectStartXpx = Karaoke.frameWidthPx + offsetX
+        val rectStartXpx = mltProp.getFrameWidthPx() + offsetX
         val rectStartYpx = 0
         val rectStartWpx = widthAreaPx
         val rectStartHpx = heightScrollerPx
         val rectStartOpacity = 1.0
 
-        val rectEndXpx = - (Karaoke.frameWidthPx + widthAreaPx + offsetX)
+        val rectEndXpx = - (mltProp.getFrameWidthPx() + widthAreaPx + offsetX)
         val rectEndYpx = 0
         val rectEndWpx = widthAreaPx
         val rectEndHpx = heightScrollerPx

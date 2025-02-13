@@ -11,17 +11,25 @@ import java.io.ByteArrayOutputStream
 import java.util.*
 import javax.imageio.ImageIO
 
-data class MkoFingerboard(val mltProp: MltProp, val type: ProducerType, val voiceId: Int = 0, val childId: Int = 0): MltKaraokeObject {
+data class MkoFingerboard(val mltProp: MltProp, val type: ProducerType, val voiceId: Int = 0, val childId: Int = 0, val elementId: Int = 0): MltKaraokeObject {
     val mltGenerator = MltGenerator(mltProp, type, voiceId, childId)
 
+    private val songLengthFr = mltProp.getSongLengthFr()
+    private val fingerboardW = mltProp.getFingerboardW(listOf(0, childId))!!
+    private val fingerboardH = mltProp.getFingerboardH(0)
+    private val mkoFingerboardProducerRect = mltProp.getRect(listOf(type, voiceId, childId))
+    private val inOffsetVideo = mltProp.getInOffsetVideo()
+    private val songCapo = mltProp.getSongCapo()
+    private val chordW = mltProp.getChordW(0)
+    private val chords = mltProp.getChords(listOf(0, childId))
     override fun producer(): MltNode = mltGenerator
         .producer(
             props = MltNodeBuilder(mltGenerator.defaultProducerPropertiesForMltService("kdenlivetitle"))
-                .propertyName("kdenlive:duration", mltProp.getSongLengthFr())
-                .propertyName("xmldata", mltProp.getXmlData(listOf(type, voiceId)).toString().xmldata())
-                .propertyName("meta.media.width", mltProp.getFingerboardW(listOf(0, childId))!!)
-                .propertyName("meta.media.height", mltProp.getFingerboardH(0) + 50)
-                .filterQtblend(mltGenerator.nameFilterQtblend, mltProp.getRect(listOf(type, voiceId)))
+                .propertyName("kdenlive:duration", songLengthFr)
+                .propertyName("xmldata", template().toString().xmldata())
+                .propertyName("meta.media.width", fingerboardW)
+                .propertyName("meta.media.height", fingerboardH + 50)
+                .filterQtblend(mltGenerator.nameFilterQtblend, mkoFingerboardProducerRect)
                 .build()
         )
 
@@ -29,7 +37,7 @@ data class MkoFingerboard(val mltProp: MltProp, val type: ProducerType, val voic
         val result = mltGenerator.filePlaylist()
         result.body?.let {
             val body = it as MutableList<MltNode>
-            body.addAll(MltNodeBuilder().blank(mltProp.getInOffsetVideo()).build())
+            body.addAll(MltNodeBuilder().blank(inOffsetVideo).build())
             body.add(
                 mltGenerator.entry(
                     nodes = MltNodeBuilder()
@@ -40,19 +48,14 @@ data class MkoFingerboard(val mltProp: MltProp, val type: ProducerType, val voic
         }
         return result
     }
+    override fun mainFilePlaylistTransformProperties(): String = ""
     override fun trackPlaylist(): MltNode = mltGenerator.trackPlaylist()
 
     override fun tractor(): MltNode = mltGenerator.tractor()
 
     override fun template(): MltNode {
-        val voiceSetting = mltProp.getVoiceSetting(0)
-        val fingerboardW = mltProp.getFingerboardW(listOf(0, childId))!!
-        val capo = mltProp.getSongCapo()
-        val fingerboardH = mltProp.getFingerboardH(0)
-        val chordW = mltProp.getChordW(0)
-        val chordH = mltProp.getChordH(0)
-        val chords = mltProp.getChords(listOf(0, childId))
-        val startChordX = 0 // (Karaoke.frameWidthPx / 2 - chordW /2 + chordW).toInt()
+        val capo = songCapo
+        val startChordX = 0 // (mltProp.getFrameWidthPx() / 2 - chordW /2 + chordW).toInt()
 
         val body: MutableList<MltNode> = mutableListOf()
 
@@ -105,7 +108,7 @@ data class MkoFingerboard(val mltProp: MltProp, val type: ProducerType, val voic
                         MltNode(
                             name = "position",
                             fields = mutableMapOf(
-                                Pair("x","${chordX}"),
+                                Pair("x","$chordX"),
                                 Pair("y","0")
                             )
                         ),
@@ -129,7 +132,7 @@ data class MkoFingerboard(val mltProp: MltProp, val type: ProducerType, val voic
             fields = mutableMapOf(
                 Pair("duration","0"),
                 Pair("LC_NUMERIC","C"),
-                Pair("width","${fingerboardW}"),
+                Pair("width","$fingerboardW"),
                 Pair("height","${fingerboardH+50}"),
                 Pair("out","0"),
             ),

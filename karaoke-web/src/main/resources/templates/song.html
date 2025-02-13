@@ -176,6 +176,16 @@
             border-style: none;
             border-width: thin;
         }
+        .sponsr {
+            height: 100%;
+            padding: 2px;
+            font-size: small;
+            text-align: center;
+            min-width: 25px;
+            max-width: 25px;
+            border-style: none;
+            border-width: thin;
+        }
         .dzen {
             height: 100%;
             padding: 2px;
@@ -225,6 +235,16 @@
 
 <body>
 <div style="width: 0; height: 0">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" id="svg-icon-sponsr">
+        <circle cx="10" cy="10" r="10" fill="#E75B44"/>
+        <path d="M1.33782 15C3.06687 17.989 6.29859 20 10 20C13.7014 20 16.9331 17.989 18.6622 15H1.33782Z" fill="#B2125C"/>
+    </svg>
+
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" id="svg-icon-sponsr-none">
+        <circle cx="10" cy="10" r="10" fill="#E6E6E6"/>
+        <path d="M1.33782 15C3.06687 17.989 6.29859 20 10 20C13.7014 20 16.9331 17.989 18.6622 15H1.33782Z" fill="#919191"/>
+    </svg>
+
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" id="svg-icon-boosty">
         <path fill="#F57507" d="M2.52164 11.9462L5.9255 0H11.1491L10.0928 3.70385C10.0817 3.72498 10.0726 3.74714 10.0658 3.77L7.29168 13.55H9.88032C8.80005 16.2923 7.95391 18.4423 7.34268 20C2.56645 19.9462 1.22732 16.4738 2.39955 12.3662L2.52164 11.9462ZM7.36046 20L13.6574 10.8H10.9853L13.3097 4.90692C17.2985 5.33 19.1693 8.51462 18.0697 12.3654C16.889 16.5077 12.1104 20 7.45782 20H7.36046Z"></path>
     </svg>
@@ -287,7 +307,11 @@
         <div id="areaCenterColumn" style="alignment: center">
 
             <div id="areaLeftTable">
-
+                <a href="/">
+                    <img th:if="${!sett.haveVkGroupLink && sett.idStatus >= 3}" th:src="'/tmp/' + ${sett.id}+ '.png'" style="width: 537px; display: block; margin: auto">
+                    <img th:unless="${!sett.haveVkGroupLink && sett.idStatus >= 3}" src="KARAOKE_LOGO.png" style="width: 300px; display: block; margin: auto">
+<!--                    <img src="KARAOKE_LOGO.png" style="width: 300px; display: block; margin: auto">-->
+                </a>
                 <table style="width: 100%">
                     <tr>
                         <td colspan="2">
@@ -315,16 +339,35 @@
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td class="td_cell" style="padding: 0">
+                                    <td class="td_cell" style="padding: 0; border-top-width: 0; border-bottom-width: 0; border-right-width: 0; display: flex; flex-direction: row; justify-content: center;">
+                                        <div class="sponsr">
+                                            <span th:if="${sett.linkSponsrPlay == ''}">
+                                                <div>
+                                                    <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-sponsr-none"></use></svg>
+                                                </div>
+                                            </span>
+                                            <span th:unless="${sett.linkSponsrPlay == ''}">
+                                                <div
+                                                        style="cursor: pointer"
+                                                        name="link"
+                                                        linkName="sponsr"
+                                                        th:linkValue="${sett.linkSponsrPlay}"
+                                                        th:songId="${sett.id}"
+                                                        songVersion="all"
+                                                >
+                                                    <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-sponsr"></use></svg>
+                                                </div>
+                                            </span>
+                                        </div>
                                         <div class="boosty">
                                             <span th:if="${sett.linkBoostyTxt == ''}">
                                                 <div>
-                                                    <svg style="margin-left: 100%; height: 20px; width: 20px;"><use xlink:href="#svg-icon-boosty-none"></use></svg>
+                                                    <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-boosty-none"></use></svg>
                                                 </div>
                                             </span>
                                             <span th:unless="${sett.linkBoostyTxt == ''}">
                                                 <div
-                                                        style="cursor: pointer; margin-left: 100%"
+                                                        style="cursor: pointer"
                                                         name="link"
                                                         linkName="boosty"
                                                         th:linkValue="${sett.linkBoostyTxt}"
@@ -335,6 +378,7 @@
                                                 </div>
                                             </span>
                                         </div>
+
                                     </td>
                                     <span th:if="${sett.onAir == true}">
                                         <td class="td_cell" style="padding: 0; border-right-width: 0">
@@ -582,7 +626,7 @@
                             <td colspan="2">
                                 <div name="play" th:songId="${sett.id}" songVersion="karaoke">
                                     <iframe
-                                            th:src="'https://vk.com/video_ext.php?hd=3&oid=' + ${sett.idVkKaraokeOID} + '&id=' + ${sett.idVkKaraokeID}"
+                                            th:src="'https://vkvideo.ru/video_ext.php?hd=3&oid=' + ${sett.idVkKaraokeOID} + '&id=' + ${sett.idVkKaraokeID}"
                                             width="600"
                                             height="338"
                                             allow="autoplay; encrypted-media; fullscreen; picture-in-picture;"
@@ -599,7 +643,7 @@
                             <td colspan="2">
                                 <div name="play" th:songId="${sett.id}" songVersion="lyrics">
                                     <iframe
-                                            th:src="'https://vk.com/video_ext.php?hd=3&oid=' + ${sett.idVkLyricsOID} + '&id=' + ${sett.idVkLyricsID}"
+                                            th:src="'https://vkvideo.ru/video_ext.php?hd=3&oid=' + ${sett.idVkLyricsOID} + '&id=' + ${sett.idVkLyricsID}"
                                             width="600"
                                             height="338"
                                             allow="autoplay; encrypted-media; fullscreen; picture-in-picture;"
@@ -615,7 +659,7 @@
                             <td colspan="2">
                                 <div name="play" th:songId="${sett.id}" songVersion="chords">
                                      <iframe
-                                             th:src="'https://vk.com/video_ext.php?hd=3&oid=' + ${sett.idVkChordsOID} + '&id=' + ${sett.idVkChordsID}"
+                                             th:src="'https://vkvideo.ru/video_ext.php?hd=3&oid=' + ${sett.idVkChordsOID} + '&id=' + ${sett.idVkChordsID}"
                                              width="600"
                                              height="338"
                                              allow="autoplay; encrypted-media; fullscreen; picture-in-picture;"

@@ -140,7 +140,7 @@ function do_stop_db() {
 }
 
 function do_start_web() {
-  do_stop_db
+  do_stop_web
   echo "Старт WEB"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-web.yml up -d
   command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga

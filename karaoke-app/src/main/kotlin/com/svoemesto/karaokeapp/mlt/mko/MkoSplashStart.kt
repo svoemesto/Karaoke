@@ -1,28 +1,39 @@
 package com.svoemesto.karaokeapp.mlt.mko
 
-import com.svoemesto.karaokeapp.Karaoke
-import com.svoemesto.karaokeapp.getTextWidthHeightPx
+import com.svoemesto.karaokeapp.*
 import com.svoemesto.karaokeapp.mlt.MltGenerator
 import com.svoemesto.karaokeapp.mlt.MltProp
-import com.svoemesto.karaokeapp.xmldata
 import com.svoemesto.karaokeapp.mlt.mltNode
 import com.svoemesto.karaokeapp.model.*
+import java.awt.Color
 import java.awt.Font
 
-data class MkoSplashStart(val mltProp: MltProp, val type: ProducerType, val voiceId: Int = 0, val childId: Int = 0): MltKaraokeObject {
+data class MkoSplashStart(val mltProp: MltProp, val type: ProducerType, val voiceId: Int = 0, val childId: Int = 0, val elementId: Int = 0): MltKaraokeObject {
     val mltGenerator = MltGenerator(mltProp, type)
 
+    private val frameWidthPx = mltProp.getFrameWidthPx()
+    private val frameHeightPx = mltProp.getFrameHeightPx()
+    private val splashLengthMs = mltProp.getSplashLengthMs()
+    private val splashStartTimecode = mltProp.getSplashStartTimecode()
+    private val splashEndTimecode = mltProp.getSplashEndTimecode()
+    private val splashFadeInTimecode = mltProp.getSplashFadeInTimecode()
+    private val splashFadeOutTimecode = mltProp.getSplashFadeOutTimecode()
+    private val songVersion = mltProp.getSongVersion()
+    private val chordDescriptionText = mltProp.getSongChordDescription().replace("\n",", ")
+    private val songName = mltProp.getSongName()
+    private val logoAuthorBase64 = mltProp.getBase64("LogoAuthor")
+    private val logoAlbumBase64 = mltProp.getBase64("LogoAlbum")
 
     override fun producer(): MltNode = mltGenerator
         .producer(
-            timecodeIn = mltProp.getSplashStartTimecode(),
-            timecodeOut = mltProp.getSplashEndTimecode(),
+            timecodeIn = splashStartTimecode,
+            timecodeOut = splashEndTimecode,
             props = MltNodeBuilder(mltGenerator.defaultProducerPropertiesForMltService("kdenlivetitle"))
-                .propertyName("length", mltProp.getSplashLengthMs())
-                .propertyName("kdenlive:duration", mltProp.getSplashEndTimecode())
-                .propertyName("xmldata", mltProp.getXmlData(listOf(type, voiceId)).toString().xmldata())
-                .propertyName("meta.media.width", Karaoke.frameWidthPx)
-                .propertyName("meta.media.height", Karaoke.frameHeightPx)
+                .propertyName("length", splashLengthMs)
+                .propertyName("kdenlive:duration", splashEndTimecode)
+                .propertyName("xmldata", template().toString().xmldata())
+                .propertyName("meta.media.width", frameWidthPx)
+                .propertyName("meta.media.height", frameHeightPx)
                 .build()
         )
 
@@ -33,27 +44,35 @@ data class MkoSplashStart(val mltProp: MltProp, val type: ProducerType, val voic
             val body = it as MutableList<MltNode>
             body.add(
                 mltGenerator.entry(
-                    timecodeIn = mltProp.getSplashStartTimecode(),
-                    timecodeOut = mltProp.getSplashEndTimecode(),
+                    timecodeIn = splashStartTimecode,
+                    timecodeOut = splashEndTimecode,
                     nodes = MltNodeBuilder()
                         .propertyName("kdenlive:id", "filePlaylist${mltGenerator.id}")
-                        .filterQtblend(mltGenerator.nameFilterQtblend, "${mltProp.getSplashStartTimecode()}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.000000;${mltProp.getSplashFadeInTimecode()}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 1.000000;${mltProp.getSplashFadeOutTimecode()}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 1.000000;${mltProp.getSplashEndTimecode()}=0 0 ${Karaoke.frameWidthPx} ${Karaoke.frameHeightPx} 0.000000")
+                        .filterQtblend(mltGenerator.nameFilterQtblend, mainFilePlaylistTransformProperties())
                         .build()
                 )
             )
         }
         return result
     }
+
+    override fun mainFilePlaylistTransformProperties(): String {
+        val tpStart = TransformProperty(time = splashStartTimecode, x = 0, y = 0, w = frameWidthPx, h = frameHeightPx, opacity = 0.0)
+        val tpFadeIn = TransformProperty(time = splashFadeInTimecode, x = 0, y = 0, w = frameWidthPx, h = frameHeightPx, opacity = 1.0)
+        val tpFadeOut = TransformProperty(time = splashFadeOutTimecode, x = 0, y = 0, w = frameWidthPx, h = frameHeightPx, opacity = 1.0)
+        val tpEnd = TransformProperty(time = splashEndTimecode, x = 0, y = 0, w = frameWidthPx, h = frameHeightPx, opacity = 0.0)
+        val resultListTp = listOf(tpStart, tpFadeIn, tpFadeOut, tpEnd)
+        return resultListTp.joinToString(";")
+    }
+
     override fun trackPlaylist(): MltNode = mltGenerator.trackPlaylist()
 
     override fun tractor(): MltNode = mltGenerator.tractor(
-        timecodeIn = mltProp.getSplashStartTimecode(),
-        timecodeOut = mltProp.getSplashEndTimecode()
+        timecodeIn = splashStartTimecode,
+        timecodeOut = splashEndTimecode
     )
 
     override fun template(): MltNode {
-        val songVersion = mltProp.getSongVersion()
-        val chordDescriptionText = mltProp.getSongChordDescription().replace("\n",", ")
 
         var songnameTextFontMlt = Karaoke.splashstartSongNameFont
         var songnameTextFont = songnameTextFontMlt.font
@@ -61,14 +80,14 @@ data class MkoSplashStart(val mltProp: MltProp, val type: ProducerType, val voic
         val commentTextFontMlt = Karaoke.splashstartCommentFont
         val chordDescriptionTextFontMlt = Karaoke.splashstartChordDescriptionFont
 
-        val commentText = "${songVersion.textForDescription}"
+        val commentText = songVersion.textForDescription
         val songversionText = songVersion.text
-        val songnameText = mltProp.getSongName()
+        val songnameText = songName
 
-        val border = (Karaoke.frameHeightPx *0.05).toLong()
-        val pictureScaleCoeff = Karaoke.frameWidthPx / 1920.0
+        val border = (frameHeightPx *0.05).toLong()
+        val pictureScaleCoeff = frameWidthPx / 1920.0
 
-        val albumPictureX = ((Karaoke.frameWidthPx - (400 * pictureScaleCoeff + border + 1000 * pictureScaleCoeff)) / 2).toLong()
+        val albumPictureX = ((frameWidthPx - (400 * pictureScaleCoeff + border + 1000 * pictureScaleCoeff)) / 2).toLong()
         val albumPictureY = border
         val albumPictureW = 400 * pictureScaleCoeff
         val albumPictureH = 400 * pictureScaleCoeff
@@ -80,17 +99,17 @@ data class MkoSplashStart(val mltProp: MltProp, val type: ProducerType, val voic
 
         val commentTextW =  (getTextWidthHeightPx(commentText, commentTextFontMlt.font).first).toLong()
         val commentTextH =  (getTextWidthHeightPx(commentText, commentTextFontMlt.font).second).toLong()
-        val commentTextX = (Karaoke.frameWidthPx - commentTextW) / 2
-        val commentTextY = (Karaoke.frameHeightPx - border/2 - getTextWidthHeightPx("0", commentTextFontMlt.font).second).toLong()
+        val commentTextX = (frameWidthPx - commentTextW) / 2
+        val commentTextY = (frameHeightPx - border/2 - getTextWidthHeightPx("0", commentTextFontMlt.font).second).toLong()
 
         val chordDescriptionTextW =  (getTextWidthHeightPx(chordDescriptionText, chordDescriptionTextFontMlt.font).first).toLong()
         val chordDescriptionTextH =  (getTextWidthHeightPx(chordDescriptionText, chordDescriptionTextFontMlt.font).second).toLong()
-        val chordDescriptionTextX = (Karaoke.frameWidthPx - chordDescriptionTextW) / 2
+        val chordDescriptionTextX = (frameWidthPx - chordDescriptionTextW) / 2
         val chordDescriptionTextY = if (chordDescriptionText != "") (commentTextY - getTextWidthHeightPx("0", chordDescriptionTextFontMlt.font).second).toLong() else commentTextY
 
         val songversionTextW =  (getTextWidthHeightPx(songversionText, songversionTextFontMlt.font).first).toLong()
         val songversionTextH =  (getTextWidthHeightPx(songversionText, songversionTextFontMlt.font).second).toLong()
-        val songversionTextX = (Karaoke.frameWidthPx - songversionTextW) / 2
+        val songversionTextX = (frameWidthPx - songversionTextW) / 2
         val songversionTextY = (chordDescriptionTextY - getTextWidthHeightPx("0", songversionTextFontMlt.font).second).toLong()
 
         var songnameTextY = (border + 400 * pictureScaleCoeff).toLong()
@@ -98,12 +117,46 @@ data class MkoSplashStart(val mltProp: MltProp, val type: ProducerType, val voic
         do {
             songnameTextFont = Font(songnameTextFont.name, songnameTextFont.style, songnameTextFont.size+1)
             val (w,h) = getTextWidthHeightPx(songnameText, songnameTextFont)
-        } while (!(h > songnameTextHmax || w > (Karaoke.frameWidthPx - 2*border)))
+        } while (!(h > songnameTextHmax || w > (mltProp.getFrameWidthPx() - 2*border)))
         songnameTextFontMlt.font = songnameTextFont
         val songnameTextW = (getTextWidthHeightPx(songnameText, songnameTextFontMlt.font).first).toLong()
         val songnameTextH = (getTextWidthHeightPx(songnameText, songnameTextFontMlt.font).second).toLong()
-        val songnameTextX = (Karaoke.frameWidthPx - songnameTextW) / 2
+        val songnameTextX = (frameWidthPx - songnameTextW) / 2
         songnameTextY = (songversionTextY - songnameTextH - (songversionTextY - songnameTextH - songnameTextY)/2)
+
+
+
+        val frameW = 1920
+        val frameH = 1080
+
+        val padding = 50
+        val textAreaW = frameW - 2*padding
+        val textAreaH = 350
+        val albumH = 400
+        val picAreaH = 2*padding + albumH
+
+        val areaText = Picture(
+            params = TextParams(
+                w = textAreaW,
+                h = textAreaH,
+                color = Color(255,255,127,255),
+                text = songnameText,
+                fontName = MAIN_FONT_NAME,
+                fontStyle = 0,
+                fontSize = 50,
+                isCalculatedSize = true,
+                isLineBreak = true
+            )
+        )
+
+        val area = Picture(
+            params = AreaParams(w = frameW, h = frameH, color = Color.BLACK),
+            childs = mutableListOf(
+                PictureChild(x = padding, y = picAreaH - padding, child = areaText)
+            )
+        )
+
+        val multiLines = areaText.multiLines()
 
         val body = mutableListOf<MltNode>()
 
@@ -116,7 +169,7 @@ data class MkoSplashStart(val mltProp: MltProp, val type: ProducerType, val voic
                 ), body = mutableListOf(
                     MltNode(name = "position", fields = mutableMapOf(Pair("x","$authorPictureX"),Pair("y","$authorPictureY")),
                         body = mutableListOf(MltNode(name = "transform", body = "${pictureScaleCoeff},0,0,0,${pictureScaleCoeff},0,0,0,1"))),
-                    MltNode(name = "content", fields = mutableMapOf(Pair("base64", mltProp.getBase64("LogoAuthor"))))
+                    MltNode(name = "content", fields = mutableMapOf(Pair("base64", logoAuthorBase64)))
                 )
             )
         )
@@ -130,24 +183,43 @@ data class MkoSplashStart(val mltProp: MltProp, val type: ProducerType, val voic
                 ), body = mutableListOf(
                     MltNode(name = "position", fields = mutableMapOf(Pair("x","$albumPictureX"),Pair("y","$albumPictureY")),
                         body = mutableListOf(MltNode(name = "transform", body = "${pictureScaleCoeff},0,0,0,${pictureScaleCoeff},0,0,0,1"))),
-                    MltNode(name = "content", fields = mutableMapOf(Pair("base64", mltProp.getBase64("LogoAlbum"))))
+                    MltNode(name = "content", fields = mutableMapOf(Pair("base64", logoAlbumBase64)))
                 )
             )
         )
 
-        body.add(
-            MltNode(
-                name = "item",
-                fields = mutableMapOf(
-                    Pair("type","QGraphicsTextItem"),
-                    Pair("z-index","6"),
-                ), body = mutableListOf(
-                    MltNode(name = "position", fields = mutableMapOf(Pair("x","$songnameTextX"),Pair("y","$songnameTextY")),
-                        body = mutableListOf(MltNode(name = "transform", body = "1,0,0,0,1,0,0,0,1"))),
-                    songnameTextFontMlt.mltNode(songnameText.replace("&","&amp;"))
+        multiLines.forEach { multiLine ->
+            songnameTextFontMlt.font = Font(multiLine.fontName, multiLine.fontStyle, multiLine.fontSize)
+            body.add(
+                MltNode(
+                    name = "item",
+                    fields = mutableMapOf(
+                        Pair("type","QGraphicsTextItem"),
+                        Pair("z-index","6"),
+                    ), body = mutableListOf(
+//                        MltNode(name = "position", fields = mutableMapOf(Pair("x","${multiLine.centerX + padding}"),Pair("y","-50")),
+                        MltNode(name = "position", fields = mutableMapOf(Pair("x","${multiLine.centerX + padding}"),Pair("y","${multiLine.topY + (picAreaH - padding)}")),
+                            body = mutableListOf(MltNode(name = "transform", body = "1,0,0,0,1,0,0,0,1"))),
+                        songnameTextFontMlt.mltNode(multiLine.text.replace("&","&amp;"))
+                    )
                 )
             )
-        )
+
+        }
+
+//        body.add(
+//            MltNode(
+//                name = "item",
+//                fields = mutableMapOf(
+//                    Pair("type","QGraphicsTextItem"),
+//                    Pair("z-index","6"),
+//                ), body = mutableListOf(
+//                    MltNode(name = "position", fields = mutableMapOf(Pair("x","$songnameTextX"),Pair("y","$songnameTextY")),
+//                        body = mutableListOf(MltNode(name = "transform", body = "1,0,0,0,1,0,0,0,1"))),
+//                    songnameTextFontMlt.mltNode(songnameText.replace("&","&amp;"))
+//                )
+//            )
+//        )
 
         body.add(
             MltNode(
@@ -193,8 +265,8 @@ data class MkoSplashStart(val mltProp: MltProp, val type: ProducerType, val voic
             )
         )
 
-        body.add(MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${Karaoke.frameHeightPx}"))))
-        body.add(MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${Karaoke.frameWidthPx},${Karaoke.frameHeightPx}"))))
+        body.add(MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${frameWidthPx},${frameHeightPx}"))))
+        body.add(MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${frameWidthPx},${frameHeightPx}"))))
         body.add(MltNode(name = "background", fields = mutableMapOf(Pair("color","0,0,0,0"))))
 
         return MltNode(
@@ -202,8 +274,8 @@ data class MkoSplashStart(val mltProp: MltProp, val type: ProducerType, val voic
             fields = mutableMapOf(
                 Pair("duration","0"),
                 Pair("LC_NUMERIC","C"),
-                Pair("width","${Karaoke.frameWidthPx}"),
-                Pair("height","${Karaoke.frameHeightPx}"),
+                Pair("width","$frameWidthPx"),
+                Pair("height","$frameHeightPx"),
                 Pair("out","0"),
             ),
             body = body

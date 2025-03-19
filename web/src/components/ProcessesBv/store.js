@@ -61,16 +61,17 @@ export default {
         addProcessByUserEvent(state, userEventData) {
             console.log('mutations addProcessByUserEvent from store.js ProcessesBv')
             console.log('Событие добавления процесса: ', userEventData)
-            let processId = userEventData.recordId;
-            let processPriority = userEventData.record.priority;
-            for (let i = 0; i < state.processesDigest.length; i++) {
-                let processInDigest = state.processesDigest[i];
-                if (processPriority < processInDigest.priority || (processPriority === processInDigest.priority && processId < processInDigest.id)) {
-                    state.processesDigest.splice(i,0,userEventData.record);
-                    return;
-                }
-            }
-            state.processesDigest.splice(state.processesDigest.length-1,0,userEventData.record);
+            console.log('Процесс добавлен не будет, установлена заглушка.')
+            // let processId = userEventData.recordId;
+            // let processPriority = userEventData.record.priority;
+            // for (let i = 0; i < state.processesDigest.length; i++) {
+            //     let processInDigest = state.processesDigest[i];
+            //     if (processPriority < processInDigest.priority || (processPriority === processInDigest.priority && processId < processInDigest.id)) {
+            //         state.processesDigest.splice(i,0,userEventData.record);
+            //         return;
+            //     }
+            // }
+            // state.processesDigest.splice(state.processesDigest.length-1,0,userEventData.record);
         },
         deleteProcessByUserEvent(state, userEventData) {
             console.log('Событие удаления процесса: ', userEventData)

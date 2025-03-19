@@ -60,7 +60,7 @@ class Author(val database: KaraokeConnection = WORKING_DATABASE) : Serializable,
         fieldsValues.add(Pair("last_album_processed", author.lastAlbumProcessed))
         fieldsValues.add(Pair("watched", author.watched))
 
-        return "INSERT INTO tbl_authors (${fieldsValues.map {it.first}.joinToString(", ")}) OVERRIDING SYSTEM VALUE VALUES(${fieldsValues.map {if (it.second is Long) "${it.second}" else "'${it.second.toString().rightFileName()}'"}.joinToString(", ")})"
+        return "INSERT INTO tbl_authors (${fieldsValues.map {it.first}.joinToString(", ")}) OVERRIDING SYSTEM VALUE VALUES(${fieldsValues.map {if (it.second is Long) "${it.second}" else "'${it.second.toString().replace("'","''")}'"}.joinToString(", ")})"
 
     }
 

@@ -10,7 +10,7 @@ data class MkoMainBin(val mltProp: MltProp, val type: ProducerType, val voiceId:
 
     private val timelineStartTimecode = mltProp.getTimelineStartTimecode()
     private val timelineEndTimecode = mltProp.getTimelineEndTimecode()
-    private val totalEndTimecode = mltProp.getTotalEndTimecode()
+    private val totalEndTimecode = mltProp.getBackgroundEndTimecode()
     private val songEndTimecode = mltProp.getSongEndTimecode()
     private val countAllTracks = mltProp.getCountAllTracks()
     private val countAudioTracks = mltProp.getCountAudioTracks()
@@ -109,7 +109,6 @@ data class MkoMainBin(val mltProp: MltProp, val type: ProducerType, val voiceId:
                         val childId = mis.childId
                         val elementId = mis.elementId
 
-                        println("mis: type = ${type}, voiceId = ${voiceId}, childId = ${childId}, elementId = ${elementId}")
                         val uuid = if (type.isSequence) {
                             if (elementId >= 0) {
                                 mltProp.getUUID(listOf(type, voiceId, childId, elementId))

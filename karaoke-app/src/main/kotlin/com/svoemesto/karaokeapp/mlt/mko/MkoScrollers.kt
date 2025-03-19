@@ -20,7 +20,7 @@ data class MkoScrollers(val mltProp: MltProp, val type: ProducerType, val voiceI
                 .propertyName("resource", 0)
                 .propertyName("aspect_ratio", 1)
                 .propertyName("mlt_service", "color")
-                .propertyName("kdenlive:duration", mltProp.getTotalEndTimecode())
+                .propertyName("kdenlive:duration", mltProp.getBackgroundEndTimecode())
                 .propertyName("mlt_image_format", "rgba")
                 .propertyName("kdenlive:playlistid", "black_track")
                 .propertyName("set.test_audio", 0)

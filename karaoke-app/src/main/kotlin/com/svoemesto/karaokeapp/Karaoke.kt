@@ -133,7 +133,42 @@ data class KaraokePropertyDTO(
 class Karaoke : Serializable {
     companion object {
 
+        // Время последнего запроса поиска новой песни
+        var requestNewSongLastTimeMs: Long
+            get() = KaraokeProperties.getLong("requestNewSongLastTimeMs")
+            set(value) { KaraokeProperties.set("requestNewSongLastTimeMs", value) }
+        var requestNewSongLastTimeCode: String
+            get() = KaraokeProperties.getString("requestNewSongLastTimeCode")
+            set(value) { KaraokeProperties.set("requestNewSongLastTimeCode", value) }
 
+        // Время последнего удачного запроса поиска новой песни
+        var requestNewSongLastSuccessTimeMs: Long
+            get() = KaraokeProperties.getLong("requestNewSongLastSuccessTimeMs")
+            set(value) { KaraokeProperties.set("requestNewSongLastSuccessTimeMs", value) }
+        var requestNewSongLastSuccessTimeCode: String
+            get() = KaraokeProperties.getString("requestNewSongLastSuccessTimeCode")
+            set(value) { KaraokeProperties.set("requestNewSongLastSuccessTimeCode", value) }
+
+        // Автор последнего удачного запроса поиска новой песни
+        var requestNewSongLastSuccessAuthor: String
+            get() = KaraokeProperties.getString("requestNewSongLastSuccessAuthor")
+            set(value) { KaraokeProperties.set("requestNewSongLastSuccessAuthor", value) }
+        var requestNewSongLastAuthor: String
+            get() = KaraokeProperties.getString("requestNewSongLastAuthor")
+            set(value) { KaraokeProperties.set("requestNewSongLastAuthor", value) }
+
+        // На сколько увеличивать задержку между запросами в случае неудачи
+        var requestNewSongTimeoutIncreaseMs: Long
+            get() = KaraokeProperties.getLong("requestNewSongTimeoutIncreaseMs")
+            set(value) { KaraokeProperties.set("requestNewSongTimeoutIncreaseMs", value) }
+
+        // Задержка между запросами поиска новых песен автора
+        var requestNewSongTimeoutMs: Long
+            get() = KaraokeProperties.getLong("requestNewSongTimeoutMs")
+            set(value) { KaraokeProperties.set("requestNewSongTimeoutMs", value) }
+        var requestNewSongTimeoutMin: Long
+            get() = KaraokeProperties.getLong("requestNewSongTimeoutMin")
+            set(value) { KaraokeProperties.set("requestNewSongTimeoutMin", value) }
 
         //Автосохранение
         var autoSave: Boolean
@@ -299,6 +334,11 @@ class Karaoke : Serializable {
             get() = getColorsFromString(KaraokeProperties.getString("horizonColors"))
             set(value) { KaraokeProperties.set("horizonColors", value.setting()) }
 
+        // Цвет линии разделителя слогов
+        var separLineColor: Color
+            get() = getColorFromString(KaraokeProperties.getString("separLineColor"))
+            set(value) { KaraokeProperties.set("separLineColor", value.setting()) }
+
         // Цвет горизонта
         var horizonColor: Color
             get() = getColorFromString(KaraokeProperties.getString("horizonColor"))
@@ -340,6 +380,33 @@ class Karaoke : Serializable {
         var chordsHeightCoefficient: Double
             get() = KaraokeProperties.getDouble("chordsHeightCoefficient")
             set(value) { KaraokeProperties.set("chordsHeightCoefficient", value) }
+
+
+        // Фонт ноты
+        var melodyNoteFont: MltText
+            get() = getMltFontFromString(KaraokeProperties.getString("melodyNoteFont"))
+            set(value) { KaraokeProperties.set("melodyNoteFont", value.setting()) }
+
+        // Коэффициэнт размера шрифта ноты относительно размера шрифта текста песни
+        var melodyNoteHeightCoefficient: Double
+            get() = KaraokeProperties.getDouble("melodyNoteHeightCoefficient")
+            set(value) { KaraokeProperties.set("melodyNoteHeightCoefficient", value) }
+
+        // Коэффициэнт оффсета размера шрифта ноты относительно размера шрифта текста песни
+        var melodyNoteHeightOffsetCoefficient: Double
+            get() = KaraokeProperties.getDouble("melodyNoteHeightOffsetCoefficient")
+            set(value) { KaraokeProperties.set("melodyNoteHeightOffsetCoefficient", value) }
+
+        // Фонт октавы
+        var melodyOctaveFont: MltText
+            get() = getMltFontFromString(KaraokeProperties.getString("melodyOctaveFont"))
+            set(value) { KaraokeProperties.set("melodyOctaveFont", value.setting()) }
+
+        // Коэффициэнт размера шрифта октавы относительно размера шрифта текста песни
+        var melodyOctaveHeightCoefficient: Double
+            get() = KaraokeProperties.getDouble("melodyOctaveHeightCoefficient")
+            set(value) { KaraokeProperties.set("melodyOctaveHeightCoefficient", value) }
+
 
         // Фонт каподастра
         var chordsCapoFont: MltText

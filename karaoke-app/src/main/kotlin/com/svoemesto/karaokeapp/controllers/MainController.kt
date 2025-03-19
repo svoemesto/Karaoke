@@ -290,7 +290,6 @@ class MainController {
     @GetMapping("/song/{id}/playlyrics")
     @ResponseBody
     fun doPlayLyrics(@PathVariable id: Long): Int {
-        println("doPlayLyrics")
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         settings?.let {
             settings.playLyrics()
@@ -301,7 +300,6 @@ class MainController {
     @GetMapping("/song/{id}/playkaraoke")
     @ResponseBody
     fun doPlayKaraoke(@PathVariable id: Long): Int {
-        println("doPlayKaraoke")
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         settings?.let {
             settings.playKaraoke()
@@ -312,7 +310,6 @@ class MainController {
     @GetMapping("/song/{id}/playchords")
     @ResponseBody
     fun doPlayChords(@PathVariable id: Long): Int {
-        println("doPlayChords")
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         settings?.let {
             settings.playChords()
@@ -346,7 +343,6 @@ class MainController {
     @GetMapping("/song/{id}/doprocesslyrics")
     @ResponseBody
     fun doProcessLyrics(@PathVariable id: Long): Int {
-        println("doProcessLyrics")
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         settings?.let {
             return KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, 0)
@@ -357,7 +353,6 @@ class MainController {
     @GetMapping("/song/{id}/doprocesskaraoke")
     @ResponseBody
     fun doProcessKaraoke(@PathVariable id: Long): Int {
-        println("doProcessKaraoke")
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         settings?.let {
             return KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, 1)
@@ -368,7 +363,6 @@ class MainController {
     @GetMapping("/song/{id}/doprocesschords")
     @ResponseBody
     fun doProcessChords(@PathVariable id: Long): Int {
-        println("doProcessChords")
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         settings?.let {
             if (Song(settings, SongVersion.LYRICS).hasChords) {
@@ -381,7 +375,6 @@ class MainController {
     @GetMapping("/song/{id}/doprocessall")
     @ResponseBody
     fun doProcessAll(@PathVariable id: Long): List<Int> {
-        println("doProcessAll")
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val result: MutableList<Int> = mutableListOf()
         settings?.let {
@@ -398,7 +391,6 @@ class MainController {
     @GetMapping("/song/{id}/doprocessallwolyrics")
     @ResponseBody
     fun doProcessAllWOLyrics(@PathVariable id: Long): List<Int> {
-        println("doProcessAllWOLyrics")
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val result: MutableList<Int> = mutableListOf()
         settings?.let {
@@ -414,7 +406,6 @@ class MainController {
     @GetMapping("/song/{id}/dodemucs2")
     @ResponseBody
     fun doProcessDemucs2(@PathVariable id: Long): Int {
-        println("doProcessDemucs2")
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         settings?.let {
             return  KaraokeProcess.createProcess(settings, KaraokeProcessTypes.DEMUCS2, true, -1)
@@ -549,13 +540,6 @@ class MainController {
         val markersValue = Json.encodeToString(settings!!.getSourceMarkers(voice))
         val syllablesValue = Json.encodeToString(settings!!.getSourceSyllables(voice))
 
-        println(settings!!.getSourceText(voice))
-        println(settings!!.getSourceMarkers(voice))
-        println(settings!!.getSourceSyllables(voice))
-
-        println(textValue)
-        println(markersValue)
-        println(syllablesValue)
         model.addAttribute("workInContainer", APP_WORK_IN_CONTAINER)
         model.addAttribute("settings", settings)
         model.addAttribute("text", settings!!.getSourceText(voice))
@@ -686,7 +670,6 @@ class MainController {
     fun getReplaceSymbolsInSong(@RequestParam(required = true) txt: String): String {
 //        println(txt)
         val result = replaceSymbolsInSong(txt)
-        println(result)
         return result
     }
 

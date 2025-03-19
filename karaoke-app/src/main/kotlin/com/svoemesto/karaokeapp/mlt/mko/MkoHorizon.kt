@@ -18,6 +18,7 @@ data class MkoHorizon(val mltProp: MltProp, val type: ProducerType, val voiceId:
     private val songFadeOutTimecode = mltProp.getSongFadeOutTimecode()
     private val horizonPositionYPx = mltProp.getPositionYPx(ProducerType.HORIZON)
     private val symbolHeightPx = mltProp.getSymbolHeightPx()
+    private val fontSize = mltProp.getFontSize()
     private val inOffsetVideo = mltProp.getInOffsetVideo()
     private val songLengthMs = mltProp.getLengthMs("Song") + mltProp.getSettings()!!.getStartSilentOffsetMs()
     private val textLines = mltProp.getSettings()!!.voicesForMlt[0].textLines(songVersion)
@@ -73,6 +74,16 @@ data class MkoHorizon(val mltProp: MltProp, val type: ProducerType, val voiceId:
 
         val voiceLines = mltProp.getVoicelines(listOf(ProducerType.SONGTEXT,0))
 
+        val haveNotes = songVersion.producers.contains(ProducerType.MELODYNOTE)
+        val deltaY = if (haveNotes) {
+            val sylFontSize = fontSize
+            val melodyNoteFontSize = (sylFontSize * Karaoke.melodyNoteHeightCoefficient).toInt()
+            val melodyNoteMltTextHeight = Karaoke.melodyNoteFont.copy("C", melodyNoteFontSize).h()
+            (melodyNoteMltTextHeight * Karaoke.melodyNoteHeightOffsetCoefficient).toInt() / 2
+        } else {
+            0
+        }
+
         if (Karaoke.paintHorizon) {
             textLines.forEach { textLine ->
 
@@ -91,7 +102,7 @@ data class MkoHorizon(val mltProp: MltProp, val type: ProducerType, val voiceId:
                                 name = "position",
                                 fields = mutableMapOf(
                                     Pair("x","0"),
-                                    Pair("y","$horizonPositionYPx"),
+                                    Pair("y","${horizonPositionYPx + deltaY}"),
                                 ),
                                 body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(Pair("zoom","100")), body = "1,0,0,0,1,0,0,0,1"))
                             ),
@@ -136,7 +147,7 @@ data class MkoHorizon(val mltProp: MltProp, val type: ProducerType, val voiceId:
                             name = "position",
                             fields = mutableMapOf(
                                 Pair("x","0"),
-                                Pair("y","$horizonPositionYPx")
+                                Pair("y","${horizonPositionYPx + deltaY}")
                             ),
                             body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(Pair("zoom","100")), body = "1,0,0,0,1,0,0,0,1"))
                         ),
@@ -163,7 +174,7 @@ data class MkoHorizon(val mltProp: MltProp, val type: ProducerType, val voiceId:
                             name = "position",
                             fields = mutableMapOf(
                                 Pair("x","0"),
-                                Pair("y","${horizonPositionYPx - symbolHeightPx - 6}")
+                                Pair("y","${horizonPositionYPx - symbolHeightPx + Karaoke.horizonOffsetPx - deltaY + 3}")
                             ),
                             body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(Pair("zoom","100")), body = "1,0,0,0,1,0,0,0,1"))
                         ),

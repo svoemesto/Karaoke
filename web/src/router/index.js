@@ -10,6 +10,7 @@ import UnpublicationsView from '../views/UnpublicationsView'
 import ZakromaView from '../views/ZakromaView'
 import ProcessesView from '../views/ProcessesView'
 import ProcessesBvView from '../views/ProcessesBvView'
+import PropertiesBvView from '../views/PropertiesBvView'
 
 Vue.use(VueRouter)
 
@@ -59,13 +60,17 @@ const routes = [
     name: 'processes',
     component: ProcessesView
     // component: () => import(/* webpackChunkName: "about" */ '../views/ProcessesView.vue')
-  }
-  ,
+  },
   {
     path: '/processesbv',
     name: 'processesbv',
     component: ProcessesBvView
     // component: () => import(/* webpackChunkName: "about" */ '../views/ProcessesView.vue')
+  },
+  {
+    path: '/propertiesbv',
+    name: 'propertiesbv',
+    component: PropertiesBvView
   }
 ]
 

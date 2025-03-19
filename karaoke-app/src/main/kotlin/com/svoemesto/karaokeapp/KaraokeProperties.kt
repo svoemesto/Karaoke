@@ -86,6 +86,16 @@ class KaraokeProperties {
             }
         }
 
+        fun types() : List<String> {
+            return listOf(
+                "Long",
+                "Int",
+                "Double",
+                "Boolean",
+                "String"
+            )
+        }
+
         fun getDTO(key: String): KaraokePropertyDTO {
             val value = get(key) ?: return KaraokePropertyDTO()
             val defaultValue = listKaraokeProperties.firstOrNull { it.key == key }?.defaultValue ?: return KaraokePropertyDTO()
@@ -106,6 +116,16 @@ class KaraokeProperties {
         }
 
         fun getDTOs(): List<KaraokePropertyDTO> = listKaraokeProperties.map { getDTO(it.key) }
+
+        fun loadList(args: Map<String, String> = emptyMap()): List<KaraokePropertyDTO> {
+            var lst = getDTOs()
+            if (args.containsKey("key")) lst = lst.filter { it.key.contains(args["key"]!!) }
+            if (args.containsKey("value")) lst = lst.filter { it.value.contains(args["value"]!!) }
+            if (args.containsKey("default_value")) lst = lst.filter { it.defaultValue.contains(args["default_value"]!!) }
+            if (args.containsKey("description")) lst = lst.filter { it.description.contains(args["description"]!!) }
+            if (args.containsKey("type")) lst = lst.filter { it.type.contains(args["type"]!!) }
+            return lst
+        }
 
         fun set(key: String, value: Any) {
             val valueInMap = get(key)
@@ -141,6 +161,15 @@ class KaraokeProperties {
 val karaokePropertiesMap: MutableMap<String, Any> = mutableMapOf()
 
 val listKaraokeProperties = listOf(
+    KaraokeProperty(key = "requestNewSongLastTimeMs", defaultValue = 0L, description = "Время последнего запроса поиска новой песни (миллисекунды)"),
+    KaraokeProperty(key = "requestNewSongLastTimeCode", defaultValue = "", description = "Время последнего запроса поиска новой песни"),
+    KaraokeProperty(key = "requestNewSongLastSuccessTimeMs", defaultValue = 0L, description = "Время последнего удачного запроса поиска новой песни (миллисекунды)"),
+    KaraokeProperty(key = "requestNewSongLastSuccessTimeCode", defaultValue = "", description = "Время последнего удачного запроса поиска новой песни"),
+    KaraokeProperty(key = "requestNewSongLastSuccessAuthor", defaultValue = "", description = "Автор последнего удачного запроса поиска новой песни"),
+    KaraokeProperty(key = "requestNewSongLastAuthor", defaultValue = "", description = "Автор последнего запроса поиска новой песни"),
+    KaraokeProperty(key = "requestNewSongTimeoutIncreaseMs", defaultValue = 600_000L, description = "На сколько увеличивать задержку между запросами в случае неудачи"),
+    KaraokeProperty(key = "requestNewSongTimeoutMs", defaultValue = 600_000L, description = "Задержка между запросами поиска новых песен автора (миллисекунды)"),
+    KaraokeProperty(key = "requestNewSongTimeoutMin", defaultValue = 10L, description = "Задержка между запросами поиска новых песен автора (минуты)"),
     KaraokeProperty(key = "autoSave", defaultValue = true, description = "Автосохранение"),
     KaraokeProperty(key = "autoSaveDelayMs", defaultValue = 1000L, description = "Время (в миллисекундах) задержки перед автосохранением"),
     KaraokeProperty(key = "backgroundFolderPath", defaultValue = "/home/nsa/Documents/SpaceBox4096", description = "Путь к папке с фонами"),
@@ -191,6 +220,7 @@ val listKaraokeProperties = listOf(
         ).setting(),
         description = "Цвета горизонта для групп"
     ),
+    KaraokeProperty(key = "separLineColor", defaultValue = Color(255,255,255,60).setting(), description = "Цвет линии разделителя слогов"),
     KaraokeProperty(key = "horizonColor", defaultValue = Color(0,255,0,255).setting(), description = "Цвет горизонта"),
     KaraokeProperty(key = "flashColor", defaultValue = Color(255,0,0,255).setting(), description = "Цвет флеша горизонта"),
     KaraokeProperty(
@@ -223,7 +253,7 @@ val listKaraokeProperties = listOf(
     KaraokeProperty(
         key = "chordsFont",
         defaultValue = MltText(
-            font = Font("Fira Sans Extra Condensed Medium", 0, 80),
+            font = Font(CHORDS_FONT_NAME, 0, 80),
             shapeColor = Color(255,127,127,255),
             shapeOutlineColor = Color(0,0,0,255),
             shapeOutline = 0,
@@ -233,9 +263,34 @@ val listKaraokeProperties = listOf(
     ),
     KaraokeProperty(key = "chordsHeightCoefficient", defaultValue = 0.72, description = "Коэффициэнт размера шрифта аккорда относительно размера шрифта текста песни"),
     KaraokeProperty(
+        key = "melodyNoteFont",
+        defaultValue = MltText(
+            font = Font(MELODY_NOTE_FONT_NAME, 0, 80),
+            shapeColor = Color(255,127,127,255),
+            shapeOutlineColor = Color(0,0,0,255),
+            shapeOutline = 0,
+            fontUnderline = 0
+        ).setting(),
+        description = "Фонт ноты"
+    ),
+    KaraokeProperty(key = "melodyNoteHeightCoefficient", defaultValue = 0.72, description = "Коэффициэнт размера шрифта ноты относительно размера шрифта текста песни"),
+    KaraokeProperty(key = "melodyNoteHeightOffsetCoefficient", defaultValue = 0.72, description = "Коэффициэнт оффсета размера шрифта ноты относительно размера шрифта текста песни"),
+    KaraokeProperty(
+        key = "melodyOctaveFont",
+        defaultValue = MltText(
+            font = Font(MELODY_OCTAVE_FONT_NAME, 0, 80),
+            shapeColor = Color(127,127,127,255),
+            shapeOutlineColor = Color(0,0,0,255),
+            shapeOutline = 0,
+            fontUnderline = 0
+        ).setting(),
+        description = "Фонт октавы"
+    ),
+    KaraokeProperty(key = "melodyOctaveHeightCoefficient", defaultValue = 0.72, description = "Коэффициэнт размера шрифта октавы относительно размера шрифта текста песни"),
+    KaraokeProperty(
         key = "chordsCapoFont",
         defaultValue = MltText(
-            font = Font("Fira Sans Extra Condensed Medium", 0, 35),
+            font = Font(CHORDS_CAPO_FONT_NAME, 0, 35),
             shapeColor = Color(255,127,127,255),
             shapeOutlineColor = Color(255,127,127,255),
             shapeOutline = 0,

@@ -47,7 +47,6 @@ class KaraokeProcessThread(val karaokeProcess: KaraokeProcess? = null, var perce
                     if (matchResult != null) {
                         val currentFrame = matchResult.groupValues[1]
                         val percentage = matchResult.groupValues[2]
-    //                    println("Current Frame: $currentFrame, percentage: $percentage")
                         this.percentage = percentage
                     } else {
                         if (duration != null) {
@@ -70,7 +69,6 @@ class KaraokeProcessThread(val karaokeProcess: KaraokeProcess? = null, var perce
                         }
                     }
                     line = reader.readLine()
-//                    println(line)
                 }
                 if (log != "") {
                     val logFileName = "$PATH_TO_LOGS/[${Timestamp.from(Instant.now())}] ${karaokeProcess.name} - ${karaokeProcess.description}.log".rightFileName()
@@ -172,15 +170,50 @@ class KaraokeProcessWorker {
 
             val intervalCheckDummy = 6_000
             val intervalCheckFiles = 24_000
+            var requestNewSongTimeoutMs = Karaoke.requestNewSongTimeoutMs
+            var requestNewSongLastTimeMs = Karaoke.requestNewSongLastTimeMs
 
             isWork = true
             stopAfterThreadIsDone = false
             sendStateMessage()
             while (isWork) {
 
+                val currentTimeMs = System.currentTimeMillis()
+                if (requestNewSongLastTimeMs + requestNewSongTimeoutMs < currentTimeMs) {
+                    requestNewSongLastTimeMs = currentTimeMs
+                    val (authorForRequest, album, reason) = checkLastAlbumYm()
+                    if (reason >= 0) {
+                        // Удачный запрос (может быть найден новый альбом)
+                        Karaoke.requestNewSongLastSuccessAuthor = authorForRequest
+                        Karaoke.requestNewSongLastSuccessTimeMs = currentTimeMs
+                        Karaoke.requestNewSongLastSuccessTimeCode = millisecondsToTimeFormatted(currentTimeMs)
+                        if (reason == 1) {
+                            // Найден новый альбом - сообщим об этом в сообщении
+                            SNS.send(SseNotification.message(Message(
+                                type = "info",
+                                head = "Новый альбом",
+                                body = "У автора «$authorForRequest» найден новый альбом «$album»"
+                            )))
+                        }
+                    } else if (reason == -1) {
+                        // Неудачный запрос, увеличиваем время таймаута
+                        requestNewSongTimeoutMs += Karaoke.requestNewSongTimeoutIncreaseMs
+                        Karaoke.requestNewSongTimeoutMs = requestNewSongTimeoutMs
+                        Karaoke.requestNewSongTimeoutMin = requestNewSongTimeoutMs / 60_000L
+                    } else {
+                        // Не удалось найти автора! - считаем что запрос был удачный, не нужно увеличивать таймаут
+                        Karaoke.requestNewSongLastSuccessTimeMs = currentTimeMs
+                        Karaoke.requestNewSongLastSuccessTimeCode = millisecondsToTimeFormatted(currentTimeMs)
+                    }
+                    Karaoke.requestNewSongLastTimeMs = requestNewSongLastTimeMs
+                    Karaoke.requestNewSongLastTimeCode = millisecondsToTimeFormatted(requestNewSongLastTimeMs)
+                    Karaoke.requestNewSongLastAuthor = authorForRequest
+                }
+
                 if (counter % (intervalCheckDummy / timeout) == 0L) {
                     SNS.send(SseNotification.dummy())
                 }
+
                 counter++
                 if (!withoutControl) {
                     Thread.sleep(timeout)

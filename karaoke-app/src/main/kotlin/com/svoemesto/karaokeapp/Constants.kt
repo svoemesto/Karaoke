@@ -33,6 +33,10 @@ val delimiterNames = "|[NAME]|"
 
 //const val MAIN_FONT_NAME = "Roboto"
 const val MAIN_FONT_NAME = "Roboto Black"
+const val CHORDS_FONT_NAME = "Fira Sans Extra Condensed Medium"
+const val CHORDS_CAPO_FONT_NAME = "Fira Sans Extra Condensed Medium"
+const val MELODY_NOTE_FONT_NAME = "Fira Sans Extra Condensed Medium"
+const val MELODY_OCTAVE_FONT_NAME = "Fira Sans Extra Condensed Medium"
 //const val MAIN_FONT_NAME = "Ubuntu Light"
 //const val MAIN_FONT_NAME = "Montserrat SemiBold"
 const val LINE_SPACING = 0L
@@ -146,6 +150,8 @@ val producerTypeClass = mapOf(
     ProducerType.ELEMENT to MkoElement::class.java,
     ProducerType.STRING to MkoString::class.java,
     ProducerType.FILL to MkoFill::class.java,
+    ProducerType.SEPAR to MkoSepar::class.java,
+    ProducerType.MELODYNOTE to MkoMelodyNote::class.java,
 
 )
 

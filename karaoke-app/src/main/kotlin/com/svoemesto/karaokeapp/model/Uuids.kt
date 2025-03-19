@@ -50,8 +50,6 @@ class Uuids(var id: Int, var uuid: String, val database: KaraokeConnection = WOR
         fun createDbInstance(uuid: Uuids, database: KaraokeConnection) : Uuids? {
             val sql = uuid.getSqlToInsert()
 
-            println(sql)
-
             val connection = database.getConnection()
             val ps = connection.prepareStatement(sql)
             ps.executeUpdate(sql, Statement.RETURN_GENERATED_KEYS ) //, Statement.RETURN_GENERATED_KEYS)

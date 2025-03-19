@@ -365,11 +365,13 @@ class KaraokeProcess(
                     KaraokeProcessTypes.MELT_CHORDS.name -> {
                         if (settings.statusProcessChords != status) {
                             settings.statusProcessChords = status
-                            if (settings.statusProcessLyrics == KaraokeProcessStatuses.DONE.name &&
-                                settings.statusProcessKaraoke == KaraokeProcessStatuses.DONE.name &&
-                                settings.idStatus == 4L) {
-                                settings.fields[SettingField.ID_STATUS] = "6"
-                            }
+                            settings.saveToDb()
+                        } else {}
+                    }
+
+                    KaraokeProcessTypes.MELT_MELODY.name -> {
+                        if (settings.statusProcessMelody != status) {
+                            settings.statusProcessMelody = status
                             settings.saveToDb()
                         } else {}
                     }
@@ -653,7 +655,6 @@ class KaraokeProcess(
 
             var wasWorking = false
             existedProcesses.forEach { existedProcess ->
-                println(existedProcess.id)
                 if (existedProcess.status != KaraokeProcessStatuses.WORKING.name) {
                     delete(existedProcess.id, settings.database)
                 } else {
@@ -931,6 +932,17 @@ class KaraokeProcess(
                                 "melt",
                                 "-progress",
                                 "${settings.rootFolder}/done_projects/${settings.rightSettingFileName} [chords].mlt".rightFileName()
+                            )
+                        )
+                    }
+                    KaraokeProcessTypes.MELT_MELODY -> {
+                        description = "Кодирование MELODY"
+                        prioritet = 19
+                        args = listOf(
+                            listOf(
+                                "melt",
+                                "-progress",
+                                "${settings.rootFolder}/done_projects/${settings.rightSettingFileName} [melody].mlt".rightFileName()
                             )
                         )
                     }
@@ -1299,6 +1311,54 @@ class KaraokeProcess(
                             "MP3 LYRICS"
                         )
                     }
+
+                    KaraokeProcessTypes.MELT_LYRICSVK -> {
+                        description = "Кодирование LYRICSVK"
+                        prioritet = 19
+                        args = listOf(
+                            listOf(
+                                "melt",
+                                "-progress",
+                                "${settings.rootFolder}/done_projects/${settings.rightSettingFileName} [lyricsVk].mlt".rightFileName()
+                            )
+                        )
+
+                    }
+                    KaraokeProcessTypes.MELT_KARAOKEVK -> {
+                        description = "Кодирование KARAOKEVK"
+                        prioritet = 19
+                        args = listOf(
+                            listOf(
+                                "melt",
+                                "-progress",
+                                "${settings.rootFolder}/done_projects/${settings.rightSettingFileName} [karaokeVk].mlt".rightFileName()
+                            )
+                        )
+                    }
+                    KaraokeProcessTypes.MELT_CHORDSVK -> {
+                        description = "Кодирование CHORDSVK"
+                        prioritet = 19
+                        args = listOf(
+                            listOf(
+                                "melt",
+                                "-progress",
+                                "${settings.rootFolder}/done_projects/${settings.rightSettingFileName} [chordsVk].mlt".rightFileName()
+                            )
+                        )
+                    }
+                    KaraokeProcessTypes.MELT_MELODYVK -> {
+                        description = "Кодирование MELODYVK"
+                        prioritet = 19
+                        args = listOf(
+                            listOf(
+                                "melt",
+                                "-progress",
+                                "${settings.rootFolder}/done_projects/${settings.rightSettingFileName} [melodyVk].mlt".rightFileName()
+                            )
+                        )
+                    }
+
+
                     else -> {}
                 }
             }
@@ -1316,7 +1376,6 @@ class KaraokeProcess(
             val result: MutableList<KaraokeProcess> = mutableListOf()
 
             parentProcess.args.forEachIndexed { index, childArgs ->
-                println(childArgs)
                 val desc = if (parentProcess.args.size == parentProcess.argsDescription.size) {
                     parentProcess.argsDescription[index]
                 } else {

@@ -66,6 +66,10 @@
                 <div class="item-left-label">Chord:</div>
                 <input class="item-left-input-field" v-model="currentMarker.chord" @focus="setEditMode(false)" @blur="setEditMode(true)">
               </div>
+              <div class="item-left-label-and-input">
+                <div class="item-left-label">String|Lad:</div>
+                <input class="item-left-input-field" v-model="currentMarker.stringlad" @focus="setEditMode(false)" @blur="setEditMode(true)">
+              </div>
             </div>
             <div class="item-waveform" id="waveform"></div>
             <div class="item-right-waveform"></div>
@@ -271,6 +275,7 @@ export default {
         label: '',
         note: '',
         chord: '',
+        stringlad: '',
         position: '',
         color: ''
       },
@@ -292,6 +297,7 @@ export default {
       playSpeed: 1.0,
       isEditMode: false,
       isPlaying: false,
+      pressedMidiNotes: new Set(),
       pressedX: false, // play/pause, X
       pressedA: false, // play назад, A
       pressedD: false, // play вперёд, D
@@ -697,67 +703,84 @@ export default {
             break;
           }
           case 'syllables': {
+            // Если слог
             let txt = '';
             let txtHtml = '';
             let endOfWord = true;
+            // Если в маркере не пустой лейбл (т.е. есть слог)
             if (marker.label) {
-              endOfWord = marker.label.endsWith('_');
-              txt = marker.label.replaceAll('_', ' ');
+              endOfWord = marker.label.endsWith('_'); // Это конец слова если слог заканчивается подчёркиванием
+              txt = marker.label.replaceAll('_', ' '); // Заменяем подчеркивания на пробелы
               txtHtml = marker.label.replaceAll('_', '&nbsp;');
+              // Если был перенос строки - инициализируем новые переменны (3 пробела + слог и начало струн)
               if (wasBr) {
                 txt = '   ' + this.uppercaseFirstLetter(txt);
                 txtHtml = '&nbsp;&nbsp;&nbsp;' + this.uppercaseFirstLetter(txtHtml);
                 strings = ['E‖⎼','B‖⎼','G‖⎼','D‖⎼','A‖⎼','e‖⎼'];
               }
             } else {
+              // Если в маркере пустой лейбл - пробел в тексте
               txt = ' ';
               txtHtml = '&nbsp;';
             }
             let note = '';
             let noteHtml = '';
             let noteOctave = '';
-            let stringNote = ['⎼⎼','⎼⎼','⎼⎼','⎼⎼','⎼⎼','⎼⎼'];
+            let stringNote = ['⎼⎼','⎼⎼','⎼⎼','⎼⎼','⎼⎼','⎼⎼']; // Выделяем по 2 черты на ноту на струне
+
+            // Если в маркере есть нота
             if (marker.note) {
+              // Находим ноту и октаву ноты
               const noteParts = marker.note.split('|');
               note = noteParts[0];
               noteHtml = noteParts[0];
               if (noteParts.length > 1) {
                 noteOctave = noteParts[1];
               }
+              const noteLength = note.length;
+              // Находим номер струны и номер лада, подставляем их в массив stringNote
               const sn = stringsForAllNotes[stringsForAllNotesIndex];
+              // const stringlad = sn[0] + '|' + sn[1];
+              marker.stringlad = sn[0] + '|' + sn[1];
               let stringIndex = sn[0];
               let lad = sn[1] + (sn[1] < 10 ? '⎼' : '');
               stringNote.splice(stringIndex, 1, lad);
               stringsForAllNotesIndex++;
+
+              // Находим позицию гласной буквы в слоге (0 - если гласная первая или если её нет)
+              let vowelPosition = 0;
+              for (let i = 0; i < txt.length; i++) {
+                if ('ЁУЕЫАОЭЯИЮёуеыаоэяиюEUIOAeuioaїієѣ'.includes(txt[i])) {
+                  vowelPosition = i;
+                  break;
+                }
+              }
+              // Добавляем пробелы перед названием ноты (по позиции гласной)
+              for (let i = 0; i < vowelPosition; i++) {
+                note = ' ' + note;
+                noteHtml = '&nbsp;' + noteHtml;
+              }
+
+              let diff = 0;
+              if (wasBr) {
+                diff = 3;
+                wasBr = false;
+              }
+              for (let i = 0; i < vowelPosition - diff + (noteLength - 1); i++) {
+                for (let j = 0; j < stringNote.length; j++) {
+                  const lad = '⎼' + stringNote[j];
+                  stringNote.splice(j, 1, lad);
+                }
+              }
+
+
             } else {
+              // Если в маркере нет ноты - пробел в названии ноты и одна черта на ноту в каждой струне
               note = ' ';
               noteHtml = '&nbsp;';
               stringNote = ['⎼','⎼','⎼','⎼','⎼','⎼'];
             }
-            let vowelPosition = 0;
-            for (let i = 0; i < txt.length; i++) {
-              if ('ЁУЕЫАОЭЯИЮёуеыаоэяиюEUIOAeuioaїієѣ'.includes(txt[i])) {
-                vowelPosition = i;
-                break;
-              }
-            }
 
-            for (let i = 0; i < vowelPosition; i++) {
-              note = ' ' + note;
-              noteHtml = '&nbsp;' + noteHtml;
-            }
-
-            let diff = 0;
-            if (wasBr) {
-              diff = 3;
-              wasBr = false;
-            }
-            for (let i = 0; i < vowelPosition - diff; i++) {
-              for (let j = 0; j < stringNote.length; j++) {
-                const lad = '⎼' + stringNote[j];
-                stringNote.splice(j, 1, lad);
-              }
-            }
             lineNotes += SPAN_STYLE_NOTE + noteHtml + SPAN_END + SPAN_STYLE_OCTAVE + noteOctave + SPAN_END;
             lineText += SPAN_STYLE_TEXT + txtHtml + SPAN_END;
             if (!endOfWord) {
@@ -1139,6 +1162,7 @@ export default {
           label: marker.label,
           note: marker.note,
           chord: marker.chord,
+          stringlad: marker.stringlad,
           color: marker.color,
           position: marker.position,
           markertype: marker.markertype
@@ -2380,25 +2404,40 @@ export default {
       }
     },
     onMIDIMessage(event) {
+
+      for (let i = 0; i < event.data.length; i++) {
+        console.log(`event.data[${i}] = '${event.data[i]}'`);
+      }
+
       if (event.data.length === 3) {
+        let action = event.data[0];
         let code = event.data[1];
         let volume = event.data[2];
         let note = this.getNote(code);
-        if (volume === 0) {
-          console.log(`${note} - отпущено`);
-        } else {
-          console.log(`${note} - нажато с силой ${volume}`);
-          if (this.isEditMode) {
-            if (this.currentMarker !== undefined) {
-              if (this.currentMarker.markertype === 'syllables') {
-                this.currentMarker.note = note;
-                this.currentMarker.region.setContent(this.getRegionContentFromMarker(this.currentMarker));
-                this.sourceMarkers.splice(0,1,this.sourceMarkers[0]);
-                this.goToNextMarker('syllables');
-              }
-            }
-            // this.addMarker('note', note, true);
+        if (action === 128) {
+          if (this.pressedMidiNotes.has(note)) {
+            this.pressedMidiNotes.delete(note);
+            console.log(`${note} - отпущено`);
           }
+        } else if (action === 144) {
+          if (!this.pressedMidiNotes.has(note)) {
+            this.pressedMidiNotes.add(note);
+            console.log(`${note} - нажато с силой ${volume}`);
+
+            if (this.isEditMode) {
+              if (this.currentMarker !== undefined) {
+                if (this.currentMarker.markertype === 'syllables') {
+                  this.currentMarker.note = note;
+                  this.currentMarker.region.setContent(this.getRegionContentFromMarker(this.currentMarker));
+                  this.sourceMarkers.splice(0,1,this.sourceMarkers[0]);
+                  this.goToNextMarker('syllables');
+                }
+              }
+              // this.addMarker('note', note, true);
+            }
+
+          }
+
         }
 
       }

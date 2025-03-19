@@ -16,7 +16,7 @@ data class SettingVoiceLine(
     private val _elements: MutableList<SettingVoiceLineElement> = mutableListOf()
     fun getElements(songVersion: SongVersion): List<SettingVoiceLineElement> {
         val listOfElementTypes = when (songVersion) {
-            SongVersion.KARAOKE -> {
+            SongVersion.KARAOKE, SongVersion.KARAOKEVK -> {
                 listOf(
                     SettingVoiceLineElementTypes.TEXT,
                     SettingVoiceLineElementTypes.COMMENT,
@@ -24,7 +24,7 @@ data class SettingVoiceLine(
                     SettingVoiceLineElementTypes.NEWLINE
                 )
             }
-            SongVersion.LYRICS -> {
+            SongVersion.LYRICS, SongVersion.LYRICSVK -> {
                 listOf(
                     SettingVoiceLineElementTypes.TEXT,
                     SettingVoiceLineElementTypes.COMMENT,
@@ -32,13 +32,22 @@ data class SettingVoiceLine(
                     SettingVoiceLineElementTypes.NEWLINE
                 )
             }
-            SongVersion.CHORDS -> {
+            SongVersion.CHORDS, SongVersion.CHORDSVK -> {
                 listOf(
                     SettingVoiceLineElementTypes.TEXT,
                     SettingVoiceLineElementTypes.COMMENT,
                     SettingVoiceLineElementTypes.EMPTY,
                     SettingVoiceLineElementTypes.NEWLINE,
                     SettingVoiceLineElementTypes.ACCORD,
+                    SettingVoiceLineElementTypes.NOTE
+                )
+            }
+            SongVersion.MELODY, SongVersion.MELODYVK -> {
+                listOf(
+                    SettingVoiceLineElementTypes.TEXT,
+                    SettingVoiceLineElementTypes.COMMENT,
+                    SettingVoiceLineElementTypes.EMPTY,
+                    SettingVoiceLineElementTypes.NEWLINE,
                     SettingVoiceLineElementTypes.NOTE
                 )
             }
@@ -55,7 +64,6 @@ data class SettingVoiceLine(
     }
 
     fun actuateChilds() {
-        println("actuateChilds for line #${lineId}")
         _elements.forEachIndexed { indexElement, element ->
             element.elementId = indexElement
             element.actuateChilds()
@@ -82,6 +90,9 @@ data class SettingVoiceLine(
             val settingVoiceLineElementSyllable = SettingVoiceLineElementSyllable(
                 rootId = rootId,
                 text = "",
+                note = "",
+                chord = "",
+                stringlad = "",
                 syllableStartMs = timeMs,
                 syllableEndMs = timeMs,
                 previous = null
@@ -108,6 +119,9 @@ data class SettingVoiceLine(
             val settingVoiceLineElementSyllable = SettingVoiceLineElementSyllable(
                 rootId = rootId,
                 text = "",
+                note = "",
+                chord = "",
+                stringlad = "",
                 syllableStartMs = timeMs,
                 syllableEndMs = timeMs,
                 previous = null
@@ -124,7 +138,7 @@ data class SettingVoiceLine(
     fun lineDurationMs(): Long = lineEndMs - lineStartMs
 
     fun w(songVersion: SongVersion): Int = getElements(songVersion).maxOfOrNull { it.w() } ?: 0
-    fun h(songVersion: SongVersion): Int = getElements(songVersion).sumOf { it.h() }
+    fun h(songVersion: SongVersion): Int = getElements(songVersion).sumOf { it.h(songVersion) }
 
 //    fun y(): Int = parentVoice?.linesForMlt()?.filter { it.lineId  < lineId }?.sumOf { h() } ?: 0
     private var _y: Int? = null

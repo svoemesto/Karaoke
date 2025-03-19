@@ -11,10 +11,10 @@ import com.svoemesto.karaokeapp.model.TransformProperty
 data class MkoBackground(val mltProp: MltProp, val type: ProducerType, val voiceId: Int = 0, val childId: Int = 0, val elementId: Int = 0): MltKaraokeObject {
     val mltGenerator = MltGenerator(mltProp, type)
 
-    private val totalLengthFr = mltProp.getTotalLengthFr()
+    private val totalLengthFr = mltProp.getBackgroundLengthFr()
     private val songStartTimecode = mltProp.getSongStartTimecode()
     private val totalStartTimecode = mltProp.getTotalStartTimecode()
-    private val totalEndTimecode = mltProp.getTotalEndTimecode()
+    private val totalEndTimecode = mltProp.getBackgroundEndTimecode()
     private val totalFadeInTimecode = mltProp.getTotalFadeInTimecode()
     private val totalFadeOutTimecode = mltProp.getTotalFadeOutTimecode()
     private val mkoBackgroundPath = mltProp.getPath(listOf(type))

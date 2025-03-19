@@ -177,7 +177,7 @@ data class MltGenerator(
 
     fun tractor(
         timecodeIn: String = mltProp.getTotalStartTimecode(),
-        timecodeOut: String = mltProp.getTotalEndTimecode(),
+        timecodeOut: String = mltProp.getBackgroundEndTimecode(),
         id: String = nameTractor,
         body: MutableList<MltNode> = tractorBody(),
     ): MltNode = MltNode(

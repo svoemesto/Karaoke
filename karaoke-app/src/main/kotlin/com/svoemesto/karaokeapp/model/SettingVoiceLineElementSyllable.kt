@@ -7,18 +7,24 @@ import java.io.Serializable
 data class SettingVoiceLineElementSyllable(
     val rootId: Long,
     val text: String,
+    val note: String,
+    val chord: String,
+    val stringlad: String,
     var syllableStartMs: Long, // Начало слога (в мс) - в этот момент слог начинает выделяться (если в элементе предусмотрено выделение)
     var syllableEndMs: Long, // Конец слога (с мс) - в этот момент слог заканчивается выделяться (если в элементе предусмотрено выделение)
-    var previous: SettingVoiceLineElementSyllable? // Для аккорда это должно быть полный текст до него чтобы вычислить положение на экране
+    var previous: SettingVoiceLineElementSyllable?, // Для аккорда это должно быть полный текст до него чтобы вычислить положение на экране
 ) : Serializable {
 
     fun copy(): SettingVoiceLineElementSyllable {
         return SettingVoiceLineElementSyllable(
             rootId = rootId,
             text = text,
+            note = note,
+            chord = chord,
+            stringlad = stringlad,
             syllableStartMs = syllableStartMs,
             syllableEndMs = syllableEndMs,
-            previous = if (previous == null) null else previous!!.copy()
+            previous = if (previous == null) null else previous!!.copy(),
         )
     }
 

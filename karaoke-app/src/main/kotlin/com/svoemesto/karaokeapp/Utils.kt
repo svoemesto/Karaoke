@@ -33,6 +33,7 @@ import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.net.URI
+import java.text.SimpleDateFormat
 
 fun mainUtils() {
 
@@ -41,17 +42,29 @@ fun mainUtils() {
 fun customFunction(): String {
 
     var cnt1 = 0
-    var cnt2 = 0
     Settings.loadListFromDb(database = WORKING_DATABASE).forEach { settings ->
-        val clone = settings.clone()
-        val (was1, was2) = Settings.renameFilesIfDiff(settings, clone!!)
-        if (was1) cnt1++
-        if (was2) cnt2++
-        if (was2) println(settings.rightSettingFileName)
+        if (settings.idStatus >= 3L) {
+            try {
+                if (settings.getSongDurationVideoMs() < 61_100) {
+                    settings.createKaraoke(
+                        createLyrics = false,
+                        createKaraoke = false,
+                        createChords = false,
+                        createLyricsVk = true,
+                        createKaraokeVk = true,
+                        createChordsVk = false
+                    )
+                    KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICSVK, true, -1)
+                    KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKEVK, true, -1)
+                    cnt1++
+                }
+            } catch (e: Exception) {
+                println("Ошибка ${settings.rightSettingFileName}")
+            }
+        }
     }
-    return cnt2.toString()
+    return cnt1.toString()
 }
-
 
 
 fun recodePictures() {
@@ -110,10 +123,20 @@ fun updateDatabases(fromDatabase: KaraokeConnection, toDatabase: KaraokeConnecti
         val listSettingsTo = Settings.loadListFromDb(database = toDatabase).toMutableList()
         println("Таблица tbl_settings, записей в базе ${toDatabase.name}: ${listSettingsTo.size}")
 
+        val setToDel = listSettingsTo.map { it.id }.toMutableSet()
+
+        var prc = 0
+        var prcPrev = 0
         // Проходимся по айдишникам ИЗ
         listSettingsFrom.forEachIndexed { indexFrom, settingsFrom ->
 
-            println("Таблица tbl_settings, ${fromDatabase.name}: ${indexFrom+1} из ${listSettingsFrom.size} - id=${settingsFrom.id}, author=${settingsFrom.author}, album=${settingsFrom.album}, name=${settingsFrom.songName}")
+            prc = indexFrom * 100 / listSettingsFrom.size
+            if (prc % 10 == 0 && prc != prcPrev) {
+                println("Таблица tbl_settings, $prc%...")
+                prcPrev = prc
+            }
+
+//            println("Таблица tbl_settings, ${fromDatabase.name}: ${indexFrom+1} из ${listSettingsFrom.size} - id=${settingsFrom.id}, author=${settingsFrom.author}, album=${settingsFrom.album}, name=${settingsFrom.songName}")
 
             // Считываем записи с текущим айди из ИЗ и В
             val settingsTo = listSettingsTo.firstOrNull { it.id == settingsFrom.id }
@@ -138,6 +161,8 @@ fun updateDatabases(fromDatabase: KaraokeConnection, toDatabase: KaraokeConnecti
                 countCreate++
 
             } else {
+
+                setToDel.remove(settingsFrom.id)
 
                 // Если записи есть в обоих базах - получаем их дифы
                 val diff = Settings.getDiff(settingsFrom, settingsTo)
@@ -183,7 +208,7 @@ fun updateDatabases(fromDatabase: KaraokeConnection, toDatabase: KaraokeConnecti
                             ps.executeUpdate()
                             ps.close()
 
-                            println(messageRecordChange.toString())
+//                            println(messageRecordChange.toString())
 
 
                         }
@@ -197,13 +222,23 @@ fun updateDatabases(fromDatabase: KaraokeConnection, toDatabase: KaraokeConnecti
         }
 
         val listSettingsToDel: MutableList<Settings> = mutableListOf()
-        listSettingsTo.forEach { settingsTo ->
-            println("Проверка на необходимость удаления записи: id=${settingsTo.id}, author=${settingsTo.author}, album=${settingsTo.album}, name=${settingsTo.songName}")
-            val settingsFrom = listSettingsFrom.firstOrNull { it.id == settingsTo.id }
+        setToDel.toList().forEach { idToDel ->
+            val settingsFrom = listSettingsFrom.firstOrNull { it.id == idToDel }
             if (settingsFrom == null) {
-                listSettingsToDel.add(settingsTo)
+                val settingsTo = listSettingsTo.firstOrNull { it.id == idToDel }
+                if (settingsTo != null) {
+                    println("Проверка на необходимость удаления записи: id=${settingsTo.id}, author=${settingsTo.author}, album=${settingsTo.album}, name=${settingsTo.songName}")
+                    listSettingsToDel.add(settingsTo)
+                }
             }
         }
+//        listSettingsTo.forEach { settingsTo ->
+//            println("Проверка на необходимость удаления записи: id=${settingsTo.id}, author=${settingsTo.author}, album=${settingsTo.album}, name=${settingsTo.songName}")
+//            val settingsFrom = listSettingsFrom.firstOrNull { it.id == settingsTo.id }
+//            if (settingsFrom == null) {
+//                listSettingsToDel.add(settingsTo)
+//            }
+//        }
 
         listSettingsToDel.forEach { toDel ->
             if (toDatabase.name == "SERVER") {
@@ -300,7 +335,7 @@ fun updateDatabases(fromDatabase: KaraokeConnection, toDatabase: KaraokeConnecti
                             ps.executeUpdate()
                             ps.close()
 
-                            println(messageRecordChange.toString())
+//                            println(messageRecordChange.toString())
 
 
                         }
@@ -741,6 +776,8 @@ fun replaceSymbolsInSong(sourceText: String): String {
     result = result.replace("—","-")
     result = result.replace("–","-")
     result = result.replace("−","-")
+    result = result.replace(" : ",": ")
+    result = result.replace(" :\n",":\n")
 
     if (sourceText.containThisSymbols(RUSSIN_LETTERS)) {
         result = result.replace("p","р")
@@ -3069,6 +3106,12 @@ fun convertFramesToMilliseconds(frames: Long, fps:Double = Karaoke.frameFps): Lo
     return (frames * frameLength).roundToInt().toLong()
 }
 
+fun millisecondsToTimeFormatted(milliseconds: Long): String {
+    val date = Date(milliseconds)
+    val formatter = SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
+    return formatter.format(date)
+}
+
 fun convertMillisecondsToTimecode(milliseconds: Long): String {
     val hours = milliseconds / (1000*60*60)
     val minutes = (milliseconds - hours*1000*60*60) / (1000*60)
@@ -3408,78 +3451,79 @@ fun searchLastAlbumYm(authorYmId: String): String {
 
 }
 
-fun checkLastAlbumYm(): String {
+fun getAuthorForRequest(lastAuthor: String = ""): Author? {
     val listSongAuthors = Settings.loadListAuthors(WORKING_DATABASE)
-    val setAuthorsWithNewAlbums: MutableSet<String> = mutableSetOf()
-    var counter = 0
-    listSongAuthors.forEach { songAuthor ->
-        val author = Author.load(author = songAuthor, database = WORKING_DATABASE)
-        println("Проверка автора «$songAuthor»")
-        if (author == null) {
-            val newAuthor = Author()
-            newAuthor.author = songAuthor
-            Author.createDbInstance(author = newAuthor, database = WORKING_DATABASE)
-            setAuthorsWithNewAlbums.add(songAuthor)
-            println("Автор «$songAuthor» отсутствует в таблице tbl_authors. Создаём запись.")
-        } else {
-            if (author.ymId !== "") {
-                var wasFound = false
-                if (author.lastAlbumYm == "") {
-                    println("У автора «$songAuthor» отсутствует lastAlbumYm. Ищем.")
-                    val lastAlbumYm = try {
-                        searchLastAlbumYm(author.ymId)
-                    } catch (e: Exception) {
-                        println("Нам очень жаль, но запросы с вашего устройства похожи на автоматические. Удачных запросов: $counter")
-                        return "Нам очень жаль, но запросы с вашего устройства похожи на автоматические. Удачных запросов: $counter"
-                    }
-                    counter++
-                    wasFound = true
-                    if (lastAlbumYm == "") {
-                        println("У автора «$songAuthor» НЕ НАЙДЕН lastAlbumYm. Пауза.")
-                    } else {
-                        println("У автора «$songAuthor» нашли новый lastAlbumYm «$lastAlbumYm». Пауза.")
-                        author.lastAlbumYm = lastAlbumYm
-                        author.save()
-                    }
-                    Thread.sleep(300_000)
+    if (listSongAuthors.isEmpty()) return null
+    var requestNewSongLastSuccessAuthor = if (lastAuthor != "") lastAuthor else Karaoke.requestNewSongLastSuccessAuthor
+
+    val authorForRequest = if (requestNewSongLastSuccessAuthor == "") {
+        listSongAuthors.first()
+    } else {
+        var result = ""
+        listSongAuthors.forEachIndexed { indexAuthor, author ->
+            if (author == requestNewSongLastSuccessAuthor) {
+                result = if (indexAuthor < listSongAuthors.size - 1) {
+                    listSongAuthors[indexAuthor + 1]
+                } else {
+                    listSongAuthors[0]
                 }
-                if (author.lastAlbumProcessed == "") {
-                    val lastAlbum = Settings.loadListFromDb(args = mapOf("song_author" to songAuthor), database = WORKING_DATABASE).lastOrNull()?.album ?: ""
-                    author.lastAlbumProcessed = lastAlbum
-                    author.save()
-                }
-//                if (author.watched && !wasFound && author.lastAlbumYm == author.lastAlbumProcessed) {
-//                    println("У автора «$songAuthor» ищем новый lastAlbumYm.")
-//                    val lastAlbumYm = try {
-//                        searchLastAlbumYm(author.ymId)
-//                    } catch (e: Exception) {
-//                        println("Нам очень жаль, но запросы с вашего устройства похожи на автоматические. Удачных запросов: $counter")
-//                        return "Нам очень жаль, но запросы с вашего устройства похожи на автоматические. Удачных запросов: $counter"
-//                    }
-//                    counter++
-//                    if (lastAlbumYm == "") {
-//                        println("У автора «$songAuthor» НЕ НАЙДЕН lastAlbumYm. Пауза.")
-//                    } else {
-//                        if (author.lastAlbumYm != lastAlbumYm) {
-//                            author.lastAlbumYm = lastAlbumYm
-//                            author.save()
-//                            if (author.lastAlbumYm != author.lastAlbumProcessed) {
-//                                setAuthorsWithNewAlbums.add(songAuthor)
-//                                println("У автора «$songAuthor» найден новый альбом «$lastAlbumYm». Пауза.")
-//                            }
-//                        } else {
-//                            println("У автора «$songAuthor» найден альбом «$lastAlbumYm», но ону уже обработан. Пауза.")
-//                        }
-//                    }
-//                    Thread.sleep(300_000)
-//                }
+                return@forEachIndexed
             }
         }
+        if (result == "") result = listSongAuthors.first()
+        result
     }
-    return "Авторы с новыми альбомами${if (setAuthorsWithNewAlbums.isEmpty()) " не найдены." else ": ${setAuthorsWithNewAlbums.toList().joinToString(", ")}"}"
+    var author = Author.load(author = authorForRequest, database = WORKING_DATABASE)
+
+
+    if (author == null) {
+        val newAuthor = Author()
+        newAuthor.author = authorForRequest
+        Author.createDbInstance(author = newAuthor, database = WORKING_DATABASE)
+        author = newAuthor
+        println("Автор «$authorForRequest» отсутствует в таблице tbl_authors. Создаём запись.")
+    }
+
+    if (author.watched && author.ymId !== "" && author.lastAlbumYm == author.lastAlbumProcessed) {
+        println("Поиск для автора «$authorForRequest»...")
+        return author
+    } else {
+        println("Поиск для автора «$authorForRequest» не нужен, ищем другого автора...")
+        return getAuthorForRequest(authorForRequest)
+    }
+
+}
+fun checkLastAlbumYm(): Triple<String, String, Int> {
+    /*
+    -2 - нету автора!
+    -1 - ошибка поиска
+     0 - поиск успешен, но новых альбомов нет
+     1 - поиск успешен, найден новый альбом
+     */
+    val author = getAuthorForRequest() ?: return Triple("", "", -2)
+    val authorForRequest = author.author
+
+    val lastAlbumYm = try {
+        searchLastAlbumYm(author.ymId)
+    } catch (e: Exception) {
+        println("Поиск для автора «$authorForRequest» завершился ошибкой.")
+        return Triple(authorForRequest, "", -1)
+    }
+
+    author.lastAlbumYm = lastAlbumYm
+    author.save()
+
+    return if (lastAlbumYm == author.lastAlbumProcessed) {
+        println("Поиск для автора «$authorForRequest» завершился успешно, но новых альбомов не найдено.")
+        Triple(authorForRequest, lastAlbumYm, 0)
+    } else {
+        println("Поиск для автора «$authorForRequest» завершился успешно, найден новый альбом «$lastAlbumYm».")
+        Triple(authorForRequest, lastAlbumYm, 1)
+    }
+
 }
 
-fun setProcessPriority(pid: Long, priority: Int) {
+fun setProcessPriority(pid: Long, priority: Int): Boolean {
     try {
         // Используем команду renice для изменения приоритета процесса
         val reniceCommand = listOf("renice", "-n", priority.toString(), "-p", pid.toString())
@@ -3488,12 +3532,14 @@ fun setProcessPriority(pid: Long, priority: Int) {
 
         // Проверяем результат выполнения команды
         val exitCode = process.waitFor()
-        if (exitCode == 0) {
-            println("Приоритет процесса успешно изменен на $priority")
-        } else {
-            println("Не удалось изменить приоритет процесса")
-        }
+        return exitCode == 0
+//        if (exitCode == 0) {
+//            println("Приоритет процесса успешно изменен на $priority")
+//        } else {
+//            println("Не удалось изменить приоритет процесса")
+//        }
     } catch (e: Exception) {
         e.printStackTrace()
+        return false
     }
 }

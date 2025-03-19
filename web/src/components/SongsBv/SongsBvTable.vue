@@ -169,6 +169,14 @@
               :style="{ backgroundColor: data.item.processColorMeltChords, color: currentSongId === data.item.id ? 'blue' : 'black' }"
           ></div>
         </template>
+        <template #cell(flagYoutubeMelody)="data">
+          <div
+              class="fld-flag-dzen-melody"
+              v-text="data.value"
+              @dblclick.left="playMelody(data.item.id)"
+              :style="{ backgroundColor: data.item.processColorMeltMelody, color: currentSongId === data.item.id ? 'blue' : 'black' }"
+          ></div>
+        </template>
         <template #cell(flagVkLyrics)="data">
           <div
               class="fld-flag-vk-lyrics"
@@ -188,6 +196,13 @@
               class="fld-flag-vk-chords"
               v-text="data.value"
               :style="{ backgroundColor: data.item.processColorVkChords, color: currentSongId === data.item.id ? 'blue' : 'black' }"
+          ></div>
+        </template>
+        <template #cell(flagVkMelody)="data">
+          <div
+              class="fld-flag-vk-melody"
+              v-text="data.value"
+              :style="{ backgroundColor: data.item.processColorVkMelody, color: currentSongId === data.item.id ? 'blue' : 'black' }"
           ></div>
         </template>
         <template #cell(flagTelegramLyrics)="data">
@@ -211,6 +226,13 @@
               :style="{ backgroundColor: data.item.processColorTelegramChords, color: currentSongId === data.item.id ? 'blue' : 'black' }"
           ></div>
         </template>
+        <template #cell(flagTelegramMelody)="data">
+          <div
+              class="fld-flag-tg-melody"
+              v-text="data.value"
+              :style="{ backgroundColor: data.item.processColorTelegramMelody, color: currentSongId === data.item.id ? 'blue' : 'black' }"
+          ></div>
+        </template>
         <template #cell(flagPlLyrics)="data">
           <div
               class="fld-flag-pl-lyrics"
@@ -230,6 +252,13 @@
               class="fld-flag-pl-chords"
               v-text="data.value"
               :style="{ backgroundColor: data.item.processColorPlChords, color: currentSongId === data.item.id ? 'blue' : 'black' }"
+          ></div>
+        </template>
+        <template #cell(flagPlMelody)="data">
+          <div
+              class="fld-flag-pl-melody"
+              v-text="data.value"
+              :style="{ backgroundColor: data.item.processColorPlMelody, color: currentSongId === data.item.id ? 'blue' : 'black' }"
           ></div>
         </template>
       </b-table>
@@ -494,6 +523,16 @@ export default {
           }
         },
         {
+          key: 'flagYoutubeMelody',
+          label: 'ZM',
+          style: {
+            minWidth: '20px',
+            maxWidth: '20px',
+            textAlign: 'center',
+            fontSize: 'small'
+          }
+        },
+        {
           key: 'flagVkLyrics',
           label: 'VL',
           style: {
@@ -516,6 +555,16 @@ export default {
         {
           key: 'flagVkChords',
           label: 'VC',
+          style: {
+            minWidth: '20px',
+            maxWidth: '20px',
+            textAlign: 'center',
+            fontSize: 'small'
+          }
+        },
+        {
+          key: 'flagVkMelody',
+          label: 'VM',
           style: {
             minWidth: '20px',
             maxWidth: '20px',
@@ -554,6 +603,16 @@ export default {
           }
         },
         {
+          key: 'flagTelegramMelody',
+          label: 'TM',
+          style: {
+            minWidth: '20px',
+            maxWidth: '20px',
+            textAlign: 'center',
+            fontSize: 'small'
+          }
+        },
+        {
           key: 'flagPlLyrics',
           label: 'PL',
           style: {
@@ -576,6 +635,16 @@ export default {
         {
           key: 'flagPlChords',
           label: 'PC',
+          style: {
+            minWidth: '20px',
+            maxWidth: '20px',
+            textAlign: 'center',
+            fontSize: 'small'
+          }
+        },
+        {
+          key: 'flagPlMelody',
+          label: 'PM',
           style: {
             minWidth: '20px',
             maxWidth: '20px',
@@ -625,6 +694,13 @@ export default {
             fldValue: this.$store.getters.getLastPriorChords,
             fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
             fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
+          },
+          {
+            fldName: 'priorMelody',
+            fldLabel: 'Приоритет Melody:',
+            fldValue: this.$store.getters.getLastPriorMelody,
+            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
+            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
           }
         ]
       }
@@ -634,7 +710,8 @@ export default {
       this.$store.dispatch('setLastPriorLyrics', {value: result.priorLyrics});
       this.$store.dispatch('setLastPriorKaraoke', {value: result.priorKaraoke});
       this.$store.dispatch('setLastPriorChords', {value: result.priorChords});
-      this.$store.dispatch('createKaraokeForAllPromise', {priorLyrics: result.priorLyrics, priorKaraoke: result.priorKaraoke, priorChords: result.priorChords}).then(data => {
+      this.$store.dispatch('setLastPriorMelody', {value: result.priorMelody});
+      this.$store.dispatch('createKaraokeForAllPromise', {priorLyrics: result.priorLyrics, priorKaraoke: result.priorKaraoke, priorChords: result.priorChords, priorMelody: result.priorMelody}).then(data => {
         let response = JSON.parse(data);
         this.customConfirmParams = {
           isAlert: true,
@@ -893,6 +970,9 @@ export default {
     playChords(id) {
       this.$store.getters.playChords(id);
     },
+    playMelody(id) {
+      this.$store.getters.playMelody(id);
+    },
     closeSongEdit() {
       this.isSongEditVisible = false;
     },
@@ -1092,6 +1172,14 @@ export default {
   white-space: nowrap;
   overflow: hidden;
 }
+.fld-flag-dzen-melody {
+  min-width: 20px;
+  max-width: 20px;
+  text-align: center;
+  font-size: small;
+  white-space: nowrap;
+  overflow: hidden;
+}
 .fld-flag-vk-lyrics {
   min-width: 20px;
   max-width: 20px;
@@ -1109,6 +1197,14 @@ export default {
   overflow: hidden;
 }
 .fld-flag-vk-chords {
+  min-width: 20px;
+  max-width: 20px;
+  text-align: center;
+  font-size: small;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.fld-flag-vk-melody {
   min-width: 20px;
   max-width: 20px;
   text-align: center;
@@ -1140,6 +1236,14 @@ export default {
   white-space: nowrap;
   overflow: hidden;
 }
+.fld-flag-tg-melody {
+  min-width: 20px;
+  max-width: 20px;
+  text-align: center;
+  font-size: small;
+  white-space: nowrap;
+  overflow: hidden;
+}
 .fld-flag-pl-lyrics {
   min-width: 20px;
   max-width: 20px;
@@ -1157,6 +1261,14 @@ export default {
   overflow: hidden;
 }
 .fld-flag-pl-chords {
+  min-width: 20px;
+  max-width: 20px;
+  text-align: center;
+  font-size: small;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.fld-flag-pl-melody {
   min-width: 20px;
   max-width: 20px;
   text-align: center;

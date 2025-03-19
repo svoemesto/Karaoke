@@ -50,7 +50,7 @@ class Pictures(val database: KaraokeConnection = WORKING_DATABASE) : Serializabl
         fieldsValues.add(Pair("picture_full", picture.full))
         fieldsValues.add(Pair("picture_preview", picture.preview))
 
-        return "INSERT INTO tbl_pictures (${fieldsValues.map {it.first}.joinToString(", ")}) OVERRIDING SYSTEM VALUE VALUES(${fieldsValues.map {if (it.second is Long) "${it.second}" else "'${it.second.toString().rightFileName()}'"}.joinToString(", ")})"
+        return "INSERT INTO tbl_pictures (${fieldsValues.map {it.first}.joinToString(", ")}) OVERRIDING SYSTEM VALUE VALUES(${fieldsValues.map {if (it.second is Long) "${it.second}" else "'${it.second.toString().replace("'","''")}'"}.joinToString(", ")})"
 
     }
 

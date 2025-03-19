@@ -93,12 +93,21 @@ data class SettingVoiceLineElement(
     }
     fun listOfMltText(): List<MltText> = getSyllables().map { it.mltText() }
     fun w(): Int = listOfMltText().lastOrNull()?.let { it.x + it.w() } ?: 0
-    fun h(): Int = if (type == SettingVoiceLineElementTypes.EMPTY) {
-        Karaoke.voices[0].groups[groupId].mltText.copy("0", fontSize).h()
-    } else {
-        Karaoke.voices[0].groups[groupId].mltText.copy("0", fontSize).h()
-//        listOfMltText().maxOfOrNull { it.h() } ?: 0
+    fun h(): Int = Karaoke.voices[0].groups[groupId].mltText.copy("0", fontSize).h()
+
+    fun h(songVersion: SongVersion): Int {
+        val haveNotes = songVersion.producers.contains(ProducerType.MELODYNOTE) && this.getSyllables().any { it.note != "" }
+        val deltaY = if (haveNotes) {
+            val sylFontSize = this.fontSize
+            val melodyNoteFontSize = (sylFontSize * Karaoke.melodyNoteHeightCoefficient).toInt()
+            val melodyNoteMltTextHeight = Karaoke.melodyNoteFont.copy("C", melodyNoteFontSize).h()
+            (melodyNoteMltTextHeight * Karaoke.melodyNoteHeightOffsetCoefficient).toInt()
+        } else {
+            0
+        }
+        return h() + deltaY
     }
+
     fun lineElementStartMs(): Long = getSyllables().firstOrNull()?.syllableStartMs ?: 0
     fun lineElementEndMs(): Long = getSyllables().lastOrNull()?.syllableEndMs ?: 0
 

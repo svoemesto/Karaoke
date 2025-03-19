@@ -7,9 +7,9 @@ import com.svoemesto.karaokeapp.mlt.mltNode
 import com.svoemesto.karaokeapp.model.*
 import java.awt.Font
 
-data class MkoString(
+data class MkoSepar(
     val mltProp: MltProp,
-    val type: ProducerType = ProducerType.STRING,
+    val type: ProducerType = ProducerType.SEPAR,
     val voiceId: Int = 0,
     val lineId: Int = 0,
     val elementId: Int = 0
@@ -100,60 +100,68 @@ data class MkoString(
             0
         }
 
-        var widthAreaPx= frameWidthPx
-        var heightAreaPx= frameHeightPx
+        var widthAreaPx= element.w()
+        var heightAreaPx = element.h() + deltaY
 
         val x = 0
-        val y = deltaY
-
+        val y = 0
         val body: MutableList<MltNode> = mutableListOf()
 
-        val textItem = MltNodeBuilder()
-            .item(
-                fields = PropertiesMltNodeBuilder()
-                    .type("QGraphicsTextItem")
-                    .`z-index`("2")
-                    .build(),
-                body = MltNodeBuilder()
-                    .position(
-                        fields = PropertiesMltNodeBuilder()
-                            .x(x.toString())
-                            .y(y.toString())
-                            .build(),
-                        body = MltNodeBuilder()
-                            .transform(
-                                fields = PropertiesMltNodeBuilder()
-                                    .zoom("100")
-                                    .build(),
-                                body = "1,0,0,0,1,0,0,0,1"
+        // Формируем прямоугольные области для каждого слога и добавляем их в переменную body
+
+        val rects = element.transformProperties().asRects()
+        rects.forEachIndexed { index, rect ->
+            val color = Karaoke.separLineColor.mlt()
+
+            body.add(
+                MltNode(
+                    name = "item",
+                    fields = mutableMapOf(
+                        Pair("type","QGraphicsRectItem"),
+                        Pair("z-index","0"),
+                    ),
+                    body = mutableListOf(
+                        // Начальная позиция прямоугольника, которая будет считаться для него началом координат
+                        MltNode(
+                            name = "position",
+                            fields = mutableMapOf(
+                                Pair("x","${rect.x}"),
+                                Pair("y","0")
+                            ),
+                            body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(Pair("zoom","100")), body = "1,0,0,0,1,0,0,0,1"))
+                        ),
+                        MltNode(
+                            name = "content",
+                            fields = mutableMapOf(
+                                Pair("brushcolor", color),
+                                Pair("pencolor", "0,0,0,255"),
+                                Pair("penwidth","0"),
+                                Pair("rect","0,0,2,${heightAreaPx}")
                             )
-                            .build()
+                        )
                     )
-                    .node(
-                        element.mltText().mltNode(element.mltText().text)
-                    )
-                    .build()
+                )
             )
 
-            .build()
 
-        body.addAll(textItem)
+        }
+
+        // Добавляем конечные узлы - вьюпорт, бэкграунд и т.п.
         body.addAll(
             MltNodeBuilder()
-                .startviewport("0,0,${widthAreaPx},${heightAreaPx}")
-                .endviewport("0,0,${widthAreaPx},${heightAreaPx}")
+                .startviewport("0,0,${frameWidthPx},${frameHeightPx}")
+                .endviewport("0,0,${frameWidthPx},${frameHeightPx}")
                 .background("0,0,0,0")
                 .build()
         )
-
 
         return MltNode(
             name = "kdenlivetitle",
             fields = PropertiesMltNodeBuilder()
                 .duration(convertMillisecondsToFrames(lineDurationOnScreen).toString())
                 .LC_NUMERIC("C")
-                .width("$widthAreaPx")
-                .height("$heightAreaPx")
+                .width("$frameWidthPx")
+                .height("$frameHeightPx")
                 .`out`((convertMillisecondsToFrames(lineDurationOnScreen)-1).toString())
                 .build(),
             body = body

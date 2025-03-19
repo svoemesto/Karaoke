@@ -31,8 +31,6 @@ data class SettingVoice(
 
     fun actuateChilds(songVersion: SongVersion) {
 
-        println("actuateChilds for voice #${voiceId}")
-
         var lineY = 0
         val textLineHeight = getLines().firstOrNull{it.haveTextElementOrComment(songVersion)}?.h(songVersion) ?: 0
         getLines().forEachIndexed { indexLine, line ->
@@ -109,7 +107,6 @@ data class SettingVoice(
     }
     private fun getLineTransferProperties(songVersion: SongVersion, lineId: Int) : List<TransformProperty> {
 
-        println("Генерируем TransferProperties для ${lineId}...")
         val deltaX = longerElementPreviousVoice?.w() ?: 0
         val offsetX = Karaoke.songtextStartPositionXpx
         val offsetY = 5
@@ -123,9 +120,6 @@ data class SettingVoice(
         val startIndex = thisLine.indexLineStart
         val endIndex = if (thisLine.indexLineEnd < thisLine.indexLineStart ) getLines().last().lineId else thisLine.indexLineEnd
         if (endIndex < startIndex) return emptyList()
-
-        println("indexLineStart = ${thisLine.indexLineStart}")
-        println("indexLineEnd = ${thisLine.indexLineEnd}")
 
         val frameWidthPx = Karaoke.frameWidthPx
         val frameHeightPx = Karaoke.frameHeightPx
@@ -157,10 +151,7 @@ data class SettingVoice(
 //            val deltaY = line.deltaY(this)
             val tpY = deltaY + zeroHeight + offsetY
             if (tpY + line.h(songVersion)*2 < 0) {
-                println("break to: lineId = ${lineId}, endIndex = $endIndex, tpY = $tpY")
                 break
-            } else {
-                println("contunue to: lineId = ${lineId}, endIndex = $endIndex, tpY = $tpY")
             }
             val tpStart = TransformProperty(
                 time = convertMillisecondsToTimecode(line.lineStartMs - lines.first().lineStartMs),
@@ -285,8 +276,6 @@ data class SettingVoice(
         result.add(trFadeIn)
         result.add(trFadeOut)
         result.add(trEnd)
-
-        println("linesTransformProperties = ${result.joinToString(";")}")
 
         return result
     }

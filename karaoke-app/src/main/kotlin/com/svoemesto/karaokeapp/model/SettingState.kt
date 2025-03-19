@@ -10,6 +10,7 @@ enum class SettingState(val color: String) {
     WO_TG_WITH_SPONSR("#60A2CE"),           // Нет TG
     WO_PL("#66B2FF"),           // Нет PL
     WO_VK("#FFDAB9"),           // Нет VK
+    WO_VK_WO_PL("#FFFEBA"),           // Нет VK
     WO_DZEN("#FF8000"),         // Нет DZEN
     BOOSTY_SPONSR("#FFAA55"),   // Нет BOOSTY_SPONSR
     WO_DZEN_WITH_VK("#FF3399"), // Нет DZEN, есть VK

@@ -86,7 +86,7 @@ export default {
             return promisedXMLHttpRequest(request);
         },
         createKaraokeForAllPromise(ctx, payload) {
-            let params = { songsIds: ctx.getters.getSongsDigestIds.join(';'), priorLyrics: payload.priorLyrics, priorKaraoke: payload.priorKaraoke, priorChords: payload.priorChords };
+            let params = { songsIds: ctx.getters.getSongsDigestIds.join(';'), priorLyrics: payload.priorLyrics, priorKaraoke: payload.priorKaraoke, priorChords: payload.priorChords, priorMelody: payload.priorMelody };
             let request = { method: 'POST', url: "/apis/songs/createkaraokeall", params: params };
             return promisedXMLHttpRequest(request);
         },

@@ -11,6 +11,7 @@ import com.svoemesto.karaokeapp.model.TransformProperty
 data class MkoFlash(val mltProp: MltProp, val type: ProducerType, val voiceId: Int = 0, val childId: Int = 0, val elementId: Int = 0): MltKaraokeObject {
     val mltGenerator = MltGenerator(mltProp, type)
 
+    private val songVersion = mltProp.getSongVersion()
     private val frameWidthPx = mltProp.getFrameWidthPx()
     private val frameHeightPx = mltProp.getFrameHeightPx()
     private val songLengthFr = mltProp.getSongLengthFr()
@@ -19,6 +20,7 @@ data class MkoFlash(val mltProp: MltProp, val type: ProducerType, val voiceId: I
     private val songFadeInTimecode = mltProp.getSongFadeInTimecode()
     private val songFadeOutTimecode = mltProp.getSongFadeOutTimecode()
     private val horizonPositionYPx = mltProp.getPositionYPx(ProducerType.HORIZON)
+    private val fontSize = mltProp.getFontSize()
     private val symbolHeightPx = mltProp.getSymbolHeightPx()
     private val mkoFlashProducerRect = mltProp.getRect(listOf(type))
     private val inOffsetVideo = mltProp.getInOffsetVideo()
@@ -74,6 +76,16 @@ data class MkoFlash(val mltProp: MltProp, val type: ProducerType, val voiceId: I
     override fun template(): MltNode {
         val templateFlashGroup = mutableListOf<MltNode>()
 
+        val haveNotes = songVersion.producers.contains(ProducerType.MELODYNOTE)
+        val deltaY = if (haveNotes) {
+            val sylFontSize = fontSize
+            val melodyNoteFontSize = (sylFontSize * Karaoke.melodyNoteHeightCoefficient).toInt()
+            val melodyNoteMltTextHeight = Karaoke.melodyNoteFont.copy("C", melodyNoteFontSize).h()
+            (melodyNoteMltTextHeight * Karaoke.melodyNoteHeightOffsetCoefficient).toInt() / 2
+        } else {
+            0
+        }
+
         val templateFlash = MltNode(
             type = ProducerType.HORIZON,
             name = "kdenlivetitle",
@@ -96,7 +108,7 @@ data class MkoFlash(val mltProp: MltProp, val type: ProducerType, val voiceId: I
                             name = "position",
                             fields = mutableMapOf(
                                 Pair("x","0"),
-                                Pair("y","$horizonPositionYPx")
+                                Pair("y","${horizonPositionYPx + deltaY}")
                             ),
                             body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(Pair("zoom","100")), body = "1,0,0,0,1,0,0,0,1"))
                         ),
@@ -123,7 +135,7 @@ data class MkoFlash(val mltProp: MltProp, val type: ProducerType, val voiceId: I
                             name = "position",
                             fields = mutableMapOf(
                                 Pair("x","0"),
-                                Pair("y","${horizonPositionYPx - symbolHeightPx - 6}")
+                                Pair("y","${horizonPositionYPx - symbolHeightPx + Karaoke.horizonOffsetPx - deltaY + 3}")
                             ),
                             body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(Pair("zoom","100")), body = "1,0,0,0,1,0,0,0,1"))
                         ),

@@ -34,14 +34,12 @@ class ApisController(private val sseNotificationService: SseNotificationService)
     ): ResponseEntity<Resource> {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val filename = File(settings?.drumsNameFlac)
-        println("filedrums: ${settings?.drumsNameFlac}");
         val resource = FileSystemResource(filename)
         if (resource.exists()) {
             return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment") //; filename=\"${filename.name}\"")
                 .body(resource)
         } else {
-            println("filedrums notFound");
             return ResponseEntity.notFound().build()
         }
     }
@@ -52,14 +50,12 @@ class ApisController(private val sseNotificationService: SseNotificationService)
     ): ResponseEntity<Resource> {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val filename = File(settings?.bassNameFlac)
-        println("filebass: ${settings?.bassNameFlac}");
         val resource = FileSystemResource(filename)
         if (resource.exists()) {
             return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment") //; filename=\"${filename.name}\"")
                 .body(resource)
         } else {
-            println("filebass notFound");
             return ResponseEntity.notFound().build()
         }
     }
@@ -70,14 +66,12 @@ class ApisController(private val sseNotificationService: SseNotificationService)
     ): ResponseEntity<Resource> {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val filename = File(settings?.vocalsNameFlac)
-        println("filevoice: ${settings?.vocalsNameFlac}");
         val resource = FileSystemResource(filename)
         if (resource.exists()) {
             return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment") //; filename=\"${filename.name}\"")
                 .body(resource)
         } else {
-            println("filevoice notFound");
             return ResponseEntity.notFound().build()
         }
     }
@@ -88,14 +82,12 @@ class ApisController(private val sseNotificationService: SseNotificationService)
     ): ResponseEntity<Resource> {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val filename = File(settings?.newNoStemNameFlac)
-        println("fileminus: ${settings?.newNoStemNameFlac}");
         val resource = FileSystemResource(filename)
         if (resource.exists()) {
             return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment") //; filename=\"${filename.name}\"")
                 .body(resource)
         } else {
-            println("fileminus notFound");
             return ResponseEntity.notFound().build()
         }
     }
@@ -106,14 +98,12 @@ class ApisController(private val sseNotificationService: SseNotificationService)
     ): ResponseEntity<Resource> {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val filename = File(settings?.fileAbsolutePath)
-        println("filesong: ${settings?.fileAbsolutePath}");
         val resource = FileSystemResource(filename)
         if (resource.exists()) {
             return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment") //; filename=\"${filename.name}\"")
                 .body(resource)
         } else {
-            println("filesong notFound");
             return ResponseEntity.notFound().build()
         }
     }
@@ -194,7 +184,6 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         val text = settings?.let {
             settings.getSourceText(voiceId)
         } ?: ""
-        println("voicesourcetext: ${text}");
         return text
     }
 
@@ -232,7 +221,6 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         val sheetsageinfo = settings?.let {
             settings.sheetstageInfo
         } ?: emptyMap()
-        println("sheetsageinfo: ${sheetsageinfo}");
         return sheetsageinfo
     }
 
@@ -244,7 +232,6 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         val sheetsageinfotempo = settings?.let {
             settings.sheetstageInfo["tempo"] as String
         } ?: ""
-        println("sheetsageinfobpm: ${sheetsageinfotempo}");
         return sheetsageinfotempo
     }
 
@@ -256,7 +243,6 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         val sheetsageinfokey = settings?.let {
             settings.sheetstageInfo["key"] as String
         } ?: ""
-        println("sheetsageinfokey: ${sheetsageinfokey}");
         return sheetsageinfokey
     }
 
@@ -268,7 +254,6 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         val sheetsageinfochords = settings?.let {
             settings.sheetstageInfo["chords"] as List<String>
         } ?: emptyList()
-        println("sheetsageinfochords: ${sheetsageinfochords}");
         return sheetsageinfochords
     }
 
@@ -280,7 +265,6 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         val sheetsageinfobeattimes = settings?.let {
             settings.sheetstageInfo["beattimes"] as List<Double>
         } ?: emptyList()
-        println("sheetsageinfobeattimes: ${sheetsageinfobeattimes}");
         return sheetsageinfobeattimes
     }
 
@@ -293,7 +277,6 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         val syllables = settings?.let {
             settings.getSourceSyllables(voiceId)
         } ?: emptyList()
-        println("voicesourcesyllables: ${syllables}");
         return syllables
     }
 
@@ -305,7 +288,6 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         val markers = settings?.let {
             settings.getSourceMarkers(voiceId)
         } ?: emptyList()
-        println("voicesourcemarkers: ${markers}");
         return markers
     }
 
@@ -313,10 +295,21 @@ class ApisController(private val sseNotificationService: SseNotificationService)
     @PostMapping("/song/textformatted")
     @ResponseBody
     fun getSongTextFormatted(@RequestParam id: Long): String {
-        println("getSongTextFormatted called")
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             settings.getTextFormatted()
+        } ?: ""
+        return text
+    }
+
+
+    // Получение форматированного текста с нотами
+    @PostMapping("/song/notesformatted")
+    @ResponseBody
+    fun getSongFormattedNotes(@RequestParam id: Long): String {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        val text = settings?.let {
+            settings.getFormattedNotes()
         } ?: ""
         return text
     }
@@ -330,7 +323,6 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             val text = it.getTextBoostyHead()
             text
         } ?: ""
-        println("id = ${id}, text = ${text}")
         return text
     }
 
@@ -343,7 +335,6 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             val text = it.getTextBoostyBody()
             text
         } ?: ""
-        println("id = ${id}, text = ${text}")
         return text
     }
 
@@ -356,7 +347,6 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             val text = it.getTextBoostyHead()
             text
         } ?: ""
-        println("id = ${id}, text = ${text}")
         return text
     }
 
@@ -369,7 +359,6 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             val text = it.getTextBoostyBody()
             text
         } ?: ""
-        println("id = ${id}, text = ${text}")
         return text
     }
 
@@ -382,7 +371,6 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             val text = it.getTextBoostyFilesHead()
             text
         } ?: ""
-        println("id = ${id}, text = ${text}")
         return text
     }
 
@@ -395,7 +383,6 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             val text = it.getVKGroupDescription()
             text
         } ?: ""
-        println("id = ${id}, text = ${text}")
         return text
     }
 
@@ -408,7 +395,6 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             val text = it.getDescriptionHeader(SongVersion.KARAOKE, 140)
             text
         } ?: ""
-        println("id = ${id}, text = ${text}")
         return text
     }
 
@@ -421,7 +407,6 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.KARAOKE, 5000)
             text
         } ?: ""
-        println("id = ${id}, text = ${text}")
         return text
     }
 
@@ -434,7 +419,6 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             val text = it.getDescriptionHeader(SongVersion.LYRICS, 140)
             text
         } ?: ""
-        println("id = ${id}, text = ${text}")
         return text
     }
 
@@ -447,7 +431,6 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.LYRICS, 5000)
             text
         } ?: ""
-        println("id = ${id}, text = ${text}")
         return text
     }
 
@@ -460,11 +443,22 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             val text = it.getDescriptionHeader(SongVersion.LYRICS, 140)
             text
         } ?: ""
-        println("id = ${id}, text = ${text}")
         return text
     }
 
-    // Получение текста тела для Dzen Lyrics
+    // Получение текста заголовка для Dzen Melody
+    @PostMapping("/song/textyoutubemelodyheader")
+    @ResponseBody
+    fun getSongTextYoutubeMelodyHeader(@RequestParam id: Long): String {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        val text = settings?.let {
+            val text = it.getDescriptionHeader(SongVersion.LYRICS, 140)
+            text
+        } ?: ""
+        return text
+    }
+
+    // Получение текста тела для Dzen Chords
     @PostMapping("/song/textyoutubechordswoheader")
     @ResponseBody
     fun getSongTextYoutubeChordsWOHeader(@RequestParam id: Long): String {
@@ -473,7 +467,19 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.LYRICS, 5000)
             text
         } ?: ""
-        println("id = ${id}, text = ${text}")
+        return text
+    }
+
+
+    // Получение текста тела для Dzen Melody
+    @PostMapping("/song/textyoutubemelodywoheader")
+    @ResponseBody
+    fun getSongTextYoutubeMelodyWOHeader(@RequestParam id: Long): String {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        val text = settings?.let {
+            val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.LYRICS, 5000)
+            text
+        } ?: ""
         return text
     }
 
@@ -486,7 +492,6 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             val text = it.getDescriptionHeader(SongVersion.KARAOKE, 140)
             text
         } ?: ""
-        println("id = ${id}, text = ${text}")
         return text
     }
 
@@ -499,7 +504,6 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.KARAOKE, 5000, 100)
             text
         } ?: ""
-        println("id = ${id}, text = ${text}")
         return text
     }
 
@@ -512,7 +516,6 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             val text = it.getDescriptionHeader(SongVersion.LYRICS, 140)
             text
         } ?: ""
-        println("id = ${id}, text = ${text}")
         return text
     }
 
@@ -525,7 +528,6 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.LYRICS, 5000, 100)
             text
         } ?: ""
-        println("id = ${id}, text = ${text}")
         return text
     }
 
@@ -538,7 +540,17 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             val text = it.getDescriptionHeader(SongVersion.LYRICS, 140)
             text
         } ?: ""
-        println("id = ${id}, text = ${text}")
+        return text
+    }
+    // Получение текста заголовка для Platforma Melody
+    @PostMapping("/song/textplmelodyheader")
+    @ResponseBody
+    fun getSongTextPlMelodyHeader(@RequestParam id: Long): String {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        val text = settings?.let {
+            val text = it.getDescriptionHeader(SongVersion.LYRICS, 140)
+            text
+        } ?: ""
         return text
     }
 
@@ -551,7 +563,17 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.LYRICS, 5000, 100)
             text
         } ?: ""
-        println("id = ${id}, text = ${text}")
+        return text
+    }
+    // Получение текста тела для Platforma Melody
+    @PostMapping("/song/textplmelodywoheader")
+    @ResponseBody
+    fun getSongTextPlMelodyWOHeader(@RequestParam id: Long): String {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        val text = settings?.let {
+            val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.LYRICS, 5000, 100)
+            text
+        } ?: ""
         return text
     }
 
@@ -566,7 +588,6 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             val text = it.getDescriptionVkHeader(SongVersion.KARAOKE)
             text
         } ?: ""
-        println("id = ${id}, text = ${text}")
         return text
     }
 
@@ -579,7 +600,6 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             val text = it.getDescriptionVk(SongVersion.KARAOKE)
             text
         } ?: ""
-        println("id = ${id}, text = ${text}")
         return text
     }
 
@@ -592,7 +612,6 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             val text = it.getDescriptionVkHeader(SongVersion.LYRICS)
             text
         } ?: ""
-        println("id = ${id}, text = ${text}")
         return text
     }
 
@@ -605,7 +624,6 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             val text = it.getDescriptionVk(SongVersion.LYRICS)
             text
         } ?: ""
-        println("id = ${id}, text = ${text}")
         return text
     }
 
@@ -618,7 +636,17 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             val text = it.getDescriptionVkHeader(SongVersion.LYRICS)
             text
         } ?: ""
-        println("id = ${id}, text = ${text}")
+        return text
+    }
+    // Получение текста заголовка для Vk Melody
+    @PostMapping("/song/textvkmelodyheader")
+    @ResponseBody
+    fun getSongTextVkMelodyHeader(@RequestParam id: Long): String {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        val text = settings?.let {
+            val text = it.getDescriptionVkHeader(SongVersion.LYRICS)
+            text
+        } ?: ""
         return text
     }
 
@@ -631,7 +659,17 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             val text = it.getDescriptionVk(SongVersion.LYRICS)
             text
         } ?: ""
-        println("id = ${id}, text = ${text}")
+        return text
+    }
+    // Получение текста тела для Vk Melody
+    @PostMapping("/song/textvkmelody")
+    @ResponseBody
+    fun getSongTextVkMelody(@RequestParam id: Long): String {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        val text = settings?.let {
+            val text = it.getDescriptionVk(SongVersion.LYRICS)
+            text
+        } ?: ""
         return text
     }
 
@@ -645,7 +683,6 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             val text = it.getDescriptionVkHeader(SongVersion.KARAOKE)
             text
         } ?: ""
-        println("id = ${id}, text = ${text}")
         return text
     }
 
@@ -658,7 +695,6 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             val text = it.getDescriptionVkHeader(SongVersion.LYRICS)
             text
         } ?: ""
-        println("id = ${id}, text = ${text}")
         return text
     }
 
@@ -671,7 +707,17 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             val text = it.getDescriptionVkHeader(SongVersion.LYRICS)
             text
         } ?: ""
-        println("id = ${id}, text = ${text}")
+        return text
+    }
+    // Получение текста заголовка для Telegram Melody
+    @PostMapping("/song/texttelegrammelodyheader")
+    @ResponseBody
+    fun getSongTextTelegramMelodyHeader(@RequestParam id: Long): String {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        val text = settings?.let {
+            val text = it.getDescriptionVkHeader(SongVersion.LYRICS)
+            text
+        } ?: ""
         return text
     }
 
@@ -874,14 +920,19 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         @RequestParam(required = false) flag_youtube_lyrics: String?,
         @RequestParam(required = false) flag_youtube_karaoke: String?,
         @RequestParam(required = false) flag_youtube_chords: String?,
+        @RequestParam(required = false) flag_youtube_melody: String?,
         @RequestParam(required = false) flag_vk_lyrics: String?,
         @RequestParam(required = false) flag_vk_karaoke: String?,
         @RequestParam(required = false) flag_vk_chords: String?,
+        @RequestParam(required = false) flag_vk_melody: String?,
         @RequestParam(required = false) flag_telegram_lyrics: String?,
         @RequestParam(required = false) flag_telegram_karaoke: String?,
         @RequestParam(required = false) flag_telegram_chords: String?,
+        @RequestParam(required = false) flag_telegram_melody: String?,
         @RequestParam(required = false) flag_pl_lyrics: String?,
         @RequestParam(required = false) flag_pl_karaoke: String?,
+        @RequestParam(required = false) flag_pl_chords: String?,
+        @RequestParam(required = false) flag_pl_melody: String?,
         @RequestParam(required = false) filter_result_version: String?,
         @RequestParam(required = false) filter_count_voices: String?
 
@@ -904,18 +955,21 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         flag_youtube_lyrics?.let { if (flag_youtube_lyrics != "") args["flag_youtube_lyrics"] = flag_youtube_lyrics }
         flag_youtube_karaoke?.let { if (flag_youtube_karaoke != "") args["flag_youtube_karaoke"] = flag_youtube_karaoke }
         flag_youtube_chords?.let { if (flag_youtube_chords != "") args["flag_youtube_chords"] = flag_youtube_chords }
+        flag_youtube_melody?.let { if (flag_youtube_melody != "") args["flag_youtube_melody"] = flag_youtube_melody }
         flag_vk_lyrics?.let { if (flag_vk_lyrics != "") args["flag_vk_lyrics"] = flag_vk_lyrics }
         flag_vk_karaoke?.let { if (flag_vk_karaoke != "") args["flag_vk_karaoke"] = flag_vk_karaoke }
         flag_vk_chords?.let { if (flag_vk_chords != "") args["flag_vk_chords"] = flag_vk_chords }
+        flag_vk_melody?.let { if (flag_vk_melody != "") args["flag_vk_melody"] = flag_vk_melody }
         flag_telegram_lyrics?.let { if (flag_telegram_lyrics != "") args["flag_telegram_lyrics"] = flag_telegram_lyrics }
         flag_telegram_karaoke?.let { if (flag_telegram_karaoke != "") args["flag_telegram_karaoke"] = flag_telegram_karaoke }
         flag_telegram_chords?.let { if (flag_telegram_chords != "") args["flag_telegram_chords"] = flag_telegram_chords }
+        flag_telegram_melody?.let { if (flag_telegram_melody != "") args["flag_telegram_melody"] = flag_telegram_melody }
         flag_pl_lyrics?.let { if (flag_pl_lyrics != "") args["flag_pl_lyrics"] = flag_pl_lyrics }
         flag_pl_karaoke?.let { if (flag_pl_karaoke != "") args["flag_pl_karaoke"] = flag_pl_karaoke }
+        flag_pl_chords?.let { if (flag_pl_chords != "") args["flag_pl_chords"] = flag_pl_chords }
+        flag_pl_melody?.let { if (flag_pl_melody != "") args["flag_pl_melody"] = flag_pl_melody }
         filter_result_version?.let { if (filter_result_version != "") args["filter_result_version"] = filter_result_version }
         filter_count_voices?.let { if (filter_count_voices != "") args["filter_count_voices"] = filter_count_voices }
-
-        println("args: $args")
 
         SongsHistory().add(args)
 
@@ -953,14 +1007,19 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         @RequestParam(required = false) flag_youtube_lyrics: String?,
         @RequestParam(required = false) flag_youtube_karaoke: String?,
         @RequestParam(required = false) flag_youtube_chords: String?,
+        @RequestParam(required = false) flag_youtube_melody: String?,
         @RequestParam(required = false) flag_vk_lyrics: String?,
         @RequestParam(required = false) flag_vk_karaoke: String?,
         @RequestParam(required = false) flag_vk_chords: String?,
+        @RequestParam(required = false) flag_vk_melody: String?,
         @RequestParam(required = false) flag_telegram_lyrics: String?,
         @RequestParam(required = false) flag_telegram_karaoke: String?,
         @RequestParam(required = false) flag_telegram_chords: String?,
+        @RequestParam(required = false) flag_telegram_melody: String?,
         @RequestParam(required = false) flag_pl_lyrics: String?,
         @RequestParam(required = false) flag_pl_karaoke: String?,
+        @RequestParam(required = false) flag_pl_chords: String?,
+        @RequestParam(required = false) flag_pl_melody: String?,
         @RequestParam(required = false) filter_result_version: String?,
         @RequestParam(required = false) pageSize: Int = 30
     ): Map<String, Any> {
@@ -982,17 +1041,20 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         flag_youtube_lyrics?.let { if (flag_youtube_lyrics != "") args["flag_youtube_lyrics"] = flag_youtube_lyrics }
         flag_youtube_karaoke?.let { if (flag_youtube_karaoke != "") args["flag_youtube_karaoke"] = flag_youtube_karaoke }
         flag_youtube_chords?.let { if (flag_youtube_chords != "") args["flag_youtube_chords"] = flag_youtube_chords }
+        flag_youtube_melody?.let { if (flag_youtube_melody != "") args["flag_youtube_melody"] = flag_youtube_melody }
         flag_vk_lyrics?.let { if (flag_vk_lyrics != "") args["flag_vk_lyrics"] = flag_vk_lyrics }
         flag_vk_karaoke?.let { if (flag_vk_karaoke != "") args["flag_vk_karaoke"] = flag_vk_karaoke }
         flag_vk_chords?.let { if (flag_vk_chords != "") args["flag_vk_chords"] = flag_vk_chords }
+        flag_vk_melody?.let { if (flag_vk_melody != "") args["flag_vk_melody"] = flag_vk_melody }
         flag_telegram_lyrics?.let { if (flag_telegram_lyrics != "") args["flag_telegram_lyrics"] = flag_telegram_lyrics }
         flag_telegram_karaoke?.let { if (flag_telegram_karaoke != "") args["flag_telegram_karaoke"] = flag_telegram_karaoke }
         flag_telegram_chords?.let { if (flag_telegram_chords != "") args["flag_telegram_chords"] = flag_telegram_chords }
+        flag_telegram_melody?.let { if (flag_telegram_melody != "") args["flag_telegram_melody"] = flag_telegram_melody }
         flag_pl_lyrics?.let { if (flag_pl_lyrics != "") args["flag_pl_lyrics"] = flag_pl_lyrics }
         flag_pl_karaoke?.let { if (flag_pl_karaoke != "") args["flag_pl_karaoke"] = flag_pl_karaoke }
+        flag_pl_chords?.let { if (flag_pl_chords != "") args["flag_pl_chords"] = flag_pl_chords }
+        flag_pl_melody?.let { if (flag_pl_melody != "") args["flag_pl_melody"] = flag_pl_melody }
         filter_result_version?.let { if (filter_result_version != "") args["filter_result_version"] = filter_result_version }
-
-        println("args: $args")
 
         SongsHistory().add(args)
 
@@ -1052,7 +1114,6 @@ class ApisController(private val sseNotificationService: SseNotificationService)
     fun doPlayLyrics(@RequestParam id: Long): Boolean {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         settings?.let {
-            println("doPlayLyrics")
             settings.playLyrics()
         }
         return true
@@ -1064,7 +1125,6 @@ class ApisController(private val sseNotificationService: SseNotificationService)
     fun doPlayKaraoke(@RequestParam id: Long): Boolean {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         settings?.let {
-            println("doPlayKaraoke")
             settings.playKaraoke()
         }
         return true
@@ -1077,8 +1137,17 @@ class ApisController(private val sseNotificationService: SseNotificationService)
     fun doPlayChords(@RequestParam id: Long): Boolean {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         settings?.let {
-            println("doPlayChords")
             settings.playChords()
+        }
+        return true
+    }
+    // Видеопроигрыватель: Melody
+    @PostMapping("/song/playmelody")
+    @ResponseBody
+    fun doPlayMelody(@RequestParam id: Long): Boolean {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        settings?.let {
+            settings.playMelody()
         }
         return true
     }
@@ -1140,15 +1209,19 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         @RequestParam(required = false) idYoutubeLyrics: String?,
         @RequestParam(required = false) idYoutubeKaraoke: String?,
         @RequestParam(required = false) idYoutubeChords: String?,
+        @RequestParam(required = false) idYoutubeMelody: String?,
         @RequestParam(required = false) idVkLyrics: String?,
         @RequestParam(required = false) idVkKaraoke: String?,
         @RequestParam(required = false) idVkChords: String?,
+        @RequestParam(required = false) idVkMelody: String?,
         @RequestParam(required = false) idTelegramLyrics: String?,
         @RequestParam(required = false) idTelegramKaraoke: String?,
         @RequestParam(required = false) idTelegramChords: String?,
+        @RequestParam(required = false) idTelegramMelody: String?,
         @RequestParam(required = false) idPlLyrics: String?,
         @RequestParam(required = false) idPlKaraoke: String?,
         @RequestParam(required = false) idPlChords: String?,
+        @RequestParam(required = false) idPlMelody: String?,
         @RequestParam(required = false) resultVersion: String?,
         @RequestParam(required = false) diffBeats: String?
     ): Boolean {
@@ -1176,15 +1249,19 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             idYoutubeLyrics?.let { sett.fields[SettingField.ID_YOUTUBE_LYRICS] = it }
             idYoutubeKaraoke?.let { sett.fields[SettingField.ID_YOUTUBE_KARAOKE] = it }
             idYoutubeChords?.let { sett.fields[SettingField.ID_YOUTUBE_CHORDS] = it }
+            idYoutubeMelody?.let { sett.fields[SettingField.ID_YOUTUBE_MELODY] = it }
             idVkLyrics?.let { sett.fields[SettingField.ID_VK_LYRICS] = it }
             idVkKaraoke?.let { sett.fields[SettingField.ID_VK_KARAOKE] = it }
             idVkChords?.let { sett.fields[SettingField.ID_VK_CHORDS] = it }
+            idVkMelody?.let { sett.fields[SettingField.ID_VK_MELODY] = it }
             idTelegramLyrics?.let { sett.fields[SettingField.ID_TELEGRAM_LYRICS] = it }
             idTelegramKaraoke?.let { sett.fields[SettingField.ID_TELEGRAM_KARAOKE] = it }
             idTelegramChords?.let { sett.fields[SettingField.ID_TELEGRAM_CHORDS] = it }
+            idTelegramMelody?.let { sett.fields[SettingField.ID_TELEGRAM_MELODY] = it }
             idPlLyrics?.let { sett.fields[SettingField.ID_PL_LYRICS] = it }
             idPlKaraoke?.let { sett.fields[SettingField.ID_PL_KARAOKE] = it }
             idPlChords?.let { sett.fields[SettingField.ID_PL_CHORDS] = it }
+            idPlMelody?.let { sett.fields[SettingField.ID_PL_MELODY] = it }
             resultVersion?.let { sett.fields[SettingField.RESULT_VERSION] = it }
             diffBeats?.let { sett.fields[SettingField.DIFFBEATS] = it }
             idStatus?.let { sett.fields[SettingField.ID_STATUS] =  it }
@@ -1236,7 +1313,6 @@ class ApisController(private val sseNotificationService: SseNotificationService)
     @PostMapping("/song/voices")
     @ResponseBody
     fun getSongVoices(@RequestParam id: Long): Map<String, Any> {
-        println("getSongVoices for song id = ${id}")
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
 
         settings?.let {
@@ -1377,9 +1453,14 @@ class ApisController(private val sseNotificationService: SseNotificationService)
     @PostMapping("/song/createkaraoke")
     @ResponseBody
     fun getSongCreateKaraoke(@RequestParam id: Long,
-                             @RequestParam(required = false) priorLyrics: String = "0",
-                             @RequestParam(required = false) priorKaraoke: String = "1",
-                             @RequestParam(required = false) priorChords: String = "",
+                             @RequestParam(required = false) priorLyrics: String? = "0",
+                             @RequestParam(required = false) priorKaraoke: String? = "1",
+                             @RequestParam(required = false) priorChords: String? = "",
+                             @RequestParam(required = false) priorMelody: String? = "",
+                             @RequestParam(required = false) priorLyricsVk: String? = "",
+                             @RequestParam(required = false) priorKaraokeVk: String? = "",
+                             @RequestParam(required = false) priorChordsVk: String? = "",
+                             @RequestParam(required = false) priorMelodyVk: String? = "",
     ): Boolean {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
 
@@ -1389,13 +1470,46 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         var body = "Что-то пошло не так"
         var result = false
         settings?.let {
-            val createLyrics = priorLyrics != ""
-            val createKaraoke = priorKaraoke != ""
-            val createChords = priorChords != ""
-            settings.createKaraoke(createLyrics = createLyrics, createKaraoke = createKaraoke, createChords = createChords)
-            if (createLyrics) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, priorLyrics.toInt())
-            if (createKaraoke) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, priorKaraoke.toInt())
-            if (createChords) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDS, true, priorChords.toInt())
+
+            val createLyrics = priorLyrics != "" && priorLyrics != null
+            val createKaraoke = priorKaraoke != "" && priorKaraoke != null
+            val createChords = priorChords != "" && priorChords != null
+            val createMelody = priorMelody != "" && priorMelody != null
+            val createLyricsVk = priorLyricsVk != "" && priorLyricsVk != null
+            val createKaraokeVk = priorKaraokeVk != "" && priorKaraokeVk != null
+            val createChordsVk = priorChordsVk != "" && priorChordsVk != null
+            val createMelodyVk = priorMelodyVk != "" && priorMelodyVk != null
+
+            settings.createKaraoke(
+                createLyrics = createLyrics,
+                createKaraoke = createKaraoke,
+                createChords = createChords,
+                createMelody = createMelody,
+                createLyricsVk = createLyricsVk,
+                createKaraokeVk = createKaraokeVk,
+                createChordsVk = createChordsVk,
+                createMelodyVk = createMelodyVk,
+            )
+            if (createLyrics) {
+                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, priorLyrics!!.toInt())
+                if (!createLyricsVk && settings.getSongDurationVideoMs() < 61_100) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICSVK, true, priorLyrics.toInt())
+            }
+            if (createKaraoke) {
+                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, priorKaraoke!!.toInt())
+                if (!createKaraokeVk && settings.getSongDurationVideoMs() < 61_100) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKEVK, true, priorKaraoke.toInt())
+            }
+            if (createChords) {
+                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDS, true, priorChords!!.toInt())
+                if (!createChordsVk && settings.getSongDurationVideoMs() < 61_100) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDSVK, true, priorChords.toInt())
+            }
+            if (createMelody) {
+                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_MELODY, true, priorMelody!!.toInt())
+                if (!createMelodyVk && settings.getSongDurationVideoMs() < 61_100) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_MELODYVK, true, priorMelody.toInt())
+            }
+            if (createLyricsVk) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICSVK, true, priorLyricsVk!!.toInt())
+            if (createKaraokeVk) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKEVK, true, priorKaraokeVk!!.toInt())
+            if (createChordsVk) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDSVK, true, priorChordsVk!!.toInt())
+            if (createMelodyVk) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_MELODYVK, true, priorMelodyVk!!.toInt())
             type = "info"
             body = "Создание караоке для песни «${it.songName}» прошло успешно."
             result = true
@@ -1408,9 +1522,14 @@ class ApisController(private val sseNotificationService: SseNotificationService)
     @PostMapping("/songs/createkaraokeall")
     @ResponseBody
     fun getSongsCreateKaraokeAll(@RequestParam songsIds: String,
-                                 @RequestParam(required = false) priorLyrics: String = "10",
-                                 @RequestParam(required = false) priorKaraoke: String = "10",
-                                 @RequestParam(required = false) priorChords: String = ""
+                                 @RequestParam(required = false) priorLyrics: String? = "10",
+                                 @RequestParam(required = false) priorKaraoke: String? = "10",
+                                 @RequestParam(required = false) priorChords: String? = "",
+                                 @RequestParam(required = false) priorMelody: String? = "",
+                                 @RequestParam(required = false) priorLyricsVk: String? = "",
+                                 @RequestParam(required = false) priorKaraokeVk: String? = "",
+                                 @RequestParam(required = false) priorChordsVk: String? = "",
+                                 @RequestParam(required = false) priorMelodyVk: String? = "",
     ) {
         var result = false
         songsIds.let {
@@ -1418,13 +1537,45 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             ids.forEach { id ->
                 val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
                 settings?.let {
-                    val createLyrics = priorLyrics != ""
-                    val createKaraoke = priorKaraoke != ""
-                    val createChords = priorChords != ""
-                    settings.createKaraoke(createLyrics = createLyrics, createKaraoke = createKaraoke, createChords = createChords)
-                    if (createLyrics) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, priorLyrics.toInt())
-                    if (createKaraoke) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, priorKaraoke.toInt())
-                    if (createChords) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDS, true, priorChords.toInt())
+                    val createLyrics = priorLyrics != "" && priorLyrics != null
+                    val createKaraoke = priorKaraoke != "" && priorKaraoke != null
+                    val createChords = priorChords != "" && priorChords != null
+                    val createMelody = priorMelody != "" && priorMelody != null
+                    val createLyricsVk = priorLyricsVk != "" && priorLyricsVk != null
+                    val createKaraokeVk = priorKaraokeVk != "" && priorKaraokeVk != null
+                    val createChordsVk = priorChordsVk != "" && priorChordsVk != null
+                    val createMelodyVk = priorMelodyVk != "" && priorMelodyVk != null
+
+                    settings.createKaraoke(
+                        createLyrics = createLyrics,
+                        createKaraoke = createKaraoke,
+                        createChords = createChords,
+                        createMelody = createMelody,
+                        createLyricsVk = createLyricsVk,
+                        createKaraokeVk = createKaraokeVk,
+                        createMelodyVk = createMelodyVk
+                    )
+
+                    if (createLyrics) {
+                        KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, priorLyrics!!.toInt())
+                        if (!createLyricsVk && settings.getSongDurationVideoMs() < 61_100) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICSVK, true, priorLyrics.toInt())
+                    }
+                    if (createKaraoke) {
+                        KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, priorKaraoke!!.toInt())
+                        if (!createKaraokeVk && settings.getSongDurationVideoMs() < 61_100) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKEVK, true, priorKaraoke.toInt())
+                    }
+                    if (createChords) {
+                        KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDS, true, priorChords!!.toInt())
+                        if (!createChordsVk && settings.getSongDurationVideoMs() < 61_100) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDSVK, true, priorChords.toInt())
+                    }
+                    if (createMelody) {
+                        KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_MELODY, true, priorMelody!!.toInt())
+                        if (!createMelodyVk && settings.getSongDurationVideoMs() < 61_100) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_MELODYVK, true, priorMelody.toInt())
+                    }
+                    if (createLyricsVk) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICSVK, true, priorLyricsVk!!.toInt())
+                    if (createKaraokeVk) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKEVK, true, priorKaraokeVk!!.toInt())
+                    if (createChordsVk) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDSVK, true, priorChordsVk!!.toInt())
+                    if (createMelodyVk) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_MELODYVK, true, priorMelodyVk!!.toInt())
                 }
                 result = true
             }
@@ -1806,6 +1957,19 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             )))
         }
     }
+    // Создаём картинку MELODY для песни
+    @PostMapping("/song/createpicturemelody")
+    @ResponseBody
+    fun doCreatePictureMelody(@RequestParam id: Long) {
+        Settings.loadFromDbById(id, WORKING_DATABASE)?.let { settings ->
+            createSongPicture(settings, SongVersion.MELODY)
+            SNS.send(SseNotification.message(Message(
+                type = "info",
+                head = "Создание картинки MELODY",
+                body = "Создание картинки MELODY прошло успешно"
+            )))
+        }
+    }
 
     // Создаём текстовый файл LYRICS для песни
     @PostMapping("/song/createdescriptionfilelyrics")
@@ -1845,6 +2009,19 @@ class ApisController(private val sseNotificationService: SseNotificationService)
                 type = "info",
                 head = "Создание текстового файла CHORDS",
                 body = "Создание текстового файла CHORDS прошло успешно"
+            )))
+        }
+    }
+    // Создаём текстовый файл MELODY для песни
+    @PostMapping("/song/createdescriptionfilemelody")
+    @ResponseBody
+    fun doCreateDescriptionFileMelody(@RequestParam id: Long) {
+        Settings.loadFromDbById(id, WORKING_DATABASE)?.let { settings ->
+            createSongDescriptionFile(settings, SongVersion.MELODY)
+            SNS.send(SseNotification.message(Message(
+                type = "info",
+                head = "Создание текстового файла MELODY",
+                body = "Создание текстового файла MELODY прошло успешно"
             )))
         }
     }
@@ -2138,17 +2315,17 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         )))
     }
 
-    @PostMapping("/utils/checklastalbumym")
-    @ResponseBody
-    fun doCheckLastAlbumYm() {
-        val result = checkLastAlbumYm()
-        SNS.send(SseNotification.message(Message(
-            type = "info",
-            head = "Поиск новых альбомов",
-            body = result
-        )))
-
-    }
+//    @PostMapping("/utils/checklastalbumym")
+//    @ResponseBody
+//    fun doCheckLastAlbumYm() {
+//        val result = checkLastAlbumYm()
+//        SNS.send(SseNotification.message(Message(
+//            type = "info",
+//            head = "Поиск новых альбомов",
+//            body = result
+//        )))
+//
+//    }
 
     @PostMapping("/processes/deletedone")
     @ResponseBody
@@ -2224,6 +2401,30 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             head = "SET PROPERTY",
             body = "Свойство «$key» установлено в значение по умолчанию"
         )))
+    }
+
+    @PostMapping("/propertiesdigests")
+    @ResponseBody
+    fun apisPropertiesDigest(
+        @RequestParam(required = false) filter_key: String?,
+        @RequestParam(required = false) filter_value: String?,
+        @RequestParam(required = false) filter_default_value: String?,
+        @RequestParam(required = false) filter_description: String?,
+        @RequestParam(required = false) filter_type: String?
+    ): Map<String, Any> {
+
+        val args: MutableMap<String, String> = mutableMapOf()
+        filter_key?.let { if (filter_key != "") args["key"] = filter_key }
+        filter_value?.let { if (filter_value != "") args["value"] = filter_value }
+        filter_default_value?.let { if (filter_default_value != "") args["default_value"] = filter_default_value }
+        filter_description?.let { if (filter_description != "") args["description"] = filter_description }
+        filter_type?.let { if (filter_type != "") args["type"] = filter_type }
+
+        return mapOf(
+            "workInContainer" to APP_WORK_IN_CONTAINER,
+            "propertiesDigests" to KaraokeProperties.loadList(args),
+            "types" to KaraokeProperties.types()
+        )
     }
 
 }

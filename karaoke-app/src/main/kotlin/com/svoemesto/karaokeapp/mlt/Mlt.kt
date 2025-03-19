@@ -4,6 +4,7 @@ import com.svoemesto.karaokeapp.getStoredUuid
 import com.svoemesto.karaokeapp.model.MltNode
 import com.svoemesto.karaokeapp.model.ProducerType
 import com.svoemesto.karaokeapp.model.Uuids
+import com.svoemesto.karaokeapp.model.childs
 import com.svoemesto.karaokeapp.producerTypeClass
 import getMltConsumer
 import getMltProfile
@@ -40,29 +41,29 @@ fun getMisList(mltProp: MltProp): List<MltInitialStructure> {
         voice.linesForMlt().forEachIndexed { indexLine, line ->
             if (!line.isEmptyLine) {
                 line.getElements(songVersion).forEachIndexed { indexElement, element ->
-                    if (ProducerType.FILL in songProducers) {
-                        val key = listOf(ProducerType.FILL, indexVoice, indexLine, indexElement)
-                        if (mltProp.getUUID(key) == "") mltProp.setUUID(getStoredUuid(key), key)
-                        result.add(MltInitialStructure(mltProp, ProducerType.FILL, indexVoice, indexLine, indexElement))
-                    }
-                    if (ProducerType.STRING in songProducers) {
-                        val key = listOf(ProducerType.STRING, indexVoice, indexLine, indexElement)
-                        if (mltProp.getUUID(key) == "") mltProp.setUUID(getStoredUuid(key), key)
-                        result.add(MltInitialStructure(mltProp, ProducerType.STRING, indexVoice, indexLine, indexElement))
-                    }
+
                     if (ProducerType.ELEMENT in songProducers) {
+
+                        ProducerType.ELEMENT.childs().reversed().forEach {
+                            if (it in songProducers) {
+                                val key = listOf(it, indexVoice, indexLine, indexElement)
+                                if (mltProp.getUUID(key) == "") mltProp.setUUID(getStoredUuid(key), key)
+                                result.add(MltInitialStructure(mltProp, it, indexVoice, indexLine, indexElement))
+                                mltProp.setCountChilds(line.getElements(songVersion).size, listOf(it, indexVoice, indexLine))
+                            }
+                        }
+
                         val key = listOf(ProducerType.ELEMENT, indexVoice, indexLine, indexElement)
                         if (mltProp.getUUID(key) == "") mltProp.setUUID(getStoredUuid(key), key)
                         result.add(MltInitialStructure(mltProp, ProducerType.ELEMENT, indexVoice, indexLine, indexElement))
+                        mltProp.setCountChilds(line.getElements(songVersion).size, listOf(ProducerType.ELEMENT, indexVoice, indexLine))
+
                     }
                 }
                 if (ProducerType.LINE in songProducers) {
                     val key = listOf(ProducerType.LINE, indexVoice, indexLine)
                     if (mltProp.getUUID(key) == "") mltProp.setUUID(getStoredUuid(key), key)
 
-                    mltProp.setCountChilds(line.getElements(songVersion).size, listOf(ProducerType.FILL, indexVoice, indexLine))
-                    mltProp.setCountChilds(line.getElements(songVersion).size, listOf(ProducerType.STRING, indexVoice, indexLine))
-                    mltProp.setCountChilds(line.getElements(songVersion).size, listOf(ProducerType.ELEMENT, indexVoice, indexLine))
                     mltProp.setDurationOnScreen(line.endVisibleTime - line.startVisibleTime, listOf(ProducerType.LINE, indexVoice, indexLine))
                     result.add(MltInitialStructure(mltProp, ProducerType.LINE, indexVoice, indexLine))
                 }
@@ -71,7 +72,6 @@ fun getMisList(mltProp: MltProp): List<MltInitialStructure> {
 
         if (ProducerType.LINETRACK in songProducers) {
             val cnt = voice.countLineTracks
-            println("countLineTracks = $cnt")
             mltProp.setCountChilds(cnt, listOf(ProducerType.LINETRACK, indexVoice))
             for (indexChild in 0 until cnt) {
                 val key = listOf(ProducerType.LINETRACK, indexVoice, indexChild)
@@ -320,8 +320,6 @@ fun getMlt(mltProp: MltProp): MltNode {
         resultFilePlaylist?.let { bodyOthers.add(it) }
         resultTrackPlaylist?.let { bodyOthers.add(it) }
         resultTractor?.let { bodyOthers.add(it) }
-
-        println("pct: $type-v$voiceId-c$childId-e$elementId")
 
     }
 

@@ -22,7 +22,7 @@ fun getMltConsumer(mltProp: MltProp): MltNode {
             Pair("preset","ultrafast"),
             Pair("acodec","aac"),
             Pair("in","0"),
-            Pair("out",mltProp.getLengthFr("Total").toString())
+            Pair("out",mltProp.getLengthFr("Background").toString())
         )
     )
 

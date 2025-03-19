@@ -55,7 +55,9 @@ enum class ProducerType(
                         LINE(parent = LINES, level = 5, isCalculatedCount = true, text ="line", onlyOne = false, ids = mutableListOf(), isAudio = false, isVideo = true, coeffStatic = 0, coeffVoice = 1, isSequence = true),
                             ELEMENT(parent = LINE, level = 6, isCalculatedCount = true, text ="element", onlyOne = false, ids = mutableListOf(), isAudio = false, isVideo = true, coeffStatic = 0, coeffVoice = 1, isSequence = true),
                                 STRING(parent = ELEMENT, level = 7, isCalculatedCount = true, text ="string", onlyOne = false, ids = mutableListOf(), isAudio = false, isVideo = true, coeffStatic = 0, coeffVoice = 1, isSequence = false),
-                                FILL(parent = ELEMENT, level = 8, isCalculatedCount = true, text ="fill", onlyOne = false, ids = mutableListOf(), isAudio = false, isVideo = true, coeffStatic = 0, coeffVoice = 1, isSequence = false),
+                                SEPAR(parent = ELEMENT, level = 8, isCalculatedCount = true, text ="separ", onlyOne = false, ids = mutableListOf(), isAudio = false, isVideo = true, coeffStatic = 0, coeffVoice = 1, isSequence = false),
+                                MELODYNOTE(parent = ELEMENT, level = 9, isCalculatedCount = true, text ="melodynote", onlyOne = false, ids = mutableListOf(), isAudio = false, isVideo = true, coeffStatic = 0, coeffVoice = 1, isSequence = false),
+                                FILL(parent = ELEMENT, level = 10, isCalculatedCount = true, text ="fill", onlyOne = false, ids = mutableListOf(), isAudio = false, isVideo = true, coeffStatic = 0, coeffVoice = 1, isSequence = false),
 
 }
 fun ProducerType.childs() : List<ProducerType> = ProducerType.values().filter { it.parent == this }

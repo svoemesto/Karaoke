@@ -45,4 +45,5 @@ docker exec -it karaoke-webvue bash
 
 `docker system prune -a`
 
+После чистки докера восстановить работу sheetsage по файлу /home/nsa/sheetsage/Чё как делать.txt
 

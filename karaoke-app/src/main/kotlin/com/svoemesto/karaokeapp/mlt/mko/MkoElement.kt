@@ -8,6 +8,7 @@ import com.svoemesto.karaokeapp.mlt.MltProp
 import com.svoemesto.karaokeapp.model.MltNode
 import com.svoemesto.karaokeapp.model.MltNodeBuilder
 import com.svoemesto.karaokeapp.model.ProducerType
+import com.svoemesto.karaokeapp.model.childs
 
 data class MkoElement(
     val mltProp: MltProp,
@@ -107,6 +108,11 @@ data class MkoElement(
             }
         }
 
+        val subTracks = ProducerType.ELEMENT.childs().reversed()
+        val subTrackNodes = subTracks.map {
+            MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(it, voiceId, lineId, elementId)))
+        }
+
         return mltGenerator.tractor(
             id = "{${mkoElementUUID}}",
             timecodeIn = songStartTimecode,
@@ -124,8 +130,8 @@ data class MkoElement(
                 .propertyName("kdenlive:id", mltGenerator.id)
                 .propertyName("kdenlive:sequenceproperties.activeTrack", 0)
                 .propertyName("kdenlive:sequenceproperties.documentuuid", "{${mainBinUUID}}")
-                .propertyName("kdenlive:sequenceproperties.tracks", 2)
-                .propertyName("kdenlive:sequenceproperties.tracksCount", 2)
+                .propertyName("kdenlive:sequenceproperties.tracks", subTracks.size)
+                .propertyName("kdenlive:sequenceproperties.tracksCount", subTracks.size)
                 .propertyName("kdenlive:sequenceproperties.verticalzoom", 1)
                 .propertyName("kdenlive:sequenceproperties.zonein", 0)
                 .propertyName("kdenlive:sequenceproperties.zoneout", 75)
@@ -137,9 +143,11 @@ data class MkoElement(
                 .propertyName("meta.media.height", heightAreaPx)
 
                 .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameProducerBlackTrack(ProducerType.ELEMENT, voiceId, lineId, elementId))))
-                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.FILL, voiceId, lineId, elementId))))
-                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.STRING, voiceId, lineId, elementId))))
-                .transitionsAndFilters(mltGenerator.name, 0, 2)
+                .nodes(subTrackNodes)
+//                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.FILL, voiceId, lineId, elementId))))
+//                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.SEPAR, voiceId, lineId, elementId))))
+//                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.STRING, voiceId, lineId, elementId))))
+                .transitionsAndFilters(mltGenerator.name, 0, subTracks.size)
                 .build()
         )
     }

@@ -12,6 +12,7 @@
 <!--        <li class="nav-item"><router-link to="/zakroma">Закрома</router-link></li>-->
 <!--        <li class="nav-item"><router-link to="/processes">Процессы</router-link></li>-->
         <li class="nav-item"><router-link to="/processesbv">Процессы</router-link></li>
+        <li class="nav-item"><router-link to="/propertiesbv">Настройки</router-link></li>
       </ul>
       <backend-console/>
       <process-worker/>

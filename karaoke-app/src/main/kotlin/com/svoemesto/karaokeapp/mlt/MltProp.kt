@@ -97,6 +97,8 @@ data class MltProp(
     fun setSplashLengthFr(value: Long) {props["Splash".convertToList(KEYS.LENGTH_FR)] = value}
     fun getBoostyLengthFr(): Long = props["Boosty".convertToList(KEYS.LENGTH_FR)]?.let { it as Long } ?: 0
     fun setBoostyLengthFr(value: Long) {props["Boosty".convertToList(KEYS.LENGTH_FR)] = value}
+    fun getBackgroundLengthFr(): Long = props["Background".convertToList(KEYS.LENGTH_FR)]?.let { it as Long } ?: 0
+    fun setBackgroundLengthFr(value: Long) {props["Background".convertToList(KEYS.LENGTH_FR)] = value}
     fun getTotalLengthFr(): Long = props["Total".convertToList(KEYS.LENGTH_FR)]?.let { it as Long } ?: 0
     fun setTotalLengthFr(value: Long) {props["Total".convertToList(KEYS.LENGTH_FR)] = value}
     fun getSongLengthFr(): Long = props["Song".convertToList(KEYS.LENGTH_FR)]?.let { it as Long } ?: 0
@@ -141,6 +143,9 @@ data class MltProp(
 
     fun getTotalEndTimecode(): String = props["TotalEnd".convertToList(KEYS.TIMECODE)]?.let { it as String } ?: ""
     fun setTotalEndTimecode(value: String) {props["TotalEnd".convertToList(KEYS.TIMECODE)] = value}
+
+    fun getBackgroundEndTimecode(): String = props["BackgroundEnd".convertToList(KEYS.TIMECODE)]?.let { it as String } ?: ""
+    fun setBackgroundEndTimecode(value: String) {props["BackgroundEnd".convertToList(KEYS.TIMECODE)] = value}
 
     fun getBoostyStartTimecode(): String = props["BoostyStart".convertToList(KEYS.TIMECODE)]?.let { it as String } ?: ""
     fun setBoostyStartTimecode(value: String) {props["BoostyStart".convertToList(KEYS.TIMECODE)] = value}

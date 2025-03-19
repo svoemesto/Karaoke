@@ -3,10 +3,7 @@ package com.svoemesto.karaokeapp.mlt.mko
 import com.svoemesto.karaokeapp.*
 import com.svoemesto.karaokeapp.mlt.MltGenerator
 import com.svoemesto.karaokeapp.mlt.MltProp
-import com.svoemesto.karaokeapp.model.MltNode
-import com.svoemesto.karaokeapp.model.MltNodeBuilder
-import com.svoemesto.karaokeapp.model.ProducerType
-import com.svoemesto.karaokeapp.model.TransformProperty
+import com.svoemesto.karaokeapp.model.*
 
 data class MkoFill(
     val mltProp: MltProp,
@@ -90,7 +87,37 @@ data class MkoFill(
 
     override fun mainFilePlaylistTransformProperties(): String {
         val elementTransformProperties = settings?.voicesForMlt?.get(voiceId)?.getLines()?.get(lineId)?.getElements(songVersion)?.get(elementId)?.transformProperties() ?: emptyList()
-        return if (elementTransformProperties.isNotEmpty()) elementTransformProperties.joinToString(";") else "00:00:00.000=0 0 1 1 0.0"
+        val default = "00:00:00.000=0 0 1 1 0.0"
+        val sett = settings ?: return default
+        val element = try {
+            sett.voicesForMlt[voiceId].getLines()[lineId].getElements(songVersion).filter { it.type == SettingVoiceLineElementTypes.TEXT }.first()
+        } catch (e: Exception) {
+            return default
+        }
+
+        val haveNotes = songVersion.producers.contains(ProducerType.MELODYNOTE) && element.getSyllables().any { it.note != "" }
+
+        val deltaY = if (haveNotes) {
+            val sylFontSize = element.fontSize
+            val melodyNoteFontSize = (sylFontSize * Karaoke.melodyNoteHeightCoefficient).toInt()
+            val melodyNoteMltTextHeight = Karaoke.melodyNoteFont.copy("C", melodyNoteFontSize).h()
+            (melodyNoteMltTextHeight * Karaoke.melodyNoteHeightOffsetCoefficient).toInt()
+        } else {
+            0
+        }
+
+        val result = elementTransformProperties.map {
+            TransformProperty(
+                time = it.time,
+                x = it.x,
+                y = it.y + deltaY,
+                w = it.w,
+                h = it.h,
+                opacity = it.opacity
+            )
+        }
+
+        return if (result.isNotEmpty()) result.joinToString(";") else default
     }
 
     override fun trackPlaylist(): MltNode = mltGenerator.trackPlaylist()

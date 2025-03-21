@@ -142,7 +142,7 @@ enum class SongVersion(
             ProducerType.WATERMARK
         )
     ),
-    MELODY(text = "Melody", textForDescription = "Notes", suffix = " [melody]",
+    TABS(text = "TABS", textForDescription = "Melody", suffix = " [tabs]",
         producers = listOf(
             ProducerType.AUDIOMUSIC,
             ProducerType.AUDIOVOCAL,
@@ -163,6 +163,7 @@ enum class SongVersion(
             ProducerType.FILL,
             ProducerType.SEPAR,
             ProducerType.MELODYNOTE,
+            ProducerType.MELODYTABS,
             ProducerType.STRING,
             ProducerType.ELEMENT,
             ProducerType.LINE,
@@ -319,7 +320,7 @@ enum class SongVersion(
             ProducerType.WATERMARK
         )
     ),
-    MELODYVK(text = "Melody", textForDescription = "Notes", suffix = " [melodyVk]",
+    TABSVK(text = "TABS", textForDescription = "Melody", suffix = " [tabsVk]",
         producers = listOf(
             ProducerType.AUDIOMUSIC,
             ProducerType.AUDIOVOCAL,
@@ -338,6 +339,9 @@ enum class SongVersion(
             ProducerType.COUNTERS,
 
             ProducerType.FILL,
+            ProducerType.SEPAR,
+            ProducerType.MELODYNOTE,
+            ProducerType.MELODYTABS,
             ProducerType.STRING,
             ProducerType.ELEMENT,
             ProducerType.LINE,

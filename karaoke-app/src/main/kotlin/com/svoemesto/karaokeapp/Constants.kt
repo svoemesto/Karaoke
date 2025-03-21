@@ -152,6 +152,7 @@ val producerTypeClass = mapOf(
     ProducerType.FILL to MkoFill::class.java,
     ProducerType.SEPAR to MkoSepar::class.java,
     ProducerType.MELODYNOTE to MkoMelodyNote::class.java,
+    ProducerType.MELODYTABS to MkoMelodyTabs::class.java,
 
 )
 

@@ -221,6 +221,7 @@ val listKaraokeProperties = listOf(
         description = "Цвета горизонта для групп"
     ),
     KaraokeProperty(key = "separLineColor", defaultValue = Color(255,255,255,60).setting(), description = "Цвет линии разделителя слогов"),
+    KaraokeProperty(key = "tabsLineColor", defaultValue = Color(85,200,200,255).setting(), description = "Цвет линий табулатуры нот"),
     KaraokeProperty(key = "horizonColor", defaultValue = Color(0,255,0,255).setting(), description = "Цвет горизонта"),
     KaraokeProperty(key = "flashColor", defaultValue = Color(255,0,0,255).setting(), description = "Цвет флеша горизонта"),
     KaraokeProperty(
@@ -286,7 +287,38 @@ val listKaraokeProperties = listOf(
         ).setting(),
         description = "Фонт октавы"
     ),
-    KaraokeProperty(key = "melodyOctaveHeightCoefficient", defaultValue = 0.72, description = "Коэффициэнт размера шрифта октавы относительно размера шрифта текста песни"),
+    KaraokeProperty(key = "melodyOctaveHeightCoefficient", defaultValue = 0.52, description = "Коэффициэнт размера шрифта октавы относительно размера шрифта текста песни"),
+
+    KaraokeProperty(
+        key = "melodyTabsFont",
+        defaultValue = MltText(
+            font = Font(MELODY_NOTE_FONT_NAME, 0, 80),
+            shapeColor = Color(255,127,127,255),
+            shapeOutlineColor = Color(0,0,0,255),
+            shapeOutline = 0,
+            fontUnderline = 0
+        ).setting(),
+        description = "Фонт номера лада в табулатуре"
+    ),
+    KaraokeProperty(key = "melodyTabsHeightCoefficient", defaultValue = 0.60, description = "Коэффициэнт размера шрифта номера лада в табулатуре относительно размера шрифта текста песни"),
+    KaraokeProperty(key = "melodyTabsHeightOffsetCoefficient", defaultValue = 0.50, description = "Коэффициэнт оффсета размера шрифта номера лада в табулатуре относительно размера шрифта текста песни"),
+
+    KaraokeProperty(
+        key = "melodyOpenStringFont",
+        defaultValue = MltText(
+            font = Font(MELODY_NOTE_FONT_NAME, 0, 80),
+            shapeColor = Color(255,188,188,255),
+            shapeOutlineColor = Color(0,0,0,255),
+            shapeOutline = 0,
+            fontUnderline = 0
+        ).setting(),
+        description = "Фонт открытой струны в табулатуре"
+    ),
+    KaraokeProperty(key = "melodyOpenStringHeightCoefficient", defaultValue = 0.30, description = "Коэффициэнт размера шрифта открытой струны в табулатуре относительно размера шрифта текста песни"),
+
+
+
+
     KaraokeProperty(
         key = "chordsCapoFont",
         defaultValue = MltText(

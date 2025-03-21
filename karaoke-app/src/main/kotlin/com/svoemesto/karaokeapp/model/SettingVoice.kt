@@ -139,18 +139,20 @@ data class SettingVoice(
             if (line.lineId < lineId) {
                 // Если линия цикла стоит перед текущей линией
                 // Вычисляем сумму высот линий от линии цикла (включительно) до текущей линии (не включая)
-                deltaY = lines.filter { it.lineId >= line.lineId && it.lineId < lineId }.sumOf { thisLine.h(songVersion) }
+//                deltaY = lines.filter { it.lineId >= line.lineId && it.lineId < lineId }.sumOf { thisLine.h(songVersion) }
+                deltaY = lines.filter { it.lineId >= line.lineId && it.lineId < lineId }.sumOf { it.h(songVersion) }
             } else if (line.lineId > lineId) {
                 // Если линия цикла стоит после текущей линией
                 // Вычисляем сумму высот линий от текущей линии (включительно) до линии цикла (не включая)
-                deltaY = - lines.filter { it.lineId < line.lineId && it.lineId >= lineId }.sumOf { thisLine.h(songVersion) }
+                deltaY = - lines.filter { it.lineId < line.lineId && it.lineId >= lineId }.sumOf { it.h(songVersion) }
             } else {
                 // Если линия цикла - это текущая линия
                 deltaY = 0
             }
 //            val deltaY = line.deltaY(this)
             val tpY = deltaY + zeroHeight + offsetY
-            if (tpY + line.h(songVersion)*2 < 0) {
+//            if (tpY + line.h(songVersion)*2 < 0) {
+            if ((tpY + frameHeightPx) < 0) {
                 break
             }
             val tpStart = TransformProperty(

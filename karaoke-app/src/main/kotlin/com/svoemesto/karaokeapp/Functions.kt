@@ -77,6 +77,7 @@ fun getVoices(settings: Settings, songVersion: SongVersion) : List<SettingVoice>
                                         note = "",
                                         chord = "",
                                         stringlad = "",
+                                        locklad = "",
                                         syllableStartMs = timeMs,
                                         syllableEndMs = timeMs,
                                         previous = null
@@ -114,6 +115,7 @@ fun getVoices(settings: Settings, songVersion: SongVersion) : List<SettingVoice>
                             note = sourceMarker.note,
                             chord = sourceMarker.chord,
                             stringlad = sourceMarker.stringlad,
+                            locklad = sourceMarker.locklad,
                             syllableStartMs = timeMs,
                             syllableEndMs = timeMs,
                             previous = prevTextSyllable
@@ -145,6 +147,7 @@ fun getVoices(settings: Settings, songVersion: SongVersion) : List<SettingVoice>
                         note = sourceMarker.note,
                         chord = sourceMarker.chord,
                         stringlad = sourceMarker.stringlad,
+                        locklad = sourceMarker.locklad,
                         syllableStartMs = timeMs,
                         syllableEndMs = timeMs,
                         previous = prevTextSyllable

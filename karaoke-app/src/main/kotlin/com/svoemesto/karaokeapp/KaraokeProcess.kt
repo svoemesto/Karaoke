@@ -9,7 +9,6 @@ import kotlinx.serialization.json.Json
 import java.io.File
 import java.io.Serializable
 import java.nio.file.Files
-import java.nio.file.Paths
 import java.sql.ResultSet
 import java.sql.SQLException
 import java.sql.Statement
@@ -369,7 +368,7 @@ class KaraokeProcess(
                         } else {}
                     }
 
-                    KaraokeProcessTypes.MELT_MELODY.name -> {
+                    KaraokeProcessTypes.MELT_TABS.name -> {
                         if (settings.statusProcessMelody != status) {
                             settings.statusProcessMelody = status
                             settings.saveToDb()
@@ -935,14 +934,14 @@ class KaraokeProcess(
                             )
                         )
                     }
-                    KaraokeProcessTypes.MELT_MELODY -> {
-                        description = "Кодирование MELODY"
+                    KaraokeProcessTypes.MELT_TABS -> {
+                        description = "Кодирование TABS"
                         prioritet = 19
                         args = listOf(
                             listOf(
                                 "melt",
                                 "-progress",
-                                "${settings.rootFolder}/done_projects/${settings.rightSettingFileName} [melody].mlt".rightFileName()
+                                "${settings.rootFolder}/done_projects/${settings.rightSettingFileName} [tabs].mlt".rightFileName()
                             )
                         )
                     }
@@ -1346,14 +1345,14 @@ class KaraokeProcess(
                             )
                         )
                     }
-                    KaraokeProcessTypes.MELT_MELODYVK -> {
-                        description = "Кодирование MELODYVK"
+                    KaraokeProcessTypes.MELT_TABSVK -> {
+                        description = "Кодирование TABSVK"
                         prioritet = 19
                         args = listOf(
                             listOf(
                                 "melt",
                                 "-progress",
-                                "${settings.rootFolder}/done_projects/${settings.rightSettingFileName} [melodyVk].mlt".rightFileName()
+                                "${settings.rootFolder}/done_projects/${settings.rightSettingFileName} [tabsVk].mlt".rightFileName()
                             )
                         )
                     }

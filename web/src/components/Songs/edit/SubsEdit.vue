@@ -15,6 +15,12 @@
                 <option v-for="value in lstVoices" :key="value.value" :value="value.value" :label="value.text"/>
               </select>
             </div>
+            <div class="tabs">
+              <label for="select-tabs" class="label-for-check">Вариант табов:</label>
+              <select id="select-tabs" v-model="indexTabsVariant" style="width: 100px;">
+                <option v-for="value in lstIndexesTabsVariant" :key="value.value" :value="value.value" :label="value.text"/>
+              </select>
+            </div>
             <div class="sound">
               <label class="label-for-sound">Звук:</label>
               <button class="group-button" :class="soundButtonClass('voice')" type="button" value="voice" @click="setSound('voice')">Голос</button>
@@ -69,6 +75,10 @@
               <div class="item-left-label-and-input">
                 <div class="item-left-label">String|Lad:</div>
                 <input class="item-left-input-field" v-model="currentMarker.stringlad" @focus="setEditMode(false)" @blur="setEditMode(true)">
+              </div>
+              <div class="item-left-label-and-input">
+                <div class="item-left-label">LockLad:</div>
+                <input class="item-left-input-field" v-model="currentMarker.locklad" @focus="setEditMode(false)" @blur="setEditMode(true)">
               </div>
             </div>
             <div class="item-waveform" id="waveform"></div>
@@ -269,6 +279,7 @@ export default {
       currentTime: 0,
       currentSyllablesIndex: 0,
       currentMarkersIndex: 0,
+      indexTabsVariant: 0,
       currentMarker: {
         markertype: '',
         time: '',
@@ -276,6 +287,7 @@ export default {
         note: '',
         chord: '',
         stringlad: '',
+        locklad: '',
         position: '',
         color: ''
       },
@@ -468,6 +480,11 @@ export default {
         this.textFormatted = this.getFormattedText;
         this.notesFormatted = this.getFormattedNotes;
         this.sourceMarkers.splice(0,1,this.sourceMarkers[0]);
+      }
+    },
+    indexTabsVariant: {
+      handler () {
+        this.notesFormatted = this.getFormattedNotes;
       }
     },
     pressedX: {
@@ -667,6 +684,9 @@ export default {
       return result;
     },
     getFormattedNotes() {
+      const stringsForAllNotesArray = this.getStringsForAllNotesInSong()
+      if (stringsForAllNotesArray === undefined || stringsForAllNotesArray.length === 0) return '';
+      const SPAN_STYLE_CURRENT = `<span style="color: #FF0000; font-family: monospace; font-size: 15px; font-style: normal; font-weight: bolder;">`
       const SPAN_STYLE_NOTE = `<span style="color: #00BFFF; font-family: monospace; font-size: 15px; font-style: normal; font-weight: bolder;">`
       const SPAN_STYLE_TABLINE = `<span style="color: #66BFFF; font-family: monospace; font-size: 15px; font-style: normal; font-weight: bolder;">`
       const SPAN_STYLE_TEXT = `<span style="color: #FFFFFF; font-family: monospace; font-size: 15px; font-style: normal; font-weight: bolder;">`
@@ -674,7 +694,8 @@ export default {
       const SPAN_STYLE_DEFIS = `<span style="color: #666666; font-family: monospace; font-size: 15px; font-style: normal; font-weight: bolder;">`
       const SPAN_END = '</span>';
       const BR = '<br>';
-      const stringsForAllNotes = this.getStringsForAllNotesInSong();
+      const stringsForAllNotes = stringsForAllNotesArray[this.indexTabsVariant];
+      console.log('stringsForAllNotes', stringsForAllNotes);
       let stringsForAllNotesIndex = 0;
       const markers = this.sourceMarkers;
       let wasBr = true;
@@ -703,6 +724,7 @@ export default {
             break;
           }
           case 'syllables': {
+
             // Если слог
             let txt = '';
             let txtHtml = '';
@@ -739,8 +761,7 @@ export default {
               }
               const noteLength = note.length;
               // Находим номер струны и номер лада, подставляем их в массив stringNote
-              const sn = stringsForAllNotes[stringsForAllNotesIndex];
-              // const stringlad = sn[0] + '|' + sn[1];
+              const sn = marker.locklad ? [marker.stringlad.split('|')[0], marker.stringlad.split('|')[1]] : stringsForAllNotes[stringsForAllNotesIndex];
               marker.stringlad = sn[0] + '|' + sn[1];
               let stringIndex = sn[0];
               let lad = sn[1] + (sn[1] < 10 ? '⎼' : '');
@@ -781,21 +802,21 @@ export default {
               stringNote = ['⎼','⎼','⎼','⎼','⎼','⎼'];
             }
 
-            lineNotes += SPAN_STYLE_NOTE + noteHtml + SPAN_END + SPAN_STYLE_OCTAVE + noteOctave + SPAN_END;
-            lineText += SPAN_STYLE_TEXT + txtHtml + SPAN_END;
+            lineNotes += ((i === this.currentMarkersIndex) ? SPAN_STYLE_CURRENT : SPAN_STYLE_NOTE) + noteHtml + SPAN_END + SPAN_STYLE_OCTAVE + noteOctave + SPAN_END;
+            lineText += ((i === this.currentMarkersIndex) ? SPAN_STYLE_CURRENT : SPAN_STYLE_TEXT) + txtHtml + SPAN_END;
             if (!endOfWord) {
               lineText += SPAN_STYLE_DEFIS + '-' + SPAN_END;
             }
             const lengthNote = note.length + noteOctave.length;
             const lengthText = txt.length + (endOfWord ? 0 : 1);
             if (lengthNote > lengthText) {
-              lineText += SPAN_STYLE_TEXT;
+              lineText += ((i === this.currentMarkersIndex) ? SPAN_STYLE_CURRENT : SPAN_STYLE_TEXT);
               for (let i = 0; i < lengthNote-lengthText; i++) {
                 lineText += '&nbsp;';
               }
               lineText += SPAN_END;
             } else if (lengthText > lengthNote) {
-              lineNotes += SPAN_STYLE_NOTE;
+              lineNotes += ((i === this.currentMarkersIndex) ? SPAN_STYLE_CURRENT : SPAN_STYLE_NOTE);
               for (let i = 0; i < lengthText-lengthNote; i++) {
                 lineNotes += '&nbsp;';
                 for (let j = 0; j < stringNote.length; j++) {
@@ -1006,6 +1027,14 @@ export default {
         result.push( { value: this.dataVoices.length, text: "Добавить" } );
       }
       return result;
+    },
+    lstIndexesTabsVariant() {
+      let result = [];
+      let stringsForAllNotesInSong = this.getStringsForAllNotesInSong();
+      for (let i = 0; i < stringsForAllNotesInSong.length; i++) {
+        result.push( { value: i, text: i + 1 } );
+      }
+      return result;
     }
   },
   beforeDestroy() {
@@ -1036,6 +1065,7 @@ export default {
     this.isEditMode = true;
     this.sourceText = await this.$store.getters.getSourceText(this.currentVoice);
     this.loadedMarkers = await this.$store.getters.getSourceMarkers(this.currentVoice);
+    this.indexTabsVariant = await this.$store.getters.getIndexTabsVariant;
 
     // Навешиваем обработчики событий на Wavesurfer
     this.ws.on('play', () => { this.isPlaying = true; });
@@ -1152,7 +1182,8 @@ export default {
       this.$store.dispatch('saveSourceTextAndMarkers', {
         voice: this.currentVoice,
         sourceText: this.sourceText,
-        sourceMarkers: JSON.stringify(this.getMarkersToSave())
+        sourceMarkers: JSON.stringify(this.getMarkersToSave()),
+        indexTabsVariant: this.indexTabsVariant
       })
     },
     getMarkersToSave() {
@@ -1163,6 +1194,7 @@ export default {
           note: marker.note,
           chord: marker.chord,
           stringlad: marker.stringlad,
+          locklad: marker.locklad,
           color: marker.color,
           position: marker.position,
           markertype: marker.markertype
@@ -2477,44 +2509,66 @@ export default {
         const note = notesSetArray[i];
         notesAndStringsArray.push([note, this.getStrings(note)]);
       }
+      let result = [];
       let variants = [];
       for (let startLad = 0; startLad < 20; startLad++) {
         let variant = []; // вариант для startLad
         let minLad = 20;
         let maxLad = 0;
+        let isBadLad = false;
         for (let markerIndex = 0; markerIndex < markersList.length; markerIndex++) {
           const marker = markersList[markerIndex];
           const stringsForNote = notesAndStringsArray.filter(item => item[0] === marker.note)[0][1]; // массив пар струна-лад
-          let tmpArray = stringsForNote.map(item => [Math.abs(item[1]-startLad), item]);
-          let minDiffIndex = 0;
-          let minDiff = tmpArray[minDiffIndex][0];
-          for (let i = 0; i < tmpArray.length; i++) {
-            if (minDiff > tmpArray[i][0]) {
-              minDiffIndex = i;
-              minDiff = tmpArray[i][0];
+          let tmpArray = stringsForNote.filter(item => item[1] >= startLad).map(item => [Math.abs(item[1]-startLad), item]);
+          if (tmpArray !== undefined && tmpArray.length > 0) {
+            let minDiffIndex = 0;
+            let minDiff = tmpArray[minDiffIndex][0];
+            for (let i = 0; i < tmpArray.length; i++) {
+              if (minDiff > tmpArray[i][0]) {
+                minDiffIndex = i;
+                minDiff = tmpArray[i][0];
+              }
             }
+            if (minLad > tmpArray[minDiffIndex][1][1]) {
+              minLad = tmpArray[minDiffIndex][1][1];
+            }
+            if (maxLad < tmpArray[minDiffIndex][1][1]) {
+              maxLad = tmpArray[minDiffIndex][1][1];
+            }
+            variant.push(tmpArray[minDiffIndex][1]);
+          } else {
+            isBadLad = true;
+            break;
           }
-          if (minLad > tmpArray[minDiffIndex][1][1]) {
-            minLad = tmpArray[minDiffIndex][1][1];
-          }
-          if (maxLad < tmpArray[minDiffIndex][1][1]) {
-            maxLad = tmpArray[minDiffIndex][1][1];
-          }
-          variant.push(tmpArray[minDiffIndex][1]);
         }
-        variants.push({variant: variant, diff: Math.abs(maxLad - minLad)});
+        if (variant.length > 0 && !isBadLad) {
+          variants.push({variant: variant, diff: Math.abs(maxLad - minLad)});
+        }
       }
-      let minVariantIndex = 0;
-      let minDiff =  variants[minVariantIndex].diff
+
+      console.log('variants', variants);
+      if (variants.length === 0) return result;
+
+      let minDiff =  variants[0].diff
       for (let i = 0; i < variants.length; i++) {
         let variant = variants[i];
         if (minDiff > variant.diff) {
-          minVariantIndex = i;
-          minDiff = variants[minVariantIndex].diff
+          minDiff = variant.diff
         }
       }
-      let minVariant = variants[minVariantIndex];
-      return minVariant.variant;
+
+      for (let i = 0; i < variants.length; i++) {
+        let variant = variants[i];
+        if (minDiff === variant.diff) {
+          result.push(variant.variant);
+        }
+      }
+
+      if (this.indexTabsVariant > result.length - 1) this.indexTabsVariant = result.length - 1;
+
+      console.log('result', result);
+
+      return result;
     },
     getStrings(note) {
       let result = [];

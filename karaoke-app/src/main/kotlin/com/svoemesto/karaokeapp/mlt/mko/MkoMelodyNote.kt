@@ -91,8 +91,29 @@ data class MkoMelodyNote(
         var widthAreaPx= element.w()
         var heightAreaPx= element.h()
 
+        val haveNotes = songVersion.producers.contains(ProducerType.MELODYNOTE) && element.getSyllables().any { it.note != "" }
+
+        val deltaY = if (haveNotes) {
+            val sylFontSize = element.fontSize
+            val melodyNoteFontSize = (sylFontSize * Karaoke.melodyNoteHeightCoefficient).toInt()
+            val melodyNoteMltTextHeight = Karaoke.melodyNoteFont.copy("C", melodyNoteFontSize).h()
+            val noteHeight = (melodyNoteMltTextHeight * Karaoke.melodyNoteHeightOffsetCoefficient).toInt()
+
+            val tabsHeightCoefficient = Karaoke.melodyTabsHeightCoefficient
+            val tabsFontSize = (sylFontSize * tabsHeightCoefficient).toInt()
+            val tabsFont = Karaoke.melodyTabsFont
+            val tabsMltTextHeight = tabsFont.copy("C", tabsFontSize).h()
+            val tabsHeightOffsetCoefficient = Karaoke.melodyTabsHeightOffsetCoefficient
+            val heightBetweenTabsLines = (tabsMltTextHeight * tabsHeightOffsetCoefficient).toInt()
+
+            val tabsHeight = tabsMltTextHeight + 5 * heightBetweenTabsLines
+            tabsHeight
+        } else {
+            0
+        }
+
         val x = 0
-        val y = 0
+        val y = deltaY
         val body: MutableList<MltNode> = mutableListOf()
 
         // Формируем текст нота+октава и располагаем его посередине области, занимаемой соответствующим слогом
@@ -132,7 +153,7 @@ data class MkoMelodyNote(
                                 name = "position",
                                 fields = mutableMapOf(
                                     Pair("x","${melodyNoteX}"),
-                                    Pair("y","0")
+                                    Pair("y","${y}")
                                 ),
                                 body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(Pair("zoom","100")), body = "1,0,0,0,1,0,0,0,1"))
                             ),
@@ -154,7 +175,7 @@ data class MkoMelodyNote(
                                 name = "position",
                                 fields = mutableMapOf(
                                     Pair("x","${melodyOctaveX}"),
-                                    Pair("y","0")
+                                    Pair("y","${y}")
                                 ),
                                 body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(Pair("zoom","100")), body = "1,0,0,0,1,0,0,0,1"))
                             ),

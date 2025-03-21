@@ -10,6 +10,7 @@ data class SettingVoiceLineElementSyllable(
     val note: String,
     val chord: String,
     val stringlad: String,
+    val locklad: String,
     var syllableStartMs: Long, // Начало слога (в мс) - в этот момент слог начинает выделяться (если в элементе предусмотрено выделение)
     var syllableEndMs: Long, // Конец слога (с мс) - в этот момент слог заканчивается выделяться (если в элементе предусмотрено выделение)
     var previous: SettingVoiceLineElementSyllable?, // Для аккорда это должно быть полный текст до него чтобы вычислить положение на экране
@@ -22,6 +23,7 @@ data class SettingVoiceLineElementSyllable(
             note = note,
             chord = chord,
             stringlad = stringlad,
+            locklad = locklad,
             syllableStartMs = syllableStartMs,
             syllableEndMs = syllableEndMs,
             previous = if (previous == null) null else previous!!.copy(),

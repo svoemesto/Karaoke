@@ -108,8 +108,7 @@ data class MkoElement(
             }
         }
 
-        val subTracks = ProducerType.ELEMENT.childs().reversed()
-        val subTrackNodes = subTracks.map {
+        val subTrackNodes = ProducerType.ELEMENT.childs().reversed().filter {it in songVersion.producers}. map {
             MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(it, voiceId, lineId, elementId)))
         }
 
@@ -130,8 +129,10 @@ data class MkoElement(
                 .propertyName("kdenlive:id", mltGenerator.id)
                 .propertyName("kdenlive:sequenceproperties.activeTrack", 0)
                 .propertyName("kdenlive:sequenceproperties.documentuuid", "{${mainBinUUID}}")
-                .propertyName("kdenlive:sequenceproperties.tracks", subTracks.size)
-                .propertyName("kdenlive:sequenceproperties.tracksCount", subTracks.size)
+                .propertyName("kdenlive:sequenceproperties.tracks", subTrackNodes.size)
+//                .propertyName("kdenlive:sequenceproperties.tracks", 2)
+                .propertyName("kdenlive:sequenceproperties.tracksCount", subTrackNodes.size)
+//                .propertyName("kdenlive:sequenceproperties.tracksCount", 2)
                 .propertyName("kdenlive:sequenceproperties.verticalzoom", 1)
                 .propertyName("kdenlive:sequenceproperties.zonein", 0)
                 .propertyName("kdenlive:sequenceproperties.zoneout", 75)
@@ -147,7 +148,8 @@ data class MkoElement(
 //                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.FILL, voiceId, lineId, elementId))))
 //                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.SEPAR, voiceId, lineId, elementId))))
 //                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.STRING, voiceId, lineId, elementId))))
-                .transitionsAndFilters(mltGenerator.name, 0, subTracks.size)
+                .transitionsAndFilters(mltGenerator.name, 0, subTrackNodes.size)
+//                .transitionsAndFilters(mltGenerator.name, 0, 2)
                 .build()
         )
     }

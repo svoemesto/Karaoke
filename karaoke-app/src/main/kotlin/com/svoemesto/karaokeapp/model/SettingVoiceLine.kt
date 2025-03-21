@@ -42,7 +42,7 @@ data class SettingVoiceLine(
                     SettingVoiceLineElementTypes.NOTE
                 )
             }
-            SongVersion.MELODY, SongVersion.MELODYVK -> {
+            SongVersion.TABS, SongVersion.TABSVK -> {
                 listOf(
                     SettingVoiceLineElementTypes.TEXT,
                     SettingVoiceLineElementTypes.COMMENT,
@@ -93,6 +93,7 @@ data class SettingVoiceLine(
                 note = "",
                 chord = "",
                 stringlad = "",
+                locklad = "",
                 syllableStartMs = timeMs,
                 syllableEndMs = timeMs,
                 previous = null
@@ -122,6 +123,7 @@ data class SettingVoiceLine(
                 note = "",
                 chord = "",
                 stringlad = "",
+                locklad = "",
                 syllableStartMs = timeMs,
                 syllableEndMs = timeMs,
                 previous = null

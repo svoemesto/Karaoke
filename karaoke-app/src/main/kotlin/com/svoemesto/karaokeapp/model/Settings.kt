@@ -3,6 +3,7 @@ package com.svoemesto.karaokeapp.model
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.svoemesto.karaokeapp.*
+import com.svoemesto.karaokeapp.mlt.MltInitialStructure
 import com.svoemesto.karaokeapp.mlt.MltProp
 import com.svoemesto.karaokeapp.services.SNS
 import kotlinx.serialization.builtins.ListSerializer
@@ -72,7 +73,8 @@ enum class SettingField : Serializable {
     ID_PL_MELODY,
     RESULT_VERSION,
     DIFFBEATS,
-    ID_SPONSR
+    ID_SPONSR,
+    INDEX_TABS_VARIANT
 }
 
 
@@ -83,6 +85,7 @@ data class SourceMarker(
     var note: String = "",
     var chord: String = "",
     var stringlad: String = "",
+    var locklad: String = "",
     var tag: String = "",
     var color: String,
     var position: String,
@@ -267,14 +270,14 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     val pathToFile720Karaoke: String  get() = "$pathToFolder720Karaoke/${nameFileKaraoke.replace(" [karaoke].mp4", " [karaoke] 720p.mp4")}".rightFileName()
     val pathToFileMP3Karaoke: String  get() = "$pathToFolderMP3Karaoke/${nameFileKaraoke.replace(" [karaoke].mp4", " [karaoke].mp3")}".rightFileName()
     val pathToFile720Chords: String  get() = "$pathToFolder720Chords/${nameFileChords.replace(" [chords].mp4", " [chords] 720p.mp4")}".rightFileName()
-    val pathToFile720Melody: String  get() = "$pathToFolder720Melody/${nameFileMelody.replace(" [melody].mp4", " [melody] 720p.mp4")}".rightFileName()
+    val pathToFile720Melody: String  get() = "$pathToFolder720Melody/${nameFileMelody.replace(" [tabs].mp4", " [tabs] 720p.mp4")}".rightFileName()
 
     val pathToFolder720Lyrics: String  get() = "$PATH_TO_STORE_FOLDER/720p_Lyrics/${author} 720p".rightFileName()
     val pathToFolderMP3Lyrics: String  get() = "$PATH_TO_STORE_FOLDER/MP3_Lyrics/${author} MP3".rightFileName()
     val pathToFolder720Karaoke: String  get() = "$PATH_TO_STORE_FOLDER/720p_Karaoke/${author} 720p".rightFileName()
     val pathToFolderMP3Karaoke: String  get() = "$PATH_TO_STORE_FOLDER/MP3_Karaoke/${author} MP3".rightFileName()
     val pathToFolder720Chords: String  get() = "$PATH_TO_STORE_FOLDER/720p_Chords/${author} 720p".rightFileName()
-    val pathToFolder720Melody: String  get() = "$PATH_TO_STORE_FOLDER/720p_Melody/${author} 720p".rightFileName()
+    val pathToFolder720Melody: String  get() = "$PATH_TO_STORE_FOLDER/720p_TABS/${author} 720p".rightFileName()
 
     val pathToStoreFileLyrics: String  get() = "$pathToStoreFolderLyrics/$nameFileLyrics".rightFileName()
     val pathToStoreFileKaraoke: String  get() = "$pathToStoreFolderKaraoke/$nameFileKaraoke".rightFileName()
@@ -284,14 +287,14 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     val pathToStoreFolderLyrics: String  get() = "$PATH_TO_STORE_FOLDER/Lyrics/${author} - Lyrics".rightFileName()
     val pathToStoreFolderKaraoke: String  get() = "$PATH_TO_STORE_FOLDER/Karaoke/${author} - Karaoke".rightFileName()
     val pathToStoreFolderChords: String  get() = "$PATH_TO_STORE_FOLDER/Chords/${author} - Chords".rightFileName()
-    val pathToStoreFolderMelody: String  get() = "$PATH_TO_STORE_FOLDER/Melody/${author} - Melody".rightFileName()
+    val pathToStoreFolderMelody: String  get() = "$PATH_TO_STORE_FOLDER/TABS/${author} - TABS".rightFileName()
 
     val nameFileLogoAlbum: String  get() = "${rightSettingFileName} [album].png".rightFileName()
     val nameFileLogoAuthor: String  get() = "${rightSettingFileName} [author].png".rightFileName()
     val nameFileLyrics: String  get() = "${rightSettingFileName} [lyrics].mp4".rightFileName()
     val nameFileKaraoke: String  get() = "${rightSettingFileName} [karaoke].mp4".rightFileName()
     val nameFileChords: String  get() = "${rightSettingFileName} [chords].mp4".rightFileName()
-    val nameFileMelody: String  get() = "${rightSettingFileName} [melody].mp4".rightFileName()
+    val nameFileMelody: String  get() = "${rightSettingFileName} [tabs].mp4".rightFileName()
 
     val pathToFolderSheetsage: String  get() = "${rootFolder}/sheetsage".rightFileName()
     val nameFileSheetsagePDF: String  get() = "${rightSettingFileName} [sheetsage].pdf".rightFileName()
@@ -474,6 +477,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     val idPlMelody: String get() = fields[SettingField.ID_PL_MELODY]?.nullIfEmpty() ?: ""
 
     val idSponsr: String get() = fields[SettingField.ID_SPONSR]?.nullIfEmpty() ?: ""
+    val indexTabsVariant: Int get() = (fields[SettingField.INDEX_TABS_VARIANT]?.nullIfEmpty() ?: "0").toInt()
 
     val linkSM: String get() = URL_PREFIX_SM.replace("{REPLACE}", id.toString())
     val linkBoosty: String? get() = idBoosty?.let {URL_PREFIX_BOOSTY.replace("{REPLACE}", idBoosty!!)}
@@ -1254,7 +1258,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         mltProp.setTotalLengthFr(totalLengthFr)
 
         // setBackgroundLengthFr - общая длительность фона в кадрах
-        val backgroundLengthFr = if (songVersion in listOf(SongVersion.LYRICSVK, SongVersion.KARAOKEVK, SongVersion.CHORDSVK, SongVersion.MELODYVK) && convertFramesToMilliseconds(totalLengthFr) < 61_100) {
+        val backgroundLengthFr = if (songVersion in listOf(SongVersion.LYRICSVK, SongVersion.KARAOKEVK, SongVersion.CHORDSVK, SongVersion.TABSVK) && convertFramesToMilliseconds(totalLengthFr) < 61_100) {
             convertMillisecondsToFrames(61_100)
         } else {
             totalLengthFr
@@ -1291,7 +1295,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         mltProp.setTotalEndTimecode(totalEndTimecode)
 
         // setBackgroundEndTimecode - таймкод конца aфона (общая длительность)
-        val backgroundEndTimecode = if (songVersion in listOf(SongVersion.LYRICSVK, SongVersion.KARAOKEVK, SongVersion.CHORDSVK, SongVersion.MELODYVK) && convertFramesToMilliseconds(totalLengthFr) < 61_100) {
+        val backgroundEndTimecode = if (songVersion in listOf(SongVersion.LYRICSVK, SongVersion.KARAOKEVK, SongVersion.CHORDSVK, SongVersion.TABSVK) && convertFramesToMilliseconds(totalLengthFr) < 61_100) {
             convertMillisecondsToTimecode(61_100)
         } else {
             totalEndTimecode
@@ -1386,7 +1390,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                 mltProp.setVolume(propAudioVolumeOn, ProducerType.AUDIOBASS)
                 mltProp.setVolume(propAudioVolumeOn, ProducerType.AUDIODRUMS)
             }
-            SongVersion.MELODY, SongVersion.MELODYVK -> {
+            SongVersion.TABS, SongVersion.TABSVK -> {
                 mltProp.setVolume(propAudioVolumeCustom, ProducerType.AUDIOVOCAL)
                 mltProp.setVolume(propAudioVolumeOn, ProducerType.AUDIOMUSIC)
                 mltProp.setVolume(propAudioVolumeOff, ProducerType.AUDIOSONG)
@@ -1454,15 +1458,24 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                 var key = listOf(ProducerType.ELEMENT, indexVoice, indexLine)
                 if (mltProp.getUUID(key) == "") mltProp.setUUID(getStoredUuid(key), key)
 
-                mltProp.setCountChilds(line.getElements(songVersion).size, listOf(ProducerType.STRING, indexVoice, indexLine))
-                mltProp.setId(ProducerType.STRING.ordinal*1000 + indexVoice*100 + indexLine*10, listOf(ProducerType.STRING, indexVoice, indexLine))
-                key = listOf(ProducerType.STRING, indexVoice, indexLine)
-                if (mltProp.getUUID(key) == "") mltProp.setUUID(getStoredUuid(key), key)
+                ProducerType.ELEMENT.childs().reversed().forEach {
+                    if (it in songVersion.producers) {
+                        mltProp.setCountChilds(line.getElements(songVersion).size, listOf(it, indexVoice, indexLine))
+                        mltProp.setId(it.ordinal*1000 + indexVoice*100 + indexLine*10, listOf(it, indexVoice, indexLine))
+                        key = listOf(it, indexVoice, indexLine)
+                        if (mltProp.getUUID(key) == "") mltProp.setUUID(getStoredUuid(key), key)
+                    }
+                }
 
-                mltProp.setCountChilds(line.getElements(songVersion).size, listOf(ProducerType.FILL, indexVoice, indexLine))
-                mltProp.setId(ProducerType.FILL.ordinal*1000 + indexVoice*100 + indexLine*10, listOf(ProducerType.FILL, indexVoice, indexLine))
-                key = listOf(ProducerType.FILL, indexVoice, indexLine)
-                if (mltProp.getUUID(key) == "") mltProp.setUUID(getStoredUuid(key), key)
+//                mltProp.setCountChilds(line.getElements(songVersion).size, listOf(ProducerType.STRING, indexVoice, indexLine))
+//                mltProp.setId(ProducerType.STRING.ordinal*1000 + indexVoice*100 + indexLine*10, listOf(ProducerType.STRING, indexVoice, indexLine))
+//                key = listOf(ProducerType.STRING, indexVoice, indexLine)
+//                if (mltProp.getUUID(key) == "") mltProp.setUUID(getStoredUuid(key), key)
+//
+//                mltProp.setCountChilds(line.getElements(songVersion).size, listOf(ProducerType.FILL, indexVoice, indexLine))
+//                mltProp.setId(ProducerType.FILL.ordinal*1000 + indexVoice*100 + indexLine*10, listOf(ProducerType.FILL, indexVoice, indexLine))
+//                key = listOf(ProducerType.FILL, indexVoice, indexLine)
+//                if (mltProp.getUUID(key) == "") mltProp.setUUID(getStoredUuid(key), key)
             }
         }
 
@@ -1738,6 +1751,11 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         }
     }
 
+    fun setIndexTabsVariant(ind: Int) {
+        fields[SettingField.INDEX_TABS_VARIANT] = ind.toString()
+        saveToDb()
+    }
+
     fun getSourceSyllables(voice: Int): List<String> {
         return if (sourceSyllablesList.size > voice) {
             sourceSyllablesList[voice]
@@ -1772,54 +1790,66 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     data class DiffGuitarStringLad(val diff: Int, val guitarStringLad: GuitarStringLad)
     data class ListDiffGuitarStringLadDiff(val listDiffGuitarStringLad: List<DiffGuitarStringLad>, val diff: Int)
 
-    fun getStringsForAllNotesInSong(voice: Int): List<DiffGuitarStringLad> {
+    fun getStringsForAllNotesInSong(voice: Int): List<List<DiffGuitarStringLad>> {
         val markersNotes = this.sourceMarkersList[voice].filter { it.note != "" }.map { it.note }
+        if (markersNotes.size == 0) return emptyList()
         val notes = markersNotes.toSet().toList() // Уникальный список нот в песне
         val notesAndStringsArray: MutableMap<String, List<GuitarStringLad>> = mutableMapOf()
         notes.forEach { note ->
             notesAndStringsArray[note] = getStrings(note)
         }
         val variants: MutableList<ListDiffGuitarStringLadDiff> = mutableListOf()
+
         for (lad in 0 until 20) {
             var minLad = 20
             var maxLad = 0
             val variant: MutableList<DiffGuitarStringLad> = mutableListOf()
-            markersNotes.forEach { note ->
+            var isBadLad = false
+            markersNotes.forEach markersLoop@ { note ->
+
                 val stringsForNote = notesAndStringsArray[note]!!
-                val tmpArray = stringsForNote.map {DiffGuitarStringLad(diff = abs(it.lad - lad), guitarStringLad = it)}
-                var minDiffIndex = 0
-                var minDiff = tmpArray[minDiffIndex].diff
-                tmpArray.forEachIndexed { index, diffGuitarStringLad ->
-                    if (minDiff > diffGuitarStringLad.diff ) {
-                        minDiffIndex = index
-                        minDiff = diffGuitarStringLad.diff
+                val tmpArray = stringsForNote.filter {it.lad >= lad}
+                    .map {DiffGuitarStringLad(diff = abs(it.lad - lad), guitarStringLad = it)}
+                if (tmpArray.isNotEmpty()) {
+                    var minDiffIndex = 0
+                    var minDiff = tmpArray[minDiffIndex].diff
+                    tmpArray.forEachIndexed { index, diffGuitarStringLad ->
+                        if (minDiff > diffGuitarStringLad.diff ) {
+                            minDiffIndex = index
+                            minDiff = diffGuitarStringLad.diff
+                        }
                     }
+                    if (minLad > tmpArray[minDiffIndex].guitarStringLad.lad) {
+                        minLad = tmpArray[minDiffIndex].guitarStringLad.lad
+                    }
+                    if (maxLad < tmpArray[minDiffIndex].guitarStringLad.lad) {
+                        maxLad = tmpArray[minDiffIndex].guitarStringLad.lad
+                    }
+                    variant.add(tmpArray[minDiffIndex])
+                } else {
+                    isBadLad = true
+                    return@markersLoop
                 }
-                if (minLad > tmpArray[minDiffIndex].guitarStringLad.lad) {
-                    minLad = tmpArray[minDiffIndex].guitarStringLad.lad
-                }
-                if (maxLad < tmpArray[minDiffIndex].guitarStringLad.lad) {
-                    maxLad = tmpArray[minDiffIndex].guitarStringLad.lad
-                }
-                variant.add(tmpArray[minDiffIndex])
+
             }
-            variants.add(ListDiffGuitarStringLadDiff(listDiffGuitarStringLad = variant, diff = abs(maxLad - minLad)))
-        }
-        var minVariantIndex = 0
-        var minDiff = variants[minVariantIndex].diff
-        variants.forEachIndexed { index, listDiffGuitarStringLadDiff -> 
-            if (minDiff > listDiffGuitarStringLadDiff.diff) {
-                minVariantIndex = index
-                minDiff = listDiffGuitarStringLadDiff.diff
+            if (variant.isNotEmpty() && !isBadLad) {
+                variants.add(ListDiffGuitarStringLadDiff(listDiffGuitarStringLad = variant, diff = abs(maxLad - minLad)))
             }
+
         }
-        return variants[minVariantIndex].listDiffGuitarStringLad
-        
+
+        val minDiffLad = variants.minOf{it.diff}
+        return variants.filter { it.diff == minDiffLad }.map {it.listDiffGuitarStringLad}
+
     }
 
     fun getFormattedNotes(): String {
         val resultArray: MutableList<String> = mutableListOf()
         for (voice in 0 until countVoices) {
+
+            val stringsForAllNotesArray = getStringsForAllNotesInSong(voice)
+            if (stringsForAllNotesArray.isEmpty()) break
+            val indexStringsForAllNotes = stringsForAllNotesArray.size.coerceAtMost(indexTabsVariant)
 
             val SPAN_STYLE_NOTE = """<span style="color: #00BFFF; font-family: monospace; font-size: 15px; font-style: normal; font-weight: bolder;">"""
             val SPAN_STYLE_TABLINE = """<span style="color: #66BFFF; font-family: monospace; font-size: 15px; font-style: normal; font-weight: bolder;">"""
@@ -1828,7 +1858,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             val SPAN_STYLE_DEFIS = """<span style="color: #666666; font-family: monospace; font-size: 15px; font-style: normal; font-weight: bolder;">"""
             val SPAN_END = """</span>"""
             val BR = """<br>"""
-            val stringsForAllNotes = getStringsForAllNotesInSong(voice)
+            val stringsForAllNotes = stringsForAllNotesArray[indexStringsForAllNotes]
             var stringsForAllNotesIndex = 0
             val markers = this.sourceMarkersList[voice]
             var wasBr = true
@@ -1883,7 +1913,12 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                             noteOctave = if (noteParts.size > 1) noteParts[1] else ""
                             val noteLength = note.length
                             // Находим номер струны и номер лада, подставляем их в массив stringNote
-                            val sn = stringsForAllNotes[stringsForAllNotesIndex]
+                            val sn = if (marker.locklad.toBoolean()) {
+                                val (stringTxt, ladTxt) = marker.stringlad.split("|")
+                                DiffGuitarStringLad(diff = 0, guitarStringLad = GuitarStringLad(string = stringTxt.toInt(), lad = ladTxt.toInt()))
+                            } else {
+                                stringsForAllNotes[stringsForAllNotesIndex]
+                            }
                             val stringIndex = sn.guitarStringLad.string
                             val lad = "${sn.guitarStringLad.lad}${if (sn.guitarStringLad.lad < 10) "⎼" else ""}"
                             stringNote[stringIndex] = lad
@@ -2532,6 +2567,8 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                 diff.filter{ it.recordDiffRealField }.forEach {
                     if (it.recordDiffValueNew is Long) {
                         ps.setLong(index, it.recordDiffValueNew.toLong())
+                    } else if (it.recordDiffValueNew is Int) {
+                        ps.setInt(index, it.recordDiffValueNew.toInt())
                     } else {
                         ps.setString(index, it.recordDiffValueNew.toString())
                     }
@@ -2669,12 +2706,12 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         val pathToMltLyrics = getOutputFilename(SongOutputFile.MLT, SongVersion.LYRICS)
         val pathToMltKaraoke = getOutputFilename(SongOutputFile.MLT, SongVersion.KARAOKE)
         val pathToMltChords = getOutputFilename(SongOutputFile.MLT, SongVersion.CHORDS)
-        val pathToMltMelody = getOutputFilename(SongOutputFile.MLT, SongVersion.MELODY)
+        val pathToMltTABS = getOutputFilename(SongOutputFile.MLT, SongVersion.TABS)
 
         val txtLyric = "echo \"$pathToMltLyrics\"\nmelt -progress \"$pathToMltLyrics\"\n\n"
         val txtKaraoke = "echo \"$pathToMltKaraoke\"\nmelt -progress \"$pathToMltKaraoke\"\n\n"
         val txtChords = "echo \"$pathToMltChords\"\nmelt -progress \"$pathToMltChords\"\n\n"
-        val txtMelody = "echo \"$pathToMltMelody\"\nmelt -progress \"$pathToMltMelody\"\n\n"
+        val txtMelody = "echo \"$pathToMltTABS\"\nmelt -progress \"$pathToMltTABS\"\n\n"
 
         val songTxtAll = "$txtLyric$txtKaraoke${if (hasChords) txtChords else ""}"
         val songTxtWOLyrics = "$txtKaraoke${if (hasChords) txtChords else ""}"
@@ -2696,7 +2733,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         }
 
         if (createMelody && hasMelody) {
-            file = File(getOutputFilename(SongOutputFile.RUN, SongVersion.MELODY))
+            file = File(getOutputFilename(SongOutputFile.RUN, SongVersion.TABS))
             file.writeText(txtMelody)
             Files.setPosixFilePermissions(file.toPath(), permissions)
         }
@@ -2722,13 +2759,13 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             if (!createChordsVk && getSongDurationVideoMs() < 61_100) createKaraoke(this, SongVersion.CHORDSVK)
         }
         if (createMelody) {
-            createKaraoke(this, SongVersion.MELODY)
-            if (!createMelodyVk && getSongDurationVideoMs() < 61_100) createKaraoke(this, SongVersion.MELODYVK)
+            createKaraoke(this, SongVersion.TABS)
+            if (!createMelodyVk && getSongDurationVideoMs() < 61_100) createKaraoke(this, SongVersion.TABSVK)
         }
         if (createLyricsVk) createKaraoke(this, SongVersion.LYRICSVK)
         if (createKaraokeVk) createKaraoke(this, SongVersion.KARAOKEVK)
         if (createChordsVk) createKaraoke(this, SongVersion.CHORDSVK)
-        if (createMelodyVk) createKaraoke(this, SongVersion.MELODYVK)
+        if (createMelodyVk) createKaraoke(this, SongVersion.TABSVK)
 
         if (idStatus < 3) {
             fields[SettingField.ID_STATUS] = "3"
@@ -2760,6 +2797,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         fieldsValues.add(Pair("id_boosty", settings.idBoosty))
         fieldsValues.add(Pair("id_boosty_files", settings.idBoostyFiles))
         fieldsValues.add(Pair("id_sponsr", settings.idSponsr))
+        fieldsValues.add(Pair("index_tabs_variant", settings.indexTabsVariant))
         fieldsValues.add(Pair("id_vk", settings.idVk))
         fieldsValues.add(Pair("id_youtube_lyrics", settings.idYoutubeLyrics))
         fieldsValues.add(Pair("id_youtube_karaoke", settings.idYoutubeKaraoke))
@@ -3031,7 +3069,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                 if (Paths.get(settNewVersion.getOutputFilename(SongOutputFile.PICTURE, SongVersion.LYRICS)).toFile().exists()) createSongPicture(settNewVersion, SongVersion.LYRICS)
                 if (Paths.get(settNewVersion.getOutputFilename(SongOutputFile.PICTURE, SongVersion.KARAOKE)).toFile().exists()) createSongPicture(settNewVersion, SongVersion.KARAOKE)
                 if (Paths.get(settNewVersion.getOutputFilename(SongOutputFile.PICTURE, SongVersion.CHORDS)).toFile().exists()) createSongPicture(settNewVersion, SongVersion.CHORDS)
-                if (Paths.get(settNewVersion.getOutputFilename(SongOutputFile.PICTURE, SongVersion.MELODY)).toFile().exists()) createSongPicture(settNewVersion, SongVersion.MELODY)
+                if (Paths.get(settNewVersion.getOutputFilename(SongOutputFile.PICTURE, SongVersion.TABS)).toFile().exists()) createSongPicture(settNewVersion, SongVersion.TABS)
                 was1 = true
             }
 
@@ -3077,6 +3115,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                 if (settA.idBoosty != settB.idBoosty) result.add(RecordDiff("id_boosty", settA.idBoosty, settB.idBoosty))
                 if (settA.idBoostyFiles != settB.idBoostyFiles) result.add(RecordDiff("id_boosty_files", settA.idBoostyFiles, settB.idBoostyFiles))
                 if (settA.idSponsr != settB.idSponsr) result.add(RecordDiff("id_sponsr", settA.idSponsr, settB.idSponsr))
+                if (settA.indexTabsVariant != settB.indexTabsVariant) result.add(RecordDiff("index_tabs_variant", settA.indexTabsVariant, settB.indexTabsVariant))
                 if (settA.idVk != settB.idVk) result.add(RecordDiff("id_vk", settA.idVk, settB.idVk))
                 if (settA.idYoutubeLyrics != settB.idYoutubeLyrics) result.add(RecordDiff("id_youtube_lyrics", settA.idYoutubeLyrics, settB.idYoutubeLyrics))
                 if (settA.idYoutubeKaraoke != settB.idYoutubeKaraoke) result.add(RecordDiff("id_youtube_karaoke", settA.idYoutubeKaraoke, settB.idYoutubeKaraoke))
@@ -3410,6 +3449,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                     rs.getString("id_boosty")?.let { value -> settings.fields[SettingField.ID_BOOSTY] = value }
                     rs.getString("id_boosty_files")?.let { value -> settings.fields[SettingField.ID_BOOSTY_FILES] = value }
                     rs.getString("id_sponsr")?.let { value -> settings.fields[SettingField.ID_SPONSR] = value }
+                    rs.getInt("index_tabs_variant")?.let { value -> settings.fields[SettingField.INDEX_TABS_VARIANT] = value.toString() }
                     rs.getString("id_vk")?.let { value -> settings.fields[SettingField.ID_VK] = value }
                     rs.getString("id_youtube_lyrics")?.let { value -> settings.fields[SettingField.ID_YOUTUBE_LYRICS] = value }
                     rs.getString("id_youtube_karaoke")?.let { value -> settings.fields[SettingField.ID_YOUTUBE_KARAOKE] = value }
@@ -3731,6 +3771,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             idBoosty = idBoosty,
             idBoostyFiles = idBoostyFiles,
             idSponsr = idSponsr,
+            indexTabsVariant = indexTabsVariant,
             idVk = idVk,
             idYoutubeLyrics = idYoutubeLyrics,
             idYoutubeKaraoke = idYoutubeKaraoke,
@@ -3834,6 +3875,7 @@ data class SettingsDTO(
     val idBoosty: String,
     val idBoostyFiles: String,
     val idSponsr: String,
+    val indexTabsVariant: Int,
     val idVk: String,
     val idYoutubeLyrics: String,
     val idYoutubeKaraoke: String,

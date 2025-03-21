@@ -82,7 +82,17 @@ data class MkoProgress(val mltProp: MltProp, val type: ProducerType, val voiceId
             val sylFontSize = fontSize
             val melodyNoteFontSize = (sylFontSize * Karaoke.melodyNoteHeightCoefficient).toInt()
             val melodyNoteMltTextHeight = Karaoke.melodyNoteFont.copy("C", melodyNoteFontSize).h()
-            (melodyNoteMltTextHeight * Karaoke.melodyNoteHeightOffsetCoefficient).toInt() / 2
+            val noteHeight = (melodyNoteMltTextHeight * Karaoke.melodyNoteHeightOffsetCoefficient).toInt()
+
+            val tabsHeightCoefficient = Karaoke.melodyTabsHeightCoefficient
+            val tabsFontSize = (sylFontSize * tabsHeightCoefficient).toInt()
+            val tabsFont = Karaoke.melodyTabsFont
+            val tabsMltTextHeight = tabsFont.copy("C", tabsFontSize).h()
+            val tabsHeightOffsetCoefficient = Karaoke.melodyTabsHeightOffsetCoefficient
+            val heightBetweenTabsLines = (tabsMltTextHeight * tabsHeightOffsetCoefficient).toInt()
+
+            val tabsHeight = tabsMltTextHeight + 5 * heightBetweenTabsLines
+            (noteHeight + tabsHeight) / 2
         } else {
             0
         }

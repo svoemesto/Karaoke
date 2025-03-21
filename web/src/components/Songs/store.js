@@ -735,6 +735,13 @@ export default {
                 params: { id: state.currentSongId }
             });
         },
+        async getIndexTabsVariant(state) {
+            return await promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/apis/song/indextabsvariant",
+                params: { id: state.currentSongId }
+            });
+        },
         getSourceText: (state) => async (voiceId) => {
             return await promisedXMLHttpRequest({
                 method: 'POST',
@@ -1535,7 +1542,8 @@ export default {
                 id: ctx.state.currentSongId,
                 voice: payload.voice,
                 sourceText: payload.sourceText,
-                sourceMarkers: payload.sourceMarkers
+                sourceMarkers: payload.sourceMarkers,
+                indexTabsVariant: payload.indexTabsVariant
             };
             let request = { method: 'POST', url: "/apis/song/savesourcetextmarkers", params: params };
             return await promisedXMLHttpRequest(request);

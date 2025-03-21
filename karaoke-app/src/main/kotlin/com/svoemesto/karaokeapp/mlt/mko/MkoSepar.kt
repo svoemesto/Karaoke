@@ -91,11 +91,23 @@ data class MkoSepar(
 
         val haveNotes = songVersion.producers.contains(ProducerType.MELODYNOTE) && element.getSyllables().any { it.note != "" }
 
+        val sylFontSize = element.fontSize
+        val melodyNoteFontSize = (sylFontSize * Karaoke.melodyNoteHeightCoefficient).toInt()
+        val melodyNoteMltTextHeight = Karaoke.melodyNoteFont.copy("C", melodyNoteFontSize).h()
+        val noteHeight = (melodyNoteMltTextHeight * Karaoke.melodyNoteHeightOffsetCoefficient).toInt()
+
+        val tabsHeightCoefficient = Karaoke.melodyTabsHeightCoefficient
+        val tabsFontSize = (sylFontSize * tabsHeightCoefficient).toInt()
+        val tabsFont = Karaoke.melodyTabsFont
+        val tabsMltTextHeight = tabsFont.copy("C", tabsFontSize).h()
+        val tabsHeightOffsetCoefficient = Karaoke.melodyTabsHeightOffsetCoefficient
+        val heightBetweenTabsLines = (tabsMltTextHeight * tabsHeightOffsetCoefficient).toInt()
+        val offsetYTabsLines = tabsMltTextHeight / 2
+
+        val tabsHeight = tabsMltTextHeight + 5 * heightBetweenTabsLines
+
         val deltaY = if (haveNotes) {
-            val sylFontSize = element.fontSize
-            val melodyNoteFontSize = (sylFontSize * Karaoke.melodyNoteHeightCoefficient).toInt()
-            val melodyNoteMltTextHeight = Karaoke.melodyNoteFont.copy("C", melodyNoteFontSize).h()
-            (melodyNoteMltTextHeight * Karaoke.melodyNoteHeightOffsetCoefficient).toInt()
+            noteHeight + tabsHeight
         } else {
             0
         }
@@ -104,7 +116,7 @@ data class MkoSepar(
         var heightAreaPx = element.h() + deltaY
 
         val x = 0
-        val y = 0
+        val y = offsetYTabsLines
         val body: MutableList<MltNode> = mutableListOf()
 
         // Формируем прямоугольные области для каждого слога и добавляем их в переменную body
@@ -126,7 +138,7 @@ data class MkoSepar(
                             name = "position",
                             fields = mutableMapOf(
                                 Pair("x","${rect.x}"),
-                                Pair("y","0")
+                                Pair("y","${y}")
                             ),
                             body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(Pair("zoom","100")), body = "1,0,0,0,1,0,0,0,1"))
                         ),
@@ -136,7 +148,7 @@ data class MkoSepar(
                                 Pair("brushcolor", color),
                                 Pair("pencolor", "0,0,0,255"),
                                 Pair("penwidth","0"),
-                                Pair("rect","0,0,2,${heightAreaPx}")
+                                Pair("rect","0,0,2,${heightAreaPx - offsetYTabsLines}")
                             )
                         )
                     )

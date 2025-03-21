@@ -721,6 +721,14 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         return text
     }
 
+    // Получение indexTabsVariant
+    @PostMapping("/song/indextabsvariant")
+    @ResponseBody
+    fun getSongIndexTabsVariant(@RequestParam id: Long): Int {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        return settings?.let { it.indexTabsVariant }?: 0
+    }
+
     // Получение списка авторов
     @PostMapping("/songs/authors")
     @ResponseBody
@@ -1205,6 +1213,7 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         @RequestParam(required = false) idBoosty: String?,
         @RequestParam(required = false) idBoostyFiles: String?,
         @RequestParam(required = false) idSponsr: String?,
+        @RequestParam(required = false) indexTabsVariant: String?,
         @RequestParam(required = false) idVk: String?,
         @RequestParam(required = false) idYoutubeLyrics: String?,
         @RequestParam(required = false) idYoutubeKaraoke: String?,
@@ -1245,6 +1254,7 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             idBoosty?.let { sett.fields[SettingField.ID_BOOSTY] = it }
             idBoostyFiles?.let { sett.fields[SettingField.ID_BOOSTY_FILES] = it }
             idSponsr?.let { sett.fields[SettingField.ID_SPONSR] = it }
+            indexTabsVariant?.let { sett.fields[SettingField.INDEX_TABS_VARIANT] = it }
             idVk?.let { sett.fields[SettingField.ID_VK] = it }
             idYoutubeLyrics?.let { sett.fields[SettingField.ID_YOUTUBE_LYRICS] = it }
             idYoutubeKaraoke?.let { sett.fields[SettingField.ID_YOUTUBE_KARAOKE] = it }
@@ -1427,7 +1437,8 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         @RequestParam id: Long,
         @RequestParam voice: Int,
         @RequestParam sourceText: String,
-        @RequestParam sourceMarkers: String
+        @RequestParam sourceMarkers: String,
+        @RequestParam indexTabsVariant: Int,
         ): Boolean {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         return settings?.let {
@@ -1445,6 +1456,7 @@ class ApisController(private val sseNotificationService: SseNotificationService)
                 println("Ошибка при создании файла субтитров.")
             }
             settings.setSourceText(voice, sourceText)
+            settings.setIndexTabsVariant(indexTabsVariant)
             true
         } ?: false
     }
@@ -1503,13 +1515,13 @@ class ApisController(private val sseNotificationService: SseNotificationService)
                 if (!createChordsVk && settings.getSongDurationVideoMs() < 61_100) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDSVK, true, priorChords.toInt())
             }
             if (createMelody) {
-                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_MELODY, true, priorMelody!!.toInt())
-                if (!createMelodyVk && settings.getSongDurationVideoMs() < 61_100) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_MELODYVK, true, priorMelody.toInt())
+                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_TABS, true, priorMelody!!.toInt())
+                if (!createMelodyVk && settings.getSongDurationVideoMs() < 61_100) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_TABSVK, true, priorMelody.toInt())
             }
             if (createLyricsVk) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICSVK, true, priorLyricsVk!!.toInt())
             if (createKaraokeVk) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKEVK, true, priorKaraokeVk!!.toInt())
             if (createChordsVk) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDSVK, true, priorChordsVk!!.toInt())
-            if (createMelodyVk) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_MELODYVK, true, priorMelodyVk!!.toInt())
+            if (createMelodyVk) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_TABSVK, true, priorMelodyVk!!.toInt())
             type = "info"
             body = "Создание караоке для песни «${it.songName}» прошло успешно."
             result = true
@@ -1569,13 +1581,13 @@ class ApisController(private val sseNotificationService: SseNotificationService)
                         if (!createChordsVk && settings.getSongDurationVideoMs() < 61_100) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDSVK, true, priorChords.toInt())
                     }
                     if (createMelody) {
-                        KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_MELODY, true, priorMelody!!.toInt())
-                        if (!createMelodyVk && settings.getSongDurationVideoMs() < 61_100) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_MELODYVK, true, priorMelody.toInt())
+                        KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_TABS, true, priorMelody!!.toInt())
+                        if (!createMelodyVk && settings.getSongDurationVideoMs() < 61_100) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_TABSVK, true, priorMelody.toInt())
                     }
                     if (createLyricsVk) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICSVK, true, priorLyricsVk!!.toInt())
                     if (createKaraokeVk) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKEVK, true, priorKaraokeVk!!.toInt())
                     if (createChordsVk) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDSVK, true, priorChordsVk!!.toInt())
-                    if (createMelodyVk) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_MELODYVK, true, priorMelodyVk!!.toInt())
+                    if (createMelodyVk) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_TABSVK, true, priorMelodyVk!!.toInt())
                 }
                 result = true
             }
@@ -1962,7 +1974,7 @@ class ApisController(private val sseNotificationService: SseNotificationService)
     @ResponseBody
     fun doCreatePictureMelody(@RequestParam id: Long) {
         Settings.loadFromDbById(id, WORKING_DATABASE)?.let { settings ->
-            createSongPicture(settings, SongVersion.MELODY)
+            createSongPicture(settings, SongVersion.TABS)
             SNS.send(SseNotification.message(Message(
                 type = "info",
                 head = "Создание картинки MELODY",
@@ -2017,7 +2029,7 @@ class ApisController(private val sseNotificationService: SseNotificationService)
     @ResponseBody
     fun doCreateDescriptionFileMelody(@RequestParam id: Long) {
         Settings.loadFromDbById(id, WORKING_DATABASE)?.let { settings ->
-            createSongDescriptionFile(settings, SongVersion.MELODY)
+            createSongDescriptionFile(settings, SongVersion.TABS)
             SNS.send(SseNotification.message(Message(
                 type = "info",
                 head = "Создание текстового файла MELODY",

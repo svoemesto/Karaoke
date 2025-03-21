@@ -339,6 +339,11 @@ class Karaoke : Serializable {
             get() = getColorFromString(KaraokeProperties.getString("separLineColor"))
             set(value) { KaraokeProperties.set("separLineColor", value.setting()) }
 
+        // Цвет линий табулатуры нот
+        var tabsLineColor: Color
+            get() = getColorFromString(KaraokeProperties.getString("tabsLineColor"))
+            set(value) { KaraokeProperties.set("tabsLineColor", value.setting()) }
+
         // Цвет горизонта
         var horizonColor: Color
             get() = getColorFromString(KaraokeProperties.getString("horizonColor"))
@@ -396,6 +401,31 @@ class Karaoke : Serializable {
         var melodyNoteHeightOffsetCoefficient: Double
             get() = KaraokeProperties.getDouble("melodyNoteHeightOffsetCoefficient")
             set(value) { KaraokeProperties.set("melodyNoteHeightOffsetCoefficient", value) }
+
+        // Фонт номера лада в табулатуре
+        var melodyTabsFont: MltText
+            get() = getMltFontFromString(KaraokeProperties.getString("melodyTabsFont"))
+            set(value) { KaraokeProperties.set("melodyTabsFont", value.setting()) }
+
+        // Коэффициэнт размера шрифта номера лада в табулатуре относительно размера шрифта текста песни
+        var melodyTabsHeightCoefficient: Double
+            get() = KaraokeProperties.getDouble("melodyTabsHeightCoefficient")
+            set(value) { KaraokeProperties.set("melodyTabsHeightCoefficient", value) }
+
+        // Коэффициэнт оффсета размера шрифта номера лада в табулатуре относительно размера шрифта текста песни
+        var melodyTabsHeightOffsetCoefficient: Double
+            get() = KaraokeProperties.getDouble("melodyTabsHeightOffsetCoefficient")
+            set(value) { KaraokeProperties.set("melodyTabsHeightOffsetCoefficient", value) }
+
+        // Фонт открытой струны в табулатуре
+        var melodyOpenStringFont: MltText
+            get() = getMltFontFromString(KaraokeProperties.getString("melodyOpenStringFont"))
+            set(value) { KaraokeProperties.set("melodyOpenStringFont", value.setting()) }
+
+        // Коэффициэнт размера шрифта открытой струны в табулатуре относительно размера шрифта текста песни
+        var melodyOpenStringHeightCoefficient: Double
+            get() = KaraokeProperties.getDouble("melodyOpenStringHeightCoefficient")
+            set(value) { KaraokeProperties.set("melodyOpenStringHeightCoefficient", value) }
 
         // Фонт октавы
         var melodyOctaveFont: MltText

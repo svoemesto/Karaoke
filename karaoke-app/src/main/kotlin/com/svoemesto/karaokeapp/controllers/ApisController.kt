@@ -446,13 +446,13 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         return text
     }
 
-    // Получение текста заголовка для Dzen Melody
-    @PostMapping("/song/textyoutubemelodyheader")
+    // Получение текста заголовка для Dzen Tabs
+    @PostMapping("/song/textyoutubetabsheader")
     @ResponseBody
-    fun getSongTextYoutubeMelodyHeader(@RequestParam id: Long): String {
+    fun getSongTextYoutubeTabsHeader(@RequestParam id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
-            val text = it.getDescriptionHeader(SongVersion.LYRICS, 140)
+            val text = it.getDescriptionHeader(SongVersion.TABS, 140)
             text
         } ?: ""
         return text
@@ -471,13 +471,13 @@ class ApisController(private val sseNotificationService: SseNotificationService)
     }
 
 
-    // Получение текста тела для Dzen Melody
-    @PostMapping("/song/textyoutubemelodywoheader")
+    // Получение текста тела для Dzen Tabs
+    @PostMapping("/song/textyoutubetabswoheader")
     @ResponseBody
-    fun getSongTextYoutubeMelodyWOHeader(@RequestParam id: Long): String {
+    fun getSongTextYoutubeTabsWOHeader(@RequestParam id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
-            val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.LYRICS, 5000)
+            val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.TABS, 5000)
             text
         } ?: ""
         return text
@@ -489,7 +489,7 @@ class ApisController(private val sseNotificationService: SseNotificationService)
     fun getSongTextPlKaraokeHeader(@RequestParam id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
-            val text = it.getDescriptionHeader(SongVersion.KARAOKE, 140)
+            val text = it.getDescriptionHeader(SongVersion.KARAOKE, 100)
             text
         } ?: ""
         return text
@@ -513,7 +513,7 @@ class ApisController(private val sseNotificationService: SseNotificationService)
     fun getSongTextPlLyricsHeader(@RequestParam id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
-            val text = it.getDescriptionHeader(SongVersion.LYRICS, 140)
+            val text = it.getDescriptionHeader(SongVersion.LYRICS, 100)
             text
         } ?: ""
         return text
@@ -542,13 +542,13 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         } ?: ""
         return text
     }
-    // Получение текста заголовка для Platforma Melody
-    @PostMapping("/song/textplmelodyheader")
+    // Получение текста заголовка для Platforma Tabs
+    @PostMapping("/song/textpltabsheader")
     @ResponseBody
-    fun getSongTextPlMelodyHeader(@RequestParam id: Long): String {
+    fun getSongTextPlTabsHeader(@RequestParam id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
-            val text = it.getDescriptionHeader(SongVersion.LYRICS, 140)
+            val text = it.getDescriptionHeader(SongVersion.TABS, 100)
             text
         } ?: ""
         return text
@@ -565,13 +565,13 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         } ?: ""
         return text
     }
-    // Получение текста тела для Platforma Melody
-    @PostMapping("/song/textplmelodywoheader")
+    // Получение текста тела для Platforma Tabs
+    @PostMapping("/song/textpltabswoheader")
     @ResponseBody
-    fun getSongTextPlMelodyWOHeader(@RequestParam id: Long): String {
+    fun getSongTextPlTabsWOHeader(@RequestParam id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
-            val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.LYRICS, 5000, 100)
+            val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.TABS, 5000, 100)
             text
         } ?: ""
         return text
@@ -638,13 +638,13 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         } ?: ""
         return text
     }
-    // Получение текста заголовка для Vk Melody
-    @PostMapping("/song/textvkmelodyheader")
+    // Получение текста заголовка для Vk Tabs
+    @PostMapping("/song/textvktabsheader")
     @ResponseBody
-    fun getSongTextVkMelodyHeader(@RequestParam id: Long): String {
+    fun getSongTextVkTabsHeader(@RequestParam id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
-            val text = it.getDescriptionVkHeader(SongVersion.LYRICS)
+            val text = it.getDescriptionVkHeader(SongVersion.TABS)
             text
         } ?: ""
         return text
@@ -661,13 +661,13 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         } ?: ""
         return text
     }
-    // Получение текста тела для Vk Melody
-    @PostMapping("/song/textvkmelody")
+    // Получение текста тела для Vk Tabs
+    @PostMapping("/song/textvktabs")
     @ResponseBody
-    fun getSongTextVkMelody(@RequestParam id: Long): String {
+    fun getSongTextVkTabs(@RequestParam id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
-            val text = it.getDescriptionVk(SongVersion.LYRICS)
+            val text = it.getDescriptionVk(SongVersion.TABS)
             text
         } ?: ""
         return text
@@ -709,13 +709,13 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         } ?: ""
         return text
     }
-    // Получение текста заголовка для Telegram Melody
-    @PostMapping("/song/texttelegrammelodyheader")
+    // Получение текста заголовка для Telegram Tabs
+    @PostMapping("/song/texttelegramtabsheader")
     @ResponseBody
-    fun getSongTextTelegramMelodyHeader(@RequestParam id: Long): String {
+    fun getSongTextTelegramTabsHeader(@RequestParam id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
-            val text = it.getDescriptionVkHeader(SongVersion.LYRICS)
+            val text = it.getDescriptionVkHeader(SongVersion.TABS)
             text
         } ?: ""
         return text
@@ -1149,13 +1149,13 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         }
         return true
     }
-    // Видеопроигрыватель: Melody
-    @PostMapping("/song/playmelody")
+    // Видеопроигрыватель: Tabs
+    @PostMapping("/song/playtabs")
     @ResponseBody
-    fun doPlayMelody(@RequestParam id: Long): Boolean {
+    fun doPlayTabs(@RequestParam id: Long): Boolean {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         settings?.let {
-            settings.playMelody()
+            settings.playTabs()
         }
         return true
     }
@@ -1969,16 +1969,16 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             )))
         }
     }
-    // Создаём картинку MELODY для песни
-    @PostMapping("/song/createpicturemelody")
+    // Создаём картинку TABS для песни
+    @PostMapping("/song/createpicturetabs")
     @ResponseBody
-    fun doCreatePictureMelody(@RequestParam id: Long) {
+    fun doCreatePictureTabs(@RequestParam id: Long) {
         Settings.loadFromDbById(id, WORKING_DATABASE)?.let { settings ->
             createSongPicture(settings, SongVersion.TABS)
             SNS.send(SseNotification.message(Message(
                 type = "info",
-                head = "Создание картинки MELODY",
-                body = "Создание картинки MELODY прошло успешно"
+                head = "Создание картинки TABS",
+                body = "Создание картинки TABS прошло успешно"
             )))
         }
     }
@@ -2024,16 +2024,16 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             )))
         }
     }
-    // Создаём текстовый файл MELODY для песни
-    @PostMapping("/song/createdescriptionfilemelody")
+    // Создаём текстовый файл TABS для песни
+    @PostMapping("/song/createdescriptionfiletabs")
     @ResponseBody
-    fun doCreateDescriptionFileMelody(@RequestParam id: Long) {
+    fun doCreateDescriptionFileTabs(@RequestParam id: Long) {
         Settings.loadFromDbById(id, WORKING_DATABASE)?.let { settings ->
             createSongDescriptionFile(settings, SongVersion.TABS)
             SNS.send(SseNotification.message(Message(
                 type = "info",
-                head = "Создание текстового файла MELODY",
-                body = "Создание текстового файла MELODY прошло успешно"
+                head = "Создание текстового файла TABS",
+                body = "Создание текстового файла TABS прошло успешно"
             )))
         }
     }

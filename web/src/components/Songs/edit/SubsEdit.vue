@@ -77,8 +77,9 @@
                 <input class="item-left-input-field" v-model="currentMarker.stringlad" @focus="setEditMode(false)" @blur="setEditMode(true)">
               </div>
               <div class="item-left-label-and-input">
-                <div class="item-left-label">LockLad:</div>
-                <input class="item-left-input-field" v-model="currentMarker.locklad" @focus="setEditMode(false)" @blur="setEditMode(true)">
+                <button class="group-button" :class="lockladButtonClass()" type="button" @click="onOffLocklad()">locklad</button>
+<!--                <div class="item-left-label">LockLad:</div>-->
+<!--                <input class="item-left-input-field" v-model="currentMarker.locklad" @focus="setEditMode(false)" @blur="setEditMode(true)">-->
               </div>
             </div>
             <div class="item-waveform" id="waveform"></div>
@@ -2352,6 +2353,9 @@ export default {
 
       // console.log('initWavesurfer end');
     },
+    lockladButtonClass() {
+      return this.currentMarker.locklad === 'true' ? 'group-button-active' : ''
+    },
     merkerButtonClass(isShow) {
       return isShow === true ? 'group-button-active' : ''
     },
@@ -2381,6 +2385,15 @@ export default {
     },
     setBeat(beat) {
       this.beat = beat;
+    },
+    onOffLocklad() {
+      console.log("onOffLocklad start, currentMarker.locklad = ", this.currentMarker.locklad);
+      if (this.currentMarker.locklad === 'true') {
+        this.currentMarker.locklad = '';
+      } else {
+        this.currentMarker.locklad = 'true';
+      }
+      console.log("onOffLocklad end, currentMarker.locklad = ", this.currentMarker.locklad);
     },
     onOffShowMarkerType(markerType) {
       switch (markerType) {

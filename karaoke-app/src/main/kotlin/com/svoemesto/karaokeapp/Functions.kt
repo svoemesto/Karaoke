@@ -45,7 +45,7 @@ fun getVoices(settings: Settings, songVersion: SongVersion) : List<SettingVoice>
             var currentText = ""
 
             when (sourceMarker.markertype) {
-                "setting" -> {
+                Markertype.SETTING.value -> {
                     val values = sourceMarker.label.split("|")
 
                     if (values.size == 1) {
@@ -100,7 +100,7 @@ fun getVoices(settings: Settings, songVersion: SongVersion) : List<SettingVoice>
                     }
                     currentText = ""
                 }
-                "syllables" -> {
+                Markertype.SYLLABLES.value -> {
 
                     val textSyllable = if (sourceMarker.label.isNotEmpty()) {
                         var txt = sourceMarker.label.replace("_", " ")
@@ -129,7 +129,7 @@ fun getVoices(settings: Settings, songVersion: SongVersion) : List<SettingVoice>
 
                     lastTextLineWasComment = false
                 }
-                "endofsyllable" -> {
+                Markertype.ENDOFSYLLABLES.value -> {
 
                     var txt = "⸳"
 
@@ -156,7 +156,7 @@ fun getVoices(settings: Settings, songVersion: SongVersion) : List<SettingVoice>
                     prevTextSyllable = textSyllable
                     currentText += txt
                 }
-                "endofline" -> {
+                Markertype.ENDOFLINE.value -> {
 
                     prevTextSyllable = null
                     currentText = ""
@@ -222,7 +222,7 @@ fun getVoices(settings: Settings, songVersion: SongVersion) : List<SettingVoice>
                     }
 
                 }
-                "newline" -> {
+                Markertype.NEWLINE.value -> {
                     currentText = ""
                     if (tmpLines.isNotEmpty()) {
                         tmpLines.add(SettingVoiceLine.newLine(settings.id,timeMs,groupId))

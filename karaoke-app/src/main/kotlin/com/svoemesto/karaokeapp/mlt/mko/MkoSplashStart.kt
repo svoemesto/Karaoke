@@ -19,10 +19,16 @@ data class MkoSplashStart(val mltProp: MltProp, val type: ProducerType, val voic
     private val splashFadeInTimecode = mltProp.getSplashFadeInTimecode()
     private val splashFadeOutTimecode = mltProp.getSplashFadeOutTimecode()
     private val songVersion = mltProp.getSongVersion()
-    private val chordDescriptionText = mltProp.getSongChordDescription().replace("\n",", ")
     private val songName = mltProp.getSongName()
     private val logoAuthorBase64 = mltProp.getBase64("LogoAuthor")
     private val logoAlbumBase64 = mltProp.getBase64("LogoAlbum")
+    private val toneBpmDescriptionText = if (songVersion in listOf(SongVersion.KARAOKE, SongVersion.KARAOKEVK, SongVersion.TABS, SongVersion.TABSVK)) {
+        "Key: «" + mltProp.getSongTone() + "», bpm: " + mltProp.getSongBpm()
+    } else {
+        ""
+    }
+    private val cds = mltProp.getSongChordDescription().replace("\n",", ")
+    private val chordDescriptionText = if (cds !== "") cds else toneBpmDescriptionText
 
     override fun producer(): MltNode = mltGenerator
         .producer(

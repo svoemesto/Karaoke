@@ -173,7 +173,7 @@
           <div
               class="fld-flag-dzen-melody"
               v-text="data.value"
-              @dblclick.left="playMelody(data.item.id)"
+              @dblclick.left="playTabs(data.item.id)"
               :style="{ backgroundColor: data.item.processColorMeltMelody, color: currentSongId === data.item.id ? 'blue' : 'black' }"
           ></div>
         </template>
@@ -970,8 +970,8 @@ export default {
     playChords(id) {
       this.$store.getters.playChords(id);
     },
-    playMelody(id) {
-      this.$store.getters.playMelody(id);
+    playTabs(id) {
+      this.$store.getters.playTabs(id);
     },
     closeSongEdit() {
       this.isSongEditVisible = false;

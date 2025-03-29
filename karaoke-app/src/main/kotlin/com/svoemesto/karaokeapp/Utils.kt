@@ -5,15 +5,43 @@ import com.google.gson.GsonBuilder
 import com.svoemesto.karaokeapp.mlt.*
 import com.svoemesto.karaokeapp.model.*
 import com.svoemesto.karaokeapp.textfiledictionary.YoWordsDictionary
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import org.apache.commons.csv.CSVFormat
 import org.apache.commons.csv.CSVParser
 import org.apache.commons.io.FileUtils
+import org.apache.hc.client5.http.classic.methods.HttpGet
 import org.jsoup.Jsoup
+import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import org.odftoolkit.simple.SpreadsheetDocument
+import org.openqa.selenium.By
+import org.openqa.selenium.WebDriver
+import org.openqa.selenium.WebElement
+import org.openqa.selenium.chrome.ChromeDriver
+import org.openqa.selenium.chrome.ChromeOptions
+import org.openqa.selenium.support.ui.ExpectedConditions
+import org.openqa.selenium.support.ui.WebDriverWait
+import org.springframework.boot.web.client.RestTemplateBuilder
+import org.springframework.http.HttpEntity
+import org.springframework.http.HttpMethod
+import org.springframework.http.ResponseEntity
+import org.springframework.http.client.ClientHttpResponse
+import org.springframework.http.converter.FormHttpMessageConverter
+import org.springframework.http.converter.StringHttpMessageConverter
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter
+import org.springframework.web.client.DefaultResponseErrorHandler
+import org.springframework.web.client.RestClientException
+import org.springframework.web.client.RestOperations
+import org.springframework.web.util.UriComponentsBuilder
 import java.awt.*
 import java.awt.image.BufferedImage
 import java.io.*
+import java.net.URI
+import java.net.http.HttpClient
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
@@ -23,17 +51,19 @@ import java.security.NoSuchAlgorithmException
 import java.sql.ResultSet
 import java.sql.SQLException
 import java.sql.Statement
+import java.text.SimpleDateFormat
+import java.time.Duration
 import java.util.*
 import javax.imageio.ImageIO
 import javax.sound.sampled.AudioSystem
 import kotlin.io.path.Path
 import kotlin.math.roundToInt
 import kotlin.random.Random
-import java.net.http.HttpClient
-import java.net.http.HttpRequest
-import java.net.http.HttpResponse
-import java.net.URI
-import java.text.SimpleDateFormat
+//import io.ktor.client.*
+//import io.ktor.client.engine.cio.*
+//import io.ktor.client.request.*
+//import io.ktor.client.statement.*
+//import org.jsoup.nodes.Document
 
 fun mainUtils() {
 
@@ -3436,17 +3466,160 @@ fun getFontSize(songVersion: SongVersion, listOfVoices: List<SettingVoice>): Int
     return fontSize
 }
 
-fun searchLastAlbumYm(authorYmId: String): String {
+
+fun getAlbumCardTitle(authorYmId: String): String = runBlocking {
+    val searchUrl = "https://music.yandex.ru/artist/$authorYmId/albums"
+    var result = ""
+
+    try {
+        // Создание HttpClient
+        val client = HttpClient.newBuilder().build();
+
+        val request = HttpRequest.newBuilder()
+            .uri(URI.create(searchUrl))
+            .GET()
+            .build()
+        val response = withContext(Dispatchers.IO) {
+            client.send(request, HttpResponse.BodyHandlers.ofString())
+        }
+
+        println(response.body())
+
+        // Получение HTML-контента страницы
+        val htmlContent = response.body() // EntityUtils.toString(response.entity)
+
+        // Парсинг HTML с помощью Jsoup
+        val doc: Document = Jsoup.parse(htmlContent)
+
+        // Находим первый элемент <a>, у которого один из классов начинается с "AlbumCard_titleLink"
+        val element = doc.selectFirst("a[class*=AlbumCard_titleLink]")
+
+        if (element !== null) {
+            result = element.text().trim()
+        }
+
+    } catch (e: Exception) {
+        e.printStackTrace()
+    }
+
+    result
+}
+
+fun String.extractBalancedBracesFromString(startWord: String): String {
+    var result = ""
+    var currentContent = StringBuilder()
+    val firstIndexOfStartWord = this.indexOf(startWord)
+    if (firstIndexOfStartWord < 0) return result
+    val indexToStartSearch = firstIndexOfStartWord + startWord.length
+    val firstChar = this[indexToStartSearch]
+    if (firstChar !== '{') return result
+    var counter = 0
+    for (i in indexToStartSearch until this.length) {
+        val currentSymbol = this[i]
+        when (currentSymbol) {
+            '{' -> {
+                currentContent.append(currentSymbol)
+                counter++
+            }
+            '}' -> {
+                currentContent.append(currentSymbol)
+                counter--
+            }
+            else -> {
+                currentContent.append(currentSymbol)
+            }
+        }
+        if (counter <= 0) return currentContent.toString()
+    }
+    return result
+}
+
+fun String.textBetween(startString: String, endString: String): String {
+    var result = ""
+    val firstIndexOfStartString = this.indexOf(startString)
+    if (firstIndexOfStartString < 0) return result
+    val stringToSearch = this.substring(firstIndexOfStartString + startString.length)
+    val lastIndexOfStartString = stringToSearch.indexOf(endString)
+    if (lastIndexOfStartString < 0) return result
+    return stringToSearch.substring(0, lastIndexOfStartString)
+}
+fun searchLastAlbumYm2(authorYmId: String): String {
     val searchUrl = "https://music.yandex.ru/artist/$authorYmId/albums"
     val document = Jsoup.connect(searchUrl).get()
     val html = document.html()
-    val result = (document.getElementsByClass("album__title").first()?.text() ?: "").trim()
+    val preloadedAlbums = html.extractBalancedBracesFromString("""\"preloadedAlbums\":""")
+    val album = preloadedAlbums.extractBalancedBracesFromString("""\"albums\":[""")
+    val result = album.textBetween("""\"title\":\"""", """\",\"""")
     if (result == "") {
         if (html.contains("Нам очень жаль, но запросы с вашего устройства похожи на автоматические")) {
             println("Нам очень жаль, но запросы с вашего устройства похожи на автоматические")
             throw Exception("Нам очень жаль, но запросы с вашего устройства похожи на автоматические")
         }
+        println("preloadedAlbum = $preloadedAlbums")
+        println("album = $album")
     }
+    return result
+}
+
+fun searchLastAlbumYm(authorYmId: String): String {
+    val searchUrl = "https://music.yandex.ru/artist/$authorYmId/albums"
+//    val document = Jsoup.connect(searchUrl).get()
+//    val html = document.html()
+//    println(html)
+//    val selector = "a[class~=\\bAlbumCard_titleLink\\S*]"
+//    val element = document.select(selector).first()
+//    println(element)
+//    val result = element?.text() ?: ""
+////    val result = (document.getElementsByClass("album__caption").first()?.text() ?: "").trim()
+//    if (result == "") {
+//        if (html.contains("Нам очень жаль, но запросы с вашего устройства похожи на автоматические")) {
+//            println("Нам очень жаль, но запросы с вашего устройства похожи на автоматические")
+//            throw Exception("Нам очень жаль, но запросы с вашего устройства похожи на автоматические")
+//        }
+//    }
+
+    var result = ""
+
+    System.setProperty(WEBDRIVER_CHROMEDRIVER, PATH_TO_CHROMEDRIVER)
+    // Настройка опций Chrome
+    val options = ChromeOptions()
+//    options.addArguments("--headless") // Запуск в безголовом режиме (опционально)
+//    options.addArguments("--remote-allow-origins=*")
+
+    // Создание экземпляра WebDriver
+    val driver: WebDriver = try {
+        ChromeDriver(options)
+    } catch (e: AbstractMethodError) {
+        println("Не удалось инициализировать WebDriver")
+        return result
+    }
+
+    try {
+
+        // Открываем веб-страницу
+        driver.get(searchUrl)
+
+        // Ждём полной загрузки страницы
+        val wait = WebDriverWait(driver, Duration.ofSeconds(10)) // Ожидание до 10 секунд
+
+        // Находим первый элемент <a>, у которого один из классов начинается с "AlbumCard_titleLink"
+        val element: WebElement? = wait.until(ExpectedConditions.presenceOfElementLocated(
+            By.cssSelector("a[class*=AlbumCard_titleLink]")
+        ))
+
+        // Проверяем, что элемент найден и имеет нужный класс
+        result = if (element != null && element.getAttribute("class").split("\\s+".toRegex()).any { it.startsWith("AlbumCard_titleLink") }) {
+            println("Текст найденного элемента: ${element.text}")
+            element.text
+        } else {
+            println("Элемент не найден")
+            ""
+        }
+    } finally {
+        // Закрываем браузер
+        driver.quit()
+    }
+
     return result
 
 }
@@ -3485,7 +3658,6 @@ fun getAuthorForRequest(lastAuthor: String = ""): Author? {
     }
 
     if (author.watched && author.ymId !== "" && author.lastAlbumYm == author.lastAlbumProcessed) {
-        println("Поиск для автора «$authorForRequest»...")
         return author
     } else {
         println("Поиск для автора «$authorForRequest» не нужен, ищем другого автора...")
@@ -3504,9 +3676,16 @@ fun checkLastAlbumYm(): Triple<String, String, Int> {
     val authorForRequest = author.author
 
     val lastAlbumYm = try {
-        searchLastAlbumYm(author.ymId)
+//        getAlbumCardTitle(author.ymId)
+//        searchLastAlbumYm(author.ymId)
+        searchLastAlbumYm2(author.ymId)
     } catch (e: Exception) {
         println("Поиск для автора «$authorForRequest» завершился ошибкой.")
+        return Triple(authorForRequest, "", -1)
+    }
+
+    if (lastAlbumYm == "") {
+        println("Поиск для автора «$authorForRequest» выдал пустой результат. Возможно Yandex.Музыка изменила код страницы.")
         return Triple(authorForRequest, "", -1)
     }
 
@@ -3514,10 +3693,10 @@ fun checkLastAlbumYm(): Triple<String, String, Int> {
     author.save()
 
     return if (lastAlbumYm == author.lastAlbumProcessed) {
-        println("Поиск для автора «$authorForRequest» завершился успешно, но новых альбомов не найдено.")
+        println("Поиск для автора «$authorForRequest» завершился успешно, но новых альбомов не найдено. (Альбом «$lastAlbumYm» уже был ранее найден.)")
         Triple(authorForRequest, lastAlbumYm, 0)
     } else {
-        println("Поиск для автора «$authorForRequest» завершился успешно, найден новый альбом «$lastAlbumYm».")
+        println("Поиск для автора «$authorForRequest» завершился успешно, найден новый альбом «$lastAlbumYm». (Ранее последним альбомом был «${author.lastAlbumProcessed}».)")
         Triple(authorForRequest, lastAlbumYm, 1)
     }
 

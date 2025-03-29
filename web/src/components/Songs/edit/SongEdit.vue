@@ -208,11 +208,11 @@
               </div>
               <div class="label-and-input">
                 <img class="icon-24" alt="melody" src="../../../assets/svg/icon_melody.svg">
-                <button class="btn-round" @click="openLinkDzenMelodyPlay" :disabled="!song.idYoutubeMelody"><img alt="play" class="icon-play" src="../../../assets/svg/icon_play.svg"></button>
-                <button class="btn-round" @click="openLinkDzenMelodyEdit" :disabled="!song.idYoutubeMelody"><img alt="edit" class="icon-edit" src="../../../assets/svg/icon_edit.svg"></button>
-                <button class="btn-round" @click="getDzenMelodyHeader"><img alt="head" class="icon-texthead" src="../../../assets/svg/icon_head.svg"></button>
-                <button class="btn-round" @click="getDzenMelodyBody"><img alt="body" class="icon-textbody" src="../../../assets/svg/icon_body.svg"></button>
-                <button class="btn-round" @click="getLinkDzenMelodyPlay" :disabled="!song.idYoutubeMelody"><img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg"></button>
+                <button class="btn-round" @click="openLinkDzenTabsPlay" :disabled="!song.idYoutubeMelody"><img alt="play" class="icon-play" src="../../../assets/svg/icon_play.svg"></button>
+                <button class="btn-round" @click="openLinkDzenTabsEdit" :disabled="!song.idYoutubeMelody"><img alt="edit" class="icon-edit" src="../../../assets/svg/icon_edit.svg"></button>
+                <button class="btn-round" @click="getDzenTabsHeader"><img alt="head" class="icon-texthead" src="../../../assets/svg/icon_head.svg"></button>
+                <button class="btn-round" @click="getDzenTabsBody"><img alt="body" class="icon-textbody" src="../../../assets/svg/icon_body.svg"></button>
+                <button class="btn-round" @click="getLinkDzenTabsPlay" :disabled="!song.idYoutubeMelody"><img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg"></button>
                 <input class="input-link-field" v-model="song.idYoutubeMelody">
                 <button class="btn-round" @click="undoField('idYoutubeMelody')" :disabled="notChanged('idYoutubeMelody')"><img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg"></button>
                 <button class="btn-round" @click="copyToClipboard(song.idYoutubeMelody)" :disabled="!song.idYoutubeMelody"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>
@@ -261,10 +261,10 @@
               </div>
               <div class="label-and-input">
                 <img class="icon-24" alt="song" src="../../../assets/svg/icon_melody.svg">
-                <button class="btn-round-wide" @click="openLinkVkMelody" :disabled="!song.idVkMelody"><img alt="play" class="icon-play-wide" src="../../../assets/svg/icon_play.svg"></button>
-                <button class="btn-round" @click="getVkMelodyHeader"><img alt="head" class="icon-texthead" src="../../../assets/svg/icon_head.svg"></button>
-                <button class="btn-round" @click="getVkMelodyBody"><img alt="body" class="icon-textbody" src="../../../assets/svg/icon_body.svg"></button>
-                <button class="btn-round"  @click="getLinkVkMelody" :disabled="!song.idVkMelody"><img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg"></button>
+                <button class="btn-round-wide" @click="openLinkVkTabs" :disabled="!song.idVkMelody"><img alt="play" class="icon-play-wide" src="../../../assets/svg/icon_play.svg"></button>
+                <button class="btn-round" @click="getVkTabsHeader"><img alt="head" class="icon-texthead" src="../../../assets/svg/icon_head.svg"></button>
+                <button class="btn-round" @click="getVkTabsBody"><img alt="body" class="icon-textbody" src="../../../assets/svg/icon_body.svg"></button>
+                <button class="btn-round" @click="getLinkVkTabs" :disabled="!song.idVkMelody"><img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg"></button>
                 <input class="input-link-field" v-model="song.idVkMelody">
                 <button class="btn-round" @click="undoField('idVkMelody')" :disabled="notChanged('idVkMelody')"><img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg"></button>
                 <button class="btn-round" @click="copyToClipboard(song.idVkMelody)" :disabled="!song.idVkMelody"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>
@@ -310,9 +310,9 @@
               </div>
               <div class="label-and-input">
                 <img class="icon-24" alt="song" src="../../../assets/svg/icon_melody.svg">
-                <button class="btn-round-wide" @click="openLinkTelegramMelody" :disabled="!song.idTelegramMelody"><img alt="play" class="icon-play-wide" src="../../../assets/svg/icon_play.svg"></button>
-                <button class="btn-round-wide" @click="getTelegramMelodyHeader"><img alt="head" class="icon-texthead-wide" src="../../../assets/svg/icon_head.svg"></button>
-                <button class="btn-round" @click="getLinkTelegramMelody" :disabled="!song.idTelegramMelody"><img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg"></button>
+                <button class="btn-round-wide" @click="openLinkTelegramTabs" :disabled="!song.idTelegramMelody"><img alt="play" class="icon-play-wide" src="../../../assets/svg/icon_play.svg"></button>
+                <button class="btn-round-wide" @click="getTelegramTabsHeader"><img alt="head" class="icon-texthead-wide" src="../../../assets/svg/icon_head.svg"></button>
+                <button class="btn-round" @click="getLinkTelegramTabs" :disabled="!song.idTelegramMelody"><img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg"></button>
                 <input class="input-link-field" v-model="song.idTelegramMelody">
                 <button class="btn-round" @click="undoField('idTelegramMelody')" :disabled="notChanged('idTelegramMelody')"><img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg"></button>
                 <button class="btn-round" @click="copyToClipboard(song.idTelegramMelody)" :disabled="!song.idTelegramMelody"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>
@@ -364,11 +364,11 @@
               </div>
               <div class="label-and-input">
                 <img class="icon-24" alt="song" src="../../../assets/svg/icon_melody.svg">
-                <button class="btn-round" @click="openLinkPlMelodyPlay" :disabled="!song.idPlMelody"><img alt="play" class="icon-play" src="../../../assets/svg/icon_play.svg"></button>
-                <button class="btn-round" @click="openLinkPlMelodyEdit" :disabled="!song.idPlMelody"><img alt="edit" class="icon-edit" src="../../../assets/svg/icon_edit.svg"></button>
-                <button class="btn-round" @click="getPlMelodyHeader"><img alt="head" class="icon-texthead" src="../../../assets/svg/icon_head.svg"></button>
-                <button class="btn-round" @click="getPlMelodyBody"><img alt="body" class="icon-textbody" src="../../../assets/svg/icon_body.svg"></button>
-                <button class="btn-round" @click="getLinkPlMelodyPlay" :disabled="!song.idPlMelody"><img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg"></button>
+                <button class="btn-round" @click="openLinkPlTabsPlay" :disabled="!song.idPlMelody"><img alt="play" class="icon-play" src="../../../assets/svg/icon_play.svg"></button>
+                <button class="btn-round" @click="openLinkPlTabsEdit" :disabled="!song.idPlMelody"><img alt="edit" class="icon-edit" src="../../../assets/svg/icon_edit.svg"></button>
+                <button class="btn-round" @click="getPlTabsHeader"><img alt="head" class="icon-texthead" src="../../../assets/svg/icon_head.svg"></button>
+                <button class="btn-round" @click="getPlTabsBody"><img alt="body" class="icon-textbody" src="../../../assets/svg/icon_body.svg"></button>
+                <button class="btn-round" @click="getLinkPlTabsPlay" :disabled="!song.idPlMelody"><img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg"></button>
                 <input class="input-link-field" v-model="song.idPlMelody">
                 <button class="btn-round" @click="undoField('idPlMelody')" :disabled="notChanged('idPlMelody')"><img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg"></button>
                 <button class="btn-round" @click="copyToClipboard(song.idPlMelody)" :disabled="!song.idPlMelody"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>
@@ -408,15 +408,15 @@
             <button class="group-button" @click="createPictureKaraoke" title="Создать картинку KARAOKE">Создать картинку KARAOKE</button>
             <button class="group-button" @click="createPictureLyrics" title="Создать картинку LYRICS">Создать картинку LYRICS</button>
             <button class="group-button" @click="createPictureChords" title="Создать картинку CHORDS">Создать картинку CHORDS</button>
-            <button class="group-button" @click="createPictureMelody" title="Создать картинку MELODY">Создать картинку MELODY</button>
+            <button class="group-button" @click="createPictureTabs" title="Создать картинку TABS">Создать картинку TABS</button>
             <button class="group-button" @click="createDescriptionFileKaraoke" title="Создать текст KARAOKE">Создать текст KARAOKE</button>
             <button class="group-button" @click="createDescriptionFileLyrics" title="Создать текст LYRICS">Создать текст LYRICS</button>
             <button class="group-button" @click="createDescriptionFileChords" title="Создать текст CHORDS">Создать текст CHORDS</button>
-            <button class="group-button" @click="createDescriptionFileMelody" title="Создать текст MELODY">Создать текст MELODY</button>
+            <button class="group-button" @click="createDescriptionFileTabs" title="Создать текст TABS">Создать текст TABS</button>
             <button class="group-button" @click="playKaraoke" title="PLAY KARAOKE" :style="{ backgroundColor: song.processColorMeltKaraoke }">PLAY KARAOKE</button>
             <button class="group-button" @click="playLyrics" title="PLAY LYRICS" :style="{ backgroundColor: song.processColorMeltLyrics }">PLAY LYRICS</button>
             <button class="group-button" @click="playChords" title="PLAY CHORDS" :style="{ backgroundColor: song.processColorMeltChords }">PLAY CHORDS</button>
-            <button class="group-button" @click="playMelody" title="PLAY MELODY" :style="{ backgroundColor: song.processColorMeltMelody }">PLAY MELODY</button>
+            <button class="group-button" @click="playTabs" title="PLAY TABS" :style="{ backgroundColor: song.processColorMeltMelody }">PLAY TABS</button>
             <div class="navigation-buttons">
               <button class="group-button-left-right" @click="goToLeftSong" title="⬅">⬅</button>
               <div class="navigation-buttons-column">
@@ -528,22 +528,24 @@ export default {
     linkDzenLyricsEdit() { return this.prefixLinkDzenEdit + this.song.idYoutubeLyrics; },
     linkDzenChordsPlay() { return this.prefixLinkDzenPlay + this.song.idYoutubeChords; },
     linkDzenChordsEdit() { return this.prefixLinkDzenEdit + this.song.idYoutubeChords; },
-    linkDzenMelodyPlay() { return this.prefixLinkDzenPlay + this.song.idYoutubeMelody; },
-    linkDzenMelodyEdit() { return this.prefixLinkDzenEdit + this.song.idYoutubeMelody; },
+    linkDzenTabsPlay() { return this.prefixLinkDzenPlay + this.song.idYoutubeMelody; },
+    linkDzenTabsEdit() { return this.prefixLinkDzenEdit + this.song.idYoutubeMelody; },
     linkVkKaraoke() { return this.prefixLinkVk + this.song.idVkKaraoke; },
     linkVkLyrics() { return this.prefixLinkVk + this.song.idVkLyrics; },
+    linkVkChords() { return this.prefixLinkVk + this.song.idVkChords; },
+    linkVkTabs() { return this.prefixLinkVk + this.song.idVkMelody; },
     linkTelegramKaraoke() { return this.prefixLinkTelegram + this.song.idTelegramKaraoke; },
     linkTelegramLyrics() { return this.prefixLinkTelegram + this.song.idTelegramLyrics; },
     linkTelegramChords() { return this.prefixLinkTelegram + this.song.idTelegramChords; },
-    linkTelegramMelody() { return this.prefixLinkTelegram + this.song.idTelegramMelody; },
+    linkTelegramTabs() { return this.prefixLinkTelegram + this.song.idTelegramMelody; },
     linkPlKaraokePlay() { return this.prefixLinkPlPlay + this.song.idPlKaraoke; },
     linkPlKaraokeEdit() { return this.prefixLinkPlEdit + this.song.idPlKaraoke + this.suffixLinkPlEdit; },
     linkPlLyricsPlay() { return this.prefixLinkPlPlay + this.song.idPlLyrics; },
     linkPlLyricsEdit() { return this.prefixLinkPlEdit + this.song.idPlLyrics + this.suffixLinkPlEdit; },
     linkPlChordsPlay() { return this.prefixLinkPlPlay + this.song.idPlChords; },
     linkPlChordsEdit() { return this.prefixLinkPlEdit + this.song.idPlChords + this.suffixLinkPlEdit; },
-    linkPlMelodyPlay() { return this.prefixLinkPlPlay + this.song.idPlMelody; },
-    linkPlMelodyEdit() { return this.prefixLinkPlEdit + this.song.idPlMelody + this.suffixLinkPlEdit; },
+    linkPlTabsPlay() { return this.prefixLinkPlPlay + this.song.idPlMelody; },
+    linkPlTabsEdit() { return this.prefixLinkPlEdit + this.song.idPlMelody + this.suffixLinkPlEdit; },
 
     prefixLinkBoosty: () => { return 'https://boosty.to/svoemesto/posts/'; },
     prefixLinkSponsrEdit: () => { return 'https://sponsr.ru/smkaraoke/manage/post/'; },
@@ -923,7 +925,7 @@ export default {
       this.$store.dispatch('createPictureChordsPromise')
     },
 
-    createPictureMelody() {
+    createPictureTabs() {
       this.customConfirmParams = {
         header: 'Подтвердите создание картинки MELODY',
         body: `Создать картинку MELODY для песни <strong>«${this.song.songName}»</strong>?`,
@@ -932,7 +934,7 @@ export default {
       this.isCustomConfirmVisible = true;
     },
     doCreatePictureMelody() {
-      this.$store.dispatch('createPictureMelodyPromise')
+      this.$store.dispatch('createPictureTabsPromise')
     },
 
     createDescriptionFileKaraoke() {
@@ -969,16 +971,16 @@ export default {
       this.$store.dispatch('createDescriptionFileChordsPromise')
     },
 
-    createDescriptionFileMelody() {
+    createDescriptionFileTabs() {
       this.customConfirmParams = {
-        header: 'Подтвердите создание текста MELODY',
-        body: `Создать текст MELODY для песни <strong>«${this.song.songName}»</strong>?`,
-        callback: this.doCreateDescriptionFileMelody
+        header: 'Подтвердите создание текста TABS',
+        body: `Создать текст TABS для песни <strong>«${this.song.songName}»</strong>?`,
+        callback: this.doCreateDescriptionFileTabs
       }
       this.isCustomConfirmVisible = true;
     },
-    doCreateDescriptionFileMelody() {
-      this.$store.dispatch('createDescriptionFileMelodyPromise')
+    doCreateDescriptionFileTabs() {
+      this.$store.dispatch('createDescriptionFileTabsPromise')
     },
 
     playLyrics() {
@@ -990,8 +992,8 @@ export default {
     playChords() {
       this.$store.getters.playChords();
     },
-    playMelody() {
-      this.$store.getters.playMelody();
+    playTabs() {
+      this.$store.getters.playTabs();
     },
 
     goToPreviousSong() {
@@ -1021,28 +1023,28 @@ export default {
             fldLabel: 'Приоритет Lyrics:',
             fldValue: this.$store.getters.getLastPriorLyrics,
             fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
+            fldValueStyle: { width: '80px', textAlign: 'center', borderRadius: '10px'}
           },
           {
             fldName: 'priorKaraoke',
             fldLabel: 'Приоритет Karaoke:',
             fldValue: this.$store.getters.getLastPriorKaraoke,
             fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
+            fldValueStyle: { width: '80px', textAlign: 'center', borderRadius: '10px'}
           },
           {
             fldName: 'priorChords',
             fldLabel: 'Приоритет Chords:',
             fldValue: this.$store.getters.getLastPriorChords,
             fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
+            fldValueStyle: { width: '80px', textAlign: 'center', borderRadius: '10px'}
           },
           {
             fldName: 'priorMelody',
-            fldLabel: 'Приоритет Melody:',
+            fldLabel: 'Приоритет Tabs:',
             fldValue: this.$store.getters.getLastPriorMelody,
             fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
+            fldValueStyle: { width: '80px', textAlign: 'center', borderRadius: '10px'}
           }
         ]
       }
@@ -1066,7 +1068,7 @@ export default {
             fldLabel: 'Приоритет:',
             fldValue: this.$store.getters.getLastPriorDemucs,
             fldLabelStyle: { width: '100px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
+            fldValueStyle: { width: '80px', textAlign: 'center', borderRadius: '10px'}
           }
         ]
       }
@@ -1083,7 +1085,7 @@ export default {
             fldLabel: 'Приоритет:',
             fldValue: this.$store.getters.getLastPriorDemucs,
             fldLabelStyle: { width: '100px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
+            fldValueStyle: { width: '80px', textAlign: 'center', borderRadius: '10px'}
           }
         ]
       }
@@ -1100,7 +1102,7 @@ export default {
             fldLabel: 'Приоритет:',
             fldValue: this.$store.getters.getLastPriorDemucs,
             fldLabelStyle: { width: '100px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
+            fldValueStyle: { width: '80px', textAlign: 'center', borderRadius: '10px'}
           }
         ]
       }
@@ -1117,7 +1119,7 @@ export default {
             fldLabel: 'Приоритет:',
             fldValue: this.$store.getters.getLastPriorDemucs,
             fldLabelStyle: { width: '100px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
+            fldValueStyle: { width: '80px', textAlign: 'center', borderRadius: '10px'}
           }
         ]
       }
@@ -1134,7 +1136,7 @@ export default {
             fldLabel: 'Приоритет:',
             fldValue: this.$store.getters.getLastPriorDemucs,
             fldLabelStyle: { width: '100px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
+            fldValueStyle: { width: '80px', textAlign: 'center', borderRadius: '10px'}
           }
         ]
       }
@@ -1171,7 +1173,7 @@ export default {
               fldLabel: 'Приоритет:',
               fldValue: this.$store.getters.getLastPriorSymlinks,
               fldLabelStyle: { width: '100px', textAlign: 'right', paddingRight: '5px'},
-              fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
+              fldValueStyle: { width: '80px', textAlign: 'center', borderRadius: '10px'}
             }
         ]
       }
@@ -1443,8 +1445,8 @@ export default {
     openLinkDzenChordsEdit() {
       window.open(this.linkDzenChordsEdit, '_blank');
     },
-    async getLinkDzenMelodyPlay() {
-      let value = this.linkDzenMelodyPlay;
+    async getLinkDzenTabsPlay() {
+      let value = this.linkDzenTabsPlay;
       await navigator.clipboard.writeText(value)
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
@@ -1455,11 +1457,11 @@ export default {
       })
       // console.log('LinkDzenLyricsPlay: ', value);
     },
-    openLinkDzenMelodyPlay() {
-      window.open(this.linkDzenMelodyPlay, '_blank');
+    openLinkDzenTabsPlay() {
+      window.open(this.linkDzenTabsPlay, '_blank');
     },
-    openLinkDzenMelodyEdit() {
-      window.open(this.linkDzenMelodyEdit, '_blank');
+    openLinkDzenTabsEdit() {
+      window.open(this.linkDzenTabsEdit, '_blank');
     },
 
     async getDzenKaraokeHeader() {
@@ -1534,8 +1536,8 @@ export default {
       })
       // console.log('DzenLyricsBody: ', value);
     },
-    async getDzenMelodyHeader() {
-      let value = await this.$store.getters.getDzenMelodyHeader;
+    async getDzenTabsHeader() {
+      let value = await this.$store.getters.getDzenTabsHeader;
       await navigator.clipboard.writeText(value)
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
@@ -1546,8 +1548,8 @@ export default {
       })
       // console.log('DzenLyricsHeader: ', value);
     },
-    async getDzenMelodyBody() {
-      let value = await this.$store.getters.getDzenMelodyBody;
+    async getDzenTabsBody() {
+      let value = await this.$store.getters.getDzenTabsBody;
       await navigator.clipboard.writeText(value)
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
@@ -1614,8 +1616,8 @@ export default {
     openLinkPlChordsEdit() {
       window.open(this.linkPlChordsEdit, '_blank');
     },
-    async getLinkPlMelodyPlay() {
-      let value = this.linkPlMelodyPlay;
+    async getLinkPlTabsPlay() {
+      let value = this.linkPlTabsPlay;
       await navigator.clipboard.writeText(value)
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
@@ -1626,11 +1628,11 @@ export default {
       })
       // console.log('LinkPlLyricsPlay: ', value);
     },
-    openLinkPlMelodyPlay() {
-      window.open(this.linkPlMelodyPlay, '_blank');
+    openLinkPlTabsPlay() {
+      window.open(this.linkPlTabsPlay, '_blank');
     },
-    openLinkPlMelodyEdit() {
-      window.open(this.linkPlMelodyEdit, '_blank');
+    openLinkPlTabsEdit() {
+      window.open(this.linkPlTabsEdit, '_blank');
     },
 
     async getPlKaraokeHeader() {
@@ -1705,8 +1707,8 @@ export default {
       })
       // console.log('PlLyricsBody: ', value);
     },
-    async getPlMelodyHeader() {
-      let value = await this.$store.getters.getPlMelodyHeader;
+    async getPlTabsHeader() {
+      let value = await this.$store.getters.getPlTabsHeader;
       await navigator.clipboard.writeText(value)
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
@@ -1717,8 +1719,8 @@ export default {
       })
       // console.log('PlLyricsHeader: ', value);
     },
-    async getPlMelodyBody() {
-      let value = await this.$store.getters.getPlMelodyBody;
+    async getPlTabsBody() {
+      let value = await this.$store.getters.getPlTabsBody;
       await navigator.clipboard.writeText(value)
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
@@ -1775,8 +1777,8 @@ export default {
     openLinkVkChords() {
       window.open(this.linkVkChords, '_blank');
     },
-    async getLinkVkMelody() {
-      let value = this.linkVkMelody;
+    async getLinkVkTabs() {
+      let value = this.linkVkTabs;
       await navigator.clipboard.writeText(value)
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
@@ -1787,8 +1789,8 @@ export default {
       })
       // console.log('LinkVkLyrics: ', value);
     },
-    openLinkVkMelody() {
-      window.open(this.linkVkMelody, '_blank');
+    openLinkVkTabs() {
+      window.open(this.linkVkTabs, '_blank');
     },
 
     async getVkKaraokeHeader() {
@@ -1864,8 +1866,8 @@ export default {
       })
       // console.log('getVkLyricsBody: ', value);
     },
-    async getVkMelodyHeader() {
-      let value = await this.$store.getters.getVkMelodyHeader;
+    async getVkTabsHeader() {
+      let value = await this.$store.getters.getVkTabsHeader;
       await navigator.clipboard.writeText(value)
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
@@ -1876,8 +1878,8 @@ export default {
       })
       // console.log('VkLyricsHeader: ', value);
     },
-    async getVkMelodyBody() {
-      let value = await this.$store.getters.getVkMelodyBody;
+    async getVkTabsBody() {
+      let value = await this.$store.getters.getVkTabsBody;
       await navigator.clipboard.writeText(value)
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
@@ -1934,8 +1936,8 @@ export default {
     openLinkTelegramChords() {
       window.open(this.linkTelegramChords, '_blank');
     },
-    async getLinkTelegramMelody() {
-      let value = this.linkTelegramMelody;
+    async getLinkTelegramTabs() {
+      let value = this.linkTelegramTabs;
       await navigator.clipboard.writeText(value)
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
@@ -1946,8 +1948,8 @@ export default {
       })
       // console.log('LinkTelegramLyrics: ', value);
     },
-    openLinkTelegramMelody() {
-      window.open(this.linkTelegramMelody, '_blank');
+    openLinkTelegramTabs() {
+      window.open(this.linkTelegramTabs, '_blank');
     },
 
     async getTelegramKaraokeHeader() {
@@ -1987,8 +1989,8 @@ export default {
       })
       // console.log('TelegramLyricsHeader: ', value);
     },
-    async getTelegramMelodyHeader() {
-      let value = await this.$store.getters.getTelegramMelodyHeader;
+    async getTelegramTabsHeader() {
+      let value = await this.$store.getters.getTelegramTabsHeader;
       await navigator.clipboard.writeText(value)
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',

@@ -15,7 +15,7 @@ data class MltProp(
         START_TIMECODE, END_TIMECODE, FADEIN_TIMECODE, FADEOUT_TIMECODE, LENGTH_MS, LENGTH_FR, LENGTH_TIMECODE, GUIDES_PROPERTY,
         IN_OFFSET_AUDIO, IN_OFFSET_VIDEO, ENABLED, VOLUME, FILE_NAME, IGNORE_CAPO, TIMECODE, HEIGHT_PX_PER_MS_COEFF, WIDTH_PX_PER_MS_COEFF, SCROLL_LINES,
         COUNT_CHILDS, HEIGHT_SCROLLER_PX, SCROLL_LINE_TRACK_ID, SCROLL_LINE_START_MS, SCROLL_LINE_END_MS, SCROLL_LINE_DURATION_MS, SCROLL_TRACK,
-        TIME_TO_SCROLL_SCREEN_MS, INDEX_LINE_TRACK_ID, DURATION_ON_SCREEN, FONT_SIZE
+        TIME_TO_SCROLL_SCREEN_MS, INDEX_LINE_TRACK_ID, DURATION_ON_SCREEN, FONT_SIZE, SONG_TONE, SONG_BPM
 
     }
     private fun propsNode(key: Any = KEYS.ROOT): MutableMap<Any, Any> {
@@ -261,7 +261,10 @@ data class MltProp(
     fun getTrack(key: Any = KEYS.ROOT): Long = props[key.convertToList(KEYS.TRACK)]?.let { it as Long } ?: 0
     fun setTrack(value: Long, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.TRACK)] = value}
 
-
+    fun getSongBpm(key: Any = KEYS.ROOT): String = props[key.convertToList(KEYS.SONG_BPM)]?.let { it as String } ?: ""
+    fun setSongBpm(value: String, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.SONG_BPM)] = value}
+    fun getSongTone(key: Any = KEYS.ROOT): String = props[key.convertToList(KEYS.SONG_TONE)]?.let { it as String } ?: ""
+    fun setSongTone(value: String, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.SONG_TONE)] = value}
     fun getSongName(key: Any = KEYS.ROOT): String = props[key.convertToList(KEYS.SONG_NAME)]?.let { it as String } ?: ""
     fun setSongName(value: String, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.SONG_NAME)] = value}
 

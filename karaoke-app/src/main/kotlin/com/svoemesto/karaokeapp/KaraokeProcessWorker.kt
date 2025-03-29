@@ -197,9 +197,11 @@ class KaraokeProcessWorker {
                         }
                     } else if (reason == -1) {
                         // Неудачный запрос, увеличиваем время таймаута
-                        requestNewSongTimeoutMs += Karaoke.requestNewSongTimeoutIncreaseMs
-                        Karaoke.requestNewSongTimeoutMs = requestNewSongTimeoutMs
-                        Karaoke.requestNewSongTimeoutMin = requestNewSongTimeoutMs / 60_000L
+                        if (requestNewSongTimeoutMs < 3_600_000) {
+                            requestNewSongTimeoutMs += Karaoke.requestNewSongTimeoutIncreaseMs
+                            Karaoke.requestNewSongTimeoutMs = requestNewSongTimeoutMs
+                            Karaoke.requestNewSongTimeoutMin = requestNewSongTimeoutMs / 60_000L
+                        }
                     } else {
                         // Не удалось найти автора! - считаем что запрос был удачный, не нужно увеличивать таймаут
                         Karaoke.requestNewSongLastSuccessTimeMs = currentTimeMs

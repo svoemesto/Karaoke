@@ -3,7 +3,6 @@ package com.svoemesto.karaokeapp.model
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.svoemesto.karaokeapp.*
-import com.svoemesto.karaokeapp.mlt.MltInitialStructure
 import com.svoemesto.karaokeapp.mlt.MltProp
 import com.svoemesto.karaokeapp.services.SNS
 import kotlinx.serialization.builtins.ListSerializer
@@ -26,7 +25,7 @@ import java.util.*
 import java.util.Date
 import kotlin.io.path.Path
 import kotlin.math.abs
-
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 
 enum class SettingField : Serializable {
     ID,
@@ -89,6 +88,7 @@ data class SourceMarker(
     var tag: String = "",
     var color: String,
     var position: String,
+//    @JsonDeserialize(using = MarkertypeDeserializer::class)
     var markertype: String
 ) {
 
@@ -249,7 +249,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     @get:JsonIgnore
     val sourceUnmute: List<Pair<Double, Double>> get() {
         if (sourceMarkersList.isEmpty()) return emptyList()
-        val unMuteTimeList = sourceMarkersList[0].filter { it.markertype == "unmute" }.map { it.time }
+        val unMuteTimeList = sourceMarkersList[0].filter { it.markertype == Markertype.UNMUTE.value }.map { it.time }
         if (unMuteTimeList.isEmpty()) return emptyList()
         if (unMuteTimeList.size % 2 != 0) return emptyList()
         val result: MutableList<Pair<Double, Double>> = mutableListOf()
@@ -339,7 +339,11 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         return if (date == "" || time == "") {
             null
         } else {
-            SimpleDateFormat("dd.MM.yy HH:mm").parse("$date $time")
+            try {
+                SimpleDateFormat("dd.MM.yy HH:mm").parse("$date $time")
+            } catch (e: Exception) {
+                null
+            }
         }
     }
     val onAir: Boolean get() = (dateTimePublish != null && dateTimePublish!! <= Calendar.getInstance(TimeZone.getTimeZone("Europe/Moscow")).time)
@@ -1107,7 +1111,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     var voicesForMlt: List<SettingVoice> = emptyList()
 
 
-    val songLengthMs: Long get()  = (sourceMarkersList.maxOf { it.firstOrNull { it.markertype == "setting" && it.label == "END" }?.time ?: 0.0 } * 1000).toLong()
+    val songLengthMs: Long get()  = (sourceMarkersList.maxOf { it.firstOrNull { it.markertype == Markertype.SETTING.value && it.label == "END" }?.time ?: 0.0 } * 1000).toLong()
 
     val endTimecode: String get() = convertMillisecondsToTimecode(songLengthMs)
 
@@ -1366,6 +1370,12 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
         // setSongName - название песни
         mltProp.setSongName(songName.replace("&", "&amp;"))
+
+        // setSongTone - тональность песни
+        mltProp.setSongTone(this.key.replace(" minor", "m").replace(" major", ""))
+
+        // setSongBpm - темп песни
+        mltProp.setSongBpm(this.bpm.toString())
 
         // setVolume - громкость определенного аудиотрека в зависимости от songVersion
         when(songVersion) {
@@ -1666,7 +1676,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             println("Не найден ${pathToFileChords}")
         }
     }
-    fun playMelody() {
+    fun playTabs() {
         if (File(pathToFileMelody).exists()) {
             val processBuilder = ProcessBuilder("smplayer", pathToFileMelody)
             processBuilder.redirectErrorStream(true)
@@ -1690,7 +1700,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     }
     fun getStartSilentOffsetMs(): Long {
         val timeFirstSyllable = try {
-            (sourceMarkersList.minOf { lstMarkers -> lstMarkers.filter { marker -> marker.markertype == "syllables"}.map { it.time }.minOf { it } } * 1000).toLong()
+            (sourceMarkersList.minOf { lstMarkers -> lstMarkers.filter { marker -> marker.markertype == Markertype.SYLLABLES.value}.map { it.time }.minOf { it } } * 1000).toLong()
         } catch (e: Exception) {
             0L
         }
@@ -1868,7 +1878,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             var strings = mutableListOf("E‖⎼","B‖⎼","G‖⎼","D‖⎼","A‖⎼","e‖⎼")
             markers.forEach { marker ->
                 when (marker.markertype) {
-                    "endofline", "newline" -> {
+                    Markertype.ENDOFLINE.value, Markertype.NEWLINE.value -> {
                         if (!wasBr) {
                             strings.forEach { sn ->
                                 result += SPAN_STYLE_TABLINE + sn + "⎼‖" + SPAN_END + BR
@@ -1879,7 +1889,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                             wasBr = true
                         }
                     }
-                    "syllables" -> {
+                    Markertype.SYLLABLES.value -> {
                         var txt= ""
                         var txtHtml = ""
                         var endOfWord = true
@@ -2002,7 +2012,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             markers.forEach { marker ->
 
                 when (marker.markertype) {
-                    "setting" -> {
+                    Markertype.SETTING.value -> {
                         when (marker.label) {
                             "GROUP|0" -> spanStyle = SPAN_STYLE_GROUP0
                             "GROUP|1" -> spanStyle = SPAN_STYLE_GROUP1
@@ -2020,12 +2030,12 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                             }
                         }
                     }
-                    "endofline", "newline" -> {
+                    Markertype.ENDOFLINE.value, Markertype.NEWLINE.value -> {
                         result.append("<br>")
                         wasBr = true
 //                    result.append("""<span style="font-size: 0">Источник: sm-karaoke.ru</span>""")
                     }
-                    "syllables" -> {
+                    Markertype.SYLLABLES.value -> {
                         if (marker.label.length > 0) {
                             result.append(spanStyle)
                             var txt = marker.label.replace("_", " ")
@@ -2071,7 +2081,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             markers.forEach { marker ->
 
                 when (marker.markertype) {
-                    "setting" -> {
+                    Markertype.SETTING.value -> {
                         when (marker.label) {
                             "GROUP|0" -> spanStyle = SPAN_STYLE_GROUP0
                             "GROUP|1" -> spanStyle = SPAN_STYLE_GROUP1
@@ -2087,11 +2097,11 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                             }
                         }
                     }
-                    "endofline", "newline" -> {
+                    Markertype.ENDOFLINE.value, Markertype.NEWLINE.value -> {
                         result.append("\n")
                         wasBr = true
                     }
-                    "syllables" -> {
+                    Markertype.SYLLABLES.value -> {
                         var txt = marker.label.replace("_", " ")
                         if (wasBr) {
                             txt = txt.uppercaseFirstLetter()
@@ -2134,7 +2144,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         markers.forEach { marker ->
             val timecode = convertMillisecondsToYoutubeTimecode((marker.time * 1000 + 8000).toLong())
             when (marker.markertype) {
-                "setting" -> {
+                Markertype.SETTING.value -> {
                     when (marker.label) {
                         "GROUP|0" -> spanStyle = SPAN_STYLE_GROUP0
                         "GROUP|1" -> spanStyle = SPAN_STYLE_GROUP1
@@ -2150,11 +2160,11 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                         }
                     }
                 }
-                "endofline", "newline" -> {
+                Markertype.ENDOFLINE.value, Markertype.NEWLINE.value -> {
                     result.append("\n")
                     wasBr = true
                 }
-                "syllables" -> {
+                Markertype.SYLLABLES.value -> {
                     var txt = marker.label.replace("_", " ")
                     if (wasBr) {
                         timecodeCounter++
@@ -2190,7 +2200,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             var wasBr = true
             markers.forEach { marker ->
                 when (marker.markertype) {
-                    "syllables" -> {
+                    Markertype.SYLLABLES.value -> {
                         var txt = marker.label.replace("_", " ")
                         if (wasBr) {
                             txt = txt.uppercaseFirstLetter()
@@ -2198,7 +2208,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                         }
                         result.append(txt)
                     }
-                    "endofline", "newline" -> {
+                    Markertype.ENDOFLINE.value, Markertype.NEWLINE.value -> {
                         result.append("\n")
                         wasBr = true
                     }
@@ -2369,7 +2379,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         val listSyllables = getSourceSyllables(voice)
         var indexSyllable = 0
         listMarkers.forEach { marker ->
-            if (marker.markertype == "syllables") {
+            if (marker.markertype == Markertype.SYLLABLES.value) {
                 if (indexSyllable < listSyllables.size) {
                     marker.label = listSyllables[indexSyllable]
                     indexSyllable++
@@ -2419,7 +2429,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                         label = currSfe.text.replace("[SETTING]|", ""),
                         color = "#000080",
                         position = "top",
-                        markertype = "setting"
+                        markertype = Markertype.SETTING.value
                     )
                 )
             } else {
@@ -2430,7 +2440,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                             label = "END",
                             color = "#000000",
                             position = "top",
-                            markertype = "setting"
+                            markertype = Markertype.SETTING.value
                         )
                     )
                 } else {
@@ -2441,7 +2451,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                                 label = currSfe.text.replace("//", "").replace("\\", ""),
                                 color = "#008000",
                                 position = "bottom",
-                                markertype = "syllables"
+                                markertype = Markertype.SYLLABLES.value
                             )
                         )
                     } else {
@@ -2451,7 +2461,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                                 label = currSfe.text.replace("//", "").replace("\\", ""),
                                 color = "#D2691E",
                                 position = "bottom",
-                                markertype = "syllables"
+                                markertype = Markertype.SYLLABLES.value
                             )
                         )
                     }
@@ -2462,7 +2472,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                                 label = "",
                                 color = "#FF0000",
                                 position = "bottom",
-                                markertype = "endofline"
+                                markertype = Markertype.ENDOFLINE.value
                             )
                         )
                     }
@@ -2479,8 +2489,8 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     fun convertMarkersToText(markers: List<SourceMarker>): String {
         var result = ""
         markers.forEach { marker ->
-            if (marker.markertype == "endofline") result += "\n"
-            if (marker.markertype == "syllables") result += marker.label
+            if (marker.markertype == Markertype.ENDOFLINE.value) result += "\n"
+            if (marker.markertype == Markertype.SYLLABLES.value) result += marker.label
         }
         return result
     }
@@ -2489,7 +2499,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
 
     fun convertMarkersToSrt(voice: Int): String {
-        val notSkippedTypes = listOf("endofline", "syllables", "setting")
+        val notSkippedTypes = listOf(Markertype.ENDOFLINE.value, Markertype.SYLLABLES.value, Markertype.SETTING.value)
         val listMarkers = getSourceMarkers(voice).filter { it.markertype in notSkippedTypes}
         var perviousMarkerIsEndOfLine = true
         var numberSrt = 0
@@ -2497,7 +2507,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
         listMarkers.forEachIndexed { index, sourceMarker ->
 
-            if (sourceMarker.markertype != "endofline") numberSrt++
+            if (sourceMarker.markertype != Markertype.ENDOFLINE.value) numberSrt++
             val nextMarker = if (index == listMarkers.size - 1) null else listMarkers[index + 1]
             val srtNumber =  numberSrt.toString()
             val srtTimeStart = convertMillisecondsToTimecode((sourceMarker.time * 1000).toLong()).replace(".", ",")
@@ -2507,9 +2517,9 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                 convertMillisecondsToTimecode((nextMarker.time * 1000).toLong()).replace(".", ",")
             }
 
-            val srtText = if (sourceMarker.markertype == "syllables") {
-                 "${if (perviousMarkerIsEndOfLine) "//${sourceMarker.label.uppercaseFirstLetter()}" else sourceMarker.label}${if (nextMarker != null && nextMarker.markertype == "endofline") "\\\\" else ""}\n\n"
-            } else if (sourceMarker.markertype == "setting") {
+            val srtText = if (sourceMarker.markertype == Markertype.SYLLABLES.value) {
+                 "${if (perviousMarkerIsEndOfLine) "//${sourceMarker.label.uppercaseFirstLetter()}" else sourceMarker.label}${if (nextMarker != null && nextMarker.markertype == Markertype.ENDOFLINE.value) "\\\\" else ""}\n\n"
+            } else if (sourceMarker.markertype == Markertype.SETTING.value) {
                 if (sourceMarker.label == "END") {
                     "//\\\\\n\n"
                 } else {
@@ -2518,10 +2528,10 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             } else ""
 
             val srt = "$srtNumber\n$srtTimeStart --> $srtTimeEnd\n$srtText"
-            if (sourceMarker.markertype != "endofline") result += srt
-            if (sourceMarker.markertype == "endofline") {
+            if (sourceMarker.markertype != Markertype.ENDOFLINE.value) result += srt
+            if (sourceMarker.markertype == Markertype.ENDOFLINE.value) {
                 perviousMarkerIsEndOfLine = true
-            } else if (sourceMarker.markertype != "setting") {
+            } else if (sourceMarker.markertype != Markertype.SETTING.value) {
                 perviousMarkerIsEndOfLine = false
             }
 
@@ -2565,17 +2575,27 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
                 var index = 1
                 diff.filter{ it.recordDiffRealField }.forEach {
-                    if (it.recordDiffValueNew is Long) {
-                        ps.setLong(index, it.recordDiffValueNew.toLong())
-                    } else if (it.recordDiffValueNew is Int) {
-                        ps.setInt(index, it.recordDiffValueNew.toInt())
-                    } else {
-                        ps.setString(index, it.recordDiffValueNew.toString())
+                    try {
+                        if (it.recordDiffValueNew is Long) {
+                            ps.setLong(index, it.recordDiffValueNew.toLong())
+                        } else if (it.recordDiffValueNew is Int) {
+                            ps.setInt(index, it.recordDiffValueNew.toInt())
+                        } else {
+                            ps.setString(index, it.recordDiffValueNew.toString())
+                        }
+                    } catch (e: Exception) {
+                        val errorMessage = "Не удалось сохранить запись в БД. Поле «${it.recordDiffName}» имеет значение «${it.recordDiffValueNew}», несовместимое с форматом данных этого поля в БД. Оригинальный текст ошибки: «${e.message}»"
+                        println(errorMessage)
                     }
                     index++
                 }
                 ps.setLong(index, id)
-                ps.executeUpdate()
+                try {
+                    ps.executeUpdate()
+                } catch (e: Exception) {
+                    val errorMessage = "Не удалось сохранить запись в БД. Оригинальный текст ошибки: «${e.message}»"
+                    println(errorMessage)
+                }
                 ps.close()
 
 //                println(messageRecordChange.toString())
@@ -3339,7 +3359,19 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             try {
                 statement = connection.createStatement()
                 sql = "SELECT * FROM tbl_settings"
-                if (args.containsKey("id")) where += "tbl_settings.id=${args["id"]}"
+                if (args.containsKey("id")) {
+                    if (args["id"]!!.startsWith(">=")) {
+                        where += "tbl_settings.id>=${args["id"]!!.substring(2)}"
+                    } else if (args["id"]!!.startsWith(">")) {
+                        where += "tbl_settings.id>${args["id"]!!.substring(1)}"
+                    } else if (args["id"]!!.startsWith("<=")) {
+                        where += "tbl_settings.id<=${args["id"]!!.substring(2)}"
+                    } else if (args["id"]!!.startsWith("<")) {
+                        where += "tbl_settings.id<${args["id"]!!.substring(1)}"
+                    } else {
+                        where += "tbl_settings.id=${args["id"]}"
+                    }
+                }
                 if (args.containsKey("ids")) where += "tbl_settings.id in (${args["ids"]})"
                 if (args.containsKey("file_name")) where += "LOWER(file_name)='${args["file_name"]?.rightFileName()?.lowercase()}'"
                 if (args.containsKey("root_folder")) where += "LOWER(root_folder)='${args["root_folder"]?.rightFileName()?.lowercase()}'"
@@ -3380,7 +3412,19 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                 if (args.containsKey("song_tone")) where += "song_tone=${args["song_tone"]}"
                 if (args.containsKey("song_year")) where += "song_year=${args["song_year"]}"
                 if (args.containsKey("song_track")) where += "song_track=${args["song_track"]}"
-                if (args.containsKey("id_status")) where += "id_status=${args["id_status"]}"
+                if (args.containsKey("id_status")) {
+                    if (args["id_status"]!!.startsWith(">=")) {
+                        where += "id_status>=${args["id_status"]!!.substring(2)}"
+                    } else if (args["id_status"]!!.startsWith(">")) {
+                        where += "id_status>${args["id_status"]!!.substring(1)}"
+                    } else if (args["id_status"]!!.startsWith("<=")) {
+                        where += "id_status<=${args["id_status"]!!.substring(2)}"
+                    } else if (args["id_status"]!!.startsWith("<")) {
+                        where += "id_status<${args["id_status"]!!.substring(1)}"
+                    } else {
+                        where += "id_status=${args["id_status"]}"
+                    }
+                }
                 if (args.containsKey("flag_boosty")) where += "CASE WHEN id_boosty IS NOT NULL AND id_boosty <> 'null' AND id_boosty <> '' THEN '+' ELSE '-' END='${args["flag_boosty"]}'"
                 if (args.containsKey("flag_sponsr")) where += "CASE WHEN id_sponsr IS NOT NULL AND id_sponsr <> 'null' AND id_sponsr <> '' THEN '+' ELSE '-' END='${args["flag_sponsr"]}'"
                 if (args.containsKey("flag_vk")) where += "CASE WHEN id_vk IS NOT NULL AND id_vk <> 'null' AND id_vk <> '' THEN '+' ELSE '-' END='${args["flag_vk"]}'"

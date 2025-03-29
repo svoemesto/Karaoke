@@ -574,10 +574,10 @@ export default {
                 params: { id: state.currentSongId }
             });
         },
-        async getDzenMelodyHeader(state) {
+        async getDzenTabsHeader(state) {
             return await promisedXMLHttpRequest({
                 method: 'POST',
-                url: "/apis/song/textyoutubemelodyheader",
+                url: "/apis/song/textyoutubetabsheader",
                 params: { id: state.currentSongId }
             });
         },
@@ -588,10 +588,10 @@ export default {
                 params: { id: state.currentSongId }
             });
         },
-        async getDzenMelodyBody(state) {
+        async getDzenTabsBody(state) {
             return await promisedXMLHttpRequest({
                 method: 'POST',
-                url: "/apis/song/textyoutubemelodywoheader",
+                url: "/apis/song/textyoutubetabswoheader",
                 params: { id: state.currentSongId }
             });
         },
@@ -630,10 +630,10 @@ export default {
                 params: { id: state.currentSongId }
             });
         },
-        async getPlMelodyHeader(state) {
+        async getPlTabsHeader(state) {
             return await promisedXMLHttpRequest({
                 method: 'POST',
-                url: "/apis/song/textplmelodyheader",
+                url: "/apis/song/textpltabsheader",
                 params: { id: state.currentSongId }
             });
         },
@@ -644,10 +644,10 @@ export default {
                 params: { id: state.currentSongId }
             });
         },
-        async getPlMelodyBody(state) {
+        async getPlTabsBody(state) {
             return await promisedXMLHttpRequest({
                 method: 'POST',
-                url: "/apis/song/textplmelodywoheader",
+                url: "/apis/song/textpltabswoheader",
                 params: { id: state.currentSongId }
             });
         },
@@ -686,10 +686,10 @@ export default {
                 params: { id: state.currentSongId }
             });
         },
-        async getVkMelodyHeader(state) {
+        async getVkTabsHeader(state) {
             return await promisedXMLHttpRequest({
                 method: 'POST',
-                url: "/apis/song/textvkmelodyheader",
+                url: "/apis/song/textvktabsheader",
                 params: { id: state.currentSongId }
             });
         },
@@ -700,10 +700,10 @@ export default {
                 params: { id: state.currentSongId }
             });
         },
-        async getVkMelodyBody(state) {
+        async getVkTabsBody(state) {
             return await promisedXMLHttpRequest({
                 method: 'POST',
-                url: "/apis/song/textvkmelody",
+                url: "/apis/song/textvktabs",
                 params: { id: state.currentSongId }
             });
         },
@@ -728,10 +728,10 @@ export default {
                 params: { id: state.currentSongId }
             });
         },
-        async getTelegramMelodyHeader(state) {
+        async getTelegramTabsHeader(state) {
             return await promisedXMLHttpRequest({
                 method: 'POST',
-                url: "/apis/song/texttelegrammelodyheader",
+                url: "/apis/song/texttelegramtabsheader",
                 params: { id: state.currentSongId }
             });
         },
@@ -809,10 +809,10 @@ export default {
                 params: { id: id }
             });
         },
-        playMelody: (state) => async (id = state.currentSongId) => {
+        playTabs: (state) => async (id = state.currentSongId) => {
             return await promisedXMLHttpRequest({
                 method: 'POST',
-                url: "/apis/song/playmelody",
+                url: "/apis/song/playtabs",
                 params: { id: id }
             });
         },
@@ -1450,9 +1450,9 @@ export default {
             let request = { method: 'POST', url: "/apis/song/createpicturechords", params: params };
             return promisedXMLHttpRequest(request);
         },
-        createPictureMelodyPromise(ctx) {
+        createPictureTabsPromise(ctx) {
             let params = { id: ctx.state.currentSongId };
-            let request = { method: 'POST', url: "/apis/song/createpicturemelody", params: params };
+            let request = { method: 'POST', url: "/apis/song/createpicturetabs", params: params };
             return promisedXMLHttpRequest(request);
         },
         createDescriptionFileKaraokePromise(ctx) {
@@ -1470,9 +1470,9 @@ export default {
             let request = { method: 'POST', url: "/apis/song/createdescriptionfilechords", params: params };
             return promisedXMLHttpRequest(request);
         },
-        createDescriptionFileMelodyPromise(ctx) {
+        createDescriptionFileTabsPromise(ctx) {
             let params = { id: ctx.state.currentSongId };
-            let request = { method: 'POST', url: "/apis/song/createdescriptionfilemelody", params: params };
+            let request = { method: 'POST', url: "/apis/song/createdescriptionfiletabs", params: params };
             return promisedXMLHttpRequest(request);
         },
         createMP3KaraokePromise(ctx, payload) {

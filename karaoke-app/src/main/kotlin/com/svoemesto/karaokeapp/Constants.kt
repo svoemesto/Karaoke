@@ -12,7 +12,7 @@ import com.svoemesto.karaokeapp.textfiledictionary.YoWordsDictionary
 import java.awt.Color
 import java.awt.Font
 
-const val CURRENT_RESULT_VERSION = 8L
+const val CURRENT_RESULT_VERSION = 9L
 const val COUNT_HISTORY_LINES = 10
 
 const val COLOR_ALL_DONE = "#7FFFD4"        // Полностью готово

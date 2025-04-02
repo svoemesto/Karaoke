@@ -44,7 +44,7 @@ fun getMisList(mltProp: MltProp): List<MltInitialStructure> {
 
                     if (ProducerType.ELEMENT in songProducers) {
 
-                        ProducerType.ELEMENT.childs().reversed().forEach {
+                        ProducerType.ELEMENT.childs().asReversed().forEach {
                             if (it in songProducers) {
                                 val key = listOf(it, indexVoice, indexLine, indexElement)
                                 if (mltProp.getUUID(key) == "") mltProp.setUUID(getStoredUuid(key), key)

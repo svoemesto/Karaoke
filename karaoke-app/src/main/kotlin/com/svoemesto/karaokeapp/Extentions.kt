@@ -26,10 +26,10 @@ fun String.rightFileName(): String {
         while ("$fileNameWithoutExtension${if (fileNameExtension == "") "" else ".$fileNameExtension"}".toByteArray(Charsets.UTF_8).size > 200) {
             val parts = fileNameWithoutExtension.split("[")
 
-            val partsReversed = parts.reversed().toMutableList()
+            val partsReversed = parts.asReversed().toMutableList()
             val index = Math.min(1, (parts.size - 1))
             partsReversed[index] = partsReversed[index].substring(0, partsReversed[index].length-1)
-            fileNameWithoutExtension = partsReversed.reversed().joinToString("[")
+            fileNameWithoutExtension = partsReversed.asReversed().joinToString("[")
         }
     } else {
         while ("$fileNameWithoutExtension${if (fileNameExtension == "") "" else ".$fileNameExtension"}".toByteArray(Charsets.UTF_8).size > 200) {

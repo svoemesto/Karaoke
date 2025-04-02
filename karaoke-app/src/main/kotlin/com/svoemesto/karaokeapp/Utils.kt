@@ -2791,7 +2791,7 @@ fun createVKLinkPictureWeb(settings: Settings, reCreateIfExist: Boolean = true):
 }
 fun getVKPictureBase64(settings: Settings): String {
 
-    val frameW = 600
+    val frameW = 800
     val frameH = 194
     val opaque: Float = 1f
     val imageType = BufferedImage.TYPE_INT_ARGB
@@ -2808,7 +2808,7 @@ fun getVKPictureBase64(settings: Settings): String {
     graphics2D.fillRect(0,0,frameW, frameH)
 
     graphics2D.drawImage(resizeBufferedImage(biLogoAlbum,154, 154), 20, 20, null)
-    graphics2D.drawImage(resizeBufferedImage(biLogoAuthor, 385, 154), 194, 20, null)
+    graphics2D.drawImage(resizeBufferedImage(biLogoAuthor, 385, 154), 294, 20, null)
 
     graphics2D.dispose()
 
@@ -3720,5 +3720,38 @@ fun setProcessPriority(pid: Long, priority: Int): Boolean {
     } catch (e: Exception) {
         e.printStackTrace()
         return false
+    }
+}
+
+fun runCommand(args: List<String>): String {
+
+    // Создаем ProcessBuilder сформированным списком аргументов
+    val processBuilder = ProcessBuilder(args)
+
+    // Направляем стандартный поток ошибок в стандартный поток вывода для удобства
+    processBuilder.redirectErrorStream(true)
+
+    try {
+        // Запускаем процесс
+        val process = processBuilder.start()
+
+        // Читаем вывод процесса
+        val reader = BufferedReader(InputStreamReader(process.inputStream))
+        val result = StringBuilder()
+        var line: String?
+        while (reader.readLine().also { line = it } != null) {
+            result.append(line).append("\n")
+        }
+
+        // Ждем завершения процесса
+        val exitCode = process.waitFor()
+        if (exitCode != 0) {
+            throw RuntimeException("Process exited with error code $exitCode")
+        }
+
+        // Возвращаем результат, удаляя последний символ новой строки
+        return result.toString().trim()
+    } catch (e: Exception) {
+        throw RuntimeException("Error running runCommand", e)
     }
 }

@@ -10,7 +10,8 @@ enum class SongVersion(
     val textForDescription: String,
     val suffix: String,
     val producers: List<ProducerType>,
-    val producersInMainBin: List<ProducerType>
+    val producersInMainBin: List<ProducerType>,
+    val markertypes: List<Markertype>
 ) : Serializable {
     LYRICS(text = "Lyrics", textForDescription = "Song", suffix = " [lyrics]",
         producers = listOf(
@@ -50,6 +51,14 @@ enum class SongVersion(
             ProducerType.FADERTEXT,
             ProducerType.HEADER,
             ProducerType.WATERMARK
+        ),
+        markertypes = listOf(
+            Markertype.SYLLABLES,
+            Markertype.ENDOFSYLLABLES,
+            Markertype.SETTING,
+            Markertype.ENDOFLINE,
+            Markertype.NEWLINE,
+            Markertype.UNMUTE,
         )
     ),
     KARAOKE(text = "Karaoke", textForDescription = "Accompaniment", suffix = " [karaoke]",
@@ -94,6 +103,14 @@ enum class SongVersion(
             ProducerType.FADERTEXT,
             ProducerType.HEADER,
             ProducerType.WATERMARK
+        ),
+        markertypes = listOf(
+            Markertype.SYLLABLES,
+            Markertype.ENDOFSYLLABLES,
+            Markertype.SETTING,
+            Markertype.ENDOFLINE,
+            Markertype.NEWLINE,
+            Markertype.UNMUTE,
         )
     ),
     CHORDS(text = "Chords", textForDescription = "Bass + Drums", suffix = " [chords]",
@@ -140,6 +157,18 @@ enum class SongVersion(
             ProducerType.FADERTEXT,
             ProducerType.HEADER,
             ProducerType.WATERMARK
+        ),
+        markertypes = listOf(
+            Markertype.SYLLABLES,
+            Markertype.ENDOFSYLLABLES,
+            Markertype.SETTING,
+            Markertype.ENDOFLINE,
+            Markertype.NEWLINE,
+            Markertype.UNMUTE,
+            Markertype.CHORD,
+            Markertype.EOL_CHORD,
+            Markertype.ENDOF_CHORD,
+            Markertype.NEWLINE_CHORD,
         )
     ),
     TABS(text = "TABS", textForDescription = "Melody", suffix = " [tabs]",
@@ -187,6 +216,18 @@ enum class SongVersion(
             ProducerType.FADERTEXT,
             ProducerType.HEADER,
             ProducerType.WATERMARK
+        ),
+        markertypes = listOf(
+            Markertype.SYLLABLES,
+            Markertype.ENDOFSYLLABLES,
+            Markertype.SETTING,
+            Markertype.ENDOFLINE,
+            Markertype.NEWLINE,
+            Markertype.UNMUTE,
+            Markertype.NOTE,
+            Markertype.EOL_NOTE,
+            Markertype.ENDOF_NOTE,
+            Markertype.NEWLINE_NOTE,
         )
     ),
 
@@ -228,6 +269,14 @@ enum class SongVersion(
             ProducerType.FADERTEXT,
             ProducerType.HEADER,
             ProducerType.WATERMARK
+        ),
+        markertypes = listOf(
+            Markertype.SYLLABLES,
+            Markertype.ENDOFSYLLABLES,
+            Markertype.SETTING,
+            Markertype.ENDOFLINE,
+            Markertype.NEWLINE,
+            Markertype.UNMUTE,
         )
     ),
     KARAOKEVK(text = "Karaoke", textForDescription = "Accompaniment", suffix = " [karaokeVk]",
@@ -272,6 +321,14 @@ enum class SongVersion(
             ProducerType.FADERTEXT,
             ProducerType.HEADER,
             ProducerType.WATERMARK
+        ),
+        markertypes = listOf(
+            Markertype.SYLLABLES,
+            Markertype.ENDOFSYLLABLES,
+            Markertype.SETTING,
+            Markertype.ENDOFLINE,
+            Markertype.NEWLINE,
+            Markertype.UNMUTE,
         )
     ),
     CHORDSVK(text = "Chords", textForDescription = "Bass + Drums", suffix = " [chordsVk]",
@@ -318,6 +375,18 @@ enum class SongVersion(
             ProducerType.FADERTEXT,
             ProducerType.HEADER,
             ProducerType.WATERMARK
+        ),
+        markertypes = listOf(
+            Markertype.SYLLABLES,
+            Markertype.ENDOFSYLLABLES,
+            Markertype.SETTING,
+            Markertype.ENDOFLINE,
+            Markertype.NEWLINE,
+            Markertype.UNMUTE,
+            Markertype.CHORD,
+            Markertype.EOL_CHORD,
+            Markertype.ENDOF_CHORD,
+            Markertype.NEWLINE_CHORD,
         )
     ),
     TABSVK(text = "TABS", textForDescription = "Melody", suffix = " [tabsVk]",
@@ -365,6 +434,18 @@ enum class SongVersion(
             ProducerType.FADERTEXT,
             ProducerType.HEADER,
             ProducerType.WATERMARK
+        ),
+        markertypes = listOf(
+            Markertype.SYLLABLES,
+            Markertype.ENDOFSYLLABLES,
+            Markertype.SETTING,
+            Markertype.ENDOFLINE,
+            Markertype.NEWLINE,
+            Markertype.UNMUTE,
+            Markertype.NOTE,
+            Markertype.EOL_NOTE,
+            Markertype.ENDOF_NOTE,
+            Markertype.NEWLINE_NOTE,
         )
     ),
 }

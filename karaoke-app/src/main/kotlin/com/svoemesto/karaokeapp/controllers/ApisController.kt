@@ -1613,6 +1613,7 @@ class ApisController(private val sseNotificationService: SseNotificationService)
     fun doProcessDemucs2(@RequestParam id: Long, @RequestParam(required = false) prior: Int = -1) {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         settings?.let {
+//            if (it.getAudioAspectRate() != "48000") KaraokeProcess.createProcess(settings, KaraokeProcessTypes.RECODE_48000, true, prior)
             KaraokeProcess.createProcess(settings, KaraokeProcessTypes.DEMUCS2, true, prior)
             SNS.send(SseNotification.message(Message(
                 type = "info",
@@ -1638,6 +1639,7 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             ids.forEach { id ->
                 val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
                 settings?.let {
+//                    if (it.getAudioAspectRate() != "48000") KaraokeProcess.createProcess(settings, KaraokeProcessTypes.RECODE_48000, true, prior)
                     KaraokeProcess.createProcess(settings, KaraokeProcessTypes.DEMUCS2, true, prior)
                 }
                 result = true
@@ -1664,6 +1666,7 @@ class ApisController(private val sseNotificationService: SseNotificationService)
     fun doProcessDemucs5(@RequestParam id: Long, @RequestParam(required = false) prior: Int = -1) {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         settings?.let {
+//            if (it.getAudioAspectRate() != "48000") KaraokeProcess.createProcess(settings, KaraokeProcessTypes.RECODE_48000, true, prior)
             KaraokeProcess.createProcess(settings, KaraokeProcessTypes.DEMUCS5, true, prior)
             SNS.send(SseNotification.message(Message(
                 type = "info",
@@ -1689,6 +1692,7 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             ids.forEach { id ->
                 val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
                 settings?.let {
+//                    if (it.getAudioAspectRate() != "48000") KaraokeProcess.createProcess(settings, KaraokeProcessTypes.RECODE_48000, true, prior)
                     KaraokeProcess.createProcess(settings, KaraokeProcessTypes.DEMUCS5, true, prior)
                 }
                 result = true

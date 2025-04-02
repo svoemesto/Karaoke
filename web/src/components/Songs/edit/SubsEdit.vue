@@ -39,15 +39,21 @@
               <button class="group-button" :class="beatButtonClass(32)" type="button" value="32" @click="setBeat(32)">1/32</button>
             </div>
             <div class="markers">
-              <button class="group-button" :value="isShowMarkerTypeSyllables" :class="merkerButtonClass(isShowMarkerTypeSyllables)" type="button" @click="onOffShowMarkerType('syllables')">syllables</button>
-              <button class="group-button" :value="isShowMarkerTypeSetting" :class="merkerButtonClass(isShowMarkerTypeSetting)" type="button" @click="onOffShowMarkerType('setting')">setting</button>
-              <button class="group-button" :value="isShowMarkerTypeEndofline" :class="merkerButtonClass(isShowMarkerTypeEndofline)" type="button" @click="onOffShowMarkerType('endofline')">endofline</button>
-              <button class="group-button" :value="isShowMarkerTypeEndofsyllable" :class="merkerButtonClass(isShowMarkerTypeEndofsyllable)" type="button" @click="onOffShowMarkerType('endofsyllable')">endofsyllable</button>
-              <button class="group-button" :value="isShowMarkerTypeNewline" :class="merkerButtonClass(isShowMarkerTypeNewline)" type="button" @click="onOffShowMarkerType('newline')">newline</button>
+              <button class="group-button" :value="isShowMarkerTypeSyllables" :class="merkerButtonClass(isShowMarkerTypeSyllables)" type="button" @click="onOffShowMarkerType('syllables')">syll</button>
+              <button class="group-button" :value="isShowMarkerTypeSetting" :class="merkerButtonClass(isShowMarkerTypeSetting)" type="button" @click="onOffShowMarkerType('setting')">sett</button>
+              <button class="group-button" :value="isShowMarkerTypeEndofline" :class="merkerButtonClass(isShowMarkerTypeEndofline)" type="button" @click="onOffShowMarkerType('endofline')">eol</button>
+              <button class="group-button" :value="isShowMarkerTypeEndofsyllable" :class="merkerButtonClass(isShowMarkerTypeEndofsyllable)" type="button" @click="onOffShowMarkerType('endofsyllable')">eos</button>
+              <button class="group-button" :value="isShowMarkerTypeNewline" :class="merkerButtonClass(isShowMarkerTypeNewline)" type="button" @click="onOffShowMarkerType('newline')">nl</button>
               <button class="group-button" :value="isShowMarkerTypeUnmute" :class="merkerButtonClass(isShowMarkerTypeUnmute)" type="button" @click="onOffShowMarkerType('unmute')">unmute</button>
               <button class="group-button" :value="isShowMarkerTypeNote" :class="merkerButtonClass(isShowMarkerTypeNote)" type="button" @click="onOffShowMarkerType('note')">note</button>
               <button class="group-button" :value="isShowMarkerTypeChord" :class="merkerButtonClass(isShowMarkerTypeChord)" type="button" @click="onOffShowMarkerType('chord')">chord</button>
               <button class="group-button" :value="isShowMarkerTypeBeat" :class="merkerButtonClass(isShowMarkerTypeBeat)" type="button" @click="onOffShowMarkerType('beat')">beat</button>
+              <button class="group-button" :value="isShowMarkerTypeEOLCH" :class="merkerButtonClass(isShowMarkerTypeEOLCH)" type="button" @click="onOffShowMarkerType('eolch')">eolch</button>
+              <button class="group-button" :value="isShowMarkerTypeEOCH" :class="merkerButtonClass(isShowMarkerTypeEOCH)" type="button" @click="onOffShowMarkerType('eoch')">eoch</button>
+              <button class="group-button" :value="isShowMarkerTypeNLCH" :class="merkerButtonClass(isShowMarkerTypeNLCH)" type="button" @click="onOffShowMarkerType('nlch')">nlch</button>
+              <button class="group-button" :value="isShowMarkerTypeEOLN" :class="merkerButtonClass(isShowMarkerTypeEOLN)" type="button" @click="onOffShowMarkerType('eoln')">eoln</button>
+              <button class="group-button" :value="isShowMarkerTypeEON" :class="merkerButtonClass(isShowMarkerTypeEON)" type="button" @click="onOffShowMarkerType('eon')">eon</button>
+              <button class="group-button" :value="isShowMarkerTypeNLN" :class="merkerButtonClass(isShowMarkerTypeNLN)" type="button" @click="onOffShowMarkerType('nln')">nln</button>
             </div>
           </div>
           <div class="grid-item-waveform">
@@ -99,6 +105,9 @@
                 <button class="group-button" :class="editSpeedButtonClass(0.75)" type="button" value="0.75" @click="setEditSpeed(0.75)">0.75</button>
                 <button class="group-button" :class="editSpeedButtonClass(1.0)" type="button" value="1.0" @click="setEditSpeed(1.0)">1.0</button>
                 <div class="edit-mode" :class="editModeButtonClass()"></div>
+                <button class="group-button" :class="editModeTypeButtonClass('syllables')" type="button" value="syllables" @click="setEditModeType('syllables')">syll</button>
+                <button class="group-button" :class="editModeTypeButtonClass('note')" type="button" value="note" @click="setEditModeType('note')">note</button>
+                <button class="group-button" :class="editModeTypeButtonClass('chord')" type="button" value="chord" @click="setEditModeType('chord')">syll</button>
               </div>
               <div class="group-play-speed-buttons">
                 <label class="label-for-group-play-speed-buttons">Play:</label>
@@ -307,6 +316,7 @@ export default {
       loadedMarkers: [],
       sourceMarkers: [],
       editSpeed: 0.75,
+      editModeType: 'syllables',
       playSpeed: 1.0,
       isEditMode: false,
       isPlaying: false,
@@ -364,6 +374,12 @@ export default {
       isShowMarkerTypeNote: true,
       isShowMarkerTypeChord: true,
       isShowMarkerTypeBeat: true,
+      isShowMarkerTypeEOLCH: true,
+      isShowMarkerTypeEOCH: true,
+      isShowMarkerTypeNLCH: true,
+      isShowMarkerTypeEOLN: true,
+      isShowMarkerTypeEON: true,
+      isShowMarkerTypeNLN: true,
     }
   },
   props: {
@@ -566,20 +582,113 @@ export default {
       }
     },
     pressedS: { handler () { if (!this.isEditMode) return; if (this.pressedS) { this.deleteMarker(); } } },
-    pressedW: { handler () { if (!this.isEditMode) return; if (this.pressedW) { this.addMarker('syllables'); } } },
-    pressed1: { handler () { if (!this.isEditMode) return; if (this.pressed1) { this.addMarker('endofsyllable'); } } },
-    pressed2: { handler () { if (!this.isEditMode) return; if (this.pressed2) { this.addMarker('endofline'); } } },
+    pressedW: {
+      handler () {
+        if (!this.isEditMode) return;
+        if (this.pressedW) {
+          switch (this.editModeType) {
+            case 'syllables':
+              this.addMarker('syllables');
+              break;
+            case 'note':
+              this.addMarker('note', '_♪_');
+              break;
+            case 'chord':
+              this.addMarker('chord');
+              break;
+          }
+        }
+      }
+    },
+    pressed1: {
+      handler () {
+        if (!this.isEditMode) return;
+        if (this.pressed1) {
+          switch (this.editModeType) {
+            case 'syllables':
+              this.addMarker('endofsyllable');
+              break;
+            case 'note':
+              this.addMarker('eon');
+              break;
+            case 'chord':
+              this.addMarker('eoch');
+              break;
+          }
+        }
+      }
+    },
+    pressed2: {
+      handler () {
+        if (!this.isEditMode) return;
+        if (this.pressed2) {
+          switch (this.editModeType) {
+            case 'syllables':
+              this.addMarker('endofline');
+              break;
+            case 'note':
+              this.addMarker('eoln');
+              break;
+            case 'chord':
+              this.addMarker('eolch');
+              break;
+          }
+        }
+      }
+    },
     pressed3: { handler () { if (!this.isEditMode) return; if (this.pressed3) {
       // this.addMarker('syllables', '', true, true);
-        this.addMarker('endofline', '', false, false);
-        this.addMarker('syllables', '', true, false);
+        switch (this.editModeType) {
+          case 'syllables':
+            this.addMarker('endofline', '', false, false);
+            this.addMarker('syllables', '', true, false);
+            break;
+          case 'note':
+            this.addMarker('eoln', '', false, false);
+            this.addMarker('note',  '_♪_', true, false);
+            break;
+          case 'chord':
+            this.addMarker('eolch', '', false, false);
+            this.addMarker('chord', '', true, false);
+            break;
+        }
     } } },
-    pressed4: { handler () { if (!this.isEditMode) return; if (this.pressed4) { this.addMarker('newline'); } } },
+    pressed4: {
+      handler () {
+        if (!this.isEditMode) return;
+        if (this.pressed4) {
+          switch (this.editModeType) {
+            case 'syllables':
+              this.addMarker('newline');
+              break;
+            case 'note':
+              this.addMarker('nln');
+              break;
+            case 'chord':
+              this.addMarker('nlch');
+              break;
+          }
+        }
+      }
+    },
     pressed5: { handler () { if (!this.isEditMode) return; if (this.pressed5) {
-        // this.addMarker('syllables', '', true, true);
-        this.addMarker('endofline', '', false, false);
-        this.addMarker('newline', '', true, false);
-        this.addMarker('syllables', '', true, false);
+        switch (this.editModeType) {
+          case 'syllables':
+            this.addMarker('endofline', '', false, false);
+            this.addMarker('newline', '', true, false);
+            this.addMarker('syllables', '', true, false);
+            break;
+          case 'note':
+            this.addMarker('eoln', '', false, false);
+            this.addMarker('nln', '', true, false);
+            this.addMarker('note', '_♪_', true, false);
+            break;
+          case 'chord':
+            this.addMarker('eolch', '', false, false);
+            this.addMarker('nlch', '', true, false);
+            this.addMarker('chord', '', true, false);
+            break;
+        }
       } } },
     pressed0: { handler () { if (!this.isEditMode) return; if (this.pressed0) { this.addMarker('unmute'); } } },
     pressedT: { handler () { if (!this.isEditMode) return; if (this.pressedT) { this.addMarker('setting', 'GROUP|0'); } } },
@@ -614,8 +723,20 @@ export default {
       handler () {
         if (!this.isEditMode) return;
         if (this.pressedComma) {
-          this.goToPreviousMarker('syllables');
-          this.intervalPressComma = setInterval(() => { this.goToPreviousMarker('syllables'); }, 100);
+          switch (this.editModeType) {
+            case 'syllables':
+              this.goToPreviousMarker('syllables');
+              this.intervalPressComma = setInterval(() => { this.goToPreviousMarker('syllables'); }, 100);
+              break;
+            case 'note':
+              this.goToPreviousMarker('note');
+              this.intervalPressComma = setInterval(() => { this.goToPreviousMarker('note'); }, 100);
+              break;
+            case 'chord':
+              this.goToPreviousMarker('chord');
+              this.intervalPressComma = setInterval(() => { this.goToPreviousMarker('chord'); }, 100);
+              break;
+          }
         }  else {
           clearInterval(this.intervalPressComma);
         }
@@ -625,8 +746,20 @@ export default {
       handler () {
         if (!this.isEditMode) return;
         if (this.pressedPeriod) {
-          this.goToNextMarker('syllables');
-          this.intervalPressPeriod = setInterval(() => { this.goToNextMarker('syllables'); }, 100);
+          switch (this.editModeType) {
+            case 'syllables':
+              this.goToNextMarker('syllables');
+              this.intervalPressPeriod = setInterval(() => { this.goToNextMarker('syllables'); }, 100);
+              break;
+            case 'note':
+              this.goToNextMarker('note');
+              this.intervalPressPeriod = setInterval(() => { this.goToNextMarker('note'); }, 100);
+              break;
+            case 'chord':
+              this.goToNextMarker('chord');
+              this.intervalPressPeriod = setInterval(() => { this.goToNextMarker('chord'); }, 100);
+              break;
+          }
         }  else {
           clearInterval(this.intervalPressPeriod);
         }
@@ -678,6 +811,12 @@ export default {
       if (this.isShowMarkerTypeNote) { result.push('note') }
       if (this.isShowMarkerTypeChord) { result.push('chord') }
       if (this.isShowMarkerTypeBeat) { result.push('beat') }
+      if (this.isShowMarkerTypeEOLN) { result.push('eoln') }
+      if (this.isShowMarkerTypeEON) { result.push('eon') }
+      if (this.isShowMarkerTypeNLN) { result.push('nln') }
+      if (this.isShowMarkerTypeEOLCH) { result.push('eolch') }
+      if (this.isShowMarkerTypeEOCH) { result.push('eoch') }
+      if (this.isShowMarkerTypeNLCH) { result.push('nlch') }
       return result;
     },
     getFormattedChords() {
@@ -704,13 +843,33 @@ export default {
       let lineNotes = '';
       let lineText = '';
       let strings = ['E‖⎼','B‖⎼','G‖⎼','D‖⎼','A‖⎼','e‖⎼'];
+      let previousMarkerType = '';
+      let currentMarkerType = '';
       for (let i = 0; i < markers.length; i++) {
+        currentMarkerType = markers[i].markertype;
+        if (i !== 0 ) {
+          previousMarkerType = markers[i-1].markertype;
+        }
         const marker = markers[i];
+        console.log(`${previousMarkerType}-${currentMarkerType}-${marker.label}`);
         switch (marker.markertype) {
           case 'setting': {
+            if (previousMarkerType === 'note' && currentMarkerType === 'setting') {
+              console.log('Перевод строки перед маркером:', marker.label);
+              for (let j = 0; j < strings.length; j++) {
+                const sn = strings[j];
+                result += SPAN_STYLE_TABLINE + sn + '⎼‖' + SPAN_END + BR;
+              }
+              result += lineNotes + BR + lineText + BR + BR;
+              lineNotes = '';
+              lineText = '';
+              wasBr = true;
+            }
             break;
           }
           case 'endofline':
+          case 'eoln':
+          case 'nln':
           case 'newline': {
             if (!wasBr) {
               for (let j = 0; j < strings.length; j++) {
@@ -724,7 +883,22 @@ export default {
             }
             break;
           }
+          case 'note':
           case 'syllables': {
+
+            if (previousMarkerType === 'note' && currentMarkerType === 'syllables') {
+              console.log('Перевод строки перед маркером:', marker.label);
+              if (!wasBr) {
+                for (let j = 0; j < strings.length; j++) {
+                  const sn = strings[j];
+                  result += SPAN_STYLE_TABLINE + sn + '⎼‖' + SPAN_END + BR;
+                }
+                result += lineNotes + BR + lineText + BR + BR;
+                lineNotes = '';
+                lineText = '';
+                wasBr = true;
+              }
+            }
 
             // Если слог
             let txt = '';
@@ -738,7 +912,7 @@ export default {
               // Если был перенос строки - инициализируем новые переменны (3 пробела + слог и начало струн)
               if (wasBr) {
                 txt = '   ' + this.uppercaseFirstLetter(txt);
-                txtHtml = '&nbsp;&nbsp;&nbsp;' + this.uppercaseFirstLetter(txtHtml);
+                txtHtml = '&nbsp;&nbsp;&nbsp;' + this.uppercaseFirstLetter(marker.label).replaceAll('_', '&nbsp;');
                 strings = ['E‖⎼','B‖⎼','G‖⎼','D‖⎼','A‖⎼','e‖⎼'];
               }
             } else {
@@ -772,7 +946,7 @@ export default {
               // Находим позицию гласной буквы в слоге (0 - если гласная первая или если её нет)
               let vowelPosition = 0;
               for (let i = 0; i < txt.length; i++) {
-                if ('ЁУЕЫАОЭЯИЮёуеыаоэяиюEUIOAeuioaїієѣ'.includes(txt[i])) {
+                if ('ЁУЕЫАОЭЯИЮёуеыаоэяиюEUIOAeuioaїієѣ♪'.includes(txt[i])) {
                   vowelPosition = i;
                   break;
                 }
@@ -801,6 +975,9 @@ export default {
               note = ' ';
               noteHtml = '&nbsp;';
               stringNote = ['⎼','⎼','⎼','⎼','⎼','⎼'];
+              if (currentMarkerType === 'note' && wasBr) {
+                wasBr = false;
+              }
             }
 
             lineNotes += ((i === this.currentMarkersIndex) ? SPAN_STYLE_CURRENT : SPAN_STYLE_NOTE) + noteHtml + SPAN_END + SPAN_STYLE_OCTAVE + noteOctave + SPAN_END;
@@ -895,7 +1072,7 @@ export default {
             result += '</span>';
             break;
           }
-          default: {break;} // unmute, note, chord
+          default: {break;} // unmute, note, chord, eolch, eoch, nlch, eoln, eon, nln...
         }
         if (spanStyle !== spanStylePrev) result += '<br>';
         spanStylePrev = spanStyle;
@@ -1379,6 +1556,8 @@ export default {
                         </div>
                       </div></div>`
           break; }
+        case 'eoln':
+        case 'eolch':
         case 'endofline': {
           template = `<div><div
                         style="
@@ -1394,6 +1573,8 @@ export default {
                       </div></div>`
           break;
         }
+        case 'eon':
+        case 'eoch':
         case 'endofsyllable': {
           template = `<div><div
                         style="
@@ -1409,6 +1590,8 @@ export default {
                       </div></div>`
           break;
         }
+        case 'nln':
+        case 'nlch':
         case 'newline': {
           template = `<div><div
                         style="
@@ -1571,14 +1754,21 @@ export default {
           break; }
         case 'unmute': { break; }
         case 'note': {
-          template = `<div><div
-                        style="
+          template = `<div>
+                        <div style="
                             background-color: beige;
                             display: block;
                             width: fit-content;
                         ">
-                        ${text}
-                      </div></div>`
+                            ${text}
+                        </div>
+                        <div style="
+                            background-color: lightpink;
+                            display: block;
+                            width: fit-content;">
+                            ${textNote}
+                        </div>
+                      </div>`
           break; }
         case 'chord': {
           let label = marker.label;
@@ -1592,7 +1782,14 @@ export default {
                             margin-top: 216px;
                         ">
                         ${text}
-                      </div></div>`
+                      </div>
+                                              <div style="
+                            background-color: lightgoldenrodyellow;
+                            display: block;
+                            width: fit-content;">
+                        ${textChord}
+                        </div>
+                        </div>`
           break; }
         case 'beat0': { break; }
         case 'beat': { break; }
@@ -1728,16 +1925,22 @@ export default {
           color = MARKER_COLOR_SYLLABLES;
           break;
         }
+        case 'nln':
+        case 'nlch':
         case 'newline':{
           position = 'bottom';
           color = MARKER_COLOR_NEWLINE;
           break;
         }
+        case 'eoln':
+        case 'eolch':
         case 'endofline':{
           position = 'bottom';
           color = MARKER_COLOR_ENDOFLINE;
           break;
         }
+        case 'eon':
+        case 'eoch':
         case 'endofsyllable':{
           position = 'bottom';
           color = MARKER_COLOR_ENDOFSYLLABLE;
@@ -2368,6 +2571,9 @@ export default {
     editSpeedButtonClass(editSpeed) {
       return editSpeed === this.editSpeed ? 'group-button-active' : ''
     },
+    editModeTypeButtonClass(editModeType) {
+      return editModeType === this.editModeType ? 'group-button-active' : ''
+    },
     editModeButtonClass() {
       return this.isEditMode ? 'edit-mode-on' : ''
     },
@@ -2406,7 +2612,16 @@ export default {
         case 'note': {this.isShowMarkerTypeNote = !this.isShowMarkerTypeNote; break;}
         case 'chord': {this.isShowMarkerTypeChord = !this.isShowMarkerTypeChord; break;}
         case 'beat': {this.isShowMarkerTypeBeat = !this.isShowMarkerTypeBeat; break;}
+        case 'eolch': {this.isShowMarkerTypeEOLCH = !this.isShowMarkerTypeEOLCH; break;}
+        case 'eoch': {this.isShowMarkerTypeEOCH = !this.isShowMarkerTypeEOCH; break;}
+        case 'nlch': {this.isShowMarkerTypeNLCH = !this.isShowMarkerTypeNLCH; break;}
+        case 'eoln': {this.isShowMarkerTypeEOLN = !this.isShowMarkerTypeEOLN; break;}
+        case 'eon': {this.isShowMarkerTypeEON = !this.isShowMarkerTypeEON; break;}
+        case 'nln': {this.isShowMarkerTypeNLN = !this.isShowMarkerTypeNLN; break;}
       }
+    },
+    setEditModeType(editModeType) {
+      this.editModeType = editModeType;
     },
     setEditSpeed(editSpeed) {
       this.editSpeed = editSpeed;
@@ -2471,12 +2686,27 @@ export default {
 
             if (this.isEditMode) {
               if (this.currentMarker !== undefined) {
-                if (this.currentMarker.markertype === 'syllables') {
-                  this.currentMarker.note = note;
-                  this.currentMarker.region.setContent(this.getRegionContentFromMarker(this.currentMarker));
-                  this.sourceMarkers.splice(0,1,this.sourceMarkers[0]);
-                  this.goToNextMarker('syllables');
+                switch (this.editModeType) {
+                  case 'syllables':
+                    if (this.currentMarker.markertype === 'syllables') {
+                      this.currentMarker.note = note;
+                      this.currentMarker.region.setContent(this.getRegionContentFromMarker(this.currentMarker));
+                      this.sourceMarkers.splice(0,1,this.sourceMarkers[0]);
+                      this.goToNextMarker('syllables');
+                    }
+                    break;
+                  case 'note':
+                    if (this.currentMarker.markertype === 'note') {
+                      this.currentMarker.note = note;
+                      this.currentMarker.region.setContent(this.getRegionContentFromMarker(this.currentMarker));
+                      this.sourceMarkers.splice(0,1,this.sourceMarkers[0]);
+                      this.goToNextMarker('note');
+                    }
+                    break;
+                  case 'chord':
+                    break;
                 }
+
               }
               // this.addMarker('note', note, true);
             }
@@ -2513,7 +2743,7 @@ export default {
     },
     getStringsForAllNotesInSong() {
       const markersList = this.sourceMarkers
-          .filter(marker => marker.markertype === 'syllables')
+          .filter(marker => (marker.markertype === 'syllables' || marker.markertype === 'note'))
           .filter(marker => marker.note)
       const notesList = markersList.map(marker => marker.note)
       const notesSetArray = Array.from(new Set(notesList));
@@ -2898,7 +3128,7 @@ export default {
   max-height: 619px;
 }
 .grid-item-notes {
-  column-count: 5;
+  column-count: 3;
   column-fill: auto;
   overflow: auto;
   background-color: black;

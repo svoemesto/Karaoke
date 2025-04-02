@@ -25,7 +25,6 @@ import java.util.*
 import java.util.Date
 import kotlin.io.path.Path
 import kotlin.math.abs
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 
 enum class SettingField : Serializable {
     ID,
@@ -192,12 +191,9 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         set(value) {fields[SettingField.RESULT_TEXT] = value}
 
     var statusProcessLyrics: String = ""
-    var statusProcessLyricsBt: String = ""
     var statusProcessKaraoke: String = ""
-    var statusProcessKaraokeBt: String = ""
     var statusProcessChords: String = ""
     var statusProcessMelody: String = ""
-    var statusProcessChordsBt: String = ""
 
     @get:JsonIgnore
     val sourceTextList: List<String>
@@ -593,6 +589,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     val otherNameWav: String get() = "$pathToResultedModel/$fileName-other.wav"
     val otherNameFlac: String get() = "$pathToResultedModel/$fileName-other.flac"
     val fileAbsolutePath: String get() = "$rootFolder/$fileName.flac"
+    val fileAbsolutePathTmp: String get() = "$rootFolder/$fileName-tmp.flac"
     val fileAbsolutePathSymlink: String get() = "$pathToSymlinkFolderBoostyFiles/$fileName.flac"
     val fileSettingsAbsolutePath: String get() = "$rootFolder/$rightSettingFileName.settings"
 
@@ -620,16 +617,23 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     val linkBoostyFilesTxt: String get() = if (idBoostyFiles == "") "" else linkBoostyFiles!!
     val linkDzenKaraoke: String get() = if (idYoutubeKaraoke == "") "" else linkYoutubeKaraokePlay!!
     val linkDzenLyrics: String get() = if (idYoutubeLyrics == "") "" else linkYoutubeLyricsPlay!!
+    val linkDzenTabs: String get() = if (idYoutubeMelody == "") "" else linkYoutubeMelodyPlay!!
+    val linkDzenChords: String get() = if (idYoutubeChords == "") "" else linkYoutubeChordsPlay!!
 
     val linkVkKaraoke: String get() = if (idVkKaraoke == "") "" else linkVkKaraokePlay!!
     val linkVkLyrics: String get() = if (idVkLyrics == "") "" else linkVkLyricsPlay!!
+    val linkVkTabs: String get() = if (idVkMelody == "") "" else linkVkMelodyPlay!!
+    val linkVkChords: String get() = if (idVkChords == "") "" else linkVkChordsPlay!!
 
     val linkTgKaraoke: String get() = if (idTelegramKaraoke == "" || idTelegramKaraoke == "-") "" else linkTelegramKaraokePlay!!
     val linkTgLyrics: String get() = if (idTelegramLyrics == "" || idTelegramLyrics == "-") "" else linkTelegramLyricsPlay!!
+    val linkTgTabs: String get() = if (idTelegramMelody == "" || idTelegramMelody == "-") "" else linkTelegramMelodyPlay!!
+    val linkTgChords: String get() = if (idTelegramChords == "" || idTelegramChords == "-") "" else linkTelegramChordsPlay!!
+
     val linkPlKaraoke: String get() = if (idPlKaraoke == "") "" else linkPlKaraokePlay!!
     val linkPlLyrics: String get() = if (idPlLyrics == "") "" else linkPlLyricsPlay!!
+    val linkPlTabs: String get() = if (idPlMelody == "") "" else linkPlMelodyPlay!!
     val linkPlChords: String get() = if (idPlChords == "") "" else linkPlChordsPlay!!
-    val linkPlMelody: String get() = if (idPlMelody == "") "" else linkPlMelodyPlay!!
     val datePublish: String get() = if (date == "" || time == "") "Дата пока не определена" else "${date} ${time}"
 
     val sheetstageInfo: Map<String, Any> get() {
@@ -727,6 +731,20 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         }
 
         return result
+    }
+
+    fun getAudioAspectRate(): String {
+
+        val args = listOf(
+            "ffprobe",
+            "-v", "error",
+            "-select_streams", "a:0",
+            "-show_entries", "stream=sample_rate",
+            "-of", "default=noprint_wrappers=1:nokey=1",
+            fileAbsolutePath
+        )
+        return runCommand(args)
+
     }
 
     fun getVKPictureBase64(): String = getVKPictureBase64(this)
@@ -1178,12 +1196,9 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         result.sourceText = this.sourceText
         result.resultText = this.resultText
         result.statusProcessLyrics = this.statusProcessLyrics
-        result.statusProcessLyricsBt = this.statusProcessLyricsBt
         result.statusProcessKaraoke = this.statusProcessKaraoke
-        result.statusProcessKaraokeBt = this.statusProcessKaraokeBt
         result.statusProcessChords = this.statusProcessChords
         result.statusProcessMelody = this.statusProcessMelody
-        result.statusProcessChordsBt = this.statusProcessChordsBt
         result.sourceMarkers = this.sourceMarkers
         result.voicesForMlt = this.voicesForMlt
         result.fields = this.fields
@@ -1360,9 +1375,21 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         val offsetInAudioTimecode = convertMillisecondsToTimecode(offsetInAudioMs)
         val offsetInVideoTimecode = convertMillisecondsToTimecode(offsetInVideoMs)
 
-        val audioLengthFr = convertMillisecondsToFrames(songLengthMs)
+        mltProp.setStartSilentOffsetMs(startSilentOffsetMs)
+
+//        val audioLengthFr = convertMillisecondsToFrames(songLengthMs)
+        val argForDurationFromAudioFileMs = listOf(
+            "ffprobe",
+            "-v", "error",
+            "-show_entries", "format=duration",
+            "-of", "default=noprint_wrappers=1:nokey=1",
+            fileAbsolutePath
+        )
+        val durationFromAudioFileMs = ((runCommand(argForDurationFromAudioFileMs).toDoubleOrNull() ?: 0.0) * 1000L).toLong()
+        val audioLengthFr = convertMillisecondsToFrames(durationFromAudioFileMs)
         mltProp.setAudioLengthFr(audioLengthFr)
-        val audioEndTimecode = convertMillisecondsToTimecode(songLengthMs - startSilentOffsetMs)
+//        val audioEndTimecode = convertMillisecondsToTimecode(songLengthMs - startSilentOffsetMs)
+        val audioEndTimecode = convertMillisecondsToTimecode(songLengthMs)
         mltProp.setAudioEndTimecode(audioEndTimecode)
 //        val progressSymbolHalfWidth = 0 //(getTextWidthHeightPx(Karaoke.progressSymbol, Karaoke.progressFont.font).first/2).toLong()
 //        val fontNameSizePt = Integer.min(getFontSizeBySymbolWidth(1100.0 / songName.length), 80)
@@ -1468,7 +1495,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                 var key = listOf(ProducerType.ELEMENT, indexVoice, indexLine)
                 if (mltProp.getUUID(key) == "") mltProp.setUUID(getStoredUuid(key), key)
 
-                ProducerType.ELEMENT.childs().reversed().forEach {
+                ProducerType.ELEMENT.childs().asReversed().forEach {
                     if (it in songVersion.producers) {
                         mltProp.setCountChilds(line.getElements(songVersion).size, listOf(it, indexVoice, indexLine))
                         mltProp.setId(it.ordinal*1000 + indexVoice*100 + indexLine*10, listOf(it, indexVoice, indexLine))
@@ -1700,7 +1727,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     }
     fun getStartSilentOffsetMs(): Long {
         val timeFirstSyllable = try {
-            (sourceMarkersList.minOf { lstMarkers -> lstMarkers.filter { marker -> marker.markertype == Markertype.SYLLABLES.value}.map { it.time }.minOf { it } } * 1000).toLong()
+            (sourceMarkersList.minOf { lstMarkers -> lstMarkers.filter { marker -> marker.markertype in listOf(Markertype.SYLLABLES.value, Markertype.NOTE.value)}.map { it.time }.minOf { it } } * 1000).toLong()
         } catch (e: Exception) {
             0L
         }
@@ -1878,7 +1905,10 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             var strings = mutableListOf("E‖⎼","B‖⎼","G‖⎼","D‖⎼","A‖⎼","e‖⎼")
             markers.forEach { marker ->
                 when (marker.markertype) {
-                    Markertype.ENDOFLINE.value, Markertype.NEWLINE.value -> {
+                    Markertype.ENDOFLINE.value,
+                    Markertype.EOL_NOTE.value,
+                    Markertype.NEWLINE_NOTE.value,
+                    Markertype.NEWLINE.value -> {
                         if (!wasBr) {
                             strings.forEach { sn ->
                                 result += SPAN_STYLE_TABLINE + sn + "⎼‖" + SPAN_END + BR
@@ -1889,7 +1919,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                             wasBr = true
                         }
                     }
-                    Markertype.SYLLABLES.value -> {
+                    Markertype.SYLLABLES.value, Markertype.NOTE.value -> {
                         var txt= ""
                         var txtHtml = ""
                         var endOfWord = true
@@ -1901,7 +1931,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                             // Если был перенос строки - инициализируем новые переменны (3 пробела + слог и начало струн)
                             if (wasBr) {
                                 txt = "   " + txt.uppercaseFirstLetter()
-                                txtHtml = "&nbsp;&nbsp;&nbsp;" + txtHtml.uppercaseFirstLetter()
+                                txtHtml = "&nbsp;&nbsp;&nbsp;" + marker.label.uppercaseFirstLetter().replace("_", "&nbsp;")
                                 strings = mutableListOf("E‖⎼","B‖⎼","G‖⎼","D‖⎼","A‖⎼","e‖⎼")
                             }
                         } else {
@@ -1934,7 +1964,16 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                             stringNote[stringIndex] = lad
                             stringsForAllNotesIndex++
                             // Находим позицию гласной буквы в слоге (0 - если гласная первая или если её нет)
-                            val vowelPosition = txt.getFirstVowelIndex()
+                            fun String.firstVowelIndex(): Int {
+                                val vovels = "♪ёуеыаоэяиюeuioaїієѣ" + "ёуеыаоэяиюeuioaїієѣ".uppercase()
+                                for (i in this.indices) {
+                                    if (this[i] in vovels) {
+                                        return i
+                                    }
+                                }
+                                return 0
+                            }
+                            val vowelPosition = txt.firstVowelIndex()
                             // Добавляем пробелы перед названием ноты (по позиции гласной)
                             note = (0 until vowelPosition).joinToString("") { " " } + note
                             noteHtml = (0 until vowelPosition).joinToString("") { "&nbsp;" } + noteHtml
@@ -1992,6 +2031,140 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             resultArray.add(result)
         }
         return resultArray.joinToString("""<br><hr style="border: 2px solid blue;"><br>""")
+    }
+
+    fun getNotesBody(): String {
+        val resultArray: MutableList<String> = mutableListOf()
+        for (voice in 0 until countVoices) {
+
+            val stringsForAllNotesArray = getStringsForAllNotesInSong(voice)
+            if (stringsForAllNotesArray.isEmpty()) break
+            val indexStringsForAllNotes = stringsForAllNotesArray.size.coerceAtMost(indexTabsVariant)
+
+            val BR = "\n"
+            val stringsForAllNotes = stringsForAllNotesArray[indexStringsForAllNotes]
+            var stringsForAllNotesIndex = 0
+            val markers = this.sourceMarkersList[voice]
+            var wasBr = true
+            var result = ""
+            var lineNotes = ""
+            var lineText = ""
+            var strings = mutableListOf("E‖⎼","B‖⎼","G‖⎼","D‖⎼","A‖⎼","e‖⎼")
+            markers.forEach { marker ->
+                when (marker.markertype) {
+                    Markertype.ENDOFLINE.value,
+                    Markertype.EOL_NOTE.value,
+                    Markertype.NEWLINE_NOTE.value,
+                    Markertype.NEWLINE.value -> {
+                        if (!wasBr) {
+                            strings.forEach { sn ->
+                                result += sn + "⎼‖" + BR
+                            }
+                            result += lineNotes + BR + lineText + BR + BR
+                            lineNotes = ""
+                            lineText = ""
+                            wasBr = true
+                        }
+                    }
+                    Markertype.SYLLABLES.value, Markertype.NOTE.value -> {
+                        var txt= ""
+                        var txtHtml = ""
+                        var endOfWord = true
+                        // Если в маркере не пустой лейбл (т.е. есть слог)
+                        if (marker.label.isNotEmpty()) {
+                            endOfWord = marker.label.endsWith("_") // Это конец слова если слог заканчивается подчёркиванием
+                            txt = marker.label.replace("_", " "); // Заменяем подчеркивания на пробелы
+                            txtHtml = marker.label.replace("_", " ");
+                            // Если был перенос строки - инициализируем новые переменны (3 пробела + слог и начало струн)
+                            if (wasBr) {
+                                txt = "   " + txt.uppercaseFirstLetter()
+                                txtHtml = "   " + marker.label.uppercaseFirstLetter().replace("_", " ")
+                                strings = mutableListOf("E‖⎼","B‖⎼","G‖⎼","D‖⎼","A‖⎼","e‖⎼")
+                            }
+                        } else {
+                            // Если в маркере пустой лейбл - пробел в тексте
+                            txt = " "
+                            txtHtml = " "
+                        }
+                        var note = "";
+                        var noteHtml = "";
+                        var noteOctave = "";
+                        var stringNote = mutableListOf("⎼⎼","⎼⎼","⎼⎼","⎼⎼","⎼⎼","⎼⎼") // Выделяем по 2 черты на ноту на струне
+
+                        // Если в маркере есть нота
+                        if (marker.note.isNotEmpty()) {
+                            // Находим ноту и октаву ноты
+                            val noteParts = marker.note.split("|")
+                            note = noteParts[0]
+                            noteHtml = noteParts[0]
+                            noteOctave = if (noteParts.size > 1) noteParts[1] else ""
+                            val noteLength = note.length
+                            // Находим номер струны и номер лада, подставляем их в массив stringNote
+                            val sn = if (marker.locklad.toBoolean()) {
+                                val (stringTxt, ladTxt) = marker.stringlad.split("|")
+                                DiffGuitarStringLad(diff = 0, guitarStringLad = GuitarStringLad(string = stringTxt.toInt(), lad = ladTxt.toInt()))
+                            } else {
+                                stringsForAllNotes[stringsForAllNotesIndex]
+                            }
+                            val stringIndex = sn.guitarStringLad.string
+                            val lad = "${sn.guitarStringLad.lad}${if (sn.guitarStringLad.lad < 10) "⎼" else ""}"
+                            stringNote[stringIndex] = lad
+                            stringsForAllNotesIndex++
+                            // Находим позицию гласной буквы в слоге (0 - если гласная первая или если её нет)
+                            val vowelPosition = txt.getFirstVowelIndex()
+                            // Добавляем пробелы перед названием ноты (по позиции гласной)
+                            note = (0 until vowelPosition).joinToString("") { " " } + note
+                            noteHtml = (0 until vowelPosition).joinToString("") { " " } + noteHtml
+                            var diff = 0
+                            if (wasBr) {
+                                diff = 3
+                                wasBr = false
+                            }
+                            for (i in 0 until vowelPosition - diff + (noteLength - 1)) {
+                                for (j in 0 until stringNote.size) {
+                                    val newLad = "⎼" + stringNote[j]
+                                    stringNote[j] = newLad
+                                }
+                            }
+                        } else {
+                            // Если в маркере нет ноты - пробел в названии ноты и одна черта на ноту в каждой струне
+                            note = " "
+                            noteHtml = " "
+                            stringNote = mutableListOf("⎼","⎼","⎼","⎼","⎼","⎼")
+                        }
+
+                        lineNotes += noteHtml + noteOctave
+                        lineText += txtHtml
+                        if (!endOfWord) {
+                            lineText += "-"
+                        }
+                        val lengthNote = note.length + noteOctave.length;
+                        val lengthText = txt.length + (if (endOfWord) 0 else 1)
+                        if (lengthNote > lengthText) {
+                            for (i in 0 until lengthNote-lengthText) {
+                                lineText += " "
+                            }
+                        } else if (lengthText > lengthNote) {
+                            for (i in 0 until lengthText-lengthNote) {
+                                lineNotes += " "
+                                for (j in 0 until stringNote.size) {
+                                    val newLad = stringNote[j] + '⎼'
+                                    stringNote[j] = newLad
+                                }
+                            }
+                        }
+                        for (j in 0 until strings.size) {
+                            val sn = strings[j] + stringNote[j]
+                            strings[j] = sn
+                        }
+
+                    }
+                    else -> {}
+                }
+            }
+            resultArray.add(result)
+        }
+        return resultArray.joinToString("\n------------------------------------------------------\n\n")
     }
 
     fun getTextFormatted(): String {
@@ -2301,7 +2474,14 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
         val txtStart = getDescriptionHeader(songVersion = songVersion) + "\n\n" + getTextForDescriptionHeader(songVersion = songVersion)
         val txtEnd = getTextForDescriptionFooter()
-        val txtDescription = getTextForDescription(maxSymbols - txtStart.length - txtEnd.length)
+        val txtDescription = when(songVersion) {
+            SongVersion.TABS, SongVersion.TABSVK -> {
+                getNotesForDescription(maxSymbols - txtStart.length - txtEnd.length)
+            }
+            else -> {
+                getTextForDescription(maxSymbols - txtStart.length - txtEnd.length)
+            }
+        }
 
         return txtStart + txtDescription + txtEnd
 
@@ -2346,6 +2526,18 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
     fun getTextForDescription(maxSymbols: Int = 0): String {
         var result = getTextBody()
+
+        while (maxSymbols > 0 && result.length > maxSymbols) {
+            val lst = result.split("\n").toMutableList()
+            lst.removeLast()
+            result = lst.joinToString("\n")
+        }
+
+        return result
+    }
+
+    fun getNotesForDescription(maxSymbols: Int = 0): String {
+        var result = getNotesBody()
 
         while (maxSymbols > 0 && result.length > maxSymbols) {
             val lst = result.split("\n").toMutableList()
@@ -3158,12 +3350,9 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                 if (settA.resultText != settB.resultText) result.add(RecordDiff("result_text", settA.resultText, settB.resultText))
                 if (settA.sourceMarkers != settB.sourceMarkers) result.add(RecordDiff("source_markers", settA.sourceMarkers, settB.sourceMarkers))
                 if (settA.statusProcessLyrics != settB.statusProcessLyrics) result.add(RecordDiff("status_process_lyrics", settA.statusProcessLyrics, settB.statusProcessLyrics))
-                if (settA.statusProcessLyricsBt != settB.statusProcessLyricsBt) result.add(RecordDiff("status_process_lyrics_bt", settA.statusProcessLyricsBt, settB.statusProcessLyricsBt))
                 if (settA.statusProcessKaraoke != settB.statusProcessKaraoke) result.add(RecordDiff("status_process_karaoke", settA.statusProcessKaraoke, settB.statusProcessKaraoke))
-                if (settA.statusProcessKaraokeBt != settB.statusProcessKaraokeBt) result.add(RecordDiff("status_process_karaoke_bt", settA.statusProcessKaraokeBt, settB.statusProcessKaraokeBt))
                 if (settA.statusProcessChords != settB.statusProcessChords) result.add(RecordDiff("status_process_chords", settA.statusProcessChords, settB.statusProcessChords))
                 if (settA.statusProcessMelody != settB.statusProcessMelody) result.add(RecordDiff("status_process_melody", settA.statusProcessMelody, settB.statusProcessMelody))
-                if (settA.statusProcessChordsBt != settB.statusProcessChordsBt) result.add(RecordDiff("status_process_chords_bt", settA.statusProcessChordsBt, settB.statusProcessChordsBt))
                 if (settA.tags != settB.tags) result.add(RecordDiff("tags", settA.tags, settB.tags))
                 if (settA.status != settB.status) result.add(RecordDiff("status", settA.status, settB.status, false))
 

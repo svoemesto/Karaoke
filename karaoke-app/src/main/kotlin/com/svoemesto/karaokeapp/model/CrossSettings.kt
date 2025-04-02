@@ -52,7 +52,7 @@ class CrossSettings {
             }.distinct()
             .sortedBy {
                 if (columnField == SettingField.DATE) {
-                    it.split(".").reversed().joinToString("")
+                    it.split(".").asReversed().joinToString("")
                 } else {
                     it
                 }
@@ -65,7 +65,7 @@ class CrossSettings {
             }.distinct()
 //                .sortedBy {
 //                if (rowField == SettingField.DATE) {
-//                    it.split(".").reversed().joinToString("")
+//                    it.split(".").asReversed().joinToString("")
 //                } else {
 //                    it
 //                }
@@ -106,7 +106,7 @@ class CrossSettings {
                 (fields.get(sett) as Map<*, *>)[columnField] as String
             }.distinct().sortedBy {
                 if (columnField == SettingField.DATE) {
-                    it.split(".").reversed().joinToString("")
+                    it.split(".").asReversed().joinToString("")
                 } else {
                     it
                 }

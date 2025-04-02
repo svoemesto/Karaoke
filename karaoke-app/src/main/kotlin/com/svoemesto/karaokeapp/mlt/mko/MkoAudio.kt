@@ -1,5 +1,6 @@
 package com.svoemesto.karaokeapp.mlt.mko
 
+import com.svoemesto.karaokeapp.convertMillisecondsToFrames
 import com.svoemesto.karaokeapp.mlt.MltGenerator
 import com.svoemesto.karaokeapp.mlt.MltProp
 import com.svoemesto.karaokeapp.model.MltNode
@@ -12,6 +13,7 @@ data class MkoAudio(val mltProp: MltProp, val type: ProducerType, val voiceId: I
 
     private val songLengthFr = mltProp.getSongLengthFr()
     private val audioLengthFr = mltProp.getAudioLengthFr()
+    private val startSilentOffsetFr = convertMillisecondsToFrames(mltProp.getStartSilentOffsetMs())
     private val mkoAudioPath = mltProp.getPath(listOf(type))
     private val volume = mltProp.getVolume(listOf(type))
     private val songStartTimecode = mltProp.getSongStartTimecode()
@@ -20,7 +22,7 @@ data class MkoAudio(val mltProp: MltProp, val type: ProducerType, val voiceId: I
     override fun producer(): MltNode = mltGenerator
         .producer(
             props = MltNodeBuilder()
-                .propertyName("length", songLengthFr)
+                .propertyName("length", audioLengthFr)
                 .propertyName("eof", "pause")
                 .propertyName("resource", mkoAudioPath)
                 .propertyName("seekable", 1)

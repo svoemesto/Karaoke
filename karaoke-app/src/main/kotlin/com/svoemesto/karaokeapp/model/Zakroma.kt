@@ -31,12 +31,20 @@ class Zakroma(val database: KaraokeConnection): Serializable, Comparable<Zakroma
                         zakromaAlbumSettings.linkSponsrPlay = settings.linkSponsrPlay
                         zakromaAlbumSettings.linkDzenKaraoke = settings.linkDzenKaraoke
                         zakromaAlbumSettings.linkDzenLyrics = settings.linkDzenLyrics
+                        zakromaAlbumSettings.linkDzenTabs = settings.linkDzenTabs
+                        zakromaAlbumSettings.linkDzenChords = settings.linkDzenChords
                         zakromaAlbumSettings.linkVkKaraoke = settings.linkVkKaraoke
                         zakromaAlbumSettings.linkVkLyrics = settings.linkVkLyrics
+                        zakromaAlbumSettings.linkVkTabs = settings.linkVkTabs
+                        zakromaAlbumSettings.linkVkChords = settings.linkVkChords
                         zakromaAlbumSettings.linkTgKaraoke = settings.linkTgKaraoke
                         zakromaAlbumSettings.linkTgLyrics = settings.linkTgLyrics
+                        zakromaAlbumSettings.linkTgTabs = settings.linkTgTabs
+                        zakromaAlbumSettings.linkTgChords = settings.linkTgChords
                         zakromaAlbumSettings.linkPlKaraoke = settings.linkPlKaraoke
                         zakromaAlbumSettings.linkPlLyrics = settings.linkPlLyrics
+                        zakromaAlbumSettings.linkPlTabs = settings.linkPlTabs
+                        zakromaAlbumSettings.linkPlChords = settings.linkPlChords
                         zakromaAlbumSettings
                     }.sorted().toMutableList()
                     album
@@ -66,12 +74,20 @@ class ZakromaAlbumSettings: Serializable, Comparable<ZakromaAlbumSettings> {
     var linkSponsrPlay: String = ""
     var linkDzenKaraoke: String = ""
     var linkDzenLyrics: String = ""
+    var linkDzenTabs: String = ""
+    var linkDzenChords: String = ""
     var linkVkKaraoke: String = ""
     var linkVkLyrics: String = ""
+    var linkVkTabs: String = ""
+    var linkVkChords: String = ""
     var linkTgKaraoke: String = ""
     var linkTgLyrics: String = ""
+    var linkTgTabs: String = ""
+    var linkTgChords: String = ""
     var linkPlKaraoke: String = ""
     var linkPlLyrics: String = ""
+    var linkPlTabs: String = ""
+    var linkPlChords: String = ""
     var onAir: Boolean = false
     var datePublish: String = ""
     override fun compareTo(other: ZakromaAlbumSettings): Int {

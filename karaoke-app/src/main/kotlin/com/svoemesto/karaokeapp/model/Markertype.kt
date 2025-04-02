@@ -9,6 +9,12 @@ enum class Markertype(val value: String) {
     UNMUTE("unmute"),
     BEAT("beat"),
     CHORD("chord"),
+    EOL_CHORD("eolch"),       // end of line chord
+    ENDOF_CHORD("eoch"),             // end of chord
+    NEWLINE_CHORD("nlch"),             // new line chord
     NOTE("note"),
+    EOL_NOTE("eoln"),       // end of line note
+    ENDOF_NOTE("eon"),             // end of note
+    NEWLINE_NOTE("nln"),             // new line note
     OTHER("other"),
 }

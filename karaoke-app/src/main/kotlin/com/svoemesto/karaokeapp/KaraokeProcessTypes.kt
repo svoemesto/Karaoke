@@ -24,4 +24,5 @@ enum class KaraokeProcessTypes {
     COPY_TO_STORE_KARAOKE,
     FF_MP3_KAR,
     FF_MP3_LYR,
+//    RECODE_48000,
 }

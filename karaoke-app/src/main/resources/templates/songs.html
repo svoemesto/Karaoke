@@ -759,16 +759,6 @@
             }
         }
 
-        function doTextYoutubeLyricsBtWOHeader() {
-            var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textyoutubelyricsbtwoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
-            }
-        }
 
         function doTextYoutubeKaraokeWOHeader() {
             var id = el_id.value;
@@ -781,16 +771,6 @@
             }
         }
 
-        function doTextYoutubeKaraokeBtWOHeader() {
-            var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textyoutubekaraokebtwoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
-            }
-        }
 
         function doTextYoutubeChordsWOHeader() {
             var id = el_id.value;
@@ -803,16 +783,6 @@
             }
         }
 
-        function doTextYoutubeChordsBtWOHeader() {
-            var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textyoutubechordsbtwoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
-            }
-        }
 
 
         function doTextYoutubeLyricsHeader() {
@@ -826,16 +796,6 @@
             }
         }
 
-        function doTextYoutubeLyricsBtHeader() {
-            var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textyoutubelyricsbtheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
-            }
-        }
 
         function doTextYoutubeKaraokeHeader() {
             var id = el_id.value;
@@ -848,16 +808,6 @@
             }
         }
 
-        function doTextYoutubeKaraokeBtHeader() {
-            var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textyoutubekaraokebtheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
-            }
-        }
 
         function doTextYoutubeChordsHeader() {
             var id = el_id.value;
@@ -870,33 +820,10 @@
             }
         }
 
-        function doTextYoutubeChordsBtHeader() {
-            var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textyoutubechordsbtheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
-            }
-        }
-
         function doTextVkLyricsWOHeader() {
             var id = el_id.value;
             var request = new XMLHttpRequest();
             request.open('GET', "/song/" + id + "/textvklyricswoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
-                // alert(result);
-            }
-        }
-
-        function doTextVkLyricsBtWOHeader() {
-            var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textvklyricsbtwoheader", false);
             request.send();
             if (request.status === 200) {
                 var result = request.responseText;
@@ -917,17 +844,6 @@
             }
         }
 
-        function doTextVkKaraokeBtWOHeader() {
-            var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textvkkaraokebtwoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
-                // alert(result);
-            }
-        }
 
         function doTextVkChordsWOHeader() {
             var id = el_id.value;
@@ -941,17 +857,6 @@
             }
         }
 
-        function doTextVkChordsBtWOHeader() {
-            var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textvkchordsbtwoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
-                // alert(result);
-            }
-        }
 
 
         function doTextVkLyricsHeader() {
@@ -966,17 +871,7 @@
             }
         }
 
-        function doTextVkLyricsBtHeader() {
-            var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textvklyricsbtheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
-                // alert(result);
-            }
-        }
+
 
         function doTextVkKaraokeHeader() {
             var id = el_id.value;
@@ -990,17 +885,6 @@
             }
         }
 
-        function doTextVkKaraokeBtHeader() {
-            var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textvkkaraokebtheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
-                // alert(result);
-            }
-        }
 
         function doTextVkChordsHeader() {
             var id = el_id.value;
@@ -1014,17 +898,6 @@
             }
         }
 
-        function doTextVkChordsBtHeader() {
-            var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textvkchordsbtheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
-                // alert(result);
-            }
-        }
 
 
 
@@ -1041,17 +914,6 @@
             }
         }
 
-        function doTextTelegramLyricsBtWOHeader() {
-            var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/texttelegramlyricsbtwoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
-                // alert(result);
-            }
-        }
 
         function doTextTelegramKaraokeWOHeader() {
             var id = el_id.value;
@@ -1065,17 +927,6 @@
             }
         }
 
-        function doTextTelegramKaraokeBtWOHeader() {
-            var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/texttelegramkaraokebtwoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
-                // alert(result);
-            }
-        }
 
         function doTextTelegramChordsWOHeader() {
             var id = el_id.value;
@@ -1089,17 +940,6 @@
             }
         }
 
-        function doTextTelegramChordsBtWOHeader() {
-            var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/texttelegramchordsbtwoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
-                // alert(result);
-            }
-        }
 
 
         function doTextTelegramLyricsHeader() {
@@ -1114,17 +954,6 @@
             }
         }
 
-        function doTextTelegramLyricsBtHeader() {
-            var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/texttelegramlyricsbtheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
-                // alert(result);
-            }
-        }
 
         function doTextTelegramKaraokeHeader() {
             var id = el_id.value;
@@ -1138,17 +967,6 @@
             }
         }
 
-        function doTextTelegramKaraokeBtHeader() {
-            var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/texttelegramkaraokebtheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
-                // alert(result);
-            }
-        }
 
         function doTextTelegramChordsHeader() {
             var id = el_id.value;
@@ -1162,17 +980,7 @@
             }
         }
 
-        function doTextTelegramChordsBtHeader() {
-            var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/texttelegramchordsbtheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                navigator.clipboard.writeText(result);
-                // alert(result);
-            }
-        }
+
 
 
 
@@ -1570,21 +1378,6 @@
 
         }
 
-        function openLinkYoutubeEditKaraokeBt() {
-
-            var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textyoutubekaraokebtwoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                copyToClipboard(result);
-                var link =prefix_link_dzen_edit + el_idYoutubeKaraokeBt.value;
-                window.open(link, '_blank');
-            }
-
-        }
-
         function openLinkYoutubeEditLyrics() {
 
             var id = el_id.value;
@@ -1600,20 +1393,7 @@
 
         }
 
-        function openLinkYoutubeEditLyricsBt() {
 
-            var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textyoutubelyricsbtwoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                copyToClipboard(result);
-                var link = prefix_link_dzen_edit + el_idYoutubeLyricsBt.value;
-                window.open(link, '_blank');
-            }
-
-        }
 
         function openLinkYoutubeEditChords() {
 
@@ -1630,20 +1410,6 @@
 
         }
 
-        function openLinkYoutubeEditChordsBt() {
-
-            var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textyoutubechordsbtwoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                copyToClipboard(result);
-                var link = prefix_link_dzen_edit + el_idYoutubeChordsBt.value;
-                window.open(link, '_blank');
-            }
-
-        }
 
 
 
@@ -1657,17 +1423,6 @@
             navigator.clipboard.writeText(link);
         }
 
-        function openLinkYoutubePlayKaraokeBt() {
-            var link = prefix_link_dzen_play + el_idYoutubeKaraokeBt.value
-            window.open(link, '_blank');
-            var id = el_id.value;
-        }
-
-        function doYoutubeKaraokeBtLink() {
-            var link = prefix_link_dzen_play + el_idYoutubeKaraokeBt.value
-            navigator.clipboard.writeText(link);
-        }
-
         function openLinkYoutubePlayLyrics() {
             var link = prefix_link_dzen_play + el_idYoutubeLyrics.value
             window.open(link, '_blank');
@@ -1677,11 +1432,6 @@
         function doYoutubeLyricsLink() {
             var link = prefix_link_dzen_play + el_idYoutubeLyrics.value
             navigator.clipboard.writeText(link);
-        }
-
-        function openLinkYoutubePlayLyricsBt() {
-            var link = prefix_link_dzen_play + el_idYoutubeLyricsBt.value
-            window.open(link, '_blank');
         }
 
         function doYoutubeLyricsBtLink() {
@@ -1698,18 +1448,6 @@
             var link = prefix_link_dzen_play + el_idYoutubeChords.value
             navigator.clipboard.writeText(link);
         }
-
-        function openLinkYoutubePlayChordsBt() {
-            var link = prefix_link_dzen_play + el_idYoutubeChordsBt.value
-            window.open(link, '_blank');
-        }
-
-        function doYoutubeChordsBtLink() {
-            var link = prefix_link_dzen_play + el_idYoutubeChordsBt.value
-            navigator.clipboard.writeText(link);
-        }
-
-
 
         function openLinkVkEditKaraoke() {
 
@@ -1728,26 +1466,6 @@
 
         function doVkKaraokeLink() {
             var link = prefix_link_vk_play + el_idVkKaraoke.value;
-            navigator.clipboard.writeText(link);
-        }
-
-        function openLinkVkEditKaraokeBt() {
-
-            var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textvkkaraokebtwoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                copyToClipboard(result)
-                var link = prefix_link_vk_edit + el_idVkKaraokeBt.value;
-                window.open(link, '_blank');
-            }
-
-        }
-
-        function doVkKaraokeBtLink() {
-            var link = prefix_link_vk_play + el_idVkKaraokeBt.value;
             navigator.clipboard.writeText(link);
         }
 
@@ -1771,26 +1489,6 @@
             navigator.clipboard.writeText(link);
         }
 
-        function openLinkVkEditLyricsBt() {
-
-            var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textvklyricsbtwoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                copyToClipboard(result)
-                var link = prefix_link_vk_edit + el_idVkLyricsBt.value;
-                window.open(link, '_blank');
-            }
-
-        }
-
-        function doVkLyricsBtLink() {
-            var link = prefix_link_vk_play + el_idVkLyricsBt.value;
-            navigator.clipboard.writeText(link);
-        }
-
         function openLinkVkEditChords() {
 
             var id = el_id.value;
@@ -1811,26 +1509,6 @@
             navigator.clipboard.writeText(link);
         }
 
-        function openLinkVkEditChordsBt() {
-
-            var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textvkchordsbtwoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                copyToClipboard(result)
-                var link = prefix_link_vk_edit + el_idVkChordsBt.value;
-                window.open(link, '_blank');
-            }
-
-        }
-
-        function doVkChordsBtLink() {
-            var link = prefix_link_vk_play + el_idVkChordsBt.value;
-            navigator.clipboard.writeText(link);
-        }
-
         function openLinkVkPlayKaraoke() {
 
             var id = el_id.value;
@@ -1844,12 +1522,6 @@
                 window.open(link, '_blank');
             }
 
-        }
-
-        function openLinkVkPlayKaraokeBt() {
-            var link = prefix_link_vk_play + el_idVkKaraokeBt.value
-            window.open(link, '_blank');
-            var id = el_id.value;
         }
 
         function openLinkVkPlayLyrics() {
@@ -1867,20 +1539,11 @@
 
         }
 
-        function openLinkVkPlayLyricsBt() {
-            var link = "https://vkvideo.ru/video" + el_idVkLyricsBt.value
-            window.open(link, '_blank');
-        }
-
         function openLinkVkPlayChords() {
             var link = prefix_link_vk_play + el_idVkChords.value
             window.open(link, '_blank');
         }
 
-        function openLinkVkPlayChordsBt() {
-            var link = prefix_link_vk_play + el_idVkChordsBt.value
-            window.open(link, '_blank');
-        }
 
 
 
@@ -1910,25 +1573,6 @@
             navigator.clipboard.writeText(link);
         }
 
-        function openLinkTelegramEditKaraokeBt() {
-
-            var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/texttelegramkaraokebtwoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                copyToClipboard(result)
-                var link = prefix_link_telegram_edit + el_idTelegramKaraokeBt.value;
-                window.open(link, '_blank');
-            }
-
-        }
-
-        function doTelegramKaraokeBtLink() {
-            var link = prefix_link_telegram_play + el_idTelegramKaraokeBt.value;
-            navigator.clipboard.writeText(link);
-        }
 
         function openLinkTelegramEditLyrics() {
 
@@ -1950,25 +1594,6 @@
             navigator.clipboard.writeText(link);
         }
 
-        function openLinkTelegramEditLyricsBt() {
-
-            var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/texttelegramlyricsbtwoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                copyToClipboard(result)
-                var link = prefix_link_telegram_edit + el_idTelegramLyricsBt.value;
-                window.open(link, '_blank');
-            }
-
-        }
-
-        function doTelegramLyricsBtLink() {
-            var link = prefix_link_telegram_play + el_idTelegramLyricsBt.value;
-            navigator.clipboard.writeText(link);
-        }
 
         function openLinkTelegramEditChords() {
 
@@ -1990,36 +1615,12 @@
             navigator.clipboard.writeText(link);
         }
 
-        function openLinkTelegramEditChordsBt() {
-
-            var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/texttelegramchordsbtwoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                copyToClipboard(result)
-                var link = prefix_link_telegram_edit + el_idTelegramChordsBt.value;
-                window.open(link, '_blank');
-            }
-
-        }
-
-        function doTelegramChordsBtLink() {
-            var link = prefix_link_telegram_play + el_idTelegramChordsBt.value;
-            navigator.clipboard.writeText(link);
-        }
 
         function openLinkTelegramPlayKaraoke() {
             var link = prefix_link_telegram_play + el_idTelegramKaraoke.value
             window.open(link, '_blank');
         }
 
-        function openLinkTelegramPlayKaraokeBt() {
-            var link = prefix_link_telegram_play + el_idTelegramKaraokeBt.value
-            window.open(link, '_blank');
-            var id = el_id.value;
-        }
 
         function openLinkTelegramPlayLyrics() {
             var link = prefix_link_telegram_play + el_idTelegramLyrics.value
@@ -2027,25 +1628,10 @@
 
         }
 
-        function openLinkTelegramPlayLyricsBt() {
-            var link = prefix_link_telegram_play + el_idTelegramLyricsBt.value
-            window.open(link, '_blank');
-        }
-
         function openLinkTelegramPlayChords() {
             var link = prefix_link_telegram_play + el_idTelegramChords.value
             window.open(link, '_blank');
         }
-
-        function openLinkTelegramPlayChordsBt() {
-            var link = prefix_link_telegram_play + el_idTelegramChordsBt.value
-            window.open(link, '_blank');
-        }
-
-
-
-
-
 
 
         function copyToClipboard(text) {

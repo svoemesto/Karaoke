@@ -25,7 +25,7 @@ fun getVoices(settings: Settings, songVersion: SongVersion) : List<SettingVoice>
         voice.rootSongLengthMs = settings.songLengthMs
         voice.rootStartSilentOffsetMs = settings.getStartSilentOffsetMs()
 
-        val voiceMarkers = settings.sourceMarkersList[voiceIndex]
+        val voiceMarkers = settings.sourceMarkersList[voiceIndex].filter { it.markertype in songVersion.markertypes.map { it.value } }
         var groupId = 0
         var endTimeMs = 0L
         val lines: MutableList<SettingVoiceLine> = mutableListOf()
@@ -100,10 +100,13 @@ fun getVoices(settings: Settings, songVersion: SongVersion) : List<SettingVoice>
                     }
                     currentText = ""
                 }
-                Markertype.SYLLABLES.value -> {
+                Markertype.SYLLABLES.value, Markertype.NOTE.value -> {
 
                     val textSyllable = if (sourceMarker.label.isNotEmpty()) {
                         var txt = sourceMarker.label.replace("_", " ")
+                        if (sourceMarker.markertype == Markertype.NOTE.value) {
+                            txt = " . "
+                        }
                         if (tmpTextSyllables.isEmpty()){
                             txt = txt.uppercaseFirstLetter()
                             prevTextSyllable = null
@@ -129,7 +132,7 @@ fun getVoices(settings: Settings, songVersion: SongVersion) : List<SettingVoice>
 
                     lastTextLineWasComment = false
                 }
-                Markertype.ENDOFSYLLABLES.value -> {
+                Markertype.ENDOFSYLLABLES.value, Markertype.ENDOF_NOTE.value -> {
 
                     var txt = "⸳"
 
@@ -156,7 +159,7 @@ fun getVoices(settings: Settings, songVersion: SongVersion) : List<SettingVoice>
                     prevTextSyllable = textSyllable
                     currentText += txt
                 }
-                Markertype.ENDOFLINE.value -> {
+                Markertype.ENDOFLINE.value, Markertype.EOL_NOTE.value -> {
 
                     prevTextSyllable = null
                     currentText = ""
@@ -222,13 +225,13 @@ fun getVoices(settings: Settings, songVersion: SongVersion) : List<SettingVoice>
                     }
 
                 }
-                Markertype.NEWLINE.value -> {
+                Markertype.NEWLINE.value, Markertype.NEWLINE_NOTE.value -> {
                     currentText = ""
                     if (tmpLines.isNotEmpty()) {
                         tmpLines.add(SettingVoiceLine.newLine(settings.id,timeMs,groupId))
                     }
                 }
-                else -> {} // "unmute", "chord", "beat", "note"
+                else -> {} // "unmute", "chord", "beat", "note" и т.п.
             }
         }
 

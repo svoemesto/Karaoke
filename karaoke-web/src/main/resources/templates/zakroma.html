@@ -293,8 +293,8 @@
     <div id="areaBody">
 
 
-        <div id="areaCenterColumn" style="width: 600px; alignment: center">
-            <div style="width: 600px; align-items: center">
+        <div id="areaCenterColumn" style="width: 800px; alignment: center">
+            <div style="width: 800px; align-items: center">
                 <a href="/"><img src="KARAOKE_LOGO.png" style="width: 300px; display: block; margin: auto"></a>
                 <select style="font-size: 14px; padding: 0;" class="form-control" type="text" id="field_author" name="field_author" th:value="${author_init}">
                     <option value="">(Выберите автора)</option>
@@ -306,7 +306,7 @@
                     <div th:text="${zak.author}" class="author"></div>
                     <div th:each="alb:${zak.albums}">
                         <div th:text="${alb.year}+' - '+${alb.albumName}" class="album"></div>
-                        <table class="table-sm table-hover" id="songsTable" style="width: 580px; height: 100%;">
+                        <table class="table-sm table-hover" id="songsTable" style="width: 780px; height: 100%;">
                             <thead>
                             <td class="td_cell" style="padding: 0">
                                 <div th:text="№" class="head_songtrack" style="text-align: center"></div>
@@ -319,6 +319,12 @@
                             </td>
                             <td class="td_cell" style="padding: 0; min-width: 80px;" colspan="4">
                                 <div th:text="Lyrics" class="head_songname"></div>
+                            </td>
+                            <td class="td_cell" style="padding: 0; min-width: 80px;" colspan="4">
+                                <div th:text="TABS" class="head_songname"></div>
+                            </td>
+                            <td class="td_cell" style="padding: 0; min-width: 80px;" colspan="4">
+                                <div th:text="Chords" class="head_songname"></div>
                             </td>
                             </thead>
                             <tbody>
@@ -526,6 +532,165 @@
                                                 </span>
                                             </div>
                                         </td>
+
+                                        <td class="td_cell" style="padding: 0; border-right-width: 0; width: 20px;">
+                                            <div class="dzen">
+                                                <span th:if="${sett.linkDzenTabs == ''}">
+                                                    <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-dzen-none"></use></svg>
+                                                </span>
+                                                <span th:unless="${sett.linkDzenTabs == ''}">
+                                                     <div
+                                                             style="cursor: pointer"
+                                                             name="link"
+                                                             linkName="dzen"
+                                                             th:linkValue="${sett.linkDzenTabs}"
+                                                             th:songId="${sett.id}"
+                                                             songVersion="tabs"
+                                                     >
+                                                        <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-dzen"></use></svg>
+                                                    </div>
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td class="td_cell" style="padding: 0; border-right-width: 0; border-left-width: 0; width: 20px;">
+                                            <div class="pl">
+                                                <span th:if="${sett.linkPlTabs == ''}">
+                                                    <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-pl-none"></use></svg>
+                                                </span>
+                                                <span th:unless="${sett.linkPlTabs == ''}">
+                                                     <div
+                                                             style="cursor: pointer"
+                                                             name="link"
+                                                             linkName="pl"
+                                                             th:linkValue="${sett.linkPlTabs}"
+                                                             th:songId="${sett.id}"
+                                                             songVersion="tabs"
+                                                     >
+                                                        <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-pl"></use></svg>
+                                                    </div>
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td class="td_cell" style="padding: 0; border-right-width: 0; border-left-width: 0; width: 20px;">
+                                            <div class="vk">
+                                                <span th:if="${sett.linkVkTabs == ''}">
+                                                    <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-vk-none"></use></svg>
+                                                </span>
+                                                <span th:unless="${sett.linkVkTabs == ''}">
+                                                     <div
+                                                             style="cursor: pointer"
+                                                             name="link"
+                                                             linkName="vk"
+                                                             th:linkValue="${sett.linkVkTabs}"
+                                                             th:songId="${sett.id}"
+                                                             songVersion="tabs"
+                                                     >
+                                                        <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-vk"></use></svg>
+                                                    </div>
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td class="td_cell" style="padding: 0; border-left-width: 0; width: 20px;">
+                                            <div class="tg">
+                                                <span th:if="${sett.linkTgTabs == ''}">
+                                                    <div title="Скоро...">
+                                                        <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-tg-none"></use></svg>
+                                                    </div>
+                                                </span>
+                                                <span th:unless="${sett.linkTgTabs == ''}">
+                                                     <div
+                                                             style="cursor: pointer"
+                                                             name="link"
+                                                             linkName="tg"
+                                                             th:linkValue="${sett.linkTgTabs}"
+                                                             th:songId="${sett.id}"
+                                                             songVersion="tabs"
+                                                     >
+                                                        <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-tg"></use></svg>
+                                                    </div>
+                                                </span>
+                                            </div>
+                                        </td>
+
+                                        <td class="td_cell" style="padding: 0; border-right-width: 0; width: 20px;">
+                                            <div class="dzen">
+                                                <span th:if="${sett.linkDzenChords == ''}">
+                                                    <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-dzen-none"></use></svg>
+                                                </span>
+                                                <span th:unless="${sett.linkDzenChords == ''}">
+                                                     <div
+                                                             style="cursor: pointer"
+                                                             name="link"
+                                                             linkName="dzen"
+                                                             th:linkValue="${sett.linkDzenChords}"
+                                                             th:songId="${sett.id}"
+                                                             songVersion="chords"
+                                                     >
+                                                        <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-dzen"></use></svg>
+                                                    </div>
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td class="td_cell" style="padding: 0; border-right-width: 0; border-left-width: 0; width: 20px;">
+                                            <div class="pl">
+                                                <span th:if="${sett.linkPlChords == ''}">
+                                                    <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-pl-none"></use></svg>
+                                                </span>
+                                                <span th:unless="${sett.linkPlChords == ''}">
+                                                     <div
+                                                             style="cursor: pointer"
+                                                             name="link"
+                                                             linkName="pl"
+                                                             th:linkValue="${sett.linkPlChords}"
+                                                             th:songId="${sett.id}"
+                                                             songVersion="chords"
+                                                     >
+                                                        <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-pl"></use></svg>
+                                                    </div>
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td class="td_cell" style="padding: 0; border-right-width: 0; border-left-width: 0; width: 20px;">
+                                            <div class="vk">
+                                                <span th:if="${sett.linkVkChords == ''}">
+                                                    <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-vk-none"></use></svg>
+                                                </span>
+                                                <span th:unless="${sett.linkVkChords == ''}">
+                                                     <div
+                                                             style="cursor: pointer"
+                                                             name="link"
+                                                             linkName="vk"
+                                                             th:linkValue="${sett.linkVkChords}"
+                                                             th:songId="${sett.id}"
+                                                             songVersion="chords"
+                                                     >
+                                                        <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-vk"></use></svg>
+                                                    </div>
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td class="td_cell" style="padding: 0; border-left-width: 0; width: 20px;">
+                                            <div class="tg">
+                                                <span th:if="${sett.linkTgChords == ''}">
+                                                    <div title="Скоро...">
+                                                        <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-tg-none"></use></svg>
+                                                    </div>
+                                                </span>
+                                                <span th:unless="${sett.linkTgChords == ''}">
+                                                     <div
+                                                             style="cursor: pointer"
+                                                             name="link"
+                                                             linkName="tg"
+                                                             th:linkValue="${sett.linkTgChords}"
+                                                             th:songId="${sett.id}"
+                                                             songVersion="chords"
+                                                     >
+                                                        <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-tg"></use></svg>
+                                                    </div>
+                                                </span>
+                                            </div>
+                                        </td>
+
                                     </span>
 
                                 <span th:unless="${sett.onAir == true}">

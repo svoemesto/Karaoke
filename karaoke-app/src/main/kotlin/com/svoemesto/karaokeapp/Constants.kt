@@ -12,7 +12,7 @@ import com.svoemesto.karaokeapp.textfiledictionary.YoWordsDictionary
 import java.awt.Color
 import java.awt.Font
 
-const val CURRENT_RESULT_VERSION = 9L
+const val CURRENT_RESULT_VERSION = 10L
 const val COUNT_HISTORY_LINES = 10
 
 const val COLOR_ALL_DONE = "#7FFFD4"        // Полностью готово
@@ -44,7 +44,7 @@ const val SHADOW = "1;#64000000;3;3;3"
 const val ALIGNMENT = 0L
 const val TYPEWRITER = "0;2;1;0;0"
 val vovels = "ёуеыаоэяиюeuioaїієѣ"
-val LETTERS_VOWEL = "${vovels}${vovels.uppercase()}"
+val LETTERS_VOWEL = "${vovels}${vovels.uppercase()}♪"
 const val NOTES_SYMBOLS = "♬♩♪△▲⬦⬥"
 const val RUSSIN_LETTERS = "ЙЦУКЕНГШЩЗХЪФЫВАПРОЛДЖЭЯЧСМИТЬБЮЁйцукенгшщзхъфывапролджэячсмитьбюё"
 const val DEMUCS_MODEL_NAME = "hdemucs_mmi"

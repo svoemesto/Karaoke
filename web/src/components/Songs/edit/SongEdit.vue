@@ -556,6 +556,7 @@ export default {
     prefixLinkDzenPlay: () => { return 'https://dzen.ru/video/watch/'; },
     prefixLinkDzenEdit: () => { return 'https://dzen.ru/profile/editor/svoemesto/publications?videoEditorPublicationId='; },
     prefixLinkVk: () => { return 'https://vkvideo.ru/video'; },
+    prefixLinkVk2: () => { return 'https://vk.com/video'; },
     prefixLinkTelegram: () => { return 'https://t.me/svoemestokaraoke/'; },
 
     prefixLinkPlPlay: () => { return 'https://plvideo.ru/watch?v='; },
@@ -733,7 +734,11 @@ export default {
           const value = this.song.idVkKaraoke;
           if (value && value.startsWith(this.prefixLinkVk)) {
             const newValue = value.replace(this.prefixLinkVk, '');
-            this.$store.dispatch('setCurrentSongField', {name: 'idVkKaraoke', value: newValue})
+            this.$store.dispatch('setCurrentSongField', {name: 'idVkKaraoke', value: newValue});
+          }
+          if (value && value.startsWith(this.prefixLinkVk2)) {
+            const newValue = value.replace(this.prefixLinkVk2, '');
+            this.$store.dispatch('setCurrentSongField', {name: 'idVkKaraoke', value: newValue});
           }
         }
       }
@@ -745,7 +750,11 @@ export default {
           const value = this.song.idVkLyrics;
           if (value && value.startsWith(this.prefixLinkVk)) {
             const newValue = value.replace(this.prefixLinkVk, '');
-            this.$store.dispatch('setCurrentSongField', {name: 'idVkLyrics', value: newValue})
+            this.$store.dispatch('setCurrentSongField', {name: 'idVkLyrics', value: newValue});
+          }
+          if (value && value.startsWith(this.prefixLinkVk2)) {
+            const newValue = value.replace(this.prefixLinkVk2, '');
+            this.$store.dispatch('setCurrentSongField', {name: 'idVkLyrics', value: newValue});
           }
         }
       }
@@ -757,7 +766,11 @@ export default {
           const value = this.song.idVkChords;
           if (value && value.startsWith(this.prefixLinkVk)) {
             const newValue = value.replace(this.prefixLinkVk, '');
-            this.$store.dispatch('setCurrentSongField', {name: 'idVkChords', value: newValue})
+            this.$store.dispatch('setCurrentSongField', {name: 'idVkChords', value: newValue});
+          }
+          if (value && value.startsWith(this.prefixLinkVk2)) {
+            const newValue = value.replace(this.prefixLinkVk2, '');
+            this.$store.dispatch('setCurrentSongField', {name: 'idVkChords', value: newValue});
           }
         }
       }
@@ -769,7 +782,11 @@ export default {
           const value = this.song.idVkMelody;
           if (value && value.startsWith(this.prefixLinkVk)) {
             const newValue = value.replace(this.prefixLinkVk, '');
-            this.$store.dispatch('setCurrentSongField', {name: 'idVkMelody', value: newValue})
+            this.$store.dispatch('setCurrentSongField', {name: 'idVkMelody', value: newValue});
+          }
+          if (value && value.startsWith(this.prefixLinkVk2)) {
+            const newValue = value.replace(this.prefixLinkVk2, '');
+            this.$store.dispatch('setCurrentSongField', {name: 'idVkMelody', value: newValue});
           }
         }
       }

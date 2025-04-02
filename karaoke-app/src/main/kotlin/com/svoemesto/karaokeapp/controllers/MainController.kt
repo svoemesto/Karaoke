@@ -408,6 +408,7 @@ class MainController {
     fun doProcessDemucs2(@PathVariable id: Long): Int {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         settings?.let {
+//            if (it.getAudioAspectRate() != "48000") KaraokeProcess.createProcess(settings, KaraokeProcessTypes.RECODE_48000, true, -1)
             return  KaraokeProcess.createProcess(settings, KaraokeProcessTypes.DEMUCS2, true, -1)
         }
         return 0
@@ -998,6 +999,7 @@ class MainController {
             ids.forEach { id ->
                 val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
                 settings?.let {
+//                    if (it.getAudioAspectRate() != "48000") KaraokeProcess.createProcess(settings, KaraokeProcessTypes.RECODE_48000, true, -1)
                     KaraokeProcess.createProcess(settings, KaraokeProcessTypes.DEMUCS2, true, -1)
                 }
                 result = "OK"

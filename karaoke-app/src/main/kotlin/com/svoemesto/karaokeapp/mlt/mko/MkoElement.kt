@@ -108,7 +108,7 @@ data class MkoElement(
             }
         }
 
-        val subTrackNodes = ProducerType.ELEMENT.childs().reversed().filter {it in songVersion.producers}. map {
+        val subTrackNodes = ProducerType.ELEMENT.childs().asReversed().filter {it in songVersion.producers}. map {
             MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(it, voiceId, lineId, elementId)))
         }
 

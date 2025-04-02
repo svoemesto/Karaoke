@@ -945,7 +945,23 @@ class KaraokeProcess(
                             )
                         )
                     }
-
+//                    KaraokeProcessTypes.RECODE_48000 -> {
+//                        description = "48000"
+//                        args = listOf(
+//                            listOf("rm", settings.fileAbsolutePathTmp.rightFileName()),
+//                            listOf("ffmpeg", "-i", settings.fileAbsolutePath.rightFileName(), "-compression_level", "8", settings.fileAbsolutePathTmp.rightFileName(), "-y"),
+//                            listOf("rm", settings.fileAbsolutePath.rightFileName()),
+//                            listOf("mv", settings.fileAbsolutePathTmp.rightFileName(), settings.fileAbsolutePath.rightFileName()),
+//                            listOf("rm", settings.fileAbsolutePathTmp.rightFileName())
+//                        )
+//                        argsDescription = listOf(
+//                            "48000 - del tmp file",
+//                            "48000 - recode file",
+//                            "48000 - del source file",
+//                            "48000 - cope result",
+//                            "48000 - del tmp file"
+//                        )
+//                    }
                     KaraokeProcessTypes.DEMUCS2 -> {
                         description = "Демукс 2"
                         args = listOf(
@@ -990,8 +1006,8 @@ class KaraokeProcess(
                                 "-n",
                                 DEMUCS_MODEL_NAME,
                                 "-d",
-//                                "cuda",
-                                "cpu",
+                                "cuda",
+//                                "cpu",
                                 "--filename",
                                 "{track}-{stem}.{ext}",
                                 "--two-stems=${settings.separatedStem}",
@@ -1011,8 +1027,8 @@ class KaraokeProcess(
                                 "-n",
                                 DEMUCS_MODEL_NAME,
                                 "-d",
-//                                "cuda",
-                                "cpu",
+                                "cuda",
+//                                "cpu",
                                 "--filename",
                                 "{track}-{stem}.{ext}",
                                 "-o",

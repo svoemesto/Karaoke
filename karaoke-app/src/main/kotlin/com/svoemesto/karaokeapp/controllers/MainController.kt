@@ -1,8 +1,5 @@
 package com.svoemesto.karaokeapp.controllers
 
-import com.fasterxml.jackson.databind.DeserializationFeature
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.SerializationFeature
 import com.svoemesto.karaokeapp.*
 import com.svoemesto.karaokeapp.model.*
 import com.svoemesto.karaokeapp.services.APP_WORK_IN_CONTAINER
@@ -15,7 +12,6 @@ import org.springframework.core.io.FileSystemResource
 import org.springframework.core.io.Resource
 import org.springframework.http.HttpHeaders
 import org.springframework.http.ResponseEntity
-import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.*
@@ -560,9 +556,9 @@ class MainController {
         return text
     }
 
-    @GetMapping("/song/{id}/textyoutubelyrics")
+    @GetMapping("/song/{id}/textdzenlyrics")
     @ResponseBody
-    fun getSongTextYoutubeLyrics(@PathVariable id: Long): String {
+    fun getSongTextDzenLyrics(@PathVariable id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val text = it.getDescription(SongVersion.LYRICS)
@@ -571,9 +567,9 @@ class MainController {
         return text
     }
 
-    @GetMapping("/song/{id}/textyoutubekaraoke")
+    @GetMapping("/song/{id}/textdzenkaraoke")
     @ResponseBody
-    fun getSongTextYoutubeKaraoke(@PathVariable id: Long): String {
+    fun getSongTextDzenKaraoke(@PathVariable id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val text = it.getDescription(SongVersion.KARAOKE)
@@ -582,9 +578,9 @@ class MainController {
         return text
     }
 
-    @GetMapping("/song/{id}/textyoutubechords")
+    @GetMapping("/song/{id}/textdzenchords")
     @ResponseBody
-    fun getSongTextYoutubeChords(@PathVariable id: Long): String {
+    fun getSongTextDzenChords(@PathVariable id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val text = it.getDescription(SongVersion.CHORDS)
@@ -594,9 +590,9 @@ class MainController {
     }
 
 
-    @GetMapping("/song/{id}/textyoutubelyricsheader")
+    @GetMapping("/song/{id}/textdzenlyricsheader")
     @ResponseBody
-    fun getSongTextYoutubeLyricsHeader(@PathVariable id: Long): String {
+    fun getSongTextDzenLyricsHeader(@PathVariable id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val text = it.getDescriptionHeader(SongVersion.LYRICS, 140)
@@ -606,9 +602,9 @@ class MainController {
     }
 
 
-    @GetMapping("/song/{id}/textyoutubekaraokeheader")
+    @GetMapping("/song/{id}/textdzenkaraokeheader")
     @ResponseBody
-    fun getSongTextYoutubeKaraokeHeader(@PathVariable id: Long): String {
+    fun getSongTextDzenKaraokeHeader(@PathVariable id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val text = it.getDescriptionHeader(SongVersion.KARAOKE, 140)
@@ -618,9 +614,9 @@ class MainController {
     }
 
 
-    @GetMapping("/song/{id}/textyoutubechordsheader")
+    @GetMapping("/song/{id}/textdzenchordsheader")
     @ResponseBody
-    fun getSongTextYoutubeChordsHeader(@PathVariable id: Long): String {
+    fun getSongTextDzenChordsHeader(@PathVariable id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val text = it.getDescriptionHeader(SongVersion.CHORDS, 140)
@@ -630,9 +626,9 @@ class MainController {
     }
 
 
-    @GetMapping("/song/{id}/textyoutubelyricswoheader")
+    @GetMapping("/song/{id}/textdzenlyricswoheader")
     @ResponseBody
-    fun getSongTextYoutubeLyricsWOHeader(@PathVariable id: Long): String {
+    fun getSongTextDzenLyricsWOHeader(@PathVariable id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.LYRICS, 5000)
@@ -642,9 +638,9 @@ class MainController {
     }
 
 
-    @GetMapping("/song/{id}/textyoutubekaraokewoheader")
+    @GetMapping("/song/{id}/textdzenkaraokewoheader")
     @ResponseBody
-    fun getSongTextYoutubeKaraokeWOHeader(@PathVariable id: Long): String {
+    fun getSongTextDzenKaraokeWOHeader(@PathVariable id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.KARAOKE, 5000)
@@ -654,9 +650,9 @@ class MainController {
     }
 
 
-    @GetMapping("/song/{id}/textyoutubechordswoheader")
+    @GetMapping("/song/{id}/textdzenchordswoheader")
     @ResponseBody
-    fun getSongTextYoutubeChordsWOHeader(@PathVariable id: Long): String {
+    fun getSongTextDzenChordsWOHeader(@PathVariable id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.CHORDS, 5000)
@@ -1124,9 +1120,9 @@ class MainController {
         @RequestParam(required = false) filter_status: String?,
         @RequestParam(required = false) flag_boosty: String?,
         @RequestParam(required = false) flag_vk: String?,
-        @RequestParam(required = false) flag_youtube_lyrics: String?,
-        @RequestParam(required = false) flag_youtube_karaoke: String?,
-        @RequestParam(required = false) flag_youtube_chords: String?,
+        @RequestParam(required = false) flag_dzen_lyrics: String?,
+        @RequestParam(required = false) flag_dzen_karaoke: String?,
+        @RequestParam(required = false) flag_dzen_chords: String?,
         @RequestParam(required = false) flag_vk_lyrics: String?,
         @RequestParam(required = false) flag_vk_karaoke: String?,
         @RequestParam(required = false) flag_vk_chords: String?,
@@ -1149,9 +1145,9 @@ class MainController {
         filter_status?.let { if (filter_status != "") args["id_status"] = filter_status }
         flag_boosty?.let { if (flag_boosty != "") args["flag_boosty"] = flag_boosty }
         flag_vk?.let { if (flag_vk != "") args["flag_vk"] = flag_vk }
-        flag_youtube_lyrics?.let { if (flag_youtube_lyrics != "") args["flag_youtube_lyrics"] = flag_youtube_lyrics }
-        flag_youtube_karaoke?.let { if (flag_youtube_karaoke != "") args["flag_youtube_karaoke"] = flag_youtube_karaoke }
-        flag_youtube_chords?.let { if (flag_youtube_chords != "") args["flag_youtube_chords"] = flag_youtube_chords }
+        flag_dzen_lyrics?.let { if (flag_dzen_lyrics != "") args["flag_dzen_lyrics"] = flag_dzen_lyrics }
+        flag_dzen_karaoke?.let { if (flag_dzen_karaoke != "") args["flag_dzen_karaoke"] = flag_dzen_karaoke }
+        flag_dzen_chords?.let { if (flag_dzen_chords != "") args["flag_dzen_chords"] = flag_dzen_chords }
         flag_vk_lyrics?.let { if (flag_vk_lyrics != "") args["flag_vk_lyrics"] = flag_vk_lyrics }
         flag_vk_karaoke?.let { if (flag_vk_karaoke != "") args["flag_vk_karaoke"] = flag_vk_karaoke }
         flag_vk_chords?.let { if (flag_vk_chords != "") args["flag_vk_chords"] = flag_vk_chords }
@@ -1184,9 +1180,9 @@ class MainController {
         @RequestParam(required = false) settings_idBoosty: String,
         @RequestParam(required = false) settings_idBoostyFiles: String,
         @RequestParam(required = false) settings_idVk: String,
-        @RequestParam(required = false) settings_idYoutubeLyrics: String,
-        @RequestParam(required = false) settings_idYoutubeKaraoke: String,
-        @RequestParam(required = false) settings_idYoutubeChords: String,
+        @RequestParam(required = false) settings_idDzenLyrics: String,
+        @RequestParam(required = false) settings_idDzenKaraoke: String,
+        @RequestParam(required = false) settings_idDzenChords: String,
         @RequestParam(required = false) settings_idVkLyrics: String,
         @RequestParam(required = false) settings_idVkKaraoke: String,
         @RequestParam(required = false) settings_idVkChords: String,
@@ -1216,9 +1212,9 @@ class MainController {
             sett.fields[SettingField.ID_BOOSTY] = settings_idBoosty
             sett.fields[SettingField.ID_BOOSTY_FILES] = settings_idBoostyFiles
             sett.fields[SettingField.ID_VK] = settings_idVk
-            sett.fields[SettingField.ID_YOUTUBE_LYRICS] = settings_idYoutubeLyrics
-            sett.fields[SettingField.ID_YOUTUBE_KARAOKE] = settings_idYoutubeKaraoke
-            sett.fields[SettingField.ID_YOUTUBE_CHORDS] = settings_idYoutubeChords
+            sett.fields[SettingField.ID_DZEN_LYRICS] = settings_idDzenLyrics
+            sett.fields[SettingField.ID_DZEN_KARAOKE] = settings_idDzenKaraoke
+            sett.fields[SettingField.ID_DZEN_CHORDS] = settings_idDzenChords
             sett.fields[SettingField.ID_VK_LYRICS] = settings_idVkLyrics
             sett.fields[SettingField.ID_VK_KARAOKE] = settings_idVkKaraoke
             sett.fields[SettingField.ID_VK_CHORDS] = settings_idVkChords
@@ -1295,9 +1291,9 @@ class MainController {
         @RequestParam(required = false) filter_status: String?,
         @RequestParam(required = false) flag_boosty: String?,
         @RequestParam(required = false) flag_vk: String?,
-        @RequestParam(required = false) flag_youtube_lyrics: String?,
-        @RequestParam(required = false) flag_youtube_karaoke: String?,
-        @RequestParam(required = false) flag_youtube_chords: String?,
+        @RequestParam(required = false) flag_dzen_lyrics: String?,
+        @RequestParam(required = false) flag_dzen_karaoke: String?,
+        @RequestParam(required = false) flag_dzen_chords: String?,
         @RequestParam(required = false) flag_vk_lyrics: String?,
         @RequestParam(required = false) flag_vk_karaoke: String?,
         @RequestParam(required = false) flag_vk_chords: String?,
@@ -1320,9 +1316,9 @@ class MainController {
         filter_status?.let { if (filter_status != "") args["id_status"] = filter_status }
         flag_boosty?.let { if (flag_boosty != "") args["flag_boosty"] = flag_boosty }
         flag_vk?.let { if (flag_vk != "") args["flag_vk"] = flag_vk }
-        flag_youtube_lyrics?.let { if (flag_youtube_lyrics != "") args["flag_youtube_lyrics"] = flag_youtube_lyrics }
-        flag_youtube_karaoke?.let { if (flag_youtube_karaoke != "") args["flag_youtube_karaoke"] = flag_youtube_karaoke }
-        flag_youtube_chords?.let { if (flag_youtube_chords != "") args["flag_youtube_chords"] = flag_youtube_chords }
+        flag_dzen_lyrics?.let { if (flag_dzen_lyrics != "") args["flag_dzen_lyrics"] = flag_dzen_lyrics }
+        flag_dzen_karaoke?.let { if (flag_dzen_karaoke != "") args["flag_dzen_karaoke"] = flag_dzen_karaoke }
+        flag_dzen_chords?.let { if (flag_dzen_chords != "") args["flag_dzen_chords"] = flag_dzen_chords }
         flag_vk_lyrics?.let { if (flag_vk_lyrics != "") args["flag_vk_lyrics"] = flag_vk_lyrics }
         flag_vk_karaoke?.let { if (flag_vk_karaoke != "") args["flag_vk_karaoke"] = flag_vk_karaoke }
         flag_vk_chords?.let { if (flag_vk_chords != "") args["flag_vk_chords"] = flag_vk_chords }
@@ -1357,9 +1353,9 @@ class MainController {
         @RequestParam(required = false) settings_idBoosty: String,
         @RequestParam(required = false) settings_idBoostyFiles: String,
         @RequestParam(required = false) settings_idVk: String,
-        @RequestParam(required = false) settings_idYoutubeLyrics: String,
-        @RequestParam(required = false) settings_idYoutubeKaraoke: String,
-        @RequestParam(required = false) settings_idYoutubeChords: String,
+        @RequestParam(required = false) settings_idDzenLyrics: String,
+        @RequestParam(required = false) settings_idDzenKaraoke: String,
+        @RequestParam(required = false) settings_idDzenChords: String,
         @RequestParam(required = false) settings_idVkLyrics: String,
         @RequestParam(required = false) settings_idVkKaraoke: String,
         @RequestParam(required = false) settings_idVkChords: String,
@@ -1389,9 +1385,9 @@ class MainController {
             sett.fields[SettingField.ID_BOOSTY] = settings_idBoosty
             sett.fields[SettingField.ID_BOOSTY_FILES] = settings_idBoostyFiles
             sett.fields[SettingField.ID_VK] = settings_idVk
-            sett.fields[SettingField.ID_YOUTUBE_LYRICS] = settings_idYoutubeLyrics
-            sett.fields[SettingField.ID_YOUTUBE_KARAOKE] = settings_idYoutubeKaraoke
-            sett.fields[SettingField.ID_YOUTUBE_CHORDS] = settings_idYoutubeChords
+            sett.fields[SettingField.ID_DZEN_LYRICS] = settings_idDzenLyrics
+            sett.fields[SettingField.ID_DZEN_KARAOKE] = settings_idDzenKaraoke
+            sett.fields[SettingField.ID_DZEN_CHORDS] = settings_idDzenChords
             sett.fields[SettingField.ID_VK_LYRICS] = settings_idVkLyrics
             sett.fields[SettingField.ID_VK_KARAOKE] = settings_idVkKaraoke
             sett.fields[SettingField.ID_VK_CHORDS] = settings_idVkChords

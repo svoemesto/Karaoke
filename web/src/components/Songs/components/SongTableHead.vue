@@ -16,8 +16,8 @@
           <song-table-head-td @change-field="changeField" @apply-filter="applyFilter" :fld="resultVersion" name="resultVersion"/>
           <song-table-head-td @change-field="changeField" @apply-filter="applyFilter" :fld="flagBoosty" name="flagBoosty"/>
           <song-table-head-td @change-field="changeField" @apply-filter="applyFilter" :fld="flagVk" name="flagVk"/>
-          <song-table-head-td @change-field="changeField" @apply-filter="applyFilter" :fld="flagYoutubeLyrics" name="flagYoutubeLyrics"/>
-          <song-table-head-td @change-field="changeField" @apply-filter="applyFilter" :fld="flagYoutubeKaraoke" name="flagYoutubeKaraoke"/>
+          <song-table-head-td @change-field="changeField" @apply-filter="applyFilter" :fld="flagDzenLyrics" name="flagDzenLyrics"/>
+          <song-table-head-td @change-field="changeField" @apply-filter="applyFilter" :fld="flagDzenKaraoke" name="flagDzenKaraoke"/>
           <song-table-head-td @change-field="changeField" @apply-filter="applyFilter" :fld="flagVkLyrics" name="flagVkLyrics"/>
           <song-table-head-td @change-field="changeField" @apply-filter="applyFilter" :fld="flagVkKaraoke" name="flagVkKaraoke"/>
           <song-table-head-td @change-field="changeField" @apply-filter="applyFilter" :fld="flagTelegramLyrics" name="flagTelegramLyrics"/>
@@ -60,12 +60,22 @@ export default {
       resultVersion: '',
       flagBoosty: '',
       flagVk: '',
-      flagYoutubeLyrics: '',
-      flagYoutubeKaraoke: '',
+      flagDzenLyrics: '',
+      flagDzenKaraoke: '',
+      flagDzenMelody: '',
+      flagDzenChords: '',
       flagVkLyrics: '',
       flagVkKaraoke: '',
+      flagVkMelody: '',
+      flagVkChords: '',
       flagTelegramLyrics: '',
-      flagTelegramKaraoke: ''
+      flagTelegramKaraoke: '',
+      flagTelegramMelody: '',
+      flagTelegramChords: '',
+      flagPlLyrics: '',
+      flagPlKaraoke: '',
+      flagPlMelody: '',
+      flagPlChords: ''
     }
   },
   computed: {
@@ -116,12 +126,22 @@ export default {
       if (this.status) params.filter_status = this.status;
       if (this.flagBoosty) params.flag_boosty = this.flagBoosty;
       if (this.flagVk) params.flag_vk = this.flagVk;
-      if (this.flagYoutubeLyrics) params.flag_youtube_lyrics = this.flagYoutubeLyrics;
-      if (this.flagYoutubeKaraoke) params.flag_youtube_karaoke = this.flagYoutubeKaraoke;
+      if (this.flagDzenLyrics) params.flag_dzen_lyrics = this.flagDzenLyrics;
+      if (this.flagDzenKaraoke) params.flag_dzen_karaoke = this.flagDzenKaraoke;
+      if (this.flagDzenMelody) params.flag_dzen_melody = this.flagDzenMelody;
+      if (this.flagDzenChords) params.flag_dzen_chords = this.flagDzenChords;
       if (this.flagVkLyrics) params.flag_vk_lyrics = this.flagVkLyrics;
       if (this.flagVkKaraoke) params.flag_vk_karaoke = this.flagVkKaraoke;
+      if (this.flagVkMelody) params.flag_vk_melody = this.flagVkMelody;
+      if (this.flagVkChords) params.flag_vk_chords = this.flagVkChords;
       if (this.flagTelegramLyrics) params.flag_telegram_lyrics = this.flagTelegramLyrics;
       if (this.flagTelegramKaraoke) params.flag_telegram_karaoke = this.flagTelegramKaraoke;
+      if (this.flagTelegramMelody) params.flag_telegram_melody = this.flagTelegramMelody;
+      if (this.flagTelegramChords) params.flag_telegram_chords = this.flagTelegramChords;
+      if (this.flagPlLyrics) params.flag_pl_lyrics = this.flagPlLyrics;
+      if (this.flagPlKaraoke) params.flag_pl_karaoke = this.flagPlKaraoke;
+      if (this.flagPlMelody) params.flag_pl_melody = this.flagPlMelody;
+      if (this.flagPlChords) params.flag_pl_chords = this.flagPlChords;
       if (this.resultVersion !== '') params.filter_result_version = this.resultVersion;
       this.$store.dispatch('loadSongsAndDictionaries', params)
     },

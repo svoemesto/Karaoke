@@ -176,7 +176,7 @@ data class SettingVoiceLine(
         textElement(songVersion)?.let {element ->
             val text = element.getSyllables().joinToString("") { it.text }.trim() + "\n"
             val timecode = if (withTimeCode) {
-                convertMillisecondsToYoutubeTimecode(lineStartMs + 8000) + " "
+                convertMillisecondsToDzenTimecode(lineStartMs + 8000) + " "
             } else ""
             return "$timecode$text"
         }
@@ -188,7 +188,7 @@ data class SettingVoiceLine(
         textElement(songVersion)?.let {element ->
             val text = element.getSyllables().joinToString("") { it.text }.trim()
             val timecode = if (withTimeCode) {
-                convertMillisecondsToYoutubeTimecode(lineStartMs + 8000) + " "
+                convertMillisecondsToDzenTimecode(lineStartMs + 8000) + " "
             } else ""
             return "$timecode$text"
         }

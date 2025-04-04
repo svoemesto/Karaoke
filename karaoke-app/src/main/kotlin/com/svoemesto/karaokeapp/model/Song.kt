@@ -680,7 +680,7 @@ data class SongVoiceLine(
         return if (start == "") {
             ""
         } else {
-            convertMillisecondsToYoutubeTimecode(convertTimecodeToMilliseconds(start) + 8000);
+            convertMillisecondsToDzenTimecode(convertTimecodeToMilliseconds(start) + 8000);
         }
     }
 

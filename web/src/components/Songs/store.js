@@ -210,7 +210,7 @@ export default {
                 }
             },
             {
-                name: 'flagYoutubeLyrics',
+                name: 'flagDzenLyrics',
                 params: {
                     width: '20',
                     label: 'ZL',
@@ -223,7 +223,7 @@ export default {
                 }
             },
             {
-                name: 'flagYoutubeKaraoke',
+                name: 'flagDzenKaraoke',
                 params: {
                     width: '20',
                     label: 'ZK',
@@ -542,56 +542,56 @@ export default {
         async getDzenKaraokeHeader(state) {
             return await promisedXMLHttpRequest({
                 method: 'POST',
-                url: "/apis/song/textyoutubekaraokeheader",
+                url: "/apis/song/textdzenkaraokeheader",
                 params: { id: state.currentSongId }
             });
         },
         async getDzenKaraokeBody(state) {
             return await promisedXMLHttpRequest({
                 method: 'POST',
-                url: "/apis/song/textyoutubekaraokewoheader",
+                url: "/apis/song/textdzenkaraokewoheader",
                 params: { id: state.currentSongId }
             });
         },
         async getDzenLyricsHeader(state) {
             return await promisedXMLHttpRequest({
                 method: 'POST',
-                url: "/apis/song/textyoutubelyricsheader",
+                url: "/apis/song/textdzenlyricsheader",
                 params: { id: state.currentSongId }
             });
         },
         async getDzenLyricsBody(state) {
             return await promisedXMLHttpRequest({
                 method: 'POST',
-                url: "/apis/song/textyoutubelyricswoheader",
+                url: "/apis/song/textdzenlyricswoheader",
                 params: { id: state.currentSongId }
             });
         },
         async getDzenChordsHeader(state) {
             return await promisedXMLHttpRequest({
                 method: 'POST',
-                url: "/apis/song/textyoutubechordsheader",
+                url: "/apis/song/textdzenchordsheader",
                 params: { id: state.currentSongId }
             });
         },
         async getDzenTabsHeader(state) {
             return await promisedXMLHttpRequest({
                 method: 'POST',
-                url: "/apis/song/textyoutubetabsheader",
+                url: "/apis/song/textdzentabsheader",
                 params: { id: state.currentSongId }
             });
         },
         async getDzenChordsBody(state) {
             return await promisedXMLHttpRequest({
                 method: 'POST',
-                url: "/apis/song/textyoutubechordswoheader",
+                url: "/apis/song/textdzenchordswoheader",
                 params: { id: state.currentSongId }
             });
         },
         async getDzenTabsBody(state) {
             return await promisedXMLHttpRequest({
                 method: 'POST',
-                url: "/apis/song/textyoutubetabswoheader",
+                url: "/apis/song/textdzentabswoheader",
                 params: { id: state.currentSongId }
             });
         },
@@ -1066,6 +1066,7 @@ export default {
             console.log('state.songsDigest', state.songsDigest);
             let songWithIndexesFiltered = state.songPages.map(function (page, pageIndex) {
                 return page.map(function (song, songIndex) {
+                    console.log('song', song);
                     return { song: song, songIndex: songIndex, songId: song.id, pageIndex: pageIndex }
                 });
             }).flatMap(item => item).filter(item => item.songId === currId);
@@ -1085,7 +1086,7 @@ export default {
                 let request = { method: 'POST', url: "/apis/song", params: {id: currId} };
                 promisedXMLHttpRequest(request).then(data => {
                     let songFromRest = JSON.parse(data);
-                    // console.log('Song: ', songFromRest);
+                    console.log('Song: ', songFromRest);
                     if (songFromRest) {
                         const id = songFromRest.id;
 
@@ -1418,6 +1419,11 @@ export default {
         createPictureBoostyTeaserPromise(ctx) {
             let params = { id: ctx.state.currentSongId };
             let request = { method: 'POST', url: "/apis/song/createpictureboostyteaser", params: params };
+            return promisedXMLHttpRequest(request);
+        },
+        createPictureSponsrTeaserPromise(ctx) {
+            let params = { id: ctx.state.currentSongId };
+            let request = { method: 'POST', url: "/apis/song/createpicturesponsrteaser", params: params };
             return promisedXMLHttpRequest(request);
         },
         createPictureBoostyFilesPromise(ctx) {

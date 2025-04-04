@@ -23,8 +23,8 @@
 
     <script type="text/javascript">
 
-        var cntClick_button_link_edit_YoutubeKaraoke = 0;
-        var cntClick_button_link_edit_YoutubeLyrics = 0;
+        var cntClick_button_link_edit_DzenKaraoke = 0;
+        var cntClick_button_link_edit_DzenLyrics = 0;
         var cntClick_button_link_edit_VkKaraoke = 0;
         var cntClick_button_link_edit_VkLyrics = 0;
         var cntClick_button_head_VkKaraoke = 0;
@@ -91,9 +91,9 @@
         var el_idBoosty = document.getElementById("settings_idBoosty");
         var el_idBoostyFiles = document.getElementById("settings_idBoostyFiles");
         var el_idVk = document.getElementById("settings_idVk");
-        var el_idYoutubeLyrics = document.getElementById("settings_idYoutubeLyrics");
-        var el_idYoutubeKaraoke = document.getElementById("settings_idYoutubeKaraoke");
-        var el_idYoutubeChords = document.getElementById("settings_idYoutubeChords");
+        var el_idDzenLyrics = document.getElementById("settings_idDzenLyrics");
+        var el_idDzenKaraoke = document.getElementById("settings_idDzenKaraoke");
+        var el_idDzenChords = document.getElementById("settings_idDzenChords");
         var el_idVkLyrics = document.getElementById("settings_idVkLyrics");
         var el_idVkKaraoke = document.getElementById("settings_idVkKaraoke");
         var el_idVkChords = document.getElementById("settings_idVkChords");
@@ -106,12 +106,12 @@
         var el_button_link_boosty = document.getElementById("button_link_boosty");
         var el_button_link_boostyFiles = document.getElementById("button_link_boostyFiles");
         var el_button_link_vk = document.getElementById("button_link_vk");
-        var el_button_link_play_YoutubeLyrics = document.getElementById("button_link_play_YoutubeLyrics");
-        var el_button_link_edit_YoutubeLyrics = document.getElementById("button_link_edit_YoutubeLyrics");
-        var el_button_link_play_YoutubeKaraoke = document.getElementById("button_link_play_YoutubeKaraoke");
-        var el_button_link_edit_YoutubeKaraoke = document.getElementById("button_link_edit_YoutubeKaraoke");
-        var el_button_link_play_YoutubeChords = document.getElementById("button_link_play_YoutubeChords");
-        var el_button_link_edit_YoutubeChords = document.getElementById("button_link_edit_YoutubeChords");
+        var el_button_link_play_DzenLyrics = document.getElementById("button_link_play_DzenLyrics");
+        var el_button_link_edit_DzenLyrics = document.getElementById("button_link_edit_DzenLyrics");
+        var el_button_link_play_DzenKaraoke = document.getElementById("button_link_play_DzenKaraoke");
+        var el_button_link_edit_DzenKaraoke = document.getElementById("button_link_edit_DzenKaraoke");
+        var el_button_link_play_DzenChords = document.getElementById("button_link_play_DzenChords");
+        var el_button_link_edit_DzenChords = document.getElementById("button_link_edit_DzenChords");
         var el_button_link_play_VkLyrics = document.getElementById("button_link_play_VkLyrics");
         var el_button_link_edit_VkLyrics = document.getElementById("button_link_edit_VkLyrics");
         var el_button_link_play_VkKaraoke = document.getElementById("button_link_play_VkKaraoke");
@@ -148,9 +148,9 @@
             el_idBoosty = document.getElementById("settings_idBoosty");
             el_idBoostyFiles = document.getElementById("settings_idBoostyFiles");
             el_idVk = document.getElementById("settings_idVk");
-            el_idYoutubeLyrics = document.getElementById("settings_idYoutubeLyrics");
-            el_idYoutubeKaraoke = document.getElementById("settings_idYoutubeKaraoke");
-            el_idYoutubeChords = document.getElementById("settings_idYoutubeChords");
+            el_idDzenLyrics = document.getElementById("settings_idDzenLyrics");
+            el_idDzenKaraoke = document.getElementById("settings_idDzenKaraoke");
+            el_idDzenChords = document.getElementById("settings_idDzenChords");
             el_idVkLyrics = document.getElementById("settings_idVkLyrics");
             el_idVkKaraoke = document.getElementById("settings_idVkKaraoke");
             el_idVkChords = document.getElementById("settings_idVkChords");
@@ -163,12 +163,12 @@
             el_button_link_boosty = document.getElementById("button_link_boosty");
             el_button_link_boostyFiles = document.getElementById("button_link_boostyFiles");
             el_button_link_vk = document.getElementById("button_link_vk");
-            el_button_link_play_YoutubeLyrics = document.getElementById("button_link_play_YoutubeLyrics");
-            el_button_link_edit_YoutubeLyrics = document.getElementById("button_link_edit_YoutubeLyrics");
-            el_button_link_play_YoutubeKaraoke = document.getElementById("button_link_play_YoutubeKaraoke");
-            el_button_link_edit_YoutubeKaraoke = document.getElementById("button_link_edit_YoutubeKaraoke");
-            el_button_link_play_YoutubeChords = document.getElementById("button_link_play_YoutubeChords");
-            el_button_link_edit_YoutubeChords = document.getElementById("button_link_edit_YoutubeChords");
+            el_button_link_play_DzenLyrics = document.getElementById("button_link_play_DzenLyrics");
+            el_button_link_edit_DzenLyrics = document.getElementById("button_link_edit_DzenLyrics");
+            el_button_link_play_DzenKaraoke = document.getElementById("button_link_play_DzenKaraoke");
+            el_button_link_edit_DzenKaraoke = document.getElementById("button_link_edit_DzenKaraoke");
+            el_button_link_play_DzenChords = document.getElementById("button_link_play_DzenChords");
+            el_button_link_edit_DzenChords = document.getElementById("button_link_edit_DzenChords");
             el_button_link_play_VkLyrics = document.getElementById("button_link_play_VkLyrics");
             el_button_link_edit_VkLyrics = document.getElementById("button_link_edit_VkLyrics");
             el_button_link_play_VkKaraoke = document.getElementById("button_link_play_VkKaraoke");
@@ -202,9 +202,9 @@
             el_idBoosty.disabled = value;
             el_idBoostyFiles.disabled = value;
             el_idVk.disabled = value;
-            el_idYoutubeLyrics.disabled = value;
-            el_idYoutubeKaraoke.disabled = value;
-            el_idYoutubeChords.disabled = value;
+            el_idDzenLyrics.disabled = value;
+            el_idDzenKaraoke.disabled = value;
+            el_idDzenChords.disabled = value;
             el_idVkLyrics.disabled = value;
             el_idVkKaraoke.disabled = value;
             el_idVkChords.disabled = value;
@@ -217,12 +217,12 @@
             el_button_link_boosty.disabled = value; // (el_idBoosty.value === '');
             el_button_link_boostyFiles.disabled = value; //(el_idBoostyFiles.value === '');
             el_button_link_vk.disabled = (el_idVk.value === '');
-            el_button_link_play_YoutubeLyrics.disabled = (el_idYoutubeLyrics.value === '');
-            el_button_link_edit_YoutubeLyrics.disabled = (el_idYoutubeLyrics.value === '');
-            el_button_link_play_YoutubeKaraoke.disabled = (el_idYoutubeKaraoke.value === '');
-            el_button_link_edit_YoutubeKaraoke.disabled = (el_idYoutubeKaraoke.value === '');
-            el_button_link_play_YoutubeChords.disabled = (el_idYoutubeChords.value === '');
-            el_button_link_edit_YoutubeChords.disabled = (el_idYoutubeChords.value === '');
+            el_button_link_play_DzenLyrics.disabled = (el_idDzenLyrics.value === '');
+            el_button_link_edit_DzenLyrics.disabled = (el_idDzenLyrics.value === '');
+            el_button_link_play_DzenKaraoke.disabled = (el_idDzenKaraoke.value === '');
+            el_button_link_edit_DzenKaraoke.disabled = (el_idDzenKaraoke.value === '');
+            el_button_link_play_DzenChords.disabled = (el_idDzenChords.value === '');
+            el_button_link_edit_DzenChords.disabled = (el_idDzenChords.value === '');
 
             el_button_link_play_VkLyrics.disabled = (el_idVkLyrics.value === '');
             el_button_link_edit_VkLyrics.disabled = (el_idVkLyrics.value === '');
@@ -276,9 +276,9 @@
             el_idBoosty.value = document.getElementById(`fld_${id}_idBoosty`).innerText;
             el_idBoostyFiles.value = document.getElementById(`fld_${id}_idBoostyFiles`).innerText;
             el_idVk.value = document.getElementById(`fld_${id}_idVk`).innerText;
-            el_idYoutubeLyrics.value = document.getElementById(`fld_${id}_idYoutubeLyrics`).innerText;
-            el_idYoutubeKaraoke.value = document.getElementById(`fld_${id}_idYoutubeKaraoke`).innerText;
-            el_idYoutubeChords.value = document.getElementById(`fld_${id}_idYoutubeChords`).innerText;
+            el_idDzenLyrics.value = document.getElementById(`fld_${id}_idDzenLyrics`).innerText;
+            el_idDzenKaraoke.value = document.getElementById(`fld_${id}_idDzenKaraoke`).innerText;
+            el_idDzenChords.value = document.getElementById(`fld_${id}_idDzenChords`).innerText;
             el_idVkLyrics.value = document.getElementById(`fld_${id}_idVkLyrics`).innerText;
             el_idVkKaraoke.value = document.getElementById(`fld_${id}_idVkKaraoke`).innerText;
             el_idVkChords.value = document.getElementById(`fld_${id}_idVkChords`).innerText;
@@ -299,8 +299,8 @@
             getSongPictureAuthor();
             getSongPictureAlbum();
 
-            cntClick_button_link_edit_YoutubeKaraoke = 0;
-            cntClick_button_link_edit_YoutubeLyrics = 0;
+            cntClick_button_link_edit_DzenKaraoke = 0;
+            cntClick_button_link_edit_DzenLyrics = 0;
             cntClick_button_link_edit_VkKaraoke = 0;
             cntClick_button_link_edit_VkLyrics = 0;
             cntClick_button_head_VkKaraoke = 0;
@@ -329,12 +329,12 @@
             }
 
             el_button_link_vk.href = prefix_link_vk_wall + el_idVk.value;
-            el_button_link_play_YoutubeLyrics.href = prefix_link_dzen_play + el_idYoutubeLyrics.value
-            el_button_link_edit_YoutubeLyrics.href = prefix_link_dzen_edit + el_idYoutubeLyrics.value
-            el_button_link_play_YoutubeKaraoke.href = prefix_link_dzen_play + el_idYoutubeKaraoke.value
-            el_button_link_edit_YoutubeKaraoke.href = prefix_link_dzen_edit + el_idYoutubeKaraoke.value
-            el_button_link_play_YoutubeChords.href = prefix_link_dzen_play + el_idYoutubeChords.value
-            el_button_link_edit_YoutubeChords.href = prefix_link_dzen_edit + el_idYoutubeChords.value
+            el_button_link_play_DzenLyrics.href = prefix_link_dzen_play + el_idDzenLyrics.value
+            el_button_link_edit_DzenLyrics.href = prefix_link_dzen_edit + el_idDzenLyrics.value
+            el_button_link_play_DzenKaraoke.href = prefix_link_dzen_play + el_idDzenKaraoke.value
+            el_button_link_edit_DzenKaraoke.href = prefix_link_dzen_edit + el_idDzenKaraoke.value
+            el_button_link_play_DzenChords.href = prefix_link_dzen_play + el_idDzenChords.value
+            el_button_link_edit_DzenChords.href = prefix_link_dzen_edit + el_idDzenChords.value
 
             el_button_link_play_VkLyrics.href = prefix_link_vk_play + el_idVkLyrics.value
             el_button_link_edit_VkLyrics.href = prefix_link_vk_edit + el_idVkLyrics.value
@@ -366,8 +366,8 @@
                 highlightElement(document.getElementById(`fld_${id}_time`), isSelected);
                 highlightElement(document.getElementById(`fld_${id}_flagBoosty`), isSelected);
                 highlightElement(document.getElementById(`fld_${id}_flagVk`), isSelected);
-                highlightElement(document.getElementById(`fld_${id}_flagYoutubeLyrics`), isSelected);
-                highlightElement(document.getElementById(`fld_${id}_flagYoutubeKaraoke`), isSelected);
+                highlightElement(document.getElementById(`fld_${id}_flagDzenLyrics`), isSelected);
+                highlightElement(document.getElementById(`fld_${id}_flagDzenKaraoke`), isSelected);
                 highlightElement(document.getElementById(`fld_${id}_flagVkLyrics`), isSelected);
                 highlightElement(document.getElementById(`fld_${id}_flagVkKaraoke`), isSelected);
                 highlightElement(document.getElementById(`fld_${id}_flagTelegramLyrics`), isSelected);
@@ -399,15 +399,15 @@
         }
 
         function setButtonLinkEditStyle() {
-            var el2 = document.getElementById("button_link_edit_YoutubeKaraoke");
-            var el3 = document.getElementById("button_link_edit_YoutubeLyrics");
+            var el2 = document.getElementById("button_link_edit_DzenKaraoke");
+            var el3 = document.getElementById("button_link_edit_DzenLyrics");
             var el4 = document.getElementById("button_link_edit_VkKaraoke");
             var el1 = document.getElementById("button_link_edit_VkLyrics");
             var el5 = document.getElementById("button_head_VkKaraoke");
             var el6 = document.getElementById("button_head_VkLyrics");
             var el7 = document.getElementById("button_body_VkKaraoke");
             var el8 = document.getElementById("button_body_VkLyrics");
-            switch (cntClick_button_link_edit_YoutubeKaraoke) {
+            switch (cntClick_button_link_edit_DzenKaraoke) {
                 case 1:
                     el2.classList.remove('btn-warning');
                     el2.classList.remove('btn-info');
@@ -424,7 +424,7 @@
                     el2.className = "form-control btn btn-block btn-warning";
             }
 
-            switch (cntClick_button_link_edit_YoutubeLyrics) {
+            switch (cntClick_button_link_edit_DzenLyrics) {
 
                 case 1:
                     el3.classList.remove('btn-warning');
@@ -607,9 +607,9 @@
                 "&filter_status=" + filter_status +
                 "&flag_boosty=" + filter_flag_boosty +
                 "&flag_vk=" + filter_flag_vk +
-                "&flag_youtube_lyrics=" + filter_flag_yl +
-                "&flag_youtube_karaoke=" + filter_flag_yk +
-                "&flag_youtube_chords=" + filter_flag_yc +
+                "&flag_dzen_lyrics=" + filter_flag_yl +
+                "&flag_dzen_karaoke=" + filter_flag_yk +
+                "&flag_dzen_chords=" + filter_flag_yc +
                 "&flag_vk_lyrics=" + filter_flag_vkl +
                 "&flag_vk_karaoke=" + filter_flag_vkk +
                 "&flag_vk_chords=" + filter_flag_vkc;
@@ -633,10 +633,10 @@
             }
         }
 
-        function doTextYoutubeLyricsWOHeader() {
+        function doTextDzenLyricsWOHeader() {
             var id = el_id.value;
             var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textyoutubelyricswoheader", false);
+            request.open('GET', "/song/" + id + "/textdzenlyricswoheader", false);
             request.send();
             if (request.status === 200) {
                 var result = request.responseText;
@@ -644,10 +644,10 @@
             }
         }
 
-        function doTextYoutubeLyricsBtWOHeader() {
+        function doTextDzenLyricsBtWOHeader() {
             var id = el_id.value;
             var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textyoutubelyricsbtwoheader", false);
+            request.open('GET', "/song/" + id + "/textdzenlyricsbtwoheader", false);
             request.send();
             if (request.status === 200) {
                 var result = request.responseText;
@@ -655,10 +655,10 @@
             }
         }
 
-        function doTextYoutubeKaraokeWOHeader() {
+        function doTextDzenKaraokeWOHeader() {
             var id = el_id.value;
             var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textyoutubekaraokewoheader", false);
+            request.open('GET', "/song/" + id + "/textdzenkaraokewoheader", false);
             request.send();
             if (request.status === 200) {
                 var result = request.responseText;
@@ -666,10 +666,10 @@
             }
         }
 
-        function doTextYoutubeKaraokeBtWOHeader() {
+        function doTextDzenKaraokeBtWOHeader() {
             var id = el_id.value;
             var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textyoutubekaraokebtwoheader", false);
+            request.open('GET', "/song/" + id + "/textdzenkaraokebtwoheader", false);
             request.send();
             if (request.status === 200) {
                 var result = request.responseText;
@@ -677,10 +677,10 @@
             }
         }
 
-        function doTextYoutubeChordsWOHeader() {
+        function doTextDzenChordsWOHeader() {
             var id = el_id.value;
             var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textyoutubechordswoheader", false);
+            request.open('GET', "/song/" + id + "/textdzenchordswoheader", false);
             request.send();
             if (request.status === 200) {
                 var result = request.responseText;
@@ -688,10 +688,10 @@
             }
         }
 
-        function doTextYoutubeChordsBtWOHeader() {
+        function doTextDzenChordsBtWOHeader() {
             var id = el_id.value;
             var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textyoutubechordsbtwoheader", false);
+            request.open('GET', "/song/" + id + "/textdzenchordsbtwoheader", false);
             request.send();
             if (request.status === 200) {
                 var result = request.responseText;
@@ -700,10 +700,10 @@
         }
 
 
-        function doTextYoutubeLyricsHeader() {
+        function doTextDzenLyricsHeader() {
             var id = el_id.value;
             var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textyoutubelyricsheader", false);
+            request.open('GET', "/song/" + id + "/textdzenlyricsheader", false);
             request.send();
             if (request.status === 200) {
                 var result = request.responseText;
@@ -711,10 +711,10 @@
             }
         }
 
-        function doTextYoutubeLyricsBtHeader() {
+        function doTextDzenLyricsBtHeader() {
             var id = el_id.value;
             var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textyoutubelyricsbtheader", false);
+            request.open('GET', "/song/" + id + "/textdzenlyricsbtheader", false);
             request.send();
             if (request.status === 200) {
                 var result = request.responseText;
@@ -722,10 +722,10 @@
             }
         }
 
-        function doTextYoutubeKaraokeHeader() {
+        function doTextDzenKaraokeHeader() {
             var id = el_id.value;
             var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textyoutubekaraokeheader", false);
+            request.open('GET', "/song/" + id + "/textdzenkaraokeheader", false);
             request.send();
             if (request.status === 200) {
                 var result = request.responseText;
@@ -733,10 +733,10 @@
             }
         }
 
-        function doTextYoutubeKaraokeBtHeader() {
+        function doTextDzenKaraokeBtHeader() {
             var id = el_id.value;
             var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textyoutubekaraokebtheader", false);
+            request.open('GET', "/song/" + id + "/textdzenkaraokebtheader", false);
             request.send();
             if (request.status === 200) {
                 var result = request.responseText;
@@ -744,10 +744,10 @@
             }
         }
 
-        function doTextYoutubeChordsHeader() {
+        function doTextDzenChordsHeader() {
             var id = el_id.value;
             var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textyoutubechordsheader", false);
+            request.open('GET', "/song/" + id + "/textdzenchordsheader", false);
             request.send();
             if (request.status === 200) {
                 var result = request.responseText;
@@ -755,10 +755,10 @@
             }
         }
 
-        function doTextYoutubeChordsBtHeader() {
+        function doTextDzenChordsBtHeader() {
             var id = el_id.value;
             var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textyoutubechordsbtheader", false);
+            request.open('GET', "/song/" + id + "/textdzenchordsbtheader", false);
             request.send();
             if (request.status === 200) {
                 var result = request.responseText;
@@ -1377,7 +1377,7 @@
             }
         }
 
-        function extractYoutubeVideoId(inputElement) {
+        function extractDzenVideoId(inputElement) {
             // Получаем значение из поля ввода
             var inputValue = inputElement.value.trim();
 
@@ -1385,19 +1385,19 @@
                 const id = inputValue.replace(prefix_link_dzen_play, '');
                 inputElement.value = id;
 
-                el_button_link_play_YoutubeLyrics.href = prefix_link_dzen_play + el_idYoutubeLyrics.value;
-                el_button_link_edit_YoutubeLyrics.href = prefix_link_dzen_edit + el_idYoutubeLyrics.value;
-                el_button_link_play_YoutubeKaraoke.href = prefix_link_dzen_play + el_idYoutubeKaraoke.value;
-                el_button_link_edit_YoutubeKaraoke.href = prefix_link_dzen_edit + el_idYoutubeKaraoke.value;
-                el_button_link_play_YoutubeChords.href = prefix_link_dzen_play + el_idYoutubeChords.value;
-                el_button_link_edit_YoutubeChords.href = prefix_link_dzen_edit + el_idYoutubeChords.value;
+                el_button_link_play_DzenLyrics.href = prefix_link_dzen_play + el_idDzenLyrics.value;
+                el_button_link_edit_DzenLyrics.href = prefix_link_dzen_edit + el_idDzenLyrics.value;
+                el_button_link_play_DzenKaraoke.href = prefix_link_dzen_play + el_idDzenKaraoke.value;
+                el_button_link_edit_DzenKaraoke.href = prefix_link_dzen_edit + el_idDzenKaraoke.value;
+                el_button_link_play_DzenChords.href = prefix_link_dzen_play + el_idDzenChords.value;
+                el_button_link_edit_DzenChords.href = prefix_link_dzen_edit + el_idDzenChords.value;
 
-                el_button_link_play_YoutubeLyrics.disabled = (el_idYoutubeLyrics.value === '');
-                el_button_link_edit_YoutubeLyrics.disabled = (el_idYoutubeLyrics.value === '');
-                el_button_link_play_YoutubeKaraoke.disabled = (el_idYoutubeKaraoke.value === '');
-                el_button_link_edit_YoutubeKaraoke.disabled = (el_idYoutubeKaraoke.value === '');
-                el_button_link_play_YoutubeChords.disabled = (el_idYoutubeChords.value === '');
-                el_button_link_edit_YoutubeChords.disabled = (el_idYoutubeChords.value === '');
+                el_button_link_play_DzenLyrics.disabled = (el_idDzenLyrics.value === '');
+                el_button_link_edit_DzenLyrics.disabled = (el_idDzenLyrics.value === '');
+                el_button_link_play_DzenKaraoke.disabled = (el_idDzenKaraoke.value === '');
+                el_button_link_edit_DzenKaraoke.disabled = (el_idDzenKaraoke.value === '');
+                el_button_link_play_DzenChords.disabled = (el_idDzenChords.value === '');
+                el_button_link_edit_DzenChords.disabled = (el_idDzenChords.value === '');
 
             }
         }
@@ -1500,163 +1500,163 @@
             });
         }
 
-        function openLinkYoutubeEditKaraoke() {
+        function openLinkDzenEditKaraoke() {
 
-            cntClick_button_link_edit_YoutubeKaraoke++;
-            if (cntClick_button_link_edit_YoutubeKaraoke > 2) cntClick_button_link_edit_YoutubeKaraoke = 0;
+            cntClick_button_link_edit_DzenKaraoke++;
+            if (cntClick_button_link_edit_DzenKaraoke > 2) cntClick_button_link_edit_DzenKaraoke = 0;
             setButtonLinkEditStyle();
             var id = el_id.value;
             var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textyoutubekaraokewoheader", false);
+            request.open('GET', "/song/" + id + "/textdzenkaraokewoheader", false);
             request.send();
             if (request.status === 200) {
                 var result = request.responseText;
                 copyToClipboard(result);
-                var link = prefix_link_dzen_edit + el_idYoutubeKaraoke.value;
+                var link = prefix_link_dzen_edit + el_idDzenKaraoke.value;
                 window.open(link, '_blank');
             }
 
         }
 
-        function openLinkYoutubeEditKaraokeBt() {
+        function openLinkDzenEditKaraokeBt() {
 
             var id = el_id.value;
             var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textyoutubekaraokebtwoheader", false);
+            request.open('GET', "/song/" + id + "/textdzenkaraokebtwoheader", false);
             request.send();
             if (request.status === 200) {
                 var result = request.responseText;
                 copyToClipboard(result);
-                var link = prefix_link_dzen_edit + el_idYoutubeKaraokeBt.value;
+                var link = prefix_link_dzen_edit + el_idDzenKaraokeBt.value;
                 window.open(link, '_blank');
             }
 
         }
 
-        function openLinkYoutubeEditLyrics() {
+        function openLinkDzenEditLyrics() {
 
-            cntClick_button_link_edit_YoutubeLyrics++;
-            if (cntClick_button_link_edit_YoutubeLyrics > 2) cntClick_button_link_edit_YoutubeLyrics = 0;
+            cntClick_button_link_edit_DzenLyrics++;
+            if (cntClick_button_link_edit_DzenLyrics > 2) cntClick_button_link_edit_DzenLyrics = 0;
             setButtonLinkEditStyle();
 
             var id = el_id.value;
             var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textyoutubelyricswoheader", false);
+            request.open('GET', "/song/" + id + "/textdzenlyricswoheader", false);
             request.send();
             if (request.status === 200) {
                 var result = request.responseText;
                 copyToClipboard(result);
-                var link = prefix_link_dzen_edit + el_idYoutubeLyrics.value;
+                var link = prefix_link_dzen_edit + el_idDzenLyrics.value;
                 window.open(link, '_blank');
             }
 
         }
 
-        function openLinkYoutubeEditLyricsBt() {
+        function openLinkDzenEditLyricsBt() {
 
             var id = el_id.value;
             var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textyoutubelyricsbtwoheader", false);
+            request.open('GET', "/song/" + id + "/textdzenlyricsbtwoheader", false);
             request.send();
             if (request.status === 200) {
                 var result = request.responseText;
                 copyToClipboard(result);
-                var link = prefix_link_dzen_edit + el_idYoutubeLyricsBt.value;
+                var link = prefix_link_dzen_edit + el_idDzenLyricsBt.value;
                 window.open(link, '_blank');
             }
 
         }
 
-        function openLinkYoutubeEditChords() {
+        function openLinkDzenEditChords() {
 
             var id = el_id.value;
             var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textyoutubechordswoheader", false);
+            request.open('GET', "/song/" + id + "/textdzenchordswoheader", false);
             request.send();
             if (request.status === 200) {
                 var result = request.responseText;
                 copyToClipboard(result);
-                var link = prefix_link_dzen_edit + el_idYoutubeChords.value;
+                var link = prefix_link_dzen_edit + el_idDzenChords.value;
                 window.open(link, '_blank');
             }
 
         }
 
-        function openLinkYoutubeEditChordsBt() {
+        function openLinkDzenEditChordsBt() {
 
             var id = el_id.value;
             var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textyoutubechordsbtwoheader", false);
+            request.open('GET', "/song/" + id + "/textdzenchordsbtwoheader", false);
             request.send();
             if (request.status === 200) {
                 var result = request.responseText;
                 copyToClipboard(result);
-                var link = prefix_link_dzen_edit + el_idYoutubeChordsBt.value;
+                var link = prefix_link_dzen_edit + el_idDzenChordsBt.value;
                 window.open(link, '_blank');
             }
 
         }
 
 
-        function openLinkYoutubePlayKaraoke() {
-            var link = prefix_link_dzen_play + el_idYoutubeKaraoke.value;
+        function openLinkDzenPlayKaraoke() {
+            var link = prefix_link_dzen_play + el_idDzenKaraoke.value;
             window.open(link, '_blank');
         }
 
-        function doYoutubeKaraokeLink() {
-            var link = prefix_link_dzen_play + el_idYoutubeKaraoke.value
+        function doDzenKaraokeLink() {
+            var link = prefix_link_dzen_play + el_idDzenKaraoke.value
             navigator.clipboard.writeText(link);
         }
 
-        function openLinkYoutubePlayKaraokeBt() {
-            var link = prefix_link_dzen_play + el_idYoutubeKaraokeBt.value
+        function openLinkDzenPlayKaraokeBt() {
+            var link = prefix_link_dzen_play + el_idDzenKaraokeBt.value
             window.open(link, '_blank');
             var id = el_id.value;
         }
 
-        function doYoutubeKaraokeBtLink() {
-            var link = prefix_link_dzen_play + el_idYoutubeKaraokeBt.value
+        function doDzenKaraokeBtLink() {
+            var link = prefix_link_dzen_play + el_idDzenKaraokeBt.value
             navigator.clipboard.writeText(link);
         }
 
-        function openLinkYoutubePlayLyrics() {
-            var link = prefix_link_dzen_play + el_idYoutubeLyrics.value
+        function openLinkDzenPlayLyrics() {
+            var link = prefix_link_dzen_play + el_idDzenLyrics.value
             window.open(link, '_blank');
 
         }
 
-        function doYoutubeLyricsLink() {
-            var link = prefix_link_dzen_play + el_idYoutubeLyrics.value
+        function doDzenLyricsLink() {
+            var link = prefix_link_dzen_play + el_idDzenLyrics.value
             navigator.clipboard.writeText(link);
         }
 
-        function openLinkYoutubePlayLyricsBt() {
-            var link = prefix_link_dzen_play + el_idYoutubeLyricsBt.value
+        function openLinkDzenPlayLyricsBt() {
+            var link = prefix_link_dzen_play + el_idDzenLyricsBt.value
             window.open(link, '_blank');
         }
 
-        function doYoutubeLyricsBtLink() {
-            var link = prefix_link_dzen_play + el_idYoutubeLyricsBt.value
+        function doDzenLyricsBtLink() {
+            var link = prefix_link_dzen_play + el_idDzenLyricsBt.value
             navigator.clipboard.writeText(link);
         }
 
-        function openLinkYoutubePlayChords() {
-            var link = prefix_link_dzen_play + el_idYoutubeChords.value
+        function openLinkDzenPlayChords() {
+            var link = prefix_link_dzen_play + el_idDzenChords.value
             window.open(link, '_blank');
         }
 
-        function doYoutubeChordsLink() {
-            var link = prefix_link_dzen_play + el_idYoutubeChords.value
+        function doDzenChordsLink() {
+            var link = prefix_link_dzen_play + el_idDzenChords.value
             navigator.clipboard.writeText(link);
         }
 
-        function openLinkYoutubePlayChordsBt() {
-            var link = prefix_link_dzen_play + el_idYoutubeChordsBt.value
+        function openLinkDzenPlayChordsBt() {
+            var link = prefix_link_dzen_play + el_idDzenChordsBt.value
             window.open(link, '_blank');
         }
 
-        function doYoutubeChordsBtLink() {
-            var link = prefix_link_dzen_play + el_idYoutubeChordsBt.value
+        function doDzenChordsBtLink() {
+            var link = prefix_link_dzen_play + el_idDzenChordsBt.value
             navigator.clipboard.writeText(link);
         }
 
@@ -2172,30 +2172,30 @@
                                 }
                                 break;
 
-                            case 'id_youtube_lyrics':
-                                document.getElementById(`fld_${id}_idYoutubeLyrics`).innerText = recordDiffValueNew;
+                            case 'id_dzen_lyrics':
+                                document.getElementById(`fld_${id}_idDzenLyrics`).innerText = recordDiffValueNew;
                                 if (recordDiffValueNew !== "") {
-                                    document.getElementById(`fld_${id}_flagYoutubeLyrics`).innerText = '✓';
+                                    document.getElementById(`fld_${id}_flagDzenLyrics`).innerText = '✓';
                                 } else {
-                                    document.getElementById(`fld_${id}_flagYoutubeLyrics`).innerText = '';
+                                    document.getElementById(`fld_${id}_flagDzenLyrics`).innerText = '';
                                 }
                                 break;
 
-                            case 'id_youtube_karaoke':
-                                document.getElementById(`fld_${id}_idYoutubeKaraoke`).innerText = recordDiffValueNew;
+                            case 'id_dzen_karaoke':
+                                document.getElementById(`fld_${id}_idDzenKaraoke`).innerText = recordDiffValueNew;
                                 if (recordDiffValueNew !== "") {
-                                    document.getElementById(`fld_${id}_flagYoutubeKaraoke`).innerText = '✓';
+                                    document.getElementById(`fld_${id}_flagDzenKaraoke`).innerText = '✓';
                                 } else {
-                                    document.getElementById(`fld_${id}_flagYoutubeKaraoke`).innerText = '';
+                                    document.getElementById(`fld_${id}_flagDzenKaraoke`).innerText = '';
                                 }
                                 break;
 
-                            case 'id_youtube_chords':
-                                document.getElementById(`fld_${id}_idYoutubeChords`).innerText = recordDiffValueNew;
+                            case 'id_dzen_chords':
+                                document.getElementById(`fld_${id}_idDzenChords`).innerText = recordDiffValueNew;
                                 if (recordDiffValueNew !== "") {
-                                    document.getElementById(`fld_${id}_flagYoutubeChords`).innerText = '✓';
+                                    document.getElementById(`fld_${id}_flagDzenChords`).innerText = '✓';
                                 } else {
-                                    document.getElementById(`fld_${id}_flagYoutubeChords`).innerText = '';
+                                    document.getElementById(`fld_${id}_flagDzenChords`).innerText = '';
                                 }
                                 break;
 
@@ -2266,11 +2266,11 @@
                                 break;
 
                             case 'processColorMeltLyrics':
-                                document.getElementById(`fld_${id}_flagYoutubeLyrics`).style.backgroundColor = recordDiffValueNew;
+                                document.getElementById(`fld_${id}_flagDzenLyrics`).style.backgroundColor = recordDiffValueNew;
                                 break;
 
                             case 'processColorMeltKaraoke':
-                                document.getElementById(`fld_${id}_flagYoutubeKaraoke`).style.backgroundColor = recordDiffValueNew;
+                                document.getElementById(`fld_${id}_flagDzenKaraoke`).style.backgroundColor = recordDiffValueNew;
                                 break;
 
                             case 'processColorVkLyrics':
@@ -2311,30 +2311,30 @@
                                 break;
 
                             case 'MELT_LYRICS':
-                                document.getElementById(`fld_${id}_flagYoutubeLyrics`).style.width = recordDiffValueNew;
+                                document.getElementById(`fld_${id}_flagDzenLyrics`).style.width = recordDiffValueNew;
                                 break;
 
                             case 'MELT_KARAOKE':
-                                document.getElementById(`fld_${id}_flagYoutubeKaraoke`).style.width = recordDiffValueNew;
+                                document.getElementById(`fld_${id}_flagDzenKaraoke`).style.width = recordDiffValueNew;
                                 break;
 
                             case 'FF_720_LYR':
                                 console.log("FF_720_LYR");
-                                document.getElementById(`fld_${id}_flagYoutubeLyrics`).style.width = recordDiffValueNew;
+                                document.getElementById(`fld_${id}_flagDzenLyrics`).style.width = recordDiffValueNew;
                                 if (recordDiffValueNew !== "100%") {
-                                    document.getElementById(`fld_${id}_flagYoutubeLyrics`).style.backgroundColor = "#0000FF";
+                                    document.getElementById(`fld_${id}_flagDzenLyrics`).style.backgroundColor = "#0000FF";
                                 } else {
-                                    document.getElementById(`fld_${id}_flagYoutubeLyrics`).style.backgroundColor = "#FF00FF";
+                                    document.getElementById(`fld_${id}_flagDzenLyrics`).style.backgroundColor = "#FF00FF";
                                 }
                                 break;
 
                             case 'FF_720_KAR':
                                 console.log("FF_720_KAR");
-                                document.getElementById(`fld_${id}_flagYoutubeKaraoke`).style.width = recordDiffValueNew;
+                                document.getElementById(`fld_${id}_flagDzenKaraoke`).style.width = recordDiffValueNew;
                                 if (recordDiffValueNew !== "100%") {
-                                    document.getElementById(`fld_${id}_flagYoutubeKaraoke`).style.backgroundColor = "#0000FF";
+                                    document.getElementById(`fld_${id}_flagDzenKaraoke`).style.backgroundColor = "#0000FF";
                                 } else {
-                                    document.getElementById(`fld_${id}_flagYoutubeKaraoke`).style.backgroundColor = "#FF00FF";
+                                    document.getElementById(`fld_${id}_flagDzenKaraoke`).style.backgroundColor = "#FF00FF";
                                 }
                                 break;
 

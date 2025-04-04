@@ -1,16 +1,10 @@
 package com.svoemesto.karaokeapp
 
-import com.svoemesto.karaokeapp.mlt.MltObjectType
-import com.svoemesto.karaokeapp.mlt.MltShape
-import com.svoemesto.karaokeapp.mlt.MltText
 import com.svoemesto.karaokeapp.mlt.mko.*
-import com.svoemesto.karaokeapp.mlt.setting
 import com.svoemesto.karaokeapp.model.ProducerType
 import com.svoemesto.karaokeapp.textfiledictionary.CensoredWordsDictionary
 import com.svoemesto.karaokeapp.textfiledictionary.TestDictionary
 import com.svoemesto.karaokeapp.textfiledictionary.YoWordsDictionary
-import java.awt.Color
-import java.awt.Font
 
 const val CURRENT_RESULT_VERSION = 10L
 const val COUNT_HISTORY_LINES = 10
@@ -69,16 +63,16 @@ const val ODS_COLUMN_TONE = "Тональность"
 const val ODS_COLUMN_BPM = "Темп"
 const val ODS_COLUMN_FORMAT = "Формат"
 const val ODS_COLUMN_BOOSTY = "Boosty"
-const val ODS_COLUMN_YOUTUBE_LIRIC = "Lyric"
-const val ODS_COLUMN_YOUTUBE_LIRIC_BT = "Lyric BT"
-const val ODS_COLUMN_YOUTUBE_KARAOKE = "Karaoke"
-const val ODS_COLUMN_YOUTUBE_KARAOKE_BT = "Karaoke BT"
-const val ODS_COLUMN_YOUTUBE_CHORDS = "Chords"
-const val ODS_COLUMN_YOUTUBE_CHORDS_BT = "Chords BT"
+const val ODS_COLUMN_DZEN_LIRIC = "Lyric"
+const val ODS_COLUMN_DZEN_LIRIC_BT = "Lyric BT"
+const val ODS_COLUMN_DZEN_KARAOKE = "Karaoke"
+const val ODS_COLUMN_DZEN_KARAOKE_BT = "Karaoke BT"
+const val ODS_COLUMN_DZEN_CHORDS = "Chords"
+const val ODS_COLUMN_DZEN_CHORDS_BT = "Chords BT"
 const val URL_PREFIX_SM = "https://sm-karaoke.ru/song?id={REPLACE}"
 const val URL_PREFIX_BOOSTY = "https://boosty.to/svoemesto/posts/{REPLACE}"
-const val URL_PREFIX_YOUTUBE_PLAY = "https://dzen.ru/video/watch/{REPLACE}"
-const val URL_PREFIX_YOUTUBE_EDIT = "https://dzen.ru/profile/editor/svoemesto/publications?videoEditorPublicationId={REPLACE}"
+const val URL_PREFIX_DZEN_PLAY = "https://dzen.ru/video/watch/{REPLACE}"
+const val URL_PREFIX_DZEN_EDIT = "https://dzen.ru/profile/editor/svoemesto/publications?videoEditorPublicationId={REPLACE}"
 const val URL_PREFIX_VK_PLAY = "https://vkvideo.ru/video{REPLACE}"
 const val URL_PREFIX_VK_EDIT = "https://vkvideo.ru/video{REPLACE}"
 const val URL_PREFIX_VK = "https://vk.com/wall-{REPLACE}"

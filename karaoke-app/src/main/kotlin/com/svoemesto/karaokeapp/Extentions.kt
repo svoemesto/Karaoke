@@ -208,3 +208,7 @@ fun String.base64ifFileExists(): String {
     }
 
 }
+
+fun String.stripToNumeric(): String {
+    return this.replace("\\D+".toRegex(), "")
+}

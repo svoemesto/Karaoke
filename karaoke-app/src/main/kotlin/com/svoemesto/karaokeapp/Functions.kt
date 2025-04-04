@@ -1,11 +1,8 @@
 package com.svoemesto.karaokeapp//import model.Lyric
-import com.svoemesto.karaokeapp.mlt.MltProp
 import com.svoemesto.karaokeapp.mlt.getMlt
-import com.svoemesto.karaokeapp.mlt.mko.*
 import com.svoemesto.karaokeapp.model.*
 import com.svoemesto.karaokeapp.services.SNS
 import java.io.File
-import java.lang.Integer.min
 import java.nio.file.Files
 import java.nio.file.attribute.PosixFilePermissions
 //import java.nio.file.Path
@@ -463,6 +460,7 @@ fun createKaraoke(settings: Settings, songVersion: SongVersion) {
 
     createBoostyTeaserPicture(settings)
     createBoostyFilesPicture(settings)
+    createSponsrTeaserPicture(settings)
 //    createVKPicture(settings)
 //    createVKLinkPicture(settings)
     createVKLinkPictureWeb(settings)

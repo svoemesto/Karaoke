@@ -145,7 +145,7 @@
               :style="{ backgroundColor: data.item.processColorVk, color: currentSongId === data.item.id ? 'blue' : 'black' }"
           ></div>
         </template>
-        <template #cell(flagYoutubeLyrics)="data">
+        <template #cell(flagDzenLyrics)="data">
           <div
               class="fld-flag-dzen-lyrics"
               v-text="data.value"
@@ -153,7 +153,7 @@
               :style="{ backgroundColor: data.item.processColorMeltLyrics, color: currentSongId === data.item.id ? 'blue' : 'black' }"
           ></div>
         </template>
-        <template #cell(flagYoutubeKaraoke)="data">
+        <template #cell(flagDzenKaraoke)="data">
           <div
               class="fld-flag-dzen-karaoke"
               v-text="data.value"
@@ -161,7 +161,7 @@
               :style="{ backgroundColor: data.item.processColorMeltKaraoke, color: currentSongId === data.item.id ? 'blue' : 'black' }"
           ></div>
         </template>
-        <template #cell(flagYoutubeChords)="data">
+        <template #cell(flagDzenChords)="data">
           <div
               class="fld-flag-dzen-chords"
               v-text="data.value"
@@ -169,7 +169,7 @@
               :style="{ backgroundColor: data.item.processColorMeltChords, color: currentSongId === data.item.id ? 'blue' : 'black' }"
           ></div>
         </template>
-        <template #cell(flagYoutubeMelody)="data">
+        <template #cell(flagDzenMelody)="data">
           <div
               class="fld-flag-dzen-melody"
               v-text="data.value"
@@ -493,7 +493,7 @@ export default {
           }
         },
         {
-          key: 'flagYoutubeLyrics',
+          key: 'flagDzenLyrics',
           label: 'ZL',
           style: {
             minWidth: '20px',
@@ -503,7 +503,7 @@ export default {
           }
         },
         {
-          key: 'flagYoutubeKaraoke',
+          key: 'flagDzenKaraoke',
           label: 'ZK',
           style: {
             minWidth: '20px',
@@ -513,7 +513,7 @@ export default {
           }
         },
         {
-          key: 'flagYoutubeChords',
+          key: 'flagDzenChords',
           label: 'ZC',
           style: {
             minWidth: '20px',
@@ -523,7 +523,7 @@ export default {
           }
         },
         {
-          key: 'flagYoutubeMelody',
+          key: 'flagDzenMelody',
           label: 'ZM',
           style: {
             minWidth: '20px',

@@ -703,6 +703,9 @@ class KaraokeProcess(
                         val songBoostyPngAbsolute = settings.getOutputFilename(SongOutputFile.PICTUREBOOSTYTEASER)
                         val songBoostyPngRelative = settings.getOutputFilename(SongOutputFile.PICTUREBOOSTYTEASER,relative = true)
                         val songBoostyPngSymlink = "${settings.pathToSymlinkFolderBoostyPNG}/${File(songBoostyPngAbsolute).name}".rightFileName()
+                        val songSponsrPngAbsolute = settings.getOutputFilename(SongOutputFile.PICTURESPONSRTEASER)
+                        val songSponsrPngRelative = settings.getOutputFilename(SongOutputFile.PICTURESPONSRTEASER,relative = true)
+                        val songSponsrPngSymlink = "${settings.pathToSymlinkFolderBoostyPNG}/${File(songSponsrPngAbsolute).name}".rightFileName()
 
 
                         description = "Кодирование LYRICS"
@@ -746,6 +749,7 @@ class KaraokeProcess(
                                 songKaraokePngSymlink.rightFileName().wrapInQuotes(),
                                 songLyricsPngSymlink.rightFileName().wrapInQuotes(),
                                 songBoostyPngSymlink.rightFileName().wrapInQuotes(),
+                                songSponsrPngSymlink.rightFileName().wrapInQuotes(),
                                 songBoostyFilesPngSymlink.rightFileName().wrapInQuotes(),
                             ),
                             // Ссылка на flack песни в папку pathToSymlinkFolderBoostyFiles
@@ -773,6 +777,8 @@ class KaraokeProcess(
 
                             // Ссылка на png boosty в папку pathToSymlinkFolderBoostyPNG
                             listOf("ln", "-s", songBoostyPngRelative.wrapInQuotes(), songBoostyPngSymlink.wrapInQuotes()),
+                            // Ссылка на png sponsr в папку pathToSymlinkFolderBoostyPNG
+                            listOf("ln", "-s", songSponsrPngRelative.wrapInQuotes(), songSponsrPngSymlink.wrapInQuotes()),
                             // Ссылка на png boosty files в папку pathToSymlinkFolderBoostyPNG
                             listOf("ln", "-s", songBoostyFilesPngRelative.wrapInQuotes(), songBoostyFilesPngSymlink.wrapInQuotes()),
                         )
@@ -795,6 +801,7 @@ class KaraokeProcess(
                             "Create SYMLINK KARAOKE PNG",
                             "Create SYMLINK LYRICS PNG",
                             "Create SYMLINK BOOSTY PNG",
+                            "Create SYMLINK SPONSR PNG",
                             "Create SYMLINK FILES PNG"
                         )
                     }
@@ -827,6 +834,9 @@ class KaraokeProcess(
                         val songBoostyPngAbsolute = settings.getOutputFilename(SongOutputFile.PICTUREBOOSTYTEASER)
                         val songBoostyPngRelative = settings.getOutputFilename(SongOutputFile.PICTUREBOOSTYTEASER,relative = true)
                         val songBoostyPngSymlink = "${settings.pathToSymlinkFolderBoostyPNG}/${File(songBoostyPngAbsolute).name}".rightFileName()
+                        val songSponsrPngAbsolute = settings.getOutputFilename(SongOutputFile.PICTURESPONSRTEASER)
+                        val songSponsrPngRelative = settings.getOutputFilename(SongOutputFile.PICTURESPONSRTEASER,relative = true)
+                        val songSponsrPngSymlink = "${settings.pathToSymlinkFolderBoostyPNG}/${File(songSponsrPngAbsolute).name}".rightFileName()
 
 
 
@@ -871,6 +881,7 @@ class KaraokeProcess(
                                 songKaraokePngSymlink.rightFileName().wrapInQuotes(),
                                 songLyricsPngSymlink.rightFileName().wrapInQuotes(),
                                 songBoostyPngSymlink.rightFileName().wrapInQuotes(),
+                                songSponsrPngSymlink.rightFileName().wrapInQuotes(),
                                 songBoostyFilesPngSymlink.rightFileName().wrapInQuotes(),
                             ),
                             // Ссылка на flack песни в папку pathToSymlinkFolderBoostyFiles
@@ -898,6 +909,8 @@ class KaraokeProcess(
 
                             // Ссылка на png boosty в папку pathToSymlinkFolderBoostyPNG
                             listOf("ln", "-s", songBoostyPngRelative.wrapInQuotes(), songBoostyPngSymlink.wrapInQuotes()),
+                            // Ссылка на png sponsr в папку pathToSymlinkFolderBoostyPNG
+                            listOf("ln", "-s", songSponsrPngRelative.wrapInQuotes(), songSponsrPngSymlink.wrapInQuotes()),
                             // Ссылка на png boosty files в папку pathToSymlinkFolderBoostyPNG
                             listOf("ln", "-s", songBoostyFilesPngRelative.wrapInQuotes(), songBoostyFilesPngSymlink.wrapInQuotes()),
                         )
@@ -920,6 +933,7 @@ class KaraokeProcess(
                             "Create SYMLINK KARAOKE PNG",
                             "Create SYMLINK LYRICS PNG",
                             "Create SYMLINK BOOSTY PNG",
+                            "Create SYMLINK SPONSR PNG",
                             "Create SYMLINK FILES PNG"
                         )
                     }
@@ -1214,6 +1228,9 @@ class KaraokeProcess(
                         val songBoostyPngAbsolute = settings.getOutputFilename(SongOutputFile.PICTUREBOOSTYTEASER)
                         val songBoostyPngRelative = settings.getOutputFilename(SongOutputFile.PICTUREBOOSTYTEASER,relative = true)
                         val songBoostyPngSymlink = "${settings.pathToSymlinkFolderBoostyPNG}/${File(songBoostyPngAbsolute).name}".rightFileName()
+                        val songSponsrPngAbsolute = settings.getOutputFilename(SongOutputFile.PICTURESPONSRTEASER)
+                        val songSponsrPngRelative = settings.getOutputFilename(SongOutputFile.PICTURESPONSRTEASER,relative = true)
+                        val songSponsrPngSymlink = "${settings.pathToSymlinkFolderBoostyPNG}/${File(songSponsrPngAbsolute).name}".rightFileName()
 
                         description = "SYMLINK"
                         args = listOf(
@@ -1229,6 +1246,7 @@ class KaraokeProcess(
                                 songKaraokePngSymlink.rightFileName().wrapInQuotes(),
                                 songLyricsPngSymlink.rightFileName().wrapInQuotes(),
                                 songBoostyPngSymlink.rightFileName().wrapInQuotes(),
+                                songSponsrPngSymlink.rightFileName().wrapInQuotes(),
                                 songBoostyFilesPngSymlink.rightFileName().wrapInQuotes(),
                             ),
                             // Ссылка на flack песни в папку pathToSymlinkFolderBoostyFiles
@@ -1256,6 +1274,8 @@ class KaraokeProcess(
 
                             // Ссылка на png boosty в папку pathToSymlinkFolderBoostyPNG
                             listOf("ln", "-s", songBoostyPngRelative.wrapInQuotes(), songBoostyPngSymlink.wrapInQuotes()),
+                            // Ссылка на png sponsr в папку pathToSymlinkFolderBoostyPNG
+                            listOf("ln", "-s", songSponsrPngRelative.wrapInQuotes(), songSponsrPngSymlink.wrapInQuotes()),
                             // Ссылка на png boosty files в папку pathToSymlinkFolderBoostyPNG
                             listOf("ln", "-s", songBoostyFilesPngRelative.wrapInQuotes(), songBoostyFilesPngSymlink.wrapInQuotes()),
 
@@ -1273,6 +1293,7 @@ class KaraokeProcess(
                             "Create SYMLINK KARAOKE PNG",
                             "Create SYMLINK LYRICS PNG",
                             "Create SYMLINK BOOSTY PNG",
+                            "Create SYMLINK SPONSR PNG",
                             "Create SYMLINK FILES PNG"
                         )
                     }

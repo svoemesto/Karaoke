@@ -15,8 +15,8 @@
       <song-table-body-td name="resultVersion" :text="song.resultVersion" :id="song.id" :color="song.color" />
       <song-table-body-td name="flagBoosty" :text="song.flagBoosty" :id="song.id" :color="song.processColorBoosty"/>
       <song-table-body-td name="flagVk" :text="song.flagVk" :id="song.id" :color="song.processColorVk"/>
-      <song-table-body-td name="flagYoutubeLyrics" :text="song.flagYoutubeLyrics" @dblclick="dblClickLyrics(song.id)" :id="song.id" :color="song.processColorMeltLyrics"/>
-      <song-table-body-td name="flagYoutubeKaraoke" :text="song.flagYoutubeKaraoke" @dblclick="dblClickKaraoke(song.id)" :id="song.id" :color="song.processColorMeltKaraoke"/>
+      <song-table-body-td name="flagDzenLyrics" :text="song.flagDzenLyrics" @dblclick="dblClickLyrics(song.id)" :id="song.id" :color="song.processColorMeltLyrics"/>
+      <song-table-body-td name="flagDzenKaraoke" :text="song.flagDzenKaraoke" @dblclick="dblClickKaraoke(song.id)" :id="song.id" :color="song.processColorMeltKaraoke"/>
       <song-table-body-td name="flagVkLyrics" :text="song.flagVkLyrics" :id="song.id" :color="song.processColorVkLyrics"/>
       <song-table-body-td name="flagVkKaraoke" :text="song.flagVkKaraoke" :id="song.id" :color="song.processColorVkKaraoke"/>
       <song-table-body-td name="flagTelegramLyrics" :text="song.flagTelegramLyrics" :id="song.id" :color="song.processColorTelegramLyrics"/>

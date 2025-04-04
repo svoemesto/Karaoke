@@ -128,9 +128,9 @@
         const indCell_rootFolder = 12;
         const indCell_idBoosty = 13;
         const indCell_idVk = 14;
-        const indCell_idYoutubeLyrics = 15;
-        const indCell_idYoutubeKaraoke = 16;
-        const indCell_idYoutubeChords = 17;
+        const indCell_idDzenLyrics = 15;
+        const indCell_idDzenKaraoke = 16;
+        const indCell_idDzenChords = 17;
         const indCell_idVkLyrics = 18;
         const indCell_idVkKaraoke = 19;
         const indCell_idVkChords = 20;
@@ -139,9 +139,9 @@
         const indCell_idTelegramChords = 23;
         const indCell_check_idBoosty = 24;
         const indCell_check_idVk = 25;
-        const indCell_check_idYoutubeLyrics = 26;
-        const indCell_check_idYoutubeKaraoke = 27;
-        const indCell_check_idYoutubeChords = 28;
+        const indCell_check_idDzenLyrics = 26;
+        const indCell_check_idDzenKaraoke = 27;
+        const indCell_check_idDzenChords = 28;
         const indCell_check_idVkLyrics = 29;
         const indCell_check_idVkKaraoke = 30;
         const indCell_check_idVkChords = 31;
@@ -171,9 +171,9 @@
         var el_rootFolder = document.getElementById("settings_rootFolder");
         var el_idBoosty = document.getElementById("settings_idBoosty");
         var el_idVk = document.getElementById("settings_idVk");
-        var el_idYoutubeLyrics = document.getElementById("settings_idYoutubeLyrics");
-        var el_idYoutubeKaraoke = document.getElementById("settings_idYoutubeKaraoke");
-        var el_idYoutubeChords = document.getElementById("settings_idYoutubeChords");
+        var el_idDzenLyrics = document.getElementById("settings_idDzenLyrics");
+        var el_idDzenKaraoke = document.getElementById("settings_idDzenKaraoke");
+        var el_idDzenChords = document.getElementById("settings_idDzenChords");
         var el_idVkLyrics = document.getElementById("settings_idVkLyrics");
         var el_idVkKaraoke = document.getElementById("settings_idVkKaraoke");
         var el_idVkChords = document.getElementById("settings_idVkChords");
@@ -185,12 +185,12 @@
 
         var el_button_link_boosty = document.getElementById("button_link_boosty");
         var el_button_link_vk = document.getElementById("button_link_vk");
-        var el_button_link_play_YoutubeLyrics = document.getElementById("button_link_play_YoutubeLyrics");
-        var el_button_link_edit_YoutubeLyrics = document.getElementById("button_link_edit_YoutubeLyrics");
-        var el_button_link_play_YoutubeKaraoke = document.getElementById("button_link_play_YoutubeKaraoke");
-        var el_button_link_edit_YoutubeKaraoke = document.getElementById("button_link_edit_YoutubeKaraoke");
-        var el_button_link_play_YoutubeChords = document.getElementById("button_link_play_YoutubeChords");
-        var el_button_link_edit_YoutubeChords = document.getElementById("button_link_edit_YoutubeChords");
+        var el_button_link_play_DzenLyrics = document.getElementById("button_link_play_DzenLyrics");
+        var el_button_link_edit_DzenLyrics = document.getElementById("button_link_edit_DzenLyrics");
+        var el_button_link_play_DzenKaraoke = document.getElementById("button_link_play_DzenKaraoke");
+        var el_button_link_edit_DzenKaraoke = document.getElementById("button_link_edit_DzenKaraoke");
+        var el_button_link_play_DzenChords = document.getElementById("button_link_play_DzenChords");
+        var el_button_link_edit_DzenChords = document.getElementById("button_link_edit_DzenChords");
         var el_button_link_play_VkLyrics = document.getElementById("button_link_play_VkLyrics");
         var el_button_link_edit_VkLyrics = document.getElementById("button_link_edit_VkLyrics");
         var el_button_link_play_VkKaraoke = document.getElementById("button_link_play_VkKaraoke");
@@ -226,9 +226,9 @@
             el_rootFolder = document.getElementById("settings_rootFolder");
             el_idBoosty = document.getElementById("settings_idBoosty");
             el_idVk = document.getElementById("settings_idVk");
-            el_idYoutubeLyrics = document.getElementById("settings_idYoutubeLyrics");
-            el_idYoutubeKaraoke = document.getElementById("settings_idYoutubeKaraoke");
-            el_idYoutubeChords = document.getElementById("settings_idYoutubeChords");
+            el_idDzenLyrics = document.getElementById("settings_idDzenLyrics");
+            el_idDzenKaraoke = document.getElementById("settings_idDzenKaraoke");
+            el_idDzenChords = document.getElementById("settings_idDzenChords");
             el_idVkLyrics = document.getElementById("settings_idVkLyrics");
             el_idVkKaraoke = document.getElementById("settings_idVkKaraoke");
             el_idVkChords = document.getElementById("settings_idVkChords");
@@ -240,12 +240,12 @@
 
             el_button_link_boosty = document.getElementById("button_link_boosty");
             el_button_link_vk = document.getElementById("button_link_vk");
-            el_button_link_play_YoutubeLyrics = document.getElementById("button_link_play_YoutubeLyrics");
-            el_button_link_edit_YoutubeLyrics = document.getElementById("button_link_edit_YoutubeLyrics");
-            el_button_link_play_YoutubeKaraoke = document.getElementById("button_link_play_YoutubeKaraoke");
-            el_button_link_edit_YoutubeKaraoke = document.getElementById("button_link_edit_YoutubeKaraoke");
-            el_button_link_play_YoutubeChords = document.getElementById("button_link_play_YoutubeChords");
-            el_button_link_edit_YoutubeChords = document.getElementById("button_link_edit_YoutubeChords");
+            el_button_link_play_DzenLyrics = document.getElementById("button_link_play_DzenLyrics");
+            el_button_link_edit_DzenLyrics = document.getElementById("button_link_edit_DzenLyrics");
+            el_button_link_play_DzenKaraoke = document.getElementById("button_link_play_DzenKaraoke");
+            el_button_link_edit_DzenKaraoke = document.getElementById("button_link_edit_DzenKaraoke");
+            el_button_link_play_DzenChords = document.getElementById("button_link_play_DzenChords");
+            el_button_link_edit_DzenChords = document.getElementById("button_link_edit_DzenChords");
             el_button_link_play_VkLyrics = document.getElementById("button_link_play_VkLyrics");
             el_button_link_edit_VkLyrics = document.getElementById("button_link_edit_VkLyrics");
             el_button_link_play_VkKaraoke = document.getElementById("button_link_play_VkKaraoke");
@@ -279,9 +279,9 @@
             el_rootFolder.disabled = value;
             el_idBoosty.disabled = value;
             el_idVk.disabled = value;
-            el_idYoutubeLyrics.disabled = value;
-            el_idYoutubeKaraoke.disabled = value;
-            el_idYoutubeChords.disabled = value;
+            el_idDzenLyrics.disabled = value;
+            el_idDzenKaraoke.disabled = value;
+            el_idDzenChords.disabled = value;
             el_idVkLyrics.disabled = value;
             el_idVkKaraoke.disabled = value;
             el_idVkChords.disabled = value;
@@ -293,12 +293,12 @@
 
             el_button_link_boosty.disabled = (el_idBoosty.value === '');
             el_button_link_vk.disabled = (el_idVk.value === '');
-            el_button_link_play_YoutubeLyrics.disabled = (el_idYoutubeLyrics.value === '');
-            el_button_link_edit_YoutubeLyrics.disabled = (el_idYoutubeLyrics.value === '');
-            el_button_link_play_YoutubeKaraoke.disabled = (el_idYoutubeKaraoke.value === '');
-            el_button_link_edit_YoutubeKaraoke.disabled = (el_idYoutubeKaraoke.value === '');
-            el_button_link_play_YoutubeChords.disabled = (el_idYoutubeChords.value === '');
-            el_button_link_edit_YoutubeChords.disabled = (el_idYoutubeChords.value === '');
+            el_button_link_play_DzenLyrics.disabled = (el_idDzenLyrics.value === '');
+            el_button_link_edit_DzenLyrics.disabled = (el_idDzenLyrics.value === '');
+            el_button_link_play_DzenKaraoke.disabled = (el_idDzenKaraoke.value === '');
+            el_button_link_edit_DzenKaraoke.disabled = (el_idDzenKaraoke.value === '');
+            el_button_link_play_DzenChords.disabled = (el_idDzenChords.value === '');
+            el_button_link_edit_DzenChords.disabled = (el_idDzenChords.value === '');
 
             el_button_link_play_VkLyrics.disabled = (el_idVkLyrics.value === '');
             el_button_link_edit_VkLyrics.disabled = (el_idVkLyrics.value === '');
@@ -348,9 +348,9 @@
             el_rootFolder.value =  currentRow.cells[indCell_rootFolder].innerText;
             el_idBoosty.value =  currentRow.cells[indCell_idBoosty].innerText;
             el_idVk.value =  currentRow.cells[indCell_idVk].innerText;
-            el_idYoutubeLyrics.value =  currentRow.cells[indCell_idYoutubeLyrics].innerText;
-            el_idYoutubeKaraoke.value =  currentRow.cells[indCell_idYoutubeKaraoke].innerText;
-            el_idYoutubeChords.value =  currentRow.cells[indCell_idYoutubeChords].innerText;
+            el_idDzenLyrics.value =  currentRow.cells[indCell_idDzenLyrics].innerText;
+            el_idDzenKaraoke.value =  currentRow.cells[indCell_idDzenKaraoke].innerText;
+            el_idDzenChords.value =  currentRow.cells[indCell_idDzenChords].innerText;
             el_idVkLyrics.value =  currentRow.cells[indCell_idVkLyrics].innerText;
             el_idVkKaraoke.value =  currentRow.cells[indCell_idVkKaraoke].innerText;
             el_idVkChords.value =  currentRow.cells[indCell_idVkChords].innerText;
@@ -391,9 +391,9 @@
                 cells[indCell_rootFolder].innerText = el_rootFolder.value;
                 cells[indCell_idBoosty].innerText = el_idBoosty.value;
                 cells[indCell_idVk].innerText = el_idVk.value;
-                cells[indCell_idYoutubeLyrics].innerText = el_idYoutubeLyrics.value;
-                cells[indCell_idYoutubeKaraoke].innerText = el_idYoutubeKaraoke.value;
-                cells[indCell_idYoutubeChords].innerText = el_idYoutubeChords.value;
+                cells[indCell_idDzenLyrics].innerText = el_idDzenLyrics.value;
+                cells[indCell_idDzenKaraoke].innerText = el_idDzenKaraoke.value;
+                cells[indCell_idDzenChords].innerText = el_idDzenChords.value;
                 cells[indCell_idVkLyrics].innerText = el_idVkLyrics.value;
                 cells[indCell_idVkKaraoke].innerText = el_idVkKaraoke.value;
                 cells[indCell_idVkChords].innerText = el_idVkChords.value;
@@ -413,23 +413,23 @@
                     cells[indCell_check_idVk].innerText = '';
                 }
 
-                if (el_idYoutubeLyrics.value !== "") {
-                    cells[indCell_check_idYoutubeLyrics].innerText = '✓';
+                if (el_idDzenLyrics.value !== "") {
+                    cells[indCell_check_idDzenLyrics].innerText = '✓';
                 } else {
-                    cells[indCell_check_idYoutubeLyrics].innerText = '';
+                    cells[indCell_check_idDzenLyrics].innerText = '';
                 }
 
-                if (el_idYoutubeKaraoke.value !== "") {
-                    cells[indCell_check_idYoutubeKaraoke].innerText = '✓';
+                if (el_idDzenKaraoke.value !== "") {
+                    cells[indCell_check_idDzenKaraoke].innerText = '✓';
                 } else {
-                    cells[indCell_check_idYoutubeKaraoke].innerText = '';
+                    cells[indCell_check_idDzenKaraoke].innerText = '';
                 }
 
 
-                if (el_idYoutubeChords.value !== "") {
-                    cells[indCell_check_idYoutubeChords].innerText = '✓';
+                if (el_idDzenChords.value !== "") {
+                    cells[indCell_check_idDzenChords].innerText = '✓';
                 } else {
-                    cells[indCell_check_idYoutubeChords].innerText = '';
+                    cells[indCell_check_idDzenChords].innerText = '';
                 }
 
 
@@ -511,9 +511,9 @@
                 cells[indCell_rootFolder].innerText = el_rootFolder.value;
                 cells[indCell_idBoosty].innerText = el_idBoosty.value;
                 cells[indCell_idVk].innerText = el_idVk.value;
-                cells[indCell_idYoutubeLyrics].innerText = el_idYoutubeLyrics.value;
-                cells[indCell_idYoutubeKaraoke].innerText = el_idYoutubeKaraoke.value;
-                cells[indCell_idYoutubeChords].innerText = el_idYoutubeChords.value;
+                cells[indCell_idDzenLyrics].innerText = el_idDzenLyrics.value;
+                cells[indCell_idDzenKaraoke].innerText = el_idDzenKaraoke.value;
+                cells[indCell_idDzenChords].innerText = el_idDzenChords.value;
                 cells[indCell_idVkLyrics].innerText = el_idVkLyrics.value;
                 cells[indCell_idVkKaraoke].innerText = el_idVkKaraoke.value;
                 cells[indCell_idVkChords].innerText = el_idVkChords.value;
@@ -533,23 +533,23 @@
                     cells[indCell_check_idVk].innerText = '';
                 }
 
-                if (el_idYoutubeLyrics.value !== "") {
-                    cells[indCell_check_idYoutubeLyrics].innerText = '✓';
+                if (el_idDzenLyrics.value !== "") {
+                    cells[indCell_check_idDzenLyrics].innerText = '✓';
                 } else {
-                    cells[indCell_check_idYoutubeLyrics].innerText = '';
+                    cells[indCell_check_idDzenLyrics].innerText = '';
                 }
 
-                if (el_idYoutubeKaraoke.value !== "") {
-                    cells[indCell_check_idYoutubeKaraoke].innerText = '✓';
+                if (el_idDzenKaraoke.value !== "") {
+                    cells[indCell_check_idDzenKaraoke].innerText = '✓';
                 } else {
-                    cells[indCell_check_idYoutubeKaraoke].innerText = '';
+                    cells[indCell_check_idDzenKaraoke].innerText = '';
                 }
 
 
-                if (el_idYoutubeChords.value !== "") {
-                    cells[indCell_check_idYoutubeChords].innerText = '✓';
+                if (el_idDzenChords.value !== "") {
+                    cells[indCell_check_idDzenChords].innerText = '✓';
                 } else {
-                    cells[indCell_check_idYoutubeChords].innerText = '';
+                    cells[indCell_check_idDzenChords].innerText = '';
                 }
 
 
@@ -615,12 +615,12 @@
 
             el_button_link_boosty.href = prefix_link_boosty + el_idBoosty.value
             el_button_link_vk.href = prefix_link_vk_wall + el_idVk.value;
-            el_button_link_play_YoutubeLyrics.href = prefix_link_dzen_play + el_idYoutubeLyrics.value
-            el_button_link_edit_YoutubeLyrics.href = prefix_link_dzen_edit + el_idYoutubeLyrics.value
-            el_button_link_play_YoutubeKaraoke.href = prefix_link_dzen_play + el_idYoutubeKaraoke.value
-            el_button_link_edit_YoutubeKaraoke.href = prefix_link_dzen_edit + el_idYoutubeKaraoke.value
-            el_button_link_play_YoutubeChords.href = prefix_link_dzen_play + el_idYoutubeChords.value
-            el_button_link_edit_YoutubeChords.href = prefix_link_dzen_edit + el_idYoutubeChords.value
+            el_button_link_play_DzenLyrics.href = prefix_link_dzen_play + el_idDzenLyrics.value
+            el_button_link_edit_DzenLyrics.href = prefix_link_dzen_edit + el_idDzenLyrics.value
+            el_button_link_play_DzenKaraoke.href = prefix_link_dzen_play + el_idDzenKaraoke.value
+            el_button_link_edit_DzenKaraoke.href = prefix_link_dzen_edit + el_idDzenKaraoke.value
+            el_button_link_play_DzenChords.href = prefix_link_dzen_play + el_idDzenChords.value
+            el_button_link_edit_DzenChords.href = prefix_link_dzen_edit + el_idDzenChords.value
 
             el_button_link_play_VkLyrics.href = prefix_link_vk_play + el_idVkLyrics.value
             el_button_link_edit_VkLyrics.href = prefix_link_vk_edit + el_idVkLyrics.value
@@ -722,9 +722,9 @@
                 "&filter_status=" + filter_status +
                 "&flag_boosty=" + filter_flag_boosty +
                 "&flag_vk=" + filter_flag_vk +
-                "&flag_youtube_lyrics=" + filter_flag_yl +
-                "&flag_youtube_karaoke=" + filter_flag_yk +
-                "&flag_youtube_chords=" + filter_flag_yc +
+                "&flag_dzen_lyrics=" + filter_flag_yl +
+                "&flag_dzen_karaoke=" + filter_flag_yk +
+                "&flag_dzen_chords=" + filter_flag_yc +
                 "&flag_vk_lyrics=" + filter_flag_vkl +
                 "&flag_vk_karaoke=" + filter_flag_vkk +
                 "&flag_vk_chords=" + filter_flag_vkc;
@@ -748,10 +748,10 @@
             }
         }
 
-        function doTextYoutubeLyricsWOHeader() {
+        function doTextDzenLyricsWOHeader() {
             var id = el_id.value;
             var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textyoutubelyricswoheader", false);
+            request.open('GET', "/song/" + id + "/textdzenlyricswoheader", false);
             request.send();
             if (request.status === 200) {
                 var result = request.responseText;
@@ -760,10 +760,10 @@
         }
 
 
-        function doTextYoutubeKaraokeWOHeader() {
+        function doTextDzenKaraokeWOHeader() {
             var id = el_id.value;
             var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textyoutubekaraokewoheader", false);
+            request.open('GET', "/song/" + id + "/textdzenkaraokewoheader", false);
             request.send();
             if (request.status === 200) {
                 var result = request.responseText;
@@ -772,10 +772,10 @@
         }
 
 
-        function doTextYoutubeChordsWOHeader() {
+        function doTextDzenChordsWOHeader() {
             var id = el_id.value;
             var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textyoutubechordswoheader", false);
+            request.open('GET', "/song/" + id + "/textdzenchordswoheader", false);
             request.send();
             if (request.status === 200) {
                 var result = request.responseText;
@@ -785,10 +785,10 @@
 
 
 
-        function doTextYoutubeLyricsHeader() {
+        function doTextDzenLyricsHeader() {
             var id = el_id.value;
             var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textyoutubelyricsheader", false);
+            request.open('GET', "/song/" + id + "/textdzenlyricsheader", false);
             request.send();
             if (request.status === 200) {
                 var result = request.responseText;
@@ -797,10 +797,10 @@
         }
 
 
-        function doTextYoutubeKaraokeHeader() {
+        function doTextDzenKaraokeHeader() {
             var id = el_id.value;
             var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textyoutubekaraokeheader", false);
+            request.open('GET', "/song/" + id + "/textdzenkaraokeheader", false);
             request.send();
             if (request.status === 200) {
                 var result = request.responseText;
@@ -809,10 +809,10 @@
         }
 
 
-        function doTextYoutubeChordsHeader() {
+        function doTextDzenChordsHeader() {
             var id = el_id.value;
             var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textyoutubechordsheader", false);
+            request.open('GET', "/song/" + id + "/textdzenchordsheader", false);
             request.send();
             if (request.status === 200) {
                 var result = request.responseText;
@@ -1264,7 +1264,7 @@
             }
         }
 
-        function extractYoutubeVideoId(inputElement) {
+        function extractDzenVideoId(inputElement) {
             // Получаем значение из поля ввода
             var inputValue = inputElement.value.trim();
 
@@ -1272,19 +1272,19 @@
                 const id = inputValue.replace(prefix_link_dzen_play, '');
                 inputElement.value = id;
 
-                el_button_link_play_YoutubeLyrics.href = prefix_link_dzen_play + el_idYoutubeLyrics.value;
-                el_button_link_edit_YoutubeLyrics.href = prefix_link_dzen_edit + el_idYoutubeLyrics.value;
-                el_button_link_play_YoutubeKaraoke.href = prefix_link_dzen_play + el_idYoutubeKaraoke.value;
-                el_button_link_edit_YoutubeKaraoke.href = prefix_link_dzen_edit + el_idYoutubeKaraoke.value;
-                el_button_link_play_YoutubeChords.href = prefix_link_dzen_play + el_idYoutubeChords.value;
-                el_button_link_edit_YoutubeChords.href = prefix_link_dzen_edit + el_idYoutubeChords.value;
+                el_button_link_play_DzenLyrics.href = prefix_link_dzen_play + el_idDzenLyrics.value;
+                el_button_link_edit_DzenLyrics.href = prefix_link_dzen_edit + el_idDzenLyrics.value;
+                el_button_link_play_DzenKaraoke.href = prefix_link_dzen_play + el_idDzenKaraoke.value;
+                el_button_link_edit_DzenKaraoke.href = prefix_link_dzen_edit + el_idDzenKaraoke.value;
+                el_button_link_play_DzenChords.href = prefix_link_dzen_play + el_idDzenChords.value;
+                el_button_link_edit_DzenChords.href = prefix_link_dzen_edit + el_idDzenChords.value;
 
-                el_button_link_play_YoutubeLyrics.disabled = (el_idYoutubeLyrics.value === '');
-                el_button_link_edit_YoutubeLyrics.disabled = (el_idYoutubeLyrics.value === '');
-                el_button_link_play_YoutubeKaraoke.disabled = (el_idYoutubeKaraoke.value === '');
-                el_button_link_edit_YoutubeKaraoke.disabled = (el_idYoutubeKaraoke.value === '');
-                el_button_link_play_YoutubeChords.disabled = (el_idYoutubeChords.value === '');
-                el_button_link_edit_YoutubeChords.disabled = (el_idYoutubeChords.value === '');
+                el_button_link_play_DzenLyrics.disabled = (el_idDzenLyrics.value === '');
+                el_button_link_edit_DzenLyrics.disabled = (el_idDzenLyrics.value === '');
+                el_button_link_play_DzenKaraoke.disabled = (el_idDzenKaraoke.value === '');
+                el_button_link_edit_DzenKaraoke.disabled = (el_idDzenKaraoke.value === '');
+                el_button_link_play_DzenChords.disabled = (el_idDzenChords.value === '');
+                el_button_link_edit_DzenChords.disabled = (el_idDzenChords.value === '');
 
             }
         }
@@ -1363,48 +1363,31 @@
             }
         }
 
-        function openLinkYoutubeEditKaraoke() {
+        function openLinkDzenEditKaraoke() {
 
             var id = el_id.value;
             var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textyoutubekaraokewoheader", false);
+            request.open('GET', "/song/" + id + "/textdzenkaraokewoheader", false);
             request.send();
             if (request.status === 200) {
                 var result = request.responseText;
                 copyToClipboard(result);
-                var link = prefix_link_dzen_edit + el_idYoutubeKaraoke.value;
+                var link = prefix_link_dzen_edit + el_idDzenKaraoke.value;
                 window.open(link, '_blank');
             }
 
         }
 
-        function openLinkYoutubeEditLyrics() {
+        function openLinkDzenEditLyrics() {
 
             var id = el_id.value;
             var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textyoutubelyricswoheader", false);
+            request.open('GET', "/song/" + id + "/textdzenlyricswoheader", false);
             request.send();
             if (request.status === 200) {
                 var result = request.responseText;
                 copyToClipboard(result);
-                var link = prefix_link_dzen_edit + el_idYoutubeLyrics.value;
-                window.open(link, '_blank');
-            }
-
-        }
-
-
-
-        function openLinkYoutubeEditChords() {
-
-            var id = el_id.value;
-            var request = new XMLHttpRequest();
-            request.open('GET', "/song/" + id + "/textyoutubechordswoheader", false);
-            request.send();
-            if (request.status === 200) {
-                var result = request.responseText;
-                copyToClipboard(result);
-                var link = prefix_link_dzen_edit + el_idYoutubeChords.value;
+                var link = prefix_link_dzen_edit + el_idDzenLyrics.value;
                 window.open(link, '_blank');
             }
 
@@ -1412,40 +1395,57 @@
 
 
 
+        function openLinkDzenEditChords() {
 
-        function openLinkYoutubePlayKaraoke() {
-            var link = prefix_link_dzen_play + el_idYoutubeKaraoke.value;
+            var id = el_id.value;
+            var request = new XMLHttpRequest();
+            request.open('GET', "/song/" + id + "/textdzenchordswoheader", false);
+            request.send();
+            if (request.status === 200) {
+                var result = request.responseText;
+                copyToClipboard(result);
+                var link = prefix_link_dzen_edit + el_idDzenChords.value;
+                window.open(link, '_blank');
+            }
+
+        }
+
+
+
+
+        function openLinkDzenPlayKaraoke() {
+            var link = prefix_link_dzen_play + el_idDzenKaraoke.value;
             window.open(link, '_blank');
         }
 
-        function doYoutubeKaraokeLink() {
-            var link = prefix_link_dzen_play + el_idYoutubeKaraoke.value
+        function doDzenKaraokeLink() {
+            var link = prefix_link_dzen_play + el_idDzenKaraoke.value
             navigator.clipboard.writeText(link);
         }
 
-        function openLinkYoutubePlayLyrics() {
-            var link = prefix_link_dzen_play + el_idYoutubeLyrics.value
+        function openLinkDzenPlayLyrics() {
+            var link = prefix_link_dzen_play + el_idDzenLyrics.value
             window.open(link, '_blank');
 
         }
 
-        function doYoutubeLyricsLink() {
-            var link = prefix_link_dzen_play + el_idYoutubeLyrics.value
+        function doDzenLyricsLink() {
+            var link = prefix_link_dzen_play + el_idDzenLyrics.value
             navigator.clipboard.writeText(link);
         }
 
-        function doYoutubeLyricsBtLink() {
-            var link = prefix_link_dzen_play + el_idYoutubeLyricsBt.value
+        function doDzenLyricsBtLink() {
+            var link = prefix_link_dzen_play + el_idDzenLyricsBt.value
             navigator.clipboard.writeText(link);
         }
 
-        function openLinkYoutubePlayChords() {
-            var link = prefix_link_dzen_play + el_idYoutubeChords.value
+        function openLinkDzenPlayChords() {
+            var link = prefix_link_dzen_play + el_idDzenChords.value
             window.open(link, '_blank');
         }
 
-        function doYoutubeChordsLink() {
-            var link = prefix_link_dzen_play + el_idYoutubeChords.value
+        function doDzenChordsLink() {
+            var link = prefix_link_dzen_play + el_idDzenChords.value
             navigator.clipboard.writeText(link);
         }
 
@@ -1802,30 +1802,30 @@
                                 }
                                 break;
 
-                            case 'id_youtube_lyrics':
-                                cells[indCell_idYoutubeLyrics].innerText = recordDiffValueNew;
+                            case 'id_dzen_lyrics':
+                                cells[indCell_idDzenLyrics].innerText = recordDiffValueNew;
                                 if (recordDiffValueNew !== "") {
-                                    cells[indCell_check_idYoutubeLyrics].innerText = '✓';
+                                    cells[indCell_check_idDzenLyrics].innerText = '✓';
                                 } else {
-                                    cells[indCell_check_idYoutubeLyrics].innerText = '';
+                                    cells[indCell_check_idDzenLyrics].innerText = '';
                                 }
                                 break;
 
-                            case 'id_youtube_karaoke':
-                                cells[indCell_idYoutubeKaraoke].innerText = recordDiffValueNew;
+                            case 'id_dzen_karaoke':
+                                cells[indCell_idDzenKaraoke].innerText = recordDiffValueNew;
                                 if (recordDiffValueNew !== "") {
-                                    cells[indCell_check_idYoutubeKaraoke].innerText = '✓';
+                                    cells[indCell_check_idDzenKaraoke].innerText = '✓';
                                 } else {
-                                    cells[indCell_check_idYoutubeKaraoke].innerText = '';
+                                    cells[indCell_check_idDzenKaraoke].innerText = '';
                                 }
                                 break;
 
-                            case 'id_youtube_chords':
-                                cells[indCell_idYoutubeChords].innerText = recordDiffValueNew;
+                            case 'id_dzen_chords':
+                                cells[indCell_idDzenChords].innerText = recordDiffValueNew;
                                 if (recordDiffValueNew !== "") {
-                                    cells[indCell_check_idYoutubeChords].innerText = '✓';
+                                    cells[indCell_check_idDzenChords].innerText = '✓';
                                 } else {
-                                    cells[indCell_check_idYoutubeChords].innerText = '';
+                                    cells[indCell_check_idDzenChords].innerText = '';
                                 }
                                 break;
 
@@ -1892,11 +1892,11 @@
                                 break;
 
                             case 'processColorMeltLyrics':
-                                cells[indCell_check_idYoutubeLyrics].style.backgroundColor = recordDiffValueNew;
+                                cells[indCell_check_idDzenLyrics].style.backgroundColor = recordDiffValueNew;
                                 break;
 
                             case 'processColorMeltKaraoke':
-                                cells[indCell_check_idYoutubeKaraoke].style.backgroundColor = recordDiffValueNew;
+                                cells[indCell_check_idDzenKaraoke].style.backgroundColor = recordDiffValueNew;
                                 break;
 
                             case 'processColorVkLyrics':
@@ -1967,9 +1967,9 @@
                             cells[indCell_rootFolder].innerText = data.rootFolder;
                             cells[indCell_idBoosty].innerText = data.idBoosty;
                             cells[indCell_idVk].innerText = data.idVk;
-                            cells[indCell_idYoutubeLyrics].innerText = data.idYoutubeLyrics;
-                            cells[indCell_idYoutubeKaraoke].innerText = data.idYoutubeKaraoke;
-                            cells[indCell_idYoutubeChords].innerText = data.idYoutubeChords;
+                            cells[indCell_idDzenLyrics].innerText = data.idDzenLyrics;
+                            cells[indCell_idDzenKaraoke].innerText = data.idDzenKaraoke;
+                            cells[indCell_idDzenChords].innerText = data.idDzenChords;
                             cells[indCell_idVkLyrics].innerText = data.idVkLyrics;
                             cells[indCell_idVkKaraoke].innerText = data.idVkKaraoke;
                             cells[indCell_idVkChords].innerText = data.idVkChords;
@@ -1989,23 +1989,23 @@
                                 cells[indCell_check_idVk].innerText = '';
                             }
 
-                            if (data.idYoutubeLyrics !== "") {
-                                cells[indCell_check_idYoutubeLyrics].innerText = '✓';
+                            if (data.idDzenLyrics !== "") {
+                                cells[indCell_check_idDzenLyrics].innerText = '✓';
                             } else {
-                                cells[indCell_check_idYoutubeLyrics].innerText = '';
+                                cells[indCell_check_idDzenLyrics].innerText = '';
                             }
 
-                            if (data.idYoutubeKaraoke !== "") {
-                                cells[indCell_check_idYoutubeKaraoke].innerText = '✓';
+                            if (data.idDzenKaraoke !== "") {
+                                cells[indCell_check_idDzenKaraoke].innerText = '✓';
                             } else {
-                                cells[indCell_check_idYoutubeKaraoke].innerText = '';
+                                cells[indCell_check_idDzenKaraoke].innerText = '';
                             }
 
 
-                            if (data.idYoutubeChords !== "") {
-                                cells[indCell_check_idYoutubeChords].innerText = '✓';
+                            if (data.idDzenChords !== "") {
+                                cells[indCell_check_idDzenChords].innerText = '✓';
                             } else {
-                                cells[indCell_check_idYoutubeChords].innerText = '';
+                                cells[indCell_check_idDzenChords].innerText = '';
                             }
 
 
@@ -2063,8 +2063,8 @@
                             //     elementRow.style.backgroundColor = rowColor;
                             // }
 
-                            cells[indCell_check_idYoutubeLyrics].style.backgroundColor = data.processColorMeltLyrics;
-                            cells[indCell_check_idYoutubeKaraoke].style.backgroundColor = data.processColorMeltKaraoke;
+                            cells[indCell_check_idDzenLyrics].style.backgroundColor = data.processColorMeltLyrics;
+                            cells[indCell_check_idDzenKaraoke].style.backgroundColor = data.processColorMeltKaraoke;
 
                             elementRow.style.backgroundColor = data.color;
 
@@ -2299,9 +2299,9 @@
                             <td hidden th:text="${settings.rootFolder}"></td>
                             <td hidden th:text="${settings.idBoosty}"></td>
                             <td hidden th:text="${settings.idVk}"></td>
-                            <td hidden th:text="${settings.idYoutubeLyrics}"></td>
-                            <td hidden th:text="${settings.idYoutubeKaraoke}"></td>
-                            <td hidden th:text="${settings.idYoutubeChords}"></td>
+                            <td hidden th:text="${settings.idDzenLyrics}"></td>
+                            <td hidden th:text="${settings.idDzenKaraoke}"></td>
+                            <td hidden th:text="${settings.idDzenChords}"></td>
                             <td hidden th:text="${settings.idVkLyrics}"></td>
                             <td hidden th:text="${settings.idVkKaraoke}"></td>
                             <td hidden th:text="${settings.idVkChords}"></td>
@@ -2310,9 +2310,9 @@
                             <td hidden th:text="${settings.idTelegramChords}"></td>
                             <td th:text="${settings.flagBoosty}" style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
                             <td th:text="${settings.flagVk}" style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
-                            <td th:text="${settings.flagYoutubeLyrics}" th:id="'fld_'+${settings.id}+'_flag_lyrics'" th:ondblclick="'doPlay('+${settings.id}+', \'playlyrics\')'" th:style="'background-color: ' + ${settings.processColorMeltLyrics} + ';min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center'"></td>
-                            <td th:text="${settings.flagYoutubeKaraoke}" th:id="'fld_'+${settings.id}+'_flag_karaoke'" th:ondblclick="'doPlay('+${settings.id}+', \'playkaraoke\')'" th:style="'background-color: ' + ${settings.processColorMeltKaraoke} + ';min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center'"></td>
-                            <td hidden th:text="${settings.flagYoutubeChords}" th:id="'fld_'+${settings.id}+'_flag_chords'" th:ondblclick="'doPlay('+${settings.id}+', \'playkaraokebt\')'" th:style="'background-color: ' + ${settings.processColorMeltChords} + ';min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center'"></td>
+                            <td th:text="${settings.flagDzenLyrics}" th:id="'fld_'+${settings.id}+'_flag_lyrics'" th:ondblclick="'doPlay('+${settings.id}+', \'playlyrics\')'" th:style="'background-color: ' + ${settings.processColorMeltLyrics} + ';min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center'"></td>
+                            <td th:text="${settings.flagDzenKaraoke}" th:id="'fld_'+${settings.id}+'_flag_karaoke'" th:ondblclick="'doPlay('+${settings.id}+', \'playkaraoke\')'" th:style="'background-color: ' + ${settings.processColorMeltKaraoke} + ';min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center'"></td>
+                            <td hidden th:text="${settings.flagDzenChords}" th:id="'fld_'+${settings.id}+'_flag_chords'" th:ondblclick="'doPlay('+${settings.id}+', \'playkaraokebt\')'" th:style="'background-color: ' + ${settings.processColorMeltChords} + ';min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center'"></td>
                             <td th:text="${settings.flagVkLyrics}" style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
                             <td th:text="${settings.flagVkKaraoke}" style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
                             <td hidden th:text="${settings.flagVkChords}" style="min-width: 20px; max-width: 20px; border-style: solid; border-width: thin; text-align: center"></td>
@@ -2610,118 +2610,118 @@
                                         <tr style="margin: 1px;padding: 1px">
                                             <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Karaoke</td>
                                             <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
-                                                <button style="width: 35px; height: 35px;" name="button_link_play_YoutubeKaraoke" id="button_link_play_YoutubeKaraoke" class="form-control btn btn-info btn-block" type="button" onclick="openLinkYoutubePlayKaraoke()">P</button>
+                                                <button style="width: 35px; height: 35px;" name="button_link_play_DzenKaraoke" id="button_link_play_DzenKaraoke" class="form-control btn btn-info btn-block" type="button" onclick="openLinkDzenPlayKaraoke()">P</button>
                                             </td>
                                             <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
-                                                <button style="width: 35px; height: 35px;" name="button_link_edit_YoutubeKaraoke" id="button_link_edit_YoutubeKaraoke" class="form-control btn btn-warning btn-block" type="button" onclick="openLinkYoutubeEditKaraoke()">E</button>
+                                                <button style="width: 35px; height: 35px;" name="button_link_edit_DzenKaraoke" id="button_link_edit_DzenKaraoke" class="form-control btn btn-warning btn-block" type="button" onclick="openLinkDzenEditKaraoke()">E</button>
                                             </td>
                                             <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
-                                                <button style="width: 35px; height: 35px;" name="button_head_YoutubeKaraoke" id="button_head_YoutubeKaraoke" class="form-control btn btn-primary btn-block" type="button" onclick="doTextYoutubeKaraokeHeader()">H</button>
+                                                <button style="width: 35px; height: 35px;" name="button_head_DzenKaraoke" id="button_head_DzenKaraoke" class="form-control btn btn-primary btn-block" type="button" onclick="doTextDzenKaraokeHeader()">H</button>
                                             </td>
                                             <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
-                                                <button style="width: 35px; height: 35px;" name="button_body_YoutubeKaraoke" id="button_body_YoutubeKaraoke" class="form-control btn btn-primary btn-block" type="button" onclick="doTextYoutubeKaraokeWOHeader()">B</button>
+                                                <button style="width: 35px; height: 35px;" name="button_body_DzenKaraoke" id="button_body_DzenKaraoke" class="form-control btn btn-primary btn-block" type="button" onclick="doTextDzenKaraokeWOHeader()">B</button>
                                             </td>
                                             <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
-                                                <button style="width: 35px; height: 35px;" name="button_link_YoutubeKaraoke_link" id="button_link_YoutubeKaraoke_link" class="form-control btn btn-primary btn-block" type="button" onclick="doYoutubeKaraokeLink()">L</button>
+                                                <button style="width: 35px; height: 35px;" name="button_link_DzenKaraoke_link" id="button_link_DzenKaraoke_link" class="form-control btn btn-primary btn-block" type="button" onclick="doDzenKaraokeLink()">L</button>
                                             </td>
                                             <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
-                                                <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idYoutubeKaraoke" name="settings_idYoutubeKaraoke" placeholder="Karaoke" oninput="extractYoutubeVideoId(this)">
+                                                <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idDzenKaraoke" name="settings_idDzenKaraoke" placeholder="Karaoke" oninput="extractDzenVideoId(this)">
                                             </td>
                                             <!--                                <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">-->
-                                            <!--                                    <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idYoutubeKaraokeBt" name="settings_idYoutubeKaraokeBt" placeholder="Karaoke BT" oninput="extractYoutubeVideoId(this)">-->
+                                            <!--                                    <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idDzenKaraokeBt" name="settings_idDzenKaraokeBt" placeholder="Karaoke BT" oninput="extractDzenVideoId(this)">-->
                                             <!--                                </td>-->
                                             <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
-                                            <!--                                    <button style="width: 35px; height: 35px;" name="button_link_play_YoutubeKaraokeBt" id="button_link_play_YoutubeKaraokeBt" class="form-control btn btn-info btn-block" type="button" onclick="openLinkYoutubePlayKaraokeBt()">P</button>-->
+                                            <!--                                    <button style="width: 35px; height: 35px;" name="button_link_play_DzenKaraokeBt" id="button_link_play_DzenKaraokeBt" class="form-control btn btn-info btn-block" type="button" onclick="openLinkDzenPlayKaraokeBt()">P</button>-->
                                             <!--                                </td>-->
                                             <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
-                                            <!--                                    <button style="width: 35px; height: 35px;" name="button_link_edit_YoutubeKaraokeBt" id="button_link_edit_YoutubeKaraokeBt" class="form-control btn btn-warning btn-block" type="button" onclick="openLinkYoutubeEditKaraokeBt()">E</button>-->
+                                            <!--                                    <button style="width: 35px; height: 35px;" name="button_link_edit_DzenKaraokeBt" id="button_link_edit_DzenKaraokeBt" class="form-control btn btn-warning btn-block" type="button" onclick="openLinkDzenEditKaraokeBt()">E</button>-->
                                             <!--                                </td>-->
                                             <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
-                                            <!--                                    <button style="width: 35px; height: 35px;" name="button_head_YoutubeKaraokeBt" id="button_head_YoutubeKaraokeBt" class="form-control btn btn-primary btn-block" type="button" onclick="doTextYoutubeKaraokeBtHeader()">H</button>-->
+                                            <!--                                    <button style="width: 35px; height: 35px;" name="button_head_DzenKaraokeBt" id="button_head_DzenKaraokeBt" class="form-control btn btn-primary btn-block" type="button" onclick="doTextDzenKaraokeBtHeader()">H</button>-->
                                             <!--                                </td>-->
                                             <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
-                                            <!--                                    <button style="width: 35px; height: 35px;" name="button_body_YoutubeKaraokeBt" id="button_body_YoutubeKaraokeBt" class="form-control btn btn-primary btn-block" type="button" onclick="doTextYoutubeKaraokeBtWOHeader()">B</button>-->
+                                            <!--                                    <button style="width: 35px; height: 35px;" name="button_body_DzenKaraokeBt" id="button_body_DzenKaraokeBt" class="form-control btn btn-primary btn-block" type="button" onclick="doTextDzenKaraokeBtWOHeader()">B</button>-->
                                             <!--                                </td>-->
                                             <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
-                                            <!--                                    <button style="width: 35px; height: 35px;" name="button_link_YoutubeKaraokeBt_link" id="button_link_YoutubeKaraokeBt_link" class="form-control btn btn-primary btn-block" type="button" onclick="doYoutubeKaraokeBtLink()">L</button>-->
+                                            <!--                                    <button style="width: 35px; height: 35px;" name="button_link_DzenKaraokeBt_link" id="button_link_DzenKaraokeBt_link" class="form-control btn btn-primary btn-block" type="button" onclick="doDzenKaraokeBtLink()">L</button>-->
                                             <!--                                </td>-->
                                         </tr>
                                         <tr style="margin: 1px;padding: 1px">
                                             <td style="width: 70px; font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Lyrics</td>
                                             <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
-                                                <button style="width: 35px; height: 35px;" name="button_link_play_YoutubeLyrics" id="button_link_play_YoutubeLyrics" class="form-control btn btn-info btn-block" type="button" onclick="openLinkYoutubePlayLyrics()">P</button>
+                                                <button style="width: 35px; height: 35px;" name="button_link_play_DzenLyrics" id="button_link_play_DzenLyrics" class="form-control btn btn-info btn-block" type="button" onclick="openLinkDzenPlayLyrics()">P</button>
                                             </td>
                                             <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
-                                                <button style="width: 35px; height: 35px;" name="button_link_edit_YoutubeLyrics" id="button_link_edit_YoutubeLyrics" class="form-control btn btn-warning btn-block" type="button" onclick="openLinkYoutubeEditLyrics()">E</button>
+                                                <button style="width: 35px; height: 35px;" name="button_link_edit_DzenLyrics" id="button_link_edit_DzenLyrics" class="form-control btn btn-warning btn-block" type="button" onclick="openLinkDzenEditLyrics()">E</button>
                                             </td>
                                             <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
-                                                <button style="width: 35px; height: 35px;" name="button_head_YoutubeLyrics" id="button_head_YoutubeLyrics" class="form-control btn btn-primary btn-block" type="button" onclick="doTextYoutubeLyricsHeader()">H</button>
+                                                <button style="width: 35px; height: 35px;" name="button_head_DzenLyrics" id="button_head_DzenLyrics" class="form-control btn btn-primary btn-block" type="button" onclick="doTextDzenLyricsHeader()">H</button>
                                             </td>
                                             <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
-                                                <button style="width: 35px; height: 35px;" name="button_body_YoutubeLyrics" id="button_body_YoutubeLyrics" class="form-control btn btn-primary btn-block" type="button" onclick="doTextYoutubeLyricsWOHeader()">B</button>
+                                                <button style="width: 35px; height: 35px;" name="button_body_DzenLyrics" id="button_body_DzenLyrics" class="form-control btn btn-primary btn-block" type="button" onclick="doTextDzenLyricsWOHeader()">B</button>
                                             </td>
                                             <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
-                                                <button style="width: 35px; height: 35px;" name="button_link_YoutubeLyrics_link" id="button_link_YoutubeLyrics_link" class="form-control btn btn-primary btn-block" type="button" onclick="doYoutubeLyricsLink()">L</button>
+                                                <button style="width: 35px; height: 35px;" name="button_link_DzenLyrics_link" id="button_link_DzenLyrics_link" class="form-control btn btn-primary btn-block" type="button" onclick="doDzenLyricsLink()">L</button>
                                             </td>
                                             <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
-                                                <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idYoutubeLyrics" name="settings_idYoutubeLyrics" placeholder="Lyrics" oninput="extractYoutubeVideoId(this)">
+                                                <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idDzenLyrics" name="settings_idDzenLyrics" placeholder="Lyrics" oninput="extractDzenVideoId(this)">
                                             </td>
                                             <!--                                <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">-->
-                                            <!--                                    <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idYoutubeLyricsBt" name="settings_idYoutubeLyricsBt" placeholder="Lyrics BT" oninput="extractYoutubeVideoId(this)">-->
+                                            <!--                                    <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idDzenLyricsBt" name="settings_idDzenLyricsBt" placeholder="Lyrics BT" oninput="extractDzenVideoId(this)">-->
                                             <!--                                </td>-->
                                             <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
-                                            <!--                                    <button style="width: 35px; height: 35px;" name="button_link_play_YoutubeLyricsBt" id="button_link_play_YoutubeLyricsBt" class="form-control btn btn-info btn-block" type="button" onclick="openLinkYoutubePlayLyricsBt()">P</button>-->
+                                            <!--                                    <button style="width: 35px; height: 35px;" name="button_link_play_DzenLyricsBt" id="button_link_play_DzenLyricsBt" class="form-control btn btn-info btn-block" type="button" onclick="openLinkDzenPlayLyricsBt()">P</button>-->
                                             <!--                                </td>-->
                                             <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
-                                            <!--                                    <button style="width: 35px; height: 35px;" name="button_link_edit_YoutubeLyricsBt" id="button_link_edit_YoutubeLyricsBt" class="form-control btn btn-warning btn-block" type="button" onclick="openLinkYoutubeEditLyricsBt()">E</button>-->
+                                            <!--                                    <button style="width: 35px; height: 35px;" name="button_link_edit_DzenLyricsBt" id="button_link_edit_DzenLyricsBt" class="form-control btn btn-warning btn-block" type="button" onclick="openLinkDzenEditLyricsBt()">E</button>-->
                                             <!--                                </td>-->
                                             <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
-                                            <!--                                    <button style="width: 35px; height: 35px;" name="button_head_YoutubeLyricsBt" id="button_head_YoutubeLyricsBt" class="form-control btn btn-primary btn-block" type="button" onclick="doTextYoutubeLyricsBtHeader()">H</button>-->
+                                            <!--                                    <button style="width: 35px; height: 35px;" name="button_head_DzenLyricsBt" id="button_head_DzenLyricsBt" class="form-control btn btn-primary btn-block" type="button" onclick="doTextDzenLyricsBtHeader()">H</button>-->
                                             <!--                                </td>-->
                                             <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
-                                            <!--                                    <button style="width: 35px; height: 35px;" name="button_body_YoutubeLyricsBt" id="button_body_YoutubeLyricsBt" class="form-control btn btn-primary btn-block" type="button" onclick="doTextYoutubeLyricsBtWOHeader()">B</button>-->
+                                            <!--                                    <button style="width: 35px; height: 35px;" name="button_body_DzenLyricsBt" id="button_body_DzenLyricsBt" class="form-control btn btn-primary btn-block" type="button" onclick="doTextDzenLyricsBtWOHeader()">B</button>-->
                                             <!--                                </td>-->
                                             <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
-                                            <!--                                    <button style="width: 35px; height: 35px;" name="button_link_YoutubeLyricsBt_link" id="button_link_YoutubeLyricsBt_link" class="form-control btn btn-primary btn-block" type="button" onclick="doYoutubeLyricsBtLink()">L</button>-->
+                                            <!--                                    <button style="width: 35px; height: 35px;" name="button_link_DzenLyricsBt_link" id="button_link_DzenLyricsBt_link" class="form-control btn btn-primary btn-block" type="button" onclick="doDzenLyricsBtLink()">L</button>-->
                                             <!--                                </td>-->
                                         </tr>
                                         <tr style="margin: 1px;padding: 1px">
                                             <td style="width: 70px; font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px; vertical-align: middle">Chords</td>
                                             <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
-                                                <button style="width: 35px; height: 35px;" name="button_link_play_YoutubeChords" id="button_link_play_YoutubeChords" class="form-control btn btn-info btn-block" type="button" onclick="openLinkYoutubePlayChords()">P</button>
+                                                <button style="width: 35px; height: 35px;" name="button_link_play_DzenChords" id="button_link_play_DzenChords" class="form-control btn btn-info btn-block" type="button" onclick="openLinkDzenPlayChords()">P</button>
                                             </td>
                                             <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
-                                                <button style="width: 35px; height: 35px;" name="button_link_edit_YoutubeChords" id="button_link_edit_YoutubeChords" class="form-control btn btn-warning btn-block" type="button" onclick="openLinkYoutubeEditChords()">E</button>
+                                                <button style="width: 35px; height: 35px;" name="button_link_edit_DzenChords" id="button_link_edit_DzenChords" class="form-control btn btn-warning btn-block" type="button" onclick="openLinkDzenEditChords()">E</button>
                                             </td>
                                             <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
-                                                <button style="width: 35px; height: 35px;" name="button_head_YoutubeChords" id="button_head_YoutubeChords" class="form-control btn btn-primary btn-block" type="button" onclick="doTextYoutubeChordsHeader()">H</button>
+                                                <button style="width: 35px; height: 35px;" name="button_head_DzenChords" id="button_head_DzenChords" class="form-control btn btn-primary btn-block" type="button" onclick="doTextDzenChordsHeader()">H</button>
                                             </td>
                                             <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
-                                                <button style="width: 35px; height: 35px;" name="button_body_YoutubeChords" id="button_body_YoutubeChords" class="form-control btn btn-primary btn-block" type="button" onclick="doTextYoutubeChordsWOHeader()">B</button>
+                                                <button style="width: 35px; height: 35px;" name="button_body_DzenChords" id="button_body_DzenChords" class="form-control btn btn-primary btn-block" type="button" onclick="doTextDzenChordsWOHeader()">B</button>
                                             </td>
                                             <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">
-                                                <button style="width: 35px; height: 35px;" name="button_link_YoutubeChords_link" id="button_link_YoutubeChords_link" class="form-control btn btn-primary btn-block" type="button" onclick="doYoutubeChordsLink()">L</button>
+                                                <button style="width: 35px; height: 35px;" name="button_link_DzenChords_link" id="button_link_DzenChords_link" class="form-control btn btn-primary btn-block" type="button" onclick="doDzenChordsLink()">L</button>
                                             </td>
                                             <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">
-                                                <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idYoutubeChords" name="settings_idYoutubeChords" placeholder="Chords" oninput="extractYoutubeVideoId(this)">
+                                                <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idDzenChords" name="settings_idDzenChords" placeholder="Chords" oninput="extractDzenVideoId(this)">
                                             </td>
                                             <!--                                <td style="font-size: 14px; padding: 0; padding-left: 10px; padding-right: 10px;">-->
-                                            <!--                                    <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idYoutubeChordsBt" name="settings_idYoutubeChordsBt" placeholder="Chords BT" oninput="extractYoutubeVideoId(this)">-->
+                                            <!--                                    <input style="font-size: 14px; padding: 0;" class="form-control" type="text" id="settings_idDzenChordsBt" name="settings_idDzenChordsBt" placeholder="Chords BT" oninput="extractDzenVideoId(this)">-->
                                             <!--                                </td>-->
                                             <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
-                                            <!--                                    <button style="width: 35px; height: 35px;" name="button_link_play_YoutubeChordsBt" id="button_link_play_YoutubeChordsBt" class="form-control btn btn-info btn-block" type="button" onclick="openLinkYoutubePlayChordsBt()">P</button>-->
+                                            <!--                                    <button style="width: 35px; height: 35px;" name="button_link_play_DzenChordsBt" id="button_link_play_DzenChordsBt" class="form-control btn btn-info btn-block" type="button" onclick="openLinkDzenPlayChordsBt()">P</button>-->
                                             <!--                                </td>-->
                                             <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
-                                            <!--                                    <button style="width: 35px; height: 35px;" name="button_link_edit_YoutubeChordsBt" id="button_link_edit_YoutubeChordsBt" class="form-control btn btn-warning btn-block" type="button" onclick="openLinkYoutubeEditChordsBt()">E</button>-->
+                                            <!--                                    <button style="width: 35px; height: 35px;" name="button_link_edit_DzenChordsBt" id="button_link_edit_DzenChordsBt" class="form-control btn btn-warning btn-block" type="button" onclick="openLinkDzenEditChordsBt()">E</button>-->
                                             <!--                                </td>-->
                                             <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
-                                            <!--                                    <button style="width: 35px; height: 35px;" name="button_head_YoutubeChordsBt" id="button_head_YoutubeChordsBt" class="form-control btn btn-primary btn-block" type="button" onclick="doTextYoutubeChordsBtHeader()">H</button>-->
+                                            <!--                                    <button style="width: 35px; height: 35px;" name="button_head_DzenChordsBt" id="button_head_DzenChordsBt" class="form-control btn btn-primary btn-block" type="button" onclick="doTextDzenChordsBtHeader()">H</button>-->
                                             <!--                                </td>-->
                                             <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
-                                            <!--                                    <button style="width: 35px; height: 35px;" name="button_body_YoutubeChordsBt" id="button_body_YoutubeChordsBt" class="form-control btn btn-primary btn-block" type="button" onclick="doTextYoutubeChordsBtWOHeader()">B</button>-->
+                                            <!--                                    <button style="width: 35px; height: 35px;" name="button_body_DzenChordsBt" id="button_body_DzenChordsBt" class="form-control btn btn-primary btn-block" type="button" onclick="doTextDzenChordsBtWOHeader()">B</button>-->
                                             <!--                                </td>-->
                                             <!--                                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px; width: 35px;">-->
-                                            <!--                                    <button style="width: 35px; height: 35px;" name="button_link_YoutubeChordsBt_link" id="button_link_YoutubeChordsBt_link" class="form-control btn btn-primary btn-block" type="button" onclick="doYoutubeChordsBtLink()">L</button>-->
+                                            <!--                                    <button style="width: 35px; height: 35px;" name="button_link_DzenChordsBt_link" id="button_link_DzenChordsBt_link" class="form-control btn btn-primary btn-block" type="button" onclick="doDzenChordsBtLink()">L</button>-->
                                             <!--                                </td>-->
                                         </tr>
 

@@ -255,22 +255,22 @@
                 </td>
                 <td hidden style="padding: 0; font-size: 0; min-width: 50px; max-width: 50px; border-style: solid; border-width: thin;">
                     <div
-                            th:id="'fld_'+${settings.id}+'_idYoutubeLyrics'"
-                            th:text="${settings.idYoutubeLyrics}"
+                            th:id="'fld_'+${settings.id}+'_idDzenLyrics'"
+                            th:text="${settings.idDzenLyrics}"
                             th:style="'background-color: ' + ${settings.color} + '; height: 100%; padding: 4px; border-style: none; text-align: center; font-size: small;'"
                     ></div>
                 </td>
                 <td hidden style="padding: 0; font-size: 0; min-width: 50px; max-width: 50px; border-style: solid; border-width: thin;">
                     <div
-                            th:id="'fld_'+${settings.id}+'_idYoutubeKaraoke'"
-                            th:text="${settings.idYoutubeKaraoke}"
+                            th:id="'fld_'+${settings.id}+'_idDzenKaraoke'"
+                            th:text="${settings.idDzenKaraoke}"
                             th:style="'background-color: ' + ${settings.color} + '; height: 100%; padding: 4px; border-style: none; text-align: center; font-size: small;'"
                     ></div>
                 </td>
                 <td hidden style="padding: 0; font-size: 0; min-width: 50px; max-width: 50px; border-style: solid; border-width: thin;">
                     <div
-                            th:id="'fld_'+${settings.id}+'_idYoutubeChords'"
-                            th:text="${settings.idYoutubeChords}"
+                            th:id="'fld_'+${settings.id}+'_idDzenChords'"
+                            th:text="${settings.idDzenChords}"
                             th:style="'background-color: ' + ${settings.color} + '; height: 100%; padding: 4px; border-style: none; text-align: center; font-size: small;'"
                     ></div>
                 </td>
@@ -332,24 +332,24 @@
                 </td>
                 <td style="padding: 0; font-size: 0; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin;">
                     <div
-                            th:id="'fld_'+${settings.id}+'_flagYoutubeLyrics'"
-                            th:text="${settings.flagYoutubeLyrics}"
+                            th:id="'fld_'+${settings.id}+'_flagDzenLyrics'"
+                            th:text="${settings.flagDzenLyrics}"
                             th:style="'background-color: ' + ${settings.processColorMeltLyrics} + '; height: 100%; border-style: none; text-align: center; font-size: small;'"
                             th:ondblclick="'doPlay('+${settings.id}+', \'playlyrics\')'"
                     ></div>
                 </td>
                 <td style="padding: 0; font-size: 0; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin;">
                     <div
-                            th:id="'fld_'+${settings.id}+'_flagYoutubeKaraoke'"
-                            th:text="${settings.flagYoutubeKaraoke}"
+                            th:id="'fld_'+${settings.id}+'_flagDzenKaraoke'"
+                            th:text="${settings.flagDzenKaraoke}"
                             th:style="'background-color: ' + ${settings.processColorMeltKaraoke} + '; height: 100%; border-style: none; text-align: center; font-size: small;'"
                             th:ondblclick="'doPlay('+${settings.id}+', \'playkaraoke\')'"
                     ></div>
                 </td>
                 <td hidden style="padding: 0; font-size: 0; min-width: 20px; max-width: 20px; border-style: solid; border-width: thin;">
                     <div
-                            th:id="'fld_'+${settings.id}+'_flagYoutubeChords'"
-                            th:text="${settings.flagYoutubeChords}"
+                            th:id="'fld_'+${settings.id}+'_flagDzenChords'"
+                            th:text="${settings.flagDzenChords}"
                             th:style="'background-color: ' + ${settings.processColorMeltChords} + '; height: 100%; border-style: none; text-align: center; font-size: small;'"
                             th:ondblclick="'doPlay('+${settings.id}+', \'playchords\')'"
                     ></div>

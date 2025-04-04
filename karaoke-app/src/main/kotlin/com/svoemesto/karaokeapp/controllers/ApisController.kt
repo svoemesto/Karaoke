@@ -356,7 +356,7 @@ class ApisController(private val sseNotificationService: SseNotificationService)
     fun getSongTextSponsrBody(@RequestParam id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
-            val text = it.getTextBoostyBody()
+            val text = it.getTextSponsrBody()
             text
         } ?: ""
         return text
@@ -387,9 +387,9 @@ class ApisController(private val sseNotificationService: SseNotificationService)
     }
 
     // Получение текста заголовка для Dzen Karaoke
-    @PostMapping("/song/textyoutubekaraokeheader")
+    @PostMapping("/song/textdzenkaraokeheader")
     @ResponseBody
-    fun getSongTextYoutubeKaraokeHeader(@RequestParam id: Long): String {
+    fun getSongTextDzenKaraokeHeader(@RequestParam id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val text = it.getDescriptionHeader(SongVersion.KARAOKE, 140)
@@ -399,9 +399,9 @@ class ApisController(private val sseNotificationService: SseNotificationService)
     }
 
     // Получение текста тела для Dzen Karaoke
-    @PostMapping("/song/textyoutubekaraokewoheader")
+    @PostMapping("/song/textdzenkaraokewoheader")
     @ResponseBody
-    fun getSongTextYoutubeKaraokeWOHeader(@RequestParam id: Long): String {
+    fun getSongTextDzenKaraokeWOHeader(@RequestParam id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.KARAOKE, 5000)
@@ -411,9 +411,9 @@ class ApisController(private val sseNotificationService: SseNotificationService)
     }
 
     // Получение текста заголовка для Dzen Lyrics
-    @PostMapping("/song/textyoutubelyricsheader")
+    @PostMapping("/song/textdzenlyricsheader")
     @ResponseBody
-    fun getSongTextYoutubeLyricsHeader(@RequestParam id: Long): String {
+    fun getSongTextDzenLyricsHeader(@RequestParam id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val text = it.getDescriptionHeader(SongVersion.LYRICS, 140)
@@ -423,9 +423,9 @@ class ApisController(private val sseNotificationService: SseNotificationService)
     }
 
     // Получение текста тела для Dzen Lyrics
-    @PostMapping("/song/textyoutubelyricswoheader")
+    @PostMapping("/song/textdzenlyricswoheader")
     @ResponseBody
-    fun getSongTextYoutubeLyricsWOHeader(@RequestParam id: Long): String {
+    fun getSongTextDzenLyricsWOHeader(@RequestParam id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.LYRICS, 5000)
@@ -435,9 +435,9 @@ class ApisController(private val sseNotificationService: SseNotificationService)
     }
 
     // Получение текста заголовка для Dzen Chords
-    @PostMapping("/song/textyoutubechordsheader")
+    @PostMapping("/song/textdzenchordsheader")
     @ResponseBody
-    fun getSongTextYoutubeChordsHeader(@RequestParam id: Long): String {
+    fun getSongTextDzenChordsHeader(@RequestParam id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val text = it.getDescriptionHeader(SongVersion.LYRICS, 140)
@@ -447,9 +447,9 @@ class ApisController(private val sseNotificationService: SseNotificationService)
     }
 
     // Получение текста заголовка для Dzen Tabs
-    @PostMapping("/song/textyoutubetabsheader")
+    @PostMapping("/song/textdzentabsheader")
     @ResponseBody
-    fun getSongTextYoutubeTabsHeader(@RequestParam id: Long): String {
+    fun getSongTextDzenTabsHeader(@RequestParam id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val text = it.getDescriptionHeader(SongVersion.TABS, 140)
@@ -459,9 +459,9 @@ class ApisController(private val sseNotificationService: SseNotificationService)
     }
 
     // Получение текста тела для Dzen Chords
-    @PostMapping("/song/textyoutubechordswoheader")
+    @PostMapping("/song/textdzenchordswoheader")
     @ResponseBody
-    fun getSongTextYoutubeChordsWOHeader(@RequestParam id: Long): String {
+    fun getSongTextDzenChordsWOHeader(@RequestParam id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.LYRICS, 5000)
@@ -472,9 +472,9 @@ class ApisController(private val sseNotificationService: SseNotificationService)
 
 
     // Получение текста тела для Dzen Tabs
-    @PostMapping("/song/textyoutubetabswoheader")
+    @PostMapping("/song/textdzentabswoheader")
     @ResponseBody
-    fun getSongTextYoutubeTabsWOHeader(@RequestParam id: Long): String {
+    fun getSongTextDzenTabsWOHeader(@RequestParam id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val text = it.getDescriptionWOHeaderWithTimecodes(SongVersion.TABS, 5000)
@@ -925,10 +925,10 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         @RequestParam(required = false) flag_boosty: String?,
         @RequestParam(required = false) flag_sponsr: String?,
         @RequestParam(required = false) flag_vk: String?,
-        @RequestParam(required = false) flag_youtube_lyrics: String?,
-        @RequestParam(required = false) flag_youtube_karaoke: String?,
-        @RequestParam(required = false) flag_youtube_chords: String?,
-        @RequestParam(required = false) flag_youtube_melody: String?,
+        @RequestParam(required = false) flag_dzen_lyrics: String?,
+        @RequestParam(required = false) flag_dzen_karaoke: String?,
+        @RequestParam(required = false) flag_dzen_chords: String?,
+        @RequestParam(required = false) flag_dzen_melody: String?,
         @RequestParam(required = false) flag_vk_lyrics: String?,
         @RequestParam(required = false) flag_vk_karaoke: String?,
         @RequestParam(required = false) flag_vk_chords: String?,
@@ -960,10 +960,10 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         flag_boosty?.let { if (flag_boosty != "") args["flag_boosty"] = flag_boosty }
         flag_sponsr?.let { if (flag_sponsr != "") args["flag_sponsr"] = flag_sponsr }
         flag_vk?.let { if (flag_vk != "") args["flag_vk"] = flag_vk }
-        flag_youtube_lyrics?.let { if (flag_youtube_lyrics != "") args["flag_youtube_lyrics"] = flag_youtube_lyrics }
-        flag_youtube_karaoke?.let { if (flag_youtube_karaoke != "") args["flag_youtube_karaoke"] = flag_youtube_karaoke }
-        flag_youtube_chords?.let { if (flag_youtube_chords != "") args["flag_youtube_chords"] = flag_youtube_chords }
-        flag_youtube_melody?.let { if (flag_youtube_melody != "") args["flag_youtube_melody"] = flag_youtube_melody }
+        flag_dzen_lyrics?.let { if (flag_dzen_lyrics != "") args["flag_dzen_lyrics"] = flag_dzen_lyrics }
+        flag_dzen_karaoke?.let { if (flag_dzen_karaoke != "") args["flag_dzen_karaoke"] = flag_dzen_karaoke }
+        flag_dzen_chords?.let { if (flag_dzen_chords != "") args["flag_dzen_chords"] = flag_dzen_chords }
+        flag_dzen_melody?.let { if (flag_dzen_melody != "") args["flag_dzen_melody"] = flag_dzen_melody }
         flag_vk_lyrics?.let { if (flag_vk_lyrics != "") args["flag_vk_lyrics"] = flag_vk_lyrics }
         flag_vk_karaoke?.let { if (flag_vk_karaoke != "") args["flag_vk_karaoke"] = flag_vk_karaoke }
         flag_vk_chords?.let { if (flag_vk_chords != "") args["flag_vk_chords"] = flag_vk_chords }
@@ -1012,10 +1012,10 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         @RequestParam(required = false) flag_boosty: String?,
         @RequestParam(required = false) flag_sponsr: String?,
         @RequestParam(required = false) flag_vk: String?,
-        @RequestParam(required = false) flag_youtube_lyrics: String?,
-        @RequestParam(required = false) flag_youtube_karaoke: String?,
-        @RequestParam(required = false) flag_youtube_chords: String?,
-        @RequestParam(required = false) flag_youtube_melody: String?,
+        @RequestParam(required = false) flag_dzen_lyrics: String?,
+        @RequestParam(required = false) flag_dzen_karaoke: String?,
+        @RequestParam(required = false) flag_dzen_chords: String?,
+        @RequestParam(required = false) flag_dzen_melody: String?,
         @RequestParam(required = false) flag_vk_lyrics: String?,
         @RequestParam(required = false) flag_vk_karaoke: String?,
         @RequestParam(required = false) flag_vk_chords: String?,
@@ -1046,10 +1046,10 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         flag_boosty?.let { if (flag_boosty != "") args["flag_boosty"] = flag_boosty }
         flag_sponsr?.let { if (flag_sponsr != "") args["flag_sponsr"] = flag_sponsr }
         flag_vk?.let { if (flag_vk != "") args["flag_vk"] = flag_vk }
-        flag_youtube_lyrics?.let { if (flag_youtube_lyrics != "") args["flag_youtube_lyrics"] = flag_youtube_lyrics }
-        flag_youtube_karaoke?.let { if (flag_youtube_karaoke != "") args["flag_youtube_karaoke"] = flag_youtube_karaoke }
-        flag_youtube_chords?.let { if (flag_youtube_chords != "") args["flag_youtube_chords"] = flag_youtube_chords }
-        flag_youtube_melody?.let { if (flag_youtube_melody != "") args["flag_youtube_melody"] = flag_youtube_melody }
+        flag_dzen_lyrics?.let { if (flag_dzen_lyrics != "") args["flag_dzen_lyrics"] = flag_dzen_lyrics }
+        flag_dzen_karaoke?.let { if (flag_dzen_karaoke != "") args["flag_dzen_karaoke"] = flag_dzen_karaoke }
+        flag_dzen_chords?.let { if (flag_dzen_chords != "") args["flag_dzen_chords"] = flag_dzen_chords }
+        flag_dzen_melody?.let { if (flag_dzen_melody != "") args["flag_dzen_melody"] = flag_dzen_melody }
         flag_vk_lyrics?.let { if (flag_vk_lyrics != "") args["flag_vk_lyrics"] = flag_vk_lyrics }
         flag_vk_karaoke?.let { if (flag_vk_karaoke != "") args["flag_vk_karaoke"] = flag_vk_karaoke }
         flag_vk_chords?.let { if (flag_vk_chords != "") args["flag_vk_chords"] = flag_vk_chords }
@@ -1211,14 +1211,17 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         @RequestParam(required = false) ms: String?,
         @RequestParam(required = false) tags: String?,
         @RequestParam(required = false) idBoosty: String?,
+        @RequestParam(required = false) versionBoosty: String?,
         @RequestParam(required = false) idBoostyFiles: String?,
+        @RequestParam(required = false) versionBoostyFiles: String?,
         @RequestParam(required = false) idSponsr: String?,
+        @RequestParam(required = false) versionSponsr: String?,
         @RequestParam(required = false) indexTabsVariant: String?,
         @RequestParam(required = false) idVk: String?,
-        @RequestParam(required = false) idYoutubeLyrics: String?,
-        @RequestParam(required = false) idYoutubeKaraoke: String?,
-        @RequestParam(required = false) idYoutubeChords: String?,
-        @RequestParam(required = false) idYoutubeMelody: String?,
+        @RequestParam(required = false) idDzenLyrics: String?,
+        @RequestParam(required = false) idDzenKaraoke: String?,
+        @RequestParam(required = false) idDzenChords: String?,
+        @RequestParam(required = false) idDzenMelody: String?,
         @RequestParam(required = false) idVkLyrics: String?,
         @RequestParam(required = false) idVkKaraoke: String?,
         @RequestParam(required = false) idVkChords: String?,
@@ -1231,6 +1234,22 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         @RequestParam(required = false) idPlKaraoke: String?,
         @RequestParam(required = false) idPlChords: String?,
         @RequestParam(required = false) idPlMelody: String?,
+        @RequestParam(required = false) versionDzenLyrics: String?,
+        @RequestParam(required = false) versionDzenKaraoke: String?,
+        @RequestParam(required = false) versionDzenChords: String?,
+        @RequestParam(required = false) versionDzenMelody: String?,
+        @RequestParam(required = false) versionVkLyrics: String?,
+        @RequestParam(required = false) versionVkKaraoke: String?,
+        @RequestParam(required = false) versionVkChords: String?,
+        @RequestParam(required = false) versionVkMelody: String?,
+        @RequestParam(required = false) versionTelegramLyrics: String?,
+        @RequestParam(required = false) versionTelegramKaraoke: String?,
+        @RequestParam(required = false) versionTelegramChords: String?,
+        @RequestParam(required = false) versionTelegramMelody: String?,
+        @RequestParam(required = false) versionPlLyrics: String?,
+        @RequestParam(required = false) versionPlKaraoke: String?,
+        @RequestParam(required = false) versionPlChords: String?,
+        @RequestParam(required = false) versionPlMelody: String?,
         @RequestParam(required = false) resultVersion: String?,
         @RequestParam(required = false) diffBeats: String?
     ): Boolean {
@@ -1254,12 +1273,15 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             idBoosty?.let { sett.fields[SettingField.ID_BOOSTY] = it }
             idBoostyFiles?.let { sett.fields[SettingField.ID_BOOSTY_FILES] = it }
             idSponsr?.let { sett.fields[SettingField.ID_SPONSR] = it }
+            versionBoosty?.let { sett.fields[SettingField.VERSION_BOOSTY] = it }
+            versionBoostyFiles?.let { sett.fields[SettingField.VERSION_BOOSTY_FILES] = it }
+            versionSponsr?.let { sett.fields[SettingField.VERSION_SPONSR] = it }
             indexTabsVariant?.let { sett.fields[SettingField.INDEX_TABS_VARIANT] = it }
             idVk?.let { sett.fields[SettingField.ID_VK] = it }
-            idYoutubeLyrics?.let { sett.fields[SettingField.ID_YOUTUBE_LYRICS] = it }
-            idYoutubeKaraoke?.let { sett.fields[SettingField.ID_YOUTUBE_KARAOKE] = it }
-            idYoutubeChords?.let { sett.fields[SettingField.ID_YOUTUBE_CHORDS] = it }
-            idYoutubeMelody?.let { sett.fields[SettingField.ID_YOUTUBE_MELODY] = it }
+            idDzenLyrics?.let { sett.fields[SettingField.ID_DZEN_LYRICS] = it }
+            idDzenKaraoke?.let { sett.fields[SettingField.ID_DZEN_KARAOKE] = it }
+            idDzenChords?.let { sett.fields[SettingField.ID_DZEN_CHORDS] = it }
+            idDzenMelody?.let { sett.fields[SettingField.ID_DZEN_MELODY] = it }
             idVkLyrics?.let { sett.fields[SettingField.ID_VK_LYRICS] = it }
             idVkKaraoke?.let { sett.fields[SettingField.ID_VK_KARAOKE] = it }
             idVkChords?.let { sett.fields[SettingField.ID_VK_CHORDS] = it }
@@ -1272,6 +1294,21 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             idPlKaraoke?.let { sett.fields[SettingField.ID_PL_KARAOKE] = it }
             idPlChords?.let { sett.fields[SettingField.ID_PL_CHORDS] = it }
             idPlMelody?.let { sett.fields[SettingField.ID_PL_MELODY] = it }
+            versionDzenKaraoke?.let { sett.fields[SettingField.VERSION_DZEN_KARAOKE] = it }
+            versionDzenChords?.let { sett.fields[SettingField.VERSION_DZEN_CHORDS] = it }
+            versionDzenMelody?.let { sett.fields[SettingField.VERSION_DZEN_MELODY] = it }
+            versionVkLyrics?.let { sett.fields[SettingField.VERSION_VK_LYRICS] = it }
+            versionVkKaraoke?.let { sett.fields[SettingField.VERSION_VK_KARAOKE] = it }
+            versionVkChords?.let { sett.fields[SettingField.VERSION_VK_CHORDS] = it }
+            versionVkMelody?.let { sett.fields[SettingField.VERSION_VK_MELODY] = it }
+            versionTelegramLyrics?.let { sett.fields[SettingField.VERSION_TELEGRAM_LYRICS] = it }
+            versionTelegramKaraoke?.let { sett.fields[SettingField.VERSION_TELEGRAM_KARAOKE] = it }
+            versionTelegramChords?.let { sett.fields[SettingField.VERSION_TELEGRAM_CHORDS] = it }
+            versionTelegramMelody?.let { sett.fields[SettingField.VERSION_TELEGRAM_MELODY] = it }
+            versionPlLyrics?.let { sett.fields[SettingField.VERSION_PL_LYRICS] = it }
+            versionPlKaraoke?.let { sett.fields[SettingField.VERSION_PL_KARAOKE] = it }
+            versionPlChords?.let { sett.fields[SettingField.VERSION_PL_CHORDS] = it }
+            versionPlMelody?.let { sett.fields[SettingField.VERSION_PL_MELODY] = it }
             resultVersion?.let { sett.fields[SettingField.RESULT_VERSION] = it }
             diffBeats?.let { sett.fields[SettingField.DIFFBEATS] = it }
             idStatus?.let { sett.fields[SettingField.ID_STATUS] =  it }
@@ -1886,6 +1923,20 @@ class ApisController(private val sseNotificationService: SseNotificationService)
                 type = "info",
                 head = "Создание картинки BoostyTeaser",
                 body = "Создание картинки BoostyTeaser прошло успешно"
+            )))
+        }
+    }
+
+    // Создаём картинку SponsrTeaser для песни
+    @PostMapping("/song/createpicturesponsrteaser")
+    @ResponseBody
+    fun doCreatePictureSponsrTeaser(@RequestParam id: Long) {
+        Settings.loadFromDbById(id, WORKING_DATABASE)?.let { settings ->
+            createSponsrTeaserPicture(settings)
+            SNS.send(SseNotification.message(Message(
+                type = "info",
+                head = "Создание картинки SponsrTeaser",
+                body = "Создание картинки SponsrTeaser прошло успешно"
             )))
         }
     }

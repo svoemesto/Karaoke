@@ -196,8 +196,6 @@ fun updateDatabases(fromDatabase: KaraokeConnection, toDatabase: KaraokeConnecti
                 prcPrev = prc
             }
 
-//            println("Таблица tbl_settings, ${fromDatabase.name}: ${indexFrom+1} из ${listSettingsFrom.size} - id=${settingsFrom.id}, author=${settingsFrom.author}, album=${settingsFrom.album}, name=${settingsFrom.songName}")
-
             // Считываем записи с текущим айди из ИЗ и В
             val settingsTo = listSettingsTo.firstOrNull { it.id == settingsFrom.id }
 
@@ -292,13 +290,6 @@ fun updateDatabases(fromDatabase: KaraokeConnection, toDatabase: KaraokeConnecti
                 }
             }
         }
-//        listSettingsTo.forEach { settingsTo ->
-//            println("Проверка на необходимость удаления записи: id=${settingsTo.id}, author=${settingsTo.author}, album=${settingsTo.album}, name=${settingsTo.songName}")
-//            val settingsFrom = listSettingsFrom.firstOrNull { it.id == settingsTo.id }
-//            if (settingsFrom == null) {
-//                listSettingsToDel.add(settingsTo)
-//            }
-//        }
 
         listSettingsToDel.forEach { toDel ->
             if (toDatabase.name == "SERVER") {
@@ -320,19 +311,33 @@ fun updateDatabases(fromDatabase: KaraokeConnection, toDatabase: KaraokeConnecti
 
     if (updatePictures) {
 
+        // Список айдишников базы ИЗ
         val listPicturesFrom = Pictures.loadList(database = fromDatabase)
         println("Таблица tbl_pictures, записей в базе ${fromDatabase.name}: ${listPicturesFrom.size}")
+
+        // Список айдишников базы В
         val listPicturesTo = Pictures.loadList(database = toDatabase).toMutableList()
         println("Таблица tbl_pictures, записей в базе ${toDatabase.name}: ${listPicturesTo.size}")
 
-        listPicturesFrom.forEachIndexed {indexFrom, pictureFrom ->
+        val setToDel = listPicturesTo.map { it.id }.toMutableSet()
 
-            println("Таблица tbl_pictures, ${fromDatabase.name}: ${indexFrom+1} из ${listPicturesFrom.size}")
+        var prc = 0
+        var prcPrev = 0
+        // Проходимся по айдишникам ИЗ
+        listPicturesFrom.forEachIndexed { indexFrom, pictureFrom ->
 
+            prc = indexFrom * 100 / listPicturesFrom.size
+            if (prc % 10 == 0 && prc != prcPrev) {
+                println("Таблица tbl_pictures, $prc%...")
+                prcPrev = prc
+            }
+
+            // Считываем записи с текущим айди из ИЗ и В
             val pictureTo = listPicturesTo.firstOrNull { it.id == pictureFrom.id }
-            if (pictureTo == null) {
 
-                println("Добавляем запись: id=${pictureFrom.id}, name=${pictureFrom.name}")
+            // Если в В записи нету - создаём её на основе записи из ИЗ и изменяем айдишник
+            if (pictureTo == null) {
+                println("Добавляем запись: id=${pictureFrom.id}, picture_name=${pictureFrom.name}")
                 val sqlToInsert = pictureFrom.getSqlToInsert()
                 if (toDatabase.name == "SERVER") {
 
@@ -341,7 +346,6 @@ fun updateDatabases(fromDatabase: KaraokeConnection, toDatabase: KaraokeConnecti
                         "sqlToInsert" to (setStrEncrypted ?: "")
                     )
                     listToCreate.add(values)
-
                 } else {
                     val connection = toDatabase.getConnection()
                     val ps = connection.prepareStatement(sqlToInsert)
@@ -352,10 +356,14 @@ fun updateDatabases(fromDatabase: KaraokeConnection, toDatabase: KaraokeConnecti
 
             } else {
 
+                setToDel.remove(pictureFrom.id)
+
+                // Если записи есть в обоих базах - получаем их дифы
                 val diff = Pictures.getDiff(pictureFrom, pictureTo)
 
+                // Если диффы есть - вносим изменения в базу В
                 if (diff.isNotEmpty()) {
-                    println("Изменяем запись: id=${pictureFrom.id}, name=${pictureFrom.name}")
+                    println("Изменяем запись: id=${pictureFrom.id}, picture_name=${pictureFrom.name}")
                     val messageRecordChange = RecordChangeMessage(tableName = "tbl_pictures",  recordId = pictureTo.id.toLong(), diffs = diff, databaseName = toDatabase.name, record = pictureFrom)
 
                     if (toDatabase.name == "SERVER") {
@@ -375,9 +383,8 @@ fun updateDatabases(fromDatabase: KaraokeConnection, toDatabase: KaraokeConnecti
 
                     } else {
                         val setStr = diff.filter{ it.recordDiffRealField }.map { "${it.recordDiffName} = ?" }.joinToString(", ")
-
                         if (setStr != "") {
-                            val sql = "UPDATE tbl_pictures SET $setStr WHERE id = ?"
+                            val sql = "UPDATE tbl_settings SET $setStr WHERE id = ?"
 
                             val connection = toDatabase.getConnection()
                             val ps = connection.prepareStatement(sql)
@@ -400,7 +407,6 @@ fun updateDatabases(fromDatabase: KaraokeConnection, toDatabase: KaraokeConnecti
 
                         }
                     }
-
                     countUpdate++
 
 
@@ -410,24 +416,27 @@ fun updateDatabases(fromDatabase: KaraokeConnection, toDatabase: KaraokeConnecti
         }
 
         val listPicturesToDel: MutableList<Pictures> = mutableListOf()
-        listPicturesTo.forEach { picturesTo ->
-            println("Проверка на необходимость удаления записи: id=${picturesTo.id}, name=${picturesTo.name}")
-            val picturesFrom = listPicturesFrom.firstOrNull { it.id == picturesTo.id }
-            if (picturesFrom == null) {
-                listPicturesToDel.add(picturesTo)
+        setToDel.toList().forEach { idToDel ->
+            val settingsFrom = listPicturesFrom.firstOrNull { it.id == idToDel }
+            if (settingsFrom == null) {
+                val pictureTo = listPicturesTo.firstOrNull { it.id == idToDel }
+                if (pictureTo != null) {
+                    println("Проверка на необходимость удаления записи: id=${pictureTo.id}, picture_name=${pictureTo.name}")
+                    listPicturesToDel.add(pictureTo)
+                }
             }
         }
 
         listPicturesToDel.forEach { toDel ->
             if (toDatabase.name == "SERVER") {
-                val sqlToDelete = "DELETE FROM tbl_pictures WHERE id = ${toDel.id}"
+                val sqlToDelete = "DELETE FROM tbl_settings WHERE id = ${toDel.id}"
                 val setStrEncrypted = Crypto.encrypt(sqlToDelete)
                 val values: Map<String, Any> = mapOf(
                     "sqlToDelete" to (setStrEncrypted ?: "")
                 )
                 listToDelete.add(values)
             } else {
-                Pictures.delete(toDel.id, toDatabase)
+                Pictures.delete(id = toDel.id, database = toDatabase)
             }
 
             countDelete++
@@ -436,58 +445,65 @@ fun updateDatabases(fromDatabase: KaraokeConnection, toDatabase: KaraokeConnecti
     }
 
     if (toDatabase.name == "SERVER") {
+
+        val chunkedSize = if (updatePictures) 1 else 10
+
         println("Запрос на сервер на изменение/добавление/удаление.")
 
         if (listToCreate.isNotEmpty()) {
             println("Запрос на сервер на добавление.")
+            val chunked = listToCreate.chunked(chunkedSize)
+            chunked.forEach { lstToCreate ->
+                val values: Map<String, Any> = mapOf(
+                    "dataCreate" to lstToCreate,
+                    "dataUpdate" to emptyList<Map<String, Any>>(),
+                    "dataDelete" to emptyList<Map<String, Any>>(),
+                    "word" to (Crypto.encrypt(Crypto.wordsToChesk) ?: "")
+                )
 
-            val values: Map<String, Any> = mapOf(
-                "dataCreate" to listToCreate,
-                "dataUpdate" to emptyList<Map<String, Any>>(),
-                "dataDelete" to emptyList<Map<String, Any>>(),
-                "word" to (Crypto.encrypt(Crypto.wordsToChesk) ?: "")
-            )
-
-            val objectMapper = ObjectMapper()
-            val requestBody: String = objectMapper.writeValueAsString(values)
-            val client = HttpClient.newBuilder().build();
-            val request = HttpRequest.newBuilder()
-                .uri(URI.create("https://sm-karaoke.ru/changerecords"))
-                .POST(HttpRequest.BodyPublishers.ofString(requestBody))
-                .header("Content-Type", "application/json")
-                .build()
-            val response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            println(response.body())
-
+                val objectMapper = ObjectMapper()
+                val requestBody: String = objectMapper.writeValueAsString(values)
+                val client = HttpClient.newBuilder().build();
+                val request = HttpRequest.newBuilder()
+                    .uri(URI.create("https://sm-karaoke.ru/changerecords"))
+                    .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                    .header("Content-Type", "application/json")
+                    .build()
+                val response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                println(response.body())
+            }
         }
 
         if (listToDelete.isNotEmpty()) {
             println("Запрос на сервер на удаление.")
 
-            val values: Map<String, Any> = mapOf(
-                "dataCreate" to emptyList<Map<String, Any>>(),
-                "dataUpdate" to emptyList<Map<String, Any>>(),
-                "dataDelete" to listToDelete,
-                "word" to (Crypto.encrypt(Crypto.wordsToChesk) ?: "")
-            )
+            val chunked = listToDelete.chunked(chunkedSize)
+            chunked.forEach { lstToDelete ->
+                val values: Map<String, Any> = mapOf(
+                    "dataCreate" to emptyList<Map<String, Any>>(),
+                    "dataUpdate" to emptyList<Map<String, Any>>(),
+                    "dataDelete" to lstToDelete,
+                    "word" to (Crypto.encrypt(Crypto.wordsToChesk) ?: "")
+                )
 
-            val objectMapper = ObjectMapper()
-            val requestBody: String = objectMapper.writeValueAsString(values)
-            val client = HttpClient.newBuilder().build();
-            val request = HttpRequest.newBuilder()
-                .uri(URI.create("https://sm-karaoke.ru/changerecords"))
-                .POST(HttpRequest.BodyPublishers.ofString(requestBody))
-                .header("Content-Type", "application/json")
-                .build()
-            val response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            println(response.body())
+                val objectMapper = ObjectMapper()
+                val requestBody: String = objectMapper.writeValueAsString(values)
+                val client = HttpClient.newBuilder().build();
+                val request = HttpRequest.newBuilder()
+                    .uri(URI.create("https://sm-karaoke.ru/changerecords"))
+                    .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                    .header("Content-Type", "application/json")
+                    .build()
+                val response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                println(response.body())
+            }
 
         }
 
         if (listToUpdate.isNotEmpty()) {
             println("Запрос на сервер на изменение.")
 
-            val chunked = listToUpdate.chunked(10)
+            val chunked = listToUpdate.chunked(chunkedSize)
             chunked.forEach { lstToUpdate ->
                 val values: Map<String, Any> = mapOf(
                     "dataCreate" to emptyList<Map<String, Any>>(),
@@ -509,24 +525,6 @@ fun updateDatabases(fromDatabase: KaraokeConnection, toDatabase: KaraokeConnecti
             }
 
         }
-
-//        val values: Map<String, Any> = mapOf(
-//            "dataCreate" to listToCreate,
-//            "dataUpdate" to listToUpdate,
-//            "dataDelete" to listToDelete,
-//            "word" to (Crypto.encrypt(Crypto.wordsToChesk) ?: "")
-//        )
-//
-//        val objectMapper = ObjectMapper()
-//        val requestBody: String = objectMapper.writeValueAsString(values)
-//        val client = HttpClient.newBuilder().build();
-//        val request = HttpRequest.newBuilder()
-//            .uri(URI.create("https://sm-karaoke.ru/changerecords"))
-//            .POST(HttpRequest.BodyPublishers.ofString(requestBody))
-//            .header("Content-Type", "application/json")
-//            .build()
-//        val response = client.send(request, HttpResponse.BodyHandlers.ofString());
-//        println(response.body())
 
     }
 
@@ -816,7 +814,7 @@ fun replaceSymbolsInSong(sourceText: String): String {
     var result = sourceText.addNewLinesByUpperCase()
 
     val yo = YoWordsDictionary().dict
-
+    val sourceTextContainsRussianLetters = sourceText.containThisSymbols(RUSSIN_LETTERS)
     yo.forEach { wordWithYO ->
         val replacedWord = wordWithYO.replace("ё", "е")
         val patt1 = "\\b$replacedWord\\b".toRegex()
@@ -839,7 +837,16 @@ fun replaceSymbolsInSong(sourceText: String): String {
     result = result.replace(" : ",": ")
     result = result.replace(" :\n",":\n")
 
-    if (sourceText.containThisSymbols(RUSSIN_LETTERS)) {
+    if (sourceTextContainsRussianLetters) {
+        val lines = result.split("\n")
+        val linesWithoutChords: MutableList<String> = mutableListOf()
+        lines.forEach { line ->
+            if (!(line.containThisSymbols(ENGLISH_LETTERS) && !line.containThisSymbols(RUSSIN_LETTERS))) {
+                linesWithoutChords.add(line)
+            }
+        }
+        result = linesWithoutChords.joinToString("\n")
+
         result = result.replace("p","р")
         result = result.replace("y","у")
         result = result.replace("e","е")
@@ -858,6 +865,7 @@ fun replaceSymbolsInSong(sourceText: String): String {
         result = result.replace("B","В")
         result = result.replace("M","М")
     }
+
 
 //    result = result.replace(" -\n","_-\n")
 

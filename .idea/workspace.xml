@@ -4,36 +4,20 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="19caf878-7ce0-44d7-94a1-cf0a31300a8b" name="Changes" comment="Текущие изменения по состоянию на 02.04.2025&#10;v10, убрана проблема дребезга последних секунд при смещении аудио">
-      <change afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/UtilsPictures.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/docs/Авторы на спонсоре.sql" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/docs/Изменение приоритета процесса автора.sql" afterDir="false" />
+    <list default="true" id="19caf878-7ce0-44d7-94a1-cf0a31300a8b" name="Changes" comment="Текущие изменения по состоянию на 04.04.2025&#10;v10, убрана проблема дребезга последних секунд при смещении аудио, изменения в таблицах БД, версии файлов на площадках, новая картинка Спонсора">
+      <change afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/docs/sponsr_teaser_tag.sql" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/docs/Дубли id sponsr.sql" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deploy/Настройка сервера.md" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/Настройка сервера.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Constants.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Constants.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Extentions.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Extentions.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Functions.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Functions.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessWorker.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessWorker.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Poi.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Poi.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApisController.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApisController.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/MainController.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/MainController.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Publication.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Publication.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SettingVoiceLine.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SettingVoiceLine.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/docs/Изменение приоритета процесса автора.sql" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/docs/Изменение приоритета процесса автора.sql" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Settings.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Settings.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SongOutputFile.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SongOutputFile.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/resources/templates/area_center_column.html" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/resources/templates/area_center_column.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/resources/templates/area_left_column.html" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/resources/templates/area_left_column.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/resources/templates/publications.html" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/resources/templates/publications.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/resources/templates/songs.html" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/resources/templates/songs.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/resources/templates/songs2.html" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/resources/templates/songs2.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/resources/templates/unpublications.html" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/resources/templates/unpublications.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/src/components/Songs/components/SongTableBody.vue" beforeDir="false" afterPath="$PROJECT_DIR$/web/src/components/Songs/components/SongTableBody.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/src/components/Songs/components/SongTableHead.vue" beforeDir="false" afterPath="$PROJECT_DIR$/web/src/components/Songs/components/SongTableHead.vue" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/web/src/components/Songs/edit/SongEdit.vue" beforeDir="false" afterPath="$PROJECT_DIR$/web/src/components/Songs/edit/SongEdit.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/src/components/Songs/store.js" beforeDir="false" afterPath="$PROJECT_DIR$/web/src/components/Songs/store.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/src/components/SongsBv/SongsBvTable.vue" beforeDir="false" afterPath="$PROJECT_DIR$/web/src/components/SongsBv/SongsBvTable.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/web/src/components/SongsFilter/SongsFilterModal.vue" beforeDir="false" afterPath="$PROJECT_DIR$/web/src/components/SongsFilter/SongsFilterModal.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/web/src/components/SongsFilter/store.js" beforeDir="false" afterPath="$PROJECT_DIR$/web/src/components/SongsFilter/store.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -146,8 +130,8 @@
     "database.data.extractors.current.export.id": "Comma-separated (CSV)_id",
     "git-widget-placeholder": "master",
     "jdk.selected.JAVA_MODULE": "17",
-    "ktor.last.update.timestamp": "1743622756123",
-    "last_opened_file_path": "/home/nsa/Karaoke/deploy/karaoke-db",
+    "ktor.last.update.timestamp": "1746350816907",
+    "last_opened_file_path": "/home/nsa/Karaoke/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/docs",
     "list.type.of.created.stylesheet": "CSS",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
@@ -175,11 +159,11 @@
   </component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/docs" />
       <recent name="$PROJECT_DIR$/deploy/karaoke-db" />
       <recent name="$PROJECT_DIR$/web/src/assets/svg" />
       <recent name="$PROJECT_DIR$/web/src/views" />
       <recent name="$PROJECT_DIR$/web/src/components" />
-      <recent name="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/docs" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/karaoke-web/src/main/resources/static" />
@@ -573,14 +557,12 @@
       <workItem from="1741948839781" duration="97272000" />
       <workItem from="1742452146017" duration="47418000" />
       <workItem from="1742877658099" duration="100651000" />
-      <workItem from="1743580867566" duration="44448000" />
-    </task>
-    <task id="LOCAL-00094" summary="Переделываем под новую концепцию">
-      <created>1666001054145</created>
-      <option name="number" value="00094" />
-      <option name="presentableId" value="LOCAL-00094" />
-      <option name="project" value="LOCAL" />
-      <updated>1666001054145</updated>
+      <workItem from="1743580867566" duration="47064000" />
+      <workItem from="1743769859153" duration="38432000" />
+      <workItem from="1744993407775" duration="21471000" />
+      <workItem from="1745570623661" duration="11052000" />
+      <workItem from="1746180647737" duration="607000" />
+      <workItem from="1746181846800" duration="11038000" />
     </task>
     <task id="LOCAL-00095" summary="Переделываем под новую концепцию">
       <created>1666114792953</created>
@@ -918,7 +900,14 @@
       <option name="project" value="LOCAL" />
       <updated>1743598694510</updated>
     </task>
-    <option name="localTasksCounter" value="143" />
+    <task id="LOCAL-00143" summary="Текущие изменения по состоянию на 04.04.2025&#10;v10, убрана проблема дребезга последних секунд при смещении аудио, изменения в таблицах БД, версии файлов на площадках, новая картинка Спонсора">
+      <created>1743754370085</created>
+      <option name="number" value="00143" />
+      <option name="presentableId" value="LOCAL-00143" />
+      <option name="project" value="LOCAL" />
+      <updated>1743754370085</updated>
+    </task>
+    <option name="localTasksCounter" value="144" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -954,7 +943,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Еще немного рефакторинга" />
     <MESSAGE value="Смещен счеткик тактов, чтобы не перекрывать назание альбома.&#10;Слои со счетчиками вступления перенесены на самый верх&#10;Добавлена настройка &quot;FORMAT&quot;" />
     <MESSAGE value="Добавлена Watermark" />
     <MESSAGE value="Исправлена ошибка фэйда прогрессометра" />
@@ -979,7 +967,8 @@
     <MESSAGE value="Текущие изменения по состоянию на 21.03.2025&#10;Заработали TABSы" />
     <MESSAGE value="Текущие изменения по состоянию на 29.03.2025&#10;v9, key &amp; bpm на заставке караоке" />
     <MESSAGE value="Текущие изменения по состоянию на 02.04.2025&#10;v10, убрана проблема дребезга последних секунд при смещении аудио" />
-    <option name="LAST_COMMIT_MESSAGE" value="Текущие изменения по состоянию на 02.04.2025&#10;v10, убрана проблема дребезга последних секунд при смещении аудио" />
+    <MESSAGE value="Текущие изменения по состоянию на 04.04.2025&#10;v10, убрана проблема дребезга последних секунд при смещении аудио, изменения в таблицах БД, версии файлов на площадках, новая картинка Спонсора" />
+    <option name="LAST_COMMIT_MESSAGE" value="Текущие изменения по состоянию на 04.04.2025&#10;v10, убрана проблема дребезга последних секунд при смещении аудио, изменения в таблицах БД, версии файлов на площадках, новая картинка Спонсора" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -995,8 +984,13 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" type="kotlin-line">
           <url>file://$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt</url>
-          <line>440</line>
+          <line>452</line>
           <option name="timeStamp" value="4" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="kotlin-line">
+          <url>file://$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Settings.kt</url>
+          <line>2853</line>
+          <option name="timeStamp" value="5" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

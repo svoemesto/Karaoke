@@ -942,7 +942,14 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         @RequestParam(required = false) flag_pl_chords: String?,
         @RequestParam(required = false) flag_pl_melody: String?,
         @RequestParam(required = false) filter_result_version: String?,
-        @RequestParam(required = false) filter_count_voices: String?
+        @RequestParam(required = false) filter_count_voices: String?,
+        @RequestParam(required = false) filter_version_boosty: String?,
+        @RequestParam(required = false) filter_version_boosty_files: String?,
+        @RequestParam(required = false) filter_version_sponsr: String?,
+        @RequestParam(required = false) filter_version_dzen_karaoke: String?,
+        @RequestParam(required = false) filter_version_vk_karaoke: String?,
+        @RequestParam(required = false) filter_version_telegram_karaoke: String?,
+        @RequestParam(required = false) filter_version_pl_karaoke: String?
 
     ): Map<String, Any> {
 
@@ -978,6 +985,13 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         flag_pl_melody?.let { if (flag_pl_melody != "") args["flag_pl_melody"] = flag_pl_melody }
         filter_result_version?.let { if (filter_result_version != "") args["filter_result_version"] = filter_result_version }
         filter_count_voices?.let { if (filter_count_voices != "") args["filter_count_voices"] = filter_count_voices }
+        filter_version_boosty?.let { if (filter_version_boosty != "") args["filter_version_boosty"] = filter_version_boosty }
+        filter_version_boosty_files?.let { if (filter_version_boosty_files != "") args["filter_version_boosty_files"] = filter_version_boosty_files }
+        filter_version_sponsr?.let { if (filter_version_sponsr != "") args["filter_version_sponsr"] = filter_version_sponsr }
+        filter_version_dzen_karaoke?.let { if (filter_version_dzen_karaoke != "") args["filter_version_dzen_karaoke"] = filter_version_dzen_karaoke }
+        filter_version_vk_karaoke?.let { if (filter_version_vk_karaoke != "") args["filter_version_vk_karaoke"] = filter_version_vk_karaoke }
+        filter_version_telegram_karaoke?.let { if (filter_version_telegram_karaoke != "") args["filter_version_telegram_karaoke"] = filter_version_telegram_karaoke }
+        filter_version_pl_karaoke?.let { if (filter_version_pl_karaoke != "") args["filter_version_pl_karaoke"] = filter_version_pl_karaoke }
 
         SongsHistory().add(args)
 
@@ -1029,6 +1043,13 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         @RequestParam(required = false) flag_pl_chords: String?,
         @RequestParam(required = false) flag_pl_melody: String?,
         @RequestParam(required = false) filter_result_version: String?,
+        @RequestParam(required = false) filter_version_boosty: String?,
+        @RequestParam(required = false) filter_version_boosty_files: String?,
+        @RequestParam(required = false) filter_version_sponsr: String?,
+        @RequestParam(required = false) filter_version_dzen_karaoke: String?,
+        @RequestParam(required = false) filter_version_vk_karaoke: String?,
+        @RequestParam(required = false) filter_version_telegram_karaoke: String?,
+        @RequestParam(required = false) filter_version_pl_karaoke: String?,
         @RequestParam(required = false) pageSize: Int = 30
     ): Map<String, Any> {
 
@@ -1063,6 +1084,13 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         flag_pl_chords?.let { if (flag_pl_chords != "") args["flag_pl_chords"] = flag_pl_chords }
         flag_pl_melody?.let { if (flag_pl_melody != "") args["flag_pl_melody"] = flag_pl_melody }
         filter_result_version?.let { if (filter_result_version != "") args["filter_result_version"] = filter_result_version }
+        filter_version_boosty?.let { if (filter_version_boosty != "") args["filter_version_boosty"] = filter_version_boosty }
+        filter_version_boosty_files?.let { if (filter_version_boosty_files != "") args["filter_version_boosty_files"] = filter_version_boosty_files }
+        filter_version_sponsr?.let { if (filter_version_sponsr != "") args["filter_version_sponsr"] = filter_version_sponsr }
+        filter_version_dzen_karaoke?.let { if (filter_version_dzen_karaoke != "") args["filter_version_dzen_karaoke"] = filter_version_dzen_karaoke }
+        filter_version_vk_karaoke?.let { if (filter_version_vk_karaoke != "") args["filter_version_vk_karaoke"] = filter_version_vk_karaoke }
+        filter_version_telegram_karaoke?.let { if (filter_version_telegram_karaoke != "") args["filter_version_telegram_karaoke"] = filter_version_telegram_karaoke }
+        filter_version_pl_karaoke?.let { if (filter_version_pl_karaoke != "") args["filter_version_pl_karaoke"] = filter_version_pl_karaoke }
 
         SongsHistory().add(args)
 
@@ -1294,6 +1322,7 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             idPlKaraoke?.let { sett.fields[SettingField.ID_PL_KARAOKE] = it }
             idPlChords?.let { sett.fields[SettingField.ID_PL_CHORDS] = it }
             idPlMelody?.let { sett.fields[SettingField.ID_PL_MELODY] = it }
+            versionDzenLyrics?.let { sett.fields[SettingField.VERSION_DZEN_LYRICS] = it }
             versionDzenKaraoke?.let { sett.fields[SettingField.VERSION_DZEN_KARAOKE] = it }
             versionDzenChords?.let { sett.fields[SettingField.VERSION_DZEN_CHORDS] = it }
             versionDzenMelody?.let { sett.fields[SettingField.VERSION_DZEN_MELODY] = it }
@@ -2305,8 +2334,8 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         val (resultSuccess, resultFailed) =  updateBpmAndKeyLV(WORKING_DATABASE)
         SNS.send(SseNotification.message(Message(
             type = "info",
-            head = "Обновление BPM и KEY из фалов LV",
-            body = "Обновлено пустых BPM и KEY из фалов LV: $resultSuccess" + if(resultFailed == 0) "" else ", Не удалось обновить файлов: $resultFailed"
+            head = "Обновление BPM и KEY из файлов LV",
+            body = "Обновлено пустых BPM и KEY из файлов LV: $resultSuccess" + if(resultFailed == 0) "" else ", Не удалось обновить файлов: $resultFailed"
         )))
     }
 

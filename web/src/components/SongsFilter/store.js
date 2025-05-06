@@ -12,6 +12,13 @@ export default {
         songsFilterCountVoices: '',
         songsFilterTags: '',
         songsFilterResultVersion: '',
+        songsFilterVersionBoosty: '',
+        songsFilterVersionBoostyFiles: '',
+        songsFilterVersionSponsr: '',
+        songsFilterVersionDzenKaraoke: '',
+        songsFilterVersionVkKaraoke: '',
+        songsFilterVersionTelegramKaraoke: '',
+        songsFilterVersionPlKaraoke: '',
         songsHistory: [],
         songsHistoryIsLoading: false
     },
@@ -29,7 +36,14 @@ export default {
         getSongsFilterIdStatus(state) { return state.songsFilterIdStatus},
         getSongsFilterCountVoices(state) { return state.songsFilterCountVoices},
         getSongsFilterTags(state) { return state.songsFilterTags},
-        getSongsFilterResultVersion(state) { return state.songsFilterResultVersion}
+        getSongsFilterResultVersion(state) { return state.songsFilterResultVersion},
+        getSongsFilterVersionBoosty(state) { return state.songsFilterVersionBoosty},
+        getSongsFilterVersionBoostyFiles(state) { return state.songsFilterVersionBoostyFiles},
+        getSongsFilterVersionSponsr(state) { return state.songsFilterVersionSponsr},
+        getSongsFilterVersionDzenKaraoke(state) { return state.songsFilterVersionDzenKaraoke},
+        getSongsFilterVersionVkKaraoke(state) { return state.songsFilterVersionVkKaraoke},
+        getSongsFilterVersionTelegramKaraoke(state) { return state.songsFilterVersionTelegramKaraoke},
+        getSongsFilterVersionPlKaraoke(state) { return state.songsFilterVersionPlKaraoke}
     },
     mutations: {
         updateSongsHistory(state, result) {
@@ -47,7 +61,14 @@ export default {
         setSongsFilterIdStatus(state, songsFilterIdStatus) { state.songsFilterIdStatus = songsFilterIdStatus },
         setSongsFilterCountVoices(state, songsFilterCountVoices) { state.songsFilterCountVoices = songsFilterCountVoices },
         setSongsFilterTags(state, songsFilterTags) { state.songsFilterTags = songsFilterTags },
-        setSongsFilterResultVersion(state, songsFilterResultVersion) { state.songsFilterResultVersion = songsFilterResultVersion }
+        setSongsFilterResultVersion(state, songsFilterResultVersion) { state.songsFilterResultVersion = songsFilterResultVersion },
+        setSongsFilterVersionBoosty(state, songsFilterVersionBoosty) { state.songsFilterVersionBoosty = songsFilterVersionBoosty },
+        setSongsFilterVersionBoostyFiles(state, songsFilterVersionBoostyFiles) { state.songsFilterVersionBoostyFiles = songsFilterVersionBoostyFiles },
+        setSongsFilterVersionSponsr(state, songsFilterVersionSponsr) { state.songsFilterVersionSponsr = songsFilterVersionSponsr },
+        setSongsFilterVersionDzenKaraoke(state, songsFilterVersionDzenKaraoke) { state.songsFilterVersionDzenKaraoke = songsFilterVersionDzenKaraoke },
+        setSongsFilterVersionVkKaraoke(state, songsFilterVersionVkKaraoke) { state.songsFilterVersionVkKaraoke = songsFilterVersionVkKaraoke },
+        setSongsFilterVersionTelegramKaraoke(state, songsFilterVersionTelegramKaraoke) { state.songsFilterVersionTelegramKaraoke = songsFilterVersionTelegramKaraoke },
+        setSongsFilterVersionPlKaraoke(state, songsFilterVersionPlKaraoke) { state.songsFilterVersionPlKaraoke = songsFilterVersionPlKaraoke }
     },
     actions: {
         loadSongsHistory(ctx) {
@@ -70,6 +91,13 @@ export default {
         setSongsFilterIdStatus(ctx, payload) { ctx.commit('setSongsFilterIdStatus', payload.songsFilterIdStatus) },
         setSongsFilterCountVoices(ctx, payload) { ctx.commit('setSongsFilterCountVoices', payload.songsFilterCountVoices) },
         setSongsFilterTags(ctx, payload) { ctx.commit('setSongsFilterTags', payload.songsFilterTags) },
-        setSongsFilterResultVersion(ctx, payload) { ctx.commit('setSongsFilterResultVersion', payload.songsFilterResultVersion) }
+        setSongsFilterResultVersion(ctx, payload) { ctx.commit('setSongsFilterResultVersion', payload.songsFilterResultVersion) },
+        setSongsFilterVersionBoosty(ctx, payload) { ctx.commit('setSongsFilterVersionBoosty', payload.songsFilterVersionBoosty) },
+        setSongsFilterVersionBoostyFiles(ctx, payload) { ctx.commit('setSongsFilterVersionBoostyFiles', payload.songsFilterVersionBoostyFiles) },
+        setSongsFilterVersionSponsr(ctx, payload) { ctx.commit('setSongsFilterVersionSponsr', payload.songsFilterVersionSponsr) },
+        setSongsFilterVersionDzenKaraoke(ctx, payload) { ctx.commit('setSongsFilterVersionDzenKaraoke', payload.songsFilterVersionDzenKaraoke) },
+        setSongsFilterVersionVkKaraoke(ctx, payload) { ctx.commit('setSongsFilterVersionVkKaraoke', payload.songsFilterVersionVkKaraoke) },
+        setSongsFilterVersionTelegramKaraoke(ctx, payload) { ctx.commit('setSongsFilterVersionTelegramKaraoke', payload.songsFilterVersionTelegramKaraoke) },
+        setSongsFilterVersionPlKaraoke(ctx, payload) { ctx.commit('setSongsFilterVersionPlKaraoke', payload.songsFilterVersionPlKaraoke) }
     }
 }

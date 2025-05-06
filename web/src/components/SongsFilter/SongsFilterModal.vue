@@ -119,6 +119,76 @@
                   <button :disabled="!songsFilterResultVersion" class="button-clear-field" @click.left="songsFilterResultVersion=''" v-text="'X'"></button>
                 </div>
 
+                <div class="filter-row">
+                  <div class="row-label">
+                    <div v-text="'Ver.Boosty:'"></div>
+                  </div>
+                  <div class="row-input">
+                    <input class="input-field" v-model="songsFilterVersionBoosty">
+                  </div>
+                  <button :disabled="!songsFilterVersionBoosty" class="button-clear-field" @click.left="songsFilterVersionBoosty=''" v-text="'X'"></button>
+                </div>
+
+                <div class="filter-row">
+                  <div class="row-label">
+                    <div v-text="'Ver.BoostyFiles:'"></div>
+                  </div>
+                  <div class="row-input">
+                    <input class="input-field" v-model="songsFilterVersionBoostyFiles">
+                  </div>
+                  <button :disabled="!songsFilterVersionBoostyFiles" class="button-clear-field" @click.left="songsFilterVersionBoostyFiles=''" v-text="'X'"></button>
+                </div>
+
+                <div class="filter-row">
+                  <div class="row-label">
+                    <div v-text="'Ver.Sponsr:'"></div>
+                  </div>
+                  <div class="row-input">
+                    <input class="input-field" v-model="songsFilterVersionSponsr">
+                  </div>
+                  <button :disabled="!songsFilterVersionSponsr" class="button-clear-field" @click.left="songsFilterVersionSponsr=''" v-text="'X'"></button>
+                </div>
+
+                <div class="filter-row">
+                  <div class="row-label">
+                    <div v-text="'Ver.Dzen.Kar:'"></div>
+                  </div>
+                  <div class="row-input">
+                    <input class="input-field" v-model="songsFilterVersionDzenKaraoke">
+                  </div>
+                  <button :disabled="!songsFilterVersionDzenKaraoke" class="button-clear-field" @click.left="songsFilterVersionDzenKaraoke=''" v-text="'X'"></button>
+                </div>
+
+                <div class="filter-row">
+                  <div class="row-label">
+                    <div v-text="'Ver.Vk.Kar:'"></div>
+                  </div>
+                  <div class="row-input">
+                    <input class="input-field" v-model="songsFilterVersionVkKaraoke">
+                  </div>
+                  <button :disabled="!songsFilterVersionVkKaraoke" class="button-clear-field" @click.left="songsFilterVersionVkKaraoke=''" v-text="'X'"></button>
+                </div>
+
+                <div class="filter-row">
+                  <div class="row-label">
+                    <div v-text="'Ver.Tg.Kar:'"></div>
+                  </div>
+                  <div class="row-input">
+                    <input class="input-field" v-model="songsFilterVersionTelegramKaraoke">
+                  </div>
+                  <button :disabled="!songsFilterVersionTelegramKaraoke" class="button-clear-field" @click.left="songsFilterVersionTelegramKaraoke=''" v-text="'X'"></button>
+                </div>
+
+                <div class="filter-row">
+                  <div class="row-label">
+                    <div v-text="'Ver.Pl.Kar:'"></div>
+                  </div>
+                  <div class="row-input">
+                    <input class="input-field" v-model="songsFilterVersionPlKaraoke">
+                  </div>
+                  <button :disabled="!songsFilterVersionPlKaraoke" class="button-clear-field" @click.left="songsFilterVersionPlKaraoke=''" v-text="'X'"></button>
+                </div>
+
               </div>
             </b-tab>
             <b-tab title="История">
@@ -177,6 +247,13 @@ export default {
       songsFilterCountVoices: this.$store.getters.getSongsFilterCountVoices,
       songsFilterTags: this.$store.getters.getSongsFilterTags,
       songsFilterResultVersion: this.$store.getters.getSongsFilterResultVersion,
+      songsFilterVersionBoosty: this.$store.getters.getSongsFilterVersionBoosty,
+      songsFilterVersionBoostyFiles: this.$store.getters.getSongsFilterVersionBoostyFiles,
+      songsFilterVersionSponsr: this.$store.getters.getSongsFilterVersionSponsr,
+      songsFilterVersionDzenKaraoke: this.$store.getters.getSongsFilterVersionDzenKaraoke,
+      songsFilterVersionVkKaraoke: this.$store.getters.getSongsFilterVersionVkKaraoke,
+      songsFilterVersionTelegramKaraoke: this.$store.getters.getSongsFilterVersionTelegramKaraoke,
+      songsFilterVersionPlKaraoke: this.$store.getters.getSongsFilterVersionPlKaraoke,
       dictAuthors: []
     }
   },
@@ -231,6 +308,13 @@ export default {
       this.$store.dispatch('setSongsFilterCountVoices', { songsFilterCountVoices: this.songsFilterCountVoices });
       this.$store.dispatch('setSongsFilterTags', { songsFilterTags: this.songsFilterTags });
       this.$store.dispatch('setSongsFilterResultVersion', { songsFilterResultVersion: this.songsFilterResultVersion });
+      this.$store.dispatch('setSongsFilterVersionBoosty', { songsFilterVersionBoosty: this.songsFilterVersionBoosty });
+      this.$store.dispatch('setSongsFilterVersionBoostyFiles', { songsFilterVersionBoostyFiles: this.songsFilterVersionBoostyFiles });
+      this.$store.dispatch('setSongsFilterVersionSponsr', { songsFilterVersionSponsr: this.songsFilterVersionSponsr });
+      this.$store.dispatch('setSongsFilterVersionDzenKaraoke', { songsFilterVersionDzenKaraoke: this.songsFilterVersionDzenKaraoke });
+      this.$store.dispatch('setSongsFilterVersionVkKaraoke', { songsFilterVersionVkKaraoke: this.songsFilterVersionVkKaraoke });
+      this.$store.dispatch('setSongsFilterVersionTelegramKaraoke', { songsFilterVersionTelegramKaraoke: this.songsFilterVersionTelegramKaraoke });
+      this.$store.dispatch('setSongsFilterVersionPlKaraoke', { songsFilterVersionPlKaraoke: this.songsFilterVersionPlKaraoke });
 
       let params = {};
       if (this.songsFilterId) params.filter_id = this.songsFilterId;
@@ -243,6 +327,13 @@ export default {
       if (this.songsFilterCountVoices) params.filter_count_voices = this.songsFilterCountVoices;
       if (this.songsFilterTags) params.filter_tags = this.songsFilterTags;
       if (this.songsFilterResultVersion !== '') params.filter_result_version = this.songsFilterResultVersion;
+      if (this.songsFilterVersionBoosty !== '') params.filter_version_boosty = this.songsFilterVersionBoosty;
+      if (this.songsFilterVersionBoostyFiles !== '') params.filter_version_boosty_files = this.songsFilterVersionBoostyFiles;
+      if (this.songsFilterVersionSponsr !== '') params.filter_version_sponsr = this.songsFilterVersionSponsr;
+      if (this.songsFilterVersionDzenKaraoke !== '') params.filter_version_dzen_karaoke = this.songsFilterVersionDzenKaraoke;
+      if (this.songsFilterVersionVkKaraoke !== '') params.filter_version_vk_karaoke = this.songsFilterVersionVkKaraoke;
+      if (this.songsFilterVersionTelegramKaraoke !== '') params.filter_version_telegram_karaoke = this.songsFilterVersionTelegramKaraoke;
+      if (this.songsFilterVersionPlKaraoke !== '') params.filter_version_pl_karaoke = this.songsFilterVersionPlKaraoke;
       this.$store.dispatch('loadSongsDigests', params );
       this.$store.dispatch('loadSongsHistory' );
 
@@ -263,6 +354,13 @@ export default {
       this.songsFilterCountVoices = args['filter_count_voices'] ? args['filter_count_voices'] : ''
       this.songsFilterTags = args['tags'] ? args['tags'] : ''
       this.songsFilterResultVersion = args['filter_result_version'] ? args['filter_result_version'] : ''
+      this.songsFilterVersionBoosty = args['filter_version_boosty'] ? args['filter_version_boosty'] : ''
+      this.songsFilterVersionBoostyFiles = args['filter_version_boosty_files'] ? args['filter_version_boosty_files'] : ''
+      this.songsFilterVersionSponsr = args['filter_version_sponsr'] ? args['filter_version_sponsr'] : ''
+      this.songsFilterVersionDzenKaraoke = args['filter_version_dzen_karaoke'] ? args['filter_version_dzen_karaoke'] : ''
+      this.songsFilterVersionVkKaraoke = args['filter_version_vk_karaoke'] ? args['filter_version_vk_karaoke'] : ''
+      this.songsFilterVersionTelegramKaraoke = args['filter_version_telegram_karaoke'] ? args['filter_version_telegram_karaoke'] : ''
+      this.songsFilterVersionPlKaraoke = args['filter_version_pl_karaoke'] ? args['filter_version_pl_karaoke'] : ''
 
       this.ok();
     }

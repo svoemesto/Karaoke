@@ -612,14 +612,10 @@ export default {
             const newVal = value.replace(this.prefixLinkBoosty, '').replace('?share=post_link', '');
             this.$store.dispatch('setCurrentSongField', {name: 'idBoosty', value: newVal})
           }
-          if (value !== '') {
-            if (this.song.versionBoosty !== this.song.resultVersion) {
+          if (value !== '' && this.song.versionBoosty === 0) {
               this.$store.dispatch('setCurrentSongField', {name: 'versionBoosty', value: this.song.resultVersion});
-            }
-          } else {
-            if (this.song.versionBoosty !== 0) {
+          } else if (value === '' && this.song.versionBoosty !== 0){
               this.$store.dispatch('setCurrentSongField', {name: 'versionBoosty', value: 0});
-            }
           }
         }
       }
@@ -633,14 +629,10 @@ export default {
             const newValue = value.replace(this.prefixLinkSponsrPlay, '').split('/')[0];
             this.$store.dispatch('setCurrentSongField', {name: 'idSponsr', value: newValue})
           }
-          if (value !== '') {
-            if (this.song.versionSponsr !== this.song.resultVersion) {
-              this.$store.dispatch('setCurrentSongField', {name: 'versionSponsr', value: this.song.resultVersion});
-            }
-          } else {
-            if (this.song.versionSponsr !== 0) {
-              this.$store.dispatch('setCurrentSongField', {name: 'versionSponsr', value: 0});
-            }
+          if (value !== '' && this.song.versionSponsr === 0) {
+            this.$store.dispatch('setCurrentSongField', {name: 'versionSponsr', value: this.song.resultVersion});
+          } else if (value === '' && this.song.versionSponsr !== 0){
+            this.$store.dispatch('setCurrentSongField', {name: 'versionSponsr', value: 0});
           }
         }
       }
@@ -654,14 +646,10 @@ export default {
             const newValue = value.replace(this.prefixLinkBoosty, '').replace('?share=post_link', '');
             this.$store.dispatch('setCurrentSongField', {name: 'idBoostyFiles', value: newValue})
           }
-          if (value !== '') {
-            if (this.song.versionBoostyFiles !== this.song.resultVersion) {
-              this.$store.dispatch('setCurrentSongField', {name: 'versionBoostyFiles', value: this.song.resultVersion});
-            }
-          } else {
-            if (this.song.versionBoostyFiles !== 0) {
-              this.$store.dispatch('setCurrentSongField', {name: 'versionBoostyFiles', value: 0});
-            }
+          if (value !== '' && this.song.versionBoostyFiles === 0) {
+            this.$store.dispatch('setCurrentSongField', {name: 'versionBoostyFiles', value: this.song.resultVersion});
+          } else if (value === '' && this.song.versionBoostyFiles !== 0){
+            this.$store.dispatch('setCurrentSongField', {name: 'versionBoostyFiles', value: 0});
           }
         }
       }
@@ -687,14 +675,10 @@ export default {
             const newValue = value.replace(this.prefixLinkDzenPlay, '');
             this.$store.dispatch('setCurrentSongField', {name: 'idDzenKaraoke', value: newValue})
           }
-          if (value !== '') {
-            if (this.song.versionDzenKaraoke !== this.song.resultVersion) {
-              this.$store.dispatch('setCurrentSongField', {name: 'versionDzenKaraoke', value: this.song.resultVersion});
-            }
-          } else {
-            if (this.song.versionDzenKaraoke !== 0) {
-              this.$store.dispatch('setCurrentSongField', {name: 'versionDzenKaraoke', value: 0});
-            }
+          if (value !== '' && this.song.versionDzenKaraoke === 0) {
+            this.$store.dispatch('setCurrentSongField', {name: 'versionDzenKaraoke', value: this.song.resultVersion});
+          } else if (value === '' && this.song.versionDzenKaraoke !== 0){
+            this.$store.dispatch('setCurrentSongField', {name: 'versionDzenKaraoke', value: 0});
           }
         }
       }
@@ -708,14 +692,10 @@ export default {
             const newValue = value.replace(this.prefixLinkDzenPlay, '');
             this.$store.dispatch('setCurrentSongField', {name: 'idDzenLyrics', value: newValue})
           }
-          if (value !== '') {
-            if (this.song.versionDzenLyrics !== this.song.resultVersion) {
-              this.$store.dispatch('setCurrentSongField', {name: 'versionDzenLyrics', value: this.song.resultVersion});
-            }
-          } else {
-            if (this.song.versionDzenLyrics !== 0) {
-              this.$store.dispatch('setCurrentSongField', {name: 'versionDzenLyrics', value: 0});
-            }
+          if (value !== '' && this.song.versionDzenLyrics === 0) {
+            this.$store.dispatch('setCurrentSongField', {name: 'versionDzenLyrics', value: this.song.resultVersion});
+          } else if (value === '' && this.song.versionDzenLyrics !== 0){
+            this.$store.dispatch('setCurrentSongField', {name: 'versionDzenLyrics', value: 0});
           }
         }
       }
@@ -729,14 +709,10 @@ export default {
             const newValue = value.replace(this.prefixLinkDzenPlay, '');
             this.$store.dispatch('setCurrentSongField', {name: 'idDzenChords', value: newValue})
           }
-          if (value !== '') {
-            if (this.song.versionDzenChords !== this.song.resultVersion) {
-              this.$store.dispatch('setCurrentSongField', {name: 'versionDzenChords', value: this.song.resultVersion});
-            }
-          } else {
-            if (this.song.versionDzenChords !== 0) {
-              this.$store.dispatch('setCurrentSongField', {name: 'versionDzenChords', value: 0});
-            }
+          if (value !== '' && this.song.versionDzenChords === 0) {
+            this.$store.dispatch('setCurrentSongField', {name: 'versionDzenChords', value: this.song.resultVersion});
+          } else if (value === '' && this.song.versionDzenChords !== 0){
+            this.$store.dispatch('setCurrentSongField', {name: 'versionDzenChords', value: 0});
           }
         }
       }
@@ -750,14 +726,10 @@ export default {
             const newValue = value.replace(this.prefixLinkDzenPlay, '');
             this.$store.dispatch('setCurrentSongField', {name: 'idDzenMelody', value: newValue})
           }
-          if (value !== '') {
-            if (this.song.versionDzenMelody !== this.song.resultVersion) {
-              this.$store.dispatch('setCurrentSongField', {name: 'versionDzenMelody', value: this.song.resultVersion});
-            }
-          } else {
-            if (this.song.versionDzenMelody !== 0) {
-              this.$store.dispatch('setCurrentSongField', {name: 'versionDzenMelody', value: 0});
-            }
+          if (value !== '' && this.song.versionDzenMelody === 0) {
+            this.$store.dispatch('setCurrentSongField', {name: 'versionDzenMelody', value: this.song.resultVersion});
+          } else if (value === '' && this.song.versionDzenMelody !== 0){
+            this.$store.dispatch('setCurrentSongField', {name: 'versionDzenMelody', value: 0});
           }
         }
       }
@@ -771,14 +743,10 @@ export default {
             const newValue = value.replace(this.prefixLinkPlPlay, '');
             this.$store.dispatch('setCurrentSongField', {name: 'idPlKaraoke', value: newValue})
           }
-          if (value !== '') {
-            if (this.song.versionPlKaraoke !== this.song.resultVersion) {
-              this.$store.dispatch('setCurrentSongField', {name: 'versionPlKaraoke', value: this.song.resultVersion});
-            }
-          } else {
-            if (this.song.versionPlKaraoke !== 0) {
-              this.$store.dispatch('setCurrentSongField', {name: 'versionPlKaraoke', value: 0});
-            }
+          if (value !== '' && this.song.versionPlKaraoke === 0) {
+            this.$store.dispatch('setCurrentSongField', {name: 'versionPlKaraoke', value: this.song.resultVersion});
+          } else if (value === '' && this.song.versionPlKaraoke !== 0){
+            this.$store.dispatch('setCurrentSongField', {name: 'versionPlKaraoke', value: 0});
           }
         }
       }
@@ -792,14 +760,10 @@ export default {
             const newValue = value.replace(this.prefixLinkPlPlay, '');
             this.$store.dispatch('setCurrentSongField', {name: 'idPlLyrics', value: newValue})
           }
-          if (value !== '') {
-            if (this.song.versionPlLyrics !== this.song.resultVersion) {
-              this.$store.dispatch('setCurrentSongField', {name: 'versionPlLyrics', value: this.song.resultVersion});
-            }
-          } else {
-            if (this.song.versionPlLyrics !== 0) {
-              this.$store.dispatch('setCurrentSongField', {name: 'versionPlLyrics', value: 0});
-            }
+          if (value !== '' && this.song.versionPlLyrics === 0) {
+            this.$store.dispatch('setCurrentSongField', {name: 'versionPlLyrics', value: this.song.resultVersion});
+          } else if (value === '' && this.song.versionPlLyrics !== 0){
+            this.$store.dispatch('setCurrentSongField', {name: 'versionPlLyrics', value: 0});
           }
         }
       }
@@ -813,14 +777,10 @@ export default {
             const newValue = value.replace(this.prefixLinkPlPlay, '');
             this.$store.dispatch('setCurrentSongField', {name: 'idPlChords', value: newValue})
           }
-          if (value !== '') {
-            if (this.song.versionChords !== this.song.resultVersion) {
-              this.$store.dispatch('setCurrentSongField', {name: 'versionChords', value: this.song.resultVersion});
-            }
-          } else {
-            if (this.song.versionChords !== 0) {
-              this.$store.dispatch('setCurrentSongField', {name: 'versionChords', value: 0});
-            }
+          if (value !== '' && this.song.versionPlChords === 0) {
+            this.$store.dispatch('setCurrentSongField', {name: 'versionPlChords', value: this.song.resultVersion});
+          } else if (value === '' && this.song.versionPlChords !== 0){
+            this.$store.dispatch('setCurrentSongField', {name: 'versionPlChords', value: 0});
           }
         }
       }
@@ -834,14 +794,10 @@ export default {
             const newValue = value.replace(this.prefixLinkPlPlay, '');
             this.$store.dispatch('setCurrentSongField', {name: 'idPlMelody', value: newValue})
           }
-          if (value !== '') {
-            if (this.song.versionMelody !== this.song.resultVersion) {
-              this.$store.dispatch('setCurrentSongField', {name: 'versionMelody', value: this.song.resultVersion});
-            }
-          } else {
-            if (this.song.versionMelody !== 0) {
-              this.$store.dispatch('setCurrentSongField', {name: 'versionMelody', value: 0});
-            }
+          if (value !== '' && this.song.versionPlMelody === 0) {
+            this.$store.dispatch('setCurrentSongField', {name: 'versionPlMelody', value: this.song.resultVersion});
+          } else if (value === '' && this.song.versionPlMelody !== 0){
+            this.$store.dispatch('setCurrentSongField', {name: 'versionPlMelody', value: 0});
           }
         }
       }
@@ -859,14 +815,10 @@ export default {
             const newValue = value.replace(this.prefixLinkVk2, '');
             this.$store.dispatch('setCurrentSongField', {name: 'idVkKaraoke', value: newValue});
           }
-          if (value !== '') {
-            if (this.song.versionVkKaraoke !== this.song.resultVersion) {
-              this.$store.dispatch('setCurrentSongField', {name: 'versionVkKaraoke', value: this.song.resultVersion});
-            }
-          } else {
-            if (this.song.versionVkKaraoke !== 0) {
-              this.$store.dispatch('setCurrentSongField', {name: 'versionVkKaraoke', value: 0});
-            }
+          if (value !== '' && this.song.versionVkKaraoke === 0) {
+            this.$store.dispatch('setCurrentSongField', {name: 'versionVkKaraoke', value: this.song.resultVersion});
+          } else if (value === '' && this.song.versionVkKaraoke !== 0){
+            this.$store.dispatch('setCurrentSongField', {name: 'versionVkKaraoke', value: 0});
           }
         }
       }
@@ -884,14 +836,10 @@ export default {
             const newValue = value.replace(this.prefixLinkVk2, '');
             this.$store.dispatch('setCurrentSongField', {name: 'idVkLyrics', value: newValue});
           }
-          if (value !== '') {
-            if (this.song.versionVkLyrics !== this.song.resultVersion) {
-              this.$store.dispatch('setCurrentSongField', {name: 'versionVkLyrics', value: this.song.resultVersion});
-            }
-          } else {
-            if (this.song.versionVkLyrics !== 0) {
-              this.$store.dispatch('setCurrentSongField', {name: 'versionVkLyrics', value: 0});
-            }
+          if (value !== '' && this.song.versionVkLyrics === 0) {
+            this.$store.dispatch('setCurrentSongField', {name: 'versionVkLyrics', value: this.song.resultVersion});
+          } else if (value === '' && this.song.versionVkLyrics !== 0){
+            this.$store.dispatch('setCurrentSongField', {name: 'versionVkLyrics', value: 0});
           }
         }
       }
@@ -909,14 +857,10 @@ export default {
             const newValue = value.replace(this.prefixLinkVk2, '');
             this.$store.dispatch('setCurrentSongField', {name: 'idVkChords', value: newValue});
           }
-          if (value !== '') {
-            if (this.song.versionVkChords !== this.song.resultVersion) {
-              this.$store.dispatch('setCurrentSongField', {name: 'versionVkChords', value: this.song.resultVersion});
-            }
-          } else {
-            if (this.song.versionVkChords !== 0) {
-              this.$store.dispatch('setCurrentSongField', {name: 'versionVkChords', value: 0});
-            }
+          if (value !== '' && this.song.versionVkChords === 0) {
+            this.$store.dispatch('setCurrentSongField', {name: 'versionVkChords', value: this.song.resultVersion});
+          } else if (value === '' && this.song.versionVkChords !== 0){
+            this.$store.dispatch('setCurrentSongField', {name: 'versionVkChords', value: 0});
           }
         }
       }
@@ -934,14 +878,10 @@ export default {
             const newValue = value.replace(this.prefixLinkVk2, '');
             this.$store.dispatch('setCurrentSongField', {name: 'idVkMelody', value: newValue});
           }
-          if (value !== '') {
-            if (this.song.versionVkMelody !== this.song.resultVersion) {
-              this.$store.dispatch('setCurrentSongField', {name: 'versionVkMelody', value: this.song.resultVersion});
-            }
-          } else {
-            if (this.song.versionVkMelody !== 0) {
-              this.$store.dispatch('setCurrentSongField', {name: 'versionVkMelody', value: 0});
-            }
+          if (value !== '' && this.song.versionVkMelody === 0) {
+            this.$store.dispatch('setCurrentSongField', {name: 'versionVkMelody', value: this.song.resultVersion});
+          } else if (value === '' && this.song.versionVkMelody !== 0){
+            this.$store.dispatch('setCurrentSongField', {name: 'versionVkMelody', value: 0});
           }
         }
       }
@@ -955,14 +895,10 @@ export default {
             const newValue = value.replace(this.prefixLinkTelegram, '');
             this.$store.dispatch('setCurrentSongField', {name: 'idTelegramKaraoke', value: newValue})
           }
-          if (value !== '') {
-            if (this.song.versionTelegramKaraoke !== this.song.resultVersion) {
-              this.$store.dispatch('setCurrentSongField', {name: 'versionTelegramKaraoke', value: this.song.resultVersion});
-            }
-          } else {
-            if (this.song.versionTelegramKaraoke !== 0) {
-              this.$store.dispatch('setCurrentSongField', {name: 'versionTelegramKaraoke', value: 0});
-            }
+          if (value !== '' && value !== '-' && this.song.versionTelegramKaraoke === 0) {
+            this.$store.dispatch('setCurrentSongField', {name: 'versionTelegramKaraoke', value: this.song.resultVersion});
+          } else if ((value === '' || value === '-') && this.song.versionTelegramKaraoke !== 0){
+            this.$store.dispatch('setCurrentSongField', {name: 'versionTelegramKaraoke', value: 0});
           }
         }
       }
@@ -976,14 +912,10 @@ export default {
             const newValue = value.replace(this.prefixLinkTelegram, '');
             this.$store.dispatch('setCurrentSongField', {name: 'idTelegramLyrics', value: newValue})
           }
-          if (value !== '') {
-            if (this.song.versionTelegramLyrics !== this.song.resultVersion) {
-              this.$store.dispatch('setCurrentSongField', {name: 'versionTelegramLyrics', value: this.song.resultVersion});
-            }
-          } else {
-            if (this.song.versionTelegramLyrics !== 0) {
-              this.$store.dispatch('setCurrentSongField', {name: 'versionTelegramLyrics', value: 0});
-            }
+          if (value !== '' && this.song.versionTelegramLyrics === 0) {
+            this.$store.dispatch('setCurrentSongField', {name: 'versionTelegramLyrics', value: this.song.resultVersion});
+          } else if (value === '' && this.song.versionTelegramLyrics !== 0){
+            this.$store.dispatch('setCurrentSongField', {name: 'versionTelegramLyrics', value: 0});
           }
         }
       }
@@ -997,14 +929,10 @@ export default {
             const newValue = value.replace(this.prefixLinkTelegram, '');
             this.$store.dispatch('setCurrentSongField', {name: 'idTelegramChords', value: newValue})
           }
-          if (value !== '') {
-            if (this.song.versionTelegramChords !== this.song.resultVersion) {
-              this.$store.dispatch('setCurrentSongField', {name: 'versionTelegramChords', value: this.song.resultVersion});
-            }
-          } else {
-            if (this.song.versionTelegramChords !== 0) {
-              this.$store.dispatch('setCurrentSongField', {name: 'versionTelegramChords', value: 0});
-            }
+          if (value !== '' && this.song.versionTelegramChords === 0) {
+            this.$store.dispatch('setCurrentSongField', {name: 'versionTelegramChords', value: this.song.resultVersion});
+          } else if (value === '' && this.song.versionTelegramChords !== 0){
+            this.$store.dispatch('setCurrentSongField', {name: 'versionTelegramChords', value: 0});
           }
         }
       }
@@ -1018,14 +946,10 @@ export default {
             const newValue = value.replace(this.prefixLinkTelegram, '');
             this.$store.dispatch('setCurrentSongField', {name: 'idTelegramMelody', value: newValue})
           }
-          if (value !== '') {
-            if (this.song.versionTelegramMelody !== this.song.resultVersion) {
-              this.$store.dispatch('setCurrentSongField', {name: 'versionTelegramMelody', value: this.song.resultVersion});
-            }
-          } else {
-            if (this.song.versionTelegramMelody !== 0) {
-              this.$store.dispatch('setCurrentSongField', {name: 'versionTelegramMelody', value: 0});
-            }
+          if (value !== '' && this.song.versionTelegramMelody === 0) {
+            this.$store.dispatch('setCurrentSongField', {name: 'versionTelegramMelody', value: this.song.resultVersion});
+          } else if (value === '' && this.song.versionTelegramMelody !== 0){
+            this.$store.dispatch('setCurrentSongField', {name: 'versionTelegramMelody', value: 0});
           }
         }
       }

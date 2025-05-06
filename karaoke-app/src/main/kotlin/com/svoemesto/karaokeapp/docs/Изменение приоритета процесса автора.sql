@@ -1,7 +1,6 @@
 update tbl_processes
 set
-    process_priority = process_priority + 20
+    process_priority = 10
 where
-    process_priority = 19 and
-    process_name like '%Infornal%'
+    process_name like '%Окопные свечи%'
 and process_status = 'WAITING'

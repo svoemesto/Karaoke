@@ -2787,7 +2787,15 @@ fun String.textBetween(startString: String, endString: String): String {
 }
 fun searchLastAlbumYm2(authorYmId: String): String {
     val searchUrl = "https://music.yandex.ru/artist/$authorYmId/albums"
-    val document = Jsoup.connect(searchUrl).get()
+    // Выбор случайного User-Agent
+    val randomUserAgent = USER_AGENTS.random()
+
+//    val document = Jsoup.connect(searchUrl).get()
+    val document = Jsoup.connect(searchUrl)
+        .header("User-Agent", randomUserAgent)
+        .header("Referer", "https://music.yandex.ru/ ")
+        .get()
+
     val html = document.html()
     val preloadedAlbums = html.extractBalancedBracesFromString("""\"preloadedAlbums\":""")
     val album = preloadedAlbums.extractBalancedBracesFromString("""\"albums\":[""")

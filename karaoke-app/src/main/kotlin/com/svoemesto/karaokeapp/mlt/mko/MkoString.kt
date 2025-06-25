@@ -84,7 +84,7 @@ data class MkoString(
 
         val sett = settings ?: return MltNode()
         val element = try {
-            sett.voicesForMlt[voiceId].getLines()[lineId].getElements(songVersion).filter { it.type == SettingVoiceLineElementTypes.TEXT }.first()
+            sett.voicesForMlt[voiceId].getLines()[lineId].getElements(songVersion).filter { it.type in listOf(SettingVoiceLineElementTypes.TEXT, SettingVoiceLineElementTypes.COMMENT) }.first()
         } catch (e: Exception) {
             return MltNode()
         }

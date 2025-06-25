@@ -2200,6 +2200,7 @@ export default {
   flex-direction: row;
   height: max-content;
   background-color: transparent;
+  z-index: 100;
 }
 
 .footer {

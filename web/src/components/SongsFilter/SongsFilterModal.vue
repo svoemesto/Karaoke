@@ -189,6 +189,16 @@
                   <button :disabled="!songsFilterVersionPlKaraoke" class="button-clear-field" @click.left="songsFilterVersionPlKaraoke=''" v-text="'X'"></button>
                 </div>
 
+                <div class="filter-row">
+                  <div class="row-label">
+                    <div v-text="'Rate:'"></div>
+                  </div>
+                  <div class="row-input">
+                    <input class="input-field" v-model="songsFilterRate">
+                  </div>
+                  <button :disabled="!songsFilterRate" class="button-clear-field" @click.left="songsFilterRate=''" v-text="'X'"></button>
+                </div>
+
               </div>
             </b-tab>
             <b-tab title="История">
@@ -254,6 +264,7 @@ export default {
       songsFilterVersionVkKaraoke: this.$store.getters.getSongsFilterVersionVkKaraoke,
       songsFilterVersionTelegramKaraoke: this.$store.getters.getSongsFilterVersionTelegramKaraoke,
       songsFilterVersionPlKaraoke: this.$store.getters.getSongsFilterVersionPlKaraoke,
+      songsFilterRate: this.$store.getters.getSongsFilterRate,
       dictAuthors: []
     }
   },
@@ -315,6 +326,7 @@ export default {
       this.$store.dispatch('setSongsFilterVersionVkKaraoke', { songsFilterVersionVkKaraoke: this.songsFilterVersionVkKaraoke });
       this.$store.dispatch('setSongsFilterVersionTelegramKaraoke', { songsFilterVersionTelegramKaraoke: this.songsFilterVersionTelegramKaraoke });
       this.$store.dispatch('setSongsFilterVersionPlKaraoke', { songsFilterVersionPlKaraoke: this.songsFilterVersionPlKaraoke });
+      this.$store.dispatch('setSongsFilterRate', { songsFilterRate: this.songsFilterRate });
 
       let params = {};
       if (this.songsFilterId) params.filter_id = this.songsFilterId;
@@ -334,6 +346,7 @@ export default {
       if (this.songsFilterVersionVkKaraoke !== '') params.filter_version_vk_karaoke = this.songsFilterVersionVkKaraoke;
       if (this.songsFilterVersionTelegramKaraoke !== '') params.filter_version_telegram_karaoke = this.songsFilterVersionTelegramKaraoke;
       if (this.songsFilterVersionPlKaraoke !== '') params.filter_version_pl_karaoke = this.songsFilterVersionPlKaraoke;
+      if (this.songsFilterRate !== '') params.filter_rate = this.songsFilterRate;
       this.$store.dispatch('loadSongsDigests', params );
       this.$store.dispatch('loadSongsHistory' );
 
@@ -361,6 +374,7 @@ export default {
       this.songsFilterVersionVkKaraoke = args['filter_version_vk_karaoke'] ? args['filter_version_vk_karaoke'] : ''
       this.songsFilterVersionTelegramKaraoke = args['filter_version_telegram_karaoke'] ? args['filter_version_telegram_karaoke'] : ''
       this.songsFilterVersionPlKaraoke = args['filter_version_pl_karaoke'] ? args['filter_version_pl_karaoke'] : ''
+      this.songsFilterRate = args['filter_rate'] ? args['filter_rate'] : ''
 
       this.ok();
     }

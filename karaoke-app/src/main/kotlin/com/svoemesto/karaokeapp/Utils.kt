@@ -633,6 +633,7 @@ fun getBpmAndKeyFromCsv(settings: Settings): Pair<Long, String> {
     }
 
     try {
+        println(csvFilePath)
         FileReader(csvFilePath).use { fileReader ->
             val csvParser = CSVParser(fileReader, CSVFormat.DEFAULT)
 

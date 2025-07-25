@@ -445,7 +445,13 @@
               </div>
               <button class="group-button-left-right" @click="goToRightSong" title="➡">➡</button>
             </div>
-
+            <div class="group-button">
+              <b-form-rating
+                  id="rate-inline-form"
+                  inline
+                  v-model="song.rate"
+              ></b-form-rating>
+            </div>
           </div>
         </div>
         <!-- Третий столбец тела -->

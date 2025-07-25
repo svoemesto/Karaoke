@@ -283,6 +283,7 @@ class KaraokeProcessWorker {
                                 settings.fields[SettingField.RESULT_VERSION] = tmpSettings.fields[SettingField.RESULT_VERSION] ?: ""
                                 settings.fields[SettingField.DIFFBEATS] = tmpSettings.fields[SettingField.DIFFBEATS] ?: ""
                                 settings.fields[SettingField.COLOR] = tmpSettings.fields[SettingField.COLOR] ?: ""
+                                settings.fields[SettingField.RATE] = tmpSettings.fields[SettingField.RATE] ?: ""
                                 settings.sourceText = tmpSettings.sourceText
                                 settings.resultText = tmpSettings.resultText
                                 settings.sourceMarkers = tmpSettings.sourceMarkers

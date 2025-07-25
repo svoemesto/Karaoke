@@ -949,7 +949,8 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         @RequestParam(required = false) filter_version_dzen_karaoke: String?,
         @RequestParam(required = false) filter_version_vk_karaoke: String?,
         @RequestParam(required = false) filter_version_telegram_karaoke: String?,
-        @RequestParam(required = false) filter_version_pl_karaoke: String?
+        @RequestParam(required = false) filter_version_pl_karaoke: String?,
+        @RequestParam(required = false) filter_rate: String?
 
     ): Map<String, Any> {
 
@@ -992,6 +993,7 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         filter_version_vk_karaoke?.let { if (filter_version_vk_karaoke != "") args["filter_version_vk_karaoke"] = filter_version_vk_karaoke }
         filter_version_telegram_karaoke?.let { if (filter_version_telegram_karaoke != "") args["filter_version_telegram_karaoke"] = filter_version_telegram_karaoke }
         filter_version_pl_karaoke?.let { if (filter_version_pl_karaoke != "") args["filter_version_pl_karaoke"] = filter_version_pl_karaoke }
+        filter_rate?.let { if (filter_rate != "") args["filter_rate"] = filter_rate }
 
         SongsHistory().add(args)
 
@@ -1050,6 +1052,7 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         @RequestParam(required = false) filter_version_vk_karaoke: String?,
         @RequestParam(required = false) filter_version_telegram_karaoke: String?,
         @RequestParam(required = false) filter_version_pl_karaoke: String?,
+        @RequestParam(required = false) filter_rate: String?,
         @RequestParam(required = false) pageSize: Int = 30
     ): Map<String, Any> {
 
@@ -1091,6 +1094,7 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         filter_version_vk_karaoke?.let { if (filter_version_vk_karaoke != "") args["filter_version_vk_karaoke"] = filter_version_vk_karaoke }
         filter_version_telegram_karaoke?.let { if (filter_version_telegram_karaoke != "") args["filter_version_telegram_karaoke"] = filter_version_telegram_karaoke }
         filter_version_pl_karaoke?.let { if (filter_version_pl_karaoke != "") args["filter_version_pl_karaoke"] = filter_version_pl_karaoke }
+        filter_rate?.let { if (filter_rate != "") args["filter_rate"] = filter_rate }
 
         SongsHistory().add(args)
 
@@ -1279,7 +1283,8 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         @RequestParam(required = false) versionPlChords: String?,
         @RequestParam(required = false) versionPlMelody: String?,
         @RequestParam(required = false) resultVersion: String?,
-        @RequestParam(required = false) diffBeats: String?
+        @RequestParam(required = false) diffBeats: String?,
+        @RequestParam(required = false) rate: String?
     ): Boolean {
         val settingsId: Long = id.toLong()
         val settings = Settings.loadFromDbById(settingsId, WORKING_DATABASE)
@@ -1341,6 +1346,7 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             resultVersion?.let { sett.fields[SettingField.RESULT_VERSION] = it }
             diffBeats?.let { sett.fields[SettingField.DIFFBEATS] = it }
             idStatus?.let { sett.fields[SettingField.ID_STATUS] =  it }
+            rate?.let { sett.fields[SettingField.RATE] =  it }
             sett.saveToDb()
             sett.saveToFile()
         }
@@ -2242,6 +2248,7 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             body = "Создано записей: $countCreate, обновлено записей: $countUpdate, удалено записей: $countDelete"
         )
         ))
+        println("Обновление записей серверной БД - ${if (countCreate > 0) "создано: $countCreate. " else ""}${if (countUpdate > 0) "обновлено: $countUpdate. " else ""}${if (countDelete > 0) "удалено: $countDelete. " else ""}")
         return listOf(countCreate, countUpdate, countDelete)
     }
 
@@ -2258,6 +2265,7 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             head = "Обновление БД",
             body = "Создано записей: $countCreate, обновлено записей: $countUpdate, удалено записей: $countDelete"
         )))
+        println("Обновление записей локальной БД - ${if (countCreate > 0) "создано: $countCreate. " else ""}${if (countUpdate > 0) "обновлено: $countUpdate. " else ""}${if (countDelete > 0) "удалено: $countDelete. " else ""}")
         return listOf(countCreate, countUpdate, countDelete)
     }
 

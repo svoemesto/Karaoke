@@ -91,7 +91,8 @@ enum class SettingField : Serializable {
     DIFFBEATS,
     ID_SPONSR,
     VERSION_SPONSR,
-    INDEX_TABS_VARIANT
+    INDEX_TABS_VARIANT,
+    RATE
 }
 
 
@@ -529,6 +530,8 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     val idSponsr: String get() = fields[SettingField.ID_SPONSR]?.nullIfEmpty() ?: ""
     val versionSponsr: Int get() = (fields[SettingField.VERSION_SPONSR]?.nullIfEmpty() ?: "0").toInt()
     val indexTabsVariant: Int get() = (fields[SettingField.INDEX_TABS_VARIANT]?.nullIfEmpty() ?: "0").toInt()
+
+    val rate: Int get() = (fields[SettingField.RATE]?.nullIfEmpty() ?: "0").toInt()
 
     val linkSM: String get() = URL_PREFIX_SM.replace("{REPLACE}", id.toString())
     val linkBoosty: String? get() = idBoosty.let {URL_PREFIX_BOOSTY.replace("{REPLACE}", idBoosty)}
@@ -2353,6 +2356,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
     fun getTextBodyWithTimecodes(maxTimeCodes: Int? = null): String {
     val result = StringBuilder()
+    var timecodeCounter = 0
     for (voice in 0 until countVoices) {
 
         val SPAN_STYLE_GROUP0 = """<span style="color: #FFFFFF; font-size: smaller; font-style: normal; font-weight: bolder;">"""
@@ -2366,7 +2370,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         var spanStyle = SPAN_STYLE_GROUP0
         var spanStylePrev = spanStyle
         var wasBr = true
-        var timecodeCounter = 0
+
         markers.forEach { marker ->
             val timecode = convertMillisecondsToDzenTimecode((marker.time * 1000 + 8000).toLong())
             when (marker.markertype) {
@@ -2869,6 +2873,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             
 
             val diff = getDiff(this, savedSettings)
+//            println("diff = $diff")
             if (diff.isEmpty()) return
             val messageRecordChange = SseNotification.recordChange(
                 RecordChangeMessage(
@@ -3177,6 +3182,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         fieldsValues.add(Pair("status_process_chords", settings.statusProcessChords))
         fieldsValues.add(Pair("status_process_melody", settings.statusProcessMelody))
         fieldsValues.add(Pair("tags", settings.tags))
+        fieldsValues.add(Pair("rate", settings.rate))
 
        return "INSERT INTO tbl_settings (${fieldsValues.map {it.first}.joinToString(", ")}) OVERRIDING SYSTEM VALUE VALUES(${fieldsValues.map {if (it.second is Long) "${it.second}" else "'${it.second.toString().replace("'","''")}'"}.joinToString(", ")})"
 
@@ -3519,8 +3525,9 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                 if (settA.statusProcessChords != settB.statusProcessChords) result.add(RecordDiff("status_process_chords", settA.statusProcessChords, settB.statusProcessChords))
                 if (settA.statusProcessMelody != settB.statusProcessMelody) result.add(RecordDiff("status_process_melody", settA.statusProcessMelody, settB.statusProcessMelody))
                 if (settA.tags != settB.tags) result.add(RecordDiff("tags", settA.tags, settB.tags))
-                if (settA.status != settB.status) result.add(RecordDiff("status", settA.status, settB.status, false))
+                if (settA.rate != settB.rate) result.add(RecordDiff("rate", settA.rate, settB.rate))
 
+                if (settA.status != settB.status) result.add(RecordDiff("status", settA.status, settB.status, false))
                 if (settA.color != settB.color) result.add(RecordDiff("color", settA.color, settB.color, false))
                 if (settA.processColorMeltLyrics != settB.processColorMeltLyrics) result.add(RecordDiff("processColorMeltLyrics", settA.processColorMeltLyrics, settB.processColorMeltLyrics, false))
                 if (settA.processColorMeltKaraoke != settB.processColorMeltKaraoke) result.add(RecordDiff("processColorMeltKaraoke", settA.processColorMeltKaraoke, settB.processColorMeltKaraoke, false))
@@ -3785,7 +3792,8 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                     Pair("filter_version_dzen_karaoke", "version_dzen_karaoke"),
                     Pair("filter_version_vk_karaoke", "version_vk_karaoke"),
                     Pair("filter_version_telegram_karaoke", "version_telegram_karaoke"),
-                    Pair("filter_version_pl_karaoke", "version_pl_karaoke")
+                    Pair("filter_version_pl_karaoke", "version_pl_karaoke"),
+                    Pair("filter_rate", "rate")
                 )
 
                 listFields.forEach { (filterFldName, fldName) ->
@@ -3899,6 +3907,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                     rs.getString("source_text")?.let { value -> settings.sourceText = value }
                     rs.getString("result_text")?.let { value -> settings.resultText = value }
                     rs.getString("source_markers")?.let { value -> settings.sourceMarkers = value }
+                    rs.getInt("rate").let { value -> settings.fields[SettingField.RATE] = value.toString() }
                     settings.statusProcessLyrics = rs.getString("status_process_lyrics") ?: ""
                     settings.statusProcessKaraoke = rs.getString("status_process_karaoke") ?: ""
                     settings.statusProcessChords = rs.getString("status_process_chords") ?: ""
@@ -4242,7 +4251,8 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             versionPlLyrics = versionPlLyrics,
             versionPlKaraoke = versionPlKaraoke,
             versionPlChords = versionPlChords,
-            versionPlMelody = versionPlMelody
+            versionPlMelody = versionPlMelody,
+            rate = rate
         )
     }
 
@@ -4366,7 +4376,8 @@ data class SettingsDTO(
     val versionPlKaraoke: Int,
     val versionPlChords: Int,
     val versionPlMelody: Int,
-    val resultVersion: Long
+    val resultVersion: Long,
+    val rate: Int
 ): Serializable, Comparable<SettingsDTO> {
 
     private val sortString: String get() {
@@ -4466,7 +4477,8 @@ data class SettingsDTO(
             versionPlKaraoke = versionPlKaraoke,
             versionPlLyrics = versionPlLyrics,
             versionPlChords = versionPlChords,
-            versionPlMelody = versionPlMelody
+            versionPlMelody = versionPlMelody,
+            rate = rate
         )
     }
 }
@@ -4552,7 +4564,8 @@ data class SettingsDTOdigest(
     val versionPlLyrics: Int,
     val versionPlKaraoke: Int,
     val versionPlChords: Int,
-    val versionPlMelody: Int
+    val versionPlMelody: Int,
+    val rate: Int
 ): Serializable, Comparable<SettingsDTOdigest> {
 
     private val sortString: String get() {

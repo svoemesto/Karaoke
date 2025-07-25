@@ -261,6 +261,22 @@
               :style="{ backgroundColor: data.item.processColorPlMelody, color: currentSongId === data.item.id ? 'blue' : 'black' }"
           ></div>
         </template>
+        <template #cell(rate)="data">
+          <div
+              class="fld-rate"
+              :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
+          >
+            <b-form-rating
+                id="rate-inline"
+                size="sm"
+                no-border
+                inline
+                disabled
+                v-model="data.value"
+                :style="{ height: '18px', backgroundColor: '#fff0' }"
+            ></b-form-rating>
+          </div>
+        </template>
       </b-table>
     </div>
     <div class="songs-bv-table-footer">
@@ -288,6 +304,7 @@ import Vue from "vue";
 import { TablePlugin } from 'bootstrap-vue'
 import { PaginationPlugin } from 'bootstrap-vue'
 import { SpinnerPlugin } from 'bootstrap-vue'
+import { FormRatingPlugin } from 'bootstrap-vue'
 
 import SongEditModal from "@/components/Songs/edit/SongEditModal.vue";
 import SongsFilter from "@/components/SongsFilter/SongsFilterModal.vue";
@@ -295,6 +312,7 @@ import CustomConfirm from "../Common/CustomConfirm.vue";
 Vue.use(TablePlugin)
 Vue.use(PaginationPlugin)
 Vue.use(SpinnerPlugin)
+Vue.use(FormRatingPlugin)
 
 export default {
   name: "SongsBvTable",
@@ -648,6 +666,16 @@ export default {
           style: {
             minWidth: '20px',
             maxWidth: '20px',
+            textAlign: 'center',
+            fontSize: 'small'
+          }
+        },
+        {
+          key: 'rate',
+          label: 'Rate',
+          style: {
+            minWidth: '100px',
+            maxWidth: '100px',
             textAlign: 'center',
             fontSize: 'small'
           }
@@ -1271,6 +1299,14 @@ export default {
 .fld-flag-pl-melody {
   min-width: 20px;
   max-width: 20px;
+  text-align: center;
+  font-size: small;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.fld-rate {
+  min-width: 100px;
+  max-width: 100px;
   text-align: center;
   font-size: small;
   white-space: nowrap;

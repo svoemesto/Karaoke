@@ -19,6 +19,7 @@ export default {
         songsFilterVersionVkKaraoke: '',
         songsFilterVersionTelegramKaraoke: '',
         songsFilterVersionPlKaraoke: '',
+        songsFilterRate: '',
         songsHistory: [],
         songsHistoryIsLoading: false
     },
@@ -43,7 +44,8 @@ export default {
         getSongsFilterVersionDzenKaraoke(state) { return state.songsFilterVersionDzenKaraoke},
         getSongsFilterVersionVkKaraoke(state) { return state.songsFilterVersionVkKaraoke},
         getSongsFilterVersionTelegramKaraoke(state) { return state.songsFilterVersionTelegramKaraoke},
-        getSongsFilterVersionPlKaraoke(state) { return state.songsFilterVersionPlKaraoke}
+        getSongsFilterVersionPlKaraoke(state) { return state.songsFilterVersionPlKaraoke},
+        getSongsFilterRate(state) { return state.songsFilterRate}
     },
     mutations: {
         updateSongsHistory(state, result) {
@@ -68,7 +70,8 @@ export default {
         setSongsFilterVersionDzenKaraoke(state, songsFilterVersionDzenKaraoke) { state.songsFilterVersionDzenKaraoke = songsFilterVersionDzenKaraoke },
         setSongsFilterVersionVkKaraoke(state, songsFilterVersionVkKaraoke) { state.songsFilterVersionVkKaraoke = songsFilterVersionVkKaraoke },
         setSongsFilterVersionTelegramKaraoke(state, songsFilterVersionTelegramKaraoke) { state.songsFilterVersionTelegramKaraoke = songsFilterVersionTelegramKaraoke },
-        setSongsFilterVersionPlKaraoke(state, songsFilterVersionPlKaraoke) { state.songsFilterVersionPlKaraoke = songsFilterVersionPlKaraoke }
+        setSongsFilterVersionPlKaraoke(state, songsFilterVersionPlKaraoke) { state.songsFilterVersionPlKaraoke = songsFilterVersionPlKaraoke },
+        setSongsFilterRate(state, songsFilterRate) { state.songsFilterRate = songsFilterRate }
     },
     actions: {
         loadSongsHistory(ctx) {
@@ -98,6 +101,7 @@ export default {
         setSongsFilterVersionDzenKaraoke(ctx, payload) { ctx.commit('setSongsFilterVersionDzenKaraoke', payload.songsFilterVersionDzenKaraoke) },
         setSongsFilterVersionVkKaraoke(ctx, payload) { ctx.commit('setSongsFilterVersionVkKaraoke', payload.songsFilterVersionVkKaraoke) },
         setSongsFilterVersionTelegramKaraoke(ctx, payload) { ctx.commit('setSongsFilterVersionTelegramKaraoke', payload.songsFilterVersionTelegramKaraoke) },
-        setSongsFilterVersionPlKaraoke(ctx, payload) { ctx.commit('setSongsFilterVersionPlKaraoke', payload.songsFilterVersionPlKaraoke) }
+        setSongsFilterVersionPlKaraoke(ctx, payload) { ctx.commit('setSongsFilterVersionPlKaraoke', payload.songsFilterVersionPlKaraoke) },
+        setSongsFilterRate(ctx, payload) { ctx.commit('setSongsFilterRate', payload.songsFilterRate) }
     }
 }

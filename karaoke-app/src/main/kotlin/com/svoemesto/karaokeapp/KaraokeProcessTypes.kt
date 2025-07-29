@@ -20,6 +20,7 @@ enum class KaraokeProcessTypes {
     FF_720_KAR,
     FF_720_LYR,
     SYMLINK,
+    SMARTCOPY,
     COPY_TO_STORE_LYRICS,
     COPY_TO_STORE_KARAOKE,
     FF_MP3_KAR,

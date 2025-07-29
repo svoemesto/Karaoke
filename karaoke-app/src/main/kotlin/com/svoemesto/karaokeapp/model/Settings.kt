@@ -165,6 +165,15 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         return resultList.joinToString(" ").replace("?","") //.rightFileName()
     }
 
+    val rightSettingFileNameFavotite: String get() {
+        val resultList: MutableList<String> = mutableListOf()
+        resultList.add("[$author] -")
+        resultList.add(songName)
+        if (year != 0L ) resultList.add("($year)")
+        if (key != "" ) resultList.add("[${key.replace(" major", "").replace(" minor","m")}]")
+        return resultList.joinToString(" ").replace("?","") //.rightFileName()
+    }
+
     var tags: String = ""
     var fields: MutableMap<SettingField, String> = mutableMapOf()
 
@@ -2959,6 +2968,135 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     fun doSymlink(prior: Int = -1) {
         KaraokeProcess.createProcess(this, KaraokeProcessTypes.SYMLINK, true, prior)
     }
+    fun doSmartCopy(
+        prior: Int = -1,
+        scVersion: SongVersion,
+        scResolution: String,
+        scCreateSubfoldersAuthors: Boolean,
+        scRenameTemplate: String,
+        scPath: String
+    ) {
+        val context: MutableMap<String, Any> = mutableMapOf()
+
+
+        var doSkip = false
+        var deleteOldBeforeCopy = false
+        var sourceFilePathAndName = ""
+
+        if (scResolution == "1080p") {
+
+            when (scVersion) {
+                SongVersion.KARAOKE -> {
+                    sourceFilePathAndName = this.pathToFileKaraoke
+                }
+                SongVersion.LYRICS -> {
+                    sourceFilePathAndName = this.pathToFileLyrics
+                }
+                SongVersion.CHORDS -> {
+                    sourceFilePathAndName = this.pathToFileChords
+                }
+                SongVersion.TABS -> {
+                    sourceFilePathAndName = this.pathToFileMelody
+                }
+                else -> {
+                    doSkip = true
+                }
+            }
+            if (sourceFilePathAndName != "" && !File(sourceFilePathAndName).exists()) doSkip = true
+        } else {
+
+            when (scVersion) {
+                SongVersion.KARAOKE -> {
+                    sourceFilePathAndName = this.pathToFile720Karaoke
+                }
+                SongVersion.LYRICS -> {
+                    sourceFilePathAndName = this.pathToFile720Lyrics
+                }
+                SongVersion.CHORDS -> {
+                    sourceFilePathAndName = this.pathToFile720Chords
+                }
+                SongVersion.TABS -> {
+                    sourceFilePathAndName = this.pathToFile720Melody
+                }
+                else -> {
+                    doSkip = true
+                }
+            }
+            if (sourceFilePathAndName != "" && !File(sourceFilePathAndName).exists()) doSkip = true
+
+        }
+
+        // Если исходный файл существует - ничего не помешает копированию
+        if (!doSkip) {
+
+            // Задаём папку назначения в зависимости он необходимости создавать сабфолдеры для авторов
+            val destinationFileFolder = if (scCreateSubfoldersAuthors) {
+                "$scPath/${this.author.rightFileNameSymbols()}"
+            } else {
+                scPath
+            }
+
+            // Проверим наличие папки назначения и если её нет - создадим
+            if (!File(destinationFileFolder).exists()) Files.createDirectories(Path(destinationFileFolder))
+
+            // Найдём имя и путь конечного файла, принимая во внимание шаблон переименования
+
+            val sourceFileFolder = Path(sourceFilePathAndName).parent.toString()
+            val sourceFileName = Path(sourceFilePathAndName).fileName.toString()
+
+            val destinationFileName = if (scRenameTemplate != "") {
+                var fileName = scRenameTemplate
+                    .replace("{author}", this.author)
+                    .replace("{name}", this.songName)
+                    .replace("{year}", this.year.toString())
+                    .replace("{track}", this.track.toString())
+                    .replace("{album}", this.album)
+                    .replace("{key}", this.key.replace(" major", "").replace(" minor","m"))
+                fileName += scVersion.suffix
+                if (scResolution == "720p") fileName += " 720p"
+                fileName += ".mp4"
+
+                fileName
+            } else {
+                sourceFileName
+            }
+
+            val destinationFilePathAndName = "$destinationFileFolder/$destinationFileName"
+
+            // Проверим наличие файла назначения. Если есть - сверим размеры файлов.
+            // Если размеры не совпадают - пометим старый файл назначения на удаления перед копированием
+
+            if (File(destinationFilePathAndName).exists()) {
+                if (File(destinationFilePathAndName).length() != File(sourceFilePathAndName).length()) {
+                    deleteOldBeforeCopy = true
+                }
+            }
+            val args: MutableList<List<String>> = mutableListOf()
+            val argsDescription: MutableList<String> = mutableListOf()
+
+            if (deleteOldBeforeCopy) {
+                args.add(listOf("rm", destinationFilePathAndName))
+                argsDescription.add("Delete old file")
+            }
+
+            args.add(listOf("cp", sourceFilePathAndName, destinationFilePathAndName))
+            argsDescription.add("Copy new file")
+
+            context["args"] = args
+            context["argsDescription"] = argsDescription
+
+            KaraokeProcess.createProcess(
+                settings = this,
+                action = KaraokeProcessTypes.SMARTCOPY,
+                doWait = true,
+                prior = prior,
+                context = context
+            )
+        }
+
+
+    }
+
     fun doMP3Karaoke(prior: Int = -1) {
         KaraokeProcess.createProcess(this, KaraokeProcessTypes.FF_MP3_KAR, true, prior)
     }
@@ -3728,6 +3866,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                 if (args.containsKey("song_author")) where += "LOWER(song_author) LIKE '%${args["song_author"]?.rightFileName()?.lowercase()}%'"
                 if (args.containsKey("author")) where += "LOWER(song_author) = '${args["author"]?.rightFileName()?.lowercase()}'"
                 if (args.containsKey("song_album")) where += "LOWER(song_album) LIKE '%${args["song_album"]?.rightFileName()?.lowercase()}%'"
+
                 if (args.containsKey("publish_date")) {
                     var pd = args["publish_date"]!!
                     if (pd[0] == '>') {
@@ -3781,6 +3920,9 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                 if (args.containsKey("flag_pl_karaoke")) where += "CASE WHEN id_pl_karaoke IS NOT NULL AND id_pl_karaoke <> 'null' AND id_pl_karaoke <> '' THEN '+' ELSE '-' END='${args["flag_pl_karaoke"]}'"
                 if (args.containsKey("flag_pl_chords")) where += "CASE WHEN id_pl_chords IS NOT NULL AND id_pl_chords <> 'null' AND id_pl_chords <> '' THEN '+' ELSE '-' END='${args["flag_pl_chords"]}'"
                 if (args.containsKey("flag_pl_melody")) where += "CASE WHEN id_pl_melody IS NOT NULL AND id_pl_melody <> 'null' AND id_pl_melody <> '' THEN '+' ELSE '-' END='${args["flag_pl_melody"]}'"
+
+                if (args.containsKey("filter_status_process_lyrics")) where += "LOWER(status_process_lyrics) LIKE '%${args["filter_status_process_lyrics"]?.rightFileName()?.lowercase()}%'"
+                if (args.containsKey("filter_status_process_karaoke")) where += "LOWER(status_process_karaoke) LIKE '%${args["filter_status_process_karaoke"]?.rightFileName()?.lowercase()}%'"
 
                 val listFields = listOf(
                     Pair("id", "id"),

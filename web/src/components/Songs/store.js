@@ -12,6 +12,7 @@ export default {
         lastPriorCodeKaraoke: 10,
         lastPriorDemucs: -1,
         lastPriorSymlinks: -1,
+        lastPriorSmartCopy: -1,
         songPages: [[]],
         songAuthors: [],
         songAlbums: [],
@@ -329,6 +330,9 @@ export default {
         },
         getLastPriorSymlinks(state) {
             return state.lastPriorSymlinks;
+        },
+        getLastPriorSmartCopy(state) {
+            return state.lastPriorSmartCopy;
         },
         getSongs(state) {
             return state.songPages.length ? state.songPages[state.currentSongPageIndex] : [];
@@ -856,6 +860,9 @@ export default {
         setLastPriorSymlinks(state, value) {
             state.lastPriorSymlinks = value;
         },
+        setLastPriorSmartCopy(state, value) {
+            state.lastPriorSmartCopy = value;
+        },
         saveSong(state) {
             state.snapshotSong = !state.currentSong ? undefined : Object.assign({}, state.currentSong)
         },
@@ -1232,6 +1239,9 @@ export default {
         },
         setLastPriorSymlinks(ctx, payload) {
             ctx.commit('setLastPriorSymlinks', payload.value);
+        },
+        setLastPriorSmartCopy(ctx, payload) {
+            ctx.commit('setLastPriorSmartCopy', payload.value);
         },
         setPreviousAndNextSongId(ctx) {
             let previousSongId = undefined;

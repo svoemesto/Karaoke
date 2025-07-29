@@ -641,7 +641,13 @@ class KaraokeProcess(
 
         }
 
-        fun createProcess(settings: Settings, action: KaraokeProcessTypes, doWait: Boolean = false, prior: Int = 1): Int {
+        fun createProcess(
+            settings: Settings,
+            action: KaraokeProcessTypes,
+            doWait: Boolean = false,
+            prior: Int = 1,
+            context: Map<String, Any> = emptyMap()
+        ): Int {
 
             // Находим есть ли уже такой процесс. Если нет - создаём. Если есть и не в статусе "в работе" - пересоздаём
 
@@ -1394,6 +1400,11 @@ class KaraokeProcess(
                         )
                     }
 
+                    KaraokeProcessTypes.SMARTCOPY -> {
+                        description = "Smart Copy"
+                        args = context["args"] as List<List<String>>
+                        argsDescription = context["argsDescription"] as List<String>
+                    }
 
                     else -> {}
                 }

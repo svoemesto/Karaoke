@@ -120,5 +120,9 @@ export default {
             let request = { method: 'POST', url: "/apis/songs/createsymlinksall", params: params };
             return promisedXMLHttpRequest(request);
         },
+        createSmartCopyForAllPromise(ctx, payload) {
+            let request = { method: 'POST', url: "/apis/songs/smartcopyall", params: payload };
+            return promisedXMLHttpRequest(request);
+        },
     }
 }

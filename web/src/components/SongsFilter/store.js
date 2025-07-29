@@ -20,6 +20,8 @@ export default {
         songsFilterVersionTelegramKaraoke: '',
         songsFilterVersionPlKaraoke: '',
         songsFilterRate: '',
+        songsFilterStatusProcessLyrics: '',
+        songsFilterStatusProcessKaraoke: '',
         songsHistory: [],
         songsHistoryIsLoading: false
     },
@@ -45,7 +47,9 @@ export default {
         getSongsFilterVersionVkKaraoke(state) { return state.songsFilterVersionVkKaraoke},
         getSongsFilterVersionTelegramKaraoke(state) { return state.songsFilterVersionTelegramKaraoke},
         getSongsFilterVersionPlKaraoke(state) { return state.songsFilterVersionPlKaraoke},
-        getSongsFilterRate(state) { return state.songsFilterRate}
+        getSongsFilterRate(state) { return state.songsFilterRate},
+        getSongsFilterStatusProcessLyrics(state) { return state.songsFilterStatusProcessLyrics},
+        getSongsFilterStatusProcessKaraoke(state) { return state.songsFilterStatusProcessKaraoke}
     },
     mutations: {
         updateSongsHistory(state, result) {
@@ -71,7 +75,9 @@ export default {
         setSongsFilterVersionVkKaraoke(state, songsFilterVersionVkKaraoke) { state.songsFilterVersionVkKaraoke = songsFilterVersionVkKaraoke },
         setSongsFilterVersionTelegramKaraoke(state, songsFilterVersionTelegramKaraoke) { state.songsFilterVersionTelegramKaraoke = songsFilterVersionTelegramKaraoke },
         setSongsFilterVersionPlKaraoke(state, songsFilterVersionPlKaraoke) { state.songsFilterVersionPlKaraoke = songsFilterVersionPlKaraoke },
-        setSongsFilterRate(state, songsFilterRate) { state.songsFilterRate = songsFilterRate }
+        setSongsFilterRate(state, songsFilterRate) { state.songsFilterRate = songsFilterRate },
+        setSongsFilterStatusProcessLyrics(state, songsFilterStatusProcessLyrics) { state.songsFilterStatusProcessLyrics = songsFilterStatusProcessLyrics },
+        setSongsFilterStatusProcessKaraoke(state, songsFilterStatusProcessKaraoke) { state.songsFilterStatusProcessKaraoke = songsFilterStatusProcessKaraoke }
     },
     actions: {
         loadSongsHistory(ctx) {
@@ -102,6 +108,8 @@ export default {
         setSongsFilterVersionVkKaraoke(ctx, payload) { ctx.commit('setSongsFilterVersionVkKaraoke', payload.songsFilterVersionVkKaraoke) },
         setSongsFilterVersionTelegramKaraoke(ctx, payload) { ctx.commit('setSongsFilterVersionTelegramKaraoke', payload.songsFilterVersionTelegramKaraoke) },
         setSongsFilterVersionPlKaraoke(ctx, payload) { ctx.commit('setSongsFilterVersionPlKaraoke', payload.songsFilterVersionPlKaraoke) },
-        setSongsFilterRate(ctx, payload) { ctx.commit('setSongsFilterRate', payload.songsFilterRate) }
+        setSongsFilterRate(ctx, payload) { ctx.commit('setSongsFilterRate', payload.songsFilterRate) },
+        setSongsFilterStatusProcessLyrics(ctx, payload) { ctx.commit('setSongsFilterStatusProcessLyrics', payload.songsFilterStatusProcessLyrics) },
+        setSongsFilterStatusProcessKaraoke(ctx, payload) { ctx.commit('setSongsFilterStatusProcessKaraoke', payload.songsFilterStatusProcessKaraoke) }
     }
 }

@@ -950,7 +950,9 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         @RequestParam(required = false) filter_version_vk_karaoke: String?,
         @RequestParam(required = false) filter_version_telegram_karaoke: String?,
         @RequestParam(required = false) filter_version_pl_karaoke: String?,
-        @RequestParam(required = false) filter_rate: String?
+        @RequestParam(required = false) filter_rate: String?,
+        @RequestParam(required = false) filter_status_process_lyrics: String?,
+        @RequestParam(required = false) filter_status_process_karaoke: String?
 
     ): Map<String, Any> {
 
@@ -994,6 +996,8 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         filter_version_telegram_karaoke?.let { if (filter_version_telegram_karaoke != "") args["filter_version_telegram_karaoke"] = filter_version_telegram_karaoke }
         filter_version_pl_karaoke?.let { if (filter_version_pl_karaoke != "") args["filter_version_pl_karaoke"] = filter_version_pl_karaoke }
         filter_rate?.let { if (filter_rate != "") args["filter_rate"] = filter_rate }
+        filter_status_process_lyrics?.let { if (filter_status_process_lyrics != "") args["filter_status_process_lyrics"] = filter_status_process_lyrics }
+        filter_status_process_karaoke?.let { if (filter_status_process_karaoke != "") args["filter_status_process_karaoke"] = filter_status_process_karaoke }
 
         SongsHistory().add(args)
 
@@ -1053,6 +1057,8 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         @RequestParam(required = false) filter_version_telegram_karaoke: String?,
         @RequestParam(required = false) filter_version_pl_karaoke: String?,
         @RequestParam(required = false) filter_rate: String?,
+        @RequestParam(required = false) filter_status_process_lyrics: String?,
+        @RequestParam(required = false) filter_status_process_karaoke: String?,
         @RequestParam(required = false) pageSize: Int = 30
     ): Map<String, Any> {
 
@@ -1095,6 +1101,8 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         filter_version_telegram_karaoke?.let { if (filter_version_telegram_karaoke != "") args["filter_version_telegram_karaoke"] = filter_version_telegram_karaoke }
         filter_version_pl_karaoke?.let { if (filter_version_pl_karaoke != "") args["filter_version_pl_karaoke"] = filter_version_pl_karaoke }
         filter_rate?.let { if (filter_rate != "") args["filter_rate"] = filter_rate }
+        filter_status_process_lyrics?.let { if (filter_status_process_lyrics != "") args["filter_status_process_lyrics"] = filter_status_process_lyrics }
+        filter_status_process_karaoke?.let { if (filter_status_process_karaoke != "") args["filter_status_process_karaoke"] = filter_status_process_karaoke }
 
         SongsHistory().add(args)
 
@@ -2153,6 +2161,53 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             SNS.send(SseNotification.message(Message(
                 type = "warning",
                 head = "Создание SYMLINKs",
+                body = "Что-то пошло не так"
+            )))
+        }
+    }
+
+    // Создаём SYMLINKs для всех
+    @PostMapping("/songs/smartcopyall")
+    @ResponseBody
+    fun getSmartCopyAll(
+        @RequestParam songsIds: String,
+        @RequestParam(required = false) prior: Int = -1,
+        @RequestParam smartCopySongVersion: String,
+        @RequestParam smartCopySongResolution: String,
+        @RequestParam(required = false) smartCopyCreateSubfoldersAuthors: Boolean?,
+        @RequestParam(required = false) smartCopyRenameTemplate: String?,
+        @RequestParam smartCopyPath: String
+    ) {
+        var result = false
+        val scVersion = if (SongVersion.values().map {it.name}.contains(smartCopySongVersion)) SongVersion.valueOf(smartCopySongVersion) else SongVersion.KARAOKE
+
+        songsIds.let {
+            val ids = songsIds.split(";").map { it }.filter { it != "" }.map { it.toLong() }
+            ids.forEach { id ->
+                val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+                settings?.let {
+                    it.doSmartCopy(
+                        prior = prior,
+                        scVersion = scVersion,
+                        scResolution = smartCopySongResolution,
+                        scCreateSubfoldersAuthors = smartCopyCreateSubfoldersAuthors ?: false,
+                        scRenameTemplate = smartCopyRenameTemplate ?: "",
+                        scPath = smartCopyPath,
+                        )
+                }
+                result = true
+            }
+        }
+        if (result) {
+            SNS.send(SseNotification.message(Message(
+                type = "info",
+                head = "Создание Smart Copy",
+                body = "Создание Smart Copy прошло успешно"
+            )))
+        } else {
+            SNS.send(SseNotification.message(Message(
+                type = "warning",
+                head = "Создание Smart Copy",
                 body = "Что-то пошло не так"
             )))
         }

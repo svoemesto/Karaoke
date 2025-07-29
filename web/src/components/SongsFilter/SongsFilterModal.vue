@@ -191,6 +191,26 @@
 
                 <div class="filter-row">
                   <div class="row-label">
+                    <div v-text="'Status.Proc.Lyr:'"></div>
+                  </div>
+                  <div class="row-input">
+                    <input class="input-field" v-model="songsFilterStatusProcessLyrics">
+                  </div>
+                  <button :disabled="!songsFilterStatusProcessLyrics" class="button-clear-field" @click.left="songsFilterStatusProcessLyrics=''" v-text="'X'"></button>
+                </div>
+
+                <div class="filter-row">
+                  <div class="row-label">
+                    <div v-text="'Status.Proc.Kar:'"></div>
+                  </div>
+                  <div class="row-input">
+                    <input class="input-field" v-model="songsFilterStatusProcessKaraoke">
+                  </div>
+                  <button :disabled="!songsFilterStatusProcessKaraoke" class="button-clear-field" @click.left="songsFilterStatusProcessKaraoke=''" v-text="'X'"></button>
+                </div>
+
+                <div class="filter-row">
+                  <div class="row-label">
                     <div v-text="'Rate:'"></div>
                   </div>
                   <div class="row-input">
@@ -265,6 +285,8 @@ export default {
       songsFilterVersionTelegramKaraoke: this.$store.getters.getSongsFilterVersionTelegramKaraoke,
       songsFilterVersionPlKaraoke: this.$store.getters.getSongsFilterVersionPlKaraoke,
       songsFilterRate: this.$store.getters.getSongsFilterRate,
+      songsFilterStatusProcessLyrics: this.$store.getters.getSongsFilterStatusProcessLyrics,
+      songsFilterStatusProcessKaraoke: this.$store.getters.getSongsFilterStatusProcessKaraoke,
       dictAuthors: []
     }
   },
@@ -327,6 +349,8 @@ export default {
       this.$store.dispatch('setSongsFilterVersionTelegramKaraoke', { songsFilterVersionTelegramKaraoke: this.songsFilterVersionTelegramKaraoke });
       this.$store.dispatch('setSongsFilterVersionPlKaraoke', { songsFilterVersionPlKaraoke: this.songsFilterVersionPlKaraoke });
       this.$store.dispatch('setSongsFilterRate', { songsFilterRate: this.songsFilterRate });
+      this.$store.dispatch('setSongsFilterStatusProcessLyrics', { songsFilterStatusProcessLyrics: this.songsFilterStatusProcessLyrics });
+      this.$store.dispatch('setSongsFilterStatusProcessKaraoke', { songsFilterStatusProcessKaraoke: this.songsFilterStatusProcessKaraoke });
 
       let params = {};
       if (this.songsFilterId) params.filter_id = this.songsFilterId;
@@ -347,6 +371,8 @@ export default {
       if (this.songsFilterVersionTelegramKaraoke !== '') params.filter_version_telegram_karaoke = this.songsFilterVersionTelegramKaraoke;
       if (this.songsFilterVersionPlKaraoke !== '') params.filter_version_pl_karaoke = this.songsFilterVersionPlKaraoke;
       if (this.songsFilterRate !== '') params.filter_rate = this.songsFilterRate;
+      if (this.songsFilterStatusProcessLyrics !== '') params.filter_status_process_lyrics = this.songsFilterStatusProcessLyrics;
+      if (this.songsFilterStatusProcessKaraoke !== '') params.filter_status_process_karaoke = this.songsFilterStatusProcessKaraoke;
       this.$store.dispatch('loadSongsDigests', params );
       this.$store.dispatch('loadSongsHistory' );
 
@@ -375,6 +401,8 @@ export default {
       this.songsFilterVersionTelegramKaraoke = args['filter_version_telegram_karaoke'] ? args['filter_version_telegram_karaoke'] : ''
       this.songsFilterVersionPlKaraoke = args['filter_version_pl_karaoke'] ? args['filter_version_pl_karaoke'] : ''
       this.songsFilterRate = args['filter_rate'] ? args['filter_rate'] : ''
+      this.songsFilterStatusProcessLyrics = args['filter_status_process_lyrics'] ? args['filter_status_process_lyrics'] : ''
+      this.songsFilterStatusProcessKaraoke = args['filter_status_process_karaoke'] ? args['filter_status_process_karaoke'] : ''
 
       this.ok();
     }

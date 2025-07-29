@@ -2,6 +2,7 @@
   <div class="songs-bv-table">
     <SongEditModal v-if="isSongEditVisible" @close="closeSongEdit"/>
     <SongsFilter v-if="isSongsFilterVisible" @close="closeSongsFilter"/>
+    <SmartCopyModal v-if="isSmartCopyVisible" @close="closeSmartCopy" :ids="songsIds"/>
     <custom-confirm v-if="isCustomConfirmVisible" :params="customConfirmParams" @close="closeCustomConfirm" />
     <div class="songs-bv-table-header">
       <b-pagination
@@ -280,6 +281,7 @@
       </b-table>
     </div>
     <div class="songs-bv-table-footer">
+      <button class="btn-round-double" @click="isSmartCopyVisible=true" :disabled="countRows===0" title="Smart Copy">{{countRows}}</button>
       <button class="btn-round-double" @click="isSongsFilterVisible=true" title="Фильтр">
         <img alt="filter" class="icon-40" src="../../assets/svg/icon_filter.svg">
       </button>
@@ -294,7 +296,6 @@
       <button class="btn-round-double" @click="updateStoreForAll" :disabled="countRows===0" title="Обновить хранилище для всех песен"><img alt="update store for all" class="icon-40" src="../../assets/svg/icon_update_store.svg"></button>
     </div>
 
-
   </div>
 </template>
 
@@ -308,7 +309,8 @@ import { FormRatingPlugin } from 'bootstrap-vue'
 
 import SongEditModal from "@/components/Songs/edit/SongEditModal.vue";
 import SongsFilter from "@/components/SongsFilter/SongsFilterModal.vue";
-import CustomConfirm from "../Common/CustomConfirm.vue";
+import SmartCopyModal from "@/components/SmartCopy/SmartCopyModal.vue";
+import CustomConfirm from "@/components/Common/CustomConfirm.vue";
 Vue.use(TablePlugin)
 Vue.use(PaginationPlugin)
 Vue.use(SpinnerPlugin)
@@ -319,6 +321,7 @@ export default {
   components: {
     SongEditModal,
     SongsFilter,
+    SmartCopyModal,
     CustomConfirm
   },
   data() {
@@ -327,6 +330,7 @@ export default {
       currentPage: 1,
       isSongEditVisible: false,
       isSongsFilterVisible: false,
+      isSmartCopyVisible: false,
       isCustomConfirmVisible: false,
       customConfirmParams: undefined,
       isBusy: false,
@@ -346,6 +350,9 @@ export default {
     // this.$store.dispatch('loadSongsDigests', { filter_author: 'Павел Кашин'} )
   },
   computed: {
+    songsIds() {
+      return this.$store.getters.getSongsDigestIds;
+    },
     songsDigestIsLoading() {
       return this.$store.getters.getSongsDigestIsLoading;
     },
@@ -1006,6 +1013,9 @@ export default {
     },
     closeSongsFilter() {
       this.isSongsFilterVisible = false;
+    },
+    closeSmartCopy() {
+      this.isSmartCopyVisible = false;
     },
     onRowClicked(item, index) {
       this.currentSongId = item.id;

@@ -4,6 +4,7 @@ import song from '../components/Songs/store'
 import songBv from '../components/SongsBv/store'
 import songFilter from '../components/SongsFilter/store'
 import smartCopy from '../components/SmartCopy/store'
+import fileExplorer from '../components/FileExplorer/store'
 import processesBv from '../components/ProcessesBv/store'
 import propertiesBv from '../components/PropertiesBv/store'
 import processFilter from '../components/ProcessesFilter/store'
@@ -26,6 +27,7 @@ export default new Vuex.Store({
     common,
     songFilter,
     smartCopy,
+    fileExplorer,
     processFilter,
     propertiesFilter,
     // process

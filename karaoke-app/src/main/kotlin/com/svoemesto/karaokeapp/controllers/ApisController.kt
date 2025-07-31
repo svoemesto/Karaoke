@@ -28,6 +28,8 @@ import java.util.*
 @RequestMapping("/apis")
 class ApisController(private val sseNotificationService: SseNotificationService) {
 
+
+
     @GetMapping("/song/{id}/filedrums")
     fun getSongFileDrums(
         @PathVariable id: Long
@@ -2586,4 +2588,45 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         )
     }
 
+    data class FileDTO(
+        val name: String,
+        val path: String,
+        val extension: String,
+        val nameWithoutExtension: String,
+        val parent: String,
+        val length: Long,
+        val isDirectory: Boolean
+    ): Comparable<FileDTO> {
+        override fun compareTo(other: FileDTO): Int {
+            var result = other.isDirectory.compareTo(isDirectory)
+            if (result != 0) return result
+            result = name.compareTo(other.name)
+            if (result != 0) return result
+            return path.compareTo(other.path)
+        }
+    }
+
+    @PostMapping("/files")
+    @ResponseBody
+    fun getFiles(@RequestParam path: String): List<FileDTO> {
+        var directory = File(path)
+        if (!directory.exists() || !directory.isDirectory) {
+            directory = File("/")
+            if (!directory.exists() || !directory.isDirectory) {
+                throw IllegalArgumentException("Invalid directory path")
+            }
+        }
+
+        return directory.listFiles()?.map { file ->
+            FileDTO(
+                name = file.name,
+                path = file.absolutePath,
+                extension = file.extension,
+                nameWithoutExtension = file.nameWithoutExtension,
+                parent = file.parent,
+                length = file.length(),
+                isDirectory = file.isDirectory
+            )
+        }?.sorted() ?: emptyList()
+    }
 }

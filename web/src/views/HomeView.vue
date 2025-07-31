@@ -1,7 +1,14 @@
 <template>
   <div class="home">
     <custom-confirm v-if="isCustomConfirmVisible" :params="customConfirmParams" @close="closeCustomConfirm" />
-
+    <FileExplorerModal
+        v-if="isFileExplorerVisible"
+        @close="closeFileExplorer"
+        :path="pathToFolder"
+        start="/home/nsa/Documents/Караоке"
+        directory
+        @getpath="getPath"
+    />
     <div class="home-wrapper">
       <datalist id="list_authors">
         <option v-for="author in songAuthors" :key="author" :value="author"/>
@@ -10,7 +17,7 @@
         <option v-for="dict in dicts" :key="dict" :value="dict"/>
       </datalist>
       <div class="field-and-buttons-wrapper">
-        <input class="input-folder" type="text" placeholder="Путь к папке" v-model="pathToFolder">
+        <input class="input-folder" type="text" placeholder="Путь к папке" v-model="pathToFolder" @dblclick="isFileExplorerVisible=true">
         <button class="button-action" @click="addFilesFromFolder" :disabled="!pathToFolder" >Добавить файлы из папки</button>
         <button class="button-action" @click="createDzenPicturesForFolder" :disabled="!pathToFolder">Создать картинки плейлистов Dzen для папки</button>
       </div>
@@ -46,16 +53,19 @@
 
 <script>
 
-import CustomConfirm from '../components/Common/CustomConfirm.vue';
+import CustomConfirm from '@/components/Common/CustomConfirm.vue';
+import FileExplorerModal from "@/components/FileExplorer/FileExplorerModal.vue";
 // import { useFileDialog } from '@vueuse/core'
 export default {
   name: 'HomeView',
   components: {
-    CustomConfirm
+    CustomConfirm,
+    FileExplorerModal
   },
   data() {
     return {
       isCustomConfirmVisible: false,
+      isFileExplorerVisible: false,
       customConfirmParams: undefined,
       pathToFolder: '',
       author: '',
@@ -72,7 +82,12 @@ export default {
     this.dicts = dicts;
   },
   methods: {
-
+    getPath(path) {
+      this.pathToFolder = path;
+    },
+    closeFileExplorer() {
+      this.isFileExplorerVisible = false;
+    },
     closeCustomConfirm() {
       this.isCustomConfirmVisible = false;
     },

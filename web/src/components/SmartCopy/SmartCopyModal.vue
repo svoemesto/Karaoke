@@ -9,6 +9,14 @@
 
         <div class="area-modal-body">
           <custom-confirm v-if="isCustomConfirmVisible" :params="customConfirmParams" @close="closeCustomConfirm" />
+          <FileExplorerModal
+              v-if="isFileExplorerVisible"
+              @close="closeFileExplorer"
+              :path="smartCopyPath"
+              start="/clouds/Yandex.Disk/Karaoke"
+              directory
+              @getpath="getPath"
+          />
           <div class="root-wrapper">
 
             <div class="smartcopy-row">
@@ -58,7 +66,7 @@
                 <div v-text="'Путь:'"></div>
               </div>
               <div class="row-input">
-                <input class="input-field" v-model="smartCopyPath">
+                <input class="input-field" v-model="smartCopyPath" @dblclick="isFileExplorerVisible=true">
               </div>
               <button :disabled="!smartCopyPath" class="button-clear-field" @click.left="smartCopyPath=''" v-text="'X'"></button>
             </div>
@@ -79,11 +87,13 @@
 <script>
 
 import CustomConfirm from "@/components/Common/CustomConfirm.vue";
+import FileExplorerModal from "@/components/FileExplorer/FileExplorerModal.vue";
 
 export default {
   name: "SmartCopyModal",
   components: {
-    CustomConfirm
+    CustomConfirm,
+    FileExplorerModal
   },
   props: {
     ids: {
@@ -100,13 +110,20 @@ export default {
       smartCopyPath: this.$store.getters.getSmartCopyPath,
       isCustomConfirmVisible: false,
       customConfirmParams: undefined,
+      isFileExplorerVisible: false,
       file: null
     }
   },
   computed: {},
   methods: {
+    getPath(path) {
+      this.smartCopyPath = path;
+    },
     closeCustomConfirm() {
       this.isCustomConfirmVisible = false;
+    },
+    closeFileExplorer() {
+      this.isFileExplorerVisible = false;
     },
     smartCopySongVersionButtonClass(smartCopySongVersion) {
       return smartCopySongVersion === this.smartCopySongVersion ? 'group-button-active' : ''

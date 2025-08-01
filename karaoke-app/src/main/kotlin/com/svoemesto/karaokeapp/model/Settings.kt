@@ -154,6 +154,42 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         }
         set(value) {_rootFolder = value}
 
+    var ms: Long
+        get() {
+            val value = fields[SettingField.MS]?.toLongOrNull() ?: 0L
+            return if (value == 0L) {
+                val argForDurationFromAudioFileMs = listOf(
+                    "ffprobe",
+                    "-v", "error",
+                    "-show_entries", "format=duration",
+                    "-of", "default=noprint_wrappers=1:nokey=1",
+                    fileAbsolutePath
+                )
+                val durationFromAudioFileMs = try {
+                    val tmp = ((runCommand(argForDurationFromAudioFileMs).toDoubleOrNull() ?: 0.0) * 1000L).toLong()
+                    fields[SettingField.MS] = tmp.toString()
+                    val sql = "UPDATE tbl_settings SET song_ms = ? WHERE id = ?"
+                    val connection = database.getConnection()
+                    val ps = connection.prepareStatement(sql)
+                    ps.setLong(1, tmp)
+                    ps.setLong(2, id)
+                    try {
+                        ps.executeUpdate()
+                    } catch (e: Exception) {
+                        val errorMessage = "Не удалось сохранить запись в БД. Оригинальный текст ошибки: «${e.message}»"
+                        println(errorMessage)
+                    }
+                    ps.close()
+                    tmp
+                } catch (e: Exception) {
+                    value
+                }
+                durationFromAudioFileMs
+            } else {
+                value
+            }
+        }
+        set(value) {fields[SettingField.MS] = value.toString()}
 
     var fileName: String = ""
     val rightSettingFileName: String get() {
@@ -382,7 +418,6 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     val track: Long get() = fields[SettingField.TRACK]?.toLongOrNull() ?: 0L
     val key: String get() = fields[SettingField.KEY] ?: ""
     val bpm: Long get() = fields[SettingField.BPM]?.toLongOrNull() ?: 0L
-    val ms: Long get() = fields[SettingField.MS]?.toLongOrNull() ?: 0L
     val resultVersion: Long get() = fields[SettingField.RESULT_VERSION]?.toLongOrNull() ?: 0L
     val diffBeats: Long get() = fields[SettingField.DIFFBEATS]?.toLongOrNull() ?: 0L
     val subtitleFileName: String get() = "${rightSettingFileName}.kdenlive.srt"
@@ -4294,6 +4329,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             album = album,
             date = date,
             time = time,
+            timecode = convertMillisecondsToDtoTimecode(ms),
             dateTimePublish = dateTimePublish,
             onAir = onAir,
             year = year,
@@ -4419,6 +4455,7 @@ data class SettingsDTO(
     val album: String,
     val date: String,
     val time: String,
+    val timecode: String,
     val dateTimePublish: Date?,
     val onAir: Boolean,
     val year: Long,
@@ -4553,6 +4590,8 @@ data class SettingsDTO(
             album = album,
             date = date,
             time = time,
+            timecode = timecode,
+            ms = ms,
             dateTimePublish = dateTimePublish,
             year = year,
             track = track,
@@ -4640,6 +4679,8 @@ data class SettingsDTOdigest(
     val album: String,
     val date: String,
     val time: String,
+    val timecode: String,
+    val ms: Long,
     val dateTimePublish: Date?,
     val year: Long,
     val track: Long,

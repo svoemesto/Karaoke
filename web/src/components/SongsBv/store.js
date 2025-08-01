@@ -4,10 +4,14 @@ export default {
     state: {
         songsDigest: [],
         songsDigestIsLoading: false,
+        totalDuration: '',
     },
     getters: {
         getSongsDigest(state) {
             return state.songsDigest
+        },
+        getTotalDuration(state) {
+            return state.totalDuration
         },
         getSongsDigestIds(state) {
             return state.songsDigest ? state.songsDigest.flatMap(song => song.id) : []
@@ -21,6 +25,7 @@ export default {
     mutations: {
         updateSongsDigests(state, result) {
             state.songsDigest = result.songsDigests;
+            state.totalDuration = result.totalDuration;
         },
         setSongsDigestIsLoading(state, isLoading) { state.songsDigestIsLoading = isLoading },
         updateSongsDigestByIds(state, songsAndIndexesForUpdate) {

@@ -1004,16 +1004,19 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         SongsHistory().add(args)
 
         val lst = Settings.loadListFromDb(args, WORKING_DATABASE).map { it.toDTO().toDtoDigest() }
+        var totalMs = 0L
         for (i in lst.indices) {
             if (i > 0) lst[i].idPrevious = lst[i-1].id
             if (i < lst.size-1) lst[i].idNext = lst[i+1].id
+            totalMs += lst[i].ms
         }
 
         return mapOf(
             "workInContainer" to APP_WORK_IN_CONTAINER,
             "songsDigests" to lst,
             "authors" to Settings.loadListAuthors(WORKING_DATABASE),
-            "albums" to Settings.loadListAlbums(WORKING_DATABASE)
+            "albums" to Settings.loadListAlbums(WORKING_DATABASE),
+            "totalDuration" to convertMillisecondsToDtoTimecode(totalMs)
         )
     }
 

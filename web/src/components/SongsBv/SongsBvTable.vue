@@ -118,6 +118,13 @@
               :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
           ></div>
         </template>
+        <template #cell(timecode)="data">
+          <div
+              class="fld-timecode"
+              v-text="data.value"
+              :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
+          ></div>
+        </template>
         <template #cell(resultVersion)="data">
           <div
               class="fld-result-version"
@@ -281,7 +288,7 @@
       </b-table>
     </div>
     <div class="songs-bv-table-footer">
-      <button class="btn-round-double" @click="isSmartCopyVisible=true" :disabled="countRows===0" title="Smart Copy">{{countRows}}</button>
+      <button class="btn-round-long-double" @click="isSmartCopyVisible=true" :disabled="countRows===0" title="Smart Copy">{{smartCopyButtonCaption}}</button>
       <button class="btn-round-double" @click="isSongsFilterVisible=true" title="Фильтр">
         <img alt="filter" class="icon-40" src="../../assets/svg/icon_filter.svg">
       </button>
@@ -350,6 +357,13 @@ export default {
     // this.$store.dispatch('loadSongsDigests', { filter_author: 'Павел Кашин'} )
   },
   computed: {
+    smartCopyButtonCaption() {
+      let caption = '';
+      if (this.countRows > 0) {
+        caption = this.countRows + ' [' + this.totalDuration + ']';
+      }
+      return caption;
+    },
     songsIds() {
       return this.$store.getters.getSongsDigestIds;
     },
@@ -364,6 +378,9 @@ export default {
     },
     countRows() {
       return this.songsDigests.length;
+    },
+    totalDuration() {
+      return this.$store.getters.getTotalDuration;
     },
     songDigestFields() {
       return [
@@ -483,6 +500,16 @@ export default {
           style: {
             minWidth: '20px',
             maxWidth: '20px',
+            textAlign: 'center',
+            fontSize: 'small'
+          }
+        },
+        {
+          key: 'timecode',
+          label: 't/c',
+          style: {
+            minWidth: '60px',
+            maxWidth: '60px',
             textAlign: 'center',
             fontSize: 'small'
           }
@@ -1162,6 +1189,14 @@ export default {
   white-space: nowrap;
   overflow: hidden;
 }
+.fld-timecode {
+  min-width: 60px;
+  max-width: 60px;
+  text-align: center;
+  font-size: small;
+  white-space: nowrap;
+  overflow: hidden;
+}
 .fld-flag-boosty {
   min-width: 100%;
   max-width: 100%;
@@ -1337,6 +1372,23 @@ export default {
   background-color: darksalmon;
 }
 .btn-round-double[disabled] {
+  background-color: lightgray;
+}
+.btn-round-long-double {
+  border: solid 1px black;
+  border-radius: 6px;
+  width: 150px;
+  height: 50px;
+  margin-left: 2px;
+  background-color: antiquewhite;
+}
+.btn-round-long-double:hover {
+  background-color: lightpink;
+}
+.btn-round-long-double:focus {
+  background-color: darksalmon;
+}
+.btn-round-long-double[disabled] {
   background-color: lightgray;
 }
 .icon-40 {

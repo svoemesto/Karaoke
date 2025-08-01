@@ -2426,8 +2426,25 @@ export default {
       this.isCustomConfirmVisible = true;
     },
     doEraseMarkers() {
-      this.sourceMarkers = [];
-      this.wsRegions.clearRegions();
+
+      // Удаляем все видимые маркеры
+      let countBeatMarkers = this.sourceMarkers.filter(marker => this.isShowMarkerType(marker.markertype)).length;
+      console.log('countBeatMarkers', countBeatMarkers);
+      while (countBeatMarkers !== 0) {
+        for (let i = 0; i < this.sourceMarkers.length; i++) {
+          let marker = this.sourceMarkers[i];
+          if (this.isShowMarkerType(marker.markertype)) {
+            marker.region.remove();
+            marker.region = null;
+            this.sourceMarkers.splice(i,1);
+            break;
+          }
+        }
+        countBeatMarkers = this.sourceMarkers.filter(marker => this.isShowMarkerType(marker.markertype)).length;
+      }
+
+      // this.sourceMarkers = [];
+      // this.wsRegions.clearRegions();
     },
     addAccent() {
       let textComponent = document.getElementById('editor');

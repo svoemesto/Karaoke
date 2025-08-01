@@ -58,72 +58,14 @@ fun mainUtils() {
 
 fun customFunction(): String {
 
-    var cnt1 = 0
-    var priorSetting = 500
-    Author.loadList(database = WORKING_DATABASE).forEach { author ->
-        val args = mapOf("author" to author.author)
-        val authorSettings = Settings.loadListFromDb(args = args, database = WORKING_DATABASE).filter { it.resultVersion == 100L }
-        if (authorSettings.isNotEmpty()) priorSetting += 10
-        authorSettings.forEach { settings ->
-
-            println("Переделываем караоке для ${settings.rightSettingFileName}")
-            try {
-                settings.createKaraoke(
-                    createLyrics = true,
-                    createKaraoke = true,
-                    createChords = false,
-                    createLyricsVk = false,
-                    createKaraokeVk = false,
-                    createChordsVk = false
-                )
-                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, priorSetting)
-                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, priorSetting)
-                cnt1++
-                if (settings.getSongDurationVideoMs() < 61_100) {
-                    KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICSVK, true, priorSetting)
-                    KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKEVK, true, priorSetting)
-                }
-            } catch (e: Exception) {
-                println("Ошибка ${settings.rightSettingFileName}")
-            }
-
-        }
+    var total = 0L
+    Settings.loadListFromDb(database = WORKING_DATABASE).forEach { sett ->
+        val ms = sett.ms
+        total += ms
+        println("${convertMillisecondsToDtoTimecode(ms)} - (${sett.datePublish}) - ${sett.rightSettingFileName}")
     }
-
-    Author.loadList(database = WORKING_DATABASE).forEach { author ->
-        val args = mapOf("author" to author.author)
-        val authorSettings = Settings.loadListFromDb(args = args, database = WORKING_DATABASE)
-        if (authorSettings.isNotEmpty()) priorSetting += 10
-        authorSettings.forEach { settings ->
-            val version = settings.tags.stripToNumeric()
-            if (version.isNotBlank()) {
-                if (settings.idBoosty.isNotBlank() && settings.versionBoosty == 0) settings.fields[SettingField.VERSION_BOOSTY] = version
-                if (settings.idBoostyFiles.isNotBlank() && settings.versionBoostyFiles == 0) settings.fields[SettingField.VERSION_BOOSTY_FILES] = version
-                if (settings.idSponsr.isNotBlank() && settings.versionSponsr == 0) settings.fields[SettingField.VERSION_SPONSR] = version
-                if (settings.idDzenLyrics.isNotBlank() && settings.versionDzenLyrics == 0) settings.fields[SettingField.VERSION_DZEN_LYRICS] = version
-                if (settings.idDzenKaraoke.isNotBlank() && settings.versionDzenKaraoke == 0) settings.fields[SettingField.VERSION_DZEN_KARAOKE] = version
-                if (settings.idDzenMelody.isNotBlank() && settings.versionDzenMelody == 0) settings.fields[SettingField.VERSION_DZEN_MELODY] = version
-                if (settings.idDzenChords.isNotBlank() && settings.versionDzenChords == 0) settings.fields[SettingField.VERSION_DZEN_CHORDS] = version
-                if (settings.idVkLyrics.isNotBlank() && settings.versionVkLyrics == 0) settings.fields[SettingField.VERSION_VK_LYRICS] = version
-                if (settings.idVkKaraoke.isNotBlank() && settings.versionVkKaraoke == 0) settings.fields[SettingField.VERSION_VK_KARAOKE] = version
-                if (settings.idVkMelody.isNotBlank() && settings.versionVkMelody == 0) settings.fields[SettingField.VERSION_VK_MELODY] = version
-                if (settings.idVkChords.isNotBlank() && settings.versionVkChords == 0) settings.fields[SettingField.VERSION_VK_CHORDS] = version
-                if (settings.idTelegramLyrics.isNotBlank() && settings.idTelegramLyrics != "-" && settings.versionTelegramLyrics == 0) settings.fields[SettingField.VERSION_TELEGRAM_LYRICS] = version
-                if (settings.idTelegramKaraoke.isNotBlank() && settings.idTelegramKaraoke != "-" && settings.versionTelegramKaraoke == 0) settings.fields[SettingField.VERSION_TELEGRAM_KARAOKE] = version
-                if (settings.idTelegramMelody.isNotBlank() && settings.idTelegramMelody != "-" && settings.versionTelegramMelody == 0) settings.fields[SettingField.VERSION_TELEGRAM_MELODY] = version
-                if (settings.idTelegramChords.isNotBlank() && settings.idTelegramChords != "-" && settings.versionTelegramChords == 0) settings.fields[SettingField.VERSION_TELEGRAM_CHORDS] = version
-                if (settings.idPlLyrics.isNotBlank() && settings.versionPlLyrics == 0) settings.fields[SettingField.VERSION_PL_LYRICS] = version
-                if (settings.idPlKaraoke.isNotBlank() && settings.versionPlKaraoke == 0) settings.fields[SettingField.VERSION_PL_KARAOKE] = version
-                if (settings.idPlMelody.isNotBlank() && settings.versionPlMelody == 0) settings.fields[SettingField.VERSION_PL_MELODY] = version
-                if (settings.idPlChords.isNotBlank() && settings.versionPlChords == 0) settings.fields[SettingField.VERSION_PL_CHORDS] = version
-                settings.saveToDb()
-            }
-
-        }
-    }
-
-
-    return cnt1.toString()
+    println("ИТОГО: ${convertMillisecondsToDtoTimecode(total)}")
+    return convertMillisecondsToDtoTimecode(total)
 }
 
 
@@ -2399,6 +2341,14 @@ fun convertMillisecondsToDzenTimecode(milliseconds: Long): String {
     val seconds = (milliseconds - hours*1000*60*60 - minutes*1000*60) / 1000
     val ms = milliseconds - hours*1000*60*60 - minutes*1000*60 - seconds*1000
     return "%01d:%02d:%02d".format(hours,minutes,seconds)
+}
+
+fun convertMillisecondsToDtoTimecode(milliseconds: Long): String {
+    val hours = milliseconds / (1000*60*60)
+    val minutes = (milliseconds - hours*1000*60*60) / (1000*60)
+    val seconds = (milliseconds - hours*1000*60*60 - minutes*1000*60) / 1000
+    val ms = milliseconds - hours*1000*60*60 - minutes*1000*60 - seconds*1000
+    return (if (hours > 0) "$hours:" else "") + "%02d:%02d".format(minutes,seconds)
 }
 
 fun convertFramesToTimecode(frames: Long, fps:Double = Karaoke.frameFps): String {

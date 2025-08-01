@@ -7,7 +7,7 @@ import com.svoemesto.karaokeapp.textfiledictionary.TestDictionary
 import com.svoemesto.karaokeapp.textfiledictionary.YoWordsDictionary
 
 const val CURRENT_RESULT_VERSION = 10L
-const val COUNT_HISTORY_LINES = 10
+const val COUNT_HISTORY_LINES = 30
 
 const val COLOR_ALL_DONE = "#7FFFD4"        // Полностью готово
 const val COLOR_OVERDUE = "#BDB76B"         // Публикация прошла, но не все ссылки заполнены

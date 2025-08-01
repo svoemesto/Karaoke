@@ -1,0 +1,12 @@
+update tbl_settings set
+                        version_dzen_lyrics = 4,
+                        version_dzen_karaoke = 4,
+                        version_vk_lyrics = 4,
+                        version_vk_karaoke = 4,
+                        version_telegram_lyrics = 4,
+                        version_telegram_karaoke = 4,
+                        version_pl_lyrics = 4,
+                        version_pl_karaoke = 4,
+                        version_boosty = 4,
+                        version_boosty_files = 4
+                        where song_author = 'Чайф'

@@ -299,6 +299,7 @@
 
 <div hidden="hidden" style="width: 0; height: 0" id="text_formatted_html" th:text="${sett.getTextFormatted()}"></div>
 <div hidden="hidden" style="width: 0; height: 0" id="notes_formatted_html" th:text="${sett.getFormattedNotes()}"></div>
+<div hidden="hidden" style="width: 0; height: 0" id="chords_formatted_html" th:text="${sett.getFormattedChords()}"></div>
 
 <div id="areaScreen">
     <div id="areaBody">
@@ -859,6 +860,11 @@
                             <div id="notes_formatted" style="background-color: black; padding: 10px; font-size: x-large; line-height: normal;"></div>
                         </td>
                     </tr>
+                    <tr>
+                        <td colspan="2">
+                            <div id="chords_formatted" style="background-color: black; padding: 10px; font-size: x-large; line-height: normal;"></div>
+                        </td>
+                    </tr>
                 </table>
 
             </div>
@@ -875,6 +881,10 @@
         let notesFormattedHtml = document.getElementById("notes_formatted_html");
         let notesFormatted = document.getElementById("notes_formatted");
         notesFormatted.innerHTML = notesFormattedHtml.innerText;
+
+        let chordsFormattedHtml = document.getElementById("chords_formatted_html");
+        let chordsFormatted = document.getElementById("chords_formatted");
+        chordsFormatted.innerHTML = chordsFormattedHtml.innerText;
         }
     );
 

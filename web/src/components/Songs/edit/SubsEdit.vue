@@ -453,6 +453,7 @@ export default {
         this.currentMarkersIndex = this.getCurrentMarkersIndex;
         this.textFormatted = this.getFormattedText;
         this.notesFormatted = this.getFormattedNotes;
+        this.chordsFormatted = this.getFormattedChords;
       }
     },
     sourceText: {
@@ -462,6 +463,7 @@ export default {
         this.tail = this.getTail;
         this.textFormatted = this.getFormattedText;
         this.notesFormatted = this.getFormattedNotes;
+        this.chordsFormatted = this.getFormattedChords;
       }
     },
     currentTime: {
@@ -475,6 +477,7 @@ export default {
         this.tail = this.getTail;
         this.textFormatted = this.getFormattedText;
         this.notesFormatted = this.getFormattedNotes;
+        this.chordsFormatted = this.getFormattedChords;
       }
     },
     currentMarkersIndex: {
@@ -496,6 +499,7 @@ export default {
         this.tail = this.getTail;
         this.textFormatted = this.getFormattedText;
         this.notesFormatted = this.getFormattedNotes;
+        this.chordsFormatted = this.getFormattedChords;
         this.sourceMarkers.splice(0,1,this.sourceMarkers[0]);
       }
     },
@@ -820,7 +824,132 @@ export default {
       return result;
     },
     getFormattedChords() {
+      const SPAN_STYLE_CHORD = `<span style="color: #00BFFF; font-family: monospace; font-size: 15px; font-style: normal; font-weight: bolder;">`
+      const SPAN_STYLE_TEXT = `<span style="color: #FFFFFF; font-family: monospace; font-size: 15px; font-style: normal; font-weight: bolder;">`
+      const SPAN_END = '</span>';
+      const BR = '<br>';
+      const markers = this.sourceMarkers;
+      let wasBr = true;
+      let lineChordsIsEmpty = true;
       let result = '';
+      let lineChords = '';
+      let lineText = '';
+      let slide = 0;
+      for (let i = 0; i < markers.length; i++) {
+        const marker = markers[i];
+        switch (marker.markertype) {
+          case 'setting':
+          case 'endofline':
+          case 'eoln':
+          case 'eolch':
+          case 'nln':
+          case 'newline': {
+            if (!lineChordsIsEmpty) {
+              result += lineChords + BR;
+            }
+            result += lineText + BR;
+            lineChordsIsEmpty = true;
+            lineChords = '';
+            lineText = '';
+            wasBr = true;
+            break;
+          }
+          case 'chord':
+          case 'syllables': {
+
+            // Если слог
+            let txt = '';
+            let txtHtml = '';
+            if (marker.markertype === 'chord') {
+              txt = '♪  ';
+              txtHtml = '♪&nbsp;&nbsp;';
+            } else if (marker.markertype === 'syllables') {
+              // Если в маркере не пустой лейбл (т.е. есть слог)
+              if (marker.label) {
+                txt = marker.label.replaceAll('_', ' '); // Заменяем подчеркивания на пробелы
+                txtHtml = marker.label.replaceAll('_', '&nbsp;');
+                // Если был перенос строки - инициализируем новые переменны (3 пробела + слог и начало струн)
+                if (wasBr) {
+                  txt = '   ' + this.uppercaseFirstLetter(txt);
+                  txtHtml = '&nbsp;&nbsp;&nbsp;' + this.uppercaseFirstLetter(marker.label).replaceAll('_', '&nbsp;');
+                }
+              } else {
+                // Если в маркере пустой лейбл - пробел в тексте
+                txt = ' ';
+                txtHtml = '&nbsp;';
+              }
+            }
+
+            let chord = '';
+            let chordHtml = '';
+
+            // Если в маркере есть аккорд
+            if (marker.chord) {
+              // Находим аккорд
+              lineChordsIsEmpty = false;
+              chord = marker.chord;
+              chordHtml = chord;
+
+              // Находим позицию гласной буквы в слоге (0 - если гласная первая или если её нет)
+              let vowelPosition = 0;
+              for (let i = 0; i < txt.length; i++) {
+                if ('ЁУЕЫАОЭЯИЮёуеыаоэяиюEUIOAeuioaїієѣ♪'.includes(txt[i])) {
+                  vowelPosition = i;
+                  break;
+                }
+              }
+              // Добавляем пробелы перед названием аккорда (по позиции гласной)
+              for (let i = 0; i < vowelPosition; i++) {
+                chord = ' ' + chord;
+                chordHtml = '&nbsp;' + chordHtml;
+              }
+
+              // Если длина аккорда больше длины текста, то к слайдеру надо добавить кол-во символов разницы длины
+              // А если меньше - добавить пробелы после аккорда
+              let diff = txt.length - chord.length;
+              if (diff < 0) {
+                slide -= diff;
+              } else if (diff > 0) {
+                chord += ' '.repeat(diff);
+                chordHtml += '&nbsp;'.repeat(diff);
+              }
+            } else {
+              // Если в маркере нет аккорда - пробелы по длине текста
+              // Если слайдер больше нуля
+              if (slide > 0) {
+                // Если слайдер меньше длинны текущего текста
+                if (slide < txt.length ) {
+                  // Текст аккорда должен состоять из пробелов по кол-ву "длина текста минус слайд", слайдер в ноль
+                  chord = ' '.repeat(txt.length - slide);
+                  chordHtml = '&nbsp;'.repeat(txt.length - slide);
+                  slide = 0;
+                } else if (slide === txt.length) {
+                  // Текст аккорда пустой, слайдер в ноль
+                  // Текст аккорда должен состоять из пробелов по кол-ву длины текста
+                  chord = ' '.repeat(txt.length);
+                  chordHtml = '&nbsp;'.repeat(txt.length);
+                  slide = 0;
+                } else {
+                  // Текст аккорда пустой, уменьшаем слайдер на длину текста
+                  chord = '';
+                  chordHtml = '';
+                  slide -= txt.length;
+                }
+              } else {
+                // Текст аккорда должен состоять из пробелов по кол-ву длины текста
+                chord = ' '.repeat(txt.length);
+                chordHtml = '&nbsp;'.repeat(txt.length);
+              }
+            }
+            lineChords += SPAN_STYLE_CHORD + chordHtml + SPAN_END;
+            lineText += SPAN_STYLE_TEXT + txtHtml + SPAN_END;
+            wasBr = false;
+
+            break;
+          }
+          default: {break;}
+        }
+      }
       return result;
     },
     getFormattedNotes() {

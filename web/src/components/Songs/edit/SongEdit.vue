@@ -420,6 +420,7 @@
             <img class="image-album" alt="Album image" :src="imageAlbumBase64">
           </div>
           <div class="create-picture-buttons-group">
+            <button class="group-button" @click="openMainLink" title="Открыть на сайте">Открыть на сайте sm-karaoke.ru</button>
             <button class="group-button" @click="createPictureBoostyTeaser" title="Создать картинку Boosty Teaser">Создать картинку Boosty Teaser</button>
             <button class="group-button" @click="createPictureBoostyFiles" title="Создать картинку Boosty Files">Создать картинку Boosty Files</button>
             <button class="group-button" @click="createPictureSponsrTeaser" title="Создать картинку Sponsr Teaser">Создать картинку Sponsr Files</button>
@@ -465,6 +466,11 @@
             <div class="formatted-notes" v-html="notesFormatted"></div>
           </div>
         </div>
+        <div class="column-5">
+          <div class="formatted-chords-area" v-if="chordsFormatted">
+            <div class="formatted-chords" v-html="chordsFormatted"></div>
+          </div>
+        </div>
       </div>
       <!-- Подвал -->
       <div class="footer">
@@ -508,6 +514,7 @@ export default {
       imageAlbumBase64: '',
       textFormatted: '',
       notesFormatted: '',
+      chordsFormatted: '',
       autoSave: true,
       autoSaveDelayMs: 1000
     };
@@ -517,6 +524,7 @@ export default {
     this.$store.dispatch('getAlbumPictureBase64Promise').then(image => this.imageAlbumBase64 = image);
     this.$store.dispatch('getTextFormattedPromise').then(textFormatted => this.textFormatted = textFormatted);
     this.$store.dispatch('getNotesFormattedPromise').then(notesFormatted => this.notesFormatted = notesFormatted);
+    this.$store.dispatch('getChordsFormattedPromise').then(chordsFormatted => this.chordsFormatted = chordsFormatted);
     this.autoSave = await this.propAutoSave();
     this.autoSaveDelayMs = Number(await this.propAutoSaveDelayMs());
   },
@@ -541,6 +549,7 @@ export default {
     snapshot() { return this.$store.getters.getSnapshotSong },
     diff() { return this.$store.getters.getSongDiff },
 
+    mainLink() { return this.prefixMainLink + this.song.id; },
     linkBoosty() { return this.prefixLinkBoosty + this.song.idBoosty; },
     linkSponsrEdit() { return this.prefixLinkSponsrEdit + this.song.idSponsr; },
     linkSponsrPlay() { return this.prefixLinkSponsrPlay + this.song.idSponsr; },
@@ -573,6 +582,7 @@ export default {
     linkPlTabsPlay() { return this.prefixLinkPlPlay + this.song.idPlMelody; },
     linkPlTabsEdit() { return this.prefixLinkPlEdit + this.song.idPlMelody + this.suffixLinkPlEdit; },
 
+    prefixMainLink: () => { return 'https://sm-karaoke.ru/song?id='; },
     prefixLinkBoosty: () => { return 'https://boosty.to/svoemesto/posts/'; },
     prefixLinkSponsrEdit: () => { return 'https://sponsr.ru/smkaraoke/manage/post/'; },
     prefixLinkSponsrPlay: () => { return 'https://sponsr.ru/smkaraoke/'; },
@@ -607,6 +617,7 @@ export default {
         this.$store.dispatch('getAlbumPictureBase64Promise').then(image => this.imageAlbumBase64 = image);
         this.$store.dispatch('getTextFormattedPromise').then(textFormatted => this.textFormatted = textFormatted);
         this.$store.dispatch('getNotesFormattedPromise').then(notesFormatted => this.notesFormatted = notesFormatted);
+        this.$store.dispatch('getChordsFormattedPromise').then(chordsFormatted => this.chordsFormatted = chordsFormatted);
       }
     },
     'song.idBoosty.value': {
@@ -1364,6 +1375,7 @@ export default {
     closeSubsEdit() {
       this.$store.dispatch('getTextFormattedPromise').then(textFormatted => this.textFormatted = textFormatted);
       this.$store.dispatch('getNotesFormattedPromise').then(notesFormatted => this.notesFormatted = notesFormatted);
+      this.$store.dispatch('getChordsFormattedPromise').then(chordsFormatted => this.chordsFormatted = chordsFormatted);
       this.isSubsEditVisible = false;
     },
     closeCustomConfirm() {
@@ -1411,6 +1423,9 @@ export default {
     },
     openLinkBoosty() {
       window.open(this.linkBoosty, '_blank');
+    },
+    openMainLink() {
+      window.open(this.mainLink, '_blank');
     },
     async openLinkBoostyNew() {
       let value = await this.$store.getters.getBoostyHeader;
@@ -2589,6 +2604,11 @@ export default {
   height: 100%;
 }
 
+.formatted-chords-area {
+  width: auto;
+  height: 100%;
+}
+
 .formatted-text {
   overflow-y: scroll;
   background-color: black;
@@ -2601,6 +2621,17 @@ export default {
 }
 
 .formatted-notes {
+  overflow-y: scroll;
+  background-color: black;
+  max-height: 944px;
+  text-align: left;
+  padding: 10px;
+  font-size: smaller;
+  min-width: 0;
+  min-height: 0;
+}
+
+.formatted-chords {
   overflow-y: scroll;
   background-color: black;
   max-height: 944px;
@@ -2634,6 +2665,12 @@ export default {
 }
 
 .column-4 {
+  width: max-content;
+  height: max-content;
+  margin: 5px 0;
+}
+
+.column-5 {
   width: max-content;
   height: max-content;
   margin: 5px 5px 5px 5px;

@@ -316,6 +316,17 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         return text
     }
 
+        // Получение форматированного текста с аккордами
+    @PostMapping("/song/chordsformatted")
+    @ResponseBody
+    fun getSongFormattedChords(@RequestParam id: Long): String {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+        val text = settings?.let {
+            settings.getFormattedChords()
+        } ?: ""
+        return text
+    }
+
     // Получение текста заголовка для boosty
     @PostMapping("/song/textboostyhead")
     @ResponseBody

@@ -1358,6 +1358,13 @@ export default {
                 params: { id: ctx.state.currentSongId }
             });
         },
+        getChordsFormattedPromise: (ctx) => {
+            return promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/apis/song/chordsformatted",
+                params: { id: ctx.state.currentSongId }
+            });
+        },
         getAlbumPictureBase64Promise(ctx) {
             return promisedXMLHttpRequest({
                 method: 'POST',

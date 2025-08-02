@@ -2047,8 +2047,8 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                         var txtHtml = ""
 
                         if (marker.markertype == Markertype.CHORD.value) {
-                            txt = "♪"
-                            txtHtml = "♪"
+                            txt = "♪  "
+                            txtHtml = "♪&nbsp;&nbsp;"
                         } else if (marker.markertype == Markertype.SYLLABLES.value) {
                             // Если в маркере не пустой лейбл (т.е. есть слог)
                             if (marker.label.isNotEmpty()) {

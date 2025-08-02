@@ -868,7 +868,7 @@ export default {
               if (marker.label) {
                 txt = marker.label.replaceAll('_', ' '); // Заменяем подчеркивания на пробелы
                 txtHtml = marker.label.replaceAll('_', '&nbsp;');
-                // Если был перенос строки - инициализируем новые переменны (3 пробела + слог и начало струн)
+                // Если был перенос строки - инициализируем новые переменны (3 пробела + слог)
                 if (wasBr) {
                   txt = '   ' + this.uppercaseFirstLetter(txt);
                   txtHtml = '&nbsp;&nbsp;&nbsp;' + this.uppercaseFirstLetter(marker.label).replaceAll('_', '&nbsp;');

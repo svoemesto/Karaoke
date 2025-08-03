@@ -96,7 +96,9 @@ fun recodePictures() {
     println("Общая экономия: ${totalOld - totalNew} байт.")
 }
 
-
+fun updateRemoteSettingFromLocalDatabase(id: Long): Triple<Int, Int, Int> {
+    return updateDatabases(Connection.local(), Connection.remote(), updateSettings = true, updatePictures = false, argsSettings = mapOf("id" to id.toString()))
+}
 fun updateRemoteDatabaseFromLocalDatabase(updateSettings: Boolean = true, updatePictures: Boolean = true): Triple<Int, Int, Int> {
     return updateDatabases(Connection.local(), Connection.remote(), updateSettings, updatePictures)
 }
@@ -104,7 +106,14 @@ fun updateRemoteDatabaseFromLocalDatabase(updateSettings: Boolean = true, update
 fun updateLocalDatabaseFromRemoteDatabase(updateSettings: Boolean = true, updatePictures: Boolean = true): Triple<Int, Int, Int> {
     return updateDatabases(Connection.remote(), Connection.local(), updateSettings, updatePictures)
 }
-fun updateDatabases(fromDatabase: KaraokeConnection, toDatabase: KaraokeConnection, updateSettings: Boolean = true, updatePictures: Boolean = true): Triple<Int, Int, Int> {
+fun updateDatabases(
+    fromDatabase: KaraokeConnection,
+    toDatabase: KaraokeConnection,
+    updateSettings: Boolean = true,
+    updatePictures: Boolean = true,
+    argsSettings: Map<String, String> = emptyMap(),
+    argsPictures: Map<String, String> = emptyMap()
+): Triple<Int, Int, Int> {
     if (fromDatabase == toDatabase) return Triple(0,0,0)
 
     var countCreate = 0
@@ -118,12 +127,12 @@ fun updateDatabases(fromDatabase: KaraokeConnection, toDatabase: KaraokeConnecti
     if (updateSettings) {
 
         // Список айдишников базы ИЗ
-        val listSettingsFrom = Settings.loadListFromDb(database = fromDatabase)
-        println("Таблица tbl_settings, записей в базе ${fromDatabase.name}: ${listSettingsFrom.size}")
+        val listSettingsFrom = Settings.loadListFromDb(database = fromDatabase, args = argsSettings)
+        println("Таблица tbl_settings, найдено записей ${fromDatabase.name}: ${listSettingsFrom.size}")
 
         // Список айдишников базы В
-        val listSettingsTo = Settings.loadListFromDb(database = toDatabase).toMutableList()
-        println("Таблица tbl_settings, записей в базе ${toDatabase.name}: ${listSettingsTo.size}")
+        val listSettingsTo = Settings.loadListFromDb(database = toDatabase, args = argsSettings).toMutableList()
+        println("Таблица tbl_settings, найдено записей ${toDatabase.name}: ${listSettingsTo.size}")
 
         val setToDel = listSettingsTo.map { it.id }.toMutableSet()
 
@@ -254,12 +263,12 @@ fun updateDatabases(fromDatabase: KaraokeConnection, toDatabase: KaraokeConnecti
     if (updatePictures) {
 
         // Список айдишников базы ИЗ
-        val listPicturesFrom = Pictures.loadList(database = fromDatabase)
-        println("Таблица tbl_pictures, записей в базе ${fromDatabase.name}: ${listPicturesFrom.size}")
+        val listPicturesFrom = Pictures.loadList(database = fromDatabase, args = argsPictures)
+        println("Таблица tbl_pictures, найдено записей ${fromDatabase.name}: ${listPicturesFrom.size}")
 
         // Список айдишников базы В
-        val listPicturesTo = Pictures.loadList(database = toDatabase).toMutableList()
-        println("Таблица tbl_pictures, записей в базе ${toDatabase.name}: ${listPicturesTo.size}")
+        val listPicturesTo = Pictures.loadList(database = toDatabase, args = argsPictures).toMutableList()
+        println("Таблица tbl_pictures, найдено записей ${toDatabase.name}: ${listPicturesTo.size}")
 
         val setToDel = listPicturesTo.map { it.id }.toMutableSet()
 

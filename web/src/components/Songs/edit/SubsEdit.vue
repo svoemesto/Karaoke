@@ -339,6 +339,7 @@ export default {
       pressed3: false, // красно-оранжевый маркер "конец строки + слог", 3
       pressed4: false, // малиновый маркер "новая строка", 4
       pressed5: false, // "конец строки + новая строка + слог", 5
+      pressed6: false, // "аккорд", 6
       pressed0: false, // жёлтый маркер "приглушение", 0
       pressedT: false, // сине-белый маркер "группа 0", T
       pressedY: false, // жёлто-белый маркер "группа 1", Y
@@ -694,6 +695,8 @@ export default {
             break;
         }
       } } },
+
+    pressed6: { handler () { if (!this.isEditMode) return; if (this.pressed6) { this.addMarker('chord', '', true, false); } } },
     pressed0: { handler () { if (!this.isEditMode) return; if (this.pressed0) { this.addMarker('unmute'); } } },
     pressedT: { handler () { if (!this.isEditMode) return; if (this.pressedT) { this.addMarker('setting', 'GROUP|0'); } } },
     pressedY: { handler () { if (!this.isEditMode) return; if (this.pressedY) { this.addMarker('setting', 'GROUP|1'); } } },
@@ -824,11 +827,14 @@ export default {
       return result;
     },
     getFormattedChords() {
+
       const SPAN_STYLE_CHORD = `<span style="color: #00BFFF; font-family: monospace; font-size: 15px; font-style: normal; font-weight: bolder;">`
       const SPAN_STYLE_TEXT = `<span style="color: #FFFFFF; font-family: monospace; font-size: 15px; font-style: normal; font-weight: bolder;">`
       const SPAN_END = '</span>';
       const BR = '<br>';
       const markers = this.sourceMarkers;
+      const countNotEmptyChords = markers.filter(marker => marker.chord).length;
+      if (countNotEmptyChords === 0) return '';
       let wasBr = true;
       let lineChordsIsEmpty = true;
       let result = '';
@@ -861,8 +867,13 @@ export default {
             let txt = '';
             let txtHtml = '';
             if (marker.markertype === 'chord') {
-              txt = '♪  ';
-              txtHtml = '♪&nbsp;&nbsp;';
+              if (marker.label === '' || !marker.label || marker.label === marker.chord) {
+                txt = '♪  ';
+                txtHtml = '♪&nbsp;&nbsp;';
+              } else {
+                txt = marker.label;
+                txtHtml = txt.replaceAll(' ', '&nbsp;');
+              }
             } else if (marker.markertype === 'syllables') {
               // Если в маркере не пустой лейбл (т.е. есть слог)
               if (marker.label) {
@@ -964,7 +975,6 @@ export default {
       const SPAN_END = '</span>';
       const BR = '<br>';
       const stringsForAllNotes = stringsForAllNotesArray[this.indexTabsVariant];
-      console.log('stringsForAllNotes', stringsForAllNotes);
       let stringsForAllNotesIndex = 0;
       const markers = this.sourceMarkers;
       let wasBr = true;
@@ -980,11 +990,9 @@ export default {
           previousMarkerType = markers[i-1].markertype;
         }
         const marker = markers[i];
-        console.log(`${previousMarkerType}-${currentMarkerType}-${marker.label}`);
         switch (marker.markertype) {
           case 'setting': {
             if (previousMarkerType === 'note' && currentMarkerType === 'setting') {
-              console.log('Перевод строки перед маркером:', marker.label);
               for (let j = 0; j < strings.length; j++) {
                 const sn = strings[j];
                 result += SPAN_STYLE_TABLINE + sn + '⎼‖' + SPAN_END + BR;
@@ -1016,7 +1024,6 @@ export default {
           case 'syllables': {
 
             if (previousMarkerType === 'note' && currentMarkerType === 'syllables') {
-              console.log('Перевод строки перед маркером:', marker.label);
               if (!wasBr) {
                 for (let j = 0; j < strings.length; j++) {
                   const sn = strings[j];
@@ -1360,13 +1367,8 @@ export default {
     this.intervalPressBR = null;
     this.intervalPressBR = null;
     this.customConfirmParams = null;
-    console.log('SubsEdit beforeDestroy');
-  },
-  destroyed() {
-    console.log('SubsEdit destroyed');
   },
   async mounted() {
-    // console.log('SubsEdit mounted start');
     // Инициализируем Wavesurfer
     this.initWavesurfer();
     this.isEditMode = true;
@@ -1378,7 +1380,6 @@ export default {
     this.ws.on('play', () => { this.isPlaying = true; });
     this.ws.on('pause', () => { this.isPlaying = false; });
     this.ws.on('decode', () => {
-      // console.log('Wavesurfer decode start');
       this.duration = this.ws.getDuration();
       if (this.visibleStartTime < 0) this.visibleStartTime = 0;
       if (this.visibleEndTime < 0) this.visibleEndTime = this.duration;
@@ -1401,7 +1402,6 @@ export default {
         }
         this.createBeatMarkers();
       }
-      // console.log('Wavesurfer decode end');
     });
     this.ws.on('timeupdate', currentTime => {
       if (this.currentTime !== currentTime) {
@@ -1432,7 +1432,6 @@ export default {
 
     // eslint-disable-next-line
     this.wsRegions.on('region-updated', (region) => {
-      console.log('Updated region', region);
       let marker = this.sourceMarkers.filter(item => item.region === region)[0];
       marker.time = region.start;
       let label = marker.label;
@@ -1445,17 +1444,14 @@ export default {
 
     this.wsRegions.on('region-clicked', (region, e) => {
       e.stopPropagation() // prevent triggering a click on the waveform
-      console.log('region-clicked', region)
       this.activeRegion = region
     })
 
     this.wsRegions.on('region-in', (region) => {
-      console.log('region-in', region)
       this.activeRegion = region
     })
 
     this.wsRegions.on('region-out', (region) => {
-      console.log('region-out', region)
       if (this.activeRegion === region) {
         this.activeRegion = null
       }
@@ -1464,8 +1460,6 @@ export default {
     this.ws.on('interaction', () => {
       this.activeRegion = null
     })
-
-    // console.log('SubsEdit mounted end');
 
     navigator.permissions.query({ name: "midi", sysex: true }).then((result) => {
       if (result.state === "granted") {
@@ -1484,7 +1478,6 @@ export default {
       this.isCustomConfirmVisible = false;
     },
     save() {
-      // console.log('SAVE');
       this.addEndMarker();
       this.$store.dispatch('saveSourceTextAndMarkers', {
         voice: this.currentVoice,
@@ -1543,6 +1536,7 @@ export default {
         case 'Digit3': { if (!this.pressed3) { this.pressed3 = true; } break; }
         case 'Digit4': { if (!this.pressed4) { this.pressed4 = true; } break; }
         case 'Digit5': { if (!this.pressed5) { this.pressed5 = true; } break; }
+        case 'Digit6': { if (!this.pressed6) { this.pressed6 = true; } break; }
         case 'Digit0': { if (!this.pressed0) { this.pressed0 = true; } break; }
         case 'KeyT': { if (!this.pressedT) { this.pressedT = true; } break; }
         case 'KeyY': { if (!this.pressedY) { this.pressedY = true; } break; }
@@ -1572,6 +1566,7 @@ export default {
         case 'Digit3': { if (this.pressed3) { this.pressed3 = false; } break; }
         case 'Digit4': { if (this.pressed4) { this.pressed4 = false; } break; }
         case 'Digit5': { if (this.pressed5) { this.pressed5 = false; } break; }
+        case 'Digit6': { if (this.pressed6) { this.pressed6 = false; } break; }
         case 'Digit0': { if (this.pressed0) { this.pressed0 = false; } break; }
         case 'KeyT': { if (this.pressedT) { this.pressedT = false; } break; }
         case 'KeyY': { if (this.pressedY) { this.pressedY = false; } break; }
@@ -1594,8 +1589,6 @@ export default {
       });
     },
     updateMarkersBySyllables() {
-      // console.log('Update markers by syllables...');
-
       // let needSort = false;
       // for (let i = 0; i < this.sourceMarkers.length; i++) {
       //   let marker = this.sourceMarkers[i];
@@ -1900,7 +1893,7 @@ export default {
                       </div>`
           break; }
         case 'chord': {
-          let label = marker.label;
+          let label = marker.chord;
           let labels = label.split('|');
           text = '🎼' + labels[0] + (labels.length > 1 ? '['+ labels[1] +']' : '');
           template = `<div><div
@@ -2015,7 +2008,6 @@ export default {
       this.addMarker('setting', result.settingType + '|' + result.settingValue);
     },
     addMarker(markerType, settingValue = '', notDelete = false, withEndOfLine = false) {
-      // console.log(`addMarker called: ${markerType}, ${settingValue}, ${notDelete}`);
 
       const MARKER_COLOR_SYLLABLES = '#D2691E';
       const MARKER_COLOR_NOTE = '#009900';
@@ -2109,11 +2101,8 @@ export default {
         let bpmMarkers = this.sourceMarkers.filter(marker => marker.markertype === 'setting' && marker.label.startsWith('BPM|') && marker.time < this.currentTime);
         if (bpmMarkers.length === 0) return;
         let bpmMarker = bpmMarkers.reverse()[0];
-        console.log('bpmMarker', bpmMarker);
-        console.log('this.currentTime', this.currentTime);
         // Время текущее минус время этого маркера = время такта
         let bpm = Math.round(60 / ((this.currentTime - bpmMarker.time) / 4));
-        console.log('this.bpm', bpm);
         // Записываем новое значение BPM в маркер
         bpmMarker.label = 'BPM|' + bpm;
         bpmMarker.region.setContent(this.getRegionContentFromMarker(bpmMarker));
@@ -2128,8 +2117,6 @@ export default {
         position: position,
         markertype: markerType
       }
-
-      // console.log(`this.currentMarkersIndex: `, this.currentMarkersIndex);
 
       let indexToInsert = this.currentMarkersIndex + ((diff < 0.002 && !notDelete) ? 0 : 1);
       let countDeleted = (diff < 0.002 && !notDelete) ? 1: 0;
@@ -2148,7 +2135,6 @@ export default {
         newMarker.region = this.createRegionMarker(newMarker);
         this.sourceMarkers.splice(indexToInsert+1, 0, newMarker);
 
-        // console.log(`Добавлен конец линии и маркер на позиции ${indexToInsert}-${indexToInsert+1} ${countDeleted === 0 ? 'без удаления' : 'с удалением'} `);
       } else {
         if (countDeleted > 0) {
           let markerToDelete = this.sourceMarkers[indexToInsert];
@@ -2157,7 +2143,6 @@ export default {
         }
         newMarker.region = this.createRegionMarker(newMarker);
         this.sourceMarkers.splice(indexToInsert, countDeleted, newMarker);
-        // console.log(`Добавлен маркер на позицию ${indexToInsert} ${countDeleted === 0 ? 'без удаления' : 'с удалением'} `);
       }
 
       this.updateMarkersBySyllables();
@@ -2222,7 +2207,6 @@ export default {
     createBeatMarkers() {
       // Удаляем все бит-маркеры
       let countBeatMarkers = this.sourceMarkers.filter(marker => marker.markertype === 'beat').length;
-      console.log('countBeatMarkers', countBeatMarkers);
       while (countBeatMarkers !== 0) {
         for (let i = 0; i < this.sourceMarkers.length; i++) {
           let marker = this.sourceMarkers[i];
@@ -2244,7 +2228,6 @@ export default {
       const beat = this.beat;
       // Получаем список BPM-маркеров
       let bpmMarkers = this.sourceMarkers.filter(marker => marker.markertype === 'setting' && marker.label.startsWith('BPM|'));
-      console.log('bpmMarkers', bpmMarkers);
       for (let indexBpmMarker = 0; indexBpmMarker < bpmMarkers.length; indexBpmMarker++) {
         let bpmMarker = bpmMarkers[indexBpmMarker];
         let label = bpmMarker.label;
@@ -2255,7 +2238,6 @@ export default {
         let noteLength8 = noteLength4 / 2;
         let noteLength16 = noteLength8 / 2;
         let noteLength32 = noteLength16 / 2;
-        console.log('noteLength4', noteLength4);
         // Если это первый BPM-маркер - создаём бит-маркеры к началу
         if (indexBpmMarker === 0) {
           let currentTime = bpmMarker.time - noteLength32;
@@ -2458,15 +2440,12 @@ export default {
         strBeats = strBeats.length < 64 ? '' : strBeats.substring(64);
         result += SPAN_STYLE_NOTE + lineChord.replaceAll(BEAT_SYMBOL_MOD1,'&nbsp;') + SPAN_END + BR
         result += SPAN_STYLE_TEXT + lineBeats.replaceAll(BEAT_SYMBOL_MOD1,'&nbsp;').replaceAll(BEAT_SYMBOL_MOD4,'&nbsp;').replaceAll(BEAT_SYMBOL_MOD16,'&nbsp;') + SPAN_END + BR + BR
-        console.log('lineChord', lineChord);
-        console.log('lineBeats', lineBeats);
       }
       this.chordsFormatted = result;
     },
     doChordsDel() {
       // Удаляем все chord-маркеры
       let countChordsMarkers = this.sourceMarkers.filter(marker => marker.markertype === 'chord').length;
-      console.log('countChordsMarkers', countChordsMarkers);
       while (countChordsMarkers !== 0) {
         for (let i = 0; i < this.sourceMarkers.length; i++) {
           let marker = this.sourceMarkers[i];
@@ -2485,7 +2464,6 @@ export default {
       diff = await this.$store.dispatch('getDiffBeatsInc');
       diff = await this.$store.dispatch('getDiffBeatsInc');
       diff = await this.$store.dispatch('getDiffBeatsInc');
-      console.log('diff', diff);
       if (diff >= 0) {
         this.doChordsDel();
         await this.doChordsAdd();
@@ -2496,7 +2474,6 @@ export default {
       diff = await this.$store.dispatch('getDiffBeatsDec');
       diff = await this.$store.dispatch('getDiffBeatsDec');
       diff = await this.$store.dispatch('getDiffBeatsDec');
-      console.log('diff', diff);
       if (diff >= 0) {
         this.doChordsDel();
         await this.doChordsAdd();
@@ -2515,7 +2492,6 @@ export default {
           i--;
         }
         if (marker.region && marker.markertype === 'setting' && marker.label.startsWith('COMMENT| ')) {
-          console.log('setting COMMENT| ');
           marker.markertype = 'newline';
           marker.label = ''
           marker.region.remove();
@@ -2558,7 +2534,6 @@ export default {
 
       // Удаляем все видимые маркеры
       let countBeatMarkers = this.sourceMarkers.filter(marker => this.isShowMarkerType(marker.markertype)).length;
-      console.log('countBeatMarkers', countBeatMarkers);
       while (countBeatMarkers !== 0) {
         for (let i = 0; i < this.sourceMarkers.length; i++) {
           let marker = this.sourceMarkers[i];
@@ -2632,22 +2607,17 @@ export default {
     },
     loadSong() {
       // let loadSongStartTime = Date.now();
-      // console.log('loadSong start');
       let currentTime = this.ws.getCurrentTime();
       // let loadStartTime = Date.now();
-      // console.log('load start');
       this.ws.load('/apis/song/' + this.song.id + '/file' + this.sound).then(() => {
         // let loadEndTime = Date.now();
-        // console.log('load end: ', loadEndTime - loadStartTime);
         this.ws.setTime(currentTime);
         this.ws.zoom(this.sliderZoom.value);
         this.ws.setVolume(this.sliderVolume.value);
       });
       // let loadSongEndtTime = Date.now();
-      // console.log('loadSong end: ', loadSongEndtTime - loadSongStartTime);
     },
     initWavesurfer() {
-      // console.log('initWavesurfer start');
       this.ws = WaveSurfer.create({
         container: '#waveform',
         waveColor: 'rgb(200, 0, 200)',
@@ -2700,7 +2670,6 @@ export default {
 
       this.loadSong();
 
-      // console.log('initWavesurfer end');
     },
     lockladButtonClass() {
       return this.currentMarker.locklad === 'true' ? 'group-button-active' : ''
@@ -2739,13 +2708,11 @@ export default {
       this.beat = beat;
     },
     onOffLocklad() {
-      console.log("onOffLocklad start, currentMarker.locklad = ", this.currentMarker.locklad);
       if (this.currentMarker.locklad === 'true') {
         this.currentMarker.locklad = '';
       } else {
         this.currentMarker.locklad = 'true';
       }
-      console.log("onOffLocklad end, currentMarker.locklad = ", this.currentMarker.locklad);
     },
     onOffShowMarkerType(markerType) {
       switch (markerType) {

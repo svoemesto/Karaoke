@@ -96,6 +96,9 @@ fun recodePictures() {
     println("Общая экономия: ${totalOld - totalNew} байт.")
 }
 
+fun updateRemotePictureFromLocalDatabase(id: Long): Triple<Int, Int, Int> {
+    return updateDatabases(Connection.local(), Connection.remote(), updateSettings = false, updatePictures = true, argsPictures = mapOf("id" to id.toString()))
+}
 fun updateRemoteSettingFromLocalDatabase(id: Long): Triple<Int, Int, Int> {
     return updateDatabases(Connection.local(), Connection.remote(), updateSettings = true, updatePictures = false, argsSettings = mapOf("id" to id.toString()))
 }

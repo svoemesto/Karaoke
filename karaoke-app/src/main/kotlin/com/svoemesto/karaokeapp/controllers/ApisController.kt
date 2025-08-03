@@ -2304,6 +2304,24 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         )))
     }
 
+    // Обновляем одну песню в RemoteDatabase
+    @PostMapping("/utils/updateremotesettingsfromlocaldatabase")
+    @ResponseBody
+    fun doUpdateRemoteSettingFromLocalDatabase(
+        @RequestParam(required = true) id: Long
+    ): List<Int> {
+        val (countCreate, countUpdate, countDelete) = updateRemoteSettingFromLocalDatabase(id)
+        SNS.send(SseNotification.message(
+            Message(
+                type = "info",
+                head = "Обновление БД",
+                body = "Создано записей: $countCreate, обновлено записей: $countUpdate, удалено записей: $countDelete"
+            )
+        ))
+        println("Обновление записей серверной БД - ${if (countCreate > 0) "создано: $countCreate. " else ""}${if (countUpdate > 0) "обновлено: $countUpdate. " else ""}${if (countDelete > 0) "удалено: $countDelete. " else ""}")
+        return listOf(countCreate, countUpdate, countDelete)
+    }
+
     // Обновляем RemoteDatabase
     @PostMapping("/utils/updateremotedatabasefromlocaldatabase")
     @ResponseBody

@@ -1984,43 +1984,60 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         val resultArray: MutableList<String> = mutableListOf()
         for (voice in 0 until countVoices) {
 
-            val BR = """<br>"""
-
-            val SPAN_STYLE_CAPO = """<span style="color: #FFFF00; font-family: monospace; font-size: 15px; font-style: normal; font-weight: bolder;">"""
-            val SPAN_STYLE_CHORD = """<span style="color: #00BFFF; font-family: monospace; font-size: 15px; font-style: normal; font-weight: bolder;">"""
-            val SPAN_STYLE_TEXT = """<span style="color: #FFFFFF; font-family: monospace; font-size: 15px; font-style: normal; font-weight: bolder;">"""
-            val SPAN_END = """</span>"""
-
             val markers = this.sourceMarkersList[voice]
-            var result = ""
-            var wasBr = true
-            var lineChords = ""
-            var lineChordsIsEmpty = true
-            var lineText = ""
-            var slide = 0
-            val capo = markers
-                .firstOrNull { marker -> marker.markertype == Markertype.SETTING.value && marker.label.startsWith("CAPO|") }
-                ?.label?.split("|")?.get(1)?.toInt() ?: 0
+            val hasChords = markers.any { it.chord.isNotEmpty() }
 
-            if (capo > 0) {
-                val originalNote = key.replace(" minor", "").replace(" major", "")
-                val originalMinor = if (key.endsWith(" minor")) "m" else ""
-                val originalKey = originalNote + originalMinor
-                val note = MusicNote.getNote(originalNote) ?: MusicNote.C
-                var newIndexNote = MusicNote.values().indexOf(note!!) - capo
-                if (newIndexNote < 0) newIndexNote += MusicNote.values().size
-                val newNote = MusicNote.values()[newIndexNote]
-                val newKey = newNote.names.first() + originalMinor
+            if (hasChords) {
 
-                var lineCapo = SPAN_STYLE_CAPO + "Каподастр на $capo-м ладу" + SPAN_END + BR
-                lineCapo += SPAN_STYLE_CAPO + "Оригинальная тональность: $originalKey" + SPAN_END + BR
-                lineCapo += SPAN_STYLE_CAPO + "Аккорды для тональности: $newKey" + SPAN_END + BR
-                result += lineCapo + BR
-            }
-            markers.forEach { marker ->
-                when (marker.markertype) {
-                    Markertype.SETTING.value -> {
-                        if (marker.label.startsWith("GROUP|")) {
+                val BR = """<br>"""
+
+                val SPAN_STYLE_CAPO = """<span style="color: #FFFF00; font-family: monospace; font-size: 15px; font-style: normal; font-weight: bolder;">"""
+                val SPAN_STYLE_CHORD = """<span style="color: #00BFFF; font-family: monospace; font-size: 15px; font-style: normal; font-weight: bolder;">"""
+                val SPAN_STYLE_TEXT = """<span style="color: #FFFFFF; font-family: monospace; font-size: 15px; font-style: normal; font-weight: bolder;">"""
+                val SPAN_END = """</span>"""
+
+                var result = ""
+                var wasBr = true
+                var lineChords = ""
+                var lineChordsIsEmpty = true
+                var lineText = ""
+                var slide = 0
+                val capo = markers
+                    .firstOrNull { marker -> marker.markertype == Markertype.SETTING.value && marker.label.startsWith("CAPO|") }
+                    ?.label?.split("|")?.get(1)?.toInt() ?: 0
+
+                if (capo > 0) {
+                    val originalNote = key.replace(" minor", "").replace(" major", "")
+                    val originalMinor = if (key.endsWith(" minor")) "m" else ""
+                    val originalKey = originalNote + originalMinor
+                    val note = MusicNote.getNote(originalNote) ?: MusicNote.C
+                    var newIndexNote = MusicNote.values().indexOf(note!!) - capo
+                    if (newIndexNote < 0) newIndexNote += MusicNote.values().size
+                    val newNote = MusicNote.values()[newIndexNote]
+                    val newKey = newNote.names.first() + originalMinor
+
+                    var lineCapo = SPAN_STYLE_CAPO + "Каподастр на $capo-м ладу" + SPAN_END + BR
+                    lineCapo += SPAN_STYLE_CAPO + "Оригинальная тональность: $originalKey" + SPAN_END + BR
+                    lineCapo += SPAN_STYLE_CAPO + "Аккорды для тональности: $newKey" + SPAN_END + BR
+                    result += lineCapo + BR
+                }
+                markers.forEach { marker ->
+                    when (marker.markertype) {
+                        Markertype.SETTING.value -> {
+                            if (marker.label.startsWith("GROUP|")) {
+                                if (!lineChordsIsEmpty) result += lineChords + BR
+                                result += lineText + BR
+                                lineChordsIsEmpty = true
+                                lineChords = ""
+                                lineText = ""
+                                wasBr = true
+                            }
+                        }
+                        Markertype.ENDOFLINE.value,
+                        Markertype.EOL_NOTE.value,
+                        Markertype.EOL_CHORD.value,
+                        Markertype.NEWLINE_NOTE.value,
+                        Markertype.NEWLINE.value -> {
                             if (!lineChordsIsEmpty) result += lineChords + BR
                             result += lineText + BR
                             lineChordsIsEmpty = true
@@ -2028,128 +2045,122 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                             lineText = ""
                             wasBr = true
                         }
-                    }
-                    Markertype.ENDOFLINE.value,
-                    Markertype.EOL_NOTE.value,
-                    Markertype.EOL_CHORD.value,
-                    Markertype.NEWLINE_NOTE.value,
-                    Markertype.NEWLINE.value -> {
-                        if (!lineChordsIsEmpty) result += lineChords + BR
-                        result += lineText + BR
-                        lineChordsIsEmpty = true
-                        lineChords = ""
-                        lineText = ""
-                        wasBr = true
-                    }
 
-                    Markertype.SYLLABLES.value, Markertype.CHORD.value -> {
-                        var txt= ""
-                        var txtHtml = ""
+                        Markertype.SYLLABLES.value, Markertype.CHORD.value -> {
+                            var txt= ""
+                            var txtHtml = ""
 
-                        if (marker.markertype == Markertype.CHORD.value) {
-                            txt = "♪  "
-                            txtHtml = "♪&nbsp;&nbsp;"
-                        } else if (marker.markertype == Markertype.SYLLABLES.value) {
-                            // Если в маркере не пустой лейбл (т.е. есть слог)
-                            if (marker.label.isNotEmpty()) {
+                            if (marker.markertype == Markertype.CHORD.value) {
+                                if (marker.label.isBlank() || marker.label == marker.chord) {
+                                    txt = "♪  "
+                                    txtHtml = "♪&nbsp;&nbsp;"
+                                } else {
+                                    txt = marker.label
+                                    txtHtml = txt.replace(" ", "&nbsp;")
+                                }
+                            } else if (marker.markertype == Markertype.SYLLABLES.value) {
+                                // Если в маркере не пустой лейбл (т.е. есть слог)
+                                if (marker.label.isNotEmpty()) {
 
-                                txt = marker.label.replace("_", " ") // Заменяем подчеркивания на пробелы
-                                txtHtml = marker.label.replace("_", "&nbsp;")
-                                // Если был перенос строки - инициализируем новые переменны (3 пробела + слог)
-                                if (wasBr) {
-                                    txt = "   " + txt.uppercaseFirstLetter()
-                                    txtHtml = "&nbsp;&nbsp;&nbsp;" + marker.label.uppercaseFirstLetter().replace("_", "&nbsp;")
+                                    txt = marker.label.replace("_", " ") // Заменяем подчеркивания на пробелы
+                                    txtHtml = marker.label.replace("_", "&nbsp;")
+                                    // Если был перенос строки - инициализируем новые переменны (3 пробела + слог)
+                                    if (wasBr) {
+                                        txt = "   " + txt.uppercaseFirstLetter()
+                                        txtHtml = "&nbsp;&nbsp;&nbsp;" + marker.label.uppercaseFirstLetter().replace("_", "&nbsp;")
+                                    }
+
+                                } else {
+                                    if (marker.markertype == Markertype.CHORD.value) {
+                                        // Если в маркере пустой лейбл - пробел в тексте
+                                        txt = " "
+                                        txtHtml = "&nbsp;"
+                                    }
+                                }
+                            }
+
+                            var chord = ""
+                            var chordHtml = ""
+
+                            // Если в маркере есть аккорд
+                            if (marker.chord.isNotEmpty()) {
+                                // Находим аккорд
+                                lineChordsIsEmpty = false
+
+                                val (musicChord, musicNote) = MusicChord.getChordNote(marker.chord)
+                                var newIndexNote = MusicNote.values().indexOf(musicNote!!) - capo
+                                if (newIndexNote < 0) newIndexNote += MusicNote.values().size
+                                val newNote = MusicNote.values()[newIndexNote]
+
+                                chord = newNote.names.first() + musicChord!!.names.first()
+                                chordHtml = chord
+
+                                // Находим позицию гласной буквы в слоге (0 - если гласная первая или если её нет)
+                                fun String.firstVowelIndex(): Int {
+                                    val vovels = "♪ёуеыаоэяиюeuioaїієѣ" + "ёуеыаоэяиюeuioaїієѣ".uppercase()
+                                    for (i in this.indices) {
+                                        if (this[i] in vovels) {
+                                            return i
+                                        }
+                                    }
+                                    return 0
+                                }
+                                val vowelPosition = txt.firstVowelIndex()
+                                // Добавляем пробелы перед названием аккорда (по позиции гласной)
+                                chord = (0 until vowelPosition).joinToString("") { " " } + chord
+                                chordHtml = (0 until vowelPosition).joinToString("") { "&nbsp;" } + chordHtml
+
+                                // Если длина аккорда больше длины текста, то к слайдеру надо добавить кол-во символов разницы длины
+                                // А если меньше - добавить пробелы после аккорда
+                                val diff = txt.length - chord.length
+                                if (diff < 0) {
+                                    slide -= diff
+                                } else if (diff > 0) {
+                                    chord += " ".repeat(diff)
+                                    chordHtml += "&nbsp;".repeat(diff)
                                 }
 
                             } else {
-                                if (marker.markertype == Markertype.CHORD.value) {
-                                    // Если в маркере пустой лейбл - пробел в тексте
-                                    txt = " "
-                                    txtHtml = "&nbsp;"
-                                }
-                            }
-                        }
-
-                        var chord = ""
-                        var chordHtml = ""
-
-                        // Если в маркере есть аккорд
-                        if (marker.chord.isNotEmpty()) {
-                            // Находим аккорд
-                            lineChordsIsEmpty = false
-
-                            val (musicChord, musicNote) = MusicChord.getChordNote(marker.chord)
-                            var newIndexNote = MusicNote.values().indexOf(musicNote!!) - capo
-                            if (newIndexNote < 0) newIndexNote += MusicNote.values().size
-                            val newNote = MusicNote.values()[newIndexNote]
-
-                            chord = newNote.names.first() + musicChord!!.names.first()
-                            chordHtml = chord
-
-                            // Находим позицию гласной буквы в слоге (0 - если гласная первая или если её нет)
-                            fun String.firstVowelIndex(): Int {
-                                val vovels = "♪ёуеыаоэяиюeuioaїієѣ" + "ёуеыаоэяиюeuioaїієѣ".uppercase()
-                                for (i in this.indices) {
-                                    if (this[i] in vovels) {
-                                        return i
+                                // Если в маркере нет аккорда - пробелы по длине текста
+                                // Если слайдер больше нуля
+                                if (slide > 0) {
+                                    // Если слайдер меньше длинны текущего текста
+                                    if (slide < txt.length ) {
+                                        // Текст аккорда должен состоять из пробелов по кол-ву "длина текста минус слайд", слайдер в ноль
+                                        chord = " ".repeat(txt.length - slide)
+                                        chordHtml = "&nbsp;".repeat(txt.length - slide)
+                                        slide = 0
+                                    } else if (slide == txt.length) {
+                                        // Текст аккорда пустой, слайдер в ноль
+                                        // Текст аккорда должен состоять из пробелов по кол-ву длины текста
+                                        chord = " ".repeat(txt.length)
+                                        chordHtml = "&nbsp;".repeat(txt.length)
+                                        slide = 0
+                                    } else {
+                                        // Текст аккорда пустой, уменьшаем слайдер на длину текста
+                                        chord = ""
+                                        chordHtml = ""
+                                        slide -= txt.length
                                     }
-                                }
-                                return 0
-                            }
-                            val vowelPosition = txt.firstVowelIndex()
-                            // Добавляем пробелы перед названием аккорда (по позиции гласной)
-                            chord = (0 until vowelPosition).joinToString("") { " " } + chord
-                            chordHtml = (0 until vowelPosition).joinToString("") { "&nbsp;" } + chordHtml
-
-                            // Если длина аккорда больше длины текста, то к слайдеру надо добавить кол-во символов разницы длины
-                            // А если меньше - добавить пробелы после аккорда
-                            val diff = txt.length - chord.length
-                            if (diff < 0) {
-                                slide -= diff
-                            } else if (diff > 0) {
-                                chord += " ".repeat(diff)
-                                chordHtml += "&nbsp;".repeat(diff)
-                            }
-
-                        } else {
-                            // Если в маркере нет аккорда - пробелы по длине текста
-                            // Если слайдер больше нуля
-                            if (slide > 0) {
-                                // Если слайдер меньше длинны текущего текста
-                                if (slide < txt.length ) {
-                                    // Текст аккорда должен состоять из пробелов по кол-ву "длина текста минус слайд", слайдер в ноль
-                                    chord = " ".repeat(txt.length - slide)
-                                    chordHtml = "&nbsp;".repeat(txt.length - slide)
-                                    slide = 0
-                                } else if (slide == txt.length) {
-                                    // Текст аккорда пустой, слайдер в ноль
+                                } else {
                                     // Текст аккорда должен состоять из пробелов по кол-ву длины текста
                                     chord = " ".repeat(txt.length)
                                     chordHtml = "&nbsp;".repeat(txt.length)
-                                    slide = 0
-                                } else {
-                                    // Текст аккорда пустой, уменьшаем слайдер на длину текста
-                                    chord = ""
-                                    chordHtml = ""
-                                    slide -= txt.length
                                 }
-                            } else {
-                                // Текст аккорда должен состоять из пробелов по кол-ву длины текста
-                                chord = " ".repeat(txt.length)
-                                chordHtml = "&nbsp;".repeat(txt.length)
                             }
+
+                            lineChords += SPAN_STYLE_CHORD + chordHtml + SPAN_END
+                            lineText += SPAN_STYLE_TEXT + txtHtml + SPAN_END
+
+                            wasBr = false
                         }
-
-                        lineChords += SPAN_STYLE_CHORD + chordHtml + SPAN_END
-                        lineText += SPAN_STYLE_TEXT + txtHtml + SPAN_END
-
-                        wasBr = false
+                        else -> {}
                     }
-                    else -> {}
-                }
 
+                }
+                resultArray.add(result)
             }
-            resultArray.add(result)
+
         }
         return resultArray.joinToString("""<br><hr style="border: 2px solid blue;"><br>""")
     }

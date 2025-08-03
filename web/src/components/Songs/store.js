@@ -1379,6 +1379,13 @@ export default {
                 params: { id: ctx.state.currentSongId }
             });
         },
+        updateOneRemoteSettingsPromise(ctx, id) {
+            return promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/apis/utils/updateremotesettingsfromlocaldatabase",
+                params: { id: id }
+            });
+        },
         updateRemoteSettingsPromise() {
             return promisedXMLHttpRequest({
                 method: 'POST',

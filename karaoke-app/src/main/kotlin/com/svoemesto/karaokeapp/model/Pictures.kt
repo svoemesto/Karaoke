@@ -3,6 +3,7 @@ package com.svoemesto.karaokeapp.model
 import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.WORKING_DATABASE
 import com.svoemesto.karaokeapp.rightFileName
+import com.svoemesto.karaokeapp.updateRemotePictureFromLocalDatabase
 import java.io.Serializable
 import java.sql.ResultSet
 import java.sql.SQLException
@@ -80,6 +81,8 @@ class Pictures(val database: KaraokeConnection = WORKING_DATABASE) : Serializabl
             } else null
 
             ps.close()
+
+            if (result != null) updateRemotePictureFromLocalDatabase(result.id.toLong())
 
             return result
 

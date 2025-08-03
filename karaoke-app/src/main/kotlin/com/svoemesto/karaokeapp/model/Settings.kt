@@ -4375,11 +4375,12 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
         fun createFromPath(startFolder: String, database: KaraokeConnection): MutableList<Settings> {
             val result: MutableList<Settings> = mutableListOf()
-            val listFiles = getListFiles(startFolder,"flac")
+            val listFiles = getListFiles(startFolder,listOf("flac", "mp3"))
             listFiles.forEach { pathToFile ->
 
                 val file = File(pathToFile)
                 val fileName = file.nameWithoutExtension
+                val fileExtension = file.extension
                 val rootFolder = file.parent
                 val albumFolder = file.parentFile.name
 
@@ -4402,6 +4403,11 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                                 ), database
                             ).isEmpty()
                         ) {
+                            // если файл не флак - преобразуем во флак и удаляем исходник
+                            if (fileExtension != "flac") {
+                                runCommand(listOf("ffmpeg", "-i", pathToFile, "-compression_level", "8", pathToFile.substring(0, pathToFile.length - fileExtension.length)+"flac", "-y"),)
+                                runCommand(listOf("rm", pathToFile))
+                            }
                             val settings = Settings(database)
                             settings.fileName = fileName
                             settings.rootFolder = rootFolder

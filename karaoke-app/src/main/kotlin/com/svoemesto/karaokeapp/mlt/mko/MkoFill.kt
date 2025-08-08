@@ -19,7 +19,7 @@ data class MkoFill(
     private val frameHeightPx = mltProp.getFrameHeightPx()
     private val settings = mltProp.getSettings()
     private val songEndTimecode  = mltProp.getSongEndTimecode()
-    private var folderIdLines = mltProp.getId(listOf(ProducerType.LINES, voiceId))
+    private var folderIdLines = mltProp.getId(listOf(ProducerType.FILL, voiceId))
     private var lineDurationOnScreen = mltProp.getDurationOnScreen(listOf(ProducerType.LINE, voiceId, lineId))
     private val lineEndTimecode = if (lineDurationOnScreen > 0) {
         convertMillisecondsToTimecode(lineDurationOnScreen)
@@ -96,6 +96,7 @@ data class MkoFill(
         }
 
         val haveNotes = songVersion.producers.contains(ProducerType.MELODYNOTE) && element.getSyllables().any { it.note != "" }
+        val haveChords = songVersion.producers.contains(ProducerType.CHORDS) && element.getSyllables().any { it.chord != "" }
 
         val deltaY = if (haveNotes) {
             val sylFontSize = element.fontSize
@@ -112,6 +113,12 @@ data class MkoFill(
 
             val tabsHeight = tabsMltTextHeight + 5 * heightBetweenTabsLines
             noteHeight + tabsHeight
+        } else if (haveChords) {
+            val sylFontSize = element.fontSize
+            val chordsFontSize = (sylFontSize * Karaoke.chordsHeightCoefficient).toInt()
+            val chordsMltTextHeight = Karaoke.chordsFont.copy("C", chordsFontSize).h()
+            val chordHeight = (chordsMltTextHeight * Karaoke.chordsHeightOffsetCoefficient).toInt()
+            chordHeight
         } else {
             0
         }

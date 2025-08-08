@@ -287,7 +287,7 @@ data class MkoHeader(val mltProp: MltProp, val type: ProducerType, val voiceId: 
                         Pair("brushcolor","0,0,0,255"),
                         Pair("pencolor","0,0,0,255"),
                         Pair("penwidth","0"),
-                        Pair("rect","0,0,${frameWidthPx},246"))
+                        Pair("rect","0,0,${frameWidthPx},${246+100}"))
                     )
                 )
             )
@@ -300,14 +300,14 @@ data class MkoHeader(val mltProp: MltProp, val type: ProducerType, val voiceId: 
                     Pair("type","QGraphicsRectItem"),
                     Pair("z-index","5"),
                 ), body = mutableListOf(
-                    MltNode(name = "position", fields = mutableMapOf(Pair("x","0"),Pair("y","246")), body = mutableListOf(
+                    MltNode(name = "position", fields = mutableMapOf(Pair("x","0"),Pair("y","${246+100}")), body = mutableListOf(
                         MltNode(name = "transform", body = "1,0,0,0,1,0,0,0,1")
                     )),
                     MltNode(name = "content", fields = mutableMapOf(
                         Pair("brushcolor","0,0,0,255"),
                         Pair("pencolor","0,0,0,255"),
                         Pair("penwidth","0"),
-                        Pair("rect","0,0,${frameWidthPx},246"),
+                        Pair("rect","0,0,${frameWidthPx},${246+100}"),
                         Pair("gradient","#ff000000;#00bf4040;0;100;90"))
                     )
                 )

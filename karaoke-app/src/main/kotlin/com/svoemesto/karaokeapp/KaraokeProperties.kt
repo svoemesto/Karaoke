@@ -171,6 +171,7 @@ val listKaraokeProperties = listOf(
     KaraokeProperty(key = "requestNewSongTimeoutMs", defaultValue = 600_000L, description = "Задержка между запросами поиска новых песен автора (миллисекунды)"),
     KaraokeProperty(key = "requestNewSongTimeoutMin", defaultValue = 10L, description = "Задержка между запросами поиска новых песен автора (минуты)"),
     KaraokeProperty(key = "autoSave", defaultValue = true, description = "Автосохранение"),
+    KaraokeProperty(key = "autoUpdateRemoteSettings", defaultValue = false, description = "Автообновление записи в удаленной БД при сохранении"),
     KaraokeProperty(key = "autoSaveDelayMs", defaultValue = 1000L, description = "Время (в миллисекундах) задержки перед автосохранением"),
     KaraokeProperty(key = "backgroundFolderPath", defaultValue = "/home/nsa/Documents/SpaceBox4096", description = "Путь к папке с фонами"),
     KaraokeProperty(key = "createLogotype", defaultValue = true, description = "Создавать логотип"),
@@ -274,6 +275,7 @@ val listKaraokeProperties = listOf(
         ).setting(),
         description = "Фонт ноты"
     ),
+    KaraokeProperty(key = "chordsHeightOffsetCoefficient", defaultValue = 0.72, description = "Коэффициэнт оффсета размера шрифта аккорда относительно размера шрифта текста песни"),
     KaraokeProperty(key = "melodyNoteHeightCoefficient", defaultValue = 0.72, description = "Коэффициэнт размера шрифта ноты относительно размера шрифта текста песни"),
     KaraokeProperty(key = "melodyNoteHeightOffsetCoefficient", defaultValue = 0.72, description = "Коэффициэнт оффсета размера шрифта ноты относительно размера шрифта текста песни"),
     KaraokeProperty(

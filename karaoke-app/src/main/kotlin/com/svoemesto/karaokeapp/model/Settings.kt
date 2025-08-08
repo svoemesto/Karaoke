@@ -1347,6 +1347,13 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         val countVoices = voicesForMlt.size
         mltProp.setCountVoices(countVoices)
 
+        // setSongCapo - лад каподастра
+        val markers = this.sourceMarkersList[0]
+        val capo = markers
+            .firstOrNull { marker -> marker.markertype == Markertype.SETTING.value && marker.label.startsWith("CAPO|") }
+            ?.label?.split("|")?.get(1)?.toInt() ?: 0
+        mltProp.setSongCapo(capo)
+
         // setSongLengthFr - длительность песни в кадрах
         val songLengthFr = convertMillisecondsToFrames(songLengthMs + startSilentOffsetMs)
         mltProp.setSongLengthFr(songLengthFr)
@@ -1400,7 +1407,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         val songFadeInTimecode = convertMillisecondsToTimecode(fadeMs)
         mltProp.setSongFadeInTimecode(songFadeInTimecode)
 
-        // songFadeOutTimecode - таймкод конча фейда (за fadeMs до конца песни)
+        // songFadeOutTimecode - таймкод конца фейда (за fadeMs до конца песни)
         val songFadeOutTimecode = convertMillisecondsToTimecode(songLengthMs-fadeMs + startSilentOffsetMs)
         mltProp.setSongFadeOutTimecode(songFadeOutTimecode)
 
@@ -1575,6 +1582,14 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         // setBase64 - base64 файла бусти-заставки для песни
         mltProp.setBase64("/home/nsa/Documents/Караоке/SPLASH.png".base64ifFileExists(), ProducerType.BOOSTY)
 
+        // setChords
+        val chords = voicesForMlt[0].linesForMlt()
+            .flatMap { line -> line.getElements(SongVersion.CHORDS) }
+            .flatMap { element -> element.getSyllables() }
+            .filter { syllable -> syllable.chord.isNotEmpty() }
+            .toMutableList()
+        mltProp.setChords(chords)
+
         mltProp.setRootFolder(rootFolder.replace("&", "&amp;"), "Song")
         mltProp.setLengthMs(songLengthMs, "Song")
 //        mltProp.setLengthFr(songLengthFr, "Song")
@@ -1603,18 +1618,35 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                         if (mltProp.getUUID(key) == "") mltProp.setUUID(getStoredUuid(key), key)
                     }
                 }
+            }
 
-//                mltProp.setCountChilds(line.getElements(songVersion).size, listOf(ProducerType.STRING, indexVoice, indexLine))
-//                mltProp.setId(ProducerType.STRING.ordinal*1000 + indexVoice*100 + indexLine*10, listOf(ProducerType.STRING, indexVoice, indexLine))
-//                key = listOf(ProducerType.STRING, indexVoice, indexLine)
-//                if (mltProp.getUUID(key) == "") mltProp.setUUID(getStoredUuid(key), key)
-//
-//                mltProp.setCountChilds(line.getElements(songVersion).size, listOf(ProducerType.FILL, indexVoice, indexLine))
-//                mltProp.setId(ProducerType.FILL.ordinal*1000 + indexVoice*100 + indexLine*10, listOf(ProducerType.FILL, indexVoice, indexLine))
-//                key = listOf(ProducerType.FILL, indexVoice, indexLine)
-//                if (mltProp.getUUID(key) == "") mltProp.setUUID(getStoredUuid(key), key)
+            chords.forEachIndexed{ indexChord, chord ->
+                val indexLine = indexChord
+
+                mltProp.setId(ProducerType.CHORDPICTURELINES.ordinal*1000 + indexVoice*100, listOf(ProducerType.CHORDPICTURELINES, indexVoice))
+                val key = listOf(ProducerType.CHORDPICTURELINES, indexVoice)
+                if (mltProp.getUUID(key) == "") mltProp.setUUID(getStoredUuid(key), key)
+
+                mltProp.setId(ProducerType.CHORDPICTURELINE.ordinal*1000 + indexVoice*100 + indexLine*10, listOf(ProducerType.CHORDPICTURELINE, indexVoice, indexLine))
+                val key1 = listOf(ProducerType.CHORDPICTURELINE, indexVoice, indexLine)
+                if (mltProp.getUUID(key1) == "") mltProp.setUUID(getStoredUuid(key1), key1)
+
+                mltProp.setId(ProducerType.CHORDPICTUREELEMENT.ordinal*1000 + indexVoice*100 + indexLine*10, listOf(ProducerType.CHORDPICTUREELEMENT, indexVoice, indexLine))
+                val key2 = listOf(ProducerType.CHORDPICTUREELEMENT, indexVoice, indexLine)
+                if (mltProp.getUUID(key2) == "") mltProp.setUUID(getStoredUuid(key2), key2)
+
+                ProducerType.CHORDPICTUREELEMENT.childs().asReversed().forEach {
+                    if (it in songVersion.producers) {
+                        mltProp.setId(it.ordinal*1000 + indexVoice*100 + indexLine*10, listOf(it, indexVoice, indexLine))
+                        val key3 = listOf(it, indexVoice, indexLine)
+                        if (mltProp.getUUID(key3) == "") mltProp.setUUID(getStoredUuid(key3), key3)
+                    }
+                }
+
             }
         }
+
+
 
         // Цикл по голосам для предварительной инициализации параметров
         for (voiceId in 0 until countVoices) {
@@ -1652,7 +1684,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         mltProp.setEnabled(Karaoke.createFillsSongtext, listOf(ProducerType.FILLCOLORSONGTEXT))
         mltProp.setEnabled(Karaoke.createSongtext, listOf(ProducerType.SONGTEXT))
         mltProp.setEnabled(Karaoke.createFader, listOf(ProducerType.FADERTEXT))
-        mltProp.setEnabled(Karaoke.createFader, listOf(ProducerType.FADERCHORDS))
+        mltProp.setEnabled(Karaoke.createFader, listOf(ProducerType.CHORDPICTUREFADER))
         mltProp.setEnabled(Karaoke.createHeader, listOf(ProducerType.HEADER))
         mltProp.setEnabled(Karaoke.createCounters, listOf(ProducerType.COUNTER))
         mltProp.setEnabled(Karaoke.createWatermark, listOf(ProducerType.WATERMARK))
@@ -1739,8 +1771,8 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                     ?: (songLengthMs - halfNoteLengthMs * 8)), (songLengthMs - halfNoteLengthMs * 8))
         val propHeaderLineTps: MutableList<TransformProperty> = mutableListOf()
         propHeaderLineTps.add(TransformProperty(time = convertMillisecondsToTimecode(startTimeFirstCounterMs),x=0,y=0,w=frameWPx,h=frameHPx,opacity = 1.0))
-        propHeaderLineTps.add(TransformProperty(time = convertMillisecondsToTimecode(startTimeFirstCounterMs + halfNoteLengthMs * 4),x=0,y=-492,w=frameWPx,h=frameHPx,opacity = 1.0))
-        propHeaderLineTps.add(TransformProperty(time = convertMillisecondsToTimecode(endTimeHidingHeaderMs),x=0,y=-492,w=frameWPx,h=frameHPx,opacity = 1.0))
+        propHeaderLineTps.add(TransformProperty(time = convertMillisecondsToTimecode(startTimeFirstCounterMs + halfNoteLengthMs * 4),x=0,y=-592,w=frameWPx,h=frameHPx,opacity = 1.0))
+        propHeaderLineTps.add(TransformProperty(time = convertMillisecondsToTimecode(endTimeHidingHeaderMs),x=0,y=-592,w=frameWPx,h=frameHPx,opacity = 1.0))
         propHeaderLineTps.add(TransformProperty(time = convertMillisecondsToTimecode(endTimeHidingHeaderMs + halfNoteLengthMs * 4),x=0,y=0,w=frameWPx,h=frameHPx,opacity = 1.0))
         mltProp.setRect(propHeaderLineTps.joinToString(";") { it.toString() }, listOf(ProducerType.HEADER))
 
@@ -2010,11 +2042,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                     val originalNote = key.replace(" minor", "").replace(" major", "")
                     val originalMinor = if (key.endsWith(" minor")) "m" else ""
                     val originalKey = originalNote + originalMinor
-                    val note = MusicNote.getNote(originalNote) ?: MusicNote.C
-                    var newIndexNote = MusicNote.values().indexOf(note!!) - capo
-                    if (newIndexNote < 0) newIndexNote += MusicNote.values().size
-                    val newNote = MusicNote.values()[newIndexNote]
-                    val newKey = newNote.names.first() + originalMinor
+                    val newKey = getTransposingChord(originalKey, capo)
 
                     var lineCapo = SPAN_STYLE_CAPO + "Каподастр на $capo-м ладу" + SPAN_END + BR
                     lineCapo += SPAN_STYLE_CAPO + "Оригинальная тональность: $originalKey" + SPAN_END + BR
@@ -3179,6 +3207,20 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             }
 
             if (savedSettings != null) renameFilesIfDiff(this, savedSettings)
+
+            if (Karaoke.autoUpdateRemoteSettings) {
+                val (countCreate, countUpdate, countDelete) = updateRemoteSettingFromLocalDatabase(id)
+                val body = if (countCreate + countUpdate + countDelete == 0) "Изменения не требуются" else listOf(Pair(countCreate > 0, "создано записей: $countCreate"), Pair(countUpdate > 0, "обновлено записей: $countUpdate"), Pair(countDelete > 0, "удалено записей: $countDelete")).filter { it.first }.map{ it.second }.joinToString(", ").uppercaseFirstLetter()
+
+                SNS.send(SseNotification.message(
+                    Message(
+                        type = "info",
+                        head = "Автоматическое обновление БД",
+                        body = body
+                    )
+                ))
+                println("Автоматическое обновление записей серверной БД - ${body}")
+            }
 
         }
 

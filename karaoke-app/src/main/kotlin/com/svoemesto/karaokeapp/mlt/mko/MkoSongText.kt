@@ -1,6 +1,7 @@
 package com.svoemesto.karaokeapp.mlt.mko
 
 import com.svoemesto.karaokeapp.Karaoke
+import com.svoemesto.karaokeapp.getTransposingChord
 import com.svoemesto.karaokeapp.mlt.MltGenerator
 import com.svoemesto.karaokeapp.mlt.MltProp
 import com.svoemesto.karaokeapp.xmldata
@@ -70,16 +71,7 @@ data class MkoSongText(val mltProp: MltProp, val type: ProducerType, val voiceId
                     if (capo == 0 || mltProp.getIgnoreCapo()) {
                         mltText.text.split("|")[0]
                     } else {
-                        val chordNameAndFret = mltText.text.split("|")
-                        val nameChord = chordNameAndFret[0]
-                        val fretChord = if (chordNameAndFret.size > 1) chordNameAndFret[1].toInt() else 0
-                        val (chord, note) = MusicChord.getChordNote(nameChord)
-
-                        var newIndexNote = MusicNote.values().indexOf(note!!) - capo
-                        if (newIndexNote < 0) newIndexNote = MusicNote.values().size + newIndexNote
-                        val newNote = MusicNote.values()[newIndexNote]
-
-                        newNote.names.first() + chord!!.names.first()
+                        getTransposingChord(mltText.text, capo)
                     }
                 } else {
                     mltText.text.replace("&","&amp;amp;")

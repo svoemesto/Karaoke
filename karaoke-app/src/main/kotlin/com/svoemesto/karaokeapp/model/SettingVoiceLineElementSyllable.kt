@@ -50,6 +50,7 @@ data class SettingVoiceLineElementSyllable(
 
     // lineStartMs для линии с индексом indexLineStart
     private var _deltaStartMs: Long? = null
+    // deltaStartMs - это время начала видимости родительской линии
     var deltaStartMs: Long
         get() {
             return _deltaStartMs ?: 0
@@ -58,6 +59,80 @@ data class SettingVoiceLineElementSyllable(
             _deltaStartMs = value
         }
 
+    var chordId: Int = -1
+    private var _chordX: Int? = null
+    var chordX: Int
+        get() {
+            return _chordX ?: 0
+        }
+        set(value) {
+            _chordX = value
+        }
+    private var _indexChordStart: Int? = null
+    var indexChordStart: Int
+        get() {
+            return _indexChordStart ?: 0
+        }
+        set(value) {
+            _indexChordStart = value
+        }
+
+    private var _indexChordEnd: Int? = null
+    var indexChordEnd: Int
+        get() {
+            return _indexChordEnd ?: 0
+        }
+        set(value) {
+            _indexChordEnd = value
+        }
+
+    private var _startChordVisibleTime: Long? = null
+    var startChordVisibleTime: Long
+        get() {
+            return _startChordVisibleTime ?: 0L
+        }
+        set(value) {
+            _startChordVisibleTime = value
+        }
+
+    private var _endChordVisibleTime: Long? = null
+    var endChordVisibleTime: Long
+        get() {
+            return _endChordVisibleTime ?: -1
+        }
+        set(value) {
+            _endChordVisibleTime = value
+        }
+    private var _transformChordProperties: List<TransformProperty>? = null
+    var transformChordProperties: List<TransformProperty>
+        get() {
+            return _transformChordProperties ?: emptyList()
+        }
+        set(value) {
+            _transformChordProperties = value
+        }
+
+    private var _countChordPictureTracks: Int? = null
+    var countChordPictureTracks: Int
+        get() {
+            return _countChordPictureTracks ?: 0
+        }
+        set(value) {
+            _countChordPictureTracks = value
+        }
+    val chordPictureTrackId: Int get() {
+        return if (countChordPictureTracks > 0) chordId % countChordPictureTracks else -1
+    }
+    fun chordIsOnScreen(timeMs: Long = 0L): Boolean {
+        return timeMs in startChordVisibleTime..endChordVisibleTime
+    }
+    fun textSyllablesWithPrevious(): String {
+        return if (previous == null) {
+            text
+        } else {
+            previous!!.textSyllablesWithPrevious() + text
+        }
+    }
     fun syllableDurationMs(): Long = syllableEndMs - syllableStartMs
     fun syllableStartMsWithDelta(): Long {
         return syllableStartMs - deltaStartMs

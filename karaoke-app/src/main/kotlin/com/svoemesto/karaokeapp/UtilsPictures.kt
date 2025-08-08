@@ -112,6 +112,7 @@ fun getVKPictureBase64(settings: Settings): String {
     val imageType = BufferedImage.TYPE_INT_ARGB
     var resultImage = BufferedImage(frameW, frameH, imageType)
     val graphics2D = resultImage.graphics as Graphics2D
+    graphics2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
     val alphaChannel = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opaque)
 
     val biLogoAlbum = ImageIO.read(ByteArrayInputStream(Base64.getDecoder().decode(settings.pictureAlbum?.full ?: "")))
@@ -598,6 +599,7 @@ fun getSongChordsPicture(settings: Settings, mltNode: MltNode): BufferedImage {
     val imageType = BufferedImage.TYPE_INT_ARGB
     val resultImage = BufferedImage(frameW, frameH, imageType)
     val graphics2D = resultImage.graphics as Graphics2D
+    graphics2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
     val alphaChannel = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opaque)
 
     graphics2D.composite = alphaChannel
@@ -651,6 +653,7 @@ fun getSongChordsPicture(settings: Settings, mltNode: MltNode): BufferedImage {
 
         val resultImagePage = BufferedImage(frameW, picturePage.h + 20, imageType)
         val graphics2Dpage = resultImagePage.graphics as Graphics2D
+        graphics2Dpage.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
         val alphaChannelPage = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opaque)
 
         graphics2Dpage.composite = alphaChannelPage
@@ -689,6 +692,7 @@ fun getSongChordsPicture(settings: Settings, mltNode: MltNode): BufferedImage {
 
     val resultImages = BufferedImage(fullW, pages.maxOf { it.h } + 20, imageType)
     val graphics2Dresult = resultImages.graphics as Graphics2D
+    graphics2Dresult.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
     graphics2Dresult.composite = alphaChannel
     graphics2Dresult.background = colorBack
     graphics2Dresult.color = colorBack
@@ -728,6 +732,7 @@ fun getSongChordsPicture(settings: Settings, mltNode: MltNode): BufferedImage {
     fullH = resultImageName.height + resultImages.height
     val resultImagesAndName = BufferedImage(fullW, fullH, imageType)
     val graphics2DresultAndName = resultImagesAndName.graphics as Graphics2D
+    graphics2DresultAndName.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
     graphics2DresultAndName.composite = alphaChannel
     graphics2DresultAndName.background = colorBack
     graphics2DresultAndName.color = colorBack
@@ -756,6 +761,7 @@ fun getChordLayoutPicture(mltObjects:List<MltObject>): BufferedImage {
         val resultImage =
             BufferedImage((Karaoke.frameHeightPx / 4).toInt(), (Karaoke.frameHeightPx / 4).toInt(), imageType)
         val graphics2D = resultImage.graphics as Graphics2D
+        graphics2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
         val opaque = 1f
         val alphaChannel = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opaque)
         graphics2D.composite = alphaChannel
@@ -766,7 +772,7 @@ fun getChordLayoutPicture(mltObjects:List<MltObject>): BufferedImage {
     }
     val resultImage = BufferedImage(mltObjects[0].layoutW, mltObjects[0].layoutH, imageType)
     val graphics2D = resultImage.graphics as Graphics2D
-
+    graphics2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
 
     mltObjects.forEach { obj ->
 

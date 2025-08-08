@@ -66,12 +66,9 @@ data class MkoVoice(val mltProp: MltProp, val type: ProducerType, val voiceId: I
     override fun tractorSequence(): MltNode {
 
         val tracks = listOf(
-//            MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.FILLCOLORSONGTEXTS, voiceId))),
-//            MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.SONGTEXT, voiceId))),
             MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.LINES, voiceId))),
             MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.COUNTERS, voiceId))),
-//            MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.SCROLLERS, voiceId))),
-
+            MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.CHORDSBOARD, voiceId))),
         )
 
         return mltGenerator

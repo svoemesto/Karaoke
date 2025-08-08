@@ -38,8 +38,7 @@ data class SettingVoiceLine(
                     SettingVoiceLineElementTypes.COMMENT,
                     SettingVoiceLineElementTypes.EMPTY,
                     SettingVoiceLineElementTypes.NEWLINE,
-                    SettingVoiceLineElementTypes.ACCORD,
-                    SettingVoiceLineElementTypes.NOTE
+                    SettingVoiceLineElementTypes.ACCORD
                 )
             }
             SongVersion.TABS, SongVersion.TABSVK -> {

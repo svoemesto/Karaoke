@@ -175,6 +175,11 @@ class Karaoke : Serializable {
             get() = KaraokeProperties.getBoolean("autoSave")
             set(value) { KaraokeProperties.set("autoSave", value) }
 
+        //Автосохранение
+        var autoUpdateRemoteSettings: Boolean
+            get() = KaraokeProperties.getBoolean("autoUpdateRemoteSettings")
+            set(value) { KaraokeProperties.set("autoUpdateRemoteSettings", value) }
+
         // Время (в миллисекундах) задержки перед автосохранением
         var autoSaveDelayMs: Long
             get() = KaraokeProperties.getLong("autoSaveDelayMs")
@@ -386,6 +391,10 @@ class Karaoke : Serializable {
             get() = KaraokeProperties.getDouble("chordsHeightCoefficient")
             set(value) { KaraokeProperties.set("chordsHeightCoefficient", value) }
 
+        // Коэффициэнт оффсета размера шрифта ноты относительно размера шрифта текста песни
+        var chordsHeightOffsetCoefficient: Double
+            get() = KaraokeProperties.getDouble("chordsHeightOffsetCoefficient")
+            set(value) { KaraokeProperties.set("chordsHeightOffsetCoefficient", value) }
 
         // Фонт ноты
         var melodyNoteFont: MltText

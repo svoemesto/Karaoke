@@ -58,14 +58,11 @@ fun mainUtils() {
 
 fun customFunction(): String {
 
-    var total = 0L
-    Settings.loadListFromDb(database = WORKING_DATABASE).forEach { sett ->
-        val ms = sett.ms
-        total += ms
-        println("${convertMillisecondsToDtoTimecode(ms)} - (${sett.datePublish}) - ${sett.rightSettingFileName}")
-    }
-    println("ИТОГО: ${convertMillisecondsToDtoTimecode(total)}")
-    return convertMillisecondsToDtoTimecode(total)
+    val font = Font("Roboto", Font.PLAIN, 24)
+
+    getTextWidthHeightPx("●", font)
+
+    return ""
 }
 
 
@@ -2165,10 +2162,30 @@ fun getTextWidthHeightPx(text: String, fontName: String, fontStyle: Int, fontSiz
 }
 
 fun getTextWidthHeightPx(text: String, font: Font): Pair<Double, Double> {
-    val graphics2D = BufferedImage(1,1,BufferedImage.TYPE_INT_ARGB).graphics as Graphics2D
-    graphics2D.font = font
-    val rect = graphics2D.fontMetrics.getStringBounds(text, graphics2D)
-    return Pair(rect.width, rect.height)
+
+    val notesSymbols = "●∙◉♪"
+    val notesFont = Font("Arial Unicode MS",font.style, font.size)
+    var notesString = ""
+    var notNotesString = ""
+    text.forEach { symbol ->
+        if (notesSymbols.contains(symbol)) {
+            notesString += symbol
+        } else {
+            notNotesString += symbol
+        }
+    }
+
+    val graphics2D1 = BufferedImage(1,1,BufferedImage.TYPE_INT_ARGB).graphics as Graphics2D
+    graphics2D1.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+    graphics2D1.font = font
+    val rect1 = graphics2D1.fontMetrics.getStringBounds(notNotesString, graphics2D1)
+
+    val graphics2D2 = BufferedImage(1,1,BufferedImage.TYPE_INT_ARGB).graphics as Graphics2D
+    graphics2D2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+    graphics2D2.font = notesFont
+    val rect2 = graphics2D2.fontMetrics.getStringBounds(notesString, graphics2D2)
+
+    return Pair(rect1.width + rect2.width, Math.max(rect1.height, rect2.height))
 }
 
 fun convertMarkersToSubtitles(pathToSourceFile: String, pathToResultFile: String = "") {
@@ -2936,7 +2953,7 @@ fun setProcessPriority(pid: Long, priority: Int): Boolean {
     }
 }
 
-fun runCommand(args: List<String>): String {
+fun runCommand(args: List<String>, ignoreErrors: Boolean = false): String {
 
     // Создаем ProcessBuilder сформированным списком аргументов
     val processBuilder = ProcessBuilder(args)
@@ -2958,7 +2975,7 @@ fun runCommand(args: List<String>): String {
 
         // Ждем завершения процесса
         val exitCode = process.waitFor()
-        if (exitCode != 0) {
+        if (exitCode != 0 && !ignoreErrors) {
             throw RuntimeException("Process exited with error code $exitCode")
         }
 
@@ -2967,4 +2984,16 @@ fun runCommand(args: List<String>): String {
     } catch (e: Exception) {
         throw RuntimeException("Error running runCommand", e)
     }
+}
+
+fun getTransposingChord(originalChord: String, capo: Int = 0): String {
+    if (capo == 0) return originalChord
+    val chordNameAndFret = originalChord.split("|")
+    val nameChord = chordNameAndFret[0]
+    val fretChord = if (chordNameAndFret.size > 1) chordNameAndFret[1].toInt() else 0
+    val (chord, note) = MusicChord.getChordNote(nameChord)
+    var newIndexNote = MusicNote.values().indexOf(note!!) - capo
+    if (newIndexNote < 0) newIndexNote += MusicNote.values().size
+    val newNote = MusicNote.values()[newIndexNote]
+    return newNote.names.first() + chord!!.names.first()
 }

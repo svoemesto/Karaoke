@@ -5,63 +5,52 @@ import com.svoemesto.karaokeapp.convertMillisecondsToTimecode
 import com.svoemesto.karaokeapp.convertTimecodeToMilliseconds
 import com.svoemesto.karaokeapp.mlt.MltGenerator
 import com.svoemesto.karaokeapp.mlt.MltProp
-import com.svoemesto.karaokeapp.model.MltNode
-import com.svoemesto.karaokeapp.model.MltNodeBuilder
-import com.svoemesto.karaokeapp.model.ProducerType
-import com.svoemesto.karaokeapp.model.childs
+import com.svoemesto.karaokeapp.model.*
 
-data class MkoElement(
+data class MkoChordPictureElement(
     val mltProp: MltProp,
-    val type: ProducerType = ProducerType.ELEMENT,
+    val type: ProducerType = ProducerType.CHORDPICTUREELEMENT,
     val voiceId: Int = 0,
     val lineId: Int = 0,
     val elementId: Int = 0
 ): MltKaraokeObject {
-    val mltGenerator = MltGenerator(mltProp, type, voiceId, lineId, elementId)
+    val mltGenerator = MltGenerator(mltProp, type, voiceId, lineId)
 
-    private val songVersion = mltProp.getSongVersion()
     private val frameWidthPx = mltProp.getFrameWidthPx()
     private val frameHeightPx = mltProp.getFrameHeightPx()
+    private val chordWhidthPx = frameHeightPx / 4
+    private val chordHeightPx = chordWhidthPx
+
+    private val songVersion = mltProp.getSongVersion()
     private val settings = mltProp.getSettings()
     private val songStartTimecode  = mltProp.getSongStartTimecode()
     private val songEndTimecode  = mltProp.getSongEndTimecode()
-    private var lineDurationOnScreen = mltProp.getDurationOnScreen(listOf(ProducerType.LINE, voiceId, lineId))
-    private var mkoElementUUID = mltProp.getUUID(listOf(type, voiceId, lineId, elementId))
+    private var chordDurationOnScreen = mltProp.getDurationOnScreen(listOf(ProducerType.CHORDPICTURELINE, voiceId, lineId))
+    private var mkoElementUUID = mltProp.getUUID(listOf(type, voiceId, lineId))
     private var mainBinUUID = mltProp.getUUID(listOf(ProducerType.MAINBIN))
-    private var folderIdLines = mltProp.getId(listOf(ProducerType.ELEMENT, voiceId))
-    private val lineEndTimecode = if (lineDurationOnScreen > 0) {
-        convertMillisecondsToTimecode(lineDurationOnScreen)
+    private var folderIdChordpictures = mltProp.getId(listOf(ProducerType.CHORDPICTUREELEMENT, voiceId))
+    private val chordEndTimecode = if (chordDurationOnScreen > 0) {
+        convertMillisecondsToTimecode(chordDurationOnScreen)
     } else {
-        lineDurationOnScreen = convertTimecodeToMilliseconds(songEndTimecode)
+        chordDurationOnScreen = convertTimecodeToMilliseconds(songEndTimecode)
         songEndTimecode
     }
     override fun producerBlackTrack(): MltNode {
 
-        var widthAreaPx= frameWidthPx
-        var heightAreaPx= frameHeightPx
-
-        val sett = settings
-        if (sett != null) {
-            try {
-                val element = sett.voicesForMlt[voiceId].getLines()[lineId].getElements(songVersion)[elementId]
-                widthAreaPx = element.w()
-                heightAreaPx = element.h()
-            } catch (_: Exception) {
-            }
-        }
+        var widthAreaPx= chordWhidthPx
+        var heightAreaPx= chordHeightPx
 
         return mltGenerator
             .producer(
-//                timecodeIn = mltProp.getTimelineStartTimecode(),
-                timecodeOut = lineEndTimecode,
-                id = MltGenerator.nameProducerBlackTrack(type, voiceId, lineId, elementId),
+                timecodeOut = chordEndTimecode,
+                id = MltGenerator.nameProducerBlackTrack(type, voiceId, lineId),
                 props = MltNodeBuilder()
-                    .propertyName("length", convertMillisecondsToFrames(lineDurationOnScreen))
+                    .propertyName("length", convertMillisecondsToFrames(chordDurationOnScreen))
                     .propertyName("eof", "pause")
                     .propertyName("resource", 0)
                     .propertyName("aspect_ratio", 1)
                     .propertyName("mlt_service", "color")
-                    .propertyName("kdenlive:duration", lineEndTimecode)
+                    .propertyName("kdenlive:duration", chordEndTimecode)
                     .propertyName("mlt_image_format", "rgba")
                     .propertyName("kdenlive:playlistid", "black_track")
                     .propertyName("set.test_audio", 0)
@@ -80,49 +69,50 @@ data class MkoElement(
             body.add(
                 mltGenerator.entry(
                     id = "{${mkoElementUUID}}",
-                    timecodeOut = lineEndTimecode,
+                    timecodeOut = chordEndTimecode,
                     nodes = MltNodeBuilder()
                         .propertyName("kdenlive:id", "filePlaylist${mltGenerator.id}")
+                        .filterQtblend("filter_qtblend_${listOf(ProducerType.CHORDPICTUREELEMENT.name, voiceId, lineId).hashCode()}", mainFilePlaylistTransformProperties())
                         .build()
                 )
             )
         }
         return result
     }
-    override fun mainFilePlaylistTransformProperties(): String = ""
+    override fun mainFilePlaylistTransformProperties(): String {
+        val tpStart = TransformProperty(
+            time = songStartTimecode,
+            x = 0,
+            y = -(frameHeightPx / 4 + frameHeightPx / 8) + 75,
+            w = frameWidthPx,
+            h = frameHeightPx,
+            opacity = 1.0)
+        val resultListTp = listOf(tpStart)
+        return resultListTp.joinToString(";")
+    }
     override fun trackPlaylist(): MltNode = mltGenerator.trackPlaylist()
-    override fun tractor(): MltNode = mltGenerator.tractor(timecodeOut = lineEndTimecode)
+    override fun tractor(): MltNode = mltGenerator.tractor(timecodeOut = chordEndTimecode)
 
     override fun tractorSequence(): MltNode {
 
-        var widthAreaPx= frameWidthPx
-        var heightAreaPx= frameHeightPx
+        var widthAreaPx= chordWhidthPx
+        var heightAreaPx= chordHeightPx
 
-        val sett = settings
-        if (sett != null) {
-            try {
-                val element = sett.voicesForMlt[voiceId].getLines()[lineId].getElements(songVersion)[elementId]
-                widthAreaPx = element.w()
-                heightAreaPx = element.h()
-            } catch (_: Exception) {
-            }
-        }
-
-        val subTrackNodes = ProducerType.ELEMENT.childs().asReversed().filter {it in songVersion.producers}. map {
-            MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(it, voiceId, lineId, elementId)))
+        val subTrackNodes = ProducerType.CHORDPICTUREELEMENT.childs().asReversed().filter {it in songVersion.producers}. map {
+            MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(it, voiceId, lineId)))
         }
 
         return mltGenerator.tractor(
             id = "{${mkoElementUUID}}",
             timecodeIn = songStartTimecode,
-            timecodeOut = lineEndTimecode,
+            timecodeOut = chordEndTimecode,
             body = MltNodeBuilder()
                 .propertyName("kdenlive:sequenceproperties.hasAudio", 0)
                 .propertyName("kdenlive:sequenceproperties.hasVideo", 1)
                 .propertyName("kdenlive:clip_type", 2)
-                .propertyName("kdenlive:duration", lineEndTimecode)
+                .propertyName("kdenlive:duration", chordEndTimecode)
                 .propertyName("kdenlive:clipname", mltGenerator.name)
-                .propertyName("kdenlive:folderid", folderIdLines)
+                .propertyName("kdenlive:folderid", folderIdChordpictures)
                 .propertyName("kdenlive:description")
                 .propertyName("kdenlive:uuid", "{${mkoElementUUID}}")
                 .propertyName("kdenlive:producer_type", 17)
@@ -130,9 +120,7 @@ data class MkoElement(
                 .propertyName("kdenlive:sequenceproperties.activeTrack", 0)
                 .propertyName("kdenlive:sequenceproperties.documentuuid", "{${mainBinUUID}}")
                 .propertyName("kdenlive:sequenceproperties.tracks", subTrackNodes.size)
-//                .propertyName("kdenlive:sequenceproperties.tracks", 2)
                 .propertyName("kdenlive:sequenceproperties.tracksCount", subTrackNodes.size)
-//                .propertyName("kdenlive:sequenceproperties.tracksCount", 2)
                 .propertyName("kdenlive:sequenceproperties.verticalzoom", 1)
                 .propertyName("kdenlive:sequenceproperties.zonein", 0)
                 .propertyName("kdenlive:sequenceproperties.zoneout", 75)
@@ -143,13 +131,9 @@ data class MkoElement(
                 .propertyName("meta.media.width", widthAreaPx)
                 .propertyName("meta.media.height", heightAreaPx)
 
-                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameProducerBlackTrack(ProducerType.ELEMENT, voiceId, lineId, elementId))))
+                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameProducerBlackTrack(ProducerType.CHORDPICTUREELEMENT, voiceId, lineId))))
                 .nodes(subTrackNodes)
-//                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.FILL, voiceId, lineId, elementId))))
-//                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.SEPAR, voiceId, lineId, elementId))))
-//                .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.STRING, voiceId, lineId, elementId))))
                 .transitionsAndFilters(mltGenerator.name, 0, subTrackNodes.size)
-//                .transitionsAndFilters(mltGenerator.name, 0, 2)
                 .build()
         )
     }

@@ -331,8 +331,8 @@ data class MltProp(
     fun getCountFingerboards(key: Any = KEYS.ROOT): Int = props[key.convertToList(KEYS.COUNT_FINGERBOARDS)]?.let { it as Int } ?: 0
     fun setCountFingerboards(value: Int, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.COUNT_FINGERBOARDS)] = value}
 
-    fun getChords(key: Any = KEYS.ROOT): MutableList<SongVoiceLineSymbol> = props[key.convertToList(KEYS.CHORDS)]?.let { it as MutableList<SongVoiceLineSymbol> } ?: mutableListOf()
-    fun setChords(value: MutableList<SongVoiceLineSymbol>, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.CHORDS)] = value}
+    fun getChords(key: Any = KEYS.ROOT): MutableList<SettingVoiceLineElementSyllable> = props[key.convertToList(KEYS.CHORDS)]?.let { it as MutableList<SettingVoiceLineElementSyllable> } ?: mutableListOf()
+    fun setChords(value: MutableList<SettingVoiceLineElementSyllable>, key: Any = KEYS.ROOT) {props[key.convertToList(KEYS.CHORDS)] = value}
 
 
     fun getId(key: Any = KEYS.ROOT): Int = props[key.convertToList(KEYS.ID)]?.let { it as Int } ?: 0

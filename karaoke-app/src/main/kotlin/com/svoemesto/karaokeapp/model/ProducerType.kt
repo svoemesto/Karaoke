@@ -29,13 +29,14 @@ enum class ProducerType(
         FLASH(parent = MAINBIN, level = 1, isCalculatedCount = false, text ="flash", onlyOne = true, ids = mutableListOf(), isAudio = false, isVideo = true, coeffStatic = 1, coeffVoice = 0, isSequence = false),
         PROGRESS(parent = MAINBIN, level = 1, isCalculatedCount = false, text ="progress", onlyOne = true, ids = mutableListOf(), isAudio = false, isVideo = true, coeffStatic = 1, coeffVoice = 0, isSequence = false),
         FADERTEXT(parent = MAINBIN, level = 1, isCalculatedCount = false, text ="fadertext", onlyOne = true, ids = mutableListOf(), isAudio = false, isVideo = true, coeffStatic = 1, coeffVoice = 0, isSequence = false),
-        FADERCHORDS(parent = MAINBIN, level = 1, isCalculatedCount = false, text ="faderchords", onlyOne = true, ids = mutableListOf(), isAudio = false, isVideo = true, coeffStatic = 1, coeffVoice = 0, isSequence = false),
+
         BACKCHORDS(parent = MAINBIN, level = 1, isCalculatedCount = false, text ="backchords", onlyOne = true, ids = mutableListOf(), isAudio = false, isVideo = true, coeffStatic = 1, coeffVoice = 0, isSequence = false),
         FINGERBOARD(parent = MAINBIN, level = 1, isCalculatedCount = false, text ="fingerboard", onlyOne = true, ids = mutableListOf(), isAudio = false, isVideo = true, coeffStatic = 1, coeffVoice = 0, isSequence = false),
         HEADER(parent = MAINBIN, level = 1, isCalculatedCount = false, text ="header", onlyOne = true, ids = mutableListOf(), isAudio = false, isVideo = true, coeffStatic = 1, coeffVoice = 0, isSequence = false),
         WATERMARK(parent = MAINBIN, level = 1, isCalculatedCount = false, text ="watermark", onlyOne = true, ids = mutableListOf(), isAudio = false, isVideo = true, coeffStatic = 1, coeffVoice = 0, isSequence = false),
         SPLASHSTART(parent = MAINBIN, level = 1, isCalculatedCount = false, text ="splashstart", onlyOne = true, ids = mutableListOf(), isAudio = false, isVideo = true, coeffStatic = 1, coeffVoice = 0, isSequence = false),
         BOOSTY(parent = MAINBIN, level = 1, isCalculatedCount = false, text ="boosty", onlyOne = true, ids = mutableListOf(), isAudio = false, isVideo = true, coeffStatic = 1, coeffVoice = 0, isSequence = false),
+
         VOICES(parent = MAINBIN, level = 1, isCalculatedCount = false, text ="voices", onlyOne = true, ids = mutableListOf(), isAudio = false, isVideo = true, coeffStatic = 1, coeffVoice = 0, isSequence = true),
             VOICE(parent = VOICES, level = 2, isCalculatedCount = false, text ="voice", onlyOne = false, ids = mutableListOf(), isAudio = false, isVideo = true, coeffStatic = 0, coeffVoice = 1, isSequence = true),
                 COUNTERS(parent = VOICE, level = 3, isCalculatedCount = false, text ="counters", onlyOne = false, ids = mutableListOf(), isAudio = false, isVideo = true, coeffStatic = 0, coeffVoice = 1, isSequence = true),
@@ -50,6 +51,14 @@ enum class ProducerType(
 
                 SONGTEXT(parent = VOICE, level = 3, isCalculatedCount = false, text ="songtext", onlyOne = false, ids = mutableListOf(), isAudio = false, isVideo = true, coeffStatic = 0, coeffVoice = 1, isSequence = false),
 
+                CHORDSBOARD(parent = MAINBIN, level = 3, isCalculatedCount = false, text ="chordsboard", onlyOne = false, ids = mutableListOf(), isAudio = false, isVideo = true, coeffStatic = 0, coeffVoice = 1, isSequence = true),
+                    CHORDPICTUREFADER(parent = CHORDSBOARD, level = 4, isCalculatedCount = false, text ="chordpicturefader", onlyOne = false, ids = mutableListOf(), isAudio = false, isVideo = true, coeffStatic = 0, coeffVoice = 1, isSequence = false),
+                    CHORDPICTURELINES(parent = CHORDSBOARD, level = 5, isCalculatedCount = false, text ="chordpicturelines", onlyOne = false, ids = mutableListOf(), isAudio = false, isVideo = true, coeffStatic = 0, coeffVoice = 1, isSequence = true),
+                        CHORDPICTURELINETRACK(parent = CHORDPICTURELINES, level = 6, isCalculatedCount = true, text ="chordpicturelinetrack", onlyOne = false, ids = mutableListOf(), isAudio = false, isVideo = true, coeffStatic = 0, coeffVoice = 1, isSequence = false),
+                            CHORDPICTURELINE(parent = CHORDPICTURELINETRACK, level = 7, isCalculatedCount = true, text ="chordpictureline", onlyOne = false, ids = mutableListOf(), isAudio = false, isVideo = true, coeffStatic = 0, coeffVoice = 1, isSequence = true),
+                                CHORDPICTUREELEMENT(parent = CHORDPICTURELINE, level = 8, isCalculatedCount = true, text ="chordpictureelement", onlyOne = false, ids = mutableListOf(), isAudio = false, isVideo = true, coeffStatic = 0, coeffVoice = 1, isSequence = true),
+                                    CHORDPICTUREIMAGE(parent = CHORDPICTUREELEMENT, level = 9, isCalculatedCount = true, text ="chordpictureimage", onlyOne = false, ids = mutableListOf(), isAudio = false, isVideo = true, coeffStatic = 0, coeffVoice = 1, isSequence = false),
+
                 LINES(parent = VOICE, level = 3, isCalculatedCount = false, text ="lines", onlyOne = false, ids = mutableListOf(), isAudio = false, isVideo = true, coeffStatic = 0, coeffVoice = 1, isSequence = true),
                     LINETRACK(parent = LINES, level = 4, isCalculatedCount = true, text ="linetrack", onlyOne = false, ids = mutableListOf(), isAudio = false, isVideo = true, coeffStatic = 0, coeffVoice = 1, isSequence = false),
                         LINE(parent = LINES, level = 5, isCalculatedCount = true, text ="line", onlyOne = false, ids = mutableListOf(), isAudio = false, isVideo = true, coeffStatic = 0, coeffVoice = 1, isSequence = true),
@@ -58,7 +67,8 @@ enum class ProducerType(
                                 SEPAR(parent = ELEMENT, level = 8, isCalculatedCount = true, text ="separ", onlyOne = false, ids = mutableListOf(), isAudio = false, isVideo = true, coeffStatic = 0, coeffVoice = 1, isSequence = false),
                                 MELODYNOTE(parent = ELEMENT, level = 9, isCalculatedCount = true, text ="melodynote", onlyOne = false, ids = mutableListOf(), isAudio = false, isVideo = true, coeffStatic = 0, coeffVoice = 1, isSequence = false),
                                 MELODYTABS(parent = ELEMENT, level = 10, isCalculatedCount = true, text ="melodytabs", onlyOne = false, ids = mutableListOf(), isAudio = false, isVideo = true, coeffStatic = 0, coeffVoice = 1, isSequence = false),
-                                FILL(parent = ELEMENT, level = 11, isCalculatedCount = true, text ="fill", onlyOne = false, ids = mutableListOf(), isAudio = false, isVideo = true, coeffStatic = 0, coeffVoice = 1, isSequence = false),
+                                CHORDS(parent = ELEMENT, level = 11, isCalculatedCount = true, text ="chords", onlyOne = false, ids = mutableListOf(), isAudio = false, isVideo = true, coeffStatic = 0, coeffVoice = 1, isSequence = false),
+                                FILL(parent = ELEMENT, level = 12, isCalculatedCount = true, text ="fill", onlyOne = false, ids = mutableListOf(), isAudio = false, isVideo = true, coeffStatic = 0, coeffVoice = 1, isSequence = false),
 
 }
 fun ProducerType.childs() : List<ProducerType> = ProducerType.values().filter { it.parent == this }

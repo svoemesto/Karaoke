@@ -18,6 +18,12 @@ const val COLOR_WO_VK = "#FFDAB9"           // Нет VK
 const val COLOR_WO_DZEN = "#FF8000"         // Нет DZEN
 const val COLOR_WO_VKG = "#FFC880"         // Нет VKG
 
+val symbolsWeightCoeff: Map<String, Double> = mapOf(
+    "●" to 1.0,
+    "∙" to 1.0,
+    "◉" to 1.0,
+    "♪" to 1.0,
+)
 
 val delimiterVoices = "|[VOICE]|"
 val delimiterGroups = "|[GROUP]|"
@@ -124,9 +130,15 @@ val producerTypeClass = mapOf(
     ProducerType.SONGTEXT to MkoSongText::class.java,
     ProducerType.COUNTER to MkoCounter::class.java,
     ProducerType.FADERTEXT to MkoFaderText::class.java,
-    ProducerType.FADERCHORDS to MkoFaderChords::class.java,
+    ProducerType.CHORDPICTUREFADER to MkoChordPictureFader::class.java,
     ProducerType.BACKCHORDS to MkoBackChords::class.java,
     ProducerType.FINGERBOARD to MkoFingerboard::class.java,
+    ProducerType.CHORDSBOARD to MkoChordBoard::class.java,
+    ProducerType.CHORDPICTURELINES to MkoChordPictureLines::class.java,
+    ProducerType.CHORDPICTURELINETRACK to MkoChordPictureLineTrack::class.java,
+    ProducerType.CHORDPICTURELINE to MkoChordPictureLine::class.java,
+    ProducerType.CHORDPICTUREELEMENT to MkoChordPictureElement::class.java,
+    ProducerType.CHORDPICTUREIMAGE to MkoChordPictureImage::class.java,
     ProducerType.HEADER to MkoHeader::class.java,
     ProducerType.WATERMARK to MkoWatermark::class.java,
     ProducerType.SPLASHSTART to MkoSplashStart::class.java,
@@ -148,6 +160,7 @@ val producerTypeClass = mapOf(
     ProducerType.SEPAR to MkoSepar::class.java,
     ProducerType.MELODYNOTE to MkoMelodyNote::class.java,
     ProducerType.MELODYTABS to MkoMelodyTabs::class.java,
+    ProducerType.CHORDS to MkoChords::class.java,
 
 )
 

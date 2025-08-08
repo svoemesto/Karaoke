@@ -104,9 +104,7 @@ class Picture(
             val imageType = BufferedImage.TYPE_INT_ARGB
             val resultImage = BufferedImage(params.w, params.h, imageType)
             val graphics2D = resultImage.graphics as Graphics2D
-            graphics2D.setRenderingHint(
-                RenderingHints.KEY_TEXT_ANTIALIASING,
-                RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
+            graphics2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
             val alphaChannel = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1f)
             graphics2D.composite = alphaChannel
 
@@ -285,6 +283,7 @@ class Picture(
             val imageType = BufferedImage.TYPE_INT_ARGB
             val resultImage = BufferedImage(params.w, params.h, imageType)
             val graphics2D = resultImage.graphics as Graphics2D
+            graphics2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
             val alphaChannel = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, params.opaque)
             graphics2D.composite = alphaChannel
             graphics2D.background = params.color
@@ -301,6 +300,7 @@ class Picture(
             val imageType = BufferedImage.TYPE_INT_ARGB
             val resultImage = BufferedImage(params.w, params.h, imageType)
             val graphics2D = resultImage.graphics as Graphics2D
+            graphics2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
             val alphaChannel = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1f)
             graphics2D.composite = alphaChannel
 
@@ -313,9 +313,7 @@ class Picture(
             val imageType = BufferedImage.TYPE_INT_ARGB
             val resultImage = BufferedImage(params.w, params.h, imageType)
             val graphics2D = resultImage.graphics as Graphics2D
-            graphics2D.setRenderingHint(
-                RenderingHints.KEY_TEXT_ANTIALIASING,
-                RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
+            graphics2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
             val alphaChannel = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1f)
             graphics2D.composite = alphaChannel
 
@@ -470,7 +468,7 @@ class Picture(
         val imageType = BufferedImage.TYPE_INT_ARGB
         val resultImage = BufferedImage(w, h, imageType)
         val graphics2D = resultImage.graphics as Graphics2D
-        graphics2D.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
+        graphics2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
         val initFontSize = if (isFix) font.size else 4
         var fnt = Font(font.fontName, font.style, initFontSize-1)
         var rectW = 0

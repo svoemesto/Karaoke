@@ -37,138 +37,108 @@ data class MkoMainBin(val mltProp: MltProp, val type: ProducerType, val voiceId:
                 .build()
         )
 
-    override fun trackPlaylist(): MltNode = MltNode(
-        type = type,
-        name = "playlist",
-        fields = PropertiesMltNodeBuilder().id("main_bin").build(),
-        body = MltNodeBuilder()
-            .propertyName("kdenlive:folder.-1.21", "Клипы")
-            .propertyName("kdenlive:sequenceFolder", 21)
-            .propertyName("kdenlive:folder.-1.${mltProp.getId(ProducerType.VOICES)}", "${ProducerType.VOICES.name}")
-            .nodes({
-                    val result = MltNodeBuilder()
-                    for (voiceI in 0 until mltProp.getCountVoices()) {
-                        result.propertyName("kdenlive:folder.${mltProp.getId(ProducerType.VOICES)}.${mltProp.getId(listOf(ProducerType.VOICE, voiceI))}", "${ProducerType.VOICE.name}${voiceI}")
-                        result.propertyName("kdenlive:folder.${mltProp.getId(listOf(ProducerType.VOICE, voiceI))}.${mltProp.getId(listOf(ProducerType.COUNTERS, voiceI))}", "${ProducerType.COUNTERS.name}")
-//                        result.propertyName("kdenlive:folder.${mltProp.getId(listOf(ProducerType.VOICE, voiceI))}.${mltProp.getId(listOf(ProducerType.SCROLLERS, voiceI))}", "${ProducerType.SCROLLERS.name}")
-//                        result.propertyName("kdenlive:folder.${mltProp.getId(listOf(ProducerType.VOICE, voiceI))}.${mltProp.getId(listOf(ProducerType.FILLCOLORSONGTEXTS, voiceI))}", "${ProducerType.FILLCOLORSONGTEXTS.name}")
-                        result.propertyName("kdenlive:folder.${mltProp.getId(listOf(ProducerType.VOICE, voiceI))}.${mltProp.getId(listOf(ProducerType.LINES, voiceI))}", "${ProducerType.LINES.name}")
-                    }
-                    result.build()
-                    result.nodes
-                }()
+    override fun trackPlaylist(): MltNode {
+
+
+        val foldersNodesBuilder = MltNodeBuilder()
+        for (voiceI in 0 until mltProp.getCountVoices()) {
+            foldersNodesBuilder.propertyName("kdenlive:folder.${mltProp.getId(ProducerType.VOICES)}.${mltProp.getId(listOf(ProducerType.VOICE, voiceI))}", "${ProducerType.VOICE.name}${voiceI}")
+            foldersNodesBuilder.propertyName("kdenlive:folder.${mltProp.getId(listOf(ProducerType.VOICE, voiceI))}.${mltProp.getId(listOf(ProducerType.COUNTERS, voiceI))}", "${ProducerType.COUNTERS.name}")
+            foldersNodesBuilder.propertyName("kdenlive:folder.${mltProp.getId(listOf(ProducerType.VOICE, voiceI))}.${mltProp.getId(listOf(ProducerType.LINES, voiceI))}", "${ProducerType.LINES.name}")
+            foldersNodesBuilder.propertyName("kdenlive:folder.${mltProp.getId(listOf(ProducerType.LINES, voiceI))}.${mltProp.getId(listOf(ProducerType.STRING, voiceI))}", "${ProducerType.STRING.name}")
+            foldersNodesBuilder.propertyName("kdenlive:folder.${mltProp.getId(listOf(ProducerType.LINES, voiceI))}.${mltProp.getId(listOf(ProducerType.LINE, voiceI))}", "${ProducerType.LINE.name}")
+            foldersNodesBuilder.propertyName("kdenlive:folder.${mltProp.getId(listOf(ProducerType.LINES, voiceI))}.${mltProp.getId(listOf(ProducerType.FILL, voiceI))}", "${ProducerType.FILL.name}")
+            foldersNodesBuilder.propertyName("kdenlive:folder.${mltProp.getId(listOf(ProducerType.LINES, voiceI))}.${mltProp.getId(listOf(ProducerType.ELEMENT, voiceI))}", "${ProducerType.ELEMENT.name}")
+            foldersNodesBuilder.propertyName("kdenlive:folder.${mltProp.getId(listOf(ProducerType.LINES, voiceI))}.${mltProp.getId(listOf(ProducerType.CHORDS, voiceI))}", "${ProducerType.CHORDS.name}")
+            foldersNodesBuilder.propertyName("kdenlive:folder.${mltProp.getId(listOf(ProducerType.VOICE, voiceI))}.${mltProp.getId(listOf(ProducerType.CHORDPICTURELINES, voiceI))}", "${ProducerType.CHORDPICTURELINES.name}")
+            foldersNodesBuilder.propertyName("kdenlive:folder.${mltProp.getId(listOf(ProducerType.CHORDPICTURELINES, voiceI))}.${mltProp.getId(listOf(ProducerType.CHORDPICTUREIMAGE, voiceI))}", "${ProducerType.CHORDPICTUREIMAGE.name}")
+            foldersNodesBuilder.propertyName("kdenlive:folder.${mltProp.getId(listOf(ProducerType.CHORDPICTURELINES, voiceI))}.${mltProp.getId(listOf(ProducerType.CHORDPICTUREELEMENT, voiceI))}", "${ProducerType.CHORDPICTUREELEMENT.name}")
+            foldersNodesBuilder.propertyName("kdenlive:folder.${mltProp.getId(listOf(ProducerType.CHORDPICTURELINES, voiceI))}.${mltProp.getId(listOf(ProducerType.CHORDPICTURELINE, voiceI))}", "${ProducerType.CHORDPICTURELINE.name}")
+        }
+        foldersNodesBuilder.build()
+        val foldersNodes: MutableList<MltNode> = foldersNodesBuilder.nodes
+
+        val misNodes: MutableList<MltNode> = mutableListOf()
+        val misList = getMisList(mltProp)
+        misList.forEach { mis ->
+
+            val type = mis.type
+            val voiceId = mis.voiceId
+            val childId = mis.childId
+            val elementId = mis.elementId
+
+            val uuid = if (type.isSequence) {
+                if (elementId >= 0) {
+                    mltProp.getUUID(listOf(type, voiceId, childId, elementId))
+                } else if (childId >=0) {
+                    mltProp.getUUID(listOf(type, voiceId, childId))
+                } else if (voiceId >=0) {
+                    mltProp.getUUID(listOf(type, voiceId))
+                } else {
+                    mltProp.getUUID(listOf(type))
+                }
+            } else ""
+            if (type.isSequence && uuid == "") {
+                println("ПУСТОЙ UUID для ${type.name} voice = ${voiceId} child = ${childId} element = ${elementId}")
+            }
+            misNodes.add(MltNode(name = "entry", fields = mutableMapOf(
+                "producer" to if (type.isSequence) "{${uuid}}" else MltGenerator.nameProducer(type, Integer.max(mis.voiceId, 0), Integer.max(mis.childId, 0), Integer.max(mis.elementId, 0)),
+                "in" to "00:00:00.000", "out" to (if (type==ProducerType.MAINBIN) totalEndTimecode else songEndTimecode))))
+
+        }
+
+        return MltNode(
+            type = type,
+            name = "playlist",
+            fields = PropertiesMltNodeBuilder().id("main_bin").build(),
+            body = MltNodeBuilder()
+                .propertyName("kdenlive:folder.-1.21", "Клипы")
+                .propertyName("kdenlive:sequenceFolder", 21)
+                .propertyName("kdenlive:folder.-1.${mltProp.getId(ProducerType.VOICES)}", "${ProducerType.VOICES.name}")
+                .nodes(foldersNodes)
+                .propertyName("kdenlive:docproperties.audioChannels", 2)
+                .propertyName("kdenlive:docproperties.browserurl", songRootFolder)
+                .propertyName("kdenlive:docproperties.compositing", 1)
+                .propertyName("kdenlive:docproperties.guides", "[]")
+                .propertyName("kdenlive:docproperties.guidesCategories", "[]")
+                .propertyName("kdenlive:docproperties.kdenliveversion", "23.08.3")
+                .propertyName("kdenlive:docproperties.previewextension")
+                .propertyName("kdenlive:docproperties.previewparameters")
+                .propertyName("kdenlive:docproperties.profile", "atsc_1080p_60")
+                .propertyName("kdenlive:docproperties.rendercategory", "Ultra-High Definition (4K)")
+                .propertyName("kdenlive:docproperties.rendercustomquality", 100)
+                .propertyName("kdenlive:docproperties.renderendguide", -1)
+                .propertyName("kdenlive:docproperties.renderexportaudio", 0)
+                .propertyName("kdenlive:docproperties.rendermode", 0)
+                .propertyName("kdenlive:docproperties.renderplay", 0)
+                .propertyName("kdenlive:docproperties.renderpreview", 0)
+                .propertyName("kdenlive:docproperties.renderprofile", "MP4-H265 (HEVC)")
+                .propertyName("kdenlive:docproperties.renderratio", 1)
+                .propertyName("kdenlive:docproperties.renderrescale", 0)
+                .propertyName("kdenlive:docproperties.renderspeed", 8)
+                .propertyName("kdenlive:docproperties.renderstartguide", -1)
+                .propertyName("kdenlive:docproperties.rendertcoverlay", 0)
+                .propertyName("kdenlive:docproperties.rendertctype", -1)
+                .propertyName("kdenlive:docproperties.rendertwopass", 0)
+                .propertyName("kdenlive:docproperties.seekOffset", 30000)
+                .propertyName("kdenlive:docproperties.uuid", "{${mainBinUUID}}")
+                .propertyName("kdenlive:docproperties.version", "1.1")
+                .propertyName("kdenlive:binZoom", 4)
+                .propertyName("kdenlive:documentnotes")
+                .propertyName("kdenlive:docproperties.opensequences",
+                    ProducerType.values()
+                        .filter { it.isSequence && it.onlyOne }
+                        .map { "{${mltProp.getUUID(listOf(it))}}" }
+                        .toList()
+                        .joinToString(";")
+                    )
+                .propertyName("kdenlive:docproperties.activetimeline", "{${mainBinUUID}}")
+                .propertyName("xml_retain", 1)
+
+                .nodes(misNodes)
+                .build()
             )
-            .propertyName("kdenlive:docproperties.audioChannels", 2)
-            .propertyName("kdenlive:docproperties.browserurl", songRootFolder)
-            .propertyName("kdenlive:docproperties.compositing", 1)
-            .propertyName("kdenlive:docproperties.guides", "[]")
-            .propertyName("kdenlive:docproperties.guidesCategories", "[]")
-            .propertyName("kdenlive:docproperties.kdenliveversion", "23.08.3")
-            .propertyName("kdenlive:docproperties.previewextension")
-            .propertyName("kdenlive:docproperties.previewparameters")
-            .propertyName("kdenlive:docproperties.profile", "atsc_1080p_60")
-            .propertyName("kdenlive:docproperties.rendercategory", "Ultra-High Definition (4K)")
-            .propertyName("kdenlive:docproperties.rendercustomquality", 100)
-            .propertyName("kdenlive:docproperties.renderendguide", -1)
-            .propertyName("kdenlive:docproperties.renderexportaudio", 0)
-            .propertyName("kdenlive:docproperties.rendermode", 0)
-            .propertyName("kdenlive:docproperties.renderplay", 0)
-            .propertyName("kdenlive:docproperties.renderpreview", 0)
-            .propertyName("kdenlive:docproperties.renderprofile", "MP4-H265 (HEVC)")
-            .propertyName("kdenlive:docproperties.renderratio", 1)
-            .propertyName("kdenlive:docproperties.renderrescale", 0)
-            .propertyName("kdenlive:docproperties.renderspeed", 8)
-            .propertyName("kdenlive:docproperties.renderstartguide", -1)
-            .propertyName("kdenlive:docproperties.rendertcoverlay", 0)
-            .propertyName("kdenlive:docproperties.rendertctype", -1)
-            .propertyName("kdenlive:docproperties.rendertwopass", 0)
-            .propertyName("kdenlive:docproperties.seekOffset", 30000)
-            .propertyName("kdenlive:docproperties.uuid", "{${mainBinUUID}}")
-            .propertyName("kdenlive:docproperties.version", "1.1")
-            .propertyName("kdenlive:binZoom", 4)
-            .propertyName("kdenlive:documentnotes")
-            .propertyName("kdenlive:docproperties.opensequences",
-                ProducerType.values()
-                    .filter { it.isSequence && it.onlyOne }
-                    .map { "{${mltProp.getUUID(listOf(it))}}" }
-                    .toList()
-                    .joinToString(";")
-                )
-            .propertyName("kdenlive:docproperties.activetimeline", "{${mainBinUUID}}")
-            .propertyName("xml_retain", 1)
-
-
-            .nodes(
-                {
-                    val result: MutableList<MltNode> = mutableListOf()
-                    val misList = getMisList(mltProp)
-                    misList.forEach { mis ->
-
-                        val type = mis.type
-                        val voiceId = mis.voiceId
-                        val childId = mis.childId
-                        val elementId = mis.elementId
-
-                        val uuid = if (type.isSequence) {
-                            if (elementId >= 0) {
-                                mltProp.getUUID(listOf(type, voiceId, childId, elementId))
-                            } else if (childId >=0) {
-                                mltProp.getUUID(listOf(type, voiceId, childId))
-                            } else if (voiceId >=0) {
-                                mltProp.getUUID(listOf(type, voiceId))
-                            } else {
-                                mltProp.getUUID(listOf(type))
-                            }
-                        } else ""
-                        if (type.isSequence && uuid == "") {
-                            println("ПУСТОЙ UUID для ${type.name} voice = ${voiceId} child = ${childId} element = ${elementId}")
-                        }
-                        result.add(MltNode(name = "entry", fields = mutableMapOf(
-                            "producer" to if (type.isSequence) "{${uuid}}" else MltGenerator.nameProducer(type, Integer.max(mis.voiceId, 0), Integer.max(mis.childId, 0), Integer.max(mis.elementId, 0)),
-                            "in" to "00:00:00.000", "out" to (if (type==ProducerType.MAINBIN) totalEndTimecode else songEndTimecode))))
-
-                    }
-//                    mltProp.getSongVersion().producers.sortedByLevelsDesc().forEach { typeI ->
-//                        for (voiceI in 0 until mltProp.getCountVoices()) {
-//                            val countChilds = if (!typeI.isCalculatedCount) {
-//                                if (typeI.ids.isEmpty()) 1 else typeI.ids.size
-//                            } else {
-//                                mltProp.getCountChilds(listOf(typeI, voiceId))
-//                            }
-//                            for (childI in 0 until countChilds) {
-//                                if ((typeI.onlyOne && voiceI == 0) || !typeI.onlyOne ) {
-//                                    val uuid = if (typeI.isSequence) {
-//                                        val tmp = mltProp.getUUID(listOf(typeI, voiceI, childI))
-//                                        if (tmp == "") {
-//                                            val tmp2 = mltProp.getUUID(listOf(typeI, voiceI))
-//                                            if (tmp2 == "") {
-//                                                mltProp.getUUID(listOf(typeI))
-//                                            } else {
-//                                                tmp2
-//                                            }
-//                                        } else {
-//                                            tmp
-//                                        }
-//                                    } else ""
-//                                    if (typeI.isSequence && uuid == "") {
-//                                        println("ПУСТОЙ UUID для ${typeI.name} voice = ${voiceI} child = ${childI}")
-//                                    }
-//                                    result.add(MltNode(name = "entry", fields = mutableMapOf(
-//                                        "producer" to if (typeI.isSequence) "{${uuid}}" else MltGenerator.nameProducer(typeI, voiceI, childI),
-//                                        "in" to "00:00:00.000", "out" to (if (typeI==ProducerType.MAINBIN) mltProp.getTotalEndTimecode() else mltProp.getSongEndTimecode()))))
-//                                }
-//                            }
-//                        }
-//
-//
-//                    }
-                    result
-                }()
-            )
-            .build()
-
-    )
-
+    }
     override fun mainFilePlaylistTransformProperties(): String = ""
     override fun tractor():  MltNode = MltNode(
         type = type,

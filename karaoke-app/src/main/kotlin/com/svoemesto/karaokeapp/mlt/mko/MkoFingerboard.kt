@@ -3,10 +3,7 @@ package com.svoemesto.karaokeapp.mlt.mko
 import com.svoemesto.karaokeapp.*
 import com.svoemesto.karaokeapp.mlt.MltGenerator
 import com.svoemesto.karaokeapp.mlt.MltProp
-import com.svoemesto.karaokeapp.model.MltNode
-import com.svoemesto.karaokeapp.model.MltNodeBuilder
-import com.svoemesto.karaokeapp.model.ProducerType
-import com.svoemesto.karaokeapp.model.SongVoiceLineSymbol
+import com.svoemesto.karaokeapp.model.*
 import java.io.ByteArrayOutputStream
 import java.util.*
 import javax.imageio.ImageIO
@@ -15,13 +12,14 @@ data class MkoFingerboard(val mltProp: MltProp, val type: ProducerType, val voic
     val mltGenerator = MltGenerator(mltProp, type, voiceId, childId)
 
     private val songLengthFr = mltProp.getSongLengthFr()
-    private val fingerboardW = mltProp.getFingerboardW(listOf(0, childId))!!
-    private val fingerboardH = mltProp.getFingerboardH(0)
+
     private val mkoFingerboardProducerRect = mltProp.getRect(listOf(type, voiceId, childId))
     private val inOffsetVideo = mltProp.getInOffsetVideo()
     private val songCapo = mltProp.getSongCapo()
-    private val chordW = mltProp.getChordW(0)
-    private val chords = mltProp.getChords(listOf(0, childId))
+    private val chordW = 270 // mltProp.getChordW(0)
+    private val chords = mltProp.getChords()
+    private val fingerboardW = 270 * chords.size //mltProp.getFingerboardW(listOf(0, childId))!!
+    private val fingerboardH = 270 // mltProp.getFingerboardH(0)
     override fun producer(): MltNode = mltGenerator
         .producer(
             props = MltNodeBuilder(mltGenerator.defaultProducerPropertiesForMltService("kdenlivetitle"))
@@ -91,7 +89,7 @@ data class MkoFingerboard(val mltProp: MltProp, val type: ProducerType, val voic
 
         chords.forEachIndexed{ indexChord, chord ->
             val chordX = startChordX + indexChord * chordW
-            val layouts = generateChordLayout(chord.mltText.text, capo)
+            val layouts = generateChordLayout(chord.chord, capo)
             val bi = getChordLayoutPicture(layouts)
             val os = ByteArrayOutputStream()
             ImageIO.write(bi, "png", os)

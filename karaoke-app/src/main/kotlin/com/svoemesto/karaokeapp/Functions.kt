@@ -97,12 +97,20 @@ fun getVoices(settings: Settings, songVersion: SongVersion) : List<SettingVoice>
                     }
                     currentText = ""
                 }
-                Markertype.SYLLABLES.value, Markertype.NOTE.value -> {
+                Markertype.SYLLABLES.value, Markertype.NOTE.value, Markertype.CHORD.value -> {
 
                     val textSyllable = if (sourceMarker.label.isNotEmpty()) {
                         var txt = sourceMarker.label.replace("_", " ")
                         if (sourceMarker.markertype == Markertype.NOTE.value) {
                             txt = " . "
+                        }
+                        if (sourceMarker.markertype == Markertype.CHORD.value) {
+                            if (sourceMarker.label.isBlank() || sourceMarker.label == sourceMarker.chord) {
+                                txt = "♪  "
+                            } else {
+                                txt = sourceMarker.label
+                            }
+
                         }
                         if (tmpTextSyllables.isEmpty()){
                             txt = txt.uppercaseFirstLetter()
@@ -129,7 +137,7 @@ fun getVoices(settings: Settings, songVersion: SongVersion) : List<SettingVoice>
 
                     lastTextLineWasComment = false
                 }
-                Markertype.ENDOFSYLLABLES.value, Markertype.ENDOF_NOTE.value -> {
+                Markertype.ENDOFSYLLABLES.value, Markertype.ENDOF_NOTE.value, Markertype.ENDOF_CHORD.value -> {
 
                     var txt = "⸳"
 
@@ -156,7 +164,7 @@ fun getVoices(settings: Settings, songVersion: SongVersion) : List<SettingVoice>
                     prevTextSyllable = textSyllable
                     currentText += txt
                 }
-                Markertype.ENDOFLINE.value, Markertype.EOL_NOTE.value -> {
+                Markertype.ENDOFLINE.value, Markertype.EOL_NOTE.value, Markertype.EOL_CHORD.value -> {
 
                     prevTextSyllable = null
                     currentText = ""
@@ -222,13 +230,13 @@ fun getVoices(settings: Settings, songVersion: SongVersion) : List<SettingVoice>
                     }
 
                 }
-                Markertype.NEWLINE.value, Markertype.NEWLINE_NOTE.value -> {
+                Markertype.NEWLINE.value, Markertype.NEWLINE_NOTE.value, Markertype.NEWLINE_CHORD.value -> {
                     currentText = ""
                     if (tmpLines.isNotEmpty()) {
                         tmpLines.add(SettingVoiceLine.newLine(settings.id,timeMs,groupId))
                     }
                 }
-                else -> {} // "unmute", "chord", "beat", "note" и т.п.
+                else -> {} // "unmute", "beat", и т.п.
             }
         }
 
@@ -439,6 +447,27 @@ fun getVoices(settings: Settings, songVersion: SongVersion) : List<SettingVoice>
 fun createKaraoke(settings: Settings, songVersion: SongVersion) {
 
 //    val voices = getVoices(settings, songVersion)
+
+    if (songVersion in listOf(SongVersion.CHORDS, SongVersion.CHORDSVK) && (!File(settings.drumsNameFlac).exists() || !File(settings.bassNameFlac).exists())) {
+        val args1 = listOf(
+//            listOf("python3", "-m", "demucs", "-n", DEMUCS_MODEL_NAME, "-d", "cpu", "--filename", "{track}-{stem}.{ext}", "-o", settings.rootFolder.rightFileName(), settings.fileAbsolutePath.rightFileName()),
+            listOf("make", "-s", "-C", "/home/nsa/demucs-docker", "run",
+                """folder="${settings.rootFolder.rightFileName()}"""",
+                """track="${settings.fileName}.flac"""",
+            ),
+            listOf("ffmpeg", "-i", settings.drumsNameWav.rightFileName(), "-compression_level", "8", settings.drumsNameFlac.rightFileName(), "-y"),
+            listOf("ffmpeg", "-i", settings.bassNameWav.rightFileName(), "-compression_level", "8", settings.bassNameFlac.rightFileName(), "-y"),
+        )
+        val args2 = listOf(
+            listOf("rm", settings.otherNameWav.rightFileName()),
+            listOf("rm", settings.vocalsNameWav.rightFileName()),
+            listOf("rm", settings.drumsNameWav.rightFileName()),
+            listOf("rm", settings.bassNameWav.rightFileName())
+        )
+        args1.forEach { arg -> runCommand(arg) }
+        args2.forEach { arg -> runCommand(arg, ignoreErrors = true) }
+    }
+
     val mltProp = settings.getMltProp(songVersion)
 
     val permissions = PosixFilePermissions.fromString("rwxr-x---")
@@ -480,4 +509,3 @@ fun createKaraoke(settings: Settings, songVersion: SongVersion) {
     )))
 
 }
-

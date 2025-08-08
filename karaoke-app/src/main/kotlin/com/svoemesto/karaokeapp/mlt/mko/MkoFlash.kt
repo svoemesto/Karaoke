@@ -77,6 +77,7 @@ data class MkoFlash(val mltProp: MltProp, val type: ProducerType, val voiceId: I
         val templateFlashGroup = mutableListOf<MltNode>()
 
         val haveNotes = songVersion.producers.contains(ProducerType.MELODYNOTE)
+        val haveChords = songVersion.producers.contains(ProducerType.CHORDS)
         val deltaY = if (haveNotes) {
             val sylFontSize = fontSize
             val melodyNoteFontSize = (sylFontSize * Karaoke.melodyNoteHeightCoefficient).toInt()
@@ -92,6 +93,12 @@ data class MkoFlash(val mltProp: MltProp, val type: ProducerType, val voiceId: I
 
             val tabsHeight = tabsMltTextHeight + 5 * heightBetweenTabsLines
             (noteHeight + tabsHeight) / 2
+        } else if (haveChords) {
+            val sylFontSize = fontSize
+            val chordsFontSize = (sylFontSize * Karaoke.chordsHeightCoefficient).toInt()
+            val chordsMltTextHeight = Karaoke.chordsFont.copy("C", chordsFontSize).h()
+            val chordHeight = (chordsMltTextHeight * Karaoke.chordsHeightOffsetCoefficient).toInt()
+            chordHeight / 2
         } else {
             0
         }

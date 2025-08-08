@@ -1607,6 +1607,9 @@ class ApisController(private val sseNotificationService: SseNotificationService)
                 if (!createKaraokeVk && settings.getSongDurationVideoMs() < 61_100) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKEVK, true, priorKaraoke.toInt())
             }
             if (createChords) {
+//                if (!File(settings.drumsNameFlac).exists() || !File(settings.bassNameFlac).exists()) {
+//                    KaraokeProcess.createProcess(settings, KaraokeProcessTypes.DEMUCS5, true, priorChords!!.toInt())
+//                }
                 KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDS, true, priorChords!!.toInt())
                 if (!createChordsVk && settings.getSongDurationVideoMs() < 61_100) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDSVK, true, priorChords.toInt())
             }
@@ -1616,7 +1619,12 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             }
             if (createLyricsVk) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICSVK, true, priorLyricsVk!!.toInt())
             if (createKaraokeVk) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKEVK, true, priorKaraokeVk!!.toInt())
-            if (createChordsVk) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDSVK, true, priorChordsVk!!.toInt())
+            if (createChordsVk) {
+//                if (!File(settings.drumsNameFlac).exists() || !File(settings.bassNameFlac).exists()) {
+//                    KaraokeProcess.createProcess(settings, KaraokeProcessTypes.DEMUCS5, true, priorChords!!.toInt())
+//                }
+                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDSVK, true, priorChordsVk!!.toInt())
+            }
             if (createMelodyVk) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_TABSVK, true, priorMelodyVk!!.toInt())
             type = "info"
             body = "Создание караоке для песни «${it.songName}» прошло успешно."
@@ -2311,14 +2319,15 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         @RequestParam(required = true) id: Long
     ): List<Int> {
         val (countCreate, countUpdate, countDelete) = updateRemotePictureFromLocalDatabase(id)
+        val body = if (countCreate + countUpdate + countDelete == 0) "Изменения не требуются" else listOf(Pair(countCreate > 0, "создано записей: $countCreate"), Pair(countUpdate > 0, "обновлено записей: $countUpdate"), Pair(countDelete > 0, "удалено записей: $countDelete")).filter { it.first }.map{ it.second }.joinToString(", ").uppercaseFirstLetter()
         SNS.send(SseNotification.message(
             Message(
                 type = "info",
                 head = "Обновление БД",
-                body = "Создано записей: $countCreate, обновлено записей: $countUpdate, удалено записей: $countDelete"
+                body = body
             )
         ))
-        println("Обновление записей серверной БД - ${if (countCreate > 0) "создано: $countCreate. " else ""}${if (countUpdate > 0) "обновлено: $countUpdate. " else ""}${if (countDelete > 0) "удалено: $countDelete. " else ""}")
+        println("Обновление записей серверной БД - ${body}")
         return listOf(countCreate, countUpdate, countDelete)
     }
 
@@ -2329,14 +2338,15 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         @RequestParam(required = true) id: Long
     ): List<Int> {
         val (countCreate, countUpdate, countDelete) = updateRemoteSettingFromLocalDatabase(id)
+        val body = if (countCreate + countUpdate + countDelete == 0) "Изменения не требуются" else listOf(Pair(countCreate > 0, "создано записей: $countCreate"), Pair(countUpdate > 0, "обновлено записей: $countUpdate"), Pair(countDelete > 0, "удалено записей: $countDelete")).filter { it.first }.map{ it.second }.joinToString(", ").uppercaseFirstLetter()
         SNS.send(SseNotification.message(
             Message(
                 type = "info",
                 head = "Обновление БД",
-                body = "Создано записей: $countCreate, обновлено записей: $countUpdate, удалено записей: $countDelete"
+                body = body
             )
         ))
-        println("Обновление записей серверной БД - ${if (countCreate > 0) "создано: $countCreate. " else ""}${if (countUpdate > 0) "обновлено: $countUpdate. " else ""}${if (countDelete > 0) "удалено: $countDelete. " else ""}")
+        println("Обновление записей серверной БД - ${body}")
         return listOf(countCreate, countUpdate, countDelete)
     }
 
@@ -2348,14 +2358,15 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         @RequestParam(required = true) updatePictures: Boolean = true
     ): List<Int> {
         val (countCreate, countUpdate, countDelete) = updateRemoteDatabaseFromLocalDatabase(updateSettings,updatePictures)
+        val body = if (countCreate + countUpdate + countDelete == 0) "Изменения не требуются" else listOf(Pair(countCreate > 0, "создано записей: $countCreate"), Pair(countUpdate > 0, "обновлено записей: $countUpdate"), Pair(countDelete > 0, "удалено записей: $countDelete")).filter { it.first }.map{ it.second }.joinToString(", ").uppercaseFirstLetter()
         SNS.send(SseNotification.message(
             Message(
             type = "info",
             head = "Обновление БД",
-            body = "Создано записей: $countCreate, обновлено записей: $countUpdate, удалено записей: $countDelete"
+            body = body
         )
         ))
-        println("Обновление записей серверной БД - ${if (countCreate > 0) "создано: $countCreate. " else ""}${if (countUpdate > 0) "обновлено: $countUpdate. " else ""}${if (countDelete > 0) "удалено: $countDelete. " else ""}")
+        println("Обновление записей серверной БД - ${body}")
         return listOf(countCreate, countUpdate, countDelete)
     }
 
@@ -2367,12 +2378,13 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         @RequestParam(required = true) updatePictures: Boolean = true
     ): List<Int> {
         val (countCreate, countUpdate, countDelete) = updateLocalDatabaseFromRemoteDatabase(updateSettings,updatePictures)
+        val body = if (countCreate + countUpdate + countDelete == 0) "Изменения не требуются" else listOf(Pair(countCreate > 0, "создано записей: $countCreate"), Pair(countUpdate > 0, "обновлено записей: $countUpdate"), Pair(countDelete > 0, "удалено записей: $countDelete")).filter { it.first }.map{ it.second }.joinToString(", ").uppercaseFirstLetter()
         SNS.send(SseNotification.message(Message(
             type = "info",
             head = "Обновление БД",
-            body = "Создано записей: $countCreate, обновлено записей: $countUpdate, удалено записей: $countDelete"
+            body = body
         )))
-        println("Обновление записей локальной БД - ${if (countCreate > 0) "создано: $countCreate. " else ""}${if (countUpdate > 0) "обновлено: $countUpdate. " else ""}${if (countDelete > 0) "удалено: $countDelete. " else ""}")
+        println("Обновление записей локальной БД - ${body}")
         return listOf(countCreate, countUpdate, countDelete)
     }
 

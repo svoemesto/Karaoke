@@ -1,11 +1,8 @@
 package com.svoemesto.karaokeapp.model
 
 import com.svoemesto.karaokeapp.Karaoke
-import com.svoemesto.karaokeapp.WORKING_DATABASE
 import com.svoemesto.karaokeapp.convertMillisecondsToTimecode
-import com.svoemesto.karaokeapp.deepCopy
 import java.io.Serializable
-import kotlin.properties.Delegates
 
 data class SettingVoice(
     val rootId: Long,
@@ -47,13 +44,79 @@ data class SettingVoice(
             line.endVisibleTime = endVisibleTime
             line.actuateChilds()
 //            line.countLineTracks = cnt
-            line.transformProperties = getLineTransferProperties(songVersion, indexLine)
+            line.transformProperties = getLineTransformProperties(songVersion, indexLine)
             lineY += line.h(songVersion)
         }
-        val cnt = getLines().maxOf { line -> getLines().filter { it.isOnScreen(line.lineStartMs) }.size }
-        countLineTracks = cnt
+        countLineTracks = getLines().maxOf { line -> getLines().filter { it.isOnScreen(line.lineStartMs) }.size }
+
+        if (songVersion in listOf(SongVersion.CHORDS, SongVersion.CHORDSVK)) {
+            var chordX = 0
+            val chordHeight = Karaoke.frameHeightPx / 4
+            val chords = getLines()
+                .flatMap { line -> line.getElements(songVersion) }
+                .flatMap { element -> element.getSyllables() }
+                .filter { syllable -> syllable.chord.isNotEmpty() }
+
+            chords.forEachIndexed { indexChord, chord ->
+                val indexChordStart = getIndexChordStart(indexChord)
+                val indexChordEnd = getIndexChordEnd(indexChord, chords)
+                var startChordVisibleTime = if (indexChordStart >= 0) chords[indexChordStart].syllableStartMs else 0
+                var deltaMs = 0L
+                if (indexChord < 4) {
+                    deltaMs = startChordVisibleTime
+                    startChordVisibleTime = 0
+                }
+                val endChordVisibleTime = if (indexChordEnd >= 0) chords[indexChordEnd].syllableStartMs else rootSongLengthMs + rootStartSilentOffsetMs
+                chord.chordId = indexChord
+                chord.chordX = chordX
+                chord.indexChordStart = indexChordStart
+                chord.indexChordEnd = indexChordEnd
+                chord.startChordVisibleTime = startChordVisibleTime
+                chord.endChordVisibleTime = endChordVisibleTime
+
+                chord.transformChordProperties = getChordTransformProperties(indexChord, chords, deltaMs)
+                chordX += chordHeight
+            }
+            countChordPictureTracks = chords.maxOf { chord -> chords.filter { it.chordIsOnScreen(chord.syllableStartMs) }.size }
+        }
     }
 
+
+    private fun getIndexChordStart(chordId: Int) : Int {
+        if (chordId == 0) return 0
+        val frameWidthPx = Karaoke.frameWidthPx
+        val chordWidth = Karaoke.frameHeightPx / 4
+        val zeroWidth = frameWidthPx - (frameWidthPx / 2 - chordWidth / 2)
+        var result = chordId - 1
+        var tmpW = 0
+        for (i in chordId-1 downTo 0) {
+            tmpW += chordWidth
+            result = i
+            if (tmpW > zeroWidth) break
+        }
+        return result
+    }
+    private fun getIndexChordEnd(chordId: Int, chords: List<SettingVoiceLineElementSyllable>) : Int {
+        val frameWidthPx = Karaoke.frameWidthPx
+        val chordWidth = Karaoke.frameHeightPx / 4
+        val zeroWidth = frameWidthPx / 2 - chordWidth / 2
+
+        var index = chordId
+        var chordsW = chordWidth
+        var nextChords = chords.filter { it.chordId > chordId }
+        var wasOutOfScreen = false
+
+        for (indexChord in nextChords.indices) {
+            chordsW += chordWidth // сумма широт аккордов цикла + ширина текущего аккорда
+            index = indexChord + chordId + 2
+            if (index > (chords.size - 1)) return -1
+            if (chordsW > (zeroWidth + chordWidth)) {
+                wasOutOfScreen = true
+                break
+            }
+        }
+        return if(wasOutOfScreen) index else -1
+    }
     private fun getIndexLineStart(songVersion: SongVersion, lineId: Int) : Int {
         if (lineId == 0) return 0
         val frameHeightPx = Karaoke.frameHeightPx
@@ -105,7 +168,82 @@ data class SettingVoice(
         }
         return if(wasOutOfScreen) index else -1
     }
-    private fun getLineTransferProperties(songVersion: SongVersion, lineId: Int) : List<TransformProperty> {
+
+    private fun getChordTransformProperties(chordId: Int, chords: List<SettingVoiceLineElementSyllable>, deltaMs: Long = 0L) : List<TransformProperty> {
+        val frameWidthPx = Karaoke.frameWidthPx
+        val chordHeight = Karaoke.frameHeightPx / 4
+        val chordWidth = chordHeight
+        val offsetX = 0 //frameWidthPx / 2 - chordWidth / 2
+        val offsetY = 0
+
+        val y = offsetY
+        val thisChord = chords[chordId]
+
+        val result: MutableList<TransformProperty> = mutableListOf()
+        val startIndex = thisChord.indexChordStart
+        val endIndex = if (thisChord.indexChordEnd < thisChord.indexChordStart ) chords.last().chordId else thisChord.indexChordEnd
+        if (endIndex < startIndex) return emptyList()
+
+        val zeroWidth = frameWidthPx - (frameWidthPx / 2 + chordWidth / 2)
+
+        val lstChords: MutableList<SettingVoiceLineElementSyllable> = mutableListOf()
+        for (indexChord in startIndex..endIndex) {
+            lstChords.add(chords[indexChord])
+        }
+        // lstChords - это аккорды, в жизненном цикле которых присутствует текущий аккорд - от первой до последней
+
+        for(lineIndex in lstChords.indices) {
+            val chord = lstChords[lineIndex]
+            val nextChord = if (lineIndex + 1 < lstChords.size) lstChords[lineIndex+1] else null
+            var deltaX = 0
+            if (chord.chordId < chordId) {
+                // Если аккорд цикла стоит перед текущим аккордом
+                // Вычисляем сумму широт аккордов от аккорда цикла (включительно) до текущего аккорда (не включая)
+                deltaX = lstChords.filter { it.chordId >= chord.chordId && it.chordId < chordId }.sumOf { chordWidth }
+            } else if (chord.chordId > chordId) {
+                // Если аккорд цикла стоит после текущего аккорда
+                // Вычисляем сумму широт аккордов от текущего аккорда (включительно) до аккорда цикла (не включая)
+                deltaX = - lstChords.filter { it.chordId < chord.chordId && it.chordId >= chordId }.sumOf { chordWidth }
+            } else {
+                // Если аккорд цикла - это текущий аккорд
+                deltaX = 0
+            }
+            val tpX = deltaX + zeroWidth + offsetX
+            if ((tpX + frameWidthPx) < 0) {
+                break
+            }
+
+            val chordEndMs = if (nextChord == null) chord.syllableEndMs else nextChord.syllableStartMs - 500
+
+            val tpStart = TransformProperty(
+                time = convertMillisecondsToTimecode(chord.syllableStartMs - lstChords.first().syllableStartMs + deltaMs),
+                x =  tpX,
+                y = y,
+                w =  Karaoke.frameWidthPx,
+                h =  Karaoke.frameHeightPx,
+                opacity = 1.0
+            )
+            val tpEnd = TransformProperty(
+                time = convertMillisecondsToTimecode(chordEndMs - lstChords.first().syllableStartMs + deltaMs),
+                x =  tpX,
+                y = y,
+                w =  Karaoke.frameWidthPx,
+                h =  Karaoke.frameHeightPx,
+                opacity = 1.0
+            )
+            if (result.isNotEmpty() && result.last().time == tpStart.time) {
+                result.removeLast()
+            }
+            result.add(tpStart)
+            if (tpStart.toString() != tpEnd.toString() && lineIndex != lstChords.size-1) {
+                result.add(tpEnd)
+            }
+
+        }
+
+        return result
+    }
+    private fun getLineTransformProperties(songVersion: SongVersion, lineId: Int) : List<TransformProperty> {
 
         val deltaX = longerElementPreviousVoice?.w() ?: 0
         val offsetX = Karaoke.songtextStartPositionXpx
@@ -209,6 +347,20 @@ data class SettingVoice(
         set(value) {
             _countLineTracks = value
             getLines().forEach { it.countLineTracks = value }
+        }
+
+    var _countChordPictureTracks: Int? = null
+    var countChordPictureTracks: Int
+        get() {
+            return _countChordPictureTracks ?: 0
+        }
+        set(value) {
+            _countChordPictureTracks = value
+            val chords = getLines()
+                .flatMap { line -> line.getElements(SongVersion.CHORDS) }
+                .flatMap { element -> element.getSyllables() }
+                .filter { syllable -> syllable.chord.isNotEmpty() }
+            chords.forEach { it.countChordPictureTracks = value }
         }
 //    fun countLineTracks(): Int = linesForMlt.maxOf { line -> linesForMlt.filter { it.isOnScreen(line.lineStartMs) }.size }
 

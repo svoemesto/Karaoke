@@ -1,7 +1,7 @@
 package com.svoemesto.karaokeapp.mlt.mko
 
 import com.svoemesto.karaokeapp.Karaoke
-import com.svoemesto.karaokeapp.KaraokeVoice
+import com.svoemesto.karaokeapp.getTransposingChord
 import com.svoemesto.karaokeapp.mlt.MltGenerator
 import com.svoemesto.karaokeapp.mlt.MltProp
 import com.svoemesto.karaokeapp.xmldata
@@ -10,7 +10,7 @@ import com.svoemesto.karaokeapp.model.MltNode
 import com.svoemesto.karaokeapp.model.MltNodeBuilder
 import com.svoemesto.karaokeapp.model.ProducerType
 
-data class MkoFaderChords(val mltProp: MltProp, val type: ProducerType, val voiceId: Int = 0, val childId: Int = 0, val elementId: Int = 0): MltKaraokeObject {
+data class MkoChordPictureFader(val mltProp: MltProp, val type: ProducerType, val voiceId: Int = 0, val childId: Int = 0, val elementId: Int = 0): MltKaraokeObject {
     val mltGenerator = MltGenerator(mltProp, type)
 
     private val frameWidthPx = mltProp.getFrameWidthPx()
@@ -22,16 +22,20 @@ data class MkoFaderChords(val mltProp: MltProp, val type: ProducerType, val voic
     private val inOffsetVideo = mltProp.getInOffsetVideo()
     private val songCapo = mltProp.getSongCapo()
     private val songChordDescription = mltProp.getSongChordDescription()
+    private var folderIdVoice = mltProp.getId(listOf(ProducerType.VOICE, voiceId))
+    private val settings = mltProp.getSettings()
+    private val capo = mltProp.getSongCapo()
 
     override fun producer(): MltNode = mltGenerator
         .producer(
             props = MltNodeBuilder(mltGenerator.defaultProducerPropertiesForMltService("kdenlivetitle"))
+                .propertyName("kdenlive:folderid", folderIdVoice)
                 .propertyName("length", songLengthFr)
                 .propertyName("kdenlive:duration", songEndTimecode)
                 .propertyName("xmldata", template().toString().xmldata())
                 .propertyName("meta.media.width", frameWidthPx)
                 .propertyName("meta.media.height", fingerboardH + 50)
-                .filterQtblend(mltGenerator.nameFilterQtblend, mkoFaderChordsProducerRect)
+//                .filterQtblend(mltGenerator.nameFilterQtblend, mkoFaderChordsProducerRect)
                 .build()
         )
 
@@ -39,7 +43,6 @@ data class MkoFaderChords(val mltProp: MltProp, val type: ProducerType, val voic
         val result = mltGenerator.filePlaylist()
         result.body?.let {
             val body = it as MutableList<MltNode>
-            body.addAll(MltNodeBuilder().blank(inOffsetVideo).build())
             body.add(
                 mltGenerator.entry(
                     nodes = MltNodeBuilder()
@@ -62,7 +65,7 @@ data class MkoFaderChords(val mltProp: MltProp, val type: ProducerType, val voic
         val chordDescription = songChordDescription
 
         val w = frameWidthPx / 4
-        val h = frameHeightPx / 4
+        val h = frameHeightPx / 4 + 75
         val x = 0
         val y = 0
         val xRight = frameWidthPx - w
@@ -70,6 +73,36 @@ data class MkoFaderChords(val mltProp: MltProp, val type: ProducerType, val voic
         val chordsCapoMltFont = Karaoke.chordsCapoFont
 
         val body: MutableList<MltNode> = mutableListOf()
+
+        body.add(
+            MltNode(
+                name = "item",
+                fields = mutableMapOf(
+                    Pair("type","QGraphicsRectItem"),
+                    Pair("z-index","0"),
+                ),
+                body = mutableListOf(
+                    MltNode(
+                        name = "position",
+                        fields = mutableMapOf(
+                            Pair("x","$x"),
+                            Pair("y","$y")
+                        ),
+                        body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(Pair("zoom","100")), body = "1,0,0,0,1,0,0,0,1"))
+                    ),
+                    MltNode(
+                        name = "content",
+                        fields = mutableMapOf(
+                            Pair("brushcolor","0,0,0,255"),
+                            Pair("pencolor","0,0,0,255"),
+                            Pair("penwidth","0"),
+                            Pair("penwidth","0"),
+                            Pair("rect","0,0,$frameWidthPx,75")
+                        )
+                    )
+                )
+            )
+        )
 
         body.add(
             MltNode(
@@ -233,9 +266,98 @@ data class MkoFaderChords(val mltProp: MltProp, val type: ProducerType, val voic
                 )
             )
         )
+        val bpmMltText = Karaoke.chordsFont.copy("Темп: ${settings!!.bpm} bpm", 36)
+        body.add(
+            MltNode(
+                name = "item",
+                fields = mutableMapOf(
+                    Pair("type","QGraphicsTextItem"),
+                    Pair("z-index","0"),
+                ),
+                body = mutableListOf(
+                    MltNode(
+                        name = "position",
+                        fields = mutableMapOf(
+                            Pair("x","20"),
+                            Pair("y","100")
+                        ),
+                        body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(Pair("zoom","100")), body = "1,0,0,0,1,0,0,0,1"))
+                    ),
+                    bpmMltText.mltNode(bpmMltText.text)
+                )
+            )
+        )
+        val originalKey = settings.key.replace(" minor", "m").replace(" major", "")
+        val originalKeyMltText = Karaoke.chordsFont.copy("Оригинальная тональность: $originalKey", 36)
+        body.add(
+            MltNode(
+                name = "item",
+                fields = mutableMapOf(
+                    Pair("type","QGraphicsTextItem"),
+                    Pair("z-index","0"),
+                ),
+                body = mutableListOf(
+                    MltNode(
+                        name = "position",
+                        fields = mutableMapOf(
+                            Pair("x","20"),
+                            Pair("y","${100 + bpmMltText.h()}")
+                        ),
+                        body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(Pair("zoom","100")), body = "1,0,0,0,1,0,0,0,1"))
+                    ),
+                    originalKeyMltText.mltNode(originalKeyMltText.text)
+                )
+            )
+        )
 
-        body.add(MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${frameWidthPx},${fingerboardH+50}"))))
-        body.add(MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${frameWidthPx},${fingerboardH+50}"))))
+        if (capo > 0) {
+            val newKey = getTransposingChord(originalKey, capo)
+            val newKeyMltText = Karaoke.chordsFont.copy("Аккорды для тональности: $newKey", 36)
+            body.add(
+                MltNode(
+                    name = "item",
+                    fields = mutableMapOf(
+                        Pair("type","QGraphicsTextItem"),
+                        Pair("z-index","0"),
+                    ),
+                    body = mutableListOf(
+                        MltNode(
+                            name = "position",
+                            fields = mutableMapOf(
+                                Pair("x","20"),
+                                Pair("y","${100 + bpmMltText.h() + originalKeyMltText.h()}")
+                            ),
+                            body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(Pair("zoom","100")), body = "1,0,0,0,1,0,0,0,1"))
+                        ),
+                        newKeyMltText.mltNode(newKeyMltText.text)
+                    )
+                )
+            )
+            val capoMltText = Karaoke.chordsFont.copy("Каподастр на $capo-м ладу", 48)
+            body.add(
+                MltNode(
+                    name = "item",
+                    fields = mutableMapOf(
+                        Pair("type","QGraphicsTextItem"),
+                        Pair("z-index","0"),
+                    ),
+                    body = mutableListOf(
+                        MltNode(
+                            name = "position",
+                            fields = mutableMapOf(
+                                Pair("x","20"),
+                                Pair("y","${100 + bpmMltText.h() + originalKeyMltText.h() + newKeyMltText.h()}")
+                            ),
+                            body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(Pair("zoom","100")), body = "1,0,0,0,1,0,0,0,1"))
+                        ),
+                        capoMltText.mltNode(capoMltText.text)
+                    )
+                )
+            )
+        }
+
+        body.add(MltNode(name = "startviewport", fields = mutableMapOf(Pair("rect","0,0,${frameWidthPx},${frameHeightPx}"))))
+        body.add(MltNode(name = "endviewport", fields = mutableMapOf(Pair("rect","0,0,${frameWidthPx},${frameHeightPx}"))))
         body.add(MltNode(name = "background", fields = mutableMapOf(Pair("color","0,0,0,0"))))
 
         return MltNode(
@@ -244,7 +366,7 @@ data class MkoFaderChords(val mltProp: MltProp, val type: ProducerType, val voic
                 Pair("duration","0"),
                 Pair("LC_NUMERIC","C"),
                 Pair("width","$frameWidthPx"),
-                Pair("height","${fingerboardH+50}"),
+                Pair("height","$frameHeightPx"),
                 Pair("out","0"),
             ),
             body = body

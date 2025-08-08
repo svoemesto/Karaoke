@@ -5,17 +5,21 @@ import com.svoemesto.karaokeapp.mlt.MltProp
 import com.svoemesto.karaokeapp.model.MltNode
 import com.svoemesto.karaokeapp.model.MltNodeBuilder
 import com.svoemesto.karaokeapp.model.ProducerType
-import com.svoemesto.karaokeapp.model.TransformProperty
 
-data class MkoLines(
+data class MkoChordPictureLines(
     val mltProp: MltProp,
-    val type: ProducerType = ProducerType.LINES,
+    val type: ProducerType = ProducerType.CHORDPICTURELINES,
     val voiceId: Int = 0,
     val lineId: Int = 0,
     val elementId: Int = 0
 ): MltKaraokeObject {
 
     val mltGenerator = MltGenerator(mltProp, type, voiceId)
+
+    private val frameWidthPx = mltProp.getFrameWidthPx()
+    private val frameHeightPx = mltProp.getFrameHeightPx()
+    private val chordWhidthPx = frameHeightPx / 4
+    private val chordHeightPx = chordWhidthPx
 
     private val timelineStartTimecode = mltProp.getTimelineStartTimecode()
     private val timelineEndTimecode = mltProp.getTimelineEndTimecode()
@@ -31,7 +35,7 @@ data class MkoLines(
         .producer(
             timecodeIn = timelineStartTimecode,
             timecodeOut = timelineEndTimecode,
-            id = MltGenerator.nameProducerBlackTrack(type, voiceId),
+            id = MltGenerator.nameProducerBlackTrack(type),
             props = MltNodeBuilder()
                 .propertyName("length", 2147483647)
                 .propertyName("eof", "pause")
@@ -59,25 +63,21 @@ data class MkoLines(
         }
         return result
     }
-    override fun mainFilePlaylistTransformProperties(): String {
-        val voice = settings?.voicesForMlt?.get(voiceId)
-        return voice?.linesTransformProperties()?.joinToString(";")?:""
-    }
+    override fun mainFilePlaylistTransformProperties(): String = ""
     override fun trackPlaylist(): MltNode = mltGenerator.trackPlaylist()
 
     override fun tractor(): MltNode = mltGenerator.tractor()
 
     override fun tractorSequence(): MltNode {
         val sett = settings ?: return MltNode()
-        val voice = sett.voicesForMlt[voiceId]
-        val countLineTracks = voice.countLineTracks
+        val voice = sett.voicesForMlt[0]
+        val countChordPictureTracks = voice.countChordPictureTracks
 
-        val subTrackNodes = (0 until countLineTracks).map { trackI ->
-            MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.LINETRACK, voiceId, trackI)))
+        val subTrackNodes = (0 until countChordPictureTracks).map { trackI ->
+            MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(ProducerType.CHORDPICTURELINETRACK, voiceId, trackI)))
         }
 
-        return mltGenerator
-            .tractor(
+        return mltGenerator.tractor(
                 id = "{${mkoLinesUUID}}",
                 timecodeIn = songStartTimecode,
                 timecodeOut = songEndTimecode,
@@ -111,7 +111,7 @@ data class MkoLines(
                     .propertyName("kdenlive:sequenceproperties.zoom", 8)
                     .propertyName("kdenlive:sequenceproperties.groups", "[]")
                     .propertyName("kdenlive:sequenceproperties.guides", "[]")
-                    .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameProducerBlackTrack(ProducerType.LINES, voiceId))))
+                    .node(MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameProducerBlackTrack(ProducerType.CHORDPICTURELINES, voiceId))))
                     .nodes(subTrackNodes)
                     .transitionsAndFilters(mltGenerator.name, 0, subTrackNodes.size)
                     .build()

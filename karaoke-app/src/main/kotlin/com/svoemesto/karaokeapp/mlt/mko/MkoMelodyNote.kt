@@ -92,6 +92,7 @@ data class MkoMelodyNote(
         var heightAreaPx= element.h()
 
         val haveNotes = songVersion.producers.contains(ProducerType.MELODYNOTE) && element.getSyllables().any { it.note != "" }
+        val haveChords = songVersion.producers.contains(ProducerType.CHORDS) && element.getSyllables().any { it.chord != "" }
 
         val deltaY = if (haveNotes) {
             val sylFontSize = element.fontSize

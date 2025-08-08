@@ -66,6 +66,7 @@ data class SettingVoiceLineElement(
 
     // lineStartMs для линии с индексом indexLineStart
     private var _deltaStartMs: Long? = null
+    // deltaStartMs - это время начала видимости родительской линии
     var deltaStartMs: Long
         get() {
             return _deltaStartMs ?: 0
@@ -97,6 +98,8 @@ data class SettingVoiceLineElement(
 
     fun h(songVersion: SongVersion): Int {
         val haveNotes = songVersion.producers.contains(ProducerType.MELODYNOTE) && this.getSyllables().any { it.note != "" }
+        val haveChords = songVersion.producers.contains(ProducerType.CHORDS) && this.getSyllables().any { it.chord != "" }
+
         val deltaY = if (haveNotes) {
             val sylFontSize = this.fontSize
             val melodyNoteFontSize = (sylFontSize * Karaoke.melodyNoteHeightCoefficient).toInt()
@@ -112,6 +115,12 @@ data class SettingVoiceLineElement(
 
             val tabsHeight = tabsMltTextHeight + 5 * heightBetweenTabsLines
             noteHeight + tabsHeight
+        } else if (haveChords) {
+            val sylFontSize = this.fontSize
+            val chordsFontSize = (sylFontSize * Karaoke.chordsHeightCoefficient).toInt()
+            val chordsMltTextHeight = Karaoke.chordsFont.copy("C", chordsFontSize).h()
+            val noteHeight = (chordsMltTextHeight * Karaoke.chordsHeightOffsetCoefficient).toInt()
+            noteHeight
         } else {
             0
         }

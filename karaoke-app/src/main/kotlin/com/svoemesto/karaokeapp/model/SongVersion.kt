@@ -124,16 +124,29 @@ enum class SongVersion(
             ProducerType.FLASH,
             ProducerType.PROGRESS,
 
+//            ProducerType.FINGERBOARD,
+//            ProducerType.FADERCHORDS,
+//            ProducerType.BACKCHORDS,
+
+
+
             ProducerType.COUNTER,
             ProducerType.FADERTEXT,
-
             ProducerType.HEADER,
             ProducerType.WATERMARK,
 
             ProducerType.COUNTERS,
 
+            ProducerType.CHORDPICTUREIMAGE,
+            ProducerType.CHORDPICTUREELEMENT,
+            ProducerType.CHORDPICTURELINE,
+            ProducerType.CHORDPICTURELINETRACK,
+            ProducerType.CHORDPICTURELINES,
+            ProducerType.CHORDPICTUREFADER,
+            ProducerType.CHORDSBOARD,
 
             ProducerType.FILL,
+            ProducerType.CHORDS,
             ProducerType.STRING,
             ProducerType.ELEMENT,
             ProducerType.LINE,
@@ -155,6 +168,12 @@ enum class SongVersion(
             ProducerType.PROGRESS,
             ProducerType.VOICES,
             ProducerType.FADERTEXT,
+
+//            ProducerType.FINGERBOARD,
+//            ProducerType.FADERCHORDS,
+//            ProducerType.BACKCHORDS,
+            ProducerType.CHORDSBOARD,
+
             ProducerType.HEADER,
             ProducerType.WATERMARK
         ),

@@ -8,7 +8,7 @@ import com.svoemesto.karaokeapp.textfiledictionary.YoWordsDictionary
 
 const val CURRENT_RESULT_VERSION = 10L
 const val COUNT_HISTORY_LINES = 30
-
+const val PATH_TO_TEMP_DEMUCS_FOLDER = "/home/nsa/demucs-docker/tmp"
 const val COLOR_ALL_DONE = "#7FFFD4"        // Полностью готово
 const val COLOR_OVERDUE = "#BDB76B"         // Публикация прошла, но не все ссылки заполнены
 const val COLOR_TODAY = "#FFFF00"           // Сегодня

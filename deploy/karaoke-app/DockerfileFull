@@ -1,0 +1,235 @@
+# ===== Первый Этап: Сборка и подготовка Demucs =====
+FROM nvidia/cuda:12.6.2-base-ubuntu22.04 AS demucs-builder
+
+USER root
+ENV TORCH_HOME=/data/models
+ENV OMP_NUM_THREADS=1
+
+# Установка необходимых инструментов
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    ffmpeg \
+    git \
+    python3 \
+    python3-dev \
+    python3-pip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Клонирование Demucs
+RUN git clone --single-branch --branch main https://github.com/adefossez/demucs /lib/demucs
+WORKDIR /lib/demucs
+
+# Переход на известный стабильный коммит
+RUN git checkout b9ab48cad45976ba42b2ff17b229c071f0df9390
+
+# Установка зависимостей с переопределениями версий
+RUN python3 -m pip install -e . "torch<2" "torchaudio<2" "numpy<2" --no-cache-dir
+
+# --- Запуск демонстрационных команд для загрузки моделей ---
+# Эти команды выполняются на этом этапе, чтобы файлы моделей были созданы в /data/models
+# и могли быть скопированы в финальный образ.
+
+# --- Копирование test.mp3 для загрузки моделей ---
+# Убедитесь, что файл test.mp3 находится в папке files рядом с этим Dockerfile при сборке
+COPY test.mp3 /tmp/test.mp3
+
+# Запускаем Demucs для загрузки моделей
+RUN python3 -m demucs -n hdemucs_mmi -d cpu /tmp/test.mp3
+RUN python3 -m demucs -n htdemucs -d cpu /tmp/test.mp3
+RUN python3 -m demucs -n htdemucs_ft -d cpu /tmp/test.mp3
+RUN python3 -m demucs -n htdemucs_6s -d cpu /tmp/test.mp3
+RUN python3 -m demucs -n mdx -d cpu /tmp/test.mp3
+RUN python3 -m demucs -n mdx_extra -d cpu /tmp/test.mp3
+# Очистка выходных данных - мы использовали это только для загрузки модели
+RUN rm -rf /lib/demucs/separated /tmp/test.mp3
+
+# Копирование ваших кастомных скриптов demucs поверх клонированного репозитория
+# Убедитесь, что файлы demucs2, demucs5, demucs7 находятся в папке files рядом с этим Dockerfile при сборке
+COPY demucs2 /lib/demucs/
+COPY demucs5 /lib/demucs/
+COPY demucs7 /lib/demucs/
+
+# Делаем файлы исполняемыми
+RUN chmod +x /lib/demucs/demucs2 /lib/demucs/demucs5 /lib/demucs/demucs7
+
+
+# ===== Второй Этап: Подготовка Melt =====
+FROM mltframework/melt:latest AS melt-builder
+
+# Установка необходимых зависимостей
+RUN apt-get update && \
+    apt-get install -y wget fontconfig dumb-init && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Предполагается, что файлы шрифтов находятся в папке files рядом с Dockerfile
+COPY Roboto-Black.ttf /usr/share/fonts/truetype/roboto/
+COPY FiraSansExtraCondensed-Medium.ttf /usr/share/fonts/truetype/FiraSansExtraCondensed/
+
+# Обновление кэша шрифтов
+RUN fc-cache -fv
+
+# Убедимся, что melt доступен
+RUN which melt
+
+
+# ===== Третий Этап: Подготовка Java-приложения =====
+FROM openjdk:17-jdk-slim AS java-app-builder
+
+# Аргументы сборки
+ARG VERSION
+ARG APP_VERSION
+
+# --- Копирование SSL сертификата, находится в папке files  ---
+COPY www.sm-karaoke.ru.crt /tmp/www.sm-karaoke.ru.crt
+
+# --- Импорт сертификата в Java keystore, используя ЖЕСТКО ЗАДАННЫЕ абсолютные пути ---
+# Пути для openjdk:17-jdk-slim
+RUN cp /usr/local/openjdk-17/lib/security/cacerts /tmp/cacerts_working
+RUN /usr/local/openjdk-17/bin/keytool \
+    -import \
+    -alias www.sm-karaoke.ru \
+    -keystore /tmp/cacerts_working \
+    -file /tmp/www.sm-karaoke.ru.crt \
+    -storepass changeit \
+    -noprompt
+RUN mv /tmp/cacerts_working /usr/local/openjdk-17/lib/security/cacerts
+
+# --- Очистка временных файлов ---
+RUN rm /tmp/www.sm-karaoke.ru.crt
+
+# --- Копирование JAR файла ---
+COPY karaoke-app-${APP_VERSION}.jar /tmp/app.jar
+
+
+# ===== Финальный Этап: Создание итогового образа =====
+# Начинаем с базового образа, совместимого с CUDA и имеющего нужные библиотеки.
+# Можно использовать образ из первого этапа или более общий, например, Ubuntu.
+# Для совместимости выберем Ubuntu 22.04, как в базовом образе Demucs.
+FROM ubuntu:22.04
+
+# Установка зависимостей, необходимых для работы всех частей
+# Включаем dumb-init, xvfb, ffmpeg, python3 (для запуска скриптов, если нужно),
+# и библиотеки, которые могут понадобиться Java или Melt.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    dumb-init \
+    xvfb \
+    ffmpeg \
+    python3 \
+    python3-pip \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    libxrender1 \
+    libxrandr2 \
+    libasound2 \
+    libxss1 \
+    libgtk-3-0 \
+    libgomp1 \
+    wget \
+    fontconfig \
+    openjdk-17-jre-headless \
+    # --- ДОБАВЛЕНО: Установка Docker CLI и Docker Compose Plugin ---
+#    ca-certificates \
+#    curl \
+#    gnupg \
+#    lsb-release \
+    # --- ---
+    && rm -rf /var/lib/apt/lists/*
+
+# --- ДОБАВЛЕНО: Установка Docker CLI и Docker Compose Plugin ---
+# 1. Установка GPG-ключа Docker
+#RUN mkdir -p /etc/apt/keyrings && \
+#    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+
+# 2. Добавление репозитория Docker
+#RUN echo \
+#  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+#  $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+# 3. Установка docker-ce-cli (только клиент) и docker-compose-plugin
+#RUN apt-get update && \
+#    apt-get install -y --no-install-recommends \
+#        docker-ce-cli \
+#        docker-compose-plugin \
+#    && \
+#    rm -rf /var/lib/apt/lists/*
+# --- КОНЕЦ ДОБАВЛЕНИЯ ---
+
+RUN apt-get update -y
+RUN apt-get install -y ca-certificates curl
+RUN install -m 0755 -d /etc/apt/keyrings
+RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+RUN chmod a+r /etc/apt/keyrings/docker.asc
+RUN echo \
+    "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+    $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" | \
+    tee /etc/apt/sources.list.d/docker.list > /dev/null
+RUN apt-get update -y
+RUN apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+RUN apt install -y docker-compose
+#RUN chmod 666 /var/run/docker.sock
+#RUN systemctl start docker
+#RUN systemctl enable docker
+
+# --- Копирование Demucs ---
+# Создание необходимых директорий
+RUN mkdir -p /lib/demucs /data/input /data/output /data/models
+# Копирование установленных Python-пакетов и самой библиотеки Demucs
+COPY --from=demucs-builder /usr/local/lib/python3.10/dist-packages /usr/local/lib/python3.10/dist-packages
+COPY --from=demucs-builder /lib/demucs /lib/demucs
+# --- Копирование предзагруженных моделей Demucs ---
+COPY --from=demucs-builder /data/models /data/models
+# Установка переменных окружения для Demucs
+ENV TORCH_HOME=/data/models
+ENV OMP_NUM_THREADS=1
+
+# --- Копирование Melt ---
+# Копирование исполняемого файла melt
+COPY --from=melt-builder /usr/local/bin/melt /usr/local/bin/melt
+# Копирование библиотек MLT и их символьных ссылок из /usr/local/lib
+COPY --from=melt-builder /usr/local/lib/libmlt*.so* /usr/local/lib/
+# Копирование плагинов MLT
+COPY --from=melt-builder /usr/local/lib/mlt-7 /usr/local/lib/mlt-7
+# Копирование ресурсов/пресетов/профилей MLT
+COPY --from=melt-builder /usr/local/share/mlt-7 /usr/local/share/mlt-7
+# Копирование установленных шрифтов (из предыдущей версии)
+COPY --from=melt-builder /usr/share/fonts/truetype/roboto /usr/share/fonts/truetype/roboto
+COPY --from=melt-builder /usr/share/fonts/truetype/FiraSansExtraCondensed /usr/share/fonts/truetype/FiraSansExtraCondensed
+# Обновление кэша шрифтов в финальном образе
+RUN fc-cache -fv
+# Установка переменной окружения для Melt, чтобы он знал, где искать библиотеки и плагины
+ENV LD_LIBRARY_PATH=/usr/local/lib
+# PATH уже должен включать /usr/local/bin, но можно убедиться
+ENV PATH=/usr/local/bin:$PATH
+
+# --- Копирование Java-приложения ---
+# Копирование JAR-файла
+COPY --from=java-app-builder /tmp/app.jar /app.jar
+# Копирование ОБНОВЛЕННОГО сертификата cacerts из java-app-builder
+# Используем правильный путь из этапа java-app-builder
+#COPY --from=java-app-builder /usr/local/openjdk-17/lib/security/cacerts /opt/java/openjdk/lib/security/cacerts
+COPY --from=java-app-builder /usr/local/openjdk-17/lib/security/cacerts /usr/lib/jvm/java-17-openjdk-amd64/lib/security/cacerts
+
+# Установка переменных окружения для Java-приложения
+# JAVA_HOME для финального образа (ubuntu + openjdk-17-jre-headless)
+ENV JAVA_HOME=/opt/java/openjdk
+ENV APP_VERSION=${VERSION:-unknown}
+ENV TZ="Europe/Moscow"
+
+# --- Установка параметров JVM по умолчанию ---
+# Используем JAVA_TOOL_OPTIONS, чтобы опции применялись автоматически
+# LANG и LC_ALL устанавливаются в docker-compose.yml или docker run, так как они влияют на ОС
+ENV JAVA_TOOL_OPTIONS="-Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8 -Duser.language=ru -Duser.country=RU -Djava.security.egd=file:/dev/./urandom"
+
+# --- Определение точки входа ---
+# Финальный образ не будет иметь единой команды ENTRYPOINT по умолчанию,
+# так как он содержит несколько утилит. Предполагается, что команда будет
+# передаваться при запуске контейнера.
+# Однако, можно установить точку входа по умолчанию, например, для запуска Java-приложения:
+#ENTRYPOINT ["java", "-Dfile.encoding=UTF-8", "-Djava.security.egd=file:/dev/./urandom", "-jar", "/app.jar"]
+
+# Или использовать оболочку для более гибкого запуска:
+#ENTRYPOINT ["/bin/bash", "-l", "-c"]
+
+# CMD может быть пустым или содержать команду по умолчанию
+CMD ["echo 'Please specify a command to run (e.g., java -jar /app/app.jar, /lib/demucs/demucs2, melt ...)'"]

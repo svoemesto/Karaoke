@@ -18,17 +18,215 @@ import org.springframework.stereotype.Controller
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter
 import java.io.File
+import java.nio.charset.Charset
+import java.nio.file.Files
+import java.nio.file.InvalidPathException
+import java.nio.file.Path
+import java.nio.file.Paths
 import java.sql.ResultSet
 import java.sql.SQLException
 import java.sql.Statement
 import java.text.SimpleDateFormat
 import java.util.*
 
+import java.security.KeyStore
+import java.security.cert.Certificate
+import java.security.cert.CertificateException
+import java.security.KeyStoreException
+import java.io.IOException
+
 @Controller
 @RequestMapping("/apis")
 class ApisController(private val sseNotificationService: SseNotificationService) {
 
+    @GetMapping("/diagnostics") // GET запрос на /apis/diagnostics
+    @ResponseBody
+    fun getDiagnosticsInfo(): Map<String, Any> {
 
+        // Ваши "вшитые" или ожидаемые пути
+        val expectedPaths = listOf(
+            "/home/nsa/Documents/Караоке",
+            "/media/nsa/FilesSSD1Tb/KaraokeDone",
+            "/clouds/KaraokeDone",
+            "/home/nsa/Documents/Караоке/demucs/input",
+            "/home/nsa/Documents/Караоке/demucs/output",
+            "/data/input",
+            "/data/output",
+            "/data/models"
+            // Добавьте сюда другие важные пути, которые использует ваше приложение
+        )
+
+        val info = mutableMapOf<String, Any>()
+
+        // --- НОВОЕ: Проверка SSL/Сертификатов ---
+        val sslInfo = mutableMapOf<String, Any>()
+        try {
+            // 1. Где Java ищет cacerts?
+            val javaHome = System.getProperty("java.home")
+            sslInfo["java.home"] = javaHome
+            val cacertsPathStr = "$javaHome/lib/security/cacerts"
+            sslInfo["expected.cacerts.path"] = cacertsPathStr
+
+            val cacertsPath = Paths.get(cacertsPathStr)
+            sslInfo["cacerts.path.exists"] = Files.exists(cacertsPath)
+            sslInfo["cacerts.path.isReadable"] = Files.isReadable(cacertsPath)
+
+            if (Files.exists(cacertsPath)) {
+                // 2. Попробуем загрузить keystore и проверить наличие нашего сертификата
+                try {
+                    val keystore = KeyStore.getInstance(KeyStore.getDefaultType()) // Обычно "JKS"
+                    Files.newInputStream(cacertsPath).use { fis ->
+                        // "changeit" - стандартный пароль для cacerts
+                        keystore.load(fis, "changeit".toCharArray())
+                    }
+                    sslInfo["keystore.load.success"] = true
+                    sslInfo["keystore.type"] = keystore.type
+                    sslInfo["keystore.size"] = keystore.size()
+
+                    // 3. Проверим наличие нашего сертификата (замените на ваш alias)
+                    val certAliasToCheck = "www.sm-karaoke.ru" // <-- ВАЖНО: Укажите правильный alias
+                    val certFound = keystore.containsAlias(certAliasToCheck)
+                    sslInfo["cert.$certAliasToCheck.found"] = certFound
+
+                    if (certFound) {
+                        val cert: Certificate = keystore.getCertificate(certAliasToCheck)
+                        sslInfo["cert.$certAliasToCheck.type"] = cert?.type ?: "Unknown"
+                        // Можно добавить отпечаток, но это сложнее
+                    }
+
+                    // 4. Проверим пару стандартных сертификатов, чтобы убедиться, что keystore не пуст
+                    sslInfo["cert.digicert.found"] = keystore.containsAlias("digicertglobalrootca") // Пример
+                    sslInfo["cert.letsencrypt.found"] = keystore.containsAlias("letsencryptauthorityx3") // Пример
+
+                } catch (ke: KeyStoreException) {
+                    sslInfo["keystore.error"] = "KeyStoreException: ${ke.message}"
+                } catch (ioe: IOException) {
+                    sslInfo["keystore.error"] = "IOException (e.g., wrong password): ${ioe.message}"
+                } catch (ce: CertificateException) {
+                    sslInfo["keystore.error"] = "CertificateException: ${ce.message}"
+                } catch (e: Exception) {
+                    sslInfo["keystore.error"] = "Unexpected error loading keystore: ${e.message}"
+                    sslInfo["keystore.error.type"] = e.javaClass.simpleName
+                }
+            } else {
+                sslInfo["cacerts.path.error"] = "File does not exist"
+            }
+        } catch (e: Exception) {
+            sslInfo["general.error"] = e.message.toString()
+            sslInfo["general.error.type"] = e.javaClass.simpleName
+        }
+        info["ssl.keystore.check"] = sslInfo
+        // --- КОНЕЦ НОВОГО ---
+
+        // 1. Информация о системе и JVM
+        info["java.version"] = System.getProperty("java.version")
+        info["java.home"] = System.getProperty("java.home")
+        info["user.dir (working directory)"] = System.getProperty("user.dir")
+        info["user.name"] = System.getProperty("user.name")
+        info["user.home"] = System.getProperty("user.home")
+        info["os.name"] = System.getProperty("os.name")
+        info["os.version"] = System.getProperty("os.version")
+
+        // --- НОВОЕ: Информация о локалях и кодировке ---
+        info["default.charset"] = Charset.defaultCharset().toString()
+        info["file.encoding"] = System.getProperty("file.encoding")
+        info["sun.jnu.encoding"] = System.getProperty("sun.jnu.encoding")
+        info["user.language"] = System.getProperty("user.language")
+        info["user.country"] = System.getProperty("user.country") ?: "Not Set"
+        info["locale.default"] = Locale.getDefault().toString()
+        // --- КОНЕЦ НОВОГО ---
+
+        // 2. Переменные окружения
+        val envVars = System.getenv()
+        info["env.WORK_IN_CONTAINER"] = envVars["WORK_IN_CONTAINER"] ?: "Not Set"
+        info["env.JAVA_HOME"] = envVars["JAVA_HOME"] ?: "Not Set"
+        info["env.LANG"] = envVars["LANG"] ?: "Not Set" // НОВОЕ: Проверка LANG
+        info["env.LC_ALL"] = envVars["LC_ALL"] ?: "Not Set" // НОВОЕ: Проверка LC_ALL
+
+        // 3. Информация о файлах и путях (с обработкой ошибок)
+        val pathsInfo = mutableMapOf<String, Map<String, Any>>()
+        for (pathStr in expectedPaths) {
+            val pathInfo = mutableMapOf<String, Any>()
+            try {
+                // --- НОВОЕ: Анализ самой строки пути ---
+                pathInfo["string.length"] = pathStr.length
+                pathInfo["string.bytes_utf8"] = pathStr.toByteArray(Charsets.UTF_8).contentToString()
+                pathInfo["string.bytes_default"] = pathStr.toByteArray().contentToString()
+                // --- КОНЕЦ НОВОГО ---
+
+                val path: Path = Paths.get(pathStr) // Эта строка вызвала ошибку
+                pathInfo["path_created_successfully"] = true
+
+                // Остальная логика проверки пути...
+                pathInfo["exists"] = Files.exists(path)
+                pathInfo["isReadable"] = Files.isReadable(path)
+                pathInfo["isWritable"] = Files.isWritable(path)
+                pathInfo["isDirectory"] = Files.isDirectory(path)
+
+                if (Files.exists(path) && Files.isDirectory(path)) {
+                    val files = try {
+                        Files.list(path).limit(10).map { it.fileName.toString() }.toList()
+                    } catch (e: Exception) {
+                        listOf("Error listing files: ${e.message}")
+                    }
+                    pathInfo["first_10_files"] = files
+                    pathInfo["total_files_approx"] = try {
+                        File(pathStr).list()?.size ?: "Unknown"
+                    } catch (e: Exception) {
+                        "Error counting: ${e.message}"
+                    }
+                } else if (Files.exists(path)) {
+                    pathInfo["size_bytes"] = try {
+                        Files.size(path)
+                    } catch (e: Exception) {
+                        "Error getting size: ${e.message}"
+                    }
+                }
+            } catch (ipe: InvalidPathException) {
+                // --- НОВОЕ: Специальная обработка InvalidPathException ---
+                pathInfo["path_created_successfully"] = false
+                pathInfo["error.type"] = "InvalidPathException"
+                pathInfo["error.message"] = ipe.message.toString()
+                pathInfo["error.input"] = ipe.input
+                pathInfo["error.index"] = ipe.index
+                // --- КОНЕЦ НОВОГО ---
+            } catch (e: Exception) {
+                pathInfo["path_created_successfully"] = false
+                pathInfo["error.type"] = e.javaClass.simpleName
+                pathInfo["error.message"] = e.message ?: "No message"
+            }
+            pathsInfo[pathStr] = pathInfo
+        }
+        info["paths_check"] = pathsInfo
+
+        // 4. Информация о Classpath
+        info["classloader"] = this.javaClass.classLoader.toString()
+        try {
+            val protectionDomain = this.javaClass.protectionDomain
+            val codeSource = protectionDomain.codeSource
+            info["jar_location"] = codeSource?.location?.toString() ?: "Unknown or not from JAR"
+        } catch (e: Exception) {
+            info["jar_location_error"] = e.message.toString()
+        }
+
+        return info
+    }
+
+    @GetMapping("/cnt")
+    @ResponseBody
+    fun getCnt(): String {
+        val settings = Settings.loadListFromDb(database = WORKING_DATABASE)
+        println("Вызван getCnt. Количество записей в в базе данных: ${settings.size}")
+        return "Количество записей в в базе данных: ${settings.size}"
+    }
+
+    @GetMapping("/fls")
+    @ResponseBody
+    fun getFls(): String {
+            val files = getListFiles("/home/nsa/Documents/Караоке").joinToString(", ")
+        println("Вызван getFls. Файлы в папке /home/nsa/Documents/Караоке: $files")
+        return "Вызван getFls. Файлы в папке /home/nsa/Documents/Караоке: $files"
+    }
 
     @GetMapping("/song/{id}/filedrums")
     fun getSongFileDrums(

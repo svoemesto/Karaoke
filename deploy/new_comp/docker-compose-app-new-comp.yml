@@ -1,0 +1,30 @@
+version: "3.9"
+services:
+
+  karaoke-app:
+    container_name: karaoke-app
+    image: svoemestodev/karaoke-app:1
+    ports:
+      - "8898:8899"
+    environment:
+      WORK_IN_CONTAINER: 1
+      LANG: "C.UTF-8"
+      LC_ALL: "C.UTF-8"
+    volumes:
+      - /home/nsa/Documents/Караоке:/home/nsa/Documents/Караоке
+      - /media/nsa/FilesSSD1Tb/KaraokeDone:/media/nsa/FilesSSD1Tb/KaraokeDone
+      - /clouds/KaraokeDone:/clouds/KaraokeDone
+      - /data/input:/home/nsa/Documents/Караоке/demucs/input
+      - /data/output:/home/nsa/Documents/Караоке/demucs/output
+      - /home/nsa/Documents/SpaceBox4096:/home/nsa/Documents/SpaceBox4096
+      - /home/nsa/demucs-docker/tmp:/home/nsa/demucs-docker/tmp
+    networks:
+      - karaokenet
+    entrypoint:
+      - java
+      - -Xmx2g
+    command: -jar /app.jar
+
+networks:
+  karaokenet:
+    driver: bridge

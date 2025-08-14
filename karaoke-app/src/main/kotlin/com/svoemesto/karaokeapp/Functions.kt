@@ -449,23 +449,8 @@ fun createKaraoke(settings: Settings, songVersion: SongVersion) {
 //    val voices = getVoices(settings, songVersion)
 
     if (songVersion in listOf(SongVersion.CHORDS, SongVersion.CHORDSVK) && (!File(settings.drumsNameFlac).exists() || !File(settings.bassNameFlac).exists())) {
-        val args1 = listOf(
-//            listOf("python3", "-m", "demucs", "-n", DEMUCS_MODEL_NAME, "-d", "cpu", "--filename", "{track}-{stem}.{ext}", "-o", settings.rootFolder.rightFileName(), settings.fileAbsolutePath.rightFileName()),
-            listOf("make", "-s", "-C", "/home/nsa/demucs-docker", "run",
-                """folder="${settings.rootFolder.rightFileName()}"""",
-                """track="${settings.fileName}.flac"""",
-            ),
-            listOf("ffmpeg", "-i", settings.drumsNameWav.rightFileName(), "-compression_level", "8", settings.drumsNameFlac.rightFileName(), "-y"),
-            listOf("ffmpeg", "-i", settings.bassNameWav.rightFileName(), "-compression_level", "8", settings.bassNameFlac.rightFileName(), "-y"),
-        )
-        val args2 = listOf(
-            listOf("rm", settings.otherNameWav.rightFileName()),
-            listOf("rm", settings.vocalsNameWav.rightFileName()),
-            listOf("rm", settings.drumsNameWav.rightFileName()),
-            listOf("rm", settings.bassNameWav.rightFileName())
-        )
-        args1.forEach { arg -> runCommand(arg) }
-        args2.forEach { arg -> runCommand(arg, ignoreErrors = true) }
+        val args = settings.argsDemucs5()
+        args.forEach { arg -> runCommand(arg) }
     }
 
     val mltProp = settings.getMltProp(songVersion)

@@ -475,13 +475,13 @@ class KaraokeProcess(
                         "process_time_left_str, " +
                         "without_control " +
                         ") VALUES(" +
-                        "'${process.name.rightFileName()}', " +
+                        "'${process.name.replace("'","''")}', " +
                         "'${process.status}', " +
                         "${process.order}, " +
                         "${process.priority}, " +
-                        "'${process.command}', " +
-                        "'${process.argsJson}', " +
-                        "'${process.description}', " +
+                        "'${process.command.replace("'","''")}', " +
+                        "'${process.argsJson.replace("'","''")}', " +
+                        "'${process.description.replace("'","''")}', " +
                         "${process.settingsId}, " +
                         "'${process.type}', " +
                         "${process.start}, " +
@@ -718,7 +718,7 @@ class KaraokeProcess(
                         prioritet = 19
                         args = listOf(
                             listOf(
-                                "docker-compose", "-f", "/home/nsa/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
+                                "docker", "compose", "-f", "/home/nsa/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
                                 "${settings.rootFolder}/done_projects/${settings.rightSettingFileName} [lyrics].mlt".rightFileName()
                             ),
                             listOf("mkdir", "-p", settings.pathToStoreFolderLyrics),
@@ -849,7 +849,7 @@ class KaraokeProcess(
                         prioritet = 19
                         args = listOf(
                             listOf(
-                                "docker-compose", "-f", "/home/nsa/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
+                                "docker", "compose", "-f", "/home/nsa/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
                                 "${settings.rootFolder}/done_projects/${settings.rightSettingFileName} [karaoke].mlt".rightFileName()
                             ),
                             listOf("mkdir", "-p", settings.pathToStoreFolderKaraoke),
@@ -946,7 +946,7 @@ class KaraokeProcess(
                         prioritet = 19
                         args = listOf(
                             listOf(
-                                "docker-compose", "-f", "/home/nsa/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
+                                "docker", "compose", "-f", "/home/nsa/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
                                 "${settings.rootFolder}/done_projects/${settings.rightSettingFileName} [chords].mlt".rightFileName()
                             )
                         )
@@ -981,95 +981,11 @@ class KaraokeProcess(
 //                    }
                     KaraokeProcessTypes.DEMUCS2 -> {
                         description = "Демукс 2"
-                        args = listOf(
-//                            listOf("python3", "-m", "demucs", "-n", DEMUCS_MODEL_NAME, "-d", "cpu", "--filename", "{track}-{stem}.{ext}",
-//                                "--two-stems=${settings.separatedStem}",
-//                                "-o",
-//                                settings.rootFolder.rightFileName(),
-//                                settings.fileAbsolutePath.rightFileName()
-//                            ),
-                            listOf("mkdir", "-p", "${settings.rootFolder.rightFileName()}/$DEMUCS_MODEL_NAME"),
-                            listOf("make", "-s", "-C", "/home/nsa/demucs-docker", "run",
-                                """folder="${settings.rootFolder.rightFileName()}"""",
-                                """track="${settings.fileName}.flac"""",
-                                "splittrack=${settings.separatedStem}"
-                            ),
-                            listOf("mv", settings.oldNoStemNameWav.rightFileName(), settings.newNoStemNameWav.rightFileName()),
-                            listOf("ffmpeg", "-i", settings.newNoStemNameWav.rightFileName(), "-compression_level", "8", settings.newNoStemNameFlac.rightFileName(), "-y"),
-                            listOf("rm", settings.newNoStemNameWav.rightFileName()),
-                            listOf("ffmpeg", "-i", settings.vocalsNameWav.rightFileName(), "-compression_level", "8", settings.vocalsNameFlac.rightFileName(), "-y"),
-                            listOf("rm", settings.vocalsNameWav.rightFileName())
-                        )
-                        argsDescription = listOf(
-                            "Демукс 2 - make folder",
-                            "Демукс 2 - demucs",
-                            "Демукс 2 - rename music file",
-                            "Демукс 2 - music to flac",
-                            "Демукс 2 - del music wav",
-                            "Демукс 2 - vocal to flac",
-                            "Демукс 2 - del vocal wav"
-                        )
+                        args = settings.argsDemucs2()
                     }
                     KaraokeProcessTypes.DEMUCS5 -> {
                         description = "Демукс 5"
-                        args = listOf(
-//                            listOf("python3", "-m", "demucs", "-n", DEMUCS_MODEL_NAME, "-d", "cpu", "--filename", "{track}-{stem}.{ext}",
-//                                "--two-stems=${settings.separatedStem}",
-//                                "-o",
-//                                settings.rootFolder.rightFileName(),
-//                                settings.fileAbsolutePath.rightFileName()
-//                            ),
-                            listOf("mkdir", "-p", "${settings.rootFolder.rightFileName()}/$DEMUCS_MODEL_NAME"),
-                            listOf("make", "-s", "-C", "/home/nsa/demucs-docker", "run",
-                                """folder="${settings.rootFolder.rightFileName()}"""",
-                                """track="${settings.fileName}.flac"""",
-                                "splittrack=${settings.separatedStem}"
-                            ),
-                            listOf("mv", settings.oldNoStemNameWav.rightFileName(), settings.newNoStemNameWav.rightFileName()),
-                            listOf("ffmpeg", "-i", settings.newNoStemNameWav.rightFileName(), "-compression_level", "8", settings.newNoStemNameFlac.rightFileName(), "-y"),
-                            listOf("rm", settings.newNoStemNameWav.rightFileName()),
-                            listOf("ffmpeg", "-i", settings.vocalsNameWav.rightFileName(), "-compression_level", "8", settings.vocalsNameFlac.rightFileName(), "-y"),
-                            listOf("rm", settings.vocalsNameWav.rightFileName()),
-//                            listOf("python3", "-m", "demucs", "-n", DEMUCS_MODEL_NAME, "-d", "cpu", "--filename", "{track}-{stem}.{ext}",
-//                                "-o",
-//                                settings.rootFolder.rightFileName(),
-//                                settings.fileAbsolutePath.rightFileName()
-//                            ),
-                            listOf("make", "-s", "-C", "/home/nsa/demucs-docker", "run",
-                                """folder="${settings.rootFolder.rightFileName()}"""",
-                                """track="${settings.fileName}.flac"""",
-                            ),
-                            listOf("ffmpeg", "-i", settings.drumsNameWav.rightFileName(), "-compression_level", "8", settings.drumsNameFlac.rightFileName(), "-y"),
-                            listOf("rm", settings.drumsNameWav.rightFileName()),
-                            listOf("ffmpeg", "-i", settings.bassNameWav.rightFileName(), "-compression_level", "8", settings.bassNameFlac.rightFileName(), "-y"),
-                            listOf("rm", settings.bassNameWav.rightFileName()),
-                            listOf("ffmpeg", "-i", settings.guitarsNameWav.rightFileName(), "-compression_level", "8", settings.guitarsNameFlac.rightFileName(), "-y"),
-                            listOf("rm", settings.guitarsNameWav.rightFileName()),
-                            listOf("ffmpeg", "-i", settings.otherNameWav.rightFileName(), "-compression_level", "8", settings.otherNameFlac.rightFileName(), "-y"),
-                            listOf("rm", settings.otherNameWav.rightFileName()),
-                            listOf("ffmpeg", "-i", settings.vocalsNameWav.rightFileName(), "-compression_level", "8", settings.vocalsNameFlac.rightFileName(), "-y"),
-                            listOf("rm", settings.vocalsNameWav.rightFileName())
-                        )
-                        argsDescription = listOf(
-                            "Демукс 5 - make folder",
-                            "Демукс 5 - demucs 2",
-                            "Демукс 5 - rename music file",
-                            "Демукс 5 - music to flac",
-                            "Демукс 5 - del music wav",
-                            "Демукс 5 - vocal to flac",
-                            "Демукс 5 - del vocal wav",
-                            "Демукс 5 - demucs 5",
-                            "Демукс 5 - drums to flac",
-                            "Демукс 5 - del drums wav",
-                            "Демукс 5 - bass to flac",
-                            "Демукс 5 - del bass wav",
-                            "Демукс 5 - guitars to flac",
-                            "Демукс 5 - del guitars wav",
-                            "Демукс 5 - other to flac",
-                            "Демукс 5 - del other wav",
-                            "Демукс 5 - vocal to flac",
-                            "Демукс 5 - del vocal wav"
-                        )
+                        args = settings.argsDemucs5()
                     }
                     KaraokeProcessTypes.SHEETSAGE -> {
                         val srcWav = "/home/nsa/Documents/sheetsage/source.wav"
@@ -1344,7 +1260,7 @@ class KaraokeProcess(
                         prioritet = 19
                         args = listOf(
                             listOf(
-                                "docker-compose", "-f", "/home/nsa/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
+                                "docker", "compose", "-f", "/home/nsa/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
                                 "${settings.rootFolder}/done_projects/${settings.rightSettingFileName} [lyricsVk].mlt".rightFileName()
                             )
                         )
@@ -1355,7 +1271,7 @@ class KaraokeProcess(
                         prioritet = 19
                         args = listOf(
                             listOf(
-                                "docker-compose", "-f", "/home/nsa/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
+                                "docker", "compose", "-f", "/home/nsa/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
                                 "${settings.rootFolder}/done_projects/${settings.rightSettingFileName} [karaokeVk].mlt".rightFileName()
                             )
                         )
@@ -1365,7 +1281,7 @@ class KaraokeProcess(
                         prioritet = 19
                         args = listOf(
                             listOf(
-                                "docker-compose", "-f", "/home/nsa/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
+                                "docker", "compose", "-f", "/home/nsa/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
                                 "${settings.rootFolder}/done_projects/${settings.rightSettingFileName} [chordsVk].mlt".rightFileName()
                             )
                         )
@@ -1375,7 +1291,7 @@ class KaraokeProcess(
                         prioritet = 19
                         args = listOf(
                             listOf(
-                                "docker-compose", "-f", "/home/nsa/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
+                                "docker", "compose", "-f", "/home/nsa/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
                                 "${settings.rootFolder}/done_projects/${settings.rightSettingFileName} [tabsVk].mlt".rightFileName()
                             )
                         )

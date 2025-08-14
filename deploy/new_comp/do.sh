@@ -10,9 +10,6 @@ DEPLOY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null && pwd)"
 APP_VERSION=1
 DOCKER=$(which docker)
 COMPOSE=$(which docker-compose)
-DOCKER_REGISTRY=svoemestodev
-DOCKER_PASSWORD=dckr_pat_SxLnc4cA4EChRdvQcnQjZCPOgw0
-
 
 function do_start_db() {
   do_stop_db

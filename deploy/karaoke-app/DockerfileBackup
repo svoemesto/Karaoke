@@ -1,14 +1,10 @@
-FROM ubuntu:24.04
-RUN apt-get update && apt-get install -q -y default-jdk
-RUN java -version
+FROM openjdk:17
 ARG VERSION
 ARG APP_VERSION
 
-COPY karaoke-app-${APP_VERSION}.jar /home/Karaoke/app.jar
-
-RUN ls /home/Karaoke
+COPY karaoke-app-${APP_VERSION}.jar /app.jar
 
 ENV APP_VERSION ${VERSION}
 ENV TZ="Europe/Moscow"
 
-ENTRYPOINT ["java","-jar","/home/Karaoke/app.jar"]
+ENTRYPOINT ["java","-Dfile.encoding=UTF-8","-Djava.security.egd=file:/dev/./urandom","-jar","/app.jar"]

@@ -63,7 +63,7 @@ function build_images() {
 
 function build_start_app() {
   echo "Building APP module and start"
-  build_app
+  do_build_app
   do_start
 }
 
@@ -79,11 +79,24 @@ function build_start_webvue() {
   do_start_webvue
 }
 
-function build_app() {
+function do_build_app() {
 
   echo "Building APP module"
   cd ${BASE_DIR} && ${GRADLE} clean karaoke-app:bootJar
+  cp $DEPLOY_DIR/karaoke-app/files/* /home/nsa/Karaoke/karaoke-app/build/libs
   ${DOCKER} image build $BASE_DIR/karaoke-app/build/libs/ \
+   --build-arg VERSION=${BUILD_VERSION} \
+   --build-arg APP_VERSION=${APP_VERSION} \
+   -t "$DOCKER_REGISTRY/karaoke-app:${BUILD_VERSION}" \
+   -f $DEPLOY_DIR/karaoke-app/Dockerfile
+}
+
+function do_build_app_nocache() {
+
+  echo "Building APP module"
+  cd ${BASE_DIR} && ${GRADLE} clean karaoke-app:bootJar
+  cp $DEPLOY_DIR/karaoke-app/files/* /home/nsa/Karaoke/karaoke-app/build/libs
+  ${DOCKER} image build --no-cache $BASE_DIR/karaoke-app/build/libs/ \
    --build-arg VERSION=${BUILD_VERSION} \
    --build-arg APP_VERSION=${APP_VERSION} \
    -t "$DOCKER_REGISTRY/karaoke-app:${BUILD_VERSION}" \
@@ -165,6 +178,19 @@ function do_stop_webvue() {
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-webvue.yml down
 }
 
+function do_start_app() {
+  do_stop_webvue
+  echo "Старт APP"
+  ${COMPOSE} -f $DEPLOY_DIR/docker-compose-app.yml up -d
+  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga
+  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "APP запущен"
+}
+
+function do_stop_app() {
+  echo "Остановка APP"
+  ${COMPOSE} -f $DEPLOY_DIR/docker-compose-app.yml down
+}
+
 function do_push() {
   echo "Pushing images"
   ${DOCKER} login --username ${DOCKER_REGISTRY} --password ${DOCKER_PASSWORD}
@@ -173,6 +199,30 @@ function do_push() {
   ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-webvue:${BUILD_VERSION}"
   command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga
   command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "Pushing!"
+}
+
+function do_push_app() {
+  echo "Pushing APP"
+  ${DOCKER} login --username ${DOCKER_REGISTRY} --password ${DOCKER_PASSWORD}
+  ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-app:${BUILD_VERSION}"
+  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga
+  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "Pushing APP!"
+}
+
+function do_push_web() {
+  echo "Pushing WEB"
+  ${DOCKER} login --username ${DOCKER_REGISTRY} --password ${DOCKER_PASSWORD}
+  ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-web:${BUILD_VERSION}"
+  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga
+  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "Pushing WEB!"
+}
+
+function do_push_webvue() {
+  echo "Pushing WEBVUE"
+  ${DOCKER} login --username ${DOCKER_REGISTRY} --password ${DOCKER_PASSWORD}
+  ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-webvue:${BUILD_VERSION}"
+  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga
+  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "Pushing WEBVUE!"
 }
 
 function do_pull() {
@@ -212,24 +262,30 @@ esac
 
 case ${cmd} in
 build) do_build ;;
-build_app) build_app ;;
 build_start) do_load ;;
-build_start_app) build_start_app ;;
+build_app) do_build_app ;;
+build_app_nocache) do_build_app_nocache ;;
 build_web) build_web ;;
 build_webvue) do_build_webvue ;;
+build_start_app) build_start_app ;;
 build_start_web) build_start_web ;;
 build_start_webvue) build_start_webvue ;;
 images) build_images ;;
 start) do_start ;;
 start_db) do_start_db ;;
+start_app) do_start_app ;;
 start_web) do_start_web ;;
 start_webvue) do_start_webvue ;;
 stop) do_stop ;;
 stop_db) do_stop_db ;;
+stop_app) do_stop_app ;;
 stop_web) do_stop_web ;;
 stop_webvue) do_stop_webvue ;;
 load) do_load ;;
 push) do_push ;;
+push_app) do_push_app ;;
+push_web) do_push_web ;;
+push_webvue) do_push_webvue ;;
 pull) do_pull ;;
 ps) do_ps ;;
 rmi) do_rmi ;;

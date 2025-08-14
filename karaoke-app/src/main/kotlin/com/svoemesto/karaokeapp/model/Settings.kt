@@ -198,16 +198,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         if (track != 0L ) resultList.add("(${"%02d".format(track)})")
         resultList.add("[$author] -")
         resultList.add(songName)
-        return resultList.joinToString(" ").replace("?","") //.rightFileName()
-    }
-
-    val rightSettingFileNameFavotite: String get() {
-        val resultList: MutableList<String> = mutableListOf()
-        resultList.add("[$author] -")
-        resultList.add(songName)
-        if (year != 0L ) resultList.add("($year)")
-        if (key != "" ) resultList.add("[${key.replace(" major", "").replace(" minor","m")}]")
-        return resultList.joinToString(" ").replace("?","") //.rightFileName()
+        return resultList.joinToString(" ").replace("?","").replace(":","-").replace("!","") //.rightFileName()
     }
 
     var tags: String = ""
@@ -733,6 +724,97 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     val linkPlTabs: String get() = if (idPlMelody == "") "" else linkPlMelodyPlay!!
     val linkPlChords: String get() = if (idPlChords == "") "" else linkPlChordsPlay!!
     val datePublish: String get() = if (date == "" || time == "") "Дата пока не определена" else "${date} ${time}"
+
+    fun argsDemucs2(): List<List<String>> {
+
+        // Сначала копируем файл аудио в папку PATH_TO_TEMP_DEMUCS_FOLDER с именем file.flac, потом вызываем докер,
+        // потом копируем оттуда результат и удаляем папку PATH_TO_TEMP_DEMUCS_FOLDER
+        val tmpFileName = "file"
+        return listOf(
+            listOf("mkdir", "-p", PATH_TO_TEMP_DEMUCS_FOLDER),
+            listOf("chmod", "-R", "777", PATH_TO_TEMP_DEMUCS_FOLDER),
+            listOf("cp", fileAbsolutePath.rightFileName(), "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName.flac"),
+            listOf(
+                "docker", "run", "--rm", "-i", "--name=demucs",
+                "-v", "$PATH_TO_TEMP_DEMUCS_FOLDER:/data/input",
+                "-v", "$PATH_TO_TEMP_DEMUCS_FOLDER:/data/output",
+                "svoemestodev/demucs:latest",
+                "''./demucs2 -file $PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName.flac -recode flac''"
+            ),
+            listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-accompaniment.flac", "${newNoStemNameFlac.rightFileName()}"),
+            listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-vocals.flac", "${vocalsNameFlac.rightFileName()}"),
+            listOf("rm", "-rf", PATH_TO_TEMP_DEMUCS_FOLDER)
+        )
+//        val settings = this
+//        return listOf(
+//        listOf("python3", "-m", "demucs", "-n", DEMUCS_MODEL_NAME, "-d", "cpu", "--filename", "{track}-{stem}.{ext}",
+//            "--two-stems=${settings.separatedStem}",
+//            "-o",
+//            settings.rootFolder.rightFileName(),
+//            settings.fileAbsolutePath.rightFileName()
+//        ),
+//        ),
+//        listOf("mv", settings.oldNoStemNameWav.rightFileName(), settings.newNoStemNameWav.rightFileName()),
+//        listOf("ffmpeg", "-i", settings.newNoStemNameWav.rightFileName(), "-compression_level", "8", settings.newNoStemNameFlac.rightFileName(), "-y"),
+//        listOf("rm", settings.newNoStemNameWav.rightFileName()),
+//        listOf("ffmpeg", "-i", settings.vocalsNameWav.rightFileName(), "-compression_level", "8", settings.vocalsNameFlac.rightFileName(), "-y"),
+//        listOf("rm", settings.vocalsNameWav.rightFileName())
+//        )
+    }
+
+    fun argsDemucs5(): List<List<String>> {
+
+        // Сначала копируем файл аудио в папку PATH_TO_TEMP_DEMUCS_FOLDER с именем file.flac, потом вызываем докер,
+        // потом копируем оттуда результат и удаляем папку PATH_TO_TEMP_DEMUCS_FOLDER
+        val tmpFileName = "file"
+        return listOf(
+            listOf("mkdir", "-p", PATH_TO_TEMP_DEMUCS_FOLDER),
+            listOf("chmod", "-R", "777", PATH_TO_TEMP_DEMUCS_FOLDER),
+            listOf("cp", fileAbsolutePath.rightFileName(), "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName.flac"),
+            listOf(
+                "docker", "run", "--rm", "-i", "--name=demucs",
+                "-v", "$PATH_TO_TEMP_DEMUCS_FOLDER:/data/input",
+                "-v", "$PATH_TO_TEMP_DEMUCS_FOLDER:/data/output",
+                "svoemestodev/demucs:latest",
+                "''./demucs5 -file $PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName.flac -recode flac''"
+            ),
+            listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-accompaniment.flac", "${newNoStemNameFlac.rightFileName()}"),
+            listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-vocals.flac", "${vocalsNameFlac.rightFileName()}"),
+            listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-drums.flac", "${drumsNameFlac.rightFileName()}"),
+            listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-bass.flac", "${bassNameFlac.rightFileName()}"),
+            listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-other.flac", "${otherNameFlac.rightFileName()}"),
+            listOf("rm", "-rf", PATH_TO_TEMP_DEMUCS_FOLDER)
+        )
+//        val settings = this
+//        return listOf(
+//            listOf("python3", "-m", "demucs", "-n", DEMUCS_MODEL_NAME, "-d", "cpu", "--filename", "{track}-{stem}.{ext}",
+//                "--two-stems=${settings.separatedStem}",
+//                "-o",
+//                settings.rootFolder.rightFileName(),
+//                settings.fileAbsolutePath.rightFileName()
+//            ),
+//            listOf("mv", settings.oldNoStemNameWav.rightFileName(), settings.newNoStemNameWav.rightFileName()),
+//            listOf("ffmpeg", "-i", settings.newNoStemNameWav.rightFileName(), "-compression_level", "8", settings.newNoStemNameFlac.rightFileName(), "-y"),
+//            listOf("rm", settings.newNoStemNameWav.rightFileName()),
+//            listOf("ffmpeg", "-i", settings.vocalsNameWav.rightFileName(), "-compression_level", "8", settings.vocalsNameFlac.rightFileName(), "-y"),
+//            listOf("rm", settings.vocalsNameWav.rightFileName()),
+//            listOf("python3", "-m", "demucs", "-n", DEMUCS_MODEL_NAME, "-d", "cpu", "--filename", "{track}-{stem}.{ext}",
+//                "-o",
+//                settings.rootFolder.rightFileName(),
+//                settings.fileAbsolutePath.rightFileName()
+//            ),
+//            listOf("ffmpeg", "-i", settings.drumsNameWav.rightFileName(), "-compression_level", "8", settings.drumsNameFlac.rightFileName(), "-y"),
+//            listOf("rm", settings.drumsNameWav.rightFileName()),
+//            listOf("ffmpeg", "-i", settings.bassNameWav.rightFileName(), "-compression_level", "8", settings.bassNameFlac.rightFileName(), "-y"),
+//            listOf("rm", settings.bassNameWav.rightFileName()),
+//            listOf("ffmpeg", "-i", settings.guitarsNameWav.rightFileName(), "-compression_level", "8", settings.guitarsNameFlac.rightFileName(), "-y"),
+//            listOf("rm", settings.guitarsNameWav.rightFileName()),
+//            listOf("ffmpeg", "-i", settings.otherNameWav.rightFileName(), "-compression_level", "8", settings.otherNameFlac.rightFileName(), "-y"),
+//            listOf("rm", settings.otherNameWav.rightFileName()),
+//            listOf("ffmpeg", "-i", settings.vocalsNameWav.rightFileName(), "-compression_level", "8", settings.vocalsNameFlac.rightFileName(), "-y"),
+//            listOf("rm", settings.vocalsNameWav.rightFileName())
+//        )
+    }
 
     val sheetstageInfo: Map<String, Any> get() {
         // key - тональность
@@ -3212,14 +3294,17 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                 val (countCreate, countUpdate, countDelete) = updateRemoteSettingFromLocalDatabase(id)
                 val body = if (countCreate + countUpdate + countDelete == 0) "Изменения не требуются" else listOf(Pair(countCreate > 0, "создано записей: $countCreate"), Pair(countUpdate > 0, "обновлено записей: $countUpdate"), Pair(countDelete > 0, "удалено записей: $countDelete")).filter { it.first }.map{ it.second }.joinToString(", ").uppercaseFirstLetter()
 
-                SNS.send(SseNotification.message(
-                    Message(
-                        type = "info",
-                        head = "Автоматическое обновление БД",
-                        body = body
-                    )
-                ))
-                println("Автоматическое обновление записей серверной БД - ${body}")
+                if (!(countUpdate == 1 && diff.any { it.recordDiffName.startsWith("status_process_")  })) {
+                    SNS.send(SseNotification.message(
+                        Message(
+                            type = "info",
+                            head = "Автоматическое обновление БД",
+                            body = body
+                        )
+                    ))
+                    println("Автоматическое обновление записей серверной БД - ${body}")
+                }
+
             }
 
         }

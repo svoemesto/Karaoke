@@ -1,0 +1,23 @@
+version: "3.9"
+services:
+  karaoke-db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "postgres"
+      POSTGRES_DB: "karaoke"
+      PGDATA: "/var/lib/postgresql/data/16"
+      WORK_IN_CONTAINER: 1
+    container_name: karaoke-db
+    ports:
+      - "8832:5432" # порт хоста : порт внутри контейнера
+    networks:
+      - karaokenet
+    volumes: # локальная папка : папка внутри контейнера
+      - /home/nsa/Documents/Караоке-db:/var/lib/postgresql/data/16 # мапим локальную папку /home/nsa/Documents/Караоке-db в контейнер по пути /var/lib/postgresql/data/16
+      - /home/nsa/Documents/dumps:/dumps # мапим папку /home/nsa/Documents/dumps в контейнер по пути /dumps
+    restart: always
+
+networks:
+  karaokenet:
+    driver: bridge

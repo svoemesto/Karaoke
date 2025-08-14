@@ -21,16 +21,18 @@ class Connection(
     companion object {
 
         private val USERNAME = "postgres"
-        private val PASSWORD = "postgres"
+//        private val PASSWORDLOCAL = if (APP_WORK_IN_CONTAINER) "bp4QuC5L2Tv~vpKQkUcg" else "postgres"
+        private val PASSWORDLOCAL = "postgres"
+        private val PASSWORDREMOTE = "postgres"
         fun local(): KaraokeConnection {
-            return Connection(name = "LOCAL", url = connectionLocalUrl(), username = USERNAME, password = PASSWORD)
+            return Connection(name = "LOCAL", url = connectionLocalUrl(), username = USERNAME, password = PASSWORDLOCAL)
         }
         fun remote(): KaraokeConnection {
-            return Connection(name = "SERVER", url = connectionRemoteUrl(), username = USERNAME, password = PASSWORD)
+            return Connection(name = "SERVER", url = connectionRemoteUrl(), username = USERNAME, password = PASSWORDREMOTE)
         }
 
         fun virtual(): KaraokeConnection {
-            return Connection(name = "VIRTUAL", url = connectionVirtualUrl(), username = USERNAME, password = PASSWORD)
+            return Connection(name = "VIRTUAL", url = connectionVirtualUrl(), username = USERNAME, password = PASSWORDLOCAL)
         }
 
         private fun connectionLocalUrl(): String {

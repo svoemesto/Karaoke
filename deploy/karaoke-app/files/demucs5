@@ -1,0 +1,158 @@
+#!/bin/sh
+
+model_name=hdemucs_mmi
+split_track=vocals
+shifts=1
+overlap=0.25
+parallel_jobs=1
+
+# Парсинг параметров
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        -file)
+            full_path="$2"
+            shift 2
+            ;;
+        -recode)
+            recode_extention="$2"
+            shift 2
+            ;;
+        -model)
+            model_name="$2"
+            shift 2
+            ;;
+        -split)
+            split_track="$2"
+            shift 2
+            ;;
+        -shifts)
+            shifts="$2"
+            shift 2
+            ;;
+        -overlap)
+            overlap="$2"
+            shift 2
+            ;;
+        -jobs)
+            parallel_jobs="$2"
+            shift 2
+            ;;
+        -output)
+            output_folder="$2"
+            shift 2
+            ;;
+        *)
+            echo "Неизвестный параметр: $1"
+            ;;
+    esac
+done
+
+# Полный путь к файлу
+# full_path="$1"
+
+#Расширение для перекодирования
+# recode_extention=$2
+
+# Получаем директорию без имени файла
+dir_path=$(dirname "$full_path")
+
+# Получаем только имя файла
+file_name=$(basename "$full_path")
+
+# Разделяем имя файла и расширение с помощью expr
+base_name=$(expr "$file_name" : '\(.*\)\.[^\.]*$')
+extension=$(expr "$file_name" : '.*\.\(.*\)')
+
+# Если extension равно file_name, значит расширения нет
+if [ "$extension" = "$file_name" ]; then
+    extension=""
+fi
+
+# Если base_name равно пустой строке, значит расширения нет
+if [ -z "$base_name" ]; then
+    base_name="$file_name"
+    extension=""
+fi
+
+# local_path задана заранее
+
+local_path_input="/data/input"
+local_path_output="/data/output"
+local_path_output_tmp="$local_path_output/_tmp_"
+mkdir -p "$local_path_output_tmp"
+chmod -R 777 "$local_path_output_tmp"
+
+model_path="$local_path_output_tmp/$model_name"
+
+# Создаем full_local_path
+full_local_path="$local_path_input/$file_name"
+
+# Фиксированное имя для копии файла
+input_name="input"
+
+# Создаем имя для копии файла с оригинальным расширением
+if [ -z "$extension" ]; then
+    copy_file_name="$input_name"
+else
+    copy_file_name="$input_name.$extension"
+fi
+
+# Полный путь к копии файла во временной папке
+copy_full_path="$local_path_output_tmp/$copy_file_name"
+
+# Проверяем, существует ли файл с именем copy_file_name в local_path_input
+if [ -e "$copy_full_path" ]; then
+    echo "Файл $copy_file_name уже существует. Удаляем его..."
+    rm "$copy_full_path"
+fi
+
+# Выводим результаты
+echo "Расширение для перекодирования: $recode_extention"
+echo "Путь без имени файла: $dir_path"
+echo "Только имя файла без пути: $file_name"
+echo "Имя файла без расширения: $base_name"
+echo "Расширение файла без пути: $extension"
+echo "Локальный полный путь к файлу: $full_local_path"
+echo "Имя копии файла: $copy_file_name"
+echo "Полный путь к копии файла: $copy_full_path"
+
+
+# Копируем файл
+cp "$full_local_path" "$copy_full_path"
+python3 -m demucs -n $model_name -d cpu --filename {track}-{stem}.{ext} --out $local_path_output_tmp --two-stems $split_track --shifts $shifts --overlap $overlap -j $parallel_jobs "$copy_full_path"
+chmod -R 777 "$local_path_output_tmp"
+chmod -R 777 "$local_path_output"
+python3 -m demucs -n $model_name -d cpu --filename {track}-{stem}.{ext} --out $local_path_output_tmp --shifts $shifts --overlap $overlap -j $parallel_jobs "$copy_full_path"
+chmod -R 777 "$local_path_output_tmp"
+chmod -R 777 "$local_path_output"
+
+mv "$model_path/$input_name"-no_$split_track.wav "$model_path/$input_name"-accompaniment.wav
+
+mv "$model_path/$input_name"-accompaniment.wav "$local_path_output/$base_name"-accompaniment.wav
+mv "$model_path/$input_name"-vocals.wav "$local_path_output/$base_name"-vocals.wav
+mv "$model_path/$input_name"-bass.wav "$local_path_output/$base_name"-bass.wav
+mv "$model_path/$input_name"-drums.wav "$local_path_output/$base_name"-drums.wav
+mv "$model_path/$input_name"-other.wav "$local_path_output/$base_name"-other.wav
+
+if [ -z $recode_extention ]; then
+    echo Перекодирование результата не требуется
+else
+    echo Перекодирование результата в формат $recode_extention
+    ffmpeg -i "$local_path_output/$base_name"-accompaniment.wav -compression_level 8 "$local_path_output/$base_name"-accompaniment.$recode_extention -y
+    ffmpeg -i "$local_path_output/$base_name"-vocals.wav -compression_level 8 "$local_path_output/$base_name"-vocals.$recode_extention -y
+    ffmpeg -i "$local_path_output/$base_name"-bass.wav -compression_level 8 "$local_path_output/$base_name"-bass.$recode_extention -y
+    ffmpeg -i "$local_path_output/$base_name"-drums.wav -compression_level 8 "$local_path_output/$base_name"-drums.$recode_extention -y
+    ffmpeg -i "$local_path_output/$base_name"-other.wav -compression_level 8 "$local_path_output/$base_name"-other.$recode_extention -y
+
+    rm "$local_path_output/$base_name"-accompaniment.wav
+    rm "$local_path_output/$base_name"-vocals.wav
+    rm "$local_path_output/$base_name"-bass.wav
+    rm "$local_path_output/$base_name"-drums.wav
+    rm "$local_path_output/$base_name"-other.wav
+fi
+
+# Устанавливаем полные права на local_path и все вложенные файлы и директории
+chmod -R 777 "$local_path_output_tmp"
+chmod -R 777 "$local_path_output"
+
+rm -rf "$local_path_output_tmp"

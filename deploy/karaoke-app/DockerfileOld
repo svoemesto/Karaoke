@@ -1,0 +1,25 @@
+FROM openjdk:17
+
+# Аргументы сборки
+ARG VERSION
+ARG APP_VERSION
+
+# Копирование SSL сертификата
+COPY www.sm-karaoke.ru.crt /tmp/www.sm-karaoke.ru.crt
+
+# Импорт сертификата в Java keystore
+# Используем -noprompt для автоматического подтверждения
+RUN keytool -import -alias www.sm-karaoke.ru -keystore $JAVA_HOME/lib/security/cacerts -file /tmp/www.sm-karaoke.ru.crt -storepass changeit -noprompt
+
+# Очистка временных файлов
+RUN rm /tmp/www.sm-karaoke.ru.crt
+
+# Копирование JAR файла
+COPY karaoke-app-${APP_VERSION}.jar /app.jar
+
+# Установка переменных окружения
+ENV APP_VERSION ${VERSION}
+ENV TZ="Europe/Moscow"
+
+# Точка входа
+ENTRYPOINT ["java","-Dfile.encoding=UTF-8","-Djava.security.egd=file:/dev/./urandom","-jar","/app.jar"]

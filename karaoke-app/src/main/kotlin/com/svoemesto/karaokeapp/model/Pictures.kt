@@ -2,7 +2,6 @@ package com.svoemesto.karaokeapp.model
 
 import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.WORKING_DATABASE
-import com.svoemesto.karaokeapp.rightFileName
 import com.svoemesto.karaokeapp.updateRemotePictureFromLocalDatabase
 import java.io.Serializable
 import java.sql.ResultSet
@@ -57,6 +56,96 @@ class Pictures(val database: KaraokeConnection = WORKING_DATABASE) : Serializabl
 
     companion object {
 
+        fun listHashes(database: KaraokeConnection, whereText: String = ""): List<Pair<Long, String>> {
+            val result: MutableList<Pair<Long, String>> = mutableListOf()
+            val sql = """
+                SELECT id, 
+                       md5(row(
+                            id,
+                            picture_name,
+                            picture_full,
+                            picture_preview
+                       )::text) AS record_hash
+                FROM tbl_pictures $whereText;
+            """.trimIndent()
+            val connection = database.getConnection()
+            var statement: Statement? = null
+            var rs: ResultSet? = null
+            try {
+                statement = connection.createStatement()
+                rs = statement.executeQuery(sql)
+                while (rs.next()) {
+                    result.add(Pair(rs.getLong("id"), rs.getString("record_hash")))
+                }
+            } catch (e: SQLException) {
+                e.printStackTrace()
+            } finally {
+                try {
+                    rs?.close() // close result set
+                    statement?.close() // close statement
+                } catch (e: SQLException) {
+                    e.printStackTrace()
+                }
+            }
+            return result
+        }
+
+        fun loadListIds(database: KaraokeConnection): List<Long> {
+            val connection = database.getConnection()
+            var statement: Statement? = null
+            var rs: ResultSet? = null
+            var sql: String
+
+            try {
+                statement = connection.createStatement()
+                sql = "select id from tbl_pictures"
+
+                rs = statement.executeQuery(sql)
+                val result: MutableList<Long> = mutableListOf()
+                while (rs.next()) {
+                    result.add(rs.getLong("id"))
+                }
+                return result
+            } catch (e: SQLException) {
+                e.printStackTrace()
+            } finally {
+                try {
+                    rs?.close() // close result set
+                    statement?.close() // close statement
+                } catch (e: SQLException) {
+                    e.printStackTrace()
+                }
+            }
+            return emptyList()
+
+        }
+
+        fun totalCount(database: KaraokeConnection): Int {
+            val sql = "SELECT COUNT(*) AS total_count FROM tbl_pictures;"
+            var result = -1
+            val connection = database.getConnection()
+            var statement: Statement? = null
+            var rs: ResultSet? = null
+
+            try {
+                statement = connection.createStatement()
+                rs = statement.executeQuery(sql)
+                while (rs.next()) {
+                    return rs.getInt("total_count")
+                }
+            } catch (e: SQLException) {
+                e.printStackTrace()
+            } finally {
+                try {
+                    rs?.close() // close result set
+                    statement?.close() // close statement
+                } catch (e: SQLException) {
+                    e.printStackTrace()
+                }
+            }
+            return result
+        }
+
         fun getDiff(picA: Pictures?, picB: Pictures?): List<RecordDiff> {
             val result: MutableList<RecordDiff> = mutableListOf()
             if (picA != null && picB != null) {
@@ -88,7 +177,7 @@ class Pictures(val database: KaraokeConnection = WORKING_DATABASE) : Serializabl
 
         }
 
-        fun loadList(args: Map<String, String> = emptyMap(), database: KaraokeConnection): List<Pictures> {
+        fun loadListFromDb(args: Map<String, String> = emptyMap(), database: KaraokeConnection): List<Pictures> {
 
             val connection = database.getConnection()
             var statement: Statement? = null
@@ -98,11 +187,15 @@ class Pictures(val database: KaraokeConnection = WORKING_DATABASE) : Serializabl
 
             try {
                 statement = connection.createStatement()
+                val limit = args["limit"]?.toInt() ?: 0
+                val offset = args["offset"]?.toInt() ?: 0
                 sql = "SELECT tbl_pictures.*" +
                         " FROM tbl_pictures"
                 if (args.containsKey("id")) where += "id=${args["id"]}"
                 if (args.containsKey("picture_name")) where += "picture_name = '${args["picture_name"]}'"
                 if (where.size > 0) sql += " WHERE ${where.joinToString(" AND ")}"
+                if (limit > 0) sql += " LIMIT $limit"
+                if (offset > 0) sql += " OFFSET $offset"
 
                 rs = statement.executeQuery(sql)
                 val result: MutableList<Pictures> = mutableListOf()
@@ -132,7 +225,7 @@ class Pictures(val database: KaraokeConnection = WORKING_DATABASE) : Serializabl
             return emptyList()
         }
 
-        fun delete(id: Int, database: KaraokeConnection) {
+        fun deleteFromDb(id: Int, database: KaraokeConnection) {
 
             val connection = database.getConnection()
             val sql = "DELETE FROM tbl_pictures WHERE id = ?"
@@ -144,15 +237,15 @@ class Pictures(val database: KaraokeConnection = WORKING_DATABASE) : Serializabl
 
         }
 
-        fun load(id: Long, database: KaraokeConnection): Pictures? {
+        fun loadFromDbById(id: Long, database: KaraokeConnection): Pictures? {
 
-            return Pictures.loadList(mapOf(Pair("id", id.toString())), database).firstOrNull()
+            return Pictures.loadListFromDb(mapOf(Pair("id", id.toString())), database).firstOrNull()
 
         }
 
-        fun load(name: String, database: KaraokeConnection): Pictures? {
+        fun loadFromDbByName(name: String, database: KaraokeConnection): Pictures? {
 
-            return Pictures.loadList(mapOf(Pair("picture_name", name)), database).firstOrNull()
+            return Pictures.loadListFromDb(mapOf(Pair("picture_name", name)), database).firstOrNull()
 
         }
 

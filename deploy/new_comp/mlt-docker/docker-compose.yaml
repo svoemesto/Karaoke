@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  mlt:
+    container_name: melt
+    image: svoemestodev/melt:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - /home/nsa/Documents/Караоке:/home/nsa/Documents/Караоке
+      - /home/nsa/Documents/Караоке:/media/nsa/FilesSSD1Tb/KaraokeDone
+      - /home/nsa/Documents/Караоке:/clouds/KaraokeDone
+      - /home/nsa/Documents/SpaceBox4096:/home/nsa/Documents/SpaceBox4096
+    working_dir: /app
+    command: ["-progress", "/home/nsa/Documents/Караоке/test.mlt"]

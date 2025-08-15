@@ -422,6 +422,7 @@
           <div class="create-picture-buttons-group">
             <button class="group-button" @click="openMainLink" title="Открыть на сайте">Открыть на сайте sm-karaoke.ru</button>
             <button class="group-button" @click="updateRemote" title="Обновить на сервере">Обновить на сервере</button>
+            <button class="group-button" @click="toSyncRemote" title="Добавить в SYNC-таблицу на сервере">Добавить в SYNC-таблицу на сервере</button>
             <button class="group-button" @click="createPictureBoostyTeaser" title="Создать картинку Boosty Teaser">Создать картинку Boosty Teaser</button>
             <button class="group-button" @click="createPictureBoostyFiles" title="Создать картинку Boosty Files">Создать картинку Boosty Files</button>
             <button class="group-button" @click="createPictureSponsrTeaser" title="Создать картинку Sponsr Teaser">Создать картинку Sponsr Files</button>
@@ -1430,6 +1431,9 @@ export default {
     },
     updateRemote() {
       this.$store.dispatch('updateOneRemoteSettingsPromise', this.song.id);
+    },
+    toSyncRemote() {
+      this.$store.dispatch('toSyncOneRemoteSettingsPromise', this.song.id);
     },
     async openLinkBoostyNew() {
       let value = await this.$store.getters.getBoostyHeader;

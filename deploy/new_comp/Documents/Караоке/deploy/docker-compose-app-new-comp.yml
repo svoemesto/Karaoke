@@ -12,12 +12,15 @@ services:
       LC_ALL: "C.UTF-8"
     volumes:
       - /home/nsa/Documents/Караоке:/home/nsa/Documents/Караоке
-      - /media/nsa/FilesSSD1Tb/KaraokeDone:/media/nsa/FilesSSD1Tb/KaraokeDone
-      - /clouds/KaraokeDone:/clouds/KaraokeDone
+      - /home/nsa/Documents/Караоке:/media/nsa/FilesSSD1Tb/KaraokeDone
+      - /home/nsa/Documents/Караоке:/clouds/KaraokeDone
       - /data/input:/home/nsa/Documents/Караоке/demucs/input
       - /data/output:/home/nsa/Documents/Караоке/demucs/output
       - /home/nsa/Documents/SpaceBox4096:/home/nsa/Documents/SpaceBox4096
       - /home/nsa/demucs-docker/tmp:/home/nsa/demucs-docker/tmp
+      - /home/nsa/mlt-docker:/home/nsa/mlt-docker
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /home/nsa/Karaoke/karaoke-web/src/main/resources/static/tmp:/home/nsa/Karaoke/karaoke-web/src/main/resources/static/tmp
     networks:
       - karaokenet
     entrypoint:

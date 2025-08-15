@@ -5,7 +5,8 @@ import com.svoemesto.karaokeapp.model.ProducerType
 import com.svoemesto.karaokeapp.textfiledictionary.CensoredWordsDictionary
 import com.svoemesto.karaokeapp.textfiledictionary.TestDictionary
 import com.svoemesto.karaokeapp.textfiledictionary.YoWordsDictionary
-
+const val LIMIT_ROWS_SETTINGS_TABLE_UPDATE = 1000
+const val LIMIT_ROWS_PICTURES_TABLE_UPDATE = 100
 const val CURRENT_RESULT_VERSION = 10L
 const val COUNT_HISTORY_LINES = 30
 const val PATH_TO_TEMP_DEMUCS_FOLDER = "/home/nsa/demucs-docker/tmp"

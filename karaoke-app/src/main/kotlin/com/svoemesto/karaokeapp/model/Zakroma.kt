@@ -13,13 +13,13 @@ class Zakroma(val database: KaraokeConnection): Serializable, Comparable<Zakroma
             return settingsByAuthor.map { (authorName, settingsByAuthor) ->
                 val zakroma = Zakroma(database)
                 zakroma.author = authorName
-                zakroma.picture = Pictures.load(authorName, database)?.full ?: ""
+                zakroma.picture = Pictures.loadFromDbByName(authorName, database)?.full ?: ""
                 val settingsByAlbum = settingsByAuthor.groupBy { it.album }
                 zakroma.albums = settingsByAlbum.map { (albumName, settingsByAlbum) ->
                     val album = ZakromaAlbum()
                     album.albumName = albumName
                     album.year = settingsByAlbum.first().year
-                    album.picture = Pictures.load("$authorName - ${album.year} - $albumName", database)?.full ?: ""
+                    album.picture = Pictures.loadFromDbByName("$authorName - ${album.year} - $albumName", database)?.full ?: ""
                     album.albumSettings = settingsByAlbum.map { settings ->
                         val zakromaAlbumSettings = ZakromaAlbumSettings()
                         zakromaAlbumSettings.id = settings.id

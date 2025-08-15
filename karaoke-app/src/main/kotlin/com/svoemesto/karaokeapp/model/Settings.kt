@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.svoemesto.karaokeapp.*
 import com.svoemesto.karaokeapp.mlt.MltProp
+import com.svoemesto.karaokeapp.services.APP_WORK_IN_CONTAINER
 import com.svoemesto.karaokeapp.services.SNS
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
@@ -429,7 +430,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
     @get:JsonIgnore
     val pictureAuthor: Pictures? get() {
-        var pic = Pictures.load(pictureNameAuthor, database)
+        var pic = Pictures.loadFromDbByName(pictureNameAuthor, database)
         if (pic == null) {
             val pathToFile = pathToFileLogoAuthor
             if (pathToFile != "") {
@@ -445,7 +446,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
     @get:JsonIgnore
     val pictureAlbum: Pictures? get() {
-        var pic = Pictures.load(pictureNameAlbum, database)
+        var pic = Pictures.loadFromDbByName(pictureNameAlbum, database)
         if (pic == null) {
             val pathToFile = pathToFileLogoAlbum
             if (pathToFile != "") {
@@ -731,6 +732,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         // потом копируем оттуда результат и удаляем папку PATH_TO_TEMP_DEMUCS_FOLDER
         val tmpFileName = "file"
         return listOf(
+            listOf("mkdir", "-p", pathToResultedModel),
             listOf("mkdir", "-p", PATH_TO_TEMP_DEMUCS_FOLDER),
             listOf("chmod", "-R", "777", PATH_TO_TEMP_DEMUCS_FOLDER),
             listOf("cp", fileAbsolutePath.rightFileName(), "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName.flac"),
@@ -768,6 +770,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         // потом копируем оттуда результат и удаляем папку PATH_TO_TEMP_DEMUCS_FOLDER
         val tmpFileName = "file"
         return listOf(
+            listOf("mkdir", "-p", pathToResultedModel),
             listOf("mkdir", "-p", PATH_TO_TEMP_DEMUCS_FOLDER),
             listOf("chmod", "-R", "777", PATH_TO_TEMP_DEMUCS_FOLDER),
             listOf("cp", fileAbsolutePath.rightFileName(), "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName.flac"),
@@ -1890,9 +1893,13 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
     fun playLyrics() {
         if (File(pathToFileLyrics).exists()) {
-            val processBuilder = ProcessBuilder("smplayer", pathToFileLyrics)
-            processBuilder.redirectErrorStream(true)
-            processBuilder.start()
+            if (APP_WORK_IN_CONTAINER) {
+                val args = listOf("smplayer", pathToFileLyrics.wrapInApostraf())
+                createScriptForHost(args = args)
+            } else {
+                val args = listOf("smplayer", pathToFileLyrics)
+                runCommand(args = args, ignoreErrors = true)
+            }
         } else {
             println("Не найден ${pathToFileLyrics}")
         }
@@ -1900,9 +1907,13 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
     fun playKaraoke() {
         if (File(pathToFileKaraoke).exists()) {
-            val processBuilder = ProcessBuilder("smplayer", pathToFileKaraoke)
-            processBuilder.redirectErrorStream(true)
-            processBuilder.start()
+            if (APP_WORK_IN_CONTAINER) {
+                val args = listOf("smplayer", pathToFileKaraoke.wrapInApostraf())
+                createScriptForHost(args = args)
+            } else {
+                val args = listOf("smplayer", pathToFileKaraoke)
+                runCommand(args = args, ignoreErrors = true)
+            }
         } else {
             println("Не найден ${pathToFileKaraoke}")
         }
@@ -1910,18 +1921,26 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
     fun playChords() {
         if (File(pathToFileChords).exists()) {
-            val processBuilder = ProcessBuilder("smplayer", pathToFileChords)
-            processBuilder.redirectErrorStream(true)
-            processBuilder.start()
+            if (APP_WORK_IN_CONTAINER) {
+                val args = listOf("smplayer", pathToFileChords.wrapInApostraf())
+                createScriptForHost(args = args)
+            } else {
+                val args = listOf("smplayer", pathToFileChords)
+                runCommand(args = args, ignoreErrors = true)
+            }
         } else {
             println("Не найден ${pathToFileChords}")
         }
     }
     fun playTabs() {
         if (File(pathToFileMelody).exists()) {
-            val processBuilder = ProcessBuilder("smplayer", pathToFileMelody)
-            processBuilder.redirectErrorStream(true)
-            processBuilder.start()
+            if (APP_WORK_IN_CONTAINER) {
+                val args = listOf("smplayer", pathToFileMelody.wrapInApostraf())
+                createScriptForHost(args = args)
+            } else {
+                val args = listOf("smplayer", pathToFileMelody)
+                runCommand(args = args, ignoreErrors = true)
+            }
         } else {
             println("Не найден ${pathToFileMelody}")
         }
@@ -3207,8 +3226,6 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                 if (savedSettings.idPlMelody.isBlank() && this.idPlMelody.isNotBlank() && savedSettings.versionPlMelody == 0) fields[SettingField.VERSION_PL_MELODY] = resultVersion.toString()
                 if (savedSettings.idPlChords.isBlank() && this.idPlChords.isNotBlank() && savedSettings.versionPlChords == 0) fields[SettingField.VERSION_PL_CHORDS] = resultVersion.toString()
             }
-            
-            
 
             val diff = getDiff(this, savedSettings)
 //            println("diff = $diff")
@@ -3222,8 +3239,6 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                     record = this.toDTO()
                 )
             )
-
-
 
             val setStr = diff.filter{ it.recordDiffRealField }.map { "${it.recordDiffName} = ?" }.joinToString(", ")
             if (setStr != "") {
@@ -3449,7 +3464,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     fun doMP3Lyrics(prior: Int = -1) {
         KaraokeProcess.createProcess(this, KaraokeProcessTypes.FF_MP3_LYR, true, prior)
     }
-    fun deleteFromDb(withFiles: Boolean = true) {
+    fun deleteFromDb(withFiles: Boolean = true, sync: Boolean = false) {
         if (withFiles) {
             if (File(fileAbsolutePath).exists()) File(fileAbsolutePath).delete()
             if (File(fileSettingsAbsolutePath).exists()) File(fileSettingsAbsolutePath).deleteOnExit()
@@ -3458,7 +3473,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         }
 
         val connection = database.getConnection()
-        val sql = "DELETE FROM tbl_settings WHERE id = ?"
+        val sql = "DELETE FROM tbl_settings${if (sync) "_sync" else ""} WHERE id = ?"
         val ps = connection.prepareStatement(sql)
         ps.setLong(1, id)
         ps.executeUpdate()
@@ -3598,7 +3613,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
     }
 
-    fun getSqlToInsert(): String {
+    fun getSqlToInsert(sync: Boolean = false): String {
         val settings = this
         val fieldsValues: MutableList<Pair<String, Any>> = mutableListOf()
 
@@ -3668,7 +3683,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         fieldsValues.add(Pair("tags", settings.tags))
         fieldsValues.add(Pair("rate", settings.rate))
 
-       return "INSERT INTO tbl_settings (${fieldsValues.map {it.first}.joinToString(", ")}) OVERRIDING SYSTEM VALUE VALUES(${fieldsValues.map {if (it.second is Long) "${it.second}" else "'${it.second.toString().replace("'","''")}'"}.joinToString(", ")})"
+       return "INSERT INTO tbl_settings${if (sync) "_sync" else ""} (${fieldsValues.map {it.first}.joinToString(", ")}) OVERRIDING SYSTEM VALUE VALUES(${fieldsValues.map {if (it.second is Long) "${it.second}" else "'${it.second.toString().replace("'","''")}'"}.joinToString(", ")})"
 
     }
 
@@ -4040,6 +4055,32 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             return result
         }
 
+        fun totalCount(database: KaraokeConnection): Int {
+            val sql = "SELECT COUNT(*) AS total_count FROM tbl_settings;"
+            var result = -1
+            val connection = database.getConnection()
+            var statement: Statement? = null
+            var rs: ResultSet? = null
+
+            try {
+                statement = connection.createStatement()
+                rs = statement.executeQuery(sql)
+                while (rs.next()) {
+                    return rs.getInt("total_count")
+                }
+            } catch (e: SQLException) {
+                e.printStackTrace()
+            } finally {
+                try {
+                    rs?.close() // close result set
+                    statement?.close() // close statement
+                } catch (e: SQLException) {
+                    e.printStackTrace()
+                }
+            }
+            return result
+        }
+
         fun getLastUpdated(lastTime: Long? = null, database: KaraokeConnection): List<Int> {
             if (lastTime == null) return emptyList()
 
@@ -4193,7 +4234,102 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
         }
 
-        fun loadListFromDb(args: Map<String, String> = emptyMap(), database: KaraokeConnection): List<Settings> {
+        fun listHashes(database: KaraokeConnection, whereText: String = ""): List<Pair<Long, String>> {
+            val result: MutableList<Pair<Long, String>> = mutableListOf()
+            val sql = """
+                SELECT id, 
+                       md5(row(
+                            id,
+                            song_name,
+                            song_author,
+                            song_album,
+                            publish_date,
+                            publish_time,
+                            song_year,
+                            song_track,
+                            song_tone,
+                            song_bpm,
+                            song_ms,
+                            file_name,
+                            root_folder,
+                            id_boosty,
+                            id_dzen_lyrics,
+                            id_dzen_karaoke,
+                            id_dzen_chords,
+                            id_status,
+                            source_text,
+                            source_markers,
+                            id_vk_lyrics,
+                            id_vk_karaoke,
+                            id_vk_chords,
+                            status_process_lyrics,
+                            status_process_karaoke,
+                            status_process_chords,
+                            id_vk,
+                            id_telegram_lyrics,
+                            id_telegram_karaoke,
+                            id_telegram_chords,
+                            tags,
+                            result_text,
+                            id_boosty_files,
+                            result_version,
+                            id_pl_lyrics,
+                            id_pl_karaoke,
+                            id_pl_chords,
+                            diff_beats,
+                            id_sponsr,
+                            id_dzen_melody,
+                            id_vk_melody,
+                            status_process_melody,
+                            id_telegram_melody,
+                            id_pl_melody,
+                            index_tabs_variant,
+                            version_dzen_lyrics,
+                            version_dzen_karaoke,
+                            version_dzen_chords,
+                            version_dzen_melody,
+                            version_vk_lyrics,
+                            version_vk_karaoke,
+                            version_vk_chords,
+                            version_vk_melody,
+                            version_telegram_lyrics,
+                            version_telegram_karaoke,
+                            version_telegram_chords,
+                            version_telegram_melody,
+                            version_pl_lyrics,
+                            version_pl_karaoke,
+                            version_pl_chords,
+                            version_pl_melody,
+                            version_boosty,
+                            version_sponsr,
+                            version_boosty_files,
+                            rate
+                       )::text) AS record_hash
+                FROM tbl_settings $whereText;
+            """.trimIndent()
+            val connection = database.getConnection()
+            var statement: Statement? = null
+            var rs: ResultSet? = null
+            try {
+                statement = connection.createStatement()
+                rs = statement.executeQuery(sql)
+                while (rs.next()) {
+                    result.add(Pair(rs.getLong("id"), rs.getString("record_hash")))
+                }
+            } catch (e: SQLException) {
+                e.printStackTrace()
+            } finally {
+                try {
+                    rs?.close() // close result set
+                    statement?.close() // close statement
+                } catch (e: SQLException) {
+                    e.printStackTrace()
+                }
+            }
+            return result
+        }
+
+        fun loadListFromDb(args: Map<String, String> = emptyMap(), database: KaraokeConnection, sync: Boolean = false): List<Settings> {
 
             val connection = database.getConnection()
             var statement: Statement? = null
@@ -4203,9 +4339,9 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
             try {
                 statement = connection.createStatement()
-                sql = "SELECT * FROM tbl_settings"
+                sql = "SELECT * FROM tbl_settings${if (sync) "_sync" else ""}"
 
-                if (args.containsKey("ids")) where += "tbl_settings.id in (${args["ids"]})"
+                if (args.containsKey("ids")) where += "tbl_settings${if (sync) "_sync" else ""}.id in (${args["ids"]})"
                 if (args.containsKey("file_name")) where += "LOWER(file_name)='${args["file_name"]?.rightFileName()?.lowercase()}'"
                 if (args.containsKey("root_folder")) where += "LOWER(root_folder)='${args["root_folder"]?.rightFileName()?.lowercase()}'"
                 if (args.containsKey("song_name")) where += "LOWER(song_name) LIKE '%${args["song_name"]?.rightFileName()?.lowercase()}%'"
@@ -4289,17 +4425,17 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                         args[filterFldName]!!.split("&&").forEach {
                             val value = it.trim()
                             if (value.startsWith(">=")) {
-                                where += "tbl_settings.$fldName>=${value.substring(2)}"
+                                where += "tbl_settings${if (sync) "_sync" else ""}.$fldName>=${value.substring(2)}"
                             } else if (value.startsWith(">")) {
-                                where += "tbl_settings.$fldName>${value.substring(1)}"
+                                where += "tbl_settings${if (sync) "_sync" else ""}.$fldName>${value.substring(1)}"
                             } else if (value.startsWith("<=")) {
-                                where += "tbl_settings.$fldName<=${value.substring(2)}"
+                                where += "tbl_settings${if (sync) "_sync" else ""}.$fldName<=${value.substring(2)}"
                             } else if (value.startsWith("<")) {
-                                where += "tbl_settings.$fldName<${value.substring(1)}"
+                                where += "tbl_settings${if (sync) "_sync" else ""}.$fldName<${value.substring(1)}"
                             } else if (value.startsWith("!=")) {
-                                where += "tbl_settings.$fldName<>${value.substring(2)}"
+                                where += "tbl_settings${if (sync) "_sync" else ""}.$fldName<>${value.substring(2)}"
                             } else {
-                                where += "tbl_settings.$fldName=${value}"
+                                where += "tbl_settings${if (sync) "_sync" else ""}.$fldName=${value}"
                             }
                         }
                     }
@@ -4322,7 +4458,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
                 if (where.size > 0) sql += " WHERE ${where.joinToString(" AND ")}"
 
-                sql += " ORDER BY tbl_settings.id"
+                sql += " ORDER BY tbl_settings${if (sync) "_sync" else ""}.id"
 
                 rs = statement.executeQuery(sql)
                 val result: MutableList<Settings> = mutableListOf()
@@ -4448,8 +4584,8 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
 
 
-        fun loadFromDbById(id: Long, database: KaraokeConnection): Settings? {
-            val setting = loadListFromDb(mapOf(Pair("id", id.toString())), database).firstOrNull()
+        fun loadFromDbById(id: Long, database: KaraokeConnection, sync: Boolean = false): Settings? {
+            val setting = loadListFromDb(mapOf(Pair("id", id.toString())), database, sync = sync).firstOrNull()
 //            setting?.let {
 //                if (setting.countNotEmptyVoices > 0) {
 //                    println(it.getTextFromVoices(maxTimeCodes = -1))
@@ -4462,10 +4598,10 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         }
 
 
-        fun deleteFromDb(id: Long, database: KaraokeConnection) {
+        fun deleteFromDb(id: Long, database: KaraokeConnection, sync: Boolean = false) {
 
             val connection = database.getConnection()
-            val sql = "DELETE FROM tbl_settings WHERE id = ?"
+            val sql = "DELETE FROM tbl_settings${if (sync) "_sync" else ""} WHERE id = ?"
             val ps = connection.prepareStatement(sql)
             ps.setLong(1, id)
             ps.executeUpdate()

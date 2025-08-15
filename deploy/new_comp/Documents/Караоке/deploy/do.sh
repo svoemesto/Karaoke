@@ -10,6 +10,9 @@ DEPLOY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null && pwd)"
 APP_VERSION=1
 DOCKER=$(which docker)
 COMPOSE=$(which docker-compose)
+DOCKER_REGISTRY=svoemestodev
+DOCKER_PASSWORD=dckr_pat_SxLnc4cA4EChRdvQcnQjZCPOgw0
+
 
 function do_start_db() {
   do_stop_db
@@ -100,6 +103,14 @@ function do_restore_db() {
   command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "Restore DB!"
 }
 
+function do_create_clear_db() {
+  do_start_db
+  echo "Создание базы данных из бекапа в контейнере karaoke-db..."
+  ${DOCKER} exec -it karaoke-db bash -c 'psql -U postgres --file="/dumps/karaoke_clear_dump.sql" -d postgres'
+  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga
+  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "Create clear DB!"
+}
+
 cmd=$1
 
 case ${cmd} in
@@ -113,10 +124,11 @@ stop_db) do_stop_db ;;
 stop_app) do_stop_app ;;
 stop_web) do_stop_web ;;
 stop_webvue) do_stop_webvue ;;
-pull_app) do_push_app ;;
-pull_web) do_push_web ;;
-pull_webvue) do_push_webvue ;;
+pull_app) do_pull_app ;;
+pull_web) do_pull_web ;;
+pull_webvue) do_pull_webvue ;;
 restore_db) do_restore_db ;;
+create_clear_db) do_create_clear_db ;;
 *)
   echo "Описание команды:
     $(basename $0) <command> <param>

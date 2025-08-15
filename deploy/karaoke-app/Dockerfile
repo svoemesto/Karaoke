@@ -68,6 +68,12 @@ RUN apt-get update -y
 RUN apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 RUN apt install -y docker-compose
 
+# Предполагается, что файлы шрифтов находятся в папке files рядом с Dockerfile
+COPY Roboto-Black.ttf /usr/share/fonts/truetype/roboto/
+COPY FiraSansExtraCondensed-Medium.ttf /usr/share/fonts/truetype/FiraSansExtraCondensed/
+# Обновление кэша шрифтов
+RUN fc-cache -fv
+
 # --- Копирование Java-приложения ---
 # Копирование JAR-файла
 COPY --from=java-app-builder /tmp/app.jar /app.jar

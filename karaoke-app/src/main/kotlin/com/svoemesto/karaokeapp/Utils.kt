@@ -70,7 +70,7 @@ fun recodePictures() {
     var totalOld: Long = 0
     var totalNew: Long = 0
 
-    Pictures.loadList(database = WORKING_DATABASE)
+    Pictures.loadListFromDb(database = WORKING_DATABASE)
         .forEach { picture ->
             val picBase64 = picture.full
             val picBytes = Base64.getDecoder().decode(picBase64)
@@ -93,6 +93,18 @@ fun recodePictures() {
     println("Общая экономия: ${totalOld - totalNew} байт.")
 }
 
+fun setSettingsToSyncRemoteTable(id: Long) {
+
+    val sqlToInsert = Settings.loadFromDbById(id = id, database = Connection.local())?.getSqlToInsert(sync = true)
+    if (sqlToInsert != null) {
+        Settings.deleteFromDb(id = id, database = Connection.remote(), sync = true)
+        val connection = Connection.remote().getConnection()
+        val ps = connection.prepareStatement(sqlToInsert)
+        ps.executeUpdate()
+        ps.close()
+    }
+
+}
 fun updateRemotePictureFromLocalDatabase(id: Long): Triple<Int, Int, Int> {
     return updateDatabases(Connection.local(), Connection.remote(), updateSettings = false, updatePictures = true, argsPictures = mapOf("id" to id.toString()))
 }
@@ -126,172 +138,47 @@ fun updateDatabases(
 
     if (updateSettings) {
 
-        // Список айдишников базы ИЗ
-        val listSettingsFrom = Settings.loadListFromDb(database = fromDatabase, args = argsSettings)
-        println("Таблица tbl_settings, найдено записей ${fromDatabase.name}: ${listSettingsFrom.size}")
+        val whereText = if (argsSettings.containsKey("id")) "WHERE id = ${argsSettings["id"]}" else ""
+        val tableName = "tbl_settings"
+        val listFromIdsHashes = Settings.listHashes(database = fromDatabase, whereText = whereText)
+        val listToIdsHashes = Settings.listHashes(database = toDatabase, whereText = whereText)
+        val totalCountFrom = listFromIdsHashes.size
 
-        // Список айдишников базы В
-        val listSettingsTo = Settings.loadListFromDb(database = toDatabase, args = argsSettings).toMutableList()
-        println("Таблица tbl_settings, найдено записей ${toDatabase.name}: ${listSettingsTo.size}")
-
-        val setToDel = listSettingsTo.map { it.id }.toMutableSet()
-
-        var prc = 0
-        var prcPrev = 0
-        // Проходимся по айдишникам ИЗ
-        listSettingsFrom.forEachIndexed { indexFrom, settingsFrom ->
-
-            prc = indexFrom * 100 / listSettingsFrom.size
-            if (prc % 10 == 0 && prc != prcPrev) {
-                println("Таблица tbl_settings, $prc%...")
-                prcPrev = prc
-            }
-
-            // Считываем записи с текущим айди из ИЗ и В
-            val settingsTo = listSettingsTo.firstOrNull { it.id == settingsFrom.id }
-
-            // Если в В записи нету - создаём её на основе записи из ИЗ и изменяем айдишник
-            if (settingsTo == null) {
-                println("Добавляем запись: id=${settingsFrom.id}, author=${settingsFrom.author}, album=${settingsFrom.album}, name=${settingsFrom.songName}")
-                val sqlToInsert = settingsFrom.getSqlToInsert()
-                if (toDatabase.name == "SERVER") {
-
-                    val setStrEncrypted = Crypto.encrypt(sqlToInsert)
-                    val values: Map<String, Any> = mapOf(
-                        "sqlToInsert" to (setStrEncrypted ?: "")
-                    )
-                    listToCreate.add(values)
-                } else {
-                    val connection = toDatabase.getConnection()
-                    val ps = connection.prepareStatement(sqlToInsert)
-                    ps.executeUpdate()
-                    ps.close()
-                }
-                countCreate++
-
-            } else {
-
-                setToDel.remove(settingsFrom.id)
-
-                // Если записи есть в обоих базах - получаем их дифы
-                val diff = Settings.getDiff(settingsFrom, settingsTo)
-
-                // Если диффы есть - вносим изменения в базу В
-                if (diff.isNotEmpty()) {
-                    println("Изменяем запись: id=${settingsFrom.id}, author=${settingsFrom.author}, album=${settingsFrom.album}, name=${settingsFrom.songName}")
-                    val messageRecordChange = RecordChangeMessage(tableName = "tbl_settings",  recordId = settingsTo.id, diffs = diff, databaseName = toDatabase.name, record = settingsFrom.toDTO())
-
-                    if (toDatabase.name == "SERVER") {
-
-                        val setStr = messageRecordChange.getSetString()
-                        if (setStr != "") {
-                            println(setStr)
-
-                            val setStrEncrypted = Crypto.encrypt(setStr)
-                            val values: Map<String, Any> = mapOf(
-                                "tableName" to messageRecordChange.tableName,
-                                "idRecord" to messageRecordChange.recordId,
-                                "setText" to (setStrEncrypted ?: "")
-                                )
-                            listToUpdate.add(values)
-                        }
-
-                    } else {
-                        val setStr = diff.filter{ it.recordDiffRealField }.map { "${it.recordDiffName} = ?" }.joinToString(", ")
-                        if (setStr != "") {
-                            val sql = "UPDATE tbl_settings SET $setStr WHERE id = ?"
-
-                            val connection = toDatabase.getConnection()
-                            val ps = connection.prepareStatement(sql)
-
-                            var index = 1
-                            diff.filter{ it.recordDiffRealField }.forEach {
-                                if (it.recordDiffValueNew is Long) {
-                                    ps.setLong(index, it.recordDiffValueNew.toLong())
-                                } else {
-                                    ps.setString(index, it.recordDiffValueNew.toString())
-                                }
-                                index++
-                            }
-                            ps.setLong(index, settingsTo.id)
-                            ps.executeUpdate()
-                            ps.close()
-
-//                            println(messageRecordChange.toString())
-
-
-                        }
-                    }
-                    countUpdate++
-
-
-                }
-
-            }
+        if (totalCountFrom == 0) {
+            return Triple(0,0,0)
         }
 
-        val listSettingsToDel: MutableList<Settings> = mutableListOf()
-        setToDel.toList().forEach { idToDel ->
-            val settingsFrom = listSettingsFrom.firstOrNull { it.id == idToDel }
-            if (settingsFrom == null) {
-                val settingsTo = listSettingsTo.firstOrNull { it.id == idToDel }
-                if (settingsTo != null) {
-                    println("Проверка на необходимость удаления записи: id=${settingsTo.id}, author=${settingsTo.author}, album=${settingsTo.album}, name=${settingsTo.songName}")
-                    listSettingsToDel.add(settingsTo)
-                }
-            }
-        }
+        val idsToInsert = listFromIdsHashes.filter { fromIdHash ->
+            listToIdsHashes.none { toIdHash -> toIdHash.first == fromIdHash.first }
+        }.map { it.first }
 
-        listSettingsToDel.forEach { toDel ->
+        val idsToUpdate = listFromIdsHashes.filter { fromIdHash ->
+            listToIdsHashes.any { toIdHash -> toIdHash.first == fromIdHash.first && toIdHash.second != fromIdHash.second }
+        }.map { it.first }
+
+        val idsToDelete = listToIdsHashes.filter { toIdHash ->
+            listFromIdsHashes.none { fromIdHash -> toIdHash.first == fromIdHash.first }
+        }.map { it.first }
+
+        idsToDelete.forEach { id ->
             if (toDatabase.name == "SERVER") {
-                val sqlToDelete = "DELETE FROM tbl_settings WHERE id = ${toDel.id}"
+                val sqlToDelete = "DELETE FROM $tableName WHERE id = $id"
                 val setStrEncrypted = Crypto.encrypt(sqlToDelete)
                 val values: Map<String, Any> = mapOf(
                     "sqlToDelete" to (setStrEncrypted ?: "")
                 )
                 listToDelete.add(values)
             } else {
-                Settings.deleteFromDb(id = toDel.id, database = toDatabase)
+                Settings.deleteFromDb(id = id, database = toDatabase)
             }
-
-            countDelete++
         }
 
-    }
-
-
-    if (updatePictures) {
-
-        // Список айдишников базы ИЗ
-        val listPicturesFrom = Pictures.loadList(database = fromDatabase, args = argsPictures)
-        println("Таблица tbl_pictures, найдено записей ${fromDatabase.name}: ${listPicturesFrom.size}")
-
-        // Список айдишников базы В
-        val listPicturesTo = Pictures.loadList(database = toDatabase, args = argsPictures).toMutableList()
-        println("Таблица tbl_pictures, найдено записей ${toDatabase.name}: ${listPicturesTo.size}")
-
-        val setToDel = listPicturesTo.map { it.id }.toMutableSet()
-
-        var prc = 0
-        var prcPrev = 0
-        // Проходимся по айдишникам ИЗ
-        listPicturesFrom.forEachIndexed { indexFrom, pictureFrom ->
-
-            prc = indexFrom * 100 / listPicturesFrom.size
-            if (prc % 10 == 0 && prc != prcPrev) {
-                println("Таблица tbl_pictures, $prc%...")
-                prcPrev = prc
-            }
-
-            // Считываем записи с текущим айди из ИЗ и В
-            val pictureTo = listPicturesTo.firstOrNull { it.id == pictureFrom.id }
-
-            // Если в В записи нету - создаём её на основе записи из ИЗ и изменяем айдишник
-            if (pictureTo == null) {
-                println("Добавляем запись: id=${pictureFrom.id}, picture_name=${pictureFrom.name}")
-                val sqlToInsert = pictureFrom.getSqlToInsert()
+        idsToInsert.forEach { id ->
+            val itemFrom = Settings.loadFromDbById(id = id, database = fromDatabase)
+            if (itemFrom != null) {
+                println("Добавляем запись в $tableName: id=${itemFrom.id}, ${itemFrom.rightSettingFileName}")
+                val sqlToInsert = itemFrom.getSqlToInsert()
                 if (toDatabase.name == "SERVER") {
-
                     val setStrEncrypted = Crypto.encrypt(sqlToInsert)
                     val values: Map<String, Any> = mapOf(
                         "sqlToInsert" to (setStrEncrypted ?: "")
@@ -304,25 +191,20 @@ fun updateDatabases(
                     ps.close()
                 }
                 countCreate++
+            }
+        }
 
-            } else {
-
-                setToDel.remove(pictureFrom.id)
-
-                // Если записи есть в обоих базах - получаем их дифы
-                val diff = Pictures.getDiff(pictureFrom, pictureTo)
-
-                // Если диффы есть - вносим изменения в базу В
+        idsToUpdate.forEach { id ->
+            val itemFrom = Settings.loadFromDbById(id = id, database = fromDatabase)
+            val itemTo = Settings.loadFromDbById(id = id, database = toDatabase)
+            if (itemFrom != null && itemTo != null) {
+                val diff = Settings.getDiff(itemFrom, itemTo)
                 if (diff.isNotEmpty()) {
-                    println("Изменяем запись: id=${pictureFrom.id}, picture_name=${pictureFrom.name}")
-                    val messageRecordChange = RecordChangeMessage(tableName = "tbl_pictures",  recordId = pictureTo.id.toLong(), diffs = diff, databaseName = toDatabase.name, record = pictureFrom)
-
+                    println("Изменяем запись в $tableName: id=${itemFrom.id}, ${itemFrom.rightSettingFileName}")
+                    val messageRecordChange = RecordChangeMessage(tableName = tableName,  recordId = itemTo.id.toLong(), diffs = diff, databaseName = toDatabase.name, record = itemFrom)
                     if (toDatabase.name == "SERVER") {
-
                         val setStr = messageRecordChange.getSetString()
                         if (setStr != "") {
-                            println(setStr)
-
                             val setStrEncrypted = Crypto.encrypt(setStr)
                             val values: Map<String, Any> = mapOf(
                                 "tableName" to messageRecordChange.tableName,
@@ -331,15 +213,12 @@ fun updateDatabases(
                             )
                             listToUpdate.add(values)
                         }
-
                     } else {
                         val setStr = diff.filter{ it.recordDiffRealField }.map { "${it.recordDiffName} = ?" }.joinToString(", ")
                         if (setStr != "") {
-                            val sql = "UPDATE tbl_settings SET $setStr WHERE id = ?"
-
+                            val sql = "UPDATE $tableName SET $setStr WHERE id = ?"
                             val connection = toDatabase.getConnection()
                             val ps = connection.prepareStatement(sql)
-
                             var index = 1
                             diff.filter{ it.recordDiffRealField }.forEach {
                                 if (it.recordDiffValueNew is Long) {
@@ -349,51 +228,119 @@ fun updateDatabases(
                                 }
                                 index++
                             }
-                            ps.setLong(index, pictureTo.id.toLong())
+                            ps.setLong(index, itemTo.id.toLong())
                             ps.executeUpdate()
                             ps.close()
-
-//                            println(messageRecordChange.toString())
-
-
                         }
                     }
                     countUpdate++
-
-
-                }
-
-            }
-        }
-
-        val listPicturesToDel: MutableList<Pictures> = mutableListOf()
-        setToDel.toList().forEach { idToDel ->
-            val settingsFrom = listPicturesFrom.firstOrNull { it.id == idToDel }
-            if (settingsFrom == null) {
-                val pictureTo = listPicturesTo.firstOrNull { it.id == idToDel }
-                if (pictureTo != null) {
-                    println("Проверка на необходимость удаления записи: id=${pictureTo.id}, picture_name=${pictureTo.name}")
-                    listPicturesToDel.add(pictureTo)
                 }
             }
         }
+    }
+    if (updatePictures) {
 
-        listPicturesToDel.forEach { toDel ->
+        val whereText = if (argsPictures.containsKey("id")) "WHERE id = ${argsPictures["id"]}" else ""
+        val tableName = "tbl_pictures"
+        val listFromIdsHashes = Pictures.listHashes(database = fromDatabase, whereText = whereText)
+        val listToIdsHashes = Pictures.listHashes(database = toDatabase, whereText = whereText)
+        val totalCountFrom = listFromIdsHashes.size
+
+        if (totalCountFrom == 0) {
+            return Triple(0,0,0)
+        }
+
+        val idsToInsert = listFromIdsHashes.filter { fromIdHash ->
+            listToIdsHashes.none { toIdHash -> toIdHash.first == fromIdHash.first }
+        }.map { it.first }
+
+        val idsToUpdate = listFromIdsHashes.filter { fromIdHash ->
+            listToIdsHashes.any { toIdHash -> toIdHash.first == fromIdHash.first && toIdHash.second != fromIdHash.second }
+        }.map { it.first }
+
+        val idsToDelete = listToIdsHashes.filter { toIdHash ->
+            listFromIdsHashes.none { fromIdHash -> toIdHash.first == fromIdHash.first }
+        }.map { it.first }
+
+        idsToDelete.forEach { id ->
             if (toDatabase.name == "SERVER") {
-                val sqlToDelete = "DELETE FROM tbl_settings WHERE id = ${toDel.id}"
+                val sqlToDelete = "DELETE FROM $tableName WHERE id = $id"
                 val setStrEncrypted = Crypto.encrypt(sqlToDelete)
                 val values: Map<String, Any> = mapOf(
                     "sqlToDelete" to (setStrEncrypted ?: "")
                 )
                 listToDelete.add(values)
             } else {
-                Pictures.delete(id = toDel.id, database = toDatabase)
+                Pictures.deleteFromDb(id = id.toInt(), database = toDatabase)
             }
-
-            countDelete++
         }
 
+        idsToInsert.forEach { id ->
+            val itemFrom = Pictures.loadFromDbById(id = id, database = fromDatabase)
+            if (itemFrom != null) {
+                println("Добавляем запись в $tableName: id=${itemFrom.id}, ${itemFrom.name}")
+                val sqlToInsert = itemFrom.getSqlToInsert()
+                if (toDatabase.name == "SERVER") {
+                    val setStrEncrypted = Crypto.encrypt(sqlToInsert)
+                    val values: Map<String, Any> = mapOf(
+                        "sqlToInsert" to (setStrEncrypted ?: "")
+                    )
+                    listToCreate.add(values)
+                } else {
+                    val connection = toDatabase.getConnection()
+                    val ps = connection.prepareStatement(sqlToInsert)
+                    ps.executeUpdate()
+                    ps.close()
+                }
+                countCreate++
+            }
+        }
+
+        idsToUpdate.forEach { id ->
+            val itemFrom = Pictures.loadFromDbById(id = id, database = fromDatabase)
+            val itemTo = Pictures.loadFromDbById(id = id, database = toDatabase)
+            if (itemFrom != null && itemTo != null) {
+                val diff = Pictures.getDiff(itemFrom, itemTo)
+                if (diff.isNotEmpty()) {
+                    println("Изменяем запись в $tableName: id=${itemFrom.id}, ${itemFrom.name}")
+                    val messageRecordChange = RecordChangeMessage(tableName = tableName,  recordId = itemTo.id.toLong(), diffs = diff, databaseName = toDatabase.name, record = itemFrom)
+                    if (toDatabase.name == "SERVER") {
+                        val setStr = messageRecordChange.getSetString()
+                        if (setStr != "") {
+                            val setStrEncrypted = Crypto.encrypt(setStr)
+                            val values: Map<String, Any> = mapOf(
+                                "tableName" to messageRecordChange.tableName,
+                                "idRecord" to messageRecordChange.recordId,
+                                "setText" to (setStrEncrypted ?: "")
+                            )
+                            listToUpdate.add(values)
+                        }
+                    } else {
+                        val setStr = diff.filter{ it.recordDiffRealField }.map { "${it.recordDiffName} = ?" }.joinToString(", ")
+                        if (setStr != "") {
+                            val sql = "UPDATE $tableName SET $setStr WHERE id = ?"
+                            val connection = toDatabase.getConnection()
+                            val ps = connection.prepareStatement(sql)
+                            var index = 1
+                            diff.filter{ it.recordDiffRealField }.forEach {
+                                if (it.recordDiffValueNew is Long) {
+                                    ps.setLong(index, it.recordDiffValueNew.toLong())
+                                } else {
+                                    ps.setString(index, it.recordDiffValueNew.toString())
+                                }
+                                index++
+                            }
+                            ps.setLong(index, itemTo.id.toLong())
+                            ps.executeUpdate()
+                            ps.close()
+                        }
+                    }
+                    countUpdate++
+                }
+            }
+        }
     }
+
 
     if (toDatabase.name == "SERVER") {
 
@@ -2951,6 +2898,14 @@ fun setProcessPriority(pid: Long, priority: Int): Boolean {
         e.printStackTrace()
         return false
     }
+}
+
+fun createScriptForHost(args: List<String>) {
+    val txt = args.joinToString(" ")
+    val fileName = "/home/nsa/Documents/Караоке/scriptsFromDocker/${UUID.randomUUID()}.sh"
+    val file = File(fileName)
+    file.writeText(txt)
+    runCommand(listOf("chmod", "777", fileName))
 }
 
 fun runCommand(args: List<String>, ignoreErrors: Boolean = false): String {

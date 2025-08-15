@@ -1386,6 +1386,13 @@ export default {
                 params: { id: id }
             });
         },
+        toSyncOneRemoteSettingsPromise(ctx, id) {
+            return promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/apis/utils/tosync",
+                params: { id: id }
+            });
+        },
         updateRemoteSettingsPromise() {
             return promisedXMLHttpRequest({
                 method: 'POST',

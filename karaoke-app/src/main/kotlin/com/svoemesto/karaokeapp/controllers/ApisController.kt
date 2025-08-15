@@ -2548,6 +2548,24 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         return listOf(countCreate, countUpdate, countDelete)
     }
 
+    // Добавляем одну песню в SYNC-таблицу
+    @PostMapping("/utils/tosync")
+    @ResponseBody
+    fun doSetSettingsToSyncRemoteTable(
+        @RequestParam(required = true) id: Long
+    ) {
+        setSettingsToSyncRemoteTable(id)
+        val body = "Запись добавлена в SYNC-таблицу"
+        SNS.send(SseNotification.message(
+            Message(
+                type = "info",
+                head = "SYNC",
+                body = body
+            )
+        ))
+        println("Запись добавлена в SYNC-таблицу")
+    }
+
     // Обновляем RemoteDatabase
     @PostMapping("/utils/updateremotedatabasefromlocaldatabase")
     @ResponseBody

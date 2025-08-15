@@ -6,6 +6,9 @@ import java.awt.Font
 import java.io.File
 import java.util.*
 
+fun String.wrapInApostraf(): String {
+    return "'$this'"
+}
 fun String.wrapInQuotes(): String {
     return this
 //    return "\"\"" + this + "\"\""

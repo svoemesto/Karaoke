@@ -66,8 +66,8 @@ class Pictures(val database: KaraokeConnection = WORKING_DATABASE) : Serializabl
                             picture_full,
                             picture_preview
                        )::text) AS record_hash
-                FROM tbl_pictures $whereText;
-            """.trimIndent()
+                FROM tbl_pictures
+            """.trimIndent() + " $whereText"
             val connection = database.getConnection()
             var statement: Statement? = null
             var rs: ResultSet? = null

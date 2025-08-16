@@ -4305,8 +4305,8 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                             version_boosty_files,
                             rate
                        )::text) AS record_hash
-                FROM tbl_settings $whereText;
-            """.trimIndent()
+                FROM tbl_settings
+            """.trimIndent() + " $whereText"
             val connection = database.getConnection()
             var statement: Statement? = null
             var rs: ResultSet? = null

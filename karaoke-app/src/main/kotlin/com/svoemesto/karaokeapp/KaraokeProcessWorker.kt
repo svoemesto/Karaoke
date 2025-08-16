@@ -184,6 +184,7 @@ class KaraokeProcessWorker {
                 if (Karaoke.checkLastAlbum) {
                     if (requestNewSongLastTimeMs + requestNewSongTimeoutMs < currentTimeMs) {
                         requestNewSongLastTimeMs = currentTimeMs
+                        println("ProcessWorker: Проверка нового альбома...")
                         val (authorForRequest, album, reason) = checkLastAlbumYm()
                         if (reason >= 0) {
                             // Удачный запрос (может быть найден новый альбом)
@@ -228,6 +229,7 @@ class KaraokeProcessWorker {
                     if (counter % (intervalCheckFiles / timeout) == 0L) {
 
                         if (Karaoke.monitoringRemoteSettingsSync) {
+                            println("ProcessWorker: Проверка sync-записей по таймеру...")
                             // Получаем список sync-записей из REMOTE DATABASE
                             val listSettingsSync = Settings.loadListFromDb(database = Connection.remote(), sync = true)
                             listSettingsSync.forEach { settingsSync ->
@@ -359,6 +361,7 @@ class KaraokeProcessWorker {
                 // Проверяем, выполняется ли в данный момент какое-то задание
                 // Если да - ждём, если нет запускаем новое задание (если оно есть в очереди)
                 if (workThread == null || !workThread!!.isAlive) {
+                    println("ProcessWorker: Получаем новое задание...")
                     val karaokeProcess = getKaraokeProcessToStart(database)
                     if (karaokeProcess != null && (!stopAfterThreadIsDone || karaokeProcess.command == "tail")) {
                         val args = karaokeProcess.args[0]

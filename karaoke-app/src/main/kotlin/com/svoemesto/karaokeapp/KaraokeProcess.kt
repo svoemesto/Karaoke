@@ -324,6 +324,7 @@ class KaraokeProcess(
         }
 
         if (status == KaraokeProcessStatuses.DONE.name) {
+            println("KaraokeProcess: Удаляем успешно завершенное задание: $name - [$type] - $description")
             delete(id, database)
         }
 
@@ -451,22 +452,20 @@ class KaraokeProcess(
         }
 
         fun setWorkingToWaiting(database: KaraokeConnection) {
-            val connection = database.getConnection()
-            var statement: Statement? = null
-            var rs: ResultSet? = null
-            val sql = "UPDATE tbl_processes SET process_status = 'WAITING' WHERE process_status = 'WORKING'"
+            println("KaraokeProcess: Сбрасываем WORKING (если есть) в WAITING...")
+
             try {
-                statement = connection.prepareStatement(sql)
-                statement.executeUpdate()
-                statement.close()
-            } catch (e: SQLException) {
-                e.printStackTrace()
-            } finally {
-                try {
-                    statement?.close() // close statement
-                } catch (e: SQLException) {
-                    e.printStackTrace()
-                }
+                val connection = database.getConnection()
+                val sql = "UPDATE tbl_processes SET " +
+                        "process_status = ? " +
+                        "WHERE process_status = ?"
+                val ps = connection.prepareStatement(sql)
+                ps.setString(1, "WAITING")
+                ps.setString(2, "WORKING")
+                ps.executeUpdate()
+                ps.close()
+            } catch (e: Exception) {
+                println(e.message)
             }
 
         }

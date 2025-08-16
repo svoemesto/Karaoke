@@ -231,7 +231,7 @@ class KaraokeProcessWorker {
                     if (counter % (intervalCheckFiles / timeout) == 0L) {
 
                         if (Karaoke.monitoringRemoteSettingsSync) {
-                            println("ProcessWorker: Проверка sync-записей по таймеру...")
+//                            println("ProcessWorker: Проверка sync-записей по таймеру...")
                             // Получаем список sync-записей из REMOTE DATABASE
                             val listSettingsSync = Settings.loadListFromDb(database = Connection.remote(), sync = true)
                             listSettingsSync.forEach { settingsSync ->

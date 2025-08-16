@@ -177,6 +177,7 @@ class KaraokeProcessWorker {
             isWork = true
             stopAfterThreadIsDone = false
             sendStateMessage()
+            KaraokeProcess.setWorkingToWaiting(database)
             while (isWork) {
 
                 val currentTimeMs = System.currentTimeMillis()
@@ -384,6 +385,7 @@ class KaraokeProcessWorker {
                             workThread!!.start()
                         }
                     } else {
+                        if (id == 0L) println("ProcessWorker: id процесса = 0, что-то не то.")
                         val kp = KaraokeProcess.load(id, database)
                         val diffs = KaraokeProcess.getDiff(kp)
                         if (diffs.isNotEmpty()) {

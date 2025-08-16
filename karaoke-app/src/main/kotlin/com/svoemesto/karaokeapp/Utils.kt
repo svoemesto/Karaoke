@@ -58,9 +58,7 @@ fun mainUtils() {
 
 fun customFunction(): String {
 
-    val font = Font("Roboto", Font.PLAIN, 24)
-
-    getTextWidthHeightPx("●", font)
+    KaraokeProcess.setWorkingToWaiting(database = WORKING_DATABASE)
 
     return ""
 }

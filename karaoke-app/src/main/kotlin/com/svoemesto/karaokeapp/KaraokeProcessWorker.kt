@@ -125,6 +125,7 @@ class KaraokeProcessWorker {
 
         fun start(database: KaraokeConnection) {
             if (!isWork) {
+                KaraokeProcess.setWorkingToWaiting(database)
                 doStart(database)
             } else {
                 stopAfterThreadIsDone = false
@@ -177,7 +178,7 @@ class KaraokeProcessWorker {
             isWork = true
             stopAfterThreadIsDone = false
             sendStateMessage()
-            KaraokeProcess.setWorkingToWaiting(database)
+
             while (isWork) {
 
                 val currentTimeMs = System.currentTimeMillis()
@@ -382,6 +383,7 @@ class KaraokeProcessWorker {
                             processType = karaokeProcess.type
                             percentage = 0.0
                             withoutControl = karaokeProcess.withoutControl
+                            println("ProcessWorker: Стартуем новое задание: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}")
                             workThread!!.start()
                         }
                     } else {

@@ -450,6 +450,27 @@ class KaraokeProcess(
             return result
         }
 
+        fun setWorkingToWaiting(database: KaraokeConnection) {
+            val connection = database.getConnection()
+            var statement: Statement? = null
+            var rs: ResultSet? = null
+            val sql = "UPDATE tbl_processes SET process_status = 'WAITING' WHERE process_status = 'WORKING'"
+            try {
+                statement = connection.prepareStatement(sql)
+                statement.executeUpdate()
+                statement.close()
+            } catch (e: SQLException) {
+                e.printStackTrace()
+            } finally {
+                try {
+                    statement?.close() // close statement
+                } catch (e: SQLException) {
+                    e.printStackTrace()
+                }
+            }
+
+        }
+
         fun createDbInstance(process: KaraokeProcess) : KaraokeProcess? {
             val sql =
                 "INSERT INTO tbl_processes (" +

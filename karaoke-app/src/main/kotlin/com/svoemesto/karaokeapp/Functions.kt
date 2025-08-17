@@ -461,6 +461,7 @@ fun createKaraoke(settings: Settings, songVersion: SongVersion) {
     val fileProject = File(settings.getOutputFilename(SongOutputFile.PROJECT, songVersion))
     val fileMlt = File(settings.getOutputFilename(SongOutputFile.MLT, songVersion))
     Files.createDirectories(Path(fileProject.parent))
+    Files.createDirectories(Path(File(settings.getOutputFilename(SongOutputFile.PICTURE, songVersion)).parent)) // Создаем папку done_files чтобы не было ошибки при создании картинок бусти и спонсора
     fileProject.writeText(templateProject)
     fileMlt.writeText(templateProject)
     val fileRun = File(settings.getOutputFilename(SongOutputFile.RUN, songVersion))

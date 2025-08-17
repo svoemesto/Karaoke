@@ -16,6 +16,8 @@ import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.*
 import java.io.File
+import java.sql.Timestamp
+import java.time.Instant
 
 @Controller
 class MainController(private val webSocket: SimpMessagingTemplate, @Value("\${work-in-container}") val wic: Long) {
@@ -76,6 +78,10 @@ class MainController(private val webSocket: SimpMessagingTemplate, @Value("\${wo
                         fieldsValues.add(Pair("link_type", "linkToSocialNetwork"))
                         fieldsValues.add(Pair("link_name", linkName))
                         val connection = WORKING_DATABASE.getConnection()
+                        if (connection == null) {
+                            println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                            return false
+                        }
                         val sqlToInsert = "INSERT INTO tbl_events (${fieldsValues.map {it.first}.joinToString(", ")}) OVERRIDING SYSTEM VALUE VALUES(${fieldsValues.map {if (it.second is Long) "${it.second}" else "'${it.second.toString().rightFileName()}'"}.joinToString(", ")})"
                         val ps = connection.prepareStatement(sqlToInsert)
                         ps.executeUpdate()
@@ -96,6 +102,10 @@ class MainController(private val webSocket: SimpMessagingTemplate, @Value("\${wo
                         fieldsValues.add(Pair("song_id", songId))
                         fieldsValues.add(Pair("song_version", songVersion))
                         val connection = WORKING_DATABASE.getConnection()
+                        if (connection == null) {
+                            println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                            return false
+                        }
                         val sqlToInsert = "INSERT INTO tbl_events (${fieldsValues.map {it.first}.joinToString(", ")}) OVERRIDING SYSTEM VALUE VALUES(${fieldsValues.map {if (it.second is Long) "${it.second}" else "'${it.second.toString().rightFileName()}'"}.joinToString(", ")})"
                         val ps = connection.prepareStatement(sqlToInsert)
                         ps.executeUpdate()
@@ -118,6 +128,10 @@ class MainController(private val webSocket: SimpMessagingTemplate, @Value("\${wo
                 fieldsValues.add(Pair("song_id", songId))
                 fieldsValues.add(Pair("song_version", songVersion))
                 val connection = WORKING_DATABASE.getConnection()
+                if (connection == null) {
+                    println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                    return false
+                }
                 val sqlToInsert = "INSERT INTO tbl_events (${fieldsValues.map {it.first}.joinToString(", ")}) OVERRIDING SYSTEM VALUE VALUES(${fieldsValues.map {if (it.second is Long) "${it.second}" else "'${it.second.toString().rightFileName()}'"}.joinToString(", ")})"
                 val ps = connection.prepareStatement(sqlToInsert)
                 ps.executeUpdate()
@@ -133,6 +147,10 @@ class MainController(private val webSocket: SimpMessagingTemplate, @Value("\${wo
                 fieldsValues.add(Pair("rest_parameters", parameters.toString()))
                 fieldsValues.add(Pair("referer", data["referer"]?:""))
                 val connection = WORKING_DATABASE.getConnection()
+                if (connection == null) {
+                    println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                    return false
+                }
                 if (parameters.containsKey("id")) fieldsValues.add(Pair("song_id", parameters["id"]!!.toString().toLong()))
                 val sqlToInsert = "INSERT INTO tbl_events (${fieldsValues.map {it.first}.joinToString(", ")}) OVERRIDING SYSTEM VALUE VALUES(${fieldsValues.map {if (it.second is Long) "${it.second}" else "'${it.second.toString().rightFileName()}'"}.joinToString(", ")})"
                 val ps = connection.prepareStatement(sqlToInsert)
@@ -158,7 +176,10 @@ class MainController(private val webSocket: SimpMessagingTemplate, @Value("\${wo
             val dataDelete = data["dataDelete"] as List<Map<String, Any>>
 
             val connection = WORKING_DATABASE.getConnection()
-
+            if (connection == null) {
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                return "ERROR: Невозможно установить соединение с базой данных"
+            }
             dataCreate.forEach { action ->
                 val sqlToInsert = action["sqlToInsert"] as String
                 val sqlToInsertDecrypted = Crypto.decrypt(sqlToInsert)

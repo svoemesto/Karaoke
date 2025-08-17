@@ -9,12 +9,16 @@ abstract class KaraokeConnection(
     open val name: String
 ) {
     private var connection: java.sql.Connection? = null
-    fun getConnection(): java.sql.Connection {
+    fun getConnection(): java.sql.Connection? {
         if (connection == null) {
             Class.forName("org.postgresql.Driver")
-            connection = DriverManager.getConnection(url, username, password)
+            try {
+                connection = DriverManager.getConnection(url, username, password)
+            } catch (e: Exception) {
+                println("KaraokeConnection getConnection Exception: ${e.message}")
+            }
         }
-        return connection!!
+        return connection
     }
 //    abstract fun getConnection(): java.sql.Connection
 }

@@ -7,6 +7,8 @@ import java.io.Serializable
 import java.sql.ResultSet
 import java.sql.SQLException
 import java.sql.Statement
+import java.sql.Timestamp
+import java.time.Instant
 
 class StatBySong(val database: KaraokeConnection = WORKING_DATABASE): Serializable, Comparable<StatBySong> {
 
@@ -35,6 +37,10 @@ class StatBySong(val database: KaraokeConnection = WORKING_DATABASE): Serializab
                   and to_timestamp(CONCAT(publish_date, ' ', publish_time), 'DD.MM.YY HH24:MI') <= current_timestamp;
             """.trimIndent()
             val connection = database.getConnection()
+            if (connection == null) {
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                return 0
+            }
             var statement: Statement? = null
             var rs: ResultSet? = null
             try {
@@ -59,6 +65,10 @@ class StatBySong(val database: KaraokeConnection = WORKING_DATABASE): Serializab
         fun getCountSongsOnBoosty(database: KaraokeConnection = WORKING_DATABASE): Int {
             val sql = "select count(DISTINCT id) as cnt from tbl_settings where id_boosty != '' AND id_boosty IS NOT NULL"
             val connection = database.getConnection()
+            if (connection == null) {
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                return 0
+            }
             var statement: Statement? = null
             var rs: ResultSet? = null
             try {
@@ -88,6 +98,10 @@ class StatBySong(val database: KaraokeConnection = WORKING_DATABASE): Serializab
             """.trimIndent()
 
             val connection = database.getConnection()
+            if (connection == null) {
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                return emptyList()
+            }
             var statement: Statement? = null
             var rs: ResultSet? = null
             try {
@@ -294,6 +308,10 @@ class StatBySong(val database: KaraokeConnection = WORKING_DATABASE): Serializab
             """.trimIndent()
 
             val connection = database.getConnection()
+            if (connection == null) {
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                return emptyList()
+            }
             var statement: Statement? = null
             var rs: ResultSet? = null
             try {

@@ -34,6 +34,8 @@ import java.security.cert.Certificate
 import java.security.cert.CertificateException
 import java.security.KeyStoreException
 import java.io.IOException
+import java.sql.Timestamp
+import java.time.Instant
 
 @Controller
 @RequestMapping("/apis")
@@ -315,6 +317,10 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         val result: MutableList<Long> = mutableListOf()
 
         val connection = WORKING_DATABASE.getConnection()
+        if (connection == null) {
+            println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+            return emptyList()
+        }
         var statement: Statement? = null
         var rs: ResultSet? = null
         var sql = "select id from tbl_settings where EXTRACT(EPOCH FROM last_update at time zone 'UTC-3')*1000 > $time;"
@@ -349,6 +355,10 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         val result: MutableList<Long> = mutableListOf()
 
         val connection = WORKING_DATABASE.getConnection()
+        if (connection == null) {
+            println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+            return emptyList()
+        }
         var statement: Statement? = null
         var rs: ResultSet? = null
         var sql = "select id from tbl_processes where EXTRACT(EPOCH FROM last_update at time zone 'UTC-3')*1000 > $time;"

@@ -29,11 +29,13 @@ class KaraokeProcessThread(val karaokeProcess: KaraokeProcess? = null, var perce
 
             val process = processBuilder.start()
             if (process.isAlive) {
+                println("[${Timestamp.from(Instant.now())}] KaraokeProcessThread: Установка приоритета задания: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}")
                 setProcessPriority(process.pid(), karaokeProcess.prioritet)
             }
 
             try {
 
+                println("[${Timestamp.from(Instant.now())}] KaraokeProcessThread: Начинаем работу с заданием: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}")
                 val inputStream = process.inputStream
                 var duration: String? = null
                 val reader = BufferedReader(InputStreamReader(inputStream))
@@ -70,7 +72,9 @@ class KaraokeProcessThread(val karaokeProcess: KaraokeProcess? = null, var perce
                     }
                     line = reader.readLine()
                 }
+                println("[${Timestamp.from(Instant.now())}] KaraokeProcessThread: Завершаем работу с заданием: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}")
                 if (log != "") {
+                    println("[${Timestamp.from(Instant.now())}] KaraokeProcessThread: Выводим лог задания: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}")
                     log = args.joinToString(" ") + "\n\n" + log
                     val logFileName = "$PATH_TO_LOGS/[${Timestamp.from(Instant.now())}] ${karaokeProcess.name} - ${karaokeProcess.description}.log".rightFileName()
                     try {
@@ -88,20 +92,19 @@ class KaraokeProcessThread(val karaokeProcess: KaraokeProcess? = null, var perce
                     }
                 }
 
+                println("[${Timestamp.from(Instant.now())}] KaraokeProcessThread: DONE успешно завершенное задание: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}")
                 karaokeProcess.status = KaraokeProcessStatuses.DONE.name
                 karaokeProcess.end = Timestamp.from(Instant.now())
                 karaokeProcess.priority = 999
                 karaokeProcess.save()
 
-
-
 //                if (karaokeProcess.type == KaraokeProcessTypes.DEMUCS2.name) {
 //                    KaraokeProcess.delete(karaokeProcess.id, karaokeProcess.database)
 //                }
 
-
             } catch (e: Exception) {
                 process.destroy()
+                println("[${Timestamp.from(Instant.now())}] KaraokeProcessThread: ERROR задание: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}")
                 karaokeProcess.status = KaraokeProcessStatuses.ERROR.name
                 karaokeProcess.end = Timestamp.from(Instant.now())
                 karaokeProcess.priority = -1
@@ -178,6 +181,7 @@ class KaraokeProcessWorker {
             isWork = true
             stopAfterThreadIsDone = false
             sendStateMessage()
+            println("[${Timestamp.from(Instant.now())}] ProcessWorker: Стартуем")
 
             while (isWork) {
 
@@ -186,7 +190,7 @@ class KaraokeProcessWorker {
                 if (Karaoke.checkLastAlbum) {
                     if (requestNewSongLastTimeMs + requestNewSongTimeoutMs < currentTimeMs) {
                         requestNewSongLastTimeMs = currentTimeMs
-                        println("ProcessWorker: Проверка нового альбома...")
+                        println("[${Timestamp.from(Instant.now())}] ProcessWorker: Проверка нового альбома...")
                         val (authorForRequest, album, reason) = checkLastAlbumYm()
                         if (reason >= 0) {
                             // Удачный запрос (может быть найден новый альбом)
@@ -244,28 +248,53 @@ class KaraokeProcessWorker {
                                         val sql = "UPDATE tbl_settings SET $setStr WHERE id = ?"
 
                                         val connection = Connection.local().getConnection()
-                                        val ps = connection.prepareStatement(sql)
+                                        if (connection == null) {
+                                            println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                                        } else {
+                                            val ps = connection.prepareStatement(sql)
 
-                                        var index = 1
-                                        diff.filter{ it.recordDiffRealField }.forEach {
-                                            if (it.recordDiffValueNew is Long) {
-                                                ps.setLong(index, it.recordDiffValueNew.toLong())
-                                            } else {
-                                                ps.setString(index, it.recordDiffValueNew.toString())
+                                            var index = 1
+                                            diff.filter{ it.recordDiffRealField }.forEach {
+                                                if (it.recordDiffValueNew is Long) {
+                                                    ps.setLong(index, it.recordDiffValueNew.toLong())
+                                                } else if (it.recordDiffValueNew is Int) {
+                                                    ps.setInt(index, it.recordDiffValueNew.toInt())
+                                                } else {
+                                                    ps.setString(index, it.recordDiffValueNew.toString())
+                                                }
+                                                index++
                                             }
-                                            index++
+                                            ps.setLong(index, settingsLocal.id)
+                                            ps.executeUpdate()
+                                            ps.close()
                                         }
-                                        ps.setLong(index, settingsLocal.id)
-                                        ps.executeUpdate()
-                                        ps.close()
                                     }
                                 } else {
                                     // Записи в локальной БД нет, надо создать
                                     val sqlToInsert = settingsSync.getSqlToInsert()
                                     val connection = Connection.local().getConnection()
-                                    val ps = connection.prepareStatement(sqlToInsert)
-                                    ps.executeUpdate()
-                                    ps.close()
+                                    if (connection == null) {
+                                        println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                                    } else {
+                                        val ps = connection.prepareStatement(sqlToInsert)
+                                        ps.executeUpdate()
+                                        ps.close()
+                                    }
+                                }
+
+                                if (settingsSync.tags == "RENDER") {
+                                    val settingsLocal = Settings.loadFromDbById(id = settingsSync.id, database = Connection.local())
+                                    if (settingsLocal != null) {
+                                        settingsLocal.sourceMarkersList.forEachIndexed { voice, _ ->
+                                            val strText = settingsLocal.convertMarkersToSrt(voice)
+                                            File("${settingsLocal.rootFolder}/${settingsLocal.rightSettingFileName}.voice${voice+1}.srt").writeText(strText)
+                                        }
+
+                                        settingsLocal.createKaraoke(createLyrics = true, createKaraoke = true)
+
+                                        KaraokeProcess.createProcess(settingsLocal, KaraokeProcessTypes.MELT_LYRICS, true, 0)
+                                        KaraokeProcess.createProcess(settingsLocal, KaraokeProcessTypes.MELT_KARAOKE, true, 1)
+                                    }
                                 }
                             }
                             // Удаляем записи из sync-таблицы
@@ -363,7 +392,7 @@ class KaraokeProcessWorker {
                 // Проверяем, выполняется ли в данный момент какое-то задание
                 // Если да - ждём, если нет запускаем новое задание (если оно есть в очереди)
                 if (workThread == null || !workThread!!.isAlive) {
-                    println("ProcessWorker: Получаем новое задание...")
+                    println("[${Timestamp.from(Instant.now())}] ProcessWorker: Получаем новое задание...")
                     val karaokeProcess = getKaraokeProcessToStart(database)
                     if (karaokeProcess != null && (!stopAfterThreadIsDone || karaokeProcess.command == "tail")) {
                         val args = karaokeProcess.args[0]
@@ -378,16 +407,17 @@ class KaraokeProcessWorker {
 
                             }
                             workThread = KaraokeProcessThread(karaokeProcess)
+
                             id = karaokeProcess.id.toLong()
                             settingsId = karaokeProcess.settingsId.toLong()
                             processType = karaokeProcess.type
                             percentage = 0.0
                             withoutControl = karaokeProcess.withoutControl
-                            println("ProcessWorker: Стартуем новое задание: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}")
+                            println("[${Timestamp.from(Instant.now())}] ProcessWorker: Стартуем новое задание: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}")
                             workThread!!.start()
                         }
                     } else {
-                        if (id == 0L) println("ProcessWorker: id процесса = 0, что-то не то.")
+                        if (id == 0L) println("[${Timestamp.from(Instant.now())}] ProcessWorker: id процесса = 0, что-то не то.")
                         val kp = KaraokeProcess.load(id, database)
                         val diffs = KaraokeProcess.getDiff(kp)
                         if (diffs.isNotEmpty()) {
@@ -398,6 +428,7 @@ class KaraokeProcessWorker {
                             isWork = false
                             withoutControl = false
                             sendStateMessage()
+                            println("[${Timestamp.from(Instant.now())}] ProcessWorker: Останавливаемся")
                         }
 
                     }

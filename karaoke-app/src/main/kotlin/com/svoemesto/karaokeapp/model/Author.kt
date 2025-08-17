@@ -7,6 +7,8 @@ import java.io.Serializable
 import java.sql.ResultSet
 import java.sql.SQLException
 import java.sql.Statement
+import java.sql.Timestamp
+import java.time.Instant
 
 class Author(val database: KaraokeConnection = WORKING_DATABASE) : Serializable, Comparable<Author> {
 
@@ -24,6 +26,10 @@ class Author(val database: KaraokeConnection = WORKING_DATABASE) : Serializable,
     fun save() {
 
         val connection = database.getConnection()
+        if (connection == null) {
+            println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+            return
+        }
         val sql = "UPDATE tbl_authors SET " +
                 "author = ?, " +
                 "ym_id = ?, " +
@@ -82,6 +88,10 @@ class Author(val database: KaraokeConnection = WORKING_DATABASE) : Serializable,
             val sql = author.getSqlToInsert()
 
             val connection = database.getConnection()
+            if (connection == null) {
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                return null
+            }
             val ps = connection.prepareStatement(sql)
             ps.executeUpdate(sql, Statement.RETURN_GENERATED_KEYS)
             val rs = ps.generatedKeys
@@ -100,6 +110,10 @@ class Author(val database: KaraokeConnection = WORKING_DATABASE) : Serializable,
         fun loadList(args: Map<String, String> = emptyMap(), database: KaraokeConnection): List<Author> {
 
             val connection = database.getConnection()
+            if (connection == null) {
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                return emptyList()
+            }
             var statement: Statement? = null
             var rs: ResultSet? = null
             var sql: String
@@ -150,6 +164,10 @@ class Author(val database: KaraokeConnection = WORKING_DATABASE) : Serializable,
         fun delete(id: Int, database: KaraokeConnection) {
 
             val connection = database.getConnection()
+            if (connection == null) {
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                return
+            }
             val sql = "DELETE FROM tbl_authors WHERE id = ?"
             val ps = connection.prepareStatement(sql)
             var index = 1

@@ -237,6 +237,10 @@ class KaraokeProcess(
     fun save() {
 
         val connection = database.getConnection()
+        if (connection == null) {
+            println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+            return
+        }
         val sql = "UPDATE tbl_processes SET " +
                 "process_name = ?, " +
                 "process_status = ?, " +
@@ -324,7 +328,7 @@ class KaraokeProcess(
         }
 
         if (status == KaraokeProcessStatuses.DONE.name) {
-            println("KaraokeProcess: Удаляем успешно завершенное задание: $name - [$type] - $description")
+            println("[${Timestamp.from(Instant.now())}] KaraokeProcess: Удаляем успешно завершенное задание: $name - [$type] - $description")
             delete(id, database)
         }
 
@@ -412,6 +416,10 @@ class KaraokeProcess(
             if (lastTime == null) return emptyList()
 
             val connection = database.getConnection()
+            if (connection == null) {
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                return emptyList()
+            }
             var statement: Statement? = null
             var rs: ResultSet? = null
             val sql: String
@@ -452,10 +460,14 @@ class KaraokeProcess(
         }
 
         fun setWorkingToWaiting(database: KaraokeConnection) {
-            println("KaraokeProcess: Сбрасываем WORKING (если есть) в WAITING...")
+            println("[${Timestamp.from(Instant.now())}] KaraokeProcess: Сбрасываем WORKING (если есть) в WAITING...")
 
             try {
                 val connection = database.getConnection()
+                if (connection == null) {
+                    println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                    return
+                }
                 val sql = "UPDATE tbl_processes SET " +
                         "process_status = ? " +
                         "WHERE process_status = ?"
@@ -519,6 +531,10 @@ class KaraokeProcess(
                 ")"
 
             val connection = process.database.getConnection()
+            if (connection == null) {
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                return null
+            }
             val ps = connection.prepareStatement(sql)
             ps.executeUpdate(sql, Statement.RETURN_GENERATED_KEYS)
             val rs = ps.generatedKeys
@@ -548,9 +564,63 @@ class KaraokeProcess(
 
         }
 
+        fun getProcessToStart(database: KaraokeConnection): KaraokeProcess? {
+
+            val connection = database.getConnection()
+            if (connection == null) {
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                return null
+            }
+
+            var statement: Statement? = null
+            var rs: ResultSet? = null
+            var sql: String = "SELECT * FROM tbl_processes WHERE process_status = 'WAITING' ORDER BY process_priority, process_order, id LIMIT 1;"
+
+            try {
+                statement = connection.createStatement()
+                rs = statement.executeQuery(sql)
+                while (rs.next()) {
+                    val process = KaraokeProcess(database)
+
+                    process.id = rs.getInt("id")
+                    process.name = rs.getString("process_name")
+                    process.status = rs.getString("process_status")
+                    process.order = rs.getInt("process_order")
+                    process.priority = rs.getInt("process_priority")
+                    process.command = rs.getString("process_command")
+                    process.args = convertJsonToArgs(rs.getString("process_args"))
+                    process.description = rs.getString("process_description")
+                    process.settingsId = rs.getInt("settings_id")
+                    process.type = rs.getString("process_type")
+                    process.start = rs.getTimestamp("process_start")
+                    process.end = rs.getTimestamp("process_end")
+                    process.prioritet = rs.getInt("process_prioritet")
+                    process.withoutControl = rs.getBoolean("without_control")
+                    return process
+
+                }
+
+            } catch (e: SQLException) {
+                e.printStackTrace()
+            } finally {
+                try {
+                    rs?.close() // close result set
+                    statement?.close() // close statement
+                } catch (e: SQLException) {
+                    e.printStackTrace()
+                }
+            }
+            return null
+
+        }
+
         fun loadList(args: Map<String, String> = emptyMap(), database: KaraokeConnection): List<KaraokeProcess> {
 
             val connection = database.getConnection()
+            if (connection == null) {
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                return emptyList()
+            }
             var statement: Statement? = null
             var rs: ResultSet? = null
             var sql: String
@@ -631,6 +701,10 @@ class KaraokeProcess(
         fun delete(id: Int, database: KaraokeConnection) {
 
             val connection = database.getConnection()
+            if (connection == null) {
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                return
+            }
             val sql = "DELETE FROM tbl_processes WHERE id = ?"
             val ps = connection.prepareStatement(sql)
             var index = 1
@@ -652,12 +726,6 @@ class KaraokeProcess(
         fun load(id: Long, database: KaraokeConnection): KaraokeProcess? {
 
             return loadList(mapOf(Pair("id", id.toString())), database).firstOrNull()
-
-        }
-
-        fun getProcessToStart(database: KaraokeConnection): KaraokeProcess? {
-
-            return loadList(mapOf(Pair("process_status", KaraokeProcessStatuses.WAITING.name)), database).firstOrNull()
 
         }
 

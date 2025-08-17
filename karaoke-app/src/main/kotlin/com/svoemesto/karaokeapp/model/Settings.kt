@@ -22,6 +22,7 @@ import java.nio.file.Paths
 import java.nio.file.attribute.PosixFilePermissions
 import java.sql.*
 import java.text.SimpleDateFormat
+import java.time.Instant
 import java.util.*
 import java.util.Date
 import kotlin.io.path.Path
@@ -171,6 +172,10 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                     fields[SettingField.MS] = tmp.toString()
                     val sql = "UPDATE tbl_settings SET song_ms = ? WHERE id = ?"
                     val connection = database.getConnection()
+                    if (connection == null) {
+                        println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                        return 0L
+                    }
                     val ps = connection.prepareStatement(sql)
                     ps.setLong(1, tmp)
                     ps.setLong(2, id)
@@ -3246,6 +3251,10 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                 val sql = "UPDATE tbl_settings SET $setStr WHERE id = ?"
 
                 val connection = database.getConnection()
+                if (connection == null) {
+                    println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                    return
+                }
                 val ps = connection.prepareStatement(sql)
 
                 var index = 1
@@ -3383,7 +3392,10 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                     doSkip = true
                 }
             }
-            if (sourceFilePathAndName != "" && !File(sourceFilePathAndName).exists()) doSkip = true
+            if (sourceFilePathAndName != "" && !File(sourceFilePathAndName).exists()) {
+                println("Пропускаем копирование, т.к. отсутствует файл $sourceFilePathAndName")
+                doSkip = true
+            }
 
         }
 
@@ -3429,30 +3441,38 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
             if (File(destinationFilePathAndName).exists()) {
                 if (File(destinationFilePathAndName).length() != File(sourceFilePathAndName).length()) {
+                    println("Исходный файл $destinationFilePathAndName имеет размер ${File(destinationFilePathAndName).length()}, результирующий файл $sourceFilePathAndName имеет размер ${File(sourceFilePathAndName).length()}, поэтому удаляем старый файл перед копированием.")
                     deleteOldBeforeCopy = true
+                } else {
+                    println("Проускаем копирование, т.к. исходный файл $destinationFilePathAndName и результирующий файл $sourceFilePathAndName имеют одинаковый размер ${File(destinationFilePathAndName).length()}")
+                    doSkip = true
                 }
             }
-            val args: MutableList<List<String>> = mutableListOf()
-            val argsDescription: MutableList<String> = mutableListOf()
 
-            if (deleteOldBeforeCopy) {
-                args.add(listOf("rm", destinationFilePathAndName))
-                argsDescription.add("Delete old file")
+            if (!doSkip) {
+                val args: MutableList<List<String>> = mutableListOf()
+                val argsDescription: MutableList<String> = mutableListOf()
+
+                if (deleteOldBeforeCopy) {
+                    args.add(listOf("rm", destinationFilePathAndName))
+                    argsDescription.add("Delete old file")
+                }
+
+                args.add(listOf("cp", sourceFilePathAndName, destinationFilePathAndName))
+                argsDescription.add("Copy new file")
+
+                context["args"] = args
+                context["argsDescription"] = argsDescription
+
+                KaraokeProcess.createProcess(
+                    settings = this,
+                    action = KaraokeProcessTypes.SMARTCOPY,
+                    doWait = true,
+                    prior = prior,
+                    context = context
+                )
             }
 
-            args.add(listOf("cp", sourceFilePathAndName, destinationFilePathAndName))
-            argsDescription.add("Copy new file")
-
-            context["args"] = args
-            context["argsDescription"] = argsDescription
-
-            KaraokeProcess.createProcess(
-                settings = this,
-                action = KaraokeProcessTypes.SMARTCOPY,
-                doWait = true,
-                prior = prior,
-                context = context
-            )
         }
 
 
@@ -3473,6 +3493,10 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         }
 
         val connection = database.getConnection()
+        if (connection == null) {
+            println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+            return
+        }
         val sql = "DELETE FROM tbl_settings${if (sync) "_sync" else ""} WHERE id = ?"
         val ps = connection.prepareStatement(sql)
         ps.setLong(1, id)
@@ -4059,6 +4083,10 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             val sql = "SELECT COUNT(*) AS total_count FROM tbl_settings;"
             var result = -1
             val connection = database.getConnection()
+            if (connection == null) {
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                return -1
+            }
             var statement: Statement? = null
             var rs: ResultSet? = null
 
@@ -4085,6 +4113,10 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             if (lastTime == null) return emptyList()
 
             val connection = database.getConnection()
+            if (connection == null) {
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                return emptyList()
+            }
             var statement: Statement? = null
             var rs: ResultSet? = null
             val sql: String
@@ -4117,6 +4149,10 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             val sql = settings.getSqlToInsert()
 
             val connection = database.getConnection()
+            if (connection == null) {
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                return null
+            }
             val ps = connection.prepareStatement(sql)
             ps.executeUpdate(sql, Statement.RETURN_GENERATED_KEYS)
             val rs = ps.generatedKeys
@@ -4146,6 +4182,10 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
         fun loadListAuthors(database: KaraokeConnection): List<String> {
             val connection = database.getConnection()
+            if (connection == null) {
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                return emptyList()
+            }
             var statement: Statement? = null
             var rs: ResultSet? = null
             var sql: String
@@ -4176,6 +4216,10 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
         fun loadListAlbums(database: KaraokeConnection): List<String> {
             val connection = database.getConnection()
+            if (connection == null) {
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                return emptyList()
+            }
             var statement: Statement? = null
             var rs: ResultSet? = null
             var sql: String
@@ -4206,6 +4250,10 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
         fun loadListIds(database: KaraokeConnection): List<Long> {
             val connection = database.getConnection()
+            if (connection == null) {
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                return emptyList()
+            }
             var statement: Statement? = null
             var rs: ResultSet? = null
             var sql: String
@@ -4234,8 +4282,8 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
         }
 
-        fun listHashes(database: KaraokeConnection, whereText: String = ""): List<Pair<Long, String>> {
-            val result: MutableList<Pair<Long, String>> = mutableListOf()
+        fun listHashes(database: KaraokeConnection, whereText: String = ""): List<Pair<Long, String>>? {
+            var result: MutableList<Pair<Long, String>>? = mutableListOf()
             val sql = """
                 SELECT id, 
                        md5(row(
@@ -4308,16 +4356,21 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                 FROM tbl_settings
             """.trimIndent() + " $whereText"
             val connection = database.getConnection()
+            if (connection == null) {
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                return null
+            }
             var statement: Statement? = null
             var rs: ResultSet? = null
             try {
                 statement = connection.createStatement()
                 rs = statement.executeQuery(sql)
                 while (rs.next()) {
-                    result.add(Pair(rs.getLong("id"), rs.getString("record_hash")))
+                    result!!.add(Pair(rs.getLong("id"), rs.getString("record_hash")))
                 }
             } catch (e: SQLException) {
                 e.printStackTrace()
+                result = null
             } finally {
                 try {
                     rs?.close() // close result set
@@ -4332,6 +4385,10 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         fun loadListFromDb(args: Map<String, String> = emptyMap(), database: KaraokeConnection, sync: Boolean = false): List<Settings> {
 
             val connection = database.getConnection()
+            if (connection == null) {
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                return emptyList()
+            }
             var statement: Statement? = null
             var rs: ResultSet? = null
             var sql: String
@@ -4601,6 +4658,10 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         fun deleteFromDb(id: Long, database: KaraokeConnection, sync: Boolean = false) {
 
             val connection = database.getConnection()
+            if (connection == null) {
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                return
+            }
             val sql = "DELETE FROM tbl_settings${if (sync) "_sync" else ""} WHERE id = ?"
             val ps = connection.prepareStatement(sql)
             ps.setLong(1, id)
@@ -4696,6 +4757,10 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             val result: MutableSet<String> = mutableSetOf()
 
             val connection = database.getConnection()
+            if (connection == null) {
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                return emptySet()
+            }
             var statement: Statement? = null
             var rs: ResultSet? = null
             var sql: String

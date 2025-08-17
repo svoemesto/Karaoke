@@ -7,6 +7,8 @@ import java.io.Serializable
 import java.sql.ResultSet
 import java.sql.SQLException
 import java.sql.Statement
+import java.sql.Timestamp
+import java.time.Instant
 
 class Pictures(val database: KaraokeConnection = WORKING_DATABASE) : Serializable, Comparable<Pictures> {
 
@@ -22,6 +24,10 @@ class Pictures(val database: KaraokeConnection = WORKING_DATABASE) : Serializabl
     fun save() {
 
         val connection = database.getConnection()
+        if (connection == null) {
+            println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+            return
+        }
         val sql = "UPDATE tbl_pictures SET " +
                 "picture_name = ?, " +
                 "picture_full = ?, " +
@@ -56,8 +62,8 @@ class Pictures(val database: KaraokeConnection = WORKING_DATABASE) : Serializabl
 
     companion object {
 
-        fun listHashes(database: KaraokeConnection, whereText: String = ""): List<Pair<Long, String>> {
-            val result: MutableList<Pair<Long, String>> = mutableListOf()
+        fun listHashes(database: KaraokeConnection, whereText: String = ""): List<Pair<Long, String>>? {
+            var result: MutableList<Pair<Long, String>>? = mutableListOf()
             val sql = """
                 SELECT id, 
                        md5(row(
@@ -69,16 +75,21 @@ class Pictures(val database: KaraokeConnection = WORKING_DATABASE) : Serializabl
                 FROM tbl_pictures
             """.trimIndent() + " $whereText"
             val connection = database.getConnection()
+            if (connection == null) {
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                return null
+            }
             var statement: Statement? = null
             var rs: ResultSet? = null
             try {
                 statement = connection.createStatement()
                 rs = statement.executeQuery(sql)
                 while (rs.next()) {
-                    result.add(Pair(rs.getLong("id"), rs.getString("record_hash")))
+                    result!!.add(Pair(rs.getLong("id"), rs.getString("record_hash")))
                 }
             } catch (e: SQLException) {
                 e.printStackTrace()
+                result = null
             } finally {
                 try {
                     rs?.close() // close result set
@@ -92,6 +103,10 @@ class Pictures(val database: KaraokeConnection = WORKING_DATABASE) : Serializabl
 
         fun loadListIds(database: KaraokeConnection): List<Long> {
             val connection = database.getConnection()
+            if (connection == null) {
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                return emptyList()
+            }
             var statement: Statement? = null
             var rs: ResultSet? = null
             var sql: String
@@ -124,6 +139,10 @@ class Pictures(val database: KaraokeConnection = WORKING_DATABASE) : Serializabl
             val sql = "SELECT COUNT(*) AS total_count FROM tbl_pictures;"
             var result = -1
             val connection = database.getConnection()
+            if (connection == null) {
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                return -1
+            }
             var statement: Statement? = null
             var rs: ResultSet? = null
 
@@ -160,6 +179,10 @@ class Pictures(val database: KaraokeConnection = WORKING_DATABASE) : Serializabl
             val sql = picture.getSqlToInsert()
 
             val connection = database.getConnection()
+            if (connection == null) {
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                return null
+            }
             val ps = connection.prepareStatement(sql)
             ps.executeUpdate(sql, Statement.RETURN_GENERATED_KEYS)
             val rs = ps.generatedKeys
@@ -180,6 +203,10 @@ class Pictures(val database: KaraokeConnection = WORKING_DATABASE) : Serializabl
         fun loadListFromDb(args: Map<String, String> = emptyMap(), database: KaraokeConnection): List<Pictures> {
 
             val connection = database.getConnection()
+            if (connection == null) {
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                return emptyList()
+            }
             var statement: Statement? = null
             var rs: ResultSet? = null
             var sql: String
@@ -187,6 +214,7 @@ class Pictures(val database: KaraokeConnection = WORKING_DATABASE) : Serializabl
 
             try {
                 statement = connection.createStatement()
+
                 val limit = args["limit"]?.toInt() ?: 0
                 val offset = args["offset"]?.toInt() ?: 0
                 sql = "SELECT tbl_pictures.*" +
@@ -228,6 +256,10 @@ class Pictures(val database: KaraokeConnection = WORKING_DATABASE) : Serializabl
         fun deleteFromDb(id: Int, database: KaraokeConnection) {
 
             val connection = database.getConnection()
+            if (connection == null) {
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                return
+            }
             val sql = "DELETE FROM tbl_pictures WHERE id = ?"
             val ps = connection.prepareStatement(sql)
             var index = 1

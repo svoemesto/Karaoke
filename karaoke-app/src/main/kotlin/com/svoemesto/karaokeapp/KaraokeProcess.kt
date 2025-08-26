@@ -1389,6 +1389,7 @@ class KaraokeProcess(
                         description = "Smart Copy"
                         args = context["args"] as List<List<String>>
                         argsDescription = context["argsDescription"] as List<String>
+                        type = context["typesText"] as String
                     }
 
                     else -> {}

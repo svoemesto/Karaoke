@@ -3463,6 +3463,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
                 context["args"] = args
                 context["argsDescription"] = argsDescription
+                context["typesText"] = "${KaraokeProcessTypes.SMARTCOPY.name}_${scVersion.name}_$scResolution"
 
                 KaraokeProcess.createProcess(
                     settings = this,
@@ -3515,11 +3516,13 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     }
 
     fun saveToFile() {
-        var txt = ""
-        SettingField.values().forEach { settingField ->
-            if (fields.contains(settingField)) txt += "${settingField.name}=${fields[settingField]}\n"
+        if (File(rootFolder).exists()) {
+            var txt = ""
+            SettingField.values().forEach { settingField ->
+                if (fields.contains(settingField)) txt += "${settingField.name}=${fields[settingField]}\n"
+            }
+            File("$rootFolder/$rightSettingFileName.settings".rightFileName()).writeText(txt)
         }
-        File("$rootFolder/$rightSettingFileName.settings".rightFileName()).writeText(txt)
     }
 
     fun createVKDescription() {

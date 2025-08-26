@@ -267,6 +267,22 @@ class KaraokeProcessWorker {
                                             ps.setLong(index, settingsLocal.id)
                                             ps.executeUpdate()
                                             ps.close()
+                                            if (Karaoke.autoUpdateRemoteSettings) {
+                                                val (countCreate, countUpdate, countDelete) = updateRemoteSettingFromLocalDatabase(settingsLocal.id)
+                                                val body = if (countCreate + countUpdate + countDelete == 0) "Изменения не требуются" else listOf(Pair(countCreate > 0, "создано записей: $countCreate"), Pair(countUpdate > 0, "обновлено записей: $countUpdate"), Pair(countDelete > 0, "удалено записей: $countDelete")).filter { it.first }.map{ it.second }.joinToString(", ").uppercaseFirstLetter()
+
+                                                if (!(countUpdate == 1 && diff.any { it.recordDiffName.startsWith("status_process_")  })) {
+                                                    SNS.send(SseNotification.message(
+                                                        Message(
+                                                            type = "info",
+                                                            head = "Автоматическое обновление БД",
+                                                            body = body
+                                                        )
+                                                    ))
+                                                    println("Автоматическое обновление записей серверной БД - ${body}")
+                                                }
+
+                                            }
                                         }
                                     }
                                 } else {

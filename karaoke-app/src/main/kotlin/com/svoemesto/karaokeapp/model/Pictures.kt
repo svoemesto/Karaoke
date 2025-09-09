@@ -66,7 +66,7 @@ class Pictures(val database: KaraokeConnection = WORKING_DATABASE) : Serializabl
             var result: MutableList<Pair<Long, String>>? = mutableListOf()
             val limit = 1000
             val baseSql = """
-                SELECT id, md5(row(id, picture_name, picture_full, picture_preview)::text) AS record_hash FROM tbl_pictures
+                SELECT recordhash FROM tbl_pictures
             """.trimIndent()
             val connection = database.getConnection()
             if (connection == null) {
@@ -90,7 +90,7 @@ class Pictures(val database: KaraokeConnection = WORKING_DATABASE) : Serializabl
                     var cnt = 0
                     while (rs.next()) {
                         cnt++
-                        result!!.add(Pair(rs.getLong("id"), rs.getString("record_hash")))
+                        result!!.add(Pair(rs.getLong("id"), rs.getString("recordhash")))
                     }
                     println("[${Timestamp.from(Instant.now())}] Получено хешей: $cnt, всего: ${result?.size}")
                     rs?.close()

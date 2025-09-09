@@ -4289,75 +4289,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             var result: MutableList<Pair<Long, String>>? = mutableListOf()
             val limit = 500
             val baseSql = """
-                SELECT id, 
-                       md5(row(
-                            id,
-                            song_name,
-                            song_author,
-                            song_album,
-                            publish_date,
-                            publish_time,
-                            song_year,
-                            song_track,
-                            song_tone,
-                            song_bpm,
-                            song_ms,
-                            file_name,
-                            root_folder,
-                            id_boosty,
-                            id_dzen_lyrics,
-                            id_dzen_karaoke,
-                            id_dzen_chords,
-                            id_status,
-                            source_text,
-                            source_markers,
-                            id_vk_lyrics,
-                            id_vk_karaoke,
-                            id_vk_chords,
-                            status_process_lyrics,
-                            status_process_karaoke,
-                            status_process_chords,
-                            id_vk,
-                            id_telegram_lyrics,
-                            id_telegram_karaoke,
-                            id_telegram_chords,
-                            tags,
-                            result_text,
-                            id_boosty_files,
-                            result_version,
-                            id_pl_lyrics,
-                            id_pl_karaoke,
-                            id_pl_chords,
-                            diff_beats,
-                            id_sponsr,
-                            id_dzen_melody,
-                            id_vk_melody,
-                            status_process_melody,
-                            id_telegram_melody,
-                            id_pl_melody,
-                            index_tabs_variant,
-                            version_dzen_lyrics,
-                            version_dzen_karaoke,
-                            version_dzen_chords,
-                            version_dzen_melody,
-                            version_vk_lyrics,
-                            version_vk_karaoke,
-                            version_vk_chords,
-                            version_vk_melody,
-                            version_telegram_lyrics,
-                            version_telegram_karaoke,
-                            version_telegram_chords,
-                            version_telegram_melody,
-                            version_pl_lyrics,
-                            version_pl_karaoke,
-                            version_pl_chords,
-                            version_pl_melody,
-                            version_boosty,
-                            version_sponsr,
-                            version_boosty_files,
-                            rate
-                       )::text) AS record_hash
-                FROM tbl_settings
+                SELECT recordhash FROM tbl_settings
             """.trimIndent()
 
             val connection = database.getConnection()
@@ -4382,7 +4314,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                     var cnt = 0
                     while (rs.next()) {
                         cnt++
-                        result!!.add(Pair(rs.getLong("id"), rs.getString("record_hash")))
+                        result!!.add(Pair(rs.getLong("id"), rs.getString("recordhash")))
                     }
                     println("[${Timestamp.from(Instant.now())}] Получено хешей: $cnt, всего: ${result?.size}")
                     rs?.close()

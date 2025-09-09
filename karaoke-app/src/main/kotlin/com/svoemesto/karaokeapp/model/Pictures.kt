@@ -66,7 +66,7 @@ class Pictures(val database: KaraokeConnection = WORKING_DATABASE) : Serializabl
             var result: MutableList<Pair<Long, String>>? = mutableListOf()
             val limit = 1000
             val baseSql = """
-                SELECT recordhash FROM tbl_pictures
+                SELECT id, recordhash FROM tbl_pictures
             """.trimIndent()
             val connection = database.getConnection()
             if (connection == null) {

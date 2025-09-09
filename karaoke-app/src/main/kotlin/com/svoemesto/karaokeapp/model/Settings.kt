@@ -4289,7 +4289,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             var result: MutableList<Pair<Long, String>>? = mutableListOf()
             val limit = 500
             val baseSql = """
-                SELECT recordhash FROM tbl_settings
+                SELECT id, recordhash FROM tbl_settings
             """.trimIndent()
 
             val connection = database.getConnection()

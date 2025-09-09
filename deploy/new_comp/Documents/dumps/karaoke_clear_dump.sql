@@ -2,8 +2,10 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 16.2 (Debian 16.2-1.pgdg120+2)
--- Dumped by pg_dump version 16.2 (Debian 16.2-1.pgdg120+2)
+\restrict Z4pAnbqbxBO1oSz8m0tRMvL8rx43q4Sh7TVTmGwsjPzZQBXMNakn5jxSyOZgJUE
+
+-- Dumped from database version 16.10 (Debian 16.10-1.pgdg13+1)
+-- Dumped by pg_dump version 16.10 (Debian 16.10-1.pgdg13+1)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -16,7 +18,6 @@ SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
 
-DROP DATABASE IF EXISTS karaoke;
 --
 -- Name: karaoke; Type: DATABASE; Schema: -; Owner: -
 --
@@ -24,7 +25,9 @@ DROP DATABASE IF EXISTS karaoke;
 CREATE DATABASE karaoke WITH TEMPLATE = template0 ENCODING = 'UTF8' LOCALE_PROVIDER = libc LOCALE = 'en_US.utf8';
 
 
+\unrestrict Z4pAnbqbxBO1oSz8m0tRMvL8rx43q4Sh7TVTmGwsjPzZQBXMNakn5jxSyOZgJUE
 \connect karaoke
+\restrict Z4pAnbqbxBO1oSz8m0tRMvL8rx43q4Sh7TVTmGwsjPzZQBXMNakn5jxSyOZgJUE
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -46,7 +49,87 @@ CREATE FUNCTION public.update_last_updated() RETURNS trigger
     AS $$
 BEGIN
     NEW.last_update = NOW();
-RETURN NEW;
+    RETURN NEW;
+END;
+$$;
+
+
+--
+-- Name: update_tbl_settings_recordhash(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.update_tbl_settings_recordhash() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    NEW.recordhash = md5(
+    COALESCE(NEW.id::TEXT, '') ||
+    COALESCE(NEW.song_name, '') ||
+    COALESCE(NEW.song_author, '') ||
+    COALESCE(NEW.song_album, '') ||
+    COALESCE(NEW.publish_date, '') ||
+    COALESCE(NEW.publish_time, '') ||
+    COALESCE(NEW.song_year::TEXT, '') ||
+    COALESCE(NEW.song_track::TEXT, '') ||
+    COALESCE(NEW.song_tone, '') ||
+    COALESCE(NEW.song_bpm::TEXT, '') ||
+    COALESCE(NEW.song_ms::TEXT, '') ||
+    COALESCE(NEW.file_name, '') ||
+    COALESCE(NEW.root_folder, '') ||
+    COALESCE(NEW.id_boosty, '') ||
+    COALESCE(NEW.id_dzen_lyrics, '') ||
+    COALESCE(NEW.id_dzen_karaoke, '') ||
+    COALESCE(NEW.id_dzen_chords, '') ||
+    COALESCE(NEW.id_status::TEXT, '') ||
+    COALESCE(NEW.source_text, '') ||
+    COALESCE(NEW.source_markers, '') ||
+    COALESCE(NEW.id_vk_lyrics, '') ||
+    COALESCE(NEW.id_vk_karaoke, '') ||
+    COALESCE(NEW.id_vk_chords, '') ||
+    COALESCE(NEW.status_process_lyrics, '') ||
+    COALESCE(NEW.status_process_karaoke, '') ||
+    COALESCE(NEW.status_process_chords, '') ||
+    COALESCE(NEW.id_vk, '') ||
+    COALESCE(NEW.id_telegram_lyrics, '') ||
+    COALESCE(NEW.id_telegram_karaoke, '') ||
+    COALESCE(NEW.id_telegram_chords, '') ||
+    COALESCE(NEW.tags, '') ||
+    COALESCE(NEW.result_text, '') ||
+    COALESCE(NEW.id_boosty_files, '') ||
+    COALESCE(NEW.result_version::TEXT, '') ||
+    COALESCE(NEW.id_pl_lyrics, '') ||
+    COALESCE(NEW.id_pl_karaoke, '') ||
+    COALESCE(NEW.id_pl_chords, '') ||
+    COALESCE(NEW.diff_beats::TEXT, '') ||
+    COALESCE(NEW.id_sponsr, '') ||
+    COALESCE(NEW.id_dzen_melody, '') ||
+    COALESCE(NEW.id_vk_melody, '') ||
+    COALESCE(NEW.status_process_melody, '') ||
+    COALESCE(NEW.id_telegram_melody, '') ||
+    COALESCE(NEW.id_pl_melody, '') ||
+    COALESCE(NEW.index_tabs_variant::TEXT, '') ||
+    COALESCE(NEW.version_dzen_lyrics::TEXT, '') ||
+    COALESCE(NEW.version_dzen_karaoke::TEXT, '') ||
+    COALESCE(NEW.version_dzen_chords::TEXT, '') ||
+    COALESCE(NEW.version_dzen_melody::TEXT, '') ||
+    COALESCE(NEW.version_vk_lyrics::TEXT, '') ||
+    COALESCE(NEW.version_vk_karaoke::TEXT, '') ||
+    COALESCE(NEW.version_vk_chords::TEXT, '') ||
+    COALESCE(NEW.version_vk_melody::TEXT, '') ||
+    COALESCE(NEW.version_telegram_lyrics::TEXT, '') ||
+    COALESCE(NEW.version_telegram_karaoke::TEXT, '') ||
+    COALESCE(NEW.version_telegram_chords::TEXT, '') ||
+    COALESCE(NEW.version_telegram_melody::TEXT, '') ||
+    COALESCE(NEW.version_pl_lyrics::TEXT, '') ||
+    COALESCE(NEW.version_pl_karaoke::TEXT, '') ||
+    COALESCE(NEW.version_pl_chords::TEXT, '') ||
+    COALESCE(NEW.version_pl_melody::TEXT, '') ||
+    COALESCE(NEW.version_boosty::TEXT, '') ||
+    COALESCE(NEW.version_sponsr::TEXT, '') ||
+    COALESCE(NEW.version_boosty_files::TEXT, '') ||
+    COALESCE(NEW.rate::TEXT, '')
+        );
+    RETURN NEW;
 END;
 $$;
 
@@ -288,7 +371,8 @@ CREATE TABLE public.tbl_settings (
     version_boosty integer DEFAULT 0,
     version_sponsr integer DEFAULT 0,
     version_boosty_files integer DEFAULT 0,
-    rate integer DEFAULT 0
+    rate integer DEFAULT 0,
+    recordhash character varying(32)
 );
 
 
@@ -535,6 +619,13 @@ ALTER TABLE ONLY public.tbl_uuids
 --
 
 CREATE INDEX idx_gin_result_text ON public.tbl_settings USING gin (to_tsvector('russian'::regconfig, result_text));
+
+
+--
+-- Name: idx_tbl_settings_recordhash; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_tbl_settings_recordhash ON public.tbl_settings USING btree (recordhash);
 
 
 --
@@ -797,6 +888,13 @@ CREATE TRIGGER update_last_updated_trigger BEFORE UPDATE ON public.tbl_settings 
 
 
 --
+-- Name: tbl_settings update_recordhash_trigger; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_recordhash_trigger BEFORE INSERT OR UPDATE ON public.tbl_settings FOR EACH ROW EXECUTE FUNCTION public.update_tbl_settings_recordhash();
+
+
+--
 -- Name: tbl_settings_sync update_sync_last_updated_trigger; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -806,4 +904,6 @@ CREATE TRIGGER update_sync_last_updated_trigger BEFORE UPDATE ON public.tbl_sett
 --
 -- PostgreSQL database dump complete
 --
+
+\unrestrict Z4pAnbqbxBO1oSz8m0tRMvL8rx43q4Sh7TVTmGwsjPzZQBXMNakn5jxSyOZgJUE
 

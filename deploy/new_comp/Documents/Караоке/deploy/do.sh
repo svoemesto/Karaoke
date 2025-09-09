@@ -43,6 +43,30 @@ function do_stop_web() {
 function do_start_webvue() {
   do_stop_webvue
   echo "Старт WEBVUE"
+    # Определяем первый IP-адрес с помощью hostname -I
+    IP_ADDRESS=$(hostname -I | awk '{print $1}')
+
+    # Проверяем, что IP-адрес был получен
+    if [ -z "$IP_ADDRESS" ]; then
+      echo "Не удалось определить IP-адрес."
+    else
+        # Определяем директорию, откуда запущен скрипт
+        SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+        # Задаем пути к файлам
+        TEMPLATE_FILE="$SCRIPT_DIR/nginx.conf.template"
+        OUTPUT_FILE="$SCRIPT_DIR/nginx.conf"
+
+        # Проверяем, что файл шаблона существует
+        if [ ! -f "$TEMPLATE_FILE" ]; then
+          echo "Файл nginx.conf.template не найден в директории $SCRIPT_DIR"
+        else
+            # Заменяем MY_IP_ADDRESS на реальный IP и сохраняем в nginx.conf
+            sed "s/MY_IP_ADDRESS/$IP_ADDRESS/g" "$TEMPLATE_FILE" > "$OUTPUT_FILE"
+            echo "Файл nginx.conf успешно создан в $OUTPUT_FILE с IP-адресом $IP_ADDRESS"
+        fi
+    fi
+
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-webvue-new-comp.yml up -d
   command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga
   command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "WEBVUE запущен"
@@ -54,7 +78,7 @@ function do_stop_webvue() {
 }
 
 function do_start_app() {
-  do_stop_webvue
+  do_stop_app
   echo "Старт APP"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-app-new-comp.yml up -d
   command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga
@@ -62,7 +86,7 @@ function do_start_app() {
 }
 
 function do_start_app2() {
-  do_stop_webvue
+  do_stop_app
   echo "Старт APP"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-app-new-comp.yml up
   command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga
@@ -72,6 +96,7 @@ function do_start_app2() {
 function do_stop_app() {
   echo "Остановка APP"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-app-new-comp.yml down
+  docker rm karaoke-app
 }
 
 function do_pull_app() {

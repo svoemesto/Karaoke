@@ -6,7 +6,6 @@
     </facet>
     <facet type="kotlin-language" name="Kotlin">
       <configuration version="5" platform="JVM 13" allPlatforms="JVM [13]" useProjectSettings="false">
-        <additionalVisibleModuleNames>:karaoke-db:main</additionalVisibleModuleNames>
         <compilerSettings>
           <option name="additionalArguments" value="-Xallow-no-source-files -java-parameters" />
         </compilerSettings>

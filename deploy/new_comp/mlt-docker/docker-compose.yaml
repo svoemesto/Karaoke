@@ -10,7 +10,7 @@ services:
     volumes:
       - /home/nsa/Documents/Караоке:/home/nsa/Documents/Караоке
       - /home/nsa/Documents/Караоке:/media/nsa/FilesSSD1Tb/KaraokeDone
-      - /home/nsa/Documents/Караоке:/clouds/KaraokeDone
+      - /home/nsa/Documents/Караоке:/media/nsa/clouds/KaraokeDone
       - /home/nsa/Documents/SpaceBox4096:/home/nsa/Documents/SpaceBox4096
     working_dir: /app
     command: ["-progress", "/home/nsa/Documents/Караоке/test.mlt"]

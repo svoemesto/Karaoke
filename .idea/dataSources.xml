@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
-    <data-source source="LOCAL" name="postgres@localhost" uuid="dd4cc255-ec25-4925-83eb-c51f567d024d">
+    <data-source source="LOCAL" name="karaoke@localhost" uuid="dd4cc255-ec25-4925-83eb-c51f567d024d">
       <driver-ref>postgresql</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>org.postgresql.Driver</jdbc-driver>
-      <jdbc-url>jdbc:postgresql://localhost:8832/postgres</jdbc-url>
+      <jdbc-url>jdbc:postgresql://localhost:8832/karaoke</jdbc-url>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
     <data-source source="LOCAL" name="karaoke@79.174.95.69" uuid="2da46a23-fdda-4873-9760-5a5d23368ecc">
@@ -13,6 +13,7 @@
       <synchronize>true</synchronize>
       <jdbc-driver>org.postgresql.Driver</jdbc-driver>
       <jdbc-url>jdbc:postgresql://79.174.95.69:8832/karaoke</jdbc-url>
+      <vm-options>-Xmx1024m</vm-options>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
   </component>

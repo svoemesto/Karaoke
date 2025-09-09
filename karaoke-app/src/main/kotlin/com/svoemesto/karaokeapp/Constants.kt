@@ -103,7 +103,7 @@ const val PATH_TO_STORE_FOLDER = "/clouds/Yandex.Disk/Karaoke"
 val PROJECT_ROOT_FOLDERS = listOf(
     "/home/nsa/Documents/Караоке",
     "/media/nsa/FilesSSD1Tb/KaraokeDone",
-    "/clouds/KaraokeDone"
+    "/media/nsa/clouds/KaraokeDone"
 )
 
 const val YO_FILE_PATH = "/home/nsa/Documents/Караоке/Слова_с_буквой_ё.txt"

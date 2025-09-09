@@ -38,19 +38,19 @@ class Connection(
         private fun connectionLocalUrl(): String {
 
             return if (APP_WORK_IN_CONTAINER) {
-                "jdbc:postgresql://karaoke-db:5432/karaoke?currentSchema=public"
+                "jdbc:postgresql://karaoke-db:5432/karaoke?currentSchema=public&socketTimeout=30&loginTimeout=10"
             } else {
-                "jdbc:postgresql://localhost:8832/karaoke?currentSchema=public"
+                "jdbc:postgresql://localhost:8832/karaoke?currentSchema=public&socketTimeout=30&loginTimeout=10"
             }
 
         }
 
         private fun connectionRemoteUrl(): String {
-            return "jdbc:postgresql://79.174.95.69:8832/karaoke?currentSchema=public"
+            return "jdbc:postgresql://79.174.95.69:8832/karaoke?currentSchema=public&socketTimeout=30&loginTimeout=10"
         }
 
         private fun connectionVirtualUrl(): String {
-            return "jdbc:postgresql://localhost:2230/karaoke?currentSchema=public"
+            return "jdbc:postgresql://localhost:2230/karaoke?currentSchema=public&socketTimeout=30&loginTimeout=10"
         }
 
     }

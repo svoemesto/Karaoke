@@ -10,7 +10,7 @@ services:
       - /home/nsa/Documents/Караоке:/home/Karaoke
       - /home/nsa/Documents/Караоке:/home/nsa/Documents/Караоке
       - /home/nsa/Documents/Караоке:/media/nsa/FilesSSD1Tb/KaraokeDone
-      - /home/nsa/Documents/Караоке:/clouds/KaraokeDone
+      - /home/nsa/Documents/Караоке:/media/nsa/clouds/KaraokeDone
       - /home/nsa/Documents/SpaceBox4096:/home/nsa/Documents/SpaceBox4096
       - /home/nsa/Documents/Караоке/deploy/nginx.conf:/etc/nginx/nginx.conf
     networks:

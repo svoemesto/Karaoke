@@ -140,32 +140,41 @@ fun updateDatabases(
     val listToUpdate: MutableList<Map<String, Any>> = mutableListOf()
     val listToDelete: MutableList<Map<String, Any>> = mutableListOf()
 
+    println("[${Timestamp.from(Instant.now())}] Устанавливаем связь с базой данный ${fromDatabase.name}...")
     val connFrom = fromDatabase.getConnection()
     if (connFrom == null) {
         println("[${Timestamp.from(Instant.now())}] Невозможно установить связь с базой данный ${fromDatabase.name}")
         return Triple(-1,-1,-1)
     }
+    println("[${Timestamp.from(Instant.now())}] Связь с базой данный ${fromDatabase.name} успешно установлена")
+
+    println("[${Timestamp.from(Instant.now())}] Устанавливаем связь с базой данный ${toDatabase.name}...")
     val connTo = toDatabase.getConnection()
     if (connTo == null) {
         println("[${Timestamp.from(Instant.now())}] Невозможно установить связь с базой данный ${toDatabase.name}")
         return Triple(-1,-1,-1)
     }
+    println("[${Timestamp.from(Instant.now())}] Связь с базой данный ${toDatabase.name} успешно установлена")
 
     if (updateSettings) {
 
         val whereText = if (argsSettings.containsKey("id")) "WHERE id = ${argsSettings["id"]}" else ""
         val tableName = "tbl_settings"
+        println("[${Timestamp.from(Instant.now())}] Запрашиваем таблицу хэшей из базы данных ${fromDatabase.name}...")
         val listFromIdsHashes = Settings.listHashes(database = fromDatabase, whereText = whereText)
         if (listFromIdsHashes == null) {
             println("[${Timestamp.from(Instant.now())}] Невозможно установить связь с базой данный ${fromDatabase.name}")
             return Triple(-1,-1,-1)
         }
+        println("[${Timestamp.from(Instant.now())}] Таблица хэшей из базы данных ${fromDatabase.name} успешно получена, записей: ${listFromIdsHashes.size}")
 
+        println("[${Timestamp.from(Instant.now())}] Запрашиваем таблицу хэшей из базы данных ${toDatabase.name}...")
         val listToIdsHashes = Settings.listHashes(database = toDatabase, whereText = whereText)
         if (listToIdsHashes == null) {
             println("[${Timestamp.from(Instant.now())}] Невозможно установить связь с базой данный ${toDatabase.name}")
             return Triple(-1,-1,-1)
         }
+        println("[${Timestamp.from(Instant.now())}] Таблица хэшей из базы данных ${toDatabase.name} успешно получена, записей: ${listToIdsHashes.size}")
 
         val totalCountFrom = listFromIdsHashes.size
 
@@ -277,17 +286,21 @@ fun updateDatabases(
 
         val whereText = if (argsPictures.containsKey("id")) "WHERE id = ${argsPictures["id"]}" else ""
         val tableName = "tbl_pictures"
+        println("[${Timestamp.from(Instant.now())}] Запрашиваем таблицу хэшей из базы данных ${fromDatabase.name}...")
         val listFromIdsHashes = Pictures.listHashes(database = fromDatabase, whereText = whereText)
         if (listFromIdsHashes == null) {
             println("[${Timestamp.from(Instant.now())}] Невозможно установить связь с базой данный ${fromDatabase.name}")
             return Triple(-1,-1,-1)
         }
+        println("[${Timestamp.from(Instant.now())}] Таблица хэшей из базы данных ${fromDatabase.name} успешно получена, записей: ${listFromIdsHashes.size}")
 
+        println("[${Timestamp.from(Instant.now())}] Запрашиваем таблицу хэшей из базы данных ${toDatabase.name}...")
         val listToIdsHashes = Pictures.listHashes(database = toDatabase, whereText = whereText)
         if (listToIdsHashes == null) {
             println("[${Timestamp.from(Instant.now())}] Невозможно установить связь с базой данный ${toDatabase.name}")
             return Triple(-1,-1,-1)
         }
+        println("[${Timestamp.from(Instant.now())}] Таблица хэшей из базы данных ${fromDatabase.name} успешно получена, записей: ${listToIdsHashes.size}")
 
         val totalCountFrom = listFromIdsHashes.size
 

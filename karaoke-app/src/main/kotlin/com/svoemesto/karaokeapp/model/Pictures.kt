@@ -64,16 +64,10 @@ class Pictures(val database: KaraokeConnection = WORKING_DATABASE) : Serializabl
 
         fun listHashes(database: KaraokeConnection, whereText: String = ""): List<Pair<Long, String>>? {
             var result: MutableList<Pair<Long, String>>? = mutableListOf()
-            val sql = """
-                SELECT id, 
-                       md5(row(
-                            id,
-                            picture_name,
-                            picture_full,
-                            picture_preview
-                       )::text) AS record_hash
-                FROM tbl_pictures
-            """.trimIndent() + " $whereText"
+            val limit = 1000
+            val baseSql = """
+                SELECT id, md5(row(id, picture_name, picture_full, picture_preview)::text) AS record_hash FROM tbl_pictures
+            """.trimIndent()
             val connection = database.getConnection()
             if (connection == null) {
                 println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
@@ -81,12 +75,29 @@ class Pictures(val database: KaraokeConnection = WORKING_DATABASE) : Serializabl
             }
             var statement: Statement? = null
             var rs: ResultSet? = null
+
+
             try {
+                var doIt = true
+                var offset = 0
                 statement = connection.createStatement()
-                rs = statement.executeQuery(sql)
-                while (rs.next()) {
-                    result!!.add(Pair(rs.getLong("id"), rs.getString("record_hash")))
+
+                while (doIt) {
+                    val sql = baseSql + " $whereText LIMIT $limit OFFSET $offset"
+//                    println("[${Timestamp.from(Instant.now())}] sql = $sql")
+                    println("[${Timestamp.from(Instant.now())}] Запрос хешей, offset = $offset...")
+                    rs = statement.executeQuery(sql)
+                    var cnt = 0
+                    while (rs.next()) {
+                        cnt++
+                        result!!.add(Pair(rs.getLong("id"), rs.getString("record_hash")))
+                    }
+                    println("[${Timestamp.from(Instant.now())}] Получено хешей: $cnt, всего: ${result?.size}")
+                    rs?.close()
+                    if (cnt == 0 || cnt < limit) doIt = false
+                    offset += limit
                 }
+
             } catch (e: SQLException) {
                 e.printStackTrace()
                 result = null
@@ -98,6 +109,7 @@ class Pictures(val database: KaraokeConnection = WORKING_DATABASE) : Serializabl
                     e.printStackTrace()
                 }
             }
+
             return result
         }
 

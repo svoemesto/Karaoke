@@ -13,7 +13,7 @@ services:
     volumes:
       - /home/nsa/Documents/Караоке:/home/nsa/Documents/Караоке
       - /home/nsa/Documents/Караоке:/media/nsa/FilesSSD1Tb/KaraokeDone
-      - /home/nsa/Documents/Караоке:/clouds/KaraokeDone
+      - /home/nsa/Documents/Караоке:/media/nsa/clouds/KaraokeDone
       - /data/input:/home/nsa/Documents/Караоке/demucs/input
       - /data/output:/home/nsa/Documents/Караоке/demucs/output
       - /home/nsa/Documents/SpaceBox4096:/home/nsa/Documents/SpaceBox4096

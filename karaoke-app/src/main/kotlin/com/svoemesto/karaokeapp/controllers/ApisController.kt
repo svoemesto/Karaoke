@@ -49,7 +49,7 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         val expectedPaths = listOf(
             "/home/nsa/Documents/Караоке",
             "/media/nsa/FilesSSD1Tb/KaraokeDone",
-            "/clouds/KaraokeDone",
+            "/media/nsa/clouds/KaraokeDone",
             "/home/nsa/Documents/Караоке/demucs/input",
             "/home/nsa/Documents/Караоке/demucs/output",
             "/data/input",

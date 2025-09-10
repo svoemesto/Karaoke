@@ -4285,12 +4285,9 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
         }
 
-        fun listHashes(database: KaraokeConnection, whereText: String = ""): List<Pair<Long, String>>? {
-            var result: MutableList<Pair<Long, String>>? = mutableListOf()
-            val limit = 500
-            val baseSql = """
-                SELECT id, recordhash FROM tbl_settings
-            """.trimIndent()
+        fun listHashes(database: KaraokeConnection, whereText: String = ""): List<RecordHash>? {
+            var result: MutableList<RecordHash>? = mutableListOf()
+            val sql = "SELECT id, recordhash FROM tbl_settings $whereText"
 
             val connection = database.getConnection()
             if (connection == null) {
@@ -4300,27 +4297,17 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             var statement: Statement? = null
             var rs: ResultSet? = null
 
-
             try {
-                var doIt = true
-                var offset = 0
                 statement = connection.createStatement()
 
-                while (doIt) {
-                    val sql = baseSql + " $whereText LIMIT $limit OFFSET $offset"
-//                    println("[${Timestamp.from(Instant.now())}] sql = $sql")
-                    println("[${Timestamp.from(Instant.now())}] Запрос хешей, offset = $offset...")
-                    rs = statement.executeQuery(sql)
-                    var cnt = 0
-                    while (rs.next()) {
-                        cnt++
-                        result!!.add(Pair(rs.getLong("id"), rs.getString("recordhash")))
-                    }
-                    println("[${Timestamp.from(Instant.now())}] Получено хешей: $cnt, всего: ${result?.size}")
-                    rs?.close()
-                    if (cnt == 0 || cnt < limit) doIt = false
-                    offset += limit
+                println("[${Timestamp.from(Instant.now())}] Запрос хешей...")
+                rs = statement.executeQuery(sql)
+                var cnt = 0
+                while (rs.next()) {
+                    cnt++
+                    result!!.add(RecordHash(id = rs.getLong("id"), recordhash = rs.getString("recordhash")))
                 }
+                println("[${Timestamp.from(Instant.now())}] Получено хешей: $cnt")
 
             } catch (e: SQLException) {
                 e.printStackTrace()
@@ -4333,7 +4320,6 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                     e.printStackTrace()
                 }
             }
-
             return result
         }
 

@@ -216,6 +216,7 @@ export default {
             fldName: 'propertyValue',
             fldLabel: 'Значение:',
             fldValue: item.value,
+            fldIsBoolean: item.type === 'Boolean',
             fldLabelStyle: { width: '100px', textAlign: 'right', paddingRight: '5px'},
             fldValueStyle: { width: '300px', textAlign: 'center', borderRadius: '10px'}
           }

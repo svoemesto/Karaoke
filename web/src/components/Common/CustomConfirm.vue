@@ -8,9 +8,15 @@
             <div v-html="params.header" :style="styleHeader"></div>
             <div v-html="params.body" :style="styleBody"></div>
             <div v-if="params.fields" class="params">
-              <div v-for="fld in params.fields" :key="fld" class="param-line">
-                <div v-text="fld.fldLabel" :style="fld.fldLabelStyle"></div>
-                <input v-model="fld.fldValue" :style="fld.fldValueStyle">
+              <div v-for="fld in params.fields" :key="fld">
+                <div v-if="fld.fldIsBoolean" class="param-line-buttons">
+                  <button class="group-button-boolean" :class="fld.fldValue === 'true' ? 'group-button-boolean-active' : ''"  type="button" value="true"  @click="fld.fldValue='true'">TRUE</button>
+                  <button class="group-button-boolean" :class="fld.fldValue === 'false' ? 'group-button-boolean-active' : ''" type="button" value="false" @click="fld.fldValue='false'">FALSE</button>
+                </div>
+                <div v-else class="param-line-fields">
+                  <div v-text="fld.fldLabel" :style="fld.fldLabelStyle"></div>
+                  <input v-model="fld.fldValue" :style="fld.fldValueStyle">
+                </div>
               </div>
             </div>
             <div :style="styleFooter">
@@ -184,9 +190,14 @@ export default {
   display: flex;
   flex-direction: column;
 }
-.param-line {
+.param-line-fields {
   display: flex;
   flex-direction: row;
+}
+.param-line-buttons {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
 }
 
 .button-ok {
@@ -217,5 +228,14 @@ export default {
 }
 .button-cancel:hover {
   background: darkgreen;
+}
+.group-button-boolean {
+  border: solid black thin;
+  border-radius: 5px;
+  background-color: white;
+  width: auto;
+}
+.group-button-boolean-active {
+  background-color: dodgerblue;
 }
 </style>

@@ -60,7 +60,9 @@ fun mainUtils() {
 
 fun customFunction(): String {
 
-    KaraokeProcess.setWorkingToWaiting(database = WORKING_DATABASE)
+    Settings.loadListFromDb(database = WORKING_DATABASE).map { it.id }.forEach { id ->
+//        updateRemoteSettingFromLocalDatabase(id)
+    }
 
     return ""
 }
@@ -183,16 +185,16 @@ fun updateDatabases(
         }
 
         val idsToInsert = listFromIdsHashes.filter { fromIdHash ->
-            listToIdsHashes.none { toIdHash -> toIdHash.first == fromIdHash.first }
-        }.map { it.first }
+            listToIdsHashes.none { toIdHash -> toIdHash.id == fromIdHash.id }
+        }.map { it.id }
 
         val idsToUpdate = listFromIdsHashes.filter { fromIdHash ->
-            listToIdsHashes.any { toIdHash -> toIdHash.first == fromIdHash.first && toIdHash.second != fromIdHash.second }
-        }.map { it.first }
+            listToIdsHashes.any { toIdHash -> toIdHash.id == fromIdHash.id && toIdHash.recordhash != fromIdHash.recordhash }
+        }.map { it.id }
 
         val idsToDelete = listToIdsHashes.filter { toIdHash ->
-            listFromIdsHashes.none { fromIdHash -> toIdHash.first == fromIdHash.first }
-        }.map { it.first }
+            listFromIdsHashes.none { fromIdHash -> toIdHash.id == fromIdHash.id }
+        }.map { it.id }
 
         idsToDelete.forEach { id ->
             if (toDatabase.name == "SERVER") {
@@ -309,16 +311,16 @@ fun updateDatabases(
         }
 
         val idsToInsert = listFromIdsHashes.filter { fromIdHash ->
-            listToIdsHashes.none { toIdHash -> toIdHash.first == fromIdHash.first }
-        }.map { it.first }
+            listToIdsHashes.none { toIdHash -> toIdHash.id == fromIdHash.id }
+        }.map { it.id }
 
         val idsToUpdate = listFromIdsHashes.filter { fromIdHash ->
-            listToIdsHashes.any { toIdHash -> toIdHash.first == fromIdHash.first && toIdHash.second != fromIdHash.second }
-        }.map { it.first }
+            listToIdsHashes.any { toIdHash -> toIdHash.id == fromIdHash.id && toIdHash.recordhash != fromIdHash.recordhash }
+        }.map { it.id }
 
         val idsToDelete = listToIdsHashes.filter { toIdHash ->
-            listFromIdsHashes.none { fromIdHash -> toIdHash.first == fromIdHash.first }
-        }.map { it.first }
+            listFromIdsHashes.none { fromIdHash -> toIdHash.id == fromIdHash.id }
+        }.map { it.id }
 
         idsToDelete.forEach { id ->
             if (toDatabase.name == "SERVER") {

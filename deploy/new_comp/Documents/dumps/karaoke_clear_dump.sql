@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict Z4pAnbqbxBO1oSz8m0tRMvL8rx43q4Sh7TVTmGwsjPzZQBXMNakn5jxSyOZgJUE
+\restrict O3attV6XQfxh8bXtwVffHAdzzmG6AXDDZWS2Xx9BqEofKnIV1ic9hhLKXMsXoep
 
 -- Dumped from database version 16.10 (Debian 16.10-1.pgdg13+1)
 -- Dumped by pg_dump version 16.10 (Debian 16.10-1.pgdg13+1)
@@ -25,9 +25,9 @@ SET row_security = off;
 CREATE DATABASE karaoke WITH TEMPLATE = template0 ENCODING = 'UTF8' LOCALE_PROVIDER = libc LOCALE = 'en_US.utf8';
 
 
-\unrestrict Z4pAnbqbxBO1oSz8m0tRMvL8rx43q4Sh7TVTmGwsjPzZQBXMNakn5jxSyOZgJUE
+\unrestrict O3attV6XQfxh8bXtwVffHAdzzmG6AXDDZWS2Xx9BqEofKnIV1ic9hhLKXMsXoep
 \connect karaoke
-\restrict Z4pAnbqbxBO1oSz8m0tRMvL8rx43q4Sh7TVTmGwsjPzZQBXMNakn5jxSyOZgJUE
+\restrict O3attV6XQfxh8bXtwVffHAdzzmG6AXDDZWS2Xx9BqEofKnIV1ic9hhLKXMsXoep
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -49,6 +49,25 @@ CREATE FUNCTION public.update_last_updated() RETURNS trigger
     AS $$
 BEGIN
     NEW.last_update = NOW();
+    RETURN NEW;
+END;
+$$;
+
+
+--
+-- Name: update_tbl_pictures_recordhash(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.update_tbl_pictures_recordhash() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    NEW.recordhash = md5(
+                        COALESCE(NEW.id::TEXT, '') ||
+                        COALESCE(NEW.picture_name, '') ||
+                        COALESCE(NEW.picture_full, '') ||
+                        COALESCE(NEW.picture_preview, '')
+        );
     RETURN NEW;
 END;
 $$;
@@ -206,7 +225,8 @@ CREATE TABLE public.tbl_pictures (
     id integer NOT NULL,
     picture_name character varying(255),
     picture_full text,
-    picture_preview text
+    picture_preview text,
+    recordhash character varying(32)
 );
 
 
@@ -622,6 +642,13 @@ CREATE INDEX idx_gin_result_text ON public.tbl_settings USING gin (to_tsvector('
 
 
 --
+-- Name: idx_tbl_pictures_recordhash; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_tbl_pictures_recordhash ON public.tbl_pictures USING btree (recordhash);
+
+
+--
 -- Name: idx_tbl_settings_recordhash; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -888,6 +915,13 @@ CREATE TRIGGER update_last_updated_trigger BEFORE UPDATE ON public.tbl_settings 
 
 
 --
+-- Name: tbl_pictures update_recordhash_pictures_trigger; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_recordhash_pictures_trigger BEFORE INSERT OR UPDATE ON public.tbl_pictures FOR EACH ROW EXECUTE FUNCTION public.update_tbl_pictures_recordhash();
+
+
+--
 -- Name: tbl_settings update_recordhash_trigger; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -905,5 +939,5 @@ CREATE TRIGGER update_sync_last_updated_trigger BEFORE UPDATE ON public.tbl_sett
 -- PostgreSQL database dump complete
 --
 
-\unrestrict Z4pAnbqbxBO1oSz8m0tRMvL8rx43q4Sh7TVTmGwsjPzZQBXMNakn5jxSyOZgJUE
+\unrestrict O3attV6XQfxh8bXtwVffHAdzzmG6AXDDZWS2Xx9BqEofKnIV1ic9hhLKXMsXoep
 

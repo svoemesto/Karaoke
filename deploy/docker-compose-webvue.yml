@@ -11,6 +11,7 @@ services:
       - ${APP_FOLDER_K1}:${APP_FOLDER_K1}
       - ${APP_FOLDER_K2}:${APP_FOLDER_K2}
       - ${APP_FOLDER_K3}:${APP_FOLDER_K3}
+      - ${APP_FOLDER_SYSTEM}:${APP_FOLDER_SYSTEM}
       - ${WEBVUE_PATH_TO_NGINX_CONF}:/etc/nginx/nginx.conf
     networks:
       - karaokenet

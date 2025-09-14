@@ -14,6 +14,7 @@ services:
       - /sm-karaoke/work:/sm-karaoke/work
       - /sm-karaoke/done1:/sm-karaoke/done1
       - /sm-karaoke/done2:/sm-karaoke/done2
+      - /sm-karaoke/system:/sm-karaoke/system
       - /data/input:/sm-karaoke/system/demucs/input
       - /data/output:/sm-karaoke/system/demucs/output
       - /sm-karaoke/system/SpaceBox4096:/sm-karaoke/system/SpaceBox4096

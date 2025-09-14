@@ -143,12 +143,35 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         get() {
             if (_rootFolder == "") return _rootFolder
             if (File(_rootFolder).exists()) return _rootFolder
-            PROJECT_ROOT_FOLDERS.firstOrNull() { _rootFolder.startsWith(it) }?.let {
-                val subRootFolder = _rootFolder.substring(it.length)
+            if (database.name == "LOCAL") {
+                val folders = _rootFolder.split("/").reversed()
                 PROJECT_ROOT_FOLDERS.forEach { rsf ->
-                    if (File("$rsf$subRootFolder").exists()) {
-                        _rootFolder = "$rsf$subRootFolder"
-                        return@let
+                    var fld = ""
+                    folders.forEach { folder ->
+                        fld = "/$folder$fld"
+                        val candidate = "$rsf$fld"
+                        if (File(candidate).exists()) {
+                            _rootFolder = candidate
+
+                            val sql = "UPDATE tbl_settings SET root_folder = ? WHERE id = ?"
+                            val connection = database.getConnection()
+                            if (connection == null) {
+                                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                            } else {
+                                val ps = connection.prepareStatement(sql)
+                                ps.setString(1, candidate)
+                                ps.setLong(2, id)
+                                try {
+                                    ps.executeUpdate()
+                                    println("[${Timestamp.from(Instant.now())}] Новое значение root_folder сохранено в базе данных: $candidate")
+                                } catch (e: Exception) {
+                                    val errorMessage = "Не удалось сохранить запись в БД. Оригинальный текст ошибки: «${e.message}»"
+                                    println(errorMessage)
+                                }
+                                ps.close()
+                            }
+                            return _rootFolder
+                        }
                     }
                 }
             }

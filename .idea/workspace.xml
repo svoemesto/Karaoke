@@ -5,8 +5,17 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="19caf878-7ce0-44d7-94a1-cf0a31300a8b" name="Changes" comment="Текущие изменения по состоянию на 14.09.2025&#10;+ работа с папками в /sm-karaoke">
+      <change afterPath="$PROJECT_DIR$/deploy/new_comp/sm-karaoke-system/Karaoke.properties" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deploy/new_comp/sm-karaoke-system/songs_history.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deploy/new_comp/sm-karaoke-system/test_dict.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deploy/.env" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/.env" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deploy/docker-compose-app.yml" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/docker-compose-app.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deploy/docker-compose-webvue.yml" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/docker-compose-webvue.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deploy/docker-compose.yml" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/docker-compose.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deploy/new_comp/sm-karaoke-system/deploy/docker-compose-app-new-comp.yml" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/new_comp/sm-karaoke-system/deploy/docker-compose-app-new-comp.yml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/deploy/new_comp/sm-karaoke-system/deploy/docker-compose-webvue-new-comp.yml" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/new_comp/sm-karaoke-system/deploy/docker-compose-webvue-new-comp.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Settings.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Settings.kt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -116,7 +125,7 @@
     "git-widget-placeholder": "master",
     "jdk.selected.JAVA_MODULE": "17",
     "ktor.last.update.timestamp": "1757839440686",
-    "last_opened_file_path": "/home/nsa/Karaoke/deploy/new_comp/Documents/Караоке",
+    "last_opened_file_path": "/home/nsa/Karaoke/deploy/new_comp/sm-karaoke-system",
     "list.type.of.created.stylesheet": "CSS",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
@@ -144,11 +153,11 @@
   </component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/deploy/new_comp/sm-karaoke-system" />
       <recent name="$PROJECT_DIR$/deploy/new_comp/Documents/Караоке" />
       <recent name="$PROJECT_DIR$/deploy/new_comp/Documents/dumps" />
       <recent name="$PROJECT_DIR$/deploy/new_comp/mlt-docker" />
       <recent name="$PROJECT_DIR$/deploy" />
-      <recent name="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/docs" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/deploy/new_comp/sm-karaoke-system" />
@@ -549,14 +558,7 @@
       <workItem from="1746180647737" duration="607000" />
       <workItem from="1746181846800" duration="15414000" />
       <workItem from="1755186234322" duration="34197000" />
-      <workItem from="1757836441916" duration="7082000" />
-    </task>
-    <task id="LOCAL-00100" summary="Переделываем под новую концепцию">
-      <created>1669143216720</created>
-      <option name="number" value="00100" />
-      <option name="presentableId" value="LOCAL-00100" />
-      <option name="project" value="LOCAL" />
-      <updated>1669143216721</updated>
+      <workItem from="1757836441916" duration="12303000" />
     </task>
     <task id="LOCAL-00101" summary="Переделываем под новую концепцию">
       <created>1670395045923</created>
@@ -894,7 +896,14 @@
       <option name="project" value="LOCAL" />
       <updated>1757844648745</updated>
     </task>
-    <option name="localTasksCounter" value="149" />
+    <task id="LOCAL-00149" summary="Текущие изменения по состоянию на 14.09.2025&#10;+ работа с папками в /sm-karaoke">
+      <created>1757845564140</created>
+      <option name="number" value="00149" />
+      <option name="presentableId" value="LOCAL-00149" />
+      <option name="project" value="LOCAL" />
+      <updated>1757845564140</updated>
+    </task>
+    <option name="localTasksCounter" value="150" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -971,7 +980,7 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" type="kotlin-line">
           <url>file://$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Settings.kt</url>
-          <line>2872</line>
+          <line>2895</line>
           <option name="timeStamp" value="5" />
         </line-breakpoint>
       </breakpoints>

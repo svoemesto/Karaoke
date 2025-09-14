@@ -281,7 +281,7 @@
                 inline
                 disabled
                 v-model="data.value"
-                :style="{ height: '18px', backgroundColor: '#fff0' }"
+                :style="{ height: '18px', backgroundColor: '#fff0', minHeight: '18px' }"
             ></b-form-rating>
           </div>
         </template>

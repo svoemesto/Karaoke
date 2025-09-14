@@ -15,12 +15,6 @@ services:
       - /sm-karaoke/done1:/sm-karaoke/done1
       - /sm-karaoke/done2:/sm-karaoke/done2
       - /sm-karaoke/system:/sm-karaoke/system
-#      - /sm-karaoke/system/demucs:/sm-karaoke/system/demucs
-#      - /data/input:/sm-karaoke/system/demucs/input
-#      - /data/output:/sm-karaoke/system/demucs/output
-#      - /sm-karaoke/system/SpaceBox4096:/sm-karaoke/system/SpaceBox4096
-#      - /sm-karaoke/system/mlt-docker:/sm-karaoke/system/mlt-docker
-#      - /sm-karaoke/system/demucs-docker:/sm-karaoke/system/demucs-docker
       - /var/run/docker.sock:/var/run/docker.sock
       - /home/nsa/Karaoke/karaoke-web/src/main/resources/static/tmp:/home/nsa/Karaoke/karaoke-web/src/main/resources/static/tmp
     networks:

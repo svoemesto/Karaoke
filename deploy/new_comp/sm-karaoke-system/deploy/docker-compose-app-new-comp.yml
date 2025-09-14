@@ -11,12 +11,12 @@ services:
       LANG: "C.UTF-8"
       LC_ALL: "C.UTF-8"
     volumes:
-      - /home/nsa/Documents/Караоке:/home/nsa/Documents/Караоке
-      - /home/nsa/Documents/Караоке:/media/nsa/FilesSSD1Tb/KaraokeDone
-      - /home/nsa/Documents/Караоке:/media/nsa/clouds/KaraokeDone
-      - /data/input:/home/nsa/Documents/Караоке/demucs/input
-      - /data/output:/home/nsa/Documents/Караоке/demucs/output
-      - /home/nsa/Documents/SpaceBox4096:/home/nsa/Documents/SpaceBox4096
+      - /sm-karaoke/work:/sm-karaoke/work
+      - /sm-karaoke/done1:/sm-karaoke/done1
+      - /sm-karaoke/done2:/sm-karaoke/done2
+      - /data/input:/sm-karaoke/system/demucs/input
+      - /data/output:/sm-karaoke/system/demucs/output
+      - /sm-karaoke/system/SpaceBox4096:/sm-karaoke/system/SpaceBox4096
       - /home/nsa/demucs-docker/tmp:/home/nsa/demucs-docker/tmp
       - /home/nsa/mlt-docker:/home/nsa/mlt-docker
       - /var/run/docker.sock:/var/run/docker.sock

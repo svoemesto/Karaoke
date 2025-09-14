@@ -14,8 +14,8 @@ services:
     networks:
       - karaokenet
     volumes: # локальная папка : папка внутри контейнера
-      - /home/nsa/Documents/Караоке-db:/var/lib/postgresql/data/16 # мапим локальную папку /home/nsa/Documents/Караоке-db в контейнер по пути /var/lib/postgresql/data/16
-      - /home/nsa/Documents/dumps:/dumps # мапим папку /home/nsa/Documents/dumps в контейнер по пути /dumps
+      - /sm-karaoke/system/Караоке-db:/var/lib/postgresql/data/16 # мапим локальную папку /sm-karaoke/system/Караоке-db в контейнер по пути /var/lib/postgresql/data/16
+      - /sm-karaoke/system/dumps:/dumps # мапим папку /sm-karaoke/system/dumps в контейнер по пути /dumps
     restart: always
 
 networks:

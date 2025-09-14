@@ -57,8 +57,8 @@ const val PATH_TO_FFPROBE = "/bin/ffprobe"
 const val PATH_TO_PROFILES = "/usr/share/mlt-7/profiles"
 const val PATH_TO_MELT = "/bin/melt"
 const val PATH_TO_MEDIAINFO = "/bin/mediainfo"
-const val PATH_TO_ODS = "/home/nsa/Documents/Караоке/Караоке.ods"
-const val PATH_TO_LOGS = "/home/nsa/Documents/Караоке/logs"
+const val PATH_TO_ODS = "/sm-karaoke/system/Караоке.ods"
+const val PATH_TO_LOGS = "/sm-karaoke/system/logs"
 
 const val ODS_COLUMN_DATE = "Дата"
 const val ODS_COLUMN_TIME = "Время"
@@ -101,15 +101,15 @@ const val URL_PREFIX_SPONSR_EDIT = "https://sponsr.ru/smkaraoke/{REPLACE}/"
 const val PATH_TO_STORE_FOLDER = "/clouds/Yandex.Disk/Karaoke"
 
 val PROJECT_ROOT_FOLDERS = listOf(
-    "/home/nsa/Documents/Караоке",
-    "/media/nsa/FilesSSD1Tb/KaraokeDone",
-    "/media/nsa/clouds/KaraokeDone"
+    "/sm-karaoke/work",
+    "/sm-karaoke/done1",
+    "/sm-karaoke/done2"
 )
 
-const val YO_FILE_PATH = "/home/nsa/Documents/Караоке/Слова_с_буквой_ё.txt"
-const val CENSORED_FILE_PATH = "/home/nsa/Documents/Караоке/censored.txt"
-const val TESTDICT_FILE_PATH = "/home/nsa/Documents/Караоке/test_dict.txt"
-const val SONGS_HISTORY_FILE_PATH = "/home/nsa/Documents/Караоке/songs_history.txt"
+const val YO_FILE_PATH = "/sm-karaoke/system/Слова_с_буквой_ё.txt"
+const val CENSORED_FILE_PATH = "/sm-karaoke/system/censored.txt"
+const val TESTDICT_FILE_PATH = "/sm-karaoke/system/test_dict.txt"
+const val SONGS_HISTORY_FILE_PATH = "/sm-karaoke/system/songs_history.txt"
 
 val TEXT_FILE_DICTS = mapOf(
     "Слова с Ё" to YoWordsDictionary::class.java,

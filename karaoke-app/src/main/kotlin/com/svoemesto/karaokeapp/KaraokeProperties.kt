@@ -13,7 +13,7 @@ import java.io.ByteArrayInputStream
 import java.io.File
 import java.util.*
 
-const val PATH_TO_KARAOKE_PROPERTIES_FILE = "/home/nsa/Documents/Караоке/Karaoke.properties"
+const val PATH_TO_KARAOKE_PROPERTIES_FILE = "/sm-karaoke/system/Karaoke.properties"
 class KaraokeProperties {
     companion object {
 
@@ -175,7 +175,7 @@ val listKaraokeProperties = listOf(
     KaraokeProperty(key = "monitoringRemoteSettingsSync", defaultValue = false, description = "Мониторинг sync-записей в удаленной БД"),
     KaraokeProperty(key = "checkLastAlbum", defaultValue = false, description = "Искать альбомы авторов в Яндекс.Музыке"),
     KaraokeProperty(key = "autoSaveDelayMs", defaultValue = 1000L, description = "Время (в миллисекундах) задержки перед автосохранением"),
-    KaraokeProperty(key = "backgroundFolderPath", defaultValue = "/home/nsa/Documents/SpaceBox4096", description = "Путь к папке с фонами"),
+    KaraokeProperty(key = "backgroundFolderPath", defaultValue = "/sm-karaoke/system/SpaceBox4096", description = "Путь к папке с фонами"),
     KaraokeProperty(key = "createLogotype", defaultValue = true, description = "Создавать логотип"),
     KaraokeProperty(key = "createMicrophone", defaultValue = false, description = "Создавать микрофон"),
     KaraokeProperty(key = "createHeader", defaultValue = true, description = "Создавать заголовок"),

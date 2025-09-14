@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Путь к директории с файлами
-SCRIPTS_DIR="/home/nsa/Documents/Караоке/scriptsFromDocker"
+SCRIPTS_DIR="/sm-karaoke/system/scriptsFromDocker"
 
 # Файл для хранения списка уже обработанных файлов
 PROCESSED_FILE="/tmp/karaoke_processed_scripts"

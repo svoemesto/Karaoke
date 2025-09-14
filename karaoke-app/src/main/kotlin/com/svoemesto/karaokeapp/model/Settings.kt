@@ -1667,10 +1667,10 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         mltProp.setBase64(pathToFileLogoAlbum.base64ifFileExists(), "LogoAlbum")
 
         // setPath - путь к файлу бусти-заставки для песни
-        mltProp.setPath("/home/nsa/Documents/Караоке/SPLASH.png", ProducerType.BOOSTY)
+        mltProp.setPath("/sm-karaoke/system/SPLASH.png", ProducerType.BOOSTY)
 
         // setBase64 - base64 файла бусти-заставки для песни
-        mltProp.setBase64("/home/nsa/Documents/Караоке/SPLASH.png".base64ifFileExists(), ProducerType.BOOSTY)
+        mltProp.setBase64("/sm-karaoke/system/SPLASH.png".base64ifFileExists(), ProducerType.BOOSTY)
 
         // setChords
         val chords = voicesForMlt[0].linesForMlt()

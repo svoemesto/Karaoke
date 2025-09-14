@@ -1076,7 +1076,7 @@ class KaraokeProcess(
                         args = settings.argsDemucs5()
                     }
                     KaraokeProcessTypes.SHEETSAGE -> {
-                        val srcWav = "/home/nsa/Documents/sheetsage/source.wav"
+                        val srcWav = "/sm-karaoke/system/sheetsage/source.wav"
                         val resultFolder = "/home/nsa/Karaoke/output/output"
                         val resultPdf = "$resultFolder/output.pdf"
                         val resultMidi = "$resultFolder/output.midi"
@@ -1107,7 +1107,7 @@ class KaraokeProcess(
                         )
                     }
                     KaraokeProcessTypes.SHEETSAGE2 -> {
-                        val srcWav = "/home/nsa/Documents/sheetsage/source.wav"
+                        val srcWav = "/sm-karaoke/system/sheetsage/source.wav"
                         val resultFolder = "/home/nsa/Karaoke/output/output"
                         val resultPdf = "$resultFolder/output.pdf"
                         val resultMidi = "$resultFolder/output.midi"

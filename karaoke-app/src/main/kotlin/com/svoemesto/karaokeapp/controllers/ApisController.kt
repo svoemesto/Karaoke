@@ -47,14 +47,11 @@ class ApisController(private val sseNotificationService: SseNotificationService)
 
         // Ваши "вшитые" или ожидаемые пути
         val expectedPaths = listOf(
-            "/home/nsa/Documents/Караоке",
-            "/media/nsa/FilesSSD1Tb/KaraokeDone",
-            "/media/nsa/clouds/KaraokeDone",
-            "/home/nsa/Documents/Караоке/demucs/input",
-            "/home/nsa/Documents/Караоке/demucs/output",
-            "/data/input",
-            "/data/output",
-            "/data/models"
+            "/sm-karaoke/work",
+            "/sm-karaoke/done1",
+            "/sm-karaoke/done2",
+            "/sm-karaoke/system/demucs/input",
+            "/sm-karaoke/system/demucs/output"
             // Добавьте сюда другие важные пути, которые использует ваше приложение
         )
 
@@ -225,9 +222,9 @@ class ApisController(private val sseNotificationService: SseNotificationService)
     @GetMapping("/fls")
     @ResponseBody
     fun getFls(): String {
-            val files = getListFiles("/home/nsa/Documents/Караоке").joinToString(", ")
-        println("Вызван getFls. Файлы в папке /home/nsa/Documents/Караоке: $files")
-        return "Вызван getFls. Файлы в папке /home/nsa/Documents/Караоке: $files"
+            val files = getListFiles("/sm-karaoke/work").joinToString(", ")
+        println("Вызван getFls. Файлы в папке /sm-karaoke/work: $files")
+        return "Вызван getFls. Файлы в папке /sm-karaoke/work: $files"
     }
 
     @GetMapping("/song/{id}/filedrums")

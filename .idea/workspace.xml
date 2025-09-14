@@ -5,32 +5,51 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="19caf878-7ce0-44d7-94a1-cf0a31300a8b" name="Changes" comment="Текущие изменения по состоянию на 14.08.2025&#10;+ сборка в докер-контейнер и работа из него">
-      <change afterPath="$PROJECT_DIR$/deploy/new_comp/Documents/dumps/karaoke_clear_dump.sql" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/deploy/new_comp/Documents/Караоке/censored.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/deploy/new_comp/Documents/Караоке/karaoke_watcher.sh" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/deploy/new_comp/Documents/Караоке/Слова_с_буквой_ё.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/deploy/new_comp/mlt-docker/docker-compose.yaml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/deploy/new_comp/readme.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deploy/new_comp/sm-karaoke-system/deploy/docker-compose-webvue-new-comp.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/compiler.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/compiler.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules/Karaoke.karaoke-web.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules/Karaoke.karaoke-web.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules/Karaoke.karaoke-web.main.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules/Karaoke.karaoke-web.main.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules/Karaoke.karaoke-web.test.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules/Karaoke.karaoke-web.test.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules/Karaoke.main.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules/Karaoke.main.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules/Karaoke.test.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules/Karaoke.test.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules/karaoke-app/Karaoke.karaoke-app.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules/karaoke-app/Karaoke.karaoke-app.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules/karaoke-app/Karaoke.karaoke-app.main.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules/karaoke-app/Karaoke.karaoke-app.main.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules/karaoke-app/Karaoke.karaoke-app.test.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules/karaoke-app/Karaoke.karaoke-app.test.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/deploy/karaoke-app/Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/karaoke-app/Dockerfile" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/deploy/new_comp/do.sh" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/new_comp/Documents/Караоке/deploy/do.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/deploy/new_comp/docker-compose-app-new-comp.yml" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/new_comp/Documents/Караоке/deploy/docker-compose-app-new-comp.yml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/deploy/new_comp/docker-compose-db-new-comp.yml" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/new_comp/Documents/Караоке/deploy/docker-compose-db-new-comp.yml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/deploy/new_comp/docker-compose-web-new-comp.yml" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/new_comp/Documents/Караоке/deploy/docker-compose-web-new-comp.yml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/deploy/new_comp/docker-compose-webvue-new-comp.yml" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/new_comp/Documents/Караоке/deploy/docker-compose-webvue-new-comp.yml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/deploy/new_comp/nginx.conf" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/new_comp/Documents/Караоке/deploy/nginx.conf" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Karaoke.iml" beforeDir="false" afterPath="$PROJECT_DIR$/Karaoke.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deploy/.env" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/.env" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deploy/backup_db.sh" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/backup_db.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deploy/create_clear_db.sh" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/create_clear_db.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deploy/do.sh" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/do.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deploy/docker-compose-database.yml" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/docker-compose-database.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deploy/docker-compose-web.yml" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/docker-compose-web.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deploy/docker-compose.yml" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/docker-compose.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deploy/new_comp/Documents/dumps/karaoke_clear_dump.sql" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/new_comp/sm-karaoke-system/dumps/karaoke_clear_dump.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deploy/new_comp/Documents/Караоке/censored.txt" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/new_comp/sm-karaoke-system/censored.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deploy/new_comp/Documents/Караоке/deploy/do.sh" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/new_comp/sm-karaoke-system/deploy/do.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deploy/new_comp/Documents/Караоке/deploy/docker-compose-app-new-comp.yml" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/new_comp/sm-karaoke-system/deploy/docker-compose-app-new-comp.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deploy/new_comp/Documents/Караоке/deploy/docker-compose-db-new-comp.yml" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/new_comp/sm-karaoke-system/deploy/docker-compose-db-new-comp.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deploy/new_comp/Documents/Караоке/deploy/docker-compose-web-new-comp.yml" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/new_comp/sm-karaoke-system/deploy/docker-compose-web-new-comp.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deploy/new_comp/Documents/Караоке/deploy/docker-compose-webvue-new-comp.yml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/deploy/new_comp/Documents/Караоке/deploy/nginx.conf" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/new_comp/sm-karaoke-system/deploy/nginx.conf" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deploy/new_comp/Documents/Караоке/deploy/nginx.conf.template" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/new_comp/sm-karaoke-system/deploy/nginx.conf.template" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deploy/new_comp/Documents/Караоке/karaoke_watcher.sh" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/new_comp/sm-karaoke-system/karaoke_watcher.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deploy/new_comp/Documents/Караоке/Слова_с_буквой_ё.txt" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/new_comp/sm-karaoke-system/Слова_с_буквой_ё.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deploy/new_comp/mlt-docker/docker-compose.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/new_comp/mlt-docker/docker-compose.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deploy/new_comp/readme.md" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/new_comp/readme.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/AudioAnalize.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/AudioAnalize.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/AudioAnalize2.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/AudioAnalize2.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Constants.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Constants.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Extentions.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Extentions.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Karaoke.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Karaoke.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessWorker.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessWorker.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProperties.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProperties.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/MediaInfo.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/MediaInfo.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/SeleniumUtils.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/SeleniumUtils.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApisController.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApisController.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Pictures.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Pictures.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Picture.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Picture.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Settings.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Settings.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Zakroma.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Zakroma.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/src/components/Songs/edit/SongEdit.vue" beforeDir="false" afterPath="$PROJECT_DIR$/web/src/components/Songs/edit/SongEdit.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/src/components/Songs/store.js" beforeDir="false" afterPath="$PROJECT_DIR$/web/src/components/Songs/store.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/web/src/views/HomeView.vue" beforeDir="false" afterPath="$PROJECT_DIR$/web/src/views/HomeView.vue" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -102,10 +121,6 @@
       </UrlAndAccount>
     </option>
   </component>
-  <component name="HighlightingSettingsPerFile">
-    <setting file="jar://$PROJECT_DIR$/../.gradle/caches/modules-2/files-2.1/org.springframework/spring-web/6.0.7/43f8ac9c46c15d57fca00fc81ce1f2849f6cecb9/spring-web-6.0.7.jar!/org/springframework/web/bind/annotation/RequestParam.class" root0="SKIP_INSPECTION" />
-    <setting file="jrt:///usr/lib/jvm/java-17-openjdk-amd64!/java.desktop/java/awt/RenderingHints.class" root0="SKIP_INSPECTION" />
-  </component>
   <component name="MarkdownSettingsMigration">
     <option name="stateVersion" value="1" />
   </component>
@@ -143,7 +158,7 @@
     "database.data.extractors.current.export.id": "Comma-separated (CSV)_id",
     "git-widget-placeholder": "master",
     "jdk.selected.JAVA_MODULE": "17",
-    "ktor.last.update.timestamp": "1755257436950",
+    "ktor.last.update.timestamp": "1757839440686",
     "last_opened_file_path": "/home/nsa/Karaoke/deploy/new_comp/Documents/Караоке",
     "list.type.of.created.stylesheet": "CSS",
     "node.js.detected.package.eslint": "true",
@@ -156,7 +171,7 @@
     "project.structure.proportion": "0.15",
     "project.structure.side.proportion": "0.28704488",
     "settings.editor.selected.configurable": "preferences.pluginManager",
-    "spring.configuration.checksum": "55c91a0e370cecdf6013f589d81fe839",
+    "spring.configuration.checksum": "bfa046ddb2297791a751a72d90a66ca6",
     "ts.external.directory.path": "/home/nsa/.local/share/JetBrains/Toolbox/apps/intellij-idea-ultimate/plugins/javascript-impl/jsLanguageServicesImpl/external",
     "two.files.diff.last.used.file": "/home/nsa/Karaoke/karaoke-app/src/test/kotlin/Правильный.xml",
     "vue.rearranger.settings.migration": "true"
@@ -179,11 +194,11 @@
       <recent name="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/docs" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/deploy/new_comp/sm-karaoke-system" />
       <recent name="$PROJECT_DIR$/deploy/new_comp/Documents/Караоке/deploy" />
       <recent name="$PROJECT_DIR$/karaoke-web/src/main/resources/static" />
       <recent name="$PROJECT_DIR$/karaoke-web/src/main/resources/static/tmp" />
       <recent name="$PROJECT_DIR$/web/src/components/Common" />
-      <recent name="$PROJECT_DIR$/web/src/components/Processes" />
     </key>
     <key name="MoveKotlinTopLevelDeclarationsDialog.RECENTS_KEY">
       <recent name="com.svoemesto.karaokeapp" />
@@ -577,6 +592,7 @@
       <workItem from="1746180647737" duration="607000" />
       <workItem from="1746181846800" duration="15414000" />
       <workItem from="1755186234322" duration="34197000" />
+      <workItem from="1757836441916" duration="6006000" />
     </task>
     <task id="LOCAL-00099" summary="Переделываем под новую концепцию">
       <created>1668514349480</created>

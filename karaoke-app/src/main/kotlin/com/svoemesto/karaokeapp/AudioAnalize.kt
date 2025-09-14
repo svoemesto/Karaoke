@@ -5,7 +5,7 @@ import java.io.File
 import javax.sound.sampled.AudioSystem
 
 fun mainAudioAnalize(args: Array<String>) {
-    val file = File("/home/nsa/Documents/Караоке/Разное/Infornal Fuckъ - Конунг Олаф Моржовый Хер/Конунг Олаф Моржовый Хер.wav")
+    val file = File("/sm-karaoke/system/Infornal Fuckъ - Конунг Олаф Моржовый Хер/Конунг Олаф Моржовый Хер.wav")
     val audioInputStream = AudioSystem.getAudioInputStream(file)
     val dispatcher = AudioDispatcherFactory.fromFile(file, 2048, 0)
     val silenceDetector = PitchProcessor(PitchProcessor.PitchEstimationAlgorithm.YIN, 22050f, 2048, { pitchDetectionResult, _ ->

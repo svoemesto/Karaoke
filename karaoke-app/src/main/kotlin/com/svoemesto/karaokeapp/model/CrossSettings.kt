@@ -89,7 +89,7 @@ class CrossSettings {
                 listCSR.first { it.csrName == fldRow }.csrCells.first { it.cscName == fldCol }.settingsDTO = sett.toDTO()
             }
 
-            println(listCSR)
+//            println(listCSR)
 
             return listCSR
         }

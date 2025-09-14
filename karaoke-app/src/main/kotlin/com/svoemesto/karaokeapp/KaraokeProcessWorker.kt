@@ -79,6 +79,7 @@ class KaraokeProcessThread(val karaokeProcess: KaraokeProcess? = null, var perce
                     val logFileName = "$PATH_TO_LOGS/[${Timestamp.from(Instant.now())}] ${karaokeProcess.name} - ${karaokeProcess.description}.log".rightFileName()
                     try {
                         File(logFileName).writeText(log, Charsets.UTF_8)
+                        runCommand(listOf("chmod", "666", logFileName))
                     } catch (e: Exception) {
                         println(e.message)
                     }
@@ -408,7 +409,7 @@ class KaraokeProcessWorker {
                 // Проверяем, выполняется ли в данный момент какое-то задание
                 // Если да - ждём, если нет запускаем новое задание (если оно есть в очереди)
                 if (workThread == null || !workThread!!.isAlive) {
-                    println("[${Timestamp.from(Instant.now())}] ProcessWorker: Получаем новое задание...")
+//                    println("[${Timestamp.from(Instant.now())}] ProcessWorker: Получаем новое задание...")
                     val karaokeProcess = getKaraokeProcessToStart(database)
                     if (karaokeProcess != null && (!stopAfterThreadIsDone || karaokeProcess.command == "tail")) {
                         val args = karaokeProcess.args[0]

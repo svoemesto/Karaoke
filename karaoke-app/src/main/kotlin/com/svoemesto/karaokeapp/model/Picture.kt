@@ -27,10 +27,10 @@ class Picture(
             val textAreaH = 350
 
             val albumPic = Picture(
-                params = ImageParams(w = albumW, h = albumH, pathToFile = "/home/nsa/Documents/Караоке/Александр Лаэртский/1987 - Доители изнурённых жаб/LogoAlbum.png" )
+                params = ImageParams(w = albumW, h = albumH, pathToFile = "/sm-karaoke/system/1987 - Доители изнурённых жаб/LogoAlbum.png" )
             )
             val authorPic = Picture(
-                params = ImageParams(w = authorW, h = authorH, pathToFile = "/home/nsa/Documents/Караоке/Александр Лаэртский/LogoAuthor.png" )
+                params = ImageParams(w = authorW, h = authorH, pathToFile = "/sm-karaoke/system/LogoAuthor.png" )
             )
 
             val a = Picture(params = AreaParams(w = textAreaW, h = textAreaH, color = Color(127,127,127,255)))

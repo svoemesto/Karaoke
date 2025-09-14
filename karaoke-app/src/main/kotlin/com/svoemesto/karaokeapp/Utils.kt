@@ -877,7 +877,7 @@ fun createDigestForAllAuthors(vararg authors: String, database: KaraokeConnectio
     listAuthors.forEach { author ->
         if (authors.isEmpty() || author in authors) {
             var txt = "ЗАКРОМА - «$author»\n\n${getAuthorDigest(author, false, database).first}"
-            val fileName = "/home/nsa/Documents/Караоке/Digest/${author} (digest).txt"
+            val fileName = "/sm-karaoke/system/Digest/${author} (digest).txt"
             File(fileName).writeText(txt, Charsets.UTF_8)
         }
     }
@@ -899,7 +899,7 @@ fun createDigestForAllAuthorsForOper(vararg authors: String, database: KaraokeCo
         }
     }
     txt = "----------ЗАКРОМА----------\nВсего песен: $total шт.\n\n" + txt
-    val fileName = "/home/nsa/Documents/Караоке/Digest/OPER_digest.txt"
+    val fileName = "/sm-karaoke/system/Digest/OPER_digest.txt"
     File(fileName).writeText(txt, Charsets.UTF_8)
 }
 
@@ -1266,8 +1266,8 @@ fun updateSettingsFromDb(startFolder: String, database: KaraokeConnection) {
 
 
 fun testSoundLib() {
-    val audioFile = File("/home/nsa/Documents/Караоке/Nautilus Pompilius/1997 - Атлантида/1997 (02) [Nautilus Pompilius] - Умершие во сне.flac")
-//    val audioFile = File("/home/nsa/Documents/Караоке/Nautilus Pompilius/2001 - Яблокитай/2001 (03) [Nautilus Pompilius] - Странники в ночи.flac")
+    val audioFile = File("/sm-karaoke/system/1997 (02) [Nautilus Pompilius] - Умершие во сне.flac")
+//    val audioFile = File("/sm-karaoke/system/2001 (03) [Nautilus Pompilius] - Странники в ночи.flac")
     val audioInputStream = AudioSystem.getAudioInputStream(audioFile)
     val format = audioInputStream.format
     val durationInSeconds = audioInputStream.frameLength / format.sampleRate
@@ -2975,7 +2975,7 @@ fun setProcessPriority(pid: Long, priority: Int): Boolean {
 
 fun createScriptForHost(args: List<String>) {
     val txt = args.joinToString(" ")
-    val fileName = "/home/nsa/Documents/Караоке/scriptsFromDocker/${UUID.randomUUID()}.sh"
+    val fileName = "/sm-karaoke/system/scriptsFromDocker/${UUID.randomUUID()}.sh"
     val file = File(fileName)
     file.writeText(txt)
     runCommand(listOf("chmod", "777", fileName))

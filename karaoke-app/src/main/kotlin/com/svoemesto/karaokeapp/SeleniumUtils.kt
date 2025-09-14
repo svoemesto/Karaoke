@@ -7,8 +7,8 @@ import org.openqa.selenium.chrome.ChromeDriver
 import org.openqa.selenium.chrome.ChromeOptions
 import java.util.concurrent.TimeUnit
 
-const val PATH_TO_SELENIUM_SETTINGS = "/home/nsa/Documents/Караоке/SeleniumProperties.xml"
-//const val PATH_TO_SELENIUM_SETTINGS = "/home/nsa/Documents/Караоке/SeleniumProperties.txt"
+const val PATH_TO_SELENIUM_SETTINGS = "/sm-karaoke/system/SeleniumProperties.xml"
+//const val PATH_TO_SELENIUM_SETTINGS = "/sm-karaoke/system/SeleniumProperties.txt"
 const val WEBDRIVER_CHROMEDRIVER = "webdriver.chrome.driver"
 const val PATH_TO_CHROMEDRIVER = "/usr/local/bin/chromedriver"
 

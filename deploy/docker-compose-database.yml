@@ -14,7 +14,7 @@ services:
     networks:
       - karaokenet
     volumes: # локальная папка : папка внутри контейнера
-      - ${DB_FOLDER}:/var/lib/postgresql/data/16 # мапим локальную папку /home/nsa/Documents/Караоке-db в контейнер по пути /var/lib/postgresql/data/16
+      - ${DB_FOLDER}:/var/lib/postgresql/data/16 # мапим локальную папку /sm-karaoke/system/Караоке-db в контейнер по пути /var/lib/postgresql/data/16
       - ./karaoke-db:/docker-entrypoint-initdb.d # мапим папку karaoke-db из текущего каталога (deploy) в контейнер по пути docker-entrypoint-initdb.d - из нее будут запускаться скрипты для инициализации бд
     restart: always
 

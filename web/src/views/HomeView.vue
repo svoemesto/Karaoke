@@ -5,7 +5,7 @@
         v-if="isFileExplorerVisible"
         @close="closeFileExplorer"
         :path="pathToFolder"
-        start="/home/nsa/Documents/Караоке"
+        start="/sm-karaoke/work"
         directory
         @getpath="getPath"
     />

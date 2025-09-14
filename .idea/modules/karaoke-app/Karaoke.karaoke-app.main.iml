@@ -232,7 +232,7 @@
       </configuration>
     </facet>
   </component>
-  <component name="NewModuleRootManager">
+  <component name="NewModuleRootManager" LANGUAGE_LEVEL="JDK_17">
     <output url="file://$MODULE_DIR$/../../../karaoke-app/build/classes/kotlin/main" />
     <exclude-output />
     <content url="file://$MODULE_DIR$/../../../karaoke-app/src/main">

@@ -4,7 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
 import java.io.InputStreamReader
 
-val TEST_AUDIO_FILE_PATH = "/home/nsa/Documents/Караоке/Агата Кристи/1988 - Второй фронт/(01) [Агата Кристи] Инспектор ПО.flac"
+val TEST_AUDIO_FILE_PATH = "/sm-karaoke/system/(01) [Агата Кристи] Инспектор ПО.flac"
 fun mainMediaInfo() {
 //    println(MediaInfo.executeMediaInfo(TEST_AUDIO_FILE_PATH, "--Output=JSON"))
 //    println(MediaInfo.getInfoBySectionAndParameter(TEST_AUDIO_FILE_PATH, "Audio","Duration"))

@@ -28,7 +28,7 @@ class MyOnsetHandler : OnsetHandler {
     }
 }
 fun mainAudioAnalize2() {
-    val audioFile = File("/home/nsa/Documents/Караоке/Разное/Infornal Fuckъ - Конунг Олаф Моржовый Хер/Конунг Олаф Моржовый Хер.wav")
+    val audioFile = File("/sm-karaoke/system/Infornal Fuckъ - Конунг Олаф Моржовый Хер/Конунг Олаф Моржовый Хер.wav")
     val audioInputStream = AudioSystem.getAudioInputStream(audioFile)
     val jVMAudioInputStream = JVMAudioInputStream(audioInputStream)
     val bufferSize = 1024 // Размер буфера

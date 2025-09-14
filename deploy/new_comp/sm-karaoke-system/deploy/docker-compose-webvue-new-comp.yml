@@ -12,7 +12,7 @@ services:
       - /sm-karaoke/done1:/sm-karaoke/done1
       - /sm-karaoke/done2:/sm-karaoke/done2
       - /sm-karaoke/system:/sm-karaoke/system
-      - /sm-karaoke/system/SpaceBox4096:/sm-karaoke/system/SpaceBox4096
+#      - /sm-karaoke/system/SpaceBox4096:/sm-karaoke/system/SpaceBox4096
       - /sm-karaoke/system/deploy/nginx.conf:/etc/nginx/nginx.conf
     networks:
       - karaokenet

@@ -806,7 +806,7 @@ class KaraokeProcess(
                         prioritet = 19
                         args = listOf(
                             listOf(
-                                "docker", "compose", "-f", "/home/nsa/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
+                                "docker", "compose", "-f", "/sm-karaoke/system/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
                                 "${settings.rootFolder}/done_projects/${settings.rightSettingFileName} [lyrics].mlt".rightFileName()
                             ),
                             listOf("mkdir", "-p", settings.pathToStoreFolderLyrics),
@@ -937,7 +937,7 @@ class KaraokeProcess(
                         prioritet = 19
                         args = listOf(
                             listOf(
-                                "docker", "compose", "-f", "/home/nsa/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
+                                "docker", "compose", "-f", "/sm-karaoke/system/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
                                 "${settings.rootFolder}/done_projects/${settings.rightSettingFileName} [karaoke].mlt".rightFileName()
                             ),
                             listOf("mkdir", "-p", settings.pathToStoreFolderKaraoke),
@@ -1034,7 +1034,7 @@ class KaraokeProcess(
                         prioritet = 19
                         args = listOf(
                             listOf(
-                                "docker", "compose", "-f", "/home/nsa/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
+                                "docker", "compose", "-f", "/sm-karaoke/system/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
                                 "${settings.rootFolder}/done_projects/${settings.rightSettingFileName} [chords].mlt".rightFileName()
                             )
                         )
@@ -1348,7 +1348,7 @@ class KaraokeProcess(
                         prioritet = 19
                         args = listOf(
                             listOf(
-                                "docker", "compose", "-f", "/home/nsa/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
+                                "docker", "compose", "-f", "/sm-karaoke/system/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
                                 "${settings.rootFolder}/done_projects/${settings.rightSettingFileName} [lyricsVk].mlt".rightFileName()
                             )
                         )
@@ -1359,7 +1359,7 @@ class KaraokeProcess(
                         prioritet = 19
                         args = listOf(
                             listOf(
-                                "docker", "compose", "-f", "/home/nsa/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
+                                "docker", "compose", "-f", "/sm-karaoke/system/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
                                 "${settings.rootFolder}/done_projects/${settings.rightSettingFileName} [karaokeVk].mlt".rightFileName()
                             )
                         )
@@ -1369,7 +1369,7 @@ class KaraokeProcess(
                         prioritet = 19
                         args = listOf(
                             listOf(
-                                "docker", "compose", "-f", "/home/nsa/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
+                                "docker", "compose", "-f", "/sm-karaoke/system/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
                                 "${settings.rootFolder}/done_projects/${settings.rightSettingFileName} [chordsVk].mlt".rightFileName()
                             )
                         )
@@ -1379,7 +1379,7 @@ class KaraokeProcess(
                         prioritet = 19
                         args = listOf(
                             listOf(
-                                "docker", "compose", "-f", "/home/nsa/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
+                                "docker", "compose", "-f", "/sm-karaoke/system/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
                                 "${settings.rootFolder}/done_projects/${settings.rightSettingFileName} [tabsVk].mlt".rightFileName()
                             )
                         )

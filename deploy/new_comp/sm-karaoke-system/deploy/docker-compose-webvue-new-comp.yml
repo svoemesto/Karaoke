@@ -7,7 +7,7 @@ services:
     ports:
       - "7905:7905"
     volumes:
-      - /sm-karaoke/work:/sm-karaoke/work:/home/Karaoke
+      - /sm-karaoke/work:/home/Karaoke
       - /sm-karaoke/work:/sm-karaoke/work
       - /sm-karaoke/done1:/sm-karaoke/done1
       - /sm-karaoke/done2:/sm-karaoke/done2

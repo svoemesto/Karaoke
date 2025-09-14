@@ -1,6 +1,7 @@
 package com.svoemesto.karaokeapp.textfiledictionary
 
 import com.svoemesto.karaokeapp.TEXT_FILE_DICTS
+import com.svoemesto.karaokeapp.runCommand
 import java.io.File
 
 interface TextFileDictionary {
@@ -23,6 +24,7 @@ interface TextFileDictionary {
 
     fun save() {
         File(pathToFile()).writeText(dict.joinToString("\n"))
+        runCommand(listOf("chmod", "666", pathToFile()))
     }
 
     fun add(elements: List<String>) {

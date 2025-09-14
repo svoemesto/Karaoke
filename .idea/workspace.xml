@@ -4,9 +4,21 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="19caf878-7ce0-44d7-94a1-cf0a31300a8b" name="Changes" comment="Текущие изменения по состоянию на 14.09.2025&#10;+ работа с папками в /sm-karaoke">
+    <list default="true" id="19caf878-7ce0-44d7-94a1-cf0a31300a8b" name="Changes" comment="Текущие изменения по состоянию на 14.09.2025&#10;+ установка прав на файлы и папки при создании из приложения">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/deploy/new_comp/sm-karaoke-system/mlt-docker/docker-compose.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/new_comp/sm-karaoke-system/mlt-docker/docker-compose.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Constants.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Constants.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Functions.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Functions.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessWorker.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessWorker.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProperties.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProperties.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/UtilsPictures.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/UtilsPictures.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApisController.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApisController.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/MainController.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/MainController.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Picture.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Picture.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Settings.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Settings.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/textfiledictionary/TextFileDictionary.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/textfiledictionary/TextFileDictionary.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/textfilehistory/TextFileHistory.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/textfilehistory/TextFileHistory.kt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -549,14 +561,7 @@
       <workItem from="1746180647737" duration="607000" />
       <workItem from="1746181846800" duration="15414000" />
       <workItem from="1755186234322" duration="34197000" />
-      <workItem from="1757836441916" duration="16757000" />
-    </task>
-    <task id="LOCAL-00103" summary="Переделываем под новую концепцию">
-      <created>1671266867031</created>
-      <option name="number" value="00103" />
-      <option name="presentableId" value="LOCAL-00103" />
-      <option name="project" value="LOCAL" />
-      <updated>1671266867031</updated>
+      <workItem from="1757836441916" duration="23698000" />
     </task>
     <task id="LOCAL-00104" summary="Переделываем под новую концепцию">
       <created>1672483748477</created>
@@ -894,7 +899,14 @@
       <option name="project" value="LOCAL" />
       <updated>1757856173803</updated>
     </task>
-    <option name="localTasksCounter" value="152" />
+    <task id="LOCAL-00152" summary="Текущие изменения по состоянию на 14.09.2025&#10;+ работа с папками в /sm-karaoke">
+      <created>1757856469597</created>
+      <option name="number" value="00152" />
+      <option name="presentableId" value="LOCAL-00152" />
+      <option name="project" value="LOCAL" />
+      <updated>1757856469597</updated>
+    </task>
+    <option name="localTasksCounter" value="153" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -930,7 +942,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Изменена функция расчета номер такта по времени - теперь учитывается весь таймлайн вне зависимости от расположения метки &quot;первого такта&quot;" />
     <MESSAGE value="Полностью переработана работа с шаблонами" />
     <MESSAGE value="Добавлена возможность обработки нескольких файлов субтитров для одной песни: вокал, бэк-вокал и т.п. Пока только считывание из файлом, обработка - позже." />
     <MESSAGE value="Исправлена ошибка вывода направляющих" />
@@ -955,7 +966,8 @@
     <MESSAGE value="Текущие изменения по состоянию на 10.04.2025" />
     <MESSAGE value="Текущие изменения по состоянию на 14.08.2025&#10;+ сборка в докер-контейнер и работа из него" />
     <MESSAGE value="Текущие изменения по состоянию на 14.09.2025&#10;+ работа с папками в /sm-karaoke" />
-    <option name="LAST_COMMIT_MESSAGE" value="Текущие изменения по состоянию на 14.09.2025&#10;+ работа с папками в /sm-karaoke" />
+    <MESSAGE value="Текущие изменения по состоянию на 14.09.2025&#10;+ установка прав на файлы и папки при создании из приложения" />
+    <option name="LAST_COMMIT_MESSAGE" value="Текущие изменения по состоянию на 14.09.2025&#10;+ установка прав на файлы и папки при создании из приложения" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

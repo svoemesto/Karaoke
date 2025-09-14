@@ -1,5 +1,6 @@
 package com.svoemesto.karaokeapp.model
 
+import com.svoemesto.karaokeapp.runCommand
 import java.awt.*
 import java.awt.image.BufferedImage
 import java.io.File
@@ -82,6 +83,7 @@ class Picture(
             val fileName = "testPicture.png"
             val file = File(fileName)
             ImageIO.write(area.bi(), "png", file)
+            runCommand(listOf("chmod", "666", fileName))
 
         }
     }

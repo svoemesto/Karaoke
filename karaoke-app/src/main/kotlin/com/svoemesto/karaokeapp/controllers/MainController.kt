@@ -469,7 +469,9 @@ class MainController {
             text = settings?.let {
                 settings.setSourceMarkers(voice, Json.decodeFromString(ListSerializer(SourceMarker.serializer()), sourceMarkers))
                 val strText = settings.convertMarkersToSrt(voice)
-                File("${settings.rootFolder}/${settings.fileName}.voice${voice+1}.srt").writeText(strText)
+                val pathToFile = "${settings.rootFolder}/${settings.fileName}.voice${voice+1}.srt"
+                File(pathToFile).writeText(strText)
+                runCommand(listOf("chmod", "666", pathToFile))
                 "OK"
             } ?: "Error"
         }

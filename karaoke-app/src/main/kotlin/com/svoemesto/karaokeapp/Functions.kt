@@ -458,16 +458,34 @@ fun createKaraoke(settings: Settings, songVersion: SongVersion) {
     val permissions = PosixFilePermissions.fromString("rwxr-x---")
 
     val templateProject = "<?xml version='1.0' encoding='utf-8'?>\n${getMlt(mltProp)}"
-    val fileProject = File(settings.getOutputFilename(SongOutputFile.PROJECT, songVersion))
-    val fileMlt = File(settings.getOutputFilename(SongOutputFile.MLT, songVersion))
-    Files.createDirectories(Path(fileProject.parent))
-    Files.createDirectories(Path(File(settings.getOutputFilename(SongOutputFile.PICTURE, songVersion)).parent)) // Создаем папку done_files чтобы не было ошибки при создании картинок бусти и спонсора
+
+    val fileProjectPath = settings.getOutputFilename(SongOutputFile.PROJECT, songVersion)
+    val fileProject = File(fileProjectPath)
+
+    val fileMltPath = settings.getOutputFilename(SongOutputFile.MLT, songVersion)
+    val fileMlt = File(fileMltPath)
+
+    val pathToProjectFolder = fileProject.parent
+    Files.createDirectories(Path(pathToProjectFolder))
+    runCommand(listOf("chmod", "-R", "666", pathToProjectFolder))
+
+    val pathToDoneFilesFolder = File(settings.getOutputFilename(SongOutputFile.PICTURE, songVersion)).parent
+    Files.createDirectories(Path(pathToDoneFilesFolder)) // Создаем папку done_files чтобы не было ошибки при создании картинок бусти и спонсора
+    runCommand(listOf("chmod", "-R", "666", pathToDoneFilesFolder))
+
     fileProject.writeText(templateProject)
+    runCommand(listOf("chmod", "666", fileProjectPath))
+
     fileMlt.writeText(templateProject)
-    val fileRun = File(settings.getOutputFilename(SongOutputFile.RUN, songVersion))
+    runCommand(listOf("chmod", "666", fileMltPath))
+
+    val fileRunPath = settings.getOutputFilename(SongOutputFile.RUN, songVersion)
+    val fileRun = File(fileRunPath)
+
     fileRun.writeText("echo \"${settings.getOutputFilename(SongOutputFile.MLT, songVersion)}\"\n" +
             "melt -progress \"${settings.getOutputFilename(SongOutputFile.MLT, songVersion)}\"\n")
-    Files.setPosixFilePermissions(fileRun.toPath(), permissions)
+    runCommand(listOf("chmod", "777", fileRunPath))
+//    Files.setPosixFilePermissions(fileRun.toPath(), permissions)
 
 //    val fileDescription = File(settings.getOutputFilename(SongOutputFile.DESCRIPTION, songVersion))
 //    Files.createDirectories(Path(fileDescription.parent))

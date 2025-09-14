@@ -1709,7 +1709,9 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             result = settings?.let {
                 settings.setSourceMarkers(voice, Json.decodeFromString(ListSerializer(SourceMarker.serializer()), sourceMarkers))
                 val strText = settings.convertMarkersToSrt(voice)
-                File("${settings.rootFolder}/${settings.fileName}.voice${voice+1}.srt").writeText(strText)
+                val pathToFile = "${settings.rootFolder}/${settings.fileName}.voice${voice+1}.srt"
+                File(pathToFile).writeText(strText)
+                runCommand(listOf("chmod", "666", pathToFile))
                 true
             } ?: false
         }
@@ -1752,7 +1754,9 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             settings.setSourceMarkers(voice, Json.decodeFromString(ListSerializer(SourceMarker.serializer()), sourceMarkers))
             val strText = settings.convertMarkersToSrt(voice)
             try {
-                File("${settings.rootFolder}/${settings.fileName}.voice${voice+1}.srt").writeText(strText)
+                val pathToFile = "${settings.rootFolder}/${settings.fileName}.voice${voice+1}.srt"
+                File(pathToFile).writeText(strText)
+                runCommand(listOf("chmod", "666", pathToFile))
             } catch (e: Exception) {
                 println("Ошибка при создании файла субтитров.")
             }

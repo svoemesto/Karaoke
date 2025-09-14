@@ -304,7 +304,9 @@ class KaraokeProcessWorker {
                                     if (settingsLocal != null) {
                                         settingsLocal.sourceMarkersList.forEachIndexed { voice, _ ->
                                             val strText = settingsLocal.convertMarkersToSrt(voice)
-                                            File("${settingsLocal.rootFolder}/${settingsLocal.rightSettingFileName}.voice${voice+1}.srt").writeText(strText)
+                                            val fileName = "${settingsLocal.rootFolder}/${settingsLocal.rightSettingFileName}.voice${voice+1}.srt"
+                                            File(fileName).writeText(strText)
+                                            runCommand(listOf("chmod", "666", fileName))
                                         }
 
                                         settingsLocal.createKaraoke(createLyrics = true, createKaraoke = true)

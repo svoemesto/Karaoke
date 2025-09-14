@@ -682,12 +682,18 @@ fun create720pForAllUncreated(database: KaraokeConnection) {
     val settingsList = Settings.loadListFromDb(database = database)
     settingsList.forEach { settings ->
         if (File(settings.pathToFileLyrics).exists() && !File(settings.pathToFile720Lyrics).exists()) {
-            if (!File(settings.pathToFolder720Lyrics).exists()) Files.createDirectories(Path(settings.pathToFolder720Lyrics))
+            if (!File(settings.pathToFolder720Lyrics).exists()) {
+                Files.createDirectories(Path(settings.pathToFolder720Lyrics))
+                runCommand(listOf("chmod", "-R", "666", settings.pathToFolder720Lyrics))
+            }
             println("Создаём задание на кодирование в 720р для файла: ${settings.nameFileLyrics}")
             KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_LYR, true, 1)
         }
         if (File(settings.pathToFileKaraoke).exists() && !File(settings.pathToFile720Karaoke).exists()) {
-            if (!File(settings.pathToFolder720Karaoke).exists()) Files.createDirectories(Path(settings.pathToFolder720Karaoke))
+            if (!File(settings.pathToFolder720Karaoke).exists()) {
+                Files.createDirectories(Path(settings.pathToFolder720Karaoke))
+                runCommand(listOf("chmod", "-R", "666", settings.pathToFolder720Karaoke))
+            }
             println("Создаём задание на кодирование в 720р для файла: ${settings.nameFileKaraoke}")
             KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_KAR, true, 1)
         }
@@ -701,7 +707,10 @@ fun copyIfNeed(pathFrom: String, pathTo: String, folderTo: String, log: String =
     val fileTo = File(pathTo)
     if (fileFrom.exists()) {
         if (!fileTo.exists() || (fileFrom.length() != fileTo.length())) {
-            if (!File(folderTo).exists()) Files.createDirectories(Path(folderTo))
+            if (!File(folderTo).exists()) {
+                Files.createDirectories(Path(folderTo))
+                runCommand(listOf("chmod", "-R", "666", folderTo))
+            }
             if (log != "") println(log)
             Files.copy(Path(pathFrom), Path(pathTo), StandardCopyOption.REPLACE_EXISTING)
             return 1
@@ -844,10 +853,16 @@ fun createFilesByTags(listOfTags: List<String> = emptyList(), database: KaraokeC
     listTags.forEach { tag ->
 
         val pathToTagFolder = "$PATH_TO_STORE_FOLDER/TAGS/${tag}"
-        if (!File(pathToTagFolder).exists()) Files.createDirectories(Path(pathToTagFolder))
+        if (!File(pathToTagFolder).exists()) {
+            Files.createDirectories(Path(pathToTagFolder))
+            runCommand(listOf("chmod", "-R", "666", pathToTagFolder))
+        }
 
         val pathToTagFolder720Karaoke = "$PATH_TO_STORE_FOLDER/720p_Karaoke/TAGS/${tag}"
-        if (!File(pathToTagFolder720Karaoke).exists()) Files.createDirectories(Path(pathToTagFolder720Karaoke))
+        if (!File(pathToTagFolder720Karaoke).exists()) {
+            Files.createDirectories(Path(pathToTagFolder720Karaoke))
+            runCommand(listOf("chmod", "-R", "666", pathToTagFolder720Karaoke))
+        }
 
         val listOfSettings = Settings.loadListFromDb(mapOf(Pair("tags", tag)), database = database)
         listOfSettings.forEach { settings ->
@@ -879,6 +894,7 @@ fun createDigestForAllAuthors(vararg authors: String, database: KaraokeConnectio
             var txt = "ЗАКРОМА - «$author»\n\n${getAuthorDigest(author, false, database).first}"
             val fileName = "/sm-karaoke/system/Digest/${author} (digest).txt"
             File(fileName).writeText(txt, Charsets.UTF_8)
+            runCommand(listOf("chmod", "666", fileName))
         }
     }
 
@@ -901,6 +917,7 @@ fun createDigestForAllAuthorsForOper(vararg authors: String, database: KaraokeCo
     txt = "----------ЗАКРОМА----------\nВсего песен: $total шт.\n\n" + txt
     val fileName = "/sm-karaoke/system/Digest/OPER_digest.txt"
     File(fileName).writeText(txt, Charsets.UTF_8)
+    runCommand(listOf("chmod", "666", fileName))
 }
 
 fun getAuthorsForDigest(database: KaraokeConnection): List<String> {
@@ -1254,639 +1271,6 @@ fun searchSongText(settings: Settings): String {
     return ""
 }
 
-
-fun updateSettingsFromDb(startFolder: String, database: KaraokeConnection) {
-    val listFiles = getListFiles(startFolder,"settings")
-    listFiles.forEach { pathToSettingsFile ->
-        println("updateSettingsFromDb: $pathToSettingsFile")
-        val settings = Settings.loadFromFile(pathToSettingsFile, database = database)
-        settings.saveToDb()
-    }
-}
-
-
-fun testSoundLib() {
-    val audioFile = File("/sm-karaoke/system/1997 (02) [Nautilus Pompilius] - Умершие во сне.flac")
-//    val audioFile = File("/sm-karaoke/system/2001 (03) [Nautilus Pompilius] - Странники в ночи.flac")
-    val audioInputStream = AudioSystem.getAudioInputStream(audioFile)
-    val format = audioInputStream.format
-    val durationInSeconds = audioInputStream.frameLength / format.sampleRate
-    println("audioInputStream.frameLength: ${audioInputStream.frameLength}")
-    println("format.sampleRate: ${format.sampleRate}")
-    println("Duration of audio file: $durationInSeconds seconds")
-}
-
-fun createRunMlt(startFolder: String, database: KaraokeConnection) {
-    val listFiles = getListFiles(startFolder,"settings")
-    val albums = listFiles.groupBy { File(it).parentFile.absolutePath }
-    var authorTxtAll = ""
-    var authorTxtLyrics = ""
-    var authorTxtWOLyrics = ""
-    val permissions = PosixFilePermissions.fromString("rwxr-x---")
-
-    albums.forEach{(albumPath, songs) ->
-        var albumTxtAll = ""
-        var albumTxtLyrics = ""
-        var albumTxtWOLyrics = ""
-        Files.createDirectories(Path("$albumPath/done_projects"))
-        songs.forEach { pathToSettingsFile ->
-
-            println(pathToSettingsFile)
-
-            val settings = Settings.loadFromFile(pathToSettingsFile, database = database)
-            val hasChords = true
-            val pathToMltLyrics = settings.getOutputFilename(SongOutputFile.MLT, SongVersion.LYRICS)
-            val pathToMltKaraoke = settings.getOutputFilename(SongOutputFile.MLT, SongVersion.KARAOKE)
-            val pathToMltChords = settings.getOutputFilename(SongOutputFile.MLT, SongVersion.CHORDS)
-
-            val txtLyric = "echo \"$pathToMltLyrics\"\nmelt -progress \"$pathToMltLyrics\"\n\n"
-            val txtKaraoke = "echo \"$pathToMltKaraoke\"\nmelt -progress \"$pathToMltKaraoke\"\n\n"
-            val txtChords = "echo \"$pathToMltChords\"\nmelt -progress \"$pathToMltChords\"\n\n"
-
-            val songTxtAll = "$txtLyric$txtKaraoke${if (hasChords) txtChords else ""}"
-            val songTxtWOLyrics = "$txtKaraoke${if (hasChords) txtChords else ""}"
-
-            albumTxtAll += "echo \"---------------------------------------------------------------------------------------\"\n\n"
-            albumTxtLyrics += "echo \"---------------------------------------------------------------------------------------\"\n\n"
-            albumTxtWOLyrics += "echo \"---------------------------------------------------------------------------------------\"\n\n"
-            albumTxtAll += songTxtAll
-            albumTxtLyrics += txtLyric
-            albumTxtWOLyrics += songTxtWOLyrics
-
-
-            var file = File(settings.getOutputFilename(SongOutputFile.RUN, SongVersion.LYRICS))
-            file.writeText(txtLyric)
-            Files.setPosixFilePermissions(file.toPath(), permissions)
-
-
-            file = File(settings.getOutputFilename(SongOutputFile.RUN, SongVersion.KARAOKE))
-            file.writeText(txtKaraoke)
-            Files.setPosixFilePermissions(file.toPath(), permissions)
-
-            if (hasChords) {
-                file = File(settings.getOutputFilename(SongOutputFile.RUN, SongVersion.CHORDS))
-                file.writeText(txtChords)
-                Files.setPosixFilePermissions(file.toPath(), permissions)
-            }
-
-            file = File(settings.getOutputFilename(SongOutputFile.RUNALL, SongVersion.LYRICS).replace("[lyrics]","[ALL]"))
-            file.writeText(songTxtAll)
-            Files.setPosixFilePermissions(file.toPath(), permissions)
-
-            file = File(settings.getOutputFilename(SongOutputFile.RUNALL, SongVersion.LYRICS).replace("[lyrics]","[ALLwoLYRICS]"))
-            file.writeText(songTxtWOLyrics)
-            Files.setPosixFilePermissions(file.toPath(), permissions)
-
-        }
-
-        authorTxtAll += "echo \"===========================================================================================\"\n\n"
-        authorTxtWOLyrics += "echo \"===========================================================================================\"\n\n"
-
-        authorTxtAll += albumTxtAll
-        authorTxtLyrics += albumTxtLyrics
-        authorTxtWOLyrics += albumTxtWOLyrics
-
-        var file = File("$albumPath/[ALL].run")
-        file.writeText(albumTxtAll)
-        Files.setPosixFilePermissions(file.toPath(), permissions)
-
-        file = File("$albumPath/[ALLwoLYRICS].run")
-        file.writeText(albumTxtWOLyrics)
-        Files.setPosixFilePermissions(file.toPath(), permissions)
-
-        file = File("$albumPath/[LYRICS].run")
-        file.writeText(albumTxtLyrics)
-        Files.setPosixFilePermissions(file.toPath(), permissions)
-
-    }
-
-    var file = File("$startFolder/[ALL].run")
-    file.writeText(authorTxtAll)
-    Files.setPosixFilePermissions(file.toPath(), permissions)
-
-    file = File("$startFolder/[ALLwoLYRICS].run")
-    file.writeText(authorTxtWOLyrics)
-    Files.setPosixFilePermissions(file.toPath(), permissions)
-
-    file = File("$startFolder/[LYRICS].run")
-    file.writeText(authorTxtLyrics)
-    Files.setPosixFilePermissions(file.toPath(), permissions)
-
-}
-
-fun createVKtext(startFolder: String, fromDb: Boolean = false, database: KaraokeConnection) {
-    val spreadsheetDocument = if (fromDb) SpreadsheetDocument.loadDocument(File(PATH_TO_ODS)) else null
-    val listFiles = getListFiles(startFolder,"settings")
-    listFiles.forEach { pathToSettingsFile ->
-        val settings = Settings.loadFromFile(pathToSettingsFile, database = database)
-        val song = Song(settings, SongVersion.LYRICS)
-        val fileName = settings.getOutputFilename(SongOutputFile.VK, SongVersion.LYRICS)
-        val decsAndName = Ods.getSongVKDescription(song, fileName, spreadsheetDocument)
-        decsAndName?.let { (text, name) ->
-            if (text != "") {
-                println(name)
-                File(name).writeText(text)
-                val vkPictNameOld = (settings.getOutputFilename(SongOutputFile.PICTUREVK, SongVersion.LYRICS)).replace(" [lyrics] VK"," [VK]")
-                val vkPictNameNew = name.replace(" [VK].txt", " [VK].png")
-                FileUtils.copyFile(File(vkPictNameOld), File(vkPictNameNew))
-            } else {
-                return@forEach
-            }
-        }
-    }
-    if (fromDb) spreadsheetDocument!!.close()
-}
-fun createBoostyTeserPictures(startFolder: String, database: KaraokeConnection) {
-    val listFiles = getListFiles(startFolder,"settings")
-    listFiles.forEach { pathToSettingsFile ->
-        val settings = Settings.loadFromFile(pathToSettingsFile, database = database)
-        println(pathToSettingsFile)
-        createBoostyTeaserPicture(settings)
-    }
-}
-
-fun createRunToDecodeKaraokeTo720p(runFileName: String, sourceFolder: String, destinationFolder: String) {
-    val listFiles = getListFiles(sourceFolder, " [karaoke].mp4")
-    var txt = ""
-    val permissions = PosixFilePermissions.fromString("rwxr-x---")
-    Files.createDirectories(Path(destinationFolder))
-    listFiles.forEach { sourceFile ->
-        val destinationFile = destinationFolder + "/" + sourceFile.split("/").last().replace(" [karaoke].mp4", " [karaoke] 720p.mp4")
-        txt += "ffmpeg -i \"${sourceFile}\" -c:v hevc_nvenc -preset fast -b:v 1000k -vf \"scale=1280:720,fps=30\" -c:a aac \"${destinationFile}\" -y\n"
-    }
-    val file = File(runFileName)
-    file.writeText(txt)
-    Files.setPosixFilePermissions(file.toPath(), permissions)
-}
-
-fun createVKLinkPictures(database: KaraokeConnection) {
-    val listSettings = Settings.loadListFromDb(database = database)
-    listSettings.forEach { settings ->
-        println("${settings.datePublish} - ${settings.author} - ${settings.year} - ${settings.album} - ${settings.songName}")
-        try {
-            createVKLinkPicture(settings)
-        } catch (e: Exception) {
-            println("Пропускаем.")
-        }
-    }
-}
-
-fun createDescriptionFilesForAll(startFolder: String, database: KaraokeConnection) {
-
-    val listFiles = getListFiles(startFolder,"settings")
-    listFiles.forEach { pathToSettingsFile ->
-
-        println(pathToSettingsFile)
-
-        try {
-            val settings = Settings.loadFromFile(pathToSettingsFile, database = database)
-
-            File(settings.getOutputFilename(SongOutputFile.DESCRIPTION, SongVersion.LYRICS)).writeText(settings.getDescription(SongVersion.LYRICS))
-
-            File(settings.getOutputFilename(SongOutputFile.DESCRIPTION, SongVersion.KARAOKE)).writeText(settings.getDescription(SongVersion.KARAOKE))
-
-            File(settings.getOutputFilename(SongOutputFile.DESCRIPTION, SongVersion.CHORDS)).writeText(settings.getDescription(SongVersion.CHORDS))
-
-        } catch (e: Exception) {
-            println("Ошибка, продолжаем...")
-        }
-    }
-}
-
-
-
-fun createSettingsFilesForAll(startFolder: String) {
-    val patternFileName = "(\\d{4}).*\\s\\((\\d{2})\\)\\s\\[(.*)\\]\\s-\\s(.*)\\.(.*)"
-    val regexpFileName = Regex(patternFileName)
-    val patternFolderName = "(\\d{4}).*\\s-\\s(.*)"
-    val regexpFolderName = Regex(patternFolderName)
-    val permissions = PosixFilePermissions.fromString("rwxr-x---")
-
-    val fileDemucs2tracks = File("$startFolder/demusc2track.run")
-    val fileDemucs4tracks = File("$startFolder/demusc4track.run")
-    val fileDemucs5tracks = File("$startFolder/demusc5track.run")
-    val fileMainPairs = File("$startFolder/mainPairs.txt")
-    val fileMelt = File("$startFolder/melt.txt")
-
-    var textFileDemucs2tracks = ""
-    var textFileDemucs4tracks = ""
-    var textFileDemucs5tracks = ""
-    var textFileMainPairs = ""
-    var textFileMelt = ""
-
-    val listFiles = getListFiles(
-        pathToFolder =  startFolder,
-        extentions = listOf("flac"),
-        excludes = listOf("-accompaniment", "-bass", "-drums", "-guitars", "-metronome", "[music", "[drums", "[bass", "[vocals]", "-vocals", "-other")
-    )
-    println("Всего файлов = ${listFiles.size}")
-    listFiles.map{File(it)}.forEach { file ->
-        val fileName = file.name
-
-        val fileAbsolutePath = file.absolutePath
-        val fileFolder = file.parent
-        val folderName = file.parentFile.name
-        val fileNamesMatchResult = regexpFileName.findAll(fileName).toList().firstOrNull()
-        val folderNamesMatchResult = regexpFolderName.findAll(folderName).toList().firstOrNull()
-
-        val songYear = fileNamesMatchResult?.let {fileNamesMatchResult.groups[1]?.value}
-        val songTrack = fileNamesMatchResult?.let {fileNamesMatchResult.groups[2]?.value}
-        val songAuthor = fileNamesMatchResult?.let {fileNamesMatchResult.groups[3]?.value}
-        var songName = fileNamesMatchResult?.let {fileNamesMatchResult.groups[4]?.value}
-        val songFormat = file.extension //    extention //fileNamesMatchResult?.let {fileNamesMatchResult.groups[5]?.value}
-        val songAlbum = folderNamesMatchResult?.let {folderNamesMatchResult.groups[2]?.value}
-        val settingFileName = fileAbsolutePath.substring(0,fileAbsolutePath.length-songFormat!!.length-1)+".settings"
-        val textFileName = fileAbsolutePath.substring(0,fileAbsolutePath.length-songFormat!!.length-1)+".txt"
-        val kdenliveFileName = fileAbsolutePath.substring(0,fileAbsolutePath.length-songFormat!!.length-1)+".kdenlive"
-        val kdenliveSubsFileName = fileAbsolutePath.substring(0,fileAbsolutePath.length-songFormat!!.length-1)+".kdenlive.srt"
-        val fileNameWOExt = fileName.substring(0, fileName.length-songFormat!!.length-1)
-
-        if (songName != null) {
-            songName = songName.uppercaseFirstLetter()
-        }
-
-        println("Year = $songYear")
-        println("Track = $songTrack")
-        println("Author = $songAuthor")
-        println("Name = $songName")
-        println("Format = $songFormat")
-        println("Album = $songAlbum")
-        println("settingFileName = $settingFileName")
-        println()
-
-        val pathToResultedModel = "$fileFolder/$DEMUCS_MODEL_NAME"
-        val separatedStem = "vocals"
-        val oldNoStemNameWav = "$pathToResultedModel/${fileNameWOExt}-no_$separatedStem.wav"
-        val newNoStemNameWav = "$pathToResultedModel/${fileNameWOExt}-accompaniment.wav"
-        val newNoStemNameFlac = "$pathToResultedModel/${fileNameWOExt}-accompaniment.flac"
-        val vocalsNameWav = "$pathToResultedModel/${fileNameWOExt}-vocals.wav"
-        val vocalsNameFlac = "$pathToResultedModel/${fileNameWOExt}-vocals.flac"
-        val drumsNameWav = "$pathToResultedModel/${fileNameWOExt}-drums.wav"
-        val drumsNameFlac = "$pathToResultedModel/${fileNameWOExt}-drums.flac"
-        val bassNameWav = "$pathToResultedModel/${fileNameWOExt}-bass.wav"
-        val bassNameFlac = "$pathToResultedModel/${fileNameWOExt}-bass.flac"
-        val guitarsNameWav = "$pathToResultedModel/${fileNameWOExt}-guitars.wav"
-        val guitarsNameFlac = "$pathToResultedModel/${fileNameWOExt}-guitars.flac"
-        val otherNameWav = "$pathToResultedModel/${fileNameWOExt}-other.wav"
-        val otherNameFlac = "$pathToResultedModel/${fileNameWOExt}-other.flac"
-
-        val textDemucs2track = "python3 -m demucs -n $DEMUCS_MODEL_NAME -d cuda --filename \"{track}-{stem}.{ext}\" --two-stems=$separatedStem -o \"$fileFolder\" \"$fileAbsolutePath\"\n" +
-                "mv \"$oldNoStemNameWav\" \"$newNoStemNameWav\"" + "\n" +
-                "ffmpeg -i \"$newNoStemNameWav\" -compression_level 8 \"$newNoStemNameFlac\" -y" + "\n" +
-                "rm \"$newNoStemNameWav\"" + "\n" +
-                "ffmpeg -i \"$vocalsNameWav\" -compression_level 8 \"$vocalsNameFlac\" -y" + "\n" +
-                "rm \"$vocalsNameWav\"" + "\n"
-
-        val textDemucs4track = "python3 -m demucs -n $DEMUCS_MODEL_NAME -d cuda --filename \"{track}-{stem}.{ext}\" -o \"$fileFolder\" \"$fileAbsolutePath\"\n" +
-                "ffmpeg -i \"$drumsNameWav\" -compression_level 8 \"$drumsNameFlac\" -y" + "\n" +
-                "rm \"$drumsNameWav\"" + "\n" +
-                "ffmpeg -i \"$bassNameWav\" -compression_level 8 \"$bassNameFlac\" -y" + "\n" +
-                "rm \"$bassNameWav\"" + "\n" +
-                "ffmpeg -i \"$guitarsNameWav\" -compression_level 8 \"$guitarsNameFlac\" -y" + "\n" +
-                "rm \"$guitarsNameWav\"" + "\n" +
-                "ffmpeg -i \"$otherNameWav\" -compression_level 8 \"$otherNameFlac\" -y" + "\n" +
-                "rm \"$otherNameWav\"" + "\n" +
-                "ffmpeg -i \"$vocalsNameWav\" -compression_level 8 \"$vocalsNameFlac\" -y" + "\n" +
-                "rm \"$vocalsNameWav\"" + "\n"
-
-        textFileDemucs2tracks += textDemucs2track
-        textFileDemucs4tracks += textDemucs4track
-
-        textFileDemucs5tracks += textDemucs2track
-        textFileDemucs5tracks += textDemucs4track
-
-        textFileMainPairs += "//        Pair(\"$fileFolder\",\"$fileNameWOExt\"),\n"
-
-        textFileMelt += "echo \"$fileFolder/done_projects/$fileNameWOExt [lyrics].mlt\"\n"
-        textFileMelt += "melt -progress \"$fileFolder/done_projects/$fileNameWOExt [lyrics].mlt\"\n\n"
-        textFileMelt += "echo \"$fileFolder/done_projects/$fileNameWOExt [karaoke].mlt\"\n"
-        textFileMelt += "melt -progress \"$fileFolder/done_projects/$fileNameWOExt [karaoke].mlt\"\n\n"
-        textFileMelt += "echo \"$fileFolder/done_projects/$fileNameWOExt [chords].mlt\"\n"
-        textFileMelt += "melt -progress \"$fileFolder/done_projects/$fileNameWOExt [chords].mlt\"\n\n"
-        textFileMelt += "echo \"$fileFolder/done_projects/$fileNameWOExt [lyrics] bluetooth.mlt\"\n"
-        textFileMelt += "melt -progress \"$fileFolder/done_projects/$fileNameWOExt [lyrics] bluetooth.mlt\"\n\n"
-        textFileMelt += "echo \"$fileFolder/done_projects/$fileNameWOExt [karaoke] bluetooth.mlt\"\n"
-        textFileMelt += "melt -progress \"$fileFolder/done_projects/$fileNameWOExt [karaoke] bluetooth.mlt\"\n\n"
-        textFileMelt += "echo \"$fileFolder/done_projects/$fileNameWOExt [chords] bluetooth.mlt\"\n"
-        textFileMelt += "melt -progress \"$fileFolder/done_projects/$fileNameWOExt [chords] bluetooth.mlt\"\n\n"
-        textFileMelt += "echo \"========================================================================================\"\n"
-
-        val settingFile = File(settingFileName)
-        if (!settingFile.exists()) {
-
-            val text =
-                "NAME=$songName"+"\n"+
-                        "AUTHOR=$songAuthor" + "\n" +
-                        "ALBUM=$songAlbum" + "\n" +
-                        "YEAR=$songYear" + "\n" +
-                        "FORMAT=$songFormat" + "\n" +
-                        "TRACK=$songTrack" + "\n" +
-                        "KEY=" + "\n" +
-                        "BPM=" + "\n"
-            settingFile.writeText(text)
-        }
-
-        val textFile = File(textFileName)
-        if (!textFile.exists()) {
-            val text = "\n"
-            textFile.writeText(text)
-        }
-
-        val fileNameVocals = "${fileNameWOExt}-vocals.flac"
-        val fileNameAccompaniment = "${fileNameWOExt}-accompaniment.flac"
-        val fullPathToVocals = "${fileFolder}/${DEMUCS_MODEL_NAME}/$fileNameVocals"
-        val fullPathToAccompaniment = "${fileFolder}/${DEMUCS_MODEL_NAME}/$fileNameAccompaniment"
-
-//        val audioFile = File("${fileFolder}/$fileName")
-//        val audioFile = File(fullPathToAccompaniment)
-//        val audioInputStream = AudioSystem.getAudioInputStream(audioFile)
-//        val format = audioInputStream.format
-//        val durationInMilliseconds = (audioInputStream.frameLength / format.sampleRate * 1000).toLong()
-        val durationInMilliseconds = ((MediaInfo.getInfoBySectionAndParameter(
-            "${fileFolder}/$fileName",
-            "Audio",
-            "Duration"
-        ) ?: "0.0").toDouble() * 1000).toLong()
-        val durationTimecode = convertMillisecondsToTimecode(durationInMilliseconds)
-        val durationFrames = convertMillisecondsToFrames(durationInMilliseconds)
-
-        val kdenliveTemplate = "<?xml version='1.0' encoding='utf-8'?>\n" +
-                "<mlt LC_NUMERIC=\"C\" producer=\"main_bin\" version=\"7.28.0\" root=\"${fileFolder}\">\n" +
-                " <profile frame_rate_num=\"60\" sample_aspect_num=\"1\" display_aspect_den=\"9\" colorspace=\"709\" progressive=\"1\" description=\"HD 1080p 60 fps\" display_aspect_num=\"16\" frame_rate_den=\"1\" width=\"1920\" height=\"1080\" sample_aspect_den=\"1\"/>\n" +
-                " <producer id=\"producer0\" in=\"00:00:00.000\" out=\"${durationTimecode}\">\n" +
-                "  <property name=\"length\">${durationFrames}</property>\n" +
-                "  <property name=\"eof\">pause</property>\n" +
-                "  <property name=\"resource\">${DEMUCS_MODEL_NAME}/${fileNameVocals}</property>\n" +
-                "  <property name=\"seekable\">1</property>\n" +
-                "  <property name=\"audio_index\">0</property>\n" +
-                "  <property name=\"video_index\">-1</property>\n" +
-                "  <property name=\"mute_on_pause\">1</property>\n" +
-                "  <property name=\"mlt_service\">avformat</property>\n" +
-                "  <property name=\"kdenlive:clipname\">VOICE</property>\n" +
-                "  <property name=\"kdenlive:clip_type\">1</property>\n" +
-                "  <property name=\"kdenlive:folderid\">-1</property>\n" +
-                "  <property name=\"kdenlive:id\">3</property>\n" +
-                " </producer>\n" +
-                " <producer id=\"producer1\" in=\"00:00:00.000\" out=\"${durationTimecode}\">\n" +
-                "  <property name=\"length\">${durationFrames}</property>\n" +
-                "  <property name=\"eof\">pause</property>\n" +
-                "  <property name=\"resource\">${DEMUCS_MODEL_NAME}/${fileNameAccompaniment}</property>\n" +
-                "  <property name=\"seekable\">1</property>\n" +
-                "  <property name=\"audio_index\">0</property>\n" +
-                "  <property name=\"video_index\">-1</property>\n" +
-                "  <property name=\"mute_on_pause\">1</property>\n" +
-                "  <property name=\"mlt_service\">avformat</property>\n" +
-                "  <property name=\"kdenlive:clipname\">MUSIC</property>\n" +
-                "  <property name=\"kdenlive:clip_type\">1</property>\n" +
-                "  <property name=\"kdenlive:folderid\">-1</property>\n" +
-                "  <property name=\"kdenlive:id\">2</property>\n" +
-                " </producer>\n" +
-                " <playlist id=\"main_bin\">\n" +
-                "  <property name=\"kdenlive:docproperties.activeTrack\">0</property>\n" +
-                "  <property name=\"kdenlive:docproperties.audioChannels\">2</property>\n" +
-                "  <property name=\"kdenlive:docproperties.audioTarget\">1</property>\n" +
-                "  <property name=\"kdenlive:docproperties.compositing\">1</property>\n" +
-                "  <property name=\"kdenlive:docproperties.disablepreview\">0</property>\n" +
-                "  <property name=\"kdenlive:docproperties.documentid\">1671265183813</property>\n" +
-                "  <property name=\"kdenlive:docproperties.enableTimelineZone\">0</property>\n" +
-                "  <property name=\"kdenlive:docproperties.enableexternalproxy\">0</property>\n" +
-                "  <property name=\"kdenlive:docproperties.enableproxy\">0</property>\n" +
-                "  <property name=\"kdenlive:docproperties.externalproxyparams\">./;GL;.LRV;./;GX;.MP4;./;GP;.LRV;./;GP;.MP4</property>\n" +
-                "  <property name=\"kdenlive:docproperties.generateimageproxy\">0</property>\n" +
-                "  <property name=\"kdenlive:docproperties.generateproxy\">0</property>\n" +
-                "  <property name=\"kdenlive:docproperties.groups\">[\n" +
-                "]\n" +
-                "</property>\n" +
-                "  <property name=\"kdenlive:docproperties.kdenliveversion\">22.12.3</property>\n" +
-                "  <property name=\"kdenlive:docproperties.position\">0</property>\n" +
-                "  <property name=\"kdenlive:docproperties.previewextension\"/>\n" +
-                "  <property name=\"kdenlive:docproperties.previewparameters\"/>\n" +
-                "  <property name=\"kdenlive:docproperties.profile\">atsc_1080p_60</property>\n" +
-                "  <property name=\"kdenlive:docproperties.proxyextension\"/>\n" +
-                "  <property name=\"kdenlive:docproperties.proxyimageminsize\">2000</property>\n" +
-                "  <property name=\"kdenlive:docproperties.proxyimagesize\">800</property>\n" +
-                "  <property name=\"kdenlive:docproperties.proxyminsize\">1000</property>\n" +
-                "  <property name=\"kdenlive:docproperties.proxyparams\"/>\n" +
-                "  <property name=\"kdenlive:docproperties.proxyresize\">640</property>\n" +
-                "  <property name=\"kdenlive:docproperties.scrollPos\">0</property>\n" +
-                "  <property name=\"kdenlive:docproperties.seekOffset\">30000</property>\n" +
-                "  <property name=\"kdenlive:docproperties.version\">1.04</property>\n" +
-                "  <property name=\"kdenlive:docproperties.verticalzoom\">1</property>\n" +
-                "  <property name=\"kdenlive:docproperties.videoTarget\">-1</property>\n" +
-                "  <property name=\"kdenlive:docproperties.zonein\">0</property>\n" +
-                "  <property name=\"kdenlive:docproperties.zoneout\">75</property>\n" +
-                "  <property name=\"kdenlive:docproperties.zoom\">8</property>\n" +
-                "  <property name=\"kdenlive:expandedFolders\"/>\n" +
-                "  <property name=\"kdenlive:documentnotes\"/>\n" +
-                "  <property name=\"xml_retain\">1</property>\n" +
-                "  <entry producer=\"producer0\" in=\"00:00:00.000\" out=\"${durationTimecode}\"/>\n" +
-                "  <entry producer=\"producer1\" in=\"00:00:00.000\" out=\"${durationTimecode}\"/>\n" +
-                " </playlist>\n" +
-                " <producer id=\"black_track\" in=\"00:00:00.000\" out=\"00:10:59.333\">\n" +
-                "  <property name=\"eof\">continue</property>\n" +
-                "  <property name=\"resource\">black</property>\n" +
-                "  <property name=\"aspect_ratio\">1</property>\n" +
-                "  <property name=\"mlt_service\">color</property>\n" +
-                "  <property name=\"mlt_image_format\">rgba</property>\n" +
-                "  <property name=\"set.test_audio\">0</property>\n" +
-                " </producer>\n" +
-                " <producer id=\"producer2\" in=\"00:00:00.000\" out=\"${durationTimecode}\">\n" +
-                "  <property name=\"length\">${durationFrames}</property>\n" +
-                "  <property name=\"eof\">pause</property>\n" +
-                "  <property name=\"resource\">${DEMUCS_MODEL_NAME}/${fileNameAccompaniment}</property>\n" +
-                "  <property name=\"seekable\">1</property>\n" +
-                "  <property name=\"audio_index\">0</property>\n" +
-                "  <property name=\"video_index\">-1</property>\n" +
-                "  <property name=\"mute_on_pause\">0</property>\n" +
-                "  <property name=\"mlt_service\">avformat-novalidate</property>\n" +
-                "  <property name=\"kdenlive:clipname\">MUSIC</property>\n" +
-                "  <property name=\"kdenlive:clip_type\">1</property>\n" +
-                "  <property name=\"kdenlive:folderid\">-1</property>\n" +
-                "  <property name=\"kdenlive:id\">2</property>\n" +
-                "  <property name=\"kdenlive:audio_max0\">236</property>\n" +
-                "  <property name=\"xml\">was here</property>\n" +
-                "  <property name=\"set.test_audio\">0</property>\n" +
-                "  <property name=\"set.test_image\">1</property>\n" +
-                " </producer>\n" +
-                " <playlist id=\"playlist0\">\n" +
-                "  <property name=\"kdenlive:audio_track\">1</property>\n" +
-                "  <entry producer=\"producer2\" in=\"00:00:00.000\" out=\"${durationTimecode}\">\n" +
-                "   <property name=\"kdenlive:id\">2</property>\n" +
-                "  </entry>\n" +
-                " </playlist>\n" +
-                " <playlist id=\"playlist1\">\n" +
-                "  <property name=\"kdenlive:audio_track\">1</property>\n" +
-                " </playlist>\n" +
-                " <tractor id=\"tractor0\" in=\"00:00:00.000\" out=\"${durationTimecode}\">\n" +
-                "  <property name=\"kdenlive:audio_track\">1</property>\n" +
-                "  <property name=\"kdenlive:trackheight\">69</property>\n" +
-                "  <property name=\"kdenlive:timeline_active\">1</property>\n" +
-                "  <property name=\"kdenlive:collapsed\">28</property>\n" +
-                "  <property name=\"kdenlive:thumbs_format\"/>\n" +
-                "  <property name=\"kdenlive:audio_rec\"/>\n" +
-                "  <track hide=\"both\" producer=\"playlist0\"/>\n" +
-                "  <track hide=\"both\" producer=\"playlist1\"/>\n" +
-                "  <filter id=\"filter0\">\n" +
-                "   <property name=\"window\">75</property>\n" +
-                "   <property name=\"max_gain\">20dB</property>\n" +
-                "   <property name=\"mlt_service\">volume</property>\n" +
-                "   <property name=\"internal_added\">237</property>\n" +
-                "   <property name=\"disable\">1</property>\n" +
-                "  </filter>\n" +
-                "  <filter id=\"filter1\">\n" +
-                "   <property name=\"channel\">-1</property>\n" +
-                "   <property name=\"mlt_service\">panner</property>\n" +
-                "   <property name=\"internal_added\">237</property>\n" +
-                "   <property name=\"start\">0.5</property>\n" +
-                "   <property name=\"disable\">1</property>\n" +
-                "  </filter>\n" +
-                "  <filter id=\"filter2\">\n" +
-                "   <property name=\"iec_scale\">0</property>\n" +
-                "   <property name=\"mlt_service\">audiolevel</property>\n" +
-                "   <property name=\"dbpeak\">1</property>\n" +
-                "   <property name=\"disable\">1</property>\n" +
-                "  </filter>\n" +
-                " </tractor>\n" +
-                " <producer id=\"producer3\" in=\"00:00:00.000\" out=\"${durationTimecode}\">\n" +
-                "  <property name=\"length\">${durationFrames}</property>\n" +
-                "  <property name=\"eof\">pause</property>\n" +
-                "  <property name=\"resource\">${DEMUCS_MODEL_NAME}/${fileNameVocals}</property>\n" +
-                "  <property name=\"seekable\">1</property>\n" +
-                "  <property name=\"audio_index\">0</property>\n" +
-                "  <property name=\"video_index\">-1</property>\n" +
-                "  <property name=\"mute_on_pause\">0</property>\n" +
-                "  <property name=\"mlt_service\">avformat-novalidate</property>\n" +
-                "  <property name=\"kdenlive:clipname\">VOICE</property>\n" +
-                "  <property name=\"kdenlive:clip_type\">1</property>\n" +
-                "  <property name=\"kdenlive:folderid\">-1</property>\n" +
-                "  <property name=\"kdenlive:id\">3</property>\n" +
-                "  <property name=\"kdenlive:audio_max0\">197</property>\n" +
-                "  <property name=\"xml\">was here</property>\n" +
-                "  <property name=\"set.test_audio\">0</property>\n" +
-                "  <property name=\"set.test_image\">1</property>\n" +
-                " </producer>\n" +
-                " <playlist id=\"playlist2\">\n" +
-                "  <property name=\"kdenlive:audio_track\">1</property>\n" +
-                "  <entry producer=\"producer3\" in=\"00:00:00.000\" out=\"${durationTimecode}\">\n" +
-                "   <property name=\"kdenlive:id\">3</property>\n" +
-                "  </entry>\n" +
-                " </playlist>\n" +
-                " <playlist id=\"playlist3\">\n" +
-                "  <property name=\"kdenlive:audio_track\">1</property>\n" +
-                " </playlist>\n" +
-                " <tractor id=\"tractor1\" in=\"00:00:00.000\" out=\"${durationTimecode}\">\n" +
-                "  <property name=\"kdenlive:audio_track\">1</property>\n" +
-                "  <property name=\"kdenlive:trackheight\">246</property>\n" +
-                "  <property name=\"kdenlive:timeline_active\">1</property>\n" +
-                "  <property name=\"kdenlive:collapsed\">0</property>\n" +
-                "  <property name=\"kdenlive:thumbs_format\"/>\n" +
-                "  <property name=\"kdenlive:audio_rec\"/>\n" +
-                "  <track hide=\"video\" producer=\"playlist2\"/>\n" +
-                "  <track hide=\"video\" producer=\"playlist3\"/>\n" +
-                "  <filter id=\"filter3\">\n" +
-                "   <property name=\"window\">75</property>\n" +
-                "   <property name=\"max_gain\">20dB</property>\n" +
-                "   <property name=\"mlt_service\">volume</property>\n" +
-                "   <property name=\"internal_added\">237</property>\n" +
-                "   <property name=\"disable\">1</property>\n" +
-                "  </filter>\n" +
-                "  <filter id=\"filter4\">\n" +
-                "   <property name=\"channel\">-1</property>\n" +
-                "   <property name=\"mlt_service\">panner</property>\n" +
-                "   <property name=\"internal_added\">237</property>\n" +
-                "   <property name=\"start\">0.5</property>\n" +
-                "   <property name=\"disable\">1</property>\n" +
-                "  </filter>\n" +
-                "  <filter id=\"filter5\">\n" +
-                "   <property name=\"iec_scale\">0</property>\n" +
-                "   <property name=\"mlt_service\">audiolevel</property>\n" +
-                "   <property name=\"dbpeak\">1</property>\n" +
-                "   <property name=\"disable\">1</property>\n" +
-                "  </filter>\n" +
-                " </tractor>\n" +
-                " <tractor id=\"tractor2\" in=\"00:00:00.000\">\n" +
-                "  <track producer=\"black_track\"/>\n" +
-                "  <track producer=\"tractor0\"/>\n" +
-                "  <track producer=\"tractor1\"/>\n" +
-                "  <transition id=\"transition0\">\n" +
-                "   <property name=\"a_track\">0</property>\n" +
-                "   <property name=\"b_track\">1</property>\n" +
-                "   <property name=\"mlt_service\">mix</property>\n" +
-                "   <property name=\"kdenlive_id\">mix</property>\n" +
-                "   <property name=\"internal_added\">237</property>\n" +
-                "   <property name=\"always_active\">1</property>\n" +
-                "   <property name=\"accepts_blanks\">1</property>\n" +
-                "   <property name=\"sum\">1</property>\n" +
-                "  </transition>\n" +
-                "  <transition id=\"transition1\">\n" +
-                "   <property name=\"a_track\">0</property>\n" +
-                "   <property name=\"b_track\">2</property>\n" +
-                "   <property name=\"mlt_service\">mix</property>\n" +
-                "   <property name=\"kdenlive_id\">mix</property>\n" +
-                "   <property name=\"internal_added\">237</property>\n" +
-                "   <property name=\"always_active\">1</property>\n" +
-                "   <property name=\"accepts_blanks\">1</property>\n" +
-                "   <property name=\"sum\">1</property>\n" +
-                "  </transition>\n" +
-                "  <filter id=\"filter6\">\n" +
-                "   <property name=\"window\">75</property>\n" +
-                "   <property name=\"max_gain\">20dB</property>\n" +
-                "   <property name=\"mlt_service\">volume</property>\n" +
-                "   <property name=\"internal_added\">237</property>\n" +
-                "   <property name=\"disable\">1</property>\n" +
-                "  </filter>\n" +
-                "  <filter id=\"filter7\">\n" +
-                "   <property name=\"channel\">-1</property>\n" +
-                "   <property name=\"mlt_service\">panner</property>\n" +
-                "   <property name=\"internal_added\">237</property>\n" +
-                "   <property name=\"start\">0.5</property>\n" +
-                "   <property name=\"disable\">1</property>\n" +
-                "  </filter>\n" +
-                "  <filter id=\"filter8\">\n" +
-                "   <property name=\"mlt_service\">avfilter.subtitles</property>\n" +
-                "   <property name=\"internal_added\">237</property>\n" +
-                "   <property name=\"av.filename\">/var/tmp/1671265183813.srt</property>\n" +
-                "  </filter>\n" +
-                " </tractor>\n" +
-                "</mlt>\n"
-
-        val kdenliveFile = File(kdenliveFileName)
-        if (!kdenliveFile.exists()) {
-            kdenliveFile.writeText(kdenliveTemplate)
-        }
-
-        val durationSubsTimecode1 = convertMillisecondsToTimecode(durationInMilliseconds).replace(".",",")
-        val durationSubsTimecode2 = convertFramesToTimecode(convertMillisecondsToFrames(durationInMilliseconds) +1).replace(".",",")
-
-        val subs = "1\n" +
-                "00:00:00,000 --> 00:00:00,083\n" +
-                "~[G0]\n" +
-                "\n" +
-                "2\n" +
-                "${durationSubsTimecode1} --> ${durationSubsTimecode2}\n" +
-                "//\\\\\n"
-
-        val kdenliveSubsFile = File(kdenliveSubsFileName)
-        if (!kdenliveSubsFile.exists()) {
-            kdenliveSubsFile.writeText(subs)
-        }
-
-    }
-
-    fileDemucs2tracks.writeText(textFileDemucs2tracks)
-    Files.setPosixFilePermissions(fileDemucs2tracks.toPath(), permissions)
-
-    fileDemucs4tracks.writeText(textFileDemucs4tracks)
-    Files.setPosixFilePermissions(fileDemucs4tracks.toPath(), permissions)
-
-    fileDemucs5tracks.writeText(textFileDemucs5tracks)
-    Files.setPosixFilePermissions(fileDemucs5tracks.toPath(), permissions)
-
-    fileMainPairs.writeText(textFileMainPairs)
-    fileMelt.writeText(textFileMelt)
-
-}
-
 fun getNewTone(tone: String, capo: Int): String {
     val noteAndTone = tone.split(" ")
     val nameChord = noteAndTone[0]
@@ -2112,6 +1496,7 @@ fun createSongTextFile(settings: Settings, songVersion: SongVersion) {
     Files.createDirectories(Path(fileText.parent))
     val text = settings.getTextBody()
     fileText.writeText(text)
+    runCommand(listOf("chmod", "666", fileText.parent))
 
 }
 
@@ -2121,7 +1506,7 @@ fun createSongDescriptionFile(settings: Settings, songVersion: SongVersion) {
     Files.createDirectories(Path(fileText.parent))
     val text = settings.getDescriptionWithHeaderWOTimecodes(songVersion)
     fileText.writeText(text)
-
+    runCommand(listOf("chmod", "666", fileText.parent))
 }
 
 fun test() {
@@ -2139,7 +1524,6 @@ fun test() {
         """
         .trimIndent())
     props.storeToXML(File(fileNameXml).outputStream(), "Какой-то комментарий")
-
     props.loadFromXML(File(fileNameXml).inputStream())
 
     val videoSettings = props.getProperty("VOICES_SETTINGS").split("\n")
@@ -2282,6 +1666,7 @@ fun convertMarkersToSubtitles(pathToSourceFile: String, pathToResultFile: String
             countCreatedFiles++
             val fileNameNewSubs = "${pathToSourceFile}${if (countCreatedFiles == 1L) "" else "_${countCreatedFiles-1}"}.srt"
             File(fileNameNewSubs).writeText(textSubtitleFile)
+            runCommand(listOf("chmod", "666", fileNameNewSubs))
         }
 
     }
@@ -2352,6 +1737,7 @@ fun extractSubtitlesFromAutorecognizedFile(pathToFileFrom: String, pathToFileTo:
         }
     }
     File(pathToFileTo).writeText(subs)
+    runCommand(listOf("chmod", "666", pathToFileTo))
     return subs
 }
 

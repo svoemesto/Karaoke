@@ -56,9 +56,11 @@ fun createDzenPicture(pathToAuthor: String) {
 
     graphics2D.dispose()
 
-    var file = File("$pathToAuthor/DZEN_$textToOverlay.png")
+    val pathToFile = "$pathToAuthor/DZEN_$textToOverlay.png"
+    var file = File(pathToFile)
 
     ImageIO.write(resultImage, "png", file)
+    runCommand(listOf("chmod", "666", pathToFile))
 
 
 
@@ -97,10 +99,11 @@ fun createDzenPicture(pathToAuthor: String) {
 
     graphics2D.dispose()
 
-    file = File("$pathToAuthor/DZEN_$textToOverlay.png")
+    val pathToFile2 = "$pathToAuthor/DZEN_$textToOverlay.png"
+    file = File(pathToFile2)
 
     ImageIO.write(resultImage, "png", file)
-
+    runCommand(listOf("chmod", "666", pathToFile2))
 
 }
 
@@ -209,6 +212,7 @@ fun createVKLinkPictureWeb(settings: Settings, reCreateIfExist: Boolean = true):
 
     try {
         ImageIO.write(area.bi(), "png", file)
+        runCommand(listOf("chmod", "666", fName))
     } catch (e: Exception) {
         println(e.message)
     }
@@ -276,6 +280,7 @@ fun createVKLinkPicture(settings: Settings, fileName: String = "") {
 
     try {
         ImageIO.write(area.bi(), "png", file)
+        runCommand(listOf("chmod", "666", fName))
     } catch (e: Exception) {
         println(e.message)
     }
@@ -336,6 +341,7 @@ fun createVKPicture(settings: Settings, fileName: String = "") {
 
     try {
         ImageIO.write(area.bi(), "png", file)
+        runCommand(listOf("chmod", "666", fName))
     } catch (e: Exception) {
         println(e.message)
     }
@@ -414,6 +420,7 @@ fun createBoostyFilesPicture(settings: Settings, fileName: String = "") {
 
     try {
         ImageIO.write(area.bi(), "png", file)
+        runCommand(listOf("chmod", "666", fName))
     } catch (e: Exception) {
         println(e.message)
     }
@@ -474,6 +481,7 @@ fun createBoostyTeaserPicture(settings: Settings, fileName: String = "") {
 
     try {
         ImageIO.write(area.bi(), "png", file)
+        runCommand(listOf("chmod", "666", fName))
     } catch (e: Exception) {
         println(e.message)
     }
@@ -492,7 +500,9 @@ fun resizeBufferedImage(img: BufferedImage, newW: Int, newH: Int): BufferedImage
 fun createSongPicture(settings: Settings, songVersion: SongVersion) {
 
     val fileName = settings.getOutputFilename(SongOutputFile.PICTURE, songVersion)
-    Files.createDirectories(Path(File(fileName).parent))
+    val pathToFolder = File(fileName).parent
+    Files.createDirectories(Path(pathToFolder))
+    runCommand(listOf("chmod", "-R", "666", pathToFolder))
 
     val caption = songVersion.text
     val comment = songVersion.textForDescription
@@ -570,6 +580,7 @@ fun createSongPicture(settings: Settings, songVersion: SongVersion) {
 
     try {
         ImageIO.write(area.bi(), "png", file)
+        runCommand(listOf("chmod", "666", fileName))
     } catch (e: Exception) {
         println(e.message)
     }
@@ -750,6 +761,7 @@ fun createSongChordsPicture(settings: Settings, fileName: String, songVersion: S
         val resultImage = getSongChordsPicture(settings, mltNode)
         val file = File(fileName)
         ImageIO.write(resultImage, "png", file)
+        runCommand(listOf("chmod", "666", fileName))
     }
 }
 
@@ -892,6 +904,7 @@ fun createSponsrTeaserPicture(settings: Settings, fileName: String = "") {
 
     try {
         ImageIO.write(area.bi(), "png", file)
+        runCommand(listOf("chmod", "666", fName))
     } catch (e: Exception) {
         println(e.message)
     }

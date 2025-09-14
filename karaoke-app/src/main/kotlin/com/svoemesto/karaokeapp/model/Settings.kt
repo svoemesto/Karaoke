@@ -3433,7 +3433,10 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             }
 
             // Проверим наличие папки назначения и если её нет - создадим
-            if (!File(destinationFileFolder).exists()) Files.createDirectories(Path(destinationFileFolder))
+            if (!File(destinationFileFolder).exists()) {
+                Files.createDirectories(Path(destinationFileFolder))
+                runCommand(listOf("chmod", "-R", "666", destinationFileFolder))
+            }
 
             // Найдём имя и путь конечного файла, принимая во внимание шаблон переименования
 
@@ -3544,27 +3547,10 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             SettingField.values().forEach { settingField ->
                 if (fields.contains(settingField)) txt += "${settingField.name}=${fields[settingField]}\n"
             }
-            File("$rootFolder/$rightSettingFileName.settings".rightFileName()).writeText(txt)
+            val pathToFile = "$rootFolder/$rightSettingFileName.settings".rightFileName()
+            File(pathToFile).writeText(txt)
+            runCommand(listOf("chmod", "666", pathToFile))
         }
-    }
-
-    fun createVKDescription() {
-        val fileName = getOutputFilename(SongOutputFile.VK, SongVersion.LYRICS)
-        val date = date
-        val time = time.replace(":",".")
-
-
-        val trueDate = "${date.substring(6)}.${date.substring(3,5)}.${date.substring(0,2)}"
-        val name = fileName.replace("{REPLACE_DATE}",trueDate).replace("{REPLACE_TIME}",time).replace(" [lyrics]","")
-        val text = getVKGroupDescription()
-
-        if (text != "") {
-            File(name).writeText(text)
-            val vkPictNameOld = (getOutputFilename(SongOutputFile.PICTUREVK, SongVersion.LYRICS)).replace(" [lyrics] VK"," [VK]")
-            val vkPictNameNew = name.replace(" [VK].txt", " [VK].png")
-            FileUtils.copyFile(File(vkPictNameOld), File(vkPictNameNew))
-        }
-
     }
 
     fun createKdenliveFiles(overrideKdenliveFile: Boolean = true, overrideKdenliveSubsFile: Boolean = false) {

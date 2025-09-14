@@ -1,6 +1,7 @@
 package com.svoemesto.karaokeapp.textfilehistory
 
 import com.svoemesto.karaokeapp.COUNT_HISTORY_LINES
+import com.svoemesto.karaokeapp.runCommand
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
@@ -19,6 +20,7 @@ interface TextFileHistory {
         File(pathToFile()).writeText(history.joinToString("\n") {
             Base64.getEncoder().encodeToString(Json.encodeToString(HistoryMap.serializer(), HistoryMap(it)).toByteArray())
         })
+        runCommand(listOf("chmod", "666", pathToFile()))
     }
 
     fun add(element: Map<String, String>) {

@@ -68,7 +68,7 @@ class KaraokeProperties {
                         ).toByteArray()
                     )
             }.joinToString("\n"))
-
+            runCommand(listOf("chmod", "666", pathToFile()))
         }
 
         fun getString(key: String): String = get(key)?.let { it as String } ?: ""

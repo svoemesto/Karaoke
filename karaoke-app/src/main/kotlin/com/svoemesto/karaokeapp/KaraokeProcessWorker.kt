@@ -436,11 +436,12 @@ class KaraokeProcessWorker {
                             workThread!!.start()
                         }
                     } else {
-                        if (id == 0L) println("[${Timestamp.from(Instant.now())}] ProcessWorker: id процесса = 0, что-то не то.")
-                        val kp = KaraokeProcess.load(id, database)
-                        val diffs = KaraokeProcess.getDiff(kp)
-                        if (diffs.isNotEmpty()) {
-                            workThread?.karaokeProcess?.save()
+                        if (id != 0L) {
+                            val kp = KaraokeProcess.load(id, database)
+                            val diffs = KaraokeProcess.getDiff(kp)
+                            if (diffs.isNotEmpty()) {
+                                workThread?.karaokeProcess?.save()
+                            }
                         }
                         if (stopAfterThreadIsDone) {
                             stopAfterThreadIsDone = false

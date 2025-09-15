@@ -761,8 +761,9 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         val tmpFileName = "file"
         return listOf(
             listOf("mkdir", "-p", pathToResultedModel),
+            listOf("chmod", "777", pathToResultedModel),
             listOf("mkdir", "-p", PATH_TO_TEMP_DEMUCS_FOLDER),
-            listOf("chmod", "-R", "777", PATH_TO_TEMP_DEMUCS_FOLDER),
+            listOf("chmod", "777", PATH_TO_TEMP_DEMUCS_FOLDER),
             listOf("cp", fileAbsolutePath.rightFileName(), "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName.flac"),
             listOf(
                 "docker", "run", "--rm", "-i", "--name=demucs",
@@ -772,7 +773,9 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                 "''./demucs2 -file $PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName.flac -recode flac''"
             ),
             listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-accompaniment.flac", "${newNoStemNameFlac.rightFileName()}"),
+            listOf("chmod", "666", "${newNoStemNameFlac.rightFileName()}"),
             listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-vocals.flac", "${vocalsNameFlac.rightFileName()}"),
+            listOf("chmod", "666", "${vocalsNameFlac.rightFileName()}"),
             listOf("rm", "-rf", PATH_TO_TEMP_DEMUCS_FOLDER)
         )
 //        val settings = this
@@ -799,8 +802,9 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         val tmpFileName = "file"
         return listOf(
             listOf("mkdir", "-p", pathToResultedModel),
+            listOf("chmod", "777", pathToResultedModel),
             listOf("mkdir", "-p", PATH_TO_TEMP_DEMUCS_FOLDER),
-            listOf("chmod", "-R", "777", PATH_TO_TEMP_DEMUCS_FOLDER),
+            listOf("chmod", "777", PATH_TO_TEMP_DEMUCS_FOLDER),
             listOf("cp", fileAbsolutePath.rightFileName(), "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName.flac"),
             listOf(
                 "docker", "run", "--rm", "-i", "--name=demucs",
@@ -810,10 +814,15 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                 "''./demucs5 -file $PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName.flac -recode flac''"
             ),
             listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-accompaniment.flac", "${newNoStemNameFlac.rightFileName()}"),
+            listOf("chmod", "666", "${newNoStemNameFlac.rightFileName()}"),
             listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-vocals.flac", "${vocalsNameFlac.rightFileName()}"),
+            listOf("chmod", "666", "${vocalsNameFlac.rightFileName()}"),
             listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-drums.flac", "${drumsNameFlac.rightFileName()}"),
+            listOf("chmod", "666", "${drumsNameFlac.rightFileName()}"),
             listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-bass.flac", "${bassNameFlac.rightFileName()}"),
+            listOf("chmod", "666", "${bassNameFlac.rightFileName()}"),
             listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-other.flac", "${otherNameFlac.rightFileName()}"),
+            listOf("chmod", "666", "${otherNameFlac.rightFileName()}"),
             listOf("rm", "-rf", PATH_TO_TEMP_DEMUCS_FOLDER)
         )
 //        val settings = this
@@ -3435,7 +3444,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             // Проверим наличие папки назначения и если её нет - создадим
             if (!File(destinationFileFolder).exists()) {
                 Files.createDirectories(Path(destinationFileFolder))
-                runCommand(listOf("chmod", "-R", "666", destinationFileFolder))
+                runCommand(listOf("chmod", "777", destinationFileFolder))
             }
 
             // Найдём имя и путь конечного файла, принимая во внимание шаблон переименования

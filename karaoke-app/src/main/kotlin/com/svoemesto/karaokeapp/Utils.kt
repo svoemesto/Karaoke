@@ -684,7 +684,7 @@ fun create720pForAllUncreated(database: KaraokeConnection) {
         if (File(settings.pathToFileLyrics).exists() && !File(settings.pathToFile720Lyrics).exists()) {
             if (!File(settings.pathToFolder720Lyrics).exists()) {
                 Files.createDirectories(Path(settings.pathToFolder720Lyrics))
-                runCommand(listOf("chmod", "-R", "666", settings.pathToFolder720Lyrics))
+                runCommand(listOf("chmod", "777", settings.pathToFolder720Lyrics))
             }
             println("Создаём задание на кодирование в 720р для файла: ${settings.nameFileLyrics}")
             KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_LYR, true, 1)
@@ -692,7 +692,7 @@ fun create720pForAllUncreated(database: KaraokeConnection) {
         if (File(settings.pathToFileKaraoke).exists() && !File(settings.pathToFile720Karaoke).exists()) {
             if (!File(settings.pathToFolder720Karaoke).exists()) {
                 Files.createDirectories(Path(settings.pathToFolder720Karaoke))
-                runCommand(listOf("chmod", "-R", "666", settings.pathToFolder720Karaoke))
+                runCommand(listOf("chmod", "777", settings.pathToFolder720Karaoke))
             }
             println("Создаём задание на кодирование в 720р для файла: ${settings.nameFileKaraoke}")
             KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_KAR, true, 1)
@@ -709,7 +709,7 @@ fun copyIfNeed(pathFrom: String, pathTo: String, folderTo: String, log: String =
         if (!fileTo.exists() || (fileFrom.length() != fileTo.length())) {
             if (!File(folderTo).exists()) {
                 Files.createDirectories(Path(folderTo))
-                runCommand(listOf("chmod", "-R", "666", folderTo))
+                runCommand(listOf("chmod", "777", folderTo))
             }
             if (log != "") println(log)
             Files.copy(Path(pathFrom), Path(pathTo), StandardCopyOption.REPLACE_EXISTING)
@@ -855,13 +855,13 @@ fun createFilesByTags(listOfTags: List<String> = emptyList(), database: KaraokeC
         val pathToTagFolder = "$PATH_TO_STORE_FOLDER/TAGS/${tag}"
         if (!File(pathToTagFolder).exists()) {
             Files.createDirectories(Path(pathToTagFolder))
-            runCommand(listOf("chmod", "-R", "666", pathToTagFolder))
+            runCommand(listOf("chmod", "777", pathToTagFolder))
         }
 
         val pathToTagFolder720Karaoke = "$PATH_TO_STORE_FOLDER/720p_Karaoke/TAGS/${tag}"
         if (!File(pathToTagFolder720Karaoke).exists()) {
             Files.createDirectories(Path(pathToTagFolder720Karaoke))
-            runCommand(listOf("chmod", "-R", "666", pathToTagFolder720Karaoke))
+            runCommand(listOf("chmod", "777", pathToTagFolder720Karaoke))
         }
 
         val listOfSettings = Settings.loadListFromDb(mapOf(Pair("tags", tag)), database = database)

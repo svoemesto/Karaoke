@@ -781,19 +781,19 @@ class KaraokeProcess(
                         val songLyricsPngRelative = settings.getOutputFilename(SongOutputFile.PICTURE, SongVersion.LYRICS, relative = true).rightFileName()
                         if (!File(settings.pathToSymlinkFolderMP4).exists()) {
                             Files.createDirectories(Path(settings.pathToSymlinkFolderMP4))
-                            runCommand(listOf("chmod", "-R", "666", settings.pathToSymlinkFolderMP4))
+                            runCommand(listOf("chmod", "777", settings.pathToSymlinkFolderMP4))
                         }
                         if (!File(settings.pathToSymlinkFolderPNG).exists()) {
                             Files.createDirectories(Path(settings.pathToSymlinkFolderPNG))
-                            runCommand(listOf("chmod", "-R", "666", settings.pathToSymlinkFolderPNG))
+                            runCommand(listOf("chmod", "777", settings.pathToSymlinkFolderPNG))
                         }
                         if (!File(settings.pathToSymlinkFolderBoostyPNG).exists()) {
                             Files.createDirectories(Path(settings.pathToSymlinkFolderBoostyPNG))
-                            runCommand(listOf("chmod", "-R", "666", settings.pathToSymlinkFolderBoostyPNG))
+                            runCommand(listOf("chmod", "777", settings.pathToSymlinkFolderBoostyPNG))
                         }
                         if (!File(settings.pathToSymlinkFolderBoostyFiles).exists()) {
                             Files.createDirectories(Path(settings.pathToSymlinkFolderBoostyFiles))
-                            runCommand(listOf("chmod", "-R", "666", settings.pathToSymlinkFolderBoostyFiles))
+                            runCommand(listOf("chmod", "777", settings.pathToSymlinkFolderBoostyFiles))
                         }
                         val songKaraokeMp4Symlink = "${settings.pathToSymlinkFolderMP4}/${File(songKaraokeMp4Absolute).name}".rightFileName()
                         val songKaraokePngSymlink = "${settings.pathToSymlinkFolderPNG}/${File(songKaraokePngAbsolute).name}".rightFileName()
@@ -923,19 +923,19 @@ class KaraokeProcess(
                         val songLyricsPngRelative = settings.getOutputFilename(SongOutputFile.PICTURE, SongVersion.LYRICS, relative = true).rightFileName()
                         if (!File(settings.pathToSymlinkFolderMP4).exists()) {
                             Files.createDirectories(Path(settings.pathToSymlinkFolderMP4))
-                            runCommand(listOf("chmod", "-R", "666", settings.pathToSymlinkFolderMP4))
+                            runCommand(listOf("chmod", "777", settings.pathToSymlinkFolderMP4))
                         }
                         if (!File(settings.pathToSymlinkFolderPNG).exists()) {
                             Files.createDirectories(Path(settings.pathToSymlinkFolderPNG))
-                            runCommand(listOf("chmod", "-R", "666", settings.pathToSymlinkFolderPNG))
+                            runCommand(listOf("chmod", "777", settings.pathToSymlinkFolderPNG))
                         }
                         if (!File(settings.pathToSymlinkFolderBoostyPNG).exists()) {
                             Files.createDirectories(Path(settings.pathToSymlinkFolderBoostyPNG))
-                            runCommand(listOf("chmod", "-R", "666", settings.pathToSymlinkFolderBoostyPNG))
+                            runCommand(listOf("chmod", "777", settings.pathToSymlinkFolderBoostyPNG))
                         }
                         if (!File(settings.pathToSymlinkFolderBoostyFiles).exists()) {
                             Files.createDirectories(Path(settings.pathToSymlinkFolderBoostyFiles))
-                            runCommand(listOf("chmod", "-R", "666", settings.pathToSymlinkFolderBoostyFiles))
+                            runCommand(listOf("chmod", "777", settings.pathToSymlinkFolderBoostyFiles))
                         }
                         val songKaraokeMp4Symlink = "${settings.pathToSymlinkFolderMP4}/${File(songKaraokeMp4Absolute).name}".rightFileName()
                         val songKaraokePngSymlink = "${settings.pathToSymlinkFolderPNG}/${File(songKaraokePngAbsolute).name}".rightFileName()
@@ -1168,7 +1168,7 @@ class KaraokeProcess(
                         if (File(destinationFile).exists()) return -1
                         if (!File(destinationFolder).exists()) {
                             Files.createDirectories(Path(destinationFolder))
-                            runCommand(listOf("chmod", "-R", "666", destinationFolder))
+                            runCommand(listOf("chmod", "777", destinationFolder))
                         }
                         description = "720P KARAOKE"
                         args = listOf(
@@ -1199,7 +1199,7 @@ class KaraokeProcess(
                         if (File(destinationFile).exists()) return -1
                         if (!File(destinationFolder).exists()) {
                             Files.createDirectories(Path(destinationFolder))
-                            runCommand(listOf("chmod", "-R", "666", destinationFolder))
+                            runCommand(listOf("chmod", "777", destinationFolder))
                         }
 
                         description = "720P LYRICS"
@@ -1237,19 +1237,19 @@ class KaraokeProcess(
                         val songLyricsPngRelative = settings.getOutputFilename(SongOutputFile.PICTURE, SongVersion.LYRICS, relative = true).rightFileName()
                         if (!File(settings.pathToSymlinkFolderMP4).exists()) {
                             Files.createDirectories(Path(settings.pathToSymlinkFolderMP4))
-                            runCommand(listOf("chmod", "-R", "666", settings.pathToSymlinkFolderMP4))
+                            runCommand(listOf("chmod", "777", settings.pathToSymlinkFolderMP4))
                         }
                         if (!File(settings.pathToSymlinkFolderPNG).exists()) {
                             Files.createDirectories(Path(settings.pathToSymlinkFolderPNG))
-                            runCommand(listOf("chmod", "-R", "666", settings.pathToSymlinkFolderPNG))
+                            runCommand(listOf("chmod", "777", settings.pathToSymlinkFolderPNG))
                         }
                         if (!File(settings.pathToSymlinkFolderBoostyPNG).exists()) {
                             Files.createDirectories(Path(settings.pathToSymlinkFolderBoostyPNG))
-                            runCommand(listOf("chmod", "-R", "666", settings.pathToSymlinkFolderPNG))
+                            runCommand(listOf("chmod", "777", settings.pathToSymlinkFolderPNG))
                         }
                         if (!File(settings.pathToSymlinkFolderBoostyFiles).exists()) {
                             Files.createDirectories(Path(settings.pathToSymlinkFolderBoostyFiles))
-                            runCommand(listOf("chmod", "-R", "666", settings.pathToSymlinkFolderPNG))
+                            runCommand(listOf("chmod", "777", settings.pathToSymlinkFolderPNG))
                         }
                         val songKaraokeMp4Symlink = "${settings.pathToSymlinkFolderMP4}/${File(songKaraokeMp4Absolute).name}".rightFileName()
                         val songKaraokePngSymlink = "${settings.pathToSymlinkFolderPNG}/${File(songKaraokePngAbsolute).name}".rightFileName()

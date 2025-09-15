@@ -502,7 +502,7 @@ fun createSongPicture(settings: Settings, songVersion: SongVersion) {
     val fileName = settings.getOutputFilename(SongOutputFile.PICTURE, songVersion)
     val pathToFolder = File(fileName).parent
     Files.createDirectories(Path(pathToFolder))
-    runCommand(listOf("chmod", "-R", "666", pathToFolder))
+    runCommand(listOf("chmod", "777", pathToFolder))
 
     val caption = songVersion.text
     val comment = songVersion.textForDescription

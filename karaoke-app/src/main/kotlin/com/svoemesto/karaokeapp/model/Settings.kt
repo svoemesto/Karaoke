@@ -4594,6 +4594,15 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
                 }
                 result.sort()
+
+                if (args.containsKey("sort")) {
+                    when (args["sort"]) {
+                        "id" -> return result.sortedWith(compareBy { it.id })
+                        "author" -> return result.sortedWith(compareBy<Settings> { it.author }.thenBy { it.dateTimePublish }.thenBy { it.id }
+                        )
+                    }
+                }
+
                 return result
             } catch (e: SQLException) {
                 e.printStackTrace()
@@ -4791,9 +4800,6 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     }
 
     override fun compareTo(other: Settings): Int {
-//        val a = dateTimePublish?.time ?: id
-//        val b = other.dateTimePublish?.time ?: other.id
-//        return a.compareTo(b)
         return sortString.compareTo(other.sortString)
     }
 

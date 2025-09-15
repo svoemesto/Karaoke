@@ -467,11 +467,11 @@ fun createKaraoke(settings: Settings, songVersion: SongVersion) {
 
     val pathToProjectFolder = fileProject.parent
     Files.createDirectories(Path(pathToProjectFolder))
-    runCommand(listOf("chmod", "-R", "666", pathToProjectFolder))
+    runCommand(listOf("chmod", "777", pathToProjectFolder))
 
     val pathToDoneFilesFolder = File(settings.getOutputFilename(SongOutputFile.PICTURE, songVersion)).parent
     Files.createDirectories(Path(pathToDoneFilesFolder)) // Создаем папку done_files чтобы не было ошибки при создании картинок бусти и спонсора
-    runCommand(listOf("chmod", "-R", "666", pathToDoneFilesFolder))
+    runCommand(listOf("chmod", "777", pathToDoneFilesFolder))
 
     fileProject.writeText(templateProject)
     runCommand(listOf("chmod", "666", fileProjectPath))

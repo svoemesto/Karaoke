@@ -348,9 +348,13 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
 
     val pathToFileLyrics: String  get() = "${rootFolder}/done_files/$nameFileLyrics".rightFileName()
+    val pathToFileLyricsVk: String  get() = "${rootFolder}/done_files/$nameFileLyricsVk".rightFileName()
     val pathToFileKaraoke: String  get() = "${rootFolder}/done_files/$nameFileKaraoke".rightFileName()
+    val pathToFileKaraokeVk: String  get() = "${rootFolder}/done_files/$nameFileKaraokeVk".rightFileName()
     val pathToFileChords: String  get() = "${rootFolder}/done_files/$nameFileChords".rightFileName()
+    val pathToFileChordsVk: String  get() = "${rootFolder}/done_files/$nameFileChordsVk".rightFileName()
     val pathToFileMelody: String  get() = "${rootFolder}/done_files/$nameFileMelody".rightFileName()
+    val pathToFileMelodyVk: String  get() = "${rootFolder}/done_files/$nameFileMelodyVk".rightFileName()
 
     val pathToFile720Lyrics: String  get() = "$pathToFolder720Lyrics/${nameFileLyrics.replace(" [lyrics].mp4", " [lyrics] 720p.mp4")}".rightFileName()
     val pathToFileMP3Lyrics: String  get() = "$pathToFolderMP3Lyrics/${nameFileLyrics.replace(" [lyrics].mp4", " [lyrics].mp3")}".rightFileName()
@@ -379,9 +383,13 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     val nameFileLogoAlbum: String  get() = "${rightSettingFileName} [album].png".rightFileName()
     val nameFileLogoAuthor: String  get() = "${rightSettingFileName} [author].png".rightFileName()
     val nameFileLyrics: String  get() = "${rightSettingFileName} [lyrics].mp4".rightFileName()
+    val nameFileLyricsVk: String  get() = "${rightSettingFileName} [lyricsVk].mp4".rightFileName()
     val nameFileKaraoke: String  get() = "${rightSettingFileName} [karaoke].mp4".rightFileName()
+    val nameFileKaraokeVk: String  get() = "${rightSettingFileName} [karaokeVk].mp4".rightFileName()
     val nameFileChords: String  get() = "${rightSettingFileName} [chords].mp4".rightFileName()
+    val nameFileChordsVk: String  get() = "${rightSettingFileName} [chordsVk].mp4".rightFileName()
     val nameFileMelody: String  get() = "${rightSettingFileName} [tabs].mp4".rightFileName()
+    val nameFileMelodyVk: String  get() = "${rightSettingFileName} [tabsVk].mp4".rightFileName()
 
     val pathToFolderSheetsage: String  get() = "${rootFolder}/sheetsage".rightFileName()
     val nameFileSheetsagePDF: String  get() = "${rightSettingFileName} [sheetsage].pdf".rightFileName()
@@ -3495,6 +3503,8 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
                 args.add(listOf("cp", sourceFilePathAndName, destinationFilePathAndName))
                 argsDescription.add("Copy new file")
+                args.add(listOf("chmod", "666", destinationFilePathAndName))
+                argsDescription.add("chmod new file")
 
                 context["args"] = args
                 context["argsDescription"] = argsDescription

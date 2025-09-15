@@ -60,8 +60,8 @@ fun mainUtils() {
 
 fun customFunction(): String {
 
-    Settings.loadListFromDb(database = WORKING_DATABASE).map { it.id }.forEach { id ->
-//        updateRemoteSettingFromLocalDatabase(id)
+    Settings.loadListFromDb(args = mapOf("id_status" to "6") , database = WORKING_DATABASE).forEach { settings ->
+        settings.doSymlink(-2)
     }
 
     return ""

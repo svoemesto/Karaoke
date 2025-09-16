@@ -8,6 +8,8 @@ data class SettingVoiceLine(
 //    var parentVoice: SettingVoice?,
     var lineStartMs: Long, // Начало линии (в мс) - в этот момент линия встала в центр
     var lineEndMs: Long, // Конец линии (с мс) - в этот момент линия начала уходить с центра
+    var previousLineEndMs: Long? = null,
+    var nextLineStartMs: Long? = null,
 //    var elements: List<SettingVoiceLineElement>
 ) : Serializable {
 //    val elementsForMlt: List<SettingVoiceLineElement> get() = elements.filter { element->  element.type != SettingVoiceLineElementTypes.NEWLINE}
@@ -137,6 +139,9 @@ data class SettingVoiceLine(
     fun isScroll(): Boolean = lineEndMs <= lineStartMs // Если время начала совпадает со временем конца - скролим без остановки
 
     fun lineDurationMs(): Long = lineEndMs - lineStartMs
+    fun lineDurationWithNeighboursMs(): Long = lineEndWithNeighboursMs() - lineStartWithNeighboursMs()
+    fun lineStartWithNeighboursMs(): Long = ((if (previousLineEndMs != null) previousLineEndMs!! else lineStartMs))
+    fun lineEndWithNeighboursMs(): Long = (if (nextLineStartMs != null) nextLineStartMs!! else lineEndMs)
 
     fun w(songVersion: SongVersion): Int = getElements(songVersion).maxOfOrNull { it.w() } ?: 0
     fun h(songVersion: SongVersion): Int = getElements(songVersion).sumOf { it.h(songVersion) }
@@ -195,7 +200,7 @@ data class SettingVoiceLine(
     }
 
     fun isCrossing(otherLine: SettingVoiceLine): Boolean {
-        return (this.lineDurationMs() + otherLine.lineDurationMs()) > (Math.max(this.lineEndMs, otherLine.lineEndMs) - Math.min(this.lineStartMs, otherLine.lineStartMs))
+        return (this.lineDurationWithNeighboursMs() + otherLine.lineDurationWithNeighboursMs()) > (Math.max(this.lineEndWithNeighboursMs(), otherLine.lineEndWithNeighboursMs()) - Math.min(this.lineStartWithNeighboursMs(), otherLine.lineStartWithNeighboursMs()))
     }
 
     private var _indexLineStart: Int? = null

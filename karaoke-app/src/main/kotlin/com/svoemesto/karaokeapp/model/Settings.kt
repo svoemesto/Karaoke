@@ -3609,35 +3609,42 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         val songTxtAll = "$txtLyric$txtKaraoke${if (hasChords) txtChords else ""}"
         val songTxtWOLyrics = "$txtKaraoke${if (hasChords) txtChords else ""}"
 
-        var file = File(getOutputFilename(SongOutputFile.RUN, SongVersion.LYRICS))
-        Files.createDirectories(Path(file.parent))
-        file.writeText(txtLyric)
-        Files.setPosixFilePermissions(file.toPath(), permissions)
+        val fileNameRunLyrics = getOutputFilename(SongOutputFile.RUN, SongVersion.LYRICS)
+        val fileRunLyrics = File(fileNameRunLyrics)
+        Files.createDirectories(Path(fileRunLyrics.parent))
+        runCommand(listOf("chmod", "777", fileRunLyrics.parent))
 
-        file = File(getOutputFilename(SongOutputFile.RUN, SongVersion.KARAOKE))
-        file.writeText(txtKaraoke)
-        Files.setPosixFilePermissions(file.toPath(), permissions)
+        fileRunLyrics.writeText(txtLyric)
+        runCommand(listOf("chmod", "777", fileNameRunLyrics))
 
+        val fileNameRunKaraoke = getOutputFilename(SongOutputFile.RUN, SongVersion.KARAOKE)
+        val fileRunKaraoke = File(fileNameRunKaraoke)
+        fileRunKaraoke.writeText(txtKaraoke)
+        runCommand(listOf("chmod", "777", fileNameRunKaraoke))
 
         if (createChords && hasChords) {
-            file = File(getOutputFilename(SongOutputFile.RUN, SongVersion.CHORDS))
-            file.writeText(txtChords)
-            Files.setPosixFilePermissions(file.toPath(), permissions)
+            val fileNameRunChords = getOutputFilename(SongOutputFile.RUN, SongVersion.CHORDS)
+            val fileRunChords = File(fileNameRunChords)
+            fileRunChords.writeText(txtChords)
+            runCommand(listOf("chmod", "777", fileNameRunChords))
         }
 
         if (createMelody && hasMelody) {
-            file = File(getOutputFilename(SongOutputFile.RUN, SongVersion.TABS))
-            file.writeText(txtMelody)
-            Files.setPosixFilePermissions(file.toPath(), permissions)
+            val fileNameRunTabs = getOutputFilename(SongOutputFile.RUN, SongVersion.TABS)
+            val fileRunTabs = File(fileNameRunTabs)
+            fileRunTabs.writeText(txtMelody)
+            runCommand(listOf("chmod", "777", fileNameRunTabs))
         }
 
-        file = File(getOutputFilename(SongOutputFile.RUNALL, SongVersion.LYRICS).replace("[lyrics]","[ALL]"))
-        file.writeText(songTxtAll)
-        Files.setPosixFilePermissions(file.toPath(), permissions)
+        val fileNameRunAllLyrics = getOutputFilename(SongOutputFile.RUNALL, SongVersion.LYRICS).replace("[lyrics]","[ALL]")
+        val fileRunAllLyrics = File(fileNameRunAllLyrics)
+        fileRunAllLyrics.writeText(songTxtAll)
+        runCommand(listOf("chmod", "777", fileNameRunAllLyrics))
 
-        file = File(getOutputFilename(SongOutputFile.RUNALL, SongVersion.LYRICS).replace("[lyrics]","[ALLwoLYRICS]"))
-        file.writeText(songTxtWOLyrics)
-        Files.setPosixFilePermissions(file.toPath(), permissions)
+        val fileNameRunAllwoLyrics = getOutputFilename(SongOutputFile.RUNALL, SongVersion.LYRICS).replace("[lyrics]","[ALLwoLYRICS]")
+        val fileRunAllwoLyrics = File(fileNameRunAllwoLyrics)
+        fileRunAllwoLyrics.writeText(songTxtWOLyrics)
+        runCommand(listOf("chmod", "777", fileNameRunAllwoLyrics))
 
         if (createLyrics) {
             createKaraoke(this, SongVersion.LYRICS)

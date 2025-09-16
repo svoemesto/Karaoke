@@ -392,6 +392,16 @@ fun getVoices(settings: Settings, songVersion: SongVersion) : List<SettingVoice>
 
         tmpLines = mutableListOf()
 
+        // Проставляем previousLineEndMs и nextLineStartMs для линий
+        var previousVoiceLine: SettingVoiceLine? = null
+        var nextVoiceLine: SettingVoiceLine? = null
+        lines.forEachIndexed { indexLine, currentVoiceLine ->
+            if (indexLine < lines.size - 1) nextVoiceLine = lines[indexLine + 1]
+            currentVoiceLine.previousLineEndMs = previousVoiceLine?.lineEndMs
+            currentVoiceLine.nextLineStartMs = nextVoiceLine?.lineStartMs
+            previousVoiceLine = currentVoiceLine
+        }
+
         voice.addLines(songVersion, lines)
 
 //        voice.fillParents()

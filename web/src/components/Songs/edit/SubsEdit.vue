@@ -2006,6 +2006,7 @@ export default {
       this.$store.dispatch('setLastSettingType', {value: result.settingType});
       this.$store.dispatch('setLastSettingValue', {value: result.settingValue});
       this.addMarker('setting', result.settingType + '|' + result.settingValue);
+      this.isEditMode = true;
     },
     addMarker(markerType, settingValue = '', notDelete = false, withEndOfLine = false) {
 

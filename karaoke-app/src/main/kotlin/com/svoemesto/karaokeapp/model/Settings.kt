@@ -4192,7 +4192,22 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                 return null
             }
             val ps = connection.prepareStatement(sql)
-            ps.executeUpdate(sql, Statement.RETURN_GENERATED_KEYS)
+            try {
+                ps.executeUpdate(sql, Statement.RETURN_GENERATED_KEYS)
+            } catch (e: Exception) {
+                // Проверяем последнее значение сиквенса и айдишника таблицы
+                val statement = connection.createStatement()
+                val rsLastId = statement.executeQuery("select max(id) as last_value from tbl_settings;")
+                val rsLastSeq = statement.executeQuery("select last_value from tbl_settings_id_seq;")
+                rsLastId.next()
+                val lastId = rsLastId.getLong("last_value")
+                rsLastSeq.next()
+                val lastSeq = rsLastSeq.getLong("last_value")
+                if (lastSeq < lastId) {
+                    statement.execute("alter sequence tbl_settings_id_seq restart with ${lastId+1};")
+                    ps.executeUpdate(sql, Statement.RETURN_GENERATED_KEYS)
+                }
+            }
             val rs = ps.generatedKeys
 
             val result = if (rs.next() && settings.id <= 0) {

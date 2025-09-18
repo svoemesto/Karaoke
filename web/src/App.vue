@@ -87,6 +87,8 @@ li a {
   font-weight: bold !important;
 }
 
+
+
 .b-toaster {
   position: absolute;
   top: 50px;
@@ -94,7 +96,29 @@ li a {
 }
 .toast {
   opacity: 1;
+  animation-duration: 0.3s !important;
 }
+
+.toast.fade-enter-active,
+.toast.fade-leave-active {
+  transition: opacity 0.3s, transform 0.3s !important;
+}
+
+.toast.fade-enter {
+  opacity: 0;
+  transform: translateY(-20px);
+}
+
+.toast.fade-leave-to {
+  opacity: 0;
+  transform: translateX(100px);
+}
+
+/* Предотвращение моргания */
+.toast:not(.show) {
+  display: none !important;
+}
+
 .toast-header {
   color: #fff;
   background-color: rgb(50 50 255 / 85%)
@@ -104,6 +128,46 @@ li a {
   color: #000;
   background-color: rgb(200 200 255 / 85%);
 }
+
+/* Стилизация заголовка и кнопки закрытия */
+.custom-toast-header {
+  background-color: rgb(50 50 255 / 85%) !important;
+  color: white !important;
+}
+
+/* Стилизация кнопки закрытия */
+.custom-toast-header .close {
+  color: white !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+.custom-toast-header .close:hover {
+  color: #f8f9fa !important;
+  opacity: 0.8 !important;
+}
+
+.custom-header-with-icon .close {
+  background: none !important;
+  border: none !important;
+  font-size: 1.3rem !important;
+  font-weight: normal !important;
+  color: #17a2b8 !important;
+  opacity: 1 !important;
+  padding: 0 !important;
+  width: 24px !important;
+  height: 24px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.custom-header-with-icon .close:hover {
+  background-color: rgba(23, 162, 184, 0.1) !important;
+  border-radius: 50% !important;
+  color: #0f6674 !important;
+}
+
 
 </style>
 <script setup>

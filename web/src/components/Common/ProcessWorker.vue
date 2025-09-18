@@ -45,7 +45,11 @@ export default {
     disabled() {
       return this.isWork && this.stopAfterThreadIsDone;
     },
-    processName() { return this.process ? `${this.process.name} /${this.process.type}/ [${this.process.timeLeftStr}]` : ''},
+    processName() {
+      const maxSymbols = 75;
+      let name = this.process ? `${this.process.name} /${this.process.type}/ [${this.process.timeLeftStr}]` : '';
+      return this.truncateString(name, maxSymbols);
+    },
     processPercentage() { return this.process ? `${this.process.percentage}%` : ''},
     styleProgressBar() {
       return {
@@ -79,7 +83,24 @@ export default {
         this.$store.dispatch("setProcessWillStopAfterThreadIsDone", stopAfterThreadIsDone);
       })
     },
+    truncateString(name, maxSymbols) {
+      if (name.length <= maxSymbols) {
+        return name;
+      }
 
+      if (maxSymbols <= 3) {
+        return '...';
+      }
+
+      const charsToShow = maxSymbols - 3; // 3 символа для троеточия
+      const frontChars = Math.ceil(charsToShow / 2);
+      const backChars = Math.floor(charsToShow / 2);
+
+      const front = name.substring(0, frontChars);
+      const back = name.substring(name.length - backChars);
+
+      return front + '...' + back;
+    }
   },
   mounted() {
     this.checkUpdateProcessesWorker();

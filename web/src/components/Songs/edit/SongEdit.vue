@@ -518,7 +518,8 @@ export default {
       notesFormatted: '',
       chordsFormatted: '',
       autoSave: true,
-      autoSaveDelayMs: 1000
+      autoSaveDelayMs: 1000,
+      saveTimer: undefined
     };
   },
   async mounted() {
@@ -608,8 +609,8 @@ export default {
         console.log('watch diff propAutoSave', this.autoSave);
         if (this.diff.length !== 0 && this.autoSave) {
           console.log('watch diff propAutoSaveDelayMs', this.autoSaveDelayMs);
-          clearTimeout(this.save);
-          setTimeout(this.save, this.autoSaveDelayMs);
+          clearTimeout(this.saveTimer);
+          this.saveTimer = setTimeout(this.save, this.autoSaveDelayMs);
         }
       }
     },
@@ -1389,12 +1390,14 @@ export default {
       await navigator.clipboard.writeText(value)
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
-        autoHideDelay: 3000,
+        autoHideDelay: 10000,
+        bodyClass: 'text-center font-weight-bold p-3',
+        headerClass: 'custom-header-with-icon',
         // noAutoHide: true,
-        variant: 'info',
+        // variant: 'info',
         appendToast: false
       })
-      // console.log('LinkBoosty: ', value);
+      console.log('LinkBoosty: ', value);
     },
     async getLinkSponsrPlay() {
       let value = this.linkSponsrPlay;
@@ -2185,7 +2188,7 @@ export default {
 
     },
     save() {
-      clearTimeout(this.save);
+      clearTimeout(this.saveTimer);
       let params = {};
       for (let diff of this.diff) {
         params[diff.name] = diff.new;

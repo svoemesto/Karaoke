@@ -8,7 +8,8 @@ ENV APP_VERSION ${VERSION}
 
 WORKDIR /app
 COPY ./web/package*.json ./
-RUN npm install bootstrap jquery popper.js
+#RUN npm install bootstrap jquery popper.js
+RUN npm install bootstrap@^4.6.1 bootstrap-vue@^2.23.1
 COPY ./web/ .
 RUN npm run build
 

@@ -11,6 +11,7 @@ import ZakromaView from '../views/ZakromaView'
 import ProcessesView from '../views/ProcessesView'
 import ProcessesBvView from '../views/ProcessesBvView'
 import PropertiesBvView from '../views/PropertiesBvView'
+import AuthorsBvView from '../views/AuthorsBvView'
 
 Vue.use(VueRouter)
 
@@ -71,6 +72,11 @@ const routes = [
     path: '/propertiesbv',
     name: 'propertiesbv',
     component: PropertiesBvView
+  },
+  {
+    path: '/authorsbv',
+    name: 'authorsbv',
+    component: AuthorsBvView
   }
 ]
 

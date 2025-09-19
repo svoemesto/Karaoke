@@ -7,8 +7,10 @@ import smartCopy from '../components/SmartCopy/store'
 import fileExplorer from '../components/FileExplorer/store'
 import processesBv from '../components/ProcessesBv/store'
 import propertiesBv from '../components/PropertiesBv/store'
+import authorsBv from '../components/AuthorsBv/store'
 import processFilter from '../components/ProcessesFilter/store'
 import propertiesFilter from '../components/PropertiesFilter/store'
+import authorsFilter from '../components/AuthorsFilter/store'
 import publish from '../components/Publish/store'
 import publicationBv from '../components/PublicationsBv/store'
 import common from '../components/Common/store'
@@ -23,6 +25,7 @@ export default new Vuex.Store({
     songBv,
     processesBv,
     propertiesBv,
+    authorsBv,
     publicationBv,
     common,
     songFilter,
@@ -30,6 +33,7 @@ export default new Vuex.Store({
     fileExplorer,
     processFilter,
     propertiesFilter,
+    authorsFilter,
     // process
   }
 })

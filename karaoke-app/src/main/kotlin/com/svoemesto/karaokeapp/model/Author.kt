@@ -1,5 +1,6 @@
 package com.svoemesto.karaokeapp.model
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.WORKING_DATABASE
 import com.svoemesto.karaokeapp.rightFileName
@@ -10,6 +11,7 @@ import java.sql.Statement
 import java.sql.Timestamp
 import java.time.Instant
 
+@JsonIgnoreProperties(value = ["database", "sqlToInsert"])
 class Author(val database: KaraokeConnection = WORKING_DATABASE) : Serializable, Comparable<Author> {
 
     var id: Int = 0

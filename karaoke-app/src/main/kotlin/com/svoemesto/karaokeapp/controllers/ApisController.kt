@@ -383,6 +383,20 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         return emptyList()
     }
 
+    // Копирование полей
+    @PostMapping("/song/copyfieldsfromanother")
+    @ResponseBody
+    fun copyFieldsFromAnother(
+            @RequestParam id: Long,
+            @RequestParam idAnother: Long,
+            @RequestParam fields: String
+    ): String {
+        Settings.loadFromDbById(id, WORKING_DATABASE)?.let { settings ->
+            settings.copyFieldsFromAnother(idAnother, fields.split(";").map { SettingField.valueOf(it) })
+        }
+        return "OK"
+    }
+
     // Получение исходного текста для голоса
     @PostMapping("/song/voicesourcetext")
     @ResponseBody

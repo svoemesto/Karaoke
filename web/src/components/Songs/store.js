@@ -1527,6 +1527,11 @@ export default {
             let request = { method: 'POST', url: "/apis/song/createkaraoke", params: params };
             return promisedXMLHttpRequest(request);
         },
+        copyFieldsFromAnotherPromise(ctx, payload) {
+            let params = { id: ctx.state.currentSongId, idAnother: payload.idAnother, fields: payload.fields };
+            let request = { method: 'POST', url: "/apis/song/copyfieldsfromanother", params: params };
+            return promisedXMLHttpRequest(request);
+        },
         createFromFolderPromise(ctx, payload) {
             let params = { folder: payload.folder };
             let request = { method: 'POST', url: "/apis/utils/createfromfolder", params: params };

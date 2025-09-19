@@ -423,6 +423,7 @@
             <button class="group-button" @click="openMainLink" title="Открыть на сайте">Открыть на сайте sm-karaoke.ru</button>
             <button class="group-button" @click="updateRemote" title="Обновить на сервере">Обновить на сервере</button>
             <button class="group-button" @click="toSyncRemote" title="Добавить в SYNC-таблицу на сервере">Добавить в SYNC-таблицу на сервере</button>
+            <button class="group-button" @click="copyFieldsFromAnother" title="Скопировать поля из другой песни">Скопировать поля из другой песни</button>
             <button class="group-button" @click="createPictureBoostyTeaser" title="Создать картинку Boosty Teaser">Создать картинку Boosty Teaser</button>
             <button class="group-button" @click="createPictureBoostyFiles" title="Создать картинку Boosty Files">Создать картинку Boosty Files</button>
             <button class="group-button" @click="createPictureSponsrTeaser" title="Создать картинку Sponsr Teaser">Создать картинку Sponsr Files</button>
@@ -998,6 +999,33 @@ export default {
     },
     statusButtonClass(status) {
       return status === this.song.idStatus ? 'group-button-active' : ''
+    },
+    copyFieldsFromAnother() {
+      this.customConfirmParams = {
+        header: 'Подтвердите создание караоке',
+        body: `Скопировать поля из другой песни для песни <strong>«${this.song.songName}»</strong>?`,
+        callback: this.doСopyFieldsFromAnother,
+        fields: [
+          {
+            fldName: 'idAnother',
+            fldLabel: 'ID песни:',
+            fldValue: '',
+            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
+            fldValueStyle: { width: '100px', textAlign: 'center', borderRadius: '10px'}
+          },
+          {
+            fldName: 'fields',
+            fldLabel: 'Поля:',
+            fldValue: 'SOURCE_TEXT;RESULT_TEXT;SOURCE_MARKERS',
+            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
+            fldValueStyle: { width: '400px', textAlign: 'right', borderRadius: '10px'}
+          }
+        ]
+      }
+      this.isCustomConfirmVisible = true;
+    },
+    doСopyFieldsFromAnother(result) {
+      this.$store.dispatch('copyFieldsFromAnotherPromise', {idAnother: result.idAnother, fields: result.fields});
     },
     createPictureBoostyTeaser() {
       this.customConfirmParams = {

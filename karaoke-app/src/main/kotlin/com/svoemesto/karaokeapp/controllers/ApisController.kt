@@ -2877,6 +2877,31 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         )
     }
 
+    @PostMapping("/authorsdigests")
+    @ResponseBody
+    fun apisAuthorsDigest(
+            @RequestParam(required = false) filter_id: String?,
+            @RequestParam(required = false) filter_author: String?,
+            @RequestParam(required = false) filter_ym_id: String?,
+            @RequestParam(required = false) filter_last_album_ym: String?,
+            @RequestParam(required = false) filter_last_album_processed: String?,
+            @RequestParam(required = false) filter_watched: String?
+    ): Map<String, Any> {
+
+        val args: MutableMap<String, String> = mutableMapOf()
+        filter_id?.let { if (filter_id != "") args["id"] = filter_id }
+        filter_author?.let { if (filter_author != "") args["author"] = filter_author }
+        filter_ym_id?.let { if (filter_ym_id != "") args["ym_id"] = filter_ym_id }
+        filter_last_album_ym?.let { if (filter_last_album_ym != "") args["last_album_ym"] = filter_last_album_ym }
+        filter_last_album_processed?.let { if (filter_last_album_processed != "") args["last_album_processed"] = filter_last_album_processed }
+        filter_watched?.let { if (filter_watched != "") args["watched"] = filter_watched }
+        val authorsList = Author.loadList(args, WORKING_DATABASE)
+        return mapOf(
+                "workInContainer" to APP_WORK_IN_CONTAINER,
+                "authorsDigests" to authorsList
+        )
+    }
+
     data class FileDTO(
         val name: String,
         val path: String,

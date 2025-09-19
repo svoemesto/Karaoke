@@ -42,7 +42,7 @@
         </template>
         <template #cell(id)="data">
           <div
-              class="fld-id"
+              class="fld-song-id"
               v-text="data.value"
               :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
           ></div>
@@ -1087,7 +1087,7 @@ export default {
   align-items: center;
 }
 
-.fld-id {
+.fld-song-id {
   min-width: 50px;
   max-width: 50px;
   text-align: center;

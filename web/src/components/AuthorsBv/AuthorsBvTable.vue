@@ -42,7 +42,7 @@
 
         <template #cell(id)="data">
           <div
-              class="fld-id"
+              class="fld-author-id"
               v-text="data.value"
               :style="{ color: currentAuthorId === data.item.id ? 'blue' : 'black' }"
               @click.left="changeValue(data.item)"
@@ -303,7 +303,7 @@ export default {
   align-items: center;
 }
 
-.fld-id {
+.fld-author-id {
   min-width: 200px;
   max-width: 200px;
   text-align: center;
@@ -312,7 +312,7 @@ export default {
   overflow: hidden;
 }
 
-.fld-id:hover {
+.fld-author-id:hover {
   text-decoration: underline;
   cursor: pointer;
 }

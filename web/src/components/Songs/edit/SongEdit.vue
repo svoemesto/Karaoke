@@ -1415,42 +1415,18 @@ export default {
 
     async getLinkBoosty() {
       let value = this.linkBoosty;
-      await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // bodyClass: 'text-center font-weight-bold p-3',
-        // headerClass: 'custom-header-with-icon',
-        variant: 'info',
-        appendToast: false
-      })
-      console.log('LinkBoosty: ', value);
+      await navigator.clipboard.writeText(value);
+      this.showCopyToClipboardToast('linkBoosty', value);
     },
     async getLinkSponsrPlay() {
       let value = this.linkSponsrPlay;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('LinkBoosty: ', value);
+      this.showCopyToClipboardToast('linkSponsrPlay', value);
     },
     async openLinkSponsrNew() {
       let value = await this.$store.getters.getSponsrHeader;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
+      this.showCopyToClipboardToast('getSponsrHeader', value);
       window.open(this.linkSponsrNew, '_blank');
     },
     openLinkSponsr() {
@@ -1471,80 +1447,33 @@ export default {
     async openLinkBoostyNew() {
       let value = await this.$store.getters.getBoostyHeader;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
+      this.showCopyToClipboardToast('getBoostyHeader', value);
       window.open(this.linkBoostyNew, '_blank');
     },
     async getBoostyHeader() {
       let value = await this.$store.getters.getBoostyHeader;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('BoostyHeader: ', value);
+      this.showCopyToClipboardToast('getBoostyHeader', value);
     },
     async getBoostyBody() {
       let value = await this.$store.getters.getBoostyBody;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('getBoostyBody: ', value);
+      this.showCopyToClipboardToast('getBoostyBody', value);
     },
     async getSponsrHeader() {
       let value = await this.$store.getters.getSponsrHeader;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('BoostyHeader: ', value);
+      this.showCopyToClipboardToast('getSponsrHeader', value);
     },
     async getSponsrBody() {
       let value = await this.$store.getters.getSponsrBody;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('getBoostyBody: ', value);
+      this.showCopyToClipboardToast('getSponsrBody', value);
     },
     async getLinkBoostyFiles() {
       let value = this.linkBoostyFiles;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('LinkBoostyFiles: ', value);
+      this.showCopyToClipboardToast('linkBoostyFiles', value);
     },
     openLinkBoostyFiles() {
       window.open(this.linkBoostyFiles, '_blank');
@@ -1552,55 +1481,24 @@ export default {
     async openLinkBoostyFilesNew() {
       let value = await this.$store.getters.getBoostyFilesHeader;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
+      this.showCopyToClipboardToast('getBoostyFilesHeader', value);
       window.open(this.linkBoostyNew, '_blank');
     },
     async getBoostyFilesHeader() {
       let value = await this.$store.getters.getBoostyFilesHeader;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('BoostyFilesHeader: ', value);
+      this.showCopyToClipboardToast('getBoostyFilesHeader', value);
     },
 
     async getLinkVkGroup() {
       let value = this.linkVkGroup;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('LinkBoostyFiles: ', value);
+      this.showCopyToClipboardToast('linkVkGroup', value);
     },
     async getVkGroupBody() {
       let value = await this.$store.getters.getVkGroupBody;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('VkGroupBody: ', value);
+      this.showCopyToClipboardToast('getVkGroupBody', value);
     },
     openLinkVkGroup() {
       window.open(this.linkVkGroup, '_blank');
@@ -1609,15 +1507,7 @@ export default {
     async getLinkDzenKaraokePlay() {
       let value = this.linkDzenKaraokePlay;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('LinkDzenKaraokePlay: ', value);
+      this.showCopyToClipboardToast('linkDzenKaraokePlay', value);
     },
     openLinkDzenKaraokePlay() {
       window.open(this.linkDzenKaraokePlay, '_blank');
@@ -1628,15 +1518,7 @@ export default {
     async getLinkDzenLyricsPlay() {
       let value = this.linkDzenLyricsPlay;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('LinkDzenLyricsPlay: ', value);
+      this.showCopyToClipboardToast('linkDzenLyricsPlay', value);
     },
     openLinkDzenLyricsPlay() {
       window.open(this.linkDzenLyricsPlay, '_blank');
@@ -1647,15 +1529,7 @@ export default {
     async getLinkDzenChordsPlay() {
       let value = this.linkDzenChordsPlay;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('LinkDzenLyricsPlay: ', value);
+      this.showCopyToClipboardToast('linkDzenChordsPlay', value);
     },
     openLinkDzenChordsPlay() {
       window.open(this.linkDzenChordsPlay, '_blank');
@@ -1666,15 +1540,7 @@ export default {
     async getLinkDzenTabsPlay() {
       let value = this.linkDzenTabsPlay;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('LinkDzenLyricsPlay: ', value);
+      this.showCopyToClipboardToast('linkDzenTabsPlay', value);
     },
     openLinkDzenTabsPlay() {
       window.open(this.linkDzenTabsPlay, '_blank');
@@ -1686,121 +1552,49 @@ export default {
     async getDzenKaraokeHeader() {
       let value = await this.$store.getters.getDzenKaraokeHeader;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('DzenKaraokeHeader: ', value);
+      this.showCopyToClipboardToast('getDzenKaraokeHeader', value);
     },
     async getDzenKaraokeBody() {
       let value = await this.$store.getters.getDzenKaraokeBody;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('DzenKaraokeBody: ', value);
+      this.showCopyToClipboardToast('getDzenKaraokeBody', value);
     },
     async getDzenLyricsHeader() {
       let value = await this.$store.getters.getDzenLyricsHeader;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('DzenLyricsHeader: ', value);
+      this.showCopyToClipboardToast('getDzenLyricsHeader', value);
     },
     async getDzenLyricsBody() {
       let value = await this.$store.getters.getDzenLyricsBody;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('DzenLyricsBody: ', value);
+      this.showCopyToClipboardToast('getDzenLyricsBody', value);
     },
     async getDzenChordsHeader() {
       let value = await this.$store.getters.getDzenChordsHeader;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('DzenLyricsHeader: ', value);
+      this.showCopyToClipboardToast('getDzenChordsHeader', value);
     },
     async getDzenChordsBody() {
       let value = await this.$store.getters.getDzenChordsBody;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('DzenLyricsBody: ', value);
+      this.showCopyToClipboardToast('getDzenChordsBody', value);
     },
     async getDzenTabsHeader() {
       let value = await this.$store.getters.getDzenTabsHeader;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('DzenLyricsHeader: ', value);
+      this.showCopyToClipboardToast('getDzenTabsHeader', value);
     },
     async getDzenTabsBody() {
       let value = await this.$store.getters.getDzenTabsBody;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('DzenLyricsBody: ', value);
+      this.showCopyToClipboardToast('getDzenTabsBody', value);
     },
 
 
     async getLinkPlKaraokePlay() {
       let value = this.linkPlKaraokePlay;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('LinkPlKaraokePlay: ', value);
+      this.showCopyToClipboardToast('linkPlKaraokePlay', value);
     },
     openLinkPlKaraokePlay() {
       window.open(this.linkPlKaraokePlay, '_blank');
@@ -1811,15 +1605,7 @@ export default {
     async getLinkPlLyricsPlay() {
       let value = this.linkPlLyricsPlay;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('LinkPlLyricsPlay: ', value);
+      this.showCopyToClipboardToast('linkPlLyricsPlay', value);
     },
     openLinkPlLyricsPlay() {
       window.open(this.linkPlLyricsPlay, '_blank');
@@ -1830,15 +1616,7 @@ export default {
     async getLinkPlChordsPlay() {
       let value = this.linkPlChordsPlay;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('LinkPlLyricsPlay: ', value);
+      this.showCopyToClipboardToast('linkPlChordsPlay', value);
     },
     openLinkPlChordsPlay() {
       window.open(this.linkPlChordsPlay, '_blank');
@@ -1849,15 +1627,7 @@ export default {
     async getLinkPlTabsPlay() {
       let value = this.linkPlTabsPlay;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('LinkPlLyricsPlay: ', value);
+      this.showCopyToClipboardToast('linkPlTabsPlay', value);
     },
     openLinkPlTabsPlay() {
       window.open(this.linkPlTabsPlay, '_blank');
@@ -1869,120 +1639,48 @@ export default {
     async getPlKaraokeHeader() {
       let value = await this.$store.getters.getPlKaraokeHeader;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('PlKaraokeHeader: ', value);
+      this.showCopyToClipboardToast('getPlKaraokeHeader', value);
     },
     async getPlKaraokeBody() {
       let value = await this.$store.getters.getPlKaraokeBody;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('PlKaraokeBody: ', value);
+      this.showCopyToClipboardToast('getPlKaraokeBody', value);
     },
     async getPlLyricsHeader() {
       let value = await this.$store.getters.getPlLyricsHeader;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('PlLyricsHeader: ', value);
+      this.showCopyToClipboardToast('getPlLyricsHeader', value);
     },
     async getPlLyricsBody() {
       let value = await this.$store.getters.getPlLyricsBody;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('PlLyricsBody: ', value);
+      this.showCopyToClipboardToast('getPlLyricsBody', value);
     },
     async getPlChordsHeader() {
       let value = await this.$store.getters.getPlChordsHeader;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('PlLyricsHeader: ', value);
+      this.showCopyToClipboardToast('getPlChordsHeader', value);
     },
     async getPlChordsBody() {
       let value = await this.$store.getters.getPlChordsBody;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('PlLyricsBody: ', value);
+      this.showCopyToClipboardToast('getPlChordsBody', value);
     },
     async getPlTabsHeader() {
       let value = await this.$store.getters.getPlTabsHeader;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('PlLyricsHeader: ', value);
+      this.showCopyToClipboardToast('getPlTabsHeader', value);
     },
     async getPlTabsBody() {
       let value = await this.$store.getters.getPlTabsBody;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('PlLyricsBody: ', value);
+      this.showCopyToClipboardToast('getPlTabsBody', value);
     },
 
     async getLinkVkKaraoke() {
       let value = this.linkVkKaraoke;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('LinkVkKaraoke: ', value);
+      this.showCopyToClipboardToast('linkVkKaraoke', value);
     },
     openLinkVkKaraoke() {
       window.open(this.linkVkKaraoke, '_blank');
@@ -1990,15 +1688,7 @@ export default {
     async getLinkVkLyrics() {
       let value = this.linkVkLyrics;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('LinkVkLyrics: ', value);
+      this.showCopyToClipboardToast('linkVkLyrics', value);
     },
     openLinkVkLyrics() {
       window.open(this.linkVkLyrics, '_blank');
@@ -2006,15 +1696,7 @@ export default {
     async getLinkVkChords() {
       let value = this.linkVkChords;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('LinkVkLyrics: ', value);
+      this.showCopyToClipboardToast('linkVkChords', value);
     },
     openLinkVkChords() {
       window.open(this.linkVkChords, '_blank');
@@ -2022,15 +1704,7 @@ export default {
     async getLinkVkTabs() {
       let value = this.linkVkTabs;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('LinkVkLyrics: ', value);
+      this.showCopyToClipboardToast('linkVkTabs', value);
     },
     openLinkVkTabs() {
       window.open(this.linkVkTabs, '_blank');
@@ -2039,121 +1713,49 @@ export default {
     async getVkKaraokeHeader() {
       let value = await this.$store.getters.getVkKaraokeHeader;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('VkKaraokeHeader: ', value);
+      this.showCopyToClipboardToast('getVkKaraokeHeader', value);
     },
 
     async getVkKaraokeBody() {
       let value = await this.$store.getters.getVkKaraokeBody;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('VkKaraokeBody: ', value);
+      this.showCopyToClipboardToast('getVkKaraokeBody', value);
     },
     async getVkLyricsHeader() {
       let value = await this.$store.getters.getVkLyricsHeader;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('VkLyricsHeader: ', value);
+      this.showCopyToClipboardToast('getVkLyricsHeader', value);
     },
     async getVkLyricsBody() {
       let value = await this.$store.getters.getVkLyricsBody;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('getVkLyricsBody: ', value);
+      this.showCopyToClipboardToast('getVkLyricsBody', value);
     },
     async getVkChordsHeader() {
       let value = await this.$store.getters.getVkChordsHeader;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('VkLyricsHeader: ', value);
+      this.showCopyToClipboardToast('getVkChordsHeader', value);
     },
     async getVkChordsBody() {
       let value = await this.$store.getters.getVkChordsBody;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('getVkLyricsBody: ', value);
+      this.showCopyToClipboardToast('getVkChordsBody', value);
     },
     async getVkTabsHeader() {
       let value = await this.$store.getters.getVkTabsHeader;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('VkLyricsHeader: ', value);
+      this.showCopyToClipboardToast('getVkTabsHeader', value);
     },
     async getVkTabsBody() {
       let value = await this.$store.getters.getVkTabsBody;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('getVkLyricsBody: ', value);
+      this.showCopyToClipboardToast('getVkTabsBody', value);
     },
 
     async getLinkTelegramKaraoke() {
       let value = this.linkTelegramKaraoke;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('LinkTelegramKaraoke: ', value);
+      this.showCopyToClipboardToast('linkTelegramKaraoke', value);
     },
     openLinkTelegramKaraoke() {
       window.open(this.linkTelegramKaraoke, '_blank');
@@ -2161,15 +1763,7 @@ export default {
     async getLinkTelegramLyrics() {
       let value = this.linkTelegramLyrics;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('LinkTelegramLyrics: ', value);
+      this.showCopyToClipboardToast('linkTelegramLyrics', value);
     },
     openLinkTelegramLyrics() {
       window.open(this.linkTelegramLyrics, '_blank');
@@ -2177,15 +1771,7 @@ export default {
     async getLinkTelegramChords() {
       let value = this.linkTelegramChords;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('LinkTelegramLyrics: ', value);
+      this.showCopyToClipboardToast('linkTelegramChords', value);
     },
     openLinkTelegramChords() {
       window.open(this.linkTelegramChords, '_blank');
@@ -2193,15 +1779,7 @@ export default {
     async getLinkTelegramTabs() {
       let value = this.linkTelegramTabs;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('LinkTelegramLyrics: ', value);
+      this.showCopyToClipboardToast('linkTelegramTabs', value);
     },
     openLinkTelegramTabs() {
       window.open(this.linkTelegramTabs, '_blank');
@@ -2210,55 +1788,23 @@ export default {
     async getTelegramKaraokeHeader() {
       let value = await this.$store.getters.getTelegramKaraokeHeader;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('TelegramKaraokeHeader: ', value);
+      this.showCopyToClipboardToast('getTelegramKaraokeHeader', value);
     },
 
     async getTelegramLyricsHeader() {
       let value = await this.$store.getters.getTelegramLyricsHeader;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('TelegramLyricsHeader: ', value);
+      this.showCopyToClipboardToast('getTelegramLyricsHeader', value);
     },
     async getTelegramChordsHeader() {
       let value = await this.$store.getters.getTelegramChordsHeader;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('TelegramLyricsHeader: ', value);
+      this.showCopyToClipboardToast('getTelegramChordsHeader', value);
     },
     async getTelegramTabsHeader() {
       let value = await this.$store.getters.getTelegramTabsHeader;
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
-      // console.log('TelegramLyricsHeader: ', value);
+      this.showCopyToClipboardToast('getTelegramTabsHeader', value);
     },
 
     notChanged(name) {
@@ -2284,19 +1830,37 @@ export default {
     },
     async copyToClipboard(value) {
       await navigator.clipboard.writeText(value)
-      this.$bvToast.toast('Значение скопировано в буфер обмена', {
-        title: 'COPY',
-        autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        // noAutoHide: true,
-        variant: 'info',
-        appendToast: false
-      })
+      this.showCopyToClipboardToast('', value);
     },
     async pasteFromClipboard(name) {
       await navigator.clipboard.readText().then(data => {
         return this.$store.dispatch('setCurrentSongField', {name: name, value: data})
       });
+    },
+    showCopyToClipboardToast(fieldName, fieldValue) {
+      // Use a shorter name for this.$createElement
+      const h = this.$createElement
+      // Create the message
+      const vNodesMsg = h(
+          'div',
+          [
+            `Значение поля `,
+            h('strong', fieldName),
+            ` скопировано в буфер обмена:`,
+            h('br'),
+            h('div', { style: { fontFamily: 'monospace', fontSize: 'x-small' } }, fieldValue)
+          ],
+
+      )
+      this.$bvToast.toast([vNodesMsg], {
+        title: 'COPY',
+        autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
+        bodyClass: 'toast-body-info',
+        headerClass: 'toast-header-info',
+        appendToast: false,
+        // noAutoHide: true
+      })
     }
   }
 }

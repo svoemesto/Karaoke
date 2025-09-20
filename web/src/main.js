@@ -121,9 +121,11 @@ new Vue({
       this.$bvToast.toast(userEvent.body, {
         title: userEvent.head,
         autoHideDelay: 10000,
-        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
-        variant: userEvent.type,
+        // variant: userEvent.type,
+        toaster: 'b-toaster-top-left',
+        bodyClass: 'toast-body-info',
+        headerClass: 'toast-header-info',
         appendToast: false
       })
     },

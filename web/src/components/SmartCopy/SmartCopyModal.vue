@@ -1,13 +1,13 @@
 <template>
   <transition name="modal-fade">
-    <div class="modal-backdrop">
-      <div class="area">
+    <div class="scm-modal-backdrop">
+      <div class="scm-area">
 
-        <div class="area-modal-header">
+        <div class="scm-area-modal-header">
           Smart Copy
         </div>
 
-        <div class="area-modal-body">
+        <div class="scm-area-modal-body">
           <custom-confirm v-if="isCustomConfirmVisible" :params="customConfirmParams" @close="closeCustomConfirm" />
           <FileExplorerModal
               v-if="isFileExplorerVisible"
@@ -17,66 +17,66 @@
               directory
               @getpath="getPath"
           />
-          <div class="root-wrapper">
+          <div class="scm-root-wrapper">
 
-            <div class="smartcopy-row">
-              <div class="row-label">
+            <div class="scm-smartcopy-row">
+              <div class="scm-row-label">
                 <div v-text="'Версия:'"></div>
               </div>
-              <div class="row-input">
-                <button class="group-button" :class="smartCopySongVersionButtonClass('KARAOKE')" type="button" value="KARAOKE" @click="setSmartCopySongVersion('KARAOKE')">KARAOKE</button>
-                <button class="group-button" :class="smartCopySongVersionButtonClass('LYRICS')" type="button" value="LYRICS" @click="setSmartCopySongVersion('LYRICS')">LYRICS</button>
-                <button class="group-button" :class="smartCopySongVersionButtonClass('CHORDS')" type="button" value="CHORDS" @click="setSmartCopySongVersion('CHORDS')">CHORDS</button>
-                <button class="group-button" :class="smartCopySongVersionButtonClass('TABS')" type="button" value="TABS" @click="setSmartCopySongVersion('TABS')">TABS</button>
+              <div class="scm-row-input">
+                <button class="scm-group-button" :class="scm-smartCopySongVersionButtonClass('KARAOKE')" type="button" value="KARAOKE" @click="setSmartCopySongVersion('KARAOKE')">KARAOKE</button>
+                <button class="scm-group-button" :class="scm-smartCopySongVersionButtonClass('LYRICS')" type="button" value="LYRICS" @click="setSmartCopySongVersion('LYRICS')">LYRICS</button>
+                <button class="scm-group-button" :class="scm-smartCopySongVersionButtonClass('CHORDS')" type="button" value="CHORDS" @click="setSmartCopySongVersion('CHORDS')">CHORDS</button>
+                <button class="scm-group-button" :class="scm-smartCopySongVersionButtonClass('TABS')" type="button" value="TABS" @click="setSmartCopySongVersion('TABS')">TABS</button>
               </div>
             </div>
 
-            <div class="smartcopy-row">
-              <div class="row-label">
+            <div class="scm-smartcopy-row">
+              <div class="scm-row-label">
                 <div v-text="'Качество:'"></div>
               </div>
-              <div class="row-input">
-                <button class="group-button" :class="smartCopySongResolutionButtonClass('1080p')" type="button" value="1080p" @click="setSmartCopySongResolution('1080p')">1080p 60fps</button>
-                <button class="group-button" :class="smartCopySongResolutionButtonClass('720p')" type="button" value="720p" @click="setSmartCopySongResolution('720p')">720p 30fps</button>
+              <div class="scm-row-input">
+                <button class="scm-group-button" :class="scm-smartCopySongResolutionButtonClass('1080p')" type="button" value="1080p" @click="setSmartCopySongResolution('1080p')">1080p 60fps</button>
+                <button class="scm-group-button" :class="scm-smartCopySongResolutionButtonClass('720p')" type="button" value="720p" @click="setSmartCopySongResolution('720p')">720p 30fps</button>
               </div>
             </div>
 
-            <div class="smartcopy-row">
-              <div class="row-label">
+            <div class="scm-smartcopy-row">
+              <div class="scm-row-label">
                 <div v-text="'Папки:'"></div>
               </div>
-              <div class="row-input">
-                <button class="group-button" :class="smartCopyCreateSubfoldersAuthorsButtonClass(false)" type="button" value="false" @click="setSmartCopyCreateSubfoldersAuthors(false)">Не создавать</button>
-                <button class="group-button" :class="smartCopyCreateSubfoldersAuthorsButtonClass(true)" type="button" value="true" @click="setSmartCopyCreateSubfoldersAuthors(true)">Создавать для авторов</button>
+              <div class="scm-row-input">
+                <button class="scm-group-button" :class="scm-smartCopyCreateSubfoldersAuthorsButtonClass(false)" type="button" value="false" @click="setSmartCopyCreateSubfoldersAuthors(false)">Не создавать</button>
+                <button class="scm-group-button" :class="scm-smartCopyCreateSubfoldersAuthorsButtonClass(true)" type="button" value="true" @click="setSmartCopyCreateSubfoldersAuthors(true)">Создавать для авторов</button>
               </div>
             </div>
 
-            <div class="smartcopy-row">
-              <div class="row-label">
+            <div class="scm-smartcopy-row">
+              <div class="scm-row-label">
                 <div v-text="'Шаблон:'"></div>
               </div>
-              <div class="row-input">
-                <input class="input-field" v-model="smartCopyRenameTemplate">
+              <div class="scm-row-input">
+                <input class="scm-input-field" v-model="smartCopyRenameTemplate">
               </div>
-              <button :disabled="!smartCopyRenameTemplate" class="button-clear-field" @click.left="smartCopyRenameTemplate=''" v-text="'X'"></button>
+              <button :disabled="!smartCopyRenameTemplate" class="scm-button-clear-field" @click.left="smartCopyRenameTemplate=''" v-text="'X'"></button>
             </div>
 
-            <div class="smartcopy-row">
-              <div class="row-label">
+            <div class="scm-smartcopy-row">
+              <div class="scm-row-label">
                 <div v-text="'Путь:'"></div>
               </div>
-              <div class="row-input">
-                <input class="input-field" v-model="smartCopyPath" @dblclick="isFileExplorerVisible=true">
+              <div class="scm-row-input">
+                <input class="scm-input-field" v-model="smartCopyPath" @dblclick="isFileExplorerVisible=true">
               </div>
-              <button :disabled="!smartCopyPath" class="button-clear-field" @click.left="smartCopyPath=''" v-text="'X'"></button>
+              <button :disabled="!smartCopyPath" class="scm-button-clear-field" @click.left="smartCopyPath=''" v-text="'X'"></button>
             </div>
 
           </div>
         </div>
 
-        <div class="area-modal-footer">
-          <button type="button" class="btn-close" @click="smartCopy">Smart Copy</button>
-          <button type="button" class="btn-close" @click="cancel">Отмена</button>
+        <div class="scm-area-modal-footer">
+          <button type="button" class="scm-btn-close" @click="smartCopy">Smart Copy</button>
+          <button type="button" class="scm-btn-close" @click="cancel">Отмена</button>
         </div>
 
       </div>
@@ -214,7 +214,7 @@ export default {
 
 <style scoped>
 
-.modal-backdrop {
+.scm-modal-backdrop {
   position: fixed;
   top: 0;
   bottom: 0;
@@ -224,9 +224,10 @@ export default {
   display: flex;
   justify-content: center;
   align-items: center;
+  z-index: 1055;
 }
 
-.area {
+.scm-area {
   background: #FFFFFF;
   box-shadow: 2px 2px 20px 1px;
   overflow-x: auto;
@@ -239,7 +240,7 @@ export default {
   max-height: calc(100vh - 20px);
 }
 
-.area-modal-header {
+.scm-area-modal-header {
   background-color: darkslategray;
   padding: 10px;
   color: white;
@@ -247,7 +248,7 @@ export default {
   font-weight: 300;
 }
 
-.area-modal-body {
+.scm-area-modal-body {
   background-color: white;
   padding: 10px;
   color: black;
@@ -255,7 +256,7 @@ export default {
   font-weight: 300;
 }
 
-.area-modal-footer {
+.scm-area-modal-footer {
   background-color: darkslategray;
   padding: 10px;
   color: white;
@@ -265,7 +266,7 @@ export default {
   justify-content: center;
 }
 
-.btn-close {
+.scm-btn-close {
   border: 1px solid white;
   border-radius: 10px;
   cursor: pointer;
@@ -277,25 +278,25 @@ export default {
   font-size: small;
 }
 
-.root-wrapper {
+.scm-root-wrapper {
   display: flex;
   flex-direction: column;
 }
 
-.smartcopy-row {
+.scm-smartcopy-row {
   display: flex;
   flex-direction: row;
   align-items: center;
 }
 
-.row-label {
+.scm-row-label {
   min-width: 140px;
   max-width: 140px;
   text-align: right;
   padding: 0 3px;
   font-size: small;
 }
-.row-input {
+.scm-row-input {
   display: flex;
   flex-direction: column;
   padding-bottom: 3px;
@@ -307,20 +308,20 @@ export default {
   border-width: thin;
 }
 
-.input-field {
+.scm-input-field {
   border-radius: 5px;
   width: 385px;
 }
 
-.input-field:hover {
+.scm-input-field:hover {
   background-color: lightyellow;
 }
 
-.input-field:focus {
+.scm-input-field:focus {
   background-color: cyan;
 }
 
-.button-clear-field {
+.scm-button-clear-field {
   border: thin solid black;
   border-radius: 50%;
   font-size: x-small;
@@ -330,27 +331,27 @@ export default {
   margin-left: -10px;
 }
 
-.group-button {
+.scm-group-button {
   border: solid black thin;
   border-radius: 5px;
   background-color: white;
   width: auto;
 }
-.group-button-left-right {
+.scm-group-button-left-right {
   border: solid black thin;
   border-radius: 5px;
   background-color: white;
   width: 75px;
   font-size: xx-large;
 }
-.group-button-up-down {
+.scm-group-button-up-down {
   border: solid black thin;
   border-radius: 5px;
   background-color: white;
   width: 100px;
   font-size: xx-large;
 }
-.group-button-active {
+.scm-group-button-active {
   background-color: dodgerblue;
 }
 

@@ -1418,11 +1418,11 @@ export default {
       await navigator.clipboard.writeText(value)
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
-        autoHideDelay: 10000,
-        bodyClass: 'text-center font-weight-bold p-3',
-        headerClass: 'custom-header-with-icon',
-        // noAutoHide: true,
-        // variant: 'info',
+        autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
+        // bodyClass: 'text-center font-weight-bold p-3',
+        // headerClass: 'custom-header-with-icon',
+        variant: 'info',
         appendToast: false
       })
       console.log('LinkBoosty: ', value);
@@ -1433,6 +1433,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -1445,6 +1446,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -1472,6 +1474,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -1484,6 +1487,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -1496,6 +1500,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -1508,6 +1513,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -1520,6 +1526,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -1532,6 +1539,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -1547,6 +1555,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -1559,6 +1568,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -1572,6 +1582,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -1584,6 +1595,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -1600,6 +1612,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -1618,6 +1631,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -1636,6 +1650,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -1654,6 +1669,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -1673,6 +1689,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -1685,6 +1702,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -1697,6 +1715,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -1709,6 +1728,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -1721,6 +1741,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -1733,6 +1754,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -1745,6 +1767,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -1757,6 +1780,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -1771,6 +1795,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -1789,6 +1814,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -1807,6 +1833,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -1825,6 +1852,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -1844,6 +1872,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -1856,6 +1885,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -1868,6 +1898,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -1880,6 +1911,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -1892,6 +1924,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -1904,6 +1937,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -1916,6 +1950,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -1928,6 +1963,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -1941,6 +1977,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -1956,6 +1993,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -1971,6 +2009,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -1986,6 +2025,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -2002,6 +2042,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -2015,6 +2056,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -2027,6 +2069,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -2039,6 +2082,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -2051,6 +2095,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -2063,6 +2108,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -2075,6 +2121,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -2087,6 +2134,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -2100,6 +2148,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -2115,6 +2164,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -2130,6 +2180,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -2145,6 +2196,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -2161,6 +2213,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -2174,6 +2227,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -2186,6 +2240,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -2198,6 +2253,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false
@@ -2231,6 +2287,7 @@ export default {
       this.$bvToast.toast('Значение скопировано в буфер обмена', {
         title: 'COPY',
         autoHideDelay: 3000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: 'info',
         appendToast: false

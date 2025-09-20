@@ -275,7 +275,7 @@ build) do_build ;;
 build_start) do_load ;;
 build_app) do_build_app ;;
 build_app_nocache) do_build_app_nocache ;;
-build_web) build_web ;;
+build_web) do_build_web ;;
 build_webvue) do_build_webvue ;;
 build_start_app) build_start_app ;;
 build_start_web) build_start_web ;;

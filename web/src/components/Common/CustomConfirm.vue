@@ -1,31 +1,25 @@
 <template>
   <transition name="modal-fade">
-    <div class="modal-backdrop">
-      <div class="area">
-        <body>
-        <div class="area">
-          <div class="body">
-            <div v-html="params.header" :style="styleHeader"></div>
-            <div v-html="params.body" :style="styleBody"></div>
-            <div v-if="params.fields" class="params">
-              <div v-for="fld in params.fields" :key="fld">
-                <div v-if="fld.fldIsBoolean" class="param-line-buttons">
-                  <button class="group-button-boolean" :class="fld.fldValue === 'true' ? 'group-button-boolean-active' : ''"  type="button" value="true"  @click="fld.fldValue='true'">TRUE</button>
-                  <button class="group-button-boolean" :class="fld.fldValue === 'false' ? 'group-button-boolean-active' : ''" type="button" value="false" @click="fld.fldValue='false'">FALSE</button>
-                </div>
-                <div v-else class="param-line-fields">
-                  <div v-text="fld.fldLabel" :style="fld.fldLabelStyle"></div>
-                  <input v-model="fld.fldValue" :style="fld.fldValueStyle">
-                </div>
-              </div>
+    <div class="сс-modal-backdrop">
+      <div class="сс-area">
+        <div v-html="params.header" :style="styleHeader"></div>
+        <div v-html="params.body" :style="styleBody"></div>
+        <div v-if="params.fields" class="сс-params">
+          <div v-for="fld in params.fields" :key="fld">
+            <div v-if="fld.fldIsBoolean" class="сс-param-line-buttons">
+              <button class="сс-group-button-boolean" :class="fld.fldValue === 'true' ? 'сс-group-button-boolean-active' : ''"  type="button" value="true"  @click="fld.fldValue='true'">TRUE</button>
+              <button class="сс-group-button-boolean" :class="fld.fldValue === 'false' ? 'сс-group-button-boolean-active' : ''" type="button" value="false" @click="fld.fldValue='false'">FALSE</button>
             </div>
-            <div :style="styleFooter">
-              <button v-if="!params.isAlert" type="button" class="button-ok" @click="ok" v-text="'Да'"></button>
-              <button type="button" class="button-cancel" @click="close" v-text="buttonCloseCaption"></button>
+            <div v-else class="сс-param-line-fields">
+              <div v-text="fld.fldLabel" :style="fld.fldLabelStyle"></div>
+              <input v-model="fld.fldValue" :style="fld.fldValueStyle">
             </div>
           </div>
         </div>
-        </body>
+        <div :style="styleFooter">
+          <button v-if="!params.isAlert" type="button" class="сс-button-ok" @click="ok" v-text="'Да'"></button>
+          <button type="button" class="сс-button-cancel" @click="close" v-text="buttonCloseCaption"></button>
+        </div>
       </div>
     </div>
   </transition>
@@ -149,17 +143,17 @@ export default {
 
 <style scoped>
 
-.modal-fade-enter,
-.modal-fade-leave-active {
+.сс-modal-fade-enter,
+.сс-modal-fade-leave-active {
   opacity: 0;
 }
 
-.modal-fade-enter-active,
-.modal-fade-leave-active {
+.сс-modal-fade-enter-active,
+.сс-modal-fade-leave-active {
   transition: opacity .5s ease
 }
 
-.modal-backdrop {
+.сс-modal-backdrop {
   position: fixed;
   top: 0;
   bottom: 0;
@@ -169,9 +163,10 @@ export default {
   display: flex;
   justify-content: center;
   align-items: center;
+  z-index: 1055;
 }
 
-.area {
+.сс-area {
   background: #FFFFFF;
   box-shadow: 2px 2px 20px 1px;
   overflow-x: auto;
@@ -186,21 +181,21 @@ export default {
   font-weight: 300;
 }
 
-.params {
+.сс-params {
   display: flex;
   flex-direction: column;
 }
-.param-line-fields {
+.сс-param-line-fields {
   display: flex;
   flex-direction: row;
 }
-.param-line-buttons {
+.сс-param-line-buttons {
   display: flex;
   flex-direction: row;
   justify-content: center;
 }
 
-.button-ok {
+.сс-button-ok {
   border: 1px solid white;
   border-radius: 10px;
   font-size: 18px;
@@ -212,10 +207,10 @@ export default {
   height: auto;
   margin-right: 10px;
 }
-.button-ok:hover {
+.сс-button-ok:hover {
   background: darkgreen;
 }
-.button-cancel {
+.сс-button-cancel {
   border: 1px solid white;
   border-radius: 10px;
   font-size: 18px;
@@ -226,16 +221,16 @@ export default {
   width: 150px;
   height: auto;
 }
-.button-cancel:hover {
+.сс-button-cancel:hover {
   background: darkgreen;
 }
-.group-button-boolean {
+.сс-group-button-boolean {
   border: solid black thin;
   border-radius: 5px;
   background-color: white;
   width: auto;
 }
-.group-button-boolean-active {
+.сс-group-button-boolean-active {
   background-color: dodgerblue;
 }
 </style>

@@ -1,37 +1,36 @@
 <template>
   <transition name="modal-fade">
-    <div class="modal-backdrop">
-      <div class="area">
+    <div class="fem-modal-backdrop">
+      <div class="fem-area">
 
-        <div class="area-modal-header">
+        <div class="fem-area-modal-header">
           File Explorer
         </div>
 
-        <div class="area-modal-body">
+        <div class="fem-area-modal-body">
           <custom-confirm v-if="isCustomConfirmVisible" :params="customConfirmParams" @close="closeCustomConfirm" />
-          <div class="root-wrapper">
+          <div class="fem-root-wrapper">
 
-            <div class="fileexplorer-bv-table-body-wrapper">
-              <div class="fileexplorer-bv-table-body">
+            <div class="fem-fileexplorer-bv-table-body-wrapper">
+              <div class="fem-fileexplorer-bv-table-body">
                 <b-table
                     :items="fileExplorerFiles"
                     :busy="isBusy"
                     :fields="fileExplorerFilesFields"
                     small
-                    fixed
                     bordered
                     hover
                     @row-clicked="onRowClicked"
                 >
                   <template #table-busy>
-                    <div class="text-center text-danger my-2">
-                      <b-spinner class="align-middle"></b-spinner>
+                    <div class="fem-text-center text-danger my-2">
+                      <b-spinner class="fem-align-middle"></b-spinner>
                       <strong>Loading...</strong>
                     </div>
                   </template>
                   <template #cell(name)="data">
                     <div
-                        class="fld-fileexplorer-name"
+                        class="fem-fld-fileexplorer-name"
                         v-text="data.value"
                         :style="{ backgroundColor: data.item.directory ? 'lightyellow' : 'white', color: fileExplorerCurrentPath === data.item.path ? 'blue' : 'black' }"
                     ></div>
@@ -39,14 +38,14 @@
                 </b-table>
               </div>
             </div>
-            <div class="file-explorer-current-path">{{fileExplorerCurrentPath}}</div>
+            <div class="fem-file-explorer-current-path">{{fileExplorerCurrentPath}}</div>
 
           </div>
         </div>
 
-        <div class="area-modal-footer">
-          <button type="button" class="btn-close" @click="ok">OK</button>
-          <button type="button" class="btn-close" @click="cancel">Отмена</button>
+        <div class="fem-area-modal-footer">
+          <button type="button" class="fem-btn-close" @click="ok">OK</button>
+          <button type="button" class="fem-btn-close" @click="cancel">Отмена</button>
         </div>
 
       </div>
@@ -194,7 +193,7 @@ export default {
 
 <style scoped>
 
-.modal-backdrop {
+.fem-modal-backdrop {
   position: fixed;
   top: 0;
   bottom: 0;
@@ -204,9 +203,10 @@ export default {
   display: flex;
   justify-content: center;
   align-items: center;
+  z-index: 1055;
 }
 
-.area {
+.fem-area {
   background: #FFFFFF;
   box-shadow: 2px 2px 20px 1px;
   overflow-x: auto;
@@ -217,7 +217,7 @@ export default {
   max-height: calc(100vh - 20px);
 }
 
-.area-modal-header {
+.fem-area-modal-header {
   background-color: darkslategray;
   padding: 10px;
   color: white;
@@ -225,7 +225,7 @@ export default {
   font-weight: 300;
 }
 
-.area-modal-body {
+.fem-area-modal-body {
   background-color: white;
   padding: 10px;
   color: black;
@@ -233,7 +233,7 @@ export default {
   font-weight: 300;
 }
 
-.area-modal-footer {
+.fem-area-modal-footer {
   background-color: darkslategray;
   padding: 10px;
   color: white;
@@ -243,7 +243,7 @@ export default {
   justify-content: center;
 }
 
-.btn-close {
+.fem-btn-close {
   border: 1px solid white;
   border-radius: 10px;
   cursor: pointer;
@@ -255,25 +255,25 @@ export default {
   font-size: small;
 }
 
-.root-wrapper {
+.fem-root-wrapper {
   display: flex;
   flex-direction: column;
 }
 
-.smartcopy-row {
+.fem-smartcopy-row {
   display: flex;
   flex-direction: row;
   align-items: center;
 }
 
-.row-label {
+.fem-row-label {
   min-width: 140px;
   max-width: 140px;
   text-align: right;
   padding: 0 3px;
   font-size: small;
 }
-.row-input {
+.fem-row-input {
   display: flex;
   flex-direction: column;
   padding-bottom: 3px;
@@ -285,20 +285,20 @@ export default {
   border-width: thin;
 }
 
-.input-field {
+.fem-input-field {
   border-radius: 5px;
   width: 385px;
 }
 
-.input-field:hover {
+.fem-input-field:hover {
   background-color: lightyellow;
 }
 
-.input-field:focus {
+.fem-input-field:focus {
   background-color: cyan;
 }
 
-.button-clear-field {
+.fem-button-clear-field {
   border: thin solid black;
   border-radius: 50%;
   font-size: x-small;
@@ -308,42 +308,42 @@ export default {
   margin-left: -10px;
 }
 
-.group-button {
+.fem-group-button {
   border: solid black thin;
   border-radius: 5px;
   background-color: white;
   width: auto;
 }
-.group-button-left-right {
+.fem-group-button-left-right {
   border: solid black thin;
   border-radius: 5px;
   background-color: white;
   width: 75px;
   font-size: xx-large;
 }
-.group-button-up-down {
+.fem-group-button-up-down {
   border: solid black thin;
   border-radius: 5px;
   background-color: white;
   width: 100px;
   font-size: xx-large;
 }
-.group-button-active {
+.fem-group-button-active {
   background-color: dodgerblue;
 }
 
-.fileexplorer-bv-table-body-wrapper {
+.fem-fileexplorer-bv-table-body-wrapper {
   display: block;
   width: 600px;
   height: 600px;
   overflow-y: scroll;
 }
 
-.fileexplorer-bv-table-body {
+.fem-fileexplorer-bv-table-body {
   width: fit-content;
 }
 
-.fld-fileexplorer-name {
+.fem-fld-fileexplorer-name {
   min-width: 580px;
   max-width: 580px;
   text-align: left;
@@ -353,11 +353,11 @@ export default {
   white-space: nowrap;
   overflow: hidden;
 }
-.fld-fileexplorer-name:hover {
+.fem-fld-fileexplorer-name:hover {
   text-decoration: underline;
   cursor: pointer;
 }
-.file-explorer-current-path {
+.fem-file-explorer-current-path {
   width: 580px;
   text-align: left;
   font-size: small;

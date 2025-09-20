@@ -5,7 +5,7 @@ import router from './router'
 import 'bootstrap'
 // import 'bootstrap/dist/css/bootstrap.min.css'
 import 'bootstrap/dist/css/bootstrap.css'
-// import 'bootstrap-vue/dist/bootstrap-vue.css'
+import 'bootstrap-vue/dist/bootstrap-vue.css'
 import { EventSourcePolyfill } from 'event-source-polyfill';
 import { ToastPlugin } from 'bootstrap-vue'
 
@@ -121,6 +121,7 @@ new Vue({
       this.$bvToast.toast(userEvent.body, {
         title: userEvent.head,
         autoHideDelay: 10000,
+        toaster: 'b-toaster-top-left',
         // noAutoHide: true,
         variant: userEvent.type,
         appendToast: false

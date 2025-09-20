@@ -21,7 +21,6 @@
           :per-page="perPage"
           :current-page="currentPage"
           small
-          fixed
           bordered
           hover
           @row-clicked="onRowClicked"

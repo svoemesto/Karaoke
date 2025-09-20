@@ -1,263 +1,263 @@
 <template>
   <transition name="modal-fade">
-    <div class="subsedit-modal-backdrop">
-      <div class="subsedit-area">
-        <div class="subsedit-body">
+    <div class="se-subsedit-modal-backdrop">
+      <div class="se-subsedit-area">
+        <div class="se-subsedit-body">
 
           <custom-confirm v-if="isCustomConfirmVisible" :params="customConfirmParams" @close="closeCustomConfirm" />
 
-          <div class="grid-item-header">
-            <div class="subsedit-header-song-name">«{{song.songName}}»</div>
-            <div class="subsedit-header-song-description">«{{song.author}}», альбом: «{{song.album}}», год: {{song.year}}</div>
-            <div class="voice">
-              <label for="select-voice" class="label-for-check">Голос:</label>
+          <div class="se-grid-item-header">
+            <div class="se-subsedit-header-song-name">«{{song.songName}}»</div>
+            <div class="se-subsedit-header-song-description">«{{song.author}}», альбом: «{{song.album}}», год: {{song.year}}</div>
+            <div class="se-voice">
+              <label for="select-voice" class="se-label-for-check">Голос:</label>
               <select id="select-voice" v-model="currentVoice" style="width: 100px;">
                 <option v-for="value in lstVoices" :key="value.value" :value="value.value" :label="value.text"/>
               </select>
             </div>
-            <div class="tabs">
-              <label for="select-tabs" class="label-for-check">Вариант табов:</label>
+            <div class="se-tabs">
+              <label for="select-tabs" class="se-label-for-check">Вариант табов:</label>
               <select id="select-tabs" v-model="indexTabsVariant" style="width: 100px;">
                 <option v-for="value in lstIndexesTabsVariant" :key="value.value" :value="value.value" :label="value.text"/>
               </select>
             </div>
-            <div class="sound">
-              <label class="label-for-sound">Звук:</label>
-              <button class="group-button" :class="soundButtonClass('voice')" type="button" value="voice" @click="setSound('voice')">Голос</button>
-              <button class="group-button" :class="soundButtonClass('song')" type="button" value="song" @click="setSound('song')">Песня</button>
-              <button class="group-button" :class="soundButtonClass('minus')" type="button" value="minus" @click="setSound('minus')">Минус</button>
-              <button class="group-button" :class="soundButtonClass('drums')" type="button" value="minus" @click="setSound('drums')">Ударные</button>
-              <button class="group-button" :class="soundButtonClass('bass')" type="button" value="minus" @click="setSound('bass')">Бас</button>
+            <div class="se-sound">
+              <label class="se-label-for-sound">Звук:</label>
+              <button class="se-group-button" :class="se-soundButtonClass('voice')" type="button" value="voice" @click="setSound('voice')">Голос</button>
+              <button class="se-group-button" :class="se-soundButtonClass('song')" type="button" value="song" @click="setSound('song')">Песня</button>
+              <button class="se-group-button" :class="se-soundButtonClass('minus')" type="button" value="minus" @click="setSound('minus')">Минус</button>
+              <button class="se-group-button" :class="se-soundButtonClass('drums')" type="button" value="minus" @click="setSound('drums')">Ударные</button>
+              <button class="se-group-button" :class="se-soundButtonClass('bass')" type="button" value="minus" @click="setSound('bass')">Бас</button>
             </div>
-            <div class="beat">
-              <label class="label-for-sound">Такты:</label>
-              <button class="group-button" :class="beatButtonClass(1)" type="button" value="1" @click="setBeat(1)">1/1</button>
-              <button class="group-button" :class="beatButtonClass(2)" type="button" value="2" @click="setBeat(2)">1/2</button>
-              <button class="group-button" :class="beatButtonClass(4)" type="button" value="3" @click="setBeat(4)">1/4</button>
-              <button class="group-button" :class="beatButtonClass(8)" type="button" value="8" @click="setBeat(8)">1/8</button>
-              <button class="group-button" :class="beatButtonClass(16)" type="button" value="16" @click="setBeat(16)">1/16</button>
-              <button class="group-button" :class="beatButtonClass(32)" type="button" value="32" @click="setBeat(32)">1/32</button>
+            <div class="se-beat">
+              <label class="se-label-for-sound">Такты:</label>
+              <button class="se-group-button" :class="se-beatButtonClass(1)" type="button" value="1" @click="setBeat(1)">1/1</button>
+              <button class="se-group-button" :class="se-beatButtonClass(2)" type="button" value="2" @click="setBeat(2)">1/2</button>
+              <button class="se-group-button" :class="se-beatButtonClass(4)" type="button" value="3" @click="setBeat(4)">1/4</button>
+              <button class="se-group-button" :class="se-beatButtonClass(8)" type="button" value="8" @click="setBeat(8)">1/8</button>
+              <button class="se-group-button" :class="se-beatButtonClass(16)" type="button" value="16" @click="setBeat(16)">1/16</button>
+              <button class="se-group-button" :class="se-beatButtonClass(32)" type="button" value="32" @click="setBeat(32)">1/32</button>
             </div>
-            <div class="markers">
-              <button class="group-button" :value="isShowMarkerTypeSyllables" :class="merkerButtonClass(isShowMarkerTypeSyllables)" type="button" @click="onOffShowMarkerType('syllables')">syll</button>
-              <button class="group-button" :value="isShowMarkerTypeSetting" :class="merkerButtonClass(isShowMarkerTypeSetting)" type="button" @click="onOffShowMarkerType('setting')">sett</button>
-              <button class="group-button" :value="isShowMarkerTypeEndofline" :class="merkerButtonClass(isShowMarkerTypeEndofline)" type="button" @click="onOffShowMarkerType('endofline')">eol</button>
-              <button class="group-button" :value="isShowMarkerTypeEndofsyllable" :class="merkerButtonClass(isShowMarkerTypeEndofsyllable)" type="button" @click="onOffShowMarkerType('endofsyllable')">eos</button>
-              <button class="group-button" :value="isShowMarkerTypeNewline" :class="merkerButtonClass(isShowMarkerTypeNewline)" type="button" @click="onOffShowMarkerType('newline')">nl</button>
-              <button class="group-button" :value="isShowMarkerTypeUnmute" :class="merkerButtonClass(isShowMarkerTypeUnmute)" type="button" @click="onOffShowMarkerType('unmute')">unmute</button>
-              <button class="group-button" :value="isShowMarkerTypeNote" :class="merkerButtonClass(isShowMarkerTypeNote)" type="button" @click="onOffShowMarkerType('note')">note</button>
-              <button class="group-button" :value="isShowMarkerTypeChord" :class="merkerButtonClass(isShowMarkerTypeChord)" type="button" @click="onOffShowMarkerType('chord')">chord</button>
-              <button class="group-button" :value="isShowMarkerTypeBeat" :class="merkerButtonClass(isShowMarkerTypeBeat)" type="button" @click="onOffShowMarkerType('beat')">beat</button>
-              <button class="group-button" :value="isShowMarkerTypeEOLCH" :class="merkerButtonClass(isShowMarkerTypeEOLCH)" type="button" @click="onOffShowMarkerType('eolch')">eolch</button>
-              <button class="group-button" :value="isShowMarkerTypeEOCH" :class="merkerButtonClass(isShowMarkerTypeEOCH)" type="button" @click="onOffShowMarkerType('eoch')">eoch</button>
-              <button class="group-button" :value="isShowMarkerTypeNLCH" :class="merkerButtonClass(isShowMarkerTypeNLCH)" type="button" @click="onOffShowMarkerType('nlch')">nlch</button>
-              <button class="group-button" :value="isShowMarkerTypeEOLN" :class="merkerButtonClass(isShowMarkerTypeEOLN)" type="button" @click="onOffShowMarkerType('eoln')">eoln</button>
-              <button class="group-button" :value="isShowMarkerTypeEON" :class="merkerButtonClass(isShowMarkerTypeEON)" type="button" @click="onOffShowMarkerType('eon')">eon</button>
-              <button class="group-button" :value="isShowMarkerTypeNLN" :class="merkerButtonClass(isShowMarkerTypeNLN)" type="button" @click="onOffShowMarkerType('nln')">nln</button>
+            <div class="se-markers">
+              <button class="se-group-button" :value="isShowMarkerTypeSyllables" :class="se-merkerButtonClass(isShowMarkerTypeSyllables)" type="button" @click="onOffShowMarkerType('syllables')">syll</button>
+              <button class="se-group-button" :value="isShowMarkerTypeSetting" :class="se-merkerButtonClass(isShowMarkerTypeSetting)" type="button" @click="onOffShowMarkerType('setting')">sett</button>
+              <button class="se-group-button" :value="isShowMarkerTypeEndofline" :class="se-merkerButtonClass(isShowMarkerTypeEndofline)" type="button" @click="onOffShowMarkerType('endofline')">eol</button>
+              <button class="se-group-button" :value="isShowMarkerTypeEndofsyllable" :class="se-merkerButtonClass(isShowMarkerTypeEndofsyllable)" type="button" @click="onOffShowMarkerType('endofsyllable')">eos</button>
+              <button class="se-group-button" :value="isShowMarkerTypeNewline" :class="se-merkerButtonClass(isShowMarkerTypeNewline)" type="button" @click="onOffShowMarkerType('newline')">nl</button>
+              <button class="se-group-button" :value="isShowMarkerTypeUnmute" :class="se-merkerButtonClass(isShowMarkerTypeUnmute)" type="button" @click="onOffShowMarkerType('unmute')">unmute</button>
+              <button class="se-group-button" :value="isShowMarkerTypeNote" :class="se-merkerButtonClass(isShowMarkerTypeNote)" type="button" @click="onOffShowMarkerType('note')">note</button>
+              <button class="se-group-button" :value="isShowMarkerTypeChord" :class="se-merkerButtonClass(isShowMarkerTypeChord)" type="button" @click="onOffShowMarkerType('chord')">chord</button>
+              <button class="se-group-button" :value="isShowMarkerTypeBeat" :class="se-merkerButtonClass(isShowMarkerTypeBeat)" type="button" @click="onOffShowMarkerType('beat')">beat</button>
+              <button class="se-group-button" :value="isShowMarkerTypeEOLCH" :class="se-merkerButtonClass(isShowMarkerTypeEOLCH)" type="button" @click="onOffShowMarkerType('eolch')">eolch</button>
+              <button class="se-group-button" :value="isShowMarkerTypeEOCH" :class="se-merkerButtonClass(isShowMarkerTypeEOCH)" type="button" @click="onOffShowMarkerType('eoch')">eoch</button>
+              <button class="se-group-button" :value="isShowMarkerTypeNLCH" :class="se-merkerButtonClass(isShowMarkerTypeNLCH)" type="button" @click="onOffShowMarkerType('nlch')">nlch</button>
+              <button class="se-group-button" :value="isShowMarkerTypeEOLN" :class="se-merkerButtonClass(isShowMarkerTypeEOLN)" type="button" @click="onOffShowMarkerType('eoln')">eoln</button>
+              <button class="se-group-button" :value="isShowMarkerTypeEON" :class="se-merkerButtonClass(isShowMarkerTypeEON)" type="button" @click="onOffShowMarkerType('eon')">eon</button>
+              <button class="se-group-button" :value="isShowMarkerTypeNLN" :class="se-merkerButtonClass(isShowMarkerTypeNLN)" type="button" @click="onOffShowMarkerType('nln')">nln</button>
             </div>
           </div>
-          <div class="grid-item-waveform">
-            <div class="item-left-waveform">
-              <div class="item-left-label-and-input">
-                <div class="item-left-label">Type:</div>
-                <input class="item-left-input-field" v-model="currentMarker.markertype" @focus="setEditMode(false)" @blur="setEditMode(true)">
+          <div class="se-grid-item-waveform">
+            <div class="se-item-left-waveform">
+              <div class="se-item-left-label-and-input">
+                <div class="se-item-left-label">Type:</div>
+                <input class="se-item-left-input-field" v-model="currentMarker.markertype" @focus="setEditMode(false)" @blur="setEditMode(true)">
               </div>
-              <div class="item-left-label-and-input">
-                <div class="item-left-label">Time:</div>
-                <input class="item-left-input-field" v-model="currentMarker.time" @focus="setEditMode(false)" @blur="setEditMode(true)">
+              <div class="se-item-left-label-and-input">
+                <div class="se-item-left-label">Time:</div>
+                <input class="se-item-left-input-field" v-model="currentMarker.time" @focus="setEditMode(false)" @blur="setEditMode(true)">
               </div>
-              <div class="item-left-label-and-input">
-                <div class="item-left-label">Label:</div>
-                <input class="item-left-input-field" v-model="currentMarker.label" @focus="setEditMode(false)" @blur="setEditMode(true)">
+              <div class="se-item-left-label-and-input">
+                <div class="se-item-left-label">Label:</div>
+                <input class="se-item-left-input-field" v-model="currentMarker.label" @focus="setEditMode(false)" @blur="setEditMode(true)">
               </div>
-              <div class="item-left-label-and-input">
-                <div class="item-left-label">Note:</div>
-                <input class="item-left-input-field" v-model="currentMarker.note" @focus="setEditMode(false)" @blur="setEditMode(true)">
+              <div class="se-item-left-label-and-input">
+                <div class="se-item-left-label">Note:</div>
+                <input class="se-item-left-input-field" v-model="currentMarker.note" @focus="setEditMode(false)" @blur="setEditMode(true)">
               </div>
-              <div class="item-left-label-and-input">
-                <div class="item-left-label">Chord:</div>
-                <input class="item-left-input-field" v-model="currentMarker.chord" @focus="setEditMode(false)" @blur="setEditMode(true)">
+              <div class="se-item-left-label-and-input">
+                <div class="se-item-left-label">Chord:</div>
+                <input class="se-item-left-input-field" v-model="currentMarker.chord" @focus="setEditMode(false)" @blur="setEditMode(true)">
               </div>
-              <div class="item-left-label-and-input">
-                <div class="item-left-label">String|Lad:</div>
-                <input class="item-left-input-field" v-model="currentMarker.stringlad" @focus="setEditMode(false)" @blur="setEditMode(true)">
+              <div class="se-item-left-label-and-input">
+                <div class="se-item-left-label">String|Lad:</div>
+                <input class="se-item-left-input-field" v-model="currentMarker.stringlad" @focus="setEditMode(false)" @blur="setEditMode(true)">
               </div>
-              <div class="item-left-label-and-input">
-                <button class="group-button" :class="lockladButtonClass()" type="button" @click="onOffLocklad()">locklad</button>
-<!--                <div class="item-left-label">LockLad:</div>-->
-<!--                <input class="item-left-input-field" v-model="currentMarker.locklad" @focus="setEditMode(false)" @blur="setEditMode(true)">-->
+              <div class="se-item-left-label-and-input">
+                <button class="se-group-button" :class="se-lockladButtonClass()" type="button" @click="onOffLocklad()">locklad</button>
+<!--                <div class="se-item-left-label">LockLad:</div>-->
+<!--                <input class="se-item-left-input-field" v-model="currentMarker.locklad" @focus="setEditMode(false)" @blur="setEditMode(true)">-->
               </div>
             </div>
-            <div class="item-waveform" id="waveform"></div>
-            <div class="item-right-waveform"></div>
+            <div class="se-item-waveform" id="waveform"></div>
+            <div class="se-item-right-waveform"></div>
           </div>
-          <div class="grid-item-slider">
-            <input class="item-slider-zoom" id="slider-zoom" data-action="zoom" type="range" min="12" max="1000" value="12">
-            <input class="item-slider-volume" id="slider-volume" data-action="volume" type="range" step="0.05" min="0" max="1" value="1">
+          <div class="se-grid-item-slider">
+            <input class="se-item-slider-zoom" id="slider-zoom" data-action="zoom" type="range" min="12" max="1000" value="12">
+            <input class="se-item-slider-volume" id="slider-volume" data-action="volume" type="range" step="0.05" min="0" max="1" value="1">
           </div>
-          <div class="grid-item-controls">
-            <div class="group-edit-play-speed-buttons">
-              <div class="group-edit-speed-buttons">
-                <label class="label-for-group-edit-speed-buttons">Edit:</label>
-                <button class="group-button" :class="editSpeedButtonClass(0.3)" type="button" value="0.3" @click="setEditSpeed(0.3)">0.3</button>
-                <button class="group-button" :class="editSpeedButtonClass(0.4)" type="button" value="0.4" @click="setEditSpeed(0.4)">0.4</button>
-                <button class="group-button" :class="editSpeedButtonClass(0.5)" type="button" value="0.5" @click="setEditSpeed(0.5)">0.5</button>
-                <button class="group-button" :class="editSpeedButtonClass(0.75)" type="button" value="0.75" @click="setEditSpeed(0.75)">0.75</button>
-                <button class="group-button" :class="editSpeedButtonClass(1.0)" type="button" value="1.0" @click="setEditSpeed(1.0)">1.0</button>
-                <div class="edit-mode" :class="editModeButtonClass()"></div>
-                <button class="group-button" :class="editModeTypeButtonClass('syllables')" type="button" value="syllables" @click="setEditModeType('syllables')">syll</button>
-                <button class="group-button" :class="editModeTypeButtonClass('note')" type="button" value="note" @click="setEditModeType('note')">note</button>
-                <button class="group-button" :class="editModeTypeButtonClass('chord')" type="button" value="chord" @click="setEditModeType('chord')">syll</button>
+          <div class="se-grid-item-controls">
+            <div class="se-group-edit-play-speed-buttons">
+              <div class="se-group-edit-speed-buttons">
+                <label class="se-label-for-group-edit-speed-buttons">Edit:</label>
+                <button class="se-group-button" :class="se-editSpeedButtonClass(0.3)" type="button" value="0.3" @click="setEditSpeed(0.3)">0.3</button>
+                <button class="se-group-button" :class="se-editSpeedButtonClass(0.4)" type="button" value="0.4" @click="setEditSpeed(0.4)">0.4</button>
+                <button class="se-group-button" :class="se-editSpeedButtonClass(0.5)" type="button" value="0.5" @click="setEditSpeed(0.5)">0.5</button>
+                <button class="se-group-button" :class="se-editSpeedButtonClass(0.75)" type="button" value="0.75" @click="setEditSpeed(0.75)">0.75</button>
+                <button class="se-group-button" :class="se-editSpeedButtonClass(1.0)" type="button" value="1.0" @click="setEditSpeed(1.0)">1.0</button>
+                <div class="se-edit-mode" :class="se-editModeButtonClass()"></div>
+                <button class="se-group-button" :class="se-editModeTypeButtonClass('syllables')" type="button" value="syllables" @click="setEditModeType('syllables')">syll</button>
+                <button class="se-group-button" :class="se-editModeTypeButtonClass('note')" type="button" value="note" @click="setEditModeType('note')">note</button>
+                <button class="se-group-button" :class="se-editModeTypeButtonClass('chord')" type="button" value="chord" @click="setEditModeType('chord')">syll</button>
               </div>
-              <div class="group-play-speed-buttons">
-                <label class="label-for-group-play-speed-buttons">Play:</label>
-                <button class="group-button" :class="playSpeedButtonClass(0.5)" type="button" value="0.5" @click="setPlaySpeed(0.5)">0.5</button>
-                <button class="group-button" :class="playSpeedButtonClass(0.75)" type="button" value="0.75" @click="setPlaySpeed(0.75)">0.75</button>
-                <button class="group-button" :class="playSpeedButtonClass(1.0)" type="button" value="1.0" @click="setPlaySpeed(1.0)">1.0</button>
-                <button class="group-button" :class="playSpeedButtonClass(1.25)" type="button" value="1.25" @click="setPlaySpeed(1.25)">1.25</button>
-                <button class="group-button" :class="playSpeedButtonClass(1.5)" type="button" value="1.5" @click="setPlaySpeed(1.5)">1.5</button>
-                <button class="group-button" :class="playSpeedButtonClass(1.75)" type="button" value="1.75" @click="setPlaySpeed(1.75)">1.75</button>
-                <button class="group-button" :class="playSpeedButtonClass(2.0)" type="button" value="2.0" @click="setPlaySpeed(2.0)">2.0</button>
-                <button class="group-button" :class="playSpeedButtonClass(2.25)" type="button" value="2.25" @click="setPlaySpeed(2.25)">2.25</button>
-                <button class="group-button" :class="playSpeedButtonClass(2.5)" type="button" value="2.5" @click="setPlaySpeed(2.5)">2.5</button>
-                <button class="group-button" :class="playSpeedButtonClass(2.75)" type="button" value="2.75" @click="setPlaySpeed(2.75)">2.75</button>
-                <button class="group-button" :class="playSpeedButtonClass(3.0)" type="button" value="3.0" @click="setPlaySpeed(3.0)">3.0</button>
-              </div>
-            </div>
-            <div class="group-controls-markers-buttons">
-              <div class="group-control-buttons">
-                <button class="group-button" :class="pressedButtonClass(pressedBL)" @mousedown.left="pressedBL = true" @mouseup.left="pressedBL = false">
-                  <img alt="previous marker" class="icon-previous-marker" title="[" src="../../../assets/svg/icon_previous_marker.svg">
-                </button>
-                <button class="group-button" :class="pressedButtonClass(pressedZ)" @mousedown.left="pressedZ = true" @mouseup.left="pressedZ = false">
-                  <img alt="fast-fast backward" class="icon-fast-fast-backward" title="Z" src="../../../assets/svg/icon_fast_fast_backward.svg">
-                </button>
-                <button class="group-button" :class="pressedButtonClass(pressedA)" @mousedown.left="pressedA = true" @mouseup.left="pressedA = false">
-                  <img alt="fast backward" class="icon-fast-backward" title="A" src="../../../assets/svg/icon_fast_backward.svg">
-                </button>
-                <button class="group-button" :class="pressedButtonClass(pressedQ)" @mousedown.left="pressedQ = true" @mouseup.left="pressedQ = false">
-                  <img alt="step backward" class="icon-step-backward" title="Q" src="../../../assets/svg/icon_step_backward.svg">
-                </button>
-                <button class="group-button" :class="playPauseButtonClass(isPlaying)" @click="playPause" title="X" >
-                  <img alt="play-pause" class="icon-play-pause" src="../../../assets/svg/icon_play_pause.svg">
-                </button>
-                <button class="group-button" :class="pressedButtonClass(pressedE)" @mousedown.left="pressedE = true" @mouseup.left="pressedE = false">
-                  <img alt="step forward" class="icon-step-forward" title="E" src="../../../assets/svg/icon_step_forward.svg">
-                </button>
-                <button class="group-button" :class="pressedButtonClass(pressedD)" @mousedown.left="pressedD = true" @mouseup.left="pressedD = false">
-                  <img alt="fast forward" class="icon-fast-forward" title="D" src="../../../assets/svg/icon_fast_forward.svg">
-                </button>
-                <button class="group-button" :class="pressedButtonClass(pressedC)" @mousedown.left="pressedC = true" @mouseup.left="pressedC = false">
-                  <img alt="fast-fast forward" class="icon-fast-fast-forward" title="C" src="../../../assets/svg/icon_fast_fast_forward.svg">
-                </button>
-                <button class="group-button" :class="pressedButtonClass(pressedBR)" @mousedown.left="pressedBR = true" @mouseup.left="pressedBR = false">
-                  <img alt="next marker" class="icon-next-marker" title="]" src="../../../assets/svg/icon_next_marker.svg">
-                </button>
-              </div>
-              <div class="group-markers-buttons">
-                <button class="group-button" :class="pressedButtonClass(pressedW)" @mousedown.left="pressedW = true" @mouseup.left="pressedW = false">
-                  <img alt="add marker" class="icon-add-marker" title="W" src="../../../assets/svg/icon_add_marker_orange.svg">
-                </button>
-                <button class="group-button" :class="pressedButtonClass(pressedS)" @mousedown.left="pressedS = true" @mouseup.left="pressedS = false">
-                  <img alt="delete marker" class="icon-delete-marker" title="S" src="../../../assets/svg/icon_delete_marker.svg">
-                </button>
-                <button class="group-button" :class="pressedButtonClass(pressed1)" @mousedown.left="pressed1 = true" @mouseup.left="pressed1 = false">
-                  <img alt="end of line marker" class="icon-end-of-line-marker" title="1" src="../../../assets/svg/icon_add_marker_red.svg">
-                </button>
-                <button class="group-button" :class="pressedButtonClass(pressed2)" @mousedown.left="pressed2 = true" @mouseup.left="pressed2 = false">
-                  <img alt="end of line marker" class="icon-end-of-line-marker" title="2" src="../../../assets/svg/icon_add_marker_red.svg">
-                </button>
-                <button class="group-button" :class="pressedButtonClass(pressed3)" @mousedown.left="pressed3 = true" @mouseup.left="pressed3 = false">
-                  <img alt="end of line and add marker" class="icon-end-of-line-and-add-marker" title="3" src="../../../assets/svg/icon_add_marker_red_orange.svg">
-                </button>
-                <button class="group-button" :class="pressedButtonClass(pressed4)" @mousedown.left="pressed4 = true" @mouseup.left="pressed4 = false">
-                  <img alt="new line marker" class="icon-new-line-marker" title="4" src="../../../assets/svg/icon_add_marker_magenta.svg">
-                </button>
-                <button class="group-button" :class="pressedButtonClass(pressed0)" @mousedown.left="pressed0 = true" @mouseup.left="pressed0 = false">
-                  <img alt="mute marker" class="icon-mute-marker" title="0" src="../../../assets/svg/icon_add_marker_yellow.svg">
-                </button>
-                <button class="group-button" :class="pressedButtonClass(pressedT)" @mousedown.left="pressedT = true" @mouseup.left="pressedT = false">
-                  <img alt="group 0 marker" class="icon-group0-marker" title="T" src="../../../assets/svg/icon_add_marker_blue_white.svg">
-                </button>
-                <button class="group-button" :class="pressedButtonClass(pressedY)" @mousedown.left="pressedY = true" @mouseup.left="pressedY = false">
-                  <img alt="group 1 marker" class="icon-group1-marker" title="Y" src="../../../assets/svg/icon_add_marker_yellow_white.svg">
-                </button>
-                <button class="group-button" :class="pressedButtonClass(pressedU)" @mousedown.left="pressedU = true" @mouseup.left="pressedU = false">
-                  <img alt="group 2 marker" class="icon-group2-marker" title="U" src="../../../assets/svg/icon_add_marker_aqua_white.svg">
-                </button>
-                <button class="group-button" :class="pressedButtonClass(pressedI)" @mousedown.left="pressedI = true" @mouseup.left="pressedI = false">
-                  <img alt="group 3 marker" class="icon-group3-marker" title="I" src="../../../assets/svg/icon_add_marker_green_white.svg">
-                </button>
-                <button class="group-button" :class="pressedButtonClass(pressedP)" @mousedown.left="pressedP = true" @mouseup.left="pressedP = false">
-                  <img alt="group 4 marker" class="icon-group4-marker" title="P" src="../../../assets/svg/icon_add_marker_gray_white.svg">
-                </button>
-                <button class="group-button" :class="pressedButtonClass(pressedO)" @mousedown.left="pressedO = true" @mouseup.left="pressedO = false">
-                  <img alt="comment marker" class="icon-comment-marker" title="O" src="../../../assets/svg/icon_add_marker_magenta_white.svg">
-                </button>
+              <div class="se-group-play-speed-buttons">
+                <label class="se-label-for-group-play-speed-buttons">Play:</label>
+                <button class="se-group-button" :class="se-playSpeedButtonClass(0.5)" type="button" value="0.5" @click="setPlaySpeed(0.5)">0.5</button>
+                <button class="se-group-button" :class="se-playSpeedButtonClass(0.75)" type="button" value="0.75" @click="setPlaySpeed(0.75)">0.75</button>
+                <button class="se-group-button" :class="se-playSpeedButtonClass(1.0)" type="button" value="1.0" @click="setPlaySpeed(1.0)">1.0</button>
+                <button class="se-group-button" :class="se-playSpeedButtonClass(1.25)" type="button" value="1.25" @click="setPlaySpeed(1.25)">1.25</button>
+                <button class="se-group-button" :class="se-playSpeedButtonClass(1.5)" type="button" value="1.5" @click="setPlaySpeed(1.5)">1.5</button>
+                <button class="se-group-button" :class="se-playSpeedButtonClass(1.75)" type="button" value="1.75" @click="setPlaySpeed(1.75)">1.75</button>
+                <button class="se-group-button" :class="se-playSpeedButtonClass(2.0)" type="button" value="2.0" @click="setPlaySpeed(2.0)">2.0</button>
+                <button class="se-group-button" :class="se-playSpeedButtonClass(2.25)" type="button" value="2.25" @click="setPlaySpeed(2.25)">2.25</button>
+                <button class="se-group-button" :class="se-playSpeedButtonClass(2.5)" type="button" value="2.5" @click="setPlaySpeed(2.5)">2.5</button>
+                <button class="se-group-button" :class="se-playSpeedButtonClass(2.75)" type="button" value="2.75" @click="setPlaySpeed(2.75)">2.75</button>
+                <button class="se-group-button" :class="se-playSpeedButtonClass(3.0)" type="button" value="3.0" @click="setPlaySpeed(3.0)">3.0</button>
               </div>
             </div>
-            <div class="group-actions-buttons">
-              <button class="group-button" type="button" @click="addAccent">
-                <img alt="erase markers" class="icon-40" title="Добавить ударение" src="../../../assets/svg/icon_accent.svg">
+            <div class="se-group-controls-markers-buttons">
+              <div class="se-group-control-buttons">
+                <button class="se-group-button" :class="se-pressedButtonClass(pressedBL)" @mousedown.left="pressedBL = true" @mouseup.left="pressedBL = false">
+                  <img alt="previous marker" class="se-icon-previous-marker" title="[" src="../../../assets/svg/icon_previous_marker.svg">
+                </button>
+                <button class="se-group-button" :class="se-pressedButtonClass(pressedZ)" @mousedown.left="pressedZ = true" @mouseup.left="pressedZ = false">
+                  <img alt="fast-fast backward" class="se-icon-fast-fast-backward" title="Z" src="../../../assets/svg/icon_fast_fast_backward.svg">
+                </button>
+                <button class="se-group-button" :class="se-pressedButtonClass(pressedA)" @mousedown.left="pressedA = true" @mouseup.left="pressedA = false">
+                  <img alt="fast backward" class="se-icon-fast-backward" title="A" src="../../../assets/svg/icon_fast_backward.svg">
+                </button>
+                <button class="se-group-button" :class="se-pressedButtonClass(pressedQ)" @mousedown.left="pressedQ = true" @mouseup.left="pressedQ = false">
+                  <img alt="step backward" class="se-icon-step-backward" title="Q" src="../../../assets/svg/icon_step_backward.svg">
+                </button>
+                <button class="se-group-button" :class="se-playPauseButtonClass(isPlaying)" @click="playPause" title="X" >
+                  <img alt="play-pause" class="se-icon-play-pause" src="../../../assets/svg/icon_play_pause.svg">
+                </button>
+                <button class="se-group-button" :class="se-pressedButtonClass(pressedE)" @mousedown.left="pressedE = true" @mouseup.left="pressedE = false">
+                  <img alt="step forward" class="se-icon-step-forward" title="E" src="../../../assets/svg/icon_step_forward.svg">
+                </button>
+                <button class="se-group-button" :class="se-pressedButtonClass(pressedD)" @mousedown.left="pressedD = true" @mouseup.left="pressedD = false">
+                  <img alt="fast forward" class="se-icon-fast-forward" title="D" src="../../../assets/svg/icon_fast_forward.svg">
+                </button>
+                <button class="se-group-button" :class="se-pressedButtonClass(pressedC)" @mousedown.left="pressedC = true" @mouseup.left="pressedC = false">
+                  <img alt="fast-fast forward" class="se-icon-fast-fast-forward" title="C" src="../../../assets/svg/icon_fast_fast_forward.svg">
+                </button>
+                <button class="se-group-button" :class="se-pressedButtonClass(pressedBR)" @mousedown.left="pressedBR = true" @mouseup.left="pressedBR = false">
+                  <img alt="next marker" class="se-icon-next-marker" title="]" src="../../../assets/svg/icon_next_marker.svg">
+                </button>
+              </div>
+              <div class="se-group-markers-buttons">
+                <button class="se-group-button" :class="se-pressedButtonClass(pressedW)" @mousedown.left="pressedW = true" @mouseup.left="pressedW = false">
+                  <img alt="add marker" class="se-icon-add-marker" title="W" src="../../../assets/svg/icon_add_marker_orange.svg">
+                </button>
+                <button class="se-group-button" :class="se-pressedButtonClass(pressedS)" @mousedown.left="pressedS = true" @mouseup.left="pressedS = false">
+                  <img alt="delete marker" class="se-icon-delete-marker" title="S" src="../../../assets/svg/icon_delete_marker.svg">
+                </button>
+                <button class="se-group-button" :class="se-pressedButtonClass(pressed1)" @mousedown.left="pressed1 = true" @mouseup.left="pressed1 = false">
+                  <img alt="end of line marker" class="se-icon-end-of-line-marker" title="1" src="../../../assets/svg/icon_add_marker_red.svg">
+                </button>
+                <button class="se-group-button" :class="se-pressedButtonClass(pressed2)" @mousedown.left="pressed2 = true" @mouseup.left="pressed2 = false">
+                  <img alt="end of line marker" class="se-icon-end-of-line-marker" title="2" src="../../../assets/svg/icon_add_marker_red.svg">
+                </button>
+                <button class="se-group-button" :class="se-pressedButtonClass(pressed3)" @mousedown.left="pressed3 = true" @mouseup.left="pressed3 = false">
+                  <img alt="end of line and add marker" class="se-icon-end-of-line-and-add-marker" title="3" src="../../../assets/svg/icon_add_marker_red_orange.svg">
+                </button>
+                <button class="se-group-button" :class="se-pressedButtonClass(pressed4)" @mousedown.left="pressed4 = true" @mouseup.left="pressed4 = false">
+                  <img alt="new line marker" class="se-icon-new-line-marker" title="4" src="../../../assets/svg/icon_add_marker_magenta.svg">
+                </button>
+                <button class="se-group-button" :class="se-pressedButtonClass(pressed0)" @mousedown.left="pressed0 = true" @mouseup.left="pressed0 = false">
+                  <img alt="mute marker" class="se-icon-mute-marker" title="0" src="../../../assets/svg/icon_add_marker_yellow.svg">
+                </button>
+                <button class="se-group-button" :class="se-pressedButtonClass(pressedT)" @mousedown.left="pressedT = true" @mouseup.left="pressedT = false">
+                  <img alt="group 0 marker" class="se-icon-group0-marker" title="T" src="../../../assets/svg/icon_add_marker_blue_white.svg">
+                </button>
+                <button class="se-group-button" :class="se-pressedButtonClass(pressedY)" @mousedown.left="pressedY = true" @mouseup.left="pressedY = false">
+                  <img alt="group 1 marker" class="se-icon-group1-marker" title="Y" src="../../../assets/svg/icon_add_marker_yellow_white.svg">
+                </button>
+                <button class="se-group-button" :class="se-pressedButtonClass(pressedU)" @mousedown.left="pressedU = true" @mouseup.left="pressedU = false">
+                  <img alt="group 2 marker" class="se-icon-group2-marker" title="U" src="../../../assets/svg/icon_add_marker_aqua_white.svg">
+                </button>
+                <button class="se-group-button" :class="se-pressedButtonClass(pressedI)" @mousedown.left="pressedI = true" @mouseup.left="pressedI = false">
+                  <img alt="group 3 marker" class="se-icon-group3-marker" title="I" src="../../../assets/svg/icon_add_marker_green_white.svg">
+                </button>
+                <button class="se-group-button" :class="se-pressedButtonClass(pressedP)" @mousedown.left="pressedP = true" @mouseup.left="pressedP = false">
+                  <img alt="group 4 marker" class="se-icon-group4-marker" title="P" src="../../../assets/svg/icon_add_marker_gray_white.svg">
+                </button>
+                <button class="se-group-button" :class="se-pressedButtonClass(pressedO)" @mousedown.left="pressedO = true" @mouseup.left="pressedO = false">
+                  <img alt="comment marker" class="se-icon-comment-marker" title="O" src="../../../assets/svg/icon_add_marker_magenta_white.svg">
+                </button>
+              </div>
+            </div>
+            <div class="se-group-actions-buttons">
+              <button class="se-group-button" type="button" @click="addAccent">
+                <img alt="erase markers" class="se-icon-40" title="Добавить ударение" src="../../../assets/svg/icon_accent.svg">
               </button>
-              <button class="group-button" type="button" @click="eraseMarkers">
-                <img alt="erase markers" class="icon-40" title="Очистить маркеры" src="../../../assets/svg/icon_erase.svg">
+              <button class="se-group-button" type="button" @click="eraseMarkers">
+                <img alt="erase markers" class="se-icon-40" title="Очистить маркеры" src="../../../assets/svg/icon_erase.svg">
               </button>
-              <button class="group-button" type="button" @click="addWordToDict">
-                <img alt="add to dict" class="icon-40" title="Добавить слово в словарь" src="../../../assets/svg/icon_dict_add_e.svg">
+              <button class="se-group-button" type="button" @click="addWordToDict">
+                <img alt="add to dict" class="se-icon-40" title="Добавить слово в словарь" src="../../../assets/svg/icon_dict_add_e.svg">
               </button>
-              <button class="group-button" type="button" @click="removeWordFromDict">
-                <img alt="remove from dict" class="icon-40" title="Удалить слово из словаря" src="../../../assets/svg/icon_dict_remove_e.svg">
+              <button class="se-group-button" type="button" @click="removeWordFromDict">
+                <img alt="remove from dict" class="se-icon-40" title="Удалить слово из словаря" src="../../../assets/svg/icon_dict_remove_e.svg">
               </button>
-              <button class="group-button" type="button" @click="doSearchText">
-                <img alt="search text" class="icon-40" title="Найти в Интернете текст песни" src="../../../assets/svg/icon_search_text.svg">
+              <button class="se-group-button" type="button" @click="doSearchText">
+                <img alt="search text" class="se-icon-40" title="Найти в Интернете текст песни" src="../../../assets/svg/icon_search_text.svg">
               </button>
-              <button class="group-button" type="button" @click="doReplaceText">
-                <img alt="replace text" class="icon-40" title="Произвести замену текста согласно правилам" src="../../../assets/svg/icon_replace_text.svg">
+              <button class="se-group-button" type="button" @click="doReplaceText">
+                <img alt="replace text" class="se-icon-40" title="Произвести замену текста согласно правилам" src="../../../assets/svg/icon_replace_text.svg">
               </button>
-              <button class="group-button" type="button" @click="doBpmAdd">
-                <img alt="add bpm" class="icon-40" title="Добавить BPM из файла sheetsage" src="../../../assets/svg/icon_bpm.svg">
+              <button class="se-group-button" type="button" @click="doBpmAdd">
+                <img alt="add bpm" class="se-icon-40" title="Добавить BPM из файла sheetsage" src="../../../assets/svg/icon_bpm.svg">
               </button>
-              <button class="group-button" type="button" @click="doChordsAdd">
-                <img alt="add chords" class="icon-40" title="Добавить аккорды из файла sheetsage" src="../../../assets/svg/icon_chords_add.svg">
+              <button class="se-group-button" type="button" @click="doChordsAdd">
+                <img alt="add chords" class="se-icon-40" title="Добавить аккорды из файла sheetsage" src="../../../assets/svg/icon_chords_add.svg">
               </button>
-              <button class="group-button" type="button" @click="doChordsDel">
-                <img alt="clear chords" class="icon-40" title="Очистить аккорды" src="../../../assets/svg/icon_chords_del.svg">
+              <button class="se-group-button" type="button" @click="doChordsDel">
+                <img alt="clear chords" class="se-icon-40" title="Очистить аккорды" src="../../../assets/svg/icon_chords_del.svg">
               </button>
-              <button class="group-button" type="button" @click="doDiffBeatsInc">
-                <img alt="diffbeatsinc" class="icon-40" title="Сдвинуть аккорды вправо" src="../../../assets/svg/icon_diffbeatsinc.svg">
+              <button class="se-group-button" type="button" @click="doDiffBeatsInc">
+                <img alt="diffbeatsinc" class="se-icon-40" title="Сдвинуть аккорды вправо" src="../../../assets/svg/icon_diffbeatsinc.svg">
               </button>
-              <button class="group-button" type="button" @click="doDiffBeatsDec">
-                <img alt="diffbeatsdec" class="icon-40" title="Сдвинуть аккорды влево" src="../../../assets/svg/icon_diffbeatsdec.svg">
+              <button class="se-group-button" type="button" @click="doDiffBeatsDec">
+                <img alt="diffbeatsdec" class="se-icon-40" title="Сдвинуть аккорды влево" src="../../../assets/svg/icon_diffbeatsdec.svg">
               </button>
-              <button class="group-button" type="button" @click="save">
-                <img alt="saveSong" class="icon-40" title="Save" src="../../../assets/svg/icon_save.svg">
+              <button class="se-group-button" type="button" @click="save">
+                <img alt="saveSong" class="se-icon-40" title="Save" src="../../../assets/svg/icon_save.svg">
               </button>
             </div>
 
           </div>
-          <textarea id="editor" class="grid-item-sourcetext" v-model="sourceText" @focus="setEditMode(false)" @blur="setEditMode(true)">
+          <textarea id="editor" class="se-grid-item-sourcetext" v-model="sourceText" @focus="setEditMode(false)" @blur="setEditMode(true)">
 
           </textarea>
-          <div class="grid-item-tail">
-            <div class="tail" v-html="tail"></div>
+          <div class="se-grid-item-tail">
+            <div class="se-tail" v-html="tail"></div>
           </div>
-          <div class="grid-item-wrapper-text">
+          <div class="se-grid-item-wrapper-text">
             <b-tabs>
               <b-tab title="Текст" active>
-                <div class="grid-item-text" v-html="textFormatted"></div>
+                <div class="se-grid-item-text" v-html="textFormatted"></div>
               </b-tab>
               <b-tab title="Ноты">
-                <div class="grid-item-notes" v-html="notesFormatted"></div>
+                <div class="se-grid-item-notes" v-html="notesFormatted"></div>
               </b-tab>
               <b-tab title="Аккорды">
-                <div class="grid-item-chords" v-html="chordsFormatted"></div>
+                <div class="se-grid-item-chords" v-html="chordsFormatted"></div>
               </b-tab>
             </b-tabs>
           </div>
 
-          <div class="grid-item-footer">
-            <button type="button" class="btn-close" @click="close">Выход</button>
+          <div class="se-grid-item-footer">
+            <button type="button" class="se-btn-close" @click="close">Выход</button>
           </div>
         </div>
       </div>
@@ -2953,22 +2953,22 @@ export default {
 </script>
 
 <style scoped>
-.group-button {
+.se-group-button {
   border: solid black thin;
   border-radius: 5px;
   background-color: white;
 }
-.group-button:hover {
+.se-group-button:hover {
   background-color: lightpink;
 }
-.group-button-active {
+.se-group-button-active {
   background-color: dodgerblue;
 }
-.group-button-active:hover {
+.se-group-button-active:hover {
   background-color: lightskyblue;
 }
 
-.subsedit-area {
+.se-subsedit-area {
   background: #FFFFFF;
   box-shadow: 2px 2px 20px 1px;
   overflow-x: auto;
@@ -2979,69 +2979,69 @@ export default {
   position: relative;
 }
 
-.subsedit-header-song-name {
+.se-subsedit-header-song-name {
   text-align: center;
   font-size: 24pt;
   line-height: 75%;
   margin-right: auto;
 }
-.subsedit-header-song-description {
+.se-subsedit-header-song-description {
   text-align: center;
   font-size: 16pt;
   margin: 0 auto;
 }
 
-.voice {
+.se-voice {
   margin: 0 auto;
 }
 
-.sound {
+.se-sound {
   margin: 0 auto;
 }
-.beat {
+.se-beat {
   margin: 0 auto;
 }
-.markers {
+.se-markers {
   margin: 0 auto;
 }
 
-.group-edit-speed-buttons {
+.se-group-edit-speed-buttons {
   display: flex;
   align-items: center;
 }
 
-.group-edit-play-speed-buttons {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.group-controls-markers-buttons {
+.se-group-edit-play-speed-buttons {
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
-.group-play-speed-buttons {
+.se-group-controls-markers-buttons {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.se-group-play-speed-buttons {
 
 }
 
-.icon-play-pause {
+.se-icon-play-pause {
   width: 122px;
   height: 20px;
 }
 
-.group-control-buttons {
+.se-group-control-buttons {
   display: flex;
   margin: 0 10px;
 }
 
-.group-markers-buttons {
+.se-group-markers-buttons {
   display: flex;
   margin: 0 10px;
 }
 
-.edit-mode {
+.se-edit-mode {
   display: block;
   border: 1px solid black;
   border-radius: 50%;
@@ -3051,46 +3051,46 @@ export default {
   margin-left: 5px;
 }
 
-.edit-mode-on {
+.se-edit-mode-on {
   background-color: green;
 }
 
-.icon-fast-backward,
-.icon-fast-fast-backward,
-.icon-step-backward,
-.icon-step-forward,
-.icon-fast-forward,
-.icon-fast-fast-forward,
-.icon-previous-marker,
-.icon-next-marker
+.se-icon-fast-backward,
+.se-icon-fast-fast-backward,
+.se-icon-step-backward,
+.se-icon-step-forward,
+.se-icon-fast-forward,
+.se-icon-fast-fast-forward,
+.se-icon-previous-marker,
+.se-icon-next-marker
 {
   width: 20px;
   height: 20px;
 }
 
-.icon-add-marker,
-.icon-delete-marker,
-.icon-end-of-line-marker,
-.icon-end-of-line-and-add-marker,
-.icon-new-line-marker,
-.icon-mute-marker,
-.icon-comment-marker,
-.icon-group0-marker,
-.icon-group1-marker,
-.icon-group2-marker,
-.icon-group3-marker,
-.icon-group4-marker
+.se-icon-add-marker,
+.se-icon-delete-marker,
+.se-icon-end-of-line-marker,
+.se-icon-end-of-line-and-add-marker,
+.se-icon-new-line-marker,
+.se-icon-mute-marker,
+.se-icon-comment-marker,
+.se-icon-group0-marker,
+.se-icon-group1-marker,
+.se-icon-group2-marker,
+.se-icon-group3-marker,
+.se-icon-group4-marker
 {
   width: 20px;
   height: 20px;
 }
 
-.icon-40 {
+.se-icon-40 {
   width: 40px;
   height: 40px;
 }
 
-.subsedit-body {
+.se-subsedit-body {
   width: 100%;
   height: 100%;
   font-size: 14px;
@@ -3102,7 +3102,7 @@ export default {
   grid-template-rows: 50px 271px 50px 50px 1fr 50px;
 }
 
-[class^='grid-item'] {
+[class^='se-grid-item'] {
   outline: 1px #f90 dashed;
   display: grid;
   background-color: goldenrod;
@@ -3110,43 +3110,43 @@ export default {
   justify-content: center;
 }
 
-.grid-item-header {
+.se-grid-item-header {
   grid-column: 1 / -1;
   grid-row: 1 / 1;
   padding: 15px;
   display: flex;
 }
 
-.grid-item-waveform {
+.se-grid-item-waveform {
   grid-column: 1 / -1;
   grid-row: 2 / 2;
   display: flex;
 }
 
-.item-waveform {
+.se-item-waveform {
   width: 80%;
   /*height: auto;*/
   background-color: #FFFFFF;
   display: block;
 }
-.item-left-waveform {
+.se-item-left-waveform {
   width: 10%;
   margin: 5px 5px 5px 0;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
 }
-.item-left-label-and-input {
+.se-item-left-label-and-input {
   display: flex;
 }
-.item-left-label {
+.se-item-left-label {
   font-size: small;
   text-align: right;
   width: 50px;
   padding-right: 2px;
   padding-top: 2px;
 }
-.item-left-input-field {
+.se-item-left-input-field {
   display: block;
   padding-bottom: 3px;
   width: 100px;
@@ -3156,11 +3156,11 @@ export default {
   border-color: black;
   border-width: thin;
 }
-.item-right-waveform {
+.se-item-right-waveform {
   width: 10%;
   display: block;
 }
-.grid-item-slider {
+.se-grid-item-slider {
   grid-column: 1 / 3;
   grid-row: 3 / 3;
   margin: 0 5px;
@@ -3169,20 +3169,20 @@ export default {
   justify-content: space-between;
 }
 
-.item-slider-zoom {
+.se-item-slider-zoom {
   flex: 3;
 }
-.item-slider-volume {
+.se-item-slider-volume {
   flex: 1;
   background: transparent;
 }
-.item-slider-volume[type=range] {
+.se-item-slider-volume[type=range] {
   height: 25px;
   -webkit-appearance: none;
   margin: 10px 0;
   width: 100%;
 }
-.item-slider-volume[type=range]::-webkit-slider-runnable-track {
+.se-item-slider-volume[type=range]::-webkit-slider-runnable-track {
   width: 100%;
   height: 5px;
   cursor: pointer;
@@ -3191,7 +3191,7 @@ export default {
   border-radius: 1px;
   border: 0 solid #000000;
 }
-.item-slider-volume[type=range]::-webkit-slider-thumb {
+.se-item-slider-volume[type=range]::-webkit-slider-thumb {
   box-shadow: 0 0 0 #000000;
   border: 1px solid darkgreen;
   height: 14px;
@@ -3203,36 +3203,36 @@ export default {
   margin-top: -5px;
 }
 
-.grid-item-controls {
+.se-grid-item-controls {
   grid-column: 3 / 3;
   grid-row: 3 / 3;
   display: flex;
 }
 
-.grid-item-sourcetext {
+.se-grid-item-sourcetext {
   grid-column: 1 / 3;
   grid-row: 4 / 6;
   background-color: #eeeeee;
 }
 
-.grid-item-tail {
+.se-grid-item-tail {
   grid-column: 3 / 3;
   grid-row: 4 / 4;
   /*display: block;*/
 }
-.tail {
+.se-tail {
   display: block;
   margin-top: -11px;
   width: 100%;
   /*margin-left: -125px;*/
 }
 
-.grid-item-wrapper-text {
+.se-grid-item-wrapper-text {
   grid-column: 3 / 3;
   grid-row: 5 / 5;
   display: block;
 }
-.grid-item-text {
+.se-grid-item-text {
   column-count: 4;
   column-fill: auto;
   overflow: auto;
@@ -3241,7 +3241,7 @@ export default {
   text-align: left;
   max-height: 619px;
 }
-.grid-item-notes {
+.se-grid-item-notes {
   column-count: 3;
   column-fill: auto;
   overflow: auto;
@@ -3250,7 +3250,7 @@ export default {
   text-align: left;
   max-height: 619px;
 }
-.grid-item-chords {
+.se-grid-item-chords {
   column-count: 5;
   column-fill: auto;
   overflow: auto;
@@ -3259,7 +3259,7 @@ export default {
   text-align: left;
   max-height: 619px;
 }
-.grid-item-footer {
+.se-grid-item-footer {
   grid-column: 1 / -1;
   grid-row: 6 / 6;
   background-color: #2c3e50;
@@ -3271,7 +3271,7 @@ export default {
   justify-content: flex-end;
 }
 
-.subsedit-modal-backdrop {
+.se-subsedit-modal-backdrop {
   position: fixed;
   top: 0;
   bottom: 0;
@@ -3281,33 +3281,34 @@ export default {
   display: flex;
   justify-content: center;
   align-items: center;
+  z-index: 1055;
 }
 
 
 
-.modal-header,
-.modal-footer {
+.se-modal-header,
+.se-modal-footer {
   padding: 15px;
   display: flex;
 }
 
-.modal-header {
+.se-modal-header {
   border-bottom: 1px solid #eeeeee;
   color: #4AAE9B;
   justify-content: space-between;
 }
 
-.modal-footer {
+.se-modal-footer {
   border-top: 1px solid #eeeeee;
   justify-content: flex-end;
 }
 
-.modal-body {
+.se-modal-body {
   position: relative;
   padding: 20px 10px;
 }
 
-.btn-close {
+.se-btn-close {
   border: 1px solid white;
   border-radius: 10px;
   font-size: 20px;
@@ -3319,20 +3320,20 @@ export default {
   height: auto;
 }
 
-.btn-green {
+.se-btn-green {
   color: white;
   background: #4AAE9B;
   border: 1px solid #4AAE9B;
   border-radius: 2px;
 }
 
-.modal-fade-enter,
-.modal-fade-leave-active {
+.se-modal-fade-enter,
+.se-modal-fade-leave-active {
   opacity: 0;
 }
 
-.modal-fade-enter-active,
-.modal-fade-leave-active {
+.se-modal-fade-enter-active,
+.se-modal-fade-leave-active {
   transition: opacity .5s ease
 }
 

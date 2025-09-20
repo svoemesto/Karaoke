@@ -1,71 +1,71 @@
 <template>
   <transition name="modal-fade">
-    <div class="modal-backdrop">
-      <div class="area">
+    <div class="pfm-modal-backdrop">
+      <div class="pfm-area">
 
-        <div class="area-modal-header">
+        <div class="pfm-area-modal-header">
           Фильтр для настроек
         </div>
 
-        <div class="area-modal-body">
-          <div class="root-wrapper">
+        <div class="pfm-area-modal-body">
+          <div class="pfm-root-wrapper">
 
-            <div class="filter-row">
-              <div class="row-label">
+            <div class="pfm-filter-row">
+              <div class="pfm-row-label">
                 <div v-text="'KEY:'"></div>
               </div>
-              <div class="row-input">
-                <input class="input-field" v-model="propertiesFilterKey">
+              <div class="pfm-row-input">
+                <input class="pfm-input-field" v-model="propertiesFilterKey">
               </div>
-              <button :disabled="!propertiesFilterKey" class="button-clear-field" @click.left="propertiesFilterKey=''" v-text="'X'"></button>
+              <button :disabled="!propertiesFilterKey" class="pfm-button-clear-field" @click.left="propertiesFilterKey=''" v-text="'X'"></button>
             </div>
 
-            <div class="filter-row">
-              <div class="row-label">
+            <div class="pfm-filter-row">
+              <div class="pfm-row-label">
                 <div v-text="'Значение:'"></div>
               </div>
-              <div class="row-input">
-                <input class="input-field" v-model="propertiesFilterValue">
+              <div class="pfm-row-input">
+                <input class="pfm-input-field" v-model="propertiesFilterValue">
               </div>
-              <button :disabled="!propertiesFilterValue" class="button-clear-field" @click.left="propertiesFilterValue=''" v-text="'X'"></button>
+              <button :disabled="!propertiesFilterValue" class="pfm-button-clear-field" @click.left="propertiesFilterValue=''" v-text="'X'"></button>
             </div>
 
-            <div class="filter-row">
-              <div class="row-label">
+            <div class="pfm-filter-row">
+              <div class="pfm-row-label">
                 <div v-text="'По-умолчанию:'"></div>
               </div>
-              <div class="row-input">
-                <input class="input-field" v-model="propertiesFilterDefaultValue">
+              <div class="pfm-row-input">
+                <input class="pfm-input-field" v-model="propertiesFilterDefaultValue">
               </div>
-              <button :disabled="!propertiesFilterDefaultValue" class="button-clear-field" @click.left="propertiesFilterDefaultValue=''" v-text="'X'"></button>
+              <button :disabled="!propertiesFilterDefaultValue" class="pfm-button-clear-field" @click.left="propertiesFilterDefaultValue=''" v-text="'X'"></button>
             </div>
 
-            <div class="filter-row">
-              <div class="row-label">
+            <div class="pfm-filter-row">
+              <div class="pfm-row-label">
                 <div v-text="'Описание:'"></div>
               </div>
-              <div class="row-input">
-                <input class="input-field" v-model="propertiesFilterDescription">
+              <div class="pfm-row-input">
+                <input class="pfm-input-field" v-model="propertiesFilterDescription">
               </div>
-              <button :disabled="!propertiesFilterDescription" class="button-clear-field" @click.left="propertiesFilterDescription=''" v-text="'X'"></button>
+              <button :disabled="!propertiesFilterDescription" class="pfm-button-clear-field" @click.left="propertiesFilterDescription=''" v-text="'X'"></button>
             </div>
 
-            <div class="filter-row">
-              <div class="row-label">
+            <div class="pfm-filter-row">
+              <div class="pfm-row-label">
                 <div v-text="'Тип:'"></div>
               </div>
-              <div class="row-input">
-                <input class="input-field" v-model="propertiesFilterType">
+              <div class="pfm-row-input">
+                <input class="pfm-input-field" v-model="propertiesFilterType">
               </div>
-              <button :disabled="!propertiesFilterType" class="button-clear-field" @click.left="propertiesFilterType=''" v-text="'X'"></button>
+              <button :disabled="!propertiesFilterType" class="pfm-button-clear-field" @click.left="propertiesFilterType=''" v-text="'X'"></button>
             </div>
 
           </div>
         </div>
 
-        <div class="area-modal-footer">
-          <button type="button" class="btn-close" @click="ok">Применить фильтр</button>
-          <button type="button" class="btn-close" @click="cancel">Отмена</button>
+        <div class="pfm-area-modal-footer">
+          <button type="button" class="pfm-btn-close" @click="ok">Применить фильтр</button>
+          <button type="button" class="pfm-btn-close" @click="cancel">Отмена</button>
         </div>
 
       </div>
@@ -113,17 +113,17 @@ export default {
 
 <style scoped>
 
-.modal-fade-enter,
-.modal-fade-leave-active {
+.pfm-modal-fade-enter,
+.pfm-modal-fade-leave-active {
   opacity: 0;
 }
 
-.modal-fade-enter-active,
-.modal-fade-leave-active {
+.pfm-modal-fade-enter-active,
+.pfm-modal-fade-leave-active {
   transition: opacity .5s ease
 }
 
-.area-modal-header {
+.pfm-area-modal-header {
   background-color: darkslategray;
   padding: 10px;
   color: white;
@@ -131,7 +131,7 @@ export default {
   font-weight: 300;
 }
 
-.area-modal-body {
+.pfm-area-modal-body {
   background-color: white;
   padding: 10px;
   color: black;
@@ -139,7 +139,7 @@ export default {
   font-weight: 300;
 }
 
-.area-modal-footer {
+.pfm-area-modal-footer {
   background-color: darkslategray;
   padding: 10px;
   color: white;
@@ -149,7 +149,7 @@ export default {
   justify-content: center;
 }
 
-.modal-backdrop {
+.pfm-modal-backdrop {
   position: fixed;
   top: 0;
   bottom: 0;
@@ -159,9 +159,10 @@ export default {
   display: flex;
   justify-content: center;
   align-items: center;
+  z-index: 1055;
 }
 
-.area {
+.pfm-area {
   background: #FFFFFF;
   box-shadow: 2px 2px 20px 1px;
   overflow-x: auto;
@@ -174,7 +175,7 @@ export default {
   max-height: calc(100vh - 20px);
 }
 
-.btn-close {
+.pfm-btn-close {
   border: 1px solid white;
   border-radius: 10px;
   cursor: pointer;
@@ -186,11 +187,11 @@ export default {
   font-size: small;
 }
 
-.root-wrapper {
+.pfm-root-wrapper {
   display: flex;
   flex-direction: column;
 }
-.button-clear-field {
+.pfm-button-clear-field {
   border: thin solid black;
   border-radius: 50%;
   font-size: x-small;
@@ -199,19 +200,19 @@ export default {
   margin-top: -4px;
   margin-left: -10px;
 }
-.filter-row {
+.pfm-filter-row {
   display: flex;
   flex-direction: row;
   align-items: center;
 }
-.row-label {
+.pfm-row-label {
   min-width: 140px;
   max-width: 140px;
   text-align: right;
   padding: 0 3px;
   font-size: small;
 }
-.row-input {
+.pfm-row-input {
   display: block;
   padding-bottom: 3px;
   width: 200px;
@@ -222,15 +223,15 @@ export default {
   border-width: thin;
 }
 
-.input-field {
+.pfm-input-field {
   border-radius: 5px;
   width: fit-content;
 }
 
-.input-field:hover {
+.pfm-input-field:hover {
   background-color: lightyellow;
 }
-.input-field:focus {
+.pfm-input-field:focus {
   background-color: cyan;
 }
 

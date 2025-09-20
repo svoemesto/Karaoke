@@ -1,81 +1,81 @@
 <template>
   <transition name="modal-fade">
-    <div class="modal-backdrop">
-      <div class="area">
+    <div class="prfm-modal-backdrop">
+      <div class="prfm-area">
 
-        <div class="area-modal-header">
+        <div class="prfm-area-modal-header">
           Фильтр для песен
         </div>
 
-        <div class="area-modal-body">
-          <div class="root-wrapper">
+        <div class="prfm-area-modal-body">
+          <div class="prfm-root-wrapper">
 
-            <div class="filter-row">
-              <div class="row-label">
+            <div class="prfm-filter-row">
+              <div class="prfm-row-label">
                 <div v-text="'ID:'"></div>
               </div>
-              <div class="row-input">
-                <input class="input-field" v-model="processesFilterId">
+              <div class="prfm-row-input">
+                <input class="prfm-input-field" v-model="processesFilterId">
               </div>
-              <button :disabled="!processesFilterId" class="button-clear-field" @click.left="processesFilterId=''" v-text="'X'"></button>
+              <button :disabled="!processesFilterId" class="prfm-button-clear-field" @click.left="processesFilterId=''" v-text="'X'"></button>
             </div>
 
-            <div class="filter-row">
-              <div class="row-label">
+            <div class="prfm-filter-row">
+              <div class="prfm-row-label">
                 <div v-text="'Имя:'"></div>
               </div>
-              <div class="row-input">
-                <input class="input-field" v-model="processesFilterName">
+              <div class="prfm-row-input">
+                <input class="prfm-input-field" v-model="processesFilterName">
               </div>
-              <button :disabled="!processesFilterName" class="button-clear-field" @click.left="processesFilterName=''" v-text="'X'"></button>
+              <button :disabled="!processesFilterName" class="prfm-button-clear-field" @click.left="processesFilterName=''" v-text="'X'"></button>
             </div>
 
-            <div class="filter-row">
-              <div class="row-label">
+            <div class="prfm-filter-row">
+              <div class="prfm-row-label">
                 <div v-text="'Статус:'"></div>
               </div>
-              <div class="row-input">
-                <input class="input-field" v-model="processesFilterStatus">
+              <div class="prfm-row-input">
+                <input class="prfm-input-field" v-model="processesFilterStatus">
               </div>
-              <button :disabled="!processesFilterStatus" class="button-clear-field" @click.left="processesFilterStatus=''" v-text="'X'"></button>
+              <button :disabled="!processesFilterStatus" class="prfm-button-clear-field" @click.left="processesFilterStatus=''" v-text="'X'"></button>
             </div>
 
-            <div class="filter-row">
-              <div class="row-label">
+            <div class="prfm-filter-row">
+              <div class="prfm-row-label">
                 <div v-text="'Приоритет:'"></div>
               </div>
-              <div class="row-input">
-                <input class="input-field" v-model="processesFilterPriority">
+              <div class="prfm-row-input">
+                <input class="prfm-input-field" v-model="processesFilterPriority">
               </div>
-              <button :disabled="!processesFilterPriority" class="button-clear-field" @click.left="processesFilterPriority=''" v-text="'X'"></button>
+              <button :disabled="!processesFilterPriority" class="prfm-button-clear-field" @click.left="processesFilterPriority=''" v-text="'X'"></button>
             </div>
 
-            <div class="filter-row">
-              <div class="row-label">
+            <div class="prfm-filter-row">
+              <div class="prfm-row-label">
                 <div v-text="'Описание:'"></div>
               </div>
-              <div class="row-input">
-                <input class="input-field" v-model="processesFilterDescription">
+              <div class="prfm-row-input">
+                <input class="prfm-input-field" v-model="processesFilterDescription">
               </div>
-              <button :disabled="!processesFilterDescription" class="button-clear-field" @click.left="processesFilterDescription=''" v-text="'X'"></button>
+              <button :disabled="!processesFilterDescription" class="prfm-button-clear-field" @click.left="processesFilterDescription=''" v-text="'X'"></button>
             </div>
 
-            <div class="filter-row">
-              <div class="row-label">
+            <div class="prfm-filter-row">
+              <div class="prfm-row-label">
                 <div v-text="'Тип:'"></div>
               </div>
-              <div class="row-input">
-                <input class="input-field" v-model="processesFilterType">
+              <div class="prfm-row-input">
+                <input class="prfm-input-field" v-model="processesFilterType">
               </div>
-              <button :disabled="!processesFilterType" class="button-clear-field" @click.left="processesFilterType=''" v-text="'X'"></button>
+              <button :disabled="!processesFilterType" class="prfm-button-clear-field" @click.left="processesFilterType=''" v-text="'X'"></button>
             </div>
 
           </div>
         </div>
 
-        <div class="area-modal-footer">
-          <button type="button" class="btn-close" @click="ok">Применить фильтр</button>
-          <button type="button" class="btn-close" @click="cancel">Отмена</button>
+        <div class="prfm-area-modal-footer">
+          <button type="button" class="prfm-btn-close" @click="ok">Применить фильтр</button>
+          <button type="button" class="prfm-btn-close" @click="cancel">Отмена</button>
         </div>
 
       </div>
@@ -127,17 +127,17 @@ export default {
 
 <style scoped>
 
-.modal-fade-enter,
-.modal-fade-leave-active {
+.prfm-modal-fade-enter,
+.prfm-modal-fade-leave-active {
   opacity: 0;
 }
 
-.modal-fade-enter-active,
-.modal-fade-leave-active {
+.prfm-modal-fade-enter-active,
+.prfm-modal-fade-leave-active {
   transition: opacity .5s ease
 }
 
-.area-modal-header {
+.prfm-area-modal-header {
   background-color: darkslategray;
   padding: 10px;
   color: white;
@@ -145,7 +145,7 @@ export default {
   font-weight: 300;
 }
 
-.area-modal-body {
+.prfm-area-modal-body {
   background-color: white;
   padding: 10px;
   color: black;
@@ -153,7 +153,7 @@ export default {
   font-weight: 300;
 }
 
-.area-modal-footer {
+.prfm-area-modal-footer {
   background-color: darkslategray;
   padding: 10px;
   color: white;
@@ -163,7 +163,7 @@ export default {
   justify-content: center;
 }
 
-.modal-backdrop {
+.prfm-modal-backdrop {
   position: fixed;
   top: 0;
   bottom: 0;
@@ -173,9 +173,10 @@ export default {
   display: flex;
   justify-content: center;
   align-items: center;
+  z-index: 1055;
 }
 
-.area {
+.prfm-area {
   background: #FFFFFF;
   box-shadow: 2px 2px 20px 1px;
   overflow-x: auto;
@@ -188,7 +189,7 @@ export default {
   max-height: calc(100vh - 20px);
 }
 
-.btn-close {
+.prfm-btn-close {
   border: 1px solid white;
   border-radius: 10px;
   cursor: pointer;
@@ -200,11 +201,11 @@ export default {
   font-size: small;
 }
 
-.root-wrapper {
+.prfm-root-wrapper {
   display: flex;
   flex-direction: column;
 }
-.button-clear-field {
+.prfm-button-clear-field {
   border: thin solid black;
   border-radius: 50%;
   font-size: x-small;
@@ -213,19 +214,19 @@ export default {
   margin-top: -4px;
   margin-left: -10px;
 }
-.filter-row {
+.prfm-filter-row {
   display: flex;
   flex-direction: row;
   align-items: center;
 }
-.row-label {
+.prfm-row-label {
   min-width: 140px;
   max-width: 140px;
   text-align: right;
   padding: 0 3px;
   font-size: small;
 }
-.row-input {
+.prfm-row-input {
   display: block;
   padding-bottom: 3px;
   width: 200px;
@@ -236,15 +237,15 @@ export default {
   border-width: thin;
 }
 
-.input-field {
+.prfm-input-field {
   border-radius: 5px;
   width: fit-content;
 }
 
-.input-field:hover {
+.prfm-input-field:hover {
   background-color: lightyellow;
 }
-.input-field:focus {
+.prfm-input-field:focus {
   background-color: cyan;
 }
 

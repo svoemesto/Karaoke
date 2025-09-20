@@ -1,81 +1,81 @@
 <template>
   <transition name="modal-fade">
-    <div class="modal-backdrop">
-      <div class="area">
+    <div class="afm-modal-backdrop">
+      <div class="afm-area">
 
-        <div class="area-modal-header">
+        <div class="afm-area-modal-header">
           Фильтр для настроек
         </div>
 
-        <div class="area-modal-body">
-          <div class="root-wrapper">
+        <div class="afm-area-modal-body">
+          <div class="afm-root-wrapper">
 
-            <div class="filter-row">
-              <div class="row-label">
+            <div class="afm-filter-row">
+              <div class="afm-row-label">
                 <div v-text="'ID:'"></div>
               </div>
-              <div class="row-input">
-                <input class="input-field" v-model="authorsFilterId">
+              <div class="afm-row-input">
+                <input class="afm-input-field" v-model="authorsFilterId">
               </div>
-              <button :disabled="!authorsFilterId" class="button-clear-field" @click.left="authorsFilterId=''" v-text="'X'"></button>
+              <button :disabled="!authorsFilterId" class="afm-button-clear-field" @click.left="authorsFilterId=''" v-text="'X'"></button>
             </div>
 
-            <div class="filter-row">
-              <div class="row-label">
+            <div class="afm-filter-row">
+              <div class="afm-row-label">
                 <div v-text="'Автор:'"></div>
               </div>
-              <div class="row-input">
-                <input class="input-field" v-model="authorsFilterAuthor">
+              <div class="afm-row-input">
+                <input class="afm-input-field" v-model="authorsFilterAuthor">
               </div>
-              <button :disabled="!authorsFilterAuthor" class="button-clear-field" @click.left="authorsFilterAuthor=''" v-text="'X'"></button>
+              <button :disabled="!authorsFilterAuthor" class="afm-button-clear-field" @click.left="authorsFilterAuthor=''" v-text="'X'"></button>
             </div>
 
-            <div class="filter-row">
-              <div class="row-label">
+            <div class="afm-filter-row">
+              <div class="afm-row-label">
                 <div v-text="'Yandex.ID:'"></div>
               </div>
-              <div class="row-input">
-                <input class="input-field" v-model="authorsFilterYmId">
+              <div class="afm-row-input">
+                <input class="afm-input-field" v-model="authorsFilterYmId">
               </div>
-              <button :disabled="!authorsFilterYmId" class="button-clear-field" @click.left="authorsFilterYmId=''" v-text="'X'"></button>
+              <button :disabled="!authorsFilterYmId" class="afm-button-clear-field" @click.left="authorsFilterYmId=''" v-text="'X'"></button>
             </div>
 
-            <div class="filter-row">
-              <div class="row-label">
+            <div class="afm-filter-row">
+              <div class="afm-row-label">
                 <div v-text="'Последний альбом (Yandex):'"></div>
               </div>
-              <div class="row-input">
-                <input class="input-field" v-model="authorsFilterLastAlbumYm">
+              <div class="afm-row-input">
+                <input class="afm-input-field" v-model="authorsFilterLastAlbumYm">
               </div>
-              <button :disabled="!authorsFilterLastAlbumYm" class="button-clear-field" @click.left="authorsFilterLastAlbumYm=''" v-text="'X'"></button>
+              <button :disabled="!authorsFilterLastAlbumYm" class="afm-button-clear-field" @click.left="authorsFilterLastAlbumYm=''" v-text="'X'"></button>
             </div>
 
-            <div class="filter-row">
-              <div class="row-label">
+            <div class="afm-filter-row">
+              <div class="afm-row-label">
                 <div v-text="'Последний альбом (DB):'"></div>
               </div>
-              <div class="row-input">
-                <input class="input-field" v-model="authorsFilterLastAlbumProcessed">
+              <div class="afm-row-input">
+                <input class="afm-input-field" v-model="authorsFilterLastAlbumProcessed">
               </div>
-              <button :disabled="!authorsFilterLastAlbumProcessed" class="button-clear-field" @click.left="authorsFilterLastAlbumProcessed=''" v-text="'X'"></button>
+              <button :disabled="!authorsFilterLastAlbumProcessed" class="afm-button-clear-field" @click.left="authorsFilterLastAlbumProcessed=''" v-text="'X'"></button>
             </div>
             
-            <div class="filter-row">
-              <div class="row-label">
+            <div class="afm-filter-row">
+              <div class="afm-row-label">
                 <div v-text="'Следить:'"></div>
               </div>
-              <div class="row-input">
-                <input class="input-field" v-model="authorsFilterWatched">
+              <div class="afm-row-input">
+                <input class="afm-input-field" v-model="authorsFilterWatched">
               </div>
-              <button :disabled="!authorsFilterWatched" class="button-clear-field" @click.left="authorsFilterWatched=''" v-text="'X'"></button>
+              <button :disabled="!authorsFilterWatched" class="afm-button-clear-field" @click.left="authorsFilterWatched=''" v-text="'X'"></button>
             </div>
 
           </div>
         </div>
 
-        <div class="area-modal-footer">
-          <button type="button" class="btn-close" @click="ok">Применить фильтр</button>
-          <button type="button" class="btn-close" @click="cancel">Отмена</button>
+        <div class="afm-area-modal-footer">
+          <button type="button" class="afm-btn-close" @click="ok">Применить фильтр</button>
+          <button type="button" class="afm-btn-close" @click="cancel">Отмена</button>
         </div>
 
       </div>
@@ -126,17 +126,17 @@ export default {
 
 <style scoped>
 
-.modal-fade-enter,
-.modal-fade-leave-active {
+.afm-modal-fade-enter,
+.afm-modal-fade-leave-active {
   opacity: 0;
 }
 
-.modal-fade-enter-active,
-.modal-fade-leave-active {
+.afm-modal-fade-enter-active,
+.afm-modal-fade-leave-active {
   transition: opacity .5s ease
 }
 
-.area-modal-header {
+.afm-area-modal-header {
   background-color: darkslategray;
   padding: 10px;
   color: white;
@@ -144,7 +144,7 @@ export default {
   font-weight: 300;
 }
 
-.area-modal-body {
+.afm-area-modal-body {
   background-color: white;
   padding: 10px;
   color: black;
@@ -152,7 +152,7 @@ export default {
   font-weight: 300;
 }
 
-.area-modal-footer {
+.afm-area-modal-footer {
   background-color: darkslategray;
   padding: 10px;
   color: white;
@@ -162,7 +162,7 @@ export default {
   justify-content: center;
 }
 
-.modal-backdrop {
+.afm-modal-backdrop {
   position: fixed;
   top: 0;
   bottom: 0;
@@ -172,9 +172,10 @@ export default {
   display: flex;
   justify-content: center;
   align-items: center;
+  z-index: 1055;
 }
 
-.area {
+.afm-area {
   background: #FFFFFF;
   box-shadow: 2px 2px 20px 1px;
   overflow-x: auto;
@@ -187,7 +188,7 @@ export default {
   max-height: calc(100vh - 20px);
 }
 
-.btn-close {
+.afm-btn-close {
   border: 1px solid white;
   border-radius: 10px;
   cursor: pointer;
@@ -199,11 +200,11 @@ export default {
   font-size: small;
 }
 
-.root-wrapper {
+.afm-root-wrapper {
   display: flex;
   flex-direction: column;
 }
-.button-clear-field {
+.afm-button-clear-field {
   border: thin solid black;
   border-radius: 50%;
   font-size: x-small;
@@ -212,19 +213,19 @@ export default {
   margin-top: -4px;
   margin-left: -10px;
 }
-.filter-row {
+.afm-filter-row {
   display: flex;
   flex-direction: row;
   align-items: center;
 }
-.row-label {
+.afm-row-label {
   min-width: 140px;
   max-width: 140px;
   text-align: right;
   padding: 0 3px;
   font-size: small;
 }
-.row-input {
+.afm-row-input {
   display: block;
   padding-bottom: 3px;
   width: 200px;
@@ -235,15 +236,15 @@ export default {
   border-width: thin;
 }
 
-.input-field {
+.afm-input-field {
   border-radius: 5px;
   width: fit-content;
 }
 
-.input-field:hover {
+.afm-input-field:hover {
   background-color: lightyellow;
 }
-.input-field:focus {
+.afm-input-field:focus {
   background-color: cyan;
 }
 

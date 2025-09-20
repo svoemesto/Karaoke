@@ -1,16 +1,16 @@
 <template>
   <transition name="modal-fade">
-    <div class="modal-backdrop">
-      <div class="area">
+    <div class="sem-modal-backdrop">
+      <div class="sem-area">
 
-        <div class="area-modal-header">
+        <div class="sem-area-modal-header">
           Редактирование песни
         </div>
-        <div class="area-modal-body">
+        <div class="sem-area-modal-body">
           <SongEdit @close="close"/>
         </div>
-        <div class="area-modal-footer">
-          <button type="button" class="btn-close" @click="close">Выход</button>
+        <div class="sem-area-modal-footer">
+          <button type="button" class="sem-btn-close" @click="close">Выход</button>
         </div>
 
       </div>
@@ -34,17 +34,17 @@ export default {
 
 <style scoped>
 
-.modal-fade-enter,
-.modal-fade-leave-active {
+.sem-modal-fade-enter,
+.sem-modal-fade-leave-active {
   opacity: 0;
 }
 
-.modal-fade-enter-active,
-.modal-fade-leave-active {
+.sem-modal-fade-enter-active,
+.sem-modal-fade-leave-active {
   transition: opacity .5s ease
 }
 
-.area-modal-header {
+.sem-area-modal-header {
   background-color: darkslategray;
   padding: 10px;
   color: white;
@@ -52,7 +52,7 @@ export default {
   font-weight: 300;
 }
 
-.area-modal-body {
+.sem-area-modal-body {
   background-color: white;
   padding: 10px;
   color: black;
@@ -60,7 +60,7 @@ export default {
   font-weight: 300;
 }
 
-.area-modal-footer {
+.sem-area-modal-footer {
   background-color: darkslategray;
   padding: 10px;
   color: white;
@@ -70,7 +70,7 @@ export default {
   justify-content: flex-end;
 }
 
-.modal-backdrop {
+.sem-modal-backdrop {
   position: fixed;
   top: 0;
   bottom: 0;
@@ -80,9 +80,10 @@ export default {
   display: flex;
   justify-content: center;
   align-items: center;
+  z-index: 1055;
 }
 
-.area {
+.sem-area {
   background: #FFFFFF;
   box-shadow: 2px 2px 20px 1px;
   overflow-x: auto;
@@ -95,7 +96,7 @@ export default {
   max-height: calc(100vh - 20px);
 }
 
-.btn-close {
+.sem-btn-close {
   border: 1px solid white;
   border-radius: 10px;
   font-size: 20px;

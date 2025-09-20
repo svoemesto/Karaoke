@@ -22,7 +22,6 @@
           :per-page="perPage"
           :current-page="currentPage"
           small
-          fixed
           bordered
           hover
           @row-clicked="onRowClicked"
@@ -281,7 +280,7 @@
                 inline
                 disabled
                 v-model="data.value"
-                :style="{ height: '18px', backgroundColor: '#fff0', minHeight: '18px' }"
+                :style="{ backgroundColor: '#fff0', height: '18px', minHeight: '18px', padding: '0' }"
             ></b-form-rating>
           </div>
         </template>
@@ -1356,6 +1355,7 @@ export default {
   font-size: small;
   white-space: nowrap;
   overflow: hidden;
+  height: 18px;
 }
 .btn-round-double {
   border: solid 1px black;

@@ -93,11 +93,11 @@ li a {
   left: 10px;
 }
 
-.toast-header {
+.toast-header-info {
   color: #fff;
   background-color: rgb(50 50 255 / 85%)
 }
-.toast-body {
+.toast-body-info {
   padding: .75rem;
   color: #000;
   background-color: rgb(200 200 255 / 85%);

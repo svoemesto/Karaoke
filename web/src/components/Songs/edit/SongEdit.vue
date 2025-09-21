@@ -1840,18 +1840,37 @@ export default {
     showCopyToClipboardToast(fieldName, fieldValue) {
       // Use a shorter name for this.$createElement
       const h = this.$createElement
-      // Create the message
-      const vNodesMsg = h(
-          'div',
-          [
-            `Значение поля `,
-            h('strong', fieldName),
-            ` скопировано в буфер обмена:`,
-            h('br'),
-            h('div', { style: { fontFamily: 'monospace', fontSize: 'x-small' } }, fieldValue)
-          ],
 
-      )
+      // Функция для преобразования текста с \n в массив VNodes с <br>
+      const createTextWithLineBreaks = (text) => {
+        if (typeof text !== 'string') {
+          return [String(text)];
+        }
+
+        const lines = text.split('\n');
+        const vnodes = [];
+
+        lines.forEach((line, index) => {
+          // Добавляем текст строки
+          vnodes.push(line);
+          // Если это не последняя строка, добавляем <br>
+          if (index < lines.length - 1) {
+            vnodes.push(h('br'));
+          }
+        });
+
+        return vnodes;
+      };
+
+      // Создаем сообщение с возможными переносами строк
+      const vNodesMsg = h('div', [
+        `Значение поля `,
+        h('strong', fieldName),
+        ` скопировано в буфер обмена:`,
+        h('br'),
+        h('div', { style: { fontFamily: 'monospace', fontSize: 'x-small' } }, createTextWithLineBreaks(fieldValue))
+      ]);
+
       this.$bvToast.toast([vNodesMsg], {
         title: 'COPY',
         autoHideDelay: 3000,

@@ -1788,10 +1788,10 @@ class ApisController(private val sseNotificationService: SseNotificationService)
                              @RequestParam(required = false) priorKaraoke: String? = "1",
                              @RequestParam(required = false) priorChords: String? = "",
                              @RequestParam(required = false) priorMelody: String? = "",
-                             @RequestParam(required = false) priorLyricsVk: String? = "",
-                             @RequestParam(required = false) priorKaraokeVk: String? = "",
-                             @RequestParam(required = false) priorChordsVk: String? = "",
-                             @RequestParam(required = false) priorMelodyVk: String? = "",
+//                             @RequestParam(required = false) priorLyricsVk: String? = "",
+//                             @RequestParam(required = false) priorKaraokeVk: String? = "",
+//                             @RequestParam(required = false) priorChordsVk: String? = "",
+//                             @RequestParam(required = false) priorMelodyVk: String? = "",
     ): Boolean {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
 
@@ -1806,49 +1806,49 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             val createKaraoke = priorKaraoke != "" && priorKaraoke != null
             val createChords = priorChords != "" && priorChords != null
             val createMelody = priorMelody != "" && priorMelody != null
-            val createLyricsVk = priorLyricsVk != "" && priorLyricsVk != null
-            val createKaraokeVk = priorKaraokeVk != "" && priorKaraokeVk != null
-            val createChordsVk = priorChordsVk != "" && priorChordsVk != null
-            val createMelodyVk = priorMelodyVk != "" && priorMelodyVk != null
+//            val createLyricsVk = priorLyricsVk != "" && priorLyricsVk != null
+//            val createKaraokeVk = priorKaraokeVk != "" && priorKaraokeVk != null
+//            val createChordsVk = priorChordsVk != "" && priorChordsVk != null
+//            val createMelodyVk = priorMelodyVk != "" && priorMelodyVk != null
 
             settings.createKaraoke(
                 createLyrics = createLyrics,
                 createKaraoke = createKaraoke,
                 createChords = createChords,
                 createMelody = createMelody,
-                createLyricsVk = createLyricsVk,
-                createKaraokeVk = createKaraokeVk,
-                createChordsVk = createChordsVk,
-                createMelodyVk = createMelodyVk,
+//                createLyricsVk = createLyricsVk,
+//                createKaraokeVk = createKaraokeVk,
+//                createChordsVk = createChordsVk,
+//                createMelodyVk = createMelodyVk,
             )
             if (createLyrics) {
                 KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, priorLyrics!!.toInt())
-                if (!createLyricsVk && settings.getSongDurationVideoMs() < 61_100) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICSVK, true, priorLyrics.toInt())
+//                if (!createLyricsVk && settings.getSongDurationVideoMs() < 61_100) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICSVK, true, priorLyrics.toInt())
             }
             if (createKaraoke) {
                 KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, priorKaraoke!!.toInt())
-                if (!createKaraokeVk && settings.getSongDurationVideoMs() < 61_100) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKEVK, true, priorKaraoke.toInt())
+//                if (!createKaraokeVk && settings.getSongDurationVideoMs() < 61_100) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKEVK, true, priorKaraoke.toInt())
             }
             if (createChords) {
 //                if (!File(settings.drumsNameFlac).exists() || !File(settings.bassNameFlac).exists()) {
 //                    KaraokeProcess.createProcess(settings, KaraokeProcessTypes.DEMUCS5, true, priorChords!!.toInt())
 //                }
                 KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDS, true, priorChords!!.toInt())
-                if (!createChordsVk && settings.getSongDurationVideoMs() < 61_100) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDSVK, true, priorChords.toInt())
+//                if (!createChordsVk && settings.getSongDurationVideoMs() < 61_100) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDSVK, true, priorChords.toInt())
             }
             if (createMelody) {
                 KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_TABS, true, priorMelody!!.toInt())
-                if (!createMelodyVk && settings.getSongDurationVideoMs() < 61_100) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_TABSVK, true, priorMelody.toInt())
+//                if (!createMelodyVk && settings.getSongDurationVideoMs() < 61_100) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_TABSVK, true, priorMelody.toInt())
             }
-            if (createLyricsVk) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICSVK, true, priorLyricsVk!!.toInt())
-            if (createKaraokeVk) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKEVK, true, priorKaraokeVk!!.toInt())
-            if (createChordsVk) {
+//            if (createLyricsVk) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICSVK, true, priorLyricsVk!!.toInt())
+//            if (createKaraokeVk) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKEVK, true, priorKaraokeVk!!.toInt())
+//            if (createChordsVk) {
 //                if (!File(settings.drumsNameFlac).exists() || !File(settings.bassNameFlac).exists()) {
 //                    KaraokeProcess.createProcess(settings, KaraokeProcessTypes.DEMUCS5, true, priorChords!!.toInt())
 //                }
-                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDSVK, true, priorChordsVk!!.toInt())
-            }
-            if (createMelodyVk) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_TABSVK, true, priorMelodyVk!!.toInt())
+//                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDSVK, true, priorChordsVk!!.toInt())
+//            }
+//            if (createMelodyVk) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_TABSVK, true, priorMelodyVk!!.toInt())
             type = "info"
             body = "Создание караоке для песни «${it.songName}» прошло успешно."
             result = true
@@ -1865,10 +1865,10 @@ class ApisController(private val sseNotificationService: SseNotificationService)
                                  @RequestParam(required = false) priorKaraoke: String? = "10",
                                  @RequestParam(required = false) priorChords: String? = "",
                                  @RequestParam(required = false) priorMelody: String? = "",
-                                 @RequestParam(required = false) priorLyricsVk: String? = "",
-                                 @RequestParam(required = false) priorKaraokeVk: String? = "",
-                                 @RequestParam(required = false) priorChordsVk: String? = "",
-                                 @RequestParam(required = false) priorMelodyVk: String? = "",
+//                                 @RequestParam(required = false) priorLyricsVk: String? = "",
+//                                 @RequestParam(required = false) priorKaraokeVk: String? = "",
+//                                 @RequestParam(required = false) priorChordsVk: String? = "",
+//                                 @RequestParam(required = false) priorMelodyVk: String? = "",
     ) {
         var result = false
         songsIds.let {
@@ -1880,41 +1880,41 @@ class ApisController(private val sseNotificationService: SseNotificationService)
                     val createKaraoke = priorKaraoke != "" && priorKaraoke != null
                     val createChords = priorChords != "" && priorChords != null
                     val createMelody = priorMelody != "" && priorMelody != null
-                    val createLyricsVk = priorLyricsVk != "" && priorLyricsVk != null
-                    val createKaraokeVk = priorKaraokeVk != "" && priorKaraokeVk != null
-                    val createChordsVk = priorChordsVk != "" && priorChordsVk != null
-                    val createMelodyVk = priorMelodyVk != "" && priorMelodyVk != null
+//                    val createLyricsVk = priorLyricsVk != "" && priorLyricsVk != null
+//                    val createKaraokeVk = priorKaraokeVk != "" && priorKaraokeVk != null
+//                    val createChordsVk = priorChordsVk != "" && priorChordsVk != null
+//                    val createMelodyVk = priorMelodyVk != "" && priorMelodyVk != null
 
                     settings.createKaraoke(
                         createLyrics = createLyrics,
                         createKaraoke = createKaraoke,
                         createChords = createChords,
                         createMelody = createMelody,
-                        createLyricsVk = createLyricsVk,
-                        createKaraokeVk = createKaraokeVk,
-                        createMelodyVk = createMelodyVk
+//                        createLyricsVk = createLyricsVk,
+//                        createKaraokeVk = createKaraokeVk,
+//                        createMelodyVk = createMelodyVk
                     )
 
                     if (createLyrics) {
                         KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, priorLyrics!!.toInt())
-                        if (!createLyricsVk && settings.getSongDurationVideoMs() < 61_100) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICSVK, true, priorLyrics.toInt())
+//                        if (!createLyricsVk && settings.getSongDurationVideoMs() < 61_100) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICSVK, true, priorLyrics.toInt())
                     }
                     if (createKaraoke) {
                         KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, priorKaraoke!!.toInt())
-                        if (!createKaraokeVk && settings.getSongDurationVideoMs() < 61_100) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKEVK, true, priorKaraoke.toInt())
+//                        if (!createKaraokeVk && settings.getSongDurationVideoMs() < 61_100) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKEVK, true, priorKaraoke.toInt())
                     }
                     if (createChords) {
                         KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDS, true, priorChords!!.toInt())
-                        if (!createChordsVk && settings.getSongDurationVideoMs() < 61_100) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDSVK, true, priorChords.toInt())
+//                        if (!createChordsVk && settings.getSongDurationVideoMs() < 61_100) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDSVK, true, priorChords.toInt())
                     }
                     if (createMelody) {
                         KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_TABS, true, priorMelody!!.toInt())
-                        if (!createMelodyVk && settings.getSongDurationVideoMs() < 61_100) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_TABSVK, true, priorMelody.toInt())
+//                        if (!createMelodyVk && settings.getSongDurationVideoMs() < 61_100) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_TABSVK, true, priorMelody.toInt())
                     }
-                    if (createLyricsVk) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICSVK, true, priorLyricsVk!!.toInt())
-                    if (createKaraokeVk) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKEVK, true, priorKaraokeVk!!.toInt())
-                    if (createChordsVk) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDSVK, true, priorChordsVk!!.toInt())
-                    if (createMelodyVk) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_TABSVK, true, priorMelodyVk!!.toInt())
+//                    if (createLyricsVk) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICSVK, true, priorLyricsVk!!.toInt())
+//                    if (createKaraokeVk) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKEVK, true, priorKaraokeVk!!.toInt())
+//                    if (createChordsVk) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDSVK, true, priorChordsVk!!.toInt())
+//                    if (createMelodyVk) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_TABSVK, true, priorMelodyVk!!.toInt())
                 }
                 result = true
             }
@@ -2891,7 +2891,30 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         )
     }
 
-    @PostMapping("/authorsdigests")
+    @PostMapping("/authors/updateauthor")
+    @ResponseBody
+    fun apisUpdateAuthor(
+            @RequestParam(required = true) id: Long,
+            @RequestParam(required = true) author: String,
+            @RequestParam(required = true) ymId: String,
+            @RequestParam(required = true) lastAlbumYm: String,
+            @RequestParam(required = true) lastAlbumProcessed: String,
+            @RequestParam(required = true) watched: Boolean
+    ): Long {
+
+        Author.load(id = id, database = WORKING_DATABASE)?.let {
+            it.author = author
+            it.ymId = ymId
+            it.lastAlbumYm = lastAlbumYm
+            it.lastAlbumProcessed = lastAlbumProcessed
+            it.watched = watched
+            it.save()
+            return id
+        }
+        return 0L
+    }
+
+    @PostMapping("/authors/authorsdigests")
     @ResponseBody
     fun apisAuthorsDigest(
             @RequestParam(required = false) filter_id: String?,

@@ -49,7 +49,7 @@ data class SettingVoice(
         }
         countLineTracks = getLines().maxOf { line -> getLines().filter { it.isOnScreen(line.lineStartMs) }.size }
 
-        if (songVersion in listOf(SongVersion.CHORDS, SongVersion.CHORDSVK)) {
+        if (songVersion in listOf(SongVersion.CHORDS)) {
             var chordX = 0
             val chordHeight = Karaoke.frameHeightPx / 4
             val chords = getLines()

@@ -24,7 +24,7 @@ export default {
             let counter = 0;
             let i = 0;
 
-            console.log('countLines', countLines);
+            // console.log('countLines', countLines);
             let textResult = '';
             while (i < countLines) {
                 const line = lines[i];

@@ -5,14 +5,14 @@
         <div v-html="params.header" :style="styleHeader"></div>
         <div v-html="params.body" :style="styleBody"></div>
         <div v-if="params.fields" class="сс-params">
-          <div v-for="fld in params.fields" :key="fld">
+          <div v-for="fld in params.fields" :key="fld" class="сс-param-line-fields">
+            <div v-text="fld.fldLabel" :style="fld.fldLabelStyle"></div>
             <div v-if="fld.fldIsBoolean" class="сс-param-line-buttons">
-              <button class="сс-group-button-boolean" :class="fld.fldValue === 'true' ? 'сс-group-button-boolean-active' : ''"  type="button" value="true"  @click="fld.fldValue='true'">TRUE</button>
-              <button class="сс-group-button-boolean" :class="fld.fldValue === 'false' ? 'сс-group-button-boolean-active' : ''" type="button" value="false" @click="fld.fldValue='false'">FALSE</button>
+              <button class="сс-group-button-boolean" :class="fld.fldValue === 'true' || fld.fldValue === true ? 'сс-group-button-boolean-active' : ''"  type="button" value="true"  @click="fld.fldValue='true'">TRUE</button>
+              <button class="сс-group-button-boolean" :class="fld.fldValue === 'false' || fld.fldValue === false ? 'сс-group-button-boolean-active' : ''" type="button" value="false" @click="fld.fldValue='false'">FALSE</button>
             </div>
-            <div v-else class="сс-param-line-fields">
-              <div v-text="fld.fldLabel" :style="fld.fldLabelStyle"></div>
-              <input v-model="fld.fldValue" :style="fld.fldValueStyle">
+            <div v-else class="сс-param-line-buttons">
+              <input v-model="fld.fldValue" :style="fld.fldValueStyle" :disabled="fld.disabled">
             </div>
           </div>
         </div>
@@ -192,7 +192,7 @@ export default {
 .сс-param-line-buttons {
   display: flex;
   flex-direction: row;
-  justify-content: center;
+  justify-content: left;
 }
 
 .сс-button-ok {

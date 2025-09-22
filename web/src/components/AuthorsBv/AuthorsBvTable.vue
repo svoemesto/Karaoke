@@ -53,6 +53,7 @@
               class="fld-author"
               v-text="data.value"
               :style="{ color: currentAuthorId === data.item.id ? 'blue' : 'black' }"
+              @click.left="changeValue(data.item)"
           ></div>
         </template>
 
@@ -61,6 +62,7 @@
               class="fld-ymId"
               v-text="data.value"
               :style="{ color: currentAuthorId === data.item.id ? 'blue' : 'black' }"
+              @click.left="openYandexMusicAuthor(data.item)"
           ></div>
         </template>
 
@@ -80,9 +82,9 @@
           ></div>
         </template>
 
-        <template #cell(wathed)="data">
+        <template #cell(watched)="data">
           <div
-              class="fld-wathed"
+              class="fld-watched"
               v-text="data.value"
               :style="{ color: currentAuthorId === data.item.id ? 'blue' : 'black' }"
           ></div>
@@ -161,8 +163,8 @@ export default {
           key: 'id',
           label: 'ID',
           style: {
-            minWidth: '200px',
-            maxWidth: '200px',
+            minWidth: '50px',
+            maxWidth: '50px',
             textAlign: 'center',
             fontSize: 'small'
           }
@@ -181,8 +183,8 @@ export default {
           key: 'ymId',
           label: 'Yandex ID',
           style: {
-            minWidth: '300px',
-            maxWidth: '300px',
+            minWidth: '100px',
+            maxWidth: '100px',
             textAlign: 'left',
             fontSize: 'small'
           }
@@ -211,8 +213,8 @@ export default {
           key: 'watched',
           label: 'Watch',
           style: {
-            minWidth: '120px',
-            maxWidth: '120px',
+            minWidth: '50px',
+            maxWidth: '50px',
             textAlign: 'left',
             fontSize: 'small'
           }
@@ -222,28 +224,79 @@ export default {
   },
   methods: {
 
+    openYandexMusicAuthor(item) {
+      if (item.ymId) {
+        const yandexMusicAuthorLink = 'https://music.yandex.ru/artist/' + item.ymId + '/albums';
+        window.open(yandexMusicAuthorLink, '_blank');
+      }
+    },
+
     changeValue(item) {
 
       this.customConfirmParams = {
-        header: 'Изменение значения настройки',
-        body: `Значение настройки <strong>${item.key}.</strong>`,
+        header: 'Изменение Автора',
+        body: `Автор ID = <strong>${item.id}</strong>`,
         callback: this.doChangeValue,
         fields: [
           {
-            fldName: 'authorValue',
-            fldLabel: 'Значение:',
-            fldValue: item.value,
-            fldIsBoolean: item.type === 'Boolean',
-            fldLabelStyle: { width: '100px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '300px', textAlign: 'center', borderRadius: '10px'}
+            fldName: 'id',
+            fldLabel: 'ID:',
+            fldValue: item.id,
+            disabled: true,
+            fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px'},
+            fldValueStyle: { width: '300px', textAlign: 'left', borderRadius: '5px'}
+          },
+          {
+            fldName: 'author',
+            fldLabel: 'Автор:',
+            fldValue: item.author,
+            fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px'},
+            fldValueStyle: { width: '300px', textAlign: 'left', borderRadius: '5px'}
+          },
+          {
+            fldName: 'ymId',
+            fldLabel: 'Yandex ID:',
+            fldValue: item.ymId,
+            fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px'},
+            fldValueStyle: { width: '300px', textAlign: 'left', borderRadius: '5px'}
+          },
+          {
+            fldName: 'lastAlbumYm',
+            fldLabel: 'Последний альбом (Yandex):',
+            fldValue: item.lastAlbumYm,
+            fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px'},
+            fldValueStyle: { width: '300px', textAlign: 'left', borderRadius: '5px'}
+          },
+          {
+            fldName: 'lastAlbumProcessed',
+            fldLabel: 'Последний альбом (DB):',
+            fldValue: item.lastAlbumProcessed,
+            fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px'},
+            fldValueStyle: { width: '300px', textAlign: 'left', borderRadius: '5px'}
+          },
+          {
+            fldName: 'watched',
+            fldLabel: 'Следить:',
+            fldValue: item.watched,
+            fldIsBoolean: true,
+            fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px'},
+            fldValueStyle: { width: '300px', textAlign: 'center', borderRadius: '5px'}
           }
         ]
       }
       this.isCustomConfirmVisible = true;
     },
 
-    doChangeValue(result) {
-      this.$store.dispatch('setAuthorValuePromise', {authorKey: this.currentAuthor.key, authorValue: result.authorValue});
+    doChangeValue(author) {
+      this.$store.dispatch('setAuthorValuePromise', author)
+          .then(result => { // result - это целое число, возвращаемое промисом
+            if (result !== 0) { // Проверяем, отлично ли оно от нуля
+              this.$store.dispatch('loadOneRecord', result);
+            }
+          })
+          .catch(error => {
+            console.error("Ошибка при выполнении setAuthorValuePromise:", error);
+          });
     },
 
     closeCustomConfirm() {
@@ -303,8 +356,8 @@ export default {
 }
 
 .fld-author-id {
-  min-width: 200px;
-  max-width: 200px;
+  min-width: 50px;
+  max-width: 50px;
   text-align: center;
   font-size: small;
   white-space: nowrap;
@@ -323,14 +376,22 @@ export default {
   white-space: nowrap;
   overflow: hidden;
 }
+.fld-author:hover {
+  text-decoration: underline;
+  cursor: pointer;
+}
 
 .fld-ymId {
-  min-width: 300px;
-  max-width: 300px;
+  min-width: 100px;
+  max-width: 100px;
   text-align: center;
   font-size: small;
   white-space: nowrap;
   overflow: hidden;
+}
+.fld-ymId:hover {
+  text-decoration: underline;
+  cursor: pointer;
 }
 
 .fld-lastAlbumYm {
@@ -351,9 +412,9 @@ export default {
   overflow: hidden;
 }
 
-.fld-wathed {
-  min-width: 120px;
-  max-width: 120px;
+.fld-watched {
+  min-width: 50px;
+  max-width: 50px;
   text-align: center;
   font-size: small;
   white-space: nowrap;

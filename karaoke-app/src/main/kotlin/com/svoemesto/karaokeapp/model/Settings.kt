@@ -241,13 +241,13 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
 
     val pathToFileLyrics: String  get() = "${rootFolder}/done_files/$nameFileLyrics".rightFileName()
-    val pathToFileLyricsVk: String  get() = "${rootFolder}/done_files/$nameFileLyricsVk".rightFileName()
+//    val pathToFileLyricsVk: String  get() = "${rootFolder}/done_files/$nameFileLyricsVk".rightFileName()
     val pathToFileKaraoke: String  get() = "${rootFolder}/done_files/$nameFileKaraoke".rightFileName()
-    val pathToFileKaraokeVk: String  get() = "${rootFolder}/done_files/$nameFileKaraokeVk".rightFileName()
+//    val pathToFileKaraokeVk: String  get() = "${rootFolder}/done_files/$nameFileKaraokeVk".rightFileName()
     val pathToFileChords: String  get() = "${rootFolder}/done_files/$nameFileChords".rightFileName()
-    val pathToFileChordsVk: String  get() = "${rootFolder}/done_files/$nameFileChordsVk".rightFileName()
+//    val pathToFileChordsVk: String  get() = "${rootFolder}/done_files/$nameFileChordsVk".rightFileName()
     val pathToFileMelody: String  get() = "${rootFolder}/done_files/$nameFileMelody".rightFileName()
-    val pathToFileMelodyVk: String  get() = "${rootFolder}/done_files/$nameFileMelodyVk".rightFileName()
+//    val pathToFileMelodyVk: String  get() = "${rootFolder}/done_files/$nameFileMelodyVk".rightFileName()
 
     val pathToFile720Lyrics: String  get() = "$pathToFolder720Lyrics/${nameFileLyrics.replace(" [lyrics].mp4", " [lyrics] 720p.mp4")}".rightFileName()
     val pathToFileMP3Lyrics: String  get() = "$pathToFolderMP3Lyrics/${nameFileLyrics.replace(" [lyrics].mp4", " [lyrics].mp3")}".rightFileName()
@@ -276,13 +276,13 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     val nameFileLogoAlbum: String  get() = "${rightSettingFileName} [album].png".rightFileName()
     val nameFileLogoAuthor: String  get() = "${rightSettingFileName} [author].png".rightFileName()
     val nameFileLyrics: String  get() = "${rightSettingFileName} [lyrics].mp4".rightFileName()
-    val nameFileLyricsVk: String  get() = "${rightSettingFileName} [lyricsVk].mp4".rightFileName()
+//    val nameFileLyricsVk: String  get() = "${rightSettingFileName} [lyricsVk].mp4".rightFileName()
     val nameFileKaraoke: String  get() = "${rightSettingFileName} [karaoke].mp4".rightFileName()
-    val nameFileKaraokeVk: String  get() = "${rightSettingFileName} [karaokeVk].mp4".rightFileName()
+//    val nameFileKaraokeVk: String  get() = "${rightSettingFileName} [karaokeVk].mp4".rightFileName()
     val nameFileChords: String  get() = "${rightSettingFileName} [chords].mp4".rightFileName()
-    val nameFileChordsVk: String  get() = "${rightSettingFileName} [chordsVk].mp4".rightFileName()
+//    val nameFileChordsVk: String  get() = "${rightSettingFileName} [chordsVk].mp4".rightFileName()
     val nameFileMelody: String  get() = "${rightSettingFileName} [tabs].mp4".rightFileName()
-    val nameFileMelodyVk: String  get() = "${rightSettingFileName} [tabsVk].mp4".rightFileName()
+//    val nameFileMelodyVk: String  get() = "${rightSettingFileName} [tabsVk].mp4".rightFileName()
 
     val pathToFolderSheetsage: String  get() = "${rootFolder}/sheetsage".rightFileName()
     val nameFileSheetsagePDF: String  get() = "${rightSettingFileName} [sheetsage].pdf".rightFileName()
@@ -1407,11 +1407,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         mltProp.setTotalLengthFr(totalLengthFr)
 
         // setBackgroundLengthFr - общая длительность фона в кадрах
-        val backgroundLengthFr = if (songVersion in listOf(SongVersion.LYRICSVK, SongVersion.KARAOKEVK, SongVersion.CHORDSVK, SongVersion.TABSVK) && convertFramesToMilliseconds(totalLengthFr) < 61_100) {
-            convertMillisecondsToFrames(61_100)
-        } else {
-            totalLengthFr
-        }
+        val backgroundLengthFr = totalLengthFr
         mltProp.setBackgroundLengthFr(backgroundLengthFr)
 
         // setFadeLengthMs - время затухания в миллисекундах (1 сек)
@@ -1444,11 +1440,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         mltProp.setTotalEndTimecode(totalEndTimecode)
 
         // setBackgroundEndTimecode - таймкод конца aфона (общая длительность)
-        val backgroundEndTimecode = if (songVersion in listOf(SongVersion.LYRICSVK, SongVersion.KARAOKEVK, SongVersion.CHORDSVK, SongVersion.TABSVK) && convertFramesToMilliseconds(totalLengthFr) < 61_100) {
-            convertMillisecondsToTimecode(61_100)
-        } else {
-            totalEndTimecode
-        }
+        val backgroundEndTimecode = totalEndTimecode
         mltProp.setBackgroundEndTimecode(backgroundEndTimecode)
 
         // setTotalFadeInTimecode - таймкод начала фейда всего (fadeMs)
@@ -1536,28 +1528,28 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
         // setVolume - громкость определенного аудиотрека в зависимости от songVersion
         when(songVersion) {
-            SongVersion.LYRICS, SongVersion.LYRICSVK -> {
+            SongVersion.LYRICS -> {
                 mltProp.setVolume(propAudioVolumeOff, ProducerType.AUDIOVOCAL)
                 mltProp.setVolume(propAudioVolumeOff, ProducerType.AUDIOMUSIC)
                 mltProp.setVolume(propAudioVolumeOn, ProducerType.AUDIOSONG)
                 mltProp.setVolume(propAudioVolumeOff, ProducerType.AUDIOBASS)
                 mltProp.setVolume(propAudioVolumeOff, ProducerType.AUDIODRUMS)
             }
-            SongVersion.KARAOKE, SongVersion.KARAOKEVK -> {
+            SongVersion.KARAOKE -> {
                 mltProp.setVolume(propAudioVolumeCustom, ProducerType.AUDIOVOCAL)
                 mltProp.setVolume(propAudioVolumeOn, ProducerType.AUDIOMUSIC)
                 mltProp.setVolume(propAudioVolumeOff, ProducerType.AUDIOSONG)
                 mltProp.setVolume(propAudioVolumeOff, ProducerType.AUDIOBASS)
                 mltProp.setVolume(propAudioVolumeOff, ProducerType.AUDIODRUMS)
             }
-            SongVersion.CHORDS, SongVersion.CHORDSVK -> {
+            SongVersion.CHORDS -> {
                 mltProp.setVolume(propAudioVolumeOff, ProducerType.AUDIOVOCAL)
                 mltProp.setVolume(propAudioVolumeOff, ProducerType.AUDIOMUSIC)
                 mltProp.setVolume(propAudioVolumeOff, ProducerType.AUDIOSONG)
                 mltProp.setVolume(propAudioVolumeOn, ProducerType.AUDIOBASS)
                 mltProp.setVolume(propAudioVolumeOn, ProducerType.AUDIODRUMS)
             }
-            SongVersion.TABS, SongVersion.TABSVK -> {
+            SongVersion.TABS -> {
                 mltProp.setVolume(propAudioVolumeCustom, ProducerType.AUDIOVOCAL)
                 mltProp.setVolume(propAudioVolumeOn, ProducerType.AUDIOMUSIC)
                 mltProp.setVolume(propAudioVolumeOff, ProducerType.AUDIOSONG)
@@ -2861,7 +2853,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         val txtStart = getDescriptionHeader(songVersion = songVersion) + "\n\n" + getTextForDescriptionHeader(songVersion = songVersion)
         val txtEnd = getTextForDescriptionFooter()
         val txtDescription = when(songVersion) {
-            SongVersion.TABS, SongVersion.TABSVK -> {
+            SongVersion.TABS -> {
                 getNotesForDescription(maxSymbols - txtStart.length - txtEnd.length)
             }
             else -> {
@@ -3481,10 +3473,10 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         createKaraoke: Boolean = true,
         createChords: Boolean = false,
         createMelody: Boolean = false,
-        createLyricsVk: Boolean = false,
-        createKaraokeVk: Boolean = false,
-        createChordsVk: Boolean = false,
-        createMelodyVk: Boolean = false,
+//        createLyricsVk: Boolean = false,
+//        createKaraokeVk: Boolean = false,
+//        createChordsVk: Boolean = false,
+//        createMelodyVk: Boolean = false,
         ) {
 
         val permissions = PosixFilePermissions.fromString("rwxr-x---")
@@ -3541,24 +3533,24 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
         if (createLyrics) {
             createKaraoke(this, SongVersion.LYRICS)
-            if (!createLyricsVk && getSongDurationVideoMs() < 61_100) createKaraoke(this, SongVersion.LYRICSVK)
+//            if (!createLyricsVk && getSongDurationVideoMs() < 61_100) createKaraoke(this, SongVersion.LYRICSVK)
         }
         if (createKaraoke) {
             createKaraoke(this, SongVersion.KARAOKE)
-            if (!createKaraokeVk && getSongDurationVideoMs() < 61_100) createKaraoke(this, SongVersion.KARAOKEVK)
+//            if (!createKaraokeVk && getSongDurationVideoMs() < 61_100) createKaraoke(this, SongVersion.KARAOKEVK)
         }
         if (createChords) {
             createKaraoke(this, SongVersion.CHORDS)
-            if (!createChordsVk && getSongDurationVideoMs() < 61_100) createKaraoke(this, SongVersion.CHORDSVK)
+//            if (!createChordsVk && getSongDurationVideoMs() < 61_100) createKaraoke(this, SongVersion.CHORDSVK)
         }
         if (createMelody) {
             createKaraoke(this, SongVersion.TABS)
-            if (!createMelodyVk && getSongDurationVideoMs() < 61_100) createKaraoke(this, SongVersion.TABSVK)
+//            if (!createMelodyVk && getSongDurationVideoMs() < 61_100) createKaraoke(this, SongVersion.TABSVK)
         }
-        if (createLyricsVk) createKaraoke(this, SongVersion.LYRICSVK)
-        if (createKaraokeVk) createKaraoke(this, SongVersion.KARAOKEVK)
-        if (createChordsVk) createKaraoke(this, SongVersion.CHORDSVK)
-        if (createMelodyVk) createKaraoke(this, SongVersion.TABSVK)
+//        if (createLyricsVk) createKaraoke(this, SongVersion.LYRICSVK)
+//        if (createKaraokeVk) createKaraoke(this, SongVersion.KARAOKEVK)
+//        if (createChordsVk) createKaraoke(this, SongVersion.CHORDSVK)
+//        if (createMelodyVk) createKaraoke(this, SongVersion.TABSVK)
 
         if (idStatus < 3) {
             fields[SettingField.ID_STATUS] = "3"

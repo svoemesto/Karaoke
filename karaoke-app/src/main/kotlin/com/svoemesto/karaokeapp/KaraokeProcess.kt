@@ -1407,51 +1407,51 @@ class KaraokeProcess(
                         )
                     }
 
-                    KaraokeProcessTypes.MELT_LYRICSVK -> {
-                        description = "Кодирование LYRICSVK"
-                        prioritet = 19
-                        args = listOf(
-                            listOf(
-                                "docker", "compose", "-f", "/sm-karaoke/system/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
-                                "${settings.rootFolder}/done_projects/${settings.rightSettingFileName} [lyricsVk].mlt".rightFileName()
-                            ),
-                            listOf("chmod", "666", settings.pathToFileLyricsVk),
-                        )
-
-                    }
-                    KaraokeProcessTypes.MELT_KARAOKEVK -> {
-                        description = "Кодирование KARAOKEVK"
-                        prioritet = 19
-                        args = listOf(
-                            listOf(
-                                "docker", "compose", "-f", "/sm-karaoke/system/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
-                                "${settings.rootFolder}/done_projects/${settings.rightSettingFileName} [karaokeVk].mlt".rightFileName()
-                            ),
-                            listOf("chmod", "666", settings.pathToFileKaraokeVk),
-                        )
-                    }
-                    KaraokeProcessTypes.MELT_CHORDSVK -> {
-                        description = "Кодирование CHORDSVK"
-                        prioritet = 19
-                        args = listOf(
-                            listOf(
-                                "docker", "compose", "-f", "/sm-karaoke/system/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
-                                "${settings.rootFolder}/done_projects/${settings.rightSettingFileName} [chordsVk].mlt".rightFileName()
-                            ),
-                            listOf("chmod", "666", settings.pathToFileChordsVk),
-                        )
-                    }
-                    KaraokeProcessTypes.MELT_TABSVK -> {
-                        description = "Кодирование TABSVK"
-                        prioritet = 19
-                        args = listOf(
-                            listOf(
-                                "docker", "compose", "-f", "/sm-karaoke/system/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
-                                "${settings.rootFolder}/done_projects/${settings.rightSettingFileName} [tabsVk].mlt".rightFileName()
-                            ),
-                            listOf("chmod", "666", settings.pathToFileMelodyVk),
-                        )
-                    }
+//                    KaraokeProcessTypes.MELT_LYRICSVK -> {
+//                        description = "Кодирование LYRICSVK"
+//                        prioritet = 19
+//                        args = listOf(
+//                            listOf(
+//                                "docker", "compose", "-f", "/sm-karaoke/system/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
+//                                "${settings.rootFolder}/done_projects/${settings.rightSettingFileName} [lyricsVk].mlt".rightFileName()
+//                            ),
+//                            listOf("chmod", "666", settings.pathToFileLyricsVk),
+//                        )
+//
+//                    }
+//                    KaraokeProcessTypes.MELT_KARAOKEVK -> {
+//                        description = "Кодирование KARAOKEVK"
+//                        prioritet = 19
+//                        args = listOf(
+//                            listOf(
+//                                "docker", "compose", "-f", "/sm-karaoke/system/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
+//                                "${settings.rootFolder}/done_projects/${settings.rightSettingFileName} [karaokeVk].mlt".rightFileName()
+//                            ),
+//                            listOf("chmod", "666", settings.pathToFileKaraokeVk),
+//                        )
+//                    }
+//                    KaraokeProcessTypes.MELT_CHORDSVK -> {
+//                        description = "Кодирование CHORDSVK"
+//                        prioritet = 19
+//                        args = listOf(
+//                            listOf(
+//                                "docker", "compose", "-f", "/sm-karaoke/system/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
+//                                "${settings.rootFolder}/done_projects/${settings.rightSettingFileName} [chordsVk].mlt".rightFileName()
+//                            ),
+//                            listOf("chmod", "666", settings.pathToFileChordsVk),
+//                        )
+//                    }
+//                    KaraokeProcessTypes.MELT_TABSVK -> {
+//                        description = "Кодирование TABSVK"
+//                        prioritet = 19
+//                        args = listOf(
+//                            listOf(
+//                                "docker", "compose", "-f", "/sm-karaoke/system/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
+//                                "${settings.rootFolder}/done_projects/${settings.rightSettingFileName} [tabsVk].mlt".rightFileName()
+//                            ),
+//                            listOf("chmod", "666", settings.pathToFileMelodyVk),
+//                        )
+//                    }
 
                     KaraokeProcessTypes.SMARTCOPY -> {
                         description = "Smart Copy"

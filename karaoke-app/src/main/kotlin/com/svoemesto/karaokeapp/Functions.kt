@@ -458,7 +458,7 @@ fun createKaraoke(settings: Settings, songVersion: SongVersion) {
 
 //    val voices = getVoices(settings, songVersion)
 
-    if (songVersion in listOf(SongVersion.CHORDS, SongVersion.CHORDSVK) && (!File(settings.drumsNameFlac).exists() || !File(settings.bassNameFlac).exists())) {
+    if (songVersion in listOf(SongVersion.CHORDS) && (!File(settings.drumsNameFlac).exists() || !File(settings.bassNameFlac).exists())) {
         val args = settings.argsDemucs5()
         args.forEach { arg -> runCommand(arg) }
     }

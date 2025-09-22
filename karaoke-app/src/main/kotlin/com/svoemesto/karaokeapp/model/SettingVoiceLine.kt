@@ -18,7 +18,7 @@ data class SettingVoiceLine(
     private val _elements: MutableList<SettingVoiceLineElement> = mutableListOf()
     fun getElements(songVersion: SongVersion): List<SettingVoiceLineElement> {
         val listOfElementTypes = when (songVersion) {
-            SongVersion.KARAOKE, SongVersion.KARAOKEVK -> {
+            SongVersion.KARAOKE -> {
                 listOf(
                     SettingVoiceLineElementTypes.TEXT,
                     SettingVoiceLineElementTypes.COMMENT,
@@ -26,7 +26,7 @@ data class SettingVoiceLine(
                     SettingVoiceLineElementTypes.NEWLINE
                 )
             }
-            SongVersion.LYRICS, SongVersion.LYRICSVK -> {
+            SongVersion.LYRICS -> {
                 listOf(
                     SettingVoiceLineElementTypes.TEXT,
                     SettingVoiceLineElementTypes.COMMENT,
@@ -34,7 +34,7 @@ data class SettingVoiceLine(
                     SettingVoiceLineElementTypes.NEWLINE
                 )
             }
-            SongVersion.CHORDS, SongVersion.CHORDSVK -> {
+            SongVersion.CHORDS -> {
                 listOf(
                     SettingVoiceLineElementTypes.TEXT,
                     SettingVoiceLineElementTypes.COMMENT,
@@ -43,7 +43,7 @@ data class SettingVoiceLine(
                     SettingVoiceLineElementTypes.ACCORD
                 )
             }
-            SongVersion.TABS, SongVersion.TABSVK -> {
+            SongVersion.TABS -> {
                 listOf(
                     SettingVoiceLineElementTypes.TEXT,
                     SettingVoiceLineElementTypes.COMMENT,

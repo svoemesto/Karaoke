@@ -197,6 +197,12 @@
               </div>
             </div>
             <div class="se-group-actions-buttons">
+              <button class="se-group-button" type="button" @click="doMarkersDec">
+                <img alt="diffbeatsdec" class="se-icon-40" title="Сдвинуть маркеры влево" src="../../../assets/svg/icon_diffbeatsdec.svg">
+              </button>
+              <button class="se-group-button" type="button" @click="doMarkersInc">
+                <img alt="diffbeatsinc" class="se-icon-40" title="Сдвинуть маркеры вправо" src="../../../assets/svg/icon_diffbeatsinc.svg">
+              </button>
               <button class="se-group-button" type="button" @click="addAccent">
                 <img alt="erase markers" class="se-icon-40" title="Добавить ударение" src="../../../assets/svg/icon_accent.svg">
               </button>
@@ -2478,6 +2484,42 @@ export default {
       if (diff >= 0) {
         this.doChordsDel();
         await this.doChordsAdd();
+      }
+    },
+    doMarkersDec() {
+      // Берем текущую позицию, находим следующий за ней маркер, вычисляем разницу, отнимаем эту разнуцу у всех последующих маркеров, кроме маркера конца
+      let markers = this.sourceMarkers;
+      for (let i = 0; i < markers.length-1; i++) {
+        let marker = markers[i];
+        if (this.currentTime < marker.time) {
+          const diff = marker.time - this.currentTime;
+          for (let j = i; j < markers.length-1; j++) {
+            if (markers[j].markertype !== 'setting' && markers[j].label !== 'END') {
+              markers[j].time -= diff;
+            }
+          }
+          this.redrawMarkers();
+          return;
+        }
+      }
+    },
+    doMarkersInc() {
+      // Берем текущую позицию, находим предыдущий маркер, вычисляем разницу, прибавляем эту разнуцу у всех последующих маркеров, кроме маркера конца
+      let markers = this.sourceMarkers;
+      if (markers.length > 0 && this.currentTime < markers[0].time) return -1;
+      for (let i = 0; i < markers.length-1; i++) {
+        let marker = markers[i];
+        let nextMarker = markers[i+1];
+        if (this.currentTime >= marker.time && this.currentTime < nextMarker.time) {
+          const diff = this.currentTime - marker.time;
+          for (let j = i; j < markers.length-1; j++) {
+            if (markers[j].markertype !== 'setting' && markers[j].label !== 'END') {
+              markers[j].time += diff;
+            }
+          }
+          this.redrawMarkers();
+          return;
+        }
       }
     },
     doReplaceBrokenMarkers() {

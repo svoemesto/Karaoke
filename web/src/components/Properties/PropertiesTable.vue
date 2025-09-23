@@ -101,14 +101,14 @@ import { PaginationPlugin } from 'bootstrap-vue'
 import { SpinnerPlugin } from 'bootstrap-vue'
 
 // import PropertyEditModal from "@/components/Properties/edit/PropertyEditModal.vue";
-import PropertiesFilter from "@/components/PropertiesFilter/PropertiesFilterModal.vue";
+import PropertiesFilter from "@/components/Properties/filter/PropertiesFilterModal.vue";
 import CustomConfirm from "../Common/CustomConfirm.vue";
 Vue.use(TablePlugin)
 Vue.use(PaginationPlugin)
 Vue.use(SpinnerPlugin)
 
 export default {
-  name: "PropertiesBvTable",
+  name: "PropertiesTable",
   components: {
     // PropertyEditModal,
     PropertiesFilter,

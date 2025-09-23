@@ -2,16 +2,10 @@ import Vue from 'vue'
 import VueRouter from 'vue-router'
 import HomeView from '../views/HomeView'
 import SongsView from '../views/SongsView'
-import SongsBvView from '../views/SongsBvView'
 import PublishView from '../views/PublishView'
-import PublicationsBvView from '../views/PublicationsBvView'
-import PublicationsView from '../views/PublicationsView'
-import UnpublicationsView from '../views/UnpublicationsView'
-import ZakromaView from '../views/ZakromaView'
-import ProcessesView from '../views/ProcessesView'
-import ProcessesBvView from '../views/ProcessesBvView'
-import PropertiesBvView from '../views/PropertiesBvView'
-import AuthorsBvView from '../views/AuthorsBvView'
+import ProcessesView from '../views/ProcessesView.vue'
+import PropertiesView from '../views/PropertiesView'
+import AuthorsView from '../views/AuthorsView.vue'
 
 Vue.use(VueRouter)
 
@@ -27,34 +21,9 @@ const routes = [
     component: SongsView
   },
   {
-    path: '/songsbv',
-    name: 'songsbv',
-    component: SongsBvView
-  },
-  {
     path: '/publish',
     name: 'publish',
     component: PublishView
-  },
-  {
-    path: '/publicationsbv',
-    name: 'publicationsbv',
-    component: PublicationsBvView
-  },
-  {
-    path: '/publications',
-    name: 'publications',
-    component: PublicationsView
-  },
-  {
-    path: '/unpublications',
-    name: 'unpublications',
-    component: UnpublicationsView
-  },
-  {
-    path: '/zakroma',
-    name: 'zakroma',
-    component: ZakromaView
   },
   {
     path: '/processes',
@@ -63,20 +32,14 @@ const routes = [
     // component: () => import(/* webpackChunkName: "about" */ '../views/ProcessesView.vue')
   },
   {
-    path: '/processesbv',
-    name: 'processesbv',
-    component: ProcessesBvView
-    // component: () => import(/* webpackChunkName: "about" */ '../views/ProcessesView.vue')
+    path: '/properties',
+    name: 'properties',
+    component: PropertiesView
   },
   {
-    path: '/propertiesbv',
-    name: 'propertiesbv',
-    component: PropertiesBvView
-  },
-  {
-    path: '/authorsbv',
-    name: 'authorsbv',
-    component: AuthorsBvView
+    path: '/authors',
+    name: 'authors',
+    component: AuthorsView
   }
 ]
 

@@ -127,7 +127,7 @@ export default {
       this.$store.dispatch('setAuthorsFilterLastAlbumYm', { authorsFilterLastAlbumYm: this.authorsFilterLastAlbumYm });
       this.$store.dispatch('setAuthorsFilterLastAlbumProcessed', { authorsFilterLastAlbumProcessed: this.authorsFilterLastAlbumProcessed });
       this.$store.dispatch('setAuthorsFilterWatched', { authorsFilterWatched: this.authorsFilterWatched });
-      this.$store.dispatch('setAuthorsFilterSkip', { authorsFilterWatched: this.authorsFilterSkip });
+      this.$store.dispatch('setAuthorsFilterSkip', { authorsFilterSkip: this.authorsFilterSkip });
       this.$store.dispatch('setAuthorsFilterHaveNewAlbum', { authorsFilterHaveNewAlbum: this.authorsFilterHaveNewAlbum });
 
       let params = {};
@@ -137,7 +137,7 @@ export default {
       if (this.authorsFilterLastAlbumYm) params.filter_last_album_ym = this.authorsFilterLastAlbumYm;
       if (this.authorsFilterLastAlbumProcessed) params.filter_last_album_processed = this.authorsFilterLastAlbumProcessed;
       if (this.authorsFilterWatched) params.filter_watched = this.authorsFilterWatched;
-      if (this.authorsFilterSkip) params.filter_watched = this.authorsFilterSkip;
+      if (this.authorsFilterSkip) params.filter_skip = this.authorsFilterSkip;
       if (this.authorsFilterHaveNewAlbum) params.filter_HaveNewAlbum = this.authorsFilterHaveNewAlbum;
       this.$store.dispatch('loadAuthorsDigests', params )
 

@@ -99,8 +99,8 @@ class CrossSettings {
             listOfSettings: List<Settings>,
             columnField: SettingField = SettingField.AUTHOR
         ): List<CrossSettingsRow> {
-
-            val columns = listOfSettings.map { sett ->
+            val skipedAuthors = Author.loadList(mapOf("skip" to "true"), database = WORKING_DATABASE).map { it.author }
+            val columns = listOfSettings.filter { it.author !in skipedAuthors }.map { sett ->
                 val fields = sett.javaClass.getDeclaredField("fields")
                 fields.isAccessible = true
                 (fields.get(sett) as Map<*, *>)[columnField] as String
@@ -142,7 +142,59 @@ class CrossSettings {
 
             }
 
-            println(listCSR)
+//            println(listCSR)
+
+            return listCSR
+        }
+
+        fun skiped(
+                listOfSettings: List<Settings>,
+                columnField: SettingField = SettingField.AUTHOR
+        ): List<CrossSettingsRow> {
+            val skipedAuthors = Author.loadList(mapOf("skip" to "true"), database = WORKING_DATABASE).map { it.author }
+            val columns = listOfSettings.filter { it.author in skipedAuthors }.map { sett ->
+                val fields = sett.javaClass.getDeclaredField("fields")
+                fields.isAccessible = true
+                (fields.get(sett) as Map<*, *>)[columnField] as String
+            }.distinct().sortedBy {
+                if (columnField == SettingField.DATE) {
+                    it.split(".").asReversed().joinToString("")
+                } else {
+                    it
+                }
+            }
+
+            val countRows = listOfSettings.groupBy {
+                val fields = it.javaClass.getDeclaredField("fields")
+                fields.isAccessible = true
+                (fields.get(it) as Map<*, *>)[columnField] as String
+            }.map {it.value.size}.max()
+
+            val rows = (1 .. countRows).map { it.toString() }
+
+            val listCSR = rows.mapIndexed { rowIndex, rowName ->
+                CrossSettingsRow(
+                        csrId = rowIndex,
+                        csrName = rowName,
+                        csrCells = columns.mapIndexed { columnIndex, columnName ->
+                            CrossSettingsCell(cscIs = columnIndex, cscName = columnName)
+                        }
+                )
+            }
+
+            columns.forEach { col ->
+                listOfSettings.filter { sett ->
+                    val fields = sett.javaClass.getDeclaredField("fields")
+                    fields.isAccessible = true
+                    val fldCol = (fields.get(sett) as Map<*, *>)[columnField] as String
+                    fldCol == col
+                }.forEachIndexed { index, settings ->
+                    listCSR.first { it.csrId == index }.csrCells.first { it.cscName == col }.settingsDTO = settings.toDTO()
+                }
+
+            }
+
+//            println(listCSR)
 
             return listCSR
         }

@@ -1041,6 +1041,16 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         )
     }
 
+    // список skipedpublications
+    @PostMapping("/skipedpublications")
+    @ResponseBody
+    fun skipedPublications(): Map<String, Any> {
+        return mapOf(
+                "workInContainer" to APP_WORK_IN_CONTAINER,
+                "publications" to Publication.getSkipedPublicationList(WORKING_DATABASE).map { it.map { it.toDTO() } }
+        )
+    }
+
     // список publications
     @PostMapping("/publications2")
     @ResponseBody
@@ -1086,6 +1096,8 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         val listOfSettings = Publication.getSettingsListForPublications(args, WORKING_DATABASE)
         val publications = if (filterCond == "unpublish") {
             CrossSettings.unpublications(listOfSettings)
+        } else if (filterCond == "skiped") {
+            CrossSettings.skiped(listOfSettings)
         } else {
             CrossSettings.publications(listOfSettings)
         }
@@ -2899,7 +2911,8 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             @RequestParam(required = true) ymId: String,
             @RequestParam(required = true) lastAlbumYm: String,
             @RequestParam(required = true) lastAlbumProcessed: String,
-            @RequestParam(required = true) watched: Boolean
+            @RequestParam(required = true) watched: Boolean,
+            @RequestParam(required = true) skip: Boolean
     ): Long {
 
         Author.load(id = id, database = WORKING_DATABASE)?.let {
@@ -2908,6 +2921,7 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             it.lastAlbumYm = lastAlbumYm
             it.lastAlbumProcessed = lastAlbumProcessed
             it.watched = watched
+            it.skip = skip
             it.save()
             return id
         }
@@ -2923,7 +2937,8 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             @RequestParam(required = false) filter_last_album_ym: String?,
             @RequestParam(required = false) filter_last_album_processed: String?,
             @RequestParam(required = false) filter_watched: String?,
-            @RequestParam(required = false) filter_HaveNewAlbum: String?
+            @RequestParam(required = false) filter_HaveNewAlbum: String?,
+            @RequestParam(required = false) filter_skip: String?
     ): Map<String, Any> {
 
         val args: MutableMap<String, String> = mutableMapOf()
@@ -2934,6 +2949,7 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         filter_last_album_processed?.let { if (filter_last_album_processed != "") args["last_album_processed"] = filter_last_album_processed }
         filter_watched?.let { if (filter_watched != "") args["watched"] = filter_watched }
         filter_HaveNewAlbum?.let { if (filter_HaveNewAlbum != "") args["haveNewAlbum"] = filter_HaveNewAlbum }
+        filter_skip?.let { if (filter_skip != "") args["skip"] = filter_skip }
         val authorsList = Author.loadList(args, WORKING_DATABASE)
         return mapOf(
                 "workInContainer" to APP_WORK_IN_CONTAINER,

@@ -292,6 +292,7 @@ export default {
 
         publications: [],
         unpublications: [],
+        skipedpublications: [],
     },
     watch: {
         currentSongId: {
@@ -827,6 +828,10 @@ export default {
 
         getUnpublications(state) {
             return state.unpublications;
+        },
+
+        getSkipedPublications(state) {
+            return state.skipedpublications;
         }
     },
     mutations: {
@@ -1207,6 +1212,10 @@ export default {
 
         updateUnpublications(state, result) {
             state.unpublications = result.publications;
+        },
+
+        updateSkipedPublications(state, result) {
+            state.skipedpublications = result.publications;
         }
     },
     actions: {
@@ -1606,6 +1615,16 @@ export default {
             promisedXMLHttpRequest(request).then(data => {
                 let result = JSON.parse(data);
                 ctx.commit('updateUnpublications', result)
+            }).catch(error => {
+                console.log(error);
+            });
+        },
+
+        async loadSkipedPublications(ctx) {
+            let request = { method: 'POST', url: "/apis/skipedpublications" };
+            promisedXMLHttpRequest(request).then(data => {
+                let result = JSON.parse(data);
+                ctx.commit('updateSkipedPublications', result)
             }).catch(error => {
                 console.log(error);
             });

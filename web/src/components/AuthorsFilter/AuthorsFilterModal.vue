@@ -72,6 +72,16 @@
 
             <div class="afm-filter-row">
               <div class="afm-row-label">
+                <div v-text="'Пропустить?:'"></div>
+              </div>
+              <div class="afm-row-input">
+                <input class="afm-input-field" v-model="authorsFilterSkip">
+              </div>
+              <button :disabled="!authorsFilterSkip" class="afm-button-clear-field" @click.left="authorsFilterSkip=''" v-text="'X'"></button>
+            </div>
+
+            <div class="afm-filter-row">
+              <div class="afm-row-label">
                 <div v-text="'Новый альбом?:'"></div>
               </div>
               <div class="afm-row-input">
@@ -105,6 +115,7 @@ export default {
       authorsFilterLastAlbumYm: this.$store.getters.getAuthorsFilterLastAlbumYm,
       authorsFilterLastAlbumProcessed: this.$store.getters.getAuthorsFilterLastAlbumProcessed,
       authorsFilterWatched: this.$store.getters.getAuthorsFilterWatched,
+      authorsFilterSkip: this.$store.getters.getAuthorsFilterSkip,
       authorsFilterHaveNewAlbum: this.$store.getters.getAuthorsFilterHaveNewAlbum
     }
   },
@@ -116,6 +127,7 @@ export default {
       this.$store.dispatch('setAuthorsFilterLastAlbumYm', { authorsFilterLastAlbumYm: this.authorsFilterLastAlbumYm });
       this.$store.dispatch('setAuthorsFilterLastAlbumProcessed', { authorsFilterLastAlbumProcessed: this.authorsFilterLastAlbumProcessed });
       this.$store.dispatch('setAuthorsFilterWatched', { authorsFilterWatched: this.authorsFilterWatched });
+      this.$store.dispatch('setAuthorsFilterSkip', { authorsFilterWatched: this.authorsFilterSkip });
       this.$store.dispatch('setAuthorsFilterHaveNewAlbum', { authorsFilterHaveNewAlbum: this.authorsFilterHaveNewAlbum });
 
       let params = {};
@@ -125,6 +137,7 @@ export default {
       if (this.authorsFilterLastAlbumYm) params.filter_last_album_ym = this.authorsFilterLastAlbumYm;
       if (this.authorsFilterLastAlbumProcessed) params.filter_last_album_processed = this.authorsFilterLastAlbumProcessed;
       if (this.authorsFilterWatched) params.filter_watched = this.authorsFilterWatched;
+      if (this.authorsFilterSkip) params.filter_watched = this.authorsFilterSkip;
       if (this.authorsFilterHaveNewAlbum) params.filter_HaveNewAlbum = this.authorsFilterHaveNewAlbum;
       this.$store.dispatch('loadAuthorsDigests', params )
 

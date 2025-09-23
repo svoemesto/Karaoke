@@ -1,5 +1,5 @@
 <template>
-  <div class="songs">
+  <div class="songstable">
     <SongsTable/>
   </div>
 </template>
@@ -18,11 +18,11 @@ export default {
 
 <style scoped>
 
-  .songs {
-    display: flex;
-    flex-direction: column;
-    margin: 10px auto;
-    justify-content: center;
-    align-items: center;
-  }
+.songstable {
+  display: flex;
+  flex-direction: column;
+  margin: 10px auto;
+  justify-content: center;
+  align-items: center;
+}
 </style>

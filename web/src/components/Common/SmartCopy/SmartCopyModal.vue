@@ -87,7 +87,7 @@
 <script>
 
 import CustomConfirm from "@/components/Common/CustomConfirm.vue";
-import FileExplorerModal from "@/components/FileExplorer/FileExplorerModal.vue";
+import FileExplorerModal from "@/components/Common/FileExplorer/FileExplorerModal.vue";
 
 export default {
   name: "SmartCopyModal",

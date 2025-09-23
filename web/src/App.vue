@@ -3,17 +3,11 @@
     <div class="app-header">
       <ul class="nav nav-pills">
         <li class="nav-item"><router-link to="/">Главная</router-link></li>
-<!--        <li class="nav-item"><router-link to="/songs">Песни</router-link></li>-->
-        <li class="nav-item"><router-link to="/songsbv">Песни</router-link></li>
+        <li class="nav-item"><router-link to="/songs">Песни</router-link></li>
         <li class="nav-item"><router-link to="/publish">Публикации</router-link></li>
-        <li class="nav-item"><router-link to="/authorsbv">Авторы</router-link></li>
-        <!--        <li class="nav-item"><router-link to="/publicationsbv">ПубликацииBV</router-link></li>-->
-        <!--        <li class="nav-item"><router-link to="/publications">Публикации</router-link></li>-->
-        <!--        <li class="nav-item"><router-link to="/unpublications">Un-Публикации</router-link></li>-->
-        <!--        <li class="nav-item"><router-link to="/zakroma">Закрома</router-link></li>-->
-        <!--        <li class="nav-item"><router-link to="/processes">Процессы</router-link></li>-->
-        <li class="nav-item"><router-link to="/processesbv">Процессы</router-link></li>
-        <li class="nav-item"><router-link to="/propertiesbv">Настройки</router-link></li>
+        <li class="nav-item"><router-link to="/authors">Авторы</router-link></li>
+        <li class="nav-item"><router-link to="/processes">Процессы</router-link></li>
+        <li class="nav-item"><router-link to="/properties">Настройки</router-link></li>
       </ul>
       <backend-console/>
       <process-worker/>

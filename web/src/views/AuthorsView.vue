@@ -1,22 +1,22 @@
 <template>
-  <div class="authorsbv">
-    <AuthorsBvTable/>
+  <div class="authorstable">
+    <AuthorsTable/>
   </div>
 </template>
 
 <script>
-import AuthorsBvTable from '@/components/AuthorsBv/AuthorsBvTable.vue'
+import AuthorsTable from '@/components/Authors/AuthorsTable.vue'
 export default {
-  name: "AuthorsBvView",
+  name: "AuthorsView",
   components: {
-    AuthorsBvTable
+    AuthorsTable
   }
 }
 </script>
 
 <style scoped>
 
-.authorsbv {
+.table {
   display: flex;
   flex-direction: column;
   margin: 10px auto;

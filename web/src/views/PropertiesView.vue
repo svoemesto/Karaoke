@@ -1,28 +1,27 @@
 <template>
-  <div class="songsbv">
-    <SongsBvTable/>
+  <div class="propertiestable">
+    <PropertiesTable/>
   </div>
 </template>
 
 <script>
-// @ is an alias to /src
-import SongsBvTable from '@/components/SongsBv/SongsBvTable.vue'
-
+import PropertiesTable from '@/components/Properties/PropertiesTable.vue'
 export default {
-  name: 'SongBvView',
+  name: "PropertiesView",
   components: {
-    SongsBvTable
+    PropertiesTable
   }
 }
 </script>
 
 <style scoped>
 
-.songsbv {
+.propertiestable {
   display: flex;
   flex-direction: column;
   margin: 10px auto;
   justify-content: center;
   align-items: center;
 }
+
 </style>

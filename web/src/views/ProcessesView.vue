@@ -1,15 +1,13 @@
 <template>
-  <div class="processes">
+  <div class="processestable">
     <ProcessesTable/>
   </div>
 </template>
 
 <script>
-// @ is an alias to /src
 import ProcessesTable from '@/components/Processes/ProcessesTable.vue'
-
 export default {
-  name: 'SongView',
+  name: "ProcessesView",
   components: {
     ProcessesTable
   }
@@ -18,11 +16,12 @@ export default {
 
 <style scoped>
 
-.processes {
+.processestable {
   display: flex;
   flex-direction: column;
   margin: 10px auto;
   justify-content: center;
   align-items: center;
 }
+
 </style>

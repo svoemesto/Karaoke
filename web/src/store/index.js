@@ -1,20 +1,17 @@
 import Vue from 'vue'
 import Vuex from 'vuex'
 import song from '../components/Songs/store'
-import songBv from '../components/SongsBv/store'
-import songFilter from '../components/SongsFilter/store'
-import smartCopy from '../components/SmartCopy/store'
-import fileExplorer from '../components/FileExplorer/store'
-import processesBv from '../components/ProcessesBv/store'
-import propertiesBv from '../components/PropertiesBv/store'
-import authorsBv from '../components/AuthorsBv/store'
-import processFilter from '../components/ProcessesFilter/store'
-import propertiesFilter from '../components/PropertiesFilter/store'
-import authorsFilter from '../components/AuthorsFilter/store'
+import songFilter from '../components/Songs/filter/store'
+import smartCopy from '../components/Common/SmartCopy/store'
+import fileExplorer from '../components/Common/FileExplorer/store'
+import processesBv from '../components/Processes/store'
+import propertiesBv from '../components/Properties/store'
+import authorsBv from '../components/Authors/store'
+import processFilter from '../components/Processes/filter/store'
+import propertiesFilter from '../components/Properties/filter/store'
+import authorsFilter from '../components/Authors/filter/store'
 import publish from '../components/Publish/store'
-import publicationBv from '../components/PublicationsBv/store'
 import common from '../components/Common/store'
-// import process from '../components/Processes/store'
 Vue.use(Vuex)
 
 export default new Vuex.Store({
@@ -22,11 +19,9 @@ export default new Vuex.Store({
   modules: {
     song,
     publish,
-    songBv,
     processesBv,
     propertiesBv,
     authorsBv,
-    publicationBv,
     common,
     songFilter,
     smartCopy,
@@ -34,6 +29,5 @@ export default new Vuex.Store({
     processFilter,
     propertiesFilter,
     authorsFilter,
-    // process
   }
 })

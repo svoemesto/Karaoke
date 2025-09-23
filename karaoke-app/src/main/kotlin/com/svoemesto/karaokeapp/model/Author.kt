@@ -20,7 +20,7 @@ class Author(val database: KaraokeConnection = WORKING_DATABASE) : Serializable,
     var lastAlbumYm: String = ""
     var lastAlbumProcessed: String = ""
     var watched: Boolean = false
-
+    val haveNewAlbum: Boolean get() = watched && ymId != "" && lastAlbumYm != lastAlbumProcessed
     override fun compareTo(other: Author): Int {
         return author.compareTo(other.author)
     }
@@ -130,7 +130,20 @@ class Author(val database: KaraokeConnection = WORKING_DATABASE) : Serializable,
                 if (args.containsKey("ym_id")) where += "ym_id = '${args["ym_id"]}'"
                 if (args.containsKey("last_album_ym")) where += "last_album_ym = '${args["last_album_ym"]}'"
                 if (args.containsKey("last_album_processed")) where += "last_album_processed = '${args["last_album_processed"]}'"
-                if (args.containsKey("watched")) where += "watched = ${args["watched"]}"
+                if (args.containsKey("watched")) {
+                    if (args["watched"] == "+" || args["watched"] == "true") {
+                        where += "watched = true"
+                    } else if (args["watched"] == "-" || args["watched"] == "false") {
+                        where += "watched = false"
+                    }
+                }
+                if (args.containsKey("haveNewAlbum")) {
+                    if (args["haveNewAlbum"] == "+" || args["haveNewAlbum"] == "true") {
+                        where += "(watched = true AND ym_id <> '' AND last_album_ym <> last_album_processed)"
+                    } else if (args["haveNewAlbum"] == "-" || args["haveNewAlbum"] == "false") {
+                        where += "(watched = false OR ym_id = '' OR last_album_ym = last_album_processed)"
+                    }
+                }
                 if (where.size > 0) sql += " WHERE ${where.joinToString(" AND ")}"
 
                 rs = statement.executeQuery(sql)

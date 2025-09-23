@@ -2922,7 +2922,8 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             @RequestParam(required = false) filter_ym_id: String?,
             @RequestParam(required = false) filter_last_album_ym: String?,
             @RequestParam(required = false) filter_last_album_processed: String?,
-            @RequestParam(required = false) filter_watched: String?
+            @RequestParam(required = false) filter_watched: String?,
+            @RequestParam(required = false) filter_HaveNewAlbum: String?
     ): Map<String, Any> {
 
         val args: MutableMap<String, String> = mutableMapOf()
@@ -2932,6 +2933,7 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         filter_last_album_ym?.let { if (filter_last_album_ym != "") args["last_album_ym"] = filter_last_album_ym }
         filter_last_album_processed?.let { if (filter_last_album_processed != "") args["last_album_processed"] = filter_last_album_processed }
         filter_watched?.let { if (filter_watched != "") args["watched"] = filter_watched }
+        filter_HaveNewAlbum?.let { if (filter_HaveNewAlbum != "") args["haveNewAlbum"] = filter_HaveNewAlbum }
         val authorsList = Author.loadList(args, WORKING_DATABASE)
         return mapOf(
                 "workInContainer" to APP_WORK_IN_CONTAINER,

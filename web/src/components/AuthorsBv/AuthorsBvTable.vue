@@ -321,7 +321,7 @@ export default {
           {
             fldName: 'skip',
             fldLabel: 'Пропустить?:',
-            fldValue: item.watched,
+            fldValue: item.skip,
             fldIsBoolean: true,
             fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px'},
             fldValueStyle: { width: '300px', textAlign: 'center', borderRadius: '5px'}

@@ -1492,21 +1492,26 @@ fun getFileNameByMasks(pathToFolder: String, startWith: String, suffixes: List<S
 
 fun createSongTextFile(settings: Settings, songVersion: SongVersion) {
 
-    val fileText = File(settings.getOutputFilename(SongOutputFile.TEXT, songVersion))
+    val filePath = settings.getOutputFilename(SongOutputFile.TEXT, songVersion)
+    val fileText = File(filePath)
     Files.createDirectories(Path(fileText.parent))
+    runCommand(listOf("chmod", "777", fileText.parent))
     val text = settings.getTextBody()
     fileText.writeText(text)
-    runCommand(listOf("chmod", "666", fileText.parent))
+    runCommand(listOf("chmod", "666", filePath))
 
 }
 
 fun createSongDescriptionFile(settings: Settings, songVersion: SongVersion) {
 
-    val fileText = File(settings.getOutputFilename(SongOutputFile.DESCRIPTION, songVersion))
+    val filePath = settings.getOutputFilename(SongOutputFile.DESCRIPTION, songVersion)
+    val fileText = File(filePath)
     Files.createDirectories(Path(fileText.parent))
+    runCommand(listOf("chmod", "777", fileText.parent))
     val text = settings.getDescriptionWithHeaderWOTimecodes(songVersion)
     fileText.writeText(text)
-    runCommand(listOf("chmod", "666", fileText.parent))
+    runCommand(listOf("chmod", "666", filePath))
+
 }
 
 fun test() {

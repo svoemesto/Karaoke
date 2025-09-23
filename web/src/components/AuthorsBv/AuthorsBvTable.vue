@@ -90,6 +90,14 @@
           ></div>
         </template>
 
+        <template #cell(skip)="data">
+          <div
+              class="fld-skip"
+              v-text="data.value"
+              :style="{ color: currentAuthorId === data.item.id ? 'blue' : 'black' }"
+          ></div>
+        </template>
+
         <template #cell(haveNewAlbum)="data">
           <div
               class="fld-haveNewAlbum"
@@ -228,6 +236,16 @@ export default {
           }
         },
         {
+          key: 'skip',
+          label: 'Skip',
+          style: {
+            minWidth: '50px',
+            maxWidth: '50px',
+            textAlign: 'left',
+            fontSize: 'small'
+          }
+        },
+        {
           key: 'haveNewAlbum',
           label: 'New Album',
           style: {
@@ -295,6 +313,14 @@ export default {
           {
             fldName: 'watched',
             fldLabel: 'Следить?:',
+            fldValue: item.watched,
+            fldIsBoolean: true,
+            fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px'},
+            fldValueStyle: { width: '300px', textAlign: 'center', borderRadius: '5px'}
+          },
+          {
+            fldName: 'skip',
+            fldLabel: 'Пропустить?:',
             fldValue: item.watched,
             fldIsBoolean: true,
             fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px'},
@@ -448,6 +474,14 @@ export default {
   overflow: hidden;
 }
 
+.fld-skip {
+  min-width: 50px;
+  max-width: 50px;
+  text-align: center;
+  font-size: small;
+  white-space: nowrap;
+  overflow: hidden;
+}
 .fld-haveNewAlbum {
   min-width: 50px;
   max-width: 50px;

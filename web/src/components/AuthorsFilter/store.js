@@ -6,6 +6,7 @@ export default {
         authorsFilterLastAlbumYm: '',
         authorsFilterLastAlbumProcessed: '',
         authorsFilterWatched: '',
+        authorsFilterSkip: '',
         authorsFilterHaveNewAlbum: ''
     },
     getters: {
@@ -15,6 +16,7 @@ export default {
         getAuthorsFilterLastAlbumYm(state) { return state.authorsFilterLastAlbumYm},
         getAuthorsFilterLastAlbumProcessed(state) { return state.authorsFilterLastAlbumProcessed},
         getAuthorsFilterWatched(state) { return state.authorsFilterWatched},
+        getAuthorsFilterSkip(state) { return state.authorsFilterSkip},
         getAuthorsFilterHaveNewAlbum(state) { return state.authorsFilterHaveNewAlbum}
 
     },
@@ -25,6 +27,7 @@ export default {
         setAuthorsFilterLastAlbumYm(state, authorsFilterLastAlbumYm) { state.authorsFilterLastAlbumYm = authorsFilterLastAlbumYm },
         setAuthorsFilterLastAlbumProcessed(state, authorsFilterLastAlbumProcessed) { state.authorsFilterLastAlbumProcessed = authorsFilterLastAlbumProcessed },
         setAuthorsFilterWatched(state, authorsFilterWatched) { state.authorsFilterWatched = authorsFilterWatched },
+        setAuthorsFilterSkip(state, authorsFilterSkip) { state.authorsFilterSkip = authorsFilterSkip },
         setAuthorsFilterHaveNewAlbum(state, authorsFilterHaveNewAlbum) { state.authorsFilterHaveNewAlbum = authorsFilterHaveNewAlbum }
     },
     actions: {
@@ -34,6 +37,7 @@ export default {
         setAuthorsFilterLastAlbumYm(ctx, payload) { ctx.commit('setAuthorsFilterLastAlbumYm', payload.authorsFilterLastAlbumYm) },
         setAuthorsFilterLastAlbumProcessed(ctx, payload) { ctx.commit('setAuthorsFilterLastAlbumProcessed', payload.authorsFilterLastAlbumProcessed) },
         setAuthorsFilterWatched(ctx, payload) { ctx.commit('setAuthorsFilterWatched', payload.authorsFilterWatched) },
+        setAuthorsFilterSkip(ctx, payload) { ctx.commit('setAuthorsFilterSkip', payload.authorsFilterSkip) },
         setAuthorsFilterHaveNewAlbum(ctx, payload) { ctx.commit('setAuthorsFilterHaveNewAlbum', payload.authorsFilterHaveNewAlbum) }
     },
 }

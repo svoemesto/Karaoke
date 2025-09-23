@@ -38,6 +38,7 @@
     <button class="action-button" @click="clickActionButton('fromnotcheck')">С непроверенной</button>
     <button class="action-button" @click="clickActionButton('fromnotdone')">С неготовой</button>
     <button class="action-button" @click="clickActionButton('unpublish')">UNPUBLISH</button>
+    <button class="action-button" @click="clickActionButton('skiped')">SKIPED</button>
   </div>
 </template>
 

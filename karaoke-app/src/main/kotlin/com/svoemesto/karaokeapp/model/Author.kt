@@ -20,6 +20,7 @@ class Author(val database: KaraokeConnection = WORKING_DATABASE) : Serializable,
     var lastAlbumYm: String = ""
     var lastAlbumProcessed: String = ""
     var watched: Boolean = false
+    var skip: Boolean = false
     val haveNewAlbum: Boolean get() = watched && ymId != "" && lastAlbumYm != lastAlbumProcessed
     override fun compareTo(other: Author): Int {
         return author.compareTo(other.author)
@@ -37,7 +38,8 @@ class Author(val database: KaraokeConnection = WORKING_DATABASE) : Serializable,
                 "ym_id = ?, " +
                 "last_album_ym = ?, " +
                 "last_album_processed = ?, " +
-                "watched = ? " +
+                "watched = ?, " +
+                "skip = ? " +
                 "WHERE id = ?"
         val ps = connection.prepareStatement(sql)
         var index = 1
@@ -50,6 +52,8 @@ class Author(val database: KaraokeConnection = WORKING_DATABASE) : Serializable,
         ps.setString(index, lastAlbumProcessed)
         index++
         ps.setBoolean(index, watched)
+        index++
+        ps.setBoolean(index, skip)
         index++
         ps.setInt(index, id)
         ps.executeUpdate()
@@ -67,6 +71,7 @@ class Author(val database: KaraokeConnection = WORKING_DATABASE) : Serializable,
         fieldsValues.add(Pair("last_album_ym", author.lastAlbumYm))
         fieldsValues.add(Pair("last_album_processed", author.lastAlbumProcessed))
         fieldsValues.add(Pair("watched", author.watched))
+        fieldsValues.add(Pair("skip", author.skip))
 
         return "INSERT INTO tbl_authors (${fieldsValues.map {it.first}.joinToString(", ")}) OVERRIDING SYSTEM VALUE VALUES(${fieldsValues.map {if (it.second is Long) "${it.second}" else "'${it.second.toString().replace("'","''")}'"}.joinToString(", ")})"
 
@@ -82,6 +87,7 @@ class Author(val database: KaraokeConnection = WORKING_DATABASE) : Serializable,
                 if (authorA.lastAlbumYm != authorB.lastAlbumYm) result.add(RecordDiff("last_album_ym", authorA.lastAlbumYm, authorB.lastAlbumYm))
                 if (authorA.lastAlbumProcessed != authorB.lastAlbumProcessed) result.add(RecordDiff("last_album_processed", authorA.lastAlbumProcessed, authorB.lastAlbumProcessed))
                 if (authorA.watched != authorB.watched) result.add(RecordDiff("watched", authorA.watched, authorB.watched))
+                if (authorA.skip != authorB.skip) result.add(RecordDiff("skip", authorA.skip, authorB.skip))
             }
             return result
         }
@@ -144,6 +150,13 @@ class Author(val database: KaraokeConnection = WORKING_DATABASE) : Serializable,
                         where += "(watched = false OR ym_id = '' OR last_album_ym = last_album_processed)"
                     }
                 }
+                if (args.containsKey("skip")) {
+                    if (args["skip"] == "+" || args["skip"] == "true") {
+                        where += "skip = true"
+                    } else if (args["skip"] == "-" || args["skip"] == "false") {
+                        where += "skip = false"
+                    }
+                }
                 if (where.size > 0) sql += " WHERE ${where.joinToString(" AND ")}"
 
                 rs = statement.executeQuery(sql)
@@ -156,6 +169,7 @@ class Author(val database: KaraokeConnection = WORKING_DATABASE) : Serializable,
                     author.lastAlbumYm = rs.getString("last_album_ym")?:""
                     author.lastAlbumProcessed = rs.getString("last_album_processed")?:""
                     author.watched = rs.getBoolean("watched")
+                    author.skip = rs.getBoolean("skip")
                     result.add(author)
 
                 }

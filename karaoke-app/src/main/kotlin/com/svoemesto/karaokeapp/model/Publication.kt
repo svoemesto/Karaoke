@@ -436,8 +436,11 @@ class Publication(val database: KaraokeConnection = WORKING_DATABASE) : Serializ
         fun getUnPublicationList(database: KaraokeConnection): MutableList<MutableList<Publication>> {
             var result: MutableList<MutableList<Publication>> = mutableListOf()
 
+            val skipedAuthors = Author.loadList(mapOf("skip" to "true"), database = database).map { it.author }
+
             val listUnpublished =
                 Settings.loadListFromDb(mapOf("publish_date" to "-", "publish_time" to "-"), database)
+                    .filter { it.author !in skipedAuthors }
                     .groupBy { it.author }
                     .map { it.value }
                     .sortedBy { it.size }
@@ -473,7 +476,52 @@ class Publication(val database: KaraokeConnection = WORKING_DATABASE) : Serializ
             return result
         }
 
+        fun getSkipedPublicationList(database: KaraokeConnection): MutableList<MutableList<Publication>> {
+            var result: MutableList<MutableList<Publication>> = mutableListOf()
+
+            val skipedAuthors = Author.loadList(mapOf("skip" to "true"), database = database).map { it.author }
+
+            val listUnpublished =
+                    Settings.loadListFromDb(mapOf("publish_date" to "-", "publish_time" to "-"), database)
+                            .filter { it.author in skipedAuthors }
+                            .groupBy { it.author }
+                            .map { it.value }
+                            .sortedBy { it.size }
+
+            val listStack: MutableList<Stack<Settings?>> = mutableListOf()
+            for (i in listUnpublished.indices) {
+                listStack.add(Stack<Settings?>())
+            }
+
+            listUnpublished.forEachIndexed { index, settings ->
+                for (i in (settings.size-1)downTo 0 ) {
+                    listStack[index].push(settings[i])
+                }
+            }
+
+            var i = 0
+            while (listStack.map { it.size }.max() > 0) {
+                i++
+                val publicationInList: MutableList<Publication> = mutableListOf()
+                for (i in listUnpublished.indices) {
+                    val publication = Publication(database)
+                    publication.publish10 =
+                            if (listStack[i].size > 0) {
+                                listStack[i].pop()
+                            } else {
+                                null
+                            }
+                    publicationInList.add(publication)
+                }
+                result.add(publicationInList)
+            }
+
+            return result
+        }
+
         fun getSettingsListForPublications(args: Map<String, String> = emptyMap(), database: KaraokeConnection): List<Settings> {
+
+            val skipedAuthors = Author.loadList(mapOf("skip" to "true"), database = database).map { it.author }
 
             var filterDateFrom =  args["filter_date_from"] ?: ""
             var filterDateTo =  args["filter_date_to"] ?: ""
@@ -538,10 +586,12 @@ class Publication(val database: KaraokeConnection = WORKING_DATABASE) : Serializ
                 }
 
             } else if (filterCond == "unpublish") {
-                return Settings.loadListFromDb(mapOf("publish_date" to "-", "publish_time" to "-"), database)
+                return Settings.loadListFromDb(mapOf("publish_date" to "-", "publish_time" to "-"), database).filter { it.author !in skipedAuthors }
+            } else if (filterCond == "skiped") {
+                return Settings.loadListFromDb(mapOf("publish_date" to "-", "publish_time" to "-"), database).filter { it.author in skipedAuthors }
             }
 
-            return Settings.loadListFromDb(database = database).filter {
+            return Settings.loadListFromDb(database = database).filter { it.author !in skipedAuthors }.filter {
                 it.date != "" &&
                         it.time != "" &&
                         (if (filterDateFrom != "") SimpleDateFormat("dd.MM.yy").parse(it.date)  >= SimpleDateFormat("dd.MM.yy").parse(filterDateFrom) else true) &&

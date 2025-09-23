@@ -8,8 +8,8 @@
           <div v-for="fld in params.fields" :key="fld" class="сс-param-line-fields">
             <div v-text="fld.fldLabel" :style="fld.fldLabelStyle"></div>
             <div v-if="fld.fldIsBoolean" class="сс-param-line-buttons">
-              <button class="сс-group-button-boolean" :class="fld.fldValue === 'true' || fld.fldValue === true ? 'сс-group-button-boolean-active' : ''"  type="button" value="true"  @click="fld.fldValue='true'">TRUE</button>
-              <button class="сс-group-button-boolean" :class="fld.fldValue === 'false' || fld.fldValue === false ? 'сс-group-button-boolean-active' : ''" type="button" value="false" @click="fld.fldValue='false'">FALSE</button>
+              <button class="сс-group-button-boolean" :class="fld.fldValue === 'true' || fld.fldValue === true ? 'сс-group-button-boolean-active' : ''"  type="button" value="true"  @click="fld.fldValue='true'" :disabled="fld.disabled">TRUE</button>
+              <button class="сс-group-button-boolean" :class="fld.fldValue === 'false' || fld.fldValue === false ? 'сс-group-button-boolean-active' : ''" type="button" value="false" @click="fld.fldValue='false'" :disabled="fld.disabled">FALSE</button>
             </div>
             <div v-else class="сс-param-line-buttons">
               <input v-model="fld.fldValue" :style="fld.fldValueStyle" :disabled="fld.disabled">

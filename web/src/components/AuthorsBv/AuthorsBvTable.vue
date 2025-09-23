@@ -89,6 +89,14 @@
               :style="{ color: currentAuthorId === data.item.id ? 'blue' : 'black' }"
           ></div>
         </template>
+
+        <template #cell(haveNewAlbum)="data">
+          <div
+              class="fld-haveNewAlbum"
+              v-text="data.value"
+              :style="{ color: currentAuthorId === data.item.id ? 'blue' : 'black' }"
+          ></div>
+        </template>
         
 
       </b-table>
@@ -218,6 +226,16 @@ export default {
             textAlign: 'left',
             fontSize: 'small'
           }
+        },
+        {
+          key: 'haveNewAlbum',
+          label: 'New Album',
+          style: {
+            minWidth: '50px',
+            maxWidth: '50px',
+            textAlign: 'left',
+            fontSize: 'small'
+          }
         }
       ]
     }
@@ -276,9 +294,18 @@ export default {
           },
           {
             fldName: 'watched',
-            fldLabel: 'Следить:',
+            fldLabel: 'Следить?:',
             fldValue: item.watched,
             fldIsBoolean: true,
+            fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px'},
+            fldValueStyle: { width: '300px', textAlign: 'center', borderRadius: '5px'}
+          },
+          {
+            fldName: 'haveNewAlbum',
+            fldLabel: 'Новый альбом?:',
+            fldValue: item.watched,
+            fldIsBoolean: true,
+            disabled: true,
             fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px'},
             fldValueStyle: { width: '300px', textAlign: 'center', borderRadius: '5px'}
           }
@@ -413,6 +440,15 @@ export default {
 }
 
 .fld-watched {
+  min-width: 50px;
+  max-width: 50px;
+  text-align: center;
+  font-size: small;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.fld-haveNewAlbum {
   min-width: 50px;
   max-width: 50px;
   text-align: center;

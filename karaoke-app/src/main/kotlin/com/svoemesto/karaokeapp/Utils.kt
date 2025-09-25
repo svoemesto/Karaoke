@@ -60,8 +60,19 @@ fun mainUtils() {
 
 fun customFunction(): String {
 
-    Settings.loadListFromDb(args = mapOf("id_status" to "6") , database = WORKING_DATABASE).forEach { settings ->
-        settings.doSymlink(-2)
+    Pictures.loadListIds(database = WORKING_DATABASE).forEach { id ->
+        val picture = Pictures.loadFromDbById(id, database = WORKING_DATABASE)
+        picture?.let {
+            val pictureBites = Base64.getDecoder().decode(it.full)
+            val bi = ImageIO.read(ByteArrayInputStream(pictureBites))
+            val previewBi = if (bi.width > 400) resizeBufferedImage(bi, newW = 125, newH = 50) else resizeBufferedImage(bi, newW = 50, newH = 50)
+            val iosPreview = ByteArrayOutputStream()
+            ImageIO.write(previewBi, "png", iosPreview)
+            val preview = Base64.getEncoder().encodeToString(iosPreview.toByteArray())
+            it.preview = preview
+            it.save()
+            println(it.name)
+        }
     }
 
     return ""

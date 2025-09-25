@@ -79,6 +79,44 @@ class Author(val database: KaraokeConnection = WORKING_DATABASE) : Serializable,
 
     companion object {
 
+        fun listHashes(database: KaraokeConnection, whereText: String = ""): List<RecordHash>? {
+            var result: MutableList<RecordHash>? = mutableListOf()
+            val sql = "SELECT id, recordhash FROM tbl_authors $whereText"
+
+            val connection = database.getConnection()
+            if (connection == null) {
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                return null
+            }
+            var statement: Statement? = null
+            var rs: ResultSet? = null
+
+            try {
+                statement = connection.createStatement()
+
+                println("[${Timestamp.from(Instant.now())}] Запрос хешей...")
+                rs = statement.executeQuery(sql)
+                var cnt = 0
+                while (rs.next()) {
+                    cnt++
+                    result!!.add(RecordHash(id = rs.getLong("id"), recordhash = rs.getString("recordhash")))
+                }
+                println("[${Timestamp.from(Instant.now())}] Получено хешей: $cnt")
+
+            } catch (e: SQLException) {
+                e.printStackTrace()
+                result = null
+            } finally {
+                try {
+                    rs?.close() // close result set
+                    statement?.close() // close statement
+                } catch (e: SQLException) {
+                    e.printStackTrace()
+                }
+            }
+            return result
+        }
+
         fun getDiff(authorA: Author?, authorB: Author?): List<RecordDiff> {
             val result: MutableList<RecordDiff> = mutableListOf()
             if (authorA != null && authorB != null) {

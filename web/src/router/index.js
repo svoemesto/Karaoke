@@ -6,6 +6,7 @@ import PublishView from '../views/PublishView'
 import ProcessesView from '../views/ProcessesView.vue'
 import PropertiesView from '../views/PropertiesView'
 import AuthorsView from '../views/AuthorsView.vue'
+import PicturesView from '../views/PicturesView.vue'
 
 Vue.use(VueRouter)
 
@@ -40,6 +41,11 @@ const routes = [
     path: '/authors',
     name: 'authors',
     component: AuthorsView
+  },
+  {
+    path: '/pictures',
+    name: 'pictures',
+    component: PicturesView
   }
 ]
 

@@ -6,6 +6,7 @@
         <li class="nav-item"><router-link to="/songs">Песни</router-link></li>
         <li class="nav-item"><router-link to="/publish">Публикации</router-link></li>
         <li class="nav-item"><router-link to="/authors">Авторы</router-link></li>
+        <li class="nav-item"><router-link to="/pictures">Картинки</router-link></li>
         <li class="nav-item"><router-link to="/processes">Процессы</router-link></li>
         <li class="nav-item"><router-link to="/properties">Настройки</router-link></li>
       </ul>

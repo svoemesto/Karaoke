@@ -10,6 +10,8 @@ import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.Serializable
 import java.nio.file.Files
@@ -20,6 +22,7 @@ import java.text.SimpleDateFormat
 import java.time.Instant
 import java.util.*
 import java.util.Date
+import javax.imageio.ImageIO
 import kotlin.io.path.Path
 import kotlin.math.abs
 
@@ -363,10 +366,21 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         if (pic == null) {
             val pathToFile = pathToFileLogoAuthor
             if (pathToFile != "") {
-                val fullPicture = java.util.Base64.getEncoder().encodeToString(File(pathToFile).inputStream().readAllBytes())
+                val pictureBites = File(pathToFile).inputStream().readAllBytes()
+                val bi = ImageIO.read(ByteArrayInputStream(pictureBites))
+                val resizedBi = if (bi.width == 1000 && bi.height == 400) bi else resizeBufferedImage(bi, newW = 1000, newH = 400)
+                val previewBi = resizeBufferedImage(bi, newW = 125, newH = 50)
+                val iosFull = ByteArrayOutputStream()
+                ImageIO.write(resizedBi, "png", iosFull)
+                val full = Base64.getEncoder().encodeToString(iosFull.toByteArray())
+                val iosPreview = ByteArrayOutputStream()
+                ImageIO.write(previewBi, "png", iosPreview)
+                val preview = Base64.getEncoder().encodeToString(iosPreview.toByteArray())
+//                val fullPicture = java.util.Base64.getEncoder().encodeToString(File(pathToFile).inputStream().readAllBytes())
                 val pict = Pictures(database)
                 pict.name = pictureNameAuthor
-                pict.full = fullPicture
+                pict.full = full
+                pict.preview = preview
                 pic = Pictures.createDbInstance(pict, database)
             }
         }
@@ -379,10 +393,21 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         if (pic == null) {
             val pathToFile = pathToFileLogoAlbum
             if (pathToFile != "") {
-                val fullPicture = java.util.Base64.getEncoder().encodeToString(File(pathToFile).inputStream().readAllBytes())
+                val pictureBites = File(pathToFile).inputStream().readAllBytes()
+                val bi = ImageIO.read(ByteArrayInputStream(pictureBites))
+                val resizedBi = if (bi.width == 400 && bi.height == 400) bi else resizeBufferedImage(bi, newW = 400, newH = 400)
+                val previewBi = resizeBufferedImage(bi, newW = 50, newH = 50)
+                val iosFull = ByteArrayOutputStream()
+                ImageIO.write(resizedBi, "png", iosFull)
+                val full = Base64.getEncoder().encodeToString(iosFull.toByteArray())
+                val iosPreview = ByteArrayOutputStream()
+                ImageIO.write(previewBi, "png", iosPreview)
+                val preview = Base64.getEncoder().encodeToString(iosPreview.toByteArray())
+//                val fullPicture = java.util.Base64.getEncoder().encodeToString(File(pathToFile).inputStream().readAllBytes())
                 val pict = Pictures(database)
                 pict.name = pictureNameAlbum
-                pict.full = fullPicture
+                pict.full = full
+                pict.preview = preview
                 pic = Pictures.createDbInstance(pict, database)
             }
         }

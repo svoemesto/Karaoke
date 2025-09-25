@@ -1,5 +1,7 @@
 server:
   port: 8899
+  tomcat:
+    connection-timeout: 300000 # 300000 миллисекунд = 5 минут. Установите нужное значение.
 
 spring:
   thymeleaf:

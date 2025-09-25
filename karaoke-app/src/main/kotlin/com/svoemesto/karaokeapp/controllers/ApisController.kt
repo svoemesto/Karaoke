@@ -2998,4 +2998,40 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             )
         }?.sorted() ?: emptyList()
     }
+
+    @PostMapping("/pictures/updatepicture")
+    @ResponseBody
+    fun apisUpdatePicture(
+            @RequestParam(required = true) id: Long,
+            @RequestParam(required = false) name: String?,
+            @RequestParam(required = false) full: String?,
+            @RequestParam(required = false) preview: String?
+    ): Long {
+
+        Pictures.loadFromDbById(id = id, database = WORKING_DATABASE)?.let {pic ->
+            name?.let { pic.name = it }
+            full?.let { pic.full = it }
+            preview?.let { pic.preview = it }
+            pic.save()
+            return id
+        }
+        return 0L
+    }
+
+    @PostMapping("/pictures/picturesdigests")
+    @ResponseBody
+    fun apisPicturesDigest(
+            @RequestParam(required = false) filter_id: String?,
+            @RequestParam(required = false) filter_name: String?
+    ): Map<String, Any> {
+
+        val args: MutableMap<String, String> = mutableMapOf()
+        filter_id?.let { if (filter_id != "") args["id"] = filter_id }
+        filter_name?.let { if (filter_name != "") args["picture_name"] = filter_name }
+        val picturesDigests = Pictures.loadListDTOFromDb(args, WORKING_DATABASE)
+        return mapOf(
+                "workInContainer" to APP_WORK_IN_CONTAINER,
+                "picturesDigests" to picturesDigests
+        )
+    }
 }

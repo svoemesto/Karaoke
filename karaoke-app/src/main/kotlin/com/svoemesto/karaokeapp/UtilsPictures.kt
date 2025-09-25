@@ -488,7 +488,7 @@ fun createBoostyTeaserPicture(settings: Settings, fileName: String = "") {
 
 }
 
-fun resizeBufferedImage(img: BufferedImage, newW: Int, newH: Int): BufferedImage? {
+fun resizeBufferedImage(img: BufferedImage, newW: Int, newH: Int): BufferedImage {
     val tmp = img.getScaledInstance(newW, newH, Image.SCALE_SMOOTH)
     val dimg = BufferedImage(newW, newH, BufferedImage.TYPE_INT_ARGB)
     val g2d = dimg.createGraphics()

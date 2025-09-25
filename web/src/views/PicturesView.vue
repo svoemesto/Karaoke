@@ -1,22 +1,22 @@
 <template>
-  <div class="authorstable">
-    <AuthorsTable/>
+  <div class="picturestable">
+    <PicturesTable/>
   </div>
 </template>
 
 <script>
-import AuthorsTable from '@/components/Authors/AuthorsTable.vue'
+import PicturesTable from '@/components/Pictures/PicturesTable.vue'
 export default {
-  name: "AuthorsView",
+  name: "PicturesView",
   components: {
-    AuthorsTable
+    PicturesTable
   }
 }
 </script>
 
 <style scoped>
 
-.authorstable {
+.picturestable {
   display: flex;
   flex-direction: column;
   margin: 10px auto;

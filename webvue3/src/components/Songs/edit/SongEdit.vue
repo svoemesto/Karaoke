@@ -441,6 +441,13 @@
             <button class="group-button" @click="playLyrics" title="PLAY LYRICS" :style="{ backgroundColor: song.processColorMeltLyrics }">PLAY LYRICS</button>
             <button class="group-button" @click="playChords" title="PLAY CHORDS" :style="{ backgroundColor: song.processColorMeltChords }">PLAY CHORDS</button>
             <button class="group-button" @click="playTabs" title="PLAY TABS" :style="{ backgroundColor: song.processColorMeltMelody }">PLAY TABS</button>
+            <div class="group-button">
+              <b-form-rating
+                  id="rate-inline-form"
+                  inline
+                  v-model="song.rate"
+              ></b-form-rating>
+            </div>
             <div class="navigation-buttons">
               <button class="group-button-left-right" @click="goToLeftSong" title="⬅">⬅</button>
               <div class="navigation-buttons-column">
@@ -449,13 +456,7 @@
               </div>
               <button class="group-button-left-right" @click="goToRightSong" title="➡">➡</button>
             </div>
-            <div class="group-button">
-              <b-form-rating
-                  id="rate-inline-form"
-                  inline
-                  v-model="song.rate"
-              ></b-form-rating>
-            </div>
+
           </div>
         </div>
         <!-- Третий столбец тела -->
@@ -499,13 +500,15 @@
 <script>
 import SubsEdit from './SubsEdit.vue'
 import CustomConfirm from "../../Common/CustomConfirm.vue";
+import { BFormRating } from 'bootstrap-vue-next'
 // import { ToastPlugin } from 'bootstrap-vue'
 
 export default {
   name: "SongEdit",
   components: {
     CustomConfirm,
-    SubsEdit
+    SubsEdit,
+    BFormRating
   },
   data () {
     return {
@@ -2363,5 +2366,4 @@ export default {
   display: flex;
   flex-direction: column;
 }
-
 </style>

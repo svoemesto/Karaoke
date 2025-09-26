@@ -1399,5 +1399,10 @@ export default {
   width: 40px;
   height: 40px;
 }
-
+.star-spacing {
+  margin: 0 !important;
+}
+.b-form-rating {
+  margin: 0 !important;
+}
 </style>

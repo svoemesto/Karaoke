@@ -77,6 +77,11 @@ export default {
       type: String,
       required: true
     },
+    extensions: {
+      type: String,
+      required: false,
+      default: ''
+    },
     directory: {
       type: Boolean,
       required: false,
@@ -144,7 +149,7 @@ export default {
     },
     getFiles(path) {
       console.log('path', path);
-      let request = { method: 'POST', url: "/apis/files", params: { path: path} };
+      let request = { method: 'POST', url: "/apis/files", params: { path: path, extensions: this.extensions } };
       this.isBusy = true;
       promisedXMLHttpRequest(request).then(data => {
         let result = JSON.parse(data);

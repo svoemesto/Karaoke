@@ -4298,6 +4298,8 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             try {
                 statement = connection.createStatement()
                 sql = "SELECT * FROM tbl_settings${if (sync) "_sync" else ""}"
+                val limit = args["limit"]?.toInt() ?: 0
+                val offset = args["offset"]?.toInt() ?: 0
 
                 if (args.containsKey("ids")) where += "tbl_settings${if (sync) "_sync" else ""}.id in (${args["ids"]})"
                 if (args.containsKey("file_name")) where += "LOWER(file_name)='${args["file_name"]?.rightFileName()?.lowercase()}'"
@@ -4306,6 +4308,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                 if (args.containsKey("song_author")) where += "LOWER(song_author) LIKE '%${args["song_author"]?.rightFileName()?.lowercase()}%'"
                 if (args.containsKey("author")) where += "LOWER(song_author) = '${args["author"]?.rightFileName()?.lowercase()}'"
                 if (args.containsKey("song_album")) where += "LOWER(song_album) LIKE '%${args["song_album"]?.rightFileName()?.lowercase()}%'"
+                if (args.containsKey("album")) where += "LOWER(song_album) = '${args["album"]?.rightFileName()?.lowercase()}'"
 
                 if (args.containsKey("publish_date")) {
                     var pd = args["publish_date"]!!
@@ -4417,6 +4420,8 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                 if (where.size > 0) sql += " WHERE ${where.joinToString(" AND ")}"
 
                 sql += " ORDER BY tbl_settings${if (sync) "_sync" else ""}.id"
+                if (limit > 0) sql += " LIMIT $limit"
+                if (offset > 0) sql += " OFFSET $offset"
 
                 rs = statement.executeQuery(sql)
                 val result: MutableList<Settings> = mutableListOf()

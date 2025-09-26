@@ -1,0 +1,23 @@
+version: "3.9"
+services:
+
+  karaoke-webvue3:
+    container_name: karaoke-webvue3
+    image: svoemestodev/karaoke-webvue3:1
+    ports:
+      - "7906:7906"
+    volumes:
+      - /sm-karaoke/work:/home/Karaoke
+      - /sm-karaoke/work:/sm-karaoke/work
+      - /sm-karaoke/done1:/sm-karaoke/done1
+      - /sm-karaoke/done2:/sm-karaoke/done2
+      - /sm-karaoke/system:/sm-karaoke/system
+      - /sm-karaoke/system/deploy/nginx_webvue3.conf:/etc/nginx/nginx.conf
+    networks:
+      - karaokenet
+    command: /bin/bash -c "exec nginx -g 'daemon off;'"
+
+networks:
+  karaokenet:
+    driver: bridge
+

@@ -60,6 +60,24 @@ services:
       - karaokenet
     command: /bin/bash -c "exec nginx -g 'daemon off;'"
 
+  karaoke-webvue3:
+    container_name: karaoke-webvue3
+    image: ${DOCKER_REGISTRY}/karaoke-webvue3:${BUILD_VERSION}
+    ports:
+      - "7906:7906"
+    depends_on:
+      - karaoke-app
+    volumes:
+      - ${APP_FOLDER_HOST}:${APP_FOLDER_IN_CONTAINER}
+      - ${APP_FOLDER_K1}:${APP_FOLDER_K1}
+      - ${APP_FOLDER_K2}:${APP_FOLDER_K2}
+      - ${APP_FOLDER_K3}:${APP_FOLDER_K3}
+      - ${APP_FOLDER_SYSTEM}:${APP_FOLDER_SYSTEM}
+      - ${WEBVUE3_PATH_TO_NGINX_CONF}:/etc/nginx/nginx.conf
+    networks:
+      - karaokenet
+    command: /bin/bash -c "exec nginx -g 'daemon off;'"
+
 networks:
   karaokenet:
     driver: bridge

@@ -17,6 +17,8 @@ import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Controller
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.nio.charset.Charset
 import java.nio.file.Files
@@ -36,6 +38,7 @@ import java.security.KeyStoreException
 import java.io.IOException
 import java.sql.Timestamp
 import java.time.Instant
+import javax.imageio.ImageIO
 
 @Controller
 @RequestMapping("/apis")
@@ -2977,7 +2980,10 @@ class ApisController(private val sseNotificationService: SseNotificationService)
 
     @PostMapping("/files")
     @ResponseBody
-    fun getFiles(@RequestParam path: String): List<FileDTO> {
+    fun getFiles(
+            @RequestParam path: String,
+            @RequestParam(required = false) extensions: String?
+    ): List<FileDTO> {
         var directory = File(path)
         if (!directory.exists() || !directory.isDirectory) {
             directory = File("/")
@@ -2986,16 +2992,19 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             }
         }
 
-        return directory.listFiles()?.map { file ->
-            FileDTO(
-                name = file.name,
-                path = file.absolutePath,
-                extension = file.extension,
-                nameWithoutExtension = file.nameWithoutExtension,
-                parent = file.parent,
-                length = file.length(),
-                isDirectory = file.isDirectory
-            )
+        return directory.listFiles()?.mapNotNull { file ->
+            val needToAdd = file.isDirectory || (extensions.isNullOrBlank() || file.extension.lowercase() in extensions.split(";").map { it.lowercase() })
+            if (needToAdd) {
+                FileDTO(
+                        name = file.name,
+                        path = file.absolutePath,
+                        extension = file.extension,
+                        nameWithoutExtension = file.nameWithoutExtension,
+                        parent = file.parent,
+                        length = file.length(),
+                        isDirectory = file.isDirectory
+                )
+            } else null
         }?.sorted() ?: emptyList()
     }
 
@@ -3034,4 +3043,36 @@ class ApisController(private val sseNotificationService: SseNotificationService)
                 "picturesDigests" to picturesDigests
         )
     }
+
+    @PostMapping("/picture")
+    @ResponseBody
+    fun apisPicture(@RequestParam id: String): Any? = Pictures.loadFromDbById(id.toLong(), WORKING_DATABASE)?.toDTO()
+
+    @PostMapping("/picture/delete")
+    @ResponseBody
+    fun doDeletePicture(@RequestParam id: Int) {
+        Pictures.deleteFromDb(id, WORKING_DATABASE)
+    }
+    @PostMapping("/picture/savetodisk")
+    @ResponseBody
+    fun doSavePictureToDisk(@RequestParam id: Long) {
+        Pictures.loadFromDbById(id, WORKING_DATABASE)?.let { it.saveToDisk() }
+    }
+
+    @PostMapping("/picture/loadfromdisk")
+    @ResponseBody
+    fun doLoadPictureFromDisk(@RequestParam pathToFile: String): String {
+        if (!File(pathToFile).exists()) return ""
+        try {
+            val pictureBites = File(pathToFile).inputStream().readAllBytes()
+            val bi = ImageIO.read(ByteArrayInputStream(pictureBites))
+            val iosFull = ByteArrayOutputStream()
+            ImageIO.write(bi, "png", iosFull)
+            return Base64.getEncoder().encodeToString(iosFull.toByteArray())
+        } catch (e: Exception) {
+            println(e)
+        }
+        return ""
+    }
+
 }

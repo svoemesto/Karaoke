@@ -24,10 +24,10 @@
                 <div v-text="'Версия:'"></div>
               </div>
               <div class="scm-row-input">
-                <button class="scm-group-button" :class="scm-smartCopySongVersionButtonClass('KARAOKE')" type="button" value="KARAOKE" @click="setSmartCopySongVersion('KARAOKE')">KARAOKE</button>
-                <button class="scm-group-button" :class="scm-smartCopySongVersionButtonClass('LYRICS')" type="button" value="LYRICS" @click="setSmartCopySongVersion('LYRICS')">LYRICS</button>
-                <button class="scm-group-button" :class="scm-smartCopySongVersionButtonClass('CHORDS')" type="button" value="CHORDS" @click="setSmartCopySongVersion('CHORDS')">CHORDS</button>
-                <button class="scm-group-button" :class="scm-smartCopySongVersionButtonClass('TABS')" type="button" value="TABS" @click="setSmartCopySongVersion('TABS')">TABS</button>
+                <button class="scm-group-button" :class="smartCopySongVersionButtonClass('KARAOKE')" type="button" value="KARAOKE" @click="setSmartCopySongVersion('KARAOKE')">KARAOKE</button>
+                <button class="scm-group-button" :class="smartCopySongVersionButtonClass('LYRICS')" type="button" value="LYRICS" @click="setSmartCopySongVersion('LYRICS')">LYRICS</button>
+                <button class="scm-group-button" :class="smartCopySongVersionButtonClass('CHORDS')" type="button" value="CHORDS" @click="setSmartCopySongVersion('CHORDS')">CHORDS</button>
+                <button class="scm-group-button" :class="smartCopySongVersionButtonClass('TABS')" type="button" value="TABS" @click="setSmartCopySongVersion('TABS')">TABS</button>
               </div>
             </div>
 
@@ -36,8 +36,8 @@
                 <div v-text="'Качество:'"></div>
               </div>
               <div class="scm-row-input">
-                <button class="scm-group-button" :class="scm-smartCopySongResolutionButtonClass('1080p')" type="button" value="1080p" @click="setSmartCopySongResolution('1080p')">1080p 60fps</button>
-                <button class="scm-group-button" :class="scm-smartCopySongResolutionButtonClass('720p')" type="button" value="720p" @click="setSmartCopySongResolution('720p')">720p 30fps</button>
+                <button class="scm-group-button" :class="smartCopySongResolutionButtonClass('1080p')" type="button" value="1080p" @click="setSmartCopySongResolution('1080p')">1080p 60fps</button>
+                <button class="scm-group-button" :class="smartCopySongResolutionButtonClass('720p')" type="button" value="720p" @click="setSmartCopySongResolution('720p')">720p 30fps</button>
               </div>
             </div>
 
@@ -46,8 +46,8 @@
                 <div v-text="'Папки:'"></div>
               </div>
               <div class="scm-row-input">
-                <button class="scm-group-button" :class="scm-smartCopyCreateSubfoldersAuthorsButtonClass(false)" type="button" value="false" @click="setSmartCopyCreateSubfoldersAuthors(false)">Не создавать</button>
-                <button class="scm-group-button" :class="scm-smartCopyCreateSubfoldersAuthorsButtonClass(true)" type="button" value="true" @click="setSmartCopyCreateSubfoldersAuthors(true)">Создавать для авторов</button>
+                <button class="scm-group-button" :class="smartCopyCreateSubfoldersAuthorsButtonClass(false)" type="button" value="false" @click="setSmartCopyCreateSubfoldersAuthors(false)">Не создавать</button>
+                <button class="scm-group-button" :class="smartCopyCreateSubfoldersAuthorsButtonClass(true)" type="button" value="true" @click="setSmartCopyCreateSubfoldersAuthors(true)">Создавать для авторов</button>
               </div>
             </div>
 

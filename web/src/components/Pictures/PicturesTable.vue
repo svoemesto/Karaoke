@@ -1,6 +1,6 @@
 <template>
   <div class="pictures-bv-table">
-<!--    <PictureEditModal v-if="isPictureEditVisible" @close="closePictureEdit"/>-->
+    <PictureEditModal v-if="isPictureEditVisible" @close="closePictureEdit"/>
     <PicturesFilter v-if="isPicturesFilterVisible" @close="closePicturesFilter"/>
     <custom-confirm v-if="isCustomConfirmVisible" :params="customConfirmParams" @close="closeCustomConfirm" />
     <div class="pictures-bv-table-header">
@@ -39,29 +39,11 @@
           >
         </template>
 
-        <template #cell(id)="data">
-          <div
-              class="fld-picture-id"
-              v-text="data.value"
-              :style="{ color: currentPictureId === data.item.id ? 'blue' : 'black' }"
-              @click.left="changeValue(data.item)"
-          ></div>
-        </template>
-
-        <template #cell(name)="data">
-          <div
-              class="fld-picture-name"
-              v-text="data.value"
-              :style="{ color: currentPictureId === data.item.id ? 'blue' : 'black' }"
-              @click.left="changeValue(data.item)"
-          ></div>
-        </template>
-
-        <!-- Новый шаблон для ячейки изображения -->
         <template #cell(preview)="data">
           <div
               class="fld-picture-preview"
               :style="{ color: currentPictureId === data.item.id ? 'blue' : 'black' }"
+              @click.left="editPicture(data.item.id)"
           >
             <!-- Проверяем, что data.value (preview) существует и является строкой -->
             <img
@@ -73,6 +55,24 @@
             <!-- Можно добавить плейсхолдер, если изображение отсутствует -->
             <div v-else class="no-image-placeholder">Нет изображения</div>
           </div>
+        </template>
+
+        <template #cell(id)="data">
+          <div
+              class="fld-picture-id"
+              v-text="data.value"
+              :style="{ color: currentPictureId === data.item.id ? 'blue' : 'black' }"
+              @click.left="editPicture(data.item.id)"
+          ></div>
+        </template>
+
+        <template #cell(name)="data">
+          <div
+              class="fld-picture-name"
+              v-text="data.value"
+              :style="{ color: currentPictureId === data.item.id ? 'blue' : 'black' }"
+              @click.left="editPicture(data.item.id)"
+          ></div>
         </template>
 
       </b-table>
@@ -94,7 +94,7 @@ import { TablePlugin } from 'bootstrap-vue'
 import { PaginationPlugin } from 'bootstrap-vue'
 import { SpinnerPlugin } from 'bootstrap-vue'
 
-// import PictureEditModal from "@/components/Pictures/edit/PictureEditModal.vue";
+import PictureEditModal from "@/components/Pictures/edit/PictureEditModal.vue";
 import PicturesFilter from "@/components/Pictures/filter/PicturesFilterModal.vue";
 import CustomConfirm from "../Common/CustomConfirm.vue";
 Vue.use(TablePlugin)
@@ -104,7 +104,7 @@ Vue.use(SpinnerPlugin)
 export default {
   name: "PicturesTable",
   components: {
-    // PictureEditModal,
+    PictureEditModal,
     PicturesFilter,
     CustomConfirm
   },
@@ -144,6 +144,16 @@ export default {
     pictureDigestFields() {
       return [
         {
+          key: 'preview',
+          label: '(picture)',
+          style: {
+            minWidth: '125px',
+            maxWidth: '125px',
+            textAlign: 'left',
+            fontSize: 'small'
+          }
+        },
+        {
           key: 'id',
           label: 'ID',
           style: {
@@ -157,18 +167,8 @@ export default {
           key: 'name',
           label: 'Имя',
           style: {
-            minWidth: '300px',
-            maxWidth: '300px',
-            textAlign: 'left',
-            fontSize: 'small'
-          }
-        },
-        {
-          key: 'preview',
-          label: '(picture)',
-          style: {
-            minWidth: '125px',
-            maxWidth: '125px',
+            minWidth: '500px',
+            maxWidth: '500px',
             textAlign: 'left',
             fontSize: 'small'
           }
@@ -178,104 +178,12 @@ export default {
   },
   methods: {
 
-    openYandexMusicPicture(item) {
-      if (item.ymId) {
-        const yandexMusicPictureLink = 'https://music.yandex.ru/artist/' + item.ymId + '/albums';
-        window.open(yandexMusicPictureLink, '_blank');
-      }
-    },
-
-    changeValue(item) {
-
-      this.customConfirmParams = {
-        header: 'Изменение Автора',
-        body: `Автор ID = <strong>${item.id}</strong>`,
-        callback: this.doChangeValue,
-        fields: [
-          {
-            fldName: 'id',
-            fldLabel: 'ID:',
-            fldValue: item.id,
-            disabled: true,
-            fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '300px', textAlign: 'left', borderRadius: '5px'}
-          },
-          {
-            fldName: 'picture',
-            fldLabel: 'Автор:',
-            fldValue: item.picture,
-            fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '300px', textAlign: 'left', borderRadius: '5px'}
-          },
-          {
-            fldName: 'ymId',
-            fldLabel: 'Yandex ID:',
-            fldValue: item.ymId,
-            fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '300px', textAlign: 'left', borderRadius: '5px'}
-          },
-          {
-            fldName: 'lastAlbumYm',
-            fldLabel: 'Последний альбом (Yandex):',
-            fldValue: item.lastAlbumYm,
-            fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '300px', textAlign: 'left', borderRadius: '5px'}
-          },
-          {
-            fldName: 'lastAlbumProcessed',
-            fldLabel: 'Последний альбом (DB):',
-            fldValue: item.lastAlbumProcessed,
-            fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '300px', textAlign: 'left', borderRadius: '5px'}
-          },
-          {
-            fldName: 'watched',
-            fldLabel: 'Следить?:',
-            fldValue: item.watched,
-            fldIsBoolean: true,
-            fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '300px', textAlign: 'center', borderRadius: '5px'}
-          },
-          {
-            fldName: 'skip',
-            fldLabel: 'Пропустить?:',
-            fldValue: item.skip,
-            fldIsBoolean: true,
-            fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '300px', textAlign: 'center', borderRadius: '5px'}
-          },
-          {
-            fldName: 'haveNewAlbum',
-            fldLabel: 'Новый альбом?:',
-            fldValue: item.watched,
-            fldIsBoolean: true,
-            disabled: true,
-            fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px'},
-            fldValueStyle: { width: '300px', textAlign: 'center', borderRadius: '5px'}
-          }
-        ]
-      }
-      this.isCustomConfirmVisible = true;
-    },
-
-    doChangeValue(picture) {
-      this.$store.dispatch('setPictureValuePromise', picture)
-          .then(result => { // result - это целое число, возвращаемое промисом
-            if (result !== 0) { // Проверяем, отлично ли оно от нуля
-              this.$store.dispatch('loadOneRecord', result);
-            }
-          })
-          .catch(error => {
-            console.error("Ошибка при выполнении setPictureValuePromise:", error);
-          });
-    },
-
     closeCustomConfirm() {
       this.isCustomConfirmVisible = false;
     },
 
-    editPicture(key) {
-      this.$store.commit('setCurrentPictureKey', key);
+    editPicture(id) {
+      this.$store.commit('setPictureCurrentId', id);
       this.isPictureEditVisible = true;
     },
     closePictureEdit() {
@@ -340,8 +248,8 @@ export default {
   cursor: pointer;
 }
 .fld-picture-name {
-  min-width: 300px;
-  max-width: 300px;
+  min-width: 500px;
+  max-width: 500px;
   text-align: left;
   font-size: small;
   white-space: nowrap;
@@ -366,7 +274,9 @@ export default {
   overflow: hidden;
   background-color: black;
 }
-
+.fld-picture-preview:hover {
+  cursor: pointer;
+}
 .preview-image {
   width: auto; /* Позволяет высоте масштабироваться пропорционально */
   height: 50px; /* Установленная высота */

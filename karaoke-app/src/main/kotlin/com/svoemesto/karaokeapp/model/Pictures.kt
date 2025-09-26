@@ -3,7 +3,9 @@ package com.svoemesto.karaokeapp.model
 import com.svoemesto.karaokeapp.*
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
+import java.io.File
 import java.io.Serializable
+import java.nio.file.Path
 import java.sql.ResultSet
 import java.sql.SQLException
 import java.sql.Statement
@@ -32,6 +34,41 @@ class Pictures(val database: KaraokeConnection = WORKING_DATABASE) : Serializabl
             }
         }
     var preview: String = ""
+
+    val author: String get() {
+        val arr = name.split(" - ")
+        return if (arr.size >= 3) arr[0] else name
+    }
+
+    val year: String get() {
+        val arr = name.split(" - ")
+        return if (arr.size >= 3) arr[1] else ""
+    }
+
+    val album: String get() {
+        val arr = name.split(" - ")
+        return if (arr.size >= 3) arr.filterIndexed { index, _ -> index >= 2 }.joinToString(" - ") else ""
+    }
+
+    val isAuthorPicture: Boolean get() = author.isNotBlank() && year.isBlank() && album.isBlank()
+    val isAlbumPicture: Boolean get() = author.isNotBlank() && year.isNotBlank() && album.isNotBlank()
+
+    val pathToFolder: String get() {
+        return if (isAlbumPicture) {
+            // Ищем первую песню автора, года и альбома
+            val args = mapOf("author" to author, "song_year" to year, "album" to album, "limit" to "1")
+            Settings.loadListFromDb(args = args, database = WORKING_DATABASE).firstOrNull()?.let { sett ->
+                sett.rootFolder
+            }?: ""
+        } else if (isAuthorPicture) {
+            val args = mapOf("author" to author, "limit" to "1")
+            Settings.loadListFromDb(args = args, database = WORKING_DATABASE).firstOrNull()?.let { sett ->
+                File(sett.rootFolder).parent
+            }?: ""
+        } else ""
+    }
+
+    val fileName: String get() = if (isAuthorPicture) "LogoAuthor.png" else if (isAlbumPicture) "LogoAlbum.png" else ""
 
     override fun compareTo(other: Pictures): Int {
         return id.compareTo(other.id)
@@ -80,9 +117,31 @@ class Pictures(val database: KaraokeConnection = WORKING_DATABASE) : Serializabl
         return PicturesDTO(
                 id = id,
                 name = name,
-                preview = preview
+                preview = preview,
+                full = full,
+                author = author,
+                year = year,
+                album = album,
+                isAuthorPicture = isAuthorPicture,
+                isAlbumPicture = isAlbumPicture,
+                pathToFolder = pathToFolder,
+                fileName = fileName
         )
     }
+
+    fun saveToDisk() {
+        try {
+            val pictureBites = Base64.getDecoder().decode(full)
+            val bi = ImageIO.read(ByteArrayInputStream(pictureBites))
+            val fName = "/sm-karaoke/system/pictures/$name.png"
+            val file = File(fName)
+            ImageIO.write(bi, "png", file)
+            runCommand(listOf("chmod", "666", fName))
+        } catch (e: Exception) {
+            println(e.message)
+        }
+    }
+
     companion object {
 
         fun listHashes(database: KaraokeConnection, whereText: String = ""): List<RecordHash>? {

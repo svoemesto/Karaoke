@@ -89,6 +89,12 @@ function build_start_webvue() {
   do_start_webvue
 }
 
+function build_start_webvue3() {
+  echo "Building WEBVUE3 module and start"
+  do_build_webvue3
+  do_start_webvue3
+}
+
 function do_build_app() {
 
   echo "Building APP module"
@@ -128,6 +134,12 @@ function do_build_webvue() {
   echo "Building WEBVUE module"
   ${DOCKER} image build $BASE_DIR/ --build-arg VERSION=${BUILD_VERSION} \
     -t "$DOCKER_REGISTRY/karaoke-webvue:${BUILD_VERSION}" -f $DEPLOY_DIR/karaoke-webvue/Dockerfile
+}
+
+function do_build_webvue3() {
+  echo "Building WEBVUE3 module"
+  ${DOCKER} image build $BASE_DIR/ --build-arg VERSION=${BUILD_VERSION} \
+    -t "$DOCKER_REGISTRY/karaoke-webvue3:${BUILD_VERSION}" -f $DEPLOY_DIR/karaoke-webvue3/Dockerfile
 }
 
 function do_start() {
@@ -183,9 +195,22 @@ function do_start_webvue() {
   command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "WEBVUE запущен"
 }
 
+function do_start_webvue3() {
+  do_stop_webvue3
+  echo "Старт WEBVUE3"
+  ${COMPOSE} -f $DEPLOY_DIR/docker-compose-webvue3.yml up -d
+  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga
+  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "WEBVUE3 запущен"
+}
+
 function do_stop_webvue() {
   echo "Остановка WEBVUE"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-webvue.yml down
+}
+
+function do_stop_webvue3() {
+  echo "Остановка WEBVUE3"
+  ${COMPOSE} -f $DEPLOY_DIR/docker-compose-webvue3.yml down
 }
 
 function do_start_app() {
@@ -207,6 +232,7 @@ function do_push() {
   ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-app:${BUILD_VERSION}"
   ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-web:${BUILD_VERSION}"
   ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-webvue:${BUILD_VERSION}"
+  ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-webvue3:${BUILD_VERSION}"
   command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga
   command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "Pushing!"
 }
@@ -235,6 +261,14 @@ function do_push_webvue() {
   command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "Pushing WEBVUE!"
 }
 
+function do_push_webvue3() {
+  echo "Pushing WEBVUE3"
+  ${DOCKER} login --username ${DOCKER_REGISTRY} --password ${DOCKER_PASSWORD}
+  ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-webvue3:${BUILD_VERSION}"
+  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga
+  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "Pushing WEBVUE3!"
+}
+
 function do_pull() {
   echo "Pulling images"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose.yml ${DATABASE} pull
@@ -249,6 +283,7 @@ function do_rmi() {
   ${DOCKER} image rm "$DOCKER_REGISTRY/karaoke-app:${BUILD_VERSION}"
   ${DOCKER} image rm "$DOCKER_REGISTRY/karaoke-web:${BUILD_VERSION}"
   ${DOCKER} image rm "$DOCKER_REGISTRY/karaoke-webvue:${BUILD_VERSION}"
+  ${DOCKER} image rm "$DOCKER_REGISTRY/karaoke-webvue3:${BUILD_VERSION}"
   command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga
   command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "Removing!"
 }
@@ -277,25 +312,30 @@ build_app) do_build_app ;;
 build_app_nocache) do_build_app_nocache ;;
 build_web) do_build_web ;;
 build_webvue) do_build_webvue ;;
+build_webvue3) do_build_webvue3 ;;
 build_start_app) build_start_app ;;
 build_start_web) build_start_web ;;
 build_start_webvue) build_start_webvue ;;
+build_start_webvue3) build_start_webvue3 ;;
 images) build_images ;;
 start) do_start ;;
 start_db) do_start_db ;;
 start_app) do_start_app ;;
 start_web) do_start_web ;;
 start_webvue) do_start_webvue ;;
+start_webvue3) do_start_webvue3 ;;
 stop) do_stop ;;
 stop_db) do_stop_db ;;
 stop_app) do_stop_app ;;
 stop_web) do_stop_web ;;
 stop_webvue) do_stop_webvue ;;
+stop_webvue3) do_stop_webvue3 ;;
 load) do_load ;;
 push) do_push ;;
 push_app) do_push_app ;;
 push_web) do_push_web ;;
 push_webvue) do_push_webvue ;;
+push_webvue3) do_push_webvue3 ;;
 pull) do_pull ;;
 ps) do_ps ;;
 rmi) do_rmi ;;

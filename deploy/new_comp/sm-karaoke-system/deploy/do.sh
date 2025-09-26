@@ -72,9 +72,46 @@ function do_start_webvue() {
   command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "WEBVUE запущен"
 }
 
+function do_start_webvue3() {
+  do_stop_webvue3
+  echo "Старт WEBVUE3"
+    # Определяем первый IP-адрес с помощью hostname -I
+    IP_ADDRESS=$(hostname -I | awk '{print $1}')
+
+    # Проверяем, что IP-адрес был получен
+    if [ -z "$IP_ADDRESS" ]; then
+      echo "Не удалось определить IP-адрес."
+    else
+        # Определяем директорию, откуда запущен скрипт
+        SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+        # Задаем пути к файлам
+        TEMPLATE_FILE="$SCRIPT_DIR/nginx_webvue3.conf.template"
+        OUTPUT_FILE="$SCRIPT_DIR/nginx_webvue3.conf"
+
+        # Проверяем, что файл шаблона существует
+        if [ ! -f "$TEMPLATE_FILE" ]; then
+          echo "Файл nginx_webvue3.conf.template не найден в директории $SCRIPT_DIR"
+        else
+            # Заменяем MY_IP_ADDRESS на реальный IP и сохраняем в nginx.conf
+            sed "s/MY_IP_ADDRESS/$IP_ADDRESS/g" "$TEMPLATE_FILE" > "$OUTPUT_FILE"
+            echo "Файл nginx_webvue3.conf успешно создан в $OUTPUT_FILE с IP-адресом $IP_ADDRESS"
+        fi
+    fi
+
+  ${COMPOSE} -f $DEPLOY_DIR/docker-compose-webvue3-new-comp.yml up -d
+  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga
+  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "WEBVUE3 запущен"
+}
+
 function do_stop_webvue() {
   echo "Остановка WEBVUE"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-webvue-new-comp.yml down
+}
+
+function do_stop_webvue3() {
+  echo "Остановка WEBVUE3"
+  ${COMPOSE} -f $DEPLOY_DIR/docker-compose-webvue3-new-comp.yml down
 }
 
 function do_start_app() {
@@ -120,6 +157,13 @@ function do_pull_webvue() {
   command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "Pulling WEBVUE!"
 }
 
+function do_pull_webvue3() {
+  echo "Pulling WEBVUE3"
+  ${COMPOSE} -f $DEPLOY_DIR/docker-compose-webvue3-new-comp.yml pull
+  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga
+  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "Pulling WEBVUE3!"
+}
+
 function do_restore_db() {
   do_start_db
   echo "Создание базы данных из бекапа в контейнере karaoke-db..."
@@ -145,13 +189,16 @@ start_app) do_start_app ;;
 start_app2) do_start_app2 ;;
 start_web) do_start_web ;;
 start_webvue) do_start_webvue ;;
+start_webvue3) do_start_webvue3 ;;
 stop_db) do_stop_db ;;
 stop_app) do_stop_app ;;
 stop_web) do_stop_web ;;
 stop_webvue) do_stop_webvue ;;
+stop_webvue3) do_stop_webvue3 ;;
 pull_app) do_pull_app ;;
 pull_web) do_pull_web ;;
 pull_webvue) do_pull_webvue ;;
+pull_webvue3) do_pull_webvue3 ;;
 restore_db) do_restore_db ;;
 create_clear_db) do_create_clear_db ;;
 *)

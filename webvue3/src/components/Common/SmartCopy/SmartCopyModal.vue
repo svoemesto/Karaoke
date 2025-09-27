@@ -126,13 +126,13 @@ export default {
       this.isFileExplorerVisible = false;
     },
     smartCopySongVersionButtonClass(smartCopySongVersion) {
-      return smartCopySongVersion === this.smartCopySongVersion ? 'group-button-active' : ''
+      return smartCopySongVersion === this.smartCopySongVersion ? 'scm-group-button-active' : ''
     },
     smartCopySongResolutionButtonClass(smartCopySongResolution) {
-      return smartCopySongResolution === this.smartCopySongResolution ? 'group-button-active' : ''
+      return smartCopySongResolution === this.smartCopySongResolution ? 'scm-group-button-active' : ''
     },
     smartCopyCreateSubfoldersAuthorsButtonClass(smartCopyCreateSubfoldersAuthors) {
-      return smartCopyCreateSubfoldersAuthors === this.smartCopyCreateSubfoldersAuthors ? 'group-button-active' : ''
+      return smartCopyCreateSubfoldersAuthors === this.smartCopyCreateSubfoldersAuthors ? 'scm-group-button-active' : ''
     },
     setSmartCopySongVersion(smartCopySongVersion) {
       this.smartCopySongVersion = smartCopySongVersion;

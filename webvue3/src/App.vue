@@ -143,27 +143,43 @@ export default {
 .app-header {
   display: flex;
   flex-direction: row;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
 }
 
-.nav-item:hover {
-  text-decoration: none;
-  background-color: #4AAE9B;
-}
+/*.nav-item:hover {*/
+/*  text-decoration: none;*/
+/*  background-color: #4AAE9B;*/
+/*}*/
 
 .nav {
   display: flex;
   justify-content: center;
 }
 
-nav a {
-  font-weight: bold;
-  color: #2c3e50;
-}
+/*nav a {*/
+/*  font-weight: bold;*/
+/*  color: #2c3e50;*/
+/*}*/
 
 li a {
-  padding: 0 5px 0 5px;
+  background: grey;
+  color: white;
+  text-decoration: none;
+  border-radius: 15px;
+  padding: 10px;
+  margin: 0 2px 0 2px;
+  font-weight: bold;
+}
+
+li a:hover {
+  background: blue;
+  color: white;
+  text-decoration: none;
+  border-radius: 15px;
+  padding: 10px;
+  margin: 0 2px 0 2px;
+  font-weight: bold;
 }
 
 .router-link-active {
@@ -171,9 +187,13 @@ li a {
 }
 
 .router-link-exact-active {
-  color: red;
-  font-weight: bold;
+  background: #535bf2;
+  color: white;
   text-decoration: none;
+  border-radius: 15px;
+  padding: 10px;
+  margin: 0 2px 0 2px;
+  font-weight: bold;
 }
 
 .table-sm th {

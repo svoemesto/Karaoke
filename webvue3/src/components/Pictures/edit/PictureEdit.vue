@@ -18,7 +18,7 @@
             <div class="label">Имя:</div>
             <input class="input-field" v-model="pictureCurrent.name">
             <button class="btn-round" @click="undoField('name')" :disabled="notChanged('name')"><img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg"></button>
-            <button class="btn-round" @click="copyToClipboard(pictureCurrent.name)" :disabled="!pictureCurrent.name"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>
+            <button class="btn-round" @click="copyToClipboard(pictureCurrent.name, 'name')" :disabled="!pictureCurrent.name"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>
             <button class="btn-round" @click="pasteFromClipboard('name')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"></button>
           </div>
           <div class="picture-full">
@@ -46,6 +46,8 @@
 
 import CustomConfirm from "../../Common/CustomConfirm.vue";
 import FileExplorerModal from "../../../components/Common/FileExplorer/FileExplorerModal.vue";
+import { useToast } from "bootstrap-vue-next";
+import { h } from 'vue';
 export default {
   name: "PictureEdit",
   components: {
@@ -60,10 +62,13 @@ export default {
       pictureAutoSave: true,
       pictureAutoSaveDelayMs: 1000,
       pictureSaveTimer: undefined,
-      pictureFullBase64: ''
+      pictureFullBase64: '',
+      createToast: () => {}
     };
   },
   async mounted() {
+    const { create } = useToast();
+    this.createToast = create;
     this.$store.getters.getPictureValuePromise.then( data => {
       let image = JSON.parse(data);
       this.$store.dispatch('setPictureCurrent', image);
@@ -114,9 +119,9 @@ export default {
     undoField(name) {
       return this.$store.dispatch('setPictureCurrentField', {name: name, value: this.pictureSnapshot[name]})
     },
-    async copyToClipboard(value) {
-      await navigator.clipboard.writeText(value)
-      this.showCopyToClipboardToast('', value);
+    async copyToClipboard(value, fieldName) {
+      await navigator.clipboard.writeText(value);
+      this.showCopyToClipboardToast(fieldName, value);
     },
     async pasteFromClipboard(name) {
       await navigator.clipboard.readText().then(data => {
@@ -125,7 +130,7 @@ export default {
     },
     showCopyToClipboardToast(fieldName, fieldValue) {
       // Use a shorter name for this.$createElement
-      const h = this.$createElement
+      // const h = this.$createElement
 
       // Функция для преобразования текста с \n в массив VNodes с <br>
       const createTextWithLineBreaks = (text) => {
@@ -150,21 +155,24 @@ export default {
 
       // Создаем сообщение с возможными переносами строк
       const vNodesMsg = h('div', [
-        `Значение поля `,
-        h('strong', fieldName),
-        ` скопировано в буфер обмена:`,
+        h('div', { style: { display: 'flex', flexDirection: 'row', flexWrap: 'wrap' } }, [
+          h('div', { style: { fontFamily: 'sans-serif', fontSize: 'small', textAlign: 'left', paddingRight: '5px' } }, [`Значение поля `]),
+          h('div', { style: { fontFamily: 'monospace', fontSize: 'small', textAlign: 'left' , fontWeight: 'bold', paddingRight: '5px', color: 'darkred'} }, [fieldName]),
+          h('div', { style: { fontFamily: 'sans-serif', fontSize: 'small', textAlign: 'left' } }, [` скопировано в буфер обмена:`]),
+        ]),
         h('br'),
-        h('div', { style: { fontFamily: 'monospace', fontSize: 'x-small' } }, createTextWithLineBreaks(fieldValue))
+        h('div', { style: { fontFamily: 'monospace', fontSize: 'x-small', textAlign: 'left' } }, createTextWithLineBreaks(fieldValue))
       ]);
 
-      this.$bvToast.toast([vNodesMsg], {
+      this.createToast({
+        slots: { default: () => [vNodesMsg] },
         title: 'COPY',
         autoHideDelay: 3000,
-        toaster: 'b-toaster-top-left',
-        bodyClass: 'toast-body-info',
-        headerClass: 'toast-header-info',
+        bodyClass: 'toast-body-copytoclipboard',
+        headerClass: 'toast-header-copytoclipboard',
         appendToast: false,
-        // noAutoHide: true
+        position: 'top-start',
+        // modelValue: true
       })
     },
     notChanged(name) {

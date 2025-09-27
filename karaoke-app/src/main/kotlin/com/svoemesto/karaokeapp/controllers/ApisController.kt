@@ -2953,7 +2953,7 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         filter_watched?.let { if (filter_watched != "") args["watched"] = filter_watched }
         filter_HaveNewAlbum?.let { if (filter_HaveNewAlbum != "") args["haveNewAlbum"] = filter_HaveNewAlbum }
         filter_skip?.let { if (filter_skip != "") args["skip"] = filter_skip }
-        val authorsList = Author.loadList(args, WORKING_DATABASE)
+        val authorsList = Author.loadList(args, WORKING_DATABASE).map { it.toDTO() }
         return mapOf(
                 "workInContainer" to APP_WORK_IN_CONTAINER,
                 "authorsDigests" to authorsList

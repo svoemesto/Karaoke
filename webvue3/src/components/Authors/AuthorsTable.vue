@@ -1,6 +1,6 @@
 <template>
   <div class="authors-bv-table">
-<!--    <AuthorEditModal v-if="isAuthorEditVisible" @close="closeAuthorEdit"/>-->
+    <PictureEditModal v-if="isPictureEditVisible" @close="closePictureEdit"/>
     <AuthorsFilter v-if="isAuthorsFilterVisible" @close="closeAuthorsFilter"/>
     <custom-confirm v-if="isCustomConfirmVisible" :params="customConfirmParams" @close="closeCustomConfirm" />
     <div class="authors-bv-table-header">
@@ -37,6 +37,22 @@
               :key="field.key"
               :style="field.style"
           >
+        </template>
+
+        <template #cell(picturePreview)="data">
+          <div
+              class="fld-picture-preview"
+              :style="{ color: currentAuthorId === data.item.id ? 'blue' : 'black' }"
+              @click.left="editPicture(data.item.pictureId)"
+          >
+            <img
+                v-if="data.value && typeof data.value === 'string'"
+                :src="'data:image/jpg;base64,' + data.value"
+                alt="Preview"
+                class="preview-image"
+            >
+            <div v-else class="no-image-placeholder">Нет изображения</div>
+          </div>
         </template>
 
         <template #cell(id)="data">
@@ -130,6 +146,7 @@
 import { BPagination, BSpinner, BTable } from 'bootstrap-vue-next'
 import AuthorsFilter from "../../components/Authors/filter/AuthorsFilterModal.vue";
 import CustomConfirm from "../Common/CustomConfirm.vue";
+import PictureEditModal from "../../components/Pictures/edit/PictureEditModal.vue";
 // Vue.use(TablePlugin)
 // Vue.use(PaginationPlugin)
 // Vue.use(SpinnerPlugin)
@@ -137,8 +154,8 @@ import CustomConfirm from "../Common/CustomConfirm.vue";
 export default {
   name: "AuthorsTable",
   components: {
-    // AuthorEditModal,
     AuthorsFilter,
+    PictureEditModal,
     CustomConfirm,
     BPagination,
     BSpinner,
@@ -146,9 +163,10 @@ export default {
   },
   data() {
     return {
-      perPage: 50,
+      perPage: 19,
       currentPage: 1,
       isAuthorEditVisible: false,
+      isPictureEditVisible: false,
       isAuthorsFilterVisible: false,
       isCustomConfirmVisible: false,
       customConfirmParams: undefined,
@@ -179,6 +197,16 @@ export default {
     },
     authorDigestFields() {
       return [
+        {
+          key: 'picturePreview',
+          label: '(picture)',
+          style: {
+            minWidth: '125px',
+            maxWidth: '125px',
+            textAlign: 'left',
+            fontSize: 'small'
+          }
+        },
         {
           key: 'id',
           label: 'ID',
@@ -263,6 +291,11 @@ export default {
     }
   },
   methods: {
+
+    editPicture(id) {
+      this.$store.commit('setPictureCurrentId', id);
+      this.isPictureEditVisible = true;
+    },
 
     openYandexMusicAuthor(item) {
       if (item.ymId) {
@@ -369,6 +402,9 @@ export default {
     },
     closeAuthorsFilter() {
       this.isAuthorsFilterVisible = false;
+    },
+    closePictureEdit() {
+      this.isPictureEditVisible = false;
     },
     onRowClicked(item, index) {
       this.currentAuthor = item;
@@ -493,6 +529,22 @@ export default {
   font-size: small;
   white-space: nowrap;
   overflow: hidden;
+}
+
+.fld-picture-preview {
+  min-width: 50px;
+  max-width: 125px;
+  text-align: center;
+  font-size: small;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 54px; /* Примерная высота под изображение + отступы */
+  overflow: hidden;
+  background-color: black;
+}
+.fld-picture-preview:hover {
+  cursor: pointer;
 }
 
 .btn-round-double {

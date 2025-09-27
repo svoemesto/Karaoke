@@ -328,6 +328,7 @@ class Pictures(val database: KaraokeConnection = WORKING_DATABASE) : Serializabl
                         " FROM tbl_pictures"
                 if (args.containsKey("id")) where += "id=${args["id"]}"
                 if (args.containsKey("picture_name")) where += "LOWER(picture_name) LIKE '%${args["picture_name"]?.rightFileName()?.lowercase()}%'"
+                if (args.containsKey("name")) where += "LOWER(picture_name) = '${args["name"]?.rightFileName()?.lowercase()}'"
                 if (where.size > 0) sql += " WHERE ${where.joinToString(" AND ")}"
                 if (limit > 0) sql += " LIMIT $limit"
                 if (offset > 0) sql += " OFFSET $offset"

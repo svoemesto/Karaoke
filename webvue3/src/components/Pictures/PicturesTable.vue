@@ -45,14 +45,12 @@
               :style="{ color: currentPictureId === data.item.id ? 'blue' : 'black' }"
               @click.left="editPicture(data.item.id)"
           >
-            <!-- Проверяем, что data.value (preview) существует и является строкой -->
             <img
                 v-if="data.value && typeof data.value === 'string'"
                 :src="'data:image/jpg;base64,' + data.value"
                 alt="Preview"
                 class="preview-image"
             >
-            <!-- Можно добавить плейсхолдер, если изображение отсутствует -->
             <div v-else class="no-image-placeholder">Нет изображения</div>
           </div>
         </template>
@@ -113,7 +111,7 @@ export default {
   },
   data() {
     return {
-      perPage: 20,
+      perPage: 19,
       currentPage: 1,
       isPictureEditVisible: false,
       isPicturesFilterVisible: false,

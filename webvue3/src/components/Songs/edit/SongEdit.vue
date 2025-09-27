@@ -497,15 +497,6 @@
   </div>
 </template>
 
-<script setup>
-  const showMyToast = (fieldName, fieldValue) => {
-    console.log('showMyToast called', fieldName, fieldValue)
-  }
-defineExpose ({
-  showMyToast
-});
-</script>
-
 <script>
 import SubsEdit from './SubsEdit.vue'
 import CustomConfirm from "../../Common/CustomConfirm.vue";

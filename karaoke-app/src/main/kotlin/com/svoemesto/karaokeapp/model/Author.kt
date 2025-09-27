@@ -77,6 +77,23 @@ class Author(val database: KaraokeConnection = WORKING_DATABASE) : Serializable,
 
     }
 
+    fun toDTO(): AuthorDTO {
+        val picture = Pictures.loadListFromDb(mapOf("name" to author, "limit" to "1"), database = WORKING_DATABASE).firstOrNull()
+        val (pictureId, picturePreview) = picture?.let { Pair(it.id, it.preview) } ?: Pair(0, "")
+        return AuthorDTO(
+                id = id,
+                author = author,
+                ymId = ymId,
+                lastAlbumYm = lastAlbumYm,
+                lastAlbumProcessed = lastAlbumProcessed,
+                watched = watched,
+                skip = skip,
+                haveNewAlbum = haveNewAlbum,
+                pictureId = pictureId,
+                picturePreview = picturePreview
+        )
+    }
+
     companion object {
 
         fun listHashes(database: KaraokeConnection, whereText: String = ""): List<RecordHash>? {

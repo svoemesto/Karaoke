@@ -15,7 +15,6 @@ import authorsFilter from '../components/Authors/filter/store'
 import picturesFilter from '../components/Pictures/filter/store'
 import publish from '../components/Publish/store'
 import common from '../components/Common/store'
-import { EventSourcePolyfill } from 'event-source-polyfill';
 import { useToast } from 'bootstrap-vue-next'
 
 export default createStore({
@@ -47,17 +46,8 @@ export default createStore({
   },
   actions: {
 
-
-
   },
   getters: {
     // геттеры
-  },
-  // async mounted () {
-  //   await this.loadProcesses({});
-  //   const msgServer = new EventSourcePolyfill('/apis/subscribe')
-  //   msgServer.addEventListener('user', (event) => {
-  //     this.userEvent(JSON.parse(event.data).payload)
-  //   }, false);
-  // },
+  }
 })

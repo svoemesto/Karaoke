@@ -23,7 +23,7 @@ export default {
 }
 .console_log {
   height: 51px;
-  width: 1400px;
+  width: 1200px;
   background-color: darkblue;
   color: snow;
   font-size: x-small;

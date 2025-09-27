@@ -1,6 +1,13 @@
 <template>
   <div class="process_worker">
-
+    <button
+        class="btn-round-double"
+        @click.left="clickStartStopWorkerButton"
+        :disabled="disabled"
+    >
+      <img v-if="!isWork" alt="start" class="icon-40" src="../../assets/svg/icon_play.svg">
+      <img v-else alt="stop" class="icon-40" src="../../assets/svg/icon_stop.svg">
+    </button>
     <div class="wrapper">
       <div class="process-text" v-text="processName"></div>
       <div class="wrapper-bar">
@@ -11,14 +18,7 @@
         ></div>
       </div>
     </div>
-    <button
-        class="btn-round-double"
-        @click.left="clickStartStopWorkerButton"
-        :disabled="disabled"
-    >
-      <img v-if="!isWork" alt="start" class="icon-40" src="../../assets/svg/icon_play.svg">
-      <img v-else alt="stop" class="icon-40" src="../../assets/svg/icon_stop.svg">
-    </button>
+
   </div>
 </template>
 
@@ -147,7 +147,7 @@ export default {
 .wrapper {
   display: flex;
   flex-direction: column;
-  margin-right: 10px;
+  margin-left: 10px;
 }
 .process-text {
   font-size: small;

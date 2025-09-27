@@ -5,9 +5,15 @@
       <custom-confirm v-if="isCustomConfirmVisible" :params="customConfirmParams" @close="closeCustomConfirm" />
       <!-- Заголовок с названием песни и автора-->
       <div class="header">
-        <div class="header-song-author">{{song.author}}</div>
-        <div class="header-song-album">{{song.year}} - {{song.album}}</div>
-        <div class="header-song-name">{{song.songName}}</div>
+        <div class="header-column-1">
+          <div class="header-song-id">{{song.id}}</div>
+        </div>
+        <div class="header-column-2">
+          <div class="header-song-author">{{song.author}}</div>
+          <div class="header-song-album">{{song.year}} - {{song.album}}</div>
+          <div class="header-song-name">{{song.songName}}</div>
+        </div>
+
       </div>
       <!-- Тело-->
       <div class="body">
@@ -1900,10 +1906,27 @@ export default {
 <style scoped>
 
 .header {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: center;
   border: thin dashed darkgray;
   border-radius: 10px;
+}
+
+.header-column-1 {
+  display: flex;
+  flex-direction: column;
   padding: 5px 0;
   background-color: transparent;
+}
+
+.header-column-2 {
+  display: flex;
+  flex-direction: column;
+  padding: 5px 0;
+  background-color: transparent;
+  width: 100%;
 }
 
 .body {
@@ -1943,7 +1966,11 @@ export default {
   margin: 0 auto;
 }
 
-
+.header-song-id {
+  text-align: center;
+  font-size: 24pt;
+  margin: 10px;
+}
 
 .links-table {
   margin-top: 10px;

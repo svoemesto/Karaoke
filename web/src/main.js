@@ -142,7 +142,7 @@ new Vue({
         case 'RECORD_ADD': {
           switch (userEvent.data.tableName) {
             case 'tbl_settings': { this.addSongByUserEvent(userEvent.data); break; }
-            case 'tbl_processes': { console.log('RECORD_ADD: ', userEvent.data.record.description); this.addProcessByUserEvent(userEvent.data); break; }
+            case 'tbl_processes': { this.addProcessByUserEvent(userEvent.data); break; }
             default: { console.log('Добавление записи неизвестной таблицы: ', userEvent.data.tableName) }
           }
           break;

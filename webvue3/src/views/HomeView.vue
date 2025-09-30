@@ -187,7 +187,7 @@ export default {
         header: 'Подтвердите действие',
         body: `Актуализировать VKLinkPictureWeb?`,
         timeout: 10,
-        callback: this.$store.dispatch('actualizeVKLinkPictureWebPromise')
+        callback: () => { this.$store.dispatch('actualizeVKLinkPictureWebPromise') }
       }
       this.isCustomConfirmVisible = true;
     },
@@ -378,104 +378,36 @@ export default {
         header: 'Обновление серверной БД',
         body: `Обновить таблицу песен на сервере данными из локальной базы данных?`,
         timeout: 10,
-        callback: this.doUpdateRemoteSettings
+        callback: () => { this.$store.dispatch('updateRemoteSettingsPromise') }
       }
       this.isCustomConfirmVisible = true;
-    },
-    doUpdateRemoteSettings() {
-      this.$store.dispatch('updateRemoteSettingsPromise').then(data => {
-        let response = JSON.parse(data);
-        this.customConfirmParams = {
-          isAlert: true,
-          alertType: 'info',
-          header: 'Обновление серверной БД',
-          body: `Обновление таблицы песен на сервере<br>
-                 данными из локальной базы данных прошло успешно.<hr>
-                 Добавлено записей: <strong>${response[0]}</strong><br>
-                 Обновлено записей: <strong>${response[1]}</strong><br>
-                 Удалено записей: <strong>${response[2]}</strong>`,
-          timeout: 10
-        }
-        this.isCustomConfirmVisible = true;
-      })
     },
     updateRemotePictures() {
       this.customConfirmParams = {
         header: 'Обновление серверной БД',
         body: `Обновить таблицу изображений на сервере данными из локальной базы данных?`,
         timeout: 10,
-        callback: this.doUpdateRemotePictures
+        callback: () => { this.$store.dispatch('updateRemotePicturesPromise') }
       }
       this.isCustomConfirmVisible = true;
-    },
-    doUpdateRemotePictures() {
-      this.$store.dispatch('updateRemotePicturesPromise').then(data => {
-        let response = JSON.parse(data);
-        this.customConfirmParams = {
-          isAlert: true,
-          alertType: 'info',
-          header: 'Обновление серверной БД',
-          body: `Обновление таблицы изображений на сервере<br>
-                 данными из локальной базы данных прошло успешно.<hr>
-                 Добавлено записей: <strong>${response[0]}</strong><br>
-                 Обновлено записей: <strong>${response[1]}</strong><br>
-                 Удалено записей: <strong>${response[2]}</strong>`,
-          timeout: 10
-        }
-        this.isCustomConfirmVisible = true;
-      })
     },
     updateLocalSettings() {
       this.customConfirmParams = {
         header: 'Обновление локальной БД',
         body: `Обновить таблицу песен в локальной базе данных данными с сервера?`,
         timeout: 10,
-        callback: this.doUpdateLocalSettings
+        callback: () => { this.$store.dispatch('updateLocalSettingsPromise') }
       }
       this.isCustomConfirmVisible = true;
-    },
-    doUpdateLocalSettings() {
-      this.$store.dispatch('updateLocalSettingsPromise').then(data => {
-        let response = JSON.parse(data);
-        this.customConfirmParams = {
-          isAlert: true,
-          alertType: 'info',
-          header: 'Обновление локальной БД',
-          body: `Обновление таблицы песен в локальной базе данных<br>
-                 данными с сервера прошло успешно.<hr>
-                 Добавлено записей: <strong>${response[0]}</strong><br>
-                 Обновлено записей: <strong>${response[1]}</strong><br>
-                 Удалено записей: <strong>${response[2]}</strong>`,
-          timeout: 10
-        }
-        this.isCustomConfirmVisible = true;
-      })
     },
     updateLocalPictures() {
       this.customConfirmParams = {
         header: 'Обновление локальной БД',
         body: `Обновить таблицу изображений в локальной базе данных данными с сервера?`,
         timeout: 10,
-        callback: this.doUpdateLocalPictures
+        callback: () => { this.$store.dispatch('updateLocalPicturesPromise') }
       }
       this.isCustomConfirmVisible = true;
-    },
-    doUpdateLocalPictures() {
-      this.$store.dispatch('updateLocalPicturesPromise').then(data => {
-        let response = JSON.parse(data);
-        this.customConfirmParams = {
-          isAlert: true,
-          alertType: 'info',
-          header: 'Обновление локальной БД',
-          body: `Обновление таблицы изображений в локальной базе данных<br>
-                 данными с сервера прошло успешно.<hr>
-                 Добавлено записей: <strong>${response[0]}</strong><br>
-                 Обновлено записей: <strong>${response[1]}</strong><br>
-                 Удалено записей: <strong>${response[2]}</strong>`,
-          timeout: 10
-        }
-        this.isCustomConfirmVisible = true;
-      })
     }
   }
 }

@@ -7,7 +7,7 @@ export default {
     },
     getters: {
         getPublishDigest(state) {
-            console.log('publishDigest: ', state.publishDigest);
+            // console.log('publishDigest: ', state.publishDigest);
             return state.publishDigest
         },
         getPublishDigestIsLoading(state) { return state.publishDigestIsLoading }

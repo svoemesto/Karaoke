@@ -382,7 +382,6 @@ export default {
       if (this.songsFilterStatusProcessKaraoke !== '') params.filter_status_process_karaoke = this.songsFilterStatusProcessKaraoke;
       this.$store.dispatch('loadSongsDigests', params );
       this.$store.dispatch('loadSongsHistory' );
-
       this.$emit('close');
     },
     cancel() {

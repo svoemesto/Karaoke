@@ -307,20 +307,11 @@
 
 <script>
 
-// import Vue from "vue";
-// import { TablePlugin } from 'bootstrap-vue'
-// import { PaginationPlugin } from 'bootstrap-vue'
-// import { SpinnerPlugin } from 'bootstrap-vue'
-// import { FormRatingPlugin } from 'bootstrap-vue'
 import { BPagination, BSpinner, BTable, BFormRating } from 'bootstrap-vue-next'
 import SongEditModal from "../../components/Songs/edit/SongEditModal.vue";
 import SongsFilter from "../../components/Songs/filter/SongsFilterModal.vue";
 import SmartCopyModal from "../../components/Common/SmartCopy/SmartCopyModal.vue";
 import CustomConfirm from "../../components/Common/CustomConfirm.vue";
-// Vue.use(TablePlugin)
-// Vue.use(PaginationPlugin)
-// Vue.use(SpinnerPlugin)
-// Vue.use(FormRatingPlugin)
 
 export default {
   name: "SongsTable",
@@ -343,16 +334,24 @@ export default {
       isSmartCopyVisible: false,
       isCustomConfirmVisible: false,
       customConfirmParams: undefined,
-      isBusy: false,
-      currentSongId: 0,
-      previousSongId: 0,
-      nextSongId: 0
+      isBusy: false
     }
   },
   watch: {
     songsDigestIsLoading: {
       handler () {
         this.isBusy = this.songsDigestIsLoading;
+      }
+    },
+    countRows: {
+      handler () {
+        this.currentPage = 1;
+      }
+    },
+    currentSongId: {
+      handler () {
+        const songPageNumber = this.songIdAndPageId.get(this.currentSongId);
+        if (songPageNumber !== undefined && this.currentPage !== songPageNumber) this.currentPage = songPageNumber;
       }
     }
   },
@@ -366,6 +365,18 @@ export default {
         caption = this.countRows + ' [' + this.totalDuration + ']';
       }
       return caption;
+    },
+    songIdAndPageId() {
+      const result = new Map();
+      for (let i = 0; i < this.songsIds.length; i++) {
+        const songId = this.songsIds[i];
+        const pageNumber = Math.floor(i / this.perPage) + 1;
+        result.set(songId, pageNumber);
+      }
+      return result;
+    },
+    currentSongId() {
+      return this.$store.getters.getCurrentSongId;
     },
     songsIds() {
       return this.$store.getters.getSongsDigestIds;
@@ -1048,9 +1059,6 @@ export default {
       this.isSmartCopyVisible = false;
     },
     onRowClicked(item, index) {
-      this.currentSongId = item.id;
-      this.previousSongId = item.idPrevious;
-      this.nextSongId = item.idNext;
       console.log(`Row '${index}' clicked: `, item.songName);
     },
     getCellStyle(data) {

@@ -2,8 +2,10 @@ package com.svoemesto.karaokeapp.controllers
 
 import com.svoemesto.karaokeapp.*
 import com.svoemesto.karaokeapp.model.*
+import com.svoemesto.karaokeapp.propertiesfiledictionary.WebvueProperties
 import com.svoemesto.karaokeapp.services.APP_WORK_IN_CONTAINER
 import com.svoemesto.karaokeapp.services.SNS
+import com.svoemesto.karaokeapp.services.WVP
 import com.svoemesto.karaokeapp.textfiledictionary.TextFileDictionary
 import com.svoemesto.karaokeapp.textfilehistory.SongsHistory
 import jakarta.servlet.http.HttpServletResponse
@@ -2555,18 +2557,12 @@ class ApisController(private val sseNotificationService: SseNotificationService)
     @ResponseBody
     fun doUpdateRemotePictureFromLocalDatabase(
         @RequestParam(required = true) id: Long
-    ): List<Int> {
-        val (countCreate, countUpdate, countDelete) = updateRemotePictureFromLocalDatabase(id)
-        val body = if (countCreate + countUpdate + countDelete == 0) "Изменения не требуются" else listOf(Pair(countCreate > 0, "создано записей: $countCreate"), Pair(countUpdate > 0, "обновлено записей: $countUpdate"), Pair(countDelete > 0, "удалено записей: $countDelete")).filter { it.first }.map{ it.second }.joinToString(", ").uppercaseFirstLetter()
-        SNS.send(SseNotification.message(
-            Message(
-                type = "info",
-                head = "Обновление БД",
-                body = body
-            )
-        ))
-        println("Обновление записей серверной БД - ${body}")
-        return listOf(countCreate, countUpdate, countDelete)
+    ): List<List<String>> {
+        val (listCreate, listUpdate, listDelete) = updateRemotePictureFromLocalDatabase(id)
+        if (listCreate.size + listUpdate.size + listDelete.size != 0) {
+            SNS.send(SseNotification.crud(listOf(listCreate, listUpdate, listDelete)))
+        }
+        return listOf(listCreate, listUpdate, listDelete)
     }
 
     // Обновляем одну песню в RemoteDatabase
@@ -2574,18 +2570,12 @@ class ApisController(private val sseNotificationService: SseNotificationService)
     @ResponseBody
     fun doUpdateRemoteSettingFromLocalDatabase(
         @RequestParam(required = true) id: Long
-    ): List<Int> {
-        val (countCreate, countUpdate, countDelete) = updateRemoteSettingFromLocalDatabase(id)
-        val body = if (countCreate + countUpdate + countDelete == 0) "Изменения не требуются" else listOf(Pair(countCreate > 0, "создано записей: $countCreate"), Pair(countUpdate > 0, "обновлено записей: $countUpdate"), Pair(countDelete > 0, "удалено записей: $countDelete")).filter { it.first }.map{ it.second }.joinToString(", ").uppercaseFirstLetter()
-        SNS.send(SseNotification.message(
-            Message(
-                type = "info",
-                head = "Обновление БД",
-                body = body
-            )
-        ))
-        println("Обновление записей серверной БД - ${body}")
-        return listOf(countCreate, countUpdate, countDelete)
+    ): List<List<String>> {
+        val (listCreate, listUpdate, listDelete) = updateRemoteSettingFromLocalDatabase(id)
+        if (listCreate.size + listUpdate.size + listDelete.size != 0) {
+            SNS.send(SseNotification.crud(listOf(listCreate, listUpdate, listDelete)))
+        }
+        return listOf(listCreate, listUpdate, listDelete)
     }
 
     // Добавляем одну песню в SYNC-таблицу
@@ -2612,18 +2602,12 @@ class ApisController(private val sseNotificationService: SseNotificationService)
     fun doUpdateRemoteDatabaseFromLocalDatabase(
         @RequestParam(required = true) updateSettings: Boolean = true,
         @RequestParam(required = true) updatePictures: Boolean = true
-    ): List<Int> {
-        val (countCreate, countUpdate, countDelete) = updateRemoteDatabaseFromLocalDatabase(updateSettings,updatePictures)
-        val body = if (countCreate + countUpdate + countDelete == 0) "Изменения не требуются" else listOf(Pair(countCreate > 0, "создано записей: $countCreate"), Pair(countUpdate > 0, "обновлено записей: $countUpdate"), Pair(countDelete > 0, "удалено записей: $countDelete")).filter { it.first }.map{ it.second }.joinToString(", ").uppercaseFirstLetter()
-        SNS.send(SseNotification.message(
-            Message(
-            type = "info",
-            head = "Обновление БД",
-            body = body
-        )
-        ))
-        println("Обновление записей серверной БД - ${body}")
-        return listOf(countCreate, countUpdate, countDelete)
+    ): List<List<String>> {
+        val (listCreate, listUpdate, listDelete) = updateRemoteDatabaseFromLocalDatabase(updateSettings,updatePictures)
+        if (listCreate.size + listUpdate.size + listDelete.size != 0) {
+            SNS.send(SseNotification.crud(listOf(listCreate, listUpdate, listDelete)))
+        }
+        return listOf(listCreate, listUpdate, listDelete)
     }
 
     // Обновляем LocalDatabase
@@ -2632,16 +2616,12 @@ class ApisController(private val sseNotificationService: SseNotificationService)
     fun doUpdateLocalDatabaseFromRemoteDatabase(
         @RequestParam(required = true) updateSettings: Boolean = true,
         @RequestParam(required = true) updatePictures: Boolean = true
-    ): List<Int> {
-        val (countCreate, countUpdate, countDelete) = updateLocalDatabaseFromRemoteDatabase(updateSettings,updatePictures)
-        val body = if (countCreate + countUpdate + countDelete == 0) "Изменения не требуются" else listOf(Pair(countCreate > 0, "создано записей: $countCreate"), Pair(countUpdate > 0, "обновлено записей: $countUpdate"), Pair(countDelete > 0, "удалено записей: $countDelete")).filter { it.first }.map{ it.second }.joinToString(", ").uppercaseFirstLetter()
-        SNS.send(SseNotification.message(Message(
-            type = "info",
-            head = "Обновление БД",
-            body = body
-        )))
-        println("Обновление записей локальной БД - ${body}")
-        return listOf(countCreate, countUpdate, countDelete)
+    ): List<List<String>> {
+        val (listCreate, listUpdate, listDelete) = updateLocalDatabaseFromRemoteDatabase(updateSettings,updatePictures)
+        if (listCreate.size + listUpdate.size + listDelete.size != 0) {
+            SNS.send(SseNotification.crud(listOf(listCreate, listUpdate, listDelete)))
+        }
+        return listOf(listCreate, listUpdate, listDelete)
     }
 
     // Добавление файлов из папки
@@ -2861,13 +2841,14 @@ class ApisController(private val sseNotificationService: SseNotificationService)
     // Изменяем property
     @PostMapping("/properties/setproperty")
     @ResponseBody
-    fun setProperty(@RequestParam key: String, @RequestParam stringValue: String) {
+    fun setProperty(@RequestParam key: String, @RequestParam stringValue: String): Map<String, Any> {
         KaraokeProperties.setFromString(key, stringValue)
         SNS.send(SseNotification.message(Message(
             type = "info",
             head = "SET PROPERTY",
             body = "Свойство «$key» установлено в значение «$stringValue»"
         )))
+        return getProperty(key)
     }
 
     // Изменяем property к значению по умолчанию
@@ -3073,6 +3054,28 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             println(e)
         }
         return ""
+    }
+
+    @PostMapping("/getwebvueprop")
+    @ResponseBody
+    fun getWebvueProperty(
+            @RequestParam(required = true) key: String,
+            @RequestParam(required = false) default: String?
+    ): String {
+        val result = WVP.get(key = key, default = (default ?: ""))
+//        println("/getwebvueprop called. key = '$key', default = '$default', result = '$result'")
+        return result
+    }
+
+
+    @PostMapping("/setwebvueprop")
+    @ResponseBody
+    fun setWebvueProperty(
+            @RequestParam(required = true) key: String,
+            @RequestParam(required = true) value: String
+    ) {
+//        println("/setwebvueprop called. key = '$key', value = '$value'")
+        WVP.set(key = key, value = value)
     }
 
 }

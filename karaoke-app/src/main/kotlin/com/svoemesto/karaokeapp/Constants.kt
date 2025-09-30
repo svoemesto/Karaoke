@@ -110,6 +110,7 @@ const val YO_FILE_PATH = "/sm-karaoke/system/Слова_с_буквой_ё.txt"
 const val CENSORED_FILE_PATH = "/sm-karaoke/system/censored.txt"
 const val TESTDICT_FILE_PATH = "/sm-karaoke/system/test_dict.txt"
 const val SONGS_HISTORY_FILE_PATH = "/sm-karaoke/system/songs_history.txt"
+const val WEBVUE_PROPERTIES_FILE_PATH = "/sm-karaoke/system/webvue_properties.txt"
 
 val TEXT_FILE_DICTS = mapOf(
     "Слова с Ё" to YoWordsDictionary::class.java,

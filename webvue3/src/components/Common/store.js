@@ -1,3 +1,5 @@
+import {promisedXMLHttpRequest} from '../../lib/utils'
+
 export default {
     state: {
         logMessage: '',
@@ -9,6 +11,13 @@ export default {
         },
         getLogText(state) {
             return state.logText
+        },
+        getWebvueProp: () => async (key, defaultValue) => {
+            return await promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/apis/getwebvueprop",
+                params: {key: key, default: defaultValue}
+            });
         }
     },
     mutations: {
@@ -44,6 +53,6 @@ export default {
     actions: {
         setLogMessage(ctx, text) {
             ctx.commit('setLogMessage', text);
-        },
+        }
     }
 }

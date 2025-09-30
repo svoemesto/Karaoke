@@ -87,7 +87,12 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                     fileAbsolutePath
                 )
                 val durationFromAudioFileMs = try {
-                    val tmp = ((runCommand(argForDurationFromAudioFileMs).toDoubleOrNull() ?: 0.0) * 1000L).toLong()
+                    val tmp = try {
+                        ((runCommand(argForDurationFromAudioFileMs).toDoubleOrNull() ?: 0.0) * 1000L).toLong()
+                    } catch (e: Exception) {
+                        val message = "runCommand - Ошибка получения длительности аудиофайла для песни $rightSettingFileName. Параметры вызова: $argForDurationFromAudioFileMs"
+                        throw RuntimeException(message)
+                    }
                     fields[SettingField.MS] = tmp.toString()
                     val sql = "UPDATE tbl_settings SET song_ms = ? WHERE id = ?"
                     val connection = database.getConnection()
@@ -1532,7 +1537,12 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             "-of", "default=noprint_wrappers=1:nokey=1",
             fileAbsolutePath
         )
-        val durationFromAudioFileMs = ((runCommand(argForDurationFromAudioFileMs).toDoubleOrNull() ?: 0.0) * 1000L).toLong()
+        val durationFromAudioFileMs = try {
+            ((runCommand(argForDurationFromAudioFileMs).toDoubleOrNull() ?: 0.0) * 1000L).toLong()
+        } catch (e: Exception) {
+            val message = "runCommand - Ошибка получения длительности аудиофайла для песни $rightSettingFileName. Параметры вызова: $argForDurationFromAudioFileMs"
+            throw RuntimeException(message)
+        }
         val audioLengthFr = convertMillisecondsToFrames(durationFromAudioFileMs)
         mltProp.setAudioLengthFr(audioLengthFr)
 //        val audioEndTimecode = convertMillisecondsToTimecode(songLengthMs - startSilentOffsetMs)
@@ -3185,6 +3195,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             val diff = getDiff(this, savedSettings)
 //            println("diff = $diff")
             if (diff.isEmpty()) return
+
             val messageRecordChange = SseNotification.recordChange(
                 RecordChangeMessage(
                     tableName = "tbl_settings",
@@ -3265,20 +3276,10 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             if (savedSettings != null) renameFilesIfDiff(this, savedSettings)
 
             if (Karaoke.autoUpdateRemoteSettings) {
-                val (countCreate, countUpdate, countDelete) = updateRemoteSettingFromLocalDatabase(id)
-                val body = if (countCreate + countUpdate + countDelete == 0) "Изменения не требуются" else listOf(Pair(countCreate > 0, "создано записей: $countCreate"), Pair(countUpdate > 0, "обновлено записей: $countUpdate"), Pair(countDelete > 0, "удалено записей: $countDelete")).filter { it.first }.map{ it.second }.joinToString(", ").uppercaseFirstLetter()
-
-                if (!(countUpdate == 1 && diff.any { it.recordDiffName.startsWith("status_process_")  })) {
-                    SNS.send(SseNotification.message(
-                        Message(
-                            type = "info",
-                            head = "Автоматическое обновление БД",
-                            body = body
-                        )
-                    ))
-                    println("Автоматическое обновление записей серверной БД - ${body}")
+                val (listCreate, listUpdate, listDelete) = updateRemoteSettingFromLocalDatabase(id)
+                if (listCreate.size + listUpdate.size + listDelete.size != 0) {
+                    SNS.send(SseNotification.crud(listOf(listCreate, listUpdate, listDelete)))
                 }
-
             }
 
         }

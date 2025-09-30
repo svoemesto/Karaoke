@@ -607,9 +607,9 @@ export default {
   watch: {
     diff: {
       async handler () {
-        console.log('watch diff propAutoSave', this.autoSave);
+        // console.log('watch diff propAutoSave', this.autoSave);
         if (this.diff.length !== 0 && this.autoSave) {
-          console.log('watch diff propAutoSaveDelayMs', this.autoSaveDelayMs);
+          // console.log('watch diff propAutoSaveDelayMs', this.autoSaveDelayMs);
           clearTimeout(this.saveTimer);
           this.saveTimer = setTimeout(this.save, this.autoSaveDelayMs);
         }

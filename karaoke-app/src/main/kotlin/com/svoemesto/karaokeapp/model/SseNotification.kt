@@ -27,5 +27,8 @@ data class SseNotification(
         fun log(text: String): SseNotification {
             return SseNotification(SseNotificationType.LOG, text)
         }
+        fun crud(crudMessage: List<List<String>>): SseNotification {
+            return SseNotification(SseNotificationType.CRUD, crudMessage)
+        }
     }
 }

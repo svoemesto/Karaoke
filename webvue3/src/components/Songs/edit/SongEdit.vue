@@ -6,12 +6,12 @@
       <!-- Заголовок с названием песни и автора-->
       <div class="header">
         <div class="header-column-1">
-          <div class="header-song-id">{{song.id}}</div>
+          <div class="header-song-id" @click="copyToClipboard(song.id, 'id')">{{song.id}}</div>
         </div>
         <div class="header-column-2">
-          <div class="header-song-author">{{song.author}}</div>
-          <div class="header-song-album">{{song.year}} - {{song.album}}</div>
-          <div class="header-song-name">{{song.songName}}</div>
+          <div class="header-song-author" @click="copyToClipboard(song.author, 'author')">{{song.author}}</div>
+          <div class="header-song-album" @click="copyToClipboard(song.album, 'album')">{{song.year}} - {{song.album}}</div>
+          <div class="header-song-name" @click="copyToClipboard(song.songName, 'songName')">{{song.songName}}</div>
         </div>
 
       </div>
@@ -622,9 +622,9 @@ export default {
   watch: {
     diff: {
       async handler () {
-        console.log('watch diff propAutoSave', this.autoSave);
+        // console.log('watch diff propAutoSave', this.autoSave);
         if (this.diff.length !== 0 && this.autoSave) {
-          console.log('watch diff propAutoSaveDelayMs', this.autoSaveDelayMs);
+          // console.log('watch diff propAutoSaveDelayMs', this.autoSaveDelayMs);
           clearTimeout(this.saveTimer);
           this.saveTimer = setTimeout(this.save, this.autoSaveDelayMs);
         }
@@ -1441,7 +1441,7 @@ export default {
     async openLinkSponsrNew() {
       let value = await this.$store.getters.getSponsrHeader;
       await navigator.clipboard.writeText(value)
-      this.showCopyToClipboardToast('getSponsrHeader', value);
+      // this.showCopyToClipboardToast('getSponsrHeader', value);
       window.open(this.linkSponsrNew, '_blank');
     },
     openLinkSponsr() {
@@ -1462,7 +1462,7 @@ export default {
     async openLinkBoostyNew() {
       let value = await this.$store.getters.getBoostyHeader;
       await navigator.clipboard.writeText(value)
-      this.showCopyToClipboardToast('getBoostyHeader', value);
+      // this.showCopyToClipboardToast('getBoostyHeader', value);
       window.open(this.linkBoostyNew, '_blank');
     },
     async getBoostyHeader() {
@@ -1496,7 +1496,7 @@ export default {
     async openLinkBoostyFilesNew() {
       let value = await this.$store.getters.getBoostyFilesHeader;
       await navigator.clipboard.writeText(value)
-      this.showCopyToClipboardToast('getBoostyFilesHeader', value);
+      // this.showCopyToClipboardToast('getBoostyFilesHeader', value);
       window.open(this.linkBoostyNew, '_blank');
     },
     async getBoostyFilesHeader() {
@@ -1853,6 +1853,7 @@ export default {
       });
     },
     showCopyToClipboardToast(fieldName, fieldValue) {
+      if (document.hidden) return
       // Use a shorter name for this.$createElement
       // const h = this.$createElement
 
@@ -1884,7 +1885,7 @@ export default {
           h('div', { style: { fontFamily: 'monospace', fontSize: 'small', textAlign: 'left' , fontWeight: 'bold', paddingRight: '5px', color: 'darkred'} }, [fieldName]),
           h('div', { style: { fontFamily: 'sans-serif', fontSize: 'small', textAlign: 'left' } }, [` скопировано в буфер обмена:`]),
         ]),
-        h('br'),
+        // h('br'),
         h('div', { style: { fontFamily: 'monospace', fontSize: 'x-small', textAlign: 'left' } }, createTextWithLineBreaks(fieldValue))
       ]);
 
@@ -1895,7 +1896,7 @@ export default {
         bodyClass: 'toast-body-copytoclipboard',
         headerClass: 'toast-header-copytoclipboard',
         appendToast: false,
-        position: 'top-start',
+        position: 'top-start'
         // modelValue: true
       })
     }
@@ -1909,7 +1910,6 @@ export default {
   display: flex;
   flex-direction: row;
   justify-content: flex-start;
-  align-items: center;
   border: thin dashed darkgray;
   border-radius: 10px;
 }
@@ -1968,8 +1968,9 @@ export default {
 
 .header-song-id {
   text-align: center;
-  font-size: 24pt;
-  margin: 10px;
+  margin: 0 0 0 10px;
+  font-family: monospace;
+  font-weight: bold;
 }
 
 .links-table {

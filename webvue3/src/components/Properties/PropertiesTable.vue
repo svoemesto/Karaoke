@@ -95,18 +95,10 @@
 
 <script>
 
-// import Vue from "vue";
-// import { TablePlugin } from 'bootstrap-vue'
-// import { PaginationPlugin } from 'bootstrap-vue'
-// import { SpinnerPlugin } from 'bootstrap-vue'
 
-// import PropertyEditModal from "@/components/Properties/edit/PropertyEditModal.vue";
 import { BPagination, BSpinner, BTable } from 'bootstrap-vue-next'
 import PropertiesFilter from "../../components/Properties/filter/PropertiesFilterModal.vue";
 import CustomConfirm from "../Common/CustomConfirm.vue";
-// Vue.use(TablePlugin)
-// Vue.use(PaginationPlugin)
-// Vue.use(SpinnerPlugin)
 
 export default {
   name: "PropertiesTable",
@@ -157,8 +149,8 @@ export default {
           key: 'key',
           label: 'KEY',
           style: {
-            minWidth: '200px',
-            maxWidth: '200px',
+            minWidth: '400px',
+            maxWidth: '400px',
             textAlign: 'center',
             fontSize: 'small'
           }
@@ -187,8 +179,8 @@ export default {
           key: 'description',
           label: 'Описание',
           style: {
-            minWidth: '300px',
-            maxWidth: '300px',
+            minWidth: '500px',
+            maxWidth: '500px',
             textAlign: 'left',
             fontSize: 'small'
           }
@@ -229,7 +221,15 @@ export default {
     },
 
     doChangeValue(result) {
-      this.$store.dispatch('setPropertyValuePromise', {propertyKey: this.currentProperty.key, propertyValue: result.propertyValue});
+      this.$store.dispatch('setPropertyValuePromise', {propertyKey: this.currentProperty.key, propertyValue: result.propertyValue}).then(data => { // data - это объект, возвращаемый промисом
+        if (data) {
+          let result = JSON.parse(data);
+          this.$store.dispatch('updateOneProperty', result.property);
+        }
+        })
+          .catch(error => {
+            console.error("Ошибка при выполнении setPropertyValuePromise:", error);
+        });
     },
 
     closeCustomConfirm() {
@@ -289,9 +289,9 @@ export default {
 }
 
 .fld-key {
-  min-width: 200px;
-  max-width: 200px;
-  text-align: center;
+  min-width: 400px;
+  max-width: 400px;
+  text-align: left;
   font-size: small;
   white-space: nowrap;
   overflow: hidden;
@@ -320,8 +320,8 @@ export default {
 }
 
 .fld-description {
-  min-width: 300px;
-  max-width: 300px;
+  min-width: 500px;
+  max-width: 500px;
   text-align: left;
   font-size: small;
   white-space: nowrap;

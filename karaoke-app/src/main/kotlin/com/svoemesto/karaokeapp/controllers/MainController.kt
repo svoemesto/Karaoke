@@ -91,27 +91,27 @@ class MainController {
         return updateBpmAndKey(WORKING_DATABASE)
     }
 
-    @PostMapping("/utils/updateremotedatabasefromlocaldatabase")
-    @ResponseBody
-    fun doUpdateRemoteDatabaseFromLocalDatabase(
-        @RequestParam(required = true) updateSettings: Boolean = true,
-        @RequestParam(required = true) updatePictures: Boolean = true
-    ): List<Int> {
-        val result = updateRemoteDatabaseFromLocalDatabase(updateSettings,updatePictures)
-
-        return listOf(result.first, result.second, result.third)
-    }
-
-    @PostMapping("/utils/updatelocaldatabasefromremotedatabase")
-    @ResponseBody
-    fun doUpdateLocalDatabaseFromRemoteDatabase(
-        @RequestParam(required = true) updateSettings: Boolean = true,
-        @RequestParam(required = true) updatePictures: Boolean = true
-    ): List<Int> {
-        val result = updateLocalDatabaseFromRemoteDatabase(updateSettings,updatePictures)
-
-        return listOf(result.first, result.second, result.third)
-    }
+//    @PostMapping("/utils/updateremotedatabasefromlocaldatabase")
+//    @ResponseBody
+//    fun doUpdateRemoteDatabaseFromLocalDatabase(
+//        @RequestParam(required = true) updateSettings: Boolean = true,
+//        @RequestParam(required = true) updatePictures: Boolean = true
+//    ): List<Int> {
+//        val result = updateRemoteDatabaseFromLocalDatabase(updateSettings,updatePictures)
+//
+//        return listOf(result.first, result.second, result.third)
+//    }
+//
+//    @PostMapping("/utils/updatelocaldatabasefromremotedatabase")
+//    @ResponseBody
+//    fun doUpdateLocalDatabaseFromRemoteDatabase(
+//        @RequestParam(required = true) updateSettings: Boolean = true,
+//        @RequestParam(required = true) updatePictures: Boolean = true
+//    ): List<Int> {
+//        val result = updateLocalDatabaseFromRemoteDatabase(updateSettings,updatePictures)
+//
+//        return listOf(result.first, result.second, result.third)
+//    }
 
     @PostMapping("/utils/markdublicates")
     @ResponseBody

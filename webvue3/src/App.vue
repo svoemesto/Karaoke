@@ -25,9 +25,7 @@
 
 import ProcessWorker from "./components/Common/ProcessWorker.vue";
 import BackendConsole from "./components/Common/BackendConsole.vue";
-import { BApp } from 'bootstrap-vue-next';
-
-</script>
+import {BApp} from 'bootstrap-vue-next';</script>
 
 <script>
 
@@ -51,7 +49,7 @@ export default {
         case 'RECORD_ADD': {
           switch (userEvent.data.tableName) {
             case 'tbl_settings': { this.addSongByUserEvent(userEvent.data); break; }
-            case 'tbl_processes': { console.log('RECORD_ADD: ', userEvent.data.record.description); this.addProcessByUserEvent(userEvent.data); break; }
+            case 'tbl_processes': { this.addProcessByUserEvent(userEvent.data); break; }
             default: { console.log('Добавление записи неизвестной таблицы: ', userEvent.data.tableName) }
           }
           break;
@@ -68,6 +66,7 @@ export default {
         case 'MESSAGE': { this.showMessageByUserEvent(userEvent.data, create); break; }
         case 'DUMMY': { console.log("DUMMY MESSAGE"); break; }
         case 'LOG': { this.logMessageByUserEvent(userEvent.data); break; }
+        case 'CRUD': { this.crudMessageByUserEvent(userEvent.data, create); break; }
         default: { console.log("Неизвестный тип события: ", userEvent.type); }
       }
     },
@@ -94,13 +93,14 @@ export default {
       this.$store.dispatch('addPublishDigestByUserEvent', userEventData);
     },
     addProcessByUserEvent(userEventData) {
-      console.log('methods addProcessByUserEvent from main.js');
+      // console.log('methods addProcessByUserEvent from main.js');
       this.$store.dispatch('addProcessByUserEvent', userEventData);
     },
     logMessageByUserEvent(text) {
       this.$store.dispatch('setLogMessage', text);
     },
     showMessageByUserEvent(userEvent, create) {
+      if (document.hidden) return
       const vNodesMsg = h('div', [
         h('div', { style: { fontFamily: 'sans-serif', fontSize: 'small', textAlign: 'left' } }, userEvent.body)
       ]);
@@ -112,19 +112,126 @@ export default {
         bodyClass: 'toast-body-servermessage',
         headerClass: 'toast-header-servermessage',
         appendToast: false,
-        position: 'top-start',
+        position: 'top-end',
+        // position: 'top-start',
+        // noHoverPause: true,
+        // noProgress: true
+        // modelValue: true
+      })
+    },
+    crudMessageByUserEvent(userEvent, create) {
+      if (document.hidden) return
+      const createTextWithLineBreaks = (lines) => {
+        if (!Array.isArray(lines)) {
+          return h('div', {
+            style: {
+              fontFamily: 'monospace',
+              fontSize: 'x-small',
+              textAlign: 'left',
+              fontWeight: 'bold',
+              paddingRight: '5px',
+              color: 'darkred'
+            }
+          }, [String(lines)]); // Если это не массив, возвращаем как одну строку
+        }
+        const vnodes = [];
+        lines.forEach((line, index) => {
+          const lineToAdd = h('div', { style: { fontFamily: 'monospace', fontSize: 'x-small', textAlign: 'left', fontWeight: 'bold', paddingRight: '5px', color: 'darkred' } }, line);
+          vnodes.push(lineToAdd);
+          // Добавляем <br> после каждого элемента, кроме последнего
+          // if (index < lines.length - 1) {
+          //   vnodes.push(h('br'));
+          // }
+        });
+        return vnodes;
+      };
+
+      // Проверяем, является ли userEvent.body массивом
+      let listOfLists = userEvent;
+      if (typeof userEvent === 'string') {
+        try {
+          listOfLists = JSON.parse(userEvent);
+        } catch (e) {
+          console.error("Error parsing userEvent as JSON:", e);
+          // В случае ошибки, обрабатываем как одну строку
+          listOfLists = [userEvent];
+        }
+      }
+
+      let vNodesMsg = [];
+      if (!Array.isArray(listOfLists) || listOfLists.length !== 3) {
+        console.warn("userEvent is not an array of 3 lists. Treating as plain text.");
+        // Обработка как простого текста, если структура неожиданная
+        vNodesMsg = h('div', [
+          h('div', { style: { fontFamily: 'sans-serif', fontSize: 'small', textAlign: 'left' } }, String(userEvent))
+        ]);
+        // ... остальная логика для vNodesMsg ...
+      } else {
+        // Обработка как массива из 3 списков
+        vNodesMsg = h('div', [
+          h('div', { style: { fontFamily: 'sans-serif', fontSize: 'small', textAlign: 'left' } }, [
+            // Обработка первого списка
+            ...(listOfLists[0] && listOfLists[0].length > 0 ? [
+              `Создано записей: ${listOfLists[0].length}`,
+              // h('br'),
+              ...createTextWithLineBreaks(listOfLists[0]),
+              // h('br') // Разделитель после первого списка
+            ] : []),
+
+            // Обработка второго списка
+            ...(listOfLists[1] && listOfLists[1].length > 0 ? [
+              `Обновлено записей: ${listOfLists[1].length}`,
+              // h('br'),
+              ...createTextWithLineBreaks(listOfLists[1]),
+              // h('br') // Разделитель после второго списка
+            ] : []),
+
+            // Обработка третьего списка
+            ...(listOfLists[2] && listOfLists[2].length > 0 ? [
+              `Удалено записей: ${listOfLists[2].length}`,
+              // h('br'),
+              ...createTextWithLineBreaks(listOfLists[2])
+              // Не добавляем <br> после последнего списка
+            ] : [])
+          ])
+        ]);
+      }
+
+      create({
+        slots: { default: () => [vNodesMsg] },
+        title: "CRUD",
+        autoHideDelay: 3000,
+        bodyClass: 'toast-body-crudmessage',
+        headerClass: 'toast-header-crudmessage',
+        appendToast: false,
+        position: 'top-end',
+        // position: 'top-start',
+        // noHoverPause: true,
+        // noProgress: true
         // modelValue: true
       })
     },
   },
-
-  mounted() {
+  async mounted() {
     console.log('APP mounted')
     const {create} = useToast();
     const msgServer = new EventSourcePolyfill('/apis/subscribe')
     msgServer.addEventListener('user', (event) => {
       this.userEvent(JSON.parse(event.data).payload, create)
     }, false);
+
+    this.$store.dispatch('setLastSettingType',{ value: await this.$store.getters.getWebvueProp('lastSettingType', 'COMMENT') });
+    this.$store.dispatch('setLastSettingValue', { value: await this.$store.getters.getWebvueProp('lastSettingValue', 'Комментарий') });
+    this.$store.dispatch('setLastPriorLyrics', { value: await this.$store.getters.getWebvueProp('lastPriorLyrics', '1') });
+    this.$store.dispatch('setLastPriorKaraoke', { value: await this.$store.getters.getWebvueProp('lastPriorKaraoke', '0') });
+    this.$store.dispatch('setLastPriorChords', { value: await this.$store.getters.getWebvueProp('lastPriorChords', '') });
+    this.$store.dispatch('setLastPriorMelody', { value: await this.$store.getters.getWebvueProp('lastPriorMelody', '') });
+    this.$store.dispatch('setLastPriorCodeLyrics', { value: await this.$store.getters.getWebvueProp('lastPriorCodeLyrics', '10') });
+    this.$store.dispatch('setLastPriorCodeKaraoke', { value: await this.$store.getters.getWebvueProp('lastPriorCodeKaraoke', '10') });
+    this.$store.dispatch('setLastPriorDemucs', { value: await this.$store.getters.getWebvueProp('lastPriorDemucs', '-1') });
+    this.$store.dispatch('setLastPriorSymlinks', { value: await this.$store.getters.getWebvueProp('lastPriorSymlinks', '-1') });
+    this.$store.dispatch('setLastPriorSmartCopy', { value: await this.$store.getters.getWebvueProp('lastPriorSmartCopy', '-1') });
+
   }
 }
 </script>
@@ -228,9 +335,15 @@ li a:hover {
   color: #000 !important;
   background-color: rgb(200 255 200 / 85%) !important;
 }
-/*.b-toaster.b-toaster-top-left {*/
-/*  top: 50px;*/
-/*  left: 10px;*/
-/*}*/
+.toast-header-crudmessage {
+  color: #fff !important;
+  background-color: rgb(100 10 10 / 85%) !important
+}
+.toast-body-crudmessage {
+  padding: .75rem !important;
+  color: #000 !important;
+  background-color: rgb(255 200 200 / 85%) !important;
+}
+
 
 </style>

@@ -137,19 +137,11 @@
 
 <script>
 
-// import Vue from "vue";
-// import { TablePlugin } from 'bootstrap-vue'
-// import { PaginationPlugin } from 'bootstrap-vue'
-// import { SpinnerPlugin } from 'bootstrap-vue'
 
-// import AuthorEditModal from "@/components/Authors/edit/AuthorEditModal.vue";
 import { BPagination, BSpinner, BTable } from 'bootstrap-vue-next'
 import AuthorsFilter from "../../components/Authors/filter/AuthorsFilterModal.vue";
 import CustomConfirm from "../Common/CustomConfirm.vue";
 import PictureEditModal from "../../components/Pictures/edit/PictureEditModal.vue";
-// Vue.use(TablePlugin)
-// Vue.use(PaginationPlugin)
-// Vue.use(SpinnerPlugin)
 
 export default {
   name: "AuthorsTable",

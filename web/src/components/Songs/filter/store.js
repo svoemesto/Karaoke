@@ -54,7 +54,7 @@ export default {
     mutations: {
         updateSongsHistory(state, result) {
             state.songsHistory = result.history;
-            console.log('songHistory:', result.history);
+            // console.log('songHistory:', result.history);
         },
         setSongsHistoryIsLoading(state, isLoading) { state.songsHistoryIsLoading = isLoading },
 

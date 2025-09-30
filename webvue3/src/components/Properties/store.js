@@ -13,9 +13,23 @@ export default {
         updatePropertiesDigests(state, result) {
             state.propertiesDigest = result.propertiesDigests;
         },
+        updateOneProperty(state, prop) {
+            if (!prop || typeof prop.key === 'undefined') {
+                return; // Выходим, если данные некорректны
+            }
+            const index = state.propertiesDigest.findIndex(item => item.key === prop.key);
+            if (index !== -1) {
+                state.propertiesDigest.splice(index, 1, prop);
+                // Альтернатива (в новых версиях Vue 2 и Vue 3 это также работает реактивно):
+                // state.propertiesDigest[index] = prop;
+            }
+        },
         setPropertiesDigestIsLoading(state, isLoading) { state.propertiesDigestIsLoading = isLoading }
     },
     actions: {
+        updateOneProperty(ctx, prop) {
+            ctx.commit('updateOneProperty', prop);
+        },
         loadPropertiesDigests(ctx, params) {
             let request = { method: 'POST', url: "/apis/propertiesdigests", params: params };
             ctx.commit('setPropertiesDigestIsLoading', true);

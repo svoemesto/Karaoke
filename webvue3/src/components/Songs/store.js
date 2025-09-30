@@ -2,17 +2,17 @@ import { promisedXMLHttpRequest } from '../../lib/utils'
 // import {useIntervalFn} from "@vueuse/core";
 export default {
     state: {
-        lastSettingType: 'COMMENT',
-        lastSettingValue: 'Комментарий',
-        lastPriorLyrics: 0,
-        lastPriorKaraoke: 1,
+        lastSettingType: '',
+        lastSettingValue: '',
+        lastPriorLyrics: '',
+        lastPriorKaraoke: '',
         lastPriorChords: '',
         lastPriorMelody: '',
-        lastPriorCodeLyrics: 10,
-        lastPriorCodeKaraoke: 10,
-        lastPriorDemucs: -1,
-        lastPriorSymlinks: -1,
-        lastPriorSmartCopy: -1,
+        lastPriorCodeLyrics: '',
+        lastPriorCodeKaraoke: '',
+        lastPriorDemucs: '',
+        lastPriorSymlinks: '',
+        lastPriorSmartCopy: '',
         songPages: [[]],
         songAuthors: [],
         songAlbums: [],
@@ -313,6 +313,7 @@ export default {
             return state.lastSettingValue;
         },
         getLastPriorLyrics(state) {
+            // console.log('getter getLastPriorLyrics', state.lastPriorLyrics);
             return state.lastPriorLyrics;
         },
         getLastPriorKaraoke(state) {
@@ -784,7 +785,7 @@ export default {
                 url: "/apis/properties/getproperty",
                 params: { key: key }
             }));
-            console.log(`key ${key} prop.property`, prop.property);
+            // console.log(`key ${key} prop.property`, prop.property);
             return prop.property.value;
         },
         async getTextFormatted(state) {
@@ -855,36 +856,124 @@ export default {
     },
     mutations: {
         setLastSettingType(state, value) {
+            if (state.lastSettingType !== undefined && state.lastSettingType !== null && value !== undefined && value !== null) {
+                const key = 'lastSettingType';
+                promisedXMLHttpRequest({
+                    method: 'POST',
+                    url: "/apis/setwebvueprop",
+                    params: {key: key, value: value}
+                });
+            }
             state.lastSettingType = value;
         },
         setLastSettingValue(state, value) {
+            if (state.lastSettingValue !== undefined && state.lastSettingValue !== null && value !== undefined && value !== null) {
+                const key = 'lastSettingValue';
+                promisedXMLHttpRequest({
+                    method: 'POST',
+                    url: "/apis/setwebvueprop",
+                    params: {key: key, value: value}
+                });
+            }
             state.lastSettingValue = value;
         },
         setLastPriorLyrics(state, value) {
-          state.lastPriorLyrics = value;
+            if (state.lastPriorLyrics !== undefined && state.lastPriorLyrics !== null && value !== undefined && value !== null) {
+                const key = 'lastPriorLyrics';
+                promisedXMLHttpRequest({
+                    method: 'POST',
+                    url: "/apis/setwebvueprop",
+                    params: {key: key, value: value}
+                });
+            }
+            state.lastPriorLyrics = value;
         },
         setLastPriorKaraoke(state, value) {
+            if (state.lastPriorKaraoke !== undefined && state.lastPriorKaraoke !== null && value !== undefined && value !== null) {
+                const key = 'lastPriorKaraoke';
+                promisedXMLHttpRequest({
+                    method: 'POST',
+                    url: "/apis/setwebvueprop",
+                    params: {key: key, value: value}
+                });
+            }
             state.lastPriorKaraoke = value;
         },
         setLastPriorChords(state, value) {
+            if (state.lastPriorChords !== undefined && state.lastPriorChords !== null && value !== undefined && value !== null) {
+                const key = 'lastPriorChords';
+                promisedXMLHttpRequest({
+                    method: 'POST',
+                    url: "/apis/setwebvueprop",
+                    params: {key: key, value: value}
+                });
+            }
             state.lastPriorChords = value;
         },
         setLastPriorMelody(state, value) {
+            if (state.lastPriorMelody !== undefined && state.lastPriorMelody !== null && value !== undefined && value !== null) {
+                const key = 'lastPriorMelody';
+                promisedXMLHttpRequest({
+                    method: 'POST',
+                    url: "/apis/setwebvueprop",
+                    params: {key: key, value: value}
+                });
+            }
             state.lastPriorMelody = value;
         },
         setLastPriorCodeLyrics(state, value) {
+            if (state.lastPriorCodeLyrics !== undefined && state.lastPriorCodeLyrics !== null && value !== undefined && value !== null) {
+                const key = 'lastPriorCodeLyrics';
+                promisedXMLHttpRequest({
+                    method: 'POST',
+                    url: "/apis/setwebvueprop",
+                    params: {key: key, value: value}
+                });
+            }
             state.lastPriorCodeLyrics = value;
         },
         setLastPriorCodeKaraoke(state, value) {
+            if (state.lastPriorCodeKaraoke !== undefined && state.lastPriorCodeKaraoke !== null && value !== undefined && value !== null) {
+                const key = 'lastPriorCodeKaraoke';
+                promisedXMLHttpRequest({
+                    method: 'POST',
+                    url: "/apis/setwebvueprop",
+                    params: {key: key, value: value}
+                });
+            }
             state.lastPriorCodeKaraoke = value;
         },
         setLastPriorDemucs(state, value) {
+            if (state.lastPriorDemucs !== undefined && state.lastPriorDemucs !== null && value !== undefined && value !== null) {
+                const key = 'lastPriorDemucs';
+                promisedXMLHttpRequest({
+                    method: 'POST',
+                    url: "/apis/setwebvueprop",
+                    params: {key: key, value: value}
+                });
+            }
             state.lastPriorDemucs = value;
         },
         setLastPriorSymlinks(state, value) {
+            if (state.lastPriorSymlinks !== undefined && state.lastPriorSymlinks !== null && value !== undefined && value !== null) {
+                const key = 'lastPriorSymlinks';
+                promisedXMLHttpRequest({
+                    method: 'POST',
+                    url: "/apis/setwebvueprop",
+                    params: {key: key, value: value}
+                });
+            }
             state.lastPriorSymlinks = value;
         },
         setLastPriorSmartCopy(state, value) {
+            if (state.lastPriorSmartCopy !== undefined && state.lastPriorSmartCopy !== null && value !== undefined && value !== null) {
+                const key = 'lastPriorSmartCopy';
+                promisedXMLHttpRequest({
+                    method: 'POST',
+                    url: "/apis/setwebvueprop",
+                    params: {key: key, value: value}
+                });
+            }
             state.lastPriorSmartCopy = value;
         },
         saveSong(state) {
@@ -1094,7 +1183,7 @@ export default {
           state.lastUpdateSong = lastUpdateSong;
         },
         setCurrentSongId(state, currId) {
-            console.log('state.songsDigest', state.songsDigest);
+            // console.log('state.songsDigest', state.songsDigest);
             let songWithIndexesFiltered = state.songPages.map(function (page, pageIndex) {
                 return page.map(function (song, songIndex) {
                     console.log('song', song);
@@ -1117,7 +1206,7 @@ export default {
                 let request = { method: 'POST', url: "/apis/song", params: {id: currId} };
                 promisedXMLHttpRequest(request).then(data => {
                     let songFromRest = JSON.parse(data);
-                    console.log('Song: ', songFromRest);
+                    // console.log('Song: ', songFromRest);
                     if (songFromRest) {
                         const id = songFromRest.id;
 

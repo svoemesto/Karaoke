@@ -59,9 +59,9 @@ export default {
             }
         },
         addProcessByUserEvent(state, userEventData) {
-            console.log('mutations addProcessByUserEvent from store.js ProcessesBv')
-            console.log('Событие добавления процесса: ', userEventData)
-            console.log('Процесс добавлен не будет, установлена заглушка.')
+            // console.log('mutations addProcessByUserEvent from store.js ProcessesBv')
+            // console.log('Событие добавления процесса: ', userEventData)
+            // console.log('Процесс добавлен не будет, установлена заглушка.')
             // let processId = userEventData.recordId;
             // let processPriority = userEventData.record.priority;
             // for (let i = 0; i < state.processesDigest.length; i++) {
@@ -74,7 +74,7 @@ export default {
             // state.processesDigest.splice(state.processesDigest.length-1,0,userEventData.record);
         },
         deleteProcessByUserEvent(state, userEventData) {
-            console.log('Событие удаления процесса: ', userEventData)
+            // console.log('Событие удаления процесса: ', userEventData)
             let processId = userEventData.recordId;
             for (let i = 0; i < state.processesDigest.length; i++) {
                 let processInDigest = state.processesDigest[i];
@@ -90,7 +90,7 @@ export default {
             state.processWillStopAfterThreadIsDone = processWillStopAfterThreadIsDone;
         },
         updateProcessWorkerStateByUserEvent(state, userEventData) {
-            console.log('Событие изменения статуса воркера процесса: ', userEventData)
+            // console.log('Событие изменения статуса воркера процесса: ', userEventData)
             state.processIsWorking = userEventData.work;
             state.processWillStopAfterThreadIsDone = userEventData.stopAfterThreadIsDone;
         },
@@ -103,7 +103,7 @@ export default {
             ctx.commit('updateProcessByUserEvent', userEventData);
         },
         addProcessByUserEvent(ctx, userEventData) {
-            console.log('actions addProcessByUserEvent from store.js ProcessesBv')
+            // console.log('actions addProcessByUserEvent from store.js ProcessesBv')
             ctx.commit('addProcessByUserEvent', userEventData);
         },
         deleteProcessByUserEvent(ctx, userEventData) {

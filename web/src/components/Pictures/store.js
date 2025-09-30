@@ -32,7 +32,7 @@ export default {
                 url: "/apis/properties/getproperty",
                 params: { key: key }
             }));
-            console.log(`key ${key} prop.property`, prop.property);
+            // console.log(`key ${key} prop.property`, prop.property);
             return prop.property.value;
         },
         loadPictureFromDiskBase64: () => async (pathToFile) => {

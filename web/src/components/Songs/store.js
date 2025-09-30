@@ -784,7 +784,7 @@ export default {
                 url: "/apis/properties/getproperty",
                 params: { key: key }
             }));
-            console.log(`key ${key} prop.property`, prop.property);
+            // console.log(`key ${key} prop.property`, prop.property);
             return prop.property.value;
         },
         async getTextFormatted(state) {
@@ -1094,7 +1094,7 @@ export default {
           state.lastUpdateSong = lastUpdateSong;
         },
         setCurrentSongId(state, currId) {
-            console.log('state.songsDigest', state.songsDigest);
+            // console.log('state.songsDigest', state.songsDigest);
             let songWithIndexesFiltered = state.songPages.map(function (page, pageIndex) {
                 return page.map(function (song, songIndex) {
                     console.log('song', song);
@@ -1117,7 +1117,7 @@ export default {
                 let request = { method: 'POST', url: "/apis/song", params: {id: currId} };
                 promisedXMLHttpRequest(request).then(data => {
                     let songFromRest = JSON.parse(data);
-                    console.log('Song: ', songFromRest);
+                    // console.log('Song: ', songFromRest);
                     if (songFromRest) {
                         const id = songFromRest.id;
 

@@ -2945,7 +2945,7 @@ export default {
         }
       }
 
-      console.log('variants', variants);
+      // console.log('variants', variants);
       if (variants.length === 0) return result;
 
       let minDiff =  variants[0].diff

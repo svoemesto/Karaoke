@@ -122,17 +122,17 @@ fun setSettingsToSyncRemoteTable(id: Long) {
     }
 
 }
-fun updateRemotePictureFromLocalDatabase(id: Long): Triple<Int, Int, Int> {
+fun updateRemotePictureFromLocalDatabase(id: Long): Triple<List<String>, List<String>, List<String>> {
     return updateDatabases(Connection.local(), Connection.remote(), updateSettings = false, updatePictures = true, argsPictures = mapOf("id" to id.toString()))
 }
-fun updateRemoteSettingFromLocalDatabase(id: Long): Triple<Int, Int, Int> {
+fun updateRemoteSettingFromLocalDatabase(id: Long): Triple<List<String>, List<String>, List<String>> {
     return updateDatabases(Connection.local(), Connection.remote(), updateSettings = true, updatePictures = false, argsSettings = mapOf("id" to id.toString()))
 }
-fun updateRemoteDatabaseFromLocalDatabase(updateSettings: Boolean = true, updatePictures: Boolean = true): Triple<Int, Int, Int> {
+fun updateRemoteDatabaseFromLocalDatabase(updateSettings: Boolean = true, updatePictures: Boolean = true): Triple<List<String>, List<String>, List<String>> {
     return updateDatabases(Connection.local(), Connection.remote(), updateSettings, updatePictures)
 }
 
-fun updateLocalDatabaseFromRemoteDatabase(updateSettings: Boolean = true, updatePictures: Boolean = true): Triple<Int, Int, Int> {
+fun updateLocalDatabaseFromRemoteDatabase(updateSettings: Boolean = true, updatePictures: Boolean = true): Triple<List<String>, List<String>, List<String>> {
     return updateDatabases(Connection.remote(), Connection.local(), updateSettings, updatePictures)
 }
 fun updateDatabases(
@@ -142,22 +142,22 @@ fun updateDatabases(
     updatePictures: Boolean = true,
     argsSettings: Map<String, String> = emptyMap(),
     argsPictures: Map<String, String> = emptyMap()
-): Triple<Int, Int, Int> {
-    if (fromDatabase == toDatabase) return Triple(0,0,0)
-
-    var countCreate = 0
-    var countUpdate = 0
-    var countDelete = 0
+): Triple<List<String>, List<String>, List<String>> {
+    if (fromDatabase == toDatabase) return Triple(emptyList(), emptyList(), emptyList())
 
     val listToCreate: MutableList<Map<String, Any>> = mutableListOf()
     val listToUpdate: MutableList<Map<String, Any>> = mutableListOf()
     val listToDelete: MutableList<Map<String, Any>> = mutableListOf()
 
+    val listToCreateNames: MutableList<String> = mutableListOf()
+    val listToUpdateNames: MutableList<String> = mutableListOf()
+    val listToDeleteNames: MutableList<String> = mutableListOf()
+
     println("[${Timestamp.from(Instant.now())}] Устанавливаем связь с базой данный ${fromDatabase.name}...")
     val connFrom = fromDatabase.getConnection()
     if (connFrom == null) {
         println("[${Timestamp.from(Instant.now())}] Невозможно установить связь с базой данный ${fromDatabase.name}")
-        return Triple(-1,-1,-1)
+        return Triple(emptyList(), emptyList(), emptyList())
     }
     println("[${Timestamp.from(Instant.now())}] Связь с базой данный ${fromDatabase.name} успешно установлена")
 
@@ -165,7 +165,7 @@ fun updateDatabases(
     val connTo = toDatabase.getConnection()
     if (connTo == null) {
         println("[${Timestamp.from(Instant.now())}] Невозможно установить связь с базой данный ${toDatabase.name}")
-        return Triple(-1,-1,-1)
+        return Triple(emptyList(), emptyList(), emptyList())
     }
     println("[${Timestamp.from(Instant.now())}] Связь с базой данный ${toDatabase.name} успешно установлена")
 
@@ -177,7 +177,7 @@ fun updateDatabases(
         val listFromIdsHashes = Settings.listHashes(database = fromDatabase, whereText = whereText)
         if (listFromIdsHashes == null) {
             println("[${Timestamp.from(Instant.now())}] Невозможно установить связь с базой данный ${fromDatabase.name}")
-            return Triple(-1,-1,-1)
+            return Triple(emptyList(), emptyList(), emptyList())
         }
         println("[${Timestamp.from(Instant.now())}] Таблица хэшей из базы данных ${fromDatabase.name} успешно получена, записей: ${listFromIdsHashes.size}")
 
@@ -185,14 +185,14 @@ fun updateDatabases(
         val listToIdsHashes = Settings.listHashes(database = toDatabase, whereText = whereText)
         if (listToIdsHashes == null) {
             println("[${Timestamp.from(Instant.now())}] Невозможно установить связь с базой данный ${toDatabase.name}")
-            return Triple(-1,-1,-1)
+            return Triple(emptyList(), emptyList(), emptyList())
         }
         println("[${Timestamp.from(Instant.now())}] Таблица хэшей из базы данных ${toDatabase.name} успешно получена, записей: ${listToIdsHashes.size}")
 
         val totalCountFrom = listFromIdsHashes.size
 
         if (totalCountFrom == 0) {
-            return Triple(0,0,0)
+            return Triple(emptyList(), emptyList(), emptyList())
         }
 
         val idsToInsert = listFromIdsHashes.filter { fromIdHash ->
@@ -208,6 +208,7 @@ fun updateDatabases(
         }.map { it.id }
 
         idsToDelete.forEach { id ->
+            Settings.loadFromDbById(id = id, database = toDatabase)?.let { listToDeleteNames.add(it.rightSettingFileName) }
             if (toDatabase.name == "SERVER") {
                 val sqlToDelete = "DELETE FROM $tableName WHERE id = $id"
                 val setStrEncrypted = Crypto.encrypt(sqlToDelete)
@@ -223,6 +224,7 @@ fun updateDatabases(
         idsToInsert.forEach { id ->
             val itemFrom = Settings.loadFromDbById(id = id, database = fromDatabase)
             if (itemFrom != null) {
+                listToCreateNames.add(itemFrom.rightSettingFileName)
                 println("Добавляем запись в $tableName: id=${itemFrom.id}, ${itemFrom.rightSettingFileName}")
                 val sqlToInsert = itemFrom.getSqlToInsert()
                 if (toDatabase.name == "SERVER") {
@@ -235,13 +237,12 @@ fun updateDatabases(
                     val connection = toDatabase.getConnection()
                     if (connection == null) {
                         println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
-                        return Triple(-1,-1,-1)
+                        return Triple(emptyList(),emptyList(),emptyList())
                     }
                     val ps = connection.prepareStatement(sqlToInsert)
                     ps.executeUpdate()
                     ps.close()
                 }
-                countCreate++
             }
         }
 
@@ -251,6 +252,7 @@ fun updateDatabases(
             if (itemFrom != null && itemTo != null) {
                 val diff = Settings.getDiff(itemFrom, itemTo)
                 if (diff.isNotEmpty()) {
+                    if (!diff.all { !it.recordDiffRealField || it.recordDiffName.startsWith("status_process_")}) listToUpdateNames.add(itemFrom.rightSettingFileName)
                     println("[${Timestamp.from(Instant.now())}] Изменяем запись в $tableName: id=${itemFrom.id}, ${itemFrom.rightSettingFileName}, поля: ${diff.joinToString(", ") { it.recordDiffName }}")
                     val messageRecordChange = RecordChangeMessage(tableName = tableName,  recordId = itemTo.id.toLong(), diffs = diff, databaseName = toDatabase.name, record = itemFrom)
                     if (toDatabase.name == "SERVER") {
@@ -271,7 +273,7 @@ fun updateDatabases(
                             val connection = toDatabase.getConnection()
                             if (connection == null) {
                                 println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
-                                return Triple(-1,-1,-1)
+                                return Triple(emptyList(),emptyList(),emptyList())
                             }
                             val ps = connection.prepareStatement(sql)
                             var index = 1
@@ -290,11 +292,11 @@ fun updateDatabases(
                             ps.close()
                         }
                     }
-                    countUpdate++
                 }
             }
         }
     }
+
     if (updatePictures) {
 
         val whereText = if (argsPictures.containsKey("id")) "WHERE id = ${argsPictures["id"]}" else ""
@@ -303,7 +305,7 @@ fun updateDatabases(
         val listFromIdsHashes = Pictures.listHashes(database = fromDatabase, whereText = whereText)
         if (listFromIdsHashes == null) {
             println("[${Timestamp.from(Instant.now())}] Невозможно установить связь с базой данный ${fromDatabase.name}")
-            return Triple(-1,-1,-1)
+            return Triple(emptyList(),emptyList(),emptyList())
         }
         println("[${Timestamp.from(Instant.now())}] Таблица хэшей из базы данных ${fromDatabase.name} успешно получена, записей: ${listFromIdsHashes.size}")
 
@@ -311,14 +313,14 @@ fun updateDatabases(
         val listToIdsHashes = Pictures.listHashes(database = toDatabase, whereText = whereText)
         if (listToIdsHashes == null) {
             println("[${Timestamp.from(Instant.now())}] Невозможно установить связь с базой данный ${toDatabase.name}")
-            return Triple(-1,-1,-1)
+            return Triple(emptyList(),emptyList(),emptyList())
         }
         println("[${Timestamp.from(Instant.now())}] Таблица хэшей из базы данных ${fromDatabase.name} успешно получена, записей: ${listToIdsHashes.size}")
 
         val totalCountFrom = listFromIdsHashes.size
 
         if (totalCountFrom == 0) {
-            return Triple(0,0,0)
+            return Triple(emptyList(),emptyList(),emptyList())
         }
 
         val idsToInsert = listFromIdsHashes.filter { fromIdHash ->
@@ -335,6 +337,7 @@ fun updateDatabases(
 
         idsToDelete.forEach { id ->
             if (toDatabase.name == "SERVER") {
+                Pictures.loadFromDbById(id = id, database = toDatabase)?.let { listToDeleteNames.add(it.name) }
                 val sqlToDelete = "DELETE FROM $tableName WHERE id = $id"
                 val setStrEncrypted = Crypto.encrypt(sqlToDelete)
                 val values: Map<String, Any> = mapOf(
@@ -349,6 +352,7 @@ fun updateDatabases(
         idsToInsert.forEach { id ->
             val itemFrom = Pictures.loadFromDbById(id = id, database = fromDatabase)
             if (itemFrom != null) {
+                listToCreateNames.add(itemFrom.name)
                 println("[${Timestamp.from(Instant.now())}] Добавляем запись в $tableName: id=${itemFrom.id}, ${itemFrom.name}")
                 val sqlToInsert = itemFrom.getSqlToInsert()
                 if (toDatabase.name == "SERVER") {
@@ -361,13 +365,12 @@ fun updateDatabases(
                     val connection = toDatabase.getConnection()
                     if (connection == null) {
                         println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
-                        return Triple(-1,-1,-1)
+                        return Triple(emptyList(),emptyList(),emptyList())
                     }
                     val ps = connection.prepareStatement(sqlToInsert)
                     ps.executeUpdate()
                     ps.close()
                 }
-                countCreate++
             }
         }
 
@@ -377,6 +380,7 @@ fun updateDatabases(
             if (itemFrom != null && itemTo != null) {
                 val diff = Pictures.getDiff(itemFrom, itemTo)
                 if (diff.isNotEmpty()) {
+                    listToUpdateNames.add(itemFrom.name)
                     println("[${Timestamp.from(Instant.now())}] Изменяем запись в $tableName: id=${itemFrom.id}, ${itemFrom.name}, поля: ${diff.joinToString(", ") { it.recordDiffName }}")
                     val messageRecordChange = RecordChangeMessage(tableName = tableName,  recordId = itemTo.id.toLong(), diffs = diff, databaseName = toDatabase.name, record = itemFrom)
                     if (toDatabase.name == "SERVER") {
@@ -397,7 +401,7 @@ fun updateDatabases(
                             val connection = toDatabase.getConnection()
                             if (connection == null) {
                                 println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
-                                return Triple(-1,-1,-1)
+                                return Triple(emptyList(),emptyList(),emptyList())
                             }
                             val ps = connection.prepareStatement(sql)
                             var index = 1
@@ -416,7 +420,6 @@ fun updateDatabases(
                             ps.close()
                         }
                     }
-                    countUpdate++
                 }
             }
         }
@@ -505,7 +508,7 @@ fun updateDatabases(
 
     }
 
-    return Triple(countCreate, countUpdate, countDelete)
+    return Triple(listToCreateNames, listToUpdateNames, listToDeleteNames)
 
 }
 

@@ -1,13 +1,16 @@
 <template>
   <div class="process_worker">
-    <button
-        class="btn-round-double"
-        @click.left="clickStartStopWorkerButton"
-        :disabled="disabled"
-    >
-      <img v-if="!isWork" alt="start" class="icon-40" src="../../assets/svg/icon_play.svg">
-      <img v-else alt="stop" class="icon-40" src="../../assets/svg/icon_stop.svg">
-    </button>
+    <div class="button-with-text-count-waiting">
+      <button
+          class="btn-round-double"
+          @click.left="clickStartStopWorkerButton"
+          :disabled="disabled"
+      >
+        <img v-if="!isWork" alt="start" class="icon-40" src="../../assets/svg/icon_play.svg">
+        <img v-else alt="stop" class="icon-40" src="../../assets/svg/icon_stop.svg">
+      </button>
+      <div class="text-count-waiting" v-text="countWaiting"></div>
+    </div>
     <div class="wrapper">
       <div class="process-text" v-text="processName"></div>
       <div class="wrapper-bar">
@@ -18,7 +21,6 @@
         ></div>
       </div>
     </div>
-
   </div>
 </template>
 
@@ -41,6 +43,9 @@ export default {
     },
     stopAfterThreadIsDone() {
       return this.$store.getters.getProcessWillStopAfterThreadIsDone
+    },
+    countWaiting() {
+      return this.$store.getters.getCountWaiting
     },
     disabled() {
       return this.isWork && this.stopAfterThreadIsDone;
@@ -151,6 +156,21 @@ export default {
 }
 .process-text {
   font-size: small;
+}
+.button-with-text-count-waiting {
+  position: relative;
+}
+.text-count-waiting {
+  font-size: x-small;
+  color: white;
+  position: absolute;
+  pointer-events: none;
+  top: 100%;
+  left: 100%;
+  transform: translate(-50%, -50%);
+  padding: 0 4px;
+  border-radius: 5px;
+  background-color: gray;
 }
 .wrapper-bar {
   display: flex;

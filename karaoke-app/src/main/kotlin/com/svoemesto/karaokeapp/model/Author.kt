@@ -30,7 +30,7 @@ class Author(val database: KaraokeConnection = WORKING_DATABASE) : Serializable,
 
         val connection = database.getConnection()
         if (connection == null) {
-            println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+            println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
             return
         }
         val sql = "UPDATE tbl_authors SET " +
@@ -102,7 +102,7 @@ class Author(val database: KaraokeConnection = WORKING_DATABASE) : Serializable,
 
             val connection = database.getConnection()
             if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
                 return null
             }
             var statement: Statement? = null
@@ -152,7 +152,7 @@ class Author(val database: KaraokeConnection = WORKING_DATABASE) : Serializable,
 
             val connection = database.getConnection()
             if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
                 return null
             }
             val ps = connection.prepareStatement(sql)
@@ -174,7 +174,7 @@ class Author(val database: KaraokeConnection = WORKING_DATABASE) : Serializable,
 
             val connection = database.getConnection()
             if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
                 return emptyList()
             }
             var statement: Statement? = null
@@ -249,7 +249,7 @@ class Author(val database: KaraokeConnection = WORKING_DATABASE) : Serializable,
 
             val connection = database.getConnection()
             if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
                 return
             }
             val sql = "DELETE FROM tbl_authors WHERE id = ?"

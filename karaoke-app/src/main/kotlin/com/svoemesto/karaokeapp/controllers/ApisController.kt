@@ -320,7 +320,7 @@ class ApisController(private val sseNotificationService: SseNotificationService)
 
         val connection = WORKING_DATABASE.getConnection()
         if (connection == null) {
-            println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+            println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${WORKING_DATABASE.name}")
             return emptyList()
         }
         var statement: Statement? = null
@@ -358,7 +358,7 @@ class ApisController(private val sseNotificationService: SseNotificationService)
 
         val connection = WORKING_DATABASE.getConnection()
         if (connection == null) {
-            println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+            println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${WORKING_DATABASE.name}")
             return emptyList()
         }
         var statement: Statement? = null
@@ -2789,7 +2789,7 @@ class ApisController(private val sseNotificationService: SseNotificationService)
     @PostMapping("/processes/deletedone")
     @ResponseBody
     fun doProcessDeleteDone() {
-        KaraokeProcessWorker.deleteDone(WORKING_DATABASE)
+        KaraokeProcess.deleteDone(WORKING_DATABASE)
     }
 
     @PostMapping("/processes/workerstatus")

@@ -238,7 +238,7 @@ class KaraokeProcess(
 
         val connection = database.getConnection()
         if (connection == null) {
-            println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+            println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
             return
         }
         val sql = "UPDATE tbl_processes SET " +
@@ -327,10 +327,10 @@ class KaraokeProcess(
             SNS.send(messageRecordChange)
         }
 
-        if (status == KaraokeProcessStatuses.DONE.name) {
-            println("[${Timestamp.from(Instant.now())}] KaraokeProcess: Удаляем успешно завершенное задание: $name - [$type] - $description")
-            delete(id, database)
-        }
+//        if (status == KaraokeProcessStatuses.DONE.name) {
+//            println("[${Timestamp.from(Instant.now())}] KaraokeProcess: Удаляем успешно завершенное задание: $name - [$type] - $description")
+//            delete(id, database)
+//        }
 
 //        val controller = ApplicationContextProvider.getCurrentApplicationContext().getBean(MainController::class.java)
 //        controller.processesUpdate(id.toLong())
@@ -412,12 +412,42 @@ class KaraokeProcess(
             return result
         }
 
+        fun getCountWaiting(database: KaraokeConnection): Long {
+
+            val connection = database.getConnection()
+            if (connection == null) {
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
+                return 0L
+            }
+            var statement: Statement? = null
+            var rs: ResultSet? = null
+            val sql = "select count(*) as cnt from tbl_processes where process_status = 'WAITING' and process_command <> 'tail'"
+            var result: Long = 0L
+
+            try {
+                statement = connection.createStatement()
+                rs = statement.executeQuery(sql)
+                rs.next()
+                result = rs.getLong("cnt")
+            } catch (e: SQLException) {
+                e.printStackTrace()
+            } finally {
+                try {
+                    rs?.close() // close result set
+                    statement?.close() // close statement
+                } catch (e: SQLException) {
+                    e.printStackTrace()
+                }
+            }
+            return result
+        }
+
         fun getLastUpdated(lastTime: Long? = null, database: KaraokeConnection): List<Int> {
             if (lastTime == null) return emptyList()
 
             val connection = database.getConnection()
             if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
                 return emptyList()
             }
             var statement: Statement? = null
@@ -459,13 +489,31 @@ class KaraokeProcess(
             return result
         }
 
+        fun deleteDone(database: KaraokeConnection) {
+            println("[${Timestamp.from(Instant.now())}] KaraokeProcess: Удаляем DONE (если есть)")
+            try {
+                val connection = database.getConnection()
+                if (connection == null) {
+                    println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
+                    return
+                }
+                val sql = "DELETE FROM tbl_processes WHERE process_status = ?"
+                val ps = connection.prepareStatement(sql)
+                ps.setString(1, "DONE")
+                ps.executeUpdate()
+                ps.close()
+            } catch (e: Exception) {
+                println(e.message)
+            }
+        }
+
         fun setWorkingToWaiting(database: KaraokeConnection) {
             println("[${Timestamp.from(Instant.now())}] KaraokeProcess: Сбрасываем WORKING (если есть) в WAITING...")
 
             try {
                 val connection = database.getConnection()
                 if (connection == null) {
-                    println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                    println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
                     return
                 }
                 val sql = "UPDATE tbl_processes SET " +
@@ -532,7 +580,7 @@ class KaraokeProcess(
 
             val connection = process.database.getConnection()
             if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${process.database.name}")
                 return null
             }
             val ps = connection.prepareStatement(sql)
@@ -560,6 +608,8 @@ class KaraokeProcess(
                 }
             }
 
+            if (process.status == "WAITING" && process.command != "tail") KaraokeProcessWorker.sendCountWaitingMessage(getCountWaiting(database = process.database))
+
             return result
 
         }
@@ -568,7 +618,7 @@ class KaraokeProcess(
 
             val connection = database.getConnection()
             if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
                 return null
             }
 
@@ -618,7 +668,7 @@ class KaraokeProcess(
 
             val connection = database.getConnection()
             if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
                 return emptyList()
             }
             var statement: Statement? = null
@@ -702,7 +752,7 @@ class KaraokeProcess(
 
             val connection = database.getConnection()
             if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
                 return
             }
             val sql = "DELETE FROM tbl_processes WHERE id = ?"
@@ -720,6 +770,8 @@ class KaraokeProcess(
                 )
             )
             SNS.send(messageRecordDelete)
+
+//            KaraokeProcessWorker.sendCountWaitingMessage(getCountWaiting(database = database))
 
         }
 
@@ -1091,23 +1143,7 @@ class KaraokeProcess(
                             listOf("chmod", "666", settings.pathToFileMelody),
                         )
                     }
-//                    KaraokeProcessTypes.RECODE_48000 -> {
-//                        description = "48000"
-//                        args = listOf(
-//                            listOf("rm", settings.fileAbsolutePathTmp.rightFileName()),
-//                            listOf("ffmpeg", "-i", settings.fileAbsolutePath.rightFileName(), "-compression_level", "8", settings.fileAbsolutePathTmp.rightFileName(), "-y"),
-//                            listOf("rm", settings.fileAbsolutePath.rightFileName()),
-//                            listOf("mv", settings.fileAbsolutePathTmp.rightFileName(), settings.fileAbsolutePath.rightFileName()),
-//                            listOf("rm", settings.fileAbsolutePathTmp.rightFileName())
-//                        )
-//                        argsDescription = listOf(
-//                            "48000 - del tmp file",
-//                            "48000 - recode file",
-//                            "48000 - del source file",
-//                            "48000 - cope result",
-//                            "48000 - del tmp file"
-//                        )
-//                    }
+
                     KaraokeProcessTypes.DEMUCS2 -> {
                         description = "Демукс 2"
                         args = settings.argsDemucs2()
@@ -1406,52 +1442,6 @@ class KaraokeProcess(
                             listOf("chmod", "666", settings.pathToFileMP3Lyrics),
                         )
                     }
-
-//                    KaraokeProcessTypes.MELT_LYRICSVK -> {
-//                        description = "Кодирование LYRICSVK"
-//                        prioritet = 19
-//                        args = listOf(
-//                            listOf(
-//                                "docker", "compose", "-f", "/sm-karaoke/system/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
-//                                "${settings.rootFolder}/done_projects/${settings.rightSettingFileName} [lyricsVk].mlt".rightFileName()
-//                            ),
-//                            listOf("chmod", "666", settings.pathToFileLyricsVk),
-//                        )
-//
-//                    }
-//                    KaraokeProcessTypes.MELT_KARAOKEVK -> {
-//                        description = "Кодирование KARAOKEVK"
-//                        prioritet = 19
-//                        args = listOf(
-//                            listOf(
-//                                "docker", "compose", "-f", "/sm-karaoke/system/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
-//                                "${settings.rootFolder}/done_projects/${settings.rightSettingFileName} [karaokeVk].mlt".rightFileName()
-//                            ),
-//                            listOf("chmod", "666", settings.pathToFileKaraokeVk),
-//                        )
-//                    }
-//                    KaraokeProcessTypes.MELT_CHORDSVK -> {
-//                        description = "Кодирование CHORDSVK"
-//                        prioritet = 19
-//                        args = listOf(
-//                            listOf(
-//                                "docker", "compose", "-f", "/sm-karaoke/system/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
-//                                "${settings.rootFolder}/done_projects/${settings.rightSettingFileName} [chordsVk].mlt".rightFileName()
-//                            ),
-//                            listOf("chmod", "666", settings.pathToFileChordsVk),
-//                        )
-//                    }
-//                    KaraokeProcessTypes.MELT_TABSVK -> {
-//                        description = "Кодирование TABSVK"
-//                        prioritet = 19
-//                        args = listOf(
-//                            listOf(
-//                                "docker", "compose", "-f", "/sm-karaoke/system/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
-//                                "${settings.rootFolder}/done_projects/${settings.rightSettingFileName} [tabsVk].mlt".rightFileName()
-//                            ),
-//                            listOf("chmod", "666", settings.pathToFileMelodyVk),
-//                        )
-//                    }
 
                     KaraokeProcessTypes.SMARTCOPY -> {
                         description = "Smart Copy"

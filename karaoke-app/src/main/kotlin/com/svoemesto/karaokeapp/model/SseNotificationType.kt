@@ -5,6 +5,7 @@ enum class SseNotificationType(val value: String) {
     RECORD_ADD("recordAdd"),
     RECORD_DELETE("recordDelete"),
     PROCESS_WORKER_STATE("processWorkerState"),
+    PROCESS_COUNT_WAITING("processCountWaiting"),
     MESSAGE("message"),
     DUMMY("dummy"),
     LOG("log"),

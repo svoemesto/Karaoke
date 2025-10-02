@@ -113,7 +113,7 @@ fun setSettingsToSyncRemoteTable(id: Long) {
         Settings.deleteFromDb(id = id, database = Connection.remote(), sync = true)
         val connection = Connection.remote().getConnection()
         if (connection == null) {
-            println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+            println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных REMOTE")
             return
         }
         val ps = connection.prepareStatement(sqlToInsert)
@@ -236,7 +236,7 @@ fun updateDatabases(
                 } else {
                     val connection = toDatabase.getConnection()
                     if (connection == null) {
-                        println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                        println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${toDatabase.name}")
                         return Triple(emptyList(),emptyList(),emptyList())
                     }
                     val ps = connection.prepareStatement(sqlToInsert)
@@ -251,8 +251,8 @@ fun updateDatabases(
             val itemTo = Settings.loadFromDbById(id = id, database = toDatabase)
             if (itemFrom != null && itemTo != null) {
                 val diff = Settings.getDiff(itemFrom, itemTo)
-                if (diff.isNotEmpty()) {
-                    if (!diff.all { !it.recordDiffRealField || it.recordDiffName.startsWith("status_process_")}) listToUpdateNames.add(itemFrom.rightSettingFileName)
+                if (diff.isNotEmpty() && !diff.all { !it.recordDiffRealField || it.recordDiffName.startsWith("status_process_")}) {
+                    listToUpdateNames.add(itemFrom.rightSettingFileName)
                     println("[${Timestamp.from(Instant.now())}] Изменяем запись в $tableName: id=${itemFrom.id}, ${itemFrom.rightSettingFileName}, поля: ${diff.joinToString(", ") { it.recordDiffName }}")
                     val messageRecordChange = RecordChangeMessage(tableName = tableName,  recordId = itemTo.id.toLong(), diffs = diff, databaseName = toDatabase.name, record = itemFrom)
                     if (toDatabase.name == "SERVER") {
@@ -272,7 +272,7 @@ fun updateDatabases(
                             val sql = "UPDATE $tableName SET $setStr WHERE id = ?"
                             val connection = toDatabase.getConnection()
                             if (connection == null) {
-                                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${toDatabase.name}")
                                 return Triple(emptyList(),emptyList(),emptyList())
                             }
                             val ps = connection.prepareStatement(sql)
@@ -364,7 +364,7 @@ fun updateDatabases(
                 } else {
                     val connection = toDatabase.getConnection()
                     if (connection == null) {
-                        println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                        println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${toDatabase.name}")
                         return Triple(emptyList(),emptyList(),emptyList())
                     }
                     val ps = connection.prepareStatement(sqlToInsert)
@@ -400,7 +400,7 @@ fun updateDatabases(
                             val sql = "UPDATE $tableName SET $setStr WHERE id = ?"
                             val connection = toDatabase.getConnection()
                             if (connection == null) {
-                                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${toDatabase.name}")
                                 return Triple(emptyList(),emptyList(),emptyList())
                             }
                             val ps = connection.prepareStatement(sql)
@@ -938,7 +938,7 @@ fun getAuthorsForDigest(database: KaraokeConnection): List<String> {
 
     val connection = database.getConnection()
     if (connection == null) {
-        println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+        println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
         return emptyList()
     }
     var statement: Statement? = null

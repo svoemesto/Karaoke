@@ -52,7 +52,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                             val sql = "UPDATE tbl_settings SET root_folder = ? WHERE id = ?"
                             val connection = database.getConnection()
                             if (connection == null) {
-                                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
                             } else {
                                 val ps = connection.prepareStatement(sql)
                                 ps.setString(1, candidate)
@@ -97,7 +97,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                     val sql = "UPDATE tbl_settings SET song_ms = ? WHERE id = ?"
                     val connection = database.getConnection()
                     if (connection == null) {
-                        println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                        println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
                         return 0L
                     }
                     val ps = connection.prepareStatement(sql)
@@ -3213,7 +3213,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
                 val connection = database.getConnection()
                 if (connection == null) {
-                    println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                    println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
                     return
                 }
                 val ps = connection.prepareStatement(sql)
@@ -3275,7 +3275,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
             if (savedSettings != null) renameFilesIfDiff(this, savedSettings)
 
-            if (Karaoke.autoUpdateRemoteSettings) {
+            if (Karaoke.autoUpdateRemoteSettings && diff.isNotEmpty() && !diff.all { !it.recordDiffRealField || it.recordDiffName.startsWith("status_process_")}) {
                 val (listCreate, listUpdate, listDelete) = updateRemoteSettingFromLocalDatabase(id)
                 if (listCreate.size + listUpdate.size + listDelete.size != 0) {
                     SNS.send(SseNotification.crud(listOf(listCreate, listUpdate, listDelete)))
@@ -3451,7 +3451,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
         val connection = database.getConnection()
         if (connection == null) {
-            println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+            println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
             return
         }
         val sql = "DELETE FROM tbl_settings${if (sync) "_sync" else ""} WHERE id = ?"
@@ -4033,7 +4033,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             var result = -1
             val connection = database.getConnection()
             if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
                 return -1
             }
             var statement: Statement? = null
@@ -4063,7 +4063,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
             val connection = database.getConnection()
             if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
                 return emptyList()
             }
             var statement: Statement? = null
@@ -4099,7 +4099,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
             val connection = database.getConnection()
             if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
                 return null
             }
             val ps = connection.prepareStatement(sql)
@@ -4147,7 +4147,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         fun loadListAuthors(database: KaraokeConnection): List<String> {
             val connection = database.getConnection()
             if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
                 return emptyList()
             }
             var statement: Statement? = null
@@ -4181,7 +4181,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         fun loadListAlbums(database: KaraokeConnection): List<String> {
             val connection = database.getConnection()
             if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
                 return emptyList()
             }
             var statement: Statement? = null
@@ -4215,7 +4215,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         fun loadListIds(database: KaraokeConnection): List<Long> {
             val connection = database.getConnection()
             if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
                 return emptyList()
             }
             var statement: Statement? = null
@@ -4252,7 +4252,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
             val connection = database.getConnection()
             if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
                 return null
             }
             var statement: Statement? = null
@@ -4288,7 +4288,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
             val connection = database.getConnection()
             if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
                 return emptyList()
             }
             var statement: Statement? = null
@@ -4575,7 +4575,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
             val connection = database.getConnection()
             if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
                 return
             }
             val sql = "DELETE FROM tbl_settings${if (sync) "_sync" else ""} WHERE id = ?"
@@ -4674,7 +4674,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
             val connection = database.getConnection()
             if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
                 return emptySet()
             }
             var statement: Statement? = null

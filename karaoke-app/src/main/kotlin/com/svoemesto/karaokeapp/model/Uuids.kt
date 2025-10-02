@@ -16,7 +16,7 @@ class Uuids(var id: Int, var uuid: String, val database: KaraokeConnection = WOR
 
         val connection = database.getConnection()
         if (connection == null) {
-            println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+            println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
             return
         }
         val sql = "UPDATE tbl_uuids SET " +
@@ -58,7 +58,7 @@ class Uuids(var id: Int, var uuid: String, val database: KaraokeConnection = WOR
 
             val connection = database.getConnection()
             if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
                 return null
             }
             val ps = connection.prepareStatement(sql)
@@ -80,7 +80,7 @@ class Uuids(var id: Int, var uuid: String, val database: KaraokeConnection = WOR
 
             val connection = database.getConnection()
             if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
                 return emptyList()
             }
             var statement: Statement? = null
@@ -122,7 +122,7 @@ class Uuids(var id: Int, var uuid: String, val database: KaraokeConnection = WOR
 
             val connection = database.getConnection()
             if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
                 return
             }
             val sql = "DELETE FROM tbl_uuids WHERE id = ?"

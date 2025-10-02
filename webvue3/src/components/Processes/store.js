@@ -7,6 +7,7 @@ export default {
         processIsWorking: false,
         processWillStopAfterThreadIsDone: false,
         workingProcess: undefined,
+        countWaiting: '...',
     },
     getters: {
         getWorkingProcess(state) {
@@ -24,6 +25,9 @@ export default {
         },
         getProcessWillStopAfterThreadIsDone(state) {
             return state.processWillStopAfterThreadIsDone;
+        },
+        getCountWaiting(state) {
+            return state.countWaiting;
         },
     },
     mutations: {
@@ -86,6 +90,9 @@ export default {
         setProcessIsWorking(state, processIsWorking) {
             state.processIsWorking = processIsWorking;
         },
+        setCountWaiting(state, userEventData) {
+            state.countWaiting = userEventData.countWaiting;
+        },
         setProcessWillStopAfterThreadIsDone(state, processWillStopAfterThreadIsDone) {
             state.processWillStopAfterThreadIsDone = processWillStopAfterThreadIsDone;
         },
@@ -134,6 +141,9 @@ export default {
         },
         setProcessIsWorking(ctx, processIsWorking) {
             ctx.commit('setProcessIsWorking', processIsWorking);
+        },
+        setCountWaiting(ctx, userEventData) {
+            ctx.commit('setCountWaiting', userEventData);
         },
         setProcessWillStopAfterThreadIsDone(ctx, processWillStopAfterThreadIsDone) {
             ctx.commit('setProcessWillStopAfterThreadIsDone', processWillStopAfterThreadIsDone);

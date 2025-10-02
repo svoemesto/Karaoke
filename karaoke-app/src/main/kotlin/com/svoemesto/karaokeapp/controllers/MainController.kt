@@ -217,7 +217,7 @@ class MainController {
     @GetMapping("/process/deletedone")
     @ResponseBody
     fun doProcessDeleteDone(): Boolean {
-        KaraokeProcessWorker.deleteDone(WORKING_DATABASE)
+        KaraokeProcess.deleteDone(WORKING_DATABASE)
         return true
     }
 

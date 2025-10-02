@@ -79,7 +79,7 @@ class MainController(private val webSocket: SimpMessagingTemplate, @Value("\${wo
                         fieldsValues.add(Pair("link_name", linkName))
                         val connection = WORKING_DATABASE.getConnection()
                         if (connection == null) {
-                            println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                            println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${WORKING_DATABASE.name}")
                             return false
                         }
                         val sqlToInsert = "INSERT INTO tbl_events (${fieldsValues.map {it.first}.joinToString(", ")}) OVERRIDING SYSTEM VALUE VALUES(${fieldsValues.map {if (it.second is Long) "${it.second}" else "'${it.second.toString().rightFileName()}'"}.joinToString(", ")})"
@@ -103,7 +103,7 @@ class MainController(private val webSocket: SimpMessagingTemplate, @Value("\${wo
                         fieldsValues.add(Pair("song_version", songVersion))
                         val connection = WORKING_DATABASE.getConnection()
                         if (connection == null) {
-                            println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                            println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${WORKING_DATABASE.name}")
                             return false
                         }
                         val sqlToInsert = "INSERT INTO tbl_events (${fieldsValues.map {it.first}.joinToString(", ")}) OVERRIDING SYSTEM VALUE VALUES(${fieldsValues.map {if (it.second is Long) "${it.second}" else "'${it.second.toString().rightFileName()}'"}.joinToString(", ")})"
@@ -129,7 +129,7 @@ class MainController(private val webSocket: SimpMessagingTemplate, @Value("\${wo
                 fieldsValues.add(Pair("song_version", songVersion))
                 val connection = WORKING_DATABASE.getConnection()
                 if (connection == null) {
-                    println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                    println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${WORKING_DATABASE.name}")
                     return false
                 }
                 val sqlToInsert = "INSERT INTO tbl_events (${fieldsValues.map {it.first}.joinToString(", ")}) OVERRIDING SYSTEM VALUE VALUES(${fieldsValues.map {if (it.second is Long) "${it.second}" else "'${it.second.toString().rightFileName()}'"}.joinToString(", ")})"
@@ -148,7 +148,7 @@ class MainController(private val webSocket: SimpMessagingTemplate, @Value("\${wo
                 fieldsValues.add(Pair("referer", data["referer"]?:""))
                 val connection = WORKING_DATABASE.getConnection()
                 if (connection == null) {
-                    println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                    println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${WORKING_DATABASE.name}")
                     return false
                 }
                 if (parameters.containsKey("id")) fieldsValues.add(Pair("song_id", parameters["id"]!!.toString().toLong()))
@@ -177,8 +177,8 @@ class MainController(private val webSocket: SimpMessagingTemplate, @Value("\${wo
 
             val connection = WORKING_DATABASE.getConnection()
             if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
-                return "ERROR: Невозможно установить соединение с базой данных"
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${WORKING_DATABASE.name}")
+                return "ERROR: Невозможно установить соединение с базой данных ${WORKING_DATABASE.name}"
             }
             dataCreate.forEach { action ->
                 val sqlToInsert = action["sqlToInsert"] as String

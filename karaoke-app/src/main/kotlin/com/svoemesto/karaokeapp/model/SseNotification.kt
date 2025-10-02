@@ -18,6 +18,9 @@ data class SseNotification(
         fun processWorkerState(processWorkerStateMessage: ProcessWorkerStateMessage): SseNotification {
             return SseNotification(SseNotificationType.PROCESS_WORKER_STATE, processWorkerStateMessage)
         }
+        fun processCountWaiting(processCountWaitingMessage: ProcessCountWaitingMessage): SseNotification {
+            return SseNotification(SseNotificationType.PROCESS_COUNT_WAITING, processCountWaitingMessage)
+        }
         fun message(message: Message): SseNotification {
             return SseNotification(SseNotificationType.MESSAGE, message)
         }

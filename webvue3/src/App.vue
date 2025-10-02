@@ -63,6 +63,7 @@ export default {
           break;
         }
         case 'PROCESS_WORKER_STATE': { this.updateProcessWorkerStateByUserEvent(userEvent.data); break; }
+        case 'PROCESS_COUNT_WAITING': { this.setCountWaiting(userEvent.data); break; }
         case 'MESSAGE': { this.showMessageByUserEvent(userEvent.data, create); break; }
         case 'DUMMY': { console.log("DUMMY MESSAGE"); break; }
         case 'LOG': { this.logMessageByUserEvent(userEvent.data); break; }
@@ -80,6 +81,10 @@ export default {
     },
     updateProcessWorkerStateByUserEvent(userEventData) {
       this.$store.dispatch('updateProcessWorkerStateByUserEvent', userEventData);
+    },
+    setCountWaiting(userEventData) {
+      console.log('setCountWaiting userEventData', userEventData);
+      this.$store.dispatch('setCountWaiting', userEventData);
     },
     deleteSongByUserEvent(userEventData) {
       this.$store.dispatch('deleteSongByUserEvent', userEventData);

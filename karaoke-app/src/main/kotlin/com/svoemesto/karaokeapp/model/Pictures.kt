@@ -78,7 +78,7 @@ class Pictures(val database: KaraokeConnection = WORKING_DATABASE) : Serializabl
 
         val connection = database.getConnection()
         if (connection == null) {
-            println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+            println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
             return
         }
         val sql = "UPDATE tbl_pictures SET " +
@@ -150,7 +150,7 @@ class Pictures(val database: KaraokeConnection = WORKING_DATABASE) : Serializabl
 
             val connection = database.getConnection()
             if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
                 return null
             }
             var statement: Statement? = null
@@ -185,7 +185,7 @@ class Pictures(val database: KaraokeConnection = WORKING_DATABASE) : Serializabl
         fun loadListIds(args: Map<String, String> = emptyMap(), database: KaraokeConnection): List<Long> {
             val connection = database.getConnection()
             if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
                 return emptyList()
             }
             var statement: Statement? = null
@@ -231,7 +231,7 @@ class Pictures(val database: KaraokeConnection = WORKING_DATABASE) : Serializabl
             var result = -1
             val connection = database.getConnection()
             if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
                 return -1
             }
             var statement: Statement? = null
@@ -271,7 +271,7 @@ class Pictures(val database: KaraokeConnection = WORKING_DATABASE) : Serializabl
 
             val connection = database.getConnection()
             if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
                 return null
             }
             val ps = connection.prepareStatement(sql)
@@ -311,7 +311,7 @@ class Pictures(val database: KaraokeConnection = WORKING_DATABASE) : Serializabl
 
             val connection = database.getConnection()
             if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
                 return emptyList()
             }
             var statement: Statement? = null
@@ -365,7 +365,7 @@ class Pictures(val database: KaraokeConnection = WORKING_DATABASE) : Serializabl
 
             val connection = database.getConnection()
             if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
                 return emptyList()
             }
             var statement: Statement? = null
@@ -415,7 +415,7 @@ class Pictures(val database: KaraokeConnection = WORKING_DATABASE) : Serializabl
 
             val connection = database.getConnection()
             if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
                 return
             }
             val sql = "DELETE FROM tbl_pictures WHERE id = ?"

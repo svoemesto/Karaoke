@@ -28,6 +28,12 @@ data class ProcessWorkerStateMessage(
 
 }
 
+data class ProcessCountWaitingMessage(
+        val countWaiting: Long
+) {
+
+}
+
 data class RecordDeleteMessage(
     val recordId: Long,
     val tableName: String,

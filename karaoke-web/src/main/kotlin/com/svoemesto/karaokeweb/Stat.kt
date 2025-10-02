@@ -38,7 +38,7 @@ class StatBySong(val database: KaraokeConnection = WORKING_DATABASE): Serializab
             """.trimIndent()
             val connection = database.getConnection()
             if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
                 return 0
             }
             var statement: Statement? = null
@@ -66,7 +66,7 @@ class StatBySong(val database: KaraokeConnection = WORKING_DATABASE): Serializab
             val sql = "select count(DISTINCT id) as cnt from tbl_settings where id_boosty != '' AND id_boosty IS NOT NULL"
             val connection = database.getConnection()
             if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
                 return 0
             }
             var statement: Statement? = null
@@ -99,7 +99,7 @@ class StatBySong(val database: KaraokeConnection = WORKING_DATABASE): Serializab
 
             val connection = database.getConnection()
             if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
                 return emptyList()
             }
             var statement: Statement? = null
@@ -309,7 +309,7 @@ class StatBySong(val database: KaraokeConnection = WORKING_DATABASE): Serializab
 
             val connection = database.getConnection()
             if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных")
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
                 return emptyList()
             }
             var statement: Statement? = null

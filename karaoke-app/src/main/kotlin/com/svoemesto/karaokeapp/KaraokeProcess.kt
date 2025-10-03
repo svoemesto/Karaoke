@@ -313,18 +313,19 @@ class KaraokeProcess(
         ps.close()
 
         if (!withoutControl) {
-            val messageRecordChange = SseNotification.recordChange(
-                RecordChangeMessage(
-                    tableName = "tbl_processes",
-                    recordId = id.toLong(),
-                    diffs = emptyList(),
-                    databaseName = database.name,
-                    record = this.toDTO()
-                )
-            )
-
             updateStatusProcessSettings(database)
-            SNS.send(messageRecordChange)
+            if (command != "tail" || args[0][0] !in KaraokeProcessWorker.argsIgnoredToLog) {
+                val messageRecordChange = SseNotification.recordChange(
+                        RecordChangeMessage(
+                                tableName = "tbl_processes",
+                                recordId = id.toLong(),
+                                diffs = emptyList(),
+                                databaseName = database.name,
+                                record = this.toDTO()
+                        )
+                )
+                SNS.send(messageRecordChange)
+            }
         }
 
 //        if (status == KaraokeProcessStatuses.DONE.name) {
@@ -1136,8 +1137,7 @@ class KaraokeProcess(
                         prioritet = 19
                         args = listOf(
                             listOf(
-                                "melt",
-                                "-progress",
+                                "docker", "compose", "-f", "/sm-karaoke/system/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
                                 "${settings.rootFolder}/done_projects/${settings.rightSettingFileName} [tabs].mlt".rightFileName()
                             ),
                             listOf("chmod", "666", settings.pathToFileMelody),

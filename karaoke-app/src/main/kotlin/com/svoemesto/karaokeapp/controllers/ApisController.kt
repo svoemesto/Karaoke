@@ -984,6 +984,13 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         )
     }
 
+        // Получение списка статусов процессов
+    @PostMapping("/processes/countwaiting")
+    @ResponseBody
+    fun getCountWaiting(): Long {
+        return KaraokeProcess.getCountWaiting(database = WORKING_DATABASE)
+    }
+
     // Получение списка статусов процессов
     @PostMapping("/processes/statuses")
     @ResponseBody

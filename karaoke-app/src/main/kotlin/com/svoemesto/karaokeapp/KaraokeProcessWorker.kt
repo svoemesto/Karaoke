@@ -11,6 +11,7 @@ import java.time.Instant
 
 
 class KaraokeProcessThread(val karaokeProcess: KaraokeProcess? = null, var percentage: String? = null): Thread() {
+
     override fun run() {
         super.run()
         if (karaokeProcess != null) {
@@ -29,13 +30,17 @@ class KaraokeProcessThread(val karaokeProcess: KaraokeProcess? = null, var perce
 
             val process = processBuilder.start()
             if (process.isAlive) {
-                println("[${Timestamp.from(Instant.now())}] KaraokeProcessThread: Установка приоритета задания: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}")
+                if (karaokeProcess.command != "tail" || karaokeProcess.args[0][0] !in KaraokeProcessWorker.argsIgnoredToLog) {
+                    println("[${Timestamp.from(Instant.now())}] KaraokeProcessThread: Установка приоритета задания: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}")
+                }
                 setProcessPriority(process.pid(), karaokeProcess.prioritet)
             }
 
             try {
-
-                println("[${Timestamp.from(Instant.now())}] KaraokeProcessThread: Начинаем работу с заданием: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}")
+                if (karaokeProcess.command != "tail" || karaokeProcess.args[0][0] !in KaraokeProcessWorker.argsIgnoredToLog) {
+                    println("[${Timestamp.from(Instant.now())}] KaraokeProcessThread: Начинаем работу с заданием: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}")
+                    KaraokeProcessWorker.sendCountWaitingMessage(KaraokeProcess.getCountWaiting(database = karaokeProcess.database))
+                }
                 val inputStream = process.inputStream
                 var duration: String? = null
                 val reader = BufferedReader(InputStreamReader(inputStream))
@@ -72,9 +77,13 @@ class KaraokeProcessThread(val karaokeProcess: KaraokeProcess? = null, var perce
                     }
                     line = reader.readLine()
                 }
-                println("[${Timestamp.from(Instant.now())}] KaraokeProcessThread: Завершаем работу с заданием: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}")
+                if (karaokeProcess.command != "tail" || karaokeProcess.args[0][0] !in KaraokeProcessWorker.argsIgnoredToLog) {
+                    println("[${Timestamp.from(Instant.now())}] KaraokeProcessThread: Завершаем работу с заданием: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}")
+                }
                 if (log != "") {
-                    println("[${Timestamp.from(Instant.now())}] KaraokeProcessThread: Выводим лог задания: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}")
+                    if (karaokeProcess.command != "tail" || karaokeProcess.args[0][0] !in KaraokeProcessWorker.argsIgnoredToLog) {
+                        println("[${Timestamp.from(Instant.now())}] KaraokeProcessThread: Выводим лог задания: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}")
+                    }
                     log = args.joinToString(" ") + "\n\n" + log
                     val logFileName = "$PATH_TO_LOGS/[${Timestamp.from(Instant.now())}] ${karaokeProcess.name} - ${karaokeProcess.description}.log".rightFileName()
                     try {
@@ -93,7 +102,9 @@ class KaraokeProcessThread(val karaokeProcess: KaraokeProcess? = null, var perce
                     }
                 }
 
-                println("[${Timestamp.from(Instant.now())}] KaraokeProcessThread: DONE успешно завершенное задание: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}")
+                if (karaokeProcess.command != "tail" || karaokeProcess.args[0][0] !in KaraokeProcessWorker.argsIgnoredToLog) {
+                    println("[${Timestamp.from(Instant.now())}] KaraokeProcessThread: DONE успешно завершенное задание: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}")
+                }
                 karaokeProcess.status = KaraokeProcessStatuses.DONE.name
                 karaokeProcess.end = Timestamp.from(Instant.now())
                 karaokeProcess.priority = 999
@@ -121,6 +132,7 @@ class KaraokeProcessWorker {
 
 
     companion object {
+        val argsIgnoredToLog = listOf("ln", "rm", "chmod", "mkdir", "cp", "mv")
         var isWork: Boolean = false
         var stopAfterThreadIsDone: Boolean = false
         var withoutControl = false
@@ -355,7 +367,9 @@ class KaraokeProcessWorker {
                             processType = karaokeProcess.type
                             percentage = 0.0
                             withoutControl = karaokeProcess.withoutControl
-                            println("[${Timestamp.from(Instant.now())}] ProcessWorker: Стартуем новое задание: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}")
+                            if (karaokeProcess.command != "tail" || karaokeProcess.args[0][0] !in argsIgnoredToLog) {
+                                println("[${Timestamp.from(Instant.now())}] ProcessWorker: Стартуем новое задание: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}")
+                            }
                             workThread!!.start()
                         }
                     } else {

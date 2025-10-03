@@ -139,6 +139,10 @@ export default {
             let request = { method: 'POST', url: "/apis/processes/workerstatus" };
             return promisedXMLHttpRequest(request);
         },
+        getProcessesCountWaitingPromise: () => {
+            let request = { method: 'POST', url: "/apis/processes/countwaiting" };
+            return promisedXMLHttpRequest(request);
+        },
         setProcessIsWorking(ctx, processIsWorking) {
             ctx.commit('setProcessIsWorking', processIsWorking);
         },

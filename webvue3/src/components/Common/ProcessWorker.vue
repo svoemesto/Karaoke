@@ -88,6 +88,11 @@ export default {
         this.$store.dispatch("setProcessWillStopAfterThreadIsDone", stopAfterThreadIsDone);
       })
     },
+    checkCountWaiting() {
+      this.$store.dispatch('getProcessesCountWaitingPromise').then(data => {
+        this.$store.dispatch("setCountWaiting", { countWaiting: data });
+      })
+    },
     truncateString(name, maxSymbols) {
       if (name.length <= maxSymbols) {
         return name;
@@ -109,6 +114,7 @@ export default {
   },
   mounted() {
     this.checkUpdateProcessesWorker();
+    this.checkCountWaiting();
   }
 }
 </script>

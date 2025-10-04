@@ -98,7 +98,7 @@ const val URL_PREFIX_SPONSR_EDIT = "https://sponsr.ru/smkaraoke/{REPLACE}/"
 //const val CONNECTION_USER = "postgres"
 //const val CONNECTION_PASSWORD = "postgres"
 
-const val PATH_TO_STORE_FOLDER = "/clouds/Yandex.Disk/Karaoke"
+const val PATH_TO_STORE_FOLDER = "/sm-karaoke/store"
 
 val PROJECT_ROOT_FOLDERS = listOf(
     "/sm-karaoke/work",

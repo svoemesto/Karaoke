@@ -291,7 +291,7 @@ class KaraokeProcessWorker {
                                             ps.setLong(index, settingsLocal.id)
                                             ps.executeUpdate()
                                             ps.close()
-                                            if (Karaoke.autoUpdateRemoteSettings) {
+                                            if (Karaoke.autoUpdateRemoteSettings && Karaoke.allowUpdateRemote) {
                                                 val (listCreate, listUpdate, listDelete) = updateRemoteSettingFromLocalDatabase(settingsLocal.id)
                                                 if (listCreate.size + listUpdate.size + listDelete.size != 0) {
                                                     SNS.send(SseNotification.crud(listOf(listCreate, listUpdate, listDelete)))

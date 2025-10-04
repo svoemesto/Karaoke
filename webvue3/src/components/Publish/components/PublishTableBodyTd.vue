@@ -82,6 +82,7 @@ export default {
     processColorMeltLyrics() { return { backgroundColor: this.publish.processColorMeltLyrics } },
     processColorMeltKaraoke() { return { backgroundColor: this.publish.processColorMeltKaraoke } },
     processColorMeltChords() { return { backgroundColor: this.publish.processColorMeltChords } },
+    processColorMeltMelody() { return { backgroundColor: this.publish.processColorMeltMelody } },
     processColorTelegramLyrics() { return { backgroundColor: this.publish.processColorTelegramLyrics } },
     processColorTelegramKaraoke() { return { backgroundColor: this.publish.processColorTelegramKaraoke } },
     processColorTelegramChords() { return { backgroundColor: this.publish.processColorTelegramChords } },

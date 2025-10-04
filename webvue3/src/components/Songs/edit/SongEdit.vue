@@ -427,8 +427,8 @@
           </div>
           <div class="create-picture-buttons-group">
             <button class="group-button" @click="openMainLink" title="Открыть на сайте">Открыть на сайте sm-karaoke.ru</button>
-            <button class="group-button" @click="updateRemote" title="Обновить на сервере">Обновить на сервере</button>
-            <button class="group-button" @click="toSyncRemote" title="Добавить в SYNC-таблицу на сервере">Добавить в SYNC-таблицу на сервере</button>
+            <button class="group-button" @click="updateRemote" title="Обновить на сервере" :disabled="!allowUpdateRemote" >Обновить на сервере</button>
+            <button class="group-button" @click="toSyncRemote" title="Добавить в SYNC-таблицу на сервере" :disabled="!allowAddSync">Добавить в SYNC-таблицу на сервере</button>
             <button class="group-button" @click="copyFieldsFromAnother" title="Скопировать поля из другой песни">Скопировать поля из другой песни</button>
             <button class="group-button" @click="createPictureBoostyTeaser" title="Создать картинку Boosty Teaser">Создать картинку Boosty Teaser</button>
             <button class="group-button" @click="createPictureBoostyFiles" title="Создать картинку Boosty Files">Создать картинку Boosty Files</button>
@@ -533,6 +533,9 @@ export default {
       autoSave: true,
       autoSaveDelayMs: 1000,
       saveTimer: undefined,
+      allowUpdateRemote: false,
+      allowUpdateLocal: false,
+      allowAddSync: false,
       createToast: () => {}
     };
   },
@@ -545,6 +548,9 @@ export default {
     this.$store.dispatch('getNotesFormattedPromise').then(notesFormatted => this.notesFormatted = notesFormatted);
     this.$store.dispatch('getChordsFormattedPromise').then(chordsFormatted => this.chordsFormatted = chordsFormatted);
     this.autoSave = await this.propAutoSave();
+    this.allowUpdateRemote = await this.propAllowUpdateRemote();
+    this.allowUpdateLocal = await this.propAllowUpdateLocal();
+    this.allowAddSync = await this.propAllowAddSync();
     this.autoSaveDelayMs = Number(await this.propAutoSaveDelayMs());
   },
   computed: {
@@ -995,6 +1001,18 @@ export default {
   methods: {
     async propAutoSave() {
       const propValue = await this.$store.getters.getPropValue('autoSave');
+      return propValue === 'true'
+    },
+    async propAllowUpdateRemote() {
+      const propValue = await this.$store.getters.getPropValue('allowUpdateRemote');
+      return propValue === 'true'
+    },
+    async propAllowUpdateLocal() {
+      const propValue = await this.$store.getters.getPropValue('allowUpdateLocal');
+      return propValue === 'true'
+    },
+    async propAllowAddSync() {
+      const propValue = await this.$store.getters.getPropValue('allowAddSync');
       return propValue === 'true'
     },
     async propAutoSaveDelayMs() { return await this.$store.getters.getPropValue('autoSaveDelayMs') },

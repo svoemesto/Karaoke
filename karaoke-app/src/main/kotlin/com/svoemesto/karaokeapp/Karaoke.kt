@@ -190,6 +190,21 @@ class Karaoke : Serializable {
             get() = KaraokeProperties.getBoolean("checkLastAlbum")
             set(value) { KaraokeProperties.set("checkLastAlbum", value) }
 
+        //Мониторинг sync-записей в удаленной БД
+        var allowUpdateRemote: Boolean
+            get() = KaraokeProperties.getBoolean("allowUpdateRemote")
+            set(value) { KaraokeProperties.set("allowUpdateRemote", value) }
+
+        //Мониторинг sync-записей в удаленной БД
+        var allowUpdateLocal: Boolean
+            get() = KaraokeProperties.getBoolean("allowUpdateLocal")
+            set(value) { KaraokeProperties.set("allowUpdateLocal", value) }
+
+        //Мониторинг sync-записей в удаленной БД
+        var allowAddSync: Boolean
+            get() = KaraokeProperties.getBoolean("allowAddSync")
+            set(value) { KaraokeProperties.set("allowAddSync", value) }
+
         // Время (в миллисекундах) задержки перед автосохранением
         var autoSaveDelayMs: Long
             get() = KaraokeProperties.getLong("autoSaveDelayMs")

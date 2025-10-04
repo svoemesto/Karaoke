@@ -3275,7 +3275,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
             if (savedSettings != null) renameFilesIfDiff(this, savedSettings)
 
-            if (Karaoke.autoUpdateRemoteSettings && diff.isNotEmpty() && !diff.all { !it.recordDiffRealField || it.recordDiffName.startsWith("status_process_")}) {
+            if (Karaoke.autoUpdateRemoteSettings && Karaoke.allowUpdateRemote && diff.isNotEmpty() && !diff.all { !it.recordDiffRealField || it.recordDiffName.startsWith("status_process_")}) {
                 val (listCreate, listUpdate, listDelete) = updateRemoteSettingFromLocalDatabase(id)
                 if (listCreate.size + listUpdate.size + listDelete.size != 0) {
                     SNS.send(SseNotification.crud(listOf(listCreate, listUpdate, listDelete)))

@@ -43,10 +43,10 @@
         </div>
       </div>
       <button class="button-action" @click="customFunction">Выполнить Custom Function</button>
-      <button class="button-action" @click="updateRemoteSettings">Обновить REMOTE Database SETTINGS</button>
-      <button class="button-action" @click="updateRemotePictures">Обновить REMOTE Database PICTURES</button>
-      <button class="button-action" @click="updateLocalSettings">Обновить LOCAL Database SETTINGS</button>
-      <button class="button-action" @click="updateLocalPictures">Обновить LOCAL Database PICTURES</button>
+      <button class="button-action" @click="updateRemoteSettings" :disabled="!allowUpdateRemote">Обновить REMOTE Database SETTINGS</button>
+      <button class="button-action" @click="updateRemotePictures" :disabled="!allowUpdateRemote">Обновить REMOTE Database PICTURES</button>
+      <button class="button-action" @click="updateLocalSettings" :disabled="!allowUpdateLocal">Обновить LOCAL Database SETTINGS</button>
+      <button class="button-action" @click="updateLocalPictures" :disabled="!allowUpdateLocal">Обновить LOCAL Database PICTURES</button>
     </div>
   </div>
 </template>
@@ -72,7 +72,9 @@ export default {
       dictType: '',
       dictValue: '',
       songAuthors: [],
-      dicts:[]
+      dicts:[],
+      allowUpdateRemote: false,
+      allowUpdateLocal: false
     }
   },
   async mounted() {
@@ -80,8 +82,18 @@ export default {
     let dicts = await this.$store.getters.dicst;
     this.songAuthors = songAuthors;
     this.dicts = dicts;
+    this.allowUpdateRemote = await this.propAllowUpdateRemote();
+    this.allowUpdateLocal = await this.propAllowUpdateLocal();
   },
   methods: {
+    async propAllowUpdateRemote() {
+      const propValue = await this.$store.getters.getPropValue('allowUpdateRemote');
+      return propValue === 'true'
+    },
+    async propAllowUpdateLocal() {
+      const propValue = await this.$store.getters.getPropValue('allowUpdateLocal');
+      return propValue === 'true'
+    },
     getPath(path) {
       this.pathToFolder = path;
     },

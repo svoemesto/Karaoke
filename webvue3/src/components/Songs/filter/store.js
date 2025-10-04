@@ -59,7 +59,8 @@ export default {
         setSongsHistoryIsLoading(state, isLoading) { state.songsHistoryIsLoading = isLoading },
 
         setSongsFilterId(state, value) {
-            if (state.songsFilterId !== undefined && state.songsFilterId !== null && value !== undefined && value !== null) {
+            if (value === undefined || value === null) value = '';
+            if (state.songsFilterId !== undefined && state.songsFilterId !== null) {
                 const key = 'songsFilterId';
                 promisedXMLHttpRequest({
                     method: 'POST',

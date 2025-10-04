@@ -15,10 +15,18 @@ services:
       - /sm-karaoke/done1:/sm-karaoke/done1
       - /sm-karaoke/done2:/sm-karaoke/done2
       - /sm-karaoke/system:/sm-karaoke/system
+      - /sm-karaoke/store:/sm-karaoke/store
       - /var/run/docker.sock:/var/run/docker.sock
       - /home/nsa/Karaoke/karaoke-web/src/main/resources/static/tmp:/home/nsa/Karaoke/karaoke-web/src/main/resources/static/tmp
     networks:
       - karaokenet
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: ["gpu", "utility", "compute", "video"]
     entrypoint:
       - java
       - -Xmx2g

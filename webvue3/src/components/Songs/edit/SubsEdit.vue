@@ -96,6 +96,26 @@
             <input class="se-item-slider-volume" id="slider-volume" data-action="volume" type="range" step="0.05" min="0" max="1" value="1">
           </div>
           <div class="se-grid-item-controls">
+            <div class="se-group-controls-region-buttons">
+              <button v-if="isRegionMode" class="se-group-button" type="button" @click="setRegionMode(!isRegionMode)">
+                <img alt="Выключить регион" class="se-icon-40" title="Выключить регион" src="../../../assets/svg/icon_region_mode_on.svg">
+              </button>
+              <button v-else class="se-group-button" type="button" @click="setRegionMode(!isRegionMode)">
+                <img alt="Включить регион" class="se-icon-40" title="Включить регион" src="../../../assets/svg/icon_region_mode_off.svg">
+              </button>
+              <button v-if="isMoveMode" class="se-group-button" type="button" @click="setMoveMode(!isMoveMode)" :disabled="!isRegionMode">
+                <img alt="Выключить режим сдвига маркеров" class="se-icon-40" title="Выключить режим сдвига маркеров" src="../../../assets/svg/icon_markers_in_region_move_on.svg">
+              </button>
+              <button v-else class="se-group-button" type="button" @click="setMoveMode(!isMoveMode)" :disabled="!isRegionMode">
+                <img alt="Включить режим сдвига маркеров" class="se-icon-40" title="Включить режим сдвига маркеров" src="../../../assets/svg/icon_markers_in_region_move_off.svg">
+              </button>
+              <button class="se-group-button" type="button" @click="" :disabled="!isRegionMode">
+                <img alt="Вставить маркеры из региона в новое место" class="se-icon-40" title="Вставить маркеры из региона в новое место" src="../../../assets/svg/icon_markers_in_region_paste.svg">
+              </button>
+              <button class="se-group-button" type="button" @click="" :disabled="!isRegionMode">
+                <img alt="далить маркеры из региона" class="se-icon-40" title="Удалить маркеры из региона" src="../../../assets/svg/icon_markers_in_region_delete.svg">
+              </button>
+            </div>
             <div class="se-group-edit-play-speed-buttons">
               <div class="se-group-edit-speed-buttons">
                 <label class="se-label-for-group-edit-speed-buttons">Edit:</label>
@@ -198,10 +218,10 @@
             </div>
             <div class="se-group-actions-buttons">
               <button class="se-group-button" type="button" @click="doMarkersDec">
-                <img alt="diffbeatsdec" class="se-icon-40" title="Сдвинуть маркеры влево" src="../../../assets/svg/icon_diffbeatsdec.svg">
+                <img alt="diffbeatsdec" class="se-icon-40" title="Сдвинуть маркеры влево" src="../../../assets/svg/icon_move_markers_left.svg">
               </button>
               <button class="se-group-button" type="button" @click="doMarkersInc">
-                <img alt="diffbeatsinc" class="se-icon-40" title="Сдвинуть маркеры вправо" src="../../../assets/svg/icon_diffbeatsinc.svg">
+                <img alt="diffbeatsinc" class="se-icon-40" title="Сдвинуть маркеры вправо" src="../../../assets/svg/icon_move_markers_right.svg">
               </button>
               <button class="se-group-button" type="button" @click="addAccent">
                 <img alt="erase markers" class="se-icon-40" title="Добавить ударение" src="../../../assets/svg/icon_accent.svg">
@@ -215,27 +235,27 @@
               <button class="se-group-button" type="button" @click="removeWordFromDict">
                 <img alt="remove from dict" class="se-icon-40" title="Удалить слово из словаря" src="../../../assets/svg/icon_dict_remove_e.svg">
               </button>
-              <button class="se-group-button" type="button" @click="doSearchText">
-                <img alt="search text" class="se-icon-40" title="Найти в Интернете текст песни" src="../../../assets/svg/icon_search_text.svg">
-              </button>
+<!--              <button class="se-group-button" type="button" @click="doSearchText">-->
+<!--                <img alt="search text" class="se-icon-40" title="Найти в Интернете текст песни" src="../../../assets/svg/icon_search_text.svg">-->
+<!--              </button>-->
               <button class="se-group-button" type="button" @click="doReplaceText">
                 <img alt="replace text" class="se-icon-40" title="Произвести замену текста согласно правилам" src="../../../assets/svg/icon_replace_text.svg">
               </button>
-              <button class="se-group-button" type="button" @click="doBpmAdd">
-                <img alt="add bpm" class="se-icon-40" title="Добавить BPM из файла sheetsage" src="../../../assets/svg/icon_bpm.svg">
-              </button>
-              <button class="se-group-button" type="button" @click="doChordsAdd">
-                <img alt="add chords" class="se-icon-40" title="Добавить аккорды из файла sheetsage" src="../../../assets/svg/icon_chords_add.svg">
-              </button>
-              <button class="se-group-button" type="button" @click="doChordsDel">
-                <img alt="clear chords" class="se-icon-40" title="Очистить аккорды" src="../../../assets/svg/icon_chords_del.svg">
-              </button>
-              <button class="se-group-button" type="button" @click="doDiffBeatsInc">
-                <img alt="diffbeatsinc" class="se-icon-40" title="Сдвинуть аккорды вправо" src="../../../assets/svg/icon_diffbeatsinc.svg">
-              </button>
-              <button class="se-group-button" type="button" @click="doDiffBeatsDec">
-                <img alt="diffbeatsdec" class="se-icon-40" title="Сдвинуть аккорды влево" src="../../../assets/svg/icon_diffbeatsdec.svg">
-              </button>
+<!--              <button class="se-group-button" type="button" @click="doBpmAdd">-->
+<!--                <img alt="add bpm" class="se-icon-40" title="Добавить BPM из файла sheetsage" src="../../../assets/svg/icon_bpm.svg">-->
+<!--              </button>-->
+<!--              <button class="se-group-button" type="button" @click="doChordsAdd">-->
+<!--                <img alt="add chords" class="se-icon-40" title="Добавить аккорды из файла sheetsage" src="../../../assets/svg/icon_chords_add.svg">-->
+<!--              </button>-->
+<!--              <button class="se-group-button" type="button" @click="doChordsDel">-->
+<!--                <img alt="clear chords" class="se-icon-40" title="Очистить аккорды" src="../../../assets/svg/icon_chords_del.svg">-->
+<!--              </button>-->
+<!--              <button class="se-group-button" type="button" @click="doDiffBeatsInc">-->
+<!--                <img alt="diffbeatsinc" class="se-icon-40" title="Сдвинуть аккорды вправо" src="../../../assets/svg/icon_diffbeatsinc.svg">-->
+<!--              </button>-->
+<!--              <button class="se-group-button" type="button" @click="doDiffBeatsDec">-->
+<!--                <img alt="diffbeatsdec" class="se-icon-40" title="Сдвинуть аккорды влево" src="../../../assets/svg/icon_diffbeatsdec.svg">-->
+<!--              </button>-->
               <button class="se-group-button" type="button" @click="save">
                 <img alt="saveSong" class="se-icon-40" title="Save" src="../../../assets/svg/icon_save.svg">
               </button>
@@ -321,10 +341,13 @@ export default {
       sourceSyllables: [],
       loadedMarkers: [],
       sourceMarkers: [],
+      regionMarker: undefined,
       editSpeed: 0.75,
       editModeType: 'syllables',
       playSpeed: 1.0,
       isEditMode: false,
+      isRegionMode: false,
+      isMoveMode: false,
       isPlaying: false,
       pressedMidiNotes: new Set(),
       pressedX: false, // play/pause, X
@@ -1438,14 +1461,22 @@ export default {
 
     // eslint-disable-next-line
     this.wsRegions.on('region-updated', (region) => {
-      let marker = this.sourceMarkers.filter(item => item.region === region)[0];
-      marker.time = region.start;
-      let label = marker.label;
-      let labels = label.split('|');
-      if (marker.markertype === 'setting' && labels[0] === 'BPM') {
-        this.createBeatMarkers();
+      // Изменения в маркере-регионе
+      if (this.isRegionMode && region === this.regionMarker.region) {
+
+      } else {
+        let marker = this.sourceMarkers.filter(item => item.region === region)[0];
+        if (marker) {
+          marker.time = region.start;
+          let label = marker.label;
+          let labels = label.split('|');
+          if (marker.markertype === 'setting' && labels[0] === 'BPM') {
+            this.createBeatMarkers();
+          }
+          this.updateMarkersBySyllables();
+        }
       }
-      this.updateMarkersBySyllables();
+
     })
 
     this.wsRegions.on('region-clicked', (region, e) => {
@@ -1584,6 +1615,35 @@ export default {
     },
     setEditMode(isEditMode) {
       this.isEditMode = isEditMode;
+    },
+    setRegionMode(isRegionMode) {
+      if (!isRegionMode) {
+        this.setMoveMode(isRegionMode)
+        this.regionMarker.region.remove();
+        this.regionMarker.region = null;
+        this.regionMarker = undefined;
+      } else {
+        let timeToAdd = this.currentTime;
+        let regionMarker = {
+          time: timeToAdd,
+          label: '',
+          color: '#00990033',
+          position: 'top',
+          markertype: 'region'
+        }
+        regionMarker.region = this.wsRegions.addRegion({
+          start: regionMarker.time,
+          end: regionMarker.time + 5,
+          content: regionMarker.label,
+          color: regionMarker.color,
+          id: this.generateUUID()
+        });
+        this.regionMarker = regionMarker;
+      }
+      this.isRegionMode = isRegionMode;
+    },
+    setMoveMode(isMoveMode) {
+      this.isMoveMode = isMoveMode;
     },
     sortSourceMarkers() {
       this.sourceMarkers.sort(function (a,b) {
@@ -2995,6 +3055,7 @@ export default {
 </script>
 
 <style scoped>
+
 .se-group-button {
   border: solid black thin;
   border-radius: 5px;
@@ -3003,6 +3064,13 @@ export default {
 .se-group-button:hover {
   background-color: lightpink;
 }
+.se-group-button:focus {
+  background-color: darksalmon;
+}
+.se-group-button[disabled] {
+  background-color: lightgray;
+}
+
 .se-group-button-active {
   background-color: dodgerblue;
 }
@@ -3064,6 +3132,12 @@ export default {
   align-items: center;
 }
 
+.se-group-controls-region-buttons {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
 .se-group-play-speed-buttons {
 
 }
@@ -3090,7 +3164,7 @@ export default {
   background-color: red;
   width: 20px;
   height: 20px;
-  margin-left: 5px;
+  margin: 0 5px;
 }
 
 .se-edit-mode-on {

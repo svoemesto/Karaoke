@@ -6,6 +6,7 @@
 /sm-karaoke/work
 /sm-karaoke/done1
 /sm-karaoke/done2
+/sm-karaoke/store
 
 Их можно создать коммандой:
 
@@ -13,6 +14,7 @@ sudo mkdir -p /sm-karaoke/system
 sudo mkdir -p /sm-karaoke/work
 sudo mkdir -p /sm-karaoke/done1
 sudo mkdir -p /sm-karaoke/done2
+sudo mkdir -p /sm-karaoke/store
 
 Допустим на компьютере есть папке /home/nsa/Documents/Karaoke
 в ней есть папке _system
@@ -23,6 +25,9 @@ sudo mkdir -p /sm-karaoke/done2
 /home/nsa/Documents/Karaoke /sm-karaoke/work none defaults,bind 0 0
 /home/nsa/Documents/Karaoke /sm-karaoke/done1 none defaults,bind 0 0
 /home/nsa/Documents/Karaoke /sm-karaoke/done2 none defaults,bind 0 0
+/disks/HDD_8Tb_Clouds/Yandex.Disk/Karaoke /sm-karaoke/store none defaults,bind 0 0
+
+Применить изменея в /etc/fstab можно командой: sudo mount -a
 
 Скопировать папку /sm-karaoke/system/SpaceBox4096
 

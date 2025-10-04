@@ -14,8 +14,16 @@ services:
       - ${APP_FOLDER_K2}:${APP_FOLDER_K2}
       - ${APP_FOLDER_K3}:${APP_FOLDER_K3}
       - ${APP_FOLDER_SYSTEM}:${APP_FOLDER_SYSTEM}
+      - ${APP_FOLDER_STORE}:${APP_FOLDER_STORE}
     networks:
       - karaokenet
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: ["gpu", "utility", "compute", "video"]
     entrypoint:
       - java
       - -Dfile.encoding=UTF-8

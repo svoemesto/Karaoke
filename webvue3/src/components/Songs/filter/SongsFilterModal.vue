@@ -297,11 +297,32 @@ export default {
       dictAuthors: []
     }
   },
-  mounted() {
+  async mounted() {
     this.$store.getters.songAuthorsPromise.then(data => {
       this.dictAuthors = JSON.parse(data).authors;
       this.$store.dispatch('loadSongsHistory' );
     });
+    this.$store.dispatch('setSongsFilterId', { value: await this.$store.getters.getWebvueProp('songsFilterId', '') });
+    this.$store.dispatch('setSongsFilterSongName', { value: await this.$store.getters.getWebvueProp('songsFilterSongName', '') });
+    this.$store.dispatch('setSongsFilterSongAuthor', { value: await this.$store.getters.getWebvueProp('songsFilterSongAuthor', '') });
+    this.$store.dispatch('setSongsFilterSongAlbum', { value: await this.$store.getters.getWebvueProp('songsFilterSongAlbum', '') });
+    this.$store.dispatch('setSongsFilterPublishDate', { value: await this.$store.getters.getWebvueProp('songsFilterPublishDate', '') });
+    this.$store.dispatch('setSongsFilterPublishTime', { value: await this.$store.getters.getWebvueProp('songsFilterPublishTime', '') });
+    this.$store.dispatch('setSongsFilterIdStatus', { value: await this.$store.getters.getWebvueProp('songsFilterIdStatus', '') });
+    this.$store.dispatch('setSongsFilterCountVoices', { value: await this.$store.getters.getWebvueProp('songsFilterCountVoices', '') });
+    this.$store.dispatch('setSongsetSongsFilterTagssFilterId', { value: await this.$store.getters.getWebvueProp('setSongsetSongsFilterTagssFilterId', '') });
+    this.$store.dispatch('setSongsFilterResultVersion', { value: await this.$store.getters.getWebvueProp('songsFilterResultVersion', '') });
+    this.$store.dispatch('setSongsFilterVersionBoosty', { value: await this.$store.getters.getWebvueProp('songsFilterVersionBoosty', '') });
+    this.$store.dispatch('setSongsFilterVersionBoostyFiles', { value: await this.$store.getters.getWebvueProp('songsFilterVersionBoostyFiles', '') });
+    this.$store.dispatch('setSongsFilterVersionSponsr', { value: await this.$store.getters.getWebvueProp('songsFilterVersionSponsr', '') });
+    this.$store.dispatch('setSongsFilterVersionDzenKaraoke', { value: await this.$store.getters.getWebvueProp('songsFilterVersionDzenKaraoke', '') });
+    this.$store.dispatch('setSongsFilterVersionVkKaraoke', { value: await this.$store.getters.getWebvueProp('songsFilterVersionVkKaraoke', '') });
+    this.$store.dispatch('setSongsFilterVersionTelegramKaraoke', { value: await this.$store.getters.getWebvueProp('songsFilterVersionTelegramKaraoke', '') });
+    this.$store.dispatch('setSongsFilterVersionPlKaraoke', { value: await this.$store.getters.getWebvueProp('songsFilterVersionPlKaraoke', '') });
+    this.$store.dispatch('setSongsFilterRate', { value: await this.$store.getters.getWebvueProp('songsFilterRate', '') });
+    this.$store.dispatch('setSongsFilterStatusProcessLyrics', { value: await this.$store.getters.getWebvueProp('songsFilterStatusProcessLyrics', '') });
+    this.$store.dispatch('setSongsFilterStatusProcessKaraoke', { value: await this.$store.getters.getWebvueProp('songsFilterStatusProcessKaraoke', '') });
+    
   },
   computed: {
     songsHistory() {
@@ -338,26 +359,26 @@ export default {
   },
   methods: {
     ok() {
-      this.$store.dispatch('setSongsFilterId', { songsFilterId: this.songsFilterId });
-      this.$store.dispatch('setSongsFilterSongName', { songsFilterSongName: this.songsFilterSongName });
-      this.$store.dispatch('setSongsFilterSongAuthor', { songsFilterSongAuthor: this.songsFilterSongAuthor });
-      this.$store.dispatch('setSongsFilterSongAlbum', { songsFilterSongAlbum: this.songsFilterSongAlbum });
-      this.$store.dispatch('setSongsFilterPublishDate', { songsFilterPublishDate: this.songsFilterPublishDate });
-      this.$store.dispatch('setSongsFilterPublishTime', { songsFilterPublishTime: this.songsFilterPublishTime });
-      this.$store.dispatch('setSongsFilterIdStatus', { songsFilterIdStatus: this.songsFilterIdStatus });
-      this.$store.dispatch('setSongsFilterCountVoices', { songsFilterCountVoices: this.songsFilterCountVoices });
-      this.$store.dispatch('setSongsFilterTags', { songsFilterTags: this.songsFilterTags });
-      this.$store.dispatch('setSongsFilterResultVersion', { songsFilterResultVersion: this.songsFilterResultVersion });
-      this.$store.dispatch('setSongsFilterVersionBoosty', { songsFilterVersionBoosty: this.songsFilterVersionBoosty });
-      this.$store.dispatch('setSongsFilterVersionBoostyFiles', { songsFilterVersionBoostyFiles: this.songsFilterVersionBoostyFiles });
-      this.$store.dispatch('setSongsFilterVersionSponsr', { songsFilterVersionSponsr: this.songsFilterVersionSponsr });
-      this.$store.dispatch('setSongsFilterVersionDzenKaraoke', { songsFilterVersionDzenKaraoke: this.songsFilterVersionDzenKaraoke });
-      this.$store.dispatch('setSongsFilterVersionVkKaraoke', { songsFilterVersionVkKaraoke: this.songsFilterVersionVkKaraoke });
-      this.$store.dispatch('setSongsFilterVersionTelegramKaraoke', { songsFilterVersionTelegramKaraoke: this.songsFilterVersionTelegramKaraoke });
-      this.$store.dispatch('setSongsFilterVersionPlKaraoke', { songsFilterVersionPlKaraoke: this.songsFilterVersionPlKaraoke });
-      this.$store.dispatch('setSongsFilterRate', { songsFilterRate: this.songsFilterRate });
-      this.$store.dispatch('setSongsFilterStatusProcessLyrics', { songsFilterStatusProcessLyrics: this.songsFilterStatusProcessLyrics });
-      this.$store.dispatch('setSongsFilterStatusProcessKaraoke', { songsFilterStatusProcessKaraoke: this.songsFilterStatusProcessKaraoke });
+      this.$store.dispatch('setSongsFilterId', { value: this.songsFilterId });
+      this.$store.dispatch('setSongsFilterSongName', { value: this.songsFilterSongName });
+      this.$store.dispatch('setSongsFilterSongAuthor', { value: this.songsFilterSongAuthor });
+      this.$store.dispatch('setSongsFilterSongAlbum', { value: this.songsFilterSongAlbum });
+      this.$store.dispatch('setSongsFilterPublishDate', { value: this.songsFilterPublishDate });
+      this.$store.dispatch('setSongsFilterPublishTime', { value: this.songsFilterPublishTime });
+      this.$store.dispatch('setSongsFilterIdStatus', { value: this.songsFilterIdStatus });
+      this.$store.dispatch('setSongsFilterCountVoices', { value: this.songsFilterCountVoices });
+      this.$store.dispatch('setSongsFilterTags', { value: this.songsFilterTags });
+      this.$store.dispatch('setSongsFilterResultVersion', { value: this.songsFilterResultVersion });
+      this.$store.dispatch('setSongsFilterVersionBoosty', { value: this.songsFilterVersionBoosty });
+      this.$store.dispatch('setSongsFilterVersionBoostyFiles', { value: this.songsFilterVersionBoostyFiles });
+      this.$store.dispatch('setSongsFilterVersionSponsr', { value: this.songsFilterVersionSponsr });
+      this.$store.dispatch('setSongsFilterVersionDzenKaraoke', { value: this.songsFilterVersionDzenKaraoke });
+      this.$store.dispatch('setSongsFilterVersionVkKaraoke', { value: this.songsFilterVersionVkKaraoke });
+      this.$store.dispatch('setSongsFilterVersionTelegramKaraoke', { value: this.songsFilterVersionTelegramKaraoke });
+      this.$store.dispatch('setSongsFilterVersionPlKaraoke', { value: this.songsFilterVersionPlKaraoke });
+      this.$store.dispatch('setSongsFilterRate', { value: this.songsFilterRate });
+      this.$store.dispatch('setSongsFilterStatusProcessLyrics', { value: this.songsFilterStatusProcessLyrics });
+      this.$store.dispatch('setSongsFilterStatusProcessKaraoke', { value: this.songsFilterStatusProcessKaraoke });
 
       let params = {};
       if (this.songsFilterId) params.filter_id = this.songsFilterId;

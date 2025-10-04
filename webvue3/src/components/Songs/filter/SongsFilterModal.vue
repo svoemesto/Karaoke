@@ -256,15 +256,8 @@
 
 <script>
 
-// import Vue from "vue";
-// import {TabsPlugin} from 'bootstrap-vue'
-// import { TablePlugin } from 'bootstrap-vue'
-// Vue.use(TabsPlugin)
-// Vue.use(TablePlugin)
 import {BTab, BTable, BTabs} from 'bootstrap-vue-next'
-import SongEditModal from "../edit/SongEditModal.vue";
-import SmartCopyModal from "../../Common/SmartCopy/SmartCopyModal.vue";
-import CustomConfirm from "../../Common/CustomConfirm.vue";
+
 export default {
   name: "SongsFilterModal",
   components: {
@@ -276,7 +269,7 @@ export default {
     return {
       songsFilterId: this.$store.getters.getSongsFilterId,
       songsFilterSongName: this.$store.getters.getSongsFilterSongName,
-      songsFilterSongAuthor: this.$store.getters.getSongsFilterSongAuthor,
+      // songsFilterSongAuthor: this.$store.getters.getSongsFilterSongAuthor,
       songsFilterSongAlbum: this.$store.getters.getSongsFilterSongAlbum,
       songsFilterPublishDate: this.$store.getters.getSongsFilterPublishDate,
       songsFilterPublishTime: this.$store.getters.getSongsFilterPublishTime,
@@ -297,11 +290,7 @@ export default {
       dictAuthors: []
     }
   },
-  async mounted() {
-    this.$store.getters.songAuthorsPromise.then(data => {
-      this.dictAuthors = JSON.parse(data).authors;
-      this.$store.dispatch('loadSongsHistory' );
-    });
+  async beforeMount() {
     this.$store.dispatch('setSongsFilterId', { value: await this.$store.getters.getWebvueProp('songsFilterId', '') });
     this.$store.dispatch('setSongsFilterSongName', { value: await this.$store.getters.getWebvueProp('songsFilterSongName', '') });
     this.$store.dispatch('setSongsFilterSongAuthor', { value: await this.$store.getters.getWebvueProp('songsFilterSongAuthor', '') });
@@ -310,7 +299,7 @@ export default {
     this.$store.dispatch('setSongsFilterPublishTime', { value: await this.$store.getters.getWebvueProp('songsFilterPublishTime', '') });
     this.$store.dispatch('setSongsFilterIdStatus', { value: await this.$store.getters.getWebvueProp('songsFilterIdStatus', '') });
     this.$store.dispatch('setSongsFilterCountVoices', { value: await this.$store.getters.getWebvueProp('songsFilterCountVoices', '') });
-    this.$store.dispatch('setSongsetSongsFilterTagssFilterId', { value: await this.$store.getters.getWebvueProp('setSongsetSongsFilterTagssFilterId', '') });
+    this.$store.dispatch('setSongsFilterTags', { value: await this.$store.getters.getWebvueProp('songsFilterTags', '') });
     this.$store.dispatch('setSongsFilterResultVersion', { value: await this.$store.getters.getWebvueProp('songsFilterResultVersion', '') });
     this.$store.dispatch('setSongsFilterVersionBoosty', { value: await this.$store.getters.getWebvueProp('songsFilterVersionBoosty', '') });
     this.$store.dispatch('setSongsFilterVersionBoostyFiles', { value: await this.$store.getters.getWebvueProp('songsFilterVersionBoostyFiles', '') });
@@ -322,9 +311,94 @@ export default {
     this.$store.dispatch('setSongsFilterRate', { value: await this.$store.getters.getWebvueProp('songsFilterRate', '') });
     this.$store.dispatch('setSongsFilterStatusProcessLyrics', { value: await this.$store.getters.getWebvueProp('songsFilterStatusProcessLyrics', '') });
     this.$store.dispatch('setSongsFilterStatusProcessKaraoke', { value: await this.$store.getters.getWebvueProp('songsFilterStatusProcessKaraoke', '') });
-    
+  },
+  async mounted() {
+    this.$store.getters.songAuthorsPromise.then(data => {
+      this.dictAuthors = JSON.parse(data).authors;
+      this.$store.dispatch('loadSongsHistory' );
+    });
   },
   computed: {
+    songsFilterId: {
+      get() { return this.$store.getters.getSongsFilterId; },
+      set(value) { this.$store.dispatch('setSongsFilterId', { value: value }); }
+    },
+    songsFilterSongName: {
+      get() { return this.$store.getters.getSongsFilterSongName; },
+      set(value) { this.$store.dispatch('setSongsFilterSongName', { value: value }); }
+    },
+    songsFilterSongAuthor: {
+      get() { return this.$store.getters.getSongsFilterSongAuthor; },
+      set(value) { this.$store.dispatch('setSongsFilterSongAuthor', { value: value }); }
+    },
+    songsFilterSongAlbum: {
+      get() { return this.$store.getters.getSongsFilterSongAlbum; },
+      set(value) { this.$store.dispatch('setSongsFilterSongAlbum', { value: value }); }
+    },
+    songsFilterPublishDate: {
+      get() { return this.$store.getters.getSongsFilterPublishDate; },
+      set(value) { this.$store.dispatch('setSongsFilterPublishDate', { value: value }); }
+    },
+    songsFilterPublishTime: {
+      get() { return this.$store.getters.getSongsFilterPublishTime; },
+      set(value) { this.$store.dispatch('setSongsFilterPublishTime', { value: value }); }
+    },
+    songsFilterIdStatus: {
+      get() { return this.$store.getters.getSongsFilterIdStatus; },
+      set(value) { this.$store.dispatch('setSongsFilterIdStatus', { value: value }); }
+    },
+    songsFilterCountVoices: {
+      get() { return this.$store.getters.getSongsFilterCountVoices; },
+      set(value) { this.$store.dispatch('setSongsFilterCountVoices', { value: value }); }
+    },
+    songsFilterTags: {
+      get() { return this.$store.getters.getSongsFilterTags; },
+      set(value) { this.$store.dispatch('setSongsFilterTags', { value: value }); }
+    },
+    songsFilterResultVersion: {
+      get() { return this.$store.getters.getSongsFilterResultVersion; },
+      set(value) { this.$store.dispatch('setSongsFilterResultVersion', { value: value }); }
+    },
+    songsFilterVersionBoosty: {
+      get() { return this.$store.getters.getSongsFilterVersionBoosty; },
+      set(value) { this.$store.dispatch('setSongsFilterVersionBoosty', { value: value }); }
+    },
+    songsFilterVersionBoostyFiles: {
+      get() { return this.$store.getters.getSongsFilterVersionBoostyFiles; },
+      set(value) { this.$store.dispatch('setSongsFilterVersionBoostyFiles', { value: value }); }
+    },
+    songsFilterVersionSponsr: {
+      get() { return this.$store.getters.getSongsFilterVersionSponsr; },
+      set(value) { this.$store.dispatch('setSongsFilterVersionSponsr', { value: value }); }
+    },
+    songsFilterVersionDzenKaraoke: {
+      get() { return this.$store.getters.getSongsFilterVersionDzenKaraoke; },
+      set(value) { this.$store.dispatch('setSongsFilterVersionDzenKaraoke', { value: value }); }
+    },
+    songsFilterVersionVkKaraoke: {
+      get() { return this.$store.getters.getSongsFilterVersionVkKaraoke; },
+      set(value) { this.$store.dispatch('setSongsFilterVersionVkKaraoke', { value: value }); }
+    },
+    songsFilterVersionTelegramKaraoke: {
+      get() { return this.$store.getters.getSongsFilterVersionTelegramKaraoke; },
+      set(value) { this.$store.dispatch('setSongsFilterVersionTelegramKaraoke', { value: value }); }
+    },
+    songsFilterVersionPlKaraoke: {
+      get() { return this.$store.getters.getSongsFilterVersionPlKaraoke; },
+      set(value) { this.$store.dispatch('setSongsFilterVersionPlKaraoke', { value: value }); }
+    },
+    songsFilterRate: {
+      get() { return this.$store.getters.getSongsFilterRate; },
+      set(value) { this.$store.dispatch('setSongsFilterRate', { value: value }); }
+    },
+    songsFilterStatusProcessLyrics: {
+      get() { return this.$store.getters.getSongsFilterStatusProcessLyrics; },
+      set(value) { this.$store.dispatch('setSongsFilterStatusProcessLyrics', { value: value }); }
+    },
+    songsFilterStatusProcessKaraoke: {
+      get() { return this.$store.getters.getSongsFilterStatusProcessKaraoke; },
+      set(value) { this.$store.dispatch('setSongsFilterStatusProcessKaraoke', { value: value }); }
+    },
     songsHistory() {
       return this.$store.getters.getSongsHistory;
     },

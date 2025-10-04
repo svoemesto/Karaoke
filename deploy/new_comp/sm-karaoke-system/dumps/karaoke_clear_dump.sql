@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict O3attV6XQfxh8bXtwVffHAdzzmG6AXDDZWS2Xx9BqEofKnIV1ic9hhLKXMsXoep
+\restrict wbEFCRzTze873p33nyLrfKX0KGKceU6WEPjM4ij4UdDdjsszWs2mqYGlMerjts4
 
 -- Dumped from database version 16.10 (Debian 16.10-1.pgdg13+1)
 -- Dumped by pg_dump version 16.10 (Debian 16.10-1.pgdg13+1)
@@ -25,9 +25,9 @@ SET row_security = off;
 CREATE DATABASE karaoke WITH TEMPLATE = template0 ENCODING = 'UTF8' LOCALE_PROVIDER = libc LOCALE = 'en_US.utf8';
 
 
-\unrestrict O3attV6XQfxh8bXtwVffHAdzzmG6AXDDZWS2Xx9BqEofKnIV1ic9hhLKXMsXoep
+\unrestrict wbEFCRzTze873p33nyLrfKX0KGKceU6WEPjM4ij4UdDdjsszWs2mqYGlMerjts4
 \connect karaoke
-\restrict O3attV6XQfxh8bXtwVffHAdzzmG6AXDDZWS2Xx9BqEofKnIV1ic9hhLKXMsXoep
+\restrict wbEFCRzTze873p33nyLrfKX0KGKceU6WEPjM4ij4UdDdjsszWs2mqYGlMerjts4
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -55,6 +55,52 @@ $$;
 
 
 --
+-- Name: update_tbl_authors_recordhash(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.update_tbl_authors_recordhash() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    NEW.recordhash = md5(
+        COALESCE(NEW.id::TEXT, '') ||
+        COALESCE(NEW.author, '') ||
+        COALESCE(NEW.ym_id, '') ||
+        COALESCE(NEW.last_album_ym, '') ||
+        COALESCE(NEW.last_album_processed, '') ||
+        COALESCE(NEW.watched::TEXT, '') ||
+        COALESCE(NEW.skip::TEXT, '')
+    );
+    RETURN NEW;
+END;
+$$;
+
+
+--
+-- Name: update_tbl_events_recordhash(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.update_tbl_events_recordhash() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    NEW.recordhash = md5(
+        COALESCE(NEW.id::TEXT, '') ||
+        COALESCE(NEW.event_type, '') ||
+        COALESCE(NEW.rest_name, '') ||
+        COALESCE(NEW.rest_parameters, '') ||
+        COALESCE(NEW.link_type, '') ||
+        COALESCE(NEW.link_name, '') ||
+        COALESCE(NEW.song_id::TEXT, '') ||
+        COALESCE(NEW.song_version, '') ||
+        COALESCE(NEW.referer, '')
+    );
+    RETURN NEW;
+END;
+$$;
+
+
+--
 -- Name: update_tbl_pictures_recordhash(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -68,6 +114,25 @@ BEGIN
                         COALESCE(NEW.picture_full, '') ||
                         COALESCE(NEW.picture_preview, '')
         );
+    RETURN NEW;
+END;
+$$;
+
+
+--
+-- Name: update_tbl_pictures_sync_recordhash(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.update_tbl_pictures_sync_recordhash() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    NEW.recordhash = md5(
+        COALESCE(NEW.id::TEXT, '') ||
+        COALESCE(NEW.picture_name, '') ||
+        COALESCE(NEW.picture_full, '') ||
+        COALESCE(NEW.picture_preview, '')
+    );
     RETURN NEW;
 END;
 $$;
@@ -153,6 +218,86 @@ END;
 $$;
 
 
+--
+-- Name: update_tbl_settings_sync_recordhash(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.update_tbl_settings_sync_recordhash() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    NEW.recordhash = md5(
+        COALESCE(NEW.id::TEXT, '') ||
+        COALESCE(NEW.song_name, '') ||
+        COALESCE(NEW.song_author, '') ||
+        COALESCE(NEW.song_album, '') ||
+        COALESCE(NEW.publish_date, '') ||
+        COALESCE(NEW.publish_time, '') ||
+        COALESCE(NEW.song_year::TEXT, '') ||
+        COALESCE(NEW.song_track::TEXT, '') ||
+        COALESCE(NEW.song_tone, '') ||
+        COALESCE(NEW.song_bpm::TEXT, '') ||
+        COALESCE(NEW.song_ms::TEXT, '') ||
+        COALESCE(NEW.file_name, '') ||
+        COALESCE(NEW.root_folder, '') ||
+        COALESCE(NEW.id_boosty, '') ||
+        COALESCE(NEW.id_dzen_lyrics, '') ||
+        COALESCE(NEW.id_dzen_karaoke, '') ||
+        COALESCE(NEW.id_dzen_chords, '') ||
+        COALESCE(NEW.id_status::TEXT, '') ||
+        COALESCE(NEW.source_text, '') ||
+        COALESCE(NEW.source_markers, '') ||
+        COALESCE(NEW.id_vk_lyrics, '') ||
+        COALESCE(NEW.id_vk_karaoke, '') ||
+        COALESCE(NEW.id_vk_chords, '') ||
+        COALESCE(NEW.status_process_lyrics, '') ||
+        COALESCE(NEW.status_process_karaoke, '') ||
+        COALESCE(NEW.status_process_chords, '') ||
+        COALESCE(NEW.id_vk, '') ||
+        COALESCE(NEW.id_telegram_lyrics, '') ||
+        COALESCE(NEW.id_telegram_karaoke, '') ||
+        COALESCE(NEW.id_telegram_chords, '') ||
+        COALESCE(NEW.tags, '') ||
+        COALESCE(NEW.result_text, '') ||
+        COALESCE(NEW.id_boosty_files, '') ||
+        COALESCE(NEW.result_version::TEXT, '') ||
+        COALESCE(NEW.id_pl_lyrics, '') ||
+        COALESCE(NEW.id_pl_karaoke, '') ||
+        COALESCE(NEW.id_pl_chords, '') ||
+        COALESCE(NEW.diff_beats::TEXT, '') ||
+        COALESCE(NEW.id_sponsr, '') ||
+        COALESCE(NEW.id_dzen_melody, '') ||
+        COALESCE(NEW.id_vk_melody, '') ||
+        COALESCE(NEW.status_process_melody, '') ||
+        COALESCE(NEW.id_telegram_melody, '') ||
+        COALESCE(NEW.id_pl_melody, '') ||
+        COALESCE(NEW.index_tabs_variant::TEXT, '') ||
+        COALESCE(NEW.version_dzen_lyrics::TEXT, '') ||
+        COALESCE(NEW.version_dzen_karaoke::TEXT, '') ||
+        COALESCE(NEW.version_dzen_chords::TEXT, '') ||
+        COALESCE(NEW.version_dzen_melody::TEXT, '') ||
+        COALESCE(NEW.version_vk_lyrics::TEXT, '') ||
+        COALESCE(NEW.version_vk_karaoke::TEXT, '') ||
+        COALESCE(NEW.version_vk_chords::TEXT, '') ||
+        COALESCE(NEW.version_vk_melody::TEXT, '') ||
+        COALESCE(NEW.version_telegram_lyrics::TEXT, '') ||
+        COALESCE(NEW.version_telegram_karaoke::TEXT, '') ||
+        COALESCE(NEW.version_telegram_chords::TEXT, '') ||
+        COALESCE(NEW.version_telegram_melody::TEXT, '') ||
+        COALESCE(NEW.version_pl_lyrics::TEXT, '') ||
+        COALESCE(NEW.version_pl_karaoke::TEXT, '') ||
+        COALESCE(NEW.version_pl_chords::TEXT, '') ||
+        COALESCE(NEW.version_pl_melody::TEXT, '') ||
+        COALESCE(NEW.version_boosty::TEXT, '') ||
+        COALESCE(NEW.version_sponsr::TEXT, '') ||
+        COALESCE(NEW.version_boosty_files::TEXT, '') ||
+        COALESCE(NEW.rate::TEXT, '')
+    );
+    RETURN NEW;
+END;
+$$;
+
+
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
@@ -167,7 +312,9 @@ CREATE TABLE public.tbl_authors (
     ym_id character varying(255),
     last_album_ym character varying(255),
     last_album_processed character varying(255),
-    watched boolean DEFAULT true
+    watched boolean DEFAULT true,
+    skip boolean DEFAULT false,
+    recordhash character varying(32)
 );
 
 
@@ -199,7 +346,8 @@ CREATE TABLE public.tbl_events (
     song_id integer,
     song_version character varying(255),
     last_update timestamp without time zone DEFAULT now(),
-    referer text
+    referer text,
+    recordhash character varying(32)
 );
 
 
@@ -252,7 +400,8 @@ CREATE TABLE public.tbl_pictures_sync (
     id integer NOT NULL,
     picture_name character varying(255),
     picture_full text,
-    picture_preview text
+    picture_preview text,
+    recordhash character varying(32)
 );
 
 
@@ -486,7 +635,8 @@ CREATE TABLE public.tbl_settings_sync (
     version_boosty integer DEFAULT 0,
     version_sponsr integer DEFAULT 0,
     version_boosty_files integer DEFAULT 0,
-    rate integer DEFAULT 0
+    rate integer DEFAULT 0,
+    recordhash character varying(32)
 );
 
 
@@ -508,19 +658,6 @@ CREATE SEQUENCE public.tbl_settings_sync_id_seq
 --
 
 ALTER SEQUENCE public.tbl_settings_sync_id_seq OWNED BY public.tbl_settings_sync.id;
-
-
---
--- Name: tbl_status; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.tbl_status (
-    id integer NOT NULL,
-    status character varying(255),
-    color1 character varying(255),
-    color2 character varying(255),
-    color3 character varying(255)
-);
 
 
 --
@@ -619,14 +756,6 @@ ALTER TABLE ONLY public.tbl_settings_sync
 
 
 --
--- Name: tbl_status tbl_status_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.tbl_status
-    ADD CONSTRAINT tbl_status_pkey PRIMARY KEY (id);
-
-
---
 -- Name: tbl_uuids tbl_uuids_pk; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -642,6 +771,20 @@ CREATE INDEX idx_gin_result_text ON public.tbl_settings USING gin (to_tsvector('
 
 
 --
+-- Name: idx_tbl_authors_recordhash; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_tbl_authors_recordhash ON public.tbl_authors USING btree (recordhash);
+
+
+--
+-- Name: idx_tbl_events_recordhash; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_tbl_events_recordhash ON public.tbl_events USING btree (recordhash);
+
+
+--
 -- Name: idx_tbl_pictures_recordhash; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -649,10 +792,24 @@ CREATE INDEX idx_tbl_pictures_recordhash ON public.tbl_pictures USING btree (rec
 
 
 --
+-- Name: idx_tbl_pictures_sync_recordhash; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_tbl_pictures_sync_recordhash ON public.tbl_pictures_sync USING btree (recordhash);
+
+
+--
 -- Name: idx_tbl_settings_recordhash; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_tbl_settings_recordhash ON public.tbl_settings USING btree (recordhash);
+
+
+--
+-- Name: idx_tbl_settings_sync_recordhash; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_tbl_settings_sync_recordhash ON public.tbl_settings_sync USING btree (recordhash);
 
 
 --
@@ -915,10 +1072,38 @@ CREATE TRIGGER update_last_updated_trigger BEFORE UPDATE ON public.tbl_settings 
 
 
 --
+-- Name: tbl_authors update_recordhash_authors_trigger; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_recordhash_authors_trigger BEFORE INSERT OR UPDATE ON public.tbl_authors FOR EACH ROW EXECUTE FUNCTION public.update_tbl_authors_recordhash();
+
+
+--
+-- Name: tbl_events update_recordhash_events_trigger; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_recordhash_events_trigger BEFORE INSERT OR UPDATE ON public.tbl_events FOR EACH ROW EXECUTE FUNCTION public.update_tbl_events_recordhash();
+
+
+--
+-- Name: tbl_pictures_sync update_recordhash_pictures_sync_trigger; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_recordhash_pictures_sync_trigger BEFORE INSERT OR UPDATE ON public.tbl_pictures_sync FOR EACH ROW EXECUTE FUNCTION public.update_tbl_pictures_sync_recordhash();
+
+
+--
 -- Name: tbl_pictures update_recordhash_pictures_trigger; Type: TRIGGER; Schema: public; Owner: -
 --
 
 CREATE TRIGGER update_recordhash_pictures_trigger BEFORE INSERT OR UPDATE ON public.tbl_pictures FOR EACH ROW EXECUTE FUNCTION public.update_tbl_pictures_recordhash();
+
+
+--
+-- Name: tbl_settings_sync update_recordhash_settings_synctrigger; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_recordhash_settings_synctrigger BEFORE INSERT OR UPDATE ON public.tbl_settings_sync FOR EACH ROW EXECUTE FUNCTION public.update_tbl_settings_sync_recordhash();
 
 
 --
@@ -939,5 +1124,5 @@ CREATE TRIGGER update_sync_last_updated_trigger BEFORE UPDATE ON public.tbl_sett
 -- PostgreSQL database dump complete
 --
 
-\unrestrict O3attV6XQfxh8bXtwVffHAdzzmG6AXDDZWS2Xx9BqEofKnIV1ic9hhLKXMsXoep
+\unrestrict wbEFCRzTze873p33nyLrfKX0KGKceU6WEPjM4ij4UdDdjsszWs2mqYGlMerjts4
 

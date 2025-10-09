@@ -2592,7 +2592,7 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         @RequestParam(required = true) id: Long
     ) {
         setSettingsToSyncRemoteTable(id)
-        val body = "Запись добавлена в SYNC-таблицу"
+        val body = "Запись ${Settings.loadFromDbById(id = id, database = WORKING_DATABASE)?.rightSettingFileName} добавлена в SYNC-таблицу"
         SNS.send(SseNotification.message(
             Message(
                 type = "info",
@@ -2600,7 +2600,7 @@ class ApisController(private val sseNotificationService: SseNotificationService)
                 body = body
             )
         ))
-        println("Запись добавлена в SYNC-таблицу")
+        println(body)
     }
 
     // Обновляем RemoteDatabase

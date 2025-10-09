@@ -12,6 +12,7 @@ DOCKER=$(which docker)
 COMPOSE=$(which docker-compose)
 DOCKER_REGISTRY=svoemestodev
 DOCKER_PASSWORD=dckr_pat_SxLnc4cA4EChRdvQcnQjZCPOgw0
+#DOCKER_PASSWORD=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
 
 
 function do_start_db() {

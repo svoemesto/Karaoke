@@ -2,6 +2,7 @@ import { promisedXMLHttpRequest } from '../../lib/utils'
 // import {useIntervalFn} from "@vueuse/core";
 export default {
     state: {
+        toSync: false,
         lastSettingType: '',
         lastSettingValue: '',
         lastPriorLyrics: '',
@@ -306,6 +307,9 @@ export default {
         }
     },
     getters: {
+        getToSync(state) {
+            return state.toSync;
+        },
         getLastSettingType(state) {
             return state.lastSettingType;
         },
@@ -979,7 +983,7 @@ export default {
         saveSong(state) {
             state.snapshotSong = !state.currentSong ? undefined : Object.assign({}, state.currentSong)
         },
-        updateSongsAndDictionaries(state, result) {
+        async updateSongsAndDictionaries(state, result) {
             state.currentSongPageIndex = 0;
             state.songPages = result.pages;
             state.songAuthors = result.authors;
@@ -988,8 +992,9 @@ export default {
             state.currentSongIndex = state.songPages && state.songPages.length && state.songPages[0].length ? 0 : undefined;
             state.currentSongId = !state.currentSong ? 0 : state.currentSong.id;
             state.snapshotSong = !state.currentSong ? undefined : Object.assign({}, state.currentSong)
+            state.toSync = await this.dispatch('getToSyncFromRest');
         },
-        updateSong(state, songFromRest) {
+        async updateSong(state, songFromRest) {
             if (songFromRest) {
                 const id = songFromRest.id;
 
@@ -1010,6 +1015,7 @@ export default {
                     state.currentSong = Object.assign({}, songFromRest);
                     state.currentSongId = songFromRest.id;
                     state.snapshotSong = Object.assign({}, state.currentSong)
+                    state.toSync = await this.dispatch('getToSyncFromRest');
                 }
             }
         },
@@ -1182,7 +1188,7 @@ export default {
         setLastUpdateSong(state, lastUpdateSong) {
           state.lastUpdateSong = lastUpdateSong;
         },
-        setCurrentSongId(state, currId) {
+        async setCurrentSongId(state, currId) {
             // console.log('state.songsDigest', state.songsDigest);
             let songWithIndexesFiltered = state.songPages.map(function (page, pageIndex) {
                 return page.map(function (song, songIndex) {
@@ -1202,38 +1208,40 @@ export default {
                 state.rightSongId = songWithIndexes.song.idRight;
                 state.leftSongId = songWithIndexes.song.idLeft;
                 state.snapshotSong = Object.assign({}, state.currentSong)
+                state.toSync = await this.dispatch('getToSyncFromRest');
             } else {
                 let request = { method: 'POST', url: "/apis/song", params: {id: currId} };
-                promisedXMLHttpRequest(request).then(data => {
-                    let songFromRest = JSON.parse(data);
-                    // console.log('Song: ', songFromRest);
-                    if (songFromRest) {
-                        const id = songFromRest.id;
+                 promisedXMLHttpRequest(request).then(async data => {
+                     let songFromRest = JSON.parse(data);
+                     // console.log('Song: ', songFromRest);
+                     if (songFromRest) {
+                         const id = songFromRest.id;
 
-                        let songWithIndexesFiltered = state.songPages.map(function (page, pageIndex) {
-                            return page.map(function (song, songIndex) {
-                                return { song: song, songIndex: songIndex, songId: song.id, pageIndex: pageIndex }
-                            });
-                        }).flatMap(item => item).filter(item => item.songId === id);
-                        let songWithIndexes = songWithIndexesFiltered.length ? songWithIndexesFiltered[0] : undefined;
-                        if (songWithIndexes) {
-                            // console.log('Обновляем песню ID =', id);
-                            if (id === state.currentSongId) {
-                                state.snapshotSong = Object.assign({}, songFromRest)
-                            } else {
-                                state.songPages[songWithIndexes.pageIndex].splice(songWithIndexes.songIndex, 1, songFromRest);
-                            }
-                        } else {
-                            state.currentSong = Object.assign({}, songFromRest);
-                            state.currentSongId = songFromRest.id;
-                            state.previousSongId = songFromRest.idPrevious;
-                            state.nextSongId = songFromRest.idNext;
-                            state.rightSongId = songFromRest.idRight;
-                            state.leftSongId = songFromRest.idLeft;
-                            state.snapshotSong = Object.assign({}, state.currentSong)
-                        }
-                    }
-                });
+                         let songWithIndexesFiltered = state.songPages.map(function (page, pageIndex) {
+                             return page.map(function (song, songIndex) {
+                                 return {song: song, songIndex: songIndex, songId: song.id, pageIndex: pageIndex}
+                             });
+                         }).flatMap(item => item).filter(item => item.songId === id);
+                         let songWithIndexes = songWithIndexesFiltered.length ? songWithIndexesFiltered[0] : undefined;
+                         if (songWithIndexes) {
+                             // console.log('Обновляем песню ID =', id);
+                             if (id === state.currentSongId) {
+                                 state.snapshotSong = Object.assign({}, songFromRest)
+                             } else {
+                                 state.songPages[songWithIndexes.pageIndex].splice(songWithIndexes.songIndex, 1, songFromRest);
+                             }
+                         } else {
+                             state.currentSong = Object.assign({}, songFromRest);
+                             state.currentSongId = songFromRest.id;
+                             state.previousSongId = songFromRest.idPrevious;
+                             state.nextSongId = songFromRest.idNext;
+                             state.rightSongId = songFromRest.idRight;
+                             state.leftSongId = songFromRest.idLeft;
+                             state.snapshotSong = Object.assign({}, state.currentSong)
+                             state.toSync = await this.dispatch('getToSyncFromRest');
+                         }
+                     }
+                 });
             }
         },
         async deleteCurrentSong(state) {
@@ -1262,9 +1270,9 @@ export default {
         setNextSongId(state, nextSongId) {
             state.nextSongId = nextSongId
         },
-        setCurrentSongPageIndex(state, pageNum) {
+        async setCurrentSongPageIndex(state, pageNum) {
             if (state.songPages.length > pageNum) {
-                let currentPage =  state.songPages[pageNum]
+                let currentPage = state.songPages[pageNum]
                 if (currentPage.length > 0) {
                     let currentSong = currentPage[0];
                     state.currentSong = currentSong;
@@ -1272,6 +1280,7 @@ export default {
                     state.currentSongIndex = 0;
                     state.currentSongPageIndex = pageNum;
                     state.snapshotSong = Object.assign({}, state.currentSong)
+                    state.toSync = await this.dispatch('getToSyncFromRest');
                 }
             }
         },
@@ -1358,9 +1367,27 @@ export default {
         },
         deleteSongByUserEvent(state, userEventData) {
             console.log('Событие удаления песни: ', userEventData)
+        },
+        changeToSync(state) {
+            let params = {dictName: 'Sync Ids', dictValue: state.currentSongId}
+            if (state.toSync) {
+                params.dictAction = "remove"
+            } else {
+                params.dictAction = "add"
+            }
+            promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/apis/utils/tfd",
+                params: params
+            }).then(_ => {
+                state.toSync = !state.toSync;
+            });
         }
     },
     actions: {
+        changeToSync(ctx) {
+            ctx.commit('changeToSync');
+        },
         setLastSettingType(ctx, payload) {
             ctx.commit('setLastSettingType', payload.value);
         },
@@ -1804,6 +1831,11 @@ export default {
             let request = { method: 'POST', url: "/apis/songs/searchsongtextall", params: params };
             return promisedXMLHttpRequest(request);
         },
+        addSyncForAll(ctx) {
+            let params = { songsIds: ctx.getters.getSongsDigestIds.join(';') };
+            let request = { method: 'POST', url: "/apis/songs/addsyncforall", params: params };
+            return promisedXMLHttpRequest(request);
+        },
         createKaraokeForAllPromise(ctx, payload) {
             let params = { songsIds: ctx.getters.getSongsDigestIds.join(';'), priorLyrics: payload.priorLyrics, priorKaraoke: payload.priorKaraoke, priorChords: payload.priorChords, priorMelody: payload.priorMelody };
             let request = { method: 'POST', url: "/apis/songs/createkaraokeall", params: params };
@@ -1842,6 +1874,18 @@ export default {
         createSmartCopyForAllPromise(ctx, payload) {
             let request = { method: 'POST', url: "/apis/songs/smartcopyall", params: payload };
             return promisedXMLHttpRequest(request);
+        },
+        async getToSyncFromRest(ctx) {
+            const ids = await promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/apis/getdict",
+                params: { dict: 'Sync Ids' }
+            });
+            const result = ids.indexOf(String(ctx.state.currentSongId)) !== -1
+            console.log('getToSyncFromRest ids', ids);
+            console.log('getToSyncFromRest ctx.state.currentSongId', ctx.state.currentSongId);
+            console.log('getToSyncFromRest result', result);
+            return result;
         },
     }
 }

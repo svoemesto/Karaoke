@@ -16,11 +16,24 @@ interface TextFileDictionary {
             return true
         }
 
+        fun loadList(dictName: String): List<String> {
+            val tfd = TEXT_FILE_DICTS[dictName] ?: return emptyList()
+            val tfdInstance = tfd.getDeclaredConstructor().newInstance()
+            val func = tfdInstance.javaClass.declaredMethods.firstOrNull() { it.name == "loadList" } ?: return emptyList()
+            val result = func.invoke(tfdInstance)
+            return if (result is List<*>) result as List<String> else emptyList()
+        }
+
     }
 
     fun pathToFile(): String
 
     var dict: MutableList<String>
+
+    fun clear() {
+        dict.clear()
+        save()
+    }
 
     fun save() {
         File(pathToFile()).writeText(dict.joinToString("\n"))
@@ -49,12 +62,6 @@ interface TextFileDictionary {
         if (!dict.contains(element)) return
         dict.remove(element)
         save()
-    }
-
-    fun edit(elements: List<String>) {
-        for (i in 0 .. elements.size / 2 step 2) {
-            editOne(elements[i], elements[i+1])
-        }
     }
 
     fun editOne(oldElement: String, newElement: String) {

@@ -6,6 +6,7 @@ import com.svoemesto.karaokeapp.*
 import com.svoemesto.karaokeapp.mlt.MltProp
 import com.svoemesto.karaokeapp.services.APP_WORK_IN_CONTAINER
 import com.svoemesto.karaokeapp.services.SNS
+import com.svoemesto.karaokeapp.textfiledictionary.SyncIdsDictionary
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.encodeToString
@@ -4303,6 +4304,14 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                 val offset = args["offset"]?.toInt() ?: 0
 
                 if (args.containsKey("ids")) where += "tbl_settings${if (sync) "_sync" else ""}.id in (${args["ids"]})"
+                if (args.containsKey("is_sync")) {
+                    val syncIds = SyncIdsDictionary().loadList()
+                    if (syncIds.isNotEmpty()) {
+                        where += "tbl_settings${if (sync) "_sync" else ""}.id in (${syncIds.joinToString(",")})"
+                    } else {
+                        where += "tbl_settings${if (sync) "_sync" else ""}.id < 0"
+                    }
+                }
                 if (args.containsKey("file_name")) where += "LOWER(file_name)='${args["file_name"]?.rightFileName()?.lowercase()}'"
                 if (args.containsKey("root_folder")) where += "LOWER(root_folder)='${args["root_folder"]?.rightFileName()?.lowercase()}'"
                 if (args.containsKey("song_name")) where += "LOWER(song_name) LIKE '%${args["song_name"]?.rightFileName()?.lowercase()}%'"

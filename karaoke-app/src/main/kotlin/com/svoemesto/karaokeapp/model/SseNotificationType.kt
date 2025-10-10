@@ -9,5 +9,6 @@ enum class SseNotificationType(val value: String) {
     MESSAGE("message"),
     DUMMY("dummy"),
     LOG("log"),
-    CRUD("crud")
+    CRUD("crud"),
+    SYNC("sync")
 }

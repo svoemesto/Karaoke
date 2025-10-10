@@ -428,7 +428,7 @@
           <div class="create-picture-buttons-group">
             <button class="group-button" @click="openMainLink" title="Открыть на сайте">Открыть на сайте sm-karaoke.ru</button>
             <button class="group-button" @click="updateRemote" title="Обновить на сервере" :disabled="!allowUpdateRemote" >Обновить на сервере</button>
-            <button class="group-button" @click="toSyncRemote" title="Добавить в SYNC-таблицу на сервере" :disabled="!allowAddSync">Добавить в SYNC-таблицу на сервере</button>
+            <button class="group-button" :class="toSyncButtonClass(toSync)" @click="toSyncRemote" title="Добавить в SYNC-таблицу на сервере" :disabled="!allowAddSync">Добавить в SYNC-таблицу на сервере</button>
             <button class="group-button" @click="copyFieldsFromAnother" title="Скопировать поля из другой песни">Скопировать поля из другой песни</button>
             <button class="group-button" @click="createPictureBoostyTeaser" title="Создать картинку Boosty Teaser">Создать картинку Boosty Teaser</button>
             <button class="group-button" @click="createPictureBoostyFiles" title="Создать картинку Boosty Files">Создать картинку Boosty Files</button>
@@ -573,6 +573,7 @@ export default {
     rightSongId() { return this.$store.getters.getRightSongId },
     snapshot() { return this.$store.getters.getSnapshotSong },
     diff() { return this.$store.getters.getSongDiff },
+    toSync() { return this.$store.getters.getToSync },
 
     mainLink() { return this.prefixMainLink + this.song.id; },
     linkBoosty() { return this.prefixLinkBoosty + this.song.idBoosty; },
@@ -1030,6 +1031,9 @@ export default {
       }
       this.song.status = status;
     },
+    toSyncButtonClass(toSync) {
+      return toSync ? 'group-button-active' : ''
+    },
     statusButtonClass(status) {
       return status === this.song.idStatus ? 'group-button-active' : ''
     },
@@ -1475,7 +1479,8 @@ export default {
       this.$store.dispatch('updateOneRemoteSettingsPromise', this.song.id);
     },
     toSyncRemote() {
-      this.$store.dispatch('toSyncOneRemoteSettingsPromise', this.song.id);
+      // this.$store.dispatch('toSyncOneRemoteSettingsPromise', this.song.id);
+      this.$store.dispatch('changeToSync');
     },
     async openLinkBoostyNew() {
       let value = await this.$store.getters.getBoostyHeader;

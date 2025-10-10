@@ -2,10 +2,10 @@ package com.svoemesto.karaokeapp.controllers
 
 import com.svoemesto.karaokeapp.*
 import com.svoemesto.karaokeapp.model.*
-import com.svoemesto.karaokeapp.propertiesfiledictionary.WebvueProperties
 import com.svoemesto.karaokeapp.services.APP_WORK_IN_CONTAINER
 import com.svoemesto.karaokeapp.services.SNS
 import com.svoemesto.karaokeapp.services.WVP
+import com.svoemesto.karaokeapp.textfiledictionary.SyncIdsDictionary
 import com.svoemesto.karaokeapp.textfiledictionary.TextFileDictionary
 import com.svoemesto.karaokeapp.textfilehistory.SongsHistory
 import jakarta.servlet.http.HttpServletResponse
@@ -1208,7 +1208,8 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         @RequestParam(required = false) filter_version_pl_karaoke: String?,
         @RequestParam(required = false) filter_rate: String?,
         @RequestParam(required = false) filter_status_process_lyrics: String?,
-        @RequestParam(required = false) filter_status_process_karaoke: String?
+        @RequestParam(required = false) filter_status_process_karaoke: String?,
+        @RequestParam(required = false) filter_is_sync: String?
 
     ): Map<String, Any> {
 
@@ -1254,6 +1255,7 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         filter_rate?.let { if (filter_rate != "") args["filter_rate"] = filter_rate }
         filter_status_process_lyrics?.let { if (filter_status_process_lyrics != "") args["filter_status_process_lyrics"] = filter_status_process_lyrics }
         filter_status_process_karaoke?.let { if (filter_status_process_karaoke != "") args["filter_status_process_karaoke"] = filter_status_process_karaoke }
+        filter_is_sync?.let { if (filter_is_sync != "") args["is_sync"] = filter_is_sync }
 
         SongsHistory().add(args)
 
@@ -3070,7 +3072,6 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             @RequestParam(required = false) default: String?
     ): String {
         val result = WVP.get(key = key, default = (default ?: ""))
-//        println("/getwebvueprop called. key = '$key', default = '$default', result = '$result'")
         return result
     }
 
@@ -3081,8 +3082,28 @@ class ApisController(private val sseNotificationService: SseNotificationService)
             @RequestParam(required = true) key: String,
             @RequestParam(required = true) value: String
     ) {
-//        println("/setwebvueprop called. key = '$key', value = '$value'")
         WVP.set(key = key, value = value)
     }
 
+    @PostMapping("/getdict")
+    @ResponseBody
+    fun getDict(
+            @RequestParam(required = true) dict: String
+    ): List<String> {
+        return TextFileDictionary.loadList(dict)
+    }
+
+    @PostMapping("/songs/addsyncforall")
+    @ResponseBody
+    fun addSyncForAll(@RequestParam songsIds: String): List<String> {
+        val ids = songsIds.split(";").map { it }.filter { it != "" }.map { it.toLong() }
+        val listSync = setSettingsToSyncRemoteTable(ids)
+
+        if (listSync.size != 0) {
+            SNS.send(SseNotification.sync(listOf(listSync)))
+        }
+        SyncIdsDictionary().clear()
+        return listSync
+
+    }
 }

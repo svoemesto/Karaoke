@@ -20,6 +20,7 @@ export default {
         songsFilterVersionTelegramKaraoke: '',
         songsFilterVersionPlKaraoke: '',
         songsFilterRate: '',
+        songsFilterIsSync: '',
         songsFilterStatusProcessLyrics: '',
         songsFilterStatusProcessKaraoke: '',
         songsHistory: [],
@@ -48,6 +49,7 @@ export default {
         getSongsFilterVersionTelegramKaraoke(state) { return state.songsFilterVersionTelegramKaraoke},
         getSongsFilterVersionPlKaraoke(state) { return state.songsFilterVersionPlKaraoke},
         getSongsFilterRate(state) { return state.songsFilterRate},
+        getSongsFilterIsSync(state) { return state.songsFilterIsSync},
         getSongsFilterStatusProcessLyrics(state) { return state.songsFilterStatusProcessLyrics},
         getSongsFilterStatusProcessKaraoke(state) { return state.songsFilterStatusProcessKaraoke}
     },
@@ -259,6 +261,17 @@ export default {
             }
             state.songsFilterRate = value
         },
+        setSongsFilterIsSync(state, value) {
+            if (state.songsFilterIsSync !== undefined && state.songsFilterIsSync !== null && value !== undefined && value !== null) {
+                const key = 'songsFilterIsSync';
+                promisedXMLHttpRequest({
+                    method: 'POST',
+                    url: "/apis/setwebvueprop",
+                    params: {key: key, value: value}
+                });
+            }
+            state.songsFilterIsSync = value
+        },
         setSongsFilterStatusProcessLyrics(state, value) {
             if (state.songsFilterStatusProcessLyrics !== undefined && state.songsFilterStatusProcessLyrics !== null && value !== undefined && value !== null) {
                 const key = 'songsFilterStatusProcessLyrics';
@@ -312,6 +325,7 @@ export default {
         setSongsFilterVersionTelegramKaraoke(ctx, payload) { ctx.commit('setSongsFilterVersionTelegramKaraoke', payload.value) },
         setSongsFilterVersionPlKaraoke(ctx, payload) { ctx.commit('setSongsFilterVersionPlKaraoke', payload.value) },
         setSongsFilterRate(ctx, payload) { ctx.commit('setSongsFilterRate', payload.value) },
+        setSongsFilterIsSync(ctx, payload) { ctx.commit('setSongsFilterIsSync', payload.value) },
         setSongsFilterStatusProcessLyrics(ctx, payload) { ctx.commit('setSongsFilterStatusProcessLyrics', payload.value) },
         setSongsFilterStatusProcessKaraoke(ctx, payload) { ctx.commit('setSongsFilterStatusProcessKaraoke', payload.value) }
     }

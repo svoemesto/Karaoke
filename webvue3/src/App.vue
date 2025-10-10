@@ -68,6 +68,7 @@ export default {
         case 'DUMMY': { console.log("DUMMY MESSAGE"); break; }
         case 'LOG': { this.logMessageByUserEvent(userEvent.data); break; }
         case 'CRUD': { this.crudMessageByUserEvent(userEvent.data, create); break; }
+        case 'SYNC': { this.syncMessageByUserEvent(userEvent.data, create); break; }
         default: { console.log("Неизвестный тип события: ", userEvent.type); }
       }
     },
@@ -216,6 +217,82 @@ export default {
         // modelValue: true
       })
     },
+    syncMessageByUserEvent(userEvent, create) {
+      if (document.hidden) return
+      const createTextWithLineBreaks = (lines) => {
+        if (!Array.isArray(lines)) {
+          return h('div', {
+            style: {
+              fontFamily: 'monospace',
+              fontSize: 'x-small',
+              textAlign: 'left',
+              fontWeight: 'bold',
+              paddingRight: '5px',
+              color: 'darkred'
+            }
+          }, [String(lines)]); // Если это не массив, возвращаем как одну строку
+        }
+        const vnodes = [];
+        lines.forEach((line, index) => {
+          const lineToAdd = h('div', { style: { fontFamily: 'monospace', fontSize: 'x-small', textAlign: 'left', fontWeight: 'bold', paddingRight: '5px', color: 'darkred' } }, line);
+          vnodes.push(lineToAdd);
+          // Добавляем <br> после каждого элемента, кроме последнего
+          // if (index < lines.length - 1) {
+          //   vnodes.push(h('br'));
+          // }
+        });
+        return vnodes;
+      };
+
+      // Проверяем, является ли userEvent.body массивом
+      let listOfLists = userEvent;
+      if (typeof userEvent === 'string') {
+        try {
+          listOfLists = JSON.parse(userEvent);
+        } catch (e) {
+          console.error("Error parsing userEvent as JSON:", e);
+          // В случае ошибки, обрабатываем как одну строку
+          listOfLists = [userEvent];
+        }
+      }
+
+      let vNodesMsg = [];
+      if (!Array.isArray(listOfLists) || listOfLists.length !== 1) {
+        console.warn("userEvent is not an array of 1 lists. Treating as plain text.");
+        // Обработка как простого текста, если структура неожиданная
+        vNodesMsg = h('div', [
+          h('div', { style: { fontFamily: 'sans-serif', fontSize: 'small', textAlign: 'left' } }, String(userEvent))
+        ]);
+        // ... остальная логика для vNodesMsg ...
+      } else {
+        // Обработка как массива
+        vNodesMsg = h('div', [
+          h('div', { style: { fontFamily: 'sans-serif', fontSize: 'small', textAlign: 'left' } }, [
+            // Обработка первого списка
+            ...(listOfLists[0] && listOfLists[0].length > 0 ? [
+              `Добавлено записей в SYNC-таблицу: ${listOfLists[0].length}`,
+              // h('br'),
+              ...createTextWithLineBreaks(listOfLists[0]),
+              // h('br') // Разделитель после первого списка
+            ] : []),
+          ])
+        ]);
+      }
+
+      create({
+        slots: { default: () => [vNodesMsg] },
+        title: "SYNC",
+        autoHideDelay: 3000,
+        bodyClass: 'toast-body-syncmessage',
+        headerClass: 'toast-header-syncmessage',
+        appendToast: false,
+        position: 'top-end',
+        // position: 'top-start',
+        // noHoverPause: true,
+        // noProgress: true
+        // modelValue: true
+      })
+    },
   },
   async mounted() {
     console.log('APP mounted')
@@ -349,6 +426,14 @@ li a:hover {
   color: #000 !important;
   background-color: rgb(255 200 200 / 85%) !important;
 }
-
+.toast-header-syncmessage {
+  color: #fff !important;
+  background-color: rgb(100 10 10 / 85%) !important
+}
+.toast-body-syncmessage {
+  padding: .75rem !important;
+  color: #000 !important;
+  background-color: rgb(255 200 200 / 85%) !important;
+}
 
 </style>

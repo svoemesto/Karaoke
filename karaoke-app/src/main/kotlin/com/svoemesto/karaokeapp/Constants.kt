@@ -3,6 +3,7 @@ package com.svoemesto.karaokeapp
 import com.svoemesto.karaokeapp.mlt.mko.*
 import com.svoemesto.karaokeapp.model.ProducerType
 import com.svoemesto.karaokeapp.textfiledictionary.CensoredWordsDictionary
+import com.svoemesto.karaokeapp.textfiledictionary.SyncIdsDictionary
 import com.svoemesto.karaokeapp.textfiledictionary.TestDictionary
 import com.svoemesto.karaokeapp.textfiledictionary.YoWordsDictionary
 const val LIMIT_ROWS_SETTINGS_TABLE_UPDATE = 1000
@@ -108,6 +109,7 @@ val PROJECT_ROOT_FOLDERS = listOf(
 
 const val YO_FILE_PATH = "/sm-karaoke/system/Слова_с_буквой_ё.txt"
 const val CENSORED_FILE_PATH = "/sm-karaoke/system/censored.txt"
+const val SYNCIDS_FILE_PATH = "/sm-karaoke/system/syncids.txt"
 const val TESTDICT_FILE_PATH = "/sm-karaoke/system/test_dict.txt"
 const val SONGS_HISTORY_FILE_PATH = "/sm-karaoke/system/songs_history.txt"
 const val WEBVUE_PROPERTIES_FILE_PATH = "/sm-karaoke/system/webvue_properties.txt"
@@ -115,7 +117,8 @@ const val WEBVUE_PROPERTIES_FILE_PATH = "/sm-karaoke/system/webvue_properties.tx
 val TEXT_FILE_DICTS = mapOf(
     "Слова с Ё" to YoWordsDictionary::class.java,
     "Censored" to CensoredWordsDictionary::class.java,
-    "Тестовый словарь" to TestDictionary::class.java
+    "Тестовый словарь" to TestDictionary::class.java,
+    "Sync Ids" to SyncIdsDictionary::class.java
 )
 
 val producerTypeClass = mapOf(

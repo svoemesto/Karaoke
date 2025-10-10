@@ -33,5 +33,8 @@ data class SseNotification(
         fun crud(crudMessage: List<List<String>>): SseNotification {
             return SseNotification(SseNotificationType.CRUD, crudMessage)
         }
+        fun sync(syncMessage: List<List<String>>): SseNotification {
+            return SseNotification(SseNotificationType.SYNC, syncMessage)
+        }
     }
 }

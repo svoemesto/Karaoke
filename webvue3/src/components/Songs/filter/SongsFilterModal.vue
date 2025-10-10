@@ -219,6 +219,16 @@
                   <button :disabled="!songsFilterRate" class="sfm-button-clear-field" @click.left="songsFilterRate=''" v-text="'X'"></button>
                 </div>
 
+                <div class="sfm-filter-row">
+                  <div class="sfm-row-label">
+                    <div v-text="'Is Sync:'"></div>
+                  </div>
+                  <div class="sfm-row-input">
+                    <input class="sfm-input-field" v-model="songsFilterIsSync">
+                  </div>
+                  <button :disabled="!songsFilterIsSync" class="sfm-button-clear-field" @click.left="songsFilterIsSync=''" v-text="'X'"></button>
+                </div>
+
               </div>
             </b-tab>
             <b-tab title="История">
@@ -267,26 +277,27 @@ export default {
   },
   data() {
     return {
-      songsFilterId: this.$store.getters.getSongsFilterId,
-      songsFilterSongName: this.$store.getters.getSongsFilterSongName,
+      // songsFilterId: this.$store.getters.getSongsFilterId,
+      // songsFilterSongName: this.$store.getters.getSongsFilterSongName,
       // songsFilterSongAuthor: this.$store.getters.getSongsFilterSongAuthor,
-      songsFilterSongAlbum: this.$store.getters.getSongsFilterSongAlbum,
-      songsFilterPublishDate: this.$store.getters.getSongsFilterPublishDate,
-      songsFilterPublishTime: this.$store.getters.getSongsFilterPublishTime,
-      songsFilterIdStatus: this.$store.getters.getSongsFilterIdStatus,
-      songsFilterCountVoices: this.$store.getters.getSongsFilterCountVoices,
-      songsFilterTags: this.$store.getters.getSongsFilterTags,
-      songsFilterResultVersion: this.$store.getters.getSongsFilterResultVersion,
-      songsFilterVersionBoosty: this.$store.getters.getSongsFilterVersionBoosty,
-      songsFilterVersionBoostyFiles: this.$store.getters.getSongsFilterVersionBoostyFiles,
-      songsFilterVersionSponsr: this.$store.getters.getSongsFilterVersionSponsr,
-      songsFilterVersionDzenKaraoke: this.$store.getters.getSongsFilterVersionDzenKaraoke,
-      songsFilterVersionVkKaraoke: this.$store.getters.getSongsFilterVersionVkKaraoke,
-      songsFilterVersionTelegramKaraoke: this.$store.getters.getSongsFilterVersionTelegramKaraoke,
-      songsFilterVersionPlKaraoke: this.$store.getters.getSongsFilterVersionPlKaraoke,
-      songsFilterRate: this.$store.getters.getSongsFilterRate,
-      songsFilterStatusProcessLyrics: this.$store.getters.getSongsFilterStatusProcessLyrics,
-      songsFilterStatusProcessKaraoke: this.$store.getters.getSongsFilterStatusProcessKaraoke,
+      // songsFilterSongAlbum: this.$store.getters.getSongsFilterSongAlbum,
+      // songsFilterPublishDate: this.$store.getters.getSongsFilterPublishDate,
+      // songsFilterPublishTime: this.$store.getters.getSongsFilterPublishTime,
+      // songsFilterIdStatus: this.$store.getters.getSongsFilterIdStatus,
+      // songsFilterCountVoices: this.$store.getters.getSongsFilterCountVoices,
+      // songsFilterTags: this.$store.getters.getSongsFilterTags,
+      // songsFilterResultVersion: this.$store.getters.getSongsFilterResultVersion,
+      // songsFilterVersionBoosty: this.$store.getters.getSongsFilterVersionBoosty,
+      // songsFilterVersionBoostyFiles: this.$store.getters.getSongsFilterVersionBoostyFiles,
+      // songsFilterVersionSponsr: this.$store.getters.getSongsFilterVersionSponsr,
+      // songsFilterVersionDzenKaraoke: this.$store.getters.getSongsFilterVersionDzenKaraoke,
+      // songsFilterVersionVkKaraoke: this.$store.getters.getSongsFilterVersionVkKaraoke,
+      // songsFilterVersionTelegramKaraoke: this.$store.getters.getSongsFilterVersionTelegramKaraoke,
+      // songsFilterVersionPlKaraoke: this.$store.getters.getSongsFilterVersionPlKaraoke,
+      // songsFilterRate: this.$store.getters.getSongsFilterRate,
+      // songsFilterIsSync: this.$store.getters.getSongsFilterIsSync,
+      // songsFilterStatusProcessLyrics: this.$store.getters.getSongsFilterStatusProcessLyrics,
+      // songsFilterStatusProcessKaraoke: this.$store.getters.getSongsFilterStatusProcessKaraoke,
       dictAuthors: []
     }
   },
@@ -309,6 +320,7 @@ export default {
     this.$store.dispatch('setSongsFilterVersionTelegramKaraoke', { value: await this.$store.getters.getWebvueProp('songsFilterVersionTelegramKaraoke', '') });
     this.$store.dispatch('setSongsFilterVersionPlKaraoke', { value: await this.$store.getters.getWebvueProp('songsFilterVersionPlKaraoke', '') });
     this.$store.dispatch('setSongsFilterRate', { value: await this.$store.getters.getWebvueProp('songsFilterRate', '') });
+    this.$store.dispatch('setSongsFilterIsSync', { value: await this.$store.getters.getWebvueProp('songsFilterIsSync', '') });
     this.$store.dispatch('setSongsFilterStatusProcessLyrics', { value: await this.$store.getters.getWebvueProp('songsFilterStatusProcessLyrics', '') });
     this.$store.dispatch('setSongsFilterStatusProcessKaraoke', { value: await this.$store.getters.getWebvueProp('songsFilterStatusProcessKaraoke', '') });
   },
@@ -391,6 +403,10 @@ export default {
       get() { return this.$store.getters.getSongsFilterRate; },
       set(value) { this.$store.dispatch('setSongsFilterRate', { value: value }); }
     },
+    songsFilterIsSync: {
+      get() { return this.$store.getters.getSongsFilterIsSync; },
+      set(value) { this.$store.dispatch('setSongsFilterIsSync', { value: value }); }
+    },
     songsFilterStatusProcessLyrics: {
       get() { return this.$store.getters.getSongsFilterStatusProcessLyrics; },
       set(value) { this.$store.dispatch('setSongsFilterStatusProcessLyrics', { value: value }); }
@@ -451,6 +467,7 @@ export default {
       this.$store.dispatch('setSongsFilterVersionTelegramKaraoke', { value: this.songsFilterVersionTelegramKaraoke });
       this.$store.dispatch('setSongsFilterVersionPlKaraoke', { value: this.songsFilterVersionPlKaraoke });
       this.$store.dispatch('setSongsFilterRate', { value: this.songsFilterRate });
+      this.$store.dispatch('setSongsFilterIsSync', { value: this.songsFilterIsSync });
       this.$store.dispatch('setSongsFilterStatusProcessLyrics', { value: this.songsFilterStatusProcessLyrics });
       this.$store.dispatch('setSongsFilterStatusProcessKaraoke', { value: this.songsFilterStatusProcessKaraoke });
 
@@ -473,6 +490,7 @@ export default {
       if (this.songsFilterVersionTelegramKaraoke !== '') params.filter_version_telegram_karaoke = this.songsFilterVersionTelegramKaraoke;
       if (this.songsFilterVersionPlKaraoke !== '') params.filter_version_pl_karaoke = this.songsFilterVersionPlKaraoke;
       if (this.songsFilterRate !== '') params.filter_rate = this.songsFilterRate;
+      if (this.songsFilterIsSync !== '') params.filter_is_sync = this.songsFilterIsSync;
       if (this.songsFilterStatusProcessLyrics !== '') params.filter_status_process_lyrics = this.songsFilterStatusProcessLyrics;
       if (this.songsFilterStatusProcessKaraoke !== '') params.filter_status_process_karaoke = this.songsFilterStatusProcessKaraoke;
       this.$store.dispatch('loadSongsDigests', params );
@@ -502,6 +520,7 @@ export default {
       this.songsFilterVersionTelegramKaraoke = args['filter_version_telegram_karaoke'] ? args['filter_version_telegram_karaoke'] : ''
       this.songsFilterVersionPlKaraoke = args['filter_version_pl_karaoke'] ? args['filter_version_pl_karaoke'] : ''
       this.songsFilterRate = args['filter_rate'] ? args['filter_rate'] : ''
+      this.songsFilterIsSync = args['filter_is_sync'] ? args['filter_is_sync'] : ''
       this.songsFilterStatusProcessLyrics = args['filter_status_process_lyrics'] ? args['filter_status_process_lyrics'] : ''
       this.songsFilterStatusProcessKaraoke = args['filter_status_process_karaoke'] ? args['filter_status_process_karaoke'] : ''
 

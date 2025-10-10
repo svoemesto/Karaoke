@@ -122,6 +122,96 @@ fun setSettingsToSyncRemoteTable(id: Long) {
     }
 
 }
+
+fun setSettingsToSyncRemoteTable(ids: List<Long>): List<String> {
+
+    val listToCreate: MutableList<Map<String, Any>> = mutableListOf()
+    val listToDelete: MutableList<Map<String, Any>> = mutableListOf()
+    val listToCreateNames: MutableList<String> = mutableListOf()
+
+    val fromDatabase = Connection.local()
+    val tableName = "tbl_settings_sync"
+
+    ids.forEach { id ->
+        val sqlToDelete = "DELETE FROM $tableName WHERE id = $id"
+        val setStrEncrypted = Crypto.encrypt(sqlToDelete)
+        val values: Map<String, Any> = mapOf(
+            "sqlToDelete" to (setStrEncrypted ?: "")
+        )
+        listToDelete.add(values)
+    }
+
+    ids.forEach { id ->
+        val itemFrom = Settings.loadFromDbById(id = id, database = fromDatabase)
+        if (itemFrom != null) {
+            listToCreateNames.add(itemFrom.rightSettingFileName)
+            println("Добавляем запись в $tableName: id=${itemFrom.id}, ${itemFrom.rightSettingFileName}")
+            val sqlToInsert = itemFrom.getSqlToInsert(sync = true)
+            val setStrEncrypted = Crypto.encrypt(sqlToInsert)
+            val values: Map<String, Any> = mapOf(
+                "sqlToInsert" to (setStrEncrypted ?: "")
+            )
+            listToCreate.add(values)
+        }
+    }
+
+    val chunkedSize = 10
+
+    if (listToDelete.isNotEmpty()) {
+        println("[${Timestamp.from(Instant.now())}] Запрос на сервер на удаление.")
+
+        val chunked = listToDelete.chunked(chunkedSize)
+        chunked.forEach { lstToDelete ->
+            val values: Map<String, Any> = mapOf(
+                    "dataCreate" to emptyList<Map<String, Any>>(),
+                    "dataUpdate" to emptyList<Map<String, Any>>(),
+                    "dataDelete" to lstToDelete,
+                    "word" to (Crypto.encrypt(Crypto.wordsToChesk) ?: "")
+            )
+
+            val objectMapper = ObjectMapper()
+            val requestBody: String = objectMapper.writeValueAsString(values)
+            val client = HttpClient.newBuilder().build();
+            val request = HttpRequest.newBuilder()
+                    .uri(URI.create("https://sm-karaoke.ru/changerecords"))
+                    .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                    .header("Content-Type", "application/json")
+                    .build()
+            val response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            println(response.body())
+        }
+
+    }
+
+    if (listToCreate.isNotEmpty()) {
+        println("[${Timestamp.from(Instant.now())}] Запрос на сервер на добавление.")
+        val chunked = listToCreate.chunked(chunkedSize)
+        chunked.forEach { lstToCreate ->
+            val values: Map<String, Any> = mapOf(
+                    "dataCreate" to lstToCreate,
+                    "dataUpdate" to emptyList<Map<String, Any>>(),
+                    "dataDelete" to emptyList<Map<String, Any>>(),
+                    "word" to (Crypto.encrypt(Crypto.wordsToChesk) ?: "")
+            )
+
+            val objectMapper = ObjectMapper()
+            val requestBody: String = objectMapper.writeValueAsString(values)
+            val client = HttpClient.newBuilder().build();
+            val request = HttpRequest.newBuilder()
+                    .uri(URI.create("https://sm-karaoke.ru/changerecords"))
+                    .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                    .header("Content-Type", "application/json")
+                    .build()
+            val response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            println(response.body())
+        }
+    }
+
+
+    return listToCreateNames
+
+}
+
 fun updateRemotePictureFromLocalDatabase(id: Long): Triple<List<String>, List<String>, List<String>> {
     return updateDatabases(Connection.local(), Connection.remote(), updateSettings = false, updatePictures = true, argsPictures = mapOf("id" to id.toString()))
 }

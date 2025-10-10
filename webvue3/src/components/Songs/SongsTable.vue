@@ -300,6 +300,7 @@
       <button class="btn-round-double" @click="createSymlinksForAll" :disabled="countRows===0" title="Создать SYMLINKS для всех песен"><img alt="create symlink for all" class="icon-40" src="../../assets/svg/icon_symlink.svg"></button>
       <button class="btn-round-double" @click="createSheetsageForAll" :disabled="countRows===0" title="Создать SHEETSAGE для всех песен"><img alt="create sheetsage for all" class="icon-40" src="../../assets/svg/icon_chords.svg"></button>
       <button class="btn-round-double" @click="updateStoreForAll" :disabled="countRows===0" title="Обновить хранилище для всех песен"><img alt="update store for all" class="icon-40" src="../../assets/svg/icon_update_store.svg"></button>
+      <button class="btn-round-double" @click="addSyncForAll" :disabled="countRows===0 || !allowAddSync" title="Добавить записи в SYNC-таблицу"><img alt="add records to SYNC table" class="icon-40" src="../../assets/svg/icon_sync.svg"></button>
     </div>
 
   </div>
@@ -334,7 +335,8 @@ export default {
       isSmartCopyVisible: false,
       isCustomConfirmVisible: false,
       customConfirmParams: undefined,
-      isBusy: false
+      isBusy: false,
+      allowAddSync: false
     }
   },
   watch: {
@@ -355,8 +357,9 @@ export default {
       }
     }
   },
-  mounted() {
+  async mounted() {
     // this.$store.dispatch('loadSongsDigests', { filter_author: 'Павел Кашин'} )
+    this.allowAddSync = await this.propAllowAddSync();
   },
   computed: {
     smartCopyButtonCaption() {
@@ -732,6 +735,10 @@ export default {
     }
   },
   methods: {
+    async propAllowAddSync() {
+      const propValue = await this.$store.getters.getPropValue('allowAddSync');
+      return propValue === 'true'
+    },
     searchTextForAll() {
       this.customConfirmParams = {
         header: 'Подтвердите поиск текста',
@@ -743,6 +750,18 @@ export default {
     },
     doSearchTextForAll() {
       this.$store.dispatch('searchTextForAll')
+    },
+    addSyncForAll() {
+      this.customConfirmParams = {
+        header: 'Подтвердите добавление записей в SYNC-таблицу',
+        body: `Выбрано песен: <strong>${this.countRows}.</strong><br>Добавить эти песни в SYNC-таблицу?`,
+        timeout: 10,
+        callback: this.doAddSyncForAll
+      }
+      this.isCustomConfirmVisible = true;
+    },
+    doAddSyncForAll() {
+      this.$store.dispatch('addSyncForAll')
     },
     createKaraokeForAll() {
       this.customConfirmParams = {

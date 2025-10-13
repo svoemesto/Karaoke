@@ -107,7 +107,6 @@ export default {
       this.$store.dispatch('updateProcessWorkerStateByUserEvent', userEventData);
     },
     setCountWaiting(userEventData) {
-      console.log('setCountWaiting userEventData', userEventData);
       this.$store.dispatch('setCountWaiting', userEventData);
     },
     deleteSongByUserEvent(userEventData) {

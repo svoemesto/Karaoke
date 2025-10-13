@@ -109,10 +109,10 @@
               <button v-else class="se-group-button" type="button" @click="setMoveMode(!isMoveMode)" :disabled="!isRegionMode">
                 <img alt="Включить режим сдвига маркеров" class="se-icon-40" title="Включить режим сдвига маркеров" src="../../../assets/svg/icon_markers_in_region_move_off.svg">
               </button>
-              <button class="se-group-button" type="button" @click="" :disabled="!isRegionMode">
+              <button class="se-group-button" type="button" @click="pasteMarkersInRegionToNewPlace" :disabled="!isRegionMode">
                 <img alt="Вставить маркеры из региона в новое место" class="se-icon-40" title="Вставить маркеры из региона в новое место" src="../../../assets/svg/icon_markers_in_region_paste.svg">
               </button>
-              <button class="se-group-button" type="button" @click="" :disabled="!isRegionMode">
+              <button class="se-group-button" type="button" @click="deleteMarkersInRegion" :disabled="!isRegionMode">
                 <img alt="далить маркеры из региона" class="se-icon-40" title="Удалить маркеры из региона" src="../../../assets/svg/icon_markers_in_region_delete.svg">
               </button>
             </div>
@@ -342,6 +342,8 @@ export default {
       loadedMarkers: [],
       sourceMarkers: [],
       regionMarker: undefined,
+      regionMarkerStart: undefined,
+      regionMarkerEnd: undefined,
       editSpeed: 0.75,
       editModeType: 'syllables',
       playSpeed: 1.0,
@@ -1460,9 +1462,63 @@ export default {
     // this.wsRegions.enableDragSelection();
 
     // eslint-disable-next-line
+
+    // this.wsRegions.on('region-update', (region, side) => {
+    //   // Изменения в маркере-регионе
+    //   console.log('region-update side region', side, region);
+    //   console.log('region-update this.regionMarker.region', this.regionMarker.region);
+    //   if (this.isRegionMode && region.id === this.regionMarker.region.id) {
+    //
+    //   } else {
+    //
+    //   }
+    //
+    // })
+
     this.wsRegions.on('region-updated', (region) => {
+
+      const regionMarkerStart = region.start;
+      const regionMarkerEnd = region.end;
+      const deltaStart = regionMarkerStart - this.regionMarkerStart;
+      const deltaEnd = regionMarkerEnd - this.regionMarkerEnd;
       // Изменения в маркере-регионе
-      if (this.isRegionMode && region === this.regionMarker.region) {
+      console.log('region-updated region', region);
+      if (this.isRegionMode && this.isMoveMode && region.id === this.regionMarker.region.id) {
+
+        if (regionMarkerStart !== this.regionMarkerStart && regionMarkerEnd !== this.regionMarkerEnd) {
+          let markersToMove = this.sourceMarkers
+              .filter(marker => marker.time >= this.regionMarkerStart && marker.time <= this.regionMarkerEnd)
+              .sort(function (a,b) {
+                if (a.time > b.time) return 1;
+                if (a.time < b.time) return -1;
+                if (a.markertype > b.markertype) return 1;
+                if (a.markertype < b.markertype) return -1;
+                return 0;
+              });
+          console.log('region-updated markersToMove', markersToMove);
+          if (markersToMove.length > 0) {
+            markersToMove.forEach((markerToMove) => {
+              const newTime = markerToMove.time + deltaStart;
+
+              let newMarker = {
+                time: newTime,
+                label:  markerToMove.label,
+                color:  markerToMove.color,
+                position:  markerToMove.position,
+                markertype:  markerToMove.markertype
+              }
+
+              const indexToInsert = this.sourceMarkers.indexOf(markerToMove);
+              markerToMove.region.remove();
+              markerToMove.region = null;
+
+              newMarker.region = this.createRegionMarker(newMarker);
+              this.sourceMarkers.splice(indexToInsert, 1, newMarker);
+
+            });
+            this.updateMarkersBySyllables();
+          }
+        }
 
       } else {
         let marker = this.sourceMarkers.filter(item => item.region === region)[0];
@@ -1476,6 +1532,9 @@ export default {
           this.updateMarkersBySyllables();
         }
       }
+
+      this.regionMarkerStart = regionMarkerStart;
+      this.regionMarkerEnd = regionMarkerEnd;
 
     })
 
@@ -1622,6 +1681,8 @@ export default {
         this.regionMarker.region.remove();
         this.regionMarker.region = null;
         this.regionMarker = undefined;
+        this.regionMarkerStart = undefined;
+        this.regionMarkerEnd = undefined;
       } else {
         let timeToAdd = this.currentTime;
         let regionMarker = {
@@ -1639,11 +1700,96 @@ export default {
           id: this.generateUUID()
         });
         this.regionMarker = regionMarker;
+        this.regionMarkerStart = regionMarker.region.start;
+        this.regionMarkerEnd = regionMarker.region.end;
       }
       this.isRegionMode = isRegionMode;
     },
     setMoveMode(isMoveMode) {
+      console.log('setMoveMode this.regionMarkerStart', this.regionMarkerStart);
+      console.log('setMoveMode this.regionMarkerEnd', this.regionMarkerEnd);
       this.isMoveMode = isMoveMode;
+      let color = this.isMoveMode ? '#00009933' : '#00990033';
+      this.regionMarker.region.remove();
+      this.regionMarker.region = null;
+      this.regionMarker = undefined;
+      let regionMarker = {
+        time: this.regionMarkerStart,
+        label: '',
+        color: color,
+        position: 'top',
+        markertype: 'region'
+      }
+      regionMarker.region = this.wsRegions.addRegion({
+        start: this.regionMarkerStart,
+        end: this.regionMarkerEnd,
+        content: regionMarker.label,
+        color: regionMarker.color,
+        id: this.generateUUID()
+      });
+      this.regionMarker = regionMarker;
+    },
+    pasteMarkersInRegionToNewPlace() {
+      if (this.isRegionMode) {
+        const timeStart = this.regionMarker.region.start;
+        const timeEnd = this.regionMarker.region.end;
+        let timeToAdd = this.currentTime;
+        let markersToCopy = this.sourceMarkers
+            .filter(marker => marker.time >= timeStart && marker.time <= timeEnd)
+            .sort(function (a,b) {
+              if (a.time > b.time) return 1;
+              if (a.time < b.time) return -1;
+              if (a.markertype > b.markertype) return 1;
+              if (a.markertype < b.markertype) return -1;
+              return 0;
+            });
+
+        if (markersToCopy.length > 0) {
+          const delta = timeToAdd - markersToCopy[0].time;
+          let indexToInsert = this.currentMarkersIndex;
+          markersToCopy.forEach((markerToCopy) => {
+            const newTime = markerToCopy.time + delta;
+            let newMarker = {
+              time: newTime,
+              label:  markerToCopy.label,
+              color:  markerToCopy.color,
+              position:  markerToCopy.position,
+              markertype:  markerToCopy.markertype
+            }
+            newMarker.region = this.createRegionMarker(newMarker);
+            this.sourceMarkers.splice(indexToInsert, 0, newMarker);
+            indexToInsert++;
+          });
+          this.updateMarkersBySyllables();
+        }
+      }
+    },
+    deleteMarkersInRegion() {
+      if (this.isRegionMode) {
+        const timeStart = this.regionMarker.region.start;
+        const timeEnd = this.regionMarker.region.end;
+        let markersToDelete = this.sourceMarkers
+            .filter(marker => marker.time >= timeStart && marker.time <= timeEnd)
+            .sort(function (a,b) {
+              if (a.time > b.time) return 1;
+              if (a.time < b.time) return -1;
+              if (a.markertype > b.markertype) return 1;
+              if (a.markertype < b.markertype) return -1;
+              return 0;
+            });
+
+        if (markersToDelete.length > 0) {
+          markersToDelete.forEach((markerToDelete) => {
+            const index = this.sourceMarkers.indexOf(markerToDelete);
+            markerToDelete.region.remove();
+            markerToDelete.region = null;
+            if (index >=0) {
+              this.sourceMarkers.splice(index, 1);
+            }
+          });
+          this.updateMarkersBySyllables();
+        }
+      }
     },
     sortSourceMarkers() {
       this.sourceMarkers.sort(function (a,b) {

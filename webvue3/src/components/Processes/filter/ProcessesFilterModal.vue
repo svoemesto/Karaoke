@@ -87,24 +87,48 @@
 
 export default {
   name: "ProcessesFilterModal",
-  data() {
-    return {
-      processesFilterId: this.$store.getters.getProcessesFilterId,
-      processesFilterName: this.$store.getters.getProcessesFilterName,
-      processesFilterStatus: this.$store.getters.getProcessesFilterStatus,
-      processesFilterPriority: this.$store.getters.getProcessesFilterPriority,
-      processesFilterDescription: this.$store.getters.getProcessesFilterDescription,
-      processesFilterType: this.$store.getters.getProcessesFilterType
-    }
+  async beforeMount() {
+    this.$store.dispatch('setProcessesFilterId', { value: await this.$store.getters.getWebvueProp('processesFilterId', '') });
+    this.$store.dispatch('setProcessesFilterName', { value: await this.$store.getters.getWebvueProp('processesFilterName', '') });
+    this.$store.dispatch('setProcessesFilterStatus', { value: await this.$store.getters.getWebvueProp('processesFilterStatus', '') });
+    this.$store.dispatch('setProcessesFilterPriority', { value: await this.$store.getters.getWebvueProp('processesFilterPriority', '') });
+    this.$store.dispatch('setProcessesFilterDescription', { value: await this.$store.getters.getWebvueProp('processesFilterDescription', '') });
+    this.$store.dispatch('setProcessesFilterType', { value: await this.$store.getters.getWebvueProp('processesFilterType', '') });
+  },
+  computed: {
+    processesFilterId: {
+      get() { return this.$store.getters.getProcessesFilterId; },
+      set(value) { this.$store.dispatch('setProcessesFilterId', { value: value }); }
+    },
+    processesFilterName: {
+      get() { return this.$store.getters.getProcessesFilterName; },
+      set(value) { this.$store.dispatch('setProcessesFilterName', { value: value }); }
+    },
+    processesFilterStatus: {
+      get() { return this.$store.getters.getProcessesFilterStatus; },
+      set(value) { this.$store.dispatch('setProcessesFilterStatus', { value: value }); }
+    },
+    processesFilterPriority: {
+      get() { return this.$store.getters.getProcessesFilterPriority; },
+      set(value) { this.$store.dispatch('setProcessesFilterPriority', { value: value }); }
+    },
+    processesFilterDescription: {
+      get() { return this.$store.getters.getProcessesFilterDescription; },
+      set(value) { this.$store.dispatch('setProcessesFilterDescription', { value: value }); }
+    },
+    processesFilterType: {
+      get() { return this.$store.getters.getProcessesFilterType; },
+      set(value) { this.$store.dispatch('setProcessesFilterType', { value: value }); }
+    },
   },
   methods: {
     ok() {
-      this.$store.dispatch('setProcessesFilterId', { processesFilterId: this.processesFilterId });
-      this.$store.dispatch('setProcessesFilterName', { processesFilterName: this.processesFilterName });
-      this.$store.dispatch('setProcessesFilterStatus', { processesFilterStatus: this.processesFilterStatus });
-      this.$store.dispatch('setProcessesFilterPriority', { processesFilterPriority: this.processesFilterPriority });
-      this.$store.dispatch('setProcessesFilterDescription', { processesFilterDescription: this.processesFilterDescription });
-      this.$store.dispatch('setProcessesFilterType', { processesFilterType: this.processesFilterType });
+      this.$store.dispatch('setProcessesFilterId', { value: this.processesFilterId });
+      this.$store.dispatch('setProcessesFilterName', { value: this.processesFilterName });
+      this.$store.dispatch('setProcessesFilterStatus', { value: this.processesFilterStatus });
+      this.$store.dispatch('setProcessesFilterPriority', { value: this.processesFilterPriority });
+      this.$store.dispatch('setProcessesFilterDescription', { value: this.processesFilterDescription });
+      this.$store.dispatch('setProcessesFilterType', { value: this.processesFilterType });
 
       let params = {};
       if (this.processesFilterId) params.filter_id = this.processesFilterId;

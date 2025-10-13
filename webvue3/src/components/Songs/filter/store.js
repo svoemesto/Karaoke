@@ -1,4 +1,4 @@
-import {promisedXMLHttpRequest} from "../../../lib/utils";
+import { promisedXMLHttpRequest, setWebvueProp } from "../../../lib/utils";
 
 export default {
     state: {
@@ -56,243 +56,92 @@ export default {
     mutations: {
         updateSongsHistory(state, result) {
             state.songsHistory = result.history;
-            // console.log('songHistory:', result.history);
         },
         setSongsHistoryIsLoading(state, isLoading) { state.songsHistoryIsLoading = isLoading },
 
         setSongsFilterId(state, value) {
-            if (value === undefined || value === null) value = '';
-            if (state.songsFilterId !== undefined && state.songsFilterId !== null) {
-                const key = 'songsFilterId';
-                promisedXMLHttpRequest({
-                    method: 'POST',
-                    url: "/apis/setwebvueprop",
-                    params: {key: key, value: value}
-                });
-            }
-            state.songsFilterId = value
+            setWebvueProp(state.songsFilterId, 'songsFilterId', value);
+            state.songsFilterId = value;
         },
         setSongsFilterSongName(state, value) {
-            if (state.songsFilterSongName !== undefined && state.songsFilterSongName !== null && value !== undefined && value !== null) {
-                const key = 'songsFilterSongName';
-                promisedXMLHttpRequest({
-                    method: 'POST',
-                    url: "/apis/setwebvueprop",
-                    params: {key: key, value: value}
-                });
-            }
-            state.songsFilterSongName = value
+            setWebvueProp(state.songsFilterSongName, 'songsFilterSongName', value);
+            state.songsFilterSongName = value;
         },
         setSongsFilterSongAuthor(state, value) {
-            console.log('setSongsFilterSongAuthor', value);
-            if (state.songsFilterSongAuthor !== undefined && state.songsFilterSongAuthor !== null && value !== undefined && value !== null) {
-                const key = 'songsFilterSongAuthor';
-                promisedXMLHttpRequest({
-                    method: 'POST',
-                    url: "/apis/setwebvueprop",
-                    params: {key: key, value: value}
-                });
-            }
-            state.songsFilterSongAuthor = value
+            setWebvueProp(state.songsFilterSongAuthor, 'songsFilterSongAuthor', value);
+            state.songsFilterSongAuthor = value;
         },
         setSongsFilterSongAlbum(state, value) {
-            console.log('setSongsFilterSongAlbum', value);
-            if (state.songsFilterSongAlbum !== undefined && state.songsFilterSongAlbum !== null && value !== undefined && value !== null) {
-                const key = 'songsFilterSongAlbum';
-                promisedXMLHttpRequest({
-                    method: 'POST',
-                    url: "/apis/setwebvueprop",
-                    params: {key: key, value: value}
-                });
-            }
-            state.songsFilterSongAlbum = value
+            setWebvueProp(state.songsFilterSongAlbum, 'songsFilterSongAlbum', value);
+            state.songsFilterSongAlbum = value;
         },
         setSongsFilterPublishDate(state, value) {
-            if (state.songsFilterPublishDate !== undefined && state.songsFilterPublishDate !== null && value !== undefined && value !== null) {
-                const key = 'songsFilterPublishDate';
-                promisedXMLHttpRequest({
-                    method: 'POST',
-                    url: "/apis/setwebvueprop",
-                    params: {key: key, value: value}
-                });
-            }
-            state.songsFilterPublishDate = value
+            setWebvueProp(state.songsFilterPublishDate, 'songsFilterPublishDate', value);
+            state.songsFilterPublishDate = value;
         },
         setSongsFilterPublishTime(state, value) {
-            if (state.songsFilterPublishTime !== undefined && state.songsFilterPublishTime !== null && value !== undefined && value !== null) {
-                const key = 'songsFilterPublishTime';
-                promisedXMLHttpRequest({
-                    method: 'POST',
-                    url: "/apis/setwebvueprop",
-                    params: {key: key, value: value}
-                });
-            }
-            state.songsFilterPublishTime = value
+            setWebvueProp(state.songsFilterPublishTime, 'songsFilterPublishTime', value);
+            state.songsFilterPublishTime = value;
         },
         setSongsFilterIdStatus(state, value) {
-            if (state.songsFilterIdStatus !== undefined && state.songsFilterIdStatus !== null && value !== undefined && value !== null) {
-                const key = 'songsFilterIdStatus';
-                promisedXMLHttpRequest({
-                    method: 'POST',
-                    url: "/apis/setwebvueprop",
-                    params: {key: key, value: value}
-                });
-            }
-            state.songsFilterIdStatus = value
+            setWebvueProp(state.songsFilterIdStatus, 'songsFilterIdStatus', value);
+            state.songsFilterIdStatus = value;
         },
         setSongsFilterCountVoices(state, value) {
-            if (state.songsFilterCountVoices !== undefined && state.songsFilterCountVoices !== null && value !== undefined && value !== null) {
-                const key = 'songsFilterCountVoices';
-                promisedXMLHttpRequest({
-                    method: 'POST',
-                    url: "/apis/setwebvueprop",
-                    params: {key: key, value: value}
-                });
-            }
-            state.songsFilterCountVoices = value
+            setWebvueProp(state.songsFilterCountVoices, 'songsFilterCountVoices', value);
+            state.songsFilterCountVoices = value;
         },
         setSongsFilterTags(state, value) {
-            if (state.songsFilterTags !== undefined && state.songsFilterTags !== null && value !== undefined && value !== null) {
-                const key = 'songsFilterTags';
-                promisedXMLHttpRequest({
-                    method: 'POST',
-                    url: "/apis/setwebvueprop",
-                    params: {key: key, value: value}
-                });
-            }
-            state.songsFilterTags = value
+            setWebvueProp(state.songsFilterTags, 'songsFilterTags', value);
+            state.songsFilterTags = value;
         },
         setSongsFilterResultVersion(state, value) {
-            if (state.songsFilterResultVersion !== undefined && state.songsFilterResultVersion !== null && value !== undefined && value !== null) {
-                const key = 'songsFilterResultVersion';
-                promisedXMLHttpRequest({
-                    method: 'POST',
-                    url: "/apis/setwebvueprop",
-                    params: {key: key, value: value}
-                });
-            }
-            state.songsFilterResultVersion = value
+            setWebvueProp(state.songsFilterResultVersion, 'songsFilterResultVersion', value);
+            state.songsFilterResultVersion = value;
         },
         setSongsFilterVersionBoosty(state, value) {
-            if (state.songsFilterVersionBoosty !== undefined && state.songsFilterVersionBoosty !== null && value !== undefined && value !== null) {
-                const key = 'songsFilterVersionBoosty';
-                promisedXMLHttpRequest({
-                    method: 'POST',
-                    url: "/apis/setwebvueprop",
-                    params: {key: key, value: value}
-                });
-            }
-            state.songsFilterVersionBoosty = value
+            setWebvueProp(state.songsFilterVersionBoosty, 'songsFilterVersionBoosty', value);
+            state.songsFilterVersionBoosty = value;
         },
         setSongsFilterVersionBoostyFiles(state, value) {
-            if (state.songsFilterVersionBoostyFiles !== undefined && state.songsFilterVersionBoostyFiles !== null && value !== undefined && value !== null) {
-                const key = 'songsFilterVersionBoostyFiles';
-                promisedXMLHttpRequest({
-                    method: 'POST',
-                    url: "/apis/setwebvueprop",
-                    params: {key: key, value: value}
-                });
-            }
-            state.songsFilterVersionBoostyFiles = value
+            setWebvueProp(state.songsFilterVersionBoostyFiles, 'songsFilterVersionBoostyFiles', value);
+            state.songsFilterVersionBoostyFiles = value;
         },
         setSongsFilterVersionSponsr(state, value) {
-            if (state.songsFilterVersionSponsr !== undefined && state.songsFilterVersionSponsr !== null && value !== undefined && value !== null) {
-                const key = 'songsFilterVersionSponsr';
-                promisedXMLHttpRequest({
-                    method: 'POST',
-                    url: "/apis/setwebvueprop",
-                    params: {key: key, value: value}
-                });
-            }
-            state.songsFilterVersionSponsr = value
+            setWebvueProp(state.songsFilterVersionSponsr, 'songsFilterVersionSponsr', value);
+            state.songsFilterVersionSponsr = value;
         },
         setSongsFilterVersionDzenKaraoke(state, value) {
-            if (state.songsFilterVersionDzenKaraoke !== undefined && state.songsFilterVersionDzenKaraoke !== null && value !== undefined && value !== null) {
-                const key = 'songsFilterVersionDzenKaraoke';
-                promisedXMLHttpRequest({
-                    method: 'POST',
-                    url: "/apis/setwebvueprop",
-                    params: {key: key, value: value}
-                });
-            }
-            state.songsFilterVersionDzenKaraoke = value
+            setWebvueProp(state.songsFilterVersionDzenKaraoke, 'songsFilterVersionDzenKaraoke', value);
+            state.songsFilterVersionDzenKaraoke = value;
         },
         setSongsFilterVersionVkKaraoke(state, value) {
-            if (state.songsFilterVersionVkKaraoke !== undefined && state.songsFilterVersionVkKaraoke !== null && value !== undefined && value !== null) {
-                const key = 'songsFilterVersionVkKaraoke';
-                promisedXMLHttpRequest({
-                    method: 'POST',
-                    url: "/apis/setwebvueprop",
-                    params: {key: key, value: value}
-                });
-            }
-            state.songsFilterVersionVkKaraoke = value
+            setWebvueProp(state.songsFilterVersionVkKaraoke, 'songsFilterVersionVkKaraoke', value);
+            state.songsFilterVersionVkKaraoke = value;
         },
         setSongsFilterVersionTelegramKaraoke(state, value) {
-            if (state.songsFilterVersionTelegramKaraoke !== undefined && state.songsFilterVersionTelegramKaraoke !== null && value !== undefined && value !== null) {
-                const key = 'songsFilterVersionTelegramKaraoke';
-                promisedXMLHttpRequest({
-                    method: 'POST',
-                    url: "/apis/setwebvueprop",
-                    params: {key: key, value: value}
-                });
-            }
-            state.songsFilterVersionTelegramKaraoke = value
+            setWebvueProp(state.songsFilterVersionTelegramKaraoke, 'songsFilterVersionTelegramKaraoke', value);
+            state.songsFilterVersionTelegramKaraoke = value;
         },
         setSongsFilterVersionPlKaraoke(state, value) {
-            if (state.songsFilterVersionPlKaraoke !== undefined && state.songsFilterVersionPlKaraoke !== null && value !== undefined && value !== null) {
-                const key = 'songsFilterVersionPlKaraoke';
-                promisedXMLHttpRequest({
-                    method: 'POST',
-                    url: "/apis/setwebvueprop",
-                    params: {key: key, value: value}
-                });
-            }
-            state.songsFilterVersionPlKaraoke = value
+            setWebvueProp(state.songsFilterVersionPlKaraoke, 'songsFilterVersionPlKaraoke', value);
+            state.songsFilterVersionPlKaraoke = value;
         },
         setSongsFilterRate(state, value) {
-            if (state.songsFilterRate !== undefined && state.songsFilterRate !== null && value !== undefined && value !== null) {
-                const key = 'songsFilterRate';
-                promisedXMLHttpRequest({
-                    method: 'POST',
-                    url: "/apis/setwebvueprop",
-                    params: {key: key, value: value}
-                });
-            }
-            state.songsFilterRate = value
+            setWebvueProp(state.songsFilterRate, 'songsFilterRate', value);
+            state.songsFilterRate = value;
         },
         setSongsFilterIsSync(state, value) {
-            if (state.songsFilterIsSync !== undefined && state.songsFilterIsSync !== null && value !== undefined && value !== null) {
-                const key = 'songsFilterIsSync';
-                promisedXMLHttpRequest({
-                    method: 'POST',
-                    url: "/apis/setwebvueprop",
-                    params: {key: key, value: value}
-                });
-            }
-            state.songsFilterIsSync = value
+            setWebvueProp(state.songsFilterIsSync, 'songsFilterIsSync', value);
+            state.songsFilterIsSync = value;
         },
         setSongsFilterStatusProcessLyrics(state, value) {
-            if (state.songsFilterStatusProcessLyrics !== undefined && state.songsFilterStatusProcessLyrics !== null && value !== undefined && value !== null) {
-                const key = 'songsFilterStatusProcessLyrics';
-                promisedXMLHttpRequest({
-                    method: 'POST',
-                    url: "/apis/setwebvueprop",
-                    params: {key: key, value: value}
-                });
-            }
-            state.songsFilterStatusProcessLyrics = value
+            setWebvueProp(state.songsFilterStatusProcessLyrics, 'songsFilterStatusProcessLyrics', value);
+            state.songsFilterStatusProcessLyrics = value;
         },
         setSongsFilterStatusProcessKaraoke(state, value) {
-            if (state.songsFilterStatusProcessKaraoke !== undefined && state.songsFilterStatusProcessKaraoke !== null && value !== undefined && value !== null) {
-                const key = 'songsFilterStatusProcessKaraoke';
-                promisedXMLHttpRequest({
-                    method: 'POST',
-                    url: "/apis/setwebvueprop",
-                    params: {key: key, value: value}
-                });
-            }
-            state.songsFilterStatusProcessKaraoke = value
+            setWebvueProp(state.songsFilterStatusProcessKaraoke, 'songsFilterStatusProcessKaraoke', value);
+            state.songsFilterStatusProcessKaraoke = value;
         }
     },
     actions: {

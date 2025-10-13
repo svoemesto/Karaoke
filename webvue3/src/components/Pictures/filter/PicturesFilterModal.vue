@@ -47,16 +47,24 @@
 
 export default {
   name: "PicturesFilterModal",
-  data() {
-    return {
-      picturesFilterId: this.$store.getters.getPicturesFilterId,
-      picturesFilterName: this.$store.getters.getPicturesFilterName
+  async beforeMount() {
+    this.$store.dispatch('setPicturesFilterId', { value: await this.$store.getters.getWebvueProp('picturesFilterId', '') });
+    this.$store.dispatch('setPicturesFilterName', { value: await this.$store.getters.getWebvueProp('picturesFilterName', '') });
+  },
+  computed: {
+    picturesFilterId: {
+      get() { return this.$store.getters.getPicturesFilterId; },
+      set(value) { this.$store.dispatch('setPicturesFilterId', { value: value }); }
+    },
+    picturesFilterName: {
+      get() { return this.$store.getters.getPicturesFilterName; },
+      set(value) { this.$store.dispatch('setPicturesFilterName', { value: value }); }
     }
   },
   methods: {
     ok() {
-      this.$store.dispatch('setPicturesFilterId', { picturesFilterId: this.picturesFilterId });
-      this.$store.dispatch('setPicturesFilterName', { picturesFilterName: this.picturesFilterName });
+      this.$store.dispatch('setPicturesFilterId', { value: this.picturesFilterId });
+      this.$store.dispatch('setPicturesFilterName', { value: this.picturesFilterName });
 
       let params = {};
       if (this.picturesFilterId) params.filter_id = this.picturesFilterId;

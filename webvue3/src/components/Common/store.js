@@ -48,11 +48,24 @@ export default {
         },
         setLogText(state, text) {
             state.logText = text;
+        },
+        setWebvueProp(state, field, key, value) {
+            if (value === undefined || value === null) value = '';
+            if (field !== undefined && field !== null) {
+                promisedXMLHttpRequest({
+                    method: 'POST',
+                    url: "/apis/setwebvueprop",
+                    params: {key: key, value: value}
+                });
+            }
         }
     },
     actions: {
         setLogMessage(ctx, text) {
             ctx.commit('setLogMessage', text);
+        },
+        setWebvueProp(ctx, field, key, value) {
+            ctx.commit('setWebvueProp', field, key, value);
         }
     }
 }

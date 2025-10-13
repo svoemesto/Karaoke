@@ -1,3 +1,5 @@
+import { setWebvueProp } from "../../../lib/utils";
+
 export default {
     state: {
         picturesFilterId: '',
@@ -9,11 +11,17 @@ export default {
 
     },
     mutations: {
-        setPicturesFilterId(state, picturesFilterId) { state.picturesFilterId = picturesFilterId },
-        setPicturesFilterName(state, picturesFilterName) { state.picturesFilterName = picturesFilterName }
+        setPicturesFilterId(state, value) {
+            setWebvueProp(state.picturesFilterId, 'picturesFilterId', value);
+            state.picturesFilterId = value;
+        },
+        setPicturesFilterName(state, value) {
+            setWebvueProp(state.picturesFilterName, 'picturesFilterName', value);
+            state.picturesFilterName = value;
+        }
     },
     actions: {
-        setPicturesFilterId(ctx, payload) { ctx.commit('setPicturesFilterId', payload.picturesFilterId) },
-        setPicturesFilterName(ctx, payload) { ctx.commit('setPicturesFilterName', payload.picturesFilterName) }
+        setPicturesFilterId(ctx, payload) { ctx.commit('setPicturesFilterId', payload.value) },
+        setPicturesFilterName(ctx, payload) { ctx.commit('setPicturesFilterName', payload.value) }
     },
 }

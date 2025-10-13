@@ -107,28 +107,60 @@
 
 export default {
   name: "AuthorsFilterModal",
-  data() {
-    return {
-      authorsFilterId: this.$store.getters.getAuthorsFilterId,
-      authorsFilterAuthor: this.$store.getters.getAuthorsFilterAuthor,
-      authorsFilterYmId: this.$store.getters.getAuthorsFilterYmId,
-      authorsFilterLastAlbumYm: this.$store.getters.getAuthorsFilterLastAlbumYm,
-      authorsFilterLastAlbumProcessed: this.$store.getters.getAuthorsFilterLastAlbumProcessed,
-      authorsFilterWatched: this.$store.getters.getAuthorsFilterWatched,
-      authorsFilterSkip: this.$store.getters.getAuthorsFilterSkip,
-      authorsFilterHaveNewAlbum: this.$store.getters.getAuthorsFilterHaveNewAlbum
-    }
+  async beforeMount() {
+    this.$store.dispatch('setAuthorsFilterId', { value: await this.$store.getters.getWebvueProp('authorsFilterId', '') });
+    this.$store.dispatch('setAuthorsFilterAuthor', { value: await this.$store.getters.getWebvueProp('authorsFilterAuthor', '') });
+    this.$store.dispatch('setAuthorsFilterYmId', { value: await this.$store.getters.getWebvueProp('authorsFilterYmId', '') });
+    this.$store.dispatch('setAuthorsFilterLastAlbumYm', { value: await this.$store.getters.getWebvueProp('authorsFilterLastAlbumYm', '') });
+    this.$store.dispatch('setAuthorsFilterLastAlbumProcessed', { value: await this.$store.getters.getWebvueProp('authorsFilterLastAlbumProcessed', '') });
+    this.$store.dispatch('setAuthorsFilterWatched', { value: await this.$store.getters.getWebvueProp('authorsFilterWatched', '') });
+    this.$store.dispatch('setAuthorsFilterSkip', { value: await this.$store.getters.getWebvueProp('authorsFilterSkip', '') });
+    this.$store.dispatch('setAuthorsFilterHaveNewAlbum', { value: await this.$store.getters.getWebvueProp('authorsFilterHaveNewAlbum', '') });
+  },
+  computed: {
+    authorsFilterId: {
+      get() { return this.$store.getters.getAuthorsFilterId; },
+      set(value) { this.$store.dispatch('setAuthorsFilterId', { value: value }); }
+    },
+    authorsFilterAuthor: {
+      get() { return this.$store.getters.getAuthorsFilterAuthor; },
+      set(value) { this.$store.dispatch('setAuthorsFilterAuthor', { value: value }); }
+    },
+    authorsFilterYmId: {
+      get() { return this.$store.getters.getAuthorsFilterYmId; },
+      set(value) { this.$store.dispatch('setAuthorsFilterYmId', { value: value }); }
+    },
+    authorsFilterLastAlbumYm: {
+      get() { return this.$store.getters.getAuthorsFilterLastAlbumYm; },
+      set(value) { this.$store.dispatch('setAuthorsFilterLastAlbumYm', { value: value }); }
+    },
+    authorsFilterLastAlbumProcessed: {
+      get() { return this.$store.getters.getAuthorsFilterLastAlbumProcessed; },
+      set(value) { this.$store.dispatch('setAuthorsFilterLastAlbumProcessed', { value: value }); }
+    },
+    authorsFilterWatched: {
+      get() { return this.$store.getters.getAuthorsFilterWatched; },
+      set(value) { this.$store.dispatch('setAuthorsFilterWatched', { value: value }); }
+    },
+    authorsFilterSkip: {
+      get() { return this.$store.getters.getAuthorsFilterSkip; },
+      set(value) { this.$store.dispatch('setAuthorsFilterSkip', { value: value }); }
+    },
+    authorsFilterHaveNewAlbum: {
+      get() { return this.$store.getters.getAuthorsFilterHaveNewAlbum; },
+      set(value) { this.$store.dispatch('setAuthorsFilterHaveNewAlbum', { value: value }); }
+    },
   },
   methods: {
     ok() {
-      this.$store.dispatch('setAuthorsFilterId', { authorsFilterId: this.authorsFilterId });
-      this.$store.dispatch('setAuthorsFilterAuthor', { authorsFilterAuthor: this.authorsFilterAuthor });
-      this.$store.dispatch('setAuthorsFilterYmId', { authorsFilterYmId: this.authorsFilterYmId });
-      this.$store.dispatch('setAuthorsFilterLastAlbumYm', { authorsFilterLastAlbumYm: this.authorsFilterLastAlbumYm });
-      this.$store.dispatch('setAuthorsFilterLastAlbumProcessed', { authorsFilterLastAlbumProcessed: this.authorsFilterLastAlbumProcessed });
-      this.$store.dispatch('setAuthorsFilterWatched', { authorsFilterWatched: this.authorsFilterWatched });
-      this.$store.dispatch('setAuthorsFilterSkip', { authorsFilterSkip: this.authorsFilterSkip });
-      this.$store.dispatch('setAuthorsFilterHaveNewAlbum', { authorsFilterHaveNewAlbum: this.authorsFilterHaveNewAlbum });
+      this.$store.dispatch('setAuthorsFilterId', { value: this.authorsFilterId });
+      this.$store.dispatch('setAuthorsFilterAuthor', { value: this.authorsFilterAuthor });
+      this.$store.dispatch('setAuthorsFilterYmId', { value: this.authorsFilterYmId });
+      this.$store.dispatch('setAuthorsFilterLastAlbumYm', { value: this.authorsFilterLastAlbumYm });
+      this.$store.dispatch('setAuthorsFilterLastAlbumProcessed', { value: this.authorsFilterLastAlbumProcessed });
+      this.$store.dispatch('setAuthorsFilterWatched', { value: this.authorsFilterWatched });
+      this.$store.dispatch('setAuthorsFilterSkip', { value: this.authorsFilterSkip });
+      this.$store.dispatch('setAuthorsFilterHaveNewAlbum', { value: this.authorsFilterHaveNewAlbum });
 
       let params = {};
       if (this.authorsFilterId) params.filter_id = this.authorsFilterId;

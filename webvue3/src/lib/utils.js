@@ -20,6 +20,17 @@ export function promisedXMLHttpRequest (obj) {
     });
 }
 
+export function setWebvueProp (field, key, value) {
+    if (value === undefined || value === null) value = '';
+    if (field !== undefined && field !== null) {
+        promisedXMLHttpRequest({
+            method: 'POST',
+            url: "/apis/setwebvueprop",
+            params: {key: key, value: value}
+        });
+    }
+}
+
 function getParamStringToSend (params) {
     let urlEncodedDataPairs = [], name;
     for( name in params ) {

@@ -431,7 +431,7 @@ export default {
   display: flex;
   flex-direction: column;
   max-width: 500px;
-  min-height: calc(100vh - 25px);
+  min-height: calc(100vh - 85px);
   margin: 0 auto;
   justify-content: center;
 }

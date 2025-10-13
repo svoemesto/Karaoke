@@ -26,8 +26,8 @@ export default {
 .publish-root {
   display: flex;
   flex-direction: column;
-  width: calc(100vw - 50px);
-  height: calc(100vh - 95px);
+  width: calc(100vw - 185px);
+  height: calc(100vh - 120px);
 }
 
 </style>

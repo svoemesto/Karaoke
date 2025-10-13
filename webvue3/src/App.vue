@@ -2,21 +2,44 @@
 <template>
   <BApp>
     <div id="app">
-      <div class="app-header">
-        <ul class="nav nav-pills">
-          <li class="nav-item"><router-link to="/">Главная</router-link></li>
-          <li class="nav-item"><router-link to="/songs">Песни</router-link></li>
-          <li class="nav-item"><router-link to="/publish">Публикации</router-link></li>
-          <li class="nav-item"><router-link to="/authors">Авторы</router-link></li>
-          <li class="nav-item"><router-link to="/pictures">Картинки</router-link></li>
-          <li class="nav-item"><router-link to="/processes">Процессы</router-link></li>
-          <li class="nav-item"><router-link to="/properties">Настройки</router-link></li>
-        </ul>
-        <!-- Эти компоненты нужно будет создать или адаптировать для Vue 3 -->
-        <BackendConsole/>
-        <ProcessWorker/>
+<!--      <div class="app-header">-->
+<!--        <ul class="nav nav-pills">-->
+<!--          <li class="nav-item"><router-link to="/">Главная</router-link></li>-->
+<!--          <li class="nav-item"><router-link to="/songs">Песни</router-link></li>-->
+<!--          <li class="nav-item"><router-link to="/publish">Публикации</router-link></li>-->
+<!--          <li class="nav-item"><router-link to="/authors">Авторы</router-link></li>-->
+<!--          <li class="nav-item"><router-link to="/pictures">Картинки</router-link></li>-->
+<!--          <li class="nav-item"><router-link to="/processes">Процессы</router-link></li>-->
+<!--          <li class="nav-item"><router-link to="/properties">Настройки</router-link></li>-->
+<!--        </ul>-->
+<!--        <BackendConsole/>-->
+<!--        <ProcessWorker/>-->
+<!--      </div>-->
+<!--      <router-view/>-->
+      <!-- Основной контейнер с двумя колонками -->
+      <div class="app-container">
+        <!-- Левая колонка для навигации -->
+        <div class="app-sidebar">
+          <ul class="nav nav-pills flex-column"> <!-- Добавлен flex-column -->
+            <li class="nav-item"><router-link class="nav-link" to="/">Главная</router-link></li>
+            <li class="nav-item"><router-link class="nav-link" to="/songs">Песни</router-link></li>
+            <li class="nav-item"><router-link class="nav-link" to="/publish">Публикации</router-link></li>
+            <li class="nav-item"><router-link class="nav-link" to="/authors">Авторы</router-link></li>
+            <li class="nav-item"><router-link class="nav-link" to="/pictures">Картинки</router-link></li>
+            <li class="nav-item"><router-link class="nav-link" to="/processes">Процессы</router-link></li>
+            <li class="nav-item"><router-link class="nav-link" to="/properties">Настройки</router-link></li>
+          </ul>
+        </div>
+
+        <!-- Правая колонка для основного контента -->
+        <div class="app-main-content">
+          <div class="app-header-right"> <!-- Добавлен контейнер для правого верхнего угла -->
+            <BackendConsole/>
+            <ProcessWorker/>
+          </div>
+          <router-view/>
+        </div>
       </div>
-      <router-view/>
     </div>
   </BApp>
 </template>
@@ -327,7 +350,73 @@ export default {
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
   color: #2c3e50;
+  height: 100vh; /* Занимаем всю высоту экрана */
+  display: flex; /* Делаем #app flex-контейнером */
+  flex-direction: column; /* Распределяем содержимое по вертикали */
 }
+
+/* Контейнер для двух колонок */
+.app-container {
+  display: flex; /* Используем flexbox для создания двух колонок */
+  flex: 1; /* Растягиваем на всю доступную высоту после возможных элементов вне .app-container */
+  min-height: 0; /* Позволяет дочерним элементам с flex сжиматься */
+}
+
+/* Стили для левой колонки (сайдбар) */
+.app-sidebar {
+  width: 150px; /* Установите желаемую ширину для сайдбара */
+  /* border-right: 1px solid #ccc; /* Добавьте границу, если нужно */
+  padding: 10px;
+  display: flex;
+  flex-direction: column; /* Распределяем элементы (nav-pills) по вертикали */
+  background-color: #f8f9fa; /* Цвет фона для сайдбара (по желанию) */
+}
+
+/* Стили для навигационного списка в сайдбаре */
+.app-sidebar .nav-pills {
+  flex-direction: column; /* Убедимся, что элементы списка идут по вертикали */
+}
+
+.app-sidebar .nav-link {
+  margin-bottom: 5px; /* Отступ между ссылками */
+  text-align: left; /* Выравнивание текста в ссылках */
+  padding: 8px 12px; /* Внутренние отступы для ссылок */
+  border-radius: 4px; /* Скругление углов ссылок */
+  text-decoration: none; /* Убираем подчеркивание по умолчанию */
+  color: #2c3e50; /* Цвет текста ссылки */
+}
+
+.app-sidebar .nav-link:hover {
+  background-color: #e9ecef; /* Цвет фона при наведении */
+  text-decoration: none; /* Убираем подчеркивание при наведении */
+  color: #2c3e50; /* Цвет текста при наведении */
+}
+
+.app-sidebar .nav-link.router-link-active,
+.app-sidebar .nav-link.router-link-exact-active {
+  background-color: #4AAE9B; /* Цвет фона активной ссылки */
+  color: white; /* Цвет текста активной ссылки */
+  font-weight: bold; /* Жирный шрифт для активной ссылки */
+}
+
+/* Стили для правой колонки (основной контент) */
+.app-main-content {
+  flex: 1; /* Занимает оставшееся пространство */
+  display: flex;
+  flex-direction: column; /* Распределяем содержимое по вертикали */
+  padding: 10px;
+  overflow: auto; /* Добавляем прокрутку, если содержимое велико */
+}
+
+/* Контейнер для элементов в правом верхнем углу */
+.app-header-right {
+  display: flex;
+  justify-content: flex-end; /* Выравнивание элементов по правому краю */
+  gap: 10px; /* Расстояние между элементами (BackendConsole, ProcessWorker) */
+  margin-bottom: 10px; /* Отступ снизу перед router-view */
+  /* border-bottom: 1px solid #ccc; /* Граница под заголовком (по желанию) */
+}
+
 
 .app-header {
   display: flex;

@@ -411,7 +411,7 @@ export default {
 /* Контейнер для элементов в правом верхнем углу */
 .app-header-right {
   display: flex;
-  justify-content: flex-end; /* Выравнивание элементов по правому краю */
+  justify-content: space-between; /* Выравнивание элементов по правому краю */
   gap: 10px; /* Расстояние между элементами (BackendConsole, ProcessWorker) */
   margin-bottom: 10px; /* Отступ снизу перед router-view */
   /* border-bottom: 1px solid #ccc; /* Граница под заголовком (по желанию) */

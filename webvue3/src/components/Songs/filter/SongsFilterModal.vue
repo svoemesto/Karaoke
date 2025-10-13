@@ -277,27 +277,6 @@ export default {
   },
   data() {
     return {
-      // songsFilterId: this.$store.getters.getSongsFilterId,
-      // songsFilterSongName: this.$store.getters.getSongsFilterSongName,
-      // songsFilterSongAuthor: this.$store.getters.getSongsFilterSongAuthor,
-      // songsFilterSongAlbum: this.$store.getters.getSongsFilterSongAlbum,
-      // songsFilterPublishDate: this.$store.getters.getSongsFilterPublishDate,
-      // songsFilterPublishTime: this.$store.getters.getSongsFilterPublishTime,
-      // songsFilterIdStatus: this.$store.getters.getSongsFilterIdStatus,
-      // songsFilterCountVoices: this.$store.getters.getSongsFilterCountVoices,
-      // songsFilterTags: this.$store.getters.getSongsFilterTags,
-      // songsFilterResultVersion: this.$store.getters.getSongsFilterResultVersion,
-      // songsFilterVersionBoosty: this.$store.getters.getSongsFilterVersionBoosty,
-      // songsFilterVersionBoostyFiles: this.$store.getters.getSongsFilterVersionBoostyFiles,
-      // songsFilterVersionSponsr: this.$store.getters.getSongsFilterVersionSponsr,
-      // songsFilterVersionDzenKaraoke: this.$store.getters.getSongsFilterVersionDzenKaraoke,
-      // songsFilterVersionVkKaraoke: this.$store.getters.getSongsFilterVersionVkKaraoke,
-      // songsFilterVersionTelegramKaraoke: this.$store.getters.getSongsFilterVersionTelegramKaraoke,
-      // songsFilterVersionPlKaraoke: this.$store.getters.getSongsFilterVersionPlKaraoke,
-      // songsFilterRate: this.$store.getters.getSongsFilterRate,
-      // songsFilterIsSync: this.$store.getters.getSongsFilterIsSync,
-      // songsFilterStatusProcessLyrics: this.$store.getters.getSongsFilterStatusProcessLyrics,
-      // songsFilterStatusProcessKaraoke: this.$store.getters.getSongsFilterStatusProcessKaraoke,
       dictAuthors: []
     }
   },

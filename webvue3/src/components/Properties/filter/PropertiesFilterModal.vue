@@ -77,22 +77,42 @@
 
 export default {
   name: "PropertiesFilterModal",
-  data() {
-    return {
-      propertiesFilterKey: this.$store.getters.getPropertiesFilterKey,
-      propertiesFilterValue: this.$store.getters.getPropertiesFilterValue,
-      propertiesFilterDefaultValue: this.$store.getters.getPropertiesFilterDefaultValue,
-      propertiesFilterDescription: this.$store.getters.getPropertiesFilterDescription,
-      propertiesFilterType: this.$store.getters.getPropertiesFilterType
-    }
+  async beforeMount() {
+    this.$store.dispatch('setPropertiesFilterKey', { value: await this.$store.getters.getWebvueProp('propertiesFilterKey', '') });
+    this.$store.dispatch('setPropertiesFilterValue', { value: await this.$store.getters.getWebvueProp('propertiesFilterValue', '') });
+    this.$store.dispatch('setPropertiesFilterDefaultValue', { value: await this.$store.getters.getWebvueProp('propertiesFilterDefaultValue', '') });
+    this.$store.dispatch('setPropertiesFilterDescription', { value: await this.$store.getters.getWebvueProp('propertiesFilterDescription', '') });
+    this.$store.dispatch('setPropertiesFilterType', { value: await this.$store.getters.getWebvueProp('propertiesFilterType', '') });
+  },
+  computed: {
+    propertiesFilterKey: {
+      get() { return this.$store.getters.getPropertiesFilterKey; },
+      set(value) { this.$store.dispatch('setPropertiesFilterKey', { value: value }); }
+    },
+    propertiesFilterValue: {
+      get() { return this.$store.getters.getPropertiesFilterValue; },
+      set(value) { this.$store.dispatch('setPropertiesFilterValue', { value: value }); }
+    },
+    propertiesFilterDefaultValue: {
+      get() { return this.$store.getters.getPropertiesFilterDefaultValue; },
+      set(value) { this.$store.dispatch('setPropertiesFilterDefaultValue', { value: value }); }
+    },
+    propertiesFilterDescription: {
+      get() { return this.$store.getters.getPropertiesFilterDescription; },
+      set(value) { this.$store.dispatch('setPropertiesFilterDescription', { value: value }); }
+    },
+    propertiesFilterType: {
+      get() { return this.$store.getters.getPropertiesFilterType; },
+      set(value) { this.$store.dispatch('setPropertiesFilterType', { value: value }); }
+    },
   },
   methods: {
     ok() {
-      this.$store.dispatch('setPropertiesFilterKey', { propertiesFilterKey: this.propertiesFilterKey });
-      this.$store.dispatch('setPropertiesFilterValue', { propertiesFilterValue: this.propertiesFilterValue });
-      this.$store.dispatch('setPropertiesFilterDefaultValue', { propertiesFilterDefaultValue: this.propertiesFilterDefaultValue });
-      this.$store.dispatch('setPropertiesFilterDescription', { propertiesFilterDescription: this.propertiesFilterDescription });
-      this.$store.dispatch('setPropertiesFilterType', { propertiesFilterType: this.propertiesFilterType });
+      this.$store.dispatch('setPropertiesFilterKey', { value: this.propertiesFilterKey });
+      this.$store.dispatch('setPropertiesFilterValue', { value: this.propertiesFilterValue });
+      this.$store.dispatch('setPropertiesFilterDefaultValue', { value: this.propertiesFilterDefaultValue });
+      this.$store.dispatch('setPropertiesFilterDescription', { value: this.propertiesFilterDescription });
+      this.$store.dispatch('setPropertiesFilterType', { value: this.propertiesFilterType });
 
       let params = {};
       if (this.propertiesFilterKey) params.filter_key = this.propertiesFilterKey;

@@ -1,7 +1,7 @@
 
 export default {
     state: {
-        smartCopySongVersion: 'KARAOKE',
+        smartCopySongVersion: 'ALL',
         smartCopySongResolution: '1080p',
         smartCopyCreateSubfoldersAuthors: false,
         smartCopyRenameTemplate: '[{author}] ({year}) {name} [{key}]',

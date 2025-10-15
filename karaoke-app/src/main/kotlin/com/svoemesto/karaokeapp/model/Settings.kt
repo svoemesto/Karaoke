@@ -592,6 +592,29 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             if (versionBoosty != resultVersion.toInt()) versionBoosty.toString() else "✔"
         }
 
+    val haveSponsr: Boolean get() = (idSponsr != "null" && idSponsr != "")
+    val haveVkGroup: Boolean get() = (idVk != "null" && idVk != "")
+    val haveDzenLyrics: Boolean get() = (idDzenLyrics != "null" && idDzenLyrics != "")
+    val haveDzenKaraoke: Boolean get() = (idDzenKaraoke != "null" && idDzenKaraoke != "")
+    val haveDzenChords: Boolean get() = (idDzenChords != "null" && idDzenChords != "")
+    val haveDzenTabs: Boolean get() = (idDzenMelody != "null" && idDzenMelody != "")
+    val haveDzen: Boolean get() = haveDzenLyrics && haveDzenKaraoke
+    val haveVkLyrics: Boolean get() = (idVkLyrics != "null" && idVkLyrics != "")
+    val haveVkKaraoke: Boolean get() = (idVkKaraoke != "null" && idVkKaraoke != "")
+    val haveVkChords: Boolean get() = (idVkChords != "null" && idVkChords != "")
+    val haveVkTabs: Boolean get() = (idVkMelody != "null" && idVkMelody != "")
+    val haveVk: Boolean get() = haveVkLyrics && haveVkKaraoke
+    val haveTelegramLyrics: Boolean get() = (idTelegramLyrics != "null" && idTelegramLyrics != "")
+    val haveTelegramKaraoke: Boolean get() = (idTelegramKaraoke != "null" && idTelegramKaraoke != "")
+    val haveTelegramChords: Boolean get() = (idTelegramChords != "null" && idTelegramChords != "")
+    val haveTelegramTabs: Boolean get() = (idTelegramMelody != "null" && idTelegramMelody != "")
+    val haveTelegram: Boolean get() = haveTelegramLyrics && haveTelegramKaraoke
+    val havePlLyrics: Boolean get() = (idPlLyrics != "null" && idPlLyrics != "" && idPlLyrics != "-")
+    val havePlKaraoke: Boolean get() = (idPlKaraoke != "null" && idPlKaraoke != "" && idPlKaraoke != "-")
+    val havePlChords: Boolean get() = (idPlChords != "null" && idPlChords != "")
+    val havePlTabs: Boolean get() = (idPlMelody != "null" && idPlMelody != "")
+    val havePl: Boolean get() = havePlLyrics && havePlKaraoke
+
     val flagSponsr: String get() = if (idSponsr == "null" || idSponsr == "") "-" else if (versionSponsr != resultVersion.toInt()) versionSponsr.toString() else "✓"
     val flagBoostyFiles: String get() = if (idBoostyFiles == "null" || idBoostyFiles == "") "-" else if (versionBoostyFiles != resultVersion.toInt()) versionBoostyFiles.toString() else "✓"
     val flagVk: String get() = if (idVk == "null" || idVk == "") "-" else "✓"
@@ -620,16 +643,16 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 //    val pathToSymlinkFolder: String get() = "$rootFolder/symlink"
     val pathToSymlinkFolderMP4: String get() = "$rootFolder/symlink_mp4"
     val pathToSymlinkFolderPNG: String get() = "$rootFolder/symlink_png"
-    val pathToSymlinkFolderBoostyPNG: String get() = "$rootFolder/symlink_boosty_png"
-    val pathToSymlinkFolderBoostyFiles: String get() = "$rootFolder/symlink_boosty_files"
+    val pathToSymlinkFolderSponsrPNG: String get() = "$rootFolder/symlink_sponsr_png"
+//    val pathToSymlinkFolderBoostyFiles: String get() = "$rootFolder/symlink_boosty_files"
     val separatedStem: String get() = "vocals"
     val oldNoStemNameWav: String get() = "$pathToResultedModel/$fileName-no_$separatedStem.wav"
     val newNoStemNameWav: String get() = "$pathToResultedModel/$fileName-accompaniment.wav"
     val newNoStemNameFlac: String get() = "$pathToResultedModel/$fileName-accompaniment.flac"
-    val newNoStemNameFlacSymlink: String get() = "$pathToSymlinkFolderBoostyFiles/$fileName-accompaniment.flac"
+//    val newNoStemNameFlacSymlink: String get() = "$pathToSymlinkFolderBoostyFiles/$fileName-accompaniment.flac"
     val vocalsNameWav: String get() = "$pathToResultedModel/$fileName-vocals.wav"
     val vocalsNameFlac: String get() = "$pathToResultedModel/$fileName-vocals.flac"
-    val vocalsNameFlacSymlink: String get() = "$pathToSymlinkFolderBoostyFiles/$fileName-vocals.flac"
+//    val vocalsNameFlacSymlink: String get() = "$pathToSymlinkFolderBoostyFiles/$fileName-vocals.flac"
     val drumsNameWav: String get() = "$pathToResultedModel/$fileName-drums.wav"
     val drumsNameFlac: String get() = "$pathToResultedModel/$fileName-drums.flac"
     val bassNameWav: String get() = "$pathToResultedModel/$fileName-bass.wav"
@@ -640,7 +663,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     val otherNameFlac: String get() = "$pathToResultedModel/$fileName-other.flac"
     val fileAbsolutePath: String get() = "$rootFolder/$fileName.flac"
     val fileAbsolutePathTmp: String get() = "$rootFolder/$fileName-tmp.flac"
-    val fileAbsolutePathSymlink: String get() = "$pathToSymlinkFolderBoostyFiles/$fileName.flac"
+//    val fileAbsolutePathSymlink: String get() = "$pathToSymlinkFolderBoostyFiles/$fileName.flac"
     val fileSettingsAbsolutePath: String get() = "$rootFolder/$rightSettingFileName.settings"
 
     val relativePathToFile: String get() = "../$fileName.flac"
@@ -3670,33 +3693,24 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         val datePublish = if (dateTimePublish == null) null else formatter.parse(formatter.format(dateTimePublish))
         if (datePublish == null || idStatus < 6) return SettingState.IN_WORK
 
+
         if (datePublish == currentDate) {
-            if (idTelegramKaraoke != "-" &&
-                idTelegramKaraoke != "" &&
-                idTelegramLyrics != "" &&
-                idVkKaraoke != "" &&
-                idVkLyrics != "" &&
-                idDzenKaraoke != "" &&
-                idDzenLyrics != "" &&
-                idPlKaraoke != "" &&
-                idPlLyrics != "" &&
-                idVk != "" &&
-                idBoosty != "" &&
-                idSponsr != ""
+            if (
+                haveTelegram &&
+                haveVk &&
+                haveDzen &&
+                havePl &&
+                haveVkGroup &&
+                haveSponsr
             ) {
                 return SettingState.ALL_DONE
-            } else if (idTelegramKaraoke != "-" &&
-                idTelegramKaraoke != "" &&
-                idTelegramLyrics != "" &&
-                idVkKaraoke != "" &&
-                idVkLyrics != "" &&
-                idDzenKaraoke != "" &&
-                idDzenLyrics != "" &&
-                idPlKaraoke != "" &&
-                idPlLyrics != "" &&
-                idVk != "" &&
-                idBoosty != "" &&
-                idSponsr == ""
+            } else if (
+                haveTelegram &&
+                haveVk &&
+                haveDzen &&
+                havePl &&
+                haveVkGroup &&
+                !haveSponsr
             ) {
                 return SettingState.ALL_DONE_WO_SPONSR
             } else {
@@ -3705,32 +3719,22 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         }
 
         if (datePublish < currentDate) {
-            if (idTelegramKaraoke != "-" &&
-                idTelegramKaraoke != "" &&
-                idTelegramLyrics != "" &&
-                idVkKaraoke != "" &&
-                idVkLyrics != "" &&
-                idDzenKaraoke != "" &&
-                idDzenLyrics != "" &&
-                idPlKaraoke != "" &&
-                idPlLyrics != "" &&
-                idVk != "" &&
-                idBoosty != "" &&
-                idSponsr != ""
+            if (
+                haveTelegram &&
+                haveVk &&
+                haveDzen &&
+                havePl &&
+                haveVkGroup &&
+                haveSponsr
             ) {
                 return SettingState.ALL_DONE
-            } else if (idTelegramKaraoke != "-" &&
-                idTelegramKaraoke != "" &&
-                idTelegramLyrics != "" &&
-                idVkKaraoke != "" &&
-                idVkLyrics != "" &&
-                idDzenKaraoke != "" &&
-                idDzenLyrics != "" &&
-                idPlKaraoke != "" &&
-                idPlLyrics != "" &&
-                idVk != "" &&
-                idBoosty != "" &&
-                idSponsr == ""
+            } else if (
+                haveTelegram &&
+                haveVk &&
+                haveDzen &&
+                havePl &&
+                haveVkGroup &&
+                !haveSponsr
             ) {
                 return SettingState.ALL_DONE_WO_SPONSR
             } else {
@@ -3738,135 +3742,89 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             }
         }
 
-        if (idTelegramKaraoke == "-" &&
-            idTelegramLyrics == "" &&
-            idVkKaraoke != "" &&
-            idVkLyrics != "" &&
-            idDzenKaraoke != "" &&
-            idDzenLyrics != "" &&
-            idVk != "" &&
-            idBoosty != "" &&
-            idBoostyFiles != ""
+        if (
+            idTelegramKaraoke == "-" &&
+            haveVk &&
+            haveDzen &&
+            havePl &&
+            haveVkGroup &&
+            haveSponsr
         ) return SettingState.ALL_UPLOADED
 
-        if (idTelegramKaraoke == "" &&
-            idTelegramLyrics == "" &&
-            idVkKaraoke != "" &&
-            idVkLyrics != "" &&
-            idDzenKaraoke != "" &&
-            idDzenLyrics != "" &&
-            idPlKaraoke != "" &&
-            idPlLyrics != "" &&
-            idVk != "" &&
-            idBoosty != "" &&
-            idBoostyFiles != "" &&
-            idSponsr == ""
+        if (
+            !haveTelegram &&
+            haveVk &&
+            haveDzen &&
+            havePl &&
+            haveVkGroup &&
+            haveSponsr
         ) return SettingState.WO_TG
 
-        if (idTelegramKaraoke == "" &&
-            idTelegramLyrics == "" &&
-            idVkKaraoke != "" &&
-            idVkLyrics != "" &&
-            idDzenKaraoke != "" &&
-            idDzenLyrics != "" &&
-            idPlKaraoke != "" &&
-            idPlLyrics != "" &&
-            idVk != "" &&
-            idBoosty != "" &&
-            idBoostyFiles != "" &&
-            idSponsr != ""
-        ) return SettingState.WO_TG_WITH_SPONSR
-
-        if (idTelegramKaraoke == "" &&
-            idTelegramLyrics == "" &&
-            idVkKaraoke != "" &&
-            idVkLyrics != "" &&
-            idDzenKaraoke != "" &&
-            idDzenLyrics != "" &&
-            (idPlKaraoke == "" ||
-            idPlLyrics == "") &&
-            idVk != "" &&
-            idBoosty != "" &&
-            idBoostyFiles != ""
+        if (
+            !haveTelegram &&
+            haveVk &&
+            haveDzen &&
+            !havePl &&
+            haveVkGroup &&
+            haveSponsr
         ) return SettingState.WO_PL
 
-        if (idTelegramKaraoke == "" &&
-            idTelegramLyrics == "" &&
-            (idVkKaraoke == "" ||
-            idVkLyrics == "") &&
-            (idPlKaraoke == "" ||
-            idPlLyrics == "") &&
-            idDzenKaraoke != "" &&
-            idDzenLyrics != "" &&
-            idBoosty != "" &&
-            idBoostyFiles != ""
+        if (
+            !haveTelegram &&
+            !haveVk &&
+            haveDzen &&
+            !havePl &&
+            haveVkGroup &&
+            haveSponsr
         ) return SettingState.WO_VK_WO_PL
 
-        if (idTelegramKaraoke == "" &&
-            idTelegramLyrics == "" &&
-            (idVkKaraoke == "" ||
-                    idVkLyrics == "") &&
-            idDzenKaraoke != "" &&
-            idDzenLyrics != "" &&
-            idBoosty != "" &&
-            idBoostyFiles != ""
+        if (
+            !haveTelegram &&
+            !haveVk &&
+            haveDzen &&
+            havePl &&
+            haveVkGroup &&
+            haveSponsr
         ) return SettingState.WO_VK
 
-        if (idTelegramKaraoke == "" &&
-            idTelegramLyrics == "" &&
-            idVkKaraoke != "" &&
-            idVkLyrics != "" &&
-            idPlKaraoke != "" &&
-            idPlLyrics != "" &&
-            (idDzenKaraoke == "" ||
-                    idDzenLyrics == "") &&
-            idBoosty != "" &&
-            idBoostyFiles != ""
+        if (
+            !haveTelegram &&
+            haveVk &&
+            !haveDzen &&
+            havePl &&
+            haveVkGroup &&
+            haveSponsr
         ) return SettingState.WO_DZEN_WITH_VK_WITH_PL
         
-        if (idTelegramKaraoke == "" &&
-            idTelegramLyrics == "" &&
-            idVkKaraoke != "" &&
-            idVkLyrics != "" &&
-            (idDzenKaraoke == "" ||
-            idDzenLyrics == "") &&
-            idBoosty != "" &&
-            idBoostyFiles != ""
+        if (
+            !haveTelegram &&
+            haveVk &&
+            !haveDzen &&
+            !havePl &&
+            haveVkGroup &&
+            haveSponsr
         ) return SettingState.WO_DZEN_WITH_VK
 
-
-
-        if (idTelegramKaraoke == "" &&
-            idTelegramLyrics == "" &&
-            (idVkKaraoke == "" ||
-            idVkLyrics == "") &&
-            (idDzenKaraoke == "" ||
-            idDzenLyrics == "") &&
-            idBoosty != "" &&
-            idBoostyFiles != "" &&
-            idSponsr == ""
+        if (
+            !haveTelegram &&
+            !haveVk &&
+            !haveDzen &&
+            havePl &&
+            haveVkGroup &&
+            haveSponsr
         ) return SettingState.WO_DZEN
 
-        if (idTelegramKaraoke == "" &&
-            idTelegramLyrics == "" &&
-            (idVkKaraoke == "" ||
-                    idVkLyrics == "") &&
-            (idDzenKaraoke == "" ||
-                    idDzenLyrics == "") &&
-            idBoosty != "" &&
-            idBoostyFiles != "" &&
-            idSponsr != ""
+        if (
+            !haveTelegram &&
+            !haveVk &&
+            !haveDzen &&
+            !havePl &&
+            haveVkGroup &&
+            haveSponsr
         ) return SettingState.BOOSTY_SPONSR
 
-        if (idTelegramKaraoke == "" &&
-            idTelegramLyrics == "" &&
-//            idVkKaraoke == "" &&
-//            idVkLyrics == "" &&
-//            idDzenKaraoke == "" &&
-//            idDzenLyrics == "" &&
-            idVk == "" &&
-            idBoosty != "" &&
-            idBoostyFiles != ""
+        if (
+            !haveVkGroup
         ) return SettingState.WO_VKG
 
         return SettingState.IN_WORK
@@ -3900,8 +3858,8 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                 if (Paths.get(settOldVersion.pathToFileSheetsageBeattimes).toFile().exists()) Paths.get(settOldVersion.pathToFileSheetsageBeattimes).toFile().renameTo(Paths.get(settNewVersion.pathToFileSheetsageBeattimes).toFile())
                 if (Paths.get(settOldVersion.fileSettingsAbsolutePath).toFile().exists()) Paths.get(settOldVersion.fileSettingsAbsolutePath).toFile().renameTo(Paths.get(settNewVersion.fileSettingsAbsolutePath).toFile())
                 if (Paths.get("/home/nsa/Karaoke/karaoke-web/src/main/resources/static/tmp/${settNewVersion.id}.png").toFile().exists()) createVKLinkPictureWeb(settNewVersion)
-                if (Paths.get(settNewVersion.getOutputFilename(SongOutputFile.PICTUREBOOSTYFILES)).toFile().exists()) createBoostyFilesPicture(settNewVersion)
-                if (Paths.get(settNewVersion.getOutputFilename(SongOutputFile.PICTUREBOOSTYTEASER)).toFile().exists()) createBoostyTeaserPicture(settNewVersion)
+//                if (Paths.get(settNewVersion.getOutputFilename(SongOutputFile.PICTUREBOOSTYFILES)).toFile().exists()) createBoostyFilesPicture(settNewVersion)
+//                if (Paths.get(settNewVersion.getOutputFilename(SongOutputFile.PICTUREBOOSTYTEASER)).toFile().exists()) createBoostyTeaserPicture(settNewVersion)
                 if (Paths.get(settNewVersion.getOutputFilename(SongOutputFile.PICTURESPONSRTEASER)).toFile().exists()) createSponsrTeaserPicture(settNewVersion)
                 if (Paths.get(settNewVersion.getOutputFilename(SongOutputFile.PICTURE, SongVersion.LYRICS)).toFile().exists()) createSongPicture(settNewVersion, SongVersion.LYRICS)
                 if (Paths.get(settNewVersion.getOutputFilename(SongOutputFile.PICTURE, SongVersion.KARAOKE)).toFile().exists()) createSongPicture(settNewVersion, SongVersion.KARAOKE)

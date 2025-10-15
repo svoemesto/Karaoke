@@ -8,7 +8,7 @@ import com.svoemesto.karaokeapp.textfiledictionary.TestDictionary
 import com.svoemesto.karaokeapp.textfiledictionary.YoWordsDictionary
 const val LIMIT_ROWS_SETTINGS_TABLE_UPDATE = 1000
 const val LIMIT_ROWS_PICTURES_TABLE_UPDATE = 100
-const val CURRENT_RESULT_VERSION = 10L
+const val CURRENT_RESULT_VERSION = 11L
 const val COUNT_HISTORY_LINES = 30
 const val PATH_TO_TEMP_DEMUCS_FOLDER = "/sm-karaoke/system/demucs-docker/tmp"
 const val COLOR_ALL_DONE = "#7FFFD4"        // Полностью готово
@@ -92,8 +92,8 @@ const val URL_PREFIX_TELEGRAM_EDIT = "https://t.me/svoemestokaraoke/{REPLACE}"
 const val URL_PREFIX_PL_PLAY = "https://plvideo.ru/watch?v={REPLACE}"
 const val URL_PREFIX_PL_EDIT = "https://studio.plvideo.ru/channel/bbj0HWC8H7ii/video/{REPLACE}/edit"
 
-const val URL_PREFIX_SPONSR_PLAY = "https://sponsr.ru/smkaraoke/manage/post/{REPLACE}/"
-const val URL_PREFIX_SPONSR_EDIT = "https://sponsr.ru/smkaraoke/{REPLACE}/"
+const val URL_PREFIX_SPONSR_EDIT = "https://sponsr.ru/smkaraoke/manage/post/{REPLACE}/"
+const val URL_PREFIX_SPONSR_PLAY = "https://sponsr.ru/smkaraoke/{REPLACE}/"
 
 //const val CONNECTION_URL = "jdbc:postgresql://localhost:5430/karaoke?currentSchema=public"
 //const val CONNECTION_USER = "postgres"

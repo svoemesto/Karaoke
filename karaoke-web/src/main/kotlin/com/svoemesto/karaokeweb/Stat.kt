@@ -2,7 +2,6 @@ package com.svoemesto.karaokeweb
 
 import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.model.Settings
-import com.svoemesto.karaokeweb.WORKING_DATABASE
 import java.io.Serializable
 import java.sql.ResultSet
 import java.sql.SQLException
@@ -62,8 +61,17 @@ class StatBySong(val database: KaraokeConnection = WORKING_DATABASE): Serializab
             return 0
         }
 
-        fun getCountSongsOnBoosty(database: KaraokeConnection = WORKING_DATABASE): Int {
-            val sql = "select count(DISTINCT id) as cnt from tbl_settings where id_boosty != '' AND id_boosty IS NOT NULL"
+        fun getCountSongsInCollection(database: KaraokeConnection = WORKING_DATABASE): Int {
+            val sql = """
+                select count(DISTINCT id) as cnt
+                from tbl_settings
+                where (publish_date != ''
+                  and publish_date is not null
+                  and publish_time != ''
+                  and publish_time is not null
+                  and to_timestamp(CONCAT(publish_date, ' ', publish_time), 'DD.MM.YY HH24:MI') <= current_timestamp)
+                  or (id_sponsr != '' AND id_sponsr IS NOT NULL);
+            """.trimIndent()
             val connection = database.getConnection()
             if (connection == null) {
                 println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")

@@ -501,8 +501,8 @@ fun createKaraoke(settings: Settings, songVersion: SongVersion) {
 //    Files.createDirectories(Path(fileDescription.parent))
 //    fileDescription.writeText(song.getDescription())
 
-    createBoostyTeaserPicture(settings)
-    createBoostyFilesPicture(settings)
+//    createBoostyTeaserPicture(settings)
+//    createBoostyFilesPicture(settings)
     createSponsrTeaserPicture(settings)
 //    createVKPicture(settings)
 //    createVKLinkPicture(settings)

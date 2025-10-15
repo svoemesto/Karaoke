@@ -393,25 +393,6 @@
                                             </div>
                                         </span>
                                 </div>
-                                <div class="boosty">
-                                        <span th:if="${sett.linkBoostyTxt == ''}">
-                                            <div>
-                                                <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-boosty-none"></use></svg>
-                                            </div>
-                                        </span>
-                                    <span th:unless="${sett.linkBoostyTxt == ''}">
-                                            <div
-                                                    style="cursor: pointer"
-                                                    name="link"
-                                                    linkName="boosty"
-                                                    th:linkValue="${sett.linkBoostyTxt}"
-                                                    th:songId="${sett.id}"
-                                                    songVersion="all"
-                                            >
-                                                <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-boosty"></use></svg>
-                                            </div>
-                                        </span>
-                                </div>
                             </td>
 
                             <span th:if="${sett.onAir == true}">

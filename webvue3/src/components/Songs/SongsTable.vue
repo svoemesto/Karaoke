@@ -138,13 +138,6 @@
               :style="{ backgroundColor: data.item.processColorSponsr, color: currentSongId === data.item.id ? 'blue' : 'black' }"
           ></div>
         </template>
-        <template #cell(flagBoosty)="data">
-          <div
-              class="fld-flag-boosty"
-              v-text="data.value"
-              :style="{ backgroundColor: data.item.processColorBoosty, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-          ></div>
-        </template>
         <template #cell(flagVk)="data">
           <div
               class="fld-flag-vk"
@@ -534,16 +527,6 @@ export default {
         {
           key: 'flagSponsr',
           label: 'SP',
-          style: {
-            minWidth: '20px',
-            maxWidth: '20px',
-            textAlign: 'center',
-            fontSize: 'small'
-          }
-        },
-        {
-          key: 'flagBoosty',
-          label: 'BOO',
           style: {
             minWidth: '20px',
             maxWidth: '20px',
@@ -1222,14 +1205,6 @@ export default {
 .fld-timecode {
   min-width: 60px;
   max-width: 60px;
-  text-align: center;
-  font-size: small;
-  white-space: nowrap;
-  overflow: hidden;
-}
-.fld-flag-boosty {
-  min-width: 100%;
-  max-width: 100%;
   text-align: center;
   font-size: small;
   white-space: nowrap;

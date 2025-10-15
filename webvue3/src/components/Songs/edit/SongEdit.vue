@@ -112,36 +112,37 @@
           </div>
           <div class="links-table">
             <div class="links-table-column-1">
-              <img class="icon-36" alt="boosty" src="../../../assets/svg/icon_boosty_color.svg">
+<!--              <img class="icon-36" alt="boosty" src="../../../assets/svg/icon_boosty_color.svg">-->
+              <img class="icon-24" alt="documents" src="../../../assets/svg/icon_sponsr.svg">
             </div>
             <div class="links-table-column-2">
+<!--              <div class="label-and-input">-->
+<!--                <img class="icon-24" alt="documents" src="../../../assets/svg/icon_documents.svg">-->
+<!--                <button v-if="song.idBoosty" class="btn-round-wide" @click="openLinkBoosty"><img alt="open" class="icon-open-wide" src="../../../assets/svg/icon_open.svg"></button>-->
+<!--                <button v-else class="btn-round-wide" @click="openLinkBoostyNew"><img alt="new" class="icon-new-wide" src="../../../assets/svg/icon_new.svg"></button>-->
+<!--                <button class="btn-round" @click="getBoostyHeader"><img alt="head" class="icon-texthead" src="../../../assets/svg/icon_head.svg"></button>-->
+<!--                <button class="btn-round" @click="getBoostyBody"><img alt="body" class="icon-textbody" src="../../../assets/svg/icon_body.svg"></button>-->
+<!--                <button class="btn-round" @click="getLinkBoosty" :disabled="!song.idBoosty"><img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg"></button>-->
+<!--                <input class="input-link-field" v-model="song.idBoosty">-->
+<!--                <input class="input-field-version" v-model="song.versionBoosty">-->
+<!--                <button class="btn-round" @click="undoField('idBoosty')" :disabled="notChanged('idBoosty')"><img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg"></button>-->
+<!--                <button class="btn-round" @click="copyToClipboard(song.idBoosty, 'idBoosty')" :disabled="!song.idBoosty"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>-->
+<!--                <button class="btn-round" @click="pasteFromClipboard('idBoosty')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"></button>-->
+<!--              </div>-->
+<!--              <div class="label-and-input">-->
+<!--                <img class="icon-24" alt="files" src="../../../assets/svg/icon_files.svg">-->
+<!--                <button v-if="song.idBoostyFiles" class="btn-round-wide" @click="openLinkBoostyFiles"><img alt="open" class="icon-open-wide" src="../../../assets/svg/icon_open.svg"></button>-->
+<!--                <button v-else class="btn-round-wide" @click="openLinkBoostyFilesNew"><img alt="new" class="icon-new-wide" src="../../../assets/svg/icon_new.svg"></button>-->
+<!--                <button class="btn-round-wide" @click="getBoostyFilesHeader"><img alt="head" class="icon-texthead-wide" src="../../../assets/svg/icon_head.svg"></button>-->
+<!--                <button class="btn-round" @click="getLinkBoostyFiles" :disabled="!song.idBoostyFiles"><img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg"></button>-->
+<!--                <input class="input-link-field" v-model="song.idBoostyFiles">-->
+<!--                <input class="input-field-version" v-model="song.versionBoostyFiles">-->
+<!--                <button class="btn-round" @click="undoField('idBoostyFiles')" :disabled="notChanged('idBoostyFiles')"><img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg"></button>-->
+<!--                <button class="btn-round" @click="copyToClipboard(song.idBoostyFiles, 'idBoostyFiles')" :disabled="!song.idBoostyFiles"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>-->
+<!--                <button class="btn-round" @click="pasteFromClipboard('idBoostyFiles')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"></button>-->
+<!--              </div>-->
               <div class="label-and-input">
-                <img class="icon-24" alt="documents" src="../../../assets/svg/icon_documents.svg">
-                <button v-if="song.idBoosty" class="btn-round-wide" @click="openLinkBoosty"><img alt="open" class="icon-open-wide" src="../../../assets/svg/icon_open.svg"></button>
-                <button v-else class="btn-round-wide" @click="openLinkBoostyNew"><img alt="new" class="icon-new-wide" src="../../../assets/svg/icon_new.svg"></button>
-                <button class="btn-round" @click="getBoostyHeader"><img alt="head" class="icon-texthead" src="../../../assets/svg/icon_head.svg"></button>
-                <button class="btn-round" @click="getBoostyBody"><img alt="body" class="icon-textbody" src="../../../assets/svg/icon_body.svg"></button>
-                <button class="btn-round" @click="getLinkBoosty" :disabled="!song.idBoosty"><img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg"></button>
-                <input class="input-link-field" v-model="song.idBoosty">
-                <input class="input-field-version" v-model="song.versionBoosty">
-                <button class="btn-round" @click="undoField('idBoosty')" :disabled="notChanged('idBoosty')"><img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg"></button>
-                <button class="btn-round" @click="copyToClipboard(song.idBoosty, 'idBoosty')" :disabled="!song.idBoosty"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>
-                <button class="btn-round" @click="pasteFromClipboard('idBoosty')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"></button>
-              </div>
-              <div class="label-and-input">
-                <img class="icon-24" alt="files" src="../../../assets/svg/icon_files.svg">
-                <button v-if="song.idBoostyFiles" class="btn-round-wide" @click="openLinkBoostyFiles"><img alt="open" class="icon-open-wide" src="../../../assets/svg/icon_open.svg"></button>
-                <button v-else class="btn-round-wide" @click="openLinkBoostyFilesNew"><img alt="new" class="icon-new-wide" src="../../../assets/svg/icon_new.svg"></button>
-                <button class="btn-round-wide" @click="getBoostyFilesHeader"><img alt="head" class="icon-texthead-wide" src="../../../assets/svg/icon_head.svg"></button>
-                <button class="btn-round" @click="getLinkBoostyFiles" :disabled="!song.idBoostyFiles"><img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg"></button>
-                <input class="input-link-field" v-model="song.idBoostyFiles">
-                <input class="input-field-version" v-model="song.versionBoostyFiles">
-                <button class="btn-round" @click="undoField('idBoostyFiles')" :disabled="notChanged('idBoostyFiles')"><img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg"></button>
-                <button class="btn-round" @click="copyToClipboard(song.idBoostyFiles, 'idBoostyFiles')" :disabled="!song.idBoostyFiles"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>
-                <button class="btn-round" @click="pasteFromClipboard('idBoostyFiles')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"></button>
-              </div>
-              <div class="label-and-input">
-                <img class="icon-24" alt="documents" src="../../../assets/svg/icon_sponsr.svg">
+<!--                <img class="icon-24" alt="documents" src="../../../assets/svg/icon_sponsr.svg">-->
                 <button v-if="song.idSponsr" class="btn-round-wide" @click="openLinkSponsr"><img alt="open" class="icon-open-wide" src="../../../assets/svg/icon_open.svg"></button>
                 <button v-else class="btn-round-wide" @click="openLinkSponsrNew"><img alt="new" class="icon-new-wide" src="../../../assets/svg/icon_new.svg"></button>
                 <button class="btn-round" @click="getSponsrHeader"><img alt="head" class="icon-texthead" src="../../../assets/svg/icon_head.svg"></button>
@@ -430,19 +431,41 @@
             <button class="group-button" @click="updateRemote" title="Обновить на сервере" :disabled="!allowUpdateRemote" >Обновить на сервере</button>
             <button class="group-button" :class="toSyncButtonClass(toSync)" @click="toSyncRemote" title="Добавить в SYNC-таблицу на сервере" :disabled="!allowAddSync">Добавить в SYNC-таблицу на сервере</button>
             <button class="group-button" @click="copyFieldsFromAnother" title="Скопировать поля из другой песни">Скопировать поля из другой песни</button>
-            <button class="group-button" @click="createPictureBoostyTeaser" title="Создать картинку Boosty Teaser">Создать картинку Boosty Teaser</button>
-            <button class="group-button" @click="createPictureBoostyFiles" title="Создать картинку Boosty Files">Создать картинку Boosty Files</button>
-            <button class="group-button" @click="createPictureSponsrTeaser" title="Создать картинку Sponsr Teaser">Создать картинку Sponsr Files</button>
+            <BDropdown
+                text="Создать ..."
+                class="d-grid"
+                menu-class="w-100"
+            >
+              <BDropdownGroup header="Картинка">
+<!--                <BDropdownItem @click="createPictureBoostyTeaser" title="Создать картинку Boosty Teaser">Boosty Teaser</BDropdownItem>-->
+<!--                <BDropdownItem @click="createPictureBoostyFiles" title="Создать картинку Boosty Files">Boosty Files</BDropdownItem>-->
+                <BDropdownItem @click="createPictureSponsrTeaser" title="Создать картинку Sponsr Teaser">Sponsr Files</BDropdownItem>
+                <BDropdownItem @click="createPictureKaraoke" title="Создать картинку KARAOKE">KARAOKE</BDropdownItem>
+                <BDropdownItem @click="createPictureLyrics" title="Создать картинку LYRICS">LYRICS</BDropdownItem>
+                <BDropdownItem @click="createPictureChords" title="Создать картинку CHORDS">CHORDS</BDropdownItem>
+                <BDropdownItem @click="createPictureTabs" title="Создать картинку TABS">TABS</BDropdownItem>
+              </BDropdownGroup>
+              <BDropdownDivider />
+              <BDropdownGroup header="Текст">
+                <BDropdownItem @click="createDescriptionFileKaraoke" title="Создать текст KARAOKE">KARAOKE</BDropdownItem>
+                <BDropdownItem @click="createDescriptionFileLyrics" title="Создать текст LYRICS">LYRICS</BDropdownItem>
+                <BDropdownItem @click="createDescriptionFileChords" title="Создать текст CHORDS">CHORDS</BDropdownItem>
+                <BDropdownItem @click="createDescriptionFileTabs" title="Создать текст TABS">TABS</BDropdownItem>
+              </BDropdownGroup>
+            </BDropdown>
+<!--            <button class="group-button" @click="createPictureBoostyTeaser" title="Создать картинку Boosty Teaser">Создать картинку Boosty Teaser</button>-->
+<!--            <button class="group-button" @click="createPictureBoostyFiles" title="Создать картинку Boosty Files">Создать картинку Boosty Files</button>-->
+<!--            <button class="group-button" @click="createPictureSponsrTeaser" title="Создать картинку Sponsr Teaser">Создать картинку Sponsr Files</button>-->
             <!--            <button class="group-button" @click="createPictureVK" title="Создать картинку VK">Создать картинку VK</button>-->
             <!--            <button class="group-button" @click="createPictureVKlink" title="Создать картинку VKlink">Создать картинку VKlink</button>-->
-            <button class="group-button" @click="createPictureKaraoke" title="Создать картинку KARAOKE">Создать картинку KARAOKE</button>
-            <button class="group-button" @click="createPictureLyrics" title="Создать картинку LYRICS">Создать картинку LYRICS</button>
-            <button class="group-button" @click="createPictureChords" title="Создать картинку CHORDS">Создать картинку CHORDS</button>
-            <button class="group-button" @click="createPictureTabs" title="Создать картинку TABS">Создать картинку TABS</button>
-            <button class="group-button" @click="createDescriptionFileKaraoke" title="Создать текст KARAOKE">Создать текст KARAOKE</button>
-            <button class="group-button" @click="createDescriptionFileLyrics" title="Создать текст LYRICS">Создать текст LYRICS</button>
-            <button class="group-button" @click="createDescriptionFileChords" title="Создать текст CHORDS">Создать текст CHORDS</button>
-            <button class="group-button" @click="createDescriptionFileTabs" title="Создать текст TABS">Создать текст TABS</button>
+<!--            <button class="group-button" @click="createPictureKaraoke" title="Создать картинку KARAOKE">Создать картинку KARAOKE</button>-->
+<!--            <button class="group-button" @click="createPictureLyrics" title="Создать картинку LYRICS">Создать картинку LYRICS</button>-->
+<!--            <button class="group-button" @click="createPictureChords" title="Создать картинку CHORDS">Создать картинку CHORDS</button>-->
+<!--            <button class="group-button" @click="createPictureTabs" title="Создать картинку TABS">Создать картинку TABS</button>-->
+<!--            <button class="group-button" @click="createDescriptionFileKaraoke" title="Создать текст KARAOKE">Создать текст KARAOKE</button>-->
+<!--            <button class="group-button" @click="createDescriptionFileLyrics" title="Создать текст LYRICS">Создать текст LYRICS</button>-->
+<!--            <button class="group-button" @click="createDescriptionFileChords" title="Создать текст CHORDS">Создать текст CHORDS</button>-->
+<!--            <button class="group-button" @click="createDescriptionFileTabs" title="Создать текст TABS">Создать текст TABS</button>-->
             <button class="group-button" @click="playKaraoke" title="PLAY KARAOKE" :style="{ backgroundColor: song.processColorMeltKaraoke }">PLAY KARAOKE</button>
             <button class="group-button" @click="playLyrics" title="PLAY LYRICS" :style="{ backgroundColor: song.processColorMeltLyrics }">PLAY LYRICS</button>
             <button class="group-button" @click="playChords" title="PLAY CHORDS" :style="{ backgroundColor: song.processColorMeltChords }">PLAY CHORDS</button>
@@ -506,7 +529,7 @@
 <script>
 import SubsEdit from './SubsEdit.vue'
 import CustomConfirm from "../../Common/CustomConfirm.vue";
-import { BFormRating } from 'bootstrap-vue-next'
+import { BFormRating, BDropdown, BDropdownItem, BDropdownDivider, BDropdownGroup } from 'bootstrap-vue-next'
 import { useToast } from "bootstrap-vue-next";
 import { h } from 'vue';
 
@@ -517,7 +540,11 @@ export default {
   components: {
     CustomConfirm,
     SubsEdit,
-    BFormRating
+    BFormRating,
+    BDropdown,
+    BDropdownItem,
+    BDropdownDivider,
+    BDropdownGroup
   },
   data () {
     return {

@@ -63,8 +63,8 @@ export default {
   font-size: x-small;
   min-width: 60px;
   max-width: 60px;
-  min-height: 30px;
-  max-height: 30px;
+  min-height: 20px;
+  max-height: 20px;
   border: thin black;
   border-style: solid solid none solid;
   padding: 2px 4px;

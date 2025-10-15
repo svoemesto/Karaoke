@@ -840,34 +840,34 @@ class KaraokeProcess(
                             Files.createDirectories(Path(settings.pathToSymlinkFolderPNG))
                             runCommand(listOf("chmod", "777", settings.pathToSymlinkFolderPNG))
                         }
-                        if (!File(settings.pathToSymlinkFolderBoostyPNG).exists()) {
-                            Files.createDirectories(Path(settings.pathToSymlinkFolderBoostyPNG))
-                            runCommand(listOf("chmod", "777", settings.pathToSymlinkFolderBoostyPNG))
+                        if (!File(settings.pathToSymlinkFolderSponsrPNG).exists()) {
+                            Files.createDirectories(Path(settings.pathToSymlinkFolderSponsrPNG))
+                            runCommand(listOf("chmod", "777", settings.pathToSymlinkFolderSponsrPNG))
                         }
-                        if (!File(settings.pathToSymlinkFolderBoostyFiles).exists()) {
-                            Files.createDirectories(Path(settings.pathToSymlinkFolderBoostyFiles))
-                            runCommand(listOf("chmod", "777", settings.pathToSymlinkFolderBoostyFiles))
-                        }
-                        val fileAbsolutePathSymlinkQ = settings.fileAbsolutePathSymlink.rightFileName().wrapInQuotes()
-                        val newNoStemNameFlacSymlinkQ = settings.newNoStemNameFlacSymlink.rightFileName().wrapInQuotes()
-                        val vocalsNameFlacSymlinkQ = settings.vocalsNameFlacSymlink.rightFileName().wrapInQuotes()
+//                        if (!File(settings.pathToSymlinkFolderBoostyFiles).exists()) {
+//                            Files.createDirectories(Path(settings.pathToSymlinkFolderBoostyFiles))
+//                            runCommand(listOf("chmod", "777", settings.pathToSymlinkFolderBoostyFiles))
+//                        }
+//                        val fileAbsolutePathSymlinkQ = settings.fileAbsolutePathSymlink.rightFileName().wrapInQuotes()
+//                        val newNoStemNameFlacSymlinkQ = settings.newNoStemNameFlacSymlink.rightFileName().wrapInQuotes()
+//                        val vocalsNameFlacSymlinkQ = settings.vocalsNameFlacSymlink.rightFileName().wrapInQuotes()
                         val songKaraokeMp4Symlink = "${settings.pathToSymlinkFolderMP4}/${File(songKaraokeMp4Absolute).name}".rightFileName().wrapInQuotes()
                         val songKaraokePngSymlink = "${settings.pathToSymlinkFolderPNG}/${File(songKaraokePngAbsolute).name}".rightFileName().wrapInQuotes()
-                        val songKaraokeMp4SymlinkBoostyFiles = "${settings.pathToSymlinkFolderBoostyFiles}/${File(songKaraokeMp4Absolute).name}".rightFileName().wrapInQuotes()
-                        val songKaraokeTxtSymlinkBoostyFiles = "${settings.pathToSymlinkFolderBoostyFiles}/${File(songKaraokeTxtAbsolute).name}".rightFileName().wrapInQuotes()
+//                        val songKaraokeMp4SymlinkBoostyFiles = "${settings.pathToSymlinkFolderBoostyFiles}/${File(songKaraokeMp4Absolute).name}".rightFileName().wrapInQuotes()
+//                        val songKaraokeTxtSymlinkBoostyFiles = "${settings.pathToSymlinkFolderBoostyFiles}/${File(songKaraokeTxtAbsolute).name}".rightFileName().wrapInQuotes()
                         val songLyricsMp4Symlink = "${settings.pathToSymlinkFolderMP4}/${File(songLyricsMp4Absolute).name}".rightFileName().wrapInQuotes()
                         val songLyricsPngSymlink = "${settings.pathToSymlinkFolderPNG}/${File(songLyricsPngAbsolute).name}".rightFileName().wrapInQuotes()
-                        val songLyricsMp4SymlinkBoostyFiles = "${settings.pathToSymlinkFolderBoostyFiles}/${File(songLyricsMp4Absolute).name}".rightFileName().wrapInQuotes()
+//                        val songLyricsMp4SymlinkBoostyFiles = "${settings.pathToSymlinkFolderBoostyFiles}/${File(songLyricsMp4Absolute).name}".rightFileName().wrapInQuotes()
 
-                        val songBoostyFilesPngAbsolute = settings.getOutputFilename(SongOutputFile.PICTUREBOOSTYFILES)
-                        val songBoostyFilesPngRelative = settings.getOutputFilename(SongOutputFile.PICTUREBOOSTYFILES, relative = true)
-                        val songBoostyFilesPngSymlink = "${settings.pathToSymlinkFolderBoostyPNG}/${File(songBoostyFilesPngAbsolute).name}".rightFileName().wrapInQuotes()
-                        val songBoostyPngAbsolute = settings.getOutputFilename(SongOutputFile.PICTUREBOOSTYTEASER)
-                        val songBoostyPngRelative = settings.getOutputFilename(SongOutputFile.PICTUREBOOSTYTEASER,relative = true)
-                        val songBoostyPngSymlink = "${settings.pathToSymlinkFolderBoostyPNG}/${File(songBoostyPngAbsolute).name}".rightFileName().wrapInQuotes()
+//                        val songBoostyFilesPngAbsolute = settings.getOutputFilename(SongOutputFile.PICTUREBOOSTYFILES)
+//                        val songBoostyFilesPngRelative = settings.getOutputFilename(SongOutputFile.PICTUREBOOSTYFILES, relative = true)
+//                        val songBoostyFilesPngSymlink = "${settings.pathToSymlinkFolderSponsrPNG}/${File(songBoostyFilesPngAbsolute).name}".rightFileName().wrapInQuotes()
+//                        val songBoostyPngAbsolute = settings.getOutputFilename(SongOutputFile.PICTUREBOOSTYTEASER)
+//                        val songBoostyPngRelative = settings.getOutputFilename(SongOutputFile.PICTUREBOOSTYTEASER,relative = true)
+//                        val songBoostyPngSymlink = "${settings.pathToSymlinkFolderSponsrPNG}/${File(songBoostyPngAbsolute).name}".rightFileName().wrapInQuotes()
                         val songSponsrPngAbsolute = settings.getOutputFilename(SongOutputFile.PICTURESPONSRTEASER)
                         val songSponsrPngRelative = settings.getOutputFilename(SongOutputFile.PICTURESPONSRTEASER,relative = true)
-                        val songSponsrPngSymlink = "${settings.pathToSymlinkFolderBoostyPNG}/${File(songSponsrPngAbsolute).name}".rightFileName().wrapInQuotes()
+                        val songSponsrPngSymlink = "${settings.pathToSymlinkFolderSponsrPNG}/${File(songSponsrPngAbsolute).name}".rightFileName().wrapInQuotes()
 
 
                         description = "Кодирование LYRICS"
@@ -904,43 +904,43 @@ class KaraokeProcess(
                             ),
                             listOf("chmod", "666", settings.pathToFile720Lyrics),
                             listOf("rm", "-f",
-                                    fileAbsolutePathSymlinkQ,
-                                    newNoStemNameFlacSymlinkQ,
-                                    vocalsNameFlacSymlinkQ,
-                                    songKaraokeMp4SymlinkBoostyFiles,
-                                    songKaraokeTxtSymlinkBoostyFiles,
-                                    songLyricsMp4SymlinkBoostyFiles,
+//                                    fileAbsolutePathSymlinkQ,
+//                                    newNoStemNameFlacSymlinkQ,
+//                                    vocalsNameFlacSymlinkQ,
+//                                    songKaraokeMp4SymlinkBoostyFiles,
+//                                    songKaraokeTxtSymlinkBoostyFiles,
+//                                    songLyricsMp4SymlinkBoostyFiles,
                                     songKaraokeMp4Symlink,
                                     songLyricsMp4Symlink,
                                     songKaraokePngSymlink,
                                     songLyricsPngSymlink,
-                                    songBoostyPngSymlink,
+//                                    songBoostyPngSymlink,
                                     songSponsrPngSymlink,
-                                    songBoostyFilesPngSymlink,
+//                                    songBoostyFilesPngSymlink,
                             ),
-                            // Ссылка на flack песни в папку pathToSymlinkFolderBoostyFiles
-                            listOf("ln", "-s", settings.relativePathToFile.rightFileName().wrapInQuotes(), fileAbsolutePathSymlinkQ),
-                            listOf("chmod", "666", fileAbsolutePathSymlinkQ),
-
-                            // Ссылка на flack accompaniment в папку pathToSymlinkFolderBoostyFiles
-                            listOf("ln", "-s", settings.relativePathToNoStemNameFlac.rightFileName().wrapInQuotes(), newNoStemNameFlacSymlinkQ),
-                            listOf("chmod", "666", newNoStemNameFlacSymlinkQ),
-
-                            // Ссылка на flack vocals в папку pathToSymlinkFolderBoostyFiles
-                            listOf("ln", "-s", settings.relativePathToVocalsNameFlac.rightFileName().wrapInQuotes(), vocalsNameFlacSymlinkQ),
-                            listOf("chmod", "666", vocalsNameFlacSymlinkQ),
-
-                            // Ссылка на mp4 karaoke в папку pathToSymlinkFolderBoostyFiles
-                            listOf("ln", "-s", songKaraokeMp4Relative.wrapInQuotes(), songKaraokeMp4SymlinkBoostyFiles),
-                            listOf("chmod", "666", songKaraokeMp4SymlinkBoostyFiles),
-
-                            // Ссылка на txt karaoke в папку pathToSymlinkFolderBoostyFiles
-                            listOf("ln", "-s", songKaraokeTxtRelative.wrapInQuotes(), songKaraokeTxtSymlinkBoostyFiles),
-                            listOf("chmod", "666", songKaraokeTxtSymlinkBoostyFiles),
-
-                            // Ссылка на mp4 lyrics в папку pathToSymlinkFolderBoostyFiles
-                            listOf("ln", "-s", songLyricsMp4Relative.wrapInQuotes(), songLyricsMp4SymlinkBoostyFiles),
-                            listOf("chmod", "666", songLyricsMp4SymlinkBoostyFiles),
+//                            // Ссылка на flack песни в папку pathToSymlinkFolderBoostyFiles
+//                            listOf("ln", "-s", settings.relativePathToFile.rightFileName().wrapInQuotes(), fileAbsolutePathSymlinkQ),
+//                            listOf("chmod", "666", fileAbsolutePathSymlinkQ),
+//
+//                            // Ссылка на flack accompaniment в папку pathToSymlinkFolderBoostyFiles
+//                            listOf("ln", "-s", settings.relativePathToNoStemNameFlac.rightFileName().wrapInQuotes(), newNoStemNameFlacSymlinkQ),
+//                            listOf("chmod", "666", newNoStemNameFlacSymlinkQ),
+//
+//                            // Ссылка на flack vocals в папку pathToSymlinkFolderBoostyFiles
+//                            listOf("ln", "-s", settings.relativePathToVocalsNameFlac.rightFileName().wrapInQuotes(), vocalsNameFlacSymlinkQ),
+//                            listOf("chmod", "666", vocalsNameFlacSymlinkQ),
+//
+//                            // Ссылка на mp4 karaoke в папку pathToSymlinkFolderBoostyFiles
+//                            listOf("ln", "-s", songKaraokeMp4Relative.wrapInQuotes(), songKaraokeMp4SymlinkBoostyFiles),
+//                            listOf("chmod", "666", songKaraokeMp4SymlinkBoostyFiles),
+//
+//                            // Ссылка на txt karaoke в папку pathToSymlinkFolderBoostyFiles
+//                            listOf("ln", "-s", songKaraokeTxtRelative.wrapInQuotes(), songKaraokeTxtSymlinkBoostyFiles),
+//                            listOf("chmod", "666", songKaraokeTxtSymlinkBoostyFiles),
+//
+//                            // Ссылка на mp4 lyrics в папку pathToSymlinkFolderBoostyFiles
+//                            listOf("ln", "-s", songLyricsMp4Relative.wrapInQuotes(), songLyricsMp4SymlinkBoostyFiles),
+//                            listOf("chmod", "666", songLyricsMp4SymlinkBoostyFiles),
 
                             // Ссылка на mp4 karaoke в папку pathToSymlinkFolderMP4
                             listOf("ln", "-s", songKaraokeMp4Relative.wrapInQuotes(), songKaraokeMp4Symlink),
@@ -958,17 +958,17 @@ class KaraokeProcess(
                             listOf("ln", "-s", songLyricsPngRelative.wrapInQuotes(), songLyricsPngSymlink),
                             listOf("chmod", "666", songLyricsPngSymlink),
 
-                            // Ссылка на png boosty в папку pathToSymlinkFolderBoostyPNG
-                            listOf("ln", "-s", songBoostyPngRelative.wrapInQuotes(), songBoostyPngSymlink),
-                            listOf("chmod", "666", songBoostyPngSymlink),
+//                            // Ссылка на png boosty в папку pathToSymlinkFolderBoostyPNG
+//                            listOf("ln", "-s", songBoostyPngRelative.wrapInQuotes(), songBoostyPngSymlink),
+//                            listOf("chmod", "666", songBoostyPngSymlink),
 
                             // Ссылка на png sponsr в папку pathToSymlinkFolderBoostyPNG
                             listOf("ln", "-s", songSponsrPngRelative.wrapInQuotes(), songSponsrPngSymlink),
                             listOf("chmod", "666", songSponsrPngSymlink),
 
-                            // Ссылка на png boosty files в папку pathToSymlinkFolderBoostyPNG
-                            listOf("ln", "-s", songBoostyFilesPngRelative.wrapInQuotes(), songBoostyFilesPngSymlink),
-                            listOf("chmod", "666", songBoostyFilesPngSymlink),
+//                            // Ссылка на png boosty files в папку pathToSymlinkFolderBoostyPNG
+//                            listOf("ln", "-s", songBoostyFilesPngRelative.wrapInQuotes(), songBoostyFilesPngSymlink),
+//                            listOf("chmod", "666", songBoostyFilesPngSymlink),
                         )
                     }
                     KaraokeProcessTypes.MELT_KARAOKE -> {
@@ -990,34 +990,34 @@ class KaraokeProcess(
                             Files.createDirectories(Path(settings.pathToSymlinkFolderPNG))
                             runCommand(listOf("chmod", "777", settings.pathToSymlinkFolderPNG))
                         }
-                        if (!File(settings.pathToSymlinkFolderBoostyPNG).exists()) {
-                            Files.createDirectories(Path(settings.pathToSymlinkFolderBoostyPNG))
-                            runCommand(listOf("chmod", "777", settings.pathToSymlinkFolderBoostyPNG))
+                        if (!File(settings.pathToSymlinkFolderSponsrPNG).exists()) {
+                            Files.createDirectories(Path(settings.pathToSymlinkFolderSponsrPNG))
+                            runCommand(listOf("chmod", "777", settings.pathToSymlinkFolderSponsrPNG))
                         }
-                        if (!File(settings.pathToSymlinkFolderBoostyFiles).exists()) {
-                            Files.createDirectories(Path(settings.pathToSymlinkFolderBoostyFiles))
-                            runCommand(listOf("chmod", "777", settings.pathToSymlinkFolderBoostyFiles))
-                        }
-                        val fileAbsolutePathSymlinkQ = settings.fileAbsolutePathSymlink.rightFileName().wrapInQuotes()
-                        val newNoStemNameFlacSymlinkQ = settings.newNoStemNameFlacSymlink.rightFileName().wrapInQuotes()
-                        val vocalsNameFlacSymlinkQ = settings.vocalsNameFlacSymlink.rightFileName().wrapInQuotes()
+//                        if (!File(settings.pathToSymlinkFolderBoostyFiles).exists()) {
+//                            Files.createDirectories(Path(settings.pathToSymlinkFolderBoostyFiles))
+//                            runCommand(listOf("chmod", "777", settings.pathToSymlinkFolderBoostyFiles))
+//                        }
+//                        val fileAbsolutePathSymlinkQ = settings.fileAbsolutePathSymlink.rightFileName().wrapInQuotes()
+//                        val newNoStemNameFlacSymlinkQ = settings.newNoStemNameFlacSymlink.rightFileName().wrapInQuotes()
+//                        val vocalsNameFlacSymlinkQ = settings.vocalsNameFlacSymlink.rightFileName().wrapInQuotes()
                         val songKaraokeMp4Symlink = "${settings.pathToSymlinkFolderMP4}/${File(songKaraokeMp4Absolute).name}".rightFileName().wrapInQuotes()
                         val songKaraokePngSymlink = "${settings.pathToSymlinkFolderPNG}/${File(songKaraokePngAbsolute).name}".rightFileName().wrapInQuotes()
-                        val songKaraokeMp4SymlinkBoostyFiles = "${settings.pathToSymlinkFolderBoostyFiles}/${File(songKaraokeMp4Absolute).name}".rightFileName().wrapInQuotes()
-                        val songKaraokeTxtSymlinkBoostyFiles = "${settings.pathToSymlinkFolderBoostyFiles}/${File(songKaraokeTxtAbsolute).name}".rightFileName().wrapInQuotes()
+//                        val songKaraokeMp4SymlinkBoostyFiles = "${settings.pathToSymlinkFolderBoostyFiles}/${File(songKaraokeMp4Absolute).name}".rightFileName().wrapInQuotes()
+//                        val songKaraokeTxtSymlinkBoostyFiles = "${settings.pathToSymlinkFolderBoostyFiles}/${File(songKaraokeTxtAbsolute).name}".rightFileName().wrapInQuotes()
                         val songLyricsMp4Symlink = "${settings.pathToSymlinkFolderMP4}/${File(songLyricsMp4Absolute).name}".rightFileName().wrapInQuotes()
                         val songLyricsPngSymlink = "${settings.pathToSymlinkFolderPNG}/${File(songLyricsPngAbsolute).name}".rightFileName().wrapInQuotes()
-                        val songLyricsMp4SymlinkBoostyFiles = "${settings.pathToSymlinkFolderBoostyFiles}/${File(songLyricsMp4Absolute).name}".rightFileName().wrapInQuotes()
+//                        val songLyricsMp4SymlinkBoostyFiles = "${settings.pathToSymlinkFolderBoostyFiles}/${File(songLyricsMp4Absolute).name}".rightFileName().wrapInQuotes()
 
-                        val songBoostyFilesPngAbsolute = settings.getOutputFilename(SongOutputFile.PICTUREBOOSTYFILES)
-                        val songBoostyFilesPngRelative = settings.getOutputFilename(SongOutputFile.PICTUREBOOSTYFILES, relative = true)
-                        val songBoostyFilesPngSymlink = "${settings.pathToSymlinkFolderBoostyPNG}/${File(songBoostyFilesPngAbsolute).name}".rightFileName().wrapInQuotes()
-                        val songBoostyPngAbsolute = settings.getOutputFilename(SongOutputFile.PICTUREBOOSTYTEASER)
-                        val songBoostyPngRelative = settings.getOutputFilename(SongOutputFile.PICTUREBOOSTYTEASER,relative = true)
-                        val songBoostyPngSymlink = "${settings.pathToSymlinkFolderBoostyPNG}/${File(songBoostyPngAbsolute).name}".rightFileName().wrapInQuotes()
+//                        val songBoostyFilesPngAbsolute = settings.getOutputFilename(SongOutputFile.PICTUREBOOSTYFILES)
+//                        val songBoostyFilesPngRelative = settings.getOutputFilename(SongOutputFile.PICTUREBOOSTYFILES, relative = true)
+//                        val songBoostyFilesPngSymlink = "${settings.pathToSymlinkFolderSponsrPNG}/${File(songBoostyFilesPngAbsolute).name}".rightFileName().wrapInQuotes()
+//                        val songBoostyPngAbsolute = settings.getOutputFilename(SongOutputFile.PICTUREBOOSTYTEASER)
+//                        val songBoostyPngRelative = settings.getOutputFilename(SongOutputFile.PICTUREBOOSTYTEASER,relative = true)
+//                        val songBoostyPngSymlink = "${settings.pathToSymlinkFolderSponsrPNG}/${File(songBoostyPngAbsolute).name}".rightFileName().wrapInQuotes()
                         val songSponsrPngAbsolute = settings.getOutputFilename(SongOutputFile.PICTURESPONSRTEASER)
                         val songSponsrPngRelative = settings.getOutputFilename(SongOutputFile.PICTURESPONSRTEASER,relative = true)
-                        val songSponsrPngSymlink = "${settings.pathToSymlinkFolderBoostyPNG}/${File(songSponsrPngAbsolute).name}".rightFileName().wrapInQuotes()
+                        val songSponsrPngSymlink = "${settings.pathToSymlinkFolderSponsrPNG}/${File(songSponsrPngAbsolute).name}".rightFileName().wrapInQuotes()
 
 
                         description = "Кодирование KARAOKE"
@@ -1054,43 +1054,43 @@ class KaraokeProcess(
                             ),
                             listOf("chmod", "666", settings.pathToFile720Karaoke),
                             listOf("rm", "-f",
-                                    fileAbsolutePathSymlinkQ,
-                                    newNoStemNameFlacSymlinkQ,
-                                    vocalsNameFlacSymlinkQ,
-                                    songKaraokeMp4SymlinkBoostyFiles,
-                                    songKaraokeTxtSymlinkBoostyFiles,
-                                    songLyricsMp4SymlinkBoostyFiles,
+//                                    fileAbsolutePathSymlinkQ,
+//                                    newNoStemNameFlacSymlinkQ,
+//                                    vocalsNameFlacSymlinkQ,
+//                                    songKaraokeMp4SymlinkBoostyFiles,
+//                                    songKaraokeTxtSymlinkBoostyFiles,
+//                                    songLyricsMp4SymlinkBoostyFiles,
                                     songKaraokeMp4Symlink,
                                     songLyricsMp4Symlink,
                                     songKaraokePngSymlink,
                                     songLyricsPngSymlink,
-                                    songBoostyPngSymlink,
+//                                    songBoostyPngSymlink,
                                     songSponsrPngSymlink,
-                                    songBoostyFilesPngSymlink,
+//                                    songBoostyFilesPngSymlink,
                             ),
-                            // Ссылка на flack песни в папку pathToSymlinkFolderBoostyFiles
-                            listOf("ln", "-s", settings.relativePathToFile.rightFileName().wrapInQuotes(), fileAbsolutePathSymlinkQ),
-                            listOf("chmod", "666", fileAbsolutePathSymlinkQ),
-
-                            // Ссылка на flack accompaniment в папку pathToSymlinkFolderBoostyFiles
-                            listOf("ln", "-s", settings.relativePathToNoStemNameFlac.rightFileName().wrapInQuotes(), newNoStemNameFlacSymlinkQ),
-                            listOf("chmod", "666", newNoStemNameFlacSymlinkQ),
-
-                            // Ссылка на flack vocals в папку pathToSymlinkFolderBoostyFiles
-                            listOf("ln", "-s", settings.relativePathToVocalsNameFlac.rightFileName().wrapInQuotes(), vocalsNameFlacSymlinkQ),
-                            listOf("chmod", "666", vocalsNameFlacSymlinkQ),
-
-                            // Ссылка на mp4 karaoke в папку pathToSymlinkFolderBoostyFiles
-                            listOf("ln", "-s", songKaraokeMp4Relative.wrapInQuotes(), songKaraokeMp4SymlinkBoostyFiles),
-                            listOf("chmod", "666", songKaraokeMp4SymlinkBoostyFiles),
-
-                            // Ссылка на txt karaoke в папку pathToSymlinkFolderBoostyFiles
-                            listOf("ln", "-s", songKaraokeTxtRelative.wrapInQuotes(), songKaraokeTxtSymlinkBoostyFiles),
-                            listOf("chmod", "666", songKaraokeTxtSymlinkBoostyFiles),
-
-                            // Ссылка на mp4 lyrics в папку pathToSymlinkFolderBoostyFiles
-                            listOf("ln", "-s", songLyricsMp4Relative.wrapInQuotes(), songLyricsMp4SymlinkBoostyFiles),
-                            listOf("chmod", "666", songLyricsMp4SymlinkBoostyFiles),
+//                            // Ссылка на flack песни в папку pathToSymlinkFolderBoostyFiles
+//                            listOf("ln", "-s", settings.relativePathToFile.rightFileName().wrapInQuotes(), fileAbsolutePathSymlinkQ),
+//                            listOf("chmod", "666", fileAbsolutePathSymlinkQ),
+//
+//                            // Ссылка на flack accompaniment в папку pathToSymlinkFolderBoostyFiles
+//                            listOf("ln", "-s", settings.relativePathToNoStemNameFlac.rightFileName().wrapInQuotes(), newNoStemNameFlacSymlinkQ),
+//                            listOf("chmod", "666", newNoStemNameFlacSymlinkQ),
+//
+//                            // Ссылка на flack vocals в папку pathToSymlinkFolderBoostyFiles
+//                            listOf("ln", "-s", settings.relativePathToVocalsNameFlac.rightFileName().wrapInQuotes(), vocalsNameFlacSymlinkQ),
+//                            listOf("chmod", "666", vocalsNameFlacSymlinkQ),
+//
+//                            // Ссылка на mp4 karaoke в папку pathToSymlinkFolderBoostyFiles
+//                            listOf("ln", "-s", songKaraokeMp4Relative.wrapInQuotes(), songKaraokeMp4SymlinkBoostyFiles),
+//                            listOf("chmod", "666", songKaraokeMp4SymlinkBoostyFiles),
+//
+//                            // Ссылка на txt karaoke в папку pathToSymlinkFolderBoostyFiles
+//                            listOf("ln", "-s", songKaraokeTxtRelative.wrapInQuotes(), songKaraokeTxtSymlinkBoostyFiles),
+//                            listOf("chmod", "666", songKaraokeTxtSymlinkBoostyFiles),
+//
+//                            // Ссылка на mp4 lyrics в папку pathToSymlinkFolderBoostyFiles
+//                            listOf("ln", "-s", songLyricsMp4Relative.wrapInQuotes(), songLyricsMp4SymlinkBoostyFiles),
+//                            listOf("chmod", "666", songLyricsMp4SymlinkBoostyFiles),
 
                             // Ссылка на mp4 karaoke в папку pathToSymlinkFolderMP4
                             listOf("ln", "-s", songKaraokeMp4Relative.wrapInQuotes(), songKaraokeMp4Symlink),
@@ -1108,17 +1108,17 @@ class KaraokeProcess(
                             listOf("ln", "-s", songLyricsPngRelative.wrapInQuotes(), songLyricsPngSymlink),
                             listOf("chmod", "666", songLyricsPngSymlink),
 
-                            // Ссылка на png boosty в папку pathToSymlinkFolderBoostyPNG
-                            listOf("ln", "-s", songBoostyPngRelative.wrapInQuotes(), songBoostyPngSymlink),
-                            listOf("chmod", "666", songBoostyPngSymlink),
+//                            // Ссылка на png boosty в папку pathToSymlinkFolderBoostyPNG
+//                            listOf("ln", "-s", songBoostyPngRelative.wrapInQuotes(), songBoostyPngSymlink),
+//                            listOf("chmod", "666", songBoostyPngSymlink),
 
                             // Ссылка на png sponsr в папку pathToSymlinkFolderBoostyPNG
                             listOf("ln", "-s", songSponsrPngRelative.wrapInQuotes(), songSponsrPngSymlink),
                             listOf("chmod", "666", songSponsrPngSymlink),
 
-                            // Ссылка на png boosty files в папку pathToSymlinkFolderBoostyPNG
-                            listOf("ln", "-s", songBoostyFilesPngRelative.wrapInQuotes(), songBoostyFilesPngSymlink),
-                            listOf("chmod", "666", songBoostyFilesPngSymlink),
+//                            // Ссылка на png boosty files в папку pathToSymlinkFolderBoostyPNG
+//                            listOf("ln", "-s", songBoostyFilesPngRelative.wrapInQuotes(), songBoostyFilesPngSymlink),
+//                            listOf("chmod", "666", songBoostyFilesPngSymlink),
                         )
                     }
                     KaraokeProcessTypes.MELT_CHORDS -> {
@@ -1298,75 +1298,75 @@ class KaraokeProcess(
                             Files.createDirectories(Path(settings.pathToSymlinkFolderPNG))
                             runCommand(listOf("chmod", "777", settings.pathToSymlinkFolderPNG))
                         }
-                        if (!File(settings.pathToSymlinkFolderBoostyPNG).exists()) {
-                            Files.createDirectories(Path(settings.pathToSymlinkFolderBoostyPNG))
+                        if (!File(settings.pathToSymlinkFolderSponsrPNG).exists()) {
+                            Files.createDirectories(Path(settings.pathToSymlinkFolderSponsrPNG))
                             runCommand(listOf("chmod", "777", settings.pathToSymlinkFolderPNG))
                         }
-                        if (!File(settings.pathToSymlinkFolderBoostyFiles).exists()) {
-                            Files.createDirectories(Path(settings.pathToSymlinkFolderBoostyFiles))
-                            runCommand(listOf("chmod", "777", settings.pathToSymlinkFolderPNG))
-                        }
-                        val fileAbsolutePathSymlinkQ = settings.fileAbsolutePathSymlink.rightFileName().wrapInQuotes()
-                        val newNoStemNameFlacSymlinkQ = settings.newNoStemNameFlacSymlink.rightFileName().wrapInQuotes()
-                        val vocalsNameFlacSymlinkQ = settings.vocalsNameFlacSymlink.rightFileName().wrapInQuotes()
+//                        if (!File(settings.pathToSymlinkFolderBoostyFiles).exists()) {
+//                            Files.createDirectories(Path(settings.pathToSymlinkFolderBoostyFiles))
+//                            runCommand(listOf("chmod", "777", settings.pathToSymlinkFolderPNG))
+//                        }
+//                        val fileAbsolutePathSymlinkQ = settings.fileAbsolutePathSymlink.rightFileName().wrapInQuotes()
+//                        val newNoStemNameFlacSymlinkQ = settings.newNoStemNameFlacSymlink.rightFileName().wrapInQuotes()
+//                        val vocalsNameFlacSymlinkQ = settings.vocalsNameFlacSymlink.rightFileName().wrapInQuotes()
                         val songKaraokeMp4Symlink = "${settings.pathToSymlinkFolderMP4}/${File(songKaraokeMp4Absolute).name}".rightFileName().wrapInQuotes()
                         val songKaraokePngSymlink = "${settings.pathToSymlinkFolderPNG}/${File(songKaraokePngAbsolute).name}".rightFileName().wrapInQuotes()
-                        val songKaraokeMp4SymlinkBoostyFiles = "${settings.pathToSymlinkFolderBoostyFiles}/${File(songKaraokeMp4Absolute).name}".rightFileName().wrapInQuotes()
-                        val songKaraokeTxtSymlinkBoostyFiles = "${settings.pathToSymlinkFolderBoostyFiles}/${File(songKaraokeTxtAbsolute).name}".rightFileName().wrapInQuotes()
+//                        val songKaraokeMp4SymlinkBoostyFiles = "${settings.pathToSymlinkFolderBoostyFiles}/${File(songKaraokeMp4Absolute).name}".rightFileName().wrapInQuotes()
+//                        val songKaraokeTxtSymlinkBoostyFiles = "${settings.pathToSymlinkFolderBoostyFiles}/${File(songKaraokeTxtAbsolute).name}".rightFileName().wrapInQuotes()
                         val songLyricsMp4Symlink = "${settings.pathToSymlinkFolderMP4}/${File(songLyricsMp4Absolute).name}".rightFileName().wrapInQuotes()
                         val songLyricsPngSymlink = "${settings.pathToSymlinkFolderPNG}/${File(songLyricsPngAbsolute).name}".rightFileName().wrapInQuotes()
-                        val songLyricsMp4SymlinkBoostyFiles = "${settings.pathToSymlinkFolderBoostyFiles}/${File(songLyricsMp4Absolute).name}".rightFileName().wrapInQuotes()
+//                        val songLyricsMp4SymlinkBoostyFiles = "${settings.pathToSymlinkFolderBoostyFiles}/${File(songLyricsMp4Absolute).name}".rightFileName().wrapInQuotes()
 
-                        val songBoostyFilesPngAbsolute = settings.getOutputFilename(SongOutputFile.PICTUREBOOSTYFILES)
-                        val songBoostyFilesPngRelative = settings.getOutputFilename(SongOutputFile.PICTUREBOOSTYFILES, relative = true)
-                        val songBoostyFilesPngSymlink = "${settings.pathToSymlinkFolderBoostyPNG}/${File(songBoostyFilesPngAbsolute).name}".rightFileName().wrapInQuotes()
-                        val songBoostyPngAbsolute = settings.getOutputFilename(SongOutputFile.PICTUREBOOSTYTEASER)
-                        val songBoostyPngRelative = settings.getOutputFilename(SongOutputFile.PICTUREBOOSTYTEASER,relative = true)
-                        val songBoostyPngSymlink = "${settings.pathToSymlinkFolderBoostyPNG}/${File(songBoostyPngAbsolute).name}".rightFileName().wrapInQuotes()
+//                        val songBoostyFilesPngAbsolute = settings.getOutputFilename(SongOutputFile.PICTUREBOOSTYFILES)
+//                        val songBoostyFilesPngRelative = settings.getOutputFilename(SongOutputFile.PICTUREBOOSTYFILES, relative = true)
+//                        val songBoostyFilesPngSymlink = "${settings.pathToSymlinkFolderSponsrPNG}/${File(songBoostyFilesPngAbsolute).name}".rightFileName().wrapInQuotes()
+//                        val songBoostyPngAbsolute = settings.getOutputFilename(SongOutputFile.PICTUREBOOSTYTEASER)
+//                        val songBoostyPngRelative = settings.getOutputFilename(SongOutputFile.PICTUREBOOSTYTEASER,relative = true)
+//                        val songBoostyPngSymlink = "${settings.pathToSymlinkFolderSponsrPNG}/${File(songBoostyPngAbsolute).name}".rightFileName().wrapInQuotes()
                         val songSponsrPngAbsolute = settings.getOutputFilename(SongOutputFile.PICTURESPONSRTEASER)
                         val songSponsrPngRelative = settings.getOutputFilename(SongOutputFile.PICTURESPONSRTEASER,relative = true)
-                        val songSponsrPngSymlink = "${settings.pathToSymlinkFolderBoostyPNG}/${File(songSponsrPngAbsolute).name}".rightFileName().wrapInQuotes()
+                        val songSponsrPngSymlink = "${settings.pathToSymlinkFolderSponsrPNG}/${File(songSponsrPngAbsolute).name}".rightFileName().wrapInQuotes()
 
                         description = "SYMLINK"
                         args = listOf(
                             listOf("rm", "-f",
-                                fileAbsolutePathSymlinkQ,
-                                newNoStemNameFlacSymlinkQ,
-                                vocalsNameFlacSymlinkQ,
-                                songKaraokeMp4SymlinkBoostyFiles,
-                                songKaraokeTxtSymlinkBoostyFiles,
-                                songLyricsMp4SymlinkBoostyFiles,
+//                                fileAbsolutePathSymlinkQ,
+//                                newNoStemNameFlacSymlinkQ,
+//                                vocalsNameFlacSymlinkQ,
+//                                songKaraokeMp4SymlinkBoostyFiles,
+//                                songKaraokeTxtSymlinkBoostyFiles,
+//                                songLyricsMp4SymlinkBoostyFiles,
                                 songKaraokeMp4Symlink,
                                 songLyricsMp4Symlink,
                                 songKaraokePngSymlink,
                                 songLyricsPngSymlink,
-                                songBoostyPngSymlink,
+//                                songBoostyPngSymlink,
                                 songSponsrPngSymlink,
-                                songBoostyFilesPngSymlink,
+//                                songBoostyFilesPngSymlink,
                             ),
-                            // Ссылка на flack песни в папку pathToSymlinkFolderBoostyFiles
-                            listOf("ln", "-s", settings.relativePathToFile.rightFileName().wrapInQuotes(), fileAbsolutePathSymlinkQ),
-                            listOf("chmod", "666", fileAbsolutePathSymlinkQ),
-
-                            // Ссылка на flack accompaniment в папку pathToSymlinkFolderBoostyFiles
-                            listOf("ln", "-s", settings.relativePathToNoStemNameFlac.rightFileName().wrapInQuotes(), newNoStemNameFlacSymlinkQ),
-                            listOf("chmod", "666", newNoStemNameFlacSymlinkQ),
-
-                            // Ссылка на flack vocals в папку pathToSymlinkFolderBoostyFiles
-                            listOf("ln", "-s", settings.relativePathToVocalsNameFlac.rightFileName().wrapInQuotes(), vocalsNameFlacSymlinkQ),
-                            listOf("chmod", "666", vocalsNameFlacSymlinkQ),
-
-                            // Ссылка на mp4 karaoke в папку pathToSymlinkFolderBoostyFiles
-                            listOf("ln", "-s", songKaraokeMp4Relative.wrapInQuotes(), songKaraokeMp4SymlinkBoostyFiles),
-                            listOf("chmod", "666", songKaraokeMp4SymlinkBoostyFiles),
-
-                            // Ссылка на txt karaoke в папку pathToSymlinkFolderBoostyFiles
-                            listOf("ln", "-s", songKaraokeTxtRelative.wrapInQuotes(), songKaraokeTxtSymlinkBoostyFiles),
-                            listOf("chmod", "666", songKaraokeTxtSymlinkBoostyFiles),
-
-                            // Ссылка на mp4 lyrics в папку pathToSymlinkFolderBoostyFiles
-                            listOf("ln", "-s", songLyricsMp4Relative.wrapInQuotes(), songLyricsMp4SymlinkBoostyFiles),
-                            listOf("chmod", "666", songLyricsMp4SymlinkBoostyFiles),
+//                            // Ссылка на flack песни в папку pathToSymlinkFolderBoostyFiles
+//                            listOf("ln", "-s", settings.relativePathToFile.rightFileName().wrapInQuotes(), fileAbsolutePathSymlinkQ),
+//                            listOf("chmod", "666", fileAbsolutePathSymlinkQ),
+//
+//                            // Ссылка на flack accompaniment в папку pathToSymlinkFolderBoostyFiles
+//                            listOf("ln", "-s", settings.relativePathToNoStemNameFlac.rightFileName().wrapInQuotes(), newNoStemNameFlacSymlinkQ),
+//                            listOf("chmod", "666", newNoStemNameFlacSymlinkQ),
+//
+//                            // Ссылка на flack vocals в папку pathToSymlinkFolderBoostyFiles
+//                            listOf("ln", "-s", settings.relativePathToVocalsNameFlac.rightFileName().wrapInQuotes(), vocalsNameFlacSymlinkQ),
+//                            listOf("chmod", "666", vocalsNameFlacSymlinkQ),
+//
+//                            // Ссылка на mp4 karaoke в папку pathToSymlinkFolderBoostyFiles
+//                            listOf("ln", "-s", songKaraokeMp4Relative.wrapInQuotes(), songKaraokeMp4SymlinkBoostyFiles),
+//                            listOf("chmod", "666", songKaraokeMp4SymlinkBoostyFiles),
+//
+//                            // Ссылка на txt karaoke в папку pathToSymlinkFolderBoostyFiles
+//                            listOf("ln", "-s", songKaraokeTxtRelative.wrapInQuotes(), songKaraokeTxtSymlinkBoostyFiles),
+//                            listOf("chmod", "666", songKaraokeTxtSymlinkBoostyFiles),
+//
+//                            // Ссылка на mp4 lyrics в папку pathToSymlinkFolderBoostyFiles
+//                            listOf("ln", "-s", songLyricsMp4Relative.wrapInQuotes(), songLyricsMp4SymlinkBoostyFiles),
+//                            listOf("chmod", "666", songLyricsMp4SymlinkBoostyFiles),
 
                             // Ссылка на mp4 karaoke в папку pathToSymlinkFolderMP4
                             listOf("ln", "-s", songKaraokeMp4Relative.wrapInQuotes(), songKaraokeMp4Symlink),
@@ -1384,17 +1384,17 @@ class KaraokeProcess(
                             listOf("ln", "-s", songLyricsPngRelative.wrapInQuotes(), songLyricsPngSymlink),
                             listOf("chmod", "666", songLyricsPngSymlink),
 
-                            // Ссылка на png boosty в папку pathToSymlinkFolderBoostyPNG
-                            listOf("ln", "-s", songBoostyPngRelative.wrapInQuotes(), songBoostyPngSymlink),
-                            listOf("chmod", "666", songBoostyPngSymlink),
+//                            // Ссылка на png boosty в папку pathToSymlinkFolderBoostyPNG
+//                            listOf("ln", "-s", songBoostyPngRelative.wrapInQuotes(), songBoostyPngSymlink),
+//                            listOf("chmod", "666", songBoostyPngSymlink),
 
                             // Ссылка на png sponsr в папку pathToSymlinkFolderBoostyPNG
                             listOf("ln", "-s", songSponsrPngRelative.wrapInQuotes(), songSponsrPngSymlink),
                             listOf("chmod", "666", songSponsrPngSymlink),
 
-                            // Ссылка на png boosty files в папку pathToSymlinkFolderBoostyPNG
-                            listOf("ln", "-s", songBoostyFilesPngRelative.wrapInQuotes(), songBoostyFilesPngSymlink),
-                            listOf("chmod", "666", songBoostyFilesPngSymlink),
+//                            // Ссылка на png boosty files в папку pathToSymlinkFolderBoostyPNG
+//                            listOf("ln", "-s", songBoostyFilesPngRelative.wrapInQuotes(), songBoostyFilesPngSymlink),
+//                            listOf("chmod", "666", songBoostyFilesPngSymlink),
 
                         )
                     }

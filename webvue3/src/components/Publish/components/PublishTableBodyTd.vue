@@ -9,34 +9,28 @@
            @click.left="editSong">
       </div>
       <div class="publish-column">
-        <div class="publish-column-cell-top" :style="processColorBoosty" ></div>
-        <div class="publish-column-cell-top" :style="processColorVk" ></div>
-        <div class="publish-column-cell-bottom" :style="processColorSponsr" ></div>
+        <div class="publish-column-cell-top" :style="processColorMeltLyrics" @dblclick="dblClickLyrics" ></div>
+        <div class="publish-column-cell-bottom" :style="processColorMeltKaraoke" @dblclick="dblClickKaraoke" ></div>
+      </div>
+      <div class="publish-column">
+        <div class="publish-column-cell-top" :style="processColorSponsr" ></div>
+        <div class="publish-column-cell-bottom" :style="processColorVk" ></div>
       </div>
       <div class="publish-column">
         <div class="publish-column-cell-top" :style="processColorDzenLyrics" ></div>
-        <div class="publish-column-cell-top" :style="processColorDzenKaraoke" ></div>
-        <div class="publish-column-cell-bottom" :style="processColorDzenChords" ></div>
+        <div class="publish-column-cell-bottom" :style="processColorDzenKaraoke" ></div>
       </div>
       <div class="publish-column">
         <div class="publish-column-cell-top" :style="processColorVkLyrics" ></div>
-        <div class="publish-column-cell-top" :style="processColorVkKaraoke" ></div>
-        <div class="publish-column-cell-bottom" :style="processColorVkChords" ></div>
-      </div>
-      <div class="publish-column">
-        <div class="publish-column-cell-top" :style="processColorTelegramLyrics" ></div>
-        <div class="publish-column-cell-top" :style="processColorTelegramKaraoke" ></div>
-        <div class="publish-column-cell-bottom" :style="processColorTelegramChords" ></div>
+        <div class="publish-column-cell-bottom" :style="processColorVkKaraoke" ></div>
       </div>
       <div class="publish-column">
         <div class="publish-column-cell-top" :style="processColorPlLyrics" ></div>
-        <div class="publish-column-cell-top" :style="processColorPlKaraoke" ></div>
-        <div class="publish-column-cell-bottom" :style="processColorPlChords" ></div>
+        <div class="publish-column-cell-bottom" :style="processColorPlKaraoke" ></div>
       </div>
       <div class="publish-column">
-        <div class="publish-column-cell-top" :style="processColorMeltLyrics" @dblclick="dblClickLyrics" ></div>
-        <div class="publish-column-cell-top" :style="processColorMeltKaraoke" @dblclick="dblClickKaraoke" ></div>
-        <div class="publish-column-cell-bottom" :style="processColorMeltChords" @dblclick="dblClickChords" ></div>
+        <div class="publish-column-cell-top" :style="processColorTelegramLyrics" ></div>
+        <div class="publish-column-cell-bottom" :style="processColorTelegramKaraoke" ></div>
       </div>
     </div>
     <div class="empty" v-else></div>
@@ -122,8 +116,8 @@ export default {
   flex-direction: row;
   min-width: 200px;
   max-width: 200px;
-  min-height: 30px;
-  max-height: 30px;
+  min-height: 20px;
+  max-height: 20px;
   /*border: thin solid black;*/
   font-size: x-small;
 }
@@ -149,7 +143,7 @@ export default {
   display: flex;
   flex-direction: column;
   width: 10px;
-  height: 30px;
+  height: 20px;
   border-width: thin thin 0 0;
   border-style: solid solid none none;
   background-color: transparent;
@@ -173,7 +167,7 @@ export default {
 .empty {
   font-size: 0;
   width: 200px;
-  height: 30px;
+  height: 20px;
   background-color: grey;
   border: thin black;
   border-style: dashed dashed none none

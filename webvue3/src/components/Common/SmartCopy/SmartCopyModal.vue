@@ -24,6 +24,7 @@
                 <div v-text="'Версия:'"></div>
               </div>
               <div class="scm-row-input">
+                <button class="scm-group-button" :class="smartCopySongVersionButtonClass('ALL')" type="button" value="ALL" @click="setSmartCopySongVersion('ALL')">Все версии</button>
                 <button class="scm-group-button" :class="smartCopySongVersionButtonClass('KARAOKE')" type="button" value="KARAOKE" @click="setSmartCopySongVersion('KARAOKE')">KARAOKE</button>
                 <button class="scm-group-button" :class="smartCopySongVersionButtonClass('LYRICS')" type="button" value="LYRICS" @click="setSmartCopySongVersion('LYRICS')">LYRICS</button>
                 <button class="scm-group-button" :class="smartCopySongVersionButtonClass('CHORDS')" type="button" value="CHORDS" @click="setSmartCopySongVersion('CHORDS')">CHORDS</button>

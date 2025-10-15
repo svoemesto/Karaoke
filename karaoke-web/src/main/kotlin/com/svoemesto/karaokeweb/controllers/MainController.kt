@@ -2,7 +2,6 @@ package com.svoemesto.karaokeweb.controllers
 
 
 import com.svoemesto.karaokeapp.Crypto
-import com.svoemesto.karaokeapp.createVKLinkPicture
 import com.svoemesto.karaokeapp.model.Settings
 import com.svoemesto.karaokeweb.StatBySong
 import com.svoemesto.karaokeapp.model.Zakroma
@@ -15,7 +14,6 @@ import org.springframework.stereotype.Controller
 import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.*
-import java.io.File
 import java.sql.Timestamp
 import java.time.Instant
 
@@ -31,7 +29,7 @@ class MainController(private val webSocket: SimpMessagingTemplate, @Value("\${wo
         model: Model,
         request: HttpServletRequest
     ): String {
-        model.addAttribute("onBoosty", StatBySong.getCountSongsOnBoosty(WORKING_DATABASE))
+        model.addAttribute("onBoosty", StatBySong.getCountSongsInCollection(WORKING_DATABASE))
         model.addAttribute("onAir", StatBySong.getCountSongsOnAir(WORKING_DATABASE))
         doRegisterEvent(mapOf("eventType" to "callRest", "restName" to "main", "parameters" to emptyMap<String, Any>(), "referer" to request.remoteHost))
         return "main"

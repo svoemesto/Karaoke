@@ -2452,21 +2452,27 @@ class ApisController(private val sseNotificationService: SseNotificationService)
         @RequestParam smartCopyPath: String
     ) {
         var result = false
-        val scVersion = if (SongVersion.values().map {it.name}.contains(smartCopySongVersion)) SongVersion.valueOf(smartCopySongVersion) else SongVersion.KARAOKE
+        val versions = if (smartCopySongVersion == "ALL") {
+            SongVersion.values().toList()
+        } else {
+            listOf(if (SongVersion.values().map {it.name}.contains(smartCopySongVersion)) SongVersion.valueOf(smartCopySongVersion) else SongVersion.KARAOKE)
+        }
 
         songsIds.let {
             val ids = songsIds.split(";").map { it }.filter { it != "" }.map { it.toLong() }
             ids.forEach { id ->
                 val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
                 settings?.let {
-                    it.doSmartCopy(
-                        prior = prior,
-                        scVersion = scVersion,
-                        scResolution = smartCopySongResolution,
-                        scCreateSubfoldersAuthors = smartCopyCreateSubfoldersAuthors ?: false,
-                        scRenameTemplate = smartCopyRenameTemplate ?: "",
-                        scPath = smartCopyPath,
+                    versions.forEach { scVersion ->
+                        it.doSmartCopy(
+                            prior = prior,
+                            scVersion = scVersion,
+                            scResolution = smartCopySongResolution,
+                            scCreateSubfoldersAuthors = smartCopyCreateSubfoldersAuthors ?: false,
+                            scRenameTemplate = smartCopyRenameTemplate ?: "",
+                            scPath = smartCopyPath,
                         )
+                    }
                 }
                 result = true
             }

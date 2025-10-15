@@ -60,19 +60,12 @@ fun mainUtils() {
 
 fun customFunction(): String {
 
-    Pictures.loadListIds(database = WORKING_DATABASE).forEach { id ->
-        val picture = Pictures.loadFromDbById(id, database = WORKING_DATABASE)
-        picture?.let {
-            val pictureBites = Base64.getDecoder().decode(it.full)
-            val bi = ImageIO.read(ByteArrayInputStream(pictureBites))
-            val previewBi = if (bi.width > 400) resizeBufferedImage(bi, newW = 125, newH = 50) else resizeBufferedImage(bi, newW = 50, newH = 50)
-            val iosPreview = ByteArrayOutputStream()
-            ImageIO.write(previewBi, "png", iosPreview)
-            val preview = Base64.getEncoder().encodeToString(iosPreview.toByteArray())
-            it.preview = preview
-            it.save()
-            println(it.name)
-        }
+    Settings.loadListFromDb(database = WORKING_DATABASE).filter { !it.haveSponsr }.forEach { settings ->
+        println(settings.rightSettingFileName)
+        val newNoStemNameFlacSymlinkQ = settings.newNoStemNameFlacSymlink.rightFileName().wrapInQuotes()
+        runCommand(listOf("rm", "-f", newNoStemNameFlacSymlinkQ))
+        runCommand(listOf("ln", "-s", settings.relativePathToNoStemNameFlac.rightFileName().wrapInQuotes(), newNoStemNameFlacSymlinkQ))
+        runCommand(listOf("chmod", "666", newNoStemNameFlacSymlinkQ))
     }
 
     return ""

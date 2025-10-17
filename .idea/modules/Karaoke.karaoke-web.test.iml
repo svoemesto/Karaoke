@@ -23,6 +23,7 @@
           <stringArguments>
             <stringArg name="classpath">
               <args>
+                <arg>$MODULE_DIR$/../../karaoke-app/build/libs/karaoke-app-1-plain.jar</arg>
                 <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-reflect/1.7.22/e61a16c5c838d324529a6aa72dfb88ea98958a29/kotlin-reflect-1.7.22.jar</arg>
                 <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.springframework.boot/spring-boot-starter-thymeleaf/3.0.5/e23e18da18a7eef641be6797e74de61ac7b399bd/spring-boot-starter-thymeleaf-3.0.5.jar</arg>
                 <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.springframework.boot/spring-boot-starter-websocket/3.0.5/673f1a94f55081ea070134c9bb859eae119409d5/spring-boot-starter-websocket-3.0.5.jar</arg>

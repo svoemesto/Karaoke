@@ -60,14 +60,15 @@ fun mainUtils() {
 
 fun customFunction(): String {
 
-    Settings.loadListFromDb(database = WORKING_DATABASE).filter { !it.haveSponsr }.forEach { settings ->
-        println(settings.rightSettingFileName)
-        val newNoStemNameFlacSymlinkQ = settings.newNoStemNameFlacSymlink.rightFileName().wrapInQuotes()
-        runCommand(listOf("rm", "-f", newNoStemNameFlacSymlinkQ))
-        runCommand(listOf("ln", "-s", settings.relativePathToNoStemNameFlac.rightFileName().wrapInQuotes(), newNoStemNameFlacSymlinkQ))
-        runCommand(listOf("chmod", "666", newNoStemNameFlacSymlinkQ))
-    }
+//    Settings.loadListFromDb(database = WORKING_DATABASE).filter { it.healthReport().isNotEmpty() }.forEach { settings ->
+//        println(settings.rightSettingFileName)
+//        println(settings.healthReport())
+//        println("-----------------------------")
+//    }
 
+    println(Settings.loadFromDbById(1, WORKING_DATABASE)?.getKeyBpmFromFile())
+
+    println("customFunction done")
     return ""
 }
 

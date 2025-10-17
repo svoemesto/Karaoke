@@ -1,0 +1,22 @@
+version: "3.9"
+services:
+  karaoke-storage:
+    image: minio/minio:latest
+    environment:
+      - MINIO_ACCESS_KEY=${STORAGE_KEY}
+      - MINIO_SECRET_KEY=${STORAGE_SECRET}
+      - WORK_IN_CONTAINER=1
+    container_name: karaoke-storage
+    ports:
+      - ${STORAGE_PORT_HOST}:${STORAGE_PORT_INSIDE_CONTAINER} # порт хоста : порт внутри контейнера
+      - ${STORAGE_CONSOLE_PORT_HOST}:${STORAGE_CONSOLE_PORT_INSIDE_CONTAINER} # порт хоста : порт внутри контейнера
+    command: server /data --console-address ":${STORAGE_CONSOLE_PORT_INSIDE_CONTAINER}"
+    networks:
+      - karaokenet
+    volumes: # локальная папка : папка внутри контейнера
+      - ${STORAGE_FOLDER}:/data # мапим локальную папку /sm-karaoke/system/Караоке-storage в контейнер по пути /data
+    restart: always
+
+networks:
+  karaokenet:
+    driver: bridge

@@ -6,6 +6,8 @@ set -a
 
 echo "Starting do.sh"
 
+
+
 DEPLOY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null && pwd)"
 APP_VERSION=1
 DOCKER=$(which docker)
@@ -14,6 +16,18 @@ DOCKER_REGISTRY=svoemestodev
 DOCKER_PASSWORD=dckr_pat_SxLnc4cA4EChRdvQcnQjZCPOgw0
 #DOCKER_PASSWORD=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
 
+source ${DEPLOY_DIR}/.env
+
+echo "DEPLOY_DIR = $DEPLOY_DIR"
+echo "BASE_DIR = $BASE_DIR"
+echo "GRADLE = $GRADLE"
+echo "APP_VERSION = $APP_VERSION"
+echo "BUILD_VERSION = $BUILD_VERSION"
+echo "DOCKER = $DOCKER"
+echo "COMPOSE = $COMPOSE"
+echo "DOCKER_REGISTRY = $DOCKER_REGISTRY"
+echo "DOCKER_PASSWORD = $DOCKER_PASSWORD"
+echo "STORAGE_PORT_HOST = $STORAGE_PORT_HOST"
 
 function do_start_db() {
   do_stop_db
@@ -26,6 +40,19 @@ function do_start_db() {
 function do_stop_db() {
   echo "Остановка DATABASE"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-db-new-comp.yml down
+}
+
+function do_start_storage() {
+  do_stop_storage
+  echo "Старт STORAGE"
+  ${COMPOSE} -f $DEPLOY_DIR/docker-compose-storage-new-comp.yml up -d
+  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga
+  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "STORAGE запущен"
+}
+
+function do_stop_storage() {
+  echo "Остановка STORAGE"
+  ${COMPOSE} -f $DEPLOY_DIR/docker-compose-storage-new-comp.yml down
 }
 
 function do_start_web() {
@@ -186,12 +213,14 @@ cmd=$1
 case ${cmd} in
 
 start_db) do_start_db ;;
+start_storage) do_start_storage ;;
 start_app) do_start_app ;;
 start_app2) do_start_app2 ;;
 start_web) do_start_web ;;
 start_webvue) do_start_webvue ;;
 start_webvue3) do_start_webvue3 ;;
 stop_db) do_stop_db ;;
+stop_storage) do_stop_storage ;;
 stop_app) do_stop_app ;;
 stop_web) do_stop_web ;;
 stop_webvue) do_stop_webvue ;;

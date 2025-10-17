@@ -32,14 +32,14 @@ dependencies {
     implementation("com.fasterxml.jackson.core:jackson-databind:2.14.2")
     implementation("org.odftoolkit:odfdom-java:0.9.0")
     implementation("org.odftoolkit:simple-odf:0.9.0")
-    implementation("org.postgresql:postgresql:42.6.0")
-    implementation("commons-io:commons-io:2.11.0")
+    implementation("org.postgresql:postgresql:42.7.7")
+    implementation("commons-io:commons-io:2.14.0")
     implementation("com.google.code.gson:gson:2.8.9")
 
     implementation("com.github.st-h:TarsosDSP:2.4.1")
 
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.0")
-    implementation("org.jsoup:jsoup:1.14.1")
+    implementation("org.jsoup:jsoup:1.15.3")
     implementation("io.ktor:ktor-server-core:2.3.0")
     implementation("org.apache.commons:commons-csv:1.8")
 
@@ -52,7 +52,8 @@ dependencies {
 
 //    implementation("org.apache.http:httpcore:4.2")
 // https://mvnrepository.com/artifact/org.apache.commons/commons-lang3
-    implementation("org.apache.commons:commons-lang3:3.14.0")
+    implementation("org.apache.commons:commons-lang3:3.18.0")
+    implementation("io.minio:minio:8.6.0")
 
 }
 

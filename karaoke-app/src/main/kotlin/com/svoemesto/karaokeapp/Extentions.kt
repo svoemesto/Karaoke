@@ -14,7 +14,13 @@ fun String.wrapInQuotes(): String {
 //    return "\"\"" + this + "\"\""
 }
 fun String.rightFileNameSymbols(): String {
-    return this.replace("'","''").replace("?","").replace(":","-").replace("!","")
+    return this
+        .replace("'","''")
+        .replace("?","")
+        .replace(":","-")
+        .replace("!","")
+        .replace("$","s")
+        .replace("*","x")
 }
 fun String.rightFileName(): String {
     // Если имя у файла очень длинное - его надо образать до размера 200 байт

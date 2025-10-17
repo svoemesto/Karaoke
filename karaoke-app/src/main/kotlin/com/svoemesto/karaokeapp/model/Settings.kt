@@ -129,7 +129,14 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         if (track != 0L ) resultList.add("(${"%02d".format(track)})")
         resultList.add("[$author] -")
         resultList.add(songName)
-        return resultList.joinToString(" ").replace("?","").replace(":","-").replace("!","") //.rightFileName()
+        return resultList
+            .joinToString(" ")
+            .replace("?","")
+            .replace(":","-")
+            .replace("!","")
+            .replace("$","s")
+            .replace("*","x")
+            .replace("/","")
     }
 
     var tags: String = ""
@@ -256,6 +263,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     val pathToFileChords: String  get() = "${rootFolder}/done_files/$nameFileChords".rightFileName()
 //    val pathToFileChordsVk: String  get() = "${rootFolder}/done_files/$nameFileChordsVk".rightFileName()
     val pathToFileMelody: String  get() = "${rootFolder}/done_files/$nameFileMelody".rightFileName()
+    val pathToFileKeyBpmFinder: String  get() = "${rootFolder}/$nameFileKeyBpmFinder".rightFileName()
 //    val pathToFileMelodyVk: String  get() = "${rootFolder}/done_files/$nameFileMelodyVk".rightFileName()
 
     val pathToFile720Lyrics: String  get() = "$pathToFolder720Lyrics/${nameFileLyrics.replace(" [lyrics].mp4", " [lyrics] 720p.mp4")}".rightFileName()
@@ -291,6 +299,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     val nameFileChords: String  get() = "${rightSettingFileName} [chords].mp4".rightFileName()
 //    val nameFileChordsVk: String  get() = "${rightSettingFileName} [chordsVk].mp4".rightFileName()
     val nameFileMelody: String  get() = "${rightSettingFileName} [tabs].mp4".rightFileName()
+    val nameFileKeyBpmFinder: String  get() = "${rightSettingFileName} [key].json".rightFileName()
 //    val nameFileMelodyVk: String  get() = "${rightSettingFileName} [tabsVk].mp4".rightFileName()
 
     val pathToFolderSheetsage: String  get() = "${rootFolder}/sheetsage".rightFileName()
@@ -709,10 +718,48 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     val linkPlChords: String get() = if (idPlChords == "") "" else linkPlChordsPlay!!
     val datePublish: String get() = if (date == "" || time == "") "Дата пока не определена" else "${date} ${time}"
 
+    fun getKeyBpmFromFile(reFind: Boolean = false): Pair<String, Int> {
+        if (reFind || !File(pathToFileKeyBpmFinder).exists()) {
+            argsKeyBpmFinder().forEach { arg ->
+                runCommand(arg)
+            }
+        }
+        if (File(pathToFileKeyBpmFinder).exists()) {
+            println(pathToFileKeyBpmFinder)
+            val text = File(pathToFileKeyBpmFinder).readText(Charsets.UTF_8)
+            val data = Json.decodeFromString(AudioAnalysisResult.serializer(), text)
+            if (data.key != null && data.bpm != null) {
+                return Pair(data.key, data.bpm)
+            }
+        }
+        return Pair("", 0)
+    }
+
+    fun argsKeyBpmFinder(): List<List<String>> {
+        // Сначала копируем файл аудио в папку PATH_TO_TEMP_KEYBPMFINDER_FOLDER с именем file.flac, потом вызываем докер,
+        // потом копируем оттуда результат result_key_bpm_finder.json и удаляем папку PATH_TO_TEMP_KEYBPMFINDER_FOLDER
+        val tmpFileName = "file"
+        return listOf(
+            listOf("mkdir", "-p", PATH_TO_TEMP_KEYBPMFINDER_FOLDER),
+            listOf("chmod", "777", PATH_TO_TEMP_KEYBPMFINDER_FOLDER),
+            listOf("cp", fileAbsolutePath.rightFileName(), "$PATH_TO_TEMP_KEYBPMFINDER_FOLDER/$tmpFileName.flac"),
+            listOf(
+                "docker", "run", "--rm",
+                "-v", "$PATH_TO_TEMP_KEYBPMFINDER_FOLDER:/input",
+                "svoemestodev/keybpmfinder:latest",
+                "/input/$tmpFileName.flac"
+            ),
+            listOf("mv", "$PATH_TO_TEMP_KEYBPMFINDER_FOLDER/result_key_bpm_finder.json", pathToFileKeyBpmFinder.rightFileName()
+            ),
+            listOf("chmod", "666", pathToFileKeyBpmFinder.rightFileName()),
+            listOf("rm", "-rf", PATH_TO_TEMP_KEYBPMFINDER_FOLDER)
+        )
+    }
     fun argsDemucs2(): List<List<String>> {
 
         // Сначала копируем файл аудио в папку PATH_TO_TEMP_DEMUCS_FOLDER с именем file.flac, потом вызываем докер,
         // потом копируем оттуда результат и удаляем папку PATH_TO_TEMP_DEMUCS_FOLDER
+
         val tmpFileName = "file"
         return listOf(
             listOf("mkdir", "-p", pathToResultedModel),
@@ -733,21 +780,6 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             listOf("chmod", "666", "${vocalsNameFlac.rightFileName()}"),
             listOf("rm", "-rf", PATH_TO_TEMP_DEMUCS_FOLDER)
         )
-//        val settings = this
-//        return listOf(
-//        listOf("python3", "-m", "demucs", "-n", DEMUCS_MODEL_NAME, "-d", "cpu", "--filename", "{track}-{stem}.{ext}",
-//            "--two-stems=${settings.separatedStem}",
-//            "-o",
-//            settings.rootFolder.rightFileName(),
-//            settings.fileAbsolutePath.rightFileName()
-//        ),
-//        ),
-//        listOf("mv", settings.oldNoStemNameWav.rightFileName(), settings.newNoStemNameWav.rightFileName()),
-//        listOf("ffmpeg", "-i", settings.newNoStemNameWav.rightFileName(), "-compression_level", "8", settings.newNoStemNameFlac.rightFileName(), "-y"),
-//        listOf("rm", settings.newNoStemNameWav.rightFileName()),
-//        listOf("ffmpeg", "-i", settings.vocalsNameWav.rightFileName(), "-compression_level", "8", settings.vocalsNameFlac.rightFileName(), "-y"),
-//        listOf("rm", settings.vocalsNameWav.rightFileName())
-//        )
     }
 
     fun argsDemucs5(): List<List<String>> {
@@ -780,35 +812,6 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             listOf("chmod", "666", "${otherNameFlac.rightFileName()}"),
             listOf("rm", "-rf", PATH_TO_TEMP_DEMUCS_FOLDER)
         )
-//        val settings = this
-//        return listOf(
-//            listOf("python3", "-m", "demucs", "-n", DEMUCS_MODEL_NAME, "-d", "cpu", "--filename", "{track}-{stem}.{ext}",
-//                "--two-stems=${settings.separatedStem}",
-//                "-o",
-//                settings.rootFolder.rightFileName(),
-//                settings.fileAbsolutePath.rightFileName()
-//            ),
-//            listOf("mv", settings.oldNoStemNameWav.rightFileName(), settings.newNoStemNameWav.rightFileName()),
-//            listOf("ffmpeg", "-i", settings.newNoStemNameWav.rightFileName(), "-compression_level", "8", settings.newNoStemNameFlac.rightFileName(), "-y"),
-//            listOf("rm", settings.newNoStemNameWav.rightFileName()),
-//            listOf("ffmpeg", "-i", settings.vocalsNameWav.rightFileName(), "-compression_level", "8", settings.vocalsNameFlac.rightFileName(), "-y"),
-//            listOf("rm", settings.vocalsNameWav.rightFileName()),
-//            listOf("python3", "-m", "demucs", "-n", DEMUCS_MODEL_NAME, "-d", "cpu", "--filename", "{track}-{stem}.{ext}",
-//                "-o",
-//                settings.rootFolder.rightFileName(),
-//                settings.fileAbsolutePath.rightFileName()
-//            ),
-//            listOf("ffmpeg", "-i", settings.drumsNameWav.rightFileName(), "-compression_level", "8", settings.drumsNameFlac.rightFileName(), "-y"),
-//            listOf("rm", settings.drumsNameWav.rightFileName()),
-//            listOf("ffmpeg", "-i", settings.bassNameWav.rightFileName(), "-compression_level", "8", settings.bassNameFlac.rightFileName(), "-y"),
-//            listOf("rm", settings.bassNameWav.rightFileName()),
-//            listOf("ffmpeg", "-i", settings.guitarsNameWav.rightFileName(), "-compression_level", "8", settings.guitarsNameFlac.rightFileName(), "-y"),
-//            listOf("rm", settings.guitarsNameWav.rightFileName()),
-//            listOf("ffmpeg", "-i", settings.otherNameWav.rightFileName(), "-compression_level", "8", settings.otherNameFlac.rightFileName(), "-y"),
-//            listOf("rm", settings.otherNameWav.rightFileName()),
-//            listOf("ffmpeg", "-i", settings.vocalsNameWav.rightFileName(), "-compression_level", "8", settings.vocalsNameFlac.rightFileName(), "-y"),
-//            listOf("rm", settings.vocalsNameWav.rightFileName())
-//        )
     }
 
     val sheetstageInfo: Map<String, Any> get() {
@@ -1334,6 +1337,21 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         }
         prop.add("${endTimecode}=-100")
         return prop.joinToString(";")
+    }
+
+    fun healthReport(): List<String> {
+        val result: MutableList<String> = mutableListOf()
+        val listFilesPath = listOf(
+            fileAbsolutePath,           // путь к аудиофайлу
+            newNoStemNameFlac,          // путь к файлу минусовки
+            vocalsNameFlac,             // путь к файлу голоса
+            pathToFileLogoAuthor,       // путь к картинке автора
+            pathToFileLogoAlbum         // путь к картинке альбома
+        )
+        listFilesPath.forEach { filePath ->
+            if (!File(filePath).exists()) result.add("Отсутствует файл: $filePath")
+        }
+        return result.toList()
     }
 
     fun getOutputFilename(songOutputFile: SongOutputFile, songVersion: SongVersion? = null, relative: Boolean = false): String {
@@ -4623,6 +4641,9 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                             settings.fields[SettingField.ALBUM] = albumStr
                             settings.fields[SettingField.TRACK] = numberStr
                             settings.fields[SettingField.AUTHOR] = authorStr
+                            val (key, bpm) = settings.getKeyBpmFromFile()
+                            settings.fields[SettingField.KEY] = key
+                            settings.fields[SettingField.BPM] = bpm.toString()
                             settings.saveToDb()
                             result.add(settings)
 

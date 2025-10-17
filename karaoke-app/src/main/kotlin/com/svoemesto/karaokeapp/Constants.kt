@@ -11,6 +11,7 @@ const val LIMIT_ROWS_PICTURES_TABLE_UPDATE = 100
 const val CURRENT_RESULT_VERSION = 11L
 const val COUNT_HISTORY_LINES = 30
 const val PATH_TO_TEMP_DEMUCS_FOLDER = "/sm-karaoke/system/demucs-docker/tmp"
+const val PATH_TO_TEMP_KEYBPMFINDER_FOLDER = "/sm-karaoke/system/keybpmfinder-docker/tmp"
 const val COLOR_ALL_DONE = "#7FFFD4"        // Полностью готово
 const val COLOR_OVERDUE = "#BDB76B"         // Публикация прошла, но не все ссылки заполнены
 const val COLOR_TODAY = "#FFFF00"           // Сегодня

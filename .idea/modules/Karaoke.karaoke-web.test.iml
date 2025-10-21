@@ -23,6 +23,8 @@
           <stringArguments>
             <stringArg name="classpath">
               <args>
+                <arg>$MODULE_DIR$/../../karaoke-web/build/classes/kotlin/main</arg>
+                <arg>$MODULE_DIR$/../../karaoke-web/build/resources/main</arg>
                 <arg>$MODULE_DIR$/../../karaoke-app/build/libs/karaoke-app-1-plain.jar</arg>
                 <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-reflect/1.7.22/e61a16c5c838d324529a6aa72dfb88ea98958a29/kotlin-reflect-1.7.22.jar</arg>
                 <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.springframework.boot/spring-boot-starter-thymeleaf/3.0.5/e23e18da18a7eef641be6797e74de61ac7b399bd/spring-boot-starter-thymeleaf-3.0.5.jar</arg>
@@ -236,6 +238,7 @@
     <orderEntry type="library" name="Gradle: ch.qos.logback:logback-core:1.4.6" level="project" />
     <orderEntry type="library" name="Gradle: org.apache.logging.log4j:log4j-api:2.19.0" level="project" />
     <orderEntry type="library" name="Gradle: org.ow2.asm:asm:9.3" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Gradle: io.minio:minio:8.6.0" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: org.springframework.boot:spring-boot-starter-webflux:3.0.5" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: org.odftoolkit:simple-odf:0.9.0" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: org.odftoolkit:odfdom-java:0.9.0" level="project" />
@@ -249,6 +252,13 @@
     <orderEntry type="library" scope="RUNTIME" name="Gradle: org.apache.httpcomponents.client5:httpclient5:5.1.4" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: org.checkerframework:checker-qual:3.31.0" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: io.ktor:ktor-server-core-jvm:2.3.0" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Gradle: com.squareup.okhttp3:okhttp:4.10.0" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Gradle: org.apache.commons:commons-compress:1.28.0" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Gradle: commons-codec:commons-codec:1.15" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Gradle: com.carrotsearch.thirdparty:simple-xml-safe:2.7.1" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Gradle: com.google.guava:guava:33.4.8-jre" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Gradle: org.bouncycastle:bcprov-jdk18on:1.81" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Gradle: org.xerial.snappy:snappy-java:1.1.10.7" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: org.springframework:spring-webflux:6.0.7" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: org.springframework.boot:spring-boot-starter-reactor-netty:3.0.5" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: xerces:xercesImpl:2.12.1" level="project" />
@@ -270,7 +280,6 @@
     <orderEntry type="library" scope="RUNTIME" name="Gradle: org.seleniumhq.selenium:selenium-api:4.5.3" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: org.apache.httpcomponents.core5:httpcore5-h2:5.1.5" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: org.apache.httpcomponents.core5:httpcore5:5.1.5" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Gradle: commons-codec:commons-codec:1.15" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: org.junit.jupiter:junit-jupiter-engine:5.9.2" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: org.objenesis:objenesis:3.2" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.7.22" level="project" />
@@ -278,6 +287,11 @@
     <orderEntry type="library" scope="RUNTIME" name="Gradle: org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:1.6.4" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: com.typesafe:config:1.4.2" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: org.fusesource.jansi:jansi:2.4.0" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Gradle: com.google.guava:failureaccess:1.0.3" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Gradle: com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Gradle: org.jspecify:jspecify:1.0.0" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Gradle: com.google.errorprone:error_prone_annotations:2.36.0" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Gradle: com.google.j2objc:j2objc-annotations:3.0.0" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: io.projectreactor:reactor-core:3.5.4" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: io.projectreactor.netty:reactor-netty-http:1.1.5" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: xml-apis:xml-apis:1.4.01" level="project" />
@@ -289,9 +303,8 @@
     <orderEntry type="library" scope="RUNTIME" name="Gradle: commons-logging:commons-logging:1.2" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: commons-collections:commons-collections:3.2.2" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: org.seleniumhq.selenium:selenium-chromium-driver:4.5.3" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Gradle: com.google.auto.service:auto-service:1.0.1" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Gradle: com.google.guava:guava:31.1-jre" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: org.seleniumhq.selenium:selenium-json:4.5.3" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Gradle: com.google.auto.service:auto-service:1.0.1" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: com.google.auto.service:auto-service-annotations:1.0.1" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: org.seleniumhq.selenium:selenium-http:4.5.3" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: org.asynchttpclient:async-http-client:2.12.3" level="project" />
@@ -324,20 +337,15 @@
     <orderEntry type="library" scope="RUNTIME" name="Gradle: io.ktor:ktor-http-jvm:2.3.0" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: io.ktor:ktor-utils-jvm:2.3.0" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.6.4" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Gradle: com.squareup.okio:okio-jvm:3.0.0" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: org.reactivestreams:reactive-streams:1.0.4" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: io.projectreactor.netty:reactor-netty-core:1.1.5" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: io.netty:netty-codec-http2:4.1.90.Final" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: io.netty:netty-resolver-dns-native-macos:osx-x86_64:4.1.90.Final" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: io.netty:netty-resolver-dns:4.1.90.Final" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: org.apache.jena:jena-shaded-guava:3.17.0" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Gradle: org.apache.commons:commons-compress:1.20" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: com.github.andrewoma.dexx:collection:0.7" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: com.google.auto:auto-common:1.2" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Gradle: com.google.guava:failureaccess:1.0.1" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Gradle: com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Gradle: com.google.code.findbugs:jsr305:3.0.2" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Gradle: com.google.errorprone:error_prone_annotations:2.11.0" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Gradle: com.google.j2objc:j2objc-annotations:1.3" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: dev.failsafe:failsafe:3.3.0" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: org.asynchttpclient:async-http-client-netty-utils:2.12.3" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: io.netty:netty-handler-proxy:4.1.90.Final" level="project" />

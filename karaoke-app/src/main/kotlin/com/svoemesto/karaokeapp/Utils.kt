@@ -2514,3 +2514,18 @@ fun getTransposingChord(originalChord: String, capo: Int = 0): String {
     val newNote = MusicNote.values()[newIndexNote]
     return newNote.names.first() + chord!!.names.first()
 }
+
+/**
+ * Проверяет, безопасно ли имя файла (защита от path traversal).
+ */
+fun isValidFileName(fileName: String): Boolean {
+    return !fileName.contains("..") && !fileName.startsWith("/") && !fileName.contains("/../")
+}
+
+/**
+ * Проверяет, разрешён ли тип файла (опционально).
+ */
+fun isAllowedFileType(fileName: String, allowedTypes: Set<String> = setOf("jpg", "png", "mp3", "wav", "txt", "pdf")): Boolean {
+    val extension = fileName.substringAfterLast('.', "").lowercase()
+    return allowedTypes.contains(extension)
+}

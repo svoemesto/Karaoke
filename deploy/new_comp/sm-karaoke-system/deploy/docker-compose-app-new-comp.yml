@@ -7,9 +7,17 @@ services:
     ports:
       - "8898:8899"
     environment:
-      WORK_IN_CONTAINER: 1
-      LANG: "C.UTF-8"
-      LC_ALL: "C.UTF-8"
+      - WORK_IN_CONTAINER=1
+      - STORAGE_FOLDER=${STORAGE_FOLDER}
+      - STORAGE_PORT_HOST=${STORAGE_PORT_HOST}
+      - STORAGE_PORT_INSIDE_CONTAINER=${STORAGE_PORT_INSIDE_CONTAINER}
+      - STORAGE_CONSOLE_PORT_HOST=${STORAGE_CONSOLE_PORT_HOST}
+      - STORAGE_CONSOLE_PORT_INSIDE_CONTAINER=${STORAGE_CONSOLE_PORT_INSIDE_CONTAINER}
+      - STORAGE_CONTAINER_NAME=${STORAGE_CONTAINER_NAME}
+      - STORAGE_KEY=${STORAGE_KEY}
+      - STORAGE_SECRET=${STORAGE_SECRET}
+      - LANG=C.UTF-8
+      - LC_ALL=C.UTF-8
     volumes:
       - /sm-karaoke/work:/sm-karaoke/work
       - /sm-karaoke/done1:/sm-karaoke/done1

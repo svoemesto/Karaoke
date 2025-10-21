@@ -12,6 +12,9 @@ spring:
     encoding: UTF-8
     servlet:
       content-type: text/html
+      multipart:
+        max-file-size: 10MB
+        max-request-size: 10MB
     cache: false
   main:
     allow-bean-definition-overriding: true
@@ -19,3 +22,18 @@ spring:
 WORK_IN_CONTAINER: 0
 
 work-in-container: ${WORK_IN_CONTAINER}
+
+app:
+  max-file-size: 100MB
+  max-request-size: 100MB
+
+storage:
+  key: ${STORAGE_KEY}
+  secret: ${STORAGE_SECRET}
+  folder: ${STORAGE_FOLDER}
+  port-host: ${STORAGE_PORT_HOST}
+  port-inside-container: ${STORAGE_PORT_INSIDE_CONTAINER}
+  container-name: ${STORAGE_CONTAINER_NAME}
+  console:
+    port-host: ${STORAGE_CONSOLE_PORT_HOST}
+    port-inside-container: ${STORAGE_CONSOLE_PORT_INSIDE_CONTAINER}

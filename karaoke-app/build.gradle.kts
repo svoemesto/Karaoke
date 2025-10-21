@@ -56,6 +56,7 @@ dependencies {
     implementation("org.apache.commons:commons-lang3:3.14.0")
 // https://mvnrepository.com/artifact/org.apache.httpcomponents.client5/httpclient5
     implementation("org.apache.httpcomponents.client5:httpclient5:5.3.1")
+    implementation("io.minio:minio:8.6.0")
 
 }
 

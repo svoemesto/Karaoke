@@ -351,7 +351,7 @@ export default {
     }
   },
   async mounted() {
-    // this.$store.dispatch('loadSongsDigests', { filter_author: 'Павел Кашин'} )
+    // this.$store.dispatch('loadSongsDigests', { filterAuthor: 'Павел Кашин'} )
     this.allowAddSync = await this.propAllowAddSync();
   },
   computed: {

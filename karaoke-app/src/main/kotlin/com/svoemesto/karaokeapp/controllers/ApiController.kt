@@ -22,24 +22,22 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.IOException
 import java.nio.charset.Charset
 import java.nio.file.Files
 import java.nio.file.InvalidPathException
 import java.nio.file.Path
 import java.nio.file.Paths
-import java.sql.ResultSet
-import java.sql.SQLException
-import java.sql.Statement
-import java.text.SimpleDateFormat
-import java.util.*
-
 import java.security.KeyStore
+import java.security.KeyStoreException
 import java.security.cert.Certificate
 import java.security.cert.CertificateException
-import java.security.KeyStoreException
-import java.io.IOException
+import java.sql.ResultSet
+import java.sql.SQLException
 import java.sql.Timestamp
+import java.text.SimpleDateFormat
 import java.time.Instant
+import java.util.*
 import javax.imageio.ImageIO
 
 @Controller
@@ -94,7 +92,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
 
                     if (certFound) {
                         val cert: Certificate = keystore.getCertificate(certAliasToCheck)
-                        sslInfo["cert.$certAliasToCheck.type"] = cert?.type ?: "Unknown"
+                        sslInfo["cert.$certAliasToCheck.type"] = cert.type ?: "Unknown"
                         // Можно добавить отпечаток, но это сложнее
                     }
 
@@ -133,7 +131,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
 
         // --- НОВОЕ: Информация о локалях и кодировке ---
         info["default.charset"] = Charset.defaultCharset().toString()
-        info["file.encoding"] = System.getProperty("file.encoding")
+        info["file.encoding"] = Charset.defaultCharset().displayName()
         info["sun.jnu.encoding"] = System.getProperty("sun.jnu.encoding")
         info["user.language"] = System.getProperty("user.language")
         info["user.country"] = System.getProperty("user.country") ?: "Not Set"
@@ -237,14 +235,14 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
         @PathVariable id: Long
     ): ResponseEntity<Resource> {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
-        val filename = File(settings?.drumsNameFlac)
+        val filename = File(settings?.drumsNameFlac ?: "")
         val resource = FileSystemResource(filename)
-        if (resource.exists()) {
-            return ResponseEntity.ok()
+        return if (resource.exists()) {
+            ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment") //; filename=\"${filename.name}\"")
                 .body(resource)
         } else {
-            return ResponseEntity.notFound().build()
+            ResponseEntity.notFound().build()
         }
     }
 
@@ -253,14 +251,14 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
         @PathVariable id: Long
     ): ResponseEntity<Resource> {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
-        val filename = File(settings?.bassNameFlac)
+        val filename = File(settings?.bassNameFlac ?: "")
         val resource = FileSystemResource(filename)
-        if (resource.exists()) {
-            return ResponseEntity.ok()
+        return if (resource.exists()) {
+            ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment") //; filename=\"${filename.name}\"")
                 .body(resource)
         } else {
-            return ResponseEntity.notFound().build()
+            ResponseEntity.notFound().build()
         }
     }
 
@@ -269,14 +267,14 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
         @PathVariable id: Long
     ): ResponseEntity<Resource> {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
-        val filename = File(settings?.vocalsNameFlac)
+        val filename = File(settings?.vocalsNameFlac ?: "")
         val resource = FileSystemResource(filename)
-        if (resource.exists()) {
-            return ResponseEntity.ok()
+        return if (resource.exists()) {
+            ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment") //; filename=\"${filename.name}\"")
                 .body(resource)
         } else {
-            return ResponseEntity.notFound().build()
+            ResponseEntity.notFound().build()
         }
     }
 
@@ -285,14 +283,14 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
         @PathVariable id: Long
     ): ResponseEntity<Resource> {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
-        val filename = File(settings?.newNoStemNameFlac)
+        val filename = File(settings?.newNoStemNameFlac ?: "")
         val resource = FileSystemResource(filename)
-        if (resource.exists()) {
-            return ResponseEntity.ok()
+        return if (resource.exists()) {
+            ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment") //; filename=\"${filename.name}\"")
                 .body(resource)
         } else {
-            return ResponseEntity.notFound().build()
+            ResponseEntity.notFound().build()
         }
     }
 
@@ -301,14 +299,14 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
         @PathVariable id: Long
     ): ResponseEntity<Resource> {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
-        val filename = File(settings?.fileAbsolutePath)
+        val filename = File(settings?.fileAbsolutePath ?: "")
         val resource = FileSystemResource(filename)
-        if (resource.exists()) {
-            return ResponseEntity.ok()
+        return if (resource.exists()) {
+            ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment") //; filename=\"${filename.name}\"")
                 .body(resource)
         } else {
-            return ResponseEntity.notFound().build()
+            ResponseEntity.notFound().build()
         }
     }
 
@@ -323,10 +321,9 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
             println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${WORKING_DATABASE.name}")
             return emptyList()
         }
-        var statement: Statement? = null
         var rs: ResultSet? = null
-        var sql = "select id from tbl_settings where EXTRACT(EPOCH FROM last_update at time zone 'UTC-3')*1000 > $time;"
-        statement = connection.createStatement()
+        val sql = "select id from tbl_settings where EXTRACT(EPOCH FROM last_update at time zone 'UTC-3')*1000 > $time;"
+        val statement = connection.createStatement()
         try {
             rs = statement.executeQuery(sql)
             while (rs.next()) {
@@ -361,10 +358,9 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
             println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${WORKING_DATABASE.name}")
             return emptyList()
         }
-        var statement: Statement? = null
         var rs: ResultSet? = null
-        var sql = "select id from tbl_processes where EXTRACT(EPOCH FROM last_update at time zone 'UTC-3')*1000 > $time;"
-        statement = connection.createStatement()
+        val sql = "select id from tbl_processes where EXTRACT(EPOCH FROM last_update at time zone 'UTC-3')*1000 > $time;"
+        val statement = connection.createStatement()
         try {
             rs = statement.executeQuery(sql)
             while (rs.next()) {
@@ -478,6 +474,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     fun getSheetsageinfoChords(@RequestParam id: Long): List<String> {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val sheetsageinfochords = settings?.let {
+            @Suppress("UNCHECKED_CAST")
             settings.sheetstageInfo["chords"] as List<String>
         } ?: emptyList()
         return sheetsageinfochords
@@ -489,6 +486,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     fun getSheetsageinfoBeattimes(@RequestParam id: Long): List<Double> {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val sheetsageinfobeattimes = settings?.let {
+            @Suppress("UNCHECKED_CAST")
             settings.sheetstageInfo["beattimes"] as List<Double>
         } ?: emptyList()
         return sheetsageinfobeattimes
@@ -821,7 +819,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     fun getSongTextVkKaraokeHeader(@RequestParam id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
-            val song = Song(settings, SongVersion.KARAOKE)
+            Song(settings, SongVersion.KARAOKE)
             val text = it.getDescriptionVkHeader(SongVersion.KARAOKE)
             text
         } ?: ""
@@ -963,7 +961,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     @ResponseBody
     fun getSongIndexTabsVariant(@RequestParam id: Long): Int {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
-        return settings?.let { it.indexTabsVariant }?: 0
+        return settings?.indexTabsVariant ?: 0
     }
 
     // Получение списка авторов
@@ -996,7 +994,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     @ResponseBody
     fun processesStatuses(): Map<String, Any> {
         return mapOf(
-            "statuses" to KaraokeProcessStatuses.values()
+            "statuses" to KaraokeProcessStatuses.entries.toTypedArray()
         )
     }
 
@@ -1005,7 +1003,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     @ResponseBody
     fun processesTypes(): Map<String, Any> {
         return mapOf(
-            "authors" to KaraokeProcessStatuses.values()
+            "authors" to KaraokeProcessStatuses.entries.toTypedArray()
         )
     }
 
@@ -1049,7 +1047,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     fun unpublications(): Map<String, Any> {
         return mapOf(
             "workInContainer" to APP_WORK_IN_CONTAINER,
-            "publications" to Publication.getUnPublicationList(WORKING_DATABASE).map { it.map { it.toDTO() } }
+            "publications" to Publication.getUnPublicationList(WORKING_DATABASE).map { piblication -> piblication.map { it.toDTO() } }
         )
     }
 
@@ -1059,7 +1057,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     fun skipedPublications(): Map<String, Any> {
         return mapOf(
             "workInContainer" to APP_WORK_IN_CONTAINER,
-            "publications" to Publication.getSkipedPublicationList(WORKING_DATABASE).map { it.map { it.toDTO() } }
+            "publications" to Publication.getSkipedPublicationList(WORKING_DATABASE).map { publish -> publish.map { it.toDTO() } }
         )
     }
 
@@ -1106,12 +1104,16 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
         filterDateTo?.let { if (filterDateTo != "") args["filter_date_to"] = filterDateTo }
         filterCond?.let { if (filterCond != "") args["filter_cond"] = filterCond }
         val listOfSettings = Publication.getSettingsListForPublications(args, WORKING_DATABASE)
-        val publications = if (filterCond == "unpublish") {
-            CrossSettings.unpublications(listOfSettings)
-        } else if (filterCond == "skiped") {
-            CrossSettings.skiped(listOfSettings)
-        } else {
-            CrossSettings.publications(listOfSettings)
+        val publications = when (filterCond) {
+            "unpublish" -> {
+                CrossSettings.unpublications(listOfSettings)
+            }
+            "skiped" -> {
+                CrossSettings.skiped(listOfSettings)
+            }
+            else -> {
+                CrossSettings.publications(listOfSettings)
+            }
         }
         return mapOf(
             "workInContainer" to APP_WORK_IN_CONTAINER,
@@ -1122,36 +1124,36 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     @PostMapping("/processesdigests")
     @ResponseBody
     fun apisProcessesDigest(
-        @RequestParam(required = false) filter_id: String?,
-        @RequestParam(required = false) filter_name: String?,
-        @RequestParam(required = false) filter_status: String?,
-        @RequestParam(required = false) filter_order: String?,
-        @RequestParam(required = false) filter_priority: String?,
-        @RequestParam(required = false) filter_description: String?,
-        @RequestParam(required = false) filter_settings_id: String?,
-        @RequestParam(required = false) filter_type: String?,
-        @RequestParam(required = false) filter_limit: String?,
-        @RequestParam(required = false) filter_notail: String?
+        @RequestParam(required = false) filterId: String?,
+        @RequestParam(required = false) filterName: String?,
+        @RequestParam(required = false) filterStatus: String?,
+        @RequestParam(required = false) filterOrder: String?,
+        @RequestParam(required = false) filterPriority: String?,
+        @RequestParam(required = false) filterDescription: String?,
+        @RequestParam(required = false) filterSettingsId: String?,
+        @RequestParam(required = false) filterType: String?,
+        @RequestParam(required = false) filterLimit: String?,
+        @RequestParam(required = false) filterNotail: String?
 
     ): Map<String, Any> {
 
         val args: MutableMap<String, String> = mutableMapOf()
-        filter_id?.let { if (filter_id != "") args["id"] = filter_id }
-        filter_name?.let { if (filter_name != "") args["process_name"] = filter_name }
-        filter_status?.let { if (filter_status != "") args["process_status"] = filter_status }
-        filter_order?.let { if (filter_order != "") args["process_order"] = filter_order }
-        filter_priority?.let { if (filter_priority != "") args["process_priority"] = filter_priority }
-        filter_description?.let { if (filter_description != "") args["process_description"] = filter_description }
-        filter_settings_id?.let { if (filter_settings_id != "") args["settings_id"] = filter_settings_id }
-        filter_type?.let { if (filter_type != "") args["process_type"] = filter_type }
-        filter_limit?.let { if (filter_limit != "") args["filter_limit"] = filter_limit }
-        filter_notail?.let { if (filter_notail != "") args["filter_notail"] = filter_notail }
+        filterId?.let { if (filterId != "") args["id"] = filterId }
+        filterName?.let { if (filterName != "") args["process_name"] = filterName }
+        filterStatus?.let { if (filterStatus != "") args["process_status"] = filterStatus }
+        filterOrder?.let { if (filterOrder != "") args["process_order"] = filterOrder }
+        filterPriority?.let { if (filterPriority != "") args["process_priority"] = filterPriority }
+        filterDescription?.let { if (filterDescription != "") args["process_description"] = filterDescription }
+        filterSettingsId?.let { if (filterSettingsId != "") args["settings_id"] = filterSettingsId }
+        filterType?.let { if (filterType != "") args["process_type"] = filterType }
+        filterLimit?.let { if (filterLimit != "") args["filter_limit"] = filterLimit }
+        filterNotail?.let { if (filterNotail != "") args["filter_notail"] = filterNotail }
 
         return mapOf(
             "workInContainer" to APP_WORK_IN_CONTAINER,
             "processesDigests" to KaraokeProcess.loadList(args, WORKING_DATABASE).map { it.toDTO() },
-            "statuses" to KaraokeProcessStatuses.values(),
-            "types" to KaraokeProcessTypes.values()
+            "statuses" to KaraokeProcessStatuses.entries.toTypedArray(),
+            "types" to KaraokeProcessTypes.entries.toTypedArray()
         )
     }
 
@@ -1168,94 +1170,94 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     @PostMapping("/songsdigests")
     @ResponseBody
     fun apisSongsDigests(
-        @RequestParam(required = false) filter_id: String?,
-        @RequestParam(required = false) filter_songName: String?,
-        @RequestParam(required = false) filter_author: String?,
-        @RequestParam(required = false) filter_year: String?,
-        @RequestParam(required = false) filter_album: String?,
-        @RequestParam(required = false) filter_track: String?,
-        @RequestParam(required = false) filter_tags: String?,
-        @RequestParam(required = false) filter_date: String?,
-        @RequestParam(required = false) filter_time: String?,
-        @RequestParam(required = false) filter_status: String?,
-        @RequestParam(required = false) flag_boosty: String?,
-        @RequestParam(required = false) flag_sponsr: String?,
-        @RequestParam(required = false) flag_vk: String?,
-        @RequestParam(required = false) flag_dzen_lyrics: String?,
-        @RequestParam(required = false) flag_dzen_karaoke: String?,
-        @RequestParam(required = false) flag_dzen_chords: String?,
-        @RequestParam(required = false) flag_dzen_melody: String?,
-        @RequestParam(required = false) flag_vk_lyrics: String?,
-        @RequestParam(required = false) flag_vk_karaoke: String?,
-        @RequestParam(required = false) flag_vk_chords: String?,
-        @RequestParam(required = false) flag_vk_melody: String?,
-        @RequestParam(required = false) flag_telegram_lyrics: String?,
-        @RequestParam(required = false) flag_telegram_karaoke: String?,
-        @RequestParam(required = false) flag_telegram_chords: String?,
-        @RequestParam(required = false) flag_telegram_melody: String?,
-        @RequestParam(required = false) flag_pl_lyrics: String?,
-        @RequestParam(required = false) flag_pl_karaoke: String?,
-        @RequestParam(required = false) flag_pl_chords: String?,
-        @RequestParam(required = false) flag_pl_melody: String?,
-        @RequestParam(required = false) filter_result_version: String?,
-        @RequestParam(required = false) filter_count_voices: String?,
-        @RequestParam(required = false) filter_version_boosty: String?,
-        @RequestParam(required = false) filter_version_boosty_files: String?,
-        @RequestParam(required = false) filter_version_sponsr: String?,
-        @RequestParam(required = false) filter_version_dzen_karaoke: String?,
-        @RequestParam(required = false) filter_version_vk_karaoke: String?,
-        @RequestParam(required = false) filter_version_telegram_karaoke: String?,
-        @RequestParam(required = false) filter_version_pl_karaoke: String?,
-        @RequestParam(required = false) filter_rate: String?,
-        @RequestParam(required = false) filter_status_process_lyrics: String?,
-        @RequestParam(required = false) filter_status_process_karaoke: String?,
-        @RequestParam(required = false) filter_is_sync: String?
+        @RequestParam(required = false) filterId: String?,
+        @RequestParam(required = false) filterSongName: String?,
+        @RequestParam(required = false) filterAuthor: String?,
+        @RequestParam(required = false) filterYear: String?,
+        @RequestParam(required = false) filterAlbum: String?,
+        @RequestParam(required = false) filterTrack: String?,
+        @RequestParam(required = false) filterTags: String?,
+        @RequestParam(required = false) filterDate: String?,
+        @RequestParam(required = false) filterTime: String?,
+        @RequestParam(required = false) filterStatus: String?,
+        @RequestParam(required = false) flagBoosty: String?,
+        @RequestParam(required = false) flagSponsr: String?,
+        @RequestParam(required = false) flagVk: String?,
+        @RequestParam(required = false) flagDzenLyrics: String?,
+        @RequestParam(required = false) flagDzenKaraoke: String?,
+        @RequestParam(required = false) flagDzenChords: String?,
+        @RequestParam(required = false) flagDzenMelody: String?,
+        @RequestParam(required = false) flagVkLyrics: String?,
+        @RequestParam(required = false) flagVkKaraoke: String?,
+        @RequestParam(required = false) flagVkChords: String?,
+        @RequestParam(required = false) flagVkMelody: String?,
+        @RequestParam(required = false) flagTelegramLyrics: String?,
+        @RequestParam(required = false) flagTelegramKaraoke: String?,
+        @RequestParam(required = false) flagTelegramChords: String?,
+        @RequestParam(required = false) flagTelegramMelody: String?,
+        @RequestParam(required = false) flagPlLyrics: String?,
+        @RequestParam(required = false) flagPlKaraoke: String?,
+        @RequestParam(required = false) flagPlChords: String?,
+        @RequestParam(required = false) flagPlMelody: String?,
+        @RequestParam(required = false) filterResultVersion: String?,
+        @RequestParam(required = false) filterCountVoices: String?,
+        @RequestParam(required = false) filterVersionBoosty: String?,
+        @RequestParam(required = false) filterVersionBoostyFiles: String?,
+        @RequestParam(required = false) filterVersionSponsr: String?,
+        @RequestParam(required = false) filterVersionDzenKaraoke: String?,
+        @RequestParam(required = false) filterVersionVkKaraoke: String?,
+        @RequestParam(required = false) filterVersionTelegramKaraoke: String?,
+        @RequestParam(required = false) filterVersionPlKaraoke: String?,
+        @RequestParam(required = false) filterRate: String?,
+        @RequestParam(required = false) filterStatusProcessLyrics: String?,
+        @RequestParam(required = false) filterStatusProcessKaraoke: String?,
+        @RequestParam(required = false) filterIsSync: String?
 
     ): Map<String, Any> {
 
         val args: MutableMap<String, String> = mutableMapOf()
-        filter_id?.let { if (filter_id != "") args["id"] = filter_id }
-        filter_songName?.let { if (filter_songName != "") args["song_name"] = filter_songName }
-        filter_author?.let { if (filter_author != "") args["song_author"] = filter_author }
-        filter_album?.let { if (filter_album != "") args["song_album"] = filter_album }
-        filter_date?.let { if (filter_date != "") args["publish_date"] = filter_date }
-        filter_time?.let { if (filter_time != "") args["publish_time"] = filter_time }
-        filter_year?.let { if (filter_year != "") args["song_year"] = filter_year }
-        filter_track?.let { if (filter_track != "") args["song_track"] = filter_track }
-        filter_tags?.let { if (filter_tags != "") args["tags"] = filter_tags }
-        filter_status?.let { if (filter_status != "") args["id_status"] = filter_status }
-        flag_boosty?.let { if (flag_boosty != "") args["flag_boosty"] = flag_boosty }
-        flag_sponsr?.let { if (flag_sponsr != "") args["flag_sponsr"] = flag_sponsr }
-        flag_vk?.let { if (flag_vk != "") args["flag_vk"] = flag_vk }
-        flag_dzen_lyrics?.let { if (flag_dzen_lyrics != "") args["flag_dzen_lyrics"] = flag_dzen_lyrics }
-        flag_dzen_karaoke?.let { if (flag_dzen_karaoke != "") args["flag_dzen_karaoke"] = flag_dzen_karaoke }
-        flag_dzen_chords?.let { if (flag_dzen_chords != "") args["flag_dzen_chords"] = flag_dzen_chords }
-        flag_dzen_melody?.let { if (flag_dzen_melody != "") args["flag_dzen_melody"] = flag_dzen_melody }
-        flag_vk_lyrics?.let { if (flag_vk_lyrics != "") args["flag_vk_lyrics"] = flag_vk_lyrics }
-        flag_vk_karaoke?.let { if (flag_vk_karaoke != "") args["flag_vk_karaoke"] = flag_vk_karaoke }
-        flag_vk_chords?.let { if (flag_vk_chords != "") args["flag_vk_chords"] = flag_vk_chords }
-        flag_vk_melody?.let { if (flag_vk_melody != "") args["flag_vk_melody"] = flag_vk_melody }
-        flag_telegram_lyrics?.let { if (flag_telegram_lyrics != "") args["flag_telegram_lyrics"] = flag_telegram_lyrics }
-        flag_telegram_karaoke?.let { if (flag_telegram_karaoke != "") args["flag_telegram_karaoke"] = flag_telegram_karaoke }
-        flag_telegram_chords?.let { if (flag_telegram_chords != "") args["flag_telegram_chords"] = flag_telegram_chords }
-        flag_telegram_melody?.let { if (flag_telegram_melody != "") args["flag_telegram_melody"] = flag_telegram_melody }
-        flag_pl_lyrics?.let { if (flag_pl_lyrics != "") args["flag_pl_lyrics"] = flag_pl_lyrics }
-        flag_pl_karaoke?.let { if (flag_pl_karaoke != "") args["flag_pl_karaoke"] = flag_pl_karaoke }
-        flag_pl_chords?.let { if (flag_pl_chords != "") args["flag_pl_chords"] = flag_pl_chords }
-        flag_pl_melody?.let { if (flag_pl_melody != "") args["flag_pl_melody"] = flag_pl_melody }
-        filter_result_version?.let { if (filter_result_version != "") args["filter_result_version"] = filter_result_version }
-        filter_count_voices?.let { if (filter_count_voices != "") args["filter_count_voices"] = filter_count_voices }
-        filter_version_boosty?.let { if (filter_version_boosty != "") args["filter_version_boosty"] = filter_version_boosty }
-        filter_version_boosty_files?.let { if (filter_version_boosty_files != "") args["filter_version_boosty_files"] = filter_version_boosty_files }
-        filter_version_sponsr?.let { if (filter_version_sponsr != "") args["filter_version_sponsr"] = filter_version_sponsr }
-        filter_version_dzen_karaoke?.let { if (filter_version_dzen_karaoke != "") args["filter_version_dzen_karaoke"] = filter_version_dzen_karaoke }
-        filter_version_vk_karaoke?.let { if (filter_version_vk_karaoke != "") args["filter_version_vk_karaoke"] = filter_version_vk_karaoke }
-        filter_version_telegram_karaoke?.let { if (filter_version_telegram_karaoke != "") args["filter_version_telegram_karaoke"] = filter_version_telegram_karaoke }
-        filter_version_pl_karaoke?.let { if (filter_version_pl_karaoke != "") args["filter_version_pl_karaoke"] = filter_version_pl_karaoke }
-        filter_rate?.let { if (filter_rate != "") args["filter_rate"] = filter_rate }
-        filter_status_process_lyrics?.let { if (filter_status_process_lyrics != "") args["filter_status_process_lyrics"] = filter_status_process_lyrics }
-        filter_status_process_karaoke?.let { if (filter_status_process_karaoke != "") args["filter_status_process_karaoke"] = filter_status_process_karaoke }
-        filter_is_sync?.let { if (filter_is_sync != "") args["is_sync"] = filter_is_sync }
+        filterId?.let { if (filterId != "") args["id"] = filterId }
+        filterSongName?.let { if (filterSongName != "") args["song_name"] = filterSongName }
+        filterAuthor?.let { if (filterAuthor != "") args["song_author"] = filterAuthor }
+        filterAlbum?.let { if (filterAlbum != "") args["song_album"] = filterAlbum }
+        filterDate?.let { if (filterDate != "") args["publish_date"] = filterDate }
+        filterTime?.let { if (filterTime != "") args["publish_time"] = filterTime }
+        filterYear?.let { if (filterYear != "") args["song_year"] = filterYear }
+        filterTrack?.let { if (filterTrack != "") args["song_track"] = filterTrack }
+        filterTags?.let { if (filterTags != "") args["tags"] = filterTags }
+        filterStatus?.let { if (filterStatus != "") args["id_status"] = filterStatus }
+        flagBoosty?.let { if (flagBoosty != "") args["flag_boosty"] = flagBoosty }
+        flagSponsr?.let { if (flagSponsr != "") args["flag_sponsr"] = flagSponsr }
+        flagVk?.let { if (flagVk != "") args["flag_vk"] = flagVk }
+        flagDzenLyrics?.let { if (flagDzenLyrics != "") args["flag_dzen_lyrics"] = flagDzenLyrics }
+        flagDzenKaraoke?.let { if (flagDzenKaraoke != "") args["flag_dzen_karaoke"] = flagDzenKaraoke }
+        flagDzenChords?.let { if (flagDzenChords != "") args["flag_dzen_chords"] = flagDzenChords }
+        flagDzenMelody?.let { if (flagDzenMelody != "") args["flag_dzen_melody"] = flagDzenMelody }
+        flagVkLyrics?.let { if (flagVkLyrics != "") args["flag_vk_lyrics"] = flagVkLyrics }
+        flagVkKaraoke?.let { if (flagVkKaraoke != "") args["flag_vk_karaoke"] = flagVkKaraoke }
+        flagVkChords?.let { if (flagVkChords != "") args["flag_vk_chords"] = flagVkChords }
+        flagVkMelody?.let { if (flagVkMelody != "") args["flag_vk_melody"] = flagVkMelody }
+        flagTelegramLyrics?.let { if (flagTelegramLyrics != "") args["flag_telegram_lyrics"] = flagTelegramLyrics }
+        flagTelegramKaraoke?.let { if (flagTelegramKaraoke != "") args["flag_telegram_karaoke"] = flagTelegramKaraoke }
+        flagTelegramChords?.let { if (flagTelegramChords != "") args["flag_telegram_chords"] = flagTelegramChords }
+        flagTelegramMelody?.let { if (flagTelegramMelody != "") args["flag_telegram_melody"] = flagTelegramMelody }
+        flagPlLyrics?.let { if (flagPlLyrics != "") args["flag_pl_lyrics"] = flagPlLyrics }
+        flagPlKaraoke?.let { if (flagPlKaraoke != "") args["flag_pl_karaoke"] = flagPlKaraoke }
+        flagPlChords?.let { if (flagPlChords != "") args["flag_pl_chords"] = flagPlChords }
+        flagPlMelody?.let { if (flagPlMelody != "") args["flag_pl_melody"] = flagPlMelody }
+        filterResultVersion?.let { if (filterResultVersion != "") args["filter_result_version"] = filterResultVersion }
+        filterCountVoices?.let { if (filterCountVoices != "") args["filter_count_voices"] = filterCountVoices }
+        filterVersionBoosty?.let { if (filterVersionBoosty != "") args["filter_version_boosty"] = filterVersionBoosty }
+        filterVersionBoostyFiles?.let { if (filterVersionBoostyFiles != "") args["filter_version_boosty_files"] = filterVersionBoostyFiles }
+        filterVersionSponsr?.let { if (filterVersionSponsr != "") args["filter_version_sponsr"] = filterVersionSponsr }
+        filterVersionDzenKaraoke?.let { if (filterVersionDzenKaraoke != "") args["filter_version_dzen_karaoke"] = filterVersionDzenKaraoke }
+        filterVersionVkKaraoke?.let { if (filterVersionVkKaraoke != "") args["filter_version_vk_karaoke"] = filterVersionVkKaraoke }
+        filterVersionTelegramKaraoke?.let { if (filterVersionTelegramKaraoke != "") args["filter_version_telegram_karaoke"] = filterVersionTelegramKaraoke }
+        filterVersionPlKaraoke?.let { if (filterVersionPlKaraoke != "") args["filter_version_pl_karaoke"] = filterVersionPlKaraoke }
+        filterRate?.let { if (filterRate != "") args["filter_rate"] = filterRate }
+        filterStatusProcessLyrics?.let { if (filterStatusProcessLyrics != "") args["filter_status_process_lyrics"] = filterStatusProcessLyrics }
+        filterStatusProcessKaraoke?.let { if (filterStatusProcessKaraoke != "") args["filter_status_process_karaoke"] = filterStatusProcessKaraoke }
+        filterIsSync?.let { if (filterIsSync != "") args["is_sync"] = filterIsSync }
 
         SongsHistory().add(args)
 
@@ -1280,90 +1282,90 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     @PostMapping("/songs")
     @ResponseBody
     fun apisSongs(
-        @RequestParam(required = false) filter_id: String?,
-        @RequestParam(required = false) filter_songName: String?,
-        @RequestParam(required = false) filter_author: String?,
-        @RequestParam(required = false) filter_year: String?,
-        @RequestParam(required = false) filter_album: String?,
-        @RequestParam(required = false) filter_track: String?,
-        @RequestParam(required = false) filter_tags: String?,
-        @RequestParam(required = false) filter_date: String?,
-        @RequestParam(required = false) filter_time: String?,
-        @RequestParam(required = false) filter_status: String?,
-        @RequestParam(required = false) flag_boosty: String?,
-        @RequestParam(required = false) flag_sponsr: String?,
-        @RequestParam(required = false) flag_vk: String?,
-        @RequestParam(required = false) flag_dzen_lyrics: String?,
-        @RequestParam(required = false) flag_dzen_karaoke: String?,
-        @RequestParam(required = false) flag_dzen_chords: String?,
-        @RequestParam(required = false) flag_dzen_melody: String?,
-        @RequestParam(required = false) flag_vk_lyrics: String?,
-        @RequestParam(required = false) flag_vk_karaoke: String?,
-        @RequestParam(required = false) flag_vk_chords: String?,
-        @RequestParam(required = false) flag_vk_melody: String?,
-        @RequestParam(required = false) flag_telegram_lyrics: String?,
-        @RequestParam(required = false) flag_telegram_karaoke: String?,
-        @RequestParam(required = false) flag_telegram_chords: String?,
-        @RequestParam(required = false) flag_telegram_melody: String?,
-        @RequestParam(required = false) flag_pl_lyrics: String?,
-        @RequestParam(required = false) flag_pl_karaoke: String?,
-        @RequestParam(required = false) flag_pl_chords: String?,
-        @RequestParam(required = false) flag_pl_melody: String?,
-        @RequestParam(required = false) filter_result_version: String?,
-        @RequestParam(required = false) filter_version_boosty: String?,
-        @RequestParam(required = false) filter_version_boosty_files: String?,
-        @RequestParam(required = false) filter_version_sponsr: String?,
-        @RequestParam(required = false) filter_version_dzen_karaoke: String?,
-        @RequestParam(required = false) filter_version_vk_karaoke: String?,
-        @RequestParam(required = false) filter_version_telegram_karaoke: String?,
-        @RequestParam(required = false) filter_version_pl_karaoke: String?,
-        @RequestParam(required = false) filter_rate: String?,
-        @RequestParam(required = false) filter_status_process_lyrics: String?,
-        @RequestParam(required = false) filter_status_process_karaoke: String?,
+        @RequestParam(required = false) filterId: String?,
+        @RequestParam(required = false) filterSongname: String?,
+        @RequestParam(required = false) filterAuthor: String?,
+        @RequestParam(required = false) filterYear: String?,
+        @RequestParam(required = false) filterAlbum: String?,
+        @RequestParam(required = false) filterTrack: String?,
+        @RequestParam(required = false) filterTags: String?,
+        @RequestParam(required = false) filterDate: String?,
+        @RequestParam(required = false) filterTime: String?,
+        @RequestParam(required = false) filterStatus: String?,
+        @RequestParam(required = false) flagBoosty: String?,
+        @RequestParam(required = false) flagSponsr: String?,
+        @RequestParam(required = false) flagVk: String?,
+        @RequestParam(required = false) flagDzenLyrics: String?,
+        @RequestParam(required = false) flagDzenKaraoke: String?,
+        @RequestParam(required = false) flagDzenChords: String?,
+        @RequestParam(required = false) flagDzenMelody: String?,
+        @RequestParam(required = false) flagVkLyrics: String?,
+        @RequestParam(required = false) flagVkKaraoke: String?,
+        @RequestParam(required = false) flagVkChords: String?,
+        @RequestParam(required = false) flagVkMelody: String?,
+        @RequestParam(required = false) flagTelegramLyrics: String?,
+        @RequestParam(required = false) flagTelegramKaraoke: String?,
+        @RequestParam(required = false) flagTelegramChords: String?,
+        @RequestParam(required = false) flagTelegramMelody: String?,
+        @RequestParam(required = false) flagPlLyrics: String?,
+        @RequestParam(required = false) flagPlKaraoke: String?,
+        @RequestParam(required = false) flagPlChords: String?,
+        @RequestParam(required = false) flagPlMelody: String?,
+        @RequestParam(required = false) filterResultVersion: String?,
+        @RequestParam(required = false) filterVersionBoosty: String?,
+        @RequestParam(required = false) filterVersionBoostyFiles: String?,
+        @RequestParam(required = false) filterVersionSponsr: String?,
+        @RequestParam(required = false) filterVersionDzenKaraoke: String?,
+        @RequestParam(required = false) filterVersionVkKaraoke: String?,
+        @RequestParam(required = false) filterVersionTelegramKaraoke: String?,
+        @RequestParam(required = false) filterVersionPlKaraoke: String?,
+        @RequestParam(required = false) filterRate: String?,
+        @RequestParam(required = false) filterStatusProcessLyrics: String?,
+        @RequestParam(required = false) filterStatusProcessKaraoke: String?,
         @RequestParam(required = false) pageSize: Int = 30
     ): Map<String, Any> {
 
         val args: MutableMap<String, String> = mutableMapOf()
-        filter_id?.let { if (filter_id != "") args["id"] = filter_id }
-        filter_songName?.let { if (filter_songName != "") args["song_name"] = filter_songName }
-        filter_author?.let { if (filter_author != "") args["song_author"] = filter_author }
-        filter_album?.let { if (filter_album != "") args["song_album"] = filter_album }
-        filter_date?.let { if (filter_date != "") args["publish_date"] = filter_date }
-        filter_time?.let { if (filter_time != "") args["publish_time"] = filter_time }
-        filter_year?.let { if (filter_year != "") args["song_year"] = filter_year }
-        filter_track?.let { if (filter_track != "") args["song_track"] = filter_track }
-        filter_tags?.let { if (filter_tags != "") args["tags"] = filter_tags }
-        filter_status?.let { if (filter_status != "") args["id_status"] = filter_status }
-        flag_boosty?.let { if (flag_boosty != "") args["flag_boosty"] = flag_boosty }
-        flag_sponsr?.let { if (flag_sponsr != "") args["flag_sponsr"] = flag_sponsr }
-        flag_vk?.let { if (flag_vk != "") args["flag_vk"] = flag_vk }
-        flag_dzen_lyrics?.let { if (flag_dzen_lyrics != "") args["flag_dzen_lyrics"] = flag_dzen_lyrics }
-        flag_dzen_karaoke?.let { if (flag_dzen_karaoke != "") args["flag_dzen_karaoke"] = flag_dzen_karaoke }
-        flag_dzen_chords?.let { if (flag_dzen_chords != "") args["flag_dzen_chords"] = flag_dzen_chords }
-        flag_dzen_melody?.let { if (flag_dzen_melody != "") args["flag_dzen_melody"] = flag_dzen_melody }
-        flag_vk_lyrics?.let { if (flag_vk_lyrics != "") args["flag_vk_lyrics"] = flag_vk_lyrics }
-        flag_vk_karaoke?.let { if (flag_vk_karaoke != "") args["flag_vk_karaoke"] = flag_vk_karaoke }
-        flag_vk_chords?.let { if (flag_vk_chords != "") args["flag_vk_chords"] = flag_vk_chords }
-        flag_vk_melody?.let { if (flag_vk_melody != "") args["flag_vk_melody"] = flag_vk_melody }
-        flag_telegram_lyrics?.let { if (flag_telegram_lyrics != "") args["flag_telegram_lyrics"] = flag_telegram_lyrics }
-        flag_telegram_karaoke?.let { if (flag_telegram_karaoke != "") args["flag_telegram_karaoke"] = flag_telegram_karaoke }
-        flag_telegram_chords?.let { if (flag_telegram_chords != "") args["flag_telegram_chords"] = flag_telegram_chords }
-        flag_telegram_melody?.let { if (flag_telegram_melody != "") args["flag_telegram_melody"] = flag_telegram_melody }
-        flag_pl_lyrics?.let { if (flag_pl_lyrics != "") args["flag_pl_lyrics"] = flag_pl_lyrics }
-        flag_pl_karaoke?.let { if (flag_pl_karaoke != "") args["flag_pl_karaoke"] = flag_pl_karaoke }
-        flag_pl_chords?.let { if (flag_pl_chords != "") args["flag_pl_chords"] = flag_pl_chords }
-        flag_pl_melody?.let { if (flag_pl_melody != "") args["flag_pl_melody"] = flag_pl_melody }
-        filter_result_version?.let { if (filter_result_version != "") args["filter_result_version"] = filter_result_version }
-        filter_version_boosty?.let { if (filter_version_boosty != "") args["filter_version_boosty"] = filter_version_boosty }
-        filter_version_boosty_files?.let { if (filter_version_boosty_files != "") args["filter_version_boosty_files"] = filter_version_boosty_files }
-        filter_version_sponsr?.let { if (filter_version_sponsr != "") args["filter_version_sponsr"] = filter_version_sponsr }
-        filter_version_dzen_karaoke?.let { if (filter_version_dzen_karaoke != "") args["filter_version_dzen_karaoke"] = filter_version_dzen_karaoke }
-        filter_version_vk_karaoke?.let { if (filter_version_vk_karaoke != "") args["filter_version_vk_karaoke"] = filter_version_vk_karaoke }
-        filter_version_telegram_karaoke?.let { if (filter_version_telegram_karaoke != "") args["filter_version_telegram_karaoke"] = filter_version_telegram_karaoke }
-        filter_version_pl_karaoke?.let { if (filter_version_pl_karaoke != "") args["filter_version_pl_karaoke"] = filter_version_pl_karaoke }
-        filter_rate?.let { if (filter_rate != "") args["filter_rate"] = filter_rate }
-        filter_status_process_lyrics?.let { if (filter_status_process_lyrics != "") args["filter_status_process_lyrics"] = filter_status_process_lyrics }
-        filter_status_process_karaoke?.let { if (filter_status_process_karaoke != "") args["filter_status_process_karaoke"] = filter_status_process_karaoke }
+        filterId?.let { if (filterId != "") args["id"] = filterId }
+        filterSongname?.let { if (filterSongname != "") args["song_name"] = filterSongname }
+        filterAuthor?.let { if (filterAuthor != "") args["song_author"] = filterAuthor }
+        filterAlbum?.let { if (filterAlbum != "") args["song_album"] = filterAlbum }
+        filterDate?.let { if (filterDate != "") args["publish_date"] = filterDate }
+        filterTime?.let { if (filterTime != "") args["publish_time"] = filterTime }
+        filterYear?.let { if (filterYear != "") args["song_year"] = filterYear }
+        filterTrack?.let { if (filterTrack != "") args["song_track"] = filterTrack }
+        filterTags?.let { if (filterTags != "") args["tags"] = filterTags }
+        filterStatus?.let { if (filterStatus != "") args["id_status"] = filterStatus }
+        flagBoosty?.let { if (flagBoosty != "") args["flag_boosty"] = flagBoosty }
+        flagSponsr?.let { if (flagSponsr != "") args["flag_sponsr"] = flagSponsr }
+        flagVk?.let { if (flagVk != "") args["flag_vk"] = flagVk }
+        flagDzenLyrics?.let { if (flagDzenLyrics != "") args["flag_dzen_lyrics"] = flagDzenLyrics }
+        flagDzenKaraoke?.let { if (flagDzenKaraoke != "") args["flag_dzen_karaoke"] = flagDzenKaraoke }
+        flagDzenChords?.let { if (flagDzenChords != "") args["flag_dzen_chords"] = flagDzenChords }
+        flagDzenMelody?.let { if (flagDzenMelody != "") args["flag_dzen_melody"] = flagDzenMelody }
+        flagVkLyrics?.let { if (flagVkLyrics != "") args["flag_vk_lyrics"] = flagVkLyrics }
+        flagVkKaraoke?.let { if (flagVkKaraoke != "") args["flag_vk_karaoke"] = flagVkKaraoke }
+        flagVkChords?.let { if (flagVkChords != "") args["flag_vk_chords"] = flagVkChords }
+        flagVkMelody?.let { if (flagVkMelody != "") args["flag_vk_melody"] = flagVkMelody }
+        flagTelegramLyrics?.let { if (flagTelegramLyrics != "") args["flag_telegram_lyrics"] = flagTelegramLyrics }
+        flagTelegramKaraoke?.let { if (flagTelegramKaraoke != "") args["flag_telegram_karaoke"] = flagTelegramKaraoke }
+        flagTelegramChords?.let { if (flagTelegramChords != "") args["flag_telegram_chords"] = flagTelegramChords }
+        flagTelegramMelody?.let { if (flagTelegramMelody != "") args["flag_telegram_melody"] = flagTelegramMelody }
+        flagPlLyrics?.let { if (flagPlLyrics != "") args["flag_pl_lyrics"] = flagPlLyrics }
+        flagPlKaraoke?.let { if (flagPlKaraoke != "") args["flag_pl_karaoke"] = flagPlKaraoke }
+        flagPlChords?.let { if (flagPlChords != "") args["flag_pl_chords"] = flagPlChords }
+        flagPlMelody?.let { if (flagPlMelody != "") args["flag_pl_melody"] = flagPlMelody }
+        filterResultVersion?.let { if (filterResultVersion != "") args["filter_result_version"] = filterResultVersion }
+        filterVersionBoosty?.let { if (filterVersionBoosty != "") args["filter_version_boosty"] = filterVersionBoosty }
+        filterVersionBoostyFiles?.let { if (filterVersionBoostyFiles != "") args["filter_version_boosty_files"] = filterVersionBoostyFiles }
+        filterVersionSponsr?.let { if (filterVersionSponsr != "") args["filter_version_sponsr"] = filterVersionSponsr }
+        filterVersionDzenKaraoke?.let { if (filterVersionDzenKaraoke != "") args["filter_version_dzen_karaoke"] = filterVersionDzenKaraoke }
+        filterVersionVkKaraoke?.let { if (filterVersionVkKaraoke != "") args["filter_version_vk_karaoke"] = filterVersionVkKaraoke }
+        filterVersionTelegramKaraoke?.let { if (filterVersionTelegramKaraoke != "") args["filter_version_telegram_karaoke"] = filterVersionTelegramKaraoke }
+        filterVersionPlKaraoke?.let { if (filterVersionPlKaraoke != "") args["filter_version_pl_karaoke"] = filterVersionPlKaraoke }
+        filterRate?.let { if (filterRate != "") args["filter_rate"] = filterRate }
+        filterStatusProcessLyrics?.let { if (filterStatusProcessLyrics != "") args["filter_status_process_lyrics"] = filterStatusProcessLyrics }
+        filterStatusProcessKaraoke?.let { if (filterStatusProcessKaraoke != "") args["filter_status_process_karaoke"] = filterStatusProcessKaraoke }
 
         SongsHistory().add(args)
 
@@ -1385,35 +1387,35 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     @PostMapping("/processes")
     @ResponseBody
     fun apisProcesses(
-        @RequestParam(required = false) filter_id: String?,
-        @RequestParam(required = false) filter_name: String?,
-        @RequestParam(required = false) filter_status: String?,
-        @RequestParam(required = false) filter_order: String?,
-        @RequestParam(required = false) filter_priority: String?,
-        @RequestParam(required = false) filter_description: String?,
-        @RequestParam(required = false) filter_settings_id: String?,
-        @RequestParam(required = false) filter_type: String?,
-        @RequestParam(required = false) filter_limit: String?,
+        @RequestParam(required = false) filterId: String?,
+        @RequestParam(required = false) filterName: String?,
+        @RequestParam(required = false) filterStatus: String?,
+        @RequestParam(required = false) filterOrder: String?,
+        @RequestParam(required = false) filterPriority: String?,
+        @RequestParam(required = false) filterDescription: String?,
+        @RequestParam(required = false) filterSettingsId: String?,
+        @RequestParam(required = false) filterType: String?,
+        @RequestParam(required = false) filterLimit: String?,
         @RequestParam(required = false) pageSize: Int = 30
 
     ): Map<String, Any> {
 
         val args: MutableMap<String, String> = mutableMapOf()
-        filter_id?.let { if (filter_id != "") args["id"] = filter_id }
-        filter_name?.let { if (filter_name != "") args["process_name"] = filter_name }
-        filter_status?.let { if (filter_status != "") args["process_status"] = filter_status }
-        filter_order?.let { if (filter_order != "") args["process_order"] = filter_order }
-        filter_priority?.let { if (filter_priority != "") args["process_priority"] = filter_priority }
-        filter_description?.let { if (filter_description != "") args["process_description"] = filter_description }
-        filter_settings_id?.let { if (filter_settings_id != "") args["settings_id"] = filter_settings_id }
-        filter_type?.let { if (filter_type != "") args["process_type"] = filter_type }
-        filter_limit?.let { if (filter_limit != "") args["filter_limit"] = filter_limit }
+        filterId?.let { if (filterId != "") args["id"] = filterId }
+        filterName?.let { if (filterName != "") args["process_name"] = filterName }
+        filterStatus?.let { if (filterStatus != "") args["process_status"] = filterStatus }
+        filterOrder?.let { if (filterOrder != "") args["process_order"] = filterOrder }
+        filterPriority?.let { if (filterPriority != "") args["process_priority"] = filterPriority }
+        filterDescription?.let { if (filterDescription != "") args["process_description"] = filterDescription }
+        filterSettingsId?.let { if (filterSettingsId != "") args["settings_id"] = filterSettingsId }
+        filterType?.let { if (filterType != "") args["process_type"] = filterType }
+        filterLimit?.let { if (filterLimit != "") args["filter_limit"] = filterLimit }
 
         return mapOf(
             "workInContainer" to APP_WORK_IN_CONTAINER,
             "pages" to KaraokeProcess.loadList(args, WORKING_DATABASE).map { it.toDTO() }.chunked(pageSize),
-            "statuses" to KaraokeProcessStatuses.values(),
-            "types" to KaraokeProcessTypes.values()
+            "statuses" to KaraokeProcessStatuses.entries.toTypedArray(),
+            "types" to KaraokeProcessTypes.entries.toTypedArray()
         )
     }
 
@@ -1688,7 +1690,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     fun getPictureAlbum(@RequestParam id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         settings?.let {
-            return "data:image/gif;base64,${it.pictureAlbum?.full}" ?: ""
+            return "data:image/gif;base64,${it.pictureAlbum?.full}"
         }
         return ""
     }
@@ -1699,7 +1701,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     fun getPictureAuthor(@RequestParam id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         settings?.let {
-            return "data:image/gif;base64,${it.pictureAuthor?.full}" ?: ""
+            return "data:image/gif;base64,${it.pictureAuthor?.full}"
         }
         return ""
     }
@@ -1785,9 +1787,9 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     ): Boolean {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         return settings?.let {
-            val markers = try {
+            try {
                 Json.decodeFromString(ListSerializer(SourceMarker.serializer()), sourceMarkers)
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 println("Ошибка при парсинге маркеров.")
                 emptyList()
             }
@@ -1797,7 +1799,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
                 val pathToFile = "${settings.rootFolder}/${settings.fileName}.voice${voice+1}.srt"
                 File(pathToFile).writeText(strText)
                 runCommand(listOf("chmod", "666", pathToFile))
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 println("Ошибка при создании файла субтитров.")
             }
             settings.setSourceText(voice, sourceText)
@@ -1848,22 +1850,22 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
 //                createMelodyVk = createMelodyVk,
             )
             if (createLyrics) {
-                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, priorLyrics!!.toInt())
+                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, priorLyrics.toInt())
 //                if (!createLyricsVk && settings.getSongDurationVideoMs() < 61_100) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICSVK, true, priorLyrics.toInt())
             }
             if (createKaraoke) {
-                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, priorKaraoke!!.toInt())
+                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, priorKaraoke.toInt())
 //                if (!createKaraokeVk && settings.getSongDurationVideoMs() < 61_100) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKEVK, true, priorKaraoke.toInt())
             }
             if (createChords) {
 //                if (!File(settings.drumsNameFlac).exists() || !File(settings.bassNameFlac).exists()) {
 //                    KaraokeProcess.createProcess(settings, KaraokeProcessTypes.DEMUCS5, true, priorChords!!.toInt())
 //                }
-                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDS, true, priorChords!!.toInt())
+                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDS, true, priorChords.toInt())
 //                if (!createChordsVk && settings.getSongDurationVideoMs() < 61_100) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDSVK, true, priorChords.toInt())
             }
             if (createMelody) {
-                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_TABS, true, priorMelody!!.toInt())
+                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_TABS, true, priorMelody.toInt())
 //                if (!createMelodyVk && settings.getSongDurationVideoMs() < 61_100) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_TABSVK, true, priorMelody.toInt())
             }
 //            if (createLyricsVk) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICSVK, true, priorLyricsVk!!.toInt())
@@ -1922,19 +1924,19 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
                     )
 
                     if (createLyrics) {
-                        KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, priorLyrics!!.toInt())
+                        KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, priorLyrics.toInt())
 //                        if (!createLyricsVk && settings.getSongDurationVideoMs() < 61_100) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICSVK, true, priorLyrics.toInt())
                     }
                     if (createKaraoke) {
-                        KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, priorKaraoke!!.toInt())
+                        KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, priorKaraoke.toInt())
 //                        if (!createKaraokeVk && settings.getSongDurationVideoMs() < 61_100) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKEVK, true, priorKaraoke.toInt())
                     }
                     if (createChords) {
-                        KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDS, true, priorChords!!.toInt())
+                        KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDS, true, priorChords.toInt())
 //                        if (!createChordsVk && settings.getSongDurationVideoMs() < 61_100) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDSVK, true, priorChords.toInt())
                     }
                     if (createMelody) {
-                        KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_TABS, true, priorMelody!!.toInt())
+                        KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_TABS, true, priorMelody.toInt())
 //                        if (!createMelodyVk && settings.getSongDurationVideoMs() < 61_100) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_TABSVK, true, priorMelody.toInt())
                     }
 //                    if (createLyricsVk) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICSVK, true, priorLyricsVk!!.toInt())
@@ -2125,9 +2127,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     @ResponseBody
     fun doDeleteSong(@RequestParam id: Long) {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
-        settings?.let {
-            it.deleteFromDb()
-        }
+        settings?.deleteFromDb()
     }
 
     // Создаём MP3 KARAOKE для песни
@@ -2152,9 +2152,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
             val ids = songsIds.split(";").map { it }.filter { it != "" }.map { it.toLong() }
             ids.forEach { id ->
                 val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
-                settings?.let {
-                    it.doMP3Karaoke(prior)
-                }
+                settings?.doMP3Karaoke(prior)
                 result = true
             }
         }
@@ -2195,9 +2193,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
             val ids = songsIds.split(";").map { it }.filter { it != "" }.map { it.toLong() }
             ids.forEach { id ->
                 val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
-                settings?.let {
-                    it.doMP3Lyrics(prior)
-                }
+                settings?.doMP3Lyrics(prior)
                 result = true
             }
         }
@@ -2418,9 +2414,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
             val ids = songsIds.split(";").map { it }.filter { it != "" }.map { it.toLong() }
             ids.forEach { id ->
                 val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
-                settings?.let {
-                    it.doSymlink(prior)
-                }
+                settings?.doSymlink(prior)
                 result = true
             }
         }
@@ -2453,9 +2447,9 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     ) {
         var result = false
         val versions = if (smartCopySongVersion == "ALL") {
-            SongVersion.values().toList()
+            SongVersion.entries
         } else {
-            listOf(if (SongVersion.values().map {it.name}.contains(smartCopySongVersion)) SongVersion.valueOf(smartCopySongVersion) else SongVersion.KARAOKE)
+            listOf(if (SongVersion.entries.map {it.name}.contains(smartCopySongVersion)) SongVersion.valueOf(smartCopySongVersion) else SongVersion.KARAOKE)
         }
 
         songsIds.let {
@@ -2881,19 +2875,19 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     @PostMapping("/propertiesdigests")
     @ResponseBody
     fun apisPropertiesDigest(
-        @RequestParam(required = false) filter_key: String?,
-        @RequestParam(required = false) filter_value: String?,
-        @RequestParam(required = false) filter_default_value: String?,
-        @RequestParam(required = false) filter_description: String?,
-        @RequestParam(required = false) filter_type: String?
+        @RequestParam(required = false) filterKey: String?,
+        @RequestParam(required = false) filterValue: String?,
+        @RequestParam(required = false) filterDefaultValue: String?,
+        @RequestParam(required = false) filterDescription: String?,
+        @RequestParam(required = false) filterType: String?
     ): Map<String, Any> {
 
         val args: MutableMap<String, String> = mutableMapOf()
-        filter_key?.let { if (filter_key != "") args["key"] = filter_key }
-        filter_value?.let { if (filter_value != "") args["value"] = filter_value }
-        filter_default_value?.let { if (filter_default_value != "") args["default_value"] = filter_default_value }
-        filter_description?.let { if (filter_description != "") args["description"] = filter_description }
-        filter_type?.let { if (filter_type != "") args["type"] = filter_type }
+        filterKey?.let { if (filterKey != "") args["key"] = filterKey }
+        filterValue?.let { if (filterValue != "") args["value"] = filterValue }
+        filterDefaultValue?.let { if (filterDefaultValue != "") args["default_value"] = filterDefaultValue }
+        filterDescription?.let { if (filterDescription != "") args["description"] = filterDescription }
+        filterType?.let { if (filterType != "") args["type"] = filterType }
 
         return mapOf(
             "workInContainer" to APP_WORK_IN_CONTAINER,
@@ -2930,25 +2924,25 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     @PostMapping("/authors/authorsdigests")
     @ResponseBody
     fun apisAuthorsDigest(
-        @RequestParam(required = false) filter_id: String?,
-        @RequestParam(required = false) filter_author: String?,
-        @RequestParam(required = false) filter_ym_id: String?,
-        @RequestParam(required = false) filter_last_album_ym: String?,
-        @RequestParam(required = false) filter_last_album_processed: String?,
-        @RequestParam(required = false) filter_watched: String?,
-        @RequestParam(required = false) filter_HaveNewAlbum: String?,
-        @RequestParam(required = false) filter_skip: String?
+        @RequestParam(required = false) filterId: String?,
+        @RequestParam(required = false) filterAuthor: String?,
+        @RequestParam(required = false) filterYmId: String?,
+        @RequestParam(required = false) filterLastAlbumYm: String?,
+        @RequestParam(required = false) filterLastAlbumProcessed: String?,
+        @RequestParam(required = false) filterWatched: String?,
+        @RequestParam(required = false) filterHaveNewAlbum: String?,
+        @RequestParam(required = false) filterSkip: String?
     ): Map<String, Any> {
 
         val args: MutableMap<String, String> = mutableMapOf()
-        filter_id?.let { if (filter_id != "") args["id"] = filter_id }
-        filter_author?.let { if (filter_author != "") args["author"] = filter_author }
-        filter_ym_id?.let { if (filter_ym_id != "") args["ym_id"] = filter_ym_id }
-        filter_last_album_ym?.let { if (filter_last_album_ym != "") args["last_album_ym"] = filter_last_album_ym }
-        filter_last_album_processed?.let { if (filter_last_album_processed != "") args["last_album_processed"] = filter_last_album_processed }
-        filter_watched?.let { if (filter_watched != "") args["watched"] = filter_watched }
-        filter_HaveNewAlbum?.let { if (filter_HaveNewAlbum != "") args["haveNewAlbum"] = filter_HaveNewAlbum }
-        filter_skip?.let { if (filter_skip != "") args["skip"] = filter_skip }
+        filterId?.let { if (filterId != "") args["id"] = filterId }
+        filterAuthor?.let { if (filterAuthor != "") args["author"] = filterAuthor }
+        filterYmId?.let { if (filterYmId != "") args["ym_id"] = filterYmId }
+        filterLastAlbumYm?.let { if (filterLastAlbumYm != "") args["last_album_ym"] = filterLastAlbumYm }
+        filterLastAlbumProcessed?.let { if (filterLastAlbumProcessed != "") args["last_album_processed"] = filterLastAlbumProcessed }
+        filterWatched?.let { if (filterWatched != "") args["watched"] = filterWatched }
+        filterHaveNewAlbum?.let { if (filterHaveNewAlbum != "") args["haveNewAlbum"] = filterHaveNewAlbum }
+        filterSkip?.let { if (filterSkip != "") args["skip"] = filterSkip }
         val authorsList = Author.loadList(args, WORKING_DATABASE).map { it.toDTO() }
         return mapOf(
             "workInContainer" to APP_WORK_IN_CONTAINER,
@@ -3026,13 +3020,13 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     @PostMapping("/pictures/picturesdigests")
     @ResponseBody
     fun apisPicturesDigest(
-        @RequestParam(required = false) filter_id: String?,
-        @RequestParam(required = false) filter_name: String?
+        @RequestParam(required = false) filterId: String?,
+        @RequestParam(required = false) filterName: String?
     ): Map<String, Any> {
 
         val args: MutableMap<String, String> = mutableMapOf()
-        filter_id?.let { if (filter_id != "") args["id"] = filter_id }
-        filter_name?.let { if (filter_name != "") args["picture_name"] = filter_name }
+        filterId?.let { if (filterId != "") args["id"] = filterId }
+        filterName?.let { if (filterName != "") args["picture_name"] = filterName }
         val picturesDigests = Pictures.loadListDTOFromDb(args, WORKING_DATABASE)
         return mapOf(
             "workInContainer" to APP_WORK_IN_CONTAINER,
@@ -3052,7 +3046,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     @PostMapping("/picture/savetodisk")
     @ResponseBody
     fun doSavePictureToDisk(@RequestParam id: Long) {
-        Pictures.loadFromDbById(id, WORKING_DATABASE)?.let { it.saveToDisk() }
+        Pictures.loadFromDbById(id, WORKING_DATABASE)?.saveToDisk()
     }
 
     @PostMapping("/picture/loadfromdisk")
@@ -3105,7 +3099,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
         val ids = songsIds.split(";").map { it }.filter { it != "" }.map { it.toLong() }
         val listSync = setSettingsToSyncRemoteTable(ids)
 
-        if (listSync.size != 0) {
+        if (listSync.isNotEmpty()) {
             SNS.send(SseNotification.sync(listOf(listSync)))
         }
         SyncIdsDictionary().clear()

@@ -131,13 +131,13 @@ export default {
       this.$store.dispatch('setProcessesFilterType', { value: this.processesFilterType });
 
       let params = {};
-      if (this.processesFilterId) params.filter_id = this.processesFilterId;
-      if (this.processesFilterName) params.filter_name = this.processesFilterName;
-      if (this.processesFilterStatus) params.filter_status = this.processesFilterStatus;
-      if (this.processesFilterPriority) params.filter_priority = this.processesFilterPriority;
-      if (this.processesFilterDescription) params.filter_description = this.processesFilterDescription;
-      if (this.processesFilterType) params.filter_type = this.processesFilterType;
-      params.filter_notail = 'true'
+      if (this.processesFilterId) params.filterId = this.processesFilterId;
+      if (this.processesFilterName) params.filterName = this.processesFilterName;
+      if (this.processesFilterStatus) params.filterStatus = this.processesFilterStatus;
+      if (this.processesFilterPriority) params.filterPriority = this.processesFilterPriority;
+      if (this.processesFilterDescription) params.filterDescription = this.processesFilterDescription;
+      if (this.processesFilterType) params.filterType = this.processesFilterType;
+      params.filterNotail = 'true'
       this.$store.dispatch('loadProcessesDigests', params )
 
       this.$emit('close');

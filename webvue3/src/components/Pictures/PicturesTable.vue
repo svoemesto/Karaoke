@@ -130,7 +130,7 @@ export default {
     }
   },
   mounted() {
-    // this.$store.dispatch('loadPicturesDigests', { filter_picture: 'Павел Кашин'} )
+    // this.$store.dispatch('loadPicturesDigests', { filterPicture: 'Павел Кашин'} )
   },
   computed: {
     picturesDigestIsLoading() {

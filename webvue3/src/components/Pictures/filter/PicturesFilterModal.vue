@@ -67,8 +67,8 @@ export default {
       this.$store.dispatch('setPicturesFilterName', { value: this.picturesFilterName });
 
       let params = {};
-      if (this.picturesFilterId) params.filter_id = this.picturesFilterId;
-      if (this.picturesFilterName) params.filter_name = this.picturesFilterName;
+      if (this.picturesFilterId) params.filterId = this.picturesFilterId;
+      if (this.picturesFilterName) params.filterName = this.picturesFilterName;
       this.$store.dispatch('loadPicturesDigests', params )
 
       this.$emit('close');

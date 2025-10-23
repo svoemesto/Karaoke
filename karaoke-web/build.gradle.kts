@@ -33,8 +33,8 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1")
 
     implementation("com.fasterxml.jackson.core:jackson-databind:2.14.2")
-    implementation("org.postgresql:postgresql:42.6.0")
-    implementation("commons-io:commons-io:2.11.0")
+    implementation("org.postgresql:postgresql:42.7.8")
+    implementation("commons-io:commons-io:2.20.0")
     implementation("com.google.code.gson:gson:2.8.9")
 //    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.0")
 
@@ -48,6 +48,13 @@ tasks.withType<KotlinCompile> {
         jvmTarget = "17"
     }
 }
+
+//tasks.withType<KotlinCompile> {
+//    compilerOptions {
+//        freeCompilerArgs.add("-Xjsr305=strict") // Используем add() вместо присвоения списка
+//        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+//    }
+//}
 
 tasks.withType<Test> {
     useJUnitPlatform()

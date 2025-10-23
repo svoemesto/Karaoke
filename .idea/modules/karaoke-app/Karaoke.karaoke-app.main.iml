@@ -52,14 +52,14 @@
                 <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.fasterxml.jackson.core/jackson-databind/2.14.2/1e71fddbc80bb86f71a6345ac1e8ab8a00e7134/jackson-databind-2.14.2.jar</arg>
                 <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.odftoolkit/simple-odf/0.9.0/50335254070bd95dbf2128e59fe3c32f0810067a/simple-odf-0.9.0.jar</arg>
                 <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.odftoolkit/odfdom-java/0.9.0/be0b9ec78b45a8134ad5004d6dc7e6ab84133dc/odfdom-java-0.9.0.jar</arg>
-                <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.postgresql/postgresql/42.6.0/7614cfce466145b84972781ab0079b8dea49e363/postgresql-42.6.0.jar</arg>
+                <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.postgresql/postgresql/42.7.8/81b840fbfe0a6c0b7aa14c6bd4856108d36ed780/postgresql-42.7.8.jar</arg>
                 <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.apache.jena/jena-core/3.17.0/6967989413ba23fffe9254f8a534eee829486847/jena-core-3.17.0.jar</arg>
                 <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.apache.jena/jena-base/3.17.0/6f39e27cd2c437b611544227345bc5a5c77fb7b/jena-base-3.17.0.jar</arg>
                 <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.apache.commons/commons-compress/1.28.0/e482f2c7a88dac3c497e96aa420b6a769f59c8d7/commons-compress-1.28.0.jar</arg>
-                <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/commons-io/commons-io/2.11.0/a2503f302b11ebde7ebc3df41daebe0e4eea3689/commons-io-2.11.0.jar</arg>
+                <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/commons-io/commons-io/2.20.0/36f3474daec2849c149e877614e7f979b2082cd2/commons-io-2.20.0.jar</arg>
                 <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.google.code.gson/gson/2.8.9/8a432c1d6825781e21a02db2e2c33c5fde2833b9/gson-2.8.9.jar</arg>
                 <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.github.st-h/TarsosDSP/2.4.1/200ce95bef15cfb72a22acbac5f27cf5d15a948f/TarsosDSP-2.4.1.jar</arg>
-                <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.jsoup/jsoup/1.14.1/9cbd867771876e35f0f3088525381d183c7f2aa9/jsoup-1.14.1.jar</arg>
+                <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.jsoup/jsoup/1.21.2/55ba93337201b6f1208a6691f291ca2828860150/jsoup-1.21.2.jar</arg>
                 <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.apache.commons/commons-csv/1.8/37ca9a9aa2d4be2599e55506a6d3170dd7a3df4/commons-csv-1.8.jar</arg>
                 <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.seleniumhq.selenium/selenium-java/4.8.0/18cef0adbc08d152da07b234a04f6e8240ce215f/selenium-java-4.8.0.jar</arg>
                 <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.apache.commons/commons-lang3/3.14.0/1ed471194b02f2c6cb734a0cd6f6f107c673afae/commons-lang3-3.14.0.jar</arg>
@@ -264,11 +264,11 @@
     <orderEntry type="library" name="Gradle: com.fasterxml.jackson.core:jackson-databind:2.14.2" level="project" />
     <orderEntry type="library" name="Gradle: org.odftoolkit:simple-odf:0.9.0" level="project" />
     <orderEntry type="library" name="Gradle: org.odftoolkit:odfdom-java:0.9.0" level="project" />
-    <orderEntry type="library" name="Gradle: org.postgresql:postgresql:42.6.0" level="project" />
-    <orderEntry type="library" name="Gradle: commons-io:commons-io:2.11.0" level="project" />
+    <orderEntry type="library" name="Gradle: org.postgresql:postgresql:42.7.8" level="project" />
+    <orderEntry type="library" name="Gradle: commons-io:commons-io:2.20.0" level="project" />
     <orderEntry type="library" name="Gradle: com.google.code.gson:gson:2.8.9" level="project" />
     <orderEntry type="library" name="Gradle: com.github.st-h:TarsosDSP:2.4.1" level="project" />
-    <orderEntry type="library" name="Gradle: org.jsoup:jsoup:1.14.1" level="project" />
+    <orderEntry type="library" name="Gradle: org.jsoup:jsoup:1.21.2" level="project" />
     <orderEntry type="library" name="Gradle: org.apache.commons:commons-csv:1.8" level="project" />
     <orderEntry type="library" name="Gradle: org.seleniumhq.selenium:selenium-java:4.8.0" level="project" />
     <orderEntry type="library" name="Gradle: org.apache.commons:commons-lang3:3.14.0" level="project" />
@@ -427,7 +427,7 @@
     <orderEntry type="library" name="Gradle: io.opentelemetry:opentelemetry-api-logs:1.19.0-alpha" level="project" />
     <orderEntry type="library" name="Gradle: io.ktor:ktor-websockets-jvm:2.3.0" level="project" />
     <orderEntry type="library" name="Gradle: io.ktor:ktor-io-jvm:2.3.0" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Gradle: org.checkerframework:checker-qual:3.31.0" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Gradle: org.checkerframework:checker-qual:3.49.5" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: org.fusesource.jansi:jansi:2.4.0" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: io.opentelemetry:opentelemetry-exporter-common:1.19.0" level="project" />
   </component>

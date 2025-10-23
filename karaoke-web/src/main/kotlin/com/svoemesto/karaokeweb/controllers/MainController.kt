@@ -188,7 +188,7 @@ class MainController(private val webSocket: SimpMessagingTemplate, @Value("\${wo
 
             dataUpdate.forEach { action ->
                 val tableName = action["tableName"] as String
-                val idRecord = action["idRecord"] as Integer
+                val idRecord = action["idRecord"] as Int
                 val setText = action["setText"] as String
                 val setTextDecrypted = Crypto.decrypt(setText)
                 val sql = "UPDATE $tableName SET $setTextDecrypted WHERE id = $idRecord"

@@ -41,7 +41,7 @@ dependencies {
     implementation("com.github.st-h:TarsosDSP:2.4.1")
 
 //    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.0")
-    implementation("org.jsoup:jsoup:1.15.3")
+    implementation("org.jsoup:jsoup:1.21.2")
     implementation("io.ktor:ktor-server-core:2.3.0")
     implementation("org.apache.commons:commons-csv:1.8")
 
@@ -65,6 +65,13 @@ tasks.withType<KotlinCompile> {
         jvmTarget = "17"
     }
 }
+
+//tasks.withType<KotlinCompile> {
+//    compilerOptions {
+//        freeCompilerArgs.add("-Xjsr305=strict") // Используем add() вместо присвоения списка
+//        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+//    }
+//}
 
 tasks.withType<Test> {
     useJUnitPlatform()

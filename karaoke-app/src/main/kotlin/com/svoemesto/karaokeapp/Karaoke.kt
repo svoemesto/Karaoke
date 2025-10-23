@@ -12,6 +12,7 @@ import com.svoemesto.karaokeapp.mlt.MltShape
 import com.svoemesto.karaokeapp.mlt.MltText
 import com.svoemesto.karaokeapp.mlt.setting
 import com.svoemesto.karaokeapp.textfilehistory.HistoryMap
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerializationStrategy
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
@@ -30,6 +31,7 @@ data class KaraokePropertySerializable(
     val serializableValue: String
 ) {
     companion object {
+        @OptIn(ExperimentalSerializationApi::class)
         fun create(key: String, value: Any): KaraokePropertySerializable {
             val kpInList = listKaraokeProperties.firstOrNull { it.key == key }
             val serializableValue = if (kpInList == null) {
@@ -70,6 +72,7 @@ data class KaraokePropertySerializable(
             )
         }
     }
+    @OptIn(ExperimentalSerializationApi::class)
     fun value(): Any {
 
         val kpInList = listKaraokeProperties.firstOrNull { it.key == key } ?: return ""

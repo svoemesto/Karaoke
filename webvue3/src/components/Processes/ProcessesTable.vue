@@ -185,7 +185,7 @@ export default {
     }
   },
   mounted() {
-    // this.$store.dispatch('loadProcessesDigests', { filter_author: 'Павел Кашин'} )
+    // this.$store.dispatch('loadProcessesDigests', { filterAuthor: 'Павел Кашин'} )
   },
   computed: {
     processesDigestIsLoading() {

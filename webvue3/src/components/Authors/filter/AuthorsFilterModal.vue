@@ -163,14 +163,14 @@ export default {
       this.$store.dispatch('setAuthorsFilterHaveNewAlbum', { value: this.authorsFilterHaveNewAlbum });
 
       let params = {};
-      if (this.authorsFilterId) params.filter_id = this.authorsFilterId;
-      if (this.authorsFilterAuthor) params.filter_author = this.authorsFilterAuthor;
-      if (this.authorsFilterYmId) params.filter_ym_id = this.authorsFilterYmId;
-      if (this.authorsFilterLastAlbumYm) params.filter_last_album_ym = this.authorsFilterLastAlbumYm;
-      if (this.authorsFilterLastAlbumProcessed) params.filter_last_album_processed = this.authorsFilterLastAlbumProcessed;
-      if (this.authorsFilterWatched) params.filter_watched = this.authorsFilterWatched;
-      if (this.authorsFilterSkip) params.filter_skip = this.authorsFilterSkip;
-      if (this.authorsFilterHaveNewAlbum) params.filter_HaveNewAlbum = this.authorsFilterHaveNewAlbum;
+      if (this.authorsFilterId) params.filterId = this.authorsFilterId;
+      if (this.authorsFilterAuthor) params.filterAuthor = this.authorsFilterAuthor;
+      if (this.authorsFilterYmId) params.filterYmId = this.authorsFilterYmId;
+      if (this.authorsFilterLastAlbumYm) params.filterLastAlbumYm = this.authorsFilterLastAlbumYm;
+      if (this.authorsFilterLastAlbumProcessed) params.filterLastAlbumProcessed = this.authorsFilterLastAlbumProcessed;
+      if (this.authorsFilterWatched) params.filterWatched = this.authorsFilterWatched;
+      if (this.authorsFilterSkip) params.filterSkip = this.authorsFilterSkip;
+      if (this.authorsFilterHaveNewAlbum) params.filterHaveNewAlbum = this.authorsFilterHaveNewAlbum;
       this.$store.dispatch('loadAuthorsDigests', params )
 
       this.$emit('close');

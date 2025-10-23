@@ -131,12 +131,12 @@ export default {
       this.$store.dispatch('setUsersFilterGroups', { value: this.usersFilterGroups });
 
       let params = {};
-      if (this.usersFilterId) params.filter_id = this.usersFilterId;
-      if (this.usersFilterLogin) params.filter_user = this.usersFilterLogin;
-      if (this.usersFilterEmail) params.filter_ym_id = this.usersFilterEmail;
-      if (this.usersFilterFirstName) params.filter_last_album_ym = this.usersFilterFirstName;
-      if (this.usersFilterLastName) params.filter_last_album_processed = this.usersFilterLastName;
-      if (this.usersFilterGroups) params.filter_groups = this.usersFilterGroups;
+      if (this.usersFilterId) params.filterId = this.usersFilterId;
+      if (this.usersFilterLogin) params.filterUser = this.usersFilterLogin;
+      if (this.usersFilterEmail) params.filterYmId = this.usersFilterEmail;
+      if (this.usersFilterFirstName) params.filterLastAlbumYm = this.usersFilterFirstName;
+      if (this.usersFilterLastName) params.filterLastAlbumProcessed = this.usersFilterLastName;
+      if (this.usersFilterGroups) params.filterGroups = this.usersFilterGroups;
       this.$store.dispatch('loadUsersDigest', params )
 
       this.$emit('close');

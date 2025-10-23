@@ -115,11 +115,11 @@ export default {
       this.$store.dispatch('setPropertiesFilterType', { value: this.propertiesFilterType });
 
       let params = {};
-      if (this.propertiesFilterKey) params.filter_key = this.propertiesFilterKey;
-      if (this.propertiesFilterValue) params.filter_value = this.propertiesFilterValue;
-      if (this.propertiesFilterDefaultValue) params.filter_default_value = this.propertiesFilterDefaultValue;
-      if (this.propertiesFilterDescription) params.filter_description = this.propertiesFilterDescription;
-      if (this.propertiesFilterType) params.filter_type = this.propertiesFilterType;
+      if (this.propertiesFilterKey) params.filterKey = this.propertiesFilterKey;
+      if (this.propertiesFilterValue) params.filterValue = this.propertiesFilterValue;
+      if (this.propertiesFilterDefaultValue) params.filterDefaultValue = this.propertiesFilterDefaultValue;
+      if (this.propertiesFilterDescription) params.filterDescription = this.propertiesFilterDescription;
+      if (this.propertiesFilterType) params.filterType = this.propertiesFilterType;
       this.$store.dispatch('loadPropertiesDigests', params )
 
       this.$emit('close');

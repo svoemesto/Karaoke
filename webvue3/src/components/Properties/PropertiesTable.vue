@@ -131,7 +131,7 @@ export default {
     }
   },
   mounted() {
-    // this.$store.dispatch('loadPropertiesDigests', { filter_author: 'Павел Кашин'} )
+    // this.$store.dispatch('loadPropertiesDigests', { filterAuthor: 'Павел Кашин'} )
   },
   computed: {
     propertiesDigestIsLoading() {

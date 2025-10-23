@@ -61,7 +61,7 @@
                 <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.github.st-h/TarsosDSP/2.4.1/200ce95bef15cfb72a22acbac5f27cf5d15a948f/TarsosDSP-2.4.1.jar</arg>
                 <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.jsoup/jsoup/1.21.2/55ba93337201b6f1208a6691f291ca2828860150/jsoup-1.21.2.jar</arg>
                 <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.apache.commons/commons-csv/1.8/37ca9a9aa2d4be2599e55506a6d3170dd7a3df4/commons-csv-1.8.jar</arg>
-                <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.seleniumhq.selenium/selenium-java/4.8.0/18cef0adbc08d152da07b234a04f6e8240ce215f/selenium-java-4.8.0.jar</arg>
+                <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.seleniumhq.selenium/selenium-java/4.37.0/2cc38c8dbef9d6e8774f05c2d2e8088180858ed4/selenium-java-4.37.0.jar</arg>
                 <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.apache.commons/commons-lang3/3.18.0/fb14946f0e39748a6571de0635acbe44e7885491/commons-lang3-3.18.0.jar</arg>
                 <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.springframework.boot/spring-boot-starter-test/3.0.5/cf9fd5d146ce335eaec708b5bde40445f94ee813/spring-boot-starter-test-3.0.5.jar</arg>
                 <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib-jdk7/1.7.22/6aa0a0e051d6b828dc25047025ec245758fab6d9/kotlin-stdlib-jdk7-1.7.22.jar</arg>
@@ -87,16 +87,16 @@
                 <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/commons-validator/commons-validator/1.7/76069c915de3787f3ddd8726a56f47a95bfcbb0e/commons-validator-1.7.jar</arg>
                 <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/net.rootdev/java-rdfa/0.4.2/83009cabe2029f1e07f564e509634b7c168b7c7a/java-rdfa-0.4.2.jar</arg>
                 <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.seleniumhq.selenium/selenium-chrome-driver/4.5.3/204b9705edc51a497b155d70e1ee9d530616e9ab/selenium-chrome-driver-4.5.3.jar</arg>
-                <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.seleniumhq.selenium/selenium-devtools-v107/4.8.0/c44794b5246da87fa8eaa4ee6255ec53b0b41270/selenium-devtools-v107-4.8.0.jar</arg>
-                <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.seleniumhq.selenium/selenium-devtools-v108/4.8.0/86b0e80c8062e2202087203f51a9e77f2a8ada38/selenium-devtools-v108-4.8.0.jar</arg>
-                <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.seleniumhq.selenium/selenium-devtools-v109/4.8.0/76fc1fa9696c9bb10351debdeaead62e6dc760a6/selenium-devtools-v109-4.8.0.jar</arg>
-                <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.seleniumhq.selenium/selenium-firefox-driver/4.5.3/903a14bc80efcd06aebf77a8909de1d9df1e49fc/selenium-firefox-driver-4.5.3.jar</arg>
-                <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.seleniumhq.selenium/selenium-devtools-v85/4.5.3/a675910ee50b61877ea9947054a1031f57cb9b8a/selenium-devtools-v85-4.5.3.jar</arg>
+                <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.seleniumhq.selenium/selenium-devtools-v139/4.37.0/55911d75a43f780efe51dcacbbdbc30774f65ce1/selenium-devtools-v139-4.37.0.jar</arg>
+                <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.seleniumhq.selenium/selenium-devtools-v140/4.37.0/4198864cdb524278b8ef86ac263c20fdedb6294b/selenium-devtools-v140-4.37.0.jar</arg>
+                <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.seleniumhq.selenium/selenium-devtools-v141/4.37.0/4d71b5bb50420d4c39867953336d9eea2000d4d/selenium-devtools-v141-4.37.0.jar</arg>
                 <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.seleniumhq.selenium/selenium-edge-driver/4.5.3/d43704e2ed4c9763e6b2b22b0c4c297e6adcf86d/selenium-edge-driver-4.5.3.jar</arg>
+                <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.seleniumhq.selenium/selenium-firefox-driver/4.5.3/903a14bc80efcd06aebf77a8909de1d9df1e49fc/selenium-firefox-driver-4.5.3.jar</arg>
                 <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.seleniumhq.selenium/selenium-ie-driver/4.5.3/238bf675277a3cef111eb6aab78a43b5400f4599/selenium-ie-driver-4.5.3.jar</arg>
                 <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.seleniumhq.selenium/selenium-safari-driver/4.5.3/8af62a11fc558cc457169a5e0264ed93dbb42d45/selenium-safari-driver-4.5.3.jar</arg>
                 <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.seleniumhq.selenium/selenium-support/4.5.3/ee6f4c48aa938757dd4f94fb6dbde9ab8c7cf420/selenium-support-4.5.3.jar</arg>
                 <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.seleniumhq.selenium/selenium-chromium-driver/4.5.3/ead84b71299ce5155372eec55e415c479adc6db7/selenium-chromium-driver-4.5.3.jar</arg>
+                <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.seleniumhq.selenium/selenium-devtools-v85/4.5.3/a675910ee50b61877ea9947054a1031f57cb9b8a/selenium-devtools-v85-4.5.3.jar</arg>
                 <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.seleniumhq.selenium/selenium-remote-driver/4.5.3/daf59fd1e8aad90941348937131b75521673441/selenium-remote-driver-4.5.3.jar</arg>
                 <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.seleniumhq.selenium/selenium-http/4.5.3/c1c9cb6337752f0f45d9ca763eac8964fca0e3cd/selenium-http-4.5.3.jar</arg>
                 <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.seleniumhq.selenium/selenium-json/4.5.3/2baac9bd97d7a25ba8bc18fec491dbf9fc49dc4a/selenium-json-4.5.3.jar</arg>
@@ -284,7 +284,7 @@
     <orderEntry type="library" name="Gradle: com.github.st-h:TarsosDSP:2.4.1" level="project" />
     <orderEntry type="library" name="Gradle: org.jsoup:jsoup:1.21.2" level="project" />
     <orderEntry type="library" name="Gradle: org.apache.commons:commons-csv:1.8" level="project" />
-    <orderEntry type="library" name="Gradle: org.seleniumhq.selenium:selenium-java:4.8.0" level="project" />
+    <orderEntry type="library" name="Gradle: org.seleniumhq.selenium:selenium-java:4.37.0" level="project" />
     <orderEntry type="library" name="Gradle: org.apache.commons:commons-lang3:3.18.0" level="project" />
     <orderEntry type="library" name="Gradle: org.springframework.boot:spring-boot-starter-test:3.0.5" level="project" />
     <orderEntry type="library" name="Gradle: io.ktor:ktor-server-core-jvm:2.3.0" level="project" />
@@ -317,12 +317,11 @@
     <orderEntry type="library" name="Gradle: commons-validator:commons-validator:1.7" level="project" />
     <orderEntry type="library" name="Gradle: net.rootdev:java-rdfa:0.4.2" level="project" />
     <orderEntry type="library" name="Gradle: org.seleniumhq.selenium:selenium-chrome-driver:4.5.3" level="project" />
-    <orderEntry type="library" name="Gradle: org.seleniumhq.selenium:selenium-devtools-v107:4.8.0" level="project" />
-    <orderEntry type="library" name="Gradle: org.seleniumhq.selenium:selenium-devtools-v108:4.8.0" level="project" />
-    <orderEntry type="library" name="Gradle: org.seleniumhq.selenium:selenium-devtools-v109:4.8.0" level="project" />
-    <orderEntry type="library" name="Gradle: org.seleniumhq.selenium:selenium-firefox-driver:4.5.3" level="project" />
-    <orderEntry type="library" name="Gradle: org.seleniumhq.selenium:selenium-devtools-v85:4.5.3" level="project" />
+    <orderEntry type="library" name="Gradle: org.seleniumhq.selenium:selenium-devtools-v139:4.37.0" level="project" />
+    <orderEntry type="library" name="Gradle: org.seleniumhq.selenium:selenium-devtools-v140:4.37.0" level="project" />
+    <orderEntry type="library" name="Gradle: org.seleniumhq.selenium:selenium-devtools-v141:4.37.0" level="project" />
     <orderEntry type="library" name="Gradle: org.seleniumhq.selenium:selenium-edge-driver:4.5.3" level="project" />
+    <orderEntry type="library" name="Gradle: org.seleniumhq.selenium:selenium-firefox-driver:4.5.3" level="project" />
     <orderEntry type="library" name="Gradle: org.seleniumhq.selenium:selenium-ie-driver:4.5.3" level="project" />
     <orderEntry type="library" name="Gradle: org.seleniumhq.selenium:selenium-safari-driver:4.5.3" level="project" />
     <orderEntry type="library" name="Gradle: org.seleniumhq.selenium:selenium-support:4.5.3" level="project" />
@@ -379,7 +378,8 @@
     <orderEntry type="library" name="Gradle: org.seleniumhq.selenium:selenium-chromium-driver:4.5.3" level="project" />
     <orderEntry type="library" name="Gradle: org.seleniumhq.selenium:selenium-json:4.5.3" level="project" />
     <orderEntry type="library" name="Gradle: com.google.auto.service:auto-service:1.0.1" level="project" />
-    <orderEntry type="library" name="Gradle: com.google.auto.service:auto-service-annotations:1.0.1" level="project" />
+    <orderEntry type="library" scope="PROVIDED" name="Gradle: com.google.auto.service:auto-service-annotations:1.0.1" level="project" />
+    <orderEntry type="library" name="Gradle: org.seleniumhq.selenium:selenium-devtools-v85:4.5.3" level="project" />
     <orderEntry type="library" name="Gradle: net.bytebuddy:byte-buddy:1.12.23" level="project" />
     <orderEntry type="library" name="Gradle: org.seleniumhq.selenium:selenium-http:4.5.3" level="project" />
     <orderEntry type="library" name="Gradle: org.asynchttpclient:async-http-client:2.12.3" level="project" />
@@ -454,6 +454,7 @@
     <orderEntry type="library" name="Gradle: io.ktor:ktor-io-jvm:2.3.0" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: org.checkerframework:checker-qual:3.49.3" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: org.fusesource.jansi:jansi:2.4.0" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Gradle: com.google.auto.service:auto-service-annotations:1.1.1" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: org.junit.jupiter:junit-jupiter-engine:5.9.2" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: org.objenesis:objenesis:3.2" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: io.opentelemetry:opentelemetry-exporter-common:1.19.0" level="project" />

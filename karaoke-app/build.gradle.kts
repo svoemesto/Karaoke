@@ -51,7 +51,7 @@ dependencies {
     implementation("javax.websocket:javax.websocket-all:1.1")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
-    testImplementation ("org.seleniumhq.selenium:selenium-java:4.8.0")
+    testImplementation ("org.seleniumhq.selenium:selenium-java:4.37.0")
 
 //    implementation("org.apache.http:httpcore:4.2")
 // https://mvnrepository.com/artifact/org.apache.commons/commons-lang3

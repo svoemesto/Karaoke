@@ -2,6 +2,7 @@ package com.svoemesto.karaokeapp.textfilehistory
 
 import com.svoemesto.karaokeapp.COUNT_HISTORY_LINES
 import com.svoemesto.karaokeapp.runCommand
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
@@ -32,6 +33,7 @@ interface TextFileHistory {
         save()
     }
 
+    @OptIn(ExperimentalSerializationApi::class)
     fun loadList(): MutableList<Map<String, String>> {
         val list = try {
             File(pathToFile())

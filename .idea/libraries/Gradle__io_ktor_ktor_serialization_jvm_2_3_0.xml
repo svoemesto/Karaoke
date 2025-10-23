@@ -1,5 +1,5 @@
 <component name="libraryTable">
-  <library name="Gradle: io.ktor:ktor-serialization-jvm:2.3.0">
+  <library name="Gradle: io.ktor:ktor-serialization-jvm:2.3.0" external-system-id="GRADLE">
     <CLASSES>
       <root url="jar://$PROJECT_DIR$/../.gradle/caches/modules-2/files-2.1/io.ktor/ktor-serialization-jvm/2.3.0/b5fdc749cc2cf7429a21ac94189ec79ec4c673b9/ktor-serialization-jvm-2.3.0.jar!/" />
     </CLASSES>

@@ -16,4 +16,17 @@
       <module name="Karaoke.test" target="17" />
     </bytecodeTargetLevel>
   </component>
+  <component name="JavacSettings">
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="Karaoke" options="-parameters" />
+      <module name="Karaoke.karaoke-app" options="-parameters" />
+      <module name="Karaoke.karaoke-app.main" options="-parameters" />
+      <module name="Karaoke.karaoke-app.test" options="-parameters" />
+      <module name="Karaoke.karaoke-web" options="-parameters" />
+      <module name="Karaoke.karaoke-web.main" options="-parameters" />
+      <module name="Karaoke.karaoke-web.test" options="-parameters" />
+      <module name="Karaoke.main" options="-parameters" />
+      <module name="Karaoke.test" options="-parameters" />
+    </option>
+  </component>
 </project>

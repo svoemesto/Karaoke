@@ -29,8 +29,9 @@ class KaraokeStorageServiceImpl(
     @Value("\${storage.container-name}") val storageContainerName: String,
     @Value("\${storage.port-inside-container}") val storagePortInsideContainer: String,
     @Value("\${storage.port-host}") val storagePortHost: String,
+    @Value("\${work-in-container}") val wic: Long
 ) : KaraokeStorageService {
-    private val endpoint: String = if (APP_WORK_IN_CONTAINER) "http://${storageContainerName}:${storagePortInsideContainer}" else "http://localhost:${storagePortHost}"
+    private val endpoint: String = if (wic != 0L) "http://${storageContainerName}:${storagePortInsideContainer}" else "http://localhost:${storagePortHost}"
     private val storageClient = MinioClient.builder()
         .endpoint(endpoint)
         .credentials(storageKey, storageSecret)

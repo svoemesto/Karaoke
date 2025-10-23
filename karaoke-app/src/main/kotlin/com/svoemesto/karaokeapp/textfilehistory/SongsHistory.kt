@@ -17,7 +17,7 @@ class SongsHistory() : TextFileHistory {
                     "song_name" -> "Название"
                     "song_author" -> "Автор"
                     "song_album" -> "Альбом"
-                    "song_author" -> "Дата"
+                    "publish_date" -> "Дата"
                     "publish_time" -> "Время"
                     "id_status" -> "Статус"
                     "tags" -> "Тэги"

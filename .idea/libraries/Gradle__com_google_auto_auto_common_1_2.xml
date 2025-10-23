@@ -1,5 +1,5 @@
 <component name="libraryTable">
-  <library name="Gradle: com.google.auto:auto-common:1.2">
+  <library name="Gradle: com.google.auto:auto-common:1.2" external-system-id="GRADLE">
     <CLASSES>
       <root url="jar://$PROJECT_DIR$/../.gradle/caches/modules-2/files-2.1/com.google.auto/auto-common/1.2/ca270191fd7d2a7297da7c8f29184206df10c67d/auto-common-1.2.jar!/" />
     </CLASSES>

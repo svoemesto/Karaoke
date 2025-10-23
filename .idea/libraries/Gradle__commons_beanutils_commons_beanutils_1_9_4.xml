@@ -1,5 +1,5 @@
 <component name="libraryTable">
-  <library name="Gradle: commons-beanutils:commons-beanutils:1.9.4">
+  <library name="Gradle: commons-beanutils:commons-beanutils:1.9.4" external-system-id="GRADLE">
     <CLASSES>
       <root url="jar://$PROJECT_DIR$/../.gradle/caches/modules-2/files-2.1/commons-beanutils/commons-beanutils/1.9.4/d52b9abcd97f38c81342bb7e7ae1eee9b73cba51/commons-beanutils-1.9.4.jar!/" />
     </CLASSES>

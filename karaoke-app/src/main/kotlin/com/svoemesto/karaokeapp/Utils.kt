@@ -2347,7 +2347,7 @@ fun searchLastAlbumYm(authorYmId: String): String {
         ))
 
         // Проверяем, что элемент найден и имеет нужный класс
-        result = if (element != null && element.getAttribute("class").split("\\s+".toRegex()).any { it.startsWith("AlbumCard_titleLink") }) {
+        result = if (element != null && element.getAttribute("class")?.split("\\s+".toRegex())?.any { it.startsWith("AlbumCard_titleLink") } == true) {
             println("Текст найденного элемента: ${element.text}")
             element.text
         } else {

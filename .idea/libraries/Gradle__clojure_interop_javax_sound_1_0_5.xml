@@ -1,5 +1,5 @@
 <component name="libraryTable">
-  <library name="Gradle: clojure-interop:javax.sound:1.0.5">
+  <library name="Gradle: clojure-interop:javax.sound:1.0.5" external-system-id="GRADLE">
     <CLASSES>
       <root url="jar://$PROJECT_DIR$/../.gradle/caches/modules-2/files-2.1/clojure-interop/javax.sound/1.0.5/3d4b60b942add9ec01688a68c8875c567dcd2595/javax.sound-1.0.5.jar!/" />
     </CLASSES>

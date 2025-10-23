@@ -1,5 +1,5 @@
 <component name="libraryTable">
-  <library name="Gradle: xml-apis:xml-apis:1.4.01">
+  <library name="Gradle: xml-apis:xml-apis:1.4.01" external-system-id="GRADLE">
     <CLASSES>
       <root url="jar://$PROJECT_DIR$/../.gradle/caches/modules-2/files-2.1/xml-apis/xml-apis/1.4.01/3789d9fada2d3d458c4ba2de349d48780f381ee3/xml-apis-1.4.01.jar!/" />
     </CLASSES>

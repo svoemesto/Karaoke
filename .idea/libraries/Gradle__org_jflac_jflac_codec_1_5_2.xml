@@ -1,5 +1,5 @@
 <component name="libraryTable">
-  <library name="Gradle: org.jflac:jflac-codec:1.5.2">
+  <library name="Gradle: org.jflac:jflac-codec:1.5.2" external-system-id="GRADLE">
     <CLASSES>
       <root url="jar://$PROJECT_DIR$/../.gradle/caches/modules-2/files-2.1/org.jflac/jflac-codec/1.5.2/21da27e1fa32a059040c09d05e4265ac0cec95fa/jflac-codec-1.5.2.jar!/" />
     </CLASSES>

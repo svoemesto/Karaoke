@@ -4,69 +4,6 @@
     <facet type="Spring" name="Spring">
       <configuration />
     </facet>
-    <facet type="kotlin-language" name="Kotlin">
-      <configuration version="5" platform="JVM 13" allPlatforms="JVM [13]" useProjectSettings="false">
-        <compilerSettings>
-          <option name="additionalArguments" value="-Xallow-no-source-files -java-parameters" />
-        </compilerSettings>
-        <compilerArguments>
-          <flagArguments>
-            <flagArg name="noReflect" arg="true" />
-            <flagArg name="noStdlib" arg="true" />
-          </flagArguments>
-          <stringArguments>
-            <stringArg name="destination" arg="$MODULE_DIR$/../../../karaoke-db/build/classes/kotlin/test" />
-            <stringArg name="jvmTarget" arg="13" />
-            <stringArg name="moduleName" arg="karaoke-db" />
-            <stringArg name="apiVersion" arg="1.7" />
-            <stringArg name="languageVersion" arg="1.7" />
-          </stringArguments>
-          <arrayArguments>
-            <arrayArg name="friendPaths">
-              <args>
-                <arg>$MODULE_DIR$/../../../karaoke-db/build/classes/java/main</arg>
-                <arg>$MODULE_DIR$/../../../karaoke-db/build/classes/kotlin/main</arg>
-                <arg>$MODULE_DIR$/../../../karaoke-db/build/tmp/kapt3/classes/main</arg>
-                <arg>$MODULE_DIR$/../../../karaoke-db/build/libs/karaoke-db-1.0-SNAPSHOT-plain.jar</arg>
-              </args>
-            </arrayArg>
-            <arrayArg name="pluginClasspaths">
-              <args>
-                <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-compiler-embeddable/1.7.22/1a39d9a56c9d1618300cd3444f070a5399663403/kotlin-compiler-embeddable-1.7.22.jar</arg>
-                <arg>$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-scripting-jvm/1.7.22/kotlin-scripting-jvm-1.7.22.jar</arg>
-                <arg>$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-scripting-common/1.7.22/kotlin-scripting-common-1.7.22.jar</arg>
-                <arg>$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-reflect/1.7.22/kotlin-reflect-1.7.22.jar</arg>
-                <arg>$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-stdlib/1.7.22/kotlin-stdlib-1.7.22.jar</arg>
-                <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-gradle-plugin-model/1.7.22/afe178b910a87756ef8e8cad36ba4cc3e9cb955a/kotlin-gradle-plugin-model-1.7.22.jar</arg>
-                <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-gradle-plugin-api/1.7.22/e13b22bd53f54f3c01b3a4c86f54d95585a457a5/kotlin-gradle-plugin-api-1.7.22-gradle71.jar</arg>
-                <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-gradle-plugin-api/1.7.22/e13b22bd53f54f3c01b3a4c86f54d95585a457a5/kotlin-gradle-plugin-api-1.7.22.jar</arg>
-                <arg>$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-stdlib-common/1.7.22/kotlin-stdlib-common-1.7.22.jar</arg>
-                <arg>$MAVEN_REPOSITORY$/org/jetbrains/annotations/13.0/annotations-13.0.jar</arg>
-                <arg>$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-script-runtime/1.7.22/kotlin-script-runtime-1.7.22.jar</arg>
-                <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-daemon-embeddable/1.7.22/a4f231458e1bb6fffbb8e1224f97d20a3ecc9c83/kotlin-daemon-embeddable-1.7.22.jar</arg>
-                <arg>$MAVEN_REPOSITORY$/org/jetbrains/intellij/deps/trove4j/1.0.20200330/trove4j-1.0.20200330.jar</arg>
-                <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/net.java.dev.jna/jna/5.6.0/330f2244e9030119ab3030fc3fededc86713d9cc/jna-5.6.0.jar</arg>
-                <arg>$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-native-utils/1.7.22/kotlin-native-utils-1.7.22.jar</arg>
-                <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-project-model/1.7.22/648610014d3797c3f914830c9a77dd736cb92cab/kotlin-project-model-1.7.22.jar</arg>
-                <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-tooling-core/1.7.22/19c84dd609449479dd647cfb8b885f6430501a21/kotlin-tooling-core-1.7.22.jar</arg>
-                <arg>$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-util-io/1.7.22/kotlin-util-io-1.7.22.jar</arg>
-                <arg>$KOTLIN_BUNDLED$/lib/allopen-compiler-plugin.jar</arg>
-              </args>
-            </arrayArg>
-            <arrayArg name="pluginOptions">
-              <args>
-                <arg>plugin:org.jetbrains.kotlin.allopen:annotation=org.springframework.stereotype.Component</arg>
-                <arg>plugin:org.jetbrains.kotlin.allopen:annotation=org.springframework.transaction.annotation.Transactional</arg>
-                <arg>plugin:org.jetbrains.kotlin.allopen:annotation=org.springframework.scheduling.annotation.Async</arg>
-                <arg>plugin:org.jetbrains.kotlin.allopen:annotation=org.springframework.cache.annotation.Cacheable</arg>
-                <arg>plugin:org.jetbrains.kotlin.allopen:annotation=org.springframework.boot.test.context.SpringBootTest</arg>
-                <arg>plugin:org.jetbrains.kotlin.allopen:annotation=org.springframework.validation.annotation.Validated</arg>
-              </args>
-            </arrayArg>
-          </arrayArguments>
-        </compilerArguments>
-      </configuration>
-    </facet>
   </component>
   <component name="NewModuleRootManager">
     <output-test url="file://$MODULE_DIR$/../../../karaoke-db/build/classes/java/test" />

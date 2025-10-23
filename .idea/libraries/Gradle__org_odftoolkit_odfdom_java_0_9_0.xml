@@ -1,5 +1,5 @@
 <component name="libraryTable">
-  <library name="Gradle: org.odftoolkit:odfdom-java:0.9.0">
+  <library name="Gradle: org.odftoolkit:odfdom-java:0.9.0" external-system-id="GRADLE">
     <CLASSES>
       <root url="jar://$PROJECT_DIR$/../.gradle/caches/modules-2/files-2.1/org.odftoolkit/odfdom-java/0.9.0/be0b9ec78b45a8134ad5004d6dc7e6ab84133dc/odfdom-java-0.9.0.jar!/" />
     </CLASSES>

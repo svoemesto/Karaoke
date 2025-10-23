@@ -1,5 +1,5 @@
 <component name="libraryTable">
-  <library name="Gradle: org.reactivestreams:reactive-streams:1.0.4">
+  <library name="Gradle: org.reactivestreams:reactive-streams:1.0.4" external-system-id="GRADLE">
     <CLASSES>
       <root url="jar://$PROJECT_DIR$/../.gradle/caches/modules-2/files-2.1/org.reactivestreams/reactive-streams/1.0.4/3864a1320d97d7b045f729a326e1e077661f31b7/reactive-streams-1.0.4.jar!/" />
     </CLASSES>

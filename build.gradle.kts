@@ -1,11 +1,11 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    id("org.springframework.boot") version "3.0.5"
-    id("io.spring.dependency-management") version "1.1.0"
-    kotlin("jvm") version "1.7.22"
-    kotlin("plugin.spring") version "1.7.22"
-    id("org.jetbrains.kotlin.plugin.serialization") version "1.5.21"
+    id("org.springframework.boot") version "3.5.6" // Обновлено
+    id("io.spring.dependency-management") version "1.1.7" // Проверьте совместимость
+    kotlin("jvm") version "2.2.20" // Обновлено
+    id("org.jetbrains.kotlin.plugin.spring") version "2.2.20" // Обновлено
+    id("org.jetbrains.kotlin.plugin.serialization") version "2.2.20" // Обновлено
 }
 
 group = "com.svoemesto"
@@ -57,19 +57,19 @@ dependencies {
 
 }
 
-tasks.withType<KotlinCompile> {
-    kotlinOptions {
-        freeCompilerArgs = listOf("-Xjsr305=strict")
-        jvmTarget = "17"
-    }
-}
-
 //tasks.withType<KotlinCompile> {
-//    compilerOptions {
-//        freeCompilerArgs.add("-Xjsr305=strict") // Используем add() вместо присвоения списка
-//        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+//    kotlinOptions {
+//        freeCompilerArgs = listOf("-Xjsr305=strict")
+//        jvmTarget = "17"
 //    }
 //}
+
+tasks.withType<KotlinCompile> {
+    compilerOptions {
+        freeCompilerArgs.add("-Xjsr305=strict") // Используем add() вместо присвоения списка
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+    }
+}
 
 tasks.withType<Test> {
     useJUnitPlatform()

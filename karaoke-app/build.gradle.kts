@@ -1,11 +1,11 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    id("org.springframework.boot") version "3.0.5"
-    id("io.spring.dependency-management") version "1.1.0"
-    kotlin("jvm") version "1.7.22"
-    kotlin("plugin.spring") version "1.7.22"
-    id("org.jetbrains.kotlin.plugin.serialization") version "1.5.21"
+    id("org.springframework.boot") version "3.5.6" // Обновлено
+    id("io.spring.dependency-management") version "1.1.7" // Проверьте совместимость
+    kotlin("jvm") version "2.2.20" // Обновлено
+    id("org.jetbrains.kotlin.plugin.spring") version "2.2.20" // Обновлено
+    id("org.jetbrains.kotlin.plugin.serialization") version "2.2.20" // Обновлено
 }
 
 group = "com.svoemesto"
@@ -57,27 +57,32 @@ dependencies {
 // https://mvnrepository.com/artifact/org.apache.commons/commons-lang3
     implementation("org.apache.commons:commons-lang3:3.14.0")
 // https://mvnrepository.com/artifact/org.apache.httpcomponents.client5/httpclient5
-    implementation("org.apache.httpcomponents.client5:httpclient5:5.3.1")
+    implementation("org.apache.httpcomponents.client5:httpclient5:5.5.1")
     implementation("io.minio:minio:8.6.0")
 
 }
 
-tasks.withType<KotlinCompile> {
-    kotlinOptions {
-        freeCompilerArgs = listOf("-Xjsr305=strict")
-        jvmTarget = "17"
-    }
-}
-
 //tasks.withType<KotlinCompile> {
-//    compilerOptions {
-//        freeCompilerArgs.add("-Xjsr305=strict") // Используем add() вместо присвоения списка
-//        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+//    kotlinOptions {
+//        freeCompilerArgs = listOf("-Xjsr305=strict")
+//        jvmTarget = "17"
 //    }
 //}
+
+tasks.withType<KotlinCompile> {
+    compilerOptions {
+        freeCompilerArgs.add("-Xjsr305=strict") // Используем add() вместо присвоения списка
+        freeCompilerArgs.add("-Xannotation-default-target=param-property") // Используем add() вместо присвоения списка
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+    }
+}
 
 tasks.withType<Test> {
     useJUnitPlatform()
 }
 
 tasks.register("prepareKotlinBuildScriptModel"){}
+//val compileKotlin: KotlinCompile by tasks
+//compileKotlin.compilerOptions {
+//    freeCompilerArgs.set(listOf("-Xannotation-default-target=param-property"))
+//}

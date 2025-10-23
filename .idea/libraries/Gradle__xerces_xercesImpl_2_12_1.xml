@@ -1,5 +1,5 @@
 <component name="libraryTable">
-  <library name="Gradle: xerces:xercesImpl:2.12.1">
+  <library name="Gradle: xerces:xercesImpl:2.12.1" external-system-id="GRADLE">
     <CLASSES>
       <root url="jar://$PROJECT_DIR$/../.gradle/caches/modules-2/files-2.1/xerces/xercesImpl/2.12.1/3a206b25679f598a03374afd4e0410d8849b088b/xercesImpl-2.12.1.jar!/" />
     </CLASSES>

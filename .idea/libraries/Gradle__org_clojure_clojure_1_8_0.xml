@@ -1,5 +1,5 @@
 <component name="libraryTable">
-  <library name="Gradle: org.clojure:clojure:1.8.0">
+  <library name="Gradle: org.clojure:clojure:1.8.0" external-system-id="GRADLE">
     <CLASSES>
       <root url="jar://$PROJECT_DIR$/../.gradle/caches/modules-2/files-2.1/org.clojure/clojure/1.8.0/313066c972b6b00f390674bf0e9f732c07f205a4/clojure-1.8.0.jar!/" />
     </CLASSES>

@@ -28,7 +28,6 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-websocket")
 
-//    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.8.0")
 //    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0") // для Котлин 2.2.0
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1")
 
@@ -36,7 +35,6 @@ dependencies {
     implementation("org.postgresql:postgresql:42.7.8")
     implementation("commons-io:commons-io:2.20.0")
     implementation("com.google.code.gson:gson:2.8.9")
-//    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.0")
 
     implementation("javax.websocket:javax.websocket-all:1.1")
     testImplementation("org.springframework.boot:spring-boot-starter-test")

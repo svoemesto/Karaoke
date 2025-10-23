@@ -45,15 +45,13 @@ dependencies {
     implementation("io.ktor:ktor-server-core:2.3.0")
     implementation("org.apache.commons:commons-csv:1.8")
 
-    implementation("org.seleniumhq.selenium:selenium-java:4.8.0")
+    implementation("org.seleniumhq.selenium:selenium-java:4.37.0")
 
     implementation("javax.websocket:javax.websocket-all:1.1")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation ("org.seleniumhq.selenium:selenium-java:4.8.0")
 
-//    implementation("org.apache.http:httpcore:4.2")
-// https://mvnrepository.com/artifact/org.apache.commons/commons-lang3
     implementation("org.apache.commons:commons-lang3:3.18.0")
     implementation("io.minio:minio:8.6.0")
 

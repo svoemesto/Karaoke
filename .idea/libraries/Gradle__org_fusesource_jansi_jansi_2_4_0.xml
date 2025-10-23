@@ -1,5 +1,5 @@
 <component name="libraryTable">
-  <library name="Gradle: org.fusesource.jansi:jansi:2.4.0">
+  <library name="Gradle: org.fusesource.jansi:jansi:2.4.0" external-system-id="GRADLE">
     <CLASSES>
       <root url="jar://$PROJECT_DIR$/../.gradle/caches/modules-2/files-2.1/org.fusesource.jansi/jansi/2.4.0/321c614f85f1dea6bb08c1817c60d53b7f3552fd/jansi-2.4.0.jar!/" />
     </CLASSES>

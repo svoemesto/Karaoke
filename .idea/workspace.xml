@@ -4,21 +4,84 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="19caf878-7ce0-44d7-94a1-cf0a31300a8b" name="Changes" comment="Текущие изменения по состоянию на 14.09.2025&#10;+ установка прав на файлы и папки при создании из приложения">
+    <list default="true" id="19caf878-7ce0-44d7-94a1-cf0a31300a8b" name="Changes" comment="Текущие изменения по состоянию на 23.10.2025&#10;+ selenium-java:4.37.0">
+      <change beforePath="$PROJECT_DIR$/.idea/compiler.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/compiler.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__clojure_interop_javax_sound_1_0_5.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__clojure_interop_javax_sound_1_0_5.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__com_fasterxml_jackson_core_jackson_databind_2_14_2.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__com_fasterxml_jackson_core_jackson_databind_2_14_2.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__com_github_andrewoma_dexx_collection_0_7.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__com_github_andrewoma_dexx_collection_0_7.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__com_github_st_h_TarsosDSP_2_4_1.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__com_github_st_h_TarsosDSP_2_4_1.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__com_google_auto_auto_common_1_2.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__com_google_auto_auto_common_1_2.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__com_google_auto_service_auto_service_1_0_1.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__com_google_auto_service_auto_service_1_0_1.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__com_google_code_gson_gson_2_8_9.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__com_google_code_gson_gson_2_8_9.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__com_google_guava_listenablefuture_9999_0_empty_to_avoid_conflict_with_guava.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__com_google_guava_listenablefuture_9999_0_empty_to_avoid_conflict_with_guava.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__com_typesafe_config_1_4_2.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__com_typesafe_config_1_4_2.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__com_vaadin_external_google_android_json_0_0_20131108_vaadin1.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__com_vaadin_external_google_android_json_0_0_20131108_vaadin1.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__commons_beanutils_commons_beanutils_1_9_4.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__commons_beanutils_commons_beanutils_1_9_4.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__commons_cli_commons_cli_1_4.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__commons_cli_commons_cli_1_4.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__commons_collections_commons_collections_3_2_2.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__commons_collections_commons_collections_3_2_2.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__commons_digester_commons_digester_2_1.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__commons_digester_commons_digester_2_1.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__commons_logging_commons_logging_1_2.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__commons_logging_commons_logging_1_2.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__commons_validator_commons_validator_1_7.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__commons_validator_commons_validator_1_7.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__io_ktor_ktor_events_jvm_2_3_0.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__io_ktor_ktor_events_jvm_2_3_0.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__io_ktor_ktor_http_jvm_2_3_0.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__io_ktor_ktor_http_jvm_2_3_0.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__io_ktor_ktor_io_jvm_2_3_0.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__io_ktor_ktor_io_jvm_2_3_0.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__io_ktor_ktor_serialization_jvm_2_3_0.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__io_ktor_ktor_serialization_jvm_2_3_0.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__io_ktor_ktor_server_core_jvm_2_3_0.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__io_ktor_ktor_server_core_jvm_2_3_0.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__io_ktor_ktor_utils_jvm_2_3_0.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__io_ktor_ktor_utils_jvm_2_3_0.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__io_ktor_ktor_websockets_jvm_2_3_0.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__io_ktor_ktor_websockets_jvm_2_3_0.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__jakarta_annotation_jakarta_annotation_api_2_1_1.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__jakarta_annotation_jakarta_annotation_api_2_1_1.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__net_rootdev_java_rdfa_0_4_2.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__net_rootdev_java_rdfa_0_4_2.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__org_apache_commons_commons_csv_1_8.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__org_apache_commons_commons_csv_1_8.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__org_apache_commons_commons_exec_1_3.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__org_apache_commons_commons_lang3_3_14_0.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__org_apache_commons_commons_lang3_3_14_0.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__org_apache_httpcomponents_client5_httpclient5_5_3_1.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__org_apache_jena_jena_base_3_17_0.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__org_apache_jena_jena_base_3_17_0.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__org_apache_jena_jena_core_3_17_0.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__org_apache_jena_jena_core_3_17_0.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__org_apache_jena_jena_iri_3_17_0.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__org_apache_jena_jena_iri_3_17_0.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__org_apache_jena_jena_shaded_guava_3_17_0.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__org_apache_jena_jena_shaded_guava_3_17_0.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__org_apiguardian_apiguardian_api_1_1_2.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__org_apiguardian_apiguardian_api_1_1_2.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__org_clojure_clojure_1_8_0.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__org_clojure_clojure_1_8_0.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__org_fusesource_jansi_jansi_2_4_0.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__org_fusesource_jansi_jansi_2_4_0.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__org_hamcrest_hamcrest_2_2.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__org_jetbrains_annotations_13_0.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__org_jetbrains_annotations_13_0.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__org_jflac_jflac_codec_1_5_2.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__org_jflac_jflac_codec_1_5_2.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__org_junit_jupiter_junit_jupiter_api_5_9_2.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__org_junit_jupiter_junit_jupiter_api_5_9_2.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__org_junit_jupiter_junit_jupiter_engine_5_9_2.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__org_junit_jupiter_junit_jupiter_engine_5_9_2.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__org_junit_platform_junit_platform_commons_1_9_2.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__org_junit_platform_junit_platform_commons_1_9_2.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__org_junit_platform_junit_platform_engine_1_9_2.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__org_junit_platform_junit_platform_engine_1_9_2.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__org_odftoolkit_odfdom_java_0_9_0.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__org_odftoolkit_odfdom_java_0_9_0.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__org_odftoolkit_simple_odf_0_9_0.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__org_odftoolkit_simple_odf_0_9_0.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__org_opentest4j_opentest4j_1_2_0.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__org_opentest4j_opentest4j_1_2_0.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__org_ow2_asm_asm_9_3.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__org_reactivestreams_reactive_streams_1_0_4.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__org_reactivestreams_reactive_streams_1_0_4.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__org_seleniumhq_selenium_selenium_devtools_v107_4_8_0.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__org_seleniumhq_selenium_selenium_devtools_v107_4_8_0.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__org_seleniumhq_selenium_selenium_devtools_v108_4_8_0.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__org_seleniumhq_selenium_selenium_devtools_v108_4_8_0.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__org_seleniumhq_selenium_selenium_devtools_v109_4_8_0.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__org_seleniumhq_selenium_selenium_devtools_v109_4_8_0.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__org_seleniumhq_selenium_selenium_java_4_8_0.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__org_seleniumhq_selenium_selenium_java_4_8_0.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__org_skyscreamer_jsonassert_1_5_1.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__org_unbescape_unbescape_1_1_6_RELEASE.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__org_unbescape_unbescape_1_1_6_RELEASE.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__org_xmlunit_xmlunit_core_2_9_1.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__xerces_xercesImpl_2_12_1.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__xerces_xercesImpl_2_12_1.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Gradle__xml_apis_xml_apis_1_4_01.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Gradle__xml_apis_xml_apis_1_4_01.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules/Karaoke.karaoke-web.main.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules/Karaoke.karaoke-web.main.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules/Karaoke.karaoke-web.test.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules/Karaoke.karaoke-web.test.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules/Karaoke.main.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules/Karaoke.main.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules/Karaoke.test.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules/Karaoke.test.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules/karaoke-app/Karaoke.karaoke-app.main.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules/karaoke-app/Karaoke.karaoke-app.main.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules/karaoke-app/Karaoke.karaoke-app.test.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules/karaoke-app/Karaoke.karaoke-app.test.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules/karaoke-db/Karaoke.karaoke-db.main.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules/karaoke-db/Karaoke.karaoke-db.main.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules/karaoke-db/Karaoke.karaoke-db.test.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules/karaoke-db/Karaoke.karaoke-db.test.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Constants.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Constants.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Functions.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Functions.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessWorker.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessWorker.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProperties.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProperties.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/build.gradle.kts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/build.gradle.kts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/gradle/wrapper/gradle-wrapper.properties" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/gradle/wrapper/gradle-wrapper.properties" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/UtilsPictures.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/UtilsPictures.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApisController.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApisController.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/MainController.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/MainController.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Picture.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Picture.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Settings.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Settings.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/textfiledictionary/TextFileDictionary.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/textfiledictionary/TextFileDictionary.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/textfilehistory/TextFileHistory.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/textfilehistory/TextFileHistory.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/KaraokeStorageService.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/KaraokeStorageService.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/textfilehistory/SongsHistory.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/textfilehistory/SongsHistory.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-web/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-web/build.gradle.kts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-web/gradle/wrapper/gradle-wrapper.properties" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-web/gradle/wrapper/gradle-wrapper.properties" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -48,12 +111,44 @@
         <task path="$PROJECT_DIR$/karaoke-app">
           <activation />
         </task>
+        <task path="$PROJECT_DIR$">
+          <activation />
+        </task>
         <projects_view>
           <tree_state>
             <expand>
               <path>
                 <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
                 <item name="Karaoke" type="f1a62948:ProjectNode" />
+              </path>
+              <path>
+                <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
+                <item name="Karaoke" type="f1a62948:ProjectNode" />
+                <item name="Tasks" type="e4a08cd1:TasksNode" />
+              </path>
+              <path>
+                <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
+                <item name="Karaoke" type="f1a62948:ProjectNode" />
+                <item name="Tasks" type="e4a08cd1:TasksNode" />
+                <item name="build" type="c8890929:TasksNode$1" />
+              </path>
+              <path>
+                <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
+                <item name="Karaoke" type="f1a62948:ProjectNode" />
+                <item name="karaoke-app" type="2d1252cf:ModuleNode" />
+              </path>
+              <path>
+                <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
+                <item name="Karaoke" type="f1a62948:ProjectNode" />
+                <item name="karaoke-app" type="2d1252cf:ModuleNode" />
+                <item name="Tasks" type="e4a08cd1:TasksNode" />
+              </path>
+              <path>
+                <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
+                <item name="Karaoke" type="f1a62948:ProjectNode" />
+                <item name="karaoke-app" type="2d1252cf:ModuleNode" />
+                <item name="Tasks" type="e4a08cd1:TasksNode" />
+                <item name="build" type="c8890929:TasksNode$1" />
               </path>
             </expand>
             <select />
@@ -81,6 +176,7 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
     <option name="RESET_MODE" value="HARD" />
+    <option name="UPDATE_TYPE" value="REBASE" />
   </component>
   <component name="GithubPullRequestsUISettings">
     <option name="selectedUrlAndAccountId">
@@ -90,77 +186,98 @@
       </UrlAndAccount>
     </option>
   </component>
+  <component name="GradleModuleStateConfig" initialized="true">
+    <option name="configPaths">
+      <map>
+        <entry key="$PROJECT_DIR$" value="$PROJECT_DIR$/build.gradle.kts" />
+        <entry key="$PROJECT_DIR$/karaoke-app" value="$PROJECT_DIR$/karaoke-app/build.gradle.kts" />
+        <entry key="$PROJECT_DIR$/karaoke-db" value="$PROJECT_DIR$/karaoke-db/build.gradle.kts" />
+        <entry key="$PROJECT_DIR$/karaoke-web" value="$PROJECT_DIR$/karaoke-web/build.gradle.kts" />
+      </map>
+    </option>
+  </component>
+  <component name="HighlightingSettingsPerFile">
+    <setting file="file://$PROJECT_DIR$/karaoke-app/build.gradle.kts" root0="FORCE_HIGHLIGHTING" />
+  </component>
   <component name="MarkdownSettingsMigration">
     <option name="stateVersion" value="1" />
   </component>
-  <component name="MavenImportPreferences">
-    <option name="generalSettings">
-      <MavenGeneralSettings>
-        <option name="useMavenConfig" value="true" />
-      </MavenGeneralSettings>
-    </option>
+  <component name="OpenIdeProjectLocalState">
+    <option name="firstOpen" value="false" />
   </component>
+  <component name="ProjectColorInfo">{
+  &quot;customColor&quot;: &quot;&quot;,
+  &quot;associatedIndex&quot;: 2
+}</component>
   <component name="ProjectId" id="2EqjFb8HMnhO1aGF7tZnYgPupjn" />
-  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectLevelVcsManager">
+    <OptionsSetting value="false" id="Update" />
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "DefaultHtmlFileTemplate": "HTML File",
-    "Downloaded.Files.Path.Enabled": "true",
-    "Repository.Attach.Annotations": "false",
-    "Repository.Attach.JavaDocs": "false",
-    "Repository.Attach.Sources": "false",
-    "RequestMappingsPanelOrder0": "0",
-    "RequestMappingsPanelOrder1": "1",
-    "RequestMappingsPanelOrder2": "2",
-    "RequestMappingsPanelWidth0": "75",
-    "RequestMappingsPanelWidth1": "75",
-    "RequestMappingsPanelWidth2": "75",
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "WebServerToolWindowFactoryState": "false",
-    "database.data.extractors.current.export.id": "Comma-separated (CSV)_id",
-    "git-widget-placeholder": "master",
-    "jdk.selected.JAVA_MODULE": "17",
-    "ktor.last.update.timestamp": "1757839440686",
-    "last_opened_file_path": "/home/nsa/Karaoke/deploy/new_comp/sm-karaoke-system",
-    "list.type.of.created.stylesheet": "CSS",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_interpreter_path": "node",
-    "nodejs_package_manager_path": "npm",
-    "project.structure.last.edited": "Project",
-    "project.structure.proportion": "0.15",
-    "project.structure.side.proportion": "0.28704488",
-    "settings.editor.selected.configurable": "editor.preferences.tabs",
-    "spring.configuration.checksum": "bfa046ddb2297791a751a72d90a66ca6",
-    "ts.external.directory.path": "/home/nsa/.local/share/JetBrains/Toolbox/apps/intellij-idea-ultimate/plugins/javascript-impl/jsLanguageServicesImpl/external",
-    "two.files.diff.last.used.file": "/home/nsa/Karaoke/karaoke-app/src/test/kotlin/Правильный.xml",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ASKED_ADD_EXTERNAL_FILES&quot;: &quot;true&quot;,
+    &quot;ASKED_SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;DefaultHtmlFileTemplate&quot;: &quot;HTML File&quot;,
+    &quot;Downloaded.Files.Path.Enabled&quot;: &quot;true&quot;,
+    &quot;Gradle.Karaoke [build].executor&quot;: &quot;Run&quot;,
+    &quot;Gradle.Karaoke [clean].executor&quot;: &quot;Run&quot;,
+    &quot;Gradle.Karaoke:karaoke-app [build].executor&quot;: &quot;Run&quot;,
+    &quot;Gradle.karaoke-app [clean].executor&quot;: &quot;Run&quot;,
+    &quot;Repository.Attach.Annotations&quot;: &quot;false&quot;,
+    &quot;Repository.Attach.JavaDocs&quot;: &quot;false&quot;,
+    &quot;Repository.Attach.Sources&quot;: &quot;false&quot;,
+    &quot;RequestMappingsPanelOrder0&quot;: &quot;0&quot;,
+    &quot;RequestMappingsPanelOrder1&quot;: &quot;1&quot;,
+    &quot;RequestMappingsPanelOrder2&quot;: &quot;2&quot;,
+    &quot;RequestMappingsPanelWidth0&quot;: &quot;75&quot;,
+    &quot;RequestMappingsPanelWidth1&quot;: &quot;75&quot;,
+    &quot;RequestMappingsPanelWidth2&quot;: &quot;75&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
+    &quot;database.data.extractors.current.export.id&quot;: &quot;Comma-separated (CSV)_id&quot;,
+    &quot;jdk.selected.JAVA_MODULE&quot;: &quot;17&quot;,
+    &quot;ktor.last.update.timestamp&quot;: &quot;1761213793765&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/home/nsa/Karaoke/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services&quot;,
+    &quot;list.type.of.created.stylesheet&quot;: &quot;CSS&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_interpreter_path&quot;: &quot;node&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;Project&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.15&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.28704488&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.keymap&quot;,
+    &quot;spring.configuration.checksum&quot;: &quot;88f298c1c16db07a08dec22bca5b8bc4&quot;,
+    &quot;ts.external.directory.path&quot;: &quot;/home/nsa/.local/share/JetBrains/Toolbox/apps/intellij-idea-ultimate/plugins/javascript-impl/jsLanguageServicesImpl/external&quot;,
+    &quot;two.files.diff.last.used.file&quot;: &quot;/home/nsa/Karaoke/karaoke-app/src/test/kotlin/Правильный.xml&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   },
-  "keyToStringList": {
-    "DatabaseDriversLRU": [
-      "postgresql"
+  &quot;keyToStringList&quot;: {
+    &quot;DatabaseDriversLRU&quot;: [
+      &quot;postgresql&quot;
     ]
   }
-}]]></component>
+}</component>
   <component name="ReactorSettings">
     <option name="notificationShown" value="true" />
   </component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services" />
+      <recent name="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model" />
+      <recent name="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers" />
       <recent name="$PROJECT_DIR$/deploy/new_comp/sm-karaoke-system" />
       <recent name="$PROJECT_DIR$/deploy/new_comp/sm-karaoke-system/mlt-docker" />
-      <recent name="$PROJECT_DIR$/deploy/new_comp/Documents/Караоке" />
-      <recent name="$PROJECT_DIR$/deploy/new_comp/Documents/dumps" />
-      <recent name="$PROJECT_DIR$/deploy/new_comp/mlt-docker" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/deploy/new_comp/sm-karaoke-system" />
@@ -170,11 +287,11 @@
       <recent name="$PROJECT_DIR$/web/src/components/Common" />
     </key>
     <key name="MoveKotlinTopLevelDeclarationsDialog.RECENTS_KEY">
+      <recent name="com.svoemesto.karaokeapp.config" />
       <recent name="com.svoemesto.karaokeapp" />
       <recent name="com.svoemesto.karaokeapp.mlt.mko" />
       <recent name="com.svoemesto.karaokeapp.model" />
       <recent name="model" />
-      <recent name="classes" />
     </key>
     <key name="CopyKotlinDeclarationDialog.RECENTS_KEY">
       <recent name="com.svoemesto.karaokeapp.mlt.mko" />
@@ -188,8 +305,64 @@
       <command value="templateSongTextSymbolsGroup.add(                 MltNode(                     name = &quot;item&quot;,                     fields = mutableMapOf(Pair(&quot;type&quot;,&quot;QGraphicsTextItem&quot;), Pair(&quot;z-index&quot;,&quot;1&quot;)),                     body = mutableListOf(                         MltNode(                             name = &quot;position&quot;,                             fields = mutableMapOf(Pair(&quot;x&quot;,&quot;$x&quot;), Pair(&quot;y&quot;,&quot;$y&quot;)),                             body = mutableListOf(MltNode(name = &quot;transform&quot;, fields = mutableMapOf(), body = &quot;1,0,0,0,1,0,0,0,1&quot;))                         ),                         mltText.mltNode(text)                     )                 )             )" />
     </option>
   </component>
-  <component name="RunManager" selected="Spring Boot.KaraokeAppApplication">
-    <configuration name="karaoke-app [assemble]" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
+  <component name="RunManager" selected="Gradle.Karaoke:karaoke-app [build]">
+    <configuration name="KaraokeAppApplicationKt" type="AmplicodeSpringBootApplication" nameIsGenerated="true">
+      <option name="MAIN_CLASS_NAME" value="com.svoemesto.karaokeapp.KaraokeAppApplicationKt" />
+      <module name="Karaoke.karaoke-app.main" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="KaraokeWebApplicationKt" type="AmplicodeSpringBootApplication" nameIsGenerated="true">
+      <option name="MAIN_CLASS_NAME" value="com.svoemesto.karaokeweb.KaraokeWebApplicationKt" />
+      <module name="Karaoke.karaoke-web.main" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="Karaoke [build]" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
+      <ExternalSystemSettings>
+        <option name="executionName" />
+        <option name="externalProjectPath" value="$PROJECT_DIR$" />
+        <option name="externalSystemIdString" value="GRADLE" />
+        <option name="scriptParameters" />
+        <option name="taskDescriptions">
+          <list />
+        </option>
+        <option name="taskNames">
+          <list>
+            <option value="build" />
+          </list>
+        </option>
+        <option name="vmOptions" />
+      </ExternalSystemSettings>
+      <ExternalSystemDebugServerProcess>true</ExternalSystemDebugServerProcess>
+      <ExternalSystemReattachDebugProcess>true</ExternalSystemReattachDebugProcess>
+      <DebugAllEnabled>false</DebugAllEnabled>
+      <method v="2" />
+    </configuration>
+    <configuration name="Karaoke [clean]" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
+      <ExternalSystemSettings>
+        <option name="executionName" />
+        <option name="externalProjectPath" value="$PROJECT_DIR$" />
+        <option name="externalSystemIdString" value="GRADLE" />
+        <option name="scriptParameters" />
+        <option name="taskDescriptions">
+          <list />
+        </option>
+        <option name="taskNames">
+          <list>
+            <option value="clean" />
+          </list>
+        </option>
+        <option name="vmOptions" />
+      </ExternalSystemSettings>
+      <ExternalSystemDebugServerProcess>true</ExternalSystemDebugServerProcess>
+      <ExternalSystemReattachDebugProcess>true</ExternalSystemReattachDebugProcess>
+      <DebugAllEnabled>false</DebugAllEnabled>
+      <method v="2" />
+    </configuration>
+    <configuration name="Karaoke:karaoke-app [bootJar]" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
       <ExternalSystemSettings>
         <option name="executionName" />
         <option name="externalProjectPath" value="$PROJECT_DIR$/karaoke-app" />
@@ -200,7 +373,28 @@
         </option>
         <option name="taskNames">
           <list>
-            <option value="assemble" />
+            <option value="bootJar" />
+          </list>
+        </option>
+        <option name="vmOptions" />
+      </ExternalSystemSettings>
+      <ExternalSystemDebugServerProcess>true</ExternalSystemDebugServerProcess>
+      <ExternalSystemReattachDebugProcess>true</ExternalSystemReattachDebugProcess>
+      <DebugAllEnabled>false</DebugAllEnabled>
+      <method v="2" />
+    </configuration>
+    <configuration name="Karaoke:karaoke-app [build]" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
+      <ExternalSystemSettings>
+        <option name="executionName" />
+        <option name="externalProjectPath" value="$PROJECT_DIR$/karaoke-app" />
+        <option name="externalSystemIdString" value="GRADLE" />
+        <option name="scriptParameters" />
+        <option name="taskDescriptions">
+          <list />
+        </option>
+        <option name="taskNames">
+          <list>
+            <option value="build" />
           </list>
         </option>
         <option name="vmOptions" />
@@ -233,27 +427,6 @@
     </configuration>
     <configuration name="Angular Application (karaoke-angular)" type="JavascriptDebugType" uri="http://localhost:4200">
       <method v="2" />
-    </configuration>
-    <configuration name="CrossSettingsKt" type="JetRunConfigurationType" temporary="true" nameIsGenerated="true">
-      <option name="MAIN_CLASS_NAME" value="com.svoemesto.karaokeapp.model.CrossSettingsKt" />
-      <module name="Karaoke.karaoke-app.main" />
-      <method v="2">
-        <option name="Make" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="SeleniumUtilsKt" type="JetRunConfigurationType" temporary="true" nameIsGenerated="true">
-      <option name="MAIN_CLASS_NAME" value="com.svoemesto.karaokeapp.SeleniumUtilsKt" />
-      <module name="karaoke-app.main" />
-      <method v="2">
-        <option name="Make" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="UtilsKt" type="JetRunConfigurationType" temporary="true" nameIsGenerated="true">
-      <option name="MAIN_CLASS_NAME" value="com.svoemesto.karaokeapp.UtilsKt" />
-      <module name="karaoke-app.main" />
-      <method v="2">
-        <option name="Make" enabled="true" />
-      </method>
     </configuration>
     <configuration name="KaraokeAppApplication (1)" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
       <module name="Karaoke.karaoke-app.main" />
@@ -302,11 +475,11 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Kotlin.CrossSettingsKt" />
-        <item itemvalue="Gradle.karaoke-app [assemble]" />
+        <item itemvalue="Gradle.Karaoke:karaoke-app [build]" />
         <item itemvalue="Gradle.karaoke-app [clean]" />
-        <item itemvalue="Kotlin.UtilsKt" />
-        <item itemvalue="Kotlin.SeleniumUtilsKt" />
+        <item itemvalue="Gradle.Karaoke [build]" />
+        <item itemvalue="Gradle.Karaoke [clean]" />
+        <item itemvalue="Gradle.Karaoke:karaoke-app [bootJar]" />
       </list>
     </recent_temporary>
   </component>
@@ -562,34 +735,10 @@
       <workItem from="1746181846800" duration="15414000" />
       <workItem from="1755186234322" duration="34197000" />
       <workItem from="1757836441916" duration="23698000" />
-    </task>
-    <task id="LOCAL-00104" summary="Переделываем под новую концепцию">
-      <created>1672483748477</created>
-      <option name="number" value="00104" />
-      <option name="presentableId" value="LOCAL-00104" />
-      <option name="project" value="LOCAL" />
-      <updated>1672483748480</updated>
-    </task>
-    <task id="LOCAL-00105" summary="Переделываем под новую концепцию">
-      <created>1673620658855</created>
-      <option name="number" value="00105" />
-      <option name="presentableId" value="LOCAL-00105" />
-      <option name="project" value="LOCAL" />
-      <updated>1673620658855</updated>
-    </task>
-    <task id="LOCAL-00106" summary="Переделываем под новую концепцию">
-      <created>1676785531860</created>
-      <option name="number" value="00106" />
-      <option name="presentableId" value="LOCAL-00106" />
-      <option name="project" value="LOCAL" />
-      <updated>1676785531860</updated>
-    </task>
-    <task id="LOCAL-00107" summary="Переделываем под новую концепцию">
-      <created>1677478862941</created>
-      <option name="number" value="00107" />
-      <option name="presentableId" value="LOCAL-00107" />
-      <option name="project" value="LOCAL" />
-      <updated>1677478862942</updated>
+      <workItem from="1761212753171" duration="697000" />
+      <workItem from="1761213464534" duration="6069000" />
+      <workItem from="1761219552133" duration="413000" />
+      <workItem from="1761222314469" duration="9000" />
     </task>
     <task id="LOCAL-00108" summary="Переделываем под новую концепцию">
       <created>1677732094789</created>
@@ -906,7 +1055,35 @@
       <option name="project" value="LOCAL" />
       <updated>1757856469597</updated>
     </task>
-    <option name="localTasksCounter" value="153" />
+    <task id="LOCAL-00153" summary="Текущие изменения по состоянию на 23.10.2025&#10;+ users (таблица и интерфейс, пока без авторизации)">
+      <created>1761215558749</created>
+      <option name="number" value="00153" />
+      <option name="presentableId" value="LOCAL-00153" />
+      <option name="project" value="LOCAL" />
+      <updated>1761215558751</updated>
+    </task>
+    <task id="LOCAL-00154" summary="Текущие изменения по состоянию на 23.10.2025&#10;+ kotlinx-serialization-json:1.5.1">
+      <created>1761217566658</created>
+      <option name="number" value="00154" />
+      <option name="presentableId" value="LOCAL-00154" />
+      <option name="project" value="LOCAL" />
+      <updated>1761217566658</updated>
+    </task>
+    <task id="LOCAL-00155" summary="Текущие изменения по состоянию на 23.10.2025&#10;+ postgresql:42.7.8 , commons-io:2.20.0">
+      <created>1761218388575</created>
+      <option name="number" value="00155" />
+      <option name="presentableId" value="LOCAL-00155" />
+      <option name="project" value="LOCAL" />
+      <updated>1761218388575</updated>
+    </task>
+    <task id="LOCAL-00156" summary="Текущие изменения по состоянию на 23.10.2025&#10;+ selenium-java:4.37.0">
+      <created>1761218735598</created>
+      <option name="number" value="00156" />
+      <option name="presentableId" value="LOCAL-00156" />
+      <option name="project" value="LOCAL" />
+      <updated>1761218735599</updated>
+    </task>
+    <option name="localTasksCounter" value="157" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -942,10 +1119,7 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Полностью переработана работа с шаблонами" />
-    <MESSAGE value="Добавлена возможность обработки нескольких файлов субтитров для одной песни: вокал, бэк-вокал и т.п. Пока только считывание из файлом, обработка - позже." />
-    <MESSAGE value="Исправлена ошибка вывода направляющих" />
-    <MESSAGE value="Рефакторинг классов" />
+    <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
     <MESSAGE value="Работа над ошибками" />
     <MESSAGE value="Заработали множественные субтитры" />
     <MESSAGE value="Использование любого шрифта, а не только фиксированной ширины&#10;Настройки в файле" />
@@ -967,7 +1141,11 @@
     <MESSAGE value="Текущие изменения по состоянию на 14.08.2025&#10;+ сборка в докер-контейнер и работа из него" />
     <MESSAGE value="Текущие изменения по состоянию на 14.09.2025&#10;+ работа с папками в /sm-karaoke" />
     <MESSAGE value="Текущие изменения по состоянию на 14.09.2025&#10;+ установка прав на файлы и папки при создании из приложения" />
-    <option name="LAST_COMMIT_MESSAGE" value="Текущие изменения по состоянию на 14.09.2025&#10;+ установка прав на файлы и папки при создании из приложения" />
+    <MESSAGE value="Текущие изменения по состоянию на 23.10.2025&#10;+ users (таблица и интерфейс, пока без авторизации)" />
+    <MESSAGE value="Текущие изменения по состоянию на 23.10.2025&#10;+ kotlinx-serialization-json:1.5.1" />
+    <MESSAGE value="Текущие изменения по состоянию на 23.10.2025&#10;+ postgresql:42.7.8 , commons-io:2.20.0" />
+    <MESSAGE value="Текущие изменения по состоянию на 23.10.2025&#10;+ selenium-java:4.37.0" />
+    <option name="LAST_COMMIT_MESSAGE" value="Текущие изменения по состоянию на 23.10.2025&#10;+ selenium-java:4.37.0" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -976,11 +1154,6 @@
           <properties class="java.lang.NumberFormatException" package="java.lang" />
           <option name="timeStamp" value="1" />
         </breakpoint>
-        <line-breakpoint enabled="true" type="javascript">
-          <url>file://$PROJECT_DIR$/karaoke-app/src/main/resources/templates/songs.html</url>
-          <line>1938</line>
-          <option name="timeStamp" value="3" />
-        </line-breakpoint>
         <line-breakpoint enabled="true" type="kotlin-line">
           <url>file://$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Settings.kt</url>
           <line>2895</line>

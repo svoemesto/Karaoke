@@ -1,5 +1,5 @@
 <component name="libraryTable">
-  <library name="Gradle: net.rootdev:java-rdfa:0.4.2">
+  <library name="Gradle: net.rootdev:java-rdfa:0.4.2" external-system-id="GRADLE">
     <CLASSES>
       <root url="jar://$PROJECT_DIR$/../.gradle/caches/modules-2/files-2.1/net.rootdev/java-rdfa/0.4.2/83009cabe2029f1e07f564e509634b7c168b7c7a/java-rdfa-0.4.2.jar!/" />
     </CLASSES>

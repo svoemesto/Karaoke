@@ -1,5 +1,5 @@
 <component name="libraryTable">
-  <library name="Gradle: com.google.auto.service:auto-service:1.0.1">
+  <library name="Gradle: com.google.auto.service:auto-service:1.0.1" external-system-id="GRADLE">
     <CLASSES>
       <root url="jar://$PROJECT_DIR$/../.gradle/caches/modules-2/files-2.1/com.google.auto.service/auto-service/1.0.1/c9779f7372192a96c957a3df1faeeabd07881085/auto-service-1.0.1.jar!/" />
     </CLASSES>

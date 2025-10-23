@@ -1,5 +1,5 @@
 <component name="libraryTable">
-  <library name="Gradle: commons-digester:commons-digester:2.1">
+  <library name="Gradle: commons-digester:commons-digester:2.1" external-system-id="GRADLE">
     <CLASSES>
       <root url="jar://$PROJECT_DIR$/../.gradle/caches/modules-2/files-2.1/commons-digester/commons-digester/2.1/73a8001e7a54a255eef0f03521ec1805dc738ca0/commons-digester-2.1.jar!/" />
     </CLASSES>

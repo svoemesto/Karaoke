@@ -1,5 +1,5 @@
 <component name="libraryTable">
-  <library name="Gradle: commons-logging:commons-logging:1.2">
+  <library name="Gradle: commons-logging:commons-logging:1.2" external-system-id="GRADLE">
     <CLASSES>
       <root url="jar://$PROJECT_DIR$/../.gradle/caches/modules-2/files-2.1/commons-logging/commons-logging/1.2/4bfc12adfe4842bf07b657f0369c4cb522955686/commons-logging-1.2.jar!/" />
     </CLASSES>

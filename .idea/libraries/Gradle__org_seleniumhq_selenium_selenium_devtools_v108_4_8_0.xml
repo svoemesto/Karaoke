@@ -1,5 +1,5 @@
 <component name="libraryTable">
-  <library name="Gradle: org.seleniumhq.selenium:selenium-devtools-v108:4.8.0">
+  <library name="Gradle: org.seleniumhq.selenium:selenium-devtools-v108:4.8.0" external-system-id="GRADLE">
     <CLASSES>
       <root url="jar://$PROJECT_DIR$/../.gradle/caches/modules-2/files-2.1/org.seleniumhq.selenium/selenium-devtools-v108/4.8.0/86b0e80c8062e2202087203f51a9e77f2a8ada38/selenium-devtools-v108-4.8.0.jar!/" />
     </CLASSES>

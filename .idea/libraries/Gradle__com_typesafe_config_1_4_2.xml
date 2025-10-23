@@ -1,5 +1,5 @@
 <component name="libraryTable">
-  <library name="Gradle: com.typesafe:config:1.4.2">
+  <library name="Gradle: com.typesafe:config:1.4.2" external-system-id="GRADLE">
     <CLASSES>
       <root url="jar://$PROJECT_DIR$/../.gradle/caches/modules-2/files-2.1/com.typesafe/config/1.4.2/4c40a633e7994cfb0354244efb6d03fcb11c3ecf/config-1.4.2.jar!/" />
     </CLASSES>

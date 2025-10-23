@@ -1,5 +1,5 @@
 <component name="libraryTable">
-  <library name="Gradle: jakarta.annotation:jakarta.annotation-api:2.1.1">
+  <library name="Gradle: jakarta.annotation:jakarta.annotation-api:2.1.1" external-system-id="GRADLE">
     <CLASSES>
       <root url="jar://$PROJECT_DIR$/../.gradle/caches/modules-2/files-2.1/jakarta.annotation/jakarta.annotation-api/2.1.1/48b9bda22b091b1f48b13af03fe36db3be6e1ae3/jakarta.annotation-api-2.1.1.jar!/" />
     </CLASSES>

@@ -1,5 +1,5 @@
 <component name="libraryTable">
-  <library name="Gradle: io.ktor:ktor-events-jvm:2.3.0">
+  <library name="Gradle: io.ktor:ktor-events-jvm:2.3.0" external-system-id="GRADLE">
     <CLASSES>
       <root url="jar://$PROJECT_DIR$/../.gradle/caches/modules-2/files-2.1/io.ktor/ktor-events-jvm/2.3.0/14d7a9f41bf7c5b278ece6a000e8d5e6b6e8fb35/ktor-events-jvm-2.3.0.jar!/" />
     </CLASSES>

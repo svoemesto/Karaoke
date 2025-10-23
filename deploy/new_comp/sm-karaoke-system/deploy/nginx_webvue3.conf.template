@@ -17,48 +17,58 @@ http {
   keepalive_timeout  65;
 
   server {
-    listen       7906;
-    client_max_body_size 1024m;
-    server_name  localhost;
+      listen       7906;
+      client_max_body_size 1024m;
+      server_name  localhost;
 
-    location /.well-known/ {
-        proxy_pass http://MY_IP_ADDRESS:8898; # Проксируем .well-known на бэкенд
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
+      location = /nginx-test {
+          return 200 "Nginx Test Hit!\n";
+      }
 
-    location ~ ^/oauth2/ {
-        proxy_pass http://MY_IP_ADDRESS:8898; # Проксируем /oauth2/** на бэкенд
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
+      # --- Проксируем /.well-known на бэкенд ---
+      location /.well-known/ {
+          proxy_pass http://karaoke-app:8899; # Используем имя сервиса
+          proxy_set_header Host $host;
+          proxy_set_header X-Real-IP $remote_addr;
+          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+          proxy_set_header X-Forwarded-Proto $scheme;
+      }
 
-    location / {
-      root   /app;
-      index  index.html;
-      try_files $uri $uri/ /index.html;
-    }
+      # --- Проксируем /oauth2/ на бэкенд ---
+      location /oauth2/ {
+          proxy_pass http://karaoke-app:8899; # Используем имя сервиса
+          proxy_set_header Host $host;
+          proxy_set_header X-Real-IP $remote_addr;
+          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+          proxy_set_header X-Forwarded-Proto $scheme;
+      }
 
-    location /api {
-       expires -1;
-       add_header Cache-Control 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0';
-       # Убираем set $target, используем proxy_pass напрямую
-       # proxy_pass http://MY_IP_ADDRESS:8898/api; # <-- Это может привести к двойному /api
-       proxy_pass http://MY_IP_ADDRESS:8898; # <-- Проксируем на корень бэкенда
-       proxy_set_header Host $host;
-       proxy_set_header X-Real-IP $remote_addr;
-       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-       proxy_set_header X-Forwarded-Proto $scheme;
-       # proxy_set_header X-Forwarded-For-Client $proxy_add_x_forwarded_for; # Закомментировано или удалено, если не нужно отдельно
-    }
+      # --- Проксируем /api/ на бэкенд ---
+      location /api {
+          expires -1;
+          add_header Cache-Control 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0';
+          proxy_pass http://karaoke-app:8899; # Используем имя сервиса
+          proxy_set_header X-Forwarded-For-Client $proxy_add_x_forwarded_for;
+      }
 
-    error_page   500 502 503 504  /50x.html;
-    location = /50x.html {
-      root   /usr/share/nginx/html;
-    }
+      # --- Обслуживаем статические файлы (CSS, JS, изображения и т.д.) ---
+      location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
+          root /app;
+          expires 1y;
+          add_header Cache-Control "public, immutable";
+      }
+
+      # --- Для остальных запросов обслуживаем Vue SPA ---
+      location / {
+          root   /app;
+          # Если файл/директория не найдена (и не совпала с предыдущими location),
+          # вернуть index.html для обработки маршрутов Vue Router
+          try_files /index.html =404;
+      }
+
+      error_page   500 502 503 504  /50x.html;
+      location = /50x.html {
+        root   /usr/share/nginx/html;
+      }
   }
 }

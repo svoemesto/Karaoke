@@ -40,6 +40,7 @@ import java.time.Instant
 import java.util.*
 import javax.imageio.ImageIO
 
+@SuppressWarnings("SpellCheckingInspection")
 @Controller
 @RequestMapping("/api")
 class ApiController(private val sseNotificationService: SseNotificationService) {
@@ -234,80 +235,80 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     fun getSongFileDrums(
         @PathVariable id: Long
     ): ResponseEntity<Resource> {
-        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
-        val filename = File(settings?.drumsNameFlac ?: "")
-        val resource = FileSystemResource(filename)
-        return if (resource.exists()) {
-            ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment") //; filename=\"${filename.name}\"")
-                .body(resource)
-        } else {
-            ResponseEntity.notFound().build()
+        Settings.loadFromDbById(id, WORKING_DATABASE)?.let { settings ->
+            val filename = File(settings.drumsNameFlac)
+            val resource = FileSystemResource(filename)
+            if (resource.exists()) {
+                return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment")
+                    .body(resource)
+            }
         }
+        return ResponseEntity.notFound().build()
     }
 
     @GetMapping("/song/{id}/filebass")
     fun getSongFileBass(
         @PathVariable id: Long
     ): ResponseEntity<Resource> {
-        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
-        val filename = File(settings?.bassNameFlac ?: "")
-        val resource = FileSystemResource(filename)
-        return if (resource.exists()) {
-            ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment") //; filename=\"${filename.name}\"")
-                .body(resource)
-        } else {
-            ResponseEntity.notFound().build()
+        Settings.loadFromDbById(id, WORKING_DATABASE)?.let { settings ->
+            val filename = File(settings.bassNameFlac)
+            val resource = FileSystemResource(filename)
+            if (resource.exists()) {
+                return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment")
+                    .body(resource)
+            }
         }
+        return ResponseEntity.notFound().build()
     }
 
     @GetMapping("/song/{id}/filevoice")
     fun getSongFileVocal(
         @PathVariable id: Long
     ): ResponseEntity<Resource> {
-        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
-        val filename = File(settings?.vocalsNameFlac ?: "")
-        val resource = FileSystemResource(filename)
-        return if (resource.exists()) {
-            ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment") //; filename=\"${filename.name}\"")
-                .body(resource)
-        } else {
-            ResponseEntity.notFound().build()
+        Settings.loadFromDbById(id, WORKING_DATABASE)?.let { settings ->
+            val filename = File(settings.vocalsNameFlac)
+            val resource = FileSystemResource(filename)
+            if (resource.exists()) {
+                return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment")
+                    .body(resource)
+            }
         }
+        return ResponseEntity.notFound().build()
     }
 
     @GetMapping("/song/{id}/fileminus")
     fun getSongFileMusic(
         @PathVariable id: Long
     ): ResponseEntity<Resource> {
-        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
-        val filename = File(settings?.newNoStemNameFlac ?: "")
-        val resource = FileSystemResource(filename)
-        return if (resource.exists()) {
-            ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment") //; filename=\"${filename.name}\"")
-                .body(resource)
-        } else {
-            ResponseEntity.notFound().build()
+        Settings.loadFromDbById(id, WORKING_DATABASE)?.let { settings ->
+            val filename = File(settings.newNoStemNameFlac)
+            val resource = FileSystemResource(filename)
+            if (resource.exists()) {
+                return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment")
+                    .body(resource)
+            }
         }
+        return ResponseEntity.notFound().build()
     }
 
     @GetMapping("/song/{id}/filesong")
     fun getSongFileSong(
         @PathVariable id: Long
     ): ResponseEntity<Resource> {
-        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
-        val filename = File(settings?.fileAbsolutePath ?: "")
-        val resource = FileSystemResource(filename)
-        return if (resource.exists()) {
-            ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment") //; filename=\"${filename.name}\"")
-                .body(resource)
-        } else {
-            ResponseEntity.notFound().build()
+        Settings.loadFromDbById(id, WORKING_DATABASE)?.let { settings ->
+            val filename = File(settings.fileAbsolutePath)
+            val resource = FileSystemResource(filename)
+            if (resource.exists()) {
+                return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment")
+                    .body(resource)
+            }
         }
+        return ResponseEntity.notFound().build()
     }
 
     // Получение списка id песен, изменившихся с указанного момента
@@ -576,7 +577,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     // Получение текста заголовка для sponsr
     @PostMapping("/song/textsponsrhead")
     @ResponseBody
-    fun getSongTextSpobsrHead(@RequestParam id: Long): String {
+    fun getSongTextSponsrHead(@RequestParam id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             val text = it.getTextBoostyHead()
@@ -1047,7 +1048,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     fun unpublications(): Map<String, Any> {
         return mapOf(
             "workInContainer" to APP_WORK_IN_CONTAINER,
-            "publications" to Publication.getUnPublicationList(WORKING_DATABASE).map { piblication -> piblication.map { it.toDTO() } }
+            "publications" to Publication.getUnPublicationList(WORKING_DATABASE).map { publication -> publication.map { it.toDTO() } }
         )
     }
 
@@ -1419,7 +1420,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
         )
     }
 
-    // Видеопроигрыватель: Lyrics
+    // Видео проигрыватель: Lyrics
     @PostMapping("/song/playlyrics")
     @ResponseBody
     fun doPlayLyrics(@RequestParam id: Long): Boolean {
@@ -1430,7 +1431,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
         return true
     }
 
-    // Видеопроигрыватель: Karaoke
+    // Видео проигрыватель: Karaoke
     @PostMapping("/song/playkaraoke")
     @ResponseBody
     fun doPlayKaraoke(@RequestParam id: Long): Boolean {
@@ -1442,7 +1443,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     }
 
 
-    // Видеопроигрыватель: Chords
+    // Видео проигрыватель: Chords
     @PostMapping("/song/playchords")
     @ResponseBody
     fun doPlayChords(@RequestParam id: Long): Boolean {
@@ -1452,7 +1453,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
         }
         return true
     }
-    // Видеопроигрыватель: Tabs
+    // Видео проигрыватель: Tabs
     @PostMapping("/song/playtabs")
     @ResponseBody
     fun doPlayTabs(@RequestParam id: Long): Boolean {

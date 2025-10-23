@@ -257,9 +257,7 @@ class MainController {
     @ResponseBody
     fun doSymlink(@PathVariable id: Long): Int {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
-        settings?.let {
-            it.doSymlink()
-        }
+        settings?.doSymlink()
         return 0
     }
 
@@ -267,9 +265,7 @@ class MainController {
     @ResponseBody
     fun doDeleteSong(@PathVariable id: Long): Int {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
-        settings?.let {
-            it.deleteFromDb()
-        }
+        settings?.deleteFromDb()
         return 0
     }
 
@@ -485,16 +481,16 @@ class MainController {
         @PathVariable id: Long,
         model: Model
     ): ResponseEntity<Resource> {
-        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
-        val filename = File(settings?.vocalsNameFlac)
-        val resource = FileSystemResource(filename)
-        if (resource.exists()) {
-            return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment") //; filename=\"${filename.name}\"")
-                .body(resource)
-        } else {
-            return ResponseEntity.notFound().build()
+       Settings.loadFromDbById(id, WORKING_DATABASE)?.let { settings ->
+           val filename = File(settings.vocalsNameFlac)
+           val resource = FileSystemResource(filename)
+           if (resource.exists()) {
+               return ResponseEntity.ok()
+                   .header(HttpHeaders.CONTENT_DISPOSITION, "attachment")
+                   .body(resource)
+           }
         }
+        return ResponseEntity.notFound().build()
     }
 
     @GetMapping("/song/{id}/fileMusic")
@@ -502,16 +498,16 @@ class MainController {
         @PathVariable id: Long,
         model: Model
     ): ResponseEntity<Resource> {
-        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
-        val filename = File(settings?.newNoStemNameFlac)
-        val resource = FileSystemResource(filename)
-        if (resource.exists()) {
-            return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment") //; filename=\"${filename.name}\"")
-                .body(resource)
-        } else {
-            return ResponseEntity.notFound().build()
+        Settings.loadFromDbById(id, WORKING_DATABASE)?.let { settings ->
+            val filename = File(settings.newNoStemNameFlac)
+            val resource = FileSystemResource(filename)
+            if (resource.exists()) {
+                return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment")
+                    .body(resource)
+            }
         }
+        return ResponseEntity.notFound().build()
     }
 
     @GetMapping("/song/{id}/fileSong")
@@ -519,32 +515,32 @@ class MainController {
         @PathVariable id: Long,
         model: Model
     ): ResponseEntity<Resource> {
-        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
-        val filename = File(settings?.fileAbsolutePath)
-        val resource = FileSystemResource(filename)
-        if (resource.exists()) {
-            return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment") //; filename=\"${filename.name}\"")
-                .body(resource)
-        } else {
-            return ResponseEntity.notFound().build()
+        Settings.loadFromDbById(id, WORKING_DATABASE)?.let { settings ->
+            val filename = File(settings.fileAbsolutePath)
+            val resource = FileSystemResource(filename)
+            if (resource.exists()) {
+                return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment")
+                    .body(resource)
+            }
         }
+        return ResponseEntity.notFound().build()
     }
 
     @GetMapping("/song/{id}/{voice}/editsubs")
     fun getSongEditSubs(@PathVariable id: Long, @PathVariable voice: Int, model: Model): String {
-        val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
+         Settings.loadFromDbById(id, WORKING_DATABASE)?.let { settings ->
+            val markersValue = Json.encodeToString(settings.getSourceMarkers(voice))
+            val syllablesValue = Json.encodeToString(settings.getSourceSyllables(voice))
 
-        val textValue = Json.encodeToString(settings!!.getSourceText(voice))
-        val markersValue = Json.encodeToString(settings!!.getSourceMarkers(voice))
-        val syllablesValue = Json.encodeToString(settings!!.getSourceSyllables(voice))
+            model.addAttribute("workInContainer", APP_WORK_IN_CONTAINER)
+            model.addAttribute("settings", settings)
+            model.addAttribute("text", settings.getSourceText(voice))
+            model.addAttribute("markers", markersValue)
+            model.addAttribute("syllables", syllablesValue)
+            model.addAttribute("voice", voice)
+        }
 
-        model.addAttribute("workInContainer", APP_WORK_IN_CONTAINER)
-        model.addAttribute("settings", settings)
-        model.addAttribute("text", settings!!.getSourceText(voice))
-        model.addAttribute("markers", markersValue)
-        model.addAttribute("syllables", syllablesValue)
-        model.addAttribute("voice", voice)
         return "editsubs"
     }
 
@@ -969,7 +965,9 @@ class MainController {
         model: Model): String {
         var result = "Error"
         txt?.let {
-            val ids = txt.split(";").mapNotNull { it }.filter { it != "" }.map { it.toLong() }
+            val ids = txt.split(";")
+                .filter { it != "" }
+                .map { it.toLong() }
             ids.forEach { id ->
                 val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
                 settings?.let {
@@ -993,7 +991,9 @@ class MainController {
         model: Model): String {
         var result = "Error"
         txt?.let {
-            val ids = txt.split(";").mapNotNull { it }.filter { it != "" }.map { it.toLong() }
+            val ids = txt.split(";")
+                .filter { it != "" }
+                .map { it.toLong() }
             ids.forEach { id ->
                 val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
                 settings?.let {
@@ -1014,7 +1014,9 @@ class MainController {
         model: Model): String {
         var result = "Error"
         txt?.let {
-            val ids = txt.split(";").mapNotNull { it }.filter { it != "" }.map { it.toLong() }
+            val ids = txt.split(";")
+                .filter { it != "" }
+                .map { it.toLong() }
             ids.forEach { id ->
                 val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
                 settings?.let {
@@ -1033,7 +1035,9 @@ class MainController {
         model: Model): String {
         var result = "Error"
         txt?.let {
-            val ids = txt.split(";").mapNotNull { it }.filter { it != "" }.map { it.toLong() }
+            val ids = txt.split(";")
+                .filter { it != "" }
+                .map { it.toLong() }
             ids.forEach { id ->
                 val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
                 settings?.let {
@@ -1052,7 +1056,9 @@ class MainController {
         model: Model): String {
         var result = "Error"
         txt?.let {
-            val ids = txt.split(";").mapNotNull { it }.filter { it != "" }.map { it.toLong() }
+            val ids = txt.split(";")
+                .filter { it != "" }
+                .map { it.toLong() }
             ids.forEach { id ->
                 val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
                 settings?.let {

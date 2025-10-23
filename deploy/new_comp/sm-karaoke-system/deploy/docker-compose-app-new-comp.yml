@@ -27,7 +27,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - /home/nsa/Karaoke/karaoke-web/src/main/resources/static/tmp:/home/nsa/Karaoke/karaoke-web/src/main/resources/static/tmp
     networks:
-      - karaokenet
+      - karaokenet # Используем внешнюю сеть
     deploy:
       resources:
         reservations:
@@ -42,4 +42,4 @@ services:
 
 networks:
   karaokenet:
-    driver: bridge
+    external: true # <-- Указываем, что сеть внешняя

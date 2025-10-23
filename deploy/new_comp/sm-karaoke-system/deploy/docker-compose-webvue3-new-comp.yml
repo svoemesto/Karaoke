@@ -14,10 +14,10 @@ services:
       - /sm-karaoke/system:/sm-karaoke/system
       - /sm-karaoke/system/deploy/nginx_webvue3.conf:/etc/nginx/nginx.conf
     networks:
-      - karaokenet
+      - karaokenet # Используем внешнюю сеть
     command: /bin/bash -c "exec nginx -g 'daemon off;'"
 
 networks:
   karaokenet:
-    driver: bridge
+    external: true # <-- Указываем, что сеть внешняя
 

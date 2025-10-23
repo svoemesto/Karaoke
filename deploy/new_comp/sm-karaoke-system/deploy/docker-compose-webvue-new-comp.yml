@@ -19,5 +19,5 @@ services:
 
 networks:
   karaokenet:
-    driver: bridge
+    external: true # <-- Указываем, что сеть внешняя
 

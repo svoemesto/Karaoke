@@ -227,7 +227,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     @GetMapping("/fls")
     @ResponseBody
     fun getFls(): String {
-            val files = getListFiles("/sm-karaoke/work").joinToString(", ")
+        val files = getListFiles("/sm-karaoke/work").joinToString(", ")
         println("Вызван getFls. Файлы в папке /sm-karaoke/work: $files")
         return "Вызван getFls. Файлы в папке /sm-karaoke/work: $files"
     }
@@ -392,9 +392,9 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     @PostMapping("/song/copyfieldsfromanother")
     @ResponseBody
     fun copyFieldsFromAnother(
-            @RequestParam id: Long,
-            @RequestParam idAnother: Long,
-            @RequestParam fields: String
+        @RequestParam id: Long,
+        @RequestParam idAnother: Long,
+        @RequestParam fields: String
     ): String {
         Settings.loadFromDbById(id, WORKING_DATABASE)?.let { settings ->
             settings.copyFieldsFromAnother(idAnother, fields.split(";").map { SettingField.valueOf(it) })
@@ -540,7 +540,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
         return text
     }
 
-        // Получение форматированного текста с аккордами
+    // Получение форматированного текста с аккордами
     @PostMapping("/song/chordsformatted")
     @ResponseBody
     fun getSongFormattedChords(@RequestParam id: Long): String {
@@ -984,7 +984,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
         )
     }
 
-        // Получение списка статусов процессов
+    // Получение списка статусов процессов
     @PostMapping("/processes/countwaiting")
     @ResponseBody
     fun getCountWaiting(): Long {
@@ -1058,8 +1058,8 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     @ResponseBody
     fun skipedPublications(): Map<String, Any> {
         return mapOf(
-                "workInContainer" to APP_WORK_IN_CONTAINER,
-                "publications" to Publication.getSkipedPublicationList(WORKING_DATABASE).map { it.map { it.toDTO() } }
+            "workInContainer" to APP_WORK_IN_CONTAINER,
+            "publications" to Publication.getSkipedPublicationList(WORKING_DATABASE).map { it.map { it.toDTO() } }
         )
     }
 
@@ -1782,7 +1782,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
         @RequestParam sourceText: String,
         @RequestParam sourceMarkers: String,
         @RequestParam indexTabsVariant: Int,
-        ): Boolean {
+    ): Boolean {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         return settings?.let {
             val markers = try {
@@ -2905,13 +2905,13 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     @PostMapping("/authors/updateauthor")
     @ResponseBody
     fun apisUpdateAuthor(
-            @RequestParam(required = true) id: Long,
-            @RequestParam(required = true) author: String,
-            @RequestParam(required = true) ymId: String,
-            @RequestParam(required = true) lastAlbumYm: String,
-            @RequestParam(required = true) lastAlbumProcessed: String,
-            @RequestParam(required = true) watched: Boolean,
-            @RequestParam(required = true) skip: Boolean
+        @RequestParam(required = true) id: Long,
+        @RequestParam(required = true) author: String,
+        @RequestParam(required = true) ymId: String,
+        @RequestParam(required = true) lastAlbumYm: String,
+        @RequestParam(required = true) lastAlbumProcessed: String,
+        @RequestParam(required = true) watched: Boolean,
+        @RequestParam(required = true) skip: Boolean
     ): Long {
 
         Author.load(id = id, database = WORKING_DATABASE)?.let {
@@ -2930,14 +2930,14 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     @PostMapping("/authors/authorsdigests")
     @ResponseBody
     fun apisAuthorsDigest(
-            @RequestParam(required = false) filter_id: String?,
-            @RequestParam(required = false) filter_author: String?,
-            @RequestParam(required = false) filter_ym_id: String?,
-            @RequestParam(required = false) filter_last_album_ym: String?,
-            @RequestParam(required = false) filter_last_album_processed: String?,
-            @RequestParam(required = false) filter_watched: String?,
-            @RequestParam(required = false) filter_HaveNewAlbum: String?,
-            @RequestParam(required = false) filter_skip: String?
+        @RequestParam(required = false) filter_id: String?,
+        @RequestParam(required = false) filter_author: String?,
+        @RequestParam(required = false) filter_ym_id: String?,
+        @RequestParam(required = false) filter_last_album_ym: String?,
+        @RequestParam(required = false) filter_last_album_processed: String?,
+        @RequestParam(required = false) filter_watched: String?,
+        @RequestParam(required = false) filter_HaveNewAlbum: String?,
+        @RequestParam(required = false) filter_skip: String?
     ): Map<String, Any> {
 
         val args: MutableMap<String, String> = mutableMapOf()
@@ -2951,8 +2951,8 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
         filter_skip?.let { if (filter_skip != "") args["skip"] = filter_skip }
         val authorsList = Author.loadList(args, WORKING_DATABASE).map { it.toDTO() }
         return mapOf(
-                "workInContainer" to APP_WORK_IN_CONTAINER,
-                "authorsDigests" to authorsList
+            "workInContainer" to APP_WORK_IN_CONTAINER,
+            "authorsDigests" to authorsList
         )
     }
 
@@ -2977,8 +2977,8 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     @PostMapping("/files")
     @ResponseBody
     fun getFiles(
-            @RequestParam path: String,
-            @RequestParam(required = false) extensions: String?
+        @RequestParam path: String,
+        @RequestParam(required = false) extensions: String?
     ): List<FileDTO> {
         var directory = File(path)
         if (!directory.exists() || !directory.isDirectory) {
@@ -2992,13 +2992,13 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
             val needToAdd = file.isDirectory || (extensions.isNullOrBlank() || file.extension.lowercase() in extensions.split(";").map { it.lowercase() })
             if (needToAdd) {
                 FileDTO(
-                        name = file.name,
-                        path = file.absolutePath,
-                        extension = file.extension,
-                        nameWithoutExtension = file.nameWithoutExtension,
-                        parent = file.parent,
-                        length = file.length(),
-                        isDirectory = file.isDirectory
+                    name = file.name,
+                    path = file.absolutePath,
+                    extension = file.extension,
+                    nameWithoutExtension = file.nameWithoutExtension,
+                    parent = file.parent,
+                    length = file.length(),
+                    isDirectory = file.isDirectory
                 )
             } else null
         }?.sorted() ?: emptyList()
@@ -3007,10 +3007,10 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     @PostMapping("/pictures/updatepicture")
     @ResponseBody
     fun apisUpdatePicture(
-            @RequestParam(required = true) id: Long,
-            @RequestParam(required = false) name: String?,
-            @RequestParam(required = false) full: String?,
-            @RequestParam(required = false) preview: String?
+        @RequestParam(required = true) id: Long,
+        @RequestParam(required = false) name: String?,
+        @RequestParam(required = false) full: String?,
+        @RequestParam(required = false) preview: String?
     ): Long {
 
         Pictures.loadFromDbById(id = id, database = WORKING_DATABASE)?.let {pic ->
@@ -3026,8 +3026,8 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     @PostMapping("/pictures/picturesdigests")
     @ResponseBody
     fun apisPicturesDigest(
-            @RequestParam(required = false) filter_id: String?,
-            @RequestParam(required = false) filter_name: String?
+        @RequestParam(required = false) filter_id: String?,
+        @RequestParam(required = false) filter_name: String?
     ): Map<String, Any> {
 
         val args: MutableMap<String, String> = mutableMapOf()
@@ -3035,8 +3035,8 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
         filter_name?.let { if (filter_name != "") args["picture_name"] = filter_name }
         val picturesDigests = Pictures.loadListDTOFromDb(args, WORKING_DATABASE)
         return mapOf(
-                "workInContainer" to APP_WORK_IN_CONTAINER,
-                "picturesDigests" to picturesDigests
+            "workInContainer" to APP_WORK_IN_CONTAINER,
+            "picturesDigests" to picturesDigests
         )
     }
 
@@ -3074,8 +3074,8 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     @PostMapping("/getwebvueprop")
     @ResponseBody
     fun getWebvueProperty(
-            @RequestParam(required = true) key: String,
-            @RequestParam(required = false) default: String?
+        @RequestParam(required = true) key: String,
+        @RequestParam(required = false) default: String?
     ): String {
         val result = WVP.get(key = key, default = (default ?: ""))
         return result
@@ -3085,8 +3085,8 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     @PostMapping("/setwebvueprop")
     @ResponseBody
     fun setWebvueProperty(
-            @RequestParam(required = true) key: String,
-            @RequestParam(required = true) value: String
+        @RequestParam(required = true) key: String,
+        @RequestParam(required = true) value: String
     ) {
         WVP.set(key = key, value = value)
     }
@@ -3094,7 +3094,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     @PostMapping("/getdict")
     @ResponseBody
     fun getDict(
-            @RequestParam(required = true) dict: String
+        @RequestParam(required = true) dict: String
     ): List<String> {
         return TextFileDictionary.loadList(dict)
     }

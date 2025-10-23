@@ -36,21 +36,21 @@
         var stompClientProcesses = null;
 
         function connect() {
-            var socketSettings = new SockJS('/apis/message');
+            var socketSettings = new SockJS('/api/message');
             stompClientSettings = Stomp.over(socketSettings);
             stompClientSettings.connect({}, function (frame) {
                 console.log('Connected: ' + frame);
-                stompClientSettings.subscribe('/apis/messages/recordchange', function (recordchange) {
+                stompClientSettings.subscribe('/api/messages/recordchange', function (recordchange) {
                     console.log("Получено сообщение...");
                     updateSettingsFromMessage(JSON.parse(recordchange.body));
                 });
             });
 
-            var socketProgress = new SockJS('/apis/message');
+            var socketProgress = new SockJS('/api/message');
             stompClientProcesses = Stomp.over(socketProgress);
             stompClientProcesses.connect({}, function (frame) {
                 console.log('Connected: ' + frame);
-                stompClientProcesses.subscribe('/apis/messages/processesrecordchange', function (recordchange) {
+                stompClientProcesses.subscribe('/api/messages/processesrecordchange', function (recordchange) {
                     console.log("Получено сообщение...");
                     updateProcessesFromMessage(JSON.parse(recordchange.body));
                 });

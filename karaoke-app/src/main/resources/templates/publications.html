@@ -685,11 +685,11 @@
     var stompClient = null;
 
     function connect() {
-        var socket = new SockJS('/apis/message');
+        var socket = new SockJS('/api/message');
         stompClient = Stomp.over(socket);
         stompClient.connect({}, function(frame) {
             console.log('Connected: ' + frame);
-            stompClient.subscribe('/apis/messages/recordchange', function(recordchange){
+            stompClient.subscribe('/api/messages/recordchange', function(recordchange){
                 console.log("Получено сообщение...");
                 updateSettingsFromMessage(JSON.parse(recordchange.body));
             });

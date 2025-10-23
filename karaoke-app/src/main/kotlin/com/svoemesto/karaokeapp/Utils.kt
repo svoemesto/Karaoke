@@ -462,7 +462,7 @@ fun updateDatabases(
             val itemFrom = Pictures.loadFromDbById(id = id, database = fromDatabase)
             val itemTo = Pictures.loadFromDbById(id = id, database = toDatabase)
             if (itemFrom != null && itemTo != null) {
-                val diff = Pictures.getDiff(itemFrom, itemTo)
+                val diff = KaraokeDbTable.getDiff(itemFrom, itemTo)
                 if (diff.isNotEmpty()) {
                     listToUpdateNames.add(itemFrom.name)
                     println("[${Timestamp.from(Instant.now())}] Изменяем запись в $tableName: id=${itemFrom.id}, ${itemFrom.name}, поля: ${diff.joinToString(", ") { it.recordDiffName }}")

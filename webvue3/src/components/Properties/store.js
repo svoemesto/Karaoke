@@ -31,7 +31,7 @@ export default {
             ctx.commit('updateOneProperty', prop);
         },
         loadPropertiesDigests(ctx, params) {
-            let request = { method: 'POST', url: "/apis/propertiesdigests", params: params };
+            let request = { method: 'POST', url: "/api/propertiesdigests", params: params };
             ctx.commit('setPropertiesDigestIsLoading', true);
             promisedXMLHttpRequest(request).then(data => {
                 let result = JSON.parse(data);
@@ -43,7 +43,7 @@ export default {
         },
         setPropertyValuePromise(ctx, payload) {
             let params = { key: payload.propertyKey, stringValue: payload.propertyValue };
-            let request = { method: 'POST', url: "/apis/properties/setproperty", params: params };
+            let request = { method: 'POST', url: "/api/properties/setproperty", params: params };
             return promisedXMLHttpRequest(request);
         },
     }

@@ -2,20 +2,6 @@
 <template>
   <BApp>
     <div id="app">
-<!--      <div class="app-header">-->
-<!--        <ul class="nav nav-pills">-->
-<!--          <li class="nav-item"><router-link to="/">Главная</router-link></li>-->
-<!--          <li class="nav-item"><router-link to="/songs">Песни</router-link></li>-->
-<!--          <li class="nav-item"><router-link to="/publish">Публикации</router-link></li>-->
-<!--          <li class="nav-item"><router-link to="/authors">Авторы</router-link></li>-->
-<!--          <li class="nav-item"><router-link to="/pictures">Картинки</router-link></li>-->
-<!--          <li class="nav-item"><router-link to="/processes">Процессы</router-link></li>-->
-<!--          <li class="nav-item"><router-link to="/properties">Настройки</router-link></li>-->
-<!--        </ul>-->
-<!--        <BackendConsole/>-->
-<!--        <ProcessWorker/>-->
-<!--      </div>-->
-<!--      <router-view/>-->
       <!-- Основной контейнер с двумя колонками -->
       <div class="app-container">
         <!-- Левая колонка для навигации -->
@@ -28,6 +14,8 @@
             <li class="nav-item"><router-link class="nav-link" to="/pictures">Картинки</router-link></li>
             <li class="nav-item"><router-link class="nav-link" to="/processes">Процессы</router-link></li>
             <li class="nav-item"><router-link class="nav-link" to="/properties">Настройки</router-link></li>
+            <li class="nav-item"><router-link class="nav-link" to="/users">Пользователи</router-link></li>
+            <li class="nav-item"><router-link class="nav-link" to="/auth">Login</router-link></li>
           </ul>
         </div>
 
@@ -88,6 +76,7 @@ export default {
         case 'PROCESS_WORKER_STATE': { this.updateProcessWorkerStateByUserEvent(userEvent.data); break; }
         case 'PROCESS_COUNT_WAITING': { this.setCountWaiting(userEvent.data); break; }
         case 'MESSAGE': { this.showMessageByUserEvent(userEvent.data, create); break; }
+        case 'ERROR': { this.showErrorByUserEvent(userEvent.data, create); break; }
         case 'DUMMY': { console.log("DUMMY MESSAGE"); break; }
         case 'LOG': { this.logMessageByUserEvent(userEvent.data); break; }
         case 'CRUD': { this.crudMessageByUserEvent(userEvent.data, create); break; }
@@ -145,6 +134,22 @@ export default {
         // noHoverPause: true,
         // noProgress: true
         // modelValue: true
+      })
+    },
+    showErrorByUserEvent(userEvent, create) {
+      if (document.hidden) return
+      const vNodesMsg = h('div', [
+        h('div', { style: { fontFamily: 'sans-serif', fontSize: 'small', textAlign: 'left' } }, userEvent.body)
+      ]);
+      create({
+        slots: { default: () => [vNodesMsg] },
+        body: userEvent.body,
+        title: userEvent.head,
+        autoHideDelay: 3000,
+        bodyClass: 'toast-body-servererror',
+        headerClass: 'toast-header-servererror',
+        appendToast: false,
+        position: 'top-end'
       })
     },
     crudMessageByUserEvent(userEvent, create) {
@@ -319,7 +324,7 @@ export default {
   async mounted() {
     console.log('APP mounted')
     const {create} = useToast();
-    const msgServer = new EventSourcePolyfill('/apis/subscribe')
+    const msgServer = new EventSourcePolyfill('/api/subscribe')
     msgServer.addEventListener('user', (event) => {
       this.userEvent(JSON.parse(event.data).payload, create)
     }, false);
@@ -504,6 +509,15 @@ li a:hover {
   padding: .75rem !important;
   color: #000 !important;
   background-color: rgb(200 255 200 / 85%) !important;
+}
+.toast-header-servererror {
+  color: #fff !important;
+  background-color: rgb(0 0 0 / 85%) !important
+}
+.toast-body-servererror {
+  padding: .75rem !important;
+  color: #fff !important;
+  background-color: rgb(255 50 50 / 85%) !important;
 }
 .toast-header-crudmessage {
   color: #fff !important;

@@ -185,7 +185,7 @@ export default {
       return this.$store.getters.getAuthorsDigest;
     },
     countRows() {
-      return this.authorsDigests.length;
+      return this.authorsDigests ? this.authorsDigests.length : 0;
     },
     authorDigestFields() {
       return [

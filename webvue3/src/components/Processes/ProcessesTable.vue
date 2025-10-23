@@ -195,7 +195,7 @@ export default {
       return this.$store.getters.getProcessesDigest;
     },
     countRows() {
-      return this.processesDigests.length;
+      return this.processesDigests ? this.processesDigests.length : 0;
     },
     processDigestFields() {
       return [

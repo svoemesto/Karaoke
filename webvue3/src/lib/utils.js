@@ -25,7 +25,7 @@ export function setWebvueProp (field, key, value) {
     if (field !== undefined && field !== null) {
         promisedXMLHttpRequest({
             method: 'POST',
-            url: "/apis/setwebvueprop",
+            url: "/api/setwebvueprop",
             params: {key: key, value: value}
         });
     }

@@ -24,6 +24,9 @@ data class SseNotification(
         fun message(message: Message): SseNotification {
             return SseNotification(SseNotificationType.MESSAGE, message)
         }
+        fun error(error: Message): SseNotification {
+            return SseNotification(SseNotificationType.ERROR, error)
+        }
         fun dummy(): SseNotification {
             return SseNotification(SseNotificationType.DUMMY, "dummy")
         }

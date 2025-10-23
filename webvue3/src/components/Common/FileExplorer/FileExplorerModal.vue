@@ -150,7 +150,7 @@ export default {
     },
     getFiles(path) {
       console.log('path', path);
-      let request = { method: 'POST', url: "/apis/files", params: { path: path, extensions: this.extensions } };
+      let request = { method: 'POST', url: "/api/files", params: { path: path, extensions: this.extensions } };
       this.isBusy = true;
       promisedXMLHttpRequest(request).then(data => {
         let result = JSON.parse(data);

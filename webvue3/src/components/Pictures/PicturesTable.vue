@@ -140,7 +140,7 @@ export default {
       return this.$store.getters.getPicturesDigest;
     },
     countRows() {
-      return this.picturesDigests.length;
+      return this.picturesDigests ? this.picturesDigests.length : 0;
     },
     pictureDigestFields() {
       return [

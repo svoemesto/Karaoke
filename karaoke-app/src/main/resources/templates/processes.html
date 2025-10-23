@@ -88,11 +88,11 @@
         var stompClient = null;
 
         function connect() {
-            var socket = new SockJS('/apis/message');
+            var socket = new SockJS('/api/message');
             stompClient = Stomp.over(socket);
             stompClient.connect({}, function(frame) {
                 console.log('Connected: ' + frame);
-                stompClient.subscribe('/apis/messages/processesrecordchange', function(recordchange){
+                stompClient.subscribe('/api/messages/processesrecordchange', function(recordchange){
                     console.log("Получено сообщение...");
                     updateProcessesFromMessage(JSON.parse(recordchange.body));
                 });

@@ -387,7 +387,7 @@ export default {
       return this.$store.getters.getSongsHistory;
     },
     countRows() {
-      return this.songsDigests.length;
+      return this.songsDigests ? this.songsDigests.length : 0;
     },
     totalDuration() {
       return this.$store.getters.getTotalDuration;

@@ -11,7 +11,7 @@ data class AuthorDTO(
         val watched: Boolean,
         val skip: Boolean,
         val haveNewAlbum: Boolean,
-        val pictureId: Int = 0,
+        val pictureId: Long = 0,
         val picturePreview: String = ""
 ): Serializable, Comparable<AuthorDTO> {
     override fun compareTo(other: AuthorDTO): Int {

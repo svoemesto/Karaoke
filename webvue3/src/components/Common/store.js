@@ -15,7 +15,7 @@ export default {
         getWebvueProp: () => async (key, defaultValue) => {
             return await promisedXMLHttpRequest({
                 method: 'POST',
-                url: "/apis/getwebvueprop",
+                url: "/api/getwebvueprop",
                 params: {key: key, default: defaultValue}
             });
         }
@@ -54,7 +54,7 @@ export default {
             if (field !== undefined && field !== null) {
                 promisedXMLHttpRequest({
                     method: 'POST',
-                    url: "/apis/setwebvueprop",
+                    url: "/api/setwebvueprop",
                     params: {key: key, value: value}
                 });
             }

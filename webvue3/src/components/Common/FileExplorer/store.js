@@ -26,7 +26,7 @@ export default {
         setFileExplorerFilesIsLoading(ctx, payload) { ctx.commit('setFileExplorerFilesIsLoading', payload.fileExplorerFilesIsLoading) },
         getFiles(ctx, params) {
             console.log('params', params);
-            let request = { method: 'POST', url: "/apis/files", params: params };
+            let request = { method: 'POST', url: "/api/files", params: params };
             promisedXMLHttpRequest(request).then(data => {
                 let result = JSON.parse(data);
                 console.log('result', result);

@@ -37,3 +37,10 @@ storage:
   console:
     port-host: ${STORAGE_CONSOLE_PORT_HOST}
     port-inside-container: ${STORAGE_CONSOLE_PORT_INSIDE_CONTAINER}
+
+logging:
+  level:
+    org:
+      springframework:
+        security: DEBUG
+        web: DEBUG

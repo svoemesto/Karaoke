@@ -141,7 +141,7 @@ export default {
       return this.$store.getters.getPropertiesDigest;
     },
     countRows() {
-      return this.propertiesDigests.length;
+      return this.propertiesDigests ? this.propertiesDigests.length : 0;
     },
     propertyDigestFields() {
       return [

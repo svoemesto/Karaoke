@@ -67,11 +67,11 @@ export default {
             ctx.commit('updatePublishDigestByIds', payload.songsAndIndexesForUpdate);
         },
         async getPublicationsDateFrom(ctx, param) {
-            let request = { method: 'POST', url: "/apis/publications/date", params: param };
+            let request = { method: 'POST', url: "/api/publications/date", params: param };
             return await promisedXMLHttpRequest(request);
         },
         loadPublishDigest(ctx, params) {
-            let request = { method: 'POST', url: "/apis/publicationsdigest", params: params };
+            let request = { method: 'POST', url: "/api/publicationsdigest", params: params };
             ctx.commit('setPublishDigestIsLoading', true);
             promisedXMLHttpRequest(request).then(data => {
                 let result = JSON.parse(data);

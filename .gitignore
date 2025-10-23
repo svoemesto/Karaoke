@@ -32,3 +32,4 @@ bin/
 /karaoke-web/src/main/resources/static/tmp/
 
 deploy/do.env
+/.idea/

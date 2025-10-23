@@ -6,7 +6,10 @@ import PublishView from '../views/PublishView.vue'
 import ProcessesView from '../views/ProcessesView.vue'
 import PropertiesView from '../views/PropertiesView.vue'
 import AuthorsView from '../views/AuthorsView.vue'
+import UsersView from '../views/UsersView.vue'
 import PicturesView from '../views/PicturesView.vue'
+import AuthView from '../views/AuthView.vue'
+import CallbackView from '../views/CallbackView.vue'
 
 const routes = [
   {
@@ -44,6 +47,21 @@ const routes = [
     path: '/pictures',
     name: 'pictures',
     component: PicturesView
+  },
+  {
+    path: '/users',
+    name: 'users',
+    component: UsersView
+  },
+  {
+    path: '/auth',
+    name: 'auth',
+    component: AuthView
+  },
+  {
+    path: '/callback', // Путь должен совпадать с redirect_uri в настройках AuthService
+    name: 'callback',
+    component: CallbackView
   }
 ]
 

@@ -146,7 +146,7 @@ export default {
     },
     actions: {
         loadSongsHistory(ctx) {
-            let request = { method: 'POST', url: "/apis/songshistory" };
+            let request = { method: 'POST', url: "/api/songshistory" };
             ctx.commit('setSongsHistoryIsLoading', true);
             promisedXMLHttpRequest(request).then(data => {
                 let result = JSON.parse(data);

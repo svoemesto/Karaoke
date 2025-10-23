@@ -1,11 +1,12 @@
 package com.svoemesto.karaokeapp.model
 
 import com.svoemesto.karaokeapp.*
+import com.svoemesto.karaokeapp.model.KaraokeDbTable.Companion.getListHashes
+import com.svoemesto.karaokeapp.model.KaraokeDbTable.Companion.getTotalCount
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.Serializable
-import java.nio.file.Path
 import java.sql.ResultSet
 import java.sql.SQLException
 import java.sql.Statement
@@ -13,11 +14,18 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 import javax.imageio.ImageIO
+import kotlin.reflect.KClass
+import kotlin.reflect.full.findAnnotation
 
-class Pictures(val database: KaraokeConnection = WORKING_DATABASE) : Serializable, Comparable<Pictures> {
+class Pictures(override val database: KaraokeConnection = WORKING_DATABASE) : Serializable, Comparable<Pictures>, KaraokeDbTable {
 
-    var id: Int = 0
+    @KaraokeDbTableField(name = "id", isId = true)
+    override var id: Long = 0
+
+    @KaraokeDbTableField(name = "picture_name")
     var name: String = "Picture name"
+
+    @KaraokeDbTableField(name = "picture_full")
     var full: String = ""
         set(value) {
             field = value
@@ -33,6 +41,8 @@ class Pictures(val database: KaraokeConnection = WORKING_DATABASE) : Serializabl
 
             }
         }
+
+    @KaraokeDbTableField(name = "picture_preview")
     var preview: String = ""
 
     val author: String get() {
@@ -74,14 +84,16 @@ class Pictures(val database: KaraokeConnection = WORKING_DATABASE) : Serializabl
         return id.compareTo(other.id)
     }
 
-    fun save() {
+    override fun getTableName(): String = TABLE_NAME
+
+    override fun save() {
 
         val connection = database.getConnection()
         if (connection == null) {
             println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
             return
         }
-        val sql = "UPDATE tbl_pictures SET " +
+        val sql = "UPDATE ${getTableName()} SET " +
                 "picture_name = ?, " +
                 "picture_full = ?, " +
                 "picture_preview = ? " +
@@ -94,26 +106,25 @@ class Pictures(val database: KaraokeConnection = WORKING_DATABASE) : Serializabl
         index++
         ps.setString(index, preview)
         index++
-        ps.setInt(index, id)
+        ps.setLong(index, id)
         ps.executeUpdate()
         ps.close()
 
     }
 
-    fun getSqlToInsert(): String {
-        val picture = this
-        val fieldsValues: MutableList<Pair<String, Any>> = mutableListOf()
+//    override fun getSqlToInsert(): String {
+//        val picture = this
+//        val fieldsValues: MutableList<Pair<String, Any>> = mutableListOf()
+//
+//        if (picture.id > 0) fieldsValues.add(Pair("id", picture.id))
+//        fieldsValues.add(Pair("picture_name", picture.name))
+//        fieldsValues.add(Pair("picture_full", picture.full))
+//        fieldsValues.add(Pair("picture_preview", picture.preview))
+//
+//        return "INSERT INTO tbl_pictures (${fieldsValues.map {it.first}.joinToString(", ")}) OVERRIDING SYSTEM VALUE VALUES(${fieldsValues.map {if (it.second is Long) "${it.second}" else "'${it.second.toString().replace("'","''")}'"}.joinToString(", ")})"
+//    }
 
-        if (picture.id > 0) fieldsValues.add(Pair("id", picture.id))
-        fieldsValues.add(Pair("picture_name", picture.name))
-        fieldsValues.add(Pair("picture_full", picture.full))
-        fieldsValues.add(Pair("picture_preview", picture.preview))
-
-        return "INSERT INTO tbl_pictures (${fieldsValues.map {it.first}.joinToString(", ")}) OVERRIDING SYSTEM VALUE VALUES(${fieldsValues.map {if (it.second is Long) "${it.second}" else "'${it.second.toString().replace("'","''")}'"}.joinToString(", ")})"
-
-    }
-
-    fun toDTO(): PicturesDTO {
+    override fun toDTO(): PicturesDTO {
         return PicturesDTO(
                 id = id,
                 name = name,
@@ -144,43 +155,10 @@ class Pictures(val database: KaraokeConnection = WORKING_DATABASE) : Serializabl
 
     companion object {
 
-        fun listHashes(database: KaraokeConnection, whereText: String = ""): List<RecordHash>? {
-            var result: MutableList<RecordHash>? = mutableListOf()
-            val sql = "SELECT id, recordhash FROM tbl_pictures $whereText"
+        val TABLE_NAME = "tbl_pictures"
 
-            val connection = database.getConnection()
-            if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
-                return null
-            }
-            var statement: Statement? = null
-            var rs: ResultSet? = null
-
-            try {
-                statement = connection.createStatement()
-
-                println("[${Timestamp.from(Instant.now())}] Запрос хешей...")
-                rs = statement.executeQuery(sql)
-                var cnt = 0
-                while (rs.next()) {
-                    cnt++
-                    result!!.add(RecordHash(id = rs.getLong("id"), recordhash = rs.getString("recordhash")))
-                }
-                println("[${Timestamp.from(Instant.now())}] Получено хешей: $cnt")
-
-            } catch (e: SQLException) {
-                e.printStackTrace()
-                result = null
-            } finally {
-                try {
-                    rs?.close() // close result set
-                    statement?.close() // close statement
-                } catch (e: SQLException) {
-                    e.printStackTrace()
-                }
-            }
-            return result
-        }
+        fun listHashes(database: KaraokeConnection, whereText: String = ""): List<RecordHash>? = getListHashes(tableName = TABLE_NAME, database = database, whereText = whereText)
+        fun totalCount(database: KaraokeConnection): Int = getTotalCount(tableName = TABLE_NAME, database = database)
 
         fun loadListIds(args: Map<String, String> = emptyMap(), database: KaraokeConnection): List<Long> {
             val connection = database.getConnection()
@@ -226,45 +204,36 @@ class Pictures(val database: KaraokeConnection = WORKING_DATABASE) : Serializabl
 
         }
 
-        fun totalCount(database: KaraokeConnection): Int {
-            val sql = "SELECT COUNT(*) AS total_count FROM tbl_pictures;"
-            var result = -1
-            val connection = database.getConnection()
-            if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
-                return -1
-            }
-            var statement: Statement? = null
-            var rs: ResultSet? = null
 
-            try {
-                statement = connection.createStatement()
-                rs = statement.executeQuery(sql)
-                while (rs.next()) {
-                    return rs.getInt("total_count")
-                }
-            } catch (e: SQLException) {
-                e.printStackTrace()
-            } finally {
-                try {
-                    rs?.close() // close result set
-                    statement?.close() // close statement
-                } catch (e: SQLException) {
-                    e.printStackTrace()
-                }
-            }
-            return result
-        }
 
-        fun getDiff(picA: Pictures?, picB: Pictures?): List<RecordDiff> {
-            val result: MutableList<RecordDiff> = mutableListOf()
-            if (picA != null && picB != null) {
-                if (picA.name != picB.name) result.add(RecordDiff("picture_name", picA.name, picB.name))
-                if (picA.full != picB.full) result.add(RecordDiff("picture_full", picA.full, picB.full))
-                if (picA.preview != picB.preview) result.add(RecordDiff("picture_preview", picA.preview, picB.preview))
-            }
-            return result
-        }
+//        fun getDiff(entityA: KaraokeDbTable?, entityB: KaraokeDbTable?): List<RecordDiff> {
+//            val result: MutableList<RecordDiff> = mutableListOf()
+//            if (entityA != null && entityB != null) {
+//                val kClassEntityA: KClass<out KaraokeDbTable> = entityA::class
+//                val kClassEntityB: KClass<out KaraokeDbTable> = entityB::class
+//                for (member in kClassEntityA.members) {
+//                    if (member is kotlin.reflect.KProperty<*>) {
+//                        val property = member
+//                        val karaokeDbTableFieldAnnotation = property.findAnnotation<KaraokeDbTableField>()
+//                        if (karaokeDbTableFieldAnnotation != null) {
+//                            if (karaokeDbTableFieldAnnotation.useInDiff) {
+//                                val fieldName = property.name
+//                                val fieldValueA = property.getter.call(entityA)
+//                                val fieldValueB = property.getter.call(entityB)
+//                                if (fieldValueA != fieldValueB) {
+//                                    result.add(RecordDiff(karaokeDbTableFieldAnnotation.name, fieldValueA, fieldValueB))
+//                                }
+//                            }
+//
+//                        }
+//                    }
+//                }
+////                if (entityA.name != entityB.name) result.add(RecordDiff("picture_name", entityA.name, entityB.name))
+////                if (entityA.full != entityB.full) result.add(RecordDiff("picture_full", entityA.full, entityB.full))
+////                if (entityA.preview != entityB.preview) result.add(RecordDiff("picture_preview", entityA.preview, entityB.preview))
+//            }
+//            return result
+//        }
 
         fun createDbInstance(picture: Pictures, database: KaraokeConnection) : Pictures? {
             val sql = picture.getSqlToInsert()
@@ -295,7 +264,7 @@ class Pictures(val database: KaraokeConnection = WORKING_DATABASE) : Serializabl
             val rs = ps.generatedKeys
 
             val result = if (rs.next()) {
-                picture.id = rs.getInt(1)
+                picture.id = rs.getLong(1)
                 picture
             } else null
 
@@ -337,7 +306,7 @@ class Pictures(val database: KaraokeConnection = WORKING_DATABASE) : Serializabl
                 val result: MutableList<Pictures> = mutableListOf()
                 while (rs.next()) {
                     val picture = Pictures(database)
-                    picture.id = rs.getInt("id")
+                    picture.id = rs.getLong("id")
                     picture.name = rs.getString("picture_name")
                     picture.full = rs.getString("picture_full")
                     picture.preview = rs.getString("picture_preview")
@@ -389,7 +358,7 @@ class Pictures(val database: KaraokeConnection = WORKING_DATABASE) : Serializabl
                 val result: MutableList<PicturesDTO> = mutableListOf()
                 while (rs.next()) {
                     val pictureDTO = PicturesDTO(
-                        id = rs.getInt("id"),
+                        id = rs.getLong("id"),
                         name = rs.getString("picture_name"),
                         preview = rs.getString("picture_preview")
                     )

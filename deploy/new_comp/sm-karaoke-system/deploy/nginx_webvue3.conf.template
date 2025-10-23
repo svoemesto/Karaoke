@@ -21,18 +21,39 @@ http {
     client_max_body_size 1024m;
     server_name  localhost;
 
+    location /.well-known/ {
+        proxy_pass http://MY_IP_ADDRESS:8898; # Проксируем .well-known на бэкенд
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location ~ ^/oauth2/ {
+        proxy_pass http://MY_IP_ADDRESS:8898; # Проксируем /oauth2/** на бэкенд
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
     location / {
       root   /app;
       index  index.html;
       try_files $uri $uri/ /index.html;
     }
 
-    location /apis {
+    location /api {
        expires -1;
        add_header Cache-Control 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0';
-       set $target http://MY_IP_ADDRESS:8898/apis;
-       proxy_pass http://MY_IP_ADDRESS:8898/apis;
-       proxy_set_header X-Forwarded-For-Client $proxy_add_x_forwarded_for;
+       # Убираем set $target, используем proxy_pass напрямую
+       # proxy_pass http://MY_IP_ADDRESS:8898/api; # <-- Это может привести к двойному /api
+       proxy_pass http://MY_IP_ADDRESS:8898; # <-- Проксируем на корень бэкенда
+       proxy_set_header Host $host;
+       proxy_set_header X-Real-IP $remote_addr;
+       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+       proxy_set_header X-Forwarded-Proto $scheme;
+       # proxy_set_header X-Forwarded-For-Client $proxy_add_x_forwarded_for; # Закомментировано или удалено, если не нужно отдельно
     }
 
     error_page   500 502 503 504  /50x.html;

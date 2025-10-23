@@ -2858,7 +2858,7 @@ export default {
       // let loadSongStartTime = Date.now();
       let currentTime = this.ws.getCurrentTime();
       // let loadStartTime = Date.now();
-      this.ws.load('/apis/song/' + this.song.id + '/file' + this.sound).then(() => {
+      this.ws.load('/api/song/' + this.song.id + '/file' + this.sound).then(() => {
         // let loadEndTime = Date.now();
         this.ws.setTime(currentTime);
         this.ws.zoom(this.sliderZoom.value);

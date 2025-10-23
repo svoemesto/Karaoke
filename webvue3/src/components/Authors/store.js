@@ -27,7 +27,7 @@ export default {
     actions: {
         loadOneRecord(ctx, id) {
             const params = {filter_id: id};
-            let request = { method: 'POST', url: "/apis/authors/authorsdigests", params: params };
+            let request = { method: 'POST', url: "/api/authors/authorsdigests", params: params };
             promisedXMLHttpRequest(request).then(data => {
                 let result = JSON.parse(data);
                 ctx.commit('updateAuthorsDigests', result.authorsDigests)
@@ -36,7 +36,7 @@ export default {
             });
         },
         loadAuthorsDigests(ctx, params) {
-            let request = { method: 'POST', url: "/apis/authors/authorsdigests", params: params };
+            let request = { method: 'POST', url: "/api/authors/authorsdigests", params: params };
             ctx.commit('setAuthorsDigestIsLoading', true);
             promisedXMLHttpRequest(request).then(data => {
                 let result = JSON.parse(data);
@@ -47,7 +47,7 @@ export default {
             });
         },
         setAuthorValuePromise(ctx, payload) {
-            let request = { method: 'POST', url: "/apis/authors/updateauthor", params: payload };
+            let request = { method: 'POST', url: "/api/authors/updateauthor", params: payload };
             return promisedXMLHttpRequest(request);
         },
     }

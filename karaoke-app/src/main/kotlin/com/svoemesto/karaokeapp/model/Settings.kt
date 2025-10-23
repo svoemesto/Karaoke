@@ -3849,6 +3849,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     }
 
     companion object {
+        val TABLE_NAME = "tbl_settings"
 
         fun renameFilesIfDiff(settNewVersion: Settings, settOldVersion: Settings): Pair<Boolean, Boolean> {
             val rsfnNew = settNewVersion.rightSettingFileName
@@ -4261,6 +4262,138 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             return result
         }
 
+        fun getWhereList(tableName: String, args: Map<String, String>, sync: Boolean): List<String> {
+            val where: MutableList<String> = mutableListOf()
+
+            if (args.containsKey("ids")) where += "$tableName${if (sync) "_sync" else ""}.id in (${args["ids"]})"
+            if (args.containsKey("is_sync")) {
+                val syncIds = SyncIdsDictionary().loadList()
+                if (syncIds.isNotEmpty()) {
+                    where += "$tableName${if (sync) "_sync" else ""}.id in (${syncIds.joinToString(",")})"
+                } else {
+                    where += "$tableName${if (sync) "_sync" else ""}.id < 0"
+                }
+            }
+
+            if (args.containsKey("file_name")) where += "LOWER(file_name)='${args["file_name"]?.rightFileName()?.lowercase()}'"
+            if (args.containsKey("root_folder")) where += "LOWER(root_folder)='${args["root_folder"]?.rightFileName()?.lowercase()}'"
+            if (args.containsKey("song_name")) where += "LOWER(song_name) LIKE '%${args["song_name"]?.rightFileName()?.lowercase()}%'"
+            if (args.containsKey("song_author")) where += "LOWER(song_author) LIKE '%${args["song_author"]?.rightFileName()?.lowercase()}%'"
+            if (args.containsKey("author")) where += "LOWER(song_author) = '${args["author"]?.rightFileName()?.lowercase()}'"
+            if (args.containsKey("song_album")) where += "LOWER(song_album) LIKE '%${args["song_album"]?.rightFileName()?.lowercase()}%'"
+            if (args.containsKey("album")) where += "LOWER(song_album) = '${args["album"]?.rightFileName()?.lowercase()}'"
+
+            if (args.containsKey("publish_date")) {
+                var pd = args["publish_date"]!!
+                if (pd[0] == '>') {
+                    pd = pd.substring(1)
+                    where += "to_date(publish_date, 'DD.MM.YY') >= to_date('$pd', 'DD.MM.YY')"
+                } else if (pd.last() == '<') {
+                    pd = pd.dropLast(1)
+                    where += "to_date(publish_date, 'DD.MM.YY') <= to_date('$pd', 'DD.MM.YY')"
+                } else {
+                    if (pd == "-") {
+                        where += "publish_date = ''"
+                    } else if (pd == "+") {
+                        where += "publish_date <> ''"
+                    } else {
+                        where += "publish_date LIKE '%$pd%'"
+                    }
+                }
+
+            }
+            if (args.containsKey("publish_time")) {
+                if (args["publish_time"] == "-") {
+                    where += "publish_time = ''"
+                } else if (args["publish_time"] == "+") {
+                    where += "publish_date <> ''"
+                } else {
+                    where += "publish_time LIKE '%${args["publish_time"]}%'"
+                }
+            }
+            if (args.containsKey("status")) where += "status LIKE '%${args["status"]}%'"
+            if (args.containsKey("song_bpm")) where += "song_bpm=${args["song_bpm"]}"
+            if (args.containsKey("song_tone")) where += "song_tone=${args["song_tone"]}"
+            if (args.containsKey("song_year")) where += "song_year=${args["song_year"]}"
+            if (args.containsKey("song_track")) where += "song_track=${args["song_track"]}"
+
+            if (args.containsKey("flag_boosty")) where += "CASE WHEN id_boosty IS NOT NULL AND id_boosty <> 'null' AND id_boosty <> '' THEN '+' ELSE '-' END='${args["flag_boosty"]}'"
+            if (args.containsKey("flag_sponsr")) where += "CASE WHEN id_sponsr IS NOT NULL AND id_sponsr <> 'null' AND id_sponsr <> '' THEN '+' ELSE '-' END='${args["flag_sponsr"]}'"
+            if (args.containsKey("flag_vk")) where += "CASE WHEN id_vk IS NOT NULL AND id_vk <> 'null' AND id_vk <> '' THEN '+' ELSE '-' END='${args["flag_vk"]}'"
+            if (args.containsKey("flag_dzen_lyrics")) where += "CASE WHEN id_dzen_lyrics IS NOT NULL AND id_dzen_lyrics <> 'null' AND id_dzen_lyrics <> '' THEN '+' ELSE '-' END='${args["flag_dzen_lyrics"]}'"
+            if (args.containsKey("flag_dzen_karaoke")) where += "CASE WHEN id_dzen_karaoke IS NOT NULL AND id_dzen_karaoke <> 'null' AND id_dzen_karaoke <> '' THEN '+' ELSE '-' END='${args["flag_dzen_karaoke"]}'"
+            if (args.containsKey("flag_dzen_chords")) where += "CASE WHEN id_dzen_chords IS NOT NULL AND id_dzen_chords <> 'null' AND id_dzen_chords <> '' THEN '+' ELSE '-' END='${args["flag_dzen_chords"]}'"
+            if (args.containsKey("flag_dzen_melody")) where += "CASE WHEN id_dzen_melody IS NOT NULL AND id_dzen_melody <> 'null' AND id_dzen_melody <> '' THEN '+' ELSE '-' END='${args["flag_dzen_melody"]}'"
+            if (args.containsKey("flag_vk_lyrics")) where += "CASE WHEN id_vk_lyrics IS NOT NULL AND id_vk_lyrics <> 'null' AND id_vk_lyrics <> '' THEN '+' ELSE '-' END='${args["flag_vk_lyrics"]}'"
+            if (args.containsKey("flag_vk_karaoke")) where += "CASE WHEN id_vk_karaoke IS NOT NULL AND id_vk_karaoke <> 'null' AND id_vk_karaoke <> '' THEN '+' ELSE '-' END='${args["flag_vk_karaoke"]}'"
+            if (args.containsKey("flag_vk_chords")) where += "CASE WHEN id_vk_chords IS NOT NULL AND id_vk_chords <> 'null' AND id_vk_chords <> '' THEN '+' ELSE '-' END='${args["flag_vk_chords"]}'"
+            if (args.containsKey("flag_vk_melody")) where += "CASE WHEN id_vk_melody IS NOT NULL AND id_vk_melody <> 'null' AND id_vk_melody <> '' THEN '+' ELSE '-' END='${args["flag_vk_melody"]}'"
+            if (args.containsKey("flag_telegram_lyrics")) where += "CASE WHEN id_telegram_lyrics IS NOT NULL AND id_telegram_lyrics <> 'null' AND id_telegram_lyrics <> '' THEN '+' ELSE '-' END='${args["flag_telegram_lyrics"]}'"
+            if (args.containsKey("flag_telegram_karaoke")) where += "CASE WHEN id_telegram_karaoke IS NOT NULL AND id_telegram_karaoke <> 'null' AND id_telegram_karaoke <> '' THEN '+' ELSE '-' END='${args["flag_telegram_karaoke"]}'"
+            if (args.containsKey("flag_telegram_chords")) where += "CASE WHEN id_telegram_chords IS NOT NULL AND id_telegram_chords <> 'null' AND id_telegram_chords <> '' THEN '+' ELSE '-' END='${args["flag_telegram_chords"]}'"
+            if (args.containsKey("flag_telegram_melody")) where += "CASE WHEN id_telegram_melody IS NOT NULL AND id_telegram_melody <> 'null' AND id_telegram_melody <> '' THEN '+' ELSE '-' END='${args["flag_telegram_melody"]}'"
+            if (args.containsKey("flag_pl_lyrics")) where += "CASE WHEN id_pl_lyrics IS NOT NULL AND id_pl_lyrics <> 'null' AND id_pl_lyrics <> '' THEN '+' ELSE '-' END='${args["flag_pl_lyrics"]}'"
+            if (args.containsKey("flag_pl_karaoke")) where += "CASE WHEN id_pl_karaoke IS NOT NULL AND id_pl_karaoke <> 'null' AND id_pl_karaoke <> '' THEN '+' ELSE '-' END='${args["flag_pl_karaoke"]}'"
+            if (args.containsKey("flag_pl_chords")) where += "CASE WHEN id_pl_chords IS NOT NULL AND id_pl_chords <> 'null' AND id_pl_chords <> '' THEN '+' ELSE '-' END='${args["flag_pl_chords"]}'"
+            if (args.containsKey("flag_pl_melody")) where += "CASE WHEN id_pl_melody IS NOT NULL AND id_pl_melody <> 'null' AND id_pl_melody <> '' THEN '+' ELSE '-' END='${args["flag_pl_melody"]}'"
+
+            if (args.containsKey("filter_status_process_lyrics")) where += "LOWER(status_process_lyrics) LIKE '%${args["filter_status_process_lyrics"]?.rightFileName()?.lowercase()}%'"
+            if (args.containsKey("filter_status_process_karaoke")) where += "LOWER(status_process_karaoke) LIKE '%${args["filter_status_process_karaoke"]?.rightFileName()?.lowercase()}%'"
+
+            val listFields = listOf(
+                Pair("id", "id"),
+                Pair("id_status", "id_status"),
+                Pair("filter_result_version", "result_version"),
+                Pair("filter_version_boosty", "version_boosty"),
+                Pair("filter_version_boosty_files", "version_boosty_files"),
+                Pair("filter_version_sponsr", "version_sponsr"),
+                Pair("filter_version_dzen_karaoke", "version_dzen_karaoke"),
+                Pair("filter_version_vk_karaoke", "version_vk_karaoke"),
+                Pair("filter_version_telegram_karaoke", "version_telegram_karaoke"),
+                Pair("filter_version_pl_karaoke", "version_pl_karaoke"),
+                Pair("filter_rate", "rate")
+            )
+
+            listFields.forEach { (filterFldName, fldName) ->
+                if (args.containsKey(filterFldName)) {
+                    args[filterFldName]!!.split("&&").forEach {
+                        val value = it.trim()
+                        if (value.startsWith(">=")) {
+                            where += "$tableName${if (sync) "_sync" else ""}.$fldName>=${value.substring(2)}"
+                        } else if (value.startsWith(">")) {
+                            where += "$tableName${if (sync) "_sync" else ""}.$fldName>${value.substring(1)}"
+                        } else if (value.startsWith("<=")) {
+                            where += "$tableName${if (sync) "_sync" else ""}.$fldName<=${value.substring(2)}"
+                        } else if (value.startsWith("<")) {
+                            where += "$tableName${if (sync) "_sync" else ""}.$fldName<${value.substring(1)}"
+                        } else if (value.startsWith("!=")) {
+                            where += "$tableName${if (sync) "_sync" else ""}.$fldName<>${value.substring(2)}"
+                        } else {
+                            where += "$tableName${if (sync) "_sync" else ""}.$fldName=${value}"
+                        }
+                    }
+                }
+            }
+
+            if (args.containsKey("tags")) {
+                var tg = args["tags"]!!
+                if (tg[0] == '~') {
+                    tg = tg.substring(1)
+                    where += "tags='${tg.rightFileName()}'"
+                } else if (tg.length > 2 && tg.startsWith("!~")) {
+                    tg = tg.substring(2)
+                    where += "tags NOT LIKE '%${tg.rightFileName()}%'"
+                } else {
+                    where += "LOWER(tags) LIKE '%${tg.rightFileName().lowercase()}%'"
+                }
+
+            }
+            if (args.containsKey("text")) where += "to_tsvector('russian', result_text) @@ plainto_tsquery('russian', '${args["text"]?.rightFileName()?.lowercase()}')"
+
+
+            return where
+        }
+
         fun loadListFromDb(args: Map<String, String> = emptyMap(), database: KaraokeConnection, sync: Boolean = false): List<Settings> {
 
             val connection = database.getConnection()
@@ -4271,141 +4404,141 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             var statement: Statement? = null
             var rs: ResultSet? = null
             var sql: String
-            val where: MutableList<String> = mutableListOf()
+            val where = getWhereList(tableName = TABLE_NAME, args = args, sync = sync)
 
             try {
                 statement = connection.createStatement()
-                sql = "SELECT * FROM tbl_settings${if (sync) "_sync" else ""}"
+                sql = "SELECT * FROM $TABLE_NAME${if (sync) "_sync" else ""}"
                 val limit = args["limit"]?.toInt() ?: 0
                 val offset = args["offset"]?.toInt() ?: 0
 
-                if (args.containsKey("ids")) where += "tbl_settings${if (sync) "_sync" else ""}.id in (${args["ids"]})"
-                if (args.containsKey("is_sync")) {
-                    val syncIds = SyncIdsDictionary().loadList()
-                    if (syncIds.isNotEmpty()) {
-                        where += "tbl_settings${if (sync) "_sync" else ""}.id in (${syncIds.joinToString(",")})"
-                    } else {
-                        where += "tbl_settings${if (sync) "_sync" else ""}.id < 0"
-                    }
-                }
-                if (args.containsKey("file_name")) where += "LOWER(file_name)='${args["file_name"]?.rightFileName()?.lowercase()}'"
-                if (args.containsKey("root_folder")) where += "LOWER(root_folder)='${args["root_folder"]?.rightFileName()?.lowercase()}'"
-                if (args.containsKey("song_name")) where += "LOWER(song_name) LIKE '%${args["song_name"]?.rightFileName()?.lowercase()}%'"
-                if (args.containsKey("song_author")) where += "LOWER(song_author) LIKE '%${args["song_author"]?.rightFileName()?.lowercase()}%'"
-                if (args.containsKey("author")) where += "LOWER(song_author) = '${args["author"]?.rightFileName()?.lowercase()}'"
-                if (args.containsKey("song_album")) where += "LOWER(song_album) LIKE '%${args["song_album"]?.rightFileName()?.lowercase()}%'"
-                if (args.containsKey("album")) where += "LOWER(song_album) = '${args["album"]?.rightFileName()?.lowercase()}'"
-
-                if (args.containsKey("publish_date")) {
-                    var pd = args["publish_date"]!!
-                    if (pd[0] == '>') {
-                        pd = pd.substring(1)
-                        where += "to_date(publish_date, 'DD.MM.YY') >= to_date('$pd', 'DD.MM.YY')"
-                    } else if (pd.last() == '<') {
-                        pd = pd.dropLast(1)
-                        where += "to_date(publish_date, 'DD.MM.YY') <= to_date('$pd', 'DD.MM.YY')"
-                    } else {
-                        if (pd == "-") {
-                            where += "publish_date = ''"
-                        } else if (pd == "+") {
-                            where += "publish_date <> ''"
-                        } else {
-                            where += "publish_date LIKE '%$pd%'"
-                        }
-                    }
-
-                }
-                if (args.containsKey("publish_time")) {
-                    if (args["publish_time"] == "-") {
-                        where += "publish_time = ''"
-                    } else if (args["publish_time"] == "+") {
-                        where += "publish_date <> ''"
-                    } else {
-                        where += "publish_time LIKE '%${args["publish_time"]}%'"
-                    }
-                }
-                if (args.containsKey("status")) where += "status LIKE '%${args["status"]}%'"
-                if (args.containsKey("song_bpm")) where += "song_bpm=${args["song_bpm"]}"
-                if (args.containsKey("song_tone")) where += "song_tone=${args["song_tone"]}"
-                if (args.containsKey("song_year")) where += "song_year=${args["song_year"]}"
-                if (args.containsKey("song_track")) where += "song_track=${args["song_track"]}"
-
-                if (args.containsKey("flag_boosty")) where += "CASE WHEN id_boosty IS NOT NULL AND id_boosty <> 'null' AND id_boosty <> '' THEN '+' ELSE '-' END='${args["flag_boosty"]}'"
-                if (args.containsKey("flag_sponsr")) where += "CASE WHEN id_sponsr IS NOT NULL AND id_sponsr <> 'null' AND id_sponsr <> '' THEN '+' ELSE '-' END='${args["flag_sponsr"]}'"
-                if (args.containsKey("flag_vk")) where += "CASE WHEN id_vk IS NOT NULL AND id_vk <> 'null' AND id_vk <> '' THEN '+' ELSE '-' END='${args["flag_vk"]}'"
-                if (args.containsKey("flag_dzen_lyrics")) where += "CASE WHEN id_dzen_lyrics IS NOT NULL AND id_dzen_lyrics <> 'null' AND id_dzen_lyrics <> '' THEN '+' ELSE '-' END='${args["flag_dzen_lyrics"]}'"
-                if (args.containsKey("flag_dzen_karaoke")) where += "CASE WHEN id_dzen_karaoke IS NOT NULL AND id_dzen_karaoke <> 'null' AND id_dzen_karaoke <> '' THEN '+' ELSE '-' END='${args["flag_dzen_karaoke"]}'"
-                if (args.containsKey("flag_dzen_chords")) where += "CASE WHEN id_dzen_chords IS NOT NULL AND id_dzen_chords <> 'null' AND id_dzen_chords <> '' THEN '+' ELSE '-' END='${args["flag_dzen_chords"]}'"
-                if (args.containsKey("flag_dzen_melody")) where += "CASE WHEN id_dzen_melody IS NOT NULL AND id_dzen_melody <> 'null' AND id_dzen_melody <> '' THEN '+' ELSE '-' END='${args["flag_dzen_melody"]}'"
-                if (args.containsKey("flag_vk_lyrics")) where += "CASE WHEN id_vk_lyrics IS NOT NULL AND id_vk_lyrics <> 'null' AND id_vk_lyrics <> '' THEN '+' ELSE '-' END='${args["flag_vk_lyrics"]}'"
-                if (args.containsKey("flag_vk_karaoke")) where += "CASE WHEN id_vk_karaoke IS NOT NULL AND id_vk_karaoke <> 'null' AND id_vk_karaoke <> '' THEN '+' ELSE '-' END='${args["flag_vk_karaoke"]}'"
-                if (args.containsKey("flag_vk_chords")) where += "CASE WHEN id_vk_chords IS NOT NULL AND id_vk_chords <> 'null' AND id_vk_chords <> '' THEN '+' ELSE '-' END='${args["flag_vk_chords"]}'"
-                if (args.containsKey("flag_vk_melody")) where += "CASE WHEN id_vk_melody IS NOT NULL AND id_vk_melody <> 'null' AND id_vk_melody <> '' THEN '+' ELSE '-' END='${args["flag_vk_melody"]}'"
-                if (args.containsKey("flag_telegram_lyrics")) where += "CASE WHEN id_telegram_lyrics IS NOT NULL AND id_telegram_lyrics <> 'null' AND id_telegram_lyrics <> '' THEN '+' ELSE '-' END='${args["flag_telegram_lyrics"]}'"
-                if (args.containsKey("flag_telegram_karaoke")) where += "CASE WHEN id_telegram_karaoke IS NOT NULL AND id_telegram_karaoke <> 'null' AND id_telegram_karaoke <> '' THEN '+' ELSE '-' END='${args["flag_telegram_karaoke"]}'"
-                if (args.containsKey("flag_telegram_chords")) where += "CASE WHEN id_telegram_chords IS NOT NULL AND id_telegram_chords <> 'null' AND id_telegram_chords <> '' THEN '+' ELSE '-' END='${args["flag_telegram_chords"]}'"
-                if (args.containsKey("flag_telegram_melody")) where += "CASE WHEN id_telegram_melody IS NOT NULL AND id_telegram_melody <> 'null' AND id_telegram_melody <> '' THEN '+' ELSE '-' END='${args["flag_telegram_melody"]}'"
-                if (args.containsKey("flag_pl_lyrics")) where += "CASE WHEN id_pl_lyrics IS NOT NULL AND id_pl_lyrics <> 'null' AND id_pl_lyrics <> '' THEN '+' ELSE '-' END='${args["flag_pl_lyrics"]}'"
-                if (args.containsKey("flag_pl_karaoke")) where += "CASE WHEN id_pl_karaoke IS NOT NULL AND id_pl_karaoke <> 'null' AND id_pl_karaoke <> '' THEN '+' ELSE '-' END='${args["flag_pl_karaoke"]}'"
-                if (args.containsKey("flag_pl_chords")) where += "CASE WHEN id_pl_chords IS NOT NULL AND id_pl_chords <> 'null' AND id_pl_chords <> '' THEN '+' ELSE '-' END='${args["flag_pl_chords"]}'"
-                if (args.containsKey("flag_pl_melody")) where += "CASE WHEN id_pl_melody IS NOT NULL AND id_pl_melody <> 'null' AND id_pl_melody <> '' THEN '+' ELSE '-' END='${args["flag_pl_melody"]}'"
-
-                if (args.containsKey("filter_status_process_lyrics")) where += "LOWER(status_process_lyrics) LIKE '%${args["filter_status_process_lyrics"]?.rightFileName()?.lowercase()}%'"
-                if (args.containsKey("filter_status_process_karaoke")) where += "LOWER(status_process_karaoke) LIKE '%${args["filter_status_process_karaoke"]?.rightFileName()?.lowercase()}%'"
-
-                val listFields = listOf(
-                    Pair("id", "id"),
-                    Pair("id_status", "id_status"),
-                    Pair("filter_result_version", "result_version"),
-                    Pair("filter_version_boosty", "version_boosty"),
-                    Pair("filter_version_boosty_files", "version_boosty_files"),
-                    Pair("filter_version_sponsr", "version_sponsr"),
-                    Pair("filter_version_dzen_karaoke", "version_dzen_karaoke"),
-                    Pair("filter_version_vk_karaoke", "version_vk_karaoke"),
-                    Pair("filter_version_telegram_karaoke", "version_telegram_karaoke"),
-                    Pair("filter_version_pl_karaoke", "version_pl_karaoke"),
-                    Pair("filter_rate", "rate")
-                )
-
-                listFields.forEach { (filterFldName, fldName) ->
-                    if (args.containsKey(filterFldName)) {
-                        args[filterFldName]!!.split("&&").forEach {
-                            val value = it.trim()
-                            if (value.startsWith(">=")) {
-                                where += "tbl_settings${if (sync) "_sync" else ""}.$fldName>=${value.substring(2)}"
-                            } else if (value.startsWith(">")) {
-                                where += "tbl_settings${if (sync) "_sync" else ""}.$fldName>${value.substring(1)}"
-                            } else if (value.startsWith("<=")) {
-                                where += "tbl_settings${if (sync) "_sync" else ""}.$fldName<=${value.substring(2)}"
-                            } else if (value.startsWith("<")) {
-                                where += "tbl_settings${if (sync) "_sync" else ""}.$fldName<${value.substring(1)}"
-                            } else if (value.startsWith("!=")) {
-                                where += "tbl_settings${if (sync) "_sync" else ""}.$fldName<>${value.substring(2)}"
-                            } else {
-                                where += "tbl_settings${if (sync) "_sync" else ""}.$fldName=${value}"
-                            }
-                        }
-                    }
-                }
-
-                if (args.containsKey("tags")) {
-                    var tg = args["tags"]!!
-                    if (tg[0] == '~') {
-                        tg = tg.substring(1)
-                        where += "tags='${tg.rightFileName()}'"
-                    } else if (tg.length > 2 && tg.startsWith("!~")) {
-                        tg = tg.substring(2)
-                        where += "tags NOT LIKE '%${tg.rightFileName()}%'"
-                    } else {
-                        where += "LOWER(tags) LIKE '%${tg.rightFileName().lowercase()}%'"
-                    }
-
-                }
-                if (args.containsKey("text")) where += "to_tsvector('russian', result_text) @@ plainto_tsquery('russian', '${args["text"]?.rightFileName()?.lowercase()}')"
+//                if (args.containsKey("ids")) where += "tbl_settings${if (sync) "_sync" else ""}.id in (${args["ids"]})"
+//                if (args.containsKey("is_sync")) {
+//                    val syncIds = SyncIdsDictionary().loadList()
+//                    if (syncIds.isNotEmpty()) {
+//                        where += "tbl_settings${if (sync) "_sync" else ""}.id in (${syncIds.joinToString(",")})"
+//                    } else {
+//                        where += "tbl_settings${if (sync) "_sync" else ""}.id < 0"
+//                    }
+//                }
+//                if (args.containsKey("file_name")) where += "LOWER(file_name)='${args["file_name"]?.rightFileName()?.lowercase()}'"
+//                if (args.containsKey("root_folder")) where += "LOWER(root_folder)='${args["root_folder"]?.rightFileName()?.lowercase()}'"
+//                if (args.containsKey("song_name")) where += "LOWER(song_name) LIKE '%${args["song_name"]?.rightFileName()?.lowercase()}%'"
+//                if (args.containsKey("song_author")) where += "LOWER(song_author) LIKE '%${args["song_author"]?.rightFileName()?.lowercase()}%'"
+//                if (args.containsKey("author")) where += "LOWER(song_author) = '${args["author"]?.rightFileName()?.lowercase()}'"
+//                if (args.containsKey("song_album")) where += "LOWER(song_album) LIKE '%${args["song_album"]?.rightFileName()?.lowercase()}%'"
+//                if (args.containsKey("album")) where += "LOWER(song_album) = '${args["album"]?.rightFileName()?.lowercase()}'"
+//
+//                if (args.containsKey("publish_date")) {
+//                    var pd = args["publish_date"]!!
+//                    if (pd[0] == '>') {
+//                        pd = pd.substring(1)
+//                        where += "to_date(publish_date, 'DD.MM.YY') >= to_date('$pd', 'DD.MM.YY')"
+//                    } else if (pd.last() == '<') {
+//                        pd = pd.dropLast(1)
+//                        where += "to_date(publish_date, 'DD.MM.YY') <= to_date('$pd', 'DD.MM.YY')"
+//                    } else {
+//                        if (pd == "-") {
+//                            where += "publish_date = ''"
+//                        } else if (pd == "+") {
+//                            where += "publish_date <> ''"
+//                        } else {
+//                            where += "publish_date LIKE '%$pd%'"
+//                        }
+//                    }
+//
+//                }
+//                if (args.containsKey("publish_time")) {
+//                    if (args["publish_time"] == "-") {
+//                        where += "publish_time = ''"
+//                    } else if (args["publish_time"] == "+") {
+//                        where += "publish_date <> ''"
+//                    } else {
+//                        where += "publish_time LIKE '%${args["publish_time"]}%'"
+//                    }
+//                }
+//                if (args.containsKey("status")) where += "status LIKE '%${args["status"]}%'"
+//                if (args.containsKey("song_bpm")) where += "song_bpm=${args["song_bpm"]}"
+//                if (args.containsKey("song_tone")) where += "song_tone=${args["song_tone"]}"
+//                if (args.containsKey("song_year")) where += "song_year=${args["song_year"]}"
+//                if (args.containsKey("song_track")) where += "song_track=${args["song_track"]}"
+//
+//                if (args.containsKey("flag_boosty")) where += "CASE WHEN id_boosty IS NOT NULL AND id_boosty <> 'null' AND id_boosty <> '' THEN '+' ELSE '-' END='${args["flag_boosty"]}'"
+//                if (args.containsKey("flag_sponsr")) where += "CASE WHEN id_sponsr IS NOT NULL AND id_sponsr <> 'null' AND id_sponsr <> '' THEN '+' ELSE '-' END='${args["flag_sponsr"]}'"
+//                if (args.containsKey("flag_vk")) where += "CASE WHEN id_vk IS NOT NULL AND id_vk <> 'null' AND id_vk <> '' THEN '+' ELSE '-' END='${args["flag_vk"]}'"
+//                if (args.containsKey("flag_dzen_lyrics")) where += "CASE WHEN id_dzen_lyrics IS NOT NULL AND id_dzen_lyrics <> 'null' AND id_dzen_lyrics <> '' THEN '+' ELSE '-' END='${args["flag_dzen_lyrics"]}'"
+//                if (args.containsKey("flag_dzen_karaoke")) where += "CASE WHEN id_dzen_karaoke IS NOT NULL AND id_dzen_karaoke <> 'null' AND id_dzen_karaoke <> '' THEN '+' ELSE '-' END='${args["flag_dzen_karaoke"]}'"
+//                if (args.containsKey("flag_dzen_chords")) where += "CASE WHEN id_dzen_chords IS NOT NULL AND id_dzen_chords <> 'null' AND id_dzen_chords <> '' THEN '+' ELSE '-' END='${args["flag_dzen_chords"]}'"
+//                if (args.containsKey("flag_dzen_melody")) where += "CASE WHEN id_dzen_melody IS NOT NULL AND id_dzen_melody <> 'null' AND id_dzen_melody <> '' THEN '+' ELSE '-' END='${args["flag_dzen_melody"]}'"
+//                if (args.containsKey("flag_vk_lyrics")) where += "CASE WHEN id_vk_lyrics IS NOT NULL AND id_vk_lyrics <> 'null' AND id_vk_lyrics <> '' THEN '+' ELSE '-' END='${args["flag_vk_lyrics"]}'"
+//                if (args.containsKey("flag_vk_karaoke")) where += "CASE WHEN id_vk_karaoke IS NOT NULL AND id_vk_karaoke <> 'null' AND id_vk_karaoke <> '' THEN '+' ELSE '-' END='${args["flag_vk_karaoke"]}'"
+//                if (args.containsKey("flag_vk_chords")) where += "CASE WHEN id_vk_chords IS NOT NULL AND id_vk_chords <> 'null' AND id_vk_chords <> '' THEN '+' ELSE '-' END='${args["flag_vk_chords"]}'"
+//                if (args.containsKey("flag_vk_melody")) where += "CASE WHEN id_vk_melody IS NOT NULL AND id_vk_melody <> 'null' AND id_vk_melody <> '' THEN '+' ELSE '-' END='${args["flag_vk_melody"]}'"
+//                if (args.containsKey("flag_telegram_lyrics")) where += "CASE WHEN id_telegram_lyrics IS NOT NULL AND id_telegram_lyrics <> 'null' AND id_telegram_lyrics <> '' THEN '+' ELSE '-' END='${args["flag_telegram_lyrics"]}'"
+//                if (args.containsKey("flag_telegram_karaoke")) where += "CASE WHEN id_telegram_karaoke IS NOT NULL AND id_telegram_karaoke <> 'null' AND id_telegram_karaoke <> '' THEN '+' ELSE '-' END='${args["flag_telegram_karaoke"]}'"
+//                if (args.containsKey("flag_telegram_chords")) where += "CASE WHEN id_telegram_chords IS NOT NULL AND id_telegram_chords <> 'null' AND id_telegram_chords <> '' THEN '+' ELSE '-' END='${args["flag_telegram_chords"]}'"
+//                if (args.containsKey("flag_telegram_melody")) where += "CASE WHEN id_telegram_melody IS NOT NULL AND id_telegram_melody <> 'null' AND id_telegram_melody <> '' THEN '+' ELSE '-' END='${args["flag_telegram_melody"]}'"
+//                if (args.containsKey("flag_pl_lyrics")) where += "CASE WHEN id_pl_lyrics IS NOT NULL AND id_pl_lyrics <> 'null' AND id_pl_lyrics <> '' THEN '+' ELSE '-' END='${args["flag_pl_lyrics"]}'"
+//                if (args.containsKey("flag_pl_karaoke")) where += "CASE WHEN id_pl_karaoke IS NOT NULL AND id_pl_karaoke <> 'null' AND id_pl_karaoke <> '' THEN '+' ELSE '-' END='${args["flag_pl_karaoke"]}'"
+//                if (args.containsKey("flag_pl_chords")) where += "CASE WHEN id_pl_chords IS NOT NULL AND id_pl_chords <> 'null' AND id_pl_chords <> '' THEN '+' ELSE '-' END='${args["flag_pl_chords"]}'"
+//                if (args.containsKey("flag_pl_melody")) where += "CASE WHEN id_pl_melody IS NOT NULL AND id_pl_melody <> 'null' AND id_pl_melody <> '' THEN '+' ELSE '-' END='${args["flag_pl_melody"]}'"
+//
+//                if (args.containsKey("filter_status_process_lyrics")) where += "LOWER(status_process_lyrics) LIKE '%${args["filter_status_process_lyrics"]?.rightFileName()?.lowercase()}%'"
+//                if (args.containsKey("filter_status_process_karaoke")) where += "LOWER(status_process_karaoke) LIKE '%${args["filter_status_process_karaoke"]?.rightFileName()?.lowercase()}%'"
+//
+//                val listFields = listOf(
+//                    Pair("id", "id"),
+//                    Pair("id_status", "id_status"),
+//                    Pair("filter_result_version", "result_version"),
+//                    Pair("filter_version_boosty", "version_boosty"),
+//                    Pair("filter_version_boosty_files", "version_boosty_files"),
+//                    Pair("filter_version_sponsr", "version_sponsr"),
+//                    Pair("filter_version_dzen_karaoke", "version_dzen_karaoke"),
+//                    Pair("filter_version_vk_karaoke", "version_vk_karaoke"),
+//                    Pair("filter_version_telegram_karaoke", "version_telegram_karaoke"),
+//                    Pair("filter_version_pl_karaoke", "version_pl_karaoke"),
+//                    Pair("filter_rate", "rate")
+//                )
+//
+//                listFields.forEach { (filterFldName, fldName) ->
+//                    if (args.containsKey(filterFldName)) {
+//                        args[filterFldName]!!.split("&&").forEach {
+//                            val value = it.trim()
+//                            if (value.startsWith(">=")) {
+//                                where += "tbl_settings${if (sync) "_sync" else ""}.$fldName>=${value.substring(2)}"
+//                            } else if (value.startsWith(">")) {
+//                                where += "tbl_settings${if (sync) "_sync" else ""}.$fldName>${value.substring(1)}"
+//                            } else if (value.startsWith("<=")) {
+//                                where += "tbl_settings${if (sync) "_sync" else ""}.$fldName<=${value.substring(2)}"
+//                            } else if (value.startsWith("<")) {
+//                                where += "tbl_settings${if (sync) "_sync" else ""}.$fldName<${value.substring(1)}"
+//                            } else if (value.startsWith("!=")) {
+//                                where += "tbl_settings${if (sync) "_sync" else ""}.$fldName<>${value.substring(2)}"
+//                            } else {
+//                                where += "tbl_settings${if (sync) "_sync" else ""}.$fldName=${value}"
+//                            }
+//                        }
+//                    }
+//                }
+//
+//                if (args.containsKey("tags")) {
+//                    var tg = args["tags"]!!
+//                    if (tg[0] == '~') {
+//                        tg = tg.substring(1)
+//                        where += "tags='${tg.rightFileName()}'"
+//                    } else if (tg.length > 2 && tg.startsWith("!~")) {
+//                        tg = tg.substring(2)
+//                        where += "tags NOT LIKE '%${tg.rightFileName()}%'"
+//                    } else {
+//                        where += "LOWER(tags) LIKE '%${tg.rightFileName().lowercase()}%'"
+//                    }
+//
+//                }
+//                if (args.containsKey("text")) where += "to_tsvector('russian', result_text) @@ plainto_tsquery('russian', '${args["text"]?.rightFileName()?.lowercase()}')"
 
                 if (where.size > 0) sql += " WHERE ${where.joinToString(" AND ")}"
 
-                sql += " ORDER BY tbl_settings${if (sync) "_sync" else ""}.id"
+                sql += " ORDER BY $TABLE_NAME${if (sync) "_sync" else ""}.id"
                 if (limit > 0) sql += " LIMIT $limit"
                 if (offset > 0) sql += " OFFSET $offset"
 

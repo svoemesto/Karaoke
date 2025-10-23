@@ -117,7 +117,7 @@ export default {
             ctx.commit('deleteProcessByUserEvent', userEventData);
         },
         loadProcessesDigests(ctx, params) {
-            let request = { method: 'POST', url: "/apis/processesdigests", params: params };
+            let request = { method: 'POST', url: "/api/processesdigests", params: params };
             ctx.commit('setProcessesDigestIsLoading', true);
             promisedXMLHttpRequest(request).then(data => {
                 let result = JSON.parse(data);
@@ -128,19 +128,19 @@ export default {
             });
         },
         deleteDoneProcessesPromise: () => {
-            let request = { method: 'POST', url: "/apis/processes/deletedone" };
+            let request = { method: 'POST', url: "/api/processes/deletedone" };
             return promisedXMLHttpRequest(request);
         },
         startStopProcessWorker: () => {
-            let request = { method: 'POST', url: "/apis/processes/workerstartstop" };
+            let request = { method: 'POST', url: "/api/processes/workerstartstop" };
             promisedXMLHttpRequest(request);
         },
         getProcessesWorkerStatusPromise: () => {
-            let request = { method: 'POST', url: "/apis/processes/workerstatus" };
+            let request = { method: 'POST', url: "/api/processes/workerstatus" };
             return promisedXMLHttpRequest(request);
         },
         getProcessesCountWaitingPromise: () => {
-            let request = { method: 'POST', url: "/apis/processes/countwaiting" };
+            let request = { method: 'POST', url: "/api/processes/countwaiting" };
             return promisedXMLHttpRequest(request);
         },
         setProcessIsWorking(ctx, processIsWorking) {

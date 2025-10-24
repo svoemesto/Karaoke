@@ -1,4 +1,4 @@
-package com.svoemesto.karaokeapp.services
+package com.svoemesto.karaokeweb.services
 
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.messaging.simp.SimpMessagingTemplate
@@ -12,7 +12,7 @@ var WEB_WORK_IN_CONTAINER by Delegates.notNull<Boolean>()
 //@Component
 class KaraokeWebService(
     webSocket: SimpMessagingTemplate,
-    @Value("\${work-in-container}") val wic: Long
+    @Value($$"${work-in-container}") val wic: Long
 ) {
 
     init {

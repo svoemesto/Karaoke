@@ -577,7 +577,7 @@
         var author = document.getElementById("fld_songauthor").value;
         var name = document.getElementById("fld_songname").value;
         var text = document.getElementById("fld_songtext").value;
-        var url = "/filter?author=" + author.replaceAll('&', '%26') + '&song_name=' + name.replaceAll('&', '%26') + '&text=' + text.replaceAll('&', '%26');
+        var url = "/filter?author=" + author.replaceAll('&', '%26') + '&songName=' + name.replaceAll('&', '%26') + '&text=' + text.replaceAll('&', '%26');
         btn.disabled = true
         btn.innerText = "Ищу..."
         window.location.href = url;

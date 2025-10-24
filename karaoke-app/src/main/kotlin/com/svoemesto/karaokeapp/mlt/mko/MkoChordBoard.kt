@@ -12,8 +12,8 @@ data class MkoChordBoard(val mltProp: MltProp, val type: ProducerType, val voice
     private val songVersion = mltProp.getSongVersion()
     private val frameWidthPx = mltProp.getFrameWidthPx()
     private val frameHeightPx = mltProp.getFrameHeightPx()
-    private val chordWhidthPx = frameHeightPx / 4
-    private val chordHeightPx = chordWhidthPx
+    private val chordWidthPx = frameHeightPx / 4
+    private val chordHeightPx = chordWidthPx
     private val chords = mltProp.getChords()
     private val timelineStartTimecode = mltProp.getTimelineStartTimecode()
     private val timelineEndTimecode = mltProp.getTimelineEndTimecode()
@@ -24,8 +24,8 @@ data class MkoChordBoard(val mltProp: MltProp, val type: ProducerType, val voice
     private val startSilentOffsetMs = mltProp.getStartSilentOffsetMs()
     private val songStartTimecode = mltProp.getSongStartTimecode()
     private val songEndTimecode = mltProp.getSongEndTimecode()
-    private val songFadeInTimecode = mltProp.getSongFadeInTimecode()
-    private val songFadeOutTimecode = mltProp.getSongFadeOutTimecode()
+//    private val songFadeInTimecode = mltProp.getSongFadeInTimecode()
+//    private val songFadeOutTimecode = mltProp.getSongFadeOutTimecode()
     private var mainBinUUID = mltProp.getUUID(listOf(ProducerType.MAINBIN))
 
     private val firstChordStartMs = chords.first().syllableStartMs + startSilentOffsetMs
@@ -57,6 +57,7 @@ data class MkoChordBoard(val mltProp: MltProp, val type: ProducerType, val voice
     override fun filePlaylist(): MltNode {
         val result = mltGenerator.filePlaylist()
         result.body?.let {
+            @Suppress("UNCHECKED_CAST")
             val body = it as MutableList<MltNode>
             body.addAll(MltNodeBuilder().blank(inOffsetVideo).build())
             body.add(
@@ -75,10 +76,10 @@ data class MkoChordBoard(val mltProp: MltProp, val type: ProducerType, val voice
     override fun mainFilePlaylistTransformProperties(): String {
         println("chords.first() = ${chords.first()}")
         println("chords.last() = ${chords.last()}")
-        println("firstChordStartMs = ${firstChordStartMs}")
-        println("lastChordEndMs = ${lastChordEndMs}")
-        println("firstChordStartTimecode = ${firstChordStartTimecode}")
-        println("lastChordEndTimecode = ${lastChordEndTimecode}")
+        println("firstChordStartMs = $firstChordStartMs")
+        println("lastChordEndMs = $lastChordEndMs")
+        println("firstChordStartTimecode = $firstChordStartTimecode")
+        println("lastChordEndTimecode = $lastChordEndTimecode")
         val tpZero = TransformProperty(
             time = convertMillisecondsToTimecode(convertTimecodeToMilliseconds(songStartTimecode)),
             x = 0, y = -chordHeightPx, w = frameWidthPx, h = frameHeightPx, opacity = 1.0

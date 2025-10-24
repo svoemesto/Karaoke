@@ -60,6 +60,7 @@ data class MkoMelodyNote(
     override fun filePlaylist(): MltNode {
         val result = mltGenerator.filePlaylist()
         result.body?.let {
+            @Suppress("UNCHECKED_CAST")
             val body = it as MutableList<MltNode>
             body.add(
                 mltGenerator.entry(
@@ -83,22 +84,23 @@ data class MkoMelodyNote(
 
         val sett = settings ?: return MltNode()
         val element = try {
-            sett.voicesForMlt[voiceId].getLines()[lineId].getElements(songVersion).filter { it.type == SettingVoiceLineElementTypes.TEXT }.first()
-        } catch (e: Exception) {
+            sett.voicesForMlt[voiceId].getLines()[lineId].getElements(songVersion)
+                .first { it.type == SettingVoiceLineElementTypes.TEXT }
+        } catch (_: Exception) {
             return MltNode()
         }
 
-        var widthAreaPx= element.w()
-        var heightAreaPx= element.h()
+//        var widthAreaPx= element.w()
+//        var heightAreaPx= element.h()
 
         val haveNotes = songVersion.producers.contains(ProducerType.MELODYNOTE) && element.getSyllables().any { it.note != "" }
-        val haveChords = songVersion.producers.contains(ProducerType.CHORDS) && element.getSyllables().any { it.chord != "" }
+//        val haveChords = songVersion.producers.contains(ProducerType.CHORDS) && element.getSyllables().any { it.chord != "" }
 
         val deltaY = if (haveNotes) {
             val sylFontSize = element.fontSize
-            val melodyNoteFontSize = (sylFontSize * Karaoke.melodyNoteHeightCoefficient).toInt()
-            val melodyNoteMltTextHeight = Karaoke.melodyNoteFont.copy("C", melodyNoteFontSize).h()
-            val noteHeight = (melodyNoteMltTextHeight * Karaoke.melodyNoteHeightOffsetCoefficient).toInt()
+//            val melodyNoteFontSize = (sylFontSize * Karaoke.melodyNoteHeightCoefficient).toInt()
+//            val melodyNoteMltTextHeight = Karaoke.melodyNoteFont.copy("C", melodyNoteFontSize).h()
+//            val noteHeight = (melodyNoteMltTextHeight * Karaoke.melodyNoteHeightOffsetCoefficient).toInt()
 
             val tabsHeightCoefficient = Karaoke.melodyTabsHeightCoefficient
             val tabsFontSize = (sylFontSize * tabsHeightCoefficient).toInt()
@@ -113,7 +115,7 @@ data class MkoMelodyNote(
             0
         }
 
-        val x = 0
+//        val x = 0
         val y = deltaY
         val body: MutableList<MltNode> = mutableListOf()
 
@@ -153,8 +155,8 @@ data class MkoMelodyNote(
                             MltNode(
                                 name = "position",
                                 fields = mutableMapOf(
-                                    Pair("x","${melodyNoteX}"),
-                                    Pair("y","${y}")
+                                    Pair("x","$melodyNoteX"),
+                                    Pair("y","$y")
                                 ),
                                 body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(Pair("zoom","100")), body = "1,0,0,0,1,0,0,0,1"))
                             ),
@@ -175,8 +177,8 @@ data class MkoMelodyNote(
                             MltNode(
                                 name = "position",
                                 fields = mutableMapOf(
-                                    Pair("x","${melodyOctaveX}"),
-                                    Pair("y","${y}")
+                                    Pair("x","$melodyOctaveX"),
+                                    Pair("y","$y")
                                 ),
                                 body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(Pair("zoom","100")), body = "1,0,0,0,1,0,0,0,1"))
                             ),
@@ -202,7 +204,7 @@ data class MkoMelodyNote(
             name = "kdenlivetitle",
             fields = PropertiesMltNodeBuilder()
                 .duration(convertMillisecondsToFrames(lineDurationOnScreen).toString())
-                .LC_NUMERIC("C")
+                .lcNumeric("C")
                 .width("$frameWidthPx")
                 .height("$frameHeightPx")
                 .`out`((convertMillisecondsToFrames(lineDurationOnScreen)-1).toString())

@@ -1,7 +1,6 @@
 package com.svoemesto.karaokeapp.controllers
 
 import com.svoemesto.karaokeapp.WORKING_DATABASE
-import com.svoemesto.karaokeapp.model.Pictures
 import com.svoemesto.karaokeapp.model.Users
 import com.svoemesto.karaokeapp.model.UsersDto
 import com.svoemesto.karaokeapp.services.APP_WORK_IN_CONTAINER
@@ -16,7 +15,6 @@ import org.springframework.web.bind.annotation.ResponseBody
 @Controller
 @RequestMapping("/api/users")
 class UsersController(
-    private val sseNotificationService: SseNotificationService,
     val usersService: UsersService,
     val passwordEncoder: PasswordEncoder // Внедряем PasswordEncoder для вызовов сервиса
 ) {

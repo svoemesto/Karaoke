@@ -9,6 +9,7 @@ data class KaraokeVoice (
     val groups: MutableList<KaraokeVoiceGroup>,
     val fill: KaraokeVoiceFill
 ) : Serializable {
+    @Suppress("unused")
     fun replaceFontSize(fontSizePt: Int) {
         groups.forEach { group ->
             group.mltText.font = Font(group.mltText.font.name, group.mltText.font.style, fontSizePt)

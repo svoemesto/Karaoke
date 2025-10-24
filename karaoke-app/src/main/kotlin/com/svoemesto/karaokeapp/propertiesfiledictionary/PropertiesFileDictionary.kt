@@ -1,11 +1,7 @@
 package com.svoemesto.karaokeapp.propertiesfiledictionary
 
 import com.svoemesto.karaokeapp.runCommand
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.decodeFromStream
-import java.io.ByteArrayInputStream
 import java.io.File
-import java.util.*
 
 interface PropertiesFileDictionary {
 
@@ -27,7 +23,7 @@ interface PropertiesFileDictionary {
                     .readText()
                     .split("\n")
                     .filter { it != "" }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
 //            println("Ошибка считывания файла, возвращаем пустую мапу")
             return result
         }

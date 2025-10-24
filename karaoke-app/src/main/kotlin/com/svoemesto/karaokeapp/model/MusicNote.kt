@@ -2,7 +2,7 @@ package com.svoemesto.karaokeapp.model
 
 import java.io.Serializable
 
-enum class MusicNote(val text: String, val names: List<String>, val defaultRootFret: Int, val frequencies: List<Double>) : Serializable {
+enum class MusicNote(val text: String, val names: List<String>, val defaultRootFret: Int, @Suppress("unused") val frequencies: List<Double>) : Serializable {
     C (text = "до", names = listOf("C", "B#", "B♯"), defaultRootFret = 0, frequencies = listOf(16.35, 32.7, 65.41, 130.8, 261.6, 523.3, 1047.0, 2093.0, 4186.0)),
     C_SHARP (text = "до диез", names = listOf("C#", "C♯", "D♭", "Db"), defaultRootFret = 4, frequencies = listOf(17.32, 34.65, 69.3, 138.6, 277.2, 554.4, 1109.0, 2217.0, 4435.0)),
     D (text = "ре", names = listOf("D"), defaultRootFret = 0, frequencies = listOf(18.35, 36.71, 73.42, 146.8, 293.7, 587.3, 1175.0, 2349.0, 4699.0)),
@@ -12,13 +12,13 @@ enum class MusicNote(val text: String, val names: List<String>, val defaultRootF
     F_SHARP (text = "фа диез", names = listOf("F#", "G♭", "F♯", "Gb"), defaultRootFret = 2, frequencies = listOf(23.12, 46.25, 92.5, 185.0, 370.0, 740.0, 1480.0, 2960.0, 5920.0)),
     G (text = "соль", names = listOf("G"), defaultRootFret = 0, frequencies = listOf(24.5, 49.0, 98.0, 196.0, 392.0, 874.0, 1568.0, 3136.0, 6272.0)),
     G_SHARP (text = "соль диез", names = listOf("G#", "A♭", "G♯", "Ab"), defaultRootFret = 4, frequencies = listOf(25.96, 51.91, 103.8, 207.7, 415.3, 830.6, 1661.0, 3322.0, 6645.0)),
-    A (text = "ля", names = listOf("A",), defaultRootFret = 0, frequencies = listOf(27.5, 55.0, 110.0, 220.0, 440.0, 880.0, 1760.0, 3520.0, 7040.0)),
+    A (text = "ля", names = listOf("A"), defaultRootFret = 0, frequencies = listOf(27.5, 55.0, 110.0, 220.0, 440.0, 880.0, 1760.0, 3520.0, 7040.0)),
     A_SHARP (text = "ля диез", names = listOf("A#", "B♭", "A♯", "Bb"), defaultRootFret = 1, frequencies = listOf(29.14, 58.27, 116.5, 233.1, 466.2, 932.3, 1865.0, 3729.0, 7459.0)),
     B (text = "си", names = listOf("H", "B", "C♭", "Cb"), defaultRootFret = 2, frequencies = listOf(30.87, 61.74, 123.5, 246.9, 493.9, 987.8, 1976.0, 3951.0, 7902.0));
 
     companion object {
         fun getNote(noteName: String): MusicNote? {
-            return MusicNote.values().firstOrNull { it.names.contains(noteName) }
+            return entries.firstOrNull { it.names.contains(noteName) }
         }
         fun getInterval(firstNoteOctave: Pair<MusicNote,Int>, secondNoteOctave: Pair<MusicNote,Int>): MusicInterval? {
             val intervalsNotesOctaves = MusicInterval.getIntervals(firstNoteOctave.first, firstNoteOctave.second)
@@ -29,6 +29,7 @@ enum class MusicNote(val text: String, val names: List<String>, val defaultRootF
 
 data class NoteOctaveFret(val musicNote: MusicNote, val octave: Int, val fret: Int) : Serializable
 
+@Suppress("unused")
 fun MusicNote.getStringsFrets(): List<Pair<GuitarString, List<Int>>> {
-    return GuitarString.values().map { gs -> Pair(gs, gs.getFrets(this).map { it.fret }) }
+    return GuitarString.entries.map { gs -> Pair(gs, gs.getFrets(this).map { it.fret }) }
 }

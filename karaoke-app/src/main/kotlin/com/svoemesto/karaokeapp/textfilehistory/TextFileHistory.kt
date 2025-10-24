@@ -43,7 +43,7 @@ interface TextFileHistory {
                 .map {
                     Json.decodeFromStream( HistoryMap.serializer(), ByteArrayInputStream(Base64.getDecoder().decode(it)) ).args
                 }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             return mutableListOf()
         }
         return list.toMutableList()

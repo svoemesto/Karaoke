@@ -1,11 +1,10 @@
 package com.svoemesto.karaokeapp.services
 
-import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.WORKING_DATABASE
 import com.svoemesto.karaokeapp.model.Users
 import com.svoemesto.karaokeapp.model.UsersDto
-import org.springframework.stereotype.Service
 import org.springframework.security.crypto.password.PasswordEncoder
+import org.springframework.stereotype.Service
 
 interface UsersClient {
     fun getUserById(id: Long): Users?

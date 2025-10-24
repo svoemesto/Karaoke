@@ -5,8 +5,6 @@ import com.svoemesto.karaokeapp.model.MltNode
 import com.svoemesto.karaokeapp.model.ProducerType
 import com.svoemesto.karaokeapp.model.childs
 import com.svoemesto.karaokeapp.producerTypeClass
-import getMltConsumer
-import getMltProfile
 
 /*
 Все классы продюссеров должны иметь конструкторы с одинаковым количеством, типом и последовательностью аргументов

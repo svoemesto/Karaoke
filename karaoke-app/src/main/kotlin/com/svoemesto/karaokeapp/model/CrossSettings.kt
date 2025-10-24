@@ -1,7 +1,6 @@
 package com.svoemesto.karaokeapp.model
 
 import com.svoemesto.karaokeapp.WORKING_DATABASE
-import com.svoemesto.karaokeapp.services.APP_WORK_IN_CONTAINER
 import java.io.Serializable
 
 data class CrossSettingsRow (

@@ -5,7 +5,6 @@ import com.svoemesto.karaokeapp.mlt.MltGenerator
 import com.svoemesto.karaokeapp.mlt.MltProp
 import com.svoemesto.karaokeapp.mlt.mltNode
 import com.svoemesto.karaokeapp.model.*
-import java.awt.Font
 
 data class MkoString(
     val mltProp: MltProp,
@@ -61,6 +60,7 @@ data class MkoString(
     override fun filePlaylist(): MltNode {
         val result = mltGenerator.filePlaylist()
         result.body?.let {
+            @Suppress("UNCHECKED_CAST")
             val body = it as MutableList<MltNode>
             body.add(
                 mltGenerator.entry(
@@ -84,8 +84,9 @@ data class MkoString(
 
         val sett = settings ?: return MltNode()
         val element = try {
-            sett.voicesForMlt[voiceId].getLines()[lineId].getElements(songVersion).filter { it.type in listOf(SettingVoiceLineElementTypes.TEXT, SettingVoiceLineElementTypes.COMMENT) }.first()
-        } catch (e: Exception) {
+            sett.voicesForMlt[voiceId].getLines()[lineId].getElements(songVersion)
+                .first { it.type in listOf(SettingVoiceLineElementTypes.TEXT, SettingVoiceLineElementTypes.COMMENT) }
+        } catch (_: Exception) {
             return MltNode()
         }
 
@@ -117,8 +118,8 @@ data class MkoString(
             0
         }
 
-        var widthAreaPx= frameWidthPx
-        var heightAreaPx= frameHeightPx
+        val widthAreaPx= frameWidthPx
+        val heightAreaPx= frameHeightPx
 
         val x = 0
         val y = deltaY
@@ -129,7 +130,7 @@ data class MkoString(
             .item(
                 fields = PropertiesMltNodeBuilder()
                     .type("QGraphicsTextItem")
-                    .`z-index`("2")
+                    .zIndex("2")
                     .build(),
                 body = MltNodeBuilder()
                     .position(
@@ -168,7 +169,7 @@ data class MkoString(
             name = "kdenlivetitle",
             fields = PropertiesMltNodeBuilder()
                 .duration(convertMillisecondsToFrames(lineDurationOnScreen).toString())
-                .LC_NUMERIC("C")
+                .lcNumeric("C")
                 .width("$widthAreaPx")
                 .height("$heightAreaPx")
                 .`out`((convertMillisecondsToFrames(lineDurationOnScreen)-1).toString())

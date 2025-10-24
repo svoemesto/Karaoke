@@ -11,7 +11,11 @@ data class MltNode (
     var comment: String = ""
 ) : Serializable {
     override fun toString(): String {
-        return "${if(comment=="") "" else "<!-- ${comment} -->\n"}<${name} ${fields.map { "${it.key}=\"${it.value}\"" }.joinToString(" ")}${if (body == null) "/>" else ">${if (body is List<*>) "\n  ${(body as List<*>).map {it.toString()}.joinToString("\n  ")}\n" else "${body}"}</${name}>"}"
+        return "${if(comment=="") "" else "<!-- $comment -->\n"}<${name} ${fields.map { "${it.key}=\"${it.value}\"" }.joinToString(" ")}${if (body == null) "/>" else ">${if (body is List<*>) "\n  ${
+            (body as List<*>).joinToString(
+                "\n  "
+            ) { it.toString() }
+        }\n" else "$body"}</${name}>"}"
     }
 }
 
@@ -91,14 +95,6 @@ data class MltNodeBuilder(val nodes: MutableList<MltNode> = mutableListOf()) {
                         .propertyName("mlt_service", "qtblend")
                         .propertyName("internal_added", 237)
                         .propertyName("always_active", 1)
-
-//                        .propertyName("a_track", 0)
-//                        .propertyName("b_track", i+1)
-//                        .propertyName("version", "0.1")
-//                        .propertyName("mlt_service", "frei0r.cairoblend")
-//                        .propertyName("always_active", 1)
-//                        .propertyName("internal_added", 237)
-
 
                         .build()
                 )
@@ -357,7 +353,7 @@ data class PropertiesMltNodeBuilder(val properties: MutableMap<String, String> =
     fun hideByType(type: ProducerType) = apply { properties["hide"] = if (type == ProducerType.SCROLLERS) "both" else if (!type.isAudio) "audio" else "video" }
     fun producer(value: String) = apply { properties["producer"] = value }
     fun type(value: String) = apply { properties["type"] = value }
-    fun `z-index`(value: String) = apply { properties["z-index"] = value }
+    fun zIndex(value: String) = apply { properties["z-index"] = value }
     fun x(value: String) = apply { properties["x"] = value }
     fun y(value: String) = apply { properties["y"] = value }
     fun zoom(value: String) = apply { properties["zoom"] = value }
@@ -368,7 +364,7 @@ data class PropertiesMltNodeBuilder(val properties: MutableMap<String, String> =
     fun color(value: String) = apply { properties["color"] = value }
     fun base64(value: String) = apply { properties["base64"] = value }
     fun duration(value: String) = apply { properties["duration"] = value }
-    fun LC_NUMERIC(value: String) = apply { properties["LC_NUMERIC"] = value }
+    fun lcNumeric(value: String) = apply { properties["LC_NUMERIC"] = value }
     fun width(value: String) = apply { properties["width"] = value }
     fun height(value: String) = apply { properties["height"] = value }
 

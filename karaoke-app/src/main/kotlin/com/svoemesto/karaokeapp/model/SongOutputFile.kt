@@ -12,7 +12,7 @@ enum class SongOutputFile(val extension: String) : Serializable {
     PICTUREBOOSTYFILES(extension = "png"),
     PICTURESPONSRTEASER(extension = "png"),
     PICTUREVK(extension = "png"),
-    PICTUREVKLINK(extension = "png"),
+//    PICTUREVKLINK(extension = "png"),
     SUBTITLE(extension = "kdenlive.srt"),
     DESCRIPTION(extension = "txt"),
     VK(extension = "txt"),

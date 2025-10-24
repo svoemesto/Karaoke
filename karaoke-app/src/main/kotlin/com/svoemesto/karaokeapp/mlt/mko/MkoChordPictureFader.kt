@@ -18,13 +18,13 @@ data class MkoChordPictureFader(val mltProp: MltProp, val type: ProducerType, va
     private val songEndTimecode = mltProp.getSongEndTimecode()
     private val songLengthFr = mltProp.getSongLengthFr()
     private val fingerboardH = mltProp.getFingerboardH(0)
-    private val mkoFaderChordsProducerRect = mltProp.getRect(listOf(type, voiceId))
-    private val inOffsetVideo = mltProp.getInOffsetVideo()
+//    private val mkoFaderChordsProducerRect = mltProp.getRect(listOf(type, voiceId))
+//    private val inOffsetVideo = mltProp.getInOffsetVideo()
     private val songCapo = mltProp.getSongCapo()
     private val songChordDescription = mltProp.getSongChordDescription()
     private var folderIdVoice = mltProp.getId(listOf(ProducerType.VOICE, voiceId))
     private val settings = mltProp.getSettings()
-    private val capo = mltProp.getSongCapo()
+//    private val capo = mltProp.getSongCapo()
 
     override fun producer(): MltNode = mltGenerator
         .producer(
@@ -42,6 +42,7 @@ data class MkoChordPictureFader(val mltProp: MltProp, val type: ProducerType, va
     override fun filePlaylist(): MltNode {
         val result = mltGenerator.filePlaylist()
         result.body?.let {
+            @Suppress("UNCHECKED_CAST")
             val body = it as MutableList<MltNode>
             body.add(
                 mltGenerator.entry(
@@ -69,7 +70,7 @@ data class MkoChordPictureFader(val mltProp: MltProp, val type: ProducerType, va
         val x = 0
         val y = 0
         val xRight = frameWidthPx - w
-        val yBottom = frameHeightPx - h
+//        val yBottom = frameHeightPx - h
         val chordsCapoMltFont = Karaoke.chordsCapoFont
 
         val body: MutableList<MltNode> = mutableListOf()
@@ -204,7 +205,7 @@ data class MkoChordPictureFader(val mltProp: MltProp, val type: ProducerType, va
                     MltNode(
                         name = "position",
                         fields = mutableMapOf(
-                            Pair("x","${xRight}"),
+                            Pair("x","$xRight"),
                             Pair("y","$y")
                         ),
                         body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(Pair("zoom","100")), body = "1,0,0,0,1,0,0,0,1"))

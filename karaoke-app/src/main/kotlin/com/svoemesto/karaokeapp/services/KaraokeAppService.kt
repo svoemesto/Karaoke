@@ -6,7 +6,6 @@ import com.svoemesto.karaokeapp.propertiesfiledictionary.PropertiesFileDictionar
 import com.svoemesto.karaokeapp.propertiesfiledictionary.WebvueProperties
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
-import java.io.PrintStream
 import kotlin.properties.Delegates
 
 
@@ -18,7 +17,7 @@ var APP_WORK_IN_CONTAINER by Delegates.notNull<Boolean>()
 //@Component
 class KaraokeAppService(
     sseNotificationService: SseNotificationService,
-    @Value("\${work-in-container}") val wic: Long
+    @Value($$"${work-in-container}") val wic: Long
 ) {
 
     init {

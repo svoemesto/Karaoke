@@ -32,6 +32,7 @@ data class MkoScroller(val mltProp: MltProp, val type: ProducerType, val voiceId
     override fun filePlaylist(): MltNode {
         val result = mltGenerator.filePlaylist()
         result.body?.let {
+            @Suppress("UNCHECKED_CAST")
             val body = it as MutableList<MltNode>
             body.add(
                 mltGenerator.entry(
@@ -90,7 +91,7 @@ data class MkoScroller(val mltProp: MltProp, val type: ProducerType, val voiceId
                 .item(
                     fields = PropertiesMltNodeBuilder()
                         .type("QGraphicsRectItem")
-                        .`z-index`("1")
+                        .zIndex("1")
                         .build(),
                     body = MltNodeBuilder()
                         .position(
@@ -120,7 +121,7 @@ data class MkoScroller(val mltProp: MltProp, val type: ProducerType, val voiceId
                 .item(
                     fields = PropertiesMltNodeBuilder()
                         .type("QGraphicsTextItem")
-                        .`z-index`("2")
+                        .zIndex("2")
                         .build(),
                     body = MltNodeBuilder()
                         .position(
@@ -183,9 +184,9 @@ data class MkoScroller(val mltProp: MltProp, val type: ProducerType, val voiceId
             name = "kdenlivetitle",
             fields = PropertiesMltNodeBuilder()
                 .duration("0")
-                .LC_NUMERIC("C")
-                .width("${widthAreaPx}")
-                .height("${heightScrollerPx}")
+                .lcNumeric("C")
+                .width("$widthAreaPx")
+                .height("$heightScrollerPx")
                 .`out`("0")
                 .build(),
             body = body

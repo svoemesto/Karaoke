@@ -469,7 +469,7 @@ enum class MusicChord(val text: String, val names: List<String>, val intervals: 
         var result: MutableList<Fingerboard> = mutableListOf() // Результат
         val notes = getNotes(rootNote).map { it.first } // Список нот аккорда, начиная с тоники
         val maxDiffBetweenFrets = 3 + if (initFret == 0) 1 else 0 // Максимальное расстояние между ладами (4 для 0-го лада, 3 для остальных)
-        val guitarStrings = GuitarString.values() // Гитарные струны
+        val guitarStrings = GuitarString.entries.toTypedArray() // Гитарные струны
 
         guitarStrings.forEach { guitarString -> // Цикл по струнам
             var foundNoteInString = false // Найдена ли нота на струне
@@ -496,9 +496,6 @@ enum class MusicChord(val text: String, val names: List<String>, val intervals: 
                         break
                     }
 
-
-//                    break // Выходим из цикла
-                    // Тут проблема. Мы выходим при нахождении первой ноты на струне, а там могут быть еще.
                 }
             }
             if (initFret == 0 && foundNoteInString) { // Если после прохода цикла нота найдена - добавляем запись в массив предварительного результата
@@ -601,7 +598,7 @@ enum class MusicChord(val text: String, val names: List<String>, val intervals: 
             if (indexNote !in result.map { it.indexNote }.toList()) return emptyList()
         }
 
-        GuitarString.values().forEach { gs ->
+        GuitarString.entries.forEach { gs ->
             if (gs !in result.map { it.guitarString }) {
                 result.add(
                     Fingerboard(
@@ -633,7 +630,7 @@ enum class MusicChord(val text: String, val names: List<String>, val intervals: 
         }
 
         val finalResult: MutableList<Fingerboard> = mutableListOf()
-        GuitarString.values().forEach { gs ->
+        GuitarString.entries.forEach { gs ->
             result.filter { it.guitarString == gs }.maxByOrNull { it.fret }?.let { finalResult.add(it) }
         }
 
@@ -647,26 +644,26 @@ enum class MusicChord(val text: String, val names: List<String>, val intervals: 
         // Если мы на нулевом ладу, две струны на первом и 2 на 3 - отказать
         if (initFret == 0) {
             if (
-                (result.filter { it.fret == 1 }.size > 0 &&
-                result.filter { it.fret == 2 }.size == 0 &&
+                (result.any { it.fret == 1 } &&
+                        result.none { it.fret == 2 } &&
                 result.filter { it.fret == 3 }.size > 1) ||
                 (result.filter { it.fret == 1 }.size > 1 &&
-                result.filter { it.fret == 2 }.size == 0 &&
-                result.filter { it.fret == 3 }.size > 0) ||
+                        result.none { it.fret == 2 } &&
+                        result.any { it.fret == 3 }) ||
                 (result.filter { it.fret == 1 }.size > 1 &&
                 result.filter { it.fret == 2 }.size == 1 &&
-                result.filter { it.fret == 3 }.size == 0)
+                        result.none { it.fret == 3 })
             ) return emptyList()
         }
 
 
-        if (currFinger == 4 && withSmallBarre && wasSmallBarre) {
-            return getFingerboard(rootNote, initFret, capo,false)
+        return if (currFinger == 4 && withSmallBarre && wasSmallBarre) {
+            getFingerboard(rootNote, initFret, capo,false)
         } else {
             if (currFinger > 5) {
-                return emptyList()
+                emptyList()
             } else {
-                return result
+                result
             }
         }
 
@@ -678,7 +675,7 @@ enum class MusicChord(val text: String, val names: List<String>, val intervals: 
             val noteName: String = if (chordName.isNotEmpty()) chordName[0].toString() + if (chordName.length > 1 && chordName[1] in "♭♯#b") chordName[1] else "" else ""
             val chordNameInNames = chordName.substring(noteName.length)
             return Pair(
-                MusicChord.values().firstOrNull { it.names.contains(chordNameInNames) },
+                entries.firstOrNull { it.names.contains(chordNameInNames) },
                 MusicNote.getNote(noteName)
             )
         }
@@ -697,24 +694,24 @@ data class Fingerboard(
     var muted: Boolean = false
 ) : Serializable {
     override fun toString(): String {
-        var result = "струна ${guitarString.number} лад ${rootFret} "
+        var result = "струна ${guitarString.number} лад $rootFret "
         for (i in 0 until 4) {
-            var str = ""
+            var str: String
             if (i == 0) {
-                if (muted) {
-                    str ="|-x-"
+                str = if (muted) {
+                    "|-x-"
                 } else {
-                    str ="|-${if (rootFret == 0) ":" else "1"}-"
+                    "|-${if (rootFret == 0) ":" else "1"}-"
                 }
             } else {
-                if (i == fret - rootFret) {
+                str = if (i == fret - rootFret) {
                     if (!muted) {
-                        str ="|-${finger}-"
+                        "|-${finger}-"
                     } else {
-                        str ="|---"
+                        "|---"
                     }
                 } else {
-                    str ="|---"
+                    "|---"
                 }
             }
             result += str

@@ -167,7 +167,7 @@ class MainController(private val webSocket: SimpMessagingTemplate, @Value("\${wo
     ): String {
         try {
             val word = data["word"] as String
-            if (Crypto.decrypt(word) != Crypto.wordsToChesk) return "Не удалось расшифровать кодовое слово"
+            if (Crypto.decrypt(word) != Crypto.WORDS_TO_CHECK) return "Не удалось расшифровать кодовое слово"
 
             val dataCreate = data["dataCreate"] as List<Map<String, Any>>
             val dataUpdate = data["dataUpdate"] as List<Map<String, Any>>

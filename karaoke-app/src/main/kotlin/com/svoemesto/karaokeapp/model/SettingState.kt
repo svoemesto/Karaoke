@@ -7,7 +7,7 @@ enum class SettingState(val color: String) {
     TODAY("#FFFF00"),           // Сегодня
     ALL_UPLOADED("#DCDCDC"),    // Готово к публикации (всё загружено)
     WO_TG("#87CEFA"),           // Нет TG
-    WO_TG_WITH_SPONSR("#60A2CE"),           // Нет TG
+//    WO_TG_WITH_SPONSR("#60A2CE"),           // Нет TG
     WO_PL("#66B2FF"),           // Нет PL
     WO_VK("#FFDAB9"),           // Нет VK
     WO_VK_WO_PL("#FFFEBA"),           // Нет VK

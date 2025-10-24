@@ -168,7 +168,7 @@ class KaraokeProcess(
         return if (perc == 0.0) {
             ""
         } else {
-            "${perc} %"
+            "$perc %"
         }
     }
 
@@ -352,7 +352,7 @@ class KaraokeProcess(
                                 settings.fields[SettingField.ID_STATUS] = "6"
                             }
                             settings.saveToDb()
-                        } else {}
+                        }
                     }
 
                     KaraokeProcessTypes.MELT_KARAOKE.name -> {
@@ -364,21 +364,21 @@ class KaraokeProcess(
                                 settings.fields[SettingField.ID_STATUS] = "6"
                             }
                             settings.saveToDb()
-                        } else {}
+                        }
                     }
 
                     KaraokeProcessTypes.MELT_CHORDS.name -> {
                         if (settings.statusProcessChords != status) {
                             settings.statusProcessChords = status
                             settings.saveToDb()
-                        } else {}
+                        }
                     }
 
                     KaraokeProcessTypes.MELT_TABS.name -> {
                         if (settings.statusProcessMelody != status) {
                             settings.statusProcessMelody = status
                             settings.saveToDb()
-                        } else {}
+                        }
                     }
 
                     else -> {}
@@ -423,7 +423,7 @@ class KaraokeProcess(
             var statement: Statement? = null
             var rs: ResultSet? = null
             val sql = "select count(*) as cnt from tbl_processes where process_status = 'WAITING' and process_command <> 'tail'"
-            var result: Long = 0L
+            var result = 0L
 
             try {
                 statement = connection.createStatement()
@@ -625,7 +625,7 @@ class KaraokeProcess(
 
             var statement: Statement? = null
             var rs: ResultSet? = null
-            var sql: String = "SELECT * FROM tbl_processes WHERE process_status = 'WAITING' ORDER BY process_priority, process_order, id LIMIT 1;"
+            val sql = "SELECT * FROM tbl_processes WHERE process_status = 'WAITING' ORDER BY process_priority, process_order, id LIMIT 1;"
 
             try {
                 statement = connection.createStatement()
@@ -696,7 +696,7 @@ class KaraokeProcess(
                 if (args.containsKey("filter_notail")) where += "process_command <> 'tail'"
 
 
-                if (where.size > 0) sql += " WHERE ${where.joinToString(" AND ")}"
+                if (where.isNotEmpty()) sql += " WHERE ${where.joinToString(" AND ")}"
 
 
 //                println(sql)
@@ -758,8 +758,7 @@ class KaraokeProcess(
             }
             val sql = "DELETE FROM tbl_processes WHERE id = ?"
             val ps = connection.prepareStatement(sql)
-            var index = 1
-            ps.setInt(index, id)
+            ps.setInt(1, id)
             ps.executeUpdate()
             ps.close()
 
@@ -782,6 +781,7 @@ class KaraokeProcess(
 
         }
 
+        @Suppress("UNCHECKED_CAST")
         fun createProcess(
             settings: Settings,
             action: KaraokeProcessTypes,
@@ -824,12 +824,12 @@ class KaraokeProcess(
                     KaraokeProcessTypes.MELT_LYRICS -> {
                         val songKaraokeMp4Absolute = settings.getOutputFilename(SongOutputFile.VIDEO, SongVersion.KARAOKE).rightFileName()
                         val songKaraokePngAbsolute = settings.getOutputFilename(SongOutputFile.PICTURE, SongVersion.KARAOKE).rightFileName()
-                        val songKaraokeTxtAbsolute = settings.getOutputFilename(SongOutputFile.DESCRIPTION, SongVersion.KARAOKE).rightFileName()
+//                        val songKaraokeTxtAbsolute = settings.getOutputFilename(SongOutputFile.DESCRIPTION, SongVersion.KARAOKE).rightFileName()
                         val songLyricsMp4Absolute = settings.getOutputFilename(SongOutputFile.VIDEO, SongVersion.LYRICS).rightFileName()
                         val songLyricsPngAbsolute = settings.getOutputFilename(SongOutputFile.PICTURE, SongVersion.LYRICS).rightFileName()
                         val songKaraokeMp4Relative = settings.getOutputFilename(SongOutputFile.VIDEO, SongVersion.KARAOKE, relative = true).rightFileName()
                         val songKaraokePngRelative = settings.getOutputFilename(SongOutputFile.PICTURE, SongVersion.KARAOKE, relative = true).rightFileName()
-                        val songKaraokeTxtRelative = settings.getOutputFilename(SongOutputFile.DESCRIPTION, SongVersion.KARAOKE, relative = true).rightFileName()
+//                        val songKaraokeTxtRelative = settings.getOutputFilename(SongOutputFile.DESCRIPTION, SongVersion.KARAOKE, relative = true).rightFileName()
                         val songLyricsMp4Relative = settings.getOutputFilename(SongOutputFile.VIDEO, SongVersion.LYRICS, relative = true).rightFileName()
                         val songLyricsPngRelative = settings.getOutputFilename(SongOutputFile.PICTURE, SongVersion.LYRICS, relative = true).rightFileName()
                         if (!File(settings.pathToSymlinkFolderMP4).exists()) {
@@ -974,12 +974,12 @@ class KaraokeProcess(
                     KaraokeProcessTypes.MELT_KARAOKE -> {
                         val songKaraokeMp4Absolute = settings.getOutputFilename(SongOutputFile.VIDEO, SongVersion.KARAOKE).rightFileName()
                         val songKaraokePngAbsolute = settings.getOutputFilename(SongOutputFile.PICTURE, SongVersion.KARAOKE).rightFileName()
-                        val songKaraokeTxtAbsolute = settings.getOutputFilename(SongOutputFile.DESCRIPTION, SongVersion.KARAOKE).rightFileName()
+//                        val songKaraokeTxtAbsolute = settings.getOutputFilename(SongOutputFile.DESCRIPTION, SongVersion.KARAOKE).rightFileName()
                         val songLyricsMp4Absolute = settings.getOutputFilename(SongOutputFile.VIDEO, SongVersion.LYRICS).rightFileName()
                         val songLyricsPngAbsolute = settings.getOutputFilename(SongOutputFile.PICTURE, SongVersion.LYRICS).rightFileName()
                         val songKaraokeMp4Relative = settings.getOutputFilename(SongOutputFile.VIDEO, SongVersion.KARAOKE, relative = true).rightFileName()
                         val songKaraokePngRelative = settings.getOutputFilename(SongOutputFile.PICTURE, SongVersion.KARAOKE, relative = true).rightFileName()
-                        val songKaraokeTxtRelative = settings.getOutputFilename(SongOutputFile.DESCRIPTION, SongVersion.KARAOKE, relative = true).rightFileName()
+//                        val songKaraokeTxtRelative = settings.getOutputFilename(SongOutputFile.DESCRIPTION, SongVersion.KARAOKE, relative = true).rightFileName()
                         val songLyricsMp4Relative = settings.getOutputFilename(SongOutputFile.VIDEO, SongVersion.LYRICS, relative = true).rightFileName()
                         val songLyricsPngRelative = settings.getOutputFilename(SongOutputFile.PICTURE, SongVersion.LYRICS, relative = true).rightFileName()
                         if (!File(settings.pathToSymlinkFolderMP4).exists()) {
@@ -1282,12 +1282,12 @@ class KaraokeProcess(
                         withoutControl = true
                         val songKaraokeMp4Absolute = settings.getOutputFilename(SongOutputFile.VIDEO, SongVersion.KARAOKE).rightFileName()
                         val songKaraokePngAbsolute = settings.getOutputFilename(SongOutputFile.PICTURE, SongVersion.KARAOKE).rightFileName()
-                        val songKaraokeTxtAbsolute = settings.getOutputFilename(SongOutputFile.DESCRIPTION, SongVersion.KARAOKE).rightFileName()
+//                        val songKaraokeTxtAbsolute = settings.getOutputFilename(SongOutputFile.DESCRIPTION, SongVersion.KARAOKE).rightFileName()
                         val songLyricsMp4Absolute = settings.getOutputFilename(SongOutputFile.VIDEO, SongVersion.LYRICS).rightFileName()
                         val songLyricsPngAbsolute = settings.getOutputFilename(SongOutputFile.PICTURE, SongVersion.LYRICS).rightFileName()
                         val songKaraokeMp4Relative = settings.getOutputFilename(SongOutputFile.VIDEO, SongVersion.KARAOKE, relative = true).rightFileName()
                         val songKaraokePngRelative = settings.getOutputFilename(SongOutputFile.PICTURE, SongVersion.KARAOKE, relative = true).rightFileName()
-                        val songKaraokeTxtRelative = settings.getOutputFilename(SongOutputFile.DESCRIPTION, SongVersion.KARAOKE, relative = true).rightFileName()
+//                        val songKaraokeTxtRelative = settings.getOutputFilename(SongOutputFile.DESCRIPTION, SongVersion.KARAOKE, relative = true).rightFileName()
                         val songLyricsMp4Relative = settings.getOutputFilename(SongOutputFile.VIDEO, SongVersion.LYRICS, relative = true).rightFileName()
                         val songLyricsPngRelative = settings.getOutputFilename(SongOutputFile.PICTURE, SongVersion.LYRICS, relative = true).rightFileName()
                         if (!File(settings.pathToSymlinkFolderMP4).exists()) {

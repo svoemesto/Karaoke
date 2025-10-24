@@ -43,17 +43,39 @@ data class MkoMainBin(val mltProp: MltProp, val type: ProducerType, val voiceId:
         val foldersNodesBuilder = MltNodeBuilder()
         for (voiceI in 0 until mltProp.getCountVoices()) {
             foldersNodesBuilder.propertyName("kdenlive:folder.${mltProp.getId(ProducerType.VOICES)}.${mltProp.getId(listOf(ProducerType.VOICE, voiceI))}", "${ProducerType.VOICE.name}${voiceI}")
-            foldersNodesBuilder.propertyName("kdenlive:folder.${mltProp.getId(listOf(ProducerType.VOICE, voiceI))}.${mltProp.getId(listOf(ProducerType.COUNTERS, voiceI))}", "${ProducerType.COUNTERS.name}")
-            foldersNodesBuilder.propertyName("kdenlive:folder.${mltProp.getId(listOf(ProducerType.VOICE, voiceI))}.${mltProp.getId(listOf(ProducerType.LINES, voiceI))}", "${ProducerType.LINES.name}")
-            foldersNodesBuilder.propertyName("kdenlive:folder.${mltProp.getId(listOf(ProducerType.LINES, voiceI))}.${mltProp.getId(listOf(ProducerType.STRING, voiceI))}", "${ProducerType.STRING.name}")
-            foldersNodesBuilder.propertyName("kdenlive:folder.${mltProp.getId(listOf(ProducerType.LINES, voiceI))}.${mltProp.getId(listOf(ProducerType.LINE, voiceI))}", "${ProducerType.LINE.name}")
-            foldersNodesBuilder.propertyName("kdenlive:folder.${mltProp.getId(listOf(ProducerType.LINES, voiceI))}.${mltProp.getId(listOf(ProducerType.FILL, voiceI))}", "${ProducerType.FILL.name}")
-            foldersNodesBuilder.propertyName("kdenlive:folder.${mltProp.getId(listOf(ProducerType.LINES, voiceI))}.${mltProp.getId(listOf(ProducerType.ELEMENT, voiceI))}", "${ProducerType.ELEMENT.name}")
-            foldersNodesBuilder.propertyName("kdenlive:folder.${mltProp.getId(listOf(ProducerType.LINES, voiceI))}.${mltProp.getId(listOf(ProducerType.CHORDS, voiceI))}", "${ProducerType.CHORDS.name}")
-            foldersNodesBuilder.propertyName("kdenlive:folder.${mltProp.getId(listOf(ProducerType.VOICE, voiceI))}.${mltProp.getId(listOf(ProducerType.CHORDPICTURELINES, voiceI))}", "${ProducerType.CHORDPICTURELINES.name}")
-            foldersNodesBuilder.propertyName("kdenlive:folder.${mltProp.getId(listOf(ProducerType.CHORDPICTURELINES, voiceI))}.${mltProp.getId(listOf(ProducerType.CHORDPICTUREIMAGE, voiceI))}", "${ProducerType.CHORDPICTUREIMAGE.name}")
-            foldersNodesBuilder.propertyName("kdenlive:folder.${mltProp.getId(listOf(ProducerType.CHORDPICTURELINES, voiceI))}.${mltProp.getId(listOf(ProducerType.CHORDPICTUREELEMENT, voiceI))}", "${ProducerType.CHORDPICTUREELEMENT.name}")
-            foldersNodesBuilder.propertyName("kdenlive:folder.${mltProp.getId(listOf(ProducerType.CHORDPICTURELINES, voiceI))}.${mltProp.getId(listOf(ProducerType.CHORDPICTURELINE, voiceI))}", "${ProducerType.CHORDPICTURELINE.name}")
+            foldersNodesBuilder.propertyName("kdenlive:folder.${mltProp.getId(listOf(ProducerType.VOICE, voiceI))}.${mltProp.getId(listOf(ProducerType.COUNTERS, voiceI))}",
+                ProducerType.COUNTERS.name
+            )
+            foldersNodesBuilder.propertyName("kdenlive:folder.${mltProp.getId(listOf(ProducerType.VOICE, voiceI))}.${mltProp.getId(listOf(ProducerType.LINES, voiceI))}",
+                ProducerType.LINES.name
+            )
+            foldersNodesBuilder.propertyName("kdenlive:folder.${mltProp.getId(listOf(ProducerType.LINES, voiceI))}.${mltProp.getId(listOf(ProducerType.STRING, voiceI))}",
+                ProducerType.STRING.name
+            )
+            foldersNodesBuilder.propertyName("kdenlive:folder.${mltProp.getId(listOf(ProducerType.LINES, voiceI))}.${mltProp.getId(listOf(ProducerType.LINE, voiceI))}",
+                ProducerType.LINE.name
+            )
+            foldersNodesBuilder.propertyName("kdenlive:folder.${mltProp.getId(listOf(ProducerType.LINES, voiceI))}.${mltProp.getId(listOf(ProducerType.FILL, voiceI))}",
+                ProducerType.FILL.name
+            )
+            foldersNodesBuilder.propertyName("kdenlive:folder.${mltProp.getId(listOf(ProducerType.LINES, voiceI))}.${mltProp.getId(listOf(ProducerType.ELEMENT, voiceI))}",
+                ProducerType.ELEMENT.name
+            )
+            foldersNodesBuilder.propertyName("kdenlive:folder.${mltProp.getId(listOf(ProducerType.LINES, voiceI))}.${mltProp.getId(listOf(ProducerType.CHORDS, voiceI))}",
+                ProducerType.CHORDS.name
+            )
+            foldersNodesBuilder.propertyName("kdenlive:folder.${mltProp.getId(listOf(ProducerType.VOICE, voiceI))}.${mltProp.getId(listOf(ProducerType.CHORDPICTURELINES, voiceI))}",
+                ProducerType.CHORDPICTURELINES.name
+            )
+            foldersNodesBuilder.propertyName("kdenlive:folder.${mltProp.getId(listOf(ProducerType.CHORDPICTURELINES, voiceI))}.${mltProp.getId(listOf(ProducerType.CHORDPICTUREIMAGE, voiceI))}",
+                ProducerType.CHORDPICTUREIMAGE.name
+            )
+            foldersNodesBuilder.propertyName("kdenlive:folder.${mltProp.getId(listOf(ProducerType.CHORDPICTURELINES, voiceI))}.${mltProp.getId(listOf(ProducerType.CHORDPICTUREELEMENT, voiceI))}",
+                ProducerType.CHORDPICTUREELEMENT.name
+            )
+            foldersNodesBuilder.propertyName("kdenlive:folder.${mltProp.getId(listOf(ProducerType.CHORDPICTURELINES, voiceI))}.${mltProp.getId(listOf(ProducerType.CHORDPICTURELINE, voiceI))}",
+                ProducerType.CHORDPICTURELINE.name
+            )
         }
         foldersNodesBuilder.build()
         val foldersNodes: MutableList<MltNode> = foldersNodesBuilder.nodes
@@ -79,7 +101,7 @@ data class MkoMainBin(val mltProp: MltProp, val type: ProducerType, val voiceId:
                 }
             } else ""
             if (type.isSequence && uuid == "") {
-                println("ПУСТОЙ UUID для ${type.name} voice = ${voiceId} child = ${childId} element = ${elementId}")
+                println("ПУСТОЙ UUID для ${type.name} voice = $voiceId child = $childId element = $elementId")
             }
             misNodes.add(MltNode(name = "entry", fields = mutableMapOf(
                 "producer" to if (type.isSequence) "{${uuid}}" else MltGenerator.nameProducer(type, Integer.max(mis.voiceId, 0), Integer.max(mis.childId, 0), Integer.max(mis.elementId, 0)),
@@ -94,7 +116,7 @@ data class MkoMainBin(val mltProp: MltProp, val type: ProducerType, val voiceId:
             body = MltNodeBuilder()
                 .propertyName("kdenlive:folder.-1.21", "Клипы")
                 .propertyName("kdenlive:sequenceFolder", 21)
-                .propertyName("kdenlive:folder.-1.${mltProp.getId(ProducerType.VOICES)}", "${ProducerType.VOICES.name}")
+                .propertyName("kdenlive:folder.-1.${mltProp.getId(ProducerType.VOICES)}", ProducerType.VOICES.name)
                 .nodes(foldersNodes)
                 .propertyName("kdenlive:docproperties.audioChannels", 2)
                 .propertyName("kdenlive:docproperties.browserurl", songRootFolder)
@@ -126,7 +148,7 @@ data class MkoMainBin(val mltProp: MltProp, val type: ProducerType, val voiceId:
                 .propertyName("kdenlive:binZoom", 4)
                 .propertyName("kdenlive:documentnotes")
                 .propertyName("kdenlive:docproperties.opensequences",
-                    ProducerType.values()
+                    ProducerType.entries
                         .filter { it.isSequence && it.onlyOne }
                         .map { "{${mltProp.getUUID(listOf(it))}}" }
                         .toList()

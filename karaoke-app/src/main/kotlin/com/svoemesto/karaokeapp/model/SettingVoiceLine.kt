@@ -72,7 +72,7 @@ data class SettingVoiceLine(
     }
 
 
-    val isNewLine: Boolean get() = _elements.any { element->  element.type == SettingVoiceLineElementTypes.NEWLINE}
+//    val isNewLine: Boolean get() = _elements.any { element->  element.type == SettingVoiceLineElementTypes.NEWLINE}
     val isEmptyLine: Boolean get() = _elements.any { element->  element.type == SettingVoiceLineElementTypes.EMPTY}
     val isEmptyLineOrComment: Boolean get() = _elements.any { element->  element.type == SettingVoiceLineElementTypes.EMPTY || element.type == SettingVoiceLineElementTypes.COMMENT}
     companion object {
@@ -93,8 +93,8 @@ data class SettingVoiceLine(
                 text = "",
                 note = "",
                 chord = "",
-                stringlad = "",
-                locklad = "",
+                stringLad = "",
+                lockLad = "",
                 syllableStartMs = timeMs,
                 syllableEndMs = timeMs,
                 previous = null
@@ -123,8 +123,8 @@ data class SettingVoiceLine(
                 text = "",
                 note = "",
                 chord = "",
-                stringlad = "",
-                locklad = "",
+                stringLad = "",
+                lockLad = "",
                 syllableStartMs = timeMs,
                 syllableEndMs = timeMs,
                 previous = null
@@ -136,7 +136,7 @@ data class SettingVoiceLine(
 
         }
     }
-    fun isScroll(): Boolean = lineEndMs <= lineStartMs // Если время начала совпадает со временем конца - скролим без остановки
+    @Suppress("unused") fun isScroll(): Boolean = lineEndMs <= lineStartMs // Если время начала совпадает со временем конца - скролим без остановки
 
     fun lineDurationMs(): Long = lineEndMs - lineStartMs
     fun lineDurationWithNeighboursMs(): Long = lineEndWithNeighboursMs() - lineStartWithNeighboursMs()
@@ -187,6 +187,7 @@ data class SettingVoiceLine(
         return ""
     }
 
+    @Suppress("unused")
     fun getTextWoEOF(songVersion: SongVersion, withTimeCode: Boolean = false): String {
         if (getElements(songVersion).any { it.type == SettingVoiceLineElementTypes.NEWLINE }) return ""
         textElement(songVersion)?.let {element ->
@@ -200,7 +201,9 @@ data class SettingVoiceLine(
     }
 
     fun isCrossing(otherLine: SettingVoiceLine): Boolean {
-        return (this.lineDurationWithNeighboursMs() + otherLine.lineDurationWithNeighboursMs()) > (Math.max(this.lineEndWithNeighboursMs(), otherLine.lineEndWithNeighboursMs()) - Math.min(this.lineStartWithNeighboursMs(), otherLine.lineStartWithNeighboursMs()))
+        return (this.lineDurationWithNeighboursMs() + otherLine.lineDurationWithNeighboursMs()) > (this.lineEndWithNeighboursMs()
+            .coerceAtLeast(otherLine.lineEndWithNeighboursMs()) - this.lineStartWithNeighboursMs()
+            .coerceAtMost(otherLine.lineStartWithNeighboursMs()))
     }
 
     private var _indexLineStart: Int? = null
@@ -259,6 +262,7 @@ data class SettingVoiceLine(
         return timeMs in startVisibleTime..endVisibleTime
     }
 
+    @Suppress("unused")
     val onScreenDurationMs: Long get() {
         val deltaStartMs = startVisibleTime // parentVoice?.linesForMlt()?.get(indexLineStart)?.lineStartMs ?: 0
         val deltaEndMs = endVisibleTime // indexLineEnd?.let {

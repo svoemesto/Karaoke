@@ -1,7 +1,6 @@
 package com.svoemesto.karaokeapp.textfilehistory
 
 import com.svoemesto.karaokeapp.SONGS_HISTORY_FILE_PATH
-import kotlinx.serialization.Serializable
 
 class SongsHistory() : TextFileHistory {
 

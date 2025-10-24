@@ -17,7 +17,7 @@ data class SettingVoice(
     fun getLinesForCounters(songVersion: SongVersion): List<SettingVoiceLine> {
         return getLines().filterIndexed { index, line -> index > 0 && getLines()[index-1].isEmptyLineOrComment && line.haveTextElement(songVersion) }
     }
-    fun addline(songVersion: SongVersion, line: SettingVoiceLine) {
+    @Suppress("unused") fun addLine(songVersion: SongVersion, line: SettingVoiceLine) {
         _lines.add(line)
         actuateChilds(songVersion)
     }
@@ -103,7 +103,7 @@ data class SettingVoice(
 
         var index = chordId
         var chordsW = chordWidth
-        var nextChords = chords.filter { it.chordId > chordId }
+        val nextChords = chords.filter { it.chordId > chordId }
         var wasOutOfScreen = false
 
         for (indexChord in nextChords.indices) {
@@ -155,8 +155,8 @@ data class SettingVoice(
         var linesH = thisLine.h(songVersion)
         val nextLines = getLines().filter { it.lineId > lineId }
         var wasOutOfScreen = false
-        // когда линия цикла встанет в позицию zeroHeight текущая линия должна выйти вверху за границы экрана
-        // т.е. сумма высот текущей линии + тех что за ней должна быть больше zeroHeight + высота текущей линии. Следующая линия цикла будет та что нам нужна
+        // Когда линия цикла встанет в позицию zeroHeight текущая линия должна выйти вверху за границы экрана
+        // т.е. Сумма высот текущей линии + тех что за ней должна быть больше zeroHeight + высота текущей линии. Следующая линия цикла будет та что нам нужна
         for (indexLine in nextLines.indices) {
             linesH += nextLines[indexLine].h(songVersion) // сумма высот линий цикла + высота текущей линии
             index = indexLine + lineId + 2
@@ -195,18 +195,17 @@ data class SettingVoice(
         for(lineIndex in lstChords.indices) {
             val chord = lstChords[lineIndex]
             val nextChord = if (lineIndex + 1 < lstChords.size) lstChords[lineIndex+1] else null
-            var deltaX = 0
-            if (chord.chordId < chordId) {
+            val deltaX: Int = if (chord.chordId < chordId) {
                 // Если аккорд цикла стоит перед текущим аккордом
                 // Вычисляем сумму широт аккордов от аккорда цикла (включительно) до текущего аккорда (не включая)
-                deltaX = lstChords.filter { it.chordId >= chord.chordId && it.chordId < chordId }.sumOf { chordWidth }
+                lstChords.filter { it.chordId >= chord.chordId && it.chordId < chordId }.sumOf { chordWidth }
             } else if (chord.chordId > chordId) {
                 // Если аккорд цикла стоит после текущего аккорда
                 // Вычисляем сумму широт аккордов от текущего аккорда (включительно) до аккорда цикла (не включая)
-                deltaX = - lstChords.filter { it.chordId < chord.chordId && it.chordId >= chordId }.sumOf { chordWidth }
+                - lstChords.filter { it.chordId < chord.chordId && it.chordId >= chordId }.sumOf { chordWidth }
             } else {
                 // Если аккорд цикла - это текущий аккорд
-                deltaX = 0
+                0
             }
             val tpX = deltaX + zeroWidth + offsetX
             if ((tpX + frameWidthPx) < 0) {
@@ -259,7 +258,7 @@ data class SettingVoice(
         val endIndex = if (thisLine.indexLineEnd < thisLine.indexLineStart ) getLines().last().lineId else thisLine.indexLineEnd
         if (endIndex < startIndex) return emptyList()
 
-        val frameWidthPx = Karaoke.frameWidthPx
+//        val frameWidthPx = Karaoke.frameWidthPx
         val frameHeightPx = Karaoke.frameHeightPx
 //        val textLineHeight = parentVoice?.textLines()?.firstOrNull()?.h() ?: 0
         val zeroHeight = frameHeightPx - (frameHeightPx / 2 + thisLine.textLineHeight / 2)
@@ -273,19 +272,18 @@ data class SettingVoice(
 
         for(lineIndex in lines.indices) {
             val line = lines[lineIndex]
-            var deltaY = 0
-            if (line.lineId < lineId) {
+            val deltaY: Int = if (line.lineId < lineId) {
                 // Если линия цикла стоит перед текущей линией
                 // Вычисляем сумму высот линий от линии цикла (включительно) до текущей линии (не включая)
-//                deltaY = lines.filter { it.lineId >= line.lineId && it.lineId < lineId }.sumOf { thisLine.h(songVersion) }
-                deltaY = lines.filter { it.lineId >= line.lineId && it.lineId < lineId }.sumOf { it.h(songVersion) }
+        //                deltaY = lines.filter { it.lineId >= line.lineId && it.lineId < lineId }.sumOf { thisLine.h(songVersion) }
+                lines.filter { it.lineId >= line.lineId && it.lineId < lineId }.sumOf { it.h(songVersion) }
             } else if (line.lineId > lineId) {
                 // Если линия цикла стоит после текущей линией
                 // Вычисляем сумму высот линий от текущей линии (включительно) до линии цикла (не включая)
-                deltaY = - lines.filter { it.lineId < line.lineId && it.lineId >= lineId }.sumOf { it.h(songVersion) }
+                - lines.filter { it.lineId < line.lineId && it.lineId >= lineId }.sumOf { it.h(songVersion) }
             } else {
                 // Если линия цикла - это текущая линия
-                deltaY = 0
+                0
             }
 //            val deltaY = line.deltaY(this)
             val tpY = deltaY + zeroHeight + offsetY
@@ -338,24 +336,24 @@ data class SettingVoice(
 //        return Settings.loadFromDbById(rootId, WORKING_DATABASE)?.voicesForMlt?.indexOf(this) ?: 0
 //    }
 
-    var _countLineTracks: Int? = null
+    var privateCountLineTracks: Int? = null
 
     var countLineTracks: Int
         get() {
-                return _countLineTracks ?: 0
+                return privateCountLineTracks ?: 0
             }
         set(value) {
-            _countLineTracks = value
+            privateCountLineTracks = value
             getLines().forEach { it.countLineTracks = value }
         }
 
-    var _countChordPictureTracks: Int? = null
+    var privateCountChordPictureTracks: Int? = null
     var countChordPictureTracks: Int
         get() {
-            return _countChordPictureTracks ?: 0
+            return privateCountChordPictureTracks ?: 0
         }
         set(value) {
-            _countChordPictureTracks = value
+            privateCountChordPictureTracks = value
             val chords = getLines()
                 .flatMap { line -> line.getElements(SongVersion.CHORDS) }
                 .flatMap { element -> element.getSyllables() }
@@ -366,22 +364,22 @@ data class SettingVoice(
 
 
 
-    private var _rootSongLengthMs: Long? = null
+    private var privateCRootSongLengthMs: Long? = null
     var rootSongLengthMs: Long
         get() {
-            return _rootSongLengthMs ?: 0
+            return privateCRootSongLengthMs ?: 0
         }
         set(value) {
-            _rootSongLengthMs = value
+            privateCRootSongLengthMs = value
         }
 
-    private var _rootStartSilentOffsetMs: Long? = null
+    private var privateRootStartSilentOffsetMs: Long? = null
     var rootStartSilentOffsetMs: Long
         get() {
-            return _rootStartSilentOffsetMs ?: 0
+            return privateRootStartSilentOffsetMs ?: 0
         }
         set(value) {
-            _rootStartSilentOffsetMs = value
+            privateRootStartSilentOffsetMs = value
         }
 
     fun linesTransformProperties(): List<TransformProperty> {
@@ -434,6 +432,7 @@ data class SettingVoice(
         return result
     }
 
+    @Suppress("unused")
     fun getText(songVersion: SongVersion, maxTimeCodes: Int? = null): String {
         var timeCodeCount = maxTimeCodes ?: 0
         return textLines(songVersion).joinToString("") { textLine ->

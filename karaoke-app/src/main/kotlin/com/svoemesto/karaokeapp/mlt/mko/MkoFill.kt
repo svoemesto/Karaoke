@@ -68,6 +68,7 @@ data class MkoFill(
     override fun filePlaylist(): MltNode {
         val result = mltGenerator.filePlaylist()
         result.body?.let {
+            @Suppress("UNCHECKED_CAST")
             val body = it as MutableList<MltNode>
 
             body.add(
@@ -90,8 +91,9 @@ data class MkoFill(
         val default = "00:00:00.000=0 0 1 1 0.0"
         val sett = settings ?: return default
         val element = try {
-            sett.voicesForMlt[voiceId].getLines()[lineId].getElements(songVersion).filter { it.type == SettingVoiceLineElementTypes.TEXT }.first()
-        } catch (e: Exception) {
+            sett.voicesForMlt[voiceId].getLines()[lineId].getElements(songVersion)
+                .first { it.type == SettingVoiceLineElementTypes.TEXT }
+        } catch (_: Exception) {
             return default
         }
 

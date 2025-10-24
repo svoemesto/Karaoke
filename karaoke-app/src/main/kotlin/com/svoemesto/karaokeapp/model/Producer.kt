@@ -2,6 +2,7 @@ package com.svoemesto.karaokeapp.model
 
 import java.io.Serializable
 
+@Suppress("unused")
 data class Producer(
     val producerType: ProducerType,
     val groupId: Int,

@@ -2,9 +2,6 @@
 
 package com.svoemesto.karaokeapp.services
 
-import com.svoemesto.karaokeapp.WORKING_DATABASE
-import com.svoemesto.karaokeapp.model.Users
-import com.svoemesto.karaokeapp.services.UsersService
 import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.security.core.userdetails.UserDetailsService
 import org.springframework.security.core.userdetails.UsernameNotFoundException
@@ -14,6 +11,7 @@ import org.springframework.stereotype.Service
 @Service
 class CustomUserDetailsService(
     private val usersService: UsersService,
+    @Suppress("unused")
     private val passwordEncoder: PasswordEncoder // Внедряем PasswordEncoder
 ) : UserDetailsService {
 

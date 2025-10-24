@@ -76,6 +76,7 @@ data class MkoElement(
     override fun filePlaylist(): MltNode {
         val result = mltGenerator.filePlaylist()
         result.body?.let {
+            @Suppress("UNCHECKED_CAST")
             val body = it as MutableList<MltNode>
             body.add(
                 mltGenerator.entry(

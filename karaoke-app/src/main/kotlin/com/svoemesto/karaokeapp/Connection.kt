@@ -1,7 +1,6 @@
 package com.svoemesto.karaokeapp
 
 import com.svoemesto.karaokeapp.services.APP_WORK_IN_CONTAINER
-import java.sql.DriverManager
 
 class Connection(
     override val url: String,
@@ -20,10 +19,10 @@ class Connection(
 //    }
     companion object {
 
-        private val USERNAME = "postgres"
+        private const val USERNAME = "postgres"
 //        private val PASSWORDLOCAL = if (APP_WORK_IN_CONTAINER) "bp4QuC5L2Tv~vpKQkUcg" else "postgres"
-        private val PASSWORDLOCAL = "postgres"
-        private val PASSWORDREMOTE = "postgres"
+        private const val PASSWORDLOCAL = "postgres"
+        private const val PASSWORDREMOTE = "postgres"
         fun local(): KaraokeConnection {
             return Connection(name = "LOCAL", url = connectionLocalUrl(), username = USERNAME, password = PASSWORDLOCAL)
         }
@@ -31,6 +30,7 @@ class Connection(
             return Connection(name = "SERVER", url = connectionRemoteUrl(), username = USERNAME, password = PASSWORDREMOTE)
         }
 
+        @Suppress("unused")
         fun virtual(): KaraokeConnection {
             return Connection(name = "VIRTUAL", url = connectionVirtualUrl(), username = USERNAME, password = PASSWORDLOCAL)
         }

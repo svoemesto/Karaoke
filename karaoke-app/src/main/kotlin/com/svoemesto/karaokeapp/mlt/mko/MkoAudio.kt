@@ -1,6 +1,5 @@
 package com.svoemesto.karaokeapp.mlt.mko
 
-import com.svoemesto.karaokeapp.convertMillisecondsToFrames
 import com.svoemesto.karaokeapp.mlt.MltGenerator
 import com.svoemesto.karaokeapp.mlt.MltProp
 import com.svoemesto.karaokeapp.model.MltNode
@@ -11,9 +10,9 @@ import com.svoemesto.karaokeapp.model.PropertiesMltNodeBuilder
 data class MkoAudio(val mltProp: MltProp, val type: ProducerType, val voiceId: Int = 0, val childId: Int = 0, val elementId: Int = 0): MltKaraokeObject {
     val mltGenerator = MltGenerator(mltProp, type)
 
-    private val songLengthFr = mltProp.getSongLengthFr()
+//    private val songLengthFr = mltProp.getSongLengthFr()
     private val audioLengthFr = mltProp.getAudioLengthFr()
-    private val startSilentOffsetFr = convertMillisecondsToFrames(mltProp.getStartSilentOffsetMs())
+//    private val startSilentOffsetFr = convertMillisecondsToFrames(mltProp.getStartSilentOffsetMs())
     private val mkoAudioPath = mltProp.getPath(listOf(type))
     private val volume = mltProp.getVolume(listOf(type))
     private val songStartTimecode = mltProp.getSongStartTimecode()
@@ -73,6 +72,7 @@ data class MkoAudio(val mltProp: MltProp, val type: ProducerType, val voiceId: I
     override fun filePlaylist(): MltNode {
         val result = mltGenerator.filePlaylist()
         result.body?.let {
+            @Suppress("UNCHECKED_CAST")
             val body = it as MutableList<MltNode>
             body.addAll(MltNodeBuilder().blank(voiceBlankTimecode).build())
             body.add(

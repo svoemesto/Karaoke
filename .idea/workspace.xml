@@ -4,11 +4,122 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="19caf878-7ce0-44d7-94a1-cf0a31300a8b" name="Changes" comment="Текущие изменения по состоянию на 23.10.2025&#10;+ рефактор ApiController.kt">
+    <list default="true" id="19caf878-7ce0-44d7-94a1-cf0a31300a8b" name="Changes" comment="Текущие изменения по состоянию на 24.10.2025&#10;+ рефакторинг всего кода">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/config/SecurityConfig.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/config/SecurityConfig.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/AudioAnalize.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/AudioAnalize.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/AudioAnalize2.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/AudioAnalize2.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Connection.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Connection.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Constants.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Constants.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Converter.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Converter.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/DualStream.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/DualStream.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Extentions.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Extentions.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Functions.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Functions.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Karaoke.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Karaoke.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeClasses.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeClasses.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessWorker.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessWorker.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProperties.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProperties.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/MediaInfo.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/MediaInfo.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Poi.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Poi.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/SeleniumUtils.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/UtilsPictures.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/UtilsPictures.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/MainController.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/MainController.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/SseNotificationService.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/SseNotificationService.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/StorageController.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/StorageController.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/UsersController.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/UsersController.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/BlackTrack.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/BlackTrack.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/Consumer.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/Consumer.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/Mlt.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/Mlt.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/MltClasses.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/MltClasses.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/MltGenerator.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/MltGenerator.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/MltProp.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/MltProp.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/MltPropBuilder.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/MltPropBuilder.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/Profile.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/Profile.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoAudio.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoAudio.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoBackChords.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoBackChords.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoBackground.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoBackground.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoBoosty.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoBoosty.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoChordBoard.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoChordBoard.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoChordPictureElement.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoChordPictureElement.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoChordPictureFader.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoChordPictureFader.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoChordPictureImage.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoChordPictureImage.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoChordPictureLine.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoChordPictureLine.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoChordPictureLineTrack.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoChordPictureLineTrack.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoChordPictureLines.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoChordPictureLines.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoChords.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoChords.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoCounter.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoCounter.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoCounters.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoCounters.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoElement.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoElement.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoFaderText.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoFaderText.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoFill.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoFill.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoFillcolorSongtext.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoFillcolorSongtext.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoFillcolorSongtexts.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoFillcolorSongtexts.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoFingerboard.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoFingerboard.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoFlash.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoFlash.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoHeader.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoHeader.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoHorizon.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoHorizon.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoLine.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoLine.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoLineTrack.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoLineTrack.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoLines.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoLines.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoMainBin.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoMainBin.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoMelodyNote.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoMelodyNote.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoMelodyTabs.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoMelodyTabs.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoProgress.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoProgress.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoScroller.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoScroller.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoScrollerTrack.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoScrollerTrack.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoScrollers.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoScrollers.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoSepar.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoSepar.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoSongText.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoSongText.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoSplashStart.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoSplashStart.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoString.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoString.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoVoice.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoVoice.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoVoices.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoVoices.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoWatermark.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MkoWatermark.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MltKaraokeObject.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko/MltKaraokeObject.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko2/Mlt2KaraokeObject.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/mlt/mko2/Mlt2KaraokeObject.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/ApplicationContextProvider.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/ApplicationContextProvider.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Author.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Author.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/CrossSettings.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/CrossSettings.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/GuitarString.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/GuitarString.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/KaraokeDbTable.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/KaraokeDbTable.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/KaraokeDbTableField.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/KaraokeDbTableField.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Markertype.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Markertype.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Messages.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Messages.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/MltNode.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/MltNode.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/MusicChord.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/MusicChord.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/MusicInterval.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/MusicInterval.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/MusicNote.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/MusicNote.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Picture.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Picture.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Pictures.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Pictures.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Producer.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Producer.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/ProducerType.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/ProducerType.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Publication.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Publication.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SettingState.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SettingState.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SettingVoice.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SettingVoice.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SettingVoiceLine.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SettingVoiceLine.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SettingVoiceLineElement.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SettingVoiceLineElement.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SettingVoiceLineElementSyllable.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SettingVoiceLineElementSyllable.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Settings.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Settings.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song2.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Song2.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SongOutputFile.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SongOutputFile.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SongVersion.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SongVersion.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SourceMarker.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/SourceMarker.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Users.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Users.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Uuids.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Uuids.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/propertiesfiledictionary/PropertiesFileDictionary.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/propertiesfiledictionary/PropertiesFileDictionary.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/CustomUserDetailsService.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/CustomUserDetailsService.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/KaraokeAppService.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/KaraokeAppService.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/KaraokeStorageService.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/KaraokeStorageService.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/UsersClient.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/UsersClient.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/UsersService.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services/UsersService.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/textfiledictionary/TextFileDictionary.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/textfiledictionary/TextFileDictionary.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/textfilehistory/SongsHistory.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/textfilehistory/SongsHistory.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/textfilehistory/TextFileHistory.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/textfilehistory/TextFileHistory.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Сrypto.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Сrypto.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/MainController.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-web/src/main/kotlin/com/svoemesto/karaokeweb/controllers/MainController.kt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -47,17 +158,6 @@
               <path>
                 <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
                 <item name="Karaoke" type="f1a62948:ProjectNode" />
-              </path>
-              <path>
-                <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
-                <item name="Karaoke" type="f1a62948:ProjectNode" />
-                <item name="Tasks" type="e4a08cd1:TasksNode" />
-              </path>
-              <path>
-                <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
-                <item name="Karaoke" type="f1a62948:ProjectNode" />
-                <item name="Tasks" type="e4a08cd1:TasksNode" />
-                <item name="build" type="c8890929:TasksNode$1" />
               </path>
               <path>
                 <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
@@ -416,8 +516,8 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Gradle.karaoke-app [clean]" />
         <item itemvalue="Gradle.Karaoke:karaoke-app [build]" />
+        <item itemvalue="Gradle.karaoke-app [clean]" />
         <item itemvalue="Gradle.Karaoke:karaoke-app [bootJar]" />
         <item itemvalue="Gradle.Karaoke [clean]" />
         <item itemvalue="Gradle.Karaoke [build]" />
@@ -1025,7 +1125,7 @@
       <option name="project" value="LOCAL" />
       <updated>1761222433980</updated>
     </task>
-    <option name="localTasksCounter" value="160" />
+    <option name="localTasksCounter" value="161" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -1062,7 +1162,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="Использование любого шрифта, а не только фиксированной ширины&#10;Настройки в файле" />
     <MESSAGE value="Перенос настроек в файл и класс (процесс)&#10;Заголовок - название песни, исполнитель, альбом, тональность, темп - шрифт и цвет" />
     <MESSAGE value="Перенос настроек в файл и класс (процесс)" />
     <MESSAGE value="По всем ощущениям - первая финальная версия" />
@@ -1087,7 +1186,8 @@
     <MESSAGE value="Текущие изменения по состоянию на 23.10.2025&#10;+ selenium-java:4.37.0" />
     <MESSAGE value="Текущие изменения по состоянию на 23.10.2025&#10;+ Котлин 2.2.20 Спринг Бут 3.5.6" />
     <MESSAGE value="Текущие изменения по состоянию на 23.10.2025&#10;+ рефактор ApiController.kt" />
-    <option name="LAST_COMMIT_MESSAGE" value="Текущие изменения по состоянию на 23.10.2025&#10;+ рефактор ApiController.kt" />
+    <MESSAGE value="Текущие изменения по состоянию на 24.10.2025&#10;+ рефакторинг всего кода" />
+    <option name="LAST_COMMIT_MESSAGE" value="Текущие изменения по состоянию на 24.10.2025&#10;+ рефакторинг всего кода" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -1096,11 +1196,6 @@
           <properties class="java.lang.NumberFormatException" package="java.lang" />
           <option name="timeStamp" value="1" />
         </breakpoint>
-        <line-breakpoint enabled="true" type="kotlin-line">
-          <url>file://$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Settings.kt</url>
-          <line>2895</line>
-          <option name="timeStamp" value="5" />
-        </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
   </component>

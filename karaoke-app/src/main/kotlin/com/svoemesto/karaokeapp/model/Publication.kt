@@ -75,199 +75,199 @@ class Publication(val database: KaraokeConnection = WORKING_DATABASE) : Serializ
 
 //    val publish23text: String get() = if (publish23 != null) "${publish23!!.flags}[${publish23!!.author}] ${if (publish23!!.firstSongInAlbum) "★" else "-"} ${publish23!!.songName}" else ""
 
-    val publish10color: String get() = if (publish10 != null) publish10!!.color else "#A9A9A9"
-    val publish11color: String get() = if (publish11 != null) publish11!!.color else "#A9A9A9"
-    val publish12color: String get() = if (publish12 != null) publish12!!.color else "#A9A9A9"
-    val publish13color: String get() = if (publish13 != null) publish13!!.color else "#A9A9A9"
-    val publish14color: String get() = if (publish14 != null) publish14!!.color else "#A9A9A9"
-    val publish15color: String get() = if (publish15 != null) publish15!!.color else "#A9A9A9"
-    val publish16color: String get() = if (publish16 != null) publish16!!.color else "#A9A9A9"
-    val publish17color: String get() = if (publish17 != null) publish17!!.color else "#A9A9A9"
-    val publish18color: String get() = if (publish18 != null) publish18!!.color else "#A9A9A9"
-    val publish19color: String get() = if (publish19 != null) publish19!!.color else "#A9A9A9"
-    val publish20color: String get() = if (publish20 != null) publish20!!.color else "#A9A9A9"
-    val publish21color: String get() = if (publish21 != null) publish21!!.color else "#A9A9A9"
-    val publish22color: String get() = if (publish22 != null) publish22!!.color else "#A9A9A9"
-    val publish23color: String get() = if (publish23 != null) publish23!!.color else "#A9A9A9"
+    @Suppress("unused") val publish10color: String get() = if (publish10 != null) publish10!!.color else "#A9A9A9"
+    @Suppress("unused") val publish11color: String get() = if (publish11 != null) publish11!!.color else "#A9A9A9"
+    @Suppress("unused") val publish12color: String get() = if (publish12 != null) publish12!!.color else "#A9A9A9"
+    @Suppress("unused") val publish13color: String get() = if (publish13 != null) publish13!!.color else "#A9A9A9"
+    @Suppress("unused") val publish14color: String get() = if (publish14 != null) publish14!!.color else "#A9A9A9"
+    @Suppress("unused") val publish15color: String get() = if (publish15 != null) publish15!!.color else "#A9A9A9"
+    @Suppress("unused") val publish16color: String get() = if (publish16 != null) publish16!!.color else "#A9A9A9"
+    @Suppress("unused") val publish17color: String get() = if (publish17 != null) publish17!!.color else "#A9A9A9"
+    @Suppress("unused") val publish18color: String get() = if (publish18 != null) publish18!!.color else "#A9A9A9"
+    @Suppress("unused") val publish19color: String get() = if (publish19 != null) publish19!!.color else "#A9A9A9"
+    @Suppress("unused") val publish20color: String get() = if (publish20 != null) publish20!!.color else "#A9A9A9"
+    @Suppress("unused") val publish21color: String get() = if (publish21 != null) publish21!!.color else "#A9A9A9"
+    @Suppress("unused") val publish22color: String get() = if (publish22 != null) publish22!!.color else "#A9A9A9"
+    @Suppress("unused") val publish23color: String get() = if (publish23 != null) publish23!!.color else "#A9A9A9"
 
-    val publish10colorMeltLyrics: String get() = if (publish10 != null) publish10!!.processColorMeltLyrics else "#A9A9A9"
-    val publish11colorMeltLyrics: String get() = if (publish11 != null) publish11!!.processColorMeltLyrics else "#A9A9A9"
-    val publish12colorMeltLyrics: String get() = if (publish12 != null) publish12!!.processColorMeltLyrics else "#A9A9A9"
-    val publish13colorMeltLyrics: String get() = if (publish13 != null) publish13!!.processColorMeltLyrics else "#A9A9A9"
-    val publish14colorMeltLyrics: String get() = if (publish14 != null) publish14!!.processColorMeltLyrics else "#A9A9A9"
-    val publish15colorMeltLyrics: String get() = if (publish15 != null) publish15!!.processColorMeltLyrics else "#A9A9A9"
-    val publish16colorMeltLyrics: String get() = if (publish16 != null) publish16!!.processColorMeltLyrics else "#A9A9A9"
-    val publish17colorMeltLyrics: String get() = if (publish17 != null) publish17!!.processColorMeltLyrics else "#A9A9A9"
-    val publish18colorMeltLyrics: String get() = if (publish18 != null) publish18!!.processColorMeltLyrics else "#A9A9A9"
-    val publish19colorMeltLyrics: String get() = if (publish19 != null) publish19!!.processColorMeltLyrics else "#A9A9A9"
-    val publish20colorMeltLyrics: String get() = if (publish20 != null) publish20!!.processColorMeltLyrics else "#A9A9A9"
-    val publish21colorMeltLyrics: String get() = if (publish21 != null) publish21!!.processColorMeltLyrics else "#A9A9A9"
-    val publish22colorMeltLyrics: String get() = if (publish22 != null) publish22!!.processColorMeltLyrics else "#A9A9A9"
-    val publish23colorMeltLyrics: String get() = if (publish23 != null) publish23!!.processColorMeltLyrics else "#A9A9A9"
+    @Suppress("unused") val publish10colorMeltLyrics: String get() = if (publish10 != null) publish10!!.processColorMeltLyrics else "#A9A9A9"
+    @Suppress("unused") val publish11colorMeltLyrics: String get() = if (publish11 != null) publish11!!.processColorMeltLyrics else "#A9A9A9"
+    @Suppress("unused") val publish12colorMeltLyrics: String get() = if (publish12 != null) publish12!!.processColorMeltLyrics else "#A9A9A9"
+    @Suppress("unused") val publish13colorMeltLyrics: String get() = if (publish13 != null) publish13!!.processColorMeltLyrics else "#A9A9A9"
+    @Suppress("unused") val publish14colorMeltLyrics: String get() = if (publish14 != null) publish14!!.processColorMeltLyrics else "#A9A9A9"
+    @Suppress("unused") val publish15colorMeltLyrics: String get() = if (publish15 != null) publish15!!.processColorMeltLyrics else "#A9A9A9"
+    @Suppress("unused") val publish16colorMeltLyrics: String get() = if (publish16 != null) publish16!!.processColorMeltLyrics else "#A9A9A9"
+    @Suppress("unused") val publish17colorMeltLyrics: String get() = if (publish17 != null) publish17!!.processColorMeltLyrics else "#A9A9A9"
+    @Suppress("unused") val publish18colorMeltLyrics: String get() = if (publish18 != null) publish18!!.processColorMeltLyrics else "#A9A9A9"
+    @Suppress("unused") val publish19colorMeltLyrics: String get() = if (publish19 != null) publish19!!.processColorMeltLyrics else "#A9A9A9"
+    @Suppress("unused") val publish20colorMeltLyrics: String get() = if (publish20 != null) publish20!!.processColorMeltLyrics else "#A9A9A9"
+    @Suppress("unused") val publish21colorMeltLyrics: String get() = if (publish21 != null) publish21!!.processColorMeltLyrics else "#A9A9A9"
+    @Suppress("unused") val publish22colorMeltLyrics: String get() = if (publish22 != null) publish22!!.processColorMeltLyrics else "#A9A9A9"
+    @Suppress("unused") val publish23colorMeltLyrics: String get() = if (publish23 != null) publish23!!.processColorMeltLyrics else "#A9A9A9"
 
-    val publish10colorMeltKaraoke: String get() = if (publish10 != null) publish10!!.processColorMeltKaraoke else "#A9A9A9"
-    val publish11colorMeltKaraoke: String get() = if (publish11 != null) publish11!!.processColorMeltKaraoke else "#A9A9A9"
-    val publish12colorMeltKaraoke: String get() = if (publish12 != null) publish12!!.processColorMeltKaraoke else "#A9A9A9"
-    val publish13colorMeltKaraoke: String get() = if (publish13 != null) publish13!!.processColorMeltKaraoke else "#A9A9A9"
-    val publish14colorMeltKaraoke: String get() = if (publish14 != null) publish14!!.processColorMeltKaraoke else "#A9A9A9"
-    val publish15colorMeltKaraoke: String get() = if (publish15 != null) publish15!!.processColorMeltKaraoke else "#A9A9A9"
-    val publish16colorMeltKaraoke: String get() = if (publish16 != null) publish16!!.processColorMeltKaraoke else "#A9A9A9"
-    val publish17colorMeltKaraoke: String get() = if (publish17 != null) publish17!!.processColorMeltKaraoke else "#A9A9A9"
-    val publish18colorMeltKaraoke: String get() = if (publish18 != null) publish18!!.processColorMeltKaraoke else "#A9A9A9"
-    val publish19colorMeltKaraoke: String get() = if (publish19 != null) publish19!!.processColorMeltKaraoke else "#A9A9A9"
-    val publish20colorMeltKaraoke: String get() = if (publish20 != null) publish20!!.processColorMeltKaraoke else "#A9A9A9"
-    val publish21colorMeltKaraoke: String get() = if (publish21 != null) publish21!!.processColorMeltKaraoke else "#A9A9A9"
-    val publish22colorMeltKaraoke: String get() = if (publish22 != null) publish22!!.processColorMeltKaraoke else "#A9A9A9"
-    val publish23colorMeltKaraoke: String get() = if (publish23 != null) publish23!!.processColorMeltKaraoke else "#A9A9A9"
-
-
-    val publish10id: Long get() = if (publish10 != null) publish10!!.id else 0
-    val publish11id: Long get() = if (publish11 != null) publish11!!.id else 0
-    val publish12id: Long get() = if (publish12 != null) publish12!!.id else 0
-    val publish13id: Long get() = if (publish13 != null) publish13!!.id else 0
-    val publish14id: Long get() = if (publish14 != null) publish14!!.id else 0
-    val publish15id: Long get() = if (publish15 != null) publish15!!.id else 0
-    val publish16id: Long get() = if (publish16 != null) publish16!!.id else 0
-    val publish17id: Long get() = if (publish17 != null) publish17!!.id else 0
-    val publish18id: Long get() = if (publish18 != null) publish18!!.id else 0
-    val publish19id: Long get() = if (publish19 != null) publish19!!.id else 0
-    val publish20id: Long get() = if (publish20 != null) publish20!!.id else 0
-    val publish21id: Long get() = if (publish21 != null) publish21!!.id else 0
-    val publish22id: Long get() = if (publish22 != null) publish22!!.id else 0
-    val publish23id: Long get() = if (publish23 != null) publish23!!.id else 0
+    @Suppress("unused") val publish10colorMeltKaraoke: String get() = if (publish10 != null) publish10!!.processColorMeltKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish11colorMeltKaraoke: String get() = if (publish11 != null) publish11!!.processColorMeltKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish12colorMeltKaraoke: String get() = if (publish12 != null) publish12!!.processColorMeltKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish13colorMeltKaraoke: String get() = if (publish13 != null) publish13!!.processColorMeltKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish14colorMeltKaraoke: String get() = if (publish14 != null) publish14!!.processColorMeltKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish15colorMeltKaraoke: String get() = if (publish15 != null) publish15!!.processColorMeltKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish16colorMeltKaraoke: String get() = if (publish16 != null) publish16!!.processColorMeltKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish17colorMeltKaraoke: String get() = if (publish17 != null) publish17!!.processColorMeltKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish18colorMeltKaraoke: String get() = if (publish18 != null) publish18!!.processColorMeltKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish19colorMeltKaraoke: String get() = if (publish19 != null) publish19!!.processColorMeltKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish20colorMeltKaraoke: String get() = if (publish20 != null) publish20!!.processColorMeltKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish21colorMeltKaraoke: String get() = if (publish21 != null) publish21!!.processColorMeltKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish22colorMeltKaraoke: String get() = if (publish22 != null) publish22!!.processColorMeltKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish23colorMeltKaraoke: String get() = if (publish23 != null) publish23!!.processColorMeltKaraoke else "#A9A9A9"
 
 
-
-    val publish10colorVkLyrics: String get() = if (publish10 != null) publish10!!.processColorVkLyrics else "#A9A9A9"
-    val publish11colorVkLyrics: String get() = if (publish11 != null) publish11!!.processColorVkLyrics else "#A9A9A9"
-    val publish12colorVkLyrics: String get() = if (publish12 != null) publish12!!.processColorVkLyrics else "#A9A9A9"
-    val publish13colorVkLyrics: String get() = if (publish13 != null) publish13!!.processColorVkLyrics else "#A9A9A9"
-    val publish14colorVkLyrics: String get() = if (publish14 != null) publish14!!.processColorVkLyrics else "#A9A9A9"
-    val publish15colorVkLyrics: String get() = if (publish15 != null) publish15!!.processColorVkLyrics else "#A9A9A9"
-    val publish16colorVkLyrics: String get() = if (publish16 != null) publish16!!.processColorVkLyrics else "#A9A9A9"
-    val publish17colorVkLyrics: String get() = if (publish17 != null) publish17!!.processColorVkLyrics else "#A9A9A9"
-    val publish18colorVkLyrics: String get() = if (publish18 != null) publish18!!.processColorVkLyrics else "#A9A9A9"
-    val publish19colorVkLyrics: String get() = if (publish19 != null) publish19!!.processColorVkLyrics else "#A9A9A9"
-    val publish20colorVkLyrics: String get() = if (publish20 != null) publish20!!.processColorVkLyrics else "#A9A9A9"
-    val publish21colorVkLyrics: String get() = if (publish21 != null) publish21!!.processColorVkLyrics else "#A9A9A9"
-    val publish22colorVkLyrics: String get() = if (publish22 != null) publish22!!.processColorVkLyrics else "#A9A9A9"
-    val publish23colorVkLyrics: String get() = if (publish23 != null) publish23!!.processColorVkLyrics else "#A9A9A9"
-
-
-    val publish10colorVkKaraoke: String get() = if (publish10 != null) publish10!!.processColorVkKaraoke else "#A9A9A9"
-    val publish11colorVkKaraoke: String get() = if (publish11 != null) publish11!!.processColorVkKaraoke else "#A9A9A9"
-    val publish12colorVkKaraoke: String get() = if (publish12 != null) publish12!!.processColorVkKaraoke else "#A9A9A9"
-    val publish13colorVkKaraoke: String get() = if (publish13 != null) publish13!!.processColorVkKaraoke else "#A9A9A9"
-    val publish14colorVkKaraoke: String get() = if (publish14 != null) publish14!!.processColorVkKaraoke else "#A9A9A9"
-    val publish15colorVkKaraoke: String get() = if (publish15 != null) publish15!!.processColorVkKaraoke else "#A9A9A9"
-    val publish16colorVkKaraoke: String get() = if (publish16 != null) publish16!!.processColorVkKaraoke else "#A9A9A9"
-    val publish17colorVkKaraoke: String get() = if (publish17 != null) publish17!!.processColorVkKaraoke else "#A9A9A9"
-    val publish18colorVkKaraoke: String get() = if (publish18 != null) publish18!!.processColorVkKaraoke else "#A9A9A9"
-    val publish19colorVkKaraoke: String get() = if (publish19 != null) publish19!!.processColorVkKaraoke else "#A9A9A9"
-    val publish20colorVkKaraoke: String get() = if (publish20 != null) publish20!!.processColorVkKaraoke else "#A9A9A9"
-    val publish21colorVkKaraoke: String get() = if (publish21 != null) publish21!!.processColorVkKaraoke else "#A9A9A9"
-    val publish22colorVkKaraoke: String get() = if (publish22 != null) publish22!!.processColorVkKaraoke else "#A9A9A9"
-    val publish23colorVkKaraoke: String get() = if (publish23 != null) publish23!!.processColorVkKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish10id: Long get() = if (publish10 != null) publish10!!.id else 0
+    @Suppress("unused") val publish11id: Long get() = if (publish11 != null) publish11!!.id else 0
+    @Suppress("unused") val publish12id: Long get() = if (publish12 != null) publish12!!.id else 0
+    @Suppress("unused") val publish13id: Long get() = if (publish13 != null) publish13!!.id else 0
+    @Suppress("unused") val publish14id: Long get() = if (publish14 != null) publish14!!.id else 0
+    @Suppress("unused") val publish15id: Long get() = if (publish15 != null) publish15!!.id else 0
+    @Suppress("unused") val publish16id: Long get() = if (publish16 != null) publish16!!.id else 0
+    @Suppress("unused") val publish17id: Long get() = if (publish17 != null) publish17!!.id else 0
+    @Suppress("unused") val publish18id: Long get() = if (publish18 != null) publish18!!.id else 0
+    @Suppress("unused") val publish19id: Long get() = if (publish19 != null) publish19!!.id else 0
+    @Suppress("unused") val publish20id: Long get() = if (publish20 != null) publish20!!.id else 0
+    @Suppress("unused") val publish21id: Long get() = if (publish21 != null) publish21!!.id else 0
+    @Suppress("unused") val publish22id: Long get() = if (publish22 != null) publish22!!.id else 0
+    @Suppress("unused") val publish23id: Long get() = if (publish23 != null) publish23!!.id else 0
 
 
 
-    val publish10colorDzenLyrics: String get() = if (publish10 != null) publish10!!.processColorDzenLyrics else "#A9A9A9"
-    val publish11colorDzenLyrics: String get() = if (publish11 != null) publish11!!.processColorDzenLyrics else "#A9A9A9"
-    val publish12colorDzenLyrics: String get() = if (publish12 != null) publish12!!.processColorDzenLyrics else "#A9A9A9"
-    val publish13colorDzenLyrics: String get() = if (publish13 != null) publish13!!.processColorDzenLyrics else "#A9A9A9"
-    val publish14colorDzenLyrics: String get() = if (publish14 != null) publish14!!.processColorDzenLyrics else "#A9A9A9"
-    val publish15colorDzenLyrics: String get() = if (publish15 != null) publish15!!.processColorDzenLyrics else "#A9A9A9"
-    val publish16colorDzenLyrics: String get() = if (publish16 != null) publish16!!.processColorDzenLyrics else "#A9A9A9"
-    val publish17colorDzenLyrics: String get() = if (publish17 != null) publish17!!.processColorDzenLyrics else "#A9A9A9"
-    val publish18colorDzenLyrics: String get() = if (publish18 != null) publish18!!.processColorDzenLyrics else "#A9A9A9"
-    val publish19colorDzenLyrics: String get() = if (publish19 != null) publish19!!.processColorDzenLyrics else "#A9A9A9"
-    val publish20colorDzenLyrics: String get() = if (publish20 != null) publish20!!.processColorDzenLyrics else "#A9A9A9"
-    val publish21colorDzenLyrics: String get() = if (publish21 != null) publish21!!.processColorDzenLyrics else "#A9A9A9"
-    val publish22colorDzenLyrics: String get() = if (publish22 != null) publish22!!.processColorDzenLyrics else "#A9A9A9"
-    val publish23colorDzenLyrics: String get() = if (publish23 != null) publish23!!.processColorDzenLyrics else "#A9A9A9"
+    @Suppress("unused") val publish10colorVkLyrics: String get() = if (publish10 != null) publish10!!.processColorVkLyrics else "#A9A9A9"
+    @Suppress("unused") val publish11colorVkLyrics: String get() = if (publish11 != null) publish11!!.processColorVkLyrics else "#A9A9A9"
+    @Suppress("unused") val publish12colorVkLyrics: String get() = if (publish12 != null) publish12!!.processColorVkLyrics else "#A9A9A9"
+    @Suppress("unused") val publish13colorVkLyrics: String get() = if (publish13 != null) publish13!!.processColorVkLyrics else "#A9A9A9"
+    @Suppress("unused") val publish14colorVkLyrics: String get() = if (publish14 != null) publish14!!.processColorVkLyrics else "#A9A9A9"
+    @Suppress("unused") val publish15colorVkLyrics: String get() = if (publish15 != null) publish15!!.processColorVkLyrics else "#A9A9A9"
+    @Suppress("unused") val publish16colorVkLyrics: String get() = if (publish16 != null) publish16!!.processColorVkLyrics else "#A9A9A9"
+    @Suppress("unused") val publish17colorVkLyrics: String get() = if (publish17 != null) publish17!!.processColorVkLyrics else "#A9A9A9"
+    @Suppress("unused") val publish18colorVkLyrics: String get() = if (publish18 != null) publish18!!.processColorVkLyrics else "#A9A9A9"
+    @Suppress("unused") val publish19colorVkLyrics: String get() = if (publish19 != null) publish19!!.processColorVkLyrics else "#A9A9A9"
+    @Suppress("unused") val publish20colorVkLyrics: String get() = if (publish20 != null) publish20!!.processColorVkLyrics else "#A9A9A9"
+    @Suppress("unused") val publish21colorVkLyrics: String get() = if (publish21 != null) publish21!!.processColorVkLyrics else "#A9A9A9"
+    @Suppress("unused") val publish22colorVkLyrics: String get() = if (publish22 != null) publish22!!.processColorVkLyrics else "#A9A9A9"
+    @Suppress("unused") val publish23colorVkLyrics: String get() = if (publish23 != null) publish23!!.processColorVkLyrics else "#A9A9A9"
 
 
-    val publish10colorDzenKaraoke: String get() = if (publish10 != null) publish10!!.processColorDzenKaraoke else "#A9A9A9"
-    val publish11colorDzenKaraoke: String get() = if (publish11 != null) publish11!!.processColorDzenKaraoke else "#A9A9A9"
-    val publish12colorDzenKaraoke: String get() = if (publish12 != null) publish12!!.processColorDzenKaraoke else "#A9A9A9"
-    val publish13colorDzenKaraoke: String get() = if (publish13 != null) publish13!!.processColorDzenKaraoke else "#A9A9A9"
-    val publish14colorDzenKaraoke: String get() = if (publish14 != null) publish14!!.processColorDzenKaraoke else "#A9A9A9"
-    val publish15colorDzenKaraoke: String get() = if (publish15 != null) publish15!!.processColorDzenKaraoke else "#A9A9A9"
-    val publish16colorDzenKaraoke: String get() = if (publish16 != null) publish16!!.processColorDzenKaraoke else "#A9A9A9"
-    val publish17colorDzenKaraoke: String get() = if (publish17 != null) publish17!!.processColorDzenKaraoke else "#A9A9A9"
-    val publish18colorDzenKaraoke: String get() = if (publish18 != null) publish18!!.processColorDzenKaraoke else "#A9A9A9"
-    val publish19colorDzenKaraoke: String get() = if (publish19 != null) publish19!!.processColorDzenKaraoke else "#A9A9A9"
-    val publish20colorDzenKaraoke: String get() = if (publish20 != null) publish20!!.processColorDzenKaraoke else "#A9A9A9"
-    val publish21colorDzenKaraoke: String get() = if (publish21 != null) publish21!!.processColorDzenKaraoke else "#A9A9A9"
-    val publish22colorDzenKaraoke: String get() = if (publish22 != null) publish22!!.processColorDzenKaraoke else "#A9A9A9"
-    val publish23colorDzenKaraoke: String get() = if (publish23 != null) publish23!!.processColorDzenKaraoke else "#A9A9A9"
-
-
-
-    val publish10colorTelegramLyrics: String get() = if (publish10 != null) publish10!!.processColorTelegramLyrics else "#A9A9A9"
-    val publish11colorTelegramLyrics: String get() = if (publish11 != null) publish11!!.processColorTelegramLyrics else "#A9A9A9"
-    val publish12colorTelegramLyrics: String get() = if (publish12 != null) publish12!!.processColorTelegramLyrics else "#A9A9A9"
-    val publish13colorTelegramLyrics: String get() = if (publish13 != null) publish13!!.processColorTelegramLyrics else "#A9A9A9"
-    val publish14colorTelegramLyrics: String get() = if (publish14 != null) publish14!!.processColorTelegramLyrics else "#A9A9A9"
-    val publish15colorTelegramLyrics: String get() = if (publish15 != null) publish15!!.processColorTelegramLyrics else "#A9A9A9"
-    val publish16colorTelegramLyrics: String get() = if (publish16 != null) publish16!!.processColorTelegramLyrics else "#A9A9A9"
-    val publish17colorTelegramLyrics: String get() = if (publish17 != null) publish17!!.processColorTelegramLyrics else "#A9A9A9"
-    val publish18colorTelegramLyrics: String get() = if (publish18 != null) publish18!!.processColorTelegramLyrics else "#A9A9A9"
-    val publish19colorTelegramLyrics: String get() = if (publish19 != null) publish19!!.processColorTelegramLyrics else "#A9A9A9"
-    val publish20colorTelegramLyrics: String get() = if (publish20 != null) publish20!!.processColorTelegramLyrics else "#A9A9A9"
-    val publish21colorTelegramLyrics: String get() = if (publish21 != null) publish21!!.processColorTelegramLyrics else "#A9A9A9"
-    val publish22colorTelegramLyrics: String get() = if (publish22 != null) publish22!!.processColorTelegramLyrics else "#A9A9A9"
-    val publish23colorTelegramLyrics: String get() = if (publish23 != null) publish23!!.processColorTelegramLyrics else "#A9A9A9"
-
-
-    val publish10colorTelegramKaraoke: String get() = if (publish10 != null) publish10!!.processColorTelegramKaraoke else "#A9A9A9"
-    val publish11colorTelegramKaraoke: String get() = if (publish11 != null) publish11!!.processColorTelegramKaraoke else "#A9A9A9"
-    val publish12colorTelegramKaraoke: String get() = if (publish12 != null) publish12!!.processColorTelegramKaraoke else "#A9A9A9"
-    val publish13colorTelegramKaraoke: String get() = if (publish13 != null) publish13!!.processColorTelegramKaraoke else "#A9A9A9"
-    val publish14colorTelegramKaraoke: String get() = if (publish14 != null) publish14!!.processColorTelegramKaraoke else "#A9A9A9"
-    val publish15colorTelegramKaraoke: String get() = if (publish15 != null) publish15!!.processColorTelegramKaraoke else "#A9A9A9"
-    val publish16colorTelegramKaraoke: String get() = if (publish16 != null) publish16!!.processColorTelegramKaraoke else "#A9A9A9"
-    val publish17colorTelegramKaraoke: String get() = if (publish17 != null) publish17!!.processColorTelegramKaraoke else "#A9A9A9"
-    val publish18colorTelegramKaraoke: String get() = if (publish18 != null) publish18!!.processColorTelegramKaraoke else "#A9A9A9"
-    val publish19colorTelegramKaraoke: String get() = if (publish19 != null) publish19!!.processColorTelegramKaraoke else "#A9A9A9"
-    val publish20colorTelegramKaraoke: String get() = if (publish20 != null) publish20!!.processColorTelegramKaraoke else "#A9A9A9"
-    val publish21colorTelegramKaraoke: String get() = if (publish21 != null) publish21!!.processColorTelegramKaraoke else "#A9A9A9"
-    val publish22colorTelegramKaraoke: String get() = if (publish22 != null) publish22!!.processColorTelegramKaraoke else "#A9A9A9"
-    val publish23colorTelegramKaraoke: String get() = if (publish23 != null) publish23!!.processColorTelegramKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish10colorVkKaraoke: String get() = if (publish10 != null) publish10!!.processColorVkKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish11colorVkKaraoke: String get() = if (publish11 != null) publish11!!.processColorVkKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish12colorVkKaraoke: String get() = if (publish12 != null) publish12!!.processColorVkKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish13colorVkKaraoke: String get() = if (publish13 != null) publish13!!.processColorVkKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish14colorVkKaraoke: String get() = if (publish14 != null) publish14!!.processColorVkKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish15colorVkKaraoke: String get() = if (publish15 != null) publish15!!.processColorVkKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish16colorVkKaraoke: String get() = if (publish16 != null) publish16!!.processColorVkKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish17colorVkKaraoke: String get() = if (publish17 != null) publish17!!.processColorVkKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish18colorVkKaraoke: String get() = if (publish18 != null) publish18!!.processColorVkKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish19colorVkKaraoke: String get() = if (publish19 != null) publish19!!.processColorVkKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish20colorVkKaraoke: String get() = if (publish20 != null) publish20!!.processColorVkKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish21colorVkKaraoke: String get() = if (publish21 != null) publish21!!.processColorVkKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish22colorVkKaraoke: String get() = if (publish22 != null) publish22!!.processColorVkKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish23colorVkKaraoke: String get() = if (publish23 != null) publish23!!.processColorVkKaraoke else "#A9A9A9"
 
 
 
-    val publish10colorVk: String get() = if (publish10 != null) publish10!!.processColorVk else "#A9A9A9"
-    val publish11colorVk: String get() = if (publish11 != null) publish11!!.processColorVk else "#A9A9A9"
-    val publish12colorVk: String get() = if (publish12 != null) publish12!!.processColorVk else "#A9A9A9"
-    val publish13colorVk: String get() = if (publish13 != null) publish13!!.processColorVk else "#A9A9A9"
-    val publish14colorVk: String get() = if (publish14 != null) publish14!!.processColorVk else "#A9A9A9"
-    val publish15colorVk: String get() = if (publish15 != null) publish15!!.processColorVk else "#A9A9A9"
-    val publish16colorVk: String get() = if (publish16 != null) publish16!!.processColorVk else "#A9A9A9"
-    val publish17colorVk: String get() = if (publish17 != null) publish17!!.processColorVk else "#A9A9A9"
-    val publish18colorVk: String get() = if (publish18 != null) publish18!!.processColorVk else "#A9A9A9"
-    val publish19colorVk: String get() = if (publish19 != null) publish19!!.processColorVk else "#A9A9A9"
-    val publish20colorVk: String get() = if (publish20 != null) publish20!!.processColorVk else "#A9A9A9"
-    val publish21colorVk: String get() = if (publish21 != null) publish21!!.processColorVk else "#A9A9A9"
-    val publish22colorVk: String get() = if (publish22 != null) publish22!!.processColorVk else "#A9A9A9"
-    val publish23colorVk: String get() = if (publish23 != null) publish23!!.processColorVk else "#A9A9A9"
+    @Suppress("unused") val publish10colorDzenLyrics: String get() = if (publish10 != null) publish10!!.processColorDzenLyrics else "#A9A9A9"
+    @Suppress("unused") val publish11colorDzenLyrics: String get() = if (publish11 != null) publish11!!.processColorDzenLyrics else "#A9A9A9"
+    @Suppress("unused") val publish12colorDzenLyrics: String get() = if (publish12 != null) publish12!!.processColorDzenLyrics else "#A9A9A9"
+    @Suppress("unused") val publish13colorDzenLyrics: String get() = if (publish13 != null) publish13!!.processColorDzenLyrics else "#A9A9A9"
+    @Suppress("unused") val publish14colorDzenLyrics: String get() = if (publish14 != null) publish14!!.processColorDzenLyrics else "#A9A9A9"
+    @Suppress("unused") val publish15colorDzenLyrics: String get() = if (publish15 != null) publish15!!.processColorDzenLyrics else "#A9A9A9"
+    @Suppress("unused") val publish16colorDzenLyrics: String get() = if (publish16 != null) publish16!!.processColorDzenLyrics else "#A9A9A9"
+    @Suppress("unused") val publish17colorDzenLyrics: String get() = if (publish17 != null) publish17!!.processColorDzenLyrics else "#A9A9A9"
+    @Suppress("unused") val publish18colorDzenLyrics: String get() = if (publish18 != null) publish18!!.processColorDzenLyrics else "#A9A9A9"
+    @Suppress("unused") val publish19colorDzenLyrics: String get() = if (publish19 != null) publish19!!.processColorDzenLyrics else "#A9A9A9"
+    @Suppress("unused") val publish20colorDzenLyrics: String get() = if (publish20 != null) publish20!!.processColorDzenLyrics else "#A9A9A9"
+    @Suppress("unused") val publish21colorDzenLyrics: String get() = if (publish21 != null) publish21!!.processColorDzenLyrics else "#A9A9A9"
+    @Suppress("unused") val publish22colorDzenLyrics: String get() = if (publish22 != null) publish22!!.processColorDzenLyrics else "#A9A9A9"
+    @Suppress("unused") val publish23colorDzenLyrics: String get() = if (publish23 != null) publish23!!.processColorDzenLyrics else "#A9A9A9"
+
+
+    @Suppress("unused") val publish10colorDzenKaraoke: String get() = if (publish10 != null) publish10!!.processColorDzenKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish11colorDzenKaraoke: String get() = if (publish11 != null) publish11!!.processColorDzenKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish12colorDzenKaraoke: String get() = if (publish12 != null) publish12!!.processColorDzenKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish13colorDzenKaraoke: String get() = if (publish13 != null) publish13!!.processColorDzenKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish14colorDzenKaraoke: String get() = if (publish14 != null) publish14!!.processColorDzenKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish15colorDzenKaraoke: String get() = if (publish15 != null) publish15!!.processColorDzenKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish16colorDzenKaraoke: String get() = if (publish16 != null) publish16!!.processColorDzenKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish17colorDzenKaraoke: String get() = if (publish17 != null) publish17!!.processColorDzenKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish18colorDzenKaraoke: String get() = if (publish18 != null) publish18!!.processColorDzenKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish19colorDzenKaraoke: String get() = if (publish19 != null) publish19!!.processColorDzenKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish20colorDzenKaraoke: String get() = if (publish20 != null) publish20!!.processColorDzenKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish21colorDzenKaraoke: String get() = if (publish21 != null) publish21!!.processColorDzenKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish22colorDzenKaraoke: String get() = if (publish22 != null) publish22!!.processColorDzenKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish23colorDzenKaraoke: String get() = if (publish23 != null) publish23!!.processColorDzenKaraoke else "#A9A9A9"
 
 
 
-    val publish10colorBoosty: String get() = if (publish10 != null) publish10!!.processColorBoosty else "#A9A9A9"
-    val publish11colorBoosty: String get() = if (publish11 != null) publish11!!.processColorBoosty else "#A9A9A9"
-    val publish12colorBoosty: String get() = if (publish12 != null) publish12!!.processColorBoosty else "#A9A9A9"
-    val publish13colorBoosty: String get() = if (publish13 != null) publish13!!.processColorBoosty else "#A9A9A9"
-    val publish14colorBoosty: String get() = if (publish14 != null) publish14!!.processColorBoosty else "#A9A9A9"
-    val publish15colorBoosty: String get() = if (publish15 != null) publish15!!.processColorBoosty else "#A9A9A9"
-    val publish16colorBoosty: String get() = if (publish16 != null) publish16!!.processColorBoosty else "#A9A9A9"
-    val publish17colorBoosty: String get() = if (publish17 != null) publish17!!.processColorBoosty else "#A9A9A9"
-    val publish18colorBoosty: String get() = if (publish18 != null) publish18!!.processColorBoosty else "#A9A9A9"
-    val publish19colorBoosty: String get() = if (publish19 != null) publish19!!.processColorBoosty else "#A9A9A9"
-    val publish20colorBoosty: String get() = if (publish20 != null) publish20!!.processColorBoosty else "#A9A9A9"
-    val publish21colorBoosty: String get() = if (publish21 != null) publish21!!.processColorBoosty else "#A9A9A9"
-    val publish22colorBoosty: String get() = if (publish22 != null) publish22!!.processColorBoosty else "#A9A9A9"
-    val publish23colorBoosty: String get() = if (publish23 != null) publish23!!.processColorBoosty else "#A9A9A9"
+    @Suppress("unused") val publish10colorTelegramLyrics: String get() = if (publish10 != null) publish10!!.processColorTelegramLyrics else "#A9A9A9"
+    @Suppress("unused") val publish11colorTelegramLyrics: String get() = if (publish11 != null) publish11!!.processColorTelegramLyrics else "#A9A9A9"
+    @Suppress("unused") val publish12colorTelegramLyrics: String get() = if (publish12 != null) publish12!!.processColorTelegramLyrics else "#A9A9A9"
+    @Suppress("unused") val publish13colorTelegramLyrics: String get() = if (publish13 != null) publish13!!.processColorTelegramLyrics else "#A9A9A9"
+    @Suppress("unused") val publish14colorTelegramLyrics: String get() = if (publish14 != null) publish14!!.processColorTelegramLyrics else "#A9A9A9"
+    @Suppress("unused") val publish15colorTelegramLyrics: String get() = if (publish15 != null) publish15!!.processColorTelegramLyrics else "#A9A9A9"
+    @Suppress("unused") val publish16colorTelegramLyrics: String get() = if (publish16 != null) publish16!!.processColorTelegramLyrics else "#A9A9A9"
+    @Suppress("unused") val publish17colorTelegramLyrics: String get() = if (publish17 != null) publish17!!.processColorTelegramLyrics else "#A9A9A9"
+    @Suppress("unused") val publish18colorTelegramLyrics: String get() = if (publish18 != null) publish18!!.processColorTelegramLyrics else "#A9A9A9"
+    @Suppress("unused") val publish19colorTelegramLyrics: String get() = if (publish19 != null) publish19!!.processColorTelegramLyrics else "#A9A9A9"
+    @Suppress("unused") val publish20colorTelegramLyrics: String get() = if (publish20 != null) publish20!!.processColorTelegramLyrics else "#A9A9A9"
+    @Suppress("unused") val publish21colorTelegramLyrics: String get() = if (publish21 != null) publish21!!.processColorTelegramLyrics else "#A9A9A9"
+    @Suppress("unused") val publish22colorTelegramLyrics: String get() = if (publish22 != null) publish22!!.processColorTelegramLyrics else "#A9A9A9"
+    @Suppress("unused") val publish23colorTelegramLyrics: String get() = if (publish23 != null) publish23!!.processColorTelegramLyrics else "#A9A9A9"
+
+
+    @Suppress("unused") val publish10colorTelegramKaraoke: String get() = if (publish10 != null) publish10!!.processColorTelegramKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish11colorTelegramKaraoke: String get() = if (publish11 != null) publish11!!.processColorTelegramKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish12colorTelegramKaraoke: String get() = if (publish12 != null) publish12!!.processColorTelegramKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish13colorTelegramKaraoke: String get() = if (publish13 != null) publish13!!.processColorTelegramKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish14colorTelegramKaraoke: String get() = if (publish14 != null) publish14!!.processColorTelegramKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish15colorTelegramKaraoke: String get() = if (publish15 != null) publish15!!.processColorTelegramKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish16colorTelegramKaraoke: String get() = if (publish16 != null) publish16!!.processColorTelegramKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish17colorTelegramKaraoke: String get() = if (publish17 != null) publish17!!.processColorTelegramKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish18colorTelegramKaraoke: String get() = if (publish18 != null) publish18!!.processColorTelegramKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish19colorTelegramKaraoke: String get() = if (publish19 != null) publish19!!.processColorTelegramKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish20colorTelegramKaraoke: String get() = if (publish20 != null) publish20!!.processColorTelegramKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish21colorTelegramKaraoke: String get() = if (publish21 != null) publish21!!.processColorTelegramKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish22colorTelegramKaraoke: String get() = if (publish22 != null) publish22!!.processColorTelegramKaraoke else "#A9A9A9"
+    @Suppress("unused") val publish23colorTelegramKaraoke: String get() = if (publish23 != null) publish23!!.processColorTelegramKaraoke else "#A9A9A9"
+
+
+
+    @Suppress("unused") val publish10colorVk: String get() = if (publish10 != null) publish10!!.processColorVk else "#A9A9A9"
+    @Suppress("unused") val publish11colorVk: String get() = if (publish11 != null) publish11!!.processColorVk else "#A9A9A9"
+    @Suppress("unused") val publish12colorVk: String get() = if (publish12 != null) publish12!!.processColorVk else "#A9A9A9"
+    @Suppress("unused") val publish13colorVk: String get() = if (publish13 != null) publish13!!.processColorVk else "#A9A9A9"
+    @Suppress("unused") val publish14colorVk: String get() = if (publish14 != null) publish14!!.processColorVk else "#A9A9A9"
+    @Suppress("unused") val publish15colorVk: String get() = if (publish15 != null) publish15!!.processColorVk else "#A9A9A9"
+    @Suppress("unused") val publish16colorVk: String get() = if (publish16 != null) publish16!!.processColorVk else "#A9A9A9"
+    @Suppress("unused") val publish17colorVk: String get() = if (publish17 != null) publish17!!.processColorVk else "#A9A9A9"
+    @Suppress("unused") val publish18colorVk: String get() = if (publish18 != null) publish18!!.processColorVk else "#A9A9A9"
+    @Suppress("unused") val publish19colorVk: String get() = if (publish19 != null) publish19!!.processColorVk else "#A9A9A9"
+    @Suppress("unused") val publish20colorVk: String get() = if (publish20 != null) publish20!!.processColorVk else "#A9A9A9"
+    @Suppress("unused") val publish21colorVk: String get() = if (publish21 != null) publish21!!.processColorVk else "#A9A9A9"
+    @Suppress("unused") val publish22colorVk: String get() = if (publish22 != null) publish22!!.processColorVk else "#A9A9A9"
+    @Suppress("unused") val publish23colorVk: String get() = if (publish23 != null) publish23!!.processColorVk else "#A9A9A9"
+
+
+
+    @Suppress("unused") val publish10colorBoosty: String get() = if (publish10 != null) publish10!!.processColorBoosty else "#A9A9A9"
+    @Suppress("unused") val publish11colorBoosty: String get() = if (publish11 != null) publish11!!.processColorBoosty else "#A9A9A9"
+    @Suppress("unused") val publish12colorBoosty: String get() = if (publish12 != null) publish12!!.processColorBoosty else "#A9A9A9"
+    @Suppress("unused") val publish13colorBoosty: String get() = if (publish13 != null) publish13!!.processColorBoosty else "#A9A9A9"
+    @Suppress("unused") val publish14colorBoosty: String get() = if (publish14 != null) publish14!!.processColorBoosty else "#A9A9A9"
+    @Suppress("unused") val publish15colorBoosty: String get() = if (publish15 != null) publish15!!.processColorBoosty else "#A9A9A9"
+    @Suppress("unused") val publish16colorBoosty: String get() = if (publish16 != null) publish16!!.processColorBoosty else "#A9A9A9"
+    @Suppress("unused") val publish17colorBoosty: String get() = if (publish17 != null) publish17!!.processColorBoosty else "#A9A9A9"
+    @Suppress("unused") val publish18colorBoosty: String get() = if (publish18 != null) publish18!!.processColorBoosty else "#A9A9A9"
+    @Suppress("unused") val publish19colorBoosty: String get() = if (publish19 != null) publish19!!.processColorBoosty else "#A9A9A9"
+    @Suppress("unused") val publish20colorBoosty: String get() = if (publish20 != null) publish20!!.processColorBoosty else "#A9A9A9"
+    @Suppress("unused") val publish21colorBoosty: String get() = if (publish21 != null) publish21!!.processColorBoosty else "#A9A9A9"
+    @Suppress("unused") val publish22colorBoosty: String get() = if (publish22 != null) publish22!!.processColorBoosty else "#A9A9A9"
+    @Suppress("unused") val publish23colorBoosty: String get() = if (publish23 != null) publish23!!.processColorBoosty else "#A9A9A9"
 
 
     override fun compareTo(other: Publication): Int {
@@ -330,7 +330,7 @@ class Publication(val database: KaraokeConnection = WORKING_DATABASE) : Serializ
 
     companion object {
         fun getPublicationList(args: Map<String, String> = emptyMap(), database: KaraokeConnection): List<Publication> {
-            var result: MutableList<Publication> = mutableListOf()
+            val result: MutableList<Publication> = mutableListOf()
 
             var filterDateFrom =  args["filter_date_from"] ?: ""
             var filterDateTo =  args["filter_date_to"] ?: ""
@@ -405,7 +405,7 @@ class Publication(val database: KaraokeConnection = WORKING_DATABASE) : Serializ
             }
 
             listOfSettings.forEach { settings ->
-                var publicationInList = result.filter { it.publishDate == settings.date }.firstOrNull()
+                var publicationInList = result.firstOrNull { it.publishDate == settings.date }
                 if (publicationInList == null) {
                     publicationInList = Publication(database)
                     publicationInList.publishDate = settings.date
@@ -434,7 +434,7 @@ class Publication(val database: KaraokeConnection = WORKING_DATABASE) : Serializ
         }
 
         fun getUnPublicationList(database: KaraokeConnection): MutableList<MutableList<Publication>> {
-            var result: MutableList<MutableList<Publication>> = mutableListOf()
+            val result: MutableList<MutableList<Publication>> = mutableListOf()
 
             val skipedAuthors = Author.loadList(mapOf("skip" to "true"), database = database).map { it.author }
 
@@ -446,7 +446,7 @@ class Publication(val database: KaraokeConnection = WORKING_DATABASE) : Serializ
                     .sortedBy { it.size }
 
             val listStack: MutableList<Stack<Settings?>> = mutableListOf()
-            for (i in listUnpublished.indices) {
+            for (@Suppress("unused") i in listUnpublished.indices) {
                 listStack.add(Stack<Settings?>())
             }
 
@@ -457,27 +457,29 @@ class Publication(val database: KaraokeConnection = WORKING_DATABASE) : Serializ
             }
 
             var i = 0
-            while (listStack.map { it.size }.max() > 0) {
-                i++
-                val publicationInList: MutableList<Publication> = mutableListOf()
-                for (i in listUnpublished.indices) {
-                    val publication = Publication(database)
-                    publication.publish10 =
-                        if (listStack[i].size > 0) {
-                            listStack[i].pop()
-                        } else {
-                            null
-                        }
-                    publicationInList.add(publication)
+            listStack.maxOfOrNull { it.size }?.let {
+                while (it > 0) {
+                    i++
+                    val publicationInList: MutableList<Publication> = mutableListOf()
+                    for (i in listUnpublished.indices) {
+                        val publication = Publication(database)
+                        publication.publish10 =
+                            if (listStack[i].isNotEmpty()) {
+                                listStack[i].pop()
+                            } else {
+                                null
+                            }
+                        publicationInList.add(publication)
+                    }
+                    result.add(publicationInList)
                 }
-                result.add(publicationInList)
             }
 
             return result
         }
 
         fun getSkipedPublicationList(database: KaraokeConnection): MutableList<MutableList<Publication>> {
-            var result: MutableList<MutableList<Publication>> = mutableListOf()
+            val result: MutableList<MutableList<Publication>> = mutableListOf()
 
             val skipedAuthors = Author.loadList(mapOf("skip" to "true"), database = database).map { it.author }
 
@@ -489,7 +491,7 @@ class Publication(val database: KaraokeConnection = WORKING_DATABASE) : Serializ
                             .sortedBy { it.size }
 
             val listStack: MutableList<Stack<Settings?>> = mutableListOf()
-            for (i in listUnpublished.indices) {
+            for (@Suppress("unused") i in listUnpublished.indices) {
                 listStack.add(Stack<Settings?>())
             }
 
@@ -500,20 +502,22 @@ class Publication(val database: KaraokeConnection = WORKING_DATABASE) : Serializ
             }
 
             var i = 0
-            while (listStack.map { it.size }.max() > 0) {
-                i++
-                val publicationInList: MutableList<Publication> = mutableListOf()
-                for (i in listUnpublished.indices) {
-                    val publication = Publication(database)
-                    publication.publish10 =
-                            if (listStack[i].size > 0) {
+            listStack.maxOfOrNull { it.size }?.let {
+                while (it > 0) {
+                    i++
+                    val publicationInList: MutableList<Publication> = mutableListOf()
+                    for (i in listUnpublished.indices) {
+                        val publication = Publication(database)
+                        publication.publish10 =
+                            if (listStack[i].isNotEmpty()) {
                                 listStack[i].pop()
                             } else {
                                 null
                             }
-                    publicationInList.add(publication)
+                        publicationInList.add(publication)
+                    }
+                    result.add(publicationInList)
                 }
-                result.add(publicationInList)
             }
 
             return result

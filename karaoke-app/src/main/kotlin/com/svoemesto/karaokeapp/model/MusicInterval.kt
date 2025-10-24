@@ -35,7 +35,7 @@ enum class MusicInterval (val halfTones: Int, val text: String) : Serializable {
         // Список интервал-нота-октава
         fun getIntervals(rootMusicNote: MusicNote, rootOctave: Int = 0): List<Triple<MusicInterval, MusicNote, Int>> {
             val result: MutableList<Triple<MusicInterval, MusicNote, Int>> = mutableListOf()
-            MusicInterval.values().forEach { mi ->
+            entries.forEach { mi ->
                 val (note, octave) = mi.getMusicNote(rootMusicNote, rootOctave)
                 result.add(Triple(mi, note, octave))
             }
@@ -47,6 +47,6 @@ enum class MusicInterval (val halfTones: Int, val text: String) : Serializable {
 
 fun MusicInterval.getMusicNote(rootMusicNote: MusicNote, rootOctave: Int = 0): Pair<MusicNote, Int> =
     Pair(
-        MusicNote.values()[(MusicNote.values().indexOf(rootMusicNote) + halfTones) % 12],
-        (MusicNote.values().indexOf(rootMusicNote) + halfTones) / 12 + rootOctave
+        MusicNote.entries[(MusicNote.entries.indexOf(rootMusicNote) + halfTones) % 12],
+        (MusicNote.entries.indexOf(rootMusicNote) + halfTones) / 12 + rootOctave
     )

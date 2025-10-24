@@ -59,7 +59,7 @@ class Converter {
                 partsGroups.forEach { partGroup ->
                     val partsFields = partGroup.split(delimiterFields)
                     var songtextTextMltText: MltText? = null
-                    var songtextBeatMltText: MltText? = null
+//                    val songtextBeatMltText: MltText? = null
                     partsFields.forEach { partField ->
                         val parts = partField.split(delimiterNames)
                         val partName = parts[0]
@@ -127,7 +127,7 @@ class Converter {
             var underline = 0
             var outline = 0
 
-            var fontSize = 100
+//            val fontSize = 100
             if (parts.size == 13) {
                 parts.forEach {part ->
                     val nameAndValue = part.split("=")
@@ -213,6 +213,7 @@ class Converter {
             return MltShape(type = type, shapeColor = Color(fcr,fcg,fcb,fca), shapeOutlineColor = Color(ocr,ocg,ocb,oca), shapeOutline = outline)
         }
 
+        @Suppress("unused")
         fun getFontFromString(settingString: String): Font {
             val parts = settingString.split(";")
             var fontName = "Tahoma"
@@ -247,10 +248,10 @@ class Converter {
 
         fun getColorFromString(settingString: String): Color {
             val parts = settingString.split(";")
-            var colorR: Int = 255
-            var colorG: Int = 255
-            var colorB: Int = 255
-            var colorA: Int = 255
+            var colorR = 255
+            var colorG = 255
+            var colorB = 255
+            var colorA = 255
             if (parts.size == 4) {
                 parts.forEach {part ->
                     val nameAndValue = part.split("=")

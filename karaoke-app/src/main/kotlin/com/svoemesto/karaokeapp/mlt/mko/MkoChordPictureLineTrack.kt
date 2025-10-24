@@ -17,12 +17,13 @@ data class MkoChordPictureLineTrack(val mltProp: MltProp, val type: ProducerType
     override fun filePlaylist(): MltNode {
         val result = mltGenerator.filePlaylist()
         result.body?.let {
+            @Suppress("UNCHECKED_CAST")
             val body = it as MutableList<MltNode>
 
             val chordsInTrack = chords.filter { chord -> chord.chordPictureTrackId == trackId }
-            var chordPictureStartMsPrev = 0L
+//            var chordPictureStartMsPrev = 0L
             var chordPictureEndMsPrev = 0L
-            var chordPictureDurationMsPrev = 0L
+//            var chordPictureDurationMsPrev = 0L
 
             chordsInTrack.forEach { chord ->
 
@@ -66,9 +67,9 @@ data class MkoChordPictureLineTrack(val mltProp: MltProp, val type: ProducerType
                     )
                 )
 
-                chordPictureStartMsPrev = scrollLineStartMs
+//                chordPictureStartMsPrev = scrollLineStartMs
                 chordPictureEndMsPrev = scrollLineEndMs
-                chordPictureDurationMsPrev = scrollChordLineDurationMs
+//                chordPictureDurationMsPrev = scrollChordLineDurationMs
 
             }
 

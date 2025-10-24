@@ -1,8 +1,7 @@
+//@file:Suppress("unused")
 package com.svoemesto.karaokeapp.controllers
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.node.ObjectNode
-import com.svoemesto.karaokeapp.model.RecordChangeMessage
 import com.svoemesto.karaokeapp.model.SseNotification
 import jakarta.annotation.PreDestroy
 import org.springframework.stereotype.Service
@@ -12,8 +11,8 @@ import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
 class Notification<out T>(
-    val userId: Long,
-    val payload: T? = null,
+    @Suppress("unused") val userId: Long,
+    @Suppress("unused") val payload: T? = null,
     val timestamp: Long = System.currentTimeMillis()) : Serializable
 
 data class UserKey(
@@ -60,7 +59,7 @@ class SseNotificationService(private val mapper: ObjectMapper) {
                     }
                 }
                 if (staleEmitters.isNotEmpty()) {
-                    val before = userEmitters.size
+//                    val before = userEmitters.size
                     staleEmitters.forEach { stale ->
                         userEmitters.removeIf { it === stale }
                         // если больше не осталось эмиттеров по данному ключу, то удалим ключ из мапы

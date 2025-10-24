@@ -6,33 +6,33 @@ import com.svoemesto.karaokeapp.textfiledictionary.CensoredWordsDictionary
 import com.svoemesto.karaokeapp.textfiledictionary.SyncIdsDictionary
 import com.svoemesto.karaokeapp.textfiledictionary.TestDictionary
 import com.svoemesto.karaokeapp.textfiledictionary.YoWordsDictionary
-const val LIMIT_ROWS_SETTINGS_TABLE_UPDATE = 1000
-const val LIMIT_ROWS_PICTURES_TABLE_UPDATE = 100
+//const val LIMIT_ROWS_SETTINGS_TABLE_UPDATE = 1000
+//const val LIMIT_ROWS_PICTURES_TABLE_UPDATE = 100
 const val CURRENT_RESULT_VERSION = 11L
 const val COUNT_HISTORY_LINES = 30
 const val PATH_TO_TEMP_DEMUCS_FOLDER = "/sm-karaoke/system/demucs-docker/tmp"
 const val PATH_TO_TEMP_KEYBPMFINDER_FOLDER = "/sm-karaoke/system/keybpmfinder-docker/tmp"
-const val COLOR_ALL_DONE = "#7FFFD4"        // Полностью готово
-const val COLOR_OVERDUE = "#BDB76B"         // Публикация прошла, но не все ссылки заполнены
-const val COLOR_TODAY = "#FFFF00"           // Сегодня
-const val COLOR_ALL_UPLOADED = "#DCDCDC"    // Готово к публикации (всё загружено)
-const val COLOR_WO_TG = "#87CEFA"           // Нет TG
-const val COLOR_WO_VK = "#FFDAB9"           // Нет VK
-const val COLOR_WO_DZEN = "#FF8000"         // Нет DZEN
-const val COLOR_WO_VKG = "#FFC880"         // Нет VKG
+//const val COLOR_ALL_DONE = "#7FFFD4"        // Полностью готово
+//const val COLOR_OVERDUE = "#BDB76B"         // Публикация прошла, но не все ссылки заполнены
+//const val COLOR_TODAY = "#FFFF00"           // Сегодня
+//const val COLOR_ALL_UPLOADED = "#DCDCDC"    // Готово к публикации (всё загружено)
+//const val COLOR_WO_TG = "#87CEFA"           // Нет TG
+//const val COLOR_WO_VK = "#FFDAB9"           // Нет VK
+//const val COLOR_WO_DZEN = "#FF8000"         // Нет DZEN
+//const val COLOR_WO_VKG = "#FFC880"         // Нет VKG
 
-val symbolsWeightCoeff: Map<String, Double> = mapOf(
-    "●" to 1.0,
-    "∙" to 1.0,
-    "◉" to 1.0,
-    "♪" to 1.0,
-)
+//val symbolsWeightCoeff: Map<String, Double> = mapOf(
+//    "●" to 1.0,
+//    "∙" to 1.0,
+//    "◉" to 1.0,
+//    "♪" to 1.0
+//)
 
-val delimiterVoices = "|[VOICE]|"
-val delimiterGroups = "|[GROUP]|"
-val delimiterFields = "|[FIELD]|"
-val delimiterVoiceFields = "|[VOICEFIELDS]|"
-val delimiterNames = "|[NAME]|"
+const val delimiterVoices = "|[VOICE]|"
+const val delimiterGroups = "|[GROUP]|"
+const val delimiterFields = "|[FIELD]|"
+const val delimiterVoiceFields = "|[VOICEFIELDS]|"
+const val delimiterNames = "|[NAME]|"
 
 //const val MAIN_FONT_NAME = "Roboto"
 const val MAIN_FONT_NAME = "Roboto Black"
@@ -42,43 +42,43 @@ const val MELODY_NOTE_FONT_NAME = "Fira Sans Extra Condensed Medium"
 const val MELODY_OCTAVE_FONT_NAME = "Fira Sans Extra Condensed Medium"
 //const val MAIN_FONT_NAME = "Ubuntu Light"
 //const val MAIN_FONT_NAME = "Montserrat SemiBold"
-const val LINE_SPACING = 0L
-const val SHADOW = "1;#64000000;3;3;3"
-const val ALIGNMENT = 0L
-const val TYPEWRITER = "0;2;1;0;0"
-val vovels = "ёуеыаоэяиюeuioaїієѣ"
+//const val LINE_SPACING = 0L
+//const val SHADOW = "1;#64000000;3;3;3"
+//const val ALIGNMENT = 0L
+//const val TYPEWRITER = "0;2;1;0;0"
+const val vovels = "ёуеыаоэяиюeuioaїієѣ"
 val LETTERS_VOWEL = "${vovels}${vovels.uppercase()}♪"
 const val NOTES_SYMBOLS = "♬♩♪△▲⬦⬥"
-const val RUSSIN_LETTERS = "ЙЦУКЕНГШЩЗХЪФЫВАПРОЛДЖЭЯЧСМИТЬБЮЁйцукенгшщзхъфывапролджэячсмитьбюё"
+const val RUSSIAN_LETTERS = "ЙЦУКЕНГШЩЗХЪФЫВАПРОЛДЖЭЯЧСМИТЬБЮЁйцукенгшщзхъфывапролджэячсмитьбюё"
 const val ENGLISH_LETTERS = "QWERTYUIOPASDFGHJKLZXCVBNMqwertyuiopasdfghjklzxcvbnm"
 const val DEMUCS_MODEL_NAME = "hdemucs_mmi"
 
-const val PATH_TO_FFMPEG = "/bin/ffmpeg"
-const val PATH_TO_FFPLAY = "/bin/ffplay"
-const val PATH_TO_FFPROBE = "/bin/ffprobe"
-const val PATH_TO_PROFILES = "/usr/share/mlt-7/profiles"
-const val PATH_TO_MELT = "/bin/melt"
+//const val PATH_TO_FFMPEG = "/bin/ffmpeg"
+//const val PATH_TO_FFPLAY = "/bin/ffplay"
+//const val PATH_TO_FFPROBE = "/bin/ffprobe"
+//const val PATH_TO_PROFILES = "/usr/share/mlt-7/profiles"
+//const val PATH_TO_MELT = "/bin/melt"
 const val PATH_TO_MEDIAINFO = "/bin/mediainfo"
 const val PATH_TO_ODS = "/sm-karaoke/system/Караоке.ods"
 const val PATH_TO_LOGS = "/sm-karaoke/system/logs"
 
 const val ODS_COLUMN_DATE = "Дата"
 const val ODS_COLUMN_TIME = "Время"
-const val ODS_COLUMN_AUTHOR = "Исполнитель"
+//const val ODS_COLUMN_AUTHOR = "Исполнитель"
 const val ODS_COLUMN_YEAR = "Год"
 const val ODS_COLUMN_ALBUM = "Альбом"
 const val ODS_COLUMN_TRACK = "Трек"
-const val ODS_COLUMN_SONG = "Композиция"
+//const val ODS_COLUMN_SONG = "Композиция"
 const val ODS_COLUMN_TONE = "Тональность"
 const val ODS_COLUMN_BPM = "Темп"
 const val ODS_COLUMN_FORMAT = "Формат"
 const val ODS_COLUMN_BOOSTY = "Boosty"
-const val ODS_COLUMN_DZEN_LIRIC = "Lyric"
-const val ODS_COLUMN_DZEN_LIRIC_BT = "Lyric BT"
+const val ODS_COLUMN_DZEN_LYRIC = "Lyric"
+//const val ODS_COLUMN_DZEN_LYRIC_BT = "Lyric BT"
 const val ODS_COLUMN_DZEN_KARAOKE = "Karaoke"
-const val ODS_COLUMN_DZEN_KARAOKE_BT = "Karaoke BT"
+//const val ODS_COLUMN_DZEN_KARAOKE_BT = "Karaoke BT"
 const val ODS_COLUMN_DZEN_CHORDS = "Chords"
-const val ODS_COLUMN_DZEN_CHORDS_BT = "Chords BT"
+//const val ODS_COLUMN_DZEN_CHORDS_BT = "Chords BT"
 const val URL_PREFIX_SM = "https://sm-karaoke.ru/song?id={REPLACE}"
 const val URL_PREFIX_BOOSTY = "https://boosty.to/svoemesto/posts/{REPLACE}"
 const val URL_PREFIX_DZEN_PLAY = "https://dzen.ru/video/watch/{REPLACE}"

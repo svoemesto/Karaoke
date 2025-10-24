@@ -10,9 +10,9 @@ enum class ProducerType(
     val onlyOne: Boolean,           // Слой может быть только один
     val ids: MutableList<Int>,      // Айдишники
     val isAudio: Boolean,           // Слой является аудио
-    val isVideo: Boolean,           // Слой является видео
-    val coeffStatic: Int,           // Статический коэффициэнт
-    val coeffVoice:Int,             // Коэффициэнт для войса
+    @Suppress("unused") val isVideo: Boolean,           // Слой является видео
+    @Suppress("unused") val coeffStatic: Int,           // Статический коэффициэнт
+    @Suppress("unused") val coeffVoice:Int,             // Коэффициэнт для войса
     val isSequence: Boolean,        // Слой является последовательностью
     val level: Int,                 // Уровень вложенности
     val isCalculatedCount: Boolean  // Количество слоёв этого типа является вычисляемым
@@ -71,7 +71,7 @@ enum class ProducerType(
                                 FILL(parent = ELEMENT, level = 12, isCalculatedCount = true, text ="fill", onlyOne = false, ids = mutableListOf(), isAudio = false, isVideo = true, coeffStatic = 0, coeffVoice = 1, isSequence = false),
 
 }
-fun ProducerType.childs() : List<ProducerType> = ProducerType.values().filter { it.parent == this }
+fun ProducerType.childs() : List<ProducerType> = ProducerType.entries.filter { it.parent == this }
 
 
 

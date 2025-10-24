@@ -11,15 +11,16 @@ interface TextFileDictionary {
         fun doAction(dictName: String, dictAction: String, dictValues: List<String>): Boolean {
             val tfd = TEXT_FILE_DICTS[dictName] ?: return false
             val tfdInstance = tfd.getDeclaredConstructor().newInstance()
-            val func = tfdInstance.javaClass.declaredMethods.firstOrNull() { it.name == dictAction } ?: return false
+            val func = tfdInstance.javaClass.declaredMethods.firstOrNull { it.name == dictAction } ?: return false
             func.invoke(tfdInstance, dictValues)
             return true
         }
 
+        @Suppress("UNCHECKED_CAST")
         fun loadList(dictName: String): List<String> {
             val tfd = TEXT_FILE_DICTS[dictName] ?: return emptyList()
             val tfdInstance = tfd.getDeclaredConstructor().newInstance()
-            val func = tfdInstance.javaClass.declaredMethods.firstOrNull() { it.name == "loadList" } ?: return emptyList()
+            val func = tfdInstance.javaClass.declaredMethods.firstOrNull { it.name == "loadList" } ?: return emptyList()
             val result = func.invoke(tfdInstance)
             return if (result is List<*>) result as List<String> else emptyList()
         }
@@ -64,6 +65,7 @@ interface TextFileDictionary {
         save()
     }
 
+    @Suppress("unused")
     fun editOne(oldElement: String, newElement: String) {
         if (!dict.contains(oldElement) || oldElement == "" || newElement == "") return
         dict.remove(oldElement)
@@ -71,6 +73,7 @@ interface TextFileDictionary {
         save()
     }
 
+    @Suppress("unused")
     fun have(element: String) = dict.contains(element)
 
     fun loadList(): MutableList<String> {
@@ -80,7 +83,7 @@ interface TextFileDictionary {
                 .split("\n")
                 .filter { it != "" }
                 .sortedBy { it }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             return mutableListOf()
         }
         return list.toMutableList()

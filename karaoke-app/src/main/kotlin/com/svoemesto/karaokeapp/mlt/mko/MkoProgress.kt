@@ -43,6 +43,7 @@ data class MkoProgress(val mltProp: MltProp, val type: ProducerType, val voiceId
     override fun filePlaylist(): MltNode {
         val result = mltGenerator.filePlaylist()
         result.body?.let {
+            @Suppress("UNCHECKED_CAST")
             val body = it as MutableList<MltNode>
             body.addAll(MltNodeBuilder().blank(inOffsetVideo).build())
             body.add(

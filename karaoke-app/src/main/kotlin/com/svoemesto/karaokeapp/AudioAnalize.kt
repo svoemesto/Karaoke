@@ -1,14 +1,16 @@
-import be.tarsos.dsp.AudioDispatcher
+package com.svoemesto.karaokeapp
+
 import be.tarsos.dsp.io.jvm.AudioDispatcherFactory
 import be.tarsos.dsp.pitch.PitchProcessor
 import java.io.File
-import javax.sound.sampled.AudioSystem
+import kotlin.math.ln
 
+@Suppress("unused")
 fun mainAudioAnalize(args: Array<String>) {
     val file = File("/sm-karaoke/system/Infornal Fuckъ - Конунг Олаф Моржовый Хер/Конунг Олаф Моржовый Хер.wav")
-    val audioInputStream = AudioSystem.getAudioInputStream(file)
+//    val audioInputStream = AudioSystem.getAudioInputStream(file)
     val dispatcher = AudioDispatcherFactory.fromFile(file, 2048, 0)
-    val silenceDetector = PitchProcessor(PitchProcessor.PitchEstimationAlgorithm.YIN, 22050f, 2048, { pitchDetectionResult, _ ->
+    val silenceDetector = PitchProcessor(PitchProcessor.PitchEstimationAlgorithm.YIN, 22050f, 2048) { pitchDetectionResult, _ ->
         val pitchInHz = pitchDetectionResult.pitch
         if (pitchInHz != -1f) {
             val note = getNoteFromPitch(pitchInHz)
@@ -16,14 +18,14 @@ fun mainAudioAnalize(args: Array<String>) {
         } else {
             println("No pitch detected")
         }
-    })
+    }
     dispatcher.addAudioProcessor(silenceDetector)
     dispatcher.run()
 }
 
 fun getNoteFromPitch(pitchInHz: Float): String {
-    val octave = (Math.log(pitchInHz / 440.0) / Math.log(2.0)).toInt() + 4
-    val note = ((12 * Math.log(pitchInHz / 440.0) / Math.log(2.0)) % 12).toInt()
+    val octave = (ln(pitchInHz / 440.0) / ln(2.0)).toInt() + 4
+    val note = ((12 * ln(pitchInHz / 440.0) / ln(2.0)) % 12).toInt()
     return "${getNoteName(note)}$octave"
 }
 

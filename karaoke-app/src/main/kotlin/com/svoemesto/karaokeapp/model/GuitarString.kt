@@ -2,6 +2,7 @@ package com.svoemesto.karaokeapp.model
 
 import java.io.Serializable
 
+@Suppress("unused")
 fun mainGuitarString() {
 
     for (i in 0 .. 12) {
@@ -11,29 +12,6 @@ fun mainGuitarString() {
             println()
         }
     }
-
-
-//    GuitarString.values().forEach { gs -> println("${gs.text} - первая нота предыдущей струны на ладу № ${gs.fretNextString}") }
-
-//    MusicNote.values().forEach { note ->
-//        GuitarString.values().forEach { gs -> println( "Нота ${note.names.first()} ${gs.getFrets(note).joinToString("\nНота ${note.names.first()} ") { "${gs.text} лад ${it.fret} октава ${it.octave}" }}")}
-//        println()
-//    }
-
-//    MusicNote.values().forEach { note -> println("${note.names.first()} : ${note.getStringsFrets().joinToString(" | ")}")}
-
-//    MusicInterval.values().forEach { mi ->
-//        val mn = MusicNote.E
-//        println("От ноты ${mn.names.first()} ${mi.text} = ${mi.getMusicNote(mn).first.names.first()} (+${mi.getMusicNote(mn).second})")
-//    }
-
-//    println(MusicChord.Xm.getNotes(MusicNote.E))
-
-//    GuitarString.values().forEach { gs ->
-//        println(gs.getPrintedString(MusicChord.Xm.getNotes(MusicNote.A).map { it.first }))
-//    }
-
-//    println(MusicChord.getChordNote("F#sus4"))
 
 }
 
@@ -47,7 +25,7 @@ enum class GuitarString(val text: String, val number: Int, val musicNote: MusicN
 
     val fretNextString: Int get() {
         var currString = this
-        val strings = GuitarString.values()
+        val strings = entries.toTypedArray()
         val currStringIndex = Integer.max(strings.indexOf(currString), 1)
         currString = strings[currStringIndex]
         val prevString = strings[currStringIndex - 1]
@@ -66,8 +44,8 @@ fun GuitarString.getNotes(): List<NoteOctaveFret> {
 
 fun GuitarString.getNote(fret: Int = 0): NoteOctaveFret {
     return NoteOctaveFret(
-        musicNote = MusicNote.values()[(MusicNote.values().indexOf(musicNote) + fret) % 12],
-        octave = octave + ((fret+ MusicNote.values().indexOf(musicNote)) / 12),
+        musicNote = MusicNote.entries[(MusicNote.entries.indexOf(musicNote) + fret) % 12],
+        octave = octave + ((fret+ MusicNote.entries.indexOf(musicNote)) / 12),
         fret =  fret
     )
 }
@@ -76,6 +54,7 @@ fun GuitarString.getFrets(note: MusicNote): List<NoteOctaveFret> {
     return getNotes().filter { it.musicNote == note }.toList()
 }
 
+@Suppress("unused")
 fun GuitarString.getPrintedString(notes: List<MusicNote>): String {
     var strString = "|-----".repeat(countFrets)
     notes

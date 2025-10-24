@@ -19,7 +19,7 @@ fun createDzenPicture(pathToAuthor: String) {
 
     val frameW = 575
     val frameH = 575
-    val opaque: Float = 1f
+    val opaque = 1f
     var fontSongname = Font(MAIN_FONT_NAME, 0, 10)
     val colorCaption = Color(85, 255, 255, 255)
     var textToOverlay = "Karaoke"
@@ -37,8 +37,8 @@ fun createDzenPicture(pathToAuthor: String) {
     graphics2D.color = colorCaption
     graphics2D.font = fontSongname
 
-    var rectW = 0
-    var rectH = 0
+    var rectW: Int
+    var rectH: Int
     do {
         fontSongname = Font(fontSongname.name, fontSongname.style, fontSongname.size + 1)
         graphics2D.font = fontSongname
@@ -80,8 +80,8 @@ fun createDzenPicture(pathToAuthor: String) {
     graphics2D.color = colorCaption
     graphics2D.font = fontSongname
 
-    rectW = 0
-    rectH = 0
+//    rectW = 0
+//    rectH = 0
     do {
         fontSongname = Font(fontSongname.name, fontSongname.style, fontSongname.size + 1)
         graphics2D.font = fontSongname
@@ -111,9 +111,9 @@ fun getVKPictureBase64(settings: Settings): String {
 
     val frameW = 800
     val frameH = 194
-    val opaque: Float = 1f
+    val opaque = 1f
     val imageType = BufferedImage.TYPE_INT_ARGB
-    var resultImage = BufferedImage(frameW, frameH, imageType)
+    val resultImage = BufferedImage(frameW, frameH, imageType)
     val graphics2D = resultImage.graphics as Graphics2D
     graphics2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
     val alphaChannel = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opaque)
@@ -588,6 +588,7 @@ fun createSongPicture(settings: Settings, songVersion: SongVersion) {
 
 fun getSongChordsPicture(settings: Settings, mltNode: MltNode): BufferedImage {
 
+    @Suppress("UNCHECKED_CAST")
     val songTextSymbolsGroup = mltNode.body as MutableList<MltNode>
     val startViewport = songTextSymbolsGroup.first { it.name == "startviewport" }
     val startViewportFields = startViewport.fields["rect"]!!.split(",")
@@ -600,9 +601,9 @@ fun getSongChordsPicture(settings: Settings, mltNode: MltNode): BufferedImage {
     } while ((frameW.toDouble() * countPages) / (frameH.toDouble() / countPages) < 1.2 )
 
     // Находим минимальную высоту страницы
-    var minPageH = frameH / (countPages)
+    val minPageH = frameH / (countPages)
 
-    val opaque: Float = 1f
+    val opaque = 1f
     val colorBack = Color(255, 255, 255, 255)
     val colorText = Color(0, 0, 0, 255)
     val colorChord = Color(255, 0, 0, 255)
@@ -633,7 +634,7 @@ fun getSongChordsPicture(settings: Settings, mltNode: MltNode): BufferedImage {
     songTextSymbolsGroup.filter {it.name == "item"} .forEach { songTextSymbols ->
         val nodePosition = (songTextSymbols.body as MutableList<*>)[0] as MltNode
         val nodeText = (songTextSymbols.body as MutableList<*>)[1] as MltNode
-        val x = nodePosition.fields["x"]!!.toInt()
+//        val x = nodePosition.fields["x"]!!.toInt()
         val y = nodePosition.fields["y"]!!.toInt()
         val textToOverlay = nodeText.body as String
         val isChord = (nodeText.fields["font"]!!.split(" ")[0] == Karaoke.chordsFont.font.fontName.split(" ")[0])
@@ -724,8 +725,8 @@ fun getSongChordsPicture(settings: Settings, mltNode: MltNode): BufferedImage {
     graphics2name.fillRect(0,0,nameW, nameH)
     graphics2name.color = colorText
     val textToOverlay = "${settings.author} - ${settings.year} - «${settings.songName}» (${settings.key}, ${settings.bpm} bpm)"
-    var rectW = 0
-    var rectH = 0
+    var rectW: Int
+    var rectH: Int
     fontText = Font(MAIN_FONT_NAME, 0, 10)
     do {
         fontText = Font(fontText.name, fontText.style, fontText.size + 1)
@@ -736,8 +737,8 @@ fun getSongChordsPicture(settings: Settings, mltNode: MltNode): BufferedImage {
         rectH = rect.height.toInt()
     } while (!(rectH > (nameH * 0.7) || rectW > (nameW * 0.7)))
 
-    var centerX = (nameW - rectW) / 2
-    var centerY = (nameH - rectH) / 2 + rectH
+    val centerX = (nameW - rectW) / 2
+    val centerY = (nameH - rectH) / 2 + rectH
     graphics2name.drawString(textToOverlay, centerX, centerY)
     graphics2name.dispose()
     fullH = resultImageName.height + resultImages.height
@@ -756,6 +757,7 @@ fun getSongChordsPicture(settings: Settings, mltNode: MltNode): BufferedImage {
     return resultImagesAndName
 }
 
+@Suppress("unused")
 fun createSongChordsPicture(settings: Settings, fileName: String, songVersion: SongVersion, mltNode: MltNode) {
     if (songVersion == SongVersion.CHORDS) {
         val resultImage = getSongChordsPicture(settings, mltNode)
@@ -771,14 +773,14 @@ fun getChordLayoutPicture(mltObjects:List<MltObject>): BufferedImage {
 
     if (mltObjects.isEmpty()) {
         val resultImage =
-            BufferedImage((Karaoke.frameHeightPx / 4).toInt(), (Karaoke.frameHeightPx / 4).toInt(), imageType)
+            BufferedImage((Karaoke.frameHeightPx / 4), (Karaoke.frameHeightPx / 4), imageType)
         val graphics2D = resultImage.graphics as Graphics2D
         graphics2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
         val opaque = 1f
         val alphaChannel = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opaque)
         graphics2D.composite = alphaChannel
         graphics2D.color = Color.BLACK
-        graphics2D.fillRect(0,0,(Karaoke.frameHeightPx /4).toInt(), (Karaoke.frameHeightPx /4).toInt())
+        graphics2D.fillRect(0,0, (Karaoke.frameHeightPx /4), (Karaoke.frameHeightPx /4))
         graphics2D.dispose()
         return resultImage
     }

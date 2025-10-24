@@ -1,8 +1,5 @@
 package com.svoemesto.karaokeapp.mlt
 
-import com.svoemesto.karaokeapp.Karaoke
-import com.svoemesto.karaokeapp.convertMillisecondsToTimecode
-import com.svoemesto.karaokeapp.convertTimecodeToMilliseconds
 import com.svoemesto.karaokeapp.model.MltNode
 import com.svoemesto.karaokeapp.model.MltNodeBuilder
 import com.svoemesto.karaokeapp.model.ProducerType
@@ -19,16 +16,16 @@ data class MltGenerator(
 
     companion object {
         fun name(type: ProducerType, voiceId: Int = 0, childId: Int = 0, elementId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId, elementId).name
-        fun namePlaylistFile(type: ProducerType, voiceId: Int = 0, childId: Int = 0, elementId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId, elementId).namePlaylistFile
-        fun namePlaylistTrack(type: ProducerType, voiceId: Int = 0, childId: Int = 0, elementId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId, elementId).namePlaylistTrack
+        @Suppress("unused") fun namePlaylistFile(type: ProducerType, voiceId: Int = 0, childId: Int = 0, elementId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId, elementId).namePlaylistFile
+        @Suppress("unused") fun namePlaylistTrack(type: ProducerType, voiceId: Int = 0, childId: Int = 0, elementId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId, elementId).namePlaylistTrack
         fun nameTractor(type: ProducerType, voiceId: Int = 0, childId: Int = 0, elementId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId, elementId).nameTractor
         fun nameProducer(type: ProducerType, voiceId: Int = 0, childId: Int = 0, elementId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId, elementId).nameProducer
-        fun nameFileProducer(type: ProducerType, voiceId: Int = 0, childId: Int = 0, elementId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId, elementId).nameFileProducer
-        fun nameFilterVolume(type: ProducerType, voiceId: Int = 0, childId: Int = 0, elementId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId, elementId).nameFilterVolume
-        fun nameFilterPanner(type: ProducerType, voiceId: Int = 0, childId: Int = 0, elementId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId, elementId).nameFilterPanner
-        fun nameFilterAudiolevel(type: ProducerType, voiceId: Int = 0, childId: Int = 0, elementId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId, elementId).nameFilterAudiolevel
+        @Suppress("unused") fun nameFileProducer(type: ProducerType, voiceId: Int = 0, childId: Int = 0, elementId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId, elementId).nameFileProducer
+        @Suppress("unused") fun nameFilterVolume(type: ProducerType, voiceId: Int = 0, childId: Int = 0, elementId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId, elementId).nameFilterVolume
+        @Suppress("unused") fun nameFilterPanner(type: ProducerType, voiceId: Int = 0, childId: Int = 0, elementId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId, elementId).nameFilterPanner
+        @Suppress("unused") fun nameFilterAudiolevel(type: ProducerType, voiceId: Int = 0, childId: Int = 0, elementId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId, elementId).nameFilterAudiolevel
         fun nameFilterQtblend(type: ProducerType, voiceId: Int = 0, childId: Int = 0, elementId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId, elementId).nameFilterQtblend
-        fun nameFilterGamma(type: ProducerType, voiceId: Int = 0, childId: Int = 0, elementId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId, elementId).nameFilterGamma
+        @Suppress("unused") fun nameFilterGamma(type: ProducerType, voiceId: Int = 0, childId: Int = 0, elementId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId, elementId).nameFilterGamma
         fun nameProducerBlackTrack(type: ProducerType, voiceId: Int = 0, childId: Int = 0, elementId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId, elementId).nameProducerBlackTrack
 //        fun id(type: ProducerType, voiceId: Int = 0, childId: Int = 0, elementId: Int = 0) = MltGenerator(MltProp(), type, voiceId, childId, elementId).id
     }
@@ -104,6 +101,7 @@ data class MltGenerator(
         return result
     }
 
+    @Suppress("unused")
     val propProducer: MutableList<MltNode> get() =
         if (type.isAudio) {
             MltNodeBuilder()

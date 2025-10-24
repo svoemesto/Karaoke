@@ -7,5 +7,6 @@ annotation class KaraokeDbTableField(
     val name: String,
     val isId: Boolean = false,
     val useInDiff: Boolean = true,
+    @Suppress("unused")
     val useInHash: Boolean = true
 )

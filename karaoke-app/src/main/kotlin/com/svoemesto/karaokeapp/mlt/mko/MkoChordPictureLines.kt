@@ -16,10 +16,10 @@ data class MkoChordPictureLines(
 
     val mltGenerator = MltGenerator(mltProp, type, voiceId)
 
-    private val frameWidthPx = mltProp.getFrameWidthPx()
-    private val frameHeightPx = mltProp.getFrameHeightPx()
-    private val chordWhidthPx = frameHeightPx / 4
-    private val chordHeightPx = chordWhidthPx
+//    private val frameWidthPx = mltProp.getFrameWidthPx()
+//    private val frameHeightPx = mltProp.getFrameHeightPx()
+//    private val chordWidthPx = frameHeightPx / 4
+//    private val chordHeightPx = chordWidthPx
 
     private val timelineStartTimecode = mltProp.getTimelineStartTimecode()
     private val timelineEndTimecode = mltProp.getTimelineEndTimecode()
@@ -51,6 +51,7 @@ data class MkoChordPictureLines(
     override fun filePlaylist(): MltNode {
         val result = mltGenerator.filePlaylist()
         result.body?.let {
+            @Suppress("UNCHECKED_CAST")
             val body = it as MutableList<MltNode>
             body.add(
                 mltGenerator.entry(

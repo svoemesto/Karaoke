@@ -11,7 +11,6 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartFile
-import java.io.IOException
 
 @RestController
 @RequestMapping("/api/storage")
@@ -20,7 +19,8 @@ class StorageController(
 ) {
     private val logger: Logger = LoggerFactory.getLogger(StorageController::class.java)
 
-    @Value("\${app.max-file-size}") // можно задать в application.yml
+    @Suppress("unused")
+    @Value($$"${app.max-file-size}") // можно задать в application.yml
     private val maxFileSize: String = "100MB"
 
     @PostMapping("/upload")

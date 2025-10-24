@@ -1,14 +1,8 @@
 package com.svoemesto.karaokeapp.model
 
 import com.svoemesto.karaokeapp.Karaoke
-import com.svoemesto.karaokeapp.convertFramesToTimecode
-import com.svoemesto.karaokeapp.convertMillisecondsToFrames
 import com.svoemesto.karaokeapp.convertMillisecondsToTimecode
-import com.svoemesto.karaokeapp.mlt.MltObject
 import com.svoemesto.karaokeapp.mlt.MltText
-import com.svoemesto.karaokeapp.mlt.mko.MkoFill
-import com.svoemesto.karaokeapp.mlt.mko.MkoString
-import com.svoemesto.karaokeapp.mlt.mko.MltKaraokeObject
 import java.io.Serializable
 
 data class SettingVoiceLineElement(
@@ -19,7 +13,7 @@ data class SettingVoiceLineElement(
     private val _syllables: MutableList<SettingVoiceLineElementSyllable> = mutableListOf()
 
     fun getSyllables(): List<SettingVoiceLineElementSyllable> = _syllables
-    fun getCopySyllables(): List<SettingVoiceLineElementSyllable> = _syllables.map { it.copy() }
+    @Suppress("unused") fun getCopySyllables(): List<SettingVoiceLineElementSyllable> = _syllables.map { it.copy() }
     fun addSyllable(syllable: SettingVoiceLineElementSyllable) {
         _syllables.add(syllable)
         actuateChilds()
@@ -134,8 +128,10 @@ data class SettingVoiceLineElement(
 
     var elementId: Int = -1
 
-    fun isCrossing(otherLineElement: SettingVoiceLineElement): Boolean {
-        return (this.lineElementDurationMs() + otherLineElement.lineElementDurationMs()) > (Math.max(this.lineElementEndMs(), otherLineElement.lineElementEndMs()) - Math.min(this.lineElementStartMs(), otherLineElement.lineElementStartMs()))
+    @Suppress("unused") fun isCrossing(otherLineElement: SettingVoiceLineElement): Boolean {
+        return (this.lineElementDurationMs() + otherLineElement.lineElementDurationMs()) > (this.lineElementEndMs()
+            .coerceAtLeast(otherLineElement.lineElementEndMs()) - this.lineElementStartMs()
+            .coerceAtMost(otherLineElement.lineElementStartMs()))
     }
 
     fun transformProperties(): List<TransformProperty> {

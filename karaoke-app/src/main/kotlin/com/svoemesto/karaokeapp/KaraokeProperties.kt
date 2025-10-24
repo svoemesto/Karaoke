@@ -4,7 +4,7 @@ import com.svoemesto.karaokeapp.mlt.MltObjectType
 import com.svoemesto.karaokeapp.mlt.MltShape
 import com.svoemesto.karaokeapp.mlt.MltText
 import com.svoemesto.karaokeapp.mlt.setting
-import com.svoemesto.karaokeapp.textfilehistory.HistoryMap
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
 import java.awt.Color
@@ -18,6 +18,7 @@ class KaraokeProperties {
     companion object {
 
         fun pathToFile(): String = PATH_TO_KARAOKE_PROPERTIES_FILE
+        @OptIn(ExperimentalSerializationApi::class)
         fun loadPropertiesMap() {
             val file = File(pathToFile())
             if (file.exists()) {

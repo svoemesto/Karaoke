@@ -38,6 +38,7 @@ data class MkoHorizon(val mltProp: MltProp, val type: ProducerType, val voiceId:
     override fun filePlaylist(): MltNode {
         val result = mltGenerator.filePlaylist()
         result.body?.let {
+            @Suppress("UNCHECKED_CAST")
             val body = it as MutableList<MltNode>
             body.addAll(MltNodeBuilder().blank(inOffsetVideo).build())
             body.add(
@@ -72,7 +73,7 @@ data class MkoHorizon(val mltProp: MltProp, val type: ProducerType, val voiceId:
     override fun template(): MltNode {
         val templateHorizonGroup = mutableListOf<MltNode>()
 
-        val voiceLines = mltProp.getVoicelines(listOf(ProducerType.SONGTEXT,0))
+//        val voiceLines = mltProp.getVoicelines(listOf(ProducerType.SONGTEXT,0))
 
         val haveNotes = songVersion.producers.contains(ProducerType.MELODYNOTE)
         val haveChords = songVersion.producers.contains(ProducerType.CHORDS)

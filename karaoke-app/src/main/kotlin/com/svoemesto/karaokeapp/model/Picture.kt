@@ -11,6 +11,7 @@ class Picture(
     val childs: MutableList<PictureChild> = mutableListOf()
 ) {
     companion object {
+        @Suppress("unused")
         fun createPicture() {
 
             val frameW = 575
@@ -110,14 +111,7 @@ class Picture(
             val alphaChannel = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1f)
             graphics2D.composite = alphaChannel
 
-            var font = Font(params.fontName, params.fontStyle, params.fontSize)
-
-            var rectW = 0
-            var rectWprev = 0
-            var rectH = 0
-            var rectHprev = 0
-            var rectY = 0
-            var rectYprev = 0
+            val font = Font(params.fontName, params.fontStyle, params.fontSize)
 
             graphics2D.color = params.color
             graphics2D.font = font
@@ -281,111 +275,121 @@ class Picture(
 
     fun bi(): BufferedImage {
 
-        if (params is AreaParams) {
-            val imageType = BufferedImage.TYPE_INT_ARGB
-            val resultImage = BufferedImage(params.w, params.h, imageType)
-            val graphics2D = resultImage.graphics as Graphics2D
-            graphics2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
-            val alphaChannel = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, params.opaque)
-            graphics2D.composite = alphaChannel
-            graphics2D.background = params.color
-            graphics2D.color = params.color
-            graphics2D.fillRect(0,0,params.w, params.h)
-            childs.forEach { pictureChild ->
-                graphics2D.drawImage(pictureChild.child.bi(), pictureChild.x, pictureChild.y, null)
+        when (params) {
+            is AreaParams -> {
+                val imageType = BufferedImage.TYPE_INT_ARGB
+                val resultImage = BufferedImage(params.w, params.h, imageType)
+                val graphics2D = resultImage.graphics as Graphics2D
+                graphics2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+                val alphaChannel = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, params.opaque)
+                graphics2D.composite = alphaChannel
+                graphics2D.background = params.color
+                graphics2D.color = params.color
+                graphics2D.fillRect(0,0,params.w, params.h)
+                childs.forEach { pictureChild ->
+                    graphics2D.drawImage(pictureChild.child.bi(), pictureChild.x, pictureChild.y, null)
+                }
+                graphics2D.dispose()
+                return resultImage
             }
-            graphics2D.dispose()
-            return resultImage
-        } else if (params is ImageParams) {
-            val biImage = params.biImage ?: resizeBufferedImage(ImageIO.read(File(params.pathToFile)), params.w, params.h)
 
-            val imageType = BufferedImage.TYPE_INT_ARGB
-            val resultImage = BufferedImage(params.w, params.h, imageType)
-            val graphics2D = resultImage.graphics as Graphics2D
-            graphics2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
-            val alphaChannel = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1f)
-            graphics2D.composite = alphaChannel
+            is ImageParams -> {
+                val biImage = params.biImage ?: resizeBufferedImage(ImageIO.read(File(params.pathToFile)), params.w, params.h)
 
-            graphics2D.drawImage(biImage, 0, 0, null)
-            graphics2D.dispose()
-            return resultImage
+                val imageType = BufferedImage.TYPE_INT_ARGB
+                val resultImage = BufferedImage(params.w, params.h, imageType)
+                val graphics2D = resultImage.graphics as Graphics2D
+                graphics2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+                val alphaChannel = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1f)
+                graphics2D.composite = alphaChannel
 
-        } else if (params is TextParams) {
+                graphics2D.drawImage(biImage, 0, 0, null)
+                graphics2D.dispose()
+                return resultImage
 
-            val imageType = BufferedImage.TYPE_INT_ARGB
-            val resultImage = BufferedImage(params.w, params.h, imageType)
-            val graphics2D = resultImage.graphics as Graphics2D
-            graphics2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
-            val alphaChannel = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1f)
-            graphics2D.composite = alphaChannel
+            }
 
-            var font = Font(params.fontName, params.fontStyle, params.fontSize)
+            is TextParams -> {
 
-            var rectW = 0
-            var rectWprev = 0
-            var rectH = 0
-            var rectHprev = 0
-            var rectY = 0
-            var rectYprev = 0
+                val imageType = BufferedImage.TYPE_INT_ARGB
+                val resultImage = BufferedImage(params.w, params.h, imageType)
+                val graphics2D = resultImage.graphics as Graphics2D
+                graphics2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+                val alphaChannel = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1f)
+                graphics2D.composite = alphaChannel
 
-            graphics2D.color = params.color
-            graphics2D.font = font
+                val font = Font(params.fontName, params.fontStyle, params.fontSize)
 
-            if (params.isCalculatedSize) {
+                graphics2D.color = params.color
+                graphics2D.font = font
 
-                val fontSizeAndWHYsingleLine = calcFontSizeAndWHY(
-                    text = params.text,
-                    w = params.w,
-                    h = params.h,
-                    font = Font(params.fontName, params.fontStyle, params.fontSize)
-                )
-                val fontSizeSingleLine = fontSizeAndWHYsingleLine.fontSize
+                if (params.isCalculatedSize) {
 
-                val words = params.text.split(" ")
+                    val fontSizeAndWHYsingleLine = calcFontSizeAndWHY(
+                        text = params.text,
+                        w = params.w,
+                        h = params.h,
+                        font = Font(params.fontName, params.fontStyle, params.fontSize)
+                    )
+                    val fontSizeSingleLine = fontSizeAndWHYsingleLine.fontSize
 
-                if (params.isLineBreak && words.size > 1) {
+                    val words = params.text.split(" ")
 
-                    val vol = getVariantsOfLines(params.text)
+                    if (params.isLineBreak && words.size > 1) {
 
-                    val a = vol.map { lines ->
-                        val fssl = lines.map { line ->
-                            calcFontSizeAndWHY(
-                                text = line,
-                                w = params.w,
-                                h = params.h / lines.size,
-                                font = Font(params.fontName, params.fontStyle, params.fontSize)
-                            )
+                        val vol = getVariantsOfLines(params.text)
+
+                        val a = vol.map { lines ->
+                            val fssl = lines.map { line ->
+                                calcFontSizeAndWHY(
+                                    text = line,
+                                    w = params.w,
+                                    h = params.h / lines.size,
+                                    font = Font(params.fontName, params.fontStyle, params.fontSize)
+                                )
+                            }
+                            val mfs = fssl.minOf { it.fontSize }
+                            val minFontSizeSingleLine = fssl.filter { it.fontSize == mfs }.maxBy { it.w }
+                            Pair(lines, minFontSizeSingleLine)
                         }
-                        val mfs = fssl.minOf { it.fontSize }
-                        val minFontSizeSingleLine = fssl.filter { it.fontSize == mfs }.maxBy { it.w }
-                        Pair(lines, minFontSizeSingleLine)
-                    }
-                    val maxFontSizeLines = a.maxOf { it.second.fontSize }
-                    val filteredA = a.filter { it.second.fontSize == maxFontSizeLines }
-                    val (lines, fswhy) = filteredA.minBy { it.second.w }
+                        val maxFontSizeLines = a.maxOf { it.second.fontSize }
+                        val filteredA = a.filter { it.second.fontSize == maxFontSizeLines }
+                        val (lines, fswhy) = filteredA.minBy { it.second.w }
 
-                    if (fswhy.fontSize > fontSizeSingleLine) {
+                        if (fswhy.fontSize > fontSizeSingleLine) {
 
-                        lines.forEachIndexed { index, line ->
+                            lines.forEachIndexed { index, line ->
 
-                            val lineSizeAndWHY = calcFontSizeAndWHY(
-                                text = line,
-                                w = params.w,
-                                h = params.h,
-                                font = Font(params.fontName, params.fontStyle, fswhy.fontSize),
-                                isFix = true
-                            )
+                                val lineSizeAndWHY = calcFontSizeAndWHY(
+                                    text = line,
+                                    w = params.w,
+                                    h = params.h,
+                                    font = Font(params.fontName, params.fontStyle, fswhy.fontSize),
+                                    isFix = true
+                                )
 
-                            val deltaH = fswhy.h * index - fswhy.h/4 + params.h / lines.size
+                                val deltaH = fswhy.h * index - fswhy.h/4 + params.h / lines.size
 
-                            val centerX = (params.w - lineSizeAndWHY.w) / 2
-                            val centerY = deltaH
+                                val centerX = (params.w - lineSizeAndWHY.w) / 2
+                                val centerY = deltaH
 
-                            graphics2D.font = Font(params.fontName, params.fontStyle, lineSizeAndWHY.fontSize)
+                                graphics2D.font = Font(params.fontName, params.fontStyle, lineSizeAndWHY.fontSize)
+                                graphics2D.color = params.shadowColor
+                                graphics2D.drawString(line, centerX+params.shadowOffset, centerY+params.shadowOffset)
+                                graphics2D.color = params.color
+                                graphics2D.drawString(line, centerX, centerY)
+
+                            }
+
+                        } else {
+
+                            val centerX = (params.w - fontSizeAndWHYsingleLine.w) / 2
+                            val centerY = (params.h + fontSizeAndWHYsingleLine.h) / 2  + fontSizeAndWHYsingleLine.y/4
+                            graphics2D.font = Font(params.fontName, params.fontStyle, fontSizeAndWHYsingleLine.fontSize)
                             graphics2D.color = params.shadowColor
-                            graphics2D.drawString(line, centerX+params.shadowOffset, centerY+params.shadowOffset)
+                            graphics2D.drawString(params.text, centerX+params.shadowOffset, centerY+params.shadowOffset)
                             graphics2D.color = params.color
-                            graphics2D.drawString(line, centerX, centerY)
+                            graphics2D.drawString(params.text, centerX, centerY)
 
                         }
 
@@ -398,46 +402,35 @@ class Picture(
                         graphics2D.drawString(params.text, centerX+params.shadowOffset, centerY+params.shadowOffset)
                         graphics2D.color = params.color
                         graphics2D.drawString(params.text, centerX, centerY)
-
                     }
 
                 } else {
 
-                    val centerX = (params.w - fontSizeAndWHYsingleLine.w) / 2
-                    val centerY = (params.h + fontSizeAndWHYsingleLine.h) / 2  + fontSizeAndWHYsingleLine.y/4
-                    graphics2D.font = Font(params.fontName, params.fontStyle, fontSizeAndWHYsingleLine.fontSize)
+                    val fontSizeAndWHY = calcFontSizeAndWHY(
+                        text = params.text,
+                        w = params.w,
+                        h = params.h,
+                        font = Font(params.fontName, params.fontStyle, params.fontSize),
+                        isFix = true
+                    )
+
+                    val centerX = (params.w - fontSizeAndWHY.w) / 2
+                    val centerY = (params.h + fontSizeAndWHY.h/2) / 2 + fontSizeAndWHY.y/4
+                    graphics2D.font = Font(params.fontName, params.fontStyle, fontSizeAndWHY.fontSize)
                     graphics2D.color = params.shadowColor
                     graphics2D.drawString(params.text, centerX+params.shadowOffset, centerY+params.shadowOffset)
                     graphics2D.color = params.color
                     graphics2D.drawString(params.text, centerX, centerY)
+
                 }
 
-            } else {
-
-                val fontSizeAndWHY = calcFontSizeAndWHY(
-                    text = params.text,
-                    w = params.w,
-                    h = params.h,
-                    font = Font(params.fontName, params.fontStyle, params.fontSize),
-                    isFix = true
-                )
-
-                val centerX = (params.w - fontSizeAndWHY.w) / 2
-                val centerY = (params.h + fontSizeAndWHY.h/2) / 2 + fontSizeAndWHY.y/4
-                graphics2D.font = Font(params.fontName, params.fontStyle, fontSizeAndWHY.fontSize)
-                graphics2D.color = params.shadowColor
-                graphics2D.drawString(params.text, centerX+params.shadowOffset, centerY+params.shadowOffset)
-                graphics2D.color = params.color
-                graphics2D.drawString(params.text, centerX, centerY)
+                graphics2D.dispose()
+                return resultImage
 
             }
 
-            graphics2D.dispose()
-            return resultImage
-
+            else -> return BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB)
         }
-
-        return BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB)
 
     }
 
@@ -474,11 +467,11 @@ class Picture(
         val initFontSize = if (isFix) font.size else 4
         var fnt = Font(font.fontName, font.style, initFontSize-1)
         var rectW = 0
-        var rectWprev = 0
+        var rectWprev: Int
         var rectH = 0
-        var rectHprev = 0
+        var rectHprev: Int
         var rectY = 0
-        var rectYprev = 0
+        var rectYprev: Int
         graphics2D.font = fnt
         do {
             rectWprev = rectW

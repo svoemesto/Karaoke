@@ -1,6 +1,7 @@
 import com.svoemesto.karaokeapp.mlt.MltProp
 import com.svoemesto.karaokeapp.model.MltNode
 
+@Suppress("unused")
 fun getMltBlackTrackProducer(mltProp: MltProp): MltNode {
 
     val mlt = MltNode(

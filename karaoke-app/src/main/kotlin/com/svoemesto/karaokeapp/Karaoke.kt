@@ -1,25 +1,20 @@
 package com.svoemesto.karaokeapp
 
-import com.fasterxml.jackson.databind.ser.std.StringSerializer
 import com.svoemesto.karaokeapp.Converter.Companion.getColorFromString
 import com.svoemesto.karaokeapp.Converter.Companion.getColorsFromString
 import com.svoemesto.karaokeapp.Converter.Companion.getMltFontFromString
 import com.svoemesto.karaokeapp.Converter.Companion.getMltShapeFromString
 import com.svoemesto.karaokeapp.Converter.Companion.getStringFromVoices
 import com.svoemesto.karaokeapp.Converter.Companion.getVoicesFromString
-import com.svoemesto.karaokeapp.mlt.MltObjectType
 import com.svoemesto.karaokeapp.mlt.MltShape
 import com.svoemesto.karaokeapp.mlt.MltText
 import com.svoemesto.karaokeapp.mlt.setting
-import com.svoemesto.karaokeapp.textfilehistory.HistoryMap
 import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.SerializationStrategy
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
 import kotlinx.serialization.json.encodeToStream
 import java.awt.Color
-import java.awt.Font
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.Serializable
@@ -174,6 +169,7 @@ class Karaoke : Serializable {
             set(value) { KaraokeProperties.set("requestNewSongTimeoutMin", value) }
 
         //Автосохранение
+        @Suppress("unused")
         var autoSave: Boolean
             get() = KaraokeProperties.getBoolean("autoSave")
             set(value) { KaraokeProperties.set("autoSave", value) }
@@ -199,16 +195,19 @@ class Karaoke : Serializable {
             set(value) { KaraokeProperties.set("allowUpdateRemote", value) }
 
         //Мониторинг sync-записей в удаленной БД
+        @Suppress("unused")
         var allowUpdateLocal: Boolean
             get() = KaraokeProperties.getBoolean("allowUpdateLocal")
             set(value) { KaraokeProperties.set("allowUpdateLocal", value) }
 
         //Мониторинг sync-записей в удаленной БД
+        @Suppress("unused")
         var allowAddSync: Boolean
             get() = KaraokeProperties.getBoolean("allowAddSync")
             set(value) { KaraokeProperties.set("allowAddSync", value) }
 
         // Время (в миллисекундах) задержки перед автосохранением
+        @Suppress("unused")
         var autoSaveDelayMs: Long
             get() = KaraokeProperties.getLong("autoSaveDelayMs")
             set(value) { KaraokeProperties.set("autoSaveDelayMs", value) }
@@ -224,6 +223,7 @@ class Karaoke : Serializable {
             set(value) { KaraokeProperties.set("createLogotype", value) }
 
         // Создавать микрофон
+        @Suppress("unused")
         var createMicrophone: Boolean
             get() = KaraokeProperties.getBoolean("createMicrophone")
             set(value) { KaraokeProperties.set("createMicrophone", value) }
@@ -268,6 +268,7 @@ class Karaoke : Serializable {
             get() = KaraokeProperties.getBoolean("createFillsSongtext")
             set(value) { KaraokeProperties.set("createFillsSongtext", value) }
 
+        @Suppress("unused")
         var createFillsChords: Boolean
             get() = KaraokeProperties.getBoolean("createFillsChords")
             set(value) { KaraokeProperties.set("createFillsChords", value) }
@@ -303,6 +304,7 @@ class Karaoke : Serializable {
             set(value) { KaraokeProperties.set("createCounters", value) }
 
         // Создавать такты
+        @Suppress("unused")
         var createBeats: Boolean
             get() = KaraokeProperties.getBoolean("createBeats")
             set(value) { KaraokeProperties.set("createBeats", value) }
@@ -313,10 +315,12 @@ class Karaoke : Serializable {
             set(value) { KaraokeProperties.set("createSongtext", value) }
 
         // Время (в миллисекундах) задержки звука от начала анимации
+        @Suppress("unused")
         var timeOffsetStartFillingLineMs: Long
             get() = KaraokeProperties.getLong("timeOffsetStartFillingLineMs")
             set(value) { KaraokeProperties.set("timeOffsetStartFillingLineMs", value) }
 
+        @Suppress("unused")
         var timeOffsetBluetoothSpeakerMs: Long
             get() = KaraokeProperties.getLong("timeOffsetBluetoothSpeakerMs")
             set(value) { KaraokeProperties.set("timeOffsetBluetoothSpeakerMs", value) }
@@ -332,11 +336,13 @@ class Karaoke : Serializable {
             set(value) { KaraokeProperties.set("timeBoostyLengthMs", value) }
 
         // Минимальное время (в миллисекундах) между линиями, меньше которого заливка последнего титра будет во время смещения линии
+        @Suppress("unused")
         var transferMinimumMsBetweenLinesToScroll: Long
             get() = KaraokeProperties.getLong("transferMinimumMsBetweenLinesToScroll")
             set(value) { KaraokeProperties.set("transferMinimumMsBetweenLinesToScroll", value) }
 
         // Отступ начала заливки от первого символа в строке (в пикселах)
+        @Suppress("unused")
         var songtextStartOffsetXpx: Long
             get() = KaraokeProperties.getLong("songtextStartOffsetXpx")
             set(value) { KaraokeProperties.set("songtextStartOffsetXpx", value) }
@@ -551,21 +557,25 @@ class Karaoke : Serializable {
             set(value) { KaraokeProperties.set("headerBpmName", value) }
 
         // Прогрессометр - шрифт
+        @Suppress("unused")
         var progressFont: MltText
             get() = getMltFontFromString(KaraokeProperties.getString("progressFont"))
             set(value) { KaraokeProperties.set("progressFont", value.setting()) }
 
         // Прогрессометр - указатель
+        @Suppress("unused")
         var progressSymbol: String
             get() = KaraokeProperties.getString("progressSymbol")
             set(value) { KaraokeProperties.set("progressSymbol", value) }
 
         // Бусти - шрифт
+        @Suppress("unused")
         var boostyFont: MltText
             get() = getMltFontFromString(KaraokeProperties.getString("boostyFont"))
             set(value) { KaraokeProperties.set("boostyFont", value.setting()) }
 
         // Текст Бусти
+        @Suppress("unused")
         var boostyText: String
             get() = KaraokeProperties.getString("boostyText")
             set(value) { KaraokeProperties.set("boostyText", value) }
@@ -605,22 +615,27 @@ class Karaoke : Serializable {
             get() = KaraokeProperties.getLong("shortSubtitleMs")
             set(value) { KaraokeProperties.set("shortSubtitleMs", value) }
 
+        @Suppress("unused")
         var chordLayoutW: Int
             get() = KaraokeProperties.getInt("chordLayoutW")
             set(value) { KaraokeProperties.set("chordLayoutW", value) }
 
+        @Suppress("unused")
         var chordLayoutH: Int
             get() = KaraokeProperties.getInt("chordLayoutH")
             set(value) { KaraokeProperties.set("chordLayoutH", value) }
 
+        @Suppress("unused")
         var shortLineMs: Long
             get() = KaraokeProperties.getLong("shortLineMs")
             set(value) { KaraokeProperties.set("shortLineMs", value) }
 
+        @Suppress("unused")
         var maxCountChordsInFingerboard: Int
             get() = KaraokeProperties.getInt("maxCountChordsInFingerboard")
             set(value) { KaraokeProperties.set("maxCountChordsInFingerboard", value) }
 
+        @Suppress("unused")
         var shortLineFontScaleCoeff: Double
             get() = KaraokeProperties.getDouble("shortLineFontScaleCoeff")
             set(value) { KaraokeProperties.set("shortLineFontScaleCoeff", value) }

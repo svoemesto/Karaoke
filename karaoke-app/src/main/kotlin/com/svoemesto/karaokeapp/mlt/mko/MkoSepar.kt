@@ -3,9 +3,7 @@ package com.svoemesto.karaokeapp.mlt.mko
 import com.svoemesto.karaokeapp.*
 import com.svoemesto.karaokeapp.mlt.MltGenerator
 import com.svoemesto.karaokeapp.mlt.MltProp
-import com.svoemesto.karaokeapp.mlt.mltNode
 import com.svoemesto.karaokeapp.model.*
-import java.awt.Font
 
 data class MkoSepar(
     val mltProp: MltProp,
@@ -61,6 +59,7 @@ data class MkoSepar(
     override fun filePlaylist(): MltNode {
         val result = mltGenerator.filePlaylist()
         result.body?.let {
+            @Suppress("UNCHECKED_CAST")
             val body = it as MutableList<MltNode>
             body.add(
                 mltGenerator.entry(
@@ -84,8 +83,9 @@ data class MkoSepar(
 
         val sett = settings ?: return MltNode()
         val element = try {
-            sett.voicesForMlt[voiceId].getLines()[lineId].getElements(songVersion).filter { it.type == SettingVoiceLineElementTypes.TEXT }.first()
-        } catch (e: Exception) {
+            sett.voicesForMlt[voiceId].getLines()[lineId].getElements(songVersion)
+                .first { it.type == SettingVoiceLineElementTypes.TEXT }
+        } catch (_: Exception) {
             return MltNode()
         }
 
@@ -119,10 +119,10 @@ data class MkoSepar(
             0
         }
 
-        var widthAreaPx= element.w()
-        var heightAreaPx = element.h() + deltaY
+//        var widthAreaPx= element.w()
+        val heightAreaPx = element.h() + deltaY
 
-        val x = 0
+//        val x = 0
         val y = offsetYTabsLines
         val body: MutableList<MltNode> = mutableListOf()
 
@@ -145,7 +145,7 @@ data class MkoSepar(
                             name = "position",
                             fields = mutableMapOf(
                                 Pair("x","${rect.x}"),
-                                Pair("y","${y}")
+                                Pair("y","$y")
                             ),
                             body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(Pair("zoom","100")), body = "1,0,0,0,1,0,0,0,1"))
                         ),
@@ -178,7 +178,7 @@ data class MkoSepar(
             name = "kdenlivetitle",
             fields = PropertiesMltNodeBuilder()
                 .duration(convertMillisecondsToFrames(lineDurationOnScreen).toString())
-                .LC_NUMERIC("C")
+                .lcNumeric("C")
                 .width("$frameWidthPx")
                 .height("$frameHeightPx")
                 .`out`((convertMillisecondsToFrames(lineDurationOnScreen)-1).toString())

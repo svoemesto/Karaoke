@@ -4,7 +4,6 @@ import com.svoemesto.karaokeapp.*
 import com.svoemesto.karaokeapp.model.*
 import com.svoemesto.karaokeapp.services.APP_WORK_IN_CONTAINER
 import com.svoemesto.karaokeapp.textfiledictionary.TextFileDictionary
-import jakarta.servlet.http.HttpServletRequest
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -16,13 +15,12 @@ import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.*
 import java.io.File
-import java.util.*
 
 @Controller
 class MainController {
 
     @GetMapping("/")
-    fun main(model: Model, request: HttpServletRequest): String {
+    fun main(model: Model): String {
         model.addAttribute("workInContainer", APP_WORK_IN_CONTAINER)
         model.addAttribute("authors", Settings.loadListAuthors(WORKING_DATABASE))
         model.addAttribute("dicts", TEXT_FILE_DICTS.keys.toMutableList().sorted().toList())
@@ -63,24 +61,24 @@ class MainController {
     @PostMapping("/utils/censored")
     @ResponseBody
     fun doCensored(
-        @RequestParam(required = true) source: String,
-        model: Model): String {
+        @RequestParam(required = true) source: String
+    ): String {
         return source.censored()
     }
 
     @PostMapping("/utils/createfromfolder")
     @ResponseBody
     fun doCreateFromFolder(
-        @RequestParam(required = true) folder: String,
-        model: Model): Int {
+        @RequestParam(required = true) folder: String
+    ): Int {
         return Settings.createFromPath(folder, WORKING_DATABASE).size
     }
 
     @PostMapping("/utils/createdzenpicturesforfolder")
     @ResponseBody
     fun doCreateDzenPicturesForFolder(
-        @RequestParam(required = true) folder: String,
-        model: Model): Boolean {
+        @RequestParam(required = true) folder: String
+    ): Boolean {
         createDzenPicture(folder)
         return true
     }
@@ -116,8 +114,8 @@ class MainController {
     @PostMapping("/utils/markdublicates")
     @ResponseBody
     fun doMarkDublicates(
-        @RequestParam(required = true) author: String,
-        model: Model): Int {
+        @RequestParam(required = true) author: String
+    ): Int {
         return markDublicates(author, WORKING_DATABASE)
     }
 
@@ -143,8 +141,8 @@ class MainController {
     @ResponseBody
     fun doCreateFromFolder(
         @RequestParam(required = true) settingsId: Long,
-        @RequestParam(required = true) statusId: Long,
-        model: Model) {
+        @RequestParam(required = true) statusId: Long
+    ) {
         Settings.loadFromDbById(settingsId, WORKING_DATABASE)?.let {
             it.fields[SettingField.ID_STATUS] = statusId.toString()
             it.saveToDb()
@@ -159,8 +157,8 @@ class MainController {
         @RequestParam(required = false) process_order: String,
         @RequestParam(required = false) process_priority: String,
         @RequestParam(required = false) process_description: String,
-        @RequestParam(required = false) process_type: String,
-        model: Model): String {
+        @RequestParam(required = false) process_type: String
+    ): String {
 
         val processId: Long = id.toLong()
         val process = KaraokeProcess.load(processId, WORKING_DATABASE)
@@ -319,7 +317,7 @@ class MainController {
         @PathVariable voice: Int,
         @RequestParam(required = false) sourceText: String = "",
         model: Model): String {
-        var text = "Error"
+        var text: String
 //        if (sourceText.trim() != "") {
             val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
             text = settings?.let {
@@ -478,8 +476,7 @@ class MainController {
 
     @GetMapping("/song/{id}/fileVocal")
     fun getSongFileVocal(
-        @PathVariable id: Long,
-        model: Model
+        @PathVariable id: Long
     ): ResponseEntity<Resource> {
        Settings.loadFromDbById(id, WORKING_DATABASE)?.let { settings ->
            val filename = File(settings.vocalsNameFlac)
@@ -495,8 +492,7 @@ class MainController {
 
     @GetMapping("/song/{id}/fileMusic")
     fun getSongFileMusic(
-        @PathVariable id: Long,
-        model: Model
+        @PathVariable id: Long
     ): ResponseEntity<Resource> {
         Settings.loadFromDbById(id, WORKING_DATABASE)?.let { settings ->
             val filename = File(settings.newNoStemNameFlac)
@@ -512,8 +508,7 @@ class MainController {
 
     @GetMapping("/song/{id}/fileSong")
     fun getSongFileSong(
-        @PathVariable id: Long,
-        model: Model
+        @PathVariable id: Long
     ): ResponseEntity<Resource> {
         Settings.loadFromDbById(id, WORKING_DATABASE)?.let { settings ->
             val filename = File(settings.fileAbsolutePath)
@@ -1198,8 +1193,8 @@ class MainController {
         @RequestParam(required = false) settings_idTelegramKaraoke: String,
         @RequestParam(required = false) settings_idTelegramChords: String,
         @RequestParam(required = false) settings_resultVersion: String,
-        @RequestParam(required = false) select_status: String,
-        model: Model): String {
+        @RequestParam(required = false) select_status: String
+    ): String {
         val settingsId: Long = settings_id.toLong()
         val settings = Settings.loadFromDbById(settingsId, WORKING_DATABASE)
         settings?.let { sett ->
@@ -1276,8 +1271,8 @@ class MainController {
     fun doTextFileDictionary(
         @RequestParam(required = true) dictName: String,
         @RequestParam(required = true) dictValue: String,
-        @RequestParam(required = true) dictAction: String,
-        model: Model): Boolean {
+        @RequestParam(required = true) dictAction: String
+    ): Boolean {
         return TextFileDictionary.doAction(dictName, dictAction, listOf(dictValue))
     }
 
@@ -1371,8 +1366,8 @@ class MainController {
         @RequestParam(required = false) settings_idTelegramKaraoke: String,
         @RequestParam(required = false) settings_idTelegramChords: String,
         @RequestParam(required = false) settings_resultVersion: String,
-        @RequestParam(required = false) select_status: String,
-        model: Model): String {
+        @RequestParam(required = false) select_status: String
+    ): String {
         val settingsId: Long = settings_id.toLong()
         val settings = Settings.loadFromDbById(settingsId, WORKING_DATABASE)
         settings?.let { sett ->

@@ -1,11 +1,10 @@
 package com.svoemesto.karaokeapp//import model.Lyric
+//import java.nio.file.Path
 import com.svoemesto.karaokeapp.mlt.getMlt
 import com.svoemesto.karaokeapp.model.*
 import com.svoemesto.karaokeapp.services.SNS
 import java.io.File
 import java.nio.file.Files
-import java.nio.file.attribute.PosixFilePermissions
-//import java.nio.file.Path
 import kotlin.io.path.Path
 
 fun getVoices(settings: Settings, songVersion: SongVersion) : List<SettingVoice> {
@@ -22,14 +21,13 @@ fun getVoices(settings: Settings, songVersion: SongVersion) : List<SettingVoice>
         voice.rootSongLengthMs = settings.songLengthMs
         voice.rootStartSilentOffsetMs = settings.getStartSilentOffsetMs()
 
-        val voiceMarkers = settings.sourceMarkersList[voiceIndex].filter { it.markertype in songVersion.markertypes.map { it.value } }
+        val voiceMarkers = settings.sourceMarkersList[voiceIndex].filter { marker -> marker.markertype in songVersion.markertypes.map { it.value } }
         var groupId = 0
-        var endTimeMs = 0L
         val lines: MutableList<SettingVoiceLine> = mutableListOf()
-        var tmpLines: MutableList<SettingVoiceLine> = mutableListOf()
+        val tmpLines: MutableList<SettingVoiceLine> = mutableListOf()
         var tmpElements: MutableList<SettingVoiceLineElement> = mutableListOf()
         var tmpTextSyllables: MutableList<SettingVoiceLineElementSyllable> = mutableListOf()
-        var tmpChordSyllables: MutableList<SettingVoiceLineElementSyllable> = mutableListOf()
+//        var tmpChordSyllables: MutableList<SettingVoiceLineElementSyllable> = mutableListOf()
         var tmpNoteSyllables: MutableList<SettingVoiceLineElementSyllable> = mutableListOf()
         var prevTextSyllable: SettingVoiceLineElementSyllable? = null
 
@@ -39,17 +37,12 @@ fun getVoices(settings: Settings, songVersion: SongVersion) : List<SettingVoice>
 
             // Время слога - время маркера + стартовый оффсет
             val timeMs = (sourceMarker.time * 1000).toLong() + startSilentOffsetMs
-            var currentText = ""
 
             when (sourceMarker.markertype) {
                 Markertype.SETTING.value -> {
                     val values = sourceMarker.label.split("|")
 
-                    if (values.size == 1) {
-                        if (values[0] == "END") {
-                            endTimeMs = timeMs
-                        }
-                    } else if (values.size == 2) {
+                    if (values.size == 2) {
                         val (labelType, labelValue) = values
                         when (labelType) {
                             "GROUP" -> {
@@ -73,8 +66,8 @@ fun getVoices(settings: Settings, songVersion: SongVersion) : List<SettingVoice>
                                         text = labelValue,
                                         note = "",
                                         chord = "",
-                                        stringlad = "",
-                                        locklad = "",
+                                        stringLad = "",
+                                        lockLad = "",
                                         syllableStartMs = timeMs,
                                         syllableEndMs = timeMs,
                                         previous = null
@@ -95,7 +88,6 @@ fun getVoices(settings: Settings, songVersion: SongVersion) : List<SettingVoice>
                             else -> {}
                         }
                     }
-                    currentText = ""
                 }
                 Markertype.SYLLABLES.value, Markertype.NOTE.value, Markertype.CHORD.value -> {
 
@@ -105,10 +97,10 @@ fun getVoices(settings: Settings, songVersion: SongVersion) : List<SettingVoice>
                             txt = " . "
                         }
                         if (sourceMarker.markertype == Markertype.CHORD.value) {
-                            if (sourceMarker.label.isBlank() || sourceMarker.label == sourceMarker.chord) {
-                                txt = "♪  "
+                            txt = if (sourceMarker.label.isBlank() || sourceMarker.label == sourceMarker.chord) {
+                                "♪  "
                             } else {
-                                txt = sourceMarker.label
+                                sourceMarker.label
                             }
 
                         }
@@ -116,14 +108,13 @@ fun getVoices(settings: Settings, songVersion: SongVersion) : List<SettingVoice>
                             txt = txt.uppercaseFirstLetter()
                             prevTextSyllable = null
                         }
-                        currentText += txt
                         SettingVoiceLineElementSyllable(
                             rootId = settings.id,
                             text = txt,
                             note = sourceMarker.note,
                             chord = sourceMarker.chord,
-                            stringlad = sourceMarker.stringlad,
-                            locklad = sourceMarker.locklad,
+                            stringLad = sourceMarker.stringLad,
+                            lockLad = sourceMarker.lockLad,
                             syllableStartMs = timeMs,
                             syllableEndMs = timeMs,
                             previous = prevTextSyllable
@@ -146,7 +137,7 @@ fun getVoices(settings: Settings, songVersion: SongVersion) : List<SettingVoice>
                         prevTextSyllable = null
                     } else {
                         prevTextSyllable = tmpTextSyllables.last()
-                        prevTextSyllable?.let {it.syllableEndMs = timeMs}
+                        prevTextSyllable.syllableEndMs = timeMs
                     }
 
                     val textSyllable = SettingVoiceLineElementSyllable(
@@ -154,20 +145,18 @@ fun getVoices(settings: Settings, songVersion: SongVersion) : List<SettingVoice>
                         text = txt,
                         note = sourceMarker.note,
                         chord = sourceMarker.chord,
-                        stringlad = sourceMarker.stringlad,
-                        locklad = sourceMarker.locklad,
+                        stringLad = sourceMarker.stringLad,
+                        lockLad = sourceMarker.lockLad,
                         syllableStartMs = timeMs,
                         syllableEndMs = timeMs,
                         previous = prevTextSyllable
                     )
                     tmpTextSyllables.add(textSyllable)
                     prevTextSyllable = textSyllable
-                    currentText += txt
                 }
                 Markertype.ENDOFLINE.value, Markertype.EOL_NOTE.value, Markertype.EOL_CHORD.value -> {
 
                     prevTextSyllable = null
-                    currentText = ""
 
                     if (tmpTextSyllables.isNotEmpty()) {
 
@@ -188,17 +177,6 @@ fun getVoices(settings: Settings, songVersion: SongVersion) : List<SettingVoice>
                         element.addSyllables(tmpTextSyllables)
                         tmpElements.add(element)
                         tmpTextSyllables = mutableListOf()
-                    }
-
-                    if (tmpChordSyllables.isNotEmpty()) {
-                        val chordElement = SettingVoiceLineElement(
-                            rootId = settings.id,
-                            type = SettingVoiceLineElementTypes.ACCORD
-                        )
-                        chordElement.groupId = groupId
-                        chordElement.addSyllables(tmpChordSyllables)
-                        tmpElements.add(chordElement)
-                        tmpChordSyllables = mutableListOf()
                     }
 
                     if (tmpNoteSyllables.isNotEmpty()) {
@@ -231,7 +209,6 @@ fun getVoices(settings: Settings, songVersion: SongVersion) : List<SettingVoice>
 
                 }
                 Markertype.NEWLINE.value, Markertype.NEWLINE_NOTE.value, Markertype.NEWLINE_CHORD.value -> {
-                    currentText = ""
                     if (tmpLines.isNotEmpty()) {
                         tmpLines.add(SettingVoiceLine.newLine(settings.id,timeMs,groupId))
                     }
@@ -245,7 +222,7 @@ fun getVoices(settings: Settings, songVersion: SongVersion) : List<SettingVoice>
             val nextLine = tmpLines[lineIndex + 1]
             val diff = nextLine.lineStartMs - currLine.lineEndMs
             if (diff < 1000) {
-                currLine.lineEndMs = Math.max(currLine.lineStartMs, nextLine.lineStartMs - 1000)
+                currLine.lineEndMs = currLine.lineStartMs.coerceAtLeast(nextLine.lineStartMs - 1000)
             }
         }
 
@@ -275,7 +252,7 @@ fun getVoices(settings: Settings, songVersion: SongVersion) : List<SettingVoice>
             }
 
             // Проходимся по временным линиям - от первой до последней
-            // (используем while а не for т.к. в процессе возможно необходимо будет менять индекс)
+            // (используем while а не for т.к. В процессе возможно необходимо будет менять индекс)
             var lineIndex = 0
             while (lineIndex < tmpLines.size) {
 
@@ -300,7 +277,7 @@ fun getVoices(settings: Settings, songVersion: SongVersion) : List<SettingVoice>
                             // Количество пустых линий, которые должны быть в этом интервале
                             val countNeededEmptyLines = (endTimeMs - startTimeMs) / maxDuration
 
-                            // Вычислем реальное кол-во пустых строк, которые должны быть в этом интервале
+                            // Вычислим реальное кол-во пустых строк, которые должны быть в этом интервале
                             val countEmptyLinesToAdd =
                                 Integer.max(countEmptyLinesBetweenCurrentAndNext, countNeededEmptyLines.toInt())
 
@@ -390,8 +367,6 @@ fun getVoices(settings: Settings, songVersion: SongVersion) : List<SettingVoice>
 
         }
 
-        tmpLines = mutableListOf()
-
         // Проставляем previousLineEndMs и nextLineStartMs для линий
         var previousVoiceLine: SettingVoiceLine? = null
         var nextVoiceLine: SettingVoiceLine? = null
@@ -446,7 +421,7 @@ fun getVoices(settings: Settings, songVersion: SongVersion) : List<SettingVoice>
                     element.fontSize = fontSize
                 }
             }
-            voice._countLineTracks = null
+            voice.privateCountLineTracks = null
         }
     }
 
@@ -464,8 +439,6 @@ fun createKaraoke(settings: Settings, songVersion: SongVersion) {
     }
 
     val mltProp = settings.getMltProp(songVersion)
-
-    val permissions = PosixFilePermissions.fromString("rwxr-x---")
 
     val templateProject = "<?xml version='1.0' encoding='utf-8'?>\n${getMlt(mltProp)}"
 

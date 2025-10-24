@@ -65,12 +65,10 @@ class Users(override val database: Connection = (WORKING_DATABASE as Connection)
     }
 
 
-    // Методы для обновления пароля остаются, но теперь они должны устанавливать захешированный пароль
     fun changePassword(newPassword: String, oldPassword: String, passwordEncoder: PasswordEncoder): Boolean {
         if (newPassword.length > 6) {
             // Сначала проверяем старый пароль с помощью текущего хеша (MD5 или BCrypt)
             if (checkPassword(oldPassword, passwordEncoder)) {
-                // Устанавливаем новый пароль, захешированный с помощью PasswordEncoder
                 setPasswordWithEncoder(passwordEncoder.encode(newPassword))
                 save() // Сохраняем обновленный хеш
                 return true
@@ -92,13 +90,14 @@ class Users(override val database: Connection = (WORKING_DATABASE as Connection)
         return "Users(database=$database, id=$id, login='$login', passwordHash='[PROTECTED]', email='$email', firstName='$firstName', lastName='$lastName', groups='$groups')"
     }
 
-    fun resetPassword(passwordEncoder: org.springframework.security.crypto.password.PasswordEncoder) {
+    fun resetPassword(passwordEncoder: PasswordEncoder) {
         // Установить пароль на пустую строку или на сгенерированный, захешированный
         val resetPasswordHash = passwordEncoder.encode("") // Или сгенерированный пароль
         setPasswordWithEncoder(resetPasswordHash)
         save()
     }
 
+    @Suppress("unused")
     fun changePassword(newPassword: String, oldPassword: String): Boolean {
         if (newPassword.length > 6) {
             val newPasswordHash = getMd5Hash(newPassword)
@@ -117,7 +116,7 @@ class Users(override val database: Connection = (WORKING_DATABASE as Connection)
     )
     companion object {
 
-        val TABLE_NAME = "tbl_users"
+        const val TABLE_NAME = "tbl_users"
 
         // --- Обновленные методы, принимающие PasswordEncoder ---
         fun checkPassword(login: String, password: String, database: KaraokeConnection, passwordEncoder: PasswordEncoder): Boolean {
@@ -160,12 +159,11 @@ class Users(override val database: Connection = (WORKING_DATABASE as Connection)
             ).map { it as Users }
         }
 
-        fun createNewUser(userDto: UsersDto, database: KaraokeConnection, passwordEncoder: org.springframework.security.crypto.password.PasswordEncoder): Users? {
+        fun createNewUser(userDto: UsersDto, database: KaraokeConnection, passwordEncoder: PasswordEncoder): Users? {
             if (userDto.isValid()) {
                 if (getUserByLogin(login = userDto.login, database = database) == null) {
                     val newUser = Users(database = (database as Connection))
                     newUser.login = userDto.login
-                    // --- Хешируем пароль при создании ---
                     newUser.setPasswordWithEncoder(passwordEncoder.encode(userDto.password))
                     newUser.email =  userDto.email
                     newUser.firstName = userDto.firstName
@@ -186,39 +184,6 @@ class Users(override val database: Connection = (WORKING_DATABASE as Connection)
                 }
             } else {
                 SNS.send(SseNotification.error(Message( // Message не определен, замените на ваш класс
-                    type = "error",
-                    head = "Создание нового пользователя.",
-                    body = "Не удалось создать нового пользователя из-за следующих ошибок: ${userDto.validationErrors().joinToString(", ")}"
-                )))
-            }
-            return null
-        }
-
-        fun createNewUser(userDto: UsersDto, database: KaraokeConnection): Users? {
-            if (userDto.isValid()) {
-                if (getUserByLogin(login = userDto.login, database = database) == null) {
-                    val newUser = Users(database = (database as Connection))
-                    newUser.login = userDto.login
-                    newUser.passwordHash = getMd5Hash(userDto.password) ?: ""
-                    newUser.email =  userDto.email
-                    newUser.firstName = userDto.firstName
-                    newUser.lastName = userDto.lastName
-                    val newUserInDb = KaraokeDbTable.createDbInstance(
-                        entity = newUser,
-                        database = database
-                    ) as? Users?
-                    newUserInDb?.let {
-                        return it
-                    }
-                } else {
-                    SNS.send(SseNotification.error(Message(
-                        type = "error",
-                        head = "Создание нового пользователя.",
-                        body = "Не удалось создать нового пользователя, потому что пользователь с таким логином уже существует."
-                    )))
-                }
-            } else {
-                SNS.send(SseNotification.error(Message(
                     type = "error",
                     head = "Создание нового пользователя.",
                     body = "Не удалось создать нового пользователя из-за следующих ошибок: ${userDto.validationErrors().joinToString(", ")}"

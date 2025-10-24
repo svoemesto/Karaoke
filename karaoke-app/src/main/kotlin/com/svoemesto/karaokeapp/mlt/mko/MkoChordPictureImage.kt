@@ -22,11 +22,11 @@ data class MkoChordPictureImage(
     private val chordWidthPx = frameHeightPx / 4
     private val chordHeightPx = chordWidthPx
 
-    private val songVersion = mltProp.getSongVersion()
-    private val settings = mltProp.getSettings()
+//    private val songVersion = mltProp.getSongVersion()
+//    private val settings = mltProp.getSettings()
     private val songEndTimecode  = mltProp.getSongEndTimecode()
     private var chordDurationOnScreen = mltProp.getDurationOnScreen(listOf(ProducerType.CHORDPICTURELINE, voiceId, lineId))
-    private var folderIdChordpictures = mltProp.getId(listOf(ProducerType.CHORDPICTUREIMAGE, voiceId))
+    private var folderIdChordPictures = mltProp.getId(listOf(ProducerType.CHORDPICTUREIMAGE, voiceId))
     private val chordEndTimecode = if (chordDurationOnScreen > 0) {
         convertMillisecondsToTimecode(chordDurationOnScreen)
     } else {
@@ -38,14 +38,14 @@ data class MkoChordPictureImage(
     private val capo = mltProp.getSongCapo()
 
     override fun producer(): MltNode {
-        var widthAreaPx= chordWidthPx
-        var heightAreaPx= chordHeightPx
+        val widthAreaPx= chordWidthPx
+        val heightAreaPx= chordHeightPx
 
         return mltGenerator
             .producer(
                 timecodeOut = chordEndTimecode,
                 props = MltNodeBuilder(mltGenerator.defaultProducerPropertiesForMltService("kdenlivetitle"))
-                    .propertyName("kdenlive:folderid", folderIdChordpictures)
+                    .propertyName("kdenlive:folderid", folderIdChordPictures)
                     .propertyName("length", convertMillisecondsToFrames(chordDurationOnScreen))
                     .propertyName("kdenlive:duration", chordEndTimecode)
                     .propertyName("xmldata", template().toString().xmldata())
@@ -58,6 +58,7 @@ data class MkoChordPictureImage(
     override fun filePlaylist(): MltNode {
         val result = mltGenerator.filePlaylist()
         result.body?.let {
+            @Suppress("UNCHECKED_CAST")
             val body = it as MutableList<MltNode>
             body.add(
                 mltGenerator.entry(
@@ -150,7 +151,7 @@ data class MkoChordPictureImage(
             name = "kdenlivetitle",
             fields = PropertiesMltNodeBuilder()
                 .duration(convertMillisecondsToFrames(chordDurationOnScreen).toString())
-                .LC_NUMERIC("C")
+                .lcNumeric("C")
                 .width("$frameWidthPx")
                 .height("$chordHeightPx")
                 .`out`((convertMillisecondsToFrames(chordDurationOnScreen)-1).toString())

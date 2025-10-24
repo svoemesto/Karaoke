@@ -1,5 +1,6 @@
+package com.svoemesto.karaokeapp.mlt
+
 import com.svoemesto.karaokeapp.Karaoke
-import com.svoemesto.karaokeapp.mlt.MltProp
 import com.svoemesto.karaokeapp.model.MltNode
 
 fun getMltProfile(): MltNode {

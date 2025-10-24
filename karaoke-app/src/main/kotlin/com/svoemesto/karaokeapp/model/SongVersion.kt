@@ -2,6 +2,7 @@ package com.svoemesto.karaokeapp.model
 
 import java.io.Serializable
 
+@Suppress("unused")
 fun List<ProducerType>.sortedByLevelsDesc(): List<ProducerType> {
     return this.map { Pair(it.level * (-1),it) }.sortedBy { it.first }.map { it.second }.toList()
 }

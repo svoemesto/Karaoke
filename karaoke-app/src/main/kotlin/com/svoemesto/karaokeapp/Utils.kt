@@ -10,18 +10,9 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.apache.commons.csv.CSVFormat
 import org.apache.commons.csv.CSVParser
-import org.apache.commons.io.FileUtils
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
-import org.odftoolkit.simple.SpreadsheetDocument
-import org.openqa.selenium.By
-import org.openqa.selenium.WebDriver
-import org.openqa.selenium.WebElement
-import org.openqa.selenium.chrome.ChromeDriver
-import org.openqa.selenium.chrome.ChromeOptions
-import org.openqa.selenium.support.ui.ExpectedConditions
-import org.openqa.selenium.support.ui.WebDriverWait
 import java.awt.*
 import java.awt.image.BufferedImage
 import java.io.*
@@ -30,9 +21,7 @@ import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.nio.file.Files
-import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
-import java.nio.file.attribute.PosixFilePermissions
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
 import java.sql.ResultSet
@@ -40,23 +29,12 @@ import java.sql.SQLException
 import java.sql.Statement
 import java.sql.Timestamp
 import java.text.SimpleDateFormat
-import java.time.Duration
 import java.time.Instant
 import java.util.*
 import javax.imageio.ImageIO
-import javax.sound.sampled.AudioSystem
 import kotlin.io.path.Path
 import kotlin.math.roundToInt
 import kotlin.random.Random
-//import io.ktor.client.*
-//import io.ktor.client.engine.cio.*
-//import io.ktor.client.request.*
-//import io.ktor.client.statement.*
-//import org.jsoup.nodes.Document
-
-fun mainUtils() {
-
-}
 
 fun customFunction(): String {
 
@@ -72,7 +50,7 @@ fun customFunction(): String {
     return ""
 }
 
-
+@Suppress("unused")
 fun recodePictures() {
     var totalOld: Long = 0
     var totalNew: Long = 0
@@ -90,10 +68,10 @@ fun recodePictures() {
             ImageIO.write(picBi, "png", ios)
             val picBytesNew = ios.toByteArray()
             val picSizeNew = picBytesNew.size
-            val picBase64New = Base64.getEncoder().encodeToString(picBytesNew)
+//            val picBase64New = Base64.getEncoder().encodeToString(picBytesNew)
             totalOld += picSize
             totalNew += picSizeNew
-            println("${picture.name} : ${picW} x ${picH} экономия ${picSize - picSizeNew} байт.")
+            println("${picture.name} : $picW x $picH экономия ${picSize - picSizeNew} байт.")
 //            picture.full = picBase64New
 //            picture.save()
         }
@@ -160,18 +138,18 @@ fun setSettingsToSyncRemoteTable(ids: List<Long>): List<String> {
                     "dataCreate" to emptyList<Map<String, Any>>(),
                     "dataUpdate" to emptyList<Map<String, Any>>(),
                     "dataDelete" to lstToDelete,
-                    "word" to (Crypto.encrypt(Crypto.wordsToChesk) ?: "")
+                    "word" to (Crypto.encrypt(Crypto.WORDS_TO_CHECK) ?: "")
             )
 
             val objectMapper = ObjectMapper()
             val requestBody: String = objectMapper.writeValueAsString(values)
-            val client = HttpClient.newBuilder().build();
+            val client = HttpClient.newBuilder().build()
             val request = HttpRequest.newBuilder()
                     .uri(URI.create("https://sm-karaoke.ru/changerecords"))
                     .POST(HttpRequest.BodyPublishers.ofString(requestBody))
                     .header("Content-Type", "application/json")
                     .build()
-            val response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            val response = client.send(request, HttpResponse.BodyHandlers.ofString())
             println(response.body())
         }
 
@@ -185,18 +163,18 @@ fun setSettingsToSyncRemoteTable(ids: List<Long>): List<String> {
                     "dataCreate" to lstToCreate,
                     "dataUpdate" to emptyList<Map<String, Any>>(),
                     "dataDelete" to emptyList<Map<String, Any>>(),
-                    "word" to (Crypto.encrypt(Crypto.wordsToChesk) ?: "")
+                    "word" to (Crypto.encrypt(Crypto.WORDS_TO_CHECK) ?: "")
             )
 
             val objectMapper = ObjectMapper()
             val requestBody: String = objectMapper.writeValueAsString(values)
-            val client = HttpClient.newBuilder().build();
+            val client = HttpClient.newBuilder().build()
             val request = HttpRequest.newBuilder()
                     .uri(URI.create("https://sm-karaoke.ru/changerecords"))
                     .POST(HttpRequest.BodyPublishers.ofString(requestBody))
                     .header("Content-Type", "application/json")
                     .build()
-            val response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            val response = client.send(request, HttpResponse.BodyHandlers.ofString())
             println(response.body())
         }
     }
@@ -338,7 +316,7 @@ fun updateDatabases(
                 if (diff.isNotEmpty() && !diff.all { !it.recordDiffRealField || it.recordDiffName.startsWith("status_process_")}) {
                     listToUpdateNames.add(itemFrom.rightSettingFileName)
                     println("[${Timestamp.from(Instant.now())}] Изменяем запись в $tableName: id=${itemFrom.id}, ${itemFrom.rightSettingFileName}, поля: ${diff.joinToString(", ") { it.recordDiffName }}")
-                    val messageRecordChange = RecordChangeMessage(tableName = tableName,  recordId = itemTo.id.toLong(), diffs = diff, databaseName = toDatabase.name, record = itemFrom)
+                    val messageRecordChange = RecordChangeMessage(tableName = tableName,  recordId = itemTo.id, diffs = diff, databaseName = toDatabase.name, record = itemFrom)
                     if (toDatabase.name == "SERVER") {
                         val setStr = messageRecordChange.getSetString()
                         if (setStr != "") {
@@ -351,7 +329,8 @@ fun updateDatabases(
                             listToUpdate.add(values)
                         }
                     } else {
-                        val setStr = diff.filter{ it.recordDiffRealField }.map { "${it.recordDiffName} = ?" }.joinToString(", ")
+                        val setStr =
+                            diff.filter { it.recordDiffRealField }.joinToString(", ") { "${it.recordDiffName} = ?" }
                         if (setStr != "") {
                             val sql = "UPDATE $tableName SET $setStr WHERE id = ?"
                             val connection = toDatabase.getConnection()
@@ -362,16 +341,22 @@ fun updateDatabases(
                             val ps = connection.prepareStatement(sql)
                             var index = 1
                             diff.filter{ it.recordDiffRealField }.forEach {
-                                if (it.recordDiffValueNew is Long) {
-                                    ps.setLong(index, it.recordDiffValueNew.toLong())
-                                } else if (it.recordDiffValueNew is Int) {
-                                    ps.setInt(index, it.recordDiffValueNew.toInt())
-                                } else {
-                                    ps.setString(index, it.recordDiffValueNew.toString())
+                                when (it.recordDiffValueNew) {
+                                    is Long -> {
+                                        ps.setLong(index, it.recordDiffValueNew)
+                                    }
+
+                                    is Int -> {
+                                        ps.setInt(index, it.recordDiffValueNew)
+                                    }
+
+                                    else -> {
+                                        ps.setString(index, it.recordDiffValueNew.toString())
+                                    }
                                 }
                                 index++
                             }
-                            ps.setLong(index, itemTo.id.toLong())
+                            ps.setLong(index, itemTo.id)
                             ps.executeUpdate()
                             ps.close()
                         }
@@ -466,7 +451,7 @@ fun updateDatabases(
                 if (diff.isNotEmpty()) {
                     listToUpdateNames.add(itemFrom.name)
                     println("[${Timestamp.from(Instant.now())}] Изменяем запись в $tableName: id=${itemFrom.id}, ${itemFrom.name}, поля: ${diff.joinToString(", ") { it.recordDiffName }}")
-                    val messageRecordChange = RecordChangeMessage(tableName = tableName,  recordId = itemTo.id.toLong(), diffs = diff, databaseName = toDatabase.name, record = itemFrom)
+                    val messageRecordChange = RecordChangeMessage(tableName = tableName,  recordId = itemTo.id, diffs = diff, databaseName = toDatabase.name, record = itemFrom)
                     if (toDatabase.name == "SERVER") {
                         val setStr = messageRecordChange.getSetString()
                         if (setStr != "") {
@@ -479,7 +464,8 @@ fun updateDatabases(
                             listToUpdate.add(values)
                         }
                     } else {
-                        val setStr = diff.filter{ it.recordDiffRealField }.map { "${it.recordDiffName} = ?" }.joinToString(", ")
+                        val setStr =
+                            diff.filter { it.recordDiffRealField }.joinToString(", ") { "${it.recordDiffName} = ?" }
                         if (setStr != "") {
                             val sql = "UPDATE $tableName SET $setStr WHERE id = ?"
                             val connection = toDatabase.getConnection()
@@ -490,16 +476,22 @@ fun updateDatabases(
                             val ps = connection.prepareStatement(sql)
                             var index = 1
                             diff.filter{ it.recordDiffRealField }.forEach {
-                                if (it.recordDiffValueNew is Long) {
-                                    ps.setLong(index, it.recordDiffValueNew.toLong())
-                                } else if (it.recordDiffValueNew is Int) {
-                                    ps.setInt(index, it.recordDiffValueNew.toInt())
-                                } else {
-                                    ps.setString(index, it.recordDiffValueNew.toString())
+                                when (it.recordDiffValueNew) {
+                                    is Long -> {
+                                        ps.setLong(index, it.recordDiffValueNew)
+                                    }
+
+                                    is Int -> {
+                                        ps.setInt(index, it.recordDiffValueNew)
+                                    }
+
+                                    else -> {
+                                        ps.setString(index, it.recordDiffValueNew.toString())
+                                    }
                                 }
                                 index++
                             }
-                            ps.setLong(index, itemTo.id.toLong())
+                            ps.setLong(index, itemTo.id)
                             ps.executeUpdate()
                             ps.close()
                         }
@@ -522,18 +514,18 @@ fun updateDatabases(
                     "dataCreate" to lstToCreate,
                     "dataUpdate" to emptyList<Map<String, Any>>(),
                     "dataDelete" to emptyList<Map<String, Any>>(),
-                    "word" to (Crypto.encrypt(Crypto.wordsToChesk) ?: "")
+                    "word" to (Crypto.encrypt(Crypto.WORDS_TO_CHECK) ?: "")
                 )
 
                 val objectMapper = ObjectMapper()
                 val requestBody: String = objectMapper.writeValueAsString(values)
-                val client = HttpClient.newBuilder().build();
+                val client = HttpClient.newBuilder().build()
                 val request = HttpRequest.newBuilder()
                     .uri(URI.create("https://sm-karaoke.ru/changerecords"))
                     .POST(HttpRequest.BodyPublishers.ofString(requestBody))
                     .header("Content-Type", "application/json")
                     .build()
-                val response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                val response = client.send(request, HttpResponse.BodyHandlers.ofString())
                 println(response.body())
             }
         }
@@ -547,18 +539,18 @@ fun updateDatabases(
                     "dataCreate" to emptyList<Map<String, Any>>(),
                     "dataUpdate" to emptyList<Map<String, Any>>(),
                     "dataDelete" to lstToDelete,
-                    "word" to (Crypto.encrypt(Crypto.wordsToChesk) ?: "")
+                    "word" to (Crypto.encrypt(Crypto.WORDS_TO_CHECK) ?: "")
                 )
 
                 val objectMapper = ObjectMapper()
                 val requestBody: String = objectMapper.writeValueAsString(values)
-                val client = HttpClient.newBuilder().build();
+                val client = HttpClient.newBuilder().build()
                 val request = HttpRequest.newBuilder()
                     .uri(URI.create("https://sm-karaoke.ru/changerecords"))
                     .POST(HttpRequest.BodyPublishers.ofString(requestBody))
                     .header("Content-Type", "application/json")
                     .build()
-                val response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                val response = client.send(request, HttpResponse.BodyHandlers.ofString())
                 println(response.body())
             }
 
@@ -573,18 +565,18 @@ fun updateDatabases(
                     "dataCreate" to emptyList<Map<String, Any>>(),
                     "dataUpdate" to lstToUpdate,
                     "dataDelete" to emptyList<Map<String, Any>>(),
-                    "word" to (Crypto.encrypt(Crypto.wordsToChesk) ?: "")
+                    "word" to (Crypto.encrypt(Crypto.WORDS_TO_CHECK) ?: "")
                 )
 
                 val objectMapper = ObjectMapper()
                 val requestBody: String = objectMapper.writeValueAsString(values)
-                val client = HttpClient.newBuilder().build();
+                val client = HttpClient.newBuilder().build()
                 val request = HttpRequest.newBuilder()
                     .uri(URI.create("https://sm-karaoke.ru/changerecords"))
                     .POST(HttpRequest.BodyPublishers.ofString(requestBody))
                     .header("Content-Type", "application/json")
                     .build()
-                val response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                val response = client.send(request, HttpResponse.BodyHandlers.ofString())
                 println(response.body())
             }
 
@@ -596,7 +588,8 @@ fun updateDatabases(
 
 }
 
-fun <T : java.io.Serializable> deepCopy(obj: T?): T? {
+@Suppress("unused")
+fun <T : Serializable> deepCopy(obj: T?): T? {
     if (obj == null) return null
     val baos = ByteArrayOutputStream()
     val oos  = ObjectOutputStream(baos)
@@ -608,25 +601,25 @@ fun <T : java.io.Serializable> deepCopy(obj: T?): T? {
     return ois.readObject() as T
 }
 
-@Throws(IOException::class)
-fun getMd5HashForFile(filename: String?): String? {
-    return try {
-        val md: MessageDigest? = MessageDigest.getInstance("MD5")
-        val buffer = ByteArray(8192)
-        Files.newInputStream(Paths.get(filename)).use { `is` ->
-            var read: Int
-            while (`is`.read(buffer).also { read = it } > 0) {
-                if (md != null) {
-                    md.update(buffer, 0, read)
-                }
-            }
-        }
-        val digest: ByteArray = md?.digest() ?: byteArrayOf()
-        bytesToHex(digest)
-    } catch (e: NoSuchAlgorithmException) {
-        throw RuntimeException(e)
-    }
-}
+//@Throws(IOException::class)
+//fun getMd5HashForFile(filename: String?): String? {
+//    return try {
+//        val md: MessageDigest? = MessageDigest.getInstance("MD5")
+//        val buffer = ByteArray(8192)
+//        Files.newInputStream(Paths.get(filename)).use { `is` ->
+//            var read: Int
+//            while (`is`.read(buffer).also { read = it } > 0) {
+//                if (md != null) {
+//                    md.update(buffer, 0, read)
+//                }
+//            }
+//        }
+//        val digest: ByteArray = md?.digest() ?: byteArrayOf()
+//        bytesToHex(digest)
+//    } catch (e: NoSuchAlgorithmException) {
+//        throw RuntimeException(e)
+//    }
+//}
 
 fun getMd5Hash(source: String): String? {
     return try {
@@ -652,7 +645,7 @@ fun updateBpmAndKey(database: KaraokeConnection): Int {
     listSettings.forEach { settings ->
         val (bpm, key) = getBpmAndKeyFromCsv(settings)
         if (bpm != 0L && key != "") {
-            println("${settings.rightSettingFileName} : bpm = ${bpm}, tone = ${key}")
+            println("${settings.rightSettingFileName} : bpm = ${bpm}, tone = $key")
             settings.fields[SettingField.BPM] = bpm.toString()
             settings.fields[SettingField.KEY] = key
             settings.saveToDb()
@@ -667,12 +660,12 @@ fun updateBpmAndKeyLV(database: KaraokeConnection): Pair<Int, Int> {
     var counterSuccess = 0
     var counterFailed = 0
     listSettings.forEach { settings ->
-        val sheetstageInfo = settings.sheetstageInfo
-        if (sheetstageInfo.isNotEmpty()) {
-            val bpm = sheetstageInfo["tempo"] as String
-            val key = sheetstageInfo["key"] as String
+        val sheetsageInfo = settings.sheetsageInfo
+        if (sheetsageInfo.isNotEmpty()) {
+            val bpm = sheetsageInfo["tempo"] as String
+            val key = sheetsageInfo["key"] as String
             if (bpm != "" && key != "") {
-                println("${settings.rightSettingFileName} : bpm = ${bpm}, tone = ${key}")
+                println("${settings.rightSettingFileName} : bpm = ${bpm}, tone = $key")
                 settings.fields[SettingField.BPM] = bpm
                 settings.fields[SettingField.KEY] = key
                 settings.saveToDb()
@@ -751,10 +744,10 @@ fun clearPreDublicates(database: KaraokeConnection): Int {
     return counter
 }
 
-fun markDublicates(autor: String, database: KaraokeConnection): Int {
+fun markDublicates(author: String, database: KaraokeConnection): Int {
     var counter = 0
     val listSettings = Settings.loadListFromDb(
-        mapOf(Pair("song_author", autor)), database
+        mapOf(Pair("song_author", author)), database
     )
     listSettings.forEach { settings ->
         if (settings.tags == "") {
@@ -775,6 +768,7 @@ fun markDublicates(autor: String, database: KaraokeConnection): Int {
     return counter
 }
 
+@Suppress("unused")
 fun create720pForAllUncreated(database: KaraokeConnection) {
 
     val settingsList = Settings.loadListFromDb(database = database)
@@ -820,8 +814,8 @@ fun copyIfNeed(pathFrom: String, pathTo: String, folderTo: String, log: String =
 fun collectDoneFilesToStoreFolderAndCreate720pForAllUncreated(settingsList: List<Settings>, priorLyrics: Int = 10, priorKaraoke: Int = 10): Pair<Int, Int> {
     println("Копирование в хранилище и создание заданий на кодирование в 720р")
 //    val settingsList = Settings.loadListFromDb(database = database)
-    var countCopy = 0;
-    var countCode = 0;
+    var countCopy = 0
+    var countCode = 0
     settingsList.forEach { settings ->
 
         countCopy += copyIfNeed(settings.pathToFileLyrics, settings.pathToStoreFileLyrics, settings.pathToStoreFolderLyrics, "Копируем в хранилище файл: ${settings.nameFileLyrics}")
@@ -877,18 +871,19 @@ fun collectDoneFilesToStoreFolderAndCreate720pForAllUncreated(settingsList: List
     return Pair(countCopy, countCode)
 }
 
-class ResourceReader {
-    fun readTextResource(filename: String): String {
-        val uri = this.javaClass.getResource("/$filename").toURI()
-        return Files.readString(Paths.get(uri))
-    }
-}
+
+//class ResourceReader {
+//    fun readTextResource(filename: String): String {
+//        val uri = this.javaClass.getResource("/$filename").toURI()
+//        return Files.readString(Paths.get(uri))
+//    }
+//}
 
 fun replaceSymbolsInSong(sourceText: String): String {
     var result = sourceText.addNewLinesByUpperCase()
 
     val yo = YoWordsDictionary().dict
-    val sourceTextContainsRussianLetters = sourceText.containThisSymbols(RUSSIN_LETTERS)
+    val sourceTextContainsRussianLetters = sourceText.containThisSymbols(RUSSIAN_LETTERS)
     yo.forEach { wordWithYO ->
         val replacedWord = wordWithYO.replace("ё", "е")
         val patt1 = "\\b$replacedWord\\b".toRegex()
@@ -915,7 +910,7 @@ fun replaceSymbolsInSong(sourceText: String): String {
         val lines = result.split("\n")
         val linesWithoutChords: MutableList<String> = mutableListOf()
         lines.forEach { line ->
-            if (!(line.containThisSymbols(ENGLISH_LETTERS) && !line.containThisSymbols(RUSSIN_LETTERS))) {
+            if (!(line.containThisSymbols(ENGLISH_LETTERS) && !line.containThisSymbols(RUSSIAN_LETTERS))) {
                 linesWithoutChords.add(line)
             }
         }
@@ -989,7 +984,7 @@ fun createDigestForAllAuthors(vararg authors: String, database: KaraokeConnectio
     val listAuthors = getAuthorsForDigest(database = database)
     listAuthors.forEach { author ->
         if (authors.isEmpty() || author in authors) {
-            var txt = "ЗАКРОМА - «$author»\n\n${getAuthorDigest(author, false, database).first}"
+            val txt = "ЗАКРОМА - «$author»\n\n${getAuthorDigest(author, false, database).first}"
             val fileName = "/sm-karaoke/system/Digest/${author} (digest).txt"
             File(fileName).writeText(txt, Charsets.UTF_8)
             runCommand(listOf("chmod", "666", fileName))
@@ -1012,7 +1007,7 @@ fun createDigestForAllAuthorsForOper(vararg authors: String, database: KaraokeCo
             }
         }
     }
-    txt = "----------ЗАКРОМА----------\nВсего песен: $total шт.\n\n" + txt
+    txt = "----------ЗАКРОМА----------\nВсего песен: $total шт.\n\n$txt"
     val fileName = "/sm-karaoke/system/Digest/OPER_digest.txt"
     File(fileName).writeText(txt, Charsets.UTF_8)
     runCommand(listOf("chmod", "666", fileName))
@@ -1062,7 +1057,7 @@ fun getAuthorsForDigest(database: KaraokeConnection): List<String> {
 
 fun getAuthorDigest(author: String, withRazor: Boolean = true, database: KaraokeConnection): Pair<String, Int> {
 
-    val MAX_SYMBOLS = 16300
+    val maxSymbols = 16300
 
     val listDigest = Settings.loadListFromDb(mapOf(Pair("song_author", author)), database)
         .filter { it.digestIsFull }
@@ -1072,7 +1067,7 @@ fun getAuthorDigest(author: String, withRazor: Boolean = true, database: Karaoke
     var counter = 0
 
     listDigest.forEach { digets ->
-        if (withRazor && (counter + digets.length > MAX_SYMBOLS)) {
+        if (withRazor && (counter + digets.length > maxSymbols)) {
             result += "\n(ПРОДОЛЖЕНИЕ - В КОММЕНТАРИЯХ)\n\n----------------------------------------------------------------------------------------\n\n\n"
             counter = 0
         }
@@ -1083,6 +1078,7 @@ fun getAuthorDigest(author: String, withRazor: Boolean = true, database: Karaoke
     return result to listDigest.size
 }
 
+@Suppress("unused")
 fun searchSongText2(settings: Settings) {
 
     val searchQuery = "${settings.author} ${settings.songName}"
@@ -1117,8 +1113,8 @@ fun searchSongText(settings: Settings): String {
 
     lyricsElement?.let { le ->
         val spanElements = le.select("span")
-        val spanTexts = spanElements?.map { it.ownText() }
-        spanTexts?.let { st ->
+        val spanTexts = spanElements.map { it.ownText() }
+        spanTexts.let { st ->
             return spanTexts.joinToString("\n")
         }
     }
@@ -1277,7 +1273,7 @@ fun searchSongText(settings: Settings): String {
             println("html()")
             println(lyricsElement?.html())
 
-            var text = lyricsElement?.text()
+            val text = lyricsElement?.text()
 
             if (text != null) {
                 println(text)
@@ -1300,7 +1296,7 @@ fun searchSongText(settings: Settings): String {
             println(lyricsElement?.ownText())
             println(lyricsElement?.html())
 
-            var text = lyricsElement?.ownText()
+            val text = lyricsElement?.ownText()
 
             if (text != null) {
                 return text
@@ -1351,12 +1347,12 @@ fun searchSongText(settings: Settings): String {
                 println("html()")
                 println(lyricsElement?.html())
 
-                var text = lyricsElement?.text()
+                val text = lyricsElement?.text()
                 if (text != null) {
                     println(text)
                     return text
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 return ""
             }
 
@@ -1369,13 +1365,14 @@ fun searchSongText(settings: Settings): String {
     return ""
 }
 
+@Suppress("unused")
 fun getNewTone(tone: String, capo: Int): String {
     val noteAndTone = tone.split(" ")
     val nameChord = noteAndTone[0]
-    val (chord, note) = MusicChord.getChordNote(nameChord)
-    var newIndexNote = MusicNote.values().indexOf(note!!) - capo
-    if (newIndexNote < 0) newIndexNote = MusicNote.values().size + newIndexNote
-    val newNote = MusicNote.values()[newIndexNote]
+    val (_, note) = MusicChord.getChordNote(nameChord)
+    var newIndexNote = MusicNote.entries.indexOf(note!!) - capo
+    if (newIndexNote < 0) newIndexNote = MusicNote.entries.size + newIndexNote
+    val newNote = MusicNote.entries[newIndexNote]
     return "${newNote.names.first()} ${noteAndTone[1]}"
 }
 fun generateChordLayout(chordName: String, capo: Int): List<MltObject> {
@@ -1387,9 +1384,9 @@ fun generateChordLayout(chordName: String, capo: Int): List<MltObject> {
 }
 fun generateChordLayout(chord: MusicChord, startRootNote: MusicNote, startInitFret: Int, capo: Int): List<MltObject> {
 
-    var newIndexNote = MusicNote.values().indexOf(startRootNote) - capo
-    if (newIndexNote < 0) newIndexNote = MusicNote.values().size + newIndexNote
-    val note = MusicNote.values()[newIndexNote]
+    var newIndexNote = MusicNote.entries.indexOf(startRootNote) - capo
+    if (newIndexNote < 0) newIndexNote = MusicNote.entries.size + newIndexNote
+    val note = MusicNote.entries[newIndexNote]
     var fret = startInitFret - capo
     if (fret < 0) fret = 0
 
@@ -1403,8 +1400,8 @@ fun generateChordLayout(chord: MusicChord, startRootNote: MusicNote, startInitFr
 
     val initFret = fingerboards[0].rootFret
     val result:MutableList<MltObject> = mutableListOf()
-    var chordLayoutW = (Karaoke.frameHeightPx / 4).toInt()
-    var chordLayoutH = chordLayoutW
+    val chordLayoutW = (Karaoke.frameHeightPx / 4)
+    val chordLayoutH = chordLayoutW
 
     val chordName = "${note.names.first()}${chord.names.first()}"
     val chordNameMltText = Karaoke.chordLayoutChordNameMltText.copy(chordName)
@@ -1420,13 +1417,13 @@ fun generateChordLayout(chord: MusicChord, startRootNote: MusicNote, startInitFr
         MltObject(
         layoutW = chordLayoutW,
         layoutH = chordLayoutH,
-        _shape = Karaoke.chordLayoutBackgroundRectangleMltShape,
+        privateShape = Karaoke.chordLayoutBackgroundRectangleMltShape,
         alignmentX = MltObjectAlignmentX.LEFT,
         alignmentY = MltObjectAlignmentY.TOP,
-        _x = 0,
-        _y = 0,
-        _w = chordLayoutW,
-        _h = chordLayoutH
+        privateX = 0,
+        privateY = 0,
+        privateW = chordLayoutW,
+        privateH = chordLayoutH
     )
     )
 
@@ -1434,12 +1431,12 @@ fun generateChordLayout(chord: MusicChord, startRootNote: MusicNote, startInitFr
     val mltTextChordName = MltObject(
         layoutW = chordLayoutW,
         layoutH = chordLayoutH,
-        _shape = chordNameMltText,
+        privateShape = chordNameMltText,
         alignmentX = MltObjectAlignmentX.CENTER,
         alignmentY = MltObjectAlignmentY.TOP,
-        _x = chordLayoutW/2,
-        _y = 0,
-        _h = (chordLayoutH * 0.2).toInt()
+        privateX = chordLayoutW/2,
+        privateY = 0,
+        privateH = (chordLayoutH * 0.2).toInt()
     )
     result.add(mltTextChordName)
 
@@ -1452,12 +1449,12 @@ fun generateChordLayout(chord: MusicChord, startRootNote: MusicNote, startInitFr
         val mltTextFretNumber = MltObject(
             layoutW = chordLayoutW,
             layoutH = chordLayoutH,
-            _shape = fretNumberMltText,
+            privateShape = fretNumberMltText,
             alignmentX = MltObjectAlignmentX.CENTER,
             alignmentY = MltObjectAlignmentY.TOP,
-            _x = fretW * (fret - firstFret + 1 - capo) + fretW/2,
-            _y = mltTextChordName.h,
-            _h = (chordLayoutH * 0.1).toInt()
+            privateX = fretW * (fret - firstFret + 1 - capo) + fretW/2,
+            privateY = mltTextChordName.h,
+            privateH = (chordLayoutH * 0.1).toInt()
         )
         fretNumberTextH = mltTextFretNumber.h
         result.add(mltTextFretNumber)
@@ -1474,13 +1471,13 @@ fun generateChordLayout(chord: MusicChord, startRootNote: MusicNote, startInitFr
             val mltShapeNutRectangle = MltObject(
                 layoutW = chordLayoutW,
                 layoutH = chordLayoutH,
-                _shape = nutRectangleMltShape,
+                privateShape = nutRectangleMltShape,
                 alignmentX = MltObjectAlignmentX.RIGHT,
                 alignmentY = MltObjectAlignmentY.TOP,
-                _x = fretW,
-                _y = mltTextChordName.h + fretNumberTextH + mltShapeFretRectangleH*(string) + mltShapeFingerCircleDiameter/2,
-                _w = fretW/5,
-                _h = mltShapeFretRectangleH
+                privateX = fretW,
+                privateY = mltTextChordName.h + fretNumberTextH + mltShapeFretRectangleH*(string) + mltShapeFingerCircleDiameter/2,
+                privateW = fretW/5,
+                privateH = mltShapeFretRectangleH
             )
             result.add(mltShapeNutRectangle)
         }
@@ -1488,13 +1485,13 @@ fun generateChordLayout(chord: MusicChord, startRootNote: MusicNote, startInitFr
             val mltShapeFretRectangle = MltObject(
                 layoutW = chordLayoutW,
                 layoutH = chordLayoutH,
-                _shape = fretRectangleMltShape,
+                privateShape = fretRectangleMltShape,
                 alignmentX = MltObjectAlignmentX.CENTER,
                 alignmentY = MltObjectAlignmentY.TOP,
-                _x = fretW * fret + fretW/2,
-                _y = mltTextChordName.h + fretNumberTextH + mltShapeFretRectangleH*(string) + mltShapeFingerCircleDiameter/2,
-                _w = fretW,
-                _h = mltShapeFretRectangleH
+                privateX = fretW * fret + fretW/2,
+                privateY = mltTextChordName.h + fretNumberTextH + mltShapeFretRectangleH*(string) + mltShapeFingerCircleDiameter/2,
+                privateW = fretW,
+                privateH = mltShapeFretRectangleH
             )
             result.add(mltShapeFretRectangle)
         }
@@ -1509,13 +1506,13 @@ fun generateChordLayout(chord: MusicChord, startRootNote: MusicNote, startInitFr
             val mltShapeMutedRectangle = MltObject(
                 layoutW = chordLayoutW,
                 layoutH = chordLayoutH,
-                _shape = mutedRectangleMltShape,
+                privateShape = mutedRectangleMltShape,
                 alignmentX = MltObjectAlignmentX.LEFT,
                 alignmentY = MltObjectAlignmentY.TOP,
-                _x = fretW,
-                _y = mltTextChordName.h + fretNumberTextH + mltShapeFretRectangleH*(fingerboard.guitarString.number-1) + mltShapeFingerCircleDiameter/2 - fretRectangleMltShape.shapeOutline/2,
-                _w = fretW*4,
-                _h = fretRectangleMltShape.shapeOutline
+                privateX = fretW,
+                privateY = mltTextChordName.h + fretNumberTextH + mltShapeFretRectangleH*(fingerboard.guitarString.number-1) + mltShapeFingerCircleDiameter/2 - fretRectangleMltShape.shapeOutline/2,
+                privateW = fretW*4,
+                privateH = fretRectangleMltShape.shapeOutline
             )
             result.add(mltShapeMutedRectangle)
         }
@@ -1525,13 +1522,13 @@ fun generateChordLayout(chord: MusicChord, startRootNote: MusicNote, startInitFr
             val mltShapeFingerCircle = MltObject(
                 layoutW = chordLayoutW,
                 layoutH = chordLayoutH,
-                _shape = fingerCircleMltShape,
+                privateShape = fingerCircleMltShape,
                 alignmentX = MltObjectAlignmentX.LEFT,
                 alignmentY = MltObjectAlignmentY.TOP,
-                _x = fretW * (fingerboard.fret - initFret + (if (initFret != 0) 1 else 0)) + fretW/2 - (mltShapeFingerCircleDiameter)/2,
-                _y = mltTextChordName.h + fretNumberTextH + mltShapeFretRectangleH*(fingerboard.guitarString.number-1) + mltShapeFingerCircleDiameter/2 - mltShapeFingerCircleDiameter/2,
-                _w = mltShapeFingerCircleDiameter,
-                _h = mltShapeFingerCircleDiameter
+                privateX = fretW * (fingerboard.fret - initFret + (if (initFret != 0) 1 else 0)) + fretW/2 - (mltShapeFingerCircleDiameter)/2,
+                privateY = mltTextChordName.h + fretNumberTextH + mltShapeFretRectangleH*(fingerboard.guitarString.number-1) + mltShapeFingerCircleDiameter/2 - mltShapeFingerCircleDiameter/2,
+                privateW = mltShapeFingerCircleDiameter,
+                privateH = mltShapeFingerCircleDiameter
             )
             result.add(mltShapeFingerCircle)
         }
@@ -1546,13 +1543,13 @@ fun generateChordLayout(chord: MusicChord, startRootNote: MusicNote, startInitFr
         val mltShapeFingerCircle = MltObject(
             layoutW = chordLayoutW,
             layoutH = chordLayoutH,
-            _shape = fingerCircleMltShape,
+            privateShape = fingerCircleMltShape,
             alignmentX = MltObjectAlignmentX.LEFT,
             alignmentY = MltObjectAlignmentY.TOP,
-            _x = fretW + fretW/2 - (mltShapeFingerCircleDiameter)/2,
-            _y = mltTextChordName.h + fretNumberTextH + mltShapeFingerCircleDiameter/2 - mltShapeFingerCircleDiameter/2,
-            _w = mltShapeFingerCircleDiameter,
-            _h = mltShapeFretRectangleH*5 +  mltShapeFingerCircleDiameter
+            privateX = fretW + fretW/2 - (mltShapeFingerCircleDiameter)/2,
+            privateY = mltTextChordName.h + fretNumberTextH + mltShapeFingerCircleDiameter/2 - mltShapeFingerCircleDiameter/2,
+            privateW = mltShapeFingerCircleDiameter,
+            privateH = mltShapeFretRectangleH*5 +  mltShapeFingerCircleDiameter
         )
         result.add(mltShapeFingerCircle)
     }
@@ -1581,7 +1578,7 @@ fun getFileNameByMasks(pathToFolder: String, startWith: String, suffixes: List<S
             val filename = files.firstOrNull{it.startsWith("${startWith}${suffix}")}
             if (filename != null) return filename
         }
-    } catch (e: Exception) {
+    } catch (_: Exception) {
         return ""
     }
     return ""
@@ -1612,13 +1609,14 @@ fun createSongDescriptionFile(settings: Settings, songVersion: SongVersion) {
 
 }
 
+@Suppress("unused")
 fun test() {
 
 
     val fileNameXml = "src/main/resources/settings.xml"
     val props = Properties()
 //    val frameW = Integer.valueOf(props.getProperty("FRAME_WIDTH_PX", "1"));
-    var kdeBackgroundFolderPath = props.getProperty("kdeBackgroundFolderPath", "&&&")
+//    val kdeBackgroundFolderPath = props.getProperty("kdeBackgroundFolderPath", "&&&")
 
     props.setProperty("FRAME_FPS", Karaoke.frameFps.toString())
     props.setProperty("VOICES_SETTINGS", """
@@ -1639,8 +1637,8 @@ fun test() {
                 when(nameAndValue[0]) {
                     "voice" -> println("${nameAndValue[0]} = ${(nameAndValue[1].toLong())}")
                     "group" -> println("${nameAndValue[0]} = ${(nameAndValue[1].toLong())}")
-                    "fontNameText" -> println("${nameAndValue[0]} = ${(nameAndValue[1] as String)}")
-                    "fontNameBeat" -> println("${nameAndValue[0]} = ${(nameAndValue[1] as String)}")
+                    "fontNameText" -> println("${nameAndValue[0]} = ${nameAndValue[1]}")
+                    "fontNameBeat" -> println("${nameAndValue[0]} = ${nameAndValue[1]}")
                     "colorText" -> {
                         val rgba = nameAndValue[1].split(",")
                         println("colorText r = ${(rgba[0].toLong())}")
@@ -1664,6 +1662,7 @@ fun test() {
 
 }
 
+@Suppress("unused")
 fun getTextWidthHeightPx(text: String, fontName: String, fontStyle: Int, fontSize: Int): Pair<Double, Double> {
     return getTextWidthHeightPx(text, Font(fontName, fontStyle, fontSize))
 }
@@ -1692,9 +1691,10 @@ fun getTextWidthHeightPx(text: String, font: Font): Pair<Double, Double> {
     graphics2D2.font = notesFont
     val rect2 = graphics2D2.fontMetrics.getStringBounds(notesString, graphics2D2)
 
-    return Pair(rect1.width + rect2.width, Math.max(rect1.height, rect2.height))
+    return Pair(rect1.width + rect2.width, rect1.height.coerceAtLeast(rect2.height))
 }
 
+@Suppress("unused")
 fun convertMarkersToSubtitles(pathToSourceFile: String, pathToResultFile: String = "") {
 
     val gson = GsonBuilder()
@@ -1702,13 +1702,13 @@ fun convertMarkersToSubtitles(pathToSourceFile: String, pathToResultFile: String
         .create()
 
     val sourceFileBody = File(pathToSourceFile).readText(Charsets.UTF_8)
-    val regexpLines = Regex("""<property name=\"kdenlive:markers\"[^<]([\s\S]+?)</property>""")
+    val regexpLines = Regex("""<property name="kdenlive:markers"[^<]([\s\S]+?)</property>""")
     val linesMatchResults = regexpLines.findAll(sourceFileBody)
     var countSubsFile = 0L
     val subsFiles: MutableList<MutableList<Marker>> = emptyList<MutableList<Marker>>().toMutableList()
     linesMatchResults.forEach { lineMatchResult ->
-        val textToAnalize = lineMatchResult.groups.get(1)?.value?.replace("\n", "")?.replace("[", "")?.replace("]", "")
-        val regexpMarkers = Regex("""\{[^\}]([\s\S]+?)\}""")
+        val textToAnalize = lineMatchResult.groups[1]?.value?.replace("\n", "")?.replace("[", "")?.replace("]", "")
+        val regexpMarkers = Regex("""\{[^}]([\s\S]+?)}""")
         val markersMatchResults = regexpMarkers.findAll(textToAnalize!!)
         if (markersMatchResults.iterator().hasNext()) {
             countSubsFile++
@@ -1776,27 +1776,27 @@ fun convertMarkersToSubtitles(pathToSourceFile: String, pathToResultFile: String
 
 }
 
-fun getRandomFile(pathToFolder: String, extention: String = ""): String {
-    val listFiles = getListFiles(pathToFolder, extention)
+fun getRandomFile(pathToFolder: String, extension: String = ""): String {
+    val listFiles = getListFiles(pathToFolder, extension)
     return if (listFiles.isEmpty()) "" else listFiles[Random.nextInt(listFiles.size)]
 }
 
-fun getListFiles(pathToFolder: String, extention: String = "", startWith: String = ""): List<String> {
+fun getListFiles(pathToFolder: String, extension: String = "", startWith: String = ""): List<String> {
     return try {
-        Files.walk(Path(pathToFolder)).filter(Files::isRegularFile).map { it.toString() }.filter{ it.endsWith(extention) && it.startsWith("${pathToFolder}/$startWith")}.toList().sorted()
-    } catch (e: Exception) {
+        Files.walk(Path(pathToFolder)).filter(Files::isRegularFile).map { it.toString() }.filter{ it.endsWith(extension) && it.startsWith("${pathToFolder}/$startWith")}.toList().sorted()
+    } catch (_: Exception) {
         emptyList()
     }
 }
-fun getListFiles(pathToFolder: String, extentions: List<String> = listOf(), startsWith: List<String> = listOf(), excludes: List<String> = listOf()): List<String> {
+fun getListFiles(pathToFolder: String, extensions: List<String> = listOf(), startsWith: List<String> = listOf(), excludes: List<String> = listOf()): List<String> {
     val result = mutableListOf<String>()
     val preRes = getListFiles(pathToFolder)
     val filteredEndRes = mutableListOf<String>()
     val filteredStartRes = mutableListOf<String>()
-    val filteredExcludeRes = mutableListOf<String>()
-    if (extentions.isNotEmpty()) {
-        extentions.forEach { extention ->
-            filteredEndRes.addAll(preRes.filter { it.endsWith(extention) })
+//    val filteredExcludeRes = mutableListOf<String>()
+    if (extensions.isNotEmpty()) {
+        extensions.forEach { extension ->
+            filteredEndRes.addAll(preRes.filter { it.endsWith(extension) })
         }
     } else {
         filteredEndRes.addAll(preRes)
@@ -1821,16 +1821,16 @@ fun getListFiles(pathToFolder: String, extentions: List<String> = listOf(), star
     return result.sorted().toList()
 }
 
-
+@Suppress("unused")
 fun extractSubtitlesFromAutorecognizedFile(pathToFileFrom: String, pathToFileTo: String): String {
     val text = File(pathToFileFrom).readText(Charsets.UTF_8)
-    val regexpLines = Regex("""href=\"\d+?#[^\/a](.+?)\/a""")
+    val regexpLines = Regex("""href="\d+?#[^/a](.+?)/a""")
     val linesMatchResults = regexpLines.findAll(text)
     var counter = 0L
     var subs = ""
     linesMatchResults.forEach { lineMatchResult->
         val line = lineMatchResult.value
-        val startEnd = Regex("""href=\"\d+?[^\"&gt](.+?)\"&gt""").find(line)?.groups?.get(1)?.value?.split(":")
+        val startEnd = Regex("""href="\d+?[^"&gt](.+?)"&gt""").find(line)?.groups?.get(1)?.value?.split(":")
         val start = convertMillisecondsToTimecode(((startEnd?.get(0)?:"0").toDouble()*1000).toLong())
         val end = convertMillisecondsToTimecode(((startEnd?.get(1)?:"0").toDouble()*1000).toLong())
         val word = Regex("""&gt[^&lt](.+?)&lt""").find(line)?.groups?.get(1)?.value
@@ -1846,9 +1846,10 @@ fun extractSubtitlesFromAutorecognizedFile(pathToFileFrom: String, pathToFileTo:
 
 fun convertMillisecondsToFrames(milliseconds: Long, fps:Double = Karaoke.frameFps): Long {
     val frameLength = 1000.0 / fps
-    return Math.round(milliseconds / frameLength)
+    return (milliseconds / frameLength).roundToInt().toLong()
 }
 
+@Suppress("unused")
 fun convertMillisecondsToFramesDouble(milliseconds: Long, fps:Double = Karaoke.frameFps): Double {
     val frameLength = 1000.0 / fps
     return milliseconds / frameLength
@@ -1877,7 +1878,7 @@ fun convertMillisecondsToDzenTimecode(milliseconds: Long): String {
     val hours = milliseconds / (1000*60*60)
     val minutes = (milliseconds - hours*1000*60*60) / (1000*60)
     val seconds = (milliseconds - hours*1000*60*60 - minutes*1000*60) / 1000
-    val ms = milliseconds - hours*1000*60*60 - minutes*1000*60 - seconds*1000
+//    val ms = milliseconds - hours*1000*60*60 - minutes*1000*60 - seconds*1000
     return "%01d:%02d:%02d".format(hours,minutes,seconds)
 }
 
@@ -1885,7 +1886,7 @@ fun convertMillisecondsToDtoTimecode(milliseconds: Long): String {
     val hours = milliseconds / (1000*60*60)
     val minutes = (milliseconds - hours*1000*60*60) / (1000*60)
     val seconds = (milliseconds - hours*1000*60*60 - minutes*1000*60) / 1000
-    val ms = milliseconds - hours*1000*60*60 - minutes*1000*60 - seconds*1000
+//    val ms = milliseconds - hours*1000*60*60 - minutes*1000*60 - seconds*1000
     return (if (hours > 0) "$hours:" else "") + "%02d:%02d".format(minutes,seconds)
 }
 
@@ -1916,12 +1917,12 @@ fun getBeatNumberByMilliseconds(timeInMilliseconds: Long, beatMs: Long, firstBea
     val firstBeatMs = delayMs
     // println("Время звучания 1 бита = $beatMs ms")
 //    val firstBeatMs = convertTimecodeToMilliseconds(firstBeatTimecode)
-    // println("Первый отмеченый бит находится от начала в $firstBeatMs ms")
+    // println("Первый отмеченный бит находится от начала в $firstBeatMs ms")
     // println("Время = $timeInMilliseconds ms")
     var timeInMillsCorrected = timeInMilliseconds - firstBeatMs
     // println("Время после сдвигания = $timeInMillsCorrected ms")
     val count4beatsBefore = (timeInMillsCorrected / (beatMs * 4))
-    // println("Перед первым временем находится как минимум $count4beatsBeafore тактов по 4 бита")
+    // println("Перед первым временем находится как минимум $count4beatsBefore тактов по 4 бита")
     val different = count4beatsBefore * (beatMs * 4)
     // println("Надо сдвинуть время на $different ms")
     timeInMillsCorrected -= different
@@ -1930,6 +1931,7 @@ fun getBeatNumberByMilliseconds(timeInMilliseconds: Long, beatMs: Long, firstBea
     return ((timeInMillsCorrected / (beatMs)) % 4) + 1
 }
 
+@Suppress("unused")
 fun getBeatNumberByTimecode(timeInTimecode: String, beatMs: Long, firstBeatTimecode: String): Long {
     return getBeatNumberByMilliseconds(convertTimecodeToMilliseconds(timeInTimecode), beatMs, firstBeatTimecode)
 }
@@ -1937,30 +1939,34 @@ fun getDurationInMilliseconds(start: String, end: String): Long {
     return convertTimecodeToMilliseconds(end) - convertTimecodeToMilliseconds(start)
 }
 
+@Suppress("unused")
 fun getDiffInMilliseconds(firstTimecode: String, secondTimecode: String): Long {
     return convertTimecodeToMilliseconds(firstTimecode) - convertTimecodeToMilliseconds(secondTimecode)
 }
 
+@Suppress("unused")
 fun getSymbolWidth(fontSizePt: Int): Double {
     // Получение ширины символа (в пикселях) для размера шрифта (в пунктах)
     return fontSizePt*0.6
 }
 
+@Suppress("unused")
 fun getFontSizeBySymbolWidth(symbolWidthPx: Double): Int {
     // Получение размера шрифта (в пунктах) для ширины символа (в пикселах)
     return (symbolWidthPx/0.6).toInt()
 }
 
+@Suppress("unused")
 fun replaceVowelOrConsonantLetters(str: String, isVowel: Boolean = true, replSymbol: String = " "): String {
     var result = ""
     str.forEach { symbol ->
-        if ((symbol in LETTERS_VOWEL) == isVowel) result += replSymbol else result += symbol
+        result += if ((symbol in LETTERS_VOWEL) == isVowel) replSymbol else symbol
     }
     return result
 }
 
 fun getSyllables(text: String): List<String> {
-    val result: MutableList<String> = mutableListOf();
+    val result: MutableList<String> = mutableListOf()
     val regexWords = """\S+""".toRegex(setOf(RegexOption.IGNORE_CASE))
     val words = regexWords.find(text)?.groupValues ?: emptyList()
 
@@ -1997,132 +2003,10 @@ fun getSyllables(text: String): List<String> {
 
 }
 
-//class Ribbon(private val input: String) {
-//    private var position = -1
-//    private val length: Int
-//    private var flag = -1
-//    private var startSyllableIndex = 0
-//    private var endSyllableIndex = 0
-//
-//    init {
-//        length = input.length
-//    }
-//
-//    fun setEndSyllableIndex() {
-//        endSyllableIndex = position
-//    }
-//
-//    fun extractSyllable(): String {
-//        val result = input.substring(startSyllableIndex, endSyllableIndex + 1)
-//        startSyllableIndex = endSyllableIndex + 1
-//        flag = position
-//        endSyllableIndex = 0
-//        return result
-//    }
-//
-//    fun readCurrentPosition(): Char {
-//        check(!(position < 0 || position > length - 1))
-//        return input[position]
-//    }
-//
-//    fun setFlag() {
-//        flag = position
-//    }
-//
-//    fun rewindToFlag() {
-//        if (flag >= 0) {
-//            position = flag
-//        }
-//    }
-//
-//    fun moveHeadForward(): Boolean {
-//        return if (position + 1 < length) {
-//            position++
-//            true
-//        } else {
-//            false
-//        }
-//    }
-//}
-//
-//class MainRibbon {
-//    val vowels = "аеёиоуыюяэАЕЁИОУЫЮЯЭeuioayYEUIOAїієѣ"
-//    val nonPairConsonant = "лйрнмЛЙРНМ.,:-"
-//    fun syllables(inputString: String?, delimiter: String = "|"): List<String> {
-//        if (inputString == null) return emptyList()
-//        val result: MutableList<String> = ArrayList()
-//        val inputList = inputString.split(delimiter)
-////        val inputList = listOf(inputString)
-//        inputList.forEach { input ->
-////            if (!input.containThisSymbols(vowels)) {
-////                result.add(input)
-////            } else {
-//                val ribbon = Ribbon(input)
-//                while (ribbon.moveHeadForward()) {
-//                    ribbon.setFlag()
-//                    if (checkVowel(ribbon.readCurrentPosition())) {
-//                        if (ribbon.moveHeadForward() && ribbon.moveHeadForward()) {
-//                            if (checkVowel(ribbon.readCurrentPosition())) {
-//                                ribbon.rewindToFlag()
-//                                ribbon.setEndSyllableIndex()
-//                                result.add(ribbon.extractSyllable())
-//                                continue
-//                            }
-//                        }
-//                        ribbon.rewindToFlag()
-//                        if (ribbon.moveHeadForward() && checkSpecialConsonant(ribbon.readCurrentPosition())) {
-//                            ribbon.setEndSyllableIndex()
-//                            result.add(ribbon.extractSyllable())
-//                            continue
-//                        }
-//                        ribbon.rewindToFlag()
-//                        if (hasMoreVowels(ribbon)) {
-//                            ribbon.rewindToFlag()
-//                            ribbon.setEndSyllableIndex()
-//                            result.add(ribbon.extractSyllable())
-//                            continue
-//                        } else {
-//                            while (ribbon.moveHeadForward());
-//                            ribbon.setEndSyllableIndex()
-//                            result.add(ribbon.extractSyllable())
-//                        }
-//                    }
-//                }
-////            }
-//
-//        }
-//
-//        return result
-//    }
-//
-//    fun checkVowel(ch: Char): Boolean {
-//        return vowels.contains(ch.toString())
-//    }
-//
-//    fun hasMoreVowels(ribbon: Ribbon): Boolean {
-//        while (ribbon.moveHeadForward()) {
-//            if (checkVowel(ribbon.readCurrentPosition())) {
-//                return true
-//            }
-//        }
-//        return false
-//    }
-//
-//    fun checkSpecialConsonant(ch: Char): Boolean {
-//        return nonPairConsonant.contains(ch.toString())
-//    }
-//
-//    companion object {
-//        @JvmStatic
-//        fun mainn(args: Array<String>) {
-//            val mainRibbon = MainRibbon()
-//            println(mainRibbon.syllables("Я однажды проснусь оттого, что пойму: в эту ночь"))
-//        }
-//    }
-//}
 
+@Suppress("unused")
 class Solution {
-    fun merge(nums1: IntArray, m: Int, nums2: IntArray, n: Int): Unit {
+    fun merge(nums1: IntArray, m: Int, nums2: IntArray, n: Int) {
         val result: MutableList<Int> = mutableListOf()
         result.addAll(nums1.filterIndexed { index, _ -> index < m })
         result.addAll(nums2.filterIndexed { index, _ -> index < n })
@@ -2198,13 +2082,14 @@ fun getFontSize(songVersion: SongVersion, listOfVoices: List<SettingVoice>): Int
 }
 
 
+@Suppress("unused")
 fun getAlbumCardTitle(authorYmId: String): String = runBlocking {
     val searchUrl = "https://music.yandex.ru/artist/$authorYmId/albums"
     var result = ""
 
     try {
         // Создание HttpClient
-        val client = HttpClient.newBuilder().build();
+        val client = HttpClient.newBuilder().build()
 
         val request = HttpRequest.newBuilder()
             .uri(URI.create(searchUrl))
@@ -2237,13 +2122,13 @@ fun getAlbumCardTitle(authorYmId: String): String = runBlocking {
 }
 
 fun String.extractBalancedBracesFromString(startWord: String): String {
-    var result = ""
-    var currentContent = StringBuilder()
+    val result = ""
+    val currentContent = StringBuilder()
     val firstIndexOfStartWord = this.indexOf(startWord)
     if (firstIndexOfStartWord < 0) return result
     val indexToStartSearch = firstIndexOfStartWord + startWord.length
     val firstChar = this[indexToStartSearch]
-    if (firstChar !== '{') return result
+    if (firstChar.toString() !== "{") return result
     var counter = 0
     for (i in indexToStartSearch until this.length) {
         val currentSymbol = this[i]
@@ -2266,7 +2151,7 @@ fun String.extractBalancedBracesFromString(startWord: String): String {
 }
 
 fun String.textBetween(startString: String, endString: String): String {
-    var result = ""
+    val result = ""
     val firstIndexOfStartString = this.indexOf(startString)
     if (firstIndexOfStartString < 0) return result
     val stringToSearch = this.substring(firstIndexOfStartString + startString.length)
@@ -2300,73 +2185,10 @@ fun searchLastAlbumYm2(authorYmId: String): String {
     return result
 }
 
-fun searchLastAlbumYm(authorYmId: String): String {
-    val searchUrl = "https://music.yandex.ru/artist/$authorYmId/albums"
-//    val document = Jsoup.connect(searchUrl).get()
-//    val html = document.html()
-//    println(html)
-//    val selector = "a[class~=\\bAlbumCard_titleLink\\S*]"
-//    val element = document.select(selector).first()
-//    println(element)
-//    val result = element?.text() ?: ""
-////    val result = (document.getElementsByClass("album__caption").first()?.text() ?: "").trim()
-//    if (result == "") {
-//        if (html.contains("Нам очень жаль, но запросы с вашего устройства похожи на автоматические")) {
-//            println("Нам очень жаль, но запросы с вашего устройства похожи на автоматические")
-//            throw Exception("Нам очень жаль, но запросы с вашего устройства похожи на автоматические")
-//        }
-//    }
-
-    var result = ""
-
-    System.setProperty(WEBDRIVER_CHROMEDRIVER, PATH_TO_CHROMEDRIVER)
-    // Настройка опций Chrome
-    val options = ChromeOptions()
-//    options.addArguments("--headless") // Запуск в безголовом режиме (опционально)
-//    options.addArguments("--remote-allow-origins=*")
-
-    // Создание экземпляра WebDriver
-    val driver: WebDriver = try {
-        ChromeDriver(options)
-    } catch (e: AbstractMethodError) {
-        println("Не удалось инициализировать WebDriver")
-        return result
-    }
-
-    try {
-
-        // Открываем веб-страницу
-        driver.get(searchUrl)
-
-        // Ждём полной загрузки страницы
-        val wait = WebDriverWait(driver, Duration.ofSeconds(10)) // Ожидание до 10 секунд
-
-        // Находим первый элемент <a>, у которого один из классов начинается с "AlbumCard_titleLink"
-        val element: WebElement? = wait.until(ExpectedConditions.presenceOfElementLocated(
-            By.cssSelector("a[class*=AlbumCard_titleLink]")
-        ))
-
-        // Проверяем, что элемент найден и имеет нужный класс
-        result = if (element != null && element.getAttribute("class")?.split("\\s+".toRegex())?.any { it.startsWith("AlbumCard_titleLink") } == true) {
-            println("Текст найденного элемента: ${element.text}")
-            element.text
-        } else {
-            println("Элемент не найден")
-            ""
-        }
-    } finally {
-        // Закрываем браузер
-        driver.quit()
-    }
-
-    return result
-
-}
-
 fun getAuthorForRequest(lastAuthor: String = ""): Author? {
     val listSongAuthors = Settings.loadListAuthors(WORKING_DATABASE)
     if (listSongAuthors.isEmpty()) return null
-    var requestNewSongLastSuccessAuthor = if (lastAuthor != "") lastAuthor else Karaoke.requestNewSongLastSuccessAuthor
+    val requestNewSongLastSuccessAuthor = if (lastAuthor != "") lastAuthor else Karaoke.requestNewSongLastSuccessAuthor
 
     val authorForRequest = if (requestNewSongLastSuccessAuthor == "") {
         listSongAuthors.first()
@@ -2406,7 +2228,7 @@ fun getAuthorForRequest(lastAuthor: String = ""): Author? {
 }
 fun checkLastAlbumYm(): Triple<String, String, Int> {
     /*
-    -2 - нету автора!
+    -2 - Нет автора!
     -1 - ошибка поиска
      0 - поиск успешен, но новых альбомов нет
      1 - поиск успешен, найден новый альбом
@@ -2418,7 +2240,7 @@ fun checkLastAlbumYm(): Triple<String, String, Int> {
 //        getAlbumCardTitle(author.ymId)
 //        searchLastAlbumYm(author.ymId)
         searchLastAlbumYm2(author.ymId)
-    } catch (e: Exception) {
+    } catch (_: Exception) {
         println("Поиск для автора «$authorForRequest» завершился ошибкой.")
         return Triple(authorForRequest, "", -1)
     }
@@ -2451,11 +2273,6 @@ fun setProcessPriority(pid: Long, priority: Int): Boolean {
         // Проверяем результат выполнения команды
         val exitCode = process.waitFor()
         return exitCode == 0
-//        if (exitCode == 0) {
-//            println("Приоритет процесса успешно изменен на $priority")
-//        } else {
-//            println("Не удалось изменить приоритет процесса")
-//        }
     } catch (e: Exception) {
         e.printStackTrace()
         return false
@@ -2507,11 +2324,11 @@ fun getTransposingChord(originalChord: String, capo: Int = 0): String {
     if (capo == 0) return originalChord
     val chordNameAndFret = originalChord.split("|")
     val nameChord = chordNameAndFret[0]
-    val fretChord = if (chordNameAndFret.size > 1) chordNameAndFret[1].toInt() else 0
+//    val fretChord = if (chordNameAndFret.size > 1) chordNameAndFret[1].toInt() else 0
     val (chord, note) = MusicChord.getChordNote(nameChord)
-    var newIndexNote = MusicNote.values().indexOf(note!!) - capo
-    if (newIndexNote < 0) newIndexNote += MusicNote.values().size
-    val newNote = MusicNote.values()[newIndexNote]
+    var newIndexNote = MusicNote.entries.indexOf(note!!) - capo
+    if (newIndexNote < 0) newIndexNote += MusicNote.entries.size
+    val newNote = MusicNote.entries[newIndexNote]
     return newNote.names.first() + chord!!.names.first()
 }
 
@@ -2525,6 +2342,7 @@ fun isValidFileName(fileName: String): Boolean {
 /**
  * Проверяет, разрешён ли тип файла (опционально).
  */
+@Suppress("unused")
 fun isAllowedFileType(fileName: String, allowedTypes: Set<String> = setOf("jpg", "png", "mp3", "wav", "txt", "pdf")): Boolean {
     val extension = fileName.substringAfterLast('.', "").lowercase()
     return allowedTypes.contains(extension)

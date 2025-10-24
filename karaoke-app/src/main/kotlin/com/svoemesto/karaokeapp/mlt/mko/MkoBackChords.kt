@@ -1,12 +1,11 @@
 package com.svoemesto.karaokeapp.mlt.mko
 
-import com.svoemesto.karaokeapp.Karaoke
 import com.svoemesto.karaokeapp.mlt.MltGenerator
 import com.svoemesto.karaokeapp.mlt.MltProp
-import com.svoemesto.karaokeapp.xmldata
 import com.svoemesto.karaokeapp.model.MltNode
 import com.svoemesto.karaokeapp.model.MltNodeBuilder
 import com.svoemesto.karaokeapp.model.ProducerType
+import com.svoemesto.karaokeapp.xmldata
 
 data class MkoBackChords(val mltProp: MltProp, val type: ProducerType, val voiceId: Int = 0, val childId: Int = 0, val elementId: Int = 0): MltKaraokeObject {
     val mltGenerator = MltGenerator(mltProp, type)
@@ -34,6 +33,7 @@ data class MkoBackChords(val mltProp: MltProp, val type: ProducerType, val voice
     override fun filePlaylist(): MltNode {
         val result = mltGenerator.filePlaylist()
         result.body?.let {
+            @Suppress("UNCHECKED_CAST")
             val body = it as MutableList<MltNode>
             body.addAll(MltNodeBuilder().blank(inOffsetVideo).build())
             body.add(

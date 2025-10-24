@@ -7,7 +7,7 @@ enum class Markertype(val value: String) {
     ENDOFLINE("endofline"),
     NEWLINE("newline"),
     UNMUTE("unmute"),
-    BEAT("beat"),
+    @Suppress("unused") BEAT("beat"),
     CHORD("chord"),
     EOL_CHORD("eolch"),       // end of line chord
     ENDOF_CHORD("eoch"),             // end of chord
@@ -16,5 +16,5 @@ enum class Markertype(val value: String) {
     EOL_NOTE("eoln"),       // end of line note
     ENDOF_NOTE("eon"),             // end of note
     NEWLINE_NOTE("nln"),             // new line note
-    OTHER("other"),
+    @Suppress("unused") OTHER("other"),
 }

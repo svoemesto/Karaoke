@@ -29,6 +29,7 @@ data class MkoSongText(val mltProp: MltProp, val type: ProducerType, val voiceId
 
         val result = mltGenerator.filePlaylist()
         result.body?.let {
+            @Suppress("UNCHECKED_CAST")
             val body = it as MutableList<MltNode>
 //            body.addAll(MltNodeBuilder().blank(mltProp.getInOffsetVideo()).build())
             body.add(
@@ -46,8 +47,8 @@ data class MkoSongText(val mltProp: MltProp, val type: ProducerType, val voiceId
     override fun mainFilePlaylistTransformProperties(): String {
         val voiceLines = mltProp.getVoicelines(listOf(ProducerType.SONGTEXT,voiceId))
         val propRect = voiceLines
-            .filter {it.startTp != null && it.endTp != null && (it.type == SongVoiceLineType.TEXT || it == voiceLines.first() || it == voiceLines.last())}
-            .map { listOf(it.startTp.toString(), it.endTp.toString()).joinToString(";") }.joinToString(";")
+            .filter { it.startTp != null && it.endTp != null && (it.type == SongVoiceLineType.TEXT || it == voiceLines.first() || it == voiceLines.last()) }
+            .joinToString(";") { listOf(it.startTp.toString(), it.endTp.toString()).joinToString(";") }
         return propRect
     }
 
@@ -62,8 +63,7 @@ data class MkoSongText(val mltProp: MltProp, val type: ProducerType, val voiceId
         val workAreaSongtextHeightPx = mltProp.getWorkAreaHeightPx(listOf(ProducerType.SONGTEXT, voiceId))
         val capo = mltProp.getSongCapo()
 
-        voiceLines.forEachIndexed { indexLine, it ->
-            val voiceLineSongtext = it as SongVoiceLine
+        voiceLines.forEachIndexed { indexLine, voiceLineSongtext ->
             voiceLineSongtext.symbols.forEachIndexed { indexSymbol, lineSymbol ->
 
                 val mltText: MltText = lineSymbol.mltText

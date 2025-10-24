@@ -18,17 +18,17 @@ data class MkoChordPictureElement(
 
     private val frameWidthPx = mltProp.getFrameWidthPx()
     private val frameHeightPx = mltProp.getFrameHeightPx()
-    private val chordWhidthPx = frameHeightPx / 4
-    private val chordHeightPx = chordWhidthPx
+    private val chordWidthPx = frameHeightPx / 4
+    private val chordHeightPx = chordWidthPx
 
     private val songVersion = mltProp.getSongVersion()
-    private val settings = mltProp.getSettings()
+//    private val settings = mltProp.getSettings()
     private val songStartTimecode  = mltProp.getSongStartTimecode()
     private val songEndTimecode  = mltProp.getSongEndTimecode()
     private var chordDurationOnScreen = mltProp.getDurationOnScreen(listOf(ProducerType.CHORDPICTURELINE, voiceId, lineId))
     private var mkoElementUUID = mltProp.getUUID(listOf(type, voiceId, lineId))
     private var mainBinUUID = mltProp.getUUID(listOf(ProducerType.MAINBIN))
-    private var folderIdChordpictures = mltProp.getId(listOf(ProducerType.CHORDPICTUREELEMENT, voiceId))
+    private var folderIdChordPictures = mltProp.getId(listOf(ProducerType.CHORDPICTUREELEMENT, voiceId))
     private val chordEndTimecode = if (chordDurationOnScreen > 0) {
         convertMillisecondsToTimecode(chordDurationOnScreen)
     } else {
@@ -37,8 +37,8 @@ data class MkoChordPictureElement(
     }
     override fun producerBlackTrack(): MltNode {
 
-        var widthAreaPx= chordWhidthPx
-        var heightAreaPx= chordHeightPx
+        val widthAreaPx= chordWidthPx
+        val heightAreaPx= chordHeightPx
 
         return mltGenerator
             .producer(
@@ -65,6 +65,7 @@ data class MkoChordPictureElement(
     override fun filePlaylist(): MltNode {
         val result = mltGenerator.filePlaylist()
         result.body?.let {
+            @Suppress("UNCHECKED_CAST")
             val body = it as MutableList<MltNode>
             body.add(
                 mltGenerator.entry(
@@ -95,8 +96,8 @@ data class MkoChordPictureElement(
 
     override fun tractorSequence(): MltNode {
 
-        var widthAreaPx= chordWhidthPx
-        var heightAreaPx= chordHeightPx
+        val widthAreaPx= chordWidthPx
+        val heightAreaPx= chordHeightPx
 
         val subTrackNodes = ProducerType.CHORDPICTUREELEMENT.childs().asReversed().filter {it in songVersion.producers}. map {
             MltNode(name = "track", fields = mutableMapOf("producer" to MltGenerator.nameTractor(it, voiceId, lineId)))
@@ -112,7 +113,7 @@ data class MkoChordPictureElement(
                 .propertyName("kdenlive:clip_type", 2)
                 .propertyName("kdenlive:duration", chordEndTimecode)
                 .propertyName("kdenlive:clipname", mltGenerator.name)
-                .propertyName("kdenlive:folderid", folderIdChordpictures)
+                .propertyName("kdenlive:folderid", folderIdChordPictures)
                 .propertyName("kdenlive:description")
                 .propertyName("kdenlive:uuid", "{${mkoElementUUID}}")
                 .propertyName("kdenlive:producer_type", 17)

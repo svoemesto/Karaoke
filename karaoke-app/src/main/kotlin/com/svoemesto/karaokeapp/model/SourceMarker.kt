@@ -6,13 +6,11 @@ data class SourceMarker(
     var label: String = "",
     var note: String = "",
     var chord: String = "",
-    var stringlad: String = "",
-    var locklad: String = "",
+    var stringLad: String = "",
+    var lockLad: String = "",
     var tag: String = "",
     var color: String,
     var position: String,
 //    @JsonDeserialize(using = MarkertypeDeserializer::class)
     var markertype: String
-) {
-
-}
+)

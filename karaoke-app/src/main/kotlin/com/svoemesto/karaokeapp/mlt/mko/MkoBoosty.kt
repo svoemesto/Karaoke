@@ -1,6 +1,5 @@
 package com.svoemesto.karaokeapp.mlt.mko
 
-import com.svoemesto.karaokeapp.Karaoke
 import com.svoemesto.karaokeapp.mlt.MltGenerator
 import com.svoemesto.karaokeapp.mlt.MltProp
 import com.svoemesto.karaokeapp.model.*
@@ -33,6 +32,7 @@ data class MkoBoosty(val mltProp: MltProp, val type: ProducerType, val voiceId: 
     override fun filePlaylist(): MltNode {
         val result = mltGenerator.filePlaylist()
         result.body?.let {
+            @Suppress("UNCHECKED_CAST")
             val body = it as MutableList<MltNode>
             body.addAll(MltNodeBuilder().blank(boostyBlankTimecode).build())
             body.add(
@@ -70,7 +70,7 @@ data class MkoBoosty(val mltProp: MltProp, val type: ProducerType, val voiceId: 
         name = "kdenlivetitle",
         fields = PropertiesMltNodeBuilder()
             .duration("0")
-            .LC_NUMERIC("C")
+            .lcNumeric("C")
             .width("$frameWidthPx")
             .height("$frameHeightPx")
             .`out`("0")
@@ -79,7 +79,7 @@ data class MkoBoosty(val mltProp: MltProp, val type: ProducerType, val voiceId: 
             .item(
                 fields = PropertiesMltNodeBuilder()
                     .type("QGraphicsPixmapItem")
-                    .`z-index`("6")
+                    .zIndex("6")
                     .build(),
                 body = MltNodeBuilder()
                     .position(

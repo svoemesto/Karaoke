@@ -52,7 +52,7 @@ class KaraokeProcessThread(val karaokeProcess: KaraokeProcess? = null, var perce
                     log += "[${Timestamp.from(Instant.now())}] $line\n"
                     val matchResult = regex.find(line)
                     if (matchResult != null) {
-                        val currentFrame = matchResult.groupValues[1]
+//                        val currentFrame = matchResult.groupValues[1]
                         val percentage = matchResult.groupValues[2]
                         this.percentage = percentage
                     } else {
@@ -114,7 +114,7 @@ class KaraokeProcessThread(val karaokeProcess: KaraokeProcess? = null, var perce
 //                    KaraokeProcess.delete(karaokeProcess.id, karaokeProcess.database)
 //                }
 
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 process.destroy()
                 println("[${Timestamp.from(Instant.now())}] KaraokeProcessThread: ERROR задание: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}")
                 karaokeProcess.status = KaraokeProcessStatuses.ERROR.name
@@ -193,8 +193,8 @@ class KaraokeProcessWorker {
             val timeout = 10L
             var counter = 0L
             var id = 0L
-            var settingsId = 0L
-            var processType = ""
+//            var settingsId = 0L
+//            var processType = ""
             var percentage = 0.0
 
             val intervalCheckDummy = 6_000
@@ -267,7 +267,8 @@ class KaraokeProcessWorker {
                                 if (settingsLocal != null) {
                                     // Запись в локальной БД есть, надо обновить
                                     val diff = Settings.getDiff(settingsSync, settingsLocal)
-                                    val setStr = diff.filter{ it.recordDiffRealField }.map { "${it.recordDiffName} = ?" }.joinToString(", ")
+                                    val setStr = diff.filter { it.recordDiffRealField }
+                                        .joinToString(", ") { "${it.recordDiffName} = ?" }
                                     if (setStr != "") {
                                         val sql = "UPDATE tbl_settings SET $setStr WHERE id = ?"
 
@@ -279,12 +280,10 @@ class KaraokeProcessWorker {
 
                                             var index = 1
                                             diff.filter{ it.recordDiffRealField }.forEach {
-                                                if (it.recordDiffValueNew is Long) {
-                                                    ps.setLong(index, it.recordDiffValueNew.toLong())
-                                                } else if (it.recordDiffValueNew is Int) {
-                                                    ps.setInt(index, it.recordDiffValueNew.toInt())
-                                                } else {
-                                                    ps.setString(index, it.recordDiffValueNew.toString())
+                                                when (it.recordDiffValueNew) {
+                                                    is Long -> ps.setLong(index, it.recordDiffValueNew)
+                                                    is Int -> ps.setInt(index, it.recordDiffValueNew)
+                                                    else -> ps.setString(index, it.recordDiffValueNew.toString())
                                                 }
                                                 index++
                                             }
@@ -363,8 +362,8 @@ class KaraokeProcessWorker {
                             workThread = KaraokeProcessThread(karaokeProcess)
 
                             id = karaokeProcess.id.toLong()
-                            settingsId = karaokeProcess.settingsId.toLong()
-                            processType = karaokeProcess.type
+//                            settingsId = karaokeProcess.settingsId.toLong()
+//                            processType = karaokeProcess.type
                             percentage = 0.0
                             withoutControl = karaokeProcess.withoutControl
                             if (karaokeProcess.command != "tail" || karaokeProcess.args[0][0] !in argsIgnoredToLog) {

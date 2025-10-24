@@ -3,10 +3,9 @@ package com.svoemesto.karaokeapp
 import com.svoemesto.karaokeapp.model.SseNotification
 import com.svoemesto.karaokeapp.services.SNS
 import java.io.PrintStream
-import java.util.*
 
 
-class DualStream(private val out1: PrintStream) : PrintStream(out1) {
+class DualStream(@Suppress("unused") private val out1: PrintStream) : PrintStream(out1) {
 
     override fun write(buf: ByteArray, off: Int, len: Int) {
         try {

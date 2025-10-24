@@ -2,12 +2,10 @@ package com.svoemesto.karaokeapp
 
 import be.tarsos.dsp.AudioDispatcher
 import be.tarsos.dsp.io.jvm.JVMAudioInputStream
-import be.tarsos.dsp.onsets.PercussionOnsetDetector
 import be.tarsos.dsp.onsets.OnsetHandler
-import be.tarsos.dsp.util.fft.FFT
-import be.tarsos.dsp.util.fft.HannWindow
-import javax.sound.sampled.AudioSystem
+import be.tarsos.dsp.onsets.PercussionOnsetDetector
 import java.io.File
+import javax.sound.sampled.AudioSystem
 
 class MyOnsetHandler : OnsetHandler {
     private var lastOnsetTime = 0.0
@@ -27,6 +25,7 @@ class MyOnsetHandler : OnsetHandler {
         return bpm
     }
 }
+@Suppress("unused")
 fun mainAudioAnalize2() {
     val audioFile = File("/sm-karaoke/system/Infornal Fuckъ - Конунг Олаф Моржовый Хер/Конунг Олаф Моржовый Хер.wav")
     val audioInputStream = AudioSystem.getAudioInputStream(audioFile)

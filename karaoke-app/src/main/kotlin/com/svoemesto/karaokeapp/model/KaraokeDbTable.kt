@@ -2,7 +2,6 @@ package com.svoemesto.karaokeapp.model
 
 import com.svoemesto.karaokeapp.Connection
 import com.svoemesto.karaokeapp.KaraokeConnection
-import com.svoemesto.karaokeapp.WORKING_DATABASE
 import com.svoemesto.karaokeapp.services.SNS
 import java.sql.ResultSet
 import java.sql.SQLException
@@ -49,7 +48,7 @@ interface KaraokeDbTable {
             )
         )
 
-        val setStr = diff.filter{ it.recordDiffRealField }.map { "${it.recordDiffName} = ?" }.joinToString(", ")
+        val setStr = diff.filter { it.recordDiffRealField }.joinToString(", ") { "${it.recordDiffName} = ?" }
 
         if (setStr != "") {
 
@@ -66,11 +65,11 @@ interface KaraokeDbTable {
             diff.filter{ it.recordDiffRealField }.forEach {
                 try {
                     when (it.recordDiffValueNew) {
-                        is String -> ps.setString(index, it.recordDiffValueNew.toString())
-                        is Long -> ps.setLong(index, it.recordDiffValueNew.toLong())
-                        is Int -> ps.setInt(index, it.recordDiffValueNew.toInt())
-                        is Double -> ps.setDouble(index, it.recordDiffValueNew.toDouble())
-                        is Float -> ps.setFloat(index, it.recordDiffValueNew.toFloat())
+                        is String -> ps.setString(index, it.recordDiffValueNew)
+                        is Long -> ps.setLong(index, it.recordDiffValueNew)
+                        is Int -> ps.setInt(index, it.recordDiffValueNew)
+                        is Double -> ps.setDouble(index, it.recordDiffValueNew)
+                        is Float -> ps.setFloat(index, it.recordDiffValueNew)
                         is Timestamp -> ps.setTimestamp(index, it.recordDiffValueNew)
                         is Boolean -> ps.setBoolean(index, it.recordDiffValueNew)
                         else -> ps.setString(index, it.recordDiffValueNew.toString())
@@ -138,7 +137,11 @@ interface KaraokeDbTable {
                 }
             }
         }
-        return "INSERT INTO ${getTableName()} (${fieldsValues.map {it.first}.joinToString(", ")}) OVERRIDING SYSTEM VALUE VALUES(${fieldsValues.map {if (it.second is Long) "${it.second}" else "'${it.second.toString().replace("'","''")}'"}.joinToString(", ")})"
+        return "INSERT INTO ${getTableName()} (${fieldsValues.joinToString(", ") { it.first }}) OVERRIDING SYSTEM VALUE VALUES(${
+            fieldsValues.joinToString(
+                ", "
+            ) { if (it.second is Long) "${it.second}" else "'${it.second.toString().replace("'", "''")}'" }
+        })"
     }
 
     companion object {
@@ -187,7 +190,7 @@ interface KaraokeDbTable {
                                     if (karaokeDbTableFieldAnnotation != null) {
                                         if (property is KMutableProperty<*>) {
                                             val fieldName = karaokeDbTableFieldAnnotation.name
-                                            val fieldValue = property.getter.call(entity)
+//                                            val fieldValue = property.getter.call(entity)
                                             property.setter.isAccessible = true
                                             val newValue = when (property.returnType.classifier) {
                                                 String::class -> rs.getString(fieldName)
@@ -253,7 +256,7 @@ interface KaraokeDbTable {
             val ps = connection.prepareStatement(sql)
             try {
                 ps.executeUpdate(sql, Statement.RETURN_GENERATED_KEYS)
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 // Проверяем последнее значение сиквенса и айдишника таблицы
                 val statement = connection.createStatement()
                 val rsLastId = statement.executeQuery("select max(id) as last_value from ${entity.getTableName()};")
@@ -372,7 +375,6 @@ interface KaraokeDbTable {
             val result: MutableList<RecordDiff> = mutableListOf()
             if (entityA != null && entityB != null) {
                 val kClassEntityA: KClass<out KaraokeDbTable> = entityA::class
-                val kClassEntityB: KClass<out KaraokeDbTable> = entityB::class
                 for (member in kClassEntityA.members) {
                     if (member is kotlin.reflect.KProperty<*>) {
                         val property = member

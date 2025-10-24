@@ -8,7 +8,6 @@ import com.svoemesto.karaokeapp.mlt.MltProp
 import com.svoemesto.karaokeapp.model.MltNode
 import com.svoemesto.karaokeapp.model.MltNodeBuilder
 import com.svoemesto.karaokeapp.model.ProducerType
-import com.svoemesto.karaokeapp.model.TransformProperty
 
 data class MkoChordPictureLine(
     val mltProp: MltProp,
@@ -22,15 +21,15 @@ data class MkoChordPictureLine(
 
     private val frameWidthPx = mltProp.getFrameWidthPx()
     private val frameHeightPx = mltProp.getFrameHeightPx()
-    private val chordWhidthPx = frameHeightPx / 4
-    private val chordHeightPx = chordWhidthPx
+//    private val chordWidthPx = frameHeightPx / 4
+//    private val chordHeightPx = chordWidthPx
 
     private val songStartTimecode  = mltProp.getSongStartTimecode()
     private val songEndTimecode  = mltProp.getSongEndTimecode()
     private var chordDurationOnScreen = mltProp.getDurationOnScreen(listOf(ProducerType.CHORDPICTURELINE, voiceId, lineId))
     private var mkoLineUUID = mltProp.getUUID(listOf(type, voiceId, lineId))
     private var mainBinUUID = mltProp.getUUID(listOf(ProducerType.MAINBIN))
-    private var folderIdChordpictures = mltProp.getId(listOf(ProducerType.CHORDPICTURELINE, voiceId))
+    private var folderIdChordPictures = mltProp.getId(listOf(ProducerType.CHORDPICTURELINE, voiceId))
     private val lineEndTimecode = if (chordDurationOnScreen > 0) {
         convertMillisecondsToTimecode(chordDurationOnScreen)
     } else {
@@ -39,8 +38,8 @@ data class MkoChordPictureLine(
     }
     override fun producerBlackTrack(): MltNode {
 
-        var widthAreaPx= frameWidthPx //chordWhidthPx
-        var heightAreaPx= frameHeightPx //chordHeightPx
+        val widthAreaPx= frameWidthPx //chordWidthPx
+        val heightAreaPx= frameHeightPx //chordHeightPx
 
         return mltGenerator
             .producer(
@@ -67,6 +66,7 @@ data class MkoChordPictureLine(
     override fun filePlaylist(): MltNode {
         val result = mltGenerator.filePlaylist()
         result.body?.let {
+            @Suppress("UNCHECKED_CAST")
             val body = it as MutableList<MltNode>
             body.add(
                 mltGenerator.entry(
@@ -107,7 +107,7 @@ data class MkoChordPictureLine(
                     .propertyName("kdenlive:description")
                     .propertyName("kdenlive:uuid", "{${mkoLineUUID}}")
                     .propertyName("kdenlive:producer_type", 17)
-                    .propertyName("kdenlive:folderid", folderIdChordpictures)
+                    .propertyName("kdenlive:folderid", folderIdChordPictures)
                     .propertyName("kdenlive:id", mltGenerator.id)
                     .propertyName("kdenlive:sequenceproperties.activeTrack", 0)
                     .propertyName("kdenlive:sequenceproperties.documentuuid", "{${mainBinUUID}}")

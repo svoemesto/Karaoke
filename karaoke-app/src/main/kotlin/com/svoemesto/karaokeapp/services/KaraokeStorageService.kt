@@ -24,12 +24,12 @@ interface KaraokeStorageService {
 
 @Service
 class KaraokeStorageServiceImpl(
-    @Value("\${storage.key}") val storageKey: String,
-    @Value("\${storage.secret}") val storageSecret: String,
-    @Value("\${storage.container-name}") val storageContainerName: String,
-    @Value("\${storage.port-inside-container}") val storagePortInsideContainer: String,
-    @Value("\${storage.port-host}") val storagePortHost: String,
-    @Value("\${work-in-container}") val wic: Long
+    @Value($$"${storage.key}") val storageKey: String,
+    @Value($$"${storage.secret}") val storageSecret: String,
+    @Value($$"${storage.container-name}") val storageContainerName: String,
+    @Value($$"${storage.port-inside-container}") val storagePortInsideContainer: String,
+    @Value($$"${storage.port-host}") val storagePortHost: String,
+    @Value($$"${work-in-container}") val wic: Long
 ) : KaraokeStorageService {
     private val endpoint: String = if (wic != 0L) "http://${storageContainerName}:${storagePortInsideContainer}" else "http://localhost:${storagePortHost}"
     private val storageClient = MinioClient.builder()
@@ -114,7 +114,7 @@ class KaraokeStorageServiceImpl(
                     .build()
             )
             true
-        } catch (e: ErrorResponseException) {
+        } catch (_: ErrorResponseException) {
             false
         } catch (e: Exception) {
             throw RuntimeException("Error checking object existence: ${e.message}", e)

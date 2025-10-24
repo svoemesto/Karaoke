@@ -442,7 +442,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     fun getSheetsageinfo(@RequestParam id: Long): Map<String, Any> {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val sheetsageinfo = settings?.let {
-            settings.sheetstageInfo
+            settings.sheetsageInfo
         } ?: emptyMap()
         return sheetsageinfo
     }
@@ -453,7 +453,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     fun getSheetsageinfoBpm(@RequestParam id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val sheetsageinfotempo = settings?.let {
-            settings.sheetstageInfo["tempo"] as String
+            settings.sheetsageInfo["tempo"] as String
         } ?: ""
         return sheetsageinfotempo
     }
@@ -464,7 +464,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     fun getSheetsageinfoKey(@RequestParam id: Long): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val sheetsageinfokey = settings?.let {
-            settings.sheetstageInfo["key"] as String
+            settings.sheetsageInfo["key"] as String
         } ?: ""
         return sheetsageinfokey
     }
@@ -476,7 +476,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val sheetsageinfochords = settings?.let {
             @Suppress("UNCHECKED_CAST")
-            settings.sheetstageInfo["chords"] as List<String>
+            settings.sheetsageInfo["chords"] as List<String>
         } ?: emptyList()
         return sheetsageinfochords
     }
@@ -488,7 +488,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val sheetsageinfobeattimes = settings?.let {
             @Suppress("UNCHECKED_CAST")
-            settings.sheetstageInfo["beattimes"] as List<Double>
+            settings.sheetsageInfo["beattimes"] as List<Double>
         } ?: emptyList()
         return sheetsageinfobeattimes
     }

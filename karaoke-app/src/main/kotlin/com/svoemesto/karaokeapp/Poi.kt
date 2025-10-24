@@ -6,6 +6,7 @@ import java.io.File
 import org.odftoolkit.simple.SpreadsheetDocument
 import org.odftoolkit.simple.table.Row
 
+@Suppress("unused")
 fun mainPoi() {
     val artist = "Павел Кашин"
     val songName = "Барышня"
@@ -19,8 +20,8 @@ fun mainPoi() {
         println("Публикация на Dzen: ${row.getCellByIndex(Ods.getColumnIndex(firstRow!!, ODS_COLUMN_DATE)).stringValue}")
         println("Lyrics: ${URL_PREFIX_DZEN_PLAY.replace("{REPLACE}", row.getCellByIndex(
             Ods.getColumnIndex(
-                firstRow!!,
-                ODS_COLUMN_DZEN_LIRIC
+                firstRow,
+                ODS_COLUMN_DZEN_LYRIC
             )
         ).stringValue)}")
 
@@ -40,7 +41,7 @@ class Ods {
         fun findRow(artist: String, songName: String): Pair<Row?, Row?> {
             val spreadsheetDocument = SpreadsheetDocument.loadDocument(File(PATH_TO_ODS))
 
-            val table = spreadsheetDocument.tableList.firstOrNull() { it.tableName == artist }
+            val table = spreadsheetDocument.tableList.firstOrNull { it.tableName == artist }
             table?.let {
                 val firstRow = it.rowList[0]
                     it.rowList.forEach { row ->
@@ -56,7 +57,7 @@ class Ods {
         }
         fun findRow(artist: String, songName: String, spreadsheetDocument: SpreadsheetDocument): Pair<Row?, Row?> {
 
-            val table = spreadsheetDocument.tableList.firstOrNull() { it.tableName == artist } ?: spreadsheetDocument.tableList.firstOrNull() { it.tableName == "РАЗНОЕ" }
+            val table = spreadsheetDocument.tableList.firstOrNull { it.tableName == artist } ?: spreadsheetDocument.tableList.firstOrNull { it.tableName == "РАЗНОЕ" }
             table?.let {
                 val firstRow = it.rowList[0]
                     it.rowList.forEach { row ->
@@ -69,6 +70,7 @@ class Ods {
             return Pair(null, null)
         }
 
+        @Suppress("unused")
         fun getSettingFields(author: String, songName: String, spreadsheetDocument: SpreadsheetDocument): MutableMap<SettingField, String>? {
             val (firstRow, row) = findRow(author, songName, spreadsheetDocument)
             if (row == null) {
@@ -78,20 +80,20 @@ class Ods {
                 val result: MutableMap<SettingField, String> = mutableMapOf()
 
                 val date = row.getCellByIndex(getColumnIndex(firstRow!!, ODS_COLUMN_DATE)).stringValue.trim()
-                val time = row.getCellByIndex(getColumnIndex(firstRow!!, ODS_COLUMN_TIME)).stringValue.trim()
-                val boostyNormal = row.getCellByIndex(getColumnIndex(firstRow!!, ODS_COLUMN_BOOSTY)).stringValue.trim()
-                val lyricsNormal = row.getCellByIndex(getColumnIndex(firstRow!!, ODS_COLUMN_DZEN_LIRIC)).stringValue.trim()
-//                val lyricsDelay = row.getCellByIndex(getColumnIndex(firstRow!!, ODS_COLUMN_DZEN_LIRIC_BT)).stringValue.trim()
-                val karaokeNormal = row.getCellByIndex(getColumnIndex(firstRow!!, ODS_COLUMN_DZEN_KARAOKE)).stringValue.trim()
+                val time = row.getCellByIndex(getColumnIndex(firstRow, ODS_COLUMN_TIME)).stringValue.trim()
+                val boostyNormal = row.getCellByIndex(getColumnIndex(firstRow, ODS_COLUMN_BOOSTY)).stringValue.trim()
+                val lyricsNormal = row.getCellByIndex(getColumnIndex(firstRow, ODS_COLUMN_DZEN_LYRIC)).stringValue.trim()
+//                val lyricsDelay = row.getCellByIndex(getColumnIndex(firstRow!!, ODS_COLUMN_DZEN_LYRIC_BT)).stringValue.trim()
+                val karaokeNormal = row.getCellByIndex(getColumnIndex(firstRow, ODS_COLUMN_DZEN_KARAOKE)).stringValue.trim()
 //                val karaokeDelay = row.getCellByIndex(getColumnIndex(firstRow!!, ODS_COLUMN_DZEN_KARAOKE_BT)).stringValue.trim()
-                val chordsNormal = row.getCellByIndex(getColumnIndex(firstRow!!, ODS_COLUMN_DZEN_CHORDS)).stringValue.trim()
+                val chordsNormal = row.getCellByIndex(getColumnIndex(firstRow, ODS_COLUMN_DZEN_CHORDS)).stringValue.trim()
 //                val chordsDelay = row.getCellByIndex(getColumnIndex(firstRow!!, ODS_COLUMN_DZEN_CHORDS_BT)).stringValue.trim()
-                val year = row.getCellByIndex(getColumnIndex(firstRow!!, ODS_COLUMN_YEAR)).stringValue.trim()
-                val album = row.getCellByIndex(getColumnIndex(firstRow!!, ODS_COLUMN_ALBUM)).stringValue.trim()
-                val track = row.getCellByIndex(getColumnIndex(firstRow!!, ODS_COLUMN_TRACK)).stringValue.trim()
-                val tone = row.getCellByIndex(getColumnIndex(firstRow!!, ODS_COLUMN_TONE)).stringValue.trim()
-                val bpm = row.getCellByIndex(getColumnIndex(firstRow!!, ODS_COLUMN_BPM)).stringValue.trim()
-                val format = row.getCellByIndex(getColumnIndex(firstRow!!, ODS_COLUMN_FORMAT)).stringValue.trim()
+                val year = row.getCellByIndex(getColumnIndex(firstRow, ODS_COLUMN_YEAR)).stringValue.trim()
+                val album = row.getCellByIndex(getColumnIndex(firstRow, ODS_COLUMN_ALBUM)).stringValue.trim()
+                val track = row.getCellByIndex(getColumnIndex(firstRow, ODS_COLUMN_TRACK)).stringValue.trim()
+                val tone = row.getCellByIndex(getColumnIndex(firstRow, ODS_COLUMN_TONE)).stringValue.trim()
+                val bpm = row.getCellByIndex(getColumnIndex(firstRow, ODS_COLUMN_BPM)).stringValue.trim()
+                val format = row.getCellByIndex(getColumnIndex(firstRow, ODS_COLUMN_FORMAT)).stringValue.trim()
 
                 result[SettingField.AUTHOR] = author
                 result[SettingField.NAME] = songName
@@ -115,20 +117,21 @@ class Ods {
             }
         }
 
+        @Suppress("unused")
         fun getSongVKDescription(song: Song, fileName: String, spreadsheetDocument: SpreadsheetDocument?): Pair<String, String>? {
 
             val template = song.settings.getVKGroupDescription()
             val author = song.settings.author
             val songName = song.settings.songName
 
-            var date = ""
-            var time = ""
-            var boostyNormal = ""
-            var lyricsNormal = ""
+            var date: String
+            var time: String
+            var boostyNormal: String
+            var lyricsNormal: String
 //            var lyricsDelay = ""
-            var karaokeNormal = ""
+            var karaokeNormal: String
 //            var karaokeDelay = ""
-            var chordsNormal = ""
+            var chordsNormal: String
 //            var chordsDelay = ""
 
             if (spreadsheetDocument != null) {
@@ -137,24 +140,24 @@ class Ods {
                     return null
                 } else {
                     date = row.getCellByIndex(getColumnIndex(firstRow!!, ODS_COLUMN_DATE)).stringValue.trim()
-                    time = row.getCellByIndex(getColumnIndex(firstRow!!, ODS_COLUMN_TIME)).stringValue.trim().replace(":",".")
-                    boostyNormal = row.getCellByIndex(getColumnIndex(firstRow!!, ODS_COLUMN_BOOSTY)).stringValue.trim()
-                    lyricsNormal = row.getCellByIndex(getColumnIndex(firstRow!!, ODS_COLUMN_DZEN_LIRIC)).stringValue.trim()
-//                    lyricsDelay = row.getCellByIndex(getColumnIndex(firstRow!!, ODS_COLUMN_DZEN_LIRIC_BT)).stringValue.trim()
-                    karaokeNormal = row.getCellByIndex(getColumnIndex(firstRow!!, ODS_COLUMN_DZEN_KARAOKE)).stringValue.trim()
+                    time = row.getCellByIndex(getColumnIndex(firstRow, ODS_COLUMN_TIME)).stringValue.trim().replace(":",".")
+                    boostyNormal = row.getCellByIndex(getColumnIndex(firstRow, ODS_COLUMN_BOOSTY)).stringValue.trim()
+                    lyricsNormal = row.getCellByIndex(getColumnIndex(firstRow, ODS_COLUMN_DZEN_LYRIC)).stringValue.trim()
+//                    lyricsDelay = row.getCellByIndex(getColumnIndex(firstRow!!, ODS_COLUMN_DZEN_LYRIC_BT)).stringValue.trim()
+                    karaokeNormal = row.getCellByIndex(getColumnIndex(firstRow, ODS_COLUMN_DZEN_KARAOKE)).stringValue.trim()
 //                    karaokeDelay = row.getCellByIndex(getColumnIndex(firstRow!!, ODS_COLUMN_DZEN_KARAOKE_BT)).stringValue.trim()
-                    chordsNormal = row.getCellByIndex(getColumnIndex(firstRow!!, ODS_COLUMN_DZEN_CHORDS)).stringValue.trim()
+                    chordsNormal = row.getCellByIndex(getColumnIndex(firstRow, ODS_COLUMN_DZEN_CHORDS)).stringValue.trim()
 //                    chordsDelay = row.getCellByIndex(getColumnIndex(firstRow!!, ODS_COLUMN_DZEN_CHORDS_BT)).stringValue.trim()
                 }
             } else {
                 date = song.settings.date
                 time = song.settings.time.replace(":",".")
-                boostyNormal = song.settings.idBoosty ?: ""
-                lyricsNormal = song.settings.idDzenLyrics ?: ""
+                boostyNormal = song.settings.idBoosty
+                lyricsNormal = song.settings.idDzenLyrics
 //                lyricsDelay = song.settings.idDzenLyricsBt ?: ""
-                karaokeNormal = song.settings.idDzenKaraoke ?: ""
+                karaokeNormal = song.settings.idDzenKaraoke
 //                karaokeDelay = song.settings.idDzenKaraokeBt ?: ""
-                chordsNormal = song.settings.idDzenChords ?: ""
+                chordsNormal = song.settings.idDzenChords
 //                chordsDelay = song.settings.idDzenChordsBt ?: ""
             }
 

@@ -14,8 +14,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 import javax.imageio.ImageIO
-import kotlin.reflect.KClass
-import kotlin.reflect.full.findAnnotation
 
 class Pictures(override val database: KaraokeConnection = WORKING_DATABASE) : Serializable, Comparable<Pictures>, KaraokeDbTable {
 
@@ -67,9 +65,7 @@ class Pictures(override val database: KaraokeConnection = WORKING_DATABASE) : Se
         return if (isAlbumPicture) {
             // Ищем первую песню автора, года и альбома
             val args = mapOf("author" to author, "song_year" to year, "album" to album, "limit" to "1")
-            Settings.loadListFromDb(args = args, database = WORKING_DATABASE).firstOrNull()?.let { sett ->
-                sett.rootFolder
-            }?: ""
+            Settings.loadListFromDb(args = args, database = WORKING_DATABASE).firstOrNull()?.rootFolder ?: ""
         } else if (isAuthorPicture) {
             val args = mapOf("author" to author, "limit" to "1")
             Settings.loadListFromDb(args = args, database = WORKING_DATABASE).firstOrNull()?.let { sett ->
@@ -155,11 +151,12 @@ class Pictures(override val database: KaraokeConnection = WORKING_DATABASE) : Se
 
     companion object {
 
-        val TABLE_NAME = "tbl_pictures"
+        const val TABLE_NAME = "tbl_pictures"
 
         fun listHashes(database: KaraokeConnection, whereText: String = ""): List<RecordHash>? = getListHashes(tableName = TABLE_NAME, database = database, whereText = whereText)
+        @Suppress("unused")
         fun totalCount(database: KaraokeConnection): Int = getTotalCount(tableName = TABLE_NAME, database = database)
-
+        @Suppress("unused")
         fun loadListIds(args: Map<String, String> = emptyMap(), database: KaraokeConnection): List<Long> {
             val connection = database.getConnection()
             if (connection == null) {
@@ -179,7 +176,7 @@ class Pictures(override val database: KaraokeConnection = WORKING_DATABASE) : Se
                         " FROM tbl_pictures"
                 if (args.containsKey("id")) where += "id=${args["id"]}"
                 if (args.containsKey("picture_name")) where += "LOWER(picture_name) LIKE '%${args["picture_name"]?.rightFileName()?.lowercase()}%'"
-                if (where.size > 0) sql += " WHERE ${where.joinToString(" AND ")}"
+                if (where.isNotEmpty()) sql += " WHERE ${where.joinToString(" AND ")}"
                 if (limit > 0) sql += " LIMIT $limit"
                 if (offset > 0) sql += " OFFSET $offset"
 //                sql = "select id from tbl_pictures"
@@ -247,7 +244,7 @@ class Pictures(override val database: KaraokeConnection = WORKING_DATABASE) : Se
             ps.executeUpdate(sql, Statement.RETURN_GENERATED_KEYS)
             try {
                 ps.executeUpdate(sql, Statement.RETURN_GENERATED_KEYS)
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 // Проверяем последнее значение сиквенса и айдишника таблицы
                 val statement = connection.createStatement()
                 val rsLastId = statement.executeQuery("select max(id) as last_value from tbl_pictures;")
@@ -270,7 +267,7 @@ class Pictures(override val database: KaraokeConnection = WORKING_DATABASE) : Se
 
             ps.close()
 
-            if (result != null) updateRemotePictureFromLocalDatabase(result.id.toLong())
+            if (result != null) updateRemotePictureFromLocalDatabase(result.id)
 
             return result
 
@@ -298,7 +295,7 @@ class Pictures(override val database: KaraokeConnection = WORKING_DATABASE) : Se
                 if (args.containsKey("id")) where += "id=${args["id"]}"
                 if (args.containsKey("picture_name")) where += "LOWER(picture_name) LIKE '%${args["picture_name"]?.rightFileName()?.lowercase()}%'"
                 if (args.containsKey("name")) where += "LOWER(picture_name) = '${args["name"]?.rightFileName()?.lowercase()}'"
-                if (where.size > 0) sql += " WHERE ${where.joinToString(" AND ")}"
+                if (where.isNotEmpty()) sql += " WHERE ${where.joinToString(" AND ")}"
                 if (limit > 0) sql += " LIMIT $limit"
                 if (offset > 0) sql += " OFFSET $offset"
 
@@ -350,7 +347,7 @@ class Pictures(override val database: KaraokeConnection = WORKING_DATABASE) : Se
                 sql = "SELECT id, picture_name, picture_preview FROM tbl_pictures"
                 if (args.containsKey("id")) where += "id=${args["id"]}"
                 if (args.containsKey("picture_name")) where += "LOWER(picture_name) LIKE '%${args["picture_name"]?.rightFileName()?.lowercase()}%'"
-                if (where.size > 0) sql += " WHERE ${where.joinToString(" AND ")}"
+                if (where.isNotEmpty()) sql += " WHERE ${where.joinToString(" AND ")}"
                 if (limit > 0) sql += " LIMIT $limit"
                 if (offset > 0) sql += " OFFSET $offset"
 
@@ -389,8 +386,7 @@ class Pictures(override val database: KaraokeConnection = WORKING_DATABASE) : Se
             }
             val sql = "DELETE FROM tbl_pictures WHERE id = ?"
             val ps = connection.prepareStatement(sql)
-            var index = 1
-            ps.setInt(index, id)
+            ps.setInt(1, id)
             ps.executeUpdate()
             ps.close()
 
@@ -398,13 +394,13 @@ class Pictures(override val database: KaraokeConnection = WORKING_DATABASE) : Se
 
         fun loadFromDbById(id: Long, database: KaraokeConnection): Pictures? {
 
-            return Pictures.loadListFromDb(mapOf(Pair("id", id.toString())), database).firstOrNull()
+            return loadListFromDb(mapOf(Pair("id", id.toString())), database).firstOrNull()
 
         }
 
         fun loadFromDbByName(name: String, database: KaraokeConnection): Pictures? {
 
-            return Pictures.loadListFromDb(mapOf(Pair("picture_name", name)), database).firstOrNull()
+            return loadListFromDb(mapOf(Pair("picture_name", name)), database).firstOrNull()
 
         }
 

@@ -4,7 +4,8 @@ import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
 import java.io.InputStreamReader
 
-val TEST_AUDIO_FILE_PATH = "/sm-karaoke/system/(01) [Агата Кристи] Инспектор ПО.flac"
+const val TEST_AUDIO_FILE_PATH = "/sm-karaoke/system/(01) [Агата Кристи] Инспектор ПО.flac"
+@Suppress("unused")
 fun mainMediaInfo() {
 //    println(MediaInfo.executeMediaInfo(TEST_AUDIO_FILE_PATH, "--Output=JSON"))
 //    println(MediaInfo.getInfoBySectionAndParameter(TEST_AUDIO_FILE_PATH, "Audio","Duration"))
@@ -29,13 +30,14 @@ class MediaInfo {
                     buffer.append(i.toChar())
                 }
             }
-            val status = process.waitFor()
+//            val status = process.waitFor()
             val out = buffer.toString()
             val objectMapper = ObjectMapper()
             val result: Map<String, Any> = objectMapper.readValue(out, object : TypeReference<HashMap<String, Any>>() {})
             return result
         }
 
+        @Suppress("unused")
         fun getInfoByParameter(media: String, parameter: String): String {
             return executeMediaInfo(media, parameter)
         }
@@ -44,21 +46,22 @@ class MediaInfo {
 
             try {
                 val mediaInfo = getInfo(media)
-                val media = mediaInfo["media"] as HashMap<String, Any>
-                val tracks = media["track"] as List<HashMap<String, Any>>
+                val media = mediaInfo["media"] as HashMap<*, *>
+                val tracks = media["track"] as List<*>
 
                 tracks.forEach {
-                    val track = it as HashMap<String, String>
+                    val track = it as HashMap<*, *>
                     if (track["@type"] == section) {
-                        return track[parameter]
+                        return track[parameter] as String?
                     }
                 }
             } catch (e: Exception) {
-                println("${media} exeption: ${e.message}")
+                println("$media exception: ${e.message}")
             }
             return null
         }
 
+        @Suppress("unused")
         fun executeMediaInfo(media: String): String {
             val param = mutableListOf<String>()
             param.add(media)
@@ -83,7 +86,7 @@ class MediaInfo {
             }
             println(param)
 //            val builder = ProcessBuilder(param)
-            val builder = ProcessBuilder("mediainfo","--Inform=\"%%Duration%%\"", "$TEST_AUDIO_FILE_PATH", "--Output=JSON" )
+            val builder = ProcessBuilder("mediainfo","--Inform=\"%%Duration%%\"", TEST_AUDIO_FILE_PATH, "--Output=JSON" )
             builder.redirectErrorStream(true)
 //            builder.redirectOutput(ProcessBuilder.Redirect.PIPE)
             val process = builder.start()

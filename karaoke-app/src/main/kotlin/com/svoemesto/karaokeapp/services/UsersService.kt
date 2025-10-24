@@ -1,10 +1,9 @@
 package com.svoemesto.karaokeapp.services
 
-import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.model.Users
 import com.svoemesto.karaokeapp.model.UsersDto
-import org.springframework.stereotype.Service
 import org.springframework.security.crypto.password.PasswordEncoder
+import org.springframework.stereotype.Service
 import java.util.logging.Logger
 
 interface UsersService {
@@ -21,6 +20,7 @@ interface UsersService {
 @Service
 class UsersServiceImpl(
     val usersClient: UsersClient,
+    @Suppress("unused")
     val passwordEncoder: PasswordEncoder // Внедряем PasswordEncoder
 ): UsersService {
     private val logger = Logger.getLogger(UsersServiceImpl::class.java.name)

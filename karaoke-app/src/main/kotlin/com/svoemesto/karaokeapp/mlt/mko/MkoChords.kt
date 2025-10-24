@@ -3,10 +3,8 @@ package com.svoemesto.karaokeapp.mlt.mko
 import com.svoemesto.karaokeapp.*
 import com.svoemesto.karaokeapp.mlt.MltGenerator
 import com.svoemesto.karaokeapp.mlt.MltProp
-import com.svoemesto.karaokeapp.mlt.MltText
 import com.svoemesto.karaokeapp.mlt.mltNode
 import com.svoemesto.karaokeapp.model.*
-import java.awt.Font
 
 data class MkoChords(
     val mltProp: MltProp,
@@ -63,6 +61,7 @@ data class MkoChords(
     override fun filePlaylist(): MltNode {
         val result = mltGenerator.filePlaylist()
         result.body?.let {
+            @Suppress("UNCHECKED_CAST")
             val body = it as MutableList<MltNode>
             body.add(
                 mltGenerator.entry(
@@ -86,28 +85,29 @@ data class MkoChords(
 
         val sett = settings ?: return MltNode()
         val element = try {
-            sett.voicesForMlt[voiceId].getLines()[lineId].getElements(songVersion).filter { it.type == SettingVoiceLineElementTypes.TEXT }.first()
-        } catch (e: Exception) {
+            sett.voicesForMlt[voiceId].getLines()[lineId].getElements(songVersion)
+                .first { it.type == SettingVoiceLineElementTypes.TEXT }
+        } catch (_: Exception) {
             return MltNode()
         }
 
-        var widthAreaPx= element.w()
-        var heightAreaPx= element.h()
+//        var widthAreaPx= element.w()
+//        var heightAreaPx= element.h()
 
-        val haveChords = songVersion.producers.contains(ProducerType.CHORDS) && element.getSyllables().any { it.note != "" }
+//        val haveChords = songVersion.producers.contains(ProducerType.CHORDS) && element.getSyllables().any { it.note != "" }
 
-        val deltaY = if (haveChords) {
-//            val sylFontSize = element.fontSize
-//            val chordsFontSize = (sylFontSize * Karaoke.chordsHeightCoefficient).toInt()
-//            val chordsMltTextHeight = Karaoke.chordsFont.copy("C", chordsFontSize).h()
-//            val chordHeight = (chordsMltTextHeight * Karaoke.chordsHeightOffsetCoefficient).toInt()
-            0
-        } else {
-            0
-        }
+//        val deltaY = if (haveChords) {
+////            val sylFontSize = element.fontSize
+////            val chordsFontSize = (sylFontSize * Karaoke.chordsHeightCoefficient).toInt()
+////            val chordsMltTextHeight = Karaoke.chordsFont.copy("C", chordsFontSize).h()
+////            val chordHeight = (chordsMltTextHeight * Karaoke.chordsHeightOffsetCoefficient).toInt()
+//            0
+//        } else {
+//            0
+//        }
 
-        val x = 0
-        val y = deltaY
+//        val x = 0
+        val y = 0
         val body: MutableList<MltNode> = mutableListOf()
 
         // Формируем текст аккорда в зависимости он наличия каподастра и располагаем его над гласной слога
@@ -150,8 +150,8 @@ data class MkoChords(
                         MltNode(
                             name = "position",
                             fields = mutableMapOf(
-                                Pair("x","${chordX}"),
-                                Pair("y","${y}")
+                                Pair("x","$chordX"),
+                                Pair("y","$y")
                             ),
                             body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(Pair("zoom","100")), body = "1,0,0,0,1,0,0,0,1"))
                         ),
@@ -175,7 +175,7 @@ data class MkoChords(
             name = "kdenlivetitle",
             fields = PropertiesMltNodeBuilder()
                 .duration(convertMillisecondsToFrames(lineDurationOnScreen).toString())
-                .LC_NUMERIC("C")
+                .lcNumeric("C")
                 .width("$frameWidthPx")
                 .height("$frameHeightPx")
                 .`out`((convertMillisecondsToFrames(lineDurationOnScreen)-1).toString())

@@ -10,6 +10,7 @@ class ApplicationContextProvider : ApplicationContextAware {
     companion object {
         private lateinit var context: ApplicationContext
 
+        @Suppress("unused")
         fun getCurrentApplicationContext(): ApplicationContext {
             return context
         }

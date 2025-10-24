@@ -39,7 +39,11 @@ class Uuids(var id: Int, var uuid: String, val database: KaraokeConnection = WOR
         fieldsValues.add(Pair("id", uuids.id))
         fieldsValues.add(Pair("uuid", uuids.uuid))
 
-        return "INSERT INTO tbl_uuids (${fieldsValues.map {it.first}.joinToString(", ")}) OVERRIDING SYSTEM VALUE VALUES(${fieldsValues.map {if (it.second is Long) "${it.second}" else "'${it.second}'"}.joinToString(", ")})"
+        return "INSERT INTO tbl_uuids (${fieldsValues.joinToString(", ") { it.first }}) OVERRIDING SYSTEM VALUE VALUES(${
+            fieldsValues.joinToString(
+                ", "
+            ) { if (it.second is Long) "${it.second}" else "'${it.second}'" }
+        })"
 
     }
 
@@ -94,7 +98,7 @@ class Uuids(var id: Int, var uuid: String, val database: KaraokeConnection = WOR
                         " FROM tbl_uuids"
                 if (args.containsKey("id")) where += "id=${args["id"]}"
                 if (args.containsKey("uuid")) where += "uuid = '${args["uuid"]}'"
-                if (where.size > 0) sql += " WHERE ${where.joinToString(" AND ")}"
+                if (where.isNotEmpty()) sql += " WHERE ${where.joinToString(" AND ")}"
 
                 rs = statement.executeQuery(sql)
                 val result: MutableList<Uuids> = mutableListOf()
@@ -127,8 +131,7 @@ class Uuids(var id: Int, var uuid: String, val database: KaraokeConnection = WOR
             }
             val sql = "DELETE FROM tbl_uuids WHERE id = ?"
             val ps = connection.prepareStatement(sql)
-            var index = 1
-            ps.setInt(index, id)
+            ps.setInt(1, id)
             ps.executeUpdate()
             ps.close()
 
@@ -136,7 +139,7 @@ class Uuids(var id: Int, var uuid: String, val database: KaraokeConnection = WOR
 
         fun load(id: Int, database: KaraokeConnection): Uuids? {
 
-            return Uuids.loadList(mapOf(Pair("id", id.toString())), database).firstOrNull()
+            return loadList(mapOf(Pair("id", id.toString())), database).firstOrNull()
 
         }
 

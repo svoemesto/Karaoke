@@ -23,12 +23,16 @@ data class MkoSplashStart(val mltProp: MltProp, val type: ProducerType, val voic
     private val logoAuthorBase64 = mltProp.getBase64("LogoAuthor")
     private val logoAlbumBase64 = mltProp.getBase64("LogoAlbum")
     private val capo = mltProp.getSongCapo()
-    private val toneBpmDescriptionText = if (songVersion in listOf(SongVersion.KARAOKE, SongVersion.TABS)) {
-        "Key: «" + mltProp.getSongTone() + "», bpm: " + mltProp.getSongBpm()
-    } else if (songVersion in listOf(SongVersion.CHORDS)) {
-        "Key: «" + mltProp.getSongTone() + "», bpm: " + mltProp.getSongBpm() + if (capo > 0) ", каподастр на $capo-м ладу" else ""
-    } else {
-        ""
+    private val toneBpmDescriptionText = when (songVersion) {
+        in listOf(SongVersion.KARAOKE, SongVersion.TABS) -> {
+            "Key: «" + mltProp.getSongTone() + "», bpm: " + mltProp.getSongBpm()
+        }
+        in listOf(SongVersion.CHORDS) -> {
+            "Key: «" + mltProp.getSongTone() + "», bpm: " + mltProp.getSongBpm() + if (capo > 0) ", каподастр на $capo-м ладу" else ""
+        }
+        else -> {
+            ""
+        }
     }
     private val cds = mltProp.getSongChordDescription().replace("\n",", ")
     private val chordDescriptionText = if (cds !== "") cds else toneBpmDescriptionText
@@ -50,6 +54,7 @@ data class MkoSplashStart(val mltProp: MltProp, val type: ProducerType, val voic
 
         val result = mltGenerator.filePlaylist()
         result.body?.let {
+            @Suppress("UNCHECKED_CAST")
             val body = it as MutableList<MltNode>
             body.add(
                 mltGenerator.entry(
@@ -83,14 +88,14 @@ data class MkoSplashStart(val mltProp: MltProp, val type: ProducerType, val voic
 
     override fun template(): MltNode {
 
-        var songnameTextFontMlt = Karaoke.splashstartSongNameFont
+        val songnameTextFontMlt = Karaoke.splashstartSongNameFont
         var songnameTextFont = songnameTextFontMlt.font
-        val songversionTextFontMlt = Karaoke.splashstartSongVersionFont
+        val songVersionTextFontMlt = Karaoke.splashstartSongVersionFont
         val commentTextFontMlt = Karaoke.splashstartCommentFont
         val chordDescriptionTextFontMlt = Karaoke.splashstartChordDescriptionFont
 
         val commentText = songVersion.textForDescription
-        val songversionText = songVersion.text
+        val songVersionText = songVersion.text
         val songnameText = songName
 
         val border = (frameHeightPx *0.05).toLong()
@@ -98,45 +103,45 @@ data class MkoSplashStart(val mltProp: MltProp, val type: ProducerType, val voic
 
         val albumPictureX = ((frameWidthPx - (400 * pictureScaleCoeff + border + 1000 * pictureScaleCoeff)) / 2).toLong()
         val albumPictureY = border
-        val albumPictureW = 400 * pictureScaleCoeff
-        val albumPictureH = 400 * pictureScaleCoeff
+//        val albumPictureW = 400 * pictureScaleCoeff
+//        val albumPictureH = 400 * pictureScaleCoeff
 
         val authorPictureX = albumPictureX + 400 * pictureScaleCoeff + border
         val authorPictureY = border
-        val authorPictureW = 1000 * pictureScaleCoeff
-        val authorPictureH = 400 * pictureScaleCoeff
+//        val authorPictureW = 1000 * pictureScaleCoeff
+//        val authorPictureH = 400 * pictureScaleCoeff
 
         val commentTextW =  (getTextWidthHeightPx(commentText, commentTextFontMlt.font).first).toLong()
-        val commentTextH =  (getTextWidthHeightPx(commentText, commentTextFontMlt.font).second).toLong()
+//        val commentTextH =  (getTextWidthHeightPx(commentText, commentTextFontMlt.font).second).toLong()
         val commentTextX = (frameWidthPx - commentTextW) / 2
         val commentTextY = (frameHeightPx - border/2 - getTextWidthHeightPx("0", commentTextFontMlt.font).second).toLong()
 
         val chordDescriptionTextW =  (getTextWidthHeightPx(chordDescriptionText, chordDescriptionTextFontMlt.font).first).toLong()
-        val chordDescriptionTextH =  (getTextWidthHeightPx(chordDescriptionText, chordDescriptionTextFontMlt.font).second).toLong()
+//        val chordDescriptionTextH =  (getTextWidthHeightPx(chordDescriptionText, chordDescriptionTextFontMlt.font).second).toLong()
         val chordDescriptionTextX = (frameWidthPx - chordDescriptionTextW) / 2
         val chordDescriptionTextY = if (chordDescriptionText != "") (commentTextY - getTextWidthHeightPx("0", chordDescriptionTextFontMlt.font).second).toLong() else commentTextY
 
-        val songversionTextW =  (getTextWidthHeightPx(songversionText, songversionTextFontMlt.font).first).toLong()
-        val songversionTextH =  (getTextWidthHeightPx(songversionText, songversionTextFontMlt.font).second).toLong()
-        val songversionTextX = (frameWidthPx - songversionTextW) / 2
-        val songversionTextY = (chordDescriptionTextY - getTextWidthHeightPx("0", songversionTextFontMlt.font).second).toLong()
+        val songVersionTextW =  (getTextWidthHeightPx(songVersionText, songVersionTextFontMlt.font).first).toLong()
+//        val songVersionTextH =  (getTextWidthHeightPx(songVersionText, songVersionTextFontMlt.font).second).toLong()
+        val songVersionTextX = (frameWidthPx - songVersionTextW) / 2
+        val songVersionTextY = (chordDescriptionTextY - getTextWidthHeightPx("0", songVersionTextFontMlt.font).second).toLong()
 
-        var songnameTextY = (border + 400 * pictureScaleCoeff).toLong()
-        val songnameTextHmax = songversionTextY - songnameTextY
+        val songnameTextY = (border + 400 * pictureScaleCoeff).toLong()
+        val songnameTextHmax = songVersionTextY - songnameTextY
         do {
             songnameTextFont = Font(songnameTextFont.name, songnameTextFont.style, songnameTextFont.size+1)
             val (w,h) = getTextWidthHeightPx(songnameText, songnameTextFont)
         } while (!(h > songnameTextHmax || w > (mltProp.getFrameWidthPx() - 2*border)))
         songnameTextFontMlt.font = songnameTextFont
-        val songnameTextW = (getTextWidthHeightPx(songnameText, songnameTextFontMlt.font).first).toLong()
-        val songnameTextH = (getTextWidthHeightPx(songnameText, songnameTextFontMlt.font).second).toLong()
-        val songnameTextX = (frameWidthPx - songnameTextW) / 2
-        songnameTextY = (songversionTextY - songnameTextH - (songversionTextY - songnameTextH - songnameTextY)/2)
+//        val songnameTextW = (getTextWidthHeightPx(songnameText, songnameTextFontMlt.font).first).toLong()
+//        val songnameTextH = (getTextWidthHeightPx(songnameText, songnameTextFontMlt.font).second).toLong()
+//        val songnameTextX = (frameWidthPx - songnameTextW) / 2
+//        songnameTextY = (songVersionTextY - songnameTextH - (songVersionTextY - songnameTextH - songnameTextY)/2)
 
 
 
         val frameW = 1920
-        val frameH = 1080
+//        val frameH = 1080
 
         val padding = 50
         val textAreaW = frameW - 2*padding
@@ -158,12 +163,12 @@ data class MkoSplashStart(val mltProp: MltProp, val type: ProducerType, val voic
             )
         )
 
-        val area = Picture(
-            params = AreaParams(w = frameW, h = frameH, color = Color.BLACK),
-            childs = mutableListOf(
-                PictureChild(x = padding, y = picAreaH - padding, child = areaText)
-            )
-        )
+//        val area = Picture(
+//            params = AreaParams(w = frameW, h = frameH, color = Color.BLACK),
+//            childs = mutableListOf(
+//                PictureChild(x = padding, y = picAreaH - padding, child = areaText)
+//            )
+//        )
 
         val multiLines = areaText.multiLines()
 
@@ -237,9 +242,9 @@ data class MkoSplashStart(val mltProp: MltProp, val type: ProducerType, val voic
                     Pair("type","QGraphicsTextItem"),
                     Pair("z-index","6"),
                 ), body = mutableListOf(
-                    MltNode(name = "position", fields = mutableMapOf(Pair("x","$songversionTextX"),Pair("y","$songversionTextY")),
+                    MltNode(name = "position", fields = mutableMapOf(Pair("x","$songVersionTextX"),Pair("y","$songVersionTextY")),
                         body = mutableListOf(MltNode(name = "transform", body = "1,0,0,0,1,0,0,0,1"))),
-                    songversionTextFontMlt.mltNode(songversionText)
+                    songVersionTextFontMlt.mltNode(songVersionText)
                 )
             )
         )

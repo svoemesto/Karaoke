@@ -60,6 +60,7 @@ data class MkoMelodyTabs(
     override fun filePlaylist(): MltNode {
         val result = mltGenerator.filePlaylist()
         result.body?.let {
+            @Suppress("UNCHECKED_CAST")
             val body = it as MutableList<MltNode>
             body.add(
                 mltGenerator.entry(
@@ -83,8 +84,9 @@ data class MkoMelodyTabs(
 
         val sett = settings ?: return MltNode()
         val element = try {
-            sett.voicesForMlt[voiceId].getLines()[lineId].getElements(songVersion).filter { it.type == SettingVoiceLineElementTypes.TEXT }.first()
-        } catch (e: Exception) {
+            sett.voicesForMlt[voiceId].getLines()[lineId].getElements(songVersion)
+                .first { it.type == SettingVoiceLineElementTypes.TEXT }
+        } catch (_: Exception) {
             return MltNode()
         }
 
@@ -105,11 +107,11 @@ data class MkoMelodyTabs(
         val openStringMltTextHeight = openStringFont.copy("C", openStringFontSize).h()
 
 
-        var widthAreaPx= element.w()
-        var heightAreaPx= tabsMltTextHeight + 5 * heightBetweenTabsLines
+        val widthAreaPx= element.w()
+        val heightAreaPx= tabsMltTextHeight + 5 * heightBetweenTabsLines
 
-        val x = 0
-        val y = 0
+//        val x = 0
+//        val y = 0
         val body: MutableList<MltNode> = mutableListOf()
 
         // Рисуем линии табулатуры
@@ -151,7 +153,7 @@ data class MkoMelodyTabs(
         )
         verticalLinesProps.forEach { verticalLinesProp ->
             body.add(
-                MltNode(name = "item", fields = mutableMapOf(Pair("type","QGraphicsRectItem"), Pair("z-index","0"),),
+                MltNode(name = "item", fields = mutableMapOf(Pair("type", "QGraphicsRectItem"), Pair("z-index", "0")),
                     body = mutableListOf(
                         // Начальная позиция прямоугольника, которая будет считаться для него началом координат
                         MltNode(name = "position", fields = mutableMapOf(Pair("x","0"), Pair("y","0")), body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(Pair("zoom","100")), body = "1,0,0,0,1,0,0,0,1"))),
@@ -176,14 +178,14 @@ data class MkoMelodyTabs(
             val lineY = offsetYTabsLines + heightBetweenTabsLines * indexString
             val nodeY = lineY - openStringMltTextHeight / 2
             body.add(
-                MltNode(name = "item", fields = mutableMapOf(Pair("type","QGraphicsTextItem"), Pair("z-index","0"),),
+                MltNode(name = "item", fields = mutableMapOf(Pair("type", "QGraphicsTextItem"), Pair("z-index", "0")),
                     body = mutableListOf(
                         // Начальная позиция прямоугольника, которая будет считаться для него началом координат
                         MltNode(
                             name = "position",
                             fields = mutableMapOf(
                                 Pair("x","12"),
-                                Pair("y","${nodeY}")
+                                Pair("y","$nodeY")
                             ),
                             body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(Pair("zoom","100")), body = "1,0,0,0,1,0,0,0,1"))
                         ),
@@ -194,11 +196,11 @@ data class MkoMelodyTabs(
         }
 
         element.getSyllables().forEach { noteElement ->
-            val stringLadText = noteElement.stringlad
+            val stringLadText = noteElement.stringLad
             if (stringLadText.contains("|")) {
                 val (stringText, ladText) = stringLadText.split("|")
                 val stringIndex = stringText.toInt()
-                val ladIndex = ladText.toInt()
+//                val ladIndex = ladText.toInt()
 
 
                 val initialXposition = noteElement.x()
@@ -227,8 +229,8 @@ data class MkoMelodyTabs(
                             MltNode(
                                 name = "position",
                                 fields = mutableMapOf(
-                                    Pair("x","${tabsX}"),
-                                    Pair("y","${tabsY}")
+                                    Pair("x","$tabsX"),
+                                    Pair("y","$tabsY")
                                 ),
                                 body = mutableListOf(MltNode(name = "transform", fields = mutableMapOf(Pair("zoom","100")), body = "1,0,0,0,1,0,0,0,1"))
                             ),
@@ -254,7 +256,7 @@ data class MkoMelodyTabs(
             name = "kdenlivetitle",
             fields = PropertiesMltNodeBuilder()
                 .duration(convertMillisecondsToFrames(lineDurationOnScreen).toString())
-                .LC_NUMERIC("C")
+                .lcNumeric("C")
                 .width("$frameWidthPx")
                 .height("$frameHeightPx")
                 .`out`((convertMillisecondsToFrames(lineDurationOnScreen)-1).toString())

@@ -1,7 +1,6 @@
 package com.svoemesto.karaokeapp.mlt.mko
 
 import com.svoemesto.karaokeapp.model.MltNode
-import com.svoemesto.karaokeapp.model.ProducerType
 
 /***
  * filePlaylist - body - blank                      - начальное положение трека на таймлайне

@@ -45,6 +45,7 @@ data class MkoHeader(val mltProp: MltProp, val type: ProducerType, val voiceId: 
     override fun filePlaylist(): MltNode {
         val result = mltGenerator.filePlaylist()
         result.body?.let {
+            @Suppress("UNCHECKED_CAST")
             val body = it as MutableList<MltNode>
             body.addAll(MltNodeBuilder().blank(inOffsetVideo).build())
             body.add(
@@ -77,10 +78,10 @@ data class MkoHeader(val mltProp: MltProp, val type: ProducerType, val voiceId: 
         val songnameNameMltFont = Karaoke.headerSongnameFont
 
         var (songnameW, songnameH1) = getTextWidthHeightPx(songName, songnameNameMltFont.font)
-        val (authorW, authorH) = getTextWidthHeightPx(Karaoke.headerAuthorName, Karaoke.headerAuthorFont.font)
-        val (albumW, albumH) = getTextWidthHeightPx(Karaoke.headerAlbumName, Karaoke.headerAlbumFont.font)
-        val (toneW, toneH) = getTextWidthHeightPx(Karaoke.headerToneName, Karaoke.headerToneFont.font)
-        val (bpmW,bpmH) = getTextWidthHeightPx(Karaoke.headerBpmName, Karaoke.headerBpmFont.font)
+        val (authorW, _) = getTextWidthHeightPx(Karaoke.headerAuthorName, Karaoke.headerAuthorFont.font)
+        val (albumW, _) = getTextWidthHeightPx(Karaoke.headerAlbumName, Karaoke.headerAlbumFont.font)
+        val (toneW, _) = getTextWidthHeightPx(Karaoke.headerToneName, Karaoke.headerToneFont.font)
+        val (bpmW, _) = getTextWidthHeightPx(Karaoke.headerBpmName, Karaoke.headerBpmFont.font)
         var songnameH: Double = songnameH1
 
         while (songnameW > maxSongnameW) {

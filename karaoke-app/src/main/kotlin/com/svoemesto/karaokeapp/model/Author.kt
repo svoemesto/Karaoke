@@ -3,7 +3,6 @@ package com.svoemesto.karaokeapp.model
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.WORKING_DATABASE
-import com.svoemesto.karaokeapp.rightFileName
 import java.io.Serializable
 import java.sql.ResultSet
 import java.sql.SQLException
@@ -73,7 +72,11 @@ class Author(val database: KaraokeConnection = WORKING_DATABASE) : Serializable,
         fieldsValues.add(Pair("watched", author.watched))
         fieldsValues.add(Pair("skip", author.skip))
 
-        return "INSERT INTO tbl_authors (${fieldsValues.map {it.first}.joinToString(", ")}) OVERRIDING SYSTEM VALUE VALUES(${fieldsValues.map {if (it.second is Long) "${it.second}" else "'${it.second.toString().replace("'","''")}'"}.joinToString(", ")})"
+        return "INSERT INTO tbl_authors (${fieldsValues.joinToString(", ") { it.first }}) OVERRIDING SYSTEM VALUE VALUES(${
+            fieldsValues.joinToString(
+                ", "
+            ) { if (it.second is Long) "${it.second}" else "'${it.second.toString().replace("'", "''")}'" }
+        })"
 
     }
 
@@ -96,6 +99,7 @@ class Author(val database: KaraokeConnection = WORKING_DATABASE) : Serializable,
 
     companion object {
 
+        @Suppress("unused")
         fun listHashes(database: KaraokeConnection, whereText: String = ""): List<RecordHash>? {
             var result: MutableList<RecordHash>? = mutableListOf()
             val sql = "SELECT id, recordhash FROM tbl_authors $whereText"
@@ -212,7 +216,7 @@ class Author(val database: KaraokeConnection = WORKING_DATABASE) : Serializable,
                         where += "skip = false"
                     }
                 }
-                if (where.size > 0) sql += " WHERE ${where.joinToString(" AND ")}"
+                if (where.isNotEmpty()) sql += " WHERE ${where.joinToString(" AND ")}"
 
                 rs = statement.executeQuery(sql)
                 val result: MutableList<Author> = mutableListOf()
@@ -254,8 +258,7 @@ class Author(val database: KaraokeConnection = WORKING_DATABASE) : Serializable,
             }
             val sql = "DELETE FROM tbl_authors WHERE id = ?"
             val ps = connection.prepareStatement(sql)
-            var index = 1
-            ps.setInt(index, id)
+            ps.setInt(1, id)
             ps.executeUpdate()
             ps.close()
 
@@ -263,13 +266,13 @@ class Author(val database: KaraokeConnection = WORKING_DATABASE) : Serializable,
 
         fun load(id: Long, database: KaraokeConnection): Author? {
 
-            return Author.loadList(mapOf(Pair("id", id.toString())), database).firstOrNull()
+            return loadList(mapOf(Pair("id", id.toString())), database).firstOrNull()
 
         }
 
         fun load(author: String, database: KaraokeConnection): Author? {
 
-            return Author.loadList(mapOf(Pair("author", author)), database).firstOrNull()
+            return loadList(mapOf(Pair("author", author)), database).firstOrNull()
 
         }
 

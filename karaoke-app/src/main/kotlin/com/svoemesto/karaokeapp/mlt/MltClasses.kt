@@ -9,36 +9,36 @@ import java.awt.Font
 import java.io.Serializable
 
 data class MltObject(
-    val _shape: MltShape,
+    val privateShape: MltShape,
     val layoutW: Int = 100,
     val layoutH: Int = 100,
-    val _x: Int = 0,
-    val _y: Int = 0,
-    val _w: Int = 0,
-    val _h: Int = 0,
+    val privateX: Int = 0,
+    val privateY: Int = 0,
+    val privateW: Int = 0,
+    val privateH: Int = 0,
     val alignmentX: MltObjectAlignmentX = MltObjectAlignmentX.CENTER,
     val alignmentY: MltObjectAlignmentY = MltObjectAlignmentY.CENTER
 ) : Serializable {
 
     val shape: MltShape
         get() {
-            return when(_shape.type) {
+            return when(privateShape.type) {
                 MltObjectType.TEXT -> {
                     MltText(
-                        text = (_shape as MltText).text,
-                        font = Font(_shape.font.name, _shape.font.style, getFontSizeByHeight(h,_shape.font)),
-                        fontUnderline = (_shape as MltText).fontUnderline,
-                        shapeColor = _shape.shapeColor,
-                        shapeOutline = _shape.shapeOutline,
-                        shapeOutlineColor = _shape.shapeOutlineColor
+                        text = (privateShape as MltText).text,
+                        font = Font(privateShape.font.name, privateShape.font.style, getFontSizeByHeight(h,privateShape.font)),
+                        fontUnderline = privateShape.fontUnderline,
+                        shapeColor = privateShape.shapeColor,
+                        shapeOutline = privateShape.shapeOutline,
+                        shapeOutlineColor = privateShape.shapeOutlineColor
                     )
                 }
                 else -> {
                     MltShape(
-                        type = _shape.type,
-                        shapeColor = _shape.shapeColor,
-                        shapeOutline = _shape.shapeOutline,
-                        shapeOutlineColor = _shape.shapeOutlineColor
+                        type = privateShape.type,
+                        shapeColor = privateShape.shapeColor,
+                        shapeOutline = privateShape.shapeOutline,
+                        shapeOutlineColor = privateShape.shapeOutlineColor
                     )
                 }
             }
@@ -46,17 +46,17 @@ data class MltObject(
     val x: Int
         get() {
             return when (alignmentX) {
-                MltObjectAlignmentX.LEFT -> _x
-                MltObjectAlignmentX.CENTER -> _x - w/2
-                MltObjectAlignmentX.RIGHT -> _x - w
+                MltObjectAlignmentX.LEFT -> privateX
+                MltObjectAlignmentX.CENTER -> privateX - w/2
+                MltObjectAlignmentX.RIGHT -> privateX - w
             }
         }
     val y: Int
         get() {
             return when (alignmentY) {
-                MltObjectAlignmentY.TOP -> _y
-                MltObjectAlignmentY.CENTER -> _y - h/2
-                MltObjectAlignmentY.BOTTOM -> _y - h
+                MltObjectAlignmentY.TOP -> privateY
+                MltObjectAlignmentY.CENTER -> privateY - h/2
+                MltObjectAlignmentY.BOTTOM -> privateY - h
             }
         }
 
@@ -65,13 +65,13 @@ data class MltObject(
         get() {
             return when (shape.type) {
                 MltObjectType.TEXT -> getTextWidthHeightPx((shape as MltText).text, (shape as MltText).font).first.toInt()
-                else -> _w
+                else -> privateW
             }
         }
 
     val h: Int
         get() {
-            return _h
+            return privateH
         }
 
 }

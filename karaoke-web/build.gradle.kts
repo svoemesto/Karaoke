@@ -27,6 +27,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-websocket")
+    implementation("org.springframework.boot:spring-boot-starter-security")
 
 //    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0") // для Котлин 2.2.0
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1")
@@ -49,7 +50,8 @@ dependencies {
 
 tasks.withType<KotlinCompile> {
     compilerOptions {
-        freeCompilerArgs.add("-Xjsr305=strict") // Используем add() вместо присвоения списка
+        freeCompilerArgs.add("-Xjsr305=strict")
+        freeCompilerArgs.add("-Xannotation-default-target=param-property")
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
     }
 }

@@ -2122,13 +2122,18 @@ fun getAlbumCardTitle(authorYmId: String): String = runBlocking {
 }
 
 fun String.extractBalancedBracesFromString(startWord: String): String {
-    val result = ""
+    val result = "" // Строка для возврата в случае ошибки
     val currentContent = StringBuilder()
     val firstIndexOfStartWord = this.indexOf(startWord)
-    if (firstIndexOfStartWord < 0) return result
+    if (firstIndexOfStartWord < 0) return result // startWord не найден
+
     val indexToStartSearch = firstIndexOfStartWord + startWord.length
+    if (indexToStartSearch >= this.length) return result // Проверяем, не выходим ли за границы
+
     val firstChar = this[indexToStartSearch]
-    if (firstChar.toString() !== "{") return result
+    // Проверяем, начинается ли сразу после startWord с '{'
+    if (firstChar != '{') return result // Если нет, возвращаем пустую строку
+
     var counter = 0
     for (i in indexToStartSearch until this.length) {
         val currentSymbol = this[i]
@@ -2145,8 +2150,13 @@ fun String.extractBalancedBracesFromString(startWord: String): String {
                 currentContent.append(currentSymbol)
             }
         }
-        if (counter <= 0) return currentContent.toString()
+        // Завершаем, только когда счётчик достигает 0 (сбалансированная пара)
+        if (counter == 0) return currentContent.toString()
+        // Не нужно проверять counter < 0 здесь, если логика выше верна,
+        // но можно добавить для отладки или если строка может быть заведомо некорректной.
+        // if (counter < 0) break // Прервать, если закрывающих скобок больше
     }
+    // Если цикл завершился, и counter != 0, значит, скобки несбалансированы
     return result
 }
 
@@ -2171,6 +2181,7 @@ fun searchLastAlbumYm2(authorYmId: String): String {
         .get()
 
     val html = document.html()
+
     val preloadedAlbums = html.extractBalancedBracesFromString("""\"preloadedAlbums\":""")
     val album = preloadedAlbums.extractBalancedBracesFromString("""\"albums\":[""")
     val result = album.textBetween("""\"title\":\"""", """\",\"""")
@@ -2181,6 +2192,7 @@ fun searchLastAlbumYm2(authorYmId: String): String {
         }
         println("preloadedAlbum = $preloadedAlbums")
         println("album = $album")
+        println("searchLastAlbumYm2 html: '$html'")
     }
     return result
 }

@@ -7,7 +7,7 @@ services:
     ports:
       - ${WEB_PORT_HOST}:${WEB_PORT_INSIDE_CONTAINER}
     environment:
-      WORK_IN_CONTAINER: 1
+      - WORK_IN_CONTAINER=1
 #    volumes:
 #      - ${WEB_FOLDER_HOST}:${WEB_FOLDER_IN_CONTAINER}
     networks:
@@ -23,4 +23,4 @@ services:
 
 networks:
   karaokenet:
-    driver: bridge
+    external: true # <-- Указываем, что сеть внешняя

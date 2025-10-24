@@ -1,8 +1,7 @@
 package com.svoemesto.karaokeweb
 
 import com.svoemesto.karaokeapp.KaraokeConnection
-import com.svoemesto.karaokeapp.services.WEB_WORK_IN_CONTAINER
-import java.sql.DriverManager
+import com.svoemesto.karaokeweb.services.WEB_WORK_IN_CONTAINER
 
 class Connection(
     override val url: String,
@@ -24,15 +23,17 @@ class Connection(
 
     companion object {
 
-        private val USERNAME = "postgres"
-        private val PASSWORD = "postgres"
+        private const val USERNAME = "postgres"
+        private const val PASSWORD = "postgres"
         fun local(): KaraokeConnection {
             return Connection(name = "LOCAL", url = connectionLocalUrl(), username = USERNAME, password = PASSWORD)
         }
+        @Suppress("unused")
         fun remote(): KaraokeConnection {
             return Connection(name = "SERVER", url = connectionRemoteUrl(), username = USERNAME, password = PASSWORD)
         }
 
+        @Suppress("unused")
         fun virtual(): KaraokeConnection {
             return Connection(name = "VIRTUAL", url = connectionVirtualUrl(), username = USERNAME, password = PASSWORD)
         }

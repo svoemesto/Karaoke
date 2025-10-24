@@ -9,7 +9,7 @@ import java.sql.Statement
 import java.sql.Timestamp
 import java.time.Instant
 
-class StatBySong(val database: KaraokeConnection = WORKING_DATABASE): Serializable, Comparable<StatBySong> {
+class StatBySong(@Suppress("unused") val database: KaraokeConnection = WORKING_DATABASE): Serializable, Comparable<StatBySong> {
 
     var songId: Int = 0
     var description: String= ""

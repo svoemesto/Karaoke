@@ -6,7 +6,7 @@ import com.svoemesto.karaokeapp.model.Settings
 import com.svoemesto.karaokeweb.StatBySong
 import com.svoemesto.karaokeapp.model.Zakroma
 import com.svoemesto.karaokeapp.rightFileName
-import com.svoemesto.karaokeapp.services.WEB_WORK_IN_CONTAINER
+import com.svoemesto.karaokeweb.services.WEB_WORK_IN_CONTAINER
 import com.svoemesto.karaokeweb.WORKING_DATABASE
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.beans.factory.annotation.Value
@@ -18,10 +18,13 @@ import java.sql.Timestamp
 import java.time.Instant
 
 @Controller
-class MainController(private val webSocket: SimpMessagingTemplate, @Value("\${work-in-container}") val wic: Long) {
+class MainController(
+    @Suppress("unused") private val webSocket: SimpMessagingTemplate,
+    @Value($$"${work-in-container}") val wic: Long) {
 
     init {
         WEB_WORK_IN_CONTAINER = (wic != 0L)
+        println("WEB_WORK_IN_CONTAINER = $WEB_WORK_IN_CONTAINER")
     }
 
     @GetMapping("/")
@@ -80,7 +83,11 @@ class MainController(private val webSocket: SimpMessagingTemplate, @Value("\${wo
                             println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${WORKING_DATABASE.name}")
                             return false
                         }
-                        val sqlToInsert = "INSERT INTO tbl_events (${fieldsValues.map {it.first}.joinToString(", ")}) OVERRIDING SYSTEM VALUE VALUES(${fieldsValues.map {if (it.second is Long) "${it.second}" else "'${it.second.toString().rightFileName()}'"}.joinToString(", ")})"
+                        val sqlToInsert = "INSERT INTO tbl_events (${fieldsValues.joinToString(", ") { it.first }}) OVERRIDING SYSTEM VALUE VALUES(${
+                            fieldsValues.joinToString(
+                                ", "
+                            ) { if (it.second is Long) "${it.second}" else "'${it.second.toString().rightFileName()}'" }
+                        })"
                         val ps = connection.prepareStatement(sqlToInsert)
                         ps.executeUpdate()
                         ps.close()
@@ -104,7 +111,11 @@ class MainController(private val webSocket: SimpMessagingTemplate, @Value("\${wo
                             println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${WORKING_DATABASE.name}")
                             return false
                         }
-                        val sqlToInsert = "INSERT INTO tbl_events (${fieldsValues.map {it.first}.joinToString(", ")}) OVERRIDING SYSTEM VALUE VALUES(${fieldsValues.map {if (it.second is Long) "${it.second}" else "'${it.second.toString().rightFileName()}'"}.joinToString(", ")})"
+                        val sqlToInsert = "INSERT INTO tbl_events (${fieldsValues.joinToString(", ") { it.first }}) OVERRIDING SYSTEM VALUE VALUES(${
+                            fieldsValues.joinToString(
+                                ", "
+                            ) { if (it.second is Long) "${it.second}" else "'${it.second.toString().rightFileName()}'" }
+                        })"
                         val ps = connection.prepareStatement(sqlToInsert)
                         ps.executeUpdate()
                         ps.close()
@@ -130,7 +141,11 @@ class MainController(private val webSocket: SimpMessagingTemplate, @Value("\${wo
                     println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${WORKING_DATABASE.name}")
                     return false
                 }
-                val sqlToInsert = "INSERT INTO tbl_events (${fieldsValues.map {it.first}.joinToString(", ")}) OVERRIDING SYSTEM VALUE VALUES(${fieldsValues.map {if (it.second is Long) "${it.second}" else "'${it.second.toString().rightFileName()}'"}.joinToString(", ")})"
+                val sqlToInsert = "INSERT INTO tbl_events (${fieldsValues.joinToString(", ") { it.first }}) OVERRIDING SYSTEM VALUE VALUES(${
+                    fieldsValues.joinToString(
+                        ", "
+                    ) { if (it.second is Long) "${it.second}" else "'${it.second.toString().rightFileName()}'" }
+                })"
                 val ps = connection.prepareStatement(sqlToInsert)
                 ps.executeUpdate()
                 ps.close()
@@ -150,7 +165,11 @@ class MainController(private val webSocket: SimpMessagingTemplate, @Value("\${wo
                     return false
                 }
                 if (parameters.containsKey("id")) fieldsValues.add(Pair("song_id", parameters["id"]!!.toString().toLong()))
-                val sqlToInsert = "INSERT INTO tbl_events (${fieldsValues.map {it.first}.joinToString(", ")}) OVERRIDING SYSTEM VALUE VALUES(${fieldsValues.map {if (it.second is Long) "${it.second}" else "'${it.second.toString().rightFileName()}'"}.joinToString(", ")})"
+                val sqlToInsert = "INSERT INTO tbl_events (${fieldsValues.joinToString(", ") { it.first }}) OVERRIDING SYSTEM VALUE VALUES(${
+                    fieldsValues.joinToString(
+                        ", "
+                    ) { if (it.second is Long) "${it.second}" else "'${it.second.toString().rightFileName()}'" }
+                })"
                 val ps = connection.prepareStatement(sqlToInsert)
                 ps.executeUpdate()
                 ps.close()
@@ -160,6 +179,7 @@ class MainController(private val webSocket: SimpMessagingTemplate, @Value("\${wo
         return true
     }
 
+    @Suppress("UNCHECKED_CAST")
     @PostMapping("/changerecords")
     @ResponseBody
     fun doChangeRecords(
@@ -213,7 +233,7 @@ class MainController(private val webSocket: SimpMessagingTemplate, @Value("\${wo
 
     @GetMapping("/filter")
     fun filter(
-        @RequestParam(required = false) song_name: String?,
+        @RequestParam(required = false) songName: String?,
         @RequestParam(required = false) author: String?,
         @RequestParam(required = false) text: String?,
         @RequestParam(required = false) album: String?,
@@ -221,18 +241,18 @@ class MainController(private val webSocket: SimpMessagingTemplate, @Value("\${wo
         request: HttpServletRequest
     ): String {
         val attr: MutableMap<String, String> = mutableMapOf()
-        if (song_name != null && song_name != "") attr["song_name"] = song_name
+        if (songName != null && songName != "") attr["song_name"] = songName
         if (author != null && author != "") attr["author"] = author
         if (text != null && text != "") attr["text"] = text
         if (album != null && album != "") attr["song_album"] = album
 
-        val settings: List<Settings> = if ("${song_name ?: ""}${author ?: ""}${album ?: ""}${text ?: ""}".length < 3) emptyList() else Settings.loadListFromDb(attr, WORKING_DATABASE)
+        val settings: List<Settings> = if ("${songName ?: ""}${author ?: ""}${album ?: ""}${text ?: ""}".length < 3) emptyList() else Settings.loadListFromDb(attr, WORKING_DATABASE)
 
         model.addAttribute("authors", Settings.loadListAuthors(WORKING_DATABASE))
         model.addAttribute("settings", settings)
 
         val data: MutableMap<String, Any> = mutableMapOf()
-        if (song_name != null && song_name != "") data["song_name"] = song_name
+        if (songName != null && songName != "") data["song_name"] = songName
         if (author != null && author != "") data["author"] = author
         if (text != null && text != "") data["text"] = text
         if (album != null && album != "") data["album"] = album

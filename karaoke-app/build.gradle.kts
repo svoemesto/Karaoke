@@ -27,11 +27,9 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-webflux")
     implementation("org.springframework.boot:spring-boot-starter-security")
 
-//    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.8.0")
     implementation("clojure-interop:javax.sound:1.0.5")
     implementation("org.jflac:jflac-codec:1.5.2")
-//    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0") // для Котлин 2.2.0
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
     implementation("com.fasterxml.jackson.core:jackson-databind:2.14.2")
     implementation("org.odftoolkit:odfdom-java:0.9.0")
     implementation("org.odftoolkit:simple-odf:0.9.0")
@@ -41,7 +39,6 @@ dependencies {
 
     implementation("com.github.st-h:TarsosDSP:2.4.1")
 
-//    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.0")
     implementation("org.jsoup:jsoup:1.21.2")
     implementation("io.ktor:ktor-server-core:2.3.0")
     implementation("org.apache.commons:commons-csv:1.8")
@@ -53,21 +50,11 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation ("org.seleniumhq.selenium:selenium-java:4.37.0")
 
-//    implementation("org.apache.http:httpcore:4.2")
-// https://mvnrepository.com/artifact/org.apache.commons/commons-lang3
     implementation("org.apache.commons:commons-lang3:3.14.0")
-// https://mvnrepository.com/artifact/org.apache.httpcomponents.client5/httpclient5
     implementation("org.apache.httpcomponents.client5:httpclient5:5.5.1")
     implementation("io.minio:minio:8.6.0")
 
 }
-
-//tasks.withType<KotlinCompile> {
-//    kotlinOptions {
-//        freeCompilerArgs = listOf("-Xjsr305=strict")
-//        jvmTarget = "17"
-//    }
-//}
 
 tasks.withType<KotlinCompile> {
     compilerOptions {
@@ -82,7 +69,3 @@ tasks.withType<Test> {
 }
 
 tasks.register("prepareKotlinBuildScriptModel"){}
-//val compileKotlin: KotlinCompile by tasks
-//compileKotlin.compilerOptions {
-//    freeCompilerArgs.set(listOf("-Xannotation-default-target=param-property"))
-//}

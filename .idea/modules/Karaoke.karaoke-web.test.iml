@@ -14,7 +14,7 @@
       <configuration version="5" platform="JVM 17" allPlatforms="JVM [17]" useProjectSettings="false" pureKotlinSourceFolders="$MODULE_DIR$/../../karaoke-web/src/main/kotlin;/home/nsa/Karaoke/karaoke-web/src/test/kotlin">
         <additionalVisibleModuleNames>:karaoke-web:main</additionalVisibleModuleNames>
         <compilerSettings>
-          <option name="additionalArguments" value="-java-parameters -Xjsr305=strict" />
+          <option name="additionalArguments" value="-java-parameters -Xjsr305=strict -Xannotation-default-target=param-property" />
         </compilerSettings>
         <compilerArguments>
           <flagArguments>
@@ -64,6 +64,7 @@
     <orderEntry type="library" name="Gradle: org.springframework.boot:spring-boot-starter-thymeleaf:3.5.6" level="project" />
     <orderEntry type="library" name="Gradle: org.springframework.boot:spring-boot-starter-websocket:3.5.6" level="project" />
     <orderEntry type="library" name="Gradle: org.springframework.boot:spring-boot-starter-web:3.5.6" level="project" />
+    <orderEntry type="library" name="Gradle: org.springframework.boot:spring-boot-starter-security:3.5.6" level="project" />
     <orderEntry type="library" name="Gradle: com.fasterxml.jackson.core:jackson-databind:2.14.2" level="project" />
     <orderEntry type="library" name="Gradle: org.postgresql:postgresql:42.7.8" level="project" />
     <orderEntry type="library" name="Gradle: commons-io:commons-io:2.20.0" level="project" />
@@ -79,6 +80,9 @@
     <orderEntry type="library" name="Gradle: org.springframework.boot:spring-boot-starter-tomcat:3.5.6" level="project" />
     <orderEntry type="library" name="Gradle: org.springframework:spring-webmvc:6.2.11" level="project" />
     <orderEntry type="library" name="Gradle: org.springframework:spring-web:6.2.11" level="project" />
+    <orderEntry type="library" name="Gradle: org.springframework.security:spring-security-web:6.5.5" level="project" />
+    <orderEntry type="library" name="Gradle: org.springframework.security:spring-security-config:6.5.5" level="project" />
+    <orderEntry type="library" name="Gradle: org.springframework:spring-aop:6.2.11" level="project" />
     <orderEntry type="library" name="Gradle: com.fasterxml.jackson.core:jackson-annotations:2.19.2" level="project" />
     <orderEntry type="library" name="Gradle: com.fasterxml.jackson.core:jackson-core:2.19.2" level="project" />
     <orderEntry type="library" name="Gradle: org.springframework.boot:spring-boot-test-autoconfigure:3.5.6" level="project" />
@@ -111,9 +115,9 @@
     <orderEntry type="library" name="Gradle: org.apache.tomcat.embed:tomcat-embed-websocket:10.1.46" level="project" />
     <orderEntry type="library" name="Gradle: org.apache.tomcat.embed:tomcat-embed-core:10.1.46" level="project" />
     <orderEntry type="library" name="Gradle: org.apache.tomcat.embed:tomcat-embed-el:10.1.46" level="project" />
-    <orderEntry type="library" name="Gradle: org.springframework:spring-aop:6.2.11" level="project" />
     <orderEntry type="library" name="Gradle: org.springframework:spring-expression:6.2.11" level="project" />
     <orderEntry type="library" name="Gradle: io.micrometer:micrometer-observation:1.15.4" level="project" />
+    <orderEntry type="library" name="Gradle: org.springframework.security:spring-security-core:6.5.5" level="project" />
     <orderEntry type="library" name="Gradle: jakarta.activation:jakarta.activation-api:2.1.4" level="project" />
     <orderEntry type="library" name="Gradle: net.minidev:accessors-smart:2.5.2" level="project" />
     <orderEntry type="library" name="Gradle: net.bytebuddy:byte-buddy:1.17.7" level="project" />
@@ -129,6 +133,7 @@
     <orderEntry type="library" name="Gradle: org.attoparser:attoparser:2.0.7.RELEASE" level="project" />
     <orderEntry type="library" name="Gradle: org.unbescape:unbescape:1.1.6.RELEASE" level="project" />
     <orderEntry type="library" name="Gradle: io.micrometer:micrometer-commons:1.15.4" level="project" />
+    <orderEntry type="library" name="Gradle: org.springframework.security:spring-security-crypto:6.5.5" level="project" />
     <orderEntry type="library" name="Gradle: org.ow2.asm:asm:9.7.1" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Gradle: org.apiguardian:apiguardian-api:1.1.2" level="project" />
     <orderEntry type="library" name="Gradle: org.junit.platform:junit-platform-commons:1.12.2" level="project" />
@@ -139,7 +144,6 @@
     <orderEntry type="library" scope="RUNTIME" name="Gradle: org.springframework.boot:spring-boot-starter-webflux:3.5.6" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: org.odftoolkit:simple-odf:0.9.0" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: org.odftoolkit:odfdom-java:0.9.0" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Gradle: org.springframework.boot:spring-boot-starter-security:3.5.6" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: clojure-interop:javax.sound:1.0.5" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: org.jflac:jflac-codec:1.5.2" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: com.github.st-h:TarsosDSP:2.4.1" level="project" />
@@ -164,8 +168,6 @@
     <orderEntry type="library" scope="RUNTIME" name="Gradle: org.apache.jena:jena-core:3.17.0" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: commons-validator:commons-validator:1.7" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: net.rootdev:java-rdfa:0.4.2" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Gradle: org.springframework.security:spring-security-web:6.5.5" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Gradle: org.springframework.security:spring-security-config:6.5.5" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: org.clojure:clojure:1.8.0" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: org.seleniumhq.selenium:selenium-chrome-driver:4.31.0" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: org.seleniumhq.selenium:selenium-devtools-v133:4.31.0" level="project" />
@@ -204,7 +206,6 @@
     <orderEntry type="library" scope="RUNTIME" name="Gradle: commons-digester:commons-digester:2.1" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: commons-logging:commons-logging:1.2" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: commons-collections:commons-collections:3.2.2" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Gradle: org.springframework.security:spring-security-core:6.5.5" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: org.seleniumhq.selenium:selenium-chromium-driver:4.31.0" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: org.seleniumhq.selenium:selenium-manager:4.31.0" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: org.seleniumhq.selenium:selenium-json:4.31.0" level="project" />
@@ -233,7 +234,6 @@
     <orderEntry type="library" scope="RUNTIME" name="Gradle: io.netty:netty-transport-native-epoll:linux-x86_64:4.1.127.Final" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: org.apache.jena:jena-shaded-guava:3.17.0" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: com.github.andrewoma.dexx:collection:0.7" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Gradle: org.springframework.security:spring-security-crypto:6.5.5" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: org.apache.commons:commons-exec:1.4.0" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: io.opentelemetry:opentelemetry-sdk-metrics:1.49.0" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: io.opentelemetry:opentelemetry-sdk-logs:1.49.0" level="project" />

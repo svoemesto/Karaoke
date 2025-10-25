@@ -49,22 +49,34 @@ class SecurityConfig(
     }
 
     @Bean
-    @Order(0)
+    @Order(0) // Высокий приоритет для Authorization Server
     fun authorizationServerSecurityFilterChain(http: HttpSecurity): SecurityFilterChain {
+        // Применяем стандартную конфигурацию для Authorization Server
+        // Это устаревший метод, но он необходим для версии 1.5.2 для правильной настройки эндпоинтов
+        OAuth2AuthorizationServerConfiguration.applyDefaultSecurity(http)
+
+        // Указываем ваш UserDetailsService для аутентификации пользователей в цепочке фильтров AS
         http.userDetailsService(customUserDetailsService)
+
+        // ВАЖНО: Настроить securityMatcher для цепочки Authorization Server
         http.securityMatcher("/oauth2/**", "/oidc/**", "/.well-known/**")
-        // CORS для AS обычно не нужен, но если понадобится:
-        // http.cors { it.configurationSource(corsConfigurationSource()) }
+
+        // Эта строка (ниже) вызывала ошибку 'Can't configure mvcMatchers after anyRequest'
+        // и была причиной ошибки компиляции в следующей версии.
+        // Мы НЕ включаем её в эту версию, чтобы вернуться к состоянию 401.
+        // http.authorizeHttpRequests { requests ->
+        //     requests.requestMatchers("/.well-known/openid-configuration").permitAll()
+        //     requests.anyRequest().authenticated()
+        // }
+
         return http.build()
     }
 
     @Bean
-    @Order(1)
+    @Order(1) // Более низкий приоритет для общей безопасности
     fun webSecurityFilterChain(http: HttpSecurity): SecurityFilterChain {
+        // Эта цепочка будет обрабатывать все остальные запросы
         http
-            .cors { cors -> // Настройка CORS ДО других фильтров
-                cors.configurationSource(corsConfigurationSource())
-            }
             .authorizeHttpRequests { requests ->
                 requests
                     .requestMatchers("/api/private/**").authenticated()
@@ -73,7 +85,9 @@ class SecurityConfig(
             .sessionManagement { session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             }
-            // CSRF отключен для API
+            .cors { cors ->
+                cors.configurationSource(corsConfigurationSource())
+            }
             .csrf { csrfConfigurer ->
                 csrfConfigurer.disable()
             }
@@ -136,9 +150,8 @@ class SecurityConfig(
     @Bean
     fun corsConfigurationSource(): CorsConfigurationSource {
         val configuration = CorsConfiguration()
-        // Загружаем разрешенные источники из переменной окружения
         val origins = System.getenv("CORS_ALLOWED_ORIGINS")?.split(",")?.map { it.trim() }?.toTypedArray()
-            ?: arrayOf("http://localhost:3000") // Значение по умолчанию, если переменная не установлена
+            ?: arrayOf("http://localhost:3000", "http://127.0.0.1:3000") // Обновите, если ваш фронтенд на другом порту
         configuration.allowedOrigins = origins.asList()
         configuration.allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS")
         configuration.allowedHeaders = listOf("*")

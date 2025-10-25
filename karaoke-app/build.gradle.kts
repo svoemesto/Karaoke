@@ -15,8 +15,8 @@ java.sourceCompatibility = JavaVersion.VERSION_17
 
 repositories {
     mavenCentral()
-    maven("https://clojars.org/repo/")
-    maven("https://raw.github.com/kokorin/maven-repo/releases")
+//    maven("https://clojars.org/repo/")
+//    maven("https://raw.github.com/kokorin/maven-repo/releases")
 }
 
 dependencies {
@@ -28,7 +28,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-oauth2-authorization-server")
 
-    implementation("clojure-interop:javax.sound:1.0.5")
+//    implementation("clojure-interop:javax.sound:1.0.5")
     implementation("org.jflac:jflac-codec:1.5.2")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
     implementation("com.fasterxml.jackson.core:jackson-databind:2.14.2")

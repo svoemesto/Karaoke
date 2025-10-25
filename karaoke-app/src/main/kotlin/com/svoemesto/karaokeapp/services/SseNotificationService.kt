@@ -1,5 +1,5 @@
 //@file:Suppress("unused")
-package com.svoemesto.karaokeapp.controllers
+package com.svoemesto.karaokeapp.services
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.svoemesto.karaokeapp.model.SseNotification

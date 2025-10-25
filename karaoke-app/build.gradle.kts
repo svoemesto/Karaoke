@@ -26,6 +26,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-websocket")
     implementation("org.springframework.boot:spring-boot-starter-webflux")
     implementation("org.springframework.boot:spring-boot-starter-security")
+    implementation("org.springframework.boot:spring-boot-starter-oauth2-authorization-server")
 
     implementation("clojure-interop:javax.sound:1.0.5")
     implementation("org.jflac:jflac-codec:1.5.2")

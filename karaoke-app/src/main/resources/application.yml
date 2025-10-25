@@ -38,6 +38,10 @@ storage:
     port-host: ${STORAGE_CONSOLE_PORT_HOST}
     port-inside-container: ${STORAGE_CONSOLE_PORT_INSIDE_CONTAINER}
 
+logging:
+  level:
+    org.springframework.security: DEBUG
+
 #cors:
 #  allowed-origins: "http://localhost:3000,http://127.0.0.1:3000,http://localhost:7906"
 

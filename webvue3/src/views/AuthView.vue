@@ -166,11 +166,13 @@ export default {
         if (response === 'true') {
           // --- ВАЖНО: Теперь запускаем OAuth2 Authorization Code Flow ---
           // Вместо сообщения "Login successful", мы инициируем OAuth2 flow
+          console.log('Проверка пароля по базе данных пройдена.');
           this.showMessage('Verifying credentials...', 'success');
           // AuthService.signinRedirect() перенаправит браузер на сервер авторизации
           await AuthService.signinRedirect();
           // Код после этой строки не выполнится из-за редиректа
         } else {
+          console.log('Проверка пароля по базе данных не пройдена.');
           this.showMessage('Login failed. Invalid credentials.', 'error');
         }
       } catch (error) {

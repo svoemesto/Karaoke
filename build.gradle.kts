@@ -25,12 +25,11 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-websocket")
     implementation("org.springframework.boot:spring-boot-starter-security")
+    implementation("org.springframework.boot:spring-boot-starter-oauth2-authorization-server")
 
-//    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.8.0")
     implementation("clojure-interop:javax.sound:1.0.5")
     implementation("org.jflac:jflac-codec:1.5.2")
-//    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0") // для Котлин 2.2.0
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
     implementation("com.fasterxml.jackson.core:jackson-databind:2.14.2")
     implementation("org.odftoolkit:odfdom-java:0.9.0")
     implementation("org.odftoolkit:simple-odf:0.9.0")
@@ -40,7 +39,6 @@ dependencies {
 
     implementation("com.github.st-h:TarsosDSP:2.4.1")
 
-//    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.0")
     implementation("org.jsoup:jsoup:1.21.2")
     implementation("io.ktor:ktor-server-core:2.3.0")
     implementation("org.apache.commons:commons-csv:1.8")
@@ -56,13 +54,6 @@ dependencies {
     implementation("io.minio:minio:8.6.0")
 
 }
-
-//tasks.withType<KotlinCompile> {
-//    kotlinOptions {
-//        freeCompilerArgs = listOf("-Xjsr305=strict")
-//        jvmTarget = "17"
-//    }
-//}
 
 tasks.withType<KotlinCompile> {
     compilerOptions {

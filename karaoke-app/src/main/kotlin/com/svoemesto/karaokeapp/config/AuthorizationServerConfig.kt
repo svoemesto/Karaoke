@@ -14,6 +14,8 @@ import org.springframework.core.annotation.Order
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.http.SessionCreationPolicy
 import org.springframework.security.core.userdetails.UserDetailsService
+import org.springframework.security.crypto.factory.PasswordEncoderFactories
+import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.security.oauth2.core.AuthorizationGrantType
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod
 import org.springframework.security.oauth2.core.oidc.OidcScopes
@@ -35,12 +37,22 @@ import java.security.interfaces.RSAPublicKey
 import java.util.*
 
 @Configuration
-class AuthorizationServerConfig {
+class AuthorizationServerConfig(
+    private val customUserDetailsService: UserDetailsService
+) {
 
     private val logger = LoggerFactory.getLogger(AuthorizationServerConfig::class.java)
 
     @Bean
-    @Order(0) // Высокая важность (первая цепочка)
+    fun passwordEncoder(): PasswordEncoder {
+        logger.info(">>> Creating PasswordEncoder...")
+        val encoder = PasswordEncoderFactories.createDelegatingPasswordEncoder()
+        logger.info("<<< PasswordEncoder created.")
+        return encoder
+    }
+
+    @Bean
+    @Order(0) // High priority
     fun authorizationServerSecurityFilterChain(http: HttpSecurity): SecurityFilterChain {
         http
             .securityMatcher("/oauth2/**", "/.well-known/**", "/login", "/logout")
@@ -49,31 +61,6 @@ class AuthorizationServerConfig {
             }
             .formLogin { formLogin ->
                 formLogin.loginPage("/login").permitAll()
-            }
-//            .logout { logout ->
-//                logout.logoutSuccessHandler(CustomLogoutSuccessHandler()) // Если нужно
-//            }
-            .csrf { csrfConfigurer ->
-                csrfConfigurer.disable()
-            }
-        return http.build()
-    }
-
-    @Bean
-    @Order(1) // Низкий приоритет (для всех прочих запросов)
-    fun webSecurityFilterChain(http: HttpSecurity): SecurityFilterChain {
-        http
-            .authorizeHttpRequests { authz ->
-                authz
-                    .requestMatchers("/api/public/**").permitAll()
-                    .requestMatchers("/admin/**").hasRole("ADMIN")
-                    .anyRequest().authenticated()
-            }
-            .sessionManagement { session ->
-                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            }
-            .cors { cors ->
-                cors.configurationSource(corsConfigurationSource())
             }
             .csrf { csrfConfigurer ->
                 csrfConfigurer.disable()
@@ -135,7 +122,7 @@ class AuthorizationServerConfig {
             .keyID(UUID.randomUUID().toString())
             .build()
         val jwkSet = JWKSet(rsaKey)
-        val source: JWKSource<SecurityContext> = ImmutableJWKSet(jwkSet) // Явное указание типа
+        val source: JWKSource<SecurityContext> = ImmutableJWKSet(jwkSet) // Explicit type declaration
         logger.info("<<< JWKSource created.")
         return source
     }
@@ -156,15 +143,22 @@ class AuthorizationServerConfig {
 
     @Bean
     fun corsConfigurationSource(): CorsConfigurationSource {
-        val configuration = CorsConfiguration()
-        val origins = System.getenv("CORS_ALLOWED_ORIGINS")?.split(",")?.map { it.trim() }?.toTypedArray()
-            ?: arrayOf("http://localhost:3000", "http://127.0.0.1:3000") // Обновите, если ваш фронтенд на другом порту
-        configuration.allowedOrigins = origins.asList()
-        configuration.allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS")
-        configuration.allowedHeaders = listOf("*")
-        configuration.allowCredentials = true
-        val source = UrlBasedCorsConfigurationSource()
-        source.registerCorsConfiguration("/**", configuration)
-        return source
+        logger.info(">>> Creating CorsConfigurationSource...")
+        try {
+            val configuration = CorsConfiguration()
+            val origins = System.getenv("CORS_ALLOWED_ORIGINS")?.split(",")?.map { it.trim() }?.toTypedArray()
+                ?: arrayOf("http://localhost:3000", "http://127.0.0.1:3000")
+            configuration.allowedOrigins = origins.asList()
+            configuration.allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS")
+            configuration.allowedHeaders = listOf("*")
+            configuration.allowCredentials = true
+            val source = UrlBasedCorsConfigurationSource()
+            source.registerCorsConfiguration("/**", configuration)
+            logger.info("<<< CorsConfigurationSource created.")
+            return source
+        } catch (e: Exception) {
+            logger.error("!!! Error creating CorsConfigurationSource", e)
+            throw e
+        }
     }
 }

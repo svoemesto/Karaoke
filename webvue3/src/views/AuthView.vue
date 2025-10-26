@@ -33,7 +33,7 @@
     </form>
 
     <!-- Форма Логина -->
-    <form v-else @submit.prevent="handleLogin" class="auth-form">
+    <form v-else @submit.prevent="handleLoginSubmit" class="auth-form"> <!-- Изменено имя метода -->
       <div class="form-group">
         <label for="login">Login:</label>
         <input type="text" id="login" v-model="loginForm.login" required />
@@ -42,7 +42,11 @@
         <label for="password">Password:</label>
         <input type="password" id="password" v-model="loginForm.password" required />
       </div>
-      <button type="submit" :disabled="isProcessing">Login</button>
+      <!-- Кнопка "Login via OAuth2" -->
+      <button type="button" @click="handleOAuth2Login" :disabled="isProcessing">Login via OAuth2</button>
+      <!-- Или можно заменить стандартную кнопку логина -->
+      <!-- <button type="submit" :disabled="isProcessing">Login (API)</button> -->
+      <button type="submit" :disabled="isProcessing">Login (API)</button> <!-- Оставляем старую кнопку -->
     </form>
 
     <div class="toggle-form">
@@ -60,9 +64,9 @@
 
 <script>
 import axios from 'axios';
-import {promisedXMLHttpRequest} from "../lib/utils.js";
+import { promisedXMLHttpRequest } from "../lib/utils.js";
 // --- ИМПОРТИРУЕМ AuthService ---
-import AuthService from '../services/AuthService';
+import AuthService from '../services/AuthService'; // Убедитесь, что путь правильный
 // ---
 
 export default {
@@ -149,7 +153,30 @@ export default {
         this.isProcessing = false;
       }
     },
-    async handleLogin() {
+    // --- НОВЫЙ метод для обработки OAuth2 логина ---
+    async handleOAuth2Login() {
+      if (this.isProcessing) return;
+      this.isProcessing = true;
+      this.clearMessage();
+      try {
+        console.log('Initiating OAuth2 login...');
+        this.showMessage('Redirecting to authorization server...', 'success');
+        // --- Инициируем OAuth2 Authorization Code Flow ---
+        // Это перенаправит браузер на страницу логина Authorization Server
+        await AuthService.signinRedirect();
+        // Код после этой строки не выполнится из-за редиректа
+        // Если мы здесь, значит, что-то пошло не так
+        console.warn('AuthService.signinRedirect did not redirect.');
+        this.showMessage('Failed to initiate OAuth2 login. Please try again.', 'error');
+      } catch (error) {
+        console.error('OAuth2 login error:', error);
+        this.showMessage('OAuth2 login failed: ' + (error.message || 'Unknown error'), 'error');
+      } finally {
+        this.isProcessing = false;
+      }
+    },
+    // --- Обновлённый метод для обработки логина через API (без OAuth2) ---
+    async handleLoginSubmit() { // Переименован с handleLogin
       if (this.isProcessing) return; // Защита от двойного клика
       this.isProcessing = true;
       this.clearMessage();
@@ -195,6 +222,7 @@ export default {
 </script>
 
 <style scoped>
+/* ... (остальные стили остаются без изменений) ... */
 .auth-container {
   max-width: 400px;
   margin: 50px auto;
@@ -231,6 +259,7 @@ export default {
   border-radius: 4px;
   cursor: pointer;
   font-size: 16px;
+  margin-bottom: 10px; /* Добавлен отступ между кнопками */
 }
 
 .auth-form button:hover {

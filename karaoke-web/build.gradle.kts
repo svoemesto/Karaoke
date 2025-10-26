@@ -28,9 +28,9 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-websocket")
     implementation("org.springframework.boot:spring-boot-starter-security")
+    implementation("org.springframework.boot:spring-boot-starter-oauth2-authorization-server")
 
-//    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0") // для Котлин 2.2.0
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
 
     implementation("com.fasterxml.jackson.core:jackson-databind:2.14.2")
     implementation("org.postgresql:postgresql:42.7.8")
@@ -40,13 +40,6 @@ dependencies {
     implementation("javax.websocket:javax.websocket-all:1.1")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
 }
-
-//tasks.withType<KotlinCompile> {
-//    kotlinOptions {
-//        freeCompilerArgs = listOf("-Xjsr305=strict")
-//        jvmTarget = "17"
-//    }
-//}
 
 tasks.withType<KotlinCompile> {
     compilerOptions {

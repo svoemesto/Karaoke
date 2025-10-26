@@ -67,7 +67,6 @@
     <orderEntry type="library" name="Gradle: org.springframework.boot:spring-boot-starter-web:3.5.6" level="project" />
     <orderEntry type="library" name="Gradle: org.springframework.boot:spring-boot-starter-webflux:3.5.6" level="project" />
     <orderEntry type="library" name="Gradle: org.springframework.boot:spring-boot-starter-security:3.5.6" level="project" />
-    <orderEntry type="library" name="Gradle: clojure-interop:javax.sound:1.0.5" level="project" />
     <orderEntry type="library" name="Gradle: org.jflac:jflac-codec:1.5.2" level="project" />
     <orderEntry type="library" name="Gradle: com.fasterxml.jackson.core:jackson-databind:2.14.2" level="project" />
     <orderEntry type="library" name="Gradle: org.odftoolkit:simple-odf:0.9.0" level="project" />
@@ -107,7 +106,6 @@
     <orderEntry type="library" name="Gradle: org.springframework.security:spring-security-web:6.5.5" level="project" />
     <orderEntry type="library" name="Gradle: org.springframework.security:spring-security-config:6.5.5" level="project" />
     <orderEntry type="library" name="Gradle: org.springframework:spring-aop:6.2.11" level="project" />
-    <orderEntry type="library" name="Gradle: org.clojure:clojure:1.8.0" level="project" />
     <orderEntry type="library" name="Gradle: xerces:xercesImpl:2.12.1" level="project" />
     <orderEntry type="library" name="Gradle: org.apache.jena:jena-core:3.17.0" level="project" />
     <orderEntry type="library" name="Gradle: commons-validator:commons-validator:1.7" level="project" />

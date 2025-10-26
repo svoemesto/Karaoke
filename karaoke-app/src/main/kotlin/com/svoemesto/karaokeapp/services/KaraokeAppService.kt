@@ -1,7 +1,6 @@
 package com.svoemesto.karaokeapp.services
 
 import com.svoemesto.karaokeapp.DualStream
-import com.svoemesto.karaokeapp.controllers.SseNotificationService
 import com.svoemesto.karaokeapp.propertiesfiledictionary.PropertiesFileDictionary
 import com.svoemesto.karaokeapp.propertiesfiledictionary.WebvueProperties
 import org.springframework.beans.factory.annotation.Value

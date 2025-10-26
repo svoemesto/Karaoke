@@ -1,15 +1,16 @@
-import { createRouter, createWebHistory } from 'vue-router'
-// Импортируете компоненты представлений, которые вы создадите
-import HomeView from '../views/HomeView.vue'
-import SongsView from '../views/SongsView.vue'
-import PublishView from '../views/PublishView.vue'
-import ProcessesView from '../views/ProcessesView.vue'
-import PropertiesView from '../views/PropertiesView.vue'
-import AuthorsView from '../views/AuthorsView.vue'
-import UsersView from '../views/UsersView.vue'
-import PicturesView from '../views/PicturesView.vue'
-import AuthView from '../views/AuthView.vue'
-import CallbackView from '../views/CallbackView.vue'
+// src/router/index.js
+import { createRouter, createWebHistory } from 'vue-router';
+import HomeView from '../views/HomeView.vue';
+import SongsView from '../views/SongsView.vue';
+import PublishView from '../views/PublishView.vue';
+import ProcessesView from '../views/ProcessesView.vue';
+import PropertiesView from '../views/PropertiesView.vue';
+import AuthorsView from '../views/AuthorsView.vue';
+import UsersView from '../views/UsersView.vue';
+import PicturesView from '../views/PicturesView.vue';
+import AuthView from '../views/AuthView.vue';
+import CallbackView from '../views/CallbackView.vue';
+import AuthService from '../services/AuthService';
 
 const routes = [
   {
@@ -31,7 +32,6 @@ const routes = [
     path: '/processes',
     name: 'processes',
     component: ProcessesView
-    // component: () => import(/* webpackChunkName: "about" */ '../views/ProcessesView.vue')
   },
   {
     path: '/properties',
@@ -59,15 +59,30 @@ const routes = [
     component: AuthView
   },
   {
-    path: '/callback', // Путь должен совпадать с redirect_uri в настройках AuthService
+    path: '/callback', // Маршрут для обработки callback
     name: 'callback',
     component: CallbackView
   }
-]
+];
 
 const router = createRouter({
   history: createWebHistory(),
   routes
-})
+});
 
-export default router
+// Обработчик перед каждым переходом
+router.beforeEach(async (to, from, next) => {
+  if (to.path === '/callback') {
+    try {
+      await AuthService.signinCallback(); // Обрабатываем callback
+      next('/');
+    } catch (error) {
+      console.error('Callback processing error:', error);
+      next('/auth');
+    }
+  } else {
+    next();
+  }
+});
+
+export default router;

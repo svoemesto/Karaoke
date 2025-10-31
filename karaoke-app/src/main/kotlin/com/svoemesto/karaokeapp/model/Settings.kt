@@ -376,7 +376,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
     @get:JsonIgnore
     val pictureAuthor: Pictures? get() {
-        var pic = Pictures.loadFromDbByName(pictureNameAuthor, database)
+        var pic = Pictures.getPictureByName(pictureNameAuthor, database)
         if (pic == null) {
             val pathToFile = pathToFileLogoAuthor
             if (pathToFile != "") {
@@ -395,7 +395,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                 pict.name = pictureNameAuthor
                 pict.full = full
                 pict.preview = preview
-                pic = Pictures.createDbInstance(pict, database)
+                pic = Pictures.createNewPicture(pict, database)
             }
         }
         return pic
@@ -403,7 +403,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
     @get:JsonIgnore
     val pictureAlbum: Pictures? get() {
-        var pic = Pictures.loadFromDbByName(pictureNameAlbum, database)
+        var pic = Pictures.getPictureByName(pictureNameAlbum, database)
         if (pic == null) {
             val pathToFile = pathToFileLogoAlbum
             if (pathToFile != "") {
@@ -422,7 +422,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                 pict.name = pictureNameAlbum
                 pict.full = full
                 pict.preview = preview
-                pic = Pictures.createDbInstance(pict, database)
+                pic = Pictures.createNewPicture(pict, database)
             }
         }
         return pic

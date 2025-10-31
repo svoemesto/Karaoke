@@ -246,7 +246,6 @@ interface KaraokeDbTable {
         }
         fun createDbInstance(entity: KaraokeDbTable, database: KaraokeConnection) : KaraokeDbTable? {
             val sql = entity.getSqlToInsert()
-            println(sql)
 
             val connection = database.getConnection()
             if (connection == null) {
@@ -267,16 +266,12 @@ interface KaraokeDbTable {
                     rsLastId.next()
                     rsLastId.getLong("last_value")
                 }
-//                rsLastId.next()
-//                val lastId = rsLastId.getLong("last_value")
                 val lastSeq = if (rsLastSeq.isClosed) {
                     0
                 } else {
                     rsLastSeq.next()
                     rsLastSeq.getLong("last_value")
                 }
-//                rsLastSeq.next()
-//                val lastSeq = rsLastSeq.getLong("last_value")
                 if (lastSeq < lastId) {
                     statement.execute("alter sequence ${entity.getTableName()}_id_seq restart with ${lastId+1};")
                     ps.executeUpdate(sql, Statement.RETURN_GENERATED_KEYS)

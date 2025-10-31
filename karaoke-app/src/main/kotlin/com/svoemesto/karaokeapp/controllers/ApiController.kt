@@ -3029,7 +3029,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
         val args: MutableMap<String, String> = mutableMapOf()
         filterId?.let { if (filterId != "") args["id"] = filterId }
         filterName?.let { if (filterName != "") args["picture_name"] = filterName }
-        val picturesDigests = Pictures.loadList(whereArgs = args, database = WORKING_DATABASE).map { it.toDTO() }
+        val picturesDigests = Pictures.loadList(whereArgs = args, database = WORKING_DATABASE, ignoreUseInList = false).map { it.toDTO() }
         return mapOf(
             "workInContainer" to APP_WORK_IN_CONTAINER,
             "picturesDigests" to picturesDigests

@@ -24,7 +24,7 @@ class Pictures(override val database: KaraokeConnection = WORKING_DATABASE) : Se
     @KaraokeDbTableField(name = "picture_name")
     var name: String = "Picture name"
 
-    @KaraokeDbTableField(name = "picture_full")
+    @KaraokeDbTableField(name = "picture_full", useInList = false)
     var full: String = ""
         set(value) {
             field = value
@@ -117,52 +117,6 @@ class Pictures(override val database: KaraokeConnection = WORKING_DATABASE) : Se
         const val TABLE_NAME = "tbl_pictures"
 
         fun listHashes(database: KaraokeConnection, whereText: String = ""): List<RecordHash>? = getListHashes(tableName = TABLE_NAME, database = database, whereText = whereText)
-        @Suppress("unused")
-        fun totalCount(database: KaraokeConnection): Int = getTotalCount(tableName = TABLE_NAME, database = database)
-        @Suppress("unused")
-        fun loadListIds(args: Map<String, String> = emptyMap(), database: KaraokeConnection): List<Long> {
-            val connection = database.getConnection()
-            if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
-                return emptyList()
-            }
-            var statement: Statement? = null
-            var rs: ResultSet? = null
-            var sql: String
-            val where: MutableList<String> = mutableListOf()
-
-            try {
-                statement = connection.createStatement()
-                val limit = args["limit"]?.toInt() ?: 0
-                val offset = args["offset"]?.toInt() ?: 0
-                sql = "SELECT tbl_pictures.*" +
-                        " FROM tbl_pictures"
-                if (args.containsKey("id")) where += "id=${args["id"]}"
-                if (args.containsKey("picture_name")) where += "LOWER(picture_name) LIKE '%${args["picture_name"]?.rightFileName()?.lowercase()}%'"
-                if (where.isNotEmpty()) sql += " WHERE ${where.joinToString(" AND ")}"
-                if (limit > 0) sql += " LIMIT $limit"
-                if (offset > 0) sql += " OFFSET $offset"
-//                sql = "select id from tbl_pictures"
-
-                rs = statement.executeQuery(sql)
-                val result: MutableList<Long> = mutableListOf()
-                while (rs.next()) {
-                    result.add(rs.getLong("id"))
-                }
-                return result
-            } catch (e: SQLException) {
-                e.printStackTrace()
-            } finally {
-                try {
-                    rs?.close() // close result set
-                    statement?.close() // close statement
-                } catch (e: SQLException) {
-                    e.printStackTrace()
-                }
-            }
-            return emptyList()
-
-        }
 
         private fun getWhereList(whereArgs: Map<String, String>): List<String> {
             val where: MutableList<String> = mutableListOf()
@@ -175,14 +129,17 @@ class Pictures(override val database: KaraokeConnection = WORKING_DATABASE) : Se
         fun loadList(whereArgs: Map<String, String>,
                      limit: Int = 0,
                      offset: Int = 0,
-                     database: KaraokeConnection): List<Pictures> {
+                     database: KaraokeConnection,
+                     ignoreUseInList: Boolean
+        ): List<Pictures> {
             return KaraokeDbTable.loadList(
                 clazz = Pictures::class,
                 tableName = TABLE_NAME,
                 whereList = getWhereList(whereArgs),
                 limit = limit,
                 offset = offset,
-                database = database
+                database = database,
+                ignoreUseInList = ignoreUseInList
             ).map { it as Pictures }
         }
 
@@ -216,7 +173,11 @@ class Pictures(override val database: KaraokeConnection = WORKING_DATABASE) : Se
 
         fun getPictureByName(name: String, database: KaraokeConnection): Pictures? {
 
-            return loadList(whereArgs = mapOf(Pair("name", name)), database = database).firstOrNull()
+            return loadList(
+                whereArgs = mapOf(Pair("name", name)),
+                database = database,
+                ignoreUseInList = true
+            ).firstOrNull()
 
         }
 

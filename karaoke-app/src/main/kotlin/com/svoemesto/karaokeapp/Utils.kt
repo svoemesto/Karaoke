@@ -55,7 +55,7 @@ fun recodePictures() {
     var totalOld: Long = 0
     var totalNew: Long = 0
 
-    Pictures.loadListFromDb(database = WORKING_DATABASE)
+    Pictures.loadList(whereArgs = emptyMap(), database = WORKING_DATABASE)
         .forEach { picture ->
             val picBase64 = picture.full
             val picBytes = Base64.getDecoder().decode(picBase64)
@@ -406,7 +406,7 @@ fun updateDatabases(
 
         idsToDelete.forEach { id ->
             if (toDatabase.name == "SERVER") {
-                Pictures.loadFromDbById(id = id, database = toDatabase)?.let { listToDeleteNames.add(it.name) }
+                Pictures.getPictureById(id = id, database = toDatabase)?.let { listToDeleteNames.add(it.name) }
                 val sqlToDelete = "DELETE FROM $tableName WHERE id = $id"
                 val setStrEncrypted = Crypto.encrypt(sqlToDelete)
                 val values: Map<String, Any> = mapOf(
@@ -414,12 +414,12 @@ fun updateDatabases(
                 )
                 listToDelete.add(values)
             } else {
-                Pictures.deleteFromDb(id = id.toInt(), database = toDatabase)
+                Pictures.delete(id = id, database = toDatabase)
             }
         }
 
         idsToInsert.forEach { id ->
-            val itemFrom = Pictures.loadFromDbById(id = id, database = fromDatabase)
+            val itemFrom = Pictures.getPictureById(id = id, database = fromDatabase)
             if (itemFrom != null) {
                 listToCreateNames.add(itemFrom.name)
                 println("[${Timestamp.from(Instant.now())}] Добавляем запись в $tableName: id=${itemFrom.id}, ${itemFrom.name}")
@@ -444,8 +444,8 @@ fun updateDatabases(
         }
 
         idsToUpdate.forEach { id ->
-            val itemFrom = Pictures.loadFromDbById(id = id, database = fromDatabase)
-            val itemTo = Pictures.loadFromDbById(id = id, database = toDatabase)
+            val itemFrom = Pictures.getPictureById(id = id, database = fromDatabase)
+            val itemTo = Pictures.getPictureById(id = id, database = toDatabase)
             if (itemFrom != null && itemTo != null) {
                 val diff = KaraokeDbTable.getDiff(itemFrom, itemTo)
                 if (diff.isNotEmpty()) {

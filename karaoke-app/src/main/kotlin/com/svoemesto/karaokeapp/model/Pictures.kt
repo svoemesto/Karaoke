@@ -14,6 +14,7 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 import javax.imageio.ImageIO
+import kotlin.text.lowercase
 
 class Pictures(override val database: KaraokeConnection = WORKING_DATABASE) : Serializable, Comparable<Pictures>, KaraokeDbTable {
 
@@ -81,44 +82,6 @@ class Pictures(override val database: KaraokeConnection = WORKING_DATABASE) : Se
     }
 
     override fun getTableName(): String = TABLE_NAME
-
-    override fun save() {
-
-        val connection = database.getConnection()
-        if (connection == null) {
-            println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
-            return
-        }
-        val sql = "UPDATE ${getTableName()} SET " +
-                "picture_name = ?, " +
-                "picture_full = ?, " +
-                "picture_preview = ? " +
-                "WHERE id = ?"
-        val ps = connection.prepareStatement(sql)
-        var index = 1
-        ps.setString(index, name)
-        index++
-        ps.setString(index, full)
-        index++
-        ps.setString(index, preview)
-        index++
-        ps.setLong(index, id)
-        ps.executeUpdate()
-        ps.close()
-
-    }
-
-//    override fun getSqlToInsert(): String {
-//        val picture = this
-//        val fieldsValues: MutableList<Pair<String, Any>> = mutableListOf()
-//
-//        if (picture.id > 0) fieldsValues.add(Pair("id", picture.id))
-//        fieldsValues.add(Pair("picture_name", picture.name))
-//        fieldsValues.add(Pair("picture_full", picture.full))
-//        fieldsValues.add(Pair("picture_preview", picture.preview))
-//
-//        return "INSERT INTO tbl_pictures (${fieldsValues.map {it.first}.joinToString(", ")}) OVERRIDING SYSTEM VALUE VALUES(${fieldsValues.map {if (it.second is Long) "${it.second}" else "'${it.second.toString().replace("'","''")}'"}.joinToString(", ")})"
-//    }
 
     override fun toDTO(): PicturesDTO {
         return PicturesDTO(
@@ -201,206 +164,59 @@ class Pictures(override val database: KaraokeConnection = WORKING_DATABASE) : Se
 
         }
 
-
-
-//        fun getDiff(entityA: KaraokeDbTable?, entityB: KaraokeDbTable?): List<RecordDiff> {
-//            val result: MutableList<RecordDiff> = mutableListOf()
-//            if (entityA != null && entityB != null) {
-//                val kClassEntityA: KClass<out KaraokeDbTable> = entityA::class
-//                val kClassEntityB: KClass<out KaraokeDbTable> = entityB::class
-//                for (member in kClassEntityA.members) {
-//                    if (member is kotlin.reflect.KProperty<*>) {
-//                        val property = member
-//                        val karaokeDbTableFieldAnnotation = property.findAnnotation<KaraokeDbTableField>()
-//                        if (karaokeDbTableFieldAnnotation != null) {
-//                            if (karaokeDbTableFieldAnnotation.useInDiff) {
-//                                val fieldName = property.name
-//                                val fieldValueA = property.getter.call(entityA)
-//                                val fieldValueB = property.getter.call(entityB)
-//                                if (fieldValueA != fieldValueB) {
-//                                    result.add(RecordDiff(karaokeDbTableFieldAnnotation.name, fieldValueA, fieldValueB))
-//                                }
-//                            }
-//
-//                        }
-//                    }
-//                }
-////                if (entityA.name != entityB.name) result.add(RecordDiff("picture_name", entityA.name, entityB.name))
-////                if (entityA.full != entityB.full) result.add(RecordDiff("picture_full", entityA.full, entityB.full))
-////                if (entityA.preview != entityB.preview) result.add(RecordDiff("picture_preview", entityA.preview, entityB.preview))
-//            }
-//            return result
-//        }
-
-        fun createDbInstance(picture: Pictures, database: KaraokeConnection) : Pictures? {
-            val sql = picture.getSqlToInsert()
-
-            val connection = database.getConnection()
-            if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
-                return null
-            }
-            val ps = connection.prepareStatement(sql)
-            ps.executeUpdate(sql, Statement.RETURN_GENERATED_KEYS)
-            try {
-                ps.executeUpdate(sql, Statement.RETURN_GENERATED_KEYS)
-            } catch (_: Exception) {
-                // Проверяем последнее значение сиквенса и айдишника таблицы
-                val statement = connection.createStatement()
-                val rsLastId = statement.executeQuery("select max(id) as last_value from tbl_pictures;")
-                val rsLastSeq = statement.executeQuery("select last_value from tbl_pictures_id_seq;")
-                rsLastId.next()
-                val lastId = rsLastId.getLong("last_value")
-                rsLastSeq.next()
-                val lastSeq = rsLastSeq.getLong("last_value")
-                if (lastSeq < lastId) {
-                    statement.execute("alter sequence tbl_pictures_id_seq restart with ${lastId+1};")
-                    ps.executeUpdate(sql, Statement.RETURN_GENERATED_KEYS)
-                }
-            }
-            val rs = ps.generatedKeys
-
-            val result = if (rs.next()) {
-                picture.id = rs.getLong(1)
-                picture
-            } else null
-
-            ps.close()
-
-            if (result != null) updateRemotePictureFromLocalDatabase(result.id)
-
-            return result
-
-        }
-
-        fun loadListFromDb(args: Map<String, String> = emptyMap(), database: KaraokeConnection): List<Pictures> {
-
-            val connection = database.getConnection()
-            if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
-                return emptyList()
-            }
-            var statement: Statement? = null
-            var rs: ResultSet? = null
-            var sql: String
+        private fun getWhereList(whereArgs: Map<String, String>): List<String> {
             val where: MutableList<String> = mutableListOf()
-
-            try {
-                statement = connection.createStatement()
-
-                val limit = args["limit"]?.toInt() ?: 0
-                val offset = args["offset"]?.toInt() ?: 0
-                sql = "SELECT tbl_pictures.*" +
-                        " FROM tbl_pictures"
-                if (args.containsKey("id")) where += "id=${args["id"]}"
-                if (args.containsKey("picture_name")) where += "LOWER(picture_name) LIKE '%${args["picture_name"]?.rightFileName()?.lowercase()}%'"
-                if (args.containsKey("name")) where += "LOWER(picture_name) = '${args["name"]?.rightFileName()?.lowercase()}'"
-                if (where.isNotEmpty()) sql += " WHERE ${where.joinToString(" AND ")}"
-                if (limit > 0) sql += " LIMIT $limit"
-                if (offset > 0) sql += " OFFSET $offset"
-
-                rs = statement.executeQuery(sql)
-                val result: MutableList<Pictures> = mutableListOf()
-                while (rs.next()) {
-                    val picture = Pictures(database)
-                    picture.id = rs.getLong("id")
-                    picture.name = rs.getString("picture_name")
-                    picture.full = rs.getString("picture_full")
-                    picture.preview = rs.getString("picture_preview")
-                    result.add(picture)
-
-                }
-                result.sort()
-
-                return result
-
-            } catch (e: SQLException) {
-                e.printStackTrace()
-            } finally {
-                try {
-                    rs?.close() // close result set
-                    statement?.close() // close statement
-                } catch (e: SQLException) {
-                    e.printStackTrace()
-                }
-            }
-            return emptyList()
+            if (whereArgs.containsKey("id")) where += "id=${whereArgs["id"]}"
+            if (whereArgs.containsKey("picture_name")) where += "LOWER(picture_name) LIKE '%${whereArgs["picture_name"]?.lowercase()}%'"
+            if (whereArgs.containsKey("name")) where += "LOWER(picture_name) = '${whereArgs["name"]?.lowercase()}'"
+            return where
         }
 
-        fun loadListDTOFromDb(args: Map<String, String> = emptyMap(), database: KaraokeConnection): List<PicturesDTO> {
-
-            val connection = database.getConnection()
-            if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
-                return emptyList()
-            }
-            var statement: Statement? = null
-            var rs: ResultSet? = null
-            var sql: String
-            val where: MutableList<String> = mutableListOf()
-
-            try {
-                statement = connection.createStatement()
-
-                val limit = args["limit"]?.toInt() ?: 0
-                val offset = args["offset"]?.toInt() ?: 0
-                sql = "SELECT id, picture_name, picture_preview FROM tbl_pictures"
-                if (args.containsKey("id")) where += "id=${args["id"]}"
-                if (args.containsKey("picture_name")) where += "LOWER(picture_name) LIKE '%${args["picture_name"]?.rightFileName()?.lowercase()}%'"
-                if (where.isNotEmpty()) sql += " WHERE ${where.joinToString(" AND ")}"
-                if (limit > 0) sql += " LIMIT $limit"
-                if (offset > 0) sql += " OFFSET $offset"
-
-                rs = statement.executeQuery(sql)
-                val result: MutableList<PicturesDTO> = mutableListOf()
-                while (rs.next()) {
-                    val pictureDTO = PicturesDTO(
-                        id = rs.getLong("id"),
-                        name = rs.getString("picture_name"),
-                        preview = rs.getString("picture_preview")
-                    )
-                    result.add(pictureDTO)
-                }
-                result.sort()
-
-                return result
-
-            } catch (e: SQLException) {
-                e.printStackTrace()
-            } finally {
-                try {
-                    rs?.close() // close result set
-                    statement?.close() // close statement
-                } catch (e: SQLException) {
-                    e.printStackTrace()
-                }
-            }
-            return emptyList()
-        }
-        fun deleteFromDb(id: Int, database: KaraokeConnection) {
-
-            val connection = database.getConnection()
-            if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
-                return
-            }
-            val sql = "DELETE FROM tbl_pictures WHERE id = ?"
-            val ps = connection.prepareStatement(sql)
-            ps.setInt(1, id)
-            ps.executeUpdate()
-            ps.close()
-
+        fun loadList(whereArgs: Map<String, String>,
+                     limit: Int = 0,
+                     offset: Int = 0,
+                     database: KaraokeConnection): List<Pictures> {
+            return KaraokeDbTable.loadList(
+                clazz = Pictures::class,
+                tableName = TABLE_NAME,
+                whereList = getWhereList(whereArgs),
+                limit = limit,
+                offset = offset,
+                database = database
+            ).map { it as Pictures }
         }
 
-        fun loadFromDbById(id: Long, database: KaraokeConnection): Pictures? {
-
-            return loadListFromDb(mapOf(Pair("id", id.toString())), database).firstOrNull()
-
+        fun delete(id: Long, database: KaraokeConnection): Boolean {
+            return KaraokeDbTable.delete(
+                tableName = TABLE_NAME,
+                id = id,
+                database = database
+            )
         }
 
-        fun loadFromDbByName(name: String, database: KaraokeConnection): Pictures? {
+        fun createNewPicture(newPicture: Pictures, database: KaraokeConnection): Pictures? {
+            val newPictureInDb = KaraokeDbTable.createDbInstance(
+                entity = newPicture,
+                database = database
+            ) as? Pictures?
+            newPictureInDb?.let {
+                return it
+            }
+            return null
+        }
 
-            return loadListFromDb(mapOf(Pair("name", name)), database).firstOrNull()
+        fun getPictureById(id: Long, database: KaraokeConnection): Pictures? {
+            return KaraokeDbTable.loadById(
+                clazz = Pictures::class,
+                tableName = TABLE_NAME,
+                id = id,
+                database = database
+            ) as? Pictures?
+        }
+
+        fun getPictureByName(name: String, database: KaraokeConnection): Pictures? {
+
+            return loadList(whereArgs = mapOf(Pair("name", name)), database = database).firstOrNull()
 
         }
 

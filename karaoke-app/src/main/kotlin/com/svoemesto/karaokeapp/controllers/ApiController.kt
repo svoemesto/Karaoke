@@ -3009,7 +3009,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
         @RequestParam(required = false) preview: String?
     ): Long {
 
-        Pictures.loadFromDbById(id = id, database = WORKING_DATABASE)?.let {pic ->
+        Pictures.getPictureById(id = id, database = WORKING_DATABASE)?.let { pic ->
             name?.let { pic.name = it }
             full?.let { pic.full = it }
             preview?.let { pic.preview = it }
@@ -3029,7 +3029,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
         val args: MutableMap<String, String> = mutableMapOf()
         filterId?.let { if (filterId != "") args["id"] = filterId }
         filterName?.let { if (filterName != "") args["picture_name"] = filterName }
-        val picturesDigests = Pictures.loadListDTOFromDb(args, WORKING_DATABASE)
+        val picturesDigests = Pictures.loadList(whereArgs = args, database = WORKING_DATABASE).map { it.toDTO() }
         return mapOf(
             "workInContainer" to APP_WORK_IN_CONTAINER,
             "picturesDigests" to picturesDigests
@@ -3038,17 +3038,17 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
 
     @PostMapping("/picture")
     @ResponseBody
-    fun apisPicture(@RequestParam id: String): Any? = Pictures.loadFromDbById(id.toLong(), WORKING_DATABASE)?.toDTO()
+    fun apisPicture(@RequestParam id: String): Any? = Pictures.getPictureById(id.toLong(), WORKING_DATABASE)?.toDTO()
 
     @PostMapping("/picture/delete")
     @ResponseBody
-    fun doDeletePicture(@RequestParam id: Int) {
-        Pictures.deleteFromDb(id, WORKING_DATABASE)
+    fun doDeletePicture(@RequestParam id: Long) {
+        Pictures.delete(id, WORKING_DATABASE)
     }
     @PostMapping("/picture/savetodisk")
     @ResponseBody
     fun doSavePictureToDisk(@RequestParam id: Long) {
-        Pictures.loadFromDbById(id, WORKING_DATABASE)?.saveToDisk()
+        Pictures.getPictureById(id, WORKING_DATABASE)?.saveToDisk()
     }
 
     @PostMapping("/picture/loadfromdisk")

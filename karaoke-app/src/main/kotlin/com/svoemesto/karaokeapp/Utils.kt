@@ -50,34 +50,6 @@ fun customFunction(): String {
     return ""
 }
 
-@Suppress("unused")
-fun recodePictures() {
-    var totalOld: Long = 0
-    var totalNew: Long = 0
-
-    Pictures.loadList(whereArgs = emptyMap(), database = WORKING_DATABASE)
-        .forEach { picture ->
-            val picBase64 = picture.full
-            val picBytes = Base64.getDecoder().decode(picBase64)
-            val picSize = picBytes.size
-            val picBi = ImageIO.read(ByteArrayInputStream(Base64.getDecoder().decode(picBase64)))
-            val picW = picBi.width
-            val picH = picBi.height
-
-            val ios = ByteArrayOutputStream()
-            ImageIO.write(picBi, "png", ios)
-            val picBytesNew = ios.toByteArray()
-            val picSizeNew = picBytesNew.size
-//            val picBase64New = Base64.getEncoder().encodeToString(picBytesNew)
-            totalOld += picSize
-            totalNew += picSizeNew
-            println("${picture.name} : $picW x $picH экономия ${picSize - picSizeNew} байт.")
-//            picture.full = picBase64New
-//            picture.save()
-        }
-    println("Общая экономия: ${totalOld - totalNew} байт.")
-}
-
 fun setSettingsToSyncRemoteTable(id: Long) {
 
     val sqlToInsert = Settings.loadFromDbById(id = id, database = Connection.local())?.getSqlToInsert(sync = true)

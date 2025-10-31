@@ -3,6 +3,7 @@ package com.svoemesto.karaokeapp.model
 import com.svoemesto.karaokeapp.Connection
 import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.services.SNS
+import org.postgresql.util.PSQLException
 import java.sql.ResultSet
 import java.sql.SQLException
 import java.sql.Statement
@@ -145,6 +146,38 @@ interface KaraokeDbTable {
     }
 
     companion object {
+        private fun columns(tableName: String, database: KaraokeConnection): List<String> {
+            val sql = "SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = '$tableName'"
+            val connection = database.getConnection()
+            if (connection == null) {
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
+                return emptyList()
+            }
+            var statement: Statement? = null
+            var rs: ResultSet? = null
+
+            try {
+                statement = connection.createStatement()
+
+                rs = statement.executeQuery(sql)
+                val result: MutableList<String> = mutableListOf()
+                while (rs.next()) {
+                    result.add(rs.getString("column_name"))
+                }
+                return result
+            } catch (e: SQLException) {
+                e.printStackTrace()
+            } finally {
+                try {
+                    rs?.close()
+                    statement?.close()
+                } catch (e: SQLException) {
+                    e.printStackTrace()
+                }
+            }
+            return emptyList()
+        }
+
         fun loadList(
             clazz: KClass<*>,
             tableName: String,
@@ -152,7 +185,8 @@ interface KaraokeDbTable {
             limit: Int = 0,
             offset: Int = 0,
             database: KaraokeConnection,
-            sync: Boolean = false
+            sync: Boolean = false,
+            ignoreUseInList: Boolean = false
         ): List<KaraokeDbTable> {
 
             val connection = database.getConnection()
@@ -167,7 +201,31 @@ interface KaraokeDbTable {
             try {
                 statement = connection.createStatement()
 
-                sql = "SELECT $tableName${if (sync) "_sync" else ""}.* FROM $tableName"
+                val notInSelectList: MutableList<String> = mutableListOf()
+                if (!ignoreUseInList) {
+                    (clazz.primaryConstructor?.call(database as Connection) as? KaraokeDbTable)?.let {tmpEntry ->
+                        for (property in tmpEntry::class.members) {
+                            (property.findAnnotation<KaraokeDbTableField>())?.let { karaokeDbTableFieldAnnotation ->
+                                if (property is KMutableProperty<*>) {
+                                    val fieldName = karaokeDbTableFieldAnnotation.name
+                                    if (!karaokeDbTableFieldAnnotation.useInList) notInSelectList.add(fieldName)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                val sqlSelect = if (notInSelectList.isNotEmpty()) {
+                    "SELECT ${
+                        columns(tableName, database)
+                            .filter { it !in notInSelectList }
+                            .joinToString(", ") { "$tableName${if (sync) "_sync" else ""}.$it" }
+                    }"
+                } else {
+                    "SELECT $tableName${if (sync) "_sync" else ""}.*"
+                }
+                val sqlFrom = "FROM $tableName${if (sync) "_sync" else ""}"
+                sql = "$sqlSelect $sqlFrom"
 
                 if (whereList.isNotEmpty()) sql += " WHERE ${whereList.joinToString(" AND ")}"
                 if (limit > 0) sql += " LIMIT $limit"
@@ -190,19 +248,24 @@ interface KaraokeDbTable {
                                     if (karaokeDbTableFieldAnnotation != null) {
                                         if (property is KMutableProperty<*>) {
                                             val fieldName = karaokeDbTableFieldAnnotation.name
+
+                                            if (!karaokeDbTableFieldAnnotation.useInList) notInSelectList.add(fieldName)
 //                                            val fieldValue = property.getter.call(entity)
                                             property.setter.isAccessible = true
-                                            val newValue = when (property.returnType.classifier) {
-                                                String::class -> rs.getString(fieldName)
-                                                Int::class -> rs.getInt(fieldName)
-                                                Long::class -> rs.getLong(fieldName)
-                                                Double::class -> rs.getDouble(fieldName)
-                                                Boolean::class -> rs.getBoolean(fieldName)
-                                                Timestamp::class -> rs.getTimestamp(fieldName)
-                                                Float::class -> rs.getFloat(fieldName)
-                                                else -> rs.getString(fieldName)
+                                            try {
+                                                val newValue = when (property.returnType.classifier) {
+                                                    String::class -> rs.getString(fieldName)
+                                                    Int::class -> rs.getInt(fieldName)
+                                                    Long::class -> rs.getLong(fieldName)
+                                                    Double::class -> rs.getDouble(fieldName)
+                                                    Boolean::class -> rs.getBoolean(fieldName)
+                                                    Timestamp::class -> rs.getTimestamp(fieldName)
+                                                    Float::class -> rs.getFloat(fieldName)
+                                                    else -> rs.getString(fieldName)
+                                                }
+                                                property.setter.call(entity, newValue)
+                                            } catch (_: PSQLException) {
                                             }
-                                            property.setter.call(entity, newValue)
                                         }
                                     }
                                 }
@@ -241,7 +304,8 @@ interface KaraokeDbTable {
                 tableName = tableName,
                 whereList = listOf("$tableName${if (sync) "_sync" else ""}.id=$id"),
                 database = database,
-                sync = sync
+                sync = sync,
+                ignoreUseInList = true
             ).firstOrNull()
         }
         fun createDbInstance(entity: KaraokeDbTable, database: KaraokeConnection) : KaraokeDbTable? {
@@ -337,6 +401,7 @@ interface KaraokeDbTable {
             return result
         }
 
+        @Suppress("unused")
         fun getTotalCount(tableName: String, database: KaraokeConnection): Int {
             val sql = "SELECT COUNT(*) AS total_count FROM $tableName;"
             val connection = database.getConnection()

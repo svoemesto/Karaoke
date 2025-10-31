@@ -8,5 +8,6 @@ annotation class KaraokeDbTableField(
     val isId: Boolean = false,
     val useInDiff: Boolean = true,
     @Suppress("unused")
-    val useInHash: Boolean = true
+    val useInHash: Boolean = true,
+    val useInList: Boolean = true   // Если false, то не будет включено в loadList. Нужно для больших полей типа full в Pictures, чтобы не было OutOfMemory Java heap space
 )

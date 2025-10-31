@@ -400,7 +400,7 @@ class Pictures(override val database: KaraokeConnection = WORKING_DATABASE) : Se
 
         fun loadFromDbByName(name: String, database: KaraokeConnection): Pictures? {
 
-            return loadListFromDb(mapOf(Pair("picture_name", name)), database).firstOrNull()
+            return loadListFromDb(mapOf(Pair("name", name)), database).firstOrNull()
 
         }
 

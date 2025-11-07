@@ -170,6 +170,13 @@ export default {
             fldValue: this.$store.getters.getLastPriorSmartCopy,
             fldLabelStyle: { width: '100px', textAlign: 'right', paddingRight: '5px'},
             fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
+          },
+          {
+            fldName: 'threadId',
+            fldLabel: 'threadId:',
+            fldValue: this.$store.getters.getLastThreadId,
+            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
+            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
           }
         ]
       }
@@ -177,6 +184,7 @@ export default {
     },
     doSmartCopy(result) {
       this.$store.dispatch('setLastPriorSmartCopy', {value: result.prior});
+      this.$store.dispatch('setLastThreadId', {value: result.threadId});
 
       this.$store.dispatch('setSmartCopySongVersion', { smartCopySongVersion: this.smartCopySongVersion });
       this.$store.dispatch('setSmartCopySongResolution', { smartCopySongResolution: this.smartCopySongResolution });
@@ -192,6 +200,7 @@ export default {
       if (this.smartCopyPath) params.smartCopyPath = this.smartCopyPath;
       params.songsIds = this.ids.join(';');
       params.prior = result.prior;
+      params.threadId = result.threadId;
 
       this.$store.dispatch('createSmartCopyForAllPromise', params).then(data => {
         let response = JSON.parse(data);

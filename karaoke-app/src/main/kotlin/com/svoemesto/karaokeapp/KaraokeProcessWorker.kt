@@ -31,14 +31,14 @@ class KaraokeProcessThread(val karaokeProcess: KaraokeProcess? = null, var perce
             val process = processBuilder.start()
             if (process.isAlive) {
                 if (karaokeProcess.command != "tail" || karaokeProcess.args[0][0] !in KaraokeProcessWorker.argsIgnoredToLog) {
-                    println("[${Timestamp.from(Instant.now())}] KaraokeProcessThread: Установка приоритета задания: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}")
+                    println("[${Timestamp.from(Instant.now())}] KaraokeProcessThread[${karaokeProcess.threadId}]: Установка приоритета задания: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}")
                 }
                 setProcessPriority(process.pid(), karaokeProcess.prioritet)
             }
 
             try {
                 if (karaokeProcess.command != "tail" || karaokeProcess.args[0][0] !in KaraokeProcessWorker.argsIgnoredToLog) {
-                    println("[${Timestamp.from(Instant.now())}] KaraokeProcessThread: Начинаем работу с заданием: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}")
+                    println("[${Timestamp.from(Instant.now())}] KaraokeProcessThread[${karaokeProcess.threadId}]: Начинаем работу с заданием: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}")
                     KaraokeProcessWorker.sendCountWaitingMessage(KaraokeProcess.getCountWaiting(database = karaokeProcess.database))
                 }
                 val inputStream = process.inputStream
@@ -78,11 +78,11 @@ class KaraokeProcessThread(val karaokeProcess: KaraokeProcess? = null, var perce
                     line = reader.readLine()
                 }
                 if (karaokeProcess.command != "tail" || karaokeProcess.args[0][0] !in KaraokeProcessWorker.argsIgnoredToLog) {
-                    println("[${Timestamp.from(Instant.now())}] KaraokeProcessThread: Завершаем работу с заданием: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}")
+                    println("[${Timestamp.from(Instant.now())}] KaraokeProcessThread[${karaokeProcess.threadId}]: Завершаем работу с заданием: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}")
                 }
                 if (log != "") {
                     if (karaokeProcess.command != "tail" || karaokeProcess.args[0][0] !in KaraokeProcessWorker.argsIgnoredToLog) {
-                        println("[${Timestamp.from(Instant.now())}] KaraokeProcessThread: Выводим лог задания: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}")
+                        println("[${Timestamp.from(Instant.now())}] KaraokeProcessThread[${karaokeProcess.threadId}]: Выводим лог задания: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}")
                     }
                     log = args.joinToString(" ") + "\n\n" + log
                     val logFileName = "$PATH_TO_LOGS/[${Timestamp.from(Instant.now())}] ${karaokeProcess.name} - ${karaokeProcess.description}.log".rightFileName()
@@ -98,12 +98,18 @@ class KaraokeProcessThread(val karaokeProcess: KaraokeProcess? = null, var perce
                     // Если процесс SHEETSAGE завершился ошибкой - создаём для этой же песни процесс SHEETSAGE2 с таким же приоритетом
                     val settings = Settings.loadFromDbById(karaokeProcess.settingsId.toLong(), WORKING_DATABASE)
                     settings?.let {
-                        KaraokeProcess.createProcess(settings, KaraokeProcessTypes.SHEETSAGE2, true, karaokeProcess.priority)
+                        KaraokeProcess.createProcess(
+                            settings = settings,
+                            action = KaraokeProcessTypes.SHEETSAGE2,
+                            doWait = true,
+                            prior = karaokeProcess.priority,
+                            threadId = 0
+                        )
                     }
                 }
 
                 if (karaokeProcess.command != "tail" || karaokeProcess.args[0][0] !in KaraokeProcessWorker.argsIgnoredToLog) {
-                    println("[${Timestamp.from(Instant.now())}] KaraokeProcessThread: DONE успешно завершенное задание: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}")
+                    println("[${Timestamp.from(Instant.now())}] KaraokeProcessThread[${karaokeProcess.threadId}]: DONE успешно завершенное задание: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}")
                 }
                 karaokeProcess.status = KaraokeProcessStatuses.DONE.name
                 karaokeProcess.end = Timestamp.from(Instant.now())
@@ -116,7 +122,7 @@ class KaraokeProcessThread(val karaokeProcess: KaraokeProcess? = null, var perce
 
             } catch (_: Exception) {
                 process.destroy()
-                println("[${Timestamp.from(Instant.now())}] KaraokeProcessThread: ERROR задание: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}")
+                println("[${Timestamp.from(Instant.now())}] KaraokeProcessThread[${karaokeProcess.threadId}]: ERROR задание: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}")
                 karaokeProcess.status = KaraokeProcessStatuses.ERROR.name
                 karaokeProcess.end = Timestamp.from(Instant.now())
                 karaokeProcess.priority = -1
@@ -137,7 +143,9 @@ class KaraokeProcessWorker {
         var stopAfterThreadIsDone: Boolean = false
         var withoutControl = false
 
-        var workThread: KaraokeProcessThread? = null
+        val threadsMap: MutableMap<Int, KaraokeProcessThread?> = mutableMapOf()
+
+//        var workThread: KaraokeProcessThread? = null
 
         fun start(database: KaraokeConnection) {
             if (!isWork) {
@@ -185,8 +193,8 @@ class KaraokeProcessWorker {
             }
         }
 
-        private fun getKaraokeProcessToStart(database: KaraokeConnection): KaraokeProcess? {
-            return KaraokeProcess.getProcessToStart(database)
+        private fun getKaraokeProcessesToStart(database: KaraokeConnection): Map<Int, KaraokeProcess> {
+            return KaraokeProcess.getProcessesToStart(database)
         }
 
         private fun doStart(database: KaraokeConnection) {
@@ -195,7 +203,7 @@ class KaraokeProcessWorker {
             var id = 0L
 //            var settingsId = 0L
 //            var processType = ""
-            var percentage = 0.0
+//            var percentage = 0.0
 
             val intervalCheckDummy = 6_000
             val intervalCheckFiles = 24_000
@@ -324,8 +332,20 @@ class KaraokeProcessWorker {
 
                                         settingsLocal.createKaraoke(createLyrics = true, createKaraoke = true)
 
-                                        KaraokeProcess.createProcess(settingsLocal, KaraokeProcessTypes.MELT_LYRICS, true, 0)
-                                        KaraokeProcess.createProcess(settingsLocal, KaraokeProcessTypes.MELT_KARAOKE, true, 1)
+                                        KaraokeProcess.createProcess(
+                                            settings = settingsLocal,
+                                            action = KaraokeProcessTypes.MELT_LYRICS,
+                                            doWait = true,
+                                            prior = 0,
+                                            threadId = 0
+                                        )
+                                        KaraokeProcess.createProcess(
+                                            settings = settingsLocal,
+                                            action = KaraokeProcessTypes.MELT_KARAOKE,
+                                            doWait = true,
+                                            prior = 1,
+                                            threadId = 0
+                                        )
                                     }
                                 }
                             }
@@ -339,71 +359,88 @@ class KaraokeProcessWorker {
 
                 }
 
+                val karaokeProcessesToStart = getKaraokeProcessesToStart(database)
+                val karaokeProcessesToStartIds = karaokeProcessesToStart.keys.toList()
+                val threadsIds = threadsMap.filter { it.value != null }.keys.toList()
 
-                // Проверяем, выполняется ли в данный момент какое-то задание
-                // Если да - ждём, если нет запускаем новое задание (если оно есть в очереди)
-                if (workThread == null || !workThread!!.isAlive) {
-//                    println("[${Timestamp.from(Instant.now())}] ProcessWorker: Получаем новое задание...")
-                    val karaokeProcess = getKaraokeProcessToStart(database)
-                    val countWaiting = KaraokeProcess.getCountWaiting(database)
-                    sendCountWaitingMessage(countWaiting)
-                    if (karaokeProcess != null && (!stopAfterThreadIsDone || karaokeProcess.command == "tail")) {
-                        val args = karaokeProcess.args[0]
-                        if (args.isNotEmpty()) {
-                            if (id > 0) {
+                /*
+                Для каждого id из karaokeProcessesToStartIds проверяем, есть ли такой же id в threadsIds
+                Если такого нет или такой есть и он null или !isAlive - тогда надо запустить новый процесс с таким же id
+                Иначе обновляем персентаж
+                 */
 
+                karaokeProcessesToStartIds.forEach { threadId ->
+                    if (!threadsIds.contains(threadId) || (threadsIds.contains(threadId) && (threadsMap[threadId] == null || !threadsMap[threadId]!!.isAlive))) {
+                        val karaokeProcess = karaokeProcessesToStart[threadId]
+                        val countWaiting = KaraokeProcess.getCountWaiting(database)
+                        sendCountWaitingMessage(countWaiting)
+                        if (karaokeProcess != null && (!stopAfterThreadIsDone || karaokeProcess.command == "tail")) {
+                            val args = karaokeProcess.args[0]
+                            if (args.isNotEmpty()) {
+                                if (id > 0) {
+
+                                    val kp = KaraokeProcess.load(id, database)
+                                    val diffs = KaraokeProcess.getDiff(kp)
+                                    if (diffs.isNotEmpty()) {
+                                        karaokeProcess.save()
+                                    }
+
+                                }
+//                                workThread = KaraokeProcessThread(karaokeProcess)
+                                threadsMap[threadId] = KaraokeProcessThread(karaokeProcess)
+
+                                id = karaokeProcess.id
+//                            settingsId = karaokeProcess.settingsId.toLong()
+//                            processType = karaokeProcess.type
+//                                percentage = 0.0
+                                withoutControl = karaokeProcess.withoutControl
+                                if (karaokeProcess.command != "tail" || karaokeProcess.args[0][0] !in argsIgnoredToLog) {
+                                    println("[${Timestamp.from(Instant.now())}] ProcessWorker: Стартуем новое задание: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}")
+                                }
+//                                workThread!!.start()
+                                threadsMap[threadId]!!.start()
+                            }
+                        } else {
+                            if (id != 0L) {
                                 val kp = KaraokeProcess.load(id, database)
                                 val diffs = KaraokeProcess.getDiff(kp)
                                 if (diffs.isNotEmpty()) {
-                                    karaokeProcess.save()
+//                                    workThread?.karaokeProcess?.save()
+                                    threadsMap[threadId]?.karaokeProcess?.save()
                                 }
-
                             }
-                            workThread = KaraokeProcessThread(karaokeProcess)
-
-                            id = karaokeProcess.id.toLong()
-//                            settingsId = karaokeProcess.settingsId.toLong()
-//                            processType = karaokeProcess.type
-                            percentage = 0.0
-                            withoutControl = karaokeProcess.withoutControl
-                            if (karaokeProcess.command != "tail" || karaokeProcess.args[0][0] !in argsIgnoredToLog) {
-                                println("[${Timestamp.from(Instant.now())}] ProcessWorker: Стартуем новое задание: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}")
+                            if (stopAfterThreadIsDone) {
+                                stopAfterThreadIsDone = false
+                                isWork = false
+                                withoutControl = false
+                                sendStateMessage()
+                                println("[${Timestamp.from(Instant.now())}] ProcessWorker: Останавливаемся")
                             }
-                            workThread!!.start()
+
                         }
                     } else {
-                        if (id != 0L) {
-                            val kp = KaraokeProcess.load(id, database)
+
+                        if (!withoutControl) {
+
+//                            val kp = workThread?.karaokeProcess
+                            val kp = threadsMap[threadId]?.karaokeProcess
                             val diffs = KaraokeProcess.getDiff(kp)
                             if (diffs.isNotEmpty()) {
-                                workThread?.karaokeProcess?.save()
+//                                if (percentage != (workThread?.karaokeProcess?.percentage ?: 0.0)) {
+//                                    percentage = workThread?.karaokeProcess?.percentage ?: 0.0
+//                                }
+//                                workThread?.karaokeProcess?.save()
+
+//                                if (percentage != (threadsMap[threadId]?.karaokeProcess?.percentage ?: 0.0)) {
+//                                    percentage = threadsMap[threadId]?.karaokeProcess?.percentage ?: 0.0
+//                                }
+                                threadsMap[threadId]?.karaokeProcess?.save()
                             }
-                        }
-                        if (stopAfterThreadIsDone) {
-                            stopAfterThreadIsDone = false
-                            isWork = false
-                            withoutControl = false
-                            sendStateMessage()
-                            println("[${Timestamp.from(Instant.now())}] ProcessWorker: Останавливаемся")
                         }
 
                     }
-                } else {
-
-                    if (!withoutControl) {
-
-                        val kp = workThread?.karaokeProcess
-                        val diffs = KaraokeProcess.getDiff(kp)
-                        if (diffs.isNotEmpty()) {
-                            if (percentage != (workThread?.karaokeProcess?.percentage ?: 0.0)) {
-                                percentage = workThread?.karaokeProcess?.percentage ?: 0.0
-                            }
-                            workThread?.karaokeProcess?.save()
-
-                        }
-                    }
-
                 }
+
             }
         }
 
@@ -412,11 +449,8 @@ class KaraokeProcessWorker {
         }
 
         fun getPercentage(karaokeProcess: KaraokeProcess): String {
-            return if (isWork && workThread != null && workThread!!.isAlive && workThread!!.karaokeProcess!!.id == karaokeProcess.id) {
-                workThread!!.percentage ?: "---"
-            } else {
-                "---"
-            }
+            val workThread = threadsMap.filter { it.key == karaokeProcess.threadId && it.value?.karaokeProcess?.id == karaokeProcess.id }.values.toList().firstOrNull()
+            return workThread?.percentage ?: "---"
         }
 
     }

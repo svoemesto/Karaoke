@@ -3324,8 +3324,8 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
     }
 
-    fun doSymlink(prior: Int = -1) {
-        KaraokeProcess.createProcess(this, KaraokeProcessTypes.SYMLINK, true, prior)
+    fun doSymlink(prior: Int = -1, threadId: Int) {
+        KaraokeProcess.createProcess(this, KaraokeProcessTypes.SYMLINK, true, prior, threadId = threadId)
     }
     fun doSmartCopy(
         prior: Int = -1,
@@ -3333,7 +3333,8 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
         scResolution: String,
         scCreateSubfoldersAuthors: Boolean,
         scRenameTemplate: String,
-        scPath: String
+        scPath: String,
+        threadId: Int
     ) {
         val context: MutableMap<String, Any> = mutableMapOf()
 
@@ -3464,7 +3465,8 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                     action = KaraokeProcessTypes.SMARTCOPY,
                     doWait = true,
                     prior = prior,
-                    context = context
+                    context = context,
+                    threadId = threadId
                 )
             }
 
@@ -3473,11 +3475,11 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
     }
 
-    fun doMP3Karaoke(prior: Int = -1) {
-        KaraokeProcess.createProcess(this, KaraokeProcessTypes.FF_MP3_KAR, true, prior)
+    fun doMP3Karaoke(prior: Int = -1, threadId: Int) {
+        KaraokeProcess.createProcess(this, KaraokeProcessTypes.FF_MP3_KAR, true, prior, threadId = threadId)
     }
-    fun doMP3Lyrics(prior: Int = -1) {
-        KaraokeProcess.createProcess(this, KaraokeProcessTypes.FF_MP3_LYR, true, prior)
+    fun doMP3Lyrics(prior: Int = -1, threadId: Int) {
+        KaraokeProcess.createProcess(this, KaraokeProcessTypes.FF_MP3_LYR, true, prior, threadId = threadId)
     }
     fun deleteFromDb(withFiles: Boolean = true, sync: Boolean = false) {
         if (withFiles) {

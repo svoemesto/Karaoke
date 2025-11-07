@@ -1,20 +1,16 @@
 package com.svoemesto.karaokeapp.model
 
-import com.svoemesto.karaokeapp.*
+import com.svoemesto.karaokeapp.KaraokeConnection
+import com.svoemesto.karaokeapp.WORKING_DATABASE
 import com.svoemesto.karaokeapp.model.KaraokeDbTable.Companion.getListHashes
-import com.svoemesto.karaokeapp.model.KaraokeDbTable.Companion.getTotalCount
+import com.svoemesto.karaokeapp.resizeBufferedImage
+import com.svoemesto.karaokeapp.runCommand
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.Serializable
-import java.sql.ResultSet
-import java.sql.SQLException
-import java.sql.Statement
-import java.sql.Timestamp
-import java.time.Instant
 import java.util.*
 import javax.imageio.ImageIO
-import kotlin.text.lowercase
 
 class Pictures(override val database: KaraokeConnection = WORKING_DATABASE) : Serializable, Comparable<Pictures>, KaraokeDbTable {
 

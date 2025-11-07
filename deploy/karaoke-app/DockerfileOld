@@ -1,4 +1,4 @@
-FROM openjdk:17
+FROM openjdk:17-ea-jdk-slim
 
 # Аргументы сборки
 ARG VERSION

@@ -54,7 +54,7 @@ class MainController {
     @GetMapping("/utils/collectstore")
     @ResponseBody
     fun doCollectStore(): Boolean {
-        collectDoneFilesToStoreFolderAndCreate720pForAllUncreated(emptyList())
+        collectDoneFilesToStoreFolderAndCreate720pForAllUncreated(emptyList(), threadId = 1)
         return true
     }
 
@@ -253,9 +253,10 @@ class MainController {
 
     @GetMapping("/song/{id}/symlink")
     @ResponseBody
-    fun doSymlink(@PathVariable id: Long): Int {
+    fun doSymlink(@PathVariable id: Long,
+                  @RequestParam(required = false) threadId: String? = "0"): Int {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
-        settings?.doSymlink()
+        settings?.doSymlink(threadId = threadId?.toInt() ?: 0)
         return 0
     }
 
@@ -316,6 +317,7 @@ class MainController {
         @PathVariable id: Long,
         @PathVariable voice: Int,
         @RequestParam(required = false) sourceText: String = "",
+        @RequestParam(required = false) threadId: String? = "0",
         model: Model): String {
         var text: String
 //        if (sourceText.trim() != "") {
@@ -332,31 +334,31 @@ class MainController {
 
     @GetMapping("/song/{id}/doprocesslyrics")
     @ResponseBody
-    fun doProcessLyrics(@PathVariable id: Long): Int {
+    fun doProcessLyrics(@PathVariable id: Long, @RequestParam(required = false) threadId: String? = "0",): Long {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         settings?.let {
-            return KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, 0)
+            return KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, 0, threadId = threadId?.toInt() ?: 0)
         }
         return 0
     }
 
     @GetMapping("/song/{id}/doprocesskaraoke")
     @ResponseBody
-    fun doProcessKaraoke(@PathVariable id: Long): Int {
+    fun doProcessKaraoke(@PathVariable id: Long, @RequestParam(required = false) threadId: String? = "0"): Long {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         settings?.let {
-            return KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, 1)
+            return KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, 1, threadId = threadId?.toInt() ?: 0)
         }
         return 0
     }
 
     @GetMapping("/song/{id}/doprocesschords")
     @ResponseBody
-    fun doProcessChords(@PathVariable id: Long): Int {
+    fun doProcessChords(@PathVariable id: Long, @RequestParam(required = false) threadId: String? = "0"): Long {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         settings?.let {
             if (Song(settings, SongVersion.LYRICS).hasChords) {
-                return KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDS, true, 1)
+                return KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDS, true, 1, threadId = threadId?.toInt() ?: 0)
             }
         }
         return 0
@@ -364,15 +366,15 @@ class MainController {
 
     @GetMapping("/song/{id}/doprocessall")
     @ResponseBody
-    fun doProcessAll(@PathVariable id: Long): List<Int> {
+    fun doProcessAll(@PathVariable id: Long, @RequestParam(required = false) threadId: String? = "0"): List<Long> {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
-        val result: MutableList<Int> = mutableListOf()
+        val result: MutableList<Long> = mutableListOf()
         settings?.let {
             val hasChords = Song(settings, SongVersion.LYRICS).hasChords
-            result.add(KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, 4))
-            result.add(KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, 4))
+            result.add(KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, 4, threadId = threadId?.toInt() ?: 0))
+            result.add(KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, 4, threadId = threadId?.toInt() ?: 0))
             if (hasChords) {
-                result.add(KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDS, true, 4))
+                result.add(KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDS, true, 4, threadId = threadId?.toInt() ?: 0))
             }
         }
         return result
@@ -380,14 +382,14 @@ class MainController {
 
     @GetMapping("/song/{id}/doprocessallwolyrics")
     @ResponseBody
-    fun doProcessAllWOLyrics(@PathVariable id: Long): List<Int> {
+    fun doProcessAllWOLyrics(@PathVariable id: Long, @RequestParam(required = false) threadId: String? = "0"): List<Long> {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
-        val result: MutableList<Int> = mutableListOf()
+        val result: MutableList<Long> = mutableListOf()
         settings?.let {
             val hasChords = Song(settings, SongVersion.LYRICS).hasChords
-            result.add(KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, 2))
+            result.add(KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, 2, threadId = threadId?.toInt() ?: 0))
             if (hasChords) {
-                result.add(KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDS, true, 3))
+                result.add(KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDS, true, 3, threadId = threadId?.toInt() ?: 0))
             }
         }
         return result
@@ -395,11 +397,11 @@ class MainController {
 
     @GetMapping("/song/{id}/dodemucs2")
     @ResponseBody
-    fun doProcessDemucs2(@PathVariable id: Long): Int {
+    fun doProcessDemucs2(@PathVariable id: Long, @RequestParam(required = false) threadId: String? = "0"): Long {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         settings?.let {
 //            if (it.getAudioAspectRate() != "48000") KaraokeProcess.createProcess(settings, KaraokeProcessTypes.RECODE_48000, true, -1)
-            return  KaraokeProcess.createProcess(settings, KaraokeProcessTypes.DEMUCS2, true, -1)
+            return  KaraokeProcess.createProcess(settings, KaraokeProcessTypes.DEMUCS2, true, -1, threadId = threadId?.toInt() ?: 0)
         }
         return 0
     }
@@ -923,7 +925,7 @@ class MainController {
     }
 
     @GetMapping("/song/{id}/createkaraoke")
-    fun getSongCreateKaraoke(@PathVariable id: Long, model: Model): String {
+    fun getSongCreateKaraoke(@PathVariable id: Long, model: Model, @RequestParam(required = false) threadId: String? = "0"): String {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         val text = settings?.let {
             settings.createKaraoke()
@@ -931,8 +933,8 @@ class MainController {
                 settings.fields[SettingField.ID_STATUS] = "3"
                 settings.saveToDb()
             }
-            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, 0)
-            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, 1)
+            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, 0, threadId = threadId?.toInt() ?: 0)
+            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, 1, threadId = threadId?.toInt() ?: 0)
             "OK"
         } ?: "Error"
         model.addAttribute("text", text)
@@ -957,7 +959,7 @@ class MainController {
     @PostMapping("/songs/createkaraokeall")
     fun getSongsCreateKaraokeAll(
         @RequestParam(required = false) txt: String?,
-        model: Model): String {
+        model: Model, @RequestParam(required = false) threadId: String? = "0"): String {
         var result = "Error"
         txt?.let {
             val ids = txt.split(";")
@@ -968,8 +970,8 @@ class MainController {
                 settings?.let {
                     settings.createKaraoke()
 
-                    KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, 10)
-                    KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, 10)
+                    KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, 10, threadId = threadId?.toInt() ?: 0)
+                    KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, 10, threadId = threadId?.toInt() ?: 0)
 
                 }
                 result = "OK"
@@ -983,7 +985,7 @@ class MainController {
     @PostMapping("/songs/createdemucs2all")
     fun getSongsCreateDemucs2All(
         @RequestParam(required = false) txt: String?,
-        model: Model): String {
+        model: Model, @RequestParam(required = false) threadId: String? = "0"): String {
         var result = "Error"
         txt?.let {
             val ids = txt.split(";")
@@ -993,7 +995,7 @@ class MainController {
                 val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
                 settings?.let {
 //                    if (it.getAudioAspectRate() != "48000") KaraokeProcess.createProcess(settings, KaraokeProcessTypes.RECODE_48000, true, -1)
-                    KaraokeProcess.createProcess(settings, KaraokeProcessTypes.DEMUCS2, true, -1)
+                    KaraokeProcess.createProcess(settings, KaraokeProcessTypes.DEMUCS2, true, -1, threadId = threadId?.toInt() ?: 0)
                 }
                 result = "OK"
             }
@@ -1006,7 +1008,7 @@ class MainController {
     @PostMapping("/songs/create720pkaraokeall")
     fun getSongsCreate720pKaraokeAll(
         @RequestParam(required = false) txt: String?,
-        model: Model): String {
+        model: Model, @RequestParam(required = false) threadId: String? = "0"): String {
         var result = "Error"
         txt?.let {
             val ids = txt.split(";")
@@ -1015,7 +1017,7 @@ class MainController {
             ids.forEach { id ->
                 val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
                 settings?.let {
-                    KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_KAR, true, 1)
+                    KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_KAR, true, 1, threadId = threadId?.toInt() ?: 0)
                 }
                 result = "OK"
             }
@@ -1027,7 +1029,7 @@ class MainController {
     @PostMapping("/songs/create720plyricsall")
     fun getSongsCreate720pLyricsAll(
         @RequestParam(required = false) txt: String?,
-        model: Model): String {
+        model: Model, @RequestParam(required = false) threadId: String? = "0"): String {
         var result = "Error"
         txt?.let {
             val ids = txt.split(";")
@@ -1036,7 +1038,7 @@ class MainController {
             ids.forEach { id ->
                 val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
                 settings?.let {
-                    KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_LYR, true, 1)
+                    KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_LYR, true, 1, threadId = threadId?.toInt() ?: 0)
                 }
                 result = "OK"
             }

@@ -779,6 +779,13 @@ export default {
             fldValue: this.$store.getters.getLastPriorMelody,
             fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
             fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
+          },
+          {
+            fldName: 'threadId',
+            fldLabel: 'threadId:',
+            fldValue: this.$store.getters.getLastThreadId,
+            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
+            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
           }
         ]
       }
@@ -789,7 +796,14 @@ export default {
       this.$store.dispatch('setLastPriorKaraoke', {value: result.priorKaraoke});
       this.$store.dispatch('setLastPriorChords', {value: result.priorChords});
       this.$store.dispatch('setLastPriorMelody', {value: result.priorMelody});
-      this.$store.dispatch('createKaraokeForAllPromise', {priorLyrics: result.priorLyrics, priorKaraoke: result.priorKaraoke, priorChords: result.priorChords, priorMelody: result.priorMelody}).then(data => {
+      this.$store.dispatch('setLastThreadId', {value: result.threadId});
+      this.$store.dispatch('createKaraokeForAllPromise', {
+        priorLyrics: result.priorLyrics,
+        priorKaraoke: result.priorKaraoke,
+        priorChords: result.priorChords,
+        priorMelody: result.priorMelody,
+        threadId: result.threadId
+      }).then(data => {
         let response = JSON.parse(data);
         this.customConfirmParams = {
           isAlert: true,
@@ -813,6 +827,13 @@ export default {
             fldValue: this.$store.getters.getLastPriorDemucs,
             fldLabelStyle: { width: '100px', textAlign: 'right', paddingRight: '5px'},
             fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
+          },
+          {
+            fldName: 'threadId',
+            fldLabel: 'threadId:',
+            fldValue: this.$store.getters.getLastThreadId,
+            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
+            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
           }
         ]
       }
@@ -820,7 +841,8 @@ export default {
     },
     doCreateDemucs2ForAll(result) {
       this.$store.dispatch('setLastPriorDemucs', {value: result.prior});
-      this.$store.dispatch('createDemucs2ForAllPromise', { prior: result.prior }).then(data => {
+      this.$store.dispatch('setLastThreadId', {value: result.threadId});
+      this.$store.dispatch('createDemucs2ForAllPromise', { prior: result.prior, threadId: result.threadId }).then(data => {
         let response = JSON.parse(data);
         this.customConfirmParams = {
           isAlert: true,
@@ -844,6 +866,13 @@ export default {
             fldValue: this.$store.getters.getLastPriorDemucs,
             fldLabelStyle: { width: '100px', textAlign: 'right', paddingRight: '5px'},
             fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
+          },
+          {
+            fldName: 'threadId',
+            fldLabel: 'threadId:',
+            fldValue: this.$store.getters.getLastThreadId,
+            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
+            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
           }
         ]
       }
@@ -851,6 +880,7 @@ export default {
     },
     doCreateDemucs5ForAll(result) {
       this.$store.dispatch('setLastPriorDemucs', {value: result.prior});
+      this.$store.dispatch('setLastThreadId', {value: result.threadId});
       this.$store.dispatch('createDemucs5ForAllPromise', { prior: result.prior }).then(data => {
         let response = JSON.parse(data);
         this.customConfirmParams = {
@@ -874,6 +904,13 @@ export default {
             fldLabel: 'Приоритет:',
             fldValue: this.$store.getters.getLastPriorDemucs,
             fldLabelStyle: { width: '100px', textAlign: 'right', paddingRight: '5px'},
+            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
+          },
+          {
+            fldName: 'threadId',
+            fldLabel: 'threadId:',
+            fldValue: this.$store.getters.getLastThreadId,
+            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
             fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
           }
         ]
@@ -906,6 +943,13 @@ export default {
             fldValue: this.$store.getters.getLastPriorDemucs,
             fldLabelStyle: { width: '100px', textAlign: 'right', paddingRight: '5px'},
             fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
+          },
+          {
+            fldName: 'threadId',
+            fldLabel: 'threadId:',
+            fldValue: this.$store.getters.getLastThreadId,
+            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
+            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
           }
         ]
       }
@@ -913,6 +957,7 @@ export default {
     },
     doCreateMP3KaraokeForAll(result) {
       this.$store.dispatch('setLastPriorDemucs', {value: result.prior});
+      this.$store.dispatch('setLastThreadId', {value: result.threadId});
       this.$store.dispatch('createMP3KaraokeForAllPromise', { prior: result.prior }).then(data => {
         let response = JSON.parse(data);
         this.customConfirmParams = {
@@ -937,6 +982,13 @@ export default {
             fldValue: this.$store.getters.getLastPriorDemucs,
             fldLabelStyle: { width: '100px', textAlign: 'right', paddingRight: '5px'},
             fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
+          },
+          {
+            fldName: 'threadId',
+            fldLabel: 'threadId:',
+            fldValue: this.$store.getters.getLastThreadId,
+            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
+            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
           }
         ]
       }
@@ -944,6 +996,7 @@ export default {
     },
     doCreateMP3LyricsForAll(result) {
       this.$store.dispatch('setLastPriorDemucs', {value: result.prior});
+      this.$store.dispatch('setLastThreadId', {value: result.threadId});
       this.$store.dispatch('createMP3LyricsForAllPromise', { prior: result.prior }).then(data => {
         let response = JSON.parse(data);
         this.customConfirmParams = {
@@ -968,6 +1021,13 @@ export default {
             fldValue: this.$store.getters.getLastPriorSymlinks,
             fldLabelStyle: { width: '100px', textAlign: 'right', paddingRight: '5px'},
             fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
+          },
+          {
+            fldName: 'threadId',
+            fldLabel: 'threadId:',
+            fldValue: this.$store.getters.getLastThreadId,
+            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
+            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
           }
         ]
       }
@@ -975,6 +1035,7 @@ export default {
     },
     doCreateSymlinksForAll(result) {
       this.$store.dispatch('setLastPriorSymlinks', {value: result.prior});
+      this.$store.dispatch('setLastThreadId', {value: result.threadId});
       this.$store.dispatch('createSymlinksForAllPromise', { prior: result.prior } ).then(data => {
         let response = JSON.parse(data);
         this.customConfirmParams = {
@@ -1007,6 +1068,13 @@ export default {
             fldValue: this.$store.getters.getLastPriorCodeKaraoke,
             fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
             fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
+          },
+          {
+            fldName: 'threadId',
+            fldLabel: 'threadId:',
+            fldValue: this.$store.getters.getLastThreadId,
+            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
+            fldValueStyle: { width: '40px', textAlign: 'center', borderRadius: '10px'}
           }
         ]
       }
@@ -1015,8 +1083,14 @@ export default {
     doUpdateStoreForAll(result) {
       this.$store.dispatch('setLastPriorCodeLyrics', {value: result.priorLyrics});
       this.$store.dispatch('setLastPriorCodeKaraoke', {value: result.priorKaraoke});
+      this.$store.dispatch('setLastThreadId', {value: result.threadId});
       let songsIds = this.$store.getters.getSongsDigestIds.join(';')
-      this.$store.dispatch('collectStorePromise', {songsIds: songsIds, priorLyrics: result.priorLyrics, priorKaraoke: result.priorKaraoke}).then(data => {
+      this.$store.dispatch('collectStorePromise', {
+        songsIds: songsIds,
+        priorLyrics: result.priorLyrics,
+        priorKaraoke: result.priorKaraoke,
+        threadId: result.threadId
+      }).then(data => {
         let result = JSON.parse(data);
         this.customConfirmParams = {
           isAlert: true,

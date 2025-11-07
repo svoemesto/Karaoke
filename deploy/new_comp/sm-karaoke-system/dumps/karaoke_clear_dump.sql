@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict wbEFCRzTze873p33nyLrfKX0KGKceU6WEPjM4ij4UdDdjsszWs2mqYGlMerjts4
+\restrict GHLuWL5QE9fne1qzq9pe9LVpxxmtnxci1XU9MrqWH4CgUicNLTJy2NLsyoTOk0A
 
 -- Dumped from database version 16.10 (Debian 16.10-1.pgdg13+1)
 -- Dumped by pg_dump version 16.10 (Debian 16.10-1.pgdg13+1)
@@ -25,9 +25,9 @@ SET row_security = off;
 CREATE DATABASE karaoke WITH TEMPLATE = template0 ENCODING = 'UTF8' LOCALE_PROVIDER = libc LOCALE = 'en_US.utf8';
 
 
-\unrestrict wbEFCRzTze873p33nyLrfKX0KGKceU6WEPjM4ij4UdDdjsszWs2mqYGlMerjts4
+\unrestrict GHLuWL5QE9fne1qzq9pe9LVpxxmtnxci1XU9MrqWH4CgUicNLTJy2NLsyoTOk0A
 \connect karaoke
-\restrict wbEFCRzTze873p33nyLrfKX0KGKceU6WEPjM4ij4UdDdjsszWs2mqYGlMerjts4
+\restrict GHLuWL5QE9fne1qzq9pe9LVpxxmtnxci1XU9MrqWH4CgUicNLTJy2NLsyoTOk0A
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -133,6 +133,36 @@ BEGIN
         COALESCE(NEW.picture_full, '') ||
         COALESCE(NEW.picture_preview, '')
     );
+    RETURN NEW;
+END;
+$$;
+
+
+--
+-- Name: update_tbl_processes_recordhash(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.update_tbl_processes_recordhash() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    NEW.recordhash = md5(
+                                                                    COALESCE(NEW.id::TEXT, '') ||
+                                                                    COALESCE(NEW.process_name, '') ||
+                                                                    COALESCE(NEW.process_status, '') ||
+                                                                    COALESCE(NEW.process_order::TEXT, '') ||
+                                                                    COALESCE(NEW.process_priority::TEXT, '') ||
+                                                                    COALESCE(NEW.process_command, '') ||
+                                                                    COALESCE(NEW.process_args, '') ||
+                                                                    COALESCE(NEW.process_description, '') ||
+                                                                    COALESCE(NEW.settings_id::TEXT, '') ||
+                                                                    COALESCE(NEW.process_type, '') ||
+                                                                    COALESCE(NEW.process_start::TEXT, '') ||
+                                                                    COALESCE(NEW.process_end::TEXT, '') ||
+                                                                    COALESCE(NEW.process_prioritet::TEXT, '') ||
+                                                                    COALESCE(NEW.without_control::TEXT, '') ||
+                                                                    COALESCE(NEW.thread_id::TEXT, '')
+        );
     RETURN NEW;
 END;
 $$;
@@ -298,6 +328,27 @@ END;
 $$;
 
 
+--
+-- Name: update_tbl_users_recordhash(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.update_tbl_users_recordhash() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    NEW.recordhash = md5(
+                                COALESCE(NEW.id::TEXT, '') ||
+                                COALESCE(NEW.login, '') ||
+                                COALESCE(NEW.password_hash, '') ||
+                                COALESCE(NEW.email, '') ||
+                                COALESCE(NEW.first_name, '') ||
+                                COALESCE(NEW.last_name, '')
+        );
+    RETURN NEW;
+END;
+$$;
+
+
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
@@ -446,7 +497,9 @@ CREATE TABLE public.tbl_processes (
     process_time_passed_str character varying,
     process_time_left_ms integer,
     process_time_left_str character varying,
-    without_control boolean DEFAULT false
+    without_control boolean DEFAULT false,
+    thread_id integer DEFAULT 0 NOT NULL,
+    recordhash character varying(32)
 );
 
 
@@ -661,6 +714,37 @@ ALTER SEQUENCE public.tbl_settings_sync_id_seq OWNED BY public.tbl_settings_sync
 
 
 --
+-- Name: tbl_users; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.tbl_users (
+    id integer NOT NULL,
+    login character varying(255) DEFAULT ''::character varying NOT NULL,
+    password_hash character varying(255) DEFAULT ''::character varying NOT NULL,
+    email character varying(255) DEFAULT ''::character varying NOT NULL,
+    first_name character varying(255) DEFAULT ''::character varying NOT NULL,
+    last_name character varying(255) DEFAULT ''::character varying NOT NULL,
+    last_update timestamp without time zone DEFAULT now(),
+    recordhash character varying(32),
+    groups character varying(255) DEFAULT ''::character varying NOT NULL
+);
+
+
+--
+-- Name: tbl_users_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.tbl_users ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.tbl_users_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
 -- Name: tbl_uuids; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -799,6 +883,13 @@ CREATE INDEX idx_tbl_pictures_sync_recordhash ON public.tbl_pictures_sync USING 
 
 
 --
+-- Name: idx_tbl_processes_recordhash; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_tbl_processes_recordhash ON public.tbl_processes USING btree (recordhash);
+
+
+--
 -- Name: idx_tbl_settings_recordhash; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -810,6 +901,13 @@ CREATE INDEX idx_tbl_settings_recordhash ON public.tbl_settings USING btree (rec
 --
 
 CREATE INDEX idx_tbl_settings_sync_recordhash ON public.tbl_settings_sync USING btree (recordhash);
+
+
+--
+-- Name: idx_tbl_users_recordhash; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_tbl_users_recordhash ON public.tbl_users USING btree (recordhash);
 
 
 --
@@ -1051,6 +1149,13 @@ CREATE INDEX tbl_settings_status_process_lyrics_index ON public.tbl_settings USI
 
 
 --
+-- Name: tbl_users_last_update_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX tbl_users_last_update_index ON public.tbl_users USING btree (last_update);
+
+
+--
 -- Name: tbl_events update_last_updated_events_trigger; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -1069,6 +1174,13 @@ CREATE TRIGGER update_last_updated_process_trigger BEFORE UPDATE ON public.tbl_p
 --
 
 CREATE TRIGGER update_last_updated_trigger BEFORE UPDATE ON public.tbl_settings FOR EACH ROW EXECUTE FUNCTION public.update_last_updated();
+
+
+--
+-- Name: tbl_users update_last_updated_users_trigger; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_last_updated_users_trigger BEFORE UPDATE ON public.tbl_users FOR EACH ROW EXECUTE FUNCTION public.update_last_updated();
 
 
 --
@@ -1100,6 +1212,13 @@ CREATE TRIGGER update_recordhash_pictures_trigger BEFORE INSERT OR UPDATE ON pub
 
 
 --
+-- Name: tbl_processes update_recordhash_processes_trigger; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_recordhash_processes_trigger BEFORE INSERT OR UPDATE ON public.tbl_processes FOR EACH ROW EXECUTE FUNCTION public.update_tbl_processes_recordhash();
+
+
+--
 -- Name: tbl_settings_sync update_recordhash_settings_synctrigger; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -1114,6 +1233,13 @@ CREATE TRIGGER update_recordhash_trigger BEFORE INSERT OR UPDATE ON public.tbl_s
 
 
 --
+-- Name: tbl_users update_recordhash_users_trigger; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_recordhash_users_trigger BEFORE INSERT OR UPDATE ON public.tbl_users FOR EACH ROW EXECUTE FUNCTION public.update_tbl_users_recordhash();
+
+
+--
 -- Name: tbl_settings_sync update_sync_last_updated_trigger; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -1124,5 +1250,5 @@ CREATE TRIGGER update_sync_last_updated_trigger BEFORE UPDATE ON public.tbl_sett
 -- PostgreSQL database dump complete
 --
 
-\unrestrict wbEFCRzTze873p33nyLrfKX0KGKceU6WEPjM4ij4UdDdjsszWs2mqYGlMerjts4
+\unrestrict GHLuWL5QE9fne1qzq9pe9LVpxxmtnxci1XU9MrqWH4CgUicNLTJy2NLsyoTOk0A
 

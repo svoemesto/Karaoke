@@ -9,6 +9,7 @@ export default {
         lastPriorKaraoke: '',
         lastPriorChords: '',
         lastPriorMelody: '',
+        lastThreadId: '0',
         lastPriorCodeLyrics: '',
         lastPriorCodeKaraoke: '',
         lastPriorDemucs: '',
@@ -328,6 +329,9 @@ export default {
         },
         getLastPriorMelody(state) {
             return state.lastPriorMelody;
+        },
+        getLastThreadId(state) {
+            return state.lastThreadId;
         },
         getLastPriorCodeLyrics(state) {
             return state.lastPriorCodeLyrics;
@@ -925,6 +929,17 @@ export default {
             }
             state.lastPriorMelody = value;
         },
+        setLastThreadId(state, value) {
+            if (state.lastThreadId !== undefined && state.lastThreadId !== null && value !== undefined && value !== null) {
+                const key = 'lastThreadId';
+                promisedXMLHttpRequest({
+                    method: 'POST',
+                    url: "/api/setwebvueprop",
+                    params: {key: key, value: value}
+                });
+            }
+            state.lastThreadId = value;
+        },
         setLastPriorCodeLyrics(state, value) {
             if (state.lastPriorCodeLyrics !== undefined && state.lastPriorCodeLyrics !== null && value !== undefined && value !== null) {
                 const key = 'lastPriorCodeLyrics';
@@ -1406,6 +1421,9 @@ export default {
         setLastPriorMelody(ctx, payload) {
             ctx.commit('setLastPriorMelody', payload.value);
         },
+        setLastThreadId(ctx, payload) {
+            ctx.commit('setLastThreadId', payload.value);
+        },
         setLastPriorCodeLyrics(ctx, payload) {
             ctx.commit('setLastPriorCodeLyrics', payload.value);
         },
@@ -1606,22 +1624,38 @@ export default {
             return promisedXMLHttpRequest(request);
         },
         createSymlinksPromise(ctx, payload) {
-            let params = { id: ctx.state.currentSongId, prior: payload.prior};
+            let params = {
+                id: ctx.state.currentSongId,
+                prior: payload.prior,
+                threadId: payload.threadId
+            };
             let request = { method: 'POST', url: "/api/song/symlink", params: params };
             return promisedXMLHttpRequest(request);
         },
         createDemucs2Promise(ctx, payload) {
-            let params = { id: ctx.state.currentSongId, prior: payload.prior };
+            let params = {
+                id: ctx.state.currentSongId,
+                prior: payload.prior,
+                threadId: payload.threadId
+            };
             let request = { method: 'POST', url: "/api/song/demucs2", params: params };
             return promisedXMLHttpRequest(request);
         },
         createDemucs5Promise(ctx, payload) {
-            let params = { id: ctx.state.currentSongId, prior: payload.prior };
+            let params = {
+                id: ctx.state.currentSongId,
+                prior: payload.prior,
+                threadId: payload.threadId
+            };
             let request = { method: 'POST', url: "/api/song/demucs5", params: params };
             return promisedXMLHttpRequest(request);
         },
         createSheetsagePromise(ctx, payload) {
-            let params = { id: ctx.state.currentSongId, prior: payload.prior };
+            let params = {
+                id: ctx.state.currentSongId,
+                prior: payload.prior,
+                threadId: payload.threadId
+            };
             let request = { method: 'POST', url: "/api/song/sheetsage", params: params };
             return promisedXMLHttpRequest(request);
         },
@@ -1691,17 +1725,32 @@ export default {
             return promisedXMLHttpRequest(request);
         },
         createMP3KaraokePromise(ctx, payload) {
-            let params = { id: ctx.state.currentSongId, prior: payload.prior };
+            let params = {
+                id: ctx.state.currentSongId,
+                prior: payload.prior,
+                threadId: payload.threadId
+            };
             let request = { method: 'POST', url: "/api/song/mp3karaoke", params: params };
             return promisedXMLHttpRequest(request);
         },
         createMP3LyricsPromise(ctx, payload) {
-            let params = { id: ctx.state.currentSongId, prior: payload.prior };
+            let params = {
+                id: ctx.state.currentSongId,
+                prior: payload.prior,
+                threadId: payload.threadId
+            };
             let request = { method: 'POST', url: "/api/song/mp3lyrics", params: params };
             return promisedXMLHttpRequest(request);
         },
         createKaraokePromise(ctx, payload) {
-            let params = { id: ctx.state.currentSongId, priorLyrics: payload.priorLyrics, priorKaraoke: payload.priorKaraoke, priorChords: payload.priorChords, priorMelody: payload.priorMelody };
+            let params = {
+                id: ctx.state.currentSongId,
+                priorLyrics: payload.priorLyrics,
+                priorKaraoke: payload.priorKaraoke,
+                priorChords: payload.priorChords,
+                priorMelody: payload.priorMelody,
+                threadId: payload.threadId
+            };
             let request = { method: 'POST', url: "/api/song/createkaraoke", params: params };
             return promisedXMLHttpRequest(request);
         },
@@ -1721,7 +1770,12 @@ export default {
             return promisedXMLHttpRequest(request);
         },
         collectStorePromise(ctx, payload) {
-            let params = { songsIds: payload.songsIds ? payload.songsIds : '', priorLyrics: payload.priorLyrics, priorKaraoke: payload.priorKaraoke };
+            let params = {
+                songsIds: payload.songsIds ? payload.songsIds : '',
+                priorLyrics: payload.priorLyrics,
+                priorKaraoke: payload.priorKaraoke,
+                threadId: payload.threadId,
+            };
             let request = { method: 'POST', url: "/api/utils/collectstore", params: params };
             return promisedXMLHttpRequest(request);
         },
@@ -1837,37 +1891,68 @@ export default {
             return promisedXMLHttpRequest(request);
         },
         createKaraokeForAllPromise(ctx, payload) {
-            let params = { songsIds: ctx.getters.getSongsDigestIds.join(';'), priorLyrics: payload.priorLyrics, priorKaraoke: payload.priorKaraoke, priorChords: payload.priorChords, priorMelody: payload.priorMelody };
+            let params = {
+                songsIds: ctx.getters.getSongsDigestIds.join(';'),
+                priorLyrics: payload.priorLyrics,
+                priorKaraoke: payload.priorKaraoke,
+                priorChords: payload.priorChords,
+                priorMelody: payload.priorMelody,
+                threadId: payload.threadId
+            };
             let request = { method: 'POST', url: "/api/songs/createkaraokeall", params: params };
             return promisedXMLHttpRequest(request);
         },
         createDemucs2ForAllPromise(ctx, payload) {
-            let params = { songsIds: ctx.getters.getSongsDigestIds.join(';'), prior: payload.prior };
+            let params = {
+                songsIds: ctx.getters.getSongsDigestIds.join(';'),
+                prior: payload.prior,
+                threadId: payload.threadId
+            };
             let request = { method: 'POST', url: "/api/songs/createdemucs2all", params: params };
             return promisedXMLHttpRequest(request);
         },
         createDemucs5ForAllPromise(ctx, payload) {
-            let params = { songsIds: ctx.getters.getSongsDigestIds.join(';'), prior: payload.prior };
+            let params = {
+                songsIds: ctx.getters.getSongsDigestIds.join(';'),
+                prior: payload.prior,
+                threadId: payload.threadId
+            };
             let request = { method: 'POST', url: "/api/songs/createdemucs5all", params: params };
             return promisedXMLHttpRequest(request);
         },
         createSheetsageForAllPromise(ctx, payload) {
-            let params = { songsIds: ctx.getters.getSongsDigestIds.join(';'), prior: payload.prior };
+            let params = {
+                songsIds: ctx.getters.getSongsDigestIds.join(';'),
+                prior: payload.prior,
+                threadId: payload.threadId
+            };
             let request = { method: 'POST', url: "/api/songs/sheetsageall", params: params };
             return promisedXMLHttpRequest(request);
         },
         createMP3KaraokeForAllPromise(ctx, payload) {
-            let params = { songsIds: ctx.getters.getSongsDigestIds.join(';'), prior: payload.prior };
+            let params = {
+                songsIds: ctx.getters.getSongsDigestIds.join(';'),
+                prior: payload.prior,
+                threadId: payload.threadId
+            };
             let request = { method: 'POST', url: "/api/songs/createmp3karaokeall", params: params };
             return promisedXMLHttpRequest(request);
         },
         createMP3LyricsForAllPromise(ctx, payload) {
-            let params = { songsIds: ctx.getters.getSongsDigestIds.join(';'), prior: payload.prior };
+            let params = {
+                songsIds: ctx.getters.getSongsDigestIds.join(';'),
+                prior: payload.prior,
+                threadId: payload.threadId
+            };
             let request = { method: 'POST', url: "/api/songs/createmp3lyricsall", params: params };
             return promisedXMLHttpRequest(request);
         },
         createSymlinksForAllPromise(ctx, payload) {
-            let params = { songsIds: ctx.getters.getSongsDigestIds.join(';'), prior: payload.prior };
+            let params = {
+                songsIds: ctx.getters.getSongsDigestIds.join(';'),
+                prior: payload.prior,
+                threadId: payload.threadId
+            };
             let request = { method: 'POST', url: "/api/songs/createsymlinksall", params: params };
             return promisedXMLHttpRequest(request);
         },

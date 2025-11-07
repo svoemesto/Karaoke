@@ -1019,7 +1019,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     // Получение списка процессов по списку id
     @PostMapping("/processes/ids")
     @ResponseBody
-    fun apisProcessesByIds(@RequestParam ids: List<Long>): List<ProcessesDTO> {
+    fun apisProcessesByIds(@RequestParam ids: List<Long>): List<KaraokeProcessDTO> {
         return KaraokeProcess.loadList(mapOf(Pair("ids", ids.joinToString(","))), WORKING_DATABASE).map { it.toDTO() }
     }
 
@@ -1818,10 +1818,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
                              @RequestParam(required = false) priorKaraoke: String? = "1",
                              @RequestParam(required = false) priorChords: String? = "",
                              @RequestParam(required = false) priorMelody: String? = "",
-//                             @RequestParam(required = false) priorLyricsVk: String? = "",
-//                             @RequestParam(required = false) priorKaraokeVk: String? = "",
-//                             @RequestParam(required = false) priorChordsVk: String? = "",
-//                             @RequestParam(required = false) priorMelodyVk: String? = "",
+                             @RequestParam(required = false) threadId: String? = "0",
     ): Boolean {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
 
@@ -1836,49 +1833,27 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
             val createKaraoke = priorKaraoke != "" && priorKaraoke != null
             val createChords = priorChords != "" && priorChords != null
             val createMelody = priorMelody != "" && priorMelody != null
-//            val createLyricsVk = priorLyricsVk != "" && priorLyricsVk != null
-//            val createKaraokeVk = priorKaraokeVk != "" && priorKaraokeVk != null
-//            val createChordsVk = priorChordsVk != "" && priorChordsVk != null
-//            val createMelodyVk = priorMelodyVk != "" && priorMelodyVk != null
 
             settings.createKaraoke(
                 createLyrics = createLyrics,
                 createKaraoke = createKaraoke,
                 createChords = createChords,
                 createMelody = createMelody,
-//                createLyricsVk = createLyricsVk,
-//                createKaraokeVk = createKaraokeVk,
-//                createChordsVk = createChordsVk,
-//                createMelodyVk = createMelodyVk,
             )
             if (createLyrics) {
-                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, priorLyrics.toInt())
-//                if (!createLyricsVk && settings.getSongDurationVideoMs() < 61_100) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICSVK, true, priorLyrics.toInt())
+                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, priorLyrics.toInt(), threadId = threadId?.toInt() ?: 0)
             }
             if (createKaraoke) {
-                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, priorKaraoke.toInt())
-//                if (!createKaraokeVk && settings.getSongDurationVideoMs() < 61_100) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKEVK, true, priorKaraoke.toInt())
+                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, priorKaraoke.toInt(), threadId = threadId?.toInt() ?: 0)
             }
             if (createChords) {
-//                if (!File(settings.drumsNameFlac).exists() || !File(settings.bassNameFlac).exists()) {
-//                    KaraokeProcess.createProcess(settings, KaraokeProcessTypes.DEMUCS5, true, priorChords!!.toInt())
-//                }
-                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDS, true, priorChords.toInt())
-//                if (!createChordsVk && settings.getSongDurationVideoMs() < 61_100) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDSVK, true, priorChords.toInt())
+
+                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDS, true, priorChords.toInt(), threadId = threadId?.toInt() ?: 0)
             }
             if (createMelody) {
-                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_TABS, true, priorMelody.toInt())
-//                if (!createMelodyVk && settings.getSongDurationVideoMs() < 61_100) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_TABSVK, true, priorMelody.toInt())
+                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_TABS, true, priorMelody.toInt(), threadId = threadId?.toInt() ?: 0)
             }
-//            if (createLyricsVk) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICSVK, true, priorLyricsVk!!.toInt())
-//            if (createKaraokeVk) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKEVK, true, priorKaraokeVk!!.toInt())
-//            if (createChordsVk) {
-//                if (!File(settings.drumsNameFlac).exists() || !File(settings.bassNameFlac).exists()) {
-//                    KaraokeProcess.createProcess(settings, KaraokeProcessTypes.DEMUCS5, true, priorChords!!.toInt())
-//                }
-//                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDSVK, true, priorChordsVk!!.toInt())
-//            }
-//            if (createMelodyVk) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_TABSVK, true, priorMelodyVk!!.toInt())
+
             type = "info"
             body = "Создание караоке для песни «${it.songName}» прошло успешно."
             result = true
@@ -1895,10 +1870,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
                                  @RequestParam(required = false) priorKaraoke: String? = "10",
                                  @RequestParam(required = false) priorChords: String? = "",
                                  @RequestParam(required = false) priorMelody: String? = "",
-//                                 @RequestParam(required = false) priorLyricsVk: String? = "",
-//                                 @RequestParam(required = false) priorKaraokeVk: String? = "",
-//                                 @RequestParam(required = false) priorChordsVk: String? = "",
-//                                 @RequestParam(required = false) priorMelodyVk: String? = "",
+                                 @RequestParam(required = false) threadId: String? = "0",
     ) {
         var result = false
         songsIds.let {
@@ -1910,41 +1882,26 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
                     val createKaraoke = priorKaraoke != "" && priorKaraoke != null
                     val createChords = priorChords != "" && priorChords != null
                     val createMelody = priorMelody != "" && priorMelody != null
-//                    val createLyricsVk = priorLyricsVk != "" && priorLyricsVk != null
-//                    val createKaraokeVk = priorKaraokeVk != "" && priorKaraokeVk != null
-//                    val createChordsVk = priorChordsVk != "" && priorChordsVk != null
-//                    val createMelodyVk = priorMelodyVk != "" && priorMelodyVk != null
 
                     settings.createKaraoke(
                         createLyrics = createLyrics,
                         createKaraoke = createKaraoke,
                         createChords = createChords,
                         createMelody = createMelody,
-//                        createLyricsVk = createLyricsVk,
-//                        createKaraokeVk = createKaraokeVk,
-//                        createMelodyVk = createMelodyVk
                     )
 
                     if (createLyrics) {
-                        KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, priorLyrics.toInt())
-//                        if (!createLyricsVk && settings.getSongDurationVideoMs() < 61_100) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICSVK, true, priorLyrics.toInt())
+                        KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICS, true, priorLyrics.toInt(), threadId = threadId?.toInt() ?: 0)
                     }
                     if (createKaraoke) {
-                        KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, priorKaraoke.toInt())
-//                        if (!createKaraokeVk && settings.getSongDurationVideoMs() < 61_100) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKEVK, true, priorKaraoke.toInt())
+                        KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKE, true, priorKaraoke.toInt(), threadId = threadId?.toInt() ?: 0)
                     }
                     if (createChords) {
-                        KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDS, true, priorChords.toInt())
-//                        if (!createChordsVk && settings.getSongDurationVideoMs() < 61_100) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDSVK, true, priorChords.toInt())
+                        KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDS, true, priorChords.toInt(), threadId = threadId?.toInt() ?: 0)
                     }
                     if (createMelody) {
-                        KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_TABS, true, priorMelody.toInt())
-//                        if (!createMelodyVk && settings.getSongDurationVideoMs() < 61_100) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_TABSVK, true, priorMelody.toInt())
+                        KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_TABS, true, priorMelody.toInt(), threadId = threadId?.toInt() ?: 0)
                     }
-//                    if (createLyricsVk) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_LYRICSVK, true, priorLyricsVk!!.toInt())
-//                    if (createKaraokeVk) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_KARAOKEVK, true, priorKaraokeVk!!.toInt())
-//                    if (createChordsVk) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_CHORDSVK, true, priorChordsVk!!.toInt())
-//                    if (createMelodyVk) KaraokeProcess.createProcess(settings, KaraokeProcessTypes.MELT_TABSVK, true, priorMelodyVk!!.toInt())
                 }
                 result = true
             }
@@ -1967,11 +1924,11 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     // DEMUCS2 для песни
     @PostMapping("/song/demucs2")
     @ResponseBody
-    fun doProcessDemucs2(@RequestParam id: Long, @RequestParam(required = false) prior: Int = -1) {
+    fun doProcessDemucs2(@RequestParam id: Long, @RequestParam(required = false) prior: Int = -1, @RequestParam(required = false) threadId: String? = "0") {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         settings?.let {
 //            if (it.getAudioAspectRate() != "48000") KaraokeProcess.createProcess(settings, KaraokeProcessTypes.RECODE_48000, true, prior)
-            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.DEMUCS2, true, prior)
+            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.DEMUCS2, true, prior, threadId = threadId?.toInt() ?: 0)
             SNS.send(SseNotification.message(Message(
                 type = "info",
                 head = "Создание DEMUCS2",
@@ -1989,15 +1946,14 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     // DEMUCS2 для всех
     @PostMapping("/songs/createdemucs2all")
     @ResponseBody
-    fun getSongsCreateDemucs2All(@RequestParam songsIds: String, @RequestParam(required = false) prior: Int = -1) {
+    fun getSongsCreateDemucs2All(@RequestParam songsIds: String, @RequestParam(required = false) prior: Int = -1, @RequestParam(required = false) threadId: String? = "0") {
         var result = false
         songsIds.let {
             val ids = songsIds.split(";").map { it }.filter { it != "" }.map { it.toLong() }
             ids.forEach { id ->
                 val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
                 settings?.let {
-//                    if (it.getAudioAspectRate() != "48000") KaraokeProcess.createProcess(settings, KaraokeProcessTypes.RECODE_48000, true, prior)
-                    KaraokeProcess.createProcess(settings, KaraokeProcessTypes.DEMUCS2, true, prior)
+                    KaraokeProcess.createProcess(settings, KaraokeProcessTypes.DEMUCS2, true, prior, threadId = threadId?.toInt() ?: 0)
                 }
                 result = true
             }
@@ -2020,11 +1976,11 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     // DEMUCS5 для песни
     @PostMapping("/song/demucs5")
     @ResponseBody
-    fun doProcessDemucs5(@RequestParam id: Long, @RequestParam(required = false) prior: Int = -1) {
+    fun doProcessDemucs5(@RequestParam id: Long, @RequestParam(required = false) prior: Int = -1, @RequestParam(required = false) threadId: String? = "0") {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         settings?.let {
 //            if (it.getAudioAspectRate() != "48000") KaraokeProcess.createProcess(settings, KaraokeProcessTypes.RECODE_48000, true, prior)
-            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.DEMUCS5, true, prior)
+            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.DEMUCS5, true, prior, threadId = threadId?.toInt() ?: 0)
             SNS.send(SseNotification.message(Message(
                 type = "info",
                 head = "Создание DEMUCS5",
@@ -2042,7 +1998,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     // DEMUCS5 для всех
     @PostMapping("/songs/createdemucs5all")
     @ResponseBody
-    fun getSongsCreateDemucs5All(@RequestParam songsIds: String, @RequestParam(required = false) prior: Int = -1) {
+    fun getSongsCreateDemucs5All(@RequestParam songsIds: String, @RequestParam(required = false) prior: Int = -1, @RequestParam(required = false) threadId: String? = "0") {
         var result = false
         songsIds.let {
             val ids = songsIds.split(";").map { it }.filter { it != "" }.map { it.toLong() }
@@ -2050,7 +2006,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
                 val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
                 settings?.let {
 //                    if (it.getAudioAspectRate() != "48000") KaraokeProcess.createProcess(settings, KaraokeProcessTypes.RECODE_48000, true, prior)
-                    KaraokeProcess.createProcess(settings, KaraokeProcessTypes.DEMUCS5, true, prior)
+                    KaraokeProcess.createProcess(settings, KaraokeProcessTypes.DEMUCS5, true, prior, threadId = threadId?.toInt() ?: 0)
                 }
                 result = true
             }
@@ -2073,11 +2029,11 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     // SHEETSAGE для песни
     @PostMapping("/song/sheetsage")
     @ResponseBody
-    fun doProcessSheetsage(@RequestParam id: Long, @RequestParam(required = false) prior: Int = -1) {
+    fun doProcessSheetsage(@RequestParam id: Long, @RequestParam(required = false) prior: Int = -1, @RequestParam(required = false) threadId: String? = "0") {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
         settings?.let {
             if (File(it.pathToFileSheetsageMIDI).exists()) return
-            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.SHEETSAGE, true, prior)
+            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.SHEETSAGE, true, prior, threadId = threadId?.toInt() ?: 0)
             SNS.send(SseNotification.message(Message(
                 type = "info",
                 head = "Создание SHEETSAGE",
@@ -2095,7 +2051,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     // SHEETSAGE для всех
     @PostMapping("/songs/sheetsageall")
     @ResponseBody
-    fun getSongsCreateSheetsageAll(@RequestParam songsIds: String, @RequestParam(required = false) prior: Int = -1) {
+    fun getSongsCreateSheetsageAll(@RequestParam songsIds: String, @RequestParam(required = false) prior: Int = -1, @RequestParam(required = false) threadId: String? = "0") {
         var result = false
         songsIds.let {
             val ids = songsIds.split(";").map { it }.filter { it != "" }.map { it.toLong() }
@@ -2103,7 +2059,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
                 val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
                 settings?.let {
                     if (!File(it.pathToFileSheetsageMIDI).exists()) {
-                        KaraokeProcess.createProcess(settings, KaraokeProcessTypes.SHEETSAGE, true, prior)
+                        KaraokeProcess.createProcess(settings, KaraokeProcessTypes.SHEETSAGE, true, prior, threadId = threadId?.toInt() ?: 0)
                     }
                 }
                 result = true
@@ -2135,9 +2091,9 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     // Создаём MP3 KARAOKE для песни
     @PostMapping("/song/mp3karaoke")
     @ResponseBody
-    fun doMP3Karaoke(@RequestParam id: Long, @RequestParam(required = false) prior: Int = -1) {
+    fun doMP3Karaoke(@RequestParam id: Long, @RequestParam(required = false) prior: Int = -1, @RequestParam(required = false) threadId: String? = "0") {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
-        settings?.doMP3Karaoke(prior)
+        settings?.doMP3Karaoke(prior, threadId = threadId?.toInt() ?: 0)
         SNS.send(SseNotification.message(Message(
             type = "info",
             head = "Создание MP3 KARAOKE",
@@ -2148,13 +2104,13 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     // Создаём MP3 KARAOKE для всех
     @PostMapping("/songs/createmp3karaokeall")
     @ResponseBody
-    fun getSongsCreateMP3KaraokeAll(@RequestParam songsIds: String, @RequestParam(required = false) prior: Int = -1) {
+    fun getSongsCreateMP3KaraokeAll(@RequestParam songsIds: String, @RequestParam(required = false) prior: Int = -1, @RequestParam(required = false) threadId: String? = "0") {
         var result = false
         songsIds.let {
             val ids = songsIds.split(";").map { it }.filter { it != "" }.map { it.toLong() }
             ids.forEach { id ->
                 val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
-                settings?.doMP3Karaoke(prior)
+                settings?.doMP3Karaoke(prior, threadId = threadId?.toInt() ?: 0)
                 result = true
             }
         }
@@ -2176,9 +2132,9 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     // Создаём MP3 LYRICS для песни
     @PostMapping("/song/mp3lyrics")
     @ResponseBody
-    fun doMP3Lyrics(@RequestParam id: Long, @RequestParam(required = false) prior: Int = -1) {
+    fun doMP3Lyrics(@RequestParam id: Long, @RequestParam(required = false) prior: Int = -1, @RequestParam(required = false) threadId: String? = "0") {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
-        settings?.doMP3Lyrics(prior)
+        settings?.doMP3Lyrics(prior, threadId = threadId?.toInt() ?: 0)
         SNS.send(SseNotification.message(Message(
             type = "info",
             head = "Создание MP3 LYRICS",
@@ -2189,13 +2145,13 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     // Создаём MP3 LYRICS для всех
     @PostMapping("/songs/createmp3lyricsall")
     @ResponseBody
-    fun getSongsCreateMP3LyricsAll(@RequestParam songsIds: String, @RequestParam(required = false) prior: Int = -1) {
+    fun getSongsCreateMP3LyricsAll(@RequestParam songsIds: String, @RequestParam(required = false) prior: Int = -1, @RequestParam(required = false) threadId: String? = "0") {
         var result = false
         songsIds.let {
             val ids = songsIds.split(";").map { it }.filter { it != "" }.map { it.toLong() }
             ids.forEach { id ->
                 val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
-                settings?.doMP3Lyrics(prior)
+                settings?.doMP3Lyrics(prior, threadId = threadId?.toInt() ?: 0)
                 result = true
             }
         }
@@ -2217,9 +2173,9 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     // Создаём SYMLINKs для песни
     @PostMapping("/song/symlink")
     @ResponseBody
-    fun doSymlink(@RequestParam id: Long, @RequestParam(required = false) prior: Int = -1) {
+    fun doSymlink(@RequestParam id: Long, @RequestParam(required = false) prior: Int = -1, @RequestParam(required = false) threadId: String? = "0") {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
-        settings?.doSymlink(prior)
+        settings?.doSymlink(prior, threadId = threadId?.toInt() ?: 0)
         SNS.send(SseNotification.message(Message(
             type = "info",
             head = "Создание SYMLINK",
@@ -2410,13 +2366,13 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     // Создаём SYMLINKs для всех
     @PostMapping("/songs/createsymlinksall")
     @ResponseBody
-    fun getSongsCreateSymlinksAll(@RequestParam songsIds: String, @RequestParam(required = false) prior: Int = -1) {
+    fun getSongsCreateSymlinksAll(@RequestParam songsIds: String, @RequestParam(required = false) prior: Int = -1, @RequestParam(required = false) threadId: String? = "0") {
         var result = false
         songsIds.let {
             val ids = songsIds.split(";").map { it }.filter { it != "" }.map { it.toLong() }
             ids.forEach { id ->
                 val settings = Settings.loadFromDbById(id, WORKING_DATABASE)
-                settings?.doSymlink(prior)
+                settings?.doSymlink(prior, threadId = threadId?.toInt() ?: 0)
                 result = true
             }
         }
@@ -2445,7 +2401,8 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
         @RequestParam smartCopySongResolution: String,
         @RequestParam(required = false) smartCopyCreateSubfoldersAuthors: Boolean?,
         @RequestParam(required = false) smartCopyRenameTemplate: String?,
-        @RequestParam smartCopyPath: String
+        @RequestParam smartCopyPath: String,
+        @RequestParam(required = false) threadId: String? = "0"
     ) {
         var result = false
         val versions = if (smartCopySongVersion == "ALL") {
@@ -2467,6 +2424,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
                             scCreateSubfoldersAuthors = smartCopyCreateSubfoldersAuthors ?: false,
                             scRenameTemplate = smartCopyRenameTemplate ?: "",
                             scPath = smartCopyPath,
+                            threadId = threadId?.toInt() ?: 0
                         )
                     }
                 }
@@ -2665,7 +2623,8 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     @ResponseBody
     fun doCollectStore(@RequestParam(required = false) songsIds: String = "",
                        @RequestParam(required = false) priorLyrics: Int = 10,
-                       @RequestParam(required = false) priorKaraoke: Int = 10): Any {
+                       @RequestParam(required = false) priorKaraoke: Int = 10,
+                       @RequestParam(required = false) threadId: String? = "0"): Any {
         val settingsList = if (songsIds == "") {
             Settings.loadListFromDb(database = WORKING_DATABASE)
         } else {
@@ -2679,7 +2638,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
         }
 
         val (countCopy, countCode) = collectDoneFilesToStoreFolderAndCreate720pForAllUncreated(
-            settingsList = settingsList, priorLyrics = priorLyrics, priorKaraoke = priorKaraoke)
+            settingsList = settingsList, priorLyrics = priorLyrics, priorKaraoke = priorKaraoke, threadId = threadId?.toInt() ?: 0)
         SNS.send(SseNotification.message(Message(
             type = "info",
             head = "Обновление хранилища",

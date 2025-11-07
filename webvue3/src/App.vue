@@ -335,6 +335,7 @@ export default {
     this.$store.dispatch('setLastPriorKaraoke', { value: await this.$store.getters.getWebvueProp('lastPriorKaraoke', '0') });
     this.$store.dispatch('setLastPriorChords', { value: await this.$store.getters.getWebvueProp('lastPriorChords', '') });
     this.$store.dispatch('setLastPriorMelody', { value: await this.$store.getters.getWebvueProp('lastPriorMelody', '') });
+    this.$store.dispatch('setLastThreadId', { value: await this.$store.getters.getWebvueProp('lastThreadId', '0') });
     this.$store.dispatch('setLastPriorCodeLyrics', { value: await this.$store.getters.getWebvueProp('lastPriorCodeLyrics', '10') });
     this.$store.dispatch('setLastPriorCodeKaraoke', { value: await this.$store.getters.getWebvueProp('lastPriorCodeKaraoke', '10') });
     this.$store.dispatch('setLastPriorDemucs', { value: await this.$store.getters.getWebvueProp('lastPriorDemucs', '-1') });

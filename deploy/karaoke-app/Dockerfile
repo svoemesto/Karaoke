@@ -1,5 +1,5 @@
 # ===== Этап: Подготовка Java-приложения =====
-FROM openjdk:17-jdk-slim AS java-app-builder
+FROM openjdk:17-ea-jdk-slim AS java-app-builder
 
 # Аргументы сборки
 ARG VERSION

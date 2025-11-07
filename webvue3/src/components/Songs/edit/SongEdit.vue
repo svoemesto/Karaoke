@@ -1300,6 +1300,13 @@ export default {
             fldValue: this.$store.getters.getLastPriorMelody,
             fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
             fldValueStyle: { width: '80px', textAlign: 'center', borderRadius: '10px'}
+          },
+          {
+            fldName: 'threadId',
+            fldLabel: 'threadId:',
+            fldValue: this.$store.getters.getLastThreadId,
+            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
+            fldValueStyle: { width: '80px', textAlign: 'center', borderRadius: '10px'}
           }
         ]
       }
@@ -1310,7 +1317,14 @@ export default {
       this.$store.dispatch('setLastPriorKaraoke', {value: result.priorKaraoke});
       this.$store.dispatch('setLastPriorChords', {value: result.priorChords});
       this.$store.dispatch('setLastPriorMelody', {value: result.priorMelody});
-      this.$store.dispatch('createKaraokePromise', {priorLyrics: result.priorLyrics, priorKaraoke: result.priorKaraoke, priorChords: result.priorChords, priorMelody: result.priorMelody});
+      this.$store.dispatch('setLastThreadId', {value: result.threadId});
+      this.$store.dispatch('createKaraokePromise', {
+        priorLyrics: result.priorLyrics,
+        priorKaraoke: result.priorKaraoke,
+        priorChords: result.priorChords,
+        priorMelody: result.priorMelody,
+        threadId: result.threadId
+      });
     },
     createDemucs2() {
       this.customConfirmParams = {
@@ -1322,6 +1336,13 @@ export default {
             fldName: 'prior',
             fldLabel: 'Приоритет:',
             fldValue: this.$store.getters.getLastPriorDemucs,
+            fldLabelStyle: { width: '100px', textAlign: 'right', paddingRight: '5px'},
+            fldValueStyle: { width: '80px', textAlign: 'center', borderRadius: '10px'}
+          },
+          {
+            fldName: 'threadId',
+            fldLabel: 'threadId:',
+            fldValue: this.$store.getters.getLastThreadId,
             fldLabelStyle: { width: '100px', textAlign: 'right', paddingRight: '5px'},
             fldValueStyle: { width: '80px', textAlign: 'center', borderRadius: '10px'}
           }
@@ -1341,6 +1362,13 @@ export default {
             fldValue: this.$store.getters.getLastPriorDemucs,
             fldLabelStyle: { width: '100px', textAlign: 'right', paddingRight: '5px'},
             fldValueStyle: { width: '80px', textAlign: 'center', borderRadius: '10px'}
+          },
+          {
+            fldName: 'threadId',
+            fldLabel: 'threadId:',
+            fldValue: this.$store.getters.getLastThreadId,
+            fldLabelStyle: { width: '100px', textAlign: 'right', paddingRight: '5px'},
+            fldValueStyle: { width: '80px', textAlign: 'center', borderRadius: '10px'}
           }
         ]
       }
@@ -1356,6 +1384,13 @@ export default {
             fldName: 'prior',
             fldLabel: 'Приоритет:',
             fldValue: this.$store.getters.getLastPriorDemucs,
+            fldLabelStyle: { width: '100px', textAlign: 'right', paddingRight: '5px'},
+            fldValueStyle: { width: '80px', textAlign: 'center', borderRadius: '10px'}
+          },
+          {
+            fldName: 'threadId',
+            fldLabel: 'threadId:',
+            fldValue: this.$store.getters.getLastThreadId,
             fldLabelStyle: { width: '100px', textAlign: 'right', paddingRight: '5px'},
             fldValueStyle: { width: '80px', textAlign: 'center', borderRadius: '10px'}
           }
@@ -1375,6 +1410,13 @@ export default {
             fldValue: this.$store.getters.getLastPriorDemucs,
             fldLabelStyle: { width: '100px', textAlign: 'right', paddingRight: '5px'},
             fldValueStyle: { width: '80px', textAlign: 'center', borderRadius: '10px'}
+          },
+          {
+            fldName: 'threadId',
+            fldLabel: 'threadId:',
+            fldValue: this.$store.getters.getLastThreadId,
+            fldLabelStyle: { width: '100px', textAlign: 'right', paddingRight: '5px'},
+            fldValueStyle: { width: '80px', textAlign: 'center', borderRadius: '10px'}
           }
         ]
       }
@@ -1392,6 +1434,13 @@ export default {
             fldValue: this.$store.getters.getLastPriorDemucs,
             fldLabelStyle: { width: '100px', textAlign: 'right', paddingRight: '5px'},
             fldValueStyle: { width: '80px', textAlign: 'center', borderRadius: '10px'}
+          },
+          {
+            fldName: 'threadId',
+            fldLabel: 'threadId:',
+            fldValue: this.$store.getters.getLastThreadId,
+            fldLabelStyle: { width: '100px', textAlign: 'right', paddingRight: '5px'},
+            fldValueStyle: { width: '80px', textAlign: 'center', borderRadius: '10px'}
           }
         ]
       }
@@ -1399,23 +1448,43 @@ export default {
     },
     doCreateDemucs2(result) {
       this.$store.dispatch('setLastPriorDemucs', {value: result.prior});
-      this.$store.dispatch('createDemucs2Promise', { prior: result.prior })
+      this.$store.dispatch('setLastThreadId', {value: result.threadId});
+      this.$store.dispatch('createDemucs2Promise', {
+        prior: result.prior,
+        threadId: result.threadId
+      })
     },
     doCreateDemucs5(result) {
       this.$store.dispatch('setLastPriorDemucs', {value: result.prior});
-      this.$store.dispatch('createDemucs5Promise', { prior: result.prior })
+      this.$store.dispatch('setLastThreadId', {value: result.threadId});
+      this.$store.dispatch('createDemucs5Promise', {
+        prior: result.prior,
+        threadId: result.threadId
+      })
     },
     doCreateSheetsage(result) {
       this.$store.dispatch('setLastPriorDemucs', {value: result.prior});
-      this.$store.dispatch('createSheetsagePromise', { prior: result.prior })
+      this.$store.dispatch('setLastThreadId', {value: result.threadId});
+      this.$store.dispatch('createSheetsagePromise', {
+        prior: result.prior,
+        threadId: result.threadId
+      })
     },
     doCreateMP3Karaoke(result) {
       this.$store.dispatch('setLastPriorDemucs', {value: result.prior});
-      this.$store.dispatch('createMP3KaraokePromise', { prior: result.prior })
+      this.$store.dispatch('setLastThreadId', {value: result.threadId});
+      this.$store.dispatch('createMP3KaraokePromise', {
+        prior: result.prior,
+        threadId: result.threadId
+      })
     },
     doCreateMP3Lyrics(result) {
       this.$store.dispatch('setLastPriorDemucs', {value: result.prior});
-      this.$store.dispatch('createMP3LyricsPromise', { prior: result.prior })
+      this.$store.dispatch('setLastThreadId', {value: result.threadId});
+      this.$store.dispatch('createMP3LyricsPromise', {
+        prior: result.prior,
+        threadId: result.threadId
+      })
     },
     createSymlinks() {
       this.customConfirmParams = {
@@ -1429,6 +1498,13 @@ export default {
             fldValue: this.$store.getters.getLastPriorSymlinks,
             fldLabelStyle: { width: '100px', textAlign: 'right', paddingRight: '5px'},
             fldValueStyle: { width: '80px', textAlign: 'center', borderRadius: '10px'}
+          },
+          {
+            fldName: 'threadId',
+            fldLabel: 'threadId:',
+            fldValue: this.$store.getters.getLastThreadId,
+            fldLabelStyle: { width: '100px', textAlign: 'right', paddingRight: '5px'},
+            fldValueStyle: { width: '80px', textAlign: 'center', borderRadius: '10px'}
           }
         ]
       }
@@ -1436,7 +1512,11 @@ export default {
     },
     doCreateSymlinks(result) {
       this.$store.dispatch('setLastPriorSymlinks', {value: result.prior});
-      this.$store.dispatch('createSymlinksPromise', { prior: result.prior } )
+      this.$store.dispatch('setLastThreadId', {value: result.threadId});
+      this.$store.dispatch('createSymlinksPromise', {
+        prior: result.prior,
+        threadId: result.threadId
+      })
     },
     setDateTimeAuthor() {
       this.customConfirmParams = {

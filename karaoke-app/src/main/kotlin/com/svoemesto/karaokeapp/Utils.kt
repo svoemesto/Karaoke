@@ -741,7 +741,7 @@ fun markDublicates(author: String, database: KaraokeConnection): Int {
 }
 
 @Suppress("unused")
-fun create720pForAllUncreated(database: KaraokeConnection) {
+fun create720pForAllUncreated(database: KaraokeConnection, threadId: Int) {
 
     val settingsList = Settings.loadListFromDb(database = database)
     settingsList.forEach { settings ->
@@ -751,7 +751,7 @@ fun create720pForAllUncreated(database: KaraokeConnection) {
                 runCommand(listOf("chmod", "777", settings.pathToFolder720Lyrics))
             }
             println("Создаём задание на кодирование в 720р для файла: ${settings.nameFileLyrics}")
-            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_LYR, true, 1)
+            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_LYR, true, 1, threadId)
         }
         if (File(settings.pathToFileKaraoke).exists() && !File(settings.pathToFile720Karaoke).exists()) {
             if (!File(settings.pathToFolder720Karaoke).exists()) {
@@ -759,7 +759,7 @@ fun create720pForAllUncreated(database: KaraokeConnection) {
                 runCommand(listOf("chmod", "777", settings.pathToFolder720Karaoke))
             }
             println("Создаём задание на кодирование в 720р для файла: ${settings.nameFileKaraoke}")
-            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_KAR, true, 1)
+            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_KAR, true, 1, threadId)
         }
     }
 
@@ -783,7 +783,7 @@ fun copyIfNeed(pathFrom: String, pathTo: String, folderTo: String, log: String =
     return 0
 }
 
-fun collectDoneFilesToStoreFolderAndCreate720pForAllUncreated(settingsList: List<Settings>, priorLyrics: Int = 10, priorKaraoke: Int = 10): Pair<Int, Int> {
+fun collectDoneFilesToStoreFolderAndCreate720pForAllUncreated(settingsList: List<Settings>, priorLyrics: Int = 10, priorKaraoke: Int = 10, threadId: Int): Pair<Int, Int> {
     println("Копирование в хранилище и создание заданий на кодирование в 720р")
 //    val settingsList = Settings.loadListFromDb(database = database)
     var countCopy = 0
@@ -812,7 +812,7 @@ fun collectDoneFilesToStoreFolderAndCreate720pForAllUncreated(settingsList: List
         }
         if (needCreateLyrics720) {
             println("Создаём задание на кодирование в 720р для файла: ${settings.nameFileLyrics}")
-            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_LYR, true, priorLyrics)
+            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_LYR, true, priorLyrics, threadId)
             countCode++
         }
 
@@ -835,7 +835,7 @@ fun collectDoneFilesToStoreFolderAndCreate720pForAllUncreated(settingsList: List
         }
         if (needCreateKaraoke720) {
             println("Создаём задание на кодирование в 720р для файла: ${settings.nameFileKaraoke}")
-            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_KAR, true, priorKaraoke)
+            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.FF_720_KAR, true, priorKaraoke, threadId)
             countCode++
         }
 

@@ -1326,6 +1326,11 @@ class KaraokeProcess(
                         type = context["typesText"] as String
                     }
 
+                    KaraokeProcessTypes.KEY_BPM_FROM_FILE -> {
+                        description = "Key Bpm from file"
+                        args = settings.argsKeyBpmFinder()
+                    }
+
                     else -> {}
                 }
             }

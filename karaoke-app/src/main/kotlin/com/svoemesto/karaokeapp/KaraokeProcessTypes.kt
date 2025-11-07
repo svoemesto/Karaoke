@@ -6,13 +6,6 @@ enum class KaraokeProcessTypes {
     MELT_KARAOKE,
     MELT_CHORDS,
     MELT_TABS,
-//    MELT_LYRICSVK,
-//    MELT_KARAOKEVK,
-//    MELT_CHORDSVK,
-//    MELT_TABSVK,
-//    MELT_LYRICS_BT,
-//    MELT_KARAOKE_BT,
-//    MELT_CHORDS_BT,
     DEMUCS2,
     DEMUCS5,
     SHEETSAGE,
@@ -25,5 +18,6 @@ enum class KaraokeProcessTypes {
     COPY_TO_STORE_KARAOKE,
     FF_MP3_KAR,
     FF_MP3_LYR,
+    KEY_BPM_FROM_FILE
 //    RECODE_48000,
 }

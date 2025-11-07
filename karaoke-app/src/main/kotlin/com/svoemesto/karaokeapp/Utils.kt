@@ -2271,7 +2271,32 @@ fun createScriptForHost(args: List<String>) {
     runCommand(listOf("chmod", "777", fileName))
 }
 
-fun runCommand(args: List<String>, ignoreErrors: Boolean = false): String {
+fun runFunctionWithArgs(args: List<String>): String {
+    var result = ""
+    if (args.size > 1) {
+        val func = args[1]
+        when (func) {
+            "getKeyBpmFromFile" -> {
+                if (args.size > 2) {
+                    Settings.loadFromDbById(id = args[2].toLong(), database = WORKING_DATABASE, sync = false)?.let {settings ->
+                        val (key, bpm) = settings.getKeyBpmFromFile(reFind = false)
+                        settings.fields[SettingField.KEY] = key
+                        settings.fields[SettingField.BPM] = bpm.toString()
+                        settings.saveToDb()
+                    }
+                }
+            }
+            else -> {}
+        }
+    }
+    return result
+}
+
+fun runCommand(args: List<String>, ignoreErrors: Boolean = false, skipRunFunctionWithArgs: Boolean = false): String {
+
+    if (args.isNotEmpty() && args[0] == "runFunctionWithArgs" && !skipRunFunctionWithArgs) {
+        return runFunctionWithArgs(args)
+    }
 
     // Создаем ProcessBuilder сформированным списком аргументов
     val processBuilder = ProcessBuilder(args)

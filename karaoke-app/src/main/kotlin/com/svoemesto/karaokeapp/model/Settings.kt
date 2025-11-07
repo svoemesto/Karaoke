@@ -720,7 +720,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     fun getKeyBpmFromFile(reFind: Boolean = false): Pair<String, Int> {
         if (reFind || !File(pathToFileKeyBpmFinder).exists()) {
             argsKeyBpmFinder().forEach { arg ->
-                runCommand(arg)
+                runCommand(args = arg, skipRunFunctionWithArgs = true)
             }
         }
         if (File(pathToFileKeyBpmFinder).exists()) {
@@ -751,7 +751,8 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             listOf("mv", "$PATH_TO_TEMP_KEYBPMFINDER_FOLDER/result_key_bpm_finder.json", pathToFileKeyBpmFinder.rightFileName()
             ),
             listOf("chmod", "666", pathToFileKeyBpmFinder.rightFileName()),
-            listOf("rm", "-rf", PATH_TO_TEMP_KEYBPMFINDER_FOLDER)
+            listOf("rm", "-rf", PATH_TO_TEMP_KEYBPMFINDER_FOLDER),
+            listOf("runFunctionWithArgs", "getKeyBpmFromFile", id.toString())
         )
     }
     fun argsDemucs2(): List<List<String>> {
@@ -4784,12 +4785,43 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                             settings.fields[SettingField.ALBUM] = albumStr
                             settings.fields[SettingField.TRACK] = numberStr
                             settings.fields[SettingField.AUTHOR] = authorStr
-                            val (key, bpm) = settings.getKeyBpmFromFile()
-                            settings.fields[SettingField.KEY] = key
-                            settings.fields[SettingField.BPM] = bpm.toString()
+//                            val (key, bpm) = settings.getKeyBpmFromFile()
+//                            settings.fields[SettingField.KEY] = key
+//                            settings.fields[SettingField.BPM] = bpm.toString()
                             settings.saveToDb()
                             result.add(settings)
 
+                            KaraokeProcess.createProcess(
+                                settings = settings,
+                                action = KaraokeProcessTypes.KEY_BPM_FROM_FILE,
+                                doWait = true,
+                                prior = -1,
+                                threadId = 1
+                            )
+
+                            KaraokeProcess.createProcess(
+                                settings = settings,
+                                action = KaraokeProcessTypes.DEMUCS2,
+                                doWait = true,
+                                prior = -1,
+                                threadId = 1
+                            )
+
+                            KaraokeProcess.createProcess(
+                                settings = settings,
+                                action = KaraokeProcessTypes.FF_MP3_KAR,
+                                doWait = true,
+                                prior = -1,
+                                threadId = 1
+                            )
+
+                            KaraokeProcess.createProcess(
+                                settings = settings,
+                                action = KaraokeProcessTypes.FF_MP3_LYR,
+                                doWait = true,
+                                prior = -1,
+                                threadId = 1
+                            )
                         }
 
                     }

@@ -55,6 +55,7 @@ dependencies {
     implementation("org.apache.httpcomponents.client5:httpclient5:5.5.1")
     implementation("io.minio:minio:8.6.0")
 
+    implementation("com.microsoft.playwright:playwright:1.56.0")
 }
 
 tasks.withType<KotlinCompile> {

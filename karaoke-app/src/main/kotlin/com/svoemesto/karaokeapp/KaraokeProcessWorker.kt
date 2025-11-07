@@ -20,114 +20,126 @@ class KaraokeProcessThread(val karaokeProcess: KaraokeProcess? = null, var perce
             karaokeProcess.start = Timestamp.from(Instant.now())
             karaokeProcess.save()
 
-            val regex = Regex("Current Frame:\\s+(\\d+), percentage:\\s+(\\d+)")
-            val regexDuration = Regex("Duration:\\s+(\\d\\d:\\d\\d:\\d\\d\\.\\d\\d),")
-            val regexCurrent = Regex("time=(\\d\\d:\\d\\d:\\d\\d\\.\\d\\d)")
-            val regexPercentageSheetsage = Regex("^\\s{0,2}(\\d{1,3})%\\|")
-            val args = karaokeProcess.args[0]
-            val processBuilder = ProcessBuilder(args)
-            processBuilder.redirectErrorStream(true)
+            if (karaokeProcess.args[0][0] == "runFunctionWithArgs") {
 
-            val process = processBuilder.start()
-            if (process.isAlive) {
-                if (karaokeProcess.command != "tail" || karaokeProcess.args[0][0] !in KaraokeProcessWorker.argsIgnoredToLog) {
-                    println("[${Timestamp.from(Instant.now())}] KaraokeProcessThread[${karaokeProcess.threadId}]: Установка приоритета задания: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}")
-                }
-                setProcessPriority(process.pid(), karaokeProcess.prioritet)
-            }
-
-            try {
-                if (karaokeProcess.command != "tail" || karaokeProcess.args[0][0] !in KaraokeProcessWorker.argsIgnoredToLog) {
-                    println("[${Timestamp.from(Instant.now())}] KaraokeProcessThread[${karaokeProcess.threadId}]: Начинаем работу с заданием: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}")
-                    KaraokeProcessWorker.sendCountWaitingMessage(KaraokeProcess.getCountWaiting(database = karaokeProcess.database))
-                }
-                val inputStream = process.inputStream
-                var duration: String? = null
-                val reader = BufferedReader(InputStreamReader(inputStream))
-                var line: String? = reader.readLine()
-                var log = ""
-                var lastLine = ""
-                while (line != null) {
-                    lastLine = line
-                    log += "[${Timestamp.from(Instant.now())}] $line\n"
-                    val matchResult = regex.find(line)
-                    if (matchResult != null) {
-//                        val currentFrame = matchResult.groupValues[1]
-                        val percentage = matchResult.groupValues[2]
-                        this.percentage = percentage
-                    } else {
-                        if (duration != null) {
-                            val matchResultCurrent = regexCurrent.find(line)
-                            if (matchResultCurrent != null) {
-                                val current = matchResultCurrent.groupValues[1]
-                                this.percentage = (((convertTimecodeToMilliseconds(current).toDouble() / convertTimecodeToMilliseconds(duration).toDouble()) * 10000).toInt().toDouble() / 100).toString()
-                            }
-                        } else {
-                            val matchResultDuration = regexDuration.find(line)
-                            if (matchResultDuration != null) {
-                                duration = matchResultDuration.groupValues[1]
-                            } else {
-                                val matchResultPercentageSheetsage = regexPercentageSheetsage.find(line)
-                                if (matchResultPercentageSheetsage != null) {
-                                    val percentage = matchResultPercentageSheetsage.groupValues[1]
-                                    this.percentage = percentage
-                                }
-                            }
-                        }
-                    }
-                    line = reader.readLine()
-                }
-                if (karaokeProcess.command != "tail" || karaokeProcess.args[0][0] !in KaraokeProcessWorker.argsIgnoredToLog) {
-                    println("[${Timestamp.from(Instant.now())}] KaraokeProcessThread[${karaokeProcess.threadId}]: Завершаем работу с заданием: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}")
-                }
-                if (log != "") {
-                    if (karaokeProcess.command != "tail" || karaokeProcess.args[0][0] !in KaraokeProcessWorker.argsIgnoredToLog) {
-                        println("[${Timestamp.from(Instant.now())}] KaraokeProcessThread[${karaokeProcess.threadId}]: Выводим лог задания: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}")
-                    }
-                    log = args.joinToString(" ") + "\n\n" + log
-                    val logFileName = "$PATH_TO_LOGS/[${Timestamp.from(Instant.now())}] ${karaokeProcess.name} - ${karaokeProcess.description}.log".rightFileName()
-                    try {
-                        File(logFileName).writeText(log, Charsets.UTF_8)
-                        runCommand(listOf("chmod", "666", logFileName))
-                    } catch (e: Exception) {
-                        println(e.message)
-                    }
-                }
-
-                if (karaokeProcess.type == "SHEETSAGE" &&  lastLine == "NotImplementedError: Dynamic chunking not implemented. Try halving measures_per_chunk.") {
-                    // Если процесс SHEETSAGE завершился ошибкой - создаём для этой же песни процесс SHEETSAGE2 с таким же приоритетом
-                    val settings = Settings.loadFromDbById(karaokeProcess.settingsId.toLong(), WORKING_DATABASE)
-                    settings?.let {
-                        KaraokeProcess.createProcess(
-                            settings = settings,
-                            action = KaraokeProcessTypes.SHEETSAGE2,
-                            doWait = true,
-                            prior = karaokeProcess.priority,
-                            threadId = 0
-                        )
-                    }
-                }
-
-                if (karaokeProcess.command != "tail" || karaokeProcess.args[0][0] !in KaraokeProcessWorker.argsIgnoredToLog) {
-                    println("[${Timestamp.from(Instant.now())}] KaraokeProcessThread[${karaokeProcess.threadId}]: DONE успешно завершенное задание: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}")
-                }
+                runFunctionWithArgs(karaokeProcess.args[0])
                 karaokeProcess.status = KaraokeProcessStatuses.DONE.name
                 karaokeProcess.end = Timestamp.from(Instant.now())
                 karaokeProcess.priority = 999
                 karaokeProcess.save()
 
+            } else {
+
+                val regex = Regex("Current Frame:\\s+(\\d+), percentage:\\s+(\\d+)")
+                val regexDuration = Regex("Duration:\\s+(\\d\\d:\\d\\d:\\d\\d\\.\\d\\d),")
+                val regexCurrent = Regex("time=(\\d\\d:\\d\\d:\\d\\d\\.\\d\\d)")
+                val regexPercentageSheetsage = Regex("^\\s{0,2}(\\d{1,3})%\\|")
+                val args = karaokeProcess.args[0]
+                val processBuilder = ProcessBuilder(args)
+                processBuilder.redirectErrorStream(true)
+
+                val process = processBuilder.start()
+                if (process.isAlive) {
+                    if (karaokeProcess.command != "tail" || karaokeProcess.args[0][0] !in KaraokeProcessWorker.argsIgnoredToLog) {
+                        println("[${Timestamp.from(Instant.now())}] KaraokeProcessThread[${karaokeProcess.threadId}]: Установка приоритета задания: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}")
+                    }
+                    setProcessPriority(process.pid(), karaokeProcess.prioritet)
+                }
+
+                try {
+                    if (karaokeProcess.command != "tail" || karaokeProcess.args[0][0] !in KaraokeProcessWorker.argsIgnoredToLog) {
+                        println("[${Timestamp.from(Instant.now())}] KaraokeProcessThread[${karaokeProcess.threadId}]: Начинаем работу с заданием: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}")
+                        KaraokeProcessWorker.sendCountWaitingMessage(KaraokeProcess.getCountWaiting(database = karaokeProcess.database))
+                    }
+                    val inputStream = process.inputStream
+                    var duration: String? = null
+                    val reader = BufferedReader(InputStreamReader(inputStream))
+                    var line: String? = reader.readLine()
+                    var log = ""
+                    var lastLine = ""
+                    while (line != null) {
+                        lastLine = line
+                        log += "[${Timestamp.from(Instant.now())}] $line\n"
+                        val matchResult = regex.find(line)
+                        if (matchResult != null) {
+//                        val currentFrame = matchResult.groupValues[1]
+                            val percentage = matchResult.groupValues[2]
+                            this.percentage = percentage
+                        } else {
+                            if (duration != null) {
+                                val matchResultCurrent = regexCurrent.find(line)
+                                if (matchResultCurrent != null) {
+                                    val current = matchResultCurrent.groupValues[1]
+                                    this.percentage = (((convertTimecodeToMilliseconds(current).toDouble() / convertTimecodeToMilliseconds(duration).toDouble()) * 10000).toInt().toDouble() / 100).toString()
+                                }
+                            } else {
+                                val matchResultDuration = regexDuration.find(line)
+                                if (matchResultDuration != null) {
+                                    duration = matchResultDuration.groupValues[1]
+                                } else {
+                                    val matchResultPercentageSheetsage = regexPercentageSheetsage.find(line)
+                                    if (matchResultPercentageSheetsage != null) {
+                                        val percentage = matchResultPercentageSheetsage.groupValues[1]
+                                        this.percentage = percentage
+                                    }
+                                }
+                            }
+                        }
+                        line = reader.readLine()
+                    }
+                    if (karaokeProcess.command != "tail" || karaokeProcess.args[0][0] !in KaraokeProcessWorker.argsIgnoredToLog) {
+                        println("[${Timestamp.from(Instant.now())}] KaraokeProcessThread[${karaokeProcess.threadId}]: Завершаем работу с заданием: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}")
+                    }
+                    if (log != "") {
+                        if (karaokeProcess.command != "tail" || karaokeProcess.args[0][0] !in KaraokeProcessWorker.argsIgnoredToLog) {
+                            println("[${Timestamp.from(Instant.now())}] KaraokeProcessThread[${karaokeProcess.threadId}]: Выводим лог задания: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}")
+                        }
+                        log = args.joinToString(" ") + "\n\n" + log
+                        val logFileName = "$PATH_TO_LOGS/[${Timestamp.from(Instant.now())}] ${karaokeProcess.name} - ${karaokeProcess.description}.log".rightFileName()
+                        try {
+                            File(logFileName).writeText(log, Charsets.UTF_8)
+                            runCommand(listOf("chmod", "666", logFileName))
+                        } catch (e: Exception) {
+                            println(e.message)
+                        }
+                    }
+
+                    if (karaokeProcess.type == "SHEETSAGE" &&  lastLine == "NotImplementedError: Dynamic chunking not implemented. Try halving measures_per_chunk.") {
+                        // Если процесс SHEETSAGE завершился ошибкой - создаём для этой же песни процесс SHEETSAGE2 с таким же приоритетом
+                        val settings = Settings.loadFromDbById(karaokeProcess.settingsId.toLong(), WORKING_DATABASE)
+                        settings?.let {
+                            KaraokeProcess.createProcess(
+                                settings = settings,
+                                action = KaraokeProcessTypes.SHEETSAGE2,
+                                doWait = true,
+                                prior = karaokeProcess.priority,
+                                threadId = 0
+                            )
+                        }
+                    }
+
+                    if (karaokeProcess.command != "tail" || karaokeProcess.args[0][0] !in KaraokeProcessWorker.argsIgnoredToLog) {
+                        println("[${Timestamp.from(Instant.now())}] KaraokeProcessThread[${karaokeProcess.threadId}]: DONE успешно завершенное задание: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}")
+                    }
+                    karaokeProcess.status = KaraokeProcessStatuses.DONE.name
+                    karaokeProcess.end = Timestamp.from(Instant.now())
+                    karaokeProcess.priority = 999
+                    karaokeProcess.save()
+
 //                if (karaokeProcess.type == KaraokeProcessTypes.DEMUCS2.name) {
 //                    KaraokeProcess.delete(karaokeProcess.id, karaokeProcess.database)
 //                }
 
-            } catch (_: Exception) {
-                process.destroy()
-                println("[${Timestamp.from(Instant.now())}] KaraokeProcessThread[${karaokeProcess.threadId}]: ERROR задание: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}")
-                karaokeProcess.status = KaraokeProcessStatuses.ERROR.name
-                karaokeProcess.end = Timestamp.from(Instant.now())
-                karaokeProcess.priority = -1
-                karaokeProcess.save()
+                } catch (_: Exception) {
+                    process.destroy()
+                    println("[${Timestamp.from(Instant.now())}] KaraokeProcessThread[${karaokeProcess.threadId}]: ERROR задание: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}")
+                    karaokeProcess.status = KaraokeProcessStatuses.ERROR.name
+                    karaokeProcess.end = Timestamp.from(Instant.now())
+                    karaokeProcess.priority = -1
+                    karaokeProcess.save()
+                }
             }
+
         }
 
     }

@@ -4,19 +4,16 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="19caf878-7ce0-44d7-94a1-cf0a31300a8b" name="Changes" comment="master 07.11.2025 + несколько одновременных процессов">
-      <change afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/UtilsPlaywright.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/modules/Karaoke.karaoke-web.main.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules/Karaoke.karaoke-web.main.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/modules/Karaoke.karaoke-web.test.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules/Karaoke.karaoke-web.test.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/modules/karaoke-app/Karaoke.karaoke-app.main.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules/karaoke-app/Karaoke.karaoke-app.main.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/modules/karaoke-app/Karaoke.karaoke-app.test.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules/karaoke-app/Karaoke.karaoke-app.test.iml" afterDir="false" />
+    <list default="true" id="19caf878-7ce0-44d7-94a1-cf0a31300a8b" name="Changes" comment="master 07.11.2025 + runFunctionWithArgs + playwright">
+      <change afterPath="$PROJECT_DIR$/deploy/karaoke-app/DockerfileBackup2" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/karaoke-app/src/test/kotlin/com/svoemesto/PlaywrightTests.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deploy/karaoke-app/Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/karaoke-app/Dockerfile" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deploy/new_comp/sm-karaoke-system/deploy/docker-compose-app-new-comp.yml" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/new_comp/sm-karaoke-system/deploy/docker-compose-app-new-comp.yml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/karaoke-app/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/build.gradle.kts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcess.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessTypes.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessTypes.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessWorker.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessWorker.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Settings.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model/Settings.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/UtilsPlaywright.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/UtilsPlaywright.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/config/AuthorizationServerConfig.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/config/AuthorizationServerConfig.kt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -179,6 +176,10 @@
     "Gradle.Karaoke [clean].executor": "Run",
     "Gradle.Karaoke:karaoke-app [buildDependents].executor": "Run",
     "Gradle.Karaoke:karaoke-app [build].executor": "Run",
+    "Gradle.PlaywrightTests.getYandexMusicWithAuthPageHtml.executor": "Run",
+    "Gradle.PlaywrightTests.getYandexMusicWithAuthPageHtml2.executor": "Run",
+    "Gradle.PlaywrightTests.openYandexMusicWithAuth.executor": "Run",
+    "Gradle.PlaywrightTests.saveYandexMusicAuthByChrome.executor": "Run",
     "Gradle.karaoke-app [clean].executor": "Run",
     "Repository.Attach.Annotations": "false",
     "Repository.Attach.JavaDocs": "false",
@@ -200,7 +201,7 @@
     "git-widget-placeholder": "master",
     "jdk.selected.JAVA_MODULE": "17",
     "ktor.last.update.timestamp": "1761213793765",
-    "last_opened_file_path": "/home/nsa/Karaoke/deploy",
+    "last_opened_file_path": "/home/nsa/Karaoke/deploy/karaoke-app",
     "list.type.of.created.stylesheet": "CSS",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
@@ -228,11 +229,11 @@
   </component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/deploy/karaoke-app" />
       <recent name="$PROJECT_DIR$/deploy" />
       <recent name="$PROJECT_DIR$/deploy/new_comp/sm-karaoke-system/deploy" />
       <recent name="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/services" />
       <recent name="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/model" />
-      <recent name="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/deploy/new_comp/sm-karaoke-system" />
@@ -287,50 +288,6 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Karaoke:karaoke-app [bootJar]" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
-      <ExternalSystemSettings>
-        <option name="executionName" />
-        <option name="externalProjectPath" value="$PROJECT_DIR$/karaoke-app" />
-        <option name="externalSystemIdString" value="GRADLE" />
-        <option name="scriptParameters" />
-        <option name="taskDescriptions">
-          <list />
-        </option>
-        <option name="taskNames">
-          <list>
-            <option value="bootJar" />
-          </list>
-        </option>
-        <option name="vmOptions" />
-      </ExternalSystemSettings>
-      <ExternalSystemDebugServerProcess>true</ExternalSystemDebugServerProcess>
-      <ExternalSystemReattachDebugProcess>true</ExternalSystemReattachDebugProcess>
-      <DebugAllEnabled>false</DebugAllEnabled>
-      <RunAsTest>false</RunAsTest>
-      <method v="2" />
-    </configuration>
-    <configuration name="Karaoke:karaoke-app [buildDependents]" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
-      <ExternalSystemSettings>
-        <option name="executionName" />
-        <option name="externalProjectPath" value="$PROJECT_DIR$/karaoke-app" />
-        <option name="externalSystemIdString" value="GRADLE" />
-        <option name="scriptParameters" />
-        <option name="taskDescriptions">
-          <list />
-        </option>
-        <option name="taskNames">
-          <list>
-            <option value="buildDependents" />
-          </list>
-        </option>
-        <option name="vmOptions" />
-      </ExternalSystemSettings>
-      <ExternalSystemDebugServerProcess>true</ExternalSystemDebugServerProcess>
-      <ExternalSystemReattachDebugProcess>true</ExternalSystemReattachDebugProcess>
-      <DebugAllEnabled>false</DebugAllEnabled>
-      <RunAsTest>false</RunAsTest>
-      <method v="2" />
-    </configuration>
     <configuration name="Karaoke:karaoke-app [build]" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
       <ExternalSystemSettings>
         <option name="executionName" />
@@ -353,26 +310,76 @@
       <RunAsTest>false</RunAsTest>
       <method v="2" />
     </configuration>
-    <configuration name="karaoke-app [clean]" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
+    <configuration name="PlaywrightTests.getYandexMusicWithAuthPageHtml" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
       <ExternalSystemSettings>
         <option name="executionName" />
-        <option name="externalProjectPath" value="$PROJECT_DIR$/karaoke-app" />
+        <option name="externalProjectPath" value="$PROJECT_DIR$" />
         <option name="externalSystemIdString" value="GRADLE" />
-        <option name="scriptParameters" />
+        <option name="scriptParameters" value="" />
         <option name="taskDescriptions">
           <list />
         </option>
         <option name="taskNames">
           <list>
-            <option value="clean" />
+            <option value=":karaoke-app:test" />
+            <option value="--tests" />
+            <option value="&quot;com.svoemesto.PlaywrightTests.getYandexMusicWithAuthPageHtml&quot;" />
           </list>
         </option>
         <option name="vmOptions" />
       </ExternalSystemSettings>
-      <ExternalSystemDebugServerProcess>true</ExternalSystemDebugServerProcess>
+      <ExternalSystemDebugServerProcess>false</ExternalSystemDebugServerProcess>
       <ExternalSystemReattachDebugProcess>true</ExternalSystemReattachDebugProcess>
       <DebugAllEnabled>false</DebugAllEnabled>
-      <RunAsTest>false</RunAsTest>
+      <RunAsTest>true</RunAsTest>
+      <method v="2" />
+    </configuration>
+    <configuration name="PlaywrightTests.getYandexMusicWithAuthPageHtml2" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
+      <ExternalSystemSettings>
+        <option name="executionName" />
+        <option name="externalProjectPath" value="$PROJECT_DIR$" />
+        <option name="externalSystemIdString" value="GRADLE" />
+        <option name="scriptParameters" value="" />
+        <option name="taskDescriptions">
+          <list />
+        </option>
+        <option name="taskNames">
+          <list>
+            <option value=":karaoke-app:test" />
+            <option value="--tests" />
+            <option value="&quot;com.svoemesto.PlaywrightTests.getYandexMusicWithAuthPageHtml2&quot;" />
+          </list>
+        </option>
+        <option name="vmOptions" />
+      </ExternalSystemSettings>
+      <ExternalSystemDebugServerProcess>false</ExternalSystemDebugServerProcess>
+      <ExternalSystemReattachDebugProcess>true</ExternalSystemReattachDebugProcess>
+      <DebugAllEnabled>false</DebugAllEnabled>
+      <RunAsTest>true</RunAsTest>
+      <method v="2" />
+    </configuration>
+    <configuration name="PlaywrightTests.saveYandexMusicAuthByChrome" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
+      <ExternalSystemSettings>
+        <option name="executionName" />
+        <option name="externalProjectPath" value="$PROJECT_DIR$" />
+        <option name="externalSystemIdString" value="GRADLE" />
+        <option name="scriptParameters" value="" />
+        <option name="taskDescriptions">
+          <list />
+        </option>
+        <option name="taskNames">
+          <list>
+            <option value=":karaoke-app:test" />
+            <option value="--tests" />
+            <option value="&quot;com.svoemesto.PlaywrightTests.saveYandexMusicAuthByChrome&quot;" />
+          </list>
+        </option>
+        <option name="vmOptions" />
+      </ExternalSystemSettings>
+      <ExternalSystemDebugServerProcess>false</ExternalSystemDebugServerProcess>
+      <ExternalSystemReattachDebugProcess>true</ExternalSystemReattachDebugProcess>
+      <DebugAllEnabled>false</DebugAllEnabled>
+      <RunAsTest>true</RunAsTest>
       <method v="2" />
     </configuration>
     <configuration name="Angular Application (karaoke-angular)" type="JavascriptDebugType" uri="http://localhost:4200">
@@ -426,10 +433,10 @@
     <recent_temporary>
       <list>
         <item itemvalue="Spring Boot Application.UtilsPlaywrightKt" />
+        <item itemvalue="Gradle.PlaywrightTests.saveYandexMusicAuthByChrome" />
         <item itemvalue="Gradle.Karaoke:karaoke-app [build]" />
-        <item itemvalue="Gradle.karaoke-app [clean]" />
-        <item itemvalue="Gradle.Karaoke:karaoke-app [buildDependents]" />
-        <item itemvalue="Gradle.Karaoke:karaoke-app [bootJar]" />
+        <item itemvalue="Gradle.PlaywrightTests.getYandexMusicWithAuthPageHtml2" />
+        <item itemvalue="Gradle.PlaywrightTests.getYandexMusicWithAuthPageHtml" />
       </list>
     </recent_temporary>
   </component>
@@ -1035,7 +1042,7 @@
       <option name="project" value="LOCAL" />
       <updated>1761222433980</updated>
     </task>
-    <option name="localTasksCounter" value="170" />
+    <option name="localTasksCounter" value="171" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -1084,7 +1091,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="Текущие изменения по состоянию на 19.03.2025" />
     <MESSAGE value="Текущие изменения по состоянию на 21.03.2025&#10;Заработали TABSы" />
     <MESSAGE value="Текущие изменения по состоянию на 29.03.2025&#10;v9, key &amp; bpm на заставке караоке" />
     <MESSAGE value="Текущие изменения по состоянию на 02.04.2025&#10;v10, убрана проблема дребезга последних секунд при смещении аудио" />
@@ -1109,7 +1115,8 @@
     <MESSAGE value="master 31.10.2025 + перевод Pictures на KaraokeDbTable" />
     <MESSAGE value="master 31.10.2025 + KaraokeDbTableField useInList" />
     <MESSAGE value="master 07.11.2025 + несколько одновременных процессов" />
-    <option name="LAST_COMMIT_MESSAGE" value="master 07.11.2025 + несколько одновременных процессов" />
+    <MESSAGE value="master 07.11.2025 + runFunctionWithArgs + playwright" />
+    <option name="LAST_COMMIT_MESSAGE" value="master 07.11.2025 + runFunctionWithArgs + playwright" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

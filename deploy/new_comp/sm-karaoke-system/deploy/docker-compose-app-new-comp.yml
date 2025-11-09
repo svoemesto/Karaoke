@@ -19,6 +19,7 @@ services:
       - LANG=C.UTF-8
       - LC_ALL=C.UTF-8
       - CORS_ALLOWED_ORIGINS=http://localhost:7906,http://127.0.0.1:7906
+      - APP_MAX_FILE_SIZE=10MB
     volumes:
       - /sm-karaoke/work:/sm-karaoke/work
       - /sm-karaoke/done1:/sm-karaoke/done1

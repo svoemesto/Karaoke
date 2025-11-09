@@ -1,3 +1,4 @@
+//import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -6,6 +7,7 @@ plugins {
     kotlin("jvm") version "2.2.20" // Обновлено
     id("org.jetbrains.kotlin.plugin.spring") version "2.2.20" // Обновлено
     id("org.jetbrains.kotlin.plugin.serialization") version "2.2.20" // Обновлено
+//    id("com.gradleup.shadow") version "9.2.2"
 }
 
 group = "com.svoemesto"
@@ -69,5 +71,36 @@ tasks.withType<KotlinCompile> {
 tasks.withType<Test> {
     useJUnitPlatform()
 }
+
+tasks.bootJar {
+    // Настройки, если нужно, например, archiveClassifier.set("exec")
+    // archiveClassifier.set("") // Это может конфликтовать с обычным jar
+    enabled = true
+    // archiveClassifier.set("") // Убедитесь, что имя JAR соответствует COPY в Dockerfile
+}
+
+// Обычная задача jar может быть отключена, если bootJar создаёт исполняемый JAR
+tasks.jar {
+    enabled = false // <-- Обычно отключают, если используется bootJar
+    // Или устанавливают classifier, чтобы не конфликтовать
+    // archiveClassifier.set("plain") // Если нужен обычный JAR для других целей
+}
+
+//tasks.shadowJar {
+//    archiveClassifier.set("") // Убирает суффикс shadow у JAR
+//    mergeServiceFiles() // Полезно для некоторых библиотек
+//    val shadowTask = this as ShadowJar
+//    shadowTask.isZip64 = true
+//    manifest {
+//        attributes(
+//            "Main-Class" to "com.svoemesto.karaokeapp.KaraokeAppApplicationKt"
+//        )
+//    }
+//}
+//
+//// (Опционально) Сделать shadowJar задачей по умолчанию для build
+// tasks.build {
+//     dependsOn(tasks.shadowJar)
+// }
 
 tasks.register("prepareKotlinBuildScriptModel"){}

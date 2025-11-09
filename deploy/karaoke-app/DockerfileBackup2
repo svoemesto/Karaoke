@@ -1,5 +1,6 @@
 # ===== Этап: Подготовка Java-приложения =====
-FROM openjdk:17-ea-jdk-slim AS java-app-builder
+# FROM openjdk:17-ea-jdk-slim AS java-app-builder
+FROM mcr.microsoft.com/playwright/java:v1.55.0-noble AS java-app-builder
 
 # Аргументы сборки
 ARG VERSION
@@ -53,7 +54,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     fontconfig \
     openjdk-17-jre-headless \
     smplayer \
-    nodejs npm \
     && rm -rf /var/lib/apt/lists/*
 
 RUN apt-get update -y
@@ -69,28 +69,6 @@ RUN apt-get update -y
 RUN apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 RUN apt install -y docker-compose
 
-# Установка недостающих библиотек для Playwright в НОВЫЙ слой
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libgstreamer1.0-0 \
-    libgstreamer-plugins-base1.0-0 \
-    libgtk-4-1 \
-    libgraphene-1.0-0 \
-    libatomic1 \
-    libxslt1.1 \
-    libwoff1 \
-    libevent-2.1-7 \
-    libwebpdemux2 \
-    libavif13 \
-    libharfbuzz-icu0 \
-    libenchant-2-2 \
-    libsecret-1-0 \
-    libhyphen0 \
-    libmanette-0.2-0 \
-    libgles2 \
-    libgstreamer-gl1.0-0 \
-    libgstreamer-plugins-bad1.0-0 \
-    && rm -rf /var/lib/apt/lists/*
-
 # Предполагается, что файлы шрифтов находятся в папке files рядом с Dockerfile
 COPY Roboto-Black.ttf /usr/share/fonts/truetype/roboto/
 COPY FiraSansExtraCondensed-Medium.ttf /usr/share/fonts/truetype/FiraSansExtraCondensed/
@@ -103,31 +81,6 @@ COPY --from=java-app-builder /tmp/app.jar /app.jar
 # Копирование ОБНОВЛЕННОГО сертификата cacerts из java-app-builder
 # Используем правильный путь из этапа java-app-builder
 COPY --from=java-app-builder /usr/local/openjdk-17/lib/security/cacerts /usr/lib/jvm/java-17-openjdk-amd64/lib/security/cacerts
-
-# Попытка установить браузеры через CLI, встроенный в библиотеку playwright, используя ваш JAR в classpath.
-# ВАЖНО: Убедитесь, что библиотека playwright включена в ваш JAR или доступна в classpath.
-# Если библиотека не включена, этот шаг может не сработать.
-# RUN java -cp /app.jar com.microsoft.playwright.CLI install
-
-# --- Извлечение зависимостей из bootJar для доступа к ним в classpath ---
-# Создаём директорию для зависимостей
-RUN mkdir -p /app_dependencies
-# Устанавливаем unzip для извлечения содержимого JAR
-RUN apt-get update && apt-get install -y unzip && \
-    # Извлекаем только директорию BOOT-INF/lib/ из JAR
-    unzip -q /app.jar 'BOOT-INF/lib/*' -d /tmp/unpack_dir && \
-    # Перемещаем JAR-файлы зависимостей в /app_dependencies
-    mv /tmp/unpack_dir/BOOT-INF/lib/* /app_dependencies/ && \
-    # Удаляем временные файлы
-    rm -rf /tmp/unpack_dir && \
-    # Удаляем unzip после использования, чтобы уменьшить размер образа
-    apt-get remove -y unzip && \
-    apt-get autoremove -y && \
-    rm -rf /var/lib/apt/lists/*
-
-# Установка браузеров Playwright
-# Указываем путь к зависимостям, извлечённым из bootJar
-RUN java -cp "/app.jar:/app_dependencies/*" com.microsoft.playwright.CLI install
 
 # Установка переменных окружения для Java-приложения
 # JAVA_HOME для финального образа (ubuntu + openjdk-17-jre-headless)

@@ -2,6 +2,10 @@ package com.svoemesto.karaokeapp
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.google.gson.GsonBuilder
+import com.microsoft.playwright.Browser
+import com.microsoft.playwright.BrowserType
+import com.microsoft.playwright.Playwright
+import com.microsoft.playwright.options.LoadState
 import com.svoemesto.karaokeapp.mlt.*
 import com.svoemesto.karaokeapp.model.*
 import com.svoemesto.karaokeapp.textfiledictionary.YoWordsDictionary
@@ -21,6 +25,7 @@ import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.nio.file.Files
+import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
@@ -35,6 +40,7 @@ import javax.imageio.ImageIO
 import kotlin.io.path.Path
 import kotlin.math.roundToInt
 import kotlin.random.Random
+import kotlin.use
 
 fun customFunction(): String {
 
@@ -44,9 +50,33 @@ fun customFunction(): String {
 //        println("-----------------------------")
 //    }
 
-    println(Settings.loadFromDbById(1, WORKING_DATABASE)?.getKeyBpmFromFile())
 
-    println("customFunction done")
+//    Playwright.create().use { playwright ->
+//        val browser = playwright.chromium().launch(
+//            BrowserType.LaunchOptions()
+////                    .setExecutablePath(Path.of("/usr/bin/yandex-browser")) // Укажите путь к Яндекс.Браузеру
+//                .setHeadless(true) // или true, если не нужно видеть
+//        )
+//
+//        // Создаем контекст, используя сохраненное состояние авторизации
+//        val context = browser.newContext(
+//            Browser.NewContextOptions()
+//                .setStorageStatePath(Path.of("/sm-karaoke/system/yandex_auth_state.json")) // <-- Используем сохраненное состояние
+//        )
+//
+//        val page = context.newPage()
+//        page.navigate("https://music.yandex.ru/artist/10385567/albums") // Откроется авторизованным
+//
+//        page.waitForLoadState(LoadState.NETWORKIDLE)
+//        val htmlContent = page.content()
+//        println("Полный HTML страницы:")
+//        println(htmlContent)
+//        Thread.sleep(50000)
+//        browser.close()
+//    }
+
+    checkLastAlbumYm()
+
     return ""
 }
 
@@ -2141,33 +2171,75 @@ fun String.textBetween(startString: String, endString: String): String {
     if (lastIndexOfStartString < 0) return result
     return stringToSearch.substring(0, lastIndexOfStartString)
 }
+
 fun searchLastAlbumYm2(authorYmId: String): String {
-    val searchUrl = "https://music.yandex.ru/artist/$authorYmId/albums"
-    // Выбор случайного User-Agent
-    val randomUserAgent = USER_AGENTS.random()
+    var result = ""
+    Playwright.create().use { playwright ->
+        val searchUrl = "https://music.yandex.ru/artist/$authorYmId/albums"
+        val browser = playwright.chromium().launch(
+            BrowserType.LaunchOptions()
+                .setHeadless(true) // или true, если не нужно видеть
+        )
 
-//    val document = Jsoup.connect(searchUrl).get()
-    val document = Jsoup.connect(searchUrl)
-        .header("User-Agent", randomUserAgent)
-        .header("Referer", "https://music.yandex.ru/ ")
-        .get()
+        // Создаем контекст, используя сохраненное состояние авторизации
+        val context = browser.newContext(
+            Browser.NewContextOptions()
+                .setStorageStatePath(Path.of("/sm-karaoke/system/yandex_auth_state.json"))
+        )
 
-    val html = document.html()
+        val page = context.newPage()
+        page.navigate(searchUrl) // Откроется авторизованным
 
-    val preloadedAlbums = html.extractBalancedBracesFromString("""\"preloadedAlbums\":""")
-    val album = preloadedAlbums.extractBalancedBracesFromString("""\"albums\":[""")
-    val result = album.textBetween("""\"title\":\"""", """\",\"""")
-    if (result == "") {
-        if (html.contains("Нам очень жаль, но запросы с вашего устройства похожи на автоматические")) {
-            println("Нам очень жаль, но запросы с вашего устройства похожи на автоматические")
-            throw Exception("Нам очень жаль, но запросы с вашего устройства похожи на автоматические")
+//        page.waitForLoadState(LoadState.NETWORKIDLE)
+        val html = page.content()
+
+        val preloadedAlbums = html.extractBalancedBracesFromString("""\"preloadedAlbums\":""")
+        val album = preloadedAlbums.extractBalancedBracesFromString("""\"albums\":[""")
+        result = album.textBetween("""\"title\":\"""", """\",\"""")
+        if (result == "") {
+            if (html.contains("Нам очень жаль, но запросы с вашего устройства похожи на автоматические")) {
+                println("Нам очень жаль, но запросы с вашего устройства похожи на автоматические")
+                throw Exception("Нам очень жаль, но запросы с вашего устройства похожи на автоматические")
+            }
+            println("preloadedAlbum = $preloadedAlbums")
+            println("album = $album")
+            println("searchLastAlbumYm2 html: '$html'")
         }
-        println("preloadedAlbum = $preloadedAlbums")
-        println("album = $album")
-        println("searchLastAlbumYm2 html: '$html'")
+
+        browser.close()
+
     }
+
     return result
 }
+
+//fun searchLastAlbumYm2(authorYmId: String): String {
+//    val searchUrl = "https://music.yandex.ru/artist/$authorYmId/albums"
+//    // Выбор случайного User-Agent
+//    val randomUserAgent = USER_AGENTS.random()
+//
+////    val document = Jsoup.connect(searchUrl).get()
+//    val document = Jsoup.connect(searchUrl)
+//        .header("User-Agent", randomUserAgent)
+//        .header("Referer", "https://music.yandex.ru/ ")
+//        .get()
+//
+//    val html = document.html()
+//
+//    val preloadedAlbums = html.extractBalancedBracesFromString("""\"preloadedAlbums\":""")
+//    val album = preloadedAlbums.extractBalancedBracesFromString("""\"albums\":[""")
+//    val result = album.textBetween("""\"title\":\"""", """\",\"""")
+//    if (result == "") {
+//        if (html.contains("Нам очень жаль, но запросы с вашего устройства похожи на автоматические")) {
+//            println("Нам очень жаль, но запросы с вашего устройства похожи на автоматические")
+//            throw Exception("Нам очень жаль, но запросы с вашего устройства похожи на автоматические")
+//        }
+//        println("preloadedAlbum = $preloadedAlbums")
+//        println("album = $album")
+//        println("searchLastAlbumYm2 html: '$html'")
+//    }
+//    return result
+//}
 
 fun getAuthorForRequest(lastAuthor: String = ""): Author? {
     val listSongAuthors = Settings.loadListAuthors(WORKING_DATABASE)
@@ -2224,7 +2296,8 @@ fun checkLastAlbumYm(): Triple<String, String, Int> {
 //        getAlbumCardTitle(author.ymId)
 //        searchLastAlbumYm(author.ymId)
         searchLastAlbumYm2(author.ymId)
-    } catch (_: Exception) {
+    } catch (e: Exception) {
+        e.printStackTrace()
         println("Поиск для автора «$authorForRequest» завершился ошибкой.")
         return Triple(authorForRequest, "", -1)
     }

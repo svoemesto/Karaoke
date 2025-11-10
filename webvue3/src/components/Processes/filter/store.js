@@ -3,6 +3,7 @@ import { setWebvueProp } from "../../../lib/utils";
 export default {
     state: {
         processesFilterId: '',
+        processesFilterThreadId: '',
         processesFilterName: '',
         processesFilterStatus: '',
         processesFilterPriority: '',
@@ -11,6 +12,7 @@ export default {
     },
     getters: {
         getProcessesFilterId(state) { return state.processesFilterId},
+        getProcessesFilterThreadId(state) { return state.processesFilterThreadId},
         getProcessesFilterName(state) { return state.processesFilterName},
         getProcessesFilterStatus(state) { return state.processesFilterStatus},
         getProcessesFilterPriority(state) { return state.processesFilterPriority},
@@ -22,6 +24,10 @@ export default {
         setProcessesFilterId(state, value) {
             setWebvueProp(state.processesFilterId, 'processesFilterId', value);
             state.processesFilterId = value;
+        },
+        setProcessesFilterThreadId(state, value) {
+            setWebvueProp(state.processesFilterThreadId, 'processesFilterThreadId', value);
+            state.processesFilterThreadId = value;
         },
         setProcessesFilterName(state, value) {
             setWebvueProp(state.processesFilterName, 'processesFilterName', value);
@@ -46,6 +52,7 @@ export default {
     },
     actions: {
         setProcessesFilterId(ctx, payload) { ctx.commit('setProcessesFilterId', payload.value) },
+        setProcessesFilterThreadId(ctx, payload) { ctx.commit('setProcessesFilterThreadId', payload.value) },
         setProcessesFilterName(ctx, payload) { ctx.commit('setProcessesFilterName', payload.value) },
         setProcessesFilterStatus(ctx, payload) { ctx.commit('setProcessesFilterStatus', payload.value) },
         setProcessesFilterPriority(ctx, payload) { ctx.commit('setProcessesFilterPriority', payload.value) },

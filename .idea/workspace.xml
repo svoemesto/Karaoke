@@ -4,16 +4,13 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="19caf878-7ce0-44d7-94a1-cf0a31300a8b" name="Changes" comment="master 07.11.2025 + runFunctionWithArgs + playwright">
-      <change afterPath="$PROJECT_DIR$/deploy/karaoke-app/DockerfileBackup2" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/karaoke-app/src/test/kotlin/com/svoemesto/PlaywrightTests.kt" afterDir="false" />
+    <list default="true" id="19caf878-7ce0-44d7-94a1-cf0a31300a8b" name="Changes" comment="master 09.11.2025 + playwright в Докере, проверка новых альбомов через него">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/deploy/karaoke-app/Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/karaoke-app/Dockerfile" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/deploy/new_comp/sm-karaoke-system/deploy/docker-compose-app-new-comp.yml" beforeDir="false" afterPath="$PROJECT_DIR$/deploy/new_comp/sm-karaoke-system/deploy/docker-compose-app-new-comp.yml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/build.gradle.kts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/Utils.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/UtilsPlaywright.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/UtilsPlaywright.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/config/AuthorizationServerConfig.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/config/AuthorizationServerConfig.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessWorker.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/KaraokeProcessWorker.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt" beforeDir="false" afterPath="$PROJECT_DIR$/karaoke-app/src/main/kotlin/com/svoemesto/karaokeapp/controllers/ApiController.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/webvue3/src/components/Processes/ProcessesTable.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webvue3/src/components/Processes/ProcessesTable.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/webvue3/src/components/Processes/filter/ProcessesFilterModal.vue" beforeDir="false" afterPath="$PROJECT_DIR$/webvue3/src/components/Processes/filter/ProcessesFilterModal.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/webvue3/src/components/Processes/filter/store.js" beforeDir="false" afterPath="$PROJECT_DIR$/webvue3/src/components/Processes/filter/store.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -164,66 +161,66 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ASKED_ADD_EXTERNAL_FILES": "true",
-    "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "DefaultHtmlFileTemplate": "HTML File",
-    "Downloaded.Files.Path.Enabled": "true",
-    "Gradle.Build Karaoke.executor": "Run",
-    "Gradle.Download Sources.executor": "Run",
-    "Gradle.Karaoke [build].executor": "Run",
-    "Gradle.Karaoke [clean].executor": "Run",
-    "Gradle.Karaoke:karaoke-app [buildDependents].executor": "Run",
-    "Gradle.Karaoke:karaoke-app [build].executor": "Run",
-    "Gradle.PlaywrightTests.getYandexMusicWithAuthPageHtml.executor": "Run",
-    "Gradle.PlaywrightTests.getYandexMusicWithAuthPageHtml2.executor": "Run",
-    "Gradle.PlaywrightTests.openYandexMusicWithAuth.executor": "Run",
-    "Gradle.PlaywrightTests.saveYandexMusicAuthByChrome.executor": "Run",
-    "Gradle.karaoke-app [clean].executor": "Run",
-    "Repository.Attach.Annotations": "false",
-    "Repository.Attach.JavaDocs": "false",
-    "Repository.Attach.Sources": "false",
-    "RequestMappingsPanelOrder0": "0",
-    "RequestMappingsPanelOrder1": "1",
-    "RequestMappingsPanelOrder2": "2",
-    "RequestMappingsPanelWidth0": "75",
-    "RequestMappingsPanelWidth1": "75",
-    "RequestMappingsPanelWidth2": "75",
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "Spring Boot Application.UtilsPlaywrightKt.executor": "Run",
-    "WebServerToolWindowFactoryState": "false",
-    "database.data.extractors.current.export.id": "Comma-separated (CSV)_id",
-    "git-widget-placeholder": "master",
-    "jdk.selected.JAVA_MODULE": "17",
-    "ktor.last.update.timestamp": "1761213793765",
-    "last_opened_file_path": "/home/nsa/Karaoke/deploy/karaoke-app",
-    "list.type.of.created.stylesheet": "CSS",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_interpreter_path": "node",
-    "nodejs_package_manager_path": "npm",
-    "project.structure.last.edited": "Модули",
-    "project.structure.proportion": "0.15",
-    "project.structure.side.proportion": "0.28704488",
-    "settings.editor.selected.configurable": "preferences.pluginManager",
-    "spring.configuration.checksum": "88f298c1c16db07a08dec22bca5b8bc4",
-    "ts.external.directory.path": "/home/nsa/.local/share/JetBrains/Toolbox/apps/intellij-idea-ultimate/plugins/javascript-impl/jsLanguageServicesImpl/external",
-    "two.files.diff.last.used.file": "/home/nsa/Karaoke/karaoke-app/src/test/kotlin/Правильный.xml",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ASKED_ADD_EXTERNAL_FILES&quot;: &quot;true&quot;,
+    &quot;ASKED_SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;DefaultHtmlFileTemplate&quot;: &quot;HTML File&quot;,
+    &quot;Downloaded.Files.Path.Enabled&quot;: &quot;true&quot;,
+    &quot;Gradle.Build Karaoke.executor&quot;: &quot;Run&quot;,
+    &quot;Gradle.Download Sources.executor&quot;: &quot;Run&quot;,
+    &quot;Gradle.Karaoke [build].executor&quot;: &quot;Run&quot;,
+    &quot;Gradle.Karaoke [clean].executor&quot;: &quot;Run&quot;,
+    &quot;Gradle.Karaoke:karaoke-app [buildDependents].executor&quot;: &quot;Run&quot;,
+    &quot;Gradle.Karaoke:karaoke-app [build].executor&quot;: &quot;Run&quot;,
+    &quot;Gradle.PlaywrightTests.getYandexMusicWithAuthPageHtml.executor&quot;: &quot;Run&quot;,
+    &quot;Gradle.PlaywrightTests.getYandexMusicWithAuthPageHtml2.executor&quot;: &quot;Run&quot;,
+    &quot;Gradle.PlaywrightTests.openYandexMusicWithAuth.executor&quot;: &quot;Run&quot;,
+    &quot;Gradle.PlaywrightTests.saveYandexMusicAuthByChrome.executor&quot;: &quot;Run&quot;,
+    &quot;Gradle.karaoke-app [clean].executor&quot;: &quot;Run&quot;,
+    &quot;Repository.Attach.Annotations&quot;: &quot;false&quot;,
+    &quot;Repository.Attach.JavaDocs&quot;: &quot;false&quot;,
+    &quot;Repository.Attach.Sources&quot;: &quot;false&quot;,
+    &quot;RequestMappingsPanelOrder0&quot;: &quot;0&quot;,
+    &quot;RequestMappingsPanelOrder1&quot;: &quot;1&quot;,
+    &quot;RequestMappingsPanelOrder2&quot;: &quot;2&quot;,
+    &quot;RequestMappingsPanelWidth0&quot;: &quot;75&quot;,
+    &quot;RequestMappingsPanelWidth1&quot;: &quot;75&quot;,
+    &quot;RequestMappingsPanelWidth2&quot;: &quot;75&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;Spring Boot Application.UtilsPlaywrightKt.executor&quot;: &quot;Run&quot;,
+    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
+    &quot;database.data.extractors.current.export.id&quot;: &quot;Comma-separated (CSV)_id&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;jdk.selected.JAVA_MODULE&quot;: &quot;17&quot;,
+    &quot;ktor.last.update.timestamp&quot;: &quot;1761213793765&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/home/nsa/Karaoke/deploy/karaoke-app&quot;,
+    &quot;list.type.of.created.stylesheet&quot;: &quot;CSS&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_interpreter_path&quot;: &quot;node&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;Модули&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.15&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.28704488&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;,
+    &quot;spring.configuration.checksum&quot;: &quot;88f298c1c16db07a08dec22bca5b8bc4&quot;,
+    &quot;ts.external.directory.path&quot;: &quot;/home/nsa/.local/share/JetBrains/Toolbox/apps/intellij-idea-ultimate/plugins/javascript-impl/jsLanguageServicesImpl/external&quot;,
+    &quot;two.files.diff.last.used.file&quot;: &quot;/home/nsa/Karaoke/karaoke-app/src/test/kotlin/Правильный.xml&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   },
-  "keyToStringList": {
-    "DatabaseDriversLRU": [
-      "postgresql"
+  &quot;keyToStringList&quot;: {
+    &quot;DatabaseDriversLRU&quot;: [
+      &quot;postgresql&quot;
     ]
   }
-}]]></component>
+}</component>
   <component name="ReactorSettings">
     <option name="notificationShown" value="true" />
   </component>
@@ -1042,7 +1039,7 @@
       <option name="project" value="LOCAL" />
       <updated>1761222433980</updated>
     </task>
-    <option name="localTasksCounter" value="171" />
+    <option name="localTasksCounter" value="172" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -1091,7 +1088,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="Текущие изменения по состоянию на 21.03.2025&#10;Заработали TABSы" />
     <MESSAGE value="Текущие изменения по состоянию на 29.03.2025&#10;v9, key &amp; bpm на заставке караоке" />
     <MESSAGE value="Текущие изменения по состоянию на 02.04.2025&#10;v10, убрана проблема дребезга последних секунд при смещении аудио" />
     <MESSAGE value="Текущие изменения по состоянию на 04.04.2025&#10;v10, убрана проблема дребезга последних секунд при смещении аудио, изменения в таблицах БД, версии файлов на площадках, новая картинка Спонсора" />
@@ -1116,7 +1112,8 @@
     <MESSAGE value="master 31.10.2025 + KaraokeDbTableField useInList" />
     <MESSAGE value="master 07.11.2025 + несколько одновременных процессов" />
     <MESSAGE value="master 07.11.2025 + runFunctionWithArgs + playwright" />
-    <option name="LAST_COMMIT_MESSAGE" value="master 07.11.2025 + runFunctionWithArgs + playwright" />
+    <MESSAGE value="master 09.11.2025 + playwright в Докере, проверка новых альбомов через него" />
+    <option name="LAST_COMMIT_MESSAGE" value="master 09.11.2025 + playwright в Докере, проверка новых альбомов через него" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

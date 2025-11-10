@@ -47,6 +47,14 @@
           ></div>
         </template>
 
+        <template #cell(threadId)="data">
+          <div
+              class="fld-thread-id"
+              v-text="data.value"
+              :style="{ backgroundColor: data.item.color, color: currentProcessId === data.item.id ? 'blue' : 'black' }"
+          ></div>
+        </template>
+
         <template #cell(name)="data">
           <div
               class="fld-process-name"
@@ -202,6 +210,16 @@ export default {
         {
           key: 'id',
           label: 'ID',
+          style: {
+            minWidth: '50px',
+            maxWidth: '50px',
+            textAlign: 'center',
+            fontSize: 'small'
+          }
+        },
+        {
+          key: 'threadId',
+          label: 'thId',
           style: {
             minWidth: '50px',
             maxWidth: '50px',
@@ -370,6 +388,14 @@ export default {
 }
 
 .fld-id {
+  min-width: 50px;
+  max-width: 50px;
+  text-align: center;
+  font-size: small;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.fld-thread-id {
   min-width: 50px;
   max-width: 50px;
   text-align: center;

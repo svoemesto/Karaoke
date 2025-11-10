@@ -1127,6 +1127,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     @ResponseBody
     fun apisProcessesDigest(
         @RequestParam(required = false) filterId: String?,
+        @RequestParam(required = false) filterThreadId: String?,
         @RequestParam(required = false) filterName: String?,
         @RequestParam(required = false) filterStatus: String?,
         @RequestParam(required = false) filterOrder: String?,
@@ -1141,6 +1142,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
 
         val args: MutableMap<String, String> = mutableMapOf()
         filterId?.let { if (filterId != "") args["id"] = filterId }
+        filterThreadId?.let { if (filterThreadId != "") args["thread_id"] = filterThreadId }
         filterName?.let { if (filterName != "") args["process_name"] = filterName }
         filterStatus?.let { if (filterStatus != "") args["process_status"] = filterStatus }
         filterOrder?.let { if (filterOrder != "") args["process_order"] = filterOrder }
@@ -1390,6 +1392,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
     @ResponseBody
     fun apisProcesses(
         @RequestParam(required = false) filterId: String?,
+        @RequestParam(required = false) filterThreadId: String?,
         @RequestParam(required = false) filterName: String?,
         @RequestParam(required = false) filterStatus: String?,
         @RequestParam(required = false) filterOrder: String?,
@@ -1404,6 +1407,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
 
         val args: MutableMap<String, String> = mutableMapOf()
         filterId?.let { if (filterId != "") args["id"] = filterId }
+        filterThreadId?.let { if (filterThreadId != "") args["thread_id"] = filterThreadId }
         filterName?.let { if (filterName != "") args["process_name"] = filterName }
         filterStatus?.let { if (filterStatus != "") args["process_status"] = filterStatus }
         filterOrder?.let { if (filterOrder != "") args["process_order"] = filterOrder }

@@ -264,6 +264,10 @@ class KaraokeProcessWorker {
                         Karaoke.requestNewSongLastTimeMs = requestNewSongLastTimeMs
                         Karaoke.requestNewSongLastTimeCode = millisecondsToTimeFormatted(requestNewSongLastTimeMs)
                         Karaoke.requestNewSongLastAuthor = authorForRequest
+
+                        requestNewSongTimeoutMs = Karaoke.requestNewSongTimeoutMs
+                        requestNewSongLastTimeMs = Karaoke.requestNewSongLastTimeMs
+
                     }
                 }
 

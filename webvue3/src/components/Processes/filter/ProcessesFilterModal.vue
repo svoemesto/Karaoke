@@ -22,6 +22,16 @@
 
             <div class="prfm-filter-row">
               <div class="prfm-row-label">
+                <div v-text="'thID:'"></div>
+              </div>
+              <div class="prfm-row-input">
+                <input class="prfm-input-field" v-model="processesFilterThreadId">
+              </div>
+              <button :disabled="!processesFilterThreadId" class="prfm-button-clear-field" @click.left="processesFilterThreadId=''" v-text="'X'"></button>
+            </div>
+
+            <div class="prfm-filter-row">
+              <div class="prfm-row-label">
                 <div v-text="'Имя:'"></div>
               </div>
               <div class="prfm-row-input">
@@ -89,6 +99,7 @@ export default {
   name: "ProcessesFilterModal",
   async beforeMount() {
     this.$store.dispatch('setProcessesFilterId', { value: await this.$store.getters.getWebvueProp('processesFilterId', '') });
+    this.$store.dispatch('setProcessesFilterThreadId', { value: await this.$store.getters.getWebvueProp('processesFilterThreadId', '') });
     this.$store.dispatch('setProcessesFilterName', { value: await this.$store.getters.getWebvueProp('processesFilterName', '') });
     this.$store.dispatch('setProcessesFilterStatus', { value: await this.$store.getters.getWebvueProp('processesFilterStatus', '') });
     this.$store.dispatch('setProcessesFilterPriority', { value: await this.$store.getters.getWebvueProp('processesFilterPriority', '') });
@@ -99,6 +110,10 @@ export default {
     processesFilterId: {
       get() { return this.$store.getters.getProcessesFilterId; },
       set(value) { this.$store.dispatch('setProcessesFilterId', { value: value }); }
+    },
+    processesFilterThreadId: {
+      get() { return this.$store.getters.getProcessesFilterThreadId; },
+      set(value) { this.$store.dispatch('setProcessesFilterThreadId', { value: value }); }
     },
     processesFilterName: {
       get() { return this.$store.getters.getProcessesFilterName; },
@@ -124,6 +139,7 @@ export default {
   methods: {
     ok() {
       this.$store.dispatch('setProcessesFilterId', { value: this.processesFilterId });
+      this.$store.dispatch('setProcessesFilterThreadId', { value: this.processesFilterThreadId });
       this.$store.dispatch('setProcessesFilterName', { value: this.processesFilterName });
       this.$store.dispatch('setProcessesFilterStatus', { value: this.processesFilterStatus });
       this.$store.dispatch('setProcessesFilterPriority', { value: this.processesFilterPriority });
@@ -132,6 +148,7 @@ export default {
 
       let params = {};
       if (this.processesFilterId) params.filterId = this.processesFilterId;
+      if (this.processesFilterThreadId) params.filterThreadId = this.processesFilterThreadId;
       if (this.processesFilterName) params.filterName = this.processesFilterName;
       if (this.processesFilterStatus) params.filterStatus = this.processesFilterStatus;
       if (this.processesFilterPriority) params.filterPriority = this.processesFilterPriority;

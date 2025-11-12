@@ -72,19 +72,19 @@ tasks.withType<Test> {
     useJUnitPlatform()
 }
 
-tasks.bootJar {
-    // Настройки, если нужно, например, archiveClassifier.set("exec")
-    // archiveClassifier.set("") // Это может конфликтовать с обычным jar
-    enabled = true
-    // archiveClassifier.set("") // Убедитесь, что имя JAR соответствует COPY в Dockerfile
-}
+//tasks.bootJar {
+//    // Настройки, если нужно, например, archiveClassifier.set("exec")
+//    // archiveClassifier.set("") // Это может конфликтовать с обычным jar
+//    enabled = true
+//    // archiveClassifier.set("") // Убедитесь, что имя JAR соответствует COPY в Dockerfile
+//}
 
 // Обычная задача jar может быть отключена, если bootJar создаёт исполняемый JAR
-tasks.jar {
-    enabled = false // <-- Обычно отключают, если используется bootJar
-    // Или устанавливают classifier, чтобы не конфликтовать
-    // archiveClassifier.set("plain") // Если нужен обычный JAR для других целей
-}
+//tasks.jar {
+//    enabled = false // <-- Обычно отключают, если используется bootJar
+//    // Или устанавливают classifier, чтобы не конфликтовать
+//    // archiveClassifier.set("plain") // Если нужен обычный JAR для других целей
+//}
 
 //tasks.shadowJar {
 //    archiveClassifier.set("") // Убирает суффикс shadow у JAR

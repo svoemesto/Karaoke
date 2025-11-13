@@ -2873,7 +2873,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
         @RequestParam(required = true) skip: Boolean
     ): Long {
 
-        Author.load(id = id, database = WORKING_DATABASE)?.let {
+        Author.getAuthorById(id = id, database = WORKING_DATABASE)?.let {
             it.author = author
             it.ymId = ymId
             it.lastAlbumYm = lastAlbumYm
@@ -2908,7 +2908,11 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
         filterWatched?.let { if (filterWatched != "") args["watched"] = filterWatched }
         filterHaveNewAlbum?.let { if (filterHaveNewAlbum != "") args["haveNewAlbum"] = filterHaveNewAlbum }
         filterSkip?.let { if (filterSkip != "") args["skip"] = filterSkip }
-        val authorsList = Author.loadList(args, WORKING_DATABASE).map { it.toDTO() }
+        val authorsList = Author.loadList(
+            whereArgs = args,
+            database = WORKING_DATABASE,
+            ignoreUseInList = true
+        ).map { it.toDTO() }
         return mapOf(
             "workInContainer" to APP_WORK_IN_CONTAINER,
             "authorsDigests" to authorsList
@@ -2975,7 +2979,7 @@ class ApiController(private val sseNotificationService: SseNotificationService) 
         Pictures.getPictureById(id = id, database = WORKING_DATABASE)?.let { pic ->
             name?.let { pic.name = it }
             full?.let { pic.full = it }
-            preview?.let { pic.preview = it }
+//            preview?.let { pic.preview = it }
             pic.save()
             return id
         }

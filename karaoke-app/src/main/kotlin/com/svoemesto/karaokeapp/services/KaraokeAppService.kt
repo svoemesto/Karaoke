@@ -10,21 +10,25 @@ import kotlin.properties.Delegates
 
 lateinit var SNS: SseNotificationService
 lateinit var WVP: PropertiesFileDictionary
+lateinit var KSS: KaraokeStorageService
 var APP_WORK_IN_CONTAINER by Delegates.notNull<Boolean>()
 
 @Service
 //@Component
 class KaraokeAppService(
     sseNotificationService: SseNotificationService,
+    karaokeStorageService: KaraokeStorageService,
     @Value($$"${work-in-container}") val wic: Long
 ) {
 
     init {
         APP_WORK_IN_CONTAINER = (wic != 0L)
         SNS = sseNotificationService
+        KSS = karaokeStorageService
         WVP = WebvueProperties()
         System.setOut(DualStream(System.out))
         System.setErr(DualStream(System.err))
+        KSS.deleteAllEmptyBuckets()
     }
 
 }

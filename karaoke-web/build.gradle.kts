@@ -39,6 +39,8 @@ dependencies {
 
     implementation("javax.websocket:javax.websocket-all:1.1")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+
+    implementation("io.minio:minio:8.6.0")
 }
 
 tasks.withType<KotlinCompile> {

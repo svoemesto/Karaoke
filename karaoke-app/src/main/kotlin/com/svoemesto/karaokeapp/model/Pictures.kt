@@ -5,6 +5,9 @@ import com.svoemesto.karaokeapp.WORKING_DATABASE
 import com.svoemesto.karaokeapp.model.KaraokeDbTable.Companion.getListHashes
 import com.svoemesto.karaokeapp.resizeBufferedImage
 import com.svoemesto.karaokeapp.runCommand
+import com.svoemesto.karaokeapp.services.KSS
+import com.svoemesto.karaokeapp.services.KaraokeStorage
+import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -12,7 +15,11 @@ import java.io.Serializable
 import java.util.*
 import javax.imageio.ImageIO
 
-class Pictures(override val database: KaraokeConnection = WORKING_DATABASE) : Serializable, Comparable<Pictures>, KaraokeDbTable {
+class Pictures(
+    override val database: KaraokeConnection = WORKING_DATABASE
+) : Serializable, Comparable<Pictures>, KaraokeDbTable, KaraokeStorage {
+
+    override val storageService: KaraokeStorageService = KSS
 
     @KaraokeDbTableField(name = "id", isId = true)
     override var id: Long = 0
@@ -31,14 +38,37 @@ class Pictures(override val database: KaraokeConnection = WORKING_DATABASE) : Se
                 val iosPreview = ByteArrayOutputStream()
                 ImageIO.write(previewBi, "png", iosPreview)
                 val preview = Base64.getEncoder().encodeToString(iosPreview.toByteArray())
-                if (this.preview != preview) this.preview = preview
+//                if (this.preview != preview) this.preview = preview
             } catch (_: Exception) {
 
             }
         }
 
-    @KaraokeDbTableField(name = "picture_preview")
-    var preview: String = ""
+//    @KaraokeDbTableField(name = "picture_preview")
+//    var preview: String = ""
+
+    val preview: String get() {
+        return if (storageFilePreviewExists()) {
+            println("Получаем preview для файла '$name' из хранилища.")
+            storageDownloadFilePreview()
+        } else {
+            if (storageFileExists()) {
+                println("Отсутствует preview для файла '$name', создаём.")
+                val fullFileByteArray = storageDownloadFile().use { it.readBytes() }
+                val bi = ImageIO.read(ByteArrayInputStream(fullFileByteArray))
+                val previewBi = if (bi.width > 400) resizeBufferedImage(bi, newW = 125, newH = 50) else resizeBufferedImage(bi, newW = 50, newH = 50)
+                val iosPreview = ByteArrayOutputStream()
+                ImageIO.write(previewBi, "png", iosPreview)
+                val previewInputStream = ByteArrayInputStream(iosPreview.toByteArray())
+                storageUploadFilePreview(previewInputStream, previewInputStream.available().toLong())
+                previewInputStream
+            } else {
+                null
+            }
+        }?.let { fileInputStream ->
+            Base64.getEncoder().encodeToString(fileInputStream.use { it.readBytes() })
+        } ?: ""
+    }
 
     val author: String get() {
         val arr = name.split(" - ")
@@ -57,6 +87,28 @@ class Pictures(override val database: KaraokeConnection = WORKING_DATABASE) : Se
 
     val isAuthorPicture: Boolean get() = author.isNotBlank() && year.isBlank() && album.isBlank()
     val isAlbumPicture: Boolean get() = author.isNotBlank() && year.isNotBlank() && album.isNotBlank()
+
+    override val storageBucketName: String get() = "karaoke"
+
+    override val storageFileName: String get() = when {
+        isAuthorPicture -> "$author/$name.author.png"
+        isAlbumPicture -> "$author/$year - $album/$name.album.png"
+        else -> "$name.png"
+    }
+    override val storageFileNamePreview: String get() = when {
+        isAuthorPicture -> "$author/$name.preview.author.png"
+        isAlbumPicture -> "$author/$year - $album/$name.preview.album.png"
+        else -> "$name.preview.png"
+    }
+    override var storageBucketIsPublic: Boolean
+        get() = storageService.isBucketPublic(storageBucketName)
+        set(value) {
+            if (value) {
+                storageService.setBucketPublic(storageBucketName)
+            } else {
+                storageService.setBucketPrivate(storageBucketName)
+            }
+        }
 
     val pathToFolder: String get() {
         return if (isAlbumPicture) {
@@ -106,6 +158,10 @@ class Pictures(override val database: KaraokeConnection = WORKING_DATABASE) : Se
         } catch (e: Exception) {
             println(e.message)
         }
+    }
+
+    init {
+        storageBucketIsPublic = true
     }
 
     companion object {

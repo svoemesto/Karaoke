@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.svoemesto.karaokeapp.*
 import com.svoemesto.karaokeapp.mlt.MltProp
 import com.svoemesto.karaokeapp.services.APP_WORK_IN_CONTAINER
+import com.svoemesto.karaokeapp.services.KaraokeStorageServiceImpl
 import com.svoemesto.karaokeapp.services.SNS
 import com.svoemesto.karaokeapp.textfiledictionary.SyncIdsDictionary
 import kotlinx.serialization.builtins.ListSerializer
@@ -394,7 +395,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                 val pict = Pictures(database)
                 pict.name = pictureNameAuthor
                 pict.full = full
-                pict.preview = preview
+//                pict.preview = preview
                 pic = Pictures.createNewPicture(pict, database)
             }
         }
@@ -421,7 +422,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                 val pict = Pictures(database)
                 pict.name = pictureNameAlbum
                 pict.full = full
-                pict.preview = preview
+//                pict.preview = preview
                 pic = Pictures.createNewPicture(pict, database)
             }
         }

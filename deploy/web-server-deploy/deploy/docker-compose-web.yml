@@ -3,7 +3,7 @@ services:
 
   karaoke-web:
     container_name: karaoke-web
-    image: ${DOCKER_REGISTRY}/karaoke-web:${BUILD_VERSION}
+    image: ${DOCKER_REGISTRY}/karaoke-web:1
     ports:
       - ${WEB_PORT_HOST}:${WEB_PORT_INSIDE_CONTAINER}
     environment:
@@ -16,8 +16,8 @@ services:
       - STORAGE_CONTAINER_NAME=${STORAGE_CONTAINER_NAME}
       - STORAGE_KEY=${STORAGE_KEY}
       - STORAGE_SECRET=${STORAGE_SECRET}
-#    volumes:
-#      - ${WEB_FOLDER_HOST}:${WEB_FOLDER_IN_CONTAINER}
+    volumes:
+      - ${WEB_FOLDER_HOST}:${WEB_FOLDER_IN_CONTAINER}
     networks:
       - karaokenet
     entrypoint:
@@ -31,4 +31,4 @@ services:
 
 networks:
   karaokenet:
-    external: true # <-- Указываем, что сеть внешняя
+    driver: bridge

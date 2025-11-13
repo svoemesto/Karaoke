@@ -1,7 +1,9 @@
 package com.svoemesto.karaokeapp.model
 
+import com.svoemesto.karaokeapp.KaraokeConnection
+
 interface KaraokeDbTableDto {
-    fun isValid(): Boolean
-    fun validationErrors(): List<String>
-    fun fromDto(): KaraokeDbTable
+    fun isValid(): Boolean = true
+    fun validationErrors(): List<String> = emptyList()
+    fun fromDto(database: KaraokeConnection): KaraokeDbTable
 }

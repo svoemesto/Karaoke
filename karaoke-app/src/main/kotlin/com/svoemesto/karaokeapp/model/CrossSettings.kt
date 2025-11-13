@@ -98,7 +98,11 @@ class CrossSettings {
             listOfSettings: List<Settings>,
             columnField: SettingField = SettingField.AUTHOR
         ): List<CrossSettingsRow> {
-            val skipedAuthors = Author.loadList(mapOf("skip" to "true"), database = WORKING_DATABASE).map { it.author }
+            val skipedAuthors = Author.loadList(
+                whereArgs = mapOf("skip" to "true"),
+                database = WORKING_DATABASE,
+                ignoreUseInList = true
+            ).map { it.author }
             val columns = listOfSettings.filter { it.author !in skipedAuthors }.map { sett ->
                 val fields = sett.javaClass.getDeclaredField("fields")
                 fields.isAccessible = true
@@ -150,7 +154,11 @@ class CrossSettings {
                 listOfSettings: List<Settings>,
                 columnField: SettingField = SettingField.AUTHOR
         ): List<CrossSettingsRow> {
-            val skipedAuthors = Author.loadList(mapOf("skip" to "true"), database = WORKING_DATABASE).map { it.author }
+            val skipedAuthors = Author.loadList(
+                whereArgs = mapOf("skip" to "true"),
+                database = WORKING_DATABASE,
+                ignoreUseInList = true
+            ).map { it.author }
             val columns = listOfSettings.filter { it.author in skipedAuthors }.map { sett ->
                 val fields = sett.javaClass.getDeclaredField("fields")
                 fields.isAccessible = true

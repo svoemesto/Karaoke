@@ -1,5 +1,7 @@
 package com.svoemesto.karaokeapp.model
 
+import com.svoemesto.karaokeapp.Connection
+import com.svoemesto.karaokeapp.KaraokeConnection
 import java.io.Serializable
 
 data class UsersDto(
@@ -32,8 +34,8 @@ data class UsersDto(
         return errors.isEmpty()
     }
 
-    override fun fromDto(): Users {
-        val result = Users()
+    override fun fromDto(database: KaraokeConnection): Users {
+        val result = Users(database = database as Connection)
         result.id = id
         result.login = login
         result.email = email

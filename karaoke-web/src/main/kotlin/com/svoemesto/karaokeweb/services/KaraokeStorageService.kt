@@ -1,4 +1,4 @@
-package com.svoemesto.karaokeapp.services
+package com.svoemesto.karaokeweb.services
 
 import io.minio.*
 import io.minio.errors.ErrorResponseException

@@ -50,34 +50,31 @@ fun customFunction(): String {
 //        println("-----------------------------")
 //    }
 
-
-//    Playwright.create().use { playwright ->
-//        val browser = playwright.chromium().launch(
-//            BrowserType.LaunchOptions()
-////                    .setExecutablePath(Path.of("/usr/bin/yandex-browser")) // Укажите путь к Яндекс.Браузеру
-//                .setHeadless(true) // или true, если не нужно видеть
-//        )
-//
-//        // Создаем контекст, используя сохраненное состояние авторизации
-//        val context = browser.newContext(
-//            Browser.NewContextOptions()
-//                .setStorageStatePath(Path.of("/sm-karaoke/system/yandex_auth_state.json")) // <-- Используем сохраненное состояние
-//        )
-//
-//        val page = context.newPage()
-//        page.navigate("https://music.yandex.ru/artist/10385567/albums") // Откроется авторизованным
-//
-//        page.waitForLoadState(LoadState.NETWORKIDLE)
-//        val htmlContent = page.content()
-//        println("Полный HTML страницы:")
-//        println(htmlContent)
-//        Thread.sleep(50000)
-//        browser.close()
-//    }
-
-    checkLastAlbumYm()
+    uploadPicturesToStorage()
 
     return ""
+}
+
+fun uploadPicturesToStorage() {
+    Pictures.loadList(whereArgs = emptyMap(), database = WORKING_DATABASE, ignoreUseInList = false).forEach { picture ->
+        if (picture.storageFileExists()) {
+            println("Картинка '${picture.name}' уже есть в хранилище, пропускаем.")
+        } else {
+            val pathToFileOnDisk = "${picture.pathToFolder}/${picture.fileName}"
+            if (File(pathToFileOnDisk).exists()) {
+                picture.storageUploadFile(pathToFileOnDisk)
+                println("Картинка '${picture.name}': загружаем в хранилище с диска")
+            } else {
+                Pictures.getPictureById(id = picture.id, database = WORKING_DATABASE)?.let { picWithFull ->
+                    val pictureBites = Base64.getDecoder().decode(picWithFull.full)
+                    val bais = ByteArrayInputStream(pictureBites)
+                    picWithFull.storageUploadFile(file = bais, size = bais.available().toLong())
+                    println("Картинка '${picWithFull.name}': загружаем в хранилище из БД")
+                }
+            }
+
+        }
+    }
 }
 
 fun setSettingsToSyncRemoteTable(id: Long) {
@@ -2263,13 +2260,13 @@ fun getAuthorForRequest(lastAuthor: String = ""): Author? {
         if (result == "") result = listSongAuthors.first()
         result
     }
-    var author = Author.load(author = authorForRequest, database = WORKING_DATABASE)
+    var author = Author.getAuthorByName(author = authorForRequest, database = WORKING_DATABASE)
 
 
     if (author == null) {
         val newAuthor = Author()
         newAuthor.author = authorForRequest
-        Author.createDbInstance(author = newAuthor, database = WORKING_DATABASE)
+        Author.createNewAuthor(newAuthor = newAuthor, database = WORKING_DATABASE)
         author = newAuthor
         println("Автор «$authorForRequest» отсутствует в таблице tbl_authors. Создаём запись.")
     }

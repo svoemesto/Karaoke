@@ -1,5 +1,7 @@
 package com.svoemesto.karaokeapp
 
+import com.svoemesto.karaokeapp.model.Settings
+import com.svoemesto.karaokeapp.model.SongVersion
 import com.svoemesto.karaokeapp.textfiledictionary.CensoredWordsDictionary
 import java.awt.Color
 import java.awt.Font
@@ -222,3 +224,7 @@ fun String.base64ifFileExists(): String {
 fun String.stripToNumeric(): String {
     return this.replace("\\D+".toRegex(), "")
 }
+
+fun Settings.karaokePlatformPublications(): List<KaraokePlatformPublication> = KaraokePlatformPublication.getList(settings = this)
+fun Settings.karaokeFiles(): List<KaraokeFile> = KaraokeFile.getList(settings = this)
+fun Settings.karaokeFiles(songVersion: SongVersion): List<KaraokeFile> = KaraokeFile.getList(settings = this, songVersion = songVersion)

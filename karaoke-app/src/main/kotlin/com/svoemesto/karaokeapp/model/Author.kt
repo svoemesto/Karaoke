@@ -3,84 +3,43 @@ package com.svoemesto.karaokeapp.model
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.WORKING_DATABASE
+import com.svoemesto.karaokeapp.model.KaraokeDbTable.Companion.getListHashes
 import java.io.Serializable
-import java.sql.ResultSet
-import java.sql.SQLException
-import java.sql.Statement
-import java.sql.Timestamp
-import java.time.Instant
 
 @JsonIgnoreProperties(value = ["database", "sqlToInsert"])
-class Author(val database: KaraokeConnection = WORKING_DATABASE) : Serializable, Comparable<Author> {
+class Author(
+    override val database: KaraokeConnection = WORKING_DATABASE
+) : Serializable, Comparable<Author>, KaraokeDbTable {
 
-    var id: Int = 0
+    override fun getTableName() = "tbl_authors"
+
+    @KaraokeDbTableField(name = "id", isId = true)
+    override var id: Long = 0
+
+    @KaraokeDbTableField(name = "author")
     var author: String = "Author name"
+
+    @KaraokeDbTableField(name = "ym_id")
     var ymId: String = ""
+
+    @KaraokeDbTableField(name = "last_album_ym")
     var lastAlbumYm: String = ""
+
+    @KaraokeDbTableField(name = "last_album_processed")
     var lastAlbumProcessed: String = ""
+
+    @KaraokeDbTableField(name = "watched")
     var watched: Boolean = false
+
+    @KaraokeDbTableField(name = "skip")
     var skip: Boolean = false
+
     val haveNewAlbum: Boolean get() = watched && ymId != "" && lastAlbumYm != lastAlbumProcessed
     override fun compareTo(other: Author): Int {
         return author.compareTo(other.author)
     }
 
-    fun save() {
-
-        val connection = database.getConnection()
-        if (connection == null) {
-            println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
-            return
-        }
-        val sql = "UPDATE tbl_authors SET " +
-                "author = ?, " +
-                "ym_id = ?, " +
-                "last_album_ym = ?, " +
-                "last_album_processed = ?, " +
-                "watched = ?, " +
-                "skip = ? " +
-                "WHERE id = ?"
-        val ps = connection.prepareStatement(sql)
-        var index = 1
-        ps.setString(index, author)
-        index++
-        ps.setString(index, ymId)
-        index++
-        ps.setString(index, lastAlbumYm)
-        index++
-        ps.setString(index, lastAlbumProcessed)
-        index++
-        ps.setBoolean(index, watched)
-        index++
-        ps.setBoolean(index, skip)
-        index++
-        ps.setInt(index, id)
-        ps.executeUpdate()
-        ps.close()
-
-    }
-
-    fun getSqlToInsert(): String {
-        val author = this
-        val fieldsValues: MutableList<Pair<String, Any>> = mutableListOf()
-
-        if (author.id > 0) fieldsValues.add(Pair("id", author.id))
-        fieldsValues.add(Pair("author", author.author))
-        fieldsValues.add(Pair("ym_id", author.ymId))
-        fieldsValues.add(Pair("last_album_ym", author.lastAlbumYm))
-        fieldsValues.add(Pair("last_album_processed", author.lastAlbumProcessed))
-        fieldsValues.add(Pair("watched", author.watched))
-        fieldsValues.add(Pair("skip", author.skip))
-
-        return "INSERT INTO tbl_authors (${fieldsValues.joinToString(", ") { it.first }}) OVERRIDING SYSTEM VALUE VALUES(${
-            fieldsValues.joinToString(
-                ", "
-            ) { if (it.second is Long) "${it.second}" else "'${it.second.toString().replace("'", "''")}'" }
-        })"
-
-    }
-
-    fun toDTO(): AuthorDTO {
+    override fun toDTO(): AuthorDTO {
         val picture = Pictures.loadList(
             whereArgs = mapOf("name" to author),
             limit = 1,
@@ -104,183 +63,95 @@ class Author(val database: KaraokeConnection = WORKING_DATABASE) : Serializable,
 
     companion object {
 
+        const val TABLE_NAME = "tbl_authors"
+
         @Suppress("unused")
-        fun listHashes(database: KaraokeConnection, whereText: String = ""): List<RecordHash>? {
-            var result: MutableList<RecordHash>? = mutableListOf()
-            val sql = "SELECT id, recordhash FROM tbl_authors $whereText"
+        fun listHashes(database: KaraokeConnection, whereText: String = ""): List<RecordHash>? = getListHashes(tableName = TABLE_NAME, database = database, whereText = whereText)
 
-            val connection = database.getConnection()
-            if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
-                return null
-            }
-            var statement: Statement? = null
-            var rs: ResultSet? = null
-
-            try {
-                statement = connection.createStatement()
-
-                println("[${Timestamp.from(Instant.now())}] Запрос хешей...")
-                rs = statement.executeQuery(sql)
-                var cnt = 0
-                while (rs.next()) {
-                    cnt++
-                    result!!.add(RecordHash(id = rs.getLong("id"), recordhash = rs.getString("recordhash")))
-                }
-                println("[${Timestamp.from(Instant.now())}] Получено хешей: $cnt")
-
-            } catch (e: SQLException) {
-                e.printStackTrace()
-                result = null
-            } finally {
-                try {
-                    rs?.close() // close result set
-                    statement?.close() // close statement
-                } catch (e: SQLException) {
-                    e.printStackTrace()
-                }
-            }
-            return result
-        }
-
-        fun getDiff(authorA: Author?, authorB: Author?): List<RecordDiff> {
-            val result: MutableList<RecordDiff> = mutableListOf()
-            if (authorA != null && authorB != null) {
-                if (authorA.author != authorB.author) result.add(RecordDiff("author", authorA.author, authorB.author))
-                if (authorA.ymId != authorB.ymId) result.add(RecordDiff("ym_id", authorA.ymId, authorB.ymId))
-                if (authorA.lastAlbumYm != authorB.lastAlbumYm) result.add(RecordDiff("last_album_ym", authorA.lastAlbumYm, authorB.lastAlbumYm))
-                if (authorA.lastAlbumProcessed != authorB.lastAlbumProcessed) result.add(RecordDiff("last_album_processed", authorA.lastAlbumProcessed, authorB.lastAlbumProcessed))
-                if (authorA.watched != authorB.watched) result.add(RecordDiff("watched", authorA.watched, authorB.watched))
-                if (authorA.skip != authorB.skip) result.add(RecordDiff("skip", authorA.skip, authorB.skip))
-            }
-            return result
-        }
-
-        fun createDbInstance(author: Author, database: KaraokeConnection) : Author? {
-            val sql = author.getSqlToInsert()
-
-            val connection = database.getConnection()
-            if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
-                return null
-            }
-            val ps = connection.prepareStatement(sql)
-            ps.executeUpdate(sql, Statement.RETURN_GENERATED_KEYS)
-            val rs = ps.generatedKeys
-
-            val result = if (rs.next()) {
-                author.id = rs.getInt(1)
-                author
-            } else null
-
-            ps.close()
-
-            return result
-
-        }
-
-        fun loadList(args: Map<String, String> = emptyMap(), database: KaraokeConnection): List<Author> {
-
-            val connection = database.getConnection()
-            if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
-                return emptyList()
-            }
-            var statement: Statement? = null
-            var rs: ResultSet? = null
-            var sql: String
+        private fun getWhereList(whereArgs: Map<String, String>): List<String> {
             val where: MutableList<String> = mutableListOf()
 
-            try {
-                statement = connection.createStatement()
-                sql = "SELECT tbl_authors.*" +
-                        " FROM tbl_authors"
-                if (args.containsKey("id")) where += "id=${args["id"]}"
-                if (args.containsKey("author")) where += "author = '${args["author"]}'"
-                if (args.containsKey("ym_id")) where += "ym_id = '${args["ym_id"]}'"
-                if (args.containsKey("last_album_ym")) where += "last_album_ym = '${args["last_album_ym"]}'"
-                if (args.containsKey("last_album_processed")) where += "last_album_processed = '${args["last_album_processed"]}'"
-                if (args.containsKey("watched")) {
-                    if (args["watched"] == "+" || args["watched"] == "true") {
-                        where += "watched = true"
-                    } else if (args["watched"] == "-" || args["watched"] == "false") {
-                        where += "watched = false"
-                    }
-                }
-                if (args.containsKey("haveNewAlbum")) {
-                    if (args["haveNewAlbum"] == "+" || args["haveNewAlbum"] == "true") {
-                        where += "(watched = true AND ym_id <> '' AND last_album_ym <> last_album_processed)"
-                    } else if (args["haveNewAlbum"] == "-" || args["haveNewAlbum"] == "false") {
-                        where += "(watched = false OR ym_id = '' OR last_album_ym = last_album_processed)"
-                    }
-                }
-                if (args.containsKey("skip")) {
-                    if (args["skip"] == "+" || args["skip"] == "true") {
-                        where += "skip = true"
-                    } else if (args["skip"] == "-" || args["skip"] == "false") {
-                        where += "skip = false"
-                    }
-                }
-                if (where.isNotEmpty()) sql += " WHERE ${where.joinToString(" AND ")}"
-
-                rs = statement.executeQuery(sql)
-                val result: MutableList<Author> = mutableListOf()
-                while (rs.next()) {
-                    val author = Author(database)
-                    author.id = rs.getInt("id")
-                    author.author = rs.getString("author")?:""
-                    author.ymId = rs.getString("ym_id")?:""
-                    author.lastAlbumYm = rs.getString("last_album_ym")?:""
-                    author.lastAlbumProcessed = rs.getString("last_album_processed")?:""
-                    author.watched = rs.getBoolean("watched")
-                    author.skip = rs.getBoolean("skip")
-                    result.add(author)
-
-                }
-                result.sort()
-
-                return result
-
-            } catch (e: SQLException) {
-                e.printStackTrace()
-            } finally {
-                try {
-                    rs?.close() // close result set
-                    statement?.close() // close statement
-                } catch (e: SQLException) {
-                    e.printStackTrace()
+            if (whereArgs.containsKey("id")) where += "id=${whereArgs["id"]}"
+            if (whereArgs.containsKey("author")) where += "author = '${whereArgs["author"]}'"
+            if (whereArgs.containsKey("ym_id")) where += "ym_id = '${whereArgs["ym_id"]}'"
+            if (whereArgs.containsKey("last_album_ym")) where += "last_album_ym = '${whereArgs["last_album_ym"]}'"
+            if (whereArgs.containsKey("last_album_processed")) where += "last_album_processed = '${whereArgs["last_album_processed"]}'"
+            if (whereArgs.containsKey("watched")) {
+                if (whereArgs["watched"] == "+" || whereArgs["watched"] == "true") {
+                    where += "watched = true"
+                } else if (whereArgs["watched"] == "-" || whereArgs["watched"] == "false") {
+                    where += "watched = false"
                 }
             }
-            return emptyList()
-        }
-
-        fun delete(id: Int, database: KaraokeConnection) {
-
-            val connection = database.getConnection()
-            if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
-                return
+            if (whereArgs.containsKey("haveNewAlbum")) {
+                if (whereArgs["haveNewAlbum"] == "+" || whereArgs["haveNewAlbum"] == "true") {
+                    where += "(watched = true AND ym_id <> '' AND last_album_ym <> last_album_processed)"
+                } else if (whereArgs["haveNewAlbum"] == "-" || whereArgs["haveNewAlbum"] == "false") {
+                    where += "(watched = false OR ym_id = '' OR last_album_ym = last_album_processed)"
+                }
             }
-            val sql = "DELETE FROM tbl_authors WHERE id = ?"
-            val ps = connection.prepareStatement(sql)
-            ps.setInt(1, id)
-            ps.executeUpdate()
-            ps.close()
+            if (whereArgs.containsKey("skip")) {
+                if (whereArgs["skip"] == "+" || whereArgs["skip"] == "true") {
+                    where += "skip = true"
+                } else if (whereArgs["skip"] == "-" || whereArgs["skip"] == "false") {
+                    where += "skip = false"
+                }
+            }
 
+            return where
         }
 
-        fun load(id: Long, database: KaraokeConnection): Author? {
-
-            return loadList(mapOf(Pair("id", id.toString())), database).firstOrNull()
-
+        fun loadList(whereArgs: Map<String, String>,
+                     limit: Int = 0,
+                     offset: Int = 0,
+                     database: KaraokeConnection,
+                     ignoreUseInList: Boolean
+        ): List<Author> {
+            return KaraokeDbTable.loadList(
+                clazz = Author::class,
+                tableName = TABLE_NAME,
+                whereList = getWhereList(whereArgs),
+                limit = limit,
+                offset = offset,
+                database = database,
+                ignoreUseInList = ignoreUseInList
+            ).map { it as Author }
         }
 
-        fun load(author: String, database: KaraokeConnection): Author? {
-
-            return loadList(mapOf(Pair("author", author)), database).firstOrNull()
-
+        fun delete(id: Long, database: KaraokeConnection): Boolean {
+            return KaraokeDbTable.delete(
+                tableName = TABLE_NAME,
+                id = id,
+                database = database
+            )
         }
 
+        fun createNewAuthor(newAuthor: Author, database: KaraokeConnection): Author? {
+            val newAuthorInDb = KaraokeDbTable.createDbInstance(
+                entity = newAuthor,
+                database = database
+            ) as? Author?
+            newAuthorInDb?.let {
+                return it
+            }
+            return null
+        }
+
+        fun getAuthorById(id: Long, database: KaraokeConnection): Author? {
+            return KaraokeDbTable.loadById(
+                clazz = Author::class,
+                tableName = TABLE_NAME,
+                id = id,
+                database = database
+            ) as? Author?
+        }
+
+        fun getAuthorByName(author: String, database: KaraokeConnection): Author? {
+            return loadList(
+                whereArgs = mapOf(Pair("author", author)),
+                database = database,
+                ignoreUseInList = true
+            ).firstOrNull()
+        }
     }
-
 }

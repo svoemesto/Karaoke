@@ -436,7 +436,11 @@ class Publication(val database: KaraokeConnection = WORKING_DATABASE) : Serializ
         fun getUnPublicationList(database: KaraokeConnection): MutableList<MutableList<Publication>> {
             val result: MutableList<MutableList<Publication>> = mutableListOf()
 
-            val skipedAuthors = Author.loadList(mapOf("skip" to "true"), database = database).map { it.author }
+            val skipedAuthors = Author.loadList(
+                whereArgs = mapOf("skip" to "true"),
+                database = database,
+                ignoreUseInList = true
+            ).map { it.author }
 
             val listUnpublished =
                 Settings.loadListFromDb(mapOf("publish_date" to "-", "publish_time" to "-"), database)
@@ -481,7 +485,11 @@ class Publication(val database: KaraokeConnection = WORKING_DATABASE) : Serializ
         fun getSkipedPublicationList(database: KaraokeConnection): MutableList<MutableList<Publication>> {
             val result: MutableList<MutableList<Publication>> = mutableListOf()
 
-            val skipedAuthors = Author.loadList(mapOf("skip" to "true"), database = database).map { it.author }
+            val skipedAuthors = Author.loadList(
+                whereArgs = mapOf("skip" to "true"),
+                database = database,
+                ignoreUseInList = true
+            ).map { it.author }
 
             val listUnpublished =
                     Settings.loadListFromDb(mapOf("publish_date" to "-", "publish_time" to "-"), database)
@@ -525,7 +533,11 @@ class Publication(val database: KaraokeConnection = WORKING_DATABASE) : Serializ
 
         fun getSettingsListForPublications(args: Map<String, String> = emptyMap(), database: KaraokeConnection): List<Settings> {
 
-            val skipedAuthors = Author.loadList(mapOf("skip" to "true"), database = database).map { it.author }
+            val skipedAuthors = Author.loadList(
+                whereArgs = mapOf("skip" to "true"),
+                database = database,
+                ignoreUseInList = true
+            ).map { it.author }
 
             var filterDateFrom =  args["filter_date_from"] ?: ""
             var filterDateTo =  args["filter_date_to"] ?: ""

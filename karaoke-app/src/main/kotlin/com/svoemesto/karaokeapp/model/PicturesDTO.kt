@@ -1,5 +1,8 @@
 package com.svoemesto.karaokeapp.model
 
+import com.svoemesto.karaokeapp.KaraokeConnection
+import com.svoemesto.karaokeapp.services.KaraokeStorageService
+import com.svoemesto.karaokeapp.services.KaraokeStorageServiceImpl
 import java.io.Serializable
 
 data class PicturesDTO(
@@ -19,15 +22,12 @@ data class PicturesDTO(
         return name.compareTo(other.name)
     }
 
-    override fun isValid(): Boolean {
-        return true
-    }
-
-    override fun validationErrors(): List<String> {
-        TODO("Not yet implemented")
-    }
-
-    override fun fromDto(): KaraokeDbTable {
-        TODO("Not yet implemented")
+    override fun fromDto(database: KaraokeConnection): Pictures {
+        val entity = Pictures(database = database)
+        entity.id = id
+        entity.name = name
+//        entity.preview = preview
+        entity.full = full
+        return entity
     }
 }

@@ -4,6 +4,8 @@ import com.svoemesto.karaokeapp.Connection
 import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.WORKING_DATABASE
 import com.svoemesto.karaokeapp.getMd5Hash
+import com.svoemesto.karaokeapp.services.KSS_APP
+import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.SNS
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.authority.SimpleGrantedAuthority
@@ -14,7 +16,10 @@ import java.io.Serializable
 // Добавим поле authorities, если планируется использовать роли
 // @KaraokeDbTableField(name = "authorities") // Нужно ли хранить в БД?
 // var authorities: String = "ROLE_USER" // Пример по умолчанию
-class Users(override val database: Connection = (WORKING_DATABASE as Connection)) : Serializable, Comparable<Users>, KaraokeDbTable,
+class Users(
+    override val database: Connection = (WORKING_DATABASE as Connection),
+    override val storageService: KaraokeStorageService = KSS_APP
+) : Serializable, Comparable<Users>, KaraokeDbTable,
     UserDetails {
 
     @KaraokeDbTableField(name = "id", isId = true)
@@ -119,19 +124,19 @@ class Users(override val database: Connection = (WORKING_DATABASE as Connection)
         const val TABLE_NAME = "tbl_users"
 
         // --- Обновленные методы, принимающие PasswordEncoder ---
-        fun checkPassword(login: String, password: String, database: KaraokeConnection, passwordEncoder: PasswordEncoder): Boolean {
-            return getUserByLogin(login = login, database = database)?.checkPassword(password, passwordEncoder) ?: false
+        fun checkPassword(login: String, password: String, database: KaraokeConnection, passwordEncoder: PasswordEncoder, storageService: KaraokeStorageService): Boolean {
+            return getUserByLogin(login = login, database = database, storageService = storageService)?.checkPassword(password, passwordEncoder) ?: false
         }
 
-        fun resetPassword(login: String, database: KaraokeConnection, passwordEncoder: PasswordEncoder): Boolean {
-            return getUserByLogin(login = login, database = database)?.let {
+        fun resetPassword(login: String, database: KaraokeConnection, passwordEncoder: PasswordEncoder, storageService: KaraokeStorageService): Boolean {
+            return getUserByLogin(login = login, database = database, storageService = storageService)?.let {
                 it.resetPassword(passwordEncoder)
                 true
             } ?: false
         }
 
-        fun changePassword(login: String, newPassword: String, oldPassword: String, database: KaraokeConnection, passwordEncoder: PasswordEncoder): Boolean {
-            return getUserByLogin(login = login, database = database)?.changePassword(newPassword = newPassword, oldPassword = oldPassword, passwordEncoder) ?: false
+        fun changePassword(login: String, newPassword: String, oldPassword: String, database: KaraokeConnection, passwordEncoder: PasswordEncoder, storageService: KaraokeStorageService): Boolean {
+            return getUserByLogin(login = login, database = database, storageService = storageService)?.changePassword(newPassword = newPassword, oldPassword = oldPassword, passwordEncoder) ?: false
         }
 
         private fun getWhereList(whereArgs: Map<String, String>): List<String> {
@@ -148,20 +153,23 @@ class Users(override val database: Connection = (WORKING_DATABASE as Connection)
         fun loadList(whereArgs: Map<String, String>,
                      limit: Int = 0,
                      offset: Int = 0,
-                     database: KaraokeConnection): List<Users> {
+                     database: KaraokeConnection,
+                     storageService: KaraokeStorageService
+        ): List<Users> {
             return KaraokeDbTable.loadList(
                 clazz = Users::class,
                 tableName = TABLE_NAME,
                 whereList = getWhereList(whereArgs),
                 limit = limit,
                 offset = offset,
-                database = database
+                database = database,
+                storageService = storageService,
             ).map { it as Users }
         }
 
-        fun createNewUser(userDto: UsersDto, database: KaraokeConnection, passwordEncoder: PasswordEncoder): Users? {
+        fun createNewUser(userDto: UsersDto, database: KaraokeConnection, passwordEncoder: PasswordEncoder, storageService: KaraokeStorageService): Users? {
             if (userDto.isValid()) {
-                if (getUserByLogin(login = userDto.login, database = database) == null) {
+                if (getUserByLogin(login = userDto.login, database = database, storageService = storageService) == null) {
                     val newUser = Users(database = (database as Connection))
                     newUser.login = userDto.login
                     newUser.setPasswordWithEncoder(passwordEncoder.encode(userDto.password))
@@ -192,21 +200,23 @@ class Users(override val database: Connection = (WORKING_DATABASE as Connection)
             return null
         }
 
-        fun getUsersById(id: Long, database: KaraokeConnection): Users? {
+        fun getUsersById(id: Long, database: KaraokeConnection, storageService: KaraokeStorageService): Users? {
             return KaraokeDbTable.loadById(
                 clazz = Users::class,
                 tableName = TABLE_NAME,
                 id = id,
-                database = database
+                database = database,
+                storageService = storageService
             ) as? Users?
         }
 
-        fun getUserByLogin(login: String, database: KaraokeConnection): Users? {
+        fun getUserByLogin(login: String, database: KaraokeConnection, storageService: KaraokeStorageService): Users? {
             return KaraokeDbTable.loadList(
                 clazz = Users::class,
                 tableName = TABLE_NAME,
                 whereList = listOf("login='$login'"),
-                database = database
+                database = database,
+                storageService = storageService
             ).firstOrNull() as? Users?
         }
 

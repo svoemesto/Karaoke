@@ -2,30 +2,20 @@ package com.svoemesto.karaokeweb.controllers
 
 
 import com.svoemesto.karaokeapp.Crypto
-import com.svoemesto.karaokeapp.controllers.StorageController
-import com.svoemesto.karaokeapp.isValidFileName
 import com.svoemesto.karaokeapp.model.Settings
 import com.svoemesto.karaokeweb.StatBySong
 import com.svoemesto.karaokeapp.model.Zakroma
 import com.svoemesto.karaokeapp.rightFileName
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
-import com.svoemesto.karaokeapp.services.StorageFileInfo
 import com.svoemesto.karaokeweb.services.WEB_WORK_IN_CONTAINER
 import com.svoemesto.karaokeweb.WORKING_DATABASE
-//import com.svoemesto.karaokeweb.services.KSS
-import io.minio.StatObjectResponse
+//import com.svoemesto.karaokeweb.services.KSS_WEB
 import jakarta.servlet.http.HttpServletRequest
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.http.HttpHeaders
-import org.springframework.http.HttpStatus
-import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Controller
 import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.*
-import org.springframework.web.multipart.MultipartFile
 import java.sql.Timestamp
 import java.time.Instant
 
@@ -33,15 +23,13 @@ import java.time.Instant
 class MainController(
     @Suppress("unused") private val webSocket: SimpMessagingTemplate,
     @Value($$"${work-in-container}") val wic: Long,
+    private val storageService: KaraokeStorageService
     ) {
-
-//    private val karaokeStorageService: KaraokeStorageService = KSS
-//    private val logger: Logger = LoggerFactory.getLogger(StorageController::class.java)
-//    private val maxFileSize: String = "100MB"
 
     init {
         WEB_WORK_IN_CONTAINER = (wic != 0L)
         println("WEB_WORK_IN_CONTAINER = $WEB_WORK_IN_CONTAINER")
+        println("storageService = $storageService")
     }
 
     @GetMapping("/")
@@ -49,8 +37,8 @@ class MainController(
         model: Model,
         request: HttpServletRequest
     ): String {
-        model.addAttribute("onBoosty", StatBySong.getCountSongsInCollection(WORKING_DATABASE))
-        model.addAttribute("onAir", StatBySong.getCountSongsOnAir(WORKING_DATABASE))
+        model.addAttribute("onBoosty", StatBySong.getCountSongsInCollection(database = WORKING_DATABASE))
+        model.addAttribute("onAir", StatBySong.getCountSongsOnAir(database = WORKING_DATABASE))
         doRegisterEvent(mapOf("eventType" to "callRest", "restName" to "main", "parameters" to emptyMap<String, Any>(), "referer" to request.remoteHost))
         return "main"
     }
@@ -66,8 +54,8 @@ class MainController(
             data["author"] = it
         }
         model.addAttribute("author_init", author ?: "")
-        model.addAttribute("authors", Settings.loadListAuthors(WORKING_DATABASE))
-        model.addAttribute("zakroma", Zakroma.getZakroma(author ?: "", WORKING_DATABASE))
+        model.addAttribute("authors", Settings.loadListAuthors(database = WORKING_DATABASE))
+        model.addAttribute("zakroma", Zakroma.getZakroma(author = author ?: "", database = WORKING_DATABASE, storageService = storageService))
         doRegisterEvent(mapOf("eventType" to "callRest", "restName" to "zakroma", "parameters" to data, "referer" to request.remoteHost))
         return "zakroma"
     }
@@ -263,7 +251,7 @@ class MainController(
         if (text != null && text != "") attr["text"] = text
         if (album != null && album != "") attr["song_album"] = album
 
-        val settings: List<Settings> = if ("${songName ?: ""}${author ?: ""}${album ?: ""}${text ?: ""}".length < 3) emptyList() else Settings.loadListFromDb(attr, WORKING_DATABASE)
+        val settings: List<Settings> = if ("${songName ?: ""}${author ?: ""}${album ?: ""}${text ?: ""}".length < 3) emptyList() else Settings.loadListFromDb(attr, database = WORKING_DATABASE, storageService = storageService)
 
         model.addAttribute("authors", Settings.loadListAuthors(WORKING_DATABASE))
         model.addAttribute("settings", settings)
@@ -284,7 +272,7 @@ class MainController(
         model: Model,
         request: HttpServletRequest
     ): String {
-        val sett = Settings.loadFromDbById(id, WORKING_DATABASE)
+        val sett = Settings.loadFromDbById(id, database = WORKING_DATABASE, storageService = storageService)
 //        sett?.let {
 //            if (!sett.haveVkGroupLink) {
 //                val pathToPictureVkGroupLink = "/home/Karaoke/webpictures/${sett.id}.png"
@@ -311,7 +299,7 @@ class MainController(
     fun doWebEvents(
         model: Model
     ): String {
-        model.addAttribute("webevents", StatBySong.getWebEvents(WORKING_DATABASE))
+        model.addAttribute("webevents", StatBySong.getWebEvents(database = WORKING_DATABASE, storageService = storageService))
         return "webevents"
     }
 
@@ -319,7 +307,7 @@ class MainController(
     fun doTestPage(@PathVariable id: Long,
         model: Model
     ): String {
-        val sett = Settings.loadFromDbById(id, WORKING_DATABASE)
+        val sett = Settings.loadFromDbById(id, database = WORKING_DATABASE, storageService = storageService)
         model.addAttribute("sett", sett)
         return "testpage"
     }

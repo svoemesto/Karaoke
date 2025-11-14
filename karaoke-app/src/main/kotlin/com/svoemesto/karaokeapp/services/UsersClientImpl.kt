@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service
 @Service
 class UsersClientImpl: UsersClient {
     override fun getUserById(id: Long): Users? {
-        return Users.getUsersById(id = id, database = WORKING_DATABASE)
+        return Users.getUsersById(id = id, database = WORKING_DATABASE, storageService = KSS_APP)
     }
 
     override fun deleteUser(id: Long): Boolean {
@@ -17,7 +17,7 @@ class UsersClientImpl: UsersClient {
     }
 
     override fun getUserByLogin(login: String): Users? {
-        return Users.getUserByLogin(login = login, database = WORKING_DATABASE)
+        return Users.getUserByLogin(login = login, database = WORKING_DATABASE, storageService = KSS_APP)
     }
 
     override fun isUserPresent(login: String): Boolean {
@@ -26,21 +26,21 @@ class UsersClientImpl: UsersClient {
 
     override fun createNewUser(userDto: UsersDto, passwordEncoder: PasswordEncoder): Users? {
         // Вызываем статический метод из Users, передавая PasswordEncoder
-        return Users.createNewUser(userDto = userDto, database = WORKING_DATABASE, passwordEncoder = passwordEncoder)
+        return Users.createNewUser(userDto = userDto, database = WORKING_DATABASE, passwordEncoder = passwordEncoder, storageService = KSS_APP)
     }
 
     override fun checkPassword(login: String, password: String, passwordEncoder: PasswordEncoder): Boolean {
         // Вызываем статический метод из Users, передавая PasswordEncoder
-        return Users.checkPassword(login = login, password = password, database = WORKING_DATABASE, passwordEncoder = passwordEncoder)
+        return Users.checkPassword(login = login, password = password, database = WORKING_DATABASE, passwordEncoder = passwordEncoder, storageService = KSS_APP)
     }
 
     override fun resetPassword(login: String, passwordEncoder: PasswordEncoder): Boolean {
         // Вызываем статический метод из Users, передавая PasswordEncoder
-        return Users.resetPassword(login = login, database = WORKING_DATABASE, passwordEncoder = passwordEncoder)
+        return Users.resetPassword(login = login, database = WORKING_DATABASE, passwordEncoder = passwordEncoder, storageService = KSS_APP)
     }
 
     override fun changePassword(login: String, newPassword: String, oldPassword: String, passwordEncoder: PasswordEncoder): Boolean {
         // Вызываем статический метод из Users, передавая PasswordEncoder
-        return Users.changePassword(login = login, newPassword = newPassword, oldPassword = oldPassword, database = WORKING_DATABASE, passwordEncoder = passwordEncoder)
+        return Users.changePassword(login = login, newPassword = newPassword, oldPassword = oldPassword, database = WORKING_DATABASE, passwordEncoder = passwordEncoder, storageService = KSS_APP)
     }
 }

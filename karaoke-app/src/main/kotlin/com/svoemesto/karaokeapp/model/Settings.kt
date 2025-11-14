@@ -5,7 +5,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.svoemesto.karaokeapp.*
 import com.svoemesto.karaokeapp.mlt.MltProp
 import com.svoemesto.karaokeapp.services.APP_WORK_IN_CONTAINER
-import com.svoemesto.karaokeapp.services.KaraokeStorageServiceImpl
+import com.svoemesto.karaokeapp.services.KSS_APP
+import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.SNS
 import com.svoemesto.karaokeapp.textfiledictionary.SyncIdsDictionary
 import kotlinx.serialization.builtins.ListSerializer
@@ -28,8 +29,11 @@ import kotlin.io.path.Path
 import kotlin.math.abs
 
 //@Component
-@JsonIgnoreProperties(value = ["database", "pictureAuthor", "pictureAlbum"])
-class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable, Comparable<Settings> {
+@JsonIgnoreProperties(value = ["database", "storageService", "pictureAuthor", "pictureAlbum"])
+class Settings(
+    val database: KaraokeConnection = WORKING_DATABASE,
+    val storageService: KaraokeStorageService = KSS_APP
+): Serializable, Comparable<Settings> {
 
     private var _rootFolder: String = ""
     var readonly = false
@@ -377,7 +381,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
     @get:JsonIgnore
     val pictureAuthor: Pictures? get() {
-        var pic = Pictures.getPictureByName(pictureNameAuthor, database)
+        var pic = Pictures.getPictureByName(name = pictureNameAuthor, database = database, storageService = storageService)
         if (pic == null) {
             val pathToFile = pathToFileLogoAuthor
             if (pathToFile != "") {
@@ -404,7 +408,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
     @get:JsonIgnore
     val pictureAlbum: Pictures? get() {
-        var pic = Pictures.getPictureByName(pictureNameAlbum, database)
+        var pic = Pictures.getPictureByName(name = pictureNameAlbum, database = database, storageService = storageService)
         if (pic == null) {
             val pathToFile = pathToFileLogoAlbum
             if (pathToFile != "") {
@@ -3196,7 +3200,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             }
         } else {
 
-            val savedSettings = loadFromDbById(id,database)
+            val savedSettings = loadFromDbById(id = id,database = database, storageService = storageService)
             
             // При сохранении проверяем и меняем если надо номера версий на площадках. Если на площадке 0 и было изменение id - обновляем
             if (savedSettings !== null) {
@@ -3290,7 +3294,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                 } catch (e: Exception) {
                     println(e.message)
                 }
-                val saved = loadFromDbById(id, database)
+                val saved = loadFromDbById(id = id, database = database, storageService = storageService)
                 val diffNew = getDiff(saved,this)
                 if (diffNew.isNotEmpty()) {
                     val messageRecordChangeNew = SseNotification.recordChange(
@@ -4395,7 +4399,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             return where
         }
 
-        fun loadListFromDb(args: Map<String, String> = emptyMap(), database: KaraokeConnection, sync: Boolean = false): List<Settings> {
+        fun loadListFromDb(args: Map<String, String> = emptyMap(), database: KaraokeConnection, sync: Boolean = false, storageService: KaraokeStorageService): List<Settings> {
 
             val connection = database.getConnection()
             if (connection == null) {
@@ -4548,7 +4552,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                 var prevAlbum = ""
                 while (rs.next()) {
 
-                    val settings = Settings(database)
+                    val settings = Settings(database = database, storageService = storageService)
                     settings.fileName = rs.getString("file_name")
                     settings.rootFolder = rs.getString("root_folder")
                     rs.getInt("id").let { value -> settings.fields[SettingField.ID] = value.toString() }
@@ -4676,8 +4680,8 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
 
 
-        fun loadFromDbById(id: Long, database: KaraokeConnection, sync: Boolean = false): Settings? {
-            val setting = loadListFromDb(mapOf(Pair("id", id.toString())), database, sync = sync).firstOrNull()
+        fun loadFromDbById(id: Long, database: KaraokeConnection, sync: Boolean = false, storageService: KaraokeStorageService): Settings? {
+            val setting = loadListFromDb(mapOf(Pair("id", id.toString())), database = database, sync = sync, storageService = storageService).firstOrNull()
 //            setting?.let {
 //                if (setting.countNotEmptyVoices > 0) {
 //                    println(it.getTextFromVoices(maxTimeCodes = -1))
@@ -4733,7 +4737,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
             return settings
         }
 
-        fun createFromPath(startFolder: String, database: KaraokeConnection): MutableList<Settings> {
+        fun createFromPath(startFolder: String, database: KaraokeConnection, storageService: KaraokeStorageService): MutableList<Settings> {
             val result: MutableList<Settings> = mutableListOf()
             val listFiles = getListFiles(startFolder,listOf("flac", "mp3"))
             listFiles.forEach { pathToFile ->
@@ -4757,10 +4761,10 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
                         val songNameStr = matchResultFile.groupValues[4]
 
                         if (loadListFromDb(
-                                mapOf(
+                                args = mapOf(
                                     Pair("file_name", fileName),
                                     Pair("root_folder", rootFolder)
-                                ), database
+                                ), database = database, storageService = storageService
                             ).isEmpty()
                         ) {
                             // если файл не флак - преобразуем во флак и удаляем исходник
@@ -4871,7 +4875,11 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
 
         fun setPublishDateTimeToAuthor(startSettings: Settings) {
 
-            val listOfSettings = loadListFromDb(mapOf(Pair("song_author", startSettings.author)), startSettings.database).filter { it.id > startSettings.id }
+            val listOfSettings = loadListFromDb(
+                args = mapOf(Pair("song_author", startSettings.author)),
+                database = startSettings.database,
+                storageService = startSettings.storageService
+            ).filter { it.id > startSettings.id }
 
             if (startSettings.date == "") {
                 listOfSettings.forEach { settings ->
@@ -5030,7 +5038,7 @@ class Settings(val database: KaraokeConnection = WORKING_DATABASE): Serializable
     }
 
     fun copyFieldsFromAnother(idAnother: Long, listFields: List<SettingField>) {
-        loadFromDbById(id = idAnother, database = this.database)?. let { anotherSettings ->
+        loadFromDbById(id = idAnother, database = this.database, storageService = this.storageService)?. let { anotherSettings ->
             var wasChange = false
             listFields.forEach { settingField ->
                 anotherSettings.fields[settingField]?.let { anotherValue ->

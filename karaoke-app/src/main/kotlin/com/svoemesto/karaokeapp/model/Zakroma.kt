@@ -2,24 +2,25 @@ package com.svoemesto.karaokeapp.model
 
 import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.censored
+import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import java.io.Serializable
 
 class Zakroma(val database: KaraokeConnection): Serializable, Comparable<Zakroma> {
 
     companion object {
-        fun getZakroma(author: String, database: KaraokeConnection): List<Zakroma> {
-            val listSettings = Settings.loadListFromDb(mapOf("author" to author), database)
+        fun getZakroma(author: String, database: KaraokeConnection, storageService: KaraokeStorageService): List<Zakroma> {
+            val listSettings = Settings.loadListFromDb(args = mapOf("author" to author), database = database, storageService = storageService)
             val settingsByAuthor = listSettings.groupBy { it.author }
             return settingsByAuthor.map { (authorName, settingsByAuthor) ->
                 val zakroma = Zakroma(database)
                 zakroma.author = authorName
-                zakroma.picture = Pictures.getPictureByName(authorName, database)?.full ?: ""
+                zakroma.picture = Pictures.getPictureByName(name = authorName, database = database, storageService = storageService)?.full ?: ""
                 val settingsByAlbum = settingsByAuthor.groupBy { it.album }
                 zakroma.albums = settingsByAlbum.map { (albumName, settingsByAlbum) ->
                     val album = ZakromaAlbum()
                     album.albumName = albumName
                     album.year = settingsByAlbum.first().year
-                    album.picture = Pictures.getPictureByName("$authorName - ${album.year} - $albumName", database)?.full ?: ""
+                    album.picture = Pictures.getPictureByName(name = "$authorName - ${album.year} - $albumName", database = database, storageService = storageService)?.full ?: ""
                     album.albumSettings = settingsByAlbum.map { settings ->
                         val zakromaAlbumSettings = ZakromaAlbumSettings()
                         zakromaAlbumSettings.id = settings.id

@@ -4,11 +4,14 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.WORKING_DATABASE
 import com.svoemesto.karaokeapp.model.KaraokeDbTable.Companion.getListHashes
+import com.svoemesto.karaokeapp.services.KSS_APP
+import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import java.io.Serializable
 
 @JsonIgnoreProperties(value = ["database", "sqlToInsert"])
 class Author(
-    override val database: KaraokeConnection = WORKING_DATABASE
+    override val database: KaraokeConnection = WORKING_DATABASE,
+    override val storageService: KaraokeStorageService = KSS_APP
 ) : Serializable, Comparable<Author>, KaraokeDbTable {
 
     override fun getTableName() = "tbl_authors"
@@ -43,7 +46,8 @@ class Author(
         val picture = Pictures.loadList(
             whereArgs = mapOf("name" to author),
             limit = 1,
-            database = WORKING_DATABASE,
+            database = database,
+            storageService = storageService,
             ignoreUseInList = true
         ).firstOrNull()
         val (pictureId, picturePreview) = picture?.let { Pair(it.id, it.preview) } ?: Pair(0L, "")
@@ -105,6 +109,7 @@ class Author(
                      limit: Int = 0,
                      offset: Int = 0,
                      database: KaraokeConnection,
+                     storageService: KaraokeStorageService,
                      ignoreUseInList: Boolean
         ): List<Author> {
             return KaraokeDbTable.loadList(
@@ -114,6 +119,7 @@ class Author(
                 limit = limit,
                 offset = offset,
                 database = database,
+                storageService = storageService,
                 ignoreUseInList = ignoreUseInList
             ).map { it as Author }
         }
@@ -137,19 +143,21 @@ class Author(
             return null
         }
 
-        fun getAuthorById(id: Long, database: KaraokeConnection): Author? {
+        fun getAuthorById(id: Long, database: KaraokeConnection, storageService: KaraokeStorageService): Author? {
             return KaraokeDbTable.loadById(
                 clazz = Author::class,
                 tableName = TABLE_NAME,
                 id = id,
-                database = database
+                database = database,
+                storageService = storageService
             ) as? Author?
         }
 
-        fun getAuthorByName(author: String, database: KaraokeConnection): Author? {
+        fun getAuthorByName(author: String, database: KaraokeConnection, storageService: KaraokeStorageService): Author? {
             return loadList(
                 whereArgs = mapOf(Pair("author", author)),
                 database = database,
+                storageService = storageService,
                 ignoreUseInList = true
             ).firstOrNull()
         }

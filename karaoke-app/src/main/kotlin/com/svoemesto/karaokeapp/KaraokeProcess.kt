@@ -1,6 +1,8 @@
 package com.svoemesto.karaokeapp
 
 import com.svoemesto.karaokeapp.model.*
+import com.svoemesto.karaokeapp.services.KSS_APP
+import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.SNS
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
@@ -21,7 +23,8 @@ import kotlin.io.path.Path
 
 
 class KaraokeProcess(
-    override val database: KaraokeConnection = WORKING_DATABASE
+    override val database: KaraokeConnection = WORKING_DATABASE,
+    override val storageService: KaraokeStorageService = KSS_APP
 ) : Serializable, Comparable<KaraokeProcess>, KaraokeDbTable {
 
     override fun getTableName() = "tbl_processes"
@@ -316,7 +319,7 @@ class KaraokeProcess(
         ps.close()
 
         if (!withoutControl) {
-            updateStatusProcessSettings(database)
+            updateStatusProcessSettings(database = database, storageService = storageService)
             if (command != "tail" || args[0][0] !in KaraokeProcessWorker.argsIgnoredToLog) {
                 val messageRecordChange = SseNotification.recordChange(
                         RecordChangeMessage(
@@ -341,9 +344,9 @@ class KaraokeProcess(
 
     }
 
-    fun updateStatusProcessSettings(database: KaraokeConnection) {
+    fun updateStatusProcessSettings(database: KaraokeConnection, storageService: KaraokeStorageService) {
         if (settingsId != 0) {
-            val settings = Settings.loadFromDbById(settingsId.toLong(), database)
+            val settings = Settings.loadFromDbById(id = settingsId.toLong(), database = database, storageService = storageService)
             settings?.let {
                 when (type) {
                     KaraokeProcessTypes.MELT_LYRICS.name -> {
@@ -1335,7 +1338,7 @@ class KaraokeProcess(
                 }
             }
 
-            karaokeProcess.updateStatusProcessSettings(settings.database)
+            karaokeProcess.updateStatusProcessSettings(database = settings.database, storageService = settings.storageService)
 
             val separatedProcesses = separate(karaokeProcess)
 

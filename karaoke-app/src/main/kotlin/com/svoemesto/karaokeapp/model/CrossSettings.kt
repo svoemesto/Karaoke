@@ -1,6 +1,7 @@
 package com.svoemesto.karaokeapp.model
 
 import com.svoemesto.karaokeapp.WORKING_DATABASE
+import com.svoemesto.karaokeapp.services.KSS_APP
 import java.io.Serializable
 
 data class CrossSettingsRow (
@@ -101,6 +102,7 @@ class CrossSettings {
             val skipedAuthors = Author.loadList(
                 whereArgs = mapOf("skip" to "true"),
                 database = WORKING_DATABASE,
+                storageService = KSS_APP,
                 ignoreUseInList = true
             ).map { it.author }
             val columns = listOfSettings.filter { it.author !in skipedAuthors }.map { sett ->
@@ -157,6 +159,7 @@ class CrossSettings {
             val skipedAuthors = Author.loadList(
                 whereArgs = mapOf("skip" to "true"),
                 database = WORKING_DATABASE,
+                storageService = KSS_APP,
                 ignoreUseInList = true
             ).map { it.author }
             val columns = listOfSettings.filter { it.author in skipedAuthors }.map { sett ->

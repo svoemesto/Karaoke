@@ -5,7 +5,7 @@ import com.svoemesto.karaokeapp.WORKING_DATABASE
 import com.svoemesto.karaokeapp.model.KaraokeDbTable.Companion.getListHashes
 import com.svoemesto.karaokeapp.resizeBufferedImage
 import com.svoemesto.karaokeapp.runCommand
-import com.svoemesto.karaokeapp.services.KSS
+import com.svoemesto.karaokeapp.services.KSS_APP
 import com.svoemesto.karaokeapp.services.KaraokeStorage
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import java.io.ByteArrayInputStream
@@ -16,10 +16,11 @@ import java.util.*
 import javax.imageio.ImageIO
 
 class Pictures(
-    override val database: KaraokeConnection = WORKING_DATABASE
+    override val database: KaraokeConnection = WORKING_DATABASE,
+    override val storageService: KaraokeStorageService = KSS_APP
 ) : Serializable, Comparable<Pictures>, KaraokeDbTable, KaraokeStorage {
 
-    override val storageService: KaraokeStorageService = KSS
+
 
     @KaraokeDbTableField(name = "id", isId = true)
     override var id: Long = 0
@@ -114,10 +115,10 @@ class Pictures(
         return if (isAlbumPicture) {
             // Ищем первую песню автора, года и альбома
             val args = mapOf("author" to author, "song_year" to year, "album" to album, "limit" to "1")
-            Settings.loadListFromDb(args = args, database = WORKING_DATABASE).firstOrNull()?.rootFolder ?: ""
+            Settings.loadListFromDb(args = args, database = WORKING_DATABASE, storageService = storageService).firstOrNull()?.rootFolder ?: ""
         } else if (isAuthorPicture) {
             val args = mapOf("author" to author, "limit" to "1")
-            Settings.loadListFromDb(args = args, database = WORKING_DATABASE).firstOrNull()?.let { sett ->
+            Settings.loadListFromDb(args = args, database = WORKING_DATABASE, storageService = storageService).firstOrNull()?.let { sett ->
                 File(sett.rootFolder).parent
             }?: ""
         } else ""
@@ -182,6 +183,7 @@ class Pictures(
                      limit: Int = 0,
                      offset: Int = 0,
                      database: KaraokeConnection,
+                     storageService: KaraokeStorageService,
                      ignoreUseInList: Boolean
         ): List<Pictures> {
             return KaraokeDbTable.loadList(
@@ -191,6 +193,7 @@ class Pictures(
                 limit = limit,
                 offset = offset,
                 database = database,
+                storageService = storageService,
                 ignoreUseInList = ignoreUseInList
             ).map { it as Pictures }
         }
@@ -214,20 +217,22 @@ class Pictures(
             return null
         }
 
-        fun getPictureById(id: Long, database: KaraokeConnection): Pictures? {
+        fun getPictureById(id: Long, database: KaraokeConnection, storageService: KaraokeStorageService): Pictures? {
             return KaraokeDbTable.loadById(
                 clazz = Pictures::class,
                 tableName = TABLE_NAME,
                 id = id,
-                database = database
+                database = database,
+                storageService = storageService,
             ) as? Pictures?
         }
 
-        fun getPictureByName(name: String, database: KaraokeConnection): Pictures? {
+        fun getPictureByName(name: String, database: KaraokeConnection, storageService: KaraokeStorageService): Pictures? {
 
             return loadList(
                 whereArgs = mapOf(Pair("name", name)),
                 database = database,
+                storageService = storageService,
                 ignoreUseInList = true
             ).firstOrNull()
 

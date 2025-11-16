@@ -73,14 +73,30 @@ fun customFunction(
 //        }
 //    }
 
-    syncRemotePicturesInStorage(
-        storageService = storageService,
-        storageApiClient = storageApiClient
-    )
+//    syncRemotePicturesInStorage(
+//        storageService = storageService,
+//        storageApiClient = storageApiClient
+//    )
+
+    checkHealth(storageService = storageService)
 
     return ""
 }
 
+fun checkHealth(storageService: KaraokeStorageService) {
+
+    Settings.loadListFromDb(database = WORKING_DATABASE, storageService = storageService).forEach { settings ->
+        val healthReport = settings.healthReport()
+        if (healthReport.isNotEmpty()) {
+            println("${settings.rightSettingFileName} содержит ошибки:")
+            healthReport.forEach { line ->
+                println("    ${line.first}")
+                line.second()
+            }
+            println()
+        }
+    }
+}
 
 fun syncRemotePicturesInStorage(
     storageService: KaraokeStorageService,

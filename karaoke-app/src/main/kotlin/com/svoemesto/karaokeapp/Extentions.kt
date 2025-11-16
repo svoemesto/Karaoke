@@ -226,5 +226,3 @@ fun String.stripToNumeric(): String {
 }
 
 fun Settings.karaokePlatformPublications(): List<KaraokePlatformPublication> = KaraokePlatformPublication.getList(settings = this)
-fun Settings.karaokeFiles(): List<KaraokeFile> = KaraokeFile.getList(settings = this)
-fun Settings.karaokeFiles(songVersion: SongVersion): List<KaraokeFile> = KaraokeFile.getList(settings = this, songVersion = songVersion)

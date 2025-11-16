@@ -20,7 +20,7 @@ data class KaraokePlatformPublication(
     companion object {
         fun getList(settings: Settings): List<KaraokePlatformPublication> {
             val result: MutableList<KaraokePlatformPublication> = mutableListOf()
-            val platforms = KaraokePlatform.getList()
+            val platforms = KaraokePlatform.entries
             platforms.forEach { platform ->
                 if (platform.forAllVersions) {
                     val songVersionName = "ALL"

@@ -2,79 +2,224 @@ package com.svoemesto.karaokeapp
 
 enum class KaraokeFileType(
     val description: String,
-    val forAllVersions: Boolean,
+    val karaokeFileTypeFor: KaraokeFileTypeFor,
+    val karaokeFileTypeKind: KaraokeFileTypeKind,
+    val locations: List<KaraokeFileTypeLocations>,
+    val symlinks: List<KaraokeFileSymlink> = emptyList(),
     val extention: String,
-    val prefix: String,
     val suffix: String
 ) {
+
+    // MAIN
+
     AUDIO_SONG (
         description = "Исходный аудио файл",
-        forAllVersions = true,
+        karaokeFileTypeFor = KaraokeFileTypeFor.SONG,
+        karaokeFileTypeKind = KaraokeFileTypeKind.MAIN,
+        locations = listOf(KaraokeFileTypeLocations.LOCAL_FILESYSTEM),
         extention = "flac",
-        prefix = "",
-        suffix = ".song"
+        suffix = ".song",
+    ),
+    MP3_SONG (
+        description = "Исходный аудио файл в формате mp3",
+        karaokeFileTypeFor = KaraokeFileTypeFor.SONG,
+        karaokeFileTypeKind = KaraokeFileTypeKind.MAIN,
+        locations = listOf(KaraokeFileTypeLocations.LOCAL_FILESYSTEM),
+        extention = "flac",
+        suffix = ".song",
     ),
     AUDIO_ACCOMPANIMENT (
         description = "Минусовка",
-        forAllVersions = true,
+        karaokeFileTypeFor = KaraokeFileTypeFor.SONG,
+        karaokeFileTypeKind = KaraokeFileTypeKind.MAIN,
+        locations = listOf(KaraokeFileTypeLocations.LOCAL_FILESYSTEM),
+        symlinks = listOf(KaraokeFileSymlink(folder = "symlink_sponsr")),
         extention = "flac",
-        prefix = "",
-        suffix = ".accompaniment"
+        suffix = ".accompaniment",
+    ),
+    MP3_ACCOMPANIMENT (
+        description = "Минусовка в формате mp3",
+        karaokeFileTypeFor = KaraokeFileTypeFor.SONG,
+        karaokeFileTypeKind = KaraokeFileTypeKind.MAIN,
+        locations = listOf(KaraokeFileTypeLocations.LOCAL_FILESYSTEM),
+        extention = "flac",
+        suffix = ".accompaniment",
     ),
     AUDIO_VOICE (
         description = "Чистый голос",
-        forAllVersions = true,
+        karaokeFileTypeFor = KaraokeFileTypeFor.SONG,
+        karaokeFileTypeKind = KaraokeFileTypeKind.MAIN,
+        locations = listOf(KaraokeFileTypeLocations.LOCAL_FILESYSTEM),
         extention = "flac",
-        prefix = "",
-        suffix = ".vocals"
+        suffix = ".vocals",
     ),
     AUDIO_BASS (
         description = "Бас",
-        forAllVersions = true,
+        karaokeFileTypeFor = KaraokeFileTypeFor.SONG,
+        karaokeFileTypeKind = KaraokeFileTypeKind.MAIN,
+        locations = listOf(KaraokeFileTypeLocations.LOCAL_FILESYSTEM),
         extention = "flac",
-        prefix = "",
-        suffix = ".bass"
+        suffix = "bass",
     ),
     AUDIO_DRUMS (
         description = "Ударные",
-        forAllVersions = true,
+        karaokeFileTypeFor = KaraokeFileTypeFor.SONG,
+        karaokeFileTypeKind = KaraokeFileTypeKind.MAIN,
+        locations = listOf(KaraokeFileTypeLocations.LOCAL_FILESYSTEM),
         extention = "flac",
-        prefix = "",
-        suffix = ".drums"
+        suffix = ".drums",
     ),
     AUDIO_OTHER (
         description = "Мелодия без баса и ударных",
-        forAllVersions = true,
+        karaokeFileTypeFor = KaraokeFileTypeFor.SONG,
+        karaokeFileTypeKind = KaraokeFileTypeKind.MAIN,
+        locations = listOf(KaraokeFileTypeLocations.LOCAL_FILESYSTEM),
         extention = "flac",
-        prefix = "",
-        suffix = ".other"
+        suffix = ".other",
     ),
     PICTURE_ALBUM (
         description = "Картинка альбома",
-        forAllVersions = true,
+        karaokeFileTypeFor = KaraokeFileTypeFor.SONG,
+        karaokeFileTypeKind = KaraokeFileTypeKind.MAIN,
+        locations = listOf(
+            KaraokeFileTypeLocations.LOCAL_FILESYSTEM,
+            KaraokeFileTypeLocations.LOCAL_STORAGE
+        ),
         extention = "png",
-        prefix = "",
-        suffix = ".album"
+        suffix = ".album",
+    ),
+    PICTURE_ALBUM_PREVIEW (
+        description = "Картинка альбома (preview)",
+        karaokeFileTypeFor = KaraokeFileTypeFor.SONG,
+        karaokeFileTypeKind = KaraokeFileTypeKind.MAIN,
+        locations = listOf(
+            KaraokeFileTypeLocations.LOCAL_FILESYSTEM,
+            KaraokeFileTypeLocations.LOCAL_STORAGE
+        ),
+        extention = "png",
+        suffix = ".preview.album",
     ),
     PICTURE_AUTHOR (
         description = "Картинка автора",
-        forAllVersions = true,
+        karaokeFileTypeFor = KaraokeFileTypeFor.SONG,
+        karaokeFileTypeKind = KaraokeFileTypeKind.MAIN,
+        locations = listOf(
+            KaraokeFileTypeLocations.LOCAL_FILESYSTEM,
+            KaraokeFileTypeLocations.LOCAL_STORAGE,
+            KaraokeFileTypeLocations.REMOTE_STORAGE
+        ),
         extention = "png",
-        prefix = "",
-        suffix = ".author"
+        suffix = ".author",
+    ),
+    PICTURE_AUTHOR_PREVIEW (
+        description = "Картинка автора (preview)",
+        karaokeFileTypeFor = KaraokeFileTypeFor.SONG,
+        karaokeFileTypeKind = KaraokeFileTypeKind.MAIN,
+        locations = listOf(
+            KaraokeFileTypeLocations.LOCAL_FILESYSTEM,
+            KaraokeFileTypeLocations.LOCAL_STORAGE,
+            KaraokeFileTypeLocations.REMOTE_STORAGE
+        ),
+        extention = "png",
+        suffix = ".preview.author",
     ),
     PICTURE_PUBLICATION (
         description = "Картинка публикации",
-        forAllVersions = true,
+        karaokeFileTypeFor = KaraokeFileTypeFor.PLATFORM,
+        karaokeFileTypeKind = KaraokeFileTypeKind.MAIN,
+        locations = listOf(
+            KaraokeFileTypeLocations.LOCAL_FILESYSTEM,
+            KaraokeFileTypeLocations.LOCAL_STORAGE
+        ),
+        symlinks = listOf(KaraokeFileSymlink(folder = "symlink_sponsr", platforms = listOf(KaraokePlatform.SPONSR))),
         extention = "png",
-        prefix = "",
-        suffix = ".publish"
+        suffix = "",
     ),
     PICTURE_SONGVERSION (
         description = "Картинка для видео конкретной версии песни",
-        forAllVersions = false,
+        karaokeFileTypeFor = KaraokeFileTypeFor.SONGVERSION,
+        karaokeFileTypeKind = KaraokeFileTypeKind.MAIN,
+        locations = listOf(
+            KaraokeFileTypeLocations.LOCAL_FILESYSTEM,
+            KaraokeFileTypeLocations.LOCAL_STORAGE
+        ),
+        symlinks = listOf(KaraokeFileSymlink(folder = "symlink_png")),
         extention = "png",
-        prefix = "",
-        suffix = ".preview"
+        suffix = "",
     ),
+    VIDEO_SONGVERSION_1080P (
+        description = "Видео конкретной версии песни в разрешении 1080p/60fps",
+        karaokeFileTypeFor = KaraokeFileTypeFor.SONGVERSION,
+        karaokeFileTypeKind = KaraokeFileTypeKind.MAIN,
+        locations = listOf(KaraokeFileTypeLocations.LOCAL_FILESYSTEM),
+        symlinks = listOf(KaraokeFileSymlink(folder = "symlink_mp4")),
+        extention = "mp4",
+        suffix = "",
+    ),
+    VIDEO_SONGVERSION_720P (
+        description = "Видео конкретной версии песни в разрешении 720p/30fps",
+        karaokeFileTypeFor = KaraokeFileTypeFor.SONGVERSION,
+        karaokeFileTypeKind = KaraokeFileTypeKind.MAIN,
+        locations = listOf(KaraokeFileTypeLocations.LOCAL_FILESYSTEM),
+        extention = "mp4",
+        suffix = "",
+    ),
+
+    // PROJECT
+
+    PROJECT_ALL_RUN (
+        description = "Скрипт для рендера всех версий",
+        karaokeFileTypeFor = KaraokeFileTypeFor.SONG,
+        karaokeFileTypeKind = KaraokeFileTypeKind.PROJECT,
+        locations = listOf(KaraokeFileTypeLocations.LOCAL_FILESYSTEM),
+        extention = "run",
+        suffix = " [ALL]",
+    ),
+    PROJECT_ALL_WO_LYRICS_RUN (
+        description = "Скрипт для рендера всех версий, кроме LYRICS",
+        karaokeFileTypeFor = KaraokeFileTypeFor.SONG,
+        karaokeFileTypeKind = KaraokeFileTypeKind.PROJECT,
+        locations = listOf(KaraokeFileTypeLocations.LOCAL_FILESYSTEM),
+        extention = "run",
+        suffix = " [ALLwoLYRICS]",
+    ),
+    PROJECT_SONGVERSION_RUN (
+        description = "Скрипт для рендера конкретной версии",
+        karaokeFileTypeFor = KaraokeFileTypeFor.SONGVERSION,
+        karaokeFileTypeKind = KaraokeFileTypeKind.PROJECT,
+        locations = listOf(KaraokeFileTypeLocations.LOCAL_FILESYSTEM),
+        extention = "run",
+        suffix = "",
+    ),
+    PROJECT_SONGVERSION_MLT (
+        description = "MLT-файл для конкретной версии",
+        karaokeFileTypeFor = KaraokeFileTypeFor.SONGVERSION,
+        karaokeFileTypeKind = KaraokeFileTypeKind.PROJECT,
+        locations = listOf(KaraokeFileTypeLocations.LOCAL_FILESYSTEM),
+        extention = "mlt",
+        suffix = "",
+    ),
+    PROJECT_SONGVERSION_KDENLIVE (
+        description = "KDENLIVE-файл для конкретной версии",
+        karaokeFileTypeFor = KaraokeFileTypeFor.SONGVERSION,
+        karaokeFileTypeKind = KaraokeFileTypeKind.PROJECT,
+        locations = listOf(KaraokeFileTypeLocations.LOCAL_FILESYSTEM),
+        extention = "kdenlive",
+        suffix = "",
+    ),
+    PROJECT_SONGVERSION_TXT (
+        description = "TXT-файл для конкретной версии",
+        karaokeFileTypeFor = KaraokeFileTypeFor.SONGVERSION,
+        karaokeFileTypeKind = KaraokeFileTypeKind.PROJECT,
+        locations = listOf(KaraokeFileTypeLocations.LOCAL_FILESYSTEM),
+        extention = "txt",
+        suffix = "",
+    ),
+
+
+    ;
+
+    val willBeInFileSystem: Boolean get() = locations.contains(KaraokeFileTypeLocations.LOCAL_FILESYSTEM)
+    val willBeInLocalStorage: Boolean get() = locations.contains(KaraokeFileTypeLocations.LOCAL_STORAGE)
+    val willBeInRemoteStorage: Boolean get() = locations.contains(KaraokeFileTypeLocations.REMOTE_STORAGE)
 }

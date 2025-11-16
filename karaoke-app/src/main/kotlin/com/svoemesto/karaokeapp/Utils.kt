@@ -29,6 +29,7 @@ import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
@@ -91,7 +92,9 @@ fun checkHealth(storageService: KaraokeStorageService) {
             println("${settings.rightSettingFileName} содержит ошибки:")
             healthReport.forEach { line ->
                 println("    ${line.first}")
-                line.second()
+                line.second.forEach { action ->
+                    action()
+                }
             }
             println()
         }
@@ -2567,4 +2570,25 @@ fun isValidFileName(fileName: String): Boolean {
 fun isAllowedFileType(fileName: String, allowedTypes: Set<String> = setOf("jpg", "png", "mp3", "wav", "txt", "pdf")): Boolean {
     val extension = fileName.substringAfterLast('.', "").lowercase()
     return allowedTypes.contains(extension)
+}
+
+fun calculateRelativePathForSymlink(targetAbsolutePath: String, symlinkAbsolutePath: String): String {
+    val targetPath: Path = Paths.get(targetAbsolutePath).normalize()
+    val symlinkPath: Path = Paths.get(symlinkAbsolutePath).normalize()
+
+    // Убедимся, что оба пути абсолютные
+    require(targetPath.isAbsolute) { "targetAbsolutePath must be an absolute path: $targetAbsolutePath" }
+    require(symlinkPath.isAbsolute) { "symlinkAbsolutePath must be an absolute path: $symlinkAbsolutePath" }
+
+    val symlinkParentDir: Path = symlinkPath.parent
+    // Проверим, что оба пути находятся на одном диске/корне (например, оба на / в Unix или на C:\ в Windows)
+    // resolveSibling может не работать корректно, если корни разные
+    require(targetPath.root == symlinkParentDir.root) {
+        "Target and symlink paths have different roots: ${targetPath.root} vs ${symlinkParentDir.root}"
+    }
+
+    // Вычисляем относительный путь от родительской директории ссылки к целевому файлу
+    val relativePath: Path = symlinkParentDir.relativize(targetPath)
+
+    return relativePath.toString()
 }

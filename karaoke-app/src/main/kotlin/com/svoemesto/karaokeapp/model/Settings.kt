@@ -19,6 +19,7 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.Serializable
 import java.nio.file.Files
+import java.nio.file.Path
 import java.nio.file.Paths
 import java.sql.*
 import java.text.SimpleDateFormat
@@ -274,8 +275,8 @@ class Settings(
     }
 
     @Suppress("unused")
-    fun healthReport(): List<Pair<String, () -> Unit>> {
-        val result: MutableList<Pair<String, () -> Unit>> = mutableListOf()
+    fun healthReport(): List<Pair<String, List<() -> Unit>>> {
+        val result: MutableList<Pair<String, List<() -> Unit>>> = mutableListOf()
 
         karaokeFiles().forEach { karaokeFile ->
             val textFile = karaokeFile.type.name
@@ -283,39 +284,110 @@ class Settings(
             val textSongVersion = karaokeFile.songVersion?.name
             val description = listOfNotNull(textFile, textPlatforma, textSongVersion).joinToString("/")
             val type = karaokeFile.type
+            // Файл может быть
             if (karaokeFile.canBe) {
+                // Файл должен быть на диске, путь к файлу не пустой, файла на диске нет
                 if (type.willBeInFileSystem && karaokeFile.pathToFile != "" && !karaokeFile.filePresentInFilesystem()) {
+                    // Для файла уже есть процесс на его создание в процессе ожидания
                     if (haveWaitingCreateProcessForFile(karaokeFile)) {
                         result.add(
                             Pair(
                                 "$description - отсутствует файл на диске '${karaokeFile.pathToFile}' (но есть задание в процессах)",
-                                ::emptyFunction
+                                listOf(::emptyFunction)
                             )
                         )
                     } else {
                         val (canBeCreateKaraokeFile, reason) = canBeCreateKaraokeFile(karaokeFile)
+                        // Может ли быть файл создан?
                         if (canBeCreateKaraokeFile) {
                             result.add(
                                 Pair(
                                     "$description - отсутствует файл на диске '${karaokeFile.pathToFile}'. $reason",
-                                    karaokeFile.actionToCreate
+                                    listOf(karaokeFile.actionToCreate)
                                 )
                             )
                         } else {
                             result.add(
                                 Pair(
                                     "$description - отсутствует файл на диске '${karaokeFile.pathToFile}'. $reason",
-                                    ::emptyFunction
+                                    listOf(::emptyFunction)
                                 )
                             )
                         }
+                    }
+                // Файл должен быть на диске, путь к файлу не пустой, файл на диске есть - надо проверить его симлинки
+                } else if (type.willBeInFileSystem && karaokeFile.pathToFile != "" && karaokeFile.filePresentInFilesystem()) {
+                    type.symlinks.forEach { symlink ->
+
+                        val pathToSymlinkFolder = "$rootFolder/${symlink.folder}"
+                        val symlinkFileName = if (symlink.name == "") File(karaokeFile.pathToFile).name else symlink.name
+                        val pathToSymlinkFile = "$pathToSymlinkFolder/$symlinkFileName"
+
+                        var needToDeleteSymlink = false
+                        var needToCreateSymlink = false
+                        var reason = ""
+                        // Проверяем наличие самого файла symlink на диске
+                        if (File(pathToSymlinkFile).exists()) {
+                            // Проверяем, является ли файл на диске действительно символьной ссылкой
+                            val symlinkPath = Paths.get(pathToSymlinkFile)
+
+                            if (!Files.isSymbolicLink(symlinkPath)) {
+                                println("Указанный путь '$pathToSymlinkFile' не является символической ссылкой.")
+                            } else {
+                                val targetPath: Path = Files.readSymbolicLink(symlinkPath)
+                                val exists = Files.exists(targetPath)
+                                val symlinkAbsolutePath = symlinkPath.toAbsolutePath()
+                                val symlinkAbsoluteParentDir = symlinkAbsolutePath.parent
+                                val resolvedTargetAbsolutePath = symlinkAbsoluteParentDir.resolve(targetPath).normalize()
+                                val isRelative = !targetPath.isAbsolute
+                                val isAbsolute = targetPath.isAbsolute
+
+                                if (!exists) {
+                                    // Если файл, на который указывает ссылка не существует (чего быть не может, если ссылка указывает на нужный нам файл)
+                                    reason = "Символьная ссылка $pathToSymlinkFile должна указывать на файл ${karaokeFile.pathToFile}, а указывает на несуществующий файл $targetPath. Удаляем неправильную ссылку и создаём правильную."
+                                    needToDeleteSymlink = true // Надо удалить неправильный файл ссылки
+                                    needToCreateSymlink = true // Надо создать файл symlink
+                                } else {
+                                    // Файл, на который указывает ссылка существует - проверим, что указывает на нужный нам файл
+                                    if (resolvedTargetAbsolutePath == Paths.get(karaokeFile.pathToFile)) {
+                                        // Всё хорошо, ссылка ссылается на правильный и существующий файл
+                                    } else {
+                                        reason = "Символьная ссылка $pathToSymlinkFile должна указывать на файл ${karaokeFile.pathToFile}, а указывает на файл $resolvedTargetAbsolutePath. Удаляем неправильную ссылку и создаём правильную."
+                                        needToDeleteSymlink = true // Надо удалить неправильный файл ссылки
+                                        needToCreateSymlink = true // Надо создать файл symlink
+                                    }
+                                }
+
+                            }
+                        } else {
+                            reason = "Символьная ссылка отсутствует. Создаём."
+                            needToCreateSymlink = true // Надо создать файл symlink
+                        }
+
+                        val actions: MutableList<() -> Unit> = mutableListOf()
+                        if (needToDeleteSymlink) actions.add( { runCommand(args = listOf("rm", "-f", pathToSymlinkFile)) } )
+                        if (needToCreateSymlink) actions.add(
+                            {
+                                runCommand(args = listOf("ln", "-s", calculateRelativePathForSymlink(karaokeFile.pathToFile, pathToSymlinkFile).wrapInQuotes(), pathToSymlinkFile))
+                                runCommand(args =  listOf("chmod", "666", pathToSymlinkFile))
+                            }
+                        )
+                        if (actions.isNotEmpty()) {
+                            result.add(
+                                Pair(
+                                    "$description - починка symlinka'. $reason",
+                                    actions
+                                )
+                            )
+                        }
+
                     }
                 }
                 if (type.willBeInLocalStorage && karaokeFile.pathToFile != "" && !karaokeFile.filePresentInStorage()) {
                     result.add(
                         Pair(
                             "$description - отсутствует файл в хранилище '${karaokeFile.storageBucketName}/${karaokeFile.storageFileName}'",
-                            karaokeFile.actionToUploadInLocalStorage
+                            listOf(karaokeFile.actionToUploadInLocalStorage)
                         )
                     )
                 }
@@ -325,10 +397,10 @@ class Settings(
                     if (karaokeFile.filePresentInFilesystem()) {
                         Pair(
                             "$description - есть файл на диске '${karaokeFile.pathToFile}', но не должен быть. Удаляем.",
-                            {
+                            listOf({
                                 println("[Заглушка] Удаляем файл ${karaokeFile.pathToFile}")
 //                                runCommand(args = listOf("rm", "-f", karaokeFile.pathToFile))
-                            }
+                            })
                         )
                     }
                 }

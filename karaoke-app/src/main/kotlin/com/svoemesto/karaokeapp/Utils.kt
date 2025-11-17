@@ -2507,7 +2507,7 @@ fun runFunctionWithArgs(args: List<String>): String {
     return result
 }
 
-fun runCommand(args: List<String>, ignoreErrors: Boolean = false, skipRunFunctionWithArgs: Boolean = false): String {
+fun runCommand(args: List<String>, ignoreErrors: Boolean = false, skipRunFunctionWithArgs: Boolean = false, envs: Map<String, String> = emptyMap()): String {
 
     if (args.isNotEmpty() && args[0] == "runFunctionWithArgs" && !skipRunFunctionWithArgs) {
         return runFunctionWithArgs(args)
@@ -2515,6 +2515,8 @@ fun runCommand(args: List<String>, ignoreErrors: Boolean = false, skipRunFunctio
 
     // Создаем ProcessBuilder сформированным списком аргументов
     val processBuilder = ProcessBuilder(args)
+    val processBuilderEnvironment = processBuilder.environment()
+    processBuilderEnvironment.putAll(envs)
 
     // Направляем стандартный поток ошибок в стандартный поток вывода для удобства
     processBuilder.redirectErrorStream(true)
@@ -2591,4 +2593,26 @@ fun calculateRelativePathForSymlink(targetAbsolutePath: String, symlinkAbsoluteP
     val relativePath: Path = symlinkParentDir.relativize(targetPath)
 
     return relativePath.toString()
+}
+
+fun calculateAbsolutePathFromSymlink(relativePath: String, symlinkAbsolutePath: String): String {
+    val relativePathObj: Path = Paths.get(relativePath).normalize()
+    val symlinkPath: Path = Paths.get(symlinkAbsolutePath).normalize()
+
+    // Убедимся, что путь к ссылке абсолютный
+    require(symlinkPath.isAbsolute) { "symlinkAbsolutePath must be an absolute path: $symlinkAbsolutePath" }
+
+    // Если относительный путь уже абсолютный, возвращаем его как есть (хотя это странно для "относительного" пути)
+    if (relativePathObj.isAbsolute) {
+        // Или можно бросить исключение, если это недопустимый случай
+        // throw IllegalArgumentException("relativePath is already absolute: $relativePath")
+        println("Предупреждение: relativePath уже является абсолютным: $relativePath")
+        return relativePathObj.toString()
+    }
+
+    val symlinkParentDir: Path = symlinkPath.parent // Получаем родительский каталог ссылки
+    // Объединяем родительский каталог ссылки с относительным путем цели
+    val resolvedTargetAbsolutePath: Path = symlinkParentDir.resolve(relativePathObj).normalize()
+
+    return resolvedTargetAbsolutePath.toString()
 }

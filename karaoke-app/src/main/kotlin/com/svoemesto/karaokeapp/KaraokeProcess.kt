@@ -5,6 +5,7 @@ import com.svoemesto.karaokeapp.services.KSS_APP
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.SNS
 import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -50,6 +51,9 @@ class KaraokeProcess(
     @KaraokeDbTableField(name = "process_args")
     var args: List<List<String>> = mutableListOf(mutableListOf())
 
+    @KaraokeDbTableField(name = "process_envs")
+    var envs: Map<String, String> = mutableMapOf()
+
     var argsDescription: List<String> = mutableListOf()
 
     @KaraokeDbTableField(name = "process_description")
@@ -85,6 +89,7 @@ class KaraokeProcess(
             priority = priority,
             command = command,
             args = args,
+            envs = envs,
             argsDescription = argsDescription,
             description = description,
             settingsId = settingsId,
@@ -113,6 +118,7 @@ class KaraokeProcess(
         result.priority = priority
         result.command = command
         result.args = args
+        result.envs = envs
         result.argsDescription = argsDescription
         result.description = description
         result.settingsId = settingsId
@@ -127,6 +133,10 @@ class KaraokeProcess(
 
     val argsJson: String get() {
         return Json.encodeToString(args)
+    }
+
+    val envsJson: String get() {
+        return Json.encodeToString(envs)
     }
 
     val startStr: String get() {
@@ -251,6 +261,7 @@ class KaraokeProcess(
                 "process_priority = ?, " +
                 "process_command = ?, " +
                 "process_args = ?, " +
+                "process_envs = ?, " +
                 "process_description = ?, " +
                 "settings_id = ?, " +
                 "process_type = ?, " +
@@ -281,6 +292,8 @@ class KaraokeProcess(
         ps.setString(index, command)
         index++
         ps.setString(index, argsJson)
+        index++
+        ps.setString(index, envsJson)
         index++
         ps.setString(index, description)
         index++
@@ -486,7 +499,19 @@ class KaraokeProcess(
         }
 
         fun convertJsonToArgs(json: String): List<List<String>> {
-            return Json.decodeFromString(ListSerializer(ListSerializer(String.serializer())), json)
+            return try {
+                Json.decodeFromString(ListSerializer(ListSerializer(String.serializer())), json)
+            } catch (_: Exception) {
+                emptyList()
+            }
+        }
+
+        fun convertJsonToEnvs(json: String): Map<String, String> {
+            return try {
+                Json.decodeFromString(MapSerializer(String.serializer(), String.serializer()), json)
+            } catch (_: Exception) {
+                emptyMap()
+            }
         }
 
         fun createDbInstance(processes: List<KaraokeProcess>): List<KaraokeProcess?> {
@@ -547,6 +572,7 @@ class KaraokeProcess(
                         "process_priority, " +
                         "process_command, " +
                         "process_args, " +
+                        "process_envs, " +
                         "process_description, " +
                         "settings_id, " +
                         "process_type, " +
@@ -570,6 +596,7 @@ class KaraokeProcess(
                         "${process.priority}, " +
                         "'${process.command.replace("'","''")}', " +
                         "'${process.argsJson.replace("'","''")}', " +
+                        "'${process.envsJson.replace("'","''")}', " +
                         "'${process.description.replace("'","''")}', " +
                         "${process.settingsId}, " +
                         "'${process.type}', " +
@@ -665,6 +692,7 @@ class KaraokeProcess(
                     process.priority = rs.getInt("process_priority")
                     process.command = rs.getString("process_command")
                     process.args = convertJsonToArgs(rs.getString("process_args"))
+                    process.envs = convertJsonToEnvs(rs.getString("process_envs"))
                     process.description = rs.getString("process_description")
                     process.settingsId = rs.getInt("settings_id")
                     process.type = rs.getString("process_type")
@@ -740,6 +768,7 @@ class KaraokeProcess(
                     process.priority = rs.getInt("process_priority")
                     process.command = rs.getString("process_command")
                     process.args = convertJsonToArgs(rs.getString("process_args"))
+                    process.envs = convertJsonToEnvs(rs.getString("process_envs"))
                     process.description = rs.getString("process_description")
                     process.settingsId = rs.getInt("settings_id")
                     process.type = rs.getString("process_type")
@@ -1075,11 +1104,15 @@ class KaraokeProcess(
 
                     KaraokeProcessTypes.DEMUCS2 -> {
                         description = "Демукс 2"
-                        args = settings.argsDemucs2()
+                        val (demuxArgs, demuxEnvs) = settings.argsDemucs2()
+                        args = demuxArgs
+                        envs = demuxEnvs
                     }
                     KaraokeProcessTypes.DEMUCS5 -> {
                         description = "Демукс 5"
-                        args = settings.argsDemucs5()
+                        val (demuxArgs, demuxEnvs) = settings.argsDemucs5()
+                        args = demuxArgs
+                        envs = demuxEnvs
                     }
                     KaraokeProcessTypes.SHEETSAGE -> {
                         val srcWav = "/sm-karaoke/system/sheetsage/source.wav"
@@ -1369,6 +1402,7 @@ class KaraokeProcess(
                 childProcess.prioritet = parentProcess.prioritet
                 childProcess.withoutControl = parentProcess.withoutControl
                 childProcess.threadId = parentProcess.threadId
+                childProcess.envs = parentProcess.envs
                 childProcess.args = listOf(childArgs)
                 result.add(childProcess)
             }

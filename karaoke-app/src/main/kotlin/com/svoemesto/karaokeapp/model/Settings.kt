@@ -28,6 +28,7 @@ import java.util.*
 import java.util.Date
 import javax.imageio.ImageIO
 import kotlin.io.path.Path
+import kotlin.io.path.absolutePathString
 import kotlin.math.abs
 
 //@Component
@@ -334,25 +335,38 @@ class Settings(
                             if (!Files.isSymbolicLink(symlinkPath)) {
                                 println("Указанный путь '$pathToSymlinkFile' не является символической ссылкой.")
                             } else {
-                                val targetPath: Path = Files.readSymbolicLink(symlinkPath)
-                                val exists = Files.exists(targetPath)
+                                // Относительный путь, куда указывает ссылка
+                                val targetRelativePath: Path = Files.readSymbolicLink(symlinkPath)
+
+                                // Абсолютный путь, куда указывает ссылка
+                                val targetAbsolutePath = calculateAbsolutePathFromSymlink(targetRelativePath.toString(), pathToSymlinkFile)
+
+                                // Существует ли файл, на который ссылается ссылка
+                                val exists = File(targetAbsolutePath).exists()
+
                                 val symlinkAbsolutePath = symlinkPath.toAbsolutePath()
                                 val symlinkAbsoluteParentDir = symlinkAbsolutePath.parent
-                                val resolvedTargetAbsolutePath = symlinkAbsoluteParentDir.resolve(targetPath).normalize()
-                                val isRelative = !targetPath.isAbsolute
-                                val isAbsolute = targetPath.isAbsolute
+//                                val resolvedTargetRelativePath = symlinkAbsoluteParentDir.resolve(targetRelativePath).normalize()
+//                                val isRelative = !targetRelativePath.isAbsolute
+                                val isAbsolute = targetRelativePath.isAbsolute
 
                                 if (!exists) {
                                     // Если файл, на который указывает ссылка не существует (чего быть не может, если ссылка указывает на нужный нам файл)
-                                    reason = "Символьная ссылка $pathToSymlinkFile должна указывать на файл ${karaokeFile.pathToFile}, а указывает на несуществующий файл $targetPath. Удаляем неправильную ссылку и создаём правильную."
+                                    reason = "Символьная ссылка $pathToSymlinkFile должна указывать на файл ${karaokeFile.pathToFile}, а указывает на несуществующий файл $targetAbsolutePath. Удаляем неправильную ссылку и создаём правильную."
                                     needToDeleteSymlink = true // Надо удалить неправильный файл ссылки
                                     needToCreateSymlink = true // Надо создать файл symlink
                                 } else {
                                     // Файл, на который указывает ссылка существует - проверим, что указывает на нужный нам файл
-                                    if (resolvedTargetAbsolutePath == Paths.get(karaokeFile.pathToFile)) {
-                                        // Всё хорошо, ссылка ссылается на правильный и существующий файл
+                                    if (targetAbsolutePath == karaokeFile.pathToFile) {
+                                        if (isAbsolute) {
+                                            reason = "Символьная ссылка $pathToSymlinkFile должна указывать на файл ${karaokeFile.pathToFile} по относительному пути, а указывает по абсолютному. Удаляем неправильную ссылку и создаём правильную."
+                                            needToDeleteSymlink = true // Надо удалить неправильный файл ссылки
+                                            needToCreateSymlink = true // Надо создать файл symlink
+                                        } else {
+                                            // Всё хорошо, ссылка ссылается на правильный и существующий файл
+                                        }
                                     } else {
-                                        reason = "Символьная ссылка $pathToSymlinkFile должна указывать на файл ${karaokeFile.pathToFile}, а указывает на файл $resolvedTargetAbsolutePath. Удаляем неправильную ссылку и создаём правильную."
+                                        reason = "Символьная ссылка $pathToSymlinkFile должна указывать на файл ${karaokeFile.pathToFile}, а указывает на файл $targetAbsolutePath. Удаляем неправильную ссылку и создаём правильную."
                                         needToDeleteSymlink = true // Надо удалить неправильный файл ссылки
                                         needToCreateSymlink = true // Надо создать файл symlink
                                     }
@@ -360,7 +374,7 @@ class Settings(
 
                             }
                         } else {
-                            reason = "Символьная ссылка отсутствует. Создаём."
+                            reason = "Символьная ссылка $pathToSymlinkFile на файл ${karaokeFile.pathToFile} отсутствует. Создаём."
                             needToCreateSymlink = true // Надо создать файл symlink
                         }
 
@@ -368,6 +382,11 @@ class Settings(
                         if (needToDeleteSymlink) actions.add( { runCommand(args = listOf("rm", "-f", pathToSymlinkFile)) } )
                         if (needToCreateSymlink) actions.add(
                             {
+                                val symlinkFolder = File(pathToSymlinkFile).parent
+                                if (!File(symlinkFolder).exists()) {
+                                    Files.createDirectories(Path(symlinkFolder))
+                                    runCommand(listOf("chmod", "777", symlinkFolder))
+                                }
                                 runCommand(args = listOf("ln", "-s", calculateRelativePathForSymlink(karaokeFile.pathToFile, pathToSymlinkFile).wrapInQuotes(), pathToSymlinkFile))
                                 runCommand(args =  listOf("chmod", "666", pathToSymlinkFile))
                             }
@@ -621,7 +640,7 @@ class Settings(
                             storageService = storageService,
                             storageBucketName = storageBucketName,
                             storageFileName = storageFileName,
-                            pathToFile = pathToFile,
+                            pathToFile = pathToFile.rightFileName(),
                             canBe = canBe,
                             actionToCreate = actionToCreate,
                             actionToUploadInLocalStorage = actionToUploadInLocalStorage,
@@ -668,7 +687,7 @@ class Settings(
                                 storageBucketName = storageBucketName,
                                 storageFileName = "$storageFileName${karaokePlatform.suffix}${karaokeFileType.suffix}.${karaokeFileType.extention}",
                                 karaokePlatform = karaokePlatform,
-                                pathToFile = pathToFile,
+                                pathToFile = pathToFile.rightFileName(),
                                 canBe = canBe,
                                 actionToCreate = actionToCreate,
                                 actionToUploadInLocalStorage = actionToUploadInLocalStorage,
@@ -820,7 +839,7 @@ class Settings(
                                 storageBucketName = storageBucketName,
                                 storageFileName = "$storageFileName${songVersion.suffix}${karaokeFileType.suffix}.${karaokeFileType.extention}",
                                 songVersion = songVersion,
-                                pathToFile = pathToFile,
+                                pathToFile = pathToFile.rightFileName(),
                                 canBe = canBe,
                                 actionToCreate = actionToCreate,
                                 actionToUploadInLocalStorage = actionToUploadInLocalStorage,
@@ -1564,62 +1583,69 @@ class Settings(
             listOf("runFunctionWithArgs", "getKeyBpmFromFile", id.toString())
         )
     }
-    fun argsDemucs2(): List<List<String>> {
+    fun argsDemucs2(): Pair<List<List<String>>, Map<String, String>> {
 
         // Сначала копируем файл аудио в папку PATH_TO_TEMP_DEMUCS_FOLDER с именем file.flac, потом вызываем докер,
         // потом копируем оттуда результат и удаляем папку PATH_TO_TEMP_DEMUCS_FOLDER
 
         val tmpFileName = "file"
-        return listOf(
-            listOf("mkdir", "-p", pathToResultedModel),
-            listOf("chmod", "777", pathToResultedModel),
-            listOf("mkdir", "-p", PATH_TO_TEMP_DEMUCS_FOLDER),
-            listOf("chmod", "777", PATH_TO_TEMP_DEMUCS_FOLDER),
-            listOf("cp", fileAbsolutePath.rightFileName(), "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName.flac"),
+        return Pair(
             listOf(
-                "docker", "run", "--rm", "-i", "--name=demucs",
-                "-v", "$PATH_TO_TEMP_DEMUCS_FOLDER:/data/input",
-                "-v", "$PATH_TO_TEMP_DEMUCS_FOLDER:/data/output",
-                "svoemestodev/demucs:latest",
-                "''./demucs2 -file $PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName.flac -recode flac''"
+                listOf("mkdir", "-p", pathToResultedModel),
+                listOf("chmod", "777", pathToResultedModel),
+                listOf("mkdir", "-p", PATH_TO_TEMP_DEMUCS_FOLDER),
+                listOf("chmod", "777", PATH_TO_TEMP_DEMUCS_FOLDER),
+                listOf("cp", fileAbsolutePath.rightFileName(), "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName.flac"),
+                listOf(
+                    "docker", "run", "--rm", "-i", "--name=demucs",
+                    "-v", "$PATH_TO_TEMP_DEMUCS_FOLDER:/data/input",
+                    "-v", "$PATH_TO_TEMP_DEMUCS_FOLDER:/data/output",
+                    "svoemestodev/demucs:latest",
+                    "''./demucs2 -file $PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName.flac -recode flac''"
+                ),
+                listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-accompaniment.flac", newNoStemNameFlac.rightFileName()),
+                listOf("chmod", "666", newNoStemNameFlac.rightFileName()),
+                listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-vocals.flac", vocalsNameFlac.rightFileName()),
+                listOf("chmod", "666", vocalsNameFlac.rightFileName()),
+                listOf("rm", "-rf", PATH_TO_TEMP_DEMUCS_FOLDER)
             ),
-            listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-accompaniment.flac", newNoStemNameFlac.rightFileName()),
-            listOf("chmod", "666", newNoStemNameFlac.rightFileName()),
-            listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-vocals.flac", vocalsNameFlac.rightFileName()),
-            listOf("chmod", "666", vocalsNameFlac.rightFileName()),
-            listOf("rm", "-rf", PATH_TO_TEMP_DEMUCS_FOLDER)
+            mapOf("DOCKER_API_VERSION" to "1.43")
         )
     }
 
-    fun argsDemucs5(): List<List<String>> {
+    fun argsDemucs5(): Pair<List<List<String>>, Map<String, String>> {
 
         // Сначала копируем файл аудио в папку PATH_TO_TEMP_DEMUCS_FOLDER с именем file.flac, потом вызываем докер,
         // потом копируем оттуда результат и удаляем папку PATH_TO_TEMP_DEMUCS_FOLDER
+        // Второй возвращаемый параметр = мапа для энверонмента процессбилдера
         val tmpFileName = "file"
-        return listOf(
-            listOf("mkdir", "-p", pathToResultedModel),
-            listOf("chmod", "777", pathToResultedModel),
-            listOf("mkdir", "-p", PATH_TO_TEMP_DEMUCS_FOLDER),
-            listOf("chmod", "777", PATH_TO_TEMP_DEMUCS_FOLDER),
-            listOf("cp", fileAbsolutePath.rightFileName(), "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName.flac"),
+        return Pair(
             listOf(
-                "docker", "run", "--rm", "-i", "--name=demucs",
-                "-v", "$PATH_TO_TEMP_DEMUCS_FOLDER:/data/input",
-                "-v", "$PATH_TO_TEMP_DEMUCS_FOLDER:/data/output",
-                "svoemestodev/demucs:latest",
-                "''./demucs5 -file $PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName.flac -recode flac''"
+                listOf("mkdir", "-p", pathToResultedModel),
+                listOf("chmod", "777", pathToResultedModel),
+                listOf("mkdir", "-p", PATH_TO_TEMP_DEMUCS_FOLDER),
+                listOf("chmod", "777", PATH_TO_TEMP_DEMUCS_FOLDER),
+                listOf("cp", fileAbsolutePath.rightFileName(), "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName.flac"),
+                listOf(
+                    "docker", "run", "--rm", "-i", "--name=demucs",
+                    "-v", "$PATH_TO_TEMP_DEMUCS_FOLDER:/data/input",
+                    "-v", "$PATH_TO_TEMP_DEMUCS_FOLDER:/data/output",
+                    "svoemestodev/demucs:latest",
+                    "''./demucs5 -file $PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName.flac -recode flac''"
+                ),
+                listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-accompaniment.flac", newNoStemNameFlac.rightFileName()),
+                listOf("chmod", "666", newNoStemNameFlac.rightFileName()),
+                listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-vocals.flac", vocalsNameFlac.rightFileName()),
+                listOf("chmod", "666", vocalsNameFlac.rightFileName()),
+                listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-drums.flac", drumsNameFlac.rightFileName()),
+                listOf("chmod", "666", drumsNameFlac.rightFileName()),
+                listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-bass.flac", bassNameFlac.rightFileName()),
+                listOf("chmod", "666", bassNameFlac.rightFileName()),
+                listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-other.flac", otherNameFlac.rightFileName()),
+                listOf("chmod", "666", otherNameFlac.rightFileName()),
+                listOf("rm", "-rf", PATH_TO_TEMP_DEMUCS_FOLDER)
             ),
-            listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-accompaniment.flac", newNoStemNameFlac.rightFileName()),
-            listOf("chmod", "666", newNoStemNameFlac.rightFileName()),
-            listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-vocals.flac", vocalsNameFlac.rightFileName()),
-            listOf("chmod", "666", vocalsNameFlac.rightFileName()),
-            listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-drums.flac", drumsNameFlac.rightFileName()),
-            listOf("chmod", "666", drumsNameFlac.rightFileName()),
-            listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-bass.flac", bassNameFlac.rightFileName()),
-            listOf("chmod", "666", bassNameFlac.rightFileName()),
-            listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-other.flac", otherNameFlac.rightFileName()),
-            listOf("chmod", "666", otherNameFlac.rightFileName()),
-            listOf("rm", "-rf", PATH_TO_TEMP_DEMUCS_FOLDER)
+            mapOf("DOCKER_API_VERSION" to "1.43")
         )
     }
 

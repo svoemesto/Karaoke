@@ -15,6 +15,7 @@ data class KaraokeProcessDTO(
     val priority: Int,
     val command: String,
     val args: List<List<String>>,
+    val envs: Map<String, String>,
     val argsDescription: List<String>,
     val description: String,
     val settingsId: Int,

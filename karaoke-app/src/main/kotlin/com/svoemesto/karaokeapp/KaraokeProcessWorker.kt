@@ -37,6 +37,10 @@ class KaraokeProcessThread(val karaokeProcess: KaraokeProcess? = null, var perce
                 val regexPercentageSheetsage = Regex("^\\s{0,2}(\\d{1,3})%\\|")
                 val args = karaokeProcess.args[0]
                 val processBuilder = ProcessBuilder(args)
+
+                val processBuilderEnvironment = processBuilder.environment()
+                processBuilderEnvironment.putAll(karaokeProcess.envs)
+
                 processBuilder.redirectErrorStream(true)
 
                 val process = processBuilder.start()

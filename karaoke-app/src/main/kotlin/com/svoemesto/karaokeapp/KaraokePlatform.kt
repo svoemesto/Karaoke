@@ -3,11 +3,10 @@ package com.svoemesto.karaokeapp
 import com.svoemesto.karaokeapp.model.SettingField
 import com.svoemesto.karaokeapp.model.Settings
 import com.svoemesto.karaokeapp.model.SongVersion
-import java.io.Serializable
 
 enum class KaraokePlatform(
     val id: Long,
-    val caption: String,
+    @Suppress("unused") val caption: String,
     val description: String,
     val forAllVersions: Boolean,
     val haveVersionNumber: Boolean,
@@ -17,7 +16,7 @@ enum class KaraokePlatform(
     val prefixEdit: String = "",
     val suffixEdit: String = "",
     val linkToCreate: String = "",
-    val svg: String,
+    @Suppress("unused") val svg: String,
     val settingsFieldPublicationId: Map<String, SettingField>,
     val settingsFieldVersionNumber: Map<String, SettingField>,
     val onAirPublications: Boolean

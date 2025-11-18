@@ -145,20 +145,20 @@ fun createVKLinkPictureWeb(settings: Settings, reCreateIfExist: Boolean = true):
     val fName = "/home/nsa/Karaoke/karaoke-web/src/main/resources/static/tmp/${settings.id}.png"
 
     if (settings.onAir && File(fName).exists()) {
-        println("${settings.rightSettingFileName} - в эфире, удаляем файл картинки")
+        println("${settings.fileName} - в эфире, удаляем файл картинки")
         File(fName).delete()
         return "delete"
     } else if (settings.onAir) {
-        println("${settings.rightSettingFileName} - в эфире, пропускаем создание файла картинки")
+        println("${settings.fileName} - в эфире, пропускаем создание файла картинки")
         return "skip"
 //    } else if (!settings.onAir && settings.idStatus < 3) {
-//        println("${settings.rightSettingFileName} - не в эфире и не готов, пропускаем создание файла картинки")
+//        println("${settings.fileName} - не в эфире и не готов, пропускаем создание файла картинки")
 //        return "skip"
     } else if (!settings.onAir && File(fName).exists() && !reCreateIfExist) {
-        println("${settings.rightSettingFileName} - не в эфире, не нужно пересоздавать, пропускаем создание файл картинки")
+        println("${settings.fileName} - не в эфире, не нужно пересоздавать, пропускаем создание файл картинки")
         return "skip"
     }
-    println("${settings.rightSettingFileName} - не в эфире, создаём файл картинки")
+    println("${settings.fileName} - не в эфире, создаём файл картинки")
 
     val pathToLogoAlbum = settings.pathToFileLogoAlbum
     val pathToLogoAuthor = settings.pathToFileLogoAuthor

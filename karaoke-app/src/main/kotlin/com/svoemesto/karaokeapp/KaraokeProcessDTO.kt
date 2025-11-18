@@ -2,8 +2,6 @@ package com.svoemesto.karaokeapp
 
 import com.svoemesto.karaokeapp.model.KaraokeDbTable
 import com.svoemesto.karaokeapp.model.KaraokeDbTableDto
-import com.svoemesto.karaokeapp.services.KaraokeStorageService
-import com.svoemesto.karaokeapp.services.KaraokeStorageServiceImpl
 import java.io.Serializable
 import java.sql.Timestamp
 

@@ -21,7 +21,7 @@ data class Song2(
             else -> "done_files"
         }
 
-        val fileName = "${settings.rightSettingFileName}${songVersion.suffix}"
+        val fileName = "${settings.fileName}${songVersion.suffix}"
         val fileNameSuffix = when (songOutputFile) {
             SongOutputFile.PICTURECHORDS -> " chords"
             SongOutputFile.PICTUREBOOSTY -> " boosty"

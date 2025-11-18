@@ -1,9 +1,12 @@
 package com.svoemesto.karaokeapp
 
-import com.microsoft.playwright.*
-import com.microsoft.playwright.options.LoadState
+import com.microsoft.playwright.Browser
+import com.microsoft.playwright.BrowserContext
+import com.microsoft.playwright.BrowserType
+import com.microsoft.playwright.Playwright
 import java.nio.file.Path
 
+@Suppress("unused")
 fun main1() {
     Playwright.create().use { playwright ->
         // Запуск браузера в видимом режиме
@@ -16,7 +19,7 @@ fun main1() {
 
         val browser = playwright.chromium().launch(
             BrowserType.LaunchOptions()
-                .setExecutablePath(java.nio.file.Path.of(yandexBrowserPath))
+                .setExecutablePath(Path.of(yandexBrowserPath))
                 .setHeadless(false) // Чтобы браузер был виден
         )
         val page = browser.newPage()
@@ -28,6 +31,7 @@ fun main1() {
     }
 }
 
+@Suppress("unused")
 fun main222() {
     Playwright.create().use { playwright ->
         val browser = playwright.chromium().launch(
@@ -56,6 +60,7 @@ fun main222() {
     }
 }
 
+@Suppress("unused")
 fun main333() {
     Playwright.create().use { playwright ->
         val browser = playwright.chromium().launch(
@@ -67,7 +72,7 @@ fun main333() {
         // Создаем контекст, используя сохраненное состояние авторизации
         val context = browser.newContext(
             Browser.NewContextOptions()
-                .setStorageStatePath(java.nio.file.Path.of("/sm-karaoke/system/yandex_auth_state.json")) // <-- Используем сохраненное состояние
+                .setStorageStatePath(Path.of("/sm-karaoke/system/yandex_auth_state.json")) // <-- Используем сохраненное состояние
         )
 
         val page = context.newPage()

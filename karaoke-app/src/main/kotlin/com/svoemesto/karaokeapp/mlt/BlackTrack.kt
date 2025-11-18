@@ -1,4 +1,5 @@
-import com.svoemesto.karaokeapp.mlt.MltProp
+package com.svoemesto.karaokeapp.mlt
+
 import com.svoemesto.karaokeapp.model.MltNode
 
 @Suppress("unused")

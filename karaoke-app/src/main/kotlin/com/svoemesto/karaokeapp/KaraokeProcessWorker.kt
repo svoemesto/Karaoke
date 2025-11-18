@@ -346,7 +346,7 @@ class KaraokeProcessWorker {
                                     if (settingsLocal != null) {
                                         settingsLocal.sourceMarkersList.forEachIndexed { voice, _ ->
                                             val strText = settingsLocal.convertMarkersToSrt(voice)
-                                            val fileName = "${settingsLocal.rootFolder}/${settingsLocal.rightSettingFileName}.voice${voice+1}.srt"
+                                            val fileName = "${settingsLocal.rootFolder}/${settingsLocal.fileName}.voice${voice+1}.srt"
                                             File(fileName).writeText(strText)
                                             runCommand(listOf("chmod", "666", fileName))
                                         }

@@ -24,8 +24,8 @@ data class MltInitialStructure(
     var voiceId: Int = -1,
     var childId: Int = -1,
     var elementId: Int = -1
-) {
-}
+)
+
 fun getMisList(mltProp: MltProp): List<MltInitialStructure> {
     val result: MutableList<MltInitialStructure> = mutableListOf()
 
@@ -333,8 +333,8 @@ fun getMisList(mltProp: MltProp): List<MltInitialStructure> {
 
 fun getMlt(mltProp: MltProp): MltNode {
 
-    val songVersion = mltProp.getSongVersion()
-    val countVoices = mltProp.getCountVoices()
+    mltProp.getSongVersion()
+    mltProp.getCountVoices()
 
     val body = mutableListOf<MltNode>()
 
@@ -355,13 +355,13 @@ fun getMlt(mltProp: MltProp): MltNode {
         val pctInstance = pct
             .getDeclaredConstructor(*arrayOf(MltProp::class.java, ProducerType::class.java, Int::class.java, Int::class.java, Int::class.java))
             .newInstance(*arrayOf(mltProp, type, voiceId, childId, elementId))
-        val resultProducer = pctInstance.javaClass.declaredMethods.firstOrNull() { it.name == "producer" }?.let {it.invoke(pctInstance) as MltNode? }
-        val resultProducerBlackTrack = pctInstance.javaClass.declaredMethods.firstOrNull() { it.name == "producerBlackTrack" }?.let {it.invoke(pctInstance) as MltNode? }
-        val resultFileProducer = pctInstance.javaClass.declaredMethods.firstOrNull() { it.name == "fileProducer" }?.let {it.invoke(pctInstance) as MltNode? }
-        val resultFilePlaylist = pctInstance.javaClass.declaredMethods.firstOrNull() { it.name == "filePlaylist" }?.let {it.invoke(pctInstance) as MltNode? }
-        val resultTrackPlaylist = pctInstance.javaClass.declaredMethods.firstOrNull() { it.name == "trackPlaylist" }?.let {it.invoke(pctInstance) as MltNode? }
-        val resultTractor = pctInstance.javaClass.declaredMethods.firstOrNull() { it.name == "tractor" }?.let {it.invoke(pctInstance) as MltNode? }
-        val resultTractorSequence = pctInstance.javaClass.declaredMethods.firstOrNull() { it.name == "tractorSequence" }?.let {it.invoke(pctInstance) as MltNode? }
+        val resultProducer = pctInstance.javaClass.declaredMethods.firstOrNull { it.name == "producer" }?.let {it.invoke(pctInstance) as MltNode? }
+        val resultProducerBlackTrack = pctInstance.javaClass.declaredMethods.firstOrNull { it.name == "producerBlackTrack" }?.let {it.invoke(pctInstance) as MltNode? }
+        val resultFileProducer = pctInstance.javaClass.declaredMethods.firstOrNull { it.name == "fileProducer" }?.let {it.invoke(pctInstance) as MltNode? }
+        val resultFilePlaylist = pctInstance.javaClass.declaredMethods.firstOrNull { it.name == "filePlaylist" }?.let {it.invoke(pctInstance) as MltNode? }
+        val resultTrackPlaylist = pctInstance.javaClass.declaredMethods.firstOrNull { it.name == "trackPlaylist" }?.let {it.invoke(pctInstance) as MltNode? }
+        val resultTractor = pctInstance.javaClass.declaredMethods.firstOrNull { it.name == "tractor" }?.let {it.invoke(pctInstance) as MltNode? }
+        val resultTractorSequence = pctInstance.javaClass.declaredMethods.firstOrNull { it.name == "tractorSequence" }?.let {it.invoke(pctInstance) as MltNode? }
 
         resultProducerBlackTrack?.let { bodyProducers.add(it) }
         resultProducer?.let { bodyProducers.add(it) }

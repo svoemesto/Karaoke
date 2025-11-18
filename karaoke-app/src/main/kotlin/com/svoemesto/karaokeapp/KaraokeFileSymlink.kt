@@ -7,5 +7,4 @@ data class KaraokeFileSymlink(
     val name: String = "",   // имя файла ссылки. Если пустое - имя совпадает с файлом, на который указывает ссылка.
     val platforms: List<KaraokePlatform> = emptyList(), // Платформы, для которых актуально. Пустой список - для всех.
     val songVersions: List<SongVersion> = emptyList(), // Версии, для которых актуально. Пустой список - для всех.
-) {
-}
+)

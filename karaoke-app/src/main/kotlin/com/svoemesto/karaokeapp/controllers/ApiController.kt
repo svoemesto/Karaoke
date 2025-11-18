@@ -2564,7 +2564,7 @@ class ApiController(
         @RequestParam(required = true) id: Long
     ) {
         setSettingsToSyncRemoteTable(id)
-        val body = "Запись ${Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService)?.rightSettingFileName} добавлена в SYNC-таблицу"
+        val body = "Запись ${Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService)?.fileName} добавлена в SYNC-таблицу"
         SNS.send(SseNotification.message(
             Message(
                 type = "info",
@@ -2980,7 +2980,7 @@ class ApiController(
         @RequestParam(required = true) id: Long,
         @RequestParam(required = false) name: String?,
         @RequestParam(required = false) full: String?,
-        @RequestParam(required = false) preview: String?
+        @RequestParam(required = false) @Suppress("unused") preview: String?
     ): Long {
 
         Pictures.getPictureById(id = id, database = WORKING_DATABASE, storageService = storageService)?.let { pic ->

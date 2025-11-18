@@ -5,12 +5,14 @@ import com.google.gson.GsonBuilder
 import com.microsoft.playwright.Browser
 import com.microsoft.playwright.BrowserType
 import com.microsoft.playwright.Playwright
-import com.svoemesto.karaokeapp.mlt.*
+import com.svoemesto.karaokeapp.mlt.MltObject
+import com.svoemesto.karaokeapp.mlt.MltObjectAlignmentX
+import com.svoemesto.karaokeapp.mlt.MltObjectAlignmentY
+import com.svoemesto.karaokeapp.mlt.MltObjectType
 import com.svoemesto.karaokeapp.model.*
 import com.svoemesto.karaokeapp.services.KSS_APP
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.StorageApiClient
-import com.svoemesto.karaokeapp.services.StorageFileInfo
 import com.svoemesto.karaokeapp.textfiledictionary.YoWordsDictionary
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
@@ -20,7 +22,9 @@ import org.apache.commons.csv.CSVParser
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
-import java.awt.*
+import java.awt.Font
+import java.awt.Graphics2D
+import java.awt.RenderingHints
 import java.awt.image.BufferedImage
 import java.io.*
 import java.net.URI
@@ -40,18 +44,24 @@ import java.sql.Timestamp
 import java.text.SimpleDateFormat
 import java.time.Instant
 import java.util.*
+import kotlin.io.inputStream
+import kotlin.io.outputStream
 import kotlin.io.path.Path
+import kotlin.io.println
+import kotlin.io.readText
+import kotlin.io.writeText
 import kotlin.math.roundToInt
 import kotlin.random.Random
 import kotlin.use
 
 fun customFunction(
     storageService: KaraokeStorageService,
+    @Suppress("unused")
     storageApiClient: StorageApiClient
 ): String {
 
 //    Settings.loadListFromDb(database = WORKING_DATABASE).filter { it.healthReport().isNotEmpty() }.forEach { settings ->
-//        println(settings.rightSettingFileName)
+//        println(settings.fileName)
 //        println(settings.healthReport())
 //        println("-----------------------------")
 //    }
@@ -79,28 +89,39 @@ fun customFunction(
 //        storageApiClient = storageApiClient
 //    )
 
-    checkHealth(storageService = storageService)
+    checkHealth(storageService = storageService, executeActions = true)
 
     return ""
 }
 
-fun checkHealth(storageService: KaraokeStorageService) {
+fun checkHealth(storageService: KaraokeStorageService, executeActions: Boolean = false) {
 
-    Settings.loadListFromDb(database = WORKING_DATABASE, storageService = storageService).forEach { settings ->
+    val listSettings = Settings.loadListFromDb(database = WORKING_DATABASE, storageService = storageService)
+    var lastPrintedPercent = -1
+    listSettings.forEachIndexed { index, settings ->
+        val percent = (((index / listSettings.size.toDouble()) * 100).toInt() / 10) * 10
+        if (percent != lastPrintedPercent) {
+            lastPrintedPercent = percent
+            println("checkHealth $percent%")
+        }
         val healthReport = settings.healthReport()
         if (healthReport.isNotEmpty()) {
-            println("${settings.rightSettingFileName} содержит ошибки:")
+            println("${settings.fileName} содержит ошибки:")
             healthReport.forEach { line ->
                 println("    ${line.first}")
-                line.second.forEach { action ->
-                    action()
+                if (executeActions) {
+                    line.second.forEach { action ->
+                        action()
+                    }
                 }
             }
             println()
         }
     }
+    println("checkHealth 100% - DONE")
 }
 
+@Suppress("unused")
 fun syncRemotePicturesInStorage(
     storageService: KaraokeStorageService,
     storageApiClient: StorageApiClient
@@ -199,7 +220,7 @@ fun syncRemotePicturesInStorage(
 
 }
 
-
+@Suppress("unused")
 fun uploadPicturesToStorage() {
     Pictures.loadList(whereArgs = emptyMap(), database = WORKING_DATABASE, storageService = KSS_APP, ignoreUseInList = false).forEach { picture ->
         if (picture.storageFileExists()) {
@@ -260,8 +281,8 @@ fun setSettingsToSyncRemoteTable(ids: List<Long>): List<String> {
     ids.forEach { id ->
         val itemFrom = Settings.loadFromDbById(id = id, database = fromDatabase, storageService = KSS_APP)
         if (itemFrom != null) {
-            listToCreateNames.add(itemFrom.rightSettingFileName)
-            println("Добавляем запись в $tableName: id=${itemFrom.id}, ${itemFrom.rightSettingFileName}")
+            listToCreateNames.add(itemFrom.fileName)
+            println("Добавляем запись в $tableName: id=${itemFrom.id}, ${itemFrom.fileName}")
             val sqlToInsert = itemFrom.getSqlToInsert(sync = true)
             val setStrEncrypted = Crypto.encrypt(sqlToInsert)
             val values: Map<String, Any> = mapOf(
@@ -414,7 +435,7 @@ fun updateDatabases(
         }.map { it.id }
 
         idsToDelete.forEach { id ->
-            Settings.loadFromDbById(id = id, database = toDatabase, storageService = KSS_APP)?.let { listToDeleteNames.add(it.rightSettingFileName) }
+            Settings.loadFromDbById(id = id, database = toDatabase, storageService = KSS_APP)?.let { listToDeleteNames.add(it.fileName) }
             if (toDatabase.name == "SERVER") {
                 val sqlToDelete = "DELETE FROM $tableName WHERE id = $id"
                 val setStrEncrypted = Crypto.encrypt(sqlToDelete)
@@ -430,8 +451,8 @@ fun updateDatabases(
         idsToInsert.forEach { id ->
             val itemFrom = Settings.loadFromDbById(id = id, database = fromDatabase, storageService = KSS_APP)
             if (itemFrom != null) {
-                listToCreateNames.add(itemFrom.rightSettingFileName)
-                println("Добавляем запись в $tableName: id=${itemFrom.id}, ${itemFrom.rightSettingFileName}")
+                listToCreateNames.add(itemFrom.fileName)
+                println("Добавляем запись в $tableName: id=${itemFrom.id}, ${itemFrom.fileName}")
                 val sqlToInsert = itemFrom.getSqlToInsert()
                 if (toDatabase.name == "SERVER") {
                     val setStrEncrypted = Crypto.encrypt(sqlToInsert)
@@ -458,8 +479,8 @@ fun updateDatabases(
             if (itemFrom != null && itemTo != null) {
                 val diff = Settings.getDiff(itemFrom, itemTo)
                 if (diff.isNotEmpty() && !diff.all { !it.recordDiffRealField || it.recordDiffName.startsWith("status_process_")}) {
-                    listToUpdateNames.add(itemFrom.rightSettingFileName)
-                    println("[${Timestamp.from(Instant.now())}] Изменяем запись в $tableName: id=${itemFrom.id}, ${itemFrom.rightSettingFileName}, поля: ${diff.joinToString(", ") { it.recordDiffName }}")
+                    listToUpdateNames.add(itemFrom.fileName)
+                    println("[${Timestamp.from(Instant.now())}] Изменяем запись в $tableName: id=${itemFrom.id}, ${itemFrom.fileName}, поля: ${diff.joinToString(", ") { it.recordDiffName }}")
                     val messageRecordChange = RecordChangeMessage(tableName = tableName,  recordId = itemTo.id, diffs = diff, databaseName = toDatabase.name, record = itemFrom)
                     if (toDatabase.name == "SERVER") {
                         val setStr = messageRecordChange.getSetString()
@@ -789,7 +810,7 @@ fun updateBpmAndKey(database: KaraokeConnection, storageService: KaraokeStorageS
     listSettings.forEach { settings ->
         val (bpm, key) = getBpmAndKeyFromCsv(settings)
         if (bpm != 0L && key != "") {
-            println("${settings.rightSettingFileName} : bpm = ${bpm}, tone = $key")
+            println("${settings.fileName} : bpm = ${bpm}, tone = $key")
             settings.fields[SettingField.BPM] = bpm.toString()
             settings.fields[SettingField.KEY] = key
             settings.saveToDb()
@@ -809,7 +830,7 @@ fun updateBpmAndKeyLV(database: KaraokeConnection, storageService: KaraokeStorag
             val bpm = sheetsageInfo["tempo"] as String
             val key = sheetsageInfo["key"] as String
             if (bpm != "" && key != "") {
-                println("${settings.rightSettingFileName} : bpm = ${bpm}, tone = $key")
+                println("${settings.fileName} : bpm = ${bpm}, tone = $key")
                 settings.fields[SettingField.BPM] = bpm
                 settings.fields[SettingField.KEY] = key
                 settings.saveToDb()
@@ -2438,7 +2459,7 @@ fun checkLastAlbumYm(): Triple<String, String, Int> {
 //        getAlbumCardTitle(author.ymId)
 //        searchLastAlbumYm(author.ymId)
         searchLastAlbumYm2(author.ymId)
-    } catch (e: Exception) {
+    } catch (@Suppress("unused") e: Exception) {
         // e.printStackTrace()
         println("Поиск для автора «$authorForRequest» завершился ошибкой.")
         return Triple(authorForRequest, "", -1)
@@ -2498,6 +2519,7 @@ fun runFunctionWithArgs(args: List<String>): String {
                         settings.fields[SettingField.KEY] = key
                         settings.fields[SettingField.BPM] = bpm.toString()
                         settings.saveToDb()
+                        result = "Success for '$func'"
                     }
                 }
             }

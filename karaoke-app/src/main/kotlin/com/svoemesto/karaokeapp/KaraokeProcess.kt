@@ -918,7 +918,7 @@ class KaraokeProcess(
                         args = listOf(
                             listOf(
                                 "docker", "compose", "-f", "/sm-karaoke/system/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
-                                "${settings.rootFolder}/done_projects/${settings.rightSettingFileName} [lyrics].mlt".rightFileName()
+                                "${settings.rootFolder}/done_projects/${settings.fileName} [lyrics].mlt".rightFileName()
                             ),
                             listOf("chmod", "666", settings.pathToFileLyrics),
                             listOf("mkdir", "-p", settings.pathToStoreFolderLyrics),
@@ -1017,7 +1017,7 @@ class KaraokeProcess(
                         args = listOf(
                             listOf(
                                 "docker", "compose", "-f", "/sm-karaoke/system/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
-                                "${settings.rootFolder}/done_projects/${settings.rightSettingFileName} [karaoke].mlt".rightFileName()
+                                "${settings.rootFolder}/done_projects/${settings.fileName} [karaoke].mlt".rightFileName()
                             ),
                             listOf("chmod", "666", settings.pathToFileKaraoke),
                             listOf("mkdir", "-p", settings.pathToStoreFolderKaraoke),
@@ -1085,7 +1085,7 @@ class KaraokeProcess(
                         args = listOf(
                             listOf(
                                 "docker", "compose", "-f", "/sm-karaoke/system/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
-                                "${settings.rootFolder}/done_projects/${settings.rightSettingFileName} [chords].mlt".rightFileName()
+                                "${settings.rootFolder}/done_projects/${settings.fileName} [chords].mlt".rightFileName()
                             ),
                             listOf("chmod", "666", settings.pathToFileChords),
                         )
@@ -1096,7 +1096,7 @@ class KaraokeProcess(
                         args = listOf(
                             listOf(
                                 "docker", "compose", "-f", "/sm-karaoke/system/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
-                                "${settings.rootFolder}/done_projects/${settings.rightSettingFileName} [tabs].mlt".rightFileName()
+                                "${settings.rootFolder}/done_projects/${settings.fileName} [tabs].mlt".rightFileName()
                             ),
                             listOf("chmod", "666", settings.pathToFileMelody),
                         )

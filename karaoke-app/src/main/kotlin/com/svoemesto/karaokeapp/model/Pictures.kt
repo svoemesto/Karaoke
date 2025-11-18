@@ -38,7 +38,7 @@ class Pictures(
                 val previewBi = if (bi.width > 400) resizeBufferedImage(bi, newW = 125, newH = 50) else resizeBufferedImage(bi, newW = 50, newH = 50)
                 val iosPreview = ByteArrayOutputStream()
                 ImageIO.write(previewBi, "png", iosPreview)
-                val preview = Base64.getEncoder().encodeToString(iosPreview.toByteArray())
+                Base64.getEncoder().encodeToString(iosPreview.toByteArray())
 //                if (this.preview != preview) this.preview = preview
             } catch (_: Exception) {
 

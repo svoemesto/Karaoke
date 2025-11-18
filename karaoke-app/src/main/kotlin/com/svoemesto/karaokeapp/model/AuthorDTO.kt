@@ -1,8 +1,6 @@
 package com.svoemesto.karaokeapp.model
 
 import com.svoemesto.karaokeapp.KaraokeConnection
-import com.svoemesto.karaokeapp.services.KaraokeStorageService
-import com.svoemesto.karaokeapp.services.KaraokeStorageServiceImpl
 import java.io.Serializable
 
 data class AuthorDTO(

@@ -1,4 +1,4 @@
-package com.svoemesto.karaokeweb // Замените на актуальный пакет вашего приложения
+package com.svoemesto.karaokeweb.config // Замените на актуальный пакет вашего приложения
 
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration

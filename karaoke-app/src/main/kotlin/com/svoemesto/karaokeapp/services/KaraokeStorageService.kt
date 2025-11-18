@@ -11,7 +11,6 @@ import java.io.FileOutputStream
 import java.io.InputStream
 import java.io.Serializable
 import java.net.URLDecoder
-import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
 interface KaraokeStorageService {
@@ -62,7 +61,7 @@ class KaraokeStorageServiceImpl(
         return if (fileName.contains("%")) { // Простая проверка: содержит ли имя символ '%'
             try {
                 URLDecoder.decode(fileName, StandardCharsets.UTF_8.toString())
-            } catch (e: IllegalArgumentException) {
+            } catch (_: IllegalArgumentException) {
                 // Если декодирование не удалось (например, '% не в кодировке), возвращаем оригинальное имя
                 fileName
             }

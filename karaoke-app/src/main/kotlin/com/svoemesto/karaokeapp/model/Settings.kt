@@ -4,11 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.svoemesto.karaokeapp.*
 import com.svoemesto.karaokeapp.mlt.MltProp
-import com.svoemesto.karaokeapp.services.APP_WORK_IN_CONTAINER
-import com.svoemesto.karaokeapp.services.KSS_APP
-import com.svoemesto.karaokeapp.services.KaraokeStorage
-import com.svoemesto.karaokeapp.services.KaraokeStorageService
-import com.svoemesto.karaokeapp.services.SNS
+import com.svoemesto.karaokeapp.services.*
 import com.svoemesto.karaokeapp.textfiledictionary.SyncIdsDictionary
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
@@ -21,14 +17,15 @@ import java.io.Serializable
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
-import java.sql.*
+import java.sql.ResultSet
+import java.sql.SQLException
+import java.sql.Statement
+import java.sql.Timestamp
 import java.text.SimpleDateFormat
 import java.time.Instant
 import java.util.*
-import java.util.Date
 import javax.imageio.ImageIO
 import kotlin.io.path.Path
-import kotlin.io.path.absolutePathString
 import kotlin.math.abs
 
 //@Component
@@ -39,7 +36,7 @@ class Settings(
 ): Serializable, Comparable<Settings>, KaraokeStorage {
 
     override val storageBucketName: String get() = "karaoke"
-    override val storageFileName: String get() = "$author/$year - $album/$rightSettingFileName"
+    override val storageFileName: String get() = "$author/$year - $album/$fileName"
     override val storageFileNamePreview: String get() = ""
 
     fun createProcessDemux2() {
@@ -345,7 +342,7 @@ class Settings(
                                 val exists = File(targetAbsolutePath).exists()
 
                                 val symlinkAbsolutePath = symlinkPath.toAbsolutePath()
-                                val symlinkAbsoluteParentDir = symlinkAbsolutePath.parent
+                                symlinkAbsolutePath.parent
 //                                val resolvedTargetRelativePath = symlinkAbsoluteParentDir.resolve(targetRelativePath).normalize()
 //                                val isRelative = !targetRelativePath.isAbsolute
                                 val isAbsolute = targetRelativePath.isAbsolute
@@ -657,7 +654,7 @@ class Settings(
                             } else {
                                 "done_files"
                             }
-                            "$rootFolder/$subFolder/$rightSettingFileName${karaokePlatform.suffix}${karaokeFileType.suffix}.${karaokeFileType.extention}"
+                            "$rootFolder/$subFolder/$fileName${karaokePlatform.suffix}${karaokeFileType.suffix}.${karaokeFileType.extention}"
                         } else ""
 
                         val canBe = if (karaokeFileType.karaokeFileTypeKind == KaraokeFileTypeKind.PROJECT) {
@@ -715,7 +712,7 @@ class Settings(
                                 } else {
                                     "done_files"
                                 }
-                                "$rootFolder/$subFolder/$rightSettingFileName${songVersion.suffix}${karaokeFileType.suffix}.${karaokeFileType.extention}"
+                                "$rootFolder/$subFolder/$fileName${songVersion.suffix}${karaokeFileType.suffix}.${karaokeFileType.extention}"
                             }
                         }
 
@@ -912,7 +909,7 @@ class Settings(
                     val tmp = try {
                         ((runCommand(argForDurationFromAudioFileMs).toDoubleOrNull() ?: 0.0) * 1000L).toLong()
                     } catch (_: Exception) {
-                        val message = "runCommand - Ошибка получения длительности аудиофайла для песни $rightSettingFileName. Параметры вызова: $argForDurationFromAudioFileMs"
+                        val message = "runCommand - Ошибка получения длительности аудиофайла для песни $fileName. Параметры вызова: $argForDurationFromAudioFileMs"
                         throw RuntimeException(message)
                     }
                     fields[SettingField.MS] = tmp.toString()
@@ -944,21 +941,21 @@ class Settings(
         set(value) {fields[SettingField.MS] = value.toString()}
 
     var fileName: String = ""
-    val rightSettingFileName: String get() {
-        val resultList: MutableList<String> = mutableListOf()
-        if (year != 0L ) resultList.add("$year")
-        if (track != 0L ) resultList.add("(${"%02d".format(track)})")
-        resultList.add("[$author] -")
-        resultList.add(songName)
-        return resultList
-            .joinToString(" ")
-            .replace("?","")
-            .replace(":","-")
-            .replace("!","")
-            .replace("$","s")
-            .replace("*","x")
-            .replace("/","")
-    }
+//    val rightSettingFileName: String get() {
+//        val resultList: MutableList<String> = mutableListOf()
+//        if (year != 0L ) resultList.add("$year")
+//        if (track != 0L ) resultList.add("(${"%02d".format(track)})")
+//        resultList.add("[$author] -")
+//        resultList.add(songName)
+//        return resultList
+//            .joinToString(" ")
+//            .replace("?","")
+//            .replace(":","-")
+//            .replace("!","")
+//            .replace("$","s")
+//            .replace("*","x")
+//            .replace("/","")
+//    }
 
     var tags: String = ""
     var fields: MutableMap<SettingField, String> = mutableMapOf()
@@ -1051,7 +1048,7 @@ class Settings(
             val data = try {
                 listOf(Json.decodeFromString(ListSerializer(SourceMarker.serializer()), sourceMarkers))
             } catch (_: Exception) {
-                println("Не удалось десериализовать поле sourceMarkers для песни $rightSettingFileName")
+                println("Не удалось десериализовать поле sourceMarkers для песни $fileName")
                 emptyList()
             }
             sourceMarkers = Json.encodeToString(data)
@@ -1117,23 +1114,23 @@ class Settings(
     val pathToStoreFolderChords: String  get() = "$PATH_TO_STORE_FOLDER/Chords/${author} - Chords".rightFileName()
     val pathToStoreFolderMelody: String  get() = "$PATH_TO_STORE_FOLDER/TABS/${author} - TABS".rightFileName()
 
-    val nameFileLogoAlbum: String  get() = "$rightSettingFileName [album].png".rightFileName()
-    val nameFileLogoAuthor: String  get() = "$rightSettingFileName [author].png".rightFileName()
-    val nameFileLyrics: String  get() = "$rightSettingFileName [lyrics].mp4".rightFileName()
-//    val nameFileLyricsVk: String  get() = "${rightSettingFileName} [lyricsVk].mp4".rightFileName()
-    val nameFileKaraoke: String  get() = "$rightSettingFileName [karaoke].mp4".rightFileName()
-//    val nameFileKaraokeVk: String  get() = "${rightSettingFileName} [karaokeVk].mp4".rightFileName()
-    val nameFileChords: String  get() = "$rightSettingFileName [chords].mp4".rightFileName()
-//    val nameFileChordsVk: String  get() = "${rightSettingFileName} [chordsVk].mp4".rightFileName()
-    val nameFileMelody: String  get() = "$rightSettingFileName [tabs].mp4".rightFileName()
-    val nameFileKeyBpmFinder: String  get() = "$rightSettingFileName [key].json".rightFileName()
-//    val nameFileMelodyVk: String  get() = "${rightSettingFileName} [tabsVk].mp4".rightFileName()
+    val nameFileLogoAlbum: String  get() = "$fileName [album].png".rightFileName()
+    val nameFileLogoAuthor: String  get() = "$fileName [author].png".rightFileName()
+    val nameFileLyrics: String  get() = "$fileName [lyrics].mp4".rightFileName()
+//    val nameFileLyricsVk: String  get() = "${fileName} [lyricsVk].mp4".rightFileName()
+    val nameFileKaraoke: String  get() = "$fileName [karaoke].mp4".rightFileName()
+//    val nameFileKaraokeVk: String  get() = "${fileName} [karaokeVk].mp4".rightFileName()
+    val nameFileChords: String  get() = "$fileName [chords].mp4".rightFileName()
+//    val nameFileChordsVk: String  get() = "${fileName} [chordsVk].mp4".rightFileName()
+    val nameFileMelody: String  get() = "$fileName [tabs].mp4".rightFileName()
+    val nameFileKeyBpmFinder: String  get() = "$fileName [key].json".rightFileName()
+//    val nameFileMelodyVk: String  get() = "${fileName} [tabsVk].mp4".rightFileName()
 
     val pathToFolderSheetsage: String  get() = "${rootFolder}/sheetsage".rightFileName()
-    val nameFileSheetsagePDF: String  get() = "$rightSettingFileName [sheetsage].pdf".rightFileName()
-    val nameFileSheetsageMIDI: String  get() = "$rightSettingFileName [sheetsage].midi".rightFileName()
-    val nameFileSheetsageLY: String  get() = "$rightSettingFileName [sheetsage].ly".rightFileName()
-    val nameFileSheetsageBeattimes: String  get() = "$rightSettingFileName [beattimes].txt".rightFileName()
+    val nameFileSheetsagePDF: String  get() = "$fileName [sheetsage].pdf".rightFileName()
+    val nameFileSheetsageMIDI: String  get() = "$fileName [sheetsage].midi".rightFileName()
+    val nameFileSheetsageLY: String  get() = "$fileName [sheetsage].ly".rightFileName()
+    val nameFileSheetsageBeattimes: String  get() = "$fileName [beattimes].txt".rightFileName()
     val pathToFileSheetsagePDF: String  get() = "$pathToFolderSheetsage/$nameFileSheetsagePDF".rightFileName()
     val pathToFileSheetsageMIDI: String  get() = "$pathToFolderSheetsage/$nameFileSheetsageMIDI".rightFileName()
     val pathToFileSheetsageLY: String  get() = "$pathToFolderSheetsage/$nameFileSheetsageLY".rightFileName()
@@ -1186,7 +1183,7 @@ class Settings(
     val bpm: Long get() = fields[SettingField.BPM]?.toLongOrNull() ?: 0L
     val resultVersion: Long get() = fields[SettingField.RESULT_VERSION]?.toLongOrNull() ?: 0L
     val diffBeats: Long get() = fields[SettingField.DIFFBEATS]?.toLongOrNull() ?: 0L
-    @Suppress("unused") val subtitleFileName: String get() = "${rightSettingFileName}.kdenlive.srt"
+    @Suppress("unused") val subtitleFileName: String get() = "${fileName}.kdenlive.srt"
     val audioSongFileName: String get() = "${fileName}.flac"
 //        if (fields.contains(SettingField.FORMAT)) {
 //            "${fileName}.${fields[SettingField.FORMAT]}"
@@ -1217,7 +1214,7 @@ class Settings(
                 val full = Base64.getEncoder().encodeToString(iosFull.toByteArray())
                 val iosPreview = ByteArrayOutputStream()
                 ImageIO.write(previewBi, "png", iosPreview)
-                val preview = Base64.getEncoder().encodeToString(iosPreview.toByteArray())
+                Base64.getEncoder().encodeToString(iosPreview.toByteArray())
 //                val fullPicture = java.util.Base64.getEncoder().encodeToString(File(pathToFile).inputStream().readAllBytes())
                 val pict = Pictures(database)
                 pict.name = pictureNameAuthor
@@ -1244,7 +1241,7 @@ class Settings(
                 val full = Base64.getEncoder().encodeToString(iosFull.toByteArray())
                 val iosPreview = ByteArrayOutputStream()
                 ImageIO.write(previewBi, "png", iosPreview)
-                val preview = Base64.getEncoder().encodeToString(iosPreview.toByteArray())
+                Base64.getEncoder().encodeToString(iosPreview.toByteArray())
 //                val fullPicture = java.util.Base64.getEncoder().encodeToString(File(pathToFile).inputStream().readAllBytes())
                 val pict = Pictures(database)
                 pict.name = pictureNameAlbum
@@ -1500,7 +1497,7 @@ class Settings(
     val fileAbsolutePath: String get() = "$rootFolder/$fileName.flac"
     @Suppress("unused") val fileAbsolutePathTmp: String get() = "$rootFolder/$fileName-tmp.flac"
 //    val fileAbsolutePathSymlink: String get() = "$pathToSymlinkFolderBoostyFiles/$fileName.flac"
-    val fileSettingsAbsolutePath: String get() = "$rootFolder/$rightSettingFileName.settings"
+    val fileSettingsAbsolutePath: String get() = "$rootFolder/$fileName.settings"
 
     @Suppress("unused") val relativePathToFile: String get() = "../$fileName.flac"
     val relativePathToNoStemNameFlac: String get() = "../$DEMUCS_MODEL_NAME/$fileName-accompaniment.flac"
@@ -1509,8 +1506,8 @@ class Settings(
     val fileNameVocals: String get() = "${fileName}-vocals.flac"
     val fileNameAccompaniment: String get() = "${fileName}-accompaniment.flac"
 
-    val kdenliveFileName: String get() = "$rootFolder/$rightSettingFileName.kdenlive"
-    val kdenliveSubsFileName: String get() = "$rootFolder/$rightSettingFileName.kdenlive.srt"
+    val kdenliveFileName: String get() = "$rootFolder/$fileName.kdenlive"
+    val kdenliveSubsFileName: String get() = "$rootFolder/$fileName.kdenlive.srt"
     @get:JsonIgnore
     val durationInMilliseconds: Long get() = ((MediaInfo.getInfoBySectionAndParameter(
         fileAbsolutePath,
@@ -2188,7 +2185,7 @@ class Settings(
             else -> "done_files"
         }
 
-        val fileName = "${rightSettingFileName}${songVersion?.suffix ?: ""}"
+        val fileName = "${fileName}${songVersion?.suffix ?: ""}"
         val fileNameSuffix = when (songOutputFile) {
             SongOutputFile.PICTURECHORDS -> " chords"
             SongOutputFile.PICTUREBOOSTY -> " boosty"
@@ -2404,7 +2401,7 @@ class Settings(
         val durationFromAudioFileMs = try {
             ((runCommand(argForDurationFromAudioFileMs).toDoubleOrNull() ?: 0.0) * 1000L).toLong()
         } catch (_: Exception) {
-            val message = "runCommand - Ошибка получения длительности аудиофайла для песни $rightSettingFileName. Параметры вызова: $argForDurationFromAudioFileMs"
+            val message = "runCommand - Ошибка получения длительности аудиофайла для песни $fileName. Параметры вызова: $argForDurationFromAudioFileMs"
             throw RuntimeException(message)
         }
         val audioLengthFr = convertMillisecondsToFrames(durationFromAudioFileMs)
@@ -4339,7 +4336,7 @@ class Settings(
             SettingField.entries.forEach { settingField ->
                 if (fields.contains(settingField)) txt += "${settingField.name}=${fields[settingField]}\n"
             }
-            val pathToFile = "$rootFolder/$rightSettingFileName.settings".rightFileName()
+            val pathToFile = "$rootFolder/$fileName.settings".rightFileName()
             File(pathToFile).writeText(txt)
             runCommand(listOf("chmod", "666", pathToFile))
         }
@@ -4679,8 +4676,8 @@ class Settings(
         const val TABLE_NAME = "tbl_settings"
 
         fun renameFilesIfDiff(settNewVersion: Settings, settOldVersion: Settings): Pair<Boolean, Boolean> {
-            val rsfnNew = settNewVersion.rightSettingFileName
-            val rsfnOld = settOldVersion.rightSettingFileName
+            val rsfnNew = settNewVersion.fileName
+            val rsfnOld = settOldVersion.fileName
             var was1 = false
             var was2 = false
             if (rsfnNew != rsfnOld) {

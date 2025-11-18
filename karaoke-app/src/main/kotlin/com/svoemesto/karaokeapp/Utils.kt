@@ -2439,7 +2439,7 @@ fun checkLastAlbumYm(): Triple<String, String, Int> {
 //        searchLastAlbumYm(author.ymId)
         searchLastAlbumYm2(author.ymId)
     } catch (e: Exception) {
-        e.printStackTrace()
+        // e.printStackTrace()
         println("Поиск для автора «$authorForRequest» завершился ошибкой.")
         return Triple(authorForRequest, "", -1)
     }

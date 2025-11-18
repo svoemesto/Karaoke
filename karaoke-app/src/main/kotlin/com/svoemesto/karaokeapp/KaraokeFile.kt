@@ -15,17 +15,27 @@ data class KaraokeFile(
     val songVersion: SongVersion? = null,
     val pathToFile: String,
     val canBe: Boolean,
-    val actionToCreate: () -> Unit = {},
-    val actionToUploadInLocalStorage: () -> Unit = {},
-    val actionToUploadInRemoteStorage: () -> Unit = {}
+    val karaokeFileActions: MutableList<KaraokeFileAction> = mutableListOf()
 ): KaraokeStorage {
 
+    fun getAction(type: KaraokeFileActionType, location: KaraokeFileTypeLocations): () -> Unit {
+        return karaokeFileActions.firstOrNull { it.type == type && it.location == location }?.action ?: {}
+    }
+    @Suppress("unused")
+    fun setAction(type: KaraokeFileActionType, location: KaraokeFileTypeLocations, action: () -> Unit) {
+        karaokeFileActions.firstOrNull { it.type == type && it.location == location }?.let { oldAction -> karaokeFileActions.remove(oldAction) }
+        karaokeFileActions.add(KaraokeFileAction(type = type, location = location, action = action))
+    }
     fun filePresentInStorage() = storageService.fileExists(storageBucketName, storageFileName)
+    @Suppress("unused")
     fun filePreviewPresentInStorage() = storageService.fileExists(storageBucketName, storageFileNamePreview)
     fun filePresentInFilesystem() = try {
         File(pathToFile).exists()
     } catch (_: Exception) {
         false
     }
-    fun executeActionToCreate() { actionToCreate() }
+    @Suppress("unused")
+    fun executeAction(type: KaraokeFileActionType, location: KaraokeFileTypeLocations) {
+        getAction(type = type, location = location)()
+    }
 }

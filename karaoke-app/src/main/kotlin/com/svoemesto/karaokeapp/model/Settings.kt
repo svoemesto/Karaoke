@@ -324,7 +324,6 @@ class Settings(
                         val symlinkFileName = if (symlink.name == "") File(karaokeFile.pathToFile).name else symlink.name
                         val pathToSymlinkFile = "$pathToSymlinkFolder/$symlinkFileName"
 
-                        var needToDeleteSymlink = false
                         var needToCreateSymlink = false
                         var reason = ""
                         // Проверяем наличие самого файла symlink на диске
@@ -346,28 +345,23 @@ class Settings(
 
                                 val symlinkAbsolutePath = symlinkPath.toAbsolutePath()
                                 symlinkAbsolutePath.parent
-//                                val resolvedTargetRelativePath = symlinkAbsoluteParentDir.resolve(targetRelativePath).normalize()
-//                                val isRelative = !targetRelativePath.isAbsolute
                                 val isAbsolute = targetRelativePath.isAbsolute
 
                                 if (!exists) {
                                     // Если файл, на который указывает ссылка не существует (чего быть не может, если ссылка указывает на нужный нам файл)
                                     reason = "Символьная ссылка $pathToSymlinkFile должна указывать на файл ${karaokeFile.pathToFile}, а указывает на несуществующий файл $targetAbsolutePath. Удаляем неправильную ссылку и создаём правильную."
-                                    needToDeleteSymlink = true // Надо удалить неправильный файл ссылки
                                     needToCreateSymlink = true // Надо создать файл symlink
                                 } else {
                                     // Файл, на который указывает ссылка существует - проверим, что указывает на нужный нам файл
                                     if (targetAbsolutePath == karaokeFile.pathToFile) {
                                         if (isAbsolute) {
                                             reason = "Символьная ссылка $pathToSymlinkFile должна указывать на файл ${karaokeFile.pathToFile} по относительному пути, а указывает по абсолютному. Удаляем неправильную ссылку и создаём правильную."
-                                            needToDeleteSymlink = true // Надо удалить неправильный файл ссылки
                                             needToCreateSymlink = true // Надо создать файл symlink
                                         } else {
                                             // Всё хорошо, ссылка ссылается на правильный и существующий файл
                                         }
                                     } else {
                                         reason = "Символьная ссылка $pathToSymlinkFile должна указывать на файл ${karaokeFile.pathToFile}, а указывает на файл $targetAbsolutePath. Удаляем неправильную ссылку и создаём правильную."
-                                        needToDeleteSymlink = true // Надо удалить неправильный файл ссылки
                                         needToCreateSymlink = true // Надо создать файл symlink
                                     }
                                 }
@@ -379,18 +373,9 @@ class Settings(
                         }
 
                         val actions: MutableList<() -> Unit> = mutableListOf()
-                        if (needToDeleteSymlink) actions.add( { runCommand(args = listOf("rm", "-f", pathToSymlinkFile)) } )
-                        if (needToCreateSymlink) actions.add(
-                            {
-                                val symlinkFolder = File(pathToSymlinkFile).parent
-                                if (!File(symlinkFolder).exists()) {
-                                    Files.createDirectories(Path(symlinkFolder))
-                                    runCommand(listOf("chmod", "777", symlinkFolder))
-                                }
-                                runCommand(args = listOf("ln", "-s", calculateRelativePathForSymlink(karaokeFile.pathToFile, pathToSymlinkFile).wrapInQuotes(), pathToSymlinkFile))
-                                runCommand(args =  listOf("chmod", "666", pathToSymlinkFile))
-                            }
-                        )
+                        val karaokeFileActions = symlink.karaokeFileActions(settings = this, karaokeFile = karaokeFile)
+
+                        if (needToCreateSymlink) actions.add( karaokeFileActions.firstOrNull { it.type == CREATE && it.location == LOCAL_FILESYSTEM }?.action ?: {} )
                         if (actions.isNotEmpty()) {
                             result.add(
                                 Pair(

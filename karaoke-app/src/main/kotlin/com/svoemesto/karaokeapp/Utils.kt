@@ -104,13 +104,13 @@ fun checkHealth(storageService: KaraokeStorageService, executeActions: Boolean =
             lastPrintedPercent = percent
             println("checkHealth $percent%")
         }
-        val healthReport = settings.healthReport()
+        val healthReport = settings.healthReportList()
         if (healthReport.isNotEmpty()) {
             println("${settings.fileName} содержит ошибки:")
-            healthReport.forEach { line ->
-                println("    ${line.first}")
+            healthReport.forEach { healthReport ->
+                println("    ${healthReport.description}")
                 if (executeActions) {
-                    line.second.forEach { action ->
+                    healthReport.customActions.forEach { action ->
                         action()
                     }
                 }

@@ -505,6 +505,7 @@
           </div>
         </div>
       </div>
+      <health-report-list :id="song.id" />
       <!-- Подвал -->
       <div class="footer">
         <button class="btn-round-save-double" @click="save" :disabled="notChanged()" title="Сохранить"><img alt="saveSong" class="icon-save-double" src="../../../assets/svg/icon_save.svg"></button>
@@ -529,6 +530,7 @@
 <script>
 import SubsEdit from './SubsEdit.vue'
 import CustomConfirm from "../../Common/CustomConfirm.vue";
+import HealthReportList from "../../Common/HealthReport/HealthReportList.vue";
 import { BFormRating, BDropdown, BDropdownItem, BDropdownDivider, BDropdownGroup } from 'bootstrap-vue-next'
 import { useToast } from "bootstrap-vue-next";
 import { h } from 'vue';
@@ -539,6 +541,7 @@ export default {
   name: "SongEdit",
   components: {
     CustomConfirm,
+    HealthReportList,
     SubsEdit,
     BFormRating,
     BDropdown,

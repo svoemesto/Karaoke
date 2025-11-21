@@ -4,6 +4,7 @@ import { createStore } from 'vuex'
 import song from '../components/Songs/store'
 import songFilter from '../components/Songs/filter/store'
 import smartCopy from '../components/Common/SmartCopy/store'
+import healthReport from '../components/Common/HealthReport/store'
 import fileExplorer from '../components/Common/FileExplorer/store'
 import processes from '../components/Processes/store'
 import properties from '../components/Properties/store'
@@ -33,6 +34,7 @@ export default createStore({
     common,
     songFilter,
     smartCopy,
+    healthReport,
     fileExplorer,
     processFilter,
     propertiesFilter,

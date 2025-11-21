@@ -3082,4 +3082,53 @@ class ApiController(
         return listSync
 
     }
+
+    // Получение healthReportList
+    @PostMapping("/song/healthReportList")
+    @ResponseBody
+    fun getHealthReportList(@RequestParam id: Long): List<HealthReportDTO> =
+        Settings.loadFromDbById(
+            id = id,
+            database = WORKING_DATABASE,
+            storageService = storageService
+        )?.healthReportList()?.errorsOnly()?.map { it.toDTO() } ?: emptyList()
+
+    // Выполнение customActions у конкретного HealtReport-а
+    @PostMapping("/song/executeHealthReportActions")
+    @ResponseBody
+    fun executeHealthReportActions(
+        @RequestParam id: Long,
+        @RequestParam healthReportStatusName: String,
+        @RequestParam(required = false) customCode: String = "",
+        @RequestParam(required = false) songVersionName: String = "",
+        @RequestParam(required = false) karaokePlatformName: String = "",
+        @RequestParam(required = false) karaokeFileTypeName: String = "",
+        @RequestParam(required = false) karaokeFileActionTypeName: String = "",
+        @RequestParam(required = false) karaokeFileTypeLocationsName: String = ""
+    ) {
+        Settings.loadFromDbById(
+            id = id,
+            database = WORKING_DATABASE,
+            storageService = storageService
+        )?.let { settings ->
+            val healthReportDTO = HealthReportDTO(
+                healthReportStatusName = healthReportStatusName,
+                color = "",
+                description = "",
+                settingsId = id,
+                customCode = customCode,
+                songVersionName = songVersionName,
+                karaokePlatformName = karaokePlatformName,
+                karaokeFileTypeName = karaokeFileTypeName,
+                karaokeFileActionTypeName = karaokeFileActionTypeName,
+                karaokeFileTypeLocationsName = karaokeFileTypeLocationsName
+            )
+            HealthReport.getHealthReport(settings = settings, dto = healthReportDTO)?.let { healthReport ->
+                val type = KaraokeFileActionType.valueOf(karaokeFileActionTypeName)
+                val location = KaraokeFileTypeLocations.valueOf(karaokeFileTypeLocationsName)
+                healthReport.executeKaraokeFileActions(type = type, location = location)
+            }
+        }
+    }
+
 }

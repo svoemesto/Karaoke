@@ -30,7 +30,7 @@ data class KaraokeFileSymlink(
             KaraokeFileAction(
                 type = CREATE,
                 location = LOCAL_FILESYSTEM,
-                action = {
+                actions = listOf{
                     val symlinkFolder = File(pathToSymlinkFile).parent
 
                     if (!File(symlinkFolder).exists()) {
@@ -62,7 +62,7 @@ data class KaraokeFileSymlink(
             KaraokeFileAction(
                 type = DELETE,
                 location = LOCAL_FILESYSTEM,
-                action = {
+                actions = listOf{
                     val symlinkFolder = File(pathToSymlinkFile).parent
 
                     if (File(pathToSymlinkFile).exists()) {

@@ -6,8 +6,6 @@ import com.svoemesto.karaokeapp.*
 import com.svoemesto.karaokeapp.mlt.MltProp
 import com.svoemesto.karaokeapp.services.*
 import com.svoemesto.karaokeapp.textfiledictionary.SyncIdsDictionary
-import com.svoemesto.karaokeapp.KaraokeFileActionType.*
-import com.svoemesto.karaokeapp.KaraokeFileTypeLocations.*
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.encodeToString
@@ -17,7 +15,6 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.Serializable
 import java.nio.file.Files
-import java.nio.file.Path
 import java.nio.file.Paths
 import java.sql.ResultSet
 import java.sql.SQLException
@@ -29,7 +26,6 @@ import java.util.*
 import javax.imageio.ImageIO
 import kotlin.io.path.Path
 import kotlin.math.abs
-import kotlin.properties.Delegates
 
 //@Component
 @JsonIgnoreProperties(value = ["database", "storageService", "pictureAuthor", "pictureAlbum"])
@@ -42,55 +38,55 @@ class Settings(
     override val storageFileName: String get() = "$author/$year - $album/$fileName"
     override val storageFileNamePreview: String get() = ""
 
-    fun createProcessDemux2() {
+    fun createProcessDemux2(threadId: Int? = null, prior:Int? = null) {
         KaraokeProcess.createProcess(
             settings = this,
             action = KaraokeProcessTypes.DEMUCS2,
             doWait = true,
-            prior = -1,
-            threadId = 1
+            prior = prior ?: -1,
+            threadId = threadId ?: 1
         )
     }
 
-    fun createProcessDemux5() {
+    fun createProcessDemux5(threadId: Int? = null, prior:Int? = null) {
         KaraokeProcess.createProcess(
             settings = this,
             action = KaraokeProcessTypes.DEMUCS5,
             doWait = true,
-            prior = -1,
-            threadId = 1
+            prior = prior ?: -1,
+            threadId = threadId ?: 1
         )
     }
 
-    fun createProcessMp3Song() {
+    fun createProcessMp3Song(threadId: Int? = null, prior:Int? = null) {
         KaraokeProcess.createProcess(
             settings = this,
             action = KaraokeProcessTypes.FF_MP3_LYR,
             doWait = true,
-            prior = -1,
-            threadId = 1
+            prior = prior ?: -1,
+            threadId = threadId ?: 1
         )
     }
 
-    fun createProcessMp3Accompaniment() {
+    fun createProcessMp3Accompaniment(threadId: Int? = null, prior:Int? = null) {
         KaraokeProcess.createProcess(
             settings = this,
             action = KaraokeProcessTypes.FF_MP3_KAR,
             doWait = true,
-            prior = -1,
-            threadId = 1
+            prior = prior ?: -1,
+            threadId = threadId ?: 1
         )
     }
 
-    fun createProcessVideo720(songVersion: SongVersion) {
+    fun createProcessVideo720(songVersion: SongVersion, threadId: Int? = null, prior:Int? = null) {
         when (songVersion) {
             SongVersion.KARAOKE -> {
                 KaraokeProcess.createProcess(
                     settings = this,
                     action = KaraokeProcessTypes.FF_720_KAR,
                     doWait = true,
-                    prior = -1,
-                    threadId = 1
+                    prior = prior ?: -1,
+                    threadId = threadId ?: 1
                 )
             }
             SongVersion.LYRICS -> {
@@ -98,8 +94,8 @@ class Settings(
                     settings = this,
                     action = KaraokeProcessTypes.FF_720_LYR,
                     doWait = true,
-                    prior = -1,
-                    threadId = 1
+                    prior = prior ?: -1,
+                    threadId = threadId ?: 1
                 )
             }
 
@@ -108,835 +104,13 @@ class Settings(
         }
     }
 
-    fun emptyFunction() {}
 
-    fun haveWaitingCreateProcessForFile(karaokeFile: KaraokeFile): Boolean {
-        return when (karaokeFile.type) {
-            KaraokeFileType.VIDEO_SONGVERSION_1080P -> {
-                when (karaokeFile.songVersion) {
-                    SongVersion.KARAOKE -> { statusProcessKaraoke == "WAITING" }
-                    SongVersion.LYRICS -> { statusProcessLyrics == "WAITING" }
-                    SongVersion.CHORDS -> { statusProcessChords == "WAITING" }
-                    SongVersion.TABS -> { statusProcessMelody == "WAITING" }
-                    null -> false
-                }
-            }
-            KaraokeFileType.VIDEO_SONGVERSION_720P -> {
-                val whereArgs = when (karaokeFile.songVersion) {
-                    SongVersion.KARAOKE -> {
-                        mapOf(
-                            "settings_id" to this.id.toString(),
-                            "process_status" to "WAITING",
-                            "process_type" to KaraokeProcessTypes.FF_720_KAR.name
-                        )
-                    }
-                    SongVersion.LYRICS -> {
-                        mapOf(
-                            "settings_id" to this.id.toString(),
-                            "process_status" to "WAITING",
-                            "process_type" to KaraokeProcessTypes.FF_720_LYR.name
-                        )
-                    }
-                    SongVersion.CHORDS,
-                    SongVersion.TABS,
-                    null -> null
-                }
-                whereArgs?.let {
-                    KaraokeProcess.loadList(args = whereArgs, database = this.database).isNotEmpty()
-                } ?: false
-            }
-
-            KaraokeFileType.AUDIO_ACCOMPANIMENT,
-            KaraokeFileType.AUDIO_VOICE -> {
-                val whereArgsDemux2 = mapOf(
-                    "settings_id" to this.id.toString(),
-                    "process_status" to "WAITING",
-                    "process_type" to KaraokeProcessTypes.DEMUCS2.name
-                )
-
-                if (KaraokeProcess.loadList(args = whereArgsDemux2, database = this.database).isEmpty()) {
-                    val whereArgsDemux5 = mapOf(
-                        "settings_id" to this.id.toString(),
-                        "process_status" to "WAITING",
-                        "process_type" to KaraokeProcessTypes.DEMUCS5.name
-                    )
-                    KaraokeProcess.loadList(args = whereArgsDemux5, database = this.database).isNotEmpty()
-                } else true
-            }
-
-            KaraokeFileType.AUDIO_BASS,
-            KaraokeFileType.AUDIO_DRUMS,
-            KaraokeFileType.AUDIO_OTHER -> {
-                val whereArgsDemux5 = mapOf(
-                    "settings_id" to this.id.toString(),
-                    "process_status" to "WAITING",
-                    "process_type" to KaraokeProcessTypes.DEMUCS5.name
-                )
-                KaraokeProcess.loadList(args = whereArgsDemux5, database = this.database).isNotEmpty()
-            }
-
-            KaraokeFileType.MP3_SONG -> {
-                val whereArgs = mapOf(
-                    "settings_id" to this.id.toString(),
-                    "process_status" to "WAITING",
-                    "process_type" to KaraokeProcessTypes.FF_MP3_LYR.name
-                )
-                KaraokeProcess.loadList(args = whereArgs, database = this.database).isNotEmpty()
-            }
-
-            KaraokeFileType.MP3_ACCOMPANIMENT -> {
-                val whereArgs = mapOf(
-                    "settings_id" to this.id.toString(),
-                    "process_status" to "WAITING",
-                    "process_type" to KaraokeProcessTypes.FF_MP3_KAR.name
-                )
-                KaraokeProcess.loadList(args = whereArgs, database = this.database).isNotEmpty()
-            }
-
-            else -> false
-        }
-    }
-
-    fun canBeCreateKaraokeFile(karaokeFile: KaraokeFile): Pair<Boolean, String> {
-        return when (karaokeFile.type) {
-            KaraokeFileType.AUDIO_SONG,
-            KaraokeFileType.PICTURE_ALBUM,
-            KaraokeFileType.PICTURE_AUTHOR -> Pair(false, "Невозможно создать файл. Он должен существовать изначально.")
-
-            KaraokeFileType.MP3_SONG,
-            KaraokeFileType.AUDIO_ACCOMPANIMENT,
-            KaraokeFileType.AUDIO_VOICE,
-            KaraokeFileType.AUDIO_BASS,
-            KaraokeFileType.AUDIO_DRUMS,
-            KaraokeFileType.AUDIO_OTHER -> {
-                if (File(fileAbsolutePath).exists()) {
-                    Pair(true, "Файл может быть создан")
-                } else {
-                    Pair(false, "Файл не может быть создан. Должен существовать файл типа 'AUDIO_SONG'")
-                }
-            }
-
-            KaraokeFileType.MP3_ACCOMPANIMENT -> {
-                if (File(newNoStemNameFlac).exists()) {
-                    Pair(true, "Файл может быть создан")
-                } else {
-                    Pair(false, "Файл не может быть создан. Должен существовать файл типа 'MP3_ACCOMPANIMENT'")
-                }
-            }
-
-            KaraokeFileType.PICTURE_ALBUM_PREVIEW -> {
-                if (File(pathToFileLogoAlbum).exists()) {
-                    Pair(true, "Файл может быть создан")
-                } else {
-                    Pair(false, "Файл не может быть создан. Должен существовать файл типа 'PICTURE_ALBUM'")
-                }
-            }
-
-            KaraokeFileType.PICTURE_AUTHOR_PREVIEW -> {
-                if (File(pathToFileLogoAuthor).exists()) {
-                    Pair(true, "Файл может быть создан")
-                } else {
-                    Pair(false, "Файл не может быть создан. Должен существовать файл типа 'PICTURE_AUTHOR'")
-                }
-            }
-
-            KaraokeFileType.PICTURE_PUBLICATION -> Pair(true, "Файл может быть создан")
-            KaraokeFileType.PICTURE_SONGVERSION -> Pair(true, "Файл может быть создан")
-            KaraokeFileType.VIDEO_SONGVERSION_1080P -> Pair(true, "Файл может быть создан")
-
-            KaraokeFileType.VIDEO_SONGVERSION_720P -> {
-                when (karaokeFile.songVersion) {
-                    SongVersion.KARAOKE -> {
-                        if (File(pathToFileKaraoke).exists()) {
-                            Pair(true, "Файл может быть создан")
-                        } else {
-                            Pair(false, "Файл не может быть создан. Должен существовать файл типа 'VIDEO_SONGVERSION_1080P' для версии 'KARAOKE'")
-                        }
-                    }
-                    SongVersion.LYRICS -> {
-                        if (File(pathToFileLyrics).exists()) {
-                            Pair(true, "Файл может быть создан")
-                        } else {
-                            Pair(false, "Файл не может быть создан. Должен существовать файл типа 'VIDEO_SONGVERSION_1080P' для версии 'LYRICS'")
-                        }
-                    }
-                    SongVersion.CHORDS,
-                    SongVersion.TABS,
-                    null -> Pair(false, "Файл не может быть создан отдельно, только в процессе работы с проектом.")
-                }
-            }
-
-            KaraokeFileType.PROJECT_ALL_RUN,
-            KaraokeFileType.PROJECT_ALL_WO_LYRICS_RUN,
-            KaraokeFileType.PROJECT_SONGVERSION_RUN,
-            KaraokeFileType.PROJECT_SONGVERSION_MLT,
-            KaraokeFileType.PROJECT_SONGVERSION_KDENLIVE,
-            KaraokeFileType.PROJECT_SONGVERSION_TXT -> Pair(false, "Файл не может быть создан отдельно, только в процессе работы с проектом.")
-        }
-    }
+//    fun emptyFunction() {}
 
     @Suppress("unused")
-    fun healthReport(): List<Pair<String, List<() -> Unit>>> {
-        val result: MutableList<Pair<String, List<() -> Unit>>> = mutableListOf()
+    fun healthReportList(): List<HealthReport> = HealthReport.getHealthReportList(settings = this)
 
-        karaokeFiles().forEach { karaokeFile ->
-            val textFile = karaokeFile.type.name
-            val textPlatforma = karaokeFile.karaokePlatform?.name
-            val textSongVersion = karaokeFile.songVersion?.name
-            val description = listOfNotNull(textFile, textPlatforma, textSongVersion).joinToString("/")
-            val type = karaokeFile.type
-            // Файл может быть
-            if (karaokeFile.canBe) {
-                // Файл должен быть на диске, путь к файлу не пустой, файла на диске нет
-                if (type.willBeInFileSystem && karaokeFile.pathToFile != "" && !karaokeFile.filePresentInFilesystem()) {
-                    // Для файла уже есть процесс на его создание в процессе ожидания
-                    if (haveWaitingCreateProcessForFile(karaokeFile)) {
-                        result.add(
-                            Pair(
-                                "$description - отсутствует файл на диске '${karaokeFile.pathToFile}' (но есть задание в процессах)",
-                                listOf(::emptyFunction)
-                            )
-                        )
-                    } else {
-                        val (canBeCreateKaraokeFile, reason) = canBeCreateKaraokeFile(karaokeFile)
-                        // Может ли быть файл создан?
-                        if (canBeCreateKaraokeFile) {
-                            result.add(
-                                Pair(
-                                    "$description - отсутствует файл на диске '${karaokeFile.pathToFile}'. $reason",
-                                    listOf(karaokeFile.getAction(type = CREATE, location = LOCAL_FILESYSTEM))
-                                )
-                            )
-                        } else {
-                            result.add(
-                                Pair(
-                                    "$description - отсутствует файл на диске '${karaokeFile.pathToFile}'. $reason",
-                                    listOf(::emptyFunction)
-                                )
-                            )
-                        }
-                    }
-                // Файл должен быть на диске, путь к файлу не пустой, файл на диске есть - надо проверить его симлинки
-                } else if (type.willBeInFileSystem && karaokeFile.pathToFile != "" && karaokeFile.filePresentInFilesystem()) {
-                    type.symlinks.forEach { symlink ->
-
-                        val pathToSymlinkFolder = "$rootFolder/${symlink.folder}"
-                        val symlinkFileName = if (symlink.name == "") File(karaokeFile.pathToFile).name else symlink.name
-                        val pathToSymlinkFile = "$pathToSymlinkFolder/$symlinkFileName"
-
-                        var needToCreateSymlink = false
-                        var reason = ""
-                        // Проверяем наличие самого файла symlink на диске
-                        if (File(pathToSymlinkFile).exists()) {
-                            // Проверяем, является ли файл на диске действительно символьной ссылкой
-                            val symlinkPath = Paths.get(pathToSymlinkFile)
-
-                            if (!Files.isSymbolicLink(symlinkPath)) {
-                                println("Указанный путь '$pathToSymlinkFile' не является символической ссылкой.")
-                            } else {
-                                // Относительный путь, куда указывает ссылка
-                                val targetRelativePath: Path = Files.readSymbolicLink(symlinkPath)
-
-                                // Абсолютный путь, куда указывает ссылка
-                                val targetAbsolutePath = calculateAbsolutePathFromSymlink(targetRelativePath.toString(), pathToSymlinkFile)
-
-                                // Существует ли файл, на который ссылается ссылка
-                                val exists = File(targetAbsolutePath).exists()
-
-                                val symlinkAbsolutePath = symlinkPath.toAbsolutePath()
-                                symlinkAbsolutePath.parent
-                                val isAbsolute = targetRelativePath.isAbsolute
-
-                                if (!exists) {
-                                    // Если файл, на который указывает ссылка не существует (чего быть не может, если ссылка указывает на нужный нам файл)
-                                    reason = "Символьная ссылка $pathToSymlinkFile должна указывать на файл ${karaokeFile.pathToFile}, а указывает на несуществующий файл $targetAbsolutePath. Удаляем неправильную ссылку и создаём правильную."
-                                    needToCreateSymlink = true // Надо создать файл symlink
-                                } else {
-                                    // Файл, на который указывает ссылка существует - проверим, что указывает на нужный нам файл
-                                    if (targetAbsolutePath == karaokeFile.pathToFile) {
-                                        if (isAbsolute) {
-                                            reason = "Символьная ссылка $pathToSymlinkFile должна указывать на файл ${karaokeFile.pathToFile} по относительному пути, а указывает по абсолютному. Удаляем неправильную ссылку и создаём правильную."
-                                            needToCreateSymlink = true // Надо создать файл symlink
-                                        } else {
-                                            // Всё хорошо, ссылка ссылается на правильный и существующий файл
-                                        }
-                                    } else {
-                                        reason = "Символьная ссылка $pathToSymlinkFile должна указывать на файл ${karaokeFile.pathToFile}, а указывает на файл $targetAbsolutePath. Удаляем неправильную ссылку и создаём правильную."
-                                        needToCreateSymlink = true // Надо создать файл symlink
-                                    }
-                                }
-
-                            }
-                        } else {
-                            reason = "Символьная ссылка $pathToSymlinkFile на файл ${karaokeFile.pathToFile} отсутствует. Создаём."
-                            needToCreateSymlink = true // Надо создать файл symlink
-                        }
-
-                        val actions: MutableList<() -> Unit> = mutableListOf()
-                        val karaokeFileActions = symlink.karaokeFileActions(settings = this, karaokeFile = karaokeFile)
-
-                        if (needToCreateSymlink) actions.add( karaokeFileActions.firstOrNull { it.type == CREATE && it.location == LOCAL_FILESYSTEM }?.action ?: {} )
-                        if (actions.isNotEmpty()) {
-                            result.add(
-                                Pair(
-                                    "$description - починка symlinka'. $reason",
-                                    actions
-                                )
-                            )
-                        }
-
-                    }
-                }
-                if (type.willBeInLocalStorage && karaokeFile.pathToFile != "" && !karaokeFile.filePresentInStorage()) {
-                    result.add(
-                        Pair(
-                            "$description - отсутствует файл в хранилище '${karaokeFile.storageBucketName}/${karaokeFile.storageFileName}'",
-                            listOf(karaokeFile.getAction(type = CREATE, location = LOCAL_STORAGE))
-                        )
-                    )
-                }
-            } else {
-                // Файлов быть не должно. Проверим, есть ли они (для PROJECT) и удалим, если есть.
-                if (type.karaokeFileTypeKind == KaraokeFileTypeKind.PROJECT) {
-                    if (karaokeFile.filePresentInFilesystem()) {
-                        Pair(
-                            "$description - есть файл на диске '${karaokeFile.pathToFile}', но не должен быть. Удаляем.",
-                            listOf({
-                                println("[Заглушка] Удаляем файл ${karaokeFile.pathToFile}")
-//                                runCommand(args = listOf("rm", "-f", karaokeFile.pathToFile))
-                            })
-                        )
-                    }
-                }
-            }
-        }
-
-        return result.toList()
-    }
-
-    fun karaokeFiles(): List<KaraokeFile> {
-        val result: MutableList<KaraokeFile> = mutableListOf()
-        KaraokeFileType.entries.forEach { karaokeFileType ->
-            val karaokeFileActions: MutableList<KaraokeFileAction> = mutableListOf()
-            when (karaokeFileType.karaokeFileTypeFor) {
-                KaraokeFileTypeFor.SONG -> {
-
-                    lateinit var pathToFile: String
-                    var canBe by Delegates.notNull<Boolean>()
-                    lateinit var storageFileName: String
-
-                    when(karaokeFileType) {
-
-                        KaraokeFileType.AUDIO_SONG -> {
-                            pathToFile = fileAbsolutePath
-                            canBe = true
-                            storageFileName = "$storageFileName${karaokeFileType.suffix}.${karaokeFileType.extention}"
-                            karaokeFileActions.add(
-                                KaraokeFileAction(
-                                    type = CREATE,
-                                    location = LOCAL_STORAGE,
-                                    action = {
-                                        { storageService.uploadFile(bucketName = storageBucketName, fileName = storageFileName, pathToFileOnDisk = pathToFile) }
-                                    }
-                                )
-                            )
-                        }
-                        KaraokeFileType.MP3_SONG -> {
-                            pathToFile = pathToFileMP3Lyrics
-                            canBe = true
-                            storageFileName = "$storageFileName${karaokeFileType.suffix}.${karaokeFileType.extention}"
-                            karaokeFileActions.add(
-                                KaraokeFileAction(
-                                    type = CREATE,
-                                    location = LOCAL_FILESYSTEM,
-                                    action = ::createProcessMp3Song
-                                )
-                            )
-                            karaokeFileActions.add(
-                                KaraokeFileAction(
-                                    type = CREATE,
-                                    location = LOCAL_STORAGE,
-                                    action = {
-                                        { storageService.uploadFile(bucketName = storageBucketName, fileName = storageFileName, pathToFileOnDisk = pathToFile) }
-                                    }
-                                )
-                            )
-                        }
-                        KaraokeFileType.AUDIO_ACCOMPANIMENT -> {
-                            pathToFile = newNoStemNameFlac
-                            canBe = true
-                            storageFileName = "$storageFileName${karaokeFileType.suffix}.${karaokeFileType.extention}"
-                            karaokeFileActions.add(
-                                KaraokeFileAction(
-                                    type = CREATE,
-                                    location = LOCAL_FILESYSTEM,
-                                    action = ::createProcessDemux2
-                                )
-                            )
-                            karaokeFileActions.add(
-                                KaraokeFileAction(
-                                    type = CREATE,
-                                    location = LOCAL_STORAGE,
-                                    action = {
-                                        { storageService.uploadFile(bucketName = storageBucketName, fileName = storageFileName, pathToFileOnDisk = pathToFile) }
-                                    }
-                                )
-                            )
-                        }
-                        KaraokeFileType.MP3_ACCOMPANIMENT -> {
-                            pathToFile = pathToFileMP3Karaoke
-                            canBe = true
-                            storageFileName = "$storageFileName${karaokeFileType.suffix}.${karaokeFileType.extention}"
-                            karaokeFileActions.add(
-                                KaraokeFileAction(
-                                    type = CREATE,
-                                    location = LOCAL_FILESYSTEM,
-                                    action = ::createProcessMp3Accompaniment
-                                )
-                            )
-                            karaokeFileActions.add(
-                                KaraokeFileAction(
-                                    type = CREATE,
-                                    location = LOCAL_STORAGE,
-                                    action = {
-                                        { storageService.uploadFile(bucketName = storageBucketName, fileName = storageFileName, pathToFileOnDisk = pathToFile) }
-                                    }
-                                )
-                            )
-                        }
-                        KaraokeFileType.AUDIO_VOICE -> {
-                            pathToFile = vocalsNameFlac
-                            canBe = true
-                            storageFileName = "$storageFileName${karaokeFileType.suffix}.${karaokeFileType.extention}"
-                            karaokeFileActions.add(
-                                KaraokeFileAction(
-                                    type = CREATE,
-                                    location = LOCAL_FILESYSTEM,
-                                    action = ::createProcessDemux2
-                                )
-                            )
-                            karaokeFileActions.add(
-                                KaraokeFileAction(
-                                    type = CREATE,
-                                    location = LOCAL_STORAGE,
-                                    action = {
-                                        { storageService.uploadFile(bucketName = storageBucketName, fileName = storageFileName, pathToFileOnDisk = pathToFile) }
-                                    }
-                                )
-                            )
-                        }
-                        KaraokeFileType.AUDIO_BASS -> {
-                            pathToFile = bassNameFlac
-                            canBe = (hasChords || hasMelody)
-                            storageFileName = "$storageFileName${karaokeFileType.suffix}.${karaokeFileType.extention}"
-                            karaokeFileActions.add(
-                                KaraokeFileAction(
-                                    type = CREATE,
-                                    location = LOCAL_FILESYSTEM,
-                                    action = ::createProcessDemux5
-                                )
-                            )
-                            karaokeFileActions.add(
-                                KaraokeFileAction(
-                                    type = CREATE,
-                                    location = LOCAL_STORAGE,
-                                    action = {
-                                        { storageService.uploadFile(bucketName = storageBucketName, fileName = storageFileName, pathToFileOnDisk = pathToFile) }
-                                    }
-                                )
-                            )
-                        }
-                        KaraokeFileType.AUDIO_DRUMS -> {
-                            pathToFile = drumsNameFlac
-                            canBe = (hasChords || hasMelody)
-                            storageFileName = "$storageFileName${karaokeFileType.suffix}.${karaokeFileType.extention}"
-                            karaokeFileActions.add(
-                                KaraokeFileAction(
-                                    type = CREATE,
-                                    location = LOCAL_FILESYSTEM,
-                                    action = ::createProcessDemux5
-                                )
-                            )
-                            karaokeFileActions.add(
-                                KaraokeFileAction(
-                                    type = CREATE,
-                                    location = LOCAL_STORAGE,
-                                    action = {
-                                        { storageService.uploadFile(bucketName = storageBucketName, fileName = storageFileName, pathToFileOnDisk = pathToFile) }
-                                    }
-                                )
-                            )
-                        }
-                        KaraokeFileType.AUDIO_OTHER -> {
-                            pathToFile = otherNameFlac
-                            canBe = (hasChords || hasMelody)
-                            storageFileName = "$storageFileName${karaokeFileType.suffix}.${karaokeFileType.extention}"
-                            karaokeFileActions.add(
-                                KaraokeFileAction(
-                                    type = CREATE,
-                                    location = LOCAL_FILESYSTEM,
-                                    action = ::createProcessDemux5
-                                )
-                            )
-                            karaokeFileActions.add(
-                                KaraokeFileAction(
-                                    type = CREATE,
-                                    location = LOCAL_STORAGE,
-                                    action = {
-                                        { storageService.uploadFile(bucketName = storageBucketName, fileName = storageFileName, pathToFileOnDisk = pathToFile) }
-                                    }
-                                )
-                            )
-                        }
-                        KaraokeFileType.PICTURE_ALBUM -> {
-                            pathToFile = pathToFileLogoAlbum
-                            canBe = true
-                            storageFileName = "$author/$year - $album/$author - $year - $album${karaokeFileType.suffix}.${karaokeFileType.extention}"
-                            karaokeFileActions.add(
-                                KaraokeFileAction(
-                                    type = CREATE,
-                                    location = LOCAL_STORAGE,
-                                    action = {
-                                        { storageService.uploadFile(bucketName = storageBucketName, fileName = storageFileName, pathToFileOnDisk = pathToFile) }
-                                    }
-                                )
-                            )
-                        }
-                        KaraokeFileType.PICTURE_AUTHOR -> {
-                            pathToFile = pathToFileLogoAuthor
-                            canBe = true
-                            storageFileName = "$author/$author${karaokeFileType.suffix}.${karaokeFileType.extention}"
-                            karaokeFileActions.add(
-                                KaraokeFileAction(
-                                    type = CREATE,
-                                    location = LOCAL_STORAGE,
-                                    action = {
-                                        { storageService.uploadFile(bucketName = storageBucketName, fileName = storageFileName, pathToFileOnDisk = pathToFile) }
-                                    }
-                                )
-                            )
-                        }
-                        KaraokeFileType.PICTURE_ALBUM_PREVIEW -> {
-                            pathToFile = ""
-                            canBe = true
-                            storageFileName = "$author/$year - $album/$author - $year - $album${karaokeFileType.suffix}.${karaokeFileType.extention}"
-                            karaokeFileActions.add(
-                                KaraokeFileAction(
-                                    type = CREATE,
-                                    location = LOCAL_STORAGE,
-                                    action = {
-                                        if (pathToFileLogoAlbum != "") {
-                                            val pictureBites = File(pathToFileLogoAlbum).inputStream().readAllBytes()
-                                            val bi = ImageIO.read(ByteArrayInputStream(pictureBites))
-                                            val previewBi = resizeBufferedImage(bi, newW = 50, newH = 50)
-                                            val iosPreview = ByteArrayOutputStream()
-                                            ImageIO.write(previewBi, "png", iosPreview)
-                                            val bais = ByteArrayInputStream(iosPreview.toByteArray())
-                                            storageService.uploadFile(bucketName = storageBucketName, fileName = storageFileName, file = bais, size = bais.available().toLong())
-                                        }
-                                    }
-                                )
-                            )
-                        }
-                        KaraokeFileType.PICTURE_AUTHOR_PREVIEW -> {
-                            pathToFile = ""
-                            canBe = true
-                            storageFileName = "$author/$author${karaokeFileType.suffix}.${karaokeFileType.extention}"
-                            karaokeFileActions.add(
-                                KaraokeFileAction(
-                                    type = CREATE,
-                                    location = LOCAL_STORAGE,
-                                    action = {
-                                        if (pathToFileLogoAuthor != "") {
-                                            val pictureBites = File(pathToFileLogoAuthor).inputStream().readAllBytes()
-                                            val bi = ImageIO.read(ByteArrayInputStream(pictureBites))
-                                            val previewBi = resizeBufferedImage(bi, newW = 125, newH = 50)
-                                            val iosPreview = ByteArrayOutputStream()
-                                            ImageIO.write(previewBi, "png", iosPreview)
-                                            val bais = ByteArrayInputStream(iosPreview.toByteArray())
-                                            storageService.uploadFile(bucketName = storageBucketName, fileName = storageFileName, file = bais, size = bais.available().toLong())
-                                        }
-                                    }
-                                )
-                            )
-                        }
-                        KaraokeFileType.PICTURE_PUBLICATION -> {
-                            pathToFile = ""
-                            canBe = false
-                            storageFileName = "$storageFileName${karaokeFileType.suffix}.${karaokeFileType.extention}"
-                        }
-                        KaraokeFileType.PICTURE_SONGVERSION -> {
-                            pathToFile = ""
-                            canBe = false
-                            storageFileName = "$storageFileName${karaokeFileType.suffix}.${karaokeFileType.extention}"
-                        }
-                        KaraokeFileType.VIDEO_SONGVERSION_1080P -> {
-                            pathToFile = ""
-                            canBe = false
-                            storageFileName = "$storageFileName${karaokeFileType.suffix}.${karaokeFileType.extention}"
-                        }
-                        KaraokeFileType.VIDEO_SONGVERSION_720P -> {
-                            pathToFile = ""
-                            canBe = false
-                            storageFileName = "$storageFileName${karaokeFileType.suffix}.${karaokeFileType.extention}"
-                        }
-                        KaraokeFileType.PROJECT_ALL_RUN -> {
-                            pathToFile = getOutputFilename(SongOutputFile.RUNALL, SongVersion.LYRICS).replace("[lyrics]","[ALL]")
-                            canBe = (idStatus >= 3 && idStatus < 6)
-                            storageFileName = "$storageFileName${karaokeFileType.suffix}.${karaokeFileType.extention}"
-                        }
-                        KaraokeFileType.PROJECT_ALL_WO_LYRICS_RUN -> {
-                            pathToFile = getOutputFilename(SongOutputFile.RUNALL, SongVersion.LYRICS).replace("[lyrics]","[ALLwoLYRICS]")
-                            canBe = (idStatus >= 3 && idStatus < 6)
-                            storageFileName = "$storageFileName${karaokeFileType.suffix}.${karaokeFileType.extention}"
-                        }
-                        KaraokeFileType.PROJECT_SONGVERSION_RUN -> {
-                            pathToFile = ""
-                            canBe = false
-                            storageFileName = "$storageFileName${karaokeFileType.suffix}.${karaokeFileType.extention}"
-                        }
-                        KaraokeFileType.PROJECT_SONGVERSION_MLT -> {
-                            pathToFile = ""
-                            canBe = false
-                            storageFileName = "$storageFileName${karaokeFileType.suffix}.${karaokeFileType.extention}"
-                        }
-                        KaraokeFileType.PROJECT_SONGVERSION_KDENLIVE -> {
-                            pathToFile = ""
-                            canBe = false
-                            storageFileName = "$storageFileName${karaokeFileType.suffix}.${karaokeFileType.extention}"
-                        }
-                        KaraokeFileType.PROJECT_SONGVERSION_TXT -> {
-                            pathToFile = ""
-                            canBe = false
-                            storageFileName = "$storageFileName${karaokeFileType.suffix}.${karaokeFileType.extention}"
-                        }
-
-                    }
-
-                    result.add(
-                        KaraokeFile(
-                            type = karaokeFileType,
-                            storageService = storageService,
-                            storageBucketName = storageBucketName,
-                            storageFileName = storageFileName,
-                            pathToFile = pathToFile.rightFileName(),
-                            canBe = canBe,
-                            karaokeFileActions = karaokeFileActions
-                        )
-                    )
-                }
-
-                KaraokeFileTypeFor.PLATFORM -> {
-                    KaraokePlatform.entries.forEach { karaokePlatform ->
-                        val pathToFile = if (karaokePlatform.forAllVersions) {
-                            val subFolder = if (karaokeFileType.karaokeFileTypeKind == KaraokeFileTypeKind.PROJECT) {
-                                "done_projects"
-                            } else {
-                                "done_files"
-                            }
-                            "$rootFolder/$subFolder/$fileName${karaokePlatform.suffix}${karaokeFileType.suffix}.${karaokeFileType.extention}"
-                        } else ""
-
-                        val canBe = if (karaokeFileType.karaokeFileTypeKind == KaraokeFileTypeKind.PROJECT) {
-                            (idStatus >= 3 && idStatus < 6)
-                        } else {
-                            (idStatus >= 6) && (!karaokePlatform.onAirPublications || !onAir)
-                        }
-
-                        if (karaokePlatform.forAllVersions) {
-                            karaokeFileActions.add(
-                                KaraokeFileAction(
-                                    type = CREATE,
-                                    location = LOCAL_FILESYSTEM,
-                                    action = { karaokePlatform.actionToCreatePicture(settings = this, pathToFile = pathToFile) }
-                                )
-                            )
-                            karaokeFileActions.add(
-                                KaraokeFileAction(
-                                    type = CREATE,
-                                    location = LOCAL_STORAGE,
-                                    action = {
-                                        storageService.uploadFile(
-                                            bucketName = storageBucketName,
-                                            fileName = "$storageFileName${karaokePlatform.suffix}${karaokeFileType.suffix}.${karaokeFileType.extention}",
-                                            pathToFileOnDisk = pathToFile
-                                        )
-                                    }
-                                )
-                            )
-                        }
-
-                        result.add(
-                            KaraokeFile(
-                                type = karaokeFileType,
-                                storageService = storageService,
-                                storageBucketName = storageBucketName,
-                                storageFileName = "$storageFileName${karaokePlatform.suffix}${karaokeFileType.suffix}.${karaokeFileType.extention}",
-                                karaokePlatform = karaokePlatform,
-                                pathToFile = pathToFile.rightFileName(),
-                                canBe = canBe,
-                                karaokeFileActions = karaokeFileActions
-                            )
-                        )
-                    }
-                }
-
-                KaraokeFileTypeFor.SONGVERSION -> {
-                    SongVersion.entries.forEach { songVersion ->
-
-                        val pathToFile = when (karaokeFileType) {
-                            KaraokeFileType.VIDEO_SONGVERSION_720P -> {
-                                when(songVersion) {
-                                    SongVersion.KARAOKE -> pathToFile720Karaoke
-                                    SongVersion.LYRICS -> pathToFile720Lyrics
-                                    SongVersion.CHORDS,
-                                    SongVersion.TABS -> ""
-                                }
-                            }
-                            else -> {
-                                val subFolder = if (karaokeFileType.karaokeFileTypeKind == KaraokeFileTypeKind.PROJECT) {
-                                    "done_projects"
-                                } else {
-                                    "done_files"
-                                }
-                                "$rootFolder/$subFolder/$fileName${songVersion.suffix}${karaokeFileType.suffix}.${karaokeFileType.extention}"
-                            }
-                        }
-
-                        val canBe = when(songVersion) {
-                            SongVersion.KARAOKE,
-                            SongVersion.LYRICS -> {
-                                if (karaokeFileType.karaokeFileTypeKind == KaraokeFileTypeKind.PROJECT) {
-                                    (idStatus >= 3 && idStatus < 6)
-                                } else {
-                                    (idStatus >= 6)
-                                }
-                            }
-                            SongVersion.CHORDS -> {
-                                if (karaokeFileType.karaokeFileTypeKind == KaraokeFileTypeKind.PROJECT) {
-                                    (idStatus >= 3 && idStatus < 6)
-                                } else {
-                                    (idStatus >= 6) && hasChords
-                                }
-                            }
-                            SongVersion.TABS -> {
-                                if (karaokeFileType.karaokeFileTypeKind == KaraokeFileTypeKind.PROJECT) {
-                                    (idStatus >= 3 && idStatus < 6)
-                                } else {
-                                    (idStatus >= 6) && hasMelody
-                                }
-                            }
-                        }
-
-                        when(karaokeFileType) {
-
-                            KaraokeFileType.AUDIO_SONG,
-                            KaraokeFileType.MP3_SONG,
-                            KaraokeFileType.AUDIO_ACCOMPANIMENT,
-                            KaraokeFileType.MP3_ACCOMPANIMENT,
-                            KaraokeFileType.AUDIO_VOICE,
-                            KaraokeFileType.AUDIO_BASS,
-                            KaraokeFileType.AUDIO_DRUMS,
-                            KaraokeFileType.AUDIO_OTHER,
-                            KaraokeFileType.PICTURE_ALBUM,
-                            KaraokeFileType.PICTURE_AUTHOR,
-                            KaraokeFileType.PICTURE_ALBUM_PREVIEW,
-                            KaraokeFileType.PICTURE_AUTHOR_PREVIEW,
-                            KaraokeFileType.PICTURE_PUBLICATION -> {}
-
-                            KaraokeFileType.PICTURE_SONGVERSION -> {
-                                karaokeFileActions.add(
-                                    KaraokeFileAction(
-                                        type = CREATE,
-                                        location = LOCAL_FILESYSTEM,
-                                        action = { { createSongPicture(settings = this, songVersion = songVersion) } }
-                                    )
-                                )
-                                karaokeFileActions.add(
-                                    KaraokeFileAction(
-                                        type = CREATE,
-                                        location = LOCAL_STORAGE,
-                                        action = {
-                                            storageService.uploadFile(
-                                                bucketName = storageBucketName,
-                                                fileName = "$storageFileName${songVersion.suffix}${karaokeFileType.suffix}.${karaokeFileType.extention}",
-                                                pathToFileOnDisk = pathToFile
-                                            )
-                                        }
-                                    )
-                                )
-                            }
-                            KaraokeFileType.VIDEO_SONGVERSION_1080P -> {
-                                karaokeFileActions.add(
-                                    KaraokeFileAction(
-                                        type = CREATE,
-                                        location = LOCAL_FILESYSTEM,
-                                        action = { { createKaraoke(songVersion = songVersion) } }
-                                    )
-                                )
-                                karaokeFileActions.add(
-                                    KaraokeFileAction(
-                                        type = CREATE,
-                                        location = LOCAL_STORAGE,
-                                        action = {
-                                            storageService.uploadFile(
-                                                bucketName = storageBucketName,
-                                                fileName = "$storageFileName${songVersion.suffix}${karaokeFileType.suffix}.${karaokeFileType.extention}",
-                                                pathToFileOnDisk = pathToFile
-                                            )
-                                        }
-                                    )
-                                )
-                            }
-                            KaraokeFileType.VIDEO_SONGVERSION_720P -> {
-                                karaokeFileActions.add(
-                                    KaraokeFileAction(
-                                        type = CREATE,
-                                        location = LOCAL_FILESYSTEM,
-                                        action = { { createProcessVideo720(songVersion = songVersion) } }
-                                    )
-                                )
-                                karaokeFileActions.add(
-                                    KaraokeFileAction(
-                                        type = CREATE,
-                                        location = LOCAL_STORAGE,
-                                        action = {
-                                            storageService.uploadFile(
-                                                bucketName = storageBucketName,
-                                                fileName = "$storageFileName${songVersion.suffix}${karaokeFileType.suffix}.${karaokeFileType.extention}",
-                                                pathToFileOnDisk = pathToFile
-                                            )
-                                        }
-                                    )
-                                )
-                            }
-
-                            KaraokeFileType.PROJECT_ALL_RUN,
-                            KaraokeFileType.PROJECT_ALL_WO_LYRICS_RUN,
-                            KaraokeFileType.PROJECT_SONGVERSION_RUN,
-                            KaraokeFileType.PROJECT_SONGVERSION_MLT,
-                            KaraokeFileType.PROJECT_SONGVERSION_KDENLIVE,
-                            KaraokeFileType.PROJECT_SONGVERSION_TXT -> {}
-                        }
-
-                        result.add(
-                            KaraokeFile(
-                                type = karaokeFileType,
-                                storageService = storageService,
-                                storageBucketName = storageBucketName,
-                                storageFileName = "$storageFileName${songVersion.suffix}${karaokeFileType.suffix}.${karaokeFileType.extention}",
-                                songVersion = songVersion,
-                                pathToFile = pathToFile.rightFileName(),
-                                canBe = canBe,
-                                karaokeFileActions = karaokeFileActions
-                            )
-                        )
-                    }
-                }
-            }
-        }
-        return result
-    }
+    fun karaokeFiles(): List<KaraokeFile> = KaraokeFile.getKaraokeFiles(settings = this)
 
     private var _rootFolder: String = ""
     var readonly = false

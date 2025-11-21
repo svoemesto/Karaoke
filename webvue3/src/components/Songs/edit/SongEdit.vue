@@ -452,6 +452,9 @@
                 <BDropdownItem @click="createDescriptionFileChords" title="Создать текст CHORDS">CHORDS</BDropdownItem>
                 <BDropdownItem @click="createDescriptionFileTabs" title="Создать текст TABS">TABS</BDropdownItem>
               </BDropdownGroup>
+              <BDropdownGroup header="Разное">
+                <BDropdownItem @click="createKeyBpmFinderProcess" title="Найти BPM и TEMP из файла">Найти BPM и TEMP из файла</BDropdownItem>
+              </BDropdownGroup>
             </BDropdown>
 <!--            <button class="group-button" @click="createPictureBoostyTeaser" title="Создать картинку Boosty Teaser">Создать картинку Boosty Teaser</button>-->
 <!--            <button class="group-button" @click="createPictureBoostyFiles" title="Создать картинку Boosty Files">Создать картинку Boosty Files</button>-->
@@ -505,7 +508,7 @@
           </div>
         </div>
       </div>
-      <health-report-list :id="song.id" />
+<!--      <health-report-list :id="song.id" />-->
       <!-- Подвал -->
       <div class="footer">
         <button class="btn-round-save-double" @click="save" :disabled="notChanged()" title="Сохранить"><img alt="saveSong" class="icon-save-double" src="../../../assets/svg/icon_save.svg"></button>
@@ -1239,6 +1242,18 @@ export default {
     },
     doCreateDescriptionFileTabs() {
       this.$store.dispatch('createDescriptionFileTabsPromise')
+    },
+
+    createKeyBpmFinderProcess() {
+      this.customConfirmParams = {
+        header: 'Подтвердите создание BPM и TEMP из файла',
+        body: `Создать текст TABS для песни <strong>«${this.song.songName}»</strong>?`,
+        callback: this.doCreateKeyBpmFinderProcess
+      }
+      this.isCustomConfirmVisible = true;
+    },
+    doCreateKeyBpmFinderProcess() {
+      this.$store.dispatch('createKeyBpmFinderProcessPromise')
     },
 
     playLyrics() {

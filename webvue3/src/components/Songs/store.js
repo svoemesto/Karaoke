@@ -1724,6 +1724,11 @@ export default {
             let request = { method: 'POST', url: "/api/song/createdescriptionfiletabs", params: params };
             return promisedXMLHttpRequest(request);
         },
+        createKeyBpmFinderProcessPromise(ctx) {
+            let params = { id: ctx.state.currentSongId };
+            let request = { method: 'POST', url: "/api/song/keyBpmFinder", params: params };
+            return promisedXMLHttpRequest(request);
+        },
         createMP3KaraokePromise(ctx, payload) {
             let params = {
                 id: ctx.state.currentSongId,

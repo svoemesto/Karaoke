@@ -1364,7 +1364,9 @@ class KaraokeProcess(
 
                     KaraokeProcessTypes.KEY_BPM_FROM_FILE -> {
                         description = "Key Bpm from file"
-                        args = settings.argsKeyBpmFinder()
+                        val (actionArgs, actionEnvs) = settings.argsKeyBpmFinder()
+                        args = actionArgs
+                        envs = actionEnvs
                     }
 
                     else -> {}

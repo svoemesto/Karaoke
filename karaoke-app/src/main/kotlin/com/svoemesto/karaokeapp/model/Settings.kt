@@ -806,8 +806,9 @@ class Settings(
 
     fun getKeyBpmFromFile(reFind: Boolean = false): Pair<String, Int> {
         if (reFind || !File(pathToFileKeyBpmFinder).exists()) {
-            argsKeyBpmFinder().forEach { arg ->
-                runCommand(args = arg, skipRunFunctionWithArgs = true)
+            val (args, envs) = argsKeyBpmFinder()
+            args.forEach { arg ->
+                runCommand(args = arg, skipRunFunctionWithArgs = true, envs = envs)
             }
         }
         if (File(pathToFileKeyBpmFinder).exists()) {
@@ -821,25 +822,28 @@ class Settings(
         return Pair("", 0)
     }
 
-    fun argsKeyBpmFinder(): List<List<String>> {
+    fun argsKeyBpmFinder(): Pair<List<List<String>>, Map<String, String>> {
         // Сначала копируем файл аудио в папку PATH_TO_TEMP_KEYBPMFINDER_FOLDER с именем file.flac, потом вызываем докер,
         // потом копируем оттуда результат result_key_bpm_finder.json и удаляем папку PATH_TO_TEMP_KEYBPMFINDER_FOLDER
         val tmpFileName = "file"
-        return listOf(
-            listOf("mkdir", "-p", PATH_TO_TEMP_KEYBPMFINDER_FOLDER),
-            listOf("chmod", "777", PATH_TO_TEMP_KEYBPMFINDER_FOLDER),
-            listOf("cp", fileAbsolutePath.rightFileName(), "$PATH_TO_TEMP_KEYBPMFINDER_FOLDER/$tmpFileName.flac"),
-            listOf(
-                "docker", "run", "--rm",
-                "-v", "$PATH_TO_TEMP_KEYBPMFINDER_FOLDER:/input",
-                "svoemestodev/keybpmfinder:latest",
-                "/input/$tmpFileName.flac"
+        return Pair(
+        listOf(
+                listOf("mkdir", "-p", PATH_TO_TEMP_KEYBPMFINDER_FOLDER),
+                listOf("chmod", "777", PATH_TO_TEMP_KEYBPMFINDER_FOLDER),
+                listOf("cp", fileAbsolutePath.rightFileName(), "$PATH_TO_TEMP_KEYBPMFINDER_FOLDER/$tmpFileName.flac"),
+                listOf(
+                    "docker", "run", "--rm",
+                    "-v", "$PATH_TO_TEMP_KEYBPMFINDER_FOLDER:/input",
+                    "svoemestodev/keybpmfinder:latest",
+                    "/input/$tmpFileName.flac"
+                ),
+                listOf("mv", "$PATH_TO_TEMP_KEYBPMFINDER_FOLDER/result_key_bpm_finder.json", pathToFileKeyBpmFinder.rightFileName()
+                ),
+                listOf("chmod", "666", pathToFileKeyBpmFinder.rightFileName()),
+                listOf("rm", "-rf", PATH_TO_TEMP_KEYBPMFINDER_FOLDER),
+                listOf("runFunctionWithArgs", "getKeyBpmFromFile", id.toString())
             ),
-            listOf("mv", "$PATH_TO_TEMP_KEYBPMFINDER_FOLDER/result_key_bpm_finder.json", pathToFileKeyBpmFinder.rightFileName()
-            ),
-            listOf("chmod", "666", pathToFileKeyBpmFinder.rightFileName()),
-            listOf("rm", "-rf", PATH_TO_TEMP_KEYBPMFINDER_FOLDER),
-            listOf("runFunctionWithArgs", "getKeyBpmFromFile", id.toString())
+            mapOf("DOCKER_API_VERSION" to "1.43")
         )
     }
     fun argsDemucs2(): Pair<List<List<String>>, Map<String, String>> {

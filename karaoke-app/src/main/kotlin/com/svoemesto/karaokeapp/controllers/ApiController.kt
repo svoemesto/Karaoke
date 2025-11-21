@@ -3084,6 +3084,26 @@ class ApiController(
     }
 
     // Получение healthReportList
+    @PostMapping("/song/keyBpmFinder")
+    @ResponseBody
+    fun createKeyBpmFinderProcess(@RequestParam id: Long) {
+        Settings.loadFromDbById(
+            id = id,
+            database = WORKING_DATABASE,
+            storageService = storageService
+        )?.let { settings ->
+            KaraokeProcess.createProcess(
+                settings = settings,
+                action = KaraokeProcessTypes.KEY_BPM_FROM_FILE,
+                doWait = true,
+                prior = -1,
+                threadId = 1
+            )
+        }
+    }
+
+
+    // Получение healthReportList
     @PostMapping("/song/healthReportList")
     @ResponseBody
     fun getHealthReportList(@RequestParam id: Long): List<HealthReportDTO> =
@@ -3092,6 +3112,7 @@ class ApiController(
             database = WORKING_DATABASE,
             storageService = storageService
         )?.healthReportList()?.errorsOnly()?.map { it.toDTO() } ?: emptyList()
+
 
     // Выполнение customActions у конкретного HealtReport-а
     @PostMapping("/song/executeHealthReportActions")

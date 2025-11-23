@@ -1,35 +1,65 @@
-.gradle/
-.idea/
+```
+# Compiled and build artifacts
+*.class
+*.o
+*.obj
+*.out
 build/
-out/
-log/
+target/
 
-tmp/
-### Eclipse ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
-bin/
-!**/src/main/**/bin/
-!**/src/test/**/bin/
+# Dependencies
+.gradle/
+node_modules/
+venv/
+.venv/
+__pycache__/
+.mypy_cache/
+.pytest_cache/
 
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
+# Logs and temp files
+*.log
+*.tmp
+*.swp
 
-### VS Code ###
+# Environment
+.env
+.env.local
+*.env.*
+
+# Editors
 .vscode/
+.idea/
 
-### Mac OS ###
+# System files
 .DS_Store
-/karaoke-web/src/main/resources/static/tmp/
+Thumbs.db
 
-deploy/do.env
-/.idea/
+# Coverage
+coverage/
+htmlcov/
+.coverage
+
+# Compressed files
+*.zip
+*.gz
+*.tar
+*.tgz
+*.bz2
+*.xz
+*.7z
+*.rar
+*.zst
+*.lz4
+*.lzh
+*.cab
+*.arj
+*.rpm
+*.deb
+*.Z
+*.lz
+*.lzo
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.tar.zst
+```

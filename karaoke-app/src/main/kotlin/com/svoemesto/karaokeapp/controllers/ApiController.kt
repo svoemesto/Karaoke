@@ -38,6 +38,7 @@ import java.security.cert.CertificateException
 import java.sql.ResultSet
 import java.sql.SQLException
 import java.sql.Timestamp
+import java.sql.PreparedStatement
 import java.text.SimpleDateFormat
 import java.time.Instant
 import java.util.*
@@ -330,10 +331,11 @@ class ApiController(
             return emptyList()
         }
         var rs: ResultSet? = null
-        val sql = "select id from tbl_settings where EXTRACT(EPOCH FROM last_update at time zone 'UTC-3')*1000 > $time;"
-        val statement = connection.createStatement()
+        val sql = "select id from tbl_settings where EXTRACT(EPOCH FROM last_update at time zone 'UTC-3')*1000 > ?;"
+        val statement = connection.prepareStatement(sql)
+        statement.setLong(1, time)
         try {
-            rs = statement.executeQuery(sql)
+            rs = statement.executeQuery()
             while (rs.next()) {
                 result.add(rs.getLong("id"))
             }
@@ -367,10 +369,11 @@ class ApiController(
             return emptyList()
         }
         var rs: ResultSet? = null
-        val sql = "select id from tbl_processes where EXTRACT(EPOCH FROM last_update at time zone 'UTC-3')*1000 > $time;"
-        val statement = connection.createStatement()
+        val sql = "select id from tbl_processes where EXTRACT(EPOCH FROM last_update at time zone 'UTC-3')*1000 > ?;"
+        val statement = connection.prepareStatement(sql)
+        statement.setLong(1, time)
         try {
-            rs = statement.executeQuery(sql)
+            rs = statement.executeQuery()
             while (rs.next()) {
                 result.add(rs.getLong("id"))
             }

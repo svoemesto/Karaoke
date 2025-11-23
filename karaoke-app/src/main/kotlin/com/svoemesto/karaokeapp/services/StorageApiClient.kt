@@ -12,9 +12,57 @@ import reactor.core.publisher.Mono
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import org.springframework.http.MediaType
+import java.io.File
+import java.io.FileOutputStream
+import java.net.URLDecoder
+import java.nio.file.Files
+import java.nio.file.Paths
+import kotlin.io.copyTo
 
 @Service
 class StorageApiClient(private val webClient: WebClient) { // Предполагается, что WebClient настроен с baseUrl
+
+    // --- Вспомогательная функция для декодирования имени файла ---
+    private fun decodeFileNameIfEncoded(fileName: String): String {
+        return if (fileName.contains("%")) { // Простая проверка: содержит ли имя символ '%'
+            try {
+                URLDecoder.decode(fileName, StandardCharsets.UTF_8.toString())
+            } catch (_: IllegalArgumentException) {
+                // Если декодирование не удалось (например, '% не в кодировке), возвращаем оригинальное имя
+                fileName
+            }
+        } else {
+            // Если нет '%', имя, вероятно, не закодировано
+            fileName
+        }
+    }
+
+    fun uploadFile(bucketName: String, fileName: String, pathToFileOnDisk: String): String? {
+        val file = File(pathToFileOnDisk)
+        if (file.exists()) {
+
+            val path = Paths.get(pathToFileOnDisk)
+            val fileContent = Files.readAllBytes(path)
+
+            val monoUploadResult = uploadFile(
+                bucketName = bucketName,
+                fileName = fileName, // fileName передаётся в uploadFile как есть, но он должен быть оригинальным именем
+                fileContent = fileContent
+            )
+
+            val uploadResult = try {
+                monoUploadResult.block()
+            } catch (e: Exception) {
+                println("Ошибка при загрузке файла в удаленное хранилище: ${e.message}")
+                null
+            }
+
+            return uploadResult
+        }
+
+        return null
+
+    }
 
     // --- POST /api/storage/upload ---
     fun uploadFile(bucketName: String, fileName: String, fileContent: ByteArray): Mono<String> {
@@ -91,6 +139,32 @@ class StorageApiClient(private val webClient: WebClient) { // Предполаг
             .bodyToMono<ByteArray>()
     }
 
+    fun downloadFile(bucketName: String, fileName: String, pathToFileOnDisk: String): File {
+        val decodedFileName = decodeFileNameIfEncoded(fileName) // Декодируем перед использованием
+
+        val monoFileInputStream = downloadFile(
+            bucketName = bucketName,
+            fileName = fileName
+        )
+
+        val fileInputStream = try {
+            monoFileInputStream.block()
+        } catch (e: Exception) {
+            println("Ошибка при получении файла из удаленного хранилища: ${e.message}")
+            null
+        }
+
+        if (fileInputStream != null) {
+            val file = File(pathToFileOnDisk)
+            file.writeBytes(fileInputStream)
+            return file
+        } else {
+            throw RuntimeException("Ошибка при получении файла из удаленного хранилища")
+        }
+
+
+    }
+
     // --- DELETE /api/storage/delete ---
     fun deleteFile(bucketName: String, fileName: String): Mono<String> {
         val encodedBucketName = URLEncoder.encode(bucketName, StandardCharsets.UTF_8)
@@ -128,6 +202,62 @@ class StorageApiClient(private val webClient: WebClient) { // Предполаг
             // .header("Authorization", "Bearer YOUR_ACCESS_TOKEN") // Если нужно
             .retrieve()
             .bodyToMono<Map<String, Boolean>>()
+    }
+
+    fun fileExists(bucketName: String, fileName: String): Boolean {
+        val monoCheckIfExists = checkIfExists(
+            bucketName = bucketName,
+            fileName = fileName
+        )
+        val checkIfExists = try {
+            monoCheckIfExists.block()
+        } catch (e: Exception) {
+            println("Ошибка при проверке наличия файла в удаленном хранилище: ${e.message}")
+            null
+        }
+//        println("Результат проверки наличия файла в удаленном хранилище: $checkIfExists")
+        return checkIfExists?.get("exists") ?: false
+    }
+
+    fun fileIsActual(bucketName: String, fileName: String, pathToFileOnDisk: String): Boolean {
+        var result = true
+        val file = File(pathToFileOnDisk)
+        if (file.exists()) {
+
+            val monoFileInfo = getFileInfo(bucketName = bucketName, fileName = fileName)
+            val fileInfo = try {
+                monoFileInfo.block()
+            } catch (e: Exception) {
+                println("Ошибка при проверке информации о файле в удаленном хранилище: ${e.message}")
+                null
+            }
+
+            if (fileInfo != null) {
+                result = (file.length() == fileInfo.size)
+            }
+        }
+        return result
+    }
+
+    fun fileIsActual(bucketName: String, fileName: String, storageFileInfo: StorageFileInfo): Boolean {
+
+        var result = true
+
+        val monoFileInfo = getFileInfo(bucketName = bucketName, fileName = fileName)
+        val fileInfo = try {
+            monoFileInfo.block()
+        } catch (e: Exception) {
+            println("Ошибка при проверке информации о файле в удаленном хранилище: ${e.message}")
+            null
+        }
+
+        if (fileInfo != null) {
+            result = (storageFileInfo.size == fileInfo.size)
+        }
+
+        return result
+
+
     }
 
     // --- PUT /api/storage/bucket/public ---

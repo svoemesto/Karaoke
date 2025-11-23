@@ -31,6 +31,8 @@ interface KaraokeStorageService {
     fun deleteAllEmptyBuckets()
     fun getFileStat(bucketName: String, fileName: String): StatObjectResponse?
     fun getFileInfo(bucketName: String, fileName: String): StorageFileInfo
+    fun fileIsActual(bucketName: String, fileName: String, pathToFileOnDisk: String): Boolean
+    fun fileIsActual(bucketName: String, fileName: String, storageFileInfo: StorageFileInfo): Boolean
     fun listFilesInfo(bucketName: String): List<StorageFileInfo>
 }
 
@@ -293,6 +295,23 @@ class KaraokeStorageServiceImpl(
         } else {
             return false
         }
+    }
+
+    override fun fileIsActual(bucketName: String, fileName: String, pathToFileOnDisk: String): Boolean {
+        var result = true
+        val file = File(pathToFileOnDisk)
+        if (file.exists()) {
+            val fileInfo = getFileInfo(bucketName = bucketName, fileName = fileName)
+            result = (file.length() == fileInfo.size)
+        }
+        return result
+    }
+
+    override fun fileIsActual(bucketName: String, fileName: String, storageFileInfo: StorageFileInfo): Boolean {
+
+        val fileInfo = getFileInfo(bucketName = bucketName, fileName = fileName)
+        return  storageFileInfo.size == fileInfo.size
+
     }
 
     override fun listFiles(bucketName: String): List<String> {

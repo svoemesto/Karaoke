@@ -7,7 +7,8 @@ enum class KaraokeFileType(
     val locations: List<KaraokeFileTypeLocations>,
     val symlinks: List<KaraokeFileSymlink> = emptyList(),
     val extention: String,
-    val suffix: String
+    val suffix: String,
+    val canResolve: Boolean
 ) {
 
     // MAIN
@@ -19,6 +20,7 @@ enum class KaraokeFileType(
         locations = listOf(KaraokeFileTypeLocations.LOCAL_FILESYSTEM),
         extention = "flac",
         suffix = ".song",
+        canResolve = false
     ),
     MP3_SONG (
         description = "Исходный аудио файл в формате mp3",
@@ -27,6 +29,7 @@ enum class KaraokeFileType(
         locations = listOf(KaraokeFileTypeLocations.LOCAL_FILESYSTEM),
         extention = "flac",
         suffix = ".song",
+        canResolve = true
     ),
     AUDIO_ACCOMPANIMENT (
         description = "Минусовка",
@@ -36,6 +39,7 @@ enum class KaraokeFileType(
         symlinks = listOf(KaraokeFileSymlink(folder = "symlink_sponsr")),
         extention = "flac",
         suffix = ".accompaniment",
+        canResolve = true
     ),
     MP3_ACCOMPANIMENT (
         description = "Минусовка в формате mp3",
@@ -44,6 +48,7 @@ enum class KaraokeFileType(
         locations = listOf(KaraokeFileTypeLocations.LOCAL_FILESYSTEM),
         extention = "flac",
         suffix = ".accompaniment",
+        canResolve = true
     ),
     AUDIO_VOICE (
         description = "Чистый голос",
@@ -52,6 +57,7 @@ enum class KaraokeFileType(
         locations = listOf(KaraokeFileTypeLocations.LOCAL_FILESYSTEM),
         extention = "flac",
         suffix = ".vocals",
+        canResolve = true
     ),
     AUDIO_BASS (
         description = "Бас",
@@ -59,7 +65,8 @@ enum class KaraokeFileType(
         karaokeFileTypeKind = KaraokeFileTypeKind.MAIN,
         locations = listOf(KaraokeFileTypeLocations.LOCAL_FILESYSTEM),
         extention = "flac",
-        suffix = "bass",
+        suffix = ".bass",
+        canResolve = true
     ),
     AUDIO_DRUMS (
         description = "Ударные",
@@ -68,6 +75,7 @@ enum class KaraokeFileType(
         locations = listOf(KaraokeFileTypeLocations.LOCAL_FILESYSTEM),
         extention = "flac",
         suffix = ".drums",
+        canResolve = true
     ),
     AUDIO_OTHER (
         description = "Мелодия без баса и ударных",
@@ -76,6 +84,7 @@ enum class KaraokeFileType(
         locations = listOf(KaraokeFileTypeLocations.LOCAL_FILESYSTEM),
         extention = "flac",
         suffix = ".other",
+        canResolve = true
     ),
     PICTURE_ALBUM (
         description = "Картинка альбома",
@@ -87,17 +96,19 @@ enum class KaraokeFileType(
         ),
         extention = "png",
         suffix = ".album",
+        canResolve = false
     ),
     PICTURE_ALBUM_PREVIEW (
         description = "Картинка альбома (preview)",
         karaokeFileTypeFor = KaraokeFileTypeFor.SONG,
         karaokeFileTypeKind = KaraokeFileTypeKind.MAIN,
         locations = listOf(
-            KaraokeFileTypeLocations.LOCAL_FILESYSTEM,
-            KaraokeFileTypeLocations.LOCAL_STORAGE
+            KaraokeFileTypeLocations.LOCAL_STORAGE,
+            KaraokeFileTypeLocations.REMOTE_STORAGE
         ),
         extention = "png",
         suffix = ".preview.album",
+        canResolve = true
     ),
     PICTURE_AUTHOR (
         description = "Картинка автора",
@@ -110,18 +121,19 @@ enum class KaraokeFileType(
         ),
         extention = "png",
         suffix = ".author",
+        canResolve = false
     ),
     PICTURE_AUTHOR_PREVIEW (
         description = "Картинка автора (preview)",
         karaokeFileTypeFor = KaraokeFileTypeFor.SONG,
         karaokeFileTypeKind = KaraokeFileTypeKind.MAIN,
         locations = listOf(
-            KaraokeFileTypeLocations.LOCAL_FILESYSTEM,
             KaraokeFileTypeLocations.LOCAL_STORAGE,
             KaraokeFileTypeLocations.REMOTE_STORAGE
         ),
         extention = "png",
         suffix = ".preview.author",
+        canResolve = true
     ),
     PICTURE_PUBLICATION (
         description = "Картинка публикации",
@@ -134,6 +146,7 @@ enum class KaraokeFileType(
         symlinks = listOf(KaraokeFileSymlink(folder = "symlink_sponsr", platforms = listOf(KaraokePlatform.SPONSR))),
         extention = "png",
         suffix = "",
+        canResolve = true
     ),
     PICTURE_SONGVERSION (
         description = "Картинка для видео конкретной версии песни",
@@ -146,6 +159,7 @@ enum class KaraokeFileType(
         symlinks = listOf(KaraokeFileSymlink(folder = "symlink_png")),
         extention = "png",
         suffix = "",
+        canResolve = true
     ),
     VIDEO_SONGVERSION_1080P (
         description = "Видео конкретной версии песни в разрешении 1080p/60fps",
@@ -155,6 +169,7 @@ enum class KaraokeFileType(
         symlinks = listOf(KaraokeFileSymlink(folder = "symlink_mp4")),
         extention = "mp4",
         suffix = "",
+        canResolve = true
     ),
     VIDEO_SONGVERSION_720P (
         description = "Видео конкретной версии песни в разрешении 720p/30fps",
@@ -163,6 +178,7 @@ enum class KaraokeFileType(
         locations = listOf(KaraokeFileTypeLocations.LOCAL_FILESYSTEM),
         extention = "mp4",
         suffix = "",
+        canResolve = true
     ),
 
     // PROJECT
@@ -174,6 +190,7 @@ enum class KaraokeFileType(
         locations = listOf(KaraokeFileTypeLocations.LOCAL_FILESYSTEM),
         extention = "run",
         suffix = " [ALL]",
+        canResolve = false
     ),
     PROJECT_ALL_WO_LYRICS_RUN (
         description = "Скрипт для рендера всех версий, кроме LYRICS",
@@ -182,6 +199,7 @@ enum class KaraokeFileType(
         locations = listOf(KaraokeFileTypeLocations.LOCAL_FILESYSTEM),
         extention = "run",
         suffix = " [ALLwoLYRICS]",
+        canResolve = false
     ),
     PROJECT_SONGVERSION_RUN (
         description = "Скрипт для рендера конкретной версии",
@@ -190,6 +208,7 @@ enum class KaraokeFileType(
         locations = listOf(KaraokeFileTypeLocations.LOCAL_FILESYSTEM),
         extention = "run",
         suffix = "",
+        canResolve = false
     ),
     PROJECT_SONGVERSION_MLT (
         description = "MLT-файл для конкретной версии",
@@ -198,6 +217,7 @@ enum class KaraokeFileType(
         locations = listOf(KaraokeFileTypeLocations.LOCAL_FILESYSTEM),
         extention = "mlt",
         suffix = "",
+        canResolve = false
     ),
     PROJECT_SONGVERSION_KDENLIVE (
         description = "KDENLIVE-файл для конкретной версии",
@@ -206,6 +226,7 @@ enum class KaraokeFileType(
         locations = listOf(KaraokeFileTypeLocations.LOCAL_FILESYSTEM),
         extention = "kdenlive",
         suffix = "",
+        canResolve = false
     ),
     PROJECT_SONGVERSION_TXT (
         description = "TXT-файл для конкретной версии",
@@ -214,6 +235,7 @@ enum class KaraokeFileType(
         locations = listOf(KaraokeFileTypeLocations.LOCAL_FILESYSTEM),
         extention = "txt",
         suffix = "",
+        canResolve = false
     ),
 
 
@@ -222,4 +244,5 @@ enum class KaraokeFileType(
     val willBeInFileSystem: Boolean get() = locations.contains(KaraokeFileTypeLocations.LOCAL_FILESYSTEM)
     val willBeInLocalStorage: Boolean get() = locations.contains(KaraokeFileTypeLocations.LOCAL_STORAGE)
     val willBeInRemoteStorage: Boolean get() = locations.contains(KaraokeFileTypeLocations.REMOTE_STORAGE)
+
 }

@@ -902,7 +902,7 @@ class KaraokeProcess(
                             Files.createDirectories(Path(settings.pathToSymlinkFolderSponsr))
                             runCommand(listOf("chmod", "777", settings.pathToSymlinkFolderSponsr))
                         }
-                        val newNoStemNameFlacSymlinkQ = settings.newNoStemNameFlacSymlink.rightFileName().wrapInQuotes()
+                        val newNoStemNameFlacSymlinkQ = settings.accompanimentNameFlacSymlink.rightFileName().wrapInQuotes()
                         val songKaraokeMp4Symlink = "${settings.pathToSymlinkFolderMP4}/${File(songKaraokeMp4Absolute).name}".rightFileName().wrapInQuotes()
                         val songKaraokePngSymlink = "${settings.pathToSymlinkFolderPNG}/${File(songKaraokePngAbsolute).name}".rightFileName().wrapInQuotes()
                         val songLyricsMp4Symlink = "${settings.pathToSymlinkFolderMP4}/${File(songLyricsMp4Absolute).name}".rightFileName().wrapInQuotes()
@@ -1001,7 +1001,7 @@ class KaraokeProcess(
                             Files.createDirectories(Path(settings.pathToSymlinkFolderSponsr))
                             runCommand(listOf("chmod", "777", settings.pathToSymlinkFolderSponsr))
                         }
-                        val newNoStemNameFlacSymlinkQ = settings.newNoStemNameFlacSymlink.rightFileName().wrapInQuotes()
+                        val newNoStemNameFlacSymlinkQ = settings.accompanimentNameFlacSymlink.rightFileName().wrapInQuotes()
                         val songKaraokeMp4Symlink = "${settings.pathToSymlinkFolderMP4}/${File(songKaraokeMp4Absolute).name}".rightFileName().wrapInQuotes()
                         val songKaraokePngSymlink = "${settings.pathToSymlinkFolderPNG}/${File(songKaraokePngAbsolute).name}".rightFileName().wrapInQuotes()
                         val songLyricsMp4Symlink = "${settings.pathToSymlinkFolderMP4}/${File(songLyricsMp4Absolute).name}".rightFileName().wrapInQuotes()
@@ -1263,7 +1263,7 @@ class KaraokeProcess(
                             runCommand(listOf("chmod", "777", settings.pathToSymlinkFolderPNG))
                         }
 
-                        val newNoStemNameFlacSymlinkQ = settings.newNoStemNameFlacSymlink.rightFileName().wrapInQuotes()
+                        val newNoStemNameFlacSymlinkQ = settings.accompanimentNameFlacSymlink.rightFileName().wrapInQuotes()
                         val songKaraokeMp4Symlink = "${settings.pathToSymlinkFolderMP4}/${File(songKaraokeMp4Absolute).name}".rightFileName().wrapInQuotes()
                         val songKaraokePngSymlink = "${settings.pathToSymlinkFolderPNG}/${File(songKaraokePngAbsolute).name}".rightFileName().wrapInQuotes()
                         val songLyricsMp4Symlink = "${settings.pathToSymlinkFolderMP4}/${File(songLyricsMp4Absolute).name}".rightFileName().wrapInQuotes()
@@ -1319,7 +1319,7 @@ class KaraokeProcess(
                             listOf(
                                 "ffmpeg",
                                 "-i",
-                                settings.newNoStemNameFlac.rightFileName(),
+                                settings.accompanimentNameFlac.rightFileName(),
                                 "-ab",
                                 "320k",
                                 "-map_metadata",

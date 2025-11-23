@@ -9,7 +9,12 @@ class Zakroma(val database: KaraokeConnection): Serializable, Comparable<Zakroma
 
     companion object {
         fun getZakroma(author: String, database: KaraokeConnection, storageService: KaraokeStorageService): List<Zakroma> {
-            val listSettings = Settings.loadListFromDb(args = mapOf("author" to author), database = database, storageService = storageService)
+            val listSettings = Settings.loadListFromDb(
+                args = mapOf("author" to author),
+                database = database,
+                storageService = storageService,
+                withoutMarkersAndText = true
+            )
             val settingsByAuthor = listSettings.groupBy { it.author }
             return settingsByAuthor.map { (authorName, settingsByAuthor) ->
                 val zakroma = Zakroma(database)

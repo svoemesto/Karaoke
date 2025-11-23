@@ -228,4 +228,4 @@ fun String.stripToNumeric(): String {
 @Suppress("unused")
 fun Settings.karaokePlatformPublications(): List<KaraokePlatformPublication> = KaraokePlatformPublication.getList(settings = this)
 
-fun List<HealthReport>.errorsOnly(): List<HealthReport> = this.filter { it.status != HealthReportStatus.OK }
+fun List<HealthReport>.errorsOnly(): List<HealthReport> = this.filter { it.healthReportStatus != HealthReportStatus.OK }

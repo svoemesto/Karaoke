@@ -344,7 +344,7 @@ class Publication(val database: KaraokeConnection = WORKING_DATABASE) : Serializ
                 filterDateFrom = SimpleDateFormat("dd.MM.yy").format(Date())
                 filterDateTo = ""
             } else if (filterCond == "fromnotpublish") {
-                val listOfSettingsTemp = Settings.loadListFromDb(database = database, storageService = storageService).filter {
+                val listOfSettingsTemp = Settings.loadListFromDb(database = database, storageService = storageService, withoutMarkersAndText = true).filter {
                     it.date != "" &&
                     it.time != "" &&
                     it.flags != ""
@@ -361,7 +361,7 @@ class Publication(val database: KaraokeConnection = WORKING_DATABASE) : Serializ
                     filterDateTo = ""
                 }
             } else if (filterCond == "fromnotdone") {
-                val listOfSettingsTemp = Settings.loadListFromDb(database = database, storageService = storageService).filter {
+                val listOfSettingsTemp = Settings.loadListFromDb(database = database, storageService = storageService, withoutMarkersAndText = true).filter {
                     it.date != "" &&
                     it.time != "" &&
                     it.idStatus < 3L
@@ -378,7 +378,7 @@ class Publication(val database: KaraokeConnection = WORKING_DATABASE) : Serializ
                     filterDateTo = ""
                 }
             } else if (filterCond == "fromnotcheck") {
-                val listOfSettingsTemp = Settings.loadListFromDb(database = database, storageService = storageService).filter {
+                val listOfSettingsTemp = Settings.loadListFromDb(database = database, storageService = storageService, withoutMarkersAndText = true).filter {
                     it.date != "" &&
                     it.time != "" &&
                     it.idStatus < 4L
@@ -398,7 +398,7 @@ class Publication(val database: KaraokeConnection = WORKING_DATABASE) : Serializ
             }
 
 
-            val listOfSettings = Settings.loadListFromDb(database = database, storageService = storageService).filter {
+            val listOfSettings = Settings.loadListFromDb(database = database, storageService = storageService, withoutMarkersAndText = true).filter {
                 it.date != "" &&
                 it.time != "" &&
                 (if (filterDateFrom != "") SimpleDateFormat("dd.MM.yy").parse(it.date)  >= SimpleDateFormat("dd.MM.yy").parse(filterDateFrom) else true) &&
@@ -445,7 +445,7 @@ class Publication(val database: KaraokeConnection = WORKING_DATABASE) : Serializ
             ).map { it.author }
 
             val listUnpublished =
-                Settings.loadListFromDb(mapOf("publish_date" to "-", "publish_time" to "-"), database = database, storageService = storageService)
+                Settings.loadListFromDb(mapOf("publish_date" to "-", "publish_time" to "-"), database = database, storageService = storageService, withoutMarkersAndText = true)
                     .filter { it.author !in skipedAuthors }
                     .groupBy { it.author }
                     .map { it.value }
@@ -495,7 +495,7 @@ class Publication(val database: KaraokeConnection = WORKING_DATABASE) : Serializ
             ).map { it.author }
 
             val listUnpublished =
-                    Settings.loadListFromDb(mapOf("publish_date" to "-", "publish_time" to "-"), database = database, storageService = storageService)
+                    Settings.loadListFromDb(mapOf("publish_date" to "-", "publish_time" to "-"), database = database, storageService = storageService, withoutMarkersAndText = true)
                             .filter { it.author in skipedAuthors }
                             .groupBy { it.author }
                             .map { it.value }
@@ -554,7 +554,7 @@ class Publication(val database: KaraokeConnection = WORKING_DATABASE) : Serializ
                 filterDateFrom = SimpleDateFormat("dd.MM.yy").format(Date())
                 filterDateTo = ""
             } else if (filterCond == "fromnotpublish") {
-                val listOfSettingsTemp = Settings.loadListFromDb(database = database, storageService = storageService).filter {
+                val listOfSettingsTemp = Settings.loadListFromDb(database = database, storageService = storageService, withoutMarkersAndText = true).filter {
                     it.date != "" &&
                             it.time != "" &&
                             it.flags != ""
@@ -571,7 +571,7 @@ class Publication(val database: KaraokeConnection = WORKING_DATABASE) : Serializ
                     filterDateTo = ""
                 }
             } else if (filterCond == "fromnotdone") {
-                val listOfSettingsTemp = Settings.loadListFromDb(database = database, storageService = storageService).filter {
+                val listOfSettingsTemp = Settings.loadListFromDb(database = database, storageService = storageService, withoutMarkersAndText = true).filter {
                     it.date != "" &&
                             it.time != "" &&
                             it.idStatus < 3L
@@ -588,7 +588,7 @@ class Publication(val database: KaraokeConnection = WORKING_DATABASE) : Serializ
                     filterDateTo = ""
                 }
             } else if (filterCond == "fromnotcheck") {
-                val listOfSettingsTemp = Settings.loadListFromDb(database = database, storageService = storageService).filter {
+                val listOfSettingsTemp = Settings.loadListFromDb(database = database, storageService = storageService, withoutMarkersAndText = true).filter {
                     it.date != "" &&
                             it.time != "" &&
                             it.idStatus < 4L
@@ -606,12 +606,12 @@ class Publication(val database: KaraokeConnection = WORKING_DATABASE) : Serializ
                 }
 
             } else if (filterCond == "unpublish") {
-                return Settings.loadListFromDb(mapOf("publish_date" to "-", "publish_time" to "-"), database = database, storageService = storageService).filter { it.author !in skipedAuthors }
+                return Settings.loadListFromDb(mapOf("publish_date" to "-", "publish_time" to "-"), database = database, storageService = storageService, withoutMarkersAndText = true).filter { it.author !in skipedAuthors }
             } else if (filterCond == "skiped") {
-                return Settings.loadListFromDb(mapOf("publish_date" to "-", "publish_time" to "-"), database = database, storageService = storageService).filter { it.author in skipedAuthors }
+                return Settings.loadListFromDb(mapOf("publish_date" to "-", "publish_time" to "-"), database = database, storageService = storageService, withoutMarkersAndText = true).filter { it.author in skipedAuthors }
             }
 
-            return Settings.loadListFromDb(database = database, storageService = storageService).filter { it.author !in skipedAuthors }.filter {
+            return Settings.loadListFromDb(database = database, storageService = storageService, withoutMarkersAndText = true).filter { it.author !in skipedAuthors }.filter {
                 it.date != "" &&
                         it.time != "" &&
                         (if (filterDateFrom != "") SimpleDateFormat("dd.MM.yy").parse(it.date)  >= SimpleDateFormat("dd.MM.yy").parse(filterDateFrom) else true) &&
@@ -622,7 +622,7 @@ class Publication(val database: KaraokeConnection = WORKING_DATABASE) : Serializ
 
         fun getSettingsListForUnpublications(database: KaraokeConnection, storageService: KaraokeStorageService): List<Settings> {
 
-            return Settings.loadListFromDb(mapOf("publish_date" to "-", "publish_time" to "-"), database = database, storageService = storageService)
+            return Settings.loadListFromDb(mapOf("publish_date" to "-", "publish_time" to "-"), database = database, storageService = storageService, withoutMarkersAndText = true)
 
         }
 

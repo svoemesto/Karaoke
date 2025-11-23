@@ -225,7 +225,7 @@ class ApiController(
     @GetMapping("/cnt")
     @ResponseBody
     fun getCnt(): String {
-        val settings = Settings.loadListFromDb(database = WORKING_DATABASE, storageService = storageService)
+        val settings = Settings.loadListFromDb(database = WORKING_DATABASE, storageService = storageService, withoutMarkersAndText = true)
         println("Вызван getCnt. Количество записей в в базе данных: ${settings.size}")
         return "Количество записей в в базе данных: ${settings.size}"
     }
@@ -291,7 +291,7 @@ class ApiController(
         @PathVariable id: Long
     ): ResponseEntity<Resource> {
         Settings.loadFromDbById(id, WORKING_DATABASE, storageService = storageService)?.let { settings ->
-            val filename = File(settings.newNoStemNameFlac)
+            val filename = File(settings.accompanimentNameFlac)
             val resource = FileSystemResource(filename)
             if (resource.exists()) {
                 return ResponseEntity.ok()
@@ -1019,7 +1019,7 @@ class ApiController(
     @PostMapping("/songs/ids")
     @ResponseBody
     fun apisSongsByIds(@RequestParam ids: List<Long>): List<SettingsDTO> {
-        return Settings.loadListFromDb(mapOf(Pair("ids", ids.joinToString(","))), database = WORKING_DATABASE, storageService = storageService).map { it.toDTO() }
+        return Settings.loadListFromDb(mapOf(Pair("ids", ids.joinToString(","))), database = WORKING_DATABASE, storageService = storageService, withoutMarkersAndText = true).map { it.toDTO() }
     }
 
     // Получение списка процессов по списку id
@@ -1271,7 +1271,7 @@ class ApiController(
 
         SongsHistory().add(args)
 
-        val lst = Settings.loadListFromDb(args, database = WORKING_DATABASE, storageService = storageService).map { it.toDTO().toDtoDigest() }
+        val lst = Settings.loadListFromDb(args, database = WORKING_DATABASE, storageService = storageService, withoutMarkersAndText = true).map { it.toDTO().toDtoDigest() }
         var totalMs = 0L
         for (i in lst.indices) {
             if (i > 0) lst[i].idPrevious = lst[i-1].id
@@ -1379,7 +1379,7 @@ class ApiController(
 
         SongsHistory().add(args)
 
-        val lst = Settings.loadListFromDb(args, database = WORKING_DATABASE, storageService = storageService).map { it.toDTO() }
+        val lst = Settings.loadListFromDb(args, database = WORKING_DATABASE, storageService = storageService, withoutMarkersAndText = true).map { it.toDTO() }
         for (i in lst.indices) {
             if (i > 0) lst[i].idPrevious = lst[i-1].id
             if (i < lst.size-1) lst[i].idNext = lst[i+1].id
@@ -1482,7 +1482,12 @@ class ApiController(
         val settCurrId = id.toLong()
         val currSett = Settings.loadFromDbById(id.toLong(), database = WORKING_DATABASE, storageService = storageService)?.toDTO()
         if (currSett != null) {
-            val lst = Settings.loadListFromDb(args = mapOf("song_author" to currSett.author), database = WORKING_DATABASE, storageService = storageService)
+            val lst = Settings.loadListFromDb(
+                args = mapOf("song_author" to currSett.author),
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                withoutMarkersAndText = true
+            )
             for (i in lst.indices) {
                 if (lst[i].id == settCurrId) {
                     if (i > 0) currSett.idPrevious = lst[i-1].id
@@ -1493,8 +1498,18 @@ class ApiController(
             currSett.dateTimePublish?.let {
                 val leftTime = "%02d".format(currSett.time.split(":")[0].toLong()-1) + ":00"
                 val rightTime = "%02d".format(currSett.time.split(":")[0].toLong()+1) + ":00"
-                val leftSett = Settings.loadListFromDb(args = mapOf("publish_date" to currSett.date, "publish_time" to leftTime), database = WORKING_DATABASE, storageService = storageService)
-                val rightSett = Settings.loadListFromDb(args = mapOf("publish_date" to currSett.date, "publish_time" to rightTime), database = WORKING_DATABASE, storageService = storageService)
+                val leftSett = Settings.loadListFromDb(
+                    args = mapOf("publish_date" to currSett.date, "publish_time" to leftTime),
+                    database = WORKING_DATABASE,
+                    storageService = storageService,
+                    withoutMarkersAndText = true
+                )
+                val rightSett = Settings.loadListFromDb(
+                    args = mapOf("publish_date" to currSett.date, "publish_time" to rightTime),
+                    database = WORKING_DATABASE,
+                    storageService = storageService,
+                    withoutMarkersAndText = true
+                )
                 if (leftSett.isNotEmpty()) currSett.idLeft = leftSett[0].id
                 if (rightSett.isNotEmpty()) currSett.idRight = rightSett[0].id
             }
@@ -1729,7 +1744,7 @@ class ApiController(
         val formatter = SimpleDateFormat("dd/MM/yyyy")
         val currentDate = formatter.parse(formatter.format(currentDateTime))
 
-        val settings = Settings.loadListFromDb(emptyMap(), database = WORKING_DATABASE, storageService = storageService)
+        val settings = Settings.loadListFromDb(emptyMap(), database = WORKING_DATABASE, storageService = storageService, withoutMarkersAndText = true)
         val sett = when (param) {
             "STATE_ALL_DONE" -> settings.firstOrNull { it.state == SettingState.ALL_DONE } ?: settings.firstOrNull { it.dateTimePublish != null && formatter.parse(formatter.format(it.dateTimePublish)) == currentDate }
             "STATE_OVERDUE" -> settings.firstOrNull { it.state == SettingState.OVERDUE } ?: settings.firstOrNull { it.dateTimePublish != null && formatter.parse(formatter.format(it.dateTimePublish)) == currentDate }
@@ -2636,7 +2651,7 @@ class ApiController(
                        @RequestParam(required = false) priorKaraoke: Int = 10,
                        @RequestParam(required = false) threadId: String? = "0"): Any {
         val settingsList = if (songsIds == "") {
-            Settings.loadListFromDb(database = WORKING_DATABASE, storageService = storageService)
+            Settings.loadListFromDb(database = WORKING_DATABASE, storageService = storageService, withoutMarkersAndText = true)
         } else {
             val ids = songsIds.split(";").map { it }.filter { it != "" }.map { it.toLong() }
             val result: MutableList<Settings> = mutableListOf()
@@ -2739,7 +2754,7 @@ class ApiController(
         var cntDelete = 0
         var cntCreate = 0
 
-        Settings.loadListFromDb(database = WORKING_DATABASE, storageService = storageService).forEach { settings ->
+        Settings.loadListFromDb(database = WORKING_DATABASE, storageService = storageService, withoutMarkersAndText = true).forEach { settings ->
             when (createVKLinkPictureWeb(settings, false)) {
                 "delete" -> cntDelete++
                 "skip" -> cntSkip++
@@ -3120,12 +3135,8 @@ class ApiController(
     fun executeHealthReportActions(
         @RequestParam id: Long,
         @RequestParam healthReportStatusName: String,
-        @RequestParam(required = false) customCode: String = "",
-        @RequestParam(required = false) songVersionName: String = "",
-        @RequestParam(required = false) karaokePlatformName: String = "",
-        @RequestParam(required = false) karaokeFileTypeName: String = "",
-        @RequestParam(required = false) karaokeFileActionTypeName: String = "",
-        @RequestParam(required = false) karaokeFileTypeLocationsName: String = ""
+        @RequestParam healthReportTypeName: String,
+        @RequestParam description: String
     ) {
         Settings.loadFromDbById(
             id = id,
@@ -3133,22 +3144,12 @@ class ApiController(
             storageService = storageService
         )?.let { settings ->
             val healthReportDTO = HealthReportDTO(
-                healthReportStatusName = healthReportStatusName,
-                color = "",
-                description = "",
                 settingsId = id,
-                customCode = customCode,
-                songVersionName = songVersionName,
-                karaokePlatformName = karaokePlatformName,
-                karaokeFileTypeName = karaokeFileTypeName,
-                karaokeFileActionTypeName = karaokeFileActionTypeName,
-                karaokeFileTypeLocationsName = karaokeFileTypeLocationsName
+                healthReportTypeName = healthReportTypeName,
+                healthReportStatusName = healthReportStatusName,
+                description = description
             )
-            HealthReport.getHealthReport(settings = settings, dto = healthReportDTO)?.let { healthReport ->
-                val type = KaraokeFileActionType.valueOf(karaokeFileActionTypeName)
-                val location = KaraokeFileTypeLocations.valueOf(karaokeFileTypeLocationsName)
-                healthReport.executeKaraokeFileActions(type = type, location = location)
-            }
+            HealthReport.getHealthReport(settings = settings, dto = healthReportDTO)?.let { healthReport -> healthReport.executeSolutionActions() }
         }
     }
 

@@ -31,7 +31,8 @@ import kotlin.math.abs
 @JsonIgnoreProperties(value = ["database", "storageService", "pictureAuthor", "pictureAlbum"])
 class Settings(
     val database: KaraokeConnection = WORKING_DATABASE,
-    override val storageService: KaraokeStorageService = KSS_APP
+    override val storageService: KaraokeStorageService = KSS_APP,
+    val storageApiClient: StorageApiClient = SAC_APP
 ): Serializable, Comparable<Settings>, KaraokeStorage {
 
     override val storageBucketName: String get() = "karaoke"
@@ -105,12 +106,10 @@ class Settings(
     }
 
 
-//    fun emptyFunction() {}
 
     @Suppress("unused")
     fun healthReportList(): List<HealthReport> = HealthReport.getHealthReportList(settings = this)
 
-    fun karaokeFiles(): List<KaraokeFile> = KaraokeFile.getKaraokeFiles(settings = this)
 
     private var _rootFolder: String = ""
     var readonly = false
@@ -742,9 +741,9 @@ class Settings(
 //    val pathToSymlinkFolderBoostyFiles: String get() = "$rootFolder/symlink_boosty_files"
     val separatedStem: String get() = "vocals"
     val oldNoStemNameWav: String get() = "$pathToResultedModel/$fileName-no_$separatedStem.wav"
-    val newNoStemNameWav: String get() = "$pathToResultedModel/$fileName-accompaniment.wav"
-    val newNoStemNameFlac: String get() = "$pathToResultedModel/$fileName-accompaniment.flac"
-    val newNoStemNameFlacSymlink: String get() = "$pathToSymlinkFolderSponsr/$fileName-accompaniment.flac"
+    val accompanimentNameWav: String get() = "$pathToResultedModel/$fileName-accompaniment.wav"
+    val accompanimentNameFlac: String get() = "$pathToResultedModel/$fileName-accompaniment.flac"
+    val accompanimentNameFlacSymlink: String get() = "$pathToSymlinkFolderSponsr/$fileName-accompaniment.flac"
     val vocalsNameWav: String get() = "$pathToResultedModel/$fileName-vocals.wav"
     val vocalsNameFlac: String get() = "$pathToResultedModel/$fileName-vocals.flac"
 //    val vocalsNameFlacSymlink: String get() = "$pathToSymlinkFolderBoostyFiles/$fileName-vocals.flac"
@@ -866,8 +865,8 @@ class Settings(
                     "svoemestodev/demucs:latest",
                     "''./demucs2 -file $PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName.flac -recode flac''"
                 ),
-                listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-accompaniment.flac", newNoStemNameFlac.rightFileName()),
-                listOf("chmod", "666", newNoStemNameFlac.rightFileName()),
+                listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-accompaniment.flac", accompanimentNameFlac.rightFileName()),
+                listOf("chmod", "666", accompanimentNameFlac.rightFileName()),
                 listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-vocals.flac", vocalsNameFlac.rightFileName()),
                 listOf("chmod", "666", vocalsNameFlac.rightFileName()),
                 listOf("rm", "-rf", PATH_TO_TEMP_DEMUCS_FOLDER)
@@ -896,8 +895,8 @@ class Settings(
                     "svoemestodev/demucs:latest",
                     "''./demucs5 -file $PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName.flac -recode flac''"
                 ),
-                listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-accompaniment.flac", newNoStemNameFlac.rightFileName()),
-                listOf("chmod", "666", newNoStemNameFlac.rightFileName()),
+                listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-accompaniment.flac", accompanimentNameFlac.rightFileName()),
+                listOf("chmod", "666", accompanimentNameFlac.rightFileName()),
                 listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-vocals.flac", vocalsNameFlac.rightFileName()),
                 listOf("chmod", "666", vocalsNameFlac.rightFileName()),
                 listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-drums.flac", drumsNameFlac.rightFileName()),
@@ -1267,9 +1266,9 @@ class Settings(
 
     @get:JsonIgnore
     val textDemucs2track: String get() = "python3 -m demucs -n $DEMUCS_MODEL_NAME -d cuda --filename \"{track}-{stem}.{ext}\" --two-stems=$separatedStem -o \"$rootFolder\" \"$fileAbsolutePath\"\n" +
-            "mv \"$oldNoStemNameWav\" \"$newNoStemNameWav\"" + "\n" +
-            "ffmpeg -i \"$newNoStemNameWav\" -compression_level 8 \"$newNoStemNameFlac\" -y" + "\n" +
-            "rm \"$newNoStemNameWav\"" + "\n" +
+            "mv \"$oldNoStemNameWav\" \"$accompanimentNameWav\"" + "\n" +
+            "ffmpeg -i \"$accompanimentNameWav\" -compression_level 8 \"$accompanimentNameFlac\" -y" + "\n" +
+            "rm \"$accompanimentNameWav\"" + "\n" +
             "ffmpeg -i \"$vocalsNameWav\" -compression_level 8 \"$vocalsNameFlac\" -y" + "\n" +
             "rm \"$vocalsNameWav\"" + "\n"
 
@@ -3571,7 +3570,7 @@ class Settings(
             if (File(fileAbsolutePath).exists()) File(fileAbsolutePath).delete()
             if (File(fileSettingsAbsolutePath).exists()) File(fileSettingsAbsolutePath).deleteOnExit()
             if (File(vocalsNameFlac).exists()) File(vocalsNameFlac).deleteOnExit()
-            if (File(newNoStemNameFlac).exists()) File(newNoStemNameFlac).deleteOnExit()
+            if (File(accompanimentNameFlac).exists()) File(accompanimentNameFlac).deleteOnExit()
         }
 
         val connection = database.getConnection()
@@ -3807,7 +3806,7 @@ class Settings(
                 haveTelegram &&
                 haveVk &&
                 haveDzen &&
-                havePl &&
+//                havePl &&
                 haveVkGroup &&
                 haveSponsr
             ) {
@@ -3816,7 +3815,7 @@ class Settings(
                 haveTelegram &&
                 haveVk &&
                 haveDzen &&
-                havePl &&
+//                havePl &&
                 haveVkGroup &&
                 !haveSponsr
             ) {
@@ -3831,7 +3830,7 @@ class Settings(
                 haveTelegram &&
                 haveVk &&
                 haveDzen &&
-                havePl &&
+//                havePl &&
                 haveVkGroup &&
                 haveSponsr
             ) {
@@ -3840,7 +3839,7 @@ class Settings(
                 haveTelegram &&
                 haveVk &&
                 haveDzen &&
-                havePl &&
+//                havePl &&
                 haveVkGroup &&
                 !haveSponsr
             ) {
@@ -3854,7 +3853,7 @@ class Settings(
             idTelegramKaraoke == "-" &&
             haveVk &&
             haveDzen &&
-            havePl &&
+//            havePl &&
             haveVkGroup &&
             haveSponsr
         ) return SettingState.ALL_UPLOADED
@@ -3863,7 +3862,7 @@ class Settings(
             !haveTelegram &&
             haveVk &&
             haveDzen &&
-            havePl &&
+//            havePl &&
             haveVkGroup &&
             haveSponsr
         ) return SettingState.WO_TG
@@ -3872,7 +3871,7 @@ class Settings(
             !haveTelegram &&
             haveVk &&
             haveDzen &&
-            !havePl &&
+//            !havePl &&
             haveVkGroup &&
             haveSponsr
         ) return SettingState.WO_PL
@@ -3881,7 +3880,7 @@ class Settings(
             !haveTelegram &&
             !haveVk &&
             haveDzen &&
-            !havePl &&
+//            !havePl &&
             haveVkGroup &&
             haveSponsr
         ) return SettingState.WO_VK_WO_PL
@@ -3890,7 +3889,7 @@ class Settings(
             !haveTelegram &&
             !haveVk &&
             haveDzen &&
-            havePl &&
+//            havePl &&
             haveVkGroup &&
             haveSponsr
         ) return SettingState.WO_VK
@@ -3899,7 +3898,7 @@ class Settings(
             !haveTelegram &&
             haveVk &&
             !haveDzen &&
-            havePl &&
+//            havePl &&
             haveVkGroup &&
             haveSponsr
         ) return SettingState.WO_DZEN_WITH_VK_WITH_PL
@@ -3908,7 +3907,7 @@ class Settings(
             !haveTelegram &&
             haveVk &&
             !haveDzen &&
-            !havePl &&
+//            !havePl &&
             haveVkGroup &&
             haveSponsr
         ) return SettingState.WO_DZEN_WITH_VK
@@ -3917,7 +3916,7 @@ class Settings(
             !haveTelegram &&
             !haveVk &&
             !haveDzen &&
-            havePl &&
+//            havePl &&
             haveVkGroup &&
             haveSponsr
         ) return SettingState.WO_DZEN
@@ -3926,7 +3925,7 @@ class Settings(
             !haveTelegram &&
             !haveVk &&
             !haveDzen &&
-            !havePl &&
+//            !havePl &&
             haveVkGroup &&
             haveSponsr
         ) return SettingState.BOOSTY_SPONSR
@@ -3981,8 +3980,8 @@ class Settings(
                 settNewVersion.fileName = rsfnNew
                 if (Paths.get(settOldVersion.fileAbsolutePath).toFile().exists()) Paths.get(settOldVersion.fileAbsolutePath).toFile().renameTo(Paths.get(settNewVersion.fileAbsolutePath).toFile())
                 if (Paths.get(settOldVersion.oldNoStemNameWav).toFile().exists()) Paths.get(settOldVersion.oldNoStemNameWav).toFile().renameTo(Paths.get(settNewVersion.oldNoStemNameWav).toFile())
-                if (Paths.get(settOldVersion.newNoStemNameWav).toFile().exists()) Paths.get(settOldVersion.newNoStemNameWav).toFile().renameTo(Paths.get(settNewVersion.newNoStemNameWav).toFile())
-                if (Paths.get(settOldVersion.newNoStemNameFlac).toFile().exists()) Paths.get(settOldVersion.newNoStemNameFlac).toFile().renameTo(Paths.get(settNewVersion.newNoStemNameFlac).toFile())
+                if (Paths.get(settOldVersion.accompanimentNameWav).toFile().exists()) Paths.get(settOldVersion.accompanimentNameWav).toFile().renameTo(Paths.get(settNewVersion.accompanimentNameWav).toFile())
+                if (Paths.get(settOldVersion.accompanimentNameFlac).toFile().exists()) Paths.get(settOldVersion.accompanimentNameFlac).toFile().renameTo(Paths.get(settNewVersion.accompanimentNameFlac).toFile())
                 if (Paths.get(settOldVersion.vocalsNameWav).toFile().exists()) Paths.get(settOldVersion.vocalsNameWav).toFile().renameTo(Paths.get(settNewVersion.vocalsNameWav).toFile())
                 if (Paths.get(settOldVersion.vocalsNameFlac).toFile().exists()) Paths.get(settOldVersion.vocalsNameFlac).toFile().renameTo(Paths.get(settNewVersion.vocalsNameFlac).toFile())
                 if (Paths.get(settOldVersion.drumsNameWav).toFile().exists()) Paths.get(settOldVersion.drumsNameWav).toFile().renameTo(Paths.get(settNewVersion.drumsNameWav).toFile())
@@ -4483,7 +4482,7 @@ class Settings(
             return where
         }
 
-        fun loadListFromDb(args: Map<String, String> = emptyMap(), database: KaraokeConnection, sync: Boolean = false, storageService: KaraokeStorageService): List<Settings> {
+        fun loadListFromDb(args: Map<String, String> = emptyMap(), database: KaraokeConnection, sync: Boolean = false, storageService: KaraokeStorageService, withoutMarkersAndText: Boolean = false): List<Settings> {
 
             val connection = database.getConnection()
             if (connection == null) {
@@ -4500,130 +4499,6 @@ class Settings(
                 sql = "SELECT * FROM $TABLE_NAME${if (sync) "_sync" else ""}"
                 val limit = args["limit"]?.toInt() ?: 0
                 val offset = args["offset"]?.toInt() ?: 0
-
-//                if (args.containsKey("ids")) where += "tbl_settings${if (sync) "_sync" else ""}.id in (${args["ids"]})"
-//                if (args.containsKey("is_sync")) {
-//                    val syncIds = SyncIdsDictionary().loadList()
-//                    if (syncIds.isNotEmpty()) {
-//                        where += "tbl_settings${if (sync) "_sync" else ""}.id in (${syncIds.joinToString(",")})"
-//                    } else {
-//                        where += "tbl_settings${if (sync) "_sync" else ""}.id < 0"
-//                    }
-//                }
-//                if (args.containsKey("file_name")) where += "LOWER(file_name)='${args["file_name"]?.rightFileName()?.lowercase()}'"
-//                if (args.containsKey("root_folder")) where += "LOWER(root_folder)='${args["root_folder"]?.rightFileName()?.lowercase()}'"
-//                if (args.containsKey("song_name")) where += "LOWER(song_name) LIKE '%${args["song_name"]?.rightFileName()?.lowercase()}%'"
-//                if (args.containsKey("song_author")) where += "LOWER(song_author) LIKE '%${args["song_author"]?.rightFileName()?.lowercase()}%'"
-//                if (args.containsKey("author")) where += "LOWER(song_author) = '${args["author"]?.rightFileName()?.lowercase()}'"
-//                if (args.containsKey("song_album")) where += "LOWER(song_album) LIKE '%${args["song_album"]?.rightFileName()?.lowercase()}%'"
-//                if (args.containsKey("album")) where += "LOWER(song_album) = '${args["album"]?.rightFileName()?.lowercase()}'"
-//
-//                if (args.containsKey("publish_date")) {
-//                    var pd = args["publish_date"]!!
-//                    if (pd[0] == '>') {
-//                        pd = pd.substring(1)
-//                        where += "to_date(publish_date, 'DD.MM.YY') >= to_date('$pd', 'DD.MM.YY')"
-//                    } else if (pd.last() == '<') {
-//                        pd = pd.dropLast(1)
-//                        where += "to_date(publish_date, 'DD.MM.YY') <= to_date('$pd', 'DD.MM.YY')"
-//                    } else {
-//                        if (pd == "-") {
-//                            where += "publish_date = ''"
-//                        } else if (pd == "+") {
-//                            where += "publish_date <> ''"
-//                        } else {
-//                            where += "publish_date LIKE '%$pd%'"
-//                        }
-//                    }
-//
-//                }
-//                if (args.containsKey("publish_time")) {
-//                    if (args["publish_time"] == "-") {
-//                        where += "publish_time = ''"
-//                    } else if (args["publish_time"] == "+") {
-//                        where += "publish_date <> ''"
-//                    } else {
-//                        where += "publish_time LIKE '%${args["publish_time"]}%'"
-//                    }
-//                }
-//                if (args.containsKey("status")) where += "status LIKE '%${args["status"]}%'"
-//                if (args.containsKey("song_bpm")) where += "song_bpm=${args["song_bpm"]}"
-//                if (args.containsKey("song_tone")) where += "song_tone=${args["song_tone"]}"
-//                if (args.containsKey("song_year")) where += "song_year=${args["song_year"]}"
-//                if (args.containsKey("song_track")) where += "song_track=${args["song_track"]}"
-//
-//                if (args.containsKey("flag_boosty")) where += "CASE WHEN id_boosty IS NOT NULL AND id_boosty <> 'null' AND id_boosty <> '' THEN '+' ELSE '-' END='${args["flag_boosty"]}'"
-//                if (args.containsKey("flag_sponsr")) where += "CASE WHEN id_sponsr IS NOT NULL AND id_sponsr <> 'null' AND id_sponsr <> '' THEN '+' ELSE '-' END='${args["flag_sponsr"]}'"
-//                if (args.containsKey("flag_vk")) where += "CASE WHEN id_vk IS NOT NULL AND id_vk <> 'null' AND id_vk <> '' THEN '+' ELSE '-' END='${args["flag_vk"]}'"
-//                if (args.containsKey("flag_dzen_lyrics")) where += "CASE WHEN id_dzen_lyrics IS NOT NULL AND id_dzen_lyrics <> 'null' AND id_dzen_lyrics <> '' THEN '+' ELSE '-' END='${args["flag_dzen_lyrics"]}'"
-//                if (args.containsKey("flag_dzen_karaoke")) where += "CASE WHEN id_dzen_karaoke IS NOT NULL AND id_dzen_karaoke <> 'null' AND id_dzen_karaoke <> '' THEN '+' ELSE '-' END='${args["flag_dzen_karaoke"]}'"
-//                if (args.containsKey("flag_dzen_chords")) where += "CASE WHEN id_dzen_chords IS NOT NULL AND id_dzen_chords <> 'null' AND id_dzen_chords <> '' THEN '+' ELSE '-' END='${args["flag_dzen_chords"]}'"
-//                if (args.containsKey("flag_dzen_melody")) where += "CASE WHEN id_dzen_melody IS NOT NULL AND id_dzen_melody <> 'null' AND id_dzen_melody <> '' THEN '+' ELSE '-' END='${args["flag_dzen_melody"]}'"
-//                if (args.containsKey("flag_vk_lyrics")) where += "CASE WHEN id_vk_lyrics IS NOT NULL AND id_vk_lyrics <> 'null' AND id_vk_lyrics <> '' THEN '+' ELSE '-' END='${args["flag_vk_lyrics"]}'"
-//                if (args.containsKey("flag_vk_karaoke")) where += "CASE WHEN id_vk_karaoke IS NOT NULL AND id_vk_karaoke <> 'null' AND id_vk_karaoke <> '' THEN '+' ELSE '-' END='${args["flag_vk_karaoke"]}'"
-//                if (args.containsKey("flag_vk_chords")) where += "CASE WHEN id_vk_chords IS NOT NULL AND id_vk_chords <> 'null' AND id_vk_chords <> '' THEN '+' ELSE '-' END='${args["flag_vk_chords"]}'"
-//                if (args.containsKey("flag_vk_melody")) where += "CASE WHEN id_vk_melody IS NOT NULL AND id_vk_melody <> 'null' AND id_vk_melody <> '' THEN '+' ELSE '-' END='${args["flag_vk_melody"]}'"
-//                if (args.containsKey("flag_telegram_lyrics")) where += "CASE WHEN id_telegram_lyrics IS NOT NULL AND id_telegram_lyrics <> 'null' AND id_telegram_lyrics <> '' THEN '+' ELSE '-' END='${args["flag_telegram_lyrics"]}'"
-//                if (args.containsKey("flag_telegram_karaoke")) where += "CASE WHEN id_telegram_karaoke IS NOT NULL AND id_telegram_karaoke <> 'null' AND id_telegram_karaoke <> '' THEN '+' ELSE '-' END='${args["flag_telegram_karaoke"]}'"
-//                if (args.containsKey("flag_telegram_chords")) where += "CASE WHEN id_telegram_chords IS NOT NULL AND id_telegram_chords <> 'null' AND id_telegram_chords <> '' THEN '+' ELSE '-' END='${args["flag_telegram_chords"]}'"
-//                if (args.containsKey("flag_telegram_melody")) where += "CASE WHEN id_telegram_melody IS NOT NULL AND id_telegram_melody <> 'null' AND id_telegram_melody <> '' THEN '+' ELSE '-' END='${args["flag_telegram_melody"]}'"
-//                if (args.containsKey("flag_pl_lyrics")) where += "CASE WHEN id_pl_lyrics IS NOT NULL AND id_pl_lyrics <> 'null' AND id_pl_lyrics <> '' THEN '+' ELSE '-' END='${args["flag_pl_lyrics"]}'"
-//                if (args.containsKey("flag_pl_karaoke")) where += "CASE WHEN id_pl_karaoke IS NOT NULL AND id_pl_karaoke <> 'null' AND id_pl_karaoke <> '' THEN '+' ELSE '-' END='${args["flag_pl_karaoke"]}'"
-//                if (args.containsKey("flag_pl_chords")) where += "CASE WHEN id_pl_chords IS NOT NULL AND id_pl_chords <> 'null' AND id_pl_chords <> '' THEN '+' ELSE '-' END='${args["flag_pl_chords"]}'"
-//                if (args.containsKey("flag_pl_melody")) where += "CASE WHEN id_pl_melody IS NOT NULL AND id_pl_melody <> 'null' AND id_pl_melody <> '' THEN '+' ELSE '-' END='${args["flag_pl_melody"]}'"
-//
-//                if (args.containsKey("filter_status_process_lyrics")) where += "LOWER(status_process_lyrics) LIKE '%${args["filter_status_process_lyrics"]?.rightFileName()?.lowercase()}%'"
-//                if (args.containsKey("filter_status_process_karaoke")) where += "LOWER(status_process_karaoke) LIKE '%${args["filter_status_process_karaoke"]?.rightFileName()?.lowercase()}%'"
-//
-//                val listFields = listOf(
-//                    Pair("id", "id"),
-//                    Pair("id_status", "id_status"),
-//                    Pair("filter_result_version", "result_version"),
-//                    Pair("filter_version_boosty", "version_boosty"),
-//                    Pair("filter_version_boosty_files", "version_boosty_files"),
-//                    Pair("filter_version_sponsr", "version_sponsr"),
-//                    Pair("filter_version_dzen_karaoke", "version_dzen_karaoke"),
-//                    Pair("filter_version_vk_karaoke", "version_vk_karaoke"),
-//                    Pair("filter_version_telegram_karaoke", "version_telegram_karaoke"),
-//                    Pair("filter_version_pl_karaoke", "version_pl_karaoke"),
-//                    Pair("filter_rate", "rate")
-//                )
-//
-//                listFields.forEach { (filterFldName, fldName) ->
-//                    if (args.containsKey(filterFldName)) {
-//                        args[filterFldName]!!.split("&&").forEach {
-//                            val value = it.trim()
-//                            if (value.startsWith(">=")) {
-//                                where += "tbl_settings${if (sync) "_sync" else ""}.$fldName>=${value.substring(2)}"
-//                            } else if (value.startsWith(">")) {
-//                                where += "tbl_settings${if (sync) "_sync" else ""}.$fldName>${value.substring(1)}"
-//                            } else if (value.startsWith("<=")) {
-//                                where += "tbl_settings${if (sync) "_sync" else ""}.$fldName<=${value.substring(2)}"
-//                            } else if (value.startsWith("<")) {
-//                                where += "tbl_settings${if (sync) "_sync" else ""}.$fldName<${value.substring(1)}"
-//                            } else if (value.startsWith("!=")) {
-//                                where += "tbl_settings${if (sync) "_sync" else ""}.$fldName<>${value.substring(2)}"
-//                            } else {
-//                                where += "tbl_settings${if (sync) "_sync" else ""}.$fldName=${value}"
-//                            }
-//                        }
-//                    }
-//                }
-//
-//                if (args.containsKey("tags")) {
-//                    var tg = args["tags"]!!
-//                    if (tg[0] == '~') {
-//                        tg = tg.substring(1)
-//                        where += "tags='${tg.rightFileName()}'"
-//                    } else if (tg.length > 2 && tg.startsWith("!~")) {
-//                        tg = tg.substring(2)
-//                        where += "tags NOT LIKE '%${tg.rightFileName()}%'"
-//                    } else {
-//                        where += "LOWER(tags) LIKE '%${tg.rightFileName().lowercase()}%'"
-//                    }
-//
-//                }
-//                if (args.containsKey("text")) where += "to_tsvector('russian', result_text) @@ plainto_tsquery('russian', '${args["text"]?.rightFileName()?.lowercase()}')"
 
                 if (where.isNotEmpty()) sql += " WHERE ${where.joinToString(" AND ")}"
 
@@ -4699,9 +4574,11 @@ class Settings(
                     rs.getInt("version_pl_melody").let { value -> settings.fields[SettingField.VERSION_PL_MELODY] = value.toString() }
                     rs.getInt("result_version").let { value -> settings.fields[SettingField.RESULT_VERSION] = value.toString() }
                     rs.getInt("diff_beats").let { value -> settings.fields[SettingField.DIFFBEATS] = value.toString() }
-                    rs.getString("source_text")?.let { value -> settings.sourceText = value }
-                    rs.getString("result_text")?.let { value -> settings.resultText = value }
-                    rs.getString("source_markers")?.let { value -> settings.sourceMarkers = value }
+                    if (!withoutMarkersAndText) {
+                        rs.getString("source_text")?.let { value -> settings.sourceText = value }
+                        rs.getString("result_text")?.let { value -> settings.resultText = value }
+                        rs.getString("source_markers")?.let { value -> settings.sourceMarkers = value }
+                    }
                     rs.getInt("rate").let { value -> settings.fields[SettingField.RATE] = value.toString() }
                     settings.statusProcessLyrics = rs.getString("status_process_lyrics") ?: ""
                     settings.statusProcessKaraoke = rs.getString("status_process_karaoke") ?: ""
@@ -4848,7 +4725,7 @@ class Settings(
                                 args = mapOf(
                                     Pair("file_name", fileName),
                                     Pair("root_folder", rootFolder)
-                                ), database = database, storageService = storageService
+                                ), database = database, storageService = storageService, withoutMarkersAndText = true
                             ).isEmpty()
                         ) {
                             // если файл не флак - преобразуем во флак и удаляем исходник
@@ -4962,7 +4839,8 @@ class Settings(
             val listOfSettings = loadListFromDb(
                 args = mapOf(Pair("song_author", startSettings.author)),
                 database = startSettings.database,
-                storageService = startSettings.storageService
+                storageService = startSettings.storageService,
+                withoutMarkersAndText = true
             ).filter { it.id > startSettings.id }
 
             if (startSettings.date == "") {

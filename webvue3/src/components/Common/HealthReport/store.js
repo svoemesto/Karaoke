@@ -33,6 +33,7 @@ export default {
         repairOneRecord(ctx, item) {
             const params = {
                 id: item.settingsId,
+                healthReportTypeName: item.healthReportTypeName,
                 healthReportStatusName: item.healthReportStatusName,
                 customCode: item.customCode,
                 songVersionName: item.songVersionName,

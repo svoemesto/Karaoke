@@ -502,7 +502,7 @@ class MainController(
         @PathVariable id: Long
     ): ResponseEntity<Resource> {
         Settings.loadFromDbById(id, database = WORKING_DATABASE, storageService = storageService)?.let { settings ->
-            val filename = File(settings.newNoStemNameFlac)
+            val filename = File(settings.accompanimentNameFlac)
             val resource = FileSystemResource(filename)
             if (resource.exists()) {
                 return ResponseEntity.ok()
@@ -1166,7 +1166,7 @@ class MainController(
         flag_telegram_chords?.let { if (flag_telegram_chords != "") args["flag_telegram_chords"] = flag_telegram_chords }
         filter_result_version?.let { if (filter_result_version != "") args["filter_result_version"] = filter_result_version }
         model.addAttribute("workInContainer", APP_WORK_IN_CONTAINER)
-        model.addAttribute("sett", Settings.loadListFromDb(args, database = WORKING_DATABASE, storageService = storageService))
+        model.addAttribute("sett", Settings.loadListFromDb(args, database = WORKING_DATABASE, storageService = storageService, withoutMarkersAndText = true))
         model.addAttribute("authors", Settings.loadListAuthors(WORKING_DATABASE))
         model.addAttribute("albums", Settings.loadListAlbums(WORKING_DATABASE))
         return "songs"
@@ -1337,7 +1337,7 @@ class MainController(
         flag_telegram_chords?.let { if (flag_telegram_chords != "") args["flag_telegram_chords"] = flag_telegram_chords }
         filter_result_version?.let { if (filter_result_version != "") args["filter_result_version"] = filter_result_version }
         model.addAttribute("workInContainer", APP_WORK_IN_CONTAINER)
-        model.addAttribute("sett", Settings.loadListFromDb(args, database = WORKING_DATABASE, storageService = storageService))
+        model.addAttribute("sett", Settings.loadListFromDb(args, database = WORKING_DATABASE, storageService = storageService, withoutMarkersAndText = true))
         model.addAttribute("authors", Settings.loadListAuthors(WORKING_DATABASE))
         model.addAttribute("albums", Settings.loadListAlbums(WORKING_DATABASE))
         return "songs2"

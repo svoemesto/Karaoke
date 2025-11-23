@@ -479,6 +479,7 @@ fun createKaraoke(settings: Settings, songVersion: SongVersion) {
 //    createBoostyTeaserPicture(settings)
 //    createBoostyFilesPicture(settings)
     createSponsrTeaserPicture(settings)
+    createVKLinkPicture(settings)
 //    createVKPicture(settings)
 //    createVKLinkPicture(settings)
     createVKLinkPictureWeb(settings)

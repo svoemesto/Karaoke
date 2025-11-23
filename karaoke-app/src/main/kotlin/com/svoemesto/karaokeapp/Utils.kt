@@ -96,7 +96,11 @@ fun customFunction(
 
 fun checkHealth(storageService: KaraokeStorageService, executeActions: Boolean = false) {
 
-    val listSettings = Settings.loadListFromDb(database = WORKING_DATABASE, storageService = storageService)
+    val listSettings = Settings.loadListFromDb(
+        database = WORKING_DATABASE,
+        storageService = storageService,
+        withoutMarkersAndText = true
+    )
     var lastPrintedPercent = -1
     listSettings.forEachIndexed { index, settings ->
         val percent = (((index / listSettings.size.toDouble()) * 100).toInt() / 10) * 10
@@ -104,13 +108,18 @@ fun checkHealth(storageService: KaraokeStorageService, executeActions: Boolean =
             lastPrintedPercent = percent
             println("checkHealth $percent%")
         }
-        val healthReport = settings.healthReportList()
+        val healthReport = settings.healthReportList().errorsOnly()
         if (healthReport.isNotEmpty()) {
             println("${settings.fileName} содержит ошибки:")
             healthReport.forEach { healthReport ->
-                println("    ${healthReport.description}")
+                println("    Тип отчёта: ${healthReport.healthReportType.name}")
+                println("    Тип файла: ${healthReport.description}")
+                println("    Статус: ${healthReport.healthReportStatus.name}")
+                println("    Проблема: ${healthReport.problemText}")
+                println("    Решение: ${healthReport.solutionText}")
+                println("--------------------------------------------")
                 if (executeActions) {
-                    healthReport.customActions.forEach { action ->
+                    healthReport.solutionActions.forEach { action ->
                         action()
                     }
                 }
@@ -2637,4 +2646,39 @@ fun calculateAbsolutePathFromSymlink(relativePath: String, symlinkAbsolutePath: 
     val resolvedTargetAbsolutePath: Path = symlinkParentDir.resolve(relativePathObj).normalize()
 
     return resolvedTargetAbsolutePath.toString()
+}
+
+fun actionToDeleteFileAndFolderIfFolderEmpty(pathToFile: String): () -> Unit {
+    return {
+        println("actionToDeleteFileAndFolderIfFolderEmpty - Удаление файла '$pathToFile' >>>")
+        val fileExists = File(pathToFile).exists()
+        if (fileExists) {
+            val folder = File(pathToFile).parent
+            runCommand(args = listOf("rm", "-f", pathToFile))
+            val folderExists = File(folder).exists()
+            if (folderExists) {
+                val folderIsEmpty = Files.list(Path(folder)).findFirst().isEmpty
+                if (folderIsEmpty) {
+                    Files.deleteIfExists(Path(folder))
+                    // Проверка, что пустая папка удалена
+                    if (File(folder).exists()) {
+                        println("actionToDeleteFileAndFolderIfFolderEmpty - не удалось удалить пустую папку '$folder'")
+                    }
+                }
+            }
+            if (File(pathToFile).exists()) {
+                println("actionToDeleteFileAndFolderIfFolderEmpty - не удалось удалить файл '$pathToFile'")
+            }
+        } else {
+            println("actionToDeleteFileAndFolderIfFolderEmpty - попытка удалить несуществующий файл '$pathToFile'")
+        }
+        println("actionToDeleteFileAndFolderIfFolderEmpty - Удаление файла '$pathToFile' <<<")
+    }
+}
+
+
+fun getTempFilePath(prefix: String = "temp", suffix: String = ".tmp"): Path {
+    // Создаёт файл в стандартной директории для временных файлов
+    // с рандомным именем, начинающимся с 'prefix' и заканчивающимся на 'suffix'
+    return Files.createTempFile(prefix, suffix)
 }

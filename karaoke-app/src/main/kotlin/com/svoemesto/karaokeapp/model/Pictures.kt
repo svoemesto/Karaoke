@@ -115,10 +115,10 @@ class Pictures(
         return if (isAlbumPicture) {
             // Ищем первую песню автора, года и альбома
             val args = mapOf("author" to author, "song_year" to year, "album" to album, "limit" to "1")
-            Settings.loadListFromDb(args = args, database = WORKING_DATABASE, storageService = storageService).firstOrNull()?.rootFolder ?: ""
+            Settings.loadListFromDb(args = args, database = WORKING_DATABASE, storageService = storageService, withoutMarkersAndText = true).firstOrNull()?.rootFolder ?: ""
         } else if (isAuthorPicture) {
             val args = mapOf("author" to author, "limit" to "1")
-            Settings.loadListFromDb(args = args, database = WORKING_DATABASE, storageService = storageService).firstOrNull()?.let { sett ->
+            Settings.loadListFromDb(args = args, database = WORKING_DATABASE, storageService = storageService, withoutMarkersAndText = true).firstOrNull()?.let { sett ->
                 File(sett.rootFolder).parent
             }?: ""
         } else ""

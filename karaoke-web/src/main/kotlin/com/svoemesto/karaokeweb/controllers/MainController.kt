@@ -251,7 +251,7 @@ class MainController(
         if (text != null && text != "") attr["text"] = text
         if (album != null && album != "") attr["song_album"] = album
 
-        val settings: List<Settings> = if ("${songName ?: ""}${author ?: ""}${album ?: ""}${text ?: ""}".length < 3) emptyList() else Settings.loadListFromDb(attr, database = WORKING_DATABASE, storageService = storageService)
+        val settings: List<Settings> = if ("${songName ?: ""}${author ?: ""}${album ?: ""}${text ?: ""}".length < 3) emptyList() else Settings.loadListFromDb(attr, database = WORKING_DATABASE, storageService = storageService, withoutMarkersAndText = true)
 
         model.addAttribute("authors", Settings.loadListAuthors(WORKING_DATABASE))
         model.addAttribute("settings", settings)

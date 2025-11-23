@@ -46,7 +46,7 @@ dependencies {
     implementation("io.ktor:ktor-server-core:2.3.0")
     implementation("org.apache.commons:commons-csv:1.8")
 
-    implementation("org.seleniumhq.selenium:selenium-java:4.8.0")
+    implementation("org.seleniumhq.selenium:selenium-java:4.37.0")
 
     implementation("javax.websocket:javax.websocket-all:1.1")
 

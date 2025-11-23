@@ -36,7 +36,10 @@ services:
       - java
       - -Dfile.encoding=UTF-8
       - -Djava.security.egd=file:/dev/./urandom
-    command: ${APP_JAVA_OPTS} -jar /app.jar
+    command:
+      - ${APP_JAVA_OPTS}
+      - -jar
+      - /app.jar
 
   karaoke-web:
     container_name: karaoke-web
@@ -55,7 +58,10 @@ services:
       - -Djava.security.egd=file:/dev/./urandom
       - -XX:+HeapDumpOnOutOfMemoryError
       - -XX:HeapDumpPath=/dumps
-    command: ${APP_JAVA_OPTS} -jar /app.jar
+    command:
+      - ${WEB_JAVA_OPTS}
+      - -jar
+      - /app.jar
     restart: always
 
   karaoke-webvue:

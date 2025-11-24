@@ -4,6 +4,7 @@ import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.WORKING_DATABASE
 import com.svoemesto.karaokeapp.censored
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
+import com.svoemesto.karaokeapp.services.StorageApiClient
 import java.io.Serializable
 import java.text.SimpleDateFormat
 import java.util.*
@@ -330,7 +331,7 @@ class Publication(val database: KaraokeConnection = WORKING_DATABASE) : Serializ
     }
 
     companion object {
-        fun getPublicationList(args: Map<String, String> = emptyMap(), database: KaraokeConnection, storageService: KaraokeStorageService): List<Publication> {
+        fun getPublicationList(args: Map<String, String> = emptyMap(), database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient): List<Publication> {
             val result: MutableList<Publication> = mutableListOf()
 
             var filterDateFrom =  args["filter_date_from"] ?: ""
@@ -344,7 +345,7 @@ class Publication(val database: KaraokeConnection = WORKING_DATABASE) : Serializ
                 filterDateFrom = SimpleDateFormat("dd.MM.yy").format(Date())
                 filterDateTo = ""
             } else if (filterCond == "fromnotpublish") {
-                val listOfSettingsTemp = Settings.loadListFromDb(database = database, storageService = storageService, withoutMarkersAndText = true).filter {
+                val listOfSettingsTemp = Settings.loadListFromDb(database = database, storageService = storageService, storageApiClient = storageApiClient, withoutMarkersAndText = true).filter {
                     it.date != "" &&
                     it.time != "" &&
                     it.flags != ""
@@ -361,7 +362,7 @@ class Publication(val database: KaraokeConnection = WORKING_DATABASE) : Serializ
                     filterDateTo = ""
                 }
             } else if (filterCond == "fromnotdone") {
-                val listOfSettingsTemp = Settings.loadListFromDb(database = database, storageService = storageService, withoutMarkersAndText = true).filter {
+                val listOfSettingsTemp = Settings.loadListFromDb(database = database, storageService = storageService, storageApiClient = storageApiClient, withoutMarkersAndText = true).filter {
                     it.date != "" &&
                     it.time != "" &&
                     it.idStatus < 3L
@@ -378,7 +379,7 @@ class Publication(val database: KaraokeConnection = WORKING_DATABASE) : Serializ
                     filterDateTo = ""
                 }
             } else if (filterCond == "fromnotcheck") {
-                val listOfSettingsTemp = Settings.loadListFromDb(database = database, storageService = storageService, withoutMarkersAndText = true).filter {
+                val listOfSettingsTemp = Settings.loadListFromDb(database = database, storageService = storageService, storageApiClient = storageApiClient, withoutMarkersAndText = true).filter {
                     it.date != "" &&
                     it.time != "" &&
                     it.idStatus < 4L
@@ -398,7 +399,7 @@ class Publication(val database: KaraokeConnection = WORKING_DATABASE) : Serializ
             }
 
 
-            val listOfSettings = Settings.loadListFromDb(database = database, storageService = storageService, withoutMarkersAndText = true).filter {
+            val listOfSettings = Settings.loadListFromDb(database = database, storageService = storageService, storageApiClient = storageApiClient, withoutMarkersAndText = true).filter {
                 it.date != "" &&
                 it.time != "" &&
                 (if (filterDateFrom != "") SimpleDateFormat("dd.MM.yy").parse(it.date)  >= SimpleDateFormat("dd.MM.yy").parse(filterDateFrom) else true) &&
@@ -434,18 +435,19 @@ class Publication(val database: KaraokeConnection = WORKING_DATABASE) : Serializ
             return result
         }
 
-        fun getUnPublicationList(database: KaraokeConnection, storageService: KaraokeStorageService): MutableList<MutableList<Publication>> {
+        fun getUnPublicationList(database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient): MutableList<MutableList<Publication>> {
             val result: MutableList<MutableList<Publication>> = mutableListOf()
 
             val skipedAuthors = Author.loadList(
                 whereArgs = mapOf("skip" to "true"),
                 database = database,
                 storageService = storageService,
+                storageApiClient = storageApiClient,
                 ignoreUseInList = true
             ).map { it.author }
 
             val listUnpublished =
-                Settings.loadListFromDb(mapOf("publish_date" to "-", "publish_time" to "-"), database = database, storageService = storageService, withoutMarkersAndText = true)
+                Settings.loadListFromDb(mapOf("publish_date" to "-", "publish_time" to "-"), database = database, storageService = storageService, storageApiClient = storageApiClient, withoutMarkersAndText = true)
                     .filter { it.author !in skipedAuthors }
                     .groupBy { it.author }
                     .map { it.value }
@@ -484,18 +486,19 @@ class Publication(val database: KaraokeConnection = WORKING_DATABASE) : Serializ
             return result
         }
 
-        fun getSkipedPublicationList(database: KaraokeConnection, storageService: KaraokeStorageService): MutableList<MutableList<Publication>> {
+        fun getSkipedPublicationList(database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient): MutableList<MutableList<Publication>> {
             val result: MutableList<MutableList<Publication>> = mutableListOf()
 
             val skipedAuthors = Author.loadList(
                 whereArgs = mapOf("skip" to "true"),
                 database = database,
                 storageService = storageService,
+                storageApiClient = storageApiClient,
                 ignoreUseInList = true
             ).map { it.author }
 
             val listUnpublished =
-                    Settings.loadListFromDb(mapOf("publish_date" to "-", "publish_time" to "-"), database = database, storageService = storageService, withoutMarkersAndText = true)
+                    Settings.loadListFromDb(mapOf("publish_date" to "-", "publish_time" to "-"), database = database, storageService = storageService, storageApiClient = storageApiClient, withoutMarkersAndText = true)
                             .filter { it.author in skipedAuthors }
                             .groupBy { it.author }
                             .map { it.value }
@@ -534,12 +537,13 @@ class Publication(val database: KaraokeConnection = WORKING_DATABASE) : Serializ
             return result
         }
 
-        fun getSettingsListForPublications(args: Map<String, String> = emptyMap(), database: KaraokeConnection, storageService: KaraokeStorageService): List<Settings> {
+        fun getSettingsListForPublications(args: Map<String, String> = emptyMap(), database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient): List<Settings> {
 
             val skipedAuthors = Author.loadList(
                 whereArgs = mapOf("skip" to "true"),
                 database = database,
                 storageService = storageService,
+                storageApiClient = storageApiClient,
                 ignoreUseInList = true
             ).map { it.author }
 
@@ -554,7 +558,7 @@ class Publication(val database: KaraokeConnection = WORKING_DATABASE) : Serializ
                 filterDateFrom = SimpleDateFormat("dd.MM.yy").format(Date())
                 filterDateTo = ""
             } else if (filterCond == "fromnotpublish") {
-                val listOfSettingsTemp = Settings.loadListFromDb(database = database, storageService = storageService, withoutMarkersAndText = true).filter {
+                val listOfSettingsTemp = Settings.loadListFromDb(database = database, storageService = storageService, storageApiClient = storageApiClient, withoutMarkersAndText = true).filter {
                     it.date != "" &&
                             it.time != "" &&
                             it.flags != ""
@@ -571,7 +575,7 @@ class Publication(val database: KaraokeConnection = WORKING_DATABASE) : Serializ
                     filterDateTo = ""
                 }
             } else if (filterCond == "fromnotdone") {
-                val listOfSettingsTemp = Settings.loadListFromDb(database = database, storageService = storageService, withoutMarkersAndText = true).filter {
+                val listOfSettingsTemp = Settings.loadListFromDb(database = database, storageService = storageService, storageApiClient = storageApiClient, withoutMarkersAndText = true).filter {
                     it.date != "" &&
                             it.time != "" &&
                             it.idStatus < 3L
@@ -588,7 +592,7 @@ class Publication(val database: KaraokeConnection = WORKING_DATABASE) : Serializ
                     filterDateTo = ""
                 }
             } else if (filterCond == "fromnotcheck") {
-                val listOfSettingsTemp = Settings.loadListFromDb(database = database, storageService = storageService, withoutMarkersAndText = true).filter {
+                val listOfSettingsTemp = Settings.loadListFromDb(database = database, storageService = storageService, storageApiClient = storageApiClient, withoutMarkersAndText = true).filter {
                     it.date != "" &&
                             it.time != "" &&
                             it.idStatus < 4L
@@ -606,12 +610,12 @@ class Publication(val database: KaraokeConnection = WORKING_DATABASE) : Serializ
                 }
 
             } else if (filterCond == "unpublish") {
-                return Settings.loadListFromDb(mapOf("publish_date" to "-", "publish_time" to "-"), database = database, storageService = storageService, withoutMarkersAndText = true).filter { it.author !in skipedAuthors }
+                return Settings.loadListFromDb(mapOf("publish_date" to "-", "publish_time" to "-"), database = database, storageService = storageService, storageApiClient = storageApiClient, withoutMarkersAndText = true).filter { it.author !in skipedAuthors }
             } else if (filterCond == "skiped") {
-                return Settings.loadListFromDb(mapOf("publish_date" to "-", "publish_time" to "-"), database = database, storageService = storageService, withoutMarkersAndText = true).filter { it.author in skipedAuthors }
+                return Settings.loadListFromDb(mapOf("publish_date" to "-", "publish_time" to "-"), database = database, storageService = storageService, storageApiClient = storageApiClient, withoutMarkersAndText = true).filter { it.author in skipedAuthors }
             }
 
-            return Settings.loadListFromDb(database = database, storageService = storageService, withoutMarkersAndText = true).filter { it.author !in skipedAuthors }.filter {
+            return Settings.loadListFromDb(database = database, storageService = storageService, storageApiClient = storageApiClient, withoutMarkersAndText = true).filter { it.author !in skipedAuthors }.filter {
                 it.date != "" &&
                         it.time != "" &&
                         (if (filterDateFrom != "") SimpleDateFormat("dd.MM.yy").parse(it.date)  >= SimpleDateFormat("dd.MM.yy").parse(filterDateFrom) else true) &&
@@ -620,9 +624,9 @@ class Publication(val database: KaraokeConnection = WORKING_DATABASE) : Serializ
 
         }
 
-        fun getSettingsListForUnpublications(database: KaraokeConnection, storageService: KaraokeStorageService): List<Settings> {
+        fun getSettingsListForUnpublications(database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient): List<Settings> {
 
-            return Settings.loadListFromDb(mapOf("publish_date" to "-", "publish_time" to "-"), database = database, storageService = storageService, withoutMarkersAndText = true)
+            return Settings.loadListFromDb(mapOf("publish_date" to "-", "publish_time" to "-"), database = database, storageService = storageService, storageApiClient = storageApiClient, withoutMarkersAndText = true)
 
         }
 

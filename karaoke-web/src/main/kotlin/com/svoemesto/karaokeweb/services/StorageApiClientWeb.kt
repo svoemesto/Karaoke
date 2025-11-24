@@ -1,7 +1,10 @@
-package com.svoemesto.karaokeapp.services
+package com.svoemesto.karaokeweb.services
 
+import com.svoemesto.karaokeapp.services.StorageApiClient
+import com.svoemesto.karaokeapp.services.StorageFileInfo
 import io.minio.StatObjectResponse
 import org.springframework.core.io.ByteArrayResource
+import org.springframework.http.MediaType
 import org.springframework.stereotype.Service
 import org.springframework.util.LinkedMultiValueMap
 import org.springframework.util.MultiValueMap
@@ -9,39 +12,15 @@ import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.bodyToMono
 import reactor.core.publisher.Mono
+import java.io.File
+import java.net.URLDecoder
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
-import org.springframework.http.MediaType
-import java.io.File
-import java.io.FileOutputStream
-import java.net.URLDecoder
 import java.nio.file.Files
 import java.nio.file.Paths
-import kotlin.io.copyTo
-
-interface StorageApiClient {
-    fun uploadFile(bucketName: String, fileName: String, pathToFileOnDisk: String): String?
-    fun uploadFile(bucketName: String, fileName: String, fileContent: ByteArray): Mono<String>
-    fun getFileUrl(bucketName: String, fileName: String): Mono<String>
-    fun getPresignedUrl(bucketName: String, fileName: String, expiry: Int = 604800): Mono<String>
-    fun downloadFile(bucketName: String, fileName: String): Mono<ByteArray>
-    fun downloadFile(bucketName: String, fileName: String, pathToFileOnDisk: String): File
-    fun deleteFile(bucketName: String, fileName: String): Mono<String>
-    fun listFiles(bucketName: String): Mono<List<String>>
-    fun checkIfExists(bucketName: String, fileName: String): Mono<Map<String, Boolean>>
-    fun fileExists(bucketName: String, fileName: String): Boolean
-    fun fileIsActual(bucketName: String, fileName: String, pathToFileOnDisk: String): Boolean
-    fun fileIsActual(bucketName: String, fileName: String, storageFileInfo: StorageFileInfo): Boolean
-    fun setBucketPublic(bucketName: String): Mono<String>
-    fun setBucketPrivate(bucketName: String): Mono<String>
-    fun isBucketPublic(bucketName: String): Mono<Map<String, Boolean>>
-    fun getFileStat(bucketName: String, fileName: String): Mono<StatObjectResponse>
-    fun getFileInfo(bucketName: String, fileName: String): Mono<StorageFileInfo>
-    fun listFilesInfo(bucketName: String): Mono<List<StorageFileInfo>>
-}
 
 @Service
-class StorageApiClientImpl(private val webClient: WebClient): StorageApiClient { // Предполагается, что WebClient настроен с baseUrl
+class StorageApiClientWeb(private val webClient: WebClient): StorageApiClient { // Предполагается, что WebClient настроен с baseUrl
 
     // --- Вспомогательная функция для декодирования имени файла ---
     private fun decodeFileNameIfEncoded(fileName: String): String {

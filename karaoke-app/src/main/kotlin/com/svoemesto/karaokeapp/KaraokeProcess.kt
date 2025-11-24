@@ -3,7 +3,9 @@ package com.svoemesto.karaokeapp
 import com.svoemesto.karaokeapp.model.*
 import com.svoemesto.karaokeapp.services.KSS_APP
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
+import com.svoemesto.karaokeapp.services.SAC_APP
 import com.svoemesto.karaokeapp.services.SNS
+import com.svoemesto.karaokeapp.services.StorageApiClient
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
@@ -25,8 +27,10 @@ import kotlin.io.path.Path
 
 class KaraokeProcess(
     override val database: KaraokeConnection = WORKING_DATABASE,
-    override val storageService: KaraokeStorageService = KSS_APP
-) : Serializable, Comparable<KaraokeProcess>, KaraokeDbTable {
+    override val storageService: KaraokeStorageService = KSS_APP,
+    override val storageApiClient: StorageApiClient = SAC_APP,
+
+    ) : Serializable, Comparable<KaraokeProcess>, KaraokeDbTable {
 
     override fun getTableName() = "tbl_processes"
 
@@ -332,7 +336,7 @@ class KaraokeProcess(
         ps.close()
 
         if (!withoutControl) {
-            updateStatusProcessSettings(database = database, storageService = storageService)
+            updateStatusProcessSettings(database = database, storageService = storageService, storageApiClient = storageApiClient)
             if (command != "tail" || args[0][0] !in KaraokeProcessWorker.argsIgnoredToLog) {
                 val messageRecordChange = SseNotification.recordChange(
                         RecordChangeMessage(
@@ -357,9 +361,9 @@ class KaraokeProcess(
 
     }
 
-    fun updateStatusProcessSettings(database: KaraokeConnection, storageService: KaraokeStorageService) {
+    fun updateStatusProcessSettings(database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient) {
         if (settingsId != 0) {
-            val settings = Settings.loadFromDbById(id = settingsId.toLong(), database = database, storageService = storageService)
+            val settings = Settings.loadFromDbById(id = settingsId.toLong(), database = database, storageService = storageService, storageApiClient = storageApiClient)
             settings?.let {
                 when (type) {
                     KaraokeProcessTypes.MELT_LYRICS.name -> {
@@ -1373,7 +1377,7 @@ class KaraokeProcess(
                 }
             }
 
-            karaokeProcess.updateStatusProcessSettings(database = settings.database, storageService = settings.storageService)
+            karaokeProcess.updateStatusProcessSettings(database = settings.database, storageService = settings.storageService, storageApiClient = settings.storageApiClient)
 
             val separatedProcesses = separate(karaokeProcess)
 

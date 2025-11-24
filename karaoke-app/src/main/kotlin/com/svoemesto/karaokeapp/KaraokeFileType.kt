@@ -183,24 +183,6 @@ enum class KaraokeFileType(
 
     // PROJECT
 
-    PROJECT_ALL_RUN (
-        description = "Скрипт для рендера всех версий",
-        karaokeFileTypeFor = KaraokeFileTypeFor.SONG,
-        karaokeFileTypeKind = KaraokeFileTypeKind.PROJECT,
-        locations = listOf(KaraokeFileTypeLocations.LOCAL_FILESYSTEM),
-        extention = "run",
-        suffix = " [ALL]",
-        canResolve = false
-    ),
-    PROJECT_ALL_WO_LYRICS_RUN (
-        description = "Скрипт для рендера всех версий, кроме LYRICS",
-        karaokeFileTypeFor = KaraokeFileTypeFor.SONG,
-        karaokeFileTypeKind = KaraokeFileTypeKind.PROJECT,
-        locations = listOf(KaraokeFileTypeLocations.LOCAL_FILESYSTEM),
-        extention = "run",
-        suffix = " [ALLwoLYRICS]",
-        canResolve = false
-    ),
     PROJECT_SONGVERSION_RUN (
         description = "Скрипт для рендера конкретной версии",
         karaokeFileTypeFor = KaraokeFileTypeFor.SONGVERSION,
@@ -237,7 +219,6 @@ enum class KaraokeFileType(
         suffix = "",
         canResolve = false
     ),
-
 
     ;
 

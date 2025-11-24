@@ -1,6 +1,7 @@
 package com.svoemesto.karaokeweb.services
 
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
+import com.svoemesto.karaokeapp.services.StorageApiClient
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.stereotype.Service
@@ -14,6 +15,7 @@ var WEB_WORK_IN_CONTAINER by Delegates.notNull<Boolean>()
 class KaraokeWebService(
     val webSocket: SimpMessagingTemplate,
     val karaokeStorageService: KaraokeStorageService,
+    val storageApiClient: StorageApiClient,
     @Value($$"${work-in-container}") val wic: Long
 ) {
 

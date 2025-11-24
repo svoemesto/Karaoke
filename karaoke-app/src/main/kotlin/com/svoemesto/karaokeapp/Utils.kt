@@ -12,6 +12,7 @@ import com.svoemesto.karaokeapp.mlt.MltObjectType
 import com.svoemesto.karaokeapp.model.*
 import com.svoemesto.karaokeapp.services.KSS_APP
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
+import com.svoemesto.karaokeapp.services.SAC_APP
 import com.svoemesto.karaokeapp.services.StorageApiClient
 import com.svoemesto.karaokeapp.textfiledictionary.YoWordsDictionary
 import kotlinx.coroutines.Dispatchers
@@ -89,16 +90,17 @@ fun customFunction(
 //        storageApiClient = storageApiClient
 //    )
 
-    checkHealth(storageService = storageService, executeActions = true)
+    checkHealth(storageService = storageService, storageApiClient = storageApiClient, executeActions = true)
 
     return ""
 }
 
-fun checkHealth(storageService: KaraokeStorageService, executeActions: Boolean = false) {
+fun checkHealth(storageService: KaraokeStorageService, storageApiClient: StorageApiClient, executeActions: Boolean = false) {
 
     val listSettings = Settings.loadListFromDb(
         database = WORKING_DATABASE,
         storageService = storageService,
+        storageApiClient = storageApiClient,
         withoutMarkersAndText = false
     )
     var lastPrintedPercent = -1
@@ -231,7 +233,7 @@ fun syncRemotePicturesInStorage(
 
 @Suppress("unused")
 fun uploadPicturesToStorage() {
-    Pictures.loadList(whereArgs = emptyMap(), database = WORKING_DATABASE, storageService = KSS_APP, ignoreUseInList = false).forEach { picture ->
+    Pictures.loadList(whereArgs = emptyMap(), database = WORKING_DATABASE, storageService = KSS_APP, storageApiClient = SAC_APP, ignoreUseInList = false).forEach { picture ->
         if (picture.storageFileExists()) {
             println("Картинка '${picture.name}' уже есть в хранилище, пропускаем.")
         } else {
@@ -240,7 +242,7 @@ fun uploadPicturesToStorage() {
                 picture.storageUploadFile(pathToFileOnDisk)
                 println("Картинка '${picture.name}': загружаем в хранилище с диска")
             } else {
-                Pictures.getPictureById(id = picture.id, database = WORKING_DATABASE, storageService = KSS_APP)?.let { picWithFull ->
+                Pictures.getPictureById(id = picture.id, database = WORKING_DATABASE, storageService = KSS_APP, storageApiClient = SAC_APP)?.let { picWithFull ->
                     val pictureBites = Base64.getDecoder().decode(picWithFull.full)
                     val bais = ByteArrayInputStream(pictureBites)
                     picWithFull.storageUploadFile(file = bais, size = bais.available().toLong())
@@ -254,7 +256,7 @@ fun uploadPicturesToStorage() {
 
 fun setSettingsToSyncRemoteTable(id: Long) {
 
-    val sqlToInsert = Settings.loadFromDbById(id = id, database = Connection.local(), storageService = KSS_APP)?.getSqlToInsert(sync = true)
+    val sqlToInsert = Settings.loadFromDbById(id = id, database = Connection.local(), storageService = KSS_APP, storageApiClient = SAC_APP)?.getSqlToInsert(sync = true)
     if (sqlToInsert != null) {
         Settings.deleteFromDb(id = id, database = Connection.remote(), sync = true)
         val connection = Connection.remote().getConnection()
@@ -288,7 +290,7 @@ fun setSettingsToSyncRemoteTable(ids: List<Long>): List<String> {
     }
 
     ids.forEach { id ->
-        val itemFrom = Settings.loadFromDbById(id = id, database = fromDatabase, storageService = KSS_APP)
+        val itemFrom = Settings.loadFromDbById(id = id, database = fromDatabase, storageService = KSS_APP, storageApiClient = SAC_APP)
         if (itemFrom != null) {
             listToCreateNames.add(itemFrom.fileName)
             println("Добавляем запись в $tableName: id=${itemFrom.id}, ${itemFrom.fileName}")
@@ -444,7 +446,7 @@ fun updateDatabases(
         }.map { it.id }
 
         idsToDelete.forEach { id ->
-            Settings.loadFromDbById(id = id, database = toDatabase, storageService = KSS_APP)?.let { listToDeleteNames.add(it.fileName) }
+            Settings.loadFromDbById(id = id, database = toDatabase, storageService = KSS_APP, storageApiClient = SAC_APP)?.let { listToDeleteNames.add(it.fileName) }
             if (toDatabase.name == "SERVER") {
                 val sqlToDelete = "DELETE FROM $tableName WHERE id = $id"
                 val setStrEncrypted = Crypto.encrypt(sqlToDelete)
@@ -458,7 +460,7 @@ fun updateDatabases(
         }
 
         idsToInsert.forEach { id ->
-            val itemFrom = Settings.loadFromDbById(id = id, database = fromDatabase, storageService = KSS_APP)
+            val itemFrom = Settings.loadFromDbById(id = id, database = fromDatabase, storageService = KSS_APP, storageApiClient = SAC_APP)
             if (itemFrom != null) {
                 listToCreateNames.add(itemFrom.fileName)
                 println("Добавляем запись в $tableName: id=${itemFrom.id}, ${itemFrom.fileName}")
@@ -483,8 +485,8 @@ fun updateDatabases(
         }
 
         idsToUpdate.forEach { id ->
-            val itemFrom = Settings.loadFromDbById(id = id, database = fromDatabase, storageService = KSS_APP)
-            val itemTo = Settings.loadFromDbById(id = id, database = toDatabase, storageService = KSS_APP)
+            val itemFrom = Settings.loadFromDbById(id = id, database = fromDatabase, storageService = KSS_APP, storageApiClient = SAC_APP)
+            val itemTo = Settings.loadFromDbById(id = id, database = toDatabase, storageService = KSS_APP, storageApiClient = SAC_APP)
             if (itemFrom != null && itemTo != null) {
                 val diff = Settings.getDiff(itemFrom, itemTo)
                 if (diff.isNotEmpty() && !diff.all { !it.recordDiffRealField || it.recordDiffName.startsWith("status_process_")}) {
@@ -580,7 +582,7 @@ fun updateDatabases(
 
         idsToDelete.forEach { id ->
             if (toDatabase.name == "SERVER") {
-                Pictures.getPictureById(id = id, database = toDatabase, storageService = KSS_APP)?.let { listToDeleteNames.add(it.name) }
+                Pictures.getPictureById(id = id, database = toDatabase, storageService = KSS_APP, storageApiClient = SAC_APP)?.let { listToDeleteNames.add(it.name) }
                 val sqlToDelete = "DELETE FROM $tableName WHERE id = $id"
                 val setStrEncrypted = Crypto.encrypt(sqlToDelete)
                 val values: Map<String, Any> = mapOf(
@@ -593,7 +595,7 @@ fun updateDatabases(
         }
 
         idsToInsert.forEach { id ->
-            val itemFrom = Pictures.getPictureById(id = id, database = fromDatabase, storageService = KSS_APP)
+            val itemFrom = Pictures.getPictureById(id = id, database = fromDatabase, storageService = KSS_APP, storageApiClient = SAC_APP)
             if (itemFrom != null) {
                 listToCreateNames.add(itemFrom.name)
                 println("[${Timestamp.from(Instant.now())}] Добавляем запись в $tableName: id=${itemFrom.id}, ${itemFrom.name}")
@@ -618,8 +620,8 @@ fun updateDatabases(
         }
 
         idsToUpdate.forEach { id ->
-            val itemFrom = Pictures.getPictureById(id = id, database = fromDatabase, storageService = KSS_APP)
-            val itemTo = Pictures.getPictureById(id = id, database = toDatabase, storageService = KSS_APP)
+            val itemFrom = Pictures.getPictureById(id = id, database = fromDatabase, storageService = KSS_APP, storageApiClient = SAC_APP)
+            val itemTo = Pictures.getPictureById(id = id, database = toDatabase, storageService = KSS_APP, storageApiClient = SAC_APP)
             if (itemFrom != null && itemTo != null) {
                 val diff = KaraokeDbTable.getDiff(itemFrom, itemTo)
                 if (diff.isNotEmpty()) {
@@ -813,8 +815,8 @@ fun bytesToHex(bytes: ByteArray): String? {
     return builder.toString()
 }
 
-fun updateBpmAndKey(database: KaraokeConnection, storageService: KaraokeStorageService): Int {
-    val listSettings = Settings.loadListFromDb(mapOf("song_tone" to "''", "song_bpm" to "0"), database = database, storageService = storageService)
+fun updateBpmAndKey(database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient): Int {
+    val listSettings = Settings.loadListFromDb(mapOf("song_tone" to "''", "song_bpm" to "0"), database = database, storageService = storageService, storageApiClient = storageApiClient)
     var counter = 0
     listSettings.forEach { settings ->
         val (bpm, key) = getBpmAndKeyFromCsv(settings)
@@ -829,8 +831,8 @@ fun updateBpmAndKey(database: KaraokeConnection, storageService: KaraokeStorageS
     return counter
 }
 
-fun updateBpmAndKeyLV(database: KaraokeConnection, storageService: KaraokeStorageService): Pair<Int, Int> {
-    val listSettings = Settings.loadListFromDb(mapOf("song_tone" to "''", "song_bpm" to "0"), database = database, storageService = storageService)
+fun updateBpmAndKeyLV(database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient): Pair<Int, Int> {
+    val listSettings = Settings.loadListFromDb(mapOf("song_tone" to "''", "song_bpm" to "0"), database = database, storageService = storageService, storageApiClient = storageApiClient)
     var counterSuccess = 0
     var counterFailed = 0
     listSettings.forEach { settings ->
@@ -889,10 +891,10 @@ fun getBpmAndKeyFromCsv(settings: Settings): Pair<Long, String> {
 
 
 
-fun delDublicates(database: KaraokeConnection, storageService: KaraokeStorageService): Int {
+fun delDublicates(database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient): Int {
     var counter = 0
     val listSettings = Settings.loadListFromDb(
-        mapOf(Pair("tags", "DD")), database = database, storageService = storageService
+        mapOf(Pair("tags", "DD")), database = database, storageService = storageService, storageApiClient = storageApiClient
     )
     listSettings.forEach { settings ->
         if (settings.tags == "DD") {
@@ -903,10 +905,10 @@ fun delDublicates(database: KaraokeConnection, storageService: KaraokeStorageSer
     return counter
 }
 
-fun clearPreDublicates(database: KaraokeConnection, storageService: KaraokeStorageService): Int {
+fun clearPreDublicates(database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient): Int {
     var counter = 0
     val listSettings = Settings.loadListFromDb(
-        mapOf(Pair("tags", "D")), database = database, storageService = storageService
+        mapOf(Pair("tags", "D")), database = database, storageService = storageService, storageApiClient = storageApiClient
     )
     listSettings.forEach { settings ->
         if (settings.tags == "D") {
@@ -918,10 +920,10 @@ fun clearPreDublicates(database: KaraokeConnection, storageService: KaraokeStora
     return counter
 }
 
-fun markDublicates(author: String, database: KaraokeConnection, storageService: KaraokeStorageService): Int {
+fun markDublicates(author: String, database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient): Int {
     var counter = 0
     val listSettings = Settings.loadListFromDb(
-        mapOf(Pair("song_author", author)), database = database, storageService = storageService
+        mapOf(Pair("song_author", author)), database = database, storageService = storageService, storageApiClient = storageApiClient
     )
     listSettings.forEach { settings ->
         if (settings.tags == "") {
@@ -943,9 +945,9 @@ fun markDublicates(author: String, database: KaraokeConnection, storageService: 
 }
 
 @Suppress("unused")
-fun create720pForAllUncreated(database: KaraokeConnection, threadId: Int, storageService: KaraokeStorageService) {
+fun create720pForAllUncreated(database: KaraokeConnection, threadId: Int, storageService: KaraokeStorageService, storageApiClient: StorageApiClient) {
 
-    val settingsList = Settings.loadListFromDb(database = database, storageService = storageService)
+    val settingsList = Settings.loadListFromDb(database = database, storageService = storageService, storageApiClient = storageApiClient)
     settingsList.forEach { settings ->
         if (File(settings.pathToFileLyrics).exists() && !File(settings.pathToFile720Lyrics).exists()) {
             if (!File(settings.pathToFolder720Lyrics).exists()) {
@@ -1115,7 +1117,7 @@ fun replaceSymbolsInSong(sourceText: String): String {
     return result
 }
 
-fun createFilesByTags(listOfTags: List<String> = emptyList(), database: KaraokeConnection, storageService: KaraokeStorageService) {
+fun createFilesByTags(listOfTags: List<String> = emptyList(), database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient) {
     val listTags = (if (listOfTags.isEmpty()) Settings.getSetOfTags(database = database) else listOfTags.map { it.uppercase() }.toSet()).toList()
     listTags.forEach { tag ->
 
@@ -1131,7 +1133,7 @@ fun createFilesByTags(listOfTags: List<String> = emptyList(), database: KaraokeC
             runCommand(listOf("chmod", "777", pathToTagFolder720Karaoke))
         }
 
-        val listOfSettings = Settings.loadListFromDb(mapOf(Pair("tags", tag)), database = database, storageService = storageService)
+        val listOfSettings = Settings.loadListFromDb(mapOf(Pair("tags", tag)), database = database, storageService = storageService, storageApiClient = storageApiClient)
         listOfSettings.forEach { settings ->
             val sourceFileKaraoke = settings.pathToFileKaraoke
             if (File(sourceFileKaraoke).exists()) {
@@ -1153,12 +1155,12 @@ fun createFilesByTags(listOfTags: List<String> = emptyList(), database: KaraokeC
     }
 }
 
-fun createDigestForAllAuthors(vararg authors: String, database: KaraokeConnection, storageService: KaraokeStorageService) {
+fun createDigestForAllAuthors(vararg authors: String, database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient) {
 
     val listAuthors = getAuthorsForDigest(database = database)
     listAuthors.forEach { author ->
         if (authors.isEmpty() || author in authors) {
-            val txt = "ЗАКРОМА - «$author»\n\n${getAuthorDigest(author, false, database = database, storageService = storageService).first}"
+            val txt = "ЗАКРОМА - «$author»\n\n${getAuthorDigest(author, false, database = database, storageService = storageService, storageApiClient = storageApiClient).first}"
             val fileName = "/sm-karaoke/system/Digest/${author} (digest).txt"
             File(fileName).writeText(txt, Charsets.UTF_8)
             runCommand(listOf("chmod", "666", fileName))
@@ -1167,14 +1169,14 @@ fun createDigestForAllAuthors(vararg authors: String, database: KaraokeConnectio
 
 }
 
-fun createDigestForAllAuthorsForOper(vararg authors: String, database: KaraokeConnection, storageService: KaraokeStorageService) {
+fun createDigestForAllAuthorsForOper(vararg authors: String, database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient) {
 
     val listAuthors = getAuthorsForDigest(database = database)
     var txt = ""
     var total = 0
     listAuthors.forEach { author ->
         if (authors.isEmpty() || author in authors) {
-            val (digest, count) = getAuthorDigest(author, false, database = database, storageService = storageService)
+            val (digest, count) = getAuthorDigest(author, false, database = database, storageService = storageService, storageApiClient = storageApiClient)
             if (digest.isNotEmpty()) {
                 txt += "«$author»\nПесен: $count шт.\n[spoiler]\n${digest}[/spoiler]\n\n"
                 total += count
@@ -1229,11 +1231,11 @@ fun getAuthorsForDigest(database: KaraokeConnection): List<String> {
 
 }
 
-fun getAuthorDigest(author: String, withRazor: Boolean = true, database: KaraokeConnection, storageService: KaraokeStorageService): Pair<String, Int> {
+fun getAuthorDigest(author: String, withRazor: Boolean = true, database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient): Pair<String, Int> {
 
     val maxSymbols = 16300
 
-    val listDigest = Settings.loadListFromDb(mapOf(Pair("song_author", author)), database = database, storageService = storageService)
+    val listDigest = Settings.loadListFromDb(mapOf(Pair("song_author", author)), database = database, storageService = storageService, storageApiClient = storageApiClient)
         .filter { it.digestIsFull }
         .map { it.digest }
 
@@ -2435,7 +2437,7 @@ fun getAuthorForRequest(lastAuthor: String = ""): Author? {
         if (result == "") result = listSongAuthors.first()
         result
     }
-    var author = Author.getAuthorByName(author = authorForRequest, database = WORKING_DATABASE, storageService = KSS_APP)
+    var author = Author.getAuthorByName(author = authorForRequest, database = WORKING_DATABASE, storageService = KSS_APP, storageApiClient = SAC_APP)
 
 
     if (author == null) {
@@ -2523,7 +2525,7 @@ fun runFunctionWithArgs(args: List<String>): String {
         when (func) {
             "getKeyBpmFromFile" -> {
                 if (args.size > 2) {
-                    Settings.loadFromDbById(id = args[2].toLong(), database = WORKING_DATABASE, sync = false, storageService = KSS_APP)?.let {settings ->
+                    Settings.loadFromDbById(id = args[2].toLong(), database = WORKING_DATABASE, sync = false, storageService = KSS_APP, storageApiClient = SAC_APP)?.let {settings ->
                         val (key, bpm) = settings.getKeyBpmFromFile(reFind = false)
                         settings.fields[SettingField.KEY] = key
                         settings.fields[SettingField.BPM] = bpm.toString()

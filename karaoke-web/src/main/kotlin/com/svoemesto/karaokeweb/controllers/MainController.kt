@@ -7,6 +7,7 @@ import com.svoemesto.karaokeweb.StatBySong
 import com.svoemesto.karaokeapp.model.Zakroma
 import com.svoemesto.karaokeapp.rightFileName
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
+import com.svoemesto.karaokeapp.services.StorageApiClient
 import com.svoemesto.karaokeweb.services.WEB_WORK_IN_CONTAINER
 import com.svoemesto.karaokeweb.WORKING_DATABASE
 //import com.svoemesto.karaokeweb.services.KSS_WEB
@@ -23,13 +24,15 @@ import java.time.Instant
 class MainController(
     @Suppress("unused") private val webSocket: SimpMessagingTemplate,
     @Value($$"${work-in-container}") val wic: Long,
-    private val storageService: KaraokeStorageService
+    private val storageService: KaraokeStorageService,
+    private val storageApiClient: StorageApiClient
     ) {
 
     init {
         WEB_WORK_IN_CONTAINER = (wic != 0L)
         println("WEB_WORK_IN_CONTAINER = $WEB_WORK_IN_CONTAINER")
         println("storageService = $storageService")
+        println("storageApiClient = $storageApiClient")
     }
 
     @GetMapping("/")
@@ -55,7 +58,12 @@ class MainController(
         }
         model.addAttribute("author_init", author ?: "")
         model.addAttribute("authors", Settings.loadListAuthors(database = WORKING_DATABASE))
-        model.addAttribute("zakroma", Zakroma.getZakroma(author = author ?: "", database = WORKING_DATABASE, storageService = storageService))
+        model.addAttribute("zakroma", Zakroma.getZakroma(
+            author = author ?: "",
+            database = WORKING_DATABASE,
+            storageService = storageService,
+            storageApiClient = storageApiClient
+        ))
         doRegisterEvent(mapOf("eventType" to "callRest", "restName" to "zakroma", "parameters" to data, "referer" to request.remoteHost))
         return "zakroma"
     }
@@ -251,7 +259,7 @@ class MainController(
         if (text != null && text != "") attr["text"] = text
         if (album != null && album != "") attr["song_album"] = album
 
-        val settings: List<Settings> = if ("${songName ?: ""}${author ?: ""}${album ?: ""}${text ?: ""}".length < 3) emptyList() else Settings.loadListFromDb(attr, database = WORKING_DATABASE, storageService = storageService, withoutMarkersAndText = true)
+        val settings: List<Settings> = if ("${songName ?: ""}${author ?: ""}${album ?: ""}${text ?: ""}".length < 3) emptyList() else Settings.loadListFromDb(attr, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient, withoutMarkersAndText = true)
 
         model.addAttribute("authors", Settings.loadListAuthors(WORKING_DATABASE))
         model.addAttribute("settings", settings)
@@ -272,7 +280,7 @@ class MainController(
         model: Model,
         request: HttpServletRequest
     ): String {
-        val sett = Settings.loadFromDbById(id, database = WORKING_DATABASE, storageService = storageService)
+        val sett = Settings.loadFromDbById(id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
 //        sett?.let {
 //            if (!sett.haveVkGroupLink) {
 //                val pathToPictureVkGroupLink = "/home/Karaoke/webpictures/${sett.id}.png"
@@ -299,7 +307,7 @@ class MainController(
     fun doWebEvents(
         model: Model
     ): String {
-        model.addAttribute("webevents", StatBySong.getWebEvents(database = WORKING_DATABASE, storageService = storageService))
+        model.addAttribute("webevents", StatBySong.getWebEvents(database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient))
         return "webevents"
     }
 
@@ -307,7 +315,7 @@ class MainController(
     fun doTestPage(@PathVariable id: Long,
         model: Model
     ): String {
-        val sett = Settings.loadFromDbById(id, database = WORKING_DATABASE, storageService = storageService)
+        val sett = Settings.loadFromDbById(id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
         model.addAttribute("sett", sett)
         return "testpage"
     }

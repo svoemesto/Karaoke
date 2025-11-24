@@ -1990,16 +1990,16 @@ data class HealthReport(
                             canCreate = false
                             when(songVersion) {
                                 SongVersion.LYRICS -> {
-                                    canBe = (settings.idStatus >= 3 && settings.idStatus < 6)
+                                    canBe = (settings.statusProcessLyrics in listOf(KaraokeProcessStatuses.WAITING.name, KaraokeProcessStatuses.WORKING.name))
                                 }
                                 SongVersion.KARAOKE -> {
-                                    canBe = (settings.idStatus >= 3 && settings.idStatus < 6)
+                                    canBe = (settings.statusProcessKaraoke in listOf(KaraokeProcessStatuses.WAITING.name, KaraokeProcessStatuses.WORKING.name))
                                 }
                                 SongVersion.CHORDS -> {
-                                    canBe = (settings.idStatus >= 3 && settings.idStatus < 6) && settings.hasChords
+                                    canBe = (settings.statusProcessChords in listOf(KaraokeProcessStatuses.WAITING.name, KaraokeProcessStatuses.WORKING.name))
                                 }
                                 SongVersion.TABS -> {
-                                    canBe = (settings.idStatus >= 3 && settings.idStatus < 6) && settings.hasMelody
+                                    canBe = (settings.statusProcessMelody in listOf(KaraokeProcessStatuses.WAITING.name, KaraokeProcessStatuses.WORKING.name))
                                 }
                             }
 
@@ -2041,16 +2041,16 @@ data class HealthReport(
                             canCreate = false
                             when(songVersion) {
                                 SongVersion.LYRICS -> {
-                                    canBe = (settings.idStatus >= 3 && settings.idStatus < 6)
+                                    canBe = (settings.statusProcessLyrics in listOf(KaraokeProcessStatuses.WAITING.name, KaraokeProcessStatuses.WORKING.name))
                                 }
                                 SongVersion.KARAOKE -> {
-                                    canBe = (settings.idStatus >= 3 && settings.idStatus < 6)
+                                    canBe = (settings.statusProcessKaraoke in listOf(KaraokeProcessStatuses.WAITING.name, KaraokeProcessStatuses.WORKING.name))
                                 }
                                 SongVersion.CHORDS -> {
-                                    canBe = (settings.idStatus >= 3 && settings.idStatus < 6) && settings.hasChords
+                                    canBe = (settings.statusProcessChords in listOf(KaraokeProcessStatuses.WAITING.name, KaraokeProcessStatuses.WORKING.name))
                                 }
                                 SongVersion.TABS -> {
-                                    canBe = (settings.idStatus >= 3 && settings.idStatus < 6) && settings.hasMelody
+                                    canBe = (settings.statusProcessMelody in listOf(KaraokeProcessStatuses.WAITING.name, KaraokeProcessStatuses.WORKING.name))
                                 }
                             }
 

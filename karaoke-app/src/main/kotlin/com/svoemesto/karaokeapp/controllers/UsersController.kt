@@ -5,6 +5,7 @@ import com.svoemesto.karaokeapp.model.Users
 import com.svoemesto.karaokeapp.model.UsersDto
 import com.svoemesto.karaokeapp.services.APP_WORK_IN_CONTAINER
 import com.svoemesto.karaokeapp.services.KSS_APP
+import com.svoemesto.karaokeapp.services.SAC_APP
 import com.svoemesto.karaokeapp.services.UsersService
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Controller
@@ -72,7 +73,8 @@ class UsersController(
         val usersList = Users.loadList(
             whereArgs = whereArgs,
             database = WORKING_DATABASE,
-            storageService = KSS_APP
+            storageService = KSS_APP,
+            storageApiClient = SAC_APP
         ).map { it.toDTO() }
         return mapOf(
             "workInContainer" to APP_WORK_IN_CONTAINER,

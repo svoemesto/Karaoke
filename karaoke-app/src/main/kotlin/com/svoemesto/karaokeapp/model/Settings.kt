@@ -462,7 +462,7 @@ class Settings(
 
     @get:JsonIgnore
     val pictureAuthor: Pictures? get() {
-        var pic = Pictures.getPictureByName(name = pictureNameAuthor, database = database, storageService = storageService)
+        var pic = Pictures.getPictureByName(name = pictureNameAuthor, database = database, storageService = storageService, storageApiClient = storageApiClient)
         if (pic == null) {
             val pathToFile = pathToFileLogoAuthor
             if (pathToFile != "") {
@@ -489,7 +489,7 @@ class Settings(
 
     @get:JsonIgnore
     val pictureAlbum: Pictures? get() {
-        var pic = Pictures.getPictureByName(name = pictureNameAlbum, database = database, storageService = storageService)
+        var pic = Pictures.getPictureByName(name = pictureNameAlbum, database = database, storageService = storageService, storageApiClient = storageApiClient)
         if (pic == null) {
             val pathToFile = pathToFileLogoAlbum
             if (pathToFile != "") {
@@ -3278,7 +3278,7 @@ class Settings(
             }
         } else {
 
-            val savedSettings = loadFromDbById(id = id,database = database, storageService = storageService)
+            val savedSettings = loadFromDbById(id = id,database = database, storageService = storageService, storageApiClient = storageApiClient)
             
             // При сохранении проверяем и меняем если надо номера версий на площадках. Если на площадке 0 и было изменение id - обновляем
             if (savedSettings !== null) {
@@ -3372,7 +3372,7 @@ class Settings(
                 } catch (e: Exception) {
                     println(e.message)
                 }
-                val saved = loadFromDbById(id = id, database = database, storageService = storageService)
+                val saved = loadFromDbById(id = id, database = database, storageService = storageService, storageApiClient = storageApiClient)
                 val diffNew = getDiff(saved,this)
                 if (diffNew.isNotEmpty()) {
                     val messageRecordChangeNew = SseNotification.recordChange(
@@ -3674,15 +3674,15 @@ class Settings(
             runCommand(listOf("chmod", "777", fileNameRunTabs))
         }
 
-        val fileNameRunAllLyrics = getOutputFilename(SongOutputFile.RUNALL, SongVersion.LYRICS).replace("[lyrics]","[ALL]")
-        val fileRunAllLyrics = File(fileNameRunAllLyrics)
-        fileRunAllLyrics.writeText(songTxtAll)
-        runCommand(listOf("chmod", "777", fileNameRunAllLyrics))
+//        val fileNameRunAllLyrics = getOutputFilename(SongOutputFile.RUNALL, SongVersion.LYRICS).replace("[lyrics]","[ALL]")
+//        val fileRunAllLyrics = File(fileNameRunAllLyrics)
+//        fileRunAllLyrics.writeText(songTxtAll)
+//        runCommand(listOf("chmod", "777", fileNameRunAllLyrics))
 
-        val fileNameRunAllWoLyrics = getOutputFilename(SongOutputFile.RUNALL, SongVersion.LYRICS).replace("[lyrics]","[ALLwoLYRICS]")
-        val fileRunAllWoLyrics = File(fileNameRunAllWoLyrics)
-        fileRunAllWoLyrics.writeText(songTxtWOLyrics)
-        runCommand(listOf("chmod", "777", fileNameRunAllWoLyrics))
+//        val fileNameRunAllWoLyrics = getOutputFilename(SongOutputFile.RUNALL, SongVersion.LYRICS).replace("[lyrics]","[ALLwoLYRICS]")
+//        val fileRunAllWoLyrics = File(fileNameRunAllWoLyrics)
+//        fileRunAllWoLyrics.writeText(songTxtWOLyrics)
+//        runCommand(listOf("chmod", "777", fileNameRunAllWoLyrics))
 
         if (createLyrics) {
             createKaraoke(this, SongVersion.LYRICS)
@@ -4482,7 +4482,7 @@ class Settings(
             return where
         }
 
-        fun loadListFromDb(args: Map<String, String> = emptyMap(), database: KaraokeConnection, sync: Boolean = false, storageService: KaraokeStorageService, withoutMarkersAndText: Boolean = false): List<Settings> {
+        fun loadListFromDb(args: Map<String, String> = emptyMap(), database: KaraokeConnection, sync: Boolean = false, storageService: KaraokeStorageService, storageApiClient: StorageApiClient, withoutMarkersAndText: Boolean = false): List<Settings> {
 
             val connection = database.getConnection()
             if (connection == null) {
@@ -4511,7 +4511,7 @@ class Settings(
                 var prevAlbum = ""
                 while (rs.next()) {
 
-                    val settings = Settings(database = database, storageService = storageService)
+                    val settings = Settings(database = database, storageService = storageService, storageApiClient = storageApiClient)
                     settings.fileName = rs.getString("file_name")
                     settings.rootFolder = rs.getString("root_folder")
                     rs.getInt("id").let { value -> settings.fields[SettingField.ID] = value.toString() }
@@ -4641,15 +4641,8 @@ class Settings(
 
 
 
-        fun loadFromDbById(id: Long, database: KaraokeConnection, sync: Boolean = false, storageService: KaraokeStorageService): Settings? {
-            val setting = loadListFromDb(mapOf(Pair("id", id.toString())), database = database, sync = sync, storageService = storageService).firstOrNull()
-//            setting?.let {
-//                if (setting.countNotEmptyVoices > 0) {
-//                    println(it.getTextFromVoices(maxTimeCodes = -1))
-//                    println("getLongerElement = ${it.getLongerElement()?.syllables?.map { it.text }?.joinToString("")}")
-//                    println("getFontSize = ${it.getFontSize()}")
-//                }
-//            }
+        fun loadFromDbById(id: Long, database: KaraokeConnection, sync: Boolean = false, storageService: KaraokeStorageService, storageApiClient: StorageApiClient): Settings? {
+            val setting = loadListFromDb(mapOf(Pair("id", id.toString())), database = database, sync = sync, storageService = storageService, storageApiClient = storageApiClient).firstOrNull()
             return setting
 
         }
@@ -4698,7 +4691,7 @@ class Settings(
             return settings
         }
 
-        fun createFromPath(startFolder: String, database: KaraokeConnection, storageService: KaraokeStorageService): MutableList<Settings> {
+        fun createFromPath(startFolder: String, database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient): MutableList<Settings> {
             val result: MutableList<Settings> = mutableListOf()
             val listFiles = getListFiles(startFolder,listOf("flac", "mp3"))
             listFiles.forEach { pathToFile ->
@@ -4725,7 +4718,7 @@ class Settings(
                                 args = mapOf(
                                     Pair("file_name", fileName),
                                     Pair("root_folder", rootFolder)
-                                ), database = database, storageService = storageService, withoutMarkersAndText = true
+                                ), database = database, storageService = storageService, storageApiClient = storageApiClient, withoutMarkersAndText = true
                             ).isEmpty()
                         ) {
                             // если файл не флак - преобразуем во флак и удаляем исходник
@@ -4840,6 +4833,7 @@ class Settings(
                 args = mapOf(Pair("song_author", startSettings.author)),
                 database = startSettings.database,
                 storageService = startSettings.storageService,
+                storageApiClient = startSettings.storageApiClient,
                 withoutMarkersAndText = true
             ).filter { it.id > startSettings.id }
 
@@ -5000,7 +4994,7 @@ class Settings(
     }
 
     fun copyFieldsFromAnother(idAnother: Long, listFields: List<SettingField>) {
-        loadFromDbById(id = idAnother, database = this.database, storageService = this.storageService)?. let { anotherSettings ->
+        loadFromDbById(id = idAnother, database = this.database, storageService = this.storageService, storageApiClient = this.storageApiClient)?. let { anotherSettings ->
             var wasChange = false
             listFields.forEach { settingField ->
                 anotherSettings.fields[settingField]?.let { anotherValue ->

@@ -2,6 +2,7 @@ package com.svoemesto.karaokeapp
 
 import com.svoemesto.karaokeapp.model.*
 import com.svoemesto.karaokeapp.services.KSS_APP
+import com.svoemesto.karaokeapp.services.SAC_APP
 import com.svoemesto.karaokeapp.services.SNS
 import org.springframework.stereotype.Component
 import java.io.BufferedReader
@@ -111,7 +112,7 @@ class KaraokeProcessThread(val karaokeProcess: KaraokeProcess? = null, var perce
 
                     if (karaokeProcess.type == "SHEETSAGE" &&  lastLine == "NotImplementedError: Dynamic chunking not implemented. Try halving measures_per_chunk.") {
                         // Если процесс SHEETSAGE завершился ошибкой - создаём для этой же песни процесс SHEETSAGE2 с таким же приоритетом
-                        val settings = Settings.loadFromDbById(id = karaokeProcess.settingsId.toLong(), database = WORKING_DATABASE, storageService = KSS_APP)
+                        val settings = Settings.loadFromDbById(id = karaokeProcess.settingsId.toLong(), database = WORKING_DATABASE, storageService = KSS_APP, storageApiClient = SAC_APP)
                         settings?.let {
                             KaraokeProcess.createProcess(
                                 settings = settings,
@@ -290,9 +291,9 @@ class KaraokeProcessWorker {
                         if (Karaoke.monitoringRemoteSettingsSync) {
 //                            println("ProcessWorker: Проверка sync-записей по таймеру...")
                             // Получаем список sync-записей из REMOTE DATABASE
-                            val listSettingsSync = Settings.loadListFromDb(database = Connection.remote(), sync = true, storageService = KSS_APP)
+                            val listSettingsSync = Settings.loadListFromDb(database = Connection.remote(), sync = true, storageService = KSS_APP, storageApiClient = SAC_APP)
                             listSettingsSync.forEach { settingsSync ->
-                                val settingsLocal = Settings.loadFromDbById(id = settingsSync.id, database = Connection.local(), storageService = KSS_APP)
+                                val settingsLocal = Settings.loadFromDbById(id = settingsSync.id, database = Connection.local(), storageService = KSS_APP, storageApiClient = SAC_APP)
                                 if (settingsLocal != null) {
                                     // Запись в локальной БД есть, надо обновить
                                     val diff = Settings.getDiff(settingsSync, settingsLocal)
@@ -342,7 +343,7 @@ class KaraokeProcessWorker {
                                 }
 
                                 if (settingsSync.tags == "RENDER") {
-                                    val settingsLocal = Settings.loadFromDbById(id = settingsSync.id, database = Connection.local(), storageService = KSS_APP)
+                                    val settingsLocal = Settings.loadFromDbById(id = settingsSync.id, database = Connection.local(), storageService = KSS_APP, storageApiClient = SAC_APP)
                                     if (settingsLocal != null) {
                                         settingsLocal.sourceMarkersList.forEachIndexed { voice, _ ->
                                             val strText = settingsLocal.convertMarkersToSrt(voice)

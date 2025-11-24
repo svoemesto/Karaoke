@@ -3,6 +3,7 @@ package com.svoemesto.karaokeweb
 import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.model.Settings
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
+import com.svoemesto.karaokeapp.services.StorageApiClient
 import java.io.Serializable
 import java.sql.ResultSet
 import java.sql.SQLException
@@ -99,7 +100,7 @@ class StatBySong(@Suppress("unused") val database: KaraokeConnection = WORKING_D
             return 0
         }
 
-        fun getWebEvents(database: KaraokeConnection = WORKING_DATABASE, limit: Int = 500, storageService: KaraokeStorageService): List<WebEvent> {
+        fun getWebEvents(database: KaraokeConnection = WORKING_DATABASE, limit: Int = 500, storageService: KaraokeStorageService, storageApiClient: StorageApiClient): List<WebEvent> {
 
             val result: MutableList<WebEvent> = mutableListOf()
             val sql = """
@@ -155,7 +156,7 @@ class StatBySong(@Suppress("unused") val database: KaraokeConnection = WORKING_D
                                 }
                                 "song" -> {
                                     val songId = rs.getInt("song_id")
-                                    val sett = Settings.loadFromDbById(songId.toLong(),database = database, storageService = storageService)
+                                    val sett = Settings.loadFromDbById(songId.toLong(),database = database, storageService = storageService, storageApiClient = storageApiClient)
                                     sett?.let {
                                         result.add(
                                             WebEvent(
@@ -174,7 +175,7 @@ class StatBySong(@Suppress("unused") val database: KaraokeConnection = WORKING_D
                             when (linkType) {
                                 "linkToSong" -> {
                                     val songId = rs.getInt("song_id")
-                                    val sett = Settings.loadFromDbById(songId.toLong(),database = database, storageService = storageService)
+                                    val sett = Settings.loadFromDbById(songId.toLong(),database = database, storageService = storageService, storageApiClient = storageApiClient)
                                     sett?.let {
                                         result.add(
                                             WebEvent(

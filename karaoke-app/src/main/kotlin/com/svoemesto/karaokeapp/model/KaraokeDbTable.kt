@@ -4,6 +4,7 @@ import com.svoemesto.karaokeapp.Connection
 import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.SNS
+import com.svoemesto.karaokeapp.services.StorageApiClient
 import org.postgresql.util.PSQLException
 import java.sql.ResultSet
 import java.sql.SQLException
@@ -23,6 +24,7 @@ interface KaraokeDbTable {
 
     val database: KaraokeConnection
     val storageService: KaraokeStorageService
+    val storageApiClient: StorageApiClient
     var id: Long
 
     fun getTableName(): String
@@ -38,7 +40,8 @@ interface KaraokeDbTable {
             tableName = this.getTableName(),
             id = id,
             database = database,
-            storageService = storageService
+            storageService = storageService,
+            storageApiClient = storageApiClient
         )
         val diff = getDiff(this, savedEntity)
         if (diff.isEmpty()) return
@@ -104,7 +107,8 @@ interface KaraokeDbTable {
                 tableName = this.getTableName(),
                 id = id,
                 database = database,
-                storageService = storageService
+                storageService = storageService,
+                storageApiClient = storageApiClient
             )
             val diffNew = getDiff(saved, this)
             if (diffNew.isNotEmpty()) {
@@ -190,6 +194,7 @@ interface KaraokeDbTable {
             offset: Int = 0,
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
             sync: Boolean = false,
             ignoreUseInList: Boolean = false
         ): List<KaraokeDbTable> {
@@ -208,7 +213,7 @@ interface KaraokeDbTable {
 
                 val notInSelectList: MutableList<String> = mutableListOf()
                 if (!ignoreUseInList) {
-                    (clazz.primaryConstructor?.call(database as Connection, storageService) as? KaraokeDbTable)?.let {tmpEntry ->
+                    (clazz.primaryConstructor?.call(database as Connection, storageService, storageApiClient) as? KaraokeDbTable)?.let {tmpEntry ->
                         for (property in tmpEntry::class.members) {
                             (property.findAnnotation<KaraokeDbTableField>())?.let { karaokeDbTableFieldAnnotation ->
                                 if (property is KMutableProperty<*>) {
@@ -242,7 +247,7 @@ interface KaraokeDbTable {
 
                     val constructor = clazz.primaryConstructor
                     if (constructor != null) {
-                        val entity = constructor.call(database as Connection, storageService) as? KaraokeDbTable
+                        val entity = constructor.call(database as Connection, storageService, storageApiClient) as? KaraokeDbTable
                         if (entity != null ) {
                             val kClass: KClass<out KaraokeDbTable> = entity::class
 
@@ -303,6 +308,7 @@ interface KaraokeDbTable {
                      id: Long,
                      database: KaraokeConnection,
                      storageService: KaraokeStorageService,
+                     storageApiClient: StorageApiClient,
                      sync: Boolean = false
         ): KaraokeDbTable? {
             return loadList(
@@ -311,6 +317,7 @@ interface KaraokeDbTable {
                 whereList = listOf("$tableName${if (sync) "_sync" else ""}.id=$id"),
                 database = database,
                 storageService = storageService,
+                storageApiClient = storageApiClient,
                 sync = sync,
                 ignoreUseInList = true
             ).firstOrNull()

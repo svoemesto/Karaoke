@@ -78,7 +78,7 @@
     <orderEntry type="library" name="Gradle: com.github.st-h:TarsosDSP:2.4.1" level="project" />
     <orderEntry type="library" name="Gradle: org.jsoup:jsoup:1.21.2" level="project" />
     <orderEntry type="library" name="Gradle: org.apache.commons:commons-csv:1.8" level="project" />
-    <orderEntry type="library" name="Gradle: org.seleniumhq.selenium:selenium-java:4.8.0" level="project" />
+    <orderEntry type="library" name="Gradle: org.seleniumhq.selenium:selenium-java:4.37.0" level="project" />
     <orderEntry type="library" name="Gradle: org.apache.commons:commons-lang3:3.14.0" level="project" />
     <orderEntry type="library" name="Gradle: org.apache.httpcomponents.client5:httpclient5:5.5.1" level="project" />
     <orderEntry type="library" name="Gradle: org.springframework.boot:spring-boot-starter-test:3.5.6" level="project" />
@@ -115,10 +115,9 @@
     <orderEntry type="library" name="Gradle: com.microsoft.playwright:driver-bundle:1.56.0" level="project" />
     <orderEntry type="library" name="Gradle: com.microsoft.playwright:driver:1.56.0" level="project" />
     <orderEntry type="library" name="Gradle: org.seleniumhq.selenium:selenium-chrome-driver:4.31.0" level="project" />
-    <orderEntry type="library" name="Gradle: org.seleniumhq.selenium:selenium-devtools-v107:4.8.0" level="project" />
-    <orderEntry type="library" name="Gradle: org.seleniumhq.selenium:selenium-devtools-v108:4.8.0" level="project" />
-    <orderEntry type="library" name="Gradle: org.seleniumhq.selenium:selenium-devtools-v109:4.8.0" level="project" />
-    <orderEntry type="library" name="Gradle: org.seleniumhq.selenium:selenium-devtools-v85:4.8.0" level="project" />
+    <orderEntry type="library" name="Gradle: org.seleniumhq.selenium:selenium-devtools-v139:4.37.0" level="project" />
+    <orderEntry type="library" name="Gradle: org.seleniumhq.selenium:selenium-devtools-v140:4.37.0" level="project" />
+    <orderEntry type="library" name="Gradle: org.seleniumhq.selenium:selenium-devtools-v141:4.37.0" level="project" />
     <orderEntry type="library" name="Gradle: org.seleniumhq.selenium:selenium-edge-driver:4.31.0" level="project" />
     <orderEntry type="library" name="Gradle: org.seleniumhq.selenium:selenium-firefox-driver:4.31.0" level="project" />
     <orderEntry type="library" name="Gradle: org.seleniumhq.selenium:selenium-ie-driver:4.31.0" level="project" />
@@ -189,7 +188,6 @@
     <orderEntry type="library" name="Gradle: org.seleniumhq.selenium:selenium-manager:4.31.0" level="project" />
     <orderEntry type="library" name="Gradle: org.seleniumhq.selenium:selenium-json:4.31.0" level="project" />
     <orderEntry type="library" name="Gradle: com.google.auto.service:auto-service-annotations:1.1.1" level="project" />
-    <orderEntry type="library" name="Gradle: com.google.auto.service:auto-service:1.0.1" level="project" />
     <orderEntry type="library" name="Gradle: org.seleniumhq.selenium:selenium-http:4.31.0" level="project" />
     <orderEntry type="library" name="Gradle: net.bytebuddy:byte-buddy:1.17.7" level="project" />
     <orderEntry type="library" name="Gradle: org.seleniumhq.selenium:selenium-os:4.31.0" level="project" />
@@ -230,7 +228,6 @@
     <orderEntry type="library" name="Gradle: org.springframework.security:spring-security-crypto:6.5.5" level="project" />
     <orderEntry type="library" name="Gradle: org.apache.jena:jena-shaded-guava:3.17.0" level="project" />
     <orderEntry type="library" name="Gradle: com.github.andrewoma.dexx:collection:0.7" level="project" />
-    <orderEntry type="library" name="Gradle: com.google.auto:auto-common:1.2" level="project" />
     <orderEntry type="library" name="Gradle: org.apache.commons:commons-exec:1.4.0" level="project" />
     <orderEntry type="library" name="Gradle: io.opentelemetry:opentelemetry-sdk-metrics:1.49.0" level="project" />
     <orderEntry type="library" name="Gradle: io.opentelemetry:opentelemetry-sdk-logs:1.49.0" level="project" />

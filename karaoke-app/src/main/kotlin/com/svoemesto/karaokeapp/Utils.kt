@@ -99,7 +99,7 @@ fun checkHealth(storageService: KaraokeStorageService, executeActions: Boolean =
     val listSettings = Settings.loadListFromDb(
         database = WORKING_DATABASE,
         storageService = storageService,
-        withoutMarkersAndText = true
+        withoutMarkersAndText = false
     )
     var lastPrintedPercent = -1
     listSettings.forEachIndexed { index, settings ->

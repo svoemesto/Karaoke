@@ -70,6 +70,14 @@ function do_ps() {
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-web.yml -f $DEPLOY_DIR/docker-compose-database.yml -f $DEPLOY_DIR/docker-compose-storage.yml ps
 }
 
+function do_create_clear_db() {
+  do_start_db
+  echo "Создание базы данных из бекапа в контейнере karaoke-db..."
+  ${DOCKER} exec -it karaoke-db bash -c 'psql -U NsAkArAoKeUsEr --file="/dumps/karaoke_clear_dump.sql" -d postgres'
+  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga
+  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "Create clear DB!"
+}
+
 cmd=$1
 
 case ${cmd} in
@@ -81,6 +89,7 @@ stop_db) do_stop_db ;;
 stop_web) do_stop_web ;;
 stop_storage) do_stop_storage ;;
 ps) do_ps ;;
+create_clear_db) do_create_clear_db ;;
 *)
   echo "Описание команды:
     $(basename $0) <command> <param>

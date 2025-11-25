@@ -27,7 +27,7 @@ sudo mkdir -p /sm-karaoke/store
 /home/nsa/Documents/Karaoke /sm-karaoke/done2 none defaults,bind 0 0
 /disks/HDD_8Tb_Clouds/Yandex.Disk/Karaoke /sm-karaoke/store none defaults,bind 0 0
 
-Применить изменея в /etc/fstab можно командой: sudo mount -a
+Применить изменения в /etc/fstab можно командой: sudo mount -a
 
 Скопировать папку /sm-karaoke/system/SpaceBox4096
 

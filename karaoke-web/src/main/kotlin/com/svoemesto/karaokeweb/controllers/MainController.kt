@@ -198,6 +198,7 @@ class MainController(
     fun doChangeRecords(
         @RequestBody(required = true) data: Map<String, Any>
     ): String {
+        var result = "OK"
         try {
             val word = data["word"] as String
             if (Crypto.decrypt(word) != Crypto.WORDS_TO_CHECK) return "Не удалось расшифровать кодовое слово"
@@ -238,10 +239,12 @@ class MainController(
                 ps.close()
             }
 
+            result = "[${Timestamp.from(Instant.now())}] Created: ${dataCreate.size}, Updated: ${dataUpdate.size}, Deleted: ${dataDelete.size}"
+
         } catch (e: Exception) {
             return e.message!!
         }
-        return "OK"
+        return result
     }
 
     @GetMapping("/filter")

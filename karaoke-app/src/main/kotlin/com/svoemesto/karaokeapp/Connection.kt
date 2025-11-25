@@ -1,6 +1,11 @@
 package com.svoemesto.karaokeapp
 
 import com.svoemesto.karaokeapp.services.APP_WORK_IN_CONTAINER
+import com.svoemesto.karaokeapp.services.APP_WORK_ON_SERVER
+import com.svoemesto.karaokeapp.services.DB_LOCAL_POSTGRES_PASSWORD
+import com.svoemesto.karaokeapp.services.DB_LOCAL_POSTGRES_USER
+import com.svoemesto.karaokeapp.services.DB_SERVER_POSTGRES_PASSWORD
+import com.svoemesto.karaokeapp.services.DB_SERVER_POSTGRES_USER
 
 class Connection(
     override val url: String,
@@ -19,20 +24,18 @@ class Connection(
 //    }
     companion object {
 
-        private const val USERNAME = "postgres"
-//        private val PASSWORDLOCAL = if (APP_WORK_IN_CONTAINER) "bp4QuC5L2Tv~vpKQkUcg" else "postgres"
-        private const val PASSWORDLOCAL = "postgres"
-        private const val PASSWORDREMOTE = "postgres"
+    private val USERNAME = if(APP_WORK_ON_SERVER) DB_SERVER_POSTGRES_USER else DB_LOCAL_POSTGRES_USER
+    private val PASSWORD = if(APP_WORK_ON_SERVER) DB_SERVER_POSTGRES_PASSWORD else DB_LOCAL_POSTGRES_PASSWORD
         fun local(): KaraokeConnection {
-            return Connection(name = "LOCAL", url = connectionLocalUrl(), username = USERNAME, password = PASSWORDLOCAL)
+            return Connection(name = "LOCAL", url = connectionLocalUrl(), username = USERNAME, password = PASSWORD)
         }
         fun remote(): KaraokeConnection {
-            return Connection(name = "SERVER", url = connectionRemoteUrl(), username = USERNAME, password = PASSWORDREMOTE)
+            return Connection(name = "SERVER", url = connectionRemoteUrl(), username = DB_SERVER_POSTGRES_USER, password = DB_SERVER_POSTGRES_PASSWORD)
         }
 
         @Suppress("unused")
         fun virtual(): KaraokeConnection {
-            return Connection(name = "VIRTUAL", url = connectionVirtualUrl(), username = USERNAME, password = PASSWORDLOCAL)
+            return Connection(name = "VIRTUAL", url = connectionVirtualUrl(), username = USERNAME, password = PASSWORD)
         }
 
         private fun connectionLocalUrl(): String {

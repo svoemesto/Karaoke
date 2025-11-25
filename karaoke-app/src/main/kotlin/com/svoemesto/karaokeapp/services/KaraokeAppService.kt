@@ -27,19 +27,19 @@ class KaraokeAppService(
     storageApiClient: StorageApiClient,
     @Value($$"${work-in-container}") val wic: Long,
     @Value($$"${work-on-server}") val wos: Long,
-    @Value($$"${db-local-postgres-user}") val dbLocalPostrgesUser: String,
-    @Value($$"${db-local-postgres-password}") val dbLocalPostrgesPassword: String,
-    @Value($$"${db-remote-postgres-user}") val dbRemotePostrgesUser: String,
-    @Value($$"${db-remote-postgres-password}") val dbRemotePostrgesPassword: String,
+    @Value($$"${db-local-postgres-user}") val dbLocalPostgresUser: String,
+    @Value($$"${db-local-postgres-password}") val dbLocalPostgresPassword: String,
+    @Value($$"${db-remote-postgres-user}") val dbRemotePostgresUser: String,
+    @Value($$"${db-remote-postgres-password}") val dbRemotePostgresPassword: String,
 ) {
 
     init {
         APP_WORK_IN_CONTAINER = (wic != 0L)
         APP_WORK_ON_SERVER = (wos != 0L)
-        DB_LOCAL_POSTGRES_USER = dbLocalPostrgesUser
-        DB_LOCAL_POSTGRES_PASSWORD = dbLocalPostrgesPassword
-        DB_SERVER_POSTGRES_USER = dbRemotePostrgesUser
-        DB_SERVER_POSTGRES_PASSWORD = dbRemotePostrgesPassword
+        DB_LOCAL_POSTGRES_USER = dbLocalPostgresUser
+        DB_LOCAL_POSTGRES_PASSWORD = dbLocalPostgresPassword
+        DB_SERVER_POSTGRES_USER = dbRemotePostgresUser
+        DB_SERVER_POSTGRES_PASSWORD = dbRemotePostgresPassword
         SNS = sseNotificationService
         KSS_APP = karaokeStorageService
         SAC_APP = storageApiClient

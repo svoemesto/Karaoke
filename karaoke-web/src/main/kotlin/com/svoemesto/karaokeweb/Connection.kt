@@ -1,7 +1,12 @@
 package com.svoemesto.karaokeweb
 
 import com.svoemesto.karaokeapp.KaraokeConnection
+import com.svoemesto.karaokeweb.services.DB_LOCAL_POSTGRES_PASSWORD
+import com.svoemesto.karaokeweb.services.DB_LOCAL_POSTGRES_USER
+import com.svoemesto.karaokeweb.services.DB_SERVER_POSTGRES_PASSWORD
+import com.svoemesto.karaokeweb.services.DB_SERVER_POSTGRES_USER
 import com.svoemesto.karaokeweb.services.WEB_WORK_IN_CONTAINER
+import com.svoemesto.karaokeweb.services.WEB_WORK_ON_SERVER
 
 class Connection(
     override val url: String,
@@ -23,14 +28,14 @@ class Connection(
 
     companion object {
 
-        private const val USERNAME = "postgres"
-        private const val PASSWORD = "postgres"
+        private val USERNAME = if(WEB_WORK_ON_SERVER) DB_SERVER_POSTGRES_USER else DB_LOCAL_POSTGRES_USER
+        private val PASSWORD = if(WEB_WORK_ON_SERVER) DB_SERVER_POSTGRES_PASSWORD else DB_LOCAL_POSTGRES_PASSWORD
         fun local(): KaraokeConnection {
             return Connection(name = "LOCAL", url = connectionLocalUrl(), username = USERNAME, password = PASSWORD)
         }
         @Suppress("unused")
         fun remote(): KaraokeConnection {
-            return Connection(name = "SERVER", url = connectionRemoteUrl(), username = USERNAME, password = PASSWORD)
+            return Connection(name = "SERVER", url = connectionRemoteUrl(), username = DB_SERVER_POSTGRES_USER, password = DB_SERVER_POSTGRES_PASSWORD)
         }
 
         @Suppress("unused")

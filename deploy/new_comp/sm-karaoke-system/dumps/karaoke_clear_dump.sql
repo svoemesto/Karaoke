@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict GHLuWL5QE9fne1qzq9pe9LVpxxmtnxci1XU9MrqWH4CgUicNLTJy2NLsyoTOk0A
+\restrict T4cLoGn4N5cBjIvpEcSDFCKVGJIgmMrQHq9XHWq9wmDiNvizmLUjLbM6qDDkATt
 
 -- Dumped from database version 16.10 (Debian 16.10-1.pgdg13+1)
 -- Dumped by pg_dump version 16.10 (Debian 16.10-1.pgdg13+1)
@@ -25,9 +25,9 @@ SET row_security = off;
 CREATE DATABASE karaoke WITH TEMPLATE = template0 ENCODING = 'UTF8' LOCALE_PROVIDER = libc LOCALE = 'en_US.utf8';
 
 
-\unrestrict GHLuWL5QE9fne1qzq9pe9LVpxxmtnxci1XU9MrqWH4CgUicNLTJy2NLsyoTOk0A
+\unrestrict T4cLoGn4N5cBjIvpEcSDFCKVGJIgmMrQHq9XHWq9wmDiNvizmLUjLbM6qDDkATt
 \connect karaoke
-\restrict GHLuWL5QE9fne1qzq9pe9LVpxxmtnxci1XU9MrqWH4CgUicNLTJy2NLsyoTOk0A
+\restrict T4cLoGn4N5cBjIvpEcSDFCKVGJIgmMrQHq9XHWq9wmDiNvizmLUjLbM6qDDkATt
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -499,7 +499,8 @@ CREATE TABLE public.tbl_processes (
     process_time_left_str character varying,
     without_control boolean DEFAULT false,
     thread_id integer DEFAULT 0 NOT NULL,
-    recordhash character varying(32)
+    recordhash character varying(32),
+    process_envs text DEFAULT ''::text NOT NULL
 );
 
 
@@ -1250,5 +1251,5 @@ CREATE TRIGGER update_sync_last_updated_trigger BEFORE UPDATE ON public.tbl_sett
 -- PostgreSQL database dump complete
 --
 
-\unrestrict GHLuWL5QE9fne1qzq9pe9LVpxxmtnxci1XU9MrqWH4CgUicNLTJy2NLsyoTOk0A
+\unrestrict T4cLoGn4N5cBjIvpEcSDFCKVGJIgmMrQHq9XHWq9wmDiNvizmLUjLbM6qDDkATt
 

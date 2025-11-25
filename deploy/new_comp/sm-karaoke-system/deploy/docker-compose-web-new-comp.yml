@@ -8,6 +8,10 @@ services:
       - "8897:7799"
     environment:
       WORK_IN_CONTAINER: 1
+        - DB_LOCAL_POSTGRES_USER=${DB_LOCAL_POSTGRES_USER}
+        - DB_LOCAL_POSTGRES_PASSWORD=${DB_LOCAL_POSTGRES_PASSWORD}
+        - DB_SERVER_POSTGRES_USER=${DB_SERVER_POSTGRES_USER}
+        - DB_SERVER_POSTGRES_PASSWORD=${DB_SERVER_POSTGRES_PASSWORD}
     networks:
       - karaokenet
     entrypoint:

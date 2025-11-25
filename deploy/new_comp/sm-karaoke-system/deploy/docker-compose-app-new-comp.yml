@@ -7,6 +7,7 @@ services:
     ports:
       - "8898:8899"
     environment:
+      - WORK_ON_SERVER=0
       - WORK_IN_CONTAINER=1
       - STORAGE_FOLDER=${STORAGE_FOLDER}
       - STORAGE_PORT_HOST=${STORAGE_PORT_HOST}
@@ -20,6 +21,10 @@ services:
       - LC_ALL=C.UTF-8
       - CORS_ALLOWED_ORIGINS=http://localhost:7906,http://127.0.0.1:7906
       - APP_MAX_FILE_SIZE=10MB
+      - DB_LOCAL_POSTGRES_USER=${DB_LOCAL_POSTGRES_USER}
+      - DB_LOCAL_POSTGRES_PASSWORD=${DB_LOCAL_POSTGRES_PASSWORD}
+      - DB_SERVER_POSTGRES_USER=${DB_SERVER_POSTGRES_USER}
+      - DB_SERVER_POSTGRES_PASSWORD=${DB_SERVER_POSTGRES_PASSWORD}
     volumes:
       - /sm-karaoke/work:/sm-karaoke/work
       - /sm-karaoke/done1:/sm-karaoke/done1

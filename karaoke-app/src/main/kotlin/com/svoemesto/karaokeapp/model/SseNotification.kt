@@ -1,5 +1,7 @@
 package com.svoemesto.karaokeapp.model
 
+import com.svoemesto.karaokeapp.HealthReportDTO
+
 
 data class SseNotification(
     val type: SseNotificationType,
@@ -38,6 +40,9 @@ data class SseNotification(
         }
         fun sync(syncMessage: List<List<String>>): SseNotification {
             return SseNotification(SseNotificationType.SYNC, syncMessage)
+        }
+        fun healthReports(settingsId: Long, healthReportDtoList: List<HealthReportDTO>): SseNotification {
+            return SseNotification(SseNotificationType.HEALTH_REPORTS, mapOf( "settingsId" to settingsId, "healthReportDtoList" to healthReportDtoList))
         }
     }
 }

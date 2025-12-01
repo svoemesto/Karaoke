@@ -1,5 +1,6 @@
 package com.svoemesto.karaokeapp.model
 
+import com.svoemesto.karaokeapp.HealthReportDTO
 import java.io.Serializable
 import java.util.*
 
@@ -122,7 +123,10 @@ data class SettingsDTO(
         val versionPlChords: Int,
         val versionPlMelody: Int,
         val resultVersion: Long,
-        val rate: Int
+        val rate: Int,
+        val healthReportText: String,
+        val healthReportColor: String,
+        val healthReportList: List<HealthReportDTO>
 ): Serializable, Comparable<SettingsDTO> {
 
     private val sortString: String get() {
@@ -225,7 +229,10 @@ data class SettingsDTO(
                 versionPlLyrics = versionPlLyrics,
                 versionPlChords = versionPlChords,
                 versionPlMelody = versionPlMelody,
-                rate = rate
+                rate = rate,
+                healthReportText = healthReportText,
+                healthReportColor = healthReportColor,
+                healthReportList = healthReportList
         )
     }
 }

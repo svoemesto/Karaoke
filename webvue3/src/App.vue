@@ -81,10 +81,15 @@ export default {
         case 'LOG': { this.logMessageByUserEvent(userEvent.data); break; }
         case 'CRUD': { this.crudMessageByUserEvent(userEvent.data, create); break; }
         case 'SYNC': { this.syncMessageByUserEvent(userEvent.data, create); break; }
+        case 'HEALTH_REPORTS': { this.healthReportMessageByUserEvent(userEvent.data); break; }
         default: { console.log("Неизвестный тип события: ", userEvent.type); }
       }
     },
 
+    healthReportMessageByUserEvent(userEventData) {
+      // console.log('healthReportMessageByUserEvent', userEventData);
+      this.$store.dispatch('healthReportMessageByUserEvent', userEventData);
+    },
     updateSongByUserEvent(userEventData) {
       this.$store.dispatch('updateSongByUserEvent', userEventData);
       this.$store.dispatch('updatePublishDigestByUserEvent', userEventData);

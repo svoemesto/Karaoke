@@ -26,6 +26,7 @@ export default {
         leftSongId: undefined,
         rightSongId: undefined,
         currentSong: undefined,
+        currentSongHealthReports: [],
         songPageSize: 50,
         snapshotSong: undefined,
         lastUpdateSong: Date.now(),
@@ -376,6 +377,9 @@ export default {
         },
         getCurrentSong(state) {
             return state.currentSong;
+        },
+        getCurrentSongHealthReports(state) {
+            return state.currentSongHealthReports;
         },
         getCurrentSongId(state) {
             return state.currentSongId;
@@ -1204,6 +1208,8 @@ export default {
           state.lastUpdateSong = lastUpdateSong;
         },
         async setCurrentSongId(state, currId) {
+            // console.log('mutation setCurrentSongId called', currId);
+            state.currentSongId = currId;
             // console.log('state.songsDigest', state.songsDigest);
             let songWithIndexesFiltered = state.songPages.map(function (page, pageIndex) {
                 return page.map(function (song, songIndex) {
@@ -1213,6 +1219,7 @@ export default {
             }).flatMap(item => item).filter(item => item.songId === currId);
 
             let songWithIndexes = songWithIndexesFiltered.length ? songWithIndexesFiltered[0] : undefined;
+            // console.log('mutation setCurrentSongId songWithIndexes', songWithIndexes);
             if (songWithIndexes) {
                 state.currentSong = songWithIndexes.song;
                 state.currentSongIndex = songWithIndexes.songIndex;
@@ -1226,9 +1233,9 @@ export default {
                 state.toSync = await this.dispatch('getToSyncFromRest');
             } else {
                 let request = { method: 'POST', url: "/api/song", params: {id: currId} };
-                 promisedXMLHttpRequest(request).then(async data => {
+                promisedXMLHttpRequest(request).then(async data => {
                      let songFromRest = JSON.parse(data);
-                     // console.log('Song: ', songFromRest);
+                     console.log('Song: ', songFromRest);
                      if (songFromRest) {
                          const id = songFromRest.id;
 
@@ -1256,8 +1263,29 @@ export default {
                              state.toSync = await this.dispatch('getToSyncFromRest');
                          }
                      }
-                 });
+                });
             }
+            // const params = {id: currId};
+            // let request = { method: 'POST', url: "/api/song/healthReportList", params: params };
+            // promisedXMLHttpRequest(request).then(data => {
+            //     let result = JSON.parse(data);
+            //     console.log('loadHealthReportList result', result);
+            //     state.currentSongHealthReports = result;
+            // }).catch(error => {
+            //     console.log(error);
+            // });
+        },
+        setCurrentSongHealthReports(state, currId) {
+            // console.log('setCurrentSongHealthReports currId', currId);
+            const params = {id: currId};
+            let request = { method: 'POST', url: "/api/song/healthReportList", params: params };
+            promisedXMLHttpRequest(request).then(data => {
+                let result = JSON.parse(data);
+                // console.log('loadHealthReportList result', result);
+                state.currentSongHealthReports = result;
+            }).catch(error => {
+                console.log(error);
+            });
         },
         async deleteCurrentSong(state) {
             let previousSongId = state.previousSongId;
@@ -1368,6 +1396,54 @@ export default {
                 }
             }
         },
+        healthReportMessageByUserEvent(state, userEventData) {
+
+            const settingsId = userEventData.settingsId;
+            const healthReportDtoList = userEventData.healthReportDtoList;
+
+            // console.log('healthReportMessageByUserEvent mutation', settingsId, healthReportDtoList);
+
+            if (state.songsDigest && state.songsDigest.length > 0) {
+                const songsFilter = state.songsDigest.filter(song => song.id === settingsId);
+
+                if (songsFilter && songsFilter.length > 0) {
+
+                    const song = songsFilter[0];
+                    let color = "#99FF99";
+
+                    if (healthReportDtoList && healthReportDtoList.length > 0) {
+
+                        const reportsWarning = healthReportDtoList.filter(healthReport => healthReport.healthReportStatusName === 'WARNING')
+                        if (reportsWarning && reportsWarning.length > 0) {
+                            color = reportsWarning[0].color;
+                        }
+
+                        const reportsInProgress = healthReportDtoList.filter(healthReport => healthReport.healthReportStatusName === 'IN_PROGRESS')
+                        if (reportsInProgress && reportsInProgress.length > 0) {
+                            color = reportsInProgress[0].color;
+                        }
+
+                        const reportsErrors = healthReportDtoList.filter(healthReport => healthReport.healthReportStatusName === 'ERROR')
+                        if (reportsErrors && reportsErrors.length > 0) {
+                            color = reportsErrors[0].color;
+                        }
+
+                        const reportsFatalErrors = healthReportDtoList.filter(healthReport => healthReport.healthReportStatusName === 'FATAL_ERROR')
+                        if (reportsFatalErrors && reportsFatalErrors.length > 0) {
+                            color = reportsFatalErrors[0].color;
+                        }
+
+
+                    }
+
+                    song.healthReportText = healthReportDtoList.length.toString();
+                    song.healthReportColor = color;
+                    song.healthReportList = healthReportDtoList;
+
+                }
+            }
+
+        },
         updateSongByUserEvent(state, userEventData) {
             let songId = userEventData.recordId;
             for (let i = 0; i < state.songsDigest.length; i++) {
@@ -1400,6 +1476,14 @@ export default {
         }
     },
     actions: {
+        async setCurrentSongId(ctx, currId) {
+            // console.log('actions setCurrentSongId called', currId);
+            await ctx.commit('setCurrentSongId', currId);
+            ctx.commit('setCurrentSongHealthReports', currId);
+        },
+        setCurrentSongHealthReports(ctx, currId) {
+            ctx.commit('setCurrentSongHealthReports', currId);
+        },
         changeToSync(ctx) {
             ctx.commit('changeToSync');
         },
@@ -1860,6 +1944,9 @@ export default {
 
         updateSongsDigestByIds(ctx, payload) {
             ctx.commit('updateSongsDigestByIds', payload.songsAndIndexesForUpdate);
+        },
+        healthReportMessageByUserEvent(ctx, userEventData) {
+            ctx.commit('healthReportMessageByUserEvent', userEventData);
         },
         updateSongByUserEvent(ctx, userEventData) {
             ctx.commit('updateSongByUserEvent', userEventData);

@@ -11,5 +11,6 @@ enum class SseNotificationType(val value: String) {
     DUMMY("dummy"),
     LOG("log"),
     CRUD("crud"),
-    SYNC("sync")
+    SYNC("sync"),
+    HEALTH_REPORTS("healthReports")
 }

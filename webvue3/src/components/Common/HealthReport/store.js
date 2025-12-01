@@ -23,7 +23,7 @@ export default {
             ctx.commit('setHealthReportListIsLoading', true);
             promisedXMLHttpRequest(request).then(data => {
                 let result = JSON.parse(data);
-                console.log('loadHealthReportList result', result);
+                // console.log('loadHealthReportList result', result);
                 ctx.commit('updateHealthReportList', result)
                 ctx.commit('setHealthReportListIsLoading', false);
             }).catch(error => {
@@ -35,12 +35,7 @@ export default {
                 id: item.settingsId,
                 healthReportTypeName: item.healthReportTypeName,
                 healthReportStatusName: item.healthReportStatusName,
-                customCode: item.customCode,
-                songVersionName: item.songVersionName,
-                karaokePlatformName: item.karaokePlatformName,
-                karaokeFileTypeName: item.karaokeFileTypeName,
-                karaokeFileActionTypeName: item.karaokeFileActionTypeName,
-                karaokeFileTypeLocationsName: item.karaokeFileTypeLocationsName
+                description: item.description
             };
             let request = { method: 'POST', url: "/api/song/executeHealthReportActions", params: params };
             promisedXMLHttpRequest(request).then(data => {

@@ -86,7 +86,7 @@ export default {
   },
   methods: {
     editSong() {
-      this.$store.commit('setCurrentSongId', this.publish.id);
+      this.$store.dispatch('setCurrentSongId', this.publish.id);
       this.isSongEditVisible = true;
     },
     closeSongEdit() {

@@ -4989,7 +4989,10 @@ class Settings(
             versionPlKaraoke = versionPlKaraoke,
             versionPlChords = versionPlChords,
             versionPlMelody = versionPlMelody,
-            rate = rate
+            rate = rate,
+            healthReportText = "-",
+            healthReportColor = "#E0E0E0",
+            healthReportList = emptyList()
         )
     }
 

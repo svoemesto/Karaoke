@@ -4,7 +4,6 @@ import com.svoemesto.karaokeapp.*
 import com.svoemesto.karaokeapp.model.*
 import com.svoemesto.karaokeapp.services.APP_WORK_IN_CONTAINER
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
-import com.svoemesto.karaokeapp.services.SAC_APP
 import com.svoemesto.karaokeapp.services.SNS
 import com.svoemesto.karaokeapp.services.SseNotificationService
 import com.svoemesto.karaokeapp.services.StorageApiClient
@@ -39,7 +38,6 @@ import java.security.cert.CertificateException
 import java.sql.ResultSet
 import java.sql.SQLException
 import java.sql.Timestamp
-import java.sql.PreparedStatement
 import java.text.SimpleDateFormat
 import java.time.Instant
 import java.util.*
@@ -3130,16 +3128,20 @@ class ApiController(
     // Получение healthReportList
     @PostMapping("/song/healthReportList")
     @ResponseBody
-    fun getHealthReportList(@RequestParam id: Long): List<HealthReportDTO> =
-        Settings.loadFromDbById(
+    fun getHealthReportList(@RequestParam id: Long): List<HealthReportDTO> {
+        val result = Settings.loadFromDbById(
             id = id,
             database = WORKING_DATABASE,
             storageService = storageService,
             storageApiClient = storageApiClient
         )?.healthReportList()?.errorsOnly()?.map { it.toDTO() } ?: emptyList()
+        SNS.send(SseNotification.healthReports(settingsId = id,  healthReportDtoList = result))
+        return result
+    }
 
 
-    // Выполнение customActions у конкретного HealtReport-а
+
+    // Выполнение customActions у конкретного HealthReport-а
     @PostMapping("/song/executeHealthReportActions")
     @ResponseBody
     fun executeHealthReportActions(
@@ -3160,7 +3162,7 @@ class ApiController(
                 healthReportStatusName = healthReportStatusName,
                 description = description
             )
-            HealthReport.getHealthReport(settings = settings, dto = healthReportDTO)?.let { healthReport -> healthReport.executeSolutionActions() }
+            HealthReport.getHealthReport(settings = settings, dto = healthReportDTO)?.executeSolutionActions()
         }
     }
 

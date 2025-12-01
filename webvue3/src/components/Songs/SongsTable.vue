@@ -4,6 +4,7 @@
     <SongsFilter v-if="isSongsFilterVisible" @close="closeSongsFilter"/>
     <SmartCopyModal v-if="isSmartCopyVisible" @close="closeSmartCopy" :ids="songsIds"/>
     <custom-confirm v-if="isCustomConfirmVisible" :params="customConfirmParams" @close="closeCustomConfirm" />
+    <health-report-table v-if="isHealthReportTableVisible" :id="currentSongId" @close="closeHealthReportTable"/>
     <div class="songs-bv-table-header">
       <b-pagination
           v-model="currentPage"
@@ -122,6 +123,14 @@
               class="fld-timecode"
               v-text="data.value"
               :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
+          ></div>
+        </template>
+        <template #cell(healthReportText)="data">
+          <div
+              class="fld-health-report-text"
+              v-text="data.value"
+              :style="{ backgroundColor: data.item.healthReportColor, color: currentSongId === data.item.id ? 'blue' : 'black' }"
+              @click.left="showHealthReportTable(data.item.id)"
           ></div>
         </template>
         <template #cell(resultVersion)="data">
@@ -294,6 +303,7 @@
       <button class="btn-round-double" @click="createSheetsageForAll" :disabled="countRows===0" title="Создать SHEETSAGE для всех песен"><img alt="create sheetsage for all" class="icon-40" src="../../assets/svg/icon_chords.svg"></button>
       <button class="btn-round-double" @click="updateStoreForAll" :disabled="countRows===0" title="Обновить хранилище для всех песен"><img alt="update store for all" class="icon-40" src="../../assets/svg/icon_update_store.svg"></button>
       <button class="btn-round-double" @click="addSyncForAll" :disabled="countRows===0 || !allowAddSync" title="Добавить записи в SYNC-таблицу"><img alt="add records to SYNC table" class="icon-40" src="../../assets/svg/icon_sync.svg"></button>
+      <button class="btn-round-double" @click="repairAll" :disabled="countRows===0" title="Repair All"><img alt="Repair all" class="icon-40" src="../../assets/svg/icon_repair.svg"></button>
     </div>
 
   </div>
@@ -306,10 +316,12 @@ import SongEditModal from "../../components/Songs/edit/SongEditModal.vue";
 import SongsFilter from "../../components/Songs/filter/SongsFilterModal.vue";
 import SmartCopyModal from "../../components/Common/SmartCopy/SmartCopyModal.vue";
 import CustomConfirm from "../../components/Common/CustomConfirm.vue";
+import HealthReportTable from "../Common/HealthReport/HealthReportTable.vue";
 
 export default {
   name: "SongsTable",
   components: {
+    HealthReportTable,
     SongEditModal,
     SongsFilter,
     SmartCopyModal,
@@ -327,6 +339,7 @@ export default {
       isSongsFilterVisible: false,
       isSmartCopyVisible: false,
       isCustomConfirmVisible: false,
+      isHealthReportTableVisible: false,
       customConfirmParams: undefined,
       isBusy: false,
       allowAddSync: false
@@ -341,12 +354,18 @@ export default {
     countRows: {
       handler () {
         this.currentPage = 1;
+        this.updateHealthReportForCurrentPage();
       }
     },
     currentSongId: {
       handler () {
         const songPageNumber = this.songIdAndPageId.get(this.currentSongId);
         if (songPageNumber !== undefined && this.currentPage !== songPageNumber) this.currentPage = songPageNumber;
+      }
+    },
+    currentPage: {
+      handler () {
+        this.updateHealthReportForCurrentPage();
       }
     }
   },
@@ -520,6 +539,16 @@ export default {
           style: {
             minWidth: '60px',
             maxWidth: '60px',
+            textAlign: 'center',
+            fontSize: 'small'
+          }
+        },
+        {
+          key: 'healthReportText',
+          label: 'HR',
+          style: {
+            minWidth: '20px',
+            maxWidth: '20px',
             textAlign: 'center',
             fontSize: 'small'
           }
@@ -718,6 +747,38 @@ export default {
     }
   },
   methods: {
+    updateHealthReportForCurrentPage() {
+      for (const settingsId of this.songsIds) {
+        const songPageNumber = this.songIdAndPageId.get(settingsId);
+        if (songPageNumber === this.currentPage) {
+          const filteredSongs = this.songsDigests.filter(song => song.id === settingsId);
+          if (filteredSongs && filteredSongs.length > 0) {
+            const song = filteredSongs[0];
+            if (song.healthReportText === '-') {
+              this.$store.dispatch('setCurrentSongHealthReports', settingsId);
+            }
+          }
+        }
+      }
+    },
+    repairAllForCurrentPage() {
+      for (const settingsId of this.songsIds) {
+        const songPageNumber = this.songIdAndPageId.get(settingsId);
+        if (songPageNumber === this.currentPage) {
+          const filteredSongs = this.songsDigests.filter(song => song.id === settingsId);
+          if (filteredSongs && filteredSongs.length > 0) {
+            const song = filteredSongs[0];
+            if (song.healthReportText !== '-' && song.healthReportText !== '0') {
+              const healthReportListCanRepair = song.healthReportList.filter(healthReport => healthReport.canResolve);
+              const lst = [...healthReportListCanRepair];
+              for (const healthReport of lst) {
+                this.$store.dispatch('repairOneRecord', healthReport);
+              }
+            }
+          }
+        }
+      }
+    },
     async propAllowAddSync() {
       const propValue = await this.$store.getters.getPropValue('allowAddSync');
       return propValue === 'true'
@@ -1009,6 +1070,18 @@ export default {
         this.isCustomConfirmVisible = true;
       })
     },
+    repairAll() {
+      this.customConfirmParams = {
+        header: 'Подтвердите Repair All',
+        body: `Выполнить Repair All для всех песен на странице?`,
+        callback: this.doRepairAll
+      }
+      this.isCustomConfirmVisible = true;
+    },
+    doRepairAll() {
+      this.repairAllForCurrentPage();
+      this.isCustomConfirmVisible = false;
+    },
     createSymlinksForAll() {
       this.customConfirmParams = {
         header: 'Подтвердите создание SYMLINKs',
@@ -1108,9 +1181,18 @@ export default {
     closeCustomConfirm() {
       this.isCustomConfirmVisible = false;
     },
-
+    async showHealthReportTable(id) {
+      // console.log('showHealthReportTable called', id);
+      await this.$store.dispatch('setCurrentSongId', id);
+      // console.log('showHealthReportTable this.currentSongId', id, this.currentSongId);
+      this.isHealthReportTableVisible = true;
+    },
+    closeHealthReportTable() {
+      this.$store.dispatch('setCurrentSongHealthReports', this.currentSongId);
+      this.isHealthReportTableVisible = false;
+    },
     editSong(id) {
-      this.$store.commit('setCurrentSongId', id);
+      this.$store.dispatch('setCurrentSongId', id);
       this.isSongEditVisible = true;
     },
     playLyrics(id) {
@@ -1283,6 +1365,19 @@ export default {
   font-size: small;
   white-space: nowrap;
   overflow: hidden;
+}
+.fld-health-report-text {
+  min-width: 20px;
+  max-width: 20px;
+  text-align: center;
+  font-size: small;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.fld-health-report-text:hover {
+  text-decoration: underline;
+  cursor: pointer;
 }
 .fld-flag-sponsr {
   min-width: 20px;

@@ -5,12 +5,10 @@ import com.svoemesto.karaokeapp.HealthReportType.CONSISTENCY_VIOLATION
 import com.svoemesto.karaokeapp.HealthReportType.FILE_VIOLATION
 import com.svoemesto.karaokeapp.KaraokeFileTypeLocations.*
 import com.svoemesto.karaokeapp.model.Settings
-import com.svoemesto.karaokeapp.model.SongOutputFile
 import com.svoemesto.karaokeapp.model.SongVersion
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.StorageApiClient
 import java.io.File
-import java.io.Serializable
 import java.nio.file.Files
 import kotlin.properties.Delegates
 
@@ -27,6 +25,7 @@ data class HealthReport(
     fun toDTO(): HealthReportDTO {
         return HealthReportDTO(
             settingsId = settings.id,
+            settingsFileName = settings.fileName,
             description = description,
             healthReportTypeName = healthReportType.name,
             healthReportStatusName = healthReportStatus.name,
@@ -221,33 +220,36 @@ data class HealthReport(
                             var needToDelete = false
                             var needToCreate = false
                             var broken = false
+                            var txtTemp = ""
                             val exists = symlink.exists(rootFolder = rootFolder, pathToTargetFile = pathToFile)
                             if (exists) { // Симлинк реально есть
                                 broken = symlink.broken(rootFolder = rootFolder, pathToTargetFile = pathToFile)
                                 if (broken) {
                                     needToDelete = true
                                     needToCreate = true
+                                    txtTemp = "Удаление битых симлинков, создание правильных симлинков"
                                 }
                             } else { // Симлинка нет
                                 needToCreate = true
+                                txtTemp = "Создание правильных симлинков"
                             }
 
                             if (needToDelete) {
                                 actions.add { println("actionsLocalFileSystem [Удаление симлинка] >>>") }
-                                actions.add { actionToDeleteFileAndFolderIfFolderEmpty(pathToFile = pathToSymlinkFile) }
+                                actions.add ( actionToDeleteFileAndFolderIfFolderEmpty(pathToFile = pathToSymlinkFile) )
                                 actions.add { println("actionsLocalFileSystem [Удаление симлинка] <<<") }
                             }
 
                             if (needToCreate) {
                                 actions.add { println("actionsLocalFileSystem [Создание симлинка] >>>") }
-                                actions.add { symlink.actionToCreate(rootFolder = rootFolder, pathToTargetFile = pathToFile) }
+                                actions.add ( symlink.actionToCreate(rootFolder = rootFolder, pathToTargetFile = pathToFile) )
                                 actions.add { println("actionsLocalFileSystem [Создание симлинка] <<<") }
                             }
 
                             if (needToDelete || needToCreate) {
                                 healthReportStatus = ERROR
                                 problemText = "Файл на диске есть, но есть проблемы с его симлинками"
-                                solutionText = "Удаление битых симлинков, создание правильных симлинков '$pathToSymlinkFile' exists = $exists broken = $broken"
+                                solutionText = "$txtTemp '$pathToSymlinkFile' exists = $exists broken = $broken"
                             }
 
                         }
@@ -296,6 +298,7 @@ data class HealthReport(
                         if (inProgressOwn) { // Есть задача в процессах (inProgressOwn)
 
                             healthReportStatus = IN_PROGRESS
+                            canBeResolved = false
                             problemText = "Файл отсутствует на диске"
                             solutionText = "Уже есть задание на создание файла"
 
@@ -350,6 +353,7 @@ data class HealthReport(
                                 }
 
                                 healthReportStatus = ERROR
+                                canBeResolved = true
                                 problemText = "Файл отсутствует на диске"
 
                             }
@@ -360,6 +364,7 @@ data class HealthReport(
                         tryRestoreFromStorage = true
 
                         healthReportStatus = FATAL_ERROR
+                        canBeResolved = false
                         problemText = "Файл отсутствует на диске"
                         solutionText = "Невозможно автоматически решить эту проблему"
 
@@ -368,6 +373,7 @@ data class HealthReport(
                     if (tryRestoreFromStorage) {
                         if (storageService.fileExists(bucketName = storageBucketName, fileName = storageFileName)) { // Файл есть в локальном хранилище
                             healthReportStatus = ERROR
+                            canBeResolved = true
                             problemText = "Файл отсутствует на диске"
                             solutionText = "Восстановление файла из локального хранилища"
                             actions.add { println("actionsLocalFileSystem [$solutionText] >>>") }
@@ -379,6 +385,7 @@ data class HealthReport(
                         } else { // Файла нет в локальном хранилище
                             if (storageApiClient.fileExists(bucketName = storageBucketName, fileName = storageFileName)) {  // Файл есть в удалённом хранилище
                                 healthReportStatus = ERROR
+                                canBeResolved = true
                                 problemText = "Файл отсутствует на диске"
                                 solutionText = "Восстановление файла из удалённого хранилища"
                                 actions.add { println("actionsLocalFileSystem [$solutionText] >>>") }
@@ -388,6 +395,7 @@ data class HealthReport(
                                 actions.add { println("actionsLocalFileSystem [$solutionText] <<<") }
                             } else { // Файла нет в удалённом хранилище
                                 healthReportStatus = FATAL_ERROR
+                                canBeResolved = false
                                 problemText = "Файл отсутствует на диске"
                                 solutionText = "Невозможно автоматически решить эту проблему"
                             }
@@ -420,6 +428,7 @@ data class HealthReport(
                     actions.add { println("actionsLocalFileSystem [$solutionText] <<<") }
 
                     healthReportStatus = ERROR
+                    canBeResolved = true
                     problemText = "Наличие файла на диске, когда его быть не должно"
 
                 } else { // Файл реально не существует
@@ -535,6 +544,7 @@ data class HealthReport(
                            // Удалить старый и загрузить новый файл
 
                            healthReportStatus = ERROR
+                           canBeResolved = true
                            problemText = "Файл в локальном хранилище неактуальный"
                            solutionText = "Удалить неактуальный файл из локального хранилища и загрузить актуальный"
 
@@ -545,10 +555,11 @@ data class HealthReport(
                                    fileName = storageFileName
                                )
                            }
+
                            actions.add { println("actionsLocalStorage [Удаление неактуального файла из локального хранилища] <<<") }
 
                            actions.add { println("actionsLocalStorage [Загрузка файла с диска в локальное хранилище] >>>") }
-                           actions.add { storageService.uploadFile(bucketName = storageBucketName, fileName = storageFileName, pathToFileOnDisk = pathToFile) }
+                           actions.add ( { storageService.uploadFile(bucketName = storageBucketName, fileName = storageFileName, pathToFileOnDisk = pathToFile) } )
                            actions.add { println("actionsLocalStorage [Загрузка файла с диска в локальное хранилище] <<<") }
 
                        }
@@ -563,12 +574,14 @@ data class HealthReport(
                             
                             if (!fileIsActual) {
                                 healthReportStatus = WARNING
+                                canBeResolved = false
                                 problemText = "Файл в локальном хранилище есть, но невозможно проверить его актуальность, т.к. отсутствует файл на диске, а с файлом в удалённом хранилище он не совпадает"
                                 solutionText = "Решить проблему в рамках другого задания"
                             }
                             
                         } else {
                             healthReportStatus = WARNING
+                            canBeResolved = false
                             problemText = "Файл в локальном хранилище есть, но невозможно проверить его актуальность, т.к. отсутствует файл на диске и в удалённом хранилище"
                             solutionText = "Решить проблему в рамках другого задания"
                         }
@@ -579,6 +592,7 @@ data class HealthReport(
                         // Загружаем файл в хранилище
 
                         healthReportStatus = ERROR
+                        canBeResolved = true
                         problemText = "Файл в локальном хранилище отсутствует"
                         solutionText = "Загрузка файла с диска в локальное хранилище"
 
@@ -591,7 +605,7 @@ data class HealthReport(
                         val existsInRemoteStore = storageApiClient.fileExists(bucketName = storageBucketName, fileName = storageFileName)
                         if (existsInRemoteStore) { // Файл есть в удалённом хранилище
 
-                            canBeResolved = false
+                            canBeResolved = true
                             healthReportStatus = ERROR
                             problemText = "Файл отсутствует в локальном хранилище и на диске, но есть в удалённом хранилище"
                             solutionText = "Загрузка файла из удалённого хранилища в локальное хранилище"
@@ -627,6 +641,7 @@ data class HealthReport(
                 if (existsInLocalStore) { // Файл реально есть в хранилище (existsInLocalStore)
                     // Удалить файл из хранилища
                     healthReportStatus = ERROR
+                    canBeResolved = true
                     problemText = "Файл есть в локальном хранилище, а быть не должно"
                     solutionText = "Удаление файла из локального хранилища"
 
@@ -751,12 +766,14 @@ data class HealthReport(
 
                             if (!fileIsActual) {
                                 healthReportStatus = WARNING
+                                canBeResolved = false
                                 problemText = "Файл в удалённом хранилище есть, но невозможно проверить его актуальность, т.к. отсутствует файл на диске, а с файлом в локальном хранилище он не совпадает"
                                 solutionText = "Решить проблему в рамках другого задания"
                             }
 
                         } else {
                             healthReportStatus = WARNING
+                            canBeResolved = false
                             problemText = "Файл в удалённом хранилище есть, но невозможно проверить его актуальность, т.к. отсутствует файл на диске и в локальном хранилище"
                             solutionText = "Решить проблему в рамках другого задания"
                         }
@@ -767,6 +784,7 @@ data class HealthReport(
                         // Загружаем файл в хранилище
 
                         healthReportStatus = ERROR
+                        canBeResolved = true
                         problemText = "Файл в удалённом хранилище отсутствует"
                         solutionText = "Загрузка файла с диска в удалённое хранилище"
 
@@ -781,6 +799,7 @@ data class HealthReport(
 
                             canBeResolved = false
                             healthReportStatus = ERROR
+                            canBeResolved = true
                             problemText = "Файл отсутствует в удалённом хранилище и на диске, но есть в локальном хранилище"
                             solutionText = "Загрузка файла из локального хранилища в удалённое хранилище"
 
@@ -815,6 +834,7 @@ data class HealthReport(
                 if (existsInRemoteStore) { // Файл реально есть в хранилище (existsInLocalStore)
                     // Удалить файл из хранилища
                     healthReportStatus = ERROR
+                    canBeResolved = true
                     problemText = "Файл есть в удалённом хранилище, а быть не должно"
                     solutionText = "Удаление файла из удалённого хранилища"
 
@@ -1511,7 +1531,7 @@ data class HealthReport(
                         }
                     }
 
-                    // Картинка публикации
+                    // Картинка публикации (можеть существовать только для karaokePlatform.forAllVersions)
                     KaraokeFileType.PICTURE_PUBLICATION -> {
                         KaraokePlatform.entries.forEach { karaokePlatform ->
                             pathToFile = if (karaokePlatform.forAllVersions) {
@@ -1528,6 +1548,7 @@ data class HealthReport(
                             } else {
                                 (settings.idStatus >= 6) && (!karaokePlatform.onAirPublications || !settings.onAir)
                             }
+                            if (!karaokePlatform.forAllVersions) canBe = false
                             storageFileName = "${settings.storageFileName}${karaokePlatform.suffix}${karaokeFileType.suffix}.${karaokeFileType.extention}"
                             description = "${karaokeFileType.name}/${karaokePlatform.name}"
                             canCreate = true
@@ -2072,19 +2093,3 @@ data class HealthReport(
 
 }
 
-data class HealthReportDTO(
-    val settingsId: Long,
-    val description: String,
-    val healthReportTypeName: String,
-    val healthReportStatusName: String,
-    val color: String = "",
-    val canResolve: Boolean = false,
-    val problemText: String = "",
-    val solutionText: String = "",
-//    val customCode: String,
-//    val songVersionName: String,
-//    val karaokePlatformName: String,
-//    val karaokeFileTypeName: String,
-//    val karaokeFileActionTypeName: String,
-//    val karaokeFileTypeLocationsName: String
-) : Serializable

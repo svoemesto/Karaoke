@@ -3,6 +3,7 @@
     <div v-if="song">
       <subs-edit v-if="isSubsEditVisible" :voices="voices" :song="song" @close="closeSubsEdit"/>
       <custom-confirm v-if="isCustomConfirmVisible" :params="customConfirmParams" @close="closeCustomConfirm" />
+      <health-report-table v-if="isHealthReportTableVisible" :id="song.id" @close="closeHealthReportTable"/>
       <!-- Заголовок с названием песни и автора-->
       <div class="header">
         <div class="header-column-1">
@@ -431,6 +432,7 @@
             <button class="group-button" @click="updateRemote" title="Обновить на сервере" :disabled="!allowUpdateRemote" >Обновить на сервере</button>
             <button class="group-button" :class="toSyncButtonClass(toSync)" @click="toSyncRemote" title="Добавить в SYNC-таблицу на сервере" :disabled="!allowAddSync">Добавить в SYNC-таблицу на сервере</button>
             <button class="group-button" @click="copyFieldsFromAnother" title="Скопировать поля из другой песни">Скопировать поля из другой песни</button>
+            <button class="group-button" :disabled="songHealthReports.length === 0"  @click="showHealthReportTable" title="Health Report">Health Report ({{songHealthReports.length}})</button>
             <BDropdown
                 text="Создать ..."
                 class="d-grid"
@@ -508,7 +510,7 @@
           </div>
         </div>
       </div>
-<!--      <health-report-list :id="song.id" />-->
+<!--      <health-report-table :id="song.id" />-->
       <!-- Подвал -->
       <div class="footer">
         <button class="btn-round-save-double" @click="save" :disabled="notChanged()" title="Сохранить"><img alt="saveSong" class="icon-save-double" src="../../../assets/svg/icon_save.svg"></button>
@@ -533,7 +535,7 @@
 <script>
 import SubsEdit from './SubsEdit.vue'
 import CustomConfirm from "../../Common/CustomConfirm.vue";
-import HealthReportList from "../../Common/HealthReport/HealthReportList.vue";
+import HealthReportTable from "../../Common/HealthReport/HealthReportTable.vue";
 import { BFormRating, BDropdown, BDropdownItem, BDropdownDivider, BDropdownGroup } from 'bootstrap-vue-next'
 import { useToast } from "bootstrap-vue-next";
 import { h } from 'vue';
@@ -544,7 +546,7 @@ export default {
   name: "SongEdit",
   components: {
     CustomConfirm,
-    HealthReportList,
+    HealthReportTable,
     SubsEdit,
     BFormRating,
     BDropdown,
@@ -556,6 +558,7 @@ export default {
     return {
       isSubsEditVisible: false,
       isCustomConfirmVisible: false,
+      isHealthReportTableVisible: false,
       voices: [],
       customConfirmParams: undefined,
       imageAuthorBase64: '',
@@ -600,6 +603,7 @@ export default {
       }
     },
     song() { return this.$store.getters.getCurrentSong },
+    songHealthReports() { return this.$store.getters.getCurrentSongHealthReports },
     previousSongId() { return this.$store.getters.getPreviousSongId },
     nextSongId() { return this.$store.getters.getNextSongId },
     leftSongId() { return this.$store.getters.getLeftSongId },
@@ -1271,19 +1275,19 @@ export default {
 
     goToPreviousSong() {
       const id = this.previousSongId;
-      this.$store.commit('setCurrentSongId', id);
+      this.$store.dispatch('setCurrentSongId', id);
     },
     goToNextSong() {
       const id = this.nextSongId;
-      this.$store.commit('setCurrentSongId', id);
+      this.$store.dispatch('setCurrentSongId', id);
     },
     goToLeftSong() {
       const id = this.leftSongId;
-      this.$store.commit('setCurrentSongId', id);
+      this.$store.dispatch('setCurrentSongId', id);
     },
     goToRightSong() {
       const id = this.rightSongId;
-      this.$store.commit('setCurrentSongId', id);
+      this.$store.dispatch('setCurrentSongId', id);
     },
     createKaraoke() {
       this.customConfirmParams = {
@@ -1574,7 +1578,13 @@ export default {
     closeCustomConfirm() {
       this.isCustomConfirmVisible = false;
     },
-
+    showHealthReportTable() {
+      this.isHealthReportTableVisible = true;
+    },
+    closeHealthReportTable() {
+      this.$store.dispatch('setCurrentSongHealthReports', this.song.id);
+      this.isHealthReportTableVisible = false;
+    },
     async getLinkBoosty() {
       let value = this.linkBoosty;
       await navigator.clipboard.writeText(value);

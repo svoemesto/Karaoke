@@ -59,6 +59,7 @@ class StorageApiClientImpl(private val webClient: WebClient): StorageApiClient {
     }
 
     override fun uploadFile(bucketName: String, fileName: String, pathToFileOnDisk: String): String? {
+
         val file = File(pathToFileOnDisk)
         if (file.exists()) {
 
@@ -88,6 +89,8 @@ class StorageApiClientImpl(private val webClient: WebClient): StorageApiClient {
     // --- POST /api/storage/upload ---
     override fun uploadFile(bucketName: String, fileName: String, fileContent: ByteArray): Mono<String> {
         // Создаём MultiValueMap для хранения частей multipart-запроса
+        val encodedBucketName = URLEncoder.encode(bucketName, StandardCharsets.UTF_8)
+        val encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8)
         val multipartData: MultiValueMap<String, Any> = LinkedMultiValueMap()
 
         // --- Ключевое изменение: Создаём ByteArrayResource с переопределением getFilename ---
@@ -103,8 +106,8 @@ class StorageApiClientImpl(private val webClient: WebClient): StorageApiClient {
         multipartData.add("file", fileResource)
 
         // Добавляем строковые параметры как части multipart
-        multipartData.add("bucketName", bucketName)
-        multipartData.add("fileName", fileName) // Не кодируем имя файла здесь, пусть сервер сам разбирается, если нужно
+        multipartData.add("bucketName", encodedBucketName)
+        multipartData.add("fileName", encodedFileName) // Не кодируем имя файла здесь, пусть сервер сам разбирается, если нужно
         // Если сервер строго ожидает закодированное имя в параметрах, раскомментируйте следующую строку:
         // multipartData.add("fileName", URLEncoder.encode(fileName, StandardCharsets.UTF_8))
 

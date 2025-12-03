@@ -1212,6 +1212,7 @@ export default {
     },
     closeSongsFilter() {
       this.isSongsFilterVisible = false;
+      this.updateHealthReportForCurrentPage();
     },
     closeSmartCopy() {
       this.isSmartCopyVisible = false;

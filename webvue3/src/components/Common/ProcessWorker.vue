@@ -1,5 +1,15 @@
 <template>
   <div class="process_worker">
+    <div class="wrapper">
+      <div class="process-text" v-text="processName"></div>
+      <div class="wrapper-bar">
+        <div class="process-progress-bar"
+             role="progressbar"
+             v-text="processPercentage"
+             :style="styleProgressBar"
+        ></div>
+      </div>
+    </div>
     <div class="button-with-text-count-waiting">
       <button
           class="btn-round-double"
@@ -10,16 +20,6 @@
         <img v-else alt="stop" class="icon-40" src="../../assets/svg/icon_stop.svg">
       </button>
       <div class="text-count-waiting" v-text="countWaiting"></div>
-    </div>
-    <div class="wrapper">
-      <div class="process-text" v-text="processName"></div>
-      <div class="wrapper-bar">
-        <div class="process-progress-bar"
-             role="progressbar"
-             v-text="processPercentage"
-             :style="styleProgressBar"
-        ></div>
-      </div>
     </div>
   </div>
 </template>

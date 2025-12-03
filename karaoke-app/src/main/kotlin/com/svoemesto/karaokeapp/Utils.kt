@@ -2595,7 +2595,7 @@ fun getTransposingChord(originalChord: String, capo: Int = 0): String {
  * Проверяет, безопасно ли имя файла (защита от path traversal).
  */
 fun isValidFileName(fileName: String): Boolean {
-    return !fileName.contains("..") && !fileName.startsWith("/") && !fileName.contains("/../")
+    return !fileName.startsWith("../") && !fileName.startsWith("/") && !fileName.contains("/../")
 }
 
 /**

@@ -80,7 +80,7 @@
               </div>
               <div class="se-item-left-label-and-input">
                 <div class="se-item-left-label">String|Lad:</div>
-                <input class="se-item-left-input-field" v-model="currentMarker.stringlad" @focus="setEditMode(false)" @blur="setEditMode(true)">
+                <input class="se-item-left-input-field" v-model="currentMarker.stringLad" @focus="setEditMode(false)" @blur="setEditMode(true)">
               </div>
               <div class="se-item-left-label-and-input">
                 <button class="se-group-button" :class="se-lockladButtonClass()" type="button" @click="onOffLocklad()">locklad</button>
@@ -322,7 +322,7 @@ export default {
         label: '',
         note: '',
         chord: '',
-        stringlad: '',
+        stringLad: '',
         locklad: '',
         position: '',
         color: ''
@@ -1103,8 +1103,8 @@ export default {
               }
               const noteLength = note.length;
               // Находим номер струны и номер лада, подставляем их в массив stringNote
-              const sn = marker.locklad ? [marker.stringlad.split('|')[0], marker.stringlad.split('|')[1]] : stringsForAllNotes[stringsForAllNotesIndex];
-              marker.stringlad = sn[0] + '|' + sn[1];
+              const sn = marker.locklad ? [marker.stringLad.split('|')[0], marker.stringLad.split('|')[1]] : stringsForAllNotes[stringsForAllNotesIndex];
+              marker.stringLad = sn[0] + '|' + sn[1];
               let stringIndex = sn[0];
               let lad = sn[1] + (sn[1] < 10 ? '⎼' : '');
               stringNote.splice(stringIndex, 1, lad);
@@ -1589,7 +1589,7 @@ export default {
           label: marker.label,
           note: marker.note,
           chord: marker.chord,
-          stringlad: marker.stringlad,
+          stringLad: marker.stringLad,
           locklad: marker.locklad,
           color: marker.color,
           position: marker.position,

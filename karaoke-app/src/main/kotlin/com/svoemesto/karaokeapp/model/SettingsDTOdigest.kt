@@ -91,7 +91,10 @@ data class SettingsDTOdigest(
         val rate: Int,
         val healthReportText: String,
         val healthReportColor: String,
-        val healthReportList: List<HealthReportDTO>
+        val healthReportList: List<HealthReportDTO>,
+        val formattedTextSong: String,
+        val formattedTextTabs: String,
+        val formattedTextChords: String
 ): Serializable, Comparable<SettingsDTOdigest> {
 
     private val sortString: String get() {

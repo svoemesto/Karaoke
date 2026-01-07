@@ -297,9 +297,13 @@
 
 </div>
 
-<div hidden="hidden" style="width: 0; height: 0" id="text_formatted_html" th:text="${sett.getTextFormatted()}"></div>
-<div hidden="hidden" style="width: 0; height: 0" id="notes_formatted_html" th:text="${sett.getFormattedNotes()}"></div>
-<div hidden="hidden" style="width: 0; height: 0" id="chords_formatted_html" th:text="${sett.getFormattedChords()}"></div>
+<div hidden="hidden" style="width: 0; height: 0" id="text_formatted_html" th:text="${sett.formattedTextSong}"></div>
+<div hidden="hidden" style="width: 0; height: 0" id="notes_formatted_html" th:text="${sett.formattedTextTabs}"></div>
+<div hidden="hidden" style="width: 0; height: 0" id="chords_formatted_html" th:text="${sett.formattedTextChords}"></div>
+
+<!--<div hidden="hidden" style="width: 0; height: 0" id="text_formatted_html" th:text="${sett.getTextFormatted()}"></div>-->
+<!--<div hidden="hidden" style="width: 0; height: 0" id="notes_formatted_html" th:text="${sett.getFormattedNotes()}"></div>-->
+<!--<div hidden="hidden" style="width: 0; height: 0" id="chords_formatted_html" th:text="${sett.getFormattedChords()}"></div>-->
 
 <div id="areaScreen">
     <div id="areaBody">

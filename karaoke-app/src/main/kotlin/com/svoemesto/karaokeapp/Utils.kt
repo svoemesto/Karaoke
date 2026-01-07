@@ -90,9 +90,37 @@ fun customFunction(
 //        storageApiClient = storageApiClient
 //    )
 
-    checkHealth(storageService = storageService, storageApiClient = storageApiClient, executeActions = true)
+//    checkHealth(storageService = storageService, storageApiClient = storageApiClient, executeActions = true)
+
+    fillFormattedFields(storageService = storageService, storageApiClient = storageApiClient)
 
     return ""
+}
+
+fun fillFormattedFields(storageService: KaraokeStorageService, storageApiClient: StorageApiClient) {
+    val listSettings = Settings.loadListFromDb(
+        database = WORKING_DATABASE,
+        storageService = storageService,
+        storageApiClient = storageApiClient,
+        withoutMarkersAndText = false
+    )
+
+    var lastPrintedPercent = -1
+    listSettings.forEachIndexed { index, settings ->
+        val percent = (((index / listSettings.size.toDouble()) * 100).toInt() / 10) * 10
+        if (percent != lastPrintedPercent) {
+            lastPrintedPercent = percent
+            println("fillFormattedFields $percent%")
+        }
+
+        settings.formattedTextSong = settings.getTextFormatted()
+        settings.formattedTextTabs = settings.getFormattedNotes()
+        settings.formattedTextChords = settings.getFormattedChords()
+        settings.saveToDb()
+
+    }
+    println("fillFormattedFields 100% - DONE")
+
 }
 
 fun checkHealth(storageService: KaraokeStorageService, storageApiClient: StorageApiClient, executeActions: Boolean = false) {

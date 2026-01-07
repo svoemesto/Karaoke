@@ -531,7 +531,8 @@ class ApiController(
     fun getSongTextFormatted(@RequestParam id: Long): String {
         val settings = Settings.loadFromDbById(id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
         val text = settings?.let {
-            settings.getTextFormatted()
+//            settings.getTextFormatted()
+            settings.formattedTextSong
         } ?: ""
         return text
     }
@@ -543,7 +544,8 @@ class ApiController(
     fun getSongFormattedNotes(@RequestParam id: Long): String {
         val settings = Settings.loadFromDbById(id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
         val text = settings?.let {
-            settings.getFormattedNotes()
+//            settings.getFormattedNotes()
+            settings.formattedTextTabs
         } ?: ""
         return text
     }
@@ -554,7 +556,8 @@ class ApiController(
     fun getSongFormattedChords(@RequestParam id: Long): String {
         val settings = Settings.loadFromDbById(id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
         val text = settings?.let {
-            settings.getFormattedChords()
+//            settings.getFormattedChords()
+            settings.formattedTextChords
         } ?: ""
         return text
     }

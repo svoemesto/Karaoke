@@ -159,5 +159,8 @@ SET recordhash = md5(
         COALESCE(version_boosty::TEXT, '') ||
         COALESCE(version_sponsr::TEXT, '') ||
         COALESCE(version_boosty_files::TEXT, '') ||
-        COALESCE(rate::TEXT, '')
+        COALESCE(rate::TEXT, '') ||
+        COALESCE(formatted_text_song, '') ||
+        COALESCE(formatted_text_tabs, '') ||
+        COALESCE(formatted_text_chords, '')
 ) WHERE id > 0;

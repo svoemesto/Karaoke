@@ -111,6 +111,27 @@ class Settings(
     fun healthReportList(): List<HealthReport> = HealthReport.getHealthReportList(settings = this)
 
 
+    var formattedTextSong: String
+        get() {
+            val txt = fields[SettingField.FORMATTED_TEXT_SONG] ?: ""
+            return txt
+        }
+        set(value) {fields[SettingField.FORMATTED_TEXT_SONG] = value}
+
+    var formattedTextTabs: String
+        get() {
+            val txt = fields[SettingField.FORMATTED_TEXT_TABS] ?: ""
+            return txt
+        }
+        set(value) {fields[SettingField.FORMATTED_TEXT_TABS] = value}
+
+    var formattedTextChords: String
+        get() {
+            val txt = fields[SettingField.FORMATTED_TEXT_CHORDS] ?: ""
+            return txt
+        }
+        set(value) {fields[SettingField.FORMATTED_TEXT_CHORDS] = value}
+
     private var _rootFolder: String = ""
     var readonly = false
 
@@ -342,14 +363,10 @@ class Settings(
 
 
     val pathToFileLyrics: String  get() = "${rootFolder}/done_files/$nameFileLyrics".rightFileName()
-//    val pathToFileLyricsVk: String  get() = "${rootFolder}/done_files/$nameFileLyricsVk".rightFileName()
     val pathToFileKaraoke: String  get() = "${rootFolder}/done_files/$nameFileKaraoke".rightFileName()
-//    val pathToFileKaraokeVk: String  get() = "${rootFolder}/done_files/$nameFileKaraokeVk".rightFileName()
     val pathToFileChords: String  get() = "${rootFolder}/done_files/$nameFileChords".rightFileName()
-//    val pathToFileChordsVk: String  get() = "${rootFolder}/done_files/$nameFileChordsVk".rightFileName()
     val pathToFileMelody: String  get() = "${rootFolder}/done_files/$nameFileMelody".rightFileName()
     val pathToFileKeyBpmFinder: String  get() = "${rootFolder}/$nameFileKeyBpmFinder".rightFileName()
-//    val pathToFileMelodyVk: String  get() = "${rootFolder}/done_files/$nameFileMelodyVk".rightFileName()
 
     val pathToFile720Lyrics: String  get() = "$pathToFolder720Lyrics/${nameFileLyrics.replace(" [lyrics].mp4", " [lyrics] 720p.mp4")}".rightFileName()
     val pathToFileMP3Lyrics: String  get() = "$pathToFolderMP3Lyrics/${nameFileLyrics.replace(" [lyrics].mp4", " [lyrics].mp3")}".rightFileName()
@@ -378,14 +395,10 @@ class Settings(
     val nameFileLogoAlbum: String  get() = "$fileName [album].png".rightFileName()
     val nameFileLogoAuthor: String  get() = "$fileName [author].png".rightFileName()
     val nameFileLyrics: String  get() = "$fileName [lyrics].mp4".rightFileName()
-//    val nameFileLyricsVk: String  get() = "${fileName} [lyricsVk].mp4".rightFileName()
     val nameFileKaraoke: String  get() = "$fileName [karaoke].mp4".rightFileName()
-//    val nameFileKaraokeVk: String  get() = "${fileName} [karaokeVk].mp4".rightFileName()
     val nameFileChords: String  get() = "$fileName [chords].mp4".rightFileName()
-//    val nameFileChordsVk: String  get() = "${fileName} [chordsVk].mp4".rightFileName()
     val nameFileMelody: String  get() = "$fileName [tabs].mp4".rightFileName()
     val nameFileKeyBpmFinder: String  get() = "$fileName [key].json".rightFileName()
-//    val nameFileMelodyVk: String  get() = "${fileName} [tabsVk].mp4".rightFileName()
 
     val pathToFolderSheetsage: String  get() = "${rootFolder}/sheetsage".rightFileName()
     val nameFileSheetsagePDF: String  get() = "$fileName [sheetsage].pdf".rightFileName()
@@ -734,11 +747,9 @@ class Settings(
     val flagPlMelody: String get() = if (idPlMelody == "null" || idPlMelody == "") "-" else if (versionPlMelody != resultVersion.toInt()) versionPlMelody.toString() else "✓"
 
     val pathToResultedModel: String get() = "$rootFolder/$DEMUCS_MODEL_NAME"
-//    val pathToSymlinkFolder: String get() = "$rootFolder/symlink"
     val pathToSymlinkFolderMP4: String get() = "$rootFolder/symlink_mp4"
     val pathToSymlinkFolderPNG: String get() = "$rootFolder/symlink_png"
     val pathToSymlinkFolderSponsr: String get() = "$rootFolder/symlink_sponsr"
-//    val pathToSymlinkFolderBoostyFiles: String get() = "$rootFolder/symlink_boosty_files"
     val separatedStem: String get() = "vocals"
     val oldNoStemNameWav: String get() = "$pathToResultedModel/$fileName-no_$separatedStem.wav"
     val accompanimentNameWav: String get() = "$pathToResultedModel/$fileName-accompaniment.wav"
@@ -746,7 +757,6 @@ class Settings(
     val accompanimentNameFlacSymlink: String get() = "$pathToSymlinkFolderSponsr/$fileName-accompaniment.flac"
     val vocalsNameWav: String get() = "$pathToResultedModel/$fileName-vocals.wav"
     val vocalsNameFlac: String get() = "$pathToResultedModel/$fileName-vocals.flac"
-//    val vocalsNameFlacSymlink: String get() = "$pathToSymlinkFolderBoostyFiles/$fileName-vocals.flac"
     val drumsNameWav: String get() = "$pathToResultedModel/$fileName-drums.wav"
     val drumsNameFlac: String get() = "$pathToResultedModel/$fileName-drums.flac"
     val bassNameWav: String get() = "$pathToResultedModel/$fileName-bass.wav"
@@ -757,7 +767,6 @@ class Settings(
     val otherNameFlac: String get() = "$pathToResultedModel/$fileName-other.flac"
     val fileAbsolutePath: String get() = "$rootFolder/$fileName.flac"
     @Suppress("unused") val fileAbsolutePathTmp: String get() = "$rootFolder/$fileName-tmp.flac"
-//    val fileAbsolutePathSymlink: String get() = "$pathToSymlinkFolderBoostyFiles/$fileName.flac"
     val fileSettingsAbsolutePath: String get() = "$rootFolder/$fileName.settings"
 
     @Suppress("unused") val relativePathToFile: String get() = "../$fileName.flac"
@@ -2072,6 +2081,9 @@ class Settings(
             lst.add(markers)
             sourceMarkers = Json.encodeToString(lst)
             resultText = getText()
+            formattedTextSong = getTextFormatted()
+            formattedTextTabs = getFormattedNotes()
+            formattedTextChords = getFormattedChords()
             saveToDb()
             return
         }
@@ -2080,6 +2092,9 @@ class Settings(
             lst[voice] = markers
             sourceMarkers = Json.encodeToString(lst)
             resultText = getText()
+            formattedTextSong = getTextFormatted()
+            formattedTextTabs = getFormattedNotes()
+            formattedTextChords = getFormattedChords()
             saveToDb()
             return
         }
@@ -2123,7 +2138,7 @@ class Settings(
             emptyList()
         }
     }
-    
+
     // По текстовой ноте возвращает массив "номер струны - номер лада"
     fun getStrings(note: String): List<GuitarStringLad> {
         val result: MutableList<GuitarStringLad> = mutableListOf()
@@ -2446,7 +2461,7 @@ class Settings(
                         var noteHtml: String
                         var noteOctave = ""
                         var stringNote = mutableListOf("⎼⎼","⎼⎼","⎼⎼","⎼⎼","⎼⎼","⎼⎼") // Выделяем по 2 черты на ноту на струне
-                        
+
                         // Если в маркере есть нота
                         if (marker.note.isNotEmpty()) {
                             // Находим ноту и октаву ноты
@@ -3279,7 +3294,7 @@ class Settings(
         } else {
 
             val savedSettings = loadFromDbById(id = id,database = database, storageService = storageService, storageApiClient = storageApiClient)
-            
+
             // При сохранении проверяем и меняем если надо номера версий на площадках. Если на площадке 0 и было изменение id - обновляем
             if (savedSettings !== null) {
                 if (
@@ -3782,6 +3797,9 @@ class Settings(
         fieldsValues.add(Pair("status_process_melody", settings.statusProcessMelody))
         fieldsValues.add(Pair("tags", settings.tags))
         fieldsValues.add(Pair("rate", settings.rate))
+        fieldsValues.add(Pair("formatted_text_song", settings.formattedTextSong))
+        fieldsValues.add(Pair("formatted_text_tabs", settings.formattedTextTabs))
+        fieldsValues.add(Pair("formatted_text_chords", settings.formattedTextChords))
 
        return "INSERT INTO tbl_settings${if (sync) "_sync" else ""} (${fieldsValues.joinToString(", ") { it.first }}) OVERRIDING SYSTEM VALUE VALUES(${
            fieldsValues.joinToString(
@@ -3902,7 +3920,7 @@ class Settings(
             haveVkGroup &&
             haveSponsr
         ) return SettingState.WO_DZEN_WITH_VK_WITH_PL
-        
+
         if (
             !haveTelegram &&
             haveVk &&
@@ -4046,7 +4064,7 @@ class Settings(
                 if (settA.versionTelegramLyrics != settB.versionTelegramLyrics) result.add(RecordDiff("version_telegram_lyrics", settA.versionTelegramLyrics, settB.versionTelegramLyrics))
                 if (settA.versionTelegramKaraoke != settB.versionTelegramKaraoke) result.add(RecordDiff("version_telegram_karaoke", settA.versionTelegramKaraoke, settB.versionTelegramKaraoke))
                 if (settA.versionTelegramChords != settB.versionTelegramChords) result.add(RecordDiff("version_telegram_chords", settA.versionTelegramChords, settB.versionTelegramChords))
-                if (settA.versionTelegramMelody != settB.versionTelegramMelody) result.add(RecordDiff("version_telegram_melody", settA.versionTelegramMelody, settB.versionTelegramMelody))                
+                if (settA.versionTelegramMelody != settB.versionTelegramMelody) result.add(RecordDiff("version_telegram_melody", settA.versionTelegramMelody, settB.versionTelegramMelody))
                 if (settA.idPlLyrics != settB.idPlLyrics) result.add(RecordDiff("id_pl_lyrics", settA.idPlLyrics, settB.idPlLyrics))
                 if (settA.idPlKaraoke != settB.idPlKaraoke) result.add(RecordDiff("id_pl_karaoke", settA.idPlKaraoke, settB.idPlKaraoke))
                 if (settA.idPlChords != settB.idPlChords) result.add(RecordDiff("id_pl_chords", settA.idPlChords, settB.idPlChords))
@@ -4054,7 +4072,7 @@ class Settings(
                 if (settA.versionPlLyrics != settB.versionPlLyrics) result.add(RecordDiff("version_pl_lyrics", settA.versionPlLyrics, settB.versionPlLyrics))
                 if (settA.versionPlKaraoke != settB.versionPlKaraoke) result.add(RecordDiff("version_pl_karaoke", settA.versionPlKaraoke, settB.versionPlKaraoke))
                 if (settA.versionPlChords != settB.versionPlChords) result.add(RecordDiff("version_pl_chords", settA.versionPlChords, settB.versionPlChords))
-                if (settA.versionPlMelody != settB.versionPlMelody) result.add(RecordDiff("version_pl_melody", settA.versionPlMelody, settB.versionPlMelody))        
+                if (settA.versionPlMelody != settB.versionPlMelody) result.add(RecordDiff("version_pl_melody", settA.versionPlMelody, settB.versionPlMelody))
                 if (settA.idStatus != settB.idStatus) result.add(RecordDiff("id_status", settA.idStatus, settB.idStatus))
                 if (settA.sourceText != settB.sourceText) result.add(RecordDiff("source_text", settA.sourceText, settB.sourceText))
                 if (settA.resultText != settB.resultText) result.add(RecordDiff("result_text", settA.resultText, settB.resultText))
@@ -4065,6 +4083,9 @@ class Settings(
                 if (settA.statusProcessMelody != settB.statusProcessMelody) result.add(RecordDiff("status_process_melody", settA.statusProcessMelody, settB.statusProcessMelody))
                 if (settA.tags != settB.tags) result.add(RecordDiff("tags", settA.tags, settB.tags))
                 if (settA.rate != settB.rate) result.add(RecordDiff("rate", settA.rate, settB.rate))
+                if (settA.formattedTextSong != settB.formattedTextSong) result.add(RecordDiff("formatted_text_song", settA.formattedTextSong, settB.formattedTextSong))
+                if (settA.formattedTextTabs != settB.formattedTextTabs) result.add(RecordDiff("formatted_text_tabs", settA.formattedTextTabs, settB.formattedTextTabs))
+                if (settA.formattedTextChords != settB.formattedTextChords) result.add(RecordDiff("formatted_text_chords", settA.formattedTextChords, settB.formattedTextChords))
 
                 if (settA.status != settB.status) result.add(RecordDiff("status", settA.status, settB.status, false))
                 if (settA.color != settB.color) result.add(RecordDiff("color", settA.color, settB.color, false))
@@ -4578,6 +4599,9 @@ class Settings(
                         rs.getString("source_text")?.let { value -> settings.sourceText = value }
                         rs.getString("result_text")?.let { value -> settings.resultText = value }
                         rs.getString("source_markers")?.let { value -> settings.sourceMarkers = value }
+                        rs.getString("formatted_text_song")?.let { value -> settings.formattedTextSong = value }
+                        rs.getString("formatted_text_tabs")?.let { value -> settings.formattedTextTabs = value }
+                        rs.getString("formatted_text_chords")?.let { value -> settings.formattedTextChords = value }
                     }
                     rs.getInt("rate").let { value -> settings.fields[SettingField.RATE] = value.toString() }
                     settings.statusProcessLyrics = rs.getString("status_process_lyrics") ?: ""
@@ -4992,7 +5016,10 @@ class Settings(
             rate = rate,
             healthReportText = "-",
             healthReportColor = "#E0E0E0",
-            healthReportList = emptyList()
+            healthReportList = emptyList(),
+            formattedTextSong = formattedTextSong,
+            formattedTextTabs = formattedTextTabs,
+            formattedTextChords = formattedTextChords
         )
     }
 

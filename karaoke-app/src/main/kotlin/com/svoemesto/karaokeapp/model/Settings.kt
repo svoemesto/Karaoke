@@ -4717,7 +4717,7 @@ class Settings(
 
         fun createFromPath(startFolder: String, database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient): MutableList<Settings> {
             val result: MutableList<Settings> = mutableListOf()
-            val listFiles = getListFiles(startFolder,listOf("flac", "mp3"))
+            val listFiles = getListFiles(startFolder,listOf("flac", "mp3", "m4a"))
             listFiles.forEach { pathToFile ->
 
                 val file = File(pathToFile)
@@ -4768,9 +4768,6 @@ class Settings(
                             settings.fields[SettingField.ALBUM] = albumStr
                             settings.fields[SettingField.TRACK] = numberStr
                             settings.fields[SettingField.AUTHOR] = authorStr
-//                            val (key, bpm) = settings.getKeyBpmFromFile()
-//                            settings.fields[SettingField.KEY] = key
-//                            settings.fields[SettingField.BPM] = bpm.toString()
                             settings.saveToDb()
                             result.add(settings)
 

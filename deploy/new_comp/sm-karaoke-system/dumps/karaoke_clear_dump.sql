@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict T4cLoGn4N5cBjIvpEcSDFCKVGJIgmMrQHq9XHWq9wmDiNvizmLUjLbM6qDDkATt
+\restrict aRTqlYw4VgdJB3mP1G2QpMdmbLmNqPMuqhIHG4vbdNKQLPG9YQ7M2lPGgK2FDJG
 
 -- Dumped from database version 16.10 (Debian 16.10-1.pgdg13+1)
 -- Dumped by pg_dump version 16.10 (Debian 16.10-1.pgdg13+1)
@@ -25,9 +25,9 @@ SET row_security = off;
 CREATE DATABASE karaoke WITH TEMPLATE = template0 ENCODING = 'UTF8' LOCALE_PROVIDER = libc LOCALE = 'en_US.utf8';
 
 
-\unrestrict T4cLoGn4N5cBjIvpEcSDFCKVGJIgmMrQHq9XHWq9wmDiNvizmLUjLbM6qDDkATt
+\unrestrict aRTqlYw4VgdJB3mP1G2QpMdmbLmNqPMuqhIHG4vbdNKQLPG9YQ7M2lPGgK2FDJG
 \connect karaoke
-\restrict T4cLoGn4N5cBjIvpEcSDFCKVGJIgmMrQHq9XHWq9wmDiNvizmLUjLbM6qDDkATt
+\restrict aRTqlYw4VgdJB3mP1G2QpMdmbLmNqPMuqhIHG4vbdNKQLPG9YQ7M2lPGgK2FDJG
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -241,7 +241,10 @@ BEGIN
     COALESCE(NEW.version_boosty::TEXT, '') ||
     COALESCE(NEW.version_sponsr::TEXT, '') ||
     COALESCE(NEW.version_boosty_files::TEXT, '') ||
-    COALESCE(NEW.rate::TEXT, '')
+    COALESCE(NEW.rate::TEXT, '') ||
+    COALESCE(NEW.formatted_text_song, '') ||
+    COALESCE(NEW.formatted_text_tabs, '') ||
+    COALESCE(NEW.formatted_text_chords, '')
         );
     RETURN NEW;
 END;
@@ -321,7 +324,10 @@ BEGIN
         COALESCE(NEW.version_boosty::TEXT, '') ||
         COALESCE(NEW.version_sponsr::TEXT, '') ||
         COALESCE(NEW.version_boosty_files::TEXT, '') ||
-        COALESCE(NEW.rate::TEXT, '')
+        COALESCE(NEW.rate::TEXT, '') ||
+        COALESCE(NEW.formatted_text_song, '') ||
+        COALESCE(NEW.formatted_text_tabs, '') ||
+        COALESCE(NEW.formatted_text_chords, '')
     );
     RETURN NEW;
 END;
@@ -595,7 +601,10 @@ CREATE TABLE public.tbl_settings (
     version_sponsr integer DEFAULT 0,
     version_boosty_files integer DEFAULT 0,
     rate integer DEFAULT 0,
-    recordhash character varying(32)
+    recordhash character varying(32),
+    formatted_text_song text DEFAULT ''::text NOT NULL,
+    formatted_text_tabs text DEFAULT ''::text NOT NULL,
+    formatted_text_chords text DEFAULT ''::text NOT NULL
 );
 
 
@@ -1251,5 +1260,5 @@ CREATE TRIGGER update_sync_last_updated_trigger BEFORE UPDATE ON public.tbl_sett
 -- PostgreSQL database dump complete
 --
 
-\unrestrict T4cLoGn4N5cBjIvpEcSDFCKVGJIgmMrQHq9XHWq9wmDiNvizmLUjLbM6qDDkATt
+\unrestrict aRTqlYw4VgdJB3mP1G2QpMdmbLmNqPMuqhIHG4vbdNKQLPG9YQ7M2lPGgK2FDJG
 

@@ -1521,15 +1521,28 @@ export default {
         }
 
       } else {
-        let marker = this.sourceMarkers.filter(item => item.region === region)[0];
-        if (marker) {
-          marker.time = region.start;
-          let label = marker.label;
-          let labels = label.split('|');
-          if (marker.markertype === 'setting' && labels[0] === 'BPM') {
-            this.createBeatMarkers();
+        if (region.drag === true) {
+          let marker = this.sourceMarkers.filter(item => item.region.id === region.id)[0];
+          console.log('dragged marker', marker);
+          if (marker) {
+            marker.time = region.start;
+            const indexToInsert = this.sourceMarkers.indexOf(marker);
+            marker.region.remove();
+            marker.region = null;
+            marker.region = this.createRegionMarker(marker);
+            this.sourceMarkers.splice(indexToInsert, 1, marker);
           }
-          this.updateMarkersBySyllables();
+        } else {
+          let marker = this.sourceMarkers.filter(item => item.region === region)[0];
+          if (marker) {
+            marker.time = region.start;
+            let label = marker.label;
+            let labels = label.split('|');
+            if (marker.markertype === 'setting' && labels[0] === 'BPM') {
+              this.createBeatMarkers();
+            }
+            this.updateMarkersBySyllables();
+          }
         }
       }
 
@@ -2693,14 +2706,14 @@ export default {
       }
     },
     doMarkersDec() {
-      // Берем текущую позицию, находим следующий за ней маркер, вычисляем разницу, отнимаем эту разнуцу у всех последующих маркеров, кроме маркера конца
+      // Берем текущую позицию, находим следующий за ней маркер, вычисляем разницу, отнимаем эту разницу у всех последующих маркеров, кроме маркера конца
       let markers = this.sourceMarkers;
       for (let i = 0; i < markers.length-1; i++) {
         let marker = markers[i];
         if (this.currentTime < marker.time) {
           const diff = marker.time - this.currentTime;
           for (let j = i; j < markers.length-1; j++) {
-            if (markers[j].markertype !== 'setting' && markers[j].label !== 'END') {
+            if (markers[j].label !== 'END') {
               markers[j].time -= diff;
             }
           }
@@ -2710,7 +2723,7 @@ export default {
       }
     },
     doMarkersInc() {
-      // Берем текущую позицию, находим предыдущий маркер, вычисляем разницу, прибавляем эту разнуцу у всех последующих маркеров, кроме маркера конца
+      // Берем текущую позицию, находим предыдущий маркер, вычисляем разницу, прибавляем эту разницу у всех последующих маркеров, кроме маркера конца
       let markers = this.sourceMarkers;
       if (markers.length > 0 && this.currentTime < markers[0].time) return -1;
       for (let i = 0; i < markers.length-1; i++) {
@@ -2719,7 +2732,7 @@ export default {
         if (this.currentTime >= marker.time && this.currentTime < nextMarker.time) {
           const diff = this.currentTime - marker.time;
           for (let j = i; j < markers.length-1; j++) {
-            if (markers[j].markertype !== 'setting' && markers[j].label !== 'END') {
+            if (markers[j].label !== 'END') {
               markers[j].time += diff;
             }
           }

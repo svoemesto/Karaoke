@@ -4855,7 +4855,7 @@ class Settings(
                 database = startSettings.database,
                 storageService = startSettings.storageService,
                 storageApiClient = startSettings.storageApiClient,
-                withoutMarkersAndText = true
+                withoutMarkersAndText = false
             ).filter { it.id > startSettings.id }
 
             if (startSettings.date == "") {

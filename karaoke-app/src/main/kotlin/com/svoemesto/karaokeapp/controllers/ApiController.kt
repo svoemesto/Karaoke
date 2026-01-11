@@ -2943,7 +2943,8 @@ class ApiController(
             storageService = storageService,
             storageApiClient = storageApiClient,
             ignoreUseInList = true
-        ).map { it.toDTO() }
+        ).map { it.toDTO() }.sorted()
+
         return mapOf(
             "workInContainer" to APP_WORK_IN_CONTAINER,
             "authorsDigests" to authorsList

@@ -431,7 +431,7 @@ class KaraokeProcessWorker {
                                     threadsMap[threadId]?.karaokeProcess?.save()
                                 }
                             }
-                            if (stopAfterThreadIsDone) {
+                            if (stopAfterThreadIsDone && threadsMap.filter { it.value != null && it.value?.isAlive == true }.isEmpty()) {
                                 stopAfterThreadIsDone = false
                                 isWork = false
                                 withoutControl = false

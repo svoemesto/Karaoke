@@ -10,7 +10,7 @@
         ></div>
       </div>
     </div>
-    <div class="button-with-text-count-waiting">
+    <div v-show="!hideButton" class="button-with-text-count-waiting">
       <button
           class="btn-round-double"
           @click.left="clickStartStopWorkerButton"
@@ -27,16 +27,54 @@
 <script>
 export default {
   name: "ProcessWorker",
+  props: {
+    // Если hideButton = true то не показывать кнопку старт/стоп
+    hideButton: {
+      type: Boolean,
+      required: false,
+      default: false
+    },
+    // Показывать потоки с id, перечисленными в includedThreadId. Если пусто - показывать все (в зависимости от excludedThreadId)
+    includedThreadId: {
+      type: Array,
+      required: false,
+      default: []
+    },
+    // Не показывать потоки с id из списка
+    excludedThreadId: {
+      type: Array,
+      required: false,
+      default: []
+    }
+  },
   data() {
     return {
       // isWork: false,
       // stopAfterThreadIsDone: false,
-      // process: undefined
+      currentWorkingProcess: undefined
     }
   },
   computed: {
     process() {
-      return this.$store.getters.getWorkingProcess
+      const workingProcess = this.$store.getters.getWorkingProcess;
+      console.log('workingProcess', workingProcess);
+      if (workingProcess === undefined) return this.currentWorkingProcess;
+      const idWorkingProcess = workingProcess.threadId;
+      let show = false;
+      if (this.includedThreadId.length !== 0) {
+        show = this.includedThreadId.includes(idWorkingProcess);
+      } else {
+        if (this.excludedThreadId.length !== 0) {
+          show = !this.excludedThreadId.includes(idWorkingProcess)
+        } else {
+          show = true
+        }
+      }
+      // const show = (this.includedThreadId.length === 0 || this.includedThreadId.includes(idWorkingProcess)) && (this.excludedThreadId.length === 0 || !this.excludedThreadId.includes(idWorkingProcess))
+      if (show) {
+        this.currentWorkingProcess = workingProcess;
+      }
+      return this.currentWorkingProcess;
     },
     isWork() {
       return this.$store.getters.getProcessIsWorking

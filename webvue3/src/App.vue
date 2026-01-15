@@ -23,7 +23,8 @@
         <div class="app-main-content">
           <div class="app-header-right"> <!-- Добавлен контейнер для правого верхнего угла -->
             <BackendConsole/>
-            <ProcessWorker/>
+            <ProcessWorker :hideButton="true" :excludedThreadId="[0]"></ProcessWorker>
+            <ProcessWorker :hideButton="false" :includedThreadId="[0]"></ProcessWorker>
           </div>
           <router-view/>
         </div>

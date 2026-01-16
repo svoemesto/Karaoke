@@ -47,6 +47,13 @@
               :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
           ></div>
         </template>
+        <template #cell(rootId)="data">
+          <div
+              class="fld-root-id"
+              v-text="data.value"
+              :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
+          ></div>
+        </template>
         <template #cell(songName)="data">
           <div
               class="fld-song-name"
@@ -242,34 +249,48 @@
               :style="{ backgroundColor: data.item.processColorTelegramMelody, color: currentSongId === data.item.id ? 'blue' : 'black' }"
           ></div>
         </template>
-        <template #cell(flagPlLyrics)="data">
+        <template #cell(flagExclusive)="data">
           <div
-              class="fld-flag-pl-lyrics"
+              class="fld-flag-exclusive"
               v-text="data.value"
-              :style="{ backgroundColor: data.item.processColorPlLyrics, color: currentSongId === data.item.id ? 'blue' : 'black' }"
+              :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
           ></div>
         </template>
-        <template #cell(flagPlKaraoke)="data">
+        <template #cell(flagFree)="data">
           <div
-              class="fld-flag-pl-karaoke"
+              class="fld-flag-free"
               v-text="data.value"
-              :style="{ backgroundColor: data.item.processColorPlKaraoke, color: currentSongId === data.item.id ? 'blue' : 'black' }"
+              :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
           ></div>
         </template>
-        <template #cell(flagPlChords)="data">
-          <div
-              class="fld-flag-pl-chords"
-              v-text="data.value"
-              :style="{ backgroundColor: data.item.processColorPlChords, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-          ></div>
-        </template>
-        <template #cell(flagPlMelody)="data">
-          <div
-              class="fld-flag-pl-melody"
-              v-text="data.value"
-              :style="{ backgroundColor: data.item.processColorPlMelody, color: currentSongId === data.item.id ? 'blue' : 'black' }"
-          ></div>
-        </template>
+<!--        <template #cell(flagPlLyrics)="data">-->
+<!--          <div-->
+<!--              class="fld-flag-pl-lyrics"-->
+<!--              v-text="data.value"-->
+<!--              :style="{ backgroundColor: data.item.processColorPlLyrics, color: currentSongId === data.item.id ? 'blue' : 'black' }"-->
+<!--          ></div>-->
+<!--        </template>-->
+<!--        <template #cell(flagPlKaraoke)="data">-->
+<!--          <div-->
+<!--              class="fld-flag-pl-karaoke"-->
+<!--              v-text="data.value"-->
+<!--              :style="{ backgroundColor: data.item.processColorPlKaraoke, color: currentSongId === data.item.id ? 'blue' : 'black' }"-->
+<!--          ></div>-->
+<!--        </template>-->
+<!--        <template #cell(flagPlChords)="data">-->
+<!--          <div-->
+<!--              class="fld-flag-pl-chords"-->
+<!--              v-text="data.value"-->
+<!--              :style="{ backgroundColor: data.item.processColorPlChords, color: currentSongId === data.item.id ? 'blue' : 'black' }"-->
+<!--          ></div>-->
+<!--        </template>-->
+<!--        <template #cell(flagPlMelody)="data">-->
+<!--          <div-->
+<!--              class="fld-flag-pl-melody"-->
+<!--              v-text="data.value"-->
+<!--              :style="{ backgroundColor: data.item.processColorPlMelody, color: currentSongId === data.item.id ? 'blue' : 'black' }"-->
+<!--          ></div>-->
+<!--        </template>-->
         <template #cell(rate)="data">
           <div
               class="fld-rate"
@@ -421,6 +442,16 @@ export default {
             maxWidth: '50px',
             textAlign: 'center',
             fontSize: 'small'
+          }
+        },
+        {
+          key: 'rootId',
+          label: 'root',
+          style: {
+            minWidth: '50px',
+            maxWidth: '50px',
+            textAlign: 'center',
+            fontSize: 'smaller'
           }
         },
         {
@@ -694,8 +725,8 @@ export default {
           }
         },
         {
-          key: 'flagPlLyrics',
-          label: 'PL',
+          key: 'flagExclusive',
+          label: 'EX',
           style: {
             minWidth: '20px',
             maxWidth: '20px',
@@ -704,8 +735,8 @@ export default {
           }
         },
         {
-          key: 'flagPlKaraoke',
-          label: 'PK',
+          key: 'flagFree',
+          label: 'FR',
           style: {
             minWidth: '20px',
             maxWidth: '20px',
@@ -713,26 +744,46 @@ export default {
             fontSize: 'small'
           }
         },
-        {
-          key: 'flagPlChords',
-          label: 'PC',
-          style: {
-            minWidth: '20px',
-            maxWidth: '20px',
-            textAlign: 'center',
-            fontSize: 'small'
-          }
-        },
-        {
-          key: 'flagPlMelody',
-          label: 'PM',
-          style: {
-            minWidth: '20px',
-            maxWidth: '20px',
-            textAlign: 'center',
-            fontSize: 'small'
-          }
-        },
+        // {
+        //   key: 'flagPlLyrics',
+        //   label: 'PL',
+        //   style: {
+        //     minWidth: '20px',
+        //     maxWidth: '20px',
+        //     textAlign: 'center',
+        //     fontSize: 'small'
+        //   }
+        // },
+        // {
+        //   key: 'flagPlKaraoke',
+        //   label: 'PK',
+        //   style: {
+        //     minWidth: '20px',
+        //     maxWidth: '20px',
+        //     textAlign: 'center',
+        //     fontSize: 'small'
+        //   }
+        // },
+        // {
+        //   key: 'flagPlChords',
+        //   label: 'PC',
+        //   style: {
+        //     minWidth: '20px',
+        //     maxWidth: '20px',
+        //     textAlign: 'center',
+        //     fontSize: 'small'
+        //   }
+        // },
+        // {
+        //   key: 'flagPlMelody',
+        //   label: 'PM',
+        //   style: {
+        //     minWidth: '20px',
+        //     maxWidth: '20px',
+        //     textAlign: 'center',
+        //     fontSize: 'small'
+        //   }
+        // },
         {
           key: 'rate',
           label: 'Rate',
@@ -1265,6 +1316,14 @@ export default {
   white-space: nowrap;
   overflow: hidden;
 }
+.fld-root-id {
+  min-width: 50px;
+  max-width: 50px;
+  text-align: center;
+  font-size: smaller;
+  white-space: nowrap;
+  overflow: hidden;
+}
 .fld-song-name {
   min-width: 250px;
   max-width: 250px;
@@ -1485,6 +1544,22 @@ export default {
   overflow: hidden;
 }
 .fld-flag-tg-melody {
+  min-width: 20px;
+  max-width: 20px;
+  text-align: center;
+  font-size: small;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.fld-flag-exclusive {
+  min-width: 20px;
+  max-width: 20px;
+  text-align: center;
+  font-size: small;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.fld-flag-free {
   min-width: 20px;
   max-width: 20px;
   text-align: center;

@@ -23,6 +23,9 @@ export default {
         songsFilterIsSync: '',
         songsFilterStatusProcessLyrics: '',
         songsFilterStatusProcessKaraoke: '',
+        songsFilterRootId: '',
+        songsFilterFlagExclusive: '',
+        songsFilterFlagFree: '',
         songsHistory: [],
         songsHistoryIsLoading: false
     },
@@ -51,7 +54,10 @@ export default {
         getSongsFilterRate(state) { return state.songsFilterRate},
         getSongsFilterIsSync(state) { return state.songsFilterIsSync},
         getSongsFilterStatusProcessLyrics(state) { return state.songsFilterStatusProcessLyrics},
-        getSongsFilterStatusProcessKaraoke(state) { return state.songsFilterStatusProcessKaraoke}
+        getSongsFilterStatusProcessKaraoke(state) { return state.songsFilterStatusProcessKaraoke},
+        getSongsFilterRootId(state) { return state.songsFilterRootId},
+        getSongsFilterFlagExclusive(state) { return state.songsFilterFlagExclusive},
+        getSongsFilterFlagFree(state) { return state.songsFilterFlagFree}
     },
     mutations: {
         updateSongsHistory(state, result) {
@@ -142,6 +148,18 @@ export default {
         setSongsFilterStatusProcessKaraoke(state, value) {
             setWebvueProp(state.songsFilterStatusProcessKaraoke, 'songsFilterStatusProcessKaraoke', value);
             state.songsFilterStatusProcessKaraoke = value;
+        },
+        setSongsFilterRootId(state, value) {
+            setWebvueProp(state.songsFilterRootId, 'songsFilterRootId', value);
+            state.songsFilterRootId = value;
+        },
+        setSongsFilterFlagExclusive(state, value) {
+            setWebvueProp(state.songsFilterFlagExclusive, 'songsFilterFlagExclusive', value);
+            state.songsFilterFlagExclusive = value;
+        },
+        setSongsFilterFlagFree(state, value) {
+            setWebvueProp(state.songsFilterFlagFree, 'songsFilterFlagFree', value);
+            state.songsFilterFlagFree = value;
         }
     },
     actions: {
@@ -176,6 +194,9 @@ export default {
         setSongsFilterRate(ctx, payload) { ctx.commit('setSongsFilterRate', payload.value) },
         setSongsFilterIsSync(ctx, payload) { ctx.commit('setSongsFilterIsSync', payload.value) },
         setSongsFilterStatusProcessLyrics(ctx, payload) { ctx.commit('setSongsFilterStatusProcessLyrics', payload.value) },
-        setSongsFilterStatusProcessKaraoke(ctx, payload) { ctx.commit('setSongsFilterStatusProcessKaraoke', payload.value) }
+        setSongsFilterStatusProcessKaraoke(ctx, payload) { ctx.commit('setSongsFilterStatusProcessKaraoke', payload.value) },
+        setSongsFilterRootId(ctx, payload) { ctx.commit('setSongsFilterRootId', payload.value) },
+        setSongsFilterFlagExclusive(ctx, payload) { ctx.commit('setSongsFilterFlagExclusive', payload.value) },
+        setSongsFilterFlagFree(ctx, payload) { ctx.commit('setSongsFilterFlagFree', payload.value) },
     }
 }

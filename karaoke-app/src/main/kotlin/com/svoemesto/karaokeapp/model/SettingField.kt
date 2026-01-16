@@ -71,5 +71,8 @@ enum class SettingField : Serializable {
     ID_SPONSR,
     VERSION_SPONSR,
     INDEX_TABS_VARIANT,
-    RATE
+    RATE,
+    ROOT_ID,
+    EXCLUSIVE,
+    FREE
 }

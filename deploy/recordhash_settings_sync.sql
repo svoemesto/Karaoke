@@ -72,7 +72,13 @@ BEGIN
         COALESCE(NEW.version_boosty::TEXT, '') ||
         COALESCE(NEW.version_sponsr::TEXT, '') ||
         COALESCE(NEW.version_boosty_files::TEXT, '') ||
-        COALESCE(NEW.rate::TEXT, '')
+        COALESCE(NEW.rate::TEXT, '') ||
+        COALESCE(NEW.root_id::TEXT, '') ||
+        COALESCE(NEW.free::TEXT, '') ||
+        COALESCE(NEW.exclusive::TEXT, '') ||
+        COALESCE(NEW.formatted_text_song, '') ||
+        COALESCE(NEW.formatted_text_tabs, '') ||
+        COALESCE(NEW.formatted_text_chords, '')
     );
     RETURN NEW;
 END;
@@ -151,6 +157,9 @@ SET recordhash = md5(
         COALESCE(version_sponsr::TEXT, '') ||
         COALESCE(version_boosty_files::TEXT, '') ||
         COALESCE(rate::TEXT, '') ||
+        COALESCE(root_id::TEXT, '') ||
+        COALESCE(free::TEXT, '') ||
+        COALESCE(exclusive::TEXT, '') ||
         COALESCE(formatted_text_song, '') ||
         COALESCE(formatted_text_tabs, '') ||
         COALESCE(formatted_text_chords, '')

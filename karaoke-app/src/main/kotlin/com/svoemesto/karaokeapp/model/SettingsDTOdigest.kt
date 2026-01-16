@@ -45,6 +45,8 @@ data class SettingsDTOdigest(
         val flagPlKaraoke: String,
         val flagPlChords: String,
         val flagPlMelody: String,
+        val flagExclusive: String,
+        val flagFree: String,
         val processColorBoosty: String,
         val processColorSponsr: String,
         val processColorVk: String,
@@ -94,7 +96,10 @@ data class SettingsDTOdigest(
         val healthReportList: List<HealthReportDTO>,
         val formattedTextSong: String,
         val formattedTextTabs: String,
-        val formattedTextChords: String
+        val formattedTextChords: String,
+        val rootId: Long,
+        val exclusive: Boolean,
+        val free: Boolean
 ): Serializable, Comparable<SettingsDTOdigest> {
 
     private val sortString: String get() {

@@ -60,6 +60,16 @@
 
                 <div class="sfm-filter-row">
                   <div class="sfm-row-label">
+                    <div v-text="'root ID:'"></div>
+                  </div>
+                  <div class="sfm-row-input">
+                    <input class="sfm-input-field" v-model="songsFilterRootId">
+                  </div>
+                  <button :disabled="!songsFilterRootId" class="sfm-button-clear-field" @click.left="songsFilterRootId=''" v-text="'X'"></button>
+                </div>
+
+                <div class="sfm-filter-row">
+                  <div class="sfm-row-label">
                     <div v-text="'Композиция:'"></div>
                   </div>
                   <div class="sfm-row-input">
@@ -211,6 +221,26 @@
 
                 <div class="sfm-filter-row">
                   <div class="sfm-row-label">
+                    <div v-text="'Exclusive:'"></div>
+                  </div>
+                  <div class="sfm-row-input">
+                    <input class="sfm-input-field" v-model="songsFilterFlagExclusive">
+                  </div>
+                  <button :disabled="!songsFilterFlagExclusive" class="sfm-button-clear-field" @click.left="songsFilterFlagExclusive=''" v-text="'X'"></button>
+                </div>
+
+                <div class="sfm-filter-row">
+                  <div class="sfm-row-label">
+                    <div v-text="'Free:'"></div>
+                  </div>
+                  <div class="sfm-row-input">
+                    <input class="sfm-input-field" v-model="songsFilterFlagFree">
+                  </div>
+                  <button :disabled="!songsFilterFlagFree" class="sfm-button-clear-field" @click.left="songsFilterFlagFree=''" v-text="'X'"></button>
+                </div>
+
+                <div class="sfm-filter-row">
+                  <div class="sfm-row-label">
                     <div v-text="'Rate:'"></div>
                   </div>
                   <div class="sfm-row-input">
@@ -302,6 +332,9 @@ export default {
     this.$store.dispatch('setSongsFilterIsSync', { value: await this.$store.getters.getWebvueProp('songsFilterIsSync', '') });
     this.$store.dispatch('setSongsFilterStatusProcessLyrics', { value: await this.$store.getters.getWebvueProp('songsFilterStatusProcessLyrics', '') });
     this.$store.dispatch('setSongsFilterStatusProcessKaraoke', { value: await this.$store.getters.getWebvueProp('songsFilterStatusProcessKaraoke', '') });
+    this.$store.dispatch('setSongsFilterRootId', { value: await this.$store.getters.getWebvueProp('songsFilterRootId', '') });
+    this.$store.dispatch('setSongsFilterFlagExclusive', { value: await this.$store.getters.getWebvueProp('songsFilterFlagExclusive', '') });
+    this.$store.dispatch('setSongsFilterFlagFree', { value: await this.$store.getters.getWebvueProp('songsFilterFlagFree', '') });
   },
   async mounted() {
     this.$store.getters.songAuthorsPromise.then(data => {
@@ -394,6 +427,18 @@ export default {
       get() { return this.$store.getters.getSongsFilterStatusProcessKaraoke; },
       set(value) { this.$store.dispatch('setSongsFilterStatusProcessKaraoke', { value: value }); }
     },
+    songsFilterRootId: {
+      get() { return this.$store.getters.getSongsFilterRootId; },
+      set(value) { this.$store.dispatch('setSongsFilterRootId', { value: value }); }
+    },
+    songsFilterFlagExclusive: {
+      get() { return this.$store.getters.getSongsFilterFlagExclusive; },
+      set(value) { this.$store.dispatch('setSongsFilterFlagExclusive', { value: value }); }
+    },
+    songsFilterFlagFree: {
+      get() { return this.$store.getters.getSongsFilterFlagFree; },
+      set(value) { this.$store.dispatch('setSongsFilterFlagFree', { value: value }); }
+    },
     songsHistory() {
       return this.$store.getters.getSongsHistory;
     },
@@ -449,6 +494,9 @@ export default {
       this.$store.dispatch('setSongsFilterIsSync', { value: this.songsFilterIsSync });
       this.$store.dispatch('setSongsFilterStatusProcessLyrics', { value: this.songsFilterStatusProcessLyrics });
       this.$store.dispatch('setSongsFilterStatusProcessKaraoke', { value: this.songsFilterStatusProcessKaraoke });
+      this.$store.dispatch('setSongsFilterRootId', { value: this.songsFilterRootId });
+      this.$store.dispatch('setSongsFilterFlagExclusive', { value: this.songsFilterFlagExclusive });
+      this.$store.dispatch('setSongsFilterFlagFree', { value: this.songsFilterFlagFree });
 
       let params = {};
       if (this.songsFilterId) params.filterId = this.songsFilterId;
@@ -472,6 +520,9 @@ export default {
       if (this.songsFilterIsSync !== '') params.filterIsSync = this.songsFilterIsSync;
       if (this.songsFilterStatusProcessLyrics !== '') params.filterStatusProcessLyrics = this.songsFilterStatusProcessLyrics;
       if (this.songsFilterStatusProcessKaraoke !== '') params.filterStatusProcessKaraoke = this.songsFilterStatusProcessKaraoke;
+      if (this.songsFilterRootId !== '') params.filterRootId = this.songsFilterRootId;
+      if (this.songsFilterFlagExclusive !== '') params.flagExclusive = this.songsFilterFlagExclusive;
+      if (this.songsFilterFlagFree !== '') params.flagFree = this.songsFilterFlagFree;
       this.$store.dispatch('loadSongsDigests', params );
       this.$store.dispatch('loadSongsHistory' );
       this.$emit('close');
@@ -502,6 +553,8 @@ export default {
       this.songsFilterIsSync = args['filter_is_sync'] ? args['filter_is_sync'] : ''
       this.songsFilterStatusProcessLyrics = args['filter_status_process_lyrics'] ? args['filter_status_process_lyrics'] : ''
       this.songsFilterStatusProcessKaraoke = args['filter_status_process_karaoke'] ? args['filter_status_process_karaoke'] : ''
+      this.songsFilterRootId = args['filter_root_id'] ? args['filter_root_id'] : ''
+      this.songsFilterFlagExclusive = args['flag_exclusive'] ? args['flag_exclusive'] : ''
 
       this.ok();
     }

@@ -1214,6 +1214,8 @@ class ApiController(
         @RequestParam(required = false) flagPlKaraoke: String?,
         @RequestParam(required = false) flagPlChords: String?,
         @RequestParam(required = false) flagPlMelody: String?,
+        @RequestParam(required = false) flagExclusive: String?,
+        @RequestParam(required = false) flagFree: String?,
         @RequestParam(required = false) filterResultVersion: String?,
         @RequestParam(required = false) filterCountVoices: String?,
         @RequestParam(required = false) filterVersionBoosty: String?,
@@ -1226,7 +1228,8 @@ class ApiController(
         @RequestParam(required = false) filterRate: String?,
         @RequestParam(required = false) filterStatusProcessLyrics: String?,
         @RequestParam(required = false) filterStatusProcessKaraoke: String?,
-        @RequestParam(required = false) filterIsSync: String?
+        @RequestParam(required = false) filterIsSync: String?,
+        @RequestParam(required = false) filterRootId: String?
 
     ): Map<String, Any> {
 
@@ -1260,6 +1263,8 @@ class ApiController(
         flagPlKaraoke?.let { if (flagPlKaraoke != "") args["flag_pl_karaoke"] = flagPlKaraoke }
         flagPlChords?.let { if (flagPlChords != "") args["flag_pl_chords"] = flagPlChords }
         flagPlMelody?.let { if (flagPlMelody != "") args["flag_pl_melody"] = flagPlMelody }
+        flagExclusive?.let { if (flagExclusive != "") args["flag_exclusive"] = flagExclusive }
+        flagFree?.let { if (flagFree != "") args["flag_free"] = flagFree }
         filterResultVersion?.let { if (filterResultVersion != "") args["filter_result_version"] = filterResultVersion }
         filterCountVoices?.let { if (filterCountVoices != "") args["filter_count_voices"] = filterCountVoices }
         filterVersionBoosty?.let { if (filterVersionBoosty != "") args["filter_version_boosty"] = filterVersionBoosty }
@@ -1273,6 +1278,7 @@ class ApiController(
         filterStatusProcessLyrics?.let { if (filterStatusProcessLyrics != "") args["filter_status_process_lyrics"] = filterStatusProcessLyrics }
         filterStatusProcessKaraoke?.let { if (filterStatusProcessKaraoke != "") args["filter_status_process_karaoke"] = filterStatusProcessKaraoke }
         filterIsSync?.let { if (filterIsSync != "") args["is_sync"] = filterIsSync }
+        filterRootId?.let { if (filterRootId != "") args["filter_root_id"] = filterRootId }
 
         SongsHistory().add(args)
 
@@ -1326,6 +1332,8 @@ class ApiController(
         @RequestParam(required = false) flagPlKaraoke: String?,
         @RequestParam(required = false) flagPlChords: String?,
         @RequestParam(required = false) flagPlMelody: String?,
+        @RequestParam(required = false) flagExclusive: String?,
+        @RequestParam(required = false) flagFree: String?,
         @RequestParam(required = false) filterResultVersion: String?,
         @RequestParam(required = false) filterVersionBoosty: String?,
         @RequestParam(required = false) filterVersionBoostyFiles: String?,
@@ -1337,6 +1345,7 @@ class ApiController(
         @RequestParam(required = false) filterRate: String?,
         @RequestParam(required = false) filterStatusProcessLyrics: String?,
         @RequestParam(required = false) filterStatusProcessKaraoke: String?,
+        @RequestParam(required = false) filterRootId: String?,
         @RequestParam(required = false) pageSize: Int = 30
     ): Map<String, Any> {
 
@@ -1370,6 +1379,8 @@ class ApiController(
         flagPlKaraoke?.let { if (flagPlKaraoke != "") args["flag_pl_karaoke"] = flagPlKaraoke }
         flagPlChords?.let { if (flagPlChords != "") args["flag_pl_chords"] = flagPlChords }
         flagPlMelody?.let { if (flagPlMelody != "") args["flag_pl_melody"] = flagPlMelody }
+        flagExclusive?.let { if (flagExclusive != "") args["flag_exclusive"] = flagExclusive }
+        flagFree?.let { if (flagFree != "") args["flag_free"] = flagFree }
         filterResultVersion?.let { if (filterResultVersion != "") args["filter_result_version"] = filterResultVersion }
         filterVersionBoosty?.let { if (filterVersionBoosty != "") args["filter_version_boosty"] = filterVersionBoosty }
         filterVersionBoostyFiles?.let { if (filterVersionBoostyFiles != "") args["filter_version_boosty_files"] = filterVersionBoostyFiles }
@@ -1381,6 +1392,7 @@ class ApiController(
         filterRate?.let { if (filterRate != "") args["filter_rate"] = filterRate }
         filterStatusProcessLyrics?.let { if (filterStatusProcessLyrics != "") args["filter_status_process_lyrics"] = filterStatusProcessLyrics }
         filterStatusProcessKaraoke?.let { if (filterStatusProcessKaraoke != "") args["filter_status_process_karaoke"] = filterStatusProcessKaraoke }
+        filterRootId?.let { if (filterRootId != "") args["filter_root_id"] = filterRootId }
 
         SongsHistory().add(args)
 
@@ -1590,7 +1602,10 @@ class ApiController(
         @RequestParam(required = false) versionPlMelody: String?,
         @RequestParam(required = false) resultVersion: String?,
         @RequestParam(required = false) diffBeats: String?,
-        @RequestParam(required = false) rate: String?
+        @RequestParam(required = false) rate: String?,
+        @RequestParam(required = false) rootId: String?,
+        @RequestParam(required = false) exclusive: String?,
+        @RequestParam(required = false) free: String?,
     ): Boolean {
         val settingsId: Long = id.toLong()
         val settings = Settings.loadFromDbById(settingsId, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
@@ -1653,6 +1668,9 @@ class ApiController(
             diffBeats?.let { sett.fields[SettingField.DIFFBEATS] = it }
             idStatus?.let { sett.fields[SettingField.ID_STATUS] =  it }
             rate?.let { sett.fields[SettingField.RATE] =  it }
+            rootId?.let { sett.fields[SettingField.ROOT_ID] =  it }
+            exclusive?.let { sett.fields[SettingField.EXCLUSIVE] =  it }
+            free?.let { sett.fields[SettingField.FREE] =  it }
             sett.saveToDb()
             sett.saveToFile()
         }

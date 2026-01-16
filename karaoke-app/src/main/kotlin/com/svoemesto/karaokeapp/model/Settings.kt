@@ -576,6 +576,27 @@ class Settings(
             }
         }
 
+    var rootId: Long
+        get() {
+            val txt = fields[SettingField.ROOT_ID] ?: "0"
+            return txt.toLong()
+        }
+        set(value) {fields[SettingField.ROOT_ID] = value.toString()}
+
+    var exclusive: Boolean
+        get() {
+            val txt = fields[SettingField.EXCLUSIVE] ?: false.toString()
+            return txt == true.toString()
+        }
+        set(value) {fields[SettingField.EXCLUSIVE] = value.toString()}
+
+    var free: Boolean
+        get() {
+            val txt = fields[SettingField.FREE] ?: false.toString()
+            return txt == true.toString()
+        }
+        set(value) {fields[SettingField.FREE] = value.toString()}
+
     val idBoosty: String get() = fields[SettingField.ID_BOOSTY]?.nullIfEmpty() ?: ""
     val versionBoosty: Int get() = (fields[SettingField.VERSION_BOOSTY]?.nullIfEmpty() ?: "0").toInt()
     val idBoostyFiles: String get() = fields[SettingField.ID_BOOSTY_FILES]?.nullIfEmpty() ?: ""
@@ -745,6 +766,9 @@ class Settings(
     val flagPlKaraoke: String get() = if (idPlKaraoke == "null" || idPlKaraoke == "") "-" else if (versionPlKaraoke != resultVersion.toInt()) versionPlKaraoke.toString() else "✓"
     val flagPlChords: String get() = if (idPlChords == "null" || idPlChords == "") "-" else if (versionPlChords != resultVersion.toInt()) versionPlChords.toString() else "✓"
     val flagPlMelody: String get() = if (idPlMelody == "null" || idPlMelody == "") "-" else if (versionPlMelody != resultVersion.toInt()) versionPlMelody.toString() else "✓"
+
+    val flagExclusive: String get() = if (!exclusive) "-" else "✓"
+    val flagFree: String get() = if (!free) "-" else "✓"
 
     val pathToResultedModel: String get() = "$rootFolder/$DEMUCS_MODEL_NAME"
     val pathToSymlinkFolderMP4: String get() = "$rootFolder/symlink_mp4"
@@ -3361,8 +3385,13 @@ class Settings(
                 diff.filter{ it.recordDiffRealField }.forEach {
                     try {
                         when (it.recordDiffValueNew) {
+                            is String -> ps.setString(index, it.recordDiffValueNew)
                             is Long -> ps.setLong(index, it.recordDiffValueNew)
                             is Int -> ps.setInt(index, it.recordDiffValueNew)
+                            is Double -> ps.setDouble(index, it.recordDiffValueNew)
+                            is Float -> ps.setFloat(index, it.recordDiffValueNew)
+                            is Timestamp -> ps.setTimestamp(index, it.recordDiffValueNew)
+                            is Boolean -> ps.setBoolean(index, it.recordDiffValueNew)
                             else -> ps.setString(index, it.recordDiffValueNew.toString())
                         }
                     } catch (e: Exception) {
@@ -4086,6 +4115,10 @@ class Settings(
                 if (settA.formattedTextSong != settB.formattedTextSong) result.add(RecordDiff("formatted_text_song", settA.formattedTextSong, settB.formattedTextSong))
                 if (settA.formattedTextTabs != settB.formattedTextTabs) result.add(RecordDiff("formatted_text_tabs", settA.formattedTextTabs, settB.formattedTextTabs))
                 if (settA.formattedTextChords != settB.formattedTextChords) result.add(RecordDiff("formatted_text_chords", settA.formattedTextChords, settB.formattedTextChords))
+                if (settA.rootId != settB.rootId) result.add(RecordDiff("root_id", settA.rootId, settB.rootId))
+                if (settA.exclusive != settB.exclusive) result.add(RecordDiff("exclusive", settA.exclusive, settB.exclusive))
+                if (settA.free != settB.free) result.add(RecordDiff("free", settA.free, settB.free))
+
 
                 if (settA.status != settB.status) result.add(RecordDiff("status", settA.status, settB.status, false))
                 if (settA.color != settB.color) result.add(RecordDiff("color", settA.color, settB.color, false))
@@ -4446,6 +4479,9 @@ class Settings(
             if (args.containsKey("flag_pl_chords")) where += "CASE WHEN id_pl_chords IS NOT NULL AND id_pl_chords <> 'null' AND id_pl_chords <> '' THEN '+' ELSE '-' END='${args["flag_pl_chords"]}'"
             if (args.containsKey("flag_pl_melody")) where += "CASE WHEN id_pl_melody IS NOT NULL AND id_pl_melody <> 'null' AND id_pl_melody <> '' THEN '+' ELSE '-' END='${args["flag_pl_melody"]}'"
 
+            if (args.containsKey("flag_exclusive")) where += "CASE WHEN exclusive = true THEN '+' ELSE '-' END='${args["flag_exclusive"]}'"
+            if (args.containsKey("flag_free")) where += "CASE WHEN free = true THEN '+' ELSE '-' END='${args["flag_free"]}'"
+
             if (args.containsKey("filter_status_process_lyrics")) where += "LOWER(status_process_lyrics) LIKE '%${args["filter_status_process_lyrics"]?.rightFileName()?.lowercase()}%'"
             if (args.containsKey("filter_status_process_karaoke")) where += "LOWER(status_process_karaoke) LIKE '%${args["filter_status_process_karaoke"]?.rightFileName()?.lowercase()}%'"
 
@@ -4460,7 +4496,10 @@ class Settings(
                 Pair("filter_version_vk_karaoke", "version_vk_karaoke"),
                 Pair("filter_version_telegram_karaoke", "version_telegram_karaoke"),
                 Pair("filter_version_pl_karaoke", "version_pl_karaoke"),
-                Pair("filter_rate", "rate")
+                Pair("filter_rate", "rate"),
+                Pair("filter_root_id", "root_id"),
+                Pair("filter_exclusive", "exclusive"),
+                Pair("filter_free", "free"),
             )
 
             listFields.forEach { (filterFldName, fldName) ->
@@ -4604,6 +4643,11 @@ class Settings(
                         rs.getString("formatted_text_chords")?.let { value -> settings.formattedTextChords = value }
                     }
                     rs.getInt("rate").let { value -> settings.fields[SettingField.RATE] = value.toString() }
+
+                    rs.getLong("root_id").let { value -> settings.rootId = value }
+                    rs.getBoolean("exclusive").let { value -> settings.exclusive = value }
+                    rs.getBoolean("free").let { value -> settings.free = value }
+
                     settings.statusProcessLyrics = rs.getString("status_process_lyrics") ?: ""
                     settings.statusProcessKaraoke = rs.getString("status_process_karaoke") ?: ""
                     settings.statusProcessChords = rs.getString("status_process_chords") ?: ""
@@ -4939,6 +4983,8 @@ class Settings(
             flagPlKaraoke = flagPlKaraoke,
             flagPlChords = flagPlChords,
             flagPlMelody = flagPlMelody,
+            flagExclusive = flagExclusive,
+            flagFree = flagFree,
             processColorBoosty = processColorBoosty,
             processColorSponsr = processColorSponsr,
             processColorVk = processColorVk,
@@ -5016,7 +5062,10 @@ class Settings(
             healthReportList = emptyList(),
             formattedTextSong = formattedTextSong,
             formattedTextTabs = formattedTextTabs,
-            formattedTextChords = formattedTextChords
+            formattedTextChords = formattedTextChords,
+            rootId = rootId,
+            exclusive = exclusive,
+            free = free
         )
     }
 

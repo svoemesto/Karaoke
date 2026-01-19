@@ -4820,7 +4820,7 @@ class Settings(
                                 action = KaraokeProcessTypes.KEY_BPM_FROM_FILE,
                                 doWait = true,
                                 prior = -1,
-                                threadId = 1
+                                threadId = 2
                             )
 
                             KaraokeProcess.createProcess(

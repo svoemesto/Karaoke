@@ -898,7 +898,7 @@ class Settings(
                 listOf("rm", "-rf", PATH_TO_TEMP_KEYBPMFINDER_FOLDER),
                 listOf("runFunctionWithArgs", "getKeyBpmFromFile", id.toString())
             ),
-            mapOf("DOCKER_API_VERSION" to "1.43")
+            mapOf("DOCKER_API_VERSION" to "1.53")
         )
     }
     fun argsDemucs2(): Pair<List<List<String>>, Map<String, String>> {
@@ -927,7 +927,7 @@ class Settings(
                 listOf("chmod", "666", vocalsNameFlac.rightFileName()),
                 listOf("rm", "-rf", PATH_TO_TEMP_DEMUCS_FOLDER)
             ),
-            mapOf("DOCKER_API_VERSION" to "1.43")
+            mapOf("DOCKER_API_VERSION" to "1.53")
         )
     }
 
@@ -963,7 +963,7 @@ class Settings(
                 listOf("chmod", "666", otherNameFlac.rightFileName()),
                 listOf("rm", "-rf", PATH_TO_TEMP_DEMUCS_FOLDER)
             ),
-            mapOf("DOCKER_API_VERSION" to "1.43")
+            mapOf("DOCKER_API_VERSION" to "1.53")
         )
     }
 
@@ -3124,7 +3124,13 @@ class Settings(
             }
         } else ""
 
-        val text = "$author, альбом «$album» $year-го года - ${if (exclusive) "ЭКСКЛЮЗИВНО" else ""} на https://sponsr.ru/smkaraoke${if (free) " в открытом доступе" else ""}${if (!exclusive) "\nВ эфире - в $month." else ""}\nЧто всегда иметь доступ к самой полной коллекции и поддержать автора проекта - подписываетесь на sponsr."
+        val albumText = if (album.contains(" (сингл)")) {
+            "сингл «${album.replace(" (сингл)", "")}»"
+        } else {
+            "альбом «$album»"
+        }
+
+        val text = "$author, $albumText $year-го года -${if (exclusive) " ЭКСКЛЮЗИВНО" else ""} на https://sponsr.ru/smkaraoke${if (free) " в открытом доступе" else ""}${if (!exclusive) "\nВ эфире - в $month." else ""}\nЧтобы всегда иметь доступ к самой полной коллекции и поддержать автора проекта - подписываетесь на sponsr."
 
         return  text
     }

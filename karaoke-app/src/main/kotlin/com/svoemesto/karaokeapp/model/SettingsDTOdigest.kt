@@ -103,6 +103,9 @@ data class SettingsDTOdigest(
 ): Serializable, Comparable<SettingsDTOdigest> {
 
     private val sortString: String get() {
+//        return listOf(
+//                author, year.toString(), album, "%3d".format(track)
+//            ).joinToString(" - ")
         return if (dateTimePublish == null) {
             listOf(
                 author, year.toString(), album, "%3d".format(track)

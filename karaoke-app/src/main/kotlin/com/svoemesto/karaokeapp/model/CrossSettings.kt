@@ -11,7 +11,15 @@ data class CrossSettingsRow (
     val csrCells: List<CrossSettingsCell>
 ): Serializable, Comparable<CrossSettingsRow> {
     override fun compareTo(other: CrossSettingsRow): Int {
-        return csrId.compareTo(other.csrId)
+        return sortString.compareTo(other.sortString)
+    }
+    private val sortString: String get() {
+        val result = if (csrName.contains(".")) {
+            csrName.split(".").asReversed().joinToString("")
+        } else {
+            "%015d".format(csrId)
+        }
+        return result
     }
 }
 
@@ -24,6 +32,8 @@ data class CrossSettingsCell (
         return cscIs.compareTo(other.cscIs)
     }
 }
+
+
 
 //fun main() {
 //    APP_WORK_IN_CONTAINER = false
@@ -64,13 +74,6 @@ class CrossSettings {
                 fields.isAccessible = true
                 (fields.get(sett) as Map<*, *>)[rowField] as String
             }.distinct()
-//                .sortedBy {
-//                if (rowField == SettingField.DATE) {
-//                    it.split(".").asReversed().joinToString("")
-//                } else {
-//                    it
-//                }
-//            }
 
             val listCSR = rows.mapIndexed { rowIndex, rowName ->
                 CrossSettingsRow(
@@ -92,7 +95,7 @@ class CrossSettings {
 
 //            println(listCSR)
 
-            return listCSR
+            return listCSR.sorted()
         }
 
 
@@ -151,7 +154,7 @@ class CrossSettings {
 
 //            println(listCSR)
 
-            return listCSR
+            return listCSR.sorted()
         }
 
         fun skiped(
@@ -209,7 +212,7 @@ class CrossSettings {
 
 //            println(listCSR)
 
-            return listCSR
+            return listCSR.sorted()
         }
     }
 }

@@ -560,7 +560,13 @@ export default {
                 params: { id: state.currentSongId }
             });
         },
-        
+         async getVkGroupBodySponsr(state) {
+            return await promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/api/song/textvkbodysponsr",
+                params: { id: state.currentSongId }
+            });
+        },       
         async getDzenKaraokeHeader(state) {
             return await promisedXMLHttpRequest({
                 method: 'POST',

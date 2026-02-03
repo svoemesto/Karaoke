@@ -312,8 +312,8 @@
 
             <div id="areaLeftTable">
                 <a href="/">
-                    <img th:if="${!sett.haveVkGroupLink && sett.idStatus >= 3}" th:src="'/tmp/' + ${sett.id}+ '.png'" style="width: 537px; display: block; margin: auto">
-                    <img th:unless="${!sett.haveVkGroupLink && sett.idStatus >= 3}" src="KARAOKE_LOGO.png" style="width: 300px; display: block; margin: auto">
+                    <img th:if="${!sett.haveVkGroupLink && sett.idStatus >= 3 && !sett.exclusive}" th:src="'/tmp/' + ${sett.id}+ '.png'" style="width: 537px; display: block; margin: auto">
+                    <img th:unless="${!sett.haveVkGroupLink && sett.idStatus >= 3 && !sett.exclusive}" src="KARAOKE_LOGO.png" style="width: 150px; display: block; margin: auto">
 <!--                    <img src="KARAOKE_LOGO.png" style="width: 300px; display: block; margin: auto">-->
                 </a>
                 <table style="width: 100%">
@@ -688,7 +688,7 @@
                                     </span>
 
                                     <span th:unless="${sett.onAir == true}">
-                                        <td class="td_cell" style="padding: 0" colspan="8">
+                                        <td class="td_cell" style="padding: 0" colspan="16">
                                             <div th:text="${sett.datePublish}" class="date_publish"></div>
                                         </td>
                                     </span>

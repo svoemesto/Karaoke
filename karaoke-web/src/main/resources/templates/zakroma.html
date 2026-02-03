@@ -295,7 +295,7 @@
 
         <div id="areaCenterColumn" style="width: 800px; alignment: center">
             <div style="width: 800px; align-items: center">
-                <a href="/"><img src="KARAOKE_LOGO.png" style="width: 300px; display: block; margin: auto"></a>
+                <a href="/"><img src="KARAOKE_LOGO.png" style="width: 150px; display: block; margin: auto"></a>
                 <select style="font-size: 14px; padding: 0;" class="form-control" type="text" id="field_author" name="field_author" th:value="${author_init}">
                     <option value="">(Выберите автора)</option>
                     <option th:each="author:${authors}" th:value="${author}" th:text="${author}" th:selected="${author} == ${author_init}">
@@ -675,7 +675,7 @@
                                     </span>
 
                                 <span th:unless="${sett.onAir == true}">
-                                        <td class="td_cell" style="padding: 0" colspan="8">
+                                        <td class="td_cell" style="padding: 0" colspan="16">
                                             <div th:text="${sett.datePublish}" class="date_publish"></div>
                                         </td>
                                     </span>

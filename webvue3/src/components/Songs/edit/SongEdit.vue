@@ -1362,7 +1362,7 @@ export default {
             // Поиск целевого объекта
             for (let i = 0; i < this.publishDigest.length; i++) {
               const row = this.publishDigest[i].csrCells;
-              const indexCell = row.findIndex(cell => cell.settingsDTO.id === targetId);
+              const indexCell = row.findIndex(cell => cell.settingsDTO && cell.settingsDTO.id === targetId);
               if (indexCell !== -1) {
                 targetRowIndex = i;
                 targetCellIndex = indexCell;
@@ -1372,19 +1372,19 @@ export default {
             if (targetRowIndex !== -1 && targetCellIndex !== -1) {
               switch (neighbour) {
                 case 'Left': { 
-                  id = targetCellIndex > 0 ? this.publishDigest[targetRowIndex].csrCells[targetCellIndex - 1].settingsDTO.id : id; 
+                  id = targetCellIndex > 0 ? this.publishDigest[targetRowIndex].csrCells[targetCellIndex - 1].settingsDTO ? this.publishDigest[targetRowIndex].csrCells[targetCellIndex - 1].settingsDTO.id : id : id; 
                   break; 
                 }
                 case 'Right': { 
-                  id = targetCellIndex < this.publishDigest[targetRowIndex].csrCells.length - 1 ? this.publishDigest[targetRowIndex].csrCells[targetCellIndex + 1].settingsDTO.id : id; 
+                  id = targetCellIndex < this.publishDigest[targetRowIndex].csrCells.length - 1 ? this.publishDigest[targetRowIndex].csrCells[targetCellIndex + 1].settingsDTO ? this.publishDigest[targetRowIndex].csrCells[targetCellIndex + 1].settingsDTO.id : id : id; 
                   break; 
                 }
                 case 'Next': { 
-                  id = targetRowIndex < this.publishDigest.length - 1 ? this.publishDigest[targetRowIndex + 1].csrCells[targetCellIndex].settingsDTO.id : id; 
+                  id = targetRowIndex < this.publishDigest.length - 1 ? this.publishDigest[targetRowIndex + 1].csrCells[targetCellIndex].settingsDTO ? this.publishDigest[targetRowIndex + 1].csrCells[targetCellIndex].settingsDTO.id : id : id; 
                   break; 
                 }
                 case 'Previous': { 
-                  id = targetRowIndex > 0 ? this.publishDigest[targetRowIndex - 1].csrCells[targetCellIndex].settingsDTO.id : id; 
+                  id = targetRowIndex > 0 ? this.publishDigest[targetRowIndex - 1].csrCells[targetCellIndex].settingsDTO ? this.publishDigest[targetRowIndex - 1].csrCells[targetCellIndex].settingsDTO.id : id : id; 
                   break; 
                 }
               }

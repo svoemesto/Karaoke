@@ -294,7 +294,7 @@ data class HealthReport(
                     var tryRestoreFromStorage = false
                     if (canResolve) { // Если возможно решить проблему (canResolve)
 
-                        val inProgressOwn = KaraokeProcess.loadList(args = inProgressOwnArgs, database = database).isNotEmpty()
+                        val inProgressOwn = inProgressOwnArgs.isNotEmpty() && KaraokeProcess.loadList(args = inProgressOwnArgs, database = database).isNotEmpty()
                         if (inProgressOwn) { // Есть задача в процессах (inProgressOwn)
 
                             healthReportStatus = IN_PROGRESS
@@ -1417,8 +1417,8 @@ data class HealthReport(
 
                     // Картинка альбома (preview)
                     KaraokeFileType.PICTURE_ALBUM_PREVIEW -> {
-                        pathToFile = ""
-                        existsInLocalFileSystem = false
+                        pathToFile = settings.pathToFileLogoAlbumPreview
+                        existsInLocalFileSystem = if (pathToFile != "") File(pathToFile).exists() else false
                         canBe = true
                         storageFileName = "${settings.author}/${settings.year} - ${settings.album}/${settings.author} - ${settings.year} - ${settings.album}${karaokeFileType.suffix}.${karaokeFileType.extention}"
                         description = karaokeFileType.name
@@ -1428,6 +1428,8 @@ data class HealthReport(
                         val pathToParentFile = settings.pathToFileLogoAlbum
                         val parentFileExistsInLocalFileSystem = if (pathToParentFile != "") File(pathToParentFile).exists() else false
                         canCreate = parentFileExistsInLocalFileSystem
+
+                        actionToCreate = { createAlbumPreview(settings = settings) }
 
                         karaokeFileType.locations.forEach { location ->
                             val actions = actions(
@@ -1493,8 +1495,8 @@ data class HealthReport(
 
                     // Картинка автора (preview)
                     KaraokeFileType.PICTURE_AUTHOR_PREVIEW -> {
-                        pathToFile = ""
-                        existsInLocalFileSystem = false
+                        pathToFile = settings.pathToFileLogoAuthorPreview
+                        existsInLocalFileSystem = if (pathToFile != "") File(pathToFile).exists() else false
                         canBe = true
                         storageFileName = "${settings.author}/${settings.author}${karaokeFileType.suffix}.${karaokeFileType.extention}"
                         description = karaokeFileType.name
@@ -1504,6 +1506,8 @@ data class HealthReport(
                         val pathToParentFile = settings.pathToFileLogoAuthor
                         val parentFileExistsInLocalFileSystem = if (pathToParentFile != "") File(pathToParentFile).exists() else false
                         canCreate = parentFileExistsInLocalFileSystem
+
+                        actionToCreate = { createAuthorPreview(settings = settings) }
 
                         karaokeFileType.locations.forEach { location ->
                             val actions = actions(
@@ -1531,7 +1535,7 @@ data class HealthReport(
                         }
                     }
 
-                    // Картинка публикации (можеть существовать только для karaokePlatform.forAllVersions)
+                    // Картинка публикации (может существовать только для karaokePlatform.forAllVersions)
                     KaraokeFileType.PICTURE_PUBLICATION -> {
                         KaraokePlatform.entries.forEach { karaokePlatform ->
                             pathToFile = if (karaokePlatform.forAllVersions) {
@@ -1546,7 +1550,11 @@ data class HealthReport(
                             canBe = if (karaokeFileType.karaokeFileTypeKind == KaraokeFileTypeKind.PROJECT) {
                                 (settings.idStatus >= 3 && settings.idStatus < 6)
                             } else {
-                                (settings.idStatus >= 6) && (!karaokePlatform.onAirPublications || !settings.onAir)
+                                if (settings.exclusive) {
+                                    karaokePlatform == KaraokePlatform.SPONSR && settings.idStatus >= 6
+                                } else {
+                                    (settings.idStatus >= 6) && (!karaokePlatform.onAirPublications || !settings.onAir)
+                                }
                             }
                             if (!karaokePlatform.forAllVersions) canBe = false
                             storageFileName = "${settings.storageFileName}${karaokePlatform.suffix}${karaokeFileType.suffix}.${karaokeFileType.extention}"

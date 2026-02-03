@@ -397,6 +397,8 @@ class Settings(
 
     val nameFileLogoAlbum: String  get() = "$fileName [album].png".rightFileName()
     val nameFileLogoAuthor: String  get() = "$fileName [author].png".rightFileName()
+    val nameFileLogoAlbumPreview: String  get() = "$fileName [album].preview.png".rightFileName()
+    val nameFileLogoAuthorPreview: String  get() = "$fileName [author].preview.png".rightFileName()
     val nameFileLyrics: String  get() = "$fileName [lyrics].mp4".rightFileName()
     val nameFileKaraoke: String  get() = "$fileName [karaoke].mp4".rightFileName()
     val nameFileChords: String  get() = "$fileName [chords].mp4".rightFileName()
@@ -433,6 +435,16 @@ class Settings(
         path = "${File(rootFolder).parentFile.absolutePath}/LogoAuthor.png"
         if (File(path).exists()) return path
         return ""
+    }
+
+    @get:JsonIgnore
+    val pathToFileLogoAlbumPreview: String  get() {
+        return pathToFileLogoAlbum.replace(".png", ".preview.png")
+    }
+
+    @get:JsonIgnore
+    val pathToFileLogoAuthorPreview: String  get() {
+        return pathToFileLogoAuthor.replace(".png", ".preview.png")
     }
 
     val color: String get() = fields[SettingField.COLOR] ?: ""
@@ -497,7 +509,7 @@ class Settings(
                 pict.name = pictureNameAuthor
                 pict.full = full
 //                pict.preview = preview
-                pic = Pictures.createNewPicture(pict, database)
+                pic = Pictures.createNewPicture(pict, database, storageService = storageService, storageApiClient = storageApiClient)
             }
         }
         return pic
@@ -524,7 +536,7 @@ class Settings(
                 pict.name = pictureNameAlbum
                 pict.full = full
 //                pict.preview = preview
-                pic = Pictures.createNewPicture(pict, database)
+                pic = Pictures.createNewPicture(pict, database, storageService = storageService, storageApiClient = storageApiClient)
             }
         }
         return pic
@@ -3112,7 +3124,7 @@ class Settings(
             }
         } else ""
 
-        val text = "$author, альбом «$album» - ${if (exclusive) "ЭКСКЛЮЗИВНО" else ""} на https://sponsr.ru/smkaraoke${if (free) " в открытом доступе" else ""}${if (!exclusive) "\nВ эфире - в $month." else ""}\nЧто всегда иметь доступ к самой полной коллекции и поддержать автора проекта - подписываетесь на sponsr."
+        val text = "$author, альбом «$album» $year-го года - ${if (exclusive) "ЭКСКЛЮЗИВНО" else ""} на https://sponsr.ru/smkaraoke${if (free) " в открытом доступе" else ""}${if (!exclusive) "\nВ эфире - в $month." else ""}\nЧто всегда иметь доступ к самой полной коллекции и поддержать автора проекта - подписываетесь на sponsr."
 
         return  text
     }

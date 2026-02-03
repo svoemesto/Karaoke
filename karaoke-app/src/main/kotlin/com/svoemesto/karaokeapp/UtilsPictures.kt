@@ -497,6 +497,40 @@ fun resizeBufferedImage(img: BufferedImage, newW: Int, newH: Int): BufferedImage
     return dimg
 }
 
+fun createAuthorPreview(settings: Settings) {
+    val pathToFile = settings.pathToFileLogoAuthor
+    val pathToFilePreview = settings.pathToFileLogoAuthorPreview
+    if (pathToFile != "") {
+        val pictureBites = File(pathToFile).inputStream().readAllBytes()
+        val bi = ImageIO.read(ByteArrayInputStream(pictureBites))
+        val previewBi = resizeBufferedImage(bi, newW = 125, newH = 50)
+        val file = File(pathToFilePreview)
+        try {
+            ImageIO.write(previewBi, "png", file)
+            runCommand(listOf("chmod", "666", pathToFilePreview))
+        } catch (e: Exception) {
+            println(e.message)
+        }
+    }
+}
+
+fun createAlbumPreview(settings: Settings) {
+    val pathToFile = settings.pathToFileLogoAlbum
+    val pathToFilePreview = settings.pathToFileLogoAlbumPreview
+    if (pathToFile != "") {
+        val pictureBites = File(pathToFile).inputStream().readAllBytes()
+        val bi = ImageIO.read(ByteArrayInputStream(pictureBites))
+        val previewBi = resizeBufferedImage(bi, newW = 50, newH = 50)
+        val file = File(pathToFilePreview)
+        try {
+            ImageIO.write(previewBi, "png", file)
+            runCommand(listOf("chmod", "666", pathToFilePreview))
+        } catch (e: Exception) {
+            println(e.message)
+        }
+    }
+}
+
 fun createSongPicture(settings: Settings, songVersion: SongVersion) {
 
     val fileName = settings.getOutputFilename(SongOutputFile.PICTURE, songVersion)

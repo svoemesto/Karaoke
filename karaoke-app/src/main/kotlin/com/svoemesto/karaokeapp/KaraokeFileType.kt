@@ -92,7 +92,8 @@ enum class KaraokeFileType(
         karaokeFileTypeKind = KaraokeFileTypeKind.MAIN,
         locations = listOf(
             KaraokeFileTypeLocations.LOCAL_FILESYSTEM,
-            KaraokeFileTypeLocations.LOCAL_STORAGE
+            KaraokeFileTypeLocations.LOCAL_STORAGE,
+            KaraokeFileTypeLocations.REMOTE_STORAGE
         ),
         extention = "png",
         suffix = ".album",
@@ -103,6 +104,7 @@ enum class KaraokeFileType(
         karaokeFileTypeFor = KaraokeFileTypeFor.SONG,
         karaokeFileTypeKind = KaraokeFileTypeKind.MAIN,
         locations = listOf(
+            KaraokeFileTypeLocations.LOCAL_FILESYSTEM,
             KaraokeFileTypeLocations.LOCAL_STORAGE,
             KaraokeFileTypeLocations.REMOTE_STORAGE
         ),
@@ -128,6 +130,7 @@ enum class KaraokeFileType(
         karaokeFileTypeFor = KaraokeFileTypeFor.SONG,
         karaokeFileTypeKind = KaraokeFileTypeKind.MAIN,
         locations = listOf(
+            KaraokeFileTypeLocations.LOCAL_FILESYSTEM,
             KaraokeFileTypeLocations.LOCAL_STORAGE,
             KaraokeFileTypeLocations.REMOTE_STORAGE
         ),

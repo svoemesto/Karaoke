@@ -211,7 +211,9 @@ class Pictures(
             )
         }
 
-        fun createNewPicture(newPicture: Pictures, database: KaraokeConnection): Pictures? {
+        fun createNewPicture(newPicture: Pictures, database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient): Pictures? {
+            val storedPicture = getPictureByName(name = newPicture.name, database = database, storageService = storageService, storageApiClient = storageApiClient)
+            if (storedPicture != null) return storedPicture
             val newPictureInDb = KaraokeDbTable.createDbInstance(
                 entity = newPicture,
                 database = database

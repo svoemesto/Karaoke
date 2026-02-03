@@ -40,8 +40,9 @@ class MainController(
         model: Model,
         request: HttpServletRequest
     ): String {
-        model.addAttribute("onBoosty", StatBySong.getCountSongsInCollection(database = WORKING_DATABASE))
+        model.addAttribute("onSponsr", StatBySong.getCountSongsInCollection(database = WORKING_DATABASE))
         model.addAttribute("onAir", StatBySong.getCountSongsOnAir(database = WORKING_DATABASE))
+        model.addAttribute("exclusive", StatBySong.getCountSongsExclusive(database = WORKING_DATABASE))
         doRegisterEvent(mapOf("eventType" to "callRest", "restName" to "main", "parameters" to emptyMap<String, Any>(), "referer" to request.remoteHost))
         return "main"
     }

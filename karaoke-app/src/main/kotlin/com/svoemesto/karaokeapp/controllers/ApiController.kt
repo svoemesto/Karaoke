@@ -634,6 +634,18 @@ class ApiController(
         return text
     }
 
+    // Получение текста тела VkGroup
+    @PostMapping("/song/textvkbodysponsr")
+    @ResponseBody
+    fun getSongTextVkBodySponsr(@RequestParam id: Long): String {
+        val settings = Settings.loadFromDbById(id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+        val text = settings?.let {
+            val text = it.getVKGroupDescriptionSponsr()
+            text
+        } ?: ""
+        return text
+    }
+
     // Получение текста заголовка для Dzen Karaoke
     @PostMapping("/song/textdzenkaraokeheader")
     @ResponseBody

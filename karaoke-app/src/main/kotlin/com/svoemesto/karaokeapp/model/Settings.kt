@@ -245,14 +245,17 @@ class Settings(
     var firstSongInAlbum: Boolean = false
 
     val sortString: String get() {
-        return if (dateTimePublish == null) {
-            listOf(
-                author, year.toString(), album, "%3d".format(track)
-            ).joinToString(" - ")
-        } else
-        {
-            "%15d".format(dateTimePublish!!.time)
-        }
+        return listOf(
+            author, year.toString(), album, "%3d".format(track)
+        ).joinToString(" - ")
+//        return if (dateTimePublish == null) {
+//            listOf(
+//                author, year.toString(), album, "%3d".format(track)
+//            ).joinToString(" - ")
+//        } else
+//        {
+//            "%15d".format(dateTimePublish.time)
+//        }
     }
 
     val id: Long get() = fields[SettingField.ID]?.toLongOrNull() ?: 0L
@@ -834,7 +837,15 @@ class Settings(
     val linkPlLyrics: String get() = if (idPlLyrics == "") "" else linkPlLyricsPlay!!
     val linkPlTabs: String get() = if (idPlMelody == "") "" else linkPlMelodyPlay!!
     val linkPlChords: String get() = if (idPlChords == "") "" else linkPlChordsPlay!!
-    val datePublish: String get() = if (date == "" || time == "") "Дата пока не определена" else "$date $time"
+    val datePublish: String get() = if (exclusive && free) {
+        "Эксклюзивно на SPONSR (в открытом доступе)"
+    } else if (exclusive) {
+        "Эксклюзивно на SPONSR"
+    } else if (date == "" || time == "") {
+        "Дата пока не определена"
+    } else {
+        "$date $time"
+    }
 
     fun getKeyBpmFromFile(reFind: Boolean = false): Pair<String, Int> {
         if (reFind || !File(pathToFileKeyBpmFinder).exists()) {
@@ -3081,6 +3092,31 @@ class Settings(
                 getTextForDescription()
     }
 
+    fun getVKGroupDescriptionSponsr(): String {
+
+        val month = if (dateTimePublish !== null) {
+            when (dateTimePublish!!.month) {
+                0 -> "январе"
+                1 -> "феврале"
+                2 -> "марте"
+                3 -> "апреле"
+                4 -> "мае"
+                5 -> "июне"
+                6 -> "июле"
+                7 -> "августе"
+                8 -> "сентябре"
+                9 -> "октябре"
+                10 -> "ноябре"
+                11 -> "декабре"
+                else -> ""
+            }
+        } else ""
+
+        val text = "$author, альбом «$album» - ${if (exclusive) "ЭКСКЛЮЗИВНО" else ""} на https://sponsr.ru/smkaraoke${if (free) " в открытом доступе" else ""}${if (!exclusive) "\nВ эфире - в $month." else ""}\nЧто всегда иметь доступ к самой полной коллекции и поддержать автора проекта - подписываетесь на sponsr."
+
+        return  text
+    }
+
     @Suppress("unused") fun getChordDescription(songVersion: SongVersion): String {
 
         return if (songVersion == SongVersion.CHORDS) {
@@ -3845,6 +3881,8 @@ class Settings(
         val formatter = SimpleDateFormat("dd/MM/yyyy")
         val currentDate = formatter.parse(formatter.format(currentDateTime))
         val datePublish = if (dateTimePublish == null) null else formatter.parse(formatter.format(dateTimePublish))
+        if (datePublish == null && idStatus >= 6 && haveSponsr && exclusive && free) return SettingState.EXCLUSIVE_FREE
+        if (datePublish == null && idStatus >= 6 && haveSponsr && exclusive) return SettingState.EXCLUSIVE
         if (datePublish == null || idStatus < 6) return SettingState.IN_WORK
 
 
@@ -4481,6 +4519,7 @@ class Settings(
 
             if (args.containsKey("flag_exclusive")) where += "CASE WHEN exclusive = true THEN '+' ELSE '-' END='${args["flag_exclusive"]}'"
             if (args.containsKey("flag_free")) where += "CASE WHEN free = true THEN '+' ELSE '-' END='${args["flag_free"]}'"
+            if (args.containsKey("unpublish")) where += "publish_date = '' AND publish_time = '' AND ((exclusive = true AND id_sponsr = '') OR exclusive = false)"
 
             if (args.containsKey("filter_status_process_lyrics")) where += "LOWER(status_process_lyrics) LIKE '%${args["filter_status_process_lyrics"]?.rightFileName()?.lowercase()}%'"
             if (args.containsKey("filter_status_process_karaoke")) where += "LOWER(status_process_karaoke) LIKE '%${args["filter_status_process_karaoke"]?.rightFileName()?.lowercase()}%'"

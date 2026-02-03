@@ -1,6 +1,6 @@
 <template>
   <div class="td-wrapper">
-    <SongEditModal v-if="isSongEditVisible" @close="closeSongEdit"/>
+    <SongEditModal v-if="isSongEditVisible" @close="closeSongEdit" :parent-route="parentRoute" :publish-digest="publishDigest"/>
     <div class="publish" v-if="publish">
       <div class="publish-name"
            :style="styleSongName"
@@ -50,6 +50,11 @@ export default {
       required: false,
       default: () => null
     },
+    publishDigest: {
+      type: Array,
+      required: false,
+      default: () => [[]]
+    }
   },
   data () {
     return {
@@ -57,6 +62,9 @@ export default {
     };
   },
   computed: {
+    parentRoute() {
+      return 'Publications'
+    },
     publishTitle() {
       return `${this.publish.songName} ★ ${this.publish.author} ★ ${this.publish.album}`
     },

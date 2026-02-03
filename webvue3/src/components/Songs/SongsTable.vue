@@ -1,10 +1,20 @@
 <template>
   <div class="songs-bv-table">
-    <SongEditModal v-if="isSongEditVisible" @close="closeSongEdit"/>
-    <SongsFilter v-if="isSongsFilterVisible" @close="closeSongsFilter"/>
-    <SmartCopyModal v-if="isSmartCopyVisible" @close="closeSmartCopy" :ids="songsIds"/>
-    <custom-confirm v-if="isCustomConfirmVisible" :params="customConfirmParams" @close="closeCustomConfirm" />
-    <health-report-table v-if="isHealthReportTableVisible" :id="currentSongId" @close="closeHealthReportTable"/>
+    <SongEditModal v-if="isSongEditVisible" 
+      @close="closeSongEdit" 
+      :parent-route="parentRoute" 
+      :songs-digests="songsDigests"/>
+    <SongsFilter v-if="isSongsFilterVisible" 
+      @close="closeSongsFilter"/>
+    <SmartCopyModal v-if="isSmartCopyVisible" 
+      @close="closeSmartCopy" 
+      :ids="songsIds"/>
+    <custom-confirm v-if="isCustomConfirmVisible" 
+      :params="customConfirmParams" 
+      @close="closeCustomConfirm" />
+    <health-report-table v-if="isHealthReportTableVisible" 
+      :id="currentSongId" 
+      @close="closeHealthReportTable"/>
     <div class="songs-bv-table-header">
       <b-pagination
           v-model="currentPage"
@@ -395,6 +405,9 @@ export default {
     this.allowAddSync = await this.propAllowAddSync();
   },
   computed: {
+    parentRoute() {
+      return 'Songs';
+    },
     smartCopyButtonCaption() {
       let caption = '';
       if (this.countRows > 0) {

@@ -57,7 +57,7 @@ export default {
   computed: {
     process() {
       const workingProcess = this.$store.getters.getWorkingProcess;
-      console.log('workingProcess', workingProcess);
+      // console.log('workingProcess', workingProcess);
       if (workingProcess === undefined) return this.currentWorkingProcess;
       const idWorkingProcess = workingProcess.threadId;
       let show = false;

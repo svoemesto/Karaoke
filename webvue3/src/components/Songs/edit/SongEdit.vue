@@ -185,6 +185,7 @@
                 <img class="icon-24" alt="documents" src="../../../assets/svg/icon_documents.svg">
                 <button class="btn-round-wide" @click="openLinkVkGroup" :disabled="!song.idVk"><img alt="open" class="icon-open-wide" src="../../../assets/svg/icon_open.svg"></button>
                 <button class="btn-round-wide" @click="getVkGroupBody"><img alt="body" class="icon-textbody" src="../../../assets/svg/icon_body.svg"></button>
+                <button class="btn-round" @click="getVkGroupBodySponsr"><img alt="body" class="icon-textbody" src="../../../assets/svg/icon_body.svg"></button>
                 <button class="btn-round" @click="getLinkVkGroup" :disabled="!song.idVk"><img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg"></button>
                 <input class="input-link-field" v-model="song.idVk">
                 <button class="btn-round" @click="undoField('idVk')" :disabled="notChanged('idVk')"><img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg"></button>
@@ -194,7 +195,7 @@
             </div>
           </div>
 
-          <div class="links-table">
+          <div class="links-table" v-if="!song.exclusive">
             <div class="links-table-column-1">
               <img class="icon-36" alt="dzen" src="../../../assets/svg/icon_dzen.svg">
             </div>
@@ -254,7 +255,7 @@
             </div>
           </div>
 
-          <div class="links-table">
+          <div class="links-table" v-if="!song.exclusive">
             <div class="links-table-column-1">
               <img class="icon-36" alt="vk" src="../../../assets/svg/icon_vk.svg">
             </div>
@@ -310,7 +311,7 @@
             </div>
           </div>
 
-<!--          <div class="links-table">-->
+<!--          <div class="links-table" v-if="!song.exclusive">-->
 <!--            <div class="links-table-column-1">-->
 <!--              <img class="icon-36" alt="pl" src="../../../assets/svg/icon_pl.svg">-->
 <!--            </div>-->
@@ -370,7 +371,7 @@
 <!--            </div>-->
 <!--          </div>-->
 
-          <div class="links-table">
+          <div class="links-table" v-if="!song.exclusive">
             <div class="links-table-column-1">
               <img class="icon-36" alt="tg" src="../../../assets/svg/icon_telegram.svg">
             </div>
@@ -501,12 +502,12 @@
               ></b-form-rating>
             </div>
             <div class="navigation-buttons">
-              <button class="group-button-left-right" @click="goToLeftSong" title="⬅">⬅</button>
+              <button class="group-button-left-right" @click="goToLeftSong" title="⬅" :disabled="song.id === getNeighbourSongId('Left')">⬅</button>
               <div class="navigation-buttons-column">
-                <button class="group-button-up-down" @click="goToPreviousSong" title="⬆">⬆</button>
-                <button class="group-button-up-down" @click="goToNextSong" title="⬇">⬇</button>
+                <button class="group-button-up-down" @click="goToPreviousSong" title="⬆" :disabled="song.id === getNeighbourSongId('Previous')">⬆</button>
+                <button class="group-button-up-down" @click="goToNextSong" title="⬇" :disabled="song.id === getNeighbourSongId('Next')">⬇</button>
               </div>
-              <button class="group-button-left-right" @click="goToRightSong" title="➡">➡</button>
+              <button class="group-button-left-right" @click="goToRightSong" title="➡" :disabled="song.id === getNeighbourSongId('Right')">➡</button>
             </div>
 
           </div>
@@ -562,6 +563,22 @@ import { h } from 'vue';
 
 export default {
   name: "SongEdit",
+  props: {
+    parentRoute: {
+      type: String,
+      required: true
+    },
+    songsDigests: {
+      type: Array,
+      required: false,
+      dafaults: []
+    },
+    publishDigest: {
+      type: Array,
+      required: false,
+      default: () => [[]]
+    }
+  },
   components: {
     CustomConfirm,
     HealthReportTable,
@@ -1304,20 +1321,89 @@ export default {
     },
 
     goToPreviousSong() {
-      const id = this.previousSongId;
+      const id = this.getNeighbourSongId('Previous');
       this.$store.dispatch('setCurrentSongId', id);
     },
     goToNextSong() {
-      const id = this.nextSongId;
+      const id = this.getNeighbourSongId('Next');
       this.$store.dispatch('setCurrentSongId', id);
     },
     goToLeftSong() {
-      const id = this.leftSongId;
+      const id = this.getNeighbourSongId('Left');
       this.$store.dispatch('setCurrentSongId', id);
     },
     goToRightSong() {
-      const id = this.rightSongId;
+      const id = this.getNeighbourSongId('Right');
       this.$store.dispatch('setCurrentSongId', id);
+    },
+    getNeighbourSongId(neighbour) {
+      // Нужно определить, находимся ли мы с "песнях" или в "публикациях"
+      let id = this.song.id;
+      switch (this.parentRoute) {
+        case 'Songs': 
+          {
+            const index = this.songsDigests.findIndex(song => song.id === id);
+            if (index !== -1) {
+              switch (neighbour) {
+                case 'Left': { break; }
+                case 'Right': { break; }
+                case 'Next': { id = index < this.songsDigests.length - 1 ? this.songsDigests[index + 1].id : id; break; }
+                case 'Previous': { id = index > 0 ? this.songsDigests[index - 1].id : id; break; }
+              }
+            }
+            break;
+          }
+        case 'Publications': 
+          {
+            const targetId = id;
+            let targetRowIndex = -1;
+            let targetCellIndex = -1;
+
+            // Поиск целевого объекта
+            for (let i = 0; i < this.publishDigest.length; i++) {
+              const row = this.publishDigest[i].csrCells;
+              const indexCell = row.findIndex(cell => cell.settingsDTO.id === targetId);
+              if (indexCell !== -1) {
+                targetRowIndex = i;
+                targetCellIndex = indexCell;
+                break;
+              }
+            }
+            if (targetRowIndex !== -1 && targetCellIndex !== -1) {
+              switch (neighbour) {
+                case 'Left': { 
+                  id = targetCellIndex > 0 ? this.publishDigest[targetRowIndex].csrCells[targetCellIndex - 1].settingsDTO.id : id; 
+                  break; 
+                }
+                case 'Right': { 
+                  id = targetCellIndex < this.publishDigest[targetRowIndex].csrCells.length - 1 ? this.publishDigest[targetRowIndex].csrCells[targetCellIndex + 1].settingsDTO.id : id; 
+                  break; 
+                }
+                case 'Next': { 
+                  id = targetRowIndex < this.publishDigest.length - 1 ? this.publishDigest[targetRowIndex + 1].csrCells[targetCellIndex].settingsDTO.id : id; 
+                  break; 
+                }
+                case 'Previous': { 
+                  id = targetRowIndex > 0 ? this.publishDigest[targetRowIndex - 1].csrCells[targetCellIndex].settingsDTO.id : id; 
+                  break; 
+                }
+              }
+            }
+            break;
+          }
+        default:           
+          {
+            switch (neighbour) {
+              case 'Left': { id = this.leftSongId; break; }
+              case 'Right': { id = this.rightSongId; break; }
+              case 'Next': { id = this.nextSongId; break; }
+              case 'Previous': { id = this.previousSongId; break; }
+            }
+            break;
+          }
+
+      }
+      return id;
     },
     createKaraoke() {
       this.customConfirmParams = {
@@ -1702,6 +1788,11 @@ export default {
       let value = await this.$store.getters.getVkGroupBody;
       await navigator.clipboard.writeText(value)
       this.showCopyToClipboardToast('getVkGroupBody', value);
+    },
+    async getVkGroupBodySponsr() {
+      let value = await this.$store.getters.getVkGroupBodySponsr;
+      await navigator.clipboard.writeText(value)
+      this.showCopyToClipboardToast('getVkGroupBodySponsr', value);
     },
     openLinkVkGroup() {
       window.open(this.linkVkGroup, '_blank');

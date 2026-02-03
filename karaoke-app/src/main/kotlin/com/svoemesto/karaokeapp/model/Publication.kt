@@ -610,7 +610,7 @@ class Publication(val database: KaraokeConnection = WORKING_DATABASE) : Serializ
                 }
 
             } else if (filterCond == "unpublish") {
-                return Settings.loadListFromDb(mapOf("publish_date" to "-", "publish_time" to "-"), database = database, storageService = storageService, storageApiClient = storageApiClient, withoutMarkersAndText = true).filter { it.author !in skipedAuthors }
+                return Settings.loadListFromDb(mapOf("unpublish" to "+"), database = database, storageService = storageService, storageApiClient = storageApiClient, withoutMarkersAndText = true).filter { it.author !in skipedAuthors }
             } else if (filterCond == "skiped") {
                 return Settings.loadListFromDb(mapOf("publish_date" to "-", "publish_time" to "-"), database = database, storageService = storageService, storageApiClient = storageApiClient, withoutMarkersAndText = true).filter { it.author in skipedAuthors }
             }

@@ -27,6 +27,38 @@ class StatBySong(@Suppress("unused") val database: KaraokeConnection = WORKING_D
 
     companion object {
 
+        fun getCountSongsExclusive(database: KaraokeConnection = WORKING_DATABASE): Int {
+            val sql = """
+                select count(DISTINCT id) as cnt
+                from tbl_settings
+                where exclusive = true AND id_sponsr != '' AND id_sponsr IS NOT NULL;
+            """.trimIndent()
+            val connection = database.getConnection()
+            if (connection == null) {
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
+                return 0
+            }
+            var statement: Statement? = null
+            var rs: ResultSet? = null
+            try {
+                statement = connection.createStatement()
+                rs = statement.executeQuery(sql)
+                while (rs.next()) {
+                    return rs.getInt("cnt")
+                }
+            } catch (e: SQLException) {
+                e.printStackTrace()
+            } finally {
+                try {
+                    rs?.close() // close result set
+                    statement?.close() // close statement
+                } catch (e: SQLException) {
+                    e.printStackTrace()
+                }
+            }
+            return 0
+        }
+
         fun getCountSongsOnAir(database: KaraokeConnection = WORKING_DATABASE): Int {
             val sql = """
                 select count(DISTINCT id) as cnt

@@ -7,7 +7,10 @@
           Редактирование песни
         </div>
         <div class="sem-area-modal-body">
-          <SongEdit @close="close"/>
+          <SongEdit @close="close"
+            :parent-route="parentRoute" 
+            :songs-digests="songsDigests"
+            :publish-digest="publishDigest"/>
         </div>
         <div class="sem-area-modal-footer">
           <button type="button" class="sem-btn-close" @click="close">Выход</button>
@@ -23,6 +26,22 @@ import SongEdit from "../../../components/Songs/edit/SongEdit.vue";
 
 export default {
   name: "SongEditModal",
+  props: {
+    parentRoute: {
+      type: String,
+      required: true
+    },
+    songsDigests: {
+      type: Array,
+      required: false,
+      dafaults: []
+    },
+    publishDigest: {
+      type: Array,
+      required: false,
+      default: () => [[]]
+    }
+  },
   components: {SongEdit},
   methods: {
     close() {

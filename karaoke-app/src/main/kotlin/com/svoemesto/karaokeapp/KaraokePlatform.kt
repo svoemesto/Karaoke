@@ -40,7 +40,7 @@ enum class KaraokePlatform(
         id = 2,
         caption = "VK Group",
         description = "VK Group",
-        suffix = " [vkgroup]",
+        suffix = " [VKlink]",
         forAllVersions = true,
         haveVersionNumber = false,
         svg = SVG["icon_vk2"] ?: "",

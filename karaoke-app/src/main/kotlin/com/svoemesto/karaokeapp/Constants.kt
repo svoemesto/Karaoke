@@ -114,6 +114,7 @@ const val SYNCIDS_FILE_PATH = "/sm-karaoke/system/syncids.txt"
 const val TESTDICT_FILE_PATH = "/sm-karaoke/system/test_dict.txt"
 const val SONGS_HISTORY_FILE_PATH = "/sm-karaoke/system/songs_history.txt"
 const val WEBVUE_PROPERTIES_FILE_PATH = "/sm-karaoke/system/webvue_properties.txt"
+const val YANDEX_AUTH_STATE_PATH = "/sm-karaoke/system/yandex_auth_state.json"
 
 val TEXT_FILE_DICTS = mapOf(
     "Слова с Ё" to YoWordsDictionary::class.java,

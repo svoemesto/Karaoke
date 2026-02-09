@@ -3,6 +3,7 @@ package com.svoemesto.karaokeapp
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.google.gson.GsonBuilder
 import com.microsoft.playwright.Browser
+import com.microsoft.playwright.BrowserContext
 import com.microsoft.playwright.BrowserType
 import com.microsoft.playwright.Playwright
 import com.svoemesto.karaokeapp.mlt.MltObject
@@ -2376,28 +2377,43 @@ fun String.textBetween(startString: String, endString: String): String {
 
 fun searchLastAlbumYm2(authorYmId: String): String {
     var result = ""
+    val authorUrl = "https://music.yandex.ru/artist/$authorYmId"
+    val searchUrl = "$authorUrl/albums"
     Playwright.create().use { playwright ->
-        val searchUrl = "https://music.yandex.ru/artist/$authorYmId/albums"
+
         val browser = playwright.chromium().launch(
             BrowserType.LaunchOptions()
-                .setHeadless(true) // или true, если не нужно видеть
+                .setHeadless(true)
         )
 
-        // Создаем контекст, используя сохраненное состояние авторизации
+        // Создаем контекст с дополнительными заголовками и сохраненным состоянием
         val context = browser.newContext(
             Browser.NewContextOptions()
-                .setStorageStatePath(Path.of("/sm-karaoke/system/yandex_auth_state.json"))
+                .setStorageStatePath(Path.of(YANDEX_AUTH_STATE_PATH))
+                .setExtraHTTPHeaders(
+                    mapOf(
+                        "Referer" to authorUrl,
+                        "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
+                        "Accept-Language" to "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7",
+                        "Accept-Encoding" to "gzip, deflate, br",
+                        "Connection" to "keep-alive",
+                        "Upgrade-Insecure-Requests" to "1",
+                        "Sec-Fetch-Dest" to "document",
+                        "Sec-Fetch-Mode" to "navigate",
+                        "Sec-Fetch-Site" to "same-origin"
+                    )
+                )
         )
 
         val page = context.newPage()
-        page.navigate(searchUrl) // Откроется авторизованным
+        page.navigate(searchUrl)
 
-//        page.waitForLoadState(LoadState.NETWORKIDLE)
         val html = page.content()
 
         val preloadedAlbums = html.extractBalancedBracesFromString("""\"preloadedAlbums\":""")
         val album = preloadedAlbums.extractBalancedBracesFromString("""\"albums\":[""")
         result = album.textBetween("""\"title\":\"""", """\",\"""")
+
         if (result == "") {
             if (html.contains("Нам очень жаль, но запросы с вашего устройства похожи на автоматические")) {
                 println("Нам очень жаль, но запросы с вашего устройства похожи на автоматические")
@@ -2405,13 +2421,13 @@ fun searchLastAlbumYm2(authorYmId: String): String {
             }
             println("preloadedAlbum = $preloadedAlbums")
             println("album = $album")
-            println("searchLastAlbumYm2 html: '$html'")
+            println("searchLastAlbumYm2 html: '${html.substring(0, minOf(html.length, 1000))}...'") // ограничиваем вывод
         }
 
+        // Сохраняем состояние (cookies, localStorage и т.д.) после успешного поиска
+        context.storageState(BrowserContext.StorageStateOptions().setPath(Path.of(YANDEX_AUTH_STATE_PATH)))
         browser.close()
-
     }
-
     return result
 }
 

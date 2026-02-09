@@ -5,6 +5,7 @@ import com.microsoft.playwright.BrowserContext
 import com.microsoft.playwright.BrowserType
 import com.microsoft.playwright.Playwright
 import com.microsoft.playwright.options.LoadState
+import com.svoemesto.karaokeapp.YANDEX_AUTH_STATE_PATH
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import java.nio.file.*
@@ -35,9 +36,9 @@ class PlaywrightTests() {
             readLine() // Приостанавливаем выполнение, пока вы не авторизуетесь
 
             // После авторизации сохраняем состояние (cookies, localStorage и т.д.)
-            context.storageState(BrowserContext.StorageStateOptions().setPath(Path.of("/sm-karaoke/system/yandex_auth_state.json")))
+            context.storageState(BrowserContext.StorageStateOptions().setPath(Path.of(YANDEX_AUTH_STATE_PATH)))
 
-            println("Состояние авторизации сохранено в '/sm-karaoke/system/yandex_auth_state.json'")
+            println("Состояние авторизации сохранено в '$YANDEX_AUTH_STATE_PATH'")
             browser.close()
         }
     }
@@ -65,9 +66,9 @@ class PlaywrightTests() {
             readLine() // Приостанавливаем выполнение, пока вы не авторизуетесь
 
             // После авторизации сохраняем состояние (cookies, localStorage и т.д.)
-            context.storageState(BrowserContext.StorageStateOptions().setPath(Path.of("/sm-karaoke/system/yandex_auth_state.json")))
+            context.storageState(BrowserContext.StorageStateOptions().setPath(Path.of(YANDEX_AUTH_STATE_PATH)))
 
-            println("Состояние авторизации сохранено в '/sm-karaoke/system/yandex_auth_state.json'")
+            println("Состояние авторизации сохранено в '$YANDEX_AUTH_STATE_PATH'")
             browser.close()
         }
     }
@@ -85,7 +86,7 @@ class PlaywrightTests() {
             // Создаем контекст, используя сохраненное состояние авторизации
             val context = browser.newContext(
                 Browser.NewContextOptions()
-                    .setStorageStatePath(Path.of("/sm-karaoke/system/yandex_auth_state.json")) // <-- Используем сохраненное состояние
+                    .setStorageStatePath(Path.of(YANDEX_AUTH_STATE_PATH)) // <-- Используем сохраненное состояние
             )
 
             val page = context.newPage()
@@ -113,7 +114,7 @@ class PlaywrightTests() {
             // Создаем контекст, используя сохраненное состояние авторизации
             val context = browser.newContext(
                 Browser.NewContextOptions()
-                    .setStorageStatePath(Path.of("/sm-karaoke/system/yandex_auth_state.json")) // <-- Используем сохраненное состояние
+                    .setStorageStatePath(Path.of(YANDEX_AUTH_STATE_PATH)) // <-- Используем сохраненное состояние
             )
 
             val page = context.newPage()
@@ -141,7 +142,7 @@ class PlaywrightTests() {
             // Создаем контекст, используя сохраненное состояние авторизации
             val context = browser.newContext(
                 Browser.NewContextOptions()
-                    .setStorageStatePath(Path.of("/sm-karaoke/system/yandex_auth_state.json")) // <-- Используем сохраненное состояние
+                    .setStorageStatePath(Path.of(YANDEX_AUTH_STATE_PATH)) // <-- Используем сохраненное состояние
             )
 
             val page = context.newPage()

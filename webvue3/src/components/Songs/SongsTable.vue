@@ -103,21 +103,21 @@
         <template #cell(date)="data">
           <div
               class="fld-date"
-              v-text="data.value"
+              v-text="data.value ? data.value : '-'"
               :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
           ></div>
         </template>
         <template #cell(time)="data">
           <div
               class="fld-time"
-              v-text="data.value"
+              v-text="data.value ? data.value : '-'"
               :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
           ></div>
         </template>
         <template #cell(tags)="data">
           <div
               class="fld-tags"
-              v-text="data.value"
+              v-text="data.value ? data.value : '-'"
               :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
           ></div>
         </template>
@@ -160,21 +160,21 @@
         <template #cell(flagSponsr)="data">
           <div
               class="fld-flag-sponsr"
-              v-text="data.value"
+              v-text="data.value ? data.value : '-'"
               :style="{ backgroundColor: data.item.processColorSponsr, color: currentSongId === data.item.id ? 'blue' : 'black' }"
           ></div>
         </template>
         <template #cell(flagVk)="data">
           <div
               class="fld-flag-vk"
-              v-text="data.value"
+              v-text="data.value ? data.value : '-'"
               :style="{ backgroundColor: data.item.processColorVk, color: currentSongId === data.item.id ? 'blue' : 'black' }"
           ></div>
         </template>
         <template #cell(flagDzenLyrics)="data">
           <div
               class="fld-flag-dzen-lyrics"
-              v-text="data.value"
+              v-text="data.value ? data.value : '-'"
               @dblclick.left="playLyrics(data.item.id)"
               :style="{ backgroundColor: data.item.processColorMeltLyrics, color: currentSongId === data.item.id ? 'blue' : 'black' }"
           ></div>
@@ -182,7 +182,7 @@
         <template #cell(flagDzenKaraoke)="data">
           <div
               class="fld-flag-dzen-karaoke"
-              v-text="data.value"
+              v-text="data.value ? data.value : '-'"
               @dblclick.left="playKaraoke(data.item.id)"
               :style="{ backgroundColor: data.item.processColorMeltKaraoke, color: currentSongId === data.item.id ? 'blue' : 'black' }"
           ></div>
@@ -190,7 +190,7 @@
         <template #cell(flagDzenChords)="data">
           <div
               class="fld-flag-dzen-chords"
-              v-text="data.value"
+              v-text="data.value ? data.value : '-'"
               @dblclick.left="playChords(data.item.id)"
               :style="{ backgroundColor: data.item.processColorMeltChords, color: currentSongId === data.item.id ? 'blue' : 'black' }"
           ></div>
@@ -198,7 +198,7 @@
         <template #cell(flagDzenMelody)="data">
           <div
               class="fld-flag-dzen-melody"
-              v-text="data.value"
+              v-text="data.value ? data.value : '-'"
               @dblclick.left="playTabs(data.item.id)"
               :style="{ backgroundColor: data.item.processColorMeltMelody, color: currentSongId === data.item.id ? 'blue' : 'black' }"
           ></div>
@@ -206,70 +206,70 @@
         <template #cell(flagVkLyrics)="data">
           <div
               class="fld-flag-vk-lyrics"
-              v-text="data.value"
+              v-text="data.value ? data.value : '-'"
               :style="{ backgroundColor: data.item.processColorVkLyrics, color: currentSongId === data.item.id ? 'blue' : 'black' }"
           ></div>
         </template>
         <template #cell(flagVkKaraoke)="data">
           <div
               class="fld-flag-vk-karaoke"
-              v-text="data.value"
+              v-text="data.value ? data.value : '-'"
               :style="{ backgroundColor: data.item.processColorVkKaraoke, color: currentSongId === data.item.id ? 'blue' : 'black' }"
           ></div>
         </template>
         <template #cell(flagVkChords)="data">
           <div
               class="fld-flag-vk-chords"
-              v-text="data.value"
+              v-text="data.value ? data.value : '-'"
               :style="{ backgroundColor: data.item.processColorVkChords, color: currentSongId === data.item.id ? 'blue' : 'black' }"
           ></div>
         </template>
         <template #cell(flagVkMelody)="data">
           <div
               class="fld-flag-vk-melody"
-              v-text="data.value"
+              v-text="data.value ? data.value : '-'"
               :style="{ backgroundColor: data.item.processColorVkMelody, color: currentSongId === data.item.id ? 'blue' : 'black' }"
           ></div>
         </template>
         <template #cell(flagTelegramLyrics)="data">
           <div
               class="fld-flag-tg-lyrics"
-              v-text="data.value"
+              v-text="data.value ? data.value : '-'"
               :style="{ backgroundColor: data.item.processColorTelegramLyrics, color: currentSongId === data.item.id ? 'blue' : 'black' }"
           ></div>
         </template>
         <template #cell(flagTelegramKaraoke)="data">
           <div
               class="fld-flag-tg-karaoke"
-              v-text="data.value"
+              v-text="data.value ? data.value : '-'"
               :style="{ backgroundColor: data.item.processColorTelegramKaraoke, color: currentSongId === data.item.id ? 'blue' : 'black' }"
           ></div>
         </template>
         <template #cell(flagTelegramChords)="data">
           <div
               class="fld-flag-tg-chords"
-              v-text="data.value"
+              v-text="data.value ? data.value : '-'"
               :style="{ backgroundColor: data.item.processColorTelegramChords, color: currentSongId === data.item.id ? 'blue' : 'black' }"
           ></div>
         </template>
         <template #cell(flagTelegramMelody)="data">
           <div
               class="fld-flag-tg-melody"
-              v-text="data.value"
+              v-text="data.value ? data.value : '-'"
               :style="{ backgroundColor: data.item.processColorTelegramMelody, color: currentSongId === data.item.id ? 'blue' : 'black' }"
           ></div>
         </template>
         <template #cell(flagExclusive)="data">
           <div
               class="fld-flag-exclusive"
-              v-text="data.value"
+              v-text="data.value ? data.value : '-'"
               :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
           ></div>
         </template>
         <template #cell(flagFree)="data">
           <div
               class="fld-flag-free"
-              v-text="data.value"
+              v-text="data.value ? data.value : '-'"
               :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
           ></div>
         </template>

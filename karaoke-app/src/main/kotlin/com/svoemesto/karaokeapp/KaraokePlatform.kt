@@ -143,6 +143,29 @@ enum class KaraokePlatform(
             SongVersion.TABS.name to SettingField.VERSION_TELEGRAM_MELODY,
         ),
         onAirPublications = true
+    ),
+    MAX(
+        id = 7,
+        caption = "Max",
+        description = "Max",
+        suffix = "",
+        forAllVersions = false,
+        haveVersionNumber = true,
+        svg = SVG["icon_max"] ?: "",
+        prefixPlay = "https://max.ru/c/-70935843913828/",
+        settingsFieldPublicationId = mapOf(
+            SongVersion.KARAOKE.name to SettingField.ID_MAX_KARAOKE,
+            SongVersion.LYRICS.name to SettingField.ID_MAX_LYRICS,
+            SongVersion.CHORDS.name to SettingField.ID_MAX_CHORDS,
+            SongVersion.TABS.name to SettingField.ID_MAX_MELODY,
+        ),
+        settingsFieldVersionNumber = mapOf(
+            SongVersion.KARAOKE.name to SettingField.VERSION_MAX_KARAOKE,
+            SongVersion.LYRICS.name to SettingField.VERSION_MAX_LYRICS,
+            SongVersion.CHORDS.name to SettingField.VERSION_MAX_CHORDS,
+            SongVersion.TABS.name to SettingField.VERSION_MAX_MELODY,
+        ),
+        onAirPublications = true
     );
 
     fun actionToCreatePicture(settings: Settings, pathToFile: String) {
@@ -154,7 +177,8 @@ enum class KaraokePlatform(
             DZEN,
             VKVIDEO,
             PLATFORMA,
-            TELEGRAM -> {}
+            TELEGRAM,
+            MAX -> {}
         }
     }
 }

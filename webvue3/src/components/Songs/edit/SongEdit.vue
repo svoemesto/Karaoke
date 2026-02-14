@@ -118,16 +118,6 @@
             <button class="btn-round" @click="copyToClipboard(song.rootId, 'rootId')" :disabled="!song.rootId"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>
             <button class="btn-round" @click="pasteFromClipboard('rootId')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"></button>
           </div>
-          <div class="label-and-input">
-            <div class="label-wide">"Эксклюзивно на sponsr":</div>
-            <button class="group-button-round-wide" :class="exclusiveButtonClass(true)" type="button" value="true" @click="setExclusive(true)">ДА</button>
-            <button class="group-button-round-wide" :class="exclusiveButtonClass(false)" type="button" value="false" @click="setExclusive(false)">НЕТ</button>
-          </div>
-          <div class="label-and-input">
-            <div class="label-wide">"Бесплатно на sponsr":</div>
-            <button class="group-button-round-wide" :class="freeButtonClass(true)" type="button" value="true" @click="setFree(true)">ДА</button>
-            <button class="group-button-round-wide" :class="freeButtonClass(false)" type="button" value="false" @click="setFree(false)">НЕТ</button>
-          </div>
 
           <div class="links-table">
             <div class="links-table-column-1">
@@ -423,6 +413,58 @@
             </div>
           </div>
 
+          <div class="links-table" v-if="!song.exclusive">
+            <div class="links-table-column-1">
+              <img class="icon-36" alt="tg" src="../../../assets/svg/icon_max.svg">
+            </div>
+            <div class="links-table-column-2">
+              <div class="label-and-input">
+                <img class="icon-24" alt="karaoke" src="../../../assets/svg/icon_microphone.svg">
+                <button class="btn-round-wide" @click="openLinkMaxKaraoke" :disabled="!song.idMaxKaraoke"><img alt="play" class="icon-play-wide" src="../../../assets/svg/icon_play.svg"></button>
+                <button class="btn-round-wide" @click="getMaxKaraokeHeader"><img alt="head" class="icon-texthead-wide" src="../../../assets/svg/icon_head.svg"></button>
+                <button class="btn-round" @click="getLinkMaxKaraoke" :disabled="!song.idMaxKaraoke"><img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg"></button>
+                <input class="input-link-field" v-model="song.idMaxKaraoke">
+                <input class="input-field-version" v-model="song.versionMaxKaraoke">
+                <button class="btn-round" @click="undoField('idMaxKaraoke')" :disabled="notChanged('idMaxKaraoke')"><img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg"></button>
+                <button class="btn-round" @click="copyToClipboard(song.idMaxKaraoke,'idMaxKaraoke')" :disabled="!song.idMaxKaraoke"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>
+                <button class="btn-round" @click="pasteFromClipboard('idMaxKaraoke')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"></button>
+              </div>
+              <div class="label-and-input">
+                <img class="icon-24" alt="song" src="../../../assets/svg/icon_song.svg">
+                <button class="btn-round-wide" @click="openLinkMaxLyrics" :disabled="!song.idMaxLyrics"><img alt="play" class="icon-play-wide" src="../../../assets/svg/icon_play.svg"></button>
+                <button class="btn-round-wide" @click="getMaxLyricsHeader"><img alt="head" class="icon-texthead-wide" src="../../../assets/svg/icon_head.svg"></button>
+                <button class="btn-round" @click="getLinkMaxLyrics" :disabled="!song.idMaxLyrics"><img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg"></button>
+                <input class="input-link-field" v-model="song.idMaxLyrics">
+                <input class="input-field-version" v-model="song.versionMaxLyrics">
+                <button class="btn-round" @click="undoField('idMaxLyrics')" :disabled="notChanged('idMaxLyrics')"><img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg"></button>
+                <button class="btn-round" @click="copyToClipboard(song.idMaxLyrics, 'idMaxLyrics')" :disabled="!song.idMaxLyrics"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>
+                <button class="btn-round" @click="pasteFromClipboard('idMaxLyrics')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"></button>
+              </div>
+              <div class="label-and-input">
+                <img class="icon-24" alt="song" src="../../../assets/svg/icon_chords.svg">
+                <button class="btn-round-wide" @click="openLinkMaxChords" :disabled="!song.idMaxChords"><img alt="play" class="icon-play-wide" src="../../../assets/svg/icon_play.svg"></button>
+                <button class="btn-round-wide" @click="getMaxChordsHeader"><img alt="head" class="icon-texthead-wide" src="../../../assets/svg/icon_head.svg"></button>
+                <button class="btn-round" @click="getLinkMaxChords" :disabled="!song.idMaxChords"><img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg"></button>
+                <input class="input-link-field" v-model="song.idMaxChords">
+                <input class="input-field-version" v-model="song.versionMaxChords">
+                <button class="btn-round" @click="undoField('idMaxChords')" :disabled="notChanged('idMaxChords')"><img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg"></button>
+                <button class="btn-round" @click="copyToClipboard(song.idMaxChords, 'idMaxChords')" :disabled="!song.idMaxChords"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>
+                <button class="btn-round" @click="pasteFromClipboard('idMaxChords')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"></button>
+              </div>
+              <div class="label-and-input">
+                <img class="icon-24" alt="song" src="../../../assets/svg/icon_melody.svg">
+                <button class="btn-round-wide" @click="openLinkMaxTabs" :disabled="!song.idMaxMelody"><img alt="play" class="icon-play-wide" src="../../../assets/svg/icon_play.svg"></button>
+                <button class="btn-round-wide" @click="getMaxTabsHeader"><img alt="head" class="icon-texthead-wide" src="../../../assets/svg/icon_head.svg"></button>
+                <button class="btn-round" @click="getLinkMaxTabs" :disabled="!song.idMaxMelody"><img alt="link" class="icon-textlink" src="../../../assets/svg/icon_link.svg"></button>
+                <input class="input-link-field" v-model="song.idMaxMelody">
+                <input class="input-field-version" v-model="song.versionMaxMelody">
+                <button class="btn-round" @click="undoField('idMaxMelody')" :disabled="notChanged('idMaxMelody')"><img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg"></button>
+                <button class="btn-round" @click="copyToClipboard(song.idMaxMelody, 'idMaxMelody')" :disabled="!song.idMaxMelody"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>
+                <button class="btn-round" @click="pasteFromClipboard('idMaxMelody')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"></button>
+              </div>
+            </div>
+          </div>
+
           <div class="links-table">
             <div class="links-table-column-1">
               Статус
@@ -446,6 +488,16 @@
           <div class="picture-album">
             <img class="image-album" alt="Album image" :src="imageAlbumBase64">
           </div>
+          <div class="label-and-input">
+            <div class="label-medium">Эксклюзивно на sponsr:</div>
+            <button class="group-button-round-wide" :class="exclusiveButtonClass(true)" type="button" value="true" @click="setExclusive(true)">ДА</button>
+            <button class="group-button-round-wide" :class="exclusiveButtonClass(false)" type="button" value="false" @click="setExclusive(false)">НЕТ</button>
+          </div>
+          <div class="label-and-input">
+            <div class="label-medium">Бесплатно на sponsr:</div>
+            <button class="group-button-round-wide" :class="freeButtonClass(true)" type="button" value="true" @click="setFree(true)">ДА</button>
+            <button class="group-button-round-wide" :class="freeButtonClass(false)" type="button" value="false" @click="setFree(false)">НЕТ</button>
+          </div>          
           <div class="create-picture-buttons-group">
             <button class="group-button" @click="openMainLink" title="Открыть на сайте">Открыть на сайте sm-karaoke.ru</button>
             <button class="group-button" @click="updateRemote" title="Обновить на сервере" :disabled="!allowUpdateRemote" >Обновить на сервере</button>
@@ -671,6 +723,10 @@ export default {
     linkTelegramLyrics() { return this.prefixLinkTelegram + this.song.idTelegramLyrics; },
     linkTelegramChords() { return this.prefixLinkTelegram + this.song.idTelegramChords; },
     linkTelegramTabs() { return this.prefixLinkTelegram + this.song.idTelegramMelody; },
+    linkMaxKaraoke() { return this.prefixLinkMax + this.song.idMaxKaraoke; },
+    linkMaxLyrics() { return this.prefixLinkMax + this.song.idMaxLyrics; },
+    linkMaxChords() { return this.prefixLinkMax + this.song.idMaxChords; },
+    linkMaxTabs() { return this.prefixLinkMax + this.song.idMaxMelody; },
     linkPlKaraokePlay() { return this.prefixLinkPlPlay + this.song.idPlKaraoke; },
     linkPlKaraokeEdit() { return this.prefixLinkPlEdit + this.song.idPlKaraoke + this.suffixLinkPlEdit; },
     linkPlLyricsPlay() { return this.prefixLinkPlPlay + this.song.idPlLyrics; },
@@ -692,6 +748,7 @@ export default {
     prefixLinkVk: () => { return 'https://vkvideo.ru/video'; },
     prefixLinkVk2: () => { return 'https://vk.com/video'; },
     prefixLinkTelegram: () => { return 'https://t.me/svoemestokaraoke/'; },
+    prefixLinkMax: () => { return 'https://max.ru/c/-70935843913828/'; },
 
     prefixLinkPlPlay: () => { return 'https://plvideo.ru/watch?v='; },
     prefixLinkPlEdit: () => { return 'https://studio.plvideo.ru/channel/bbj0HWC8H7ii/video/'; },
@@ -1065,6 +1122,74 @@ export default {
             this.$store.dispatch('setCurrentSongField', {name: 'versionTelegramMelody', value: this.song.resultVersion});
           } else if (value === '' && this.song.versionTelegramMelody !== 0){
             this.$store.dispatch('setCurrentSongField', {name: 'versionTelegramMelody', value: 0});
+          }
+        }
+      }
+    },
+    'song.idMaxKaraoke.value': {
+      deep: true,
+      handler () {
+        if (this.song) {
+          const value = this.song.idMaxKaraoke;
+          if (value && value.startsWith(this.prefixLinkMax)) {
+            const newValue = value.replace(this.prefixLinkMax, '');
+            this.$store.dispatch('setCurrentSongField', {name: 'idMaxKaraoke', value: newValue})
+          }
+          if (value !== '' && value !== '-' && this.song.versionMaxKaraoke === 0) {
+            this.$store.dispatch('setCurrentSongField', {name: 'versionMaxKaraoke', value: this.song.resultVersion});
+          } else if ((value === '' || value === '-') && this.song.versionMaxKaraoke !== 0){
+            this.$store.dispatch('setCurrentSongField', {name: 'versionMaxKaraoke', value: 0});
+          }
+        }
+      }
+    },
+    'song.idMaxLyrics.value': {
+      deep: true,
+      handler () {
+        if (this.song) {
+          const value = this.song.idMaxLyrics;
+          if (value && value.startsWith(this.prefixLinkMax)) {
+            const newValue = value.replace(this.prefixLinkMax, '');
+            this.$store.dispatch('setCurrentSongField', {name: 'idMaxLyrics', value: newValue})
+          }
+          if (value !== '' && this.song.versionMaxLyrics === 0) {
+            this.$store.dispatch('setCurrentSongField', {name: 'versionMaxLyrics', value: this.song.resultVersion});
+          } else if (value === '' && this.song.versionMaxLyrics !== 0){
+            this.$store.dispatch('setCurrentSongField', {name: 'versionMaxLyrics', value: 0});
+          }
+        }
+      }
+    },
+    'song.idMaxChords.value': {
+      deep: true,
+      handler () {
+        if (this.song) {
+          const value = this.song.idMaxChords;
+          if (value && value.startsWith(this.prefixLinkMax)) {
+            const newValue = value.replace(this.prefixLinkMax, '');
+            this.$store.dispatch('setCurrentSongField', {name: 'idMaxChords', value: newValue})
+          }
+          if (value !== '' && this.song.versionMaxChords === 0) {
+            this.$store.dispatch('setCurrentSongField', {name: 'versionMaxChords', value: this.song.resultVersion});
+          } else if (value === '' && this.song.versionMaxChords !== 0){
+            this.$store.dispatch('setCurrentSongField', {name: 'versionMaxChords', value: 0});
+          }
+        }
+      }
+    },
+    'song.idMaxMelody.value': {
+      deep: true,
+      handler () {
+        if (this.song) {
+          const value = this.song.idMaxMelody;
+          if (value && value.startsWith(this.prefixLinkMax)) {
+            const newValue = value.replace(this.prefixLinkMax, '');
+            this.$store.dispatch('setCurrentSongField', {name: 'idMaxMelody', value: newValue})
+          }
+          if (value !== '' && this.song.versionMaxMelody === 0) {
+            this.$store.dispatch('setCurrentSongField', {name: 'versionMaxMelody', value: this.song.resultVersion});
+          } else if (value === '' && this.song.versionMaxMelody !== 0){
+            this.$store.dispatch('setCurrentSongField', {name: 'versionMaxMelody', value: 0});
           }
         }
       }
@@ -2101,6 +2226,62 @@ export default {
       this.showCopyToClipboardToast('getTelegramTabsHeader', value);
     },
 
+
+    async getLinkMaxKaraoke() {
+      let value = this.linkMaxKaraoke;
+      await navigator.clipboard.writeText(value)
+      this.showCopyToClipboardToast('linkMaxKaraoke', value);
+    },
+    openLinkMaxKaraoke() {
+      window.open(this.linkMaxKaraoke, '_blank');
+    },
+    async getLinkMaxLyrics() {
+      let value = this.linkMaxLyrics;
+      await navigator.clipboard.writeText(value)
+      this.showCopyToClipboardToast('linkMaxLyrics', value);
+    },
+    openLinkMaxLyrics() {
+      window.open(this.linkMaxLyrics, '_blank');
+    },
+    async getLinkMaxChords() {
+      let value = this.linkMaxChords;
+      await navigator.clipboard.writeText(value)
+      this.showCopyToClipboardToast('linkMaxChords', value);
+    },
+    openLinkMaxChords() {
+      window.open(this.linkMaxChords, '_blank');
+    },
+    async getLinkMaxTabs() {
+      let value = this.linkMaxTabs;
+      await navigator.clipboard.writeText(value)
+      this.showCopyToClipboardToast('linkMaxTabs', value);
+    },
+    openLinkMaxTabs() {
+      window.open(this.linkMaxTabs, '_blank');
+    },
+
+    async getMaxKaraokeHeader() {
+      let value = await this.$store.getters.getMaxKaraokeHeader;
+      await navigator.clipboard.writeText(value)
+      this.showCopyToClipboardToast('getMaxKaraokeHeader', value);
+    },
+
+    async getMaxLyricsHeader() {
+      let value = await this.$store.getters.getMaxLyricsHeader;
+      await navigator.clipboard.writeText(value)
+      this.showCopyToClipboardToast('getMaxLyricsHeader', value);
+    },
+    async getMaxChordsHeader() {
+      let value = await this.$store.getters.getMaxChordsHeader;
+      await navigator.clipboard.writeText(value)
+      this.showCopyToClipboardToast('getMaxChordsHeader', value);
+    },
+    async getMaxTabsHeader() {
+      let value = await this.$store.getters.getMaxTabsHeader;
+      await navigator.clipboard.writeText(value)
+      this.showCopyToClipboardToast('getMaxTabsHeader', value);
+    },
+
     notChanged(name) {
       if (name) {
         return this.song[name] === this.snapshot[name];
@@ -2313,6 +2494,14 @@ export default {
   font-size: small;
   text-align: right;
   width: 220px;
+  padding-right: 2px;
+  padding-top: 2px;
+}
+
+.label-medium {
+  font-size: small;
+  text-align: right;
+  width: 146px;
   padding-right: 2px;
   padding-top: 2px;
 }

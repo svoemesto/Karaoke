@@ -290,7 +290,34 @@ export default {
                     filterWidth: '16',
                     filterFontSize: 'small'
                 }
+            },
+                        {
+                name: 'flagMaxLyrics',
+                params: {
+                    width: '20',
+                    label: 'ML',
+                    textAlign: 'center',
+                    fontSize: 'small',
+                    labelFontSize: '6pt',
+                    labelPadding: '3px 4px 0 4px',
+                    filterWidth: '16',
+                    filterFontSize: 'small'
+                }
+            },
+            {
+                name: 'flagMaxKaraoke',
+                params: {
+                    width: '20',
+                    label: 'MK',
+                    textAlign: 'center',
+                    fontSize: 'small',
+                    labelFontSize: '6pt',
+                    labelPadding: '3px 4px 0 4px',
+                    filterWidth: '16',
+                    filterFontSize: 'small'
+                }
             }
+
         ],
 
         publications: [],
@@ -760,6 +787,34 @@ export default {
             return await promisedXMLHttpRequest({
                 method: 'POST',
                 url: "/api/song/texttelegramtabsheader",
+                params: { id: state.currentSongId }
+            });
+        },
+        async getMaxKaraokeHeader(state) {
+            return await promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/api/song/textmaxkaraokeheader",
+                params: { id: state.currentSongId }
+            });
+        },
+        async getMaxLyricsHeader(state) {
+            return await promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/api/song/textmaxlyricsheader",
+                params: { id: state.currentSongId }
+            });
+        },
+        async getMaxChordsHeader(state) {
+            return await promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/api/song/textmaxchordsheader",
+                params: { id: state.currentSongId }
+            });
+        },
+        async getMaxTabsHeader(state) {
+            return await promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/api/song/textmaxtabsheader",
                 params: { id: state.currentSongId }
             });
         },

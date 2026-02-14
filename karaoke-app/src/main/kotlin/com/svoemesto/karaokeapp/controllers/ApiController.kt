@@ -940,7 +940,7 @@ class ApiController(
     fun getSongTextTelegramKaraokeHeader(@RequestParam id: Long): String {
         val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
         val text = settings?.let {
-            val text = it.getDescriptionVkHeader(SongVersion.KARAOKE)
+            val text = it.getDescriptionTelegramHeader(SongVersion.KARAOKE)
             text
         } ?: ""
         return text
@@ -952,7 +952,7 @@ class ApiController(
     fun getSongTextTelegramLyricsHeader(@RequestParam id: Long): String {
         val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
         val text = settings?.let {
-            val text = it.getDescriptionVkHeader(SongVersion.LYRICS)
+            val text = it.getDescriptionTelegramHeader(SongVersion.LYRICS)
             text
         } ?: ""
         return text
@@ -964,7 +964,7 @@ class ApiController(
     fun getSongTextTelegramChordsHeader(@RequestParam id: Long): String {
         val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
         val text = settings?.let {
-            val text = it.getDescriptionVkHeader(SongVersion.LYRICS)
+            val text = it.getDescriptionTelegramHeader(SongVersion.LYRICS)
             text
         } ?: ""
         return text
@@ -975,12 +975,59 @@ class ApiController(
     fun getSongTextTelegramTabsHeader(@RequestParam id: Long): String {
         val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
         val text = settings?.let {
-            val text = it.getDescriptionVkHeader(SongVersion.TABS)
+            val text = it.getDescriptionTelegramHeader(SongVersion.TABS)
             text
         } ?: ""
         return text
     }
 
+    // Получение текста заголовка для Max Karaoke
+    @PostMapping("/song/textmaxkaraokeheader")
+    @ResponseBody
+    fun getSongTextMaxKaraokeHeader(@RequestParam id: Long): String {
+        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+        val text = settings?.let {
+            val text = it.getDescriptionMaxHeader(SongVersion.KARAOKE)
+            text
+        } ?: ""
+        return text
+    }
+
+    // Получение текста заголовка для Max Lyrics
+    @PostMapping("/song/textmaxlyricsheader")
+    @ResponseBody
+    fun getSongTextMaxLyricsHeader(@RequestParam id: Long): String {
+        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+        val text = settings?.let {
+            val text = it.getDescriptionMaxHeader(SongVersion.LYRICS)
+            text
+        } ?: ""
+        return text
+    }
+
+    // Получение текста заголовка для Max Chords
+    @PostMapping("/song/textmaxchordsheader")
+    @ResponseBody
+    fun getSongTextMaxChordsHeader(@RequestParam id: Long): String {
+        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+        val text = settings?.let {
+            val text = it.getDescriptionMaxHeader(SongVersion.LYRICS)
+            text
+        } ?: ""
+        return text
+    }
+    // Получение текста заголовка для Max Tabs
+    @PostMapping("/song/textmaxtabsheader")
+    @ResponseBody
+    fun getSongTextMaxTabsHeader(@RequestParam id: Long): String {
+        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+        val text = settings?.let {
+            val text = it.getDescriptionMaxHeader(SongVersion.TABS)
+            text
+        } ?: ""
+        return text
+    }
+    
     // Получение indexTabsVariant
     @PostMapping("/song/indextabsvariant")
     @ResponseBody
@@ -1226,6 +1273,10 @@ class ApiController(
         @RequestParam(required = false) flagPlKaraoke: String?,
         @RequestParam(required = false) flagPlChords: String?,
         @RequestParam(required = false) flagPlMelody: String?,
+        @RequestParam(required = false) flagMaxLyrics: String?,
+        @RequestParam(required = false) flagMaxKaraoke: String?,
+        @RequestParam(required = false) flagMaxChords: String?,
+        @RequestParam(required = false) flagMaxMelody: String?,
         @RequestParam(required = false) flagExclusive: String?,
         @RequestParam(required = false) flagFree: String?,
         @RequestParam(required = false) filterResultVersion: String?,
@@ -1237,6 +1288,7 @@ class ApiController(
         @RequestParam(required = false) filterVersionVkKaraoke: String?,
         @RequestParam(required = false) filterVersionTelegramKaraoke: String?,
         @RequestParam(required = false) filterVersionPlKaraoke: String?,
+        @RequestParam(required = false) filterVersionMaxKaraoke: String?,
         @RequestParam(required = false) filterRate: String?,
         @RequestParam(required = false) filterStatusProcessLyrics: String?,
         @RequestParam(required = false) filterStatusProcessKaraoke: String?,
@@ -1275,6 +1327,10 @@ class ApiController(
         flagPlKaraoke?.let { if (flagPlKaraoke != "") args["flag_pl_karaoke"] = flagPlKaraoke }
         flagPlChords?.let { if (flagPlChords != "") args["flag_pl_chords"] = flagPlChords }
         flagPlMelody?.let { if (flagPlMelody != "") args["flag_pl_melody"] = flagPlMelody }
+        flagMaxLyrics?.let { if (flagMaxLyrics != "") args["flag_max_lyrics"] = flagMaxLyrics }
+        flagMaxKaraoke?.let { if (flagMaxKaraoke != "") args["flag_max_karaoke"] = flagMaxKaraoke }
+        flagMaxChords?.let { if (flagMaxChords != "") args["flag_max_chords"] = flagMaxChords }
+        flagMaxMelody?.let { if (flagMaxMelody != "") args["flag_max_melody"] = flagMaxMelody }
         flagExclusive?.let { if (flagExclusive != "") args["flag_exclusive"] = flagExclusive }
         flagFree?.let { if (flagFree != "") args["flag_free"] = flagFree }
         filterResultVersion?.let { if (filterResultVersion != "") args["filter_result_version"] = filterResultVersion }
@@ -1286,6 +1342,7 @@ class ApiController(
         filterVersionVkKaraoke?.let { if (filterVersionVkKaraoke != "") args["filter_version_vk_karaoke"] = filterVersionVkKaraoke }
         filterVersionTelegramKaraoke?.let { if (filterVersionTelegramKaraoke != "") args["filter_version_telegram_karaoke"] = filterVersionTelegramKaraoke }
         filterVersionPlKaraoke?.let { if (filterVersionPlKaraoke != "") args["filter_version_pl_karaoke"] = filterVersionPlKaraoke }
+        filterVersionMaxKaraoke?.let { if (filterVersionMaxKaraoke != "") args["filter_version_max_karaoke"] = filterVersionMaxKaraoke }
         filterRate?.let { if (filterRate != "") args["filter_rate"] = filterRate }
         filterStatusProcessLyrics?.let { if (filterStatusProcessLyrics != "") args["filter_status_process_lyrics"] = filterStatusProcessLyrics }
         filterStatusProcessKaraoke?.let { if (filterStatusProcessKaraoke != "") args["filter_status_process_karaoke"] = filterStatusProcessKaraoke }
@@ -1344,6 +1401,10 @@ class ApiController(
         @RequestParam(required = false) flagPlKaraoke: String?,
         @RequestParam(required = false) flagPlChords: String?,
         @RequestParam(required = false) flagPlMelody: String?,
+        @RequestParam(required = false) flagMaxLyrics: String?,
+        @RequestParam(required = false) flagMaxKaraoke: String?,
+        @RequestParam(required = false) flagMaxChords: String?,
+        @RequestParam(required = false) flagMaxMelody: String?,
         @RequestParam(required = false) flagExclusive: String?,
         @RequestParam(required = false) flagFree: String?,
         @RequestParam(required = false) filterResultVersion: String?,
@@ -1354,6 +1415,7 @@ class ApiController(
         @RequestParam(required = false) filterVersionVkKaraoke: String?,
         @RequestParam(required = false) filterVersionTelegramKaraoke: String?,
         @RequestParam(required = false) filterVersionPlKaraoke: String?,
+        @RequestParam(required = false) filterVersionMaxKaraoke: String?,
         @RequestParam(required = false) filterRate: String?,
         @RequestParam(required = false) filterStatusProcessLyrics: String?,
         @RequestParam(required = false) filterStatusProcessKaraoke: String?,
@@ -1391,6 +1453,10 @@ class ApiController(
         flagPlKaraoke?.let { if (flagPlKaraoke != "") args["flag_pl_karaoke"] = flagPlKaraoke }
         flagPlChords?.let { if (flagPlChords != "") args["flag_pl_chords"] = flagPlChords }
         flagPlMelody?.let { if (flagPlMelody != "") args["flag_pl_melody"] = flagPlMelody }
+        flagMaxLyrics?.let { if (flagMaxLyrics != "") args["flag_max_lyrics"] = flagMaxLyrics }
+        flagMaxKaraoke?.let { if (flagMaxKaraoke != "") args["flag_max_karaoke"] = flagMaxKaraoke }
+        flagMaxChords?.let { if (flagMaxChords != "") args["flag_max_chords"] = flagMaxChords }
+        flagMaxMelody?.let { if (flagMaxMelody != "") args["flag_max_melody"] = flagMaxMelody }
         flagExclusive?.let { if (flagExclusive != "") args["flag_exclusive"] = flagExclusive }
         flagFree?.let { if (flagFree != "") args["flag_free"] = flagFree }
         filterResultVersion?.let { if (filterResultVersion != "") args["filter_result_version"] = filterResultVersion }
@@ -1401,6 +1467,7 @@ class ApiController(
         filterVersionVkKaraoke?.let { if (filterVersionVkKaraoke != "") args["filter_version_vk_karaoke"] = filterVersionVkKaraoke }
         filterVersionTelegramKaraoke?.let { if (filterVersionTelegramKaraoke != "") args["filter_version_telegram_karaoke"] = filterVersionTelegramKaraoke }
         filterVersionPlKaraoke?.let { if (filterVersionPlKaraoke != "") args["filter_version_pl_karaoke"] = filterVersionPlKaraoke }
+        filterVersionMaxKaraoke?.let { if (filterVersionMaxKaraoke != "") args["filter_version_max_karaoke"] = filterVersionMaxKaraoke }
         filterRate?.let { if (filterRate != "") args["filter_rate"] = filterRate }
         filterStatusProcessLyrics?.let { if (filterStatusProcessLyrics != "") args["filter_status_process_lyrics"] = filterStatusProcessLyrics }
         filterStatusProcessKaraoke?.let { if (filterStatusProcessKaraoke != "") args["filter_status_process_karaoke"] = filterStatusProcessKaraoke }
@@ -1596,6 +1663,10 @@ class ApiController(
         @RequestParam(required = false) idPlKaraoke: String?,
         @RequestParam(required = false) idPlChords: String?,
         @RequestParam(required = false) idPlMelody: String?,
+        @RequestParam(required = false) idMaxLyrics: String?,
+        @RequestParam(required = false) idMaxKaraoke: String?,
+        @RequestParam(required = false) idMaxChords: String?,
+        @RequestParam(required = false) idMaxMelody: String?,
         @RequestParam(required = false) versionDzenLyrics: String?,
         @RequestParam(required = false) versionDzenKaraoke: String?,
         @RequestParam(required = false) versionDzenChords: String?,
@@ -1612,6 +1683,10 @@ class ApiController(
         @RequestParam(required = false) versionPlKaraoke: String?,
         @RequestParam(required = false) versionPlChords: String?,
         @RequestParam(required = false) versionPlMelody: String?,
+        @RequestParam(required = false) versionMaxLyrics: String?,
+        @RequestParam(required = false) versionMaxKaraoke: String?,
+        @RequestParam(required = false) versionMaxChords: String?,
+        @RequestParam(required = false) versionMaxMelody: String?,
         @RequestParam(required = false) resultVersion: String?,
         @RequestParam(required = false) diffBeats: String?,
         @RequestParam(required = false) rate: String?,
@@ -1660,6 +1735,10 @@ class ApiController(
             idPlKaraoke?.let { sett.fields[SettingField.ID_PL_KARAOKE] = it }
             idPlChords?.let { sett.fields[SettingField.ID_PL_CHORDS] = it }
             idPlMelody?.let { sett.fields[SettingField.ID_PL_MELODY] = it }
+            idMaxLyrics?.let { sett.fields[SettingField.ID_MAX_LYRICS] = it }
+            idMaxKaraoke?.let { sett.fields[SettingField.ID_MAX_KARAOKE] = it }
+            idMaxChords?.let { sett.fields[SettingField.ID_MAX_CHORDS] = it }
+            idMaxMelody?.let { sett.fields[SettingField.ID_MAX_MELODY] = it }
             versionDzenLyrics?.let { sett.fields[SettingField.VERSION_DZEN_LYRICS] = it }
             versionDzenKaraoke?.let { sett.fields[SettingField.VERSION_DZEN_KARAOKE] = it }
             versionDzenChords?.let { sett.fields[SettingField.VERSION_DZEN_CHORDS] = it }
@@ -1676,6 +1755,10 @@ class ApiController(
             versionPlKaraoke?.let { sett.fields[SettingField.VERSION_PL_KARAOKE] = it }
             versionPlChords?.let { sett.fields[SettingField.VERSION_PL_CHORDS] = it }
             versionPlMelody?.let { sett.fields[SettingField.VERSION_PL_MELODY] = it }
+            versionMaxLyrics?.let { sett.fields[SettingField.VERSION_MAX_LYRICS] = it }
+            versionMaxKaraoke?.let { sett.fields[SettingField.VERSION_MAX_KARAOKE] = it }
+            versionMaxChords?.let { sett.fields[SettingField.VERSION_MAX_CHORDS] = it }
+            versionMaxMelody?.let { sett.fields[SettingField.VERSION_MAX_MELODY] = it }
             resultVersion?.let { sett.fields[SettingField.RESULT_VERSION] = it }
             diffBeats?.let { sett.fields[SettingField.DIFFBEATS] = it }
             idStatus?.let { sett.fields[SettingField.ID_STATUS] =  it }

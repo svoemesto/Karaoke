@@ -273,6 +273,34 @@
               :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
           ></div>
         </template>
+       <template #cell(flagMaxLyrics)="data">
+         <div
+             class="fld-flag-max-lyrics"
+             v-text="data.value"
+             :style="{ backgroundColor: data.item.processColorMaxLyrics, color: currentSongId === data.item.id ? 'blue' : 'black' }"
+         ></div>
+       </template>
+       <template #cell(flagMaxKaraoke)="data">
+         <div
+             class="fld-flag-max-karaoke"
+             v-text="data.value"
+             :style="{ backgroundColor: data.item.processColorMaxKaraoke, color: currentSongId === data.item.id ? 'blue' : 'black' }"
+         ></div>
+       </template>
+       <template #cell(flagMaxChords)="data">
+         <div
+             class="fld-flag-max-chords"
+             v-text="data.value"
+             :style="{ backgroundColor: data.item.processColorMaxChords, color: currentSongId === data.item.id ? 'blue' : 'black' }"
+         ></div>
+       </template>
+       <template #cell(flagMaxMelody)="data">
+         <div
+             class="fld-flag-max-melody"
+             v-text="data.value"
+             :style="{ backgroundColor: data.item.processColorMaxMelody, color: currentSongId === data.item.id ? 'blue' : 'black' }"
+         ></div>
+       </template>       
 <!--        <template #cell(flagPlLyrics)="data">-->
 <!--          <div-->
 <!--              class="fld-flag-pl-lyrics"-->
@@ -730,6 +758,46 @@ export default {
         {
           key: 'flagTelegramMelody',
           label: 'TM',
+          style: {
+            minWidth: '20px',
+            maxWidth: '20px',
+            textAlign: 'center',
+            fontSize: 'small'
+          }
+        },
+        {
+          key: 'flagMaxLyrics',
+          label: 'ML',
+          style: {
+            minWidth: '20px',
+            maxWidth: '20px',
+            textAlign: 'center',
+            fontSize: 'small'
+          }
+        },
+        {
+          key: 'flagMaxKaraoke',
+          label: 'MK',
+          style: {
+            minWidth: '20px',
+            maxWidth: '20px',
+            textAlign: 'center',
+            fontSize: 'small'
+          }
+        },
+        {
+          key: 'flagMaxChords',
+          label: 'MC',
+          style: {
+            minWidth: '20px',
+            maxWidth: '20px',
+            textAlign: 'center',
+            fontSize: 'small'
+          }
+        },
+        {
+          key: 'flagMaxMelody',
+          label: 'MM',
           style: {
             minWidth: '20px',
             maxWidth: '20px',
@@ -1557,6 +1625,38 @@ export default {
   overflow: hidden;
 }
 .fld-flag-tg-melody {
+  min-width: 20px;
+  max-width: 20px;
+  text-align: center;
+  font-size: small;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.fld-flag-max-lyrics {
+  min-width: 20px;
+  max-width: 20px;
+  text-align: center;
+  font-size: small;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.fld-flag-max-karaoke {
+  min-width: 20px;
+  max-width: 20px;
+  text-align: center;
+  font-size: small;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.fld-flag-max-chords {
+  min-width: 20px;
+  max-width: 20px;
+  text-align: center;
+  font-size: small;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.fld-flag-max-melody {
   min-width: 20px;
   max-width: 20px;
   text-align: center;

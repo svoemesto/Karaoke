@@ -78,7 +78,15 @@ BEGIN
         COALESCE(NEW.exclusive::TEXT, '') ||
         COALESCE(NEW.formatted_text_song, '') ||
         COALESCE(NEW.formatted_text_tabs, '') ||
-        COALESCE(NEW.formatted_text_chords, '')
+        COALESCE(NEW.formatted_text_chords, '') ||
+        COALESCE(NEW.id_max_lyrics, '') ||
+        COALESCE(NEW.id_max_karaoke, '') ||
+        COALESCE(NEW.id_max_chords, '') ||
+        COALESCE(NEW.id_max_melody, '') ||
+        COALESCE(NEW.version_max_lyrics::TEXT, '') ||
+        COALESCE(NEW.version_max_karaoke::TEXT, '') ||
+        COALESCE(NEW.version_max_chords::TEXT, '') ||
+        COALESCE(NEW.version_max_melody::TEXT, '')
     );
     RETURN NEW;
 END;
@@ -171,5 +179,13 @@ SET recordhash = md5(
         COALESCE(exclusive::TEXT, '') ||
         COALESCE(formatted_text_song, '') ||
         COALESCE(formatted_text_tabs, '') ||
-        COALESCE(formatted_text_chords, '')
+        COALESCE(formatted_text_chords, '') ||
+        COALESCE(id_max_lyrics, '') ||
+        COALESCE(id_max_karaoke, '') ||
+        COALESCE(id_max_chords, '') ||
+        COALESCE(id_max_melody, '') ||
+        COALESCE(version_max_lyrics::TEXT, '') ||
+        COALESCE(version_max_karaoke::TEXT, '') ||
+        COALESCE(version_max_chords::TEXT, '') ||
+        COALESCE(version_max_melody::TEXT, '')
 ) WHERE id > 0;

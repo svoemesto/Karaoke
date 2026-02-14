@@ -2522,7 +2522,7 @@ fun checkLastAlbumYm(): Triple<String, String, Int> {
 
     if (lastAlbumYm == "") {
         println("Поиск для автора «$authorForRequest» выдал пустой результат. Возможно Yandex.Музыка изменила код страницы.")
-        return Triple(authorForRequest, "", -1)
+        return Triple(authorForRequest, "", 0)
     }
 
     author.lastAlbumYm = lastAlbumYm

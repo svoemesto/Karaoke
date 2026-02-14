@@ -243,7 +243,7 @@ class KaraokeProcessWorker {
                         println("[${Timestamp.from(Instant.now())}] ProcessWorker: Проверка нового альбома...")
                         val (authorForRequest, album, reason) = checkLastAlbumYm()
                         if (reason >= 0) {
-                            // Удачный запрос (может быть найден новый альбом)
+                            // Удачный запрос (может быть найден новый альбом или пустой код страницы)
                             Karaoke.requestNewSongLastSuccessAuthor = authorForRequest
                             Karaoke.requestNewSongLastSuccessTimeMs = currentTimeMs
                             Karaoke.requestNewSongLastSuccessTimeCode = millisecondsToTimeFormatted(currentTimeMs)

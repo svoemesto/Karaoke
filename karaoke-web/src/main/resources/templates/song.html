@@ -206,7 +206,7 @@
             border-style: none;
             border-width: thin;
         }
-        .pl {
+        .max {
             height: 100%;
             padding: 2px;
             font-size: small;
@@ -283,6 +283,14 @@
 
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" id="svg-icon-tg-none">
         <path fill="#CBCBCB" d="M19.314.036a2.572 2.572 0 0 0-.83.198c-.227.09-1.043.432-2.342.977-1.298.545-3.02 1.267-4.853 2.038-3.67 1.543-7.792 3.279-9.904 4.168-.072.03-.367.12-.692.369-.327.249-.689.79-.689 1.38 0 .478.238.963.526 1.242.287.278.579.408.822.505v-.003l3.867 1.546c.207.622 1.098 3.286 1.31 3.956h-.002c.15.474.296.782.5 1.04.1.13.222.246.37.338.057.036.12.063.184.089.008.004.018.005.026.008l-.024-.006c.018.007.035.018.053.025.03.01.052.01.093.018.145.045.289.075.423.075.573 0 .925-.312.925-.312l.023-.016 2.477-2.096 3.034 2.807c.055.078.49.666 1.494.666.6 0 1.074-.297 1.377-.608.303-.312.492-.63.577-1.062l.002-.002c.068-.348 2.972-14.932 2.972-14.932l-.006.024c.09-.403.117-.793.01-1.191a1.71 1.71 0 0 0-.742-.99 1.742 1.742 0 0 0-.98-.25zm-.416 2.31c-.115.577-2.716 13.648-2.877 14.467l-4.382-4.054-2.962 2.504.82-3.207s5.66-5.728 6-6.061c.275-.267.332-.36.332-.454 0-.123-.064-.212-.21-.212-.132 0-.311.127-.406.186-1.207.752-6.347 3.681-8.875 5.12-.152-.062-2.436-.979-3.667-1.47A47417.361 47417.361 0 0 1 16.96 3.157a450.66 450.66 0 0 1 1.939-.81z"></path>
+    </svg>
+
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 5895 5870" fill="none" id="svg-icon-max">
+        <path fill="#5522FF" d="M3037.45 1445.49c-791.77,-40.85 -1408.83,507.2 -1545.48,1366.58 -112.71,711.46 87.35,1577.91 257.81,1622.98 81.72,19.75 287.42,-146.51 415.62,-274.71 211.99,146.45 458.84,234.4 715.68,254.99 820.41,39.47 1521.42,-585.1 1576.51,-1404.61 32.08,-821.22 -599.6,-1516.81 -1420.14,-1563.82l0 -1.41 0 0zm-23.94 4412.51c-579.03,0 -848.11,-84.54 -1315.85,-422.66 -295.87,380.41 -1232.74,677.66 -1273.62,169.08 0,-381.82 -84.51,-704.45 -180.31,-1056.66 -114.12,-433.9 -243.73,-917.16 -243.73,-1617.35 0,-1672.31 1372.22,-2930.41 2998.02,-2930.41 1627.21,0 2902.24,1320.1 2902.24,2945.9 5.44,1600.67 -1286.08,2903.56 -2886.75,2912.1l0 0z"></path>
+    </svg>
+
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 5895 5870" fill="none" id="svg-icon-max-none">
+        <path fill="#CBCBCB" d="M3037.45 1445.49c-791.77,-40.85 -1408.83,507.2 -1545.48,1366.58 -112.71,711.46 87.35,1577.91 257.81,1622.98 81.72,19.75 287.42,-146.51 415.62,-274.71 211.99,146.45 458.84,234.4 715.68,254.99 820.41,39.47 1521.42,-585.1 1576.51,-1404.61 32.08,-821.22 -599.6,-1516.81 -1420.14,-1563.82l0 -1.41 0 0zm-23.94 4412.51c-579.03,0 -848.11,-84.54 -1315.85,-422.66 -295.87,380.41 -1232.74,677.66 -1273.62,169.08 0,-381.82 -84.51,-704.45 -180.31,-1056.66 -114.12,-433.9 -243.73,-917.16 -243.73,-1617.35 0,-1672.31 1372.22,-2930.41 2998.02,-2930.41 1627.21,0 2902.24,1320.1 2902.24,2945.9 5.44,1600.67 -1286.08,2903.56 -2886.75,2912.1l0 0z"></path>
     </svg>
 
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none" id="svg-icon-pl">
@@ -392,20 +400,20 @@
                                             </div>
                                         </td>
                                         <td class="td_cell" style="padding: 0; border-right-width: 0; border-left-width: 0">
-                                            <div class="pl">
-                                                <span th:if="${sett.linkPlKaraoke == ''}">
-                                                    <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-pl-none"></use></svg>
+                                            <div class="max">
+                                                <span th:if="${sett.linkMaxKaraoke == ''}">
+                                                    <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-max-none"></use></svg>
                                                 </span>
-                                                <span th:unless="${sett.linkPlKaraoke == ''}">
+                                                <span th:unless="${sett.linkMaxKaraoke == ''}">
                                                      <div
                                                              style="cursor: pointer;"
                                                              name="link"
-                                                             linkName="pl"
-                                                             th:linkValue="${sett.linkPlKaraoke}"
+                                                             linkName="max"
+                                                             th:linkValue="${sett.linkMaxKaraoke}"
                                                              th:songId="${sett.id}"
                                                              songVersion="karaoke"
                                                      >
-                                                        <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-pl"></use></svg>
+                                                        <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-max"></use></svg>
                                                     </div>
                                                 </span>
                                             </div>
@@ -469,20 +477,20 @@
                                             </div>
                                         </td>
                                         <td class="td_cell" style="padding: 0; border-right-width: 0; border-left-width: 0">
-                                            <div class="pl">
-                                                <span th:if="${sett.linkPlLyrics == ''}">
-                                                    <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-pl-none"></use></svg>
+                                            <div class="max">
+                                                <span th:if="${sett.linkMaxLyrics == ''}">
+                                                    <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-max-none"></use></svg>
                                                 </span>
-                                                <span th:unless="${sett.linkPlLyrics == ''}">
+                                                <span th:unless="${sett.linkMaxLyrics == ''}">
                                                      <div
                                                              style="cursor: pointer;"
                                                              name="link"
-                                                             linkName="pl"
-                                                             th:linkValue="${sett.linkPlLyrics}"
+                                                             linkName="max"
+                                                             th:linkValue="${sett.linkMaxLyrics}"
                                                              th:songId="${sett.id}"
                                                              songVersion="lyrics"
                                                      >
-                                                        <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-pl"></use></svg>
+                                                        <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-max"></use></svg>
                                                     </div>
                                                 </span>
                                             </div>
@@ -548,20 +556,20 @@
                                             </div>
                                         </td>
                                         <td class="td_cell" style="padding: 0; border-right-width: 0; border-left-width: 0">
-                                            <div class="pl">
-                                                <span th:if="${sett.linkPlTabs == ''}">
-                                                    <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-pl-none"></use></svg>
+                                            <div class="max">
+                                                <span th:if="${sett.linkMaxTabs == ''}">
+                                                    <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-max-none"></use></svg>
                                                 </span>
-                                                <span th:unless="${sett.linkPlTabs == ''}">
+                                                <span th:unless="${sett.linkMaxTabs == ''}">
                                                      <div
                                                              style="cursor: pointer;"
                                                              name="link"
-                                                             linkName="pl"
-                                                             th:linkValue="${sett.linkPlTabs}"
+                                                             linkName="max"
+                                                             th:linkValue="${sett.linkMaxTabs}"
                                                              th:songId="${sett.id}"
                                                              songVersion="tabs"
                                                      >
-                                                        <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-pl"></use></svg>
+                                                        <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-max"></use></svg>
                                                     </div>
                                                 </span>
                                             </div>
@@ -627,20 +635,20 @@
                                             </div>
                                         </td>
                                         <td class="td_cell" style="padding: 0; border-right-width: 0; border-left-width: 0">
-                                            <div class="pl">
-                                                <span th:if="${sett.linkPlChords == ''}">
-                                                    <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-pl-none"></use></svg>
+                                            <div class="max">
+                                                <span th:if="${sett.linkMaxChords == ''}">
+                                                    <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-max-none"></use></svg>
                                                 </span>
-                                                <span th:unless="${sett.linkPlChords == ''}">
+                                                <span th:unless="${sett.linkMaxChords == ''}">
                                                      <div
                                                              style="cursor: pointer;"
                                                              name="link"
-                                                             linkName="pl"
-                                                             th:linkValue="${sett.linkPlChords}"
+                                                             linkName="max"
+                                                             th:linkValue="${sett.linkMaxChords}"
                                                              th:songId="${sett.id}"
                                                              songVersion="chords"
                                                      >
-                                                        <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-pl"></use></svg>
+                                                        <svg style="height: 20px; width: 20px;"><use xlink:href="#svg-icon-max"></use></svg>
                                                     </div>
                                                 </span>
                                             </div>

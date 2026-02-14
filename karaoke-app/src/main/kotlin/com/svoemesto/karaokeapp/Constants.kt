@@ -96,6 +96,9 @@ const val URL_PREFIX_PL_EDIT = "https://studio.plvideo.ru/channel/bbj0HWC8H7ii/v
 const val URL_PREFIX_SPONSR_EDIT = "https://sponsr.ru/smkaraoke/manage/post/{REPLACE}/"
 const val URL_PREFIX_SPONSR_PLAY = "https://sponsr.ru/smkaraoke/{REPLACE}/"
 
+const val URL_PREFIX_MAX_PLAY = "https://max.ru/c/-70935843913828/{REPLACE}"
+const val URL_PREFIX_MAX_EDIT = "https://max.ru/c/-70935843913828/{REPLACE}"
+
 //const val CONNECTION_URL = "jdbc:postgresql://localhost:5430/karaoke?currentSchema=public"
 //const val CONNECTION_USER = "postgres"
 //const val CONNECTION_PASSWORD = "postgres"

@@ -74,5 +74,13 @@ enum class SettingField : Serializable {
     RATE,
     ROOT_ID,
     EXCLUSIVE,
-    FREE
+    FREE,
+    ID_MAX_LYRICS,
+    VERSION_MAX_LYRICS,
+    ID_MAX_KARAOKE,
+    VERSION_MAX_KARAOKE,
+    ID_MAX_CHORDS,
+    VERSION_MAX_CHORDS,
+    ID_MAX_MELODY,
+    VERSION_MAX_MELODY
 }

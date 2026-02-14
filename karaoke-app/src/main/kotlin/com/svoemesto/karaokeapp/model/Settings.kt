@@ -665,7 +665,16 @@ class Settings(
     val versionPlChords: Int get() = (fields[SettingField.VERSION_PL_CHORDS]?.nullIfEmpty() ?: "0").toInt()
     val versionPlMelody: Int get() = (fields[SettingField.VERSION_PL_MELODY]?.nullIfEmpty() ?: "0").toInt()
 
+    val idMaxLyrics: String get() = fields[SettingField.ID_MAX_LYRICS]?.nullIfEmpty() ?: ""
+    val idMaxKaraoke: String get() = fields[SettingField.ID_MAX_KARAOKE]?.nullIfEmpty() ?: ""
+    val idMaxChords: String get() = fields[SettingField.ID_MAX_CHORDS]?.nullIfEmpty() ?: ""
+    val idMaxMelody: String get() = fields[SettingField.ID_MAX_MELODY]?.nullIfEmpty() ?: ""
 
+    val versionMaxLyrics: Int get() = (fields[SettingField.VERSION_MAX_LYRICS]?.nullIfEmpty() ?: "0").toInt()
+    val versionMaxKaraoke: Int get() = (fields[SettingField.VERSION_MAX_KARAOKE]?.nullIfEmpty() ?: "0").toInt()
+    val versionMaxChords: Int get() = (fields[SettingField.VERSION_MAX_CHORDS]?.nullIfEmpty() ?: "0").toInt()
+    val versionMaxMelody: Int get() = (fields[SettingField.VERSION_MAX_MELODY]?.nullIfEmpty() ?: "0").toInt()
+    
     val idSponsr: String get() = fields[SettingField.ID_SPONSR]?.nullIfEmpty() ?: ""
     val versionSponsr: Int get() = (fields[SettingField.VERSION_SPONSR]?.nullIfEmpty() ?: "0").toInt()
     val indexTabsVariant: Int get() = (fields[SettingField.INDEX_TABS_VARIANT]?.nullIfEmpty() ?: "0").toInt()
@@ -726,6 +735,18 @@ class Settings(
     val linkSponsrPlay: String get() = if (idSponsr == "") "" else URL_PREFIX_SPONSR_PLAY.replace("{REPLACE}", idSponsr)
     @Suppress("unused") val linkSponsrEdit: String get() = if (idSponsr == "") "" else URL_PREFIX_SPONSR_EDIT.replace("{REPLACE}", idSponsr)
 
+    val linkMaxLyricsPlay: String? get() = idMaxLyrics.let {URL_PREFIX_MAX_PLAY.replace("{REPLACE}", idMaxLyrics)}
+    @Suppress("unused") val linkMaxLyricsEdit: String? get() = idMaxLyrics.let {URL_PREFIX_MAX_EDIT.replace("{REPLACE}", idMaxLyrics)}
+
+    val linkMaxKaraokePlay: String? get() = idMaxKaraoke.let {URL_PREFIX_MAX_PLAY.replace("{REPLACE}", idMaxKaraoke)}
+    @Suppress("unused") val linkMaxKaraokeEdit: String? get() = idMaxKaraoke.let {URL_PREFIX_MAX_EDIT.replace("{REPLACE}", idMaxKaraoke)}
+
+    val linkMaxChordsPlay: String? get() = idMaxChords.let {URL_PREFIX_MAX_PLAY.replace("{REPLACE}", idMaxChords)}
+    @Suppress("unused") val linkMaxChordsEdit: String? get() = idMaxChords.let {URL_PREFIX_MAX_EDIT.replace("{REPLACE}", idMaxChords)}
+
+    val linkMaxMelodyPlay: String? get() = idMaxMelody.let {URL_PREFIX_MAX_PLAY.replace("{REPLACE}", idMaxMelody)}
+    @Suppress("unused") val linkMaxMelodyEdit: String? get() = idMaxMelody.let {URL_PREFIX_MAX_EDIT.replace("{REPLACE}", idMaxMelody)}
+    
     val flagBoosty: String get() =
         if (idBoosty == "null" || idBoosty == "") {
             "-"
@@ -757,7 +778,12 @@ class Settings(
     @Suppress("unused") val havePlChords: Boolean get() = (idPlChords != "null" && idPlChords != "")
     @Suppress("unused") val havePlTabs: Boolean get() = (idPlMelody != "null" && idPlMelody != "")
     val havePl: Boolean get() = havePlLyrics && havePlKaraoke
-
+    val haveMaxLyrics: Boolean get() = (idMaxLyrics != "null" && idMaxLyrics != "")
+    val haveMaxKaraoke: Boolean get() = (idMaxKaraoke != "null" && idMaxKaraoke != "")
+    @Suppress("unused") val haveMaxChords: Boolean get() = (idMaxChords != "null" && idMaxChords != "")
+    @Suppress("unused") val haveMaxTabs: Boolean get() = (idMaxMelody != "null" && idMaxMelody != "")
+    val haveMax: Boolean get() = haveMaxLyrics && haveMaxKaraoke
+    
     val flagSponsr: String get() = if (idSponsr == "null" || idSponsr == "") "-" else if (versionSponsr != resultVersion.toInt()) versionSponsr.toString() else "✓"
     @Suppress("unused") val flagBoostyFiles: String get() = if (idBoostyFiles == "null" || idBoostyFiles == "") "-" else if (versionBoostyFiles != resultVersion.toInt()) versionBoostyFiles.toString() else "✓"
     val flagVk: String get() = if (idVk == "null" || idVk == "") "-" else "✓"
@@ -782,6 +808,11 @@ class Settings(
     val flagPlChords: String get() = if (idPlChords == "null" || idPlChords == "") "-" else if (versionPlChords != resultVersion.toInt()) versionPlChords.toString() else "✓"
     val flagPlMelody: String get() = if (idPlMelody == "null" || idPlMelody == "") "-" else if (versionPlMelody != resultVersion.toInt()) versionPlMelody.toString() else "✓"
 
+    val flagMaxLyrics: String get() = if (idMaxLyrics == "null" || idMaxLyrics == "") "-" else if (versionMaxLyrics != resultVersion.toInt()) versionMaxLyrics.toString() else "✓"
+    val flagMaxKaraoke: String get() = if (idMaxKaraoke == "null" || idMaxKaraoke == "") "-" else if (versionMaxKaraoke != resultVersion.toInt()) versionMaxKaraoke.toString() else "✓"
+    val flagMaxChords: String get() = if (idMaxChords == "null" || idMaxChords == "") "-" else if (versionMaxChords != resultVersion.toInt()) versionMaxChords.toString() else "✓"
+    val flagMaxMelody: String get() = if (idMaxMelody == "null" || idMaxMelody == "") "-" else if (versionMaxMelody != resultVersion.toInt()) versionMaxMelody.toString() else "✓"
+    
     val flagExclusive: String get() = if (!exclusive) "-" else "✓"
     val flagFree: String get() = if (!free) "-" else "✓"
 
@@ -849,6 +880,12 @@ class Settings(
     val linkPlLyrics: String get() = if (idPlLyrics == "") "" else linkPlLyricsPlay!!
     val linkPlTabs: String get() = if (idPlMelody == "") "" else linkPlMelodyPlay!!
     val linkPlChords: String get() = if (idPlChords == "") "" else linkPlChordsPlay!!
+
+    val linkMaxKaraoke: String get() = if (idMaxKaraoke == "") "" else linkMaxKaraokePlay!!
+    val linkMaxLyrics: String get() = if (idMaxLyrics == "") "" else linkMaxLyricsPlay!!
+    val linkMaxTabs: String get() = if (idMaxMelody == "") "" else linkMaxMelodyPlay!!
+    val linkMaxChords: String get() = if (idMaxChords == "") "" else linkMaxChordsPlay!!
+    
     val datePublish: String get() = if (exclusive && free) {
         "Эксклюзивно на SPONSR (в открытом доступе)"
     } else if (exclusive) {
@@ -1423,6 +1460,11 @@ class Settings(
     val processColorPlChords: String get() = if (idPlChords.isNotBlank()) "#00FF00" else "#A9A9A9"
     val processColorPlMelody: String get() = if (idPlMelody.isNotBlank()) "#00FF00" else "#A9A9A9"
 
+    val processColorMaxLyrics: String get() = if (idMaxLyrics.isNotBlank()) "#00FF00" else "#A9A9A9"
+    val processColorMaxKaraoke: String get() = if (idMaxKaraoke.isNotBlank()) "#00FF00" else "#A9A9A9"
+    val processColorMaxChords: String get() = if (idMaxChords.isNotBlank()) "#00FF00" else "#A9A9A9"
+    val processColorMaxMelody: String get() = if (idMaxMelody.isNotBlank()) "#00FF00" else "#A9A9A9"
+    
     @get:JsonIgnore
     val haveBoostyLink: Boolean get() = idBoosty.isNotBlank()
     @get:JsonIgnore
@@ -1441,6 +1483,7 @@ class Settings(
             idVkChords.isNotBlank()
     @get:JsonIgnore
     val haveTelegramLinks: Boolean get() = idTelegramLyrics.isNotBlank() && idTelegramKaraoke.isNotBlank() && idTelegramKaraoke != "-"
+    val haveMaxLinks: Boolean get() = idMaxLyrics.isNotBlank() && idMaxKaraoke.isNotBlank() && idMaxKaraoke != "-"
     @get:JsonIgnore
     val flags: String get() = if (haveBoostyLink && haveVkGroupLink && haveVkLinks && haveTelegramLinks && haveDzenLinks) "" else "(${if (haveBoostyLink) "b" else "-"}${if (haveVkGroupLink) "g" else "-"}${if (haveVkLinks) "v" else "-"}${if (haveTelegramLinks) "t" else "-"}${if (haveDzenLinks) "z" else "-"}) "
 
@@ -3060,6 +3103,17 @@ class Settings(
 
     }
 
+    fun getDescriptionTelegramHeader(songVersion: SongVersion, maxSymbols: Int = 0): String {
+
+        return "${songName.censored()} ★♫★ $author ★♫★ ${songVersion.text} ★♫★ ${songVersion.textForDescription}\n$linkSM\n⇑ Страница песни на официальном сайте проекта".cutByWords(maxLength = maxSymbols)
+
+    }
+
+    fun getDescriptionMaxHeader(songVersion: SongVersion, maxSymbols: Int = 0): String {
+
+        return "${songName.censored()} ★♫★ $author ★♫★ ${songVersion.text} ★♫★ ${songVersion.textForDescription}\n$linkSM\n⇑ Страница песни на официальном сайте проекта".cutByWords(maxLength = maxSymbols)
+
+    }
     fun getDescriptionWOHeaderWOTimecodes(songVersion: SongVersion, maxSymbols: Int = 0): String {
 
         val txtStart = getTextForDescriptionHeader(songVersion = songVersion)
@@ -3407,6 +3461,10 @@ class Settings(
                 if (savedSettings.idPlKaraoke.isBlank() && this.idPlKaraoke.isNotBlank() && savedSettings.versionPlKaraoke == 0) fields[SettingField.VERSION_PL_KARAOKE] = resultVersion.toString()
                 if (savedSettings.idPlMelody.isBlank() && this.idPlMelody.isNotBlank() && savedSettings.versionPlMelody == 0) fields[SettingField.VERSION_PL_MELODY] = resultVersion.toString()
                 if (savedSettings.idPlChords.isBlank() && this.idPlChords.isNotBlank() && savedSettings.versionPlChords == 0) fields[SettingField.VERSION_PL_CHORDS] = resultVersion.toString()
+                if (savedSettings.idMaxLyrics.isBlank() && this.idMaxLyrics.isNotBlank() && savedSettings.versionMaxLyrics == 0) fields[SettingField.VERSION_MAX_LYRICS] = resultVersion.toString()
+                if (savedSettings.idMaxKaraoke.isBlank() && this.idMaxKaraoke.isNotBlank() && savedSettings.versionMaxKaraoke == 0) fields[SettingField.VERSION_MAX_KARAOKE] = resultVersion.toString()
+                if (savedSettings.idMaxMelody.isBlank() && this.idMaxMelody.isNotBlank() && savedSettings.versionMaxMelody == 0) fields[SettingField.VERSION_MAX_MELODY] = resultVersion.toString()
+                if (savedSettings.idMaxChords.isBlank() && this.idMaxChords.isNotBlank() && savedSettings.versionMaxChords == 0) fields[SettingField.VERSION_MAX_CHORDS] = resultVersion.toString()
             }
 
             val diff = getDiff(this, savedSettings)
@@ -3870,6 +3928,14 @@ class Settings(
         fieldsValues.add(Pair("version_pl_karaoke", settings.versionPlKaraoke))
         fieldsValues.add(Pair("version_pl_chords", settings.versionPlChords))
         fieldsValues.add(Pair("version_pl_melody", settings.versionPlMelody))
+        fieldsValues.add(Pair("id_max_lyrics", settings.idMaxLyrics))
+        fieldsValues.add(Pair("id_max_karaoke", settings.idMaxKaraoke))
+        fieldsValues.add(Pair("id_max_chords", settings.idMaxChords))
+        fieldsValues.add(Pair("id_max_melody", settings.idMaxMelody))
+        fieldsValues.add(Pair("version_max_lyrics", settings.versionMaxLyrics))
+        fieldsValues.add(Pair("version_max_karaoke", settings.versionMaxKaraoke))
+        fieldsValues.add(Pair("version_max_chords", settings.versionMaxChords))
+        fieldsValues.add(Pair("version_max_melody", settings.versionMaxMelody))
         fieldsValues.add(Pair("id_status", settings.idStatus))
         fieldsValues.add(Pair("source_text", settings.sourceText))
         fieldsValues.add(Pair("result_text", settings.resultText))
@@ -4158,6 +4224,14 @@ class Settings(
                 if (settA.versionPlKaraoke != settB.versionPlKaraoke) result.add(RecordDiff("version_pl_karaoke", settA.versionPlKaraoke, settB.versionPlKaraoke))
                 if (settA.versionPlChords != settB.versionPlChords) result.add(RecordDiff("version_pl_chords", settA.versionPlChords, settB.versionPlChords))
                 if (settA.versionPlMelody != settB.versionPlMelody) result.add(RecordDiff("version_pl_melody", settA.versionPlMelody, settB.versionPlMelody))
+                if (settA.idMaxLyrics != settB.idMaxLyrics) result.add(RecordDiff("id_max_lyrics", settA.idMaxLyrics, settB.idMaxLyrics))
+                if (settA.idMaxKaraoke != settB.idMaxKaraoke) result.add(RecordDiff("id_max_karaoke", settA.idMaxKaraoke, settB.idMaxKaraoke))
+                if (settA.idMaxChords != settB.idMaxChords) result.add(RecordDiff("id_max_chords", settA.idMaxChords, settB.idMaxChords))
+                if (settA.idMaxMelody != settB.idMaxMelody) result.add(RecordDiff("id_max_melody", settA.idMaxMelody, settB.idMaxMelody))
+                if (settA.versionMaxLyrics != settB.versionMaxLyrics) result.add(RecordDiff("version_max_lyrics", settA.versionMaxLyrics, settB.versionMaxLyrics))
+                if (settA.versionMaxKaraoke != settB.versionMaxKaraoke) result.add(RecordDiff("version_max_karaoke", settA.versionMaxKaraoke, settB.versionMaxKaraoke))
+                if (settA.versionMaxChords != settB.versionMaxChords) result.add(RecordDiff("version_max_chords", settA.versionMaxChords, settB.versionMaxChords))
+                if (settA.versionMaxMelody != settB.versionMaxMelody) result.add(RecordDiff("version_max_melody", settA.versionMaxMelody, settB.versionMaxMelody))
                 if (settA.idStatus != settB.idStatus) result.add(RecordDiff("id_status", settA.idStatus, settB.idStatus))
                 if (settA.sourceText != settB.sourceText) result.add(RecordDiff("source_text", settA.sourceText, settB.sourceText))
                 if (settA.resultText != settB.resultText) result.add(RecordDiff("result_text", settA.resultText, settB.resultText))
@@ -4534,7 +4608,11 @@ class Settings(
             if (args.containsKey("flag_pl_karaoke")) where += "CASE WHEN id_pl_karaoke IS NOT NULL AND id_pl_karaoke <> 'null' AND id_pl_karaoke <> '' THEN '+' ELSE '-' END='${args["flag_pl_karaoke"]}'"
             if (args.containsKey("flag_pl_chords")) where += "CASE WHEN id_pl_chords IS NOT NULL AND id_pl_chords <> 'null' AND id_pl_chords <> '' THEN '+' ELSE '-' END='${args["flag_pl_chords"]}'"
             if (args.containsKey("flag_pl_melody")) where += "CASE WHEN id_pl_melody IS NOT NULL AND id_pl_melody <> 'null' AND id_pl_melody <> '' THEN '+' ELSE '-' END='${args["flag_pl_melody"]}'"
-
+            if (args.containsKey("flag_max_lyrics")) where += "CASE WHEN id_max_lyrics IS NOT NULL AND id_max_lyrics <> 'null' AND id_max_lyrics <> '' THEN '+' ELSE '-' END='${args["flag_max_lyrics"]}'"
+            if (args.containsKey("flag_max_karaoke")) where += "CASE WHEN id_max_karaoke IS NOT NULL AND id_max_karaoke <> 'null' AND id_max_karaoke <> '' THEN '+' ELSE '-' END='${args["flag_max_karaoke"]}'"
+            if (args.containsKey("flag_max_chords")) where += "CASE WHEN id_max_chords IS NOT NULL AND id_max_chords <> 'null' AND id_max_chords <> '' THEN '+' ELSE '-' END='${args["flag_max_chords"]}'"
+            if (args.containsKey("flag_max_melody")) where += "CASE WHEN id_max_melody IS NOT NULL AND id_max_melody <> 'null' AND id_max_melody <> '' THEN '+' ELSE '-' END='${args["flag_max_melody"]}'"
+            
             if (args.containsKey("flag_exclusive")) where += "CASE WHEN exclusive = true THEN '+' ELSE '-' END='${args["flag_exclusive"]}'"
             if (args.containsKey("flag_free")) where += "CASE WHEN free = true THEN '+' ELSE '-' END='${args["flag_free"]}'"
             if (args.containsKey("unpublish")) where += "publish_date = '' AND publish_time = '' AND ((exclusive = true AND id_sponsr = '') OR exclusive = false)"
@@ -4553,6 +4631,7 @@ class Settings(
                 Pair("filter_version_vk_karaoke", "version_vk_karaoke"),
                 Pair("filter_version_telegram_karaoke", "version_telegram_karaoke"),
                 Pair("filter_version_pl_karaoke", "version_pl_karaoke"),
+                Pair("filter_version_max_karaoke", "version_max_karaoke"),
                 Pair("filter_rate", "rate"),
                 Pair("filter_root_id", "root_id"),
                 Pair("filter_exclusive", "exclusive"),
@@ -4673,6 +4752,10 @@ class Settings(
                     rs.getString("id_pl_karaoke")?.let { value -> settings.fields[SettingField.ID_PL_KARAOKE] = value }
                     rs.getString("id_pl_chords")?.let { value -> settings.fields[SettingField.ID_PL_CHORDS] = value }
                     rs.getString("id_pl_melody")?.let { value -> settings.fields[SettingField.ID_PL_MELODY] = value }
+                    rs.getString("id_max_lyrics")?.let { value -> settings.fields[SettingField.ID_MAX_LYRICS] = value }
+                    rs.getString("id_max_karaoke")?.let { value -> settings.fields[SettingField.ID_MAX_KARAOKE] = value }
+                    rs.getString("id_max_chords")?.let { value -> settings.fields[SettingField.ID_MAX_CHORDS] = value }
+                    rs.getString("id_max_melody")?.let { value -> settings.fields[SettingField.ID_MAX_MELODY] = value }
                     rs.getInt("version_dzen_lyrics").let { value -> settings.fields[SettingField.VERSION_DZEN_LYRICS] = value.toString() }
                     rs.getInt("version_dzen_karaoke").let { value -> settings.fields[SettingField.VERSION_DZEN_KARAOKE] = value.toString() }
                     rs.getInt("version_dzen_chords").let { value -> settings.fields[SettingField.VERSION_DZEN_CHORDS] = value.toString() }
@@ -4689,6 +4772,10 @@ class Settings(
                     rs.getInt("version_pl_karaoke").let { value -> settings.fields[SettingField.VERSION_PL_KARAOKE] = value.toString() }
                     rs.getInt("version_pl_chords").let { value -> settings.fields[SettingField.VERSION_PL_CHORDS] = value.toString() }
                     rs.getInt("version_pl_melody").let { value -> settings.fields[SettingField.VERSION_PL_MELODY] = value.toString() }
+                    rs.getInt("version_max_lyrics").let { value -> settings.fields[SettingField.VERSION_MAX_LYRICS] = value.toString() }
+                    rs.getInt("version_max_karaoke").let { value -> settings.fields[SettingField.VERSION_MAX_KARAOKE] = value.toString() }
+                    rs.getInt("version_max_chords").let { value -> settings.fields[SettingField.VERSION_MAX_CHORDS] = value.toString() }
+                    rs.getInt("version_max_melody").let { value -> settings.fields[SettingField.VERSION_MAX_MELODY] = value.toString() }
                     rs.getInt("result_version").let { value -> settings.fields[SettingField.RESULT_VERSION] = value.toString() }
                     rs.getInt("diff_beats").let { value -> settings.fields[SettingField.DIFFBEATS] = value.toString() }
                     if (!withoutMarkersAndText) {
@@ -5040,6 +5127,10 @@ class Settings(
             flagPlKaraoke = flagPlKaraoke,
             flagPlChords = flagPlChords,
             flagPlMelody = flagPlMelody,
+            flagMaxLyrics = flagMaxLyrics,
+            flagMaxKaraoke = flagMaxKaraoke,
+            flagMaxChords = flagMaxChords,
+            flagMaxMelody = flagMaxMelody,
             flagExclusive = flagExclusive,
             flagFree = flagFree,
             processColorBoosty = processColorBoosty,
@@ -5065,6 +5156,10 @@ class Settings(
             processColorPlKaraoke = processColorPlKaraoke,
             processColorPlChords = processColorPlChords,
             processColorPlMelody = processColorPlMelody,
+            processColorMaxLyrics = processColorMaxLyrics,
+            processColorMaxKaraoke = processColorMaxKaraoke,
+            processColorMaxChords = processColorMaxChords,
+            processColorMaxMelody = processColorMaxMelody,
             idBoosty = idBoosty,
             idBoostyFiles = idBoostyFiles,
             idSponsr = idSponsr,
@@ -5113,6 +5208,14 @@ class Settings(
             versionPlKaraoke = versionPlKaraoke,
             versionPlChords = versionPlChords,
             versionPlMelody = versionPlMelody,
+            idMaxLyrics = idMaxLyrics,
+            idMaxKaraoke = idMaxKaraoke,
+            idMaxChords = idMaxChords,
+            idMaxMelody = idMaxMelody,
+            versionMaxLyrics = versionMaxLyrics,
+            versionMaxKaraoke = versionMaxKaraoke,
+            versionMaxChords = versionMaxChords,
+            versionMaxMelody = versionMaxMelody,
             rate = rate,
             healthReportText = "-",
             healthReportColor = "#E0E0E0",

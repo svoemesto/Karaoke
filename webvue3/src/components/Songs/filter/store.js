@@ -19,6 +19,7 @@ export default {
         songsFilterVersionVkKaraoke: '',
         songsFilterVersionTelegramKaraoke: '',
         songsFilterVersionPlKaraoke: '',
+        songsFilterVersionMaxKaraoke: '',
         songsFilterRate: '',
         songsFilterIsSync: '',
         songsFilterStatusProcessLyrics: '',
@@ -51,6 +52,7 @@ export default {
         getSongsFilterVersionVkKaraoke(state) { return state.songsFilterVersionVkKaraoke},
         getSongsFilterVersionTelegramKaraoke(state) { return state.songsFilterVersionTelegramKaraoke},
         getSongsFilterVersionPlKaraoke(state) { return state.songsFilterVersionPlKaraoke},
+        getSongsFilterVersionMaxKaraoke(state) { return state.songsFilterVersionMaxKaraoke},
         getSongsFilterRate(state) { return state.songsFilterRate},
         getSongsFilterIsSync(state) { return state.songsFilterIsSync},
         getSongsFilterStatusProcessLyrics(state) { return state.songsFilterStatusProcessLyrics},
@@ -133,6 +135,10 @@ export default {
             setWebvueProp(state.songsFilterVersionPlKaraoke, 'songsFilterVersionPlKaraoke', value);
             state.songsFilterVersionPlKaraoke = value;
         },
+        setSongsFilterVersionMaxKaraoke(state, value) {
+            setWebvueProp(state.songsFilterVersionMaxKaraoke, 'songsFilterVersionMaxKaraoke', value);
+            state.songsFilterVersionMaxKaraoke = value;
+        },        
         setSongsFilterRate(state, value) {
             setWebvueProp(state.songsFilterRate, 'songsFilterRate', value);
             state.songsFilterRate = value;
@@ -191,6 +197,7 @@ export default {
         setSongsFilterVersionVkKaraoke(ctx, payload) { ctx.commit('setSongsFilterVersionVkKaraoke', payload.value) },
         setSongsFilterVersionTelegramKaraoke(ctx, payload) { ctx.commit('setSongsFilterVersionTelegramKaraoke', payload.value) },
         setSongsFilterVersionPlKaraoke(ctx, payload) { ctx.commit('setSongsFilterVersionPlKaraoke', payload.value) },
+        setSongsFilterVersionMaxKaraoke(ctx, payload) { ctx.commit('setSongsFilterVersionMaxKaraoke', payload.value) },        
         setSongsFilterRate(ctx, payload) { ctx.commit('setSongsFilterRate', payload.value) },
         setSongsFilterIsSync(ctx, payload) { ctx.commit('setSongsFilterIsSync', payload.value) },
         setSongsFilterStatusProcessLyrics(ctx, payload) { ctx.commit('setSongsFilterStatusProcessLyrics', payload.value) },

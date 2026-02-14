@@ -191,12 +191,12 @@
 
                 <div class="sfm-filter-row">
                   <div class="sfm-row-label">
-                    <div v-text="'Ver.Pl.Kar:'"></div>
+                    <div v-text="'Ver.Max.Kar:'"></div>
                   </div>
                   <div class="sfm-row-input">
-                    <input class="sfm-input-field" v-model="songsFilterVersionPlKaraoke">
+                    <input class="sfm-input-field" v-model="songsFilterVersionMaxKaraoke">
                   </div>
-                  <button :disabled="!songsFilterVersionPlKaraoke" class="sfm-button-clear-field" @click.left="songsFilterVersionPlKaraoke=''" v-text="'X'"></button>
+                  <button :disabled="!songsFilterVersionMaxKaraoke" class="sfm-button-clear-field" @click.left="songsFilterVersionMaxKaraoke=''" v-text="'X'"></button>
                 </div>
 
                 <div class="sfm-filter-row">
@@ -328,6 +328,7 @@ export default {
     this.$store.dispatch('setSongsFilterVersionVkKaraoke', { value: await this.$store.getters.getWebvueProp('songsFilterVersionVkKaraoke', '') });
     this.$store.dispatch('setSongsFilterVersionTelegramKaraoke', { value: await this.$store.getters.getWebvueProp('songsFilterVersionTelegramKaraoke', '') });
     this.$store.dispatch('setSongsFilterVersionPlKaraoke', { value: await this.$store.getters.getWebvueProp('songsFilterVersionPlKaraoke', '') });
+    this.$store.dispatch('setSongsFilterVersionMaxKaraoke', { value: await this.$store.getters.getWebvueProp('songsFilterVersionMaxKaraoke', '') });    
     this.$store.dispatch('setSongsFilterRate', { value: await this.$store.getters.getWebvueProp('songsFilterRate', '') });
     this.$store.dispatch('setSongsFilterIsSync', { value: await this.$store.getters.getWebvueProp('songsFilterIsSync', '') });
     this.$store.dispatch('setSongsFilterStatusProcessLyrics', { value: await this.$store.getters.getWebvueProp('songsFilterStatusProcessLyrics', '') });
@@ -411,6 +412,10 @@ export default {
       get() { return this.$store.getters.getSongsFilterVersionPlKaraoke; },
       set(value) { this.$store.dispatch('setSongsFilterVersionPlKaraoke', { value: value }); }
     },
+    songsFilterVersionMaxKaraoke: {
+      get() { return this.$store.getters.getSongsFilterVersionMaxKaraoke; },
+      set(value) { this.$store.dispatch('setSongsFilterVersionMaxKaraoke', { value: value }); }
+    },    
     songsFilterRate: {
       get() { return this.$store.getters.getSongsFilterRate; },
       set(value) { this.$store.dispatch('setSongsFilterRate', { value: value }); }
@@ -490,6 +495,7 @@ export default {
       this.$store.dispatch('setSongsFilterVersionVkKaraoke', { value: this.songsFilterVersionVkKaraoke });
       this.$store.dispatch('setSongsFilterVersionTelegramKaraoke', { value: this.songsFilterVersionTelegramKaraoke });
       this.$store.dispatch('setSongsFilterVersionPlKaraoke', { value: this.songsFilterVersionPlKaraoke });
+      this.$store.dispatch('setSongsFilterVersionMaxKaraoke', { value: this.songsFilterVersionMaxKaraoke });      
       this.$store.dispatch('setSongsFilterRate', { value: this.songsFilterRate });
       this.$store.dispatch('setSongsFilterIsSync', { value: this.songsFilterIsSync });
       this.$store.dispatch('setSongsFilterStatusProcessLyrics', { value: this.songsFilterStatusProcessLyrics });
@@ -516,6 +522,7 @@ export default {
       if (this.songsFilterVersionVkKaraoke !== '') params.filterVersionVkKaraoke = this.songsFilterVersionVkKaraoke;
       if (this.songsFilterVersionTelegramKaraoke !== '') params.filterVersionTelegramKaraoke = this.songsFilterVersionTelegramKaraoke;
       if (this.songsFilterVersionPlKaraoke !== '') params.filterVersionPlKaraoke = this.songsFilterVersionPlKaraoke;
+      if (this.songsFilterVersionMaxKaraoke !== '') params.filterVersionMaxKaraoke = this.songsFilterVersionMaxKaraoke;
       if (this.songsFilterRate !== '') params.filterRate = this.songsFilterRate;
       if (this.songsFilterIsSync !== '') params.filterIsSync = this.songsFilterIsSync;
       if (this.songsFilterStatusProcessLyrics !== '') params.filterStatusProcessLyrics = this.songsFilterStatusProcessLyrics;
@@ -549,6 +556,7 @@ export default {
       this.songsFilterVersionVkKaraoke = args['filter_version_vk_karaoke'] ? args['filter_version_vk_karaoke'] : ''
       this.songsFilterVersionTelegramKaraoke = args['filter_version_telegram_karaoke'] ? args['filter_version_telegram_karaoke'] : ''
       this.songsFilterVersionPlKaraoke = args['filter_version_pl_karaoke'] ? args['filter_version_pl_karaoke'] : ''
+      this.songsFilterVersionMaxKaraoke = args['filter_version_max_karaoke'] ? args['filter_version_max_karaoke'] : ''
       this.songsFilterRate = args['filter_rate'] ? args['filter_rate'] : ''
       this.songsFilterIsSync = args['filter_is_sync'] ? args['filter_is_sync'] : ''
       this.songsFilterStatusProcessLyrics = args['filter_status_process_lyrics'] ? args['filter_status_process_lyrics'] : ''

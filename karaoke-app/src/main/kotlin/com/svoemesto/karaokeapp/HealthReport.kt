@@ -42,6 +42,7 @@ data class HealthReport(
 
         private fun actions(
             karaokeFileType: KaraokeFileType,
+            karaokePlatform: KaraokePlatform?,
             settings: Settings,
             rootFolder: String,
             pathToFile: String,
@@ -65,6 +66,7 @@ data class HealthReport(
             return when (location) {
                 LOCAL_FILESYSTEM -> actionsLocalFileSystem(
                     karaokeFileType = karaokeFileType,
+                    karaokePlatform = karaokePlatform,
                     settings = settings,
                     rootFolder = rootFolder,
                     pathToFile = pathToFile,
@@ -86,6 +88,7 @@ data class HealthReport(
                 )
                 LOCAL_STORAGE -> actionsLocalStorage(
                     karaokeFileType = karaokeFileType,
+                    karaokePlatform = karaokePlatform,
                     settings = settings,
                     rootFolder = rootFolder,
                     pathToFile = pathToFile,
@@ -107,6 +110,7 @@ data class HealthReport(
                 )
                 REMOTE_STORAGE -> actionsRemoteStorage(
                     karaokeFileType = karaokeFileType,
+                    karaokePlatform = karaokePlatform,
                     settings = settings,
                     rootFolder = rootFolder,
                     pathToFile = pathToFile,
@@ -132,6 +136,7 @@ data class HealthReport(
 
         private fun actionsLocalFileSystem(
             karaokeFileType: KaraokeFileType,
+            karaokePlatform: KaraokePlatform?,
             settings: Settings,
             rootFolder: String,
             pathToFile: String,
@@ -213,8 +218,8 @@ data class HealthReport(
             canBeResolved = canResolve
             if (canBe) { // Файл должен быть
                 if (existsInLocalFileSystem) { // Файл реально существует
-                    if (karaokeFileType.symlinks.isNotEmpty()) { // Если у файла должны быть симлинки
-                        karaokeFileType.symlinks.forEach { symlink ->
+                    if (karaokeFileType.symlinks.any { it.platforms.contains(karaokePlatform) }) { // Если у файла должны быть симлинки
+                        karaokeFileType.symlinks.filter {it.platforms.contains(karaokePlatform)}.forEach { symlink ->
                             val pathToSymlinkFile = symlink.pathToSymlinkFile(rootFolder = rootFolder, pathToTargetFile = pathToFile)
 
                             var needToDelete = false
@@ -470,6 +475,7 @@ data class HealthReport(
 
         private fun actionsLocalStorage(
             karaokeFileType: KaraokeFileType,
+            karaokePlatform: KaraokePlatform?,
             settings: Settings,
             rootFolder: String,
             pathToFile: String,
@@ -669,6 +675,7 @@ data class HealthReport(
 
         private fun actionsRemoteStorage(
             karaokeFileType: KaraokeFileType,
+            karaokePlatform: KaraokePlatform?,
             settings: Settings,
             rootFolder: String,
             pathToFile: String,
@@ -1009,6 +1016,7 @@ data class HealthReport(
                         karaokeFileType.locations.forEach { location ->
                             val actions = actions(
                                 karaokeFileType = karaokeFileType,
+                                karaokePlatform = null,
                                 settings = settings,
                                 rootFolder = rootFolder,
                                 pathToFile = pathToFile,
@@ -1063,6 +1071,7 @@ data class HealthReport(
                         karaokeFileType.locations.forEach { location ->
                             val actions = actions(
                                 karaokeFileType = karaokeFileType,
+                                karaokePlatform = null,
                                 settings = settings,
                                 rootFolder = rootFolder,
                                 pathToFile = pathToFile,
@@ -1112,6 +1121,7 @@ data class HealthReport(
                         karaokeFileType.locations.forEach { location ->
                             val actions = actions(
                                 karaokeFileType = karaokeFileType,
+                                karaokePlatform = null,
                                 settings = settings,
                                 rootFolder = rootFolder,
                                 pathToFile = pathToFile,
@@ -1161,6 +1171,7 @@ data class HealthReport(
                         karaokeFileType.locations.forEach { location ->
                             val actions = actions(
                                 karaokeFileType = karaokeFileType,
+                                karaokePlatform = null,
                                 settings = settings,
                                 rootFolder = rootFolder,
                                 pathToFile = pathToFile,
@@ -1210,6 +1221,7 @@ data class HealthReport(
                         karaokeFileType.locations.forEach { location ->
                             val actions = actions(
                                 karaokeFileType = karaokeFileType,
+                                karaokePlatform = null,
                                 settings = settings,
                                 rootFolder = rootFolder,
                                 pathToFile = pathToFile,
@@ -1259,6 +1271,7 @@ data class HealthReport(
                         karaokeFileType.locations.forEach { location ->
                             val actions = actions(
                                 karaokeFileType = karaokeFileType,
+                                karaokePlatform = null,
                                 settings = settings,
                                 rootFolder = rootFolder,
                                 pathToFile = pathToFile,
@@ -1308,6 +1321,7 @@ data class HealthReport(
                         karaokeFileType.locations.forEach { location ->
                             val actions = actions(
                                 karaokeFileType = karaokeFileType,
+                                karaokePlatform = null,
                                 settings = settings,
                                 rootFolder = rootFolder,
                                 pathToFile = pathToFile,
@@ -1357,6 +1371,7 @@ data class HealthReport(
                         karaokeFileType.locations.forEach { location ->
                             val actions = actions(
                                 karaokeFileType = karaokeFileType,
+                                karaokePlatform = null,
                                 settings = settings,
                                 rootFolder = rootFolder,
                                 pathToFile = pathToFile,
@@ -1392,6 +1407,7 @@ data class HealthReport(
                         karaokeFileType.locations.forEach { location ->
                             val actions = actions(
                                 karaokeFileType = karaokeFileType,
+                                karaokePlatform = null,
                                 settings = settings,
                                 rootFolder = rootFolder,
                                 pathToFile = pathToFile,
@@ -1434,6 +1450,7 @@ data class HealthReport(
                         karaokeFileType.locations.forEach { location ->
                             val actions = actions(
                                 karaokeFileType = karaokeFileType,
+                                karaokePlatform = null,
                                 settings = settings,
                                 rootFolder = rootFolder,
                                 pathToFile = pathToFile,
@@ -1469,6 +1486,7 @@ data class HealthReport(
                         karaokeFileType.locations.forEach { location ->
                             val actions = actions(
                                 karaokeFileType = karaokeFileType,
+                                karaokePlatform = null,
                                 settings = settings,
                                 rootFolder = rootFolder,
                                 pathToFile = pathToFile,
@@ -1512,6 +1530,7 @@ data class HealthReport(
                         karaokeFileType.locations.forEach { location ->
                             val actions = actions(
                                 karaokeFileType = karaokeFileType,
+                                karaokePlatform = null,
                                 settings = settings,
                                 rootFolder = rootFolder,
                                 pathToFile = pathToFile,
@@ -1568,12 +1587,14 @@ data class HealthReport(
                                 KaraokePlatform.DZEN,
                                 KaraokePlatform.VKVIDEO,
                                 KaraokePlatform.PLATFORMA,
+                                KaraokePlatform.MAX,
                                 KaraokePlatform.TELEGRAM -> {}
                             }
 
                             karaokeFileType.locations.forEach { location ->
                                 val actions = actions(
                                     karaokeFileType = karaokeFileType,
+                                    karaokePlatform = karaokePlatform,
                                     settings = settings,
                                     rootFolder = rootFolder,
                                     pathToFile = pathToFile,
@@ -1626,6 +1647,7 @@ data class HealthReport(
                             karaokeFileType.locations.forEach { location ->
                                 val actions = actions(
                                     karaokeFileType = karaokeFileType,
+                                    karaokePlatform = null,
                                     settings = settings,
                                     rootFolder = rootFolder,
                                     pathToFile = pathToFile,
@@ -1772,6 +1794,7 @@ data class HealthReport(
                             karaokeFileType.locations.forEach { location ->
                                 val actions = actions(
                                     karaokeFileType = karaokeFileType,
+                                    karaokePlatform = null,
                                     settings = settings,
                                     rootFolder = rootFolder,
                                     pathToFile = pathToFile,
@@ -1861,6 +1884,7 @@ data class HealthReport(
                             karaokeFileType.locations.forEach { location ->
                                 val actions = actions(
                                     karaokeFileType = karaokeFileType,
+                                    karaokePlatform = null,
                                     settings = settings,
                                     rootFolder = rootFolder,
                                     pathToFile = pathToFile,
@@ -1912,6 +1936,7 @@ data class HealthReport(
                             karaokeFileType.locations.forEach { location ->
                                 val actions = actions(
                                     karaokeFileType = karaokeFileType,
+                                    karaokePlatform = null,
                                     settings = settings,
                                     rootFolder = rootFolder,
                                     pathToFile = pathToFile,
@@ -1963,6 +1988,7 @@ data class HealthReport(
                             karaokeFileType.locations.forEach { location ->
                                 val actions = actions(
                                     karaokeFileType = karaokeFileType,
+                                    karaokePlatform = null,
                                     settings = settings,
                                     rootFolder = rootFolder,
                                     pathToFile = pathToFile,
@@ -2014,6 +2040,7 @@ data class HealthReport(
                             karaokeFileType.locations.forEach { location ->
                                 val actions = actions(
                                     karaokeFileType = karaokeFileType,
+                                    karaokePlatform = null,
                                     settings = settings,
                                     rootFolder = rootFolder,
                                     pathToFile = pathToFile,
@@ -2065,6 +2092,7 @@ data class HealthReport(
                             karaokeFileType.locations.forEach { location ->
                                 val actions = actions(
                                     karaokeFileType = karaokeFileType,
+                                    karaokePlatform = null,
                                     settings = settings,
                                     rootFolder = rootFolder,
                                     pathToFile = pathToFile,

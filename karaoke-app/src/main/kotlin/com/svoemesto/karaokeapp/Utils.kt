@@ -2728,3 +2728,32 @@ fun getTempFilePath(prefix: String = "temp", suffix: String = ".tmp"): Path {
     // с рандомным именем, начинающимся с 'prefix' и заканчивающимся на 'suffix'
     return Files.createTempFile(prefix, suffix)
 }
+
+fun findAndFillDublicates(author: String, database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient): Int {
+    /*
+    На вход подаётся список песен. Предполагается, что это песни одного автора. На всякий случай будет это учитывать при фильтрации
+    Дла каждой песни со статусом 0 нужно получить её имя без скобок "Имя песни (1992)" - "Имя песни"
+    Найти это имя среди песен со статусом 6 и скопировать root_id, поля текста, установить статус в 1
+     */
+    var result = 0
+    val listSettings = Settings.loadListFromDb(
+        args = mapOf("author" to author),
+        database = database,
+        storageService = storageService,
+        storageApiClient = storageApiClient,
+        withoutMarkersAndText = false
+    )
+    listSettings.filter { it.idStatus == 0L }.forEach { newSettings ->
+        val nameToFind = newSettings.songName.replace(Regex("""\([^)]*\)"""), "").trim()
+        listSettings.firstOrNull { it.idStatus == 6L && it.songName.replace(Regex("""\([^)]*\)"""), "").trim() == nameToFind }?.let { findedSettings ->
+            newSettings.rootId = findedSettings.id
+            newSettings.sourceText = findedSettings.sourceText
+            newSettings.resultText = findedSettings.resultText
+            newSettings.sourceMarkers = findedSettings.sourceMarkers
+            newSettings.fields[SettingField.ID_STATUS] = "1"
+            newSettings.saveToDb()
+            result++
+        }
+    }
+    return result
+}

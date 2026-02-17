@@ -28,10 +28,10 @@
       <button class="button-action" @click="updateBpmAndKeyLV">Обновить пустые BPM и KEY из фалов LV</button>
       <div class="field-and-buttons-wrapper">
         <input list="list_authors" class="input-author" type="text" placeholder="Автор" v-model="author">
-        <button class="button-action" @click="markDublicates" :disabled="!author">Найти и пометить дубликаты песен автора</button>
+        <button class="button-action" @click="markDublicates" :disabled="!author">Найти и обработать дубликаты песен автора</button>
       </div>
-      <button class="button-action" @click="delDublicates">Удалить дубликаты</button>
-      <button class="button-action" @click="clearPreDublicates">Очистить информацию о пре-дубликатах</button>
+      <!-- <button class="button-action" @click="delDublicates">Удалить дубликаты</button>
+      <button class="button-action" @click="clearPreDublicates">Очистить информацию о пре-дубликатах</button> -->
       <div class="field-and-buttons-wrapper">
         <div class="fields-line-wrapper">
           <input list="list_dicts" class="input-dict-type" type="text" placeholder="Словарь" v-model="dictType">
@@ -252,7 +252,7 @@ export default {
     markDublicates() {
       this.customConfirmParams = {
         header: 'Подтвердите действие',
-        body: `Найти и пометить дубликаты песен автора «<strong>${this.author}</strong>»?`,
+        body: `Найти и обработать дубликаты песен автора «<strong>${this.author}</strong>»?`,
         timeout: 10,
         callback: this.doMarkDublicates
       }

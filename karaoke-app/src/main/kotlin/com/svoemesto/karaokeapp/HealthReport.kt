@@ -338,7 +338,7 @@ data class HealthReport(
                                 if (karaokeProcessTypesToCreate != null) { // Есть тип процесса - создаем процесс с заданным приоритетом и тредом
                                     solutionText = "Создание файла (process)"
                                     actions.add { println("actionsLocalFileSystem [$solutionText] >>>") }
-                                    actions.add ( {
+                                    actions.add {
                                         KaraokeProcess.createProcess(
                                             settings = settings,
                                             action = karaokeProcessTypesToCreate,
@@ -346,7 +346,7 @@ data class HealthReport(
                                             prior = priority,
                                             threadId = threadId
                                         )
-                                    } )
+                                    }
                                     actions.add { println("actionsLocalFileSystem [$solutionText] <<<") }
 
                                 } else { // Если нет типа процесса - создаем действие
@@ -382,9 +382,13 @@ data class HealthReport(
                             problemText = "Файл отсутствует на диске"
                             solutionText = "Восстановление файла из локального хранилища"
                             actions.add { println("actionsLocalFileSystem [$solutionText] >>>") }
-                            actions.add ( {
-                                storageService.downloadFile(bucketName = storageBucketName, fileName = storageFileName, pathToFileOnDisk = pathToFile)
-                            } )
+                            actions.add {
+                                storageService.downloadFile(
+                                    bucketName = storageBucketName,
+                                    fileName = storageFileName,
+                                    pathToFileOnDisk = pathToFile
+                                )
+                            }
                             actions.add { println("actionsLocalFileSystem [$solutionText] <<<") }
 
                         } else { // Файла нет в локальном хранилище
@@ -394,9 +398,13 @@ data class HealthReport(
                                 problemText = "Файл отсутствует на диске"
                                 solutionText = "Восстановление файла из удалённого хранилища"
                                 actions.add { println("actionsLocalFileSystem [$solutionText] >>>") }
-                                actions.add ( {
-                                    storageApiClient.downloadFile(bucketName = storageBucketName, fileName = storageFileName, pathToFileOnDisk = pathToFile)
-                                } )
+                                actions.add {
+                                    storageApiClient.downloadFile(
+                                        bucketName = storageBucketName,
+                                        fileName = storageFileName,
+                                        pathToFileOnDisk = pathToFile
+                                    )
+                                }
                                 actions.add { println("actionsLocalFileSystem [$solutionText] <<<") }
                             } else { // Файла нет в удалённом хранилище
                                 healthReportStatus = FATAL_ERROR
@@ -565,7 +573,13 @@ data class HealthReport(
                            actions.add { println("actionsLocalStorage [Удаление неактуального файла из локального хранилища] <<<") }
 
                            actions.add { println("actionsLocalStorage [Загрузка файла с диска в локальное хранилище] >>>") }
-                           actions.add ( { storageService.uploadFile(bucketName = storageBucketName, fileName = storageFileName, pathToFileOnDisk = pathToFile) } )
+                           actions.add {
+                               storageService.uploadFile(
+                                   bucketName = storageBucketName,
+                                   fileName = storageFileName,
+                                   pathToFileOnDisk = pathToFile
+                               )
+                           }
                            actions.add { println("actionsLocalStorage [Загрузка файла с диска в локальное хранилище] <<<") }
 
                        }
@@ -603,7 +617,13 @@ data class HealthReport(
                         solutionText = "Загрузка файла с диска в локальное хранилище"
 
                         actions.add { println("actionsLocalStorage [$solutionText] >>>") }
-                        actions.add { storageService.uploadFile(bucketName = storageBucketName, fileName = storageFileName, pathToFileOnDisk = pathToFile) }
+                        actions.add {
+                            storageService.uploadFile(
+                                bucketName = storageBucketName,
+                                fileName = storageFileName,
+                                pathToFileOnDisk = pathToFile
+                            )
+                        }
                         actions.add { println("actionsLocalStorage [$solutionText] <<<") }
 
                     } else { // Файла реально нет на диске (existsInLocalFileSystem)
@@ -619,11 +639,23 @@ data class HealthReport(
                             val tempFile = getTempFilePath(prefix = "temp", suffix = ".${karaokeFileType.extention}")
 
                             actions.add { println("actionsLocalStorage [Загрузка файла из удалённого хранилища] >>>") }
-                            actions.add { storageApiClient.downloadFile(bucketName = storageBucketName, fileName = storageFileName, pathToFileOnDisk = tempFile.toString()) }
+                            actions.add {
+                                storageApiClient.downloadFile(
+                                    bucketName = storageBucketName,
+                                    fileName = storageFileName,
+                                    pathToFileOnDisk = tempFile.toString()
+                                )
+                            }
                             actions.add { println("actionsLocalStorage [Загрузка файла из удалённого хранилища] <<<") }
 
                             actions.add { println("actionsLocalStorage [Загрузка файла с диска в локальное хранилище] >>>") }
-                            actions.add { storageService.uploadFile(bucketName = storageBucketName, fileName = storageFileName, pathToFileOnDisk = tempFile.toString()) }
+                            actions.add {
+                                storageService.uploadFile(
+                                    bucketName = storageBucketName,
+                                    fileName = storageFileName,
+                                    pathToFileOnDisk = tempFile.toString()
+                                )
+                            }
                             actions.add { println("actionsLocalStorage [Загрузка файла с диска в локальное хранилище] <<<") }
 
                             actions.add { println("actionsLocalStorage [Удаление скачанного временного файла с диска] >>>") }
@@ -652,7 +684,12 @@ data class HealthReport(
                     solutionText = "Удаление файла из локального хранилища"
 
                     actions.add { println("actionsLocalStorage [$solutionText] >>>") }
-                    actions.add { storageService.deleteFile(bucketName = storageBucketName, fileName = storageFileName) }
+                    actions.add {
+                        storageService.deleteFile(
+                            bucketName = storageBucketName,
+                            fileName = storageFileName
+                        )
+                    }
                     actions.add { println("actionsLocalStorage [$solutionText] <<<") }
                 }
 
@@ -743,22 +780,34 @@ data class HealthReport(
             val existsInRemoteStore = storageApiClient.fileExists(bucketName = storageBucketName, fileName = storageFileName)
 
             if (canBe) { // Файл должен быть
-                if (existsInRemoteStore) { // Файл реально есть в хранилище (existsInLocalStore)
+                if (existsInRemoteStore) { // Файл реально есть в хранилище (existsInRemoteStore)
                     if (existsInLocalFileSystem) { // Файл реально есть на диске (existsInLocalFileSystem)
                         val fileIsActual =  storageApiClient.fileIsActual(bucketName = storageBucketName, fileName = storageFileName, pathToFileOnDisk = pathToFile)
                         if (!fileIsActual) { // Файл не актуальный
                             // Удалить старый и загрузить новый файл
 
                             healthReportStatus = ERROR
+                            canBeResolved = true
                             problemText = "Файл в удалённом хранилище неактуальный"
                             solutionText = "Удалить неактуальный файл из удалённого хранилища и загрузить актуальный"
 
                             actions.add { println("actionsRemoteStorage [Удаление неактуального файла из удалённого хранилища] >>>") }
-                            actions.add { storageApiClient.deleteFile(bucketName = storageBucketName, fileName = storageFileName) }
+                            actions.add {
+                                storageApiClient.deleteFile(
+                                    bucketName = storageBucketName,
+                                    fileName = storageFileName
+                                )
+                            }
                             actions.add { println("actionsRemoteStorage [Удаление неактуального файла из удалённого хранилища] <<<") }
 
                             actions.add { println("actionsRemoteStorage [Загрузка файла с диска в удалённое хранилище] >>>") }
-                            actions.add { storageApiClient.uploadFile(bucketName = storageBucketName, fileName = storageFileName, pathToFileOnDisk = pathToFile) }
+                            actions.add {
+                                storageApiClient.uploadFile(
+                                    bucketName = storageBucketName,
+                                    fileName = storageFileName,
+                                    pathToFileOnDisk = pathToFile
+                                )
+                            }
                             actions.add { println("actionsRemoteStorage [Загрузка файла с диска в удалённое хранилище] <<<") }
 
                         }
@@ -796,7 +845,13 @@ data class HealthReport(
                         solutionText = "Загрузка файла с диска в удалённое хранилище"
 
                         actions.add { println("actionsRemoteStorage [$solutionText] >>>") }
-                        actions.add { storageApiClient.uploadFile(bucketName = storageBucketName, fileName = storageFileName, pathToFileOnDisk = pathToFile) }
+                        actions.add {
+                            storageApiClient.uploadFile(
+                                bucketName = storageBucketName,
+                                fileName = storageFileName,
+                                pathToFileOnDisk = pathToFile
+                            )
+                        }
                         actions.add { println("actionsRemoteStorage [$solutionText] <<<") }
 
                     } else { // Файла реально нет на диске (existsInLocalFileSystem)
@@ -813,11 +868,23 @@ data class HealthReport(
                             val tempFile = getTempFilePath(prefix = "temp", suffix = ".${karaokeFileType.extention}")
 
                             actions.add { println("actionsRemoteStorage [Загрузка файла из локального хранилища] >>>") }
-                            actions.add { storageService.downloadFile(bucketName = storageBucketName, fileName = storageFileName, pathToFileOnDisk = tempFile.toString()) }
+                            actions.add {
+                                storageService.downloadFile(
+                                    bucketName = storageBucketName,
+                                    fileName = storageFileName,
+                                    pathToFileOnDisk = tempFile.toString()
+                                )
+                            }
                             actions.add { println("actionsRemoteStorage [Загрузка файла из локального хранилища] <<<") }
 
                             actions.add { println("actionsRemoteStorage [Загрузка файла с диска в удалённое хранилище] >>>") }
-                            actions.add { storageApiClient.uploadFile(bucketName = storageBucketName, fileName = storageFileName, pathToFileOnDisk = tempFile.toString()) }
+                            actions.add {
+                                storageApiClient.uploadFile(
+                                    bucketName = storageBucketName,
+                                    fileName = storageFileName,
+                                    pathToFileOnDisk = tempFile.toString()
+                                )
+                            }
                             actions.add { println("actionsRemoteStorage [Загрузка файла с диска в удалённое хранилище] <<<") }
 
                             actions.add { println("actionsRemoteStorage [Удаление скачанного временного файла с диска] >>>") }
@@ -846,7 +913,12 @@ data class HealthReport(
                     solutionText = "Удаление файла из удалённого хранилища"
 
                     actions.add { println("actionsRemoteStorage [$solutionText] >>>") }
-                    actions.add { storageApiClient.deleteFile(bucketName = storageBucketName, fileName = storageFileName) }
+                    actions.add {
+                        storageApiClient.deleteFile(
+                            bucketName = storageBucketName,
+                            fileName = storageFileName
+                        )
+                    }
                     actions.add { println("actionsRemoteStorage [$solutionText] <<<") }
                 }
 

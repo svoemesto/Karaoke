@@ -2823,11 +2823,11 @@ class ApiController(
     @ResponseBody
     fun doMarkDublicates(
         @RequestParam(required = true) author: String) {
-        val result = markDublicates(author, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+        val result = findAndFillDublicates(author, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
         SNS.send(SseNotification.message(Message(
             type = "info",
             head = "Нахождение дубликатов",
-            body = "Найдено и отмечено дубликатов: $result"
+            body = "Найдено и обработано дубликатов: $result"
         )))
     }
 

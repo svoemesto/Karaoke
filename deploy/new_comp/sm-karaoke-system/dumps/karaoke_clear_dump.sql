@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict aRTqlYw4VgdJB3mP1G2QpMdmbLmNqPMuqhIHG4vbdNKQLPG9YQ7M2lPGgK2FDJG
+\restrict b7iJExTgHfqPQNmGf8mcUhQnpMbv27ajuBWiCH6pzmHmgPZLEDgLPs7Bdb2alYL
 
 -- Dumped from database version 16.10 (Debian 16.10-1.pgdg13+1)
 -- Dumped by pg_dump version 16.10 (Debian 16.10-1.pgdg13+1)
@@ -25,9 +25,9 @@ SET row_security = off;
 CREATE DATABASE karaoke WITH TEMPLATE = template0 ENCODING = 'UTF8' LOCALE_PROVIDER = libc LOCALE = 'en_US.utf8';
 
 
-\unrestrict aRTqlYw4VgdJB3mP1G2QpMdmbLmNqPMuqhIHG4vbdNKQLPG9YQ7M2lPGgK2FDJG
+\unrestrict b7iJExTgHfqPQNmGf8mcUhQnpMbv27ajuBWiCH6pzmHmgPZLEDgLPs7Bdb2alYL
 \connect karaoke
-\restrict aRTqlYw4VgdJB3mP1G2QpMdmbLmNqPMuqhIHG4vbdNKQLPG9YQ7M2lPGgK2FDJG
+\restrict b7iJExTgHfqPQNmGf8mcUhQnpMbv27ajuBWiCH6pzmHmgPZLEDgLPs7Bdb2alYL
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -177,75 +177,86 @@ CREATE FUNCTION public.update_tbl_settings_recordhash() RETURNS trigger
     AS $$
 BEGIN
     NEW.recordhash = md5(
-    COALESCE(NEW.id::TEXT, '') ||
-    COALESCE(NEW.song_name, '') ||
-    COALESCE(NEW.song_author, '') ||
-    COALESCE(NEW.song_album, '') ||
-    COALESCE(NEW.publish_date, '') ||
-    COALESCE(NEW.publish_time, '') ||
-    COALESCE(NEW.song_year::TEXT, '') ||
-    COALESCE(NEW.song_track::TEXT, '') ||
-    COALESCE(NEW.song_tone, '') ||
-    COALESCE(NEW.song_bpm::TEXT, '') ||
-    COALESCE(NEW.song_ms::TEXT, '') ||
-    COALESCE(NEW.file_name, '') ||
-    COALESCE(NEW.root_folder, '') ||
-    COALESCE(NEW.id_boosty, '') ||
-    COALESCE(NEW.id_dzen_lyrics, '') ||
-    COALESCE(NEW.id_dzen_karaoke, '') ||
-    COALESCE(NEW.id_dzen_chords, '') ||
-    COALESCE(NEW.id_status::TEXT, '') ||
-    COALESCE(NEW.source_text, '') ||
-    COALESCE(NEW.source_markers, '') ||
-    COALESCE(NEW.id_vk_lyrics, '') ||
-    COALESCE(NEW.id_vk_karaoke, '') ||
-    COALESCE(NEW.id_vk_chords, '') ||
-    COALESCE(NEW.status_process_lyrics, '') ||
-    COALESCE(NEW.status_process_karaoke, '') ||
-    COALESCE(NEW.status_process_chords, '') ||
-    COALESCE(NEW.id_vk, '') ||
-    COALESCE(NEW.id_telegram_lyrics, '') ||
-    COALESCE(NEW.id_telegram_karaoke, '') ||
-    COALESCE(NEW.id_telegram_chords, '') ||
-    COALESCE(NEW.tags, '') ||
-    COALESCE(NEW.result_text, '') ||
-    COALESCE(NEW.id_boosty_files, '') ||
-    COALESCE(NEW.result_version::TEXT, '') ||
-    COALESCE(NEW.id_pl_lyrics, '') ||
-    COALESCE(NEW.id_pl_karaoke, '') ||
-    COALESCE(NEW.id_pl_chords, '') ||
-    COALESCE(NEW.diff_beats::TEXT, '') ||
-    COALESCE(NEW.id_sponsr, '') ||
-    COALESCE(NEW.id_dzen_melody, '') ||
-    COALESCE(NEW.id_vk_melody, '') ||
-    COALESCE(NEW.status_process_melody, '') ||
-    COALESCE(NEW.id_telegram_melody, '') ||
-    COALESCE(NEW.id_pl_melody, '') ||
-    COALESCE(NEW.index_tabs_variant::TEXT, '') ||
-    COALESCE(NEW.version_dzen_lyrics::TEXT, '') ||
-    COALESCE(NEW.version_dzen_karaoke::TEXT, '') ||
-    COALESCE(NEW.version_dzen_chords::TEXT, '') ||
-    COALESCE(NEW.version_dzen_melody::TEXT, '') ||
-    COALESCE(NEW.version_vk_lyrics::TEXT, '') ||
-    COALESCE(NEW.version_vk_karaoke::TEXT, '') ||
-    COALESCE(NEW.version_vk_chords::TEXT, '') ||
-    COALESCE(NEW.version_vk_melody::TEXT, '') ||
-    COALESCE(NEW.version_telegram_lyrics::TEXT, '') ||
-    COALESCE(NEW.version_telegram_karaoke::TEXT, '') ||
-    COALESCE(NEW.version_telegram_chords::TEXT, '') ||
-    COALESCE(NEW.version_telegram_melody::TEXT, '') ||
-    COALESCE(NEW.version_pl_lyrics::TEXT, '') ||
-    COALESCE(NEW.version_pl_karaoke::TEXT, '') ||
-    COALESCE(NEW.version_pl_chords::TEXT, '') ||
-    COALESCE(NEW.version_pl_melody::TEXT, '') ||
-    COALESCE(NEW.version_boosty::TEXT, '') ||
-    COALESCE(NEW.version_sponsr::TEXT, '') ||
-    COALESCE(NEW.version_boosty_files::TEXT, '') ||
-    COALESCE(NEW.rate::TEXT, '') ||
-    COALESCE(NEW.formatted_text_song, '') ||
-    COALESCE(NEW.formatted_text_tabs, '') ||
-    COALESCE(NEW.formatted_text_chords, '')
-        );
+        COALESCE(NEW.id::TEXT, '') ||
+        COALESCE(NEW.song_name, '') ||
+        COALESCE(NEW.song_author, '') ||
+        COALESCE(NEW.song_album, '') ||
+        COALESCE(NEW.publish_date, '') ||
+        COALESCE(NEW.publish_time, '') ||
+        COALESCE(NEW.song_year::TEXT, '') ||
+        COALESCE(NEW.song_track::TEXT, '') ||
+        COALESCE(NEW.song_tone, '') ||
+        COALESCE(NEW.song_bpm::TEXT, '') ||
+        COALESCE(NEW.song_ms::TEXT, '') ||
+        COALESCE(NEW.file_name, '') ||
+        COALESCE(NEW.root_folder, '') ||
+        COALESCE(NEW.id_boosty, '') ||
+        COALESCE(NEW.id_dzen_lyrics, '') ||
+        COALESCE(NEW.id_dzen_karaoke, '') ||
+        COALESCE(NEW.id_dzen_chords, '') ||
+        COALESCE(NEW.id_status::TEXT, '') ||
+        COALESCE(NEW.source_text, '') ||
+        COALESCE(NEW.source_markers, '') ||
+        COALESCE(NEW.id_vk_lyrics, '') ||
+        COALESCE(NEW.id_vk_karaoke, '') ||
+        COALESCE(NEW.id_vk_chords, '') ||
+        COALESCE(NEW.status_process_lyrics, '') ||
+        COALESCE(NEW.status_process_karaoke, '') ||
+        COALESCE(NEW.status_process_chords, '') ||
+        COALESCE(NEW.id_vk, '') ||
+        COALESCE(NEW.id_telegram_lyrics, '') ||
+        COALESCE(NEW.id_telegram_karaoke, '') ||
+        COALESCE(NEW.id_telegram_chords, '') ||
+        COALESCE(NEW.tags, '') ||
+        COALESCE(NEW.result_text, '') ||
+        COALESCE(NEW.id_boosty_files, '') ||
+        COALESCE(NEW.result_version::TEXT, '') ||
+        COALESCE(NEW.id_pl_lyrics, '') ||
+        COALESCE(NEW.id_pl_karaoke, '') ||
+        COALESCE(NEW.id_pl_chords, '') ||
+        COALESCE(NEW.diff_beats::TEXT, '') ||
+        COALESCE(NEW.id_sponsr, '') ||
+        COALESCE(NEW.id_dzen_melody, '') ||
+        COALESCE(NEW.id_vk_melody, '') ||
+        COALESCE(NEW.status_process_melody, '') ||
+        COALESCE(NEW.id_telegram_melody, '') ||
+        COALESCE(NEW.id_pl_melody, '') ||
+        COALESCE(NEW.index_tabs_variant::TEXT, '') ||
+        COALESCE(NEW.version_dzen_lyrics::TEXT, '') ||
+        COALESCE(NEW.version_dzen_karaoke::TEXT, '') ||
+        COALESCE(NEW.version_dzen_chords::TEXT, '') ||
+        COALESCE(NEW.version_dzen_melody::TEXT, '') ||
+        COALESCE(NEW.version_vk_lyrics::TEXT, '') ||
+        COALESCE(NEW.version_vk_karaoke::TEXT, '') ||
+        COALESCE(NEW.version_vk_chords::TEXT, '') ||
+        COALESCE(NEW.version_vk_melody::TEXT, '') ||
+        COALESCE(NEW.version_telegram_lyrics::TEXT, '') ||
+        COALESCE(NEW.version_telegram_karaoke::TEXT, '') ||
+        COALESCE(NEW.version_telegram_chords::TEXT, '') ||
+        COALESCE(NEW.version_telegram_melody::TEXT, '') ||
+        COALESCE(NEW.version_pl_lyrics::TEXT, '') ||
+        COALESCE(NEW.version_pl_karaoke::TEXT, '') ||
+        COALESCE(NEW.version_pl_chords::TEXT, '') ||
+        COALESCE(NEW.version_pl_melody::TEXT, '') ||
+        COALESCE(NEW.version_boosty::TEXT, '') ||
+        COALESCE(NEW.version_sponsr::TEXT, '') ||
+        COALESCE(NEW.version_boosty_files::TEXT, '') ||
+        COALESCE(NEW.rate::TEXT, '') ||
+        COALESCE(NEW.root_id::TEXT, '') ||
+        COALESCE(NEW.free::TEXT, '') ||
+        COALESCE(NEW.exclusive::TEXT, '') ||
+        COALESCE(NEW.formatted_text_song, '') ||
+        COALESCE(NEW.formatted_text_tabs, '') ||
+        COALESCE(NEW.formatted_text_chords, '') ||
+        COALESCE(NEW.id_max_lyrics, '') ||
+        COALESCE(NEW.id_max_karaoke, '') ||
+        COALESCE(NEW.id_max_chords, '') ||
+        COALESCE(NEW.id_max_melody, '') ||
+        COALESCE(NEW.version_max_lyrics::TEXT, '') ||
+        COALESCE(NEW.version_max_karaoke::TEXT, '') ||
+        COALESCE(NEW.version_max_chords::TEXT, '') ||
+        COALESCE(NEW.version_max_melody::TEXT, '')
+    );
     RETURN NEW;
 END;
 $$;
@@ -604,7 +615,18 @@ CREATE TABLE public.tbl_settings (
     recordhash character varying(32),
     formatted_text_song text DEFAULT ''::text NOT NULL,
     formatted_text_tabs text DEFAULT ''::text NOT NULL,
-    formatted_text_chords text DEFAULT ''::text NOT NULL
+    formatted_text_chords text DEFAULT ''::text NOT NULL,
+    root_id integer DEFAULT 0 NOT NULL,
+    exclusive boolean DEFAULT false NOT NULL,
+    free boolean DEFAULT false NOT NULL,
+    id_max_lyrics character varying(20) DEFAULT ''::character varying,
+    id_max_karaoke character varying(20) DEFAULT ''::character varying,
+    id_max_chords character varying(20) DEFAULT ''::character varying,
+    id_max_melody character varying(20) DEFAULT ''::character varying,
+    version_max_lyrics integer DEFAULT 0,
+    version_max_karaoke integer DEFAULT 0,
+    version_max_chords integer DEFAULT 0,
+    version_max_melody integer DEFAULT 0
 );
 
 
@@ -699,7 +721,21 @@ CREATE TABLE public.tbl_settings_sync (
     version_sponsr integer DEFAULT 0,
     version_boosty_files integer DEFAULT 0,
     rate integer DEFAULT 0,
-    recordhash character varying(32)
+    recordhash character varying(32),
+    formatted_text_song text DEFAULT ''::text NOT NULL,
+    formatted_text_tabs text DEFAULT ''::text NOT NULL,
+    formatted_text_chords text DEFAULT ''::text NOT NULL,
+    root_id integer DEFAULT 0 NOT NULL,
+    exclusive boolean DEFAULT false NOT NULL,
+    free boolean DEFAULT false NOT NULL,
+    id_max_lyrics character varying(20) DEFAULT ''::character varying,
+    id_max_karaoke character varying(20) DEFAULT ''::character varying,
+    id_max_chords character varying(20) DEFAULT ''::character varying,
+    id_max_melody character varying(20) DEFAULT ''::character varying,
+    version_max_lyrics integer DEFAULT 0,
+    version_max_karaoke integer DEFAULT 0,
+    version_max_chords integer DEFAULT 0,
+    version_max_melody integer DEFAULT 0
 );
 
 
@@ -1110,6 +1146,13 @@ CREATE INDEX tbl_settings_root_folder_index ON public.tbl_settings USING btree (
 
 
 --
+-- Name: tbl_settings_root_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX tbl_settings_root_id_index ON public.tbl_settings USING btree (root_id);
+
+
+--
 -- Name: tbl_settings_song_album_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1260,5 +1303,5 @@ CREATE TRIGGER update_sync_last_updated_trigger BEFORE UPDATE ON public.tbl_sett
 -- PostgreSQL database dump complete
 --
 
-\unrestrict aRTqlYw4VgdJB3mP1G2QpMdmbLmNqPMuqhIHG4vbdNKQLPG9YQ7M2lPGgK2FDJG
+\unrestrict b7iJExTgHfqPQNmGf8mcUhQnpMbv27ajuBWiCH6pzmHmgPZLEDgLPs7Bdb2alYL
 

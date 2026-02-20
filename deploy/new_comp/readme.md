@@ -33,6 +33,9 @@ sudo mkdir -p /sm-karaoke/store
 
 Переходим в папку /sm-karaoke/system/deploy и запускаем в ней терминал
 
+./do.sh start_db
+./do.sh start_storage
+
 Создаем новую чистую базу данных: `./do.sh create_clear_db`
 Запускаем приложение: `./do.sh start_app2`
 Запуск фронтэнда: `./do.sh start_webvue`

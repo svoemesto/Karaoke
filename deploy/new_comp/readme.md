@@ -32,7 +32,7 @@ sudo mkdir -p /sm-karaoke/store
 Скопировать папку /sm-karaoke/system/SpaceBox4096
 
 Переходим в папку /sm-karaoke/system/deploy и запускаем в ней терминал
-
+docker network create karaokenet
 ./do.sh start_db
 ./do.sh start_storage
 

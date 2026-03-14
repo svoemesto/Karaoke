@@ -16,6 +16,7 @@
       <module name="Karaoke.karaoke-web.test" options="-parameters" />
       <module name="Karaoke.main" options="-parameters" />
       <module name="Karaoke.test" options="-parameters" />
+      <module name="com.svoemesto.Karaoke.karaoke-web.test" options="-parameters" />
     </option>
   </component>
 </project>

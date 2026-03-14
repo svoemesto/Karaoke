@@ -7,7 +7,9 @@ data class AuthorDTO(
         val id: Long,
         val author: String,
         val ymId: String,
+        val vkId: String,
         val lastAlbumYm: String,
+        val lastAlbumVk: String,
         val lastAlbumProcessed: String,
         val watched: Boolean,
         val skip: Boolean,
@@ -24,7 +26,9 @@ data class AuthorDTO(
         entity.id = id
         entity.author = author
         entity.ymId = ymId
+        entity.vkId = vkId
         entity.lastAlbumYm = lastAlbumYm
+        entity.lastAlbumVk = lastAlbumVk
         entity.lastAlbumProcessed = lastAlbumProcessed
         entity.watched = watched
         entity.skip = skip

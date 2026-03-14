@@ -51,6 +51,7 @@ val LETTERS_VOWEL = "${vovels}${vovels.uppercase()}♪"
 const val NOTES_SYMBOLS = "♬♩♪△▲⬦⬥"
 const val RUSSIAN_LETTERS = "ЙЦУКЕНГШЩЗХЪФЫВАПРОЛДЖЭЯЧСМИТЬБЮЁйцукенгшщзхъфывапролджэячсмитьбюё"
 const val ENGLISH_LETTERS = "QWERTYUIOPASDFGHJKLZXCVBNMqwertyuiopasdfghjklzxcvbnm"
+const val CHORDS_LETTERS = "ABCDEFGH#bMminaj-+/augd7659o13s4"
 const val DEMUCS_MODEL_NAME = "hdemucs_mmi"
 
 //const val PATH_TO_FFMPEG = "/bin/ffmpeg"

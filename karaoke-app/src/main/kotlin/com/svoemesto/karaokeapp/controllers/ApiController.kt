@@ -3009,7 +3009,9 @@ class ApiController(
         @RequestParam(required = true) id: Long,
         @RequestParam(required = true) author: String,
         @RequestParam(required = true) ymId: String,
+        @RequestParam(required = true) vkId: String,
         @RequestParam(required = true) lastAlbumYm: String,
+        @RequestParam(required = true) lastAlbumVk: String?,
         @RequestParam(required = true) lastAlbumProcessed: String,
         @RequestParam(required = true) watched: Boolean,
         @RequestParam(required = true) skip: Boolean
@@ -3018,7 +3020,9 @@ class ApiController(
         Author.getAuthorById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)?.let {
             it.author = author
             it.ymId = ymId
+            it.vkId = vkId
             it.lastAlbumYm = lastAlbumYm
+            it.lastAlbumVk = lastAlbumVk?:""
             it.lastAlbumProcessed = lastAlbumProcessed
             it.watched = watched
             it.skip = skip
@@ -3034,7 +3038,9 @@ class ApiController(
         @RequestParam(required = false) filterId: String?,
         @RequestParam(required = false) filterAuthor: String?,
         @RequestParam(required = false) filterYmId: String?,
+        @RequestParam(required = false) filterVkId: String?,
         @RequestParam(required = false) filterLastAlbumYm: String?,
+        @RequestParam(required = false) filterLastAlbumVk: String?,
         @RequestParam(required = false) filterLastAlbumProcessed: String?,
         @RequestParam(required = false) filterWatched: String?,
         @RequestParam(required = false) filterHaveNewAlbum: String?,
@@ -3045,7 +3051,9 @@ class ApiController(
         filterId?.let { if (filterId != "") args["id"] = filterId }
         filterAuthor?.let { if (filterAuthor != "") args["author"] = filterAuthor }
         filterYmId?.let { if (filterYmId != "") args["ym_id"] = filterYmId }
+        filterVkId?.let { if (filterVkId != "") args["vk_id"] = filterVkId }
         filterLastAlbumYm?.let { if (filterLastAlbumYm != "") args["last_album_ym"] = filterLastAlbumYm }
+        filterLastAlbumVk?.let { if (filterLastAlbumVk != "") args["last_album_vk"] = filterLastAlbumVk }
         filterLastAlbumProcessed?.let { if (filterLastAlbumProcessed != "") args["last_album_processed"] = filterLastAlbumProcessed }
         filterWatched?.let { if (filterWatched != "") args["watched"] = filterWatched }
         filterHaveNewAlbum?.let { if (filterHaveNewAlbum != "") args["haveNewAlbum"] = filterHaveNewAlbum }
@@ -3205,6 +3213,12 @@ class ApiController(
         @RequestParam(required = true) dict: String
     ): List<String> {
         return TextFileDictionary.loadList(dict)
+    }
+
+    @PostMapping("/getfreetimeslots")
+    @ResponseBody
+    fun getFreeTS(): List<String> {
+        return getFreeTimeSlots()
     }
 
     @PostMapping("/songs/addsyncforall")

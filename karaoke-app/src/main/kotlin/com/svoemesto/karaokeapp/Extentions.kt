@@ -119,7 +119,7 @@ fun String.haveVowel(): Boolean {
 }
 
 fun String.containOnlyThisSymbols(symbolString: String): Boolean {
-    return this.deleteThisSymbols(symbolString).trim() == ""
+    return symbolString.trim() != "" && this.deleteThisSymbols(symbolString).trim() == ""
 }
 
 fun String.deleteThisSymbols(symbolString: String): String {

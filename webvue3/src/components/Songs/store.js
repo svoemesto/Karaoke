@@ -3,6 +3,7 @@ import { promisedXMLHttpRequest } from '../../lib/utils'
 export default {
     state: {
         toSync: false,
+        freeTimeSlots: [],
         lastSettingType: '',
         lastSettingValue: '',
         lastPriorLyrics: '',
@@ -338,6 +339,9 @@ export default {
     getters: {
         getToSync(state) {
             return state.toSync;
+        },
+        getFreeTimeSlots(state) {
+            return state.freeTimeSlots;
         },
         getLastSettingType(state) {
             return state.lastSettingType;
@@ -1073,6 +1077,7 @@ export default {
             state.currentSongId = !state.currentSong ? 0 : state.currentSong.id;
             state.snapshotSong = !state.currentSong ? undefined : Object.assign({}, state.currentSong)
             state.toSync = await this.dispatch('getToSyncFromRest');
+            state.freeTimeSlots = await this.dispatch('getFreeTimeSlots');
         },
         async updateSong(state, songFromRest) {
             if (songFromRest) {
@@ -1096,6 +1101,7 @@ export default {
                     state.currentSongId = songFromRest.id;
                     state.snapshotSong = Object.assign({}, state.currentSong)
                     state.toSync = await this.dispatch('getToSyncFromRest');
+                    state.freeTimeSlots = await this.dispatch('getFreeTimeSlots');
                 }
             }
         },
@@ -1292,6 +1298,7 @@ export default {
                 state.leftSongId = songWithIndexes.song.idLeft;
                 state.snapshotSong = Object.assign({}, state.currentSong)
                 state.toSync = await this.dispatch('getToSyncFromRest');
+                state.freeTimeSlots = await this.dispatch('getFreeTimeSlots');
             } else {
                 let request = { method: 'POST', url: "/api/song", params: {id: currId} };
                 promisedXMLHttpRequest(request).then(async data => {
@@ -1322,6 +1329,7 @@ export default {
                              state.leftSongId = songFromRest.idLeft;
                              state.snapshotSong = Object.assign({}, state.currentSong)
                              state.toSync = await this.dispatch('getToSyncFromRest');
+                             state.freeTimeSlots = await this.dispatch('getFreeTimeSlots');
                          }
                      }
                 });
@@ -1385,6 +1393,7 @@ export default {
                     state.currentSongPageIndex = pageNum;
                     state.snapshotSong = Object.assign({}, state.currentSong)
                     state.toSync = await this.dispatch('getToSyncFromRest');
+                    state.freeTimeSlots = await this.dispatch('getFreeTimeSlots');
                 }
             }
         },
@@ -2125,5 +2134,14 @@ export default {
             console.log('getToSyncFromRest result', result);
             return result;
         },
+        async getFreeTimeSlots(ctx) {
+            const freeTimeSlots = await promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/api/getfreetimeslots"
+            });
+            const result = JSON.parse(freeTimeSlots);
+            console.log('freeTimeSlots', result);
+            return result;
+        }
     }
 }

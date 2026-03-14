@@ -11,7 +11,9 @@ BEGIN
         COALESCE(NEW.id::TEXT, '') ||
         COALESCE(NEW.author, '') ||
         COALESCE(NEW.ym_id, '') ||
+        COALESCE(NEW.vk_id, '') ||
         COALESCE(NEW.last_album_ym, '') ||
+        COALESCE(NEW.last_album_vk, '') ||
         COALESCE(NEW.last_album_processed, '') ||
         COALESCE(NEW.watched::TEXT, '') ||
         COALESCE(NEW.skip::TEXT, '')
@@ -31,7 +33,9 @@ SET recordhash = md5(
     COALESCE(id::TEXT, '') ||
     COALESCE(author, '') ||
     COALESCE(ym_id, '') ||
+    COALESCE(vk_id, '') ||
     COALESCE(last_album_ym, '') ||
+    COALESCE(last_album_vk, '') ||
     COALESCE(last_album_processed, '') ||
     COALESCE(watched::TEXT, '') ||
     COALESCE(skip::TEXT, '')

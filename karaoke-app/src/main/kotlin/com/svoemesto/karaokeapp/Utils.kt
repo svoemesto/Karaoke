@@ -45,6 +45,8 @@ import java.sql.Statement
 import java.sql.Timestamp
 import java.text.SimpleDateFormat
 import java.time.Instant
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import java.util.*
 import kotlin.io.inputStream
 import kotlin.io.outputStream
@@ -1116,7 +1118,9 @@ fun replaceSymbolsInSong(sourceText: String): String {
         val linesWithoutChords: MutableList<String> = mutableListOf()
         lines.forEach { line ->
             if (!(line.containThisSymbols(ENGLISH_LETTERS) && !line.containThisSymbols(RUSSIAN_LETTERS))) {
-                linesWithoutChords.add(line)
+                if (!line.containOnlyThisSymbols(CHORDS_LETTERS) || line.trim() == "") {
+                    linesWithoutChords.add(line)
+                }
             }
         }
         result = linesWithoutChords.joinToString("\n")
@@ -2375,6 +2379,67 @@ fun String.textBetween(startString: String, endString: String): String {
     return stringToSearch.substring(0, lastIndexOfStartString)
 }
 
+fun searchLastAlbumVk(vkId: String): String {
+    var result = ""
+    val authorUrl = "https://vk.ru/artist/$vkId"
+    val searchUrl = "https://vk.com/$vkId/albums"
+    Playwright.create().use { playwright ->
+
+        val browser = playwright.chromium().launch(
+            BrowserType.LaunchOptions()
+                .setHeadless(false)
+        )
+
+        // Создаем контекст с дополнительными заголовками и сохраненным состоянием
+        val context = browser.newContext(
+            Browser.NewContextOptions()
+//                .setStorageStatePath(Path.of(YANDEX_AUTH_STATE_PATH))
+                .setExtraHTTPHeaders(
+                    mapOf(
+                        "Referer" to authorUrl,
+                        "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
+                        "Accept-Language" to "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7",
+                        "Accept-Encoding" to "gzip, deflate, br",
+                        "Connection" to "keep-alive",
+                        "Upgrade-Insecure-Requests" to "1",
+                        "Sec-Fetch-Dest" to "document",
+                        "Sec-Fetch-Mode" to "navigate",
+                        "Sec-Fetch-Site" to "same-origin"
+                    )
+                )
+        )
+
+        val page = context.newPage()
+        page.navigate(searchUrl)
+
+        page.waitForLoadState()
+
+        val html = page.content()
+
+        println(html)
+
+        val preloadedAlbums = html.extractBalancedBracesFromString("""\"preloadedAlbums\":""")
+        val album = preloadedAlbums.extractBalancedBracesFromString("""\"albums\":[""")
+        result = album.textBetween("""\"title\":\"""", """\",\"""")
+
+        if (result == "") {
+            if (html.contains("Нам очень жаль, но запросы с вашего устройства похожи на автоматические")) {
+                println("Нам очень жаль, но запросы с вашего устройства похожи на автоматические")
+                throw Exception("Нам очень жаль, но запросы с вашего устройства похожи на автоматические")
+            }
+            println("preloadedAlbum = $preloadedAlbums")
+            println("album = $album")
+            println("searchLastAlbumYm2 html: '${html.substring(0, minOf(html.length, 1000))}...'") // ограничиваем вывод
+        }
+
+        // Сохраняем состояние (cookies, localStorage и т.д.) после успешного поиска
+//        context.storageState(BrowserContext.StorageStateOptions().setPath(Path.of(YANDEX_AUTH_STATE_PATH)))
+//        browser.close()
+        Thread.sleep(10000)
+    }
+    return result
+}
+
 fun searchLastAlbumYm2(authorYmId: String): String {
     var result = ""
     val authorUrl = "https://music.yandex.ru/artist/$authorYmId"
@@ -2755,5 +2820,103 @@ fun findAndFillDublicates(author: String, database: KaraokeConnection, storageSe
             result++
         }
     }
+    return result
+}
+fun getFreeTimeSlots(): List<String> {
+    val result = mutableListOf<String>()
+    val sql = """
+        SELECT PD
+        FROM (
+            SELECT TO_DATE(ts.publish_date, 'DD.MM.YY') + INTERVAL '1 day' + INTERVAL '11 hour' AS PD
+            FROM tbl_settings ts
+            WHERE ts.publish_time = '11:00'
+            ORDER BY PD DESC
+            LIMIT 1
+        ) AS subquery11
+        UNION ALL
+        SELECT PD
+        FROM (
+            SELECT TO_DATE(ts.publish_date, 'DD.MM.YY') + INTERVAL '1 day' + INTERVAL '12 hour' AS PD
+            FROM tbl_settings ts
+            WHERE ts.publish_time = '12:00'
+            ORDER BY PD DESC
+            LIMIT 1
+        ) AS subquery12
+        UNION ALL
+        SELECT PD
+        FROM (
+            SELECT TO_DATE(ts.publish_date, 'DD.MM.YY') + INTERVAL '1 day' + INTERVAL '13 hour' AS PD
+            FROM tbl_settings ts
+            WHERE ts.publish_time = '13:00'
+            ORDER BY PD DESC
+            LIMIT 1
+        ) AS subquery13
+        UNION ALL
+        SELECT PD
+        FROM (
+            SELECT TO_DATE(ts.publish_date, 'DD.MM.YY') + INTERVAL '1 day' + INTERVAL '14 hour' AS PD
+            FROM tbl_settings ts
+            WHERE ts.publish_time = '14:00'
+            ORDER BY PD DESC
+            LIMIT 1
+        ) AS subquery14
+        UNION all
+        SELECT PD
+        FROM (
+            SELECT TO_DATE(ts.publish_date, 'DD.MM.YY') + INTERVAL '1 day' + INTERVAL '15 hour' AS PD
+            FROM tbl_settings ts
+            WHERE ts.publish_time = '15:00'
+            ORDER BY PD DESC
+            LIMIT 1
+        ) AS subquery15
+        UNION all
+        SELECT PD
+        FROM (
+            SELECT TO_DATE(ts.publish_date, 'DD.MM.YY') + INTERVAL '1 day' + INTERVAL '16 hour' AS PD
+            FROM tbl_settings ts
+            WHERE ts.publish_time = '16:00'
+            ORDER BY PD DESC
+            LIMIT 1
+        ) AS subquery16
+        UNION ALL
+        SELECT PD
+        FROM (
+            SELECT TO_DATE(ts.publish_date, 'DD.MM.YY') + INTERVAL '1 day' + INTERVAL '17 hour' AS PD
+            FROM tbl_settings ts
+            WHERE ts.publish_time = '17:00'
+            ORDER BY PD DESC
+            LIMIT 1
+        ) AS subquery17;
+    """.trimIndent()
+
+    val database = WORKING_DATABASE
+    val connection = database.getConnection()
+    if (connection == null) {
+        println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
+        return emptyList()
+    }
+    var statement: Statement? = null
+    var rs: ResultSet? = null
+
+    try {
+        statement = connection.createStatement()
+        rs = statement.executeQuery(sql)
+        while (rs.next()) {
+            val dateTime = rs.getTimestamp("PD")
+            val dateTimeString = dateTime.toLocalDateTime().format(DateTimeFormatter.ofPattern("dd.MM.yy HH:mm"))
+            result.add(dateTimeString)
+        }
+        return result
+    } catch (e: SQLException) {
+        e.printStackTrace()
+    } finally {
+        try {
+            rs?.close() // close result set
+            statement?.close() // close statement
+        } catch (e: SQLException) {
+            e.printStackTrace()
+        }
+    }
+
     return result
 }

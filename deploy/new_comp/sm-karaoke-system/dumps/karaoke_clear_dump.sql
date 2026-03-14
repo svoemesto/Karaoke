@@ -66,7 +66,9 @@ BEGIN
         COALESCE(NEW.id::TEXT, '') ||
         COALESCE(NEW.author, '') ||
         COALESCE(NEW.ym_id, '') ||
+        COALESCE(NEW.vk_id, '') ||
         COALESCE(NEW.last_album_ym, '') ||
+        COALESCE(NEW.last_album_vk, '') ||
         COALESCE(NEW.last_album_processed, '') ||
         COALESCE(NEW.watched::TEXT, '') ||
         COALESCE(NEW.skip::TEXT, '')
@@ -378,7 +380,9 @@ CREATE TABLE public.tbl_authors (
     id integer NOT NULL,
     author character varying(255),
     ym_id character varying(255),
+    vk_id character varying(255),
     last_album_ym character varying(255),
+    last_album_vk character varying(255),
     last_album_processed character varying(255),
     watched boolean DEFAULT true,
     skip boolean DEFAULT false,

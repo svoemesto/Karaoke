@@ -28,8 +28,14 @@ class Author(
     @KaraokeDbTableField(name = "ym_id")
     var ymId: String = ""
 
+    @KaraokeDbTableField(name = "vk_id")
+    var vkId: String = ""
+
     @KaraokeDbTableField(name = "last_album_ym")
     var lastAlbumYm: String = ""
+
+    @KaraokeDbTableField(name = "last_album_vk")
+    var lastAlbumVk: String = ""
 
     @KaraokeDbTableField(name = "last_album_processed")
     var lastAlbumProcessed: String = ""
@@ -40,7 +46,7 @@ class Author(
     @KaraokeDbTableField(name = "skip")
     var skip: Boolean = false
 
-    val haveNewAlbum: Boolean get() = watched && ymId != "" && lastAlbumYm != lastAlbumProcessed
+    val haveNewAlbum: Boolean get() = watched && (ymId != "" || vkId != "") && (lastAlbumYm != lastAlbumProcessed || lastAlbumVk != lastAlbumProcessed)
     override fun compareTo(other: Author): Int {
         return author.compareTo(other.author)
     }
@@ -59,7 +65,9 @@ class Author(
                 id = id,
                 author = author,
                 ymId = ymId,
+                vkId = vkId,
                 lastAlbumYm = lastAlbumYm,
+                lastAlbumVk = lastAlbumVk,
                 lastAlbumProcessed = lastAlbumProcessed,
                 watched = watched,
                 skip = skip,
@@ -82,7 +90,9 @@ class Author(
             if (whereArgs.containsKey("id")) where += "id=${whereArgs["id"]}"
             if (whereArgs.containsKey("author")) where += "author = '${whereArgs["author"]}'"
             if (whereArgs.containsKey("ym_id")) where += "ym_id = '${whereArgs["ym_id"]}'"
+            if (whereArgs.containsKey("vk_id")) where += "vk_id = '${whereArgs["vk_id"]}'"
             if (whereArgs.containsKey("last_album_ym")) where += "last_album_ym = '${whereArgs["last_album_ym"]}'"
+            if (whereArgs.containsKey("last_album_vk")) where += "last_album_vk = '${whereArgs["last_album_vk"]}'"
             if (whereArgs.containsKey("last_album_processed")) where += "last_album_processed = '${whereArgs["last_album_processed"]}'"
             if (whereArgs.containsKey("watched")) {
                 if (whereArgs["watched"] == "+" || whereArgs["watched"] == "true") {
@@ -93,9 +103,9 @@ class Author(
             }
             if (whereArgs.containsKey("haveNewAlbum")) {
                 if (whereArgs["haveNewAlbum"] == "+" || whereArgs["haveNewAlbum"] == "true") {
-                    where += "(watched = true AND ym_id <> '' AND last_album_ym <> last_album_processed)"
+                    where += "(watched = true AND (ym_id <> '' OR vk_id <> '') AND (last_album_ym <> last_album_processed OR last_album_vk <> last_album_processed))"
                 } else if (whereArgs["haveNewAlbum"] == "-" || whereArgs["haveNewAlbum"] == "false") {
-                    where += "(watched = false OR ym_id = '' OR last_album_ym = last_album_processed)"
+                    where += "(watched = false OR (ym_id = '' AND vk_id = '') OR (last_album_ym = last_album_processed OR last_album_vk = last_album_processed))"
                 }
             }
             if (whereArgs.containsKey("skip")) {

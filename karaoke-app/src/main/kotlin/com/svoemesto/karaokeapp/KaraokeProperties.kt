@@ -172,6 +172,8 @@ val listKaraokeProperties = listOf(
     KaraokeProperty(key = "requestNewSongTimeoutMs", defaultValue = 600_000L, description = "Задержка между запросами поиска новых песен автора (миллисекунды)"),
     KaraokeProperty(key = "requestNewSongTimeoutMin", defaultValue = 10L, description = "Задержка между запросами поиска новых песен автора (минуты)"),
     KaraokeProperty(key = "autoSave", defaultValue = true, description = "Автосохранение"),
+    KaraokeProperty(key = "showChordsIfEmpty", defaultValue = false, description = "Показывать кнопки версии аккордов, даже если версии нет"),
+    KaraokeProperty(key = "showMelodyIfEmpty", defaultValue = false, description = "Показывать кнопки версии мелодии, даже если версии нет"),
     KaraokeProperty(key = "autoUpdateRemoteSettings", defaultValue = false, description = "Автообновление записи в удаленной БД при сохранении"),
     KaraokeProperty(key = "monitoringRemoteSettingsSync", defaultValue = false, description = "Мониторинг sync-записей в удаленной БД"),
     KaraokeProperty(key = "checkLastAlbum", defaultValue = false, description = "Искать альбомы авторов в Яндекс.Музыке"),

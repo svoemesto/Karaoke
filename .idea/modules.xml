@@ -3,16 +3,9 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/-248496615/Karaoke.karaoke-app.integrationTest.iml" filepath="$PROJECT_DIR$/.idea/modules/-248496615/Karaoke.karaoke-app.integrationTest.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/karaoke-app/Karaoke.karaoke-app.main.iml" filepath="$PROJECT_DIR$/.idea/modules/karaoke-app/Karaoke.karaoke-app.main.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/karaoke-app/Karaoke.karaoke-app.test.iml" filepath="$PROJECT_DIR$/.idea/modules/karaoke-app/Karaoke.karaoke-app.test.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/-1670583930/Karaoke.karaoke-db.integrationTest.iml" filepath="$PROJECT_DIR$/.idea/modules/-1670583930/Karaoke.karaoke-db.integrationTest.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/karaoke-db/Karaoke.karaoke-db.main.iml" filepath="$PROJECT_DIR$/.idea/modules/karaoke-db/Karaoke.karaoke-db.main.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/karaoke-db/Karaoke.karaoke-db.test.iml" filepath="$PROJECT_DIR$/.idea/modules/karaoke-db/Karaoke.karaoke-db.test.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/Karaoke.karaoke-web.integrationTest.iml" filepath="$PROJECT_DIR$/.idea/modules/Karaoke.karaoke-web.integrationTest.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/Karaoke.karaoke-web.main.iml" filepath="$PROJECT_DIR$/.idea/modules/Karaoke.karaoke-web.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/Karaoke.karaoke-web.test.iml" filepath="$PROJECT_DIR$/.idea/modules/Karaoke.karaoke-web.test.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/Karaoke.main.iml" filepath="$PROJECT_DIR$/.idea/modules/Karaoke.main.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/Karaoke.test.iml" filepath="$PROJECT_DIR$/.idea/modules/Karaoke.test.iml" />
     </modules>
   </component>
 </project>

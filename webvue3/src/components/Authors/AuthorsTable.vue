@@ -90,6 +90,23 @@
           ></div>
         </template>
 
+        <template #cell(vkId)="data">
+          <div
+              class="fld-vkId"
+              v-text="data.value"
+              :style="{ color: currentAuthorId === data.item.id ? 'blue' : 'black' }"
+              @click.left="openVKMusicAuthor(data.item)"
+          ></div>
+        </template>
+
+        <template #cell(lastAlbumVk)="data">
+          <div
+              class="fld-lastAlbumVk"
+              v-text="data.value"
+              :style="{ color: currentAuthorId === data.item.id ? 'blue' : 'black' }"
+          ></div>
+        </template>
+
         <template #cell(lastAlbumProcessed)="data">
           <div
               class="fld-lastAlbumProcessed"
@@ -240,6 +257,26 @@ export default {
           }
         },
         {
+          key: 'vkId',
+          label: 'VK ID',
+          style: {
+            minWidth: '100px',
+            maxWidth: '100px',
+            textAlign: 'left',
+            fontSize: 'small'
+          }
+        },
+        {
+          key: 'lastAlbumVk',
+          label: 'Последний альбом (VK)',
+          style: {
+            minWidth: '300px',
+            maxWidth: '300px',
+            textAlign: 'left',
+            fontSize: 'small'
+          }
+        },
+        {
           key: 'lastAlbumProcessed',
           label: 'Последний альбом (DB)',
           style: {
@@ -296,6 +333,13 @@ export default {
       }
     },
 
+    openVKMusicAuthor(item) {
+      if (item.ymId) {
+        const vkMusicAuthorLink = 'https://vk.ru/artist/' + item.vkId + '/releases';
+        window.open(vkMusicAuthorLink, '_blank');
+      }
+    },
+
     changeValue(item) {
 
       this.customConfirmParams = {
@@ -332,6 +376,20 @@ export default {
             fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px'},
             fldValueStyle: { width: '300px', textAlign: 'left', borderRadius: '5px'}
           },
+          {
+            fldName: 'vkId',
+            fldLabel: 'VK ID:',
+            fldValue: item.vkId,
+            fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px'},
+            fldValueStyle: { width: '300px', textAlign: 'left', borderRadius: '5px'}
+          },
+          {
+            fldName: 'lastAlbumVk',
+            fldLabel: 'Последний альбом (VK):',
+            fldValue: item.lastAlbumVk,
+            fldLabelStyle: { width: '300px', textAlign: 'right', paddingRight: '5px'},
+            fldValueStyle: { width: '300px', textAlign: 'left', borderRadius: '5px'}
+          },          
           {
             fldName: 'lastAlbumProcessed',
             fldLabel: 'Последний альбом (DB):',
@@ -479,7 +537,29 @@ export default {
   cursor: pointer;
 }
 
+.fld-vkId {
+  min-width: 100px;
+  max-width: 100px;
+  text-align: center;
+  font-size: small;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.fld-vkId:hover {
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 .fld-lastAlbumYm {
+  min-width: 300px;
+  max-width: 300px;
+  text-align: left;
+  font-size: small;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.fld-lastAlbumVk {
   min-width: 300px;
   max-width: 300px;
   text-align: left;

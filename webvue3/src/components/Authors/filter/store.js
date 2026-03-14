@@ -4,7 +4,9 @@ export default {
         authorsFilterId: '',
         authorsFilterAuthor: '',
         authorsFilterYmId: '',
+        authorsFilterVkId: '',
         authorsFilterLastAlbumYm: '',
+        authorsFilterLastAlbumVk: '',
         authorsFilterLastAlbumProcessed: '',
         authorsFilterWatched: '',
         authorsFilterSkip: '',
@@ -14,7 +16,9 @@ export default {
         getAuthorsFilterId(state) { return state.authorsFilterId},
         getAuthorsFilterAuthor(state) { return state.authorsFilterAuthor},
         getAuthorsFilterYmId(state) { return state.authorsFilterYmId},
+        getAuthorsFilterVkId(state) { return state.authorsFilterVkId},
         getAuthorsFilterLastAlbumYm(state) { return state.authorsFilterLastAlbumYm},
+        getAuthorsFilterLastAlbumVk(state) { return state.authorsFilterLastAlbumVk},
         getAuthorsFilterLastAlbumProcessed(state) { return state.authorsFilterLastAlbumProcessed},
         getAuthorsFilterWatched(state) { return state.authorsFilterWatched},
         getAuthorsFilterSkip(state) { return state.authorsFilterSkip},
@@ -34,9 +38,17 @@ export default {
             setWebvueProp(state.authorsFilterYmId, 'authorsFilterYmId', value);
             state.authorsFilterYmId = value;
         },
+        setAuthorsFilterVkId(state, value) {
+            setWebvueProp(state.authorsFilterVkId, 'authorsFilterVkId', value);
+            state.authorsFilterVkId = value;
+        },
         setAuthorsFilterLastAlbumYm(state, value) {
             setWebvueProp(state.authorsFilterLastAlbumYm, 'authorsFilterLastAlbumYm', value);
             state.authorsFilterLastAlbumYm = value;
+        },
+        setAuthorsFilterLastAlbumVk(state, value) {
+            setWebvueProp(state.authorsFilterLastAlbumVk, 'authorsFilterLastAlbumVk', value);
+            state.authorsFilterLastAlbumVk = value;
         },
         setAuthorsFilterLastAlbumProcessed(state, value) {
             setWebvueProp(state.authorsFilterLastAlbumProcessed, 'authorsFilterLastAlbumProcessed', value);
@@ -59,7 +71,9 @@ export default {
         setAuthorsFilterId(ctx, payload) { ctx.commit('setAuthorsFilterId', payload.value) },
         setAuthorsFilterAuthor(ctx, payload) { ctx.commit('setAuthorsFilterAuthor', payload.value) },
         setAuthorsFilterYmId(ctx, payload) { ctx.commit('setAuthorsFilterYmId', payload.value) },
+        setAuthorsFilterVkId(ctx, payload) { ctx.commit('setAuthorsFilterVkId', payload.value) },
         setAuthorsFilterLastAlbumYm(ctx, payload) { ctx.commit('setAuthorsFilterLastAlbumYm', payload.value) },
+        setAuthorsFilterLastAlbumVk(ctx, payload) { ctx.commit('setAuthorsFilterLastAlbumVk', payload.value) },
         setAuthorsFilterLastAlbumProcessed(ctx, payload) { ctx.commit('setAuthorsFilterLastAlbumProcessed', payload.value) },
         setAuthorsFilterWatched(ctx, payload) { ctx.commit('setAuthorsFilterWatched', payload.value) },
         setAuthorsFilterSkip(ctx, payload) { ctx.commit('setAuthorsFilterSkip', payload.value) },

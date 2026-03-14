@@ -4,6 +4,12 @@
       <subs-edit v-if="isSubsEditVisible" :voices="voices" :song="song" @close="closeSubsEdit"/>
       <custom-confirm v-if="isCustomConfirmVisible" :params="customConfirmParams" @close="closeCustomConfirm" />
       <health-report-table v-if="isHealthReportTableVisible" :id="song.id" @close="closeHealthReportTable"/>
+      <datalist id="list_hours">
+        <option v-for="hour in hours" :key="hour" :value="hour"/>
+      </datalist>
+      <datalist id="list_free_time_slots">
+        <option v-for="freeTimeSlot in freeTimeSlots" :key="freeTimeSlot" :value="freeTimeSlot"/>
+      </datalist>
       <!-- Заголовок с названием песни и автора-->
       <div class="header">
         <div class="header-column-1">
@@ -78,14 +84,14 @@
           </div>
           <div class="label-and-input">
             <div class="label">Дата:</div>
-            <input class="input-field" v-model="song.date">
+            <input class="input-field" v-model="song.date" list="list_free_time_slots">
             <button class="btn-round" @click="undoField('date')" :disabled="notChanged('date')"><img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg"></button>
             <button class="btn-round" @click="copyToClipboard(song.date, 'date')" :disabled="!song.date"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>
             <button class="btn-round" @click="pasteFromClipboard('date')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"></button>
           </div>
           <div class="label-and-input">
             <div class="label">Время:</div>
-            <input class="input-field" v-model="song.time">
+            <input class="input-field" v-model="song.time" list="list_hours">
             <button class="btn-round" @click="undoField('time')" :disabled="notChanged('time')"><img alt="undo" class="icon-undo" src="../../../assets/svg/icon_undo.svg"></button>
             <button class="btn-round" @click="copyToClipboard(song.time, 'time')" :disabled="!song.time"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>
             <button class="btn-round" @click="pasteFromClipboard('time')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"></button>
@@ -216,7 +222,7 @@
                 <button class="btn-round" @click="copyToClipboard(song.idDzenLyrics,'idDzenLyrics')" :disabled="!song.idDzenLyrics"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>
                 <button class="btn-round" @click="pasteFromClipboard('idDzenLyrics')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"></button>
               </div>
-              <div class="label-and-input">
+              <div class="label-and-input" v-if="showChordsDzen">
                 <img class="icon-24" alt="chords" src="../../../assets/svg/icon_chords.svg">
                 <button class="btn-round" @click="openLinkDzenChordsPlay" :disabled="!song.idDzenChords"><img alt="play" class="icon-play" src="../../../assets/svg/icon_play.svg"></button>
                 <button class="btn-round" @click="openLinkDzenChordsEdit" :disabled="!song.idDzenChords"><img alt="edit" class="icon-edit" src="../../../assets/svg/icon_edit.svg"></button>
@@ -229,7 +235,7 @@
                 <button class="btn-round" @click="copyToClipboard(song.idDzenChords,'idDzenChords')" :disabled="!song.idDzenChords"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>
                 <button class="btn-round" @click="pasteFromClipboard('idDzenChords')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"></button>
               </div>
-              <div class="label-and-input">
+              <div class="label-and-input" v-if="showMelodyDzen">
                 <img class="icon-24" alt="melody" src="../../../assets/svg/icon_melody.svg">
                 <button class="btn-round" @click="openLinkDzenTabsPlay" :disabled="!song.idDzenMelody"><img alt="play" class="icon-play" src="../../../assets/svg/icon_play.svg"></button>
                 <button class="btn-round" @click="openLinkDzenTabsEdit" :disabled="!song.idDzenMelody"><img alt="edit" class="icon-edit" src="../../../assets/svg/icon_edit.svg"></button>
@@ -274,7 +280,7 @@
                 <button class="btn-round" @click="copyToClipboard(song.idVkLyrics,'idVkLyrics')" :disabled="!song.idVkLyrics"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>
                 <button class="btn-round" @click="pasteFromClipboard('idVkLyrics')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"></button>
               </div>
-              <div class="label-and-input">
+              <div class="label-and-input" v-if="showChordsVk">
                 <img class="icon-24" alt="song" src="../../../assets/svg/icon_chords.svg">
                 <button class="btn-round-wide" @click="openLinkVkChords" :disabled="!song.idVkChords"><img alt="play" class="icon-play-wide" src="../../../assets/svg/icon_play.svg"></button>
                 <button class="btn-round" @click="getVkChordsHeader"><img alt="head" class="icon-texthead" src="../../../assets/svg/icon_head.svg"></button>
@@ -286,7 +292,7 @@
                 <button class="btn-round" @click="copyToClipboard(song.idVkChords,'idVkChords')" :disabled="!song.idVkChords"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>
                 <button class="btn-round" @click="pasteFromClipboard('idVkChords')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"></button>
               </div>
-              <div class="label-and-input">
+              <div class="label-and-input" v-if="showMelodyVk">
                 <img class="icon-24" alt="song" src="../../../assets/svg/icon_melody.svg">
                 <button class="btn-round-wide" @click="openLinkVkTabs" :disabled="!song.idVkMelody"><img alt="play" class="icon-play-wide" src="../../../assets/svg/icon_play.svg"></button>
                 <button class="btn-round" @click="getVkTabsHeader"><img alt="head" class="icon-texthead" src="../../../assets/svg/icon_head.svg"></button>
@@ -388,7 +394,7 @@
                 <button class="btn-round" @click="copyToClipboard(song.idTelegramLyrics, 'idTelegramLyrics')" :disabled="!song.idTelegramLyrics"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>
                 <button class="btn-round" @click="pasteFromClipboard('idTelegramLyrics')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"></button>
               </div>
-              <div class="label-and-input">
+              <div class="label-and-input" v-if="showChordsTelegram">
                 <img class="icon-24" alt="song" src="../../../assets/svg/icon_chords.svg">
                 <button class="btn-round-wide" @click="openLinkTelegramChords" :disabled="!song.idTelegramChords"><img alt="play" class="icon-play-wide" src="../../../assets/svg/icon_play.svg"></button>
                 <button class="btn-round-wide" @click="getTelegramChordsHeader"><img alt="head" class="icon-texthead-wide" src="../../../assets/svg/icon_head.svg"></button>
@@ -399,7 +405,7 @@
                 <button class="btn-round" @click="copyToClipboard(song.idTelegramChords, 'idTelegramChords')" :disabled="!song.idTelegramChords"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>
                 <button class="btn-round" @click="pasteFromClipboard('idTelegramChords')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"></button>
               </div>
-              <div class="label-and-input">
+              <div class="label-and-input" v-if="showMelodyTelegram">
                 <img class="icon-24" alt="song" src="../../../assets/svg/icon_melody.svg">
                 <button class="btn-round-wide" @click="openLinkTelegramTabs" :disabled="!song.idTelegramMelody"><img alt="play" class="icon-play-wide" src="../../../assets/svg/icon_play.svg"></button>
                 <button class="btn-round-wide" @click="getTelegramTabsHeader"><img alt="head" class="icon-texthead-wide" src="../../../assets/svg/icon_head.svg"></button>
@@ -440,7 +446,7 @@
                 <button class="btn-round" @click="copyToClipboard(song.idMaxLyrics, 'idMaxLyrics')" :disabled="!song.idMaxLyrics"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>
                 <button class="btn-round" @click="pasteFromClipboard('idMaxLyrics')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"></button>
               </div>
-              <div class="label-and-input">
+              <div class="label-and-input" v-if="showChordsMax">
                 <img class="icon-24" alt="song" src="../../../assets/svg/icon_chords.svg">
                 <button class="btn-round-wide" @click="openLinkMaxChords" :disabled="!song.idMaxChords"><img alt="play" class="icon-play-wide" src="../../../assets/svg/icon_play.svg"></button>
                 <button class="btn-round-wide" @click="getMaxChordsHeader"><img alt="head" class="icon-texthead-wide" src="../../../assets/svg/icon_head.svg"></button>
@@ -451,7 +457,7 @@
                 <button class="btn-round" @click="copyToClipboard(song.idMaxChords, 'idMaxChords')" :disabled="!song.idMaxChords"><img alt="copy" class="icon-copy" src="../../../assets/svg/icon_copy.svg"></button>
                 <button class="btn-round" @click="pasteFromClipboard('idMaxChords')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"></button>
               </div>
-              <div class="label-and-input">
+              <div class="label-and-input" v-if="showMelodyVk">
                 <img class="icon-24" alt="song" src="../../../assets/svg/icon_melody.svg">
                 <button class="btn-round-wide" @click="openLinkMaxTabs" :disabled="!song.idMaxMelody"><img alt="play" class="icon-play-wide" src="../../../assets/svg/icon_play.svg"></button>
                 <button class="btn-round-wide" @click="getMaxTabsHeader"><img alt="head" class="icon-texthead-wide" src="../../../assets/svg/icon_head.svg"></button>
@@ -659,6 +665,9 @@ export default {
       allowUpdateRemote: false,
       allowUpdateLocal: false,
       allowAddSync: false,
+      showChordsIfEmpty: false,
+      showMelodyIfEmpty: false,
+      hours:['11:00', '12:00', '13:00', '14:00', '15:00', '16:00'],
       createToast: () => {}
     };
   },
@@ -671,12 +680,38 @@ export default {
     this.$store.dispatch('getNotesFormattedPromise').then(notesFormatted => this.notesFormatted = notesFormatted);
     this.$store.dispatch('getChordsFormattedPromise').then(chordsFormatted => this.chordsFormatted = chordsFormatted);
     this.autoSave = await this.propAutoSave();
+    this.showChordsIfEmpty = await this.propShowChordsIfEmpty();
+    this.showMelodyIfEmpty = await this.propShowMelodyIfEmpty();
     this.allowUpdateRemote = await this.propAllowUpdateRemote();
     this.allowUpdateLocal = await this.propAllowUpdateLocal();
     this.allowAddSync = await this.propAllowAddSync();
     this.autoSaveDelayMs = Number(await this.propAutoSaveDelayMs());
   },
   computed: {
+    showChordsDzen() {
+      return this.showChordsIfEmpty || this.song.idDzenChords;
+    },
+    showChordsVk() {
+      return this.showChordsIfEmpty || this.song.idVkChords;
+    },
+    showChordsTelegram() {
+      return this.showChordsIfEmpty || this.song.idTelegramChords;
+    },
+    showChordsMax() {
+      return this.showChordsIfEmpty || this.song.idMaxChords;
+    },
+    showMelodyDzen() {
+      return this.showMelodyIfEmpty || this.song.idDzenMelody;
+    },
+    showMelodyVk() {
+      return this.showMelodyIfEmpty || this.song.idVkMelody;
+    },
+    showMelodyTelegram() {
+      return this.showMelodyIfEmpty || this.song.idTelegramMelody;
+    },
+    showMelodyMax() {
+      return this.showMelodyIfEmpty || this.song.idMaxMelody;
+    },
     styleRoot() {
       return {
         padding: 0,
@@ -698,6 +733,7 @@ export default {
     snapshot() { return this.$store.getters.getSnapshotSong },
     diff() { return this.$store.getters.getSongDiff },
     toSync() { return this.$store.getters.getToSync },
+    freeTimeSlots() { return this.$store.getters.getFreeTimeSlots },
 
     mainLink() { return this.prefixMainLink + this.song.id; },
     linkBoosty() { return this.prefixLinkBoosty + this.song.idBoosty; },
@@ -1193,12 +1229,36 @@ export default {
           }
         }
       }
+    },
+    'song.date.value': {
+      deep: true,
+      handler () {
+        if (this.song) {
+          const value = this.song.date;
+          const regex = /^(\d{2}\.\d{2}\.\d{2})\s(\d{2}:\d{2})$/;
+          const match = value.match(regex);
+          if (match) {
+            const date = match[1];
+            const time = match[2];
+            this.$store.dispatch('setCurrentSongField', {name: 'date', value: date})
+            this.$store.dispatch('setCurrentSongField', {name: 'time', value: time})
+          }
+        }
+      }
     }
   },
 
   methods: {
     async propAutoSave() {
       const propValue = await this.$store.getters.getPropValue('autoSave');
+      return propValue === 'true'
+    },
+    async propShowChordsIfEmpty() {
+      const propValue = await this.$store.getters.getPropValue('showChordsIfEmpty');
+      return propValue === 'true'
+    },
+    async propShowMelodyIfEmpty() {
+      const propValue = await this.$store.getters.getPropValue('showMelodyIfEmpty');
       return propValue === 'true'
     },
     async propAllowUpdateRemote() {

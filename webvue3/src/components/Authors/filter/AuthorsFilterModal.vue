@@ -52,6 +52,26 @@
 
             <div class="afm-filter-row">
               <div class="afm-row-label">
+                <div v-text="'VK.ID:'"></div>
+              </div>
+              <div class="afm-row-input">
+                <input class="afm-input-field" v-model="authorsFilterVkId">
+              </div>
+              <button :disabled="!authorsFilterVkId" class="afm-button-clear-field" @click.left="authorsFilterVkId=''" v-text="'X'"></button>
+            </div>
+
+            <div class="afm-filter-row">
+              <div class="afm-row-label">
+                <div v-text="'Последний альбом (VK):'"></div>
+              </div>
+              <div class="afm-row-input">
+                <input class="afm-input-field" v-model="authorsFilterLastAlbumVk">
+              </div>
+              <button :disabled="!authorsFilterLastAlbumVk" class="afm-button-clear-field" @click.left="authorsFilterLastAlbumVk=''" v-text="'X'"></button>
+            </div>
+
+            <div class="afm-filter-row">
+              <div class="afm-row-label">
                 <div v-text="'Последний альбом (DB):'"></div>
               </div>
               <div class="afm-row-input">
@@ -111,7 +131,9 @@ export default {
     this.$store.dispatch('setAuthorsFilterId', { value: await this.$store.getters.getWebvueProp('authorsFilterId', '') });
     this.$store.dispatch('setAuthorsFilterAuthor', { value: await this.$store.getters.getWebvueProp('authorsFilterAuthor', '') });
     this.$store.dispatch('setAuthorsFilterYmId', { value: await this.$store.getters.getWebvueProp('authorsFilterYmId', '') });
+    this.$store.dispatch('setAuthorsFilterVkId', { value: await this.$store.getters.getWebvueProp('authorsFilterVkId', '') });
     this.$store.dispatch('setAuthorsFilterLastAlbumYm', { value: await this.$store.getters.getWebvueProp('authorsFilterLastAlbumYm', '') });
+    this.$store.dispatch('setAuthorsFilterLastAlbumVk', { value: await this.$store.getters.getWebvueProp('authorsFilterLastAlbumVk', '') });
     this.$store.dispatch('setAuthorsFilterLastAlbumProcessed', { value: await this.$store.getters.getWebvueProp('authorsFilterLastAlbumProcessed', '') });
     this.$store.dispatch('setAuthorsFilterWatched', { value: await this.$store.getters.getWebvueProp('authorsFilterWatched', '') });
     this.$store.dispatch('setAuthorsFilterSkip', { value: await this.$store.getters.getWebvueProp('authorsFilterSkip', '') });
@@ -130,9 +152,17 @@ export default {
       get() { return this.$store.getters.getAuthorsFilterYmId; },
       set(value) { this.$store.dispatch('setAuthorsFilterYmId', { value: value }); }
     },
+    authorsFilterVkId: {
+      get() { return this.$store.getters.getAuthorsFilterVkId; },
+      set(value) { this.$store.dispatch('setAuthorsFilterVkId', { value: value }); }
+    },
     authorsFilterLastAlbumYm: {
       get() { return this.$store.getters.getAuthorsFilterLastAlbumYm; },
       set(value) { this.$store.dispatch('setAuthorsFilterLastAlbumYm', { value: value }); }
+    },
+    authorsFilterLastAlbumVk: {
+      get() { return this.$store.getters.getAuthorsFilterLastAlbumVk; },
+      set(value) { this.$store.dispatch('setAuthorsFilterLastAlbumVk', { value: value }); }
     },
     authorsFilterLastAlbumProcessed: {
       get() { return this.$store.getters.getAuthorsFilterLastAlbumProcessed; },
@@ -156,7 +186,9 @@ export default {
       this.$store.dispatch('setAuthorsFilterId', { value: this.authorsFilterId });
       this.$store.dispatch('setAuthorsFilterAuthor', { value: this.authorsFilterAuthor });
       this.$store.dispatch('setAuthorsFilterYmId', { value: this.authorsFilterYmId });
+      this.$store.dispatch('setAuthorsFilterVkId', { value: this.authorsFilterVkId });
       this.$store.dispatch('setAuthorsFilterLastAlbumYm', { value: this.authorsFilterLastAlbumYm });
+      this.$store.dispatch('setAuthorsFilterLastAlbumVk', { value: this.authorsFilterLastAlbumVk });
       this.$store.dispatch('setAuthorsFilterLastAlbumProcessed', { value: this.authorsFilterLastAlbumProcessed });
       this.$store.dispatch('setAuthorsFilterWatched', { value: this.authorsFilterWatched });
       this.$store.dispatch('setAuthorsFilterSkip', { value: this.authorsFilterSkip });
@@ -166,7 +198,9 @@ export default {
       if (this.authorsFilterId) params.filterId = this.authorsFilterId;
       if (this.authorsFilterAuthor) params.filterAuthor = this.authorsFilterAuthor;
       if (this.authorsFilterYmId) params.filterYmId = this.authorsFilterYmId;
+      if (this.authorsFilterVkId) params.filterVkId = this.authorsFilterVkId;
       if (this.authorsFilterLastAlbumYm) params.filterLastAlbumYm = this.authorsFilterLastAlbumYm;
+      if (this.authorsFilterLastAlbumVk) params.filterLastAlbumVk = this.authorsFilterLastAlbumVk;
       if (this.authorsFilterLastAlbumProcessed) params.filterLastAlbumProcessed = this.authorsFilterLastAlbumProcessed;
       if (this.authorsFilterWatched) params.filterWatched = this.authorsFilterWatched;
       if (this.authorsFilterSkip) params.filterSkip = this.authorsFilterSkip;

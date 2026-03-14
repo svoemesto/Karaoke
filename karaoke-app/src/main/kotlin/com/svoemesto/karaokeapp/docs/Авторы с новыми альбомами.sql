@@ -1,3 +1,3 @@
 select * from tbl_authors
-where watched = true AND last_album_ym <> last_album_processed
+where watched = true AND (last_album_ym <> last_album_processed OR last_album_vk <> last_album_processed)
 order by author

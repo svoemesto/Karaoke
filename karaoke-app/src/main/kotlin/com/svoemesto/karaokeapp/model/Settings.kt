@@ -280,7 +280,7 @@ class Settings(
         }
         set(value) {fields[SettingField.SOURCE_TEXT] = value}
 
-    val haveSourceText: Boolean get() = !sourceText.isEmpty()
+    val haveSourceText: Boolean get() = !sourceTextList.isEmpty()
 
     var resultText: String
         get() {

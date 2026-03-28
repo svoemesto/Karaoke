@@ -2621,8 +2621,8 @@ class ApiController(
             ids.forEach { id ->
                 val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
                 settings?.let {
-                    println("settings.sourceTex is Blank = ${settings.sourceText.isBlank()}")
-                    if (settings.sourceText.isBlank()) {
+                    println("settings.haveSourceText = ${settings.haveSourceText}")
+                    if (!settings.haveSourceText) {
                         getYandexSearch(settings = settings, async = true)
                     }
                 }

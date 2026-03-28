@@ -280,6 +280,8 @@ class Settings(
         }
         set(value) {fields[SettingField.SOURCE_TEXT] = value}
 
+    val haveSourceText: Boolean get() = !sourceText.isEmpty()
+
     var resultText: String
         get() {
             val txt = fields[SettingField.RESULT_TEXT] ?: ""
@@ -5226,7 +5228,8 @@ class Settings(
             formattedTextChords = formattedTextChords,
             rootId = rootId,
             exclusive = exclusive,
-            free = free
+            free = free,
+            haveSourceText = haveSourceText
         )
     }
 

@@ -2592,13 +2592,22 @@ class ApiController(
         }
     }
 
+    @PostMapping("/song/findsongtext")
+    @ResponseBody
+    fun getFindSongText(@RequestParam id: Long): List<FindSongResult> {
+        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+        return  settings?.let {
+            findSongText(settings = settings)
+        } ?: emptyList()
+    }
+
     // Ищем и возвращаем текст
     @PostMapping("/song/searchsongtext")
     @ResponseBody
     fun getSearchSongText(@RequestParam id: Long): String {
         val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
         return  settings?.let {
-            searchSongText(settings)
+            findSongText(settings = settings, countInResult = 1).firstOrNull()?.findedText?: ""
         } ?: ""
     }
 
@@ -2612,16 +2621,18 @@ class ApiController(
             ids.forEach { id ->
                 val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
                 settings?.let {
+                    println("settings.sourceTex is Blank = ${settings.sourceText.isBlank()}")
                     if (settings.sourceText.isBlank()) {
-                        val text = searchSongText(settings)
-
-                        Thread.sleep(2000)
-
-                        if (text.isNotBlank()) {
-                            settings.sourceText = text
-                            settings.fields[SettingField.ID_STATUS] = "1"
-                            settings.saveToDb()
-                        }
+                        getYandexSearch(settings = settings, async = true)
+//                        val text = findSongText(settings = settings, countInResult = 1).firstOrNull()?.findedText?: ""
+//
+//                        Thread.sleep(2000)
+//
+//                        if (text.isNotBlank()) {
+//                            settings.sourceText = text
+//                            settings.fields[SettingField.ID_STATUS] = "1"
+//                            settings.saveToDb()
+//                        }
                     }
                 }
                 result = true
@@ -2920,7 +2931,7 @@ class ApiController(
         if (KaraokeProcessWorker.isWork) {
             KaraokeProcessWorker.stop()
         } else {
-            KaraokeProcessWorker.start(WORKING_DATABASE)
+            KaraokeProcessWorker.start(database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
         }
     }
 

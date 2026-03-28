@@ -1,15 +1,24 @@
 package com.svoemesto.karaokeapp
 
+import com.fasterxml.jackson.core.type.TypeReference
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.svoemesto.karaokeapp.model.*
 import com.svoemesto.karaokeapp.services.KSS_APP
+import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.SAC_APP
 import com.svoemesto.karaokeapp.services.SNS
+import com.svoemesto.karaokeapp.services.StorageApiClient
 import org.springframework.stereotype.Component
 import java.io.BufferedReader
 import java.io.File
 import java.io.InputStreamReader
+import java.net.SocketTimeoutException
+import java.net.URL
 import java.sql.Timestamp
 import java.time.Instant
+import java.time.LocalDateTime
+import java.util.Base64
+import javax.net.ssl.HttpsURLConnection
 
 
 class KaraokeProcessThread(val karaokeProcess: KaraokeProcess? = null, var percentage: String? = null): Thread() {
@@ -165,12 +174,12 @@ class KaraokeProcessWorker {
 
 //        var workThread: KaraokeProcessThread? = null
 
-        fun start(database: KaraokeConnection) {
+        fun start(database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient) {
             if (!isWork) {
                 KaraokeProcess.deleteDone(database)
                 KaraokeProcess.setWorkingToWaiting(database)
                 sendCountWaitingMessage(KaraokeProcess.getCountWaiting(database))
-                doStart(database)
+                doStart(database = database, storageService = storageService, storageApiClient = storageApiClient)
             } else {
                 stopAfterThreadIsDone = false
                 sendStateMessage()
@@ -215,7 +224,7 @@ class KaraokeProcessWorker {
             return KaraokeProcess.getProcessesToStart(database)
         }
 
-        private fun doStart(database: KaraokeConnection) {
+        private fun doStart(database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient) {
             val timeout = 10L
             var counter = 0L
             var id = 0L
@@ -227,7 +236,7 @@ class KaraokeProcessWorker {
             val intervalCheckFiles = 24_000
             var requestNewSongTimeoutMs = Karaoke.requestNewSongTimeoutMs
             var requestNewSongLastTimeMs = Karaoke.requestNewSongLastTimeMs
-
+            val requestResultTimeoutMs = Karaoke.requestResultTimeoutMs
             isWork = true
             stopAfterThreadIsDone = false
             sendStateMessage()
@@ -236,6 +245,101 @@ class KaraokeProcessWorker {
             while (isWork) {
 
                 val currentTimeMs = System.currentTimeMillis()
+
+                // Если нужно мониторить SearchAsync
+                if (Karaoke.checkSearchAsync) {
+                    // Получаем первый элемент из списка "не готовых" и "просроченных" SearchAsync
+                    SearchAsync.getSearchAsyncFirstNotDoneAndTimeout(
+                        timeoutMs = requestResultTimeoutMs,
+                        database = database,
+                        storageService = storageService,
+                        storageApiClient = storageApiClient
+                    )?.let { searchAsync ->
+
+                        // Если таймаут истёк - надо отправить запрос готовности асинхронного запроса
+                        println("Проверяем готовность асинхронного запроса, song id = ${searchAsync.songId}, id = ${searchAsync.id}, operation id = ${searchAsync.operationId}")
+                        val url = URL("${Karaoke.requestAsyncOperationsUrlPrefix}${searchAsync.operationId}")
+                        val connection = url.openConnection() as HttpsURLConnection
+                        val iamToken = getIamToken()
+                        try {
+                            connection.apply {
+                                requestMethod = "GET"
+                                setRequestProperty("Authorization", "Bearer $iamToken")
+                                setRequestProperty("Content-Type", "application/json")
+                                setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+                                doOutput = false
+                                connectTimeout = 10000
+                                readTimeout = 30000
+                            }
+
+                            val responseCode = connection.responseCode
+
+                            if (responseCode == 200) {
+                                val response = connection.inputStream.bufferedReader().use { it.readText() }
+                                val mapper = ObjectMapper()
+                                val apiResponse: ApiResponseAsync = mapper.readValue(response, object : TypeReference<ApiResponseAsync>() {})
+                                if (apiResponse.done == true) {
+                                    // Асинхронный запрос уже выполнился
+                                    if (apiResponse.response != null) {
+                                        if (!apiResponse.response.rawData.isNullOrEmpty()) {
+                                            searchAsync.rawData = String(Base64.getDecoder().decode(apiResponse.response.rawData))
+                                            searchAsync.done = true
+                                            searchAsync.lastRequestedAt = LocalDateTime.now().toTimestamp()
+                                            searchAsync.save()
+                                            println("Получен ответ: Асинхронный запрос выполнен, тело ответа ${searchAsync.rawData.length} символов.")
+                                            /*
+                                            Вызываем обработка ссылок
+                                             */
+                                            val searchResults = SearchResult.getSearchResultsForSearchAsync(searchAsync = searchAsync)
+                                            println("Для полученного ответа сформировано записей searchResults: ${searchResults.size}")
+                                            val searchedRightResults = searchResults.filter { !it.wrongResult && it.text.isNotEmpty() }
+                                            println("Из них записей с наличием текста: ${searchedRightResults.size}")
+                                            if (searchedRightResults.isNotEmpty()) {
+                                                val songId = searchAsync.songId
+                                                Settings.loadFromDbById(
+                                                    id = songId,
+                                                    database = database,
+                                                    storageService = storageService,
+                                                    storageApiClient = storageApiClient
+                                                )?.let { settings ->
+                                                    if (settings.sourceText.isBlank() && settings.idStatus == 0L) {
+                                                        println("Первое из найденных не пустых значений применяем для текста песни ${settings.fileName}")
+                                                        settings.sourceText = searchedRightResults.first().text
+                                                        settings.fields[SettingField.ID_STATUS] = "1"
+                                                        settings.saveToDb()
+                                                    }
+                                                }
+                                            }
+
+                                        } else {
+                                            println("Асинхронный запрос выполнен, но rawData пустой")
+                                        }
+                                    } else {
+                                        println("Асинхронный запрос выполнен, но response пустой")
+                                    }
+                                } else {
+                                    // Асинхронный запрос еще не выполнился, надо ещё подождать
+                                    println("Получен ответ: Асинхронный запрос ещё не выполнился, надо ещё подождать")
+                                    searchAsync.lastRequestedAt = LocalDateTime.now().toTimestamp()
+                                    searchAsync.save()
+                                }
+
+                            } else {
+                                throw RuntimeException("Failed to search: $responseCode")
+                            }
+
+                        } catch (e: SocketTimeoutException) {
+                            println("Exception details: ${e.message}, пропускаем.")
+                        } catch (e: Exception) {
+                            println("Exception details: ${e.message}")
+                            e.printStackTrace()
+                            throw RuntimeException("HTTP request failed: ${e.message}", e)
+                        } finally {
+                            connection.disconnect()
+                        }
+
+                    }
+                }
 
                 if (Karaoke.checkLastAlbum) {
                     if (requestNewSongLastTimeMs + requestNewSongTimeoutMs < currentTimeMs) {
@@ -408,18 +512,13 @@ class KaraokeProcessWorker {
                                     }
 
                                 }
-//                                workThread = KaraokeProcessThread(karaokeProcess)
                                 threadsMap[threadId] = KaraokeProcessThread(karaokeProcess)
 
                                 id = karaokeProcess.id
-//                            settingsId = karaokeProcess.settingsId.toLong()
-//                            processType = karaokeProcess.type
-//                                percentage = 0.0
                                 withoutControl = karaokeProcess.withoutControl
                                 if (karaokeProcess.command != "tail" || karaokeProcess.args[0][0] !in argsIgnoredToLog) {
                                     println("[${Timestamp.from(Instant.now())}] ProcessWorker: Стартуем новое задание: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}")
                                 }
-//                                workThread!!.start()
                                 threadsMap[threadId]!!.start()
                             }
                         } else {
@@ -427,7 +526,6 @@ class KaraokeProcessWorker {
                                 val kp = KaraokeProcess.load(id, database)
                                 val diffs = KaraokeProcess.getDiff(kp)
                                 if (diffs.isNotEmpty()) {
-//                                    workThread?.karaokeProcess?.save()
                                     threadsMap[threadId]?.karaokeProcess?.save()
                                 }
                             }
@@ -444,18 +542,9 @@ class KaraokeProcessWorker {
 
                         if (!withoutControl) {
 
-//                            val kp = workThread?.karaokeProcess
                             val kp = threadsMap[threadId]?.karaokeProcess
                             val diffs = KaraokeProcess.getDiff(kp)
                             if (diffs.isNotEmpty()) {
-//                                if (percentage != (workThread?.karaokeProcess?.percentage ?: 0.0)) {
-//                                    percentage = workThread?.karaokeProcess?.percentage ?: 0.0
-//                                }
-//                                workThread?.karaokeProcess?.save()
-
-//                                if (percentage != (threadsMap[threadId]?.karaokeProcess?.percentage ?: 0.0)) {
-//                                    percentage = threadsMap[threadId]?.karaokeProcess?.percentage ?: 0.0
-//                                }
                                 threadsMap[threadId]?.karaokeProcess?.save()
                             }
                         }

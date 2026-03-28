@@ -838,6 +838,7 @@ class Settings(
     val fileAbsolutePath: String get() = "$rootFolder/$fileName.flac"
     @Suppress("unused") val fileAbsolutePathTmp: String get() = "$rootFolder/$fileName-tmp.flac"
     val fileSettingsAbsolutePath: String get() = "$rootFolder/$fileName.settings"
+    val fileSearchedLinksAbsolutePath: String get() = "$rootFolder/$fileName [searched links].xml"
 
     @Suppress("unused") val relativePathToFile: String get() = "../$fileName.flac"
     val relativePathToNoStemNameFlac: String get() = "../$DEMUCS_MODEL_NAME/$fileName-accompaniment.flac"

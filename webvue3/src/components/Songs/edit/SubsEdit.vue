@@ -5,6 +5,7 @@
         <div class="se-subsedit-body">
 
           <custom-confirm v-if="isCustomConfirmVisible" :params="customConfirmParams" @close="closeCustomConfirm" />
+          <search-text v-if="isSearchTextVisible" :params="searchTextParams" @close="closeSearchText" />
 
           <div class="se-grid-item-header">
             <div class="se-subsedit-header-song-name">«{{song.songName}}»</div>
@@ -302,6 +303,7 @@ import RegionsPlugin from 'wavesurfer.js/dist/plugins/regions.esm.js'
 import TimelinePlugin from 'wavesurfer.js/dist/plugins/timeline.esm.js'
 import Minimap from 'wavesurfer.js/dist/plugins/minimap.esm.js'
 import CustomConfirm from "../../Common/CustomConfirm.vue";
+import SearchText from "./SearchText.vue";
 // import {TabsPlugin} from 'bootstrap-vue'
 // import Vue from "vue";
 // Vue.use(TabsPlugin)
@@ -310,7 +312,8 @@ import CustomConfirm from "../../Common/CustomConfirm.vue";
 export default {
   name: "SubsEdit",
   components: {
-    CustomConfirm
+    CustomConfirm,
+    SearchText
   },
   data() {
     return {
@@ -398,6 +401,8 @@ export default {
       activeRegion: null,
       isCustomConfirmVisible: false,
       customConfirmParams: undefined,
+      isSearchTextVisible: false,
+      searchTextParams: undefined,
       selectedText: '',
       midi: null,
       isShowMarkerTypeSyllables: true,
@@ -1589,6 +1594,9 @@ export default {
     closeCustomConfirm() {
       this.isCustomConfirmVisible = false;
     },
+    closeSearchText() {
+      this.isSearchTextVisible = false;
+    },
     save() {
       this.addEndMarker();
       this.$store.dispatch('saveSourceTextAndMarkers', {
@@ -2778,17 +2786,9 @@ export default {
         }
       }
     },
-    async searchText() {
-      this.sourceText = await this.$store.getters.getSearchSongText;
-    },
     doSearchText() {
-      this.customConfirmParams = {
-        header: 'Подтвердите поиск текста',
-        body: `Найти в Интернете текст для этой песни?`,
-        timeout: 10,
-        callback: this.searchText
-      }
-      this.isCustomConfirmVisible = true;
+      this.searchTextParams = { songId: this.song.id };
+      this.isSearchTextVisible = true;
     },
     getSelectedText() {
       let textComponent = document.getElementById('editor');

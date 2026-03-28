@@ -2619,12 +2619,23 @@ fun setProcessPriority(pid: Long, priority: Int): Boolean {
     }
 }
 
-fun createScriptForHost(args: List<String>) {
+fun createScriptForHost(args: List<String>, waitToDone: Boolean = false) {
     val txt = args.joinToString(" ")
     val fileName = "/sm-karaoke/system/scriptsFromDocker/${UUID.randomUUID()}.sh"
     val file = File(fileName)
     file.writeText(txt)
     runCommand(listOf("chmod", "777", fileName))
+    if (waitToDone) {
+        // Ожидание удаления файла с таймаутом
+        val timeoutMillis = 30000 // 30 секунд таймаут
+        val startTime = System.currentTimeMillis()
+        while (file.exists()) {
+            if (System.currentTimeMillis() - startTime > timeoutMillis) {
+                throw RuntimeException("Файл $fileName не был удален в течение $timeoutMillis мс, проверьте запущен ли watcher")
+            }
+            Thread.sleep(100) // Пауза 100 мс между проверками
+        }
+    }
 }
 
 fun runFunctionWithArgs(args: List<String>): String {

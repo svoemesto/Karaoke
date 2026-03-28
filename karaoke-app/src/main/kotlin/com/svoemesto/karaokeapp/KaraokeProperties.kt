@@ -162,6 +162,17 @@ class KaraokeProperties {
 val karaokePropertiesMap: MutableMap<String, Any> = mutableMapOf()
 
 val listKaraokeProperties = listOf(
+    KaraokeProperty(key = "checkSearchAsync", defaultValue = false, description = "Мониторинг SearchAsync"),
+    KaraokeProperty(key = "requestAsyncUrl", defaultValue = "https://searchapi.api.cloud.yandex.net/v2/web/searchAsync", description = "URL асинхронного запроса поиска"),
+    KaraokeProperty(key = "requestAsyncOperationsUrlPrefix", defaultValue = "https://operation.api.cloud.yandex.net/operations/", description = "Префикс URL-а запроса проверки готовности асинхронного запроса"),
+    KaraokeProperty(key = "requestSyncUrl", defaultValue = "https://searchapi.api.cloud.yandex.net/v2/web/search", description = "URL синхронного запроса поиска"),
+    KaraokeProperty(key = "yandexCloudFolderId", defaultValue = "", description = "Yandex Cloud Folder ID"),
+    KaraokeProperty(key = "iamTokenFilePath", defaultValue = "/sm-karaoke/system/yandex/iam_token.txt", description = "Путь к файлу IAM Token"),
+    KaraokeProperty(key = "requestIamToken", defaultValue = "", description = "IAM Token запроса поиска"),
+    KaraokeProperty(key = "requestIamTokenLastTimeMs", defaultValue = 0L, description = "Время последнего получения IAM Token-а"),
+    KaraokeProperty(key = "requestIamTokenTimeoutMs", defaultValue = 3_600_000L, description = "Таймаут для получения IAM Token-а"),
+    KaraokeProperty(key = "requestResultTimeoutMs", defaultValue = 300_000L, description = "Таймаут для проверки готовности асинхронного запроса"),
+
     KaraokeProperty(key = "requestNewSongLastTimeMs", defaultValue = 0L, description = "Время последнего запроса поиска новой песни (миллисекунды)"),
     KaraokeProperty(key = "requestNewSongLastTimeCode", defaultValue = "", description = "Время последнего запроса поиска новой песни"),
     KaraokeProperty(key = "requestNewSongLastSuccessTimeMs", defaultValue = 0L, description = "Время последнего удачного запроса поиска новой песни (миллисекунды)"),

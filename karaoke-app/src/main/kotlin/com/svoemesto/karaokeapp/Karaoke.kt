@@ -131,6 +131,57 @@ data class KaraokePropertyDTO(
 class Karaoke : Serializable {
     companion object {
 
+        //Мониторинг SearchAsync
+        var checkSearchAsync: Boolean
+            get() = KaraokeProperties.getBoolean("checkSearchAsync")
+            set(value) { KaraokeProperties.set("checkSearchAsync", value) }
+
+        // URL асинхронного запроса поиска
+        var requestAsyncUrl: String
+            get() = KaraokeProperties.getString("requestAsyncUrl")
+            set(value) { KaraokeProperties.set("requestAsyncUrl", value) }
+
+        // Префикс URL-а запроса проверки готовности асинхронного запроса
+        var requestAsyncOperationsUrlPrefix: String
+            get() = KaraokeProperties.getString("requestAsyncOperationsUrlPrefix")
+            set(value) { KaraokeProperties.set("requestAsyncOperationsUrlPrefix", value) }
+
+        // URL синхронного запроса поиска
+        var requestSyncUrl: String
+            get() = KaraokeProperties.getString("requestSyncUrl")
+            set(value) { KaraokeProperties.set("requestSyncUrl", value) }
+
+        // Yandex Cloud Folder ID
+        var yandexCloudFolderId: String
+            get() = KaraokeProperties.getString("yandexCloudFolderId")
+            set(value) { KaraokeProperties.set("yandexCloudFolderId", value) }
+
+        // Путь к файлу IAM Token
+        var iamTokenFilePath: String
+            get() = KaraokeProperties.getString("iamTokenFilePath")
+            set(value) { KaraokeProperties.set("iamTokenFilePath", value) }
+
+        // IAM Token запроса поиска
+        var requestIamToken: String
+            get() = KaraokeProperties.getString("requestIamToken")
+            set(value) { KaraokeProperties.set("requestIamToken", value) }
+
+        // Время последнего получения IAM Token-а
+        var requestIamTokenLastTimeMs: Long
+            get() = KaraokeProperties.getLong("requestIamTokenLastTimeMs")
+            set(value) { KaraokeProperties.set("requestIamTokenLastTimeMs", value) }
+
+        // Таймаут для получения IAM Token-а
+        var requestIamTokenTimeoutMs: Long
+            get() = KaraokeProperties.getLong("requestIamTokenTimeoutMs")
+            set(value) { KaraokeProperties.set("requestIamTokenTimeoutMs", value) }
+
+        // Таймаут для проверки готовности асинхронного запроса
+        var requestResultTimeoutMs: Long
+            get() = KaraokeProperties.getLong("requestResultTimeoutMs")
+            set(value) { KaraokeProperties.set("requestResultTimeoutMs", value) }
+
+
         // Время последнего запроса поиска новой песни
         var requestNewSongLastTimeMs: Long
             get() = KaraokeProperties.getLong("requestNewSongLastTimeMs")

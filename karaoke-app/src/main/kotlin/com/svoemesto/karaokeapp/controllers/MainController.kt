@@ -206,7 +206,7 @@ class MainController(
     @GetMapping("/process/start")
     @ResponseBody
     fun doProcessWorkerStart(): Boolean {
-        KaraokeProcessWorker.start(WORKING_DATABASE)
+        KaraokeProcessWorker.start(database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
         return KaraokeProcessWorker.isWork
     }
 

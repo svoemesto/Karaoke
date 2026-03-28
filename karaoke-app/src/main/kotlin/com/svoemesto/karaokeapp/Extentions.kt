@@ -5,6 +5,9 @@ import com.svoemesto.karaokeapp.textfiledictionary.CensoredWordsDictionary
 import java.awt.Color
 import java.awt.Font
 import java.io.File
+import java.sql.Timestamp
+import java.time.LocalDateTime
+import java.time.ZoneId
 import java.util.*
 
 fun String.wrapInApostraf(): String {
@@ -229,3 +232,11 @@ fun String.stripToNumeric(): String {
 fun Settings.karaokePlatformPublications(): List<KaraokePlatformPublication> = KaraokePlatformPublication.getList(settings = this)
 
 fun List<HealthReport>.errorsOnly(): List<HealthReport> = this.filter { it.healthReportStatus != HealthReportStatus.OK }
+
+fun LocalDateTime.toTimestamp(): Timestamp {
+    return Timestamp.from(this.atZone(ZoneId.systemDefault()).toInstant())
+}
+
+fun LocalDateTime.toEpochMillis(): Long {
+    return this.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+}

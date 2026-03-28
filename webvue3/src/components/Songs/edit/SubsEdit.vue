@@ -220,9 +220,15 @@
               <button class="se-group-button" type="button" @click="doMarkersDec">
                 <img alt="diffbeatsdec" class="se-icon-40" title="Сдвинуть маркеры влево" src="../../../assets/svg/icon_move_markers_left.svg">
               </button>
+              <button class="se-group-button" type="button" @click="doMarkersFirst">
+                <img alt="diffbeatsdec" class="se-icon-40" title="Сдвинуть сюда первый маркер" src="../../../assets/svg/icon_move_markers_left_right.svg">
+              </button>
               <button class="se-group-button" type="button" @click="doMarkersInc">
                 <img alt="diffbeatsinc" class="se-icon-40" title="Сдвинуть маркеры вправо" src="../../../assets/svg/icon_move_markers_right.svg">
               </button>
+              <button class="se-group-button" type="button" @click="doSearchText">
+               <img alt="search text" class="se-icon-40" title="Найти в Интернете текст песни" src="../../../assets/svg/icon_search_text.svg">
+             </button>
               <button class="se-group-button" type="button" @click="addAccent">
                 <img alt="erase markers" class="se-icon-40" title="Добавить ударение" src="../../../assets/svg/icon_accent.svg">
               </button>
@@ -235,9 +241,6 @@
               <button class="se-group-button" type="button" @click="removeWordFromDict">
                 <img alt="remove from dict" class="se-icon-40" title="Удалить слово из словаря" src="../../../assets/svg/icon_dict_remove_e.svg">
               </button>
-<!--              <button class="se-group-button" type="button" @click="doSearchText">-->
-<!--                <img alt="search text" class="se-icon-40" title="Найти в Интернете текст песни" src="../../../assets/svg/icon_search_text.svg">-->
-<!--              </button>-->
               <button class="se-group-button" type="button" @click="doReplaceText">
                 <img alt="replace text" class="se-icon-40" title="Произвести замену текста согласно правилам" src="../../../assets/svg/icon_replace_text.svg">
               </button>
@@ -2740,6 +2743,18 @@ export default {
           return;
         }
       }
+    },
+    doMarkersFirst() {
+      // Берем текущую позицию, находим первый маркер, вычисляем разницу, прибавляем или вычитаем эту разницу у всех последующих маркеров, кроме маркера конца
+      let markers = this.sourceMarkers;
+      const diff = this.currentTime - markers[0].time;
+      for (let i = 0; i < markers.length-1; i++) {
+        let marker = markers[i];
+        if (marker.label !== 'END') {
+          marker.time += diff;
+        }
+      }
+      this.redrawMarkers();
     },
     doReplaceBrokenMarkers() {
       for (let i = 0; i < this.sourceMarkers.length; i++) {

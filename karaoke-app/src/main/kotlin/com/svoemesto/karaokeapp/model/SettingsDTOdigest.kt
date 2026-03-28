@@ -111,7 +111,8 @@ data class SettingsDTOdigest(
         val formattedTextChords: String,
         val rootId: Long,
         val exclusive: Boolean,
-        val free: Boolean
+        val free: Boolean,
+        val haveSourceText: Boolean
 ): Serializable, Comparable<SettingsDTOdigest> {
 
     private val sortString: String get() {

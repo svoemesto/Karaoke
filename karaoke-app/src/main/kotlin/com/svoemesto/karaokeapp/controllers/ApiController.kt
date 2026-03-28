@@ -2624,15 +2624,6 @@ class ApiController(
                     println("settings.sourceTex is Blank = ${settings.sourceText.isBlank()}")
                     if (settings.sourceText.isBlank()) {
                         getYandexSearch(settings = settings, async = true)
-//                        val text = findSongText(settings = settings, countInResult = 1).firstOrNull()?.findedText?: ""
-//
-//                        Thread.sleep(2000)
-//
-//                        if (text.isNotBlank()) {
-//                            settings.sourceText = text
-//                            settings.fields[SettingField.ID_STATUS] = "1"
-//                            settings.saveToDb()
-//                        }
                     }
                 }
                 result = true

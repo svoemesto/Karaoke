@@ -2047,6 +2047,11 @@ export default {
             let request = { method: 'POST', url: "/api/songs/searchsongtextall", params: params };
             return promisedXMLHttpRequest(request);
         },
+        searchTextForSong(ctx) {
+            let params = { songsIds: ctx.getters.getCurrentSongId };
+            let request = { method: 'POST', url: "/api/songs/searchsongtextall", params: params };
+            return promisedXMLHttpRequest(request);
+        },
         addSyncForAll(ctx) {
             let params = { songsIds: ctx.getters.getSongsDigestIds.join(';') };
             let request = { method: 'POST', url: "/api/songs/addsyncforall", params: params };

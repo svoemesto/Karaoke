@@ -591,6 +591,7 @@
       <!-- Подвал -->
       <div class="footer">
         <button class="btn-round-save-double" @click="save" :disabled="notChanged()" title="Сохранить"><img alt="saveSong" class="icon-save-double" src="../../../assets/svg/icon_save.svg"></button>
+        <button class="btn-round-double" @click="searchTextForSong" :disabled="disabledSearchTextForSong" title="Найти текст песни"><img alt="search texts for song" class="icon-40" src="../../../assets/svg/icon_search_text.svg"></button>
         <button class="btn-round-double" @click="showSubsEdit" title="Редактировать субтитры"><img alt="edit subs" class="icon-edit-double" src="../../../assets/svg/icon_edit.svg"></button>
         <button class="btn-round-double" @click="createKaraoke" title="Создать караоке"><img alt="create karaoke" class="icon-40" src="../../../assets/svg/icon_song.svg"></button>
         <button class="btn-round-double" @click="createDemucs2" title="Создать DEMUCS2"><img alt="create demucs2" class="icon-40" src="../../../assets/svg/icon_demucs2.svg"></button>
@@ -688,6 +689,9 @@ export default {
     this.autoSaveDelayMs = Number(await this.propAutoSaveDelayMs());
   },
   computed: {
+    disabledSearchTextForSong() {
+      return this.song.haveSourceText;
+    },
     showChordsDzen() {
       return this.showChordsIfEmpty || this.song.idDzenChords;
     },
@@ -1249,6 +1253,18 @@ export default {
   },
 
   methods: {
+    searchTextForSong() {
+      this.customConfirmParams = {
+        header: 'Подтвердите поиск текста',
+        body: `Найти в Интернете тексты для этой песни?`,
+        timeout: 10,
+        callback: this.doSearchTextForSong
+      }
+      this.isCustomConfirmVisible = true;
+    },
+    doSearchTextForSong() {
+      this.$store.dispatch('searchTextForSong')
+    },
     async propAutoSave() {
       const propValue = await this.$store.getters.getPropValue('autoSave');
       return propValue === 'true'

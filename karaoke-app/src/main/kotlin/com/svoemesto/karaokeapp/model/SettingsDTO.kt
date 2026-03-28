@@ -151,7 +151,8 @@ data class SettingsDTO(
     val formattedTextChords: String,
     val rootId: Long,
     val exclusive: Boolean,
-    val free: Boolean
+    val free: Boolean,
+    val haveSourceText: Boolean
 ): Serializable, Comparable<SettingsDTO> {
 
     private val sortString: String get() {
@@ -280,7 +281,8 @@ data class SettingsDTO(
             formattedTextChords = formattedTextChords,
             rootId = rootId,
             exclusive = exclusive,
-            free = free
+            free = free,
+            haveSourceText = haveSourceText
         )
     }
 }

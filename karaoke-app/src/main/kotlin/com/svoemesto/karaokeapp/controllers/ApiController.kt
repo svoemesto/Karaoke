@@ -2622,7 +2622,7 @@ class ApiController(
                 val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
                 settings?.let {
                     println("settings.haveSourceText = ${settings.haveSourceText}")
-                    if (!settings.haveSourceText) {
+                    if (!settings.haveSourceText || ids.size == 1) {
                         getYandexSearch(settings = settings, async = true)
                     }
                 }
@@ -3237,7 +3237,6 @@ class ApiController(
 
     }
 
-    // Получение healthReportList
     @PostMapping("/song/keyBpmFinder")
     @ResponseBody
     fun createKeyBpmFinderProcess(@RequestParam id: Long) {
@@ -3297,6 +3296,32 @@ class ApiController(
             )
             HealthReport.getHealthReport(settings = settings, dto = healthReportDTO)?.executeSolutionActions()
         }
+    }
+
+    // Получение SearchAsyncListBySongId
+    @PostMapping("/song/searchasync")
+    @ResponseBody
+    fun getSearchAsyncList(@RequestParam songId: Long): List<SearchAsyncDTO> {
+        val result = SearchAsync.getSearchAsyncListBySongId(
+            songId = songId,
+            database = WORKING_DATABASE,
+            storageService = storageService,
+            storageApiClient = storageApiClient
+        ).map { it.toDTO() }
+        return result
+    }
+
+    // Получение SearchResultListBySearchAsyncId
+    @PostMapping("/song/searchresult")
+    @ResponseBody
+    fun getSearchResultList(@RequestParam searchAsyncId: Long): List<SearchResultDTO> {
+        val result = SearchResult.getSearchResultListBySearchAsyncId(
+            searchAsyncId = searchAsyncId,
+            database = WORKING_DATABASE,
+            storageService = storageService,
+            storageApiClient = storageApiClient
+        ).map { it.toDTO() }
+        return result
     }
 
 }

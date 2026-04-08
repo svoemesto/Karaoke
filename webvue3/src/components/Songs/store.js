@@ -328,6 +328,8 @@ export default {
         songsDigest: [],
         songsDigestIsLoading: false,
         totalDuration: '',
+
+        searchResultsListIsLoading: false,
     },
     watch: {
         currentSongId: {
@@ -929,6 +931,24 @@ export default {
         songAuthorsPromise() {
             let request = { method: 'POST', url: "/api/songs/authors"};
             return promisedXMLHttpRequest(request);
+        },
+        getSearchAsyncList: () => async (songId) => {
+            const searchAsyncList = JSON.parse(await promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/api/song/searchasync",
+                params: { songId: songId }
+            }));
+            console.log(`Getter getSearchAsyncList`, searchAsyncList);
+            return searchAsyncList;
+        },
+        getSearchResultsList: () => async (searchAsyncId) => {
+            const searchResulstList = JSON.parse(await promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/api/song/searchresult",
+                params: { searchAsyncId: searchAsyncId }
+            }));
+            // console.log(`searchResultList`, searchResultList);
+            return searchResulstList;
         },
     },
     mutations: {
@@ -1543,7 +1563,8 @@ export default {
             }).then(_ => {
                 state.toSync = !state.toSync;
             });
-        }
+        },
+        setSearchResultsListIsLoading(state, isLoading) { state.searchResultsListIsLoading = isLoading },
     },
     actions: {
         async setCurrentSongId(ctx, currId) {

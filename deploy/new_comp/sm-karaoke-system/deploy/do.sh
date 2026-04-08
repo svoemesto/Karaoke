@@ -12,11 +12,9 @@ DEPLOY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null && pwd)"
 APP_VERSION=1
 DOCKER=$(which docker)
 COMPOSE=$(which docker-compose)
-DOCKER_REGISTRY=svoemestodev
-DOCKER_PASSWORD=dckr_pat_SxLnc4cA4EChRdvQcnQjZCPOgw0
-#DOCKER_PASSWORD=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
 
 source ${DEPLOY_DIR}/.env
+source ${DEPLOY_DIR}/do.env
 
 echo "DEPLOY_DIR = $DEPLOY_DIR"
 echo "BASE_DIR = $BASE_DIR"

@@ -25,6 +25,11 @@ __pycache__/
 .env
 .env.local
 *.env.*
+/deploy/.env
+/deploy/do.env
+/deploy/web-server-deploy/deploy/.env
+/deploy/web-server-deploy/deploy/do.env
+/deploy/new_comp/sm-karaoke-system/deploy/.env
 
 # Editors
 .vscode/

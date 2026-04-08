@@ -5,7 +5,7 @@
         <div class="se-subsedit-body">
 
           <custom-confirm v-if="isCustomConfirmVisible" :params="customConfirmParams" @close="closeCustomConfirm" />
-          <search-text v-if="isSearchTextVisible" :params="searchTextParams" @close="closeSearchText" />
+          <search-text v-if="isSearchTextVisible" :songId="song.id" @close="closeSearchText" @return="returnSearchText"/>
 
           <div class="se-grid-item-header">
             <div class="se-subsedit-header-song-name">«{{song.songName}}»</div>
@@ -402,7 +402,6 @@ export default {
       isCustomConfirmVisible: false,
       customConfirmParams: undefined,
       isSearchTextVisible: false,
-      searchTextParams: undefined,
       selectedText: '',
       midi: null,
       isShowMarkerTypeSyllables: true,
@@ -1597,6 +1596,10 @@ export default {
     closeSearchText() {
       this.isSearchTextVisible = false;
     },
+    returnSearchText(returnedText) {
+      this.sourceText = returnedText;
+      this.isSearchTextVisible = false;
+    },
     save() {
       this.addEndMarker();
       this.$store.dispatch('saveSourceTextAndMarkers', {
@@ -2787,7 +2790,6 @@ export default {
       }
     },
     doSearchText() {
-      this.searchTextParams = { songId: this.song.id };
       this.isSearchTextVisible = true;
     },
     getSelectedText() {

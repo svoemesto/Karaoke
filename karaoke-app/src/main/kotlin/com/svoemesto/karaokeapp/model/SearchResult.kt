@@ -56,7 +56,7 @@ class SearchResult(
             searchAsyncId = searchAsyncId,
             songId = songId,
             url = url,
-            html = html,
+            html = "",
             text = text,
             wrongResult = wrongResult
         )

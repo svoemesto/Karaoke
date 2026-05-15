@@ -7,7 +7,7 @@
         class="fld-url"
         v-text="searchResult.url"
         @click.left="returnRearchResult(searchResult)"
-        :style="{ backgroundColor: searchResult.text === '' ? 'gray' : currentId === searchResult.id ? 'blue' : 'white' }"
+        :style="{ backgroundColor: currentId === searchResult.id ? 'blue' : searchResult.text === '' ? 'gray' : 'white' }"
         >
       </div>
 

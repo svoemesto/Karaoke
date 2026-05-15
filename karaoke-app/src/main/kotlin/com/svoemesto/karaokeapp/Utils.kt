@@ -1117,10 +1117,10 @@ fun replaceSymbolsInSong(sourceText: String): String {
         val lines = result.split("\n")
         val linesWithoutChords: MutableList<String> = mutableListOf()
         lines.forEach { line ->
-            if (!(line.containThisSymbols(ENGLISH_LETTERS) && !line.containThisSymbols(RUSSIAN_LETTERS))) {
-                if (!line.containOnlyThisSymbols(CHORDS_LETTERS) || line.trim() == "") {
-                    linesWithoutChords.add(line)
-                }
+            val lineIsEmpty = line.trim() == ""
+            val lineHaveOnlyChordsLetters = line.containOnlyThisSymbols(CHORDS_LETTERS) && !lineIsEmpty
+            if (!lineHaveOnlyChordsLetters) {
+                linesWithoutChords.add(line)
             }
         }
         result = linesWithoutChords.joinToString("\n")
@@ -2382,7 +2382,7 @@ fun String.textBetween(startString: String, endString: String): String {
 fun searchLastAlbumVk(vkId: String): String {
     var result = ""
     val authorUrl = "https://vk.ru/artist/$vkId"
-    val searchUrl = "https://vk.com/$vkId/albums"
+    val searchUrl = "https://vk.ru/artist/$vkId/albums"
     Playwright.create().use { playwright ->
 
         val browser = playwright.chromium().launch(
@@ -2411,6 +2411,8 @@ fun searchLastAlbumVk(vkId: String): String {
 
         val page = context.newPage()
         page.navigate(searchUrl)
+
+        Thread.sleep(50000)
 
         page.waitForLoadState()
 

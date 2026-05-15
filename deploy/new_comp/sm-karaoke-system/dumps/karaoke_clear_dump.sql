@@ -2,10 +2,10 @@
 -- PostgreSQL database dump
 --
 
-\restrict b7iJExTgHfqPQNmGf8mcUhQnpMbv27ajuBWiCH6pzmHmgPZLEDgLPs7Bdb2alYL
+\restrict zXzQ5QGXBZT9XcwmS7m3GU5EIYMsw05TrUJwaURkYSW6w98QJdhPq6JJUnoUWak
 
--- Dumped from database version 16.10 (Debian 16.10-1.pgdg13+1)
--- Dumped by pg_dump version 16.10 (Debian 16.10-1.pgdg13+1)
+-- Dumped from database version 16.12 (Debian 16.12-1.pgdg13+1)
+-- Dumped by pg_dump version 16.12 (Debian 16.12-1.pgdg13+1)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -25,9 +25,9 @@ SET row_security = off;
 CREATE DATABASE karaoke WITH TEMPLATE = template0 ENCODING = 'UTF8' LOCALE_PROVIDER = libc LOCALE = 'en_US.utf8';
 
 
-\unrestrict b7iJExTgHfqPQNmGf8mcUhQnpMbv27ajuBWiCH6pzmHmgPZLEDgLPs7Bdb2alYL
+\unrestrict zXzQ5QGXBZT9XcwmS7m3GU5EIYMsw05TrUJwaURkYSW6w98QJdhPq6JJUnoUWak
 \connect karaoke
-\restrict b7iJExTgHfqPQNmGf8mcUhQnpMbv27ajuBWiCH6pzmHmgPZLEDgLPs7Bdb2alYL
+\restrict zXzQ5QGXBZT9XcwmS7m3GU5EIYMsw05TrUJwaURkYSW6w98QJdhPq6JJUnoUWak
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -165,6 +165,54 @@ BEGIN
                                                                     COALESCE(NEW.without_control::TEXT, '') ||
                                                                     COALESCE(NEW.thread_id::TEXT, '')
         );
+    RETURN NEW;
+END;
+$$;
+
+
+--
+-- Name: update_tbl_search_async_recordhash(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.update_tbl_search_async_recordhash() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    NEW.recordhash = md5(
+        COALESCE(NEW.id::TEXT, '') ||
+        COALESCE(NEW.song_id::TEXT, '') ||
+        COALESCE(NEW.url, '') ||
+        COALESCE(NEW.iam_token, '') ||
+        COALESCE(NEW.query, '') ||
+        COALESCE(NEW.body, '') ||
+        COALESCE(NEW.response_format, '') ||
+        COALESCE(NEW.operation_id, '') ||
+        COALESCE(NEW.done::TEXT, '') ||
+        COALESCE(NEW.raw_data, '') ||
+        COALESCE(NEW.last_requested_at::TEXT, '')
+    );
+    RETURN NEW;
+END;
+$$;
+
+
+--
+-- Name: update_tbl_search_results_recordhash(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.update_tbl_search_results_recordhash() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    NEW.recordhash = md5(
+        COALESCE(NEW.id::TEXT, '') ||
+        COALESCE(NEW.search_async_id::TEXT, '') ||
+        COALESCE(NEW.song_id::TEXT, '') ||
+        COALESCE(NEW.url, '') ||
+        COALESCE(NEW.html, '') ||
+        COALESCE(NEW.text, '') ||
+        COALESCE(NEW.wrong_result::TEXT, '')
+    );
     RETURN NEW;
 END;
 $$;
@@ -380,13 +428,13 @@ CREATE TABLE public.tbl_authors (
     id integer NOT NULL,
     author character varying(255),
     ym_id character varying(255),
-    vk_id character varying(255),
     last_album_ym character varying(255),
-    last_album_vk character varying(255),
     last_album_processed character varying(255),
     watched boolean DEFAULT true,
     skip boolean DEFAULT false,
-    recordhash character varying(32)
+    recordhash character varying(32),
+    vk_id character varying(255) DEFAULT ''::character varying NOT NULL,
+    last_album_vk character varying(255) DEFAULT ''::character varying NOT NULL
 );
 
 
@@ -543,6 +591,73 @@ CREATE SEQUENCE public.tbl_processes_id_seq
 --
 
 ALTER SEQUENCE public.tbl_processes_id_seq OWNED BY public.tbl_processes.id;
+
+
+--
+-- Name: tbl_search_async; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.tbl_search_async (
+    id integer NOT NULL,
+    song_id integer,
+    url character varying(255),
+    iam_token text,
+    query text,
+    body text,
+    response_format character varying(255) DEFAULT 'FORMAT_XML'::character varying,
+    operation_id character varying(255),
+    done boolean DEFAULT false,
+    raw_data text,
+    created_at timestamp without time zone DEFAULT now(),
+    last_requested_at timestamp without time zone DEFAULT now(),
+    last_update timestamp without time zone DEFAULT now(),
+    recordhash character varying(32)
+);
+
+
+--
+-- Name: tbl_search_async_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.tbl_search_async ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.tbl_search_async_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: tbl_search_results; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.tbl_search_results (
+    id integer NOT NULL,
+    search_async_id integer,
+    song_id integer,
+    url text,
+    html text,
+    text text,
+    wrong_result boolean DEFAULT false,
+    last_update timestamp without time zone DEFAULT now(),
+    recordhash character varying(32)
+);
+
+
+--
+-- Name: tbl_search_results_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.tbl_search_results ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.tbl_search_results_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
 
 
 --
@@ -858,6 +973,22 @@ ALTER TABLE ONLY public.tbl_processes
 
 
 --
+-- Name: tbl_search_results tbl_search_results_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tbl_search_results
+    ADD CONSTRAINT tbl_search_results_id_key UNIQUE (id);
+
+
+--
+-- Name: tbl_search_results tbl_search_results_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tbl_search_results
+    ADD CONSTRAINT tbl_search_results_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: tbl_settings tbl_settings_id_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -940,6 +1071,20 @@ CREATE INDEX idx_tbl_processes_recordhash ON public.tbl_processes USING btree (r
 
 
 --
+-- Name: idx_tbl_search_async_recordhash; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_tbl_search_async_recordhash ON public.tbl_search_async USING btree (recordhash);
+
+
+--
+-- Name: idx_tbl_search_results_recordhash; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_tbl_search_results_recordhash ON public.tbl_search_results USING btree (recordhash);
+
+
+--
 -- Name: idx_tbl_settings_recordhash; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -972,6 +1117,41 @@ CREATE INDEX tbl_events_last_update_index ON public.tbl_events USING btree (last
 --
 
 CREATE INDEX tbl_events_song_id_index ON public.tbl_events USING btree (song_id);
+
+
+--
+-- Name: tbl_search_async_last_update_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX tbl_search_async_last_update_index ON public.tbl_search_async USING btree (last_update);
+
+
+--
+-- Name: tbl_search_async_song_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX tbl_search_async_song_id_index ON public.tbl_search_async USING btree (song_id);
+
+
+--
+-- Name: tbl_search_results_last_update_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX tbl_search_results_last_update_index ON public.tbl_search_results USING btree (last_update);
+
+
+--
+-- Name: tbl_search_results_search_async_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX tbl_search_results_search_async_id_index ON public.tbl_search_results USING btree (search_async_id);
+
+
+--
+-- Name: tbl_search_results_song_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX tbl_search_results_song_id_index ON public.tbl_search_results USING btree (song_id);
 
 
 --
@@ -1227,6 +1407,20 @@ CREATE TRIGGER update_last_updated_process_trigger BEFORE UPDATE ON public.tbl_p
 
 
 --
+-- Name: tbl_search_async update_last_updated_search_async_trigger; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_last_updated_search_async_trigger BEFORE UPDATE ON public.tbl_search_async FOR EACH ROW EXECUTE FUNCTION public.update_last_updated();
+
+
+--
+-- Name: tbl_search_results update_last_updated_search_results_trigger; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_last_updated_search_results_trigger BEFORE UPDATE ON public.tbl_search_results FOR EACH ROW EXECUTE FUNCTION public.update_last_updated();
+
+
+--
 -- Name: tbl_settings update_last_updated_trigger; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -1276,6 +1470,20 @@ CREATE TRIGGER update_recordhash_processes_trigger BEFORE INSERT OR UPDATE ON pu
 
 
 --
+-- Name: tbl_search_async update_recordhash_search_async_trigger; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_recordhash_search_async_trigger BEFORE INSERT OR UPDATE ON public.tbl_search_async FOR EACH ROW EXECUTE FUNCTION public.update_tbl_search_async_recordhash();
+
+
+--
+-- Name: tbl_search_results update_recordhash_search_results_trigger; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_recordhash_search_results_trigger BEFORE INSERT OR UPDATE ON public.tbl_search_results FOR EACH ROW EXECUTE FUNCTION public.update_tbl_search_results_recordhash();
+
+
+--
 -- Name: tbl_settings_sync update_recordhash_settings_synctrigger; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -1307,5 +1515,5 @@ CREATE TRIGGER update_sync_last_updated_trigger BEFORE UPDATE ON public.tbl_sett
 -- PostgreSQL database dump complete
 --
 
-\unrestrict b7iJExTgHfqPQNmGf8mcUhQnpMbv27ajuBWiCH6pzmHmgPZLEDgLPs7Bdb2alYL
+\unrestrict zXzQ5QGXBZT9XcwmS7m3GU5EIYMsw05TrUJwaURkYSW6w98QJdhPq6JJUnoUWak
 

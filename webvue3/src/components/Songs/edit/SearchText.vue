@@ -31,6 +31,7 @@
             <div class="st-body-column-2">
               <!-- Текст результата поиска -->
               <textarea class="result-text" v-text="resultText"></textarea>
+              <button class="group-button" @click="openResultLink" title="Открыть на сайте">Открыть на сайте</button>
             </div>
 
           </div>
@@ -103,6 +104,9 @@ export default {
     resultText() {
       return this.currentResult ? this.currentResult.text : "";
     },
+    resultLink() {
+      return this.currentResult ? this.currentResult.url : "";
+    },
     searchAsyncId() {
       return this.currentSearchAsync ? this.currentSearchAsync.id : "";
     },
@@ -112,6 +116,9 @@ export default {
   },
 
   methods: {
+    openResultLink() {
+      window.open(this.resultLink, '_blank');
+    },
     closeCustomConfirm() {
       this.isCustomConfirmVisible = false;
     },
@@ -323,7 +330,7 @@ export default {
   display: block;
   text-align: left;
   width: 500px;
-  height: calc(100vh - 300px);
+  height: calc(100vh - 327px);
   font-family: 'Courier New', Courier, monospace;
   font-size: small;
 }
@@ -349,6 +356,13 @@ export default {
 .icon-40 {
   width: 40px;
   height: 40px;
+}
+
+.group-button {
+  border: solid black thin;
+  border-radius: 5px;
+  background-color: white;
+  width: 500px;
 }
 
 </style>

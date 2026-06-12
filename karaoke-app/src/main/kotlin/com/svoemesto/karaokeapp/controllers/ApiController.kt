@@ -3324,4 +3324,15 @@ class ApiController(
         return result
     }
 
+    @PostMapping("/authymstart")
+    @ResponseBody
+    fun authYMstart() {
+        createNewAuthContext()
+    }
+
+    @PostMapping("/authymstop")
+    @ResponseBody
+    fun authYMstop() {
+        completeAuth()
+    }
 }

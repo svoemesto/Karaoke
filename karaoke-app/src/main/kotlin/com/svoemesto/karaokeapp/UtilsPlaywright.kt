@@ -5,6 +5,7 @@ import com.microsoft.playwright.BrowserContext
 import com.microsoft.playwright.BrowserType
 import com.microsoft.playwright.Playwright
 import java.nio.file.Path
+import java.util.concurrent.CountDownLatch
 
 @Suppress("unused")
 fun main1() {
@@ -27,6 +28,33 @@ fun main1() {
         println(page.title())
         // Можно добавить задержку, чтобы увидеть страницу перед закрытием
         Thread.sleep(5000) // Задержка 5 секунд
+        browser.close()
+    }
+}
+
+val authLatch = CountDownLatch(1)
+
+fun completeAuth() {
+    authLatch.countDown()
+}
+
+fun createNewAuthContext() {
+    Playwright.create().use { playwright ->
+        val browser = playwright.chromium().launch(
+            BrowserType.LaunchOptions().setHeadless(false)
+        )
+        val context = browser.newContext()
+        val page = context.newPage()
+
+        page.navigate("https://music.yandex.ru/")
+        println("Авторизуйтесь в браузере, затем вызовите completeAuth()")
+
+        authLatch.await() // Блокируется до вызова countDown()
+
+        context.storageState(
+            BrowserContext.StorageStateOptions().setPath(Path.of(YANDEX_AUTH_STATE_PATH))
+        )
+        println("Состояние сохранено в '$YANDEX_AUTH_STATE_PATH'")
         browser.close()
     }
 }

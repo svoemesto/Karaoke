@@ -3075,11 +3075,10 @@ class Settings(
         return "\n\n"+
                 "Официальный сайт проекта: https://sm-karaoke.ru\n" +
                 "Поддержать проект на Sponsr: https://sponsr.ru/smkaraoke\n" +
-                "Поддержать проект на Boosty: https://boosty.to/svoemesto\n" +
                 "Группа ВКонтакте: https://vk.com/svoemestokaraoke\n" +
                 "Канал Telegram: https://t.me/svoemestokaraoke\n" +
                 "Канал Дзен: https://dzen.ru/svoemesto\n" +
-                "Канал Платформа: https://plvideo.ru/channel/@sm-karaoke\n" +
+                "Канал Макс: https://max.ru/join/hYGH-mbcExUtzP5o4zq38uwb0xL9iwL80uSeEBO7Bu0\n" +
                 "${songName.hashtag()} ${author.hashtag()} ${"karaoke".hashtag()} ${"караоке".hashtag()}\n"
     }
 

@@ -1991,6 +1991,14 @@ export default {
             let request = { method: 'POST', url: "/api/utils/customfunction" };
             return promisedXMLHttpRequest(request);
         },
+        autorizeYMstartPromise() {
+            let request = { method: 'POST', url: "/api/authymstart" };
+            return promisedXMLHttpRequest(request);
+        },
+        autorizeYMstopPromise() {
+            let request = { method: 'POST', url: "/api/authymstop" };
+            return promisedXMLHttpRequest(request);
+        },
         async saveSourceTextAndMarkers(ctx, payload) {
             let params = {
                 id: ctx.state.currentSongId,

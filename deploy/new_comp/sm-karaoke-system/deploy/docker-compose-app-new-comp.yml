@@ -25,6 +25,8 @@ services:
       - DB_LOCAL_POSTGRES_PASSWORD=${DB_LOCAL_POSTGRES_PASSWORD}
       - DB_SERVER_POSTGRES_USER=${DB_SERVER_POSTGRES_USER}
       - DB_SERVER_POSTGRES_PASSWORD=${DB_SERVER_POSTGRES_PASSWORD}
+      - DISPLAY=${DISPLAY}
+      - XAUTHORITY=/.Xauthority
     volumes:
       - /sm-karaoke/work:/sm-karaoke/work
       - /sm-karaoke/done1:/sm-karaoke/done1
@@ -33,6 +35,11 @@ services:
       - /sm-karaoke/store:/sm-karaoke/store
       - /var/run/docker.sock:/var/run/docker.sock
       - /home/nsa/Karaoke/karaoke-web/src/main/resources/static/tmp:/home/nsa/Karaoke/karaoke-web/src/main/resources/static/tmp
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - ~/.Xauthority:/.Xauthority:rw
+      - /etc/localtime:/etc/localtime:ro
+    devices:
+      - /dev/dri:/dev/dri
     networks:
       - karaokenet # Используем внешнюю сеть
     deploy:

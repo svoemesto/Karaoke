@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component
 import java.io.BufferedReader
 import java.io.File
 import java.io.InputStreamReader
+import java.net.SocketException
 import java.net.SocketTimeoutException
 import java.net.URL
 import java.sql.Timestamp
@@ -329,6 +330,8 @@ class KaraokeProcessWorker {
                             }
 
                         } catch (e: SocketTimeoutException) {
+                            println("Exception details: ${e.message}, пропускаем.")
+                        } catch (e: SocketException) {
                             println("Exception details: ${e.message}, пропускаем.")
                         } catch (e: Exception) {
                             println("Exception details: ${e.message}")

@@ -42,6 +42,10 @@
           <button class="button-action button-action-inline" @click="dictActionRemove" :disabled="!dictType || !dictValue">Удалить слово из словаря</button>
         </div>
       </div>
+      <div class="fields-line-wrapper">
+        <button class="button-action button-action-inline" @click="autorizeYMstart">Auth YM: Start</button>
+        <button class="button-action button-action-inline" @click="autorizeYMstop">Auth YM: Stop</button>
+      </div>
       <button class="button-action" @click="customFunction">Выполнить Custom Function</button>
       <button class="button-action" @click="updateRemoteSettings" :disabled="!allowUpdateRemote">Обновить REMOTE Database SETTINGS</button>
       <button class="button-action" @click="updateRemotePictures" :disabled="!allowUpdateRemote">Обновить REMOTE Database PICTURES</button>
@@ -363,6 +367,12 @@ export default {
         }
         this.isCustomConfirmVisible = true;
       })
+    },
+    autorizeYMstart() {
+      this.$store.dispatch('autorizeYMstartPromise');
+    },
+    autorizeYMstop() {
+      this.$store.dispatch('autorizeYMstopPromise');
     },
     customFunction() {
       this.customConfirmParams = {

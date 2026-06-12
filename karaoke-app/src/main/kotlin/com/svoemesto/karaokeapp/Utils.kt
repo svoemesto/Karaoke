@@ -2629,7 +2629,7 @@ fun createScriptForHost(args: List<String>, waitToDone: Boolean = false) {
     runCommand(listOf("chmod", "777", fileName))
     if (waitToDone) {
         // Ожидание удаления файла с таймаутом
-        val timeoutMillis = 30000 // 30 секунд таймаут
+        val timeoutMillis = 120_000 // 120 секунд таймаут
         val startTime = System.currentTimeMillis()
         while (file.exists()) {
             if (System.currentTimeMillis() - startTime > timeoutMillis) {

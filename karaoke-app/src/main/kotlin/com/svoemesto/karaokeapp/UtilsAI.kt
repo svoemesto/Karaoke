@@ -9,15 +9,17 @@ import java.nio.file.Files
 import java.nio.file.Paths
 import javax.net.ssl.HttpsURLConnection
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.svoemesto.karaokeapp.llm.LyricsFinderService
 import com.svoemesto.karaokeapp.model.SearchAsync
 import com.svoemesto.karaokeapp.model.SearchResponseFormat
+import com.svoemesto.karaokeapp.model.SearchResult
+import com.svoemesto.karaokeapp.model.SettingField
 import com.svoemesto.karaokeapp.model.Settings
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import java.io.File
-import java.sql.Timestamp
 import java.time.LocalDateTime
 import kotlin.String
 import kotlin.text.replace
@@ -74,6 +76,76 @@ fun getIamToken(): String {
         createNewIamToken()
     }
     return Karaoke.requestIamToken
+}
+
+fun getSearXNGSearch(settings: Settings, lyricsFinderService: LyricsFinderService): SearchAsync {
+    println("Начинаем получение запроса поиска для песни ${settings.fileName}.")
+    val searchAsyncList = SearchAsync.getSearchAsyncListBySongId(
+        songId = settings.id,
+        database = settings.database,
+        storageApiClient = settings.storageApiClient,
+        storageService = settings.storageService
+    )
+    if (searchAsyncList.isNotEmpty()) {
+        println("Ранее созданный запрос найден в базе данных, возвращаем его.")
+        return searchAsyncList.first()
+    }
+
+    val author = settings.author
+    val songName = settings.songName
+    val songNameForFind = songName.replace(Regex("""\([^)]*\)"""), "").trim()
+
+    val queryText = "$author текст песни $songNameForFind"
+    println("Запрос будет выполнен для поисковой сроки: '$queryText'")
+
+    // Получаем список URL
+    val urls = lyricsFinderService.searchUrls(author = author, songName = songNameForFind)
+
+    val result = SearchAsync()
+    result.songId = settings.id
+    result.query = queryText
+    result.operationId = ""
+    result.done = true
+    result.rawData = urls.joinToString("\n")
+
+    val savedResult = SearchAsync.createNewSearchAsync(newSearchAsync = result, database = settings.database)
+    if (savedResult != null) {
+        println("Запрос успешно создан. id = '${savedResult.id}', найдено ссылок - ${urls.size}")
+    } else {
+        println("Не удалось создать SearchAsync (синхронный) в базе данных. $result")
+    }
+    savedResult ?: throw RuntimeException("Не удалось создать SearchAsync (синхронный) в базе данных. $result")
+
+    val variants = mutableListOf<Pair<String, String>>()
+    // Проходим по каждому URL и получаем текст песни
+    for (url in urls) {
+        val lyrics = lyricsFinderService.extractLyricsFromUrl(url)
+        variants.add(Pair(url, lyrics ?: ""))
+    }
+
+    val searchedRightResults = mutableListOf<SearchResult>()
+    for ((url, lyrics) in variants) {
+        val searchResult = SearchResult()
+        searchResult.searchAsyncId = savedResult.id
+        searchResult.songId = savedResult.songId
+        searchResult.url = url
+        searchResult.text = lyrics
+        val savedSearchResult = SearchResult.createNewSearchResult(
+            newSearchResult = searchResult,
+            database = settings.database
+        )
+        savedSearchResult?.let { searchedRightResults.add(it) }
+    }
+
+    val searchedRightResultsNotEmpty = searchedRightResults.filter { it.text != "" }
+    if (settings.sourceText.isBlank() && settings.idStatus == 0L && searchedRightResultsNotEmpty.isNotEmpty()) {
+        println("Первое из найденных не пустых значений применяем для текста песни ${settings.fileName}")
+        settings.sourceText = searchedRightResultsNotEmpty.first().text
+        settings.fields[SettingField.ID_STATUS] = "1"
+        settings.saveToDb()
+    }
+
+    return savedResult
 }
 
 fun getYandexSearch(settings: Settings, countInPage: Int = 100, responseFormat: SearchResponseFormat = SearchResponseFormat.FORMAT_XML, async: Boolean = false): SearchAsync {

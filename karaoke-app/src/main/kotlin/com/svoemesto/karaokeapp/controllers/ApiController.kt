@@ -1,6 +1,7 @@
 package com.svoemesto.karaokeapp.controllers
 
 import com.svoemesto.karaokeapp.*
+import com.svoemesto.karaokeapp.llm.LyricsFinderService
 import com.svoemesto.karaokeapp.model.*
 import com.svoemesto.karaokeapp.services.APP_WORK_IN_CONTAINER
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
@@ -49,7 +50,8 @@ import javax.imageio.ImageIO
 class ApiController(
     private val sseNotificationService: SseNotificationService,
     private val storageService: KaraokeStorageService,
-    private val storageApiClient: StorageApiClient
+    private val storageApiClient: StorageApiClient,
+    private val lyricsFinderService: LyricsFinderService
 ) {
 
     @GetMapping("/diagnostics") // GET запрос на /api/diagnostics
@@ -2623,7 +2625,8 @@ class ApiController(
                 settings?.let {
                     println("settings.haveSourceText = ${settings.haveSourceText}")
                     if (!settings.haveSourceText || ids.size == 1) {
-                        getYandexSearch(settings = settings, async = true)
+//                        getYandexSearch(settings = settings, async = true)
+                        getSearXNGSearch(settings = settings, lyricsFinderService = lyricsFinderService)
                     }
                 }
                 result = true
@@ -2861,7 +2864,7 @@ class ApiController(
     @PostMapping("/utils/customfunction")
     @ResponseBody
     fun doCustomFunction() {
-        val result = customFunction(storageService = storageService, storageApiClient = storageApiClient)
+        val result = customFunction(storageService = storageService, storageApiClient = storageApiClient, lyricsFinderService = lyricsFinderService)
         SNS.send(SseNotification.message(Message(
             type = "info",
             head = "Custom Function",

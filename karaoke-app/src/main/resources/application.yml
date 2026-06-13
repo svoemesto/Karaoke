@@ -43,6 +43,17 @@ storage:
     port-host: ${STORAGE_CONSOLE_PORT_HOST:9001}
     port-inside-container: ${STORAGE_CONSOLE_PORT_INSIDE_CONTAINER:9001}
 
+langchain4j:
+  ollama:
+    chat-model:
+      base-url: http://host.docker.internal:11434
+      model-name: qwen2.5:7b
+      temperature: 0.1
+      timeout: PT180S
+
+searxng:
+  base-url: http://searxng:8080
+
 #logging:
 #  level:
 #    org.springframework.security: DEBUG

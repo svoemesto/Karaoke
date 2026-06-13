@@ -1,0 +1,24 @@
+version: '3.9'
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    restart: unless-stopped
+    ports:
+      - "11435:11434" # Порт для API Ollama
+    volumes:
+      - /disks/HDD_16Tb_Clouds/ollama:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0 # Разрешаем слушать запросы извне контейнера
+    dns:
+      - 1.1.1.1       # Cloudflare DNS
+      - 8.8.4.4       # Google DNS (альтернативный)
+      - 77.88.8.8     # Яндекс DNS (если вы в РФ)
+    deploy:
+       resources:
+         reservations:
+           devices:
+             - driver: nvidia
+               count: all
+               capabilities: [gpu]

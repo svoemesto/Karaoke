@@ -6,6 +6,7 @@ import com.microsoft.playwright.Browser
 import com.microsoft.playwright.BrowserContext
 import com.microsoft.playwright.BrowserType
 import com.microsoft.playwright.Playwright
+import com.svoemesto.karaokeapp.llm.LyricsFinderService
 import com.svoemesto.karaokeapp.mlt.MltObject
 import com.svoemesto.karaokeapp.mlt.MltObjectAlignmentX
 import com.svoemesto.karaokeapp.mlt.MltObjectAlignmentY
@@ -60,44 +61,16 @@ import kotlin.use
 
 fun customFunction(
     storageService: KaraokeStorageService,
+    lyricsFinderService: LyricsFinderService,
     @Suppress("unused")
     storageApiClient: StorageApiClient
 ): String {
 
-//    Settings.loadListFromDb(database = WORKING_DATABASE).filter { it.healthReport().isNotEmpty() }.forEach { settings ->
-//        println(settings.fileName)
-//        println(settings.healthReport())
-//        println("-----------------------------")
-//    }
-
-//    uploadPicturesToStorage()
-
-//    val monoListFilesInfo = storageApiClient.listFilesInfo(bucketName = "karaoke")
-//    val fileInfoList: List<StorageFileInfo>? = try {
-//        monoListFilesInfo.block()
-//    } catch (_: Exception) {
-//        emptyList()
-//    }
-//
-//    if (fileInfoList.isNullOrEmpty()) {
-//        println("Бакет 'karaoke' пуст или не существует (или произошла ошибка, возвращена пустая коллекция).")
-//    } else {
-//        println("Получено информации о ${fileInfoList.size} файлах из бакета 'karaoke':")
-//        fileInfoList.forEach { fileInfo ->
-//            println(" - Имя: ${fileInfo.fileName}, Размер: ${fileInfo.size} байт")
-//        }
-//    }
-
-//    syncRemotePicturesInStorage(
-//        storageService = storageService,
-//        storageApiClient = storageApiClient
-//    )
-
-//    checkHealth(storageService = storageService, storageApiClient = storageApiClient, executeActions = true)
-
-    fillFormattedFields(storageService = storageService, storageApiClient = storageApiClient)
-
-    return ""
+    val artist = "Тропы не врут"
+    val song = "Пингвин"
+    val result = lyricsFinderService.findLyrics(artist, song)
+    println(result)
+    return "$result"
 }
 
 fun fillFormattedFields(storageService: KaraokeStorageService, storageApiClient: StorageApiClient) {

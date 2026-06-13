@@ -1,6 +1,7 @@
 package com.svoemesto.karaokeapp.controllers
 
 import com.svoemesto.karaokeapp.*
+import com.svoemesto.karaokeapp.llm.LyricsFinderService
 import com.svoemesto.karaokeapp.model.*
 import com.svoemesto.karaokeapp.services.APP_WORK_IN_CONTAINER
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
@@ -21,7 +22,8 @@ import java.io.File
 @Controller
 class MainController(
     private val storageService: KaraokeStorageService,
-    private val storageApiClient: StorageApiClient
+    private val storageApiClient: StorageApiClient,
+    private val lyricsFinderService: LyricsFinderService
 ) {
 
     @GetMapping("/")
@@ -139,7 +141,7 @@ class MainController(
     @GetMapping("/utils/customfunction")
     @ResponseBody
     fun doCustomFunction(): String {
-        return customFunction(storageService = storageService, storageApiClient = storageApiClient)
+        return customFunction(storageService = storageService, storageApiClient = storageApiClient, lyricsFinderService = lyricsFinderService)
     }
 
     @PostMapping("/changesettingsstatus")

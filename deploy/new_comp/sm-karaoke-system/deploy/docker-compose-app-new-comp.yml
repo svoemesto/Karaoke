@@ -6,6 +6,8 @@ services:
     image: svoemestodev/karaoke-app:1
     ports:
       - "8898:8899"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       - WORK_ON_SERVER=0
       - WORK_IN_CONTAINER=1
@@ -27,6 +29,8 @@ services:
       - DB_SERVER_POSTGRES_PASSWORD=${DB_SERVER_POSTGRES_PASSWORD}
       - DISPLAY=${DISPLAY}
       - XAUTHORITY=/.Xauthority
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - SEARXNG_BASE_URL=http://searxng:8080
     volumes:
       - /sm-karaoke/work:/sm-karaoke/work
       - /sm-karaoke/done1:/sm-karaoke/done1
@@ -53,6 +57,20 @@ services:
       - java
       - -Xmx2g
     command: -jar /app.jar
+
+  searxng:
+    image: searxng/searxng:latest
+    container_name: searxng
+    ports:
+      - "8888:8080"
+    volumes:
+      - ./searxng-settings:/etc/searxng
+    environment:
+      - SEARXNG_BASE_URL=http://searxng:8080/
+      - SEARXNG_SECRET=i-love-my-wife-oxana
+    restart: unless-stopped
+    networks:
+      - karaokenet
 
 networks:
   karaokenet:

@@ -58,6 +58,9 @@ dependencies {
     implementation("io.minio:minio:8.6.0")
 
     implementation("com.microsoft.playwright:playwright:1.56.0")
+
+    implementation("dev.langchain4j:langchain4j-spring-boot-starter:0.36.2")
+    implementation("dev.langchain4j:langchain4j-ollama-spring-boot-starter:0.36.2")
 }
 
 tasks.withType<KotlinCompile> {

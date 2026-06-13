@@ -1,0 +1,43 @@
+use_default_settings: true
+
+general:
+  instance_name: "Karaoke Search"
+
+search:
+  formats:
+    - html
+    - json
+  default_lang: "ru"
+
+server:
+  secret_key: "i-love-my-wife-oxana"
+  limiter: false
+  image_proxy: false
+
+# Отключаем проблемные движки
+engines:
+  - name: duckduckgo
+    disabled: true
+  - name: brave
+    disabled: true
+  - name: wikidata
+    disabled: true
+  - name: ahmia
+    disabled: true
+  - name: torch
+    disabled: true
+  - name: btdigg
+    disabled: true
+  - name: piratebay
+    disabled: true
+
+  # Оставляем только надежные
+  - name: google
+    engine: google
+    disabled: false
+  - name: yandex
+    engine: yandex
+    disabled: false
+  - name: bing
+    engine: bing
+    disabled: false

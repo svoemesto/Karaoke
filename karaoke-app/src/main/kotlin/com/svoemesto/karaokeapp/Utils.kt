@@ -365,23 +365,24 @@ fun setSettingsToSyncRemoteTable(ids: List<Long>): List<String> {
 }
 
 fun updateRemotePictureFromLocalDatabase(id: Long): Triple<List<String>, List<String>, List<String>> {
-    return updateDatabases(Connection.local(), Connection.remote(), updateSettings = false, updatePictures = true, argsPictures = mapOf("id" to id.toString()))
+    return updateDatabases(fromDatabase = Connection.local(), toDatabase = Connection.remote(), updateSettings = false, updatePictures = true, updateAuthors = false, argsPictures = mapOf("id" to id.toString()))
 }
 fun updateRemoteSettingFromLocalDatabase(id: Long): Triple<List<String>, List<String>, List<String>> {
-    return updateDatabases(Connection.local(), Connection.remote(), updateSettings = true, updatePictures = false, argsSettings = mapOf("id" to id.toString()))
+    return updateDatabases(fromDatabase = Connection.local(), toDatabase = Connection.remote(), updateSettings = true, updatePictures = false, updateAuthors = false, argsSettings = mapOf("id" to id.toString()))
 }
-fun updateRemoteDatabaseFromLocalDatabase(updateSettings: Boolean = true, updatePictures: Boolean = true): Triple<List<String>, List<String>, List<String>> {
-    return updateDatabases(Connection.local(), Connection.remote(), updateSettings, updatePictures)
+fun updateRemoteDatabaseFromLocalDatabase(updateSettings: Boolean = true, updatePictures: Boolean = true, updateAuthors: Boolean = true): Triple<List<String>, List<String>, List<String>> {
+    return updateDatabases(fromDatabase = Connection.local(), toDatabase = Connection.remote(), updateSettings = updateSettings, updatePictures = updatePictures, updateAuthors = updateAuthors)
+}
+fun updateLocalDatabaseFromRemoteDatabase(updateSettings: Boolean = true, updatePictures: Boolean = true, updateAuthors: Boolean = true): Triple<List<String>, List<String>, List<String>> {
+    return updateDatabases(fromDatabase = Connection.remote(), toDatabase = Connection.local(), updateSettings = updateSettings, updatePictures = updatePictures, updateAuthors = updateAuthors)
 }
 
-fun updateLocalDatabaseFromRemoteDatabase(updateSettings: Boolean = true, updatePictures: Boolean = true): Triple<List<String>, List<String>, List<String>> {
-    return updateDatabases(Connection.remote(), Connection.local(), updateSettings, updatePictures)
-}
 fun updateDatabases(
     fromDatabase: KaraokeConnection,
     toDatabase: KaraokeConnection,
     updateSettings: Boolean = true,
     updatePictures: Boolean = true,
+    updateAuthors: Boolean = true,
     argsSettings: Map<String, String> = emptyMap(),
     argsPictures: Map<String, String> = emptyMap()
 ): Triple<List<String>, List<String>, List<String>> {
@@ -681,6 +682,140 @@ fun updateDatabases(
         }
     }
 
+    if (updateAuthors) {
+
+        val whereText = if (argsPictures.containsKey("id")) "WHERE id = ${argsPictures["id"]}" else ""
+        val tableName = "tbl_authors"
+        println("[${Timestamp.from(Instant.now())}] Запрашиваем таблицу хэшей из базы данных ${fromDatabase.name}...")
+        val listFromIdsHashes = Author.listHashes(database = fromDatabase, whereText = whereText)
+        if (listFromIdsHashes == null) {
+            println("[${Timestamp.from(Instant.now())}] Невозможно установить связь с базой данный ${fromDatabase.name}")
+            return Triple(emptyList(),emptyList(),emptyList())
+        }
+        println("[${Timestamp.from(Instant.now())}] Таблица хэшей из базы данных ${fromDatabase.name} успешно получена, записей: ${listFromIdsHashes.size}")
+
+        println("[${Timestamp.from(Instant.now())}] Запрашиваем таблицу хэшей из базы данных ${toDatabase.name}...")
+        val listToIdsHashes = Author.listHashes(database = toDatabase, whereText = whereText)
+        if (listToIdsHashes == null) {
+            println("[${Timestamp.from(Instant.now())}] Невозможно установить связь с базой данный ${toDatabase.name}")
+            return Triple(emptyList(),emptyList(),emptyList())
+        }
+        println("[${Timestamp.from(Instant.now())}] Таблица хэшей из базы данных ${fromDatabase.name} успешно получена, записей: ${listToIdsHashes.size}")
+
+        val totalCountFrom = listFromIdsHashes.size
+
+        if (totalCountFrom == 0) {
+            return Triple(emptyList(),emptyList(),emptyList())
+        }
+
+        val idsToInsert = listFromIdsHashes.filter { fromIdHash ->
+            listToIdsHashes.none { toIdHash -> toIdHash.id == fromIdHash.id }
+        }.map { it.id }
+
+        val idsToUpdate = listFromIdsHashes.filter { fromIdHash ->
+            listToIdsHashes.any { toIdHash -> toIdHash.id == fromIdHash.id && toIdHash.recordhash != fromIdHash.recordhash }
+        }.map { it.id }
+
+        val idsToDelete = listToIdsHashes.filter { toIdHash ->
+            listFromIdsHashes.none { fromIdHash -> toIdHash.id == fromIdHash.id }
+        }.map { it.id }
+
+        idsToDelete.forEach { id ->
+            if (toDatabase.name == "SERVER") {
+                Author.getAuthorById(id = id, database = toDatabase, storageService = KSS_APP, storageApiClient = SAC_APP)?.let { listToDeleteNames.add(it.author) }
+                val sqlToDelete = "DELETE FROM $tableName WHERE id = $id"
+                val setStrEncrypted = Crypto.encrypt(sqlToDelete)
+                val values: Map<String, Any> = mapOf(
+                    "sqlToDelete" to (setStrEncrypted ?: "")
+                )
+                listToDelete.add(values)
+            } else {
+                Author.delete(id = id, database = toDatabase)
+            }
+        }
+
+        idsToInsert.forEach { id ->
+            val itemFrom = Author.getAuthorById(id = id, database = fromDatabase, storageService = KSS_APP, storageApiClient = SAC_APP)
+            if (itemFrom != null) {
+                listToCreateNames.add(itemFrom.author)
+                println("[${Timestamp.from(Instant.now())}] Добавляем запись в $tableName: id=${itemFrom.id}, ${itemFrom.author}")
+                val sqlToInsert = itemFrom.getSqlToInsert()
+                if (toDatabase.name == "SERVER") {
+                    val setStrEncrypted = Crypto.encrypt(sqlToInsert)
+                    val values: Map<String, Any> = mapOf(
+                        "sqlToInsert" to (setStrEncrypted ?: "")
+                    )
+                    listToCreate.add(values)
+                } else {
+                    val connection = toDatabase.getConnection()
+                    if (connection == null) {
+                        println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${toDatabase.name}")
+                        return Triple(emptyList(),emptyList(),emptyList())
+                    }
+                    val ps = connection.prepareStatement(sqlToInsert)
+                    ps.executeUpdate()
+                    ps.close()
+                }
+            }
+        }
+
+        idsToUpdate.forEach { id ->
+            val itemFrom = Author.getAuthorById(id = id, database = fromDatabase, storageService = KSS_APP, storageApiClient = SAC_APP)
+            val itemTo = Author.getAuthorById(id = id, database = toDatabase, storageService = KSS_APP, storageApiClient = SAC_APP)
+            if (itemFrom != null && itemTo != null) {
+                val diff = KaraokeDbTable.getDiff(itemFrom, itemTo)
+                if (diff.isNotEmpty()) {
+                    listToUpdateNames.add(itemFrom.author)
+                    println("[${Timestamp.from(Instant.now())}] Изменяем запись в $tableName: id=${itemFrom.id}, ${itemFrom.author}, поля: ${diff.joinToString(", ") { it.recordDiffName }}")
+                    val messageRecordChange = RecordChangeMessage(tableName = tableName,  recordId = itemTo.id, diffs = diff, databaseName = toDatabase.name, record = itemFrom)
+                    if (toDatabase.name == "SERVER") {
+                        val setStr = messageRecordChange.getSetString()
+                        if (setStr != "") {
+                            val setStrEncrypted = Crypto.encrypt(setStr)
+                            val values: Map<String, Any> = mapOf(
+                                "tableName" to messageRecordChange.tableName,
+                                "idRecord" to messageRecordChange.recordId,
+                                "setText" to (setStrEncrypted ?: "")
+                            )
+                            listToUpdate.add(values)
+                        }
+                    } else {
+                        val setStr =
+                            diff.filter { it.recordDiffRealField }.joinToString(", ") { "${it.recordDiffName} = ?" }
+                        if (setStr != "") {
+                            val sql = "UPDATE $tableName SET $setStr WHERE id = ?"
+                            val connection = toDatabase.getConnection()
+                            if (connection == null) {
+                                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${toDatabase.name}")
+                                return Triple(emptyList(),emptyList(),emptyList())
+                            }
+                            val ps = connection.prepareStatement(sql)
+                            var index = 1
+                            diff.filter{ it.recordDiffRealField }.forEach {
+                                when (it.recordDiffValueNew) {
+                                    is Long -> {
+                                        ps.setLong(index, it.recordDiffValueNew)
+                                    }
+
+                                    is Int -> {
+                                        ps.setInt(index, it.recordDiffValueNew)
+                                    }
+
+                                    else -> {
+                                        ps.setString(index, it.recordDiffValueNew.toString())
+                                    }
+                                }
+                                index++
+                            }
+                            ps.setLong(index, itemTo.id)
+                            ps.executeUpdate()
+                            ps.close()
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     if (toDatabase.name == "SERVER") {
 
@@ -2471,6 +2606,68 @@ fun searchLastAlbumYm2(authorYmId: String): String {
     return result
 }
 
+fun searchLastAlbumYm3(authorYmId: String): String {
+    var result = ""
+    val authorUrl = "https://music.yandex.ru/artist/$authorYmId"
+    val searchUrl = "$authorUrl/albums"
+
+    Playwright.create().use { playwright ->
+        val context = playwright.chromium().launchPersistentContext(
+            USER_DATA_DIR,
+            BrowserType.LaunchPersistentContextOptions()
+                .setHeadless(true) // Работаем в фоне
+                .setLocale("ru-RU")
+                .setTimezoneId("Europe/Moscow")
+        )
+
+        val page = context.pages().firstOrNull() ?: context.newPage()
+        try {
+            page.navigate("https://music.yandex.ru/")
+
+            // Ваш код автоматизации...
+            // Куки будут обновляться автоматически, как в обычном браузере!
+        } finally {
+            context.close() // Закрываем контекст, чтобы профиль корректно сохранился и снялся lock-файл
+        }
+    }
+
+    Playwright.create().use { playwright ->
+
+        val context = playwright.chromium().launchPersistentContext(
+            USER_DATA_DIR,
+            BrowserType.LaunchPersistentContextOptions()
+                .setHeadless(true) // Работаем в фоне
+                .setLocale("ru-RU")
+                .setTimezoneId("Europe/Moscow")
+        )
+
+        val page = context.newPage()
+        try {
+            page.navigate(searchUrl)
+
+            val html = page.content()
+
+            val preloadedAlbums = html.extractBalancedBracesFromString("""\"preloadedAlbums\":""")
+            val album = preloadedAlbums.extractBalancedBracesFromString("""\"albums\":[""")
+            result = album.textBetween("""\"title\":\"""", """\",\"""")
+
+            if (result == "") {
+                if (html.contains("Нам очень жаль, но запросы с вашего устройства похожи на автоматические")) {
+                    println("Нам очень жаль, но запросы с вашего устройства похожи на автоматические")
+                    throw Exception("Нам очень жаль, но запросы с вашего устройства похожи на автоматические")
+                }
+                println("preloadedAlbum = $preloadedAlbums")
+                println("album = $album")
+                println("searchLastAlbumYm3 html: '${html.substring(0, minOf(html.length, 1000))}...'") // ограничиваем вывод
+            }
+        } finally {
+            context.close() // При закрытии профиль автоматически сохраняется на диск, lock-файл снимается
+        }
+    }
+    return result
+}
+
+
 //fun searchLastAlbumYm2(authorYmId: String): String {
 //    val searchUrl = "https://music.yandex.ru/artist/$authorYmId/albums"
 //    // Выбор случайного User-Agent
@@ -2500,7 +2697,7 @@ fun searchLastAlbumYm2(authorYmId: String): String {
 //}
 
 fun getAuthorForRequest(lastAuthor: String = ""): Author? {
-    val listSongAuthors = Settings.loadListAuthors(WORKING_DATABASE)
+    val listSongAuthors = Settings.loadListAuthors(database = WORKING_DATABASE)
     if (listSongAuthors.isEmpty()) return null
     val requestNewSongLastSuccessAuthor = if (lastAuthor != "") lastAuthor else Karaoke.requestNewSongLastSuccessAuthor
 
@@ -2553,7 +2750,7 @@ fun checkLastAlbumYm(): Triple<String, String, Int> {
     val lastAlbumYm = try {
 //        getAlbumCardTitle(author.ymId)
 //        searchLastAlbumYm(author.ymId)
-        searchLastAlbumYm2(author.ymId)
+        searchLastAlbumYm3(author.ymId)
     } catch (@Suppress("unused") e: Exception) {
         // e.printStackTrace()
         println("Поиск для автора «$authorForRequest» завершился ошибкой.")

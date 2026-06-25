@@ -684,7 +684,7 @@ class Settings(
     val rate: Int get() = (fields[SettingField.RATE]?.nullIfEmpty() ?: "0").toInt()
 
     val linkSM: String get() = URL_PREFIX_SM.replace("{REPLACE}", id.toString())
-    val linkBoosty: String? get() = idBoosty.let {URL_PREFIX_BOOSTY.replace("{REPLACE}", idBoosty)}
+    val linkBoosty: String get() = idBoosty.let {URL_PREFIX_BOOSTY.replace("{REPLACE}", idBoosty)}
     val linkBoostyFiles: String? get() = idBoostyFiles.let {URL_PREFIX_BOOSTY.replace("{REPLACE}", idBoostyFiles)}
     @Suppress("unused") val linkVk: String? get() = idVk.let {URL_PREFIX_VK.replace("{REPLACE}", idVk)}
     val linkDzenLyricsPlay: String? get() = idDzenLyrics.let {URL_PREFIX_DZEN_PLAY.replace("{REPLACE}", idDzenLyrics)}
@@ -4397,7 +4397,7 @@ class Settings(
 
         }
 
-        fun loadListAuthors(database: KaraokeConnection): List<String> {
+        fun loadListAuthors(withSkiped: Boolean = true, database: KaraokeConnection): List<String> {
             val connection = database.getConnection()
             if (connection == null) {
                 println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
@@ -4409,7 +4409,11 @@ class Settings(
 
             try {
                 statement = connection.createStatement()
-                sql = "select DISTINCT song_author from tbl_settings order by song_author"
+                sql = if (withSkiped) {
+                    "select DISTINCT song_author from tbl_settings order by song_author"
+                } else {
+                    "select DISTINCT author as song_author from tbl_authors where skip = false order by author "
+                }
 
                 rs = statement.executeQuery(sql)
                 val result: MutableList<String> = mutableListOf()

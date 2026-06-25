@@ -1084,8 +1084,38 @@ export default {
             }
             state.lastPriorSmartCopy = value;
         },
-        saveSong(state) {
-            state.snapshotSong = !state.currentSong ? undefined : Object.assign({}, state.currentSong)
+        saveSong(state, savedParams) {
+            if (!state.currentSong) {
+                state.snapshotSong = undefined;
+                return;
+            }
+
+            // Если snapshot еще не создан, создаем его
+            if (!state.snapshotSong) {
+                state.snapshotSong = Object.assign({}, state.currentSong);
+                return;
+            }
+
+            if (savedParams && Object.keys(savedParams).length > 0) {
+                // КРИТИЧНО: Создаем НОВЫЙ объект на основе старого snapshot.
+                // Прямое изменение свойств (state.snapshotSong[key] = ...) 
+                // может не вызывать реактивность, из-за чего diff не пересчитывается и кнопка горит красным.
+                // Переприсваивание объекта гарантирует, что Vue заметит изменение.
+                const newSnapshot = Object.assign({}, state.snapshotSong);
+                
+                for (let key in savedParams) {
+                    if (key !== 'id') {
+                        newSnapshot[key] = savedParams[key];
+                    }
+                }
+                
+                // Переприсваиваем весь объект целиком
+                state.snapshotSong = newSnapshot;
+            } else {
+                // Если params пустой (например, при ручном сохранении без diff), 
+                // просто синхронизируем всё текущее состояние
+                state.snapshotSong = Object.assign({}, state.currentSong);
+            }
         },
         async updateSongsAndDictionaries(state, result) {
             state.currentSongPageIndex = 0;
@@ -1658,12 +1688,17 @@ export default {
         },
         saveSong(ctx, params) {
             params.id = ctx.state.currentSongId;
-            // console.log('params: ', params);
             let request = { method: 'POST', url: "/api/song/update", params: params };
-            promisedXMLHttpRequest(request).then(() => {
-                ctx.commit('saveSong')
+            
+            // 1. КРИТИЧНО: Добавляем return! 
+            // Теперь await в компоненте будет реально ждать ответа от сервера.
+            return promisedXMLHttpRequest(request).then(() => {
+                // 2. Передаем params в мутацию, чтобы она знала, какие именно поля сохранились
+                ctx.commit('saveSong', params); 
             }).catch(error => {
-                console.log(error);
+                console.error('Ошибка сохранения:', error);
+                // Пробрасываем ошибку дальше, чтобы в компоненте отработал блок catch
+                throw error; 
             });
         },
         async loadSongsAndDictionaries(ctx, params) {
@@ -1768,31 +1803,44 @@ export default {
             return promisedXMLHttpRequest({
                 method: 'POST',
                 url: "/api/utils/updateremotedatabasefromlocaldatabase",
-                params: { updateSettings: true, updatePictures: false }
+                params: { updateSettings: true, updatePictures: false, updateAuthors: false }
             });
         },
         updateRemotePicturesPromise() {
             return promisedXMLHttpRequest({
                 method: 'POST',
                 url: "/api/utils/updateremotedatabasefromlocaldatabase",
-                params: { updateSettings: false, updatePictures: true }
+                params: { updateSettings: false, updatePictures: true, updateAuthors: false }
+            });
+        },
+        updateRemoteAuthorsPromise() {
+            return promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/api/utils/updateremotedatabasefromlocaldatabase",
+                params: { updateSettings: false, updatePictures: false, updateAuthors: true }
             });
         },
         updateLocalSettingsPromise() {
             return promisedXMLHttpRequest({
                 method: 'POST',
                 url: "/api/utils/updatelocaldatabasefromremotedatabase",
-                params: { updateSettings: true, updatePictures: false }
+                params: { updateSettings: true, updatePictures: false, updateAuthors: false }
             });
         },
         updateLocalPicturesPromise() {
             return promisedXMLHttpRequest({
                 method: 'POST',
                 url: "/api/utils/updatelocaldatabasefromremotedatabase",
-                params: { updateSettings: false, updatePictures: true }
+                params: { updateSettings: false, updatePictures: true, updateAuthors: false }
             });
         },
-
+        updateLocalAuthorsPromise() {
+            return promisedXMLHttpRequest({
+                method: 'POST',
+                url: "/api/utils/updatelocaldatabasefromremotedatabase",
+                params: { updateSettings: false, updatePictures: false, updateAuthors: true }
+            });
+        },
         setDateTimeAuthorPromise(ctx) {
             let params = { id: ctx.state.currentSongId };
             let request = { method: 'POST', url: "/api/song/setpublishdatetimetoauthor", params: params };
@@ -1967,6 +2015,15 @@ export default {
             let request = { method: 'POST', url: "/api/utils/checklastalbumym" };
             return promisedXMLHttpRequest(request);
         },
+        smartCopyPeriodByDayPromise(ctx, payload) {
+            let params = {
+                periodStart: payload.periodStart,
+                periodEnd: payload.periodEnd,
+                smartCopyPathPrefix: payload.smartCopyPathPrefix
+            };
+            let request = { method: 'POST', url: "/api/songs/smartcopyperodbyday", params: params };
+            return promisedXMLHttpRequest(request);
+        },
         updateBpmAndKeyPromise() {
             let request = { method: 'POST', url: "/api/utils/updatebpmandkey" };
             return promisedXMLHttpRequest(request);
@@ -1993,6 +2050,10 @@ export default {
         },
         autorizeYMstartPromise() {
             let request = { method: 'POST', url: "/api/authymstart" };
+            return promisedXMLHttpRequest(request);
+        },
+        autorizeYMstart2Promise() {
+            let request = { method: 'POST', url: "/api/authymstart2" };
             return promisedXMLHttpRequest(request);
         },
         autorizeYMstopPromise() {

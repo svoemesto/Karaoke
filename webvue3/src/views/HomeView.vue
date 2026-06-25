@@ -23,9 +23,10 @@
       </div>
       <button class="button-action" @click="copyToStore">Обновить хранилище</button>
       <button class="button-action" @click="actualizeVKLinkPictureWeb">Актуализация VKLinkPictureWeb</button>
-      <button class="button-action" @click="checkLastAlbumYm">Поиск новых альбомов</button>
+      <button class="button-action" @click="smartCopyPeriodByDay">Подготовить файлы для публикации</button>
+      <!-- <button class="button-action" @click="checkLastAlbumYm">Поиск новых альбомов</button>
       <button class="button-action" @click="updateBpmAndKey">Обновить пустые BPM и KEY из фалов CSV</button>
-      <button class="button-action" @click="updateBpmAndKeyLV">Обновить пустые BPM и KEY из фалов LV</button>
+      <button class="button-action" @click="updateBpmAndKeyLV">Обновить пустые BPM и KEY из фалов LV</button> -->
       <div class="field-and-buttons-wrapper">
         <input list="list_authors" class="input-author" type="text" placeholder="Автор" v-model="author">
         <button class="button-action" @click="markDublicates" :disabled="!author">Найти и обработать дубликаты песен автора</button>
@@ -43,14 +44,27 @@
         </div>
       </div>
       <div class="fields-line-wrapper">
-        <button class="button-action button-action-inline" @click="autorizeYMstart">Auth YM: Start</button>
-        <button class="button-action button-action-inline" @click="autorizeYMstop">Auth YM: Stop</button>
+        <button class="button-action button-action-inline" @click="autorizeYMstart" :disabled="authYmInProgress">Auth YM 1</button>
+        <button class="button-action button-action-inline" @click="autorizeYMstart2" :disabled="authYmInProgress">Auth YM 2</button>
+        <button class="button-action button-action-inline" @click="autorizeYMstop" :disabled="!authYmInProgress">Auth YM: Stop</button>
       </div>
       <button class="button-action" @click="customFunction">Выполнить Custom Function</button>
-      <button class="button-action" @click="updateRemoteSettings" :disabled="!allowUpdateRemote">Обновить REMOTE Database SETTINGS</button>
-      <button class="button-action" @click="updateRemotePictures" :disabled="!allowUpdateRemote">Обновить REMOTE Database PICTURES</button>
-      <button class="button-action" @click="updateLocalSettings" :disabled="!allowUpdateLocal">Обновить LOCAL Database SETTINGS</button>
-      <button class="button-action" @click="updateLocalPictures" :disabled="!allowUpdateLocal">Обновить LOCAL Database PICTURES</button>
+      <div class="field-and-buttons-wrapper">
+        <div>Обновить REMOTE Database</div>
+        <div class="fields-line-wrapper">
+          <button class="button-action" @click="updateRemoteSettings" :disabled="!allowUpdateRemote">SETTINGS</button>
+          <button class="button-action" @click="updateRemotePictures" :disabled="!allowUpdateRemote">PICTURES</button>
+          <button class="button-action" @click="updateRemoteAuthors" :disabled="!allowUpdateRemote">AUTHORS</button>
+        </div>
+      </div>
+      <div class="field-and-buttons-wrapper">
+        <div>Обновить LOCAL Database</div>
+        <div class="fields-line-wrapper">
+          <button class="button-action" @click="updateLocalSettings" :disabled="!allowUpdateLocal">SETTINGS</button>
+          <button class="button-action" @click="updateLocalPictures" :disabled="!allowUpdateLocal">PICTURES</button>
+          <button class="button-action" @click="updateLocalAuthors" :disabled="!allowUpdateLocal">AUTHORS</button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -78,7 +92,8 @@ export default {
       songAuthors: [],
       dicts:[],
       allowUpdateRemote: false,
-      allowUpdateLocal: false
+      allowUpdateLocal: false,
+      authYmInProgress: false
     }
   },
   async mounted() {
@@ -206,6 +221,65 @@ export default {
         callback: () => { this.$store.dispatch('actualizeVKLinkPictureWebPromise') }
       }
       this.isCustomConfirmVisible = true;
+    },
+    smartCopyPeriodByDay() {
+      const now = new Date();
+
+      // Первый день следующего месяца: год, месяц+1, день 1
+      const firstDay = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+      // Последний день следующего месяца: год, месяц+2, день 0
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 2, 0);
+
+      // Функция форматирования в dd.MM.yy
+      const formatDate = (date) => {
+          const dd = String(date.getDate()).padStart(2, '0');
+          const mm = String(date.getMonth() + 1).padStart(2, '0');
+          const yy = String(date.getFullYear()).slice(-2);
+          return `${dd}.${mm}.${yy}`;
+      };
+
+      this.customConfirmParams = {
+        header: 'Подготовка файлов к публикации',
+        body: `Скопировать недостающие файлы в папки для публикации?`,
+        callback: this.doSmartCopyPeriodByDay,
+        fields: [
+          {
+            fldName: 'periodStart',
+            fldLabel: 'Дата начала:',
+            fldValue: formatDate(firstDay),
+            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
+            fldValueStyle: { width: '400px', textAlign: 'center', borderRadius: '10px'}
+          },
+          {
+            fldName: 'periodEnd',
+            fldLabel: 'Дата конца:',
+            fldValue: formatDate(lastDay),
+            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
+            fldValueStyle: { width: '400px', textAlign: 'center', borderRadius: '10px'}
+          },
+          {
+            fldName: 'smartCopyPathPrefix',
+            fldLabel: 'Папка:',
+            fldValue: '/sm-karaoke/work/ПУБЛИКАЦИИ',
+            fldLabelStyle: { width: '200px', textAlign: 'right', paddingRight: '5px'},
+            fldValueStyle: { width: '400px', textAlign: 'center', borderRadius: '10px'}
+          }
+        ]
+      }
+      this.isCustomConfirmVisible = true;
+    },
+    doSmartCopyPeriodByDay(result) {
+      this.$store.dispatch('smartCopyPeriodByDayPromise', {periodStart: result.periodStart, periodEnd: result.periodEnd, smartCopyPathPrefix: result.smartCopyPathPrefix}).then(data => {
+        this.customConfirmParams = {
+          isAlert: true,
+          alertType: 'info',
+          header: 'Подготовка файлов к публикации',
+          body: `Готово`,
+          timeout: 10
+        }
+        this.isCustomConfirmVisible = true;
+      })
     },
     checkLastAlbumYm() {
       this.customConfirmParams = {
@@ -369,10 +443,17 @@ export default {
       })
     },
     autorizeYMstart() {
+      this.authYmInProgress = true;
       this.$store.dispatch('autorizeYMstartPromise');
     },
+    autorizeYMstart2() {
+      this.authYmInProgress = true;
+      this.$store.dispatch('autorizeYMstart2Promise');
+    },
     autorizeYMstop() {
-      this.$store.dispatch('autorizeYMstopPromise');
+      this.$store.dispatch('autorizeYMstopPromise').then(() => {
+        this.authYmInProgress = false;
+      });
     },
     customFunction() {
       this.customConfirmParams = {
@@ -413,6 +494,15 @@ export default {
       }
       this.isCustomConfirmVisible = true;
     },
+    updateRemoteAuthors() {
+      this.customConfirmParams = {
+        header: 'Обновление серверной БД',
+        body: `Обновить таблицу авторов на сервере данными из локальной базы данных?`,
+        timeout: 10,
+        callback: () => { this.$store.dispatch('updateRemoteAuthorsPromise') }
+      }
+      this.isCustomConfirmVisible = true;
+    },
     updateLocalSettings() {
       this.customConfirmParams = {
         header: 'Обновление локальной БД',
@@ -428,6 +518,15 @@ export default {
         body: `Обновить таблицу изображений в локальной базе данных данными с сервера?`,
         timeout: 10,
         callback: () => { this.$store.dispatch('updateLocalPicturesPromise') }
+      }
+      this.isCustomConfirmVisible = true;
+    },
+    updateLocalAuthors() {
+      this.customConfirmParams = {
+        header: 'Обновление локальной БД',
+        body: `Обновить таблицу авторов в локальной базе данных данными с сервера?`,
+        timeout: 10,
+        callback: () => { this.$store.dispatch('updateLocalAuthorsPromise') }
       }
       this.isCustomConfirmVisible = true;
     }

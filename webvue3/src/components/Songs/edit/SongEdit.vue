@@ -663,6 +663,7 @@ export default {
       autoSave: true,
       autoSaveDelayMs: 1000,
       saveTimer: undefined,
+      isSaving: false,
       allowUpdateRemote: false,
       allowUpdateLocal: false,
       allowAddSync: false,
@@ -797,14 +798,13 @@ export default {
   },
   watch: {
     diff: {
-      async handler () {
-        // console.log('watch diff propAutoSave', this.autoSave);
-        if (this.diff.length !== 0 && this.autoSave) {
-          // console.log('watch diff propAutoSaveDelayMs', this.autoSaveDelayMs);
-          clearTimeout(this.saveTimer);
-          this.saveTimer = setTimeout(this.save, this.autoSaveDelayMs);
+        deep: true, // КРИТИЧНО для отслеживания изменений внутри массива
+        handler (newVal) {
+            if (this.diff.length !== 0 && this.autoSave) {
+                clearTimeout(this.saveTimer);
+                this.saveTimer = setTimeout(this.save, this.autoSaveDelayMs);
+            }
         }
-      }
     },
     song: {
       handler () {
@@ -2370,11 +2370,7 @@ export default {
     },
     save() {
       clearTimeout(this.saveTimer);
-      let params = {};
-      for (let diff of this.diff) {
-        params[diff.name] = diff.new;
-      }
-      return this.$store.dispatch('saveSong', params)
+      this.executeSave();
     },
     undoField(name) {
       return this.$store.dispatch('setCurrentSongField', {name: name, value: this.snapshot[name]})
@@ -2435,7 +2431,42 @@ export default {
         position: 'top-start'
         // modelValue: true
       })
-    }
+    },
+    // Асинхронный метод непосредственного сохранения
+    async executeSave() {
+        // Если сохранение уже идет, просто выходим, чтобы не дублировать запросы
+        if (this.isSaving) return; 
+
+        this.isSaving = true;
+
+        try {
+            // Собираем актуальные изменения
+            let params = {};
+            for (let diffItem of this.diff) {
+                params[diffItem.name] = diffItem.new;
+            }
+
+            // Если изменений нет (например, нажали кнопку вручную, но всё уже сохранено)
+            if (Object.keys(params).length === 0) {
+                this.isSaving = false;
+                return;
+            }
+
+            // Ждем завершения сохранения на сервере
+            await this.$store.dispatch('saveSong', params);
+
+            // ПОСТ-ОБРАБОТКА: 
+            // Проверяем, не появились ли новые изменения ПОКА шёл запрос к серверу
+            if (this.diff.length > 0) {
+                // Если появились, сразу ставим их в очередь на следующий автосейв
+                this.saveTimer = setTimeout(this.executeSave, this.autoSaveDelayMs);
+            }
+        } catch (error) {
+            console.error('Ошибка автосохранения:', error);
+        } finally {
+            this.isSaving = false;
+        }
+    },
   }
 }
 </script>

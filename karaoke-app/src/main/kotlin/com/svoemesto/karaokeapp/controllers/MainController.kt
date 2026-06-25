@@ -29,7 +29,7 @@ class MainController(
     @GetMapping("/")
     fun main(model: Model): String {
         model.addAttribute("workInContainer", APP_WORK_IN_CONTAINER)
-        model.addAttribute("authors", Settings.loadListAuthors(WORKING_DATABASE))
+        model.addAttribute("authors", Settings.loadListAuthors(withSkiped = false, database = WORKING_DATABASE))
         model.addAttribute("dicts", TEXT_FILE_DICTS.keys.toMutableList().sorted().toList())
         return "main"
     }
@@ -1169,7 +1169,7 @@ class MainController(
         filter_result_version?.let { if (filter_result_version != "") args["filter_result_version"] = filter_result_version }
         model.addAttribute("workInContainer", APP_WORK_IN_CONTAINER)
         model.addAttribute("sett", Settings.loadListFromDb(args, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient, withoutMarkersAndText = true))
-        model.addAttribute("authors", Settings.loadListAuthors(WORKING_DATABASE))
+        model.addAttribute("authors", Settings.loadListAuthors(withSkiped = false, database = WORKING_DATABASE))
         model.addAttribute("albums", Settings.loadListAlbums(WORKING_DATABASE))
         return "songs"
     }
@@ -1340,7 +1340,7 @@ class MainController(
         filter_result_version?.let { if (filter_result_version != "") args["filter_result_version"] = filter_result_version }
         model.addAttribute("workInContainer", APP_WORK_IN_CONTAINER)
         model.addAttribute("sett", Settings.loadListFromDb(args, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient, withoutMarkersAndText = true))
-        model.addAttribute("authors", Settings.loadListAuthors(WORKING_DATABASE))
+        model.addAttribute("authors", Settings.loadListAuthors(withSkiped = false, database = WORKING_DATABASE))
         model.addAttribute("albums", Settings.loadListAlbums(WORKING_DATABASE))
         return "songs2"
     }

@@ -41,6 +41,8 @@ import java.sql.SQLException
 import java.sql.Timestamp
 import java.text.SimpleDateFormat
 import java.time.Instant
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import java.util.*
 import javax.imageio.ImageIO
 
@@ -1043,7 +1045,7 @@ class ApiController(
     @ResponseBody
     fun authors(): Map<String, Any> {
         return mapOf(
-            "authors" to Settings.loadListAuthors(WORKING_DATABASE)
+            "authors" to Settings.loadListAuthors(database = WORKING_DATABASE)
         )
     }
 
@@ -1364,7 +1366,7 @@ class ApiController(
         return mapOf(
             "workInContainer" to APP_WORK_IN_CONTAINER,
             "songsDigests" to lst,
-            "authors" to Settings.loadListAuthors(WORKING_DATABASE),
+            "authors" to Settings.loadListAuthors(database = WORKING_DATABASE),
             "albums" to Settings.loadListAlbums(WORKING_DATABASE),
             "totalDuration" to convertMillisecondsToDtoTimecode(totalMs)
         )
@@ -1486,7 +1488,7 @@ class ApiController(
         return mapOf(
             "workInContainer" to APP_WORK_IN_CONTAINER,
             "pages" to lst.chunked(pageSize),
-            "authors" to Settings.loadListAuthors(WORKING_DATABASE),
+            "authors" to Settings.loadListAuthors(database = WORKING_DATABASE),
             "albums" to Settings.loadListAlbums(WORKING_DATABASE)
         )
     }
@@ -2539,7 +2541,7 @@ class ApiController(
         }
     }
 
-    // Создаём SYMLINKs для всех
+    // SmartCopyAll
     @PostMapping("/songs/smartcopyall")
     @ResponseBody
     fun getSmartCopyAll(
@@ -2564,22 +2566,49 @@ class ApiController(
             ids.forEach { id ->
                 val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
                 settings?.let {
-                    versions.forEach { scVersion ->
-                        it.doSmartCopy(
-                            prior = prior,
-                            scVersion = scVersion,
-                            scResolution = smartCopySongResolution,
-                            scCreateSubfoldersAuthors = smartCopyCreateSubfoldersAuthors ?: false,
-                            scRenameTemplate = smartCopyRenameTemplate ?: "",
-                            scPath = smartCopyPath,
-                            threadId = threadId?.toInt() ?: 0
-                        )
-                    }
+                    doSmartCopyForVersions(
+                        settings = it,
+                        versions = versions,
+                        prior = prior,
+                        scResolution = smartCopySongResolution,
+                        scCreateSubfoldersAuthors = smartCopyCreateSubfoldersAuthors ?: false,
+                        scRenameTemplate = smartCopyRenameTemplate ?: "",
+                        scPath = smartCopyPath,
+                        threadId = threadId?.toInt() ?: 0
+                    )
                 }
                 result = true
             }
         }
-        if (result) {
+        sendSmartCopyResultNotification(result)
+    }
+
+    // Общая часть getSmartCopyAll/getSmartCopyPeriodByDay: копирование одного набора Settings во всех версиях
+    private fun doSmartCopyForVersions(
+        settings: Settings,
+        versions: List<SongVersion>,
+        prior: Int,
+        scResolution: String,
+        scCreateSubfoldersAuthors: Boolean,
+        scRenameTemplate: String,
+        scPath: String,
+        threadId: Int
+    ) {
+        versions.forEach { scVersion ->
+            settings.doSmartCopy(
+                prior = prior,
+                scVersion = scVersion,
+                scResolution = scResolution,
+                scCreateSubfoldersAuthors = scCreateSubfoldersAuthors,
+                scRenameTemplate = scRenameTemplate,
+                scPath = scPath,
+                threadId = threadId
+            )
+        }
+    }
+
+    private fun sendSmartCopyResultNotification(success: Boolean) {
+        if (success) {
             SNS.send(SseNotification.message(Message(
                 type = "info",
                 head = "Создание Smart Copy",
@@ -2592,6 +2621,59 @@ class ApiController(
                 body = "Что-то пошло не так"
             )))
         }
+    }
+
+    // SmartCopyAll
+    @PostMapping("/songs/smartcopyperodbyday")
+    @ResponseBody
+    fun getSmartCopyPeriodByDay(
+        @RequestParam periodStart: String,
+        @RequestParam periodEnd: String,
+        @RequestParam smartCopyPathPrefix: String
+    ) {
+
+        val prior: Int = -1
+        val versions = SongVersion.entries
+        val smartCopySongResolution = "1080p"
+        val smartCopyCreateSubfoldersAuthors = false
+        val smartCopyRenameTemplate = ""
+        val threadId = -1
+
+        var result = false
+
+        val formatterDDMMYY = DateTimeFormatter.ofPattern("dd.MM.yy")
+        val formatterYYYYDDMM = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+
+        val startDate = LocalDate.parse(periodStart, formatterDDMMYY)
+        val endDate = LocalDate.parse(periodEnd, formatterDDMMYY)
+
+        var currentDate = startDate
+        while (!currentDate.isAfter(endDate)) {
+
+            val filterString =  currentDate.format(formatterDDMMYY)
+            val dayFolder =  currentDate.format(formatterYYYYDDMM)
+            val smartCopyPath = "$smartCopyPathPrefix/$dayFolder"
+
+            val settingsList = Settings.loadListFromDb(args = mapOf("publish_date" to filterString), database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+            settingsList.forEach { settings ->
+                doSmartCopyForVersions(
+                    settings = settings,
+                    versions = versions,
+                    prior = prior,
+                    scResolution = smartCopySongResolution,
+                    scCreateSubfoldersAuthors = smartCopyCreateSubfoldersAuthors,
+                    scRenameTemplate = smartCopyRenameTemplate,
+                    scPath = smartCopyPath,
+                    threadId = threadId
+                )
+                result = true
+            }
+
+            // Переходим к следующему дню
+            currentDate = currentDate.plusDays(1)
+        }
+
+        sendSmartCopyResultNotification(result)
     }
 
     @PostMapping("/song/findsongtext")
@@ -2720,10 +2802,14 @@ class ApiController(
     @PostMapping("/utils/updateremotedatabasefromlocaldatabase")
     @ResponseBody
     fun doUpdateRemoteDatabaseFromLocalDatabase(
-        @RequestParam(required = true) updateSettings: Boolean = true,
-        @RequestParam(required = true) updatePictures: Boolean = true
+        @RequestParam(required = false) updateSettings: Boolean = true,
+        @RequestParam(required = false) updatePictures: Boolean = true,
+        @RequestParam(required = false) updateAuthors: Boolean = true
     ): List<List<String>> {
-        val (listCreate, listUpdate, listDelete) = updateRemoteDatabaseFromLocalDatabase(updateSettings,updatePictures)
+        val (listCreate, listUpdate, listDelete) = updateRemoteDatabaseFromLocalDatabase(
+            updateSettings = updateSettings,
+            updatePictures = updatePictures,
+            updateAuthors = updateAuthors)
         if (listCreate.size + listUpdate.size + listDelete.size != 0) {
             SNS.send(SseNotification.crud(listOf(listCreate, listUpdate, listDelete)))
         }
@@ -2734,10 +2820,14 @@ class ApiController(
     @PostMapping("/utils/updatelocaldatabasefromremotedatabase")
     @ResponseBody
     fun doUpdateLocalDatabaseFromRemoteDatabase(
-        @RequestParam(required = true) updateSettings: Boolean = true,
-        @RequestParam(required = true) updatePictures: Boolean = true
+        @RequestParam(required = false) updateSettings: Boolean = true,
+        @RequestParam(required = false) updatePictures: Boolean = true,
+        @RequestParam(required = false) updateAuthors: Boolean = true
     ): List<List<String>> {
-        val (listCreate, listUpdate, listDelete) = updateLocalDatabaseFromRemoteDatabase(updateSettings,updatePictures)
+        val (listCreate, listUpdate, listDelete) = updateLocalDatabaseFromRemoteDatabase(
+            updateSettings = updateSettings,
+            updatePictures = updatePictures,
+            updateAuthors = updateAuthors)
         if (listCreate.size + listUpdate.size + listDelete.size != 0) {
             SNS.send(SseNotification.crud(listOf(listCreate, listUpdate, listDelete)))
         }
@@ -3331,6 +3421,12 @@ class ApiController(
     @ResponseBody
     fun authYMstart() {
         createNewAuthContext()
+    }
+
+    @PostMapping("/authymstart2")
+    @ResponseBody
+    fun authYMstart2() {
+        createNewAuthContext2()
     }
 
     @PostMapping("/authymstop")

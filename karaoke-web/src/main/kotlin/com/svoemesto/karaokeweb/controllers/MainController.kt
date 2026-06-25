@@ -58,7 +58,7 @@ class MainController(
             data["author"] = it
         }
         model.addAttribute("author_init", author ?: "")
-        model.addAttribute("authors", Settings.loadListAuthors(database = WORKING_DATABASE))
+        model.addAttribute("authors", Settings.loadListAuthors(withSkiped = false, database = WORKING_DATABASE))
         model.addAttribute("zakroma", Zakroma.getZakroma(
             author = author ?: "",
             database = WORKING_DATABASE,
@@ -265,7 +265,7 @@ class MainController(
 
         val settings: List<Settings> = if ("${songName ?: ""}${author ?: ""}${album ?: ""}${text ?: ""}".length < 3) emptyList() else Settings.loadListFromDb(attr, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient, withoutMarkersAndText = true)
 
-        model.addAttribute("authors", Settings.loadListAuthors(WORKING_DATABASE))
+        model.addAttribute("authors", Settings.loadListAuthors(withSkiped = false, database = WORKING_DATABASE))
         model.addAttribute("settings", settings)
 
         val data: MutableMap<String, Any> = mutableMapOf()

@@ -114,11 +114,14 @@ rsync -av --exclude='do.env' web-server-deploy/deploy/ root@79.174.95.69:Karaoke
 # nginx конфиг karaoke-public:
 scp karaoke-public/nginx_karaoke-public.conf root@79.174.95.69:Karaoke/deploy/nginx_karaoke-public.conf
 # Применить изменения nginx (если менялся 80to8897):
-ssh root@79.174.95.69 "nginx -t && systemctl reload nginx"
+# ВАЖНО: rsync обновляет /root/Karaoke/deploy/80to8897, но nginx читает из /etc/nginx/sites-enabled/80to8897
+# Это ОТДЕЛЬНЫЙ файл (не симлинк), его нужно скопировать вручную:
+ssh root@79.174.95.69 "cp /root/Karaoke/deploy/80to8897 /etc/nginx/sites-enabled/80to8897 && nginx -t && systemctl reload nginx"
 ```
 
 **Архитектура на сервере:**
 - nginx (443/80) → `/api/*` → karaoke-web (порт 8897) напрямую
+- nginx (443/80) → `/song` + User-Agent `vkShare` → karaoke-web (порт 8897) — Thymeleaf с og:image для VK-бота
 - nginx (443/80) → `/` → karaoke-public (порт 7907) — публичный фронтенд
 - karaoke-web (порт 8897) — API-бэкенд (публичный API + синхронизация LOCAL↔SERVER БД)
 
@@ -222,6 +225,14 @@ accessed through `services/StorageApiClient.kt` / `services/KaraokeStorageServic
   альбом 154×154 @ (20, 20), автор 385×154 @ (294, 20). Читает полноразмерные PNG из MinIO,
   кэширует результат как `song_banner_{id}.png`. Параметры взяты из `getVKPictureBase64()`
   в `UtilsPictures.kt`. Используется на `SongView.vue` вместо устаревшего `vkPictureBase64`.
+
+- `GET /api/public/song-vk-image/{id}` — VK-превью песни 537×240px (чёрный фон): альбом слева,
+  автор справа, название песни жёлтым текстом Roboto Black с авторазмером внизу. Картинка
+  отдаётся всегда (без условий по статусу/VK-ссылке). Если хоть одного логотипа нет в MinIO —
+  redirect на `/KARAOKE_LOGO.png` (без кэша, следующий запрос повторит проверку).
+  Кэш: `/tmp/vk_{id}.png`. Шрифт: `karaoke-web/src/main/resources/Roboto-Black.ttf` (бандлится в JAR).
+  **Важно:** пути MinIO строить через `settings.author`, а не `albumPic.storageFileName` — поле
+  `author` в записи Pictures может отличаться по регистру от `Settings.author`.
 
 **Правило при загрузке картинок без base64:** передавать `ignoreUseInList = false` в
 `Pictures.getPictureByName()` — иначе подтянется тяжёлое поле `picture_full` из БД.

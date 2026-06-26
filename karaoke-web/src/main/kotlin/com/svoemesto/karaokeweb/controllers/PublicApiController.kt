@@ -11,14 +11,19 @@ import com.svoemesto.karaokeweb.dto.ZakromaPublicDto
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.StorageApiClient
 import jakarta.servlet.http.HttpServletRequest
+import org.springframework.http.HttpHeaders
+import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import java.awt.Color
+import java.awt.Font
 import java.awt.Graphics2D
+import java.awt.RenderingHints
 import java.awt.image.BufferedImage
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
+import java.io.File
 import javax.imageio.ImageIO
 
 /**
@@ -149,6 +154,88 @@ class PublicApiController(
         ImageIO.write(resultImage, "png", out)
         val bytes = out.toByteArray()
         storageService.uploadFile(bucket, cacheKey, ByteArrayInputStream(bytes), bytes.size.toLong())
+
+        return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(bytes)
+    }
+
+    @GetMapping("/song-vk-image/{id}")
+    fun songVkImage(@PathVariable id: Long): ResponseEntity<ByteArray> {
+        val settings = Settings.loadFromDbById(id, database = WORKING_DATABASE,
+            storageService = storageService, storageApiClient = storageApiClient)
+            ?: return ResponseEntity.notFound().build()
+
+        val cacheFile = File("/tmp/vk_$id.png")
+        val bucket = "karaoke"
+        val albumPicName = "${settings.author} - ${settings.year} - ${settings.album}"
+        val albumPic = Pictures.getPictureByName(albumPicName, WORKING_DATABASE,
+            storageService, storageApiClient, ignoreUseInList = false)
+        val authorPic = Pictures.getPictureByName(settings.author, WORKING_DATABASE,
+            storageService, storageApiClient, ignoreUseInList = false)
+
+        val albumFile = albumPic?.let {
+            "${settings.author}/${settings.year} - ${settings.album}/${albumPicName}.album.png"
+                .takeIf { storageService.fileExists(bucket, it) }
+        }
+        val authorFile = authorPic?.let {
+            "${settings.author}/${settings.author}.author.png"
+                .takeIf { storageService.fileExists(bucket, it) }
+        }
+
+        if (albumFile == null || authorFile == null) {
+            return ResponseEntity.status(HttpStatus.FOUND)
+                .header(HttpHeaders.LOCATION, "/KARAOKE_LOGO.png")
+                .build()
+        }
+
+        if (cacheFile.exists()) {
+            return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(cacheFile.readBytes())
+        }
+
+        val frameW = 537; val frameH = 240; val padding = 20
+        val picAreaH = 176
+        val albumW = ((frameW - 3 * padding) / 3.5).toInt()
+        val albumH = albumW
+        val authorW = (albumW * 2.5).toInt()
+        val authorH = albumH
+
+        val resultImage = BufferedImage(frameW, frameH, BufferedImage.TYPE_INT_ARGB)
+        val g = resultImage.createGraphics()
+        g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
+        g.color = Color.BLACK
+        g.fillRect(0, 0, frameW, frameH)
+
+        fun loadFromMinIO(fileName: String): BufferedImage =
+            storageService.downloadFile(bucket, fileName).use { ImageIO.read(it) }
+
+        g.drawImage(resizeBufferedImage(loadFromMinIO(albumFile), albumW, albumH), padding, padding, null)
+        g.drawImage(resizeBufferedImage(loadFromMinIO(authorFile), authorW, authorH), albumW + 2 * padding, padding, null)
+
+        val textAreaW = frameW - 2 * padding
+        val textAreaH = frameH - picAreaH
+        val songText = settings.songName
+        val baseFont = PublicApiController::class.java.getResourceAsStream("/Roboto-Black.ttf")
+            ?.let { Font.createFont(Font.TRUETYPE_FONT, it) }
+            ?: Font("SansSerif", Font.PLAIN, 10)
+        var fontSize = textAreaH
+        var font = baseFont.deriveFont(fontSize.toFloat())
+        g.font = font
+        while (g.fontMetrics.stringWidth(songText) > textAreaW && fontSize > 8) {
+            fontSize--
+            font = baseFont.deriveFont(fontSize.toFloat())
+            g.font = font
+        }
+        g.color = Color(255, 255, 127)
+        val fm = g.fontMetrics
+        val textX = padding + maxOf(0, (textAreaW - fm.stringWidth(songText)) / 2)
+        val textY = picAreaH + (textAreaH + fm.ascent - fm.descent) / 2
+        g.drawString(songText, textX, textY)
+
+        g.dispose()
+
+        val out = ByteArrayOutputStream()
+        ImageIO.write(resultImage, "png", out)
+        val bytes = out.toByteArray()
+        cacheFile.writeBytes(bytes)
 
         return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(bytes)
     }

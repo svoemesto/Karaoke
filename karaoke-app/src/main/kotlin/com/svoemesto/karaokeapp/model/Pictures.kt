@@ -235,6 +235,17 @@ class Pictures(
             ) as? Pictures?
         }
 
+        fun getPicturesByIds(ids: List<Long>, database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient): Map<Long, Pictures> {
+            return KaraokeDbTable.loadByIds(
+                clazz = Pictures::class,
+                tableName = TABLE_NAME,
+                ids = ids,
+                database = database,
+                storageService = storageService,
+                storageApiClient = storageApiClient
+            ).filterIsInstance<Pictures>().associateBy { it.id }
+        }
+
         fun getPictureByName(name: String, database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient, ignoreUseInList: Boolean = true): Pictures? {
 
             return loadList(

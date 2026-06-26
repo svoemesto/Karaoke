@@ -4862,7 +4862,16 @@ class Settings(
         fun loadFromDbById(id: Long, database: KaraokeConnection, sync: Boolean = false, storageService: KaraokeStorageService, storageApiClient: StorageApiClient): Settings? {
             val setting = loadListFromDb(mapOf(Pair("id", id.toString())), database = database, sync = sync, storageService = storageService, storageApiClient = storageApiClient).firstOrNull()
             return setting
+        }
 
+        fun loadListFromDbByIds(ids: List<Long>, database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient): Map<Long, Settings> {
+            if (ids.isEmpty()) return emptyMap()
+            return loadListFromDb(
+                args = mapOf("ids" to ids.joinToString(",")),
+                database = database,
+                storageService = storageService,
+                storageApiClient = storageApiClient
+            ).associateBy { it.id }
         }
 
 

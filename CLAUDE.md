@@ -52,19 +52,34 @@ npm run preview      # preview a production build
 ```
 No lint/test script is configured in `webvue3/package.json`.
 
-Local dev / deployment (`deploy/do.sh`, a single entrypoint wrapping gradle + docker compose):
+Local dev / deployment (`deploy/do.sh`, a single entrypoint wrapping gradle + docker compose).
+**Важно: все команды do.sh запускать из директории `deploy/` или передавать полный путь.**
 ```
-deploy/do.sh build            # gradle build jars + build all docker images
-deploy/do.sh build_app        # build only the karaoke-app image
-deploy/do.sh build_start_app  # rebuild karaoke-app and (re)start containers
-deploy/do.sh start [all]      # start containers (add "all" to also (re)start the DATABASE)
-deploy/do.sh stop [all]
-deploy/do.sh start_db / stop_db
-deploy/do.sh push / pull      # push/pull images to/from DOCKER_REGISTRY
-deploy/do.sh ps
+cd deploy
+
+bash do.sh build                  # gradle build jars + build all docker images
+bash do.sh build_app              # build only the karaoke-app image
+bash do.sh build_start_app        # rebuild karaoke-app and (re)start containers
+bash do.sh build_start_web        # rebuild karaoke-web and (re)start
+bash do.sh build_start_webvue3    # rebuild webvue3 and (re)start
+bash do.sh build_start_public     # rebuild karaoke-public (Vue→nginx) and (re)start (порт 7907)
+bash do.sh start [all]            # start containers (add "all" to also (re)start the DATABASE)
+bash do.sh stop [all]
+bash do.sh start_db / stop_db
+bash do.sh push / pull            # push/pull images to/from DOCKER_REGISTRY
+bash do.sh ps
 ```
 `deploy/do.env` / `deploy/.env` hold the environment (ports, registry, host folder mounts) consumed by the
 compose files.
+
+**Правила сборки karaoke-public** (Vue 3 + Vite → Docker/nginx):
+```
+# Полный цикл пересборки и рестарта:
+cd /home/nsa/Karaoke/deploy && bash do.sh build_start_public
+
+# Только пересборка npm (без Docker):
+cd /home/nsa/Karaoke/karaoke-public && nvm use v25.7.0 && npm run build
+```
 
 ## Architecture notes
 
@@ -116,6 +131,16 @@ Auth is OAuth2/OIDC against the authorization server embedded in `karaoke-app`
 **Storage.** Generated media files (audio stems, videos, pictures) live in MinIO-compatible object storage,
 accessed through `services/StorageApiClient.kt` / `services/KaraokeStorageService.kt` and the corresponding
 `StorageController`/`docker-compose-storage.yml`.
+
+## Git — что НЕ добавлять в репозиторий
+
+- `deploy/ollama_data/` — содержит SSH-ключи (`id_ed25519`) и большие модели Ollama. Уже в `.gitignore`.
+- `karaoke-public/dist/`, `webvue3/dist/` — артефакты сборки. Уже в `.gitignore` через `dist/`.
+- `karaoke-public/node_modules/`, `webvue3/node_modules/` — зависимости npm. Уже в `.gitignore`.
+- `deploy/.env`, `deploy/do.env` — секреты (пароли, порты). Уже в `.gitignore`.
+
+При коммите всегда проверяй `git status` перед `git add` — особенно следи за папками
+`ollama_data/`, `dist/`, `node_modules/` и любыми файлами с ключами/паролями.
 
 ## karaoke-public (Vue SPA)
 

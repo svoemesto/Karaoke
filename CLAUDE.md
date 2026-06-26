@@ -187,6 +187,16 @@ cd deploy && bash do.sh build_start_public   # сборка Docker-образа 
 
 **Bootstrap 5:** для `<select>` нужен класс `form-select` (не `form-control`) — иначе стрелка не отображается.
 
+**Тег SKIP — страница "удалено по требованию правообладателя":**
+
+Если `tags` песни содержит `SKIP`, публичные страницы показывают заглушку:
+- `karaoke-web`: `MainController.kt` `song()` возвращает шаблон `song-removed.html` вместо `song.html`.
+- `karaoke-public`: `SettingsPublicDto` содержит `contentRemoved: Boolean` (из `tags`, теги наружу не утекают);
+  `SongView.vue` показывает тёмную карточку через `v-else-if="currentSong && currentSong.contentRemoved"`.
+
+**Полноэкранный фон в Vue:** CSS на компоненте не красит `body` — боковые поля остаются белыми.
+Решение: `document.body.style.background` в watcher + сброс в `beforeUnmount` (см. `SongView.vue`).
+
 **Текущие размеры:**
 - ZakromaView: внешний div 800px, таблица 780px (25 трек + 378 название + 25 sponsr + 16×22 платформ).
 - SearchView: внешний div 900px, таблица 880px (100 автор + 35 год + 115 альбом + 25 трек + 228 название + 25 sponsr + 16×22 платформ).

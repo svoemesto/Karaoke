@@ -2,6 +2,21 @@
   <div>
     <div v-if="currentSongIsLoading" style="padding: 10px">Загрузка...</div>
 
+    <div v-else-if="currentSong && currentSong.contentRemoved" class="removed-wrapper">
+      <div class="removed-card">
+        <div class="removed-icon">🔒</div>
+        <div class="removed-title">Информация о произведении удалена</div>
+        <div class="removed-subtitle">по требованию правообладателя</div>
+        <hr class="removed-divider">
+        <div class="removed-hint">
+          Страница недоступна в соответствии с обращением<br>
+          об авторских правах. Если вы считаете, что это<br>
+          произошло по ошибке — свяжитесь с нами.
+        </div>
+        <router-link to="/" class="btn-home">← На главную</router-link>
+      </div>
+    </div>
+
     <div v-else-if="currentSong">
       <a href="/"><img src="/KARAOKE_LOGO.png" style="width: 150px; display: block; margin: auto" alt="Karaoke logo" /></a>
 
@@ -171,7 +186,15 @@ export default {
       handler(id) {
         if (id) this.loadSong(id)
       }
+    },
+    currentSong: {
+      handler(song) {
+        document.body.style.background = song?.contentRemoved ? '#0d0d1a' : ''
+      }
     }
+  },
+  beforeUnmount() {
+    document.body.style.background = ''
   },
   methods: {
     ...mapActions('songs', ['loadSong']),
@@ -186,4 +209,68 @@ export default {
 .td_cell { border-style: solid; border-width: thin; text-align: center; vertical-align: middle; }
 .head_songname { height: 100%; padding: 2px; font-size: small; text-align: center; border-style: none; background-color: #0c5460; color: white; }
 .date_publish  { height: 100%; padding: 2px; font-size: small; text-align: center; border-style: none; }
+
+.removed-wrapper {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+.removed-card {
+  background: linear-gradient(145deg, #1a1a2e, #16213e);
+  border: 1px solid #2d2d5e;
+  border-radius: 16px;
+  padding: 3rem 3.5rem;
+  max-width: 540px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6);
+}
+.removed-icon {
+  font-size: 4rem;
+  margin-bottom: 1.25rem;
+  display: block;
+  line-height: 1;
+}
+.removed-title {
+  color: #e8e8f0;
+  font-size: 1.45rem;
+  font-weight: 600;
+  margin-bottom: 0.6rem;
+  line-height: 1.3;
+}
+.removed-subtitle {
+  color: #9090b8;
+  font-size: 1.05rem;
+  margin-bottom: 1.5rem;
+}
+.removed-divider {
+  border: none;
+  border-top: 1px solid #2a2a4e;
+  margin: 1.25rem 0;
+}
+.removed-hint {
+  color: #5a5a80;
+  font-size: 0.82rem;
+  margin-bottom: 2rem;
+  line-height: 1.6;
+}
+.btn-home {
+  background: #3a3a6e;
+  border: 1px solid #5a5a9e;
+  color: #c8c8f0;
+  border-radius: 8px;
+  padding: 0.55rem 1.8rem;
+  font-size: 0.95rem;
+  text-decoration: none;
+  transition: background 0.2s, border-color 0.2s;
+  display: inline-block;
+}
+.btn-home:hover {
+  background: #4a4a8e;
+  border-color: #7a7abe;
+  color: #fff;
+  text-decoration: none;
+}
 </style>

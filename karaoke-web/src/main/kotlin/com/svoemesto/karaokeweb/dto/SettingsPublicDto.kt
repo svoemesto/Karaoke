@@ -55,6 +55,7 @@ data class SettingsPublicDto(
     val idVkChords: String,
     val idVkChordsOID: String,
     val idVkChordsID: String,
+    val contentRemoved: Boolean,
 ) {
     companion object {
         /**
@@ -117,6 +118,7 @@ data class SettingsPublicDto(
             idVkChords = s.idVkChords,
             idVkChordsOID = s.idVkChordsOID,
             idVkChordsID = s.idVkChordsID,
+            contentRemoved = s.tags.split(" ").map { it.uppercase() }.contains("SKIP"),
         )
     }
 }

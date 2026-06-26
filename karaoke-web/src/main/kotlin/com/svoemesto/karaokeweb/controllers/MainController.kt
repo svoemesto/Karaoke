@@ -296,6 +296,9 @@ class MainController(
 //        }
         model.addAttribute("sett", sett)
         doRegisterEvent(mapOf("eventType" to "callRest", "restName" to "song", "parameters" to mapOf("id" to id), "referer" to request.remoteHost))
+        if (sett?.tags?.split(" ")?.map { it.uppercase() }?.contains("SKIP") == true) {
+            return "song-removed"
+        }
         return "song"
     }
 

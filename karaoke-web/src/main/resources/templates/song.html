@@ -7,6 +7,9 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-Piv4xVNRyMGpqkS2by6br4gNJ7DXjqk09RmUpJ8jgGtD7zP9yug3goQfGII0yAns" crossorigin="anonymous"></script>
 
     <title th:text="${sett.songName} + ' ★♫★ ' + ${sett.author}">Закрома</title>
+    <meta property="og:title" th:content="${sett.songName} + ' ★♫★ ' + ${sett.author}" />
+    <meta property="og:image" th:content="'https://sm-karaoke.ru/api/public/song-vk-image/' + ${sett.id}" />
+    <meta property="og:url" th:content="'https://sm-karaoke.ru/song?id=' + ${sett.id}" />
     <style>
         * {
             box-sizing: border-box;
@@ -320,7 +323,7 @@
 
             <div id="areaLeftTable">
                 <a href="/">
-                    <img th:if="${!sett.haveVkGroupLink && sett.idStatus >= 3 && !sett.exclusive}" th:src="'/tmp/' + ${sett.id}+ '.png'" style="width: 537px; display: block; margin: auto">
+                    <img th:src="'/api/public/song-vk-image/' + ${sett.id}" style="width: 537px; display: block; margin: auto">
                     <img th:unless="${!sett.haveVkGroupLink && sett.idStatus >= 3 && !sett.exclusive}" src="KARAOKE_LOGO.png" style="width: 150px; display: block; margin: auto">
 <!--                    <img src="KARAOKE_LOGO.png" style="width: 300px; display: block; margin: auto">-->
                 </a>

@@ -95,6 +95,12 @@ function build_start_webvue3() {
   do_start_webvue3
 }
 
+function build_start_public() {
+  echo "Building PUBLIC module and start"
+  do_build_public
+  do_start_public
+}
+
 function do_build_app() {
 
   echo "Building APP module"
@@ -140,6 +146,12 @@ function do_build_webvue3() {
   echo "Building WEBVUE3 module"
   ${DOCKER} image build $BASE_DIR/ --build-arg VERSION=${BUILD_VERSION} \
     -t "$DOCKER_REGISTRY/karaoke-webvue3:${BUILD_VERSION}" -f $DEPLOY_DIR/karaoke-webvue3/Dockerfile
+}
+
+function do_build_public() {
+  echo "Building PUBLIC module"
+  ${DOCKER} image build $BASE_DIR/ --build-arg VERSION=${BUILD_VERSION} \
+    -t "$DOCKER_REGISTRY/karaoke-public:${BUILD_VERSION}" -f $DEPLOY_DIR/karaoke-public/Dockerfile
 }
 
 function do_start() {
@@ -213,6 +225,19 @@ function do_stop_webvue3() {
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-webvue3.yml down
 }
 
+function do_start_public() {
+  do_stop_public
+  echo "Старт PUBLIC"
+  ${COMPOSE} -f $DEPLOY_DIR/docker-compose-public.yml up -d
+  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga
+  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "PUBLIC запущен"
+}
+
+function do_stop_public() {
+  echo "Остановка PUBLIC"
+  ${COMPOSE} -f $DEPLOY_DIR/docker-compose-public.yml down
+}
+
 function do_start_app() {
   do_stop_webvue
   echo "Старт APP"
@@ -269,6 +294,14 @@ function do_push_webvue3() {
   command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "Pushing WEBVUE3!"
 }
 
+function do_push_public() {
+  echo "Pushing PUBLIC"
+  ${DOCKER} login --username ${DOCKER_REGISTRY} --password ${DOCKER_PASSWORD}
+  ${DOCKER} image push "$DOCKER_REGISTRY/karaoke-public:${BUILD_VERSION}"
+  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga
+  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "Pushing PUBLIC!"
+}
+
 function do_pull() {
   echo "Pulling images"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose.yml ${DATABASE} pull
@@ -313,10 +346,12 @@ build_app_nocache) do_build_app_nocache ;;
 build_web) do_build_web ;;
 build_webvue) do_build_webvue ;;
 build_webvue3) do_build_webvue3 ;;
+build_public) do_build_public ;;
 build_start_app) build_start_app ;;
 build_start_web) build_start_web ;;
 build_start_webvue) build_start_webvue ;;
 build_start_webvue3) build_start_webvue3 ;;
+build_start_public) build_start_public ;;
 images) build_images ;;
 start) do_start ;;
 start_db) do_start_db ;;
@@ -324,18 +359,21 @@ start_app) do_start_app ;;
 start_web) do_start_web ;;
 start_webvue) do_start_webvue ;;
 start_webvue3) do_start_webvue3 ;;
+start_public) do_start_public ;;
 stop) do_stop ;;
 stop_db) do_stop_db ;;
 stop_app) do_stop_app ;;
 stop_web) do_stop_web ;;
 stop_webvue) do_stop_webvue ;;
 stop_webvue3) do_stop_webvue3 ;;
+stop_public) do_stop_public ;;
 load) do_load ;;
 push) do_push ;;
 push_app) do_push_app ;;
 push_web) do_push_web ;;
 push_webvue) do_push_webvue ;;
 push_webvue3) do_push_webvue3 ;;
+push_public) do_push_public ;;
 pull) do_pull ;;
 ps) do_ps ;;
 rmi) do_rmi ;;
@@ -365,6 +403,10 @@ rmi) do_rmi ;;
     build_start_app - builds karaoke-app image and (re)starts containers
     build_start_web - builds karaoke-web image and (re)starts containers
     build_start_webvue - builds karaoke-webvue image and (re)starts containers
+    build_public - builds karaoke-public image
+    build_start_public - builds karaoke-public image and (re)starts containers
+    start_public / stop_public - (re)starts/stops karaoke-public container
+    push_public - pushes karaoke-public image to DOCKER_REGISTRY
     push - pushes images to DOCKER_REGISTRY
     pull - pulls images from DOCKER_REGISTRY
     ps - lists running containers

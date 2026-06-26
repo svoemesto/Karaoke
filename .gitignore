@@ -6,6 +6,10 @@
 *.out
 build/
 target/
+dist/
+
+# Sensitive data
+deploy/ollama_data/
 
 # Dependencies
 .gradle/

@@ -116,3 +116,29 @@ Auth is OAuth2/OIDC against the authorization server embedded in `karaoke-app`
 **Storage.** Generated media files (audio stems, videos, pictures) live in MinIO-compatible object storage,
 accessed through `services/StorageApiClient.kt` / `services/KaraokeStorageService.kt` and the corresponding
 `StorageController`/`docker-compose-storage.yml`.
+
+## karaoke-public (Vue SPA)
+
+`karaoke-public/` — новый публичный фронтенд (Vue 3 + Vite, Bootstrap 5), заменяющий Thymeleaf-шаблоны
+`karaoke-web`. Сборка и запуск:
+```
+cd deploy && bash do.sh build_start_public   # сборка Docker-образа (node→nginx) + рестарт контейнера на порту 7907
+```
+
+**Ключевые паттерны таблиц** (ZakromaView, SearchView):
+
+- `table-layout: fixed` работает корректно **только при наличии явной ширины таблицы** (`width: Npx`). Без неё
+  `colgroup` не фиксирует колонки — ширины заголовков расходятся между строками-иконками и строками-датами.
+- Колонки платформ в `<colgroup>`: 22px каждая (16 штук = 352px). Ширина поля «Композиция» подбирается так,
+  чтобы сумма всех колонок равнялась ширине таблицы.
+- `display: flex` на `<td>` делает ячейку ниже высоты строки — использовать `text-align: center; vertical-align: middle`.
+- Sponsr-иконка всегда вне `v-if="sett.onAir"` (рядом с полем Композиция), стили ячейки:
+  `border-top-width:0; border-left-width:0; border-right-width:0; text-align:center; vertical-align:middle`.
+- Строки с датой публикации вместо иконок: `<td v-else colspan="16">`.
+- Фон скролл-контейнера / таблицы результатов: `background: #d5e6ff`.
+
+**Bootstrap 5:** для `<select>` нужен класс `form-select` (не `form-control`) — иначе стрелка не отображается.
+
+**Текущие размеры:**
+- ZakromaView: внешний div 800px, таблица 780px (25 трек + 378 название + 25 sponsr + 16×22 платформ).
+- SearchView: внешний div 900px, таблица 880px (100 автор + 35 год + 115 альбом + 25 трек + 228 название + 25 sponsr + 16×22 платформ).

@@ -22,7 +22,7 @@ spring:
 WORK_IN_CONTAINER: 0
 
 work-in-container: ${WORK_IN_CONTAINER}
-work-on-server: ${WORK_ON_SERVER}
+work-on-server: ${WORK_ON_SERVER:0}
 db-local-postgres-user: ${DB_LOCAL_POSTGRES_USER}
 db-local-postgres-password: ${DB_LOCAL_POSTGRES_PASSWORD}
 db-remote-postgres-user: ${DB_SERVER_POSTGRES_USER}

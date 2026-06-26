@@ -132,6 +132,29 @@ Auth is OAuth2/OIDC against the authorization server embedded in `karaoke-app`
 accessed through `services/StorageApiClient.kt` / `services/KaraokeStorageService.kt` and the corresponding
 `StorageController`/`docker-compose-storage.yml`.
 
+**Размеры картинок в хранилище (бакет `karaoke`):**
+- Альбом: полноразмерная 400×400, превью 50×50
+- Автор: полноразмерная 1000×400, превью 125×50
+
+Имена файлов формируются в `Pictures.storageFileName` / `Pictures.storageFileNamePreview`.
+Для создания превью используется `resizeBufferedImage()` из `UtilsPictures.kt`.
+Подход с base64 (`picture_full` в БД) используется только в `webvue3` admin — в публичном API
+(`karaoke-public`) картинки отдаются как URL. **Новый код не должен использовать base64.**
+
+**Публичные эндпоинты картинок** (`PublicApiController.kt` в `karaoke-web`):
+
+- `GET /api/public/picture?file=<path>` — отдаёт файл из MinIO по имени. Если запрошен превью
+  (`.preview.author.png` / `.preview.album.png`) и его нет — создаёт из полноразмерного,
+  кэширует в MinIO. Автор: `newW=125, newH=50`; альбом: `newW=50, newH=50`.
+
+- `GET /api/public/song-picture/{id}` — composite-баннер песни 800×194 (чёрный фон):
+  альбом 154×154 @ (20, 20), автор 385×154 @ (294, 20). Читает полноразмерные PNG из MinIO,
+  кэширует результат как `song_banner_{id}.png`. Параметры взяты из `getVKPictureBase64()`
+  в `UtilsPictures.kt`. Используется на `SongView.vue` вместо устаревшего `vkPictureBase64`.
+
+**Правило при загрузке картинок без base64:** передавать `ignoreUseInList = false` в
+`Pictures.getPictureByName()` — иначе подтянется тяжёлое поле `picture_full` из БД.
+
 ## Git — что НЕ добавлять в репозиторий
 
 - `deploy/ollama_data/` — содержит SSH-ключи (`id_ed25519`) и большие модели Ollama. Уже в `.gitignore`.

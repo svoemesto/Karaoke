@@ -1,6 +1,8 @@
 package com.svoemesto.karaokeweb.dto
 
 import com.svoemesto.karaokeapp.model.Zakroma
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 
 data class ZakromaAlbumSettingsPublicDto(
     val id: Long,
@@ -35,21 +37,29 @@ data class ZakromaAlbumSettingsPublicDto(
 data class ZakromaAlbumPublicDto(
     val albumName: String,
     val year: Long,
+    val albumPictureUrl: String,
     val albumSettings: List<ZakromaAlbumSettingsPublicDto>,
 )
 
 data class ZakromaPublicDto(
     val author: String,
+    val authorPictureUrl: String,
     val albums: List<ZakromaAlbumPublicDto>,
 ) {
     companion object {
         fun fromZakroma(list: List<Zakroma>): List<ZakromaPublicDto> = list.map { zak ->
             ZakromaPublicDto(
                 author = zak.author,
+                authorPictureUrl = if (zak.picturePreviewFileName.isNotEmpty())
+                    "/api/public/picture?file=${URLEncoder.encode(zak.picturePreviewFileName, StandardCharsets.UTF_8)}"
+                else "",
                 albums = zak.albums.map { alb ->
                     ZakromaAlbumPublicDto(
                         albumName = alb.albumName,
                         year = alb.year,
+                        albumPictureUrl = if (alb.picturePreviewFileName.isNotEmpty())
+                            "/api/public/picture?file=${URLEncoder.encode(alb.picturePreviewFileName, StandardCharsets.UTF_8)}"
+                        else "",
                         albumSettings = alb.albumSettings.map { s ->
                             ZakromaAlbumSettingsPublicDto(
                                 id = s.id,

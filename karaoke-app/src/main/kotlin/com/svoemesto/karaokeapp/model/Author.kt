@@ -170,6 +170,17 @@ class Author(
             ) as? Author?
         }
 
+        fun getAuthorsByIds(ids: List<Long>, database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient): Map<Long, Author> {
+            return KaraokeDbTable.loadByIds(
+                clazz = Author::class,
+                tableName = TABLE_NAME,
+                ids = ids,
+                database = database,
+                storageService = storageService,
+                storageApiClient = storageApiClient
+            ).filterIsInstance<Author>().associateBy { it.id }
+        }
+
         fun getAuthorByName(author: String, database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient): Author? {
             return loadList(
                 whereArgs = mapOf(Pair("author", author)),

@@ -322,6 +322,27 @@ interface KaraokeDbTable {
                 ignoreUseInList = true
             ).firstOrNull()
         }
+
+        fun loadByIds(clazz: KClass<*>,
+                      tableName: String,
+                      ids: List<Long>,
+                      database: KaraokeConnection,
+                      storageService: KaraokeStorageService,
+                      storageApiClient: StorageApiClient,
+                      sync: Boolean = false
+        ): List<KaraokeDbTable> {
+            if (ids.isEmpty()) return emptyList()
+            return loadList(
+                clazz = clazz,
+                tableName = tableName,
+                whereList = listOf("$tableName${if (sync) "_sync" else ""}.id IN (${ids.joinToString(",")})"),
+                database = database,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+                sync = sync,
+                ignoreUseInList = true
+            )
+        }
         fun createDbInstance(entity: KaraokeDbTable, database: KaraokeConnection) : KaraokeDbTable? {
             val sql = entity.getSqlToInsert()
 

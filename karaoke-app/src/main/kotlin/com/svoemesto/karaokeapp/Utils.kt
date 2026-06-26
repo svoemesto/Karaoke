@@ -450,8 +450,9 @@ fun updateDatabases(
             listFromIdsHashes.none { fromIdHash -> toIdHash.id == fromIdHash.id }
         }.map { it.id }
 
+        val settingsToDeleteMap = Settings.loadListFromDbByIds(idsToDelete, toDatabase, KSS_APP, SAC_APP)
         idsToDelete.forEach { id ->
-            Settings.loadFromDbById(id = id, database = toDatabase, storageService = KSS_APP, storageApiClient = SAC_APP)?.let { listToDeleteNames.add(it.fileName) }
+            settingsToDeleteMap[id]?.let { listToDeleteNames.add(it.fileName) }
             if (toDatabase.name == "SERVER") {
                 val sqlToDelete = "DELETE FROM $tableName WHERE id = $id"
                 val setStrEncrypted = Crypto.encrypt(sqlToDelete)
@@ -464,8 +465,9 @@ fun updateDatabases(
             }
         }
 
+        val settingsToInsertMap = Settings.loadListFromDbByIds(idsToInsert, fromDatabase, KSS_APP, SAC_APP)
         idsToInsert.forEach { id ->
-            val itemFrom = Settings.loadFromDbById(id = id, database = fromDatabase, storageService = KSS_APP, storageApiClient = SAC_APP)
+            val itemFrom = settingsToInsertMap[id]
             if (itemFrom != null) {
                 listToCreateNames.add(itemFrom.fileName)
                 println("Добавляем запись в $tableName: id=${itemFrom.id}, ${itemFrom.fileName}")
@@ -489,9 +491,11 @@ fun updateDatabases(
             }
         }
 
+        val settingsFromMap = Settings.loadListFromDbByIds(idsToUpdate, fromDatabase, KSS_APP, SAC_APP)
+        val settingsToMap = Settings.loadListFromDbByIds(idsToUpdate, toDatabase, KSS_APP, SAC_APP)
         idsToUpdate.forEach { id ->
-            val itemFrom = Settings.loadFromDbById(id = id, database = fromDatabase, storageService = KSS_APP, storageApiClient = SAC_APP)
-            val itemTo = Settings.loadFromDbById(id = id, database = toDatabase, storageService = KSS_APP, storageApiClient = SAC_APP)
+            val itemFrom = settingsFromMap[id]
+            val itemTo = settingsToMap[id]
             if (itemFrom != null && itemTo != null) {
                 val diff = Settings.getDiff(itemFrom, itemTo)
                 if (diff.isNotEmpty() && !diff.all { !it.recordDiffRealField || it.recordDiffName.startsWith("status_process_")}) {
@@ -585,9 +589,10 @@ fun updateDatabases(
             listFromIdsHashes.none { fromIdHash -> toIdHash.id == fromIdHash.id }
         }.map { it.id }
 
+        val picturesToDeleteMap = Pictures.getPicturesByIds(idsToDelete, toDatabase, KSS_APP, SAC_APP)
         idsToDelete.forEach { id ->
             if (toDatabase.name == "SERVER") {
-                Pictures.getPictureById(id = id, database = toDatabase, storageService = KSS_APP, storageApiClient = SAC_APP)?.let { listToDeleteNames.add(it.name) }
+                picturesToDeleteMap[id]?.let { listToDeleteNames.add(it.name) }
                 val sqlToDelete = "DELETE FROM $tableName WHERE id = $id"
                 val setStrEncrypted = Crypto.encrypt(sqlToDelete)
                 val values: Map<String, Any> = mapOf(
@@ -599,8 +604,9 @@ fun updateDatabases(
             }
         }
 
+        val picturesToInsertMap = Pictures.getPicturesByIds(idsToInsert, fromDatabase, KSS_APP, SAC_APP)
         idsToInsert.forEach { id ->
-            val itemFrom = Pictures.getPictureById(id = id, database = fromDatabase, storageService = KSS_APP, storageApiClient = SAC_APP)
+            val itemFrom = picturesToInsertMap[id]
             if (itemFrom != null) {
                 listToCreateNames.add(itemFrom.name)
                 println("[${Timestamp.from(Instant.now())}] Добавляем запись в $tableName: id=${itemFrom.id}, ${itemFrom.name}")
@@ -624,9 +630,11 @@ fun updateDatabases(
             }
         }
 
+        val picturesFromMap = Pictures.getPicturesByIds(idsToUpdate, fromDatabase, KSS_APP, SAC_APP)
+        val picturesToMap = Pictures.getPicturesByIds(idsToUpdate, toDatabase, KSS_APP, SAC_APP)
         idsToUpdate.forEach { id ->
-            val itemFrom = Pictures.getPictureById(id = id, database = fromDatabase, storageService = KSS_APP, storageApiClient = SAC_APP)
-            val itemTo = Pictures.getPictureById(id = id, database = toDatabase, storageService = KSS_APP, storageApiClient = SAC_APP)
+            val itemFrom = picturesFromMap[id]
+            val itemTo = picturesToMap[id]
             if (itemFrom != null && itemTo != null) {
                 val diff = KaraokeDbTable.getDiff(itemFrom, itemTo)
                 if (diff.isNotEmpty()) {
@@ -720,9 +728,10 @@ fun updateDatabases(
             listFromIdsHashes.none { fromIdHash -> toIdHash.id == fromIdHash.id }
         }.map { it.id }
 
+        val authorsToDeleteMap = Author.getAuthorsByIds(idsToDelete, toDatabase, KSS_APP, SAC_APP)
         idsToDelete.forEach { id ->
             if (toDatabase.name == "SERVER") {
-                Author.getAuthorById(id = id, database = toDatabase, storageService = KSS_APP, storageApiClient = SAC_APP)?.let { listToDeleteNames.add(it.author) }
+                authorsToDeleteMap[id]?.let { listToDeleteNames.add(it.author) }
                 val sqlToDelete = "DELETE FROM $tableName WHERE id = $id"
                 val setStrEncrypted = Crypto.encrypt(sqlToDelete)
                 val values: Map<String, Any> = mapOf(
@@ -734,8 +743,9 @@ fun updateDatabases(
             }
         }
 
+        val authorsToInsertMap = Author.getAuthorsByIds(idsToInsert, fromDatabase, KSS_APP, SAC_APP)
         idsToInsert.forEach { id ->
-            val itemFrom = Author.getAuthorById(id = id, database = fromDatabase, storageService = KSS_APP, storageApiClient = SAC_APP)
+            val itemFrom = authorsToInsertMap[id]
             if (itemFrom != null) {
                 listToCreateNames.add(itemFrom.author)
                 println("[${Timestamp.from(Instant.now())}] Добавляем запись в $tableName: id=${itemFrom.id}, ${itemFrom.author}")
@@ -759,9 +769,11 @@ fun updateDatabases(
             }
         }
 
+        val authorsFromMap = Author.getAuthorsByIds(idsToUpdate, fromDatabase, KSS_APP, SAC_APP)
+        val authorsToMap = Author.getAuthorsByIds(idsToUpdate, toDatabase, KSS_APP, SAC_APP)
         idsToUpdate.forEach { id ->
-            val itemFrom = Author.getAuthorById(id = id, database = fromDatabase, storageService = KSS_APP, storageApiClient = SAC_APP)
-            val itemTo = Author.getAuthorById(id = id, database = toDatabase, storageService = KSS_APP, storageApiClient = SAC_APP)
+            val itemFrom = authorsFromMap[id]
+            val itemTo = authorsToMap[id]
             if (itemFrom != null && itemTo != null) {
                 val diff = KaraokeDbTable.getDiff(itemFrom, itemTo)
                 if (diff.isNotEmpty()) {

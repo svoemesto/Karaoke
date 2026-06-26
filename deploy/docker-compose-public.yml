@@ -1,0 +1,17 @@
+version: "3.9"
+services:
+
+  karaoke-public:
+    container_name: karaoke-public
+    image: ${DOCKER_REGISTRY}/karaoke-public:${BUILD_VERSION}
+    ports:
+      - "7907:7907"
+    volumes:
+      - ${PUBLIC_PATH_TO_NGINX_CONF}:/etc/nginx/nginx.conf
+    networks:
+      - karaokenet
+    command: /bin/bash -c "exec nginx -g 'daemon off;'"
+
+networks:
+  karaokenet:
+    external: true # <-- Указываем, что сеть внешняя

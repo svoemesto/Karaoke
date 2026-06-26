@@ -438,17 +438,15 @@ fun updateDatabases(
             return Triple(emptyList(), emptyList(), emptyList())
         }
 
-        val idsToInsert = listFromIdsHashes.filter { fromIdHash ->
-            listToIdsHashes.none { toIdHash -> toIdHash.id == fromIdHash.id }
-        }.map { it.id }
+        val toHashMap = listToIdsHashes.associateBy { it.id }
+        val fromHashMap = listFromIdsHashes.associateBy { it.id }
 
-        val idsToUpdate = listFromIdsHashes.filter { fromIdHash ->
-            listToIdsHashes.any { toIdHash -> toIdHash.id == fromIdHash.id && toIdHash.recordhash != fromIdHash.recordhash }
+        val idsToInsert = listFromIdsHashes.filter { it.id !in toHashMap }.map { it.id }
+        val idsToUpdate = listFromIdsHashes.filter { from ->
+            val to = toHashMap[from.id]
+            to != null && to.recordhash != from.recordhash
         }.map { it.id }
-
-        val idsToDelete = listToIdsHashes.filter { toIdHash ->
-            listFromIdsHashes.none { fromIdHash -> toIdHash.id == fromIdHash.id }
-        }.map { it.id }
+        val idsToDelete = listToIdsHashes.filter { it.id !in fromHashMap }.map { it.id }
 
         val settingsToDeleteMap = Settings.loadListFromDbByIds(idsToDelete, toDatabase, KSS_APP, SAC_APP)
         idsToDelete.forEach { id ->
@@ -577,17 +575,15 @@ fun updateDatabases(
             return Triple(emptyList(),emptyList(),emptyList())
         }
 
-        val idsToInsert = listFromIdsHashes.filter { fromIdHash ->
-            listToIdsHashes.none { toIdHash -> toIdHash.id == fromIdHash.id }
-        }.map { it.id }
+        val toHashMap = listToIdsHashes.associateBy { it.id }
+        val fromHashMap = listFromIdsHashes.associateBy { it.id }
 
-        val idsToUpdate = listFromIdsHashes.filter { fromIdHash ->
-            listToIdsHashes.any { toIdHash -> toIdHash.id == fromIdHash.id && toIdHash.recordhash != fromIdHash.recordhash }
+        val idsToInsert = listFromIdsHashes.filter { it.id !in toHashMap }.map { it.id }
+        val idsToUpdate = listFromIdsHashes.filter { from ->
+            val to = toHashMap[from.id]
+            to != null && to.recordhash != from.recordhash
         }.map { it.id }
-
-        val idsToDelete = listToIdsHashes.filter { toIdHash ->
-            listFromIdsHashes.none { fromIdHash -> toIdHash.id == fromIdHash.id }
-        }.map { it.id }
+        val idsToDelete = listToIdsHashes.filter { it.id !in fromHashMap }.map { it.id }
 
         val picturesToDeleteMap = Pictures.getPicturesByIds(idsToDelete, toDatabase, KSS_APP, SAC_APP)
         idsToDelete.forEach { id ->
@@ -716,17 +712,15 @@ fun updateDatabases(
             return Triple(emptyList(),emptyList(),emptyList())
         }
 
-        val idsToInsert = listFromIdsHashes.filter { fromIdHash ->
-            listToIdsHashes.none { toIdHash -> toIdHash.id == fromIdHash.id }
-        }.map { it.id }
+        val toHashMap = listToIdsHashes.associateBy { it.id }
+        val fromHashMap = listFromIdsHashes.associateBy { it.id }
 
-        val idsToUpdate = listFromIdsHashes.filter { fromIdHash ->
-            listToIdsHashes.any { toIdHash -> toIdHash.id == fromIdHash.id && toIdHash.recordhash != fromIdHash.recordhash }
+        val idsToInsert = listFromIdsHashes.filter { it.id !in toHashMap }.map { it.id }
+        val idsToUpdate = listFromIdsHashes.filter { from ->
+            val to = toHashMap[from.id]
+            to != null && to.recordhash != from.recordhash
         }.map { it.id }
-
-        val idsToDelete = listToIdsHashes.filter { toIdHash ->
-            listFromIdsHashes.none { fromIdHash -> toIdHash.id == fromIdHash.id }
-        }.map { it.id }
+        val idsToDelete = listToIdsHashes.filter { it.id !in fromHashMap }.map { it.id }
 
         val authorsToDeleteMap = Author.getAuthorsByIds(idsToDelete, toDatabase, KSS_APP, SAC_APP)
         idsToDelete.forEach { id ->

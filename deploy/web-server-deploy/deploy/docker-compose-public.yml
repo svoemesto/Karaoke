@@ -1,0 +1,19 @@
+version: "3.9"
+services:
+
+  karaoke-public:
+    container_name: karaoke-public
+    image: ${DOCKER_REGISTRY}/karaoke-public:1
+    ports:
+      - "7907:7907"
+    volumes:
+      - ${PUBLIC_PATH_TO_NGINX_CONF}:/etc/nginx/nginx.conf
+    networks:
+      - karaokenet
+    command: /bin/bash -c "exec nginx -g 'daemon off;'"
+    restart: always
+
+networks:
+  karaokenet:
+    external: true
+    name: deploy_karaokenet

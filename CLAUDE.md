@@ -74,12 +74,47 @@ compose files.
 
 **Правила сборки karaoke-public** (Vue 3 + Vite → Docker/nginx):
 ```
-# Полный цикл пересборки и рестарта:
+# Полный цикл пересборки и рестарта (локально):
 cd /home/nsa/Karaoke/deploy && bash do.sh build_start_public
 
 # Только пересборка npm (без Docker):
 cd /home/nsa/Karaoke/karaoke-public && nvm use v25.7.0 && npm run build
 ```
+
+## Деплой на продакшн-сервер (79.174.95.69)
+
+Серверные файлы (`do.sh`, `docker-compose-*.yml`, `80to8897`) хранятся в `deploy/web-server-deploy/deploy/`
+и синхронизируются на сервер через rsync. **Не редактировать файлы напрямую на сервере.**
+
+**Обновление karaoke-web** (gradle build → Docker Hub push → pull на сервере):
+```
+cd /home/nsa/Karaoke/deploy && bash deploy_web.sh
+```
+
+**Обновление karaoke-public** (Docker build → Docker Hub push → pull на сервере):
+```
+cd /home/nsa/Karaoke/deploy && bash deploy_public.sh
+```
+
+**Синхронизация серверных конфигов** (при изменении do.sh / docker-compose / nginx):
+```
+cd /home/nsa/Karaoke/deploy
+rsync -av --exclude='do.env' web-server-deploy/deploy/ root@79.174.95.69:Karaoke/deploy/
+# nginx конфиг karaoke-public:
+scp karaoke-public/nginx_karaoke-public.conf root@79.174.95.69:Karaoke/deploy/nginx_karaoke-public.conf
+# Применить изменения nginx (если менялся 80to8897):
+ssh root@79.174.95.69 "nginx -t && systemctl reload nginx"
+```
+
+**Архитектура на сервере:**
+- nginx (443/80) → karaoke-public (порт 7907) — публичный фронтенд
+- karaoke-public nginx → karaoke-web:7799 — проксирует `/api/public` и `/api/storage`
+- karaoke-web (порт 8897) — остаётся запущенным как API-бэкенд
+
+**Важные детали сервера:**
+- Docker-сеть называется `deploy_karaokenet` (не `karaokenet`) — учитывать в новых docker-compose файлах
+- Серверный `do.env`: содержит `PUBLIC_PATH_TO_NGINX_CONF=/root/Karaoke/deploy/nginx_karaoke-public.conf`
+- `do.env` на сервере **не перезаписывать** через rsync — содержит секреты (DB пароли, порты)
 
 ## Architecture notes
 

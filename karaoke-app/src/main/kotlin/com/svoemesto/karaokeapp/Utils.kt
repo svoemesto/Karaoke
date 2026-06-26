@@ -2750,8 +2750,9 @@ fun getAuthorForRequest(lastAuthor: String = ""): Author? {
 }
 fun checkLastAlbumYm(): Triple<String, String, Int> {
     /*
+    -3 - ошибка конфигурации (ВПН или авторизация) — не увеличивать таймаут, не менять автора
     -2 - Нет автора!
-    -1 - ошибка поиска
+    -1 - ошибка поиска (бот-детект и т.п.) — увеличивать таймаут
      0 - поиск успешен, но новых альбомов нет
      1 - поиск успешен, найден новый альбом
      */
@@ -2761,11 +2762,11 @@ fun checkLastAlbumYm(): Triple<String, String, Int> {
     return when (val searchResult = searchLastAlbumYm3(author.ymId)) {
         is AlbumSearchResult.VpnBlocked -> {
             println("Поиск нового альбома автора «$authorForRequest» завершился неудачей из-за включенного ВПН. Отключите ВПН.")
-            Triple(authorForRequest, "", -1)
+            Triple(authorForRequest, "", -3)
         }
         is AlbumSearchResult.AuthExpired -> {
             println("Поиск нового альбома автора «$authorForRequest» завершился неудачей из-за просроченной авторизации. Переавторизуйтесь.")
-            Triple(authorForRequest, "", -1)
+            Triple(authorForRequest, "", -3)
         }
         is AlbumSearchResult.BotDetected -> {
             println("Поиск нового альбома автора «$authorForRequest» завершился неудачей: Яндекс заблокировал автоматические запросы.")

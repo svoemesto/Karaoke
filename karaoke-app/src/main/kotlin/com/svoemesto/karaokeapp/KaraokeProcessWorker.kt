@@ -369,6 +369,8 @@ class KaraokeProcessWorker {
                                 Karaoke.requestNewSongTimeoutMs = requestNewSongTimeoutMs
                                 Karaoke.requestNewSongTimeoutMin = requestNewSongTimeoutMs / 60_000L
                             }
+                        } else if (reason == -3) {
+                            // ВПН или просроченная авторизация — таймаут и автор не меняются
                         } else {
                             // Не удалось найти автора! - считаем что запрос был удачный, не нужно увеличивать таймаут
                             Karaoke.requestNewSongLastSuccessTimeMs = currentTimeMs

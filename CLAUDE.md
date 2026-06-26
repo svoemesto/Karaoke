@@ -107,9 +107,13 @@ ssh root@79.174.95.69 "nginx -t && systemctl reload nginx"
 ```
 
 **Архитектура на сервере:**
-- nginx (443/80) → karaoke-public (порт 7907) — публичный фронтенд
-- karaoke-public nginx → karaoke-web:7799 — проксирует `/api/public` и `/api/storage`
-- karaoke-web (порт 8897) — остаётся запущенным как API-бэкенд
+- nginx (443/80) → `/api/*` → karaoke-web (порт 8897) напрямую
+- nginx (443/80) → `/` → karaoke-public (порт 7907) — публичный фронтенд
+- karaoke-web (порт 8897) — API-бэкенд (публичный API + синхронизация LOCAL↔SERVER БД)
+
+**Важно:** весь `/api/` должен идти напрямую на karaoke-web (8897), **минуя** karaoke-public.
+karaoke-app отправляет POST-запросы синхронизации БД на `/api/...`; если они попадают на karaoke-public
+(nginx/SPA), он возвращает 405. В `80to8897` `location /api/` стоит выше `location /`.
 
 **Важные детали сервера:**
 - Docker-сеть называется `deploy_karaokenet` (не `karaokenet`) — учитывать в новых docker-compose файлах

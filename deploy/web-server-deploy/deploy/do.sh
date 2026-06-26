@@ -32,6 +32,31 @@ function build_web() {
   -f $DEPLOY_DIR/karaoke-web/Dockerfile
 }
 
+function pull_web() {
+  echo "Pull WEB image from registry"
+  ${DOCKER} login --username ${DOCKER_REGISTRY} --password ${DOCKER_PASSWORD}
+  ${DOCKER} pull "$DOCKER_REGISTRY/karaoke-web:1"
+  do_start_web
+}
+
+function do_start_public() {
+  do_stop_public
+  echo "Старт PUBLIC"
+  ${COMPOSE} -f $DEPLOY_DIR/docker-compose-public.yml up -d
+}
+
+function do_stop_public() {
+  echo "Остановка PUBLIC"
+  ${COMPOSE} -f $DEPLOY_DIR/docker-compose-public.yml down
+}
+
+function pull_public() {
+  echo "Pull PUBLIC image from registry"
+  ${DOCKER} login --username ${DOCKER_REGISTRY} --password ${DOCKER_PASSWORD}
+  ${DOCKER} pull "$DOCKER_REGISTRY/karaoke-public:1"
+  do_start_public
+}
+
 function do_start_db() {
   do_stop_db
   echo "Старт DATABASE"
@@ -82,12 +107,16 @@ cmd=$1
 
 case ${cmd} in
 build_web) build_web ;;
+pull_web) pull_web ;;
 start_db) do_start_db ;;
 start_web) do_start_web ;;
 start_storage) do_start_storage ;;
+start_public) do_start_public ;;
+pull_public) pull_public ;;
 stop_db) do_stop_db ;;
 stop_web) do_stop_web ;;
 stop_storage) do_stop_storage ;;
+stop_public) do_stop_public ;;
 ps) do_ps ;;
 create_clear_db) do_create_clear_db ;;
 *)

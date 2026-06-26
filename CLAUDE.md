@@ -153,6 +153,14 @@ SearXNG, see `SEARXNG_BASE_URL`) + scraping to find lyrics, using LangChain4j + 
 (`Agents.kt`/`Tools.kt`). `UtilsPlaywright.kt` drives a real browser (Playwright/Selenium) for sources that need
 JS rendering or an authenticated session (e.g. Yandex Music login state is saved/replayed from disk).
 
+**Поиск нового альбома на Яндекс.Музыке (`searchLastAlbumYm3` / `checkLastAlbumYm` в `Utils.kt`).**
+Функция возвращает `AlbumSearchResult` (sealed class): `Success`, `VpnBlocked`, `AuthExpired`, `BotDetected`, `Unknown`.
+Диагностика причины неудачи:
+- **VPN**: HTML содержит `"недоступна в вашем регионе"` → сообщение "Отключите ВПН".
+- **Авторизация**: `page.url()` после навигации содержит `passport.yandex` или `id.yandex` → сообщение "Переавторизуйтесь".
+- **Unknown (резерв)**: запрос к `ip-api.com/line/?fields=countryCode`; если страна не `RU` — тоже VPN с кодом региона; иначе — сообщение об изменении кода страницы с `page.title()` и URL для диагностики.
+HTML страницы в лог не выводится.
+
 **Frontend ↔ backend wiring.** `webvue3` is a Vuex-modules-per-entity SPA (one `store.js` per domain area: Songs,
 Authors, Pictures, Processes, Properties, Publish, Users, plus filter/modal sub-stores) talking to `karaoke-app`'s
 `/api/...` REST endpoints (`controllers/ApiController.kt`, ~3400 lines, one route per song field/action —

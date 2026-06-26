@@ -2606,8 +2606,15 @@ fun searchLastAlbumYm2(authorYmId: String): String {
     return result
 }
 
-fun searchLastAlbumYm3(authorYmId: String): String {
-    var result = ""
+sealed class AlbumSearchResult {
+    data class Success(val albumTitle: String) : AlbumSearchResult()
+    object VpnBlocked : AlbumSearchResult()
+    object AuthExpired : AlbumSearchResult()
+    object BotDetected : AlbumSearchResult()
+    data class Unknown(val pageTitle: String, val pageUrl: String) : AlbumSearchResult()
+}
+
+fun searchLastAlbumYm3(authorYmId: String): AlbumSearchResult {
     val authorUrl = "https://music.yandex.ru/artist/$authorYmId"
     val searchUrl = "$authorUrl/albums"
 
@@ -2615,7 +2622,7 @@ fun searchLastAlbumYm3(authorYmId: String): String {
         val context = playwright.chromium().launchPersistentContext(
             USER_DATA_DIR,
             BrowserType.LaunchPersistentContextOptions()
-                .setHeadless(true) // Работаем в фоне
+                .setHeadless(true)
                 .setLocale("ru-RU")
                 .setTimezoneId("Europe/Moscow")
         )
@@ -2623,11 +2630,8 @@ fun searchLastAlbumYm3(authorYmId: String): String {
         val page = context.pages().firstOrNull() ?: context.newPage()
         try {
             page.navigate("https://music.yandex.ru/")
-
-            // Ваш код автоматизации...
-            // Куки будут обновляться автоматически, как в обычном браузере!
         } finally {
-            context.close() // Закрываем контекст, чтобы профиль корректно сохранился и снялся lock-файл
+            context.close()
         }
     }
 
@@ -2636,7 +2640,7 @@ fun searchLastAlbumYm3(authorYmId: String): String {
         val context = playwright.chromium().launchPersistentContext(
             USER_DATA_DIR,
             BrowserType.LaunchPersistentContextOptions()
-                .setHeadless(true) // Работаем в фоне
+                .setHeadless(true)
                 .setLocale("ru-RU")
                 .setTimezoneId("Europe/Moscow")
         )
@@ -2644,27 +2648,34 @@ fun searchLastAlbumYm3(authorYmId: String): String {
         val page = context.newPage()
         try {
             page.navigate(searchUrl)
-
+            val currentUrl = page.url()
             val html = page.content()
+
+            if (currentUrl.contains("passport.yandex") || currentUrl.contains("id.yandex")) {
+                return AlbumSearchResult.AuthExpired
+            }
+
+            if (html.contains("недоступна в вашем регионе", ignoreCase = true)) {
+                return AlbumSearchResult.VpnBlocked
+            }
+
+            if (html.contains("Нам очень жаль, но запросы с вашего устройства похожи на автоматические")) {
+                return AlbumSearchResult.BotDetected
+            }
 
             val preloadedAlbums = html.extractBalancedBracesFromString("""\"preloadedAlbums\":""")
             val album = preloadedAlbums.extractBalancedBracesFromString("""\"albums\":[""")
-            result = album.textBetween("""\"title\":\"""", """\",\"""")
+            val result = album.textBetween("""\"title\":\"""", """\",\"""")
 
-            if (result == "") {
-                if (html.contains("Нам очень жаль, но запросы с вашего устройства похожи на автоматические")) {
-                    println("Нам очень жаль, но запросы с вашего устройства похожи на автоматические")
-                    throw Exception("Нам очень жаль, но запросы с вашего устройства похожи на автоматические")
-                }
-                println("preloadedAlbum = $preloadedAlbums")
-                println("album = $album")
-                println("searchLastAlbumYm3 html: '${html.substring(0, minOf(html.length, 1000))}...'") // ограничиваем вывод
+            return if (result.isNotEmpty()) {
+                AlbumSearchResult.Success(result)
+            } else {
+                AlbumSearchResult.Unknown(page.title(), currentUrl)
             }
         } finally {
-            context.close() // При закрытии профиль автоматически сохраняется на диск, lock-файл снимается
+            context.close()
         }
     }
-    return result
 }
 
 
@@ -2747,30 +2758,43 @@ fun checkLastAlbumYm(): Triple<String, String, Int> {
     val author = getAuthorForRequest() ?: return Triple("", "", -2)
     val authorForRequest = author.author
 
-    val lastAlbumYm = try {
-//        getAlbumCardTitle(author.ymId)
-//        searchLastAlbumYm(author.ymId)
-        searchLastAlbumYm3(author.ymId)
-    } catch (@Suppress("unused") e: Exception) {
-        // e.printStackTrace()
-        println("Поиск для автора «$authorForRequest» завершился ошибкой.")
-        return Triple(authorForRequest, "", -1)
-    }
-
-    if (lastAlbumYm == "") {
-        println("Поиск для автора «$authorForRequest» выдал пустой результат. Возможно Yandex.Музыка изменила код страницы.")
-        return Triple(authorForRequest, "", 0)
-    }
-
-    author.lastAlbumYm = lastAlbumYm
-    author.save()
-
-    return if (lastAlbumYm == author.lastAlbumProcessed) {
-        println("Поиск для автора «$authorForRequest» завершился успешно, но новых альбомов не найдено. (Альбом «$lastAlbumYm» уже был ранее найден.)")
-        Triple(authorForRequest, lastAlbumYm, 0)
-    } else {
-        println("Поиск для автора «$authorForRequest» завершился успешно, найден новый альбом «$lastAlbumYm». (Ранее последним альбомом был «${author.lastAlbumProcessed}».)")
-        Triple(authorForRequest, lastAlbumYm, 1)
+    return when (val searchResult = searchLastAlbumYm3(author.ymId)) {
+        is AlbumSearchResult.VpnBlocked -> {
+            println("Поиск нового альбома автора «$authorForRequest» завершился неудачей из-за включенного ВПН. Отключите ВПН.")
+            Triple(authorForRequest, "", -1)
+        }
+        is AlbumSearchResult.AuthExpired -> {
+            println("Поиск нового альбома автора «$authorForRequest» завершился неудачей из-за просроченной авторизации. Переавторизуйтесь.")
+            Triple(authorForRequest, "", -1)
+        }
+        is AlbumSearchResult.BotDetected -> {
+            println("Поиск нового альбома автора «$authorForRequest» завершился неудачей: Яндекс заблокировал автоматические запросы.")
+            Triple(authorForRequest, "", -1)
+        }
+        is AlbumSearchResult.Unknown -> {
+            val country = try {
+                java.net.URL("https://ip-api.com/line/?fields=countryCode")
+                    .readText(Charsets.UTF_8).trim()
+            } catch (_: Exception) { "" }
+            if (country.isNotEmpty() && country != "RU") {
+                println("Поиск нового альбома автора «$authorForRequest» завершился неудачей из-за включенного ВПН (IP-регион: $country). Отключите ВПН.")
+                Triple(authorForRequest, "", -1)
+            } else {
+                println("Поиск нового альбома автора «$authorForRequest» выдал пустой результат. Возможно Yandex.Музыка изменила код страницы. [Заголовок: '${searchResult.pageTitle}', URL: '${searchResult.pageUrl}']")
+                Triple(authorForRequest, "", 0)
+            }
+        }
+        is AlbumSearchResult.Success -> {
+            author.lastAlbumYm = searchResult.albumTitle
+            author.save()
+            if (searchResult.albumTitle == author.lastAlbumProcessed) {
+                println("Поиск для автора «$authorForRequest» завершился успешно, но новых альбомов не найдено. (Альбом «${searchResult.albumTitle}» уже был ранее найден.)")
+                Triple(authorForRequest, searchResult.albumTitle, 0)
+            } else {
+                println("Поиск для автора «$authorForRequest» завершился успешно, найден новый альбом «${searchResult.albumTitle}». (Ранее последним альбомом был «${author.lastAlbumProcessed}».)")
+                Triple(authorForRequest, searchResult.albumTitle, 1)
+            }
+        }
     }
 
 }

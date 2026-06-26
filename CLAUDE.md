@@ -146,6 +146,13 @@ the app can be pointed at a local dev Postgres or the production server DB. `Kar
 and the `*_sync` tables coordinate propagating changes between them (see `autoUpdateRemoteSettings`,
 `monitoringRemoteSettingsSync`, `allowUpdateRemote/Local` flags in `KaraokeProperties.kt`).
 
+**Синхронизация LOCAL↔SERVER (`Utils.kt`, `updateRemoteDatabaseFromLocalDatabase`).**
+Функция сравнивает хэши 18858+ записей двух БД. Два критичных паттерна производительности:
+- Сравнение хэшей — через `associateBy { it.id }` + Map lookup (O(n)), **не** через вложенные `.any`/`.none`
+  по спискам (O(n²) — при 18858 записях даёт 3+ минуты задержки).
+- Загрузка записей для diff — пакетно через `loadListFromDbByIds` / `getAuthorsByIds` / `getPicturesByIds`
+  (`WHERE id IN (...)`), **не** по одной через `loadFromDbById` в цикле (N+1 запросов по сети).
+
 **Async job pipeline (`KaraokeProcess*`).** Long-running work (ffmpeg/`melt` rendering, Demucs source separation,
 Sheetsage key/BPM/chord detection, file copy/symlink operations) is modeled as a `KaraokeProcess` row with a
 `KaraokeProcessTypes` enum and run by `KaraokeProcessWorker`/`KaraokeProcessThread` as an OS subprocess

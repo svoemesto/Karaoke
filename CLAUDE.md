@@ -59,9 +59,7 @@ cd deploy
 
 bash do.sh build                  # gradle build jars + build all docker images
 bash do.sh build_app              # build only the karaoke-app image
-bash do.sh build_start_app        # rebuild karaoke-app and (re)start containers
 bash do.sh build_start_web        # rebuild karaoke-web and (re)start
-bash do.sh build_start_webvue3    # rebuild webvue3 and (re)start
 bash do.sh build_start_public     # rebuild karaoke-public (Vue→nginx) and (re)start (порт 7907)
 bash do.sh start [all]            # start containers (add "all" to also (re)start the DATABASE)
 bash do.sh stop [all]
@@ -71,6 +69,19 @@ bash do.sh ps
 ```
 `deploy/do.env` / `deploy/.env` hold the environment (ports, registry, host folder mounts) consumed by the
 compose files.
+
+**Сборка и запуск karaoke-app** (сборка и запуск из разных папок):
+```
+cd ~/Karaoke/deploy && ./do.sh build_app
+cd /sm-karaoke/system/deploy && ./do.sh start_app    # обычный запуск
+cd /sm-karaoke/system/deploy && ./do.sh start_app2   # с выводом в консоль (для отладки)
+```
+
+**Сборка и запуск webvue3** (сборка и запуск из разных папок):
+```
+cd ~/Karaoke/deploy && ./do.sh build_webvue3
+cd /sm-karaoke/system/deploy && ./do.sh start_webvue3
+```
 
 **Правила сборки karaoke-public** (Vue 3 + Vite → Docker/nginx):
 ```

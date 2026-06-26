@@ -15,9 +15,27 @@
     <div v-if="isLoading" style="padding: 10px">Загрузка...</div>
 
     <div v-for="zak in zakroma" :key="zak.author" class="mb-4">
-      <div class="author">{{ zak.author }}</div>
+      <div class="author" style="display:flex; justify-content:center; align-items:center; gap:6px">
+        <img
+          v-if="zak.authorPictureUrl"
+          :src="zak.authorPictureUrl"
+          style="height:50px; width:auto; flex-shrink:0; background-color:black"
+          @error="$event.target.style.display='none'"
+          alt=""
+        />
+        <span>{{ zak.author }}</span>
+      </div>
       <div v-for="alb in zak.albums" :key="alb.albumName">
-        <div class="album">{{ alb.year }} - {{ alb.albumName }}</div>
+        <div class="album" style="display:flex; align-items:center; gap:6px">
+          <img
+            v-if="alb.albumPictureUrl"
+            :src="alb.albumPictureUrl"
+            style="height:50px; width:50px; object-fit:cover; flex-shrink:0; background-color:black"
+            @error="$event.target.style.display='none'"
+            alt=""
+          />
+          <span>{{ alb.year }} - {{ alb.albumName }}</span>
+        </div>
         <table class="table-sm table-hover" style="width: 780px; table-layout: fixed">
           <colgroup>
             <col style="width: 25px" />

@@ -8,7 +8,9 @@
       <table style="width: 100%; margin-top: 10px">
         <tr>
           <td colspan="2">
-            <img v-if="currentSong.vkPictureBase64" :src="`data:image/jpg;base64,${currentSong.vkPictureBase64}`" alt="" />
+            <img v-if="currentSong.songPictureUrl" :src="currentSong.songPictureUrl"
+                 style="display:block; margin:auto; background-color:black"
+                 @error="$event.target.style.display='none'" alt="" />
             <div style="padding: 10px; max-width: 800px; font-weight: bold; font-size: 32pt; text-align: center; color: #ffff88; background-color: black; margin: 0 auto">
               «{{ currentSong.songName }}»
             </div>

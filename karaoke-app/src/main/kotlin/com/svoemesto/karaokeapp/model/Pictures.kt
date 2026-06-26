@@ -235,14 +235,14 @@ class Pictures(
             ) as? Pictures?
         }
 
-        fun getPictureByName(name: String, database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient): Pictures? {
+        fun getPictureByName(name: String, database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient, ignoreUseInList: Boolean = true): Pictures? {
 
             return loadList(
                 whereArgs = mapOf(Pair("name", name)),
                 database = database,
                 storageService = storageService,
                 storageApiClient = storageApiClient,
-                ignoreUseInList = true
+                ignoreUseInList = ignoreUseInList
             ).firstOrNull()
 
         }

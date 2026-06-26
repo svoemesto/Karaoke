@@ -27,6 +27,14 @@ class Zakroma(val database: KaraokeConnection): Serializable, Comparable<Zakroma
                     storageService = storageService,
                     storageApiClient = storageApiClient
                 )?.full ?: ""
+                val picForAuthorPreview = Pictures.getPictureByName(
+                    name = authorName,
+                    database = database,
+                    storageService = storageService,
+                    storageApiClient = storageApiClient,
+                    ignoreUseInList = false
+                )
+                zakroma.picturePreviewFileName = picForAuthorPreview?.storageFileNamePreview ?: ""
                 val settingsByAlbum = settingsByAuthor.groupBy { it.album }
                 zakroma.albums = settingsByAlbum.map { (albumName, settingsByAlbum) ->
                     val album = ZakromaAlbum()
@@ -38,6 +46,15 @@ class Zakroma(val database: KaraokeConnection): Serializable, Comparable<Zakroma
                         storageService = storageService,
                         storageApiClient = storageApiClient
                     )?.full ?: ""
+                    val pictureName = "$authorName - ${album.year} - $albumName"
+                    val picForPreview = Pictures.getPictureByName(
+                        name = pictureName,
+                        database = database,
+                        storageService = storageService,
+                        storageApiClient = storageApiClient,
+                        ignoreUseInList = false
+                    )
+                    album.picturePreviewFileName = picForPreview?.storageFileNamePreview ?: ""
                     album.albumSettings = settingsByAlbum.map { settings ->
                         val zakromaAlbumSettings = ZakromaAlbumSettings()
                         zakromaAlbumSettings.id = settings.id
@@ -80,6 +97,7 @@ class Zakroma(val database: KaraokeConnection): Serializable, Comparable<Zakroma
 
     var author: String = ""
     var picture: String = ""
+    var picturePreviewFileName: String = ""
     var albums: MutableList<ZakromaAlbum> = mutableListOf()
 
     override fun compareTo(other: Zakroma): Int {
@@ -130,6 +148,7 @@ class ZakromaAlbum: Serializable, Comparable<ZakromaAlbum> {
     var albumName: String = ""
     var year: Long = 0
     var picture: String = ""
+    var picturePreviewFileName: String = ""
     var albumSettings: MutableList<ZakromaAlbumSettings> = mutableListOf()
     override fun compareTo(other: ZakromaAlbum): Int {
         val compYear = year.compareTo(other.year)

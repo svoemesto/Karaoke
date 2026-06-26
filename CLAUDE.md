@@ -161,6 +161,12 @@ JS rendering or an authenticated session (e.g. Yandex Music login state is saved
 - **Unknown (резерв)**: запрос к `ip-api.com/line/?fields=countryCode`; если страна не `RU` — тоже VPN с кодом региона; иначе — сообщение об изменении кода страницы с `page.title()` и URL для диагностики.
 HTML страницы в лог не выводится.
 
+Коды `reason` из `checkLastAlbumYm` (обрабатываются в `KaraokeProcessWorker`):
+- `-3` — VPN или авторизация: таймаут **не** увеличивается, `requestNewSongLastSuccessAuthor` **не** меняется (следующая попытка — тот же автор, тот же интервал).
+- `-2` — нет автора в списке: таймаут не меняется, `requestNewSongLastSuccessTimeMs` обновляется.
+- `-1` — бот-детект и прочие ошибки: таймаут увеличивается на `requestNewSongTimeoutIncreaseMs` (до 1 часа).
+- `0` — успех без нового альбома; `1` — найден новый альбом: `requestNewSongLastSuccessAuthor` обновляется → следующий вызов берёт следующего автора.
+
 **Frontend ↔ backend wiring.** `webvue3` is a Vuex-modules-per-entity SPA (one `store.js` per domain area: Songs,
 Authors, Pictures, Processes, Properties, Publish, Users, plus filter/modal sub-stores) talking to `karaoke-app`'s
 `/api/...` REST endpoints (`controllers/ApiController.kt`, ~3400 lines, one route per song field/action —

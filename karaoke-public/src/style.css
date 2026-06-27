@@ -1,3 +1,33 @@
+:root[data-theme="dark"] {
+  --km-bg:      #0f0f1a;
+  --km-bg2:     #16213e;
+  --km-card:    #1a1a2e;
+  --km-border:  #2d2d5e;
+  --km-text:    #e8e8f0;
+  --km-text2:   #9090b8;
+  --km-accent:  #7c6aff;
+  --km-accent2: #ffcc44;
+  --km-header:  #0a0a18;
+  --km-hover:   #22224a;
+  --km-input:   #12122a;
+  --km-scrollbar: #2d2d5e;
+}
+
+:root[data-theme="light"] {
+  --km-bg:      #f4f6fb;
+  --km-bg2:     #e8eaf6;
+  --km-card:    #ffffff;
+  --km-border:  #c8cadb;
+  --km-text:    #1a1a2e;
+  --km-text2:   #5a5a80;
+  --km-accent:  #5c4de0;
+  --km-accent2: #c47f00;
+  --km-header:  #ffffff;
+  --km-hover:   #eeeeff;
+  --km-input:   #f8f9ff;
+  --km-scrollbar: #c8cadb;
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
 }

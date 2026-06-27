@@ -294,3 +294,27 @@ cd deploy && bash do.sh build_start_public   # сборка Docker-образа 
 **Текущие размеры:**
 - ZakromaView: внешний div 800px, таблица 780px (25 трек + 378 название + 25 sponsr + 16×22 платформ).
 - SearchView: внешний div 900px, таблица 880px (100 автор + 35 год + 115 альбом + 25 трек + 228 название + 25 sponsr + 16×22 платформ).
+
+**Двойной дизайн (классический + современный):**
+
+В `karaoke-public` реализованы два параллельных дизайна. Выбор хранится в `localStorage`.
+
+Структура:
+```
+src/
+├── composables/useDesign.js          # design ('classic'|'modern') + theme ('light'|'system'|'dark') в localStorage
+├── style.css                          # CSS-переменные --km-* для обеих тем
+├── views/
+│   ├── HomeView.vue / ZakromaView.vue / SearchView.vue / SongView.vue  # тонкие обёртки v-if design==='modern'
+│   ├── classic/  Home/Zakroma/Search/SongClassic.vue  # оригинальный дизайн без изменений
+│   └── modern/   Home/Zakroma/Search/SongModern.vue   # новый дизайн
+└── App.vue                            # .modernScreen (full-width) vs .nonHomeScreen (centred) по design
+```
+
+Ключевые паттерны нового дизайна:
+- `useDesign()` возвращает реактивные `design`, `theme`, `applyTheme()`. Тема применяется через `data-theme` на `:root`.
+- Переключатель дизайна — только на главной: кнопка **✨ Новый дизайн** в `HomeClassic`, pill-toggle «Классика | Новый» в `HomeModern`.
+- Переключатель темы (☀ / ⬡ / 🌙) — в хедере каждой Modern-страницы.
+- Адаптивность: таблицы платформ скрыты на мобильных (`@media max-width: 768px`), вместо них — карточки `.km-cards`.
+- CSS-переменные: `--km-bg`, `--km-card`, `--km-accent`, `--km-accent2`, `--km-border`, `--km-text`, `--km-text2`, `--km-hover`, `--km-input`, `--km-header`. Все Modern-компоненты используют только их.
+- `SongModern`: видео — адаптивный `aspect-ratio: 16/9` iframe без фиксированной ширины; hero-баннер с overlay.

@@ -6,6 +6,9 @@ import { createBootstrap } from 'bootstrap-vue-next'
 import 'bootstrap/dist/css/bootstrap.css'
 import 'bootstrap-vue-next/dist/bootstrap-vue-next.css'
 import './style.css'
+import { useDesign } from './composables/useDesign'
+
+useDesign() // инициализация темы из localStorage при старте
 
 const app = createApp(App)
 

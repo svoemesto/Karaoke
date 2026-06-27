@@ -12,6 +12,9 @@ server {
     proxy_set_header X-Forwarded-Port $server_port;
     proxy_set_header Host $host;
     proxy_set_header X-Nginx-Proxy true;
+    client_max_body_size 200m;
+    proxy_read_timeout 300;
+    proxy_send_timeout 300;
   }
   location /changerecords {
     proxy_pass http://127.0.0.1:8897/changerecords;

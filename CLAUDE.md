@@ -101,6 +101,18 @@ cd /home/nsa/Karaoke/karaoke-public && nvm use v25.7.0 && npm run build
 ```
 cd /home/nsa/Karaoke/deploy && bash deploy_web.sh
 ```
+После запуска обязательно проверить:
+1. В логах **нет** `EOF` / `400 Bad request` при push слоёв — иначе пуш не удался.
+2. На сервере: `Status: Downloaded newer image` (не `Image is up to date`) — иначе сервер получил старый образ.
+3. Финальная проверка содержимого `application.yml` в контейнере:
+   ```
+   ssh root@79.174.95.69 "docker exec karaoke-web bash -c 'cd /tmp && jar xf /app.jar BOOT-INF/classes/application.yml && cat BOOT-INF/classes/application.yml'"
+   ```
+
+**Если push через ВПН не удался** (тяжёлые базовые слои ~170MB падают по EOF):
+Попросить пользователя запустить `cd /home/nsa/Karaoke/deploy && bash deploy_web.sh` вручную без ВПН.
+При небольших изменениях (только app.jar, без смены базового Docker-образа) пуш через ВПН обычно проходит
+успешно, т.к. тяжёлые слои уже есть на Docker Hub.
 
 **Обновление karaoke-public** (Docker build → Docker Hub push → pull на сервере):
 ```

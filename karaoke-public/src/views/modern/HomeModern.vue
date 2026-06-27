@@ -28,15 +28,15 @@
       <!-- Статистика -->
       <div v-if="!isLoading" class="km-stats">
         <div class="km-stat-card">
-          <div class="km-stat-number">{{ onSponsr }}</div>
+          <div class="km-stat-number">{{ formatNum(onSponsr) }}</div>
           <div class="km-stat-label">Песен в коллекции</div>
         </div>
         <div class="km-stat-card">
-          <div class="km-stat-number">{{ onAir }}</div>
+          <div class="km-stat-number">{{ formatNum(onAir) }}</div>
           <div class="km-stat-label">В открытом доступе</div>
         </div>
-        <div class="km-stat-card km-stat-exclusive">
-          <div class="km-stat-number">{{ exclusive }}</div>
+        <div class="km-stat-card">
+          <div class="km-stat-number">{{ formatNum(exclusive) }}</div>
           <div class="km-stat-label">Эксклюзивно на Sponsr</div>
         </div>
       </div>
@@ -114,6 +114,9 @@ export default {
     openLink(link) {
       trackLinkToSocialNetwork(link.name)
       window.open(link.url, '_blank')
+    },
+    formatNum(n) {
+      return n != null ? Number(n).toLocaleString('ru-RU') : ''
     }
   }
 }
@@ -225,9 +228,6 @@ export default {
   border-radius: 14px;
   padding: 1.2rem 0.8rem;
   text-align: center;
-}
-.km-stat-exclusive {
-  border-color: var(--km-accent);
 }
 .km-stat-number {
   font-size: 1.8rem;

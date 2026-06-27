@@ -56,16 +56,19 @@
               <colgroup>
                 <col style="width: 28px" />
                 <col />
-                <col style="width: 26px" />
-                <col v-for="i in 16" :key="i" style="width: 22px" />
+                <col style="width: 32px" />
+                <col style="width: 22px" /><col style="width: 22px" /><col style="width: 22px" /><col style="width: 26px" />
+                <col style="width: 22px" /><col style="width: 22px" /><col style="width: 22px" /><col style="width: 26px" />
+                <col style="width: 22px" /><col style="width: 22px" /><col style="width: 22px" /><col style="width: 26px" />
+                <col style="width: 22px" /><col style="width: 22px" /><col style="width: 22px" /><col style="width: 22px" />
               </colgroup>
               <thead>
                 <tr>
                   <th class="km-th km-th-center">№</th>
-                  <th class="km-th" colspan="2">Композиция</th>
-                  <th class="km-th km-th-center" colspan="4">Karaoke</th>
-                  <th class="km-th km-th-center" colspan="4">Lyrics</th>
-                  <th class="km-th km-th-center" colspan="4">TABS</th>
+                  <th class="km-th km-group-end" colspan="2">Композиция</th>
+                  <th class="km-th km-th-center km-group-end" colspan="4">Karaoke</th>
+                  <th class="km-th km-th-center km-group-end" colspan="4">Lyrics</th>
+                  <th class="km-th km-th-center km-group-end" colspan="4">TABS</th>
                   <th class="km-th km-th-center" colspan="4">Chords</th>
                 </tr>
               </thead>
@@ -75,7 +78,7 @@
                   <td class="km-td km-td-name">
                     <RouterLink :to="{ path: '/song', query: { id: sett.id } }" class="km-song-link">{{ sett.songName }}</RouterLink>
                   </td>
-                  <td class="km-td km-td-center">
+                  <td class="km-td km-td-center km-group-end">
                     <PlatformLink link-name="sponsr" :link-value="sett.linkSponsrPlay" :song-id="sett.id" song-version="all" />
                   </td>
                   <template v-if="sett.onAir">
@@ -265,7 +268,6 @@ export default {
 /* Select */
 .km-select {
   width: 100%;
-  max-width: 500px;
   display: block;
   margin-bottom: 1.5rem;
   background: var(--km-input);
@@ -331,7 +333,6 @@ export default {
   border-collapse: collapse;
   background: var(--km-card);
   table-layout: fixed;
-  min-width: 700px;
 }
 .km-th {
   background: var(--km-bg2);
@@ -353,7 +354,7 @@ export default {
 .km-tr:last-child .km-td { border-bottom: none; }
 .km-tr:hover .km-td { background: var(--km-hover); }
 .km-td-center { text-align: center; }
-.km-td-icon { text-align: center; padding: 0 1px; }
+.km-td-icon { text-align: center; padding: 0; overflow: hidden; }
 .km-td-name { text-align: left; }
 .km-td-date { text-align: center; color: var(--km-text2); font-size: 0.78rem; }
 .km-track { text-align: center; color: var(--km-text2); }

@@ -480,6 +480,9 @@ export default {
   white-space: pre-wrap;
   font-family: monospace;
 }
+.km-text-body :deep(*) {
+  color: var(--km-text) !important;
+}
 
 /* Мобильные правки */
 @media (max-width: 600px) {

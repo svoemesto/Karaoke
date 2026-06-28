@@ -1748,7 +1748,7 @@ data class HealthReport(
                     // Видео конкретной версии песни в разрешении 1080p/60fps
                     KaraokeFileType.VIDEO_SONGVERSION_1080P ->  {
 
-                        SongVersion.entries.forEach { songVersion ->
+                        if (settings.idStatus >= 6) SongVersion.entries.forEach { songVersion ->
                             pathToFile = "${settings.rootFolder}/done_files/${settings.fileName}${songVersion.suffix}${karaokeFileType.suffix}.${karaokeFileType.extention}"
                             existsInLocalFileSystem = if (pathToFile != "") File(pathToFile).exists() else false
                             storageFileName = "${settings.storageFileName}${songVersion.suffix}${karaokeFileType.suffix}.${karaokeFileType.extention}"
@@ -1894,7 +1894,7 @@ data class HealthReport(
 
                     // Видео конкретной версии песни в разрешении 720p/30fps
                     KaraokeFileType.VIDEO_SONGVERSION_720P ->  {
-                        SongVersion.entries.forEach { songVersion ->
+                        if (settings.idStatus >= 6) SongVersion.entries.forEach { songVersion ->
                             storageFileName = "${settings.storageFileName}${songVersion.suffix}${karaokeFileType.suffix}.${karaokeFileType.extention}"
                             description = "${karaokeFileType.name}/${songVersion.name}"
 

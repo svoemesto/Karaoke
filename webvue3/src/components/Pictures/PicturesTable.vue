@@ -46,8 +46,8 @@
               @click.left="editPicture(data.item.id)"
           >
             <img
-                v-if="data.value && typeof data.value === 'string'"
-                :src="'data:image/jpg;base64,' + data.value"
+                v-if="data.item.previewUrl"
+                :src="data.item.previewUrl"
                 alt="Preview"
                 class="preview-image"
             >

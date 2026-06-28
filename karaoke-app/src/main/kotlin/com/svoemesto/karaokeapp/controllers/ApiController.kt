@@ -1836,24 +1836,24 @@ class ApiController(
         return emptyMap()
     }
 
-    // Получаем картинку в BASE64 для альбома
     @PostMapping("/song/picturealbum")
     @ResponseBody
     fun getPictureAlbum(@RequestParam id: Long): String {
         val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
         settings?.let {
-            return "data:image/gif;base64,${it.pictureAlbum?.full}"
+            val pic = it.pictureAlbum ?: return ""
+            return "/api/public/picture?file=${pic.storageFileName}"
         }
         return ""
     }
 
-    // Получаем картинку в BASE64 для автора
     @PostMapping("/song/pictureauthor")
     @ResponseBody
     fun getPictureAuthor(@RequestParam id: Long): String {
         val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
         settings?.let {
-            return "data:image/gif;base64,${it.pictureAuthor?.full}"
+            val pic = it.pictureAuthor ?: return ""
+            return "/api/public/picture?file=${pic.storageFileName}"
         }
         return ""
     }
@@ -3280,6 +3280,32 @@ class ApiController(
             println(e)
         }
         return ""
+    }
+
+    @GetMapping("/picture/file")
+    fun getPictureFile(@RequestParam file: String): ResponseEntity<ByteArray> {
+        val bucket = "karaoke"
+        if (storageService.fileExists(bucket, file)) {
+            val bytes = storageService.downloadFile(bucket, file).use { it.readBytes() }
+            return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(bytes)
+        }
+        val isAuthor = file.endsWith(".preview.author.png")
+        val isAlbum = file.endsWith(".preview.album.png")
+        if (!isAuthor && !isAlbum) return ResponseEntity.notFound().build()
+        val fullFile = if (isAuthor)
+            file.replace(".preview.author.png", ".author.png")
+        else
+            file.replace(".preview.album.png", ".album.png")
+        if (!storageService.fileExists(bucket, fullFile)) return ResponseEntity.notFound().build()
+        val fullBytes = storageService.downloadFile(bucket, fullFile).use { it.readBytes() }
+        val bi = ImageIO.read(ByteArrayInputStream(fullBytes))
+        val (newW, newH) = if (isAuthor) 125 to 50 else 50 to 50
+        val previewBi = resizeBufferedImage(bi, newW = newW, newH = newH)
+        val out = ByteArrayOutputStream()
+        ImageIO.write(previewBi, "png", out)
+        val previewBytes = out.toByteArray()
+        storageService.uploadFile(bucket, file, ByteArrayInputStream(previewBytes), previewBytes.size.toLong())
+        return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(previewBytes)
     }
 
     @PostMapping("/getwebvueprop")

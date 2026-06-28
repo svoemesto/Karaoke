@@ -15,7 +15,8 @@ data class AuthorDTO(
         val skip: Boolean,
         val haveNewAlbum: Boolean,
         val pictureId: Long = 0,
-        val picturePreview: String = ""
+        val picturePreview: String = "",
+        val picturePreviewUrl: String = ""
 ): Serializable, Comparable<AuthorDTO>, KaraokeDbTableDto {
     override fun compareTo(other: AuthorDTO): Int {
         return author.compareTo(other.author)

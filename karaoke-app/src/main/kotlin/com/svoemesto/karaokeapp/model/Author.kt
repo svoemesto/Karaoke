@@ -60,7 +60,9 @@ class Author(
             storageApiClient = storageApiClient,
             ignoreUseInList = true
         ).firstOrNull()
-        val (pictureId, picturePreview) = picture?.let { Pair(it.id, it.preview) } ?: Pair(0L, "")
+        val (pictureId, picturePreviewUrl) = picture?.let {
+            Pair(it.id, "/api/picture/file?file=${it.storageFileNamePreview}")
+        } ?: Pair(0L, "")
         return AuthorDTO(
                 id = id,
                 author = author,
@@ -73,7 +75,8 @@ class Author(
                 skip = skip,
                 haveNewAlbum = haveNewAlbum,
                 pictureId = pictureId,
-                picturePreview = picturePreview
+                picturePreview = "",
+                picturePreviewUrl = picturePreviewUrl
         )
     }
 

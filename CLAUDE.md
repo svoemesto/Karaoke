@@ -249,6 +249,11 @@ accessed through `services/StorageApiClient.kt` / `services/KaraokeStorageServic
 **Правило при загрузке картинок без base64:** передавать `ignoreUseInList = false` в
 `Pictures.getPictureByName()` — иначе подтянется тяжёлое поле `picture_full` из БД.
 
+**HealthReport (`HealthReport.kt`).** Проверяет состояние файлов каждой песни по локациям (диск, MinIO, удалённое хранилище). Ключевое правило:
+- Видеофайлы (`VIDEO_SONGVERSION_1080P`, `VIDEO_SONGVERSION_720P`) проверяются **только при `idStatus >= 6`**. При статусе < 6 наличие видеофайлов на диске/хранилище не считается ошибкой и не приводит к их удалению.
+- `canBe = false` + файл существует → ERROR + action на удаление. Не трогать эту логику для видео при статусе < 6.
+- API: `POST /song/healthReportList` — получить список; `POST /song/executeHealthReportActions` — применить исправления.
+
 ## Git — что НЕ добавлять в репозиторий
 
 - `deploy/ollama_data/` — содержит SSH-ключи (`id_ed25519`) и большие модели Ollama. Уже в `.gitignore`.

@@ -224,14 +224,22 @@ accessed through `services/StorageApiClient.kt` / `services/KaraokeStorageServic
 
 Имена файлов формируются в `Pictures.storageFileName` / `Pictures.storageFileNamePreview`.
 Для создания превью используется `resizeBufferedImage()` из `UtilsPictures.kt`.
-Подход с base64 (`picture_full` в БД) используется только в `webvue3` admin — в публичном API
-(`karaoke-public`) картинки отдаются как URL. **Новый код не должен использовать base64.**
+**Base64 в `tbl_pictures` не используется нигде.** Поле `picture_full` всегда `""` — картинки
+хранятся только в MinIO. Setter `Pictures.full` загружает файл и превью в MinIO, в БД пишет `""`.
+`PicturesDTO` содержит `previewUrl` и `fullUrl` (вместо base64 `preview`/`full`).
 
-**Публичные эндпоинты картинок** (`PublicApiController.kt` в `karaoke-web`):
+**Nginx routing webvue3:** `location /api` → `karaoke-app:8899`. Поэтому для работы в admin-
+контексте эндпоинт картинок — `GET /api/picture/file?file=<path>` в `ApiController.kt`, а не
+`/api/public/picture` из `PublicApiController.kt` (karaoke-web). Эти два эндпоинта идентичны по логике.
 
-- `GET /api/public/picture?file=<path>` — отдаёт файл из MinIO по имени. Если запрошен превью
-  (`.preview.author.png` / `.preview.album.png`) и его нет — создаёт из полноразмерного,
-  кэширует в MinIO. Автор: `newW=125, newH=50`; альбом: `newW=50, newH=50`.
+**Эндпоинты картинок:**
+
+- `GET /api/picture/file?file=<path>` (`ApiController.kt`, karaoke-app) — для **admin (webvue3)**:
+  отдаёт файл из MinIO. Если запрошен превью и его нет — создаёт из полноразмерного, кэширует.
+  Автор: `newW=125, newH=50`; альбом: `newW=50, newH=50`.
+
+- `GET /api/public/picture?file=<path>` (`PublicApiController.kt`, karaoke-web) — для **karaoke-public**:
+  та же логика. Если запрошен превью и его нет — создаёт из полноразмерного, кэширует в MinIO.
 
 - `GET /api/public/song-picture/{id}` — composite-баннер песни 800×194 (чёрный фон):
   альбом 154×154 @ (20, 20), автор 385×154 @ (294, 20). Читает полноразмерные PNG из MinIO,
@@ -246,8 +254,9 @@ accessed through `services/StorageApiClient.kt` / `services/KaraokeStorageServic
   **Важно:** пути MinIO строить через `settings.author`, а не `albumPic.storageFileName` — поле
   `author` в записи Pictures может отличаться по регистру от `Settings.author`.
 
-**Правило при загрузке картинок без base64:** передавать `ignoreUseInList = false` в
-`Pictures.getPictureByName()` — иначе подтянется тяжёлое поле `picture_full` из БД.
+**Правило при загрузке картинок:** всегда использовать `ignoreUseInList = false` в
+`Pictures.getPictureByName()` / `loadList()` — поле `picture_full` в БД теперь пустое, но
+аннотация `useInList = false` оставлена намеренно, чтобы не тянуть это поле в списочных запросах.
 
 **HealthReport (`HealthReport.kt`).** Проверяет состояние файлов каждой песни по локациям (диск, MinIO, удалённое хранилище). Ключевое правило:
 - Видеофайлы (`VIDEO_SONGVERSION_1080P`, `VIDEO_SONGVERSION_720P`) проверяются **только при `idStatus >= 6`**. При статусе < 6 наличие видеофайлов на диске/хранилище не считается ошибкой и не приводит к их удалению.

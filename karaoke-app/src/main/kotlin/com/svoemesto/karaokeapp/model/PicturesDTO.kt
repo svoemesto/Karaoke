@@ -8,6 +8,8 @@ data class PicturesDTO(
         val name: String,
         val preview: String,
         val full: String = "",
+        val previewUrl: String = "",
+        val fullUrl: String = "",
         val author: String = "",
         val year: String = "",
         val album: String = "",

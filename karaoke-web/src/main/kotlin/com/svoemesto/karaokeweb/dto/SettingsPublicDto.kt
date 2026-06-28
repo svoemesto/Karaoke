@@ -79,7 +79,7 @@ data class SettingsPublicDto(
             datePublish = s.datePublish,
             haveVkGroupLink = s.haveVkGroupLink,
             idStatus = s.idStatus,
-            vkPictureBase64 = if (includeDetails) s.getVKPictureBase64() else "",
+            vkPictureBase64 = "",
             songPictureUrl = "/api/public/song-picture/${s.id}",
             formattedTextSong = if (includeDetails) s.formattedTextSong else "",
             formattedTextTabs = if (includeDetails) s.formattedTextTabs else "",

@@ -34,45 +34,27 @@ class Pictures(
     @KaraokeDbTableField(name = "picture_full", useInList = false)
     var full: String = ""
         set(value) {
-            field = value
+            field = ""  // base64 не хранится в БД — только в хранилище
+            if (value.isEmpty()) return
             try {
                 val pictureBites = Base64.getDecoder().decode(value)
                 val bi = ImageIO.read(ByteArrayInputStream(pictureBites))
+                val iosFull = ByteArrayOutputStream()
+                ImageIO.write(bi, "png", iosFull)
+                val fullBytes = iosFull.toByteArray()
+                storageUploadFile(ByteArrayInputStream(fullBytes), fullBytes.size.toLong())
                 val previewBi = if (bi.width > 400) resizeBufferedImage(bi, newW = 125, newH = 50) else resizeBufferedImage(bi, newW = 50, newH = 50)
                 val iosPreview = ByteArrayOutputStream()
                 ImageIO.write(previewBi, "png", iosPreview)
-                Base64.getEncoder().encodeToString(iosPreview.toByteArray())
-//                if (this.preview != preview) this.preview = preview
-            } catch (_: Exception) {
-
+                val previewBytes = iosPreview.toByteArray()
+                storageUploadFilePreview(ByteArrayInputStream(previewBytes), previewBytes.size.toLong())
+            } catch (e: Exception) {
+                println("Ошибка загрузки картинки в хранилище: ${e.message}")
             }
         }
 
 //    @KaraokeDbTableField(name = "picture_preview")
 //    var preview: String = ""
-
-    val preview: String get() {
-        return if (storageFilePreviewExists()) {
-            println("Получаем preview для файла '$name' из хранилища.")
-            storageDownloadFilePreview()
-        } else {
-            if (storageFileExists()) {
-                println("Отсутствует preview для файла '$name', создаём.")
-                val fullFileByteArray = storageDownloadFile().use { it.readBytes() }
-                val bi = ImageIO.read(ByteArrayInputStream(fullFileByteArray))
-                val previewBi = if (bi.width > 400) resizeBufferedImage(bi, newW = 125, newH = 50) else resizeBufferedImage(bi, newW = 50, newH = 50)
-                val iosPreview = ByteArrayOutputStream()
-                ImageIO.write(previewBi, "png", iosPreview)
-                val previewInputStream = ByteArrayInputStream(iosPreview.toByteArray())
-                storageUploadFilePreview(previewInputStream, previewInputStream.available().toLong())
-                previewInputStream
-            } else {
-                null
-            }
-        }?.let { fileInputStream ->
-            Base64.getEncoder().encodeToString(fileInputStream.use { it.readBytes() })
-        } ?: ""
-    }
 
     val author: String get() {
         val arr = name.split(" - ")
@@ -139,8 +121,10 @@ class Pictures(
         return PicturesDTO(
                 id = id,
                 name = name,
-                preview = preview,
-                full = full,
+                preview = "",
+                full = "",
+                previewUrl = "/api/picture/file?file=${storageFileNamePreview}",
+                fullUrl = "/api/picture/file?file=${storageFileName}",
                 author = author,
                 year = year,
                 album = album,
@@ -153,7 +137,8 @@ class Pictures(
 
     fun saveToDisk() {
         try {
-            val pictureBites = Base64.getDecoder().decode(full)
+            if (!storageFileExists()) return
+            val pictureBites = storageDownloadFile().use { it.readBytes() }
             val bi = ImageIO.read(ByteArrayInputStream(pictureBites))
             val fName = "/sm-karaoke/system/pictures/$name.png"
             val file = File(fName)

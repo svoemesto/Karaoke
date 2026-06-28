@@ -22,7 +22,7 @@
             <button class="btn-round" @click="pasteFromClipboard('name')"><img alt="paste" class="icon-paste" src="../../../assets/svg/icon_paste.svg"></button>
           </div>
           <div class="picture-full">
-            <img class="image-full" alt="image" :src="'data:image/jpg;base64,' + pictureFullBase64">
+            <img class="image-full" alt="image" :src="pictureFullBase64 ? 'data:image/jpg;base64,' + pictureFullBase64 : pictureCurrent.fullUrl">
           </div>
           <div class="column2-buttons-group ">
             <button class="group-button" @click="loadNewPicture" title="Загрузить новую картинку с диска">Загрузить новую картинку с диска</button>
@@ -73,7 +73,7 @@ export default {
       let image = JSON.parse(data);
       this.$store.dispatch('setPictureCurrent', image);
       this.$store.dispatch('setPictureSnapshot', image);
-      this.pictureFullBase64 = image.full;
+      this.pictureFullBase64 = '';
     });
     this.pictureAutoSave = await this.propAutoSave();
     this.pictureAutoSaveDelayMs = Number(await this.propAutoSaveDelayMs());

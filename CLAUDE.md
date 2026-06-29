@@ -149,7 +149,7 @@ ssh root@79.174.95.69 "cp /root/Karaoke/deploy/80to8897 /etc/nginx/sites-enabled
 
 **Архитектура на сервере:**
 - nginx (443/80) → `/api/*` → karaoke-web (порт 8897) напрямую
-- nginx (443/80) → `/song` + User-Agent `vkShare` → karaoke-web (порт 8897) — Thymeleaf с og:image для VK-бота
+- nginx (443/80) → `/song` + User-Agent `vkShare` → karaoke-web (порт 8897) — минимальный Thymeleaf: `<title>` + `<img>` в body
 - nginx (443/80) → `/` → karaoke-public (порт 7907) — публичный фронтенд
 - karaoke-web (порт 8897) — API-бэкенд (публичный API + синхронизация LOCAL↔SERVER БД)
 
@@ -290,9 +290,9 @@ accessed through `services/StorageApiClient.kt` / `services/KaraokeStorageServic
   Кэш: `/tmp/vk_{id}.png`. Шрифт: `karaoke-web/src/main/resources/Roboto-Black.ttf` (бандлится в JAR).
   **Важно:** пути MinIO строить через `settings.author`, а не `albumPic.storageFileName` — поле
   `author` в записи Pictures может отличаться по регистру от `Settings.author`.
-  **og-теги в `song.html`:** `og:image:width` и `og:image:height` **обязательны** — без них VK-бот
-  краулит страницу, но картинку не запрашивает. Текущий набор: `og:type=website`, `og:title`,
-  `og:image`, `og:image:width=537`, `og:image:height=240`, `og:url`.
+  **`song.html` (Thymeleaf для VK-бота):** минимальный шаблон — только `<title>` и `<img th:src="/api/public/song-vk-image/{id}">` в body.
+  Никаких og: тегов — VK-бот находит `<img>` напрямую, заголовок берёт из `<title>`.
+  **Не добавлять** Bootstrap/JS/CSS/og:-теги/getVKPictureBase64() — `picture_full` в БД всегда `""`, NPE при попытке декодировать пустой base64.
 
 **Правило при загрузке картинок:** всегда использовать `ignoreUseInList = false` в
 `Pictures.getPictureByName()` / `loadList()` — поле `picture_full` в БД теперь пустое, но

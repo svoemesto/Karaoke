@@ -347,41 +347,47 @@ class KaraokeProcessWorker {
                 if (Karaoke.checkLastAlbum) {
                     if (requestNewSongLastTimeMs + requestNewSongTimeoutMs < currentTimeMs) {
                         requestNewSongLastTimeMs = currentTimeMs
-                        println("[${Timestamp.from(Instant.now())}] ProcessWorker: Проверка нового альбома...")
-                        val (authorForRequest, album, reason) = checkLastAlbumYm()
-                        if (reason >= 0) {
-                            // Удачный запрос (может быть найден новый альбом или пустой код страницы)
-                            Karaoke.requestNewSongLastSuccessAuthor = authorForRequest
-                            Karaoke.requestNewSongLastSuccessTimeMs = currentTimeMs
-                            Karaoke.requestNewSongLastSuccessTimeCode = millisecondsToTimeFormatted(currentTimeMs)
-                            if (reason == 1) {
-                                // Найден новый альбом - сообщим об этом в сообщении
-                                SNS.send(SseNotification.message(Message(
-                                    type = "info",
-                                    head = "Новый альбом",
-                                    body = "У автора «$authorForRequest» найден новый альбом «$album»"
-                                )))
-                            }
-                        } else if (reason == -1) {
-                            // Неудачный запрос, увеличиваем время таймаута
-                            if (requestNewSongTimeoutMs < 3_600_000) {
-                                requestNewSongTimeoutMs += Karaoke.requestNewSongTimeoutIncreaseMs
-                                Karaoke.requestNewSongTimeoutMs = requestNewSongTimeoutMs
-                                Karaoke.requestNewSongTimeoutMin = requestNewSongTimeoutMs / 60_000L
-                            }
-                        } else if (reason == -3) {
-                            // ВПН или просроченная авторизация — таймаут и автор не меняются
+                        if (isVpnActive()) {
+                            println("[${Timestamp.from(Instant.now())}] ProcessWorker: Проверка нового альбома пропущена — ВПН включён. Отключите ВПН.")
+                            Karaoke.requestNewSongLastTimeMs = requestNewSongLastTimeMs
+                            Karaoke.requestNewSongLastTimeCode = millisecondsToTimeFormatted(requestNewSongLastTimeMs)
                         } else {
-                            // Не удалось найти автора! - считаем что запрос был удачный, не нужно увеличивать таймаут
-                            Karaoke.requestNewSongLastSuccessTimeMs = currentTimeMs
-                            Karaoke.requestNewSongLastSuccessTimeCode = millisecondsToTimeFormatted(currentTimeMs)
-                        }
-                        Karaoke.requestNewSongLastTimeMs = requestNewSongLastTimeMs
-                        Karaoke.requestNewSongLastTimeCode = millisecondsToTimeFormatted(requestNewSongLastTimeMs)
-                        Karaoke.requestNewSongLastAuthor = authorForRequest
+                            println("[${Timestamp.from(Instant.now())}] ProcessWorker: Проверка нового альбома...")
+                            val (authorForRequest, album, reason) = checkLastAlbumYm()
+                            if (reason >= 0) {
+                                // Удачный запрос (может быть найден новый альбом или пустой код страницы)
+                                Karaoke.requestNewSongLastSuccessAuthor = authorForRequest
+                                Karaoke.requestNewSongLastSuccessTimeMs = currentTimeMs
+                                Karaoke.requestNewSongLastSuccessTimeCode = millisecondsToTimeFormatted(currentTimeMs)
+                                if (reason == 1) {
+                                    // Найден новый альбом - сообщим об этом в сообщении
+                                    SNS.send(SseNotification.message(Message(
+                                        type = "info",
+                                        head = "Новый альбом",
+                                        body = "У автора «$authorForRequest» найден новый альбом «$album»"
+                                    )))
+                                }
+                            } else if (reason == -1) {
+                                // Неудачный запрос, увеличиваем время таймаута
+                                if (requestNewSongTimeoutMs < 3_600_000) {
+                                    requestNewSongTimeoutMs += Karaoke.requestNewSongTimeoutIncreaseMs
+                                    Karaoke.requestNewSongTimeoutMs = requestNewSongTimeoutMs
+                                    Karaoke.requestNewSongTimeoutMin = requestNewSongTimeoutMs / 60_000L
+                                }
+                            } else if (reason == -3) {
+                                // ВПН или просроченная авторизация — таймаут и автор не меняются
+                            } else {
+                                // Не удалось найти автора! - считаем что запрос был удачный, не нужно увеличивать таймаут
+                                Karaoke.requestNewSongLastSuccessTimeMs = currentTimeMs
+                                Karaoke.requestNewSongLastSuccessTimeCode = millisecondsToTimeFormatted(currentTimeMs)
+                            }
+                            Karaoke.requestNewSongLastTimeMs = requestNewSongLastTimeMs
+                            Karaoke.requestNewSongLastTimeCode = millisecondsToTimeFormatted(requestNewSongLastTimeMs)
+                            Karaoke.requestNewSongLastAuthor = authorForRequest
 
-                        requestNewSongTimeoutMs = Karaoke.requestNewSongTimeoutMs
-                        requestNewSongLastTimeMs = Karaoke.requestNewSongLastTimeMs
+                            requestNewSongTimeoutMs = Karaoke.requestNewSongTimeoutMs
+                            requestNewSongLastTimeMs = Karaoke.requestNewSongLastTimeMs
+                        }
 
                     }
                 }

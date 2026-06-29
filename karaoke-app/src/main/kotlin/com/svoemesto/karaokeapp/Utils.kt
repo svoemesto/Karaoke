@@ -2754,6 +2754,31 @@ fun getAuthorForRequest(lastAuthor: String = ""): Author? {
     }
 
 }
+fun isVpnActive(): Boolean {
+    val services = listOf(
+        "https://api.country.is/" to Regex(""""country"\s*:\s*"([A-Z]{2})""""),
+        "https://ipapi.co/country/" to Regex("""^([A-Z]{2})$""")
+    )
+    for ((url, regex) in services) {
+        val body = try {
+            val conn = java.net.URL(url).openConnection() as java.net.HttpURLConnection
+            conn.setRequestProperty("User-Agent", "Mozilla/5.0")
+            conn.connectTimeout = 5000
+            conn.readTimeout = 5000
+            conn.inputStream.bufferedReader().readText().trim()
+        } catch (e: Exception) {
+            println("isVpnActive: исключение при запросе $url: ${e.message}")
+            continue
+        }
+        val country = regex.find(body)?.groupValues?.getOrElse(1) { "" } ?: ""
+        if (country.isNotEmpty()) {
+            return country != "RU"
+        }
+    }
+    println("isVpnActive: не удалось определить страну, пропускаем проверку ВПН")
+    return false
+}
+
 fun checkLastAlbumYm(): Triple<String, String, Int> {
     /*
     -3 - ошибка конфигурации (ВПН или авторизация) — не увеличивать таймаут, не менять автора

@@ -1,39 +1,32 @@
 # ===== Этап: Подготовка Java-приложения =====
 FROM openjdk:17-ea-jdk-slim AS java-app-builder
 
-# Аргументы сборки
 ARG VERSION
 ARG APP_VERSION
 
-# --- Копирование SSL сертификата, находится в папке files  ---
 COPY www.sm-karaoke.ru.crt /tmp/www.sm-karaoke.ru.crt
 
-# --- Импорт сертификата в Java keystore, используя ЖЕСТКО ЗАДАННЫЕ абсолютные пути ---
-# Пути для openjdk:17-jdk-slim
-RUN cp /usr/local/openjdk-17/lib/security/cacerts /tmp/cacerts_working
-RUN /usr/local/openjdk-17/bin/keytool \
-    -import \
-    -alias www.sm-karaoke.ru \
-    -keystore /tmp/cacerts_working \
-    -file /tmp/www.sm-karaoke.ru.crt \
-    -storepass changeit \
-    -noprompt
-RUN mv /tmp/cacerts_working /usr/local/openjdk-17/lib/security/cacerts
+RUN cp /usr/local/openjdk-17/lib/security/cacerts /tmp/cacerts_working && \
+    /usr/local/openjdk-17/bin/keytool \
+        -import \
+        -alias www.sm-karaoke.ru \
+        -keystore /tmp/cacerts_working \
+        -file /tmp/www.sm-karaoke.ru.crt \
+        -storepass changeit \
+        -noprompt && \
+    mv /tmp/cacerts_working /usr/local/openjdk-17/lib/security/cacerts && \
+    rm /tmp/www.sm-karaoke.ru.crt
 
-# --- Очистка временных файлов ---
-RUN rm /tmp/www.sm-karaoke.ru.crt
-
-# --- Копирование JAR файла ---
 COPY karaoke-app-${APP_VERSION}.jar /tmp/app.jar
 
 # ===== Финальный Этап: Создание итогового образа =====
 FROM ubuntu:22.04
 
-# Установка зависимостей, необходимых для работы всех частей
-# Включаем dumb-init, xvfb, ffmpeg, python3 (для запуска скриптов, если нужно),
-# и библиотеки, которые могут понадобиться Java.
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# Блок 1: системные пакеты + зависимости Playwright + unzip
+# BuildKit apt cache избавляет от повторного скачивания пакетов при пересборке
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && apt-get install -y --no-install-recommends \
     dumb-init \
     git \
     xvfb \
@@ -53,24 +46,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     fontconfig \
     openjdk-17-jre-headless \
     smplayer \
-    nodejs npm \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN apt-get update -y
-RUN apt-get install -y ca-certificates curl
-RUN install -m 0755 -d /etc/apt/keyrings
-RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
-RUN chmod a+r /etc/apt/keyrings/docker.asc
-RUN echo \
-    "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
-    $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" | \
-    tee /etc/apt/sources.list.d/docker.list > /dev/null
-RUN apt-get update -y
-RUN apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-RUN apt install -y docker-compose
-
-# Установка недостающих библиотек для Playwright в НОВЫЙ слой
-RUN apt-get update && apt-get install -y --no-install-recommends \
+    nodejs \
+    npm \
+    ca-certificates \
+    curl \
+    unzip \
     libgstreamer1.0-0 \
     libgstreamer-plugins-base1.0-0 \
     libgtk-4-1 \
@@ -88,67 +68,52 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libmanette-0.2-0 \
     libgles2 \
     libgstreamer-gl1.0-0 \
-    libgstreamer-plugins-bad1.0-0 \
-    && rm -rf /var/lib/apt/lists/*
+    libgstreamer-plugins-bad1.0-0
 
-# Предполагается, что файлы шрифтов находятся в папке files рядом с Dockerfile
+# Блок 2: Docker CE (нужен для запуска docker run / docker compose внутри контейнера)
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    install -m 0755 -d /etc/apt/keyrings && \
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc && \
+    chmod a+r /etc/apt/keyrings/docker.asc && \
+    echo \
+        "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+        $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" | \
+        tee /etc/apt/sources.list.d/docker.list > /dev/null && \
+    apt-get update && \
+    apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin docker-compose
+
+# Шрифты
 COPY Roboto-Black.ttf /usr/share/fonts/truetype/roboto/
 COPY FiraSansExtraCondensed-Medium.ttf /usr/share/fonts/truetype/FiraSansExtraCondensed/
-# Обновление кэша шрифтов
 RUN fc-cache -fv
 
 # --- Копирование Java-приложения ---
-# Копирование JAR-файла
 COPY --from=java-app-builder /tmp/app.jar /app.jar
-# Копирование ОБНОВЛЕННОГО сертификата cacerts из java-app-builder
-# Используем правильный путь из этапа java-app-builder
 COPY --from=java-app-builder /usr/local/openjdk-17/lib/security/cacerts /usr/lib/jvm/java-17-openjdk-amd64/lib/security/cacerts
 
-# Попытка установить браузеры через CLI, встроенный в библиотеку playwright, используя ваш JAR в classpath.
-# ВАЖНО: Убедитесь, что библиотека playwright включена в ваш JAR или доступна в classpath.
-# Если библиотека не включена, этот шаг может не сработать.
-# RUN java -cp /app.jar com.microsoft.playwright.CLI install
+# Путь к браузерам Playwright в образе (используется и при установке, и в runtime)
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
-# --- Извлечение зависимостей из bootJar для доступа к ним в classpath ---
-# Создаём директорию для зависимостей
-RUN mkdir -p /app_dependencies
-# Устанавливаем unzip для извлечения содержимого JAR
-RUN apt-get update && apt-get install -y unzip && \
-    # Извлекаем только директорию BOOT-INF/lib/ из JAR
+# Извлечение зависимостей из bootJar (unzip уже установлен в блоке 1)
+RUN mkdir -p /app_dependencies && \
     unzip -q /app.jar 'BOOT-INF/lib/*' -d /tmp/unpack_dir && \
-    # Перемещаем JAR-файлы зависимостей в /app_dependencies
     mv /tmp/unpack_dir/BOOT-INF/lib/* /app_dependencies/ && \
-    # Удаляем временные файлы
-    rm -rf /tmp/unpack_dir && \
-    # Удаляем unzip после использования, чтобы уменьшить размер образа
-    apt-get remove -y unzip && \
-    apt-get autoremove -y && \
-    rm -rf /var/lib/apt/lists/*
+    rm -rf /tmp/unpack_dir
 
 # Установка браузеров Playwright
-# Указываем путь к зависимостям, извлечённым из bootJar
-RUN java -cp "/app.jar:/app_dependencies/*" com.microsoft.playwright.CLI install
+# --mount=type=cache сохраняет скачанные браузеры между сборками на билд-машине.
+# Playwright при повторной сборке видит уже скачанную версию и пропускает загрузку (~5 сек вместо 5 мин).
+RUN --mount=type=cache,target=/root/.cache/ms-playwright \
+    PLAYWRIGHT_BROWSERS_PATH=/root/.cache/ms-playwright \
+    java -cp "/app.jar:/app_dependencies/*" com.microsoft.playwright.CLI install && \
+    mkdir -p /ms-playwright && \
+    cp -r /root/.cache/ms-playwright/. /ms-playwright/
 
 # Установка переменных окружения для Java-приложения
-# JAVA_HOME для финального образа (ubuntu + openjdk-17-jre-headless)
 ENV JAVA_HOME=/opt/java/openjdk
 ENV APP_VERSION=${VERSION:-unknown}
 ENV TZ="Europe/Moscow"
-
-# --- Установка параметров JVM по умолчанию ---
-# Используем JAVA_TOOL_OPTIONS, чтобы опции применялись автоматически
-# LANG и LC_ALL устанавливаются в docker-compose.yml или docker run, так как они влияют на ОС
 ENV JAVA_TOOL_OPTIONS="-Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8 -Duser.language=ru -Duser.country=RU -Djava.security.egd=file:/dev/./urandom"
 
-# --- Определение точки входа ---
-# Финальный образ не будет иметь единой команды ENTRYPOINT по умолчанию,
-# так как он содержит несколько утилит. Предполагается, что команда будет
-# передаваться при запуске контейнера.
-# Однако, можно установить точку входа по умолчанию, например, для запуска Java-приложения:
-#ENTRYPOINT ["java", "-Dfile.encoding=UTF-8", "-Djava.security.egd=file:/dev/./urandom", "-jar", "/app.jar"]
-
-# Или использовать оболочку для более гибкого запуска:
-#ENTRYPOINT ["/bin/bash", "-l", "-c"]
-
-# CMD может быть пустым или содержать команду по умолчанию
 CMD ["echo 'Please specify a command to run (e.g., java -jar /app/app.jar, /lib/demucs/demucs2, melt ...)'"]

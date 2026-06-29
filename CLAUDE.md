@@ -192,6 +192,14 @@ Sheetsage key/BPM/chord detection, file copy/symlink operations) is modeled as a
 a priority and run on a managed pool — this queue is the backbone of the whole rendering pipeline, not a generic
 task runner.
 
+**Генерация текста табулатуры (`getFormattedNotes()` в `Settings.kt`).**
+Функция строит HTML-табулатуру: 6 строк струн + строка нот + строка слогов. Все заполнители — **только ASCII**:
+`-` вместо `⎼` (U+23BC), `||` вместо `‖` (U+2016). Unicode-символы рендерятся через font fallback с другой
+шириной и ломают выравнивание в браузере. Структура строки струны: `"E||-"` (начало) + лады/черты + `"-||"` (конец).
+Кэш хранится в `formattedTextTabs` в БД, пересчитывается при сохранении маркеров.
+JS-зеркало функции — `getFormattedNotes()` в `webvue3/src/components/Songs/edit/SubsEdit.vue`.
+`getNotesBody()` — plain text для описаний, Unicode там допустим, не трогать.
+
 **MLT video generation (`mlt/` package).** Building a karaoke video means generating an MLT XML project (consumed
 by the `melt` CLI from the MLT multimedia framework). `MltGenerator`/`MltProp`/`MltPropBuilder` build up
 named producers/tractors/filters; `mlt/mko/*` ("Mlt Karaoke Object") are higher-level element builders for each

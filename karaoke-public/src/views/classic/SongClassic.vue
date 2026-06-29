@@ -154,7 +154,7 @@
         </tr>
         <tr v-if="currentSong.formattedTextTabs">
           <td colspan="2">
-            <div style="background-color: black; padding: 10px; font-size: x-large; line-height: normal;" v-html="currentSong.formattedTextTabs" />
+            <div style="background-color: black; padding: 10px; font-size: x-large; line-height: normal; font-family: monospace;" v-html="currentSong.formattedTextTabs" />
           </td>
         </tr>
         <tr v-if="currentSong.formattedTextChords">

@@ -77,6 +77,15 @@ cd /sm-karaoke/system/deploy && ./do.sh start_app    # обычный запус
 cd /sm-karaoke/system/deploy && ./do.sh start_app2   # с выводом в консоль (для отладки)
 ```
 
+**Dockerfile karaoke-app (`deploy/karaoke-app/Dockerfile`) — особенности:**
+- Использует BuildKit cache mounts (`--mount=type=cache`) для apt и Playwright-браузеров — повторные сборки
+  не скачивают пакеты заново.
+- `PLAYWRIGHT_BROWSERS_PATH=/ms-playwright` — браузеры хранятся в `/ms-playwright` в образе. При установке
+  явно передаётся `PLAYWRIGHT_BROWSERS_PATH=/root/.cache/ms-playwright` (кэш BuildKit), затем `cp` в `/ms-playwright`.
+- Docker CE установлен внутри образа намеренно: karaoke-app запускает `docker run` (Demucs, KeyBPMFinder)
+  и `docker compose` (MLT) через `ProcessBuilder` из кода (`KaraokeProcess.kt`, `Settings.kt`).
+- `ip-api.com` из Docker-контейнера возвращает 403 — для проверки VPN используется `api.country.is`.
+
 **Сборка и запуск webvue3** (сборка и запуск из разных папок):
 ```
 cd ~/Karaoke/deploy && ./do.sh build_webvue3
@@ -192,10 +201,17 @@ JS rendering or an authenticated session (e.g. Yandex Music login state is saved
 
 **Поиск нового альбома на Яндекс.Музыке (`searchLastAlbumYm3` / `checkLastAlbumYm` в `Utils.kt`).**
 Функция возвращает `AlbumSearchResult` (sealed class): `Success`, `VpnBlocked`, `AuthExpired`, `BotDetected`, `Unknown`.
-Диагностика причины неудачи:
+
+**Предварительная проверка ВПН (`isVpnActive()` в `Utils.kt`).**
+Перед вызовом `checkLastAlbumYm()` в `KaraokeProcessWorker` вызывается `isVpnActive()` — лёгкий HTTP-запрос
+к `api.country.is` (запасной: `ipapi.co/country/`). Если страна не `RU` — Playwright не запускается,
+в лог выводится `"Проверка нового альбома пропущена — ВПН включён"`. При исключении (сервис недоступен)
+возвращает `false` (не блокирует поиск). `ip-api.com` из Docker-контейнера возвращает 403 — не использовать.
+
+Диагностика причины неудачи внутри `searchLastAlbumYm3`:
 - **VPN**: HTML содержит `"недоступна в вашем регионе"` → сообщение "Отключите ВПН".
 - **Авторизация**: `page.url()` после навигации содержит `passport.yandex` или `id.yandex` → сообщение "Переавторизуйтесь".
-- **Unknown (резерв)**: запрос к `ip-api.com/line/?fields=countryCode`; если страна не `RU` — тоже VPN с кодом региона; иначе — сообщение об изменении кода страницы с `page.title()` и URL для диагностики.
+- **Unknown (резерв)**: запрос к `api.country.is`; если страна не `RU` — тоже VPN с кодом региона; иначе — сообщение об изменении кода страницы с `page.title()` и URL для диагностики.
 HTML страницы в лог не выводится.
 
 Коды `reason` из `checkLastAlbumYm` (обрабатываются в `KaraokeProcessWorker`):

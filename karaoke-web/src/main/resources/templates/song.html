@@ -7,8 +7,11 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-Piv4xVNRyMGpqkS2by6br4gNJ7DXjqk09RmUpJ8jgGtD7zP9yug3goQfGII0yAns" crossorigin="anonymous"></script>
 
     <title th:text="${sett.songName} + ' ★♫★ ' + ${sett.author}">Закрома</title>
+    <meta property="og:type" content="website" />
     <meta property="og:title" th:content="${sett.songName} + ' ★♫★ ' + ${sett.author}" />
     <meta property="og:image" th:content="'https://sm-karaoke.ru/api/public/song-vk-image/' + ${sett.id}" />
+    <meta property="og:image:width" content="537" />
+    <meta property="og:image:height" content="240" />
     <meta property="og:url" th:content="'https://sm-karaoke.ru/song?id=' + ${sett.id}" />
     <style>
         * {

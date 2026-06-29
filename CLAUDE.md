@@ -293,6 +293,7 @@ accessed through `services/StorageApiClient.kt` / `services/KaraokeStorageServic
   **`song.html` (Thymeleaf для VK-бота):** минимальный шаблон — только `<title>` и `<img th:src="/api/public/song-vk-image/{id}">` в body.
   Никаких og: тегов — VK-бот находит `<img>` напрямую, заголовок берёт из `<title>`.
   **Не добавлять** Bootstrap/JS/CSS/og:-теги/getVKPictureBase64() — `picture_full` в БД всегда `""`, NPE при попытке декодировать пустой base64.
+  **Кэш VK:** если ссылка раньше расшаривалась (даже без картинки), VK кэширует старый результат. Для сброса: [vk.com/dev/pages](https://vk.com/dev/pages) → вставить URL → кнопка «Очистить кэш» (Clear cache). После этого при повторной публикации бот возьмёт актуальные данные.
 
 **Правило при загрузке картинок:** всегда использовать `ignoreUseInList = false` в
 `Pictures.getPictureByName()` / `loadList()` — поле `picture_full` в БД теперь пустое, но

@@ -1,17 +1,19 @@
-FROM node:latest as build-stage
+FROM node:22-alpine AS build-stage
 
 ARG VERSION
 ARG APP_VERSION
 
-ENV VERSION ${VERSION}
-ENV APP_VERSION ${VERSION}
+ENV VERSION=${VERSION}
+ENV APP_VERSION=${VERSION}
 
 WORKDIR /app
 COPY ./web/package*.json ./
-RUN npm install bootstrap@^4.6.1 bootstrap-vue@^2.23.1
+RUN --mount=type=cache,target=/root/.npm \
+    npm install && \
+    npm install bootstrap@^4.6.1 bootstrap-vue@^2.23.1
 COPY ./web/ .
 RUN npm run build
 
-FROM nginx as production-stage
+FROM nginx:stable AS production-stage
 RUN mkdir /app
 COPY --from=build-stage /app/dist /app

@@ -275,6 +275,9 @@ accessed through `services/StorageApiClient.kt` / `services/KaraokeStorageServic
   Кэш: `/tmp/vk_{id}.png`. Шрифт: `karaoke-web/src/main/resources/Roboto-Black.ttf` (бандлится в JAR).
   **Важно:** пути MinIO строить через `settings.author`, а не `albumPic.storageFileName` — поле
   `author` в записи Pictures может отличаться по регистру от `Settings.author`.
+  **og-теги в `song.html`:** `og:image:width` и `og:image:height` **обязательны** — без них VK-бот
+  краулит страницу, но картинку не запрашивает. Текущий набор: `og:type=website`, `og:title`,
+  `og:image`, `og:image:width=537`, `og:image:height=240`, `og:url`.
 
 **Правило при загрузке картинок:** всегда использовать `ignoreUseInList = false` в
 `Pictures.getPictureByName()` / `loadList()` — поле `picture_full` в БД теперь пустое, но

@@ -21,8 +21,8 @@
         <button class="button-action" @click="addFilesFromFolder" :disabled="!pathToFolder" >Добавить файлы из папки</button>
         <button class="button-action" @click="createDzenPicturesForFolder" :disabled="!pathToFolder">Создать картинки плейлистов Dzen для папки</button>
       </div>
-      <button class="button-action" @click="copyToStore">Обновить хранилище</button>
-      <button class="button-action" @click="actualizeVKLinkPictureWeb">Актуализация VKLinkPictureWeb</button>
+      <!-- <button class="button-action" @click="copyToStore">Обновить хранилище</button>
+      <button class="button-action" @click="actualizeVKLinkPictureWeb">Актуализация VKLinkPictureWeb</button> -->
       <button class="button-action" @click="smartCopyPeriodByDay">Подготовить файлы для публикации</button>
       <!-- <button class="button-action" @click="checkLastAlbumYm">Поиск новых альбомов</button>
       <button class="button-action" @click="updateBpmAndKey">Обновить пустые BPM и KEY из фалов CSV</button>

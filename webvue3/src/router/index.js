@@ -68,6 +68,11 @@ const routes = [
     path: '/callback', // Маршрут для обработки callback
     name: 'callback',
     component: CallbackView
+  },
+  {
+    path: '/player/:id',
+    name: 'player',
+    component: () => import('../views/PlayerView.vue')
   }
 ];
 

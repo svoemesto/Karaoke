@@ -482,7 +482,7 @@ fun createKaraoke(settings: Settings, songVersion: SongVersion) {
     createVKLinkPicture(settings)
 //    createVKPicture(settings)
 //    createVKLinkPicture(settings)
-    createVKLinkPictureWeb(settings)
+//    createVKLinkPictureWeb(settings)
 
     createSongTextFile(settings, songVersion)
     createSongDescriptionFile(settings, songVersion)

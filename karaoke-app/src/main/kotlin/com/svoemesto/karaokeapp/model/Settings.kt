@@ -4136,7 +4136,7 @@ class Settings(
                 if (Paths.get(settOldVersion.pathToFileSheetsageMIDI).toFile().exists()) Paths.get(settOldVersion.pathToFileSheetsageMIDI).toFile().renameTo(Paths.get(settNewVersion.pathToFileSheetsageMIDI).toFile())
                 if (Paths.get(settOldVersion.pathToFileSheetsageBeattimes).toFile().exists()) Paths.get(settOldVersion.pathToFileSheetsageBeattimes).toFile().renameTo(Paths.get(settNewVersion.pathToFileSheetsageBeattimes).toFile())
                 if (Paths.get(settOldVersion.fileSettingsAbsolutePath).toFile().exists()) Paths.get(settOldVersion.fileSettingsAbsolutePath).toFile().renameTo(Paths.get(settNewVersion.fileSettingsAbsolutePath).toFile())
-                if (Paths.get("/home/nsa/Karaoke/karaoke-web/src/main/resources/static/tmp/${settNewVersion.id}.png").toFile().exists()) createVKLinkPictureWeb(settNewVersion)
+//                if (Paths.get("/home/nsa/Karaoke/karaoke-web/src/main/resources/static/tmp/${settNewVersion.id}.png").toFile().exists()) createVKLinkPictureWeb(settNewVersion)
 //                if (Paths.get(settNewVersion.getOutputFilename(SongOutputFile.PICTUREBOOSTYFILES)).toFile().exists()) createBoostyFilesPicture(settNewVersion)
 //                if (Paths.get(settNewVersion.getOutputFilename(SongOutputFile.PICTUREBOOSTYTEASER)).toFile().exists()) createBoostyTeaserPicture(settNewVersion)
                 if (Paths.get(settNewVersion.getOutputFilename(SongOutputFile.PICTURESPONSRTEASER)).toFile().exists()) createSponsrTeaserPicture(settNewVersion)

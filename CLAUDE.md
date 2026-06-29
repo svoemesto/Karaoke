@@ -373,3 +373,37 @@ src/
 - Адаптивность: таблицы платформ скрыты на мобильных (`@media max-width: 768px`), вместо них — карточки `.km-cards`.
 - CSS-переменные: `--km-bg`, `--km-card`, `--km-accent`, `--km-accent2`, `--km-border`, `--km-text`, `--km-text2`, `--km-hover`, `--km-input`, `--km-header`. Все Modern-компоненты используют только их.
 - `SongModern`: видео — адаптивный `aspect-ratio: 16/9` iframe без фиксированной ширины; hero-баннер с overlay.
+
+## Онлайн-плеер Karaoke (`/player/:id`)
+
+Браузерный плеер, воспроизводящий karaoke визуально идентично MLT-рендеру. Открывается из `SongEdit.vue` кнопкой `▶` в шапке (header-column-1, метод `openPlayer()`).
+
+**Файлы:**
+- `webvue3/src/views/PlayerView.vue` — тонкая Vue-обёртка (`position:fixed; top:0; left:0; width:100vw; height:100vh`)
+- `webvue3/src/player/KaraokePlayer.js` — чистый JS, весь код плеера (без Vue-зависимостей)
+- `webvue3/src/App.vue` — для роутов `/player/*` скрывает sidebar/layout, рендерит только `<router-view>`
+
+**Бэкенд-эндпоинты** (добавлены в конец `ApiController.kt`):
+- `GET /api/song/{id}/fileminus.mp3` — аккомпанимент FLAC→MP3 с кешем (рядом с flac)
+- `GET /api/song/{id}/filevoice.mp3` — вокал FLAC→MP3 с кешем
+- `GET /api/song/{id}/playerdata` — JSON: `{songName, author, album, bpm, markers, audioAccompanimentUrl, audioVocalsUrl}`
+  - `markers` = `settings.sourceMarkersList` (`List<List<SourceMarker>>`)
+
+**Ключевые детали `SourceMarker` и `Markertype`:**
+- Значения `markertype` — строго **lowercase**: `"syllables"`, `"endofline"`, `"newline"`, `"endofsyllable"`
+- `ENDOFSYLLABLES.value = "endofsyllable"` (без "s" на конце!) — важно для парсера
+- Конец слога определяется временем следующего маркера типа `syllables` или `endofline`
+
+**Механика Canvas-рендера:**
+- Сплэш-экран: первые 5 сек (`timeSplashScreenLengthMs = 5000`)
+- Заголовок: появляется после сплэша, исчезает за 4 полтакта до первой строки-после-паузы, возвращается в конце
+- Счётчик тактов: 4→3→2→1→0 перед строками у которых предшествует `newline`-маркер; `halfNoteLengthMs = 60000/BPM*2`
+- Счётчик цвета: 4/3=красный, 2/1=жёлтый, 0=зелёный
+- Заливка плавная: `fillW = xStart + (xEnd - xStart) * (ct - syllableStart) / syllableDuration`
+- Horizon lines: верхняя и нижняя, Y = `H/2 ± lineHeight*0.58`; цвет: `['rgb(0,200,0)', 'rgb(200,0,0)', 'rgb(0,100,200)'][voiceIdx % 3]`
+- Голос 0: белый `#ffffff`, bold; голос 1: жёлтый `rgb(255,255,155)`, italic bold
+- Спетая строка: полная заливка `rgb(255,128,0)` + серый текст `rgba(255,255,255,0.35)`
+
+**Audio (Web Audio API):**
+- `await audioCtx.resume()` обязателен перед `source.start()` — Chrome блокирует без user gesture
+- Два `AudioBufferSource` + два `GainNode` → `destination`; seek — пересоздание источников с `offset`

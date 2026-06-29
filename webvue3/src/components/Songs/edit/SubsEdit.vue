@@ -1019,7 +1019,7 @@ export default {
       let result = '';
       let lineNotes = '';
       let lineText = '';
-      let strings = ['E‖⎼','B‖⎼','G‖⎼','D‖⎼','A‖⎼','e‖⎼'];
+      let strings = ['E||-','B||-','G||-','D||-','A||-','e||-'];
       let previousMarkerType = '';
       let currentMarkerType = '';
       for (let i = 0; i < markers.length; i++) {
@@ -1033,7 +1033,7 @@ export default {
             if (previousMarkerType === 'note' && currentMarkerType === 'setting') {
               for (let j = 0; j < strings.length; j++) {
                 const sn = strings[j];
-                result += SPAN_STYLE_TABLINE + sn + '⎼‖' + SPAN_END + BR;
+                result += SPAN_STYLE_TABLINE + sn + '-||' + SPAN_END + BR;
               }
               result += lineNotes + BR + lineText + BR + BR;
               lineNotes = '';
@@ -1049,7 +1049,7 @@ export default {
             if (!wasBr) {
               for (let j = 0; j < strings.length; j++) {
                 const sn = strings[j];
-                result += SPAN_STYLE_TABLINE + sn + '⎼‖' + SPAN_END + BR;
+                result += SPAN_STYLE_TABLINE + sn + '-||' + SPAN_END + BR;
               }
               result += lineNotes + BR + lineText + BR + BR;
               lineNotes = '';
@@ -1065,7 +1065,7 @@ export default {
               if (!wasBr) {
                 for (let j = 0; j < strings.length; j++) {
                   const sn = strings[j];
-                  result += SPAN_STYLE_TABLINE + sn + '⎼‖' + SPAN_END + BR;
+                  result += SPAN_STYLE_TABLINE + sn + '-||' + SPAN_END + BR;
                 }
                 result += lineNotes + BR + lineText + BR + BR;
                 lineNotes = '';
@@ -1087,7 +1087,7 @@ export default {
               if (wasBr) {
                 txt = '   ' + this.uppercaseFirstLetter(txt);
                 txtHtml = '&nbsp;&nbsp;&nbsp;' + this.uppercaseFirstLetter(marker.label).replaceAll('_', '&nbsp;');
-                strings = ['E‖⎼','B‖⎼','G‖⎼','D‖⎼','A‖⎼','e‖⎼'];
+                strings = ['E||-','B||-','G||-','D||-','A||-','e||-'];
               }
             } else {
               // Если в маркере пустой лейбл - пробел в тексте
@@ -1097,7 +1097,7 @@ export default {
             let note = '';
             let noteHtml = '';
             let noteOctave = '';
-            let stringNote = ['⎼⎼','⎼⎼','⎼⎼','⎼⎼','⎼⎼','⎼⎼']; // Выделяем по 2 черты на ноту на струне
+            let stringNote = ['--','--','--','--','--','--']; // Выделяем по 2 черты на ноту на струне
 
             // Если в маркере есть нота
             if (marker.note) {
@@ -1113,7 +1113,7 @@ export default {
               const sn = marker.locklad ? [marker.stringLad.split('|')[0], marker.stringLad.split('|')[1]] : stringsForAllNotes[stringsForAllNotesIndex];
               marker.stringLad = sn[0] + '|' + sn[1];
               let stringIndex = sn[0];
-              let lad = sn[1] + (sn[1] < 10 ? '⎼' : '');
+              let lad = sn[1] + (sn[1] < 10 ? '-' : '');
               stringNote.splice(stringIndex, 1, lad);
               stringsForAllNotesIndex++;
 
@@ -1138,7 +1138,7 @@ export default {
               }
               for (let i = 0; i < vowelPosition - diff + (noteLength - 1); i++) {
                 for (let j = 0; j < stringNote.length; j++) {
-                  const lad = '⎼' + stringNote[j];
+                  const lad = '-' + stringNote[j];
                   stringNote.splice(j, 1, lad);
                 }
               }
@@ -1148,7 +1148,7 @@ export default {
               // Если в маркере нет ноты - пробел в названии ноты и одна черта на ноту в каждой струне
               note = ' ';
               noteHtml = '&nbsp;';
-              stringNote = ['⎼','⎼','⎼','⎼','⎼','⎼'];
+              stringNote = ['-','-','-','-','-','-'];
               if (currentMarkerType === 'note' && wasBr) {
                 wasBr = false;
               }
@@ -1172,7 +1172,7 @@ export default {
               for (let i = 0; i < lengthText-lengthNote; i++) {
                 lineNotes += '&nbsp;';
                 for (let j = 0; j < stringNote.length; j++) {
-                  const lad = stringNote[j] + '⎼';
+                  const lad = stringNote[j] + '-';
                   stringNote.splice(j, 1, lad);
                 }
               }

@@ -2513,7 +2513,7 @@ class Settings(
             var result = ""
             var lineNotes = ""
             var lineText = ""
-            var strings = mutableListOf("E‖⎼","B‖⎼","G‖⎼","D‖⎼","A‖⎼","e‖⎼")
+            var strings = mutableListOf("E||-","B||-","G||-","D||-","A||-","e||-")
             markers.forEach { marker ->
                 when (marker.markertype) {
                     Markertype.ENDOFLINE.value,
@@ -2522,7 +2522,7 @@ class Settings(
                     Markertype.NEWLINE.value -> {
                         if (!wasBr) {
                             strings.forEach { sn ->
-                                result += "$spanStyleTabLine$sn⎼‖$spanEnd$br"
+                                result += "$spanStyleTabLine$sn-||$spanEnd$br"
                             }
                             result += lineNotes + br + lineText + br + br
                             lineNotes = ""
@@ -2543,7 +2543,7 @@ class Settings(
                             if (wasBr) {
                                 txt = "   " + txt.uppercaseFirstLetter()
                                 txtHtml = "&nbsp;&nbsp;&nbsp;" + marker.label.uppercaseFirstLetter().replace("_", "&nbsp;")
-                                strings = mutableListOf("E‖⎼","B‖⎼","G‖⎼","D‖⎼","A‖⎼","e‖⎼")
+                                strings = mutableListOf("E||-","B||-","G||-","D||-","A||-","e||-")
                             }
                         } else {
                             // Если в маркере пустой лейбл - пробел в тексте
@@ -2553,7 +2553,7 @@ class Settings(
                         var note: String
                         var noteHtml: String
                         var noteOctave = ""
-                        var stringNote = mutableListOf("⎼⎼","⎼⎼","⎼⎼","⎼⎼","⎼⎼","⎼⎼") // Выделяем по 2 черты на ноту на струне
+                        var stringNote = mutableListOf("--","--","--","--","--","--") // Выделяем по 2 черты на ноту на струне
 
                         // Если в маркере есть нота
                         if (marker.note.isNotEmpty()) {
@@ -2571,7 +2571,7 @@ class Settings(
                                 stringsForAllNotes[stringsForAllNotesIndex]
                             }
                             val stringIndex = sn.guitarStringLad.string
-                            val lad = "${sn.guitarStringLad.lad}${if (sn.guitarStringLad.lad < 10) "⎼" else ""}"
+                            val lad = "${sn.guitarStringLad.lad}${if (sn.guitarStringLad.lad < 10) "-" else ""}"
                             stringNote[stringIndex] = lad
                             stringsForAllNotesIndex++
                             // Находим позицию гласной буквы в слоге (0 - если гласная первая или если её нет)
@@ -2595,7 +2595,7 @@ class Settings(
                             }
                             for (@Suppress("unused") i in 0 until vowelPosition - diff + (noteLength - 1)) {
                                 for (j in 0 until stringNote.size) {
-                                    val newLad = "⎼" + stringNote[j]
+                                    val newLad = "-" + stringNote[j]
                                     stringNote[j] = newLad
                                 }
                             }
@@ -2603,7 +2603,7 @@ class Settings(
                             // Если в маркере нет ноты - пробел в названии ноты и одна черта на ноту в каждой струне
                             note = " "
                             noteHtml = "&nbsp;"
-                            stringNote = mutableListOf("⎼","⎼","⎼","⎼","⎼","⎼")
+                            stringNote = mutableListOf("-","-","-","-","-","-")
                         }
 
                         lineNotes += spanStyleNote + noteHtml + spanEnd + spanStyleOctave + noteOctave + spanEnd
@@ -2624,7 +2624,7 @@ class Settings(
                             for (@Suppress("unused") i in 0 until lengthText-lengthNote) {
                                 lineNotes += "&nbsp;"
                                 for (j in 0 until stringNote.size) {
-                                val newLad = stringNote[j] + '⎼'
+                                val newLad = stringNote[j] + '-'
                                 stringNote[j] = newLad
                             }
                             }

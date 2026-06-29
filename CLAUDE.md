@@ -84,7 +84,8 @@ cd /sm-karaoke/system/deploy && ./do.sh start_app2   # с выводом в ко
   явно передаётся `PLAYWRIGHT_BROWSERS_PATH=/root/.cache/ms-playwright` (кэш BuildKit), затем `cp` в `/ms-playwright`.
 - Docker CE установлен внутри образа намеренно: karaoke-app запускает `docker run` (Demucs, KeyBPMFinder)
   и `docker compose` (MLT) через `ProcessBuilder` из кода (`KaraokeProcess.kt`, `Settings.kt`).
-- `ip-api.com` из Docker-контейнера возвращает 403 — для проверки VPN используется `api.country.is`.
+- `ip-api.com`, `ipapi.co`, `ipapi.is` из Docker-контейнера возвращают 403 или 502 — не использовать.
+- Для проверки ВПН используется `api.country.is` (работает из Docker без ограничений). Сравнивается с настройкой `vpnHomeCountry` (по умолчанию `"RU"`). Для сервера в Германии установить `vpnHomeCountry = "DE"` через интерфейс настроек. Если страна != `vpnHomeCountry` → ВПН включён.
 
 **Сборка и запуск webvue3** (сборка и запуск из разных папок):
 ```

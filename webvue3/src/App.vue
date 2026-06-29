@@ -1,7 +1,8 @@
 <!-- webvue3/src/App.vue -->
 <template>
   <BApp>
-    <div id="app">
+    <router-view v-if="route.path.startsWith('/player')"/>
+    <div v-else id="app">
       <!-- Основной контейнер с двумя колонками -->
       <div class="app-container">
         <!-- Левая колонка для навигации -->
@@ -35,10 +36,12 @@
 </template>
 
 <script setup>
-
+import { useRoute } from 'vue-router'
 import ProcessWorker from "./components/Common/ProcessWorker.vue";
 import BackendConsole from "./components/Common/BackendConsole.vue";
-import {BApp} from 'bootstrap-vue-next';</script>
+import {BApp} from 'bootstrap-vue-next';
+const route = useRoute()
+</script>
 
 <script>
 

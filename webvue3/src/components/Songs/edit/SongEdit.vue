@@ -14,6 +14,7 @@
       <div class="header">
         <div class="header-column-1">
           <div class="header-song-id" @click="copyToClipboard(song.id, 'id')">{{song.id}}</div>
+          <button class="btn-round" style="margin-top:4px" @click="openPlayer" title="Открыть плеер">▶</button>
         </div>
         <div class="header-column-2">
           <div class="header-song-author" @click="copyToClipboard(song.author, 'author')">{{song.author}}</div>
@@ -1253,6 +1254,9 @@ export default {
   },
 
   methods: {
+    openPlayer() {
+      window.open(`/player/${this.song.id}`, '_blank')
+    },
     searchTextForSong() {
       this.customConfirmParams = {
         header: 'Подтвердите поиск текста',

@@ -2963,27 +2963,27 @@ class ApiController(
     }
 
     // Актуализация VKLinkPictureWeb
-    @PostMapping("/utils/actualizevklinkpictureweb")
-    @ResponseBody
-    fun doActualizeVKLinkPictureWeb() {
-        var cntSkip = 0
-        var cntDelete = 0
-        var cntCreate = 0
-
-        Settings.loadListFromDb(database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient, withoutMarkersAndText = true).forEach { settings ->
-            when (createVKLinkPictureWeb(settings, false)) {
-                "delete" -> cntDelete++
-                "skip" -> cntSkip++
-                else -> cntCreate++
-            }
-        }
-
-        SNS.send(SseNotification.message(Message(
-            type = "info",
-            head = "Актуализация VKLinkPictureWeb",
-            body = "Актуализация VKLinkPictureWeb выполнена с результатом: создано картинок - $cntCreate, удалено картинок - $cntDelete, пропущено картинок - $cntSkip"
-        )))
-    }
+//    @PostMapping("/utils/actualizevklinkpictureweb")
+//    @ResponseBody
+//    fun doActualizeVKLinkPictureWeb() {
+//        var cntSkip = 0
+//        var cntDelete = 0
+//        var cntCreate = 0
+//
+//        Settings.loadListFromDb(database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient, withoutMarkersAndText = true).forEach { settings ->
+//            when (createVKLinkPictureWeb(settings, false)) {
+//                "delete" -> cntDelete++
+//                "skip" -> cntSkip++
+//                else -> cntCreate++
+//            }
+//        }
+//
+//        SNS.send(SseNotification.message(Message(
+//            type = "info",
+//            head = "Актуализация VKLinkPictureWeb",
+//            body = "Актуализация VKLinkPictureWeb выполнена с результатом: создано картинок - $cntCreate, удалено картинок - $cntDelete, пропущено картинок - $cntSkip"
+//        )))
+//    }
 
 //    @PostMapping("/utils/checklastalbumym")
 //    @ResponseBody
@@ -3459,5 +3459,63 @@ class ApiController(
     @ResponseBody
     fun authYMstop() {
         completeAuth()
+    }
+
+    private fun convertFlacToMp3(flacPath: String): File? {
+        val flacFile = File(flacPath)
+        if (!flacFile.exists()) return null
+        val mp3File = File(flacPath.removeSuffix(".flac") + ".mp3")
+        if (!mp3File.exists()) {
+            val process = ProcessBuilder("ffmpeg", "-i", flacPath, "-codec:a", "libmp3lame", "-qscale:a", "2", "-y", mp3File.absolutePath)
+                .redirectErrorStream(true)
+                .start()
+            process.waitFor()
+            if (!mp3File.exists()) return null
+        }
+        return mp3File
+    }
+
+    @GetMapping("/song/{id}/fileminus.mp3")
+    fun getSongFileMusicMp3(@PathVariable id: Long): ResponseEntity<Resource> {
+        Settings.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)?.let { settings ->
+            convertFlacToMp3(settings.accompanimentNameFlac)?.let { mp3File ->
+                return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_TYPE, "audio/mpeg")
+                    .header(HttpHeaders.ACCEPT_RANGES, "bytes")
+                    .body(FileSystemResource(mp3File))
+            }
+        }
+        return ResponseEntity.notFound().build()
+    }
+
+    @GetMapping("/song/{id}/filevoice.mp3")
+    fun getSongFileVocalMp3(@PathVariable id: Long): ResponseEntity<Resource> {
+        Settings.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)?.let { settings ->
+            convertFlacToMp3(settings.vocalsNameFlac)?.let { mp3File ->
+                return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_TYPE, "audio/mpeg")
+                    .header(HttpHeaders.ACCEPT_RANGES, "bytes")
+                    .body(FileSystemResource(mp3File))
+            }
+        }
+        return ResponseEntity.notFound().build()
+    }
+
+    @GetMapping("/song/{id}/playerdata")
+    @ResponseBody
+    fun getSongPlayerData(@PathVariable id: Long): ResponseEntity<Map<String, Any?>> {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+            ?: return ResponseEntity.notFound().build()
+        val data = mapOf(
+            "id" to id,
+            "songName" to settings.songName,
+            "author" to settings.author,
+            "album" to settings.album,
+            "bpm" to settings.bpm,
+            "markers" to settings.sourceMarkersList,
+            "audioAccompanimentUrl" to "/api/song/$id/fileminus.mp3",
+            "audioVocalsUrl" to "/api/song/$id/filevoice.mp3"
+        )
+        return ResponseEntity.ok(data)
     }
 }

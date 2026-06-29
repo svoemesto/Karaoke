@@ -254,6 +254,12 @@ accessed through `services/StorageApiClient.kt` / `services/KaraokeStorageServic
   отдаёт файл из MinIO. Если запрошен превью и его нет — создаёт из полноразмерного, кэширует.
   Автор: `newW=125, newH=50`; альбом: `newW=50, newH=50`.
 
+- `POST /api/song/picturealbum` и `POST /api/song/pictureauthor` (`ApiController.kt`, karaoke-app) —
+  возвращают строку-URL `/api/picture/file?file=...` для показа картинки альбома/автора в `SongEdit.vue`.
+  **Важно:** использовать `/api/picture/file`, не `/api/public/picture` — иначе картинки не отобразятся
+  в webvue3 (nginx не проксирует `/api/public/picture` на karaoke-app). В `SongEdit.vue` переменные
+  `imageAuthorBase64` / `imageAlbumBase64` теперь хранят URL, а не base64 — `:src` принимает оба формата.
+
 - `GET /api/public/picture?file=<path>` (`PublicApiController.kt`, karaoke-web) — для **karaoke-public**:
   та же логика. Если запрошен превью и его нет — создаёт из полноразмерного, кэширует в MinIO.
 

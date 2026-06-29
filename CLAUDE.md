@@ -87,6 +87,12 @@ cd /sm-karaoke/system/deploy && ./do.sh start_app2   # с выводом в ко
 - `ip-api.com`, `ipapi.co`, `ipapi.is` из Docker-контейнера возвращают 403 или 502 — не использовать.
 - Для проверки ВПН используется `api.country.is` (работает из Docker без ограничений). Сравнивается с настройкой `vpnHomeCountry` (по умолчанию `"RU"`). Для сервера в Германии установить `vpnHomeCountry = "DE"` через интерфейс настроек. Если страна != `vpnHomeCountry` → ВПН включён.
 
+**Dockerfile для node/nginx (webvue3, karaoke-public, karaoke-webvue) — паттерны:**
+- Build stage: `node:22-alpine` (LTS, минимальный). **Не** `node:latest` — недетерминированный.
+- npm BuildKit cache: `RUN --mount=type=cache,target=/root/.npm npm install` — повторные сборки не скачивают пакеты.
+- Production stage: `nginx:stable` (Debian-based). **Не** `nginx:alpine` — docker-compose использует `/bin/bash -c "exec nginx..."`, в alpine нет bash → контейнер упадёт.
+- karaoke-web: `eclipse-temurin:22-jre-jammy` (JRE, не JDK — Spring Boot fat jar не требует компилятора, ~200MB меньше).
+
 **Сборка и запуск webvue3** (сборка и запуск из разных папок):
 ```
 cd ~/Karaoke/deploy && ./do.sh build_webvue3

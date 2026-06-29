@@ -1842,7 +1842,7 @@ class ApiController(
         val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
         settings?.let {
             val pic = it.pictureAlbum ?: return ""
-            return "/api/public/picture?file=${pic.storageFileName}"
+            return "/api/picture/file?file=${pic.storageFileName}"
         }
         return ""
     }
@@ -1853,7 +1853,7 @@ class ApiController(
         val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
         settings?.let {
             val pic = it.pictureAuthor ?: return ""
-            return "/api/public/picture?file=${pic.storageFileName}"
+            return "/api/picture/file?file=${pic.storageFileName}"
         }
         return ""
     }

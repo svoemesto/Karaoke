@@ -239,6 +239,9 @@ class Karaoke : Serializable {
         var checkLastAlbum: Boolean
             get() = KaraokeProperties.getBoolean("checkLastAlbum")
             set(value) { KaraokeProperties.set("checkLastAlbum", value) }
+        var vpnHomeCountry: String
+            get() = KaraokeProperties.getString("vpnHomeCountry")
+            set(value) { KaraokeProperties.set("vpnHomeCountry", value) }
 
         //Мониторинг sync-записей в удаленной БД
         var allowUpdateRemote: Boolean

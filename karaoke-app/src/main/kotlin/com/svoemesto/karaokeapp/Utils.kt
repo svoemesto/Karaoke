@@ -2755,6 +2755,10 @@ fun getAuthorForRequest(lastAuthor: String = ""): Author? {
 
 }
 fun isVpnActive(): Boolean {
+    // Сравниваем текущую страну с настройкой vpnHomeCountry (по умолчанию "RU").
+    // Для сервера в Германии установить vpnHomeCountry = "DE" через интерфейс настроек.
+    // api.country.is работает из Docker-контейнеров без ограничений.
+    val homeCountry = Karaoke.vpnHomeCountry.trim().uppercase()
     val services = listOf(
         "https://api.country.is/" to Regex(""""country"\s*:\s*"([A-Z]{2})""""),
         "https://ipapi.co/country/" to Regex("""^([A-Z]{2})$""")
@@ -2772,7 +2776,9 @@ fun isVpnActive(): Boolean {
         }
         val country = regex.find(body)?.groupValues?.getOrElse(1) { "" } ?: ""
         if (country.isNotEmpty()) {
-            return country != "RU"
+            val isVpn = country != homeCountry
+            println("isVpnActive: countryCode=$country (homeCountry=$homeCountry) → ВПН ${if (isVpn) "включён" else "выключен"} (via $url)")
+            return isVpn
         }
     }
     println("isVpnActive: не удалось определить страну, пропускаем проверку ВПН")

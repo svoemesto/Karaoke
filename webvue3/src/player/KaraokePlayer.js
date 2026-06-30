@@ -25,7 +25,6 @@ export default class KaraokePlayer {
 
     this.wsAcc = null
     this.wsVoc = null
-    this.activeLineIndex = -1
     this._lastWsSync = 0
     this._endedHandled = false
 
@@ -38,9 +37,10 @@ export default class KaraokePlayer {
       const resp = await fetch(`${this.apiBase}/song/${this.songId}/playerdata`)
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
       this.data = await resp.json()
-      this.lines = this._parseMarkers(this.data.markers || [])
       this._buildUI()
       await this._loadAudio()
+      // Parse after audio load so this.duration is known
+      this.lines = this._parseMarkers(this.data.markers || [])
       this._buildWaveforms()
       this._startRenderLoop()
     } catch (e) {
@@ -51,76 +51,193 @@ export default class KaraokePlayer {
     }
   }
 
-  // Маркеры → массив строк
+  // ─── Parsing ──────────────────────────────────────────────────────────────
+
   _parseMarkers(markersList) {
-    const lines = []
+    const allTextLines = []
 
     markersList.forEach((voiceMarkers, voiceIdx) => {
-      let currentLine = null
-      let isAfterEmpty = true
+      let currentSyllables = []
+      let lineStart = null
 
       for (let i = 0; i < voiceMarkers.length; i++) {
         const m = voiceMarkers[i]
         const mt = m.markertype
 
         if (mt === 'syllables') {
-          if (!currentLine) {
-            currentLine = {
-              voiceIdx,
-              startTime: m.time,
-              endTime: null,
-              syllables: [],
-              hasCounter: isAfterEmpty,
-              text: ''
-            }
-          }
-          // Конец слога = время следующего syllables или endofline
+          if (lineStart === null) lineStart = m.time
+
+          // End of this syllable = next endofsyllable / syllables / endofline
           let syllableEnd = null
           for (let j = i + 1; j < voiceMarkers.length; j++) {
             const mt2 = voiceMarkers[j].markertype
-            if (mt2 === 'syllables' || mt2 === 'endofline' || mt2 === 'endofsyllable') {
+            if (mt2 === 'endofsyllable' || mt2 === 'syllables' || mt2 === 'endofline') {
               syllableEnd = voiceMarkers[j].time
               break
             }
           }
-          currentLine.syllables.push({
-            text: m.label,
-            startTime: m.time,
-            endTime: syllableEnd
-          })
-          currentLine.text += m.label
-          isAfterEmpty = false
 
-        } else if (mt === 'endofline' || mt === 'endofsyllable') {
-          if (currentLine) {
-            currentLine.endTime = m.time
-            lines.push(currentLine)
-            currentLine = null
+          currentSyllables.push({
+            text: (m.label || '').replace(/_/g, ' '),
+            startTime: m.time,
+            endTime: syllableEnd !== null ? syllableEnd : m.time
+          })
+
+        } else if (mt === 'endofsyllable') {
+          // Set end of previous syllable; do NOT close the line
+          if (currentSyllables.length > 0) {
+            currentSyllables[currentSyllables.length - 1].endTime = m.time
           }
-          if (mt === 'endofline') isAfterEmpty = false
+          // "⸳" dot character omitted for visual simplicity
+
+        } else if (mt === 'endofline') {
+          if (currentSyllables.length > 0) {
+            // Last syllable ends here
+            const last = currentSyllables[currentSyllables.length - 1]
+            if (last.endTime <= last.startTime) last.endTime = m.time
+
+            // Fix syllables where start===end (set to next syllable's start)
+            for (let j = 0; j < currentSyllables.length - 1; j++) {
+              if (currentSyllables[j].endTime <= currentSyllables[j].startTime) {
+                currentSyllables[j].endTime = currentSyllables[j + 1].startTime
+              }
+            }
+
+            allTextLines.push({
+              voiceIdx,
+              startTime: lineStart,
+              endTime: m.time,
+              syllables: currentSyllables,
+              hasCounter: false,
+              isEmpty: false
+            })
+
+            currentSyllables = []
+            lineStart = null
+          }
+          // endofline with no syllables = blank verse separator; gap will create empty lines
 
         } else if (mt === 'newline') {
-          if (currentLine) {
-            currentLine.endTime = m.time
-            lines.push(currentLine)
-            currentLine = null
+          // Verse separator; force-close any open line
+          if (currentSyllables.length > 0 && lineStart !== null) {
+            allTextLines.push({
+              voiceIdx,
+              startTime: lineStart,
+              endTime: m.time,
+              syllables: currentSyllables,
+              hasCounter: false,
+              isEmpty: false
+            })
+            currentSyllables = []
+            lineStart = null
           }
-          isAfterEmpty = true
         }
-      }
-
-      if (currentLine) {
-        lines.push(currentLine)
       }
     })
 
-    lines.sort((a, b) => a.startTime - b.startTime)
-    return lines
+    allTextLines.sort((a, b) => a.startTime - b.startTime)
+    if (allTextLines.length === 0) return []
+    return this._buildScrollLines(allTextLines)
   }
+
+  // Insert empty placeholder lines so scroll speed stays consistent through silences
+  _buildScrollLines(textLines) {
+    if (!textLines.length) return []
+
+    const maxDur = Math.max(...textLines.map(l => l.endTime - l.startTime))
+    if (maxDur <= 0) return textLines
+
+    const result = []
+
+    // Empty lines before first text line
+    const firstStart = textLines[0].startTime
+    result.push(this._makeEmptyLine(0))
+    const countStart = Math.floor(firstStart / maxDur)
+    if (countStart > 0) {
+      const step = firstStart / (countStart + 1)
+      for (let i = 0; i < countStart; i++) {
+        result.push(this._makeEmptyLine((i + 1) * step))
+      }
+    }
+    if (countStart > 0 || firstStart > maxDur * 0.5) {
+      textLines[0].hasCounter = true
+    }
+
+    // Text lines + empty lines in gaps
+    for (let i = 0; i < textLines.length; i++) {
+      result.push(textLines[i])
+
+      if (i < textLines.length - 1) {
+        const gapStart = textLines[i].endTime
+        const gapEnd = textLines[i + 1].startTime
+        const gap = gapEnd - gapStart
+
+        if (gap > maxDur) {
+          const countEmpty = Math.floor(gap / maxDur)
+          const step = gap / (countEmpty + 1)
+          for (let j = 0; j < countEmpty; j++) {
+            result.push(this._makeEmptyLine(gapStart + (j + 1) * step))
+          }
+          textLines[i + 1].hasCounter = true
+        }
+      }
+    }
+
+    // Empty lines after last text line
+    const lastLine = textLines[textLines.length - 1]
+    const totalDur = this.duration > 0 ? this.duration : lastLine.endTime + maxDur * 3
+    const endGap = totalDur - lastLine.endTime
+    const countEnd = Math.min(5, Math.max(1, Math.floor(endGap / maxDur)))
+    const stepEnd = endGap / (countEnd + 1)
+    for (let i = 0; i < countEnd; i++) {
+      result.push(this._makeEmptyLine(lastLine.endTime + (i + 1) * stepEnd))
+    }
+
+    result.sort((a, b) => a.startTime - b.startTime)
+    return result
+  }
+
+  _makeEmptyLine(timeSec) {
+    return { voiceIdx: 0, startTime: timeSec, endTime: timeSec, syllables: [], hasCounter: false, isEmpty: true }
+  }
+
+  // ─── Smooth scroll position ────────────────────────────────────────────────
+
+  // Returns a float: integer part = line index at centre, fraction = progress toward next
+  _getScrollPosition(ct) {
+    const lines = this.lines
+    if (!lines.length) return 0
+
+    // Frozen inside a non-empty text line
+    for (let i = 0; i < lines.length; i++) {
+      const l = lines[i]
+      if (!l.isEmpty && l.endTime > l.startTime && ct >= l.startTime && ct <= l.endTime) {
+        return i
+      }
+    }
+
+    if (ct <= lines[0].startTime) return 0
+    if (ct >= lines[lines.length - 1].startTime) return lines.length - 1
+
+    // Interpolate between departure of curr and arrival of next
+    for (let i = 0; i < lines.length - 1; i++) {
+      const curr = lines[i]
+      const next = lines[i + 1]
+      const t0 = curr.isEmpty ? curr.startTime : curr.endTime
+      const t1 = next.startTime
+      if (ct >= t0 && ct < t1) {
+        if (t1 <= t0) return i
+        return i + (ct - t0) / (t1 - t0)
+      }
+    }
+
+    return lines.length - 1
+  }
+
+  // ─── UI ───────────────────────────────────────────────────────────────────
 
   _buildUI() {
     this.container.style.cssText = 'position:relative;background:#000;user-select:none;font-family:sans-serif'
-
     this.container.innerHTML = `
       <div style="display:flex;flex-direction:column;height:100vh;background:#000">
         <div id="kp-canvas-wrap" style="flex:1;position:relative;overflow:hidden;min-height:0">
@@ -149,8 +266,7 @@ export default class KaraokePlayer {
           </div>
           <button id="kp-fs" style="background:none;border:none;color:#ccc;font-size:16px;cursor:pointer;padding:0 4px">⛶</button>
         </div>
-      </div>
-    `
+      </div>`
 
     this.canvas = this.container.querySelector('#kp-canvas')
     this.ctx = this.canvas.getContext('2d')
@@ -163,15 +279,15 @@ export default class KaraokePlayer {
     this.container.querySelector('#kp-fs').addEventListener('click', () => this._toggleFullscreen())
 
     const pw = this.container.querySelector('#kp-progress-wrap')
-    pw.addEventListener('click', (e) => {
+    pw.addEventListener('click', e => {
       const r = pw.getBoundingClientRect()
       this._seekTo(((e.clientX - r.left) / r.width) * this.duration)
     })
 
-    this.container.querySelector('#kp-vol-acc').addEventListener('input', (e) => {
+    this.container.querySelector('#kp-vol-acc').addEventListener('input', e => {
       if (this.accGain) this.accGain.gain.value = e.target.value / 100
     })
-    this.container.querySelector('#kp-vol-voc').addEventListener('input', (e) => {
+    this.container.querySelector('#kp-vol-voc').addEventListener('input', e => {
       if (this.vocGain) this.vocGain.gain.value = e.target.value / 100
     })
   }
@@ -182,6 +298,8 @@ export default class KaraokePlayer {
     this.canvas.width = wrap.clientWidth
     this.canvas.height = wrap.clientHeight
   }
+
+  // ─── Audio ────────────────────────────────────────────────────────────────
 
   async _loadAudio() {
     this.audioCtx = new AudioContext()
@@ -194,7 +312,6 @@ export default class KaraokePlayer {
       this._fetchAudio(this.data.audioAccompanimentUrl),
       this._fetchAudio(this.data.audioVocalsUrl)
     ])
-
     this.accBuffer = accBuf
     this.vocBuffer = vocBuf
     this.duration = Math.max(accBuf.duration, vocBuf.duration)
@@ -206,47 +323,25 @@ export default class KaraokePlayer {
   async _fetchAudio(url) {
     const resp = await fetch(url)
     if (!resp.ok) throw new Error(`Audio fetch failed: ${url}`)
-    const buf = await resp.arrayBuffer()
-    return this.audioCtx.decodeAudioData(buf)
+    return this.audioCtx.decodeAudioData(await resp.arrayBuffer())
   }
 
   _buildWaveforms() {
     import('wavesurfer.js').then(({ default: WaveSurfer }) => {
-      const accContainer = this.container.querySelector('#kp-ws-acc')
-      const vocContainer = this.container.querySelector('#kp-ws-voc')
-      if (!accContainer || !vocContainer) return
-
-      this.wsAcc = WaveSurfer.create({
-        container: accContainer,
-        url: this.data.audioAccompanimentUrl,
-        interact: false,
-        height: 40,
-        waveColor: '#4af',
-        progressColor: '#08f'
-      })
-      this.wsVoc = WaveSurfer.create({
-        container: vocContainer,
-        url: this.data.audioVocalsUrl,
-        interact: false,
-        height: 40,
-        waveColor: '#fa4',
-        progressColor: '#f80'
-      })
+      const ac = this.container.querySelector('#kp-ws-acc')
+      const vc = this.container.querySelector('#kp-ws-voc')
+      if (!ac || !vc) return
+      this.wsAcc = WaveSurfer.create({ container: ac, url: this.data.audioAccompanimentUrl, interact: false, height: 40, waveColor: '#4af', progressColor: '#08f' })
+      this.wsVoc = WaveSurfer.create({ container: vc, url: this.data.audioVocalsUrl, interact: false, height: 40, waveColor: '#fa4', progressColor: '#f80' })
     }).catch(e => console.warn('WaveSurfer load failed:', e))
   }
 
   _getCurrentTime() {
     if (!this.audioCtx) return 0
-    if (this.isPlaying) {
-      return this.audioCtx.currentTime - this.startedAt + this.pausedAt
-    }
-    return this.pausedAt
+    return this.isPlaying ? this.audioCtx.currentTime - this.startedAt + this.pausedAt : this.pausedAt
   }
 
-  _togglePlay() {
-    if (this.isPlaying) this._pause()
-    else this._play()
-  }
+  _togglePlay() { this.isPlaying ? this._pause() : this._play() }
 
   async _play() {
     if (!this.accBuffer || !this.vocBuffer) return
@@ -268,14 +363,11 @@ export default class KaraokePlayer {
     this.vocSource.start(0, offset)
     this.isPlaying = true
 
-    const playBtn = this.container.querySelector('#kp-play')
-    if (playBtn) playBtn.textContent = '⏸'
+    const btn = this.container.querySelector('#kp-play')
+    if (btn) btn.textContent = '⏸'
 
     this.accSource.onended = () => {
-      if (this.isPlaying && !this._endedHandled) {
-        this._endedHandled = true
-        this._onEnded()
-      }
+      if (this.isPlaying && !this._endedHandled) { this._endedHandled = true; this._onEnded() }
     }
   }
 
@@ -285,28 +377,23 @@ export default class KaraokePlayer {
     this.accSource?.stop()
     this.vocSource?.stop()
     this.isPlaying = false
-    const playBtn = this.container.querySelector('#kp-play')
-    if (playBtn) playBtn.textContent = '▶'
+    const btn = this.container.querySelector('#kp-play')
+    if (btn) btn.textContent = '▶'
   }
 
   _onEnded() {
     this.pausedAt = 0
     this.isPlaying = false
-    const playBtn = this.container.querySelector('#kp-play')
-    if (playBtn) playBtn.textContent = '▶'
+    const btn = this.container.querySelector('#kp-play')
+    if (btn) btn.textContent = '▶'
   }
 
   _seekTo(time) {
     time = Math.max(0, Math.min(time, this.duration))
-    const wasPlaying = this.isPlaying
-    if (wasPlaying) {
-      this._endedHandled = true
-      this.accSource?.stop()
-      this.vocSource?.stop()
-      this.isPlaying = false
-    }
+    const was = this.isPlaying
+    if (was) { this._endedHandled = true; this.accSource?.stop(); this.vocSource?.stop(); this.isPlaying = false }
     this.pausedAt = time
-    if (wasPlaying) this._play()
+    if (was) this._play()
     if (this.duration > 0) {
       const pct = time / this.duration
       try { this.wsAcc?.seekTo(pct) } catch {}
@@ -315,18 +402,13 @@ export default class KaraokePlayer {
   }
 
   _toggleFullscreen() {
-    if (document.fullscreenElement) {
-      document.exitFullscreen()
-    } else {
-      this.container.requestFullscreen?.()
-    }
+    document.fullscreenElement ? document.exitFullscreen() : this.container.requestFullscreen?.()
   }
 
+  // ─── Render loop ──────────────────────────────────────────────────────────
+
   _startRenderLoop() {
-    const render = () => {
-      this._renderFrame()
-      this.animId = requestAnimationFrame(render)
-    }
+    const render = () => { this._renderFrame(); this.animId = requestAnimationFrame(render) }
     this.animId = requestAnimationFrame(render)
   }
 
@@ -336,36 +418,35 @@ export default class KaraokePlayer {
     const H = this.canvas.height
     const ctx = this.ctx
 
-    ctx.clearRect(0, 0, W, H)
     ctx.fillStyle = '#000'
     ctx.fillRect(0, 0, W, H)
 
     const scale = H / 1080
     const fontSize = Math.round(54 * scale)
-    const lineHeight = Math.round(fontSize * 1.45)
+    const lineHeight = Math.round(fontSize * 1.6)
     const xStart = Math.round(W * 0.05)
-    const FILL_COLOR = 'rgb(255,128,0)'
-    const SUNG_COLOR = 'rgba(255,255,255,0.35)'
 
     const SPLASH_DUR = 5.0
     if (ct < SPLASH_DUR && this.data) {
       this._renderSplash(ctx, W, H, scale, ct, SPLASH_DUR)
     } else {
-      this._renderKaraoke(ctx, W, H, scale, fontSize, lineHeight, xStart, FILL_COLOR, SUNG_COLOR, ct)
+      this._renderKaraoke(ctx, W, H, scale, fontSize, lineHeight, xStart, ct)
     }
 
     this._updateControls(ct)
   }
 
+  // ─── Splash ───────────────────────────────────────────────────────────────
+
   _renderSplash(ctx, W, H, scale, ct, splashDur) {
     const fadeOut = ct > splashDur - 0.4 ? (splashDur - ct) / 0.4 : 1.0
     ctx.globalAlpha = Math.max(0, fadeOut)
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
 
     const ts = Math.round(60 * scale)
     ctx.font = `bold ${ts}px sans-serif`
     ctx.fillStyle = 'rgb(255,255,127)'
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
     ctx.fillText(this.data.songName || '', W / 2, H / 2 - ts * 0.7)
 
     const ss = Math.round(36 * scale)
@@ -383,6 +464,156 @@ export default class KaraokePlayer {
     ctx.textBaseline = 'alphabetic'
   }
 
+  // ─── Karaoke frame ────────────────────────────────────────────────────────
+
+  _renderKaraoke(ctx, W, H, scale, fontSize, lineHeight, xStart, ct) {
+    const centerY = H / 2
+    const scrollPos = this._getScrollPosition(ct)
+
+    // Horizon lines
+    const horizonColor = this._getHorizonColor(ct)
+    ctx.strokeStyle = horizonColor
+    ctx.lineWidth = Math.max(1, Math.round(2 * scale))
+    const topH = Math.round(centerY - lineHeight * 0.6)
+    const botH = Math.round(centerY + lineHeight * 0.6)
+    ctx.beginPath(); ctx.moveTo(0, topH); ctx.lineTo(W, topH); ctx.stroke()
+    ctx.beginPath(); ctx.moveTo(0, botH); ctx.lineTo(W, botH); ctx.stroke()
+
+    // Visible lines
+    const halfVisible = Math.ceil(H / lineHeight) + 2
+    const iMin = Math.max(0, Math.floor(scrollPos) - halfVisible)
+    const iMax = Math.min(this.lines.length - 1, Math.ceil(scrollPos) + halfVisible)
+
+    for (let i = iMin; i <= iMax; i++) {
+      const line = this.lines[i]
+      if (line.isEmpty || !line.syllables.length) continue
+      const y = Math.round(centerY + (i - scrollPos) * lineHeight)
+      if (y < -lineHeight || y > H + lineHeight) continue
+
+      const isActive = ct >= line.startTime && ct < line.endTime
+      const isSung = !isActive && ct >= line.endTime
+      this._renderLine(ctx, line, y, fontSize, xStart, W, ct, isActive, isSung)
+    }
+
+    this._renderCounter(ctx, W, H, scale, ct)
+
+    const hAlpha = this._getHeaderAlpha(ct)
+    this._renderHeader(ctx, W, H, scale, hAlpha)
+  }
+
+  _getHorizonColor(ct) {
+    const active = this.lines.find(l => !l.isEmpty && ct >= l.startTime && ct < l.endTime)
+    const COLORS = ['rgb(0,200,0)', 'rgb(200,0,0)', 'rgb(0,100,200)']
+    return COLORS[((active ? active.voiceIdx : 0)) % COLORS.length]
+  }
+
+  // ─── Line rendering ───────────────────────────────────────────────────────
+
+  _renderLine(ctx, line, centerY, fontSize, xStart, W, ct, isActive, isSung) {
+    const isV1 = line.voiceIdx === 1
+    ctx.font = isV1 ? `italic bold ${fontSize}px sans-serif` : `bold ${fontSize}px sans-serif`
+    ctx.textBaseline = 'middle'
+
+    let x = xStart
+    const syls = line.syllables.map(s => {
+      const w = ctx.measureText(s.text).width
+      const r = { text: s.text, startTime: s.startTime, endTime: s.endTime, x, w }
+      x += w
+      return r
+    })
+    const totalW = x - xStart
+
+    const rectH = fontSize * 1.1
+    const rectY = Math.round(centerY - rectH / 2)
+    const textColor = isV1 ? 'rgb(255,255,155)' : '#ffffff'
+    const FILL_COLOR = 'rgb(255,128,0)'
+    const SUNG_COLOR = 'rgba(255,255,255,0.35)'
+
+    if (isActive) {
+      // Compute smooth fill width
+      let fillW = 0
+      for (const s of syls) {
+        if (ct < s.startTime) break
+        if (s.endTime > s.startTime && ct < s.endTime) {
+          fillW = (s.x - xStart) + s.w * (ct - s.startTime) / (s.endTime - s.startTime)
+        } else {
+          fillW = (s.x - xStart) + s.w
+        }
+      }
+
+      // Orange fill
+      ctx.fillStyle = FILL_COLOR
+      ctx.fillRect(xStart, rectY, fillW, rectH)
+
+      // Text clipped to filled region
+      ctx.save()
+      ctx.beginPath(); ctx.rect(xStart, rectY - 1, fillW, rectH + 2); ctx.clip()
+      ctx.fillStyle = textColor
+      for (const s of syls) ctx.fillText(s.text, s.x, centerY)
+      ctx.restore()
+
+      // Text clipped to unfilled region
+      ctx.save()
+      ctx.beginPath(); ctx.rect(xStart + fillW, rectY - 1, W, rectH + 2); ctx.clip()
+      ctx.fillStyle = textColor
+      for (const s of syls) ctx.fillText(s.text, s.x, centerY)
+      ctx.restore()
+
+    } else if (isSung) {
+      ctx.fillStyle = FILL_COLOR
+      ctx.fillRect(xStart, rectY, totalW, rectH)
+      ctx.fillStyle = SUNG_COLOR
+      for (const s of syls) ctx.fillText(s.text, s.x, centerY)
+
+    } else {
+      ctx.fillStyle = textColor
+      for (const s of syls) ctx.fillText(s.text, s.x, centerY)
+    }
+
+    ctx.textBaseline = 'alphabetic'
+  }
+
+  // ─── Counter ──────────────────────────────────────────────────────────────
+
+  _renderCounter(ctx, W, H, scale, ct) {
+    const bpm = this.data?.bpm
+    if (!bpm || bpm === 0) return
+    const halfNote = (60 / bpm) * 2
+
+    // n=4 red, n=3 red, n=2 yellow, n=1 yellow, n=0 green
+    const COLORS = ['rgb(0,255,0)', 'rgb(255,255,0)', 'rgb(255,255,0)', 'rgb(255,0,0)', 'rgb(255,0,0)']
+
+    for (const line of this.lines) {
+      if (!line.hasCounter) continue
+
+      for (let n = 4; n >= 0; n--) {
+        // Counter n appears at (lineStart - n*halfNote), visible for 1 halfNote
+        const tStart = line.startTime - n * halfNote
+        const tEnd = tStart + halfNote
+
+        if (ct >= tStart && ct < tEnd) {
+          const progress = (ct - tStart) / halfNote
+          const fs = Math.round(72 * scale)
+          const fadeStart = 0.75
+          const yShift = progress > fadeStart ? -((progress - fadeStart) / (1 - fadeStart)) * fs : 0
+          const alpha = progress > fadeStart ? 1 - (progress - fadeStart) / (1 - fadeStart) : 1
+
+          ctx.save()
+          ctx.globalAlpha = alpha
+          ctx.font = `bold ${fs}px sans-serif`
+          ctx.fillStyle = COLORS[n] || '#fff'
+          ctx.textAlign = 'center'
+          ctx.textBaseline = 'middle'
+          ctx.fillText(String(n), Math.round(W * 0.03) + fs / 2, H / 2 + yShift)
+          ctx.restore()
+          break
+        }
+      }
+    }
+  }
+
+  // ─── Header ───────────────────────────────────────────────────────────────
+
   _getHeaderAlpha(ct) {
     const SPLASH_END = 5.0
     if (ct < SPLASH_END) return 0
@@ -390,20 +621,23 @@ export default class KaraokePlayer {
     const bpm = this.data?.bpm || 120
     const halfNote = (60 / bpm) * 2
 
-    const firstCounterLine = this.lines.find(l => l.hasCounter && l.startTime > SPLASH_END)
+    const firstCounterLine = this.lines.find(l => !l.isEmpty && l.hasCounter)
     if (!firstCounterLine) return 1
 
-    const hideStart = firstCounterLine.startTime - halfNote * 5
-    const hideDur = halfNote * 4
-    const hideEnd = hideStart + hideDur
+    // Header hides when counter=4 appears (4 halfNotes before the line)
+    const hideStart = firstCounterLine.startTime - 4 * halfNote
+    const hideEnd = firstCounterLine.startTime  // = hideStart + 4*halfNote
 
-    const lastLine = this.lines[this.lines.length - 1]
-    const showStart = lastLine ? lastLine.endTime + halfNote * 4 : Infinity
+    // Header returns after last text line
+    const lastTextLine = [...this.lines].reverse().find(l => !l.isEmpty)
+    const showStart = lastTextLine ? lastTextLine.endTime : Infinity
+    const showEnd = showStart + 4 * halfNote
 
     if (ct < hideStart) return 1
-    if (ct < hideEnd) return 1 - (ct - hideStart) / hideDur
+    if (ct < hideEnd) return 1 - (ct - hideStart) / (hideEnd - hideStart)
     if (ct < showStart) return 0
-    return Math.min(1, (ct - showStart) / hideDur)
+    if (ct < showEnd) return (ct - showStart) / (showEnd - showStart)
+    return 1
   }
 
   _renderHeader(ctx, W, H, scale, alpha) {
@@ -416,12 +650,13 @@ export default class KaraokePlayer {
     const yOff = Math.round(20 * scale)
 
     ctx.textBaseline = 'top'
+
     ctx.font = `bold ${ts}px sans-serif`
     ctx.fillStyle = 'rgb(255,255,127)'
     ctx.fillText(this.data.songName || '', xOff, yOff)
 
-    ctx.font = `${ss}px sans-serif`
     const y2 = yOff + ts + Math.round(6 * scale)
+    ctx.font = `${ss}px sans-serif`
     ctx.fillStyle = 'rgb(85,255,255)'
     const authorLabel = 'Исполнитель: '
     ctx.fillText(authorLabel, xOff, y2)
@@ -439,182 +674,7 @@ export default class KaraokePlayer {
     ctx.textBaseline = 'alphabetic'
   }
 
-  _renderCounter(ctx, W, H, scale, ct) {
-    const bpm = this.data?.bpm
-    if (!bpm || bpm === 0) return
-    const halfNote = (60 / bpm) * 2
-
-    const COLORS = [
-      'rgb(0,255,0)',
-      'rgb(255,255,0)',
-      'rgb(255,255,0)',
-      'rgb(255,0,0)',
-      'rgb(255,0,0)'
-    ]
-
-    for (const line of this.lines) {
-      if (!line.hasCounter) continue
-
-      for (let n = 4; n >= 0; n--) {
-        const tStart = line.startTime - (n + 1) * halfNote
-        const tEnd = line.startTime - n * halfNote
-        if (ct >= tStart && ct < tEnd) {
-          const progress = (ct - tStart) / halfNote
-          const fs = Math.round(72 * scale)
-          const yShift = progress > 0.75 ? -((progress - 0.75) / 0.25) * fs : 0
-          const alpha = progress > 0.75 ? 1 - (progress - 0.75) / 0.25 : 1
-
-          ctx.save()
-          ctx.globalAlpha = alpha
-          ctx.font = `bold ${fs}px sans-serif`
-          ctx.fillStyle = COLORS[n] || '#fff'
-          ctx.textAlign = 'center'
-          ctx.textBaseline = 'middle'
-          ctx.fillText(String(n), Math.round(W * 0.03) + fs / 2, H / 2 + yShift)
-          ctx.restore()
-          break
-        }
-      }
-    }
-  }
-
-  _renderKaraoke(ctx, W, H, scale, fontSize, lineHeight, xStart, FILL_COLOR, SUNG_COLOR, ct) {
-    // Найти активную строку
-    let activeIdx = -1
-    for (let i = 0; i < this.lines.length; i++) {
-      const l = this.lines[i]
-      if (ct >= l.startTime && l.endTime != null && ct < l.endTime) {
-        activeIdx = i
-        break
-      }
-    }
-    if (activeIdx === -1 && this.lines.length > 0) {
-      if (ct < this.lines[0].startTime) {
-        activeIdx = 0
-      } else {
-        // Между строками — показать предыдущую
-        for (let i = this.lines.length - 1; i >= 0; i--) {
-          if (this.lines[i].startTime <= ct) {
-            activeIdx = i
-            break
-          }
-        }
-      }
-    }
-
-    if (this.lines.length === 0) return
-
-    const centerY = H / 2
-
-    // Горизонтальные линии
-    const horizonColor = this._getHorizonColor(activeIdx)
-    const lw = Math.max(1, Math.round(2 * scale))
-    ctx.strokeStyle = horizonColor
-    ctx.lineWidth = lw
-    const topH = centerY - Math.round(lineHeight * 0.58)
-    const botH = centerY + Math.round(lineHeight * 0.58)
-    ctx.beginPath(); ctx.moveTo(0, topH); ctx.lineTo(W, topH); ctx.stroke()
-    ctx.beginPath(); ctx.moveTo(0, botH); ctx.lineTo(W, botH); ctx.stroke()
-
-    // Строки
-    const visible = 5
-    const start = Math.max(0, activeIdx - visible)
-    const end = Math.min(this.lines.length - 1, activeIdx + visible)
-
-    for (let i = start; i <= end; i++) {
-      const line = this.lines[i]
-      const offset = i - activeIdx
-      const y = centerY + offset * lineHeight
-
-      const isActive = i === activeIdx && ct >= line.startTime && line.endTime != null && ct < line.endTime
-      const isSung = i < activeIdx
-
-      this._renderLine(ctx, line, y, fontSize, xStart, W, ct, isActive, isSung, FILL_COLOR, SUNG_COLOR)
-    }
-
-    this._renderCounter(ctx, W, H, scale, ct)
-
-    const hAlpha = this._getHeaderAlpha(ct)
-    this._renderHeader(ctx, W, H, scale, hAlpha)
-  }
-
-  _getHorizonColor(idx) {
-    if (idx < 0 || idx >= this.lines.length) return 'rgb(0,180,0)'
-    const COLORS = ['rgb(0,200,0)', 'rgb(200,0,0)', 'rgb(0,100,200)']
-    return COLORS[this.lines[idx].voiceIdx % COLORS.length]
-  }
-
-  _renderLine(ctx, line, centerY, fontSize, xStart, W, ct, isActive, isSung, FILL_COLOR, SUNG_COLOR) {
-    if (!line.syllables.length) return
-
-    const isV1 = line.voiceIdx === 1
-    ctx.font = isV1 ? `italic bold ${fontSize}px sans-serif` : `bold ${fontSize}px sans-serif`
-    ctx.textBaseline = 'middle'
-
-    // Вычислить X для каждого слога
-    let x = xStart
-    const syls = line.syllables.map(syl => {
-      const w = ctx.measureText(syl.text).width
-      const r = { text: syl.text, startTime: syl.startTime, endTime: syl.endTime, x, w }
-      x += w
-      return r
-    })
-    const totalW = x - xStart
-
-    if (isActive) {
-      // Плавная заливка
-      let fillW = 0
-      for (const s of syls) {
-        if (s.startTime > ct) break
-        if (s.endTime != null && ct < s.endTime) {
-          const dur = s.endTime - s.startTime
-          const prog = dur > 0 ? (ct - s.startTime) / dur : 1
-          fillW = (s.x - xStart) + s.w * prog
-        } else {
-          fillW = (s.x - xStart) + s.w
-        }
-      }
-
-      const rectH = fontSize * 1.1
-      const rectY = centerY - rectH / 2
-
-      // Оранжевый фон под спетой частью
-      ctx.fillStyle = FILL_COLOR
-      ctx.fillRect(xStart, rectY, fillW, rectH)
-
-      // Текст: спетая часть (белый/жёлтый поверх оранжевого)
-      ctx.save()
-      ctx.beginPath()
-      ctx.rect(xStart, rectY, fillW, rectH)
-      ctx.clip()
-      ctx.fillStyle = isV1 ? 'rgb(255,255,155)' : '#ffffff'
-      for (const s of syls) ctx.fillText(s.text, s.x, centerY)
-      ctx.restore()
-
-      // Текст: неспетая часть
-      ctx.save()
-      ctx.beginPath()
-      ctx.rect(xStart + fillW, rectY - 1, W, rectH + 2)
-      ctx.clip()
-      ctx.fillStyle = isV1 ? 'rgb(255,255,155)' : '#ffffff'
-      for (const s of syls) ctx.fillText(s.text, s.x, centerY)
-      ctx.restore()
-
-    } else if (isSung) {
-      const rectH = fontSize * 1.1
-      const rectY = centerY - rectH / 2
-      ctx.fillStyle = FILL_COLOR
-      ctx.fillRect(xStart, rectY, totalW, rectH)
-      ctx.fillStyle = SUNG_COLOR
-      for (const s of syls) ctx.fillText(s.text, s.x, centerY)
-
-    } else {
-      ctx.fillStyle = isV1 ? 'rgb(255,255,155)' : '#ffffff'
-      for (const s of syls) ctx.fillText(s.text, s.x, centerY)
-    }
-
-    ctx.textBaseline = 'alphabetic'
-  }
+  // ─── Controls ─────────────────────────────────────────────────────────────
 
   _updateControls(ct) {
     const pct = this.duration > 0 ? (ct / this.duration) * 100 : 0

@@ -407,3 +407,19 @@ src/
 **Audio (Web Audio API):**
 - `await audioCtx.resume()` обязателен перед `source.start()` — Chrome блокирует без user gesture
 - Два `AudioBufferSource` + два `GainNode` → `destination`; seek — пересоздание источников с `offset`
+
+**Процедурный фон (`_generateStarfield` / `_renderBackground` в `KaraokePlayer.js`):**
+- Текстура: OffscreenCanvas 4096×4096, генерируется один раз при init (до загрузки данных)
+- 6 палитр по `songId % 6`: cool blue, crimson, dark teal, fire orange, purple multi, warm amber
+- Туманности: кластеры 65–150 радиальных градиентов → органические облака; тёмные ядра для поглощения
+- Звёзды: ~3600 (tiny/medium/bright с glow); seeded RNG через xorshift32
+- Viewport 1920×1080 из 4096×4096 (1:1 пикселей, нет upscaling → нет артефактов)
+- Движение: triangle-wave через `performance.now()` (периоды 541с X, 379с Y) — **всегда движется**, не зависит от аудио
+- **Фон всегда alpha=1** — fade-in/fade-out применяются поверх него отдельным чёрным оверлеем
+
+**Критичный порядок init() в KaraokePlayer.js:**
+- `_buildUI()` → `_generateStarfield()` → `_startRenderLoop()` → async data load → `_ready = true`
+- Guard в `_renderFrame` — **`!this._ready`**, НЕ `!this.data`!
+- Причина: `this.data` выставляется до `_parseMarkers()`, между ними рендер-луп успевает закешировать
+  `_computeVoiceLayout` с пустым `voiceLines=[]` → 1 голос вместо 2.
+  `_ready=true` выставляется только после `_buildWaveforms()`, когда `voiceLines` уже заполнен.

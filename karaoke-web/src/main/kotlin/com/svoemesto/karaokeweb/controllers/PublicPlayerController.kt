@@ -9,12 +9,13 @@ import com.svoemesto.karaokeapp.services.StorageApiClient
 import com.svoemesto.karaokeweb.WORKING_DATABASE
 import com.svoemesto.karaokeweb.services.PlayerGestureUnlockService
 import jakarta.servlet.http.HttpServletResponse
-import org.springframework.core.io.ByteArrayResource
-import org.springframework.core.io.Resource
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpHeaders
+import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import java.io.ByteArrayOutputStream
+import java.net.URI
 import java.net.URLEncoder
 import java.util.zip.CRC32
 import java.util.zip.ZipEntry
@@ -44,7 +45,8 @@ import java.util.zip.ZipOutputStream
 class PublicPlayerController(
     private val storageService: KaraokeStorageService,
     private val storageApiClient: StorageApiClient,
-    private val gestureUnlockService: PlayerGestureUnlockService
+    private val gestureUnlockService: PlayerGestureUnlockService,
+    @Value("\${storage.proxy-url}") private val minioProxyUrl: String,
 ) {
     private val bucket = "karaoke"
 
@@ -57,42 +59,65 @@ class PublicPlayerController(
     private fun stemStorageKey(settings: Settings, fileType: KaraokeFileType) =
         "${settings.storageFileName}${fileType.suffix}.${fileType.extention}"
 
-    private fun stemResponse(settings: Settings, fileType: KaraokeFileType): ResponseEntity<Resource> {
+    private fun encodedProxyPath(storageKey: String): String =
+        storageKey.split("/").joinToString("/") { segment ->
+            java.net.URLEncoder.encode(segment, Charsets.UTF_8).replace("+", "%20")
+        }
+
+    // HEAD-запрос через nginx-прокси — минует MinIO SDK и MTU-проблему Docker bridge
+    private fun existsInMinIO(storageKey: String): Boolean = try {
+        val conn = java.net.URL("$minioProxyUrl/minio/karaoke/${encodedProxyPath(storageKey)}")
+            .openConnection() as java.net.HttpURLConnection
+        conn.requestMethod = "HEAD"
+        conn.connectTimeout = 5_000
+        conn.readTimeout = 5_000
+        conn.responseCode == 200
+    } catch (e: Exception) { false }
+
+    // GET-запрос через nginx-прокси — для ZIP-экспорта (.smkaraoke)
+    private fun fetchFromMinIO(storageKey: String): ByteArray? = try {
+        val conn = java.net.URL("$minioProxyUrl/minio/karaoke/${encodedProxyPath(storageKey)}")
+            .openConnection() as java.net.HttpURLConnection
+        conn.connectTimeout = 10_000
+        conn.readTimeout = 120_000
+        if (conn.responseCode == 200) conn.inputStream.use { it.readBytes() } else null
+    } catch (e: Exception) { null }
+
+    // 302 редирект на nginx /minio/ — браузер загружает MP3 напрямую через прокси без MTU-проблем
+    private fun stemResponse(settings: Settings, fileType: KaraokeFileType): ResponseEntity<Void> {
         val storageKey = stemStorageKey(settings, fileType)
-        if (!storageService.fileExists(bucket, storageKey)) return ResponseEntity.notFound().build()
-        val bytes = storageService.downloadFile(bucket, storageKey).use { it.readBytes() }
-        return ResponseEntity.ok()
-            .header(HttpHeaders.CONTENT_TYPE, "audio/mpeg")
-            .header(HttpHeaders.ACCEPT_RANGES, "bytes")
-            .body(ByteArrayResource(bytes))
+        if (!existsInMinIO(storageKey)) return ResponseEntity.notFound().build()
+        return ResponseEntity.status(HttpStatus.FOUND)
+            .location(URI.create("/minio/karaoke/${encodedProxyPath(storageKey)}"))
+            .build()
     }
 
     private fun loadSettings(id: Long) =
         Settings.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
 
     @GetMapping("/{id}/fileminus.mp3")
-    fun fileAccompaniment(@PathVariable id: Long, @RequestParam token: String?): ResponseEntity<Resource> {
+    fun fileAccompaniment(@PathVariable id: Long, @RequestParam token: String?): ResponseEntity<Void> {
         if (!authorized(id, token)) return ResponseEntity.notFound().build()
         val settings = loadSettings(id) ?: return ResponseEntity.notFound().build()
         return stemResponse(settings, KaraokeFileType.MP3_ACCOMPANIMENT)
     }
 
     @GetMapping("/{id}/filevoice.mp3")
-    fun fileVocals(@PathVariable id: Long, @RequestParam token: String?): ResponseEntity<Resource> {
+    fun fileVocals(@PathVariable id: Long, @RequestParam token: String?): ResponseEntity<Void> {
         if (!authorized(id, token)) return ResponseEntity.notFound().build()
         val settings = loadSettings(id) ?: return ResponseEntity.notFound().build()
         return stemResponse(settings, KaraokeFileType.MP3_VOCAL)
     }
 
     @GetMapping("/{id}/filebass.mp3")
-    fun fileBass(@PathVariable id: Long, @RequestParam token: String?): ResponseEntity<Resource> {
+    fun fileBass(@PathVariable id: Long, @RequestParam token: String?): ResponseEntity<Void> {
         if (!authorized(id, token)) return ResponseEntity.notFound().build()
         val settings = loadSettings(id) ?: return ResponseEntity.notFound().build()
         return stemResponse(settings, KaraokeFileType.MP3_BASS)
     }
 
     @GetMapping("/{id}/filedrums.mp3")
-    fun fileDrums(@PathVariable id: Long, @RequestParam token: String?): ResponseEntity<Resource> {
+    fun fileDrums(@PathVariable id: Long, @RequestParam token: String?): ResponseEntity<Void> {
         if (!authorized(id, token)) return ResponseEntity.notFound().build()
         val settings = loadSettings(id) ?: return ResponseEntity.notFound().build()
         return stemResponse(settings, KaraokeFileType.MP3_DRUMS)
@@ -104,10 +129,10 @@ class PublicPlayerController(
         val settings = loadSettings(id) ?: return ResponseEntity.notFound().build()
 
         val tokenSuffix = "?token=${token}"
-        val hasAccompaniment = storageService.fileExists(bucket, stemStorageKey(settings, KaraokeFileType.MP3_ACCOMPANIMENT))
-        val hasVocals = storageService.fileExists(bucket, stemStorageKey(settings, KaraokeFileType.MP3_VOCAL))
-        val hasBass = storageService.fileExists(bucket, stemStorageKey(settings, KaraokeFileType.MP3_BASS))
-        val hasDrums = storageService.fileExists(bucket, stemStorageKey(settings, KaraokeFileType.MP3_DRUMS))
+        val hasAccompaniment = existsInMinIO(stemStorageKey(settings, KaraokeFileType.MP3_ACCOMPANIMENT))
+        val hasVocals = existsInMinIO(stemStorageKey(settings, KaraokeFileType.MP3_VOCAL))
+        val hasBass = existsInMinIO(stemStorageKey(settings, KaraokeFileType.MP3_BASS))
+        val hasDrums = existsInMinIO(stemStorageKey(settings, KaraokeFileType.MP3_DRUMS))
 
         val data = mapOf(
             "id" to id,
@@ -144,9 +169,7 @@ class PublicPlayerController(
         val zip = ZipOutputStream(bos)
 
         fun addStemIfPresent(fileType: KaraokeFileType, entryName: String, trackKey: String) {
-            val storageKey = stemStorageKey(settings, fileType)
-            if (storageService.fileExists(bucket, storageKey)) {
-                val bytes = storageService.downloadFile(bucket, storageKey).use { it.readBytes() }
+            fetchFromMinIO(stemStorageKey(settings, fileType))?.let { bytes ->
                 addStored(zip, entryName, bytes)
                 tracks[trackKey] = entryName
             }
@@ -157,15 +180,13 @@ class PublicPlayerController(
         addStemIfPresent(KaraokeFileType.MP3_DRUMS, "audio/drums.mp3", "drums")
 
         settings.pictureAlbum?.let { pic ->
-            if (storageService.fileExists(bucket, pic.storageFileName)) {
-                val bytes = storageService.downloadFile(bucket, pic.storageFileName).use { it.readBytes() }
+            fetchFromMinIO(pic.storageFileName)?.let { bytes ->
                 addStored(zip, "images/album.png", bytes)
                 images["album"] = "images/album.png"
             }
         }
         settings.pictureAuthor?.let { pic ->
-            if (storageService.fileExists(bucket, pic.storageFileName)) {
-                val bytes = storageService.downloadFile(bucket, pic.storageFileName).use { it.readBytes() }
+            fetchFromMinIO(pic.storageFileName)?.let { bytes ->
                 addStored(zip, "images/artist.png", bytes)
                 images["artist"] = "images/artist.png"
             }

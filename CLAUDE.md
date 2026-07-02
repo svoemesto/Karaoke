@@ -253,6 +253,20 @@ Auth is OAuth2/OIDC against the authorization server embedded in `karaoke-app`
 accessed through `services/StorageApiClient.kt` / `services/KaraokeStorageService.kt` and the corresponding
 `StorageController`/`docker-compose-storage.yml`.
 
+**MinIO на отдельном сервере (89.125.103.63) — MTU-проблема и обязательный паттерн для karaoke-web.**
+Docker-контейнер karaoke-web на сервере (79.174.95.69) имеет MTU bridge=1500, физический ens3=1450.
+Java MinIO SDK внутри Docker зависает навсегда при обращении к 89.125.103.63:9000 из-за дропа пакетов.
+**Правило:** в `karaoke-web` никогда не использовать `KaraokeStorageService` для чтения/проверки файлов
+из MinIO напрямую. Вместо этого — HTTP через nginx-прокси на хосте (порт 80 `80to8897`):
+- `fetchFromMinIO(storageKey)` — GET через `http://minio-proxy/minio/karaoke/$encodedPath` → `ByteArray?`
+- `existsInMinIO(storageKey)` — HEAD через тот же путь → `Boolean`
+- Для браузерного контента — 302 редирект на `/minio/karaoke/$encodedPath` (nginx HTTPS)
+`minio-proxy` резолвится в `172.17.0.1` (Docker gateway = хост) через `extra_hosts` в `docker-compose-web.yml`.
+Nginx порт 80 имеет `server_name ... minio-proxy` чтобы запросы с `Host: minio-proxy` не уходили
+в nginx `default_server` (symlink `/etc/nginx/sites-enabled/default` присутствует на сервере).
+`Host` — restricted header в Java `HttpURLConnection`, нельзя переопределить через `setRequestProperty`.
+Реализация: `PublicApiController.fetchFromMinIO()`, `PublicPlayerController.existsInMinIO()`/`fetchFromMinIO()`.
+
 **Размеры картинок в хранилище (бакет `karaoke`):**
 - Альбом: полноразмерная 400×400, превью 50×50
 - Автор: полноразмерная 1000×400, превью 125×50

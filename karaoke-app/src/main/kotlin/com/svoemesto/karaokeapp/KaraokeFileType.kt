@@ -22,8 +22,8 @@ enum class KaraokeFileType(
         suffix = ".song",
         canResolve = false
     ),
-    MP3_SONG (
-        description = "Исходный аудио файл в формате mp3",
+    MP3_STORE_SONG (
+        description = "Исходный аудио файл в формате mp3 в хранилище",
         karaokeFileTypeFor = KaraokeFileTypeFor.SONG,
         karaokeFileTypeKind = KaraokeFileTypeKind.MAIN,
         locations = listOf(KaraokeFileTypeLocations.LOCAL_FILESYSTEM),
@@ -41,8 +41,8 @@ enum class KaraokeFileType(
         suffix = ".accompaniment",
         canResolve = true
     ),
-    MP3_ACCOMPANIMENT (
-        description = "Минусовка в формате mp3",
+    MP3_STORE_ACCOMPANIMENT (
+        description = "Минусовка в формате mp3 в хранилище",
         karaokeFileTypeFor = KaraokeFileTypeFor.SONG,
         karaokeFileTypeKind = KaraokeFileTypeKind.MAIN,
         locations = listOf(KaraokeFileTypeLocations.LOCAL_FILESYSTEM),
@@ -50,12 +50,38 @@ enum class KaraokeFileType(
         suffix = ".accompaniment",
         canResolve = true
     ),
-    AUDIO_VOICE (
+    MP3_ACCOMPANIMENT (
+        description = "Минусовка в формате mp3",
+        karaokeFileTypeFor = KaraokeFileTypeFor.SONG,
+        karaokeFileTypeKind = KaraokeFileTypeKind.MAIN,
+        locations = listOf(
+            KaraokeFileTypeLocations.LOCAL_FILESYSTEM,
+            KaraokeFileTypeLocations.LOCAL_STORAGE,
+            KaraokeFileTypeLocations.REMOTE_STORAGE
+        ),
+        extention = "mp3",
+        suffix = ".accompaniment",
+        canResolve = true
+    ),
+    AUDIO_VOCAL (
         description = "Чистый голос",
         karaokeFileTypeFor = KaraokeFileTypeFor.SONG,
         karaokeFileTypeKind = KaraokeFileTypeKind.MAIN,
         locations = listOf(KaraokeFileTypeLocations.LOCAL_FILESYSTEM),
         extention = "flac",
+        suffix = ".vocals",
+        canResolve = true
+    ),
+    MP3_VOCAL (
+        description = "Чистый голос в формате mp3",
+        karaokeFileTypeFor = KaraokeFileTypeFor.SONG,
+        karaokeFileTypeKind = KaraokeFileTypeKind.MAIN,
+        locations = listOf(
+            KaraokeFileTypeLocations.LOCAL_FILESYSTEM,
+            KaraokeFileTypeLocations.LOCAL_STORAGE,
+            KaraokeFileTypeLocations.REMOTE_STORAGE
+        ),
+        extention = "mp3",
         suffix = ".vocals",
         canResolve = true
     ),
@@ -68,6 +94,19 @@ enum class KaraokeFileType(
         suffix = ".bass",
         canResolve = true
     ),
+    MP3_BASS (
+        description = "Бас в формате mp3",
+        karaokeFileTypeFor = KaraokeFileTypeFor.SONG,
+        karaokeFileTypeKind = KaraokeFileTypeKind.MAIN,
+        locations = listOf(
+            KaraokeFileTypeLocations.LOCAL_FILESYSTEM,
+            KaraokeFileTypeLocations.LOCAL_STORAGE,
+            KaraokeFileTypeLocations.REMOTE_STORAGE
+        ),
+        extention = "mp3",
+        suffix = ".bass",
+        canResolve = true
+    ),
     AUDIO_DRUMS (
         description = "Ударные",
         karaokeFileTypeFor = KaraokeFileTypeFor.SONG,
@@ -77,12 +116,38 @@ enum class KaraokeFileType(
         suffix = ".drums",
         canResolve = true
     ),
+    MP3_DRUMS (
+        description = "Ударные в формате mp3",
+        karaokeFileTypeFor = KaraokeFileTypeFor.SONG,
+        karaokeFileTypeKind = KaraokeFileTypeKind.MAIN,
+        locations = listOf(
+            KaraokeFileTypeLocations.LOCAL_FILESYSTEM,
+            KaraokeFileTypeLocations.LOCAL_STORAGE,
+            KaraokeFileTypeLocations.REMOTE_STORAGE
+        ),
+        extention = "mp3",
+        suffix = ".drums",
+        canResolve = true
+    ),
     AUDIO_OTHER (
         description = "Мелодия без баса и ударных",
         karaokeFileTypeFor = KaraokeFileTypeFor.SONG,
         karaokeFileTypeKind = KaraokeFileTypeKind.MAIN,
         locations = listOf(KaraokeFileTypeLocations.LOCAL_FILESYSTEM),
         extention = "flac",
+        suffix = ".other",
+        canResolve = true
+    ),
+    MP3_OTHER (
+        description = "Мелодия без баса и ударных в формате mp3",
+        karaokeFileTypeFor = KaraokeFileTypeFor.SONG,
+        karaokeFileTypeKind = KaraokeFileTypeKind.MAIN,
+        locations = listOf(
+            KaraokeFileTypeLocations.LOCAL_FILESYSTEM,
+            KaraokeFileTypeLocations.LOCAL_STORAGE,
+            KaraokeFileTypeLocations.REMOTE_STORAGE
+        ),
+        extention = "mp3",
         suffix = ".other",
         canResolve = true
     ),

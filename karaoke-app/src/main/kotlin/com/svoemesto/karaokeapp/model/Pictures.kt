@@ -163,7 +163,7 @@ class Pictures(
             val where: MutableList<String> = mutableListOf()
             if (whereArgs.containsKey("id")) where += "id=${whereArgs["id"]}"
             if (whereArgs.containsKey("picture_name")) where += "LOWER(picture_name) LIKE '%${whereArgs["picture_name"]?.lowercase()}%'"
-            if (whereArgs.containsKey("name")) where += "LOWER(picture_name) = '${whereArgs["name"]?.lowercase()}'"
+            if (whereArgs.containsKey("name")) where += "picture_name = '${whereArgs["name"]}'"
             return where
         }
 
@@ -174,7 +174,7 @@ class Pictures(
                      storageService: KaraokeStorageService,
                      storageApiClient: StorageApiClient,
                      ignoreUseInList: Boolean
-        ): List<Pictures> {
+    ): List<Pictures> {
             return KaraokeDbTable.loadList(
                 clazz = Pictures::class,
                 tableName = TABLE_NAME,

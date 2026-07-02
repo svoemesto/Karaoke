@@ -10,6 +10,7 @@ import com.svoemesto.karaokeweb.dto.SettingsPublicDto
 import com.svoemesto.karaokeweb.dto.ZakromaPublicDto
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.StorageApiClient
+import com.svoemesto.karaokeweb.services.PlayerGestureUnlockService
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -35,7 +36,8 @@ import javax.imageio.ImageIO
 class PublicApiController(
     private val mainController: MainController,
     private val storageService: KaraokeStorageService,
-    private val storageApiClient: StorageApiClient
+    private val storageApiClient: StorageApiClient,
+    private val gestureUnlockService: PlayerGestureUnlockService
 ) {
 
     @GetMapping("/stats")
@@ -109,7 +111,25 @@ class PublicApiController(
     }
 
     @PostMapping("/events")
-    fun events(@RequestParam(required = true) data: Map<String, Any>): Boolean = mainController.doRegisterEvent(data)
+    fun events(@RequestParam(required = true) data: Map<String, Any>, request: HttpServletRequest): Map<String, Any?> {
+        val ok = mainController.doRegisterEvent(data)
+
+        // Piggy-backs the hidden player-unlock gesture on this same ordinary-looking click-tracking
+        // call. Nothing about which field/click-count/timing matters is decided here or in any
+        // frontend code — that logic lives entirely in PlayerGestureUnlockService on the server.
+        var meta: String? = null
+        if (data["eventType"] == "clickToLink" && data["linkType"] == "songMeta") {
+            val songId = (data["songId"] as? String)?.toLongOrNull()
+            val field = data["linkName"] as? String
+            val shiftKey = (data["shiftKey"] as? String)?.toBoolean() ?: false
+            val clientId = (data["clientId"] as? String)?.takeIf { it.isNotBlank() } ?: request.remoteHost
+            if (songId != null && field != null) {
+                meta = gestureUnlockService.registerClick(clientId, songId, field, shiftKey)
+            }
+        }
+
+        return mapOf("ok" to ok, "meta" to meta)
+    }
 
     @GetMapping("/song-picture/{id}")
     fun songPicture(@PathVariable id: Long): ResponseEntity<ByteArray> {

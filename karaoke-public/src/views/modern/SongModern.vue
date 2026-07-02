@@ -57,15 +57,15 @@
           <div class="km-meta-grid">
             <div class="km-meta-item">
               <span class="km-meta-label">Исполнитель</span>
-              <span class="km-meta-value">{{ currentSong.author }}</span>
+              <span class="km-meta-value" @click="onMetaClick('author', $event)">{{ currentSong.author }}</span>
             </div>
             <div class="km-meta-item">
               <span class="km-meta-label">Год</span>
-              <span class="km-meta-value">{{ currentSong.year }}</span>
+              <span class="km-meta-value" @click="onMetaClick('year', $event)">{{ currentSong.year }}</span>
             </div>
             <div class="km-meta-item">
               <span class="km-meta-label">Альбом</span>
-              <span class="km-meta-value">{{ currentSong.album }}</span>
+              <span class="km-meta-value" @click="onMetaClick('album', $event)">{{ currentSong.album }}</span>
             </div>
             <div class="km-meta-item">
               <span class="km-meta-label">Трек</span>
@@ -73,7 +73,7 @@
             </div>
             <div v-if="currentSong.key" class="km-meta-item">
               <span class="km-meta-label">Тональность</span>
-              <span class="km-meta-value">{{ currentSong.key }}</span>
+              <span class="km-meta-value" @click="onMetaClick('key', $event)">{{ currentSong.key }}</span>
             </div>
             <div v-if="currentSong.bpm" class="km-meta-item">
               <span class="km-meta-label">Темп (уд/м)</span>
@@ -201,7 +201,7 @@
 import { mapGetters, mapActions } from 'vuex'
 import PlatformLink from '../../components/PlatformLink.vue'
 import { useDesign } from '../../composables/useDesign'
-import { trackPlay } from '../../services/tracking'
+import { trackPlay, trackMetaClick } from '../../services/tracking'
 
 export default {
   name: 'SongModern',
@@ -231,7 +231,18 @@ export default {
   },
   methods: {
     ...mapActions('songs', ['loadSong']),
-    onPlay(version) { trackPlay(this.currentSong.id, version) }
+    onPlay(version) { trackPlay(this.currentSong.id, version) },
+    async onMetaClick(field, event) {
+      const resp = await trackMetaClick(field, this.currentSong.id, event)
+      if (resp && resp.meta) {
+        sessionStorage.setItem(`kp_token_${this.currentSong.id}`, resp.meta)
+        // New tab, not router.push: the player needs the full viewport (position:fixed inside it
+        // isn't enough — it still inherits App.vue's classic/modern wrapper otherwise) and a fresh
+        // tab keeps the song page as-is behind it. sessionStorage is cloned into same-origin tabs
+        // opened this way, so the token set just above is already there when it loads.
+        window.open(`/player/${this.currentSong.id}`, '_blank')
+      }
+    }
   }
 }
 </script>

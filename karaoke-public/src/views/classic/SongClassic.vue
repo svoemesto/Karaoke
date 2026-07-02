@@ -77,15 +77,15 @@
         </tr>
         <tr>
           <td style="text-align: right; padding-right: 5px">Исполнитель:</td>
-          <td><div style="font-weight: bolder">{{ currentSong.author }}</div></td>
+          <td><div style="font-weight: bolder" @click="onMetaClick('author', $event)">{{ currentSong.author }}</div></td>
         </tr>
         <tr>
           <td style="text-align: right; padding-right: 5px">Год:</td>
-          <td><div style="font-weight: bolder">{{ currentSong.year }}</div></td>
+          <td><div style="font-weight: bolder" @click="onMetaClick('year', $event)">{{ currentSong.year }}</div></td>
         </tr>
         <tr>
           <td style="text-align: right; padding-right: 5px">Альбом:</td>
-          <td><div style="font-weight: bolder">{{ currentSong.album }}</div></td>
+          <td><div style="font-weight: bolder" @click="onMetaClick('album', $event)">{{ currentSong.album }}</div></td>
         </tr>
         <tr>
           <td style="text-align: right; padding-right: 5px">Трек:</td>
@@ -97,7 +97,7 @@
         </tr>
         <tr>
           <td style="text-align: right; padding-right: 5px">Тональность:</td>
-          <td><div style="font-weight: bolder">{{ currentSong.key }}</div></td>
+          <td><div style="font-weight: bolder" @click="onMetaClick('key', $event)">{{ currentSong.key }}</div></td>
         </tr>
         <tr>
           <td style="text-align: right; padding-right: 5px">Темп (уд/м):</td>
@@ -172,7 +172,7 @@
 <script>
 import { mapGetters, mapActions } from 'vuex'
 import PlatformLink from '../../components/PlatformLink.vue'
-import { trackPlay } from '../../services/tracking'
+import { trackPlay, trackMetaClick } from '../../services/tracking'
 
 export default {
   name: 'SongClassic',
@@ -200,6 +200,17 @@ export default {
     ...mapActions('songs', ['loadSong']),
     onPlay(version) {
       trackPlay(this.currentSong.id, version)
+    },
+    async onMetaClick(field, event) {
+      const resp = await trackMetaClick(field, this.currentSong.id, event)
+      if (resp && resp.meta) {
+        sessionStorage.setItem(`kp_token_${this.currentSong.id}`, resp.meta)
+        // New tab, not router.push: the player needs the full viewport (position:fixed inside it
+        // isn't enough — it still inherits App.vue's classic/modern wrapper otherwise) and a fresh
+        // tab keeps the song page as-is behind it. sessionStorage is cloned into same-origin tabs
+        // opened this way, so the token set just above is already there when it loads.
+        window.open(`/player/${this.currentSong.id}`, '_blank')
+      }
     }
   }
 }

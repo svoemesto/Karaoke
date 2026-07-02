@@ -4,10 +4,11 @@ class PlayerUnavailableError extends Error {}
 
 export default class KaraokePlayer {
   // Usage modes:
-  //   new KaraokePlayer(container, songId, apiBase)          — online, loads via /api
+  //   new KaraokePlayer(container, songId, apiBase, token)   — online, loads via /api/public/player
+  //     (token = short-lived unlock token obtained via the hidden gesture on the song page)
   //   new KaraokePlayer(container, { smkaraoke: File|Blob }) — from local .smkaraoke file
   //   new KaraokePlayer(container, { smkaraokeUrl: string }) — download .smkaraoke from URL
-  constructor(container, songIdOrOptions, apiBase) {
+  constructor(container, songIdOrOptions, apiBase, token) {
     this.container = container
     if (songIdOrOptions !== null && typeof songIdOrOptions === 'object') {
       this._mode = songIdOrOptions.smkaraoke ? 'blob' : 'url-smkaraoke'
@@ -16,6 +17,7 @@ export default class KaraokePlayer {
       this._mode = 'api'
       this.songId = songIdOrOptions
       this.apiBase = apiBase
+      this.token = token
     }
     this._smkaraokeObjectUrls = []
 
@@ -74,7 +76,7 @@ export default class KaraokePlayer {
 
     try {
       if (this._mode === 'api') {
-        const resp = await fetch(`${this.apiBase}/song/${this.songId}/playerdata`)
+        const resp = await fetch(`${this.apiBase}/${this.songId}/playerdata?token=${encodeURIComponent(this.token || '')}`)
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
         this.data = await resp.json()
       } else {
@@ -706,9 +708,10 @@ export default class KaraokePlayer {
     return parts.length ? parts.join(' - ') : 'karaoke-export'
   }
 
-  // Admin API URL for the full .smkaraoke container of the currently loaded song ('api' mode only).
+  // Public token-gated URL for the full .smkaraoke container of the currently loaded song
+  // ('api' mode only) — same token-in-query pattern as every other public/player/* endpoint.
   _getPlayerFileUrl() {
-    return `${this.apiBase}/song/${this.songId}/playerfile`
+    return `${this.apiBase}/${this.songId}/playerfile?token=${encodeURIComponent(this.token || '')}`
   }
 
   async _exportStem(stemKey) {
@@ -728,7 +731,7 @@ export default class KaraokePlayer {
 
   // "Сохранить файл": re-downloads/re-saves the current song as a .smkaraoke container. In 'blob'
   // mode the file is already in hand (just re-save it); in 'url-smkaraoke' mode re-fetch that URL;
-  // in 'api' mode fetch it fresh from the admin export endpoint.
+  // in 'api' mode fetch it fresh from the public token-gated export endpoint.
   async _saveFile() {
     const suggestedName = `${this._getExportBaseName()}.smkaraoke`
     try {

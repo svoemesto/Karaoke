@@ -1,6 +1,9 @@
 package com.svoemesto.karaokeweb.services
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
+import com.svoemesto.karaokeapp.services.SNS
+import com.svoemesto.karaokeapp.services.SseNotificationService
 import com.svoemesto.karaokeapp.services.StorageApiClient
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.messaging.simp.SimpMessagingTemplate
@@ -21,6 +24,7 @@ class KaraokeWebService(
     val webSocket: SimpMessagingTemplate,
     val karaokeStorageService: KaraokeStorageService,
     val storageApiClient: StorageApiClient,
+    val objectMapper: ObjectMapper,
     @Value($$"${work-in-container}") val wic: Long,
     @Value($$"${work-on-server}") val wos: Long,
     @Value($$"${db-local-postgres-user}") val dbLocalPostgresUser: String,
@@ -38,6 +42,13 @@ class KaraokeWebService(
         DB_SERVER_POSTGRES_PASSWORD = dbRemotePostgresPassword
         WEBSOCKET = webSocket
 //        KSS_WEB = karaokeStorageService
+        // karaoke-web не сканирует com.svoemesto.karaokeapp.services (нет @ComponentScan туда), поэтому
+        // SNS (lateinit, обычно инициализируется в KaraokeAppService.init{}) здесь никогда бы не был выставлен.
+        // KaraokeDbTable.createDbInstance() вызывает SNS.send(...) без try/catch — без этой инициализации
+        // первый же INSERT через переиспользованные модели karaoke-app (например SiteUser при регистрации)
+        // уронил бы процесс karaoke-web с UninitializedPropertyAccessException. У karaoke-web нет /subscribe
+        // эндпоинта, поэтому emitters всегда пуст и send() безопасно не делает ничего.
+        SNS = SseNotificationService(objectMapper)
         karaokeStorageService.deleteAllEmptyBuckets()
         println("WEB_WORK_ON_SERVER = $WEB_WORK_ON_SERVER")
     }

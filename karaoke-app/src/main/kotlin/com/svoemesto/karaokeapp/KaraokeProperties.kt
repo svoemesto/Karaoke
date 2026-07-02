@@ -624,4 +624,6 @@ val listKaraokeProperties = listOf(
         ).setting(),
         description = "Табулатура аккорда - Finger - Shape"
     ),
+    KaraokeProperty(key = "yandexSmartCaptchaClientKey", defaultValue = "", description = "Yandex SmartCaptcha — клиентский ключ (публичный, для формы регистрации на сайте)"),
+    KaraokeProperty(key = "yandexSmartCaptchaServerKey", defaultValue = "", description = "Yandex SmartCaptcha — серверный ключ (секретный, для валидации на бэкенде)"),
 )

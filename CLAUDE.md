@@ -14,7 +14,10 @@ them. A Vue 3 admin SPA drives the whole pipeline against a Kotlin/Spring Boot b
 
 - `karaoke-app` — the core engine. Spring Boot (Kotlin) app containing almost all domain logic: DB models, the
   MLT project generator, the async job-processing queue, AI/web-search lyrics finder, browser automation, storage
-  client, OAuth2 authorization server. Everything else depends on it.
+  client, OAuth2 authorization server. Everything else depends on it. **Runs only on the local admin machine —
+  never deployed to the production server** (`deploy/web-server-deploy/deploy/` has no `docker-compose-app.yml`).
+  Anything that must also work in production (settings read by `karaoke-web`, etc.) cannot rely on an HTTP call
+  to `karaoke-app`; it needs to live in Postgres instead (see `tbl_public_settings` below).
 - `karaoke-web` — thin Spring Boot module (`implementation(project(":karaoke-app"))`) exposing the public-facing
   website endpoints (song pages, stats, web events) and a websocket config. Reuses `karaoke-app`'s DB models and
   services directly.
@@ -148,6 +151,7 @@ ssh root@79.174.95.69 "cp /root/Karaoke/deploy/80to8897 /etc/nginx/sites-enabled
 ```
 
 **Архитектура на сервере:**
+- karaoke-app на сервере **не разворачивается вовсе** — только БД, karaoke-web, karaoke-public, storage
 - nginx (443/80) → `/api/*` → karaoke-web (порт 8897) напрямую
 - nginx (443/80) → `/song` + User-Agent `vkShare` → karaoke-web (порт 8897) — минимальный Thymeleaf: `<title>` + `<img>` в body
 - nginx (443/80) → `/` → karaoke-public (порт 7907) — публичный фронтенд
@@ -484,3 +488,51 @@ Google Fonts `<link>` в `index.html` (нужен для остального UI
 (не общий пакет). Различаются в 3 местах: конструктор принимает `token` 4-м параметром, URL-шаблон
 `apiBase` (без `/song/` в karaoke-public), `_getPlayerFileUrl()`. Любое исправление логики плеера
 нужно вносить в оба файла.
+
+## Регистрация/авторизация пользователей сайта (`/login`, `/register`, `/account`)
+
+Отдельная от админских логинов (`tbl_users`) сущность — посетители публичного сайта, таблица
+`tbl_site_users` (+ `tbl_site_user_tokens`, `deploy/karaoke-db/06_site_users.sql`).
+
+**Токен сессии — персистентный, не JWT.** `SiteUserTokenService` (karaoke-web, чистый JDBC) на каждый
+защищённый запрос делает живой SELECT и проверяет `revoked`/`expires_at`/`is_banned` — бан и logout
+действуют мгновенно, без ожидания истечения TTL. Защищённые эндпоинты (`/api/public/account/**`,
+`/api/public/auth/me|logout`) идут через `SiteAuthInterceptor` (`HandlerInterceptor`), не через Spring
+Security filter chain.
+
+**Публичный backend** — `karaoke-web/controllers/PublicAuthController.kt` (`register/login/logout/me/config`)
+и `PublicAccountController.kt` (`profile/change-password`). **Админский CRUD** —
+`karaoke-app/controllers/SiteUsersController.kt` (`digest/byId/update/ban/unban/delete`), параметр
+`target=local|remote` явно выбирает `Connection.local()`/`Connection.remote()` — новый паттерн для ручных
+API (раньше выбор БД был только в фоновых sync-джобах). Поле «Премиум» в карточке (webvue3) — обычный
+редактируемый чекбокс, временная замена для будущей автоматической Sponsr-сверки (см. ниже).
+
+**Капча — Yandex SmartCaptcha**, ключи в `tbl_public_settings` (не в файловых `KaraokeProperties` — см.
+ниже почему), `karaoke-web/services/CaptchaConfigService.kt` читает их напрямую через `WORKING_DATABASE`.
+`YandexCaptchaValidationService` — fail-open (не блокирует регистрацию), если серверный ключ пуст —
+осознанное поведение, чтобы регистрация не ломалась намертво до настройки ключей.
+
+**`karaoke-app` никогда не разворачивается на продакшн-сервере** (см. `## Modules / layout`) — только
+на машине администратора. Из этого следует: `KaraokeDbTable.createDbInstance()`
+(`model/KaraokeDbTable.kt`) вызывает `SNS.send(...)` **без try/catch**, а `SNS` обычно инициализируется
+в `KaraokeAppService.init{}`, которого в karaoke-web нет (нет `@ComponentScan` до
+`com.svoemesto.karaokeapp.services`) — первый же `INSERT` через любую `KaraokeDbTable`-модель из
+karaoke-web (например, регистрация нового `SiteUser`) уронил бы процесс. Фикс уже внесён —
+`karaoke-web/services/KaraokeWebService.kt` дополнительно инициализирует
+`SNS = SseNotificationService(objectMapper)` в своём `init{}`. Не убирать при рефакторинге этого файла.
+
+**`tbl_public_settings`** (`deploy/karaoke-db/07_public_settings.sql`) — маленькая key/value таблица в
+Postgres специально для настроек, нужных сервисам на сервере (сейчас — только ключи капчи). Не путать
+с `KaraokeProperties` (~150 файловых настроек рендеринга, `/sm-karaoke/system/Karaoke.properties`,
+существуют только на машине администратора) — для всего, что должно работать в проде, использовать
+только `tbl_public_settings` с тем же паттерном `target=local|remote`
+(`karaoke-app/controllers/PublicSettingsController.kt`, раздел «Настройки сайта» в webvue3). При
+добавлении новой таблицы в `deploy/karaoke-db/*.sql` — применять её и на локальной, и на серверной БД
+(79.174.95.69:8832) отдельно, миграция сама на сервер не попадает.
+
+**`webvue3/nginx_webvue3.conf`** — прокси на `karaoke-app` в `location /api` задан через переменную
+(`set $karaoke_app_upstream ...; proxy_pass $karaoke_app_upstream/api;`) + `resolver 127.0.0.11 valid=10s
+ipv6=off;` (docker embedded DNS), не литералом. Литерал резолвится один раз при старте nginx и роняет
+его насмерть (`emerg: host not found`), если контейнер `karaoke-app` в этот момент не поднят — с
+переменной резолв ленивый, на каждый запрос, поэтому webvue3 переживает независимый рестарт karaoke-app.
+Тот же приём использовать для любого нового `proxy_pass` на другой docker-сервис в этом файле.

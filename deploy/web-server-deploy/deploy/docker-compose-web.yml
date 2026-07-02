@@ -23,6 +23,8 @@ services:
       - DB_SERVER_POSTGRES_PASSWORD=${DB_SERVER_POSTGRES_PASSWORD}
     volumes:
       - ${WEB_FOLDER_HOST}:${WEB_FOLDER_IN_CONTAINER}
+    extra_hosts:
+      - "minio-proxy:host-gateway"
     networks:
       - karaokenet
     entrypoint:
@@ -36,4 +38,5 @@ services:
 
 networks:
   karaokenet:
-    driver: bridge
+    external: true
+    name: deploy_karaokenet

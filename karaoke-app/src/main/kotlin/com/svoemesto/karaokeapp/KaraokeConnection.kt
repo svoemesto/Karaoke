@@ -8,9 +8,12 @@ abstract class KaraokeConnection(
     open val password: String,
     open val name: String
 ) {
-    private var connection: java.sql.Connection? = null
+    @Volatile private var connection: java.sql.Connection? = null
+
+    @Synchronized
     fun getConnection(): java.sql.Connection? {
-        if (connection == null) {
+        val conn = connection
+        if (conn == null || conn.isClosed || !conn.isValid(3)) {
             Class.forName("org.postgresql.Driver")
             try {
                 connection = DriverManager.getConnection(url, username, password)
@@ -20,5 +23,4 @@ abstract class KaraokeConnection(
         }
         return connection
     }
-//    abstract fun getConnection(): java.sql.Connection
 }

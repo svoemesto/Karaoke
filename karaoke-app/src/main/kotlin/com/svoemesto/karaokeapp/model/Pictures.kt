@@ -149,9 +149,6 @@ class Pictures(
         }
     }
 
-    init {
-        storageBucketIsPublic = true
-    }
 
     companion object {
 

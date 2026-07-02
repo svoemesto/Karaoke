@@ -21,4 +21,5 @@ services:
 
 networks:
   karaokenet:
-    driver: bridge
+    external: true
+    name: deploy_karaokenet

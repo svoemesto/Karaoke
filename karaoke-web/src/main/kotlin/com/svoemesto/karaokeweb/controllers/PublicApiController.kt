@@ -25,6 +25,7 @@ import java.awt.image.BufferedImage
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.net.URI
 import javax.imageio.ImageIO
 
 /**
@@ -37,8 +38,29 @@ class PublicApiController(
     private val mainController: MainController,
     private val storageService: KaraokeStorageService,
     private val storageApiClient: StorageApiClient,
-    private val gestureUnlockService: PlayerGestureUnlockService
+    private val gestureUnlockService: PlayerGestureUnlockService,
+    @org.springframework.beans.factory.annotation.Value("\${storage.proxy-url}") private val minioProxyUrl: String,
 ) {
+
+    // Fetches a PNG from MinIO via the nginx /minio/ proxy on the host.
+    // The proxy runs on the host (MTU=1450), avoiding the Docker MTU=1500 mismatch
+    // that causes silent packet drops when Java contacts the remote MinIO directly.
+    private fun fetchFromMinIO(fileName: String): ByteArray? {
+        if (fileName.isEmpty()) return null
+        val encodedPath = fileName.split("/").joinToString("/") { segment ->
+            java.net.URLEncoder.encode(segment, Charsets.UTF_8).replace("+", "%20")
+        }
+        return try {
+            val conn = java.net.URL("$minioProxyUrl/minio/karaoke/$encodedPath")
+                .openConnection() as java.net.HttpURLConnection
+            conn.connectTimeout = 10_000
+            conn.readTimeout = 15_000
+            if (conn.responseCode == 200) conn.inputStream.use { it.readBytes() } else null
+        } catch (e: Exception) {
+            println("fetchFromMinIO error for $fileName: ${e.message}")
+            null
+        }
+    }
 
     @GetMapping("/stats")
     fun stats(request: HttpServletRequest): Map<String, Int> {
@@ -134,12 +156,12 @@ class PublicApiController(
     @GetMapping("/song-picture/{id}")
     fun songPicture(@PathVariable id: Long): ResponseEntity<ByteArray> {
         val bucket = "karaoke"
-        val cacheKey = "song_banner_$id.png"
+//        val cacheKey = "song_banner_$id.png"
 
-        if (storageService.fileExists(bucket, cacheKey)) {
-            val bytes = storageService.downloadFile(bucket, cacheKey).use { it.readBytes() }
-            return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(bytes)
-        }
+//        if (storageService.fileExists(bucket, cacheKey)) {
+//            val bytes = storageService.downloadFile(bucket, cacheKey).use { it.readBytes() }
+//            return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(bytes)
+//        }
 
         val settings = Settings.loadFromDbById(id, database = WORKING_DATABASE,
             storageService = storageService, storageApiClient = storageApiClient)
@@ -157,10 +179,8 @@ class PublicApiController(
         g.color = Color.BLACK
         g.fillRect(0, 0, frameW, frameH)
 
-        fun loadFromMinIO(fileName: String): BufferedImage? {
-            if (fileName.isEmpty() || !storageService.fileExists(bucket, fileName)) return null
-            return storageService.downloadFile(bucket, fileName).use { ImageIO.read(it) }
-        }
+        fun loadFromMinIO(fileName: String): BufferedImage? =
+            fetchFromMinIO(fileName)?.let { ImageIO.read(ByteArrayInputStream(it)) }
 
         loadFromMinIO(albumPic?.storageFileName ?: "")?.let {
             g.drawImage(resizeBufferedImage(it, 154, 154), 20, 20, null)
@@ -173,8 +193,7 @@ class PublicApiController(
         val out = ByteArrayOutputStream()
         ImageIO.write(resultImage, "png", out)
         val bytes = out.toByteArray()
-        storageService.uploadFile(bucket, cacheKey, ByteArrayInputStream(bytes), bytes.size.toLong())
-
+//        storageService.uploadFile(bucket, cacheKey, ByteArrayInputStream(bytes), bytes.size.toLong())
         return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(bytes)
     }
 
@@ -192,23 +211,20 @@ class PublicApiController(
         val authorPic = Pictures.getPictureByName(settings.author, WORKING_DATABASE,
             storageService, storageApiClient, ignoreUseInList = false)
 
-        val albumFile = albumPic?.let {
-            "${settings.author}/${settings.year} - ${settings.album}/${albumPicName}.album.png"
-                .takeIf { storageService.fileExists(bucket, it) }
-        }
-        val authorFile = authorPic?.let {
-            "${settings.author}/${settings.author}.author.png"
-                .takeIf { storageService.fileExists(bucket, it) }
-        }
-
-        if (albumFile == null || authorFile == null) {
-            return ResponseEntity.status(HttpStatus.FOUND)
-                .header(HttpHeaders.LOCATION, "/KARAOKE_LOGO.png")
-                .build()
-        }
+        val albumFilePath = "${settings.author}/${settings.year} - ${settings.album}/${albumPicName}.album.png"
+        val authorFilePath = "${settings.author}/${settings.author}.author.png"
 
         if (cacheFile.exists()) {
             return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(cacheFile.readBytes())
+        }
+
+        val albumBytes = fetchFromMinIO(albumFilePath)
+        val authorBytes = fetchFromMinIO(authorFilePath)
+
+        if (albumBytes == null || authorBytes == null) {
+            return ResponseEntity.status(HttpStatus.FOUND)
+                .header(HttpHeaders.LOCATION, "/KARAOKE_LOGO.png")
+                .build()
         }
 
         val frameW = 537; val frameH = 240; val padding = 20
@@ -224,11 +240,8 @@ class PublicApiController(
         g.color = Color.BLACK
         g.fillRect(0, 0, frameW, frameH)
 
-        fun loadFromMinIO(fileName: String): BufferedImage =
-            storageService.downloadFile(bucket, fileName).use { ImageIO.read(it) }
-
-        g.drawImage(resizeBufferedImage(loadFromMinIO(albumFile), albumW, albumH), padding, padding, null)
-        g.drawImage(resizeBufferedImage(loadFromMinIO(authorFile), authorW, authorH), albumW + 2 * padding, padding, null)
+        g.drawImage(resizeBufferedImage(ImageIO.read(ByteArrayInputStream(albumBytes)), albumW, albumH), padding, padding, null)
+        g.drawImage(resizeBufferedImage(ImageIO.read(ByteArrayInputStream(authorBytes)), authorW, authorH), albumW + 2 * padding, padding, null)
 
         val textAreaW = frameW - 2 * padding
         val textAreaH = frameH - picAreaH
@@ -261,26 +274,15 @@ class PublicApiController(
     }
 
     @GetMapping("/picture")
-    fun picture(@RequestParam file: String): ResponseEntity<ByteArray> {
-        val bucket = "karaoke"
-        if (storageService.fileExists(bucket, file)) {
-            val bytes = storageService.downloadFile(bucket, file).use { it.readBytes() }
-            return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(bytes)
+    fun picture(@RequestParam file: String): ResponseEntity<Void> {
+        // Redirect to nginx MinIO proxy — nginx runs on the host (MTU=1450) so large TCP packets
+        // are not silently dropped the way they are when Java in Docker (MTU=1500) talks to
+        // the remote MinIO server across an ens3 interface with MTU=1450.
+        val encodedPath = file.split("/").joinToString("/") { segment ->
+            java.net.URLEncoder.encode(segment, Charsets.UTF_8).replace("+", "%20")
         }
-        val isAuthor = file.endsWith(".preview.author.png")
-        val fullFile = if (isAuthor)
-            file.replace(".preview.author.png", ".author.png")
-        else
-            file.replace(".preview.album.png", ".album.png")
-        if (!storageService.fileExists(bucket, fullFile)) return ResponseEntity.notFound().build()
-        val fullBytes = storageService.downloadFile(bucket, fullFile).use { it.readBytes() }
-        val bi = ImageIO.read(ByteArrayInputStream(fullBytes))
-        val (newW, newH) = if (isAuthor) 125 to 50 else 50 to 50
-        val previewBi = resizeBufferedImage(bi, newW = newW, newH = newH)
-        val out = ByteArrayOutputStream()
-        ImageIO.write(previewBi, "png", out)
-        val previewBytes = out.toByteArray()
-        storageService.uploadFile(bucket, file, ByteArrayInputStream(previewBytes), previewBytes.size.toLong())
-        return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(previewBytes)
+        return ResponseEntity.status(HttpStatus.FOUND)
+            .location(URI.create("/minio/karaoke/$encodedPath"))
+            .build()
     }
 }

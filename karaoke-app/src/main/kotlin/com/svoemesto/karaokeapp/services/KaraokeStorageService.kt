@@ -4,6 +4,8 @@ import io.minio.*
 import io.minio.errors.ErrorResponseException
 import io.minio.errors.MinioException
 import io.minio.http.Method
+import okhttp3.ConnectionPool
+import okhttp3.OkHttpClient
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import java.io.File
@@ -12,6 +14,7 @@ import java.io.InputStream
 import java.io.Serializable
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
+import java.util.concurrent.TimeUnit
 
 interface KaraokeStorageService {
     fun uploadFile(bucketName: String, fileName: String, file: InputStream, size: Long?)
@@ -50,13 +53,21 @@ class KaraokeStorageServiceImpl(
     @Value($$"${storage.container-name}") val storageContainerName: String,
     @Value($$"${storage.port-inside-container}") val storagePortInsideContainer: String,
     @Value($$"${storage.port-host}") val storagePortHost: String,
-    @Value($$"${work-in-container}") val wic: Long
+    @Value($$"${work-in-container}") val wic: Long,
 ) : KaraokeStorageService {
     private val endpoint: String = if (wic != 0L) "http://${storageContainerName}:${storagePortInsideContainer}" else "http://localhost:${storagePortHost}"
-    private val storageClient = MinioClient.builder()
-        .endpoint(endpoint)
-        .credentials(storageKey, storageSecret)
-        .build()
+
+    private fun buildClient(ep: String, key: String, secret: String): MinioClient {
+        val httpClient = OkHttpClient.Builder()
+            .connectionPool(ConnectionPool(0, 1, TimeUnit.NANOSECONDS))
+            .connectTimeout(10, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
+            .build()
+        return MinioClient.builder().endpoint(ep).credentials(key, secret).httpClient(httpClient).build()
+    }
+
+    private val storageClient: MinioClient = buildClient(endpoint, storageKey, storageSecret)
 
     // --- Вспомогательная функция для декодирования имени файла ---
     private fun decodeFileNameIfEncoded(fileName: String): String {
@@ -92,7 +103,7 @@ class KaraokeStorageServiceImpl(
     }
 
     override fun getFileStat(bucketName: String, fileName: String): StatObjectResponse? {
-        val decodedFileName = decodeFileNameIfEncoded(fileName) // Декодируем перед использованием
+        val decodedFileName = decodeFileNameIfEncoded(fileName)
         return try {
             storageClient.statObject(
                 StatObjectArgs.builder()
@@ -186,14 +197,14 @@ class KaraokeStorageServiceImpl(
     }
 
     override fun uploadFile(bucketName: String, fileName: String, file: InputStream, size: Long?) {
-        val decodedFileName = decodeFileNameIfEncoded(fileName) // Декодируем перед использованием
+        val decodedFileName = decodeFileNameIfEncoded(fileName)
         createBucketIfNotExists(bucketName)
         val sizeToUse = size ?: file.available().toLong()
         try {
             storageClient.putObject(
                 PutObjectArgs.builder()
                     .bucket(bucketName)
-                    .`object`(decodedFileName) // Используем декодированное имя
+                    .`object`(decodedFileName)
                     .stream(file, sizeToUse, -1)
                     .build()
             )
@@ -203,19 +214,19 @@ class KaraokeStorageServiceImpl(
     }
 
     override fun getFileUrl(bucketName: String, fileName: String): String {
-        val decodedFileName = decodeFileNameIfEncoded(fileName) // Декодируем перед использованием
-        return "$endpoint/$bucketName/$decodedFileName" // Используем декодированное имя в URL
+        val decodedFileName = decodeFileNameIfEncoded(fileName)
+        return "$endpoint/$bucketName/$decodedFileName"
     }
 
     override fun getPresignedUrl(bucketName: String, fileName: String, expiry: Int): String {
-        val decodedFileName = decodeFileNameIfEncoded(fileName) // Декодируем перед использованием
+        val decodedFileName = decodeFileNameIfEncoded(fileName)
         return try {
             storageClient.getPresignedObjectUrl(
                 GetPresignedObjectUrlArgs.builder()
                     .method(Method.GET)
                     .bucket(bucketName)
-                    .`object`(decodedFileName) // Используем декодированное имя
-                    .expiry(expiry) // по умолчанию 7 дней (в секундах)
+                    .`object`(decodedFileName)
+                    .expiry(expiry)
                     .build()
             )
         } catch (e: MinioException) {
@@ -239,12 +250,12 @@ class KaraokeStorageServiceImpl(
     }
 
     override fun downloadFile(bucketName: String, fileName: String): InputStream {
-        val decodedFileName = decodeFileNameIfEncoded(fileName) // Декодируем перед использованием
+        val decodedFileName = decodeFileNameIfEncoded(fileName)
         return try {
             storageClient.getObject(
                 GetObjectArgs.builder()
                     .bucket(bucketName)
-                    .`object`(decodedFileName) // Используем декодированное имя
+                    .`object`(decodedFileName)
                     .build()
             )
         } catch (e: MinioException) {
@@ -253,13 +264,13 @@ class KaraokeStorageServiceImpl(
     }
 
     override fun deleteFile(bucketName: String, fileName: String) {
-        val decodedFileName = decodeFileNameIfEncoded(fileName) // Декодируем перед использованием
+        val decodedFileName = decodeFileNameIfEncoded(fileName)
         if (bucketExists(bucketName)) {
             try {
                 storageClient.removeObject(
                     RemoveObjectArgs.builder()
                         .bucket(bucketName)
-                        .`object`(decodedFileName) // Используем декодированное имя
+                        .`object`(decodedFileName)
                         .build()
                 )
             } catch (e: MinioException) {
@@ -278,12 +289,12 @@ class KaraokeStorageServiceImpl(
 
     override fun fileExists(bucketName: String, fileName: String): Boolean {
         if (bucketExists(bucketName)) {
-            val decodedFileName = decodeFileNameIfEncoded(fileName) // Декодируем перед использованием
+            val decodedFileName = decodeFileNameIfEncoded(fileName)
             return try {
                 storageClient.statObject(
                     StatObjectArgs.builder()
                         .bucket(bucketName)
-                        .`object`(decodedFileName) // Используем декодированное имя
+                        .`object`(decodedFileName)
                         .build()
                 )
                 true

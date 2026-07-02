@@ -208,8 +208,7 @@ enum class KaraokeFileType(
         karaokeFileTypeFor = KaraokeFileTypeFor.PLATFORM,
         karaokeFileTypeKind = KaraokeFileTypeKind.MAIN,
         locations = listOf(
-            KaraokeFileTypeLocations.LOCAL_FILESYSTEM,
-            KaraokeFileTypeLocations.LOCAL_STORAGE
+            KaraokeFileTypeLocations.LOCAL_FILESYSTEM
         ),
         symlinks = listOf(KaraokeFileSymlink(folder = "symlink_sponsr", platforms = listOf(KaraokePlatform.SPONSR))),
         extention = "png",
@@ -221,8 +220,7 @@ enum class KaraokeFileType(
         karaokeFileTypeFor = KaraokeFileTypeFor.SONGVERSION,
         karaokeFileTypeKind = KaraokeFileTypeKind.MAIN,
         locations = listOf(
-            KaraokeFileTypeLocations.LOCAL_FILESYSTEM,
-            KaraokeFileTypeLocations.LOCAL_STORAGE
+            KaraokeFileTypeLocations.LOCAL_FILESYSTEM
         ),
         symlinks = listOf(KaraokeFileSymlink(folder = "symlink_png")),
         extention = "png",

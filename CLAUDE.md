@@ -249,6 +249,22 @@ Auth is OAuth2/OIDC against the authorization server embedded in `karaoke-app`
 (`config/AuthorizationServerConfig.kt`, `config/SecurityConfig.kt`), consumed on the frontend via `oidc-client-ts`
 (`services/AuthService.js`, `views/AuthView.vue` + `CallbackView.vue`).
 
+**Vuex-паттерны в Songs/store.js:**
+- **Мутации — только sync.** Весь async (XHR, dispatch) — только в actions. Мутации содержат исключительно
+  синхронное присвоение `state.*`. Если нужно разбить действие на «установить ID сразу» + «установить данные
+  после загрузки» — делать две отдельных мутации (пример: `setCurrentSongIdOnly` + `setCurrentSongData`).
+- **Action `setCurrentSongId` полностью async.** Загружает полный объект `Song` через POST `/api/song` (если
+  нет в `songPages`) внутри action с `await`, возвращает Promise. Вызывающий код может `await dispatch(...)`.
+- **HR-запросы из SongsTable идут через очередь** (`_enqueueHrRequest` / `_processHrQueue`, лимит
+  `HR_MAX_CONCURRENT=3`). Это не даёт 50 одновременным запросам заполнить browser connection pool (~6 слотов
+  HTTP/1.1) и заблокировать `/api/song`. При клике на песню: `hrQueue = []` → `await dispatch('setCurrentSongId')`
+  → `isSongEditVisible = true` → `updateHealthReportForCurrentPage()` (возобновление очереди для оставшихся).
+- **`state.songsDigest`** — lightweight дайджесты (без полного тела Song), загружаются через
+  POST `/api/songsdigests`. Полный объект Song грузится лениво при клике в action `setCurrentSongId`.
+- **HR-обновление таблицы** идёт через SSE-нотификацию (`SseNotification.healthReports`) с бэкенда,
+  обрабатывается в `App.vue` → мутация `healthReportMessageByUserEvent`. Action `setCurrentSongHealthReports`
+  обновляет `state.currentSongHealthReports` только если `currentSongId === currId` (не перетирает чужими данными).
+
 **Storage.** Generated media files (audio stems, videos, pictures) live in MinIO-compatible object storage,
 accessed through `services/StorageApiClient.kt` / `services/KaraokeStorageService.kt` and the corresponding
 `StorageController`/`docker-compose-storage.yml`.

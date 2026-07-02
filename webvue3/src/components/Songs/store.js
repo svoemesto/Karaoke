@@ -1324,87 +1324,22 @@ export default {
         setLastUpdateSong(state, lastUpdateSong) {
           state.lastUpdateSong = lastUpdateSong;
         },
-        async setCurrentSongId(state, currId) {
-            // console.log('mutation setCurrentSongId called', currId);
+        setCurrentSongIdOnly(state, currId) {
             state.currentSongId = currId;
-            // console.log('state.songsDigest', state.songsDigest);
-            let songWithIndexesFiltered = state.songPages.map(function (page, pageIndex) {
-                return page.map(function (song, songIndex) {
-                    console.log('song', song);
-                    return { song: song, songIndex: songIndex, songId: song.id, pageIndex: pageIndex }
-                });
-            }).flatMap(item => item).filter(item => item.songId === currId);
-
-            let songWithIndexes = songWithIndexesFiltered.length ? songWithIndexesFiltered[0] : undefined;
-            // console.log('mutation setCurrentSongId songWithIndexes', songWithIndexes);
-            if (songWithIndexes) {
-                state.currentSong = songWithIndexes.song;
-                state.currentSongIndex = songWithIndexes.songIndex;
-                state.currentSongPageIndex = songWithIndexes.pageIndex;
-                state.currentSongId = songWithIndexes.song.id;
-                state.previousSongId = songWithIndexes.song.idPrevious;
-                state.nextSongId = songWithIndexes.song.idNext;
-                state.rightSongId = songWithIndexes.song.idRight;
-                state.leftSongId = songWithIndexes.song.idLeft;
-                state.snapshotSong = Object.assign({}, state.currentSong)
-                state.toSync = await this.dispatch('getToSyncFromRest');
-                state.freeTimeSlots = await this.dispatch('getFreeTimeSlots');
-            } else {
-                let request = { method: 'POST', url: "/api/song", params: {id: currId} };
-                promisedXMLHttpRequest(request).then(async data => {
-                     let songFromRest = JSON.parse(data);
-                     console.log('Song: ', songFromRest);
-                     if (songFromRest) {
-                         const id = songFromRest.id;
-
-                         let songWithIndexesFiltered = state.songPages.map(function (page, pageIndex) {
-                             return page.map(function (song, songIndex) {
-                                 return {song: song, songIndex: songIndex, songId: song.id, pageIndex: pageIndex}
-                             });
-                         }).flatMap(item => item).filter(item => item.songId === id);
-                         let songWithIndexes = songWithIndexesFiltered.length ? songWithIndexesFiltered[0] : undefined;
-                         if (songWithIndexes) {
-                             // console.log('Обновляем песню ID =', id);
-                             if (id === state.currentSongId) {
-                                 state.snapshotSong = Object.assign({}, songFromRest)
-                             } else {
-                                 state.songPages[songWithIndexes.pageIndex].splice(songWithIndexes.songIndex, 1, songFromRest);
-                             }
-                         } else {
-                             state.currentSong = Object.assign({}, songFromRest);
-                             state.currentSongId = songFromRest.id;
-                             state.previousSongId = songFromRest.idPrevious;
-                             state.nextSongId = songFromRest.idNext;
-                             state.rightSongId = songFromRest.idRight;
-                             state.leftSongId = songFromRest.idLeft;
-                             state.snapshotSong = Object.assign({}, state.currentSong)
-                             state.toSync = await this.dispatch('getToSyncFromRest');
-                             state.freeTimeSlots = await this.dispatch('getFreeTimeSlots');
-                         }
-                     }
-                });
-            }
-            // const params = {id: currId};
-            // let request = { method: 'POST', url: "/api/song/healthReportList", params: params };
-            // promisedXMLHttpRequest(request).then(data => {
-            //     let result = JSON.parse(data);
-            //     console.log('loadHealthReportList result', result);
-            //     state.currentSongHealthReports = result;
-            // }).catch(error => {
-            //     console.log(error);
-            // });
         },
-        setCurrentSongHealthReports(state, currId) {
-            // console.log('setCurrentSongHealthReports currId', currId);
-            const params = {id: currId};
-            let request = { method: 'POST', url: "/api/song/healthReportList", params: params };
-            promisedXMLHttpRequest(request).then(data => {
-                let result = JSON.parse(data);
-                // console.log('loadHealthReportList result', result);
-                state.currentSongHealthReports = result;
-            }).catch(error => {
-                console.log(error);
-            });
+        setCurrentSongData(state, { song, songIndex, pageIndex }) {
+            state.currentSong = song;
+            state.currentSongIndex = songIndex;
+            state.currentSongPageIndex = pageIndex;
+            state.currentSongId = song.id;
+            state.previousSongId = song.idPrevious;
+            state.nextSongId = song.idNext;
+            state.rightSongId = song.idRight;
+            state.leftSongId = song.idLeft;
+            state.snapshotSong = Object.assign({}, song);
+        },
+        setCurrentSongHealthReports(state, result) {
+            state.currentSongHealthReports = result;
         },
         async deleteCurrentSong(state) {
             let previousSongId = state.previousSongId;
@@ -1598,12 +1533,58 @@ export default {
     },
     actions: {
         async setCurrentSongId(ctx, currId) {
-            // console.log('actions setCurrentSongId called', currId);
-            await ctx.commit('setCurrentSongId', currId);
-            ctx.commit('setCurrentSongHealthReports', currId);
+            ctx.commit('setCurrentSongIdOnly', currId);
+
+            let songEntry = null;
+            ctx.state.songPages.forEach((page, pageIndex) => {
+                page.forEach((song, songIndex) => {
+                    if (song.id === currId) songEntry = { song, songIndex, pageIndex };
+                });
+            });
+
+            if (songEntry) {
+                ctx.commit('setCurrentSongData', songEntry);
+                ctx.state.toSync = await ctx.dispatch('getToSyncFromRest');
+                ctx.state.freeTimeSlots = await ctx.dispatch('getFreeTimeSlots');
+            } else {
+                try {
+                    const data = await promisedXMLHttpRequest({ method: 'POST', url: '/api/song', params: { id: currId } });
+                    const songFromRest = JSON.parse(data);
+                    if (songFromRest && currId === ctx.state.currentSongId) {
+                        let entryNow = null;
+                        ctx.state.songPages.forEach((page, pi) => {
+                            page.forEach((song, si) => {
+                                if (song.id === currId) entryNow = { song, songIndex: si, pageIndex: pi };
+                            });
+                        });
+                        if (entryNow) {
+                            ctx.state.songPages[entryNow.pageIndex].splice(entryNow.songIndex, 1, songFromRest);
+                            ctx.commit('setCurrentSongData', { song: songFromRest, songIndex: entryNow.songIndex, pageIndex: entryNow.pageIndex });
+                        } else {
+                            ctx.commit('setCurrentSongData', { song: songFromRest, songIndex: -1, pageIndex: -1 });
+                            ctx.state.toSync = await ctx.dispatch('getToSyncFromRest');
+                            ctx.state.freeTimeSlots = await ctx.dispatch('getFreeTimeSlots');
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error loading song:', error);
+                }
+            }
+
+            ctx.dispatch('setCurrentSongHealthReports', currId);
         },
-        setCurrentSongHealthReports(ctx, currId) {
-            ctx.commit('setCurrentSongHealthReports', currId);
+        async setCurrentSongHealthReports(ctx, currId) {
+            try {
+                const data = await promisedXMLHttpRequest({
+                    method: 'POST', url: '/api/song/healthReportList', params: { id: currId }
+                });
+                const result = JSON.parse(data);
+                if (ctx.state.currentSongId === currId) {
+                    ctx.commit('setCurrentSongHealthReports', result);
+                }
+            } catch (error) {
+                console.log(error);
+            }
         },
         changeToSync(ctx) {
             ctx.commit('changeToSync');

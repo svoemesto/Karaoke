@@ -401,7 +401,10 @@ export default {
       isHealthReportTableVisible: false,
       customConfirmParams: undefined,
       isBusy: false,
-      allowAddSync: false
+      allowAddSync: false,
+      hrQueue: [],
+      hrRunning: 0,
+      HR_MAX_CONCURRENT: 3
     }
   },
   watch: {
@@ -424,6 +427,7 @@ export default {
     },
     currentPage: {
       handler () {
+        this.hrQueue = [];
         this.updateHealthReportForCurrentPage();
       }
     }
@@ -887,10 +891,22 @@ export default {
           if (filteredSongs && filteredSongs.length > 0) {
             const song = filteredSongs[0];
             if (song.healthReportText === '-') {
-              this.$store.dispatch('setCurrentSongHealthReports', settingsId);
+              this._enqueueHrRequest(settingsId);
             }
           }
         }
+      }
+    },
+    _enqueueHrRequest(settingsId) {
+      this.hrQueue.push(settingsId);
+      this._processHrQueue();
+    },
+    _processHrQueue() {
+      while (this.hrRunning < this.HR_MAX_CONCURRENT && this.hrQueue.length > 0) {
+        const id = this.hrQueue.shift();
+        this.hrRunning++;
+        this.$store.dispatch('setCurrentSongHealthReports', id)
+            .finally(() => { this.hrRunning--; this._processHrQueue(); });
       }
     },
     repairAllForCurrentPage() {
@@ -1323,9 +1339,11 @@ export default {
       this.$store.dispatch('setCurrentSongHealthReports', this.currentSongId);
       this.isHealthReportTableVisible = false;
     },
-    editSong(id) {
-      this.$store.dispatch('setCurrentSongId', id);
+    async editSong(id) {
+      this.hrQueue = [];
+      await this.$store.dispatch('setCurrentSongId', id);
       this.isSongEditVisible = true;
+      this.updateHealthReportForCurrentPage();
     },
     playLyrics(id) {
       this.$store.getters.playLyrics(id);

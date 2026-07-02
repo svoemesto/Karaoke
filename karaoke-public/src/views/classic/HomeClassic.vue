@@ -4,6 +4,16 @@
       <table style="width: 400px; display: block">
         <tr>
           <td colspan="6" style="width: 400px; text-align: right; padding-bottom: 4px">
+            <span style="font-size: 12px; margin-right: 8px">
+              <template v-if="isLoggedIn">
+                <router-link to="/account" style="color: #aaa">Личный кабинет</router-link>
+              </template>
+              <template v-else>
+                <router-link to="/login" style="color: #aaa">Войти</router-link>
+                <span style="color: #555"> | </span>
+                <router-link to="/register" style="color: #aaa">Регистрация</router-link>
+              </template>
+            </span>
             <button @click="switchToModern" style="background: #333; color: #aaa; border: 1px solid #555; border-radius: 14px; padding: 3px 12px; font-size: 12px; cursor: pointer">
               ✨ Новый дизайн
             </button>
@@ -111,6 +121,7 @@ import { mapGetters, mapActions } from 'vuex'
 import SvgIcon from '../../components/SvgIcon.vue'
 import { trackLinkToSocialNetwork } from '../../services/tracking'
 import { useDesign } from '../../composables/useDesign'
+import { useAuth } from '../../composables/useAuth'
 
 const socialLinks = [
   { name: 'vkgroup',  icon: 'vkgroup', url: 'https://vk.com/svoemestokaraoke' },
@@ -126,7 +137,8 @@ export default {
   components: { SvgIcon },
   setup() {
     const { design } = useDesign()
-    return { design }
+    const { isLoggedIn } = useAuth()
+    return { design, isLoggedIn }
   },
   data() {
     return { socialLinks }

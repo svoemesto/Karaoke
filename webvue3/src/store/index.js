@@ -10,6 +10,8 @@ import processes from '../components/Processes/store'
 import properties from '../components/Properties/store'
 import authors from '../components/Authors/store'
 import users from '../components/Users/store'
+import siteUsers from '../components/SiteUsers/store'
+import publicSettings from '../components/PublicSettings/store'
 import pictures from '../components/Pictures/store'
 import processFilter from '../components/Processes/filter/store'
 import propertiesFilter from '../components/Properties/filter/store'
@@ -31,6 +33,8 @@ export default createStore({
     properties,
     authors,
     users,
+    siteUsers,
+    publicSettings,
     pictures,
     common,
     stats,

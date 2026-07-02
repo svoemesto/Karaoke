@@ -7,10 +7,13 @@
           <RouterLink to="/" class="km-back">← Главная</RouterLink>
           <a href="/"><img src="/KARAOKE_LOGO.png" class="km-logo" alt="Karaoke logo" /></a>
         </div>
-        <div class="km-theme-toggle">
-          <button :class="['km-tb', theme === 'light' ? 'active' : '']" @click="setTheme('light')" title="Светлая">☀</button>
-          <button :class="['km-tb', theme === 'system' ? 'active' : '']" @click="setTheme('system')" title="Авто">⬡</button>
-          <button :class="['km-tb', theme === 'dark' ? 'active' : '']" @click="setTheme('dark')" title="Тёмная">🌙</button>
+        <div class="km-header-right">
+          <AuthStatusWidget />
+          <div class="km-theme-toggle">
+            <button :class="['km-tb', theme === 'light' ? 'active' : '']" @click="setTheme('light')" title="Светлая">☀</button>
+            <button :class="['km-tb', theme === 'system' ? 'active' : '']" @click="setTheme('system')" title="Авто">⬡</button>
+            <button :class="['km-tb', theme === 'dark' ? 'active' : '']" @click="setTheme('dark')" title="Тёмная">🌙</button>
+          </div>
         </div>
       </div>
     </header>
@@ -165,11 +168,12 @@
 <script>
 import { mapGetters, mapActions } from 'vuex'
 import PlatformLink from '../../components/PlatformLink.vue'
+import AuthStatusWidget from '../../components/AuthStatusWidget.vue'
 import { useDesign } from '../../composables/useDesign'
 
 export default {
   name: 'ZakromaModern',
-  components: { PlatformLink },
+  components: { PlatformLink, AuthStatusWidget },
   setup() {
     const { theme, applyTheme } = useDesign()
     function setTheme(val) { theme.value = val; applyTheme(val) }
@@ -234,6 +238,11 @@ export default {
 .km-logo {
   height: 36px;
   width: auto;
+}
+.km-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 .km-theme-toggle {
   display: flex;

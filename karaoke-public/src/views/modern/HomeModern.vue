@@ -5,6 +5,7 @@
       <div class="km-header-inner">
         <span class="km-brand">🎵 Своё Место</span>
         <div class="km-controls">
+          <AuthStatusWidget />
           <div class="km-toggle-group" title="Дизайн">
             <button :class="['km-toggle-btn', design === 'classic' ? 'active' : '']" @click="setDesign('classic')">Классика</button>
             <button :class="['km-toggle-btn', design === 'modern' ? 'active' : '']" @click="setDesign('modern')">Новый</button>
@@ -78,6 +79,7 @@
 <script>
 import { mapGetters, mapActions } from 'vuex'
 import SvgIcon from '../../components/SvgIcon.vue'
+import AuthStatusWidget from '../../components/AuthStatusWidget.vue'
 import { useDesign } from '../../composables/useDesign'
 import { trackLinkToSocialNetwork } from '../../services/tracking'
 
@@ -92,7 +94,7 @@ const socialLinks = [
 
 export default {
   name: 'HomeModern',
-  components: { SvgIcon },
+  components: { SvgIcon, AuthStatusWidget },
   setup() {
     const { design, theme, applyTheme } = useDesign()
     function setDesign(val) { design.value = val }

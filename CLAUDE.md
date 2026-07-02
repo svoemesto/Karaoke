@@ -384,10 +384,48 @@ src/
 - `webvue3/src/App.vue` — для роутов `/player/*` скрывает sidebar/layout, рендерит только `<router-view>`
 
 **Бэкенд-эндпоинты** (добавлены в конец `ApiController.kt`):
-- `GET /api/song/{id}/fileminus.mp3` — аккомпанимент FLAC→MP3 с кешем (рядом с flac)
-- `GET /api/song/{id}/filevoice.mp3` — вокал FLAC→MP3 с кешем
-- `GET /api/song/{id}/playerdata` — JSON: `{songName, author, album, bpm, markers, audioAccompanimentUrl, audioVocalsUrl}`
+- `GET /api/song/{id}/fileminus.mp3` / `filevoice.mp3` / `filebass.mp3` / `filedrums.mp3` — стемы FLAC→MP3 с кешем (рядом с flac)
+- `GET /api/song/{id}/playerdata` — JSON: `{songName, author, album, bpm, markers, audioAccompanimentUrl, audioVocalsUrl, audioBassUrl, audioDrumsUrl, exportBaseName}`
   - `markers` = `settings.sourceMarkersList` (`List<List<SourceMarker>>`)
+- `GET /api/song/{id}/playerfile` — экспорт `.smkaraoke` (ZIP: manifest.json + все доступные стемы + картинки)
+- `pushMp3ToStorage()` — после каждой конвертации FLAC→MP3 в admin-эндпоинтах лениво заливает стем в MinIO
+  (бакет `karaoke`), ключ строго через `KaraokeFileType.suffix`/`.extention`
+  (`"${settings.storageFileName}${fileType.suffix}.${fileType.extention}"` — `suffix` уже содержит точку,
+  например `.accompaniment`, **не** дефис). Это единственный канал, которым наполняется MinIO для
+  публичного плеера — пока админ ни разу не открыл песню в `webvue3`-плеере, стемов в MinIO нет.
+
+**Секретный публичный плеер (`karaoke-public`, скрытый механизм — не документировать в клиентском коде/UI):**
+- Триггер: тройной клик с зажатым Shift по полю "Тональность" на странице песни (`SongClassic.vue`/`SongModern.vue`,
+  метод `onMetaClick('key', $event)`). На полях Альбом/Исполнитель/Год висят точно такие же обработчики-приманки
+  (`onMetaClick('album'|'author'|'year', ...)`), чтобы реальное поле-триггер нельзя было вычислить по коду страницы.
+- Вся логика подсчёта кликов/окна/порога — **на бэкенде** (`karaoke-web`, `PlayerGestureUnlockService`,
+  in-memory `ConcurrentHashMap`, НЕ в БД — чтобы не тянуть это в LOCAL↔SERVER синхронизацию и не оставлять
+  следов в бэкапах): `TARGET_FIELD="key"`, `REQUIRED_CLICKS=3`, `CLICK_WINDOW_MS=1500`, `TOKEN_TTL_MS=30мин`.
+  Клики шлются на уже существующий `POST /api/public/events` (`eventType=clickToLink, linkType=songMeta`),
+  который теперь возвращает `{ok, meta}` — `meta` содержит токен только когда жест распознан.
+- `/player/:id` в `karaoke-public` (роут + все бэкенд-эндпоинты `PublicPlayerController`,
+  `/api/public/player/{id}/...`) требуют `?token=` (провалидирован `PlayerGestureUnlockService.validateToken`).
+  Без токена или с чужим/просроченным — везде **404**, не 401/403, чтобы сам факт существования механизма
+  не был виден по ответам API. Токен кладётся в `sessionStorage` (`kp_token_{id}`) и открывается в новой
+  вкладке (`window.open`, не `router.push` — иначе плеер наследует classic/modern layout-обёртку и не
+  занимает весь экран, см. `isPlayerPage` в `App.vue`).
+- **Критично:** `karaoke-web` не может трогать `Settings.rootFolder`/любые `*NameFlac` геттеры — они тянут
+  инициализацию `karaoke-app`'s `ConstantsKt`/`Connection.kt` (`Delegates.notNull<Boolean>()`, инициализируется
+  только в `KaraokeAppService.init{}`, а этот `@Service`-бин в `karaoke-web` никогда не создаётся — нет
+  `@ComponentScan` до `com.svoemesto.karaokeapp.services`). Результат — `IllegalStateException` →
+  `NoClassDefFoundError` (закешированный сбой) на **любой** следующий запрос, роняет весь процесс.
+  Этот же класс проблем уже отмечен комментарием в `SettingsPublicDto.kt`. Поэтому `PublicPlayerController`
+  читает стемы и картинки **исключительно** через `KaraokeStorageService` (MinIO), никогда не через
+  локальные пути.
+
+**Меню плеера (гамбургер, `_buildUI()`/`_buildMenu()`):**
+- Пункты-действия ("Открыть файл...", "Сохранить файл") и пункт-подменю ("Экспорт аудио..." → Голос/
+  Минусовка/Бас/Ударные) визуально различаются: у подменю — стрелка `▸` и hover, у действий — просто hover.
+  Разделитель между действиями и подменю.
+- Подменю открывается **и по наведению** (чистый CSS `:hover`), **и по клику** (класс `kp-submenu-open`,
+  для тач-устройств) — оба механизма работают одновременно, без JS-таймеров mouseenter/mouseleave.
+- "Сохранить файл" и экспорт стемов используют общий `_saveBlob()` (`showSaveFilePicker` с фолбэком на
+  `<a download>`).
 
 **Ключевые детали `SourceMarker` и `Markertype`:**
 - Значения `markertype` — строго **lowercase**: `"syllables"`, `"endofline"`, `"newline"`, `"endofsyllable"`
@@ -423,3 +461,26 @@ src/
 - Причина: `this.data` выставляется до `_parseMarkers()`, между ними рендер-луп успевает закешировать
   `_computeVoiceLayout` с пустым `voiceLines=[]` → 1 голос вместо 2.
   `_ready=true` выставляется только после `_buildWaveforms()`, когда `voiceLines` уже заполнен.
+
+**Idle-логотип (`_getLogoAlpha`/`_renderLogo`):** пока трек не начал играть (`!_playbackStarted`,
+включая фазу загрузки) поверх фона по центру виден `KARAOKE_LOGO.png` (бокс 40%×40%, `_drawImageFit`).
+Плавно гаснет за 0.5с после первого `_play()`, плавно появляется обратно за 0.5с до конца трека и
+остаётся видимым, когда плеер естественно возвращается в idle (`_onEnded()`).
+
+**Шрифт строки "Key:.../bpm:..." на сплэше:** должен быть `FiraSansExtraCondensed` (400, обычный) —
+как в Kotlin/MLT-рендере (`splashstartChordDescriptionFont` в `KaraokeProperties.kt`), **не** Roboto.
+Файл шрифта грузится через `FontFace` из `/fonts/FiraSansExtraCondensed-Medium.ttf` в обоих копиях
+плеера. Раньше в `karaoke-public` эта строка визуально отличалась от `webvue3`, т.к. внешний
+Google Fonts `<link>` в `index.html` (нужен для остального UI сайта) случайно подсовывал canvas'у
+настоящий Roboto-400, а `webvue3` синтезировал 400 из единственного загруженного начертания 900 —
+оба были неверны относительно эталона.
+
+**Экспорт `.smkaraoke` дублируется на бэкенде дважды намеренно:** `ApiController.playerfile` в
+`karaoke-app` читает стемы с локального диска (admin), `PublicPlayerController.playerFile` в
+`karaoke-web` — те же стемы, но из MinIO (публичный плеер). Держать оба варианта в синхронизации
+руками при изменении формата manifest.json/структуры ZIP.
+
+**`webvue3/src/player/` и `karaoke-public/src/player/` — намеренно две копии** `KaraokePlayer.js`
+(не общий пакет). Различаются в 3 местах: конструктор принимает `token` 4-м параметром, URL-шаблон
+`apiBase` (без `/song/` в karaoke-public), `_getPlayerFileUrl()`. Любое исправление логики плеера
+нужно вносить в оба файла.

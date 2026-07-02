@@ -23,9 +23,13 @@ import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Controller
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter
+import com.fasterxml.jackson.databind.ObjectMapper
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.util.zip.CRC32
+import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
 import java.io.IOException
 import java.nio.charset.Charset
 import java.nio.file.Files
@@ -3475,10 +3479,26 @@ class ApiController(
         return mp3File
     }
 
+    // Lazily seeds MinIO with a copy of the stem mp3 (idempotent). karaoke-web (public site,
+    // runs on a different host with no access to local disk / the Demucs pipeline) reads stems
+    // for the hidden public player exclusively from here — this is the only path that keeps them
+    // in sync, since visiting the admin player is what triggers convertFlacToMp3() in the first place.
+    // Storage key follows the same template HealthReport.kt uses for every KaraokeFileType with a
+    // REMOTE_STORAGE location: "${settings.storageFileName}${suffix}.${extention}" — suffix already
+    // carries its own leading dot (e.g. ".accompaniment"), NOT a dash.
+    private fun pushMp3ToStorage(mp3File: File, settings: Settings, fileType: KaraokeFileType) {
+        val bucket = "karaoke"
+        val storageKey = "${settings.storageFileName}${fileType.suffix}.${fileType.extention}"
+        if (!storageService.fileExists(bucket, storageKey)) {
+            storageService.uploadFile(bucket, storageKey, mp3File.absolutePath)
+        }
+    }
+
     @GetMapping("/song/{id}/fileminus.mp3")
     fun getSongFileMusicMp3(@PathVariable id: Long): ResponseEntity<Resource> {
         Settings.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)?.let { settings ->
             convertFlacToMp3(settings.accompanimentNameFlac)?.let { mp3File ->
+                pushMp3ToStorage(mp3File, settings, KaraokeFileType.MP3_ACCOMPANIMENT)
                 return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_TYPE, "audio/mpeg")
                     .header(HttpHeaders.ACCEPT_RANGES, "bytes")
@@ -3492,6 +3512,35 @@ class ApiController(
     fun getSongFileVocalMp3(@PathVariable id: Long): ResponseEntity<Resource> {
         Settings.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)?.let { settings ->
             convertFlacToMp3(settings.vocalsNameFlac)?.let { mp3File ->
+                pushMp3ToStorage(mp3File, settings, KaraokeFileType.MP3_VOCAL)
+                return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_TYPE, "audio/mpeg")
+                    .header(HttpHeaders.ACCEPT_RANGES, "bytes")
+                    .body(FileSystemResource(mp3File))
+            }
+        }
+        return ResponseEntity.notFound().build()
+    }
+
+    @GetMapping("/song/{id}/filebass.mp3")
+    fun getSongFileBassMp3(@PathVariable id: Long): ResponseEntity<Resource> {
+        Settings.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)?.let { settings ->
+            convertFlacToMp3(settings.bassNameFlac)?.let { mp3File ->
+                pushMp3ToStorage(mp3File, settings, KaraokeFileType.MP3_BASS)
+                return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_TYPE, "audio/mpeg")
+                    .header(HttpHeaders.ACCEPT_RANGES, "bytes")
+                    .body(FileSystemResource(mp3File))
+            }
+        }
+        return ResponseEntity.notFound().build()
+    }
+
+    @GetMapping("/song/{id}/filedrums.mp3")
+    fun getSongFileDrumsMp3(@PathVariable id: Long): ResponseEntity<Resource> {
+        Settings.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)?.let { settings ->
+            convertFlacToMp3(settings.drumsNameFlac)?.let { mp3File ->
+                pushMp3ToStorage(mp3File, settings, KaraokeFileType.MP3_DRUMS)
                 return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_TYPE, "audio/mpeg")
                     .header(HttpHeaders.ACCEPT_RANGES, "bytes")
@@ -3511,11 +3560,116 @@ class ApiController(
             "songName" to settings.songName,
             "author" to settings.author,
             "album" to settings.album,
+            "year" to settings.year.takeIf { it > 0 },
+            "track" to settings.track.takeIf { it > 0 },
+            "key" to settings.key.takeIf { it.isNotBlank() },
             "bpm" to settings.bpm,
             "markers" to settings.sourceMarkersList,
             "audioAccompanimentUrl" to "/api/song/$id/fileminus.mp3",
-            "audioVocalsUrl" to "/api/song/$id/filevoice.mp3"
+            "audioVocalsUrl" to "/api/song/$id/filevoice.mp3",
+            "audioBassUrl" to if (File(settings.bassNameFlac).exists()) "/api/song/$id/filebass.mp3" else null,
+            "audioDrumsUrl" to if (File(settings.drumsNameFlac).exists()) "/api/song/$id/filedrums.mp3" else null,
+            "albumImageUrl" to settings.pictureAlbum?.storageFileName?.let { "/api/picture/file?file=$it" },
+            "artistImageUrl" to settings.pictureAuthor?.storageFileName?.let { "/api/picture/file?file=$it" },
+            "exportBaseName" to "${settings.fileName} [id-$id]".rightFileName()
         )
         return ResponseEntity.ok(data)
+    }
+
+    // Generates a .smkaraoke container (ZIP): manifest.json + audio MP3s + images from MinIO.
+    // Media files are STORED (no recompression); manifest is DEFLATED.
+    // Optional fields (tracks/images) are present only if the source files actually exist.
+    @GetMapping("/song/{id}/playerfile")
+    fun getSongPlayerFile(@PathVariable id: Long, response: HttpServletResponse) {
+        val settings = Settings.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+            ?: run { response.status = 404; return }
+
+        val bucket = "karaoke"
+        val tracks = mutableMapOf<String, String>()
+        val images = mutableMapOf<String, String>()
+
+        val bos = ByteArrayOutputStream()
+        val zip = ZipOutputStream(bos)
+
+        convertFlacToMp3(settings.accompanimentNameFlac)?.let { mp3 ->
+            smkaraokeAddStored(zip, "audio/accompaniment.mp3", mp3.readBytes())
+            tracks["accompaniment"] = "audio/accompaniment.mp3"
+        }
+        convertFlacToMp3(settings.vocalsNameFlac)?.let { mp3 ->
+            smkaraokeAddStored(zip, "audio/vocals.mp3", mp3.readBytes())
+            tracks["vocals"] = "audio/vocals.mp3"
+        }
+        convertFlacToMp3(settings.bassNameFlac)?.let { mp3 ->
+            smkaraokeAddStored(zip, "audio/bass.mp3", mp3.readBytes())
+            tracks["bass"] = "audio/bass.mp3"
+        }
+        convertFlacToMp3(settings.drumsNameFlac)?.let { mp3 ->
+            smkaraokeAddStored(zip, "audio/drums.mp3", mp3.readBytes())
+            tracks["drums"] = "audio/drums.mp3"
+        }
+        settings.pictureAlbum?.let { pic ->
+            if (storageService.fileExists(bucket, pic.storageFileName)) {
+                val bytes = storageService.downloadFile(bucket, pic.storageFileName).use { it.readBytes() }
+                smkaraokeAddStored(zip, "images/album.png", bytes)
+                images["album"] = "images/album.png"
+            }
+        }
+        settings.pictureAuthor?.let { pic ->
+            if (storageService.fileExists(bucket, pic.storageFileName)) {
+                val bytes = storageService.downloadFile(bucket, pic.storageFileName).use { it.readBytes() }
+                smkaraokeAddStored(zip, "images/artist.png", bytes)
+                images["artist"] = "images/artist.png"
+            }
+        }
+
+        // Embed app icon so OS file managers can associate a custom icon after type registration
+        val iconBytes = javaClass.classLoader?.getResourceAsStream("smkaraoke-icon.ico")?.readBytes()
+        if (iconBytes != null) smkaraokeAddStored(zip, "icon.ico", iconBytes)
+
+        val manifest = mapOf(
+            "version" to 1,
+            "format" to "smkaraoke",
+            "id" to id,
+            "songName" to settings.songName,
+            "author" to settings.author,
+            "album" to settings.album,
+            "year" to settings.year.takeIf { it > 0 },
+            "track" to settings.track.takeIf { it > 0 },
+            "key" to settings.key.takeIf { it.isNotBlank() },
+            "bpm" to settings.bpm,
+            "markers" to settings.sourceMarkersList,
+            "tracks" to tracks,
+            "images" to images,
+            "icon" to if (iconBytes != null) "icon.ico" else null,
+            "exportBaseName" to "${settings.fileName} [id-$id]".rightFileName()
+        )
+        val manifestBytes = ObjectMapper().writeValueAsBytes(manifest)
+        val manifestEntry = ZipEntry("manifest.json").apply { method = ZipEntry.DEFLATED }
+        zip.putNextEntry(manifestEntry)
+        zip.write(manifestBytes)
+        zip.closeEntry()
+
+        zip.close()
+
+        val downloadName = "${settings.fileName} [id-$id].smkaraoke".rightFileName()
+        // RFC 5987 encoding so browsers use the Cyrillic filename instead of the URL path ("playerfile")
+        val encodedName = java.net.URLEncoder.encode(downloadName, "UTF-8").replace("+", "%20")
+        response.contentType = "application/x-smkaraoke"
+        response.setHeader(HttpHeaders.CONTENT_DISPOSITION,
+            "attachment; filename=\"song-$id.smkaraoke\"; filename*=UTF-8''$encodedName")
+        response.outputStream.write(bos.toByteArray())
+    }
+
+    private fun smkaraokeAddStored(zip: ZipOutputStream, name: String, bytes: ByteArray) {
+        val crc = CRC32().also { it.update(bytes) }
+        val entry = ZipEntry(name).apply {
+            method = ZipEntry.STORED
+            size = bytes.size.toLong()
+            compressedSize = bytes.size.toLong()
+            this.crc = crc.value
+        }
+        zip.putNextEntry(entry)
+        zip.write(bytes)
+        zip.closeEntry()
     }
 }

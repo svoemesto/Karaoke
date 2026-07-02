@@ -14,7 +14,10 @@
       <div class="header">
         <div class="header-column-1">
           <div class="header-song-id" @click="copyToClipboard(song.id, 'id')">{{song.id}}</div>
-          <button class="btn-round" style="margin-top:4px" @click="openPlayer" title="Открыть плеер">▶</button>
+          <div style="display:flex;flex-direction:row;gap:4px;justify-content:center">
+            <button class="btn-round" @click="openPlayer" title="Открыть плеер" style="display:flex;align-items:center;justify-content:center">▶</button>
+            <a class="btn-round" style="display:flex;align-items:center;justify-content:center;text-decoration:none;color:black" :href="`/api/song/${song.id}/playerfile`" download title="Скачать .smkaraoke">⬇</a>
+          </div>
         </div>
         <div class="header-column-2">
           <div class="header-song-author" @click="copyToClipboard(song.author, 'author')">{{song.author}}</div>
@@ -2488,6 +2491,8 @@ export default {
 .header-column-1 {
   display: flex;
   flex-direction: column;
+  align-items: center;
+  gap: 4px;
   padding: 5px 0;
   background-color: transparent;
 }
@@ -2674,8 +2679,8 @@ export default {
   border-radius: 25%;
   width: 24px;
   height: 24px;
-  margin-left: 2px;
   background-color: antiquewhite;
+  cursor: pointer;
 }
 .btn-round:hover {
   background-color: lightpink;

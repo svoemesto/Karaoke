@@ -1,5 +1,6 @@
 <template>
-  <div v-if="!isHomePage" :class="isModern ? 'modernScreen' : 'nonHomeScreen'">
+  <router-view v-if="isPlayerPage" />
+  <div v-else-if="!isHomePage" :class="isModern ? 'modernScreen' : 'nonHomeScreen'">
     <div :class="isModern ? '' : 'nonHomeBody'">
       <router-view />
     </div>
@@ -19,6 +20,12 @@ export default {
   computed: {
     isHomePage() {
       return this.$route.path === '/'
+    },
+    // The player is fullscreen/fixed-position and owns the whole viewport — it must not sit inside
+    // the classic (.nonHomeScreen/.nonHomeBody, padded+centered) or modern (.modernScreen) wrapper,
+    // same as webvue3's App.vue excludes /player/* from its sidebar layout.
+    isPlayerPage() {
+      return this.$route.name === 'player'
     },
     isModern() {
       return this.design === 'modern'

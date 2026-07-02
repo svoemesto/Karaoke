@@ -826,17 +826,22 @@ class Settings(
     val oldNoStemNameWav: String get() = "$pathToResultedModel/$fileName-no_$separatedStem.wav"
     val accompanimentNameWav: String get() = "$pathToResultedModel/$fileName-accompaniment.wav"
     val accompanimentNameFlac: String get() = "$pathToResultedModel/$fileName-accompaniment.flac"
+    val accompanimentNameMp3: String get() = "$pathToResultedModel/$fileName-accompaniment.mp3"
     val accompanimentNameFlacSymlink: String get() = "$pathToSymlinkFolderSponsr/$fileName-accompaniment.flac"
     val vocalsNameWav: String get() = "$pathToResultedModel/$fileName-vocals.wav"
+    val vocalsNameMp3: String get() = "$pathToResultedModel/$fileName-vocals.mp3"
     val vocalsNameFlac: String get() = "$pathToResultedModel/$fileName-vocals.flac"
     val drumsNameWav: String get() = "$pathToResultedModel/$fileName-drums.wav"
     val drumsNameFlac: String get() = "$pathToResultedModel/$fileName-drums.flac"
+    val drumsNameMp3: String get() = "$pathToResultedModel/$fileName-drums.mp3"
     val bassNameWav: String get() = "$pathToResultedModel/$fileName-bass.wav"
     val bassNameFlac: String get() = "$pathToResultedModel/$fileName-bass.flac"
+    val bassNameMp3: String get() = "$pathToResultedModel/$fileName-bass.mp3"
     val guitarsNameWav: String get() = "$pathToResultedModel/$fileName-guitars.wav"
     val guitarsNameFlac: String get() = "$pathToResultedModel/$fileName-guitars.flac"
     val otherNameWav: String get() = "$pathToResultedModel/$fileName-other.wav"
     val otherNameFlac: String get() = "$pathToResultedModel/$fileName-other.flac"
+    val otherNameMp3: String get() = "$pathToResultedModel/$fileName-other.mp3"
     val fileAbsolutePath: String get() = "$rootFolder/$fileName.flac"
     @Suppress("unused") val fileAbsolutePathTmp: String get() = "$rootFolder/$fileName-tmp.flac"
     val fileSettingsAbsolutePath: String get() = "$rootFolder/$fileName.settings"
@@ -1994,7 +1999,7 @@ class Settings(
 
         mltProp.setPositionYPx(horizonPositionPx.toLong(), ProducerType.HORIZON)
 
-        // Позиция каунтеров по Y = позиция горизонта минут высота символа
+        // Позиция каунтеров по Y = позиция горизонта минус высота символа
         mltProp.setPositionYPx((horizonPositionPx - symbolHeightPx).toLong(), ProducerType.COUNTER)
 
         val frameWPx = Karaoke.frameWidthPx
@@ -3162,20 +3167,22 @@ class Settings(
 
     fun getVKGroupDescriptionSponsr(): String {
 
-        val month = if (dateTimePublish !== null) {
-            when (dateTimePublish!!.month) {
-                0 -> "январе"
-                1 -> "феврале"
-                2 -> "марте"
-                3 -> "апреле"
-                4 -> "мае"
-                5 -> "июне"
-                6 -> "июле"
-                7 -> "августе"
-                8 -> "сентябре"
-                9 -> "октябре"
-                10 -> "ноябре"
-                11 -> "декабре"
+        val month = if (dateTimePublish != null) {
+            val cal = Calendar.getInstance()
+            cal.time = dateTimePublish!!
+            when (cal.get(Calendar.MONTH)) {
+                Calendar.JANUARY -> "январе"
+                Calendar.FEBRUARY -> "феврале"
+                Calendar.MARCH -> "марте"
+                Calendar.APRIL -> "апреле"
+                Calendar.MAY -> "мае"
+                Calendar.JUNE -> "июне"
+                Calendar.JULY -> "июле"
+                Calendar.AUGUST -> "августе"
+                Calendar.SEPTEMBER -> "сентябре"
+                Calendar.OCTOBER -> "октябре"
+                Calendar.NOVEMBER -> "ноябре"
+                Calendar.DECEMBER -> "декабре"
                 else -> ""
             }
         } else ""

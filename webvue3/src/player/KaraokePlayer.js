@@ -327,7 +327,7 @@ export default class KaraokePlayer {
       return this._buildScrollLines(vtl, true)  // quickEnd: scroll off fast after voice ends
     })
 
-    return this._buildScrollLines(allTextLines)
+    return this._buildScrollLines(allTextLines, true)  // quickEnd: guarantee full scroll-off before header returns
   }
 
   // Insert empty placeholder lines so scroll speed stays consistent through silences.

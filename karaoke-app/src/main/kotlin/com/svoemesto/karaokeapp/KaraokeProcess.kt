@@ -1358,7 +1358,79 @@ class KaraokeProcess(
                             listOf("chmod", "666", settings.pathToFileMP3Lyrics),
                         )
                     }
-
+                    KaraokeProcessTypes.FF_MP3_ACCOMPANIMENT -> {
+                        description = "MP3 ACCOMPANIMENT"
+                        args = listOf(
+                            listOf("rm", settings.accompanimentNameMp3),
+                            listOf("ffmpeg", "-i",
+                                settings.accompanimentNameFlac.rightFileName(),
+                                "-ab", "320k", "-map_metadata", "0", "-id3v2_version", "3",
+                                settings.accompanimentNameMp3,
+                                "-y"
+                            ),
+                            listOf("chmod", "666", settings.accompanimentNameMp3),
+                        )
+                    }
+                    KaraokeProcessTypes.FF_MP3_VOCAL -> {
+                        description = "MP3 VOCAL"
+                        args = listOf(
+                            listOf("rm", settings.vocalsNameMp3),
+                            listOf("ffmpeg", "-i",
+                                settings.vocalsNameFlac.rightFileName(),
+                                "-ab", "320k", "-map_metadata", "0", "-id3v2_version", "3",
+                                settings.vocalsNameMp3,
+                                "-y"
+                            ),
+                            listOf("chmod", "666", settings.vocalsNameMp3),
+                        )
+                    }
+                    KaraokeProcessTypes.FF_MP3_DRUMS -> {
+                        description = "MP3 DRUMS"
+                        args = listOf(
+                            listOf("rm", settings.drumsNameMp3),
+                            listOf("ffmpeg", "-i",
+                                settings.drumsNameFlac.rightFileName(),
+                                "-ab", "320k", "-map_metadata", "0", "-id3v2_version", "3",
+                                settings.drumsNameMp3,
+                                "-y"
+                            ),
+                            listOf("chmod", "666", settings.drumsNameMp3),
+                        )
+                    }
+                    KaraokeProcessTypes.FF_MP3_BASS -> {
+                        description = "MP3 BASS"
+                        args = listOf(
+                            listOf("rm", settings.bassNameMp3),
+                            listOf("ffmpeg", "-i",
+                                settings.bassNameFlac.rightFileName(),
+                                "-ab", "320k", "-map_metadata", "0", "-id3v2_version", "3",
+                                settings.bassNameMp3,
+                                "-y"
+                            ),
+                            listOf("chmod", "666", settings.bassNameMp3),
+                        )
+                    }
+                    KaraokeProcessTypes.FF_MP3_OTHER -> {
+                        description = "MP3 OTHER"
+                        args = listOf(
+                            listOf("rm", settings.otherNameMp3),
+                            listOf("ffmpeg", "-i",
+                                settings.otherNameFlac.rightFileName(),
+                                "-ab", "320k", "-map_metadata", "0", "-id3v2_version", "3",
+                                settings.otherNameMp3,
+                                "-y"
+                            ),
+                            listOf("chmod", "666", settings.otherNameMp3),
+                        )
+                    }
+                    KaraokeProcessTypes.UPLOAD_TO_LOCAL_STORE -> {
+                        description = "UPLOAD TO LOCAL STORE"
+                        val pathToFile = context["pathToFile"] as String
+                        val karaokeFileType = context["karaokeFileType"] as String
+                        args = listOf(
+                            listOf("runFunctionWithArgs", "uploadToLocalStore", settings.id.toString(), pathToFile, karaokeFileType)
+                        )
+                    }
                     KaraokeProcessTypes.SMARTCOPY -> {
                         description = "Smart Copy"
                         args = context["args"] as List<List<String>>

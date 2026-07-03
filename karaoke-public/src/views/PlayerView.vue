@@ -6,11 +6,13 @@
 import { onMounted, onBeforeUnmount, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import KaraokePlayer from '../player/KaraokePlayer.js'
+import { useAuth } from '../composables/useAuth'
 
 const route = useRoute()
 const router = useRouter()
 const container = ref(null)
 let player = null
+const { token: authToken } = useAuth()
 
 onMounted(() => {
   const songId = route.params.id
@@ -21,7 +23,10 @@ onMounted(() => {
     router.replace('/')
     return
   }
-  player = new KaraokePlayer(container.value, songId, '/api/public/player', token)
+  // authToken (km_auth_token, site login) is sent along so the backend can resolve a live premium
+  // status for playerdata's canExport — without it the "Экспорт аудио..." menu never appears, even
+  // for a logged-in premium visitor, since the song-scoped player token alone carries no identity.
+  player = new KaraokePlayer(container.value, songId, '/api/public/player', token, authToken.value)
   player.init()
 })
 

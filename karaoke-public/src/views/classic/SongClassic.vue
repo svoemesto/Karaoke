@@ -75,6 +75,20 @@
             </table>
           </td>
         </tr>
+        <!-- Онлайн-плеер: между блоком "Ссылки на просмотр" и блоком информации о песне -->
+        <tr v-if="playerCanWatch">
+          <td colspan="2">
+            <div :class="{ 'player-page-mode': playerDisplayMode === 'page' }">
+              <div class="player-label">🎤 Онлайн-плеер караоке</div>
+              <iframe
+                ref="playerIframe"
+                :src="`/player/${currentSong.id}`"
+                width="800" height="450" style="border:0; display:block; margin:auto"
+                allow="autoplay; fullscreen" allowfullscreen
+              />
+            </div>
+          </td>
+        </tr>
         <tr>
           <td style="text-align: right; padding-right: 5px">Исполнитель:</td>
           <td><div style="font-weight: bolder" @click="onMetaClick('author', $event)">{{ currentSong.author }}</div></td>
@@ -103,50 +117,78 @@
           <td style="text-align: right; padding-right: 5px">Темп (уд/м):</td>
           <td><div style="font-weight: bolder">{{ currentSong.bpm }}</div></td>
         </tr>
-        <tr v-if="currentSong.onAir && currentSong.idVkKaraoke">
+
+        <!-- Видео ВК — старое место, только когда онлайн-плеер сам не может отобразиться -->
+        <template v-if="currentSong.onAir && !playerCanWatch && playerAccessLoaded">
+          <tr v-if="currentSong.idVkKaraoke">
+            <td colspan="2">
+              <div @click="onPlay('karaoke')">
+                <iframe
+                  :src="`https://vkvideo.ru/video_ext.php?hd=3&oid=${currentSong.idVkKaraokeOID}&id=${currentSong.idVkKaraokeID}`"
+                  width="800" height="450" allow="autoplay; encrypted-media; fullscreen; picture-in-picture;"
+                  frameborder="0" allowfullscreen
+                />
+              </div>
+            </td>
+          </tr>
+          <tr v-if="currentSong.idVkLyrics">
+            <td colspan="2">
+              <div @click="onPlay('lyrics')">
+                <iframe
+                  :src="`https://vkvideo.ru/video_ext.php?hd=3&oid=${currentSong.idVkLyricsOID}&id=${currentSong.idVkLyricsID}`"
+                  width="800" height="450" allow="autoplay; encrypted-media; fullscreen; picture-in-picture;"
+                  frameborder="0" allowfullscreen
+                />
+              </div>
+            </td>
+          </tr>
+          <tr v-if="currentSong.idVkMelody">
+            <td colspan="2">
+              <div @click="onPlay('tabs')">
+                <iframe
+                  :src="`https://vkvideo.ru/video_ext.php?hd=3&oid=${currentSong.idVkMelodyOID}&id=${currentSong.idVkMelodyID}`"
+                  width="800" height="450" allow="autoplay; encrypted-media; fullscreen; picture-in-picture;"
+                  frameborder="0" allowfullscreen
+                />
+              </div>
+            </td>
+          </tr>
+          <tr v-if="currentSong.idVkChords">
+            <td colspan="2">
+              <div @click="onPlay('chords')">
+                <iframe
+                  :src="`https://vkvideo.ru/video_ext.php?hd=3&oid=${currentSong.idVkChordsOID}&id=${currentSong.idVkChordsID}`"
+                  width="800" height="450" allow="autoplay; encrypted-media; fullscreen; picture-in-picture;"
+                  frameborder="0" allowfullscreen
+                />
+              </div>
+            </td>
+          </tr>
+        </template>
+
+        <!-- Не в эфире (или эксклюзив/не готово) и плеер недоступен — сообщение об ожидании/подписке.
+             Тоже на старом месте видео-блока. -->
+        <tr v-if="!currentSong.onAir && !playerCanWatch && playerAccessLoaded">
           <td colspan="2">
-            <div @click="onPlay('karaoke')">
-              <iframe
-                :src="`https://vkvideo.ru/video_ext.php?hd=3&oid=${currentSong.idVkKaraokeOID}&id=${currentSong.idVkKaraokeID}`"
-                width="800" height="450" allow="autoplay; encrypted-media; fullscreen; picture-in-picture;"
-                frameborder="0" allowfullscreen
-              />
+            <div class="waiting-card">
+              <div class="waiting-title">{{ waitingTitle }}</div>
+              <div class="waiting-body">{{ waitingBody }}</div>
+              <a :href="sponsrUrl" target="_blank" rel="noopener" class="waiting-cta">Оформить подписку на Sponsr →</a>
+              <div class="waiting-fineprint">
+                После оформления и оплаты подписки на Sponsr доступность песни на сайте появится через некоторое время.
+              </div>
+              <div v-if="!isLoggedIn" class="waiting-login">
+                Также вы можете <router-link to="/register">зарегистрироваться</router-link> или
+                <router-link to="/login">войти</router-link> на сайте — это понадобится, чтобы мы
+                могли узнать вас как премиум-подписчика.
+              </div>
+              <div v-else-if="playerIsPremiumUser" class="waiting-login">
+                Вы премиум-пользователь — как только материалы для плеера будут готовы, он появится здесь автоматически.
+              </div>
             </div>
           </td>
         </tr>
-        <tr v-if="currentSong.onAir && currentSong.idVkLyrics">
-          <td colspan="2">
-            <div @click="onPlay('lyrics')">
-              <iframe
-                :src="`https://vkvideo.ru/video_ext.php?hd=3&oid=${currentSong.idVkLyricsOID}&id=${currentSong.idVkLyricsID}`"
-                width="800" height="450" allow="autoplay; encrypted-media; fullscreen; picture-in-picture;"
-                frameborder="0" allowfullscreen
-              />
-            </div>
-          </td>
-        </tr>
-        <tr v-if="currentSong.onAir && currentSong.idVkMelody">
-          <td colspan="2">
-            <div @click="onPlay('tabs')">
-              <iframe
-                :src="`https://vkvideo.ru/video_ext.php?hd=3&oid=${currentSong.idVkMelodyOID}&id=${currentSong.idVkMelodyID}`"
-                width="800" height="450" allow="autoplay; encrypted-media; fullscreen; picture-in-picture;"
-                frameborder="0" allowfullscreen
-              />
-            </div>
-          </td>
-        </tr>
-        <tr v-if="currentSong.onAir && currentSong.idVkChords">
-          <td colspan="2">
-            <div @click="onPlay('chords')">
-              <iframe
-                :src="`https://vkvideo.ru/video_ext.php?hd=3&oid=${currentSong.idVkChordsOID}&id=${currentSong.idVkChordsID}`"
-                width="800" height="450" allow="autoplay; encrypted-media; fullscreen; picture-in-picture;"
-                frameborder="0" allowfullscreen
-              />
-            </div>
-          </td>
-        </tr>
+
         <tr v-if="currentSong.formattedTextSong">
           <td colspan="2">
             <div style="background-color: black; padding: 10px; font-size: x-large; line-height: normal;" v-html="currentSong.formattedTextSong" />
@@ -172,13 +214,52 @@
 <script>
 import { mapGetters, mapActions } from 'vuex'
 import PlatformLink from '../../components/PlatformLink.vue'
+import { useAuth } from '../../composables/useAuth'
+import { usePlayerAccess } from '../../composables/usePlayerAccess'
 import { trackPlay, trackMetaClick } from '../../services/tracking'
+import { pluralDays } from '../../utils/pluralRu'
 
 export default {
   name: 'SongClassic',
   components: { PlatformLink },
+  setup() {
+    const { isLoggedIn } = useAuth()
+    const playerAccess = usePlayerAccess()
+    return { isLoggedIn, playerAccess }
+  },
   computed: {
-    ...mapGetters('songs', ['currentSong', 'currentSongIsLoading'])
+    ...mapGetters('songs', ['currentSong', 'currentSongIsLoading']),
+    playerCanWatch() { return this.playerAccess.canWatch.value },
+    playerAccessLoaded() { return this.playerAccess.loaded.value },
+    playerIsPremiumUser() { return this.playerAccess.isPremiumUser.value },
+    daysUntilAir() {
+      const ts = this.currentSong?.airTimestamp
+      if (!ts) return null
+      return Math.ceil((ts - Date.now()) / 86400000)
+    },
+    sponsrUrl() {
+      const s = this.currentSong
+      return (s && (s.linkSponsrPlay || s.sponsrLinkGeneral)) || 'https://sponsr.ru/smkaraoke'
+    },
+    waitingTitle() {
+      const s = this.currentSong
+      if (!s) return ''
+      if (s.exclusive) return 'Эта песня — эксклюзив на Sponsr'
+      if (this.daysUntilAir === null) return 'Дата выхода в эфир пока не определена'
+      if (this.daysUntilAir <= 0) return 'Песня скоро появится в эфире'
+      return `Песня выйдет в эфир через ${this.daysUntilAir} ${pluralDays(this.daysUntilAir)}`
+    },
+    waitingBody() {
+      const s = this.currentSong
+      if (!s) return ''
+      if (s.exclusive) {
+        return 'В эфире она доступна не будет — единственный способ получить доступ к ней сейчас — оформить платную подписку на Sponsr.'
+      }
+      return 'Не хотите ждать? Оформите платную подписку на Sponsr — и песня станет доступна сразу, не дожидаясь эфира.'
+    }
+  },
+  data() {
+    return { playerDisplayMode: 'embed' }
   },
   watch: {
     '$route.query.id': {
@@ -190,14 +271,29 @@ export default {
     currentSong: {
       handler(song) {
         document.body.style.background = song?.contentRemoved ? '#0d0d1a' : ''
+        if (song?.id) this.playerAccess.checkAccess(song.id)
+        this.playerDisplayMode = 'embed'
       }
     }
   },
+  mounted() {
+    window.addEventListener('message', this.onPlayerMessage)
+  },
   beforeUnmount() {
     document.body.style.background = ''
+    window.removeEventListener('message', this.onPlayerMessage)
   },
   methods: {
     ...mapActions('songs', ['loadSong']),
+    // Player card starts embedded in the page; the player itself (running same-origin inside the
+    // iframe) posts here when its "Широкий" button is toggled, asking us to resize the iframe's own
+    // box between the small embedded card and a full-viewport overlay.
+    onPlayerMessage(event) {
+      if (!event.data || event.data.source !== 'karaoke-player' || event.data.type !== 'display-mode') return
+      const iframe = this.$refs.playerIframe
+      if (iframe && event.source !== iframe.contentWindow) return
+      this.playerDisplayMode = event.data.mode
+    },
     onPlay(version) {
       trackPlay(this.currentSong.id, version)
     },
@@ -220,6 +316,57 @@ export default {
 .td_cell { border-style: solid; border-width: thin; text-align: center; vertical-align: middle; }
 .head_songname { height: 100%; padding: 2px; font-size: small; text-align: center; border-style: none; background-color: #0c5460; color: white; }
 .date_publish  { height: 100%; padding: 2px; font-size: small; text-align: center; border-style: none; }
+
+.player-label {
+  text-align: center;
+  font-weight: bold;
+  color: #ffff88;
+  background-color: black;
+  padding: 6px;
+  margin-bottom: 4px;
+}
+
+/* "Широкий" режим — плеер (внутри iframe) сам попросил родительскую страницу растянуть его на
+   весь вьюпорт вместо маленького 800x450 блока в таблице. */
+.player-page-mode {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: #000;
+}
+.player-page-mode .player-label { display: none; }
+.player-page-mode iframe {
+  width: 100vw !important;
+  height: 100vh !important;
+  margin: 0 !important;
+}
+
+.waiting-card {
+  background-color: #16213e;
+  border: 1px solid #2d2d5e;
+  border-radius: 10px;
+  padding: 1.5rem;
+  text-align: center;
+  max-width: 700px;
+  margin: 0 auto;
+}
+.waiting-title { font-size: 1.1rem; font-weight: bold; color: #e8e8f0; margin-bottom: 0.5rem; }
+.waiting-body { color: #9090b8; font-size: 0.95rem; margin-bottom: 1rem; line-height: 1.5; }
+.waiting-cta {
+  display: inline-block;
+  background: #3a3a6e;
+  border: 1px solid #5a5a9e;
+  color: #c8c8f0;
+  border-radius: 8px;
+  padding: 0.6rem 1.4rem;
+  font-weight: 600;
+  text-decoration: none;
+  margin-bottom: 0.75rem;
+}
+.waiting-cta:hover { background: #4a4a8e; border-color: #7a7abe; color: #fff; text-decoration: none; }
+.waiting-fineprint { font-size: 0.72rem; color: #6a6a90; max-width: 480px; margin: 0 auto 0.5rem; line-height: 1.4; }
+.waiting-login { font-size: 0.82rem; color: #9090b8; margin-top: 0.5rem; }
+.waiting-login a { color: #c8c8f0; }
 
 .removed-wrapper {
   min-height: 100vh;

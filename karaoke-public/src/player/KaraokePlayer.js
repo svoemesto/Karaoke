@@ -4,11 +4,14 @@ class PlayerUnavailableError extends Error {}
 
 export default class KaraokePlayer {
   // Usage modes:
-  //   new KaraokePlayer(container, songId, apiBase, token)   — online, loads via /api/public/player
-  //     (token = short-lived unlock token obtained via the hidden gesture on the song page)
+  //   new KaraokePlayer(container, songId, apiBase, token, authToken)   — online, loads via /api/public/player
+  //     (token = short-lived unlock token for this song; authToken = the visitor's own site-login
+  //     bearer token (km_auth_token), OPTIONAL — sent as Authorization header so the backend can
+  //     resolve a live premium status and return canExport=true in playerdata. Without it the
+  //     backend has no way to know who's asking and always answers canExport=false.)
   //   new KaraokePlayer(container, { smkaraoke: File|Blob }) — from local .smkaraoke file
   //   new KaraokePlayer(container, { smkaraokeUrl: string }) — download .smkaraoke from URL
-  constructor(container, songIdOrOptions, apiBase, token) {
+  constructor(container, songIdOrOptions, apiBase, token, authToken) {
     this.container = container
     if (songIdOrOptions !== null && typeof songIdOrOptions === 'object') {
       this._mode = songIdOrOptions.smkaraoke ? 'blob' : 'url-smkaraoke'
@@ -18,6 +21,7 @@ export default class KaraokePlayer {
       this.songId = songIdOrOptions
       this.apiBase = apiBase
       this.token = token
+      this.authToken = authToken
     }
     this._smkaraokeObjectUrls = []
 
@@ -62,8 +66,20 @@ export default class KaraokePlayer {
     this._lastWsSync = 0
     this._endedHandled = false
 
+    // Display mode: 'embed' (small box on the host page, e.g. the song page's player card) vs
+    // 'page' (this player's own container fills the whole viewport it lives in — that's already
+    // true by default for a top-level /player/:id route AND for a same-origin iframe once its own
+    // box is resized to 100vw/100vh by the host page). Detected once at construction, not
+    // reconfigurable: a genuinely top-level page (webvue3 route, or the public site's "secret
+    // gesture" new-tab flow) has no host page to ask for a resize, so there IS no 'embed' mode for
+    // it — the wide-mode button stays permanently disabled in that case.
+    this._isEmbedded = window.self !== window.top
+    this._displayMode = this._isEmbedded ? 'embed' : 'page'
+    this._isFullscreen = false
+    this._preFullscreenDisplayMode = null   // restored on exiting fullscreen
+
     this._resizeHandler = () => this._resizeCanvas()
-    this._fsHandler = () => this._resizeCanvas()
+    this._fsHandler = () => this._onFullscreenChange()
     this._menuOutsideClickHandler = () => this._closeMenu()
   }
 
@@ -76,7 +92,8 @@ export default class KaraokePlayer {
 
     try {
       if (this._mode === 'api') {
-        const resp = await fetch(`${this.apiBase}/${this.songId}/playerdata?token=${encodeURIComponent(this.token || '')}`)
+        const headers = this.authToken ? { Authorization: `Bearer ${this.authToken}` } : undefined
+        const resp = await fetch(`${this.apiBase}/${this.songId}/playerdata?token=${encodeURIComponent(this.token || '')}`, { headers })
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
         this.data = await resp.json()
       } else {
@@ -530,6 +547,12 @@ export default class KaraokePlayer {
               <div id="kp-ws-voc" style="flex:1;height:40px;min-width:0"></div>
             </div>
           </div>
+          <div style="display:flex;flex-direction:column;gap:2px;align-self:stretch">
+            <button id="kp-widemode" title="Широкий" style="flex:1;background:none;border:1px solid #444;border-radius:4px;color:#ccc;cursor:pointer;padding:0 8px;display:flex;align-items:center;justify-content:center;min-width:36px">
+              <svg width="16" height="12" viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="0.7" y="0.7" width="14.6" height="10.6" rx="1.6"/></svg>
+            </button>
+            <button id="kp-fs" title="Полноэкранный режим" style="flex:1;background:none;border:1px solid #444;border-radius:4px;color:#ccc;cursor:pointer;padding:0 8px;display:flex;align-items:center;justify-content:center;min-width:36px;font-size:14px;line-height:1">⛶</button>
+          </div>
         </div>
         <div style="background:#111;border-top:1px solid #333;padding:6px 12px;display:flex;align-items:center;gap:10px">
           <button id="kp-play" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;padding:0;line-height:1;min-width:28px">▶</button>
@@ -537,14 +560,12 @@ export default class KaraokePlayer {
           <div id="kp-progress-wrap" style="flex:1;height:5px;background:#333;border-radius:3px;cursor:pointer;position:relative">
             <div id="kp-progress-bar" style="height:100%;background:#f80;border-radius:3px;width:0%;pointer-events:none"></div>
           </div>
-          <button id="kp-fs" style="background:none;border:none;color:#ccc;font-size:16px;cursor:pointer;padding:0 4px">⛶</button>
           <input type="file" id="kp-file-input" accept=".smkaraoke" style="display:none">
           <div id="kp-menu-wrap" style="position:relative">
             <button id="kp-menu-btn" title="Меню" style="background:none;border:none;color:#ccc;font-size:16px;cursor:pointer;padding:0 4px">☰</button>
             <div id="kp-menu" class="kp-menu">
               <div class="kp-menu-item" id="kp-menu-open"><span>Открыть файл...</span></div>
-              <div class="kp-menu-item" id="kp-menu-save"><span>Сохранить файл</span></div>
-              <div class="kp-menu-separator"></div>
+              <div class="kp-menu-separator" id="kp-menu-export-separator"></div>
               <div class="kp-menu-item kp-menu-parent" id="kp-menu-export">
                 <span>Экспорт аудио...</span><span class="kp-menu-arrow">▸</span>
                 <div class="kp-submenu" id="kp-submenu-export">
@@ -568,6 +589,9 @@ export default class KaraokePlayer {
 
     this.container.querySelector('#kp-play').addEventListener('click', () => this._togglePlay())
     this.container.querySelector('#kp-fs').addEventListener('click', () => this._toggleFullscreen())
+    this.container.querySelector('#kp-widemode').addEventListener('click', () => this._toggleDisplayMode())
+    this._updateDisplayModeButton()
+    this._updateFullscreenButton()
     this.container.querySelector('#kp-file-input').addEventListener('change', e => {
       const file = e.target.files[0]
       if (file) this._loadNewFile(file)
@@ -645,7 +669,6 @@ export default class KaraokePlayer {
     const exportItem = this.container.querySelector('#kp-menu-export')
     const submenu = this.container.querySelector('#kp-submenu-export')
     const openItem = this.container.querySelector('#kp-menu-open')
-    const saveItem = this.container.querySelector('#kp-menu-save')
 
     menuBtn.addEventListener('click', e => {
       e.stopPropagation()
@@ -666,11 +689,6 @@ export default class KaraokePlayer {
       this.container.querySelector('#kp-file-input').click()
     })
 
-    saveItem.addEventListener('click', () => {
-      this._closeMenu()
-      this._saveFile()
-    })
-
     for (const el of submenu.querySelectorAll('[data-stem]')) {
       el.addEventListener('click', () => {
         this._closeMenu()
@@ -688,8 +706,16 @@ export default class KaraokePlayer {
     if (exportItem) exportItem.classList.remove('kp-submenu-open')
   }
 
-  // Shows "Бас"/"Ударные" export items only if those stems actually exist for the loaded song.
+  // "Экспорт аудио..." целиком доступен только для локально открытого файла ('blob'/'url-smkaraoke'
+  // — тот файл уже и так лежит у пользователя, серверу тут нечего защищать) или для премиум-
+  // пользователей в 'api'-режиме (canExport приходит в playerdata, живая проверка на бэкенде).
+  // Внутри пункта "Бас"/"Ударные" дополнительно скрыты, если этих стемов у песни просто нет.
   _updateExportMenuAvailability() {
+    const exportItem = this.container.querySelector('#kp-menu-export')
+    const separator = this.container.querySelector('#kp-menu-export-separator')
+    const canExport = this._mode !== 'api' || this.data?.canExport === true
+    if (exportItem) exportItem.style.display = canExport ? 'flex' : 'none'
+    if (separator) separator.style.display = canExport ? 'block' : 'none'
     const bassItem = this.container.querySelector('[data-stem="bass"]')
     const drumsItem = this.container.querySelector('[data-stem="drums"]')
     if (bassItem) bassItem.style.display = this.data?.audioBassUrl ? 'flex' : 'none'
@@ -708,12 +734,6 @@ export default class KaraokePlayer {
     return parts.length ? parts.join(' - ') : 'karaoke-export'
   }
 
-  // Public token-gated URL for the full .smkaraoke container of the currently loaded song
-  // ('api' mode only) — same token-in-query pattern as every other public/player/* endpoint.
-  _getPlayerFileUrl() {
-    return `${this.apiBase}/${this.songId}/playerfile?token=${encodeURIComponent(this.token || '')}`
-  }
-
   async _exportStem(stemKey) {
     const cfg = KaraokePlayer.STEM_EXPORT_MAP[stemKey]
     const url = cfg && this.data?.[cfg.urlField]
@@ -729,31 +749,7 @@ export default class KaraokePlayer {
     }
   }
 
-  // "Сохранить файл": re-downloads/re-saves the current song as a .smkaraoke container. In 'blob'
-  // mode the file is already in hand (just re-save it); in 'url-smkaraoke' mode re-fetch that URL;
-  // in 'api' mode fetch it fresh from the public token-gated export endpoint.
-  async _saveFile() {
-    const suggestedName = `${this._getExportBaseName()}.smkaraoke`
-    try {
-      let blob
-      if (this._mode === 'blob' && this._smkaraokeSource instanceof File) {
-        blob = this._smkaraokeSource
-      } else if (this._mode === 'url-smkaraoke') {
-        const resp = await fetch(this._smkaraokeSource)
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
-        blob = await resp.blob()
-      } else {
-        const resp = await fetch(this._getPlayerFileUrl())
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
-        blob = await resp.blob()
-      }
-      await this._saveBlob(blob, suggestedName, 'application/x-smkaraoke', ['.smkaraoke'])
-    } catch (e) {
-      if (e?.name !== 'AbortError') console.error('Save failed:', e)
-    }
-  }
-
-  // Shared "save this blob to disk" logic for both stem export and full-file save: native
+  // Shared "save this blob to disk" logic for stem export: native
   // Save-As dialog where supported, otherwise a plain <a download> fallback.
   async _saveBlob(blob, suggestedName, mimeType, extensions) {
     if (window.showSaveFilePicker) {
@@ -1057,6 +1053,65 @@ export default class KaraokePlayer {
 
   _toggleFullscreen() {
     document.fullscreenElement ? document.exitFullscreen() : this.container.requestFullscreen?.()
+  }
+
+  // Runs on every 'fullscreenchange' (both entering and leaving). Besides the existing canvas
+  // resize, tracks the transition so the wide-mode button can be disabled while fullscreen is
+  // active and the player can snap back to whichever display mode ('embed'/'page') it was in right
+  // before fullscreen was requested — fullscreen itself is orthogonal to that mode, not a third
+  // persistent state of it.
+  _onFullscreenChange() {
+    this._resizeCanvas()
+    const isFs = !!document.fullscreenElement
+    if (isFs && !this._isFullscreen) {
+      this._isFullscreen = true
+      this._preFullscreenDisplayMode = this._displayMode
+    } else if (!isFs && this._isFullscreen) {
+      this._isFullscreen = false
+      const restoreMode = this._preFullscreenDisplayMode
+      this._preFullscreenDisplayMode = null
+      if (restoreMode) this._setDisplayMode(restoreMode)
+    }
+    this._updateDisplayModeButton()
+    this._updateFullscreenButton()
+  }
+
+  // ─── Display mode (embed / page) + fullscreen button state ────────────────
+
+  // Only meaningful when the player actually lives inside an iframe on a host page (this._isEmbedded)
+  // — tells that host page (song page's player card) to resize the iframe box itself; the player's
+  // own container already fills 100% of whatever box the iframe ends up with (see PlayerView.vue),
+  // so no internal layout change is needed here beyond the button's own visual state.
+  _setDisplayMode(mode) {
+    if (!this._isEmbedded) return
+    this._displayMode = mode
+    this._updateDisplayModeButton()
+    try { window.parent.postMessage({ source: 'karaoke-player', type: 'display-mode', mode }, '*') } catch (e) { /* ignore */ }
+  }
+
+  _toggleDisplayMode() {
+    if (!this._isEmbedded || this._isFullscreen) return
+    this._setDisplayMode(this._displayMode === 'embed' ? 'page' : 'embed')
+  }
+
+  _updateDisplayModeButton() {
+    const btn = this.container?.querySelector('#kp-widemode')
+    if (!btn) return
+    const disabled = !this._isEmbedded || this._isFullscreen
+    btn.disabled = disabled
+    btn.style.opacity = disabled ? '0.35' : '1'
+    btn.style.cursor = disabled ? 'default' : 'pointer'
+    const active = this._displayMode === 'page'
+    btn.style.background = active ? '#08f' : 'none'
+    btn.style.color = active ? '#fff' : '#ccc'
+  }
+
+  _updateFullscreenButton() {
+    const btn = this.container?.querySelector('#kp-fs')
+    if (!btn) return
+    const active = !!document.fullscreenElement
+    btn.style.background = active ? '#08f' : 'none'
+    btn.style.color = active ? '#fff' : '#ccc'
   }
 
   // ─── Render loop ──────────────────────────────────────────────────────────

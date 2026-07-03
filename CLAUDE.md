@@ -196,6 +196,18 @@ Sheetsage key/BPM/chord detection, file copy/symlink operations) is modeled as a
 a priority and run on a managed pool — this queue is the backbone of the whole rendering pipeline, not a generic
 task runner.
 
+**Поиск "оригинала" при добавлении файлов из папки (`doCreateFromFolder` в `ApiController.kt`,
+`findDuplicateOriginal()` в `Utils.kt`).** После `Settings.createFromPath()` для каждой новой песни ищется
+уже существующая в базе песня с тем же названием без учёта содержимого в скобках (regex `\([^)]*\)`,
+регистронезависимо) — сначала у того же автора, если не найдено — среди всех авторов. Кандидатом считается
+любая песня с непустым `sourceText` (`idStatus` не важен); при нескольких совпадениях берётся запись с
+наименьшим `id`. Если оригинал найден — в новую песню копируются `sourceText`/`resultText`/`sourceMarkers`,
+`rootId` = id оригинала, `idStatus` = 1. Если не найден — в отдельном потоке (`kotlin.concurrent.thread`,
+не блокируя HTTP-ответ) запускается тот же `getSearXNGSearch()`, что и по кнопке "Найти текст песни" в
+`SongEdit.vue`. Отдельная от этого функция `findAndFillDublicates()` (кнопка "Найти и обработать дубликаты
+песен автора") — более узкий ручной инструмент: ищет только у одного автора и только среди песен со
+статусом DONE (6), не трогать её при доработке `findDuplicateOriginal()`.
+
 **Thread-лейны (`threadId`) в `KaraokeProcess`/`KaraokeProcessWorker`.** `threadId` группирует задания в
 независимые последовательные очереди: `KaraokeProcess.getProcessesToStart()` выбирает не более одного
 `WAITING`-задания на каждый `thread_id` (SQL `ROW_NUMBER() OVER (PARTITION BY thread_id ...)`), а

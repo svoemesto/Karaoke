@@ -3183,6 +3183,41 @@ fun findAndFillDublicates(author: String, database: KaraokeConnection, storageSe
     }
     return result
 }
+
+fun findDuplicateOriginal(newSettings: Settings, database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient): Settings? {
+    /*
+    Для новой песни (обычно только что импортированной из папки) ищет "оригинал" - уже существующую в базе
+    песню с тем же названием без учёта содержимого в скобках (регистронезависимо), у которой уже есть текст.
+    Сначала ищет у того же автора, если не найдено - среди всех авторов. При нескольких совпадениях берёт
+    запись с наименьшим id.
+     */
+    val cleanedName = newSettings.songName.replace(Regex("""\([^)]*\)"""), "").trim()
+    if (cleanedName.isBlank()) return null
+
+    fun findId(sameAuthorOnly: Boolean): Long? {
+        val connection = database.getConnection() ?: return null
+        val sql = "SELECT id FROM tbl_settings" +
+                " WHERE id <> ?" +
+                (if (sameAuthorOnly) " AND LOWER(song_author) = LOWER(?)" else "") +
+                " AND LOWER(TRIM(REGEXP_REPLACE(song_name, '\\([^)]*\\)', '', 'g'))) = LOWER(?)" +
+                " AND TRIM(source_text) <> ''" +
+                " ORDER BY id ASC LIMIT 1"
+        val ps = connection.prepareStatement(sql)
+        var idx = 1
+        ps.setLong(idx++, newSettings.id)
+        if (sameAuthorOnly) ps.setString(idx++, newSettings.author)
+        ps.setString(idx, cleanedName)
+        val rs = ps.executeQuery()
+        val id = if (rs.next()) rs.getLong("id") else null
+        rs.close()
+        ps.close()
+        return id
+    }
+
+    val id = findId(sameAuthorOnly = true) ?: findId(sameAuthorOnly = false) ?: return null
+    return Settings.loadFromDbById(id = id, database = database, storageService = storageService, storageApiClient = storageApiClient)
+}
+
 fun getFreeTimeSlots(): List<String> {
     val result = mutableListOf<String>()
     val sql = """

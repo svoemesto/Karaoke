@@ -30,6 +30,7 @@ import java.io.File
 import java.util.zip.CRC32
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
+import kotlin.concurrent.thread
 import java.io.IOException
 import java.nio.charset.Charset
 import java.nio.file.Files
@@ -2843,7 +2844,27 @@ class ApiController(
     @ResponseBody
     fun doCreateFromFolder(
         @RequestParam(required = true) folder: String) {
-        val result =  Settings.createFromPath(folder, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient).size
+        val createdList = Settings.createFromPath(folder, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+        createdList.forEach { newSettings ->
+            val original = findDuplicateOriginal(newSettings, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+            if (original != null) {
+                newSettings.rootId = original.id
+                newSettings.sourceText = original.sourceText
+                newSettings.resultText = original.resultText
+                newSettings.sourceMarkers = original.sourceMarkers
+                newSettings.fields[SettingField.ID_STATUS] = "1"
+                newSettings.saveToDb()
+            } else {
+                thread(start = true) {
+                    try {
+                        getSearXNGSearch(settings = newSettings, lyricsFinderService = lyricsFinderService)
+                    } catch (e: Exception) {
+                        println("[${Timestamp.from(Instant.now())}] doCreateFromFolder - ошибка фонового поиска текста для песни id=${newSettings.id}: ${e.message}")
+                    }
+                }
+            }
+        }
+        val result = createdList.size
         SNS.send(SseNotification.message(Message(
             type = "info",
             head = "Добавление файлов из папки",

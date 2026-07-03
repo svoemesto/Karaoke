@@ -3218,6 +3218,39 @@ fun findDuplicateOriginal(newSettings: Settings, database: KaraokeConnection, st
     return Settings.loadFromDbById(id = id, database = database, storageService = storageService, storageApiClient = storageApiClient)
 }
 
+fun applyDuplicateOriginal(newSettings: Settings, original: Settings) {
+    newSettings.rootId = original.id
+    newSettings.sourceText = original.sourceText
+    newSettings.resultText = original.resultText
+    newSettings.sourceMarkers = original.sourceMarkers
+    newSettings.fields[SettingField.ID_STATUS] = "1"
+    newSettings.saveToDb()
+}
+
+fun findFamilySongIds(currentSettings: Settings, database: KaraokeConnection): List<Long> {
+    /*
+    Ищет "семью" песни - все песни, у которых id или root_id совпадает с id или root_id текущей песни
+    (сама текущая песня в результат не включается). Покрывает случаи: сама "корневая" песня (id == текущий root_id),
+    песни-братья (root_id == текущий root_id) и песни-дети текущей (root_id == текущий id, если текущая - корень).
+     */
+    val keys = mutableSetOf(currentSettings.id)
+    if (currentSettings.rootId != 0L) keys.add(currentSettings.rootId)
+    val connection = database.getConnection() ?: return emptyList()
+    val placeholders = keys.joinToString(",") { "?" }
+    val sql = "SELECT id FROM tbl_settings WHERE id <> ? AND (id IN ($placeholders) OR root_id IN ($placeholders))"
+    val ps = connection.prepareStatement(sql)
+    var idx = 1
+    ps.setLong(idx++, currentSettings.id)
+    keys.forEach { ps.setLong(idx++, it) }
+    keys.forEach { ps.setLong(idx++, it) }
+    val rs = ps.executeQuery()
+    val ids = mutableListOf<Long>()
+    while (rs.next()) ids.add(rs.getLong("id"))
+    rs.close()
+    ps.close()
+    return ids
+}
+
 fun getFreeTimeSlots(): List<String> {
     val result = mutableListOf<String>()
     val sql = """

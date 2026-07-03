@@ -4,6 +4,7 @@
       <subs-edit v-if="isSubsEditVisible" :voices="voices" :song="song" @close="closeSubsEdit"/>
       <custom-confirm v-if="isCustomConfirmVisible" :params="customConfirmParams" @close="closeCustomConfirm" />
       <health-report-table v-if="isHealthReportTableVisible" :id="song.id" @close="closeHealthReportTable"/>
+      <family-songs-modal v-if="isFamilySongsVisible" :id="song.id" @select="selectFamilySong" @close="closeFamilySongs"/>
       <datalist id="list_hours">
         <option v-for="hour in hours" :key="hour" :value="hour"/>
       </datalist>
@@ -513,6 +514,7 @@
             <button class="group-button" @click="updateRemote" title="Обновить на сервере" :disabled="!allowUpdateRemote" >Обновить на сервере</button>
             <button class="group-button" :class="toSyncButtonClass(toSync)" @click="toSyncRemote" title="Добавить в SYNC-таблицу на сервере" :disabled="!allowAddSync">Добавить в SYNC-таблицу на сервере</button>
             <button class="group-button" @click="copyFieldsFromAnother" title="Скопировать поля из другой песни">Скопировать поля из другой песни</button>
+            <button class="group-button" @click="showFamilySongs" title="Показать песни из той же группы (id/root_id)">Похожие версии песни</button>
             <button class="group-button" :disabled="songHealthReports.length === 0"  @click="showHealthReportTable" title="Health Report">Health Report ({{songHealthReports.length}})</button>
             <BDropdown
                 text="Создать ..."
@@ -596,6 +598,7 @@
       <div class="footer">
         <button class="btn-round-save-double" @click="save" :disabled="notChanged()" title="Сохранить"><img alt="saveSong" class="icon-save-double" src="../../../assets/svg/icon_save.svg"></button>
         <button class="btn-round-double" @click="searchTextForSong" :disabled="disabledSearchTextForSong" title="Найти текст песни"><img alt="search texts for song" class="icon-40" src="../../../assets/svg/icon_search_text.svg"></button>
+        <button v-if="song.idStatus === 0" class="btn-round-double" @click="findOriginalForSong" title="Найти оригинал песни в базе"><img alt="find original song" class="icon-40" src="../../../assets/svg/icon_find_original.svg"></button>
         <button class="btn-round-double" @click="showSubsEdit" title="Редактировать субтитры"><img alt="edit subs" class="icon-edit-double" src="../../../assets/svg/icon_edit.svg"></button>
         <button class="btn-round-double" @click="createKaraoke" title="Создать караоке"><img alt="create karaoke" class="icon-40" src="../../../assets/svg/icon_song.svg"></button>
         <button class="btn-round-double" @click="createDemucs2" title="Создать DEMUCS2"><img alt="create demucs2" class="icon-40" src="../../../assets/svg/icon_demucs2.svg"></button>
@@ -618,6 +621,7 @@
 import SubsEdit from './SubsEdit.vue'
 import CustomConfirm from "../../Common/CustomConfirm.vue";
 import HealthReportTable from "../../Common/HealthReport/HealthReportTable.vue";
+import FamilySongsModal from "./FamilySongsModal.vue";
 import { BFormRating, BDropdown, BDropdownItem, BDropdownDivider, BDropdownGroup } from 'bootstrap-vue-next'
 import { useToast } from "bootstrap-vue-next";
 import { h } from 'vue';
@@ -645,6 +649,7 @@ export default {
   components: {
     CustomConfirm,
     HealthReportTable,
+    FamilySongsModal,
     SubsEdit,
     BFormRating,
     BDropdown,
@@ -657,6 +662,7 @@ export default {
       isSubsEditVisible: false,
       isCustomConfirmVisible: false,
       isHealthReportTableVisible: false,
+      isFamilySongsVisible: false,
       voices: [],
       customConfirmParams: undefined,
       imageAuthorBase64: '',
@@ -1271,6 +1277,28 @@ export default {
     },
     doSearchTextForSong() {
       this.$store.dispatch('searchTextForSong')
+    },
+    findOriginalForSong() {
+      this.customConfirmParams = {
+        header: 'Подтвердите поиск оригинала',
+        body: `Найти в базе "оригинал" этой песни для копирования текста? Если оригинал не найден - будет запущен поиск текста в Интернете.`,
+        timeout: 10,
+        callback: this.doFindOriginalForSong
+      }
+      this.isCustomConfirmVisible = true;
+    },
+    doFindOriginalForSong() {
+      this.$store.dispatch('findOriginalForSong')
+    },
+    showFamilySongs() {
+      this.isFamilySongsVisible = true;
+    },
+    closeFamilySongs() {
+      this.isFamilySongsVisible = false;
+    },
+    selectFamilySong(idAnother) {
+      this.$store.dispatch('copyFieldsFromAnotherPromise', {idAnother: idAnother, fields: 'SOURCE_TEXT;RESULT_TEXT;SOURCE_MARKERS'});
+      this.isFamilySongsVisible = false;
     },
     async propAutoSave() {
       const propValue = await this.$store.getters.getPropValue('autoSave');

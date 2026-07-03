@@ -51,6 +51,8 @@ import java.time.format.DateTimeFormatter
 import java.util.*
 import javax.imageio.ImageIO
 
+data class FamilySongDto(val id: Long, val songName: String, val author: String, val album: String, val year: Long, val diffSeconds: Long, val original: Boolean, val current: Boolean)
+
 @SuppressWarnings("SpellCheckingInspection")
 @Controller
 @RequestMapping("/api")
@@ -415,6 +417,47 @@ class ApiController(
             settings.copyFieldsFromAnother(idAnother, fields.split(";").map { SettingField.valueOf(it) })
         }
         return "OK"
+    }
+
+    // Поиск "оригинала" текущей песни (по кнопке на форме, для песен в статусе NONE) - при успехе копирует
+    // текст/маркеры и возвращает true, иначе запускает поиск текста в Интернете и возвращает false
+    @PostMapping("/song/findoriginal")
+    @ResponseBody
+    fun doFindOriginalForSong(@RequestParam id: Long): Boolean {
+        val settings = Settings.loadFromDbById(id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient) ?: return false
+        val original = findDuplicateOriginal(settings, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+        return if (original != null) {
+            applyDuplicateOriginal(settings, original)
+            true
+        } else {
+            getSearXNGSearch(settings = settings, lyricsFinderService = lyricsFinderService)
+            false
+        }
+    }
+
+    // Список песен из той же "семьи" (совпадение id/root_id с текущей песней), с разницей длительности
+    @PostMapping("/song/familysongs")
+    @ResponseBody
+    fun getFamilySongs(@RequestParam id: Long): List<FamilySongDto> {
+        val settings = Settings.loadFromDbById(id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient) ?: return emptyList()
+        val familyIds = findFamilySongIds(settings, database = WORKING_DATABASE)
+        val familySettings = Settings.loadListFromDbByIds(familyIds, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+        val currentMs = settings.ms
+        val originalId = if (settings.rootId != 0L) settings.rootId else settings.id
+        return (familySettings.values + settings).map { s ->
+            val diffMs = s.ms - currentMs
+            val diffSeconds = Math.round(diffMs / 1000.0)
+            FamilySongDto(
+                id = s.id,
+                songName = s.songName,
+                author = s.author,
+                album = s.album,
+                year = s.year,
+                diffSeconds = diffSeconds,
+                original = s.id == originalId,
+                current = s.id == settings.id
+            )
+        }.sortedBy { it.year }
     }
 
     // Получение исходного текста для голоса
@@ -2848,12 +2891,7 @@ class ApiController(
         createdList.forEach { newSettings ->
             val original = findDuplicateOriginal(newSettings, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
             if (original != null) {
-                newSettings.rootId = original.id
-                newSettings.sourceText = original.sourceText
-                newSettings.resultText = original.resultText
-                newSettings.sourceMarkers = original.sourceMarkers
-                newSettings.fields[SettingField.ID_STATUS] = "1"
-                newSettings.saveToDb()
+                applyDuplicateOriginal(newSettings, original)
             } else {
                 thread(start = true) {
                     try {

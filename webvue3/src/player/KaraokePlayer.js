@@ -48,8 +48,7 @@ export default class KaraokePlayer {
     this._ready = false
 
     this._logoImg = null
-    this._playbackStarted = false   // true с первого вызова _play(), сбрасывается в _onEnded()/_loadNewFile()
-    this._logoFadeStartDt = null    // dt в момент первого старта — точка отсчёта fade-out
+    this._endFadeStartedAt = null   // Date.now() когда началась idle-анимация после _onEnded(): logo→чёрный→splash
 
     this.canvas = null
     this.ctx = null
@@ -932,11 +931,7 @@ export default class KaraokePlayer {
   async _play() {
     if (!this.accBuffer || !this.vocBuffer) return
     const dt = this._getDisplayTime()
-
-    if (!this._playbackStarted) {
-      this._playbackStarted = true
-      this._logoFadeStartDt = dt
-    }
+    this._endFadeStartedAt = null   // cancel any in-progress post-track idle transition
 
     if (dt < this._preroll) {
       // Pre-roll phase: run on wall clock, schedule audio start
@@ -1015,8 +1010,7 @@ export default class KaraokePlayer {
     this._dtPaused = 0
     this._isPrerolling = true   // next play restarts from splash
     this.isPlaying = false
-    this._playbackStarted = false
-    this._logoFadeStartDt = null
+    this._endFadeStartedAt = Date.now()   // start logo→splash idle transition
     const btn = this.container.querySelector('#kp-play')
     if (btn) btn.textContent = '▶'
   }
@@ -1046,6 +1040,7 @@ export default class KaraokePlayer {
 
   // Seek to display time dt ∈ [0, _preroll + duration] (0 = splash start)
   _seekToDisplayTime(dt) {
+    this._endFadeStartedAt = null   // manual seek should snap straight to the target frame
     const totalDuration = this._preroll + this.duration
     dt = Math.max(0, Math.min(dt, totalDuration))
     const audioTime = dt - this._preroll
@@ -1344,14 +1339,16 @@ export default class KaraokePlayer {
     ctx.fillRect(0, 0, W, H)
     this._renderBackground(ctx, W, H, dt)
 
-    const logoAlpha = this._getLogoAlpha(dt, audioTime)
-
-    // Background-only mode: data/audio not ready yet
+    // Background-only mode: data/audio not ready yet — logo shown unconditionally, independent of
+    // any dt/audioTime-based fade (those only make sense once a song is actually loaded).
     if (!this._ready) {
-      this._renderLogo(ctx, W, H, logoAlpha)
+      this._renderLogo(ctx, W, H, 1)
       this._updateControls(dt)
       return
     }
+
+    const endSeq = this._getEndSequenceAlphas()
+    const logoAlpha = endSeq ? endSeq.logoAlpha : this._getLogoAlpha(audioTime)
 
     const scale = H / 1080
 
@@ -1374,8 +1371,9 @@ export default class KaraokePlayer {
 
     const FADE = 1.0
     if (dt < this._splashDur) {
-      // Splash handles its own fade-in/out internally; background shows through.
-      this._renderSplash(ctx, W, H, scale, dt, this._splashDur)
+      // Splash handles its own fade-out internally; background shows through. alphaOverride drives
+      // the idle fade-in phase of the post-track transition (see _getEndSequenceAlphas).
+      this._renderSplash(ctx, W, H, scale, dt, this._splashDur, endSeq ? endSeq.splashAlpha : 1)
     } else {
       // Karaoke: fade in 1s after splash, fade out last 1s of audio — background unaffected.
       const karaokeAlpha = dt < this._splashDur + FADE ? (dt - this._splashDur) / FADE : 1.0
@@ -1389,26 +1387,34 @@ export default class KaraokePlayer {
     this._updateControls(dt)
   }
 
-  // Site logo overlay: fully visible before first Play (incl. while data/audio still loading),
-  // fades out over 0.5s once playback starts, fades back in over the last 0.5s of the song so
-  // it's already visible by the time _onEnded() resets the player back to idle.
-  _getLogoAlpha(dt, audioTime) {
+  // Site logo overlay while a song is loaded: hidden the whole way through, except a fade-in over
+  // the last 0.5s of the song — carried into the post-track idle transition, see
+  // _getEndSequenceAlphas. (While no song is loaded at all, _renderFrame draws the logo directly
+  // at alpha=1, bypassing this function entirely.)
+  _getLogoAlpha(audioTime) {
     const FADE = 0.5
-    let startAlpha = 0
-    if (!this._playbackStarted) {
-      // Idle only really means "at the very start" — if the user drags the progress bar
-      // elsewhere without ever pressing Play, dt moves off 0 and the logo should hide,
-      // revealing the paused splash/karaoke frame at that position instead.
-      startAlpha = dt <= 0 ? 1 : 0
-    } else if (this._logoFadeStartDt !== null) {
-      const elapsed = dt - this._logoFadeStartDt
-      startAlpha = elapsed < FADE ? Math.max(0, 1 - elapsed / FADE) : 0
-    }
-    let endAlpha = 0
     if (this.duration > 0 && audioTime > this.duration - FADE) {
-      endAlpha = Math.min(1, (audioTime - (this.duration - FADE)) / FADE)
+      return Math.min(1, (audioTime - (this.duration - FADE)) / FADE)
     }
-    return Math.max(startAlpha, endAlpha)
+    return 0
+  }
+
+  // Post-track idle transition: right after _onEnded() the logo is already fully visible (faded
+  // in over the preceding 0.5s per _getLogoAlpha). Runs on wall-clock time — dt is reset to 0 by
+  // _onEnded(), so it can't drive this — over: a hold at full opacity, then two 0.5s phases (logo
+  // fades out, then the idle splash screen fades in). A clean cut rather than the two layers
+  // crossfading into each other.
+  _getEndSequenceAlphas() {
+    if (this._endFadeStartedAt === null) return null
+    const HOLD = 3.0
+    const FADE = 0.5
+    const elapsed = (Date.now() - this._endFadeStartedAt) / 1000
+    if (elapsed < HOLD) return { logoAlpha: 1, splashAlpha: 0 }
+    const t = elapsed - HOLD
+    if (t < FADE) return { logoAlpha: 1 - t / FADE, splashAlpha: 0 }
+    if (t < FADE * 2) return { logoAlpha: 0, splashAlpha: (t - FADE) / FADE }
+    this._endFadeStartedAt = null
+    return null
   }
 
   _renderLogo(ctx, W, H, alpha) {
@@ -1496,12 +1502,12 @@ export default class KaraokePlayer {
   //   Author 1000×400 at frame (687, 54)
   //   Song name (yellow, auto-size, multi-line) in area between images and chord desc
   //   Chord desc "Key: «…», bpm: N" (salmon, size 40) at bottom
-  //   Fade: 0→1 over first 1s, 1→0 over last 1s
+  //   Fade: static at full alpha, 1→0 over last 1s (fades into karaoke)
   //   Unified scale = H/1080 for both axes → aspect ratio preserved; content centred horizontally.
-  _renderSplash(ctx, W, H, _scale, ct, splashDur) {
+  _renderSplash(ctx, W, H, _scale, ct, splashDur, alphaOverride = 1) {
     const FADE = 1.0
-    const alpha = ct < FADE ? ct / FADE : ct > splashDur - FADE ? Math.max(0, (splashDur - ct) / FADE) : 1.0
-    ctx.globalAlpha = alpha
+    const fadeOut = ct > splashDur - FADE ? Math.max(0, (splashDur - ct) / FADE) : 1.0
+    ctx.globalAlpha = fadeOut * alphaOverride
 
     // "Contain" scaling: fit 1920×1080 frame into canvas preserving aspect ratio, centred.
     const sc = Math.min(W / 1920, H / 1080)
@@ -2138,7 +2144,7 @@ export default class KaraokePlayer {
     this.flashTimes = []
     this._isPrerolling = false; this._dtPaused = 0
     this._silentOffset = 0; this._preroll = this._splashDur
-    this._playbackStarted = false; this._logoFadeStartDt = null
+    this._endFadeStartedAt = null
     this._volumeAnchored = false
     clearTimeout(this._prerollTimeout); this._prerollTimeout = null
 

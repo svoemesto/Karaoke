@@ -1,6 +1,7 @@
 package com.svoemesto.karaokeweb.config
 
 import org.springframework.beans.factory.annotation.Qualifier
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Primary
@@ -23,7 +24,7 @@ class WebClientConfig {
 
     @Bean
     @Qualifier("yandexCaptchaWebClient")
-    fun yandexCaptchaWebClient(): WebClient {
-        return WebClient.builder().baseUrl("https://smartcaptcha.yandexcloud.net").build()
+    fun yandexCaptchaWebClient(@Value("\${captcha.proxy-url}") captchaProxyUrl: String): WebClient {
+        return WebClient.builder().baseUrl(captchaProxyUrl).build()
     }
 }

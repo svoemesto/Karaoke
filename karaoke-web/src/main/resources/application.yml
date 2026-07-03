@@ -30,6 +30,12 @@ app:
   max-file-size: 100MB
   max-request-size: 100MB
 
+captcha:
+  # На проде указывает на хостовый nginx-прокси (обход MTU black-hole для внешних HTTPS-вызовов,
+  # см. deploy/web-server-deploy/deploy/80to8897 location /smartcaptcha/). Локально MTU-проблемы нет —
+  # дефолт бьёт напрямую в Yandex.
+  proxy-url: ${CAPTCHA_PROXY_URL:https://smartcaptcha.yandexcloud.net}
+
 storage:
   key: ${STORAGE_KEY}
   secret: ${STORAGE_SECRET}

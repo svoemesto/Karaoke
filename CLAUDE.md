@@ -116,6 +116,13 @@ cd /home/nsa/Karaoke/karaoke-public && nvm use v25.7.0 && npm run build
 Серверные файлы (`do.sh`, `docker-compose-*.yml`, `80to8897`) хранятся в `deploy/web-server-deploy/deploy/`
 и синхронизируются на сервер через rsync. **Не редактировать файлы напрямую на сервере.**
 
+**Важно: `deploy_web.sh` синхронизирует ТОЛЬКО jar/образ karaoke-web (gradle build → push → pull).
+Он не трогает `docker-compose-web.yml`/`80to8897`/`do.sh` на сервере.** Если фикс требует одновременно
+новый код И новую переменную окружения/конфиг nginx — сначала (или вместе) выполнить
+«Синхронизацию серверных конфигов» ниже, иначе контейнер пересоздастся по старому compose-файлу без
+новой переменной, и баг будет выглядеть неисправленным даже после успешного редеплоя. После рестарта
+контейнера проверять реальное значение переменной: `docker exec karaoke-web env | grep <VAR>`.
+
 **Обновление karaoke-web** (gradle build → Docker Hub push → pull на сервере):
 ```
 cd /home/nsa/Karaoke/deploy && bash deploy_web.sh
@@ -331,6 +338,20 @@ Nginx порт 80 имеет `server_name ... minio-proxy` чтобы запро
 в nginx `default_server` (symlink `/etc/nginx/sites-enabled/default` присутствует на сервере).
 `Host` — restricted header в Java `HttpURLConnection`, нельзя переопределить через `setRequestProperty`.
 Реализация: `PublicApiController.fetchFromMinIO()`, `PublicPlayerController.existsInMinIO()`/`fetchFromMinIO()`.
+
+**Тот же MTU-баг проявляется на ЛЮБОМ исходящем HTTPS-вызове karaoke-web на внешний хост, не только
+MinIO** — подтверждено вторым независимым случаем: регистрация на сайте падала с "капча не пройдена"
+из-за `SslHandshakeTimeoutException` при обращении к `smartcaptcha.yandexcloud.net` напрямую из
+контейнера (TLS handshake — один из немногих видов трафика с пакетами >1450 байт, поэтому именно на
+нём проявляется чёрная дыра, а не на мелких внутрисетевых HTTP-запросах). Фикс — тот же паттерн,
+переиспользован тот же алиас `minio-proxy`: новый `location /smartcaptcha/` в блоке `server_name ...
+minio-proxy` (`80to8897`), проксирующий на `https://smartcaptcha.yandexcloud.net/` (литеральный
+`proxy_pass` тут безопасен — резолвится системным DNS хоста при старте, не Docker embedded DNS);
+`captcha.proxy-url` в `application.yml` (дефолт — прямой адрес Yandex, для локальной разработки, там
+MTU-проблемы нет) + `CAPTCHA_PROXY_URL=http://minio-proxy/smartcaptcha` только в серверном
+`docker-compose-web.yml`. **Для любого нового внешнего API, которое должен дёргать karaoke-web с
+прод-сервера — сразу закладывать этот paттерн (env-переменная с дефолтом на прямой адрес + host-nginx
+`location` под алиасом `minio-proxy`), не дожидаясь, пока баг проявится в проде.**
 
 **Размеры картинок в хранилище (бакет `karaoke`):**
 - Альбом: полноразмерная 400×400, превью 50×50

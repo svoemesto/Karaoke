@@ -21,6 +21,9 @@ services:
       - DB_LOCAL_POSTGRES_PASSWORD=${DB_LOCAL_POSTGRES_PASSWORD}
       - DB_SERVER_POSTGRES_USER=${DB_SERVER_POSTGRES_USER}
       - DB_SERVER_POSTGRES_PASSWORD=${DB_SERVER_POSTGRES_PASSWORD}
+      # Обход MTU black-hole для внешних HTTPS-вызовов (см. 80to8897 location /smartcaptcha/) —
+      # тот же приём, что STORAGE_PROXY_URL для MinIO.
+      - CAPTCHA_PROXY_URL=http://minio-proxy/smartcaptcha
     volumes:
       - ${WEB_FOLDER_HOST}:${WEB_FOLDER_IN_CONTAINER}
     extra_hosts:

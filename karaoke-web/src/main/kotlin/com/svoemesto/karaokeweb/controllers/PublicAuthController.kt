@@ -45,6 +45,9 @@ class PublicAuthController(
         if (!email.contains("@") || email.length < 5) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(mapOf("error" to "invalid_email"))
         }
+        if (displayName.isNullOrBlank()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(mapOf("error" to "display_name_required"))
+        }
         if (password.length < 6) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(mapOf("error" to "weak_password"))
         }
@@ -55,7 +58,7 @@ class PublicAuthController(
         val user = SiteUser.createNewSiteUser(
             email = email,
             rawPassword = password,
-            displayName = displayName ?: "",
+            displayName = displayName,
             database = WORKING_DATABASE,
             passwordEncoder = passwordEncoder,
             storageService = storageService,

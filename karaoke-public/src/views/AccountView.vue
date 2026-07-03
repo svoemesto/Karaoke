@@ -24,7 +24,7 @@
         </div>
         <div class="km-field">
           <label class="km-label">Имя</label>
-          <input v-model="profileForm.displayName" type="text" class="km-input" />
+          <input v-model="profileForm.displayName" type="text" class="km-input" required />
         </div>
         <div class="km-field">
           <label class="km-label">Sponsr UID <span class="km-hint">(если вы подписчик sponsr.ru)</span></label>
@@ -96,6 +96,11 @@ export default {
   methods: {
     async onSaveProfile() {
       this.profileMessage = ''
+      if (!this.profileForm.displayName.trim()) {
+        this.profileMessage = 'Заполните имя'
+        this.profileError = true
+        return
+      }
       this.profileLoading = true
       try {
         const { status, body } = await authPost('/api/public/account/profile', {
@@ -106,6 +111,9 @@ export default {
           this.setSession(this.token, body)
           this.profileMessage = 'Сохранено'
           this.profileError = false
+        } else if (body && body.error === 'display_name_required') {
+          this.profileMessage = 'Заполните имя'
+          this.profileError = true
         } else {
           this.profileMessage = 'Не удалось сохранить'
           this.profileError = true

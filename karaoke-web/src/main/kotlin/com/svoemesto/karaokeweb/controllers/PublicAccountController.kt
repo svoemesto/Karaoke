@@ -28,12 +28,15 @@ class PublicAccountController(
         @RequestParam(required = false) displayName: String?,
         @RequestParam(required = false) sponsrUid: String?,
         request: HttpServletRequest,
-    ): SiteUserDto {
+    ): ResponseEntity<Any> {
+        if (displayName.isNullOrBlank()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(mapOf("error" to "display_name_required"))
+        }
         val user = currentUser(request)
-        displayName?.let { user.displayName = it }
+        user.displayName = displayName
         sponsrUid?.let { user.sponsrUid = it }
         user.save()
-        return user.toDTO()
+        return ResponseEntity.ok(user.toDTO())
     }
 
     @PostMapping("/change-password")

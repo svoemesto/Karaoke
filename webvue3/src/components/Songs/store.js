@@ -2123,6 +2123,16 @@ export default {
             let request = { method: 'POST', url: "/api/songs/searchsongtextall", params: params };
             return promisedXMLHttpRequest(request);
         },
+        findOriginalForSong(ctx) {
+            let params = { id: ctx.state.currentSongId };
+            let request = { method: 'POST', url: "/api/song/findoriginal", params: params };
+            return promisedXMLHttpRequest(request);
+        },
+        getFamilySongsPromise(ctx) {
+            let params = { id: ctx.state.currentSongId };
+            let request = { method: 'POST', url: "/api/song/familysongs", params: params };
+            return promisedXMLHttpRequest(request);
+        },
         addSyncForAll(ctx) {
             let params = { songsIds: ctx.getters.getSongsDigestIds.join(';') };
             let request = { method: 'POST', url: "/api/songs/addsyncforall", params: params };

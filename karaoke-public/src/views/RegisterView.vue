@@ -19,7 +19,7 @@
         </div>
         <div class="km-field">
           <label class="km-label">Имя</label>
-          <input v-model="displayName" type="text" class="km-input" autocomplete="nickname" placeholder="Необязательно" />
+          <input v-model="displayName" type="text" class="km-input" autocomplete="nickname" />
         </div>
         <div class="km-field">
           <label class="km-label">Пароль</label>
@@ -114,6 +114,10 @@ export default {
         this.errorMessage = 'Заполните email и пароль'
         return
       }
+      if (!this.displayName.trim()) {
+        this.errorMessage = 'Заполните имя'
+        return
+      }
       if (this.password !== this.passwordConfirm) {
         this.errorMessage = 'Пароли не совпадают'
         return
@@ -156,6 +160,7 @@ export default {
       switch (code) {
         case 'email_taken': return 'Этот email уже зарегистрирован'
         case 'invalid_email': return 'Некорректный email'
+        case 'display_name_required': return 'Заполните имя'
         case 'weak_password': return 'Пароль должен быть не короче 6 символов'
         case 'password_mismatch': return 'Пароли не совпадают'
         case 'captcha': return 'Проверка «не робот» не пройдена'

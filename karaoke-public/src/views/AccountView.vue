@@ -11,7 +11,10 @@
     </header>
 
     <div class="km-content">
-      <h1 class="km-title">Личный кабинет</h1>
+      <h1 class="km-title">
+        Личный кабинет
+        <span v-if="isPremium" class="km-premium-badge" title="Премиум-подписчик">🪙 Премиум</span>
+      </h1>
 
       <div class="km-form-card">
         <h2 class="km-subtitle">Профиль</h2>
@@ -61,6 +64,11 @@ export default {
   setup() {
     const { token, user, setSession, clearSession, fetchMe } = useAuth()
     return { token, user, setSession, clearSession, fetchMe }
+  },
+  computed: {
+    isPremium() {
+      return !!(this.user && this.user.premium)
+    }
   },
   data() {
     return {
@@ -177,7 +185,16 @@ export default {
 .km-logout-btn:hover { background: var(--km-hover); color: var(--km-text); }
 
 .km-content { max-width: 500px; margin: 0 auto; padding: 2rem 1rem; }
-.km-title { font-size: 1.4rem; margin: 0 0 1.25rem; }
+.km-title { font-size: 1.4rem; margin: 0 0 1.25rem; display: flex; align-items: center; gap: 0.6rem; }
+.km-premium-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #7a5c00;
+  background: linear-gradient(135deg, #ffe27a, #d4af37);
+  border-radius: 20px;
+  padding: 0.2rem 0.7rem;
+  white-space: nowrap;
+}
 .km-form-card {
   background: var(--km-card);
   border: 1px solid var(--km-border);

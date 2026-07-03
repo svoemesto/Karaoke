@@ -68,6 +68,16 @@ server {
     proxy_buffering off;
     proxy_read_timeout 60;
   }
+  # Обход той же MTU-проблемы (docker bridge=1500 vs физический ens3=1450), что и у /minio/ выше,
+  # но для внешнего HTTPS API (Yandex SmartCaptcha /validate) — TLS handshake из контейнера напрямую
+  # виснет (SslHandshakeTimeoutException), а хостовый nginx использует ens3 напрямую и не подвержен багу.
+  location /smartcaptcha/ {
+    proxy_ssl_server_name on;
+    proxy_pass https://smartcaptcha.yandexcloud.net/;
+    proxy_set_header Host smartcaptcha.yandexcloud.net;
+    proxy_read_timeout 15;
+    proxy_send_timeout 15;
+  }
   location / {
     return 301 https://sm-karaoke.ru$request_uri;
   }

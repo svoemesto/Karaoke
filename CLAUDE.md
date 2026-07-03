@@ -375,6 +375,42 @@ Nginx порт 80 имеет `server_name ... minio-proxy` чтобы запро
 - `canBe = false` + файл существует → ERROR + action на удаление. Не трогать эту логику для видео при статусе < 6.
 - API: `POST /song/healthReportList` — получить список; `POST /song/executeHealthReportActions` — применить исправления.
 
+**Repair/RepairAll в HealthReport идут через очередь `KaraokeProcess`, не напрямую.** В
+`actionsLocalStorage`/`actionsRemoteStorage` загрузка файла в хранилище (случаи «файл есть на диске, но
+отсутствует в хранилище», «устарел», «восстановление через временный файл») ставит задачу
+`KaraokeProcess.createProcess(action = UPLOAD_TO_LOCAL_STORE/UPLOAD_TO_REMOTE_STORE, doWait = true,
+prior = -2, threadId = THREAD_LANE_LIGHT_BACKGROUND/THREAD_LANE_REMOTE_STORE_UPLOAD)`, а не вызывает
+`storageService.uploadFile`/`storageApiClient.uploadFile` напрямую в потоке HTTP-запроса — иначе
+`repairAll` (шлёт запросы без ожидания друг друга) блокирует поток контроллера на время сетевой
+загрузки. Удаление файла из хранилища (ветка `!canBe`) осталось синхронным — быстрая metadata-операция.
+Ветка «восстановление из другого хранилища через временный файл» использует context-флаг
+`deleteAfterUpload=true` — временный файл удаляется самой асинхронной задачей после успешной загрузки
+(`executeUploadToLocalStore`/`executeUploadToRemoteStore` в `Utils.kt`), а не отдельной синхронной
+лямбдой сразу после постановки в очередь (которая раньше удаляла файл до того, как воркер успевал его
+прочитать).
+
+**Дедупликация `KaraokeProcess.createProcess()` для `UPLOAD_TO_LOCAL_STORE`/`UPLOAD_TO_REMOTE_STORE`
+учитывает `karaokeFileType`, а не только `(settings_id, process_type, thread_id)`** — иначе `repairAll`
+для одной песни с несколькими проблемными файлами (например, не хватает и вокала, и аккомпанимента)
+затирал задачу одного файла задачей другого при одинаковых `process_type`/`thread_id`. Ключ дедупликации
+и in-progress-проверки — `process_args LIKE '%karaokeFileType=X%'`, **не** `pathToFile` (у временного
+файла из ветки restore каждый пересчёт генерирует новый случайный путь — поиск по нему никогда не найдёт
+уже запущенную задачу). Заголовки `CREATING`/`WAITING`/`WORKING` считаются «в процессе» (статус
+`IN_PROGRESS`, "Уже есть задание на загрузку файла"), `DONE`/`ERROR` — нет: завершённые записи
+`tbl_processes` не удаляются (см. `KaraokeProcessWorker.kt`, `delete()` после DONE закомментирован),
+поэтому фильтр по статусу обязателен, иначе после первой же успешной загрузки файл вечно показывал бы
+«уже есть задание».
+
+**`description` у `HealthReport` обязан включать location-суффикс** (`"${description}/${location.name}"`,
+добавляется один раз в диспетчере `actions()`, строки ~42-132). Без этого local- и remote-варианты одной
+и той же проблемы одного файла (`karaokeFileType`) неотличимы по `(type, status, description)`, и
+`HealthReport.getHealthReport()` при двух почти одновременных repair-запросах (typично для `RepairAll`,
+который не ждёт ответа между запросами) резолвит **оба** запроса в одну и ту же (первую по списку
+locations) запись — на практике: `RepairAll` создавал только `UPLOAD_TO_LOCAL_STORE`-задачи, а
+`UPLOAD_TO_REMOTE_STORE` появлялись только при повторном клике, когда local-проблема уже пропадала из
+списка ошибок. Тот же паттерн `"${karaokeFileType.name}/${x.name}"` уже применялся для
+`PICTURE_PUBLICATION`/`SongVersion` — не изобретать новый.
+
 ## Git — что НЕ добавлять в репозиторий
 
 - `deploy/ollama_data/` — содержит SSH-ключи (`id_ed25519`) и большие модели Ollama. Уже в `.gitignore`.

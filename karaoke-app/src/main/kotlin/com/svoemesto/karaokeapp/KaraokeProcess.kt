@@ -859,13 +859,19 @@ class KaraokeProcess(
 
             // Находим есть ли уже такой процесс. Если нет - создаём. Если есть и не в статусе "в работе" - пересоздаём
 
-            val existedProcesses = loadList(
-                mapOf(
-                    Pair("settings_id", settings.id.toString()),
-                    Pair("process_type", action.name),
-                    Pair("thread_id", threadId.toString())
-                ), settings.database
+            val existedProcessesLookupArgs = mutableMapOf(
+                "settings_id" to settings.id.toString(),
+                "process_type" to action.name,
+                "thread_id" to threadId.toString()
             )
+            if (action == KaraokeProcessTypes.UPLOAD_TO_LOCAL_STORE || action == KaraokeProcessTypes.UPLOAD_TO_REMOTE_STORE) {
+                // Один и тот же process_type/thread_id используется для загрузки РАЗНЫХ файлов одной песни -
+                // без уточнения по karaokeFileType задачи для разных файлов затирали бы друг друга
+                (context["karaokeFileType"] as? String)?.let {
+                    existedProcessesLookupArgs["process_args"] = "karaokeFileType=$it"
+                }
+            }
+            val existedProcesses = loadList(existedProcessesLookupArgs, settings.database)
 
             var wasWorking = false
             existedProcesses.forEach { existedProcess ->
@@ -1432,16 +1438,26 @@ class KaraokeProcess(
                         description = "UPLOAD TO LOCAL STORE"
                         val pathToFile = context["pathToFile"] as String
                         val karaokeFileType = context["karaokeFileType"] as String
+                        val deleteAfterUpload = context["deleteAfterUpload"] as? String
                         args = listOf(
-                            listOf("runFunctionWithArgs", "uploadToLocalStore", "settingsId=${settings.id}", "pathToFile=$pathToFile", "karaokeFileType=$karaokeFileType")
+                            listOfNotNull(
+                                "runFunctionWithArgs", "uploadToLocalStore", "settingsId=${settings.id}",
+                                "pathToFile=$pathToFile", "karaokeFileType=$karaokeFileType",
+                                deleteAfterUpload?.let { "deleteAfterUpload=$it" }
+                            )
                         )
                     }
                     KaraokeProcessTypes.UPLOAD_TO_REMOTE_STORE -> {
                         description = "UPLOAD TO REMOTE STORE"
                         val pathToFile = context["pathToFile"] as String
                         val karaokeFileType = context["karaokeFileType"] as String
+                        val deleteAfterUpload = context["deleteAfterUpload"] as? String
                         args = listOf(
-                            listOf("runFunctionWithArgs", "uploadToRemoteStore", "settingsId=${settings.id}", "pathToFile=$pathToFile", "karaokeFileType=$karaokeFileType")
+                            listOfNotNull(
+                                "runFunctionWithArgs", "uploadToRemoteStore", "settingsId=${settings.id}",
+                                "pathToFile=$pathToFile", "karaokeFileType=$karaokeFileType",
+                                deleteAfterUpload?.let { "deleteAfterUpload=$it" }
+                            )
                         )
                     }
                     KaraokeProcessTypes.SMARTCOPY -> {

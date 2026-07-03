@@ -2945,6 +2945,7 @@ fun executeUploadToLocalStore(params: Map<String, String>, onProgress: ((Int) ->
     val settingsId = params["settingsId"]?.toLongOrNull() ?: return false
     val pathToFile = params["pathToFile"] ?: return false
     val karaokeFileType = params["karaokeFileType"] ?: return false
+    val deleteAfterUpload = params["deleteAfterUpload"]?.toBoolean() ?: false
     val fileType = KaraokeFileType.valueOf(karaokeFileType)
     val storageService = KSS_APP
     val settings = Settings.loadFromDbById(id = settingsId, database = WORKING_DATABASE, sync = false, storageService = storageService, storageApiClient = SAC_APP) ?: return false
@@ -2967,6 +2968,7 @@ fun executeUploadToLocalStore(params: Map<String, String>, onProgress: ((Int) ->
             file = stream,
             size = totalSize
         )
+        if (deleteAfterUpload) Files.deleteIfExists(file.toPath())
     }
     return true
 }
@@ -2975,6 +2977,7 @@ fun executeUploadToRemoteStore(params: Map<String, String>, onProgress: ((Int) -
     val settingsId = params["settingsId"]?.toLongOrNull() ?: return false
     val pathToFile = params["pathToFile"] ?: return false
     val karaokeFileType = params["karaokeFileType"] ?: return false
+    val deleteAfterUpload = params["deleteAfterUpload"]?.toBoolean() ?: false
     val fileType = KaraokeFileType.valueOf(karaokeFileType)
     val storageApiClient = SAC_APP
     val settings = Settings.loadFromDbById(id = settingsId, database = WORKING_DATABASE, sync = false, storageService = KSS_APP, storageApiClient = storageApiClient) ?: return false
@@ -2990,6 +2993,7 @@ fun executeUploadToRemoteStore(params: Map<String, String>, onProgress: ((Int) -
             pathToFileOnDisk = pathToFile,
             onProgress = onProgress
         )
+        if (deleteAfterUpload) Files.deleteIfExists(File(pathToFile).toPath())
     }
     return true
 }

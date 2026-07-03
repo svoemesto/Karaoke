@@ -21,10 +21,17 @@ services:
       - DB_LOCAL_POSTGRES_PASSWORD=${DB_LOCAL_POSTGRES_PASSWORD}
       - DB_SERVER_POSTGRES_USER=${DB_SERVER_POSTGRES_USER}
       - DB_SERVER_POSTGRES_PASSWORD=${DB_SERVER_POSTGRES_PASSWORD}
+      # На сервере "minio-proxy" — хостовый nginx (extra_hosts), проксирующий на удалённый MinIO
+      # в обход MTU-проблемы. Локально MTU-проблемы нет — karaoke-minio-proxy ниже просто проксирует
+      # на локальный MinIO-контейнер (karaoke-storage), сохраняя тот же путь "/minio/karaoke/...",
+      # который код (fetchFromMinIO/existsInMinIO) строит одинаково в обоих окружениях.
+      - STORAGE_PROXY_URL=http://karaoke-minio-proxy
 #    volumes:
 #      - ${WEB_FOLDER_HOST}:${WEB_FOLDER_IN_CONTAINER}
     networks:
       - karaokenet
+    depends_on:
+      - karaoke-minio-proxy
     entrypoint:
       - java
       - -Dfile.encoding=UTF-8
@@ -32,6 +39,20 @@ services:
       - -XX:+HeapDumpOnOutOfMemoryError
       - -XX:HeapDumpPath=/dumps
     command: ${APP_JAVA_OPTS} -jar /app.jar
+    restart: always
+
+  # Локальный аналог продакшн-хоста "minio-proxy" (см. deploy/karaoke-web/minio-proxy-local.conf) —
+  # только для локальной разработки; на продакшн-сервере этот сервис не разворачивается, там
+  # "minio-proxy" резолвится через extra_hosts в хостовый nginx (см. web-server-deploy/deploy).
+  karaoke-minio-proxy:
+    container_name: karaoke-minio-proxy
+    image: nginx:stable
+    volumes:
+      - ./karaoke-web/minio-proxy-local.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      karaokenet:
+        aliases:
+          - minio-proxy
     restart: always
 
 networks:

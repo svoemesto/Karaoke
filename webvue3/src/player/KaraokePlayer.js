@@ -60,8 +60,20 @@ export default class KaraokePlayer {
     this._lastWsSync = 0
     this._endedHandled = false
 
+    // Display mode: 'embed' (small box on the host page, e.g. the song page's player card) vs
+    // 'page' (this player's own container fills the whole viewport it lives in — that's already
+    // true by default for a top-level /player/:id route AND for a same-origin iframe once its own
+    // box is resized to 100vw/100vh by the host page). Detected once at construction, not
+    // reconfigurable: a genuinely top-level page (webvue3 route, or the public site's "secret
+    // gesture" new-tab flow) has no host page to ask for a resize, so there IS no 'embed' mode for
+    // it — the wide-mode button stays permanently disabled in that case.
+    this._isEmbedded = window.self !== window.top
+    this._displayMode = this._isEmbedded ? 'embed' : 'page'
+    this._isFullscreen = false
+    this._preFullscreenDisplayMode = null   // restored on exiting fullscreen
+
     this._resizeHandler = () => this._resizeCanvas()
-    this._fsHandler = () => this._resizeCanvas()
+    this._fsHandler = () => this._onFullscreenChange()
     this._menuOutsideClickHandler = () => this._closeMenu()
   }
 
@@ -528,6 +540,12 @@ export default class KaraokePlayer {
               <div id="kp-ws-voc" style="flex:1;height:40px;min-width:0"></div>
             </div>
           </div>
+          <div style="display:flex;flex-direction:column;gap:2px;align-self:stretch">
+            <button id="kp-widemode" title="Широкий" style="flex:1;background:none;border:1px solid #444;border-radius:4px;color:#ccc;cursor:pointer;padding:0 8px;display:flex;align-items:center;justify-content:center;min-width:36px">
+              <svg width="16" height="12" viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="0.7" y="0.7" width="14.6" height="10.6" rx="1.6"/></svg>
+            </button>
+            <button id="kp-fs" title="Полноэкранный режим" style="flex:1;background:none;border:1px solid #444;border-radius:4px;color:#ccc;cursor:pointer;padding:0 8px;display:flex;align-items:center;justify-content:center;min-width:36px;font-size:14px;line-height:1">⛶</button>
+          </div>
         </div>
         <div style="background:#111;border-top:1px solid #333;padding:6px 12px;display:flex;align-items:center;gap:10px">
           <button id="kp-play" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;padding:0;line-height:1;min-width:28px">▶</button>
@@ -535,7 +553,6 @@ export default class KaraokePlayer {
           <div id="kp-progress-wrap" style="flex:1;height:5px;background:#333;border-radius:3px;cursor:pointer;position:relative">
             <div id="kp-progress-bar" style="height:100%;background:#f80;border-radius:3px;width:0%;pointer-events:none"></div>
           </div>
-          <button id="kp-fs" style="background:none;border:none;color:#ccc;font-size:16px;cursor:pointer;padding:0 4px">⛶</button>
           <input type="file" id="kp-file-input" accept=".smkaraoke" style="display:none">
           <div id="kp-menu-wrap" style="position:relative">
             <button id="kp-menu-btn" title="Меню" style="background:none;border:none;color:#ccc;font-size:16px;cursor:pointer;padding:0 4px">☰</button>
@@ -566,6 +583,9 @@ export default class KaraokePlayer {
 
     this.container.querySelector('#kp-play').addEventListener('click', () => this._togglePlay())
     this.container.querySelector('#kp-fs').addEventListener('click', () => this._toggleFullscreen())
+    this.container.querySelector('#kp-widemode').addEventListener('click', () => this._toggleDisplayMode())
+    this._updateDisplayModeButton()
+    this._updateFullscreenButton()
     this.container.querySelector('#kp-file-input').addEventListener('change', e => {
       const file = e.target.files[0]
       if (file) this._loadNewFile(file)
@@ -1054,6 +1074,65 @@ export default class KaraokePlayer {
 
   _toggleFullscreen() {
     document.fullscreenElement ? document.exitFullscreen() : this.container.requestFullscreen?.()
+  }
+
+  // Runs on every 'fullscreenchange' (both entering and leaving). Besides the existing canvas
+  // resize, tracks the transition so the wide-mode button can be disabled while fullscreen is
+  // active and the player can snap back to whichever display mode ('embed'/'page') it was in right
+  // before fullscreen was requested — fullscreen itself is orthogonal to that mode, not a third
+  // persistent state of it.
+  _onFullscreenChange() {
+    this._resizeCanvas()
+    const isFs = !!document.fullscreenElement
+    if (isFs && !this._isFullscreen) {
+      this._isFullscreen = true
+      this._preFullscreenDisplayMode = this._displayMode
+    } else if (!isFs && this._isFullscreen) {
+      this._isFullscreen = false
+      const restoreMode = this._preFullscreenDisplayMode
+      this._preFullscreenDisplayMode = null
+      if (restoreMode) this._setDisplayMode(restoreMode)
+    }
+    this._updateDisplayModeButton()
+    this._updateFullscreenButton()
+  }
+
+  // ─── Display mode (embed / page) + fullscreen button state ────────────────
+
+  // Only meaningful when the player actually lives inside an iframe on a host page (this._isEmbedded)
+  // — tells that host page (song page's player card) to resize the iframe box itself; the player's
+  // own container already fills 100% of whatever box the iframe ends up with (see PlayerView.vue),
+  // so no internal layout change is needed here beyond the button's own visual state.
+  _setDisplayMode(mode) {
+    if (!this._isEmbedded) return
+    this._displayMode = mode
+    this._updateDisplayModeButton()
+    try { window.parent.postMessage({ source: 'karaoke-player', type: 'display-mode', mode }, '*') } catch (e) { /* ignore */ }
+  }
+
+  _toggleDisplayMode() {
+    if (!this._isEmbedded || this._isFullscreen) return
+    this._setDisplayMode(this._displayMode === 'embed' ? 'page' : 'embed')
+  }
+
+  _updateDisplayModeButton() {
+    const btn = this.container?.querySelector('#kp-widemode')
+    if (!btn) return
+    const disabled = !this._isEmbedded || this._isFullscreen
+    btn.disabled = disabled
+    btn.style.opacity = disabled ? '0.35' : '1'
+    btn.style.cursor = disabled ? 'default' : 'pointer'
+    const active = this._displayMode === 'page'
+    btn.style.background = active ? '#08f' : 'none'
+    btn.style.color = active ? '#fff' : '#ccc'
+  }
+
+  _updateFullscreenButton() {
+    const btn = this.container?.querySelector('#kp-fs')
+    if (!btn) return
+    const active = !!document.fullscreenElement
+    btn.style.background = active ? '#08f' : 'none'
+    btn.style.color = active ? '#fff' : '#ccc'
   }
 
   // ─── Render loop ──────────────────────────────────────────────────────────

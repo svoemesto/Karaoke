@@ -54,6 +54,13 @@ class PlayerGestureUnlockService {
         return info.songId == songId && info.expiresAt > System.currentTimeMillis()
     }
 
+    /**
+     * Выдаёт токен доступа к плееру напрямую, в обход секретного жеста — используется, когда
+     * страница песни сама решает (по статусу "в эфире"/премиум), что показ плеера разрешён.
+     * Токен неотличим от токена, выданного через жест: тот же TTL, та же структура.
+     */
+    fun issueDirectAccessToken(songId: Long): String = issueToken(songId)
+
     private fun issueToken(songId: Long): String {
         pruneExpiredTokens()
         val bytes = ByteArray(24).also { random.nextBytes(it) }

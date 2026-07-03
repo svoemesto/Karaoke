@@ -85,6 +85,14 @@
           </div>
         </div>
 
+        <!-- Онлайн-плеер: между блоком информации о песне и "Ссылки на просмотр" -->
+        <div v-if="playerCanWatch" class="km-player-card" :class="{ 'km-player-page-mode': playerDisplayMode === 'page' }">
+          <div class="km-player-label">🎤 Онлайн-плеер караоке</div>
+          <div class="km-video-wrap km-player-wrap">
+            <iframe ref="playerIframe" :src="`/player/${currentSong.id}`" allow="autoplay; fullscreen" frameborder="0" allowfullscreen />
+          </div>
+        </div>
+
         <!-- Ссылки на платформы -->
         <div class="km-links-card">
           <div class="km-links-title">Ссылки на просмотр</div>
@@ -136,8 +144,8 @@
           <div v-else class="km-date-publish">{{ currentSong.datePublish }}</div>
         </div>
 
-        <!-- Видео -->
-        <div v-if="currentSong.onAir" class="km-videos">
+        <!-- Видео ВК — старое место, только когда онлайн-плеер сам не может отобразиться -->
+        <div v-if="currentSong.onAir && !playerCanWatch && playerAccessLoaded" class="km-videos">
           <div v-if="currentSong.idVkKaraoke" class="km-video-block" @click="onPlay('karaoke')">
             <div class="km-video-label">Karaoke</div>
             <div class="km-video-wrap">
@@ -180,6 +188,25 @@
           </div>
         </div>
 
+        <!-- Не в эфире (или эксклюзив/не готово) и плеер недоступен — сообщение об ожидании/подписке.
+             Тоже на старом месте видео-блока. -->
+        <div v-if="!currentSong.onAir && !playerCanWatch && playerAccessLoaded" class="km-waiting-card">
+          <div class="km-waiting-title">{{ waitingTitle }}</div>
+          <div class="km-waiting-body">{{ waitingBody }}</div>
+          <a :href="sponsrUrl" target="_blank" rel="noopener" class="km-waiting-cta">Оформить подписку на Sponsr →</a>
+          <div class="km-waiting-fineprint">
+            После оформления и оплаты подписки на Sponsr доступность песни на сайте появится через некоторое время.
+          </div>
+          <div v-if="!isLoggedIn" class="km-waiting-login">
+            Также вы можете <RouterLink to="/register">зарегистрироваться</RouterLink> или
+            <RouterLink to="/login">войти</RouterLink> на сайте — это понадобится, чтобы мы могли
+            узнать вас как премиум-подписчика.
+          </div>
+          <div v-else-if="playerIsPremiumUser" class="km-waiting-login">
+            Вы премиум-пользователь — как только материалы для плеера будут готовы, он появится здесь автоматически.
+          </div>
+        </div>
+
         <!-- Текст / Табы / Аккорды -->
         <div v-if="currentSong.formattedTextSong" class="km-text-card">
           <div class="km-text-header">Текст песни</div>
@@ -205,7 +232,10 @@ import { mapGetters, mapActions } from 'vuex'
 import PlatformLink from '../../components/PlatformLink.vue'
 import AuthStatusWidget from '../../components/AuthStatusWidget.vue'
 import { useDesign } from '../../composables/useDesign'
+import { useAuth } from '../../composables/useAuth'
+import { usePlayerAccess } from '../../composables/usePlayerAccess'
 import { trackPlay, trackMetaClick } from '../../services/tracking'
+import { pluralDays } from '../../utils/pluralRu'
 
 export default {
   name: 'SongModern',
@@ -213,10 +243,43 @@ export default {
   setup() {
     const { theme, applyTheme } = useDesign()
     function setTheme(val) { theme.value = val; applyTheme(val) }
-    return { theme, setTheme }
+    const { isLoggedIn } = useAuth()
+    const playerAccess = usePlayerAccess()
+    return { theme, setTheme, isLoggedIn, playerAccess }
   },
   computed: {
-    ...mapGetters('songs', ['currentSong', 'currentSongIsLoading'])
+    ...mapGetters('songs', ['currentSong', 'currentSongIsLoading']),
+    playerCanWatch() { return this.playerAccess.canWatch.value },
+    playerAccessLoaded() { return this.playerAccess.loaded.value },
+    playerIsPremiumUser() { return this.playerAccess.isPremiumUser.value },
+    daysUntilAir() {
+      const ts = this.currentSong?.airTimestamp
+      if (!ts) return null
+      return Math.ceil((ts - Date.now()) / 86400000)
+    },
+    sponsrUrl() {
+      const s = this.currentSong
+      return (s && (s.linkSponsrPlay || s.sponsrLinkGeneral)) || 'https://sponsr.ru/smkaraoke'
+    },
+    waitingTitle() {
+      const s = this.currentSong
+      if (!s) return ''
+      if (s.exclusive) return 'Эта песня — эксклюзив на Sponsr'
+      if (this.daysUntilAir === null) return 'Дата выхода в эфир пока не определена'
+      if (this.daysUntilAir <= 0) return 'Песня скоро появится в эфире'
+      return `Песня выйдет в эфир через ${this.daysUntilAir} ${pluralDays(this.daysUntilAir)}`
+    },
+    waitingBody() {
+      const s = this.currentSong
+      if (!s) return ''
+      if (s.exclusive) {
+        return 'В эфире она доступна не будет — единственный способ получить доступ к ней сейчас — оформить платную подписку на Sponsr.'
+      }
+      return 'Не хотите ждать? Оформите платную подписку на Sponsr — и песня станет доступна сразу, не дожидаясь эфира.'
+    }
+  },
+  data() {
+    return { playerDisplayMode: 'embed' }
   },
   watch: {
     '$route.query.id': {
@@ -227,14 +290,30 @@ export default {
       handler(song) {
         if (song) document.title = `${song.songName} — ${song.author}`
         document.body.style.background = song?.contentRemoved ? 'var(--km-bg)' : ''
+        if (song?.id) this.playerAccess.checkAccess(song.id)
+        this.playerDisplayMode = 'embed'
       }
     }
   },
+  mounted() {
+    window.addEventListener('message', this.onPlayerMessage)
+  },
   beforeUnmount() {
     document.body.style.background = ''
+    window.removeEventListener('message', this.onPlayerMessage)
   },
   methods: {
     ...mapActions('songs', ['loadSong']),
+    // Player card starts embedded in the page; the player itself (running same-origin inside the
+    // iframe) posts here when its "Широкий" button is toggled, asking us to resize the iframe's own
+    // box between the small embedded card and a full-viewport overlay. Sourced-checked against our
+    // own iframe's contentWindow so unrelated postMessage traffic (browser extensions etc.) is ignored.
+    onPlayerMessage(event) {
+      if (!event.data || event.data.source !== 'karaoke-player' || event.data.type !== 'display-mode') return
+      const iframe = this.$refs.playerIframe
+      if (iframe && event.source !== iframe.contentWindow) return
+      this.playerDisplayMode = event.data.mode
+    },
     onPlay(version) { trackPlay(this.currentSong.id, version) },
     async onMetaClick(field, event) {
       const resp = await trackMetaClick(field, this.currentSong.id, event)
@@ -450,6 +529,95 @@ export default {
   text-align: center;
   padding: 0.5rem;
 }
+
+/* Онлайн-плеер, встроенный вместо видео ВК */
+.km-player-card {
+  margin-bottom: 1rem;
+  border: 1px solid var(--km-accent);
+  border-radius: 12px;
+  padding: 0.75rem;
+  background: var(--km-card);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--km-accent) 15%, transparent);
+}
+.km-player-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--km-accent2);
+  margin-bottom: 0.5rem;
+  letter-spacing: 0.02em;
+}
+.km-player-wrap { border-radius: 8px; }
+
+/* "Широкий" режим — плеер (внутри iframe) сам попросил родительскую страницу растянуть его на весь
+   вьюпорт вместо маленькой карточки. position:fixed игнорирует max-width родительских .km-content
+   (тот не создаёт containing block), так что этого достаточно, без переноса в другое место DOM. */
+.km-player-card.km-player-page-mode {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  background: #000;
+}
+.km-player-card.km-player-page-mode .km-player-label { display: none; }
+.km-player-card.km-player-page-mode .km-video-wrap {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: unset;
+  border-radius: 0;
+}
+
+/* Ожидание / предложение подписки */
+.km-waiting-card {
+  background: var(--km-card);
+  border: 1px solid var(--km-border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+.km-waiting-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--km-text);
+  margin-bottom: 0.5rem;
+}
+.km-waiting-body {
+  color: var(--km-text2);
+  font-size: 0.95rem;
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+.km-waiting-cta {
+  display: inline-block;
+  background: var(--km-accent);
+  color: #fff;
+  border-radius: 8px;
+  padding: 0.6rem 1.4rem;
+  font-weight: 600;
+  text-decoration: none;
+  margin-bottom: 0.75rem;
+}
+.km-waiting-cta:hover { opacity: 0.9; color: #fff; text-decoration: none; }
+.km-waiting-fineprint {
+  font-size: 0.72rem;
+  color: var(--km-text2);
+  opacity: 0.8;
+  max-width: 480px;
+  margin: 0 auto 0.5rem;
+  line-height: 1.4;
+}
+.km-waiting-login {
+  font-size: 0.82rem;
+  color: var(--km-text2);
+  margin-top: 0.5rem;
+}
+.km-waiting-login a { color: var(--km-accent2); }
 
 /* Видео */
 .km-videos { margin-bottom: 1rem; }

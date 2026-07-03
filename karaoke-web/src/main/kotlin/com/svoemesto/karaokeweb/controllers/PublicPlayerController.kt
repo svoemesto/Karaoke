@@ -6,27 +6,30 @@ import com.svoemesto.karaokeapp.model.Settings
 import com.svoemesto.karaokeapp.rightFileName
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.StorageApiClient
+import com.svoemesto.karaokeapp.model.SiteUser
 import com.svoemesto.karaokeweb.WORKING_DATABASE
 import com.svoemesto.karaokeweb.services.PlayerGestureUnlockService
+import com.svoemesto.karaokeweb.services.SiteUserTokenService
+import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpHeaders
-import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import java.io.ByteArrayOutputStream
-import java.net.URI
 import java.net.URLEncoder
 import java.util.zip.CRC32
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
 /**
- * Онлайн-плеер для публичного сайта (karaoke-public) — намеренно скрыт: доступен только тем,
- * у кого есть валидный токен, выданный [PlayerGestureUnlockService] после секретного жеста на
- * странице песни. Без токена (или с чужим/просроченным) все эндпоинты ведут себя как
- * несуществующий ресурс (404), а не как "тут есть защита, но у вас нет доступа" — чтобы сам факт
- * существования этого механизма не был очевиден по ответам API.
+ * Онлайн-плеер для публичного сайта (karaoke-public). Токен доступа к плееру выдаётся двумя
+ * путями: (1) открыто, через [access] — страница песни сама решает по статусу "в эфире"/премиум,
+ * можно ли встроить плеер вместо видео ВК / вместо сообщения об ожидании; (2) исторически —
+ * секретным жестом на любой странице песни, см. [PlayerGestureUnlockService]. Оба пути выдают
+ * структурно одинаковый токен из одного и того же хранилища. Без токена (или с чужим/просроченным)
+ * файловые эндпоинты (fileminus.mp3 и т.п.) ведут себя как несуществующий ресурс (404).
  *
  * ВАЖНО: karaoke-web выполняется на другом хосте, чем karaoke-app (тот, где физически лежат FLAC
  * и работает Demucs/ffmpeg) — доступа к локальным путям вроде Settings.accompanimentNameFlac у
@@ -46,12 +49,52 @@ class PublicPlayerController(
     private val storageService: KaraokeStorageService,
     private val storageApiClient: StorageApiClient,
     private val gestureUnlockService: PlayerGestureUnlockService,
+    private val siteUserTokenService: SiteUserTokenService,
     @Value("\${storage.proxy-url}") private val minioProxyUrl: String,
 ) {
     private val bucket = "karaoke"
 
     private fun authorized(id: Long, token: String?): Boolean =
         token != null && gestureUnlockService.validateToken(token, id)
+
+    // Живая проверка премиум-статуса по Authorization-заголовку (тот же bearer-токен, что
+    // выдаёт SiteUserTokenService личному кабинету) — намеренно не кэшируется в токене плеера,
+    // чтобы бан/снятие премиума посреди 30-минутного TTL токена плеера подействовали немедленно.
+    private fun resolveSiteUser(request: HttpServletRequest): SiteUser? {
+        val header = request.getHeader("Authorization") ?: return null
+        val token = header.removePrefix("Bearer ").trim().takeIf { it.isNotBlank() } ?: return null
+        return siteUserTokenService.resolveToken(token, WORKING_DATABASE)
+    }
+
+    private fun isPremiumUser(request: HttpServletRequest): Boolean =
+        resolveSiteUser(request)?.isPremium == true
+
+    private fun stemsReady(settings: Settings): Boolean =
+        existsInMinIO(stemStorageKey(settings, KaraokeFileType.MP3_ACCOMPANIMENT)) &&
+            existsInMinIO(stemStorageKey(settings, KaraokeFileType.MP3_VOCAL)) &&
+            settings.sourceMarkersList.isNotEmpty()
+
+    /**
+     * Решает, можно ли прямо сейчас показать на странице песни встроенный онлайн-плеер вместо
+     * видео ВК (для "в эфире") или сообщения об ожидании (для остального). Не требует секретного
+     * жеста — это открытая, документированная точка входа для обычного показа плеера.
+     */
+    @GetMapping("/{id}/access")
+    fun access(@PathVariable id: Long, request: HttpServletRequest): ResponseEntity<Map<String, Any?>> {
+        val settings = loadSettings(id) ?: return ResponseEntity.notFound().build()
+        val ready = stemsReady(settings)
+        val premium = isPremiumUser(request)
+        val canWatch = ready && (settings.onAir || premium)
+        val canExport = canWatch && premium
+        val token = if (canWatch) gestureUnlockService.issueDirectAccessToken(id) else null
+        return ResponseEntity.ok(mapOf(
+            "ready" to ready,
+            "isPremiumUser" to premium,
+            "canWatch" to canWatch,
+            "canExport" to canExport,
+            "token" to token,
+        ))
+    }
 
     // Same template HealthReport.kt/ApiController.pushMp3ToStorage use for every KaraokeFileType
     // with a REMOTE_STORAGE location: "${settings.storageFileName}${suffix}.${extention}" — suffix
@@ -83,48 +126,51 @@ class PublicPlayerController(
         if (conn.responseCode == 200) conn.inputStream.use { it.readBytes() } else null
     } catch (e: Exception) { null }
 
-    // 302 редирект на nginx /minio/ — браузер загружает MP3 напрямую через прокси без MTU-проблем
-    private fun stemResponse(settings: Settings, fileType: KaraokeFileType): ResponseEntity<Void> {
+    // Байты стема проксируются напрямую через этот же токен-защищённый эндпоинт — НЕ 302-редиректом
+    // на статический /minio/-путь. Редирект на постоянный публичный URL раньше был единственной
+    // защитой (только на входе): токен проверялся один раз, а полученный браузером конечный адрес
+    // MinIO дальше был доступен бессрочно и без проверки токена вообще (закладка/шаринг ссылки/кэш
+    // download-менеджера обходили токен и его 30-минутный TTL). Проксирование байтов устраняет этот
+    // постоянный публичный URL — каждый запрос снова проверяет token.
+    private fun stemResponse(settings: Settings, fileType: KaraokeFileType): ResponseEntity<ByteArray> {
         val storageKey = stemStorageKey(settings, fileType)
-        if (!existsInMinIO(storageKey)) return ResponseEntity.notFound().build()
-        return ResponseEntity.status(HttpStatus.FOUND)
-            .location(URI.create("/minio/karaoke/${encodedProxyPath(storageKey)}"))
-            .build()
+        val bytes = fetchFromMinIO(storageKey) ?: return ResponseEntity.notFound().build()
+        return ResponseEntity.ok().contentType(MediaType.valueOf("audio/mpeg")).body(bytes)
     }
 
     private fun loadSettings(id: Long) =
         Settings.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
 
     @GetMapping("/{id}/fileminus.mp3")
-    fun fileAccompaniment(@PathVariable id: Long, @RequestParam token: String?): ResponseEntity<Void> {
+    fun fileAccompaniment(@PathVariable id: Long, @RequestParam token: String?): ResponseEntity<ByteArray> {
         if (!authorized(id, token)) return ResponseEntity.notFound().build()
         val settings = loadSettings(id) ?: return ResponseEntity.notFound().build()
         return stemResponse(settings, KaraokeFileType.MP3_ACCOMPANIMENT)
     }
 
     @GetMapping("/{id}/filevoice.mp3")
-    fun fileVocals(@PathVariable id: Long, @RequestParam token: String?): ResponseEntity<Void> {
+    fun fileVocals(@PathVariable id: Long, @RequestParam token: String?): ResponseEntity<ByteArray> {
         if (!authorized(id, token)) return ResponseEntity.notFound().build()
         val settings = loadSettings(id) ?: return ResponseEntity.notFound().build()
         return stemResponse(settings, KaraokeFileType.MP3_VOCAL)
     }
 
     @GetMapping("/{id}/filebass.mp3")
-    fun fileBass(@PathVariable id: Long, @RequestParam token: String?): ResponseEntity<Void> {
+    fun fileBass(@PathVariable id: Long, @RequestParam token: String?): ResponseEntity<ByteArray> {
         if (!authorized(id, token)) return ResponseEntity.notFound().build()
         val settings = loadSettings(id) ?: return ResponseEntity.notFound().build()
         return stemResponse(settings, KaraokeFileType.MP3_BASS)
     }
 
     @GetMapping("/{id}/filedrums.mp3")
-    fun fileDrums(@PathVariable id: Long, @RequestParam token: String?): ResponseEntity<Void> {
+    fun fileDrums(@PathVariable id: Long, @RequestParam token: String?): ResponseEntity<ByteArray> {
         if (!authorized(id, token)) return ResponseEntity.notFound().build()
         val settings = loadSettings(id) ?: return ResponseEntity.notFound().build()
         return stemResponse(settings, KaraokeFileType.MP3_DRUMS)
     }
 
     @GetMapping("/{id}/playerdata")
-    fun playerData(@PathVariable id: Long, @RequestParam token: String?): ResponseEntity<Map<String, Any?>> {
+    fun playerData(@PathVariable id: Long, @RequestParam token: String?, request: HttpServletRequest): ResponseEntity<Map<String, Any?>> {
         if (!authorized(id, token)) return ResponseEntity.notFound().build()
         val settings = loadSettings(id) ?: return ResponseEntity.notFound().build()
 
@@ -150,17 +196,27 @@ class PublicPlayerController(
             "audioDrumsUrl" to if (hasDrums) "/api/public/player/$id/filedrums.mp3$tokenSuffix" else null,
             "albumImageUrl" to settings.pictureAlbum?.storageFileName?.let { "/api/public/picture?file=$it" },
             "artistImageUrl" to settings.pictureAuthor?.storageFileName?.let { "/api/public/picture?file=$it" },
-            "exportBaseName" to "${settings.fileName} [id-$id]".rightFileName()
+            "exportBaseName" to "${settings.fileName} [id-$id]".rightFileName(),
+            // Живая проверка, не завязанная на TTL токена плеера — открывает/закрывает пункт меню
+            // "Экспорт аудио..." на фронте. Сама выдача байт стемов (fileminus.mp3 и т.п.) этим
+            // флагом не ограничена — эти же URL нужны и для обычного воспроизведения всем, у кого
+            // есть валидный token; canExport — только про предложение сохранить файл себе.
+            "canExport" to isPremiumUser(request),
         )
         return ResponseEntity.ok(data)
     }
 
-    // "Сохранить файл" в скрытом плеере — тот же .smkaraoke-контейнер, что и admin-эндпоинт
-    // /song/{id}/playerfile в karaoke-app, но собранный из MinIO (stemResponse-стемы + картинки),
-    // без единого обращения к локальным дисковым путям.
+    // Полный .smkaraoke-контейнер — тот же формат, что и admin-эндпоинт /song/{id}/playerfile
+    // в karaoke-app, но собранный из MinIO (стемы + картинки), без обращения к локальным дискам.
+    // Пункт меню "Сохранить файл" убран из публичного плеера (KaraokePlayer.js, karaoke-public) —
+    // этот эндпоинт больше не вызывается обычным UI, но оставлен для будущей платной выдачи файла
+    // покупателям. Защищён отдельно от токена плеера: требует живого премиум-статуса — токен
+    // плеера сам по себе доступ к паковке не даёт (иначе любой посмотревший видео "в эфире" мог бы
+    // напрямую дёрнуть URL и получить весь платный файл).
     @GetMapping("/{id}/playerfile")
-    fun playerFile(@PathVariable id: Long, @RequestParam token: String?, response: HttpServletResponse) {
+    fun playerFile(@PathVariable id: Long, @RequestParam token: String?, request: HttpServletRequest, response: HttpServletResponse) {
         if (!authorized(id, token)) { response.status = 404; return }
+        if (!isPremiumUser(request)) { response.status = 403; response.contentType = "application/json"; response.writer.write("{\"error\":\"premium_required\"}"); return }
         val settings = loadSettings(id) ?: run { response.status = 404; return }
 
         val tracks = mutableMapOf<String, String>()

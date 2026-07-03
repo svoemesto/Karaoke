@@ -546,6 +546,14 @@ Security filter chain.
 API (раньше выбор БД был только в фоновых sync-джобах). Поле «Премиум» в карточке (webvue3) — обычный
 редактируемый чекбокс, временная замена для будущей автоматической Sponsr-сверки (см. ниже).
 
+**Jackson-сериализация булевых `is*`-полей.** В Kotlin data class поле `val isPremium: Boolean` генерирует
+геттер `isPremium()`, а Jackson по бин-конвенции отбрасывает префикс `is` при сериализации в JSON — на
+выходе ключ `"premium"`, а не `"isPremium"` (аналогично `isBanned` → `"banned"`, уже учтено в
+`webvue3/SiteUserEdit.vue`: `siteUserCurrent.banned`, не `.isBanned`). Любой новый фронтенд-код, читающий
+такое поле из ответа `SiteUserDto` (или любого другого DTO с булевым `is*`-полем), должен обращаться к
+нему без префикса `is` (`user.premium`, не `user.isPremium`) — иначе значение будет тихо `undefined`
+и UI-условие всегда ложно, без ошибок в консоли.
+
 **Капча — Yandex SmartCaptcha**, ключи в `tbl_public_settings` (не в файловых `KaraokeProperties` — см.
 ниже почему), `karaoke-web/services/CaptchaConfigService.kt` читает их напрямую через `WORKING_DATABASE`.
 `YandexCaptchaValidationService` — fail-open (не блокирует регистрацию), если серверный ключ пуст —

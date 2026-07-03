@@ -1,7 +1,9 @@
 <template>
   <div class="km-auth-widget">
     <template v-if="isLoggedIn">
-      <RouterLink to="/account" class="km-auth-link">{{ displayName }}</RouterLink>
+      <RouterLink to="/account" class="km-auth-link">
+        <span v-if="isPremium" class="km-premium-badge" title="Премиум-подписчик">🪙</span>{{ displayName }}
+      </RouterLink>
       <button class="km-auth-btn" @click="onLogout">Выйти</button>
     </template>
     <template v-else>
@@ -24,6 +26,9 @@ export default {
   computed: {
     displayName() {
       return (this.user && this.user.displayName) || (this.user && this.user.email) || ''
+    },
+    isPremium() {
+      return !!(this.user && this.user.premium)
     }
   },
   methods: {
@@ -52,6 +57,7 @@ export default {
 }
 .km-auth-link:hover { color: var(--km-text); text-decoration: underline; }
 .km-auth-accent { color: var(--km-accent); font-weight: 600; }
+.km-premium-badge { margin-right: 0.3em; }
 .km-auth-btn {
   background: transparent;
   border: 1px solid var(--km-border);

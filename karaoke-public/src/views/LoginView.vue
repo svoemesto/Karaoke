@@ -73,7 +73,7 @@ export default {
         })
         if (status === 200 && body && body.token) {
           this.setSession(body.token, body.user)
-          this.$router.push(this.$route.query.redirect || '/account')
+          this.$router.push(this.$route.query.redirect || '/')
           return
         }
         if (status === 403 && body && body.error === 'banned') {

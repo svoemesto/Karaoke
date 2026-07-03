@@ -9,7 +9,6 @@ import com.svoemesto.karaokeapp.model.SongVersion
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.StorageApiClient
 import java.io.File
-import java.nio.file.Files
 import kotlin.properties.Delegates
 
 data class HealthReport(
@@ -63,6 +62,10 @@ data class HealthReport(
             storageApiClient: StorageApiClient
         ): List<HealthReport> {
 
+            // location добавляется в description, иначе local/remote-варианты одного и того же
+            // karaokeFileType неотличимы друг от друга в getHealthReport() (одинаковые type/status/description)
+            val locationDescription = "$description/${location.name}"
+
             return when (location) {
                 LOCAL_FILESYSTEM -> actionsLocalFileSystem(
                     karaokeFileType = karaokeFileType,
@@ -70,7 +73,7 @@ data class HealthReport(
                     settings = settings,
                     rootFolder = rootFolder,
                     pathToFile = pathToFile,
-                    description = description,
+                    description = locationDescription,
                     existsInLocalFileSystem = existsInLocalFileSystem,
                     canBe = canBe,
                     willBeInLocation = karaokeFileType.willBeInFileSystem,
@@ -92,7 +95,7 @@ data class HealthReport(
                     settings = settings,
                     rootFolder = rootFolder,
                     pathToFile = pathToFile,
-                    description = description,
+                    description = locationDescription,
                     existsInLocalFileSystem = existsInLocalFileSystem,
                     canBe = canBe,
                     willBeInLocation = karaokeFileType.willBeInLocalStorage,
@@ -114,7 +117,7 @@ data class HealthReport(
                     settings = settings,
                     rootFolder = rootFolder,
                     pathToFile = pathToFile,
-                    description = description,
+                    description = locationDescription,
                     existsInLocalFileSystem = existsInLocalFileSystem,
                     canBe = canBe,
                     willBeInLocation = karaokeFileType.willBeInRemoteStorage,
@@ -549,6 +552,15 @@ data class HealthReport(
             canBeResolved = canResolve
 
             val existsInLocalStore = storageService.fileExists(bucketName = storageBucketName, fileName = storageFileName)
+            val uploadInProgress = KaraokeProcess.loadList(
+                args = mapOf(
+                    "settings_id" to settings.id.toString(),
+                    "process_type" to KaraokeProcessTypes.UPLOAD_TO_LOCAL_STORE.name,
+                    "thread_id" to KaraokeProcess.THREAD_LANE_LIGHT_BACKGROUND.toString(),
+                    "process_args" to "karaokeFileType=${karaokeFileType.name}"
+                ),
+                database = database
+            ).any { it.status != KaraokeProcessStatuses.DONE.name && it.status != KaraokeProcessStatuses.ERROR.name }
 
             if (canBe) { // Файл должен быть
                 if (existsInLocalStore) { // Файл реально есть в хранилище (existsInLocalStore)
@@ -560,27 +572,37 @@ data class HealthReport(
                            healthReportStatus = ERROR
                            canBeResolved = true
                            problemText = "Файл в локальном хранилище неактуальный"
-                           solutionText = "Удалить неактуальный файл из локального хранилища и загрузить актуальный"
 
-                           actions.add { println("actionsLocalStorage [Удаление неактуального файла из локального хранилища] >>>") }
-                           actions.add {
-                               storageService.deleteFile(
-                                   bucketName = storageBucketName,
-                                   fileName = storageFileName
-                               )
+                           if (uploadInProgress) {
+                               healthReportStatus = IN_PROGRESS
+                               canBeResolved = false
+                               solutionText = "Уже есть задание на загрузку файла"
+                           } else {
+                               solutionText = "Удалить неактуальный файл из локального хранилища и загрузить актуальный"
+
+                               actions.add { println("actionsLocalStorage [Удаление неактуального файла из локального хранилища] >>>") }
+                               actions.add {
+                                   storageService.deleteFile(
+                                       bucketName = storageBucketName,
+                                       fileName = storageFileName
+                                   )
+                               }
+
+                               actions.add { println("actionsLocalStorage [Удаление неактуального файла из локального хранилища] <<<") }
+
+                               actions.add { println("actionsLocalStorage [Загрузка файла с диска в локальное хранилище] >>>") }
+                               actions.add {
+                                   KaraokeProcess.createProcess(
+                                       settings = settings,
+                                       action = KaraokeProcessTypes.UPLOAD_TO_LOCAL_STORE,
+                                       doWait = true,
+                                       prior = -2,
+                                       threadId = KaraokeProcess.THREAD_LANE_LIGHT_BACKGROUND,
+                                       context = mapOf("pathToFile" to pathToFile, "karaokeFileType" to karaokeFileType.name)
+                                   )
+                               }
+                               actions.add { println("actionsLocalStorage [Загрузка файла с диска в локальное хранилище] <<<") }
                            }
-
-                           actions.add { println("actionsLocalStorage [Удаление неактуального файла из локального хранилища] <<<") }
-
-                           actions.add { println("actionsLocalStorage [Загрузка файла с диска в локальное хранилище] >>>") }
-                           actions.add {
-                               storageService.uploadFile(
-                                   bucketName = storageBucketName,
-                                   fileName = storageFileName,
-                                   pathToFileOnDisk = pathToFile
-                               )
-                           }
-                           actions.add { println("actionsLocalStorage [Загрузка файла с диска в локальное хранилище] <<<") }
 
                        }
 
@@ -614,17 +636,27 @@ data class HealthReport(
                         healthReportStatus = ERROR
                         canBeResolved = true
                         problemText = "Файл в локальном хранилище отсутствует"
-                        solutionText = "Загрузка файла с диска в локальное хранилище"
 
-                        actions.add { println("actionsLocalStorage [$solutionText] >>>") }
-                        actions.add {
-                            storageService.uploadFile(
-                                bucketName = storageBucketName,
-                                fileName = storageFileName,
-                                pathToFileOnDisk = pathToFile
-                            )
+                        if (uploadInProgress) {
+                            healthReportStatus = IN_PROGRESS
+                            canBeResolved = false
+                            solutionText = "Уже есть задание на загрузку файла"
+                        } else {
+                            solutionText = "Загрузка файла с диска в локальное хранилище"
+
+                            actions.add { println("actionsLocalStorage [$solutionText] >>>") }
+                            actions.add {
+                                KaraokeProcess.createProcess(
+                                    settings = settings,
+                                    action = KaraokeProcessTypes.UPLOAD_TO_LOCAL_STORE,
+                                    doWait = true,
+                                    prior = -2,
+                                    threadId = KaraokeProcess.THREAD_LANE_LIGHT_BACKGROUND,
+                                    context = mapOf("pathToFile" to pathToFile, "karaokeFileType" to karaokeFileType.name)
+                                )
+                            }
+                            actions.add { println("actionsLocalStorage [$solutionText] <<<") }
                         }
-                        actions.add { println("actionsLocalStorage [$solutionText] <<<") }
 
                     } else { // Файла реально нет на диске (existsInLocalFileSystem)
 
@@ -634,33 +666,43 @@ data class HealthReport(
                             canBeResolved = true
                             healthReportStatus = ERROR
                             problemText = "Файл отсутствует в локальном хранилище и на диске, но есть в удалённом хранилище"
-                            solutionText = "Загрузка файла из удалённого хранилища в локальное хранилище"
 
-                            val tempFile = getTempFilePath(prefix = "temp", suffix = ".${karaokeFileType.extention}")
+                            if (uploadInProgress) {
+                                healthReportStatus = IN_PROGRESS
+                                canBeResolved = false
+                                solutionText = "Уже есть задание на загрузку файла"
+                            } else {
+                                solutionText = "Загрузка файла из удалённого хранилища в локальное хранилище"
 
-                            actions.add { println("actionsLocalStorage [Загрузка файла из удалённого хранилища] >>>") }
-                            actions.add {
-                                storageApiClient.downloadFile(
-                                    bucketName = storageBucketName,
-                                    fileName = storageFileName,
-                                    pathToFileOnDisk = tempFile.toString()
-                                )
+                                val tempFile = getTempFilePath(prefix = "temp", suffix = ".${karaokeFileType.extention}")
+
+                                actions.add { println("actionsLocalStorage [Загрузка файла из удалённого хранилища] >>>") }
+                                actions.add {
+                                    storageApiClient.downloadFile(
+                                        bucketName = storageBucketName,
+                                        fileName = storageFileName,
+                                        pathToFileOnDisk = tempFile.toString()
+                                    )
+                                }
+                                actions.add { println("actionsLocalStorage [Загрузка файла из удалённого хранилища] <<<") }
+
+                                actions.add { println("actionsLocalStorage [Загрузка файла с диска в локальное хранилище] >>>") }
+                                actions.add {
+                                    KaraokeProcess.createProcess(
+                                        settings = settings,
+                                        action = KaraokeProcessTypes.UPLOAD_TO_LOCAL_STORE,
+                                        doWait = true,
+                                        prior = -2,
+                                        threadId = KaraokeProcess.THREAD_LANE_LIGHT_BACKGROUND,
+                                        context = mapOf(
+                                            "pathToFile" to tempFile.toString(),
+                                            "karaokeFileType" to karaokeFileType.name,
+                                            "deleteAfterUpload" to "true"
+                                        )
+                                    )
+                                }
+                                actions.add { println("actionsLocalStorage [Загрузка файла с диска в локальное хранилище] <<<") }
                             }
-                            actions.add { println("actionsLocalStorage [Загрузка файла из удалённого хранилища] <<<") }
-
-                            actions.add { println("actionsLocalStorage [Загрузка файла с диска в локальное хранилище] >>>") }
-                            actions.add {
-                                storageService.uploadFile(
-                                    bucketName = storageBucketName,
-                                    fileName = storageFileName,
-                                    pathToFileOnDisk = tempFile.toString()
-                                )
-                            }
-                            actions.add { println("actionsLocalStorage [Загрузка файла с диска в локальное хранилище] <<<") }
-
-                            actions.add { println("actionsLocalStorage [Удаление скачанного временного файла с диска] >>>") }
-                            actions.add { Files.deleteIfExists(tempFile) }
-                            actions.add { println("actionsLocalStorage [Удаление скачанного временного файла с диска] <<<") }
 
                         } else { // Файла нет в удалённом хранилище
 
@@ -778,6 +820,15 @@ data class HealthReport(
             canBeResolved = canResolve
 
             val existsInRemoteStore = storageApiClient.fileExists(bucketName = storageBucketName, fileName = storageFileName)
+            val uploadInProgress = KaraokeProcess.loadList(
+                args = mapOf(
+                    "settings_id" to settings.id.toString(),
+                    "process_type" to KaraokeProcessTypes.UPLOAD_TO_REMOTE_STORE.name,
+                    "thread_id" to KaraokeProcess.THREAD_LANE_REMOTE_STORE_UPLOAD.toString(),
+                    "process_args" to "karaokeFileType=${karaokeFileType.name}"
+                ),
+                database = database
+            ).any { it.status != KaraokeProcessStatuses.DONE.name && it.status != KaraokeProcessStatuses.ERROR.name }
 
             if (canBe) { // Файл должен быть
                 if (existsInRemoteStore) { // Файл реально есть в хранилище (existsInRemoteStore)
@@ -789,26 +840,36 @@ data class HealthReport(
                             healthReportStatus = ERROR
                             canBeResolved = true
                             problemText = "Файл в удалённом хранилище неактуальный"
-                            solutionText = "Удалить неактуальный файл из удалённого хранилища и загрузить актуальный"
 
-                            actions.add { println("actionsRemoteStorage [Удаление неактуального файла из удалённого хранилища] >>>") }
-                            actions.add {
-                                storageApiClient.deleteFile(
-                                    bucketName = storageBucketName,
-                                    fileName = storageFileName
-                                )
-                            }
-                            actions.add { println("actionsRemoteStorage [Удаление неактуального файла из удалённого хранилища] <<<") }
+                            if (uploadInProgress) {
+                                healthReportStatus = IN_PROGRESS
+                                canBeResolved = false
+                                solutionText = "Уже есть задание на загрузку файла"
+                            } else {
+                                solutionText = "Удалить неактуальный файл из удалённого хранилища и загрузить актуальный"
 
-                            actions.add { println("actionsRemoteStorage [Загрузка файла с диска в удалённое хранилище] >>>") }
-                            actions.add {
-                                storageApiClient.uploadFile(
-                                    bucketName = storageBucketName,
-                                    fileName = storageFileName,
-                                    pathToFileOnDisk = pathToFile
-                                )
+                                actions.add { println("actionsRemoteStorage [Удаление неактуального файла из удалённого хранилища] >>>") }
+                                actions.add {
+                                    storageApiClient.deleteFile(
+                                        bucketName = storageBucketName,
+                                        fileName = storageFileName
+                                    )
+                                }
+                                actions.add { println("actionsRemoteStorage [Удаление неактуального файла из удалённого хранилища] <<<") }
+
+                                actions.add { println("actionsRemoteStorage [Загрузка файла с диска в удалённое хранилище] >>>") }
+                                actions.add {
+                                    KaraokeProcess.createProcess(
+                                        settings = settings,
+                                        action = KaraokeProcessTypes.UPLOAD_TO_REMOTE_STORE,
+                                        doWait = true,
+                                        prior = -2,
+                                        threadId = KaraokeProcess.THREAD_LANE_REMOTE_STORE_UPLOAD,
+                                        context = mapOf("pathToFile" to pathToFile, "karaokeFileType" to karaokeFileType.name)
+                                    )
+                                }
+                                actions.add { println("actionsRemoteStorage [Загрузка файла с диска в удалённое хранилище] <<<") }
                             }
-                            actions.add { println("actionsRemoteStorage [Загрузка файла с диска в удалённое хранилище] <<<") }
 
                         }
 
@@ -842,17 +903,27 @@ data class HealthReport(
                         healthReportStatus = ERROR
                         canBeResolved = true
                         problemText = "Файл в удалённом хранилище отсутствует"
-                        solutionText = "Загрузка файла с диска в удалённое хранилище"
 
-                        actions.add { println("actionsRemoteStorage [$solutionText] >>>") }
-                        actions.add {
-                            storageApiClient.uploadFile(
-                                bucketName = storageBucketName,
-                                fileName = storageFileName,
-                                pathToFileOnDisk = pathToFile
-                            )
+                        if (uploadInProgress) {
+                            healthReportStatus = IN_PROGRESS
+                            canBeResolved = false
+                            solutionText = "Уже есть задание на загрузку файла"
+                        } else {
+                            solutionText = "Загрузка файла с диска в удалённое хранилище"
+
+                            actions.add { println("actionsRemoteStorage [$solutionText] >>>") }
+                            actions.add {
+                                KaraokeProcess.createProcess(
+                                    settings = settings,
+                                    action = KaraokeProcessTypes.UPLOAD_TO_REMOTE_STORE,
+                                    doWait = true,
+                                    prior = -2,
+                                    threadId = KaraokeProcess.THREAD_LANE_REMOTE_STORE_UPLOAD,
+                                    context = mapOf("pathToFile" to pathToFile, "karaokeFileType" to karaokeFileType.name)
+                                )
+                            }
+                            actions.add { println("actionsRemoteStorage [$solutionText] <<<") }
                         }
-                        actions.add { println("actionsRemoteStorage [$solutionText] <<<") }
 
                     } else { // Файла реально нет на диске (existsInLocalFileSystem)
 
@@ -863,33 +934,43 @@ data class HealthReport(
                             healthReportStatus = ERROR
                             canBeResolved = true
                             problemText = "Файл отсутствует в удалённом хранилище и на диске, но есть в локальном хранилище"
-                            solutionText = "Загрузка файла из локального хранилища в удалённое хранилище"
 
-                            val tempFile = getTempFilePath(prefix = "temp", suffix = ".${karaokeFileType.extention}")
+                            if (uploadInProgress) {
+                                healthReportStatus = IN_PROGRESS
+                                canBeResolved = false
+                                solutionText = "Уже есть задание на загрузку файла"
+                            } else {
+                                solutionText = "Загрузка файла из локального хранилища в удалённое хранилище"
 
-                            actions.add { println("actionsRemoteStorage [Загрузка файла из локального хранилища] >>>") }
-                            actions.add {
-                                storageService.downloadFile(
-                                    bucketName = storageBucketName,
-                                    fileName = storageFileName,
-                                    pathToFileOnDisk = tempFile.toString()
-                                )
+                                val tempFile = getTempFilePath(prefix = "temp", suffix = ".${karaokeFileType.extention}")
+
+                                actions.add { println("actionsRemoteStorage [Загрузка файла из локального хранилища] >>>") }
+                                actions.add {
+                                    storageService.downloadFile(
+                                        bucketName = storageBucketName,
+                                        fileName = storageFileName,
+                                        pathToFileOnDisk = tempFile.toString()
+                                    )
+                                }
+                                actions.add { println("actionsRemoteStorage [Загрузка файла из локального хранилища] <<<") }
+
+                                actions.add { println("actionsRemoteStorage [Загрузка файла с диска в удалённое хранилище] >>>") }
+                                actions.add {
+                                    KaraokeProcess.createProcess(
+                                        settings = settings,
+                                        action = KaraokeProcessTypes.UPLOAD_TO_REMOTE_STORE,
+                                        doWait = true,
+                                        prior = -2,
+                                        threadId = KaraokeProcess.THREAD_LANE_REMOTE_STORE_UPLOAD,
+                                        context = mapOf(
+                                            "pathToFile" to tempFile.toString(),
+                                            "karaokeFileType" to karaokeFileType.name,
+                                            "deleteAfterUpload" to "true"
+                                        )
+                                    )
+                                }
+                                actions.add { println("actionsRemoteStorage [Загрузка файла с диска в удалённое хранилище] <<<") }
                             }
-                            actions.add { println("actionsRemoteStorage [Загрузка файла из локального хранилища] <<<") }
-
-                            actions.add { println("actionsRemoteStorage [Загрузка файла с диска в удалённое хранилище] >>>") }
-                            actions.add {
-                                storageApiClient.uploadFile(
-                                    bucketName = storageBucketName,
-                                    fileName = storageFileName,
-                                    pathToFileOnDisk = tempFile.toString()
-                                )
-                            }
-                            actions.add { println("actionsRemoteStorage [Загрузка файла с диска в удалённое хранилище] <<<") }
-
-                            actions.add { println("actionsRemoteStorage [Удаление скачанного временного файла с диска] >>>") }
-                            actions.add { Files.deleteIfExists(tempFile) }
-                            actions.add { println("actionsRemoteStorage [Удаление скачанного временного файла с диска] <<<") }
 
                         } else { // Файла нет в удалённом хранилище
 

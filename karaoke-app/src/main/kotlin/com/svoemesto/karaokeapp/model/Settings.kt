@@ -941,7 +941,7 @@ class Settings(
                 ),
                 listOf("chmod", "666", pathToFileKeyBpmFinder.rightFileName()),
                 listOf("rm", "-rf", PATH_TO_TEMP_KEYBPMFINDER_FOLDER),
-                listOf("runFunctionWithArgs", "getKeyBpmFromFile", id.toString())
+                listOf("runFunctionWithArgs", "getKeyBpmFromFile", "settingsId=$id")
             ),
             mapOf("DOCKER_API_VERSION" to "1.53")
         )

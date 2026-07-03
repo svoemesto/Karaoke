@@ -24,6 +24,7 @@ enum class KaraokeProcessTypes {
     FF_MP3_BASS,
     FF_MP3_OTHER,
     KEY_BPM_FROM_FILE,
-    UPLOAD_TO_LOCAL_STORE
+    UPLOAD_TO_LOCAL_STORE,
+    UPLOAD_TO_REMOTE_STORE
 //    RECODE_48000,
 }

@@ -412,6 +412,11 @@ class KaraokeProcess(
 
     companion object {
 
+        // Именованные "лейны" threadId для задач, не привязанных к конкретной песне/сессии редактирования
+        const val THREAD_LANE_HEAVY_RENDER = 0 // MELT_*, DEMUCS*, SHEETSAGE и т.п. — тяжёлые задачи, нельзя гнать параллельно
+        const val THREAD_LANE_LIGHT_BACKGROUND = -1 // SmartCopy, uploadToLocalStore — быстрые фоновые задачи
+        const val THREAD_LANE_REMOTE_STORE_UPLOAD = -2 // uploadToRemoteStore — сетевая загрузка может быть медленной, свой отдельный лейн
+
         fun getDiff(procA: KaraokeProcess?): List<RecordDiff> {
             val result: MutableList<RecordDiff> = mutableListOf()
             if (procA != null) {
@@ -1428,7 +1433,15 @@ class KaraokeProcess(
                         val pathToFile = context["pathToFile"] as String
                         val karaokeFileType = context["karaokeFileType"] as String
                         args = listOf(
-                            listOf("runFunctionWithArgs", "uploadToLocalStore", settings.id.toString(), pathToFile, karaokeFileType)
+                            listOf("runFunctionWithArgs", "uploadToLocalStore", "settingsId=${settings.id}", "pathToFile=$pathToFile", "karaokeFileType=$karaokeFileType")
+                        )
+                    }
+                    KaraokeProcessTypes.UPLOAD_TO_REMOTE_STORE -> {
+                        description = "UPLOAD TO REMOTE STORE"
+                        val pathToFile = context["pathToFile"] as String
+                        val karaokeFileType = context["karaokeFileType"] as String
+                        args = listOf(
+                            listOf("runFunctionWithArgs", "uploadToRemoteStore", "settingsId=${settings.id}", "pathToFile=$pathToFile", "karaokeFileType=$karaokeFileType")
                         )
                     }
                     KaraokeProcessTypes.SMARTCOPY -> {

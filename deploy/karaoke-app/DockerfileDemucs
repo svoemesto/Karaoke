@@ -1,0 +1,52 @@
+FROM nvidia/cuda:12.6.2-base-ubuntu22.04
+
+USER root
+ENV TORCH_HOME=/data/models
+ENV OMP_NUM_THREADS=1
+
+RUN apt update && apt install -y --no-install-recommends \
+    build-essential \
+    ffmpeg \
+    git \
+    python3 \
+    python3-dev \
+    python3-pip \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN git clone --single-branch --branch main https://github.com/adefossez/demucs /lib/demucs
+WORKDIR /lib/demucs
+RUN git checkout b9ab48cad45976ba42b2ff17b229c071f0df9390
+
+# torch 1.13.1+cu117 (CUDA 11.7) не поддерживает архитектуру Ada Lovelace (RTX 40xx) —
+# torch.stft падает с "cuFFT error: CUFFT_INTERNAL_ERROR". CUDA 11.8 добавила поддержку Ada,
+# поэтому берём torch/torchaudio с cu118 отдельным индексом (demucs.requirements.txt на этом
+# коммите разрешает torch>=1.8.1, torchaudio<2.2 — верхней границы для torch там нет).
+RUN python3 -m pip install --no-cache-dir torch==2.1.2 torchaudio==2.1.2 --index-url https://download.pytorch.org/whl/cu118
+
+# demucs/audio_legacy.py форсирует старый (deprecated) API torchaudio для torchaudio>=2.1 —
+# без явно установленного бэкенда (soundfile/sox_io) torchaudio подставляет пустышку save(),
+# не принимающую encoding/bits_per_sample → demucs падает с
+# "save() got an unexpected keyword argument 'encoding'". soundfile закрывает это (requirements.txt
+# demucs его перечисляет, но setup.py -e . его не подтягивает — используется для dev/тестов).
+RUN python3 -m pip install -e . "numpy<2" soundfile --no-cache-dir
+
+# Демонстрационные прогоны на CPU для предзагрузки весов моделей в TORCH_HOME
+# (сборочная машина не обязана иметь доступ к GPU через buildx)
+COPY test.mp3 test.mp3
+RUN python3 -m demucs -n hdemucs_mmi -d cpu test.mp3
+RUN python3 -m demucs -n htdemucs -d cpu test.mp3
+RUN python3 -m demucs -n htdemucs_ft -d cpu test.mp3
+RUN python3 -m demucs -n htdemucs_6s -d cpu test.mp3
+RUN python3 -m demucs -n mdx -d cpu test.mp3
+RUN python3 -m demucs -n mdx_extra -d cpu test.mp3
+RUN rm -r separated
+
+VOLUME [/data/input]
+VOLUME [/data/output]
+
+COPY demucs2 /lib/demucs/
+COPY demucs5 /lib/demucs/
+COPY demucs7 /lib/demucs/
+RUN chmod +x demucs2 demucs5 demucs7
+
+ENTRYPOINT ["/bin/bash", "--login", "-c"]

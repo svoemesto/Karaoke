@@ -946,12 +946,13 @@ class Settings(
             mapOf("DOCKER_API_VERSION" to "1.53")
         )
     }
-    fun argsDemucs2(): Pair<List<List<String>>, Map<String, String>> {
+    fun argsDemucs2(device: String = "cuda"): Pair<List<List<String>>, Map<String, String>> {
 
         // Сначала копируем файл аудио в папку PATH_TO_TEMP_DEMUCS_FOLDER с именем file.flac, потом вызываем докер,
         // потом копируем оттуда результат и удаляем папку PATH_TO_TEMP_DEMUCS_FOLDER
 
         val tmpFileName = "file"
+        val gpuFlags = if (device == "cuda") listOf("--gpus", "all") else emptyList()
         return Pair(
             listOf(
                 listOf("mkdir", "-p", pathToResultedModel),
@@ -959,12 +960,11 @@ class Settings(
                 listOf("mkdir", "-p", PATH_TO_TEMP_DEMUCS_FOLDER),
                 listOf("chmod", "777", PATH_TO_TEMP_DEMUCS_FOLDER),
                 listOf("cp", fileAbsolutePath.rightFileName(), "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName.flac"),
-                listOf(
-                    "docker", "run", "--rm", "-i", "--name=demucs",
+                listOf("docker", "run", "--rm", "-i", "--name=demucs") + gpuFlags + listOf(
                     "-v", "$PATH_TO_TEMP_DEMUCS_FOLDER:/data/input",
                     "-v", "$PATH_TO_TEMP_DEMUCS_FOLDER:/data/output",
                     "svoemestodev/demucs:latest",
-                    "''./demucs2 -file $PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName.flac -recode flac''"
+                    "''./demucs2 -file $PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName.flac -recode flac -device $device''"
                 ),
                 listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-accompaniment.flac", accompanimentNameFlac.rightFileName()),
                 listOf("chmod", "666", accompanimentNameFlac.rightFileName()),
@@ -976,12 +976,13 @@ class Settings(
         )
     }
 
-    fun argsDemucs5(): Pair<List<List<String>>, Map<String, String>> {
+    fun argsDemucs5(device: String = "cuda"): Pair<List<List<String>>, Map<String, String>> {
 
         // Сначала копируем файл аудио в папку PATH_TO_TEMP_DEMUCS_FOLDER с именем file.flac, потом вызываем докер,
         // потом копируем оттуда результат и удаляем папку PATH_TO_TEMP_DEMUCS_FOLDER
         // Второй возвращаемый параметр = мапа для энверонмента процессбилдера
         val tmpFileName = "file"
+        val gpuFlags = if (device == "cuda") listOf("--gpus", "all") else emptyList()
         return Pair(
             listOf(
                 listOf("mkdir", "-p", pathToResultedModel),
@@ -989,12 +990,11 @@ class Settings(
                 listOf("mkdir", "-p", PATH_TO_TEMP_DEMUCS_FOLDER),
                 listOf("chmod", "777", PATH_TO_TEMP_DEMUCS_FOLDER),
                 listOf("cp", fileAbsolutePath.rightFileName(), "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName.flac"),
-                listOf(
-                    "docker", "run", "--rm", "-i", "--name=demucs",
+                listOf("docker", "run", "--rm", "-i", "--name=demucs") + gpuFlags + listOf(
                     "-v", "$PATH_TO_TEMP_DEMUCS_FOLDER:/data/input",
                     "-v", "$PATH_TO_TEMP_DEMUCS_FOLDER:/data/output",
                     "svoemestodev/demucs:latest",
-                    "''./demucs5 -file $PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName.flac -recode flac''"
+                    "''./demucs5 -file $PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName.flac -recode flac -device $device''"
                 ),
                 listOf("mv", "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName-accompaniment.flac", accompanimentNameFlac.rightFileName()),
                 listOf("chmod", "666", accompanimentNameFlac.rightFileName()),

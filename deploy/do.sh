@@ -125,6 +125,13 @@ function do_build_app_nocache() {
    -f $DEPLOY_DIR/karaoke-app/Dockerfile
 }
 
+function do_build_demucs() {
+  echo "Building DEMUCS module"
+  ${DOCKER} image build $DEPLOY_DIR/karaoke-app/files/ \
+   -t "$DOCKER_REGISTRY/demucs:latest" \
+   -f $DEPLOY_DIR/karaoke-app/DockerfileDemucs
+}
+
 function do_build_web() {
 
   echo "Building WEB module"
@@ -270,6 +277,14 @@ function do_push_app() {
   command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "Pushing APP!"
 }
 
+function do_push_demucs() {
+  echo "Pushing DEMUCS"
+  ${DOCKER} login --username ${DOCKER_REGISTRY} --password ${DOCKER_PASSWORD}
+  ${DOCKER} image push "$DOCKER_REGISTRY/demucs:latest"
+  command -v paplay &> /dev/null && paplay /usr/share/sounds/freedesktop/stereo/complete.oga
+  command -v notify-send &> /dev/null && notify-send -u normal "Karaoke" "Pushing DEMUCS!"
+}
+
 function do_push_web() {
   echo "Pushing WEB"
   ${DOCKER} login --username ${DOCKER_REGISTRY} --password ${DOCKER_PASSWORD}
@@ -343,6 +358,7 @@ build) do_build ;;
 build_start) do_load ;;
 build_app) do_build_app ;;
 build_app_nocache) do_build_app_nocache ;;
+build_demucs) do_build_demucs ;;
 build_web) do_build_web ;;
 build_webvue) do_build_webvue ;;
 build_webvue3) do_build_webvue3 ;;
@@ -370,6 +386,7 @@ stop_public) do_stop_public ;;
 load) do_load ;;
 push) do_push ;;
 push_app) do_push_app ;;
+push_demucs) do_push_demucs ;;
 push_web) do_push_web ;;
 push_webvue) do_push_webvue ;;
 push_webvue3) do_push_webvue3 ;;
@@ -398,6 +415,8 @@ rmi) do_rmi ;;
     load, build_start - (re)builds jars, images and (re)starts containers
     build - builds jars and images
     build_app - builds karaoke-app image
+    build_demucs - builds demucs image (GPU/CUDA-enabled), tagged \$DOCKER_REGISTRY/demucs:latest
+    push_demucs - pushes demucs image to DOCKER_REGISTRY
     build_web - builds karaoke-web image
     build_webvue - builds karaoke-webvue image
     build_start_app - builds karaoke-app image and (re)starts containers

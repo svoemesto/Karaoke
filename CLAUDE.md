@@ -203,6 +203,32 @@ Sheetsage key/BPM/chord detection, file copy/symlink operations) is modeled as a
 a priority and run on a managed pool — this queue is the backbone of the whole rendering pipeline, not a generic
 task runner.
 
+**Demucs на GPU (`argsDemucs2`/`argsDemucs5` в `Settings.kt`, `deploy/karaoke-app/DockerfileDemucs`).**
+Локальная машина (`karaoke-app`) имеет физическую видеокарту (RTX 4060 Ti) и уже настроенный GPU
+passthrough в Docker (`nvidia-container-toolkit` на хосте, `/var/run/docker.sock` смонтирован в
+`karaoke-app` через реальный **`docker-compose-app-new-comp.yml`** — не через `deploy/docker-compose-app.yml`
+из репозитория, это два разных файла, реально используемый лежит вне репо в `/sm-karaoke/system/deploy`).
+`argsDemucs2()`/`argsDemucs5()` принимают параметр `device: String = "cuda"` (по умолчанию GPU) и добавляют
+`--gpus all` в команду `docker run`, только когда `device == "cuda"`; сами shell-скрипты `demucs2`/`demucs5`/
+`demucs7` (`deploy/karaoke-app/files/`) принимают параметр `-device cpu|cuda` (по умолчанию `cpu` внутри
+скрипта — обратная совместимость, если параметр не передан). `deploy/karaoke-app/DockerfileDemucs` —
+восстановленный (рецепт сборки образа `svoemestodev/demucs:latest` изначально нигде не был закоммичен;
+реконструирован через `docker history` уже работавшего образа) и теперь закоммиченный Dockerfile;
+`do.sh build_demucs`/`push_demucs` его собирают/пушат. Две version-специфичные ловушки при апгрейде GPU,
+на будущее:
+- **torch 1.13.1+cu117 не поддерживает архитектуру Ada Lovelace (RTX 40xx)** — `torch.stft` (используется в
+  спектрограмме Demucs) падает с `RuntimeError: cuFFT error: CUFFT_INTERNAL_ERROR`. CUDA 11.8 добавила
+  поддержку Ada, поэтому используется `torch==2.1.2+cu118`/`torchaudio==2.1.2+cu118` с отдельного индекса
+  `download.pytorch.org/whl/cu118` (сам Demucs на закреплённом коммите `requirements.txt` разрешает
+  `torch>=1.8.1`, `torchaudio<2.2` — верхней границы на torch там нет, апгрейд безопасен).
+- **torchaudio ≥2.1 требует явно установленного `soundfile`**, иначе падает с `TypeError: save() got an
+  unexpected keyword argument 'encoding'`. Причина: `demucs/audio_legacy.py` форсирует старый (deprecated)
+  backend API torchaudio для версий ≥2.1 (`os.environ["TORCHAUDIO_USE_BACKEND_DISPATCHER"] = "0"` +
+  `importlib.reload`), а под старым API без зарегистрированного бэкенда (`soundfile`/`sox_io`) `torchaudio`
+  подставляет пустышку `save()`, не принимающую `encoding`/`bits_per_sample`. `soundfile` уже перечислен в
+  `demucs/requirements.txt`, но `pip install -e .` (через `setup.py`) его не подтягивает — установлен явно
+  в `DockerfileDemucs`.
+
 **Поиск "оригинала" при добавлении файлов из папки (`doCreateFromFolder` в `ApiController.kt`,
 `findDuplicateOriginal()` в `Utils.kt`).** После `Settings.createFromPath()` для каждой новой песни ищется
 уже существующая в базе песня с тем же названием без учёта содержимого в скобках (regex `\([^)]*\)`,

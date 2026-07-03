@@ -714,3 +714,22 @@ ipv6=off;` (docker embedded DNS), не литералом. Литерал рез
 его насмерть (`emerg: host not found`), если контейнер `karaoke-app` в этот момент не поднят — с
 переменной резолв ленивый, на каждый запрос, поэтому webvue3 переживает независимый рестарт karaoke-app.
 Тот же приём использовать для любого нового `proxy_pass` на другой docker-сервис в этом файле.
+
+## Сетевое окружение машины администратора (Claude Code через VPN)
+
+На машине администратора настроен process-scoped split-tunnel: собственный сетевой трафик Claude Code
+(API-запросы, авторизация, телеметрия, WebFetch) идёт через VLESS-VPN, а команды, которые Claude Code
+выполняет через Bash-тул (git, npm, docker, curl и т.п.), идут обычным маршрутом, без VPN.
+
+- Headless `xray-core` (пакет `xray-server`) — systemd-сервис `xray.service` (`enabled`, переживает
+  перезагрузку), конфиг в `/etc/xray/config/{inbounds,outbounds,routing}.json`. HTTP-inbound (не socks
+  — Claude Code не поддерживает SOCKS-прокси) на `127.0.0.1:1081`, VLESS-outbound наружу.
+- `~/.bashrc`: функция `claude()` выставляет `HTTPS_PROXY`/`HTTP_PROXY=http://127.0.0.1:1081` перед
+  запуском реального бинарника; `claude --novpn` запускает вообще без прокси.
+- Глобальный `PreToolUse`-хук на тул `Bash` (`~/.claude/hooks/strip-proxy.sh`, зарегистрирован в
+  `~/.claude/settings.json`) переписывает каждую Bash-команду в `env -u HTTPS_PROXY -u HTTP_PROXY ...
+  -- bash -c '<original>'`, чтобы дочерние процессы не наследовали proxy. Экранирование оригинальной
+  команды — обязательно через `jq -nr --arg c "$command" '$c | @sh'` (флаг `-r` обязателен, иначе
+  двойное JSON-экранирование ломает команды с `&&`/`|`/кавычками).
+- На машине отдельно установлен `goxray-gui` (system-wide TUN, другая задача пользователя) — не
+  пересекается с этой настройкой, трогать не нужно.

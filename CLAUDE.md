@@ -196,6 +196,43 @@ Sheetsage key/BPM/chord detection, file copy/symlink operations) is modeled as a
 a priority and run on a managed pool — this queue is the backbone of the whole rendering pipeline, not a generic
 task runner.
 
+**Thread-лейны (`threadId`) в `KaraokeProcess`/`KaraokeProcessWorker`.** `threadId` группирует задания в
+независимые последовательные очереди: `KaraokeProcess.getProcessesToStart()` выбирает не более одного
+`WAITING`-задания на каждый `thread_id` (SQL `ROW_NUMBER() OVER (PARTITION BY thread_id ...)`), а
+`KaraokeProcessWorker.doStart()` не стартует новый поток для `threadId`, пока предыдущий с этим же `threadId`
+ещё `isAlive` — задания с одинаковым `threadId` гарантированно выполняются строго друг за другом. Именованные
+константы — `KaraokeProcess.THREAD_LANE_HEAVY_RENDER = 0` (MELT_*, DEMUCS*, SHEETSAGE и т.п. — тяжёлые задачи,
+нельзя гнать параллельно), `THREAD_LANE_LIGHT_BACKGROUND = -1` (SmartCopy, `UPLOAD_TO_LOCAL_STORE` — быстрые
+фоновые задачи), `THREAD_LANE_REMOTE_STORE_UPLOAD = -2` (`UPLOAD_TO_REMOTE_STORE` — сетевая загрузка может быть
+медленной, отдельный лейн, чтобы не блокировать лёгкий `-1`). Задания редактирования конкретной песни (MELT_LYRICS
+и т.п. из `webvue3`) используют свой `threadId`, приходящий из фронтенда — не путать с этими тремя зарезервированными
+именованными константами.
+
+**"Функциональные" задания (`runFunctionWithArgs`) — типы `KEY_BPM_FROM_FILE` (последний шаг),
+`UPLOAD_TO_LOCAL_STORE`, `UPLOAD_TO_REMOTE_STORE`.** В отличие от остальных типов, эти не запускают OS-подпроцесс,
+а вызывают Kotlin-функцию напрямую внутри `KaraokeProcessThread.run()`. Диспетчеризация двухуровневая: строка
+`args[0][0] == "runFunctionWithArgs"` отличает функциональную строку от подпроцессной (нужно, т.к. `KEY_BPM_FROM_FILE`
+через `separate()` разбивается на несколько дочерних строк с одним и тем же `type`, где только последняя —
+функциональная); а вот какую именно функцию вызвать — решается по `karaokeProcess.type`
+(`KaraokeProcessTypes.valueOf(...)`), а не по строке. Параметры (`args[2..]`) кодируются как `"key=value"` и
+парсятся `parseRunFunctionWithArgsParams()` (`Utils.kt`) в `Map<String, String>` — именованный доступ вместо
+позиционных индексов; `executeGetKeyBpmFromFile`/`executeUploadToLocalStore`/`executeUploadToRemoteStore`
+принимают эту map и возвращают `Boolean` успеха (в отличие от `false`-по-умолчанию раньше, отсутствие `Settings`
+теперь корректно приводит к статусу `ERROR`, а не молчаливому `DONE`). Вся эта ветка обёрнута в `try/catch`
+(зеркально ветке подпроцессов) — исключение больше не оставляет запись зависшей в `WORKING` навсегда.
+
+**Прогресс загрузки файлов (`uploadToLocalStore`/`uploadToRemoteStore`).** MinIO Java SDK (8.6.0) не имеет
+`ProgressListener`, но `PutObjectArgs.stream()` принимает обычный `InputStream` — прогресс получается через
+`CountingInputStream` (`karaoke-app/.../CountingInputStream.kt`, простой `FilterInputStream`-счётчик байт),
+которым оборачивается файл перед вызовом `KaraokeStorageService.uploadFile(file: InputStream, size)`. Для
+удалённой загрузки (`StorageApiClient`/WebClient multipart, `services/StorageApiClient.kt`) файл по-прежнему
+читается целиком в память (`Files.readAllBytes`), но `ByteArrayResource.getInputStream()` переопределён так,
+чтобы возвращать ту же обёртку-счётчик — WebClient читает `Resource` поблочно при сериализации multipart-тела,
+так что прогресс отражает реальную скорость передачи по сети (с обратным давлением), а не мгновенное чтение из
+памяти. Прогресс пишется в `KaraokeProcessThread.percentage` (`String`, `"---"` = неизвестно) — существующий
+механизм (`getDiff()`/`save()`/SSE в `doStart()`) сам доносит изменения до UI, ничего дополнительно дёргать
+не нужно.
+
 **Генерация текста табулатуры (`getFormattedNotes()` в `Settings.kt`).**
 Функция строит HTML-табулатуру: 6 строк струн + строка нот + строка слогов. Все заполнители — **только ASCII**:
 `-` вместо `⎼` (U+23BC), `||` вместо `‖` (U+2016). Unicode-символы рендерятся через font fallback с другой

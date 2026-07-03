@@ -34,11 +34,30 @@ class KaraokeProcessThread(val karaokeProcess: KaraokeProcess? = null, var perce
 
             if (karaokeProcess.args[0][0] == "runFunctionWithArgs") {
 
-                runFunctionWithArgs(karaokeProcess.args[0])
-                karaokeProcess.status = KaraokeProcessStatuses.DONE.name
-                karaokeProcess.end = Timestamp.from(Instant.now())
-                karaokeProcess.priority = 999
-                karaokeProcess.save()
+                val params = parseRunFunctionWithArgsParams(karaokeProcess.args[0])
+                percentage = "0"
+                println("[${Timestamp.from(Instant.now())}] KaraokeProcessThread[${karaokeProcess.threadId}]: Начинаем работу с заданием: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}")
+                try {
+                    val success = when (KaraokeProcessTypes.valueOf(karaokeProcess.type)) {
+                        KaraokeProcessTypes.KEY_BPM_FROM_FILE -> executeGetKeyBpmFromFile(params)
+                        KaraokeProcessTypes.UPLOAD_TO_LOCAL_STORE -> executeUploadToLocalStore(params) { pct -> percentage = pct.toString() }
+                        KaraokeProcessTypes.UPLOAD_TO_REMOTE_STORE -> executeUploadToRemoteStore(params) { pct -> percentage = pct.toString() }
+                        else -> false
+                    }
+                    println("[${Timestamp.from(Instant.now())}] KaraokeProcessThread[${karaokeProcess.threadId}]: ${if (success) "DONE успешно завершенное" else "ERROR (данные не найдены)"} задание: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}")
+                    karaokeProcess.status = (if (success) KaraokeProcessStatuses.DONE else KaraokeProcessStatuses.ERROR).name
+                    karaokeProcess.end = Timestamp.from(Instant.now())
+                    karaokeProcess.priority = if (success) 999 else -1
+                    percentage = "100"
+                    karaokeProcess.save()
+                } catch (e: Exception) {
+                    println("[${Timestamp.from(Instant.now())}] KaraokeProcessThread[${karaokeProcess.threadId}]: ERROR задание: ${karaokeProcess.name} - [${karaokeProcess.type}] - ${karaokeProcess.description}: ${e.message}")
+                    karaokeProcess.status = KaraokeProcessStatuses.ERROR.name
+                    karaokeProcess.end = Timestamp.from(Instant.now())
+                    karaokeProcess.priority = -1
+                    percentage = "100"
+                    karaokeProcess.save()
+                }
 
             } else {
 

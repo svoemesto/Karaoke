@@ -61,7 +61,6 @@ import kotlin.use
 fun customFunction(
     storageService: KaraokeStorageService,
     lyricsFinderService: LyricsFinderService,
-    @Suppress("unused")
     storageApiClient: StorageApiClient
 ): String {
 
@@ -82,20 +81,34 @@ fun customFunction(
         val vocalExistsInLocalFileSystem = if (pathToFileVocal != "") File(pathToFileVocal).exists() else false
         val vocalKaraokeFileType = KaraokeFileType.MP3_VOCAL
         val vocalStorageFileName = "${settings.storageFileName}${vocalKaraokeFileType.suffix}.${vocalKaraokeFileType.extention}"
-        val vocalExistsInLocalStorage = storageService.fileExists(bucketName = settings.storageBucketName, fileName = vocalStorageFileName)
-        if (vocalExistsInLocalFileSystem && !vocalExistsInLocalStorage) {
-            val context = mapOf("pathToFile" to pathToFileVocal, "karaokeFileType" to vocalKaraokeFileType.name)
-            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.UPLOAD_TO_LOCAL_STORE, true, 1, -1, context = context)
+        if (vocalExistsInLocalFileSystem) {
+            val vocalExistsInLocalStorage = storageService.fileExists(bucketName = settings.storageBucketName, fileName = vocalStorageFileName)
+            if (!vocalExistsInLocalStorage) {
+                val context = mapOf("pathToFile" to pathToFileVocal, "karaokeFileType" to vocalKaraokeFileType.name)
+                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.UPLOAD_TO_LOCAL_STORE, true, 1, KaraokeProcess.THREAD_LANE_LIGHT_BACKGROUND, context = context)
+            }
+            val vocalExistsInRemoteStorage = storageApiClient.fileExists(bucketName = settings.storageBucketName, fileName = vocalStorageFileName)
+            if (!vocalExistsInRemoteStorage) {
+                val context = mapOf("pathToFile" to pathToFileVocal, "karaokeFileType" to vocalKaraokeFileType.name)
+                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.UPLOAD_TO_REMOTE_STORE, true, 1, KaraokeProcess.THREAD_LANE_REMOTE_STORE_UPLOAD, context = context)
+            }
         }
 
         val pathToFileAccompaniment = settings.accompanimentNameMp3
         val accompanimentExistsInLocalFileSystem = if (pathToFileAccompaniment != "") File(pathToFileAccompaniment).exists() else false
         val accompanimentKaraokeFileType = KaraokeFileType.MP3_ACCOMPANIMENT
         val accompanimentStorageFileName = "${settings.storageFileName}${accompanimentKaraokeFileType.suffix}.${accompanimentKaraokeFileType.extention}"
-        val accompanimentExistsInLocalStorage = storageService.fileExists(bucketName = settings.storageBucketName, fileName = accompanimentStorageFileName)
-        if (accompanimentExistsInLocalFileSystem && !accompanimentExistsInLocalStorage) {
-            val context = mapOf("pathToFile" to pathToFileAccompaniment, "karaokeFileType" to accompanimentKaraokeFileType.name)
-            KaraokeProcess.createProcess(settings, KaraokeProcessTypes.UPLOAD_TO_LOCAL_STORE, true, 1, -1, context = context)
+        if (accompanimentExistsInLocalFileSystem) {
+            val accompanimentExistsInLocalStorage = storageService.fileExists(bucketName = settings.storageBucketName, fileName = accompanimentStorageFileName)
+            if (!accompanimentExistsInLocalStorage) {
+                val context = mapOf("pathToFile" to pathToFileAccompaniment, "karaokeFileType" to accompanimentKaraokeFileType.name)
+                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.UPLOAD_TO_LOCAL_STORE, true, 1, KaraokeProcess.THREAD_LANE_LIGHT_BACKGROUND, context = context)
+            }
+            val accompanimentExistsInRemoteStorage = storageApiClient.fileExists(bucketName = settings.storageBucketName, fileName = accompanimentStorageFileName)
+            if (!accompanimentExistsInRemoteStorage) {
+                val context = mapOf("pathToFile" to pathToFileAccompaniment, "karaokeFileType" to accompanimentKaraokeFileType.name)
+                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.UPLOAD_TO_REMOTE_STORE, true, 1, KaraokeProcess.THREAD_LANE_REMOTE_STORE_UPLOAD, context = context)
+            }
         }
 
     }
@@ -2901,57 +2914,96 @@ fun createScriptForHost(args: List<String>, waitToDone: Boolean = false) {
     }
 }
 
-fun runFunctionWithArgs(args: List<String>): String {
-    var result = ""
-    if (args.size > 1) {
-        val func = args[1]
-        when (func) {
-            "getKeyBpmFromFile" -> {
-                if (args.size > 2) {
-                    Settings.loadFromDbById(id = args[2].toLong(), database = WORKING_DATABASE, sync = false, storageService = KSS_APP, storageApiClient = SAC_APP)?.let {settings ->
-                        val (key, bpm) = settings.getKeyBpmFromFile(reFind = false)
-                        settings.fields[SettingField.KEY] = key
-                        settings.fields[SettingField.BPM] = bpm.toString()
-                        settings.saveToDb()
-                        result = "Success for '$func'"
-                    }
-                }
-            }
-            "uploadToLocalStore" -> {
-                /*
-                args[0] = "runFunctionWithArgs"
-                args[1] = "uploadToLocalStore"
-                args[2] = id settings
-                args[3] = pathToFile
-                args[4] = karaokeFileType
-                 */
-                if (args.size == 5) {
-                    val settingsId = args[2].toLong()
-                    val pathToFile = args[3] //settings.vocalsNameMp3
-                    val karaokeFileType = KaraokeFileType.valueOf(args[4])
-                    val storageService = KSS_APP
-
-                    Settings.loadFromDbById(id = settingsId, database = WORKING_DATABASE, sync = false, storageService = storageService, storageApiClient = SAC_APP)?.let {settings ->
-
-                        val existsInLocalFileSystem = if (pathToFile != "") File(pathToFile).exists() else false
-                        val storageFileName = "${settings.storageFileName}${karaokeFileType.suffix}.${karaokeFileType.extention}"
-                        val bucketName = settings.storageBucketName
-                        val existsInLocalStorage = storageService.fileExists(bucketName = bucketName, fileName = storageFileName)
-                        if (existsInLocalFileSystem && !existsInLocalStorage) {
-                            storageService.uploadFile(
-                                bucketName = bucketName,
-                                fileName = storageFileName,
-                                pathToFileOnDisk = pathToFile
-                            )
-                        }
-                        result = "Success for '$func'"
-                    }
-                }
-            }
-            else -> {}
-        }
+/**
+ * Ниже — переиспользуемые реализации для "функциональных" заданий очереди (KaraokeProcessTypes,
+ * выполняемых напрямую как Kotlin-функция вместо OS-подпроцесса, args[0] = "runFunctionWithArgs").
+ * Параметры (args[2..]) кодируются как "key=value" и парсятся parseRunFunctionWithArgsParams() в
+ * Map<String, String> — именованный доступ вместо позиционных индексов, общий для типобезопасной
+ * диспетчеризации по KaraokeProcessTypes (KaraokeProcessThread.run()) и строкового диспетчера
+ * runFunctionWithArgs() ниже (единственное место без доступа к KaraokeProcess.type — runCommand()).
+ * Каждая execute*-функция возвращает false, если запись Settings не найдена (вместо прежнего
+ * молчаливого "успеха"), чтобы вызывающая сторона могла корректно проставить ERROR.
+ */
+fun parseRunFunctionWithArgsParams(args: List<String>): Map<String, String> {
+    return args.drop(2).associate { entry ->
+        val idx = entry.indexOf('=')
+        if (idx == -1) entry to "" else entry.substring(0, idx) to entry.substring(idx + 1)
     }
-    return result
+}
+
+fun executeGetKeyBpmFromFile(params: Map<String, String>): Boolean {
+    val settingsId = params["settingsId"]?.toLongOrNull() ?: return false
+    val settings = Settings.loadFromDbById(id = settingsId, database = WORKING_DATABASE, sync = false, storageService = KSS_APP, storageApiClient = SAC_APP) ?: return false
+    val (key, bpm) = settings.getKeyBpmFromFile(reFind = false)
+    settings.fields[SettingField.KEY] = key
+    settings.fields[SettingField.BPM] = bpm.toString()
+    settings.saveToDb()
+    return true
+}
+
+fun executeUploadToLocalStore(params: Map<String, String>, onProgress: ((Int) -> Unit)? = null): Boolean {
+    val settingsId = params["settingsId"]?.toLongOrNull() ?: return false
+    val pathToFile = params["pathToFile"] ?: return false
+    val karaokeFileType = params["karaokeFileType"] ?: return false
+    val fileType = KaraokeFileType.valueOf(karaokeFileType)
+    val storageService = KSS_APP
+    val settings = Settings.loadFromDbById(id = settingsId, database = WORKING_DATABASE, sync = false, storageService = storageService, storageApiClient = SAC_APP) ?: return false
+
+    val existsInLocalFileSystem = if (pathToFile != "") File(pathToFile).exists() else false
+    val storageFileName = "${settings.storageFileName}${fileType.suffix}.${fileType.extention}"
+    val bucketName = settings.storageBucketName
+    val existsInLocalStorage = storageService.fileExists(bucketName = bucketName, fileName = storageFileName)
+    if (existsInLocalFileSystem && !existsInLocalStorage) {
+        val file = File(pathToFile)
+        val totalSize = file.length()
+        val stream = if (onProgress != null && totalSize > 0) {
+            CountingInputStream(file.inputStream()) { bytesRead -> onProgress(((bytesRead * 100) / totalSize).toInt()) }
+        } else {
+            file.inputStream()
+        }
+        storageService.uploadFile(
+            bucketName = bucketName,
+            fileName = storageFileName,
+            file = stream,
+            size = totalSize
+        )
+    }
+    return true
+}
+
+fun executeUploadToRemoteStore(params: Map<String, String>, onProgress: ((Int) -> Unit)? = null): Boolean {
+    val settingsId = params["settingsId"]?.toLongOrNull() ?: return false
+    val pathToFile = params["pathToFile"] ?: return false
+    val karaokeFileType = params["karaokeFileType"] ?: return false
+    val fileType = KaraokeFileType.valueOf(karaokeFileType)
+    val storageApiClient = SAC_APP
+    val settings = Settings.loadFromDbById(id = settingsId, database = WORKING_DATABASE, sync = false, storageService = KSS_APP, storageApiClient = storageApiClient) ?: return false
+
+    val existsInLocalFileSystem = if (pathToFile != "") File(pathToFile).exists() else false
+    val storageFileName = "${settings.storageFileName}${fileType.suffix}.${fileType.extention}"
+    val bucketName = settings.storageBucketName
+    val existsInRemoteStorage = storageApiClient.fileExists(bucketName = bucketName, fileName = storageFileName)
+    if (existsInLocalFileSystem && !existsInRemoteStorage) {
+        storageApiClient.uploadFile(
+            bucketName = bucketName,
+            fileName = storageFileName,
+            pathToFileOnDisk = pathToFile,
+            onProgress = onProgress
+        )
+    }
+    return true
+}
+
+fun runFunctionWithArgs(args: List<String>): String {
+    if (args.size <= 1) return ""
+    val func = args[1]
+    val params = parseRunFunctionWithArgsParams(args)
+    return when (func) {
+        "getKeyBpmFromFile" -> if (executeGetKeyBpmFromFile(params)) "Success for '$func'" else ""
+        "uploadToLocalStore" -> if (executeUploadToLocalStore(params)) "Success for '$func'" else ""
+        "uploadToRemoteStore" -> if (executeUploadToRemoteStore(params)) "Success for '$func'" else ""
+        else -> ""
+    }
 }
 
 fun runCommand(args: List<String>, ignoreErrors: Boolean = false, skipRunFunctionWithArgs: Boolean = false, envs: Map<String, String> = emptyMap()): String {

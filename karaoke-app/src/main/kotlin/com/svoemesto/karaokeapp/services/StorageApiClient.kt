@@ -1,5 +1,6 @@
 package com.svoemesto.karaokeapp.services
 
+import com.svoemesto.karaokeapp.CountingInputStream
 import io.minio.StatObjectResponse
 import org.springframework.core.io.ByteArrayResource
 import org.springframework.stereotype.Service
@@ -20,8 +21,8 @@ import java.nio.file.Paths
 import kotlin.io.copyTo
 
 interface StorageApiClient {
-    fun uploadFile(bucketName: String, fileName: String, pathToFileOnDisk: String): String?
-    fun uploadFile(bucketName: String, fileName: String, fileContent: ByteArray): Mono<String>
+    fun uploadFile(bucketName: String, fileName: String, pathToFileOnDisk: String, onProgress: ((Int) -> Unit)? = null): String?
+    fun uploadFile(bucketName: String, fileName: String, fileContent: ByteArray, onProgress: ((Int) -> Unit)? = null): Mono<String>
     fun getFileUrl(bucketName: String, fileName: String): Mono<String>
     fun getPresignedUrl(bucketName: String, fileName: String, expiry: Int = 604800): Mono<String>
     fun downloadFile(bucketName: String, fileName: String): Mono<ByteArray>
@@ -58,7 +59,7 @@ class StorageApiClientImpl(private val webClient: WebClient): StorageApiClient {
         }
     }
 
-    override fun uploadFile(bucketName: String, fileName: String, pathToFileOnDisk: String): String? {
+    override fun uploadFile(bucketName: String, fileName: String, pathToFileOnDisk: String, onProgress: ((Int) -> Unit)?): String? {
 
         val file = File(pathToFileOnDisk)
         if (file.exists()) {
@@ -69,7 +70,8 @@ class StorageApiClientImpl(private val webClient: WebClient): StorageApiClient {
             val monoUploadResult = uploadFile(
                 bucketName = bucketName,
                 fileName = fileName, // fileName передаётся в uploadFile как есть, но он должен быть оригинальным именем
-                fileContent = fileContent
+                fileContent = fileContent,
+                onProgress = onProgress
             )
 
             val uploadResult = try {
@@ -87,18 +89,29 @@ class StorageApiClientImpl(private val webClient: WebClient): StorageApiClient {
     }
 
     // --- POST /api/storage/upload ---
-    override fun uploadFile(bucketName: String, fileName: String, fileContent: ByteArray): Mono<String> {
+    override fun uploadFile(bucketName: String, fileName: String, fileContent: ByteArray, onProgress: ((Int) -> Unit)?): Mono<String> {
         // Создаём MultiValueMap для хранения частей multipart-запроса
         val encodedBucketName = URLEncoder.encode(bucketName, StandardCharsets.UTF_8)
         val encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8)
         val multipartData: MultiValueMap<String, Any> = LinkedMultiValueMap()
 
         // --- Ключевое изменение: Создаём ByteArrayResource с переопределением getFilename ---
+        // getInputStream() оборачивается в CountingInputStream, чтобы отследить реальный прогресс
+        // передачи по сети — WebClient читает Resource поблочно при сериализации multipart-тела.
         val fileResource = object : ByteArrayResource(fileContent) {
             override fun getFilename(): String? {
                 // Возвращаем имя файла. Spring WebFlux должен использовать это имя
                 // для Content-Disposition заголовка части multipart.
                 return fileName
+            }
+
+            override fun getInputStream(): java.io.InputStream {
+                val base = super.getInputStream()
+                return if (onProgress != null && fileContent.isNotEmpty()) {
+                    CountingInputStream(base) { bytesRead -> onProgress(((bytesRead * 100) / fileContent.size).toInt()) }
+                } else {
+                    base
+                }
             }
         }
 

@@ -2641,7 +2641,7 @@ class ApiController(
         val smartCopySongResolution = "1080p"
         val smartCopyCreateSubfoldersAuthors = false
         val smartCopyRenameTemplate = ""
-        val threadId = -1
+        val threadId = KaraokeProcess.THREAD_LANE_LIGHT_BACKGROUND
 
         var result = false
 

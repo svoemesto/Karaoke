@@ -22,15 +22,15 @@ enum class KaraokeFileType(
         suffix = ".song",
         canResolve = false
     ),
-    MP3_STORE_SONG (
-        description = "Исходный аудио файл в формате mp3 в хранилище",
-        karaokeFileTypeFor = KaraokeFileTypeFor.SONG,
-        karaokeFileTypeKind = KaraokeFileTypeKind.MAIN,
-        locations = listOf(KaraokeFileTypeLocations.LOCAL_FILESYSTEM),
-        extention = "flac",
-        suffix = ".song",
-        canResolve = true
-    ),
+//    MP3_STORE_SONG (
+//        description = "Исходный аудио файл в формате mp3 в хранилище",
+//        karaokeFileTypeFor = KaraokeFileTypeFor.SONG,
+//        karaokeFileTypeKind = KaraokeFileTypeKind.MAIN,
+//        locations = listOf(KaraokeFileTypeLocations.LOCAL_FILESYSTEM),
+//        extention = "flac",
+//        suffix = ".song",
+//        canResolve = true
+//    ),
     AUDIO_ACCOMPANIMENT (
         description = "Минусовка",
         karaokeFileTypeFor = KaraokeFileTypeFor.SONG,
@@ -41,15 +41,15 @@ enum class KaraokeFileType(
         suffix = ".accompaniment",
         canResolve = true
     ),
-    MP3_STORE_ACCOMPANIMENT (
-        description = "Минусовка в формате mp3 в хранилище",
-        karaokeFileTypeFor = KaraokeFileTypeFor.SONG,
-        karaokeFileTypeKind = KaraokeFileTypeKind.MAIN,
-        locations = listOf(KaraokeFileTypeLocations.LOCAL_FILESYSTEM),
-        extention = "flac",
-        suffix = ".accompaniment",
-        canResolve = true
-    ),
+//    MP3_STORE_ACCOMPANIMENT (
+//        description = "Минусовка в формате mp3 в хранилище",
+//        karaokeFileTypeFor = KaraokeFileTypeFor.SONG,
+//        karaokeFileTypeKind = KaraokeFileTypeKind.MAIN,
+//        locations = listOf(KaraokeFileTypeLocations.LOCAL_FILESYSTEM),
+//        extention = "flac",
+//        suffix = ".accompaniment",
+//        canResolve = true
+//    ),
     MP3_ACCOMPANIMENT (
         description = "Минусовка в формате mp3",
         karaokeFileTypeFor = KaraokeFileTypeFor.SONG,

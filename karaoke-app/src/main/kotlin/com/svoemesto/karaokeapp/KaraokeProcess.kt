@@ -1325,50 +1325,50 @@ class KaraokeProcess(
 
                         )
                     }
-                    KaraokeProcessTypes.FF_MP3_KAR -> {
-                        description = "MP3 KARAOKE"
-                        args = listOf(
-                            listOf("mkdir", "-p", settings.pathToFolderMP3Karaoke),
-                            listOf("chmod", "777", settings.pathToFolderMP3Karaoke),
-                            listOf("rm", settings.pathToFileMP3Karaoke),
-                            listOf(
-                                "ffmpeg",
-                                "-i",
-                                settings.accompanimentNameFlac.rightFileName(),
-                                "-ab",
-                                "320k",
-                                "-map_metadata",
-                                "0",
-                                "-id3v2_version",
-                                "3",
-                                settings.pathToFileMP3Karaoke,
-                                "-y"
-                            ),
-                            listOf("chmod", "666", settings.pathToFileMP3Karaoke),
-                        )
-                    }
-                    KaraokeProcessTypes.FF_MP3_LYR -> {
-                        description = "MP3 LYRICS"
-                        args = listOf(
-                            listOf("mkdir", "-p", settings.pathToFolderMP3Lyrics),
-                            listOf("chmod", "777", settings.pathToFolderMP3Lyrics),
-                            listOf("rm", settings.pathToFileMP3Lyrics),
-                            listOf(
-                                "ffmpeg",
-                                "-i",
-                                settings.fileAbsolutePath.rightFileName(),
-                                "-ab",
-                                "320k",
-                                "-map_metadata",
-                                "0",
-                                "-id3v2_version",
-                                "3",
-                                settings.pathToFileMP3Lyrics,
-                                "-y"
-                            ),
-                            listOf("chmod", "666", settings.pathToFileMP3Lyrics),
-                        )
-                    }
+//                    KaraokeProcessTypes.FF_MP3_KAR -> {
+//                        description = "MP3 KARAOKE"
+//                        args = listOf(
+//                            listOf("mkdir", "-p", settings.pathToFolderMP3Karaoke),
+//                            listOf("chmod", "777", settings.pathToFolderMP3Karaoke),
+//                            listOf("rm", settings.pathToFileMP3Karaoke),
+//                            listOf(
+//                                "ffmpeg",
+//                                "-i",
+//                                settings.accompanimentNameFlac.rightFileName(),
+//                                "-ab",
+//                                "320k",
+//                                "-map_metadata",
+//                                "0",
+//                                "-id3v2_version",
+//                                "3",
+//                                settings.pathToFileMP3Karaoke,
+//                                "-y"
+//                            ),
+//                            listOf("chmod", "666", settings.pathToFileMP3Karaoke),
+//                        )
+//                    }
+//                    KaraokeProcessTypes.FF_MP3_LYR -> {
+//                        description = "MP3 LYRICS"
+//                        args = listOf(
+//                            listOf("mkdir", "-p", settings.pathToFolderMP3Lyrics),
+//                            listOf("chmod", "777", settings.pathToFolderMP3Lyrics),
+//                            listOf("rm", settings.pathToFileMP3Lyrics),
+//                            listOf(
+//                                "ffmpeg",
+//                                "-i",
+//                                settings.fileAbsolutePath.rightFileName(),
+//                                "-ab",
+//                                "320k",
+//                                "-map_metadata",
+//                                "0",
+//                                "-id3v2_version",
+//                                "3",
+//                                settings.pathToFileMP3Lyrics,
+//                                "-y"
+//                            ),
+//                            listOf("chmod", "666", settings.pathToFileMP3Lyrics),
+//                        )
+//                    }
                     KaraokeProcessTypes.FF_MP3_ACCOMPANIMENT -> {
                         description = "MP3 ACCOMPANIMENT"
                         args = listOf(

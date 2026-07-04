@@ -52,6 +52,7 @@ import java.util.*
 import javax.imageio.ImageIO
 
 data class FamilySongDto(val id: Long, val songName: String, val author: String, val album: String, val year: Long, val diffSeconds: Long, val original: Boolean, val current: Boolean)
+data class SelectFamilySongResultDto(val rootId: Long, val idStatus: Long)
 
 @SuppressWarnings("SpellCheckingInspection")
 @Controller
@@ -458,6 +459,43 @@ class ApiController(
                 current = s.id == settings.id
             )
         }.sortedBy { it.year }
+    }
+
+    // Ручной поиск "оригинала" по (части) названия - без учёта пунктуации и с "ё"="е" (модалка "Похожие версии песни")
+    @PostMapping("/song/searchoriginal")
+    @ResponseBody
+    fun searchOriginalCandidates(@RequestParam id: Long, @RequestParam search: String): List<FamilySongDto> {
+        val settings = Settings.loadFromDbById(id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient) ?: return emptyList()
+        val ids = searchSongsByNormalizedName(settings, search, database = WORKING_DATABASE)
+        if (ids.isEmpty()) return emptyList()
+        val candidates = Settings.loadListFromDbByIds(ids, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+        val currentMs = settings.ms
+        val originalId = if (settings.rootId != 0L) settings.rootId else settings.id
+        return candidates.values.map { s ->
+            val diffMs = s.ms - currentMs
+            val diffSeconds = Math.round(diffMs / 1000.0)
+            FamilySongDto(
+                id = s.id,
+                songName = s.songName,
+                author = s.author,
+                album = s.album,
+                year = s.year,
+                diffSeconds = diffSeconds,
+                original = s.id == originalId,
+                current = s.id == settings.id
+            )
+        }.sortedBy { it.year }
+    }
+
+    // Выбор песни из модалки "Похожие версии песни" - копирует текст/маркеры, условно проставляет
+    // root_id (только если он ещё 0) и статус (только если он ещё NONE/0 -> TEXT_CREATE/1)
+    @PostMapping("/song/selectfamilysong")
+    @ResponseBody
+    fun selectFamilySong(@RequestParam id: Long, @RequestParam idAnother: Long): SelectFamilySongResultDto? {
+        val settings = Settings.loadFromDbById(id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient) ?: return null
+        val another = Settings.loadFromDbById(idAnother, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient) ?: return null
+        applyFamilySongSelection(settings, another)
+        return SelectFamilySongResultDto(rootId = settings.rootId, idStatus = settings.idStatus)
     }
 
     // Получение исходного текста для голоса

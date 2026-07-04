@@ -1,5 +1,7 @@
 package com.svoemesto.karaokeapp.controllers
 
+import com.svoemesto.karaokeapp.Connection
+import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.model.StatBySongDto
 import com.svoemesto.karaokeapp.model.StatsByEvents
 import com.svoemesto.karaokeapp.model.WebEventDto
@@ -16,10 +18,32 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 class StatsController {
 
+    private fun resolveDb(target: String?): KaraokeConnection =
+        if (target == "remote") Connection.remote() else Connection.local()
+
     @GetMapping("/api/stats/by-song")
-    fun statsBySong(): List<StatBySongDto> = StatsByEvents.getStatBySong()
+    fun statsBySong(
+        @RequestParam(required = false) target: String?,
+        @RequestParam(required = false, defaultValue = "1") page: Int,
+        @RequestParam(required = false, defaultValue = "50") pageSize: Int,
+    ): Map<String, Any> {
+        val db = resolveDb(target)
+        val offset = (page - 1).coerceAtLeast(0) * pageSize
+        val items = StatsByEvents.getStatBySong(database = db, limit = pageSize, offset = offset)
+        val totalCount = StatsByEvents.getStatBySongCount(database = db)
+        return mapOf("items" to items, "totalCount" to totalCount)
+    }
 
     @GetMapping("/api/webevents")
-    fun webEvents(@RequestParam(required = false, defaultValue = "500") limit: Int): List<WebEventDto> =
-        StatsByEvents.getWebEvents(limit = limit)
+    fun webEvents(
+        @RequestParam(required = false) target: String?,
+        @RequestParam(required = false, defaultValue = "1") page: Int,
+        @RequestParam(required = false, defaultValue = "50") pageSize: Int,
+    ): Map<String, Any> {
+        val db = resolveDb(target)
+        val offset = (page - 1).coerceAtLeast(0) * pageSize
+        val items = StatsByEvents.getWebEvents(database = db, limit = pageSize, offset = offset)
+        val totalCount = StatsByEvents.getWebEventsCount(database = db)
+        return mapOf("items" to items, "totalCount" to totalCount)
+    }
 }

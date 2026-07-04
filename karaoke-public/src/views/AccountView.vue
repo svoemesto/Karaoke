@@ -67,7 +67,7 @@ export default {
   },
   computed: {
     isPremium() {
-      return !!(this.user && this.user.premium)
+      return !!(this.user && this.user.effectivePremium)
     }
   },
   data() {

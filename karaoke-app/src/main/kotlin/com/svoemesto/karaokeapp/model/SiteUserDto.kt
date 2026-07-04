@@ -9,6 +9,8 @@ data class SiteUserDto(
     val displayName: String = "",
     val sponsrUid: String = "",
     val isPremium: Boolean = false,
+    val isPermanentPremium: Boolean = false,
+    val isEffectivePremium: Boolean = false,
     val isBanned: Boolean = false,
     val banReason: String = "",
     val createdAt: String = "",

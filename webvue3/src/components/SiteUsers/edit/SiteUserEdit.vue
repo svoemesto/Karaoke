@@ -23,6 +23,13 @@
           </label>
         </div>
         <div class="label-and-input">
+          <div class="label">Постоянный премиум:</div>
+          <label class="sue-checkbox-label">
+            <input type="checkbox" v-model="siteUserCurrent.permanentPremium">
+            <span class="sue-hint">(если включено — премиум действует всегда, независимо от чекбокса выше)</span>
+          </label>
+        </div>
+        <div class="label-and-input">
           <div class="label">Статус:</div>
           <div class="sue-static" :style="{ color: siteUserCurrent.banned ? 'darkred' : 'darkgreen' }">
             {{ siteUserCurrent.banned ? `Забанен: ${siteUserCurrent.banReason}` : 'Активен' }}

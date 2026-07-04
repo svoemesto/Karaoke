@@ -63,12 +63,16 @@ class SiteUsersController {
         // Ручная простановка премиум-статуса — временная замена автоматической Sponsr-сверки
         // (см. раздел 7 плана: пока не реализован импорт Excel-выгрузки, админ выставляет вручную).
         @RequestParam(required = false) isPremium: Boolean?,
+        // Независимый флаг "вечного" премиума — делает пользователя премиумным, даже если isPremium
+        // не выставлен (например, автоматическая Sponsr-сверка сбросит isPremium в будущем).
+        @RequestParam(required = false) isPermanentPremium: Boolean?,
     ): Long {
         val db = resolveDb(target)
         SiteUser.getSiteUserById(id, db, KSS_APP, SAC_APP)?.let { user ->
             displayName?.let { user.displayName = it }
             sponsrUid?.let { user.sponsrUid = it }
             isPremium?.let { user.isPremium = it }
+            isPermanentPremium?.let { user.isPermanentPremium = it }
             user.save()
             return user.id
         }

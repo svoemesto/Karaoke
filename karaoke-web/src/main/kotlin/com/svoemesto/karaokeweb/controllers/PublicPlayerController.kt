@@ -67,7 +67,7 @@ class PublicPlayerController(
     }
 
     private fun isPremiumUser(request: HttpServletRequest): Boolean =
-        resolveSiteUser(request)?.isPremium == true
+        resolveSiteUser(request)?.isEffectivePremium == true
 
     private fun stemsReady(settings: Settings): Boolean =
         existsInMinIO(stemStorageKey(settings, KaraokeFileType.MP3_ACCOMPANIMENT)) &&

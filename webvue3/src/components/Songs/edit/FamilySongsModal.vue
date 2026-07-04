@@ -32,7 +32,7 @@
             <tbody>
               <tr v-for="s in songs" :key="s.id"
                   class="fsm-row"
-                  :class="{'fsm-row-original': s.original, 'fsm-row-disabled': s.current}"
+                  :class="{'fsm-row-original': s.original, 'fsm-row-disabled': s.current, 'fsm-row-low-status': s.idStatus < 3}"
                   @click="select(s)"
                   :title="s.current ? 'Текущая песня' : 'Скопировать текст из этой песни'">
                 <td>{{ s.id }}</td>
@@ -243,6 +243,14 @@ export default {
 
 .fsm-row:hover {
   background-color: #e8f4f2;
+}
+
+.fsm-row-low-status {
+  background-color: #f0f0f0;
+}
+
+.fsm-row-low-status:hover {
+  background-color: #e4e4e4;
 }
 
 .fsm-row-disabled {

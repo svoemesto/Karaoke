@@ -193,6 +193,19 @@ val listKaraokeProperties = listOf(
     KaraokeProperty(key = "allowUpdateRemote", defaultValue = false, description = "Разрешить обновлять REMOTE"),
     KaraokeProperty(key = "allowUpdateLocal", defaultValue = false, description = "Разрешить обновлять LOCAL"),
     KaraokeProperty(key = "allowAddSync", defaultValue = false, description = "Разрешить добавлять SYNC"),
+    // Разрешения универсальной синхронизации (webvue3 "Синхронизация", /api/sync/*) — по одному
+    // флагу на (сущность SyncRegistry × направление). Раздельно от allowUpdateRemote/allowUpdateLocal
+    // выше (те управляют только старыми 6 кнопками на Home и автопушем Settings при сохранении).
+    KaraokeProperty(key = "sync_settings_push_allowed", defaultValue = false, description = "Синхронизация: Настройки песен, Local → Server"),
+    KaraokeProperty(key = "sync_settings_pull_allowed", defaultValue = false, description = "Синхронизация: Настройки песен, Server → Local"),
+    KaraokeProperty(key = "sync_pictures_push_allowed", defaultValue = false, description = "Синхронизация: Картинки, Local → Server"),
+    KaraokeProperty(key = "sync_pictures_pull_allowed", defaultValue = false, description = "Синхронизация: Картинки, Server → Local"),
+    KaraokeProperty(key = "sync_authors_push_allowed", defaultValue = false, description = "Синхронизация: Авторы, Local → Server"),
+    KaraokeProperty(key = "sync_authors_pull_allowed", defaultValue = false, description = "Синхронизация: Авторы, Server → Local"),
+    KaraokeProperty(key = "sync_siteusers_push_allowed", defaultValue = false, description = "Синхронизация: Пользователи сайта, Local → Server"),
+    KaraokeProperty(key = "sync_siteusers_pull_allowed", defaultValue = false, description = "Синхронизация: Пользователи сайта, Server → Local"),
+    KaraokeProperty(key = "sync_events_push_allowed", defaultValue = false, description = "Синхронизация: Статистика, Local → Server"),
+    KaraokeProperty(key = "sync_events_pull_allowed", defaultValue = false, description = "Синхронизация: Статистика, Server → Local"),
     KaraokeProperty(key = "backgroundFolderPath", defaultValue = "/sm-karaoke/system/SpaceBox4096", description = "Путь к папке с фонами"),
     KaraokeProperty(key = "createLogotype", defaultValue = true, description = "Создавать логотип"),
     KaraokeProperty(key = "createMicrophone", defaultValue = false, description = "Создавать микрофон"),

@@ -1,6 +1,7 @@
 package com.svoemesto.karaokeapp.model
 
 import com.svoemesto.karaokeapp.HealthReportDTO
+import com.svoemesto.karaokeapp.KaraokeConnection
 import java.io.Serializable
 import java.util.*
 import kotlin.String
@@ -153,7 +154,87 @@ data class SettingsDTO(
     val exclusive: Boolean,
     val free: Boolean,
     val haveSourceText: Boolean
-): Serializable, Comparable<SettingsDTO> {
+): Serializable, Comparable<SettingsDTO>, KaraokeDbTableDto {
+
+    // fromDto() нигде не вызывается (grep "\.fromDto(" по всему karaoke-app пуст на момент написания) —
+    // реализован для формального соответствия KaraokeDbTableDto по образцу AuthorDTO/PicturesDTO.
+    // sourceText/resultText/sourceMarkers/statusProcess*/diffBeats сюда не входят: их нет в SettingsDTO
+    // (тяжёлые текстовые поля намеренно не тянутся в этот DTO, см. withoutMarkersAndText в Settings.kt).
+    override fun fromDto(database: KaraokeConnection): Settings {
+        val entity = Settings(database = database)
+        entity.id = id
+        entity.fields[SettingField.NAME] = songName
+        entity.fields[SettingField.AUTHOR] = author
+        entity.fields[SettingField.ALBUM] = album
+        entity.fields[SettingField.DATE] = date
+        entity.fields[SettingField.TIME] = time
+        entity.fields[SettingField.YEAR] = year.toString()
+        entity.fields[SettingField.TRACK] = track.toString()
+        entity.fields[SettingField.KEY] = key
+        entity.fields[SettingField.BPM] = bpm.toString()
+        entity.ms = ms
+        entity.rootFolder = rootFolder
+        entity.fileName = fileName
+        entity.fields[SettingField.ID_STATUS] = idStatus.toString()
+        entity.fields[SettingField.ID_BOOSTY] = idBoosty
+        entity.fields[SettingField.VERSION_BOOSTY] = versionBoosty.toString()
+        entity.fields[SettingField.ID_BOOSTY_FILES] = idBoostyFiles
+        entity.fields[SettingField.VERSION_BOOSTY_FILES] = versionBoostyFiles.toString()
+        entity.fields[SettingField.ID_SPONSR] = idSponsr
+        entity.fields[SettingField.VERSION_SPONSR] = versionSponsr.toString()
+        entity.fields[SettingField.INDEX_TABS_VARIANT] = indexTabsVariant.toString()
+        entity.fields[SettingField.ID_VK] = idVk
+        entity.fields[SettingField.ID_DZEN_LYRICS] = idDzenLyrics
+        entity.fields[SettingField.VERSION_DZEN_LYRICS] = versionDzenLyrics.toString()
+        entity.fields[SettingField.ID_DZEN_KARAOKE] = idDzenKaraoke
+        entity.fields[SettingField.VERSION_DZEN_KARAOKE] = versionDzenKaraoke.toString()
+        entity.fields[SettingField.ID_DZEN_CHORDS] = idDzenChords
+        entity.fields[SettingField.VERSION_DZEN_CHORDS] = versionDzenChords.toString()
+        entity.fields[SettingField.ID_DZEN_MELODY] = idDzenMelody
+        entity.fields[SettingField.VERSION_DZEN_MELODY] = versionDzenMelody.toString()
+        entity.fields[SettingField.ID_VK_LYRICS] = idVkLyrics
+        entity.fields[SettingField.VERSION_VK_LYRICS] = versionVkLyrics.toString()
+        entity.fields[SettingField.ID_VK_KARAOKE] = idVkKaraoke
+        entity.fields[SettingField.VERSION_VK_KARAOKE] = versionVkKaraoke.toString()
+        entity.fields[SettingField.ID_VK_CHORDS] = idVkChords
+        entity.fields[SettingField.VERSION_VK_CHORDS] = versionVkChords.toString()
+        entity.fields[SettingField.ID_VK_MELODY] = idVkMelody
+        entity.fields[SettingField.VERSION_VK_MELODY] = versionVkMelody.toString()
+        entity.fields[SettingField.ID_TELEGRAM_LYRICS] = idTelegramLyrics
+        entity.fields[SettingField.VERSION_TELEGRAM_LYRICS] = versionTelegramLyrics.toString()
+        entity.fields[SettingField.ID_TELEGRAM_KARAOKE] = idTelegramKaraoke
+        entity.fields[SettingField.VERSION_TELEGRAM_KARAOKE] = versionTelegramKaraoke.toString()
+        entity.fields[SettingField.ID_TELEGRAM_CHORDS] = idTelegramChords
+        entity.fields[SettingField.VERSION_TELEGRAM_CHORDS] = versionTelegramChords.toString()
+        entity.fields[SettingField.ID_TELEGRAM_MELODY] = idTelegramMelody
+        entity.fields[SettingField.VERSION_TELEGRAM_MELODY] = versionTelegramMelody.toString()
+        entity.fields[SettingField.ID_PL_LYRICS] = idPlLyrics
+        entity.fields[SettingField.VERSION_PL_LYRICS] = versionPlLyrics.toString()
+        entity.fields[SettingField.ID_PL_KARAOKE] = idPlKaraoke
+        entity.fields[SettingField.VERSION_PL_KARAOKE] = versionPlKaraoke.toString()
+        entity.fields[SettingField.ID_PL_CHORDS] = idPlChords
+        entity.fields[SettingField.VERSION_PL_CHORDS] = versionPlChords.toString()
+        entity.fields[SettingField.ID_PL_MELODY] = idPlMelody
+        entity.fields[SettingField.VERSION_PL_MELODY] = versionPlMelody.toString()
+        entity.fields[SettingField.ID_MAX_LYRICS] = idMaxLyrics
+        entity.fields[SettingField.VERSION_MAX_LYRICS] = versionMaxLyrics.toString()
+        entity.fields[SettingField.ID_MAX_KARAOKE] = idMaxKaraoke
+        entity.fields[SettingField.VERSION_MAX_KARAOKE] = versionMaxKaraoke.toString()
+        entity.fields[SettingField.ID_MAX_CHORDS] = idMaxChords
+        entity.fields[SettingField.VERSION_MAX_CHORDS] = versionMaxChords.toString()
+        entity.fields[SettingField.ID_MAX_MELODY] = idMaxMelody
+        entity.fields[SettingField.VERSION_MAX_MELODY] = versionMaxMelody.toString()
+        entity.fields[SettingField.RESULT_VERSION] = resultVersion.toString()
+        entity.fields[SettingField.RATE] = rate.toString()
+        entity.formattedTextSong = formattedTextSong
+        entity.formattedTextTabs = formattedTextTabs
+        entity.formattedTextChords = formattedTextChords
+        entity.rootId = rootId
+        entity.exclusive = exclusive
+        entity.free = free
+        entity.tags = tags
+        return entity
+    }
 
     private val sortString: String get() {
 //        return listOf(

@@ -49,22 +49,7 @@
         <button class="button-action button-action-inline" @click="autorizeYMstop" :disabled="!authYmInProgress">Auth YM: Stop</button>
       </div>
       <button class="button-action" @click="customFunction">Выполнить Custom Function</button>
-      <div class="field-and-buttons-wrapper">
-        <div>Обновить REMOTE Database</div>
-        <div class="fields-line-wrapper">
-          <button class="button-action" @click="updateRemoteSettings" :disabled="!allowUpdateRemote">SETTINGS</button>
-          <button class="button-action" @click="updateRemotePictures" :disabled="!allowUpdateRemote">PICTURES</button>
-          <button class="button-action" @click="updateRemoteAuthors" :disabled="!allowUpdateRemote">AUTHORS</button>
-        </div>
-      </div>
-      <div class="field-and-buttons-wrapper">
-        <div>Обновить LOCAL Database</div>
-        <div class="fields-line-wrapper">
-          <button class="button-action" @click="updateLocalSettings" :disabled="!allowUpdateLocal">SETTINGS</button>
-          <button class="button-action" @click="updateLocalPictures" :disabled="!allowUpdateLocal">PICTURES</button>
-          <button class="button-action" @click="updateLocalAuthors" :disabled="!allowUpdateLocal">AUTHORS</button>
-        </div>
-      </div>
+      <SyncTable />
     </div>
   </div>
 </template>
@@ -73,12 +58,14 @@
 
 import CustomConfirm from '../components/Common/CustomConfirm.vue';
 import FileExplorerModal from "../components/Common/FileExplorer/FileExplorerModal.vue";
+import SyncTable from '../components/Sync/SyncTable.vue';
 // import { useFileDialog } from '@vueuse/core'
 export default {
   name: 'HomeView',
   components: {
     CustomConfirm,
-    FileExplorerModal
+    FileExplorerModal,
+    SyncTable
   },
   data() {
     return {
@@ -91,8 +78,6 @@ export default {
       dictValue: '',
       songAuthors: [],
       dicts:[],
-      allowUpdateRemote: false,
-      allowUpdateLocal: false,
       authYmInProgress: false
     }
   },
@@ -101,18 +86,8 @@ export default {
     let dicts = await this.$store.getters.dicst;
     this.songAuthors = songAuthors;
     this.dicts = dicts;
-    this.allowUpdateRemote = await this.propAllowUpdateRemote();
-    this.allowUpdateLocal = await this.propAllowUpdateLocal();
   },
   methods: {
-    async propAllowUpdateRemote() {
-      const propValue = await this.$store.getters.getPropValue('allowUpdateRemote');
-      return propValue === 'true'
-    },
-    async propAllowUpdateLocal() {
-      const propValue = await this.$store.getters.getPropValue('allowUpdateLocal');
-      return propValue === 'true'
-    },
     getPath(path) {
       this.pathToFolder = path;
     },
@@ -476,60 +451,6 @@ export default {
         this.isCustomConfirmVisible = true;
       })
     },
-    updateRemoteSettings() {
-      this.customConfirmParams = {
-        header: 'Обновление серверной БД',
-        body: `Обновить таблицу песен на сервере данными из локальной базы данных?`,
-        timeout: 10,
-        callback: () => { this.$store.dispatch('updateRemoteSettingsPromise') }
-      }
-      this.isCustomConfirmVisible = true;
-    },
-    updateRemotePictures() {
-      this.customConfirmParams = {
-        header: 'Обновление серверной БД',
-        body: `Обновить таблицу изображений на сервере данными из локальной базы данных?`,
-        timeout: 10,
-        callback: () => { this.$store.dispatch('updateRemotePicturesPromise') }
-      }
-      this.isCustomConfirmVisible = true;
-    },
-    updateRemoteAuthors() {
-      this.customConfirmParams = {
-        header: 'Обновление серверной БД',
-        body: `Обновить таблицу авторов на сервере данными из локальной базы данных?`,
-        timeout: 10,
-        callback: () => { this.$store.dispatch('updateRemoteAuthorsPromise') }
-      }
-      this.isCustomConfirmVisible = true;
-    },
-    updateLocalSettings() {
-      this.customConfirmParams = {
-        header: 'Обновление локальной БД',
-        body: `Обновить таблицу песен в локальной базе данных данными с сервера?`,
-        timeout: 10,
-        callback: () => { this.$store.dispatch('updateLocalSettingsPromise') }
-      }
-      this.isCustomConfirmVisible = true;
-    },
-    updateLocalPictures() {
-      this.customConfirmParams = {
-        header: 'Обновление локальной БД',
-        body: `Обновить таблицу изображений в локальной базе данных данными с сервера?`,
-        timeout: 10,
-        callback: () => { this.$store.dispatch('updateLocalPicturesPromise') }
-      }
-      this.isCustomConfirmVisible = true;
-    },
-    updateLocalAuthors() {
-      this.customConfirmParams = {
-        header: 'Обновление локальной БД',
-        body: `Обновить таблицу авторов в локальной базе данных данными с сервера?`,
-        timeout: 10,
-        callback: () => { this.$store.dispatch('updateLocalAuthorsPromise') }
-      }
-      this.isCustomConfirmVisible = true;
-    }
   }
 }
 </script>

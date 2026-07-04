@@ -7,7 +7,8 @@ CREATE TABLE public.tbl_events (
                                    link_name character varying(255),
                                    song_id integer,
                                    song_version character varying(255),
-                                   last_update timestamp without time zone default now()
+                                   last_update timestamp without time zone default now(),
+                                   referer text
 );
 
 ALTER TABLE public.tbl_events OWNER TO postgres;

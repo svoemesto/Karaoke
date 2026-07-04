@@ -364,6 +364,20 @@ passthrough в Docker (`nvidia-container-toolkit` на хосте, `/var/run/doc
 JS-зеркало функции — `getFormattedNotes()` в `webvue3/src/components/Songs/edit/SubsEdit.vue`.
 `getNotesBody()` — plain text для описаний, Unicode там допустим, не трогать.
 
+**Маркер конца песни (`addEndMarker()` в `SubsEdit.vue`) — не отдельный `markertype`, а
+`markertype: 'setting'` + `label: 'END'` по конвенции.** Его `time` — источник истины для
+`Settings.songLengthMs` (`Settings.kt`, максимум по всем голосам), от которого зависят тайминги
+рендеринга, фейды, MLT-проект, экспорт субтитров. `save()` вызывает `addEndMarker()` перед отправкой
+на бэкенд; функция ищет END-маркер по всему массиву `sourceMarkers` (не только по последнему
+элементу — более ранняя версия проверяла только последний элемент массива и из-за `&&` вместо `||`
+в условии никогда не обновляла время уже существующего END-маркера). Если END-маркера нет — создаётся
+новый, с визуальным регионом (`createRegionMarker()`), добавляется в массив и сортируется
+(`sortSourceMarkers()`). Если есть, но `time` отличается от реальной длительности аудио
+(`this.ws.getDuration()`, WaveSurfer) больше чем на `0.05` сек — время исправляется и вызывается
+`redrawMarkers()` (тот же паттерн обновления visual-регионов, что и в `doMarkersDec/Inc/First()`).
+Все стемы (voice/minus/song/drums/bass) одной песни имеют одинаковую длительность, поэтому сверка не
+зависит от того, какой стем сейчас загружен в плеере (`this.sound`).
+
 **MLT video generation (`mlt/` package).** Building a karaoke video means generating an MLT XML project (consumed
 by the `melt` CLI from the MLT multimedia framework). `MltGenerator`/`MltProp`/`MltPropBuilder` build up
 named producers/tractors/filters; `mlt/mko/*` ("Mlt Karaoke Object") are higher-level element builders for each

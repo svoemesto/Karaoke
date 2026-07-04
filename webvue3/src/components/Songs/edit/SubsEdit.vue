@@ -1625,18 +1625,23 @@ export default {
       });
     },
     addEndMarker() {
-      if (this.sourceMarkers.length > 0) {
-        let lastMarker = this.sourceMarkers[this.sourceMarkers.length-1];
-        if (lastMarker.markertype !== 'setting' && lastMarker.label !== 'END') {
-          let endMarker = {
-            time: this.ws.getDuration(),
-            label: 'END',
-            color: '#000080',
-            position: 'top',
-            markertype: 'setting'
-          };
-          this.sourceMarkers.splice(this.sourceMarkers.length, 0, endMarker);
-        }
+      if (this.sourceMarkers.length === 0) return;
+      const duration = this.ws.getDuration();
+      const endMarker = this.sourceMarkers.find(marker => marker.markertype === 'setting' && marker.label === 'END');
+      if (!endMarker) {
+        let newEndMarker = {
+          time: duration,
+          label: 'END',
+          color: '#000080',
+          position: 'top',
+          markertype: 'setting'
+        };
+        newEndMarker.region = this.createRegionMarker(newEndMarker);
+        this.sourceMarkers.push(newEndMarker);
+        this.sortSourceMarkers();
+      } else if (Math.abs(endMarker.time - duration) > 0.05) {
+        endMarker.time = duration;
+        this.redrawMarkers();
       }
     },
     listenerKeyDown(e) {

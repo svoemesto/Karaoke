@@ -47,34 +47,9 @@ export default {
       default: []
     }
   },
-  data() {
-    return {
-      // isWork: false,
-      // stopAfterThreadIsDone: false,
-      currentWorkingProcess: undefined
-    }
-  },
   computed: {
     process() {
-      const workingProcess = this.$store.getters.getWorkingProcess;
-      // console.log('workingProcess', workingProcess);
-      if (workingProcess === undefined) return this.currentWorkingProcess;
-      const idWorkingProcess = workingProcess.threadId;
-      let show = false;
-      if (this.includedThreadId.length !== 0) {
-        show = this.includedThreadId.includes(idWorkingProcess);
-      } else {
-        if (this.excludedThreadId.length !== 0) {
-          show = !this.excludedThreadId.includes(idWorkingProcess)
-        } else {
-          show = true
-        }
-      }
-      // const show = (this.includedThreadId.length === 0 || this.includedThreadId.includes(idWorkingProcess)) && (this.excludedThreadId.length === 0 || !this.excludedThreadId.includes(idWorkingProcess))
-      if (show) {
-        this.currentWorkingProcess = workingProcess;
-      }
-      return this.currentWorkingProcess;
+      return this.$store.getters.getWorkingProcessForThreads(this.includedThreadId, this.excludedThreadId);
     },
     isWork() {
       return this.$store.getters.getProcessIsWorking

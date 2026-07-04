@@ -6,12 +6,19 @@ export default {
         processesDigestIsLoading: false,
         processIsWorking: false,
         processWillStopAfterThreadIsDone: false,
-        workingProcess: undefined,
+        workingProcessByThreadId: {},
         countWaiting: '...',
     },
     getters: {
-        getWorkingProcess(state) {
-            return state.workingProcess;
+        getWorkingProcessForThreads: (state) => (includedThreadId, excludedThreadId) => {
+            const entries = Object.values(state.workingProcessByThreadId);
+            if (includedThreadId && includedThreadId.length !== 0) {
+                return entries.find(p => includedThreadId.includes(p.threadId));
+            }
+            if (excludedThreadId && excludedThreadId.length !== 0) {
+                return entries.find(p => !excludedThreadId.includes(p.threadId));
+            }
+            return entries[0];
         },
         getProcessesDigest(state) {
             return state.processesDigest
@@ -56,10 +63,11 @@ export default {
                     state.processesDigest.splice(i,1,userEventData.record);
                 }
             }
-            if (userEventData.record.status !== 'DONE' ) {
-                state.workingProcess = Object.assign({}, userEventData.record)
+            const threadId = userEventData.record.threadId;
+            if (userEventData.record.status !== 'DONE' && userEventData.record.status !== 'ERROR') {
+                state.workingProcessByThreadId[threadId] = Object.assign({}, userEventData.record)
             } else {
-                state.workingProcess = undefined
+                delete state.workingProcessByThreadId[threadId]
             }
         },
         addProcessByUserEvent(state, userEventData) {

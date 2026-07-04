@@ -769,6 +769,18 @@ Security filter chain.
 API (раньше выбор БД был только в фоновых sync-джобах). Поле «Премиум» в карточке (webvue3) — обычный
 редактируемый чекбокс, временная замена для будущей автоматической Sponsr-сверки (см. ниже).
 
+**`is_permanent_premium` — независимый от `is_premium` флаг "вечного" премиума.** Если выставлен,
+пользователь считается премиумным всегда, даже если `is_premium` не установлен — задел на будущее: когда
+`is_premium` начнёт выставляться автоматической Sponsr-сверкой, вручную выданные "вечные" премиумы не
+потеряются. Оба флага редактируются в админке независимо (два отдельных чекбокса в `SiteUserEdit.vue` +
+колонка в `SiteUsersTable.vue`), ни один не подменяет другой. `SiteUser.kt` — сырое поле `isPermanentPremium`
+(БД-колонка) плюс **не-БД** вычисляемое свойство `isEffectivePremium = isPremium || isPermanentPremium`,
+единая точка правды для всех проверок доступа. Единственное место в `karaoke-web`, где решается
+премиум-доступ — `PublicPlayerController.isPremiumUser()` (доступ к плееру при `onAir=false`, экспорт
+стемов, `.smkaraoke`) — использует `isEffectivePremium`, закрывает сразу все три ветки (`access()`,
+`playerData()`, `playerFile()`). `SiteUserDto` несёт оба сырых флага (для админки) и отдельно вычисленный
+`isEffectivePremium` (для бейджа «🪙 Премиум» на публичном сайте — фронтенд не дублирует OR-логику).
+
 **Jackson-сериализация булевых `is*`-полей.** В Kotlin data class поле `val isPremium: Boolean` генерирует
 геттер `isPremium()`, а Jackson по бин-конвенции отбрасывает префикс `is` при сериализации в JSON — на
 выходе ключ `"premium"`, а не `"isPremium"` (аналогично `isBanned` → `"banned"`, уже учтено в
@@ -805,7 +817,13 @@ Postgres специально для настроек, нужных сервис
 только `tbl_public_settings` с тем же паттерном `target=local|remote`
 (`karaoke-app/controllers/PublicSettingsController.kt`, раздел «Настройки сайта» в webvue3). При
 добавлении новой таблицы в `deploy/karaoke-db/*.sql` — применять её и на локальной, и на серверной БД
-(79.174.95.69:8832) отдельно, миграция сама на сервер не попадает.
+(79.174.95.69:8832) отдельно, миграция сама на сервер не попадает. То же самое для `ALTER TABLE`
+существующих таблиц (например, `is_permanent_premium` в `tbl_site_users`) — применять вручную через
+`docker exec -i -u postgres karaoke-db psql -d karaoke` на каждой БД. **На проде роли `postgres` не
+существует** — реальное имя роли нужно узнать через `docker exec karaoke-db env | grep '^POSTGRES_USER='`
+(узкий grep, не полный дамп env — иначе утечёт пароль) и передать `-U <тот_user>` в psql. `docker exec`
+обязательно с флагом `-i`, иначе heredoc не долетает до psql (команда завершается без ошибки, но ничего
+не выполняет).
 
 **`webvue3/nginx_webvue3.conf`** — прокси на `karaoke-app` в `location /api` задан через переменную
 (`set $karaoke_app_upstream ...; proxy_pass $karaoke_app_upstream/api;`) + `resolver 127.0.0.11 valid=10s

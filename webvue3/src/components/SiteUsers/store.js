@@ -80,6 +80,7 @@ export default {
             if (diffs.displayName !== undefined) params.displayName = diffs.displayName;
             if (diffs.sponsrUid !== undefined) params.sponsrUid = diffs.sponsrUid;
             if (diffs.premium !== undefined) params.isPremium = diffs.premium;
+            if (diffs.permanentPremium !== undefined) params.isPermanentPremium = diffs.permanentPremium;
             let request = { method: 'POST', url: "/api/siteusers/update", params: params };
             return promisedXMLHttpRequest(request).then(() => {
                 ctx.commit('saveSiteUser');

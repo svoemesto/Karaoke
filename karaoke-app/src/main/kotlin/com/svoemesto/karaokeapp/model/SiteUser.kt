@@ -39,6 +39,14 @@ class SiteUser(
     @KaraokeDbTableField(name = "is_premium")
     var isPremium: Boolean = false
 
+    @KaraokeDbTableField(name = "is_permanent_premium")
+    var isPermanentPremium: Boolean = false
+
+    // Не БД-поле — единая точка правды для всех проверок премиум-доступа (плеер и т.п.):
+    // is_permanent_premium делает пользователя премиумным всегда, даже если is_premium не выставлен.
+    val isEffectivePremium: Boolean
+        get() = isPremium || isPermanentPremium
+
     @KaraokeDbTableField(name = "is_banned")
     var isBanned: Boolean = false
 
@@ -66,6 +74,8 @@ class SiteUser(
         displayName = displayName,
         sponsrUid = sponsrUid,
         isPremium = isPremium,
+        isPermanentPremium = isPermanentPremium,
+        isEffectivePremium = isEffectivePremium,
         isBanned = isBanned,
         banReason = banReason,
         createdAt = createdAt.toString(),

@@ -28,7 +28,7 @@ export default {
       return (this.user && this.user.displayName) || (this.user && this.user.email) || ''
     },
     isPremium() {
-      return !!(this.user && this.user.premium)
+      return !!(this.user && this.user.effectivePremium)
     }
   },
   methods: {

@@ -64,6 +64,10 @@
         <template #cell(premium)="data">
           <div style="text-align: center">{{ data.value ? 'Да' : '' }}</div>
         </template>
+
+        <template #cell(permanentPremium)="data">
+          <div style="text-align: center">{{ data.value ? 'Да' : '' }}</div>
+        </template>
       </b-table>
     </div>
 
@@ -110,6 +114,7 @@ export default {
         { key: 'displayName', label: 'Имя', style: { minWidth: '200px', maxWidth: '200px', textAlign: 'left', fontSize: 'small' } },
         { key: 'sponsrUid', label: 'Sponsr UID', style: { minWidth: '110px', maxWidth: '110px', textAlign: 'center', fontSize: 'small' } },
         { key: 'premium', label: 'Премиум', style: { minWidth: '90px', maxWidth: '90px', textAlign: 'center', fontSize: 'small' } },
+        { key: 'permanentPremium', label: 'Постоянный премиум', style: { minWidth: '90px', maxWidth: '90px', textAlign: 'center', fontSize: 'small' } },
         { key: 'banned', label: 'Статус', style: { minWidth: '100px', maxWidth: '100px', textAlign: 'center', fontSize: 'small' } },
         { key: 'createdAt', label: 'Регистрация', style: { minWidth: '160px', maxWidth: '160px', textAlign: 'center', fontSize: 'small' } },
         { key: 'lastLoginAt', label: 'Последний вход', style: { minWidth: '160px', maxWidth: '160px', textAlign: 'center', fontSize: 'small' } },

@@ -5,6 +5,7 @@ CREATE TABLE public.tbl_site_users (
     display_name character varying(255) DEFAULT '' NOT NULL,
     sponsr_uid character varying(64) DEFAULT '' NOT NULL,
     is_premium boolean DEFAULT false NOT NULL,
+    is_permanent_premium boolean DEFAULT false NOT NULL,
     is_banned boolean DEFAULT false NOT NULL,
     ban_reason character varying(1024) DEFAULT '' NOT NULL,
     created_at timestamp without time zone DEFAULT now() NOT NULL,
@@ -38,6 +39,7 @@ BEGIN
                                 COALESCE(NEW.display_name, '') ||
                                 COALESCE(NEW.sponsr_uid, '') ||
                                 COALESCE(NEW.is_premium::TEXT, '') ||
+                                COALESCE(NEW.is_permanent_premium::TEXT, '') ||
                                 COALESCE(NEW.is_banned::TEXT, '') ||
                                 COALESCE(NEW.ban_reason, '')
         );
@@ -80,3 +82,25 @@ ALTER TABLE ONLY public.tbl_site_user_tokens
 CREATE UNIQUE INDEX idx_tbl_site_user_tokens_token ON public.tbl_site_user_tokens (token);
 
 CREATE INDEX idx_tbl_site_user_tokens_site_user_id ON public.tbl_site_user_tokens (site_user_id);
+
+-- Миграция для уже развёрнутых БД (local + remote), где таблица создана до появления этой колонки.
+-- Применять вручную на каждой БД отдельно — миграция сама на сервер не попадает (см. CLAUDE.md).
+-- ALTER TABLE public.tbl_site_users ADD COLUMN is_permanent_premium boolean DEFAULT false NOT NULL;
+-- CREATE OR REPLACE FUNCTION public.update_tbl_site_users_recordhash() RETURNS trigger
+--     LANGUAGE plpgsql
+-- AS $$
+-- BEGIN
+--     NEW.recordhash = md5(
+--                                 COALESCE(NEW.id::TEXT, '') ||
+--                                 COALESCE(NEW.email, '') ||
+--                                 COALESCE(NEW.password_hash, '') ||
+--                                 COALESCE(NEW.display_name, '') ||
+--                                 COALESCE(NEW.sponsr_uid, '') ||
+--                                 COALESCE(NEW.is_premium::TEXT, '') ||
+--                                 COALESCE(NEW.is_permanent_premium::TEXT, '') ||
+--                                 COALESCE(NEW.is_banned::TEXT, '') ||
+--                                 COALESCE(NEW.ban_reason, '')
+--         );
+-- RETURN NEW;
+-- END;
+-- $$;

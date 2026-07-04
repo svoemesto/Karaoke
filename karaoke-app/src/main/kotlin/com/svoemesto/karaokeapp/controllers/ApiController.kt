@@ -51,7 +51,7 @@ import java.time.format.DateTimeFormatter
 import java.util.*
 import javax.imageio.ImageIO
 
-data class FamilySongDto(val id: Long, val songName: String, val author: String, val album: String, val year: Long, val diffSeconds: Long, val original: Boolean, val current: Boolean)
+data class FamilySongDto(val id: Long, val songName: String, val author: String, val album: String, val year: Long, val diffSeconds: Long, val original: Boolean, val current: Boolean, val idStatus: Long)
 data class SelectFamilySongResultDto(val rootId: Long, val idStatus: Long)
 
 @SuppressWarnings("SpellCheckingInspection")
@@ -456,7 +456,8 @@ class ApiController(
                 year = s.year,
                 diffSeconds = diffSeconds,
                 original = s.id == originalId,
-                current = s.id == settings.id
+                current = s.id == settings.id,
+                idStatus = s.idStatus
             )
         }.sortedBy { it.year }
     }
@@ -482,7 +483,8 @@ class ApiController(
                 year = s.year,
                 diffSeconds = diffSeconds,
                 original = s.id == originalId,
-                current = s.id == settings.id
+                current = s.id == settings.id,
+                idStatus = s.idStatus
             )
         }.sortedBy { it.year }
     }

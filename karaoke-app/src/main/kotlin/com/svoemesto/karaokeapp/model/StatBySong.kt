@@ -40,15 +40,37 @@ data class WebEventDto(
  */
 object StatsByEvents {
 
+    fun getWebEventsCount(database: KaraokeConnection = WORKING_DATABASE): Int {
+        val connection = database.getConnection() ?: return 0
+        var statement: Statement? = null
+        var rs: ResultSet? = null
+        try {
+            statement = connection.createStatement()
+            rs = statement.executeQuery("select count(*) as cnt from tbl_events where last_update is not null")
+            return if (rs.next()) rs.getInt("cnt") else 0
+        } catch (e: SQLException) {
+            e.printStackTrace()
+            return 0
+        } finally {
+            try {
+                rs?.close()
+                statement?.close()
+            } catch (e: SQLException) {
+                e.printStackTrace()
+            }
+        }
+    }
+
     fun getWebEvents(
         database: KaraokeConnection = WORKING_DATABASE,
         limit: Int = 500,
+        offset: Int = 0,
         storageService: KaraokeStorageService = KSS_APP,
         storageApiClient: StorageApiClient = SAC_APP
     ): List<WebEventDto> {
         val result: MutableList<WebEventDto> = mutableListOf()
         val sql = """
-            select * from tbl_events where last_update is not null order by last_update desc limit $limit
+            select * from tbl_events where last_update is not null order by last_update desc, id desc limit $limit offset $offset
         """.trimIndent()
 
         val connection = database.getConnection()
@@ -155,7 +177,28 @@ object StatsByEvents {
         return result
     }
 
-    fun getStatBySong(database: KaraokeConnection = WORKING_DATABASE): List<StatBySongDto> {
+    fun getStatBySongCount(database: KaraokeConnection = WORKING_DATABASE): Int {
+        val connection = database.getConnection() ?: return 0
+        var statement: Statement? = null
+        var rs: ResultSet? = null
+        try {
+            statement = connection.createStatement()
+            rs = statement.executeQuery("select count(distinct song_id) as cnt from tbl_events where song_id is not null")
+            return if (rs.next()) rs.getInt("cnt") else 0
+        } catch (e: SQLException) {
+            e.printStackTrace()
+            return 0
+        } finally {
+            try {
+                rs?.close()
+                statement?.close()
+            } catch (e: SQLException) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    fun getStatBySong(database: KaraokeConnection = WORKING_DATABASE, limit: Int = 50, offset: Int = 0): List<StatBySongDto> {
         val result: MutableList<StatBySongDto> = mutableListOf()
         val sql = """
             select
@@ -251,7 +294,8 @@ object StatsByEvents {
                 selDzenLyrics.dzen_lyrics,
                 selTgKaraoke.tg_karaoke,
                 selTgLyrics.tg_lyrics
-            order by total desc
+            order by total desc, tbl_events.song_id asc
+            limit $limit offset $offset
             ;
         """.trimIndent()
 

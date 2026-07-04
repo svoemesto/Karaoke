@@ -557,6 +557,40 @@ locations) запись — на практике: `RepairAll` создавал 
 списка ошибок. Тот же паттерн `"${karaokeFileType.name}/${x.name}"` уже применялся для
 `PICTURE_PUBLICATION`/`SongVersion` — не изобретать новый.
 
+**Раздел "Статистика" (`webvue3`) — `target=local|remote` + серверная пагинация.**
+`StatsController.kt` (`/api/stats/by-song`, `/api/webevents`) поддерживает тот же `target=local|remote`
+паттерн, что `SiteUsersController`/`PublicSettingsController` (общий `resolveDb(target)`). **В отличие**
+от них — не client-side пагинация уже загруженного списка (как в `SiteUsersTable.vue`, где `b-pagination`
+просто листает целиком присланный `siteUsersDigest`), а настоящая серверная: обе таблицы ("Статистика по
+песням" по `tbl_events`+`tbl_settings`, "Последние события" по `tbl_events`) потенциально тяжёлые (тысячи
+строк), полный список за раз не тянется. Оба эндпоинта принимают `page`/`pageSize`, считают
+`offset = (page-1)*pageSize`, добавляют `LIMIT/OFFSET` к SQL и возвращают `{items, totalCount}` (было —
+голый массив); `totalCount` — отдельный лёгкий `COUNT(*)` запрос (`StatsByEvents.getStatBySongCount()`/
+`getWebEventsCount()`), а не побочный продукт основного запроса (`count(*) over()` дал бы 0 на пустой
+странице за пределами данных).
+
+- **Детерминированный `ORDER BY` обязателен при постраничной выборке.** У `getStatBySong()` было
+  `order by total desc` — при множестве песен с одинаковым `total` (типично много нулей) Postgres не
+  гарантирует стабильный порядок между двумя `LIMIT/OFFSET` запросами, из-за чего строки могли бы
+  повторяться на разных страницах или пропадать. Добавлен тайбрейкер `, tbl_events.song_id asc`.
+  Аналогично `getWebEvents()`: `order by last_update desc` → `order by last_update desc, id desc`
+  (у `tbl_events` есть PK `id`).
+- **`promisedXMLHttpRequest` (`webvue3/src/lib/utils.js`) не сериализует `params` в query-string для
+  GET-запросов** — `xhr.send(getParamStringToSend(params))` шлёт их телом, которое для GET браузером не
+  используется. Поэтому все параметры GET-запросов (`target`, `page`, `pageSize`) собираются вручную в
+  URL-строке (`` `/api/stats/by-song?target=${...}&page=${...}&pageSize=${...}` ``), а не через
+  `params: {...}` — этот паттерн уже был в старом `loadWebEvents` (`?limit=${limit}`), теперь применён
+  последовательно везде в `components/Stats/store.js`. Учитывать при любом новом GET-эндпоинте.
+- **Фронтенд (`StatsView.vue`):** номер страницы каждой из двух таблиц — локальные `data`
+  (`statsBySongPage`/`webEventsPage`), не Vuex — как и в `SiteUsersTable.vue`. `b-pagination`
+  (`bootstrap-vue-next`, стандартный `v-model`/`modelValue`) забинжена не напрямую на `data`-поле, а на
+  computed-обёртку с сеттером (`statsBySongPageModel`/`webEventsPageModel`) — сеттер и обновляет номер
+  страницы, и сразу дёргает перезагрузку с сервера. Программные сбросы страницы на 1 (смена БД, смена
+  размера страницы) пишут в исходное `data`-поле напрямую, в обход computed-сеттера, и сами вызывают
+  reload одним явным вызовом — если бы они шли через computed-сеттер, смена с page=1 на page=1 не
+  всегда дала бы повторный reload (нет изменения значения), а смена с другой страницы дала бы двойной
+  запрос (реактивный из сеттера + явный).
+
 ## Git — что НЕ добавлять в репозиторий
 
 - `deploy/ollama_data/` — содержит SSH-ключи (`id_ed25519`) и большие модели Ollama. Уже в `.gitignore`.

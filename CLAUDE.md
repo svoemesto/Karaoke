@@ -188,12 +188,77 @@ the app can be pointed at a local dev Postgres or the production server DB. `Kar
 and the `*_sync` tables coordinate propagating changes between them (see `autoUpdateRemoteSettings`,
 `monitoringRemoteSettingsSync`, `allowUpdateRemote/Local` flags in `KaraokeProperties.kt`).
 
-**Синхронизация LOCAL↔SERVER (`Utils.kt`, `updateRemoteDatabaseFromLocalDatabase`).**
-Функция сравнивает хэши 18858+ записей двух БД. Два критичных паттерна производительности:
+**Синхронизация LOCAL↔SERVER — универсальный движок (`sync/SyncTarget.kt`, `Utils.kt`).**
+`updateDatabases()` больше не содержит по блоку кода на каждую сущность — единственная generic-функция
+`collectSyncOps()` работает по списку `SyncRegistry.all` (`SyncTarget<T>` на сущность: `settings`,
+`pictures`, `authors`, `siteusers`, `events`). Два критичных паттерна производительности (не потеряны
+при рефакторинге):
 - Сравнение хэшей — через `associateBy { it.id }` + Map lookup (O(n)), **не** через вложенные `.any`/`.none`
-  по спискам (O(n²) — при 18858 записях даёт 3+ минуты задержки).
-- Загрузка записей для diff — пакетно через `loadListFromDbByIds` / `getAuthorsByIds` / `getPicturesByIds`
-  (`WHERE id IN (...)`), **не** по одной через `loadFromDbById` в цикле (N+1 запросов по сети).
+  по спискам (O(n²) — при 18858+ записях даёт 3+ минуты задержки).
+- Загрузка записей для diff — пакетно через `target.loadByIds(ids, database)` (`WHERE id IN (...)`),
+  **не** по одной в цикле (N+1 запросов по сети).
+- Пустой список хэшей от `fromDatabase` (не `null`, а именно 0 записей) — `collectSyncOps` возвращает
+  `false`, что прерывает **всю** операцию целиком (не только эту сущность): без этой защиты `idsToDelete`
+  включил бы вообще все записи `toDatabase` — случайный обрыв сети во время запроса хэшей иначе привёл
+  бы к полному удалению целевой таблицы.
+
+`GenericKaraokeDbTableSyncTarget<T: KaraokeDbTable>` реализует все методы через уже существующие generic
+reflection-хелперы `KaraokeDbTable.Companion` (`getListHashes`/`loadByIds`/`getDiff`/`delete`) — новую
+сущность для sync достаточно зарегистрировать в `SyncRegistry.all`, если она реализует `KaraokeDbTable`
+и её поля аннотированы `@KaraokeDbTableField`. Единственное исключение — `SettingsSyncTarget`: `Settings`
+теперь формально реализует `KaraokeDbTable` (интерфейс требует всего 6 instance-членов — `database`/
+`storageService`/`storageApiClient`/`id`/`getTableName()`/`toDTO()`/`getSqlToInsert()`; `id` стал
+`override var` с get/set в `fields`-карту, `save()` — просто `= saveToDb()`), но её generic reflection-
+методы **не используются** для sync — её поля намеренно не аннотированы `@KaraokeDbTableField`
+(виртуальные diff-поля `status`/`color`/`processColorXxx` с `recordDiffRealField=false`, тяжёлые
+side-effect геттеры `ms`/`rootFolder`, вся `tbl_settings_sync`-инфраструктура несовместимы с
+reflection-подходом). `SettingsSyncTarget` — bespoke-обёртка поверх уже существующих
+`Settings.listHashes`/`loadListFromDbByIds`/`getDiff`/`getSqlToInsert(sync)`/`deleteFromDb`, с тем же
+фильтром автопуша (`shouldPush`), что и раньше в `saveToDb()`.
+
+**Ловушка: generic reflection-loader (`KaraokeDbTable.loadList`) падает с NPE на nullable-в-БД
+колонках, если Kotlin-поле объявлено non-null.** `rs.getString(...)`/`rs.getTimestamp(...)` возвращают
+настоящий `null` на `SQL NULL`, и `property.setter.call(entity, null)` кидает
+`"Parameter specified as non-null is null"`, если поле объявлено как `var x: String = ""` вместо
+`String?` — этот путь ловит только `PSQLException`, не `NullPointerException`, поэтому ошибка долетает
+до контроллера как 500. Столкнулись на `WebEvent` (`tbl_events`, 250k+ строк реальной статистики) —
+`link_name`/`event_type`/`rest_name`/`rest_parameters`/`link_type`/`song_version`/`referer`/`last_update`
+не имеют `NOT NULL` в БД и реально бывают `NULL` (например `link_name` заполнен только для событий
+кликов по ссылкам) — все они должны быть `String?`/`Timestamp?`. Числовые поля (`Int`/`Long`) от этого
+не страдают: `ResultSet.getLong()`/`getInt()` возвращают примитивный `0` на `SQL NULL`, а не Kotlin
+`null` — `song_id: Long` (не `Long?`) можно было оставить non-null. Любая новая `KaraokeDbTable`-модель
+над таблицей, где строковые/timestamp-колонки допускают `NULL` — должна объявлять их nullable.
+
+**Новые сущности sync — `SiteUser`/`WebEvent`.** `SiteUser` уже реализовывал `KaraokeDbTable` и имел
+`recordhash`-триггер в БД — включён в реестр "бесплатно". Для статистики создана новая модель
+`model/WebEvent.kt` (только для sync, не путать с `StatBySong.kt`/`StatsByEvents` — тот object с ручным
+JDBC обслуживает вьюху "Статистика" и не трогается). `deploy/karaoke-db/03_events.sql` был не
+синхронизирован с фактической схемой (не хватало `referer`) — приведён в соответствие с
+`deploy/recordhash_events.sql` (который ссылается на `NEW.referer`).
+
+**Направления one-click sync** (`SyncTarget.oneClickDirection`): `settings`/`pictures`/`authors` —
+`LOCAL_TO_SERVER`; `siteusers`/`events` — `SERVER_TO_LOCAL`. Разрешение на ручную/one-click синхронизацию
+каждой (сущность × направление) — 10 независимых `KaraokeProperty` вида
+`sync_<key>_push_allowed`/`sync_<key>_pull_allowed` (дефолт `false` у всех). Это **отдельный** механизм
+от старых `allowUpdateRemote`/`allowUpdateLocal` (те по-прежнему гейтят только автопуш `Settings` при
+сохранении и мониторинг `tbl_settings_sync` в `KaraokeProcessWorker` — старые 6 кнопок на Home, которые
+они раньше гейтили, удалены вместе с заменой UI, см. ниже).
+
+**API**: `GET /api/sync/entities` (список сущностей с `allowPush`/`allowPull`/`oneClickDirection`),
+`POST /api/sync/run` (`key`, `direction=PUSH|PULL`, опционально `id` — одна запись), `POST
+/api/sync/oneclick` (по каждой сущности реестра — в её `oneClickDirection`, пропуская запрещённые
+флагом). Старые точечные эндпоинты (`/utils/updateremotesettingsfromlocaldatabase`,
+`/utils/updateremotepicturefromlocaldatabase`, `/utils/tosync` — per-record кнопки в `SongEdit.vue`) и
+старые bulk-обёртки (`updateRemoteDatabaseFromLocalDatabase`/`updateLocalDatabaseFromRemoteDatabase`,
+всё ещё дергаемые из `Settings.saveToDb()`/`KaraokeProcessWorker`) не изменены — внутри транслируют
+старые bool-флаги в `keys: Set<String>` нового generic `updateDatabases()`.
+
+**webvue3**: `components/Sync/SyncTable.vue` + `store.js` — таблица сущностей с кнопками «→ Server»/
+«← Local» (disabled по `allowPush`/`allowPull`) и кнопкой «Синхронизация в 1 клик»; встроен в
+`HomeView.vue` взамен старых 6 хардкод-кнопок (`updateRemoteSettings/Pictures/Authors`,
+`updateLocalSettings/Pictures/Authors` — методы и `data`-поля `allowUpdateRemote`/`allowUpdateLocal`
+удалены из `HomeView.vue` как мёртвый код; сами actions в `Songs/store.js` оставлены нетронутыми —
+использовались только этим блоком, но их удаление не входило в объём рефакторинга).
 
 **Async job pipeline (`KaraokeProcess*`).** Long-running work (ffmpeg/`melt` rendering, Demucs source separation,
 Sheetsage key/BPM/chord detection, file copy/symlink operations) is modeled as a `KaraokeProcess` row with a

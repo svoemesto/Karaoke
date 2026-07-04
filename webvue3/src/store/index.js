@@ -20,6 +20,7 @@ import picturesFilter from '../components/Pictures/filter/store'
 import publish from '../components/Publish/store'
 import common from '../components/Common/store'
 import stats from '../components/Stats/store'
+import sync from '../components/Sync/store'
 import { useToast } from 'bootstrap-vue-next'
 
 export default createStore({
@@ -38,6 +39,7 @@ export default createStore({
     pictures,
     common,
     stats,
+    sync,
     songFilter,
     smartCopy,
     healthReport,

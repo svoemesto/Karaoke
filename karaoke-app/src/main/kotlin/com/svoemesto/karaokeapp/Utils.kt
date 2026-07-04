@@ -12,6 +12,9 @@ import com.svoemesto.karaokeapp.mlt.MltObjectAlignmentX
 import com.svoemesto.karaokeapp.mlt.MltObjectAlignmentY
 import com.svoemesto.karaokeapp.mlt.MltObjectType
 import com.svoemesto.karaokeapp.model.*
+import com.svoemesto.karaokeapp.sync.SyncDirection
+import com.svoemesto.karaokeapp.sync.SyncRegistry
+import com.svoemesto.karaokeapp.sync.SyncTarget
 import com.svoemesto.karaokeapp.services.KSS_APP
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.SAC_APP
@@ -85,7 +88,7 @@ fun customFunction(
             val vocalExistsInLocalStorage = storageService.fileExists(bucketName = settings.storageBucketName, fileName = vocalStorageFileName)
             if (!vocalExistsInLocalStorage) {
                 val context = mapOf("pathToFile" to pathToFileVocal, "karaokeFileType" to vocalKaraokeFileType.name)
-                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.UPLOAD_TO_LOCAL_STORE, true, 1, KaraokeProcess.THREAD_LANE_LIGHT_BACKGROUND, context = context)
+                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.UPLOAD_TO_LOCAL_STORE, true, 1, KaraokeProcess.THREAD_LANE_HEAVY_RENDER, context = context)
             }
             val vocalExistsInRemoteStorage = storageApiClient.fileExists(bucketName = settings.storageBucketName, fileName = vocalStorageFileName)
             if (!vocalExistsInRemoteStorage) {
@@ -102,7 +105,7 @@ fun customFunction(
             val accompanimentExistsInLocalStorage = storageService.fileExists(bucketName = settings.storageBucketName, fileName = accompanimentStorageFileName)
             if (!accompanimentExistsInLocalStorage) {
                 val context = mapOf("pathToFile" to pathToFileAccompaniment, "karaokeFileType" to accompanimentKaraokeFileType.name)
-                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.UPLOAD_TO_LOCAL_STORE, true, 1, KaraokeProcess.THREAD_LANE_LIGHT_BACKGROUND, context = context)
+                KaraokeProcess.createProcess(settings, KaraokeProcessTypes.UPLOAD_TO_LOCAL_STORE, true, 1, KaraokeProcess.THREAD_LANE_HEAVY_RENDER, context = context)
             }
             val accompanimentExistsInRemoteStorage = storageApiClient.fileExists(bucketName = settings.storageBucketName, fileName = accompanimentStorageFileName)
             if (!accompanimentExistsInRemoteStorage) {
@@ -407,26 +410,40 @@ fun setSettingsToSyncRemoteTable(ids: List<Long>): List<String> {
 }
 
 fun updateRemotePictureFromLocalDatabase(id: Long): Triple<List<String>, List<String>, List<String>> {
-    return updateDatabases(fromDatabase = Connection.local(), toDatabase = Connection.remote(), updateSettings = false, updatePictures = true, updateAuthors = false, argsPictures = mapOf("id" to id.toString()))
+    return updateDatabases(fromDatabase = Connection.local(), toDatabase = Connection.remote(), keys = setOf("pictures"), idFilter = mapOf("pictures" to id))
 }
 fun updateRemoteSettingFromLocalDatabase(id: Long): Triple<List<String>, List<String>, List<String>> {
-    return updateDatabases(fromDatabase = Connection.local(), toDatabase = Connection.remote(), updateSettings = true, updatePictures = false, updateAuthors = false, argsSettings = mapOf("id" to id.toString()))
+    return updateDatabases(fromDatabase = Connection.local(), toDatabase = Connection.remote(), keys = setOf("settings"), idFilter = mapOf("settings" to id))
 }
 fun updateRemoteDatabaseFromLocalDatabase(updateSettings: Boolean = true, updatePictures: Boolean = true, updateAuthors: Boolean = true): Triple<List<String>, List<String>, List<String>> {
-    return updateDatabases(fromDatabase = Connection.local(), toDatabase = Connection.remote(), updateSettings = updateSettings, updatePictures = updatePictures, updateAuthors = updateAuthors)
+    return updateDatabases(fromDatabase = Connection.local(), toDatabase = Connection.remote(), keys = legacySyncKeys(updateSettings, updatePictures, updateAuthors))
 }
 fun updateLocalDatabaseFromRemoteDatabase(updateSettings: Boolean = true, updatePictures: Boolean = true, updateAuthors: Boolean = true): Triple<List<String>, List<String>, List<String>> {
-    return updateDatabases(fromDatabase = Connection.remote(), toDatabase = Connection.local(), updateSettings = updateSettings, updatePictures = updatePictures, updateAuthors = updateAuthors)
+    return updateDatabases(fromDatabase = Connection.remote(), toDatabase = Connection.local(), keys = legacySyncKeys(updateSettings, updatePictures, updateAuthors))
+}
+
+private fun legacySyncKeys(updateSettings: Boolean, updatePictures: Boolean, updateAuthors: Boolean): Set<String> = buildSet {
+    if (updateSettings) add("settings")
+    if (updatePictures) add("pictures")
+    if (updateAuthors) add("authors")
+}
+
+// Точка входа для нового generic UI синхронизации (webvue3, /api/sync/*) — один ключ SyncRegistry,
+// направление явно задаётся вызывающим кодом (ручная синхронизация конкретной таблицы или "1 клик").
+fun runEntitySync(key: String, direction: SyncDirection, id: Long? = null): Triple<List<String>, List<String>, List<String>> {
+    val (fromDatabase, toDatabase) = if (direction == SyncDirection.LOCAL_TO_SERVER) {
+        Connection.local() to Connection.remote()
+    } else {
+        Connection.remote() to Connection.local()
+    }
+    return updateDatabases(fromDatabase = fromDatabase, toDatabase = toDatabase, keys = setOf(key), idFilter = id?.let { mapOf(key to it) } ?: emptyMap())
 }
 
 fun updateDatabases(
     fromDatabase: KaraokeConnection,
     toDatabase: KaraokeConnection,
-    updateSettings: Boolean = true,
-    updatePictures: Boolean = true,
-    updateAuthors: Boolean = true,
-    argsSettings: Map<String, String> = emptyMap(),
-    argsPictures: Map<String, String> = emptyMap()
+    keys: Set<String>,
+    idFilter: Map<String, Long> = emptyMap(),
 ): Triple<List<String>, List<String>, List<String>> {
     if (fromDatabase == toDatabase) return Triple(emptyList(), emptyList(), emptyList())
 
@@ -454,420 +471,27 @@ fun updateDatabases(
     }
     println("[${Timestamp.from(Instant.now())}] Связь с базой данный ${toDatabase.name} успешно установлена")
 
-    if (updateSettings) {
-
-        val whereText = if (argsSettings.containsKey("id")) "WHERE id = ${argsSettings["id"]}" else ""
-        val tableName = "tbl_settings"
-        println("[${Timestamp.from(Instant.now())}] Запрашиваем таблицу хэшей из базы данных ${fromDatabase.name}...")
-        val listFromIdsHashes = Settings.listHashes(database = fromDatabase, whereText = whereText)
-        if (listFromIdsHashes == null) {
-            println("[${Timestamp.from(Instant.now())}] Невозможно установить связь с базой данный ${fromDatabase.name}")
-            return Triple(emptyList(), emptyList(), emptyList())
-        }
-        println("[${Timestamp.from(Instant.now())}] Таблица хэшей из базы данных ${fromDatabase.name} успешно получена, записей: ${listFromIdsHashes.size}")
-
-        println("[${Timestamp.from(Instant.now())}] Запрашиваем таблицу хэшей из базы данных ${toDatabase.name}...")
-        val listToIdsHashes = Settings.listHashes(database = toDatabase, whereText = whereText)
-        if (listToIdsHashes == null) {
-            println("[${Timestamp.from(Instant.now())}] Невозможно установить связь с базой данный ${toDatabase.name}")
-            return Triple(emptyList(), emptyList(), emptyList())
-        }
-        println("[${Timestamp.from(Instant.now())}] Таблица хэшей из базы данных ${toDatabase.name} успешно получена, записей: ${listToIdsHashes.size}")
-
-        val totalCountFrom = listFromIdsHashes.size
-
-        if (totalCountFrom == 0) {
-            return Triple(emptyList(), emptyList(), emptyList())
-        }
-
-        val toHashMap = listToIdsHashes.associateBy { it.id }
-        val fromHashMap = listFromIdsHashes.associateBy { it.id }
-
-        val idsToInsert = listFromIdsHashes.filter { it.id !in toHashMap }.map { it.id }
-        val idsToUpdate = listFromIdsHashes.filter { from ->
-            val to = toHashMap[from.id]
-            to != null && to.recordhash != from.recordhash
-        }.map { it.id }
-        val idsToDelete = listToIdsHashes.filter { it.id !in fromHashMap }.map { it.id }
-
-        val settingsToDeleteMap = Settings.loadListFromDbByIds(idsToDelete, toDatabase, KSS_APP, SAC_APP)
-        idsToDelete.forEach { id ->
-            settingsToDeleteMap[id]?.let { listToDeleteNames.add(it.fileName) }
-            if (toDatabase.name == "SERVER") {
-                val sqlToDelete = "DELETE FROM $tableName WHERE id = $id"
-                val setStrEncrypted = Crypto.encrypt(sqlToDelete)
-                val values: Map<String, Any> = mapOf(
-                    "sqlToDelete" to (setStrEncrypted ?: "")
-                )
-                listToDelete.add(values)
-            } else {
-                Settings.deleteFromDb(id = id, database = toDatabase)
-            }
-        }
-
-        val settingsToInsertMap = Settings.loadListFromDbByIds(idsToInsert, fromDatabase, KSS_APP, SAC_APP)
-        idsToInsert.forEach { id ->
-            val itemFrom = settingsToInsertMap[id]
-            if (itemFrom != null) {
-                listToCreateNames.add(itemFrom.fileName)
-                println("Добавляем запись в $tableName: id=${itemFrom.id}, ${itemFrom.fileName}")
-                val sqlToInsert = itemFrom.getSqlToInsert()
-                if (toDatabase.name == "SERVER") {
-                    val setStrEncrypted = Crypto.encrypt(sqlToInsert)
-                    val values: Map<String, Any> = mapOf(
-                        "sqlToInsert" to (setStrEncrypted ?: "")
-                    )
-                    listToCreate.add(values)
-                } else {
-                    val connection = toDatabase.getConnection()
-                    if (connection == null) {
-                        println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${toDatabase.name}")
-                        return Triple(emptyList(),emptyList(),emptyList())
-                    }
-                    val ps = connection.prepareStatement(sqlToInsert)
-                    ps.executeUpdate()
-                    ps.close()
-                }
-            }
-        }
-
-        val settingsFromMap = Settings.loadListFromDbByIds(idsToUpdate, fromDatabase, KSS_APP, SAC_APP)
-        val settingsToMap = Settings.loadListFromDbByIds(idsToUpdate, toDatabase, KSS_APP, SAC_APP)
-        idsToUpdate.forEach { id ->
-            val itemFrom = settingsFromMap[id]
-            val itemTo = settingsToMap[id]
-            if (itemFrom != null && itemTo != null) {
-                val diff = Settings.getDiff(itemFrom, itemTo)
-                if (diff.isNotEmpty() && !diff.all { !it.recordDiffRealField || it.recordDiffName.startsWith("status_process_")}) {
-                    listToUpdateNames.add(itemFrom.fileName)
-                    println("[${Timestamp.from(Instant.now())}] Изменяем запись в $tableName: id=${itemFrom.id}, ${itemFrom.fileName}, поля: ${diff.joinToString(", ") { it.recordDiffName }}")
-                    val messageRecordChange = RecordChangeMessage(tableName = tableName,  recordId = itemTo.id, diffs = diff, databaseName = toDatabase.name, record = itemFrom)
-                    if (toDatabase.name == "SERVER") {
-                        val setStr = messageRecordChange.getSetString()
-                        if (setStr != "") {
-                            val setStrEncrypted = Crypto.encrypt(setStr)
-                            val values: Map<String, Any> = mapOf(
-                                "tableName" to messageRecordChange.tableName,
-                                "idRecord" to messageRecordChange.recordId,
-                                "setText" to (setStrEncrypted ?: "")
-                            )
-                            listToUpdate.add(values)
-                        }
-                    } else {
-                        val setStr =
-                            diff.filter { it.recordDiffRealField }.joinToString(", ") { "${it.recordDiffName} = ?" }
-                        if (setStr != "") {
-                            val sql = "UPDATE $tableName SET $setStr WHERE id = ?"
-                            val connection = toDatabase.getConnection()
-                            if (connection == null) {
-                                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${toDatabase.name}")
-                                return Triple(emptyList(),emptyList(),emptyList())
-                            }
-                            val ps = connection.prepareStatement(sql)
-                            var index = 1
-                            diff.filter{ it.recordDiffRealField }.forEach {
-                                when (it.recordDiffValueNew) {
-                                    is Long -> {
-                                        ps.setLong(index, it.recordDiffValueNew)
-                                    }
-
-                                    is Int -> {
-                                        ps.setInt(index, it.recordDiffValueNew)
-                                    }
-
-                                    else -> {
-                                        ps.setString(index, it.recordDiffValueNew.toString())
-                                    }
-                                }
-                                index++
-                            }
-                            ps.setLong(index, itemTo.id)
-                            ps.executeUpdate()
-                            ps.close()
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    if (updatePictures) {
-
-        val whereText = if (argsPictures.containsKey("id")) "WHERE id = ${argsPictures["id"]}" else ""
-        val tableName = "tbl_pictures"
-        println("[${Timestamp.from(Instant.now())}] Запрашиваем таблицу хэшей из базы данных ${fromDatabase.name}...")
-        val listFromIdsHashes = Pictures.listHashes(database = fromDatabase, whereText = whereText)
-        if (listFromIdsHashes == null) {
-            println("[${Timestamp.from(Instant.now())}] Невозможно установить связь с базой данный ${fromDatabase.name}")
-            return Triple(emptyList(),emptyList(),emptyList())
-        }
-        println("[${Timestamp.from(Instant.now())}] Таблица хэшей из базы данных ${fromDatabase.name} успешно получена, записей: ${listFromIdsHashes.size}")
-
-        println("[${Timestamp.from(Instant.now())}] Запрашиваем таблицу хэшей из базы данных ${toDatabase.name}...")
-        val listToIdsHashes = Pictures.listHashes(database = toDatabase, whereText = whereText)
-        if (listToIdsHashes == null) {
-            println("[${Timestamp.from(Instant.now())}] Невозможно установить связь с базой данный ${toDatabase.name}")
-            return Triple(emptyList(),emptyList(),emptyList())
-        }
-        println("[${Timestamp.from(Instant.now())}] Таблица хэшей из базы данных ${fromDatabase.name} успешно получена, записей: ${listToIdsHashes.size}")
-
-        val totalCountFrom = listFromIdsHashes.size
-
-        if (totalCountFrom == 0) {
-            return Triple(emptyList(),emptyList(),emptyList())
-        }
-
-        val toHashMap = listToIdsHashes.associateBy { it.id }
-        val fromHashMap = listFromIdsHashes.associateBy { it.id }
-
-        val idsToInsert = listFromIdsHashes.filter { it.id !in toHashMap }.map { it.id }
-        val idsToUpdate = listFromIdsHashes.filter { from ->
-            val to = toHashMap[from.id]
-            to != null && to.recordhash != from.recordhash
-        }.map { it.id }
-        val idsToDelete = listToIdsHashes.filter { it.id !in fromHashMap }.map { it.id }
-
-        val picturesToDeleteMap = Pictures.getPicturesByIds(idsToDelete, toDatabase, KSS_APP, SAC_APP)
-        idsToDelete.forEach { id ->
-            if (toDatabase.name == "SERVER") {
-                picturesToDeleteMap[id]?.let { listToDeleteNames.add(it.name) }
-                val sqlToDelete = "DELETE FROM $tableName WHERE id = $id"
-                val setStrEncrypted = Crypto.encrypt(sqlToDelete)
-                val values: Map<String, Any> = mapOf(
-                    "sqlToDelete" to (setStrEncrypted ?: "")
-                )
-                listToDelete.add(values)
-            } else {
-                Pictures.delete(id = id, database = toDatabase)
-            }
-        }
-
-        val picturesToInsertMap = Pictures.getPicturesByIds(idsToInsert, fromDatabase, KSS_APP, SAC_APP)
-        idsToInsert.forEach { id ->
-            val itemFrom = picturesToInsertMap[id]
-            if (itemFrom != null) {
-                listToCreateNames.add(itemFrom.name)
-                println("[${Timestamp.from(Instant.now())}] Добавляем запись в $tableName: id=${itemFrom.id}, ${itemFrom.name}")
-                val sqlToInsert = itemFrom.getSqlToInsert()
-                if (toDatabase.name == "SERVER") {
-                    val setStrEncrypted = Crypto.encrypt(sqlToInsert)
-                    val values: Map<String, Any> = mapOf(
-                        "sqlToInsert" to (setStrEncrypted ?: "")
-                    )
-                    listToCreate.add(values)
-                } else {
-                    val connection = toDatabase.getConnection()
-                    if (connection == null) {
-                        println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${toDatabase.name}")
-                        return Triple(emptyList(),emptyList(),emptyList())
-                    }
-                    val ps = connection.prepareStatement(sqlToInsert)
-                    ps.executeUpdate()
-                    ps.close()
-                }
-            }
-        }
-
-        val picturesFromMap = Pictures.getPicturesByIds(idsToUpdate, fromDatabase, KSS_APP, SAC_APP)
-        val picturesToMap = Pictures.getPicturesByIds(idsToUpdate, toDatabase, KSS_APP, SAC_APP)
-        idsToUpdate.forEach { id ->
-            val itemFrom = picturesFromMap[id]
-            val itemTo = picturesToMap[id]
-            if (itemFrom != null && itemTo != null) {
-                val diff = KaraokeDbTable.getDiff(itemFrom, itemTo)
-                if (diff.isNotEmpty()) {
-                    listToUpdateNames.add(itemFrom.name)
-                    println("[${Timestamp.from(Instant.now())}] Изменяем запись в $tableName: id=${itemFrom.id}, ${itemFrom.name}, поля: ${diff.joinToString(", ") { it.recordDiffName }}")
-                    val messageRecordChange = RecordChangeMessage(tableName = tableName,  recordId = itemTo.id, diffs = diff, databaseName = toDatabase.name, record = itemFrom)
-                    if (toDatabase.name == "SERVER") {
-                        val setStr = messageRecordChange.getSetString()
-                        if (setStr != "") {
-                            val setStrEncrypted = Crypto.encrypt(setStr)
-                            val values: Map<String, Any> = mapOf(
-                                "tableName" to messageRecordChange.tableName,
-                                "idRecord" to messageRecordChange.recordId,
-                                "setText" to (setStrEncrypted ?: "")
-                            )
-                            listToUpdate.add(values)
-                        }
-                    } else {
-                        val setStr =
-                            diff.filter { it.recordDiffRealField }.joinToString(", ") { "${it.recordDiffName} = ?" }
-                        if (setStr != "") {
-                            val sql = "UPDATE $tableName SET $setStr WHERE id = ?"
-                            val connection = toDatabase.getConnection()
-                            if (connection == null) {
-                                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${toDatabase.name}")
-                                return Triple(emptyList(),emptyList(),emptyList())
-                            }
-                            val ps = connection.prepareStatement(sql)
-                            var index = 1
-                            diff.filter{ it.recordDiffRealField }.forEach {
-                                when (it.recordDiffValueNew) {
-                                    is Long -> {
-                                        ps.setLong(index, it.recordDiffValueNew)
-                                    }
-
-                                    is Int -> {
-                                        ps.setInt(index, it.recordDiffValueNew)
-                                    }
-
-                                    else -> {
-                                        ps.setString(index, it.recordDiffValueNew.toString())
-                                    }
-                                }
-                                index++
-                            }
-                            ps.setLong(index, itemTo.id)
-                            ps.executeUpdate()
-                            ps.close()
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    if (updateAuthors) {
-
-        val whereText = if (argsPictures.containsKey("id")) "WHERE id = ${argsPictures["id"]}" else ""
-        val tableName = "tbl_authors"
-        println("[${Timestamp.from(Instant.now())}] Запрашиваем таблицу хэшей из базы данных ${fromDatabase.name}...")
-        val listFromIdsHashes = Author.listHashes(database = fromDatabase, whereText = whereText)
-        if (listFromIdsHashes == null) {
-            println("[${Timestamp.from(Instant.now())}] Невозможно установить связь с базой данный ${fromDatabase.name}")
-            return Triple(emptyList(),emptyList(),emptyList())
-        }
-        println("[${Timestamp.from(Instant.now())}] Таблица хэшей из базы данных ${fromDatabase.name} успешно получена, записей: ${listFromIdsHashes.size}")
-
-        println("[${Timestamp.from(Instant.now())}] Запрашиваем таблицу хэшей из базы данных ${toDatabase.name}...")
-        val listToIdsHashes = Author.listHashes(database = toDatabase, whereText = whereText)
-        if (listToIdsHashes == null) {
-            println("[${Timestamp.from(Instant.now())}] Невозможно установить связь с базой данный ${toDatabase.name}")
-            return Triple(emptyList(),emptyList(),emptyList())
-        }
-        println("[${Timestamp.from(Instant.now())}] Таблица хэшей из базы данных ${fromDatabase.name} успешно получена, записей: ${listToIdsHashes.size}")
-
-        val totalCountFrom = listFromIdsHashes.size
-
-        if (totalCountFrom == 0) {
-            return Triple(emptyList(),emptyList(),emptyList())
-        }
-
-        val toHashMap = listToIdsHashes.associateBy { it.id }
-        val fromHashMap = listFromIdsHashes.associateBy { it.id }
-
-        val idsToInsert = listFromIdsHashes.filter { it.id !in toHashMap }.map { it.id }
-        val idsToUpdate = listFromIdsHashes.filter { from ->
-            val to = toHashMap[from.id]
-            to != null && to.recordhash != from.recordhash
-        }.map { it.id }
-        val idsToDelete = listToIdsHashes.filter { it.id !in fromHashMap }.map { it.id }
-
-        val authorsToDeleteMap = Author.getAuthorsByIds(idsToDelete, toDatabase, KSS_APP, SAC_APP)
-        idsToDelete.forEach { id ->
-            if (toDatabase.name == "SERVER") {
-                authorsToDeleteMap[id]?.let { listToDeleteNames.add(it.author) }
-                val sqlToDelete = "DELETE FROM $tableName WHERE id = $id"
-                val setStrEncrypted = Crypto.encrypt(sqlToDelete)
-                val values: Map<String, Any> = mapOf(
-                    "sqlToDelete" to (setStrEncrypted ?: "")
-                )
-                listToDelete.add(values)
-            } else {
-                Author.delete(id = id, database = toDatabase)
-            }
-        }
-
-        val authorsToInsertMap = Author.getAuthorsByIds(idsToInsert, fromDatabase, KSS_APP, SAC_APP)
-        idsToInsert.forEach { id ->
-            val itemFrom = authorsToInsertMap[id]
-            if (itemFrom != null) {
-                listToCreateNames.add(itemFrom.author)
-                println("[${Timestamp.from(Instant.now())}] Добавляем запись в $tableName: id=${itemFrom.id}, ${itemFrom.author}")
-                val sqlToInsert = itemFrom.getSqlToInsert()
-                if (toDatabase.name == "SERVER") {
-                    val setStrEncrypted = Crypto.encrypt(sqlToInsert)
-                    val values: Map<String, Any> = mapOf(
-                        "sqlToInsert" to (setStrEncrypted ?: "")
-                    )
-                    listToCreate.add(values)
-                } else {
-                    val connection = toDatabase.getConnection()
-                    if (connection == null) {
-                        println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${toDatabase.name}")
-                        return Triple(emptyList(),emptyList(),emptyList())
-                    }
-                    val ps = connection.prepareStatement(sqlToInsert)
-                    ps.executeUpdate()
-                    ps.close()
-                }
-            }
-        }
-
-        val authorsFromMap = Author.getAuthorsByIds(idsToUpdate, fromDatabase, KSS_APP, SAC_APP)
-        val authorsToMap = Author.getAuthorsByIds(idsToUpdate, toDatabase, KSS_APP, SAC_APP)
-        idsToUpdate.forEach { id ->
-            val itemFrom = authorsFromMap[id]
-            val itemTo = authorsToMap[id]
-            if (itemFrom != null && itemTo != null) {
-                val diff = KaraokeDbTable.getDiff(itemFrom, itemTo)
-                if (diff.isNotEmpty()) {
-                    listToUpdateNames.add(itemFrom.author)
-                    println("[${Timestamp.from(Instant.now())}] Изменяем запись в $tableName: id=${itemFrom.id}, ${itemFrom.author}, поля: ${diff.joinToString(", ") { it.recordDiffName }}")
-                    val messageRecordChange = RecordChangeMessage(tableName = tableName,  recordId = itemTo.id, diffs = diff, databaseName = toDatabase.name, record = itemFrom)
-                    if (toDatabase.name == "SERVER") {
-                        val setStr = messageRecordChange.getSetString()
-                        if (setStr != "") {
-                            val setStrEncrypted = Crypto.encrypt(setStr)
-                            val values: Map<String, Any> = mapOf(
-                                "tableName" to messageRecordChange.tableName,
-                                "idRecord" to messageRecordChange.recordId,
-                                "setText" to (setStrEncrypted ?: "")
-                            )
-                            listToUpdate.add(values)
-                        }
-                    } else {
-                        val setStr =
-                            diff.filter { it.recordDiffRealField }.joinToString(", ") { "${it.recordDiffName} = ?" }
-                        if (setStr != "") {
-                            val sql = "UPDATE $tableName SET $setStr WHERE id = ?"
-                            val connection = toDatabase.getConnection()
-                            if (connection == null) {
-                                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${toDatabase.name}")
-                                return Triple(emptyList(),emptyList(),emptyList())
-                            }
-                            val ps = connection.prepareStatement(sql)
-                            var index = 1
-                            diff.filter{ it.recordDiffRealField }.forEach {
-                                when (it.recordDiffValueNew) {
-                                    is Long -> {
-                                        ps.setLong(index, it.recordDiffValueNew)
-                                    }
-
-                                    is Int -> {
-                                        ps.setInt(index, it.recordDiffValueNew)
-                                    }
-
-                                    else -> {
-                                        ps.setString(index, it.recordDiffValueNew.toString())
-                                    }
-                                }
-                                index++
-                            }
-                            ps.setLong(index, itemTo.id)
-                            ps.executeUpdate()
-                            ps.close()
-                        }
-                    }
-                }
-            }
-        }
+    for (target in SyncRegistry.all) {
+        if (target.key !in keys) continue
+        val whereText = idFilter[target.key]?.let { "WHERE id = $it" } ?: ""
+        val ok = collectSyncOps(
+            target = target,
+            fromDatabase = fromDatabase,
+            toDatabase = toDatabase,
+            whereText = whereText,
+            listToCreate = listToCreate,
+            listToUpdate = listToUpdate,
+            listToDelete = listToDelete,
+            listToCreateNames = listToCreateNames,
+            listToUpdateNames = listToUpdateNames,
+            listToDeleteNames = listToDeleteNames,
+        )
+        if (!ok) return Triple(emptyList(), emptyList(), emptyList())
     }
 
     if (toDatabase.name == "SERVER") {
 
-        val chunkedSize = if (updatePictures) 1 else 10
+        val chunkedSize = if ("pictures" in keys) 1 else 10
 
         if (listToCreate.isNotEmpty()) {
             println("[${Timestamp.from(Instant.now())}] Запрос на сервер на добавление.")
@@ -949,6 +573,140 @@ fun updateDatabases(
 
     return Triple(listToCreateNames, listToUpdateNames, listToDeleteNames)
 
+}
+
+// Универсальный hash-diff sync одной сущности реестра (SyncRegistry) — заменяет то, что раньше было
+// тремя copy-paste блоками (Settings/Pictures/Authors) внутри updateDatabases(). Возвращает false при
+// сбое соединения ИЛИ когда fromDatabase вернула пустой список хэшей (защита от случая, когда сбойный
+// коннект молча даёт пустой, но не null, результат — без этой проверки idsToDelete включил бы ВСЕ
+// записи toDatabase, что стало бы массовым удалением). false — сигнал вызывающему коду прервать всю
+// операцию целиком (как и раньше — return Triple(empty...) на уровне updateDatabases), а не просто
+// пропустить эту сущность.
+private fun <T : Any> collectSyncOps(
+    target: SyncTarget<T>,
+    fromDatabase: KaraokeConnection,
+    toDatabase: KaraokeConnection,
+    whereText: String,
+    listToCreate: MutableList<Map<String, Any>>,
+    listToUpdate: MutableList<Map<String, Any>>,
+    listToDelete: MutableList<Map<String, Any>>,
+    listToCreateNames: MutableList<String>,
+    listToUpdateNames: MutableList<String>,
+    listToDeleteNames: MutableList<String>,
+): Boolean {
+    val tableName = target.tableName
+
+    println("[${Timestamp.from(Instant.now())}] Запрашиваем таблицу хэшей из базы данных ${fromDatabase.name} (${target.displayName})...")
+    val listFromIdsHashes = target.listHashes(fromDatabase, whereText)
+    if (listFromIdsHashes == null) {
+        println("[${Timestamp.from(Instant.now())}] Невозможно установить связь с базой данный ${fromDatabase.name}")
+        return false
+    }
+    println("[${Timestamp.from(Instant.now())}] Таблица хэшей из базы данных ${fromDatabase.name} успешно получена, записей: ${listFromIdsHashes.size}")
+
+    println("[${Timestamp.from(Instant.now())}] Запрашиваем таблицу хэшей из базы данных ${toDatabase.name} (${target.displayName})...")
+    val listToIdsHashes = target.listHashes(toDatabase, whereText)
+    if (listToIdsHashes == null) {
+        println("[${Timestamp.from(Instant.now())}] Невозможно установить связь с базой данный ${toDatabase.name}")
+        return false
+    }
+    println("[${Timestamp.from(Instant.now())}] Таблица хэшей из базы данных ${toDatabase.name} успешно получена, записей: ${listToIdsHashes.size}")
+
+    if (listFromIdsHashes.isEmpty()) return false
+
+    val toHashMap = listToIdsHashes.associateBy { it.id }
+    val fromHashMap = listFromIdsHashes.associateBy { it.id }
+
+    val idsToInsert = listFromIdsHashes.filter { it.id !in toHashMap }.map { it.id }
+    val idsToUpdate = listFromIdsHashes.filter { from ->
+        val to = toHashMap[from.id]
+        to != null && to.recordhash != from.recordhash
+    }.map { it.id }
+    val idsToDelete = listToIdsHashes.filter { it.id !in fromHashMap }.map { it.id }
+
+    val toDeleteMap = target.loadByIds(idsToDelete, toDatabase)
+    idsToDelete.forEach { id ->
+        toDeleteMap[id]?.let { listToDeleteNames.add(target.label(it)) }
+        if (toDatabase.name == "SERVER") {
+            val sqlToDelete = "DELETE FROM $tableName WHERE id = $id"
+            val setStrEncrypted = Crypto.encrypt(sqlToDelete)
+            listToDelete.add(mapOf("sqlToDelete" to (setStrEncrypted ?: "")))
+        } else {
+            target.deleteLocal(id, toDatabase)
+        }
+    }
+
+    val toInsertMap = target.loadByIds(idsToInsert, fromDatabase)
+    idsToInsert.forEach { id ->
+        val itemFrom = toInsertMap[id] ?: return@forEach
+        listToCreateNames.add(target.label(itemFrom))
+        println("[${Timestamp.from(Instant.now())}] Добавляем запись в $tableName: id=$id, ${target.label(itemFrom)}")
+        val sqlToInsert = target.getSqlToInsert(itemFrom)
+        if (toDatabase.name == "SERVER") {
+            val setStrEncrypted = Crypto.encrypt(sqlToInsert)
+            listToCreate.add(mapOf("sqlToInsert" to (setStrEncrypted ?: "")))
+        } else {
+            val connection = toDatabase.getConnection()
+            if (connection == null) {
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${toDatabase.name}")
+                return false
+            }
+            val ps = connection.prepareStatement(sqlToInsert)
+            ps.executeUpdate()
+            ps.close()
+        }
+    }
+
+    val fromMap = target.loadByIds(idsToUpdate, fromDatabase)
+    val toMap = target.loadByIds(idsToUpdate, toDatabase)
+    idsToUpdate.forEach { id ->
+        val itemFrom = fromMap[id]
+        val itemTo = toMap[id]
+        if (itemFrom != null && itemTo != null) {
+            val diff = target.getDiff(itemFrom, itemTo)
+            if (target.shouldPush(diff)) {
+                listToUpdateNames.add(target.label(itemFrom))
+                println("[${Timestamp.from(Instant.now())}] Изменяем запись в $tableName: id=$id, ${target.label(itemFrom)}, поля: ${diff.joinToString(", ") { it.recordDiffName }}")
+                val messageRecordChange = RecordChangeMessage(tableName = tableName, recordId = id, diffs = diff, databaseName = toDatabase.name, record = itemFrom)
+                if (toDatabase.name == "SERVER") {
+                    val setStr = messageRecordChange.getSetString()
+                    if (setStr != "") {
+                        val setStrEncrypted = Crypto.encrypt(setStr)
+                        listToUpdate.add(mapOf(
+                            "tableName" to messageRecordChange.tableName,
+                            "idRecord" to messageRecordChange.recordId,
+                            "setText" to (setStrEncrypted ?: "")
+                        ))
+                    }
+                } else {
+                    val setStr = diff.filter { it.recordDiffRealField }.joinToString(", ") { "${it.recordDiffName} = ?" }
+                    if (setStr != "") {
+                        val sql = "UPDATE $tableName SET $setStr WHERE id = ?"
+                        val connection = toDatabase.getConnection()
+                        if (connection == null) {
+                            println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${toDatabase.name}")
+                            return false
+                        }
+                        val ps = connection.prepareStatement(sql)
+                        var index = 1
+                        diff.filter { it.recordDiffRealField }.forEach {
+                            when (it.recordDiffValueNew) {
+                                is Long -> ps.setLong(index, it.recordDiffValueNew)
+                                is Int -> ps.setInt(index, it.recordDiffValueNew)
+                                else -> ps.setString(index, it.recordDiffValueNew.toString())
+                            }
+                            index++
+                        }
+                        ps.setLong(index, id)
+                        ps.executeUpdate()
+                        ps.close()
+                    }
+                }
+            }
+        }
+    }
+
+    return true
 }
 
 @Suppress("unused")

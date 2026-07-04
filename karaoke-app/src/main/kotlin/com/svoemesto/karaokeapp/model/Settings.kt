@@ -30,14 +30,16 @@ import kotlin.math.abs
 //@Component
 @JsonIgnoreProperties(value = ["database", "storageService", "pictureAuthor", "pictureAlbum"])
 class Settings(
-    val database: KaraokeConnection = WORKING_DATABASE,
+    override val database: KaraokeConnection = WORKING_DATABASE,
     override val storageService: KaraokeStorageService = KSS_APP,
-    val storageApiClient: StorageApiClient = SAC_APP
-): Serializable, Comparable<Settings>, KaraokeStorage {
+    override val storageApiClient: StorageApiClient = SAC_APP
+): Serializable, Comparable<Settings>, KaraokeStorage, KaraokeDbTable {
 
     override val storageBucketName: String get() = "karaoke"
     override val storageFileName: String get() = "$author/$year - $album/$fileName"
     override val storageFileNamePreview: String get() = ""
+
+    override fun getTableName() = TABLE_NAME
 
     fun createProcessDemux2(threadId: Int? = null, prior:Int? = null) {
         KaraokeProcess.createProcess(
@@ -258,7 +260,9 @@ class Settings(
 //        }
     }
 
-    val id: Long get() = fields[SettingField.ID]?.toLongOrNull() ?: 0L
+    override var id: Long
+        get() = fields[SettingField.ID]?.toLongOrNull() ?: 0L
+        set(value) { fields[SettingField.ID] = value.toString() }
     val idStatus: Long get() = fields[SettingField.ID_STATUS]?.toLongOrNull() ?: 0L
     val status: String get() {
           return when (idStatus) {
@@ -3424,6 +3428,8 @@ class Settings(
         return result
     }
 
+    override fun save() = saveToDb()
+
     fun saveToDb() {
 
         if (readonly) return
@@ -3878,7 +3884,9 @@ class Settings(
 
     }
 
-    fun getSqlToInsert(sync: Boolean = false): String {
+    override fun getSqlToInsert(): String = getSqlToInsert(sync = false)
+
+    fun getSqlToInsert(sync: Boolean): String {
         val settings = this
         val fieldsValues: MutableList<Pair<String, Any>> = mutableListOf()
 
@@ -5100,7 +5108,7 @@ class Settings(
         return sortString.compareTo(other.sortString)
     }
 
-    fun toDTO(): SettingsDTO {
+    override fun toDTO(): SettingsDTO {
         return SettingsDTO(
             id = id,
             idPrevious = id,

@@ -1,0 +1,166 @@
+package com.svoemesto.karaokeapp.sync
+
+import com.svoemesto.karaokeapp.KaraokeConnection
+import com.svoemesto.karaokeapp.KaraokeProperties
+import com.svoemesto.karaokeapp.model.Author
+import com.svoemesto.karaokeapp.model.KaraokeDbTable
+import com.svoemesto.karaokeapp.model.Pictures
+import com.svoemesto.karaokeapp.model.RecordDiff
+import com.svoemesto.karaokeapp.model.RecordHash
+import com.svoemesto.karaokeapp.model.Settings
+import com.svoemesto.karaokeapp.model.SiteUser
+import com.svoemesto.karaokeapp.model.WebEvent
+import com.svoemesto.karaokeapp.services.KSS_APP
+import com.svoemesto.karaokeapp.services.SAC_APP
+import kotlin.reflect.KClass
+
+enum class SyncDirection { LOCAL_TO_SERVER, SERVER_TO_LOCAL }
+
+/**
+ * Одна синхронизируемая сущность (таблица) для универсального движка в Utils.kt (updateDatabases).
+ * [oneClickDirection] — куда эта сущность едет при нажатии «Синхронизация в 1 клик» в webvue3.
+ */
+abstract class SyncTarget<T : Any>(
+    val key: String,
+    val tableName: String,
+    val displayName: String,
+    val oneClickDirection: SyncDirection,
+) {
+    abstract fun listHashes(db: KaraokeConnection, whereText: String): List<RecordHash>?
+    abstract fun loadByIds(ids: List<Long>, db: KaraokeConnection): Map<Long, T>
+    abstract fun getDiff(from: T, to: T): List<RecordDiff>
+    abstract fun getSqlToInsert(item: T): String
+    abstract fun deleteLocal(id: Long, db: KaraokeConnection): Boolean
+    abstract fun label(item: T): String
+    open fun shouldPush(diff: List<RecordDiff>): Boolean = diff.isNotEmpty()
+}
+
+/**
+ * Универсальная реализация для любого класса, реализующего KaraokeDbTable и аннотирующего свои
+ * колонки через @KaraokeDbTableField — вся логика построена на уже существующих generic-хелперах
+ * KaraokeDbTable.Companion (getListHashes/loadByIds/getDiff/delete), без нового кода на сущность.
+ */
+class GenericKaraokeDbTableSyncTarget<T : KaraokeDbTable>(
+    key: String,
+    tableName: String,
+    displayName: String,
+    oneClickDirection: SyncDirection,
+    private val clazz: KClass<T>,
+    private val labelFn: (T) -> String,
+) : SyncTarget<T>(key, tableName, displayName, oneClickDirection) {
+
+    override fun listHashes(db: KaraokeConnection, whereText: String): List<RecordHash>? =
+        KaraokeDbTable.getListHashes(tableName = tableName, database = db, whereText = whereText)
+
+    @Suppress("UNCHECKED_CAST")
+    override fun loadByIds(ids: List<Long>, db: KaraokeConnection): Map<Long, T> =
+        KaraokeDbTable.loadByIds(
+            clazz = clazz,
+            tableName = tableName,
+            ids = ids,
+            database = db,
+            storageService = KSS_APP,
+            storageApiClient = SAC_APP,
+        ).associate { it.id to (it as T) }
+
+    override fun getDiff(from: T, to: T): List<RecordDiff> = KaraokeDbTable.getDiff(from, to)
+
+    override fun getSqlToInsert(item: T): String = item.getSqlToInsert()
+
+    override fun deleteLocal(id: Long, db: KaraokeConnection): Boolean =
+        KaraokeDbTable.delete(tableName = tableName, id = id, database = db)
+
+    override fun label(item: T): String = labelFn(item)
+}
+
+/**
+ * Settings реализует KaraokeDbTable только ради типизации (см. CLAUDE.md) — её поля НЕ аннотированы
+ * @KaraokeDbTableField (виртуальные diff-поля status/color/processColorXxx, тяжёлые side-effect
+ * геттеры ms/rootFolder и вся tbl_settings_sync-инфраструктура несовместимы с generic reflection).
+ * Поэтому здесь — bespoke SyncTarget поверх уже существующих статических методов Settings, а не
+ * GenericKaraokeDbTableSyncTarget<Settings>: тот молча дал бы пустые диффы/пустой INSERT.
+ */
+object SettingsSyncTarget : SyncTarget<Settings>(
+    key = "settings",
+    tableName = Settings.TABLE_NAME,
+    displayName = "Настройки песен",
+    oneClickDirection = SyncDirection.LOCAL_TO_SERVER,
+) {
+    override fun listHashes(db: KaraokeConnection, whereText: String): List<RecordHash>? =
+        Settings.listHashes(database = db, whereText = whereText)
+
+    override fun loadByIds(ids: List<Long>, db: KaraokeConnection): Map<Long, Settings> =
+        Settings.loadListFromDbByIds(ids = ids, database = db, storageService = KSS_APP, storageApiClient = SAC_APP)
+
+    override fun getDiff(from: Settings, to: Settings): List<RecordDiff> = Settings.getDiff(from, to)
+
+    override fun getSqlToInsert(item: Settings): String = item.getSqlToInsert(sync = false)
+
+    override fun deleteLocal(id: Long, db: KaraokeConnection): Boolean {
+        Settings.deleteFromDb(id = id, database = db)
+        return true
+    }
+
+    override fun label(item: Settings): String = item.fileName
+
+    // Точь-в-точь текущий фильтр из Utils.kt (Settings.saveToDb() автопуш) — не пушим, если diff
+    // состоит только из виртуальных полей (status/color/processColorXxx) или шума status_process_*.
+    override fun shouldPush(diff: List<RecordDiff>): Boolean =
+        diff.isNotEmpty() && !diff.all { !it.recordDiffRealField || it.recordDiffName.startsWith("status_process_") }
+}
+
+val PicturesSyncTarget = GenericKaraokeDbTableSyncTarget(
+    key = "pictures",
+    tableName = Pictures.TABLE_NAME,
+    displayName = "Картинки",
+    oneClickDirection = SyncDirection.LOCAL_TO_SERVER,
+    clazz = Pictures::class,
+    labelFn = { it.name },
+)
+
+val AuthorsSyncTarget = GenericKaraokeDbTableSyncTarget(
+    key = "authors",
+    tableName = Author.TABLE_NAME,
+    displayName = "Авторы",
+    oneClickDirection = SyncDirection.LOCAL_TO_SERVER,
+    clazz = Author::class,
+    labelFn = { it.author },
+)
+
+val SiteUsersSyncTarget = GenericKaraokeDbTableSyncTarget(
+    key = "siteusers",
+    tableName = SiteUser.TABLE_NAME,
+    displayName = "Пользователи сайта",
+    oneClickDirection = SyncDirection.SERVER_TO_LOCAL,
+    clazz = SiteUser::class,
+    labelFn = { it.email },
+)
+
+val EventsSyncTarget = GenericKaraokeDbTableSyncTarget(
+    key = "events",
+    tableName = WebEvent.TABLE_NAME,
+    displayName = "Статистика",
+    oneClickDirection = SyncDirection.SERVER_TO_LOCAL,
+    clazz = WebEvent::class,
+    labelFn = { "id=${it.id} ${it.eventType ?: ""}" },
+)
+
+object SyncRegistry {
+    val all: List<SyncTarget<*>> = listOf(
+        SettingsSyncTarget,
+        PicturesSyncTarget,
+        AuthorsSyncTarget,
+        SiteUsersSyncTarget,
+        EventsSyncTarget,
+    )
+
+    fun byKey(key: String): SyncTarget<*>? = all.find { it.key == key }
+}
+
+// Ключ KaraokeProperty, разрешающий ручную/one-click синхронизацию этой сущности в данном
+// направлении (см. 10 flags "sync_<key>_push/pull_allowed" в KaraokeProperties.kt).
+fun SyncTarget<*>.allowPropertyKey(direction: SyncDirection): String =
+    "sync_${key}_${if (direction == SyncDirection.LOCAL_TO_SERVER) "push" else "pull"}_allowed"
+
+fun SyncTarget<*>.isAllowed(direction: SyncDirection): Boolean =
+    KaraokeProperties.getBoolean(allowPropertyKey(direction))

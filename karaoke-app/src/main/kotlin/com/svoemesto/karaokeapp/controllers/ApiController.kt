@@ -9,6 +9,9 @@ import com.svoemesto.karaokeapp.services.SNS
 import com.svoemesto.karaokeapp.services.SseNotificationService
 import com.svoemesto.karaokeapp.services.StorageApiClient
 import com.svoemesto.karaokeapp.services.WVP
+import com.svoemesto.karaokeapp.sync.SyncDirection
+import com.svoemesto.karaokeapp.sync.SyncRegistry
+import com.svoemesto.karaokeapp.sync.isAllowed
 import com.svoemesto.karaokeapp.textfiledictionary.SyncIdsDictionary
 import com.svoemesto.karaokeapp.textfiledictionary.TextFileDictionary
 import com.svoemesto.karaokeapp.textfilehistory.SongsHistory
@@ -53,6 +56,10 @@ import javax.imageio.ImageIO
 
 data class FamilySongDto(val id: Long, val songName: String, val author: String, val album: String, val year: Long, val diffSeconds: Long, val original: Boolean, val current: Boolean, val idStatus: Long)
 data class SelectFamilySongResultDto(val rootId: Long, val idStatus: Long)
+
+data class SyncEntityInfoDto(val key: String, val displayName: String, val allowPush: Boolean, val allowPull: Boolean, val oneClickDirection: String)
+data class SyncRunResultDto(val created: List<String>, val updated: List<String>, val deleted: List<String>)
+data class SyncOneClickResultDto(val key: String, val displayName: String, val direction: String, val skipped: Boolean, val created: List<String>, val updated: List<String>, val deleted: List<String>)
 
 @SuppressWarnings("SpellCheckingInspection")
 @Controller
@@ -2920,6 +2927,73 @@ class ApiController(
             SNS.send(SseNotification.crud(listOf(listCreate, listUpdate, listDelete)))
         }
         return listOf(listCreate, listUpdate, listDelete)
+    }
+
+    // Универсальная синхронизация LOCAL<->SERVER (webvue3, раздел "Синхронизация") — по любой
+    // сущности SyncRegistry (Settings/Pictures/Authors/SiteUsers/Events), в любую сторону, с проверкой
+    // разрешения через sync_<key>_push/pull_allowed (см. KaraokeProperties.kt).
+    @GetMapping("/sync/entities")
+    @ResponseBody
+    fun getSyncEntities(): List<SyncEntityInfoDto> {
+        return SyncRegistry.all.map { target ->
+            SyncEntityInfoDto(
+                key = target.key,
+                displayName = target.displayName,
+                allowPush = target.isAllowed(SyncDirection.LOCAL_TO_SERVER),
+                allowPull = target.isAllowed(SyncDirection.SERVER_TO_LOCAL),
+                oneClickDirection = target.oneClickDirection.name,
+            )
+        }
+    }
+
+    @PostMapping("/sync/run")
+    @ResponseBody
+    fun postSyncRun(
+        @RequestParam(required = true) key: String,
+        @RequestParam(required = true) direction: String,
+        @RequestParam(required = false) id: Long? = null,
+    ): ResponseEntity<Any> {
+        val target = SyncRegistry.byKey(key)
+            ?: return ResponseEntity.badRequest().body(mapOf("error" to "unknown_key"))
+        val syncDirection = when (direction) {
+            "PUSH" -> SyncDirection.LOCAL_TO_SERVER
+            "PULL" -> SyncDirection.SERVER_TO_LOCAL
+            else -> return ResponseEntity.badRequest().body(mapOf("error" to "unknown_direction"))
+        }
+        if (!target.isAllowed(syncDirection)) {
+            return ResponseEntity.status(403).body(mapOf(
+                "error" to "sync_not_allowed",
+                "message" to "Синхронизация «${target.displayName}» в этом направлении запрещена настройками"
+            ))
+        }
+        val (created, updated, deleted) = runEntitySync(key = target.key, direction = syncDirection, id = id)
+        if (created.size + updated.size + deleted.size != 0) {
+            SNS.send(SseNotification.crud(listOf(created, updated, deleted)))
+        }
+        return ResponseEntity.ok(SyncRunResultDto(created, updated, deleted))
+    }
+
+    @PostMapping("/sync/oneclick")
+    @ResponseBody
+    fun postSyncOneClick(): List<SyncOneClickResultDto> {
+        return SyncRegistry.all.map { target ->
+            val direction = target.oneClickDirection
+            if (!target.isAllowed(direction)) {
+                SyncOneClickResultDto(
+                    key = target.key, displayName = target.displayName, direction = direction.name,
+                    skipped = true, created = emptyList(), updated = emptyList(), deleted = emptyList()
+                )
+            } else {
+                val (created, updated, deleted) = runEntitySync(key = target.key, direction = direction)
+                if (created.size + updated.size + deleted.size != 0) {
+                    SNS.send(SseNotification.crud(listOf(created, updated, deleted)))
+                }
+                SyncOneClickResultDto(
+                    key = target.key, displayName = target.displayName, direction = direction.name,
+                    skipped = false, created = created, updated = updated, deleted = deleted
+                )
+            }
+        }
     }
 
     // Добавление файлов из папки

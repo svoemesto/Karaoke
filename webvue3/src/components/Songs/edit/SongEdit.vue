@@ -1296,9 +1296,14 @@ export default {
     closeFamilySongs() {
       this.isFamilySongsVisible = false;
     },
-    selectFamilySong(idAnother) {
-      this.$store.dispatch('copyFieldsFromAnotherPromise', {idAnother: idAnother, fields: 'SOURCE_TEXT;RESULT_TEXT;SOURCE_MARKERS'});
+    async selectFamilySong(idAnother) {
       this.isFamilySongsVisible = false;
+      const data = await this.$store.dispatch('selectFamilySongPromise', {idAnother: idAnother});
+      const result = JSON.parse(data);
+      if (result) {
+        this.song.rootId = result.rootId;
+        this.song.idStatus = result.idStatus;
+      }
     },
     async propAutoSave() {
       const propValue = await this.$store.getters.getPropValue('autoSave');

@@ -3184,38 +3184,86 @@ fun findAndFillDublicates(author: String, database: KaraokeConnection, storageSe
     return result
 }
 
+fun normalizeSongNameForSearch(name: String): String {
+    /*
+    Нормализация названия песни для сравнения/поиска "оригинала":
+    - убирается содержимое в скобках (уже была правилом раньше)
+    - буквы "ё"/"Ё" приравниваются к "е"
+    - знаки препинания убираются полностью (остаются только буквы/цифры/пробелы)
+    Punctuation-класс намеренно реализован в Kotlin (\p{L}/\p{Nd}, Unicode-aware), а не через Postgres
+    REGEXP_REPLACE с \w - в дефолтной C-локали Postgres \w распознаёт только ASCII-буквы и вырезал бы
+    кириллицу вместе со знаками препинания.
+     */
+    return name
+        .replace(Regex("""\([^)]*\)"""), "")
+        .lowercase()
+        .replace('ё', 'е')
+        .replace(Regex("""[^\p{L}\p{Nd}\s]"""), "")
+        .replace(Regex("""\s+"""), " ")
+        .trim()
+}
+
 fun findDuplicateOriginal(newSettings: Settings, database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient): Settings? {
     /*
     Для новой песни (обычно только что импортированной из папки) ищет "оригинал" - уже существующую в базе
-    песню с тем же названием без учёта содержимого в скобках (регистронезависимо), у которой уже есть текст.
-    Сначала ищет у того же автора, если не найдено - среди всех авторов. При нескольких совпадениях берёт
-    запись с наименьшим id.
+    песню с тем же названием без учёта содержимого в скобках, знаков препинания и различия "е"/"ё"
+    (регистронезависимо), у которой уже есть текст. Сначала ищет у того же автора, если не найдено -
+    среди всех авторов. При нескольких совпадениях берёт запись с наименьшим id.
      */
-    val cleanedName = newSettings.songName.replace(Regex("""\([^)]*\)"""), "").trim()
+    val cleanedName = normalizeSongNameForSearch(newSettings.songName)
     if (cleanedName.isBlank()) return null
 
     fun findId(sameAuthorOnly: Boolean): Long? {
         val connection = database.getConnection() ?: return null
-        val sql = "SELECT id FROM tbl_settings" +
+        val sql = "SELECT id, song_name FROM tbl_settings" +
                 " WHERE id <> ?" +
                 (if (sameAuthorOnly) " AND LOWER(song_author) = LOWER(?)" else "") +
-                " AND LOWER(TRIM(REGEXP_REPLACE(song_name, '\\([^)]*\\)', '', 'g'))) = LOWER(?)" +
                 " AND TRIM(source_text) <> ''" +
-                " ORDER BY id ASC LIMIT 1"
+                " ORDER BY id ASC"
         val ps = connection.prepareStatement(sql)
         var idx = 1
         ps.setLong(idx++, newSettings.id)
-        if (sameAuthorOnly) ps.setString(idx++, newSettings.author)
-        ps.setString(idx, cleanedName)
+        if (sameAuthorOnly) ps.setString(idx, newSettings.author)
         val rs = ps.executeQuery()
-        val id = if (rs.next()) rs.getLong("id") else null
+        var foundId: Long? = null
+        while (rs.next()) {
+            if (normalizeSongNameForSearch(rs.getString("song_name")) == cleanedName) {
+                foundId = rs.getLong("id")
+                break
+            }
+        }
         rs.close()
         ps.close()
-        return id
+        return foundId
     }
 
     val id = findId(sameAuthorOnly = true) ?: findId(sameAuthorOnly = false) ?: return null
     return Settings.loadFromDbById(id = id, database = database, storageService = storageService, storageApiClient = storageApiClient)
+}
+
+fun searchSongsByNormalizedName(currentSettings: Settings, searchQuery: String, database: KaraokeConnection): List<Long> {
+    /*
+    Ручной поиск кандидатов в "оригинал" по (части) названия - подстрока нормализованного имени песни
+    (см. normalizeSongNameForSearch) содержит нормализованный поисковый запрос. В отличие от
+    findDuplicateOriginal (точное совпадение), здесь - вхождение подстроки, чтобы можно было найти песню
+    по неполному названию. Ищет среди всех авторов, только среди песен с непустым исходным текстом.
+     */
+    val normalizedQuery = normalizeSongNameForSearch(searchQuery)
+    if (normalizedQuery.isBlank()) return emptyList()
+    val connection = database.getConnection() ?: return emptyList()
+    val sql = "SELECT id, song_name FROM tbl_settings WHERE id <> ? AND TRIM(source_text) <> ''"
+    val ps = connection.prepareStatement(sql)
+    ps.setLong(1, currentSettings.id)
+    val rs = ps.executeQuery()
+    val ids = mutableListOf<Long>()
+    while (rs.next()) {
+        if (normalizeSongNameForSearch(rs.getString("song_name")).contains(normalizedQuery)) {
+            ids.add(rs.getLong("id"))
+        }
+    }
+    rs.close()
+    ps.close()
+    return ids
 }
 
 fun applyDuplicateOriginal(newSettings: Settings, original: Settings) {
@@ -3225,6 +3273,22 @@ fun applyDuplicateOriginal(newSettings: Settings, original: Settings) {
     newSettings.sourceMarkers = original.sourceMarkers
     newSettings.fields[SettingField.ID_STATUS] = "1"
     newSettings.saveToDb()
+}
+
+fun applyFamilySongSelection(settings: Settings, another: Settings) {
+    /*
+    Выбор песни из модалки "Похожие версии песни" (как из общего списка "семьи", так и из ручного
+    поиска по названию). В отличие от applyDuplicateOriginal (автопоиск оригинала при импорте) -
+    root_id и статус трогаются только условно, не перетирая уже существующие осознанные значения:
+    - root_id проставляется только если у текущей песни он ещё не задан (0)
+    - статус NONE (0) переводится в TEXT_CREATE (1) только если он ещё NONE
+     */
+    settings.sourceText = another.sourceText
+    settings.resultText = another.resultText
+    settings.sourceMarkers = another.sourceMarkers
+    if (settings.rootId == 0L) settings.rootId = another.id
+    if (settings.idStatus == 0L) settings.fields[SettingField.ID_STATUS] = "1"
+    settings.saveToDb()
 }
 
 fun findFamilySongIds(currentSettings: Settings, database: KaraokeConnection): List<Long> {

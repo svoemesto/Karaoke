@@ -2,10 +2,22 @@
   <transition name="modal-fade">
     <div class="fsm-modal-backdrop">
       <div class="fsm-area">
-        <div class="fsm-header">Песни из той же группы (id / root_id)</div>
+        <div class="fsm-header">
+          <div class="fsm-header-title">Песни из той же группы (id / root_id)</div>
+          <div class="fsm-search">
+            <input
+                type="text"
+                class="fsm-search-input"
+                v-model="searchQuery"
+                placeholder="Поиск по названию песни..."
+                @keyup.enter="doSearch"
+            >
+            <button type="button" class="fsm-search-button" @click="doSearch">Найти</button>
+          </div>
+        </div>
         <div class="fsm-body">
           <div v-if="loading" class="fsm-message">Загрузка...</div>
-          <div v-else-if="songs.length === 0" class="fsm-message">Похожих песен не найдено</div>
+          <div v-else-if="songs.length === 0" class="fsm-message">{{ searched ? 'Ничего не найдено по запросу' : 'Похожих песен не найдено' }}</div>
           <table v-else class="fsm-table">
             <thead>
               <tr>
@@ -53,7 +65,9 @@ export default {
   data() {
     return {
       songs: [],
-      loading: true
+      loading: true,
+      searchQuery: '',
+      searched: false
     };
   },
   async mounted() {
@@ -74,6 +88,18 @@ export default {
     },
     close() {
       this.$emit('close');
+    },
+    async doSearch() {
+      const query = this.searchQuery.trim();
+      if (!query) return;
+      this.loading = true;
+      this.searched = true;
+      try {
+        const data = await this.$store.dispatch('searchOriginalSongsPromise', {search: query});
+        this.songs = JSON.parse(data);
+      } finally {
+        this.loading = false;
+      }
     }
   }
 }
@@ -126,6 +152,44 @@ export default {
   color: white;
   font-size: larger;
   font-weight: 300;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.fsm-header-title {
+  white-space: nowrap;
+}
+
+.fsm-search {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.fsm-search-input {
+  font-size: 14px;
+  padding: 4px 8px;
+  border: 1px solid #999;
+  border-radius: 4px;
+  min-width: 220px;
+}
+
+.fsm-search-button {
+  border: 1px solid white;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  font-weight: bold;
+  color: #4AAE9B;
+  background: transparent;
+  padding: 4px 14px;
+  white-space: nowrap;
+}
+
+.fsm-search-button:hover {
+  background: darkgreen;
 }
 
 .fsm-body {

@@ -420,6 +420,20 @@ Auth is OAuth2/OIDC against the authorization server embedded in `karaoke-app`
   обрабатывается в `App.vue` → мутация `healthReportMessageByUserEvent`. Action `setCurrentSongHealthReports`
   обновляет `state.currentSongHealthReports` только если `currentSongId === currId` (не перетирает чужими данными).
 
+**Прогресс заданий в шапке (`Common/ProcessWorker.vue`, `Processes/store.js`) — состояние по threadId,
+не общее.** В шапке `App.vue` два экземпляра одного `ProcessWorker.vue` (`includedThreadId="[0]"` —
+ветка 0/`THREAD_LANE_HEAVY_RENDER`, `excludedThreadId="[0]"` — все остальные ветки). Прогресс хранится
+в `state.workingProcessByThreadId` — карта `threadId → process`, а не единый объект на весь фронтенд:
+мутация `updateProcessByUserEvent` (реагирует на SSE `RECORD_CHANGE`/`tbl_processes`) при статусе, отличном
+от `DONE`/`ERROR`, кладёт запись по ключу `threadId`; при `DONE`/`ERROR` — удаляет ключ. Геттер
+`getWorkingProcessForThreads(includedThreadId, excludedThreadId)` берёт из этой карты подходящую под
+фильтр запись компонента. **Важно:** карта — единственный источник правды, компонент не должен кешировать
+последнее значение локально (`data.currentWorkingProcess` — старый, уже убранный паттерн) — при общем
+на весь фронтенд состоянии такой кеш не сбрасывался, когда завершалась именно "своя" ветка, а другая
+оставалась активна, и блок прогресса зависал на последнем значении навечно после завершения всех заданий
+ветки. `ERROR` считается терминальным статусом наравне с `DONE` — упавшее с ошибкой задание тоже должно
+переставать показывать прогресс.
+
 **Storage.** Generated media files (audio stems, videos, pictures) live in MinIO-compatible object storage,
 accessed through `services/StorageApiClient.kt` / `services/KaraokeStorageService.kt` and the corresponding
 `StorageController`/`docker-compose-storage.yml`.

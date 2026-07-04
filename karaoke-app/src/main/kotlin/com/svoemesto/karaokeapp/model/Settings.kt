@@ -59,25 +59,25 @@ class Settings(
         )
     }
 
-    fun createProcessMp3Song(threadId: Int? = null, prior:Int? = null) {
-        KaraokeProcess.createProcess(
-            settings = this,
-            action = KaraokeProcessTypes.FF_MP3_LYR,
-            doWait = true,
-            prior = prior ?: -1,
-            threadId = threadId ?: 1
-        )
-    }
-
-    fun createProcessMp3Accompaniment(threadId: Int? = null, prior:Int? = null) {
-        KaraokeProcess.createProcess(
-            settings = this,
-            action = KaraokeProcessTypes.FF_MP3_KAR,
-            doWait = true,
-            prior = prior ?: -1,
-            threadId = threadId ?: 1
-        )
-    }
+//    fun createProcessMp3Song(threadId: Int? = null, prior:Int? = null) {
+//        KaraokeProcess.createProcess(
+//            settings = this,
+//            action = KaraokeProcessTypes.FF_MP3_LYR,
+//            doWait = true,
+//            prior = prior ?: -1,
+//            threadId = threadId ?: 1
+//        )
+//    }
+//
+//    fun createProcessMp3Accompaniment(threadId: Int? = null, prior:Int? = null) {
+//        KaraokeProcess.createProcess(
+//            settings = this,
+//            action = KaraokeProcessTypes.FF_MP3_KAR,
+//            doWait = true,
+//            prior = prior ?: -1,
+//            threadId = threadId ?: 1
+//        )
+//    }
 
     fun createProcessVideo720(songVersion: SongVersion, threadId: Int? = null, prior:Int? = null) {
         when (songVersion) {
@@ -374,16 +374,16 @@ class Settings(
     val pathToFileKeyBpmFinder: String  get() = "${rootFolder}/$nameFileKeyBpmFinder".rightFileName()
 
     val pathToFile720Lyrics: String  get() = "$pathToFolder720Lyrics/${nameFileLyrics.replace(" [lyrics].mp4", " [lyrics] 720p.mp4")}".rightFileName()
-    val pathToFileMP3Lyrics: String  get() = "$pathToFolderMP3Lyrics/${nameFileLyrics.replace(" [lyrics].mp4", " [lyrics].mp3")}".rightFileName()
+//    val pathToFileMP3Lyrics: String  get() = "$pathToFolderMP3Lyrics/${nameFileLyrics.replace(" [lyrics].mp4", " [lyrics].mp3")}".rightFileName()
     val pathToFile720Karaoke: String  get() = "$pathToFolder720Karaoke/${nameFileKaraoke.replace(" [karaoke].mp4", " [karaoke] 720p.mp4")}".rightFileName()
-    val pathToFileMP3Karaoke: String  get() = "$pathToFolderMP3Karaoke/${nameFileKaraoke.replace(" [karaoke].mp4", " [karaoke].mp3")}".rightFileName()
+//    val pathToFileMP3Karaoke: String  get() = "$pathToFolderMP3Karaoke/${nameFileKaraoke.replace(" [karaoke].mp4", " [karaoke].mp3")}".rightFileName()
     val pathToFile720Chords: String  get() = "$pathToFolder720Chords/${nameFileChords.replace(" [chords].mp4", " [chords] 720p.mp4")}".rightFileName()
     val pathToFile720Melody: String  get() = "$pathToFolder720Melody/${nameFileMelody.replace(" [tabs].mp4", " [tabs] 720p.mp4")}".rightFileName()
 
     val pathToFolder720Lyrics: String  get() = "$PATH_TO_STORE_FOLDER/720p_Lyrics/${author} 720p".rightFileName()
-    val pathToFolderMP3Lyrics: String  get() = "$PATH_TO_STORE_FOLDER/MP3_Lyrics/${author} MP3".rightFileName()
+//    val pathToFolderMP3Lyrics: String  get() = "$PATH_TO_STORE_FOLDER/MP3_Lyrics/${author} MP3".rightFileName()
     val pathToFolder720Karaoke: String  get() = "$PATH_TO_STORE_FOLDER/720p_Karaoke/${author} 720p".rightFileName()
-    val pathToFolderMP3Karaoke: String  get() = "$PATH_TO_STORE_FOLDER/MP3_Karaoke/${author} MP3".rightFileName()
+//    val pathToFolderMP3Karaoke: String  get() = "$PATH_TO_STORE_FOLDER/MP3_Karaoke/${author} MP3".rightFileName()
     val pathToFolder720Chords: String  get() = "$PATH_TO_STORE_FOLDER/720p_Chords/${author} 720p".rightFileName()
     val pathToFolder720Melody: String  get() = "$PATH_TO_STORE_FOLDER/720p_TABS/${author} 720p".rightFileName()
 
@@ -3724,12 +3724,12 @@ class Settings(
 
     }
 
-    fun doMP3Karaoke(prior: Int = -1, threadId: Int) {
-        KaraokeProcess.createProcess(this, KaraokeProcessTypes.FF_MP3_KAR, true, prior, threadId = threadId)
-    }
-    fun doMP3Lyrics(prior: Int = -1, threadId: Int) {
-        KaraokeProcess.createProcess(this, KaraokeProcessTypes.FF_MP3_LYR, true, prior, threadId = threadId)
-    }
+//    fun doMP3Karaoke(prior: Int = -1, threadId: Int) {
+//        KaraokeProcess.createProcess(this, KaraokeProcessTypes.FF_MP3_KAR, true, prior, threadId = threadId)
+//    }
+//    fun doMP3Lyrics(prior: Int = -1, threadId: Int) {
+//        KaraokeProcess.createProcess(this, KaraokeProcessTypes.FF_MP3_LYR, true, prior, threadId = threadId)
+//    }
     fun deleteFromDb(withFiles: Boolean = true, sync: Boolean = false) {
         if (withFiles) {
             if (File(fileAbsolutePath).exists()) File(fileAbsolutePath).delete()
@@ -4132,8 +4132,8 @@ class Settings(
                 if (Paths.get(settOldVersion.pathToFile720Karaoke).toFile().exists()) Paths.get(settOldVersion.pathToFile720Karaoke).toFile().renameTo(Paths.get(settNewVersion.pathToFile720Karaoke).toFile())
                 if (Paths.get(settOldVersion.pathToFile720Chords).toFile().exists()) Paths.get(settOldVersion.pathToFile720Chords).toFile().renameTo(Paths.get(settNewVersion.pathToFile720Chords).toFile())
                 if (Paths.get(settOldVersion.pathToFile720Melody).toFile().exists()) Paths.get(settOldVersion.pathToFile720Melody).toFile().renameTo(Paths.get(settNewVersion.pathToFile720Melody).toFile())
-                if (Paths.get(settOldVersion.pathToFileMP3Lyrics).toFile().exists()) Paths.get(settOldVersion.pathToFileMP3Lyrics).toFile().renameTo(Paths.get(settNewVersion.pathToFileMP3Lyrics).toFile())
-                if (Paths.get(settOldVersion.pathToFileMP3Karaoke).toFile().exists()) Paths.get(settOldVersion.pathToFileMP3Karaoke).toFile().renameTo(Paths.get(settNewVersion.pathToFileMP3Karaoke).toFile())
+//                if (Paths.get(settOldVersion.pathToFileMP3Lyrics).toFile().exists()) Paths.get(settOldVersion.pathToFileMP3Lyrics).toFile().renameTo(Paths.get(settNewVersion.pathToFileMP3Lyrics).toFile())
+//                if (Paths.get(settOldVersion.pathToFileMP3Karaoke).toFile().exists()) Paths.get(settOldVersion.pathToFileMP3Karaoke).toFile().renameTo(Paths.get(settNewVersion.pathToFileMP3Karaoke).toFile())
                 if (Paths.get(settOldVersion.pathToStoreFileLyrics).toFile().exists()) Paths.get(settOldVersion.pathToStoreFileLyrics).toFile().renameTo(Paths.get(settNewVersion.pathToStoreFileLyrics).toFile())
                 if (Paths.get(settOldVersion.pathToStoreFileKaraoke).toFile().exists()) Paths.get(settOldVersion.pathToStoreFileKaraoke).toFile().renameTo(Paths.get(settNewVersion.pathToStoreFileKaraoke).toFile())
                 if (Paths.get(settOldVersion.pathToStoreFileChords).toFile().exists()) Paths.get(settOldVersion.pathToStoreFileChords).toFile().renameTo(Paths.get(settNewVersion.pathToStoreFileChords).toFile())
@@ -4997,21 +4997,21 @@ class Settings(
                                 threadId = 1
                             )
 
-                            KaraokeProcess.createProcess(
-                                settings = settings,
-                                action = KaraokeProcessTypes.FF_MP3_KAR,
-                                doWait = true,
-                                prior = -1,
-                                threadId = 1
-                            )
-
-                            KaraokeProcess.createProcess(
-                                settings = settings,
-                                action = KaraokeProcessTypes.FF_MP3_LYR,
-                                doWait = true,
-                                prior = -1,
-                                threadId = 1
-                            )
+//                            KaraokeProcess.createProcess(
+//                                settings = settings,
+//                                action = KaraokeProcessTypes.FF_MP3_KAR,
+//                                doWait = true,
+//                                prior = -1,
+//                                threadId = 1
+//                            )
+//
+//                            KaraokeProcess.createProcess(
+//                                settings = settings,
+//                                action = KaraokeProcessTypes.FF_MP3_LYR,
+//                                doWait = true,
+//                                prior = -1,
+//                                threadId = 1
+//                            )
                         }
 
                     }

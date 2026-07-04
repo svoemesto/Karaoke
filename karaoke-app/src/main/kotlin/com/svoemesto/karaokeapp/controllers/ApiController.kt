@@ -2324,87 +2324,87 @@ class ApiController(
         settings?.deleteFromDb()
     }
 
-    // Создаём MP3 KARAOKE для песни
-    @PostMapping("/song/mp3karaoke")
-    @ResponseBody
-    fun doMP3Karaoke(@RequestParam id: Long, @RequestParam(required = false) prior: Int = -1, @RequestParam(required = false) threadId: String? = "0") {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-        settings?.doMP3Karaoke(prior, threadId = threadId?.toInt() ?: 0)
-        SNS.send(SseNotification.message(Message(
-            type = "info",
-            head = "Создание MP3 KARAOKE",
-            body = "Создание MP3 KARAOKE прошло успешно"
-        )))
-    }
-
-    // Создаём MP3 KARAOKE для всех
-    @PostMapping("/songs/createmp3karaokeall")
-    @ResponseBody
-    fun getSongsCreateMP3KaraokeAll(@RequestParam songsIds: String, @RequestParam(required = false) prior: Int = -1, @RequestParam(required = false) threadId: String? = "0") {
-        var result = false
-        songsIds.let {
-            val ids = songsIds.split(";").map { it }.filter { it != "" }.map { it.toLong() }
-            ids.forEach { id ->
-                val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-                settings?.doMP3Karaoke(prior, threadId = threadId?.toInt() ?: 0)
-                result = true
-            }
-        }
-        if (result) {
-            SNS.send(SseNotification.message(Message(
-                type = "info",
-                head = "Создание MP3 KARAOKE",
-                body = "Создание MP3 KARAOKE прошло успешно"
-            )))
-        } else {
-            SNS.send(SseNotification.message(Message(
-                type = "warning",
-                head = "Создание MP3 KARAOKE",
-                body = "Что-то пошло не так"
-            )))
-        }
-    }
-
-    // Создаём MP3 LYRICS для песни
-    @PostMapping("/song/mp3lyrics")
-    @ResponseBody
-    fun doMP3Lyrics(@RequestParam id: Long, @RequestParam(required = false) prior: Int = -1, @RequestParam(required = false) threadId: String? = "0") {
-        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-        settings?.doMP3Lyrics(prior, threadId = threadId?.toInt() ?: 0)
-        SNS.send(SseNotification.message(Message(
-            type = "info",
-            head = "Создание MP3 LYRICS",
-            body = "Создание MP3 LYRICS прошло успешно"
-        )))
-    }
-
-    // Создаём MP3 LYRICS для всех
-    @PostMapping("/songs/createmp3lyricsall")
-    @ResponseBody
-    fun getSongsCreateMP3LyricsAll(@RequestParam songsIds: String, @RequestParam(required = false) prior: Int = -1, @RequestParam(required = false) threadId: String? = "0") {
-        var result = false
-        songsIds.let {
-            val ids = songsIds.split(";").map { it }.filter { it != "" }.map { it.toLong() }
-            ids.forEach { id ->
-                val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-                settings?.doMP3Lyrics(prior, threadId = threadId?.toInt() ?: 0)
-                result = true
-            }
-        }
-        if (result) {
-            SNS.send(SseNotification.message(Message(
-                type = "info",
-                head = "Создание MP3 LYRICS",
-                body = "Создание MP3 LYRICS прошло успешно"
-            )))
-        } else {
-            SNS.send(SseNotification.message(Message(
-                type = "warning",
-                head = "Создание MP3 LYRICS",
-                body = "Что-то пошло не так"
-            )))
-        }
-    }
+//    // Создаём MP3 KARAOKE для песни
+//    @PostMapping("/song/mp3karaoke")
+//    @ResponseBody
+//    fun doMP3Karaoke(@RequestParam id: Long, @RequestParam(required = false) prior: Int = -1, @RequestParam(required = false) threadId: String? = "0") {
+//        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+//        settings?.doMP3Karaoke(prior, threadId = threadId?.toInt() ?: 0)
+//        SNS.send(SseNotification.message(Message(
+//            type = "info",
+//            head = "Создание MP3 KARAOKE",
+//            body = "Создание MP3 KARAOKE прошло успешно"
+//        )))
+//    }
+//
+//    // Создаём MP3 KARAOKE для всех
+//    @PostMapping("/songs/createmp3karaokeall")
+//    @ResponseBody
+//    fun getSongsCreateMP3KaraokeAll(@RequestParam songsIds: String, @RequestParam(required = false) prior: Int = -1, @RequestParam(required = false) threadId: String? = "0") {
+//        var result = false
+//        songsIds.let {
+//            val ids = songsIds.split(";").map { it }.filter { it != "" }.map { it.toLong() }
+//            ids.forEach { id ->
+//                val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+//                settings?.doMP3Karaoke(prior, threadId = threadId?.toInt() ?: 0)
+//                result = true
+//            }
+//        }
+//        if (result) {
+//            SNS.send(SseNotification.message(Message(
+//                type = "info",
+//                head = "Создание MP3 KARAOKE",
+//                body = "Создание MP3 KARAOKE прошло успешно"
+//            )))
+//        } else {
+//            SNS.send(SseNotification.message(Message(
+//                type = "warning",
+//                head = "Создание MP3 KARAOKE",
+//                body = "Что-то пошло не так"
+//            )))
+//        }
+//    }
+//
+//    // Создаём MP3 LYRICS для песни
+//    @PostMapping("/song/mp3lyrics")
+//    @ResponseBody
+//    fun doMP3Lyrics(@RequestParam id: Long, @RequestParam(required = false) prior: Int = -1, @RequestParam(required = false) threadId: String? = "0") {
+//        val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+//        settings?.doMP3Lyrics(prior, threadId = threadId?.toInt() ?: 0)
+//        SNS.send(SseNotification.message(Message(
+//            type = "info",
+//            head = "Создание MP3 LYRICS",
+//            body = "Создание MP3 LYRICS прошло успешно"
+//        )))
+//    }
+//
+//    // Создаём MP3 LYRICS для всех
+//    @PostMapping("/songs/createmp3lyricsall")
+//    @ResponseBody
+//    fun getSongsCreateMP3LyricsAll(@RequestParam songsIds: String, @RequestParam(required = false) prior: Int = -1, @RequestParam(required = false) threadId: String? = "0") {
+//        var result = false
+//        songsIds.let {
+//            val ids = songsIds.split(";").map { it }.filter { it != "" }.map { it.toLong() }
+//            ids.forEach { id ->
+//                val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+//                settings?.doMP3Lyrics(prior, threadId = threadId?.toInt() ?: 0)
+//                result = true
+//            }
+//        }
+//        if (result) {
+//            SNS.send(SseNotification.message(Message(
+//                type = "info",
+//                head = "Создание MP3 LYRICS",
+//                body = "Создание MP3 LYRICS прошло успешно"
+//            )))
+//        } else {
+//            SNS.send(SseNotification.message(Message(
+//                type = "warning",
+//                head = "Создание MP3 LYRICS",
+//                body = "Что-то пошло не так"
+//            )))
+//        }
+//    }
 
     // Создаём SYMLINKs для песни
     @PostMapping("/song/symlink")

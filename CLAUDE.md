@@ -203,6 +203,25 @@ Sheetsage key/BPM/chord detection, file copy/symlink operations) is modeled as a
 a priority and run on a managed pool — this queue is the backbone of the whole rendering pipeline, not a generic
 task runner.
 
+**Устаревший workflow "MP3 Karaoke"/"MP3 Lyrics" — закомментирован по всему стеку, готовится к
+полному удалению.** `KaraokeProcessTypes.FF_MP3_KAR`/`FF_MP3_LYR` (ffmpeg-конвертация минусовки/
+оригинала в mp3 в папки `MP3_Karaoke`/`MP3_Lyrics`) и связанные с ними `KaraokeFileType.MP3_STORE_SONG`/
+`MP3_STORE_ACCOMPANIMENT` признаны неактуальными. Закомментированы (не удалены — построчный `//`,
+чтобы было легко довершить удаление позже), но нигде физически не убраны:
+- enum-записи в `KaraokeProcessTypes.kt`/`KaraokeFileType.kt`;
+- геттеры `pathToFileMP3Lyrics`/`pathToFileMP3Karaoke`/`pathToFolderMP3Lyrics`/`pathToFolderMP3Karaoke`
+  и две строки в `renameFilesIfDiff()` в `Settings.kt`, функции `createProcessMp3Song`/
+  `createProcessMp3Accompaniment`/`doMP3Karaoke`/`doMP3Lyrics`, два вызова в `createFromPath()`;
+- ветки `when` в `KaraokeProcess.kt` (сборка ffmpeg-команды) и в `HealthReport.kt` (проверка/
+  восстановление файлов — `when (karaokeFileType)` там statement, не exhaustive, поэтому удаление
+  веток без `else` безопасно);
+- 4 эндпоинта в `ApiController.kt` (`/song/mp3karaoke`, `/song/mp3lyrics`,
+  `/songs/createmp3karaokeall`, `/songs/createmp3lyricsall`);
+- кнопки в `webvue3` (`SongEdit.vue`, `SongsTable.vue`) — скрыты HTML-комментарием, JS-методы и
+  Vuex actions (`createMP3Karaoke(ForAll)Promise` и т.п.) оставлены нетронутыми как недостижимый код.
+`accompanimentNameMp3` в `Settings.kt` **не трогать** — используется другим, ещё активным типом
+`MP3_ACCOMPANIMENT`/`FF_MP3_ACCOMPANIMENT`, не путать эти два похожих имени.
+
 **Demucs на GPU (`argsDemucs2`/`argsDemucs5` в `Settings.kt`, `deploy/karaoke-app/DockerfileDemucs`).**
 Локальная машина (`karaoke-app`) имеет физическую видеокарту (RTX 4060 Ti) и уже настроенный GPU
 passthrough в Docker (`nvidia-container-toolkit` на хосте, `/var/run/docker.sock` смонтирован в

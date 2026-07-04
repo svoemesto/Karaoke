@@ -603,8 +603,8 @@
         <button class="btn-round-double" @click="createKaraoke" title="Создать караоке"><img alt="create karaoke" class="icon-40" src="../../../assets/svg/icon_song.svg"></button>
         <button class="btn-round-double" @click="createDemucs2" title="Создать DEMUCS2"><img alt="create demucs2" class="icon-40" src="../../../assets/svg/icon_demucs2.svg"></button>
         <button class="btn-round-double" @click="createDemucs5" title="Создать DEMUCS5"><img alt="create demucs5" class="icon-40" src="../../../assets/svg/icon_demucs5.svg"></button>
-        <button class="btn-round-double" @click="createMP3Karaoke" title="Создать MP3 Karaoke"><img alt="create mp3 karaoke" class="icon-40" src="../../../assets/svg/icon_mp3karaoke.svg"></button>
-        <button class="btn-round-double" @click="createMP3Lyrics" title="Создать MP3 Lyrics"><img alt="create mp3 lyrics" class="icon-40" src="../../../assets/svg/icon_mp3lyrics.svg"></button>
+        <!-- <button class="btn-round-double" @click="createMP3Karaoke" title="Создать MP3 Karaoke"><img alt="create mp3 karaoke" class="icon-40" src="../../../assets/svg/icon_mp3karaoke.svg"></button> -->
+        <!-- <button class="btn-round-double" @click="createMP3Lyrics" title="Создать MP3 Lyrics"><img alt="create mp3 lyrics" class="icon-40" src="../../../assets/svg/icon_mp3lyrics.svg"></button> -->
         <button class="btn-round-double" @click="createSymlinks" title="Создать SYMLINKS"><img alt="create symlink" class="icon-40" src="../../../assets/svg/icon_symlink.svg"></button>
         <button class="btn-round-double" @click="createSheetsage" title="Создать SHEETSAGE"><img alt="create sheetsage" class="icon-40" src="../../../assets/svg/icon_chords.svg"></button>
         <button class="btn-round-double" @click="setDateTimeAuthor" title="установить дату/время публикации для песен автора, начиная с текущей"><img alt="calendar" class="icon-40" src="../../../assets/svg/icon_calendar_later.svg"></button>

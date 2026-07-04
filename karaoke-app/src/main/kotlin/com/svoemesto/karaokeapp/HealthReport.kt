@@ -1194,59 +1194,59 @@ data class HealthReport(
                     }
 
                     // Исходный аудио файл в формате mp3
-                    KaraokeFileType.MP3_STORE_SONG -> {
-                        pathToFile = settings.pathToFileMP3Lyrics
-                        existsInLocalFileSystem = if (pathToFile != "") File(pathToFile).exists() else false
-                        canBe = true // Файл должнен быть
-
-                        storageFileName = "${settings.storageFileName}${karaokeFileType.suffix}.${karaokeFileType.extention}"
-                        description = karaokeFileType.name
-
-                        // файл возможно создать автоматически, если есть файл типа AUDIO_SONG
-                        val patentFileType = KaraokeFileType.AUDIO_SONG
-                        val pathToParentFile = settings.fileAbsolutePath
-                        val parentFileExistsInLocalFileSystem = if (pathToParentFile != "") File(pathToParentFile).exists() else false
-                        canCreate = parentFileExistsInLocalFileSystem
-
-                        if (canCreate) {
-                            inProgressOwnArgs = mapOf(
-                                "settings_id" to settings.id.toString(),
-                                "process_status" to KaraokeProcessStatuses.WAITING.name,
-                                "process_type" to KaraokeProcessTypes.FF_MP3_LYR.name
-                            )
-                            karaokeProcessTypesToCreate = KaraokeProcessTypes.FF_MP3_LYR
-                        }
-//                        inProgressOwnArgs = emptyMap() // нет аргументов для процесса, т.к. файл нельзя создать автоматически
-//                        inProgressParentArgs = emptyMap() // нет аргументов для процесса, т.к. файл нельзя создать автоматически
-//                        karaokeProcessTypesToCreate = null // нет типа процесса для создания, т.к. файл нельзя создать автоматически
-//                        actionToCreate = { println("Заглушка функции 'actionToCreate'") }
-
-                        karaokeFileType.locations.forEach { location ->
-                            val actions = actions(
-                                karaokeFileType = karaokeFileType,
-                                karaokePlatform = null,
-                                settings = settings,
-                                rootFolder = rootFolder,
-                                pathToFile = pathToFile,
-                                description = description,
-                                existsInLocalFileSystem = existsInLocalFileSystem,
-                                canBe = canBe,
-                                canResolve = canResolve,
-                                canCreate = canCreate,
-                                karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
-                                actionToCreate = actionToCreate,
-                                location = location,
-                                storageBucketName = storageBucketName,
-                                storageFileName = storageFileName,
-                                inProgressOwnArgs = inProgressOwnArgs,
-                                inProgressParentArgs = inProgressParentArgs,
-                                database = database,
-                                storageService = storageService,
-                                storageApiClient = storageApiClient
-                            )
-                            result.addAll(actions)
-                        }
-                    }
+//                     KaraokeFileType.MP3_STORE_SONG -> {
+//                         pathToFile = settings.pathToFileMP3Lyrics
+//                         existsInLocalFileSystem = if (pathToFile != "") File(pathToFile).exists() else false
+//                         canBe = true // Файл должнен быть
+// 
+//                         storageFileName = "${settings.storageFileName}${karaokeFileType.suffix}.${karaokeFileType.extention}"
+//                         description = karaokeFileType.name
+// 
+//                         // файл возможно создать автоматически, если есть файл типа AUDIO_SONG
+//                         val patentFileType = KaraokeFileType.AUDIO_SONG
+//                         val pathToParentFile = settings.fileAbsolutePath
+//                         val parentFileExistsInLocalFileSystem = if (pathToParentFile != "") File(pathToParentFile).exists() else false
+//                         canCreate = parentFileExistsInLocalFileSystem
+// 
+//                         if (canCreate) {
+//                             inProgressOwnArgs = mapOf(
+//                                 "settings_id" to settings.id.toString(),
+//                                 "process_status" to KaraokeProcessStatuses.WAITING.name,
+//                                 "process_type" to KaraokeProcessTypes.FF_MP3_LYR.name
+//                             )
+//                             karaokeProcessTypesToCreate = KaraokeProcessTypes.FF_MP3_LYR
+//                         }
+// //                        inProgressOwnArgs = emptyMap() // нет аргументов для процесса, т.к. файл нельзя создать автоматически
+// //                        inProgressParentArgs = emptyMap() // нет аргументов для процесса, т.к. файл нельзя создать автоматически
+// //                        karaokeProcessTypesToCreate = null // нет типа процесса для создания, т.к. файл нельзя создать автоматически
+// //                        actionToCreate = { println("Заглушка функции 'actionToCreate'") }
+// 
+//                         karaokeFileType.locations.forEach { location ->
+//                             val actions = actions(
+//                                 karaokeFileType = karaokeFileType,
+//                                 karaokePlatform = null,
+//                                 settings = settings,
+//                                 rootFolder = rootFolder,
+//                                 pathToFile = pathToFile,
+//                                 description = description,
+//                                 existsInLocalFileSystem = existsInLocalFileSystem,
+//                                 canBe = canBe,
+//                                 canResolve = canResolve,
+//                                 canCreate = canCreate,
+//                                 karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
+//                                 actionToCreate = actionToCreate,
+//                                 location = location,
+//                                 storageBucketName = storageBucketName,
+//                                 storageFileName = storageFileName,
+//                                 inProgressOwnArgs = inProgressOwnArgs,
+//                                 inProgressParentArgs = inProgressParentArgs,
+//                                 database = database,
+//                                 storageService = storageService,
+//                                 storageApiClient = storageApiClient
+//                             )
+//                             result.addAll(actions)
+//                         }
+//                     }
 
                     // Минусовка
                     KaraokeFileType.AUDIO_ACCOMPANIMENT -> {
@@ -1299,54 +1299,54 @@ data class HealthReport(
                     }
 
                     // Минусовка в формате mp3 в хранилище
-                    KaraokeFileType.MP3_STORE_ACCOMPANIMENT -> {
-                        pathToFile = settings.pathToFileMP3Karaoke
-                        existsInLocalFileSystem = if (pathToFile != "") File(pathToFile).exists() else false
-                        canBe = true
-                        storageFileName = "${settings.storageFileName}${karaokeFileType.suffix}.${karaokeFileType.extention}"
-                        description = karaokeFileType.name
-
-                        // файл возможно создать автоматически, если есть файл типа AUDIO_ACCOMPANIMENT
-                        val patentFileType = KaraokeFileType.AUDIO_ACCOMPANIMENT
-                        val pathToParentFile = settings.accompanimentNameFlac
-                        val parentFileExistsInLocalFileSystem = if (pathToParentFile != "") File(pathToParentFile).exists() else false
-                        canCreate = parentFileExistsInLocalFileSystem
-
-                        if (canCreate) {
-                            inProgressOwnArgs = mapOf(
-                                "settings_id" to settings.id.toString(),
-                                "process_status" to KaraokeProcessStatuses.WAITING.name,
-                                "process_type" to KaraokeProcessTypes.FF_MP3_KAR.name
-                            )
-                            karaokeProcessTypesToCreate = KaraokeProcessTypes.FF_MP3_KAR
-                        }
-
-                        karaokeFileType.locations.forEach { location ->
-                            val actions = actions(
-                                karaokeFileType = karaokeFileType,
-                                karaokePlatform = null,
-                                settings = settings,
-                                rootFolder = rootFolder,
-                                pathToFile = pathToFile,
-                                description = description,
-                                existsInLocalFileSystem = existsInLocalFileSystem,
-                                canBe = canBe,
-                                canResolve = canResolve,
-                                canCreate = canCreate,
-                                karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
-                                actionToCreate = actionToCreate,
-                                location = location,
-                                storageBucketName = storageBucketName,
-                                storageFileName = storageFileName,
-                                inProgressOwnArgs = inProgressOwnArgs,
-                                inProgressParentArgs = inProgressParentArgs,
-                                database = database,
-                                storageService = storageService,
-                                storageApiClient = storageApiClient
-                            )
-                            result.addAll(actions)
-                        }
-                    }
+//                     KaraokeFileType.MP3_STORE_ACCOMPANIMENT -> {
+//                         pathToFile = settings.pathToFileMP3Karaoke
+//                         existsInLocalFileSystem = if (pathToFile != "") File(pathToFile).exists() else false
+//                         canBe = true
+//                         storageFileName = "${settings.storageFileName}${karaokeFileType.suffix}.${karaokeFileType.extention}"
+//                         description = karaokeFileType.name
+// 
+//                         // файл возможно создать автоматически, если есть файл типа AUDIO_ACCOMPANIMENT
+//                         val patentFileType = KaraokeFileType.AUDIO_ACCOMPANIMENT
+//                         val pathToParentFile = settings.accompanimentNameFlac
+//                         val parentFileExistsInLocalFileSystem = if (pathToParentFile != "") File(pathToParentFile).exists() else false
+//                         canCreate = parentFileExistsInLocalFileSystem
+// 
+//                         if (canCreate) {
+//                             inProgressOwnArgs = mapOf(
+//                                 "settings_id" to settings.id.toString(),
+//                                 "process_status" to KaraokeProcessStatuses.WAITING.name,
+//                                 "process_type" to KaraokeProcessTypes.FF_MP3_KAR.name
+//                             )
+//                             karaokeProcessTypesToCreate = KaraokeProcessTypes.FF_MP3_KAR
+//                         }
+// 
+//                         karaokeFileType.locations.forEach { location ->
+//                             val actions = actions(
+//                                 karaokeFileType = karaokeFileType,
+//                                 karaokePlatform = null,
+//                                 settings = settings,
+//                                 rootFolder = rootFolder,
+//                                 pathToFile = pathToFile,
+//                                 description = description,
+//                                 existsInLocalFileSystem = existsInLocalFileSystem,
+//                                 canBe = canBe,
+//                                 canResolve = canResolve,
+//                                 canCreate = canCreate,
+//                                 karaokeProcessTypesToCreate = karaokeProcessTypesToCreate,
+//                                 actionToCreate = actionToCreate,
+//                                 location = location,
+//                                 storageBucketName = storageBucketName,
+//                                 storageFileName = storageFileName,
+//                                 inProgressOwnArgs = inProgressOwnArgs,
+//                                 inProgressParentArgs = inProgressParentArgs,
+//                                 database = database,
+//                                 storageService = storageService,
+//                                 storageApiClient = storageApiClient
+//                             )
+//                             result.addAll(actions)
+//                         }
+//                     }
 
                     // Минусовка в формате mp3
                     KaraokeFileType.MP3_ACCOMPANIMENT -> {

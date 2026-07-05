@@ -409,6 +409,41 @@ passthrough в Docker (`nvidia-container-toolkit` на хосте, `/var/run/doc
 теперь корректно приводит к статусу `ERROR`, а не молчаливому `DONE`). Вся эта ветка обёрнута в `try/catch`
 (зеркально ветке подпроцессов) — исключение больше не оставляет запись зависшей в `WORKING` навсегда.
 
+**Ограничение CPU тяжёлых заданий (`resourceLimitsEnabled` + `cpuLimitPercent*` в `KaraokeProperties.kt`/
+`Karaoke.kt`, хелперы в `Utils.kt`).** Единственный ранее существовавший механизм управления ресурсами —
+`renice` на PID (`setProcessPriority`) — декоративен для докеризованных заданий: реницится CLI
+`docker`/`docker compose`, а не сам процесс внутри контейнера. Поэтому для реального ограничения нужны два
+разных механизма, в зависимости от того, как запускается тяжёлый шаг:
+- **Докеризованные шаги** (`MELT_*` — `docker compose run`, `DEMUCS2`/`DEMUCS5`/Key-BPM Finder — `docker run`) —
+  флаг `--cpus <N>`, `N = nproc * percent / 100` (`dockerCpusFlag()`), вставляется в argv тем же способом, что
+  и уже существовавший `gpuFlags` в `Settings.argsDemucs2/5`. **Ловушка:** `docker --cpus 0` означает
+  «без ограничения», а не «ноль» — значение никогда не форматируется в буквальный `0`/`0.0`, минимум `0.05`.
+- **Голые ffmpeg/shell-скрипты** (`SHEETSAGE`/`SHEETSAGE2` — декодирование FLAC→WAV и сам `sheetsage.sh`,
+  `FF_720_KAR`/`FF_720_LYR`, а также встроенный ffmpeg-шаг 720p-транскода **внутри** `MELT_LYRICS`/
+  `MELT_KARAOKE`) — обёртка `cpulimit -l <N> -i -- <команда>` (`cpulimitPrefix()`). `cpulimit -l` — это
+  процент **одного** ядра, поэтому для той же семантики «процент от всего хоста», что у `--cpus`,
+  `N = nproc * percent` (не `/100`). Флаг `-i`/`--include-children` обязателен — `sheetsage.sh` форкает
+  дочерние процессы, без него cpulimit ограничил бы только сам верхний процесс. Требует пакета `cpulimit`
+  в `deploy/karaoke-app/Dockerfile` (добавлен, но нужна пересборка образа, чтобы бинарник появился реально).
+- `cpuLimitPercentForType()` — единая точка маппинга `KaraokeProcessTypes → Karaoke.cpuLimitPercentXxx`.
+  Обе хелпер-функции сами проверяют глобальный тумблер `Karaoke.resourceLimitsEnabled` и возвращают пустой
+  список флагов, если он выключен — вызывающему коду проверять его отдельно не нужно.
+- `MELT_LYRICS`/`MELT_KARAOKE` содержат **два** тяжёлых шага каждый (docker-рендер MLT + встроенный голый
+  ffmpeg 720p-транскод) — оба оборачиваются одним и тем же процентом этого типа. `MELT_CHORDS`/`MELT_TABS`
+  содержат только docker-шаг. `KEY_BPM_FROM_FILE` — пайплайн смешанный (docker-шаг + финальный
+  «функциональный» `runFunctionWithArgs`, см. выше) — лимит применяется только к docker-шагу.
+- Ограничение применяется только в момент **старта** задания — смена процента/тумблера не влияет на уже
+  запущенные задания (не требует `docker update`/остановки).
+- Переключатель «с ограничениями»/«безлимит» в шапке `webvue3` — `components/Common/ResourceLimitToggle.vue`,
+  читает/пишет `resourceLimitsEnabled` через уже существующие `/api/properties/getproperty`/`setproperty`
+  (добавлен только недостающий action `getPropertyValuePromise` в `Properties/store.js`). Кнопка — квадратная,
+  без текста, иконки 🐢 (лимит включён) / 🐇 (безлимит), меняются только по клику; подсказка при наведении —
+  через `title`. Расположена в `App.vue` вплотную справа от кнопки старт/стоп: обе обёрнуты в
+  `.start-stop-and-limit-group`, где `:deep(.process_worker) { margin-right: 0 }` гасит собственный
+  `margin: 0 10px` компонента `ProcessWorker.vue` только с этой стороны. Проценты по типам заданий
+  отдельного UI не получили — 12 новых `KaraokeProperty` автоматически показываются в существующей
+  генерик-таблице `PropertiesTable.vue` (`/properties`).
+
 **Прогресс загрузки файлов (`uploadToLocalStore`/`uploadToRemoteStore`).** MinIO Java SDK (8.6.0) не имеет
 `ProgressListener`, но `PutObjectArgs.stream()` принимает обычный `InputStream` — прогресс получается через
 `CountingInputStream` (`karaoke-app/.../CountingInputStream.kt`, простой `FilterInputStream`-счётчик байт),

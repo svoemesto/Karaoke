@@ -2653,6 +2653,43 @@ fun setProcessPriority(pid: Long, priority: Int): Boolean {
     }
 }
 
+fun hostCpuCoreCount(): Int = Runtime.getRuntime().availableProcessors()
+
+// Флаг --cpus для docker run/docker compose run: percent — доля от суммарной мощности хоста (0-100).
+// docker трактует --cpus 0 как "без ограничения" (не "ноль"), поэтому значение никогда не форматируется в 0.
+fun dockerCpusFlag(percent: Long): List<String> {
+    if (!Karaoke.resourceLimitsEnabled) return emptyList()
+    val cpus = (hostCpuCoreCount() * percent / 100.0).coerceAtLeast(0.05)
+    return listOf("--cpus", String.format(Locale.ROOT, "%.2f", cpus))
+}
+
+// Префикс cpulimit для голых (не докеризованных) процессов (ffmpeg, sheetsage.sh). cpulimit -l — это
+// процент ОДНОГО ядра, поэтому для той же семантики "percent от всего хоста", что и dockerCpusFlag,
+// значение умножается на число ядер. -i/--include-children обязателен: sheetsage.sh и ffmpeg с фильтрами
+// могут форкать дочерние процессы, без флага cpulimit ограничил бы только сам верхний процесс.
+fun cpulimitPrefix(percent: Long): List<String> {
+    if (!Karaoke.resourceLimitsEnabled) return emptyList()
+    val value = (hostCpuCoreCount() * percent).coerceAtLeast(1)
+    return listOf("cpulimit", "-l", value.toString(), "-i", "--")
+}
+
+fun cpuLimitPercentForType(type: KaraokeProcessTypes): Long {
+    return when (type) {
+        KaraokeProcessTypes.MELT_LYRICS -> Karaoke.cpuLimitPercentMeltLyrics
+        KaraokeProcessTypes.MELT_KARAOKE -> Karaoke.cpuLimitPercentMeltKaraoke
+        KaraokeProcessTypes.MELT_CHORDS -> Karaoke.cpuLimitPercentMeltChords
+        KaraokeProcessTypes.MELT_TABS -> Karaoke.cpuLimitPercentMeltTabs
+        KaraokeProcessTypes.DEMUCS2 -> Karaoke.cpuLimitPercentDemucs2
+        KaraokeProcessTypes.DEMUCS5 -> Karaoke.cpuLimitPercentDemucs5
+        KaraokeProcessTypes.KEY_BPM_FROM_FILE -> Karaoke.cpuLimitPercentKeyBpmFinder
+        KaraokeProcessTypes.SHEETSAGE -> Karaoke.cpuLimitPercentSheetsage
+        KaraokeProcessTypes.SHEETSAGE2 -> Karaoke.cpuLimitPercentSheetsage2
+        KaraokeProcessTypes.FF_720_KAR -> Karaoke.cpuLimitPercentFf720Kar
+        KaraokeProcessTypes.FF_720_LYR -> Karaoke.cpuLimitPercentFf720Lyr
+        else -> 100L
+    }
+}
+
 fun createScriptForHost(args: List<String>, waitToDone: Boolean = false) {
     val txt = args.joinToString(" ")
     val fileName = "/sm-karaoke/system/scriptsFromDocker/${UUID.randomUUID()}.sh"

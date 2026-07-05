@@ -46,5 +46,9 @@ export default {
             let request = { method: 'POST', url: "/api/properties/setproperty", params: params };
             return promisedXMLHttpRequest(request);
         },
+        getPropertyValuePromise(ctx, propertyKey) {
+            let request = { method: 'POST', url: "/api/properties/getproperty", params: { key: propertyKey } };
+            return promisedXMLHttpRequest(request).then(data => JSON.parse(data).property);
+        },
     }
 }

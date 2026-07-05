@@ -509,8 +509,8 @@ class ApiController(
         }.sortedBy { it.year }
     }
 
-    // Выбор песни из модалки "Похожие версии песни" - копирует текст/маркеры, условно проставляет
-    // root_id (только если он ещё 0) и статус (только если он ещё NONE/0 -> TEXT_CREATE/1)
+    // Выбор песни из модалки "Похожие версии песни" - копирует текст/маркеры, безусловно проставляет
+    // root_id (осознанный выбор пользователя) и условно статус (только если он ещё NONE/0 -> TEXT_CREATE/1)
     @PostMapping("/song/selectfamilysong")
     @ResponseBody
     fun selectFamilySong(@RequestParam id: Long, @RequestParam idAnother: Long, @RequestParam(required = false) deltaMs: Long?): SelectFamilySongResultDto? {

@@ -1,3 +1,5 @@
+import { trackPlayerPlay, trackPlayerPause, trackPlayerSeek, trackPlayerExport } from '../services/tracking'
+
 // Thrown when required audio isn't available yet (missing file in storage, no mp3 rendered, etc.) —
 // distinguished from other init errors so the UI can show a friendly message instead of raw details.
 class PlayerUnavailableError extends Error {}
@@ -24,6 +26,7 @@ export default class KaraokePlayer {
       this.authToken = authToken
     }
     this._smkaraokeObjectUrls = []
+    this._seekTrackTimer = null
 
     this.audioCtx = null
     this.accBuffer = null
@@ -737,6 +740,7 @@ export default class KaraokePlayer {
     const cfg = KaraokePlayer.STEM_EXPORT_MAP[stemKey]
     const url = cfg && this.data?.[cfg.urlField]
     if (!url) return
+    if (this._mode === 'api') trackPlayerExport(this.songId, stemKey)
     const suggestedName = `${this._getExportBaseName()}[${cfg.suffix}].mp3`
     try {
       const resp = await fetch(url)
@@ -905,7 +909,19 @@ export default class KaraokePlayer {
     return this.isPlaying ? this.audioCtx.currentTime - this.startedAt : this.pausedAt
   }
 
-  _togglePlay() { this.isPlaying ? this._pause() : this._play() }
+  // Трекинг play/pause вешается именно здесь, а не внутри _play()/_pause() — те два метода также
+  // вызываются внутренне из _seekTo()/_seekToDisplayTime() для возобновления воспроизведения после
+  // перемотки, что не является новым пользовательским намерением "play" (это уже покрыто отдельным
+  // seek-событием) и задвоило бы счётчик.
+  _togglePlay() {
+    if (this.isPlaying) {
+      this._pause()
+      if (this._mode === 'api') trackPlayerPause(this.songId)
+    } else {
+      this._play()
+      if (this._mode === 'api') trackPlayerPlay(this.songId)
+    }
+  }
 
   async _play() {
     if (!this.accBuffer || !this.vocBuffer) return
@@ -1022,6 +1038,10 @@ export default class KaraokePlayer {
     this._endFadeStartedAt = null   // manual seek should snap straight to the target frame
     const totalDuration = this._preroll + this.duration
     dt = Math.max(0, Math.min(dt, totalDuration))
+    if (this._mode === 'api') {
+      clearTimeout(this._seekTrackTimer)
+      this._seekTrackTimer = setTimeout(() => trackPlayerSeek(this.songId, Math.round(dt)), 400)
+    }
     const audioTime = dt - this._preroll
     if (audioTime >= 0) {
       this._seekTo(audioTime)

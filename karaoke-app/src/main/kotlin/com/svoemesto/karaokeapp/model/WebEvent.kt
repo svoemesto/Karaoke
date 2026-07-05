@@ -58,6 +58,22 @@ class WebEvent(
     @KaraokeDbTableField(name = "referer")
     var referer: String? = null
 
+    @KaraokeDbTableField(name = "client_ip")
+    var clientIp: String? = null
+
+    @KaraokeDbTableField(name = "anon_id")
+    var anonId: String? = null
+
+    // Long (не Long?) намеренно, тем же паттерном, что songId выше: колонка NOT NULL DEFAULT 0
+    // в БД, 0 = аноним/нет привязки. reflection-loader не различает Long/Long? по classifier
+    // (KaraokeDbTable.loadList), а rs.getLong() всё равно даёт 0 на NULL — nullable тип тут
+    // только замаскировал бы эту неоднозначность, не решив её.
+    @KaraokeDbTableField(name = "site_user_id")
+    var siteUserId: Long = 0
+
+    @KaraokeDbTableField(name = "user_agent")
+    var userAgent: String? = null
+
     override fun compareTo(other: WebEvent): Int =
         (lastUpdate ?: Timestamp(0)).compareTo(other.lastUpdate ?: Timestamp(0))
 
@@ -72,6 +88,10 @@ class WebEvent(
         songVersion = songVersion ?: "",
         lastUpdate = lastUpdate?.toString() ?: "",
         referer = referer ?: "",
+        clientIp = clientIp ?: "",
+        anonId = anonId ?: "",
+        siteUserId = siteUserId,
+        userAgent = userAgent ?: "",
     )
 
     companion object {

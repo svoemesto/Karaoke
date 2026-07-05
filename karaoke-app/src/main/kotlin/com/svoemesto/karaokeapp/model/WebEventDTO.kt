@@ -14,6 +14,10 @@ data class WebEventDTO(
     val songVersion: String = "",
     val lastUpdate: String = "",
     val referer: String = "",
+    val clientIp: String = "",
+    val anonId: String = "",
+    val siteUserId: Long = 0,
+    val userAgent: String = "",
 ) : Serializable, Comparable<WebEventDTO>, KaraokeDbTableDto {
 
     override fun compareTo(other: WebEventDTO): Int = lastUpdate.compareTo(other.lastUpdate)
@@ -29,6 +33,10 @@ data class WebEventDTO(
         entity.songId = songId
         entity.songVersion = songVersion
         entity.referer = referer
+        entity.clientIp = clientIp
+        entity.anonId = anonId
+        entity.siteUserId = siteUserId
+        entity.userAgent = userAgent
         return entity
     }
 }

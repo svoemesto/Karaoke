@@ -1,6 +1,8 @@
 package com.svoemesto.karaokeweb.controllers
 
+import com.svoemesto.karaokeapp.model.EventType
 import com.svoemesto.karaokeapp.model.Pictures
+import com.svoemesto.karaokeapp.model.RestName
 import com.svoemesto.karaokeapp.model.Settings
 import com.svoemesto.karaokeapp.model.Zakroma
 import com.svoemesto.karaokeapp.resizeBufferedImage
@@ -11,6 +13,7 @@ import com.svoemesto.karaokeweb.dto.ZakromaPublicDto
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.StorageApiClient
 import com.svoemesto.karaokeweb.services.PlayerGestureUnlockService
+import com.svoemesto.karaokeweb.services.SiteUserResolver
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -39,6 +42,7 @@ class PublicApiController(
     private val storageService: KaraokeStorageService,
     private val storageApiClient: StorageApiClient,
     private val gestureUnlockService: PlayerGestureUnlockService,
+    private val siteUserResolver: SiteUserResolver,
     @org.springframework.beans.factory.annotation.Value("\${storage.proxy-url}") private val minioProxyUrl: String,
 ) {
 
@@ -64,7 +68,7 @@ class PublicApiController(
 
     @GetMapping("/stats")
     fun stats(request: HttpServletRequest): Map<String, Int> {
-        mainController.doRegisterEvent(mapOf("eventType" to "callRest", "restName" to "main", "parameters" to emptyMap<String, Any>(), "referer" to request.remoteHost))
+        mainController.doRegisterEvent(mapOf("eventType" to EventType.CALL_REST.dbValue, "restName" to RestName.MAIN.dbValue, "parameters" to emptyMap<String, Any>()), request)
         return mapOf(
             "onSponsr" to StatBySong.getCountSongsInCollection(database = WORKING_DATABASE),
             "onAir" to StatBySong.getCountSongsOnAir(database = WORKING_DATABASE),
@@ -82,7 +86,7 @@ class PublicApiController(
     ): List<ZakromaPublicDto> {
         val data: MutableMap<String, Any> = mutableMapOf()
         author?.let { data["author"] = it }
-        mainController.doRegisterEvent(mapOf("eventType" to "callRest", "restName" to "zakroma", "parameters" to data, "referer" to request.remoteHost))
+        mainController.doRegisterEvent(mapOf("eventType" to EventType.CALL_REST.dbValue, "restName" to RestName.ZAKROMA.dbValue, "parameters" to data), request)
         val zakroma = Zakroma.getZakroma(
             author = author ?: "",
             database = WORKING_DATABASE,
@@ -117,7 +121,7 @@ class PublicApiController(
         if (!author.isNullOrEmpty()) data["author"] = author
         if (!text.isNullOrEmpty()) data["text"] = text
         if (!album.isNullOrEmpty()) data["album"] = album
-        mainController.doRegisterEvent(mapOf("eventType" to "callRest", "restName" to "filter", "parameters" to data, "referer" to request.remoteHost))
+        mainController.doRegisterEvent(mapOf("eventType" to EventType.CALL_REST.dbValue, "restName" to RestName.FILTER.dbValue, "parameters" to data), request)
 
         return settings.map { SettingsPublicDto.fromSettings(it, includeDetails = false) }
     }
@@ -128,13 +132,13 @@ class PublicApiController(
         request: HttpServletRequest
     ): SettingsPublicDto? {
         val sett = Settings.loadFromDbById(id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-        mainController.doRegisterEvent(mapOf("eventType" to "callRest", "restName" to "song", "parameters" to mapOf("id" to id), "referer" to request.remoteHost))
+        mainController.doRegisterEvent(mapOf("eventType" to EventType.CALL_REST.dbValue, "restName" to RestName.SONG.dbValue, "parameters" to mapOf("id" to id)), request)
         return sett?.let { SettingsPublicDto.fromSettings(it) }
     }
 
     @PostMapping("/events")
     fun events(@RequestParam(required = true) data: Map<String, Any>, request: HttpServletRequest): Map<String, Any?> {
-        val ok = mainController.doRegisterEvent(data)
+        val ok = mainController.doRegisterEvent(data, request, siteUserResolver.resolve(request)?.id ?: 0)
 
         // Piggy-backs the hidden player-unlock gesture on this same ordinary-looking click-tracking
         // call. Nothing about which field/click-count/timing matters is decided here or in any

@@ -183,8 +183,11 @@ val EventsSyncTarget = GenericKaraokeDbTableSyncTarget(
     oneClickDirection = SyncDirection.SERVER_TO_LOCAL,
     clazz = WebEvent::class,
     labelFn = { "id=${it.id} ${it.eventType ?: ""}" },
-    // Строки лёгкие, но их сотни тысяч — по 500 держим и payload, и длину IN-списка умеренными.
-    rowChunkSize = 500,
+    // Строки лёгкие, но `SELECT * WHERE id IN (...)` по remote-соединению с socketTimeout=30
+    // упирался в таймаут (Read timed out) при 500 id за раз — часть строк несёт заметный текст
+    // (rest_parameters/user_agent/referer), а на пути к серверной БД крупные ответы чувствительны
+    // к размеру пакета. По 100 каждая пачка — отдельный небольшой запрос со своим окном таймаута.
+    rowChunkSize = 100,
 )
 
 object SyncRegistry {

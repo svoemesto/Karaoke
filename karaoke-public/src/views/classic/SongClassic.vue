@@ -173,7 +173,7 @@
             <div class="waiting-card">
               <div class="waiting-title">{{ waitingTitle }}</div>
               <div class="waiting-body">{{ waitingBody }}</div>
-              <a :href="sponsrUrl" target="_blank" rel="noopener" class="waiting-cta">Оформить подписку на Sponsr →</a>
+              <a :href="sponsrUrl" target="_blank" rel="noopener" class="waiting-cta" @click="onSponsrClick">Оформить подписку на Sponsr →</a>
               <div class="waiting-fineprint">
                 После оформления и оплаты подписки на Sponsr доступность песни на сайте появится через некоторое время.
               </div>
@@ -216,7 +216,7 @@ import { mapGetters, mapActions } from 'vuex'
 import PlatformLink from '../../components/PlatformLink.vue'
 import { useAuth } from '../../composables/useAuth'
 import { usePlayerAccess } from '../../composables/usePlayerAccess'
-import { trackPlay, trackMetaClick } from '../../services/tracking'
+import { trackPlay, trackMetaClick, trackLinkToSong } from '../../services/tracking'
 import { pluralDays } from '../../utils/pluralRu'
 
 export default {
@@ -296,6 +296,11 @@ export default {
     },
     onPlay(version) {
       trackPlay(this.currentSong.id, version)
+    },
+    // Клик по CTA подписки Sponsr — трекаем как переход по ссылке песни (fire-and-forget, нативный
+    // переход по href не блокируем). song-version='all' — как у PlatformLink sponsr.
+    onSponsrClick() {
+      trackLinkToSong('sponsr', this.currentSong.id, 'all')
     },
     async onMetaClick(field, event) {
       const resp = await trackMetaClick(field, this.currentSong.id, event)

@@ -193,7 +193,7 @@
         <div v-if="!currentSong.onAir && !playerCanWatch && playerAccessLoaded" class="km-waiting-card">
           <div class="km-waiting-title">{{ waitingTitle }}</div>
           <div class="km-waiting-body">{{ waitingBody }}</div>
-          <a :href="sponsrUrl" target="_blank" rel="noopener" class="km-waiting-cta">Оформить подписку на Sponsr →</a>
+          <a :href="sponsrUrl" target="_blank" rel="noopener" class="km-waiting-cta" @click="onSponsrClick">Оформить подписку на Sponsr →</a>
           <div class="km-waiting-fineprint">
             После оформления и оплаты подписки на Sponsr доступность песни на сайте появится через некоторое время.
           </div>
@@ -234,7 +234,7 @@ import AuthStatusWidget from '../../components/AuthStatusWidget.vue'
 import { useDesign } from '../../composables/useDesign'
 import { useAuth } from '../../composables/useAuth'
 import { usePlayerAccess } from '../../composables/usePlayerAccess'
-import { trackPlay, trackMetaClick } from '../../services/tracking'
+import { trackPlay, trackMetaClick, trackLinkToSong } from '../../services/tracking'
 import { pluralDays } from '../../utils/pluralRu'
 
 export default {
@@ -315,6 +315,9 @@ export default {
       this.playerDisplayMode = event.data.mode
     },
     onPlay(version) { trackPlay(this.currentSong.id, version) },
+    // Клик по CTA подписки Sponsr — трекаем как переход по ссылке песни (нативный переход не
+    // блокируем). song-version='all' — как у PlatformLink sponsr.
+    onSponsrClick() { trackLinkToSong('sponsr', this.currentSong.id, 'all') },
     async onMetaClick(field, event) {
       const resp = await trackMetaClick(field, this.currentSong.id, event)
       if (resp && resp.meta) {

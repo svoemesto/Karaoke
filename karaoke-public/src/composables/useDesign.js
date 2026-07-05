@@ -1,4 +1,5 @@
 import { ref, watch } from 'vue'
+import { trackUi } from '../services/tracking'
 
 const design = ref(localStorage.getItem('karaoke-design') || 'classic')
 const theme  = ref(localStorage.getItem('karaoke-theme')  || 'system')
@@ -9,10 +10,11 @@ function applyTheme(val) {
   document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light')
 }
 
-watch(design, val => localStorage.setItem('karaoke-design', val))
+watch(design, val => { localStorage.setItem('karaoke-design', val); trackUi('theme', `design:${val}`) })
 watch(theme,  val => {
   localStorage.setItem('karaoke-theme', val)
   applyTheme(val)
+  trackUi('theme', `theme:${val}`)
 })
 
 applyTheme(theme.value)

@@ -34,16 +34,81 @@ class StatsController {
         return mapOf("items" to items, "totalCount" to totalCount)
     }
 
+    // Лог событий с опциональными фильтрами: тип события, период (дней), конкретный пользователь
+    // (drill-down по строке из топа пользователей).
     @GetMapping("/api/webevents")
     fun webEvents(
+        @RequestParam(required = false) target: String?,
+        @RequestParam(required = false, defaultValue = "1") page: Int,
+        @RequestParam(required = false, defaultValue = "50") pageSize: Int,
+        @RequestParam(required = false) eventType: String?,
+        @RequestParam(required = false) days: Int?,
+        @RequestParam(required = false) siteUserId: Long?,
+    ): Map<String, Any> {
+        val db = resolveDb(target)
+        val offset = (page - 1).coerceAtLeast(0) * pageSize
+        val items = StatsByEvents.getWebEvents(database = db, limit = pageSize, offset = offset, eventType = eventType, fromDays = days, siteUserId = siteUserId)
+        val totalCount = StatsByEvents.getWebEventsCount(database = db, eventType = eventType, fromDays = days, siteUserId = siteUserId)
+        return mapOf("items" to items, "totalCount" to totalCount)
+    }
+
+    @GetMapping("/api/stats/summary")
+    fun summary(@RequestParam(required = false) target: String?): Map<String, Any> =
+        mapOf("summary" to StatsByEvents.getSummary(database = resolveDb(target)))
+
+    @GetMapping("/api/stats/timeseries")
+    fun timeseries(
+        @RequestParam(required = false) target: String?,
+        @RequestParam(required = false, defaultValue = "30") days: Int,
+        @RequestParam(required = false, defaultValue = "all") mode: String,
+    ): Map<String, Any> =
+        mapOf("items" to StatsByEvents.getEventsTimeSeries(database = resolveDb(target), days = days, mode = mode))
+
+    @GetMapping("/api/stats/by-type")
+    fun byType(
+        @RequestParam(required = false) target: String?,
+        @RequestParam(required = false) days: Int?,
+    ): Map<String, Any> =
+        mapOf("items" to StatsByEvents.getEventsByType(database = resolveDb(target), fromDays = days))
+
+    @GetMapping("/api/stats/channels")
+    fun channels(@RequestParam(required = false) target: String?): Map<String, Any> =
+        mapOf("items" to StatsByEvents.getChannelBreakdown(database = resolveDb(target)))
+
+    // Детализация по комбинациям event_type + link_type/rest_name/link_name (перемотка/старт/стоп
+    // плеера, соцсети, платформы, UI-действия и т.п.).
+    @GetMapping("/api/stats/by-detail")
+    fun byDetail(
+        @RequestParam(required = false) target: String?,
+        @RequestParam(required = false) days: Int?,
+    ): Map<String, Any> =
+        mapOf("items" to StatsByEvents.getEventsDetailed(database = resolveDb(target), fromDays = days))
+
+    @GetMapping("/api/stats/top-users")
+    fun topUsers(
         @RequestParam(required = false) target: String?,
         @RequestParam(required = false, defaultValue = "1") page: Int,
         @RequestParam(required = false, defaultValue = "50") pageSize: Int,
     ): Map<String, Any> {
         val db = resolveDb(target)
         val offset = (page - 1).coerceAtLeast(0) * pageSize
-        val items = StatsByEvents.getWebEvents(database = db, limit = pageSize, offset = offset)
-        val totalCount = StatsByEvents.getWebEventsCount(database = db)
+        val items = StatsByEvents.getTopUsers(database = db, limit = pageSize, offset = offset)
+        val totalCount = StatsByEvents.getTopUsersCount(database = db)
+        return mapOf("items" to items, "totalCount" to totalCount)
+    }
+
+    // Drill-down: все события конкретного пользователя (переиспользует /api/webevents с фильтром).
+    @GetMapping("/api/stats/user-events")
+    fun userEvents(
+        @RequestParam(required = false) target: String?,
+        @RequestParam(required = true) siteUserId: Long,
+        @RequestParam(required = false, defaultValue = "1") page: Int,
+        @RequestParam(required = false, defaultValue = "50") pageSize: Int,
+    ): Map<String, Any> {
+        val db = resolveDb(target)
+        val offset = (page - 1).coerceAtLeast(0) * pageSize
+        val items = StatsByEvents.getWebEvents(database = db, limit = pageSize, offset = offset, siteUserId = siteUserId)
+        val totalCount = StatsByEvents.getWebEventsCount(database = db, siteUserId = siteUserId)
         return mapOf("items" to items, "totalCount" to totalCount)
     }
 }

@@ -39,6 +39,14 @@ abstract class SyncTarget<T : Any>(
     val tableName: String,
     val displayName: String,
     val oneClickDirection: SyncDirection,
+    // Размер пачки для ПОЛНОСТРОЧНЫХ операций — READ (loadByIds, "WHERE id IN (...)"), INSERT (dataCreate)
+    // и UPDATE (dataUpdate): их payload пропорционален весу строки. Подбирается под «вес» таблицы, чтобы
+    // один запрос/HTTP-пакет на удалённую БД (Connection.remote(), socketTimeout=30) не давал
+    // многомегабайтный payload по медленному каналу и не упирался в "Read timed out". Тяжёлые таблицы
+    // (текст/маркеры/base64) — маленькие пачки; лёгкие — большие (меньше round-trip'ов). Для DELETE это
+    // не используется: payload удаления ("DELETE ... WHERE id=X") крошечный у любой таблицы — см.
+    // SyncRegistry.DELETE_CHUNK_SIZE (общий большой размер).
+    val rowChunkSize: Int = 200,
 ) {
     abstract fun listHashes(db: KaraokeConnection, whereText: String): List<RecordHash>?
     abstract fun loadByIds(ids: List<Long>, db: KaraokeConnection): Map<Long, T>
@@ -61,21 +69,25 @@ class GenericKaraokeDbTableSyncTarget<T : KaraokeDbTable>(
     oneClickDirection: SyncDirection,
     private val clazz: KClass<T>,
     private val labelFn: (T) -> String,
-) : SyncTarget<T>(key, tableName, displayName, oneClickDirection) {
+    rowChunkSize: Int = 200,
+) : SyncTarget<T>(key, tableName, displayName, oneClickDirection, rowChunkSize) {
 
     override fun listHashes(db: KaraokeConnection, whereText: String): List<RecordHash>? =
         KaraokeDbTable.getListHashes(tableName = tableName, database = db, whereText = whereText)
 
+    // Грузим пачками по rowChunkSize, чтобы один запрос на удалённую БД не упирался в socketTimeout.
     @Suppress("UNCHECKED_CAST")
     override fun loadByIds(ids: List<Long>, db: KaraokeConnection): Map<Long, T> =
-        KaraokeDbTable.loadByIds(
-            clazz = clazz,
-            tableName = tableName,
-            ids = ids,
-            database = db,
-            storageService = KSS_APP,
-            storageApiClient = SAC_APP,
-        ).associate { it.id to (it as T) }
+        ids.chunked(rowChunkSize).flatMap { chunk ->
+            KaraokeDbTable.loadByIds(
+                clazz = clazz,
+                tableName = tableName,
+                ids = chunk,
+                database = db,
+                storageService = KSS_APP,
+                storageApiClient = SAC_APP,
+            )
+        }.associate { it.id to (it as T) }
 
     override fun getDiff(from: T, to: T): List<RecordDiff> = KaraokeDbTable.getDiff(from, to)
 
@@ -99,12 +111,19 @@ object SettingsSyncTarget : SyncTarget<Settings>(
     tableName = Settings.TABLE_NAME,
     displayName = "Настройки песен",
     oneClickDirection = SyncDirection.LOCAL_TO_SERVER,
+    // Самые тяжёлые строки в базе: source_text/result_text/source_markers/formatted_text_tabs. Несколько
+    // сотен таких за один запрос дают многомегабайтный payload и "Read timed out" на remote — грузим по 25.
+    rowChunkSize = 25,
 ) {
     override fun listHashes(db: KaraokeConnection, whereText: String): List<RecordHash>? =
         Settings.listHashes(database = db, whereText = whereText)
 
+    // Грузим пачками по rowChunkSize (25), чтобы не упереться в socketTimeout=30 на remote.
     override fun loadByIds(ids: List<Long>, db: KaraokeConnection): Map<Long, Settings> =
-        Settings.loadListFromDbByIds(ids = ids, database = db, storageService = KSS_APP, storageApiClient = SAC_APP)
+        ids.chunked(rowChunkSize).fold(LinkedHashMap<Long, Settings>()) { acc, chunk ->
+            acc.putAll(Settings.loadListFromDbByIds(ids = chunk, database = db, storageService = KSS_APP, storageApiClient = SAC_APP))
+            acc
+        }
 
     override fun getDiff(from: Settings, to: Settings): List<RecordDiff> = Settings.getDiff(from, to)
 
@@ -130,6 +149,9 @@ val PicturesSyncTarget = GenericKaraokeDbTableSyncTarget(
     oneClickDirection = SyncDirection.LOCAL_TO_SERVER,
     clazz = Pictures::class,
     labelFn = { it.name },
+    // picture_full сейчас всегда "", но loadByIds грузит все колонки (ignoreUseInList=true), а часть
+    // старых строк может ещё нести base64; write-flush тоже жмёт pictures по 1. Осторожно — по 50.
+    rowChunkSize = 50,
 )
 
 val AuthorsSyncTarget = GenericKaraokeDbTableSyncTarget(
@@ -139,6 +161,8 @@ val AuthorsSyncTarget = GenericKaraokeDbTableSyncTarget(
     oneClickDirection = SyncDirection.LOCAL_TO_SERVER,
     clazz = Author::class,
     labelFn = { it.author },
+    // Лёгкие строки, вся таблица ~125 записей — по 500 это фактически один запрос.
+    rowChunkSize = 500,
 )
 
 val SiteUsersSyncTarget = GenericKaraokeDbTableSyncTarget(
@@ -148,6 +172,8 @@ val SiteUsersSyncTarget = GenericKaraokeDbTableSyncTarget(
     oneClickDirection = SyncDirection.SERVER_TO_LOCAL,
     clazz = SiteUser::class,
     labelFn = { it.email },
+    // Лёгкие строки, таблица крошечная — по 500.
+    rowChunkSize = 500,
 )
 
 val EventsSyncTarget = GenericKaraokeDbTableSyncTarget(
@@ -157,9 +183,18 @@ val EventsSyncTarget = GenericKaraokeDbTableSyncTarget(
     oneClickDirection = SyncDirection.SERVER_TO_LOCAL,
     clazz = WebEvent::class,
     labelFn = { "id=${it.id} ${it.eventType ?: ""}" },
+    // Строки лёгкие, но их сотни тысяч — по 500 держим и payload, и длину IN-списка умеренными.
+    rowChunkSize = 500,
 )
 
 object SyncRegistry {
+    // Размер пачки для операций УДАЛЕНИЯ на удалённом сервере (зеркальное удаление в цели + move-удаление
+    // из источника, оба идут как зашифрованный "DELETE ... WHERE id=X" на /changerecords). Payload одной
+    // строки крошечный (~40 байт) и не зависит от таблицы, поэтому — один общий большой размер, а не
+    // per-table rowChunkSize. Прежние «чанки по 10» давали, например, ~16900 HTTP-запросов на очистку
+    // 169k событий при move; с 200 — на порядок меньше round-trip'ов.
+    const val DELETE_CHUNK_SIZE = 200
+
     val all: List<SyncTarget<*>> = listOf(
         SettingsSyncTarget,
         PicturesSyncTarget,

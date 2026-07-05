@@ -931,11 +931,10 @@ class KaraokeProcess(
                         description = "Кодирование LYRICS"
                         prioritet = 19
                         val cpuPercentMeltLyrics = cpuLimitPercentForType(KaraokeProcessTypes.MELT_LYRICS)
+                        envs = mapOf("MLT_CPU_LIMIT" to dockerCpusEnvValue(cpuPercentMeltLyrics))
                         args = listOf(
                             listOf(
-                                "docker", "compose", "-f", "/sm-karaoke/system/mlt-docker/docker-compose.yaml", "run", "--rm"
-                            ) + dockerCpusFlag(cpuPercentMeltLyrics) + listOf(
-                                "mlt", "-progress",
+                                "docker", "compose", "-f", "/sm-karaoke/system/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
                                 "${settings.rootFolder}/done_projects/${settings.fileName} [lyrics].mlt".rightFileName()
                             ),
                             listOf("chmod", "666", settings.pathToFileLyrics),
@@ -1033,11 +1032,10 @@ class KaraokeProcess(
                         description = "Кодирование KARAOKE"
                         prioritet = 19
                         val cpuPercentMeltKaraoke = cpuLimitPercentForType(KaraokeProcessTypes.MELT_KARAOKE)
+                        envs = mapOf("MLT_CPU_LIMIT" to dockerCpusEnvValue(cpuPercentMeltKaraoke))
                         args = listOf(
                             listOf(
-                                "docker", "compose", "-f", "/sm-karaoke/system/mlt-docker/docker-compose.yaml", "run", "--rm"
-                            ) + dockerCpusFlag(cpuPercentMeltKaraoke) + listOf(
-                                "mlt", "-progress",
+                                "docker", "compose", "-f", "/sm-karaoke/system/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
                                 "${settings.rootFolder}/done_projects/${settings.fileName} [karaoke].mlt".rightFileName()
                             ),
                             listOf("chmod", "666", settings.pathToFileKaraoke),
@@ -1103,11 +1101,10 @@ class KaraokeProcess(
                     KaraokeProcessTypes.MELT_CHORDS -> {
                         description = "Кодирование CHORDS"
                         prioritet = 19
+                        envs = mapOf("MLT_CPU_LIMIT" to dockerCpusEnvValue(cpuLimitPercentForType(KaraokeProcessTypes.MELT_CHORDS)))
                         args = listOf(
                             listOf(
-                                "docker", "compose", "-f", "/sm-karaoke/system/mlt-docker/docker-compose.yaml", "run", "--rm"
-                            ) + dockerCpusFlag(cpuLimitPercentForType(KaraokeProcessTypes.MELT_CHORDS)) + listOf(
-                                "mlt", "-progress",
+                                "docker", "compose", "-f", "/sm-karaoke/system/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
                                 "${settings.rootFolder}/done_projects/${settings.fileName} [chords].mlt".rightFileName()
                             ),
                             listOf("chmod", "666", settings.pathToFileChords),
@@ -1116,11 +1113,10 @@ class KaraokeProcess(
                     KaraokeProcessTypes.MELT_TABS -> {
                         description = "Кодирование TABS"
                         prioritet = 19
+                        envs = mapOf("MLT_CPU_LIMIT" to dockerCpusEnvValue(cpuLimitPercentForType(KaraokeProcessTypes.MELT_TABS)))
                         args = listOf(
                             listOf(
-                                "docker", "compose", "-f", "/sm-karaoke/system/mlt-docker/docker-compose.yaml", "run", "--rm"
-                            ) + dockerCpusFlag(cpuLimitPercentForType(KaraokeProcessTypes.MELT_TABS)) + listOf(
-                                "mlt", "-progress",
+                                "docker", "compose", "-f", "/sm-karaoke/system/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
                                 "${settings.rootFolder}/done_projects/${settings.fileName} [tabs].mlt".rightFileName()
                             ),
                             listOf("chmod", "666", settings.pathToFileMelody),

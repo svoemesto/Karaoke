@@ -1057,6 +1057,16 @@ src/
   Этот же класс проблем уже отмечен комментарием в `SettingsPublicDto.kt`. Поэтому `PublicPlayerController`
   читает стемы и картинки **исключительно** через `KaraokeStorageService` (MinIO), никогда не через
   локальные пути.
+- **Готовность песни к воспроизведению — единственная точка `PublicPlayerController.stemsReady(settings)`.**
+  Возвращает `true`, только когда `settings.idStatus >= 3` **И** в MinIO есть оба стема
+  (`MP3_ACCOMPANIMENT` + `MP3_VOCAL`) **И** `sourceMarkersList` непустой. Проверка `idStatus` стоит первой —
+  дешёвая (чтение `fields`-карты, без сети), short-circuit избегает лишних HEAD-запросов в MinIO при статусе
+  < 3. `stemsReady` вызывается только из `access()`, которая при `canWatch = ready && (onAir || premium)`
+  выдаёт токен доступа; `playerData`/`playerFile` гейтятся этим токеном (`authorized()`), поэтому правки
+  готовности достаточно в одном месте. Порог `>= 3` — литерал (устоявшийся стиль, ср. `HealthReport.kt`),
+  отдельной enum-константы нет. `idStatus`-геттер (`Settings.kt`, `fields[...]?.toLongOrNull() ?: 0L`) —
+  чистое чтение карты, не задевает опасную инициализацию `ConstantsKt`/`Connection` (см. пункт выше про
+  `rootFolder`/`*NameFlac`), безопасен из karaoke-web.
 
 **Меню плеера (гамбургер, `_buildUI()`/`_buildMenu()`):**
 - Пункты-действия ("Открыть файл...", "Сохранить файл") и пункт-подменю ("Экспорт аудио..." → Голос/

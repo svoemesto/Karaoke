@@ -565,22 +565,48 @@ passthrough в Docker (`nvidia-container-toolkit` на хосте, `/var/run/doc
   ffmpeg 720p-транскод) — оба оборачиваются одним и тем же процентом этого типа. `MELT_CHORDS`/`MELT_TABS`
   содержат только docker-шаг. `KEY_BPM_FROM_FILE` — пайплайн смешанный (docker-шаг + финальный
   «функциональный» `runFunctionWithArgs`, см. выше) — лимит применяется только к docker-шагу.
-- Ограничение применяется только в момент **старта** задания (значение процента читается один раз, при
-  формировании `args`/`envs` в `createProcess()`, и запекается в БД в `process_envs`/`process_args`) —
-  смена процента/тумблера в UI сама по себе не влияет ни на уже запущенные задания, ни на уже стоящие в
-  очереди (`WAITING`) — их `process_envs` были вычислены по старому значению процента в момент постановки
-  в очередь. **Ловушка (наступали дважды подряд):** после смены процента (например 50→20) все уже
-  накопившиеся `WAITING`-задания `MELT_*` продолжают нести старое значение `MLT_CPU_LIMIT` в
-  `process_envs` — их нужно добить вручную SQL-бэкафиллом:
-  `UPDATE tbl_processes SET process_envs = '{"MLT_CPU_LIMIT":"<новое>"}' WHERE process_status='WAITING' AND
-  process_envs LIKE '%<старое>%' AND process_type IN ('MELT_LYRICS','MELT_KARAOKE','MELT_CHORDS','MELT_TABS')`
-  — иначе задания продолжают выполняться со старым (или вообще без) лимитом ещё долго после смены
-  настройки, что выглядит как «лимит не работает», хотя сам механизм исправен. Для уже **выполняющегося**
-  прямо сейчас контейнера смену лимита можно применить мгновенно без ожидания и без потери прогресса через
-  `docker update --cpus <N> <container_id>` — Docker поддерживает live-обновление `NanoCpus` у запущенного
-  контейнера (проверено: `docker inspect --format '{{.HostConfig.NanoCpus}}'` сразу отражает новое
-  значение, реальная загрузка по `docker stats` падает пропорционально в течение нескольких секунд) — это
-  ручная операционная мера, не автоматизированная в коде.
+- **Три слоя применения лимита, каждый закрывает свой момент времени в жизни задания:**
+  1. **При создании** (`createProcess()`) — процент читается один раз в момент постановки в очередь,
+     запекается в `process_args`/`process_envs`. Исходный (и единственный до фиксов ниже) механизм.
+  2. **При реальном старте** (`refreshArgvCpuLimit()`/`refreshEnvCpuLimit()`, `Utils.kt`, вызываются из
+     `KaraokeProcessThread.run()` в `KaraokeProcessWorker.kt`, прямо перед `ProcessBuilder(args).start()`).
+     **Ловушка, из-за которой это понадобилось:** задание может простоять в очереди `WAITING` долго —
+     настройки успевают измениться, а значение из п.1 так и остаётся старым. Обе функции сначала снимают
+     уже имевшуюся обёртку (какая бы версия настроек её ни породила), затем накладывают актуальную по
+     текущим `Karaoke.resourceLimitsEnabled`/`cpuLimitPercent*`:
+     - `refreshArgvCpuLimit(type, args)` — argv-варианты. Распознаёт шаг по структуре, не по типу задания
+       (важно: у `MELT_LYRICS`/`MELT_KARAOKE` под одним `process_type` бывает ~15 разных шагов — docker-
+       compose, chmod, mkdir, cp, rm, ln, голый ffmpeg — трогать нужно только настоящий тяжёлый шаг):
+       `args[0]=="docker" && args[1]=="run"` → снять/переставить `--cpus <N>` (DEMUCS2/DEMUCS5/
+       KEY_BPM_FROM_FILE); `args[0]=="cpulimit"` или (после снятия обёртки) `args[0]=="ffmpeg"`/
+       оканчивается на `"sheetsage.sh"` → снять/наложить `cpulimit -l <N> -i --` (SHEETSAGE/SHEETSAGE2/
+       FF_720_KAR/FF_720_LYR, встроенный 720p-транскод внутри MELT_LYRICS/KARAOKE). `docker compose` и
+       голые filesystem-команды (`chmod`/`mkdir`/`cp`/`rm`/`ln`/`mv`) не подходят ни под один паттерн —
+       возвращаются как есть.
+     - `refreshEnvCpuLimit(type, envs)` — env-вариант (MELT-докер-compose шаг, `MLT_CPU_LIMIT`).
+       Обновляет значение, только если ключ уже присутствовал в `envs` — он есть исключительно у
+       docker-compose шага (остальные split-шаги того же job получают пустые `envs` при `createProcess()`).
+  3. **Уже выполняющийся** прямо сейчас контейнер — `applyLiveCpuLimitToRunningProcesses()` (`Utils.kt`),
+     вызывается из `ApiController.setProperty()` при любом изменении `resourceLimitsEnabled` или
+     `cpuLimitPercent*` (включая клик по 🐢/🐇 в шапке). Ищет `WORKING`-задания докеризованных типов,
+     определяет контейнер (`docker ps --filter ancestor=...` для MELT/`svoemestodev/melt:latest` и
+     Key-BPM/`svoemestodev/keybpmfinder:latest`; фиксированное имя `demucs` для DEMUCS2/5) и применяет
+     `docker update` — п.1/п.2 тут бессильны, аргументы уже переданы в `ProcessBuilder.start()`.
+     **Ловушка:** `docker update --cpus 0` — **no-op** (проверено на Docker 29.6.1: команда завершается
+     успешно, `NanoCpus` не меняется), хотя `"0"` — обычная семантика docker'а для «без ограничения» у
+     **новых** контейнеров (`--cpus` при `docker run`/`compose`). Для снятия лимита с уже запущенного
+     нужен отдельный флаг `--cpu-quota -1` (сбрасывает cgroup quota/period в unlimited — подтверждено
+     `docker stats`: нагрузка сразу возвращается к полной). Функция сама выбирает нужный флаг
+     (`--cpu-quota -1` при вычисленном значении `"0"`, иначе `--cpus <N>`).
+  - Голых (не докеризованных) ffmpeg/sheetsage-задач слой 3 не касается — `cpulimit -l` запечён в argv
+    уже стартовавшего процесса, живого способа его поменять нет; они подхватывают новый процент только
+    при следующем запуске (через слой 2).
+  - Слои 2 и 3 полностью автоматизировали то, что раньше (до этого фикса) требовало ручного
+    SQL-бэкафилла `process_envs` у уже стоящих в очереди `WAITING`-заданий при каждой смене процента —
+    это исправление больше не нужно для будущих изменений настройки, слой 2 закрывает его на старте
+    сам. Разовый бэкафилл старых `WAITING`-записей, накопившихся ДО появления слоёв 2/3, делался вручную
+    (SQL `UPDATE tbl_processes SET process_envs=...`) и актуален только как факт истории, не как
+    процедура на будущее.
 - Переключатель «с ограничениями»/«безлимит» в шапке `webvue3` — `components/Common/ResourceLimitToggle.vue`,
   читает/пишет `resourceLimitsEnabled` через уже существующие `/api/properties/getproperty`/`setproperty`
   (добавлен только недостающий action `getPropertyValuePromise` в `Properties/store.js`). Кнопка — квадратная,

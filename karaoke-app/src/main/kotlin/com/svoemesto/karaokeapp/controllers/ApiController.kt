@@ -3293,6 +3293,9 @@ class ApiController(
     @ResponseBody
     fun setProperty(@RequestParam key: String, @RequestParam stringValue: String): Map<String, Any> {
         KaraokeProperties.setFromString(key, stringValue)
+        if (key == "resourceLimitsEnabled" || key.startsWith("cpuLimitPercent")) {
+            applyLiveCpuLimitToRunningProcesses()
+        }
         SNS.send(SseNotification.message(Message(
             type = "info",
             head = "SET PROPERTY",

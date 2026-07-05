@@ -264,6 +264,57 @@ JDBC обслуживает вьюху "Статистика" и не трога
 legacy-деструктуризации `val (c,u,d) = ...`). **Ни SQL-миграции, ни деплоя на прод не требуется** — флаги в
 файловых `KaraokeProperties` (локальны), удаление серверных строк — по уже существующему `changerecords`.
 
+**Чанкование операций синхронизации — «2 оси» (`SyncTarget.rowChunkSize` + `SyncRegistry.DELETE_CHUNK_SIZE`,
+`updateDatabases` в `Utils.kt`).** Размер пачки диктуется числом **байт на единицу**, а это по операциям
+разные величины, но честных осей всего две (а не матрица table×operation):
+- **`rowChunkSize`** (per-table в `SyncTarget`) — для полнострочных READ (`loadByIds`, `SELECT * WHERE id IN`),
+  INSERT (`dataCreate`) и UPDATE (`dataUpdate`): их payload ∝ весу строки. Значения: `settings` 25 (самые
+  тяжёлые — `source_text`/`result_text`/`source_markers`/`formatted_text_tabs`), `pictures` 50, `authors`/
+  `siteusers`/`events` 500. `SettingsSyncTarget.loadByIds` и `GenericKaraokeDbTableSyncTarget.loadByIds`
+  сами бьют список id на пачки по `rowChunkSize`; в `updateDatabases` CREATE/UPDATE-флаши берут
+  `rowChunk = min(rowChunkSize)` по синхронизируемым `keys`. **Зачем:** один `SELECT *` на сотни тяжёлых
+  настроек по сети упирался в `socketTimeout=30` удалённого соединения (`Connection.remote()`,
+  `jdbc:...?socketTimeout=30`) → `PSQLException: Read timed out`. Низкоуровневые `Settings.loadListFromDbByIds`/
+  `KaraokeDbTable.loadByIds` намеренно оставлены простыми (один `IN`-запрос) — у них есть локальные
+  вызыватели (`ApiController`), которые не таймятся; чанкование живёт в слое sync, где и per-table размер.
+- **`DELETE_CHUNK_SIZE = 200`** (общий в `SyncRegistry`) — для зеркального удаления в цели и move-удаления
+  из источника: payload `DELETE ... WHERE id=X` крошечный (~40 байт) у любой таблицы, поэтому один большой
+  размер. Прежние «чанки по 10» (`if ("pictures" in keys) 1 else 10`) давали ~16900 HTTP-запросов на
+  очистку 169k событий при move — с 200 на порядок меньше round-trip'ов. UPDATE отдельного размера не
+  получает — едет на `rowChunk` (консервативно). Легаси `setSettingsToSyncRemoteTable` (`tbl_settings_sync`,
+  автопуш `Settings.saveToDb`) — отдельный путь, свой `chunkedSize=10`, этой схемой не затронут.
+
+**Ловушка: биндинг `java.sql.Timestamp` в рукописном JDBC UPDATE.** В LOCAL-ветке UPDATE движка
+(`Utils.kt`, `collectSyncOps`→`updateDatabases`) `PreparedStatement`-параметры биндятся по типу
+`recordDiffValueNew`. Ветка `else -> ps.setString(...)` для `Timestamp` **ломала** UPDATE: `setString`
+явно указывает тип параметра `varchar`, а колонка `timestamp` → `PSQLException: column "last_update" is of
+type timestamp without time zone but expression is of type character varying`. Нужен явный
+`is Timestamp -> ps.setTimestamp(index, v)` (+ `Boolean`/`Double`/`Float`/`null`) — точь-в-точь как в уже
+проверенном блоке `KaraokeDbTable.save()` (строки ~74-82). INSERT-путь (`getSqlToInsert`) от этого не страдал:
+там значение встраивается строковым литералом `'...'` в текст SQL — у литерала тип `unknown`, Postgres неявно
+приводит его к `timestamp`; `setString` такой поблажки не даёт. Правило: любой рукописный `ps.set*` по diff/
+reflection обязан покрывать `Timestamp` явной веткой, иначе timestamp-колонки падают на UPDATE (не на INSERT).
+
+**Ловушка: авто-`now()` триггерные колонки (`last_update`) не должны участвовать в diff.** `tbl_events`
+несёт **два** `BEFORE UPDATE`-триггера: `update_last_updated_events_trigger` (ставит `last_update = now()`)
+и `update_recordhash_events_trigger` (пересчитывает `recordhash`, в который `last_update` **не** входит —
+`recordhash_events.sql`). Если в модели поле помечено `useInDiff=true` (дефолт `@KaraokeDbTableField`), то
+при любом апдейте строки по другой причине diff тянет `last_update`, а на pull LOCAL-триггер тут же
+перезапишет его в `now()` — значение бессмысленно и на сходимость не влияет, но зашумляет UPDATE. Фикс:
+`@KaraokeDbTableField(name = "last_update", useInDiff = false)` в `WebEvent.kt` — зеркалит DB-инвариант
+(поле вне `recordhash` ⇒ вне diff). Правило: колонка, авто-управляемая триггером `now()` и исключённая из
+`recordhash`, должна быть `useInDiff=false`.
+
+**Диагностика «бесконечной» реконсиляции events (2026-07-05) — не всегда рассинхрон функции хэша.**
+При первом успешном запуске events-sync казалось, что sync вечно переписывает ~251k строк с diff только по
+`last_update`. Прямая проверка (`recordhash` stored vs пересчёт по текущей функции — на **обеих** БД + кросс-
+сверка `id|recordhash` LOCAL vs SERVER) показала: функции `update_tbl_events_recordhash()` на LOCAL и SERVER
+**идентичны**, обе БД самосогласованы, для пересекающихся id хэши совпадают 1:1. Реальная причина «шторма» —
+varchar-баг выше блокировал UPDATE, а как только он был исправлен, прошла **разовая** реконсиляция (move
+подчистил сервер 251551 → 169357 и далее). Бэкфилл `recordhash` на проде **не понадобился**. Урок: прежде
+чем гнать тяжёлый `UPDATE ... SET recordhash=...` по проду, проверить хэши напрямую — расхождение может быть
+транзиентным (переходным), а не структурным.
+
 **API**: `GET /api/sync/entities` (сущности с `allowPush`/`allowPull`/`oneClickDirection` + 8 булевых
 `pushInsert/…/pullMove`), `POST /api/sync/run` (`key`, `direction=PUSH|PULL`, опц. `id`; результат c `moved`),
 `POST /api/sync/oneclick`, `POST /api/sync/setflag` (`key`, `direction`, `operation`, `value` — переключение

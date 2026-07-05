@@ -410,6 +410,38 @@ passthrough в Docker (`nvidia-container-toolkit` на хосте, `/var/run/doc
   побеждает объявленный позже, поэтому у "оригинала"/текущей песни с низким статусом сохраняется их
   собственная (жёлтая/серая) подсветка, а не серый фон низкого статуса.
 
+**Акустическая сверка двух песен в модалке "Похожие версии песни" (`WaveformCompare.kt`,
+`FamilySongsModal.vue`).** Отдельно от разницы длительностей (`diffSeconds`) — определить, переизданием
+(«как есть»/ремастер) какой песни является текущая. Колонка «Сверка»: кнопка «Сверить все» в `<th>`
+колонки + «Сверить» в каждой строке (кроме текущей); результат — процент схожести и дельта сдвига в мс.
+- **Алгоритм** (`WaveformCompare.compareWaveforms`, self-contained object, package
+  `com.svoemesto.karaokeapp`): ffmpeg декодирует **вокальный** стем (`settings.vocalsNameFlac`) в
+  моно-PCM 8 кГц во временный raw (`ffmpeg -v error -y -i <p> -ac 1 -ar 8000 -f s16le <tmp>`), затем
+  RMS-огибающая 100 Гц (10 мс/кадр). Вокал, а не микс — пики фраз выразительнее и устойчивее к ремастеру;
+  фолбэк на полный микс (`fileAbsolutePath`), если у любой из двух нет вокального FLAC (`stemUsed` в DTO).
+- **Метрика — нормированная кросс-корреляция** (Пирсон: вычитание среднего + деление на СКО ⇒ инвариантна
+  к уровню/EQ ⇒ ремастер той же записи даёт ~100 %). Пик → similarity %, argmax лаг → дельта; параболическая
+  интерполяция по 3 точкам вокруг пика → суб-кадровая точность (~1–5 мс). Окно поиска лага
+  `maxLag = max(45с, |diffДлит|+20с)`. Огибающие кэшируются (`ConcurrentHashMap`, ключ `path|mtime|frameRate`)
+  — при «Сверить все» текущая песня декодируется один раз.
+- **Знак дельты**: `A`=текущая, `B`=кандидат; пик при `A[i]≈B[i-L]` ⇒ `deltaMs = L·10мс` и
+  `time_current = time_candidate + deltaMs/1000` (положительная дельта = у текущей добавлена тишина в начале).
+- **API**: `POST /api/song/comparewaveform` (`id`, `idAnother`) → `WaveformCompareResultDto`
+  (`similarityPercent`, `deltaMs`, `stemUsed`, `ok`, `error` — DTO объявлен в `WaveformCompare.kt`).
+- **Сдвиг маркеров при выборе строки**: `/api/song/selectfamilysong` получил опциональный `deltaMs: Long?`;
+  `applyFamilySongSelection(settings, another, deltaMs=null)` при заданной дельте вызывает
+  `shiftMarkersAndFixEnd(json, deltaMs, settings.ms)` (`Utils.kt`) — сдвигает все маркеры на дельту
+  (`max(0, time+delta)`) и сажает END-маркер (`markertype==Markertype.SETTING.value && label=="END"`) на
+  реальную длительность текущей песни (`currentMs/1000`). Парсинг/сериализация — как в геттере
+  `Settings.sourceMarkersList` (`Json`+`ListSerializer(ListSerializer(SourceMarker.serializer()))`, фолбэк на
+  одиночный список). **Без `deltaMs` (строку не сверяли) — прежнее поведение**, полная обратная совместимость.
+- **Frontend**: `Songs/store.js` — action `compareWaveformPromise`, `deltaMs` в `selectFamilySongPromise`.
+  `FamilySongsModal.vue` — `compareResults` (реактивная карта `id → {status, similarityPercent, deltaMs,
+  stemUsed}`), `compareAll` с конкуррентностью 3, `select()` эмитит `{id, deltaMs}` (дельта только при
+  `status==='done'`). Кнопки сверки — `@click.stop` (иначе сработает выбор строки). `SongEdit.vue` —
+  `selectFamilySong({id, deltaMs})`. **В браузере на реальных данных ещё не проверено** — при тихом/зашумлённом
+  вокале или сдвиге больше 45 с править частоту огибающей / диапазон лага в `WaveformCompare.kt`.
+
 **Thread-лейны (`threadId`) в `KaraokeProcess`/`KaraokeProcessWorker`.** `threadId` группирует задания в
 независимые последовательные очереди: `KaraokeProcess.getProcessesToStart()` выбирает не более одного
 `WAITING`-задания на каждый `thread_id` (SQL `ROW_NUMBER() OVER (PARTITION BY thread_id ...)`), а

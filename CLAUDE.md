@@ -388,9 +388,11 @@ passthrough в Docker (`nvidia-container-toolkit` на хосте, `/var/run/doc
 - **Клик по строке (и из списка "семьи", и из ручного поиска) — `POST /api/song/selectfamilysong`**
   (`applyFamilySongSelection()`, `Utils.kt`), отдельный от общего `/api/song/copyfieldsfromanother`.
   Копирует `SOURCE_TEXT`/`RESULT_TEXT`/`SOURCE_MARKERS` безусловно, но `root_id`/`статус` — условно,
-  не перетирая уже осмысленно выставленные значения: `root_id` проставляется в id выбранной строки
-  **только если у текущей песни он ещё `0`**; статус `NONE`(0) переводится в `TEXT_CREATE`(1) **только
-  если он ещё `NONE`**. Эндпоинт возвращает итоговые `rootId`/`idStatus` (`SelectFamilySongResultDto`),
+  не перетирая уже осмысленно выставленные значения: `root_id` проставляется **только если у текущей
+  песни он ещё `0`**, значением — `root_id` выбранной строки, если он у неё уже задан (выбранная песня
+  сама часть другой семьи — привязываемся к её настоящему корню, а не к промежуточному узлу), иначе
+  `id` самой выбранной строки (она и есть корень); статус `NONE`(0) переводится в `TEXT_CREATE`(1)
+  **только если он ещё `NONE`**. Эндпоинт возвращает итоговые `rootId`/`idStatus` (`SelectFamilySongResultDto`),
   фронтенд (`SongEdit.vue`, `selectFamilySong()`) сразу пишет их в `this.song.rootId`/`this.song.idStatus`
   — по образцу уже существующего `setStatus()` (прямая мутация реактивного `song` в обход Vuex-мутаций,
   устоявшийся для этого конкретного компонента паттерн) — форма обновляется без перезагрузки песни.
@@ -626,14 +628,15 @@ splice шёл по неиспользуемому таблицей `state.songPa
 заглушкой (action коммитил `addSongByUserEvent`, мутация — только `console.log`) — песня удалялась на
 бэкенде, но не исчезала из UI. Не рендерить удаление вручную в action — единый источник правды это SSE.
 
-**Даты публикаций при удалении: `setPublishDateTimeToAuthor(startSettings, skipPublished=false)`
-(`Settings.kt`).** Функция переназначает даты публикаций всем песням автора с `id > startSettings.id`
-(старт-дата + 1 день на каждую). При удалении песни delete-action дёргает
-`/song/setpublishdatetimetoauthor` c `skipPublished=true` — тогда уже опубликованные песни
-(`onAir==true`: `dateTimePublish != null` и уже наступило, `Settings.kt:474`) **пропускаются**
-(`return@forEach`): их даты не переписываются и они **не сдвигают счётчик дней** для остальных.
-Ручная кнопка «Установить даты публикации автору» вызывает эндпоинт без параметра (дефолт `false`) —
-её поведение не изменилось.
+**Даты публикаций при удалении: НЕ пересчитываются.** delete-action (`deleteCurrentSong`,
+`Songs/store.js`) намеренно **не** вызывает `/song/setpublishdatetimetoauthor` — удаление песни не
+трогает даты публикаций остальных песен автора. (Ранее вызывал; убрано по требованию — удаление в
+середине графика больше не сдвигает даты соседей.) Функция `Settings.setPublishDateTimeToAuthor`
+(переназначает даты всем песням автора с `id > startSettings.id`, старт-дата + 1 день на каждую)
+остаётся, но дёргается **только** ручной кнопкой «Установить даты публикации автору». Опциональный
+параметр `skipPublished` у неё сейчас инертен (единственный вызывающий — ручная кнопка — шлёт без
+параметра, дефолт `false`); задел на случай, если пересчёт при удалении когда-нибудь вернут в виде
+«не трогать `onAir`-песни».
 
 **Storage.** Generated media files (audio stems, videos, pictures) live in MinIO-compatible object storage,
 accessed through `services/StorageApiClient.kt` / `services/KaraokeStorageService.kt` and the corresponding

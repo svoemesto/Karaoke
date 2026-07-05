@@ -3188,7 +3188,9 @@ fun applyFamilySongSelection(settings: Settings, another: Settings, deltaMs: Lon
     Выбор песни из модалки "Похожие версии песни" (как из общего списка "семьи", так и из ручного
     поиска по названию). В отличие от applyDuplicateOriginal (автопоиск оригинала при импорте) -
     root_id и статус трогаются только условно, не перетирая уже существующие осознанные значения:
-    - root_id проставляется только если у текущей песни он ещё не задан (0)
+    - root_id проставляется только если у текущей песни он ещё не задан (0); значение - root_id
+      кандидата, если он у него уже есть (кандидат сам часть семьи - указываем на её настоящий
+      корень), иначе id самого кандидата (кандидат и есть корень)
     - статус NONE (0) переводится в TEXT_CREATE (1) только если он ещё NONE
 
     deltaMs - результат акустической сверки (кнопка "Сверить"): если задан, маркеры кандидата
@@ -3202,7 +3204,7 @@ fun applyFamilySongSelection(settings: Settings, another: Settings, deltaMs: Lon
     } else {
         another.sourceMarkers
     }
-    if (settings.rootId == 0L) settings.rootId = another.id
+    if (settings.rootId == 0L) settings.rootId = if (another.rootId != 0L) another.rootId else another.id
     if (settings.idStatus == 0L) settings.fields[SettingField.ID_STATUS] = "1"
     settings.saveToDb()
 }

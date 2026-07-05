@@ -710,6 +710,86 @@ locations) запись — на практике: `RepairAll` создавал 
   всегда дала бы повторный reload (нет изменения значения), а смена с другой страницы дала бы двойной
   запрос (реактивный из сеттера + явный).
 
+**Реальный IP посетителя, привязка событий к пользователю, события плеера (`tbl_events`).**
+`referer` в `tbl_events` годами показывал `172.18.0.1` для всех событий — не баг nginx (прод
+`80to8897` уже правильно ставил `X-Real-IP`/`X-Forwarded-For`), а то, что единственная точка
+INSERT (`MainController.doRegisterEvent()`, karaoke-web) брала `request.remoteHost` — голый
+TCP-peer, который из-за Docker port-publish NAT (`docker-compose-web.yml`) всегда равен адресу
+docker-шлюза. Плюс `referer` вообще не писался для `clickToLink`/`play` — только для `callRest`.
+
+- **`ClientIpResolver`** (`karaoke-web/.../util/ClientIpResolver.kt`) — читает `X-Forwarded-For`
+  (первый адрес в цепочке) → `X-Real-IP` → фолбэк `request.remoteHost`, если заголовков нет вовсе
+  (чистый dev без nginx перед приложением). `doRegisterEvent()` резолвит IP/User-Agent один раз в
+  начале функции и пишет их во **все** ветки через общий приватный хелпер `insertEvent()` (убрал
+  4-кратное копипаст-строительство INSERT) — `clickToLink`/`play` теперь тоже получают `client_ip`,
+  которого раньше не было вовсе. `referer` для `callRest` теперь тоже берётся из
+  `ClientIpResolver`, а не из клиентского `data["referer"]` — раньше это поле принималось от
+  клиента без проверки (несостоявшаяся, но реальная дыра для спуфинга).
+- **Новые колонки `tbl_events`**: `client_ip`/`anon_id` (`varchar(64)`, nullable), `user_agent`
+  (`text`, nullable), `site_user_id` (`bigint NOT NULL DEFAULT 0`, **не** `Long?` в
+  `WebEvent.kt`!). Та же причина, что уже описана выше для `song_id`: `rs.getLong()` возвращает
+  примитивный `0` на SQL `NULL`, а generic reflection-loader (`KaraokeDbTable.kt`) не различает
+  `Long`/`Long?` по `classifier` — nullable тип тут не решил бы проблему, а замаскировал бы её.
+  `0` = аноним. Любое изменение схемы `tbl_events` обязано попасть в `deploy/recordhash_events.sql`
+  (md5-функция `update_tbl_events_recordhash()` + разовый backfill `UPDATE`) — иначе LOCAL↔SERVER
+  sync тихо перестаёт видеть diff именно по новым колонкам.
+- **`site_user_id`** резолвится опционально (без 401) через новый общий
+  `karaoke-web/.../services/SiteUserResolver.kt` (читает `Authorization: Bearer`, `null` если нет
+  токена/невалиден) — используется и в `PublicApiController.events()`, и в
+  `PublicPlayerController` (заменил там приватный дублирующий `resolveSiteUser()`). Значение
+  передаётся в `doRegisterEvent()` отдельным параметром функции, **не** через клиентский `data`-map
+  — так его нельзя подделать с фронта. `anon_id`, наоборот, берётся из `data["anonId"]` как есть
+  (просто bucketing-ключ для анонимов, без секьюрити-последствий).
+- **`EventTypes.kt`** (`karaoke-app/.../model/`) — чистые enum'ы `EventType`/`RestName`/
+  `LinkType`/`PlayerAction` с полем `dbValue` (не `.name`/ordinal — существующие 250k+ строк
+  остаются источником истины без миграции данных), заменили голые строковые литералы, разбросанные
+  по `MainController.kt`/агрегации. Без зависимостей на `Settings`/сервисы — безопасно
+  использовать в karaoke-web по той же причине, что и `WebEvent.kt`.
+- **Новый `event_type = "player"`** — события онлайн-плеера: `link_type` = `PlayerAction`
+  (`open`/`play`/`pause`/`seek`/`export`), `song_id`, `link_name` переиспользован под деталь
+  действия (ключ стема при `export`, позиция в секундах при `seek`). `open` пишется **на бэкенде**
+  внутри `PublicPlayerController.access()` (при `canWatch=true`) — фронту достаточно передать
+  `anonId` query-параметром. `play`/`pause`/`seek`/`export` — трекинг **только в
+  `karaoke-public/src/player/KaraokePlayer.js`** (НЕ в admin-копии `webvue3/src/player/`, там нет
+  анонимного посетителя и пути к `/api/public/events`):
+  - play/pause — в `_togglePlay()`, не внутри `_play()`/`_pause()` самих по себе: те два метода
+    также вызываются внутренне из `_seekTo()`/`_seekToDisplayTime()` для возобновления
+    воспроизведения после перемотки — это не новое пользовательское намерение "play" и уже
+    покрыто отдельным seek-событием, трекинг там задвоил бы счётчик.
+  - seek — единая точка `_seekToDisplayTime(dt)` (сходятся все 3 внешних триггера: клик по
+    прогресс-бару, `interaction` от обеих waveform-дорожек), debounce 400мс на всякий случай
+    (двойной `interaction` от `wsAcc`+`wsVoc` на одно действие).
+  - Все вызовы — тем же тихим fire-and-forget паттерном, что и остальной `tracking.js`
+    (`apiPost(...).catch(() => {})`): без консоли, без UI-индикаторов, трекинг не должен быть
+    заметен пользователю.
+  - `anon_id` во всех обычных трекинг-вызовах переиспользует тот же localStorage UUID (`kp_cid`),
+    что уже использовался только для скрытого жеста разблокировки плеера (`trackMetaClick`,
+    поле `clientId` в его payload) — **не переименовывать** это поле, гейт-логика жеста его читает
+    по имени; для остальных событий используется отдельное поле `anonId` с тем же значением.
+- **Дедуп агрегации.** `karaoke-web/Stat.kt` лишился `getWebEvents()`/`getStatBySong()` (были
+  побайтово идентичны `karaoke-app/.../model/StatBySong.kt`'s `StatsByEvents`) — легаси
+  Thymeleaf-роуты `MainController.doStatBySong()`/`doWebEvents()` теперь тоже дёргают
+  `com.svoemesto.karaokeapp.model.StatsByEvents` напрямую (поля DTO совпадают по именам с тем, что
+  ждут `statbysong.html`/`webevents.html` — шаблоны не менялись). `karaoke-web/WebEvent.kt`
+  (простой display-класс, не путать с `KaraokeDbTable`-моделью в karaoke-app) удалён как мёртвый.
+  `karaoke-web/Stat.kt` теперь `object` (было `class` с неиспользуемым конструктором) — держит
+  только счётчики `getCountSongsExclusive/OnAir/InCollection`, у которых аналога в karaoke-app нет.
+- **Локальный dev-nginx** (`karaoke-public/nginx_karaoke-public.conf`) приведён к тем же
+  `X-Real-IP`/`X-Forwarded-For`, что и прод (`80to8897`) — раньше ставил нестандартный
+  `X-Forwarded-For-Client`, который никто не читал.
+- **Деплой на прод — миграция обязана применяться ДО или ОДНОВРЕМЕННО с новым `karaoke-web`, не
+  после.** `insertEvent()` безусловно пишет `client_ip` в каждый INSERT — если колонки ещё нет на
+  сервере, вообще все события (клики, callRest, плеер) начинают падать с `column does not exist`.
+
+**Побочная находка при сквозной проверке (не связана с этим рефакторингом, но чинится тем же
+`setval`):** identity-sequence может отстать от реальных данных таблицы (`tbl_events_id_seq` на
+LOCAL БД имел `last_value=557` при `max(id)=250342` — видимо, после восстановления/импорта данных
+через явные `id` без продвижения sequence), из-за чего INSERT периодически падает с `duplicate key
+value violates unique constraint`. Диагностика: `select last_value from <table>_id_seq` vs
+`select max(id) from <table>`. Фикс: `SELECT setval('<table>_id_seq', (SELECT MAX(id) FROM
+<table>))` — безопасная операция, только продвигает счётчик, данные не трогает. Стоит иметь в виду
+для любой другой `KaraokeDbTable`-таблицы, если появятся похожие случайные "id already exists".
+
 ## Git — что НЕ добавлять в репозиторий
 
 - `deploy/ollama_data/` — содержит SSH-ключи (`id_ed25519`) и большие модели Ollama. Уже в `.gitignore`.

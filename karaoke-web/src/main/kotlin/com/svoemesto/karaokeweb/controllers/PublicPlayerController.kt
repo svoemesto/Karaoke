@@ -2,14 +2,15 @@ package com.svoemesto.karaokeweb.controllers
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.svoemesto.karaokeapp.KaraokeFileType
+import com.svoemesto.karaokeapp.model.EventType
+import com.svoemesto.karaokeapp.model.PlayerAction
 import com.svoemesto.karaokeapp.model.Settings
 import com.svoemesto.karaokeapp.rightFileName
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.StorageApiClient
-import com.svoemesto.karaokeapp.model.SiteUser
 import com.svoemesto.karaokeweb.WORKING_DATABASE
 import com.svoemesto.karaokeweb.services.PlayerGestureUnlockService
-import com.svoemesto.karaokeweb.services.SiteUserTokenService
+import com.svoemesto.karaokeweb.services.SiteUserResolver
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.springframework.beans.factory.annotation.Value
@@ -49,7 +50,8 @@ class PublicPlayerController(
     private val storageService: KaraokeStorageService,
     private val storageApiClient: StorageApiClient,
     private val gestureUnlockService: PlayerGestureUnlockService,
-    private val siteUserTokenService: SiteUserTokenService,
+    private val siteUserResolver: SiteUserResolver,
+    private val mainController: MainController,
     @Value("\${storage.proxy-url}") private val minioProxyUrl: String,
 ) {
     private val bucket = "karaoke"
@@ -57,17 +59,10 @@ class PublicPlayerController(
     private fun authorized(id: Long, token: String?): Boolean =
         token != null && gestureUnlockService.validateToken(token, id)
 
-    // Живая проверка премиум-статуса по Authorization-заголовку (тот же bearer-токен, что
-    // выдаёт SiteUserTokenService личному кабинету) — намеренно не кэшируется в токене плеера,
-    // чтобы бан/снятие премиума посреди 30-минутного TTL токена плеера подействовали немедленно.
-    private fun resolveSiteUser(request: HttpServletRequest): SiteUser? {
-        val header = request.getHeader("Authorization") ?: return null
-        val token = header.removePrefix("Bearer ").trim().takeIf { it.isNotBlank() } ?: return null
-        return siteUserTokenService.resolveToken(token, WORKING_DATABASE)
-    }
-
+    // Живая проверка премиум-статуса — намеренно не кэшируется в токене плеера, чтобы бан/снятие
+    // премиума посреди 30-минутного TTL токена плеера подействовали немедленно.
     private fun isPremiumUser(request: HttpServletRequest): Boolean =
-        resolveSiteUser(request)?.isEffectivePremium == true
+        siteUserResolver.resolve(request)?.isEffectivePremium == true
 
     private fun stemsReady(settings: Settings): Boolean =
         existsInMinIO(stemStorageKey(settings, KaraokeFileType.MP3_ACCOMPANIMENT)) &&
@@ -87,6 +82,17 @@ class PublicPlayerController(
         val canWatch = ready && (settings.onAir || premium)
         val canExport = canWatch && premium
         val token = if (canWatch) gestureUnlockService.issueDirectAccessToken(id) else null
+        if (canWatch) {
+            mainController.doRegisterEvent(
+                mapOf(
+                    "eventType" to EventType.PLAYER.dbValue,
+                    "linkType" to PlayerAction.OPEN.dbValue,
+                    "songId" to id.toString(),
+                    "anonId" to (request.getParameter("anonId") ?: ""),
+                ),
+                request, siteUserResolver.resolve(request)?.id ?: 0
+            )
+        }
         return ResponseEntity.ok(mapOf(
             "ready" to ready,
             "isPremiumUser" to premium,

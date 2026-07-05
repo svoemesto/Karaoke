@@ -99,6 +99,8 @@
                 <th>Тип</th>
                 <th>Описание</th>
                 <th>Referer</th>
+                <th>IP</th>
+                <th>Пользователь</th>
               </tr>
             </thead>
             <tbody>
@@ -107,6 +109,8 @@
                 <td class="text-nowrap">{{ evt.eventType }}</td>
                 <td class="text-start">{{ evt.eventDescription }}</td>
                 <td class="text-start referer-cell">{{ evt.eventReferer }}</td>
+                <td class="text-nowrap">{{ evt.clientIp || '-' }}</td>
+                <td class="text-nowrap">{{ userLabel(evt) }}</td>
               </tr>
             </tbody>
           </table>
@@ -191,6 +195,11 @@ export default {
       if (!ts) return ''
       const d = new Date(ts)
       return d.toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })
+    },
+    userLabel(evt) {
+      if (evt.siteUserId > 0) return `#${evt.siteUserId}`
+      if (evt.anonId) return evt.anonId.slice(0, 8)
+      return '-'
     }
   },
   mounted() {

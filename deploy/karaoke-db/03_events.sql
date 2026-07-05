@@ -8,7 +8,11 @@ CREATE TABLE public.tbl_events (
                                    song_id integer,
                                    song_version character varying(255),
                                    last_update timestamp without time zone default now(),
-                                   referer text
+                                   referer text,
+                                   client_ip character varying(64),
+                                   anon_id character varying(64),
+                                   site_user_id bigint NOT NULL DEFAULT 0,
+                                   user_agent text
 );
 
 ALTER TABLE public.tbl_events OWNER TO postgres;

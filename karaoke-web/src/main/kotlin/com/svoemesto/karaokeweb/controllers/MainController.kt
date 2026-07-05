@@ -2,6 +2,9 @@ package com.svoemesto.karaokeweb.controllers
 
 
 import com.svoemesto.karaokeapp.Crypto
+import com.svoemesto.karaokeapp.model.EventType
+import com.svoemesto.karaokeapp.model.LinkType
+import com.svoemesto.karaokeapp.model.RestName
 import com.svoemesto.karaokeapp.model.Settings
 import com.svoemesto.karaokeweb.StatBySong
 import com.svoemesto.karaokeapp.model.Zakroma
@@ -9,6 +12,7 @@ import com.svoemesto.karaokeapp.rightFileName
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.StorageApiClient
 import com.svoemesto.karaokeweb.services.WEB_WORK_IN_CONTAINER
+import com.svoemesto.karaokeweb.util.ClientIpResolver
 import com.svoemesto.karaokeweb.WORKING_DATABASE
 //import com.svoemesto.karaokeweb.services.KSS_WEB
 import jakarta.servlet.http.HttpServletRequest
@@ -43,7 +47,7 @@ class MainController(
         model.addAttribute("onSponsr", StatBySong.getCountSongsInCollection(database = WORKING_DATABASE))
         model.addAttribute("onAir", StatBySong.getCountSongsOnAir(database = WORKING_DATABASE))
         model.addAttribute("exclusive", StatBySong.getCountSongsExclusive(database = WORKING_DATABASE))
-        doRegisterEvent(mapOf("eventType" to "callRest", "restName" to "main", "parameters" to emptyMap<String, Any>(), "referer" to request.remoteHost))
+        doRegisterEvent(mapOf("eventType" to EventType.CALL_REST.dbValue, "restName" to RestName.MAIN.dbValue, "parameters" to emptyMap<String, Any>()), request)
         return "main"
     }
 
@@ -65,7 +69,7 @@ class MainController(
             storageService = storageService,
             storageApiClient = storageApiClient
         ))
-        doRegisterEvent(mapOf("eventType" to "callRest", "restName" to "zakroma", "parameters" to data, "referer" to request.remoteHost))
+        doRegisterEvent(mapOf("eventType" to EventType.CALL_REST.dbValue, "restName" to RestName.ZAKROMA.dbValue, "parameters" to data), request)
         return "zakroma"
     }
 
@@ -74,39 +78,54 @@ class MainController(
     @PostMapping("/registerevent")
     @ResponseBody
     fun doRegisterEvent(
-        @RequestParam(required = true) data: Map<String, Any>
+        @RequestParam(required = true) data: Map<String, Any>,
+        request: HttpServletRequest,
+        siteUserId: Long = 0
     ): Boolean {
         println("Вызов registerevent $data")
         if (!data.containsKey("eventType")) return false
         val eventType = data["eventType"] as String
+        val clientIp = ClientIpResolver.resolve(request)
+        val userAgent = request.getHeader("User-Agent")
+        val anonId = (data["anonId"] as? String)?.takeIf { it.isNotBlank() }
+
+        fun insertEvent(fieldsValues: MutableList<Pair<String, Any>>): Boolean {
+            fieldsValues.add(Pair("client_ip", clientIp))
+            userAgent?.let { fieldsValues.add(Pair("user_agent", it)) }
+            anonId?.let { fieldsValues.add(Pair("anon_id", it)) }
+            if (siteUserId > 0) fieldsValues.add(Pair("site_user_id", siteUserId))
+            val connection = WORKING_DATABASE.getConnection()
+            if (connection == null) {
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${WORKING_DATABASE.name}")
+                return false
+            }
+            val sqlToInsert = "INSERT INTO tbl_events (${fieldsValues.joinToString(", ") { it.first }}) OVERRIDING SYSTEM VALUE VALUES(${
+                fieldsValues.joinToString(
+                    ", "
+                ) { if (it.second is Long) "${it.second}" else "'${it.second.toString().rightFileName()}'" }
+            })"
+            val ps = connection.prepareStatement(sqlToInsert)
+            ps.executeUpdate()
+            ps.close()
+            return true
+        }
+
         when (eventType) {
-            "clickToLink" -> {
+            EventType.CLICK_TO_LINK.dbValue -> {
                 if (!data.containsKey("linkType")) return false
                 val linkType = data["linkType"] as String
                 when (linkType) {
-                    "linkToSocialNetwork" -> {
+                    LinkType.LINK_TO_SOCIAL_NETWORK.dbValue -> {
                         if (!data.containsKey("linkName")) return false
                         val linkName = data["linkName"] as String
                         println("Переход в соцсеть: $linkName")
-                        val fieldsValues: MutableList<Pair<String, Any>> = mutableListOf()
-                        fieldsValues.add(Pair("event_type", "clickToLink"))
-                        fieldsValues.add(Pair("link_type", "linkToSocialNetwork"))
-                        fieldsValues.add(Pair("link_name", linkName))
-                        val connection = WORKING_DATABASE.getConnection()
-                        if (connection == null) {
-                            println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${WORKING_DATABASE.name}")
-                            return false
-                        }
-                        val sqlToInsert = "INSERT INTO tbl_events (${fieldsValues.joinToString(", ") { it.first }}) OVERRIDING SYSTEM VALUE VALUES(${
-                            fieldsValues.joinToString(
-                                ", "
-                            ) { if (it.second is Long) "${it.second}" else "'${it.second.toString().rightFileName()}'" }
-                        })"
-                        val ps = connection.prepareStatement(sqlToInsert)
-                        ps.executeUpdate()
-                        ps.close()
+                        return insertEvent(mutableListOf(
+                            Pair("event_type", EventType.CLICK_TO_LINK.dbValue),
+                            Pair("link_type", LinkType.LINK_TO_SOCIAL_NETWORK.dbValue),
+                            Pair("link_name", linkName),
+                        ))
                     }
-                    "linkToSong" -> {
+                    LinkType.LINK_TO_SONG.dbValue -> {
                         if (!data.containsKey("linkName")) return false
                         val linkName = data["linkName"] as String
                         if (!data.containsKey("songId")) return false
@@ -114,79 +133,54 @@ class MainController(
                         if (!data.containsKey("songVersion")) return false
                         val songVersion = data["songVersion"] as String
                         println("Переход на просмотр: сайт $linkName, id=$songId, Версия: $songVersion")
-                        val fieldsValues: MutableList<Pair<String, Any>> = mutableListOf()
-                        fieldsValues.add(Pair("event_type", "clickToLink"))
-                        fieldsValues.add(Pair("link_type", "linkToSong"))
-                        fieldsValues.add(Pair("link_name", linkName))
-                        fieldsValues.add(Pair("song_id", songId))
-                        fieldsValues.add(Pair("song_version", songVersion))
-                        val connection = WORKING_DATABASE.getConnection()
-                        if (connection == null) {
-                            println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${WORKING_DATABASE.name}")
-                            return false
-                        }
-                        val sqlToInsert = "INSERT INTO tbl_events (${fieldsValues.joinToString(", ") { it.first }}) OVERRIDING SYSTEM VALUE VALUES(${
-                            fieldsValues.joinToString(
-                                ", "
-                            ) { if (it.second is Long) "${it.second}" else "'${it.second.toString().rightFileName()}'" }
-                        })"
-                        val ps = connection.prepareStatement(sqlToInsert)
-                        ps.executeUpdate()
-                        ps.close()
+                        return insertEvent(mutableListOf(
+                            Pair("event_type", EventType.CLICK_TO_LINK.dbValue),
+                            Pair("link_type", LinkType.LINK_TO_SONG.dbValue),
+                            Pair("link_name", linkName),
+                            Pair("song_id", songId),
+                            Pair("song_version", songVersion),
+                        ))
                     }
-
                     else -> {}
                 }
-
-
             }
-            "play" -> {
+            EventType.PLAY.dbValue -> {
                 if (!data.containsKey("songId")) return false
                 val songId = (data["songId"] as String).toLong()
                 if (!data.containsKey("songVersion")) return false
                 val songVersion = data["songVersion"] as String
                 println("Просмотр на странице: id=$songId, Версия: $songVersion")
-                val fieldsValues: MutableList<Pair<String, Any>> = mutableListOf()
-                fieldsValues.add(Pair("event_type", "play"))
-                fieldsValues.add(Pair("song_id", songId))
-                fieldsValues.add(Pair("song_version", songVersion))
-                val connection = WORKING_DATABASE.getConnection()
-                if (connection == null) {
-                    println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${WORKING_DATABASE.name}")
-                    return false
-                }
-                val sqlToInsert = "INSERT INTO tbl_events (${fieldsValues.joinToString(", ") { it.first }}) OVERRIDING SYSTEM VALUE VALUES(${
-                    fieldsValues.joinToString(
-                        ", "
-                    ) { if (it.second is Long) "${it.second}" else "'${it.second.toString().rightFileName()}'" }
-                })"
-                val ps = connection.prepareStatement(sqlToInsert)
-                ps.executeUpdate()
-                ps.close()
+                return insertEvent(mutableListOf(
+                    Pair("event_type", EventType.PLAY.dbValue),
+                    Pair("song_id", songId),
+                    Pair("song_version", songVersion),
+                ))
             }
-            "callRest" -> {
+            EventType.CALL_REST.dbValue -> {
                 val restName = data["restName"] as String
                 val parameters = data["parameters"] as Map<*, *>
                 println("Вызван рест $restName с параметрами $parameters")
-                val fieldsValues: MutableList<Pair<String, Any>> = mutableListOf()
-                fieldsValues.add(Pair("event_type", "callRest"))
-                fieldsValues.add(Pair("rest_name", restName))
-                fieldsValues.add(Pair("rest_parameters", parameters.toString()))
-                fieldsValues.add(Pair("referer", data["referer"]?:""))
-                val connection = WORKING_DATABASE.getConnection()
-                if (connection == null) {
-                    println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${WORKING_DATABASE.name}")
-                    return false
-                }
+                val fieldsValues: MutableList<Pair<String, Any>> = mutableListOf(
+                    Pair("event_type", EventType.CALL_REST.dbValue),
+                    Pair("rest_name", restName),
+                    Pair("rest_parameters", parameters.toString()),
+                    Pair("referer", clientIp),
+                )
                 if (parameters.containsKey("id")) fieldsValues.add(Pair("song_id", parameters["id"]!!.toString().toLong()))
-                val sqlToInsert = "INSERT INTO tbl_events (${fieldsValues.joinToString(", ") { it.first }}) OVERRIDING SYSTEM VALUE VALUES(${
-                    fieldsValues.joinToString(
-                        ", "
-                    ) { if (it.second is Long) "${it.second}" else "'${it.second.toString().rightFileName()}'" }
-                })"
-                val ps = connection.prepareStatement(sqlToInsert)
-                ps.executeUpdate()
-                ps.close()
+                return insertEvent(fieldsValues)
+            }
+            EventType.PLAYER.dbValue -> {
+                if (!data.containsKey("linkType") || !data.containsKey("songId")) return false
+                val linkType = data["linkType"] as String // PlayerAction.dbValue: open|play|pause|seek|export
+                val songId = (data["songId"] as String).toLong()
+                val fieldsValues: MutableList<Pair<String, Any>> = mutableListOf(
+                    Pair("event_type", EventType.PLAYER.dbValue),
+                    Pair("link_type", linkType),
+                    Pair("song_id", songId),
+                )
+                // link_name — деталь действия: ключ стема при export, позиция в секундах при seek
+                (data["linkName"] as? String)?.let { fieldsValues.add(Pair("link_name", it)) }
+                return insertEvent(fieldsValues)
             }
             else -> {}
         }
@@ -273,7 +267,7 @@ class MainController(
         if (author != null && author != "") data["author"] = author
         if (text != null && text != "") data["text"] = text
         if (album != null && album != "") data["album"] = album
-        doRegisterEvent(mapOf("eventType" to "callRest", "restName" to "filter", "parameters" to data, "referer" to request.remoteHost))
+        doRegisterEvent(mapOf("eventType" to EventType.CALL_REST.dbValue, "restName" to RestName.FILTER.dbValue, "parameters" to data), request)
 
         return "filter"
     }
@@ -295,7 +289,7 @@ class MainController(
 //            }
 //        }
         model.addAttribute("sett", sett)
-        doRegisterEvent(mapOf("eventType" to "callRest", "restName" to "song", "parameters" to mapOf("id" to id), "referer" to request.remoteHost))
+        doRegisterEvent(mapOf("eventType" to EventType.CALL_REST.dbValue, "restName" to RestName.SONG.dbValue, "parameters" to mapOf("id" to id)), request)
         if (sett?.tags?.split(" ")?.map { it.uppercase() }?.contains("SKIP") == true) {
             return "song-removed"
         }
@@ -306,7 +300,9 @@ class MainController(
     fun doStatBySong(
         model: Model
     ): String {
-        model.addAttribute("stats", StatBySong.getStatBySong(WORKING_DATABASE))
+        // limit великий: старая версия этой Thymeleaf-страницы (в отличие от постранично
+        // грузящей webvue3-таблицы) всегда показывала все песни разом, без limit/offset вовсе.
+        model.addAttribute("stats", com.svoemesto.karaokeapp.model.StatsByEvents.getStatBySong(database = WORKING_DATABASE, limit = 100_000))
         return "statbysong"
     }
 
@@ -314,7 +310,7 @@ class MainController(
     fun doWebEvents(
         model: Model
     ): String {
-        model.addAttribute("webevents", StatBySong.getWebEvents(database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient))
+        model.addAttribute("webevents", com.svoemesto.karaokeapp.model.StatsByEvents.getWebEvents(database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient))
         return "webevents"
     }
 

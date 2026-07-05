@@ -13,7 +13,7 @@ export async function apiGet(path, params) {
   return JSON.parse(response)
 }
 
-export async function apiPost(path, params) {
-  const response = await promisedXMLHttpRequest({ method: 'POST', url: path, params })
+export async function apiPost(path, params, headers) {
+  const response = await promisedXMLHttpRequest({ method: 'POST', url: path, params, headers })
   return response ? JSON.parse(response) : null
 }

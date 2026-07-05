@@ -31,6 +31,10 @@ data class WebEventDto(
     val eventDescription: String,
     val eventDate: Timestamp,
     val eventReferer: String,
+    val clientIp: String = "",
+    val anonId: String = "",
+    val siteUserId: Long = 0,
+    val userAgent: String = "",
 )
 
 /**
@@ -85,78 +89,57 @@ object StatsByEvents {
             rs = statement.executeQuery(sql)
             while (rs.next()) {
                 val eventType = rs.getString("event_type")
+                val eventDate = rs.getTimestamp("last_update")
+                val clientIp = rs.getString("client_ip") ?: ""
+                val anonId = rs.getString("anon_id") ?: ""
+                val siteUserId = rs.getLong("site_user_id")
+                val userAgent = rs.getString("user_agent") ?: ""
+
+                fun add(type: String, description: String, referer: String = clientIp) {
+                    result.add(WebEventDto(
+                        eventType = type, eventDescription = description, eventDate = eventDate,
+                        eventReferer = referer, clientIp = clientIp, anonId = anonId,
+                        siteUserId = siteUserId, userAgent = userAgent,
+                    ))
+                }
+
                 when (eventType) {
-                    "callRest" -> {
+                    EventType.CALL_REST.dbValue -> {
                         val restName = rs.getString("rest_name")
                         when (restName) {
-                            "main" -> result.add(
-                                WebEventDto(
-                                    eventType = "Главная страница сайта",
-                                    eventDescription = "",
-                                    eventDate = rs.getTimestamp("last_update"),
-                                    eventReferer = rs.getString("referer") ?: ""
-                                )
-                            )
-                            "filter" -> result.add(
-                                WebEventDto(
-                                    eventType = "Фильтр",
-                                    eventDescription = rs.getString("rest_parameters"),
-                                    eventDate = rs.getTimestamp("last_update"),
-                                    eventReferer = rs.getString("referer") ?: ""
-                                )
-                            )
-                            "zakroma" -> {
+                            RestName.MAIN.dbValue -> add("Главная страница сайта", "", rs.getString("referer") ?: "")
+                            RestName.FILTER.dbValue -> add("Фильтр", rs.getString("rest_parameters"), rs.getString("referer") ?: "")
+                            RestName.ZAKROMA.dbValue -> {
                                 val parameters = rs.getString("rest_parameters")
-                                result.add(
-                                    WebEventDto(
-                                        eventType = "Закрома",
-                                        eventDescription = if (parameters.contains("=")) parameters.split("=")[1].dropLast(1) else "",
-                                        eventDate = rs.getTimestamp("last_update"),
-                                        eventReferer = rs.getString("referer") ?: ""
-                                    )
-                                )
+                                add("Закрома", if (parameters.contains("=")) parameters.split("=")[1].dropLast(1) else "", rs.getString("referer") ?: "")
                             }
-                            "song" -> {
+                            RestName.SONG.dbValue -> {
                                 val songId = rs.getInt("song_id")
                                 val sett = Settings.loadFromDbById(songId.toLong(), database = database, storageService = storageService, storageApiClient = storageApiClient)
-                                sett?.let {
-                                    result.add(
-                                        WebEventDto(
-                                            eventType = "Песня",
-                                            eventDescription = "[${sett.author}] - [${sett.album}] - «${sett.songName}»",
-                                            eventDate = rs.getTimestamp("last_update"),
-                                            eventReferer = rs.getString("referer") ?: ""
-                                        )
-                                    )
-                                }
+                                sett?.let { add("Песня", "[${sett.author}] - [${sett.album}] - «${sett.songName}»", rs.getString("referer") ?: "") }
                             }
                         }
                     }
-                    "clickToLink" -> {
+                    EventType.CLICK_TO_LINK.dbValue -> {
                         val linkType = rs.getString("link_type")
                         when (linkType) {
-                            "linkToSong" -> {
+                            LinkType.LINK_TO_SONG.dbValue -> {
                                 val songId = rs.getInt("song_id")
                                 val sett = Settings.loadFromDbById(songId.toLong(), database = database, storageService = storageService, storageApiClient = storageApiClient)
-                                sett?.let {
-                                    result.add(
-                                        WebEventDto(
-                                            eventType = "Клик ${rs.getString("link_name")} ${rs.getString("song_version")}",
-                                            eventDescription = "[${sett.author}] - [${sett.album}] - «${sett.songName}»",
-                                            eventDate = rs.getTimestamp("last_update"),
-                                            eventReferer = ""
-                                        )
-                                    )
-                                }
+                                sett?.let { add("Клик ${rs.getString("link_name")} ${rs.getString("song_version")}", "[${sett.author}] - [${sett.album}] - «${sett.songName}»") }
                             }
-                            "linkToSocialNetwork" -> result.add(
-                                WebEventDto(
-                                    eventType = "Соцсеть",
-                                    eventDescription = rs.getString("link_name"),
-                                    eventDate = rs.getTimestamp("last_update"),
-                                    eventReferer = ""
-                                )
-                            )
+                            LinkType.LINK_TO_SOCIAL_NETWORK.dbValue -> add("Соцсеть", rs.getString("link_name"))
+                            else -> {}
+                        }
+                    }
+                    EventType.PLAYER.dbValue -> {
+                        val linkName = rs.getString("link_name")
+                        when (rs.getString("link_type")) {
+                            PlayerAction.OPEN.dbValue -> add("Плеер: открытие", "song_id=${rs.getInt("song_id")}")
+                            PlayerAction.PLAY.dbValue -> add("Плеер: запуск", "song_id=${rs.getInt("song_id")}")
+                            PlayerAction.PAUSE.dbValue -> add("Плеер: пауза", "song_id=${rs.getInt("song_id")}")
+                            PlayerAction.SEEK.dbValue -> add("Плеер: перемотка", "${linkName}с, song_id=${rs.getInt("song_id")}")
+                            PlayerAction.EXPORT.dbValue -> add("Плеер: экспорт", "$linkName, song_id=${rs.getInt("song_id")}")
                             else -> {}
                         }
                     }

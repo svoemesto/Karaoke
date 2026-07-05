@@ -65,11 +65,16 @@ class KaraokeProcessThread(val karaokeProcess: KaraokeProcess? = null, var perce
                 val regexDuration = Regex("Duration:\\s+(\\d\\d:\\d\\d:\\d\\d\\.\\d\\d),")
                 val regexCurrent = Regex("time=(\\d\\d:\\d\\d:\\d\\d\\.\\d\\d)")
                 val regexPercentageSheetsage = Regex("^\\s{0,2}(\\d{1,3})%\\|")
-                val args = karaokeProcess.args[0]
+                val karaokeProcessType = karaokeProcess.type
+                val typeEnum = runCatching { KaraokeProcessTypes.valueOf(karaokeProcessType) }.getOrNull()
+                // Лимит CPU пересобирается заново прямо перед стартом (не берётся "как есть" из БД) -
+                // настройки могли поменяться, пока задание стояло в очереди WAITING.
+                val args = if (typeEnum != null) refreshArgvCpuLimit(typeEnum, karaokeProcess.args[0]) else karaokeProcess.args[0]
+                val envs = if (typeEnum != null) refreshEnvCpuLimit(typeEnum, karaokeProcess.envs) else karaokeProcess.envs
                 val processBuilder = ProcessBuilder(args)
 
                 val processBuilderEnvironment = processBuilder.environment()
-                processBuilderEnvironment.putAll(karaokeProcess.envs)
+                processBuilderEnvironment.putAll(envs)
 
                 processBuilder.redirectErrorStream(true)
 

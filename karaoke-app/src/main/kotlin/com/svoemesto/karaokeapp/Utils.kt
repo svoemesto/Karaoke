@@ -2814,6 +2814,111 @@ fun cpuLimitPercentForType(type: KaraokeProcessTypes): Long {
     }
 }
 
+// Пересобирает CPU-лимит в argv шага задания заново, ПРЯМО ПЕРЕД СТАРТОМ процесса (вызывается из
+// KaraokeProcessThread.run()) - а не полагается на значение, запечённое в process_args при постановке в
+// очередь createProcess(). Ловушка, из-за которой это понадобилось: задание может простоять в очереди
+// WAITING долго, настройки (resourceLimitsEnabled/cpuLimitPercent*) за это время успевают измениться -
+// без пересборки на старте задание использует лимит, актуальный на момент СОЗДАНИЯ, а не на момент
+// реального запуска. Сначала снимает уже имевшуюся обёртку (если она была - неважно, какая именно версия
+// настроек её породила), затем накладывает актуальную:
+// - "docker run ... --cpus N ..." (DEMUCS2/DEMUCS5/KEY_BPM_FROM_FILE) - argv-флаг, ищется/заменяется по
+//   позиции относительно "--rm" и "--cpus".
+// - "cpulimit -l N -i -- ffmpeg/sheetsage.sh ..." (голые шаги SHEETSAGE/SHEETSAGE2/FF_720_KAR/FF_720_LYR
+//   и встроенный ffmpeg 720p-транскод внутри MELT_LYRICS/MELT_KARAOKE) - argv-обёртка, распознаётся по
+//   первому токену исходной (развёрнутой) команды: "ffmpeg" или путь, оканчивающийся на "sheetsage.sh".
+// docker-compose шаг MLT (первый токен "docker","compose") и голые filesystem-команды (chmod/mkdir/cp/
+// rm/ln/mv) не подходят ни под один из паттернов - возвращаются как есть, не трогаются.
+fun refreshArgvCpuLimit(type: KaraokeProcessTypes, args: List<String>): List<String> {
+    val stripped: List<String> = when {
+        args.getOrNull(0) == "cpulimit" -> {
+            val ddIdx = args.indexOf("--")
+            if (ddIdx != -1) args.subList(ddIdx + 1, args.size).toList() else args
+        }
+        args.getOrNull(0) == "docker" && args.getOrNull(1) == "run" -> {
+            val mutable = args.toMutableList()
+            val idx = mutable.indexOf("--cpus")
+            if (idx != -1 && idx + 1 < mutable.size) {
+                mutable.removeAt(idx)
+                mutable.removeAt(idx)
+            }
+            mutable
+        }
+        else -> args
+    }
+
+    val percent = cpuLimitPercentForType(type)
+    return when {
+        stripped.getOrNull(0) == "docker" && stripped.getOrNull(1) == "run" -> {
+            val mutable = stripped.toMutableList()
+            val insertAt = mutable.indexOf("--rm").let { if (it == -1) mutable.size else it + 1 }
+            mutable.addAll(insertAt, dockerCpusFlag(percent))
+            mutable
+        }
+        stripped.getOrNull(0) == "ffmpeg" || stripped.getOrNull(0)?.endsWith("sheetsage.sh") == true ->
+            cpulimitPrefix(percent) + stripped
+        else -> stripped
+    }
+}
+
+// Пара к refreshArgvCpuLimit для env-варианта (MELT_* docker-compose шаг, лимит через переменную
+// MLT_CPU_LIMIT - см. dockerCpusEnvValue). Обновляет значение, только если ключ уже присутствовал -
+// он есть исключительно у docker-compose шага (остальные split-шаги того же job получают пустые envs при
+// createProcess()), поэтому проверка ключа однозначно отличает нужный шаг от прочих без обращения к args.
+fun refreshEnvCpuLimit(type: KaraokeProcessTypes, envs: Map<String, String>): Map<String, String> {
+    if (!envs.containsKey("MLT_CPU_LIMIT")) return envs
+    return envs + ("MLT_CPU_LIMIT" to dockerCpusEnvValue(cpuLimitPercentForType(type)))
+}
+
+// Применяет актуальный CPU-лимит к уже ВЫПОЛНЯЮЩИМСЯ докеризованным задачам немедленно, не дожидаясь
+// следующего запуска очереди - вызывается из ApiController.setProperty при смене resourceLimitsEnabled
+// или любого cpuLimitPercent*. Docker поддерживает live-обновление лимита у уже запущенного контейнера -
+// лимит меняется за секунды, без потери прогресса рендера/распознавания.
+// Голых (не докеризованных) ffmpeg/sheetsage-задач под cpulimit это не касается - там -l "запечён" в argv
+// самого процесса, для смены значения нужен перезапуск, поэтому они по-прежнему подхватывают новый
+// процент только со следующего запуска задания.
+// Ловушка: "docker update --cpus 0" - это no-op (проверено на Docker 29.6.1: NanoCpus остаётся прежним,
+// команда завершается успешно, но лимит не снимается), хотя "0" - обычная семантика docker'а для
+// "без ограничения" в НОВЫХ контейнерах (--cpus при docker run/compose). Для снятия лимита с УЖЕ
+// запущенного контейнера нужен отдельный флаг "--cpu-quota -1" (сбрасывает cgroup quota/period в
+// unlimited) - подтверждено docker stats: нагрузка сразу возвращается к полной.
+fun applyLiveCpuLimitToRunningProcesses() {
+    val dockerTypes = setOf(
+        KaraokeProcessTypes.MELT_LYRICS, KaraokeProcessTypes.MELT_KARAOKE,
+        KaraokeProcessTypes.MELT_CHORDS, KaraokeProcessTypes.MELT_TABS,
+        KaraokeProcessTypes.DEMUCS2, KaraokeProcessTypes.DEMUCS5,
+        KaraokeProcessTypes.KEY_BPM_FROM_FILE
+    )
+    val workingTypes = KaraokeProcess.loadList(mapOf("process_status" to KaraokeProcessStatuses.WORKING.name), WORKING_DATABASE)
+        .mapNotNull { p -> dockerTypes.find { it.name == p.type } }
+        .toSet()
+
+    for (type in workingTypes) {
+        val containerRef = when (type) {
+            KaraokeProcessTypes.MELT_LYRICS, KaraokeProcessTypes.MELT_KARAOKE,
+            KaraokeProcessTypes.MELT_CHORDS, KaraokeProcessTypes.MELT_TABS ->
+                runCommand(listOf("docker", "ps", "--filter", "ancestor=svoemestodev/melt:latest", "--format", "{{.ID}}"), ignoreErrors = true)
+                    .lineSequence().firstOrNull { it.isNotBlank() }
+            KaraokeProcessTypes.DEMUCS2, KaraokeProcessTypes.DEMUCS5 -> "demucs"
+            KaraokeProcessTypes.KEY_BPM_FROM_FILE ->
+                runCommand(listOf("docker", "ps", "--filter", "ancestor=svoemestodev/keybpmfinder:latest", "--format", "{{.ID}}"), ignoreErrors = true)
+                    .lineSequence().firstOrNull { it.isNotBlank() }
+            else -> null
+        } ?: continue
+
+        val cpusValue = dockerCpusEnvValue(cpuLimitPercentForType(type))
+        val updateArgs = if (cpusValue == "0") {
+            listOf("docker", "update", "--cpu-quota", "-1", containerRef)
+        } else {
+            listOf("docker", "update", "--cpus", cpusValue, containerRef)
+        }
+        try {
+            runCommand(updateArgs, ignoreErrors = true)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+}
+
 fun createScriptForHost(args: List<String>, waitToDone: Boolean = false) {
     val txt = args.joinToString(" ")
     val fileName = "/sm-karaoke/system/scriptsFromDocker/${UUID.randomUUID()}.sh"

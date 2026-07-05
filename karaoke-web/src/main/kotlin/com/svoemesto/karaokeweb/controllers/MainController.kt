@@ -178,8 +178,29 @@ class MainController(
                     Pair("link_type", linkType),
                     Pair("song_id", songId),
                 )
-                // link_name — деталь действия: ключ стема при export, позиция в секундах при seek
+                // link_name — деталь действия: ключ стема при export, позиция в секундах при seek,
+                // процент-веха при progress
                 (data["linkName"] as? String)?.let { fieldsValues.add(Pair("link_name", it)) }
+                return insertEvent(fieldsValues)
+            }
+            EventType.ENGAGEMENT.dbValue -> {
+                // Время на странице: rest_name = идентификатор страницы, link_name = секунды видимости
+                val fieldsValues: MutableList<Pair<String, Any>> = mutableListOf(
+                    Pair("event_type", EventType.ENGAGEMENT.dbValue),
+                )
+                (data["page"] as? String)?.let { fieldsValues.add(Pair("rest_name", it)) }
+                (data["linkName"] as? String)?.let { fieldsValues.add(Pair("link_name", it)) }
+                (data["songId"] as? String)?.toLongOrNull()?.let { fieldsValues.add(Pair("song_id", it)) }
+                return insertEvent(fieldsValues)
+            }
+            EventType.UI.dbValue -> {
+                // UI-действие: link_type = navigate|theme|scroll, link_name = деталь (маршрут/тема/процент)
+                val fieldsValues: MutableList<Pair<String, Any>> = mutableListOf(
+                    Pair("event_type", EventType.UI.dbValue),
+                )
+                (data["linkType"] as? String)?.let { fieldsValues.add(Pair("link_type", it)) }
+                (data["linkName"] as? String)?.let { fieldsValues.add(Pair("link_name", it)) }
+                (data["songId"] as? String)?.toLongOrNull()?.let { fieldsValues.add(Pair("song_id", it)) }
                 return insertEvent(fieldsValues)
             }
             else -> {}

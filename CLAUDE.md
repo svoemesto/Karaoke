@@ -1006,6 +1006,55 @@ value violates unique constraint`. Диагностика: `select last_value fr
 <table>))` — безопасная операция, только продвигает счётчик, данные не трогает. Стоит иметь в виду
 для любой другой `KaraokeDbTable`-таблицы, если появятся похожие случайные "id already exists".
 
+**Дашборд статистики webvue3 + расширенный трекинг (2026-07-05).** Крупная доработка сбора и
+отображения статистики. Ключевые моменты:
+
+- **Атрибуция ко ВСЕМ событиям.** Раньше просмотры страниц (`callRest`) писались анонимно.
+  Теперь `PublicApiController.stats/zakroma/songs/song` принимают `@RequestParam anonId` и передают
+  `siteUserResolver.resolve(request)?.id ?: 0` в `doRegisterEvent` (как раньше делал только
+  `/events`). На клиенте `karaoke-public/services/api.js:apiGet` **автоматически** подмешивает
+  `anonId` (из нового `services/clientId.js`) + `Authorization` во все публичные GET. `getAnonId`
+  вынесен в `clientId.js`, чтобы не было цикла импортов `api.js ↔ tracking.js` (`tracking.js` его
+  реэкспортирует — на него завязан `usePlayerAccess`).
+- **Новые типы событий** (без миграции схемы — переиспользуют generic-колонки `tbl_events`):
+  `EventType.ENGAGEMENT` (время на странице), `EventType.UI` (`link_type`=navigate|theme|scroll),
+  `PlayerAction.PROGRESS`/`ENDED` (`EventTypes.kt`). Ветки в `MainController.doRegisterEvent`.
+  Клиент: `trackPageEngagement` шлётся через `fetch(..., {keepalive:true})` — **НЕ**
+  `navigator.sendBeacon` (тот не умеет ставить `Authorization`, событие потеряло бы `site_user_id`).
+  Composable `useEngagementTracking` (время видимости + скролл-вехи 25/50/75/100) в 4 view-обёртках;
+  тема — в `useDesign` watch; навигация — `router.afterEach`; плеер — `_onEnded`/`_trackProgress`
+  (только копия `karaoke-public/player/`, гейт `_mode==='api'`, вехи с флагами и переармированием в
+  `_seekTo`).
+- **Все переходы по ссылкам** идут через `PlatformLink` (song/zakroma/search × classic/modern, все
+  платформы tg/max/sponsr/vk/dzen с корректным `songVersion`) и `SocialLinks` — уже трекались.
+  Единственный найденный пробел — sponsr-CTA «Оформить подписку» на странице песни (обычный
+  `<a href>`): добавлен `onSponsrClick` → `trackLinkToSong('sponsr', id, 'all')` в
+  `SongClassic`/`SongModern`.
+- **Backend агрегации** — `StatsByEvents` (`model/StatBySong.kt`, ручной JDBC): `getSummary`,
+  `getEventsTimeSeries(mode = all|type|detail)`, `getEventsByType`, `getEventsDetailed` (→
+  `DetailCountDto` с `eventType` для drill-down), `getChannelBreakdown` (**динамически** по
+  `link_name` для `clickToLink/linkToSong`, boosty исключён, max/sponsr появляются сами),
+  `getTopUsers`, `getWebEvents`. Последний переписан в **2 прохода** (убран N+1 `loadFromDbById` →
+  один `IN`-запрос имён песен) и **создаёт строку для ЛЮБОГО типа** (раньше молча пропускал
+  `engagement`/`ui`/`play` и `player/progress|ended`), отдаёт **все сырые колонки** `tbl_events`.
+  Общий SQL-фрагмент детали — константа `DETAIL_CASE` (кардинальность `link_name` для player/seek и
+  engagement намеренно НЕ берётся — только `link_type`, иначе тысячи значений). Эндпоинты
+  `StatsController`: `/api/stats/summary|timeseries|by-type|channels|by-detail|top-users|user-events`,
+  фильтры `eventType/days/siteUserId` в `/api/webevents`.
+- **Frontend** — `webvue3/components/Stats/*` на `vue3-apexcharts` (единственная новая зависимость,
+  регистрация в `main.js`): `KpiCards`, `TimeSeriesChart` (селектор Всего/По типам/Детально),
+  `TypeChannelBreakdown` (донат типов — **клик по сегменту** через `dataPointSelection` эмитит сырой
+  `event_type` → фильтрует `DetailBreakdown`; бар каналов), `DetailBreakdown` (горизонт. бар,
+  фильтр по выбранному типу + сброс), `TopUsersTable`+`UserEventsModal` (drill-down по пользователю),
+  топ песен (**+7 колонок player-действий**: открытие/старт/пауза/перемотка/экспорт/прогресс/
+  завершение), лог событий (**все поля БД**). Все GET — вручную собранной query-string (квирк
+  `promisedXMLHttpRequest`).
+- **Индекс** `tbl_events_site_user_id_index` (partial, `WHERE site_user_id>0`, вне `recordhash`)
+  создан на LOCAL и PROD — для `getTopUsers`/drill-down.
+- **Где живёт:** трекинг (`karaoke-web` + `karaoke-public`) **задеплоен на прод**. Дашборд-API
+  `/api/stats/*` и таблицы — **только `karaoke-app` + `webvue3` (админ-машина, на прод НЕ
+  деплоятся)**; чтобы увидеть дашборд — локальный ребилд/рестарт `karaoke-app` + ребилд `webvue3`.
+
 ## Git — что НЕ добавлять в репозиторий
 
 - `deploy/ollama_data/` — содержит SSH-ключи (`id_ed25519`) и большие модели Ollama. Уже в `.gitignore`.

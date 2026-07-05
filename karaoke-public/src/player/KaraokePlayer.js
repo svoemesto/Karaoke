@@ -1,4 +1,4 @@
-import { trackPlayerPlay, trackPlayerPause, trackPlayerSeek, trackPlayerExport } from '../services/tracking'
+import { trackPlayerPlay, trackPlayerPause, trackPlayerSeek, trackPlayerExport, trackPlayerProgress, trackPlayerEnded } from '../services/tracking'
 
 // Thrown when required audio isn't available yet (missing file in storage, no mp3 rendered, etc.) —
 // distinguished from other init errors so the UI can show a friendly message instead of raw details.
@@ -27,6 +27,9 @@ export default class KaraokePlayer {
     }
     this._smkaraokeObjectUrls = []
     this._seekTrackTimer = null
+    // Вехи прослушивания (25/50/75%): каждая стреляет один раз за воспроизведение. Сбрасываются
+    // в _onEnded() и переармируются при перемотке назад в _seekTo().
+    this._progressFlags = { 25: false, 50: false, 75: false }
 
     this.audioCtx = null
     this.accBuffer = null
@@ -1008,10 +1011,31 @@ export default class KaraokePlayer {
     this._endFadeStartedAt = Date.now()   // start logo→splash idle transition
     const btn = this.container.querySelector('#kp-play')
     if (btn) btn.textContent = '▶'
+    if (this._mode === 'api') trackPlayerEnded(this.songId)
+    this._progressFlags = { 25: false, 50: false, 75: false }
+  }
+
+  // Стреляет событие player/progress при пересечении веx 25/50/75% доигранного времени. Каждая
+  // веха — один раз за воспроизведение (флаги). _mode==='api' и isPlaying проверяет вызывающий.
+  _trackProgress(audioTime) {
+    if (!(this.duration > 0) || audioTime < 0) return
+    const pct = (audioTime / this.duration) * 100
+    for (const milestone of [25, 50, 75]) {
+      if (pct >= milestone && !this._progressFlags[milestone]) {
+        this._progressFlags[milestone] = true
+        trackPlayerProgress(this.songId, milestone)
+      }
+    }
   }
 
   _seekTo(time) {
     time = Math.max(0, Math.min(time, this.duration))
+    // Переармируем вехи прогресса под новую позицию: пройденные до неё считаем уже сыгранными
+    // (не выстрелят повторно), лежащие впереди — снова активны.
+    if (this.duration > 0) {
+      const pct = (time / this.duration) * 100
+      for (const milestone of [25, 50, 75]) this._progressFlags[milestone] = pct >= milestone
+    }
     const was = this.isPlaying
     clearTimeout(this._prerollTimeout)
     if (!this._isPrerolling && was) {
@@ -1345,6 +1369,8 @@ export default class KaraokePlayer {
       this._updateControls(dt)
       return
     }
+
+    if (this._mode === 'api' && this.isPlaying) this._trackProgress(audioTime)
 
     const endSeq = this._getEndSequenceAlphas()
     const logoAlpha = endSeq ? endSeq.logoAlpha : this._getLogoAlpha(audioTime)

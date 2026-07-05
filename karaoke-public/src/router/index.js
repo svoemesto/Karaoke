@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { trackUi } from '../services/tracking'
 import HomeView from '../views/HomeView.vue'
 import SearchView from '../views/SearchView.vue'
 import ZakromaView from '../views/ZakromaView.vue'
@@ -40,6 +41,13 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes
+})
+
+// Трекинг навигации по SPA-маршрутам (кроме скрытого плеера — его существование не палим в лог).
+router.afterEach((to) => {
+  if (to.name === 'player') return
+  const songId = to.name === 'song' ? (to.query.id || undefined) : undefined
+  trackUi('navigate', to.name || to.path, songId)
 })
 
 export default router

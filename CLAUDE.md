@@ -525,10 +525,30 @@ passthrough в Docker (`nvidia-container-toolkit` на хосте, `/var/run/doc
 `renice` на PID (`setProcessPriority`) — декоративен для докеризованных заданий: реницится CLI
 `docker`/`docker compose`, а не сам процесс внутри контейнера. Поэтому для реального ограничения нужны два
 разных механизма, в зависимости от того, как запускается тяжёлый шаг:
-- **Докеризованные шаги** (`MELT_*` — `docker compose run`, `DEMUCS2`/`DEMUCS5`/Key-BPM Finder — `docker run`) —
-  флаг `--cpus <N>`, `N = nproc * percent / 100` (`dockerCpusFlag()`), вставляется в argv тем же способом, что
-  и уже существовавший `gpuFlags` в `Settings.argsDemucs2/5`. **Ловушка:** `docker --cpus 0` означает
-  «без ограничения», а не «ноль» — значение никогда не форматируется в буквальный `0`/`0.0`, минимум `0.05`.
+- **`DEMUCS2`/`DEMUCS5`/Key-BPM Finder — `docker run` (не compose)** — флаг `--cpus <N>`, `N = nproc * percent / 100`
+  (`dockerCpusFlag()`), вставляется в argv тем же способом, что и уже существовавший `gpuFlags` в
+  `Settings.argsDemucs2/5`. **Ловушка:** `docker --cpus 0` означает «без ограничения», а не «ноль» — значение
+  никогда не форматируется в буквальный `0`/`0.0`, минимум `0.05`.
+- **`MELT_*` (`MELT_LYRICS`/`MELT_KARAOKE`/`MELT_CHORDS`/`MELT_TABS`) — `docker compose run`, НЕ `--cpus`.**
+  Первая версия этой фичи вставляла `dockerCpusFlag()` в argv точно так же, как для `docker run` — это
+  оказалось нерабочим в принципе: `docker compose run` (проверено `--help` и прямым воспроизведением)
+  **не поддерживает флаг `--cpus` вообще**, падает `unknown flag: --cpus` при любом запуске, если
+  `resourceLimitsEnabled=true`. Правильный механизм — `deploy.resources.limits.cpus` в самом
+  `docker-compose.yaml` (Docker Compose применяет его даже без Swarm), значение которого приходит через
+  интерполяцию переменной окружения `${MLT_CPU_LIMIT:-0}`. Реализация:
+  - `Utils.kt`: `dockerCpusEnvValue(percent)` — то же вычисление, что у `dockerCpusFlag`, но возвращает
+    голую строку значения (не список argv-флагов) для env-переменной.
+  - `KaraokeProcess.kt`: в `createProcess()` для всех четырёх типов `envs = mapOf("MLT_CPU_LIMIT" to
+    dockerCpusEnvValue(...))` — используется уже существовавший механизм `KaraokeProcess.envs`
+    (`ProcessBuilder.environment().putAll(...)` в `KaraokeProcessWorker`), тот же, что раньше только для
+    GPU-параметров Demucs. `docker compose` читает переменную из окружения самого CLI-процесса.
+  - **`/sm-karaoke/system/mlt-docker/docker-compose.yaml` — системный файл ВНЕ git-репозитория** (путь
+    захардкожен в `KaraokeProcess.kt`). Требует ручного добавления `deploy: resources: limits: cpus:
+    "${MLT_CPU_LIMIT:-0}"` — эта правка не проезжает через `git`/деплой, при пересоздании файла на новой
+    машине её нужно будет внести заново вручную.
+  - Встроенный голый ffmpeg-шаг 720p-транскода внутри `MELT_LYRICS`/`MELT_KARAOKE` (см. ниже) не затронут
+    этим багом — он не через `docker compose`, использует `cpulimitPrefix()`, argv-обёртка работала верно
+    с самого начала.
 - **Голые ffmpeg/shell-скрипты** (`SHEETSAGE`/`SHEETSAGE2` — декодирование FLAC→WAV и сам `sheetsage.sh`,
   `FF_720_KAR`/`FF_720_LYR`, а также встроенный ffmpeg-шаг 720p-транскода **внутри** `MELT_LYRICS`/
   `MELT_KARAOKE`) — обёртка `cpulimit -l <N> -i -- <команда>` (`cpulimitPrefix()`). `cpulimit -l` — это
@@ -543,8 +563,22 @@ passthrough в Docker (`nvidia-container-toolkit` на хосте, `/var/run/doc
   ffmpeg 720p-транскод) — оба оборачиваются одним и тем же процентом этого типа. `MELT_CHORDS`/`MELT_TABS`
   содержат только docker-шаг. `KEY_BPM_FROM_FILE` — пайплайн смешанный (docker-шаг + финальный
   «функциональный» `runFunctionWithArgs`, см. выше) — лимит применяется только к docker-шагу.
-- Ограничение применяется только в момент **старта** задания — смена процента/тумблера не влияет на уже
-  запущенные задания (не требует `docker update`/остановки).
+- Ограничение применяется только в момент **старта** задания (значение процента читается один раз, при
+  формировании `args`/`envs` в `createProcess()`, и запекается в БД в `process_envs`/`process_args`) —
+  смена процента/тумблера в UI сама по себе не влияет ни на уже запущенные задания, ни на уже стоящие в
+  очереди (`WAITING`) — их `process_envs` были вычислены по старому значению процента в момент постановки
+  в очередь. **Ловушка (наступали дважды подряд):** после смены процента (например 50→20) все уже
+  накопившиеся `WAITING`-задания `MELT_*` продолжают нести старое значение `MLT_CPU_LIMIT` в
+  `process_envs` — их нужно добить вручную SQL-бэкафиллом:
+  `UPDATE tbl_processes SET process_envs = '{"MLT_CPU_LIMIT":"<новое>"}' WHERE process_status='WAITING' AND
+  process_envs LIKE '%<старое>%' AND process_type IN ('MELT_LYRICS','MELT_KARAOKE','MELT_CHORDS','MELT_TABS')`
+  — иначе задания продолжают выполняться со старым (или вообще без) лимитом ещё долго после смены
+  настройки, что выглядит как «лимит не работает», хотя сам механизм исправен. Для уже **выполняющегося**
+  прямо сейчас контейнера смену лимита можно применить мгновенно без ожидания и без потери прогресса через
+  `docker update --cpus <N> <container_id>` — Docker поддерживает live-обновление `NanoCpus` у запущенного
+  контейнера (проверено: `docker inspect --format '{{.HostConfig.NanoCpus}}'` сразу отражает новое
+  значение, реальная загрузка по `docker stats` падает пропорционально в течение нескольких секунд) — это
+  ручная операционная мера, не автоматизированная в коде.
 - Переключатель «с ограничениями»/«безлимит» в шапке `webvue3` — `components/Common/ResourceLimitToggle.vue`,
   читает/пишет `resourceLimitsEnabled` через уже существующие `/api/properties/getproperty`/`setproperty`
   (добавлен только недостающий action `getPropertyValuePromise` в `Properties/store.js`). Кнопка — квадратная,

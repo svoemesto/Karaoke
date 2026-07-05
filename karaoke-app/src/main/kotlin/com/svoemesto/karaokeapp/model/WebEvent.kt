@@ -52,7 +52,12 @@ class WebEvent(
     @KaraokeDbTableField(name = "song_version")
     var songVersion: String? = null
 
-    @KaraokeDbTableField(name = "last_update")
+    // last_update авто-управляется триггером update_last_updated_events_trigger (BEFORE UPDATE → now())
+    // независимо в каждой БД и намеренно НЕ входит в recordhash (см. recordhash_events.sql). Поэтому оно
+    // не должно участвовать в diff синхронизации: иначе при апдейте строки по другой причине в UPDATE
+    // тянется бессмысленное now()-значение, а на pull LOCAL-триггер тут же перезапишет его снова —
+    // строки бесконечно «отличаются» по last_update и переписываются каждый прогон (socket timeout).
+    @KaraokeDbTableField(name = "last_update", useInDiff = false)
     var lastUpdate: Timestamp? = null
 
     @KaraokeDbTableField(name = "referer")

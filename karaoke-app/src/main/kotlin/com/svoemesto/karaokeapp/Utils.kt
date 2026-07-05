@@ -513,11 +513,14 @@ fun updateDatabases(
 
     if (toDatabase.name == "SERVER") {
 
-        val chunkedSize = if ("pictures" in keys) 1 else 10
+        // Полнострочные операции (INSERT/UPDATE) — по весу самой тяжёлой из синхронизируемых таблиц
+        // (минимум per-table rowChunkSize), удаления — по общему большому DELETE_CHUNK_SIZE (payload
+        // "DELETE ... WHERE id=X" крошечный). См. SyncTarget.rowChunkSize / SyncRegistry.DELETE_CHUNK_SIZE.
+        val rowChunk = SyncRegistry.all.filter { it.key in keys }.minOfOrNull { it.rowChunkSize } ?: 100
 
         if (listToCreate.isNotEmpty()) {
             println("[${Timestamp.from(Instant.now())}] Запрос на сервер на добавление.")
-            val chunked = listToCreate.chunked(chunkedSize)
+            val chunked = listToCreate.chunked(rowChunk)
             chunked.forEach { lstToCreate ->
                 val values: Map<String, Any> = mapOf(
                     "dataCreate" to lstToCreate,
@@ -542,7 +545,7 @@ fun updateDatabases(
         if (listToDelete.isNotEmpty()) {
             println("[${Timestamp.from(Instant.now())}] Запрос на сервер на удаление.")
 
-            val chunked = listToDelete.chunked(chunkedSize)
+            val chunked = listToDelete.chunked(SyncRegistry.DELETE_CHUNK_SIZE)
             chunked.forEach { lstToDelete ->
                 val values: Map<String, Any> = mapOf(
                     "dataCreate" to emptyList<Map<String, Any>>(),
@@ -568,7 +571,7 @@ fun updateDatabases(
         if (listToUpdate.isNotEmpty()) {
             println("[${Timestamp.from(Instant.now())}] Запрос на сервер на изменение.")
 
-            val chunked = listToUpdate.chunked(chunkedSize)
+            val chunked = listToUpdate.chunked(rowChunk)
             chunked.forEach { lstToUpdate ->
                 val values: Map<String, Any> = mapOf(
                     "dataCreate" to emptyList<Map<String, Any>>(),
@@ -599,14 +602,13 @@ fun updateDatabases(
     if (listToDeleteFromSource.isNotEmpty()) {
         if (fromDatabase.name == "SERVER") {
             println("[${Timestamp.from(Instant.now())}] Запрос на сервер (источник) на удаление перемещённых записей.")
-            val chunkedSize = if ("pictures" in keys) 1 else 10
             val payloads = listToDeleteFromSource.mapNotNull { item ->
                 val tableName = item["tableName"] as? String ?: return@mapNotNull null
                 val id = item["id"]
                 val sqlToDelete = "DELETE FROM $tableName WHERE id = $id"
                 Crypto.encrypt(sqlToDelete)?.let { mapOf("sqlToDelete" to it) }
             }
-            payloads.chunked(chunkedSize).forEach { lstToDelete ->
+            payloads.chunked(SyncRegistry.DELETE_CHUNK_SIZE).forEach { lstToDelete ->
                 val values: Map<String, Any> = mapOf(
                     "dataCreate" to emptyList<Map<String, Any>>(),
                     "dataUpdate" to emptyList<Map<String, Any>>(),
@@ -779,10 +781,16 @@ private fun <T : Any> collectSyncOps(
                         val ps = connection.prepareStatement(sql)
                         var index = 1
                         diff.filter { it.recordDiffRealField }.forEach {
-                            when (it.recordDiffValueNew) {
-                                is Long -> ps.setLong(index, it.recordDiffValueNew)
-                                is Int -> ps.setInt(index, it.recordDiffValueNew)
-                                else -> ps.setString(index, it.recordDiffValueNew.toString())
+                            when (val v = it.recordDiffValueNew) {
+                                null -> ps.setObject(index, null)
+                                is String -> ps.setString(index, v)
+                                is Long -> ps.setLong(index, v)
+                                is Int -> ps.setInt(index, v)
+                                is Double -> ps.setDouble(index, v)
+                                is Float -> ps.setFloat(index, v)
+                                is Timestamp -> ps.setTimestamp(index, v)
+                                is Boolean -> ps.setBoolean(index, v)
+                                else -> ps.setString(index, v.toString())
                             }
                             index++
                         }
@@ -2768,6 +2776,15 @@ fun dockerCpusFlag(percent: Long): List<String> {
     if (!Karaoke.resourceLimitsEnabled) return emptyList()
     val cpus = (hostCpuCoreCount() * percent / 100.0).coerceAtLeast(0.05)
     return listOf("--cpus", String.format(Locale.ROOT, "%.2f", cpus))
+}
+
+// Значение для деплой-лимита CPU в docker-compose.yaml (deploy.resources.limits.cpus: "${VAR:-0}"),
+// а не argv-флаг: "docker compose run" не поддерживает --cpus вообще (падает "unknown flag: --cpus"),
+// но применяет deploy.resources.limits.cpus даже без Swarm. "0" — значение docker'а для "без ограничения".
+fun dockerCpusEnvValue(percent: Long): String {
+    if (!Karaoke.resourceLimitsEnabled) return "0"
+    val cpus = (hostCpuCoreCount() * percent / 100.0).coerceAtLeast(0.05)
+    return String.format(Locale.ROOT, "%.2f", cpus)
 }
 
 // Префикс cpulimit для голых (не докеризованных) процессов (ffmpeg, sheetsage.sh). cpulimit -l — это

@@ -54,7 +54,14 @@ class SseNotificationService(private val mapper: ObjectMapper) {
                     try {
                         emitter.send(sseEvent)
                     } catch (e: Exception) {
-                        emitter.completeWithError(e)
+                        try {
+                            emitter.completeWithError(e)
+                        } catch (e2: Exception) {
+                            // AsyncContext эмиттера уже был завершён/помечен ошибочным ранее (например, вкладка
+                            // браузера закрылась) - completeWithError сам может кинуть исключение, которое иначе
+                            // вылетело бы из send() и уронило бы совершенно не связанный HTTP-запрос, вызвавший
+                            // рассылку уведомления.
+                        }
                         staleEmitters.add(emitter)
                     }
                 }

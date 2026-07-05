@@ -1296,9 +1296,9 @@ export default {
     closeFamilySongs() {
       this.isFamilySongsVisible = false;
     },
-    async selectFamilySong(idAnother) {
+    async selectFamilySong(payload) {
       this.isFamilySongsVisible = false;
-      const data = await this.$store.dispatch('selectFamilySongPromise', {idAnother: idAnother});
+      const data = await this.$store.dispatch('selectFamilySongPromise', {idAnother: payload.id, deltaMs: payload.deltaMs});
       const result = JSON.parse(data);
       if (result) {
         this.song.rootId = result.rootId;
@@ -1919,7 +1919,7 @@ export default {
       this.isCustomConfirmVisible = true;
     },
     doDeleteSong() {
-      this.$store.commit('deleteCurrentSong');
+      this.$store.dispatch('deleteCurrentSong');
       this.$emit('close');
     },
     async showSubsEdit() {

@@ -27,6 +27,12 @@
                 <th>Альбом</th>
                 <th>Название</th>
                 <th>Разница, сек</th>
+                <th class="fsm-compare-th">
+                  Сверка
+                  <button type="button" class="fsm-compare-all" :disabled="comparingAll" @click="compareAll">
+                    {{ comparingAll ? '…' : 'Сверить все' }}
+                  </button>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -41,6 +47,18 @@
                 <td class="fsm-col-left">{{ s.album }}</td>
                 <td class="fsm-col-left">{{ s.songName }} <span v-if="s.original" class="fsm-original-badge" title="Оригинал">ОРИГИНАЛ</span></td>
                 <td class="fsm-diff" :class="{'fsm-diff-zero': s.diffSeconds === 0}">{{ formatDiff(s.diffSeconds) }}</td>
+                <td class="fsm-compare" @click.stop>
+                  <template v-if="s.current">—</template>
+                  <template v-else>
+                    <span v-if="cmp(s).status === 'loading'" class="fsm-cmp-loading">…</span>
+                    <button v-else type="button" class="fsm-cmp-button" :class="cmpClass(s)"
+                            :title="cmpTitle(s)" @click.stop="compareOne(s)">
+                      <template v-if="cmp(s).status === 'done'">{{ cmp(s).similarityPercent }}% (Δ {{ fmtDelta(cmp(s).deltaMs) }})</template>
+                      <template v-else-if="cmp(s).status === 'error'">ошибка</template>
+                      <template v-else>Сверить</template>
+                    </button>
+                  </template>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -67,7 +85,9 @@ export default {
       songs: [],
       loading: true,
       searchQuery: '',
-      searched: false
+      searched: false,
+      compareResults: {},   // id -> {status:'idle'|'loading'|'done'|'error', similarityPercent, deltaMs, stemUsed, error}
+      comparingAll: false
     };
   },
   async mounted() {
@@ -82,9 +102,66 @@ export default {
     formatDiff(diffSeconds) {
       return (diffSeconds > 0 ? '+' : '') + diffSeconds;
     },
+    cmp(s) {
+      return this.compareResults[s.id] || { status: 'idle' };
+    },
+    fmtDelta(ms) {
+      return (ms > 0 ? '+' : '') + ms + ' мс';
+    },
+    cmpClass(s) {
+      const r = this.cmp(s);
+      if (r.status !== 'done') return '';
+      return r.similarityPercent >= 90 ? 'fsm-cmp-high' : (r.similarityPercent >= 60 ? 'fsm-cmp-mid' : 'fsm-cmp-low');
+    },
+    cmpTitle(s) {
+      const r = this.cmp(s);
+      if (r.status === 'done') return 'Стем: ' + (r.stemUsed === 'vocals' ? 'вокал' : 'микс') + '. Нажмите, чтобы пересверить';
+      if (r.status === 'error') return r.error || 'Ошибка сверки';
+      return 'Сравнить вейвформы вокала с текущей песней';
+    },
+    async compareOne(s) {
+      if (s.current) return;
+      this.compareResults[s.id] = { status: 'loading' };
+      try {
+        const data = await this.$store.dispatch('compareWaveformPromise', { idAnother: s.id });
+        const r = JSON.parse(data);
+        if (r && r.ok) {
+          this.compareResults[s.id] = {
+            status: 'done',
+            similarityPercent: r.similarityPercent,
+            deltaMs: r.deltaMs,
+            stemUsed: r.stemUsed
+          };
+        } else {
+          this.compareResults[s.id] = { status: 'error', error: (r && r.error) || 'Ошибка сверки' };
+        }
+      } catch (e) {
+        this.compareResults[s.id] = { status: 'error', error: 'Ошибка запроса' };
+      }
+    },
+    async compareAll() {
+      if (this.comparingAll) return;
+      this.comparingAll = true;
+      try {
+        const targets = this.songs.filter(s => !s.current);
+        const CONC = 3;
+        let idx = 0;
+        const worker = async () => {
+          while (idx < targets.length) {
+            const s = targets[idx++];
+            await this.compareOne(s);
+          }
+        };
+        await Promise.all(Array.from({ length: Math.min(CONC, targets.length) }, worker));
+      } finally {
+        this.comparingAll = false;
+      }
+    },
     select(song) {
       if (song.current) return;
-      this.$emit('select', song.id);
+      const r = this.compareResults[song.id];
+      const deltaMs = (r && r.status === 'done') ? r.deltaMs : null;
+      this.$emit('select', { id: song.id, deltaMs: deltaMs });
     },
     close() {
       this.$emit('close');
@@ -293,6 +370,77 @@ export default {
 .fsm-diff-zero {
   color: #4AAE9B;
   font-weight: bold;
+}
+
+.fsm-compare-th {
+  white-space: nowrap;
+}
+
+.fsm-compare-all {
+  margin-left: 8px;
+  border: 1px solid #4AAE9B;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: bold;
+  cursor: pointer;
+  color: #4AAE9B;
+  background: white;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+
+.fsm-compare-all:hover:not(:disabled) {
+  background: #4AAE9B;
+  color: white;
+}
+
+.fsm-compare-all:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.fsm-compare {
+  text-align: center;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.fsm-cmp-loading {
+  color: #888;
+}
+
+.fsm-cmp-button {
+  border: 1px solid #bbb;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  background: white;
+  color: #333;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+
+.fsm-cmp-button:hover {
+  background: #eef;
+}
+
+.fsm-cmp-high {
+  border-color: #2e9c4a;
+  color: #1c6e31;
+  font-weight: bold;
+  background: #eafbee;
+}
+
+.fsm-cmp-mid {
+  border-color: #c99a1e;
+  color: #8a6100;
+  background: #fff8e6;
+}
+
+.fsm-cmp-low {
+  border-color: #c05252;
+  color: #8a2f2f;
+  background: #fdecec;
 }
 
 .fsm-footer {

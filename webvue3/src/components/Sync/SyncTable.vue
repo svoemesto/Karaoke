@@ -5,16 +5,32 @@
     <table class="sync-table">
       <thead>
         <tr>
-          <th>Таблица</th>
-          <th>→ Server</th>
-          <th>← Local</th>
+          <th rowspan="2">Таблица</th>
+          <th :colspan="ops.length" class="sync-group sync-group-push">→ Server (push)</th>
+          <th rowspan="2"></th>
+          <th :colspan="ops.length" class="sync-group sync-group-pull">← Local (pull)</th>
+          <th rowspan="2"></th>
+        </tr>
+        <tr>
+          <th v-for="op in ops" :key="'ph-' + op.op" class="sync-op-col" :title="op.title">{{ op.label }}</th>
+          <th v-for="op in ops" :key="'lh-' + op.op" class="sync-op-col" :title="op.title">{{ op.label }}</th>
         </tr>
       </thead>
       <tbody>
         <tr v-for="entity in entities" :key="entity.key">
-          <td>{{ entity.displayName }}</td>
+          <td class="sync-name-col">{{ entity.displayName }}</td>
+          <td v-for="op in ops" :key="'p-' + op.op" class="sync-op-col">
+            <input type="checkbox"
+                   :checked="entity[fieldName('PUSH', op.op)]"
+                   @change="onFlagChange(entity, 'PUSH', op.op, $event)" />
+          </td>
           <td>
             <button class="button-action button-action-inline" :disabled="!entity.allowPush" @click="confirmRun(entity, 'PUSH')">→ Server</button>
+          </td>
+          <td v-for="op in ops" :key="'l-' + op.op" class="sync-op-col">
+            <input type="checkbox"
+                   :checked="entity[fieldName('PULL', op.op)]"
+                   @change="onFlagChange(entity, 'PULL', op.op, $event)" />
           </td>
           <td>
             <button class="button-action button-action-inline" :disabled="!entity.allowPull" @click="confirmRun(entity, 'PULL')">← Local</button>
@@ -35,6 +51,12 @@ export default {
     return {
       isCustomConfirmVisible: false,
       customConfirmParams: undefined,
+      ops: [
+        { op: 'INSERT', label: 'Доб', title: 'Добавление' },
+        { op: 'UPDATE', label: 'Изм', title: 'Изменение' },
+        { op: 'DELETE', label: 'Уд', title: 'Удаление (в цели)' },
+        { op: 'MOVE', label: 'Пер', title: 'Перемещение (удаление из источника после переноса)' },
+      ],
     }
   },
   computed: {
@@ -45,6 +67,24 @@ export default {
   },
   methods: {
     directionLabel(direction) { return direction === 'PUSH' ? 'Local → Server' : 'Server → Local'; },
+    // Имя поля флага в объекте сущности: PUSH+INSERT → pushInsert, PULL+MOVE → pullMove.
+    fieldName(direction, op) {
+      const prefix = direction === 'PUSH' ? 'push' : 'pull';
+      return prefix + op.charAt(0) + op.slice(1).toLowerCase();
+    },
+    onFlagChange(entity, direction, operation, event) {
+      const value = event.target.checked;
+      this.$store.dispatch('setSyncFlagPromise', { key: entity.key, direction, operation, value })
+        .catch(() => {
+          // откат визуального состояния при ошибке
+          event.target.checked = !value;
+          this.customConfirmParams = {
+            isAlert: true, alertType: 'error', header: 'Синхронизация',
+            body: 'Не удалось сохранить флаг — см. лог сервера.', timeout: 15
+          }
+          this.isCustomConfirmVisible = true;
+        });
+    },
     confirmRun(entity, direction) {
       this.customConfirmParams = {
         header: 'Синхронизация',
@@ -91,8 +131,11 @@ export default {
         const created = r.created ? r.created.length : 0;
         const updated = r.updated ? r.updated.length : 0;
         const deleted = r.deleted ? r.deleted.length : 0;
+        const moved = r.moved ? r.moved.length : 0;
         const label = r.displayName ? `${r.displayName}: ` : '';
-        return `${label}добавлено ${created}, изменено ${updated}, удалено ${deleted}`;
+        let line = `${label}добавлено ${created}, изменено ${updated}, удалено ${deleted}`;
+        if (moved) line += `, перемещено (удалено из источника) ${moved}`;
+        return line;
       });
       this.customConfirmParams = {
         isAlert: true, alertType: 'info', header: title,
@@ -110,6 +153,8 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  width: 100%;
+  overflow-x: auto;
 }
 .sync-oneclick-button {
   align-self: flex-start;
@@ -122,5 +167,23 @@ export default {
   border: 1px solid #ccc;
   padding: 4px 8px;
   text-align: center;
+}
+.sync-name-col {
+  text-align: left;
+  white-space: nowrap;
+}
+.sync-op-col {
+  width: 34px;
+  padding: 4px 2px;
+  font-size: 12px;
+}
+.sync-group {
+  font-size: 13px;
+}
+.sync-group-push {
+  background: #eef6ff;
+}
+.sync-group-pull {
+  background: #eefaf0;
 }
 </style>

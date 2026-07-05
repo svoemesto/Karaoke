@@ -10,8 +10,12 @@ import com.svoemesto.karaokeapp.services.SseNotificationService
 import com.svoemesto.karaokeapp.services.StorageApiClient
 import com.svoemesto.karaokeapp.services.WVP
 import com.svoemesto.karaokeapp.sync.SyncDirection
+import com.svoemesto.karaokeapp.sync.SyncOperation
 import com.svoemesto.karaokeapp.sync.SyncRegistry
+import com.svoemesto.karaokeapp.sync.SyncTarget
 import com.svoemesto.karaokeapp.sync.isAllowed
+import com.svoemesto.karaokeapp.sync.isOperationAllowed
+import com.svoemesto.karaokeapp.sync.operationPropertyKey
 import com.svoemesto.karaokeapp.textfiledictionary.SyncIdsDictionary
 import com.svoemesto.karaokeapp.textfiledictionary.TextFileDictionary
 import com.svoemesto.karaokeapp.textfilehistory.SongsHistory
@@ -57,9 +61,18 @@ import javax.imageio.ImageIO
 data class FamilySongDto(val id: Long, val songName: String, val author: String, val album: String, val year: Long, val diffSeconds: Long, val original: Boolean, val current: Boolean, val idStatus: Long)
 data class SelectFamilySongResultDto(val rootId: Long, val idStatus: Long)
 
-data class SyncEntityInfoDto(val key: String, val displayName: String, val allowPush: Boolean, val allowPull: Boolean, val oneClickDirection: String)
-data class SyncRunResultDto(val created: List<String>, val updated: List<String>, val deleted: List<String>)
-data class SyncOneClickResultDto(val key: String, val displayName: String, val direction: String, val skipped: Boolean, val created: List<String>, val updated: List<String>, val deleted: List<String>)
+data class SyncEntityInfoDto(
+    val key: String,
+    val displayName: String,
+    val allowPush: Boolean,
+    val allowPull: Boolean,
+    val oneClickDirection: String,
+    // Флаги операций per-direction (push = Local→Server, pull = Server→Local).
+    val pushInsert: Boolean, val pushUpdate: Boolean, val pushDelete: Boolean, val pushMove: Boolean,
+    val pullInsert: Boolean, val pullUpdate: Boolean, val pullDelete: Boolean, val pullMove: Boolean,
+)
+data class SyncRunResultDto(val created: List<String>, val updated: List<String>, val deleted: List<String>, val moved: List<String>)
+data class SyncOneClickResultDto(val key: String, val displayName: String, val direction: String, val skipped: Boolean, val created: List<String>, val updated: List<String>, val deleted: List<String>, val moved: List<String>)
 
 @SuppressWarnings("SpellCheckingInspection")
 @Controller
@@ -500,11 +513,23 @@ class ApiController(
     // root_id (только если он ещё 0) и статус (только если он ещё NONE/0 -> TEXT_CREATE/1)
     @PostMapping("/song/selectfamilysong")
     @ResponseBody
-    fun selectFamilySong(@RequestParam id: Long, @RequestParam idAnother: Long): SelectFamilySongResultDto? {
+    fun selectFamilySong(@RequestParam id: Long, @RequestParam idAnother: Long, @RequestParam(required = false) deltaMs: Long?): SelectFamilySongResultDto? {
         val settings = Settings.loadFromDbById(id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient) ?: return null
         val another = Settings.loadFromDbById(idAnother, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient) ?: return null
-        applyFamilySongSelection(settings, another)
+        applyFamilySongSelection(settings, another, deltaMs)
         return SelectFamilySongResultDto(rootId = settings.rootId, idStatus = settings.idStatus)
+    }
+
+    // Акустическая сверка текущей песни с кандидатом в оригинал (модалка "Похожие версии песни",
+    // кнопки "Сверить"/"Сверить все"). Кросс-корреляция огибающих вокальных стемов - см. WaveformCompare.
+    @PostMapping("/song/comparewaveform")
+    @ResponseBody
+    fun compareWaveform(@RequestParam id: Long, @RequestParam idAnother: Long): WaveformCompareResultDto {
+        val settings = Settings.loadFromDbById(id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+            ?: return WaveformCompareResultDto(idAnother, 0, 0, "", false, "Текущая песня не найдена")
+        val another = Settings.loadFromDbById(idAnother, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+            ?: return WaveformCompareResultDto(idAnother, 0, 0, "", false, "Кандидат не найден")
+        return WaveformCompare.compareWaveforms(settings, another)
     }
 
     // Получение исходного текста для голоса
@@ -2814,10 +2839,10 @@ class ApiController(
 
     @PostMapping("/song/setpublishdatetimetoauthor")
     @ResponseBody
-    fun doSetPublishDateTimeToAuthor(@RequestParam id: Long) {
+    fun doSetPublishDateTimeToAuthor(@RequestParam id: Long, @RequestParam(required = false) skipPublished: Boolean = false) {
         val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
         settings?.let {
-            Settings.setPublishDateTimeToAuthor(settings)
+            Settings.setPublishDateTimeToAuthor(settings, skipPublished = skipPublished)
         }
         SNS.send(SseNotification.message(Message(
             type = "info",
@@ -2932,18 +2957,54 @@ class ApiController(
     // Универсальная синхронизация LOCAL<->SERVER (webvue3, раздел "Синхронизация") — по любой
     // сущности SyncRegistry (Settings/Pictures/Authors/SiteUsers/Events), в любую сторону, с проверкой
     // разрешения через sync_<key>_push/pull_allowed (см. KaraokeProperties.kt).
+    private fun syncEntityInfo(target: SyncTarget<*>): SyncEntityInfoDto = SyncEntityInfoDto(
+        key = target.key,
+        displayName = target.displayName,
+        allowPush = target.isAllowed(SyncDirection.LOCAL_TO_SERVER),
+        allowPull = target.isAllowed(SyncDirection.SERVER_TO_LOCAL),
+        oneClickDirection = target.oneClickDirection.name,
+        pushInsert = target.isOperationAllowed(SyncDirection.LOCAL_TO_SERVER, SyncOperation.INSERT),
+        pushUpdate = target.isOperationAllowed(SyncDirection.LOCAL_TO_SERVER, SyncOperation.UPDATE),
+        pushDelete = target.isOperationAllowed(SyncDirection.LOCAL_TO_SERVER, SyncOperation.DELETE),
+        pushMove = target.isOperationAllowed(SyncDirection.LOCAL_TO_SERVER, SyncOperation.MOVE),
+        pullInsert = target.isOperationAllowed(SyncDirection.SERVER_TO_LOCAL, SyncOperation.INSERT),
+        pullUpdate = target.isOperationAllowed(SyncDirection.SERVER_TO_LOCAL, SyncOperation.UPDATE),
+        pullDelete = target.isOperationAllowed(SyncDirection.SERVER_TO_LOCAL, SyncOperation.DELETE),
+        pullMove = target.isOperationAllowed(SyncDirection.SERVER_TO_LOCAL, SyncOperation.MOVE),
+    )
+
     @GetMapping("/sync/entities")
     @ResponseBody
     fun getSyncEntities(): List<SyncEntityInfoDto> {
-        return SyncRegistry.all.map { target ->
-            SyncEntityInfoDto(
-                key = target.key,
-                displayName = target.displayName,
-                allowPush = target.isAllowed(SyncDirection.LOCAL_TO_SERVER),
-                allowPull = target.isAllowed(SyncDirection.SERVER_TO_LOCAL),
-                oneClickDirection = target.oneClickDirection.name,
-            )
+        return SyncRegistry.all.map { syncEntityInfo(it) }
+    }
+
+    // Переключение одного флага операции (сущность × направление × операция). Наименование ключа
+    // KaraokeProperty инкапсулировано в бэкенде (operationPropertyKey) — фронт шлёт только семантику.
+    @PostMapping("/sync/setflag")
+    @ResponseBody
+    fun postSyncSetFlag(
+        @RequestParam(required = true) key: String,
+        @RequestParam(required = true) direction: String,
+        @RequestParam(required = true) operation: String,
+        @RequestParam(required = true) value: Boolean,
+    ): ResponseEntity<Any> {
+        val target = SyncRegistry.byKey(key)
+            ?: return ResponseEntity.badRequest().body(mapOf("error" to "unknown_key"))
+        val syncDirection = when (direction) {
+            "PUSH" -> SyncDirection.LOCAL_TO_SERVER
+            "PULL" -> SyncDirection.SERVER_TO_LOCAL
+            else -> return ResponseEntity.badRequest().body(mapOf("error" to "unknown_direction"))
         }
+        val op = when (operation) {
+            "INSERT" -> SyncOperation.INSERT
+            "UPDATE" -> SyncOperation.UPDATE
+            "DELETE" -> SyncOperation.DELETE
+            "MOVE" -> SyncOperation.MOVE
+            else -> return ResponseEntity.badRequest().body(mapOf("error" to "unknown_operation"))
+        }
+        KaraokeProperties.set(target.operationPropertyKey(syncDirection, op), value)
+        return ResponseEntity.ok(syncEntityInfo(target))
     }
 
     @PostMapping("/sync/run")
@@ -2966,11 +3027,12 @@ class ApiController(
                 "message" to "Синхронизация «${target.displayName}» в этом направлении запрещена настройками"
             ))
         }
-        val (created, updated, deleted) = runEntitySync(key = target.key, direction = syncDirection, id = id)
-        if (created.size + updated.size + deleted.size != 0) {
+        val result = runEntitySync(key = target.key, direction = syncDirection, id = id)
+        val (created, updated, deleted, moved) = result
+        if (created.size + updated.size + deleted.size + moved.size != 0) {
             SNS.send(SseNotification.crud(listOf(created, updated, deleted)))
         }
-        return ResponseEntity.ok(SyncRunResultDto(created, updated, deleted))
+        return ResponseEntity.ok(SyncRunResultDto(created, updated, deleted, moved))
     }
 
     @PostMapping("/sync/oneclick")
@@ -2981,16 +3043,16 @@ class ApiController(
             if (!target.isAllowed(direction)) {
                 SyncOneClickResultDto(
                     key = target.key, displayName = target.displayName, direction = direction.name,
-                    skipped = true, created = emptyList(), updated = emptyList(), deleted = emptyList()
+                    skipped = true, created = emptyList(), updated = emptyList(), deleted = emptyList(), moved = emptyList()
                 )
             } else {
-                val (created, updated, deleted) = runEntitySync(key = target.key, direction = direction)
-                if (created.size + updated.size + deleted.size != 0) {
+                val (created, updated, deleted, moved) = runEntitySync(key = target.key, direction = direction)
+                if (created.size + updated.size + deleted.size + moved.size != 0) {
                     SNS.send(SseNotification.crud(listOf(created, updated, deleted)))
                 }
                 SyncOneClickResultDto(
                     key = target.key, displayName = target.displayName, direction = direction.name,
-                    skipped = false, created = created, updated = updated, deleted = deleted
+                    skipped = false, created = created, updated = updated, deleted = deleted, moved = moved
                 )
             }
         }

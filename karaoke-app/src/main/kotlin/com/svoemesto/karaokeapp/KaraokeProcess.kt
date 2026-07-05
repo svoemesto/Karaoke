@@ -1455,6 +1455,8 @@ class KaraokeProcess(
                             listOfNotNull(
                                 "runFunctionWithArgs", "uploadToLocalStore", "settingsId=${settings.id}",
                                 "pathToFile=$pathToFile", "karaokeFileType=$karaokeFileType",
+                                (context["storageFileName"] as? String)?.let { "storageFileName=$it" },
+                                (context["bucketName"] as? String)?.let { "bucketName=$it" },
                                 deleteAfterUpload?.let { "deleteAfterUpload=$it" }
                             )
                         )
@@ -1468,6 +1470,8 @@ class KaraokeProcess(
                             listOfNotNull(
                                 "runFunctionWithArgs", "uploadToRemoteStore", "settingsId=${settings.id}",
                                 "pathToFile=$pathToFile", "karaokeFileType=$karaokeFileType",
+                                (context["storageFileName"] as? String)?.let { "storageFileName=$it" },
+                                (context["bucketName"] as? String)?.let { "bucketName=$it" },
                                 deleteAfterUpload?.let { "deleteAfterUpload=$it" }
                             )
                         )

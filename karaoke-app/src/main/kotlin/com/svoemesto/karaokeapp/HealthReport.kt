@@ -598,7 +598,7 @@ data class HealthReport(
                                        doWait = true,
                                        prior = -2,
                                        threadId = KaraokeProcess.THREAD_LANE_LIGHT_BACKGROUND,
-                                       context = mapOf("pathToFile" to pathToFile, "karaokeFileType" to karaokeFileType.name)
+                                       context = mapOf("pathToFile" to pathToFile, "karaokeFileType" to karaokeFileType.name, "storageFileName" to storageFileName, "bucketName" to storageBucketName)
                                    )
                                }
                                actions.add { println("actionsLocalStorage [Загрузка файла с диска в локальное хранилище] <<<") }
@@ -652,7 +652,7 @@ data class HealthReport(
                                     doWait = true,
                                     prior = -2,
                                     threadId = KaraokeProcess.THREAD_LANE_LIGHT_BACKGROUND,
-                                    context = mapOf("pathToFile" to pathToFile, "karaokeFileType" to karaokeFileType.name)
+                                    context = mapOf("pathToFile" to pathToFile, "karaokeFileType" to karaokeFileType.name, "storageFileName" to storageFileName, "bucketName" to storageBucketName)
                                 )
                             }
                             actions.add { println("actionsLocalStorage [$solutionText] <<<") }
@@ -697,6 +697,8 @@ data class HealthReport(
                                         context = mapOf(
                                             "pathToFile" to tempFile.toString(),
                                             "karaokeFileType" to karaokeFileType.name,
+                                            "storageFileName" to storageFileName,
+                                            "bucketName" to storageBucketName,
                                             "deleteAfterUpload" to "true"
                                         )
                                     )
@@ -865,7 +867,7 @@ data class HealthReport(
                                         doWait = true,
                                         prior = -2,
                                         threadId = KaraokeProcess.THREAD_LANE_REMOTE_STORE_UPLOAD,
-                                        context = mapOf("pathToFile" to pathToFile, "karaokeFileType" to karaokeFileType.name)
+                                        context = mapOf("pathToFile" to pathToFile, "karaokeFileType" to karaokeFileType.name, "storageFileName" to storageFileName, "bucketName" to storageBucketName)
                                     )
                                 }
                                 actions.add { println("actionsRemoteStorage [Загрузка файла с диска в удалённое хранилище] <<<") }
@@ -919,7 +921,7 @@ data class HealthReport(
                                     doWait = true,
                                     prior = -2,
                                     threadId = KaraokeProcess.THREAD_LANE_REMOTE_STORE_UPLOAD,
-                                    context = mapOf("pathToFile" to pathToFile, "karaokeFileType" to karaokeFileType.name)
+                                    context = mapOf("pathToFile" to pathToFile, "karaokeFileType" to karaokeFileType.name, "storageFileName" to storageFileName, "bucketName" to storageBucketName)
                                 )
                             }
                             actions.add { println("actionsRemoteStorage [$solutionText] <<<") }
@@ -965,6 +967,8 @@ data class HealthReport(
                                         context = mapOf(
                                             "pathToFile" to tempFile.toString(),
                                             "karaokeFileType" to karaokeFileType.name,
+                                            "storageFileName" to storageFileName,
+                                            "bucketName" to storageBucketName,
                                             "deleteAfterUpload" to "true"
                                         )
                                     )
@@ -1973,9 +1977,9 @@ data class HealthReport(
                                 (settings.idStatus >= 3 && settings.idStatus < 6)
                             } else {
                                 if (settings.exclusive) {
-                                    karaokePlatform == KaraokePlatform.SPONSR && settings.idStatus >= 6
+                                    karaokePlatform == KaraokePlatform.SPONSR && settings.idStatus >= 3
                                 } else {
-                                    (settings.idStatus >= 6) && (!karaokePlatform.onAirPublications || !settings.onAir)
+                                    (settings.idStatus >= 3) && (!karaokePlatform.onAirPublications || !settings.onAir)
                                 }
                             }
                             if (!karaokePlatform.forAllVersions) canBe = false
@@ -1985,8 +1989,8 @@ data class HealthReport(
 
                             when(karaokePlatform) {
                                 KaraokePlatform.SPONSR -> { actionToCreate = { createSponsrTeaserPicture(settings = settings) } }
-                                KaraokePlatform.VKGROUP -> { actionToCreate = { createVKLinkPicture(settings = settings) } }
 
+                                KaraokePlatform.VKGROUP, // -> { actionToCreate = { createVKLinkPicture(settings = settings) } }
                                 KaraokePlatform.DZEN,
                                 KaraokePlatform.VKVIDEO,
                                 KaraokePlatform.PLATFORMA,

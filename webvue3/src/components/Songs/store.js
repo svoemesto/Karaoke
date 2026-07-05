@@ -1341,26 +1341,6 @@ export default {
         setCurrentSongHealthReports(state, result) {
             state.currentSongHealthReports = result;
         },
-        async deleteCurrentSong(state) {
-            let previousSongId = state.previousSongId;
-            let nextSongId = state.nextSongId;
-            let params = { id: state.currentSongId };
-            let request = { method: 'POST', url: "/api/song/delete", params: params };
-            state.songPages[state.currentSongPageIndex].splice(state.currentSongIndex, 1);
-            await promisedXMLHttpRequest(request);
-
-            if (previousSongId) {
-                await state.commit('setCurrentSongId', previousSongId)
-            } else {
-                await state.commit('setCurrentSongId', nextSongId)
-            }
-            if (state.currentSongId) {
-                let params = { id: state.currentSongId };
-                let request = { method: 'POST', url: "/api/song/setpublishdatetimetoauthor", params: params };
-                promisedXMLHttpRequest(request).then(r => console.log('setDateTimeAuthorPromise result: ', r));
-            }
-
-        },
         setPreviousSongId(state, previousSongId) {
             state.previousSongId = previousSongId
         },
@@ -1512,7 +1492,13 @@ export default {
             console.log('Событие добавления песни: ', userEventData)
         },
         deleteSongByUserEvent(state, userEventData) {
-            console.log('Событие удаления песни: ', userEventData)
+            let songId = userEventData.recordId;
+            for (let i = 0; i < state.songsDigest.length; i++) {
+                if (state.songsDigest[i].id === songId) {
+                    state.songsDigest.splice(i, 1);
+                    break;
+                }
+            }
         },
         changeToSync(state) {
             let params = {dictName: 'Sync Ids', dictValue: state.currentSongId}
@@ -2096,7 +2082,19 @@ export default {
             ctx.commit('addSongByUserEvent', userEventData);
         },
         deleteSongByUserEvent(ctx, userEventData) {
-            ctx.commit('addSongByUserEvent', userEventData);
+            ctx.commit('deleteSongByUserEvent', userEventData);
+        },
+        async deleteCurrentSong(ctx) {
+            let previousSongId = ctx.state.previousSongId;
+            let nextSongId = ctx.state.nextSongId;
+            let deletedId = ctx.state.currentSongId;
+            await promisedXMLHttpRequest({ method: 'POST', url: "/api/song/delete", params: { id: deletedId } });
+            let targetId = previousSongId || nextSongId;
+            if (targetId) {
+                await ctx.dispatch('setCurrentSongId', targetId);
+                promisedXMLHttpRequest({ method: 'POST', url: "/api/song/setpublishdatetimetoauthor", params: { id: targetId, skipPublished: true } })
+                    .then(r => console.log('setDateTimeAuthorPromise result: ', r));
+            }
         },
         loadSongsDigests(ctx, params) {
             let request = { method: 'POST', url: "/api/songsdigests", params: params };
@@ -2138,9 +2136,15 @@ export default {
             let request = { method: 'POST', url: "/api/song/searchoriginal", params: params };
             return promisedXMLHttpRequest(request);
         },
-        selectFamilySongPromise(ctx, {idAnother}) {
+        selectFamilySongPromise(ctx, {idAnother, deltaMs}) {
             let params = { id: ctx.state.currentSongId, idAnother: idAnother };
+            if (deltaMs !== null && deltaMs !== undefined) params.deltaMs = deltaMs;
             let request = { method: 'POST', url: "/api/song/selectfamilysong", params: params };
+            return promisedXMLHttpRequest(request);
+        },
+        compareWaveformPromise(ctx, {idAnother}) {
+            let params = { id: ctx.state.currentSongId, idAnother: idAnother };
+            let request = { method: 'POST', url: "/api/song/comparewaveform", params: params };
             return promisedXMLHttpRequest(request);
         },
         addSyncForAll(ctx) {

@@ -237,24 +237,50 @@ JDBC обслуживает вьюху "Статистика" и не трога
 `deploy/recordhash_events.sql` (который ссылается на `NEW.referer`).
 
 **Направления one-click sync** (`SyncTarget.oneClickDirection`): `settings`/`pictures`/`authors` —
-`LOCAL_TO_SERVER`; `siteusers`/`events` — `SERVER_TO_LOCAL`. Разрешение на ручную/one-click синхронизацию
-каждой (сущность × направление) — 10 независимых `KaraokeProperty` вида
-`sync_<key>_push_allowed`/`sync_<key>_pull_allowed` (дефолт `false` у всех). Это **отдельный** механизм
-от старых `allowUpdateRemote`/`allowUpdateLocal` (те по-прежнему гейтят только автопуш `Settings` при
-сохранении и мониторинг `tbl_settings_sync` в `KaraokeProcessWorker` — старые 6 кнопок на Home, которые
-они раньше гейтили, удалены вместе с заменой UI, см. ниже).
+`LOCAL_TO_SERVER`; `siteusers`/`events` — `SERVER_TO_LOCAL`.
 
-**API**: `GET /api/sync/entities` (список сущностей с `allowPush`/`allowPull`/`oneClickDirection`),
-`POST /api/sync/run` (`key`, `direction=PUSH|PULL`, опционально `id` — одна запись), `POST
-/api/sync/oneclick` (по каждой сущности реестра — в её `oneClickDirection`, пропуская запрещённые
-флагом). Старые точечные эндпоинты (`/utils/updateremotesettingsfromlocaldatabase`,
+**Флаги операций per-direction (`SyncOperation`, `sync/SyncTarget.kt`).** Разрешение синхронизации задаётся
+не одним флагом на направление, а **8 флагами на сущность** — `sync_<key>_<push|pull>_<insert|update|delete|move>_allowed`
+(40 `KaraokeProperty` всего, `KaraokeProperties.kt`). `SyncOperation` = INSERT/UPDATE/DELETE (операции над
+**ЦЕЛЬЮ**: добавить/изменить/зеркально удалить отсутствующее в источнике) + **MOVE** («перемещение»: после
+подтверждённого переноса удалить перенесённые строки из **ИСТОЧНИКА**). `DELETE` (удаление в цели) и `MOVE`
+(удаление в источнике) — про разные БД и по смыслу взаимоисключающи. Направление считается разрешённым
+(кнопка активна, проверка 403 в `/api/sync/run`) если включена **хотя бы одна** операция —
+`isAllowed(direction)` теперь derived-обёртка над `isOperationAllowed(direction, op)`. Дефолт всех флагов
+`false`, **кроме** `events`/pull: `insert/update/move = true, delete = false` (перелив статистики с сервера
+на LOCAL + очистка сервера «из коробки»). Это **отдельный** механизм от старых
+`allowUpdateRemote`/`allowUpdateLocal` (те по-прежнему гейтят только автопуш `Settings` при сохранении и
+мониторинг `tbl_settings_sync` в `KaraokeProcessWorker`).
+
+**Реализация move (`collectSyncOps`/`updateDatabases` в `Utils.kt`).** `collectSyncOps` выводит `direction`
+из `toDatabase.name` (`"SERVER"` → push), гейтит блоки INSERT/UPDATE/DELETE по флагам и в режиме move
+копит **безопасный** набор для удаления из источника в `listToDeleteFromSource` = реально вставленные +
+реально изменённые (прошедшие `shouldPush`) + уже идентичные (равный `recordhash`). Строку, которая
+различается, но не перенесена (insert/update выключены), НЕ удаляет — защита от потери данных. Удаление из
+источника флашится в `updateDatabases` **после** записи в цель: если источник = SERVER (кейс events pull) —
+зашифрованный `DELETE` на `changerecords` (тот же payload `dataDelete`, что зеркальное удаление, но по
+строкам источника); иначе (источник = LOCAL) — JDBC по `connFrom`. Возврат `updateDatabases`/`runEntitySync`
+— `data class SyncResult(created, updated, deleted, moved)` (component1..4 сохраняет совместимость
+legacy-деструктуризации `val (c,u,d) = ...`). **Ни SQL-миграции, ни деплоя на прод не требуется** — флаги в
+файловых `KaraokeProperties` (локальны), удаление серверных строк — по уже существующему `changerecords`.
+
+**API**: `GET /api/sync/entities` (сущности с `allowPush`/`allowPull`/`oneClickDirection` + 8 булевых
+`pushInsert/…/pullMove`), `POST /api/sync/run` (`key`, `direction=PUSH|PULL`, опц. `id`; результат c `moved`),
+`POST /api/sync/oneclick`, `POST /api/sync/setflag` (`key`, `direction`, `operation`, `value` — переключение
+одного флага, наименование ключа инкапсулировано в бэкенде через `operationPropertyKey`). Старые точечные эндпоинты (`/utils/updateremotesettingsfromlocaldatabase`,
 `/utils/updateremotepicturefromlocaldatabase`, `/utils/tosync` — per-record кнопки в `SongEdit.vue`) и
 старые bulk-обёртки (`updateRemoteDatabaseFromLocalDatabase`/`updateLocalDatabaseFromRemoteDatabase`,
 всё ещё дергаемые из `Settings.saveToDb()`/`KaraokeProcessWorker`) не изменены — внутри транслируют
 старые bool-флаги в `keys: Set<String>` нового generic `updateDatabases()`.
 
-**webvue3**: `components/Sync/SyncTable.vue` + `store.js` — таблица сущностей с кнопками «→ Server»/
-«← Local» (disabled по `allowPush`/`allowPull`) и кнопкой «Синхронизация в 1 клик»; встроен в
+**webvue3**: `components/Sync/SyncTable.vue` + `store.js` — таблица сущностей с двумя группами столбцов
+«→ Server (push)»/«← Local (pull)», в каждой по 4 чекбокса-флага (Доб/Изм/Уд/Пер, `@change` →
+`setSyncFlagPromise` → `/api/sync/setflag`, ответ заменяет одну строку в списке без перезагрузки),
+кнопками запуска «→ Server»/«← Local» (disabled по `allowPush`/`allowPull`) и кнопкой «Синхронизация в
+1 клик»; `showResultAlert` показывает и «перемещено (удалено из источника): N». Таблица шире прежней
+колонки `HomeView` — поэтому `.home` расширен `500px→780px`, а верхние контролы обёрнуты в
+`.home-controls` (фикс. `500px`, центрированы через `align-items:center` у `.home-wrapper`), чтобы синие
+кнопки не растянулись; сам `SyncTable` идёт на всю ширину (`width:100%` + `overflow-x:auto`). Встроен в
 `HomeView.vue` взамен старых 6 хардкод-кнопок (`updateRemoteSettings/Pictures/Authors`,
 `updateLocalSettings/Pictures/Authors` — методы и `data`-поля `allowUpdateRemote`/`allowUpdateLocal`
 удалены из `HomeView.vue` как мёртвый код; сами actions в `Songs/store.js` оставлены нетронутыми —
@@ -553,6 +579,30 @@ Auth is OAuth2/OIDC against the authorization server embedded in `karaoke-app`
 ветки. `ERROR` считается терминальным статусом наравне с `DONE` — упавшее с ошибкой задание тоже должно
 переставать показывать прогресс.
 
+**Удаление песни (`SongEdit.vue` → `deleteCurrentSong`) — через SSE `recordDelete`, не локально.**
+Удаление идёт тем же SSE-паттерном, что и правки: `deleteCurrentSong` — **action** (не мутация:
+XHR в мутации — антипаттерн), делает `POST /api/song/delete` + `dispatch('setCurrentSongId',
+previousSongId || nextSongId)` для перехода к соседней песне (`prev/next` берутся из
+`song.idPrevious/idNext` в `setCurrentSongData`). Строку из таблицы (`<b-table :items="songsDigest">`
+в `SongsTable.vue`) убирает **не** сам action, а SSE-обработчик: бэкенд `Settings.deleteFromDb()`
+шлёт `recordDelete`/`tbl_settings` → `App.vue` → action/мутация `deleteSongByUserEvent` (`Songs/store.js`)
+делает `splice` по `id` из `state.songsDigest` (образец — `updateSongByUserEvent`). Аналогично
+`deletePublishDigestByUserEvent` (`Publish/store.js`) очищает ячейку `csrCell.settingsDTO=null` в
+`publishDigest`. **Ловушка (была):** после рефакторинга `setCurrentSongId` (мутация→action)
+`deleteCurrentSong` осталась мутацией с `state.commit(...)` (у `state` нет `.commit` → `TypeError`),
+splice шёл по неиспользуемому таблицей `state.songPages`, а SSE-цепочка удаления была мёртвой
+заглушкой (action коммитил `addSongByUserEvent`, мутация — только `console.log`) — песня удалялась на
+бэкенде, но не исчезала из UI. Не рендерить удаление вручную в action — единый источник правды это SSE.
+
+**Даты публикаций при удалении: `setPublishDateTimeToAuthor(startSettings, skipPublished=false)`
+(`Settings.kt`).** Функция переназначает даты публикаций всем песням автора с `id > startSettings.id`
+(старт-дата + 1 день на каждую). При удалении песни delete-action дёргает
+`/song/setpublishdatetimetoauthor` c `skipPublished=true` — тогда уже опубликованные песни
+(`onAir==true`: `dateTimePublish != null` и уже наступило, `Settings.kt:474`) **пропускаются**
+(`return@forEach`): их даты не переписываются и они **не сдвигают счётчик дней** для остальных.
+Ручная кнопка «Установить даты публикации автору» вызывает эндпоинт без параметра (дефолт `false`) —
+её поведение не изменилось.
+
 **Storage.** Generated media files (audio stems, videos, pictures) live in MinIO-compatible object storage,
 accessed through `services/StorageApiClient.kt` / `services/KaraokeStorageService.kt` and the corresponding
 `StorageController`/`docker-compose-storage.yml`.
@@ -665,6 +715,24 @@ prior = -2, threadId = THREAD_LANE_LIGHT_BACKGROUND/THREAD_LANE_REMOTE_STORE_UPL
 `tbl_processes` не удаляются (см. `KaraokeProcessWorker.kt`, `delete()` после DONE закомментирован),
 поэтому фильтр по статусу обязателен, иначе после первой же успешной загрузки файл вечно показывал бы
 «уже есть задание».
+
+**Исполнитель UPLOAD получает точный `storageFileName`/`bucketName` из HealthReport, а не пересчитывает
+его сам.** `executeUploadToLocalStore`/`executeUploadToRemoteStore` (`Utils.kt`) раньше вычисляли ключ
+хранилища по формуле `"${settings.storageFileName}${fileType.suffix}.${fileType.extention}"`, где
+`settings.storageFileName = "$author/$year - $album/$fileName"` основан на имени **песни**. Это верно
+только для аудио-стемов `MP3_*`, но **ломало все 4 картинки** (`PICTURE_ALBUM`/`PICTURE_ALBUM_PREVIEW` —
+ключ `"$author/$year - $album/$author - $year - $album<suffix>.png"`; `PICTURE_AUTHOR`/
+`PICTURE_AUTHOR_PREVIEW` — `"$author/$author<suffix>.png"`): Repair заливал файл по неверному ключу
+(рядом с именем песни), правильный ключ оставался пустым → HealthReport снова видел отсутствие → снова
+ставил задачу (бесконечное «Repair не работает» + мусор в бакете). Только эти 9 типов вообще грузятся в
+хранилище (5×`MP3_*` + 4 картинки) — у них есть `LOCAL_STORAGE`/`REMOTE_STORAGE` в
+`KaraokeFileType.locations`; остальные 14 типов (сырой FLAC, видео, PROJECT-файлы, `PICTURE_PUBLICATION`,
+`PICTURE_SONGVERSION`) только `LOCAL_FILESYSTEM` — их это не касалось. Фикс: HealthReport протаскивает уже
+вычисленные `storageFileName`+`storageBucketName` через `context` задачи (все 6 вызовов `createProcess`) →
+в args (`KaraokeProcess.kt`, ветки `UPLOAD_TO_LOCAL_STORE`/`UPLOAD_TO_REMOTE_STORE`) → `executeUpload*`
+берёт `params["storageFileName"]`/`params["bucketName"]` напрямую, с фолбэком на старую формулу для уже
+стоящих в очереди задач. Правило на будущее: любой новый тип файла с ключом хранилища, отличным от
+`storageFileName + suffix`, работает без правок исполнителя — он больше не угадывает ключ.
 
 **`description` у `HealthReport` обязан включать location-суффикс** (`"${description}/${location.name}"`,
 добавляется один раз в диспетчере `actions()`, строки ~42-132). Без этого local- и remote-варианты одной

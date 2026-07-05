@@ -735,5 +735,65 @@ class Karaoke : Serializable {
             get() = getMltShapeFromString(KaraokeProperties.getString("chordLayoutFingerCircleMltShape"))
             set(value) { KaraokeProperties.set("chordLayoutFingerCircleMltShape", value.setting()) }
 
+        // Ограничивать CPU тяжёлых заданий (иначе — безлимит)
+        var resourceLimitsEnabled: Boolean
+            get() = KaraokeProperties.getBoolean("resourceLimitsEnabled")
+            set(value) { KaraokeProperties.set("resourceLimitsEnabled", value) }
+
+        // Лимит CPU (%) для MELT_LYRICS
+        var cpuLimitPercentMeltLyrics: Long
+            get() = KaraokeProperties.getLong("cpuLimitPercentMeltLyrics")
+            set(value) { KaraokeProperties.set("cpuLimitPercentMeltLyrics", value) }
+
+        // Лимит CPU (%) для MELT_KARAOKE
+        var cpuLimitPercentMeltKaraoke: Long
+            get() = KaraokeProperties.getLong("cpuLimitPercentMeltKaraoke")
+            set(value) { KaraokeProperties.set("cpuLimitPercentMeltKaraoke", value) }
+
+        // Лимит CPU (%) для MELT_CHORDS
+        var cpuLimitPercentMeltChords: Long
+            get() = KaraokeProperties.getLong("cpuLimitPercentMeltChords")
+            set(value) { KaraokeProperties.set("cpuLimitPercentMeltChords", value) }
+
+        // Лимит CPU (%) для MELT_TABS
+        var cpuLimitPercentMeltTabs: Long
+            get() = KaraokeProperties.getLong("cpuLimitPercentMeltTabs")
+            set(value) { KaraokeProperties.set("cpuLimitPercentMeltTabs", value) }
+
+        // Лимит CPU (%) для DEMUCS2
+        var cpuLimitPercentDemucs2: Long
+            get() = KaraokeProperties.getLong("cpuLimitPercentDemucs2")
+            set(value) { KaraokeProperties.set("cpuLimitPercentDemucs2", value) }
+
+        // Лимит CPU (%) для DEMUCS5
+        var cpuLimitPercentDemucs5: Long
+            get() = KaraokeProperties.getLong("cpuLimitPercentDemucs5")
+            set(value) { KaraokeProperties.set("cpuLimitPercentDemucs5", value) }
+
+        // Лимит CPU (%) для Key/BPM Finder (docker-шаг)
+        var cpuLimitPercentKeyBpmFinder: Long
+            get() = KaraokeProperties.getLong("cpuLimitPercentKeyBpmFinder")
+            set(value) { KaraokeProperties.set("cpuLimitPercentKeyBpmFinder", value) }
+
+        // Лимит CPU (%) для SHEETSAGE
+        var cpuLimitPercentSheetsage: Long
+            get() = KaraokeProperties.getLong("cpuLimitPercentSheetsage")
+            set(value) { KaraokeProperties.set("cpuLimitPercentSheetsage", value) }
+
+        // Лимит CPU (%) для SHEETSAGE2
+        var cpuLimitPercentSheetsage2: Long
+            get() = KaraokeProperties.getLong("cpuLimitPercentSheetsage2")
+            set(value) { KaraokeProperties.set("cpuLimitPercentSheetsage2", value) }
+
+        // Лимит CPU (%) для FF_720_KAR
+        var cpuLimitPercentFf720Kar: Long
+            get() = KaraokeProperties.getLong("cpuLimitPercentFf720Kar")
+            set(value) { KaraokeProperties.set("cpuLimitPercentFf720Kar", value) }
+
+        // Лимит CPU (%) для FF_720_LYR
+        var cpuLimitPercentFf720Lyr: Long
+            get() = KaraokeProperties.getLong("cpuLimitPercentFf720Lyr")
+            set(value) { KaraokeProperties.set("cpuLimitPercentFf720Lyr", value) }
+
     }
 }

@@ -930,9 +930,12 @@ class KaraokeProcess(
 
                         description = "Кодирование LYRICS"
                         prioritet = 19
+                        val cpuPercentMeltLyrics = cpuLimitPercentForType(KaraokeProcessTypes.MELT_LYRICS)
                         args = listOf(
                             listOf(
-                                "docker", "compose", "-f", "/sm-karaoke/system/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
+                                "docker", "compose", "-f", "/sm-karaoke/system/mlt-docker/docker-compose.yaml", "run", "--rm"
+                            ) + dockerCpusFlag(cpuPercentMeltLyrics) + listOf(
+                                "mlt", "-progress",
                                 "${settings.rootFolder}/done_projects/${settings.fileName} [lyrics].mlt".rightFileName()
                             ),
                             listOf("chmod", "666", settings.pathToFileLyrics),
@@ -943,7 +946,7 @@ class KaraokeProcess(
                             listOf("mkdir", "-p", settings.pathToFolder720Lyrics),
                             listOf("chmod", "777", settings.pathToFolder720Lyrics),
                             listOf("rm", settings.pathToFile720Lyrics),
-                            listOf(
+                            cpulimitPrefix(cpuPercentMeltLyrics) + listOf(
                                 "ffmpeg",
                                 "-i",
                                 settings.pathToFileLyrics,
@@ -1029,9 +1032,12 @@ class KaraokeProcess(
 
                         description = "Кодирование KARAOKE"
                         prioritet = 19
+                        val cpuPercentMeltKaraoke = cpuLimitPercentForType(KaraokeProcessTypes.MELT_KARAOKE)
                         args = listOf(
                             listOf(
-                                "docker", "compose", "-f", "/sm-karaoke/system/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
+                                "docker", "compose", "-f", "/sm-karaoke/system/mlt-docker/docker-compose.yaml", "run", "--rm"
+                            ) + dockerCpusFlag(cpuPercentMeltKaraoke) + listOf(
+                                "mlt", "-progress",
                                 "${settings.rootFolder}/done_projects/${settings.fileName} [karaoke].mlt".rightFileName()
                             ),
                             listOf("chmod", "666", settings.pathToFileKaraoke),
@@ -1042,7 +1048,7 @@ class KaraokeProcess(
                             listOf("mkdir", "-p", settings.pathToFolder720Karaoke),
                             listOf("chmod", "777", settings.pathToFolder720Karaoke),
                             listOf("rm", settings.pathToFile720Karaoke),
-                            listOf(
+                            cpulimitPrefix(cpuPercentMeltKaraoke) + listOf(
                                 "ffmpeg",
                                 "-i",
                                 settings.pathToFileKaraoke,
@@ -1099,7 +1105,9 @@ class KaraokeProcess(
                         prioritet = 19
                         args = listOf(
                             listOf(
-                                "docker", "compose", "-f", "/sm-karaoke/system/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
+                                "docker", "compose", "-f", "/sm-karaoke/system/mlt-docker/docker-compose.yaml", "run", "--rm"
+                            ) + dockerCpusFlag(cpuLimitPercentForType(KaraokeProcessTypes.MELT_CHORDS)) + listOf(
+                                "mlt", "-progress",
                                 "${settings.rootFolder}/done_projects/${settings.fileName} [chords].mlt".rightFileName()
                             ),
                             listOf("chmod", "666", settings.pathToFileChords),
@@ -1110,7 +1118,9 @@ class KaraokeProcess(
                         prioritet = 19
                         args = listOf(
                             listOf(
-                                "docker", "compose", "-f", "/sm-karaoke/system/mlt-docker/docker-compose.yaml", "run", "--rm", "mlt", "-progress",
+                                "docker", "compose", "-f", "/sm-karaoke/system/mlt-docker/docker-compose.yaml", "run", "--rm"
+                            ) + dockerCpusFlag(cpuLimitPercentForType(KaraokeProcessTypes.MELT_TABS)) + listOf(
+                                "mlt", "-progress",
                                 "${settings.rootFolder}/done_projects/${settings.fileName} [tabs].mlt".rightFileName()
                             ),
                             listOf("chmod", "666", settings.pathToFileMelody),
@@ -1137,11 +1147,12 @@ class KaraokeProcess(
                         val resultLy = "$resultFolder/output.ly"
                         val resultBeattimes = "$resultFolder/beattimes"
                         description = "SHEETSAGE"
+                        val cpuPercentSheetsage = cpuLimitPercentForType(KaraokeProcessTypes.SHEETSAGE)
                         args = listOf(
                             listOf("mkdir", "-p", resultFolder),
                             listOf("rm", "-f", srcWav, resultPdf, resultMidi, resultLy, resultBeattimes),
-                            listOf("ffmpeg", "-i", settings.fileAbsolutePath.rightFileName(), "-compression_level", "8", srcWav, "-y"),
-                            listOf("/home/nsa/sheetsage/sheetsage.sh", "-j", "-o", "output/output", srcWav),
+                            cpulimitPrefix(cpuPercentSheetsage) + listOf("ffmpeg", "-i", settings.fileAbsolutePath.rightFileName(), "-compression_level", "8", srcWav, "-y"),
+                            cpulimitPrefix(cpuPercentSheetsage) + listOf("/home/nsa/sheetsage/sheetsage.sh", "-j", "-o", "output/output", srcWav),
                             listOf("mkdir", "-p", settings.pathToFolderSheetsage),
                             listOf("mv", resultPdf.rightFileName(), settings.pathToFileSheetsagePDF.rightFileName()),
                             listOf("mv", resultMidi.rightFileName(), settings.pathToFileSheetsageMIDI.rightFileName()),
@@ -1168,11 +1179,12 @@ class KaraokeProcess(
                         val resultLy = "$resultFolder/output.ly"
                         val resultBeattimes = "$resultFolder/beattimes"
                         description = "SHEETSAGE2"
+                        val cpuPercentSheetsage2 = cpuLimitPercentForType(KaraokeProcessTypes.SHEETSAGE2)
                         args = listOf(
                             listOf("mkdir", "-p", resultFolder),
                             listOf("rm", "-f", srcWav, resultPdf, resultMidi, resultLy, resultBeattimes),
-                            listOf("ffmpeg", "-i", settings.fileAbsolutePath.rightFileName(), "-compression_level", "8", srcWav, "-y"),
-                            listOf("/home/nsa/sheetsage/sheetsage.sh", "-j", "-o", "output/output", "--measures_per_chunk", "4", srcWav),
+                            cpulimitPrefix(cpuPercentSheetsage2) + listOf("ffmpeg", "-i", settings.fileAbsolutePath.rightFileName(), "-compression_level", "8", srcWav, "-y"),
+                            cpulimitPrefix(cpuPercentSheetsage2) + listOf("/home/nsa/sheetsage/sheetsage.sh", "-j", "-o", "output/output", "--measures_per_chunk", "4", srcWav),
                             listOf("mkdir", "-p", settings.pathToFolderSheetsage),
                             listOf("mv", resultPdf.rightFileName(), settings.pathToFileSheetsagePDF.rightFileName()),
                             listOf("mv", resultMidi.rightFileName(), settings.pathToFileSheetsageMIDI.rightFileName()),
@@ -1202,7 +1214,7 @@ class KaraokeProcess(
                         }
                         description = "720P KARAOKE"
                         args = listOf(
-                            listOf(
+                            cpulimitPrefix(cpuLimitPercentForType(KaraokeProcessTypes.FF_720_KAR)) + listOf(
                                 "ffmpeg",
                                 "-i",
                                 sourceFile,
@@ -1235,7 +1247,7 @@ class KaraokeProcess(
 
                         description = "720P LYRICS"
                         args = listOf(
-                            listOf(
+                            cpulimitPrefix(cpuLimitPercentForType(KaraokeProcessTypes.FF_720_LYR)) + listOf(
                                 "ffmpeg",
                                 "-i",
                                 sourceFile,

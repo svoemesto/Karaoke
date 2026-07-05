@@ -31,6 +31,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     git \
     xvfb \
     ffmpeg \
+    cpulimit \
     python3 \
     python3-dev \
     python3-pip \

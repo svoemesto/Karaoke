@@ -639,4 +639,20 @@ val listKaraokeProperties = listOf(
     ),
     KaraokeProperty(key = "yandexSmartCaptchaClientKey", defaultValue = "", description = "Yandex SmartCaptcha — клиентский ключ (публичный, для формы регистрации на сайте)"),
     KaraokeProperty(key = "yandexSmartCaptchaServerKey", defaultValue = "", description = "Yandex SmartCaptcha — серверный ключ (секретный, для валидации на бэкенде)"),
+
+    // Ограничение CPU тяжёлых заданий (KaraokeProcess) — глобальный переключатель + процент на тип задания.
+    // 100 = без ограничения (поведение как раньше). Применяется только в момент старта задания, не влияет
+    // на уже запущенные. См. Utils.kt: hostCpuCoreCount/dockerCpusFlag/cpulimitPrefix/cpuLimitPercentForType.
+    KaraokeProperty(key = "resourceLimitsEnabled", defaultValue = false, description = "Ограничивать CPU тяжёлых заданий (иначе — безлимит)"),
+    KaraokeProperty(key = "cpuLimitPercentMeltLyrics", defaultValue = 100L, description = "Лимит CPU (%) для MELT_LYRICS"),
+    KaraokeProperty(key = "cpuLimitPercentMeltKaraoke", defaultValue = 100L, description = "Лимит CPU (%) для MELT_KARAOKE"),
+    KaraokeProperty(key = "cpuLimitPercentMeltChords", defaultValue = 100L, description = "Лимит CPU (%) для MELT_CHORDS"),
+    KaraokeProperty(key = "cpuLimitPercentMeltTabs", defaultValue = 100L, description = "Лимит CPU (%) для MELT_TABS"),
+    KaraokeProperty(key = "cpuLimitPercentDemucs2", defaultValue = 100L, description = "Лимит CPU (%) для DEMUCS2"),
+    KaraokeProperty(key = "cpuLimitPercentDemucs5", defaultValue = 100L, description = "Лимит CPU (%) для DEMUCS5"),
+    KaraokeProperty(key = "cpuLimitPercentKeyBpmFinder", defaultValue = 100L, description = "Лимит CPU (%) для Key/BPM Finder (docker-шаг)"),
+    KaraokeProperty(key = "cpuLimitPercentSheetsage", defaultValue = 100L, description = "Лимит CPU (%) для SHEETSAGE"),
+    KaraokeProperty(key = "cpuLimitPercentSheetsage2", defaultValue = 100L, description = "Лимит CPU (%) для SHEETSAGE2"),
+    KaraokeProperty(key = "cpuLimitPercentFf720Kar", defaultValue = 100L, description = "Лимит CPU (%) для FF_720_KAR"),
+    KaraokeProperty(key = "cpuLimitPercentFf720Lyr", defaultValue = 100L, description = "Лимит CPU (%) для FF_720_LYR"),
 )

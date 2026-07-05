@@ -28,7 +28,10 @@
           <div class="app-header-right"> <!-- Добавлен контейнер для правого верхнего угла -->
             <BackendConsole/>
             <ProcessWorker :hideButton="true" :excludedThreadId="[0]"></ProcessWorker>
-            <ProcessWorker :hideButton="false" :includedThreadId="[0]"></ProcessWorker>
+            <div class="start-stop-and-limit-group">
+              <ProcessWorker :hideButton="false" :includedThreadId="[0]"></ProcessWorker>
+              <ResourceLimitToggle></ResourceLimitToggle>
+            </div>
           </div>
           <router-view/>
         </div>
@@ -41,6 +44,7 @@
 import { useRoute } from 'vue-router'
 import ProcessWorker from "./components/Common/ProcessWorker.vue";
 import BackendConsole from "./components/Common/BackendConsole.vue";
+import ResourceLimitToggle from "./components/Common/ResourceLimitToggle.vue";
 import {BApp} from 'bootstrap-vue-next';
 const route = useRoute()
 </script>
@@ -432,6 +436,14 @@ export default {
   gap: 10px; /* Расстояние между элементами (BackendConsole, ProcessWorker) */
   margin-bottom: 10px; /* Отступ снизу перед router-view */
   /* border-bottom: 1px solid #ccc; /* Граница под заголовком (по желанию) */
+}
+.start-stop-and-limit-group {
+  display: flex;
+  align-items: center;
+}
+/* Кнопка старт/стоп должна быть вплотную к кнопке переключения лимита CPU справа от неё */
+.start-stop-and-limit-group :deep(.process_worker) {
+  margin-right: 0;
 }
 
 

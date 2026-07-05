@@ -930,13 +930,13 @@ class Settings(
         // Сначала копируем файл аудио в папку PATH_TO_TEMP_KEYBPMFINDER_FOLDER с именем file.flac, потом вызываем докер,
         // потом копируем оттуда результат result_key_bpm_finder.json и удаляем папку PATH_TO_TEMP_KEYBPMFINDER_FOLDER
         val tmpFileName = "file"
+        val cpuFlags = dockerCpusFlag(cpuLimitPercentForType(KaraokeProcessTypes.KEY_BPM_FROM_FILE))
         return Pair(
         listOf(
                 listOf("mkdir", "-p", PATH_TO_TEMP_KEYBPMFINDER_FOLDER),
                 listOf("chmod", "777", PATH_TO_TEMP_KEYBPMFINDER_FOLDER),
                 listOf("cp", fileAbsolutePath.rightFileName(), "$PATH_TO_TEMP_KEYBPMFINDER_FOLDER/$tmpFileName.flac"),
-                listOf(
-                    "docker", "run", "--rm",
+                listOf("docker", "run", "--rm") + cpuFlags + listOf(
                     "-v", "$PATH_TO_TEMP_KEYBPMFINDER_FOLDER:/input",
                     "svoemestodev/keybpmfinder:latest",
                     "/input/$tmpFileName.flac"
@@ -957,6 +957,7 @@ class Settings(
 
         val tmpFileName = "file"
         val gpuFlags = if (device == "cuda") listOf("--gpus", "all") else emptyList()
+        val cpuFlags = dockerCpusFlag(cpuLimitPercentForType(KaraokeProcessTypes.DEMUCS2))
         return Pair(
             listOf(
                 listOf("mkdir", "-p", pathToResultedModel),
@@ -964,7 +965,7 @@ class Settings(
                 listOf("mkdir", "-p", PATH_TO_TEMP_DEMUCS_FOLDER),
                 listOf("chmod", "777", PATH_TO_TEMP_DEMUCS_FOLDER),
                 listOf("cp", fileAbsolutePath.rightFileName(), "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName.flac"),
-                listOf("docker", "run", "--rm", "-i", "--name=demucs") + gpuFlags + listOf(
+                listOf("docker", "run", "--rm", "-i", "--name=demucs") + gpuFlags + cpuFlags + listOf(
                     "-v", "$PATH_TO_TEMP_DEMUCS_FOLDER:/data/input",
                     "-v", "$PATH_TO_TEMP_DEMUCS_FOLDER:/data/output",
                     "svoemestodev/demucs:latest",
@@ -987,6 +988,7 @@ class Settings(
         // Второй возвращаемый параметр = мапа для энверонмента процессбилдера
         val tmpFileName = "file"
         val gpuFlags = if (device == "cuda") listOf("--gpus", "all") else emptyList()
+        val cpuFlags = dockerCpusFlag(cpuLimitPercentForType(KaraokeProcessTypes.DEMUCS5))
         return Pair(
             listOf(
                 listOf("mkdir", "-p", pathToResultedModel),
@@ -994,7 +996,7 @@ class Settings(
                 listOf("mkdir", "-p", PATH_TO_TEMP_DEMUCS_FOLDER),
                 listOf("chmod", "777", PATH_TO_TEMP_DEMUCS_FOLDER),
                 listOf("cp", fileAbsolutePath.rightFileName(), "$PATH_TO_TEMP_DEMUCS_FOLDER/$tmpFileName.flac"),
-                listOf("docker", "run", "--rm", "-i", "--name=demucs") + gpuFlags + listOf(
+                listOf("docker", "run", "--rm", "-i", "--name=demucs") + gpuFlags + cpuFlags + listOf(
                     "-v", "$PATH_TO_TEMP_DEMUCS_FOLDER:/data/input",
                     "-v", "$PATH_TO_TEMP_DEMUCS_FOLDER:/data/output",
                     "svoemestodev/demucs:latest",

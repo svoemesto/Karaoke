@@ -65,7 +65,8 @@ class PublicPlayerController(
         siteUserResolver.resolve(request)?.isEffectivePremium == true
 
     private fun stemsReady(settings: Settings): Boolean =
-        existsInMinIO(stemStorageKey(settings, KaraokeFileType.MP3_ACCOMPANIMENT)) &&
+        settings.idStatus >= 3 &&
+            existsInMinIO(stemStorageKey(settings, KaraokeFileType.MP3_ACCOMPANIMENT)) &&
             existsInMinIO(stemStorageKey(settings, KaraokeFileType.MP3_VOCAL)) &&
             settings.sourceMarkersList.isNotEmpty()
 

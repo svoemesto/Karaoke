@@ -33,5 +33,16 @@ export default {
             let request = {method: 'POST', url: '/api/sync/oneclick'};
             return promisedXMLHttpRequest(request).then(data => JSON.parse(data));
         },
+        // Переключение одного флага операции сущности (направление × операция). Бэкенд возвращает
+        // обновлённый объект сущности — заменяем его в списке, чтобы не перезагружать всю таблицу.
+        setSyncFlagPromise(ctx, {key, direction, operation, value}) {
+            let request = {method: 'POST', url: '/api/sync/setflag', params: {key, direction, operation, value}};
+            return promisedXMLHttpRequest(request).then(data => {
+                const entity = JSON.parse(data);
+                const list = ctx.state.entities.map(e => e.key === entity.key ? entity : e);
+                ctx.commit('setSyncEntities', list);
+                return entity;
+            });
+        },
     }
 }

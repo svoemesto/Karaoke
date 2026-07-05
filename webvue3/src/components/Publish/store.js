@@ -50,7 +50,17 @@ export default {
             console.log('Событие добавления песни из публикаций: ', userEventData)
         },
         deletePublishDigestByUserEvent(state, userEventData) {
-            console.log('Событие удаления песни из публикаций: ', userEventData)
+            let songId = userEventData.recordId;
+            for (let i = 0; i < state.publishDigest.length; i++) {
+                let publishRow = state.publishDigest[i];
+                for (let j = 0; j < publishRow.csrCells.length; j++) {
+                    let csrCell = publishRow.csrCells[j];
+                    if (csrCell.settingsDTO && csrCell.settingsDTO.id === songId) {
+                        csrCell.settingsDTO = null;
+                        state.publishDigest.splice(i,1, publishRow);
+                    }
+                }
+            }
         }
     },
     actions: {

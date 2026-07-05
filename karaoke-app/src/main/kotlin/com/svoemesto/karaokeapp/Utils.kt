@@ -13,8 +13,10 @@ import com.svoemesto.karaokeapp.mlt.MltObjectAlignmentY
 import com.svoemesto.karaokeapp.mlt.MltObjectType
 import com.svoemesto.karaokeapp.model.*
 import com.svoemesto.karaokeapp.sync.SyncDirection
+import com.svoemesto.karaokeapp.sync.SyncOperation
 import com.svoemesto.karaokeapp.sync.SyncRegistry
 import com.svoemesto.karaokeapp.sync.SyncTarget
+import com.svoemesto.karaokeapp.sync.isOperationAllowed
 import com.svoemesto.karaokeapp.services.KSS_APP
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.SAC_APP
@@ -23,6 +25,8 @@ import com.svoemesto.karaokeapp.textfiledictionary.YoWordsDictionary
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.json.Json
 import org.apache.commons.csv.CSVFormat
 import org.apache.commons.csv.CSVParser
 import org.jsoup.Jsoup
@@ -409,16 +413,28 @@ fun setSettingsToSyncRemoteTable(ids: List<Long>): List<String> {
 
 }
 
-fun updateRemotePictureFromLocalDatabase(id: Long): Triple<List<String>, List<String>, List<String>> {
+/**
+ * Результат синхронизации: имена записей по операциям над ЦЕЛЬЮ (created/updated/deleted) плюс
+ * moved — имена записей, удалённых из ИСТОЧНИКА в режиме «перемещение». Data class даёт component1..4,
+ * поэтому legacy-деструктуризация `val (c, u, d) = ...` остаётся рабочей без правок.
+ */
+data class SyncResult(
+    val created: List<String>,
+    val updated: List<String>,
+    val deleted: List<String>,
+    val moved: List<String>,
+)
+
+fun updateRemotePictureFromLocalDatabase(id: Long): SyncResult {
     return updateDatabases(fromDatabase = Connection.local(), toDatabase = Connection.remote(), keys = setOf("pictures"), idFilter = mapOf("pictures" to id))
 }
-fun updateRemoteSettingFromLocalDatabase(id: Long): Triple<List<String>, List<String>, List<String>> {
+fun updateRemoteSettingFromLocalDatabase(id: Long): SyncResult {
     return updateDatabases(fromDatabase = Connection.local(), toDatabase = Connection.remote(), keys = setOf("settings"), idFilter = mapOf("settings" to id))
 }
-fun updateRemoteDatabaseFromLocalDatabase(updateSettings: Boolean = true, updatePictures: Boolean = true, updateAuthors: Boolean = true): Triple<List<String>, List<String>, List<String>> {
+fun updateRemoteDatabaseFromLocalDatabase(updateSettings: Boolean = true, updatePictures: Boolean = true, updateAuthors: Boolean = true): SyncResult {
     return updateDatabases(fromDatabase = Connection.local(), toDatabase = Connection.remote(), keys = legacySyncKeys(updateSettings, updatePictures, updateAuthors))
 }
-fun updateLocalDatabaseFromRemoteDatabase(updateSettings: Boolean = true, updatePictures: Boolean = true, updateAuthors: Boolean = true): Triple<List<String>, List<String>, List<String>> {
+fun updateLocalDatabaseFromRemoteDatabase(updateSettings: Boolean = true, updatePictures: Boolean = true, updateAuthors: Boolean = true): SyncResult {
     return updateDatabases(fromDatabase = Connection.remote(), toDatabase = Connection.local(), keys = legacySyncKeys(updateSettings, updatePictures, updateAuthors))
 }
 
@@ -430,7 +446,7 @@ private fun legacySyncKeys(updateSettings: Boolean, updatePictures: Boolean, upd
 
 // Точка входа для нового generic UI синхронизации (webvue3, /api/sync/*) — один ключ SyncRegistry,
 // направление явно задаётся вызывающим кодом (ручная синхронизация конкретной таблицы или "1 клик").
-fun runEntitySync(key: String, direction: SyncDirection, id: Long? = null): Triple<List<String>, List<String>, List<String>> {
+fun runEntitySync(key: String, direction: SyncDirection, id: Long? = null): SyncResult {
     val (fromDatabase, toDatabase) = if (direction == SyncDirection.LOCAL_TO_SERVER) {
         Connection.local() to Connection.remote()
     } else {
@@ -444,22 +460,26 @@ fun updateDatabases(
     toDatabase: KaraokeConnection,
     keys: Set<String>,
     idFilter: Map<String, Long> = emptyMap(),
-): Triple<List<String>, List<String>, List<String>> {
-    if (fromDatabase == toDatabase) return Triple(emptyList(), emptyList(), emptyList())
+): SyncResult {
+    if (fromDatabase == toDatabase) return SyncResult(emptyList(), emptyList(), emptyList(), emptyList())
 
     val listToCreate: MutableList<Map<String, Any>> = mutableListOf()
     val listToUpdate: MutableList<Map<String, Any>> = mutableListOf()
     val listToDelete: MutableList<Map<String, Any>> = mutableListOf()
+    // Режим «перемещение»: удаление перенесённых строк из ИСТОЧНИКА (fromDatabase). Отдельный список,
+    // т.к. адресуется другой БД, чем listToDelete (то — цель), и флашится ПОСЛЕ записи в цель.
+    val listToDeleteFromSource: MutableList<Map<String, Any>> = mutableListOf()
 
     val listToCreateNames: MutableList<String> = mutableListOf()
     val listToUpdateNames: MutableList<String> = mutableListOf()
     val listToDeleteNames: MutableList<String> = mutableListOf()
+    val listToMoveNames: MutableList<String> = mutableListOf()
 
     println("[${Timestamp.from(Instant.now())}] Устанавливаем связь с базой данный ${fromDatabase.name}...")
     val connFrom = fromDatabase.getConnection()
     if (connFrom == null) {
         println("[${Timestamp.from(Instant.now())}] Невозможно установить связь с базой данный ${fromDatabase.name}")
-        return Triple(emptyList(), emptyList(), emptyList())
+        return SyncResult(emptyList(), emptyList(), emptyList(), emptyList())
     }
     println("[${Timestamp.from(Instant.now())}] Связь с базой данный ${fromDatabase.name} успешно установлена")
 
@@ -467,7 +487,7 @@ fun updateDatabases(
     val connTo = toDatabase.getConnection()
     if (connTo == null) {
         println("[${Timestamp.from(Instant.now())}] Невозможно установить связь с базой данный ${toDatabase.name}")
-        return Triple(emptyList(), emptyList(), emptyList())
+        return SyncResult(emptyList(), emptyList(), emptyList(), emptyList())
     }
     println("[${Timestamp.from(Instant.now())}] Связь с базой данный ${toDatabase.name} успешно установлена")
 
@@ -482,11 +502,13 @@ fun updateDatabases(
             listToCreate = listToCreate,
             listToUpdate = listToUpdate,
             listToDelete = listToDelete,
+            listToDeleteFromSource = listToDeleteFromSource,
             listToCreateNames = listToCreateNames,
             listToUpdateNames = listToUpdateNames,
             listToDeleteNames = listToDeleteNames,
+            listToMoveNames = listToMoveNames,
         )
-        if (!ok) return Triple(emptyList(), emptyList(), emptyList())
+        if (!ok) return SyncResult(emptyList(), emptyList(), emptyList(), emptyList())
     }
 
     if (toDatabase.name == "SERVER") {
@@ -571,7 +593,51 @@ fun updateDatabases(
 
     }
 
-    return Triple(listToCreateNames, listToUpdateNames, listToDeleteNames)
+    // Режим «перемещение»: удаляем перенесённые строки из ИСТОЧНИКА. Делаем это ПОСЛЕ всех записей в
+    // цель (блок выше для SERVER-цели; для LOCAL-цели записи уже применены внутри collectSyncOps) —
+    // источник чистим только по подтверждённой цели, чтобы исключить потерю данных при сбое переноса.
+    if (listToDeleteFromSource.isNotEmpty()) {
+        if (fromDatabase.name == "SERVER") {
+            println("[${Timestamp.from(Instant.now())}] Запрос на сервер (источник) на удаление перемещённых записей.")
+            val chunkedSize = if ("pictures" in keys) 1 else 10
+            val payloads = listToDeleteFromSource.mapNotNull { item ->
+                val tableName = item["tableName"] as? String ?: return@mapNotNull null
+                val id = item["id"]
+                val sqlToDelete = "DELETE FROM $tableName WHERE id = $id"
+                Crypto.encrypt(sqlToDelete)?.let { mapOf("sqlToDelete" to it) }
+            }
+            payloads.chunked(chunkedSize).forEach { lstToDelete ->
+                val values: Map<String, Any> = mapOf(
+                    "dataCreate" to emptyList<Map<String, Any>>(),
+                    "dataUpdate" to emptyList<Map<String, Any>>(),
+                    "dataDelete" to lstToDelete,
+                    "word" to (Crypto.encrypt(Crypto.WORDS_TO_CHECK) ?: "")
+                )
+                val objectMapper = ObjectMapper()
+                val requestBody: String = objectMapper.writeValueAsString(values)
+                val client = HttpClient.newBuilder().build()
+                val request = HttpRequest.newBuilder()
+                    .uri(URI.create("https://sm-karaoke.ru/changerecords"))
+                    .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                    .header("Content-Type", "application/json")
+                    .build()
+                val response = client.send(request, HttpResponse.BodyHandlers.ofString())
+                println(response.body())
+            }
+        } else {
+            println("[${Timestamp.from(Instant.now())}] Удаление перемещённых записей из источника ${fromDatabase.name} (JDBC).")
+            listToDeleteFromSource.forEach { item ->
+                val tableName = item["tableName"] as? String ?: return@forEach
+                val id = item["id"]
+                val ps = connFrom.prepareStatement("DELETE FROM $tableName WHERE id = ?")
+                ps.setLong(1, (id as? Number)?.toLong() ?: return@forEach)
+                ps.executeUpdate()
+                ps.close()
+            }
+        }
+    }
+
+    return SyncResult(listToCreateNames, listToUpdateNames, listToDeleteNames, listToMoveNames)
 
 }
 
@@ -590,11 +656,21 @@ private fun <T : Any> collectSyncOps(
     listToCreate: MutableList<Map<String, Any>>,
     listToUpdate: MutableList<Map<String, Any>>,
     listToDelete: MutableList<Map<String, Any>>,
+    listToDeleteFromSource: MutableList<Map<String, Any>>,
     listToCreateNames: MutableList<String>,
     listToUpdateNames: MutableList<String>,
     listToDeleteNames: MutableList<String>,
+    listToMoveNames: MutableList<String>,
 ): Boolean {
     val tableName = target.tableName
+
+    // Направление выводим из БД-цели (LOCAL_TO_SERVER == запись в SERVER, иначе SERVER_TO_LOCAL) —
+    // сигнатуру менять не нужно, legacy-вызовы не затрагиваются. По нему гейтим операции per-direction.
+    val direction = if (toDatabase.name == "SERVER") SyncDirection.LOCAL_TO_SERVER else SyncDirection.SERVER_TO_LOCAL
+    val insertAllowed = target.isOperationAllowed(direction, SyncOperation.INSERT)
+    val updateAllowed = target.isOperationAllowed(direction, SyncOperation.UPDATE)
+    val deleteAllowed = target.isOperationAllowed(direction, SyncOperation.DELETE)
+    val moveAllowed = target.isOperationAllowed(direction, SyncOperation.MOVE)
 
     println("[${Timestamp.from(Instant.now())}] Запрашиваем таблицу хэшей из базы данных ${fromDatabase.name} (${target.displayName})...")
     val listFromIdsHashes = target.listHashes(fromDatabase, whereText)
@@ -624,48 +700,61 @@ private fun <T : Any> collectSyncOps(
     }.map { it.id }
     val idsToDelete = listToIdsHashes.filter { it.id !in fromHashMap }.map { it.id }
 
-    val toDeleteMap = target.loadByIds(idsToDelete, toDatabase)
-    idsToDelete.forEach { id ->
-        toDeleteMap[id]?.let { listToDeleteNames.add(target.label(it)) }
-        if (toDatabase.name == "SERVER") {
-            val sqlToDelete = "DELETE FROM $tableName WHERE id = $id"
-            val setStrEncrypted = Crypto.encrypt(sqlToDelete)
-            listToDelete.add(mapOf("sqlToDelete" to (setStrEncrypted ?: "")))
-        } else {
-            target.deleteLocal(id, toDatabase)
-        }
-    }
-
-    val toInsertMap = target.loadByIds(idsToInsert, fromDatabase)
-    idsToInsert.forEach { id ->
-        val itemFrom = toInsertMap[id] ?: return@forEach
-        listToCreateNames.add(target.label(itemFrom))
-        println("[${Timestamp.from(Instant.now())}] Добавляем запись в $tableName: id=$id, ${target.label(itemFrom)}")
-        val sqlToInsert = target.getSqlToInsert(itemFrom)
-        if (toDatabase.name == "SERVER") {
-            val setStrEncrypted = Crypto.encrypt(sqlToInsert)
-            listToCreate.add(mapOf("sqlToInsert" to (setStrEncrypted ?: "")))
-        } else {
-            val connection = toDatabase.getConnection()
-            if (connection == null) {
-                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${toDatabase.name}")
-                return false
+    // Зеркальное удаление в ЦЕЛИ (строки, которых нет в источнике) — только если операция разрешена
+    // для этого направления. Для режима «перемещение» обычно выключено (см. SyncOperation.DELETE/MOVE).
+    if (deleteAllowed) {
+        val toDeleteMap = target.loadByIds(idsToDelete, toDatabase)
+        idsToDelete.forEach { id ->
+            toDeleteMap[id]?.let { listToDeleteNames.add(target.label(it)) }
+            if (toDatabase.name == "SERVER") {
+                val sqlToDelete = "DELETE FROM $tableName WHERE id = $id"
+                val setStrEncrypted = Crypto.encrypt(sqlToDelete)
+                listToDelete.add(mapOf("sqlToDelete" to (setStrEncrypted ?: "")))
+            } else {
+                target.deleteLocal(id, toDatabase)
             }
-            val ps = connection.prepareStatement(sqlToInsert)
-            ps.executeUpdate()
-            ps.close()
         }
     }
 
-    val fromMap = target.loadByIds(idsToUpdate, fromDatabase)
-    val toMap = target.loadByIds(idsToUpdate, toDatabase)
-    idsToUpdate.forEach { id ->
-        val itemFrom = fromMap[id]
-        val itemTo = toMap[id]
-        if (itemFrom != null && itemTo != null) {
-            val diff = target.getDiff(itemFrom, itemTo)
-            if (target.shouldPush(diff)) {
-                listToUpdateNames.add(target.label(itemFrom))
+    // id, реально перенесённые в цель (подтверждённые) — основа безопасного удаления из источника
+    // в режиме move: никогда не удаляем из источника строку, не подтверждённую в цели.
+    val actuallyInserted = mutableListOf<Long>()
+    val actuallyUpdated = mutableListOf<Long>()
+
+    if (insertAllowed) {
+        val toInsertMap = target.loadByIds(idsToInsert, fromDatabase)
+        idsToInsert.forEach { id ->
+            val itemFrom = toInsertMap[id] ?: return@forEach
+            listToCreateNames.add(target.label(itemFrom))
+            println("[${Timestamp.from(Instant.now())}] Добавляем запись в $tableName: id=$id, ${target.label(itemFrom)}")
+            val sqlToInsert = target.getSqlToInsert(itemFrom)
+            if (toDatabase.name == "SERVER") {
+                val setStrEncrypted = Crypto.encrypt(sqlToInsert)
+                listToCreate.add(mapOf("sqlToInsert" to (setStrEncrypted ?: "")))
+            } else {
+                val connection = toDatabase.getConnection()
+                if (connection == null) {
+                    println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${toDatabase.name}")
+                    return false
+                }
+                val ps = connection.prepareStatement(sqlToInsert)
+                ps.executeUpdate()
+                ps.close()
+            }
+            actuallyInserted.add(id)
+        }
+    }
+
+    if (updateAllowed) {
+        val fromMap = target.loadByIds(idsToUpdate, fromDatabase)
+        val toMap = target.loadByIds(idsToUpdate, toDatabase)
+        idsToUpdate.forEach { id ->
+            val itemFrom = fromMap[id]
+            val itemTo = toMap[id]
+            if (itemFrom != null && itemTo != null) {
+                val diff = target.getDiff(itemFrom, itemTo)
+                if (target.shouldPush(diff)) {
+                    listToUpdateNames.add(target.label(itemFrom))
                 println("[${Timestamp.from(Instant.now())}] Изменяем запись в $tableName: id=$id, ${target.label(itemFrom)}, поля: ${diff.joinToString(", ") { it.recordDiffName }}")
                 val messageRecordChange = RecordChangeMessage(tableName = tableName, recordId = id, diffs = diff, databaseName = toDatabase.name, record = itemFrom)
                 if (toDatabase.name == "SERVER") {
@@ -702,7 +791,25 @@ private fun <T : Any> collectSyncOps(
                         ps.close()
                     }
                 }
+                    actuallyUpdated.add(id)
+                }
             }
+        }
+    } // if (updateAllowed)
+
+    // Режим «перемещение»: удаляем из ИСТОЧНИКА строки, гарантированно оказавшиеся в цели.
+    // Безопасный набор = реально вставленные + реально изменённые + уже идентичные (равный recordhash).
+    // Строки, которые различаются, но не были перенесены (insert/update выключены) — НЕ удаляем.
+    if (moveAllowed) {
+        val unchangedIds = listFromIdsHashes
+            .filter { toHashMap[it.id]?.recordhash == it.recordhash }
+            .map { it.id }
+        val movedIds = (actuallyInserted + actuallyUpdated + unchangedIds).distinct()
+        val movedItems = target.loadByIds(movedIds, fromDatabase)
+        movedIds.forEach { id ->
+            movedItems[id]?.let { listToMoveNames.add(target.label(it)) }
+            listToDeleteFromSource.add(mapOf("tableName" to tableName, "id" to id))
+            println("[${Timestamp.from(Instant.now())}] Перемещение: помечаем на удаление из источника ${fromDatabase.name}.$tableName: id=$id")
         }
     }
 
@@ -2746,8 +2853,11 @@ fun executeUploadToLocalStore(params: Map<String, String>, onProgress: ((Int) ->
     val settings = Settings.loadFromDbById(id = settingsId, database = WORKING_DATABASE, sync = false, storageService = storageService, storageApiClient = SAC_APP) ?: return false
 
     val existsInLocalFileSystem = if (pathToFile != "") File(pathToFile).exists() else false
-    val storageFileName = "${settings.storageFileName}${fileType.suffix}.${fileType.extention}"
-    val bucketName = settings.storageBucketName
+    // storageFileName/bucketName приходят из HealthReport (точный ключ для типа файла - у картинок
+    // альбома/автора он отличается от settings.storageFileName). Фолбэк - старая формула для уже
+    // стоящих в очереди задач без этих параметров (аудио-стемы MP3_*).
+    val storageFileName = params["storageFileName"] ?: "${settings.storageFileName}${fileType.suffix}.${fileType.extention}"
+    val bucketName = params["bucketName"] ?: settings.storageBucketName
     val existsInLocalStorage = storageService.fileExists(bucketName = bucketName, fileName = storageFileName)
     if (existsInLocalFileSystem && !existsInLocalStorage) {
         val file = File(pathToFile)
@@ -2778,8 +2888,11 @@ fun executeUploadToRemoteStore(params: Map<String, String>, onProgress: ((Int) -
     val settings = Settings.loadFromDbById(id = settingsId, database = WORKING_DATABASE, sync = false, storageService = KSS_APP, storageApiClient = storageApiClient) ?: return false
 
     val existsInLocalFileSystem = if (pathToFile != "") File(pathToFile).exists() else false
-    val storageFileName = "${settings.storageFileName}${fileType.suffix}.${fileType.extention}"
-    val bucketName = settings.storageBucketName
+    // storageFileName/bucketName приходят из HealthReport (точный ключ для типа файла - у картинок
+    // альбома/автора он отличается от settings.storageFileName). Фолбэк - старая формула для уже
+    // стоящих в очереди задач без этих параметров (аудио-стемы MP3_*).
+    val storageFileName = params["storageFileName"] ?: "${settings.storageFileName}${fileType.suffix}.${fileType.extention}"
+    val bucketName = params["bucketName"] ?: settings.storageBucketName
     val existsInRemoteStorage = storageApiClient.fileExists(bucketName = bucketName, fileName = storageFileName)
     if (existsInLocalFileSystem && !existsInRemoteStorage) {
         storageApiClient.uploadFile(
@@ -3070,20 +3183,54 @@ fun applyDuplicateOriginal(newSettings: Settings, original: Settings) {
     newSettings.saveToDb()
 }
 
-fun applyFamilySongSelection(settings: Settings, another: Settings) {
+fun applyFamilySongSelection(settings: Settings, another: Settings, deltaMs: Long? = null) {
     /*
     Выбор песни из модалки "Похожие версии песни" (как из общего списка "семьи", так и из ручного
     поиска по названию). В отличие от applyDuplicateOriginal (автопоиск оригинала при импорте) -
     root_id и статус трогаются только условно, не перетирая уже существующие осознанные значения:
     - root_id проставляется только если у текущей песни он ещё не задан (0)
     - статус NONE (0) переводится в TEXT_CREATE (1) только если он ещё NONE
+
+    deltaMs - результат акустической сверки (кнопка "Сверить"): если задан, маркеры кандидата
+    сдвигаются на дельту в таймлайн текущей песни, а END-маркер пересчитывается под её реальную
+    длительность. Если null (строку не сверяли) - маркеры копируются как есть (прежнее поведение).
      */
     settings.sourceText = another.sourceText
     settings.resultText = another.resultText
-    settings.sourceMarkers = another.sourceMarkers
+    settings.sourceMarkers = if (deltaMs != null) {
+        shiftMarkersAndFixEnd(another.sourceMarkers, deltaMs, settings.ms)
+    } else {
+        another.sourceMarkers
+    }
     if (settings.rootId == 0L) settings.rootId = another.id
     if (settings.idStatus == 0L) settings.fields[SettingField.ID_STATUS] = "1"
     settings.saveToDb()
+}
+
+/**
+ * Сдвигает все маркеры на deltaMs (мс) в таймлайн текущей песни и выставляет END-маркер на реальную
+ * длительность текущей песни (currentMs). Разбор JSON - тем же способом, что геттер
+ * Settings.sourceMarkersList (список голосов; фолбэк на одиночный список маркеров).
+ */
+fun shiftMarkersAndFixEnd(sourceMarkersJson: String, deltaMs: Long, currentMs: Long): String {
+    val voices: List<List<SourceMarker>> = try {
+        Json.decodeFromString(ListSerializer(ListSerializer(SourceMarker.serializer())), sourceMarkersJson)
+    } catch (_: Exception) {
+        try {
+            listOf(Json.decodeFromString(ListSerializer(SourceMarker.serializer()), sourceMarkersJson))
+        } catch (_: Exception) {
+            return sourceMarkersJson  // не смогли распарсить - возвращаем как есть, без сдвига
+        }
+    }
+    val deltaSec = deltaMs / 1000.0
+    val endSec = currentMs / 1000.0
+    val shifted = voices.map { voice ->
+        voice.map { m ->
+            val isEnd = m.markertype == Markertype.SETTING.value && m.label == "END"
+            m.copy(time = if (isEnd) endSec else maxOf(0.0, m.time + deltaSec))
+        }
+    }
+    return Json.encodeToString(ListSerializer(ListSerializer(SourceMarker.serializer())), shifted)
 }
 
 fun findFamilySongIds(currentSettings: Settings, database: KaraokeConnection): List<Long> {

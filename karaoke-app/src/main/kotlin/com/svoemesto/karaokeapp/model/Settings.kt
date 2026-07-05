@@ -5068,7 +5068,7 @@ class Settings(
             return emptySet()
         }
 
-        fun setPublishDateTimeToAuthor(startSettings: Settings) {
+        fun setPublishDateTimeToAuthor(startSettings: Settings, skipPublished: Boolean = false) {
 
             val listOfSettings = loadListFromDb(
                 args = mapOf(Pair("song_author", startSettings.author)),
@@ -5080,6 +5080,8 @@ class Settings(
 
             if (startSettings.date == "") {
                 listOfSettings.forEach { settings ->
+                    // Уже опубликованные песни (onAir) не трогаем, если так указано
+                    if (skipPublished && settings.onAir) return@forEach
                     settings.fields[SettingField.DATE] = ""
                     settings.fields[SettingField.TIME] = ""
                     settings.saveToDb()
@@ -5088,6 +5090,9 @@ class Settings(
                 var publishDate = SimpleDateFormat("dd.MM.yy").parse(startSettings.date)
                 val publishTime = startSettings.time
                 listOfSettings.forEach { settings ->
+                    // Уже опубликованные песни (onAir) не трогаем и не сдвигаем счётчик дат на них
+                    if (skipPublished && settings.onAir) return@forEach
+
                     val calendar = Calendar.getInstance(TimeZone.getTimeZone("Europe/Moscow"))
                     calendar.time = publishDate
                     calendar.add(Calendar.DAY_OF_MONTH, 1)

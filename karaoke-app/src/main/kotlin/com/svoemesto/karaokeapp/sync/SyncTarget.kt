@@ -17,6 +17,20 @@ import kotlin.reflect.KClass
 enum class SyncDirection { LOCAL_TO_SERVER, SERVER_TO_LOCAL }
 
 /**
+ * Операции, разрешённые для сущности при синхронизации (per-table × per-direction флаги).
+ * INSERT/UPDATE/DELETE относятся к ЦЕЛИ, MOVE — режим «перемещение»: после подтверждённого переноса
+ * удалить перенесённые строки из ИСТОЧНИКА (см. collectSyncOps/updateDatabases в Utils.kt).
+ * DELETE (зеркальное удаление в цели) и MOVE (удаление в источнике) взаимоисключающи по смыслу.
+ * [dbValue] — суффикс ключа KaraokeProperty (не .name/ordinal), [ruName] — подпись столбца в webvue3.
+ */
+enum class SyncOperation(val dbValue: String, val ruName: String) {
+    INSERT("insert", "Добавление"),
+    UPDATE("update", "Изменение"),
+    DELETE("delete", "Удаление"),
+    MOVE("move", "Перемещение"),
+}
+
+/**
  * Одна синхронизируемая сущность (таблица) для универсального движка в Utils.kt (updateDatabases).
  * [oneClickDirection] — куда эта сущность едет при нажатии «Синхронизация в 1 клик» в webvue3.
  */
@@ -157,10 +171,15 @@ object SyncRegistry {
     fun byKey(key: String): SyncTarget<*>? = all.find { it.key == key }
 }
 
-// Ключ KaraokeProperty, разрешающий ручную/one-click синхронизацию этой сущности в данном
-// направлении (см. 10 flags "sync_<key>_push/pull_allowed" в KaraokeProperties.kt).
-fun SyncTarget<*>.allowPropertyKey(direction: SyncDirection): String =
-    "sync_${key}_${if (direction == SyncDirection.LOCAL_TO_SERVER) "push" else "pull"}_allowed"
+// Ключ KaraokeProperty, разрешающий конкретную операцию этой сущности в данном направлении
+// (см. 40 flags "sync_<key>_<push|pull>_<insert|update|delete|move>_allowed" в KaraokeProperties.kt).
+fun SyncTarget<*>.operationPropertyKey(direction: SyncDirection, op: SyncOperation): String =
+    "sync_${key}_${if (direction == SyncDirection.LOCAL_TO_SERVER) "push" else "pull"}_${op.dbValue}_allowed"
 
+fun SyncTarget<*>.isOperationAllowed(direction: SyncDirection, op: SyncOperation): Boolean =
+    KaraokeProperties.getBoolean(operationPropertyKey(direction, op))
+
+// Направление считается разрешённым (кнопка запуска/one-click активна), если разрешена хотя бы одна
+// операция этого направления — заменяет прежний одиночный флаг sync_<key>_push/pull_allowed.
 fun SyncTarget<*>.isAllowed(direction: SyncDirection): Boolean =
-    KaraokeProperties.getBoolean(allowPropertyKey(direction))
+    SyncOperation.values().any { isOperationAllowed(direction, it) }

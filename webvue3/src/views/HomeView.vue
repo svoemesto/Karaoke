@@ -10,6 +10,7 @@
         @getpath="getPath"
     />
     <div class="home-wrapper">
+      <div class="home-controls">
       <datalist id="list_authors">
         <option v-for="author in songAuthors" :key="author" :value="author"/>
       </datalist>
@@ -49,6 +50,7 @@
         <button class="button-action button-action-inline" @click="autorizeYMstop" :disabled="!authYmInProgress">Auth YM: Stop</button>
       </div>
       <button class="button-action" @click="customFunction">Выполнить Custom Function</button>
+      </div>
       <SyncTable />
     </div>
   </div>
@@ -460,7 +462,7 @@ export default {
 .home {
   display: flex;
   flex-direction: column;
-  max-width: 500px;
+  max-width: 780px;
   min-height: calc(100vh - 85px);
   margin: 0 auto;
   justify-content: center;
@@ -469,10 +471,20 @@ export default {
 .home-wrapper {
   display: flex;
   flex-direction: column;
+  align-items: center;
   padding: 10px 15px;
   border: 1px dashed darksalmon;
   border-radius: 35px;
   background-color: beige;
+}
+
+/* Верхние элементы управления держим узкой центрированной колонкой (~500px),
+   чтобы кнопки не растягивались, а широкую таблицу синхронизации пускаем на всю ширину. */
+.home-controls {
+  display: flex;
+  flex-direction: column;
+  width: 500px;
+  max-width: 100%;
 }
 
 .field-and-buttons-wrapper {

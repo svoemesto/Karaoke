@@ -2837,6 +2837,70 @@ class ApiController(
         return result
     }
 
+    // Пакетная автопривязка оригинала по аудио-сверке для всех песен со статусом 1 (TEXT_CREATE) и
+    // ненулевым root_id: для каждой находим наиболее похожий по аудио вариант из "семьи" (порог threshold%),
+    // применяем его (текст/маркеры со сдвигом) как выбор в модалке "Похожие версии песни", сохраняем
+    // (пересчёт производных полей + .srt) и переводим песню в статус 2 (TEXT_CHECK). Тяжёлая операция
+    // (ffmpeg-декод на каждого кандидата) — уходит в фоновый поток, прогресс/итог печатается в консоль
+    // и присылается тостом по SSE.
+    @PostMapping("/songs/autoassignoriginalall")
+    @ResponseBody
+    fun autoAssignOriginalAll(
+        @RequestParam(required = false) author: String? = null,
+        @RequestParam(required = false) threshold: Int = 85
+    ): Boolean {
+        val authorFilter = author?.trim()?.takeIf { it.isNotEmpty() }
+        thread {
+            val ids = mutableListOf<Long>()
+            try {
+                val connection = WORKING_DATABASE.getConnection()
+                if (connection != null) {
+                    // Колонка автора в tbl_settings — song_author (не author); сравнение регистронезависимо.
+                    val sql = "SELECT id FROM tbl_settings WHERE id_status = 1 AND root_id <> 0" +
+                        (if (authorFilter != null) " AND LOWER(song_author) = LOWER(?)" else "") +
+                        " ORDER BY id"
+                    val ps = connection.prepareStatement(sql)
+                    if (authorFilter != null) ps.setString(1, authorFilter)
+                    val rs = ps.executeQuery()
+                    while (rs.next()) ids.add(rs.getLong("id"))
+                    rs.close()
+                    ps.close()
+                }
+            } catch (e: Exception) {
+                println("Автопривязка оригинала: ошибка выборки песен — ${e.message}")
+            }
+
+            val scope = if (authorFilter != null) "автор «$authorFilter»" else "все авторы"
+            println("Автопривязка оригинала ($scope): найдено песен со статусом 1 и root_id<>0: ${ids.size} (порог $threshold%)")
+            var matched = 0
+            var skipped = 0
+            ids.forEachIndexed { index, id ->
+                try {
+                    val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
+                    if (settings == null) {
+                        skipped++
+                        println("  [${index + 1}/${ids.size}] id=$id — пропущено (не удалось загрузить)")
+                        return@forEachIndexed
+                    }
+                    val result = autoAssignOriginalByWaveform(settings, WORKING_DATABASE, storageService, storageApiClient, threshold)
+                    if (result.matched) matched++ else skipped++
+                    println("  [${index + 1}/${ids.size}] ${songLogLabel(settings)} — ${result.reason}")
+                } catch (e: Exception) {
+                    skipped++
+                    println("  [${index + 1}/${ids.size}] id=$id — ошибка: ${e.message}")
+                }
+            }
+            println("Автопривязка оригинала: завершено. Обработано ${ids.size}, привязано $matched, пропущено $skipped.")
+
+            SNS.send(SseNotification.message(Message(
+                type = "info",
+                head = "Автопривязка оригинала ($scope)",
+                body = "Обработано ${ids.size}, привязано $matched, пропущено $skipped (порог $threshold%)"
+            )))
+        }
+        return true
+    }
+
     @PostMapping("/song/setpublishdatetimetoauthor")
     @ResponseBody
     fun doSetPublishDateTimeToAuthor(@RequestParam id: Long, @RequestParam(required = false) skipPublished: Boolean = false) {

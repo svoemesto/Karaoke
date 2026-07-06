@@ -981,6 +981,45 @@ locations) запись — на практике: `RepairAll` создавал 
 списка ошибок. Тот же паттерн `"${karaokeFileType.name}/${x.name}"` уже применялся для
 `PICTURE_PUBLICATION`/`SongVersion` — не изобретать новый.
 
+**Актуализация счётчика HealthReport после async-задач + каскадное «Исправить всё» (2026-07-06).**
+Колонка `healthReportText` в таблице песен (`SongsTable.vue`) обновляется ТОЛЬКО через SSE
+`SseNotification.healthReports`, которую слал единственный эндпоинт `/song/healthReportList`. Репаир-
+действия, уходящие в очередь `KaraokeProcess` (UPLOAD_TO_LOCAL/REMOTE_STORE, DEMUCS2/5, FF_MP3_*,
+KEY_BPM_FROM_FILE), при завершении в `KaraokeProcessThread.run()` HR не пересчитывали → счётчик навсегда
+застывал на IN_PROGRESS. Обе доработки живут в `HealthReport.kt` (companion) + пост-хук в
+`KaraokeProcessWorker.kt` + эндпоинт в `ApiController.kt`; только admin (karaoke-app), на прод не деплоится.
+- **`HealthReport.recomputeAndBroadcast(settingsId, db, storageService, storageApiClient)`** — единая точка
+  «пересчитать HR + разослать SSE `healthReports`» (та же логика, что была в эндпоинте `/song/healthReportList`,
+  который теперь переписан на неё). Возвращает **полный** список отчётов (с `canResolve`) — нужен каскаду.
+- **Проблема 1 (застывший счётчик).** Пост-хук в конце `KaraokeProcessThread.run()` (после обеих веток,
+  когда уже выставлен терминальный статус) вызывает `HealthReport.onRepairProcessFinished(...)`. Ограничен
+  набором `HealthReport.HR_REPAIR_PROCESS_TYPES` (9 репаир-типов) — иначе 15 sub-шагов MELT-рендера дали бы
+  15 пересчётов. Берёт `KSS_APP`/`SAC_APP`/`WORKING_DATABASE` (как прецедент SHEETSAGE→SHEETSAGE2 рядом).
+  **Smart-cast `karaokeProcess` не проходит внутри лямбды `runCatching` для member-property** — захвачен в
+  локальную `val kp`.
+- **Проблема 2 (умное «Исправить всё» — каскад по завершению).** Когда файла нет нигде, но он генерируемый:
+  `canResolve=true` только у отчёта LOCAL_FILESYSTEM (создать файл на диске); LOCAL_STORAGE/REMOTE_STORAGE —
+  FATAL/`canResolve=false` (файла ещё нет). Новый эндпоинт `POST /song/repairAll` → `startRepairAll(settings)`
+  помечает песню в in-memory `HealthReport.autoRepairSongIds` (`ConcurrentHashMap.newKeySet` — намеренно НЕ в
+  БД, чтобы не тянуть в LOCAL↔SERVER-sync; при рестарте app каскад обрывается — админ-машина, допустимо) и
+  выполняет решаемое сейчас. Тот же пост-хук, увидев песню в реестре, ставит следующий ставший решаемым шаг
+  (создать → залить в локальное → залить в удалённое) — до конца цепочки. **Каскад по завершению, а не
+  upfront-очередь в один threadId-лейн** (тот блокировал бы heavy-render): каждая задача на своём естественном
+  лейне, порядок гарантирован тем, что следующий шаг ставится ТОЛЬКО после завершения предыдущего.
+- **Защита от зацикливания:** `onRepairProcessFinished(settingsId, success, …)` — при `success=false`
+  (задание упало ERROR) каскад по песне ОБРЫВАЕТСЯ (remove из реестра). Иначе тот же упавший отчёт снова
+  оказался бы `canResolve=ERROR`, и хук вечно перезапускал бы падающую задачу. Успех не зацикливает: файл
+  появился → отчёт стал OK (не решаемым), следующий тип-отчёт стал решаемым — реальный прогресс.
+- **Выход из реестра:** решать больше нечего (`resolvable` пуст) И ничего не в работе (нет IN_PROGRESS) →
+  remove. `canResolve=true` ⇒ статус всегда ERROR (IN_PROGRESS/WARNING/FATAL ставят `canResolve=false`),
+  поэтому фильтр `canResolve && ERROR` == `canResolve`.
+- **Фронт (webvue3):** `repairAllPromise(ctx, id)` в `Common/HealthReport/store.js` (POST `/song/repairAll`
+  → `loadHealthReportList`). Кнопка «Repair All» в `HealthReportTableHeader.vue` и постраничный «Исправить
+  всё» в `SongsTable.vue` (`repairAllForCurrentPage`) теперь дёргают ОДИН серверный вызов вместо
+  параллельного цикла `repairOneRecord` — побочно уходит гонка, когда `getHealthReport` возвращал null
+  из-за смены статуса между параллельными запросами. Одиночный `repairOneRecord` не тронут (one-shot, но
+  его счётчик тоже обновится хуком). **В браузере / на реальных данных ещё не проверено.**
+
 **Раздел "Статистика" (`webvue3`) — `target=local|remote` + серверная пагинация.**
 `StatsController.kt` (`/api/stats/by-song`, `/api/webevents`) поддерживает тот же `target=local|remote`
 паттерн, что `SiteUsersController`/`PublicSettingsController` (общий `resolveDb(target)`). **В отличие**

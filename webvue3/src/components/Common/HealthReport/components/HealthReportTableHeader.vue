@@ -23,10 +23,9 @@ export default {
   },
   methods: {
     repairAll() {
-      const lst = [...this.healthReportListCanRepair];
-      for (const healthReport of lst) {
-        this.$store.dispatch('repairOneRecord', healthReport);
-      }
+      if (this.healthReportList.length === 0) return;
+      const settingsId = this.healthReportList[0].settingsId;
+      this.$store.dispatch('repairAllPromise', settingsId);
     }
   },
 

@@ -6,9 +6,12 @@ import com.svoemesto.karaokeapp.HealthReportType.FILE_VIOLATION
 import com.svoemesto.karaokeapp.KaraokeFileTypeLocations.*
 import com.svoemesto.karaokeapp.model.Settings
 import com.svoemesto.karaokeapp.model.SongVersion
+import com.svoemesto.karaokeapp.model.SseNotification
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
+import com.svoemesto.karaokeapp.services.SNS
 import com.svoemesto.karaokeapp.services.StorageApiClient
 import java.io.File
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.properties.Delegates
 
 data class HealthReport(
@@ -2539,6 +2542,100 @@ data class HealthReport(
 
 
             return result
+        }
+
+        // Типы заданий, которые HealthReport ставит в очередь как автоисправление. Только для них
+        // имеет смысл пересчитывать HealthReport после завершения задания в воркере — это исключает
+        // многократный (по числу sub-шагов) пересчёт на тяжёлых MELT_*-рендерах.
+        val HR_REPAIR_PROCESS_TYPES: Set<KaraokeProcessTypes> = setOf(
+            KaraokeProcessTypes.UPLOAD_TO_LOCAL_STORE,
+            KaraokeProcessTypes.UPLOAD_TO_REMOTE_STORE,
+            KaraokeProcessTypes.KEY_BPM_FROM_FILE,
+            KaraokeProcessTypes.DEMUCS2,
+            KaraokeProcessTypes.DEMUCS5,
+            KaraokeProcessTypes.FF_MP3_ACCOMPANIMENT,
+            KaraokeProcessTypes.FF_MP3_VOCAL,
+            KaraokeProcessTypes.FF_MP3_BASS,
+            KaraokeProcessTypes.FF_MP3_DRUMS
+        )
+
+        // Песни, для которых пользователь нажал «Исправить всё» и по которым сейчас идёт каскадное
+        // автоисправление. In-memory (на админ-машине, при рестарте app каскад обрывается — допустимо):
+        // намеренно не в БД, чтобы не тянуть в LOCAL↔SERVER-синхронизацию. Пишется из HTTP-потока
+        // (startRepairAll) и из потоков воркера (onRepairProcessFinished) — нужен потокобезопасный набор.
+        val autoRepairSongIds: MutableSet<Long> = ConcurrentHashMap.newKeySet()
+
+        // Единая точка «пересчитать HealthReport песни и разослать SSE healthReports» — та же логика,
+        // что в эндпоинте /song/healthReportList. Возвращает ПОЛНЫЙ список отчётов (с canResolve) —
+        // нужен каскаду для выбора следующего решаемого шага.
+        fun recomputeAndBroadcast(
+            settingsId: Long,
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient
+        ): List<HealthReport> {
+            val settings = Settings.loadFromDbById(
+                id = settingsId,
+                database = database,
+                storageService = storageService,
+                storageApiClient = storageApiClient
+            ) ?: return emptyList()
+            val reports = settings.healthReportList()
+            val dtoErrors = reports.errorsOnly().map { it.toDTO() }
+            SNS.send(SseNotification.healthReports(settingsId = settingsId, healthReportDtoList = dtoErrors))
+            return reports
+        }
+
+        // Выполнить все прямо сейчас решаемые (canResolve && ERROR) действия отчётов. Каждое действие
+        // либо чинит проблему синхронно, либо ставит задачу в очередь KaraokeProcess (дедуп внутри
+        // createProcess не даёт задвоить уже WORKING-задачу).
+        private fun executeResolvable(reports: List<HealthReport>) {
+            reports.filter { it.canResolve && it.healthReportStatus == ERROR }
+                .forEach { it.executeSolutionActions() }
+        }
+
+        // Старт каскадного «Исправить всё» по песне: пометить песню и выполнить всё решаемое сейчас.
+        fun startRepairAll(
+            settings: Settings,
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient
+        ) {
+            autoRepairSongIds.add(settings.id)
+            val reports = recomputeAndBroadcast(settings.id, database, storageService, storageApiClient)
+            executeResolvable(reports)
+            // повторный пересчёт — отразить в UI перевод отчётов в IN_PROGRESS
+            recomputeAndBroadcast(settings.id, database, storageService, storageApiClient)
+        }
+
+        // Хук завершения репаир-задания (вызывается из KaraokeProcessThread.run()). Всегда пересчитывает
+        // HR + шлёт SSE (проблема 1). Если песня в каскаде — ставит следующий ставший решаемым шаг;
+        // когда решать больше нечего и ничего не в работе — выводит песню из каскада.
+        // success=false (задание упало с ERROR) обрывает каскад: иначе тот же упавший отчёт снова
+        // окажется решаемым и хук вечно перезапускал бы падающую задачу.
+        fun onRepairProcessFinished(
+            settingsId: Long,
+            success: Boolean,
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient
+        ) {
+            val reports = recomputeAndBroadcast(settingsId, database, storageService, storageApiClient)
+            if (settingsId !in autoRepairSongIds) return
+
+            if (!success) {
+                autoRepairSongIds.remove(settingsId)
+                return
+            }
+
+            val resolvable = reports.filter { it.canResolve && it.healthReportStatus == ERROR }
+            val inProgress = reports.any { it.healthReportStatus == IN_PROGRESS }
+            if (resolvable.isNotEmpty()) {
+                executeResolvable(resolvable)
+                recomputeAndBroadcast(settingsId, database, storageService, storageApiClient)
+            } else if (!inProgress) {
+                autoRepairSongIds.remove(settingsId)
+            }
         }
     }
 

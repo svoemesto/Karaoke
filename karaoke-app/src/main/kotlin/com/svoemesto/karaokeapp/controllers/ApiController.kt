@@ -3686,14 +3686,33 @@ class ApiController(
     @PostMapping("/song/healthReportList")
     @ResponseBody
     fun getHealthReportList(@RequestParam id: Long): List<HealthReportDTO> {
-        val result = Settings.loadFromDbById(
+        return HealthReport.recomputeAndBroadcast(
+            settingsId = id,
+            database = WORKING_DATABASE,
+            storageService = storageService,
+            storageApiClient = storageApiClient
+        ).errorsOnly().map { it.toDTO() }
+    }
+
+    // Каскадное «Исправить всё»: помечает песню как «в авто-ремонте» и выполняет всё решаемое сейчас.
+    // Дальнейшие шаги цепочки (upload в локальное/удалённое хранилище после создания файла на диске)
+    // ставятся автоматически из пост-хука воркера по мере завершения предыдущих задач.
+    @PostMapping("/song/repairAll")
+    @ResponseBody
+    fun repairAll(@RequestParam id: Long) {
+        Settings.loadFromDbById(
             id = id,
             database = WORKING_DATABASE,
             storageService = storageService,
             storageApiClient = storageApiClient
-        )?.healthReportList()?.errorsOnly()?.map { it.toDTO() } ?: emptyList()
-        SNS.send(SseNotification.healthReports(settingsId = id,  healthReportDtoList = result))
-        return result
+        )?.let { settings ->
+            HealthReport.startRepairAll(
+                settings = settings,
+                database = WORKING_DATABASE,
+                storageService = storageService,
+                storageApiClient = storageApiClient
+            )
+        }
     }
 
 

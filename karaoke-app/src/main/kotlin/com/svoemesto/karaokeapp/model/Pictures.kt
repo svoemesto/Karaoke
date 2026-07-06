@@ -123,8 +123,8 @@ class Pictures(
                 name = name,
                 preview = "",
                 full = "",
-                previewUrl = "/api/picture/file?file=${storageFileNamePreview}",
-                fullUrl = "/api/picture/file?file=${storageFileName}",
+                previewUrl = "/api/picture/file?file=${java.net.URLEncoder.encode(storageFileNamePreview, java.nio.charset.StandardCharsets.UTF_8)}",
+                fullUrl = "/api/picture/file?file=${java.net.URLEncoder.encode(storageFileName, java.nio.charset.StandardCharsets.UTF_8)}",
                 author = author,
                 year = year,
                 album = album,
@@ -196,10 +196,19 @@ class Pictures(
         fun createNewPicture(newPicture: Pictures, database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient): Pictures? {
             val storedPicture = getPictureByName(name = newPicture.name, database = database, storageService = storageService, storageApiClient = storageApiClient)
             if (storedPicture != null) return storedPicture
-            val newPictureInDb = KaraokeDbTable.createDbInstance(
-                entity = newPicture,
-                database = database
-            ) as? Pictures?
+            // Уникальный индекс uq_tbl_pictures_picture_name гарантирует отсутствие дублей на уровне БД.
+            // Проверка getPictureByName выше закрывает обычный случай; try/catch — защита от ГОНКИ
+            // (две параллельные песни одного альбома вызывают pictureAlbum/pictureAuthor одновременно,
+            // обе не находят запись и обе пытаются INSERT). Проигравший INSERT ловит нарушение
+            // уникальности и возвращает уже вставленную соседним потоком запись вместо падения 500.
+            val newPictureInDb = try {
+                KaraokeDbTable.createDbInstance(
+                    entity = newPicture,
+                    database = database
+                ) as? Pictures?
+            } catch (e: Exception) {
+                return getPictureByName(name = newPicture.name, database = database, storageService = storageService, storageApiClient = storageApiClient)
+            }
             newPictureInDb?.let {
                 return it
             }

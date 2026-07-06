@@ -6,13 +6,16 @@
     </div>
   </div>
   <router-view v-else />
+  <PremiumUpsellModal />
 </template>
 
 <script>
 import { useDesign } from './composables/useDesign'
+import PremiumUpsellModal from './components/PremiumUpsellModal.vue'
 
 export default {
   name: 'App',
+  components: { PremiumUpsellModal },
   setup() {
     const { design } = useDesign()
     return { design }

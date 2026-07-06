@@ -39,8 +39,9 @@
         <table class="table-sm table-hover" style="width: 780px; table-layout: fixed">
           <colgroup>
             <col style="width: 25px" />
-            <col style="width: 455px" />
+            <col style="width: 430px" />
             <col style="width: 250px" />
+            <col style="width: 25px" />
             <col style="width: 25px" />
             <col style="width: 25px" />
           </colgroup>
@@ -48,7 +49,7 @@
             <tr>
               <td class="td_cell" style="padding: 0"><div class="head_songtrack" style="text-align: center">№</div></td>
               <td class="td_cell" style="padding: 0"><div class="head_songname">Композиция</div></td>
-              <td class="td_cell" style="padding: 0" colspan="3"><div class="head_songname">&nbsp;</div></td>
+              <td class="td_cell" style="padding: 0" colspan="4"><div class="head_songname">&nbsp;</div></td>
             </tr>
           </thead>
           <tbody>
@@ -69,6 +70,9 @@
               <td class="td_cell" style="padding: 0; border-top-width: 0; border-left-width: 0; border-right-width: 0; width: 25px; text-align: center; vertical-align: middle">
                 <PlatformLink link-name="sponsr" :link-value="sett.linkSponsrPlay" :song-id="sett.id" song-version="all" />
               </td>
+              <td class="td_cell" style="padding: 0; border-top-width: 0; border-left-width: 0; border-right-width: 0; width: 25px; text-align: center; vertical-align: middle">
+                <FavoriteIcon :song-id="sett.id" />
+              </td>
             </tr>
           </tbody>
         </table>
@@ -83,16 +87,18 @@ import { mapGetters, mapActions } from 'vuex'
 import PlatformLink from '../../components/PlatformLink.vue'
 import PlayerIcon from '../../components/PlayerIcon.vue'
 import PremiumIcon from '../../components/PremiumIcon.vue'
+import FavoriteIcon from '../../components/FavoriteIcon.vue'
 import AuthorTiles from '../../components/AuthorTiles.vue'
 import { usePlayerReadiness } from '../../composables/usePlayerReadiness'
+import { usePlaylistMembership } from '../../composables/usePlaylistMembership'
 import { useAuth } from '../../composables/useAuth'
 
 export default {
   name: 'ZakromaClassic',
-  components: { PlatformLink, PlayerIcon, PremiumIcon, AuthorTiles },
+  components: { PlatformLink, PlayerIcon, PremiumIcon, FavoriteIcon, AuthorTiles },
   setup() {
     const { user } = useAuth()
-    return { readiness: usePlayerReadiness(), user }
+    return { readiness: usePlayerReadiness(), membership: usePlaylistMembership(), user }
   },
   data() {
     return {
@@ -114,6 +120,7 @@ export default {
       handler(list) {
         const ids = (list || []).flatMap(z => z.albums.flatMap(a => a.albumSettings.map(s => s.id)))
         this.readiness.load(ids)
+        this.membership.load(ids)
       }
     }
   },

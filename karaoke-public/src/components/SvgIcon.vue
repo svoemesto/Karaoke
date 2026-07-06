@@ -99,6 +99,22 @@
       <path d="M140.364 53.9091V147H118.182V71.9091H83.6363V147H61.4545V53.9091H140.364Z" fill="white"/>
     </template>
 
+    <!-- favorite (избранное — красная закладка; active = в избранном/залита) -->
+    <template v-else-if="name === 'favorite' && active">
+      <path d="M6 2h8a1 1 0 0 1 1 1v15l-5-3.6L5 18V3a1 1 0 0 1 1-1z" fill="#E11D2A"/>
+    </template>
+    <template v-else-if="name === 'favorite'">
+      <path d="M6 2.8h8a.8.8 0 0 1 .8.8v13.9l-4.8-3.45L5.2 17.5V3.6a.8.8 0 0 1 .8-.8z" fill="none" stroke="#E11D2A" stroke-width="1.4"/>
+    </template>
+
+    <!-- playlist (плейлисты — синяя закладка; active = песня хотя бы в одном плейлисте) -->
+    <template v-else-if="name === 'playlist' && active">
+      <path d="M6 2h8a1 1 0 0 1 1 1v15l-5-3.6L5 18V3a1 1 0 0 1 1-1z" fill="#0077FF"/>
+    </template>
+    <template v-else-if="name === 'playlist'">
+      <path d="M6 2.8h8a.8.8 0 0 1 .8.8v13.9l-4.8-3.45L5.2 17.5V3.6a.8.8 0 0 1 .8-.8z" fill="none" stroke="#0077FF" stroke-width="1.4"/>
+    </template>
+
   </svg>
 </template>
 
@@ -114,6 +130,8 @@ const viewBoxMap = {
   pl:     '0 0 200 200',
   player: '0 0 20 20',
   premium:'0 0 20 20',
+  favorite:'0 0 20 20',
+  playlist:'0 0 20 20',
 }
 
 export default {

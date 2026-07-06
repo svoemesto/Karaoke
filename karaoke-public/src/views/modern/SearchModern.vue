@@ -61,6 +61,7 @@
             <col style="width: 220px" />
             <col style="width: 24px" />
             <col style="width: 32px" />
+            <col style="width: 26px" />
           </colgroup>
           <thead>
             <tr>
@@ -69,7 +70,7 @@
               <th class="km-th">Альбом</th>
               <th class="km-th km-th-center">№</th>
               <th class="km-th">Композиция</th>
-              <th class="km-th" colspan="3">&nbsp;</th>
+              <th class="km-th" colspan="4">&nbsp;</th>
             </tr>
           </thead>
           <tbody>
@@ -88,8 +89,11 @@
               <td class="km-td km-td-center">
                 <PlayerIcon :song-id="sett.id" :state="readiness.stateFor(sett.id)" />
               </td>
-              <td class="km-td km-td-center km-group-end">
+              <td class="km-td km-td-center">
                 <PlatformLink link-name="sponsr" :link-value="sett.linkSponsrPlay" :song-id="sett.id" song-version="all" />
+              </td>
+              <td class="km-td km-td-center km-group-end">
+                <FavoriteIcon :song-id="sett.id" />
               </td>
             </tr>
           </tbody>
@@ -109,6 +113,7 @@
             <RouterLink :to="{ path: '/song', query: { id: sett.id } }" class="km-card-title">{{ sett.songName }}</RouterLink>
             <PlayerIcon :song-id="sett.id" :state="readiness.stateFor(sett.id)" />
             <PlatformLink link-name="sponsr" :link-value="sett.linkSponsrPlay" :song-id="sett.id" song-version="all" />
+            <FavoriteIcon :song-id="sett.id" />
           </div>
           <div v-if="showDate(sett) || showCoin(sett)" class="km-card-date">
             <span v-if="showDate(sett)" class="km-date-text">{{ sett.datePublish }}</span>
@@ -127,19 +132,21 @@ import { mapGetters, mapActions } from 'vuex'
 import PlatformLink from '../../components/PlatformLink.vue'
 import PlayerIcon from '../../components/PlayerIcon.vue'
 import PremiumIcon from '../../components/PremiumIcon.vue'
+import FavoriteIcon from '../../components/FavoriteIcon.vue'
 import AuthStatusWidget from '../../components/AuthStatusWidget.vue'
 import { useDesign } from '../../composables/useDesign'
 import { usePlayerReadiness } from '../../composables/usePlayerReadiness'
+import { usePlaylistMembership } from '../../composables/usePlaylistMembership'
 import { useAuth } from '../../composables/useAuth'
 
 export default {
   name: 'SearchModern',
-  components: { PlatformLink, PlayerIcon, PremiumIcon, AuthStatusWidget },
+  components: { PlatformLink, PlayerIcon, PremiumIcon, FavoriteIcon, AuthStatusWidget },
   setup() {
     const { theme, applyTheme } = useDesign()
     const { user } = useAuth()
     function setTheme(val) { theme.value = val; applyTheme(val) }
-    return { theme, setTheme, readiness: usePlayerReadiness(), user }
+    return { theme, setTheme, readiness: usePlayerReadiness(), membership: usePlaylistMembership(), user }
   },
   data() {
     return {
@@ -158,7 +165,9 @@ export default {
     searchResults: {
       immediate: true,
       handler(list) {
-        this.readiness.load((list || []).map(s => s.id))
+        const ids = (list || []).map(s => s.id)
+        this.readiness.load(ids)
+        this.membership.load(ids)
       }
     }
   },

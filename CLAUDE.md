@@ -1001,6 +1001,18 @@ docker-шлюза. Плюс `referer` вообще не писался для `c
   после.** `insertEvent()` безусловно пишет `client_ip` в каждый INSERT — если колонки ещё нет на
   сервере, вообще все события (клики, callRest, плеер) начинают падать с `column does not exist`.
 
+**Счётчики главной страницы (`GET /api/public/stats`, `karaoke-web/Stat.kt`, обновлено 2026-07-06).**
+`StatBySong.getCountSongsInCollection()`/`getCountSongsExclusive()` считают не по датам
+публикации/`id_sponsr`, а по `id_status`: «Песен в коллекции» = `id_status >= 3` (дошла минимум до
+`PROJECT_CREATE`, см. `Settings.status` в `karaoke-app`), «Эксклюзивно по подписке» (лейбл
+переименован из «Эксклюзивно на Sponsr» в `HomeModern.vue`/`HomeClassic.vue`/legacy `main.html`) =
+`exclusive = true AND id_status >= 3`. `getCountSongsOnAir()` не менялся (даты публикации). **Ключи
+ответа API/Vuex-стора (`onSponsr`, `exclusive`) и имена функций сознательно не переименованы** — их
+названия теперь не отражают точную семантику (`onSponsr` давно не про `id_sponsr`), но переименование
+потянуло бы правки сразу в Kotlin (`Stat.kt`/`PublicApiController.kt`/`MainController.kt`) и Vue
+(`stats.js`/оба Home-компонента/`main.html`) без функциональной необходимости — учитывать при следующей
+правке этого куска, не удивляться несовпадению имени ключа и смысла.
+
 **Побочная находка при сквозной проверке (не связана с этим рефакторингом, но чинится тем же
 `setval`):** identity-sequence может отстать от реальных данных таблицы (`tbl_events_id_seq` на
 LOCAL БД имел `last_value=557` при `max(id)=250342` — видимо, после восстановления/импорта данных

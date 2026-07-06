@@ -6,17 +6,22 @@ export default {
   namespaced: true,
   state: {
     authors: [],
+    authorTiles: [],
     zakroma: [],
     isLoading: false
   },
   getters: {
     authors: state => state.authors,
+    authorTiles: state => state.authorTiles,
     zakroma: state => state.zakroma,
     isLoading: state => state.isLoading
   },
   mutations: {
     setAuthors(state, authors) {
       state.authors = authors
+    },
+    setAuthorTiles(state, tiles) {
+      state.authorTiles = tiles
     },
     setZakroma(state, zakroma) {
       state.zakroma = zakroma
@@ -29,6 +34,10 @@ export default {
     async loadAuthors({ commit }) {
       const authors = await apiGet('/api/public/authors')
       commit('setAuthors', authors)
+    },
+    async loadAuthorTiles({ commit }) {
+      const tiles = await apiGet('/api/public/authors-tiles')
+      commit('setAuthorTiles', tiles)
     },
     async loadZakroma({ commit }, author) {
       const requestId = ++latestRequestId

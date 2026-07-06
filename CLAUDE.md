@@ -1460,6 +1460,29 @@ src/
   → `ZakromaAlbumSettingsPublicDto` (`ZakromaPublicDto.kt`). **Не колонка БД** (`Settings.exclusive` — getter),
   миграций не требуется. Деплой: `deploy_web.sh` (backend) + `deploy_public.sh` (фронт).
 
+**Выбор автора в «Закромах» плитками вместо `<select>` (karaoke-public, 2026-07-06, задеплоено на прод).**
+Табличное отображение песен НЕ трогалось — заменён только выбор автора. Общий компонент
+`components/AuthorTiles.vue` (проп `variant="classic"|"modern"` — два блока стилей) встроен в
+`views/{classic,modern}/Zakroma*.vue` взамен выпадающего списка. Каждая плитка: превью автора на **чёрном
+фоне** (image `object-fit: contain`, углы пустые) + имя + число песен (компактная пилюля справа от имени в
+строке имени; **не** бейджем поверх логотипа — так пробовали, отвергнуто; без значка ноты).
+- **Скрытие плиток после выбора.** Флаг `authorChosen` в каждом view (init `!!$route.query.author`): плитки
+  видны при `!authorChosen`; после клика по плитке — скрываются, показывается таблица + кнопка «← К списку
+  авторов» (`backToAuthors` сбрасывает флаг и `?author`). Заход по `?author=...` сразу открывает таблицу.
+  Таблицу грузят **только** при `authorChosen` (`mounted` не грузит закрома при пустом авторе — раньше
+  пустой `<select>` грузил все). Плитки «Все авторы» НЕТ (была, убрана по требованию).
+- **Backend (karaoke-web):** `GET /api/public/authors-tiles` → `List<AuthorTilePublicDto{author,
+  authorPictureUrl, songCount}>` (`dto/AuthorTilePublicDto.kt`). `authorPictureUrl` строится
+  **детерминированно** из имени (`"$author/$author.preview.author.png"` — формула
+  `Pictures.storageFileNamePreview` для картинки-автора) → `/api/public/picture?file=...` (URLEncoder UTF-8,
+  как `ZakromaPublicDto`); нет картинки → фронт по `@error` прячет `<img>`, остаётся имя. **URL строим, а не
+  читаем через `Settings`/`Pictures` в karaoke-web** — избегаем опасной инициализации (см. «karaoke-web
+  Settings trap»). `songCount` из нового `Settings.loadAuthorSongCounts(database): Map<String,Long>`
+  (karaoke-app, рядом с `loadListAuthors`) — один `SELECT song_author, count(*) GROUP BY song_author` по
+  tbl_settings. Авторы — `loadListAuthors(withSkiped=false)` (tbl_authors where skip=false).
+- **Store:** `store/modules/zakroma.js` — `authorTiles` state/getter + action `loadAuthorTiles`. Старые
+  `authors`/`loadAuthors` в этом сторе больше не используются (Search использует `songs` store, не тронут).
+
 **Меню плеера (гамбургер, `_buildUI()`/`_buildMenu()`):**
 - Пункты-действия ("Открыть файл...", "Сохранить файл") и пункт-подменю ("Экспорт аудио..." → Голос/
   Минусовка/Бас/Ударные) визуально различаются: у подменю — стрелка `▸` и hover, у действий — просто hover.

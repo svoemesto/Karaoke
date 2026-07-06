@@ -8,6 +8,7 @@ import com.svoemesto.karaokeapp.model.Zakroma
 import com.svoemesto.karaokeapp.resizeBufferedImage
 import com.svoemesto.karaokeweb.WORKING_DATABASE
 import com.svoemesto.karaokeweb.StatBySong
+import com.svoemesto.karaokeweb.dto.AuthorTilePublicDto
 import com.svoemesto.karaokeweb.dto.SettingsPublicDto
 import com.svoemesto.karaokeweb.dto.ZakromaPublicDto
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
@@ -82,6 +83,13 @@ class PublicApiController(
 
     @GetMapping("/authors")
     fun authors(): List<String> = Settings.loadListAuthors(withSkiped = false, database = WORKING_DATABASE)
+
+    @GetMapping("/authors-tiles")
+    fun authorsTiles(): List<AuthorTilePublicDto> {
+        val counts = Settings.loadAuthorSongCounts(WORKING_DATABASE)
+        return Settings.loadListAuthors(withSkiped = false, database = WORKING_DATABASE)
+            .map { AuthorTilePublicDto.fromAuthorName(it, counts[it] ?: 0L) }
+    }
 
     @GetMapping("/zakroma")
     fun zakroma(

@@ -4452,6 +4452,36 @@ class Settings(
             return emptyList()
         }
 
+        // Количество песен в базе по каждому автору (song_author -> count). Один запрос с GROUP BY.
+        fun loadAuthorSongCounts(database: KaraokeConnection): Map<String, Long> {
+            val connection = database.getConnection()
+            if (connection == null) {
+                println("[${Timestamp.from(Instant.now())}] Невозможно установить соединение с базой данных ${database.name}")
+                return emptyMap()
+            }
+            var statement: Statement? = null
+            var rs: ResultSet? = null
+            try {
+                statement = connection.createStatement()
+                rs = statement.executeQuery("select song_author, count(*) as cnt from tbl_settings group by song_author")
+                val result: MutableMap<String, Long> = mutableMapOf()
+                while (rs.next()) {
+                    result[rs.getString("song_author")] = rs.getLong("cnt")
+                }
+                return result
+            } catch (e: SQLException) {
+                e.printStackTrace()
+            } finally {
+                try {
+                    rs?.close()
+                    statement?.close()
+                } catch (e: SQLException) {
+                    e.printStackTrace()
+                }
+            }
+            return emptyMap()
+        }
+
         fun loadListAlbums(database: KaraokeConnection): List<String> {
             val connection = database.getConnection()
             if (connection == null) {

@@ -10,7 +10,6 @@
     </header>
 
     <div v-if="loading" class="km-loading">Загрузка...</div>
-
     <div v-else-if="notFound" class="km-loading">Плейлист не найден.</div>
 
     <div v-else class="km-content">
@@ -28,19 +27,26 @@
         <span class="km-name-count">{{ items.length }} {{ pluralSongs(items.length) }}</span>
       </div>
 
-      <!-- Встроенный плеер -->
-      <div class="km-player-box" ref="playerBox">
-        <div v-if="!started" class="km-player-placeholder">
-          <button class="km-big-play" :disabled="!hasPlayable" @click="startPlaylist">
-            ▶ Запустить плейлист
-          </button>
+      <!-- Встроенный плеер (тот же /player/:id в iframe, что и на странице песни) -->
+      <div class="km-player-box" :class="{ 'km-player-wide': playerWide }">
+        <iframe
+          v-if="started"
+          ref="playerIframe"
+          :src="`/player/${firstSongId}?pl=1`"
+          class="km-player-iframe"
+          allow="autoplay; fullscreen"
+          frameborder="0"
+          allowfullscreen
+        />
+        <div v-else class="km-player-placeholder">
+          <button class="km-big-play" :disabled="!hasPlayable" @click="startPlaylist">▶ Запустить плейлист</button>
           <p v-if="!hasPlayable" class="km-player-hint">
             Нет доступных для воспроизведения песен (не готовы или недоступны без премиума).
           </p>
         </div>
       </div>
 
-      <!-- Панель управления воспроизведением -->
+      <!-- Панель управления плейлистом -->
       <div class="km-controls">
         <button class="km-ctrl-btn" title="Предыдущая" :disabled="!started" @click="prev">⏮</button>
         <button class="km-ctrl-btn km-ctrl-main" :title="isPlaying ? 'Пауза' : 'Играть'" @click="togglePlay">
@@ -50,35 +56,13 @@
 
         <div class="km-ctrl-sep" />
 
-        <button
-          class="km-ctrl-toggle"
-          :class="{ active: settings.continuous }"
-          title="Непрерывное воспроизведение (переходить к следующей песне)"
-          @click="toggleContinuous"
-        >⇥ Непрерывно</button>
-        <button
-          class="km-ctrl-toggle"
-          :class="{ active: settings.repeatMode !== 'none' }"
-          :title="repeatTitle"
-          @click="cycleRepeat"
-        >{{ repeatLabel }}</button>
-        <button
-          class="km-ctrl-toggle"
-          :class="{ active: settings.shuffle }"
-          title="Случайный порядок"
-          @click="toggleShuffle"
-        >🔀 Случайно</button>
+        <button class="km-ctrl-toggle" :class="{ active: settings.continuous }" title="Непрерывное воспроизведение" @click="toggleContinuous">⇥ Непрерывно</button>
+        <button class="km-ctrl-toggle" :class="{ active: settings.repeatMode !== 'none' }" :title="repeatTitle" @click="cycleRepeat">{{ repeatLabel }}</button>
+        <button class="km-ctrl-toggle" :class="{ active: settings.shuffle }" title="Случайный порядок" @click="toggleShuffle">🔀 Случайно</button>
       </div>
 
       <!-- Список песен (drag-drop) -->
-      <draggable
-        v-model="items"
-        item-key="id"
-        handle=".km-drag-handle"
-        class="km-song-list"
-        ghost-class="km-song-ghost"
-        @end="onReorder"
-      >
+      <draggable v-model="items" item-key="id" handle=".km-drag-handle" class="km-song-list" ghost-class="km-song-ghost" @end="onReorder">
         <template #item="{ element: item }">
           <div class="km-song-row" :class="{ 'km-song-current': item.songId === currentSongId, 'km-song-muted': item.muted }">
             <span class="km-drag-handle" title="Перетащите для смены порядка">⠿</span>
@@ -109,21 +93,18 @@
 import { ref, reactive, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import draggable from 'vuedraggable'
-import KaraokePlayer from '../player/KaraokePlayer'
-import { useAuth } from '../composables/useAuth'
-import { usePlayerReadiness } from '../composables/usePlayerReadiness'
 import { fetchPlayerToken } from '../services/playerLauncher'
 import {
   fetchPlaylist, renamePlaylist, updatePlaylistSettings,
   reorderPlaylist, setSongMute, removeSongFromPlaylist,
 } from '../services/playlistApi'
+import { usePlayerReadiness } from '../composables/usePlayerReadiness'
 
 export default {
   name: 'PlaylistEditView',
   components: { draggable },
   setup() {
     const route = useRoute()
-    const { token } = useAuth()
     const readiness = usePlayerReadiness()
 
     const id = Number(route.params.id)
@@ -134,16 +115,12 @@ export default {
     const nameEdit = ref('')
     const settings = reactive({ continuous: true, repeatMode: 'none', shuffle: false })
 
-    const playerBox = ref(null)
-    let player = null
+    const playerIframe = ref(null)
     const started = ref(false)
+    const firstSongId = ref(null)
     const isPlaying = ref(false)
     const currentSongId = ref(null)
-
-    // Порядок воспроизведения: индексы items (только не-muted и доступные), опц. перемешанные.
-    let order = []
-    let orderPos = 0
-    let pollTimer = null
+    const playerWide = ref(false)
 
     const hasPlayable = computed(() =>
       items.value.some(it => !it.muted && readiness.stateFor(it.songId) === 'active')
@@ -163,7 +140,6 @@ export default {
       if (b === 1) return 'песня'
       return 'песен'
     }
-
     function badgeFor(item) {
       if (item.muted) return '🔇'
       const st = readiness.stateFor(item.songId)
@@ -186,94 +162,85 @@ export default {
       readiness.load(items.value.map(it => it.songId))
     }
 
-    function buildOrder() {
-      order = items.value.map((it, i) => i).filter(i =>
-        !items.value[i].muted && readiness.stateFor(items.value[i].songId) === 'active'
-      )
+    // Упорядоченный список воспроизводимых song_id (не muted и доступных), с учётом shuffle.
+    function playableIds() {
+      const arr = items.value
+        .filter(it => !it.muted && readiness.stateFor(it.songId) === 'active')
+        .map(it => it.songId)
       if (settings.shuffle) {
-        for (let k = order.length - 1; k > 0; k--) {
+        for (let k = arr.length - 1; k > 0; k--) {
           const j = Math.floor(Math.random() * (k + 1))
-          ;[order[k], order[j]] = [order[j], order[k]]
+          ;[arr[k], arr[j]] = [arr[j], arr[k]]
         }
       }
+      return arr
     }
 
-    async function playAt(pos) {
-      if (pos < 0 || pos >= order.length) return
-      orderPos = pos
-      const item = items.value[order[pos]]
-      currentSongId.value = item.songId
-      const { canWatch, token: playToken } = await fetchPlayerToken(item.songId)
-      if (!canWatch) { advanceAfterEnd(); return } // недоступна — сразу дальше
-      if (!player) {
-        await nextTick()
-        player = new KaraokePlayer(playerBox.value, item.songId, '/api/public/player', playToken, token.value)
-        player.onTrackEnded = advanceAfterEnd
-        await player.init()
-        player.play()
-      } else {
-        await player.playSong(item.songId, playToken, token.value, true)
+    // --- Мост к плееру в iframe ---
+    function send(type, extra) {
+      const win = playerIframe.value && playerIframe.value.contentWindow
+      if (win) win.postMessage(Object.assign({ source: 'kp-playlist', type }, extra), '*')
+    }
+    async function onMessage(e) {
+      const win = playerIframe.value && playerIframe.value.contentWindow
+      // Сообщения от плеера-плейлиста (только из нашего iframe).
+      if (e.source === win && e.data && e.data.source === 'kp-playlist-player') {
+        const d = e.data
+        if (d.type === 'need-token') {
+          const { token } = await fetchPlayerToken(d.songId)
+          if (token) sessionStorage.setItem(`kp_token_${d.songId}`, token)
+          send('token', { songId: d.songId, token })
+        } else if (d.type === 'track') {
+          currentSongId.value = d.songId
+        } else if (d.type === 'state') {
+          isPlaying.value = !!d.playing
+        }
+        return
+      }
+      // Плеер (KaraokePlayer) просит родителя растянуть iframe — как на странице песни.
+      if (e.source === win && e.data && e.data.source === 'karaoke-player' && e.data.type === 'display-mode') {
+        playerWide.value = e.data.mode === 'page'
       }
     }
 
     async function startPlaylist() {
-      buildOrder()
-      if (!order.length) return
+      const ids = playableIds()
+      if (!ids.length) return
+      const first = ids[0]
+      const { canWatch, token } = await fetchPlayerToken(first)
+      if (!canWatch || !token) return
+      sessionStorage.setItem(`kp_token_${first}`, token)
+      sessionStorage.setItem('kp_pl_queue', JSON.stringify({
+        ids, continuous: settings.continuous, repeatMode: settings.repeatMode,
+      }))
+      firstSongId.value = first
+      currentSongId.value = first
       started.value = true
-      await playAt(0)
     }
 
-    // Авто-переход по окончании трека — учитывает continuous / repeat one|all.
-    function advanceAfterEnd() {
-      if (settings.repeatMode === 'one') { playAt(orderPos); return }
-      const nextPos = orderPos + 1
-      if (nextPos < order.length) {
-        if (settings.continuous) playAt(nextPos)
-      } else {
-        if (settings.repeatMode === 'all') { buildOrder(); if (order.length) playAt(0) }
-        // иначе — конец плейлиста, стоп
-      }
-    }
+    function pushQueue() { if (started.value) send('setqueue', { ids: playableIds() }) }
 
-    function next() {
-      if (!order.length) return
-      let nextPos = orderPos + 1
-      if (nextPos >= order.length) nextPos = 0 // ручной next всегда зациклен
-      playAt(nextPos)
-    }
-    function prev() {
-      if (!order.length) return
-      let p = orderPos - 1
-      if (p < 0) p = order.length - 1
-      playAt(p)
-    }
+    function prev() { if (started.value) send('prev') }
+    function next() { if (started.value) send('next') }
     function togglePlay() {
       if (!started.value) { startPlaylist(); return }
-      if (player) player.togglePlay()
+      send('toggle')
     }
 
-    // --- Настройки воспроизведения (персист на бэкенд) ---
+    // --- Настройки воспроизведения (персист + пробросить в плеер) ---
     let saveTimer = null
     function persistSettings() {
       clearTimeout(saveTimer)
       saveTimer = setTimeout(() => {
-        updatePlaylistSettings(id, {
-          continuous: settings.continuous,
-          repeatMode: settings.repeatMode,
-          shuffle: settings.shuffle,
-        })
+        updatePlaylistSettings(id, { continuous: settings.continuous, repeatMode: settings.repeatMode, shuffle: settings.shuffle })
       }, 300)
     }
-    function toggleContinuous() { settings.continuous = !settings.continuous; persistSettings() }
+    function toggleContinuous() { settings.continuous = !settings.continuous; persistSettings(); send('setmodes', { continuous: settings.continuous, repeatMode: settings.repeatMode }) }
     function cycleRepeat() {
       settings.repeatMode = settings.repeatMode === 'none' ? 'all' : settings.repeatMode === 'all' ? 'one' : 'none'
-      persistSettings()
+      persistSettings(); send('setmodes', { continuous: settings.continuous, repeatMode: settings.repeatMode })
     }
-    function toggleShuffle() {
-      settings.shuffle = !settings.shuffle
-      persistSettings()
-      if (started.value) buildOrder() // применяем новый порядок к оставшейся очереди
-    }
+    function toggleShuffle() { settings.shuffle = !settings.shuffle; persistSettings(); pushQueue() }
 
     // --- Список: имя / порядок / mute / удаление ---
     function onRename() {
@@ -281,33 +248,24 @@ export default {
       if (!nm || nm === playlist.name) { nameEdit.value = playlist.name; return }
       renamePlaylist(id, nm).then(({ status }) => { if (status === 200) playlist.name = nm })
     }
-    function onReorder() {
-      reorderPlaylist(id, items.value.map(it => it.songId))
-    }
-    function toggleMute(item) {
-      const newVal = !item.muted
-      item.muted = newVal
-      setSongMute(id, item.songId, newVal)
-    }
+    function onReorder() { reorderPlaylist(id, items.value.map(it => it.songId)); pushQueue() }
+    function toggleMute(item) { item.muted = !item.muted; setSongMute(id, item.songId, item.muted); pushQueue() }
     function removeItem(item) {
       removeSongFromPlaylist(id, item.songId).then(({ status }) => {
-        if (status === 200) items.value = items.value.filter(it => it.songId !== item.songId)
+        if (status === 200) { items.value = items.value.filter(it => it.songId !== item.songId); pushQueue() }
       })
     }
 
-    onMounted(async () => {
-      await load()
-      pollTimer = setInterval(() => { isPlaying.value = !!(player && player.isPlaying) }, 300)
-    })
+    onMounted(async () => { window.addEventListener('message', onMessage); await load() })
     onBeforeUnmount(() => {
-      clearInterval(pollTimer)
+      window.removeEventListener('message', onMessage)
       clearTimeout(saveTimer)
-      if (player) { player.destroy(); player = null }
+      sessionStorage.removeItem('kp_pl_queue')
     })
 
     return {
       loading, notFound, playlist, items, nameEdit, settings,
-      playerBox, started, isPlaying, currentSongId, hasPlayable,
+      playerIframe, started, firstSongId, isPlaying, currentSongId, playerWide, hasPlayable,
       repeatLabel, repeatTitle,
       pluralSongs, badgeFor,
       startPlaylist, togglePlay, next, prev,
@@ -330,57 +288,34 @@ export default {
 
 .km-content { max-width: 720px; margin: 0 auto; padding: 1.5rem 1rem; }
 .km-name-row { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; }
-.km-name-input {
-  flex: 1; font-size: 1.3rem; font-weight: 700; background: var(--km-input); color: var(--km-text);
-  border: 1px solid transparent; border-radius: 8px; padding: 0.3rem 0.6rem;
-}
+.km-name-input { flex: 1; font-size: 1.3rem; font-weight: 700; background: var(--km-input); color: var(--km-text); border: 1px solid transparent; border-radius: 8px; padding: 0.3rem 0.6rem; }
 .km-name-input:hover { border-color: var(--km-border); }
 .km-name-input:focus { outline: none; border-color: var(--km-accent); }
 .km-name-fixed { flex: 1; font-size: 1.3rem; font-weight: 700; margin: 0; }
 .km-name-count { font-size: 0.8rem; color: var(--km-text2); white-space: nowrap; }
 
-.km-player-box {
-  position: relative; width: 100%; aspect-ratio: 16 / 9;
-  background: #000; border-radius: 12px; overflow: hidden; margin-bottom: 0.75rem;
-}
-.km-player-placeholder {
-  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 0.75rem; background: linear-gradient(135deg, #12121f, #1c1030);
-}
-.km-big-play {
-  background: var(--km-accent, #0077ff); color: #fff; border: none; border-radius: 30px;
-  padding: 0.7rem 1.6rem; font-size: 1rem; font-weight: 700; cursor: pointer;
-}
+.km-player-box { position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: 12px; overflow: hidden; margin-bottom: 0.75rem; }
+.km-player-iframe { width: 100%; height: 100%; border: 0; display: block; }
+/* «Широкий» режим — плеер (внутри iframe) сам попросил родителя растянуть его. */
+.km-player-box.km-player-wide { aspect-ratio: auto; height: 80vh; }
+.km-player-placeholder { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.75rem; background: linear-gradient(135deg, #12121f, #1c1030); }
+.km-big-play { background: var(--km-accent, #0077ff); color: #fff; border: none; border-radius: 30px; padding: 0.7rem 1.6rem; font-size: 1rem; font-weight: 700; cursor: pointer; }
 .km-big-play:hover { filter: brightness(1.1); }
 .km-big-play:disabled { opacity: 0.5; cursor: default; }
 .km-player-hint { color: #b9b9c9; font-size: 0.82rem; max-width: 80%; text-align: center; }
 
-.km-controls {
-  display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;
-  background: var(--km-card); border: 1px solid var(--km-border); border-radius: 12px;
-  padding: 0.5rem 0.75rem; margin-bottom: 1.25rem;
-}
-.km-ctrl-btn {
-  background: transparent; border: none; color: var(--km-text); font-size: 1.1rem;
-  cursor: pointer; padding: 0.25rem 0.5rem; border-radius: 6px;
-}
+.km-controls { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; background: var(--km-card); border: 1px solid var(--km-border); border-radius: 12px; padding: 0.5rem 0.75rem; margin-bottom: 1.25rem; }
+.km-ctrl-btn { background: transparent; border: none; color: var(--km-text); font-size: 1.1rem; cursor: pointer; padding: 0.25rem 0.5rem; border-radius: 6px; }
 .km-ctrl-btn:hover:not(:disabled) { background: var(--km-hover); }
 .km-ctrl-btn:disabled { opacity: 0.4; cursor: default; }
 .km-ctrl-main { font-size: 1.35rem; }
 .km-ctrl-sep { width: 1px; height: 22px; background: var(--km-border); margin: 0 0.4rem; }
-.km-ctrl-toggle {
-  background: transparent; border: 1px solid var(--km-border); color: var(--km-text2);
-  border-radius: 16px; padding: 0.3rem 0.7rem; font-size: 0.8rem; cursor: pointer;
-}
+.km-ctrl-toggle { background: transparent; border: 1px solid var(--km-border); color: var(--km-text2); border-radius: 16px; padding: 0.3rem 0.7rem; font-size: 0.8rem; cursor: pointer; }
 .km-ctrl-toggle:hover { background: var(--km-hover); }
 .km-ctrl-toggle.active { background: var(--km-accent); color: #fff; border-color: var(--km-accent); }
 
 .km-song-list { display: flex; flex-direction: column; gap: 0.35rem; }
-.km-song-row {
-  display: flex; align-items: center; gap: 0.6rem;
-  background: var(--km-card); border: 1px solid var(--km-border); border-radius: 10px;
-  padding: 0.5rem 0.7rem;
-}
+.km-song-row { display: flex; align-items: center; gap: 0.6rem; background: var(--km-card); border: 1px solid var(--km-border); border-radius: 10px; padding: 0.5rem 0.7rem; }
 .km-song-current { border-color: var(--km-accent); box-shadow: 0 0 0 1px var(--km-accent); }
 .km-song-muted { opacity: 0.55; }
 .km-song-ghost { opacity: 0.4; }
@@ -389,10 +324,7 @@ export default {
 .km-song-info { flex: 1; min-width: 0; }
 .km-song-title { font-size: 0.92rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .km-song-sub { font-size: 0.76rem; color: var(--km-text2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.km-song-btn {
-  background: transparent; border: none; cursor: pointer; font-size: 1rem;
-  padding: 0.25rem 0.4rem; border-radius: 6px; color: var(--km-text2);
-}
+.km-song-btn { background: transparent; border: none; cursor: pointer; font-size: 1rem; padding: 0.25rem 0.4rem; border-radius: 6px; color: var(--km-text2); }
 .km-song-btn:hover { background: var(--km-hover); }
 .km-muted-on { opacity: 1; }
 .km-song-remove:hover { color: #d02c3a; }

@@ -914,6 +914,19 @@ prior = -2, threadId = THREAD_LANE_LIGHT_BACKGROUND/THREAD_LANE_REMOTE_STORE_UPL
 лямбдой сразу после постановки в очередь (которая раньше удаляла файл до того, как воркер успевал его
 прочитать).
 
+**Ловушка: ленивый `Mono` remote-удаления в HealthReport (`storageApiClient.deleteFile` без `.block()`).**
+`StorageApiClient` (remote MinIO) — **реактивный** интерфейс: его методы возвращают `Mono` (`Mono.fromCallable`),
+который ничего не делает без подписки. В action-лямбдах `HealthReport.kt` (ветки удаления remote-файла —
+«файл неактуальный» и `!canBe`) `storageApiClient.deleteFile(...)` вызывался **без `.block()`** → remote-файл
+фактически не удалялся. Дальше `executeUploadToRemoteStore` с гардом `if (existsInLocalFileSystem &&
+!existsInRemoteStorage)` видел старый файл на месте → **пропускал загрузку**, и Repair «неактуального» файла
+зацикливался (та же ошибка при каждом повторном репорте). Local-путь работал: `KaraokeStorageService`
+(`storageService`) — **синхронный** интерфейс (прямые типы возврата, `deleteFile: Unit`), выполняется сразу.
+Фикс: `.block()` + try/catch (по образцу `Utils.kt:251`) в обеих remote-ветках — try/catch обязателен, т.к.
+`executeSolutionActions()` гоняет лямбды `forEach { action() }`, и исключение оборвало бы следующую лямбду
+постановки upload-задания. **Правило:** любой Mono-метод `StorageApiClient` в императивном коде обязан
+заканчиваться `.block()`; `storageService` в `.block()` не нуждается.
+
 **Дедупликация `KaraokeProcess.createProcess()` для `UPLOAD_TO_LOCAL_STORE`/`UPLOAD_TO_REMOTE_STORE`
 учитывает `karaokeFileType`, а не только `(settings_id, process_type, thread_id)`** — иначе `repairAll`
 для одной песни с несколькими проблемными файлами (например, не хватает и вокала, и аккомпанимента)

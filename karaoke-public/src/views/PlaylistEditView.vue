@@ -296,8 +296,19 @@ export default {
 
 .km-player-box { position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: 12px; overflow: hidden; margin-bottom: 0.75rem; }
 .km-player-iframe { width: 100%; height: 100%; border: 0; display: block; }
-/* «Широкий» режим — плеер (внутри iframe) сам попросил родителя растянуть его. */
-.km-player-box.km-player-wide { aspect-ratio: auto; height: 80vh; }
+/* «Широкий» режим — плеер (внутри iframe) сам попросил родителя растянуть его на весь вьюпорт.
+   position:fixed игнорирует max-width родительского .km-content (тот не создаёт containing block) —
+   как на странице песни (SongModern .km-player-page-mode). */
+.km-player-box.km-player-wide {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  margin: 0;
+  border-radius: 0;
+  aspect-ratio: unset;
+  width: 100vw;
+  height: 100vh;
+}
 .km-player-placeholder { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.75rem; background: linear-gradient(135deg, #12121f, #1c1030); }
 .km-big-play { background: var(--km-accent, #0077ff); color: #fff; border: none; border-radius: 30px; padding: 0.7rem 1.6rem; font-size: 1rem; font-weight: 700; cursor: pointer; }
 .km-big-play:hover { filter: brightness(1.1); }

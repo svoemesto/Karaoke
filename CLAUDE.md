@@ -585,14 +585,26 @@ passthrough в Docker (`nvidia-container-toolkit` на хосте, `/var/run/doc
     с самого начала.
 - **Голые ffmpeg/shell-скрипты** (`SHEETSAGE`/`SHEETSAGE2` — декодирование FLAC→WAV и сам `sheetsage.sh`,
   `FF_720_KAR`/`FF_720_LYR`, а также встроенный ffmpeg-шаг 720p-транскода **внутри** `MELT_LYRICS`/
-  `MELT_KARAOKE`) — обёртка `cpulimit -l <N> -i -- <команда>` (`cpulimitPrefix()`). `cpulimit -l` — это
+  `MELT_KARAOKE`) — обёртка `cpulimit -l <N> -m -f -- <команда>` (`cpulimitPrefix()`). `cpulimit -l` — это
   процент **одного** ядра, поэтому для той же семантики «процент от всего хоста», что у `--cpus`,
-  `N = nproc * percent` (не `/100`). Флаг `-i`/`--include-children` обязателен — `sheetsage.sh` форкает
-  дочерние процессы, без него cpulimit ограничил бы только сам верхний процесс. Требует пакета `cpulimit`
-  в `deploy/karaoke-app/Dockerfile` (добавлен, но нужна пересборка образа, чтобы бинарник появился реально).
+  `N = nproc * percent` (не `/100`). Требует пакета `cpulimit` в `deploy/karaoke-app/Dockerfile`.
+  **Ловушка с версией cpulimit (наступали 2026-07-06).** Установлен `cpulimit` **2.4** (пакет `2.7-2`):
+  - **Нет флага `-i`/`--include-children`.** Прежний код формировал `cpulimit -l N -i -- ffmpeg ...` — эта
+    версия не понимает `-i`, печатает `--help` и **вообще не запускает** обёрнутую программу; задание
+    завершается за доли секунды со статусом `DONE`, но никакого выходного файла нет (симптом: «задача mp3
+    отрабатывает, но файл не появляется»). Аналог `--include-children` в 2.4 — `-m`/`--monitor-forks`.
+  - **Нужен `-f`/`--foreground`.** Без него cpulimit в режиме `-- PROGRAM` возвращает управление сразу,
+    ffmpeg остаётся осиротевшим/убитым → на выходе **обрезанный** файл (в тесте 2.3 МБ вместо 7.4 МБ).
+    С `-f` cpulimit запускает программу в foreground и ждёт её завершения; stdout прокидывается наружу,
+    поэтому парсинг прогресса (`time=`/`percentage`) в воркере продолжает работать.
 - `cpuLimitPercentForType()` — единая точка маппинга `KaraokeProcessTypes → Karaoke.cpuLimitPercentXxx`.
-  Обе хелпер-функции сами проверяют глобальный тумблер `Karaoke.resourceLimitsEnabled` и возвращают пустой
-  список флагов, если он выключен — вызывающему коду проверять его отдельно не нужно.
+  **`else` возвращает `0L` = «тип НЕ лимитируется»** (было `100L` — баг: `refreshArgvCpuLimit` (layer 2)
+  оборачивал в cpulimit любой ffmpeg-шаг нелимитируемого типа, в частности `FF_MP3_ACCOMPANIMENT`/
+  `FF_MP3_VOCAL`/`FF_MP3_BASS`/`FF_MP3_DRUMS`, которые layer 1 (`createProcess`) намеренно оставляет без
+  обёртки; в связке с багом `-i` выше это и ломало создание mp3-стемов). `cpulimitPrefix`/`dockerCpusFlag`/
+  `dockerCpusEnvValue` трактуют `percent <= 0` как «без обёртки/без лимита». Хелперы сами проверяют и
+  глобальный тумблер `Karaoke.resourceLimitsEnabled`, и `percent<=0`, и возвращают пустой список флагов —
+  вызывающему коду проверять это отдельно не нужно.
 - `MELT_LYRICS`/`MELT_KARAOKE` содержат **два** тяжёлых шага каждый (docker-рендер MLT + встроенный голый
   ffmpeg 720p-транскод) — оба оборачиваются одним и тем же процентом этого типа. `MELT_CHORDS`/`MELT_TABS`
   содержат только docker-шаг. `KEY_BPM_FROM_FILE` — пайплайн смешанный (docker-шаг + финальный
@@ -611,10 +623,12 @@ passthrough в Docker (`nvidia-container-toolkit` на хосте, `/var/run/doc
        compose, chmod, mkdir, cp, rm, ln, голый ffmpeg — трогать нужно только настоящий тяжёлый шаг):
        `args[0]=="docker" && args[1]=="run"` → снять/переставить `--cpus <N>` (DEMUCS2/DEMUCS5/
        KEY_BPM_FROM_FILE); `args[0]=="cpulimit"` или (после снятия обёртки) `args[0]=="ffmpeg"`/
-       оканчивается на `"sheetsage.sh"` → снять/наложить `cpulimit -l <N> -i --` (SHEETSAGE/SHEETSAGE2/
-       FF_720_KAR/FF_720_LYR, встроенный 720p-транскод внутри MELT_LYRICS/KARAOKE). `docker compose` и
-       голые filesystem-команды (`chmod`/`mkdir`/`cp`/`rm`/`ln`/`mv`) не подходят ни под один паттерн —
-       возвращаются как есть.
+       оканчивается на `"sheetsage.sh"` → снять/наложить `cpulimit -l <N> -m -f --` (SHEETSAGE/SHEETSAGE2/
+       FF_720_KAR/FF_720_LYR, встроенный 720p-транскод внутри MELT_LYRICS/KARAOKE). **Важно:** для типов,
+       где `cpuLimitPercentForType` возвращает `0` (не лимитируются — например `FF_MP3_*`), `cpulimitPrefix`
+       отдаёт пустой список, поэтому шаг `args[0]=="ffmpeg"` такого типа **остаётся без обёртки**, хотя и
+       матчит паттерн структурно. `docker compose` и голые filesystem-команды
+       (`chmod`/`mkdir`/`cp`/`rm`/`ln`/`mv`) не подходят ни под один паттерн — возвращаются как есть.
      - `refreshEnvCpuLimit(type, envs)` — env-вариант (MELT-докер-compose шаг, `MLT_CPU_LIMIT`).
        Обновляет значение, только если ключ уже присутствовал в `envs` — он есть исключительно у
        docker-compose шага (остальные split-шаги того же job получают пустые `envs` при `createProcess()`).

@@ -16,6 +16,11 @@
         <span v-if="isPremium" class="km-premium-badge" title="Премиум-подписчик">🪙 Премиум</span>
       </h1>
 
+      <RouterLink to="/account/playlists" class="km-nav-card">
+        <span class="km-nav-card-title">🎵 Мои плейлисты</span>
+        <span class="km-nav-card-arrow">→</span>
+      </RouterLink>
+
       <div class="km-form-card">
         <h2 class="km-subtitle">Профиль</h2>
         <div class="km-field">
@@ -210,6 +215,14 @@ export default {
   padding: 1.5rem;
   margin-bottom: 1.25rem;
 }
+.km-nav-card {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--km-card); border: 1px solid var(--km-border); border-radius: 14px;
+  padding: 1rem 1.5rem; margin-bottom: 1.25rem; text-decoration: none; color: var(--km-text);
+}
+.km-nav-card:hover { background: var(--km-hover); }
+.km-nav-card-title { font-size: 1rem; font-weight: 600; }
+.km-nav-card-arrow { color: var(--km-accent); font-size: 1.1rem; }
 .km-subtitle { font-size: 1rem; margin: 0 0 1rem; color: var(--km-text); }
 .km-field { display: flex; flex-direction: column; gap: 0.25rem; margin-bottom: 0.9rem; }
 .km-label { font-size: 0.75rem; color: var(--km-text2); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }

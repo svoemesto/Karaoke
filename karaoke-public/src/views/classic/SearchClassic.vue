@@ -41,8 +41,9 @@
         <col style="width: 35px" />
         <col style="width: 115px" />
         <col style="width: 25px" />
-        <col style="width: 280px" />
+        <col style="width: 255px" />
         <col style="width: 250px" />
+        <col style="width: 25px" />
         <col style="width: 25px" />
         <col style="width: 25px" />
         <col style="width: 25px" />
@@ -54,7 +55,7 @@
           <td class="td_cell" style="padding: 0"><div class="head_songname">Альбом</div></td>
           <td class="td_cell" style="padding: 0"><div class="head_songtrack">№</div></td>
           <td class="td_cell" style="padding: 0"><div class="head_songname">Композиция</div></td>
-          <td class="td_cell" style="padding: 0" colspan="4"><div class="head_songname">&nbsp;</div></td>
+          <td class="td_cell" style="padding: 0" colspan="5"><div class="head_songname">&nbsp;</div></td>
         </tr>
       </thead>
       <tbody>
@@ -81,6 +82,9 @@
           <td class="td_cell" style="padding: 0; border-top-width: 0; border-left-width: 0; border-right-width: 0; text-align: center; vertical-align: middle">
             <FavoriteIcon :song-id="sett.id" />
           </td>
+          <td class="td_cell" style="padding: 0; border-top-width: 0; border-left-width: 0; border-right-width: 0; text-align: center; vertical-align: middle">
+            <PlaylistIcon :song-id="sett.id" />
+          </td>
         </tr>
       </tbody>
     </table>
@@ -95,13 +99,14 @@ import PlatformLink from '../../components/PlatformLink.vue'
 import PlayerIcon from '../../components/PlayerIcon.vue'
 import PremiumIcon from '../../components/PremiumIcon.vue'
 import FavoriteIcon from '../../components/FavoriteIcon.vue'
+import PlaylistIcon from '../../components/PlaylistIcon.vue'
 import { usePlayerReadiness } from '../../composables/usePlayerReadiness'
 import { usePlaylistMembership } from '../../composables/usePlaylistMembership'
 import { useAuth } from '../../composables/useAuth'
 
 export default {
   name: 'SearchClassic',
-  components: { PlatformLink, PlayerIcon, PremiumIcon, FavoriteIcon },
+  components: { PlatformLink, PlayerIcon, PremiumIcon, FavoriteIcon, PlaylistIcon },
   setup() {
     const { user } = useAuth()
     return { readiness: usePlayerReadiness(), membership: usePlaylistMembership(), user }

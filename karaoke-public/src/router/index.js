@@ -8,6 +8,13 @@ import PlayerView from '../views/PlayerView.vue'
 import LoginView from '../views/LoginView.vue'
 import RegisterView from '../views/RegisterView.vue'
 import AccountView from '../views/AccountView.vue'
+import PlaylistsView from '../views/PlaylistsView.vue'
+
+// Быстрая синхронная проверка токена для защищённых маршрутов личного кабинета — сами страницы
+// перепроверяют через fetchMe(); здесь лишь чтобы не мигнуть защищённым контентом анониму.
+const requireAuth = (to) => {
+  if (!localStorage.getItem('km_auth_token')) return { path: '/login', query: { redirect: to.fullPath } }
+}
 
 const routes = [
   { path: '/', name: 'home', component: HomeView },
@@ -22,10 +29,9 @@ const routes = [
     component: AccountView,
     // AccountView сама перепроверяет токен через fetchMe() и редиректит при необходимости —
     // здесь достаточно быстрой синхронной проверки, чтобы не мигать защищённым контентом.
-    beforeEnter: (to) => {
-      if (!localStorage.getItem('km_auth_token')) return { path: '/login', query: { redirect: to.fullPath } }
-    }
+    beforeEnter: requireAuth
   },
+  { path: '/account/playlists', name: 'playlists', component: PlaylistsView, beforeEnter: requireAuth },
   {
     path: '/player/:id',
     name: 'player',

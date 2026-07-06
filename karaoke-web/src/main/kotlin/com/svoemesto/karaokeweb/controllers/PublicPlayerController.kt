@@ -84,10 +84,15 @@ class PublicPlayerController(
         val canExport = canWatch && premium
         val token = if (canWatch) gestureUnlockService.issueDirectAccessToken(id) else null
         if (canWatch) {
+            // source=list — клик по иконке плеера в таблице «Закрома»/«Поиск» (осознанное открытие
+            // новой вкладкой) логируется как OPENED; заход на страницу песни (пассивный показ
+            // встроенного плеера) — как SHOWN.
+            val linkType = if (request.getParameter("source") == "list")
+                PlayerAction.OPENED.dbValue else PlayerAction.SHOWN.dbValue
             mainController.doRegisterEvent(
                 mapOf(
                     "eventType" to EventType.PLAYER.dbValue,
-                    "linkType" to PlayerAction.SHOWN.dbValue,
+                    "linkType" to linkType,
                     "songId" to id.toString(),
                     "anonId" to (request.getParameter("anonId") ?: ""),
                 ),
@@ -101,6 +106,32 @@ class PublicPlayerController(
             "canExport" to canExport,
             "token" to token,
         ))
+    }
+
+    /**
+     * Пакетная проверка готовности плеера для списка песен (иконка плеера в таблицах «Закрома»/
+     * «Поиск»). НИЧЕГО не логирует и НЕ выдаёт токенов — только сообщает, можно ли прямо сейчас
+     * открыть плеер для каждой песни, чтобы фронт отрисовал активную/недоступную иконку (сам показ
+     * плеера и его логирование происходят позже, по клику, через [access] с source=list).
+     *
+     * Премиум резолвится один раз на весь запрос. Короткое замыкание: для не-onAir песни без премиума
+     * плеер недоступен по определению — MinIO не опрашиваем вовсе (экономия HEAD-запросов при
+     * анонимном просмотре). Тяжёлый [stemsReady] (2 HEAD в MinIO) выполняется только для eligible-песен.
+     * Фронт шлёт id мелкими чанками с ограниченным параллелизмом (см. usePlayerReadiness.js).
+     */
+    @PostMapping("/readiness")
+    fun readiness(@RequestParam ids: String, request: HttpServletRequest): ResponseEntity<Map<String, Any?>> {
+        val premium = isPremiumUser(request)
+        val items = ids.split(",")
+            .mapNotNull { it.trim().toLongOrNull() }
+            .distinct()
+            .associate { id ->
+                val settings = loadSettings(id)
+                val eligible = settings != null && (settings.onAir || premium)
+                val ready = eligible && stemsReady(settings!!)
+                id.toString() to mapOf("ready" to ready, "watchable" to ready)
+            }
+        return ResponseEntity.ok(mapOf("items" to items))
     }
 
     // Same template HealthReport.kt/ApiController.pushMp3ToStorage use for every KaraokeFileType

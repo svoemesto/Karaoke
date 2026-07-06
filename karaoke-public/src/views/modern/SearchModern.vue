@@ -58,6 +58,7 @@
             <col style="width: 120px" />
             <col style="width: 26px" />
             <col />
+            <col style="width: 24px" />
             <col style="width: 32px" />
             <col style="width: 22px" /><col style="width: 22px" /><col style="width: 22px" /><col style="width: 26px" />
             <col style="width: 22px" /><col style="width: 22px" /><col style="width: 22px" /><col style="width: 26px" />
@@ -70,7 +71,7 @@
               <th class="km-th km-th-center">Год</th>
               <th class="km-th">Альбом</th>
               <th class="km-th km-th-center">№</th>
-              <th class="km-th km-group-end" colspan="2">Композиция</th>
+              <th class="km-th km-group-end" colspan="3">Композиция</th>
               <th class="km-th km-th-center km-group-end" colspan="4">Karaoke</th>
               <th class="km-th km-th-center km-group-end" colspan="4">Lyrics</th>
               <th class="km-th km-th-center km-group-end" colspan="4">TABS</th>
@@ -85,6 +86,9 @@
               <td class="km-td km-td-center km-track">{{ sett.track }}</td>
               <td class="km-td km-td-name">
                 <RouterLink :to="{ path: '/song', query: { id: sett.id } }" class="km-song-link">{{ sett.songName }}</RouterLink>
+              </td>
+              <td class="km-td km-td-center">
+                <PlayerIcon :song-id="sett.id" :state="readiness.stateFor(sett.id)" />
               </td>
               <td class="km-td km-td-center km-group-end">
                 <PlatformLink link-name="sponsr" :link-value="sett.linkSponsrPlay" :song-id="sett.id" song-version="all" />
@@ -124,6 +128,7 @@
           <div class="km-card-top">
             <span class="km-card-track">{{ sett.track }}</span>
             <RouterLink :to="{ path: '/song', query: { id: sett.id } }" class="km-card-title">{{ sett.songName }}</RouterLink>
+            <PlayerIcon :song-id="sett.id" :state="readiness.stateFor(sett.id)" />
             <PlatformLink link-name="sponsr" :link-value="sett.linkSponsrPlay" :song-id="sett.id" song-version="all" />
           </div>
           <template v-if="sett.onAir">
@@ -178,16 +183,18 @@
 <script>
 import { mapGetters, mapActions } from 'vuex'
 import PlatformLink from '../../components/PlatformLink.vue'
+import PlayerIcon from '../../components/PlayerIcon.vue'
 import AuthStatusWidget from '../../components/AuthStatusWidget.vue'
 import { useDesign } from '../../composables/useDesign'
+import { usePlayerReadiness } from '../../composables/usePlayerReadiness'
 
 export default {
   name: 'SearchModern',
-  components: { PlatformLink, AuthStatusWidget },
+  components: { PlatformLink, PlayerIcon, AuthStatusWidget },
   setup() {
     const { theme, applyTheme } = useDesign()
     function setTheme(val) { theme.value = val; applyTheme(val) }
-    return { theme, setTheme }
+    return { theme, setTheme, readiness: usePlayerReadiness() }
   },
   data() {
     return {
@@ -197,6 +204,15 @@ export default {
   },
   computed: {
     ...mapGetters('songs', ['authors', 'searchResults', 'searchIsLoading']),
+  },
+  watch: {
+    // Готовность плеера подгружаем асинхронно, как только пришли результаты поиска (и при их смене).
+    searchResults: {
+      immediate: true,
+      handler(list) {
+        this.readiness.load((list || []).map(s => s.id))
+      }
+    }
   },
   mounted() {
     this.loadAuthors()

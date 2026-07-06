@@ -53,7 +53,11 @@ enum class PlayerAction(val dbValue: String) {
     // (данные мигрированы UPDATE link_type 'open'->'shown').
     SHOWN("shown"), PLAY("play"), PAUSE("pause"), SEEK("seek"), EXPORT("export"),
     PROGRESS("progress"), // веха прослушивания: link_name = "25"|"50"|"75"
-    ENDED("ended");       // трек доигран до конца
+    ENDED("ended"),       // трек доигран до конца
+    // OPENED — пользователь осознанно открыл плеер новой вкладкой из таблицы «Закрома»/«Поиск»
+    // (иконка плеера в строке). В отличие от пассивного SHOWN (плеер лишь встроен на странице песни),
+    // это реальное действие-намерение. Пишется в PublicPlayerController.access() при source=list.
+    OPENED("opened");
 
     companion object {
         fun fromDb(value: String?): PlayerAction? = entries.find { it.dbValue == value }

@@ -21,6 +21,7 @@ data class StatBySongDto(
     val cntPlayer: Int,    // события онлайн-плеера всего (event_type='player')
     // детализация онлайн-плеера по действиям (link_type при event_type='player')
     val cntPlayerShown: Int,
+    val cntPlayerOpened: Int,
     val cntPlayerPlay: Int,
     val cntPlayerPause: Int,
     val cntPlayerSeek: Int,
@@ -333,6 +334,7 @@ object StatsByEvents {
                 count(*) filter (where e.rest_name = 'song') as song,
                 count(*) filter (where e.event_type = 'player') as player,
                 count(*) filter (where e.event_type = 'player' and e.link_type = 'shown') as p_shown,
+                count(*) filter (where e.event_type = 'player' and e.link_type = 'opened') as p_opened,
                 count(*) filter (where e.event_type = 'player' and e.link_type = 'play') as p_play,
                 count(*) filter (where e.event_type = 'player' and e.link_type = 'pause') as p_pause,
                 count(*) filter (where e.event_type = 'player' and e.link_type = 'seek') as p_seek,
@@ -373,6 +375,7 @@ object StatsByEvents {
                         cntSm = rs.getInt("song"),
                         cntPlayer = rs.getInt("player"),
                         cntPlayerShown = rs.getInt("p_shown"),
+                        cntPlayerOpened = rs.getInt("p_opened"),
                         cntPlayerPlay = rs.getInt("p_play"),
                         cntPlayerPause = rs.getInt("p_pause"),
                         cntPlayerSeek = rs.getInt("p_seek"),
@@ -661,6 +664,7 @@ object StatsByEvents {
         return when (eventType) {
             "player" -> when (d) {
                 "shown" -> "Плеер: показан"
+                "opened" -> "Плеер: открыт из списка"
                 "play" -> "Плеер: старт"
                 "pause" -> "Плеер: пауза"
                 "seek" -> "Плеер: перемотка"

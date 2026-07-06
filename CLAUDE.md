@@ -1330,6 +1330,37 @@ src/
   чистое чтение карты, не задевает опасную инициализацию `ConstantsKt`/`Connection` (см. пункт выше про
   `rootFolder`/`*NameFlac`), безопасен из karaoke-web.
 
+**Иконка онлайн-плеера в таблицах «Закрома»/«Поиск» (karaoke-public) + асинхронная готовность
+(2026-07-06).** В каждой строке таблиц перед иконкой спонсора — иконка плеера
+(`components/PlayerIcon.vue`, `SvgIcon.vue` кейс `player`), во всех 4 компонентах
+(`views/{classic,modern}/{Zakroma,Search}*.vue`) и в мобильных карточках `.km-cards`. Иконка вне
+`v-if="sett.onAir"` (как спонсор) — премиум может смотреть не-onAir песни.
+- **Готовность подгружается асинхронно** (таблица рисуется сразу, на месте иконки спиннер → активная
+  зелёная / серая недоступная). Проверка тяжёлая (`stemsReady` = загрузка `Settings` + 2 HEAD в MinIO на
+  песню), поэтому НЕ синхронно при рендере. Новый лёгкий batch-эндпоинт
+  `POST /api/public/player/readiness` (`PublicPlayerController.kt`, karaoke-web): `ids=CSV`, **ничего не
+  логирует и не выдаёт токенов**, премиум резолвится один раз, короткое замыкание — для не-onAir песни
+  без премиума MinIO не опрашивается (`watchable = (onAir||premium) && stemsReady`). Ответ
+  `{items:{"<id>":{ready,watchable}}}`. Фронт: `composables/usePlayerReadiness.js` (реактивная карта
+  id→`'loading'|'active'|'disabled'`, чанки по 20, параллелизм 3, защита от устаревших запросов
+  монотонным `requestId` — как `latestRequestId` в `store/modules/zakroma.js`), вызывается из
+  `watch`(immediate) на `zakroma`/`searchResults`.
+- **Клик по активной иконке = отдельное событие `player/opened`, НЕ пассивный `shown`.** По выбору
+  пользователя реальное открытие из списка отличается от пассивного показа встроенного плеера на странице
+  песни. `services/playerLauncher.js` `openPlayer(id)` дёргает **тот же** `access?source=list` — новый
+  необязательный параметр `source` в `access()` переключает логируемый `link_type` на
+  `PlayerAction.OPENED("opened")` (`EventTypes.kt`) вместо `SHOWN`; access() же выдаёт токен →
+  `sessionStorage kp_token_<id>` → `window.open('/player/<id>','_blank')` (переиспользован паттерн из
+  `SongClassic/Modern.onMetaClick`). **Схему БД/`recordhash_events.sql` НЕ меняли** — `opened` живёт в
+  существующей колонке `link_type` (как все player-действия), миграции/деплоя БД нет.
+- **Арифметика колонок** (classic, `table-layout: fixed` — суммы сходятся): ZakromaClassic 780px (имя
+  378→353 + новый `<col>25px` плеера, «Композиция» `colspan 2→3`); SearchClassic 880px (имя 228→203 +
+  `<col>25px`, `colspan 2→3`). Modern — имя авто (`<col />`), только вставка `<col>` + `colspan 2→3`.
+- **Дашборд** (только karaoke-app+webvue3, на прод НЕ деплоится): `StatBySong.kt` (`StatsByEvents`)
+  `p_opened`/`cntPlayerOpened` + `detailLabel "opened"->"Плеер: открыт из списка"`; `StatsView.vue`
+  колонка «Открыт». karaoke-web несёт `PlayerAction.OPENED` (karaoke-app — его зависимость), поэтому
+  логирование `opened` на проде работает без деплоя karaoke-app.
+
 **Меню плеера (гамбургер, `_buildUI()`/`_buildMenu()`):**
 - Пункты-действия ("Открыть файл...", "Сохранить файл") и пункт-подменю ("Экспорт аудио..." → Голос/
   Минусовка/Бас/Ударные) визуально различаются: у подменю — стрелка `▸` и hover, у действий — просто hover.

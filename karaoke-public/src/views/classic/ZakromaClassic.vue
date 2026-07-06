@@ -39,19 +39,16 @@
         <table class="table-sm table-hover" style="width: 780px; table-layout: fixed">
           <colgroup>
             <col style="width: 25px" />
-            <col style="width: 353px" />
+            <col style="width: 455px" />
+            <col style="width: 250px" />
             <col style="width: 25px" />
             <col style="width: 25px" />
-            <col v-for="i in 16" :key="i" style="width: 22px" />
           </colgroup>
           <thead>
             <tr>
               <td class="td_cell" style="padding: 0"><div class="head_songtrack" style="text-align: center">№</div></td>
-              <td class="td_cell" style="padding: 0" colspan="3"><div class="head_songname">Композиция</div></td>
-              <td class="td_cell" style="padding: 0" colspan="4"><div class="head_songname">Karaoke</div></td>
-              <td class="td_cell" style="padding: 0" colspan="4"><div class="head_songname">Lyrics</div></td>
-              <td class="td_cell" style="padding: 0" colspan="4"><div class="head_songname">TABS</div></td>
-              <td class="td_cell" style="padding: 0" colspan="4"><div class="head_songname">Chords</div></td>
+              <td class="td_cell" style="padding: 0"><div class="head_songname">Композиция</div></td>
+              <td class="td_cell" style="padding: 0" colspan="3"><div class="head_songname">&nbsp;</div></td>
             </tr>
           </thead>
           <tbody>
@@ -60,32 +57,17 @@
               <td class="td_cell" style="padding: 0; border-right-width: 0">
                 <RouterLink :to="{ path: '/song', query: { id: sett.id } }" class="songname">{{ sett.songName }}</RouterLink>
               </td>
+              <td class="td_cell" style="padding: 0; border-top-width: 0; border-left-width: 0; border-right-width: 0">
+                <div class="date_publish">
+                  <span v-if="showDate(sett)" class="dp-text">{{ sett.datePublish }}</span>
+                  <PremiumIcon v-if="showCoin(sett)" :state="readiness.contentReadyFor(sett.id)" />
+                </div>
+              </td>
               <td class="td_cell" style="padding: 0; border-top-width: 0; border-left-width: 0; border-right-width: 0; width: 25px; text-align: center; vertical-align: middle">
                 <PlayerIcon :song-id="sett.id" :state="readiness.stateFor(sett.id)" />
               </td>
               <td class="td_cell" style="padding: 0; border-top-width: 0; border-left-width: 0; border-right-width: 0; width: 25px; text-align: center; vertical-align: middle">
                 <PlatformLink link-name="sponsr" :link-value="sett.linkSponsrPlay" :song-id="sett.id" song-version="all" />
-              </td>
-              <template v-if="sett.onAir">
-                <td class="td_cell" style="padding: 0; border-right-width: 0; width: 22px"><PlatformLink link-name="dzen" :link-value="sett.linkDzenKaraoke" :song-id="sett.id" song-version="karaoke" /></td>
-                <td class="td_cell" style="padding: 0; border-right-width: 0; border-left-width: 0; width: 22px"><PlatformLink link-name="max" :link-value="sett.linkMaxKaraoke" :song-id="sett.id" song-version="karaoke" /></td>
-                <td class="td_cell" style="padding: 0; border-right-width: 0; border-left-width: 0; width: 22px"><PlatformLink link-name="vk" :link-value="sett.linkVkKaraoke" :song-id="sett.id" song-version="karaoke" /></td>
-                <td class="td_cell" style="padding: 0; border-left-width: 0; width: 22px"><PlatformLink link-name="tg" :link-value="sett.linkTgKaraoke" :song-id="sett.id" song-version="karaoke" /></td>
-                <td class="td_cell" style="padding: 0; border-right-width: 0; width: 22px"><PlatformLink link-name="dzen" :link-value="sett.linkDzenLyrics" :song-id="sett.id" song-version="lyrics" /></td>
-                <td class="td_cell" style="padding: 0; border-right-width: 0; border-left-width: 0; width: 22px"><PlatformLink link-name="max" :link-value="sett.linkMaxLyrics" :song-id="sett.id" song-version="lyrics" /></td>
-                <td class="td_cell" style="padding: 0; border-right-width: 0; border-left-width: 0; width: 22px"><PlatformLink link-name="vk" :link-value="sett.linkVkLyrics" :song-id="sett.id" song-version="lyrics" /></td>
-                <td class="td_cell" style="padding: 0; border-left-width: 0; width: 22px"><PlatformLink link-name="tg" :link-value="sett.linkTgLyrics" :song-id="sett.id" song-version="lyrics" /></td>
-                <td class="td_cell" style="padding: 0; border-right-width: 0; width: 22px"><PlatformLink link-name="dzen" :link-value="sett.linkDzenTabs" :song-id="sett.id" song-version="tabs" /></td>
-                <td class="td_cell" style="padding: 0; border-right-width: 0; border-left-width: 0; width: 22px"><PlatformLink link-name="max" :link-value="sett.linkMaxTabs" :song-id="sett.id" song-version="tabs" /></td>
-                <td class="td_cell" style="padding: 0; border-right-width: 0; border-left-width: 0; width: 22px"><PlatformLink link-name="vk" :link-value="sett.linkVkTabs" :song-id="sett.id" song-version="tabs" /></td>
-                <td class="td_cell" style="padding: 0; border-left-width: 0; width: 22px"><PlatformLink link-name="tg" :link-value="sett.linkTgTabs" :song-id="sett.id" song-version="tabs" /></td>
-                <td class="td_cell" style="padding: 0; border-right-width: 0; width: 22px"><PlatformLink link-name="dzen" :link-value="sett.linkDzenChords" :song-id="sett.id" song-version="chords" /></td>
-                <td class="td_cell" style="padding: 0; border-right-width: 0; border-left-width: 0; width: 22px"><PlatformLink link-name="max" :link-value="sett.linkMaxChords" :song-id="sett.id" song-version="chords" /></td>
-                <td class="td_cell" style="padding: 0; border-right-width: 0; border-left-width: 0; width: 22px"><PlatformLink link-name="vk" :link-value="sett.linkVkChords" :song-id="sett.id" song-version="chords" /></td>
-                <td class="td_cell" style="padding: 0; border-left-width: 0; width: 22px"><PlatformLink link-name="tg" :link-value="sett.linkTgChords" :song-id="sett.id" song-version="chords" /></td>
-              </template>
-              <td v-else class="td_cell" colspan="16" style="padding: 0">
-                <div class="date_publish">{{ sett.datePublish }}</div>
               </td>
             </tr>
           </tbody>
@@ -100,13 +82,16 @@
 import { mapGetters, mapActions } from 'vuex'
 import PlatformLink from '../../components/PlatformLink.vue'
 import PlayerIcon from '../../components/PlayerIcon.vue'
+import PremiumIcon from '../../components/PremiumIcon.vue'
 import { usePlayerReadiness } from '../../composables/usePlayerReadiness'
+import { useAuth } from '../../composables/useAuth'
 
 export default {
   name: 'ZakromaClassic',
-  components: { PlatformLink, PlayerIcon },
+  components: { PlatformLink, PlayerIcon, PremiumIcon },
   setup() {
-    return { readiness: usePlayerReadiness() }
+    const { user } = useAuth()
+    return { readiness: usePlayerReadiness(), user }
   },
   data() {
     return {
@@ -115,6 +100,9 @@ export default {
   },
   computed: {
     ...mapGetters('zakroma', ['authors', 'zakroma', 'isLoading']),
+    isPremium() {
+      return !!(this.user && this.user.effectivePremium)
+    },
   },
   watch: {
     // Готовность плеера подгружаем асинхронно, как только пришли данные закромов (и при их смене).
@@ -132,6 +120,18 @@ export default {
   },
   methods: {
     ...mapActions('zakroma', ['loadAuthors', 'loadZakroma']),
+    // Монетка «премиум-контент» — только не-премиум посетителю и только для контента, доступного
+    // лишь премиуму (эксклюзив или ещё не в эфире). Золотая/серебряная — по contentReadyFor().
+    showCoin(sett) {
+      return !this.isPremium && (sett.exclusive || !sett.onAir)
+    },
+    // Реальную дату публикации (или «Дата пока не определена») показываем всем для ещё не вышедших
+    // НЕ-эксклюзивных песен. Для не-премиума она соседствует с монеткой. Тексты «Эксклюзивно на
+    // SPONSR» не выводим никому — их заменяет монетка (не-премиуму) / пустая ячейка (премиуму).
+    // В эфире — пусто.
+    showDate(sett) {
+      return !sett.onAir && !sett.exclusive
+    },
     onAuthorChange() {
       const author = this.selectedAuthor
       this.$router.replace({ path: '/zakroma', query: author ? { author } : {} })
@@ -149,5 +149,6 @@ export default {
 .album     { padding: 0; padding-top: 10px; font-size: small; font-weight: bold; min-width: 300px; max-width: 300px; border-style: none; }
 .songtrack { height: 100%; padding: 2px; font-size: small; text-align: center; min-width: 20px; max-width: 20px; border-style: none; }
 .songname  { height: 100%; padding: 2px; font-size: small; min-width: 300px; max-width: 300px; border-style: none; }
-.date_publish { height: 100%; padding: 2px; font-size: small; text-align: center; border-style: none; }
+.date_publish { height: 100%; padding: 2px 6px; font-size: small; text-align: right; border-style: none; white-space: nowrap; }
+.dp-text { margin-right: 5px; vertical-align: middle; }
 </style>

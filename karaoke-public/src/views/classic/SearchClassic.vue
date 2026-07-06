@@ -41,10 +41,10 @@
         <col style="width: 35px" />
         <col style="width: 115px" />
         <col style="width: 25px" />
-        <col style="width: 203px" />
+        <col style="width: 305px" />
+        <col style="width: 250px" />
         <col style="width: 25px" />
         <col style="width: 25px" />
-        <col v-for="i in 16" :key="i" style="width: 22px" />
       </colgroup>
       <thead>
         <tr>
@@ -52,11 +52,8 @@
           <td class="td_cell" style="padding: 0"><div class="head_songname">Год</div></td>
           <td class="td_cell" style="padding: 0"><div class="head_songname">Альбом</div></td>
           <td class="td_cell" style="padding: 0"><div class="head_songtrack">№</div></td>
-          <td class="td_cell" style="padding: 0" colspan="3"><div class="head_songname">Композиция</div></td>
-          <td class="td_cell" style="padding: 0" colspan="4"><div class="head_songname">Karaoke</div></td>
-          <td class="td_cell" style="padding: 0" colspan="4"><div class="head_songname">Lyrics</div></td>
-          <td class="td_cell" style="padding: 0" colspan="4"><div class="head_songname">TABS</div></td>
-          <td class="td_cell" style="padding: 0" colspan="4"><div class="head_songname">Chords</div></td>
+          <td class="td_cell" style="padding: 0"><div class="head_songname">Композиция</div></td>
+          <td class="td_cell" style="padding: 0" colspan="3"><div class="head_songname">&nbsp;</div></td>
         </tr>
       </thead>
       <tbody>
@@ -68,32 +65,17 @@
           <td class="td_cell" style="padding: 0; border-right-width: 0; text-align: left">
             <RouterLink :to="{ path: '/song', query: { id: sett.id } }" class="songname">{{ sett.songName }}</RouterLink>
           </td>
+          <td class="td_cell" style="padding: 0; border-top-width: 0; border-left-width: 0; border-right-width: 0">
+            <div class="date_publish">
+              <span v-if="showDate(sett)" class="dp-text">{{ sett.datePublish }}</span>
+              <PremiumIcon v-if="showCoin(sett)" :state="readiness.contentReadyFor(sett.id)" />
+            </div>
+          </td>
           <td class="td_cell" style="padding: 0; border-top-width: 0; border-left-width: 0; border-right-width: 0; text-align: center; vertical-align: middle">
             <PlayerIcon :song-id="sett.id" :state="readiness.stateFor(sett.id)" />
           </td>
           <td class="td_cell" style="padding: 0; border-top-width: 0; border-left-width: 0; border-right-width: 0; text-align: center; vertical-align: middle">
             <PlatformLink link-name="sponsr" :link-value="sett.linkSponsrPlay" :song-id="sett.id" song-version="all" />
-          </td>
-          <template v-if="sett.onAir">
-            <td class="td_cell" style="padding: 0; border-right-width: 0"><PlatformLink link-name="dzen" :link-value="sett.linkDzenKaraoke" :song-id="sett.id" song-version="karaoke" /></td>
-            <td class="td_cell" style="padding: 0; border-right-width: 0; border-left-width: 0"><PlatformLink link-name="max" :link-value="sett.linkMaxKaraoke" :song-id="sett.id" song-version="karaoke" /></td>
-            <td class="td_cell" style="padding: 0; border-right-width: 0; border-left-width: 0"><PlatformLink link-name="vk" :link-value="sett.linkVkKaraoke" :song-id="sett.id" song-version="karaoke" /></td>
-            <td class="td_cell" style="padding: 0; border-left-width: 0"><PlatformLink link-name="tg" :link-value="sett.linkTgKaraoke" :song-id="sett.id" song-version="karaoke" /></td>
-            <td class="td_cell" style="padding: 0; border-right-width: 0"><PlatformLink link-name="dzen" :link-value="sett.linkDzenLyrics" :song-id="sett.id" song-version="lyrics" /></td>
-            <td class="td_cell" style="padding: 0; border-right-width: 0; border-left-width: 0"><PlatformLink link-name="max" :link-value="sett.linkMaxLyrics" :song-id="sett.id" song-version="lyrics" /></td>
-            <td class="td_cell" style="padding: 0; border-right-width: 0; border-left-width: 0"><PlatformLink link-name="vk" :link-value="sett.linkVkLyrics" :song-id="sett.id" song-version="lyrics" /></td>
-            <td class="td_cell" style="padding: 0; border-left-width: 0"><PlatformLink link-name="tg" :link-value="sett.linkTgLyrics" :song-id="sett.id" song-version="lyrics" /></td>
-            <td class="td_cell" style="padding: 0; border-right-width: 0"><PlatformLink link-name="dzen" :link-value="sett.linkDzenTabs" :song-id="sett.id" song-version="tabs" /></td>
-            <td class="td_cell" style="padding: 0; border-right-width: 0; border-left-width: 0"><PlatformLink link-name="max" :link-value="sett.linkMaxTabs" :song-id="sett.id" song-version="tabs" /></td>
-            <td class="td_cell" style="padding: 0; border-right-width: 0; border-left-width: 0"><PlatformLink link-name="vk" :link-value="sett.linkVkTabs" :song-id="sett.id" song-version="tabs" /></td>
-            <td class="td_cell" style="padding: 0; border-left-width: 0"><PlatformLink link-name="tg" :link-value="sett.linkTgTabs" :song-id="sett.id" song-version="tabs" /></td>
-            <td class="td_cell" style="padding: 0; border-right-width: 0"><PlatformLink link-name="dzen" :link-value="sett.linkDzenChords" :song-id="sett.id" song-version="chords" /></td>
-            <td class="td_cell" style="padding: 0; border-right-width: 0; border-left-width: 0"><PlatformLink link-name="max" :link-value="sett.linkMaxChords" :song-id="sett.id" song-version="chords" /></td>
-            <td class="td_cell" style="padding: 0; border-right-width: 0; border-left-width: 0"><PlatformLink link-name="vk" :link-value="sett.linkVkChords" :song-id="sett.id" song-version="chords" /></td>
-            <td class="td_cell" style="padding: 0; border-left-width: 0"><PlatformLink link-name="tg" :link-value="sett.linkTgChords" :song-id="sett.id" song-version="chords" /></td>
-          </template>
-          <td v-else class="td_cell" colspan="16" style="padding: 0">
-            <div class="date_publish">{{ sett.datePublish }}</div>
           </td>
         </tr>
       </tbody>
@@ -107,13 +89,16 @@
 import { mapGetters, mapActions } from 'vuex'
 import PlatformLink from '../../components/PlatformLink.vue'
 import PlayerIcon from '../../components/PlayerIcon.vue'
+import PremiumIcon from '../../components/PremiumIcon.vue'
 import { usePlayerReadiness } from '../../composables/usePlayerReadiness'
+import { useAuth } from '../../composables/useAuth'
 
 export default {
   name: 'SearchClassic',
-  components: { PlatformLink, PlayerIcon },
+  components: { PlatformLink, PlayerIcon, PremiumIcon },
   setup() {
-    return { readiness: usePlayerReadiness() }
+    const { user } = useAuth()
+    return { readiness: usePlayerReadiness(), user }
   },
   data() {
     return {
@@ -123,6 +108,9 @@ export default {
   },
   computed: {
     ...mapGetters('songs', ['authors', 'searchResults', 'searchIsLoading']),
+    isPremium() {
+      return !!(this.user && this.user.effectivePremium)
+    },
   },
   watch: {
     // Готовность плеера подгружаем асинхронно, как только пришли результаты поиска (и при их смене).
@@ -145,6 +133,18 @@ export default {
   },
   methods: {
     ...mapActions('songs', ['loadAuthors', 'search']),
+    // Монетка «премиум-контент» — только не-премиум посетителю и только для контента, доступного
+    // лишь премиуму (эксклюзив или ещё не в эфире). Золотая/серебряная — по contentReadyFor().
+    showCoin(sett) {
+      return !this.isPremium && (sett.exclusive || !sett.onAir)
+    },
+    // Реальную дату публикации (или «Дата пока не определена») показываем всем для ещё не вышедших
+    // НЕ-эксклюзивных песен. Для не-премиума она соседствует с монеткой. Тексты «Эксклюзивно на
+    // SPONSR» не выводим никому — их заменяет монетка (не-премиуму) / пустая ячейка (премиуму).
+    // В эфире — пусто.
+    showDate(sett) {
+      return !sett.onAir && !sett.exclusive
+    },
     onSearch() {
       this.searched = true
       this.search({ songName: this.form.songName, author: this.form.author, text: this.form.text })
@@ -162,5 +162,6 @@ export default {
 .album      { height: 100%; padding: 2px; font-size: small; border-style: none; }
 .songtrack  { height: 100%; padding: 2px; font-size: small; text-align: center; border-style: none; }
 .songname   { height: 100%; padding: 2px; font-size: small; border-style: none; }
-.date_publish { height: 100%; padding: 2px; font-size: small; text-align: center; border-style: none; }
+.date_publish { height: 100%; padding: 2px 6px; font-size: small; text-align: right; border-style: none; white-space: nowrap; }
+.dp-text { margin-right: 5px; vertical-align: middle; }
 </style>

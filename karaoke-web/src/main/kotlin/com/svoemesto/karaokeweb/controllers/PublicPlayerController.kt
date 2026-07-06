@@ -114,10 +114,15 @@ class PublicPlayerController(
      * открыть плеер для каждой песни, чтобы фронт отрисовал активную/недоступную иконку (сам показ
      * плеера и его логирование происходят позже, по клику, через [access] с source=list).
      *
-     * Премиум резолвится один раз на весь запрос. Короткое замыкание: для не-onAir песни без премиума
-     * плеер недоступен по определению — MinIO не опрашиваем вовсе (экономия HEAD-запросов при
-     * анонимном просмотре). Тяжёлый [stemsReady] (2 HEAD в MinIO) выполняется только для eligible-песен.
-     * Фронт шлёт id мелкими чанками с ограниченным параллелизмом (см. usePlayerReadiness.js).
+     * Премиум резолвится один раз на весь запрос. Возвращаемые поля на песню:
+     *  - contentReady — премиум-независимая готовность контента ([stemsReady]: idStatus>=3 + оба стема
+     *    в MinIO + непустые маркеры). Нужна фронту, чтобы отличить «золотую» монетку (контент готов,
+     *    премиум смог бы открыть плеер прямо сейчас) от «серебряной» (ещё не готов).
+     *  - watchable (= ready, для обратной совместимости) — может ли ПРЯМО СЕЙЧАС открыть плеер сам
+     *    запрашивающий: contentReady && (onAir || premium). Управляет активностью иконки плеера.
+     * Короткого замыкания по (onAir||premium) больше нет — [stemsReady] нужен и для не-onAir песен,
+     * чтобы вычислить contentReady для монетки (тяжёлые 2 HEAD в MinIO смягчаются чанками/параллелизмом
+     * на фронте, см. usePlayerReadiness.js).
      */
     @PostMapping("/readiness")
     fun readiness(@RequestParam ids: String, request: HttpServletRequest): ResponseEntity<Map<String, Any?>> {
@@ -127,9 +132,9 @@ class PublicPlayerController(
             .distinct()
             .associate { id ->
                 val settings = loadSettings(id)
-                val eligible = settings != null && (settings.onAir || premium)
-                val ready = eligible && stemsReady(settings!!)
-                id.toString() to mapOf("ready" to ready, "watchable" to ready)
+                val contentReady = settings != null && stemsReady(settings)
+                val watchable = contentReady && (settings!!.onAir || premium)
+                id.toString() to mapOf("ready" to watchable, "watchable" to watchable, "contentReady" to contentReady)
             }
         return ResponseEntity.ok(mapOf("items" to items))
     }

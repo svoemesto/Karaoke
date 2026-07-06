@@ -1414,6 +1414,42 @@ src/
   колонка «Открыт». karaoke-web несёт `PlayerAction.OPENED` (karaoke-app — его зависимость), поэтому
   логирование `opened` на проде работает без деплоя karaoke-app.
 
+**Редизайн таблиц «Закрома»/«Поиск» + премиум-монетка (karaoke-public, 2026-07-06, задеплоено на прод).**
+После появления иконки плеера 16 колонок ссылок на платформы (Karaoke/Lyrics/TABS/Chords × dzen/max/vk/tg)
+удалены из всех 4 компонентов (`views/{classic,modern}/{Zakroma,Search}*.vue`, десктоп-таблицы + мобильные
+карточки `.km-cards`). Вместо них — одна текстовая колонка **перед** иконкой плеера. Ширины таблиц НЕ
+менялись (classic Zakroma 780px/контейнер 800, Search 880/900; modern-контейнеры 900/1000) — экспериментально
+сужались до 580/600 и возвращены обратно.
+- **Что в текстовой колонке** (методы `showCoin(sett)`/`showDate(sett)` в каждом из 4 компонентов; премиум-
+  статус — `useAuth().user.effectivePremium`, computed `isPremium`):
+  | | onAir | эксклюзив | не в эфире, не эксклюзив |
+  |---|---|---|---|
+  | не-премиум | пусто | 🪙 монета | дата + 🪙 монета |
+  | премиум | пусто | пусто | дата |
+  `showCoin = !isPremium && (sett.exclusive || !sett.onAir)`; `showDate = !sett.onAir && !sett.exclusive`
+  (дата — для всех, у не-премиума соседствует с монеткой). Тексты «Эксклюзивно на SPONSR»/«…(в открытом
+  доступе)» (это значения геттера `Settings.datePublish` при `exclusive`) **не выводятся никому** — их
+  заменяет монетка (не-премиуму) / пустая ячейка (премиуму). `datePublish` в колонке показывается только
+  когда это реальная дата/«Дата пока не определена» (не-эксклюзив).
+- **Монетка `PremiumIcon.vue`** (по образцу `PlayerIcon.vue`) + `SvgIcon.vue` кейс `premium` (viewBox
+  `0 0 20 20`): `:active=true` — золотая (в едином стиле с бейджем «🪙 Премиум»), `:active=false` — серебряная.
+  Пропс `state` (`'loading'|'ready'|'notready'`): loading → мини-спиннер, ready → золото + тултип «Доступно
+  для премиум-пользователей», notready → серебро + тултип «Будет доступно для премиум-пользователей в
+  ближайшее время». Золото/серебро = премиум **смог бы** открыть плеер прямо сейчас (контент готов) vs пока нет.
+- **Готовность контента подгружается тем же асинхронным readiness-запросом, что и активность иконки плеера**
+  (`usePlayerReadiness.js`): добавлена карта `contentStates` + геттер `contentReadyFor(id)`
+  (`'loading'|'ready'|'notready'`) поверх существующей `states`/`stateFor` (watchable). Эндпоинт
+  `POST /api/public/player/readiness` (`PublicPlayerController`) теперь возвращает на песню **три** поля:
+  `watchable` (=`ready`, для обратной совместимости — может ли ПРЯМО СЕЙЧАС открыть сам запрашивающий:
+  `contentReady && (onAir||premium)`) и `contentReady` — **премиум-независимый** `stemsReady`
+  (idStatus≥3 + оба стема в MinIO + непустые маркеры). **Короткое замыкание `(onAir||premium)` убрано** —
+  `stemsReady` теперь вычисляется и для не-onAir анонимов (иначе золото/серебро не отличить); это
+  осознанный trade-off (больше HEAD-запросов в MinIO), смягчаемый чанками/параллелизмом readiness.
+- **Backend поле `exclusive`.** Для поиска `SettingsPublicDto.exclusive` уже был; для закромов добавлен в
+  цепочку `ZakromaAlbumSettings` (модель, `Zakroma.kt` в karaoke-app — поле + заполнение `settings.exclusive`)
+  → `ZakromaAlbumSettingsPublicDto` (`ZakromaPublicDto.kt`). **Не колонка БД** (`Settings.exclusive` — getter),
+  миграций не требуется. Деплой: `deploy_web.sh` (backend) + `deploy_public.sh` (фронт).
+
 **Меню плеера (гамбургер, `_buildUI()`/`_buildMenu()`):**
 - Пункты-действия ("Открыть файл...", "Сохранить файл") и пункт-подменю ("Экспорт аудио..." → Голос/
   Минусовка/Бас/Ударные) визуально различаются: у подменю — стрелка `▸` и hover, у действий — просто hover.

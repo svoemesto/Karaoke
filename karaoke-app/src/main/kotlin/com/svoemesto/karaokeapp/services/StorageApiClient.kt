@@ -1,24 +1,20 @@
 package com.svoemesto.karaokeapp.services
 
 import com.svoemesto.karaokeapp.CountingInputStream
-import io.minio.StatObjectResponse
-import org.springframework.core.io.ByteArrayResource
+import io.minio.*
+import io.minio.errors.ErrorResponseException
+import io.minio.errors.MinioException
+import io.minio.http.Method
+import okhttp3.ConnectionPool
+import okhttp3.OkHttpClient
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
-import org.springframework.util.LinkedMultiValueMap
-import org.springframework.util.MultiValueMap
-import org.springframework.web.reactive.function.BodyInserters
-import org.springframework.web.reactive.function.client.WebClient
-import org.springframework.web.reactive.function.client.bodyToMono
 import reactor.core.publisher.Mono
-import java.net.URLEncoder
-import java.nio.charset.StandardCharsets
-import org.springframework.http.MediaType
+import java.io.ByteArrayInputStream
 import java.io.File
-import java.io.FileOutputStream
 import java.net.URLDecoder
-import java.nio.file.Files
-import java.nio.file.Paths
-import kotlin.io.copyTo
+import java.nio.charset.StandardCharsets
+import java.util.concurrent.TimeUnit
 
 interface StorageApiClient {
     fun uploadFile(bucketName: String, fileName: String, pathToFileOnDisk: String, onProgress: ((Int) -> Unit)? = null): String?
@@ -41,234 +37,184 @@ interface StorageApiClient {
     fun listFilesInfo(bucketName: String): Mono<List<StorageFileInfo>>
 }
 
+/**
+ * Клиент УДАЛЁННОГО хранилища (remote store) для karaoke-app.
+ *
+ * Раньше это была HTTP-прослойка через прод-karaoke-web (`WebClient` на `https://sm-karaoke.ru/api/storage`
+ * → `StorageController` → прод-`MinioClient`). Она сломалась, когда MinIO вынесли на отдельный сервер
+ * (`89.125.103.63:9000`): прод-karaoke-web больше не может достучаться до переехавшего MinIO
+ * (`karaoke-storage:9000` в его сети нет + MTU black-hole), поэтому эндпоинты `/api/storage/…` отдавали 500 на каждый
+ * `exists`/`upload`, а вся remote-проверка/заливка (HealthReport, UPLOAD_TO_REMOTE_STORE) не работала.
+ *
+ * Теперь karaoke-app (admin-машина) ходит в remote-хранилище НАПРЯМУЮ через `MinioClient` — новый MinIO
+ * доступен и с хоста, и из контейнера karaoke-app (проверено: health 200 за ~17 мс). Endpoint задаётся
+ * `storage.remote-endpoint` (env `STORAGE_REMOTE_ENDPOINT`, дефолт — новый сервер), креды — те же
+ * `storage.key`/`storage.secret`, что и у локального хранилища. Интерфейс `StorageApiClient` и все
+ * вызывающие места (HealthReport/Utils) не менялись; `Mono`-методы обёрнуты в `Mono.fromCallable`, чтобы
+ * реальная работа (и возможная ошибка) происходила на `.block()` — под уже существующим try/catch
+ * вызывающего кода.
+ */
 @Service
-class StorageApiClientImpl(private val webClient: WebClient): StorageApiClient { // Предполагается, что WebClient настроен с baseUrl
+class StorageApiClientImpl(
+    @Value($$"${storage.remote-endpoint:http://89.125.103.63:9000}") val remoteEndpoint: String,
+    @Value($$"${storage.key}") val storageKey: String,
+    @Value($$"${storage.secret}") val storageSecret: String,
+) : StorageApiClient {
 
-    // --- Вспомогательная функция для декодирования имени файла ---
+    private val storageClient: MinioClient = run {
+        val httpClient = OkHttpClient.Builder()
+            .connectionPool(ConnectionPool(0, 1, TimeUnit.NANOSECONDS))
+            .connectTimeout(15, TimeUnit.SECONDS)
+            .readTimeout(60, TimeUnit.SECONDS)
+            .writeTimeout(300, TimeUnit.SECONDS)
+            .build()
+        MinioClient.builder().endpoint(remoteEndpoint).credentials(storageKey, storageSecret).httpClient(httpClient).build()
+    }
+
     private fun decodeFileNameIfEncoded(fileName: String): String {
-        return if (fileName.contains("%")) { // Простая проверка: содержит ли имя символ '%'
+        return if (fileName.contains("%")) {
             try {
                 URLDecoder.decode(fileName, StandardCharsets.UTF_8.toString())
             } catch (_: IllegalArgumentException) {
-                // Если декодирование не удалось (например, '% не в кодировке), возвращаем оригинальное имя
                 fileName
             }
         } else {
-            // Если нет '%', имя, вероятно, не закодировано
             fileName
         }
     }
 
+    private fun createBucketIfNotExists(bucketName: String) {
+        val exists = storageClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build())
+        if (!exists) {
+            storageClient.makeBucket(MakeBucketArgs.builder().bucket(bucketName).build())
+        }
+    }
+
     override fun uploadFile(bucketName: String, fileName: String, pathToFileOnDisk: String, onProgress: ((Int) -> Unit)?): String? {
-
         val file = File(pathToFileOnDisk)
-        if (file.exists()) {
+        if (!file.exists()) return null
+        val fileContent = file.readBytes()
+        return try {
+            uploadFile(bucketName = bucketName, fileName = fileName, fileContent = fileContent, onProgress = onProgress).block()
+        } catch (e: Exception) {
+            println("Ошибка при загрузке файла в удаленное хранилище: ${e.message}")
+            null
+        }
+    }
 
-            val path = Paths.get(pathToFileOnDisk)
-            val fileContent = Files.readAllBytes(path)
-
-            val monoUploadResult = uploadFile(
-                bucketName = bucketName,
-                fileName = fileName, // fileName передаётся в uploadFile как есть, но он должен быть оригинальным именем
-                fileContent = fileContent,
-                onProgress = onProgress
+    override fun uploadFile(bucketName: String, fileName: String, fileContent: ByteArray, onProgress: ((Int) -> Unit)?): Mono<String> =
+        Mono.fromCallable {
+            val decodedFileName = decodeFileNameIfEncoded(fileName)
+            createBucketIfNotExists(bucketName)
+            val base = ByteArrayInputStream(fileContent)
+            val stream = if (onProgress != null && fileContent.isNotEmpty()) {
+                CountingInputStream(base) { bytesRead -> onProgress(((bytesRead * 100) / fileContent.size).toInt()) }
+            } else base
+            storageClient.putObject(
+                PutObjectArgs.builder()
+                    .bucket(bucketName)
+                    .`object`(decodedFileName)
+                    .stream(stream, fileContent.size.toLong(), -1)
+                    .build()
             )
-
-            val uploadResult = try {
-                monoUploadResult.block()
-            } catch (e: Exception) {
-                println("Ошибка при загрузке файла в удаленное хранилище: ${e.message}")
-                null
-            }
-
-            return uploadResult
+            decodedFileName
         }
 
-        return null
-
-    }
-
-    // --- POST /api/storage/upload ---
-    override fun uploadFile(bucketName: String, fileName: String, fileContent: ByteArray, onProgress: ((Int) -> Unit)?): Mono<String> {
-        // Создаём MultiValueMap для хранения частей multipart-запроса
-        val encodedBucketName = URLEncoder.encode(bucketName, StandardCharsets.UTF_8)
-        val encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8)
-        val multipartData: MultiValueMap<String, Any> = LinkedMultiValueMap()
-
-        // --- Ключевое изменение: Создаём ByteArrayResource с переопределением getFilename ---
-        // getInputStream() оборачивается в CountingInputStream, чтобы отследить реальный прогресс
-        // передачи по сети — WebClient читает Resource поблочно при сериализации multipart-тела.
-        val fileResource = object : ByteArrayResource(fileContent) {
-            override fun getFilename(): String? {
-                // Возвращаем имя файла. Spring WebFlux должен использовать это имя
-                // для Content-Disposition заголовка части multipart.
-                return fileName
-            }
-
-            override fun getInputStream(): java.io.InputStream {
-                val base = super.getInputStream()
-                return if (onProgress != null && fileContent.isNotEmpty()) {
-                    CountingInputStream(base) { bytesRead -> onProgress(((bytesRead * 100) / fileContent.size).toInt()) }
-                } else {
-                    base
-                }
-            }
+    override fun getFileUrl(bucketName: String, fileName: String): Mono<String> =
+        Mono.fromCallable {
+            val decodedFileName = decodeFileNameIfEncoded(fileName)
+            "$remoteEndpoint/$bucketName/$decodedFileName"
         }
 
-        // Добавляем ресурс файла как часть 'file'
-        multipartData.add("file", fileResource)
+    override fun getPresignedUrl(bucketName: String, fileName: String, expiry: Int): Mono<String> =
+        Mono.fromCallable {
+            val decodedFileName = decodeFileNameIfEncoded(fileName)
+            storageClient.getPresignedObjectUrl(
+                GetPresignedObjectUrlArgs.builder()
+                    .method(Method.GET)
+                    .bucket(bucketName)
+                    .`object`(decodedFileName)
+                    .expiry(expiry)
+                    .build()
+            )
+        }
 
-        // Добавляем строковые параметры как части multipart
-        multipartData.add("bucketName", encodedBucketName)
-        multipartData.add("fileName", encodedFileName) // Не кодируем имя файла здесь, пусть сервер сам разбирается, если нужно
-        // Если сервер строго ожидает закодированное имя в параметрах, раскомментируйте следующую строку:
-        // multipartData.add("fileName", URLEncoder.encode(fileName, StandardCharsets.UTF_8))
-
-        // Создаём multipart-тело из MultiValueMap
-        val multipartBody = BodyInserters.fromMultipartData(multipartData)
-
-        return webClient
-            .post()
-            .uri("/upload") // URI больше не содержит query-параметров
-            // .header("Authorization", "Bearer YOUR_ACCESS_TOKEN") // Если нужно
-            .contentType(MediaType.MULTIPART_FORM_DATA) // Указываем Content-Type
-            .body(multipartBody) // Устанавливаем multipart-тело
-            .retrieve()
-            .bodyToMono<String>()
-    }
-
-    // --- GET /api/storage/url ---
-    override fun getFileUrl(bucketName: String, fileName: String): Mono<String> {
-        val encodedBucketName = URLEncoder.encode(bucketName, StandardCharsets.UTF_8)
-        val encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8)
-
-        return webClient
-            .get()
-            .uri("/url?bucketName=$encodedBucketName&fileName=$encodedFileName")
-            // .header("Authorization", "Bearer YOUR_ACCESS_TOKEN") // Если нужно
-            .retrieve()
-            .bodyToMono<String>()
-    }
-
-    // --- GET /api/storage/presigned-url ---
-    override fun getPresignedUrl(bucketName: String, fileName: String, expiry: Int): Mono<String> {
-        val encodedBucketName = URLEncoder.encode(bucketName, StandardCharsets.UTF_8)
-        val encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8)
-
-        return webClient
-            .get()
-            .uri("/presigned-url?bucketName=$encodedBucketName&fileName=$encodedFileName&expiry=$expiry")
-            // .header("Authorization", "Bearer YOUR_ACCESS_TOKEN") // Если нужно
-            .retrieve()
-            .bodyToMono<String>()
-    }
-
-    // --- GET /api/storage/download ---
-    override fun downloadFile(bucketName: String, fileName: String): Mono<ByteArray> {
-        val encodedBucketName = URLEncoder.encode(bucketName, StandardCharsets.UTF_8)
-        val encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8)
-
-        return webClient
-            .get()
-            .uri("/download?bucketName=$encodedBucketName&fileName=$encodedFileName")
-            // .header("Authorization", "Bearer YOUR_ACCESS_TOKEN") // Если нужно
-            .retrieve()
-            .bodyToMono<ByteArray>()
-    }
+    override fun downloadFile(bucketName: String, fileName: String): Mono<ByteArray> =
+        Mono.fromCallable {
+            val decodedFileName = decodeFileNameIfEncoded(fileName)
+            storageClient.getObject(
+                GetObjectArgs.builder()
+                    .bucket(bucketName)
+                    .`object`(decodedFileName)
+                    .build()
+            ).use { it.readBytes() }
+        }
 
     override fun downloadFile(bucketName: String, fileName: String, pathToFileOnDisk: String): File {
-        val decodedFileName = decodeFileNameIfEncoded(fileName) // Декодируем перед использованием
-
-        val monoFileInputStream = downloadFile(
-            bucketName = bucketName,
-            fileName = fileName
-        )
-
-        val fileInputStream = try {
-            monoFileInputStream.block()
+        val bytes = try {
+            downloadFile(bucketName = bucketName, fileName = fileName).block()
         } catch (e: Exception) {
             println("Ошибка при получении файла из удаленного хранилища: ${e.message}")
             null
         }
-
-        if (fileInputStream != null) {
+        if (bytes != null) {
             val file = File(pathToFileOnDisk)
-            file.writeBytes(fileInputStream)
+            file.writeBytes(bytes)
             return file
         } else {
             throw RuntimeException("Ошибка при получении файла из удаленного хранилища")
         }
-
-
     }
 
-    // --- DELETE /api/storage/delete ---
-    override fun deleteFile(bucketName: String, fileName: String): Mono<String> {
-        val encodedBucketName = URLEncoder.encode(bucketName, StandardCharsets.UTF_8)
-        val encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8)
+    override fun deleteFile(bucketName: String, fileName: String): Mono<String> =
+        Mono.fromCallable {
+            val decodedFileName = decodeFileNameIfEncoded(fileName)
+            val exists = storageClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build())
+            if (exists) {
+                storageClient.removeObject(
+                    RemoveObjectArgs.builder()
+                        .bucket(bucketName)
+                        .`object`(decodedFileName)
+                        .build()
+                )
+            }
+            "OK"
+        }
 
-        return webClient
-            .delete()
-            .uri("/delete?bucketName=$encodedBucketName&fileName=$encodedFileName")
-            // .header("Authorization", "Bearer YOUR_ACCESS_TOKEN") // Если нужно
-            .retrieve()
-            .bodyToMono<String>()
-    }
+    override fun listFiles(bucketName: String): Mono<List<String>> =
+        Mono.fromCallable {
+            val exists = storageClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build())
+            if (!exists) emptyList<String>()
+            else storageClient.listObjects(
+                ListObjectsArgs.builder().bucket(bucketName).recursive(true).build()
+            ).mapNotNull { it.get() }.map { it.objectName() }
+        }
 
-    // --- GET /api/storage/list ---
-    override fun listFiles(bucketName: String): Mono<List<String>> {
-        val encodedBucketName = URLEncoder.encode(bucketName, StandardCharsets.UTF_8)
-
-        return webClient
-            .get()
-            .uri("/list?bucketName=$encodedBucketName")
-            // .header("Authorization", "Bearer YOUR_ACCESS_TOKEN") // Если нужно
-            .retrieve()
-            .bodyToMono<Array<String>>() // Сервер возвращает List<String>, WebClient может десериализовать в Array
-            .map { it.toList() } // Конвертируем в List
-    }
-
-    // --- GET /api/storage/exists ---
-    override fun checkIfExists(bucketName: String, fileName: String): Mono<Map<String, Boolean>> {
-        val encodedBucketName = URLEncoder.encode(bucketName, StandardCharsets.UTF_8)
-        val encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8)
-
-        return webClient
-            .get()
-            .uri("/exists?bucketName=$encodedBucketName&fileName=$encodedFileName")
-            // .header("Authorization", "Bearer YOUR_ACCESS_TOKEN") // Если нужно
-            .retrieve()
-            .bodyToMono<Map<String, Boolean>>()
-    }
+    override fun checkIfExists(bucketName: String, fileName: String): Mono<Map<String, Boolean>> =
+        Mono.fromCallable {
+            mapOf("exists" to (statObjectOrNull(bucketName, fileName) != null))
+        }
 
     override fun fileExists(bucketName: String, fileName: String): Boolean {
-        val monoCheckIfExists = checkIfExists(
-            bucketName = bucketName,
-            fileName = fileName
-        )
-        val checkIfExists = try {
-            monoCheckIfExists.block()
+        val result = try {
+            checkIfExists(bucketName = bucketName, fileName = fileName).block()
         } catch (e: Exception) {
             println("Ошибка при проверке наличия файла в удаленном хранилище: ${e.message}")
             null
         }
-//        println("Результат проверки наличия файла в удаленном хранилище: $checkIfExists")
-        return checkIfExists?.get("exists") ?: false
+        return result?.get("exists") ?: false
     }
 
     override fun fileIsActual(bucketName: String, fileName: String, pathToFileOnDisk: String): Boolean {
         var result = true
         val file = File(pathToFileOnDisk)
         if (file.exists()) {
-
-            val monoFileInfo = getFileInfo(bucketName = bucketName, fileName = fileName)
             val fileInfo = try {
-                monoFileInfo.block()
+                getFileInfo(bucketName = bucketName, fileName = fileName).block()
             } catch (e: Exception) {
                 println("Ошибка при проверке информации о файле в удаленном хранилище: ${e.message}")
                 null
             }
-
             if (fileInfo != null) {
                 result = (file.length() == fileInfo.size)
             }
@@ -277,98 +223,98 @@ class StorageApiClientImpl(private val webClient: WebClient): StorageApiClient {
     }
 
     override fun fileIsActual(bucketName: String, fileName: String, storageFileInfo: StorageFileInfo): Boolean {
-
         var result = true
-
-        val monoFileInfo = getFileInfo(bucketName = bucketName, fileName = fileName)
         val fileInfo = try {
-            monoFileInfo.block()
+            getFileInfo(bucketName = bucketName, fileName = fileName).block()
         } catch (e: Exception) {
             println("Ошибка при проверке информации о файле в удаленном хранилище: ${e.message}")
             null
         }
-
         if (fileInfo != null) {
             result = (storageFileInfo.size == fileInfo.size)
         }
-
         return result
-
-
     }
 
-    // --- PUT /api/storage/bucket/public ---
-    override fun setBucketPublic(bucketName: String): Mono<String> {
-        val encodedBucketName = URLEncoder.encode(bucketName, StandardCharsets.UTF_8)
+    override fun setBucketPublic(bucketName: String): Mono<String> =
+        Mono.fromCallable {
+            createBucketIfNotExists(bucketName)
+            val policy = """
+                {
+                  "Version": "2012-10-17",
+                  "Statement": [
+                    {
+                      "Effect": "Allow",
+                      "Principal": {"AWS": ["*"]},
+                      "Action": ["s3:GetObject"],
+                      "Resource": ["arn:aws:s3:::$bucketName/*"]
+                    }
+                  ]
+                }
+            """.trimIndent()
+            storageClient.setBucketPolicy(
+                SetBucketPolicyArgs.builder().bucket(bucketName).config(policy).build()
+            )
+            "OK"
+        }
 
-        return webClient
-            .put()
-            .uri("/bucket/public?bucketName=$encodedBucketName")
-            // .header("Authorization", "Bearer YOUR_ACCESS_TOKEN") // Если нужно
-            .retrieve()
-            .bodyToMono<String>()
-    }
+    override fun setBucketPrivate(bucketName: String): Mono<String> =
+        Mono.fromCallable {
+            createBucketIfNotExists(bucketName)
+            storageClient.setBucketPolicy(
+                SetBucketPolicyArgs.builder().bucket(bucketName).config("").build()
+            )
+            "OK"
+        }
 
-    // --- PUT /api/storage/bucket/private ---
-    override fun setBucketPrivate(bucketName: String): Mono<String> {
-        val encodedBucketName = URLEncoder.encode(bucketName, StandardCharsets.UTF_8)
+    override fun isBucketPublic(bucketName: String): Mono<Map<String, Boolean>> =
+        Mono.fromCallable {
+            val isPublic = try {
+                val policy = storageClient.getBucketPolicy(
+                    GetBucketPolicyArgs.builder().bucket(bucketName).build()
+                )
+                policy.isNotEmpty() && policy.contains("\"Effect\":\"Allow\"") && policy.contains("\"Principal\":{\"AWS\":[\"*\"]}")
+            } catch (e: ErrorResponseException) {
+                if (e.errorResponse().code() == "NoSuchBucketPolicy") false else throw e
+            }
+            mapOf("isPublic" to isPublic)
+        }
 
-        return webClient
-            .put()
-            .uri("/bucket/private?bucketName=$encodedBucketName")
-            // .header("Authorization", "Bearer YOUR_ACCESS_TOKEN") // Если нужно
-            .retrieve()
-            .bodyToMono<String>()
-    }
+    override fun getFileStat(bucketName: String, fileName: String): Mono<StatObjectResponse> =
+        Mono.fromCallable {
+            val decodedFileName = decodeFileNameIfEncoded(fileName)
+            storageClient.statObject(
+                StatObjectArgs.builder().bucket(bucketName).`object`(decodedFileName).build()
+            )
+        }
 
-    // --- GET /api/storage/bucket/public-status ---
-    override fun isBucketPublic(bucketName: String): Mono<Map<String, Boolean>> {
-        val encodedBucketName = URLEncoder.encode(bucketName, StandardCharsets.UTF_8)
+    override fun getFileInfo(bucketName: String, fileName: String): Mono<StorageFileInfo> =
+        Mono.fromCallable {
+            val decodedFileName = decodeFileNameIfEncoded(fileName)
+            val stat = statObjectOrNull(bucketName, decodedFileName)
+            StorageFileInfo(
+                bucketName = bucketName,
+                fileName = decodedFileName,
+                etag = stat?.etag() ?: "",
+                size = stat?.size() ?: -1
+            )
+        }
 
-        return webClient
-            .get()
-            .uri("/bucket/public-status?bucketName=$encodedBucketName")
-            // .header("Authorization", "Bearer YOUR_ACCESS_TOKEN") // Если нужно
-            .retrieve()
-            .bodyToMono<Map<String, Boolean>>()
-    }
+    override fun listFilesInfo(bucketName: String): Mono<List<StorageFileInfo>> =
+        Mono.fromCallable {
+            (listFiles(bucketName).block() ?: emptyList()).map { fileName ->
+                getFileInfo(bucketName = bucketName, fileName = fileName).block()!!
+            }
+        }
 
-    // --- POST /api/storage/fileStat ---
-    override fun getFileStat(bucketName: String, fileName: String): Mono<StatObjectResponse> { // Предполагаем, что StatObjectResponse определён
-        val encodedBucketName = URLEncoder.encode(bucketName, StandardCharsets.UTF_8)
-        val encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8)
-
-        return webClient
-            .post()
-            .uri("/fileStat?bucketName=$encodedBucketName&fileName=$encodedFileName")
-            // .header("Authorization", "Bearer YOUR_ACCESS_TOKEN") // Если нужно
-            .retrieve()
-            .bodyToMono<StatObjectResponse>()
-    }
-
-    // --- POST /api/storage/fileInfo ---
-    override fun getFileInfo(bucketName: String, fileName: String): Mono<StorageFileInfo> { // Предполагаем, что StorageFileInfo определён
-        val encodedBucketName = URLEncoder.encode(bucketName, StandardCharsets.UTF_8)
-        val encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8)
-
-        return webClient
-            .post()
-            .uri("/fileInfo?bucketName=$encodedBucketName&fileName=$encodedFileName")
-            // .header("Authorization", "Bearer YOUR_ACCESS_TOKEN") // Если нужно
-            .retrieve()
-            .bodyToMono<StorageFileInfo>()
-    }
-
-    // --- POST /api/storage/listInfo ---
-    override fun listFilesInfo(bucketName: String): Mono<List<StorageFileInfo>> { // Предполагаем, что StorageFileInfo определён
-        val encodedBucketName = URLEncoder.encode(bucketName, StandardCharsets.UTF_8)
-
-        return webClient
-            .post()
-            .uri("/listInfo?bucketName=$encodedBucketName")
-            // .header("Authorization", "Bearer YOUR_ACCESS_TOKEN") // Если нужно
-            .retrieve()
-            .bodyToMono<Array<StorageFileInfo>>() // Сервер возвращает List, WebClient десериализует в Array
-            .map { it.toList() } // Конвертируем в List
+    private fun statObjectOrNull(bucketName: String, fileName: String): StatObjectResponse? {
+        val decodedFileName = decodeFileNameIfEncoded(fileName)
+        return try {
+            storageClient.statObject(
+                StatObjectArgs.builder().bucket(bucketName).`object`(decodedFileName).build()
+            )
+        } catch (_: MinioException) {
+            null
+        }
     }
 }

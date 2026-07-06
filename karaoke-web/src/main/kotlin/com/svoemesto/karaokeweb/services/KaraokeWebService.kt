@@ -1,10 +1,8 @@
 package com.svoemesto.karaokeweb.services
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.SNS
 import com.svoemesto.karaokeapp.services.SseNotificationService
-import com.svoemesto.karaokeapp.services.StorageApiClient
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.stereotype.Service
@@ -22,8 +20,6 @@ lateinit var DB_SERVER_POSTGRES_PASSWORD: String
 @Service
 class KaraokeWebService(
     val webSocket: SimpMessagingTemplate,
-    val karaokeStorageService: KaraokeStorageService,
-    val storageApiClient: StorageApiClient,
     val objectMapper: ObjectMapper,
     @Value($$"${work-in-container}") val wic: Long,
     @Value($$"${work-on-server}") val wos: Long,
@@ -49,17 +45,10 @@ class KaraokeWebService(
         // уронил бы процесс karaoke-web с UninitializedPropertyAccessException. У karaoke-web нет /subscribe
         // эндпоинта, поэтому emitters всегда пуст и send() безопасно не делает ничего.
         SNS = SseNotificationService(objectMapper)
-        // Старт karaoke-web НЕ должен падать из-за недоступности MinIO напрямую. deleteAllEmptyBuckets()
-        // ходит к storageClient (endpoint http://${STORAGE_CONTAINER_NAME}:9000), но на проде MinIO вынесен
-        // на отдельный сервер (89.125.103.63) и хоста karaoke-storage в docker-сети нет → UnknownHostException
-        // ронял весь контекст (crash-loop). karaoke-web в принципе не должен обращаться к MinIO напрямую —
-        // только через minio-proxy (см. CLAUDE.md, MTU black-hole). Эта разовая уборка пустых бакетов при
-        // старте не критична; глушим ошибку, чтобы процесс поднимался независимо от прямой доступности MinIO.
-        try {
-            karaokeStorageService.deleteAllEmptyBuckets()
-        } catch (e: Exception) {
-            println("karaoke-web: пропускаю deleteAllEmptyBuckets() при старте — MinIO напрямую недоступен: ${e.message}")
-        }
+        // Уборка пустых бакетов (deleteAllEmptyBuckets) намеренно НЕ вызывается: karaoke-web не обращается
+        // к MinIO напрямую (см. CLAUDE.md, MTU black-hole; бин KaraokeStorageService здесь — заглушка,
+        // KaraokeStorageServiceImplWeb.kt). Прежний вызов ходил к недоступному karaoke-storage:9000 и ронял
+        // старт в crash-loop. Это забота admin/karaoke-app.
         println("WEB_WORK_ON_SERVER = $WEB_WORK_ON_SERVER")
     }
 

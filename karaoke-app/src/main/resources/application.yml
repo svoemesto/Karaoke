@@ -39,6 +39,10 @@ storage:
   port-host: ${STORAGE_PORT_HOST:9000}
   port-inside-container: ${STORAGE_PORT_INSIDE_CONTAINER:9000}
   container-name: ${STORAGE_CONTAINER_NAME:karaoke-storage}
+  # Удалённое (remote) хранилище — отдельный MinIO-сервер, куда karaoke-app заливает файлы для
+  # публичного сайта. karaoke-app ходит туда напрямую через MinioClient (см. StorageApiClientImpl),
+  # а не через прод-karaoke-web. Креды — те же storage.key/storage.secret.
+  remote-endpoint: ${STORAGE_REMOTE_ENDPOINT:http://89.125.103.63:9000}
   console:
     port-host: ${STORAGE_CONSOLE_PORT_HOST:9001}
     port-inside-container: ${STORAGE_CONSOLE_PORT_INSIDE_CONTAINER:9001}

@@ -39,14 +39,15 @@
         <table class="table-sm table-hover" style="width: 780px; table-layout: fixed">
           <colgroup>
             <col style="width: 25px" />
-            <col style="width: 378px" />
+            <col style="width: 353px" />
+            <col style="width: 25px" />
             <col style="width: 25px" />
             <col v-for="i in 16" :key="i" style="width: 22px" />
           </colgroup>
           <thead>
             <tr>
               <td class="td_cell" style="padding: 0"><div class="head_songtrack" style="text-align: center">№</div></td>
-              <td class="td_cell" style="padding: 0" colspan="2"><div class="head_songname">Композиция</div></td>
+              <td class="td_cell" style="padding: 0" colspan="3"><div class="head_songname">Композиция</div></td>
               <td class="td_cell" style="padding: 0" colspan="4"><div class="head_songname">Karaoke</div></td>
               <td class="td_cell" style="padding: 0" colspan="4"><div class="head_songname">Lyrics</div></td>
               <td class="td_cell" style="padding: 0" colspan="4"><div class="head_songname">TABS</div></td>
@@ -58,6 +59,9 @@
               <td class="td_cell" style="padding: 0; width: 25px"><div class="songtrack">{{ sett.track }}</div></td>
               <td class="td_cell" style="padding: 0; border-right-width: 0">
                 <RouterLink :to="{ path: '/song', query: { id: sett.id } }" class="songname">{{ sett.songName }}</RouterLink>
+              </td>
+              <td class="td_cell" style="padding: 0; border-top-width: 0; border-left-width: 0; border-right-width: 0; width: 25px; text-align: center; vertical-align: middle">
+                <PlayerIcon :song-id="sett.id" :state="readiness.stateFor(sett.id)" />
               </td>
               <td class="td_cell" style="padding: 0; border-top-width: 0; border-left-width: 0; border-right-width: 0; width: 25px; text-align: center; vertical-align: middle">
                 <PlatformLink link-name="sponsr" :link-value="sett.linkSponsrPlay" :song-id="sett.id" song-version="all" />
@@ -95,10 +99,15 @@
 <script>
 import { mapGetters, mapActions } from 'vuex'
 import PlatformLink from '../../components/PlatformLink.vue'
+import PlayerIcon from '../../components/PlayerIcon.vue'
+import { usePlayerReadiness } from '../../composables/usePlayerReadiness'
 
 export default {
   name: 'ZakromaClassic',
-  components: { PlatformLink },
+  components: { PlatformLink, PlayerIcon },
+  setup() {
+    return { readiness: usePlayerReadiness() }
+  },
   data() {
     return {
       selectedAuthor: this.$route.query.author || ''
@@ -106,6 +115,16 @@ export default {
   },
   computed: {
     ...mapGetters('zakroma', ['authors', 'zakroma', 'isLoading']),
+  },
+  watch: {
+    // Готовность плеера подгружаем асинхронно, как только пришли данные закромов (и при их смене).
+    zakroma: {
+      immediate: true,
+      handler(list) {
+        const ids = (list || []).flatMap(z => z.albums.flatMap(a => a.albumSettings.map(s => s.id)))
+        this.readiness.load(ids)
+      }
+    }
   },
   mounted() {
     this.loadAuthors()

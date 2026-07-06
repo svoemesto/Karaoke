@@ -41,7 +41,8 @@
         <col style="width: 35px" />
         <col style="width: 115px" />
         <col style="width: 25px" />
-        <col style="width: 228px" />
+        <col style="width: 203px" />
+        <col style="width: 25px" />
         <col style="width: 25px" />
         <col v-for="i in 16" :key="i" style="width: 22px" />
       </colgroup>
@@ -51,7 +52,7 @@
           <td class="td_cell" style="padding: 0"><div class="head_songname">Год</div></td>
           <td class="td_cell" style="padding: 0"><div class="head_songname">Альбом</div></td>
           <td class="td_cell" style="padding: 0"><div class="head_songtrack">№</div></td>
-          <td class="td_cell" style="padding: 0" colspan="2"><div class="head_songname">Композиция</div></td>
+          <td class="td_cell" style="padding: 0" colspan="3"><div class="head_songname">Композиция</div></td>
           <td class="td_cell" style="padding: 0" colspan="4"><div class="head_songname">Karaoke</div></td>
           <td class="td_cell" style="padding: 0" colspan="4"><div class="head_songname">Lyrics</div></td>
           <td class="td_cell" style="padding: 0" colspan="4"><div class="head_songname">TABS</div></td>
@@ -66,6 +67,9 @@
           <td class="td_cell" style="padding: 0"><div class="songtrack">{{ sett.track }}</div></td>
           <td class="td_cell" style="padding: 0; border-right-width: 0; text-align: left">
             <RouterLink :to="{ path: '/song', query: { id: sett.id } }" class="songname">{{ sett.songName }}</RouterLink>
+          </td>
+          <td class="td_cell" style="padding: 0; border-top-width: 0; border-left-width: 0; border-right-width: 0; text-align: center; vertical-align: middle">
+            <PlayerIcon :song-id="sett.id" :state="readiness.stateFor(sett.id)" />
           </td>
           <td class="td_cell" style="padding: 0; border-top-width: 0; border-left-width: 0; border-right-width: 0; text-align: center; vertical-align: middle">
             <PlatformLink link-name="sponsr" :link-value="sett.linkSponsrPlay" :song-id="sett.id" song-version="all" />
@@ -102,10 +106,15 @@
 <script>
 import { mapGetters, mapActions } from 'vuex'
 import PlatformLink from '../../components/PlatformLink.vue'
+import PlayerIcon from '../../components/PlayerIcon.vue'
+import { usePlayerReadiness } from '../../composables/usePlayerReadiness'
 
 export default {
   name: 'SearchClassic',
-  components: { PlatformLink },
+  components: { PlatformLink, PlayerIcon },
+  setup() {
+    return { readiness: usePlayerReadiness() }
+  },
   data() {
     return {
       form: { songName: '', author: '', text: '' },
@@ -114,6 +123,15 @@ export default {
   },
   computed: {
     ...mapGetters('songs', ['authors', 'searchResults', 'searchIsLoading']),
+  },
+  watch: {
+    // Готовность плеера подгружаем асинхронно, как только пришли результаты поиска (и при их смене).
+    searchResults: {
+      immediate: true,
+      handler(list) {
+        this.readiness.load((list || []).map(s => s.id))
+      }
+    }
   },
   mounted() {
     this.loadAuthors()

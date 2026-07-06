@@ -67,6 +67,16 @@
       <path fill="#CBCBCB" d="M2.52164 11.9462L5.9255 0H11.1491L10.0928 3.70385C10.0817 3.72498 10.0726 3.74714 10.0658 3.77L7.29168 13.55H9.88032C8.80005 16.2923 7.95391 18.4423 7.34268 20C2.56645 19.9462 1.22732 16.4738 2.39955 12.3662L2.52164 11.9462ZM7.36046 20L13.6574 10.8H10.9853L13.3097 4.90692C17.2985 5.33 19.1693 8.51462 18.0697 12.3654C16.889 16.5077 12.1104 20 7.45782 20H7.36046Z"/>
     </template>
 
+    <!-- player (онлайн-плеер) -->
+    <template v-else-if="name === 'player' && active">
+      <circle cx="10" cy="10" r="10" fill="#22A447"/>
+      <path d="M8 6.5v7l6-3.5-6-3.5Z" fill="#fff"/>
+    </template>
+    <template v-else-if="name === 'player'">
+      <circle cx="10" cy="10" r="10" fill="#E6E6E6"/>
+      <path d="M8 6.5v7l6-3.5-6-3.5Z" fill="#919191"/>
+    </template>
+
     <!-- pl -->
     <template v-else-if="name === 'pl' && active">
       <circle cx="100" cy="100" r="100" fill="#1f1f1f"/>
@@ -90,6 +100,7 @@ const viewBoxMap = {
   vkgroup:'0 0 24 24',
   max:    '0 0 5895 5870',
   pl:     '0 0 200 200',
+  player: '0 0 20 20',
 }
 
 export default {

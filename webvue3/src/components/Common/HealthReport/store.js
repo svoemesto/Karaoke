@@ -43,6 +43,18 @@ export default {
             }).catch(error => {
                 console.log(error);
             });
+        },
+        // Каскадное «Исправить всё» одним серверным вызовом: бэкенд сам выполняет всё решаемое сейчас
+        // и по мере завершения задач ставит следующие шаги цепочки. Это заменяет прежний параллельный
+        // цикл repairOneRecord по каждому отчёту (в т.ч. убирает гонку, когда getHealthReport на бэке
+        // возвращал null из-за смены статуса между параллельными запросами).
+        repairAllPromise(ctx, id) {
+            let request = { method: 'POST', url: "/api/song/repairAll", params: { id: id } };
+            promisedXMLHttpRequest(request).then(data => {
+                this.dispatch('loadHealthReportList', id);
+            }).catch(error => {
+                console.log(error);
+            });
         }
     }
 }

@@ -918,9 +918,8 @@ export default {
             const song = filteredSongs[0];
             if (song.healthReportText !== '-' && song.healthReportText !== '0') {
               const healthReportListCanRepair = song.healthReportList.filter(healthReport => healthReport.canResolve);
-              const lst = [...healthReportListCanRepair];
-              for (const healthReport of lst) {
-                this.$store.dispatch('repairOneRecord', healthReport);
+              if (healthReportListCanRepair.length > 0) {
+                this.$store.dispatch('repairAllPromise', song.id);
               }
             }
           }

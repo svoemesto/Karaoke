@@ -180,6 +180,26 @@ class KaraokeProcessThread(val karaokeProcess: KaraokeProcess? = null, var perce
                 }
             }
 
+            // Пост-хук: после завершения репаир-задания пересчитать HealthReport песни и разослать SSE
+            // (иначе счётчик ошибок в таблице «застывает» на IN_PROGRESS). Для песен в каскаде
+            // «Исправить всё» — поставить следующий ставший решаемым шаг. Ограничение по типам исключает
+            // многократный пересчёт на sub-шагах тяжёлых MELT_*-рендеров.
+            val kp = karaokeProcess
+            val typeEnum = runCatching { KaraokeProcessTypes.valueOf(kp.type) }.getOrNull()
+            if (kp.settingsId > 0 && typeEnum in HealthReport.HR_REPAIR_PROCESS_TYPES) {
+                try {
+                    HealthReport.onRepairProcessFinished(
+                        settingsId = kp.settingsId.toLong(),
+                        success = kp.status == KaraokeProcessStatuses.DONE.name,
+                        database = WORKING_DATABASE,
+                        storageService = KSS_APP,
+                        storageApiClient = SAC_APP
+                    )
+                } catch (e: Exception) {
+                    println("[${Timestamp.from(Instant.now())}] KaraokeProcessThread[${kp.threadId}]: ошибка пересчёта HealthReport после задания: ${e.message}")
+                }
+            }
+
         }
 
     }

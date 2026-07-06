@@ -20,14 +20,19 @@
 
     <!-- Фильтр автора -->
     <div class="km-content">
-      <select v-model="selectedAuthor" class="km-select" @change="onAuthorChange">
-        <option value="">(Выберите автора)</option>
-        <option v-for="a in authors" :key="a" :value="a">{{ a }}</option>
-      </select>
+      <AuthorTiles
+        v-if="!authorChosen"
+        :tiles="authorTiles"
+        :selected="selectedAuthor"
+        variant="modern"
+        @select="onAuthorSelect"
+      />
 
-      <div v-if="isLoading" class="km-loading">Загрузка...</div>
+      <button v-if="authorChosen" type="button" class="km-back-btn" @click="backToAuthors">← К списку авторов</button>
 
-      <div v-for="zak in zakroma" :key="zak.author" class="km-author-block">
+      <div v-if="authorChosen && isLoading" class="km-loading">Загрузка...</div>
+
+      <div v-for="zak in (authorChosen ? zakroma : [])" :key="zak.author" class="km-author-block">
         <!-- Заголовок автора -->
         <div class="km-author-header">
           <img
@@ -118,13 +123,14 @@ import PlatformLink from '../../components/PlatformLink.vue'
 import PlayerIcon from '../../components/PlayerIcon.vue'
 import PremiumIcon from '../../components/PremiumIcon.vue'
 import AuthStatusWidget from '../../components/AuthStatusWidget.vue'
+import AuthorTiles from '../../components/AuthorTiles.vue'
 import { useDesign } from '../../composables/useDesign'
 import { usePlayerReadiness } from '../../composables/usePlayerReadiness'
 import { useAuth } from '../../composables/useAuth'
 
 export default {
   name: 'ZakromaModern',
-  components: { PlatformLink, PlayerIcon, PremiumIcon, AuthStatusWidget },
+  components: { PlatformLink, PlayerIcon, PremiumIcon, AuthStatusWidget, AuthorTiles },
   setup() {
     const { theme, applyTheme } = useDesign()
     const { user } = useAuth()
@@ -132,10 +138,14 @@ export default {
     return { theme, setTheme, readiness: usePlayerReadiness(), user }
   },
   data() {
-    return { selectedAuthor: this.$route.query.author || '' }
+    return {
+      selectedAuthor: this.$route.query.author || '',
+      // Плитки-пикер видны, пока автор не выбран. После выбора (в т.ч. «Все авторы») скрываются.
+      authorChosen: !!this.$route.query.author
+    }
   },
   computed: {
-    ...mapGetters('zakroma', ['authors', 'zakroma', 'isLoading']),
+    ...mapGetters('zakroma', ['authorTiles', 'zakroma', 'isLoading']),
     isPremium() {
       return !!(this.user && this.user.effectivePremium)
     },
@@ -151,11 +161,12 @@ export default {
     }
   },
   mounted() {
-    this.loadAuthors()
-    this.loadZakroma(this.selectedAuthor)
+    this.loadAuthorTiles()
+    // Таблицу грузим только если автор уже выбран (например, зашли по ссылке ?author=...).
+    if (this.authorChosen) this.loadZakroma(this.selectedAuthor)
   },
   methods: {
-    ...mapActions('zakroma', ['loadAuthors', 'loadZakroma']),
+    ...mapActions('zakroma', ['loadAuthorTiles', 'loadZakroma']),
     // Монетка «премиум-контент» — только не-премиум посетителю и только для контента, доступного
     // лишь премиуму (эксклюзив или ещё не в эфире). Золотая/серебряная — по contentReadyFor().
     showCoin(sett) {
@@ -167,10 +178,16 @@ export default {
     showDate(sett) {
       return !sett.onAir && !sett.exclusive
     },
-    onAuthorChange() {
-      const author = this.selectedAuthor
+    onAuthorSelect(author) {
+      this.selectedAuthor = author
+      this.authorChosen = true
       this.$router.replace({ path: '/zakroma', query: author ? { author } : {} })
       this.loadZakroma(author)
+    },
+    backToAuthors() {
+      this.selectedAuthor = ''
+      this.authorChosen = false
+      this.$router.replace({ path: '/zakroma', query: {} })
     }
   }
 }
@@ -250,19 +267,23 @@ export default {
   color: var(--km-text2);
 }
 
-/* Select */
-.km-select {
-  width: 100%;
-  display: block;
-  margin-bottom: 1.5rem;
-  background: var(--km-input);
-  color: var(--km-text);
+/* Кнопка возврата к списку авторов */
+.km-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 1.25rem;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--km-accent);
+  background: var(--km-card);
   border: 1px solid var(--km-border);
   border-radius: 8px;
-  padding: 0.4rem 0.75rem;
-  font-size: 0.9rem;
-  appearance: auto;
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s;
 }
+.km-back-btn:hover { background: var(--km-hover); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3); }
 
 /* Блок автора */
 .km-author-block { margin-bottom: 2rem; }

@@ -1,17 +1,17 @@
 <template>
   <div style="width: 800px">
     <a href="/"><img src="/KARAOKE_LOGO.png" style="width: 150px; display: block; margin: auto" alt="Karaoke logo" /></a>
-    <select
-      v-model="selectedAuthor"
-      class="form-select"
-      style="font-size: 14px; padding: 0 2rem 0 0.5rem; height: 34px"
-      @change="onAuthorChange"
-    >
-      <option value="">(Выберите автора)</option>
-      <option v-for="a in authors" :key="a" :value="a">{{ a }}</option>
-    </select>
+    <AuthorTiles
+      v-if="!authorChosen"
+      :tiles="authorTiles"
+      :selected="selectedAuthor"
+      variant="classic"
+      @select="onAuthorSelect"
+    />
 
-    <div style="overflow-y: scroll; max-height: calc(100vh - 165px); background: #d5e6ff">
+    <button v-if="authorChosen" type="button" class="zk-back-btn" @click="backToAuthors">← К списку авторов</button>
+
+    <div v-if="authorChosen" style="overflow-y: scroll; max-height: calc(100vh - 205px); background: #d5e6ff">
     <div v-if="isLoading" style="padding: 10px">Загрузка...</div>
 
     <div v-for="zak in zakroma" :key="zak.author" class="mb-4">
@@ -83,23 +83,26 @@ import { mapGetters, mapActions } from 'vuex'
 import PlatformLink from '../../components/PlatformLink.vue'
 import PlayerIcon from '../../components/PlayerIcon.vue'
 import PremiumIcon from '../../components/PremiumIcon.vue'
+import AuthorTiles from '../../components/AuthorTiles.vue'
 import { usePlayerReadiness } from '../../composables/usePlayerReadiness'
 import { useAuth } from '../../composables/useAuth'
 
 export default {
   name: 'ZakromaClassic',
-  components: { PlatformLink, PlayerIcon, PremiumIcon },
+  components: { PlatformLink, PlayerIcon, PremiumIcon, AuthorTiles },
   setup() {
     const { user } = useAuth()
     return { readiness: usePlayerReadiness(), user }
   },
   data() {
     return {
-      selectedAuthor: this.$route.query.author || ''
+      selectedAuthor: this.$route.query.author || '',
+      // Плитки-пикер видны, пока автор не выбран. После выбора (в т.ч. «Все авторы») скрываются.
+      authorChosen: !!this.$route.query.author
     }
   },
   computed: {
-    ...mapGetters('zakroma', ['authors', 'zakroma', 'isLoading']),
+    ...mapGetters('zakroma', ['authorTiles', 'zakroma', 'isLoading']),
     isPremium() {
       return !!(this.user && this.user.effectivePremium)
     },
@@ -115,11 +118,12 @@ export default {
     }
   },
   mounted() {
-    this.loadAuthors()
-    this.loadZakroma(this.selectedAuthor)
+    this.loadAuthorTiles()
+    // Таблицу грузим только если автор уже выбран (например, зашли по ссылке ?author=...).
+    if (this.authorChosen) this.loadZakroma(this.selectedAuthor)
   },
   methods: {
-    ...mapActions('zakroma', ['loadAuthors', 'loadZakroma']),
+    ...mapActions('zakroma', ['loadAuthorTiles', 'loadZakroma']),
     // Монетка «премиум-контент» — только не-премиум посетителю и только для контента, доступного
     // лишь премиуму (эксклюзив или ещё не в эфире). Золотая/серебряная — по contentReadyFor().
     showCoin(sett) {
@@ -132,10 +136,16 @@ export default {
     showDate(sett) {
       return !sett.onAir && !sett.exclusive
     },
-    onAuthorChange() {
-      const author = this.selectedAuthor
+    onAuthorSelect(author) {
+      this.selectedAuthor = author
+      this.authorChosen = true
       this.$router.replace({ path: '/zakroma', query: author ? { author } : {} })
       this.loadZakroma(author)
+    },
+    backToAuthors() {
+      this.selectedAuthor = ''
+      this.authorChosen = false
+      this.$router.replace({ path: '/zakroma', query: {} })
     }
   }
 }
@@ -149,6 +159,8 @@ export default {
 .album     { padding: 0; padding-top: 10px; font-size: small; font-weight: bold; min-width: 300px; max-width: 300px; border-style: none; }
 .songtrack { height: 100%; padding: 2px; font-size: small; text-align: center; min-width: 20px; max-width: 20px; border-style: none; }
 .songname  { height: 100%; padding: 2px; font-size: small; min-width: 300px; max-width: 300px; border-style: none; }
+.zk-back-btn { display: inline-flex; align-items: center; gap: 4px; margin: 4px 0 8px; padding: 5px 12px; font-size: 13px; font-weight: 600; color: #0c5460; background: #ffffff; border: 1px solid #9fbce0; border-radius: 6px; cursor: pointer; }
+.zk-back-btn:hover { background: #eef5ff; box-shadow: 0 2px 6px rgba(12, 84, 96, 0.2); }
 .date_publish { height: 100%; padding: 2px 6px; font-size: small; text-align: right; border-style: none; white-space: nowrap; }
 .dp-text { margin-right: 5px; vertical-align: middle; }
 </style>

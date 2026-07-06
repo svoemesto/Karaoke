@@ -10,8 +10,11 @@ const CHUNK_SIZE = 20
 const MAX_CONCURRENT = 3
 
 export function usePlayerReadiness() {
-  // id -> 'loading' | 'active' | 'disabled'
+  // id -> 'loading' | 'active' | 'disabled' (watchable — может ли ТЕКУЩИЙ посетитель открыть плеер)
   const states = reactive({})
+  // id -> 'loading' | 'ready' | 'notready' (contentReady — премиум-независимая готовность контента;
+  // нужна для золотой vs серебряной монетки «Доступно для премиум-пользователей»).
+  const contentStates = reactive({})
   // Монотонный маркер запроса: смена автора/новый поиск начинает новый load — ответы устаревших
   // чанков игнорируются (аналог latestRequestId в store/modules/zakroma.js).
   let latest = 0
@@ -20,12 +23,18 @@ export function usePlayerReadiness() {
     return states[id] || 'loading'
   }
 
+  // 'loading' | 'ready' | 'notready'
+  function contentReadyFor(id) {
+    return contentStates[id] || 'loading'
+  }
+
   async function load(ids) {
     const requestId = ++latest
-    // Сбрасываем карту и выставляем все id в 'loading'.
+    // Сбрасываем карты и выставляем все id в 'loading'.
     for (const k of Object.keys(states)) delete states[k]
+    for (const k of Object.keys(contentStates)) delete contentStates[k]
     const unique = [...new Set(ids.map(String))]
-    unique.forEach(id => { states[id] = 'loading' })
+    unique.forEach(id => { states[id] = 'loading'; contentStates[id] = 'loading' })
     if (!unique.length) return
 
     const chunks = []
@@ -49,10 +58,11 @@ export function usePlayerReadiness() {
           const items = (status === 200 && body && body.items) || {}
           chunk.forEach(id => {
             states[id] = items[id] && items[id].watchable ? 'active' : 'disabled'
+            contentStates[id] = items[id] && items[id].contentReady ? 'ready' : 'notready'
           })
         } catch (e) {
           if (requestId !== latest) return
-          chunk.forEach(id => { states[id] = 'disabled' })
+          chunk.forEach(id => { states[id] = 'disabled'; contentStates[id] = 'notready' })
         }
       }
     }
@@ -60,5 +70,5 @@ export function usePlayerReadiness() {
     await Promise.all(Array.from({ length: Math.min(MAX_CONCURRENT, chunks.length) }, worker))
   }
 
-  return { states, stateFor, load, openPlayer }
+  return { states, stateFor, contentReadyFor, load, openPlayer }
 }

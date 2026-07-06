@@ -77,6 +77,18 @@
       <path d="M8 6.5v7l6-3.5-6-3.5Z" fill="#919191"/>
     </template>
 
+    <!-- premium (эксклюзивный контент — золотая монета) -->
+    <template v-else-if="name === 'premium' && active">
+      <circle cx="10" cy="10" r="9.5" fill="#D99413"/>
+      <circle cx="10" cy="10" r="7.3" fill="#F6C94B"/>
+      <path d="M10 6 L10.94 8.71 L13.8 8.76 L11.52 10.49 L12.35 13.24 L10 11.6 L7.65 13.24 L8.48 10.49 L6.2 8.76 L9.06 8.71 Z" fill="#B5730A"/>
+    </template>
+    <template v-else-if="name === 'premium'">
+      <circle cx="10" cy="10" r="9.5" fill="#A7ADB5"/>
+      <circle cx="10" cy="10" r="7.3" fill="#D9DEE4"/>
+      <path d="M10 6 L10.94 8.71 L13.8 8.76 L11.52 10.49 L12.35 13.24 L10 11.6 L7.65 13.24 L8.48 10.49 L6.2 8.76 L9.06 8.71 Z" fill="#8A9099"/>
+    </template>
+
     <!-- pl -->
     <template v-else-if="name === 'pl' && active">
       <circle cx="100" cy="100" r="100" fill="#1f1f1f"/>
@@ -101,6 +113,7 @@ const viewBoxMap = {
   max:    '0 0 5895 5870',
   pl:     '0 0 200 200',
   player: '0 0 20 20',
+  premium:'0 0 20 20',
 }
 
 export default {

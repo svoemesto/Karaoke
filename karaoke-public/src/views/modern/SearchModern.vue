@@ -58,12 +58,9 @@
             <col style="width: 120px" />
             <col style="width: 26px" />
             <col />
+            <col style="width: 220px" />
             <col style="width: 24px" />
             <col style="width: 32px" />
-            <col style="width: 22px" /><col style="width: 22px" /><col style="width: 22px" /><col style="width: 26px" />
-            <col style="width: 22px" /><col style="width: 22px" /><col style="width: 22px" /><col style="width: 26px" />
-            <col style="width: 22px" /><col style="width: 22px" /><col style="width: 22px" /><col style="width: 26px" />
-            <col style="width: 22px" /><col style="width: 22px" /><col style="width: 22px" /><col style="width: 22px" />
           </colgroup>
           <thead>
             <tr>
@@ -71,11 +68,8 @@
               <th class="km-th km-th-center">Год</th>
               <th class="km-th">Альбом</th>
               <th class="km-th km-th-center">№</th>
-              <th class="km-th km-group-end" colspan="3">Композиция</th>
-              <th class="km-th km-th-center km-group-end" colspan="4">Karaoke</th>
-              <th class="km-th km-th-center km-group-end" colspan="4">Lyrics</th>
-              <th class="km-th km-th-center km-group-end" colspan="4">TABS</th>
-              <th class="km-th km-th-center" colspan="4">Chords</th>
+              <th class="km-th">Композиция</th>
+              <th class="km-th" colspan="3">&nbsp;</th>
             </tr>
           </thead>
           <tbody>
@@ -87,31 +81,16 @@
               <td class="km-td km-td-name">
                 <RouterLink :to="{ path: '/song', query: { id: sett.id } }" class="km-song-link">{{ sett.songName }}</RouterLink>
               </td>
+              <td class="km-td km-td-date">
+                <span v-if="showDate(sett)" class="km-date-text">{{ sett.datePublish }}</span>
+                <PremiumIcon v-if="showCoin(sett)" :state="readiness.contentReadyFor(sett.id)" />
+              </td>
               <td class="km-td km-td-center">
                 <PlayerIcon :song-id="sett.id" :state="readiness.stateFor(sett.id)" />
               </td>
               <td class="km-td km-td-center km-group-end">
                 <PlatformLink link-name="sponsr" :link-value="sett.linkSponsrPlay" :song-id="sett.id" song-version="all" />
               </td>
-              <template v-if="sett.onAir">
-                <td class="km-td km-td-icon"><PlatformLink link-name="dzen" :link-value="sett.linkDzenKaraoke" :song-id="sett.id" song-version="karaoke" /></td>
-                <td class="km-td km-td-icon"><PlatformLink link-name="max"  :link-value="sett.linkMaxKaraoke"  :song-id="sett.id" song-version="karaoke" /></td>
-                <td class="km-td km-td-icon"><PlatformLink link-name="vk"   :link-value="sett.linkVkKaraoke"   :song-id="sett.id" song-version="karaoke" /></td>
-                <td class="km-td km-td-icon km-group-end"><PlatformLink link-name="tg" :link-value="sett.linkTgKaraoke" :song-id="sett.id" song-version="karaoke" /></td>
-                <td class="km-td km-td-icon"><PlatformLink link-name="dzen" :link-value="sett.linkDzenLyrics"  :song-id="sett.id" song-version="lyrics" /></td>
-                <td class="km-td km-td-icon"><PlatformLink link-name="max"  :link-value="sett.linkMaxLyrics"   :song-id="sett.id" song-version="lyrics" /></td>
-                <td class="km-td km-td-icon"><PlatformLink link-name="vk"   :link-value="sett.linkVkLyrics"    :song-id="sett.id" song-version="lyrics" /></td>
-                <td class="km-td km-td-icon km-group-end"><PlatformLink link-name="tg" :link-value="sett.linkTgLyrics"  :song-id="sett.id" song-version="lyrics" /></td>
-                <td class="km-td km-td-icon"><PlatformLink link-name="dzen" :link-value="sett.linkDzenTabs"    :song-id="sett.id" song-version="tabs" /></td>
-                <td class="km-td km-td-icon"><PlatformLink link-name="max"  :link-value="sett.linkMaxTabs"     :song-id="sett.id" song-version="tabs" /></td>
-                <td class="km-td km-td-icon"><PlatformLink link-name="vk"   :link-value="sett.linkVkTabs"      :song-id="sett.id" song-version="tabs" /></td>
-                <td class="km-td km-td-icon km-group-end"><PlatformLink link-name="tg" :link-value="sett.linkTgTabs"    :song-id="sett.id" song-version="tabs" /></td>
-                <td class="km-td km-td-icon"><PlatformLink link-name="dzen" :link-value="sett.linkDzenChords"  :song-id="sett.id" song-version="chords" /></td>
-                <td class="km-td km-td-icon"><PlatformLink link-name="max"  :link-value="sett.linkMaxChords"   :song-id="sett.id" song-version="chords" /></td>
-                <td class="km-td km-td-icon"><PlatformLink link-name="vk"   :link-value="sett.linkVkChords"    :song-id="sett.id" song-version="chords" /></td>
-                <td class="km-td km-td-icon"><PlatformLink link-name="tg"   :link-value="sett.linkTgChords"    :song-id="sett.id" song-version="chords" /></td>
-              </template>
-              <td v-else class="km-td km-td-date" colspan="16">{{ sett.datePublish }}</td>
             </tr>
           </tbody>
         </table>
@@ -131,47 +110,10 @@
             <PlayerIcon :song-id="sett.id" :state="readiness.stateFor(sett.id)" />
             <PlatformLink link-name="sponsr" :link-value="sett.linkSponsrPlay" :song-id="sett.id" song-version="all" />
           </div>
-          <template v-if="sett.onAir">
-            <div class="km-card-platforms">
-              <div class="km-card-version">
-                <span class="km-ver-label">Karaoke</span>
-                <div class="km-ver-icons">
-                  <PlatformLink link-name="dzen" :link-value="sett.linkDzenKaraoke" :song-id="sett.id" song-version="karaoke" />
-                  <PlatformLink link-name="max"  :link-value="sett.linkMaxKaraoke"  :song-id="sett.id" song-version="karaoke" />
-                  <PlatformLink link-name="vk"   :link-value="sett.linkVkKaraoke"   :song-id="sett.id" song-version="karaoke" />
-                  <PlatformLink link-name="tg"   :link-value="sett.linkTgKaraoke"   :song-id="sett.id" song-version="karaoke" />
-                </div>
-              </div>
-              <div class="km-card-version">
-                <span class="km-ver-label">Lyrics</span>
-                <div class="km-ver-icons">
-                  <PlatformLink link-name="dzen" :link-value="sett.linkDzenLyrics"  :song-id="sett.id" song-version="lyrics" />
-                  <PlatformLink link-name="max"  :link-value="sett.linkMaxLyrics"   :song-id="sett.id" song-version="lyrics" />
-                  <PlatformLink link-name="vk"   :link-value="sett.linkVkLyrics"    :song-id="sett.id" song-version="lyrics" />
-                  <PlatformLink link-name="tg"   :link-value="sett.linkTgLyrics"    :song-id="sett.id" song-version="lyrics" />
-                </div>
-              </div>
-              <div class="km-card-version">
-                <span class="km-ver-label">TABS</span>
-                <div class="km-ver-icons">
-                  <PlatformLink link-name="dzen" :link-value="sett.linkDzenTabs"    :song-id="sett.id" song-version="tabs" />
-                  <PlatformLink link-name="max"  :link-value="sett.linkMaxTabs"     :song-id="sett.id" song-version="tabs" />
-                  <PlatformLink link-name="vk"   :link-value="sett.linkVkTabs"      :song-id="sett.id" song-version="tabs" />
-                  <PlatformLink link-name="tg"   :link-value="sett.linkTgTabs"      :song-id="sett.id" song-version="tabs" />
-                </div>
-              </div>
-              <div class="km-card-version">
-                <span class="km-ver-label">Chords</span>
-                <div class="km-ver-icons">
-                  <PlatformLink link-name="dzen" :link-value="sett.linkDzenChords"  :song-id="sett.id" song-version="chords" />
-                  <PlatformLink link-name="max"  :link-value="sett.linkMaxChords"   :song-id="sett.id" song-version="chords" />
-                  <PlatformLink link-name="vk"   :link-value="sett.linkVkChords"    :song-id="sett.id" song-version="chords" />
-                  <PlatformLink link-name="tg"   :link-value="sett.linkTgChords"    :song-id="sett.id" song-version="chords" />
-                </div>
-              </div>
-            </div>
-          </template>
-          <div v-else class="km-card-date">{{ sett.datePublish }}</div>
+          <div v-if="showDate(sett) || showCoin(sett)" class="km-card-date">
+            <span v-if="showDate(sett)" class="km-date-text">{{ sett.datePublish }}</span>
+            <PremiumIcon v-if="showCoin(sett)" :state="readiness.contentReadyFor(sett.id)" />
+          </div>
         </div>
       </div>
 
@@ -184,17 +126,20 @@
 import { mapGetters, mapActions } from 'vuex'
 import PlatformLink from '../../components/PlatformLink.vue'
 import PlayerIcon from '../../components/PlayerIcon.vue'
+import PremiumIcon from '../../components/PremiumIcon.vue'
 import AuthStatusWidget from '../../components/AuthStatusWidget.vue'
 import { useDesign } from '../../composables/useDesign'
 import { usePlayerReadiness } from '../../composables/usePlayerReadiness'
+import { useAuth } from '../../composables/useAuth'
 
 export default {
   name: 'SearchModern',
-  components: { PlatformLink, PlayerIcon, AuthStatusWidget },
+  components: { PlatformLink, PlayerIcon, PremiumIcon, AuthStatusWidget },
   setup() {
     const { theme, applyTheme } = useDesign()
+    const { user } = useAuth()
     function setTheme(val) { theme.value = val; applyTheme(val) }
-    return { theme, setTheme, readiness: usePlayerReadiness() }
+    return { theme, setTheme, readiness: usePlayerReadiness(), user }
   },
   data() {
     return {
@@ -204,6 +149,9 @@ export default {
   },
   computed: {
     ...mapGetters('songs', ['authors', 'searchResults', 'searchIsLoading']),
+    isPremium() {
+      return !!(this.user && this.user.effectivePremium)
+    },
   },
   watch: {
     // Готовность плеера подгружаем асинхронно, как только пришли результаты поиска (и при их смене).
@@ -226,6 +174,17 @@ export default {
   },
   methods: {
     ...mapActions('songs', ['loadAuthors', 'search']),
+    // Монетка «премиум-контент» — только не-премиум посетителю и только для контента, доступного
+    // лишь премиуму (эксклюзив или ещё не в эфире). Золотая/серебряная — по contentReadyFor().
+    showCoin(sett) {
+      return !this.isPremium && (sett.exclusive || !sett.onAir)
+    },
+    // Реальную дату публикации (или «Дата пока не определена») показываем всем для ещё не вышедших
+    // НЕ-эксклюзивных песен; у не-премиума она соседствует с монеткой. Тексты «Эксклюзивно на SPONSR»
+    // не выводим никому — их заменяет монетка (не-премиуму) / пустая ячейка (премиуму). В эфире — пусто.
+    showDate(sett) {
+      return !sett.onAir && !sett.exclusive
+    },
     onSearch() {
       this.searched = true
       this.search({ songName: this.form.songName, author: this.form.author, text: this.form.text })
@@ -403,9 +362,9 @@ export default {
 .km-tr:last-child .km-td { border-bottom: none; }
 .km-tr:hover .km-td { background: var(--km-hover); }
 .km-td-center { text-align: center; }
-.km-td-icon { text-align: center; padding: 0; overflow: hidden; }
 .km-td-name { text-align: left; }
-.km-td-date { text-align: center; color: var(--km-text2); font-size: 0.78rem; }
+.km-td-date { text-align: right; color: var(--km-text2); font-size: 0.78rem; white-space: nowrap; }
+.km-date-text { margin-right: 5px; vertical-align: middle; }
 .km-track { color: var(--km-text2); }
 .km-group-end { border-right: 2px solid var(--km-border); }
 .km-song-link { color: var(--km-accent); text-decoration: none; font-size: 0.82rem; }
@@ -446,14 +405,6 @@ export default {
 }
 .km-card-title:hover { text-decoration: underline; }
 .km-card-date { font-size: 0.78rem; color: var(--km-text2); text-align: center; padding-top: 0.25rem; }
-.km-card-platforms {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.35rem 0.5rem;
-}
-.km-card-version { display: flex; align-items: center; gap: 0.3rem; }
-.km-ver-label { font-size: 0.68rem; color: var(--km-text2); min-width: 38px; font-weight: 600; }
-.km-ver-icons { display: flex; gap: 1px; }
 
 @media (max-width: 768px) {
   .km-table-wrap { display: none; }

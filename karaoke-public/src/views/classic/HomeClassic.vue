@@ -100,6 +100,20 @@
         <tr>
           <td colspan="6" style="width: 400px">
             <div style="text-align: center">
+              <span style="color: #9fcdff; font-size: medium">
+                Ваши сохранённые песни и плейлисты:
+              </span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td colspan="6" style="width: 400px">
+            <RouterLink to="/account/playlists" style="width: 400px; display: block; margin: auto; text-align: center; font-size: 40pt">Плейлисты</RouterLink>
+          </td>
+        </tr>
+        <tr>
+          <td colspan="6" style="width: 400px">
+            <div style="text-align: center">
               <span style="color: #9fcdff; font-size: medium">Соцсети:</span>
             </div>
           </td>

@@ -55,12 +55,23 @@ class PublicPlaylistController(
         "benefits" to PREMIUM_BENEFITS,
     )
 
+    // Не-избранный плейлист виден/используется ТОЛЬКО премиуму. Если пользователь был премиумом и
+    // насоздавал плейлистов, а потом перестал им быть — плейлисты НЕ удаляются, а скрываются и
+    // становятся недоступны, пока он снова не станет премиумом. «Избранное» доступно всегда.
+    private fun usable(playlist: SitePlaylist, user: SiteUser): Boolean =
+        playlist.isFavorites || user.isEffectivePremium
+
+    // Свой плейлист, доступный этому пользователю (иначе null — скрыт/нет доступа → 404).
+    private fun loadUsablePlaylist(id: Long, user: SiteUser): SitePlaylist? =
+        loadOwnedPlaylist(id, user.id)?.takeIf { usable(it, user) }
+
     // ---- Список плейлистов (с числом песен) --------------------------------------------------
 
     @GetMapping("/playlists")
     fun playlists(request: HttpServletRequest): List<SitePlaylistDto> {
         val user = currentUser(request)
-        return loadPlaylists(user.id).map { pl ->
+        // Не-премиуму отдаём только «Избранное» — остальные плейлисты скрыты (но не удалены в БД).
+        return loadPlaylists(user.id).filter { usable(it, user) }.map { pl ->
             pl.toDTO().copy(itemsCount = SitePlaylistItem.countItems(pl.id, db))
         }
     }
@@ -70,7 +81,7 @@ class PublicPlaylistController(
     @GetMapping("/playlists/{id}")
     fun playlistDetail(@PathVariable id: Long, request: HttpServletRequest): ResponseEntity<Any> {
         val user = currentUser(request)
-        val playlist = loadOwnedPlaylist(id, user.id) ?: return ResponseEntity.notFound().build()
+        val playlist = loadUsablePlaylist(id, user) ?: return ResponseEntity.notFound().build()
         val items = SitePlaylistItem.loadItems(playlist.id, db, storageService, storageApiClient)
         val songs = if (items.isEmpty()) emptyMap()
         else Settings.loadListFromDbByIds(items.map { it.songId }.distinct(), db, storageService, storageApiClient)
@@ -120,7 +131,7 @@ class PublicPlaylistController(
     @PostMapping("/playlists/{id}/rename")
     fun renamePlaylist(@PathVariable id: Long, @RequestParam name: String, request: HttpServletRequest): ResponseEntity<Any> {
         val user = currentUser(request)
-        val pl = loadOwnedPlaylist(id, user.id) ?: return ResponseEntity.notFound().build()
+        val pl = loadUsablePlaylist(id, user) ?: return ResponseEntity.notFound().build()
         if (pl.isFavorites) return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(mapOf("error" to "favorites_readonly"))
         if (name.isBlank()) return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(mapOf("error" to "name_required"))
         pl.name = name.trim()
@@ -131,7 +142,7 @@ class PublicPlaylistController(
     @PostMapping("/playlists/{id}/delete")
     fun deletePlaylist(@PathVariable id: Long, request: HttpServletRequest): ResponseEntity<Any> {
         val user = currentUser(request)
-        val pl = loadOwnedPlaylist(id, user.id) ?: return ResponseEntity.notFound().build()
+        val pl = loadUsablePlaylist(id, user) ?: return ResponseEntity.notFound().build()
         if (pl.isFavorites) return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(mapOf("error" to "favorites_readonly"))
         // Элементы удалятся каскадом (ON DELETE CASCADE), но зеркальный sync на LOCAL требует явного
         // удаления строк items — поэтому удаляем их поштучно перед удалением плейлиста (SSE recordDelete).
@@ -151,7 +162,7 @@ class PublicPlaylistController(
         request: HttpServletRequest,
     ): ResponseEntity<Any> {
         val user = currentUser(request)
-        val pl = loadOwnedPlaylist(id, user.id) ?: return ResponseEntity.notFound().build()
+        val pl = loadUsablePlaylist(id, user) ?: return ResponseEntity.notFound().build()
         continuous?.let { pl.continuous = it }
         repeatMode?.let { if (it in setOf("none", "one", "all")) pl.repeatMode = it }
         shuffle?.let { pl.shuffle = it }
@@ -181,7 +192,7 @@ class PublicPlaylistController(
     @PostMapping("/playlists/{id}/addsong")
     fun addSong(@PathVariable id: Long, @RequestParam songId: Long, request: HttpServletRequest): ResponseEntity<Any> {
         val user = currentUser(request)
-        val pl = loadOwnedPlaylist(id, user.id) ?: return ResponseEntity.notFound().build()
+        val pl = loadUsablePlaylist(id, user) ?: return ResponseEntity.notFound().build()
         if (!pl.isFavorites && !user.isEffectivePremium)
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(premiumRequired())
         val err = addSongInternal(user, pl, songId)
@@ -192,7 +203,7 @@ class PublicPlaylistController(
     @PostMapping("/playlists/{id}/removesong")
     fun removeSong(@PathVariable id: Long, @RequestParam songId: Long, request: HttpServletRequest): ResponseEntity<Any> {
         val user = currentUser(request)
-        val pl = loadOwnedPlaylist(id, user.id) ?: return ResponseEntity.notFound().build()
+        val pl = loadUsablePlaylist(id, user) ?: return ResponseEntity.notFound().build()
         SitePlaylistItem.findItem(pl.id, songId, db, storageService, storageApiClient)?.let {
             SitePlaylistItem.delete(it.id, db)
         }
@@ -203,7 +214,7 @@ class PublicPlaylistController(
     @PostMapping("/playlists/{id}/reorder")
     fun reorder(@PathVariable id: Long, @RequestParam order: String, request: HttpServletRequest): ResponseEntity<Any> {
         val user = currentUser(request)
-        val pl = loadOwnedPlaylist(id, user.id) ?: return ResponseEntity.notFound().build()
+        val pl = loadUsablePlaylist(id, user) ?: return ResponseEntity.notFound().build()
         val orderedSongIds = order.split(",").mapNotNull { it.trim().toLongOrNull() }
         val items = SitePlaylistItem.loadItems(pl.id, db, storageService, storageApiClient).associateBy { it.songId }
         orderedSongIds.forEachIndexed { index, songId ->
@@ -220,7 +231,7 @@ class PublicPlaylistController(
     @PostMapping("/playlists/{id}/mute")
     fun mute(@PathVariable id: Long, @RequestParam songId: Long, @RequestParam muted: Boolean, request: HttpServletRequest): ResponseEntity<Any> {
         val user = currentUser(request)
-        val pl = loadOwnedPlaylist(id, user.id) ?: return ResponseEntity.notFound().build()
+        val pl = loadUsablePlaylist(id, user) ?: return ResponseEntity.notFound().build()
         SitePlaylistItem.findItem(pl.id, songId, db, storageService, storageApiClient)?.let {
             it.muted = muted
             it.save()
@@ -264,12 +275,16 @@ class PublicPlaylistController(
         val songIds = ids.split(",").mapNotNull { it.trim().toLongOrNull() }.distinct()
         val playlists = loadPlaylists(user.id)
         val favId = playlists.firstOrNull { it.isFavorites }?.id
+        // Не-избранные плейлисты в membership отдаём только премиуму — иначе синяя иконка «зажглась»
+        // бы у не-премиума на песнях из скрытых плейлистов.
+        val visibleNonFav = if (user.isEffectivePremium)
+            playlists.filter { !it.isFavorites }.map { it.id }.toSet() else emptySet()
         val songToPlaylists = SitePlaylistItem.songIdsInPlaylists(playlists.map { it.id }, db)
         val items = songIds.associate { songId ->
             val pls = songToPlaylists[songId] ?: emptyList()
             songId.toString() to mapOf(
                 "favorited" to (favId != null && favId in pls),
-                "playlistIds" to pls.filter { it != favId },
+                "playlistIds" to pls.filter { it in visibleNonFav },
             )
         }
         return ResponseEntity.ok(mapOf("items" to items))

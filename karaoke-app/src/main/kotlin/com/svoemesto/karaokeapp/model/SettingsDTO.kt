@@ -261,6 +261,7 @@ data class SettingsDTO(
             idNext = idNext,
             idLeft = idLeft,
             idRight = idRight,
+            idStatus = idStatus,
             status = status,
             tags = tags,
             color = color,

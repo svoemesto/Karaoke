@@ -20,7 +20,7 @@ data class StatBySongDto(
     val cntSm: Int,        // просмотры страницы песни на сайте (rest_name='song')
     val cntPlayer: Int,    // события онлайн-плеера всего (event_type='player')
     // детализация онлайн-плеера по действиям (link_type при event_type='player')
-    val cntPlayerOpen: Int,
+    val cntPlayerShown: Int,
     val cntPlayerPlay: Int,
     val cntPlayerPause: Int,
     val cntPlayerSeek: Int,
@@ -332,7 +332,7 @@ object StatsByEvents {
                 count(*) as total,
                 count(*) filter (where e.rest_name = 'song') as song,
                 count(*) filter (where e.event_type = 'player') as player,
-                count(*) filter (where e.event_type = 'player' and e.link_type = 'open') as p_open,
+                count(*) filter (where e.event_type = 'player' and e.link_type = 'shown') as p_shown,
                 count(*) filter (where e.event_type = 'player' and e.link_type = 'play') as p_play,
                 count(*) filter (where e.event_type = 'player' and e.link_type = 'pause') as p_pause,
                 count(*) filter (where e.event_type = 'player' and e.link_type = 'seek') as p_seek,
@@ -372,7 +372,7 @@ object StatsByEvents {
                         cntTotal = rs.getInt("total"),
                         cntSm = rs.getInt("song"),
                         cntPlayer = rs.getInt("player"),
-                        cntPlayerOpen = rs.getInt("p_open"),
+                        cntPlayerShown = rs.getInt("p_shown"),
                         cntPlayerPlay = rs.getInt("p_play"),
                         cntPlayerPause = rs.getInt("p_pause"),
                         cntPlayerSeek = rs.getInt("p_seek"),
@@ -660,7 +660,7 @@ object StatsByEvents {
         val d = detail ?: ""
         return when (eventType) {
             "player" -> when (d) {
-                "open" -> "Плеер: открытие"
+                "shown" -> "Плеер: показан"
                 "play" -> "Плеер: старт"
                 "pause" -> "Плеер: пауза"
                 "seek" -> "Плеер: перемотка"

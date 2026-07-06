@@ -83,7 +83,7 @@
                 <th>ID</th><th>Описание</th><th title="Все события песни">Всего</th>
                 <th title="Просмотры страницы песни">Сайт</th>
                 <th title="События онлайн-плеера всего">Плеер∑</th>
-                <th title="Плеер: открытие">Откр.</th>
+                <th title="Плеер: показан на странице">Показ</th>
                 <th title="Плеер: старт">Старт</th>
                 <th title="Плеер: пауза">Пауза</th>
                 <th title="Плеер: перемотка">Перем.</th>
@@ -99,7 +99,7 @@
                 <td class="text-start">{{ row.description }}</td>
                 <td class="fw-bold">{{ row.cntTotal }}</td>
                 <td>{{ row.cntSm }}</td><td>{{ row.cntPlayer }}</td>
-                <td>{{ row.cntPlayerOpen }}</td><td>{{ row.cntPlayerPlay }}</td><td>{{ row.cntPlayerPause }}</td>
+                <td>{{ row.cntPlayerShown }}</td><td>{{ row.cntPlayerPlay }}</td><td>{{ row.cntPlayerPause }}</td>
                 <td>{{ row.cntPlayerSeek }}</td><td>{{ row.cntPlayerExport }}</td><td>{{ row.cntPlayerProgress }}</td><td>{{ row.cntPlayerEnded }}</td>
                 <td>{{ row.cntVkKaraoke }}</td><td>{{ row.cntVkLyrics }}</td>
                 <td>{{ row.cntDzenKaraoke }}</td><td>{{ row.cntDzenLyrics }}</td>

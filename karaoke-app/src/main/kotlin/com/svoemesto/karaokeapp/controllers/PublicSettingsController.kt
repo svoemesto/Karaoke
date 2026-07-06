@@ -22,11 +22,24 @@ class PublicSettingsController {
     private fun resolveDb(target: String?): KaraokeConnection =
         if (target == "remote") Connection.remote() else Connection.local()
 
+    // resolveDb() создаёт НОВЫЙ объект Connection.local()/remote() на каждый вызов, открывающий
+    // собственное физическое JDBC-соединение и кэширующий его в себе; без явного close() оно висит
+    // до обрыва и постепенно исчерпывает пул Postgres ("too many clients already"). withDb закрывает
+    // соединение сразу после использования. То же самое сделано в StatsController/SiteUsersController.
+    private fun <T> withDb(target: String?, block: (KaraokeConnection) -> T): T {
+        val db = resolveDb(target)
+        return try {
+            block(db)
+        } finally {
+            try { db.getConnection()?.close() } catch (_: Exception) {}
+        }
+    }
+
     @PostMapping("/digest")
     @ResponseBody
-    fun digest(@RequestParam(required = false) target: String?): Map<String, Any> {
-        val connection = resolveDb(target).getConnection()
-            ?: return mapOf("publicSettingsDigest" to emptyList<PublicSettingDto>())
+    fun digest(@RequestParam(required = false) target: String?): Map<String, Any> = withDb(target) { db ->
+        val connection = db.getConnection()
+            ?: return@withDb mapOf("publicSettingsDigest" to emptyList<PublicSettingDto>())
         val list = mutableListOf<PublicSettingDto>()
         val ps = connection.prepareStatement("SELECT key, value, description FROM tbl_public_settings ORDER BY key")
         val rs = ps.executeQuery()
@@ -35,7 +48,7 @@ class PublicSettingsController {
         }
         rs.close()
         ps.close()
-        return mapOf("publicSettingsDigest" to list)
+        mapOf("publicSettingsDigest" to list)
     }
 
     @PostMapping("/update")
@@ -44,13 +57,13 @@ class PublicSettingsController {
         @RequestParam key: String,
         @RequestParam value: String,
         @RequestParam(required = false) target: String?,
-    ): Boolean {
-        val connection = resolveDb(target).getConnection() ?: return false
+    ): Boolean = withDb(target) { db ->
+        val connection = db.getConnection() ?: return@withDb false
         val ps = connection.prepareStatement("UPDATE tbl_public_settings SET value = ?, last_update = now() WHERE key = ?")
         ps.setString(1, value)
         ps.setString(2, key)
         val updated = ps.executeUpdate()
         ps.close()
-        return updated > 0
+        updated > 0
     }
 }

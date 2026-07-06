@@ -966,6 +966,24 @@ locations) запись — на практике: `RepairAll` создавал 
 `getWebEventsCount()`), а не побочный продукт основного запроса (`count(*) over()` дал бы 0 на пустой
 странице за пределами данных).
 
+**Ловушка: `target=local|remote` эндпоинты обязаны ЗАКРЫВАТЬ соединение (обёртка `withDb`).**
+`resolveDb(target) = if (target=="remote") Connection.remote() else Connection.local()` создаёт **новый
+объект `Connection`** на каждый HTTP-запрос, а `KaraokeConnection.getConnection()` (`KaraokeConnection.kt`)
+открывает и кэширует в этом объекте **собственное физическое JDBC-соединение**. Ручные JDBC-функции
+(`StatsByEvents` в `StatBySong.kt` и т.п.) закрывают только `ResultSet`/`Statement`, но **не `connection`**
+— без явного `close()` соединение висит до обрыва. Дашборд `/stats` дёргает ~11 эндпоинтов за загрузку →
+каждая загрузка оставляла ~11 висящих соединений → через несколько обновлений пул Postgres
+(`max_connections=100`) исчерпан → `FATAL: sorry, too many clients already` (забиваются даже
+reserved-слоты суперюзера, `psql` тоже перестаёт пускать). **Не путать с `WORKING_DATABASE`** — это
+shared-синглтон (одно кэшированное соединение на весь app), его закрывать НЕ нужно, утечки там нет; течёт
+именно per-request `Connection.local()/remote()`. Фикс (2026-07-06): во всех трёх контроллерах
+(`StatsController`/`SiteUsersController`/`PublicSettingsController`) добавлена приватная обёртка
+`withDb(target) { db -> ... }`, закрывающая `db.getConnection()?.close()` в `finally` — одно соединение
+на запрос (закрывается сразу; потокобезопасно для параллельных вызовов дашборда — shared connection тут
+был бы небезопасен). `withDb` намеренно дублируется per-controller, как и `resolveDb`. **Правило: любой
+новый эндпоинт karaoke-app с per-request `Connection.local()/remote()` писать через `withDb`, не напрямую
+`resolveDb(target)`.**
+
 - **Детерминированный `ORDER BY` обязателен при постраничной выборке.** У `getStatBySong()` было
   `order by total desc` — при множестве песен с одинаковым `total` (типично много нулей) Postgres не
   гарантирует стабильный порядок между двумя `LIMIT/OFFSET` запросами, из-за чего строки могли бы
@@ -1025,10 +1043,19 @@ docker-шлюза. Плюс `referer` вообще не писался для `c
   по `MainController.kt`/агрегации. Без зависимостей на `Settings`/сервисы — безопасно
   использовать в karaoke-web по той же причине, что и `WebEvent.kt`.
 - **Новый `event_type = "player"`** — события онлайн-плеера: `link_type` = `PlayerAction`
-  (`open`/`play`/`pause`/`seek`/`export`), `song_id`, `link_name` переиспользован под деталь
-  действия (ключ стема при `export`, позиция в секундах при `seek`). `open` пишется **на бэкенде**
+  (`shown`/`play`/`pause`/`seek`/`export`), `song_id`, `link_name` переиспользован под деталь
+  действия (ключ стема при `export`, позиция в секундах при `seek`). `shown` пишется **на бэкенде**
   внутри `PublicPlayerController.access()` (при `canWatch=true`) — фронту достаточно передать
-  `anonId` query-параметром. `play`/`pause`/`seek`/`export` — трекинг **только в
+  `anonId` query-параметром. **`shown` (бывш. `open`, переименовано 2026-07-06) — это НЕ «пользователь
+  запустил плеер», а «плеер был встроен/показан на просмотренной странице песни»:** в UX плеер (iframe
+  `/player/:id`) встраивается автоматически во `watch(currentSong)` (`usePlayerAccess.checkAccess()`),
+  отдельного действия «открыть» нет, поэтому событие пишется при заходе на страницу с доступным onAir-
+  плеером, а не при реальном запуске (реальный запуск — `play`). Историческое значение мигрировано
+  `UPDATE tbl_events SET link_type='shown' WHERE event_type='player' AND link_type='open'` на LOCAL и
+  PROD (link_type входит в recordhash — `BEFORE UPDATE`-триггер пересчитал его сам; миграцию применять
+  идентично на обеих БД, иначе sync разъедётся). Enum `PlayerAction.SHOWN("shown")` (`EventTypes.kt`),
+  агрегация `p_shown`/`cntPlayerShown`/подпись «Плеер: показан» (`StatBySong.kt`), колонка «Показ»
+  (`StatsView.vue`). `play`/`pause`/`seek`/`export` — трекинг **только в
   `karaoke-public/src/player/KaraokePlayer.js`** (НЕ в admin-копии `webvue3/src/player/`, там нет
   анонимного посетителя и пути к `/api/public/events`):
   - play/pause — в `_togglePlay()`, не внутри `_play()`/`_pause()` самих по себе: те два метода

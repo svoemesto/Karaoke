@@ -23,6 +23,19 @@ class SiteUsersController {
     private fun resolveDb(target: String?): KaraokeConnection =
         if (target == "remote") Connection.remote() else Connection.local()
 
+    // resolveDb() создаёт НОВЫЙ объект Connection.local()/remote() на каждый вызов, открывающий
+    // собственное физическое JDBC-соединение и кэширующий его в себе; без явного close() оно висит
+    // до обрыва и постепенно исчерпывает пул Postgres ("too many clients already"). withDb закрывает
+    // соединение сразу после использования. То же самое сделано в StatsController/PublicSettingsController.
+    private fun <T> withDb(target: String?, block: (KaraokeConnection) -> T): T {
+        val db = resolveDb(target)
+        return try {
+            block(db)
+        } finally {
+            try { db.getConnection()?.close() } catch (_: Exception) {}
+        }
+    }
+
     @PostMapping("/digest")
     @ResponseBody
     fun digest(
@@ -30,8 +43,7 @@ class SiteUsersController {
         @RequestParam(required = false) filterEmail: String?,
         @RequestParam(required = false) filterDisplayName: String?,
         @RequestParam(required = false) filterIsBanned: String?,
-    ): Map<String, Any> {
-        val db = resolveDb(target)
+    ): Map<String, Any> = withDb(target) { db ->
         val args: MutableMap<String, String> = mutableMapOf()
         filterEmail?.let { if (it != "") args["email"] = it }
         filterDisplayName?.let { if (it != "") args["displayName"] = it }
@@ -43,15 +55,13 @@ class SiteUsersController {
             storageService = KSS_APP,
             storageApiClient = SAC_APP,
         ).map { it.toDTO() }
-        return mapOf("siteUsersDigest" to list)
+        mapOf("siteUsersDigest" to list)
     }
 
     @PostMapping("/byId")
     @ResponseBody
-    fun byId(@RequestParam id: Long, @RequestParam(required = false) target: String?): Any? {
-        val db = resolveDb(target)
-        return SiteUser.getSiteUserById(id, db, KSS_APP, SAC_APP)?.toDTO()
-    }
+    fun byId(@RequestParam id: Long, @RequestParam(required = false) target: String?): Any? =
+        withDb(target) { db -> SiteUser.getSiteUserById(id, db, KSS_APP, SAC_APP)?.toDTO() }
 
     @PostMapping("/update")
     @ResponseBody
@@ -66,17 +76,15 @@ class SiteUsersController {
         // Независимый флаг "вечного" премиума — делает пользователя премиумным, даже если isPremium
         // не выставлен (например, автоматическая Sponsr-сверка сбросит isPremium в будущем).
         @RequestParam(required = false) isPermanentPremium: Boolean?,
-    ): Long {
-        val db = resolveDb(target)
+    ): Long = withDb(target) { db ->
         SiteUser.getSiteUserById(id, db, KSS_APP, SAC_APP)?.let { user ->
             displayName?.let { user.displayName = it }
             sponsrUid?.let { user.sponsrUid = it }
             isPremium?.let { user.isPremium = it }
             isPermanentPremium?.let { user.isPermanentPremium = it }
             user.save()
-            return user.id
-        }
-        return 0L
+            user.id
+        } ?: 0L
     }
 
     @PostMapping("/ban")
@@ -85,9 +93,8 @@ class SiteUsersController {
         @RequestParam id: Long,
         @RequestParam(required = false) target: String?,
         @RequestParam reason: String,
-    ): Boolean {
-        val db = resolveDb(target)
-        return SiteUser.getSiteUserById(id, db, KSS_APP, SAC_APP)?.let { user ->
+    ): Boolean = withDb(target) { db ->
+        SiteUser.getSiteUserById(id, db, KSS_APP, SAC_APP)?.let { user ->
             user.isBanned = true
             user.banReason = reason
             user.save()
@@ -97,20 +104,18 @@ class SiteUsersController {
 
     @PostMapping("/unban")
     @ResponseBody
-    fun unban(@RequestParam id: Long, @RequestParam(required = false) target: String?): Boolean {
-        val db = resolveDb(target)
-        return SiteUser.getSiteUserById(id, db, KSS_APP, SAC_APP)?.let { user ->
-            user.isBanned = false
-            user.banReason = ""
-            user.save()
-            true
-        } ?: false
-    }
+    fun unban(@RequestParam id: Long, @RequestParam(required = false) target: String?): Boolean =
+        withDb(target) { db ->
+            SiteUser.getSiteUserById(id, db, KSS_APP, SAC_APP)?.let { user ->
+                user.isBanned = false
+                user.banReason = ""
+                user.save()
+                true
+            } ?: false
+        }
 
     @PostMapping("/delete")
     @ResponseBody
-    fun delete(@RequestParam id: Long, @RequestParam(required = false) target: String?): Boolean {
-        val db = resolveDb(target)
-        return SiteUser.deleteSiteUser(id, db)
-    }
+    fun delete(@RequestParam id: Long, @RequestParam(required = false) target: String?): Boolean =
+        withDb(target) { db -> SiteUser.deleteSiteUser(id, db) }
 }

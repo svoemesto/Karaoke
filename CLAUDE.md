@@ -501,6 +501,34 @@ passthrough в Docker (`nvidia-container-toolkit` на хосте, `/var/run/doc
   `selectFamilySong({id, deltaMs})`. **В браузере на реальных данных ещё не проверено** — при тихом/зашумлённом
   вокале или сдвиге больше 45 с править частоту огибающей / диапазон лага в `WaveformCompare.kt`.
 
+**Пакетная автопривязка оригинала по аудио-сверке (`autoAssignOriginalByWaveform` в `Utils.kt`, эндпоинт
+`/songs/autoassignoriginalall`).** Автоматический аналог ручного сценария модалки «Похожие версии песни»
+для песен со `id_status=1` (TEXT_CREATE) и `root_id<>0`: найти «семью», акустически сверить с каждым
+размеченным кандидатом, выбрать максимальный `similarityPercent`, и если он `>= threshold` (по умолчанию 85%) —
+применить кандидата и перевести песню в статус `2` (TEXT_CHECK).
+- `autoAssignOriginalByWaveform(settings, database, storageService, storageApiClient, threshold=85): AutoOriginalResult`:
+  `findFamilySongIds` → `loadListFromDbByIds` → фильтр кандидатов с непустыми маркерами
+  (`sourceMarkersList.any { it.isNotEmpty() }` — из пустого копировать нечего, экономит ffmpeg-декод) →
+  `WaveformCompare.compareWaveforms` (оставить `ok`) → `maxByOrNull { similarityPercent }`.
+- **Ключевой нюанс — «серверный Сохранить».** `applyFamilySongSelection(settings, best, deltaMs=cmp.deltaMs)`
+  копирует текст/маркеры (со сдвигом; END уже сажается на `settings.ms` внутри `shiftMarkersAndFixEnd` — отдельный
+  `addEndMarker` НЕ нужен), но пересчитывает **только** `resultText`. Кнопка «Сохранить» в `SubsEdit.vue` (через
+  `Settings.setSourceMarkers`) пересчитывает ещё 3 поля — поэтому после `applyFamilySongSelection` вручную
+  доигрываем: `resultText=getText()`, `formattedTextSong=getTextFormatted()`, `formattedTextTabs=getFormattedNotes()`,
+  `formattedTextChords=getFormattedChords()` + запись `.srt` по каждому голосу (`convertMarkersToSrt` →
+  `<rootFolder>/<fileName>.voice{n+1}.srt` + `chmod 666`). Затем `fields[ID_STATUS]="2"` и один `saveToDb()`.
+- Эндпоинт `POST /songs/autoassignoriginalall` (опц. `author` + `threshold=85`) — фоновый `kotlin.concurrent.thread`,
+  `SELECT id FROM tbl_settings WHERE id_status=1 AND root_id<>0 [AND LOWER(song_author)=LOWER(?)] ORDER BY id`.
+  **Колонка автора в БД — `song_author`, НЕ `author`.** Пустой/нет `author` → все авторы (возможность оставлена
+  намеренно). Лог в консоль через `songLogLabel(settings)` = `автор / год / альбом / «название» (id=…)` — и для
+  текущей песни, и для песни-источника (в `reason`). Итог — SSE-тост. Только admin-машина (karaoke-app на прод
+  не деплоится) — запись `.srt` на локальный диск ок.
+- **Frontend**: кнопка «Автопривязать оригинал по аудио (статус 1 → 2)» на `HomeView.vue` в блоке с полем «Автор»
+  (`:disabled="!author"`, паттерн `CustomConfirm → dispatch`). Кнопка «Найти и обработать дубликаты песен автора»
+  скрыта (закомментирована, неактуальный код), её методы `markDublicates`/`doMarkDublicates` оставлены. Action
+  `autoAssignOriginalAllPromise(ctx, payload)` в `Songs/store.js` шлёт `params:{author}` только если author непустой.
+  **В браузере / на реальных данных ещё не проверено.**
+
 **Thread-лейны (`threadId`) в `KaraokeProcess`/`KaraokeProcessWorker`.** `threadId` группирует задания в
 независимые последовательные очереди: `KaraokeProcess.getProcessesToStart()` выбирает не более одного
 `WAITING`-задания на каждый `thread_id` (SQL `ROW_NUMBER() OVER (PARTITION BY thread_id ...)`), а

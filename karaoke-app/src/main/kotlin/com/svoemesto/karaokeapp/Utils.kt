@@ -3382,6 +3382,105 @@ fun findFamilySongIds(currentSettings: Settings, database: KaraokeConnection): L
     return ids
 }
 
+/**
+ * Результат автопривязки оригинала по аудио-сверке для одной песни. Используется для агрегированного лога
+ * пакетной операции (эндпоинт /songs/autoassignoriginalall).
+ */
+data class AutoOriginalResult(
+    val songId: Long,
+    val matched: Boolean,
+    val bestId: Long?,
+    val bestPercent: Int?,
+    val deltaMs: Long?,
+    val reason: String
+)
+
+/** Человекочитаемое описание песни для логов автопривязки: автор / год / альбом / название (+ id). */
+fun songLogLabel(s: Settings): String =
+    "${s.author} / ${s.year} / ${s.album} / «${s.songName}» (id=${s.id})"
+
+/**
+ * Автоматический аналог ручного сценария из модалки "Похожие версии песни" на карточке песни:
+ * найти "семью" песни, акустически сверить текущую песню с каждым размеченным кандидатом
+ * (WaveformCompare — кросс-корреляция огибающих вокала), выбрать кандидата с максимальным процентом
+ * схожести и, если он не ниже порога, применить его так же, как клик по строке в модалке
+ * (applyFamilySongSelection со сдвигом маркеров), доиграть серверный эквивалент кнопки "Сохранить"
+ * (пересчёт производных полей + запись .srt по каждому голосу) и перевести песню в статус 2 (TEXT_CHECK).
+ *
+ * Порог по умолчанию — 85 %. Кандидат обязан иметь непустые маркеры (иначе копировать нечего). Если ни
+ * один кандидат не прошёл сверку (нет аудио) или не набрал порога — статус остаётся прежним.
+ */
+fun autoAssignOriginalByWaveform(
+    settings: Settings,
+    database: KaraokeConnection,
+    storageService: KaraokeStorageService,
+    storageApiClient: StorageApiClient,
+    threshold: Int = 85
+): AutoOriginalResult {
+    val familyIds = findFamilySongIds(settings, database)
+    if (familyIds.isEmpty()) {
+        return AutoOriginalResult(settings.id, false, null, null, null, "Нет песен в семье")
+    }
+    val family = Settings.loadListFromDbByIds(familyIds, database, storageService, storageApiClient)
+    // Кандидат годится, только если у него есть непустые маркеры — из пустого копировать нечего,
+    // заодно экономим тяжёлый ffmpeg-декод в сверке.
+    val candidates = family.values.filter { c -> c.sourceMarkersList.any { it.isNotEmpty() } }
+    if (candidates.isEmpty()) {
+        return AutoOriginalResult(settings.id, false, null, null, null, "Нет размеченных кандидатов в семье")
+    }
+
+    // Сверяем со всеми кандидатами, оставляем только удачные (есть аудио), берём максимальный процент.
+    val best = candidates
+        .map { candidate -> candidate to WaveformCompare.compareWaveforms(settings, candidate) }
+        .filter { it.second.ok }
+        .maxByOrNull { it.second.similarityPercent }
+
+    if (best == null) {
+        return AutoOriginalResult(settings.id, false, null, null, null, "Не удалось сверить ни одного кандидата (нет аудио)")
+    }
+
+    val (bestSettings, cmp) = best
+    if (cmp.similarityPercent < threshold) {
+        return AutoOriginalResult(
+            settings.id, false, bestSettings.id, cmp.similarityPercent, cmp.deltaMs,
+            "Лучшее совпадение ${cmp.similarityPercent}% [${songLogLabel(bestSettings)}] ниже порога $threshold%"
+        )
+    }
+
+    // 1) Применяем выбор кандидата так же, как клик по строке в модалке (со сдвигом маркеров под таймлайн
+    //    текущей песни; END-маркер внутри shiftMarkersAndFixEnd уже сажается на реальную длительность текущей).
+    applyFamilySongSelection(settings, bestSettings, deltaMs = cmp.deltaMs)
+
+    // 2) Серверный эквивалент кнопки "Сохранить" в SubsEdit.vue: applyFamilySongSelection пересчитывает
+    //    только resultText, а setSourceMarkers при сохранении пересчитывает ещё 3 форматированных поля —
+    //    воспроизводим их из уже установленных (сдвинутых) маркеров.
+    settings.resultText = settings.getText()
+    settings.formattedTextSong = settings.getTextFormatted()
+    settings.formattedTextTabs = settings.getFormattedNotes()
+    settings.formattedTextChords = settings.getFormattedChords()
+
+    // Запись .srt по каждому голосу — как в /song/savesourcetextmarkers.
+    settings.sourceMarkersList.indices.forEach { voice ->
+        try {
+            val srt = settings.convertMarkersToSrt(voice)
+            val pathToFile = "${settings.rootFolder}/${settings.fileName}.voice${voice + 1}.srt"
+            File(pathToFile).writeText(srt)
+            runCommand(listOf("chmod", "666", pathToFile))
+        } catch (_: Exception) {
+            println("Ошибка при создании файла субтитров для песни ${settings.id}, голос ${voice + 1}.")
+        }
+    }
+
+    // 3) Переводим песню в статус 2 (TEXT_CHECK) и сохраняем всё одним saveToDb().
+    settings.fields[SettingField.ID_STATUS] = "2"
+    settings.saveToDb()
+
+    return AutoOriginalResult(
+        settings.id, true, bestSettings.id, cmp.similarityPercent, cmp.deltaMs,
+        "Привязано к [${songLogLabel(bestSettings)}] (${cmp.similarityPercent}%, сдвиг ${cmp.deltaMs} мс)"
+    )
+}
+
 fun getFreeTimeSlots(): List<String> {
     val result = mutableListOf<String>()
     val sql = """

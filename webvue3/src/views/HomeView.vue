@@ -30,7 +30,8 @@
       <button class="button-action" @click="updateBpmAndKeyLV">Обновить пустые BPM и KEY из фалов LV</button> -->
       <div class="field-and-buttons-wrapper">
         <input list="list_authors" class="input-author" type="text" placeholder="Автор" v-model="author">
-        <button class="button-action" @click="markDublicates" :disabled="!author">Найти и обработать дубликаты песен автора</button>
+        <!-- <button class="button-action" @click="markDublicates" :disabled="!author">Найти и обработать дубликаты песен автора</button> -->
+        <button class="button-action" @click="autoAssignOriginalAll" :disabled="!author">Автопривязать оригинал по аудио (статус 1 → 2)</button>
       </div>
       <!-- <button class="button-action" @click="delDublicates">Удалить дубликаты</button>
       <button class="button-action" @click="clearPreDublicates">Очистить информацию о пре-дубликатах</button> -->
@@ -320,6 +321,29 @@ export default {
           alertType: data !== '0' ? 'info' : 'warning',
           header: 'Поиск дубликатов',
           body: data !== '0' ? `Найдено дубликатов: <strong>${data}</strong>` : 'Ни одного дубликата не найдено.',
+          timeout: 10
+        }
+        this.isCustomConfirmVisible = true;
+      })
+    },
+    autoAssignOriginalAll() {
+      this.customConfirmParams = {
+        header: 'Подтвердите действие',
+        body: `Автоматически привязать оригинал по аудио-сверке для песен автора «<strong>${this.author}</strong>» со статусом 1 и ненулевым root_id?<br>`
+            + `Для каждой будет найден наиболее похожий по аудио вариант из «семьи» (порог 85%), скопированы текст/маркеры со сдвигом, песня сохранена и переведена в статус 2.<br>`
+            + `<strong>Операция тяжёлая и идёт в фоне — итог придёт уведомлением.</strong>`,
+        timeout: 15,
+        callback: this.doAutoAssignOriginalAll
+      }
+      this.isCustomConfirmVisible = true;
+    },
+    doAutoAssignOriginalAll() {
+      this.$store.dispatch('autoAssignOriginalAllPromise', {author: this.author}).then(() => {
+        this.customConfirmParams = {
+          isAlert: true,
+          alertType: 'info',
+          header: 'Автопривязка оригинала',
+          body: `Операция запущена в фоне.<br>Итог придёт уведомлением по завершении.`,
           timeout: 10
         }
         this.isCustomConfirmVisible = true;

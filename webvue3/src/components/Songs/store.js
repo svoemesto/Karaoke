@@ -2003,6 +2003,12 @@ export default {
             let request = { method: 'POST', url: "/api/utils/markdublicates", params: { author: payload.author } };
             return promisedXMLHttpRequest(request);
         },
+        autoAssignOriginalAllPromise(ctx, payload) {
+            // author не передаётся (или пустой) → обработка всех авторов; возможность оставлена намеренно.
+            let params = (payload && payload.author) ? { author: payload.author } : {};
+            let request = { method: 'POST', url: "/api/songs/autoassignoriginalall", params: params };
+            return promisedXMLHttpRequest(request);
+        },
         deleteDublicatesPromise() {
             let request = { method: 'POST', url: "/api/utils/deldublicates" };
             return promisedXMLHttpRequest(request);

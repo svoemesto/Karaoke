@@ -801,6 +801,36 @@ Nginx порт 80 имеет `server_name ... minio-proxy` чтобы запро
 `Host` — restricted header в Java `HttpURLConnection`, нельзя переопределить через `setRequestProperty`.
 Реализация: `PublicApiController.fetchFromMinIO()`, `PublicPlayerController.existsInMinIO()`/`fetchFromMinIO()`.
 
+**Правило выше теперь закреплено кодом (2026-07-06).** Раньше бин `KaraokeStorageService` в karaoke-web
+(`KaraokeStorageServiceImplWeb.kt`) всё равно строил рабочий прямой `MinioClient` на
+`http://${STORAGE_CONTAINER_NAME}:9000` — и при старте `KaraokeWebService.init{}` дёргал
+`deleteAllEmptyBuckets()`, что роняло контекст в crash-loop (контейнера `karaoke-storage` в прод-сети
+`deploy_karaokenet` больше нет, MinIO уехал на 89.125.103.63 → `UnknownHostException`). Приведено в
+порядок: бин karaoke-web стал **заглушкой** — `MinioClient` не создаётся вовсе, все ~20 методов бросают
+`UnsupportedOperationException` (на живых публичных путях они и не вызывались — бин лишь «плумбинг»-параметр
+в companion-методы моделей karaoke-app). `deleteAllEmptyBuckets()` из `init{}` убран. Публичный
+`StorageController` (`/api/storage/**`, `permitAll`) — единственный реальный потребитель прямого
+`MinioClient` в karaoke-web — **удалён** как мёртвый (никем не роутился/не вызывался) и архитектурно неверный
+S3-шлюз в обход minio-proxy. `StorageApiClientWeb`/`WebClientConfig` в karaoke-web оставлены (бин
+`StorageApiClient` всё ещё нужен для DI-плумбинга).
+
+**Remote-хранилище из admin karaoke-app — прямой `MinioClient`, а не HTTP через прод-web (2026-07-06).**
+`StorageApiClientImpl` (`karaoke-app/.../services/StorageApiClient.kt`) раньше был HTTP-прослойкой
+(`WebClient` на `https://sm-karaoke.ru/api/storage` → прод-`StorageController` → прод-`MinioClient`).
+Она сломалась после переезда MinIO на 89.125.103.63 (прод-web до него не достучаться) — все remote
+`exists`/`upload` отдавали **500**, HealthReport/`UPLOAD_TO_REMOTE_STORE` не работали. Теперь karaoke-app
+(admin-машина) ходит в remote-хранилище **напрямую** через `MinioClient` к `89.125.103.63:9000` —
+endpoint из новой property `storage.remote-endpoint` (env `STORAGE_REMOTE_ENDPOINT`, дефолт — новый
+сервер), креды — те же `storage.key`/`storage.secret` (совпадают с локальными `minio_key`/`minio_secret`).
+Интерфейс `StorageApiClient` и все вызывающие места (`HealthReport`, `Utils.executeUploadToRemoteStore`)
+не менялись; `Mono`-методы обёрнуты в `Mono.fromCallable`, чтобы ошибка всплывала на `.block()` под уже
+существующим try/catch вызывающего кода. `smKaraokeWebClient` (WebClient-бин в karaoke-app
+`WebClientConfig`) стал orphan — оставлен как безвредный. **Важно про порядок:** прямой доступ karaoke-app
+к MinIO нужно чинить ДО удаления прод-`StorageController` — тогда удаление контроллера безопасно, т.к.
+karaoke-app больше не дёргает `sm-karaoke.ru/api/storage`. И admin karaoke-app, и его Docker-контейнер
+свободно достают `89.125.103.63:9000` (MTU black-hole — проблема только прод-сервера 79.174.95.69, не
+admin-машины), подписанный S3 работает с теми же кредами.
+
 **Тот же MTU-баг проявляется на ЛЮБОМ исходящем HTTPS-вызове karaoke-web на внешний хост, не только
 MinIO** — подтверждено вторым независимым случаем: регистрация на сайте падала с "капча не пройдена"
 из-за `SslHandshakeTimeoutException` при обращении к `smartcaptcha.yandexcloud.net` напрямую из

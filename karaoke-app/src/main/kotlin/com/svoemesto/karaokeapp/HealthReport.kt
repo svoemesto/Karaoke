@@ -312,7 +312,7 @@ data class HealthReport(
 
                         } else { // Нет задачи в процессах (!inProgressOwn)
 
-                            var threadId = 0
+                            var threadId = KaraokeProcess.THREAD_LANE_HEALTH_REPORT
                             var priority = 0
                             var needCreateProcessOrAction = true
                             if (!canCreate) { // Невозможно создать файл (!canCreate)
@@ -556,7 +556,7 @@ data class HealthReport(
                 args = mapOf(
                     "settings_id" to settings.id.toString(),
                     "process_type" to KaraokeProcessTypes.UPLOAD_TO_LOCAL_STORE.name,
-                    "thread_id" to KaraokeProcess.THREAD_LANE_LIGHT_BACKGROUND.toString(),
+                    "thread_id" to KaraokeProcess.THREAD_LANE_HEALTH_REPORT.toString(),
                     "process_args" to "karaokeFileType=${karaokeFileType.name}"
                 ),
                 database = database
@@ -597,7 +597,7 @@ data class HealthReport(
                                        action = KaraokeProcessTypes.UPLOAD_TO_LOCAL_STORE,
                                        doWait = true,
                                        prior = -2,
-                                       threadId = KaraokeProcess.THREAD_LANE_LIGHT_BACKGROUND,
+                                       threadId = KaraokeProcess.THREAD_LANE_HEALTH_REPORT,
                                        context = mapOf("pathToFile" to pathToFile, "karaokeFileType" to karaokeFileType.name, "storageFileName" to storageFileName, "bucketName" to storageBucketName)
                                    )
                                }
@@ -651,7 +651,7 @@ data class HealthReport(
                                     action = KaraokeProcessTypes.UPLOAD_TO_LOCAL_STORE,
                                     doWait = true,
                                     prior = -2,
-                                    threadId = KaraokeProcess.THREAD_LANE_LIGHT_BACKGROUND,
+                                    threadId = KaraokeProcess.THREAD_LANE_HEALTH_REPORT,
                                     context = mapOf("pathToFile" to pathToFile, "karaokeFileType" to karaokeFileType.name, "storageFileName" to storageFileName, "bucketName" to storageBucketName)
                                 )
                             }
@@ -693,7 +693,7 @@ data class HealthReport(
                                         action = KaraokeProcessTypes.UPLOAD_TO_LOCAL_STORE,
                                         doWait = true,
                                         prior = -2,
-                                        threadId = KaraokeProcess.THREAD_LANE_LIGHT_BACKGROUND,
+                                        threadId = KaraokeProcess.THREAD_LANE_HEALTH_REPORT,
                                         context = mapOf(
                                             "pathToFile" to tempFile.toString(),
                                             "karaokeFileType" to karaokeFileType.name,
@@ -826,7 +826,7 @@ data class HealthReport(
                 args = mapOf(
                     "settings_id" to settings.id.toString(),
                     "process_type" to KaraokeProcessTypes.UPLOAD_TO_REMOTE_STORE.name,
-                    "thread_id" to KaraokeProcess.THREAD_LANE_REMOTE_STORE_UPLOAD.toString(),
+                    "thread_id" to KaraokeProcess.THREAD_LANE_HEALTH_REPORT.toString(),
                     "process_args" to "karaokeFileType=${karaokeFileType.name}"
                 ),
                 database = database
@@ -852,10 +852,14 @@ data class HealthReport(
 
                                 actions.add { println("actionsRemoteStorage [Удаление неактуального файла из удалённого хранилища] >>>") }
                                 actions.add {
-                                    storageApiClient.deleteFile(
-                                        bucketName = storageBucketName,
-                                        fileName = storageFileName
-                                    )
+                                    try {
+                                        storageApiClient.deleteFile(
+                                            bucketName = storageBucketName,
+                                            fileName = storageFileName
+                                        ).block()
+                                    } catch (e: Exception) {
+                                        println("Ошибка при удалении неактуального файла из удалённого хранилища: ${e.message}")
+                                    }
                                 }
                                 actions.add { println("actionsRemoteStorage [Удаление неактуального файла из удалённого хранилища] <<<") }
 
@@ -866,7 +870,7 @@ data class HealthReport(
                                         action = KaraokeProcessTypes.UPLOAD_TO_REMOTE_STORE,
                                         doWait = true,
                                         prior = -2,
-                                        threadId = KaraokeProcess.THREAD_LANE_REMOTE_STORE_UPLOAD,
+                                        threadId = KaraokeProcess.THREAD_LANE_HEALTH_REPORT,
                                         context = mapOf("pathToFile" to pathToFile, "karaokeFileType" to karaokeFileType.name, "storageFileName" to storageFileName, "bucketName" to storageBucketName)
                                     )
                                 }
@@ -920,7 +924,7 @@ data class HealthReport(
                                     action = KaraokeProcessTypes.UPLOAD_TO_REMOTE_STORE,
                                     doWait = true,
                                     prior = -2,
-                                    threadId = KaraokeProcess.THREAD_LANE_REMOTE_STORE_UPLOAD,
+                                    threadId = KaraokeProcess.THREAD_LANE_HEALTH_REPORT,
                                     context = mapOf("pathToFile" to pathToFile, "karaokeFileType" to karaokeFileType.name, "storageFileName" to storageFileName, "bucketName" to storageBucketName)
                                 )
                             }
@@ -963,7 +967,7 @@ data class HealthReport(
                                         action = KaraokeProcessTypes.UPLOAD_TO_REMOTE_STORE,
                                         doWait = true,
                                         prior = -2,
-                                        threadId = KaraokeProcess.THREAD_LANE_REMOTE_STORE_UPLOAD,
+                                        threadId = KaraokeProcess.THREAD_LANE_HEALTH_REPORT,
                                         context = mapOf(
                                             "pathToFile" to tempFile.toString(),
                                             "karaokeFileType" to karaokeFileType.name,
@@ -999,10 +1003,14 @@ data class HealthReport(
 
                     actions.add { println("actionsRemoteStorage [$solutionText] >>>") }
                     actions.add {
-                        storageApiClient.deleteFile(
-                            bucketName = storageBucketName,
-                            fileName = storageFileName
-                        )
+                        try {
+                            storageApiClient.deleteFile(
+                                bucketName = storageBucketName,
+                                fileName = storageFileName
+                            ).block()
+                        } catch (e: Exception) {
+                            println("Ошибка при удалении файла из удалённого хранилища: ${e.message}")
+                        }
                     }
                     actions.add { println("actionsRemoteStorage [$solutionText] <<<") }
                 }
@@ -1087,7 +1095,7 @@ data class HealthReport(
                                             settings = settings,
                                             action = KaraokeProcessTypes.KEY_BPM_FROM_FILE,
                                             doWait = true,
-                                            threadId = 1
+                                            threadId = KaraokeProcess.THREAD_LANE_HEALTH_REPORT
                                         )
                                     },
                                     { println("HealthReportSolutionActions <<<") }

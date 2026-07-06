@@ -279,14 +279,14 @@ export default {
 <style scoped>
 .km-page { min-height: 100vh; background: var(--km-bg); color: var(--km-text); }
 .km-header { background: var(--km-header); border-bottom: 1px solid var(--km-border); padding: 0.5rem 1rem; }
-.km-header-inner { max-width: 720px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; }
+.km-header-inner { max-width: 900px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; }
 .km-header-left { display: flex; align-items: center; gap: 0.75rem; }
 .km-back { color: var(--km-accent); text-decoration: none; font-size: 0.85rem; white-space: nowrap; }
 .km-back:hover { text-decoration: underline; }
 .km-logo { height: 36px; width: auto; }
 .km-loading { padding: 2rem; text-align: center; color: var(--km-text2); }
 
-.km-content { max-width: 720px; margin: 0 auto; padding: 1.5rem 1rem; }
+.km-content { max-width: 900px; margin: 0 auto; padding: 1.5rem 1rem; }
 .km-name-row { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; }
 .km-name-input { flex: 1; font-size: 1.3rem; font-weight: 700; background: var(--km-input); color: var(--km-text); border: 1px solid transparent; border-radius: 8px; padding: 0.3rem 0.6rem; }
 .km-name-input:hover { border-color: var(--km-border); }

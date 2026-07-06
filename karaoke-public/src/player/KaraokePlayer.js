@@ -43,6 +43,10 @@ export default class KaraokePlayer {
     this.isPlaying = false
     this.duration = 0
     this._volumeAnchored = false   // "якорь": при true все треки идут к одной громкости
+    // Уровни громкости дорожек (%). Персистентны на весь инстанс, чтобы при смене песни в плейлисте
+    // (playSong) уровни ползунков «Музыка»/«Голос» и якорь сцепки наследовались следующим треком.
+    this._accVol = 100
+    this._vocVol = 0
 
     // Pre-roll: splash (5s) + silent offset before first syllable
     this._splashDur = 5.0
@@ -549,12 +553,12 @@ export default class KaraokePlayer {
           <div style="flex:1;min-width:0">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
               <span style="color:#888;font-size:11px;width:44px;text-align:right">Музыка</span>
-              <input id="kp-vol-acc" type="range" min="0" max="100" value="100" style="width:80px;cursor:pointer;accent-color:#08f">
+              <input id="kp-vol-acc" type="range" min="0" max="100" value="${this._accVol}" style="width:80px;cursor:pointer;accent-color:#08f">
               <div id="kp-ws-acc" style="flex:1;height:40px;min-width:0"></div>
             </div>
             <div style="display:flex;align-items:center;gap:8px">
               <span style="color:#888;font-size:11px;width:44px;text-align:right">Голос</span>
-              <input id="kp-vol-voc" type="range" min="0" max="100" value="0" style="width:80px;cursor:pointer;accent-color:#f80">
+              <input id="kp-vol-voc" type="range" min="0" max="100" value="${this._vocVol}" style="width:80px;cursor:pointer;accent-color:#f80">
               <div id="kp-ws-voc" style="flex:1;height:40px;min-width:0"></div>
             </div>
           </div>
@@ -621,10 +625,12 @@ export default class KaraokePlayer {
     const vocSlider = this.container.querySelector('#kp-vol-voc')
 
     accSlider.addEventListener('input', e => {
+      this._accVol = Number(e.target.value)
       if (this.accGain) this.accGain.gain.value = e.target.value / 100
       if (this._volumeAnchored) this._syncVolumeSliders(e.target.value, accSlider)
     })
     vocSlider.addEventListener('input', e => {
+      this._vocVol = Number(e.target.value)
       if (this.vocGain) this.vocGain.gain.value = e.target.value / 100
       if (this._volumeAnchored) this._syncVolumeSliders(e.target.value, vocSlider)
     })
@@ -649,9 +655,14 @@ export default class KaraokePlayer {
     for (const s of sliders) {
       if (s.el === exceptEl) continue
       s.el.value = value
+      if (s.el.id === 'kp-vol-acc') this._accVol = Number(value)
+      else if (s.el.id === 'kp-vol-voc') this._vocVol = Number(value)
       const gain = s.gain()
       if (gain) gain.gain.value = value / 100
     }
+    // exceptEl (тот, что двигали) — тоже фиксируем в персистентном уровне.
+    if (exceptEl && exceptEl.id === 'kp-vol-acc') this._accVol = Number(value)
+    else if (exceptEl && exceptEl.id === 'kp-vol-voc') this._vocVol = Number(value)
   }
 
   // Chain-link icon (like the width/height "constrain proportions" toggle in image editors):
@@ -797,7 +808,9 @@ export default class KaraokePlayer {
     this.audioCtx = new AudioContext()
     this.accGain = this.audioCtx.createGain()
     this.vocGain = this.audioCtx.createGain()
-    this.vocGain.gain.value = 0
+    // Применяем персистентные уровни (наследуются при смене трека в плейлисте).
+    this.accGain.gain.value = this._accVol / 100
+    this.vocGain.gain.value = this._vocVol / 100
     this.accGain.connect(this.audioCtx.destination)
     this.vocGain.connect(this.audioCtx.destination)
 
@@ -1093,7 +1106,8 @@ export default class KaraokePlayer {
     this._silentOffset = 0; this._preroll = this._splashDur
     this._startFadeStartedAt = null
     this._endFadeStartedAt = null
-    this._volumeAnchored = false
+    // _volumeAnchored / _accVol / _vocVol НЕ сбрасываем — уровни громкости и якорь наследуются
+    // следующим треком плейлиста (по требованию).
     this._progressFlags = { 25: false, 50: false, 75: false }
     clearTimeout(this._prerollTimeout); this._prerollTimeout = null
 

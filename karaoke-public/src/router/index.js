@@ -9,6 +9,7 @@ import LoginView from '../views/LoginView.vue'
 import RegisterView from '../views/RegisterView.vue'
 import AccountView from '../views/AccountView.vue'
 import PlaylistsView from '../views/PlaylistsView.vue'
+import PlaylistEditView from '../views/PlaylistEditView.vue'
 
 // Быстрая синхронная проверка токена для защищённых маршрутов личного кабинета — сами страницы
 // перепроверяют через fetchMe(); здесь лишь чтобы не мигнуть защищённым контентом анониму.
@@ -32,6 +33,7 @@ const routes = [
     beforeEnter: requireAuth
   },
   { path: '/account/playlists', name: 'playlists', component: PlaylistsView, beforeEnter: requireAuth },
+  { path: '/account/playlists/:id', name: 'playlist-edit', component: PlaylistEditView, beforeEnter: requireAuth },
   {
     path: '/player/:id',
     name: 'player',

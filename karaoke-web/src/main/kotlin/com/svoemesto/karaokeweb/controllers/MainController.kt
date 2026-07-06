@@ -100,9 +100,16 @@ class MainController(
                 return false
             }
             val sqlToInsert = "INSERT INTO tbl_events (${fieldsValues.joinToString(", ") { it.first }}) OVERRIDING SYSTEM VALUE VALUES(${
-                fieldsValues.joinToString(
-                    ", "
-                ) { if (it.second is Long) "${it.second}" else "'${it.second.toString().rightFileName()}'" }
+                fieldsValues.joinToString(", ") { (field, value) ->
+                    when {
+                        value is Long -> "$value"
+                        // referer — это URL (document.referrer). rightFileName() искажает его (заменяет
+                        // ':' на '-' → 'https-//...'), ломая ссылку и агрегацию источников. Санируем только
+                        // SQL-кавычку (значение недоверенное — приходит с клиента), не искажая содержимое.
+                        field == "referer" -> "'${value.toString().replace("'", "''")}'"
+                        else -> "'${value.toString().rightFileName()}'"
+                    }
+                }
             })"
             val ps = connection.prepareStatement(sqlToInsert)
             ps.executeUpdate()
@@ -164,8 +171,12 @@ class MainController(
                     Pair("event_type", EventType.CALL_REST.dbValue),
                     Pair("rest_name", restName),
                     Pair("rest_parameters", parameters.toString()),
-                    Pair("referer", clientIp),
                 )
+                // referer теперь несёт настоящий внешний источник перехода (document.referrer
+                // заход-лендинга, кросс-домен — см. karaoke-public/services/entryReferrer.js). Пишем
+                // его, только если пришёл непустым (внутренние SPA-переходы его не несут). Больше НЕ
+                // дублируем сюда clientIp — реальный IP и так лежит в client_ip.
+                (data["referrer"] as? String)?.takeIf { it.isNotBlank() }?.let { fieldsValues.add(Pair("referer", it)) }
                 if (parameters.containsKey("id")) fieldsValues.add(Pair("song_id", parameters["id"]!!.toString().toLong()))
                 return insertEvent(fieldsValues)
             }

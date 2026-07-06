@@ -2,6 +2,7 @@ package com.svoemesto.karaokeapp.model
 
 import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.WORKING_DATABASE
+import com.svoemesto.karaokeapp.services.GeoIpService
 import com.svoemesto.karaokeapp.services.KSS_APP
 import com.svoemesto.karaokeapp.services.SAC_APP
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
@@ -55,6 +56,8 @@ data class WebEventDto(
     val songId: Long = 0,
     val songVersion: String = "",
     val referer: String = "",
+    val country: String = "",       // ISO-код страны по client_ip (GeoIpService), "" если не определилась
+    val songName: String = "",      // человекочитаемое имя песни (для группировки дерева по странице)
 )
 
 // Детализация события: event_type + человекочитаемая подпись комбинации + число. eventType нужен
@@ -95,6 +98,7 @@ data class NamedCountDto(
 // "premium"/"banned" (bean convention), см. правило в CLAUDE.md.
 data class TopUserDto(
     val siteUserId: Long,
+    val anonId: String = "",        // идентификатор анонимной строки (для drill-down); у залогиненных ""
     val displayName: String,
     val email: String,
     val premium: Boolean,
@@ -112,11 +116,17 @@ object StatsByEvents {
     // Собирает WHERE-условия лога событий из опциональных фильтров (тип события, дата "с",
     // конкретный пользователь для drill-down). Значения санируются: eventType — из белого списка
     // enum EventType; siteUserId — Long; fromDate — целое число дней. SQL-инъекция исключена.
-    private fun buildEventsWhere(eventType: String?, fromDays: Int?, siteUserId: Long?): String {
+    private fun buildEventsWhere(eventType: String?, fromDays: Int?, siteUserId: Long?, anonId: String? = null): String {
         val conds = mutableListOf("last_update is not null")
         eventType?.let { et -> EventType.fromDb(et)?.let { conds.add("event_type = '${it.dbValue}'") } }
         fromDays?.let { if (it > 0) conds.add("last_update >= now() - interval '$it days'") }
         siteUserId?.let { if (it > 0) conds.add("site_user_id = $it") }
+        // Drill-down по анониму: site_user_id=0 (иначе бы попали события того же anon_id после логина).
+        // Значение санируем экранированием кавычки и ограничением длины (anon_id — UUID, ≤64).
+        anonId?.takeIf { it.isNotBlank() }?.let {
+            val safe = it.take(64).replace("'", "''")
+            conds.add("site_user_id = 0 and anon_id = '$safe'")
+        }
         return conds.joinToString(" and ")
     }
 
@@ -125,13 +135,14 @@ object StatsByEvents {
         eventType: String? = null,
         fromDays: Int? = null,
         siteUserId: Long? = null,
+        anonId: String? = null,
     ): Int {
         val connection = database.getConnection() ?: return 0
         var statement: Statement? = null
         var rs: ResultSet? = null
         try {
             statement = connection.createStatement()
-            rs = statement.executeQuery("select count(*) as cnt from tbl_events where ${buildEventsWhere(eventType, fromDays, siteUserId)}")
+            rs = statement.executeQuery("select count(*) as cnt from tbl_events where ${buildEventsWhere(eventType, fromDays, siteUserId, anonId)}")
             return if (rs.next()) rs.getInt("cnt") else 0
         } catch (e: SQLException) {
             e.printStackTrace()
@@ -153,12 +164,13 @@ object StatsByEvents {
         eventType: String? = null,
         fromDays: Int? = null,
         siteUserId: Long? = null,
+        anonId: String? = null,
         storageService: KaraokeStorageService = KSS_APP,
         storageApiClient: StorageApiClient = SAC_APP
     ): List<WebEventDto> {
         val result: MutableList<WebEventDto> = mutableListOf()
         val sql = """
-            select * from tbl_events where ${buildEventsWhere(eventType, fromDays, siteUserId)} order by last_update desc, id desc limit $limit offset $offset
+            select * from tbl_events where ${buildEventsWhere(eventType, fromDays, siteUserId, anonId)} order by last_update desc, id desc limit $limit offset $offset
         """.trimIndent()
 
         val connection = database.getConnection()
@@ -209,15 +221,22 @@ object StatsByEvents {
                 rs2.close(); st2.close()
             }
 
+            // Одним батчем определяем страну по всем IP страницы (кэш GeoIpService — без N+1 по сети).
+            // Лимит внешних резолвов на страницу лога, чтобы не задерживать ответ на холодном кэше.
+            val countries = GeoIpService.resolveMany(rows.map { it.clientIp }, maxFetch = 100)
+
             rows.forEach { r ->
-                val (humanType, description) = webEventHuman(r, songNames[r.songId] ?: "")
+                val songName = songNames[r.songId] ?: ""
+                val (humanType, description) = webEventHuman(r, songName)
                 result.add(WebEventDto(
                     id = r.id,
                     eventType = humanType,
                     eventTypeRaw = r.eventType,
                     eventDescription = description,
                     eventDate = r.eventDate,
-                    eventReferer = r.referer.ifEmpty { r.clientIp },
+                    // referer теперь несёт настоящий внешний источник перехода (document.referrer),
+                    // а не продублированный IP — показываем как есть, без фолбэка на clientIp.
+                    eventReferer = r.referer,
                     clientIp = r.clientIp,
                     anonId = r.anonId,
                     siteUserId = r.siteUserId,
@@ -229,6 +248,8 @@ object StatsByEvents {
                     songId = r.songId,
                     songVersion = r.songVersion,
                     referer = r.referer,
+                    country = countries[r.clientIp.split(",").first().trim()] ?: "",
+                    songName = songName,
                 ))
             }
         } catch (e: SQLException) {
@@ -441,6 +462,109 @@ object StatsByEvents {
         return result
     }
 
+    // Топ внешних источников перехода: страницы в интернете, с которых пришли на сайт по прямой
+    // ссылке (referer = document.referrer, кросс-домен, только заход-лендинг — см. karaoke-public/
+    // services/entryReferrer.js). Показывает, откуда идёт трафик помимо закромов/поиска.
+    fun getTopReferrers(database: KaraokeConnection = WORKING_DATABASE, limit: Int = 30): List<NamedCountDto> {
+        val result = mutableListOf<NamedCountDto>()
+        val connection = database.getConnection() ?: return emptyList()
+        // Только URL-подобные referer'ы (http/https). Отсекаем легаси-строки, где в referer раньше
+        // писался clientIp (до перехода на document.referrer) — там лежат голые IP, не источники.
+        val sql = """
+            select referer, count(*) as cnt
+            from tbl_events
+            where referer like 'http%'
+            group by referer
+            order by cnt desc
+            limit $limit
+        """.trimIndent()
+        var statement: Statement? = null
+        var rs: ResultSet? = null
+        try {
+            statement = connection.createStatement()
+            rs = statement.executeQuery(sql)
+            while (rs.next()) {
+                result.add(NamedCountDto(rs.getString("referer") ?: "—", rs.getInt("cnt")))
+            }
+        } catch (e: SQLException) {
+            e.printStackTrace()
+        } finally {
+            try { rs?.close(); statement?.close() } catch (e: SQLException) { e.printStackTrace() }
+        }
+        return result
+    }
+
+    // Человекочитаемые названия стран по ISO-коду (самые частые для этого сайта); неизвестные —
+    // как ISO-код, пустой — «Не определено».
+    private fun countryLabel(code: String): String = when (code.uppercase()) {
+        "" -> "Не определено"
+        "RU" -> "Россия"
+        "UA" -> "Украина"
+        "BY" -> "Беларусь"
+        "KZ" -> "Казахстан"
+        "DE" -> "Германия"
+        "US" -> "США"
+        "PL" -> "Польша"
+        "IL" -> "Израиль"
+        "LV" -> "Латвия"
+        "LT" -> "Литва"
+        "EE" -> "Эстония"
+        "GB" -> "Великобритания"
+        "FR" -> "Франция"
+        "IT" -> "Италия"
+        "ES" -> "Испания"
+        "NL" -> "Нидерланды"
+        "FI" -> "Финляндия"
+        "CZ" -> "Чехия"
+        "TR" -> "Турция"
+        "GE" -> "Грузия"
+        "AM" -> "Армения"
+        "AZ" -> "Азербайджан"
+        "UZ" -> "Узбекистан"
+        "KG" -> "Киргизия"
+        "MD" -> "Молдова"
+        "CA" -> "Канада"
+        "TH" -> "Таиланд"
+        "RS" -> "Сербия"
+        "BG" -> "Болгария"
+        "CN" -> "Китай"
+        else -> code.uppercase()
+    }
+
+    // География посетителей: страна по client_ip (GeoIpService). Уникальных IP — тысячи (не 250k
+    // строк), поэтому группируем в SQL по IP, а сведение IP→страна и повторную агрегацию делаем в
+    // Kotlin (без колонки country в tbl_events, без миграции — см. CLAUDE.md «статистика»).
+    fun getCountryBreakdown(database: KaraokeConnection = WORKING_DATABASE, limit: Int = 30): List<NamedCountDto> {
+        val connection = database.getConnection() ?: return emptyList()
+        val ipCounts = LinkedHashMap<String, Int>()
+        var statement: Statement? = null
+        var rs: ResultSet? = null
+        try {
+            statement = connection.createStatement()
+            rs = statement.executeQuery(
+                "select client_ip, count(*) as cnt from tbl_events " +
+                    "where client_ip is not null and client_ip <> '' group by client_ip"
+            )
+            while (rs.next()) ipCounts[rs.getString("client_ip")] = rs.getInt("cnt")
+        } catch (e: SQLException) {
+            e.printStackTrace()
+            return emptyList()
+        } finally {
+            try { rs?.close(); statement?.close() } catch (e: SQLException) { e.printStackTrace() }
+        }
+        // Лимит внешних резолвов за один показ дашборда — кэш наполнится за несколько обновлений.
+        val countries = GeoIpService.resolveMany(ipCounts.keys, maxFetch = 150)
+        val byCountry = HashMap<String, Int>()
+        for ((ip, cnt) in ipCounts) {
+            val c = countries[ip.split(",").first().trim()] ?: ""
+            byCountry[c] = (byCountry[c] ?: 0) + cnt
+        }
+        return byCountry.entries
+            .sortedByDescending { it.value }
+            .take(limit)
+            .map { NamedCountDto(countryLabel(it.key), it.value) }
+    }
+
     fun getSummary(database: KaraokeConnection = WORKING_DATABASE): StatsSummaryDto {
         val total = scalarInt(database, "select count(*) from tbl_events where last_update is not null")
         val uniqueVisitors = scalarInt(database, "select count(distinct anon_id) from tbl_events where anon_id is not null and anon_id <> ''")
@@ -622,20 +746,30 @@ object StatsByEvents {
         return result
     }
 
+    // Всего строк топа = уникальные залогиненные (site_user_id>0) + уникальные анонимы (по anon_id
+    // среди событий без привязки к пользователю). Для серверной пагинации.
     fun getTopUsersCount(database: KaraokeConnection = WORKING_DATABASE): Int =
-        scalarInt(database, "select count(distinct site_user_id) from tbl_events where site_user_id > 0")
+        scalarInt(database, "select count(distinct site_user_id) from tbl_events where site_user_id > 0") +
+        scalarInt(database, "select count(distinct anon_id) from tbl_events where site_user_id = 0 and anon_id is not null and anon_id <> ''")
 
+    // Топ «пользователей»: сначала все залогиненные (kind=0), затем анонимы-бакеты по anon_id
+    // (kind=1). Анонимные строки: site_user_id=0, anonId=anon_id (для drill-down), без имени/email/
+    // premium. Одним запросом с признаком типа, чтобы серверная пагинация «залогиненные первыми»
+    // была консистентной поверх limit/offset.
     fun getTopUsers(database: KaraokeConnection = WORKING_DATABASE, limit: Int = 50, offset: Int = 0): List<TopUserDto> {
         val result = mutableListOf<TopUserDto>()
         val sql = """
-            select e.site_user_id, u.display_name, u.email,
+            select case when e.site_user_id > 0 then 0 else 1 end as kind,
+                   e.site_user_id,
+                   case when e.site_user_id > 0 then '' else e.anon_id end as anon_key,
+                   u.display_name, u.email,
                    (u.is_premium or u.is_permanent_premium) as premium,
                    count(*) as cnt, max(e.last_update) as last_activity
             from tbl_events e
             left join tbl_site_users u on u.id = e.site_user_id
-            where e.site_user_id > 0
-            group by e.site_user_id, u.display_name, u.email, u.is_premium, u.is_permanent_premium
-            order by cnt desc, e.site_user_id asc
+            where e.site_user_id > 0 or (e.anon_id is not null and e.anon_id <> '')
+            group by kind, e.site_user_id, anon_key, u.display_name, u.email, u.is_premium, u.is_permanent_premium
+            order by kind asc, cnt desc, e.site_user_id asc, anon_key asc
             limit $limit offset $offset
         """.trimIndent()
         val connection = database.getConnection() ?: return emptyList()
@@ -647,6 +781,7 @@ object StatsByEvents {
             while (rs.next()) {
                 result.add(TopUserDto(
                     siteUserId = rs.getLong("site_user_id"),
+                    anonId = rs.getString("anon_key") ?: "",
                     displayName = rs.getString("display_name") ?: "",
                     email = rs.getString("email") ?: "",
                     premium = rs.getBoolean("premium"),

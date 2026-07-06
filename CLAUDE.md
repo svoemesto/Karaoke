@@ -942,9 +942,10 @@ docker-шлюза. Плюс `referer` вообще не писался для `c
   (чистый dev без nginx перед приложением). `doRegisterEvent()` резолвит IP/User-Agent один раз в
   начале функции и пишет их во **все** ветки через общий приватный хелпер `insertEvent()` (убрал
   4-кратное копипаст-строительство INSERT) — `clickToLink`/`play` теперь тоже получают `client_ip`,
-  которого раньше не было вовсе. `referer` для `callRest` теперь тоже берётся из
-  `ClientIpResolver`, а не из клиентского `data["referer"]` — раньше это поле принималось от
-  клиента без проверки (несостоявшаяся, но реальная дыра для спуфинга).
+  которого раньше не было вовсе. **`referer` для `callRest` переосмыслен (2026-07-06):** раньше туда
+  писался `clientIp` (дубль `client_ip`); теперь — настоящий внешний источник перехода
+  (`document.referrer`, см. ниже «Страна по IP + источник перехода»). Пишется только если пришёл
+  непустым; клиентское значение больше не дублирует IP.
 - **Новые колонки `tbl_events`**: `client_ip`/`anon_id` (`varchar(64)`, nullable), `user_agent`
   (`text`, nullable), `site_user_id` (`bigint NOT NULL DEFAULT 0`, **не** `Long?` в
   `WebEvent.kt`!). Та же причина, что уже описана выше для `song_id`: `rs.getLong()` возвращает
@@ -1070,6 +1071,42 @@ value violates unique constraint`. Диагностика: `select last_value fr
 - **Где живёт:** трекинг (`karaoke-web` + `karaoke-public`) **задеплоен на прод**. Дашборд-API
   `/api/stats/*` и таблицы — **только `karaoke-app` + `webvue3` (админ-машина, на прод НЕ
   деплоятся)**; чтобы увидеть дашборд — локальный ребилд/рестарт `karaoke-app` + ребилд `webvue3`.
+
+**Страна по IP + источник перехода в статистике (2026-07-06).** Два новых атрибута посетителя в
+дашборде статистики. **Схема `tbl_events` НЕ менялась, `recordhash_events.sql` НЕ менялся — миграции
+на прод нет.**
+
+- **Источник перехода (внешний referer).** Настоящий внешний источник — это `document.referrer`
+  браузера (HTTP-заголовок `Referer` на API-запросе SPA бесполезен — всегда сам сайт). Снимается
+  **один раз** при загрузке SPA (`karaoke-public/src/services/entryReferrer.js`, только кросс-домен,
+  `consumeEntryReferrer()` отдаёт значение единожды и очищает), подмешивается в `apiGet`
+  (`api.js`) как `?referrer=`. karaoke-web (`PublicApiController` stats/zakroma/songs/song +
+  `MainController.doRegisterEvent` ветка `CALL_REST`) пишет его в колонку `referer` — которая раньше
+  **впустую** дублировала `client_ip`. Агрегация `StatsByEvents.getTopReferrers` (`GET
+  /api/stats/referrers`) фильтрует `referer like 'http%'` — легаси-строки (там лежат старые IP до
+  переосмысления) отсекаются. Только заход-лендинг: внутренние SPA-переходы referer не несут.
+- **Страна по IP.** Резолв через `api.country.is/<ip>` (единственный гео-сервис, работающий из
+  Docker; поддерживает произвольный IP в пути) — `karaoke-app/services/GeoIpService.kt` (кэш
+  in-memory + таблица `tbl_ip_country`, `deploy/karaoke-db/08_ip_country.sql`). **Кэш-таблица —
+  ТОЛЬКО на LOCAL админ-БД, на прод НЕ применять** (страна нужна только в админ-дашборде); все
+  обращения к кэшу — через `Connection.local()` независимо от `target`. Пустая строка "" —
+  валидный закэшированный результат «не определено» (приватный IP/сервис не ответил), чтобы не
+  долбить сервис повторно. **Страна НЕ хранится в `tbl_events`** — выводится на лету:
+  `getCountryBreakdown` (`GET /api/stats/countries`) группирует `GROUP BY client_ip` в SQL (уник.
+  IP — сотни-тысячи, не 250k), сводит IP→страна в Kotlin. `resolveMany(ips, maxFetch)` ограничивает
+  число внешних резолвов за вызов (лог 100, география 150) — на холодном кэше ответ не блокируется
+  на минуты, кэш наполняется за несколько обновлений. `WebEventDto.country`/`songName` добавлены,
+  `getWebEvents` тащит их 2-проходно (тем же `IN`-запросом, что и имена песен). `countryLabel()` —
+  ISO→рус рядом с `channelLabel()`.
+- **Анонимы в топе пользователей + древовидный drill-down.** `getTopUsers`/`getTopUsersCount`
+  теперь включают анонимов (бакет по `anon_id` среди `site_user_id=0`), залогиненные первыми
+  (`order by kind asc, cnt desc`); `TopUserDto.anonId`, drill-down по анониму
+  (`buildEventsWhere`/`getWebEvents(anonId)`, `GET /api/stats/user-events?anonId=`). Модалка
+  `UserEventsModal.vue` — переключатель «Дерево/Таблица» (дерево по умолчанию): группирует события
+  по «странице» (`song:{songId}` / `rest:{restName}`) — все действия клиента на одной странице =
+  листья одной ветки. Грузит одним запросом (`pageSize=2000`, без постраничности), «показаны
+  последние N» если больше. Фронт-блок `GeoReferrers.vue` (bar стран + таблица источников),
+  столбцы «Страна»/«Источник» в логе. Сборка webvue3/karaoke-public — только `nvm use v25.7.0`.
 
 ## Git — что НЕ добавлять в репозиторий
 

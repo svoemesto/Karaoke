@@ -4,31 +4,60 @@
       <div class="uem-header">
         <div>
           <h5 class="mb-0">События пользователя</h5>
-          <div class="text-muted small">{{ user ? (user.displayName || user.email) : '' }} (#{{ user ? user.siteUserId : '' }}) — всего {{ totalCount }}</div>
+          <div class="text-muted small">{{ userLabel }} — всего {{ totalCount }}</div>
         </div>
-        <button class="btn-close" @click="$emit('close')"></button>
+        <div class="d-flex align-items-center gap-2">
+          <div class="btn-group btn-group-sm" role="group">
+            <button class="btn" :class="viewMode === 'tree' ? 'btn-primary' : 'btn-outline-primary'" @click="viewMode = 'tree'">Дерево</button>
+            <button class="btn" :class="viewMode === 'flat' ? 'btn-primary' : 'btn-outline-primary'" @click="viewMode = 'flat'">Таблица</button>
+          </div>
+          <button class="btn-close" @click="$emit('close')"></button>
+        </div>
       </div>
       <div class="uem-body">
         <div v-if="isLoading" class="text-center py-4"><BSpinner small /></div>
         <template v-else>
-          <table class="table table-sm table-hover table-bordered mb-2">
+          <div v-if="totalCount > events.length" class="alert alert-warning py-1 px-2 small mb-2">
+            Показаны последние {{ events.length }} из {{ totalCount }} событий.
+          </div>
+
+          <!-- Дерево: страница → действия -->
+          <div v-if="viewMode === 'tree'">
+            <div v-for="branch in tree" :key="branch.key" class="tree-branch">
+              <div class="branch-head" @click="toggle(branch.key)">
+                <span class="branch-caret">{{ expanded[branch.key] === false ? '▸' : '▾' }}</span>
+                <span class="branch-icon">{{ branch.icon }}</span>
+                <span class="branch-label" :title="branch.label">{{ branch.label }}</span>
+                <span class="branch-meta">{{ branch.events.length }} соб. · {{ formatRange(branch.from, branch.to) }}</span>
+              </div>
+              <div v-if="expanded[branch.key] !== false" class="branch-body">
+                <div v-for="(evt, i) in branch.events" :key="i" class="leaf">
+                  <span class="leaf-time">{{ formatDate(evt.eventDate) }}</span>
+                  <span class="leaf-type">{{ evt.eventType }}</span>
+                  <span class="leaf-desc" :title="evt.eventDescription">{{ leafDetail(evt) }}</span>
+                  <span class="leaf-ip">{{ evt.clientIp || '' }}</span>
+                </div>
+              </div>
+            </div>
+            <div v-if="!tree.length" class="text-center text-muted py-3">Нет событий</div>
+          </div>
+
+          <!-- Плоская таблица -->
+          <table v-else class="table table-sm table-hover table-bordered mb-2">
             <thead class="table-dark">
-              <tr><th>Дата</th><th>Тип</th><th>Описание</th><th>IP</th></tr>
+              <tr><th>Дата</th><th>Тип</th><th>Страница</th><th>Описание</th><th>IP</th></tr>
             </thead>
             <tbody>
               <tr v-for="(evt, idx) in events" :key="idx">
                 <td class="text-nowrap">{{ formatDate(evt.eventDate) }}</td>
                 <td class="text-nowrap">{{ evt.eventType }}</td>
+                <td class="text-start">{{ pageLabel(evt) }}</td>
                 <td class="text-start">{{ evt.eventDescription }}</td>
                 <td class="text-nowrap">{{ evt.clientIp || '-' }}</td>
               </tr>
-              <tr v-if="!events.length"><td colspan="4" class="text-center text-muted">Нет событий</td></tr>
+              <tr v-if="!events.length"><td colspan="5" class="text-center text-muted">Нет событий</td></tr>
             </tbody>
           </table>
-          <div class="d-flex align-items-center gap-2">
-            <b-pagination v-model="pageModel" :total-rows="totalCount" :per-page="pageSize" :limit="10" size="sm" pills />
-            <span class="text-muted small">Всего: {{ totalCount }}</span>
-          </div>
         </template>
       </div>
     </div>
@@ -36,33 +65,93 @@
 </template>
 
 <script>
-import { BSpinner, BPagination } from 'bootstrap-vue-next'
+import { BSpinner } from 'bootstrap-vue-next'
 
 export default {
   name: 'UserEventsModal',
-  components: { BSpinner, BPagination },
+  components: { BSpinner },
   props: {
     user: { type: Object, default: null },
     events: { type: Array, default: () => [] },
     totalCount: { type: Number, default: 0 },
     isLoading: { type: Boolean, default: false },
-    pageSize: { type: Number, default: 50 },
+    cap: { type: Number, default: 2000 },
   },
-  emits: ['close', 'page'],
-  data() { return { page: 1 } },
+  emits: ['close'],
+  data() { return { viewMode: 'tree', expanded: {} } },
   computed: {
-    pageModel: {
-      get() { return this.page },
-      set(v) { this.page = v; this.$emit('page', v) }
+    userLabel() {
+      const u = this.user
+      if (!u) return ''
+      if (u.siteUserId > 0) return `${u.displayName || u.email || ''} (#${u.siteUserId})`
+      return `Аноним ${(u.anonId || '').slice(0, 12)}…`
+    },
+    // Дерево: группируем события по «странице» (песня по song_id либо раздел по rest_name).
+    // Все действия клиента на одной странице сайта — листья одной ветки.
+    tree() {
+      const groups = new Map()
+      for (const evt of this.events) {
+        const key = evt.songId > 0 ? `song:${evt.songId}` : `rest:${evt.restName || 'other'}`
+        let g = groups.get(key)
+        if (!g) {
+          g = {
+            key,
+            kind: evt.songId > 0 ? 'song' : 'rest',
+            icon: evt.songId > 0 ? '🎵' : '📄',
+            label: this.pageLabel(evt),
+            events: [],
+            from: null,
+            to: null,
+          }
+          groups.set(key, g)
+        }
+        g.events.push(evt)
+        const t = evt.eventDate ? new Date(evt.eventDate).getTime() : null
+        if (t !== null) {
+          if (g.from === null || t < g.from) g.from = t
+          if (g.to === null || t > g.to) g.to = t
+        }
+      }
+      const branches = Array.from(groups.values())
+      // Листья внутри ветки — по времени по возрастанию.
+      branches.forEach(b => b.events.sort((a, c) => new Date(a.eventDate) - new Date(c.eventDate)))
+      // Ветки — по последней активности убыв.
+      branches.sort((a, b) => (b.to || 0) - (a.to || 0))
+      return branches
     }
   },
   watch: {
-    user() { this.page = 1 }
+    user() { this.expanded = {}; this.viewMode = 'tree' }
   },
   methods: {
+    toggle(key) { this.expanded = { ...this.expanded, [key]: this.expanded[key] === false } },
+    pageLabel(evt) {
+      if (evt.songId > 0) return evt.songName || `Песня #${evt.songId}`
+      switch (evt.restName) {
+        case 'main': case 'home': return 'Главная'
+        case 'zakroma': return 'Закрома'
+        case 'filter': case 'search': return 'Поиск'
+        case 'song': return 'Страница песни'
+        case '': case undefined: case null: return 'Другое'
+        default: return evt.restName
+      }
+    },
+    // Короткая деталь листа: описание, а если пусто — комбинация link_type/link_name.
+    leafDetail(evt) {
+      if (evt.eventDescription) return evt.eventDescription
+      const parts = [evt.linkType, evt.linkName].filter(Boolean)
+      return parts.join(' · ') || '—'
+    },
     formatDate(ts) {
       if (!ts) return ''
       return new Date(ts).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })
+    },
+    formatRange(from, to) {
+      if (!from) return ''
+      const opts = { timeZone: 'Europe/Moscow', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }
+      const f = new Date(from).toLocaleString('ru-RU', opts)
+      if (!to || to === from) return f
+      return `${f} — ${new Date(to).toLocaleString('ru-RU', opts)}`
     }
   }
 }
@@ -83,4 +172,25 @@ export default {
   padding: 14px 18px; border-bottom: 1px solid #eee;
 }
 .uem-body { padding: 14px 18px; overflow: auto; font-size: 0.82rem; }
+
+.tree-branch { border: 1px solid #e6e6e6; border-radius: 6px; margin-bottom: 8px; overflow: hidden; }
+.branch-head {
+  display: flex; align-items: center; gap: 8px; padding: 7px 10px; cursor: pointer;
+  background: #f4f7fb; user-select: none;
+}
+.branch-head:hover { background: #eaf1fb; }
+.branch-caret { width: 12px; color: #666; }
+.branch-icon { flex: 0 0 auto; }
+.branch-label { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.branch-meta { margin-left: auto; color: #888; font-size: 0.75rem; white-space: nowrap; }
+.branch-body { padding: 4px 10px 8px 30px; }
+.leaf {
+  display: grid; grid-template-columns: 150px 130px 1fr 130px; gap: 8px;
+  padding: 3px 0; border-bottom: 1px dashed #eee; align-items: baseline;
+}
+.leaf:last-child { border-bottom: none; }
+.leaf-time { color: #666; white-space: nowrap; }
+.leaf-type { color: #2b5fb3; white-space: nowrap; }
+.leaf-desc { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.leaf-ip { color: #999; white-space: nowrap; text-align: right; font-size: 0.75rem; }
 </style>

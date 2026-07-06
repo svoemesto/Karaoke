@@ -69,9 +69,10 @@ class PublicApiController(
     @GetMapping("/stats")
     fun stats(
         @RequestParam(required = false) anonId: String?,
+        @RequestParam(required = false) referrer: String?,
         request: HttpServletRequest
     ): Map<String, Int> {
-        mainController.doRegisterEvent(mapOf("eventType" to EventType.CALL_REST.dbValue, "restName" to RestName.MAIN.dbValue, "parameters" to emptyMap<String, Any>(), "anonId" to (anonId ?: "")), request, siteUserResolver.resolve(request)?.id ?: 0)
+        mainController.doRegisterEvent(mapOf("eventType" to EventType.CALL_REST.dbValue, "restName" to RestName.MAIN.dbValue, "parameters" to emptyMap<String, Any>(), "anonId" to (anonId ?: ""), "referrer" to (referrer ?: "")), request, siteUserResolver.resolve(request)?.id ?: 0)
         return mapOf(
             "onSponsr" to StatBySong.getCountSongsInCollection(database = WORKING_DATABASE),
             "onAir" to StatBySong.getCountSongsOnAir(database = WORKING_DATABASE),
@@ -86,11 +87,12 @@ class PublicApiController(
     fun zakroma(
         @RequestParam(required = false) author: String?,
         @RequestParam(required = false) anonId: String?,
+        @RequestParam(required = false) referrer: String?,
         request: HttpServletRequest
     ): List<ZakromaPublicDto> {
         val data: MutableMap<String, Any> = mutableMapOf()
         author?.let { data["author"] = it }
-        mainController.doRegisterEvent(mapOf("eventType" to EventType.CALL_REST.dbValue, "restName" to RestName.ZAKROMA.dbValue, "parameters" to data, "anonId" to (anonId ?: "")), request, siteUserResolver.resolve(request)?.id ?: 0)
+        mainController.doRegisterEvent(mapOf("eventType" to EventType.CALL_REST.dbValue, "restName" to RestName.ZAKROMA.dbValue, "parameters" to data, "anonId" to (anonId ?: ""), "referrer" to (referrer ?: "")), request, siteUserResolver.resolve(request)?.id ?: 0)
         val zakroma = Zakroma.getZakroma(
             author = author ?: "",
             database = WORKING_DATABASE,
@@ -107,6 +109,7 @@ class PublicApiController(
         @RequestParam(required = false) text: String?,
         @RequestParam(required = false) album: String?,
         @RequestParam(required = false) anonId: String?,
+        @RequestParam(required = false) referrer: String?,
         request: HttpServletRequest
     ): List<SettingsPublicDto> {
         val attr: MutableMap<String, String> = mutableMapOf()
@@ -126,7 +129,7 @@ class PublicApiController(
         if (!author.isNullOrEmpty()) data["author"] = author
         if (!text.isNullOrEmpty()) data["text"] = text
         if (!album.isNullOrEmpty()) data["album"] = album
-        mainController.doRegisterEvent(mapOf("eventType" to EventType.CALL_REST.dbValue, "restName" to RestName.FILTER.dbValue, "parameters" to data, "anonId" to (anonId ?: "")), request, siteUserResolver.resolve(request)?.id ?: 0)
+        mainController.doRegisterEvent(mapOf("eventType" to EventType.CALL_REST.dbValue, "restName" to RestName.FILTER.dbValue, "parameters" to data, "anonId" to (anonId ?: ""), "referrer" to (referrer ?: "")), request, siteUserResolver.resolve(request)?.id ?: 0)
 
         return settings.map { SettingsPublicDto.fromSettings(it, includeDetails = false) }
     }
@@ -135,10 +138,11 @@ class PublicApiController(
     fun song(
         @PathVariable id: Long,
         @RequestParam(required = false) anonId: String?,
+        @RequestParam(required = false) referrer: String?,
         request: HttpServletRequest
     ): SettingsPublicDto? {
         val sett = Settings.loadFromDbById(id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
-        mainController.doRegisterEvent(mapOf("eventType" to EventType.CALL_REST.dbValue, "restName" to RestName.SONG.dbValue, "parameters" to mapOf("id" to id), "anonId" to (anonId ?: "")), request, siteUserResolver.resolve(request)?.id ?: 0)
+        mainController.doRegisterEvent(mapOf("eventType" to EventType.CALL_REST.dbValue, "restName" to RestName.SONG.dbValue, "parameters" to mapOf("id" to id), "anonId" to (anonId ?: ""), "referrer" to (referrer ?: "")), request, siteUserResolver.resolve(request)?.id ?: 0)
         return sett?.let { SettingsPublicDto.fromSettings(it) }
     }
 

@@ -22,6 +22,10 @@ export default {
         channels: [],
         detailed: [],
         breakdownIsLoading: false,
+        // География + внешние источники
+        countries: [],
+        referrers: [],
+        geoIsLoading: false,
         // Топ пользователей
         topUsers: [],
         topUsersTotalCount: 0,
@@ -51,6 +55,9 @@ export default {
         getStatsChannels(state) { return state.channels },
         getStatsDetailed(state) { return state.detailed },
         getStatsBreakdownIsLoading(state) { return state.breakdownIsLoading },
+        getStatsCountries(state) { return state.countries },
+        getStatsReferrers(state) { return state.referrers },
+        getStatsGeoIsLoading(state) { return state.geoIsLoading },
         getStatsTopUsers(state) { return state.topUsers },
         getStatsTopUsersTotalCount(state) { return state.topUsersTotalCount },
         getStatsTopUsersIsLoading(state) { return state.topUsersIsLoading },
@@ -76,6 +83,9 @@ export default {
         setStatsChannels(state, v) { state.channels = v },
         setStatsDetailed(state, v) { state.detailed = v },
         setStatsBreakdownIsLoading(state, v) { state.breakdownIsLoading = v },
+        setStatsCountries(state, v) { state.countries = v },
+        setStatsReferrers(state, v) { state.referrers = v },
+        setStatsGeoIsLoading(state, v) { state.geoIsLoading = v },
         setStatsTopUsers(state, v) { state.topUsers = v },
         setStatsTopUsersTotalCount(state, v) { state.topUsersTotalCount = v },
         setStatsTopUsersIsLoading(state, v) { state.topUsersIsLoading = v },
@@ -122,6 +132,17 @@ export default {
                 ctx.commit('setStatsBreakdownIsLoading', false);
             }).catch(e => { console.log(e); ctx.commit('setStatsBreakdownIsLoading', false); });
         },
+        loadStatsGeo(ctx) {
+            ctx.commit('setStatsGeoIsLoading', true);
+            Promise.all([
+                getJson(`/api/stats/countries?target=${ctx.state.statsTarget}`),
+                getJson(`/api/stats/referrers?target=${ctx.state.statsTarget}`),
+            ]).then(([countries, referrers]) => {
+                ctx.commit('setStatsCountries', countries.items);
+                ctx.commit('setStatsReferrers', referrers.items);
+                ctx.commit('setStatsGeoIsLoading', false);
+            }).catch(e => { console.log(e); ctx.commit('setStatsGeoIsLoading', false); });
+        },
         loadStatsTopUsers(ctx, { page = 1, pageSize = 50 } = {}) {
             ctx.commit('setStatsTopUsersIsLoading', true);
             getJson(`/api/stats/top-users?target=${ctx.state.statsTarget}&page=${page}&pageSize=${pageSize}`).then(r => {
@@ -130,9 +151,13 @@ export default {
                 ctx.commit('setStatsTopUsersIsLoading', false);
             }).catch(e => { console.log(e); ctx.commit('setStatsTopUsersIsLoading', false); });
         },
-        loadStatsUserEvents(ctx, { siteUserId, page = 1, pageSize = 50 }) {
+        // Drill-down по пользователю: залогиненный (siteUserId>0) ЛИБО аноним (anonId).
+        loadStatsUserEvents(ctx, { siteUserId = 0, anonId = '', page = 1, pageSize = 50 }) {
             ctx.commit('setStatsUserEventsIsLoading', true);
-            getJson(`/api/stats/user-events?target=${ctx.state.statsTarget}&siteUserId=${siteUserId}&page=${page}&pageSize=${pageSize}`).then(r => {
+            let url = `/api/stats/user-events?target=${ctx.state.statsTarget}&page=${page}&pageSize=${pageSize}`;
+            if (siteUserId) url += `&siteUserId=${siteUserId}`;
+            if (anonId) url += `&anonId=${encodeURIComponent(anonId)}`;
+            getJson(url).then(r => {
                 ctx.commit('setStatsUserEvents', r.items);
                 ctx.commit('setStatsUserEventsTotalCount', r.totalCount);
                 ctx.commit('setStatsUserEventsIsLoading', false);

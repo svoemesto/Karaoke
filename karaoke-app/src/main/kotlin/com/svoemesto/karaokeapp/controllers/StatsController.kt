@@ -75,6 +75,16 @@ class StatsController {
     fun channels(@RequestParam(required = false) target: String?): Map<String, Any> =
         mapOf("items" to StatsByEvents.getChannelBreakdown(database = resolveDb(target)))
 
+    // География посетителей по client_ip (страна через GeoIpService + кэш tbl_ip_country).
+    @GetMapping("/api/stats/countries")
+    fun countries(@RequestParam(required = false) target: String?): Map<String, Any> =
+        mapOf("items" to StatsByEvents.getCountryBreakdown(database = resolveDb(target)))
+
+    // Топ внешних источников перехода (referer = document.referrer заход-лендинга).
+    @GetMapping("/api/stats/referrers")
+    fun referrers(@RequestParam(required = false) target: String?): Map<String, Any> =
+        mapOf("items" to StatsByEvents.getTopReferrers(database = resolveDb(target)))
+
     // Детализация по комбинациям event_type + link_type/rest_name/link_name (перемотка/старт/стоп
     // плеера, соцсети, платформы, UI-действия и т.п.).
     @GetMapping("/api/stats/by-detail")
@@ -98,17 +108,20 @@ class StatsController {
     }
 
     // Drill-down: все события конкретного пользователя (переиспользует /api/webevents с фильтром).
+    // Пользователь — либо залогиненный (siteUserId>0), либо аноним (anonId, тогда site_user_id=0).
     @GetMapping("/api/stats/user-events")
     fun userEvents(
         @RequestParam(required = false) target: String?,
-        @RequestParam(required = true) siteUserId: Long,
+        @RequestParam(required = false, defaultValue = "0") siteUserId: Long,
+        @RequestParam(required = false) anonId: String?,
         @RequestParam(required = false, defaultValue = "1") page: Int,
         @RequestParam(required = false, defaultValue = "50") pageSize: Int,
     ): Map<String, Any> {
         val db = resolveDb(target)
         val offset = (page - 1).coerceAtLeast(0) * pageSize
-        val items = StatsByEvents.getWebEvents(database = db, limit = pageSize, offset = offset, siteUserId = siteUserId)
-        val totalCount = StatsByEvents.getWebEventsCount(database = db, siteUserId = siteUserId)
+        val suid = siteUserId.takeIf { it > 0 }
+        val items = StatsByEvents.getWebEvents(database = db, limit = pageSize, offset = offset, siteUserId = suid, anonId = anonId)
+        val totalCount = StatsByEvents.getWebEventsCount(database = db, siteUserId = suid, anonId = anonId)
         return mapOf("items" to items, "totalCount" to totalCount)
     }
 }

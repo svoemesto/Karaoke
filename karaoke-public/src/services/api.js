@@ -1,5 +1,6 @@
 import { promisedXMLHttpRequest } from '../lib/utils'
 import { getAnonId } from './clientId'
+import { consumeEntryReferrer } from './entryReferrer'
 
 function buildUrl(path, params) {
   const query = Object.entries(params || {})
@@ -20,7 +21,9 @@ function authHeader() {
 // привязать server-side событие просмотра страницы (callRest) к анониму/залогиненному
 // пользователю. Эндпоинты, которые эти параметры не читают, просто их игнорируют.
 export async function apiGet(path, params) {
-  const withAnon = { ...(params || {}), anonId: getAnonId() }
+  // referrer уйдёт только на первом запросе после реального внешнего захода (consumeEntryReferrer
+  // отдаёт значение один раз); buildUrl отфильтрует пустую строку на всех последующих.
+  const withAnon = { ...(params || {}), anonId: getAnonId(), referrer: consumeEntryReferrer() }
   const response = await promisedXMLHttpRequest({ method: 'GET', url: buildUrl(path, withAnon), headers: authHeader() })
   return JSON.parse(response)
 }

@@ -22,15 +22,19 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="u in users" :key="u.siteUserId" class="user-row" @click="$emit('select-user', u)">
-            <td>{{ u.siteUserId }}</td>
-            <td class="text-start">{{ u.displayName || '—' }}</td>
-            <td class="text-start">{{ u.email }}</td>
+          <tr v-for="(u, idx) in users" :key="rowKey(u, idx)" class="user-row"
+              :class="{ 'anon-row': !u.siteUserId }" @click="$emit('select-user', u)">
+            <td>{{ u.siteUserId || '—' }}</td>
+            <td class="text-start">
+              <span v-if="u.siteUserId">{{ u.displayName || '—' }}</span>
+              <span v-else class="text-muted">Аноним {{ (u.anonId || '').slice(0, 8) }}…</span>
+            </td>
+            <td class="text-start">{{ u.email || '—' }}</td>
             <td>{{ u.premium ? '🪙' : '' }}</td>
             <td class="fw-bold">{{ u.eventCount.toLocaleString('ru-RU') }}</td>
             <td class="text-nowrap">{{ formatDate(u.lastActivity) }}</td>
           </tr>
-          <tr v-if="!users.length"><td colspan="6" class="text-center text-muted">Нет зарегистрированных пользователей с событиями</td></tr>
+          <tr v-if="!users.length"><td colspan="6" class="text-center text-muted">Нет пользователей с событиями</td></tr>
         </tbody>
       </table>
       <div class="d-flex align-items-center gap-2">
@@ -56,6 +60,7 @@ export default {
   },
   emits: ['select-user', 'page', 'page-size'],
   methods: {
+    rowKey(u, idx) { return u.siteUserId ? `u${u.siteUserId}` : `a${u.anonId || idx}` },
     formatDate(ts) {
       if (!ts) return '—'
       return new Date(ts).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })
@@ -75,4 +80,5 @@ export default {
 .users-table th, .users-table td { white-space: nowrap; vertical-align: middle; }
 .user-row { cursor: pointer; }
 .user-row:hover { background: #eef4ff; }
+.anon-row { background: #fafafa; }
 </style>

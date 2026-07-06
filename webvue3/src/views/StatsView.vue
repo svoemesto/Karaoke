@@ -47,6 +47,12 @@
         :is-loading="breakdownIsLoading"
         @clear-type="selectedDetailType = ''" />
 
+    <!-- География + внешние источники -->
+    <GeoReferrers
+        :countries="countries"
+        :referrers="referrers"
+        :is-loading="geoIsLoading" />
+
     <!-- Пользователи -->
     <TopUsersTable
         :users="topUsers"
@@ -147,8 +153,9 @@
                 <th>link_name</th>
                 <th>song_id</th>
                 <th>song_version</th>
-                <th>referer</th>
+                <th title="Внешний источник перехода (document.referrer)">Источник</th>
                 <th>client_ip</th>
+                <th title="Страна по client_ip">Страна</th>
                 <th>anon_id</th>
                 <th>site_user_id</th>
                 <th>user_agent</th>
@@ -167,8 +174,12 @@
                 <td>{{ evt.linkName || '-' }}</td>
                 <td>{{ evt.songId || '-' }}</td>
                 <td>{{ evt.songVersion || '-' }}</td>
-                <td class="text-start cell-clip" :title="evt.referer">{{ evt.referer || '-' }}</td>
+                <td class="text-start cell-clip" :title="evt.referer">
+                  <a v-if="isHttp(evt.referer)" :href="evt.referer" target="_blank" rel="noopener noreferrer">{{ evt.referer }}</a>
+                  <span v-else>{{ evt.referer || '-' }}</span>
+                </td>
                 <td class="text-nowrap">{{ evt.clientIp || '-' }}</td>
+                <td class="text-nowrap">{{ evt.country || '-' }}</td>
                 <td class="text-nowrap cell-clip" :title="evt.anonId">{{ evt.anonId || '-' }}</td>
                 <td>{{ evt.siteUserId || 0 }}</td>
                 <td class="text-start cell-clip" :title="evt.userAgent">{{ evt.userAgent || '-' }}</td>
@@ -189,9 +200,8 @@
         :events="userEvents"
         :total-count="userEventsTotalCount"
         :is-loading="userEventsIsLoading"
-        :page-size="userEventsPageSize"
-        @close="selectedUser = null"
-        @page="onUserEventsPage" />
+        :cap="userEventsPageSize"
+        @close="selectedUser = null" />
 
   </div>
 </template>
@@ -202,12 +212,13 @@ import KpiCards from '../components/Stats/KpiCards.vue'
 import TimeSeriesChart from '../components/Stats/TimeSeriesChart.vue'
 import TypeChannelBreakdown from '../components/Stats/TypeChannelBreakdown.vue'
 import DetailBreakdown from '../components/Stats/DetailBreakdown.vue'
+import GeoReferrers from '../components/Stats/GeoReferrers.vue'
 import TopUsersTable from '../components/Stats/TopUsersTable.vue'
 import UserEventsModal from '../components/Stats/UserEventsModal.vue'
 
 export default {
   name: 'StatsView',
-  components: { BSpinner, BPagination, KpiCards, TimeSeriesChart, TypeChannelBreakdown, DetailBreakdown, TopUsersTable, UserEventsModal },
+  components: { BSpinner, BPagination, KpiCards, TimeSeriesChart, TypeChannelBreakdown, DetailBreakdown, GeoReferrers, TopUsersTable, UserEventsModal },
   data() {
     return {
       statsBySongPage: 1,
@@ -219,8 +230,8 @@ export default {
       topUsersPageSize: 50,
       selectedDetailType: '',
       selectedUser: null,
-      userEventsPage: 1,
-      userEventsPageSize: 50,
+      // Drill-down грузим одним запросом (для дерева нужны все события пользователя); 2000 — потолок.
+      userEventsPageSize: 2000,
     }
   },
   computed: {
@@ -233,6 +244,9 @@ export default {
     channels() { return this.$store.getters.getStatsChannels },
     detailed() { return this.$store.getters.getStatsDetailed },
     breakdownIsLoading() { return this.$store.getters.getStatsBreakdownIsLoading },
+    countries() { return this.$store.getters.getStatsCountries },
+    referrers() { return this.$store.getters.getStatsReferrers },
+    geoIsLoading() { return this.$store.getters.getStatsGeoIsLoading },
     topUsers() { return this.$store.getters.getStatsTopUsers },
     topUsersTotalCount() { return this.$store.getters.getStatsTopUsersTotalCount },
     topUsersIsLoading() { return this.$store.getters.getStatsTopUsersIsLoading },
@@ -276,10 +290,12 @@ export default {
       this.$store.dispatch('loadStatsSummary')
       this.$store.dispatch('loadStatsTimeSeries')
       this.$store.dispatch('loadStatsBreakdown')
+      this.$store.dispatch('loadStatsGeo')
       this.reloadTopUsers()
       this.reloadStatsBySong()
       this.reloadWebEvents()
     },
+    isHttp(url) { return typeof url === 'string' && /^https?:\/\//i.test(url) },
     onTargetChange() {
       this.statsBySongPage = 1; this.webEventsPage = 1; this.topUsersPage = 1
       this.reloadAll()
@@ -302,13 +318,17 @@ export default {
     onTopUsersPageSize(sz) { this.topUsersPageSize = sz; this.topUsersPage = 1; this.reloadTopUsers() },
     openUser(u) {
       this.selectedUser = u
-      this.userEventsPage = 1
       this.loadUserEvents()
     },
     loadUserEvents() {
-      this.$store.dispatch('loadStatsUserEvents', { siteUserId: this.selectedUser.siteUserId, page: this.userEventsPage, pageSize: this.userEventsPageSize })
+      const u = this.selectedUser
+      this.$store.dispatch('loadStatsUserEvents', {
+        siteUserId: u.siteUserId || 0,
+        anonId: (u.siteUserId > 0 ? '' : (u.anonId || '')),
+        page: 1,
+        pageSize: this.userEventsPageSize,
+      })
     },
-    onUserEventsPage(p) { this.userEventsPage = p; this.loadUserEvents() },
     formatDate(ts) {
       if (!ts) return ''
       return new Date(ts).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })

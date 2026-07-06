@@ -24,6 +24,10 @@ services:
       # Обход MTU black-hole для внешних HTTPS-вызовов (см. 80to8897 location /smartcaptcha/) —
       # тот же приём, что STORAGE_PROXY_URL для MinIO.
       - CAPTCHA_PROXY_URL=http://minio-proxy/smartcaptcha
+      # Прокси к MinIO через хостовый nginx (fetchFromMinIO/existsInMinIO в PublicApiController/
+      # PublicPlayerController). @Value("${storage.proxy-url}") требует это значение; application.yml
+      # в jar не упаковывается, поэтому property приходит только отсюда (иначе karaoke-web не стартует).
+      - STORAGE_PROXY_URL=http://minio-proxy
     volumes:
       - ${WEB_FOLDER_HOST}:${WEB_FOLDER_IN_CONTAINER}
     extra_hosts:

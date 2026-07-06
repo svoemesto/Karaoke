@@ -87,7 +87,7 @@ class PublicPlayerController(
             mainController.doRegisterEvent(
                 mapOf(
                     "eventType" to EventType.PLAYER.dbValue,
-                    "linkType" to PlayerAction.OPEN.dbValue,
+                    "linkType" to PlayerAction.SHOWN.dbValue,
                     "songId" to id.toString(),
                     "anonId" to (request.getParameter("anonId") ?: ""),
                 ),

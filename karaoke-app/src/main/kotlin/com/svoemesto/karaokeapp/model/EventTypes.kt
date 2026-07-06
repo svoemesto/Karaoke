@@ -7,7 +7,7 @@ enum class EventType(val dbValue: String) {
     CALL_REST("callRest"),
     CLICK_TO_LINK("clickToLink"),
     PLAY("play"),      // legacy: видео на странице песни, НЕ онлайн-плеер
-    PLAYER("player"),  // онлайн-плеер: open/play/pause/seek/export/progress/ended, см. PlayerAction
+    PLAYER("player"),  // онлайн-плеер: shown/play/pause/seek/export/progress/ended, см. PlayerAction
     ENGAGEMENT("engagement"), // время на странице: rest_name = идентификатор страницы, link_name = секунды
     UI("ui");          // UI-действия: link_type = navigate|theme|scroll, link_name = деталь
 
@@ -47,7 +47,11 @@ enum class LinkType(val dbValue: String) {
 // Значение tbl_events.link_type, когда event_type = EventType.PLAYER. link_name при этом
 // переиспользуется как деталь действия: ключ стема для EXPORT, позиция в секундах для SEEK.
 enum class PlayerAction(val dbValue: String) {
-    OPEN("open"), PLAY("play"), PAUSE("pause"), SEEK("seek"), EXPORT("export"),
+    // SHOWN — плеер встроен/показан на просмотренной странице песни (пишется в
+    // PublicPlayerController.access() при canWatch=true, т.е. при заходе на страницу, а не при
+    // реальном запуске). Реальный запуск — PLAY. Историческое имя было OPEN("open"), переименовано
+    // (данные мигрированы UPDATE link_type 'open'->'shown').
+    SHOWN("shown"), PLAY("play"), PAUSE("pause"), SEEK("seek"), EXPORT("export"),
     PROGRESS("progress"), // веха прослушивания: link_name = "25"|"50"|"75"
     ENDED("ended");       // трек доигран до конца
 

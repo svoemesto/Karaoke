@@ -10,6 +10,7 @@ data class SettingsDTOdigest(
         var idNext: Long,
         var idLeft: Long,
         var idRight: Long,
+        val idStatus: Long,
         val status: String,
         val tags: String,
         val color: String,

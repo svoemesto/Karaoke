@@ -157,6 +157,31 @@
               :style="{ backgroundColor: data.item.color, color: currentSongId === data.item.id ? 'blue' : 'black' }"
           ></div>
         </template>
+        <template #cell(player)="data">
+          <div
+              class="fld-player"
+              :style="{ backgroundColor: data.item.color }"
+          >
+            <a
+                v-if="data.item.idStatus >= 3"
+                href="#"
+                class="player-icon-link"
+                title="Открыть онлайн-плеер"
+                @click.left.prevent="openPlayer(data.item.id)"
+            >
+              <svg width="18" height="18" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" fill="none">
+                <circle cx="10" cy="10" r="10" fill="#22A447"/>
+                <path d="M8 6.5v7l6-3.5-6-3.5Z" fill="#fff"/>
+              </svg>
+            </a>
+            <span v-else class="player-icon-disabled" title="Плеер недоступен (статус < 3)">
+              <svg width="18" height="18" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" fill="none">
+                <circle cx="10" cy="10" r="10" fill="#E6E6E6"/>
+                <path d="M8 6.5v7l6-3.5-6-3.5Z" fill="#919191"/>
+              </svg>
+            </span>
+          </div>
+        </template>
         <template #cell(flagSponsr)="data">
           <div
               class="fld-flag-sponsr"
@@ -630,6 +655,16 @@ export default {
           }
         },
         {
+          key: 'player',
+          label: '▶',
+          style: {
+            minWidth: '22px',
+            maxWidth: '22px',
+            textAlign: 'center',
+            fontSize: 'small'
+          }
+        },
+        {
           key: 'flagSponsr',
           label: 'SP',
           style: {
@@ -883,6 +918,9 @@ export default {
     }
   },
   methods: {
+    openPlayer(id) {
+      window.open('/player/' + id, '_blank')
+    },
     updateHealthReportForCurrentPage() {
       for (const settingsId of this.songsIds) {
         const songPageNumber = this.songIdAndPageId.get(settingsId);
@@ -1536,6 +1574,24 @@ export default {
 .fld-health-report-text:hover {
   text-decoration: underline;
   cursor: pointer;
+}
+.fld-player {
+  min-width: 22px;
+  max-width: 22px;
+  text-align: center;
+  line-height: 0;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.fld-player .player-icon-link {
+  display: inline-block;
+  line-height: 0;
+  cursor: pointer;
+}
+.fld-player .player-icon-disabled {
+  display: inline-block;
+  line-height: 0;
+  cursor: default;
 }
 .fld-flag-sponsr {
   min-width: 20px;

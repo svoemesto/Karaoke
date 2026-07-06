@@ -1333,6 +1333,16 @@ src/
 
 Браузерный плеер, воспроизводящий karaoke визуально идентично MLT-рендеру. Открывается из `SongEdit.vue` кнопкой `▶` в шапке (header-column-1, метод `openPlayer()`).
 
+**Иконка плеера в таблице песен админки (`webvue3/SongsTable.vue`).** В каждой строке — колонка `player`
+(лейбл `▶`, 22px) перед `flagSponsr` (SP), по образцу иконки плеера в таблицах «Закрома»/«Поиск» на
+проде. Инлайновый SVG (копия player-кейса из `karaoke-public/SvgIcon.vue`: зелёный кружок `#22A447` +
+белый треугольник / серый `#E6E6E6`+`#919191`). **В отличие от прода** — без асинхронного readiness-
+запроса и токена: админский `/player/:id` читает **локальные** файлы (`/api/song/{id}/playerdata`) и
+открывается всегда. Гейт — чисто клиентский по `data.item.idStatus >= 3`: активна (клик →
+`window.open('/player/'+id,'_blank')`) при статусе ≥ 3, иначе серая некликабельная. Для гейта в
+`SettingsDTOdigest` (и заполнение в `SettingsDTO.toDtoDigest()`) добавлено поле `idStatus: Long`
+(`SettingsDTO` его уже нёс). Требует ребилда karaoke-app (DTO) + webvue3.
+
 **Файлы:**
 - `webvue3/src/views/PlayerView.vue` — тонкая Vue-обёртка (`position:fixed; top:0; left:0; width:100vw; height:100vh`)
 - `webvue3/src/player/KaraokePlayer.js` — чистый JS, весь код плеера (без Vue-зависимостей)

@@ -62,6 +62,7 @@
             <col style="width: 24px" />
             <col style="width: 32px" />
             <col style="width: 26px" />
+            <col style="width: 26px" />
           </colgroup>
           <thead>
             <tr>
@@ -70,7 +71,7 @@
               <th class="km-th">Альбом</th>
               <th class="km-th km-th-center">№</th>
               <th class="km-th">Композиция</th>
-              <th class="km-th" colspan="4">&nbsp;</th>
+              <th class="km-th" colspan="5">&nbsp;</th>
             </tr>
           </thead>
           <tbody>
@@ -92,8 +93,11 @@
               <td class="km-td km-td-center">
                 <PlatformLink link-name="sponsr" :link-value="sett.linkSponsrPlay" :song-id="sett.id" song-version="all" />
               </td>
-              <td class="km-td km-td-center km-group-end">
+              <td class="km-td km-td-center">
                 <FavoriteIcon :song-id="sett.id" />
+              </td>
+              <td class="km-td km-td-center km-group-end">
+                <PlaylistIcon :song-id="sett.id" />
               </td>
             </tr>
           </tbody>
@@ -114,6 +118,7 @@
             <PlayerIcon :song-id="sett.id" :state="readiness.stateFor(sett.id)" />
             <PlatformLink link-name="sponsr" :link-value="sett.linkSponsrPlay" :song-id="sett.id" song-version="all" />
             <FavoriteIcon :song-id="sett.id" />
+            <PlaylistIcon :song-id="sett.id" />
           </div>
           <div v-if="showDate(sett) || showCoin(sett)" class="km-card-date">
             <span v-if="showDate(sett)" class="km-date-text">{{ sett.datePublish }}</span>
@@ -133,6 +138,7 @@ import PlatformLink from '../../components/PlatformLink.vue'
 import PlayerIcon from '../../components/PlayerIcon.vue'
 import PremiumIcon from '../../components/PremiumIcon.vue'
 import FavoriteIcon from '../../components/FavoriteIcon.vue'
+import PlaylistIcon from '../../components/PlaylistIcon.vue'
 import AuthStatusWidget from '../../components/AuthStatusWidget.vue'
 import { useDesign } from '../../composables/useDesign'
 import { usePlayerReadiness } from '../../composables/usePlayerReadiness'
@@ -141,7 +147,7 @@ import { useAuth } from '../../composables/useAuth'
 
 export default {
   name: 'SearchModern',
-  components: { PlatformLink, PlayerIcon, PremiumIcon, FavoriteIcon, AuthStatusWidget },
+  components: { PlatformLink, PlayerIcon, PremiumIcon, FavoriteIcon, PlaylistIcon, AuthStatusWidget },
   setup() {
     const { theme, applyTheme } = useDesign()
     const { user } = useAuth()

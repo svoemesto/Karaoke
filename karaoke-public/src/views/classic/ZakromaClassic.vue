@@ -39,8 +39,9 @@
         <table class="table-sm table-hover" style="width: 780px; table-layout: fixed">
           <colgroup>
             <col style="width: 25px" />
-            <col style="width: 430px" />
+            <col style="width: 405px" />
             <col style="width: 250px" />
+            <col style="width: 25px" />
             <col style="width: 25px" />
             <col style="width: 25px" />
             <col style="width: 25px" />
@@ -49,7 +50,7 @@
             <tr>
               <td class="td_cell" style="padding: 0"><div class="head_songtrack" style="text-align: center">№</div></td>
               <td class="td_cell" style="padding: 0"><div class="head_songname">Композиция</div></td>
-              <td class="td_cell" style="padding: 0" colspan="4"><div class="head_songname">&nbsp;</div></td>
+              <td class="td_cell" style="padding: 0" colspan="5"><div class="head_songname">&nbsp;</div></td>
             </tr>
           </thead>
           <tbody>
@@ -73,6 +74,9 @@
               <td class="td_cell" style="padding: 0; border-top-width: 0; border-left-width: 0; border-right-width: 0; width: 25px; text-align: center; vertical-align: middle">
                 <FavoriteIcon :song-id="sett.id" />
               </td>
+              <td class="td_cell" style="padding: 0; border-top-width: 0; border-left-width: 0; border-right-width: 0; width: 25px; text-align: center; vertical-align: middle">
+                <PlaylistIcon :song-id="sett.id" />
+              </td>
             </tr>
           </tbody>
         </table>
@@ -88,6 +92,7 @@ import PlatformLink from '../../components/PlatformLink.vue'
 import PlayerIcon from '../../components/PlayerIcon.vue'
 import PremiumIcon from '../../components/PremiumIcon.vue'
 import FavoriteIcon from '../../components/FavoriteIcon.vue'
+import PlaylistIcon from '../../components/PlaylistIcon.vue'
 import AuthorTiles from '../../components/AuthorTiles.vue'
 import { usePlayerReadiness } from '../../composables/usePlayerReadiness'
 import { usePlaylistMembership } from '../../composables/usePlaylistMembership'
@@ -95,7 +100,7 @@ import { useAuth } from '../../composables/useAuth'
 
 export default {
   name: 'ZakromaClassic',
-  components: { PlatformLink, PlayerIcon, PremiumIcon, FavoriteIcon, AuthorTiles },
+  components: { PlatformLink, PlayerIcon, PremiumIcon, FavoriteIcon, PlaylistIcon, AuthorTiles },
   setup() {
     const { user } = useAuth()
     return { readiness: usePlayerReadiness(), membership: usePlaylistMembership(), user }

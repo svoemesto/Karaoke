@@ -909,6 +909,29 @@ MTU-проблемы нет) + `CAPTCHA_PROXY_URL=http://minio-proxy/smartcaptch
 `Pictures.getPictureByName()` / `loadList()` — поле `picture_full` в БД теперь пустое, но
 аннотация `useInList = false` оставлена намеренно, чтобы не тянуть это поле в списочных запросах.
 
+**Правило URL-кодирования `?file=` (обязательно).** Любой URL вида `/api/...picture?file=<путь>`
+со `storageFileName`/`storageFileNamePreview` ОБЯЗАН оборачивать значение в
+`URLEncoder.encode(value, StandardCharsets.UTF_8)`. Иначе `&`/`#` в имени автора/альбома
+(«Чиж & Co», «Глеб Самойлоff & The MatriXX») обрывают query-параметр → бэкенд получает обрезанный
+`file` → 404, картинка молча не показывается. Так уже ловились баги в плеере
+(`PublicPlayerController.playerData`), админ-таблице «Картинки» (`Pictures.toDTO`), `SongEdit`
+(`ApiController` `/song/pictureauthor|picturealbum`), `Author.kt`. `ZakromaPublicDto` кодировал
+изначально — поэтому таблица «Закромов» работала, а остальное нет. Серверные фетчи MinIO
+(`fetchFromMinIO`/`existsInMinIO`/song-picture/song-vk-image) кодируют путь посегментно — их не трогать.
+
+**Дубли `tbl_pictures` и их предотвращение.** `pictureAlbum`/`pictureAuthor`-геттеры (`Settings.kt`)
+через `Pictures.createNewPicture()` создают запись картинки (check-by-name → INSERT). При
+параллельной обработке нескольких песен ОДНОГО альбома (общий логотип) две задачи одновременно не
+находят запись и обе делают INSERT → дубли строк с одинаковым `picture_name`. Защита — два уровня:
+(1) UNIQUE-индекс `uq_tbl_pictures_picture_name` (`deploy/karaoke-db/11_pictures_unique_name.sql`,
+применять на LOCAL и SERVER); (2) `createNewPicture` обёрнут в try/catch — проигравший гонку INSERT
+ловит нарушение уникальности и возвращает уже вставленную соседним потоком запись. Дубли по имени
+безопасно чистятся (одинаковое имя → один ключ MinIO); при чистке сохранять ОБЩИЙ id на обеих БД
+(sync матчит по id). Отдельный системный дефект: запись в `tbl_pictures` может существовать, а файла
+в MinIO нет — геттер заливает файл ТОЛЬКО при отсутствии записи, поэтому «запись есть, файла нет» не
+самолечится; массовый бэкафилл — `POST /api/pictures/updatepicture` (`id`+`full=base64 Logo*.png`,
+`full` слать в теле, не в argv) для LOCAL + `mc cp loc→rem` для прода.
+
 **HealthReport (`HealthReport.kt`).** Проверяет состояние файлов каждой песни по локациям (диск, MinIO, удалённое хранилище). Ключевое правило:
 - Видеофайлы (`VIDEO_SONGVERSION_1080P`, `VIDEO_SONGVERSION_720P`) проверяются **только при `idStatus >= 6`**. При статусе < 6 наличие видеофайлов на диске/хранилище не считается ошибкой и не приводит к их удалению.
 - `canBe = false` + файл существует → ERROR + action на удаление. Не трогать эту логику для видео при статусе < 6.

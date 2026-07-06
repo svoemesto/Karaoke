@@ -237,8 +237,8 @@ class PublicPlayerController(
             "audioVocalsUrl" to if (hasVocals) "/api/public/player/$id/filevoice.mp3$tokenSuffix" else null,
             "audioBassUrl" to if (hasBass) "/api/public/player/$id/filebass.mp3$tokenSuffix" else null,
             "audioDrumsUrl" to if (hasDrums) "/api/public/player/$id/filedrums.mp3$tokenSuffix" else null,
-            "albumImageUrl" to settings.pictureAlbum?.storageFileName?.let { "/api/public/picture?file=$it" },
-            "artistImageUrl" to settings.pictureAuthor?.storageFileName?.let { "/api/public/picture?file=$it" },
+            "albumImageUrl" to settings.pictureAlbum?.storageFileName?.let { "/api/public/picture?file=${java.net.URLEncoder.encode(it, java.nio.charset.StandardCharsets.UTF_8)}" },
+            "artistImageUrl" to settings.pictureAuthor?.storageFileName?.let { "/api/public/picture?file=${java.net.URLEncoder.encode(it, java.nio.charset.StandardCharsets.UTF_8)}" },
             "exportBaseName" to "${settings.fileName} [id-$id]".rightFileName(),
             // Живая проверка, не завязанная на TTL токена плеера — открывает/закрывает пункт меню
             // "Экспорт аудио..." на фронте. Сама выдача байт стемов (fileminus.mp3 и т.п.) этим

@@ -1962,7 +1962,7 @@ class ApiController(
         val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
         settings?.let {
             val pic = it.pictureAlbum ?: return ""
-            return "/api/picture/file?file=${pic.storageFileName}"
+            return "/api/picture/file?file=${java.net.URLEncoder.encode(pic.storageFileName, java.nio.charset.StandardCharsets.UTF_8)}"
         }
         return ""
     }
@@ -1973,7 +1973,7 @@ class ApiController(
         val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
         settings?.let {
             val pic = it.pictureAuthor ?: return ""
-            return "/api/picture/file?file=${pic.storageFileName}"
+            return "/api/picture/file?file=${java.net.URLEncoder.encode(pic.storageFileName, java.nio.charset.StandardCharsets.UTF_8)}"
         }
         return ""
     }
@@ -3890,8 +3890,8 @@ class ApiController(
             "audioVocalsUrl" to "/api/song/$id/filevoice.mp3",
             "audioBassUrl" to if (File(settings.bassNameFlac).exists()) "/api/song/$id/filebass.mp3" else null,
             "audioDrumsUrl" to if (File(settings.drumsNameFlac).exists()) "/api/song/$id/filedrums.mp3" else null,
-            "albumImageUrl" to settings.pictureAlbum?.storageFileName?.let { "/api/picture/file?file=$it" },
-            "artistImageUrl" to settings.pictureAuthor?.storageFileName?.let { "/api/picture/file?file=$it" },
+            "albumImageUrl" to settings.pictureAlbum?.storageFileName?.let { "/api/picture/file?file=${java.net.URLEncoder.encode(it, java.nio.charset.StandardCharsets.UTF_8)}" },
+            "artistImageUrl" to settings.pictureAuthor?.storageFileName?.let { "/api/picture/file?file=${java.net.URLEncoder.encode(it, java.nio.charset.StandardCharsets.UTF_8)}" },
             "exportBaseName" to "${settings.fileName} [id-$id]".rightFileName()
         )
         return ResponseEntity.ok(data)

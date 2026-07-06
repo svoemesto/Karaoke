@@ -38,7 +38,7 @@
         </div>
         <div class="km-stat-card">
           <div class="km-stat-number">{{ formatNum(exclusive) }}</div>
-          <div class="km-stat-label">Эксклюзивно на Sponsr</div>
+          <div class="km-stat-label">Эксклюзивно по подписке</div>
         </div>
       </div>
       <div v-else class="km-stats-loading">Загрузка статистики...</div>

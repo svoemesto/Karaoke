@@ -44,7 +44,7 @@
         <tr v-if="!isLoading">
           <td colspan="6" style="width: 400px">
             <div style="text-align: center">
-              <span style="color: white; font-size: x-large">Эксклюзивно на SPONSR: </span>
+              <span style="color: white; font-size: x-large">Эксклюзивно по подписке: </span>
               <span style="color: #EC8888; font-size: x-large; font-weight: bolder">{{ exclusive }}</span>
             </div>
           </td>

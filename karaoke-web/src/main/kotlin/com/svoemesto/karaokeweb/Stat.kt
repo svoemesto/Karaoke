@@ -17,7 +17,7 @@ object StatBySong {
         val sql = """
             select count(DISTINCT id) as cnt
             from tbl_settings
-            where exclusive = true AND id_sponsr != '' AND id_sponsr IS NOT NULL;
+            where exclusive = true AND id_status >= 3;
         """.trimIndent()
         val connection = database.getConnection()
         if (connection == null) {
@@ -85,12 +85,7 @@ object StatBySong {
         val sql = """
             select count(DISTINCT id) as cnt
             from tbl_settings
-            where (publish_date != ''
-              and publish_date is not null
-              and publish_time != ''
-              and publish_time is not null
-              and to_timestamp(CONCAT(publish_date, ' ', publish_time), 'DD.MM.YY HH24:MI') <= current_timestamp)
-              or (id_sponsr != '' AND id_sponsr IS NOT NULL);
+            where id_status >= 3;
         """.trimIndent()
         val connection = database.getConnection()
         if (connection == null) {

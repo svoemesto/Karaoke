@@ -73,6 +73,10 @@ export default class KaraokePlayer {
     this._lastWsSync = 0
     this._endedHandled = false
 
+    // Необязательный внешний колбэк, вызывается один раз при естественном окончании трека
+    // (из _onEnded). Используется страницей плейлиста для авто-перехода к следующей песне.
+    this.onTrackEnded = null
+
     // Display mode: 'embed' (small box on the host page, e.g. the song page's player card) vs
     // 'page' (this player's own container fills the whole viewport it lives in — that's already
     // true by default for a top-level /player/:id route AND for a same-origin iframe once its own
@@ -1044,6 +1048,57 @@ export default class KaraokePlayer {
     if (btn) btn.textContent = '▶'
     if (this._mode === 'api') trackPlayerEnded(this.songId)
     this._progressFlags = { 25: false, 50: false, 75: false }
+    if (this.onTrackEnded) { try { this.onTrackEnded() } catch (e) { console.error('onTrackEnded error:', e) } }
+  }
+
+  // --- Публичное управление (для страницы плейлиста) ------------------------------------------
+  play() { this._play() }
+  pause() { this._pause() }
+  togglePlay() { this._togglePlay() }
+
+  // Сменить проигрываемую песню в api-режиме, переиспользуя инстанс (без destroy). Зеркалит
+  // teardown/сброс состояния из _loadNewFile, но остаётся в 'api' и заново дёргает init().
+  // autoplay=true — начать воспроизведение сразу после готовности (авто-переход в плейлисте).
+  async playSong(songId, token, authToken, autoplay = true) {
+    if (this.animId) { cancelAnimationFrame(this.animId); this.animId = null }
+    this._endedHandled = true
+    this._stopSources()
+    if (this.audioCtx) { await this.audioCtx.close(); this.audioCtx = null }
+    if (this.wsAcc) { this.wsAcc.destroy(); this.wsAcc = null }
+    if (this.wsVoc) { this.wsVoc.destroy(); this.wsVoc = null }
+    window.removeEventListener('resize', this._resizeHandler)
+    document.removeEventListener('fullscreenchange', this._fsHandler)
+    document.removeEventListener('click', this._menuOutsideClickHandler)
+    for (const url of this._smkaraokeObjectUrls) URL.revokeObjectURL(url)
+    this._smkaraokeObjectUrls = []
+
+    this._mode = 'api'
+    this.songId = songId
+    this.token = token
+    if (authToken !== undefined) this.authToken = authToken
+
+    this.accBuffer = null; this.vocBuffer = null
+    this.accSource = null; this.vocSource = null
+    this.accGain = null; this.vocGain = null
+    this.startedAt = 0; this.pausedAt = 0
+    this.isPlaying = false; this.duration = 0
+    this.data = null; this.lines = []; this.voiceLines = []
+    this._ready = false
+    this._loadProgress = null
+    this._endedHandled = false
+    this._cachedCanvasW = null; this._cachedVoiceXStart = null
+    this._lastWsSync = 0
+    this.flashTimes = []
+    this._isPrerolling = false; this._dtPaused = 0
+    this._silentOffset = 0; this._preroll = this._splashDur
+    this._startFadeStartedAt = null
+    this._endFadeStartedAt = null
+    this._volumeAnchored = false
+    this._progressFlags = { 25: false, 50: false, 75: false }
+    clearTimeout(this._prerollTimeout); this._prerollTimeout = null
+
+    await this.init()
+    if (autoplay && this._ready) this._play()
   }
 
   // Стреляет событие player/progress при пересечении веx 25/50/75% доигранного времени. Каждая

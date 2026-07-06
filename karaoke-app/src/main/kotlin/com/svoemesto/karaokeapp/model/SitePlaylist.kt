@@ -87,6 +87,22 @@ class SitePlaylist(
             ).map { it as SitePlaylist }.sorted()
         }
 
+        // Все плейлисты (для админского просмотра webvue3).
+        fun loadAll(
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+        ): List<SitePlaylist> {
+            return KaraokeDbTable.loadList(
+                clazz = SitePlaylist::class,
+                tableName = TABLE_NAME,
+                whereList = emptyList(),
+                database = database,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            ).map { it as SitePlaylist }.sorted()
+        }
+
         fun getById(
             id: Long,
             database: KaraokeConnection,

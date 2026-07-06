@@ -11,6 +11,7 @@ import properties from '../components/Properties/store'
 import authors from '../components/Authors/store'
 import users from '../components/Users/store'
 import siteUsers from '../components/SiteUsers/store'
+import sitePlaylists from '../components/SitePlaylists/store'
 import publicSettings from '../components/PublicSettings/store'
 import pictures from '../components/Pictures/store'
 import processFilter from '../components/Processes/filter/store'
@@ -35,6 +36,7 @@ export default createStore({
     authors,
     users,
     siteUsers,
+    sitePlaylists,
     publicSettings,
     pictures,
     common,

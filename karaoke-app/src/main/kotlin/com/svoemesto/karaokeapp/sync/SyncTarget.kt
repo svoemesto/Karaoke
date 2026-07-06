@@ -8,6 +8,8 @@ import com.svoemesto.karaokeapp.model.Pictures
 import com.svoemesto.karaokeapp.model.RecordDiff
 import com.svoemesto.karaokeapp.model.RecordHash
 import com.svoemesto.karaokeapp.model.Settings
+import com.svoemesto.karaokeapp.model.SitePlaylist
+import com.svoemesto.karaokeapp.model.SitePlaylistItem
 import com.svoemesto.karaokeapp.model.SiteUser
 import com.svoemesto.karaokeapp.model.WebEvent
 import com.svoemesto.karaokeapp.services.KSS_APP
@@ -176,6 +178,28 @@ val SiteUsersSyncTarget = GenericKaraokeDbTableSyncTarget(
     rowChunkSize = 500,
 )
 
+val SitePlaylistsSyncTarget = GenericKaraokeDbTableSyncTarget(
+    key = "siteplaylists",
+    tableName = SitePlaylist.TABLE_NAME,
+    displayName = "Плейлисты сайта",
+    oneClickDirection = SyncDirection.SERVER_TO_LOCAL,
+    clazz = SitePlaylist::class,
+    labelFn = { "id=${it.id} ${it.name}" },
+    // Лёгкие строки (нет текста/base64) — по 500 фактически один запрос.
+    rowChunkSize = 500,
+)
+
+val SitePlaylistItemsSyncTarget = GenericKaraokeDbTableSyncTarget(
+    key = "siteplaylistitems",
+    tableName = SitePlaylistItem.TABLE_NAME,
+    displayName = "Элементы плейлистов сайта",
+    oneClickDirection = SyncDirection.SERVER_TO_LOCAL,
+    clazz = SitePlaylistItem::class,
+    labelFn = { "id=${it.id} pl=${it.playlistId} song=${it.songId}" },
+    // Крошечные строки (playlist_id/song_id/position/muted) — по 500.
+    rowChunkSize = 500,
+)
+
 val EventsSyncTarget = GenericKaraokeDbTableSyncTarget(
     key = "events",
     tableName = WebEvent.TABLE_NAME,
@@ -203,6 +227,8 @@ object SyncRegistry {
         PicturesSyncTarget,
         AuthorsSyncTarget,
         SiteUsersSyncTarget,
+        SitePlaylistsSyncTarget,
+        SitePlaylistItemsSyncTarget,
         EventsSyncTarget,
     )
 

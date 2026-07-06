@@ -58,8 +58,10 @@ export default class KaraokePlayer {
     this.voiceLines = []
     this._bgCanvas = null
     this._ready = false
+    this._loadProgress = null   // null = неопределённо (спиннер), 0..1 = доля скачанного (проценты)
 
     this._logoImg = null
+    this._startFadeStartedAt = null // Date.now() когда песня стала готова: переход logo→splash (fade-out 0.5с + fade-in 0.5с)
     this._endFadeStartedAt = null   // Date.now() когда началась idle-анимация после _onEnded(): logo→чёрный→splash
 
     this.canvas = null
@@ -133,6 +135,7 @@ export default class KaraokePlayer {
       this._dtPaused = 0
       this._buildWaveforms()
       this._ready = true
+      this._startFadeStartedAt = Date.now()   // запустить переход logo→splash
       this._updateExportMenuAvailability()
     } catch (e) {
       console.error('KaraokePlayer init error:', e)
@@ -142,6 +145,7 @@ export default class KaraokePlayer {
           ? 'Извините, данная песня пока не может быть проиграна в плеере'
           : `Ошибка: ${e.message}`
         loading.style.background = 'transparent'
+        loading.style.display = 'flex'
       }
     }
   }
@@ -534,9 +538,7 @@ export default class KaraokePlayer {
       <div style="display:flex;flex-direction:column;height:100vh;background:#000">
         <div id="kp-canvas-wrap" style="flex:1;position:relative;overflow:hidden;min-height:0">
           <canvas id="kp-canvas" style="width:100%;height:100%;display:block"></canvas>
-          <div id="kp-loading" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:20px;background:#000">
-            Загрузка аудио...
-          </div>
+          <div id="kp-loading" style="position:absolute;inset:0;display:none;align-items:center;justify-content:center;color:#aaa;font-size:20px;background:transparent"></div>
         </div>
         <div style="background:#111;padding:4px 10px;display:flex;align-items:stretch;gap:8px">
           <button id="kp-anchor" title="Заякорить громкость всех треков" style="background:none;border:1px solid #444;border-radius:4px;color:#ccc;cursor:pointer;padding:0 8px;line-height:1;align-self:stretch;display:flex;align-items:center;justify-content:center"></button>
@@ -795,22 +797,50 @@ export default class KaraokePlayer {
     this.accGain.connect(this.audioCtx.destination)
     this.vocGain.connect(this.audioCtx.destination)
 
+    // Общий прогресс скачивания = сумма байт обоих стемов. Пока Content-Length хотя бы одного
+    // ещё не известен (total обоих = 0) — _loadProgress остаётся null (спиннер). Как только оба
+    // стема скачаны, начинается decodeAudioData (прогресса не даёт) — _loadProgress уже равен 1,
+    // индикатор показывает фазу «Обработка...».
+    const prog = { acc: { received: 0, total: 0 }, voc: { received: 0, total: 0 } }
+    const updateProgress = () => {
+      const total = prog.acc.total + prog.voc.total
+      const received = prog.acc.received + prog.voc.received
+      this._loadProgress = total > 0 ? Math.min(1, received / total) : null
+    }
+
     const [accBuf, vocBuf] = await Promise.all([
-      this._fetchAudio(this.data.audioAccompanimentUrl),
-      this._fetchAudio(this.data.audioVocalsUrl)
+      this._fetchAudio(this.data.audioAccompanimentUrl, (r, t) => { prog.acc = { received: r, total: t }; updateProgress() }),
+      this._fetchAudio(this.data.audioVocalsUrl, (r, t) => { prog.voc = { received: r, total: t }; updateProgress() })
     ])
     this.accBuffer = accBuf
     this.vocBuffer = vocBuf
     this.duration = Math.max(accBuf.duration, vocBuf.duration)
-
-    const loading = this.container.querySelector('#kp-loading')
-    if (loading) loading.style.display = 'none'
   }
 
-  async _fetchAudio(url) {
+  // Скачивает и декодирует аудио. При наличии тела ответа и Content-Length читает поток по чанкам
+  // и репортит реальный прогресс через onProgress(received, total); иначе (нет заголовка/тела)
+  // читает целиком одним куском — прогресс остаётся неопределённым (спиннер).
+  async _fetchAudio(url, onProgress) {
     const resp = await fetch(url)
     if (!resp.ok) throw new PlayerUnavailableError(`Audio fetch failed: ${url}`)
-    return this.audioCtx.decodeAudioData(await resp.arrayBuffer())
+    const total = Number(resp.headers.get('Content-Length')) || 0
+    if (!resp.body || !total) {
+      return this.audioCtx.decodeAudioData(await resp.arrayBuffer())
+    }
+    const reader = resp.body.getReader()
+    const chunks = []
+    let received = 0
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      chunks.push(value)
+      received += value.length
+      onProgress?.(received, total)
+    }
+    const all = new Uint8Array(received)
+    let pos = 0
+    for (const c of chunks) { all.set(c, pos); pos += c.length }
+    return this.audioCtx.decodeAudioData(all.buffer)
   }
 
   // ─── .smkaraoke loader ────────────────────────────────────────────────────
@@ -929,6 +959,7 @@ export default class KaraokePlayer {
   async _play() {
     if (!this.accBuffer || !this.vocBuffer) return
     const dt = this._getDisplayTime()
+    this._startFadeStartedAt = null // cancel logo→splash start transition
     this._endFadeStartedAt = null   // cancel any in-progress post-track idle transition
 
     if (dt < this._preroll) {
@@ -1059,6 +1090,7 @@ export default class KaraokePlayer {
 
   // Seek to display time dt ∈ [0, _preroll + duration] (0 = splash start)
   _seekToDisplayTime(dt) {
+    this._startFadeStartedAt = null // manual seek should snap straight to the target frame
     this._endFadeStartedAt = null   // manual seek should snap straight to the target frame
     const totalDuration = this._preroll + this.duration
     dt = Math.max(0, Math.min(dt, totalDuration))
@@ -1366,14 +1398,17 @@ export default class KaraokePlayer {
     // any dt/audioTime-based fade (those only make sense once a song is actually loaded).
     if (!this._ready) {
       this._renderLogo(ctx, W, H, 1)
+      this._renderLoadingIndicator(ctx, W, H)
       this._updateControls(dt)
       return
     }
 
     if (this._mode === 'api' && this.isPlaying) this._trackProgress(audioTime)
 
-    const endSeq = this._getEndSequenceAlphas()
-    const logoAlpha = endSeq ? endSeq.logoAlpha : this._getLogoAlpha(audioTime)
+    // Стартовый переход логотип→сплэш (сразу после готовности) имеет приоритет над конечным
+    // idle-переходом (после _onEnded); в любой момент активен максимум один из них.
+    const seq = this._getStartSequenceAlphas() || this._getEndSequenceAlphas()
+    const logoAlpha = seq ? seq.logoAlpha : this._getLogoAlpha(audioTime)
 
     const scale = H / 1080
 
@@ -1398,7 +1433,7 @@ export default class KaraokePlayer {
     if (dt < this._splashDur) {
       // Splash handles its own fade-out internally; background shows through. alphaOverride drives
       // the idle fade-in phase of the post-track transition (see _getEndSequenceAlphas).
-      this._renderSplash(ctx, W, H, scale, dt, this._splashDur, endSeq ? endSeq.splashAlpha : 1)
+      this._renderSplash(ctx, W, H, scale, dt, this._splashDur, seq ? seq.splashAlpha : 1)
     } else {
       // Karaoke: fade in 1s after splash, fade out last 1s of audio — background unaffected.
       const karaokeAlpha = dt < this._splashDur + FADE ? (dt - this._splashDur) / FADE : 1.0
@@ -1429,6 +1464,19 @@ export default class KaraokePlayer {
   // _onEnded(), so it can't drive this — over: a hold at full opacity, then two 0.5s phases (logo
   // fades out, then the idle splash screen fades in). A clean cut rather than the two layers
   // crossfading into each other.
+  // Стартовый переход сразу после готовности песни (_ready): 0.5с fade-out логотипа, затем 0.5с
+  // fade-in сплэша — чистый cut между слоями (как _getEndSequenceAlphas, но без hold). Работает по
+  // wall-clock, т.к. воспроизведение ещё не идёт (dt=0, сплэш статичен).
+  _getStartSequenceAlphas() {
+    if (this._startFadeStartedAt === null) return null
+    const FADE = 0.5
+    const t = (Date.now() - this._startFadeStartedAt) / 1000
+    if (t < FADE) return { logoAlpha: 1 - t / FADE, splashAlpha: 0 }
+    if (t < FADE * 2) return { logoAlpha: 0, splashAlpha: (t - FADE) / FADE }
+    this._startFadeStartedAt = null
+    return null
+  }
+
   _getEndSequenceAlphas() {
     if (this._endFadeStartedAt === null) return null
     const HOLD = 3.0
@@ -1449,6 +1497,75 @@ export default class KaraokePlayer {
     ctx.globalAlpha = alpha
     this._drawImageFit(ctx, this._logoImg, (W - boxW) / 2, (H - boxH) / 2, boxW, boxH)
     ctx.globalAlpha = 1.0
+  }
+
+  // Индикатор загрузки под логотипом, рисуется только в фазе !_ready. Как только известен хоть
+  // какой-то прогресс скачивания (_loadProgress != null) — показываем прогресс-полосу и держим её
+  // до готовности: при p<1 подпись «N%», при p>=1 (скачивание закончилось, идёт decodeAudioData,
+  // прогресса по нему нет) полоса стоит заполненной с подписью «Обработка...». Спиннер — только для
+  // самой начальной фазы (p===null: playerdata/шрифты/картинки, байт ещё нет). Это убирает резкий
+  // визуальный скачок «полоса → спиннер», когда скачивание с локального хранилища почти мгновенно.
+  _renderLoadingIndicator(ctx, W, H) {
+    const p = this._loadProgress
+    const cx = W / 2
+    const y = Math.round(H * 0.72)   // ниже бокса логотипа (40%×40%, центрирован)
+    const scale = H / 1080
+    const ACCENT = 'rgb(255,136,0)'      // #f80 — акцент плеера
+    const TRACK = 'rgba(255,255,255,0.15)'
+
+    if (p !== null) {
+      // Есть прогресс скачивания: полоса + подпись «N%» / «Обработка...»
+      const barW = Math.min(W * 0.4, Math.round(480 * scale))
+      const barH = Math.max(4, Math.round(8 * scale))
+      const barX = cx - barW / 2
+      const r = barH / 2
+      ctx.fillStyle = TRACK
+      ctx.beginPath(); ctx.roundRect(barX, y, barW, barH, r); ctx.fill()
+      if (p < 1) {
+        // Скачивание: заполнение = доля скачанного
+        ctx.fillStyle = ACCENT
+        ctx.beginPath(); ctx.roundRect(barX, y, Math.max(barH, barW * p), barH, r); ctx.fill()
+      } else {
+        // Декодирование (прогресса нет): полоса заполнена целиком, мягкая пульсация яркости
+        const pulse = 0.4 + 0.6 * (0.5 + 0.5 * Math.sin(performance.now() / 1000 * Math.PI * 1.6))
+        ctx.globalAlpha = pulse
+        ctx.fillStyle = ACCENT
+        ctx.beginPath(); ctx.roundRect(barX, y, barW, barH, r); ctx.fill()
+        ctx.globalAlpha = 1
+      }
+
+      const fs = Math.max(14, Math.round(28 * scale))
+      ctx.font = `600 ${fs}px sans-serif`
+      ctx.fillStyle = 'rgba(255,255,255,0.85)'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'top'
+      ctx.fillText(p < 1 ? `${Math.round(p * 100)}%` : 'Обработка...', cx, y + barH + Math.round(14 * scale))
+      ctx.textAlign = 'left'
+      ctx.textBaseline = 'alphabetic'
+    } else {
+      // Начальная фаза, байт ещё нет: спиннер + «Загрузка...»
+      const radius = Math.max(14, Math.round(26 * scale))
+      const lw = Math.max(3, Math.round(4 * scale))
+      const t = performance.now() / 1000
+      const start = (t * Math.PI * 1.6) % (Math.PI * 2)
+      ctx.save()
+      ctx.lineWidth = lw
+      ctx.strokeStyle = TRACK
+      ctx.beginPath(); ctx.arc(cx, y, radius, 0, Math.PI * 2); ctx.stroke()
+      ctx.strokeStyle = ACCENT
+      ctx.lineCap = 'round'
+      ctx.beginPath(); ctx.arc(cx, y, radius, start, start + Math.PI * 0.5); ctx.stroke()
+      ctx.restore()
+
+      const fs = Math.max(12, Math.round(22 * scale))
+      ctx.font = `500 ${fs}px sans-serif`
+      ctx.fillStyle = 'rgba(255,255,255,0.7)'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'top'
+      ctx.fillText('Загрузка...', cx, y + radius + Math.round(16 * scale))
+      ctx.textAlign = 'left'
+      ctx.textBaseline = 'alphabetic'
+    }
   }
 
   // ─── Splash ───────────────────────────────────────────────────────────────
@@ -2163,12 +2280,14 @@ export default class KaraokePlayer {
     this.isPlaying = false; this.duration = 0
     this.data = null; this.lines = []; this.voiceLines = []
     this._ready = false
+    this._loadProgress = null
     this._endedHandled = false
     this._cachedCanvasW = null; this._cachedVoiceXStart = null
     this._lastWsSync = 0
     this.flashTimes = []
     this._isPrerolling = false; this._dtPaused = 0
     this._silentOffset = 0; this._preroll = this._splashDur
+    this._startFadeStartedAt = null
     this._endFadeStartedAt = null
     this._volumeAnchored = false
     clearTimeout(this._prerollTimeout); this._prerollTimeout = null

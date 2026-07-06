@@ -61,6 +61,11 @@
           <div class="km-nav-title">Поиск песен</div>
           <div class="km-nav-desc">По исполнителю, названию и тексту</div>
         </RouterLink>
+        <RouterLink to="/account/playlists" class="km-nav-card">
+          <div class="km-nav-icon">🔖</div>
+          <div class="km-nav-title">Избранное и плейлисты</div>
+          <div class="km-nav-desc">Ваши сохранённые песни и плейлисты</div>
+        </RouterLink>
       </div>
 
       <!-- Соцсети -->
@@ -264,6 +269,8 @@ export default {
   gap: 1rem;
   margin-bottom: 2.5rem;
 }
+/* Третья карточка (Избранное/плейлисты) в 2-колоночной сетке — на всю ширину для баланса. */
+.km-nav-cards .km-nav-card:nth-child(3):last-child { grid-column: 1 / -1; }
 .km-nav-card {
   display: block;
   background: var(--km-card);

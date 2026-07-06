@@ -2773,7 +2773,7 @@ fun hostCpuCoreCount(): Int = Runtime.getRuntime().availableProcessors()
 // Флаг --cpus для docker run/docker compose run: percent — доля от суммарной мощности хоста (0-100).
 // docker трактует --cpus 0 как "без ограничения" (не "ноль"), поэтому значение никогда не форматируется в 0.
 fun dockerCpusFlag(percent: Long): List<String> {
-    if (!Karaoke.resourceLimitsEnabled) return emptyList()
+    if (!Karaoke.resourceLimitsEnabled || percent <= 0) return emptyList()
     val cpus = (hostCpuCoreCount() * percent / 100.0).coerceAtLeast(0.05)
     return listOf("--cpus", String.format(Locale.ROOT, "%.2f", cpus))
 }
@@ -2782,19 +2782,29 @@ fun dockerCpusFlag(percent: Long): List<String> {
 // а не argv-флаг: "docker compose run" не поддерживает --cpus вообще (падает "unknown flag: --cpus"),
 // но применяет deploy.resources.limits.cpus даже без Swarm. "0" — значение docker'а для "без ограничения".
 fun dockerCpusEnvValue(percent: Long): String {
-    if (!Karaoke.resourceLimitsEnabled) return "0"
+    if (!Karaoke.resourceLimitsEnabled || percent <= 0) return "0"
     val cpus = (hostCpuCoreCount() * percent / 100.0).coerceAtLeast(0.05)
     return String.format(Locale.ROOT, "%.2f", cpus)
 }
 
 // Префикс cpulimit для голых (не докеризованных) процессов (ffmpeg, sheetsage.sh). cpulimit -l — это
 // процент ОДНОГО ядра, поэтому для той же семантики "percent от всего хоста", что и dockerCpusFlag,
-// значение умножается на число ядер. -i/--include-children обязателен: sheetsage.sh и ffmpeg с фильтрами
-// могут форкать дочерние процессы, без флага cpulimit ограничил бы только сам верхний процесс.
+// значение умножается на число ядер.
+// percent <= 0 означает "тип не лимитируется" (cpuLimitPercentForType.else) — обёртку не накладываем,
+// иначе layer 2 (refreshArgvCpuLimit) заворачивал бы в cpulimit даже те ffmpeg-шаги, которые layer 1
+// (createProcess) намеренно оставляет без лимита (FF_MP3_ACCOMPANIMENT/VOCAL/BASS/DRUMS и т.п.).
+// Флаги под установленный cpulimit 2.4 (пакет 2.7-2):
+// - -m/--monitor-forks — следить за дочерними процессами (аналог прежнего -i/--include-children, которого
+//   в этой версии НЕТ; передача несуществующего -i заставляла cpulimit печатать help и НЕ запускать
+//   программу вовсе — задание завершалось за доли секунды без результата).
+// - -f/--foreground — запустить программу в foreground и ДОЖДАТЬСЯ её завершения. Без -f cpulimit в
+//   режиме "-- PROGRAM" возвращает управление сразу, ffmpeg остаётся осиротевшим/убитым, и на выходе
+//   получается обрезанный/пустой файл. stdout программы при -f прокидывается наружу — парсинг прогресса
+//   (time=/percentage) в KaraokeProcessWorker продолжает работать.
 fun cpulimitPrefix(percent: Long): List<String> {
-    if (!Karaoke.resourceLimitsEnabled) return emptyList()
+    if (!Karaoke.resourceLimitsEnabled || percent <= 0) return emptyList()
     val value = (hostCpuCoreCount() * percent).coerceAtLeast(1)
-    return listOf("cpulimit", "-l", value.toString(), "-i", "--")
+    return listOf("cpulimit", "-l", value.toString(), "-m", "-f", "--")
 }
 
 fun cpuLimitPercentForType(type: KaraokeProcessTypes): Long {
@@ -2810,7 +2820,12 @@ fun cpuLimitPercentForType(type: KaraokeProcessTypes): Long {
         KaraokeProcessTypes.SHEETSAGE2 -> Karaoke.cpuLimitPercentSheetsage2
         KaraokeProcessTypes.FF_720_KAR -> Karaoke.cpuLimitPercentFf720Kar
         KaraokeProcessTypes.FF_720_LYR -> Karaoke.cpuLimitPercentFf720Lyr
-        else -> 100L
+        // 0 = тип НЕ лимитируется по CPU. Раньше здесь было 100L, из-за чего layer 2
+        // (refreshArgvCpuLimit) заворачивал в cpulimit любой ffmpeg-шаг нелимитируемого типа
+        // (в частности FF_MP3_ACCOMPANIMENT/VOCAL/BASS/DRUMS) — layer 1 (createProcess) их
+        // намеренно НЕ оборачивает, поэтому и layer 2 не должен. cpulimitPrefix/dockerCpusFlag/
+        // dockerCpusEnvValue трактуют percent<=0 как "без обёртки/без лимита".
+        else -> 0L
     }
 }
 

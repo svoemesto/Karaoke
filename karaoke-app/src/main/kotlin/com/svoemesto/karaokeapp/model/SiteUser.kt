@@ -11,7 +11,7 @@ import org.springframework.security.crypto.password.PasswordEncoder
 import java.io.Serializable
 import java.sql.Timestamp
 
-// Пользователь публичного сайта (karaoke-public). НЕ путать с Users (админские логины webvue3, tbl_users).
+// Пользователь публичного сайта (karaoke-public).
 @JsonIgnoreProperties(value = ["database", "sqlToInsert"])
 class SiteUser(
     override val database: KaraokeConnection = WORKING_DATABASE,

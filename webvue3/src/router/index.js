@@ -6,17 +6,13 @@ import PublishView from '../views/PublishView.vue';
 import ProcessesView from '../views/ProcessesView.vue';
 import PropertiesView from '../views/PropertiesView.vue';
 import AuthorsView from '../views/AuthorsView.vue';
-import UsersView from '../views/UsersView.vue';
 import SiteUsersView from '../views/SiteUsersView.vue';
 import SitePlaylistsView from '../views/SitePlaylistsView.vue';
 import SongEditorView from '../views/SongEditorView.vue';
 import PublicSettingsView from '../views/PublicSettingsView.vue';
 import PicturesView from '../views/PicturesView.vue';
-import AuthView from '../views/AuthView.vue';
-import CallbackView from '../views/CallbackView.vue';
 import StatsView from '../views/StatsView.vue';
 import SyncView from '../views/SyncView.vue';
-import AuthService from '../services/AuthService';
 
 const routes = [
   {
@@ -55,11 +51,6 @@ const routes = [
     component: PicturesView
   },
   {
-    path: '/users',
-    name: 'users',
-    component: UsersView
-  },
-  {
     path: '/siteusers',
     name: 'siteusers',
     component: SiteUsersView
@@ -90,16 +81,6 @@ const routes = [
     component: SyncView
   },
   {
-    path: '/auth',
-    name: 'auth',
-    component: AuthView
-  },
-  {
-    path: '/callback', // Маршрут для обработки callback
-    name: 'callback',
-    component: CallbackView
-  },
-  {
     path: '/player/:id',
     name: 'player',
     component: () => import('../views/PlayerView.vue')
@@ -109,21 +90,6 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes
-});
-
-// Обработчик перед каждым переходом
-router.beforeEach(async (to, from, next) => {
-  if (to.path === '/callback') {
-    try {
-      await AuthService.signinCallback(); // Обрабатываем callback
-      next('/');
-    } catch (error) {
-      console.error('Callback processing error:', error);
-      next('/auth');
-    }
-  } else {
-    next();
-  }
 });
 
 export default router;

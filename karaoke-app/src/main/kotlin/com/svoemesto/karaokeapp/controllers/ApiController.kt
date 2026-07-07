@@ -3332,6 +3332,7 @@ class ApiController(
 
     @GetMapping("/subscribe")
     fun subscribeSse(
+        @RequestParam(required = false) tabId: String?,
         response: HttpServletResponse
     ): SseEmitter {
 
@@ -3340,10 +3341,12 @@ class ApiController(
         response.setHeader("Content-Type", MediaType.TEXT_EVENT_STREAM_VALUE)
         response.setHeader("X-Accel-Buffering", "no")
 
-//        val tabId: String = "tabId"
-//        val userId: Long = 1L
+        // Каждая вкладка браузера присылает свой tabId (см. getTabId() в webvue3/src/lib/utils.js) -
+        // так у каждой вкладки своё независимое SSE-соединение и она получает все broadcast-события.
+        // Fallback на случайный UUID - для старых клиентов без tabId в запросе.
+        val realTabId = if (tabId.isNullOrBlank()) UUID.randomUUID().toString() else tabId
 
-        return sseNotificationService.subscribe()
+        return sseNotificationService.subscribe(1L, realTabId)
     }
 
     // Получаем properties

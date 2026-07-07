@@ -92,10 +92,11 @@
                 <th title="Плеер: прогресс прослушивания">Прогр.</th>
                 <th title="Плеер: завершение трека">Заверш.</th>
                 <th>VK кар.</th><th>VK тек.</th><th>Dzen кар.</th><th>Dzen тек.</th><th>TG кар.</th><th>TG тек.</th>
+                <th title="Клики по ссылке MAX">MAX</th><th title="Клики по ссылке Sponsr">Sponsr</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="row in statsBySong" :key="row.songId">
+              <tr v-for="row in statsBySong" :key="row.songId" class="clickable-row" @click="openSong(row)" title="Подробная статистика по песне">
                 <td>{{ row.songId }}</td>
                 <td class="text-start">{{ row.description }}</td>
                 <td class="fw-bold">{{ row.cntTotal }}</td>
@@ -105,6 +106,7 @@
                 <td>{{ row.cntVkKaraoke }}</td><td>{{ row.cntVkLyrics }}</td>
                 <td>{{ row.cntDzenKaraoke }}</td><td>{{ row.cntDzenLyrics }}</td>
                 <td>{{ row.cntTgKaraoke }}</td><td>{{ row.cntTgLyrics }}</td>
+                <td>{{ row.cntMax }}</td><td>{{ row.cntSponsr }}</td>
               </tr>
             </tbody>
           </table>
@@ -204,6 +206,15 @@
         :cap="userEventsPageSize"
         @close="selectedUser = null" />
 
+    <SongEventsModal
+        v-if="selectedSong"
+        :song="selectedSong"
+        :events="songEvents"
+        :total-count="songEventsTotalCount"
+        :is-loading="songEventsIsLoading"
+        :cap="songEventsPageSize"
+        @close="selectedSong = null" />
+
   </div>
 </template>
 
@@ -216,10 +227,11 @@ import DetailBreakdown from '../components/Stats/DetailBreakdown.vue'
 import GeoReferrers from '../components/Stats/GeoReferrers.vue'
 import TopUsersTable from '../components/Stats/TopUsersTable.vue'
 import UserEventsModal from '../components/Stats/UserEventsModal.vue'
+import SongEventsModal from '../components/Stats/SongEventsModal.vue'
 
 export default {
   name: 'StatsView',
-  components: { BSpinner, BPagination, KpiCards, TimeSeriesChart, TypeChannelBreakdown, DetailBreakdown, GeoReferrers, TopUsersTable, UserEventsModal },
+  components: { BSpinner, BPagination, KpiCards, TimeSeriesChart, TypeChannelBreakdown, DetailBreakdown, GeoReferrers, TopUsersTable, UserEventsModal, SongEventsModal },
   data() {
     return {
       statsBySongPage: 1,
@@ -233,6 +245,9 @@ export default {
       selectedUser: null,
       // Drill-down грузим одним запросом (для дерева нужны все события пользователя); 2000 — потолок.
       userEventsPageSize: 2000,
+      selectedSong: null,
+      // Drill-down по песне тоже одним запросом (дереву нужны все события песни).
+      songEventsPageSize: 2000,
     }
   },
   computed: {
@@ -257,6 +272,9 @@ export default {
     statsBySong() { return this.$store.getters.getStatsBySong },
     statsBySongIsLoading() { return this.$store.getters.getStatsBySongIsLoading },
     statsBySongTotalCount() { return this.$store.getters.getStatsBySongTotalCount },
+    songEvents() { return this.$store.getters.getStatsSongEvents },
+    songEventsTotalCount() { return this.$store.getters.getStatsSongEventsTotalCount },
+    songEventsIsLoading() { return this.$store.getters.getStatsSongEventsIsLoading },
     webEvents() { return this.$store.getters.getWebEvents },
     webEventsIsLoading() { return this.$store.getters.getWebEventsIsLoading },
     webEventsTotalCount() { return this.$store.getters.getWebEventsTotalCount },
@@ -330,6 +348,18 @@ export default {
         pageSize: this.userEventsPageSize,
       })
     },
+    openSong(row) {
+      this.selectedSong = row
+      this.loadSongEvents()
+    },
+    loadSongEvents() {
+      const s = this.selectedSong
+      this.$store.dispatch('loadStatsSongEvents', {
+        songId: s.songId,
+        page: 1,
+        pageSize: this.songEventsPageSize,
+      })
+    },
     formatDate(ts) {
       if (!ts) return ''
       return new Date(ts).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })
@@ -363,4 +393,6 @@ export default {
 .stats-table th, .stats-table td { white-space: nowrap; vertical-align: middle; }
 .events-table { font-size: 0.75rem; }
 .cell-clip { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.clickable-row { cursor: pointer; }
+.clickable-row:hover { background-color: rgba(0, 0, 0, 0.05); }
 </style>

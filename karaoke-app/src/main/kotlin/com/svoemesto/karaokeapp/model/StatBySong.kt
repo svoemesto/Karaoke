@@ -34,6 +34,8 @@ data class StatBySongDto(
     val cntDzenLyrics: Int,
     val cntTgKaraoke: Int,
     val cntTgLyrics: Int,
+    val cntMax: Int,
+    val cntSponsr: Int,
 )
 
 // Строка лога событий: и человекочитаемые поля (eventType/eventDescription), и ВСЕ сырые колонки
@@ -117,7 +119,7 @@ object StatsByEvents {
     // Собирает WHERE-условия лога событий из опциональных фильтров (тип события, дата "с",
     // конкретный пользователь для drill-down). Значения санируются: eventType — из белого списка
     // enum EventType; siteUserId — Long; fromDate — целое число дней. SQL-инъекция исключена.
-    private fun buildEventsWhere(eventType: String?, fromDays: Int?, siteUserId: Long?, anonId: String? = null): String {
+    private fun buildEventsWhere(eventType: String?, fromDays: Int?, siteUserId: Long?, anonId: String? = null, songId: Long? = null): String {
         val conds = mutableListOf("last_update is not null")
         eventType?.let { et -> EventType.fromDb(et)?.let { conds.add("event_type = '${it.dbValue}'") } }
         fromDays?.let { if (it > 0) conds.add("last_update >= now() - interval '$it days'") }
@@ -128,6 +130,7 @@ object StatsByEvents {
             val safe = it.take(64).replace("'", "''")
             conds.add("site_user_id = 0 and anon_id = '$safe'")
         }
+        songId?.let { if (it > 0) conds.add("song_id = $it") }
         return conds.joinToString(" and ")
     }
 
@@ -137,13 +140,14 @@ object StatsByEvents {
         fromDays: Int? = null,
         siteUserId: Long? = null,
         anonId: String? = null,
+        songId: Long? = null,
     ): Int {
         val connection = database.getConnection() ?: return 0
         var statement: Statement? = null
         var rs: ResultSet? = null
         try {
             statement = connection.createStatement()
-            rs = statement.executeQuery("select count(*) as cnt from tbl_events where ${buildEventsWhere(eventType, fromDays, siteUserId, anonId)}")
+            rs = statement.executeQuery("select count(*) as cnt from tbl_events where ${buildEventsWhere(eventType, fromDays, siteUserId, anonId, songId)}")
             return if (rs.next()) rs.getInt("cnt") else 0
         } catch (e: SQLException) {
             e.printStackTrace()
@@ -166,12 +170,13 @@ object StatsByEvents {
         fromDays: Int? = null,
         siteUserId: Long? = null,
         anonId: String? = null,
+        songId: Long? = null,
         storageService: KaraokeStorageService = KSS_APP,
         storageApiClient: StorageApiClient = SAC_APP
     ): List<WebEventDto> {
         val result: MutableList<WebEventDto> = mutableListOf()
         val sql = """
-            select * from tbl_events where ${buildEventsWhere(eventType, fromDays, siteUserId, anonId)} order by last_update desc, id desc limit $limit offset $offset
+            select * from tbl_events where ${buildEventsWhere(eventType, fromDays, siteUserId, anonId, songId)} order by last_update desc, id desc limit $limit offset $offset
         """.trimIndent()
 
         val connection = database.getConnection()
@@ -346,7 +351,9 @@ object StatsByEvents {
                 count(*) filter (where e.song_version = 'karaoke' and e.link_name = 'dzen') as dzen_kar,
                 count(*) filter (where e.song_version = 'lyrics' and e.link_name = 'dzen') as dzen_lyr,
                 count(*) filter (where e.song_version = 'karaoke' and e.link_name = 'tg') as tg_kar,
-                count(*) filter (where e.song_version = 'lyrics' and e.link_name = 'tg') as tg_lyr
+                count(*) filter (where e.song_version = 'lyrics' and e.link_name = 'tg') as tg_lyr,
+                count(*) filter (where e.link_name = 'max') as max_clicks,
+                count(*) filter (where e.link_name = 'sponsr') as sponsr_clicks
             from tbl_events e
             left join tbl_settings sett on e.song_id = sett.id
             where e.song_id is not null and e.song_id > 0
@@ -388,6 +395,8 @@ object StatsByEvents {
                         cntDzenLyrics = rs.getInt("dzen_lyr"),
                         cntTgKaraoke = rs.getInt("tg_kar"),
                         cntTgLyrics = rs.getInt("tg_lyr"),
+                        cntMax = rs.getInt("max_clicks"),
+                        cntSponsr = rs.getInt("sponsr_clicks"),
                     )
                 )
             }

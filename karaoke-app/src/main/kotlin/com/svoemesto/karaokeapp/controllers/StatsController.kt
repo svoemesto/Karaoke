@@ -136,4 +136,19 @@ class StatsController {
         val totalCount = StatsByEvents.getWebEventsCount(database = db, siteUserId = suid, anonId = anonId)
         mapOf("items" to items, "totalCount" to totalCount)
     }
+
+    // Drill-down: все события конкретной песни (переиспользует /api/webevents с фильтром по song_id)
+    // — клик по строке таблицы «Топ песен по событиям».
+    @GetMapping("/api/stats/song-events")
+    fun songEvents(
+        @RequestParam(required = false) target: String?,
+        @RequestParam songId: Long,
+        @RequestParam(required = false, defaultValue = "1") page: Int,
+        @RequestParam(required = false, defaultValue = "50") pageSize: Int,
+    ): Map<String, Any> = withDb(target) { db ->
+        val offset = (page - 1).coerceAtLeast(0) * pageSize
+        val items = StatsByEvents.getWebEvents(database = db, limit = pageSize, offset = offset, songId = songId)
+        val totalCount = StatsByEvents.getWebEventsCount(database = db, songId = songId)
+        mapOf("items" to items, "totalCount" to totalCount)
+    }
 }

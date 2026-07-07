@@ -9,7 +9,8 @@
       </div>
     </header>
 
-    <div v-if="loading" class="km-loading">Загрузка...</div>
+    <LoginRequired v-if="!isLoggedIn" />
+    <div v-else-if="loading" class="km-loading">Загрузка...</div>
     <div v-else-if="notFound" class="km-loading">Плейлист не найден.</div>
 
     <div v-else class="km-content">
@@ -99,13 +100,16 @@ import {
   reorderPlaylist, setSongMute, removeSongFromPlaylist,
 } from '../services/playlistApi'
 import { usePlayerReadiness } from '../composables/usePlayerReadiness'
+import { useAuth } from '../composables/useAuth'
+import LoginRequired from '../components/LoginRequired.vue'
 
 export default {
   name: 'PlaylistEditView',
-  components: { draggable },
+  components: { draggable, LoginRequired },
   setup() {
     const route = useRoute()
     const readiness = usePlayerReadiness()
+    const { isLoggedIn } = useAuth()
 
     const id = Number(route.params.id)
     const loading = ref(true)
@@ -256,7 +260,11 @@ export default {
       })
     }
 
-    onMounted(async () => { window.addEventListener('message', onMessage); await load() })
+    onMounted(async () => {
+      if (!isLoggedIn.value) { loading.value = false; return }
+      window.addEventListener('message', onMessage)
+      await load()
+    })
     onBeforeUnmount(() => {
       window.removeEventListener('message', onMessage)
       clearTimeout(saveTimer)
@@ -264,6 +272,7 @@ export default {
     })
 
     return {
+      isLoggedIn,
       loading, notFound, playlist, items, nameEdit, settings,
       playerIframe, started, firstSongId, isPlaying, currentSongId, playerWide, hasPlayable,
       repeatLabel, repeatTitle,

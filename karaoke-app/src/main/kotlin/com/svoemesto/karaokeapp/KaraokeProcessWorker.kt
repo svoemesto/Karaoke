@@ -311,7 +311,6 @@ class KaraokeProcessWorker {
 //            var processType = ""
 //            var percentage = 0.0
 
-            val intervalCheckDummy = 6_000
             val intervalCheckFiles = 24_000
             var requestNewSongTimeoutMs = Karaoke.requestNewSongTimeoutMs
             var requestNewSongLastTimeMs = Karaoke.requestNewSongLastTimeMs
@@ -470,10 +469,6 @@ class KaraokeProcessWorker {
                     }
                 }
 
-
-                if (counter % (intervalCheckDummy / timeout) == 0L) {
-                    SNS.send(SseNotification.dummy())
-                }
 
                 counter++
                 if (!withoutControl) {

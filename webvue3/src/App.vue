@@ -58,9 +58,41 @@ import {EventSourcePolyfill} from "event-source-polyfill";
 import store from "./store/index.js";
 import {useToast} from "bootstrap-vue-next";
 import {h} from "vue";
+import {getTabId} from "./lib/utils.js";
+
+const SSE_RECONNECT_DELAY_MS = 4000;
 
 export default {
+  data() {
+    return {
+      msgServer: null,
+      sseReconnectTimer: null,
+    }
+  },
   methods: {
+    connectSse(create) {
+      // У каждой вкладки свой tabId (см. getTabId()) - сервер держит по нему отдельный SSE-канал
+      // (см. TabIdFilter/SseNotificationService в karaoke-app) вместо общего на всё приложение.
+      const msgServer = new EventSourcePolyfill(`/api/subscribe?tabId=${encodeURIComponent(getTabId())}`, {
+        heartbeatTimeout: 30000, // > серверного heartbeat (15с), < дефолта полифилла (45с)
+      });
+      msgServer.addEventListener('user', (event) => {
+        this.userEvent(JSON.parse(event.data).payload, create)
+      }, false);
+      msgServer.onerror = () => {
+        if (msgServer.readyState === msgServer.CLOSED) {
+          this.scheduleSseReconnect(create);
+        }
+      };
+      this.msgServer = msgServer;
+    },
+    scheduleSseReconnect(create) {
+      if (this.sseReconnectTimer) return;
+      this.sseReconnectTimer = setTimeout(() => {
+        this.sseReconnectTimer = null;
+        this.connectSse(create);
+      }, SSE_RECONNECT_DELAY_MS);
+    },
     userEvent(userEvent, create) {
       switch (userEvent.type) {
         case 'RECORD_CHANGE': {
@@ -343,10 +375,7 @@ export default {
   async mounted() {
     console.log('APP mounted')
     const {create} = useToast();
-    const msgServer = new EventSourcePolyfill('/api/subscribe')
-    msgServer.addEventListener('user', (event) => {
-      this.userEvent(JSON.parse(event.data).payload, create)
-    }, false);
+    this.connectSse(create);
 
     this.$store.dispatch('setLastSettingType',{ value: await this.$store.getters.getWebvueProp('lastSettingType', 'COMMENT') });
     this.$store.dispatch('setLastSettingValue', { value: await this.$store.getters.getWebvueProp('lastSettingValue', 'Комментарий') });
@@ -361,6 +390,13 @@ export default {
     this.$store.dispatch('setLastPriorSymlinks', { value: await this.$store.getters.getWebvueProp('lastPriorSymlinks', '-1') });
     this.$store.dispatch('setLastPriorSmartCopy', { value: await this.$store.getters.getWebvueProp('lastPriorSmartCopy', '-1') });
 
+  },
+  beforeUnmount() {
+    if (this.sseReconnectTimer) {
+      clearTimeout(this.sseReconnectTimer);
+      this.sseReconnectTimer = null;
+    }
+    this.msgServer?.close();
   }
 }
 </script>

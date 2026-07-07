@@ -43,6 +43,7 @@
             alt=""
           />
           <span class="km-author-name">{{ zak.author }}</span>
+          <RouterLink :to="{ path: '/author-playlist', query: { author: zak.author } }" class="km-author-pl-btn" title="Плейлист автора">🎧 Плейлист автора</RouterLink>
         </div>
 
         <!-- Альбомы -->
@@ -319,6 +320,19 @@ export default {
   font-weight: 700;
   color: var(--km-text);
 }
+.km-author-pl-btn {
+  margin-left: auto;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--km-accent);
+  background: var(--km-card);
+  border: 1px solid var(--km-border);
+  border-radius: 16px;
+  padding: 0.3rem 0.8rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.km-author-pl-btn:hover { background: var(--km-hover); border-color: var(--km-accent); }
 
 /* Блок альбома */
 .km-album-block { margin-bottom: 1.5rem; }

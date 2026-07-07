@@ -10,6 +10,7 @@ import RegisterView from '../views/RegisterView.vue'
 import AccountView from '../views/AccountView.vue'
 import PlaylistsView from '../views/PlaylistsView.vue'
 import PlaylistEditView from '../views/PlaylistEditView.vue'
+import AuthorPlaylistView from '../views/AuthorPlaylistView.vue'
 import EditorTasksView from '../views/EditorTasksView.vue'
 import EditorWorkView from '../views/EditorWorkView.vue'
 
@@ -38,6 +39,8 @@ const routes = [
   // зарегистрированных» с кнопками Войти/Регистрация (LoginRequired).
   { path: '/account/playlists', name: 'playlists', component: PlaylistsView },
   { path: '/account/playlists/:id', name: 'playlist-edit', component: PlaylistEditView },
+  // Динамический read-only плейлист автора (все песни автора). Аноним — LoginRequired внутри.
+  { path: '/author-playlist', name: 'author-playlist', component: AuthorPlaylistView },
   { path: '/account/editor', name: 'editor-tasks', component: EditorTasksView, beforeEnter: requireAuth },
   { path: '/account/editor/:id', name: 'editor-work', component: EditorWorkView, beforeEnter: requireAuth },
   {

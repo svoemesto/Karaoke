@@ -227,8 +227,12 @@ authorization server внутри `karaoke-app` (`config/AuthorizationServerConf
 `oidc-client-ts` (`services/AuthService.js`, `AuthView.vue`/`CallbackView.vue`).
 **Vuex-паттерны (Songs/store.js):** мутации — только sync-присвоение `state`; весь async (XHR, dispatch) — в
 actions; HR-запросы таблицы — через очередь (`HR_MAX_CONCURRENT=3`); удаление/правки песни — через SSE
-(`recordDelete`/`recordChange`), не локальным рендерингом. **Детали** → memory (`feedback_vuex_async_mutations`,
-`feedback_hr_request_queue`, `project_delete_song_fix`, `project_process_worker_progress_ui_per_thread`).
+(`recordDelete`/`recordChange`), не локальным рендерингом. Фильтры табличных вьюшек (Songs/Users/Authors/
+Pictures/Properties/Processes/Publish) персистятся через связку Vuex-модуль `<Entity>/filter/store.js` +
+`setWebvueProp`/`getWebvueProp` (сервер-сайд key/value, переживает переход между вьюшками и `F5`) — новый
+фильтр всегда заводить по этому шаблону, не локальным `data()` компонента. **Детали** → memory
+(`feedback_vuex_async_mutations`, `feedback_hr_request_queue`, `project_delete_song_fix`,
+`project_process_worker_progress_ui_per_thread`, `project_webvue3_filter_persistence`).
 
 **Storage (MinIO).** Сгенерированная медиа (аудио-стемы, видео, картинки) живёт в MinIO-совместимом объектном
 хранилище (`services/StorageApiClient.kt` / `KaraokeStorageService.kt`, `StorageController`/
@@ -269,6 +273,9 @@ actions; HR-запросы таблицы — через очередь (`HR_MAX
   дополнительно инициализирует `SNS` (иначе первый INSERT через `KaraokeDbTable` из karaoke-web упал бы).
 - **webvue3 nginx `/api`.** `proxy_pass` на docker-сервис — через переменную + `resolver 127.0.0.11`, не
   литералом (литерал роняет nginx, если целевой контейнер не поднят при старте).
+- **do.sh не должен печатать секреты.** Никакой `echo`/`cat`/`printenv` с `DOCKER_PASSWORD` и другими
+  токенами/паролями в `do.sh` (ни в репо, ни в рантайм-копии `/sm-karaoke/system/deploy/do.sh`) — попадает в
+  открытом виде в лог/переписку с ассистентом. Секреты живут только в `do.env`/`.env` (в `.gitignore`).
 
 ## Git — что НЕ добавлять в репозиторий
 

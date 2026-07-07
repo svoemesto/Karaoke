@@ -37,7 +37,6 @@ echo "BUILD_VERSION = $BUILD_VERSION"
 echo "DOCKER = $DOCKER"
 echo "COMPOSE = $COMPOSE"
 echo "DOCKER_REGISTRY = $DOCKER_REGISTRY"
-echo "DOCKER_PASSWORD = $DOCKER_PASSWORD"
 
 function do_build() {
   bl_begin karaoke-web "build" karaoke-app karaoke-web; local rc=$?

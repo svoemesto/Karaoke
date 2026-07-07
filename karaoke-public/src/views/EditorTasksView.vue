@@ -51,8 +51,8 @@ import { STATUS_LABELS } from '../composables/editorStatus'
 export default {
   name: 'EditorTasksView',
   setup() {
-    const { token, fetchMe } = useAuth()
-    return { token, fetchMe }
+    const { token, user, fetchMe } = useAuth()
+    return { token, user, fetchMe }
   },
   data() {
     return { tasks: [], loading: true }
@@ -61,6 +61,10 @@ export default {
     await this.fetchMe()
     if (!this.token) {
       this.$router.push({ path: '/login', query: { redirect: '/account/editor' } })
+      return
+    }
+    if (!this.user || !this.user.editor) {
+      this.$router.push('/account')
       return
     }
     await this.load()

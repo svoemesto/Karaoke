@@ -30,6 +30,13 @@
           </label>
         </div>
         <div class="label-and-input">
+          <div class="label">Редактор караоке:</div>
+          <label class="sue-checkbox-label">
+            <input type="checkbox" v-model="siteUserCurrent.editor">
+            <span class="sue-hint">(доступ к онлайн-редактору разметки на публичном сайте)</span>
+          </label>
+        </div>
+        <div class="label-and-input">
           <div class="label">Лимит избранного:</div>
           <input class="input-field sue-num" type="number" min="0" v-model.number="siteUserCurrent.maxFavorites">
           <span class="sue-hint">0 = дефолт (100)</span>

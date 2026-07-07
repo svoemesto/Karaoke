@@ -58,6 +58,9 @@ class SiteUser(
     @KaraokeDbTableField(name = "max_playlist_items")
     var maxPlaylistItems: Int = 0
 
+    @KaraokeDbTableField(name = "is_editor")
+    var isEditor: Boolean = false
+
     @KaraokeDbTableField(name = "is_banned")
     var isBanned: Boolean = false
 
@@ -87,6 +90,7 @@ class SiteUser(
         isPremium = isPremium,
         isPermanentPremium = isPermanentPremium,
         isEffectivePremium = isEffectivePremium,
+        isEditor = isEditor,
         isBanned = isBanned,
         banReason = banReason,
         maxFavorites = maxFavorites,

@@ -11,6 +11,7 @@ data class SiteUserDto(
     val isPremium: Boolean = false,
     val isPermanentPremium: Boolean = false,
     val isEffectivePremium: Boolean = false,
+    val isEditor: Boolean = false,
     val isBanned: Boolean = false,
     val banReason: String = "",
     // Персональные лимиты (0 = дефолт). Без is-префикса — JSON-ключи maxFavorites/... как есть.
@@ -38,6 +39,7 @@ data class SiteUserDto(
         entity.email = email
         entity.displayName = displayName
         entity.sponsrUid = sponsrUid
+        entity.isEditor = isEditor
         entity.isBanned = isBanned
         entity.banReason = banReason
         entity.maxFavorites = maxFavorites

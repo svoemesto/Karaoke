@@ -21,7 +21,7 @@
         <span class="km-nav-card-arrow">→</span>
       </RouterLink>
 
-      <RouterLink to="/account/editor" class="km-nav-card">
+      <RouterLink v-if="isEditor" to="/account/editor" class="km-nav-card">
         <span class="km-nav-card-title">🎤 Редактор караоке</span>
         <span class="km-nav-card-arrow">→</span>
       </RouterLink>
@@ -78,6 +78,9 @@ export default {
   computed: {
     isPremium() {
       return !!(this.user && this.user.effectivePremium)
+    },
+    isEditor() {
+      return !!(this.user && this.user.editor)
     }
   },
   data() {

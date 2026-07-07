@@ -9,6 +9,7 @@ import AuthorsView from '../views/AuthorsView.vue';
 import UsersView from '../views/UsersView.vue';
 import SiteUsersView from '../views/SiteUsersView.vue';
 import SitePlaylistsView from '../views/SitePlaylistsView.vue';
+import SongEditorView from '../views/SongEditorView.vue';
 import PublicSettingsView from '../views/PublicSettingsView.vue';
 import PicturesView from '../views/PicturesView.vue';
 import AuthView from '../views/AuthView.vue';
@@ -66,6 +67,11 @@ const routes = [
     path: '/siteplaylists',
     name: 'siteplaylists',
     component: SitePlaylistsView
+  },
+  {
+    path: '/songeditor',
+    name: 'songeditor',
+    component: SongEditorView
   },
   {
     path: '/publicsettings',

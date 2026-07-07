@@ -18,6 +18,7 @@
             <li class="nav-item"><router-link class="nav-link" to="/users">Пользователи</router-link></li>
             <li class="nav-item"><router-link class="nav-link" to="/siteusers">Пользователи сайта</router-link></li>
             <li class="nav-item"><router-link class="nav-link" to="/siteplaylists">Плейлисты</router-link></li>
+            <li class="nav-item"><router-link class="nav-link" to="/songeditor">Задания редактора</router-link></li>
             <li class="nav-item"><router-link class="nav-link" to="/publicsettings">Настройки сайта</router-link></li>
             <li class="nav-item"><router-link class="nav-link" to="/stats">Статистика</router-link></li>
             <li class="nav-item"><router-link class="nav-link" to="/auth">Login</router-link></li>

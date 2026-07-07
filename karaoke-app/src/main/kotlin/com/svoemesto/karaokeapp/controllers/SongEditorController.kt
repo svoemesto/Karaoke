@@ -10,11 +10,9 @@ import com.svoemesto.karaokeapp.model.SiteUser
 import com.svoemesto.karaokeapp.model.SongAssignment
 import com.svoemesto.karaokeapp.model.SongAssignmentDraft
 import com.svoemesto.karaokeapp.model.SongAssignmentStatus
-import com.svoemesto.karaokeapp.model.SourceMarker
 import com.svoemesto.karaokeapp.runCommand
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.StorageApiClient
-import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import org.springframework.stereotype.Controller
 import org.springframework.web.bind.annotation.PostMapping
@@ -91,15 +89,22 @@ class SongEditorController(
 
     // --- Эндпоинты ---
 
-    // Назначить песню (голос) пользователю сайта. Заодно гарантирует наличие вокала/минуса в MinIO.
+    // Назначить песню (ВСЮ, все голоса) пользователю сайта. Заодно гарантирует наличие вокала/минуса
+    // в MinIO. Поле SongAssignment.voice сохранено в схеме (не удалено ради избежания SQL-миграции),
+    // но больше ничего не определяет — задание всегда покрывает все голоса песни (см. approve/byId).
+    //
+    // target — где создавать (по умолчанию local): реальный цикл работы (назначить → пользователь
+    // делает → админ апрувит) часто идёт ЦЕЛИКОМ на PROD — тогда назначение должно появиться сразу
+    // на сервере, а не в LOCAL с последующим ожиданием push'а (songassignments теперь синкается
+    // SERVER_TO_LOCAL, как pull пользователей/статистики — см. SyncTarget.kt).
     @PostMapping("/assign")
     @ResponseBody
     fun assign(
         @RequestParam songId: Long,
         @RequestParam assigneeId: Long,
-        @RequestParam(required = false, defaultValue = "0") voice: Long,
         @RequestParam(required = false, defaultValue = "0") assignedBy: Long,
-    ): Map<String, Any?> = withDb("local") { db ->
+        @RequestParam(required = false) target: String?,
+    ): Map<String, Any?> = withDb(target) { db ->
         val settings = Settings.loadFromDbById(songId, db, storageService = storageService, storageApiClient = storageApiClient)
             ?: return@withDb mapOf("ok" to false, "error" to "song_not_found")
         SiteUser.getSiteUserById(assigneeId, db, storageService, storageApiClient)
@@ -107,12 +112,13 @@ class SongEditorController(
         SongAssignment.findExisting(songId, assigneeId, db, storageService, storageApiClient)?.let {
             return@withDb mapOf("ok" to false, "error" to "already_assigned", "id" to it.id)
         }
-        // Best-effort автозаливка стемов (не роняем назначение, если конвертация не удалась).
+        // Best-effort автозаливка стемов (не роняем назначение, если конвертация не удалась). karaoke-app
+        // работает только на машине админа — локальный диск с FLAC доступен независимо от того, в какую
+        // БД (local/remote) пишем сам SongAssignment.
         try { ensureStemsInStorage(settings) } catch (_: Exception) {}
         val a = SongAssignment(database = db, storageService = storageService, storageApiClient = storageApiClient)
         a.assigneeId = assigneeId
         a.songId = songId
-        a.voice = voice
         a.assignedBy = assignedBy
         a.adminStatus = SongAssignmentStatus.ADMIN_OPEN
         val created = KaraokeDbTable.createDbInstance(entity = a, database = db) as? SongAssignment
@@ -152,7 +158,6 @@ class SongEditorController(
                 "author" to (s?.author ?: ""),
                 "album" to (s?.album ?: ""),
                 "year" to (s?.year ?: 0),
-                "voice" to a.voice,
                 "status" to status.dbValue,
                 "adminStatus" to a.adminStatus,
                 "reviewComment" to a.reviewComment,
@@ -165,7 +170,8 @@ class SongEditorController(
         mapOf("songAssignmentsDigest" to list)
     }
 
-    // Одно задание + черновик (просмотр submitted в webvue3): текст/маркеры пользователя для ревью.
+    // Одно задание + черновик (просмотр submitted в webvue3): текст/маркеры пользователя для ревью,
+    // ПО ВСЕМ ГОЛОСАМ (draftSourceTexts/draftMarkersPerVoice — массивы, индекс = номер голоса).
     @PostMapping("/byId")
     @ResponseBody
     fun byId(@RequestParam id: Long, @RequestParam(required = false) target: String?): Any? = withDb(target) { db ->
@@ -184,61 +190,90 @@ class SongEditorController(
             "author" to (s?.author ?: ""),
             "album" to (s?.album ?: ""),
             "year" to (s?.year ?: 0),
-            "voice" to a.voice,
             "status" to status.dbValue,
             "adminStatus" to a.adminStatus,
             "reviewComment" to a.reviewComment,
             "assignedAt" to a.assignedAt,
             "reviewedAt" to a.reviewedAt,
             "submittedAt" to draft?.submittedAt,
-            "draftSourceText" to (draft?.editedSourceText ?: ""),
-            "draftMarkers" to (draft?.editedMarkers ?: "[]"),
+            "draftSourceTexts" to (draft?.editedTextsPerVoice(json) ?: emptyList()),
+            "draftMarkersPerVoice" to (draft?.editedMarkersPerVoice(json) ?: emptyList()),
         )
     }
 
-    // Одобрить: применить черновик в tbl_settings (setSourceMarkers пересчитывает resultText/
-    // formattedText*/srt + saveToDb) и поднять id_status до 3 (порог доступности в онлайн-плеере —
-    // PublicPlayerController.stemsReady). Только LOCAL (нужен локальный диск для .srt + WORKING_DATABASE).
+    // Одобрить: применить черновик в tbl_settings для КАЖДОГО голоса черновика (setSourceMarkers
+    // пересчитывает resultText/formattedText*/srt + saveToDb) и поднять id_status до 3 (порог
+    // доступности в онлайн-плеере — PublicPlayerController.stemsReady). Если голосов в черновике
+    // МЕНЬШЕ, чем сейчас в Settings — пользователь удалил хвостовые голоса, обрезаем их и в Settings
+    // (truncateVoicesTo).
+    //
+    // ЧТЕНИЕ задания/черновика уважает target (по умолчанию local): пока сайт-юзер работает на
+    // проде (karaoke-web), его черновик реально лежит НА СЕРВЕРЕ и может не быть ещё подтянут
+    // синхронизацией (songassignmentdrafts, SERVER_TO_LOCAL) — читать local в этом случае значило
+    // бы применить УСТАРЕВШУЮ разметку. id песни/задания ОДИНАКОВ в обеих БД (сам механизм sync
+    // требует стабильного общего ключа для диффа), поэтому SongAssignment/Settings по одному и тому
+    // же id в local/remote — одна и та же логическая сущность, путаницы с "чужой" записью нет.
+    //
+    // ЗАПИСЬ — ВСЕГДА в LOCAL, в двух местах: (1) Settings — karaoke-app умеет писать .srt/резолвить
+    // rootFolder только на локальном диске; (2) статус задания (adminStatus=APPROVED) — assignment
+    // authority = LOCAL (oneClickDirection LOCAL_TO_SERVER), если писать статус туда же, откуда
+    // читали (remote), следующий push перезатрёт апрув обратно старым статусом из local.
     @PostMapping("/approve")
     @ResponseBody
-    fun approve(@RequestParam id: Long): Map<String, Any?> = withDb("local") { db ->
-        val a = SongAssignment.getById(id, db, storageService, storageApiClient)
-            ?: return@withDb mapOf("ok" to false, "error" to "assignment_not_found")
-        val draft = SongAssignmentDraft.getByAssignment(id, db, storageService, storageApiClient)
-            ?: return@withDb mapOf("ok" to false, "error" to "draft_not_found")
-        val settings = Settings.loadFromDbById(a.songId, db, storageService = storageService, storageApiClient = storageApiClient)
-            ?: return@withDb mapOf("ok" to false, "error" to "song_not_found")
-        val voice = a.voice.toInt()
-
-        val markers = try {
-            json.decodeFromString(ListSerializer(SourceMarker.serializer()), draft.editedMarkers)
-        } catch (_: Exception) {
-            return@withDb mapOf("ok" to false, "error" to "bad_markers")
-        }
-
-        // Тот же порядок, что рабочий эндпоинт ApiController.saveSourceTextAndMarkers:
-        settings.setSourceMarkers(voice, markers)
-        val srt = settings.convertMarkersToSrt(voice)
+    fun approve(@RequestParam id: Long, @RequestParam(required = false) target: String?): Map<String, Any?> {
+        val isRemoteRead = target == "remote"
+        val readDb = if (isRemoteRead) Connection.remote() else null
         try {
-            val pathToFile = "${settings.rootFolder}/${settings.fileName}.voice${voice + 1}.srt"
-            File(pathToFile).writeText(srt)
-            runCommand(listOf("chmod", "666", pathToFile))
-        } catch (_: Exception) {
-            println("Ошибка при создании файла субтитров при апруве задания $id.")
-        }
-        settings.setSourceText(voice, draft.editedSourceText)
+            return withDb("local") { localDb ->
+                val effectiveReadDb = readDb ?: localDb
+                val aRead = SongAssignment.getById(id, effectiveReadDb, storageService, storageApiClient)
+                    ?: return@withDb mapOf("ok" to false, "error" to "assignment_not_found")
+                val draft = SongAssignmentDraft.getByAssignment(id, effectiveReadDb, storageService, storageApiClient)
+                    ?: return@withDb mapOf("ok" to false, "error" to "draft_not_found")
+                val settings = Settings.loadFromDbById(aRead.songId, localDb, storageService = storageService, storageApiClient = storageApiClient)
+                    ?: return@withDb mapOf("ok" to false, "error" to "song_not_found")
 
-        // Сделать песню доступной в онлайн-плеере (idStatus>=3).
-        if (settings.idStatus < 3) {
-            settings.fields[SettingField.ID_STATUS] = "3"
-            settings.saveToDb()
-        }
+                val markersPerVoice = draft.editedMarkersPerVoice(json)
+                val textsPerVoice = draft.editedTextsPerVoice(json)
+                if (markersPerVoice.isEmpty()) return@withDb mapOf("ok" to false, "error" to "bad_markers")
 
-        a.adminStatus = SongAssignmentStatus.ADMIN_APPROVED
-        a.reviewedAt = Timestamp(System.currentTimeMillis())
-        a.reviewComment = ""
-        a.save()
-        mapOf("ok" to true, "idStatus" to settings.idStatus)
+                val prevVoiceCount = settings.sourceMarkersList.size
+                for (voice in markersPerVoice.indices) {
+                    settings.setSourceMarkers(voice, markersPerVoice[voice])
+                    val srt = settings.convertMarkersToSrt(voice)
+                    try {
+                        val pathToFile = "${settings.rootFolder}/${settings.fileName}.voice${voice + 1}.srt"
+                        File(pathToFile).writeText(srt)
+                        runCommand(listOf("chmod", "666", pathToFile))
+                    } catch (_: Exception) {
+                        println("Ошибка при создании файла субтитров при апруве задания $id (голос $voice).")
+                    }
+                    settings.setSourceText(voice, textsPerVoice.getOrElse(voice) { "" })
+                }
+                // Хвостовые голоса, удалённые пользователем в черновике (были в Settings, но их больше нет
+                // в присланном списке) — обрезаем.
+                if (markersPerVoice.size < prevVoiceCount) {
+                    settings.truncateVoicesTo(markersPerVoice.size)
+                }
+
+                // Сделать песню доступной в онлайн-плеере (idStatus>=3).
+                if (settings.idStatus < 3) {
+                    settings.fields[SettingField.ID_STATUS] = "3"
+                    settings.saveToDb()
+                }
+
+                val aLocal = if (isRemoteRead) {
+                    SongAssignment.getById(id, localDb, storageService, storageApiClient) ?: aRead
+                } else aRead
+                aLocal.adminStatus = SongAssignmentStatus.ADMIN_APPROVED
+                aLocal.reviewedAt = Timestamp(System.currentTimeMillis())
+                aLocal.reviewComment = ""
+                aLocal.save()
+                mapOf("ok" to true, "idStatus" to settings.idStatus)
+            }
+        } finally {
+            if (readDb != null) try { readDb.getConnection()?.close() } catch (_: Exception) {}
+        }
     }
 
     // Отклонить с комментарием — правки НЕ применяются, задание возвращается пользователю на доработку.

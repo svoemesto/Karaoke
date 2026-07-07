@@ -14,6 +14,7 @@ import com.svoemesto.karaokeweb.config.SiteAuthInterceptor
 import com.svoemesto.karaokeweb.services.PlayerGestureUnlockService
 import jakarta.servlet.http.HttpServletRequest
 import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -92,7 +93,6 @@ class PublicSongEditorController(
                 "author" to (s?.author ?: ""),
                 "album" to (s?.album ?: ""),
                 "year" to (s?.year ?: 0),
-                "voice" to a.voice,
                 "status" to status.dbValue,
                 // Комментарий показываем только когда есть смысл (отклонено) — иначе пустой.
                 "reviewComment" to (if (status == SongAssignmentStatus.REJECTED) a.reviewComment else ""),
@@ -102,6 +102,9 @@ class PublicSongEditorController(
 
     // ---- Одно задание (открытие в редакторе) -------------------------------------------------
 
+    // Задание покрывает ВСЮ песню (все голоса) — sourceTexts/markersPerVoice - массивы, индекс = номер
+    // голоса. Реальную позицию плеера/подсветку слогов ведёт фронт (переключение голосов — целиком
+    // клиентское состояние до сохранения).
     @GetMapping("/tasks/{id}")
     fun task(@PathVariable id: Long, request: HttpServletRequest): ResponseEntity<Map<String, Any?>> {
         val user = currentUser(request)
@@ -110,24 +113,24 @@ class PublicSongEditorController(
         val draft = SongAssignmentDraft.getByAssignment(id, db, storageService, storageApiClient)
         val settings = Settings.loadFromDbById(a.songId, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
             ?: return notFound()
-        val voice = a.voice.toInt()
         val status = statusOf(a, draft)
 
-        // Текст/маркеры: из черновика, если есть; иначе seed из Settings (текущее состояние песни).
-        val sourceText: String
-        val markers: List<SourceMarker>
+        // Текст/маркеры ПО ГОЛОСАМ: из черновика, если есть; иначе seed из Settings (текущее
+        // состояние песни, целиком — все уже существующие голоса).
+        val sourceTexts: List<String>
+        val markersPerVoice: List<List<SourceMarker>>
         if (draft != null) {
-            sourceText = draft.editedSourceText
-            markers = try {
-                json.decodeFromString(ListSerializer(SourceMarker.serializer()), draft.editedMarkers)
-            } catch (_: Exception) { emptyList() }
+            sourceTexts = draft.editedTextsPerVoice(json)
+            markersPerVoice = draft.editedMarkersPerVoice(json)
         } else {
-            sourceText = settings.getSourceText(voice)
-            markers = settings.getSourceMarkers(voice)
+            sourceTexts = settings.sourceTextList
+            markersPerVoice = settings.sourceMarkersList
         }
 
-        // Токен доступа к стемам (тот же механизм, что публичный плеер). Владение уже проверено выше.
-        val token = gestureUnlockService.issueDirectAccessToken(a.songId)
+        // Токен доступа к стемам (тот же механизм, что публичный плеер) — привязан к заданию, поэтому
+        // playerdata сможет подставить ИМЕННО черновик этого задания (см. PublicPlayerController).
+        // Владение уже проверено выше.
+        val token = gestureUnlockService.issueDirectAccessTokenForAssignment(a.songId, a.id)
         val tokenSuffix = "?token=$token"
 
         return ResponseEntity.ok(mapOf(
@@ -138,24 +141,26 @@ class PublicSongEditorController(
             "album" to settings.album,
             "year" to settings.year.takeIf { it > 0 },
             "bpm" to settings.bpm,
-            "voice" to a.voice,
             "status" to status.dbValue,
             "canEdit" to canEdit(a, draft),
             "reviewComment" to (if (status == SongAssignmentStatus.REJECTED) a.reviewComment else ""),
-            "sourceText" to sourceText,
-            "markers" to markers,
+            "sourceTexts" to sourceTexts,
+            "markersPerVoice" to markersPerVoice,
             "audioVocalsUrl" to "/api/public/player/${a.songId}/filevoice.mp3$tokenSuffix",
             "audioAccompanimentUrl" to "/api/public/player/${a.songId}/fileminus.mp3$tokenSuffix",
+            // Тот же токен, что и выше, но отдельным полем — чтобы фронт мог собрать полноценный
+            // KaraokePlayer (playerdata) для превью, не выковыривая его из query-строки URL стемов.
+            "playerToken" to token,
         ))
     }
 
-    // ---- Сохранить черновик ------------------------------------------------------------------
+    // ---- Сохранить черновик (ВСЕ голоса разом) -----------------------------------------------
 
     @PostMapping("/tasks/{id}/save")
     fun save(
         @PathVariable id: Long,
-        @RequestParam sourceText: String,
-        @RequestParam markers: String,
+        @RequestParam sourceTexts: String,      // JSON-массив строк, индекс = номер голоса
+        @RequestParam markersPerVoice: String,  // JSON-массив массивов SourceMarker, индекс = номер голоса
         request: HttpServletRequest,
     ): ResponseEntity<Map<String, Any?>> {
         val user = currentUser(request)
@@ -164,24 +169,25 @@ class PublicSongEditorController(
         var draft = SongAssignmentDraft.getByAssignment(id, db, storageService, storageApiClient)
         if (!canEdit(a, draft)) return ResponseEntity.status(HttpStatus.CONFLICT).body(mapOf("error" to "not_editable"))
 
-        // Валидируем маркеры (но храним как есть строкой — единый формат с фронтом).
+        // Валидируем формат (но храним как есть строкой — единый формат с фронтом).
         try {
-            json.decodeFromString(ListSerializer(SourceMarker.serializer()), markers)
+            json.decodeFromString(ListSerializer(String.serializer()), sourceTexts)
+            json.decodeFromString(ListSerializer(ListSerializer(SourceMarker.serializer())), markersPerVoice)
         } catch (_: Exception) {
-            return ResponseEntity.badRequest().body(mapOf("error" to "bad_markers"))
+            return ResponseEntity.badRequest().body(mapOf("error" to "bad_payload"))
         }
 
         if (draft == null) {
             draft = SongAssignmentDraft(database = db, storageService = storageService, storageApiClient = storageApiClient)
             draft.assignmentId = a.id
             draft.assigneeId = user.id
-            draft.editedSourceText = sourceText
-            draft.editedMarkers = markers
+            draft.editedSourceText = sourceTexts
+            draft.editedMarkers = markersPerVoice
             draft.userStatus = SongAssignmentStatus.USER_IN_PROGRESS
             KaraokeDbTable.createDbInstance(entity = draft, database = db)
         } else {
-            draft.editedSourceText = sourceText
-            draft.editedMarkers = markers
+            draft.editedSourceText = sourceTexts
+            draft.editedMarkers = markersPerVoice
             // Правка после reject/submit возвращает в работу.
             draft.userStatus = SongAssignmentStatus.USER_IN_PROGRESS
             draft.save()

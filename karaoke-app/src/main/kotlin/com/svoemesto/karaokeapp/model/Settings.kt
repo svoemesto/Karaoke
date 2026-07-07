@@ -2230,6 +2230,28 @@ class Settings(
         }
     }
 
+    // Обрезает список голосов (sourceMarkersList/sourceTextList) до count элементов — единственный
+    // способ УДАЛИТЬ голос(а): setSourceMarkers/setSourceText умеют только обновить существующий
+    // или добавить в конец, укоротить список они не могут. Используется онлайн-редактором (сайт),
+    // когда пользователь удаляет последний(е) голос(а) из своего черновика перед апрувом.
+    // Не трогает count>=текущего размера — тогда обрезать нечего.
+    fun truncateVoicesTo(count: Int) {
+        if (count < 0) return
+        val markersLst = sourceMarkersList
+        if (markersLst.size > count) {
+            sourceMarkers = Json.encodeToString(markersLst.take(count))
+            resultText = getText()
+            formattedTextSong = getTextFormatted()
+            formattedTextTabs = getFormattedNotes()
+            formattedTextChords = getFormattedChords()
+        }
+        val textsLst = sourceTextList
+        if (textsLst.size > count) {
+            sourceText = Json.encodeToString(textsLst.take(count))
+        }
+        if (markersLst.size > count || textsLst.size > count) saveToDb()
+    }
+
     fun setIndexTabsVariant(ind: Int) {
         fields[SettingField.INDEX_TABS_VARIANT] = ind.toString()
         saveToDb()

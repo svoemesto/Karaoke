@@ -7,15 +7,32 @@
         </h3>
         <div class="se-meta">
           <span>Исполнитель задания: <strong>{{ a.assigneeName || a.assigneeEmail }}</strong></span>
-          <span>Голос: {{ a.voice }}</span>
+          <span>Голосов: {{ voiceCount }}</span>
           <span>Статус: <span class="se-badge" :class="`se-badge-${a.status}`">{{ statusLabel(a.status) }}</span></span>
           <span>ID песни: {{ a.songId }}</span>
+        </div>
+
+        <div class="se-player-toggle">
+          <button type="button" class="se-btn" @click="showPlayer = !showPlayer">
+            {{ showPlayer ? 'Скрыть плеер' : '▶ Прослушать (черновик)' }}
+          </button>
+        </div>
+        <div v-if="showPlayer" class="se-player-wrap">
+          <iframe :src="playerSrc" class="se-player-frame" allow="autoplay"></iframe>
+        </div>
+
+        <div v-if="voiceCount > 1" class="se-voice-tabs">
+          <button
+              v-for="i in voiceCount" :key="i" type="button" class="se-voice-tab"
+              :class="{ 'se-voice-tab-active': currentVoiceIdx === i - 1 }"
+              @click="currentVoiceIdx = i - 1"
+          >Голос {{ i }}</button>
         </div>
 
         <div class="se-cols">
           <div class="se-col">
             <div class="se-col-title">Текст пользователя</div>
-            <pre class="se-text">{{ a.draftSourceText || '(пусто)' }}</pre>
+            <pre class="se-text">{{ currentSourceText || '(пусто)' }}</pre>
           </div>
           <div class="se-col">
             <div class="se-col-title">Маркеры: {{ markerCount }}</div>
@@ -29,6 +46,11 @@
         </div>
 
         <div v-if="a.reviewComment" class="se-prev-comment">Прошлый комментарий: {{ a.reviewComment }}</div>
+        <div v-if="isRemoteView" class="se-remote-note">
+          Запись открыта из серверной БД — «Одобрить» прочитает черновик оттуда (актуальные правки
+          пользователя, если они ещё не подтянуты синхронизацией), но применит их к песне и статусу
+          задания всегда в локальной БД.
+        </div>
 
         <label class="se-field">
           <span>Комментарий (при отклонении)</span>
@@ -58,13 +80,21 @@ export default {
   name: "ReviewModal",
   emits: ['close', 'reviewed'],
   data() {
-    return { comment: '', busy: false, message: '', isError: false }
+    return { comment: '', busy: false, message: '', isError: false, showPlayer: false, currentVoiceIdx: 0 }
   },
   computed: {
     a() { return this.$store.getters.getAssignmentCurrent },
+    // Только для информационного баннера — approve/reject безопасны и корректны в обоих режимах
+    // (id совпадает в LOCAL/REMOTE), approve при этом читает черновик оттуда, где target, но
+    // применяет его всегда в LOCAL (см. SongEditorController.approve).
+    isRemoteView() { return this.$store.getters.getAssignmentsTarget === 'remote' },
+    // Превью неодобрённого черновика: /player/:id понимает assignmentId и подставляет edited_markers
+    // ВСЕЙ песни (все голоса задания) вместо того, что уже сохранено в tbl_settings (см. ApiController.getSongPlayerData).
+    playerSrc() { return this.a ? `/player/${this.a.songId}?assignmentId=${this.a.id}` : '' },
+    voiceCount() { return this.a ? Math.max(1, (this.a.draftMarkersPerVoice || []).length) : 0 },
+    currentSourceText() { return (this.a && this.a.draftSourceTexts && this.a.draftSourceTexts[this.currentVoiceIdx]) || '' },
     parsedMarkers() {
-      if (!this.a || !this.a.draftMarkers) return [];
-      try { return JSON.parse(this.a.draftMarkers) || []; } catch (e) { return []; }
+      return (this.a && this.a.draftMarkersPerVoice && this.a.draftMarkersPerVoice[this.currentVoiceIdx]) || [];
     },
     markerCount() { return this.parsedMarkers.length },
     markerStats() {
@@ -105,15 +135,26 @@ export default {
 <style scoped>
 .se-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center; z-index: 1000; }
 .se-modal { background: #fff; border-radius: 12px; padding: 1.5rem; width: 420px; max-width: 92vw; display: flex; flex-direction: column; gap: 0.8rem; font-family: Avenir, Helvetica, Arial, sans-serif; }
-.se-modal-wide { width: 680px; }
+.se-modal-wide { width: 760px; }
+.se-player-toggle { display: flex; }
+.se-player-wrap { width: 100%; height: 440px; border-radius: 8px; overflow: hidden; background: #000; }
+.se-player-frame { width: 100%; height: 100%; border: none; display: block; }
 .se-modal-title { margin: 0; font-size: 1.15rem; }
 .se-dim { color: #888; font-weight: 400; }
 .se-meta { display: flex; flex-wrap: wrap; gap: 0.4rem 1.2rem; font-size: 0.82rem; color: #555; }
+.se-voice-tabs { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+.se-voice-tab {
+  border: 1px solid #bbb; border-radius: 20px; padding: 0.3rem 0.9rem; background: #fff;
+  cursor: pointer; font-size: 0.8rem;
+}
+.se-voice-tab:hover { background: #f5f5f5; }
+.se-voice-tab-active { background: #24803a; color: #fff; border-color: #24803a; }
 .se-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 .se-col-title { font-size: 0.72rem; text-transform: uppercase; color: #888; font-weight: 700; margin-bottom: 0.3rem; }
 .se-text { background: #f5f5f5; border-radius: 8px; padding: 0.6rem; font-size: 0.82rem; max-height: 220px; overflow: auto; white-space: pre-wrap; margin: 0; }
 .se-marker-summary { background: #f5f5f5; border-radius: 8px; padding: 0.6rem; font-size: 0.85rem; display: flex; flex-direction: column; gap: 0.3rem; }
 .se-prev-comment { font-size: 0.8rem; color: #a9500f; background: #fff3e8; border-radius: 8px; padding: 0.4rem 0.6rem; }
+.se-remote-note { font-size: 0.8rem; color: #8a6d0a; background: #fef8e3; border: 1px solid #f2dd9a; border-radius: 8px; padding: 0.5rem 0.6rem; }
 .se-field { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.85rem; }
 .se-field textarea { padding: 0.45rem 0.6rem; border: 1px solid #ccc; border-radius: 8px; font-size: 0.9rem; resize: vertical; }
 .se-msg { font-size: 0.85rem; color: #2a7a3a; margin: 0; }

@@ -12,7 +12,9 @@ const container = ref(null)
 let player = null
 
 onMounted(() => {
-  player = new KaraokePlayer(container.value, route.params.id, '/api')
+  const assignmentId = route.query.assignmentId
+  const target = assignmentId ? { songId: route.params.id, assignmentId } : route.params.id
+  player = new KaraokePlayer(container.value, target, '/api')
   player.init()
 })
 

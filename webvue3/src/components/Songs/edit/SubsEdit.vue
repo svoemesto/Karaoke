@@ -445,8 +445,11 @@ export default {
         this.sourceText = await this.$store.getters.getSourceText(this.currentVoice);
         this.loadedMarkers = await this.$store.getters.getSourceMarkers(this.currentVoice);
         this.sourceMarkers = [];
-        if (this.loadedMarkers.length > 0 && this.sourceMarkers.length === 0) {
-          this.wsRegions.clearRegions();
+        // clearRegions() — БЕЗУСЛОВНО, независимо от того, есть ли маркеры у НОВОГО голоса: иначе при
+        // переключении на голос без разметки регионы предыдущего голоса оставались висеть на вейвформе
+        // (условие ниже раньше оборачивало и очистку тоже, а не только заполнение).
+        this.wsRegions.clearRegions();
+        if (this.loadedMarkers.length > 0) {
           for (let index = 0; index < this.loadedMarkers.length; index++) {
             let marker = Object.assign({} , this.loadedMarkers[index]);
             if (
@@ -1421,8 +1424,11 @@ export default {
       this.duration = this.ws.getDuration();
       if (this.visibleStartTime < 0) this.visibleStartTime = 0;
       if (this.visibleEndTime < 0) this.visibleEndTime = this.duration;
+      // clearRegions() — БЕЗУСЛОВНО (см. тот же фикс в watcher currentVoice): 'decode' может
+      // сработать повторно (перезагрузка трека), и если loadedMarkers у голоса пуст, старые регионы
+      // иначе остались бы висеть на вейвформе.
+      this.wsRegions.clearRegions();
       if (this.loadedMarkers.length > 0 && this.sourceMarkers.length === 0) {
-        this.wsRegions.clearRegions();
         for (let index = 0; index < this.loadedMarkers.length; index++) {
           let marker = Object.assign({} , this.loadedMarkers[index]);
           if (
@@ -3130,12 +3136,13 @@ export default {
       return this.markerTypesToShow.includes(markerType);
     },
     redrawMarkers() {
-      if (this.sourceMarkers.length > 0) {
-        this.wsRegions.clearRegions();
-        for (let index = 0; index < this.sourceMarkers.length; index++) {
-          let marker = this.sourceMarkers[index];
-          marker.region = this.createRegionMarker(marker);
-        }
+      // clearRegions() — БЕЗУСЛОВНО: раньше вызывался только когда sourceMarkers уже непуст, из-за
+      // чего перерисовка на пустой список (например, после переключения на голос без разметки)
+      // оставляла старые регионы висеть на вейвформе.
+      this.wsRegions.clearRegions();
+      for (let index = 0; index < this.sourceMarkers.length; index++) {
+        let marker = this.sourceMarkers[index];
+        marker.region = this.createRegionMarker(marker);
       }
     },
     getStringsForAllNotesInSong() {

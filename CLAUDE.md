@@ -73,6 +73,42 @@ bash do.sh ps
 `deploy/do.env` / `deploy/.env` hold the environment (ports, registry, host folder mounts) consumed by the
 compose files.
 
+**Очередь (взаимное исключение) gradle-сборок между параллельными сессиями и хостом
+(`deploy/build-lock.sh`).** Все jar-сборки (`karaoke-app`/`karaoke-web`) идут через
+`${GRADLE} clean <module>:bootJar`. Параллельный запуск двух таких сборок над одним репозиторием ломается:
+`clean` стирает общий `build/` (вторая сборка сносит вывод первой), gradle держит эксклюзивный лок на
+`.gradle/` (вторая падает `Timeout waiting to lock…`), а docker-образ пакуется из `build/libs/` (в образ
+попадёт битый jar, если рядом идёт чужой `clean`). Механизм координации подключён в `do.sh` (и
+`deploy_web.sh`, который теперь просто зовёт `do.sh build_web`, без отдельного дублирующего `./gradlew`):
+- **Хелпер `deploy/build-lock.sh`** (`source`-ится в `do.sh`) оборачивает `do_build`/`do_build_app`/
+  `do_build_app_nocache`/`do_build_web` тремя шагами: `bl_begin` (ждать) → сборка → `bl_commit`+`bl_release`.
+- **Ожидание** — три линии: (1) `flock` на `${BASE_DIR}/.build/jars.lock` координирует все сборки, идущие
+  через `do.sh` (обе сессии Claude + ручной `bash do.sh build_*`); ждущий печатает heartbeat из
+  `.build/current.info` (pid/host/время/цель). (2) Проба `pgrep -f 'gradle-wrapper\.jar'` — ждёт и
+  сторонний `./gradlew …:bootJar`, минующий flock (простаивающий gradle-демон под пробу не попадает —
+  у него в argv `GradleDaemon`, а не `gradle-wrapper.jar`). (3) **Guard прямо в `gradlew`** (POSIX-блок
+  после лицензионной шапки): при задаче `*bootJar*` сам gradlew берёт тот же `flock`-файл — так даже
+  **сырой `./gradlew …:bootJar`** (в т.ч. две параллельные сессии Claude, собирающие напрямую) встаёт в
+  ту же очередь и взаимно исключается. Лок держится на fd 9, который наследуется `exec java` до конца
+  сборки. **Против self-deadlock:** `do.sh`/`bl_begin`, уже держащий лок, экспортирует `BL_LOCK_HELD=1` —
+  дочерний gradlew по этому маркеру свой guard пропускает. `--version`/`tasks` и прочие не-bootJar задачи
+  guard не трогает. **Важно:** апгрейд gradle wrapper перегенерирует `gradlew` и стирает этот блок — вносить
+  заново (маркер `karaoke build-lock guard`).
+- **Пропуск при неизменных исходниках.** После успешной сборки в `.build/<module>.stamp` пишется sha256
+  отпечаток входов (`<module>/src`, `build.gradle.kts`, корневые `settings/build.gradle.kts`, соответствующий
+  `deploy/*/Dockerfile`, `deploy/karaoke-app/files/`, `BUILD_VERSION`; web — надмножество app). Если при
+  следующем запуске отпечаток совпал (мои правки уже вошли в образ) — сборка **пропускается целиком**
+  (ни gradle, ни docker). Форс: `FORCE=1 bash do.sh build_app` или флаг `--force`. `build_app_nocache`
+  форсирует всегда. Отпечаток фиксируется в `.pending` **на входе** (то, что реально компилируется), чтобы
+  правки во время сборки не «прописались» как собранные; `trap bl_release EXIT` снимает лок при падении.
+- **Взаимное исключение работает для любого пути** (do.sh↔do.sh, do.sh↔сырой gradlew, сырой↔сырой) —
+  благодаря guard в `gradlew`. Но **пропуск по отпечатку** (skip при неизменных исходниках, запись
+  `stamp`) есть только у сборок через `do.sh`/`deploy_web.sh`: сырой `./gradlew` stamp не пишет и не
+  сверяет, а лишь встаёт в очередь. Поэтому предпочтительно всё же собирать через `do.sh` — тогда
+  работает и очередь, и пропуск. Ложного пропуска сырой gradlew не вызывает (stamp пишет только обёртка).
+  Косметика: сырой gradlew не пишет `current.info`, поэтому в heartbeat ждущего он виден как `()`.
+  `.build/` — в `.gitignore`.
+
 **Сборка и запуск karaoke-app** (сборка и запуск из разных папок):
 ```
 cd ~/Karaoke/deploy && ./do.sh build_app

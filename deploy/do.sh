@@ -24,6 +24,11 @@ fi
 
 source ${DEPLOY_DIR}/do.env
 
+# Очередь/взаимное исключение gradle-сборок (см. build-lock.sh)
+source ${DEPLOY_DIR}/build-lock.sh
+# Флаг форса: FORCE=1 в окружении или --force среди аргументов do.sh
+case " $* " in *" --force "*) FORCE=1 ;; esac
+
 echo "DEPLOY_DIR = $DEPLOY_DIR"
 echo "BASE_DIR = $BASE_DIR"
 echo "GRADLE = $GRADLE"
@@ -35,8 +40,12 @@ echo "DOCKER_REGISTRY = $DOCKER_REGISTRY"
 echo "DOCKER_PASSWORD = $DOCKER_PASSWORD"
 
 function do_build() {
+  bl_begin karaoke-web "build" karaoke-app karaoke-web; local rc=$?
+  [ "$rc" = 10 ] && return 0
   build_jars
   build_images
+  bl_commit
+  bl_release
 }
 
 function build_jars() {
@@ -103,6 +112,8 @@ function build_start_public() {
 
 function do_build_app() {
 
+  bl_begin karaoke-app "build_app"; local rc=$?
+  [ "$rc" = 10 ] && return 0
   echo "Building APP module"
   cd ${BASE_DIR} && ${GRADLE} clean karaoke-app:bootJar
   cp $DEPLOY_DIR/karaoke-app/files/* /home/nsa/Karaoke/karaoke-app/build/libs
@@ -111,10 +122,15 @@ function do_build_app() {
    --build-arg APP_VERSION=${APP_VERSION} \
    -t "$DOCKER_REGISTRY/karaoke-app:${BUILD_VERSION}" \
    -f $DEPLOY_DIR/karaoke-app/Dockerfile
+  bl_commit
+  bl_release
 }
 
 function do_build_app_nocache() {
 
+  # nocache — осознанная принудительная пересборка, пропуск по отпечатку отключаем
+  FORCE=1 bl_begin karaoke-app "build_app_nocache"; local rc=$?
+  [ "$rc" = 10 ] && return 0
   echo "Building APP module"
   cd ${BASE_DIR} && ${GRADLE} clean karaoke-app:bootJar
   cp $DEPLOY_DIR/karaoke-app/files/* /home/nsa/Karaoke/karaoke-app/build/libs
@@ -123,6 +139,8 @@ function do_build_app_nocache() {
    --build-arg APP_VERSION=${APP_VERSION} \
    -t "$DOCKER_REGISTRY/karaoke-app:${BUILD_VERSION}" \
    -f $DEPLOY_DIR/karaoke-app/Dockerfile
+  bl_commit
+  bl_release
 }
 
 function do_build_demucs() {
@@ -134,6 +152,8 @@ function do_build_demucs() {
 
 function do_build_web() {
 
+  bl_begin karaoke-web "build_web"; local rc=$?
+  [ "$rc" = 10 ] && return 0
   echo "Building WEB module"
   cd ${BASE_DIR} && ${GRADLE} clean karaoke-web:bootJar
   ${DOCKER} image build $BASE_DIR/karaoke-web/build/libs/ \
@@ -141,6 +161,8 @@ function do_build_web() {
    --build-arg APP_VERSION=${APP_VERSION} \
    -t "$DOCKER_REGISTRY/karaoke-web:${BUILD_VERSION}" \
    -f $DEPLOY_DIR/karaoke-web/Dockerfile
+  bl_commit
+  bl_release
 }
 
 function do_build_webvue() {

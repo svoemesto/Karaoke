@@ -4,11 +4,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-echo "=== Сборка karaoke-web jar ==="
-cd "$SCRIPT_DIR/.."
-./gradlew karaoke-web:bootJar
-
-echo "=== Сборка Docker образа ==="
+echo "=== Сборка karaoke-web jar + Docker образа (под локом сборки, см. build-lock.sh) ==="
 cd "$SCRIPT_DIR"
 bash do.sh build_web
 

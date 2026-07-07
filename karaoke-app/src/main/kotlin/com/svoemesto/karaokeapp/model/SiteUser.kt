@@ -47,6 +47,17 @@ class SiteUser(
     val isEffectivePremium: Boolean
         get() = isPremium || isPermanentPremium
 
+    // Персональные лимиты (0 = использовать дефолт в PublicPlaylistController). Int безопасен для
+    // reflection-loader на SQL NULL (getInt→0), но колонки и так NOT NULL DEFAULT 0.
+    @KaraokeDbTableField(name = "max_favorites")
+    var maxFavorites: Int = 0
+
+    @KaraokeDbTableField(name = "max_playlists")
+    var maxPlaylists: Int = 0
+
+    @KaraokeDbTableField(name = "max_playlist_items")
+    var maxPlaylistItems: Int = 0
+
     @KaraokeDbTableField(name = "is_banned")
     var isBanned: Boolean = false
 
@@ -78,6 +89,9 @@ class SiteUser(
         isEffectivePremium = isEffectivePremium,
         isBanned = isBanned,
         banReason = banReason,
+        maxFavorites = maxFavorites,
+        maxPlaylists = maxPlaylists,
+        maxPlaylistItems = maxPlaylistItems,
         createdAt = createdAt.toString(),
         lastLoginAt = lastLoginAt.toString(),
     )

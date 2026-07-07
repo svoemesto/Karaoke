@@ -43,7 +43,7 @@
             alt=""
           />
           <span class="km-author-name">{{ zak.author }}</span>
-          <RouterLink :to="{ path: '/author-playlist', query: { author: zak.author } }" class="km-author-pl-btn" title="Плейлист автора">🎧 Плейлист автора</RouterLink>
+          <RouterLink :to="{ path: '/author-playlist', query: { author: zak.author } }" class="km-author-pl-btn" :title="`Плейлист по песням автора «${zak.author}»`">🎧 Плейлист по песням автора «{{ zak.author }}»</RouterLink>
         </div>
 
         <!-- Альбомы -->

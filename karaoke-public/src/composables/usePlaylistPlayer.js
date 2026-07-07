@@ -36,10 +36,11 @@ export function usePlaylistPlayer(iframeRef) {
     }
   }
 
-  // ids — упорядоченный список воспроизводимых song_id; modes — { continuous, repeatMode }.
-  async function start(ids, modes) {
+  // ids — упорядоченный список воспроизводимых song_id; modes — { continuous, repeatMode };
+  // startId (опц.) — с какой песни начать (должна быть в ids), иначе с первой.
+  async function start(ids, modes, startId) {
     if (!ids.length) return false
-    const first = ids[0]
+    const first = (startId != null && ids.includes(startId)) ? startId : ids[0]
     const { canWatch, token } = await fetchPlayerToken(first)
     if (!canWatch || !token) return false
     sessionStorage.setItem(`kp_token_${first}`, token)
@@ -58,6 +59,12 @@ export function usePlaylistPlayer(iframeRef) {
   function next() { if (started.value) send('next') }
   function toggle() { send('toggle') }
 
+  // Начать/переключить воспроизведение с конкретной песни (клик по строке списка).
+  async function playFrom(songId, ids, modes) {
+    if (started.value) send('playid', { songId })
+    else await start(ids, modes, songId)
+  }
+
   function mount() { window.addEventListener('message', onMessage) }
   function unmount() {
     window.removeEventListener('message', onMessage)
@@ -66,6 +73,6 @@ export function usePlaylistPlayer(iframeRef) {
 
   return {
     started, firstSongId, isPlaying, currentSongId, playerWide,
-    start, pushQueue, pushModes, prev, next, toggle, mount, unmount,
+    start, playFrom, pushQueue, pushModes, prev, next, toggle, mount, unmount,
   }
 }

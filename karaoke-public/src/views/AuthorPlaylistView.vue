@@ -13,10 +13,10 @@
 
     <div v-else class="km-content">
       <div class="km-name-row">
-        <h1 class="km-name-fixed">🎧 {{ author }}</h1>
+        <h1 class="km-name-fixed">🎧 Плейлист по песням автора «{{ author }}»</h1>
         <span class="km-name-count">{{ songs.length }} {{ pluralSongs(songs.length) }}</span>
       </div>
-      <p class="km-note">Плейлист автора формируется автоматически. Недоступные вам сейчас песни отмечены замком и пропускаются при проигрывании.</p>
+      <p class="km-note">Плейлист формируется автоматически. Кликните по песне, чтобы начать с неё. Недоступные вам сейчас песни отмечены замком и пропускаются при проигрывании.</p>
 
       <!-- Плеер (тот же /player/:id в iframe, что и на странице песни) -->
       <div class="km-player-box" :class="{ 'km-player-wide': player.playerWide.value }">
@@ -54,19 +54,18 @@
           v-for="(item, i) in songs"
           :key="item.songId"
           class="km-song-row"
-          :class="{ 'km-song-current': item.songId === player.currentSongId.value, 'km-song-locked': statusOf(item.songId) !== 'available' }"
+          :class="{ 'km-song-current': item.songId === player.currentSongId.value, 'km-song-locked': statusOf(item.songId) !== 'available', 'km-song-clickable': clickable(item.songId) }"
+          @click="onSongClick(item)"
         >
-          <span class="km-song-num">{{ i + 1 }}</span>
+          <span class="km-song-num">{{ item.songId === player.currentSongId.value && player.isPlaying.value ? '▶' : (i + 1) }}</span>
           <div class="km-song-info">
             <div class="km-song-title">{{ item.songName || ('Песня #' + item.songId) }}</div>
             <div class="km-song-sub">{{ item.album }}<span v-if="item.year"> · {{ item.year }}</span></div>
           </div>
-          <button
+          <span
             class="km-song-lock"
-            :class="{ 'km-lock-premium': statusOf(item.songId) === 'premium' }"
             :title="lockTitle(item.songId)"
-            @click="onLock(item.songId)"
-          >{{ lockIcon(item.songId) }}</button>
+          >{{ lockIcon(item.songId) }}</span>
         </div>
         <p v-if="!songs.length" class="km-empty">У автора нет песен.</p>
       </div>
@@ -135,8 +134,15 @@ export default {
       if (s === 'notready') return 'Песня ещё готовится'
       return ''
     }
-    function onLock(songId) {
-      if (statusOf(songId) === 'premium') openPremiumRequired({ benefits: PREMIUM_BENEFITS })
+    function clickable(songId) {
+      const s = statusOf(songId)
+      return s === 'available' || s === 'premium'
+    }
+    // Клик по строке: доступную — играем с неё; премиум-песню — призыв премиума; иначе ничего.
+    function onSongClick(item) {
+      const s = statusOf(item.songId)
+      if (s === 'available') player.playFrom(item.songId, playableIds(), modes)
+      else if (s === 'premium') openPremiumRequired({ benefits: PREMIUM_BENEFITS })
     }
 
     const hasPlayable = computed(() => songs.value.some(s => statusOf(s.songId) === 'available'))
@@ -195,7 +201,7 @@ export default {
     return {
       author, isLoggedIn, loading, songs, modes, player, playerIframe,
       repeatLabel, repeatTitle, hasPlayable,
-      statusOf, lockIcon, lockTitle, onLock, pluralSongs,
+      statusOf, lockIcon, lockTitle, clickable, onSongClick, pluralSongs,
       onStart, onToggle, toggleContinuous, cycleRepeat, toggleShuffle,
     }
   }
@@ -240,12 +246,12 @@ export default {
 .km-song-row { display: flex; align-items: center; gap: 0.6rem; background: var(--km-card); border: 1px solid var(--km-border); border-radius: 10px; padding: 0.5rem 0.7rem; }
 .km-song-current { border-color: var(--km-accent); box-shadow: 0 0 0 1px var(--km-accent); }
 .km-song-locked { opacity: 0.55; }
+.km-song-clickable { cursor: pointer; }
+.km-song-clickable:hover { background: var(--km-hover); border-color: var(--km-accent); }
 .km-song-num { width: 1.8rem; text-align: center; color: var(--km-text2); font-size: 0.85rem; }
 .km-song-info { flex: 1; min-width: 0; }
 .km-song-title { font-size: 0.92rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .km-song-sub { font-size: 0.76rem; color: var(--km-text2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.km-song-lock { background: transparent; border: none; cursor: default; font-size: 1rem; padding: 0.25rem 0.4rem; border-radius: 6px; color: var(--km-text2); }
-.km-lock-premium { cursor: pointer; }
-.km-lock-premium:hover { background: var(--km-hover); }
+.km-song-lock { font-size: 1rem; padding: 0.25rem 0.4rem; color: var(--km-text2); user-select: none; }
 .km-empty { color: var(--km-text2); font-size: 0.9rem; padding: 1rem 0; }
 </style>

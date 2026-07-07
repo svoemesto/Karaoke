@@ -74,7 +74,8 @@ function onParentMessage(e) {
     if (d.token) tokenCache[d.songId] = d.token
     const arr = pendingToken[d.songId]
     if (arr) { delete pendingToken[d.songId]; arr.forEach(r => r(d.token || null)) }
-  } else if (d.type === 'next') { let n = pos + 1; if (n >= queue.length) n = 0; playPos(n) }
+  } else if (d.type === 'playid') { const p = queue.findIndex(sid => String(sid) === String(d.songId)); if (p >= 0) playPos(p) }
+  else if (d.type === 'next') { let n = pos + 1; if (n >= queue.length) n = 0; playPos(n) }
   else if (d.type === 'prev') { let n = pos - 1; if (n < 0) n = queue.length - 1; playPos(n) }
   else if (d.type === 'toggle') { player.togglePlay(); postToParent({ type: 'state', playing: !!player.isPlaying }) }
   else if (d.type === 'setmodes') { modes.continuous = d.continuous; modes.repeatMode = d.repeatMode }

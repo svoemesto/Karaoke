@@ -6,7 +6,7 @@ import { getAnonId } from './clientId'
 // event_type=player/link_type=opened (осознанное открытие из таблицы «Закрома»/«Поиск»), а не
 // пассивный shown. access() же выдаёт токен доступа — кладём его в sessionStorage под ключом
 // kp_token_<id>, который читает роут /player/:id, и открываем плеер новой вкладкой (position:fixed
-// внутри плеера не хватает — иначе он унаследует classic/modern-обёртку App.vue; sessionStorage
+// внутри плеера не хватает — иначе он унаследует .modernScreen-обёртку App.vue; sessionStorage
 // клонируется в same-origin вкладку, открытую через window.open, так что токен уже на месте).
 // Получить токен доступа к плееру песни БЕЗ открытия новой вкладки — для встроенного плеера на
 // странице плейлиста. Возвращает { canWatch, token } (или { canWatch:false } при недоступности).

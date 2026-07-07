@@ -21,6 +21,7 @@
             <li class="nav-item"><router-link class="nav-link" to="/songeditor">Задания редактора</router-link></li>
             <li class="nav-item"><router-link class="nav-link" to="/publicsettings">Настройки сайта</router-link></li>
             <li class="nav-item"><router-link class="nav-link" to="/stats">Статистика</router-link></li>
+            <li class="nav-item"><router-link class="nav-link" to="/sync">Синхронизация БД</router-link></li>
             <li class="nav-item"><router-link class="nav-link" to="/auth">Login</router-link></li>
           </ul>
         </div>
@@ -387,7 +388,8 @@ export default {
 
 /* Стили для левой колонки (сайдбар) */
 .app-sidebar {
-  width: 150px; /* Установите желаемую ширину для сайдбара */
+  width: 190px; /* Ширина подобрана так, чтобы самый длинный пункт («Пользователи сайта») помещался в одну строку */
+  flex-shrink: 0; /* Не сжимать сайдбар — иначе пункты снова начнут переноситься */
   /* border-right: 1px solid #ccc; /* Добавьте границу, если нужно */
   padding: 10px;
   display: flex;
@@ -407,6 +409,7 @@ export default {
   border-radius: 4px; /* Скругление углов ссылок */
   text-decoration: none; /* Убираем подчеркивание по умолчанию */
   color: #2c3e50; /* Цвет текста ссылки */
+  white-space: nowrap; /* Пункт меню всегда в одну строку */
 }
 
 .app-sidebar .nav-link:hover {

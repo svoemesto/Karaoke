@@ -1739,6 +1739,115 @@ ipv6=off;` (docker embedded DNS), не литералом. Литерал рез
 переменной резолв ленивый, на каждый запрос, поэтому webvue3 переживает независимый рестарт karaoke-app.
 Тот же приём использовать для любого нового `proxy_pass` на другой docker-сервис в этом файле.
 
+## Онлайн-редактор караоке-разметки для пользователей сайта (`/account/editor`) с модерацией
+
+Упрощённый публичный аналог `SubsEdit.vue` для site users (karaoke-public): пользователь расставляет
+слоговые маркеры под аудио, админ модерирует в webvue3. Workflow:
+`assigned → in_progress → submitted → approved / rejected(с комментарием, возврат на доработку)`.
+Минимальный набор маркеров — только `syllables` + `endofline`/`newline` + авто-`END` (ни нот/аккордов/
+табов/BPM/групп/MIDI). Реализовано и live-проверено на LOCAL 2026-07-07; миграция применена на LOCAL и PROD;
+деплой web/public — отдельно.
+
+**ДВЕ таблицы, а не одна (`deploy/karaoke-db/10_song_assignments.sql`).** sync-движок
+(`GenericKaraokeDbTableSyncTarget`) пишет строку ЦЕЛИКОМ по ОДНОМУ `oneClickDirection` (per-column merge
+нет). Статус — «пинг-понг» админ↔пользователь, поэтому каждую строку должна писать ровно одна сторона:
+- `tbl_song_assignments` — конверт задания + вердикт админа (`assignee_id`, `song_id`, `voice`, `admin_status`
+  open/approved/rejected, `review_comment`, `reviewed_at`). Пишет админ, sync **LOCAL_TO_SERVER**.
+- `tbl_song_assignment_drafts` — рабочая копия пользователя (`assignment_id` UNIQUE, `edited_source_text`,
+  `edited_markers` JSON `List<SourceMarker>` ОДНОГО голоса, `user_status` in_progress/submitted, `submitted_at`).
+  Пишет пользователь, sync **SERVER_TO_LOCAL**. **recordhash ОБЯЗАН включать `edited_markers`+
+  `edited_source_text`** — иначе правки не идут в sync-diff.
+Модели `SongAssignment(Dto)`/`SongAssignmentDraft(Dto)` (по образцу `SitePlaylist`), 2 sync-target в
+`SyncRegistry.all` + 16 флагов в `KaraokeProperties.kt`. Миграция — вручную на LOCAL и PROD (роль прода —
+`NsAkArAoKeUsEr`, не `postgres`); recordhash-функции идентичны на обеих БД (проверено — один хэш на одну строку).
+
+**Композитный статус — `SongAssignmentStatus.resolve(adminStatus, draftUserStatus, reviewedAt, submittedAt)`.**
+Временные метки ОБЯЗАТЕЛЬНЫ: пара `(rejected, submitted)` неоднозначна без сравнения `reviewedAt` (когда админ
+вынес вердикт) и `submittedAt` (когда пользователь отправил). `reviewedAt >= submittedAt` ⇒ REJECTED (админ
+рассмотрел эту отправку), иначе SUBMITTED (переотправлено после доработки). Без меток был баг: после reject
+`draft.user_status` остаётся `submitted`, и пользователь застревал в «на проверке» (не мог дорабатывать).
+
+**Разделение слоёв (тот же принцип, что karaoke-web Settings trap):**
+- **karaoke-app** `controllers/SongEditorController.kt` (`/api/songeditor`, admin-машина): `assign` (+автозаливка
+  вокал/минус в MinIO через `convertFlacToMp3`+`pushMp3ToStorage`, как `ApiController.getSongFileVocalMp3`),
+  `digest`, `byId`, `approve`, `reject`, `delete`. **assign/approve/reject/delete ВСЕГДА local** (authority
+  назначений LOCAL_TO_SERVER; создание на remote → зеркальное удаление следующим sync-push). digest/byId —
+  `target=local|remote` + `withDb{}`. approve: `settings.setSourceMarkers(voice, markers)` (пересчёт
+  resultText/formatted*/srt + saveToDb) → если `idStatus < 3` выставить `id_status=3` (порог доступности в
+  онлайн-плеере, `PublicPlayerController.stemsReady`).
+- **karaoke-web** `controllers/PublicSongEditorController.kt` (`/api/public/account/editor`, авто-защита
+  `SiteAuthInterceptor`): `tasks`, `tasks/{id}` (seed из `Settings.getSourceText`/`getSourceMarkers` —
+  безопасно, парсинг JSON-колонок; + токен стемов `gestureUnlockService.issueDirectAccessToken(songId)` → URL
+  `/api/public/player/{id}/filevoice.mp3`/`fileminus.mp3`), `save` (upsert draft), `submit`. **ПИШЕТ только в
+  draft-таблицу, `Settings.setSourceMarkers`/файловые геттеры не трогает** (иначе уронил бы процесс). canEdit
+  через `resolve` (редактируем во всех статусах кроме submitted/approved).
+
+**Ловушка: строгий kotlinx-декодер падает на маркерах фронта.** `SourceMarker` имеет обязательные поля
+(`time`/`color`/`position`/`markertype`) и поле `lockLad`, а фронт (по образцу `SubsEdit.getMarkersToSave`)
+шлёт ключ `locklad` (lowercase, неизвестный) — `Json.Default` бросает `JsonDecodingException`. Оба контроллера
+декодят маркеры через `Json { ignoreUnknownKeys = true }`, не `Json.Default`. Вторая ловушка: `source_markers`
+в `tbl_settings` — это `List<List<SourceMarker>>` (обёртка по голосам `[[...]]`); эндпоинт
+`/song/savesourcemarkers` ждёт плоский список ОДНОГО голоса (`[{...}]`) — при ручной перегенерации srt
+передавать `sourceMarkersList[voice]`, а не всё поле.
+
+**Фронтенд karaoke-public:** `services/songEditorApi.js`, `composables/useKaraokeEditor.js` (порт чистых
+функций из `SubsEdit.vue`: `splitSyllables` — точная копия `getSyllables`, `relabelSyllables`, `formatText`,
+`buildTail`, `addMarker`/`deleteMarkerAtTime` только для syllables/endofline/newline, `ensureEndMarker`;
+маркеры с `uid` для связи с регионами WaveSurfer), `composables/editorStatus.js`, `views/EditorTasksView.vue`,
+`views/EditorWorkView.vue` (ядро: бегущая строка + WaveSurfer вокал видимый + минус вторым `Audio` с мягкой
+синхронизацией + транспорт с хоткеями S/Q/W/D + textarea/превью + автосохранение debounce 3с + read-only при
+submitted/approved). Роуты `/account/editor` + `/:id`, карточка в `AccountView.vue`. Стемы грузятся по токену
+из `tasks/{id}` (30-мин TTL хватает на загрузку в WaveSurfer).
+
+**Админка webvue3:** `components/SongEditor/{store.js, SongEditorTable.vue, AssignModal.vue, ReviewModal.vue}`,
+`views/SongEditorView.vue`, роут `/songeditor`, Vuex-модуль `songEditor`, пункт меню в `App.vue`. AssignModal
+берёт site users из `/api/siteusers/digest`. ReviewModal показывает текст+сводку маркеров + Одобрить/Отклонить.
+
+## «Избранное» и «Плейлисты» пользователей сайта + плейлист автора (задеплоено на прод 2026-07-07)
+
+Site users (karaoke-public) добавляют песни в «Избранное» и (премиум) в свои плейлисты; плюс динамический
+read-only «плейлист по песням автора». «Избранное» = плейлист с `is_favorites=true` (ровно один на юзера,
+частичный UNIQUE). Не-премиум: только «Избранное». Ветка `feature/favorites-playlists` (не смёржена в master).
+
+**БД (`deploy/karaoke-db/09_playlists.sql` + `12_site_user_limits.sql`, вручную на LOCAL+PROD; прод-роль
+`NsAkArAoKeUsEr`).** `tbl_site_playlists` (owner_id→tbl_site_users ON DELETE CASCADE, name, is_favorites,
+sort_order, continuous/repeat_mode/shuffle) + `tbl_site_playlist_items` (playlist_id→плейлист CASCADE,
+song_id→tbl_settings БЕЗ FK, position, muted, UNIQUE(playlist,song)). Обе — recordhash-триггеры, модели
+`SitePlaylist(Item)` (KaraokeDbTable, `last_update useInDiff=false`), зарегистрированы в `SyncRegistry.all`
+(siteplaylists/siteplaylistitems, SERVER_TO_LOCAL) + 16 флагов в `KaraokeProperties`. `12` добавляет
+`max_favorites/max_playlists/max_playlist_items` в `tbl_site_users` (0=дефолт 100/50/500, **в recordhash** —
+CREATE OR REPLACE функции + backfill).
+
+**Бэкенд `PublicPlaylistController` (karaoke-web, `/api/public/account/**` — авто-защита `SiteAuthInterceptor`).**
+`favorites/toggle`, `membership` (батч для иконок), CRUD, addsong/removesong/reorder/mute. Лимиты:
+`favoritesLimit/itemsLimit/playlistsLimit` с персональным override (поле tbl_site_users, 0=дефолт).
+**Гейтинг по премиуму (плейлисты НЕ удаляются, а СКРЫВАЮТСЯ):** `usable(pl,user)=isFavorites||isEffectivePremium`;
+`playlists()` фильтрует, `membership()` не отдаёт скрытые playlistIds, detail/мутации через `loadUsablePlaylist`
+→404. Стал не-премиумом — плейлисты пропадают из списка (в БД целы), вернул премиум — снова видны. Ошибки
+`premium_required`/`limit_reached` несут `benefits[]` для апселла. Админ-просмотр — `SitePlaylistsController`
+(karaoke-app, `/api/siteplaylists`, `target=local|remote`, read-only) + webvue3.
+
+**Фронтенд karaoke-public.** Красная `FavoriteIcon` + синяя `PlaylistIcon` (dropdown-меню, премиум) в 4 таблицах
+Закрома/Поиск (classic+modern+карточки), `usePlaylistMembership` (батч-членство, синглтон), `PremiumUpsellModal`
++ `usePremiumModal`, `PlaylistsView`, `PlaylistEditView` (drag-drop `vuedraggable`, mute, встроенный плеер).
+Карточка «Избранное и плейлисты» на главной. Аноним → `LoginRequired` (сообщение+кнопки Войти/Регистрация),
+**НЕ редирект** (роуты `/account/playlists[/:id]`, `/author-playlist` без `requireAuth` — гейт внутри страницы).
+
+**Плеер плейлиста = тот же `/player/:id` в iframe с `?pl=1`** (выглядит и управляется как на странице песни,
+все родные контролы). Логика очереди/авто-перехода — ВНУТРИ iframe (тот же аудио-контекст, `allow="autoplay"`),
+токен следующего трека запрашивается у родителя «точно в срок» (need-token, без пред-выдачи всех токенов и
+мусора в статистике). Мост postMessage (need-token/track/state/prev/next/setmodes/setqueue/playid/display-mode)
+вынесен в `composables/usePlaylistPlayer.js` (`PlaylistEditView` держит свой inline-мост, не тронут). Клик по
+песне — старт с неё (`playFrom`→`playid`→`playPos`). Наследование уровней громкости дорожек и «якоря» между
+треками — персистентные `_accVol/_vocVol/_volumeAnchored` в `KaraokePlayer.js` (`playSong` их НЕ сбрасывает,
+`_buildUI`/`_loadAudio` применяют; **обе копии** плеера).
+
+**Динамический «плейлист по песням автора».** Кнопка «🎧 Плейлист по песням автора «Имя»» в шапке автора
+Закромов → `/author-playlist?author=` (`AuthorPlaylistView`, read-only: нельзя менять). Список всех песен
+автора из `/api/public/zakroma` (без нового бэкенда); недоступные песни «замьючены» с замком (🪙 премиум →
+`openPremiumRequired`, 🔒 ещё не готова → ничего), пропускаются при проигрывании (в очередь идут только
+watchable по `usePlayerReadiness`). Аноним → `LoginRequired`.
+
 ## Сетевое окружение машины администратора (Claude Code через VPN)
 
 На машине администратора настроен process-scoped split-tunnel: собственный сетевой трафик Claude Code

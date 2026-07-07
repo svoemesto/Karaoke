@@ -15,14 +15,12 @@
             <li class="nav-item"><router-link class="nav-link" to="/pictures">Картинки</router-link></li>
             <li class="nav-item"><router-link class="nav-link" to="/processes">Процессы</router-link></li>
             <li class="nav-item"><router-link class="nav-link" to="/properties">Настройки</router-link></li>
-            <li class="nav-item"><router-link class="nav-link" to="/users">Пользователи</router-link></li>
             <li class="nav-item"><router-link class="nav-link" to="/siteusers">Пользователи сайта</router-link></li>
             <li class="nav-item"><router-link class="nav-link" to="/siteplaylists">Плейлисты</router-link></li>
             <li class="nav-item"><router-link class="nav-link" to="/songeditor">Задания редактора</router-link></li>
             <li class="nav-item"><router-link class="nav-link" to="/publicsettings">Настройки сайта</router-link></li>
             <li class="nav-item"><router-link class="nav-link" to="/stats">Статистика</router-link></li>
             <li class="nav-item"><router-link class="nav-link" to="/sync">Синхронизация БД</router-link></li>
-            <li class="nav-item"><router-link class="nav-link" to="/auth">Login</router-link></li>
           </ul>
         </div>
 

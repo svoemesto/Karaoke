@@ -11,8 +11,8 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseBody
 
-// Админка пользователей ПУБЛИЧНОГО САЙТА (tbl_site_users) — не путать с UsersController (tbl_users,
-// админские логины webvue3). Ключевое отличие от всех остальных ручных CRUD-контроллеров в проекте:
+// Админка пользователей ПУБЛИЧНОГО САЙТА (tbl_site_users). Ключевое отличие от всех остальных ручных
+// CRUD-контроллеров в проекте:
 // параметр target выбирается явно клиентом (webvue3), а не берётся из compile-time WORKING_DATABASE —
 // реальные посетители сайта регистрируются на боевой БД сервера, а не в локальной dev-БД, поэтому
 // админке нужно уметь смотреть и туда, и туда.

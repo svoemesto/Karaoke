@@ -81,6 +81,9 @@ export default {
             if (diffs.sponsrUid !== undefined) params.sponsrUid = diffs.sponsrUid;
             if (diffs.premium !== undefined) params.isPremium = diffs.premium;
             if (diffs.permanentPremium !== undefined) params.isPermanentPremium = diffs.permanentPremium;
+            if (diffs.maxFavorites !== undefined) params.maxFavorites = Number(diffs.maxFavorites) || 0;
+            if (diffs.maxPlaylists !== undefined) params.maxPlaylists = Number(diffs.maxPlaylists) || 0;
+            if (diffs.maxPlaylistItems !== undefined) params.maxPlaylistItems = Number(diffs.maxPlaylistItems) || 0;
             let request = { method: 'POST', url: "/api/siteusers/update", params: params };
             return promisedXMLHttpRequest(request).then(() => {
                 ctx.commit('saveSiteUser');

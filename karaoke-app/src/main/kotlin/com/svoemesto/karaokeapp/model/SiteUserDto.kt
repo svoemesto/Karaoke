@@ -13,6 +13,10 @@ data class SiteUserDto(
     val isEffectivePremium: Boolean = false,
     val isBanned: Boolean = false,
     val banReason: String = "",
+    // Персональные лимиты (0 = дефолт). Без is-префикса — JSON-ключи maxFavorites/... как есть.
+    val maxFavorites: Int = 0,
+    val maxPlaylists: Int = 0,
+    val maxPlaylistItems: Int = 0,
     val createdAt: String = "",
     val lastLoginAt: String = "",
 ) : Serializable, Comparable<SiteUserDto>, KaraokeDbTableDto {
@@ -36,6 +40,9 @@ data class SiteUserDto(
         entity.sponsrUid = sponsrUid
         entity.isBanned = isBanned
         entity.banReason = banReason
+        entity.maxFavorites = maxFavorites
+        entity.maxPlaylists = maxPlaylists
+        entity.maxPlaylistItems = maxPlaylistItems
         return entity
     }
 }

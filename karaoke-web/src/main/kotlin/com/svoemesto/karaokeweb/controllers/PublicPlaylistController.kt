@@ -41,8 +41,19 @@ class PublicPlaylistController(
     private fun loadOwnedPlaylist(id: Long, ownerId: Long): SitePlaylist? =
         SitePlaylist.getById(id, db, storageService, storageApiClient)?.takeIf { it.ownerId == ownerId }
 
+    // Персональные лимиты (поля tbl_site_users, 0 = дефолт) перекрывают дефолты.
+    private fun favoritesLimit(user: SiteUser): Int =
+        if (!user.isEffectivePremium) (if (user.maxFavorites > 0) user.maxFavorites else FREE_FAVORITES_LIMIT)
+        else itemsLimit(user)
+
+    private fun itemsLimit(user: SiteUser): Int =
+        if (user.maxPlaylistItems > 0) user.maxPlaylistItems else PREMIUM_ITEMS_LIMIT
+
+    private fun playlistsLimit(user: SiteUser): Int =
+        if (user.maxPlaylists > 0) user.maxPlaylists else PREMIUM_PLAYLIST_LIMIT
+
     private fun itemLimitFor(user: SiteUser, playlist: SitePlaylist): Int =
-        if (playlist.isFavorites && !user.isEffectivePremium) FREE_FAVORITES_LIMIT else PREMIUM_ITEMS_LIMIT
+        if (playlist.isFavorites) favoritesLimit(user) else itemsLimit(user)
 
     private fun limitReached(limit: Int) = mapOf(
         "error" to "limit_reached",
@@ -111,8 +122,9 @@ class PublicPlaylistController(
         val user = currentUser(request)
         if (!user.isEffectivePremium) return ResponseEntity.status(HttpStatus.FORBIDDEN).body(premiumRequired())
         val existing = loadPlaylists(user.id)
-        if (existing.size >= PREMIUM_PLAYLIST_LIMIT)
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(limitReached(PREMIUM_PLAYLIST_LIMIT))
+        val plLimit = playlistsLimit(user)
+        if (existing.size >= plLimit)
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(limitReached(plLimit))
 
         val pl = SitePlaylist(database = db, storageService = storageService, storageApiClient = storageApiClient)
         pl.ownerId = user.id

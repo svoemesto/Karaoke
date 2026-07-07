@@ -38,6 +38,10 @@ export default {
         statsBySong: [],
         statsBySongIsLoading: false,
         statsBySongTotalCount: 0,
+        // Drill-down событий песни
+        songEvents: [],
+        songEventsTotalCount: 0,
+        songEventsIsLoading: false,
         // Лог событий
         webEvents: [],
         webEventsIsLoading: false,
@@ -67,6 +71,9 @@ export default {
         getStatsBySong(state) { return state.statsBySong },
         getStatsBySongIsLoading(state) { return state.statsBySongIsLoading },
         getStatsBySongTotalCount(state) { return state.statsBySongTotalCount },
+        getStatsSongEvents(state) { return state.songEvents },
+        getStatsSongEventsTotalCount(state) { return state.songEventsTotalCount },
+        getStatsSongEventsIsLoading(state) { return state.songEventsIsLoading },
         getWebEvents(state) { return state.webEvents },
         getWebEventsIsLoading(state) { return state.webEventsIsLoading },
         getWebEventsTotalCount(state) { return state.webEventsTotalCount },
@@ -95,6 +102,9 @@ export default {
         setStatsBySong(state, data) { state.statsBySong = data },
         setStatsBySongIsLoading(state, v) { state.statsBySongIsLoading = v },
         setStatsBySongTotalCount(state, v) { state.statsBySongTotalCount = v },
+        setStatsSongEvents(state, v) { state.songEvents = v },
+        setStatsSongEventsTotalCount(state, v) { state.songEventsTotalCount = v },
+        setStatsSongEventsIsLoading(state, v) { state.songEventsIsLoading = v },
         setWebEvents(state, data) { state.webEvents = data },
         setWebEventsIsLoading(state, v) { state.webEventsIsLoading = v },
         setWebEventsTotalCount(state, v) { state.webEventsTotalCount = v },
@@ -170,6 +180,16 @@ export default {
                 ctx.commit('setStatsBySongTotalCount', r.totalCount);
                 ctx.commit('setStatsBySongIsLoading', false);
             }).catch(e => { console.log(e); ctx.commit('setStatsBySongIsLoading', false); });
+        },
+        // Drill-down по песне: все события конкретной песни (клик по строке «Топ песен»).
+        loadStatsSongEvents(ctx, { songId, page = 1, pageSize = 2000 } = {}) {
+            ctx.commit('setStatsSongEventsIsLoading', true);
+            const url = `/api/stats/song-events?target=${ctx.state.statsTarget}&songId=${songId}&page=${page}&pageSize=${pageSize}`;
+            getJson(url).then(r => {
+                ctx.commit('setStatsSongEvents', r.items);
+                ctx.commit('setStatsSongEventsTotalCount', r.totalCount);
+                ctx.commit('setStatsSongEventsIsLoading', false);
+            }).catch(e => { console.log(e); ctx.commit('setStatsSongEventsIsLoading', false); });
         },
         loadWebEvents(ctx, { page = 1, pageSize = 50, eventType = '', days = 0 } = {}) {
             ctx.commit('setWebEventsIsLoading', true);

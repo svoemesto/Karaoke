@@ -3322,6 +3322,14 @@ class ApiController(
         }
     }
 
+    // Принудительная (жёсткая) остановка очереди — по двойному клику на задизейбленную кнопку старт/стоп
+    // во время мягкого ожидания: убивает docker-контейнеры выполняющихся заданий, возвращает их в WAITING.
+    @PostMapping("/processes/workerforcestop")
+    @ResponseBody
+    fun getProcessWorkerForceStop() {
+        KaraokeProcessWorker.forceStop()
+    }
+
     @GetMapping("/subscribe")
     fun subscribeSse(
         response: HttpServletResponse

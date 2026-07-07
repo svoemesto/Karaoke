@@ -10,7 +10,7 @@
         ></div>
       </div>
     </div>
-    <div v-show="!hideButton" class="button-with-text-count-waiting">
+    <div v-show="!hideButton" class="button-with-text-count-waiting" @dblclick="forceStopClick">
       <button
           class="btn-round-double"
           @click.left="clickStartStopWorkerButton"
@@ -21,12 +21,24 @@
       </button>
       <div class="text-count-waiting" v-text="countWaiting"></div>
     </div>
+    <custom-confirm v-if="isConfirmVisible" :params="confirmParams" @close="isConfirmVisible = false" />
   </div>
 </template>
 
 <script>
+import CustomConfirm from "./CustomConfirm.vue";
+
 export default {
   name: "ProcessWorker",
+  components: {
+    CustomConfirm,
+  },
+  data() {
+    return {
+      isConfirmVisible: false,
+      confirmParams: undefined,
+    }
+  },
   props: {
     // Если hideButton = true то не показывать кнопку старт/стоп
     hideButton: {
@@ -91,6 +103,22 @@ export default {
   methods: {
     clickStartStopWorkerButton() {
       this.$store.dispatch('startStopProcessWorker')
+    },
+    // Двойной клик по задизейбленной кнопке (во время мягкого ожидания остановки) — принудительная
+    // остановка очереди после подтверждения: убить docker-контейнеры и вернуть задания в WAITING.
+    forceStopClick() {
+      if (!this.disabled) return; // доступно только во время мягкого ожидания остановки
+      this.confirmParams = {
+        header: 'Принудительная остановка',
+        body: 'Немедленно остановить очередь? Текущее задание вернётся в очередь (WAITING), а его docker-контейнер будет убит.',
+        alertType: 'error',
+        timeout: 10,
+        callback: this.doForceStop
+      };
+      this.isConfirmVisible = true;
+    },
+    doForceStop() {
+      this.$store.dispatch('forceStopProcessWorker')
     },
     checkUpdateProcessesWorker() {
       this.$store.dispatch('getProcessesWorkerStatusPromise').then(data => {
@@ -161,6 +189,8 @@ export default {
 }
 .btn-round-double[disabled] {
   background-color: lightgray;
+  /* Пропускаем события мыши на родительский div, чтобы сработал @dblclick (форс-стоп) */
+  pointer-events: none;
 }
 .icon-40 {
   width: 40px;

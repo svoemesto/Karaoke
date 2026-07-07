@@ -20,6 +20,7 @@ import propertiesFilter from '../components/Properties/filter/store'
 import authorsFilter from '../components/Authors/filter/store'
 import picturesFilter from '../components/Pictures/filter/store'
 import publish from '../components/Publish/store'
+import publishFilter from '../components/Publish/filter/store'
 import common from '../components/Common/store'
 import stats from '../components/Stats/store'
 import sync from '../components/Sync/store'
@@ -52,6 +53,7 @@ export default createStore({
     propertiesFilter,
     authorsFilter,
     picturesFilter,
+    publishFilter,
   },
 
   state: {

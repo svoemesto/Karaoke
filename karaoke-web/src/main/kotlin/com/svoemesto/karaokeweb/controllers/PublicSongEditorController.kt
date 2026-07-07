@@ -75,6 +75,8 @@ class PublicSongEditorController(
     @GetMapping("/tasks")
     fun tasks(request: HttpServletRequest): List<Map<String, Any?>> {
         val user = currentUser(request)
+        // Роль "редактор" — снятие роли должно закрывать доступ даже при наличии старых назначений.
+        if (!user.isEditor) return emptyList()
         val assignments = SongAssignment.loadByAssignee(user.id, db, storageService, storageApiClient)
         val drafts = SongAssignmentDraft.loadByAssignments(assignments.map { it.id }, db, storageService, storageApiClient)
         val songs = if (assignments.isEmpty()) emptyMap()
@@ -103,6 +105,7 @@ class PublicSongEditorController(
     @GetMapping("/tasks/{id}")
     fun task(@PathVariable id: Long, request: HttpServletRequest): ResponseEntity<Map<String, Any?>> {
         val user = currentUser(request)
+        if (!user.isEditor) return notFound()
         val a = loadOwnedAssignment(id, user.id) ?: return notFound()
         val draft = SongAssignmentDraft.getByAssignment(id, db, storageService, storageApiClient)
         val settings = Settings.loadFromDbById(a.songId, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
@@ -156,6 +159,7 @@ class PublicSongEditorController(
         request: HttpServletRequest,
     ): ResponseEntity<Map<String, Any?>> {
         val user = currentUser(request)
+        if (!user.isEditor) return notFound()
         val a = loadOwnedAssignment(id, user.id) ?: return notFound()
         var draft = SongAssignmentDraft.getByAssignment(id, db, storageService, storageApiClient)
         if (!canEdit(a, draft)) return ResponseEntity.status(HttpStatus.CONFLICT).body(mapOf("error" to "not_editable"))
@@ -190,6 +194,7 @@ class PublicSongEditorController(
     @PostMapping("/tasks/{id}/submit")
     fun submit(@PathVariable id: Long, request: HttpServletRequest): ResponseEntity<Map<String, Any?>> {
         val user = currentUser(request)
+        if (!user.isEditor) return notFound()
         val a = loadOwnedAssignment(id, user.id) ?: return notFound()
         val draft = SongAssignmentDraft.getByAssignment(id, db, storageService, storageApiClient)
             ?: return ResponseEntity.badRequest().body(mapOf("error" to "no_draft"))

@@ -76,6 +76,8 @@ class SiteUsersController {
         // Независимый флаг "вечного" премиума — делает пользователя премиумным, даже если isPremium
         // не выставлен (например, автоматическая Sponsr-сверка сбросит isPremium в будущем).
         @RequestParam(required = false) isPermanentPremium: Boolean?,
+        // Роль "редактор" — доступ к онлайн-редактору разметки (/account/editor) на публичном сайте.
+        @RequestParam(required = false) isEditor: Boolean?,
         // Персональные лимиты (0 = дефолт). Перекрывают дефолты в PublicPlaylistController.
         @RequestParam(required = false) maxFavorites: Int?,
         @RequestParam(required = false) maxPlaylists: Int?,
@@ -86,6 +88,7 @@ class SiteUsersController {
             sponsrUid?.let { user.sponsrUid = it }
             isPremium?.let { user.isPremium = it }
             isPermanentPremium?.let { user.isPermanentPremium = it }
+            isEditor?.let { user.isEditor = it }
             maxFavorites?.let { user.maxFavorites = it }
             maxPlaylists?.let { user.maxPlaylists = it }
             maxPlaylistItems?.let { user.maxPlaylistItems = it }

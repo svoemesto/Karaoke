@@ -133,8 +133,8 @@ import {
 export default {
   name: 'EditorWorkView',
   setup() {
-    const { token, fetchMe } = useAuth()
-    return { token, fetchMe }
+    const { token, user, fetchMe } = useAuth()
+    return { token, user, fetchMe }
   },
   data() {
     return {
@@ -179,6 +179,10 @@ export default {
     await this.fetchMe()
     if (!this.token) {
       this.$router.push({ path: '/login', query: { redirect: `/account/editor/${this.$route.params.id}` } })
+      return
+    }
+    if (!this.user || !this.user.editor) {
+      this.$router.push('/account')
       return
     }
     await this.load()

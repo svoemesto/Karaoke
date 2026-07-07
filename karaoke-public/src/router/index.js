@@ -10,6 +10,8 @@ import RegisterView from '../views/RegisterView.vue'
 import AccountView from '../views/AccountView.vue'
 import PlaylistsView from '../views/PlaylistsView.vue'
 import PlaylistEditView from '../views/PlaylistEditView.vue'
+import EditorTasksView from '../views/EditorTasksView.vue'
+import EditorWorkView from '../views/EditorWorkView.vue'
 
 // Быстрая синхронная проверка токена для защищённых маршрутов личного кабинета — сами страницы
 // перепроверяют через fetchMe(); здесь лишь чтобы не мигнуть защищённым контентом анониму.
@@ -32,8 +34,12 @@ const routes = [
     // здесь достаточно быстрой синхронной проверки, чтобы не мигать защищённым контентом.
     beforeEnter: requireAuth
   },
-  { path: '/account/playlists', name: 'playlists', component: PlaylistsView, beforeEnter: requireAuth },
-  { path: '/account/playlists/:id', name: 'playlist-edit', component: PlaylistEditView, beforeEnter: requireAuth },
+  // Без requireAuth: аноним не редиректится, а видит внутри страницы сообщение «только для
+  // зарегистрированных» с кнопками Войти/Регистрация (LoginRequired).
+  { path: '/account/playlists', name: 'playlists', component: PlaylistsView },
+  { path: '/account/playlists/:id', name: 'playlist-edit', component: PlaylistEditView },
+  { path: '/account/editor', name: 'editor-tasks', component: EditorTasksView, beforeEnter: requireAuth },
+  { path: '/account/editor/:id', name: 'editor-work', component: EditorWorkView, beforeEnter: requireAuth },
   {
     path: '/player/:id',
     name: 'player',

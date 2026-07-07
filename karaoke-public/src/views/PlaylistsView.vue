@@ -10,7 +10,9 @@
       </div>
     </header>
 
-    <div class="km-content">
+    <LoginRequired v-if="!isLoggedIn" />
+
+    <div v-else class="km-content">
       <div class="km-head-row">
         <h1 class="km-title">Мои плейлисты</h1>
         <button class="km-new-btn" :disabled="creating" @click="onCreate">＋ Новый плейлист</button>
@@ -47,17 +49,18 @@
 
 <script>
 import SvgIcon from '../components/SvgIcon.vue'
+import LoginRequired from '../components/LoginRequired.vue'
 import { useAuth } from '../composables/useAuth'
 import { usePremiumModal } from '../composables/usePremiumModal'
 import { fetchPlaylists, createPlaylist, deletePlaylist } from '../services/playlistApi'
 
 export default {
   name: 'PlaylistsView',
-  components: { SvgIcon },
+  components: { SvgIcon, LoginRequired },
   setup() {
-    const { user } = useAuth()
+    const { user, isLoggedIn } = useAuth()
     const { openPremiumRequired, openLimit } = usePremiumModal()
-    return { user, openPremiumRequired, openLimit }
+    return { user, isLoggedIn, openPremiumRequired, openLimit }
   },
   data() {
     return { playlists: [], loading: true, creating: false, busyId: null }
@@ -66,7 +69,7 @@ export default {
     isPremium() { return !!(this.user && this.user.effectivePremium) }
   },
   async mounted() {
-    await this.reload()
+    if (this.isLoggedIn) await this.reload()
   },
   methods: {
     pluralSongs(n) {

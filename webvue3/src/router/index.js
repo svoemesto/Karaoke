@@ -15,6 +15,7 @@ import PicturesView from '../views/PicturesView.vue';
 import AuthView from '../views/AuthView.vue';
 import CallbackView from '../views/CallbackView.vue';
 import StatsView from '../views/StatsView.vue';
+import SyncView from '../views/SyncView.vue';
 import AuthService from '../services/AuthService';
 
 const routes = [
@@ -82,6 +83,11 @@ const routes = [
     path: '/stats',
     name: 'stats',
     component: StatsView
+  },
+  {
+    path: '/sync',
+    name: 'sync',
+    component: SyncView
   },
   {
     path: '/auth',

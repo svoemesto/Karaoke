@@ -52,7 +52,6 @@
       </div>
       <button class="button-action" @click="customFunction">Выполнить Custom Function</button>
       </div>
-      <SyncTable />
     </div>
   </div>
 </template>
@@ -61,14 +60,12 @@
 
 import CustomConfirm from '../components/Common/CustomConfirm.vue';
 import FileExplorerModal from "../components/Common/FileExplorer/FileExplorerModal.vue";
-import SyncTable from '../components/Sync/SyncTable.vue';
 // import { useFileDialog } from '@vueuse/core'
 export default {
   name: 'HomeView',
   components: {
     CustomConfirm,
-    FileExplorerModal,
-    SyncTable
+    FileExplorerModal
   },
   data() {
     return {
@@ -486,7 +483,7 @@ export default {
 .home {
   display: flex;
   flex-direction: column;
-  max-width: 780px;
+  max-width: 500px;
   min-height: calc(100vh - 85px);
   margin: 0 auto;
   justify-content: center;
@@ -502,8 +499,7 @@ export default {
   background-color: beige;
 }
 
-/* Верхние элементы управления держим узкой центрированной колонкой (~500px),
-   чтобы кнопки не растягивались, а широкую таблицу синхронизации пускаем на всю ширину. */
+/* Верхние элементы управления держим центрированной колонкой (~500px), чтобы кнопки не растягивались. */
 .home-controls {
   display: flex;
   flex-direction: column;

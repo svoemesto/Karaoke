@@ -11,6 +11,8 @@ import com.svoemesto.karaokeapp.model.Settings
 import com.svoemesto.karaokeapp.model.SitePlaylist
 import com.svoemesto.karaokeapp.model.SitePlaylistItem
 import com.svoemesto.karaokeapp.model.SiteUser
+import com.svoemesto.karaokeapp.model.SongAssignment
+import com.svoemesto.karaokeapp.model.SongAssignmentDraft
 import com.svoemesto.karaokeapp.model.WebEvent
 import com.svoemesto.karaokeapp.services.KSS_APP
 import com.svoemesto.karaokeapp.services.SAC_APP
@@ -214,6 +216,30 @@ val EventsSyncTarget = GenericKaraokeDbTableSyncTarget(
     rowChunkSize = 100,
 )
 
+// Назначение песни на разметку в онлайн-редакторе. Пишет админ (LOCAL) → едет на PROD пользователю.
+val SongAssignmentsSyncTarget = GenericKaraokeDbTableSyncTarget(
+    key = "songassignments",
+    tableName = SongAssignment.TABLE_NAME,
+    displayName = "Задания редактора",
+    oneClickDirection = SyncDirection.LOCAL_TO_SERVER,
+    clazz = SongAssignment::class,
+    labelFn = { "id=${it.id} song=${it.songId} user=${it.assigneeId} ${it.adminStatus}" },
+    // Строки лёгкие (текста нет, review_comment короткий).
+    rowChunkSize = 200,
+)
+
+// Черновик пользователя (правки текста/маркеров). Пишет пользователь (PROD) → едет админу на LOCAL.
+val SongAssignmentDraftsSyncTarget = GenericKaraokeDbTableSyncTarget(
+    key = "songassignmentdrafts",
+    tableName = SongAssignmentDraft.TABLE_NAME,
+    displayName = "Черновики редактора",
+    oneClickDirection = SyncDirection.SERVER_TO_LOCAL,
+    clazz = SongAssignmentDraft::class,
+    labelFn = { "id=${it.id} assignment=${it.assignmentId} ${it.userStatus}" },
+    // edited_markers/edited_source_text тяжёлые — мелкими пачками, как SettingsSyncTarget.
+    rowChunkSize = 25,
+)
+
 object SyncRegistry {
     // Размер пачки для операций УДАЛЕНИЯ на удалённом сервере (зеркальное удаление в цели + move-удаление
     // из источника, оба идут как зашифрованный "DELETE ... WHERE id=X" на /changerecords). Payload одной
@@ -229,6 +255,8 @@ object SyncRegistry {
         SiteUsersSyncTarget,
         SitePlaylistsSyncTarget,
         SitePlaylistItemsSyncTarget,
+        SongAssignmentsSyncTarget,
+        SongAssignmentDraftsSyncTarget,
         EventsSyncTarget,
     )
 

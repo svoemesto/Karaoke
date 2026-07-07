@@ -12,6 +12,7 @@ import authors from '../components/Authors/store'
 import users from '../components/Users/store'
 import siteUsers from '../components/SiteUsers/store'
 import sitePlaylists from '../components/SitePlaylists/store'
+import songEditor from '../components/SongEditor/store'
 import publicSettings from '../components/PublicSettings/store'
 import pictures from '../components/Pictures/store'
 import processFilter from '../components/Processes/filter/store'
@@ -37,6 +38,7 @@ export default createStore({
     users,
     siteUsers,
     sitePlaylists,
+    songEditor,
     publicSettings,
     pictures,
     common,

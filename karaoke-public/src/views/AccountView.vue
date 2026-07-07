@@ -21,6 +21,11 @@
         <span class="km-nav-card-arrow">→</span>
       </RouterLink>
 
+      <RouterLink to="/account/editor" class="km-nav-card">
+        <span class="km-nav-card-title">🎤 Редактор караоке</span>
+        <span class="km-nav-card-arrow">→</span>
+      </RouterLink>
+
       <div class="km-form-card">
         <h2 class="km-subtitle">Профиль</h2>
         <div class="km-field">

@@ -24,7 +24,7 @@
           alt=""
         />
         <span>{{ zak.author }}</span>
-        <RouterLink :to="{ path: '/author-playlist', query: { author: zak.author } }" style="margin-left:10px; font-size:12px; font-weight:600; color:#0c5460; background:#fff; border:1px solid #9fbce0; border-radius:14px; padding:2px 10px; text-decoration:none; white-space:nowrap">🎧 Плейлист автора</RouterLink>
+        <RouterLink :to="{ path: '/author-playlist', query: { author: zak.author } }" style="margin-left:10px; font-size:12px; font-weight:600; color:#0c5460; background:#fff; border:1px solid #9fbce0; border-radius:14px; padding:2px 10px; text-decoration:none; white-space:nowrap">🎧 Плейлист по песням автора «{{ zak.author }}»</RouterLink>
       </div>
       <div v-for="alb in zak.albums" :key="alb.albumName">
         <div class="album" style="display:flex; align-items:center; gap:6px">

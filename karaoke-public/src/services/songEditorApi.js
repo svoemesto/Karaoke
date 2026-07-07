@@ -9,19 +9,20 @@ function token() {
 
 const BASE = '/api/public/account/editor'
 
-// Список моих заданий: [{id, songId, songName, author, album, year, voice, status, reviewComment}]
+// Список моих заданий: [{id, songId, songName, author, album, year, status, reviewComment}]
 export function fetchTasks() {
   return authGet(`${BASE}/tasks`, token())
 }
 
-// Одно задание: метаданные + sourceText + markers + URL стемов (с токеном) + статус/canEdit/comment.
+// Одно задание (ВСЯ песня, все голоса): метаданные + sourceTexts[]/markersPerVoice[] + URL стемов
+// (с токеном) + статус/canEdit/comment.
 export function fetchTask(id) {
   return authGet(`${BASE}/tasks/${id}`, token())
 }
 
-// Сохранить черновик. markers — JSON-строка списка маркеров одного голоса.
-export function saveTask(id, sourceText, markers) {
-  return authPost(`${BASE}/tasks/${id}/save`, { sourceText, markers }, token())
+// Сохранить черновик. sourceTexts/markersPerVoice — JSON-строки МАССИВОВ (индекс = номер голоса).
+export function saveTask(id, sourceTexts, markersPerVoice) {
+  return authPost(`${BASE}/tasks/${id}/save`, { sourceTexts, markersPerVoice }, token())
 }
 
 // Отправить на проверку админу.

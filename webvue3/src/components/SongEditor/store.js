@@ -1,9 +1,10 @@
 import { promisedXMLHttpRequest } from "../../lib/utils";
 
 // Задания онлайн-редактора караоке-разметки (tbl_song_assignments + tbl_song_assignment_drafts).
-// target ('local'|'remote') добавляется в запросы просмотра (digest/byId). assign/approve/reject/delete
-// на бэкенде всегда работают с LOCAL (authority назначений — локальная БД, см. SongEditorController),
-// поэтому им target не нужен.
+// target ('local'|'remote') — в запросах просмотра (digest/byId), в assign (где создать — обычно
+// сервер, если весь цикл назначение→работа→апрув идёт на PROD) и в approve (читает черновик оттуда,
+// где реально идёт работа, но Settings пишет всегда в LOCAL — см. SongEditorController). reject/delete
+// target игнорируют: id совпадает в обеих БД, поэтому они безопасны из любого вида без уточнения.
 export default {
     state: {
         assignmentsDigest: [],
@@ -57,12 +58,29 @@ export default {
                 .catch(error => console.log(error));
         },
         setAssignmentsTarget(ctx, target) { ctx.commit('setAssignmentsTarget', target); },
-        assignSong(ctx, { songId, assigneeId, voice }) {
-            return promisedXMLHttpRequest({ method: 'POST', url: "/api/songeditor/assign", params: { songId, assigneeId, voice: voice || 0 } })
+        // Быстрый поиск песен-кандидатов для AssignModal (по умолчанию только id_status=1 — TEXT_CREATE).
+        searchCandidateSongs(ctx, { query, author, album, onlyStatus1 }) {
+            const params = {};
+            if (query) params.filterSongName = query;
+            if (author) params.filterAuthor = author;
+            if (album) params.filterAlbum = album;
+            if (onlyStatus1) params.filterStatus = '1';
+            return promisedXMLHttpRequest({ method: 'POST', url: "/api/songsdigests", params })
+                .then(data => {
+                    const result = JSON.parse(data);
+                    return result.songsDigests || [];
+                });
+        },
+        // Задание покрывает всю песню (все голоса) — voice больше не передаётся. target — где создать
+        // (по умолчанию local); реальный цикл работы часто идёт целиком на сервере.
+        assignSong(ctx, { songId, assigneeId }) {
+            return promisedXMLHttpRequest({ method: 'POST', url: "/api/songeditor/assign", params: { songId, assigneeId, target: ctx.state.assignmentsTarget } })
                 .then(data => JSON.parse(data));
         },
+        // target — откуда читать задание/черновик (по умолчанию local); Settings и статус задания
+        // бэкенд в любом случае пишет только в LOCAL (см. SongEditorController.approve).
         approveAssignment(ctx, id) {
-            return promisedXMLHttpRequest({ method: 'POST', url: "/api/songeditor/approve", params: { id } })
+            return promisedXMLHttpRequest({ method: 'POST', url: "/api/songeditor/approve", params: { id, target: ctx.state.assignmentsTarget } })
                 .then(data => JSON.parse(data));
         },
         rejectAssignment(ctx, { id, comment }) {

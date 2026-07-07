@@ -7,13 +7,24 @@ import com.svoemesto.karaokeapp.services.KSS_APP
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.SAC_APP
 import com.svoemesto.karaokeapp.services.StorageApiClient
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import java.io.Serializable
 import java.sql.Timestamp
 
 // Рабочая копия пользователя для назначения (SongAssignment): отредактированный текст + маркеры
-// ОДНОГО голоса + флаг отправки на проверку. Пишет ТОЛЬКО пользователь (SERVER), направление sync
-// SERVER_TO_LOCAL (SyncRegistry: songassignmentdrafts) — как siteusers/siteplaylists. На апруве
-// karaoke-app применяет edited_markers в Settings.setSourceMarkers(voice, ...) (только на LOCAL).
+// ВСЕЙ песни (все голоса, не один) + флаг отправки на проверку. Пишет ТОЛЬКО пользователь (SERVER),
+// направление sync SERVER_TO_LOCAL (SyncRegistry: songassignmentdrafts) — как siteusers/siteplaylists.
+// На апруве karaoke-app применяет edited_markers в Settings.setSourceMarkers(voice, ...) для КАЖДОГО
+// голоса (только на LOCAL).
+//
+// Формат editedSourceText/editedMarkers — JSON-массив ПО ГОЛОСАМ (тот же формат, что
+// Settings.sourceTextList/sourceMarkersList): editedMarkers = List<List<SourceMarker>>,
+// editedSourceText = List<String>. editedMarkers{Per}/editedTextsPerVoice() терпимы к СТАРОМУ
+// одноголосому формату (голая строка / плоский List<SourceMarker>) — черновики, сохранённые до
+// перехода на multi-voice, читаются как один голос (voice 0), не ломаются.
 @JsonIgnoreProperties(value = ["database", "sqlToInsert"])
 class SongAssignmentDraft(
     override val database: KaraokeConnection = WORKING_DATABASE,
@@ -36,7 +47,7 @@ class SongAssignmentDraft(
     var editedSourceText: String = ""
 
     @KaraokeDbTableField(name = "edited_markers")
-    var editedMarkers: String = "[]"
+    var editedMarkers: String = "[[]]"
 
     @KaraokeDbTableField(name = "user_status")
     var userStatus: String = SongAssignmentStatus.USER_IN_PROGRESS
@@ -60,7 +71,34 @@ class SongAssignmentDraft(
         userStatus = userStatus,
     )
 
+    // Черновик по голосам — с откатом на старый одноголосый формат (голая строка / плоский список
+    // маркеров), сохранённый до перехода на multi-voice.
+    fun editedMarkersPerVoice(json: Json): List<List<SourceMarker>> {
+        return try {
+            json.decodeFromString(ListSerializer(ListSerializer(SourceMarker.serializer())), editedMarkers)
+        } catch (_: Exception) {
+            try {
+                listOf(json.decodeFromString(ListSerializer(SourceMarker.serializer()), editedMarkers))
+            } catch (_: Exception) {
+                emptyList()
+            }
+        }
+    }
+
+    fun editedTextsPerVoice(json: Json): List<String> {
+        return try {
+            json.decodeFromString(ListSerializer(String.serializer()), editedSourceText)
+        } catch (_: Exception) {
+            listOf(editedSourceText)
+        }
+    }
+
     companion object {
+        fun encodeMarkersPerVoice(markersPerVoice: List<List<SourceMarker>>): String =
+            Json.encodeToString(markersPerVoice)
+
+        fun encodeTextsPerVoice(textsPerVoice: List<String>): String =
+            Json.encodeToString(textsPerVoice)
 
         const val TABLE_NAME = "tbl_song_assignment_drafts"
 

@@ -23,6 +23,12 @@
       <button class="set-toolbar-item set-btn set-btn-add" @click="isAssignVisible = true">+ Назначить песню</button>
     </div>
 
+    <div v-if="isRemoteView" class="set-remote-note">
+      Просмотр серверной БД. Назначить/одобрить/отклонить/удалить — работают и отсюда (id совпадает в
+      обеих БД); новое назначение создастся сразу на сервере (реальный цикл работы часто идёт целиком
+      на PROD). Изменение самой песни при апруве в любом случае применяется в локальной БД.
+    </div>
+
     <div class="set-table-body">
       <b-table
           :items="digest"
@@ -73,13 +79,17 @@ export default {
       get() { return this.$store.getters.getAssignmentsTarget },
       set(v) { this.$store.dispatch('setAssignmentsTarget', v) }
     },
+    // Только для информационного баннера — assign/approve/reject/delete работают одинаково в обоих
+    // видах (id совпадает в LOCAL/REMOTE; songassignments синкается SERVER_TO_LOCAL, реальный цикл
+    // работы часто идёт целиком на PROD). Единственное, что всегда LOCAL — само изменение песни при
+    // апруве (см. SongEditorController.approve).
+    isRemoteView() { return this.target === 'remote' },
     fields() {
       return [
         { key: 'id', label: 'ID', style: { minWidth: '50px', maxWidth: '50px', textAlign: 'center', fontSize: 'small' } },
         { key: 'songName', label: 'Песня', style: { minWidth: '220px', textAlign: 'left', fontSize: 'small' } },
         { key: 'author', label: 'Автор', style: { minWidth: '160px', textAlign: 'left', fontSize: 'small' } },
         { key: 'assigneeName', label: 'Исполнитель', style: { minWidth: '160px', textAlign: 'left', fontSize: 'small' } },
-        { key: 'voice', label: 'Голос', style: { minWidth: '55px', maxWidth: '55px', textAlign: 'center', fontSize: 'small' } },
         { key: 'status', label: 'Статус', style: { minWidth: '110px', maxWidth: '110px', textAlign: 'center', fontSize: 'small' } },
         { key: 'actions', label: '', style: { minWidth: '160px', maxWidth: '160px', textAlign: 'center', fontSize: 'small' } },
       ]
@@ -119,6 +129,11 @@ export default {
 .set-btn { border: solid 1px black; border-radius: 6px; padding: 4px 10px; background-color: antiquewhite; cursor: pointer; }
 .set-btn:hover { background-color: lightpink; }
 .set-btn-add { background-color: #d1f5d8; }
+.set-btn:disabled, .set-mini-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.set-remote-note {
+  width: 100%; max-width: 900px; font-size: 0.8rem; color: #8a6d0a; background: #fef8e3;
+  border: 1px solid #f2dd9a; border-radius: 8px; padding: 0.5rem 0.75rem; margin-bottom: 8px;
+}
 .set-table-body { width: fit-content; }
 .set-table-footer { margin-top: 6px; font-size: small; color: gray; }
 .set-badge { font-size: 0.72rem; font-weight: 700; border-radius: 20px; padding: 0.12rem 0.55rem; }

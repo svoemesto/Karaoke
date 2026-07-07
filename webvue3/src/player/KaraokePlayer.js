@@ -4,17 +4,26 @@ class PlayerUnavailableError extends Error {}
 
 export default class KaraokePlayer {
   // Usage modes:
-  //   new KaraokePlayer(container, songId, apiBase)          — online, loads via /api
+  //   new KaraokePlayer(container, songId, apiBase)                      — online, loads via /api
+  //   new KaraokePlayer(container, { songId, assignmentId }, apiBase)    — online, but with the
+  //     given voice's markers overridden by that assignment's UNAPPROVED draft (song-editor review
+  //     preview — see /api/song/{id}/playerdata's assignmentId param on the backend)
   //   new KaraokePlayer(container, { smkaraoke: File|Blob }) — from local .smkaraoke file
   //   new KaraokePlayer(container, { smkaraokeUrl: string }) — download .smkaraoke from URL
   constructor(container, songIdOrOptions, apiBase) {
     this.container = container
-    if (songIdOrOptions !== null && typeof songIdOrOptions === 'object') {
+    if (songIdOrOptions !== null && typeof songIdOrOptions === 'object' && ('smkaraoke' in songIdOrOptions || 'smkaraokeUrl' in songIdOrOptions)) {
       this._mode = songIdOrOptions.smkaraoke ? 'blob' : 'url-smkaraoke'
       this._smkaraokeSource = songIdOrOptions.smkaraoke ?? songIdOrOptions.smkaraokeUrl
+    } else if (songIdOrOptions !== null && typeof songIdOrOptions === 'object') {
+      this._mode = 'api'
+      this.songId = songIdOrOptions.songId
+      this.assignmentId = songIdOrOptions.assignmentId ?? null
+      this.apiBase = apiBase
     } else {
       this._mode = 'api'
       this.songId = songIdOrOptions
+      this.assignmentId = null
       this.apiBase = apiBase
     }
     this._smkaraokeObjectUrls = []
@@ -95,7 +104,8 @@ export default class KaraokePlayer {
 
     try {
       if (this._mode === 'api') {
-        const resp = await fetch(`${this.apiBase}/song/${this.songId}/playerdata`)
+        const qs = this.assignmentId ? `?assignmentId=${encodeURIComponent(this.assignmentId)}` : ''
+        const resp = await fetch(`${this.apiBase}/song/${this.songId}/playerdata${qs}`)
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
         this.data = await resp.json()
       } else {
@@ -1086,6 +1096,7 @@ export default class KaraokePlayer {
 
     this._mode = 'api'
     this.songId = songId
+    this.assignmentId = null
 
     this.accBuffer = null; this.vocBuffer = null
     this.accSource = null; this.vocSource = null

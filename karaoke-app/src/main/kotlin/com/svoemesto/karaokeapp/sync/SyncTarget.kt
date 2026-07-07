@@ -216,12 +216,14 @@ val EventsSyncTarget = GenericKaraokeDbTableSyncTarget(
     rowChunkSize = 100,
 )
 
-// Назначение песни на разметку в онлайн-редакторе. Пишет админ (LOCAL) → едет на PROD пользователю.
+// Назначение песни на разметку в онлайн-редакторе. Реальный рабочий цикл (назначить → пользователь
+// делает → админ апрувит) чаще всего идёт ЦЕЛИКОМ на PROD (assign/approve поддерживают target=remote,
+// см. SongEditorController) — как pull пользователей/статистики, а не push с LOCAL.
 val SongAssignmentsSyncTarget = GenericKaraokeDbTableSyncTarget(
     key = "songassignments",
     tableName = SongAssignment.TABLE_NAME,
     displayName = "Задания редактора",
-    oneClickDirection = SyncDirection.LOCAL_TO_SERVER,
+    oneClickDirection = SyncDirection.SERVER_TO_LOCAL,
     clazz = SongAssignment::class,
     labelFn = { "id=${it.id} song=${it.songId} user=${it.assigneeId} ${it.adminStatus}" },
     // Строки лёгкие (текста нет, review_comment короткий).

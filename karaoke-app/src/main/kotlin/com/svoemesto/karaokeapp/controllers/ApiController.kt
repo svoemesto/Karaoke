@@ -83,6 +83,7 @@ class ApiController(
     private val storageApiClient: StorageApiClient,
     private val lyricsFinderService: LyricsFinderService
 ) {
+    private val lenientJson = Json { ignoreUnknownKeys = true }
 
     @GetMapping("/diagnostics") // GET запрос на /api/diagnostics
     @ResponseBody
@@ -3882,11 +3883,27 @@ class ApiController(
         return ResponseEntity.notFound().build()
     }
 
+    // assignmentId (опционально) — превью НЕОДОБРЕННОГО черновика онлайн-редактора (tbl_song_assignment_drafts):
+    // до approve() правки живут только в drafts, tbl_settings их не видит. Задание покрывает ВСЮ песню —
+    // черновик несёт ВСЕ голоса разом, подменяем весь sourceMarkersList целиком. assignment должен
+    // принадлежать именно этой песне (id) — иначе подмена игнорируется (fail-safe, без утечки чужого черновика).
     @GetMapping("/song/{id}/playerdata")
     @ResponseBody
-    fun getSongPlayerData(@PathVariable id: Long): ResponseEntity<Map<String, Any?>> {
+    fun getSongPlayerData(@PathVariable id: Long, @RequestParam(required = false) assignmentId: Long?): ResponseEntity<Map<String, Any?>> {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
             ?: return ResponseEntity.notFound().build()
+
+        var markersList = settings.sourceMarkersList
+        if (assignmentId != null) {
+            val assignment = SongAssignment.getById(assignmentId, WORKING_DATABASE, storageService, storageApiClient)
+            val draft = assignment?.takeIf { it.songId == id }
+                ?.let { SongAssignmentDraft.getByAssignment(it.id, WORKING_DATABASE, storageService, storageApiClient) }
+            if (draft != null) {
+                val draftMarkersPerVoice = draft.editedMarkersPerVoice(lenientJson)
+                if (draftMarkersPerVoice.isNotEmpty()) markersList = draftMarkersPerVoice
+            }
+        }
+
         val data = mapOf(
             "id" to id,
             "songName" to settings.songName,
@@ -3896,7 +3913,7 @@ class ApiController(
             "track" to settings.track.takeIf { it > 0 },
             "key" to settings.key.takeIf { it.isNotBlank() },
             "bpm" to settings.bpm,
-            "markers" to settings.sourceMarkersList,
+            "markers" to markersList,
             "audioAccompanimentUrl" to "/api/song/$id/fileminus.mp3",
             "audioVocalsUrl" to "/api/song/$id/filevoice.mp3",
             "audioBassUrl" to if (File(settings.bassNameFlac).exists()) "/api/song/$id/filebass.mp3" else null,

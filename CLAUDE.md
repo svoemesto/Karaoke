@@ -66,13 +66,17 @@ Local dev / deployment (`deploy/do.sh`, a single entrypoint wrapping gradle + do
 cd deploy
 bash do.sh build                  # gradle build jars + build all docker images
 bash do.sh build_app              # build only the karaoke-app image
-bash do.sh build_start_web        # rebuild karaoke-web and (re)start
+bash do.sh build_web              # build only the karaoke-web image
 bash do.sh build_start_public     # rebuild karaoke-public (Vue→nginx) and (re)start (порт 7907)
 bash do.sh build_webvue3          # rebuild webvue3 image
 bash do.sh build_demucs / push_demucs
 bash do.sh start [all] / stop [all] / start_db / stop_db / push / pull / ps
 ```
 `deploy/do.env` / `deploy/.env` hold the environment (ports, registry, host folder mounts).
+
+**`build_start_web` / `build_start_webvue3` из `deploy/` НЕ перезапускают реальный локальный
+контейнер правильно** — см. ниже «Сборка/запуск локальных контейнеров» (`karaoke-app`, `karaoke-web`,
+`webvue3` живут в отдельной рантайм-папке `/sm-karaoke/system/deploy`, не в `~/Karaoke/deploy`).
 
 **Очередь (взаимное исключение) gradle-сборок (`deploy/build-lock.sh`).** Все jar-сборки
 (`karaoke-app`/`karaoke-web`) идут через `${GRADLE} clean <module>:bootJar` — параллельный запуск двух над
@@ -82,11 +86,18 @@ bash do.sh start [all] / stop [all] / start_db / stop_db / push / pull / ps
 неизменных исходниках сборка **пропускается** по sha256-отпечатку в `.build/<module>.stamp`; форс — `FORCE=1`
 или `--force`. **Детали** → memory `project_build_lock_queue.md` и архив.
 
-**Сборка/запуск karaoke-app** (сборка и запуск из разных папок):
+**Сборка/запуск локальных контейнеров (`karaoke-app`, `karaoke-web`, `webvue3`) — ВСЕГДА из разных
+папок.** Реальный локальный контейнер поднимается из `/sm-karaoke/system/deploy` (свой `do.sh`, свои
+`docker-compose-*-new-comp.yml`) — это не то же самое, что git-репозиторий `~/Karaoke/deploy`.
+**Никогда не использовать однокомандные `build_start_app`/`build_start_web`/`build_start_webvue3`
+целиком из `~/Karaoke/deploy`** — они гоняют не тот compose-файл (репозиторный, а не `-new-comp.yml`
+из `/sm-karaoke/system/deploy`), даже если по имени контейнера выглядит рабочим. Исключение —
+`karaoke-public`: у него нет пары в `/sm-karaoke/system/deploy`, поэтому `build_start_public` одной
+командой из `~/Karaoke/deploy` — корректно.
 ```
-cd ~/Karaoke/deploy && ./do.sh build_app
-cd /sm-karaoke/system/deploy && ./do.sh start_app     # обычный запуск
-cd /sm-karaoke/system/deploy && ./do.sh start_app2    # с выводом в консоль (отладка)
+cd ~/Karaoke/deploy && ./do.sh build_app        # или build_web / build_webvue3 — сборка из репо
+cd /sm-karaoke/system/deploy && ./do.sh start_app     # обычный запуск (или start_web / start_webvue3)
+cd /sm-karaoke/system/deploy && ./do.sh start_app2    # с выводом в консоль (отладка, только app)
 ```
 
 **Особенности Docker-образов** (детали → memory `project_dockerfile_karaoke_app.md`):

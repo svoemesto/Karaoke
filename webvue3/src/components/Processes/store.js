@@ -64,7 +64,10 @@ export default {
                 }
             }
             const threadId = userEventData.record.threadId;
-            if (userEventData.record.status !== 'DONE' && userEventData.record.status !== 'ERROR') {
+            // В шапке показываем прогресс только реально выполняющихся (WORKING) заданий. Любой другой
+            // статус (WAITING/DONE/ERROR/CREATING) убирает запись — в т.ч. при форс-стопе, когда поток
+            // асинхронно возвращает задание в WAITING уже после очистки карты по PROCESS_WORKER_STATE.
+            if (userEventData.record.status === 'WORKING') {
                 state.workingProcessByThreadId[threadId] = Object.assign({}, userEventData.record)
             } else {
                 delete state.workingProcessByThreadId[threadId]
@@ -108,6 +111,11 @@ export default {
             // console.log('Событие изменения статуса воркера процесса: ', userEventData)
             state.processIsWorking = userEventData.work;
             state.processWillStopAfterThreadIsDone = userEventData.stopAfterThreadIsDone;
+            // Воркер полностью остановлен — рабочих процессов быть не может, чистим прогресс-бар шапки
+            // (в т.ч. при форс-стопе, когда задания возвращаются в WAITING без DONE/ERROR-события).
+            if (!userEventData.work) {
+                state.workingProcessByThreadId = {};
+            }
         },
     },
     actions: {
@@ -141,6 +149,10 @@ export default {
         },
         startStopProcessWorker: () => {
             let request = { method: 'POST', url: "/api/processes/workerstartstop" };
+            promisedXMLHttpRequest(request);
+        },
+        forceStopProcessWorker: () => {
+            let request = { method: 'POST', url: "/api/processes/workerforcestop" };
             promisedXMLHttpRequest(request);
         },
         getProcessesWorkerStatusPromise: () => {

@@ -349,6 +349,37 @@ Sheetsage key/BPM/chord detection, file copy/symlink operations) is modeled as a
 a priority and run on a managed pool — this queue is the backbone of the whole rendering pipeline, not a generic
 task runner.
 
+**Остановка очереди: «мягкая» (stop) vs «принудительная» (forceStop).** Кнопка старт/стоп в шапке
+`webvue3` (`Common/ProcessWorker.vue`, лейн `threadId=0`) на «стоп» вызывает `KaraokeProcessWorker.doStop()`
+— тот лишь ставит `stopAfterThreadIsDone=true`; главный цикл `doStart()` (`while(isWork)`) выходит **только**
+при `stopAfterThreadIsDone && !hasAliveThreads`, т.е. дожидается завершения текущей цепочки (в т.ч. служебных
+`tail`-заданий). Пока идёт это ожидание, кнопка задизейблена (`disabled = isWork && stopAfterThreadIsDone`).
+Проблема: тяжёлое MELT-задание живёт в отдельном docker-контейнере (`docker compose run --rm mlt`), который
+не убивается `Process.destroy()` (тот убьёт лишь родительский CLI). Поэтому добавлен **форс-стоп** — двойной
+клик по **задизейбленной** кнопке (с подтверждением `CustomConfirm`), эндпоинт `POST /api/processes/workerforcestop`
+→ `KaraokeProcessWorker.forceStop()`:
+- `KaraokeProcessThread` получил `@Volatile forceStopped` + `@Volatile osProcess: java.lang.Process?` (раньше
+  ссылки на OS-процесс в поле не было — только локальная в `run()`). При `forceStopped` все три ветки завершения
+  потока (успех подпроцесса / catch / функциональная `runFunctionWithArgs`) ставят **`WAITING`** вместо
+  `DONE`/`ERROR` (иначе поток после убийства контейнера перезаписал бы статус в `DONE`) и пропускают пост-хук
+  HealthReport.
+- `forceStop()`: (a) `forceStopped=true` на всех живых потоках ДО убийства; (b) **`isWork=false`, но
+  `stopAfterThreadIsDone` держим `true`** — НЕ сбрасывать в `false`, иначе цикл `doStart` в середине итерации
+  (пока не вышел) попал бы в ветку старта и перезапустил только что убитое (и уже `WAITING`) задание; (c)
+  `killRunningDockerContainers()` (`Utils.kt` — зеркало `applyLiveCpuLimitToRunningProcesses()`, но `docker kill`
+  вместо `docker update`; убивает ВСЕ контейнеры типа: MELT по `ancestor=svoemestodev/melt:latest`, DEMUCS2/5 →
+  имя `demucs`, KEY_BPM → `ancestor=svoemestodev/keybpmfinder:latest`); (d) по потокам `WAITING`+`save()`+
+  `destroyForcibly()`+`interrupt()`; (e) backstop `setWorkingToWaiting`; (f) `threadsMap.clear()` + SSE state/count.
+- **Ловушка «прогресс в шапке не исчезал»:** `KaraokeProcessThread` асинхронно (когда подпроцесс умирал из-за
+  убитого контейнера) сам делал `save()` со статусом `WAITING`, и это SSE `recordChange` приходило ПОЗЖЕ
+  `sendStateMessage`, очистившего карту → мутация `updateProcessByUserEvent` (`Processes/store.js`), где было
+  условие `status !== 'DONE' && !== 'ERROR'`, снова клала процесс в `workingProcessByThreadId` (WAITING подходил).
+  Фикс — семантический: в шапке показывать прогресс **только при `status === 'WORKING'`**, любой другой статус
+  (`WAITING`/`DONE`/`ERROR`/`CREATING`) удаляет запись из карты. Race-proof, порядок SSE больше не важен.
+- **CSS-ловушка dblclick:** `.btn-round-double[disabled] { pointer-events: none }` обязателен — иначе
+  задизейбленная кнопка глотает события мыши и `@dblclick` на родительском `.button-with-text-count-waiting`
+  не срабатывает.
+
 **Устаревший workflow "MP3 Karaoke"/"MP3 Lyrics" — закомментирован по всему стеку, готовится к
 полному удалению.** `KaraokeProcessTypes.FF_MP3_KAR`/`FF_MP3_LYR` (ffmpeg-конвертация минусовки/
 оригинала в mp3 в папки `MP3_Karaoke`/`MP3_Lyrics`) и связанные с ними `KaraokeFileType.MP3_STORE_SONG`/

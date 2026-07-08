@@ -271,6 +271,17 @@
             });
         }
 
+        function doDictImportFromFiles() {
+            if (!confirm("Импортировать словари из старых текстовых файлов в БД?")) return;
+            $.ajax({
+                type: "POST",
+                url: "/dictionaries/importfromfiles",
+                success: function(data) {
+                    alert(`Результат: ${JSON.stringify(data)}`);
+                }
+            });
+        }
+
     </script>
 </head>
 
@@ -365,6 +376,11 @@
             <tr style="margin: 1px;padding: 1px;height: auto;">
                 <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px;">
                     <button style="height: 35px;" name="button_dict_remove" id="button_dict_remove" class="form-control btn btn-primary btn-block" type="button" onclick="doDictRemove()">Удалить из словаря</button>
+                </td>
+            </tr>
+            <tr style="margin: 1px;padding: 1px;height: auto;">
+                <td style="font-size: 22px; padding: 0; padding-left: 1px; padding-right: 1px;">
+                    <button style="height: 35px;" name="button_dict_import_from_files" id="button_dict_import_from_files" class="form-control btn btn-primary btn-block" type="button" onclick="doDictImportFromFiles()">Импортировать словари из файлов</button>
                 </td>
             </tr>
 

@@ -1,7 +1,6 @@
 import { ref, watch } from 'vue'
 import { trackUi } from '../services/tracking'
 
-const design = ref(localStorage.getItem('karaoke-design') || 'classic')
 const theme  = ref(localStorage.getItem('karaoke-theme')  || 'system')
 
 function applyTheme(val) {
@@ -10,7 +9,6 @@ function applyTheme(val) {
   document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light')
 }
 
-watch(design, val => { localStorage.setItem('karaoke-design', val); trackUi('theme', `design:${val}`) })
 watch(theme,  val => {
   localStorage.setItem('karaoke-theme', val)
   applyTheme(val)
@@ -22,5 +20,5 @@ window.matchMedia('(prefers-color-scheme: dark)')
   .addEventListener('change', () => { if (theme.value === 'system') applyTheme('system') })
 
 export function useDesign() {
-  return { design, theme, applyTheme }
+  return { theme, applyTheme }
 }

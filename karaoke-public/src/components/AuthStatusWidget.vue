@@ -4,6 +4,7 @@
       <RouterLink to="/account" class="km-auth-link">
         <span v-if="isPremium" class="km-premium-badge" title="Премиум-подписчик">🪙</span>{{ displayName }}
       </RouterLink>
+      <RouterLink to="/account/playlists" class="km-auth-link">Плейлисты</RouterLink>
       <button class="km-auth-btn" @click="onLogout">Выйти</button>
     </template>
     <template v-else>

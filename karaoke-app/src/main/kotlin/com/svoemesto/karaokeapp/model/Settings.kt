@@ -660,6 +660,21 @@ class Settings(
     val versionTelegramChords: Int get() = (fields[SettingField.VERSION_TELEGRAM_CHORDS]?.nullIfEmpty() ?: "0").toInt()
     val versionTelegramMelody: Int get() = (fields[SettingField.VERSION_TELEGRAM_MELODY]?.nullIfEmpty() ?: "0").toInt()
 
+    // Сопоставление версии песни с полем-идентификатором Telegram-поста (используется автоматизацией
+    // отлова ссылки - см. TelegramUpdatesConsumer): SongVersion.TABS исторически хранится в поле "Melody".
+    fun telegramIdSettingField(songVersion: SongVersion): SettingField = when (songVersion) {
+        SongVersion.LYRICS -> SettingField.ID_TELEGRAM_LYRICS
+        SongVersion.KARAOKE -> SettingField.ID_TELEGRAM_KARAOKE
+        SongVersion.CHORDS -> SettingField.ID_TELEGRAM_CHORDS
+        SongVersion.TABS -> SettingField.ID_TELEGRAM_MELODY
+    }
+
+    fun idTelegramFor(songVersion: SongVersion): String = when (songVersion) {
+        SongVersion.LYRICS -> idTelegramLyrics
+        SongVersion.KARAOKE -> idTelegramKaraoke
+        SongVersion.CHORDS -> idTelegramChords
+        SongVersion.TABS -> idTelegramMelody
+    }
 
     val idPlLyrics: String get() = fields[SettingField.ID_PL_LYRICS]?.nullIfEmpty() ?: ""
     val idPlKaraoke: String get() = fields[SettingField.ID_PL_KARAOKE]?.nullIfEmpty() ?: ""
@@ -686,6 +701,11 @@ class Settings(
     val indexTabsVariant: Int get() = (fields[SettingField.INDEX_TABS_VARIANT]?.nullIfEmpty() ?: "0").toInt()
 
     val rate: Int get() = (fields[SettingField.RATE]?.nullIfEmpty() ?: "0").toInt()
+
+    // Тариф подписки (монетизация). 0 = песня не продаётся отдельно/дефолт. Пишется напрямую через
+    // fields[SettingField.ID_TARIFF] = value.toString() (см. TariffsController не трогает эту
+    // привязку — она делается из карточки песни в webvue3, отдельный эндпоинт Фазы 6).
+    val idTariff: Int get() = (fields[SettingField.ID_TARIFF]?.nullIfEmpty() ?: "0").toInt()
 
     val linkSM: String get() = URL_PREFIX_SM.replace("{REPLACE}", id.toString())
     val linkBoosty: String get() = idBoosty.let {URL_PREFIX_BOOSTY.replace("{REPLACE}", idBoosty)}
@@ -2228,6 +2248,28 @@ class Settings(
             saveToDb()
             return
         }
+    }
+
+    // Обрезает список голосов (sourceMarkersList/sourceTextList) до count элементов — единственный
+    // способ УДАЛИТЬ голос(а): setSourceMarkers/setSourceText умеют только обновить существующий
+    // или добавить в конец, укоротить список они не могут. Используется онлайн-редактором (сайт),
+    // когда пользователь удаляет последний(е) голос(а) из своего черновика перед апрувом.
+    // Не трогает count>=текущего размера — тогда обрезать нечего.
+    fun truncateVoicesTo(count: Int) {
+        if (count < 0) return
+        val markersLst = sourceMarkersList
+        if (markersLst.size > count) {
+            sourceMarkers = Json.encodeToString(markersLst.take(count))
+            resultText = getText()
+            formattedTextSong = getTextFormatted()
+            formattedTextTabs = getFormattedNotes()
+            formattedTextChords = getFormattedChords()
+        }
+        val textsLst = sourceTextList
+        if (textsLst.size > count) {
+            sourceText = Json.encodeToString(textsLst.take(count))
+        }
+        if (markersLst.size > count || textsLst.size > count) saveToDb()
     }
 
     fun setIndexTabsVariant(ind: Int) {
@@ -3965,6 +4007,7 @@ class Settings(
         fieldsValues.add(Pair("status_process_melody", settings.statusProcessMelody))
         fieldsValues.add(Pair("tags", settings.tags))
         fieldsValues.add(Pair("rate", settings.rate))
+        fieldsValues.add(Pair("id_tariff", settings.idTariff))
         fieldsValues.add(Pair("formatted_text_song", settings.formattedTextSong))
         fieldsValues.add(Pair("formatted_text_tabs", settings.formattedTextTabs))
         fieldsValues.add(Pair("formatted_text_chords", settings.formattedTextChords))
@@ -4128,6 +4171,20 @@ class Settings(
     companion object {
         const val TABLE_NAME = "tbl_settings"
 
+        // Автоматизация публикации в Telegram (TelegramUpdatesConsumer): сопоставление вышедшего
+        // channel_post с песней/версией по СОДЕРЖИМОМУ поста, без отдельного маркера. Каждый пост,
+        // подготовленный через getDescriptionTelegramHeader(), уже содержит ссылку на страницу песни
+        // ($linkSM = "https://sm-karaoke.ru/song?id=<id>") и явный разделитель версии
+        // (" ★♫★ ${songVersion.text} ★♫★ ${songVersion.textForDescription}") — этого достаточно для
+        // точного разбора без изменения видимого текста поста.
+        private val TELEGRAM_POST_SONG_ID_REGEX = Regex("""sm-karaoke\.ru/song\?id=(\d+)""")
+
+        fun parseTelegramPostSongId(text: String): Long? =
+            TELEGRAM_POST_SONG_ID_REGEX.find(text)?.groupValues?.get(1)?.toLongOrNull()
+
+        fun parseTelegramPostSongVersion(text: String): SongVersion? =
+            SongVersion.entries.firstOrNull { v -> text.contains("★♫★ ${v.text} ★♫★ ${v.textForDescription}") }
+
         fun renameFilesIfDiff(settNewVersion: Settings, settOldVersion: Settings): Pair<Boolean, Boolean> {
             val rsfnNew = settNewVersion.fileName
             val rsfnOld = settOldVersion.fileName
@@ -4267,6 +4324,7 @@ class Settings(
                 if (settA.rootId != settB.rootId) result.add(RecordDiff("root_id", settA.rootId, settB.rootId))
                 if (settA.exclusive != settB.exclusive) result.add(RecordDiff("exclusive", settA.exclusive, settB.exclusive))
                 if (settA.free != settB.free) result.add(RecordDiff("free", settA.free, settB.free))
+                if (settA.idTariff != settB.idTariff) result.add(RecordDiff("id_tariff", settA.idTariff, settB.idTariff))
 
 
                 if (settA.status != settB.status) result.add(RecordDiff("status", settA.status, settB.status, false))
@@ -4840,6 +4898,7 @@ class Settings(
                         rs.getString("formatted_text_chords")?.let { value -> settings.formattedTextChords = value }
                     }
                     rs.getInt("rate").let { value -> settings.fields[SettingField.RATE] = value.toString() }
+                    rs.getInt("id_tariff").let { value -> settings.fields[SettingField.ID_TARIFF] = value.toString() }
 
                     rs.getLong("root_id").let { value -> settings.rootId = value }
                     rs.getBoolean("exclusive").let { value -> settings.exclusive = value }

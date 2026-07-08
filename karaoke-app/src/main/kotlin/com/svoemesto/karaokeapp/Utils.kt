@@ -2934,6 +2934,47 @@ fun applyLiveCpuLimitToRunningProcesses() {
     }
 }
 
+// Убивает docker-контейнеры выполняющихся сейчас докеризованных заданий — для принудительной остановки
+// очереди (KaraokeProcessWorker.forceStop). Зеркало applyLiveCpuLimitToRunningProcesses() по способу
+// нахождения контейнера (по образу/фиксированному имени), но вместо "docker update" делает "docker kill".
+// MELT-контейнеры запускаются как "docker compose run --rm" → фиксированного имени нет, ищутся по ancestor;
+// одновременно может быть несколько (edit-рендеры на разных threadId), поэтому убиваем ВСЕ найденные.
+// Убийство контейнера закрывает stdout родительского CLI (docker/docker compose) → поток чтения
+// разблокируется; контейнеры "--rm" удаляются сами.
+fun killRunningDockerContainers() {
+    val dockerTypes = setOf(
+        KaraokeProcessTypes.MELT_LYRICS, KaraokeProcessTypes.MELT_KARAOKE,
+        KaraokeProcessTypes.MELT_CHORDS, KaraokeProcessTypes.MELT_TABS,
+        KaraokeProcessTypes.DEMUCS2, KaraokeProcessTypes.DEMUCS5,
+        KaraokeProcessTypes.KEY_BPM_FROM_FILE
+    )
+    val workingTypes = KaraokeProcess.loadList(mapOf("process_status" to KaraokeProcessStatuses.WORKING.name), WORKING_DATABASE)
+        .mapNotNull { p -> dockerTypes.find { it.name == p.type } }
+        .toSet()
+
+    for (type in workingTypes) {
+        val containerRefs: List<String> = when (type) {
+            KaraokeProcessTypes.MELT_LYRICS, KaraokeProcessTypes.MELT_KARAOKE,
+            KaraokeProcessTypes.MELT_CHORDS, KaraokeProcessTypes.MELT_TABS ->
+                runCommand(listOf("docker", "ps", "--filter", "ancestor=svoemestodev/melt:latest", "--format", "{{.ID}}"), ignoreErrors = true)
+                    .lineSequence().filter { it.isNotBlank() }.toList()
+            KaraokeProcessTypes.DEMUCS2, KaraokeProcessTypes.DEMUCS5 -> listOf("demucs")
+            KaraokeProcessTypes.KEY_BPM_FROM_FILE ->
+                runCommand(listOf("docker", "ps", "--filter", "ancestor=svoemestodev/keybpmfinder:latest", "--format", "{{.ID}}"), ignoreErrors = true)
+                    .lineSequence().filter { it.isNotBlank() }.toList()
+            else -> emptyList()
+        }
+        containerRefs.forEach { ref ->
+            try {
+                println("[${Timestamp.from(Instant.now())}] ProcessWorker: docker kill $ref (тип $type)")
+                runCommand(listOf("docker", "kill", ref), ignoreErrors = true)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+}
+
 fun createScriptForHost(args: List<String>, waitToDone: Boolean = false) {
     val txt = args.joinToString(" ")
     val fileName = "/sm-karaoke/system/scriptsFromDocker/${UUID.randomUUID()}.sh"

@@ -8,7 +8,11 @@ import com.svoemesto.karaokeapp.model.Pictures
 import com.svoemesto.karaokeapp.model.RecordDiff
 import com.svoemesto.karaokeapp.model.RecordHash
 import com.svoemesto.karaokeapp.model.Settings
+import com.svoemesto.karaokeapp.model.SitePlaylist
+import com.svoemesto.karaokeapp.model.SitePlaylistItem
 import com.svoemesto.karaokeapp.model.SiteUser
+import com.svoemesto.karaokeapp.model.SongAssignment
+import com.svoemesto.karaokeapp.model.SongAssignmentDraft
 import com.svoemesto.karaokeapp.model.WebEvent
 import com.svoemesto.karaokeapp.services.KSS_APP
 import com.svoemesto.karaokeapp.services.SAC_APP
@@ -176,6 +180,28 @@ val SiteUsersSyncTarget = GenericKaraokeDbTableSyncTarget(
     rowChunkSize = 500,
 )
 
+val SitePlaylistsSyncTarget = GenericKaraokeDbTableSyncTarget(
+    key = "siteplaylists",
+    tableName = SitePlaylist.TABLE_NAME,
+    displayName = "Плейлисты сайта",
+    oneClickDirection = SyncDirection.SERVER_TO_LOCAL,
+    clazz = SitePlaylist::class,
+    labelFn = { "id=${it.id} ${it.name}" },
+    // Лёгкие строки (нет текста/base64) — по 500 фактически один запрос.
+    rowChunkSize = 500,
+)
+
+val SitePlaylistItemsSyncTarget = GenericKaraokeDbTableSyncTarget(
+    key = "siteplaylistitems",
+    tableName = SitePlaylistItem.TABLE_NAME,
+    displayName = "Элементы плейлистов сайта",
+    oneClickDirection = SyncDirection.SERVER_TO_LOCAL,
+    clazz = SitePlaylistItem::class,
+    labelFn = { "id=${it.id} pl=${it.playlistId} song=${it.songId}" },
+    // Крошечные строки (playlist_id/song_id/position/muted) — по 500.
+    rowChunkSize = 500,
+)
+
 val EventsSyncTarget = GenericKaraokeDbTableSyncTarget(
     key = "events",
     tableName = WebEvent.TABLE_NAME,
@@ -188,6 +214,32 @@ val EventsSyncTarget = GenericKaraokeDbTableSyncTarget(
     // (rest_parameters/user_agent/referer), а на пути к серверной БД крупные ответы чувствительны
     // к размеру пакета. По 100 каждая пачка — отдельный небольшой запрос со своим окном таймаута.
     rowChunkSize = 100,
+)
+
+// Назначение песни на разметку в онлайн-редакторе. Реальный рабочий цикл (назначить → пользователь
+// делает → админ апрувит) чаще всего идёт ЦЕЛИКОМ на PROD (assign/approve поддерживают target=remote,
+// см. SongEditorController) — как pull пользователей/статистики, а не push с LOCAL.
+val SongAssignmentsSyncTarget = GenericKaraokeDbTableSyncTarget(
+    key = "songassignments",
+    tableName = SongAssignment.TABLE_NAME,
+    displayName = "Задания редактора",
+    oneClickDirection = SyncDirection.SERVER_TO_LOCAL,
+    clazz = SongAssignment::class,
+    labelFn = { "id=${it.id} song=${it.songId} user=${it.assigneeId} ${it.adminStatus}" },
+    // Строки лёгкие (текста нет, review_comment короткий).
+    rowChunkSize = 200,
+)
+
+// Черновик пользователя (правки текста/маркеров). Пишет пользователь (PROD) → едет админу на LOCAL.
+val SongAssignmentDraftsSyncTarget = GenericKaraokeDbTableSyncTarget(
+    key = "songassignmentdrafts",
+    tableName = SongAssignmentDraft.TABLE_NAME,
+    displayName = "Черновики редактора",
+    oneClickDirection = SyncDirection.SERVER_TO_LOCAL,
+    clazz = SongAssignmentDraft::class,
+    labelFn = { "id=${it.id} assignment=${it.assignmentId} ${it.userStatus}" },
+    // edited_markers/edited_source_text тяжёлые — мелкими пачками, как SettingsSyncTarget.
+    rowChunkSize = 25,
 )
 
 object SyncRegistry {
@@ -203,6 +255,10 @@ object SyncRegistry {
         PicturesSyncTarget,
         AuthorsSyncTarget,
         SiteUsersSyncTarget,
+        SitePlaylistsSyncTarget,
+        SitePlaylistItemsSyncTarget,
+        SongAssignmentsSyncTarget,
+        SongAssignmentDraftsSyncTarget,
         EventsSyncTarget,
     )
 

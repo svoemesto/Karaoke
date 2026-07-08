@@ -1,7 +1,7 @@
 <template>
   <div class="sync-table-wrapper">
     <custom-confirm v-if="isCustomConfirmVisible" :params="customConfirmParams" @close="closeCustomConfirm" />
-    <button class="button-action sync-oneclick-button" @click="confirmOneClick">🔄 Синхронизация в 1 клик</button>
+    <button class="btn btn-success sync-oneclick-button" @click="confirmOneClick">🔄 Синхронизация в 1 клик</button>
     <table class="sync-table">
       <thead>
         <tr>
@@ -25,7 +25,7 @@
                    @change="onFlagChange(entity, 'PUSH', op.op, $event)" />
           </td>
           <td>
-            <button class="button-action button-action-inline" :disabled="!entity.allowPush" @click="confirmRun(entity, 'PUSH')">→ Server</button>
+            <button class="btn btn-sm btn-primary sync-run-button" :disabled="!entity.allowPush" @click="confirmRun(entity, 'PUSH')">→ Server</button>
           </td>
           <td v-for="op in ops" :key="'l-' + op.op" class="sync-op-col">
             <input type="checkbox"
@@ -33,7 +33,7 @@
                    @change="onFlagChange(entity, 'PULL', op.op, $event)" />
           </td>
           <td>
-            <button class="button-action button-action-inline" :disabled="!entity.allowPull" @click="confirmRun(entity, 'PULL')">← Local</button>
+            <button class="btn btn-sm btn-primary sync-run-button" :disabled="!entity.allowPull" @click="confirmRun(entity, 'PULL')">← Local</button>
           </td>
         </tr>
       </tbody>
@@ -158,6 +158,11 @@ export default {
 }
 .sync-oneclick-button {
   align-self: flex-start;
+  font-weight: 600;
+}
+/* Кнопки направления в ячейках таблицы не должны переноситься. */
+.sync-run-button {
+  white-space: nowrap;
 }
 .sync-table {
   border-collapse: collapse;

@@ -15,11 +15,15 @@
             <li class="nav-item"><router-link class="nav-link" to="/pictures">Картинки</router-link></li>
             <li class="nav-item"><router-link class="nav-link" to="/processes">Процессы</router-link></li>
             <li class="nav-item"><router-link class="nav-link" to="/properties">Настройки</router-link></li>
-            <li class="nav-item"><router-link class="nav-link" to="/users">Пользователи</router-link></li>
             <li class="nav-item"><router-link class="nav-link" to="/siteusers">Пользователи сайта</router-link></li>
+            <li class="nav-item"><router-link class="nav-link" to="/siteplaylists">Плейлисты</router-link></li>
+            <li class="nav-item"><router-link class="nav-link" to="/songeditor">Задания редактора</router-link></li>
             <li class="nav-item"><router-link class="nav-link" to="/publicsettings">Настройки сайта</router-link></li>
+            <li class="nav-item"><router-link class="nav-link" to="/tariffs">Тарифы</router-link></li>
+            <li class="nav-item"><router-link class="nav-link" to="/promotions">Акции</router-link></li>
+            <li class="nav-item"><router-link class="nav-link" to="/sponsrsync">Sponsr-синхронизация</router-link></li>
             <li class="nav-item"><router-link class="nav-link" to="/stats">Статистика</router-link></li>
-            <li class="nav-item"><router-link class="nav-link" to="/auth">Login</router-link></li>
+            <li class="nav-item"><router-link class="nav-link" to="/sync">Синхронизация БД</router-link></li>
           </ul>
         </div>
 
@@ -55,9 +59,41 @@ import {EventSourcePolyfill} from "event-source-polyfill";
 import store from "./store/index.js";
 import {useToast} from "bootstrap-vue-next";
 import {h} from "vue";
+import {getTabId} from "./lib/utils.js";
+
+const SSE_RECONNECT_DELAY_MS = 4000;
 
 export default {
+  data() {
+    return {
+      msgServer: null,
+      sseReconnectTimer: null,
+    }
+  },
   methods: {
+    connectSse(create) {
+      // У каждой вкладки свой tabId (см. getTabId()) - сервер держит по нему отдельный SSE-канал
+      // (см. TabIdFilter/SseNotificationService в karaoke-app) вместо общего на всё приложение.
+      const msgServer = new EventSourcePolyfill(`/api/subscribe?tabId=${encodeURIComponent(getTabId())}`, {
+        heartbeatTimeout: 30000, // > серверного heartbeat (15с), < дефолта полифилла (45с)
+      });
+      msgServer.addEventListener('user', (event) => {
+        this.userEvent(JSON.parse(event.data).payload, create)
+      }, false);
+      msgServer.onerror = () => {
+        if (msgServer.readyState === msgServer.CLOSED) {
+          this.scheduleSseReconnect(create);
+        }
+      };
+      this.msgServer = msgServer;
+    },
+    scheduleSseReconnect(create) {
+      if (this.sseReconnectTimer) return;
+      this.sseReconnectTimer = setTimeout(() => {
+        this.sseReconnectTimer = null;
+        this.connectSse(create);
+      }, SSE_RECONNECT_DELAY_MS);
+    },
     userEvent(userEvent, create) {
       switch (userEvent.type) {
         case 'RECORD_CHANGE': {
@@ -340,10 +376,7 @@ export default {
   async mounted() {
     console.log('APP mounted')
     const {create} = useToast();
-    const msgServer = new EventSourcePolyfill('/api/subscribe')
-    msgServer.addEventListener('user', (event) => {
-      this.userEvent(JSON.parse(event.data).payload, create)
-    }, false);
+    this.connectSse(create);
 
     this.$store.dispatch('setLastSettingType',{ value: await this.$store.getters.getWebvueProp('lastSettingType', 'COMMENT') });
     this.$store.dispatch('setLastSettingValue', { value: await this.$store.getters.getWebvueProp('lastSettingValue', 'Комментарий') });
@@ -358,6 +391,13 @@ export default {
     this.$store.dispatch('setLastPriorSymlinks', { value: await this.$store.getters.getWebvueProp('lastPriorSymlinks', '-1') });
     this.$store.dispatch('setLastPriorSmartCopy', { value: await this.$store.getters.getWebvueProp('lastPriorSmartCopy', '-1') });
 
+  },
+  beforeUnmount() {
+    if (this.sseReconnectTimer) {
+      clearTimeout(this.sseReconnectTimer);
+      this.sseReconnectTimer = null;
+    }
+    this.msgServer?.close();
   }
 }
 </script>
@@ -385,7 +425,8 @@ export default {
 
 /* Стили для левой колонки (сайдбар) */
 .app-sidebar {
-  width: 150px; /* Установите желаемую ширину для сайдбара */
+  width: 190px; /* Ширина подобрана так, чтобы самый длинный пункт («Пользователи сайта») помещался в одну строку */
+  flex-shrink: 0; /* Не сжимать сайдбар — иначе пункты снова начнут переноситься */
   /* border-right: 1px solid #ccc; /* Добавьте границу, если нужно */
   padding: 10px;
   display: flex;
@@ -405,6 +446,7 @@ export default {
   border-radius: 4px; /* Скругление углов ссылок */
   text-decoration: none; /* Убираем подчеркивание по умолчанию */
   color: #2c3e50; /* Цвет текста ссылки */
+  white-space: nowrap; /* Пункт меню всегда в одну строку */
 }
 
 .app-sidebar .nav-link:hover {

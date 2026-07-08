@@ -9,8 +9,9 @@ import fileExplorer from '../components/Common/FileExplorer/store'
 import processes from '../components/Processes/store'
 import properties from '../components/Properties/store'
 import authors from '../components/Authors/store'
-import users from '../components/Users/store'
 import siteUsers from '../components/SiteUsers/store'
+import sitePlaylists from '../components/SitePlaylists/store'
+import songEditor from '../components/SongEditor/store'
 import publicSettings from '../components/PublicSettings/store'
 import pictures from '../components/Pictures/store'
 import processFilter from '../components/Processes/filter/store'
@@ -18,9 +19,13 @@ import propertiesFilter from '../components/Properties/filter/store'
 import authorsFilter from '../components/Authors/filter/store'
 import picturesFilter from '../components/Pictures/filter/store'
 import publish from '../components/Publish/store'
+import publishFilter from '../components/Publish/filter/store'
 import common from '../components/Common/store'
 import stats from '../components/Stats/store'
 import sync from '../components/Sync/store'
+import tariffs from '../components/Tariffs/store'
+import promotions from '../components/Promotions/store'
+import sponsrSync from '../components/SponsrSync/store'
 import { useToast } from 'bootstrap-vue-next'
 
 export default createStore({
@@ -33,13 +38,17 @@ export default createStore({
     processes,
     properties,
     authors,
-    users,
     siteUsers,
+    sitePlaylists,
+    songEditor,
     publicSettings,
     pictures,
     common,
     stats,
     sync,
+    tariffs,
+    promotions,
+    sponsrSync,
     songFilter,
     smartCopy,
     healthReport,
@@ -48,6 +57,7 @@ export default createStore({
     propertiesFilter,
     authorsFilter,
     picturesFilter,
+    publishFilter,
   },
 
   state: {

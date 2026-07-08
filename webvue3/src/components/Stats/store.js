@@ -38,10 +38,19 @@ export default {
         statsBySong: [],
         statsBySongIsLoading: false,
         statsBySongTotalCount: 0,
+        // Drill-down событий песни
+        songEvents: [],
+        songEventsTotalCount: 0,
+        songEventsIsLoading: false,
         // Лог событий
         webEvents: [],
         webEventsIsLoading: false,
         webEventsTotalCount: 0,
+        // Монетизация (подписки)
+        monetizationSummary: null,
+        monetizationSummaryIsLoading: false,
+        monetizationTopSongs: [],
+        monetizationTopSongsIsLoading: false,
     },
     getters: {
         getStatsTarget(state) { return state.statsTarget },
@@ -67,9 +76,16 @@ export default {
         getStatsBySong(state) { return state.statsBySong },
         getStatsBySongIsLoading(state) { return state.statsBySongIsLoading },
         getStatsBySongTotalCount(state) { return state.statsBySongTotalCount },
+        getStatsSongEvents(state) { return state.songEvents },
+        getStatsSongEventsTotalCount(state) { return state.songEventsTotalCount },
+        getStatsSongEventsIsLoading(state) { return state.songEventsIsLoading },
         getWebEvents(state) { return state.webEvents },
         getWebEventsIsLoading(state) { return state.webEventsIsLoading },
         getWebEventsTotalCount(state) { return state.webEventsTotalCount },
+        getMonetizationSummary(state) { return state.monetizationSummary },
+        getMonetizationSummaryIsLoading(state) { return state.monetizationSummaryIsLoading },
+        getMonetizationTopSongs(state) { return state.monetizationTopSongs },
+        getMonetizationTopSongsIsLoading(state) { return state.monetizationTopSongsIsLoading },
     },
     mutations: {
         setStatsTarget(state, target) { state.statsTarget = target },
@@ -95,9 +111,16 @@ export default {
         setStatsBySong(state, data) { state.statsBySong = data },
         setStatsBySongIsLoading(state, v) { state.statsBySongIsLoading = v },
         setStatsBySongTotalCount(state, v) { state.statsBySongTotalCount = v },
+        setStatsSongEvents(state, v) { state.songEvents = v },
+        setStatsSongEventsTotalCount(state, v) { state.songEventsTotalCount = v },
+        setStatsSongEventsIsLoading(state, v) { state.songEventsIsLoading = v },
         setWebEvents(state, data) { state.webEvents = data },
         setWebEventsIsLoading(state, v) { state.webEventsIsLoading = v },
         setWebEventsTotalCount(state, v) { state.webEventsTotalCount = v },
+        setMonetizationSummary(state, v) { state.monetizationSummary = v },
+        setMonetizationSummaryIsLoading(state, v) { state.monetizationSummaryIsLoading = v },
+        setMonetizationTopSongs(state, v) { state.monetizationTopSongs = v },
+        setMonetizationTopSongsIsLoading(state, v) { state.monetizationTopSongsIsLoading = v },
     },
     actions: {
         setStatsTarget(ctx, target) { ctx.commit('setStatsTarget', target) },
@@ -171,6 +194,16 @@ export default {
                 ctx.commit('setStatsBySongIsLoading', false);
             }).catch(e => { console.log(e); ctx.commit('setStatsBySongIsLoading', false); });
         },
+        // Drill-down по песне: все события конкретной песни (клик по строке «Топ песен»).
+        loadStatsSongEvents(ctx, { songId, page = 1, pageSize = 2000 } = {}) {
+            ctx.commit('setStatsSongEventsIsLoading', true);
+            const url = `/api/stats/song-events?target=${ctx.state.statsTarget}&songId=${songId}&page=${page}&pageSize=${pageSize}`;
+            getJson(url).then(r => {
+                ctx.commit('setStatsSongEvents', r.items);
+                ctx.commit('setStatsSongEventsTotalCount', r.totalCount);
+                ctx.commit('setStatsSongEventsIsLoading', false);
+            }).catch(e => { console.log(e); ctx.commit('setStatsSongEventsIsLoading', false); });
+        },
         loadWebEvents(ctx, { page = 1, pageSize = 50, eventType = '', days = 0 } = {}) {
             ctx.commit('setWebEventsIsLoading', true);
             let url = `/api/webevents?target=${ctx.state.statsTarget}&page=${page}&pageSize=${pageSize}`;
@@ -181,6 +214,20 @@ export default {
                 ctx.commit('setWebEventsTotalCount', r.totalCount);
                 ctx.commit('setWebEventsIsLoading', false);
             }).catch(e => { console.log(e); ctx.commit('setWebEventsIsLoading', false); });
+        },
+        loadMonetizationSummary(ctx) {
+            ctx.commit('setMonetizationSummaryIsLoading', true);
+            getJson(`/api/stats/monetization?target=${ctx.state.statsTarget}`).then(r => {
+                ctx.commit('setMonetizationSummary', r.summary);
+                ctx.commit('setMonetizationSummaryIsLoading', false);
+            }).catch(e => { console.log(e); ctx.commit('setMonetizationSummaryIsLoading', false); });
+        },
+        loadMonetizationTopSongs(ctx, { limit = 20 } = {}) {
+            ctx.commit('setMonetizationTopSongsIsLoading', true);
+            getJson(`/api/stats/monetization/top-songs?target=${ctx.state.statsTarget}&limit=${limit}`).then(r => {
+                ctx.commit('setMonetizationTopSongs', r.items);
+                ctx.commit('setMonetizationTopSongsIsLoading', false);
+            }).catch(e => { console.log(e); ctx.commit('setMonetizationTopSongsIsLoading', false); });
         },
     }
 }

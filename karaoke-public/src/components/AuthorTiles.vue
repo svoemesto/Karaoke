@@ -1,5 +1,5 @@
 <template>
-  <div :class="['at-grid', `at-${variant}`]">
+  <div class="at-grid at-modern">
     <button
       v-for="t in tiles"
       :key="t.author"
@@ -30,8 +30,7 @@ export default {
   name: 'AuthorTiles',
   props: {
     tiles: { type: Array, default: () => [] },
-    selected: { type: String, default: '' },
-    variant: { type: String, default: 'classic' } // 'classic' | 'modern'
+    selected: { type: String, default: '' }
   },
   emits: ['select']
 }
@@ -104,21 +103,6 @@ export default {
   white-space: nowrap;
 }
 
-/* ---- Классический дизайн ---- */
-.at-classic .at-tile {
-  background: #ffffff;
-  border: 1px solid #9fbce0;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
-}
-.at-classic .at-name { color: #0c5460; }
-.at-classic .at-count { color: #0c5460; background: #e3eefb; }
-.at-classic .at-tile:hover { box-shadow: 0 3px 8px rgba(12, 84, 96, 0.25); }
-.at-classic .at-selected {
-  border-color: #0c5460;
-  box-shadow: 0 0 0 2px #0c5460;
-}
-
-/* ---- Современный дизайн ---- */
 .at-modern .at-tile {
   background: var(--km-card);
   border: 1px solid var(--km-border);

@@ -1,0 +1,159 @@
+package com.svoemesto.karaokeweb.services
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.svoemesto.karaokeapp.model.Subscription
+import org.springframework.beans.factory.annotation.Qualifier
+import org.springframework.http.MediaType
+import org.springframework.stereotype.Service
+import org.springframework.web.reactive.function.client.WebClient
+import org.springframework.web.reactive.function.client.bodyToMono
+import java.util.UUID
+
+/**
+ * Интеграция с ЮKassa (приём платежей для самозанятого — авто-чеки в "Мой налог" по 422-ФЗ, см.
+ * план монетизации). Обслуживает единый платёжный конвейер для scope=SONG (бессрочно) и scope=SITE
+ * (период + опционально автопродление через сохранённый payment_method).
+ *
+ * ВАЖНО: без реальных YOOKASSA_SHOP_ID/YOOKASSA_SECRET_KEY (магазин ещё не зарегистрирован — см.
+ * Prerequisites плана) этот сервис не может быть end-to-end проверен. hasCredentials() — явная
+ * защита, чтобы не пытаться дёргать API без ключей (упало бы Basic Auth с пустой строкой).
+ *
+ * Все внешние вызовы идут через host-nginx прокси (yookassa.proxy-url), см. WebClientConfig —
+ * тот же обход MTU black-hole, что и CAPTCHA_PROXY_URL/STORAGE_PROXY_URL.
+ */
+@Service
+class PaymentService(
+    @Qualifier("yookassaWebClient") private val webClient: WebClient,
+) {
+    private val objectMapper = ObjectMapper()
+
+    fun hasCredentials(): Boolean = System.getenv("YOOKASSA_SHOP_ID")?.isNotBlank() == true ||
+        System.getProperty("yookassa.shop-id")?.isNotBlank() == true
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    data class Amount(val value: String, val currency: String = "RUB")
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    data class Confirmation(val type: String = "redirect", val confirmation_url: String? = null, val return_url: String? = null)
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    data class ReceiptCustomer(val email: String)
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    data class ReceiptItem(
+        val description: String,
+        val quantity: String = "1",
+        val amount: Amount,
+        // Самозанятый (НПД): услуга не облагается НДС отдельно (в чек "Мой налог" вносится единая
+        // ставка по 422-ФЗ) — vat_code=1 ("без НДС"), payment_subject=service. Проверить перед боевым
+        // запуском по реальным настройкам магазина ЮKassa (см. Prerequisites).
+        val vat_code: Int = 1,
+        val payment_mode: String = "full_payment",
+        val payment_subject: String = "service",
+    )
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    data class Receipt(val customer: ReceiptCustomer, val items: List<ReceiptItem>)
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    data class PaymentMethodRef(val id: String? = null, val saved: Boolean? = null)
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    data class PaymentResponse(
+        val id: String = "",
+        val status: String = "",
+        val paid: Boolean = false,
+        val confirmation: Confirmation? = null,
+        val payment_method: PaymentMethodRef? = null,
+    )
+
+    /**
+     * Создаёт платёж на новую подписку (redirect-подтверждение — пользователь уходит на страницу
+     * ЮKassa). Для scope=SITE с автопродлением передаём save_payment_method=true, чтобы получить
+     * payment_method.id для будущих chargeRecurring(). Idempotence-Key = "sub-<id>" — повторный вызов
+     * с тем же id (например, повторный клик "Оплатить" до редиректа) не создаёт дублирующий платёж.
+     */
+    fun createPayment(sub: Subscription, description: String, email: String, returnUrl: String, saveMethod: Boolean): PaymentResponse? {
+        if (!hasCredentials()) {
+            println("PaymentService: YOOKASSA_SHOP_ID/SECRET_KEY не заданы — платёж не создан (sub=${sub.id})")
+            return null
+        }
+        val body = mutableMapOf<String, Any>(
+            "amount" to Amount(value = "%.2f".format(sub.finalPrice)),
+            "capture" to true,
+            "confirmation" to Confirmation(type = "redirect", return_url = returnUrl),
+            "description" to description,
+            "receipt" to Receipt(
+                customer = ReceiptCustomer(email = email),
+                items = listOf(ReceiptItem(description = description, amount = Amount(value = "%.2f".format(sub.finalPrice)))),
+            ),
+        )
+        if (saveMethod) body["save_payment_method"] = true
+        return try {
+            webClient.post()
+                .uri("/payments")
+                .header("Idempotence-Key", "sub-${sub.id}-${sub.createdAt.time}")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(body)
+                .retrieve()
+                .bodyToMono<PaymentResponse>()
+                .block()
+        } catch (e: Exception) {
+            println("PaymentService.createPayment: ошибка создания платежа для sub=${sub.id}: ${e.message}")
+            null
+        }
+    }
+
+    /**
+     * Повторное списание по сохранённому payment_method_id (автопродление подписки на сайт).
+     * Idempotence-Key завязан на конкретный цикл продления (передаётся снаружи), чтобы ретрай
+     * шедулера в тот же день не задвоил списание.
+     */
+    fun chargeRecurring(sub: Subscription, description: String, email: String, idempotenceKey: String): PaymentResponse? {
+        if (!hasCredentials() || sub.yookassaPaymentMethodId.isBlank()) return null
+        val body = mapOf(
+            "amount" to Amount(value = "%.2f".format(sub.finalPrice)),
+            "capture" to true,
+            "payment_method_id" to sub.yookassaPaymentMethodId,
+            "description" to description,
+            "receipt" to Receipt(
+                customer = ReceiptCustomer(email = email),
+                items = listOf(ReceiptItem(description = description, amount = Amount(value = "%.2f".format(sub.finalPrice)))),
+            ),
+        )
+        return try {
+            webClient.post()
+                .uri("/payments")
+                .header("Idempotence-Key", idempotenceKey)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(body)
+                .retrieve()
+                .bodyToMono<PaymentResponse>()
+                .block()
+        } catch (e: Exception) {
+            println("PaymentService.chargeRecurring: ошибка автосписания для sub=${sub.id}: ${e.message}")
+            null
+        }
+    }
+
+    /**
+     * Перезапрашивает статус платежа У ЮKASSA (не доверяем телу вебхука напрямую — см. план,
+     * раздел Verification: "статус берётся перезапросом, не из тела").
+     */
+    fun verifyAndFetch(paymentId: String): PaymentResponse? {
+        if (!hasCredentials()) return null
+        return try {
+            webClient.get()
+                .uri("/payments/$paymentId")
+                .retrieve()
+                .bodyToMono<PaymentResponse>()
+                .block()
+        } catch (e: Exception) {
+            println("PaymentService.verifyAndFetch: ошибка проверки статуса платежа $paymentId: ${e.message}")
+            null
+        }
+    }
+
+    fun newIdempotenceKey(): String = UUID.randomUUID().toString()
+}

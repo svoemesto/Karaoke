@@ -1,0 +1,15 @@
+version: "3.9"
+services:
+  karaoke-telegram-proxy:
+    image: ghcr.io/xtls/xray-core:latest
+    container_name: karaoke-telegram-proxy
+    command: ["run", "-c", "/usr/local/etc/xray/config.json"]
+    volumes:
+      - /sm-karaoke/system/telegram-proxy/config.json:/usr/local/etc/xray/config.json:ro
+    networks:
+      - karaokenet
+    restart: always
+
+networks:
+  karaokenet:
+    external: true

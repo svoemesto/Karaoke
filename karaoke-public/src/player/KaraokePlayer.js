@@ -43,6 +43,10 @@ export default class KaraokePlayer {
     this.isPlaying = false
     this.duration = 0
     this._volumeAnchored = false   // "якорь": при true все треки идут к одной громкости
+    // Уровни громкости дорожек (%). Персистентны на весь инстанс, чтобы при смене песни в плейлисте
+    // (playSong) уровни ползунков «Музыка»/«Голос» и якорь сцепки наследовались следующим треком.
+    this._accVol = 100
+    this._vocVol = 0
 
     // Pre-roll: splash (5s) + silent offset before first syllable
     this._splashDur = 5.0
@@ -72,6 +76,10 @@ export default class KaraokePlayer {
     this.wsVoc = null
     this._lastWsSync = 0
     this._endedHandled = false
+
+    // Необязательный внешний колбэк, вызывается один раз при естественном окончании трека
+    // (из _onEnded). Используется страницей плейлиста для авто-перехода к следующей песне.
+    this.onTrackEnded = null
 
     // Display mode: 'embed' (small box on the host page, e.g. the song page's player card) vs
     // 'page' (this player's own container fills the whole viewport it lives in — that's already
@@ -545,12 +553,12 @@ export default class KaraokePlayer {
           <div style="flex:1;min-width:0">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
               <span style="color:#888;font-size:11px;width:44px;text-align:right">Музыка</span>
-              <input id="kp-vol-acc" type="range" min="0" max="100" value="100" style="width:80px;cursor:pointer;accent-color:#08f">
+              <input id="kp-vol-acc" type="range" min="0" max="100" value="${this._accVol}" style="width:80px;cursor:pointer;accent-color:#08f">
               <div id="kp-ws-acc" style="flex:1;height:40px;min-width:0"></div>
             </div>
             <div style="display:flex;align-items:center;gap:8px">
               <span style="color:#888;font-size:11px;width:44px;text-align:right">Голос</span>
-              <input id="kp-vol-voc" type="range" min="0" max="100" value="0" style="width:80px;cursor:pointer;accent-color:#f80">
+              <input id="kp-vol-voc" type="range" min="0" max="100" value="${this._vocVol}" style="width:80px;cursor:pointer;accent-color:#f80">
               <div id="kp-ws-voc" style="flex:1;height:40px;min-width:0"></div>
             </div>
           </div>
@@ -567,23 +575,13 @@ export default class KaraokePlayer {
           <div id="kp-progress-wrap" style="flex:1;height:5px;background:#333;border-radius:3px;cursor:pointer;position:relative">
             <div id="kp-progress-bar" style="height:100%;background:#f80;border-radius:3px;width:0%;pointer-events:none"></div>
           </div>
-          <input type="file" id="kp-file-input" accept=".smkaraoke" style="display:none">
-          <div id="kp-menu-wrap" style="position:relative">
-            <button id="kp-menu-btn" title="Меню" style="background:none;border:none;color:#ccc;font-size:16px;cursor:pointer;padding:0 4px">☰</button>
-            <div id="kp-menu" class="kp-menu">
-              <div class="kp-menu-item" id="kp-menu-open"><span>Открыть файл...</span></div>
-              <div class="kp-menu-separator" id="kp-menu-export-separator"></div>
-              <div class="kp-menu-item kp-menu-parent" id="kp-menu-export">
-                <span>Экспорт аудио...</span><span class="kp-menu-arrow">▸</span>
-                <div class="kp-submenu" id="kp-submenu-export">
-                  <div class="kp-menu-item" data-stem="vocals"><span>Голос</span></div>
-                  <div class="kp-menu-item" data-stem="accompaniment"><span>Минусовка</span></div>
-                  <div class="kp-menu-item" data-stem="bass" style="display:none"><span>Бас</span></div>
-                  <div class="kp-menu-item" data-stem="drums" style="display:none"><span>Ударные</span></div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <!-- Меню (☰) целиком убрано из публичного плеера: пункт "Открыть файл..." больше не
+               нужен — публичная монетизация не предоставляет файлы пользователю (см. план
+               монетизации: только онлайн-разблокировка, никаких .smkaraoke наружу), а "Экспорт
+               аудио..." был единственным другим пунктом. #kp-file-input/#kp-menu-wrap намеренно НЕ
+               рендерятся здесь (в отличие от admin-копии webvue3/src/player/KaraokePlayer.js, где
+               меню нужно для работы с локальными файлами) — _buildMenu() ниже безопасно
+               no-op'ает, если #kp-menu-btn не найден. -->
         </div>
       </div>`
 
@@ -599,7 +597,9 @@ export default class KaraokePlayer {
     this.container.querySelector('#kp-widemode').addEventListener('click', () => this._toggleDisplayMode())
     this._updateDisplayModeButton()
     this._updateFullscreenButton()
-    this.container.querySelector('#kp-file-input').addEventListener('change', e => {
+    // #kp-file-input не рендерится в публичном плеере (меню убрано, см. комментарий в шаблоне) —
+    // элемент отсутствует, слушатель просто не вешаем.
+    this.container.querySelector('#kp-file-input')?.addEventListener('change', e => {
       const file = e.target.files[0]
       if (file) this._loadNewFile(file)
     })
@@ -617,10 +617,12 @@ export default class KaraokePlayer {
     const vocSlider = this.container.querySelector('#kp-vol-voc')
 
     accSlider.addEventListener('input', e => {
+      this._accVol = Number(e.target.value)
       if (this.accGain) this.accGain.gain.value = e.target.value / 100
       if (this._volumeAnchored) this._syncVolumeSliders(e.target.value, accSlider)
     })
     vocSlider.addEventListener('input', e => {
+      this._vocVol = Number(e.target.value)
       if (this.vocGain) this.vocGain.gain.value = e.target.value / 100
       if (this._volumeAnchored) this._syncVolumeSliders(e.target.value, vocSlider)
     })
@@ -645,9 +647,14 @@ export default class KaraokePlayer {
     for (const s of sliders) {
       if (s.el === exceptEl) continue
       s.el.value = value
+      if (s.el.id === 'kp-vol-acc') this._accVol = Number(value)
+      else if (s.el.id === 'kp-vol-voc') this._vocVol = Number(value)
       const gain = s.gain()
       if (gain) gain.gain.value = value / 100
     }
+    // exceptEl (тот, что двигали) — тоже фиксируем в персистентном уровне.
+    if (exceptEl && exceptEl.id === 'kp-vol-acc') this._accVol = Number(value)
+    else if (exceptEl && exceptEl.id === 'kp-vol-voc') this._vocVol = Number(value)
   }
 
   // Chain-link icon (like the width/height "constrain proportions" toggle in image editors):
@@ -672,6 +679,9 @@ export default class KaraokePlayer {
 
   _buildMenu() {
     const menuBtn = this.container.querySelector('#kp-menu-btn')
+    // Меню целиком убрано из публичного плеера (см. комментарий в шаблоне выше) — no-op, если
+    // разметки нет. Admin-копия (webvue3) рендерит меню и доходит до реальной инициализации ниже.
+    if (!menuBtn) return
     const menu = this.container.querySelector('#kp-menu')
     const exportItem = this.container.querySelector('#kp-menu-export')
     const submenu = this.container.querySelector('#kp-submenu-export')
@@ -793,7 +803,9 @@ export default class KaraokePlayer {
     this.audioCtx = new AudioContext()
     this.accGain = this.audioCtx.createGain()
     this.vocGain = this.audioCtx.createGain()
-    this.vocGain.gain.value = 0
+    // Применяем персистентные уровни (наследуются при смене трека в плейлисте).
+    this.accGain.gain.value = this._accVol / 100
+    this.vocGain.gain.value = this._vocVol / 100
     this.accGain.connect(this.audioCtx.destination)
     this.vocGain.connect(this.audioCtx.destination)
 
@@ -1044,6 +1056,58 @@ export default class KaraokePlayer {
     if (btn) btn.textContent = '▶'
     if (this._mode === 'api') trackPlayerEnded(this.songId)
     this._progressFlags = { 25: false, 50: false, 75: false }
+    if (this.onTrackEnded) { try { this.onTrackEnded() } catch (e) { console.error('onTrackEnded error:', e) } }
+  }
+
+  // --- Публичное управление (для страницы плейлиста) ------------------------------------------
+  play() { this._play() }
+  pause() { this._pause() }
+  togglePlay() { this._togglePlay() }
+
+  // Сменить проигрываемую песню в api-режиме, переиспользуя инстанс (без destroy). Зеркалит
+  // teardown/сброс состояния из _loadNewFile, но остаётся в 'api' и заново дёргает init().
+  // autoplay=true — начать воспроизведение сразу после готовности (авто-переход в плейлисте).
+  async playSong(songId, token, authToken, autoplay = true) {
+    if (this.animId) { cancelAnimationFrame(this.animId); this.animId = null }
+    this._endedHandled = true
+    this._stopSources()
+    if (this.audioCtx) { await this.audioCtx.close(); this.audioCtx = null }
+    if (this.wsAcc) { this.wsAcc.destroy(); this.wsAcc = null }
+    if (this.wsVoc) { this.wsVoc.destroy(); this.wsVoc = null }
+    window.removeEventListener('resize', this._resizeHandler)
+    document.removeEventListener('fullscreenchange', this._fsHandler)
+    document.removeEventListener('click', this._menuOutsideClickHandler)
+    for (const url of this._smkaraokeObjectUrls) URL.revokeObjectURL(url)
+    this._smkaraokeObjectUrls = []
+
+    this._mode = 'api'
+    this.songId = songId
+    this.token = token
+    if (authToken !== undefined) this.authToken = authToken
+
+    this.accBuffer = null; this.vocBuffer = null
+    this.accSource = null; this.vocSource = null
+    this.accGain = null; this.vocGain = null
+    this.startedAt = 0; this.pausedAt = 0
+    this.isPlaying = false; this.duration = 0
+    this.data = null; this.lines = []; this.voiceLines = []
+    this._ready = false
+    this._loadProgress = null
+    this._endedHandled = false
+    this._cachedCanvasW = null; this._cachedVoiceXStart = null
+    this._lastWsSync = 0
+    this.flashTimes = []
+    this._isPrerolling = false; this._dtPaused = 0
+    this._silentOffset = 0; this._preroll = this._splashDur
+    this._startFadeStartedAt = null
+    this._endFadeStartedAt = null
+    // _volumeAnchored / _accVol / _vocVol НЕ сбрасываем — уровни громкости и якорь наследуются
+    // следующим треком плейлиста (по требованию).
+    this._progressFlags = { 25: false, 50: false, 75: false }
+    clearTimeout(this._prerollTimeout); this._prerollTimeout = null
+
+    await this.init()
+    if (autoplay && this._ready) this._play()
   }
 
   // Стреляет событие player/progress при пересечении веx 25/50/75% доигранного времени. Каждая

@@ -86,7 +86,8 @@ BEGIN
         COALESCE(NEW.version_max_lyrics::TEXT, '') ||
         COALESCE(NEW.version_max_karaoke::TEXT, '') ||
         COALESCE(NEW.version_max_chords::TEXT, '') ||
-        COALESCE(NEW.version_max_melody::TEXT, '')
+        COALESCE(NEW.version_max_melody::TEXT, '') ||
+        COALESCE(NEW.id_tariff::TEXT, '')
     );
     RETURN NEW;
 END;
@@ -187,5 +188,6 @@ SET recordhash = md5(
         COALESCE(version_max_lyrics::TEXT, '') ||
         COALESCE(version_max_karaoke::TEXT, '') ||
         COALESCE(version_max_chords::TEXT, '') ||
-        COALESCE(version_max_melody::TEXT, '')
+        COALESCE(version_max_melody::TEXT, '') ||
+        COALESCE(id_tariff::TEXT, '')
 ) WHERE id > 0;

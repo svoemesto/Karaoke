@@ -11,8 +11,18 @@ data class SiteUserDto(
     val isPremium: Boolean = false,
     val isPermanentPremium: Boolean = false,
     val isEffectivePremium: Boolean = false,
+    // Только для отображения в админке (когда до какой даты активен премиум и из какого источника).
+    // Значения проставляются Sponsr-синхронизацией / оплатой подписки на сайт, не редактируются вручную
+    // через update() — на изменение этих полей в контроллере нет параметров.
+    val sponsrPremiumUntil: String? = null,
+    val sitePremiumUntil: String? = null,
+    val isEditor: Boolean = false,
     val isBanned: Boolean = false,
     val banReason: String = "",
+    // Персональные лимиты (0 = дефолт). Без is-префикса — JSON-ключи maxFavorites/... как есть.
+    val maxFavorites: Int = 0,
+    val maxPlaylists: Int = 0,
+    val maxPlaylistItems: Int = 0,
     val createdAt: String = "",
     val lastLoginAt: String = "",
 ) : Serializable, Comparable<SiteUserDto>, KaraokeDbTableDto {
@@ -34,8 +44,12 @@ data class SiteUserDto(
         entity.email = email
         entity.displayName = displayName
         entity.sponsrUid = sponsrUid
+        entity.isEditor = isEditor
         entity.isBanned = isBanned
         entity.banReason = banReason
+        entity.maxFavorites = maxFavorites
+        entity.maxPlaylists = maxPlaylists
+        entity.maxPlaylistItems = maxPlaylistItems
         return entity
     }
 }

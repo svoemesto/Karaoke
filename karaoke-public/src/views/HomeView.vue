@@ -65,7 +65,7 @@
         <RouterLink to="/premium" class="km-nav-card">
           <div class="km-nav-icon">🪙</div>
           <div class="km-nav-title">Премиум-подписка</div>
-          <div class="km-nav-desc">Sponsr, подписка на сайт или на одну песню</div>
+          <div class="km-nav-desc">Подписка на всю коллекцию или на одну песню</div>
         </RouterLink>
       </div>
 

@@ -660,6 +660,21 @@ class Settings(
     val versionTelegramChords: Int get() = (fields[SettingField.VERSION_TELEGRAM_CHORDS]?.nullIfEmpty() ?: "0").toInt()
     val versionTelegramMelody: Int get() = (fields[SettingField.VERSION_TELEGRAM_MELODY]?.nullIfEmpty() ?: "0").toInt()
 
+    // Сопоставление версии песни с полем-идентификатором Telegram-поста (используется автоматизацией
+    // отлова ссылки - см. TelegramUpdatesConsumer): SongVersion.TABS исторически хранится в поле "Melody".
+    fun telegramIdSettingField(songVersion: SongVersion): SettingField = when (songVersion) {
+        SongVersion.LYRICS -> SettingField.ID_TELEGRAM_LYRICS
+        SongVersion.KARAOKE -> SettingField.ID_TELEGRAM_KARAOKE
+        SongVersion.CHORDS -> SettingField.ID_TELEGRAM_CHORDS
+        SongVersion.TABS -> SettingField.ID_TELEGRAM_MELODY
+    }
+
+    fun idTelegramFor(songVersion: SongVersion): String = when (songVersion) {
+        SongVersion.LYRICS -> idTelegramLyrics
+        SongVersion.KARAOKE -> idTelegramKaraoke
+        SongVersion.CHORDS -> idTelegramChords
+        SongVersion.TABS -> idTelegramMelody
+    }
 
     val idPlLyrics: String get() = fields[SettingField.ID_PL_LYRICS]?.nullIfEmpty() ?: ""
     val idPlKaraoke: String get() = fields[SettingField.ID_PL_KARAOKE]?.nullIfEmpty() ?: ""
@@ -4149,6 +4164,20 @@ class Settings(
 
     companion object {
         const val TABLE_NAME = "tbl_settings"
+
+        // Автоматизация публикации в Telegram (TelegramUpdatesConsumer): сопоставление вышедшего
+        // channel_post с песней/версией по СОДЕРЖИМОМУ поста, без отдельного маркера. Каждый пост,
+        // подготовленный через getDescriptionTelegramHeader(), уже содержит ссылку на страницу песни
+        // ($linkSM = "https://sm-karaoke.ru/song?id=<id>") и явный разделитель версии
+        // (" ★♫★ ${songVersion.text} ★♫★ ${songVersion.textForDescription}") — этого достаточно для
+        // точного разбора без изменения видимого текста поста.
+        private val TELEGRAM_POST_SONG_ID_REGEX = Regex("""sm-karaoke\.ru/song\?id=(\d+)""")
+
+        fun parseTelegramPostSongId(text: String): Long? =
+            TELEGRAM_POST_SONG_ID_REGEX.find(text)?.groupValues?.get(1)?.toLongOrNull()
+
+        fun parseTelegramPostSongVersion(text: String): SongVersion? =
+            SongVersion.entries.firstOrNull { v -> text.contains("★♫★ ${v.text} ★♫★ ${v.textForDescription}") }
 
         fun renameFilesIfDiff(settNewVersion: Settings, settOldVersion: Settings): Pair<Boolean, Boolean> {
             val rsfnNew = settNewVersion.fileName

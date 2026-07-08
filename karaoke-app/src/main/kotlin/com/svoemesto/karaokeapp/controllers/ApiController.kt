@@ -1089,7 +1089,7 @@ class ApiController(
     fun getSongTextTelegramChordsHeader(@RequestParam id: Long): String {
         val settings = Settings.loadFromDbById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
         val text = settings?.let {
-            val text = it.getDescriptionTelegramHeader(SongVersion.LYRICS)
+            val text = it.getDescriptionTelegramHeader(SongVersion.CHORDS)
             text
         } ?: ""
         return text

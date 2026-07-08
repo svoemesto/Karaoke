@@ -189,6 +189,8 @@ val listKaraokeProperties = listOf(
     KaraokeProperty(key = "monitoringRemoteSettingsSync", defaultValue = false, description = "Мониторинг sync-записей в удаленной БД"),
     KaraokeProperty(key = "checkLastAlbum", defaultValue = false, description = "Искать альбомы авторов в Яндекс.Музыке"),
     KaraokeProperty(key = "vpnHomeCountry", defaultValue = "RU", description = "Код страны сервера без ВПН (ISO 3166-1 alpha-2, например RU или DE). Используется для определения активности ВПН."),
+    KaraokeProperty(key = "sponsrSubscribersUrl", defaultValue = "", description = "URL страницы списка подписчиков в кабинете автора Sponsr (пусто = скрейпинг выключен, см. SponsrSyncService)"),
+    KaraokeProperty(key = "sponsrSyncWindowDays", defaultValue = 35L, description = "На сколько дней вперёд продлевать sponsr_premium_until при успешной синхронизации"),
     KaraokeProperty(key = "autoSaveDelayMs", defaultValue = 1000L, description = "Время (в миллисекундах) задержки перед автосохранением"),
     KaraokeProperty(key = "allowUpdateRemote", defaultValue = false, description = "Разрешить обновлять REMOTE"),
     KaraokeProperty(key = "allowUpdateLocal", defaultValue = false, description = "Разрешить обновлять LOCAL"),

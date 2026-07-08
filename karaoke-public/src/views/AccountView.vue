@@ -16,8 +16,23 @@
         <span v-if="isPremium" class="km-premium-badge" title="Премиум-подписчик">🪙 Премиум</span>
       </h1>
 
+      <div class="km-form-card" v-if="premiumSourceText">
+        <h2 class="km-subtitle">Премиум-доступ</h2>
+        <p class="km-premium-source">{{ premiumSourceText }}</p>
+      </div>
+      <div class="km-form-card" v-else>
+        <h2 class="km-subtitle">Премиум-доступ</h2>
+        <p class="km-hint-text">У вас пока нет активной подписки.</p>
+        <RouterLink to="/premium" class="km-submit-btn km-link-btn">Оформить подписку →</RouterLink>
+      </div>
+
       <RouterLink to="/account/playlists" class="km-nav-card">
         <span class="km-nav-card-title">🎵 Мои плейлисты</span>
+        <span class="km-nav-card-arrow">→</span>
+      </RouterLink>
+
+      <RouterLink to="/account/subscriptions" class="km-nav-card">
+        <span class="km-nav-card-title">💳 Мои подписки</span>
         <span class="km-nav-card-arrow">→</span>
       </RouterLink>
 
@@ -81,6 +96,18 @@ export default {
     },
     isEditor() {
       return !!(this.user && this.user.editor)
+    },
+    // Показываем ИСТОЧНИК премиума и до какой даты он активен — permanentPremium/isPremium
+    // (ручной грант админа) не имеют срока, поэтому для них не показываем дату.
+    premiumSourceText() {
+      const u = this.user
+      if (!u) return ''
+      if (u.permanentPremium || u.premium) return 'Премиум активен (предоставлен администрацией сайта).'
+      const parts = []
+      if (u.sponsrPremiumUntil) parts.push(`через Sponsr — до ${this.formatDate(u.sponsrPremiumUntil)}`)
+      if (u.sitePremiumUntil) parts.push(`подписка на сайт — до ${this.formatDate(u.sitePremiumUntil)}`)
+      if (parts.length === 0) return ''
+      return 'Премиум активен: ' + parts.join('; ') + '.'
     }
   },
   data() {
@@ -107,6 +134,14 @@ export default {
     }
   },
   methods: {
+    // sponsrPremiumUntil/sitePremiumUntil приходят как java.sql.Timestamp.toString()
+    // ("yyyy-MM-dd HH:mm:ss.SSS") — заменяем пробел на T, чтобы Date его распарсил.
+    formatDate(tsString) {
+      try {
+        const d = new Date(tsString.replace(' ', 'T'))
+        return d.toLocaleDateString('ru-RU')
+      } catch (e) { return tsString }
+    },
     async onSaveProfile() {
       this.profileMessage = ''
       if (!this.profileForm.displayName.trim()) {
@@ -261,4 +296,7 @@ export default {
 }
 .km-submit-btn:hover { opacity: 0.88; }
 .km-submit-btn:disabled { opacity: 0.6; cursor: default; }
+.km-link-btn { display: inline-block; text-decoration: none; text-align: center; }
+.km-premium-source { font-size: 0.9rem; color: var(--km-text); margin: 0; }
+.km-hint-text { font-size: 0.9rem; color: var(--km-text2); margin: 0 0 1rem; }
 </style>

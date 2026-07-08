@@ -243,6 +243,19 @@ class Karaoke : Serializable {
             get() = KaraokeProperties.getString("vpnHomeCountry")
             set(value) { KaraokeProperties.set("vpnHomeCountry", value) }
 
+        // Sponsr-синхронизация премиума (см. SponsrSyncService). URL страницы со списком
+        // подписчиков в кабинете автора — пусто, пока админ не заполнит после проверки реального
+        // кабинета (см. план монетизации, Prerequisites); пустое значение = скрейпинг не запускается.
+        var sponsrSubscribersUrl: String
+            get() = KaraokeProperties.getString("sponsrSubscribersUrl")
+            set(value) { KaraokeProperties.set("sponsrSubscribersUrl", value) }
+
+        // На сколько дней вперёд выставлять sponsr_premium_until при каждой успешной синхронизации
+        // (окно должно быть заметно больше интервала синка, чтобы не лапснуть между прогонами).
+        var sponsrSyncWindowDays: Long
+            get() = KaraokeProperties.getLong("sponsrSyncWindowDays")
+            set(value) { KaraokeProperties.set("sponsrSyncWindowDays", value) }
+
         //Мониторинг sync-записей в удаленной БД
         var allowUpdateRemote: Boolean
             get() = KaraokeProperties.getBoolean("allowUpdateRemote")

@@ -82,5 +82,7 @@ enum class SettingField : Serializable {
     ID_MAX_CHORDS,
     VERSION_MAX_CHORDS,
     ID_MAX_MELODY,
-    VERSION_MAX_MELODY
+    VERSION_MAX_MELODY,
+    // Тариф подписки (монетизация, tbl_price_tariffs.id). 0 = песня не продаётся отдельно/дефолт.
+    ID_TARIFF
 }

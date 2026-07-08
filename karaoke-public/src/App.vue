@@ -1,9 +1,14 @@
 <template>
   <router-view v-if="isPlayerPage" />
-  <div v-else-if="!isHomePage" class="modernScreen">
-    <router-view />
-  </div>
-  <router-view v-else />
+  <template v-else>
+    <div v-if="!isHomePage" class="modernScreen">
+      <router-view />
+    </div>
+    <router-view v-else />
+    <footer class="km-global-footer">
+      <RouterLink to="/oferta">Оферта</RouterLink>
+    </footer>
+  </template>
   <PremiumUpsellModal />
 </template>
 
@@ -30,5 +35,17 @@ export default {
 .modernScreen {
   min-height: 100vh;
   background: var(--km-bg, #0f0f1a);
+}
+.km-global-footer {
+  text-align: center;
+  padding: 1rem;
+  font-size: 0.8rem;
+}
+.km-global-footer a {
+  color: var(--km-text2, #888);
+  text-decoration: none;
+}
+.km-global-footer a:hover {
+  text-decoration: underline;
 }
 </style>

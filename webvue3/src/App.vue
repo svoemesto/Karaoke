@@ -19,6 +19,9 @@
             <li class="nav-item"><router-link class="nav-link" to="/siteplaylists">Плейлисты</router-link></li>
             <li class="nav-item"><router-link class="nav-link" to="/songeditor">Задания редактора</router-link></li>
             <li class="nav-item"><router-link class="nav-link" to="/publicsettings">Настройки сайта</router-link></li>
+            <li class="nav-item"><router-link class="nav-link" to="/tariffs">Тарифы</router-link></li>
+            <li class="nav-item"><router-link class="nav-link" to="/promotions">Акции</router-link></li>
+            <li class="nav-item"><router-link class="nav-link" to="/sponsrsync">Sponsr-синхронизация</router-link></li>
             <li class="nav-item"><router-link class="nav-link" to="/stats">Статистика</router-link></li>
             <li class="nav-item"><router-link class="nav-link" to="/sync">Синхронизация БД</router-link></li>
           </ul>

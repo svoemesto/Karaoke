@@ -205,7 +205,21 @@
           <div v-else-if="playerIsPremiumUser" class="km-waiting-login">
             Вы премиум-пользователь — как только материалы для плеера будут готовы, он появится здесь автоматически.
           </div>
+          <div v-else-if="canOfferSongSubscription" class="km-waiting-login">
+            Не хотите ждать эфир и не нужна подписка на весь сайт?
+            <button class="km-waiting-cta km-song-sub-cta" @click="songSubscriptionModalVisible = true">
+              Оформить подписку только на эту песню →
+            </button>
+          </div>
         </div>
+
+        <SongSubscriptionModal
+          :visible="songSubscriptionModalVisible"
+          :song-id="currentSong && currentSong.id"
+          :song-name="currentSong ? `${currentSong.songName} — ${currentSong.author}` : ''"
+          @close="songSubscriptionModalVisible = false"
+          @activated="onSongSubscriptionActivated"
+        />
 
         <!-- Текст / Табы / Аккорды -->
         <div v-if="currentSong.formattedTextSong" class="km-text-card">
@@ -238,10 +252,11 @@ import { useAuth } from '../composables/useAuth'
 import { usePlayerAccess } from '../composables/usePlayerAccess'
 import { trackPlay, trackMetaClick, trackLinkToSong } from '../services/tracking'
 import { pluralDays } from '../utils/pluralRu'
+import SongSubscriptionModal from '../components/SongSubscriptionModal.vue'
 
 export default {
   name: 'SongView',
-  components: { PlatformLink, AuthStatusWidget },
+  components: { PlatformLink, AuthStatusWidget, SongSubscriptionModal },
   setup() {
     const route = useRoute()
     useEngagementTracking('song', () => route.query.id)
@@ -280,10 +295,16 @@ export default {
         return 'В эфире она доступна не будет — единственный способ получить доступ к ней сейчас — оформить платную подписку на Sponsr.'
       }
       return 'Не хотите ждать? Оформите платную подписку на Sponsr — и песня станет доступна сразу, не дожидаясь эфира.'
+    },
+    // Отдельная подписка на песню (см. план монетизации) — предлагаем, только если админ пометил
+    // песню как продающуюся (idTariff>0 на бэкенде -> songSubscriptionAvailable) и плеер сейчас
+    // всё равно недоступен обычными путями (иначе кнопка была бы бессмысленна).
+    canOfferSongSubscription() {
+      return !!(this.currentSong && this.currentSong.songSubscriptionAvailable && !this.playerCanWatch && this.playerAccessLoaded)
     }
   },
   data() {
-    return { playerDisplayMode: 'embed' }
+    return { playerDisplayMode: 'embed', songSubscriptionModalVisible: false }
   },
   watch: {
     '$route.query.id': {
@@ -332,6 +353,11 @@ export default {
         // opened this way, so the token set just above is already there when it loads.
         window.open(`/player/${this.currentSong.id}`, '_blank')
       }
+    },
+    // Акция довела цену подписки на песню до нуля — доступ уже проставлен на бэкенде синхронно,
+    // просто перезапрашиваем access(), чтобы плеер встроился без перезагрузки страницы.
+    onSongSubscriptionActivated() {
+      if (this.currentSong?.id) this.playerAccess.checkAccess(this.currentSong.id)
     }
   }
 }
@@ -625,6 +651,15 @@ export default {
   margin-top: 0.5rem;
 }
 .km-waiting-login a { color: var(--km-accent2); }
+.km-song-sub-cta {
+  display: block;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.82rem;
+  margin: 0.4rem auto 0;
+  padding: 0.5rem 1.1rem;
+}
 
 /* Видео */
 .km-videos { margin-bottom: 1rem; }

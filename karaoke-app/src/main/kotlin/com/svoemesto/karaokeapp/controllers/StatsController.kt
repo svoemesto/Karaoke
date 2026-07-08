@@ -2,6 +2,7 @@ package com.svoemesto.karaokeapp.controllers
 
 import com.svoemesto.karaokeapp.Connection
 import com.svoemesto.karaokeapp.KaraokeConnection
+import com.svoemesto.karaokeapp.model.MonetizationStats
 import com.svoemesto.karaokeapp.model.StatBySongDto
 import com.svoemesto.karaokeapp.model.StatsByEvents
 import com.svoemesto.karaokeapp.model.WebEventDto
@@ -69,6 +70,19 @@ class StatsController {
     @GetMapping("/api/stats/summary")
     fun summary(@RequestParam(required = false) target: String?): Map<String, Any> =
         withDb(target) { db -> mapOf("summary" to StatsByEvents.getSummary(database = db)) }
+
+    // Монетизация (подписки — см. план монетизации): выручка, конверсия по источникам премиума,
+    // топ песен по подписке. Отдельный дашборд-блок, не смешан со StatsByEvents (события сайта).
+    @GetMapping("/api/stats/monetization")
+    fun monetizationSummary(@RequestParam(required = false) target: String?): Map<String, Any> =
+        withDb(target) { db -> mapOf("summary" to MonetizationStats.getSummary(database = db)) }
+
+    @GetMapping("/api/stats/monetization/top-songs")
+    fun monetizationTopSongs(
+        @RequestParam(required = false) target: String?,
+        @RequestParam(required = false, defaultValue = "20") limit: Int,
+    ): Map<String, Any> =
+        withDb(target) { db -> mapOf("items" to MonetizationStats.getTopSubscribedSongs(database = db, limit = limit)) }
 
     @GetMapping("/api/stats/timeseries")
     fun timeseries(

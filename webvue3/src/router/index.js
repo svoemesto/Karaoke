@@ -13,6 +13,9 @@ import PublicSettingsView from '../views/PublicSettingsView.vue';
 import PicturesView from '../views/PicturesView.vue';
 import StatsView from '../views/StatsView.vue';
 import SyncView from '../views/SyncView.vue';
+import TariffsView from '../views/TariffsView.vue';
+import PromotionsView from '../views/PromotionsView.vue';
+import SponsrSyncView from '../views/SponsrSyncView.vue';
 
 const routes = [
   {
@@ -79,6 +82,21 @@ const routes = [
     path: '/sync',
     name: 'sync',
     component: SyncView
+  },
+  {
+    path: '/tariffs',
+    name: 'tariffs',
+    component: TariffsView
+  },
+  {
+    path: '/promotions',
+    name: 'promotions',
+    component: PromotionsView
+  },
+  {
+    path: '/sponsrsync',
+    name: 'sponsrsync',
+    component: SponsrSyncView
   },
   {
     path: '/player/:id',

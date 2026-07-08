@@ -25,6 +25,13 @@
     <div v-if="summaryIsLoading && !summary" class="text-center py-3"><BSpinner small /></div>
     <KpiCards :summary="summary" />
 
+    <!-- Монетизация (подписки) -->
+    <MonetizationPanel
+        :summary="monetizationSummary"
+        :is-loading="monetizationSummaryIsLoading"
+        :top-songs="monetizationTopSongs"
+        :top-songs-is-loading="monetizationTopSongsIsLoading" />
+
     <!-- Динамика -->
     <TimeSeriesChart
         class="mb-3"
@@ -221,6 +228,7 @@
 <script>
 import { BSpinner, BPagination } from 'bootstrap-vue-next'
 import KpiCards from '../components/Stats/KpiCards.vue'
+import MonetizationPanel from '../components/Stats/MonetizationPanel.vue'
 import TimeSeriesChart from '../components/Stats/TimeSeriesChart.vue'
 import TypeChannelBreakdown from '../components/Stats/TypeChannelBreakdown.vue'
 import DetailBreakdown from '../components/Stats/DetailBreakdown.vue'
@@ -231,7 +239,7 @@ import SongEventsModal from '../components/Stats/SongEventsModal.vue'
 
 export default {
   name: 'StatsView',
-  components: { BSpinner, BPagination, KpiCards, TimeSeriesChart, TypeChannelBreakdown, DetailBreakdown, GeoReferrers, TopUsersTable, UserEventsModal, SongEventsModal },
+  components: { BSpinner, BPagination, KpiCards, MonetizationPanel, TimeSeriesChart, TypeChannelBreakdown, DetailBreakdown, GeoReferrers, TopUsersTable, UserEventsModal, SongEventsModal },
   data() {
     return {
       statsBySongPage: 1,
@@ -278,6 +286,10 @@ export default {
     webEvents() { return this.$store.getters.getWebEvents },
     webEventsIsLoading() { return this.$store.getters.getWebEventsIsLoading },
     webEventsTotalCount() { return this.$store.getters.getWebEventsTotalCount },
+    monetizationSummary() { return this.$store.getters.getMonetizationSummary },
+    monetizationSummaryIsLoading() { return this.$store.getters.getMonetizationSummaryIsLoading },
+    monetizationTopSongs() { return this.$store.getters.getMonetizationTopSongs },
+    monetizationTopSongsIsLoading() { return this.$store.getters.getMonetizationTopSongsIsLoading },
     target: {
       get() { return this.$store.getters.getStatsTarget },
       set(v) { this.$store.dispatch('setStatsTarget', v) }
@@ -313,6 +325,8 @@ export default {
       this.reloadTopUsers()
       this.reloadStatsBySong()
       this.reloadWebEvents()
+      this.$store.dispatch('loadMonetizationSummary')
+      this.$store.dispatch('loadMonetizationTopSongs')
     },
     isHttp(url) { return typeof url === 'string' && /^https?:\/\//i.test(url) },
     onTargetChange() {

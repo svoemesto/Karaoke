@@ -24,6 +24,9 @@
       </div>
       <div v-else-if="status === 'submitted'" class="ke-info-banner">
         Задание отправлено на проверку. Пока админ его не рассмотрит, редактирование недоступно.
+        <button class="ke-btn ke-btn-ghost" :disabled="recalling" @click="recall">
+          {{ recalling ? 'Отзываем…' : 'Отозвать с проверки' }}
+        </button>
       </div>
       <div v-else-if="status === 'approved'" class="ke-ok-banner">
         Разметка одобрена и применена. Спасибо! Песня доступна в онлайн-плеере.
@@ -172,7 +175,7 @@
 </template>
 
 <script>
-import { fetchTask, saveTask, submitTask } from '../services/songEditorApi'
+import { fetchTask, saveTask, submitTask, recallTask } from '../services/songEditorApi'
 import { useAuth } from '../composables/useAuth'
 import { STATUS_LABELS } from '../composables/editorStatus'
 import {
@@ -241,6 +244,7 @@ export default {
       saveState: 'idle', // idle | saving | saved | error
       saveTimer: null,
       submitting: false,
+      recalling: false,
       redrawScheduled: false,
       // Превью в настоящем плеере (см. playerToken из fetchTask — привязан к этому заданию,
       // playerdata на бэкенде подставляет вместо опубликованных именно наши edited_markers).
@@ -681,6 +685,20 @@ export default {
         this.saveState = 'error'
       }
     },
+    // Вернуть в работу, пока задание "на проверке" и админ ещё не вынес вердикт (например, сам
+    // пользователь заметил ошибку). Сервер сам проверяет, что статус реально ещё submitted — если
+    // админ уже успел одобрить/отклонить, вернётся ошибка, и мы просто перечитаем актуальный статус.
+    async recall() {
+      this.recalling = true
+      const { status, body } = await recallTask(this.$route.params.id)
+      this.recalling = false
+      if (status === 200) {
+        this.status = (body && body.status) || 'in_progress'
+        this.canEdit = true
+      } else {
+        await this.load()
+      }
+    },
     // --- Клавиатура (хоткеи 1:1 с SubsEdit.vue — см. WIRED_KEYS выше) ---
     onKeyDown(e) {
       const tag = (e.target && e.target.tagName) || ''
@@ -795,7 +813,7 @@ export default {
 .ke-work { max-width: 900px; margin: 0 auto; padding: 1rem; display: flex; flex-direction: column; gap: 1rem; }
 
 .ke-reject-banner { background: #fff2e8; border: 1px solid #ffcfa8; color: #a9500f; border-radius: 12px; padding: 0.75rem 1rem; font-size: 0.9rem; }
-.ke-info-banner { background: #fef8e3; border: 1px solid #f2dd9a; color: #8a6d0a; border-radius: 12px; padding: 0.75rem 1rem; font-size: 0.9rem; }
+.ke-info-banner { background: #fef8e3; border: 1px solid #f2dd9a; color: #8a6d0a; border-radius: 12px; padding: 0.75rem 1rem; font-size: 0.9rem; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
 .ke-ok-banner { background: #e9faee; border: 1px solid #b6e6c2; color: #1f7a37; border-radius: 12px; padding: 0.75rem 1rem; font-size: 0.9rem; }
 
 /* Голоса */

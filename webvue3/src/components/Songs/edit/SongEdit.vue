@@ -5,6 +5,7 @@
       <custom-confirm v-if="isCustomConfirmVisible" :params="customConfirmParams" @close="closeCustomConfirm" />
       <health-report-table v-if="isHealthReportTableVisible" :id="song.id" @close="closeHealthReportTable"/>
       <family-songs-modal v-if="isFamilySongsVisible" :id="song.id" @select="selectFamilySong" @close="closeFamilySongs"/>
+      <ReviewModal v-if="isAssignReviewVisible" @close="isAssignReviewVisible = false" @reviewed="onAssignmentReviewed" />
       <datalist id="list_hours">
         <option v-for="hour in hours" :key="hour" :value="hour"/>
       </datalist>
@@ -18,6 +19,19 @@
           <div style="display:flex;flex-direction:row;gap:4px;justify-content:center">
             <button class="btn-round" @click="openPlayer" title="Открыть плеер" style="display:flex;align-items:center;justify-content:center">▶</button>
             <a class="btn-round" style="display:flex;align-items:center;justify-content:center;text-decoration:none;color:black" :href="`/api/song/${song.id}/playerfile`" download title="Скачать .smkaraoke">⬇</a>
+          </div>
+          <div v-if="song.idStatus < 3" style="margin-top:4px">
+            <button
+                v-if="assignmentInfo"
+                class="assign-badge"
+                :class="`assign-badge-${assignmentInfo.status}`"
+                :title="assignmentInfo.assigneeName"
+                @click="openAssignmentReview"
+            >{{ assignStatusLabel(assignmentInfo.status) }}</button>
+            <select v-else class="assign-select" @change="onAssignSelect">
+              <option value="" selected disabled>Назначить…</option>
+              <option v-for="u in editorSiteUsers" :key="u.id" :value="u.id">{{ u.displayName || u.email }}</option>
+            </select>
           </div>
         </div>
         <div class="header-column-2">
@@ -508,7 +522,12 @@
             <div class="label-medium">Бесплатно на sponsr:</div>
             <button class="group-button-round-wide" :class="freeButtonClass(true)" type="button" value="true" @click="setFree(true)">ДА</button>
             <button class="group-button-round-wide" :class="freeButtonClass(false)" type="button" value="false" @click="setFree(false)">НЕТ</button>
-          </div>          
+          </div>
+          <div class="label-and-input">
+            <div class="label-medium">Разрешить подписку на эту песню:</div>
+            <button class="group-button-round-wide" :class="songSubscriptionButtonClass(true)" type="button" value="true" @click="setSongSubscriptionAllowed(true)">ДА</button>
+            <button class="group-button-round-wide" :class="songSubscriptionButtonClass(false)" type="button" value="false" @click="setSongSubscriptionAllowed(false)">НЕТ</button>
+          </div>
           <div class="create-picture-buttons-group">
             <button class="group-button" @click="openMainLink" title="Открыть на сайте">Открыть на сайте sm-karaoke.ru</button>
             <button class="group-button" @click="updateRemote" title="Обновить на сервере" :disabled="!allowUpdateRemote" >Обновить на сервере</button>
@@ -622,11 +641,17 @@ import SubsEdit from './SubsEdit.vue'
 import CustomConfirm from "../../Common/CustomConfirm.vue";
 import HealthReportTable from "../../Common/HealthReport/HealthReportTable.vue";
 import FamilySongsModal from "./FamilySongsModal.vue";
+import ReviewModal from "../../SongEditor/ReviewModal.vue";
 import { BFormRating, BDropdown, BDropdownItem, BDropdownDivider, BDropdownGroup } from 'bootstrap-vue-next'
 import { useToast } from "bootstrap-vue-next";
 import { h } from 'vue';
 
 // import { ToastPlugin } from 'bootstrap-vue'
+
+const ASSIGN_STATUS_LABELS = {
+  assigned: 'Назначено', in_progress: 'В работе', submitted: 'На проверке',
+  approved: 'Одобрено', rejected: 'Отклонено',
+};
 
 export default {
   name: "SongEdit",
@@ -650,6 +675,7 @@ export default {
     CustomConfirm,
     HealthReportTable,
     FamilySongsModal,
+    ReviewModal,
     SubsEdit,
     BFormRating,
     BDropdown,
@@ -663,6 +689,7 @@ export default {
       isCustomConfirmVisible: false,
       isHealthReportTableVisible: false,
       isFamilySongsVisible: false,
+      isAssignReviewVisible: false,
       voices: [],
       customConfirmParams: undefined,
       imageAuthorBase64: '',
@@ -698,8 +725,18 @@ export default {
     this.allowUpdateLocal = await this.propAllowUpdateLocal();
     this.allowAddSync = await this.propAllowAddSync();
     this.autoSaveDelayMs = Number(await this.propAutoSaveDelayMs());
+    // Источник (local/server) для кнопки «Назначить» — KaraokeProperty editorAssignmentDefaultTarget.
+    await this.$store.dispatch('loadEditorDefaultTarget');
+    this.$store.dispatch('loadEditorSiteUsers', this.$store.getters.getEditorDefaultTarget);
+    this.reloadAssignmentStatus();
   },
   computed: {
+    assignmentInfo() {
+      return this.song ? this.$store.getters.getAssignmentStatusBySongId[this.song.id] : undefined;
+    },
+    editorSiteUsers() {
+      return this.$store.getters.getEditorSiteUsers || [];
+    },
     disabledSearchTextForSong() {
       return this.song.haveSourceText;
     },
@@ -823,6 +860,7 @@ export default {
         this.$store.dispatch('getTextFormattedPromise').then(textFormatted => this.textFormatted = textFormatted);
         this.$store.dispatch('getNotesFormattedPromise').then(notesFormatted => this.notesFormatted = notesFormatted);
         this.$store.dispatch('getChordsFormattedPromise').then(chordsFormatted => this.chordsFormatted = chordsFormatted);
+        this.reloadAssignmentStatus();
       }
     },
     'song.idBoosty.value': {
@@ -1266,6 +1304,39 @@ export default {
     openPlayer() {
       window.open(`/player/${this.song.id}`, '_blank')
     },
+    // --- Кнопка «Назначить»/«Назначено» (онлайн-редактор) -----------------------------------
+    reloadAssignmentStatus() {
+      if (!this.song) return;
+      const target = this.$store.getters.getEditorDefaultTarget;
+      return this.$store.dispatch('loadAssignmentStatusBySongIds', { songIds: [this.song.id], target });
+    },
+    assignStatusLabel(s) { return ASSIGN_STATUS_LABELS[s] || 'Назначено' },
+    async onAssignSelect(event) {
+      const assigneeId = event.target.value;
+      event.target.value = '';
+      if (!assigneeId) return;
+      const songId = this.song.id;
+      const target = this.$store.getters.getEditorDefaultTarget;
+      let res = await this.$store.dispatch('assignSong', { songId, assigneeId, target });
+      if (res && res.error === 'markers_exist') {
+        const clearMarkers = window.confirm('В песне уже есть маркеры. Удалить их при назначении задания?');
+        res = await this.$store.dispatch('assignSong', { songId, assigneeId, target, clearMarkers });
+      }
+      if (res && res.ok) {
+        this.reloadAssignmentStatus();
+      } else {
+        alert('Не удалось назначить: ' + ((res && res.error) || 'неизвестная ошибка'));
+      }
+    },
+    async openAssignmentReview() {
+      if (!this.assignmentInfo) return;
+      await this.$store.dispatch('loadAssignmentById', { id: this.assignmentInfo.assignmentId, target: this.$store.getters.getEditorDefaultTarget });
+      this.isAssignReviewVisible = true;
+    },
+    onAssignmentReviewed() {
+      this.isAssignReviewVisible = false;
+      this.reloadAssignmentStatus();
+    },
     searchTextForSong() {
       this.customConfirmParams = {
         header: 'Подтвердите поиск текста',
@@ -1349,6 +1420,14 @@ export default {
     },
     setFree(free) {
       this.song.free = free;
+    },
+    // Разрешение подписки на песню: 0 = разрешено (тариф по умолчанию), -1 = автор запретил.
+    setSongSubscriptionAllowed(allowed) {
+      this.song.idTariff = allowed ? 0 : -1;
+    },
+    songSubscriptionButtonClass(allowed) {
+      const isAllowedNow = this.song.idTariff !== -1;
+      return allowed === isAllowedNow ? 'group-button-round-wide-active' : '';
     },
     toSyncButtonClass(toSync) {
       return toSync ? 'group-button-active' : ''
@@ -2724,6 +2803,40 @@ export default {
 .btn-round[disabled] {
   background-color: lightgray;
 }
+.assign-select {
+  max-width: 130px;
+  box-sizing: border-box;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  font-size: 0.72rem;
+  padding: 2px 6px;
+  border: none;
+  border-radius: 3px;
+  background-color: #eef0f2;
+  color: #555;
+  cursor: pointer;
+}
+.assign-select:hover {
+  background-color: #e2e5e8;
+}
+.assign-badge {
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 3px;
+  padding: 3px 7px;
+  cursor: pointer;
+}
+.assign-badge-assigned { background: #e2e6ea; color: #5a6570; }
+.assign-badge-in_progress { background: #dbeafe; color: #1e5fbf; }
+.assign-badge-submitted { background: #fef3c7; color: #92700a; }
+.assign-badge-approved { background: #d1f5d8; color: #24803a; }
+.assign-badge-rejected { background: #ffe0cc; color: #b8500f; }
 
 .btn-round-wide {
   border: solid 1px black;

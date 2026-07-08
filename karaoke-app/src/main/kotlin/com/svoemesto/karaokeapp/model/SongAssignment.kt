@@ -10,10 +10,10 @@ import com.svoemesto.karaokeapp.services.StorageApiClient
 import java.io.Serializable
 import java.sql.Timestamp
 
-// Назначение песни (голоса) пользователю публичного сайта на разметку в онлайн-редакторе + вердикт
-// админа. Пишет ТОЛЬКО админ (LOCAL), направление sync LOCAL_TO_SERVER (SyncRegistry: songassignments).
-// Рабочая копия пользователя — в отдельной таблице SongAssignmentDraft (пишет пользователь, обратное
-// направление), см. 10_song_assignments.sql про причину разделения.
+// Назначение песни пользователю публичного сайта на разметку в онлайн-редакторе + вердикт админа.
+// Направление sync SERVER_TO_LOCAL (SyncRegistry: songassignments) — как pull пользователей/статистики:
+// реальный рабочий цикл (назначение→работа→апрув) часто идёт целиком на PROD. Рабочая копия пользователя —
+// в отдельной таблице SongAssignmentDraft, см. 10_song_assignments.sql про причину разделения.
 @JsonIgnoreProperties(value = ["database", "sqlToInsert"])
 class SongAssignment(
     override val database: KaraokeConnection = WORKING_DATABASE,
@@ -134,6 +134,43 @@ class SongAssignment(
                 storageService = storageService,
                 storageApiClient = storageApiClient,
             ) as? SongAssignment?
+        }
+
+        // Назначения для набора песен (батч, чтобы таблица/карточка песни узнавали статус задания без
+        // N+1) — по образцу SongAssignmentDraft.loadByAssignments. Возврат: songId -> SongAssignment.
+        fun loadBySongIds(
+            songIds: List<Long>,
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+        ): Map<Long, SongAssignment> {
+            if (songIds.isEmpty()) return emptyMap()
+            return KaraokeDbTable.loadList(
+                clazz = SongAssignment::class,
+                tableName = TABLE_NAME,
+                whereList = listOf("song_id IN (${songIds.joinToString(",")})"),
+                database = database,
+                storageService = storageService,
+                storageApiClient = storageApiClient,
+            ).map { it as SongAssignment }.associateBy { it.songId }
+        }
+
+        // Композитный статус для набора песен (батчем: assignment + его draft), переиспользуется и
+        // статус-эндпоинтом для таблицы/карточки песни, и фильтром /api/songsdigests — единая точка
+        // вычисления, без дублирования логики resolve() между контроллерами.
+        fun composeStatusesForSongIds(
+            songIds: List<Long>,
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+        ): Map<Long, Pair<SongAssignment, SongAssignmentStatus>> {
+            val assignments = loadBySongIds(songIds, database, storageService, storageApiClient)
+            if (assignments.isEmpty()) return emptyMap()
+            val drafts = SongAssignmentDraft.loadByAssignments(assignments.values.map { it.id }, database, storageService, storageApiClient)
+            return assignments.mapValues { (_, a) ->
+                val draft = drafts[a.id]
+                a to SongAssignmentStatus.resolve(a.adminStatus, draft?.userStatus, a.reviewedAt, draft?.submittedAt)
+            }
         }
 
         // Существующее назначение этой песни этому пользователю (защита от дубля перед assign).

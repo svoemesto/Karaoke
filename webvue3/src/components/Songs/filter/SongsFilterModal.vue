@@ -101,6 +101,24 @@
 
                 <div class="sfm-filter-row">
                   <div class="sfm-row-label">
+                    <div v-text="'Задание редактора:'"></div>
+                  </div>
+                  <div class="sfm-row-input">
+                    <select class="sfm-input-field" v-model="songsFilterAssignmentStatus">
+                      <option value="">Все</option>
+                      <option value="unassigned">Не назначено</option>
+                      <option value="assigned">Назначено</option>
+                      <option value="in_progress">В работе</option>
+                      <option value="submitted">На проверке</option>
+                      <option value="approved">Одобрено</option>
+                      <option value="rejected">Отклонено</option>
+                    </select>
+                  </div>
+                  <button :disabled="!songsFilterAssignmentStatus" class="sfm-button-clear-field" @click.left="songsFilterAssignmentStatus=''" v-text="'X'"></button>
+                </div>
+
+                <div class="sfm-filter-row">
+                  <div class="sfm-row-label">
                     <div v-text="'Кол-во голосов:'"></div>
                   </div>
                   <div class="sfm-row-input">
@@ -336,6 +354,7 @@ export default {
     this.$store.dispatch('setSongsFilterRootId', { value: await this.$store.getters.getWebvueProp('songsFilterRootId', '') });
     this.$store.dispatch('setSongsFilterFlagExclusive', { value: await this.$store.getters.getWebvueProp('songsFilterFlagExclusive', '') });
     this.$store.dispatch('setSongsFilterFlagFree', { value: await this.$store.getters.getWebvueProp('songsFilterFlagFree', '') });
+    this.$store.dispatch('setSongsFilterAssignmentStatus', { value: await this.$store.getters.getWebvueProp('songsFilterAssignmentStatus', '') });
   },
   async mounted() {
     this.$store.getters.songAuthorsPromise.then(data => {
@@ -444,6 +463,10 @@ export default {
       get() { return this.$store.getters.getSongsFilterFlagFree; },
       set(value) { this.$store.dispatch('setSongsFilterFlagFree', { value: value }); }
     },
+    songsFilterAssignmentStatus: {
+      get() { return this.$store.getters.getSongsFilterAssignmentStatus; },
+      set(value) { this.$store.dispatch('setSongsFilterAssignmentStatus', { value: value }); }
+    },
     songsHistory() {
       return this.$store.getters.getSongsHistory;
     },
@@ -503,6 +526,7 @@ export default {
       this.$store.dispatch('setSongsFilterRootId', { value: this.songsFilterRootId });
       this.$store.dispatch('setSongsFilterFlagExclusive', { value: this.songsFilterFlagExclusive });
       this.$store.dispatch('setSongsFilterFlagFree', { value: this.songsFilterFlagFree });
+      this.$store.dispatch('setSongsFilterAssignmentStatus', { value: this.songsFilterAssignmentStatus });
 
       let params = {};
       if (this.songsFilterId) params.filterId = this.songsFilterId;
@@ -530,6 +554,13 @@ export default {
       if (this.songsFilterRootId !== '') params.filterRootId = this.songsFilterRootId;
       if (this.songsFilterFlagExclusive !== '') params.flagExclusive = this.songsFilterFlagExclusive;
       if (this.songsFilterFlagFree !== '') params.flagFree = this.songsFilterFlagFree;
+      // Задание редактора — БД для проверки назначений (KaraokeProperty editorAssignmentDefaultTarget),
+      // не связано с остальными filter*-параметрами (те идут в Settings.loadListFromDb, эти — в
+      // отдельную проверку SongAssignment, см. ApiController.apisSongsDigests).
+      if (this.songsFilterAssignmentStatus !== '') {
+        params.filterAssignmentStatus = this.songsFilterAssignmentStatus;
+        params.target = this.$store.getters.getEditorDefaultTarget;
+      }
       this.$store.dispatch('loadSongsDigests', params );
       this.$store.dispatch('loadSongsHistory' );
       this.$emit('close');
@@ -563,6 +594,9 @@ export default {
       this.songsFilterStatusProcessKaraoke = args['filter_status_process_karaoke'] ? args['filter_status_process_karaoke'] : ''
       this.songsFilterRootId = args['filter_root_id'] ? args['filter_root_id'] : ''
       this.songsFilterFlagExclusive = args['flag_exclusive'] ? args['flag_exclusive'] : ''
+      // Задание редактора не входит в historyArgs (отдельная от Settings.loadListFromDb проверка) —
+      // при восстановлении из истории сбрасываем, а не оставляем текущее значение.
+      this.songsFilterAssignmentStatus = ''
 
       this.ok();
     }
@@ -701,9 +735,21 @@ export default {
   border-width: thin;
 }
 
+/* Рамка/паддинг/фон/ШИРИНА заданы ЯВНО и ОБЩИЕ для input и select — ОДНО значение на оба типа
+   полей, не попытка подогнать select под неизвестную браузерную формулу интринсик-ширины input
+   (100%, 180px, 20ch — по очереди не совпадали, потому что реальная intrinsic-ширина <input> без
+   явного width определяется UA-алгоритмом, который мы не знаем точно). Explicit width на ОБА —
+   единственный способ гарантировать пиксель-в-пиксель совпадение, а не "похоже". Значение —
+   calc(100% - 18px) от 200px-контейнера .sfm-row-input: 10px под сдвиг кнопки margin-left:-10px
+   (иначе наезд) + 8px видимого зазора между полем и кнопкой (10px впритык — слипались). */
 .sfm-input-field {
+  box-sizing: border-box;
+  border: 1px solid #767676;
   border-radius: 5px;
-  width: fit-content;
+  padding: 1px 4px;
+  font: inherit;
+  background-color: white;
+  width: calc(100% - 18px);
 }
 
 .sfm-input-field:hover {
@@ -711,6 +757,13 @@ export default {
 }
 .sfm-input-field:focus {
   background-color: cyan;
+}
+
+select.sfm-input-field {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  cursor: pointer;
 }
 
 </style>

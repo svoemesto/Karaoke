@@ -13,8 +13,12 @@ let player = null
 
 onMounted(() => {
   const assignmentId = route.query.assignmentId
-  const target = assignmentId ? { songId: route.params.id, assignmentId } : route.params.id
-  player = new KaraokePlayer(container.value, target, '/api')
+  // target (local|remote) — только вместе с assignmentId: сообщает бэкенду, откуда реально читать
+  // черновик задания (см. ApiController.getSongPlayerData / ReviewModal.playerSrc).
+  const options = assignmentId
+    ? { songId: route.params.id, assignmentId, target: route.query.target || null }
+    : route.params.id
+  player = new KaraokePlayer(container.value, options, '/api')
   player.init()
 })
 

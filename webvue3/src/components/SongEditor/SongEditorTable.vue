@@ -19,6 +19,14 @@
         <option value="approved">Одобрено</option>
         <option value="rejected">Отклонено</option>
       </select>
+      <select class="set-toolbar-item" v-model="filterAssigneeId" @change="reload">
+        <option value="">Все исполнители</option>
+        <option v-for="u in editorSiteUsers" :key="u.id" :value="u.id">{{ u.displayName || u.email }}</option>
+      </select>
+      <input class="set-toolbar-item" type="text" v-model="filterAuthor" @change="reload" placeholder="Автор" list="set-authors-list">
+      <datalist id="set-authors-list">
+        <option v-for="a in dictAuthors" :key="a" :value="a"></option>
+      </datalist>
       <button class="set-toolbar-item set-btn" @click="reload">Обновить</button>
       <button class="set-toolbar-item set-btn set-btn-add" @click="isAssignVisible = true">+ Назначить песню</button>
     </div>
@@ -71,10 +79,14 @@ export default {
   name: "SongEditorTable",
   components: { AssignModal, ReviewModal, BSpinner, BTable },
   data() {
-    return { isBusy: false, filterStatus: '', isAssignVisible: false, isReviewVisible: false }
+    return {
+      isBusy: false, filterStatus: '', filterAssigneeId: '', filterAuthor: '',
+      isAssignVisible: false, isReviewVisible: false, dictAuthors: [],
+    }
   },
   computed: {
     digest() { return this.$store.getters.getAssignmentsDigest || [] },
+    editorSiteUsers() { return this.$store.getters.getEditorSiteUsers || [] },
     target: {
       get() { return this.$store.getters.getAssignmentsTarget },
       set(v) { this.$store.dispatch('setAssignmentsTarget', v) }
@@ -98,12 +110,27 @@ export default {
   watch: {
     assignmentsIsLoading() { this.isBusy = this.$store.getters.getAssignmentsIsLoading }
   },
-  mounted() { this.reload(); },
+  async mounted() {
+    // defaultTarget (KaraokeProperty editorAssignmentDefaultTarget) сеет и стартовое значение "БД" —
+    // ждём его ДО первого reload(), иначе первая загрузка ушла бы в старый дефолт 'local'.
+    await this.$store.dispatch('loadEditorDefaultTarget');
+    this.reload();
+    this.$store.dispatch('loadEditorSiteUsers');
+    this.$store.getters.songAuthorsPromise.then(data => {
+      this.dictAuthors = JSON.parse(data).authors || [];
+    }).catch(() => {});
+  },
   methods: {
     statusLabel(s) { return STATUS_LABELS[s] || s },
     reload() {
       this.isBusy = true;
-      this.$store.dispatch('loadAssignmentsDigest', { filterStatus: this.filterStatus })
+      const params = {};
+      if (this.filterStatus) params.filterStatus = this.filterStatus;
+      // filterAssigneeId — Long? на бэкенде: пустая строка не биндится, поэтому передаём ключ только
+      // когда реально выбран исполнитель (тот же паттерн, что searchCandidateSongs ниже).
+      if (this.filterAssigneeId) params.filterAssigneeId = this.filterAssigneeId;
+      if (this.filterAuthor) params.filterAuthor = this.filterAuthor;
+      this.$store.dispatch('loadAssignmentsDigest', params)
         .finally(() => { this.isBusy = false; });
     },
     async openReview(id) {

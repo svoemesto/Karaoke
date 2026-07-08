@@ -210,4 +210,26 @@ class PublicSongEditorController(
         draft.save()
         return ResponseEntity.ok(mapOf("ok" to true, "status" to SongAssignmentStatus.SUBMITTED.dbValue))
     }
+
+    // ---- Отозвать с проверки (вернуть в работу) ----------------------------------------------
+
+    // Пока задание "на проверке", а админ ЕЩЁ не вынес вердикт, пользователь может передумать и
+    // забрать его обратно в работу (например, сам заметил ошибку). Разрешено СТРОГО из статуса
+    // SUBMITTED — проверка на сервере, не по клиентскому состоянию (админ мог уже успеть
+    // одобрить/отклонить между открытием страницы и кликом). canEdit() после этого сама даёт true
+    // (IN_PROGRESS не входит в список запрещённых статусов), отдельного флага не нужно.
+    @PostMapping("/tasks/{id}/recall")
+    fun recall(@PathVariable id: Long, request: HttpServletRequest): ResponseEntity<Map<String, Any?>> {
+        val user = currentUser(request)
+        if (!user.isEditor) return notFound()
+        val a = loadOwnedAssignment(id, user.id) ?: return notFound()
+        val draft = SongAssignmentDraft.getByAssignment(id, db, storageService, storageApiClient)
+            ?: return ResponseEntity.badRequest().body(mapOf("error" to "no_draft"))
+        if (statusOf(a, draft) != SongAssignmentStatus.SUBMITTED) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(mapOf("error" to "not_submitted"))
+        }
+        draft.userStatus = SongAssignmentStatus.USER_IN_PROGRESS
+        draft.save()
+        return ResponseEntity.ok(mapOf("ok" to true, "status" to SongAssignmentStatus.IN_PROGRESS.dbValue))
+    }
 }

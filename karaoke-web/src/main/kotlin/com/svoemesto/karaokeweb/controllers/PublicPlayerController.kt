@@ -243,7 +243,7 @@ class PublicPlayerController(
             val draft = assignment?.let { SongAssignmentDraft.getByAssignment(it.id, WORKING_DATABASE, storageService, storageApiClient) }
             if (draft != null) {
                 val draftMarkersPerVoice = draft.editedMarkersPerVoice(lenientJson)
-                if (draftMarkersPerVoice.isNotEmpty()) markersList = draftMarkersPerVoice
+                if (draftMarkersPerVoice.any { it.isNotEmpty() }) markersList = draftMarkersPerVoice
             }
         }
 

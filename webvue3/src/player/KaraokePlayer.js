@@ -19,11 +19,13 @@ export default class KaraokePlayer {
       this._mode = 'api'
       this.songId = songIdOrOptions.songId
       this.assignmentId = songIdOrOptions.assignmentId ?? null
+      this.target = songIdOrOptions.target ?? null
       this.apiBase = apiBase
     } else {
       this._mode = 'api'
       this.songId = songIdOrOptions
       this.assignmentId = null
+      this.target = null
       this.apiBase = apiBase
     }
     this._smkaraokeObjectUrls = []
@@ -104,7 +106,9 @@ export default class KaraokePlayer {
 
     try {
       if (this._mode === 'api') {
-        const qs = this.assignmentId ? `?assignmentId=${encodeURIComponent(this.assignmentId)}` : ''
+        const qs = this.assignmentId
+          ? `?assignmentId=${encodeURIComponent(this.assignmentId)}${this.target ? `&target=${encodeURIComponent(this.target)}` : ''}`
+          : ''
         const resp = await fetch(`${this.apiBase}/song/${this.songId}/playerdata${qs}`)
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
         this.data = await resp.json()
@@ -1097,6 +1101,7 @@ export default class KaraokePlayer {
     this._mode = 'api'
     this.songId = songId
     this.assignmentId = null
+    this.target = null
 
     this.accBuffer = null; this.vocBuffer = null
     this.accSource = null; this.vocSource = null

@@ -1418,7 +1418,12 @@ class ApiController(
         @RequestParam(required = false) filterStatusProcessLyrics: String?,
         @RequestParam(required = false) filterStatusProcessKaraoke: String?,
         @RequestParam(required = false) filterIsSync: String?,
-        @RequestParam(required = false) filterRootId: String?
+        @RequestParam(required = false) filterRootId: String?,
+        // filterAssignmentStatus/target — фильтр по назначенному заданию онлайн-редактора ("unassigned"
+        // или dbValue из SongAssignmentStatus). Settings по-прежнему всегда грузятся из WORKING_DATABASE
+        // (как раньше) — target относится ТОЛЬКО к тому, где искать назначения (local/remote).
+        @RequestParam(required = false) filterAssignmentStatus: String?,
+        @RequestParam(required = false) target: String?
 
     ): Map<String, Any> {
 
@@ -1476,7 +1481,22 @@ class ApiController(
 
         SongsHistory().add(args)
 
-        val lst = Settings.loadListFromDb(args, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient, withoutMarkersAndText = true).map { it.toDTO().toDtoDigest() }
+        var settingsList = Settings.loadListFromDb(args, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient, withoutMarkersAndText = true)
+        if (!filterAssignmentStatus.isNullOrBlank()) {
+            val remoteAssignmentDb = if (target == "remote") Connection.remote() else null
+            try {
+                val assignmentDb = remoteAssignmentDb ?: WORKING_DATABASE
+                val statuses = SongAssignment.composeStatusesForSongIds(settingsList.map { it.id }, assignmentDb, storageService, storageApiClient)
+                settingsList = if (filterAssignmentStatus == "unassigned") {
+                    settingsList.filter { statuses[it.id] == null }
+                } else {
+                    settingsList.filter { statuses[it.id]?.second?.dbValue == filterAssignmentStatus }
+                }
+            } finally {
+                try { remoteAssignmentDb?.getConnection()?.close() } catch (_: Exception) {}
+            }
+        }
+        val lst = settingsList.map { it.toDTO().toDtoDigest() }
         var totalMs = 0L
         for (i in lst.indices) {
             if (i > 0) lst[i].idPrevious = lst[i-1].id
@@ -1818,6 +1838,7 @@ class ApiController(
         @RequestParam(required = false) rootId: String?,
         @RequestParam(required = false) exclusive: String?,
         @RequestParam(required = false) free: String?,
+        @RequestParam(required = false) idTariff: String?,
     ): Boolean {
         val settingsId: Long = id.toLong()
         val settings = Settings.loadFromDbById(settingsId, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
@@ -1891,6 +1912,7 @@ class ApiController(
             rootId?.let { sett.fields[SettingField.ROOT_ID] =  it }
             exclusive?.let { sett.fields[SettingField.EXCLUSIVE] =  it }
             free?.let { sett.fields[SettingField.FREE] =  it }
+            idTariff?.let { sett.fields[SettingField.ID_TARIFF] =  it }
             sett.saveToDb()
             sett.saveToFile()
         }
@@ -3887,20 +3909,30 @@ class ApiController(
     // до approve() правки живут только в drafts, tbl_settings их не видит. Задание покрывает ВСЮ песню —
     // черновик несёт ВСЕ голоса разом, подменяем весь sourceMarkersList целиком. assignment должен
     // принадлежать именно этой песне (id) — иначе подмена игнорируется (fail-safe, без утечки чужого черновика).
+    // target (опционально, только вместе с assignmentId) — где реально читать задание/черновик: реальный
+    // рабочий цикл онлайн-редактора часто идёт целиком на REMOTE (см. SongEditorController), а local ещё
+    // не синкнут — без этого параметра подстановка молча не находила черновик и превью показывало пустой
+    // текст. Settings (метаданные, аудио с локального диска) всегда из WORKING_DATABASE — id совпадает.
     @GetMapping("/song/{id}/playerdata")
     @ResponseBody
-    fun getSongPlayerData(@PathVariable id: Long, @RequestParam(required = false) assignmentId: Long?): ResponseEntity<Map<String, Any?>> {
+    fun getSongPlayerData(@PathVariable id: Long, @RequestParam(required = false) assignmentId: Long?, @RequestParam(required = false) target: String?): ResponseEntity<Map<String, Any?>> {
         val settings = Settings.loadFromDbById(id, WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)
             ?: return ResponseEntity.notFound().build()
 
         var markersList = settings.sourceMarkersList
         if (assignmentId != null) {
-            val assignment = SongAssignment.getById(assignmentId, WORKING_DATABASE, storageService, storageApiClient)
-            val draft = assignment?.takeIf { it.songId == id }
-                ?.let { SongAssignmentDraft.getByAssignment(it.id, WORKING_DATABASE, storageService, storageApiClient) }
-            if (draft != null) {
-                val draftMarkersPerVoice = draft.editedMarkersPerVoice(lenientJson)
-                if (draftMarkersPerVoice.isNotEmpty()) markersList = draftMarkersPerVoice
+            val remoteDb = if (target == "remote") Connection.remote() else null
+            try {
+                val assignmentDb = remoteDb ?: WORKING_DATABASE
+                val assignment = SongAssignment.getById(assignmentId, assignmentDb, storageService, storageApiClient)
+                val draft = assignment?.takeIf { it.songId == id }
+                    ?.let { SongAssignmentDraft.getByAssignment(it.id, assignmentDb, storageService, storageApiClient) }
+                if (draft != null) {
+                    val draftMarkersPerVoice = draft.editedMarkersPerVoice(lenientJson)
+                    if (draftMarkersPerVoice.any { it.isNotEmpty() }) markersList = draftMarkersPerVoice
+                }
+            } finally {
+                try { remoteDb?.getConnection()?.close() } catch (_: Exception) {}
             }
         }
 

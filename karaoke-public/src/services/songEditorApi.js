@@ -29,3 +29,8 @@ export function saveTask(id, sourceTexts, markersPerVoice) {
 export function submitTask(id) {
   return authPost(`${BASE}/tasks/${id}/submit`, {}, token())
 }
+
+// Отозвать с проверки — вернуть в работу, пока админ ещё не вынес вердикт (статус submitted).
+export function recallTask(id) {
+  return authPost(`${BASE}/tasks/${id}/recall`, {}, token())
+}

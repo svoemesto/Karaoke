@@ -152,6 +152,10 @@ export default {
     // пользователю за раз. Успешно назначенные убираются из выбора; при частичном отказе модалка не
     // закрывается (иначе сообщение об ошибке мелькнёт и пропадёт вместе с размонтированием) — только
     // когда назначены ВСЕ, эмитим 'assigned' (родитель закрывает модалку и обновляет таблицу).
+    //
+    // Двухпроходный цикл — первый проход без clearMarkers; песни, у которых бэкенд нашёл непустые
+    // маркеры (error "markers_exist"), собираются и переспрашиваются ОДНИМ confirm() на весь батч
+    // (не по каждой песне отдельно), затем второй проход повторяет их запрос с явным clearMarkers.
     async doAssign() {
       if (!this.canSubmit) return;
       this.busy = true;
@@ -159,15 +163,32 @@ export default {
       const toAssign = [...this.selectedSongs];
       const succeeded = [];
       const failed = [];
+      const pendingConfirm = [];
+
       for (const s of toAssign) {
         try {
           const res = await this.$store.dispatch('assignSong', { songId: s.id, assigneeId: this.assigneeId });
           if (res && res.ok) succeeded.push(s);
+          else if (res && res.error === 'markers_exist') pendingConfirm.push(s);
           else failed.push({ song: s, error: res && res.error });
         } catch (e) {
           failed.push({ song: s, error: 'request_failed' });
         }
       }
+
+      if (pendingConfirm.length > 0) {
+        const clearMarkers = window.confirm('В песне уже есть маркеры. Удалить их при назначении задания?');
+        for (const s of pendingConfirm) {
+          try {
+            const res = await this.$store.dispatch('assignSong', { songId: s.id, assigneeId: this.assigneeId, clearMarkers });
+            if (res && res.ok) succeeded.push(s);
+            else failed.push({ song: s, error: res && res.error });
+          } catch (e) {
+            failed.push({ song: s, error: 'request_failed' });
+          }
+        }
+      }
+
       const succeededIds = new Set(succeeded.map(s => s.id));
       this.selectedSongs = this.selectedSongs.filter(s => !succeededIds.has(s.id));
       this.busy = false;

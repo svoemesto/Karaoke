@@ -164,6 +164,6 @@ CREATE INDEX tbl_subscriptions_last_update_index ON public.tbl_subscriptions USI
 CREATE TRIGGER update_recordhash_subscriptions_trigger BEFORE INSERT OR UPDATE ON public.tbl_subscriptions FOR EACH ROW EXECUTE FUNCTION public.update_tbl_subscriptions_recordhash();
 CREATE TRIGGER update_last_updated_subscriptions_trigger BEFORE UPDATE ON public.tbl_subscriptions FOR EACH ROW EXECUTE FUNCTION public.update_last_updated();
 
--- Привязка песни к тарифу (0 = не продаётся отдельно / дефолтный тариф). Участвует в recordhash
--- tbl_settings — см. правку deploy/recordhash_settings.sql (применять этот файл ВМЕСТЕ с ней).
+-- Разрешение подписки на песню (0 = разрешено, тариф по умолчанию scope=SONG; -1 = автор запретил).
+-- Участвует в recordhash tbl_settings — см. правку deploy/recordhash_settings.sql (применять ВМЕСТЕ).
 ALTER TABLE public.tbl_settings ADD COLUMN IF NOT EXISTS id_tariff integer DEFAULT 0 NOT NULL;

@@ -38,27 +38,33 @@ class PublicPaymentController(
         val paymentId = paymentObject?.get("id") as? String
             ?: return ResponseEntity.badRequest().body(mapOf("error" to "no_payment_id"))
 
-        val sub = Subscription.getByYookassaPaymentId(paymentId, db, storageService, storageApiClient)
-            ?: return ResponseEntity.ok(mapOf("ok" to true, "note" to "unknown_subscription")) // не наш платёж/уже удалён — не 500
+        // Заказ «Корзины» — несколько подписок делят один yookassa_payment_id (один платёж на
+        // несколько песен); одиночная покупка — список из одного элемента, поведение не меняется.
+        val subs = Subscription.getAllByYookassaPaymentId(paymentId, db, storageService, storageApiClient)
+        if (subs.isEmpty()) return ResponseEntity.ok(mapOf("ok" to true, "note" to "unknown_subscription")) // не наш платёж/уже удалён — не 500
 
-        // Идемпотентность: уже обработан.
-        if (sub.status == Subscription.STATUS_PAID) return ResponseEntity.ok(mapOf("ok" to true))
+        // Идемпотентность: если все позиции заказа уже обработаны — no-op.
+        if (subs.all { it.status == Subscription.STATUS_PAID }) return ResponseEntity.ok(mapOf("ok" to true))
 
-        // Не доверяем телу вебхука — перезапрашиваем статус напрямую у ЮKassa.
+        // Не доверяем телу вебхука — перезапрашиваем статус напрямую у ЮKassa (один раз на весь заказ).
         val verified = paymentService.verifyAndFetch(paymentId)
             ?: return ResponseEntity.status(502).body(mapOf("error" to "verify_failed"))
 
         when (verified.status) {
             "succeeded" -> {
-                sub.status = Subscription.STATUS_PAID
-                sub.paidAt = Timestamp(System.currentTimeMillis())
-                verified.payment_method?.id?.let { if (it.isNotBlank()) sub.yookassaPaymentMethodId = it }
-                sub.save()
-                applyFulfillment(sub)
+                subs.filter { it.status != Subscription.STATUS_PAID }.forEach { sub ->
+                    sub.status = Subscription.STATUS_PAID
+                    sub.paidAt = Timestamp(System.currentTimeMillis())
+                    verified.payment_method?.id?.let { if (it.isNotBlank()) sub.yookassaPaymentMethodId = it }
+                    sub.save()
+                    applyFulfillment(sub)
+                }
             }
             "canceled" -> {
-                sub.status = Subscription.STATUS_FAILED
-                sub.save()
+                subs.filter { it.status != Subscription.STATUS_PAID }.forEach { sub ->
+                    sub.status = Subscription.STATUS_FAILED
+                    sub.save()
+                }
             }
             else -> { /* pending/waiting_for_capture — ничего не делаем, дождёмся следующего события */ }
         }

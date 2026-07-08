@@ -18,6 +18,7 @@ data class SubscriptionDto(
     val autoRenew: Boolean = true,
     val createdAt: String = "",
     val paidAt: String? = null,
+    val orderId: String? = null,
 ) : Serializable, Comparable<SubscriptionDto>, KaraokeDbTableDto {
 
     override fun compareTo(other: SubscriptionDto): Int = createdAt.compareTo(other.createdAt)

@@ -68,6 +68,10 @@
     </template>
 
     <!-- player (онлайн-плеер) -->
+    <template v-else-if="name === 'player' && variant === 'gold'">
+      <circle cx="10" cy="10" r="10" fill="#D99413"/>
+      <path d="M8 6.5v7l6-3.5-6-3.5Z" fill="#fff"/>
+    </template>
     <template v-else-if="name === 'player' && active">
       <circle cx="10" cy="10" r="10" fill="#22A447"/>
       <path d="M8 6.5v7l6-3.5-6-3.5Z" fill="#fff"/>
@@ -137,9 +141,11 @@ const viewBoxMap = {
 export default {
   name: 'SvgIcon',
   props: {
-    name:   { type: String, required: true },
-    active: { type: Boolean, default: true },
-    size:   { type: [Number, String], default: 20 }
+    name:    { type: String, required: true },
+    active:  { type: Boolean, default: true },
+    // Пока используется только 'player' + variant="gold" (иконка-CTA «оформить подписку на песню»).
+    variant: { type: String, default: null },
+    size:    { type: [Number, String], default: 20 }
   },
   computed: {
     viewBox() {

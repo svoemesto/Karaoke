@@ -36,6 +36,7 @@
           :fields="siteUserDigestFields"
           :per-page="perPage"
           :current-page="currentPage"
+          v-model:sort-by="sortBy"
           small
           bordered
           hover
@@ -68,6 +69,10 @@
         <template #cell(permanentPremium)="data">
           <div style="text-align: center">{{ data.value ? 'Да' : '' }}</div>
         </template>
+
+        <template #cell(personalDiscountPercent)="data">
+          <div style="text-align: center">{{ data.value > 0 ? `${data.value}%` : '' }}</div>
+        </template>
       </b-table>
     </div>
 
@@ -88,6 +93,7 @@ export default {
     return {
       perPage: 19,
       currentPage: 1,
+      sortBy: [],
       isUserEditVisible: false,
       isBusy: false,
       filterEmail: '',
@@ -109,15 +115,16 @@ export default {
     },
     siteUserDigestFields() {
       return [
-        { key: 'id', label: 'ID', style: { minWidth: '50px', maxWidth: '50px', textAlign: 'center', fontSize: 'small' } },
-        { key: 'email', label: 'Email', style: { minWidth: '260px', maxWidth: '260px', textAlign: 'left', fontSize: 'small' } },
-        { key: 'displayName', label: 'Имя', style: { minWidth: '200px', maxWidth: '200px', textAlign: 'left', fontSize: 'small' } },
-        { key: 'sponsrUid', label: 'Sponsr UID', style: { minWidth: '110px', maxWidth: '110px', textAlign: 'center', fontSize: 'small' } },
-        { key: 'premium', label: 'Премиум', style: { minWidth: '90px', maxWidth: '90px', textAlign: 'center', fontSize: 'small' } },
-        { key: 'permanentPremium', label: 'Постоянный премиум', style: { minWidth: '90px', maxWidth: '90px', textAlign: 'center', fontSize: 'small' } },
-        { key: 'banned', label: 'Статус', style: { minWidth: '100px', maxWidth: '100px', textAlign: 'center', fontSize: 'small' } },
-        { key: 'createdAt', label: 'Регистрация', style: { minWidth: '160px', maxWidth: '160px', textAlign: 'center', fontSize: 'small' } },
-        { key: 'lastLoginAt', label: 'Последний вход', style: { minWidth: '160px', maxWidth: '160px', textAlign: 'center', fontSize: 'small' } },
+        { key: 'id', label: 'ID', sortable: true, style: { minWidth: '50px', maxWidth: '50px', textAlign: 'center', fontSize: 'small' } },
+        { key: 'email', label: 'Email', sortable: true, style: { minWidth: '260px', maxWidth: '260px', textAlign: 'left', fontSize: 'small' } },
+        { key: 'displayName', label: 'Имя', sortable: true, style: { minWidth: '200px', maxWidth: '200px', textAlign: 'left', fontSize: 'small' } },
+        { key: 'sponsrUid', label: 'Sponsr UID', sortable: true, style: { minWidth: '110px', maxWidth: '110px', textAlign: 'center', fontSize: 'small' } },
+        { key: 'premium', label: 'Премиум', sortable: true, style: { minWidth: '90px', maxWidth: '90px', textAlign: 'center', fontSize: 'small' } },
+        { key: 'permanentPremium', label: 'Постоянный премиум', sortable: true, style: { minWidth: '90px', maxWidth: '90px', textAlign: 'center', fontSize: 'small' } },
+        { key: 'personalDiscountPercent', label: 'Скидка', sortable: true, style: { minWidth: '70px', maxWidth: '70px', textAlign: 'center', fontSize: 'small' } },
+        { key: 'banned', label: 'Статус', sortable: true, style: { minWidth: '100px', maxWidth: '100px', textAlign: 'center', fontSize: 'small' } },
+        { key: 'createdAt', label: 'Регистрация', sortable: true, style: { minWidth: '160px', maxWidth: '160px', textAlign: 'center', fontSize: 'small' } },
+        { key: 'lastLoginAt', label: 'Последний вход', sortable: true, style: { minWidth: '160px', maxWidth: '160px', textAlign: 'center', fontSize: 'small' } },
       ]
     }
   },

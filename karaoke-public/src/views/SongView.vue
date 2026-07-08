@@ -93,10 +93,11 @@
           </div>
         </div>
 
-        <!-- Ссылки на платформы -->
-        <div class="km-links-card">
+        <!-- Ссылки на платформы: только для песен в эфире — иначе показывать нечего (нет ни ссылок,
+             ни смысла дублировать дату/статус, который уже есть в блоке ожидания/подписки ниже). -->
+        <div v-if="currentSong.onAir" class="km-links-card">
           <div class="km-links-title">Ссылки на просмотр</div>
-          <div v-if="currentSong.onAir" class="km-links-grid">
+          <div class="km-links-grid">
             <!-- Sponsr (все версии) -->
             <div class="km-link-group">
               <span class="km-link-label">Все</span>
@@ -141,7 +142,6 @@
               </div>
             </div>
           </div>
-          <div v-else class="km-date-publish">{{ currentSong.datePublish }}</div>
         </div>
 
         <!-- Видео ВК — старое место, только когда онлайн-плеер сам не может отобразиться -->
@@ -193,23 +193,25 @@
         <div v-if="!currentSong.onAir && !playerCanWatch && playerAccessLoaded" class="km-waiting-card">
           <div class="km-waiting-title">{{ waitingTitle }}</div>
           <div class="km-waiting-body">{{ waitingBody }}</div>
-          <a :href="sponsrUrl" target="_blank" rel="noopener" class="km-waiting-cta" @click="onSponsrClick">Оформить подписку на Sponsr →</a>
-          <div class="km-waiting-fineprint">
-            После оформления и оплаты подписки на Sponsr доступность песни на сайте появится через некоторое время.
+
+          <div v-if="!playerIsPremiumUser" class="km-waiting-offer">
+            <div class="km-waiting-offer-icon">🪙</div>
+            <div class="km-waiting-offer-title">Премиум-подписка</div>
+            <div class="km-waiting-offer-desc">Подписка на всю коллекцию или на одну песню</div>
+            <div class="km-waiting-offer-actions">
+              <RouterLink to="/premium" class="km-waiting-cta">Оформить премиум-подписку →</RouterLink>
+              <button v-if="isLoggedIn && canOfferSongSubscription" class="km-waiting-cta km-song-sub-cta" @click="songSubscriptionModalVisible = true">
+                Оформить подписку на эту песню →
+              </button>
+            </div>
           </div>
+
           <div v-if="!isLoggedIn" class="km-waiting-login">
             Также вы можете <RouterLink to="/register">зарегистрироваться</RouterLink> или
-            <RouterLink to="/login">войти</RouterLink> на сайте — это понадобится, чтобы мы могли
-            узнать вас как премиум-подписчика.
+            <RouterLink to="/login">войти</RouterLink> на сайте — это понадобится для оформления подписки.
           </div>
           <div v-else-if="playerIsPremiumUser" class="km-waiting-login">
             Вы премиум-пользователь — как только материалы для плеера будут готовы, он появится здесь автоматически.
-          </div>
-          <div v-else-if="canOfferSongSubscription" class="km-waiting-login">
-            Не хотите ждать эфир и не нужна подписка на весь сайт?
-            <button class="km-waiting-cta km-song-sub-cta" @click="songSubscriptionModalVisible = true">
-              Оформить подписку только на эту песню →
-            </button>
           </div>
         </div>
 
@@ -250,9 +252,10 @@ import { useDesign } from '../composables/useDesign'
 import { useEngagementTracking } from '../composables/useEngagementTracking'
 import { useAuth } from '../composables/useAuth'
 import { usePlayerAccess } from '../composables/usePlayerAccess'
-import { trackPlay, trackMetaClick, trackLinkToSong } from '../services/tracking'
+import { trackPlay, trackMetaClick } from '../services/tracking'
 import { pluralDays } from '../utils/pluralRu'
 import SongSubscriptionModal from '../components/SongSubscriptionModal.vue'
+import { useCart } from '../composables/useCart'
 
 export default {
   name: 'SongView',
@@ -264,7 +267,8 @@ export default {
     function setTheme(val) { theme.value = val; applyTheme(val) }
     const { isLoggedIn } = useAuth()
     const playerAccess = usePlayerAccess()
-    return { theme, setTheme, isLoggedIn, playerAccess }
+    const cart = useCart()
+    return { theme, setTheme, isLoggedIn, playerAccess, cart }
   },
   computed: {
     ...mapGetters('songs', ['currentSong', 'currentSongIsLoading']),
@@ -276,14 +280,10 @@ export default {
       if (!ts) return null
       return Math.ceil((ts - Date.now()) / 86400000)
     },
-    sponsrUrl() {
-      const s = this.currentSong
-      return (s && (s.linkSponsrPlay || s.sponsrLinkGeneral)) || 'https://sponsr.ru/smkaraoke'
-    },
     waitingTitle() {
       const s = this.currentSong
       if (!s) return ''
-      if (s.exclusive) return 'Эта песня — эксклюзив на Sponsr'
+      if (s.exclusive) return 'Эта песня доступна только по подписке'
       if (this.daysUntilAir === null) return 'Дата выхода в эфир пока не определена'
       if (this.daysUntilAir <= 0) return 'Песня скоро появится в эфире'
       return `Песня выйдет в эфир через ${this.daysUntilAir} ${pluralDays(this.daysUntilAir)}`
@@ -292,9 +292,9 @@ export default {
       const s = this.currentSong
       if (!s) return ''
       if (s.exclusive) {
-        return 'В эфире она доступна не будет — единственный способ получить доступ к ней сейчас — оформить платную подписку на Sponsr.'
+        return 'В бесплатном эфире она доступна не будет — посмотреть её можно, оформив подписку.'
       }
-      return 'Не хотите ждать? Оформите платную подписку на Sponsr — и песня станет доступна сразу, не дожидаясь эфира.'
+      return 'Не хотите ждать эфир? Оформите подписку — и песня станет доступна сразу.'
     },
     // Отдельная подписка на песню (см. план монетизации) — предлагаем, только если админ пометил
     // песню как продающуюся (idTariff>0 на бэкенде -> songSubscriptionAvailable) и плеер сейчас
@@ -340,9 +340,6 @@ export default {
       this.playerDisplayMode = event.data.mode
     },
     onPlay(version) { trackPlay(this.currentSong.id, version) },
-    // Клик по CTA подписки Sponsr — трекаем как переход по ссылке песни (нативный переход не
-    // блокируем). song-version='all' — как у PlatformLink sponsr.
-    onSponsrClick() { trackLinkToSong('sponsr', this.currentSong.id, 'all') },
     async onMetaClick(field, event) {
       const resp = await trackMetaClick(field, this.currentSong.id, event)
       if (resp && resp.meta) {
@@ -357,7 +354,9 @@ export default {
     // Акция довела цену подписки на песню до нуля — доступ уже проставлен на бэкенде синхронно,
     // просто перезапрашиваем access(), чтобы плеер встроился без перезагрузки страницы.
     onSongSubscriptionActivated() {
-      if (this.currentSong?.id) this.playerAccess.checkAccess(this.currentSong.id)
+      const id = this.currentSong?.id
+      if (id) this.playerAccess.checkAccess(id)
+      if (id && this.cart.isInCart(id)) this.cart.toggle(id)
     }
   }
 }
@@ -556,12 +555,6 @@ export default {
   font-weight: 600;
 }
 .km-link-icons { display: flex; gap: 2px; }
-.km-date-publish {
-  font-size: 0.9rem;
-  color: var(--km-text2);
-  text-align: center;
-  padding: 0.5rem;
-}
 
 /* Онлайн-плеер, встроенный вместо видео ВК */
 .km-player-card {
@@ -626,6 +619,22 @@ export default {
   margin-bottom: 1rem;
   line-height: 1.5;
 }
+.km-waiting-offer {
+  background: var(--km-bg2);
+  border: 1px solid var(--km-border);
+  border-radius: 12px;
+  padding: 1.25rem 1rem;
+  margin-bottom: 0.75rem;
+}
+.km-waiting-offer-icon { font-size: 2rem; margin-bottom: 0.35rem; line-height: 1; }
+.km-waiting-offer-title { font-size: 1.05rem; font-weight: 700; color: var(--km-text); margin-bottom: 0.2rem; }
+.km-waiting-offer-desc { font-size: 0.85rem; color: var(--km-text2); margin-bottom: 0.9rem; }
+.km-waiting-offer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.6rem;
+}
 .km-waiting-cta {
   display: inline-block;
   background: var(--km-accent);
@@ -634,32 +643,24 @@ export default {
   padding: 0.6rem 1.4rem;
   font-weight: 600;
   text-decoration: none;
-  margin-bottom: 0.75rem;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.9rem;
 }
 .km-waiting-cta:hover { opacity: 0.9; color: #fff; text-decoration: none; }
-.km-waiting-fineprint {
-  font-size: 0.72rem;
-  color: var(--km-text2);
-  opacity: 0.8;
-  max-width: 480px;
-  margin: 0 auto 0.5rem;
-  line-height: 1.4;
+.km-song-sub-cta {
+  background: transparent;
+  color: var(--km-accent);
+  border: 1px solid var(--km-accent);
 }
+.km-song-sub-cta:hover { background: var(--km-hover); color: var(--km-accent); opacity: 1; }
 .km-waiting-login {
   font-size: 0.82rem;
   color: var(--km-text2);
   margin-top: 0.5rem;
 }
 .km-waiting-login a { color: var(--km-accent2); }
-.km-song-sub-cta {
-  display: block;
-  border: none;
-  cursor: pointer;
-  font-family: inherit;
-  font-size: 0.82rem;
-  margin: 0.4rem auto 0;
-  padding: 0.5rem 1.1rem;
-}
 
 /* Видео */
 .km-videos { margin-bottom: 1rem; }

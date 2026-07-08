@@ -83,6 +83,7 @@ class PublicSubscriptionController(
             "discount" to result.discount,
             "final" to result.final,
             "promoApplied" to result.promoApplied,
+            "personalDiscountPercent" to result.personalDiscountPercent,
             // Отключаем "Оплатить" на фронте, пока не заданы ключи ЮKassa — бесплатных (final=0)
             // подписок это не касается, они не ходят в ЮKassa вовсе.
             "paymentsEnabled" to paymentService.hasCredentials(),
@@ -107,7 +108,9 @@ class PublicSubscriptionController(
             if (songId == null) return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(mapOf("error" to "song_id_required"))
             val settings = Settings.loadFromDbById(songId, db, storageService = storageService, storageApiClient = storageApiClient)
                 ?: return ResponseEntity.status(HttpStatus.NOT_FOUND).body(mapOf("error" to "song_not_found"))
-            if (settings.idTariff <= 0) return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(mapOf("error" to "song_not_for_subscription"))
+            // id_tariff: 0 (дефолт новой песни) = подписка разрешена тарифом по умолчанию; -1 = автор
+            // явно запретил подписку на эту песню. Любое другое значение зарезервировано на будущее.
+            if (settings.idTariff < 0) return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(mapOf("error" to "song_not_for_subscription"))
             if (Subscription.isSubscribedToSong(user.id, songId, db, storageService, storageApiClient))
                 return ResponseEntity.status(HttpStatus.CONFLICT).body(mapOf("error" to "already_subscribed"))
         } else if (scope != Subscription.SCOPE_SITE) {
@@ -151,7 +154,12 @@ class PublicSubscriptionController(
             description = description,
             email = user.email,
             returnUrl = returnUrl,
-            saveMethod = scope == Subscription.SCOPE_SITE && sub.autoRenew,
+            // ВРЕМЕННО отключено: save_payment_method=true даёт 403 Forbidden от ЮKassa — в кабинете
+            // ЮKassa ещё не включено сохранение платёжных данных/автоплатежи (отдельное разрешение,
+            // не совпадает с базовым одобрением "На своём сайте"). Пока это так, подписка на сайт
+            // оформляется БЕЗ автопродления (пользователь будет продлевать вручную). Включить обратно
+            // (saveMethod = scope == Subscription.SCOPE_SITE && sub.autoRenew), когда ЮKassa разрешит.
+            saveMethod = false,
         )
         if (payment == null) {
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(mapOf(
@@ -200,6 +208,7 @@ class PublicSubscriptionController(
                 "autoRenew" to sub.autoRenew,
                 "createdAt" to sub.createdAt.toString(),
                 "paidAt" to sub.paidAt?.toString(),
+                "orderId" to sub.orderId,
             )
         }
     }

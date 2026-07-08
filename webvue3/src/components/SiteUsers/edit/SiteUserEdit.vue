@@ -38,6 +38,11 @@
           <div class="sue-static">до {{ siteUserCurrent.sitePremiumUntil }} <span class="sue-hint">(оплаченная подписка на сайте)</span></div>
         </div>
         <div class="label-and-input">
+          <div class="label">Постоянная скидка:</div>
+          <input class="input-field sue-num" type="number" min="0" max="100" step="0.01" v-model.number="siteUserCurrent.personalDiscountPercent">
+          <span class="sue-hint">%, суммируется поверх любой акции; 0 = нет скидки</span>
+        </div>
+        <div class="label-and-input">
           <div class="label">Редактор караоке:</div>
           <label class="sue-checkbox-label">
             <input type="checkbox" v-model="siteUserCurrent.editor">

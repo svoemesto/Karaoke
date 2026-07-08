@@ -702,10 +702,12 @@ class Settings(
 
     val rate: Int get() = (fields[SettingField.RATE]?.nullIfEmpty() ?: "0").toInt()
 
-    // Тариф подписки (монетизация). 0 = песня не продаётся отдельно/дефолт. Пишется напрямую через
-    // fields[SettingField.ID_TARIFF] = value.toString() (см. TariffsController не трогает эту
-    // привязку — она делается из карточки песни в webvue3, отдельный эндпоинт Фазы 6).
-    val idTariff: Int get() = (fields[SettingField.ID_TARIFF]?.nullIfEmpty() ?: "0").toInt()
+    // Разрешение подписки на песню (монетизация). 0 (дефолт новой песни) = подписка разрешена, при
+    // оформлении используется тариф по умолчанию scope=SONG; -1 = автор запретил подписку на эту
+    // песню в карточке (webvue3). Переключатель, не FK на конкретный тариф.
+    var idTariff: Int
+        get() = (fields[SettingField.ID_TARIFF]?.nullIfEmpty() ?: "0").toInt()
+        set(value) {fields[SettingField.ID_TARIFF] = value.toString()}
 
     val linkSM: String get() = URL_PREFIX_SM.replace("{REPLACE}", id.toString())
     val linkBoosty: String get() = idBoosty.let {URL_PREFIX_BOOSTY.replace("{REPLACE}", idBoosty)}
@@ -5352,6 +5354,7 @@ class Settings(
             rootId = rootId,
             exclusive = exclusive,
             free = free,
+            idTariff = idTariff,
             haveSourceText = haveSourceText
         )
     }

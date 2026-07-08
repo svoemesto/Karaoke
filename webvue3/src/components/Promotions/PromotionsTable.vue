@@ -18,6 +18,9 @@
         <li><b>NTH_FREE</b>: {"n":5} — каждая 5-я оплаченная подписка бесплатна</li>
         <li><b>HAPPY_HOUR</b>: {"percent":15,"hours":[20,21,22],"daysOfWeek":[5,6,7]} (часы 0-23, дни ISO 1=Пн..7=Вс)</li>
         <li><b>FLAT_PERCENT</b>: {"percent":10}</li>
+        <li><b>CART_BULK_PERCENT</b>: {"minQty":10,"percent":30} — скидка на ВЕСЬ заказ «Корзины», если
+          товаров в нём ≥ minQty (применяется к SONG, количество считается строго внутри одного заказа,
+          в отличие от NTH_FREE, который считает по всем покупкам пользователя за всё время)</li>
       </ul>
     </div>
 
@@ -29,6 +32,7 @@
         <option value="NEW_USER_PERCENT">NEW_USER_PERCENT</option>
         <option value="NTH_FREE">NTH_FREE</option>
         <option value="HAPPY_HOUR">HAPPY_HOUR</option>
+        <option value="CART_BULK_PERCENT">CART_BULK_PERCENT</option>
       </select>
       <select v-model="newItem.appliesTo">
         <option value="BOTH">Песня + Сайт</option>
@@ -62,6 +66,7 @@
               <option value="NEW_USER_PERCENT">NEW_USER_PERCENT</option>
               <option value="NTH_FREE">NTH_FREE</option>
               <option value="HAPPY_HOUR">HAPPY_HOUR</option>
+              <option value="CART_BULK_PERCENT">CART_BULK_PERCENT</option>
             </select>
           </td>
           <td>

@@ -98,6 +98,10 @@ class PromoRule(
         const val TYPE_HAPPY_HOUR = "HAPPY_HOUR"
         // Простая фиксированная скидка % без условий.
         const val TYPE_FLAT_PERCENT = "FLAT_PERCENT"
+        // Скидка % на ВЕСЬ заказ «Корзины», если позиций в нём >= minQty (params: {"minQty":10,"percent":30}).
+        // В отличие от NTH_FREE (считает по всем покупкам пользователя за всё время), это количество
+        // СТРОГО в рамках одного заказа корзины.
+        const val TYPE_CART_BULK_PERCENT = "CART_BULK_PERCENT"
 
         fun loadAll(
             database: KaraokeConnection,

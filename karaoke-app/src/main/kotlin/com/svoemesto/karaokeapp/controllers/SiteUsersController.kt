@@ -84,6 +84,8 @@ class SiteUsersController {
         @RequestParam(required = false) maxFavorites: Int?,
         @RequestParam(required = false) maxPlaylists: Int?,
         @RequestParam(required = false) maxPlaylistItems: Int?,
+        // Постоянная скидка (%) — вручную, суммируется поверх любой акции (PriceService).
+        @RequestParam(required = false) personalDiscountPercent: Double?,
     ): Long = withDb(target) { db ->
         SiteUser.getSiteUserById(id, db, KSS_APP, SAC_APP)?.let { user ->
             displayName?.let { user.displayName = it }
@@ -94,6 +96,7 @@ class SiteUsersController {
             maxFavorites?.let { user.maxFavorites = it }
             maxPlaylists?.let { user.maxPlaylists = it }
             maxPlaylistItems?.let { user.maxPlaylistItems = it }
+            personalDiscountPercent?.let { user.personalDiscountPercent = it.coerceIn(0.0, 100.0) }
             user.save()
             user.id
         } ?: 0L

@@ -80,9 +80,11 @@ server {
   }
   # Тот же обход MTU black-hole, что и /smartcaptcha/ выше, но для ЮKassa API (создание платежа,
   # проверка статуса на вебхуке — PaymentService в karaoke-web). YOOKASSA_API_URL=http://minio-proxy/yookassa.
+  # Реальный API ЮKassa живёт под /v3/ (https://api.yookassa.ru/v3/payments) — без этого суффикса
+  # запросы 404-или (PaymentService.createPayment падал на POST /yookassa/payments -> 404).
   location /yookassa/ {
     proxy_ssl_server_name on;
-    proxy_pass https://api.yookassa.ru/;
+    proxy_pass https://api.yookassa.ru/v3/;
     proxy_set_header Host api.yookassa.ru;
     proxy_read_timeout 15;
     proxy_send_timeout 15;

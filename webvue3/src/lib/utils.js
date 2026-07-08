@@ -1,8 +1,23 @@
+// Уникальный на вкладку браузера идентификатор. sessionStorage переживает F5 (та же вкладка - тот же
+// tabId), но не наследуется новой вкладкой/копией - у каждой вкладки/компьютера будет свой SSE-канал
+// (см. подписку /api/subscribe?tabId=... в App.vue) и адресная доставка тостов MESSAGE/ERROR (см.
+// TabIdFilter/SseNotificationService в karaoke-app).
+export function getTabId() {
+    const STORAGE_KEY = 'tabId';
+    let tabId = sessionStorage.getItem(STORAGE_KEY);
+    if (!tabId) {
+        tabId = crypto.randomUUID();
+        sessionStorage.setItem(STORAGE_KEY, tabId);
+    }
+    return tabId;
+}
+
 export function promisedXMLHttpRequest (obj) {
     return new Promise((resolve, reject) => {
         let xhr = new XMLHttpRequest();
         xhr.open(obj.method || "GET", obj.url, true);
         if (obj.headers === undefined) obj.headers = {'Content-type': 'application/x-www-form-urlencoded'};
+        obj.headers['X-Tab-Id'] = getTabId();
         if (obj.headers) {
             Object.keys(obj.headers).forEach(key => {
                 xhr.setRequestHeader(key, obj.headers[key]);

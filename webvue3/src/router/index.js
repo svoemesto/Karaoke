@@ -6,14 +6,16 @@ import PublishView from '../views/PublishView.vue';
 import ProcessesView from '../views/ProcessesView.vue';
 import PropertiesView from '../views/PropertiesView.vue';
 import AuthorsView from '../views/AuthorsView.vue';
-import UsersView from '../views/UsersView.vue';
 import SiteUsersView from '../views/SiteUsersView.vue';
+import SitePlaylistsView from '../views/SitePlaylistsView.vue';
+import SongEditorView from '../views/SongEditorView.vue';
 import PublicSettingsView from '../views/PublicSettingsView.vue';
 import PicturesView from '../views/PicturesView.vue';
-import AuthView from '../views/AuthView.vue';
-import CallbackView from '../views/CallbackView.vue';
 import StatsView from '../views/StatsView.vue';
-import AuthService from '../services/AuthService';
+import SyncView from '../views/SyncView.vue';
+import TariffsView from '../views/TariffsView.vue';
+import PromotionsView from '../views/PromotionsView.vue';
+import SponsrSyncView from '../views/SponsrSyncView.vue';
 
 const routes = [
   {
@@ -52,14 +54,19 @@ const routes = [
     component: PicturesView
   },
   {
-    path: '/users',
-    name: 'users',
-    component: UsersView
-  },
-  {
     path: '/siteusers',
     name: 'siteusers',
     component: SiteUsersView
+  },
+  {
+    path: '/siteplaylists',
+    name: 'siteplaylists',
+    component: SitePlaylistsView
+  },
+  {
+    path: '/songeditor',
+    name: 'songeditor',
+    component: SongEditorView
   },
   {
     path: '/publicsettings',
@@ -72,14 +79,24 @@ const routes = [
     component: StatsView
   },
   {
-    path: '/auth',
-    name: 'auth',
-    component: AuthView
+    path: '/sync',
+    name: 'sync',
+    component: SyncView
   },
   {
-    path: '/callback', // Маршрут для обработки callback
-    name: 'callback',
-    component: CallbackView
+    path: '/tariffs',
+    name: 'tariffs',
+    component: TariffsView
+  },
+  {
+    path: '/promotions',
+    name: 'promotions',
+    component: PromotionsView
+  },
+  {
+    path: '/sponsrsync',
+    name: 'sponsrsync',
+    component: SponsrSyncView
   },
   {
     path: '/player/:id',
@@ -91,21 +108,6 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes
-});
-
-// Обработчик перед каждым переходом
-router.beforeEach(async (to, from, next) => {
-  if (to.path === '/callback') {
-    try {
-      await AuthService.signinCallback(); // Обрабатываем callback
-      next('/');
-    } catch (error) {
-      console.error('Callback processing error:', error);
-      next('/auth');
-    }
-  } else {
-    next();
-  }
 });
 
 export default router;

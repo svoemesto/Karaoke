@@ -11,8 +11,8 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseBody
 
-// Админка пользователей ПУБЛИЧНОГО САЙТА (tbl_site_users) — не путать с UsersController (tbl_users,
-// админские логины webvue3). Ключевое отличие от всех остальных ручных CRUD-контроллеров в проекте:
+// Админка пользователей ПУБЛИЧНОГО САЙТА (tbl_site_users). Ключевое отличие от всех остальных ручных
+// CRUD-контроллеров в проекте:
 // параметр target выбирается явно клиентом (webvue3), а не берётся из compile-time WORKING_DATABASE —
 // реальные посетители сайта регистрируются на боевой БД сервера, а не в локальной dev-БД, поэтому
 // админке нужно уметь смотреть и туда, и туда.
@@ -76,12 +76,22 @@ class SiteUsersController {
         // Независимый флаг "вечного" премиума — делает пользователя премиумным, даже если isPremium
         // не выставлен (например, автоматическая Sponsr-сверка сбросит isPremium в будущем).
         @RequestParam(required = false) isPermanentPremium: Boolean?,
+        // Роль "редактор" — доступ к онлайн-редактору разметки (/account/editor) на публичном сайте.
+        @RequestParam(required = false) isEditor: Boolean?,
+        // Персональные лимиты (0 = дефолт). Перекрывают дефолты в PublicPlaylistController.
+        @RequestParam(required = false) maxFavorites: Int?,
+        @RequestParam(required = false) maxPlaylists: Int?,
+        @RequestParam(required = false) maxPlaylistItems: Int?,
     ): Long = withDb(target) { db ->
         SiteUser.getSiteUserById(id, db, KSS_APP, SAC_APP)?.let { user ->
             displayName?.let { user.displayName = it }
             sponsrUid?.let { user.sponsrUid = it }
             isPremium?.let { user.isPremium = it }
             isPermanentPremium?.let { user.isPermanentPremium = it }
+            isEditor?.let { user.isEditor = it }
+            maxFavorites?.let { user.maxFavorites = it }
+            maxPlaylists?.let { user.maxPlaylists = it }
+            maxPlaylistItems?.let { user.maxPlaylistItems = it }
             user.save()
             user.id
         } ?: 0L

@@ -4,17 +4,26 @@ class PlayerUnavailableError extends Error {}
 
 export default class KaraokePlayer {
   // Usage modes:
-  //   new KaraokePlayer(container, songId, apiBase)          — online, loads via /api
+  //   new KaraokePlayer(container, songId, apiBase)                      — online, loads via /api
+  //   new KaraokePlayer(container, { songId, assignmentId }, apiBase)    — online, but with the
+  //     given voice's markers overridden by that assignment's UNAPPROVED draft (song-editor review
+  //     preview — see /api/song/{id}/playerdata's assignmentId param on the backend)
   //   new KaraokePlayer(container, { smkaraoke: File|Blob }) — from local .smkaraoke file
   //   new KaraokePlayer(container, { smkaraokeUrl: string }) — download .smkaraoke from URL
   constructor(container, songIdOrOptions, apiBase) {
     this.container = container
-    if (songIdOrOptions !== null && typeof songIdOrOptions === 'object') {
+    if (songIdOrOptions !== null && typeof songIdOrOptions === 'object' && ('smkaraoke' in songIdOrOptions || 'smkaraokeUrl' in songIdOrOptions)) {
       this._mode = songIdOrOptions.smkaraoke ? 'blob' : 'url-smkaraoke'
       this._smkaraokeSource = songIdOrOptions.smkaraoke ?? songIdOrOptions.smkaraokeUrl
+    } else if (songIdOrOptions !== null && typeof songIdOrOptions === 'object') {
+      this._mode = 'api'
+      this.songId = songIdOrOptions.songId
+      this.assignmentId = songIdOrOptions.assignmentId ?? null
+      this.apiBase = apiBase
     } else {
       this._mode = 'api'
       this.songId = songIdOrOptions
+      this.assignmentId = null
       this.apiBase = apiBase
     }
     this._smkaraokeObjectUrls = []
@@ -31,6 +40,10 @@ export default class KaraokePlayer {
     this.isPlaying = false
     this.duration = 0
     this._volumeAnchored = false   // "якорь": при true все треки идут к одной громкости
+    // Уровни громкости дорожек (%). Персистентны на весь инстанс, чтобы при смене песни в плейлисте
+    // (playSong) уровни ползунков «Музыка»/«Голос» и якорь сцепки наследовались следующим треком.
+    this._accVol = 100
+    this._vocVol = 0
 
     // Pre-roll: splash (5s) + silent offset before first syllable
     this._splashDur = 5.0
@@ -61,6 +74,10 @@ export default class KaraokePlayer {
     this._lastWsSync = 0
     this._endedHandled = false
 
+    // Необязательный внешний колбэк, вызывается один раз при естественном окончании трека
+    // (из _onEnded). Используется страницей плейлиста для авто-перехода к следующей песне.
+    this.onTrackEnded = null
+
     // Display mode: 'embed' (small box on the host page, e.g. the song page's player card) vs
     // 'page' (this player's own container fills the whole viewport it lives in — that's already
     // true by default for a top-level /player/:id route AND for a same-origin iframe once its own
@@ -87,7 +104,8 @@ export default class KaraokePlayer {
 
     try {
       if (this._mode === 'api') {
-        const resp = await fetch(`${this.apiBase}/song/${this.songId}/playerdata`)
+        const qs = this.assignmentId ? `?assignmentId=${encodeURIComponent(this.assignmentId)}` : ''
+        const resp = await fetch(`${this.apiBase}/song/${this.songId}/playerdata${qs}`)
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
         this.data = await resp.json()
       } else {
@@ -532,12 +550,12 @@ export default class KaraokePlayer {
           <div style="flex:1;min-width:0">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
               <span style="color:#888;font-size:11px;width:44px;text-align:right">Музыка</span>
-              <input id="kp-vol-acc" type="range" min="0" max="100" value="100" style="width:80px;cursor:pointer;accent-color:#08f">
+              <input id="kp-vol-acc" type="range" min="0" max="100" value="${this._accVol}" style="width:80px;cursor:pointer;accent-color:#08f">
               <div id="kp-ws-acc" style="flex:1;height:40px;min-width:0"></div>
             </div>
             <div style="display:flex;align-items:center;gap:8px">
               <span style="color:#888;font-size:11px;width:44px;text-align:right">Голос</span>
-              <input id="kp-vol-voc" type="range" min="0" max="100" value="0" style="width:80px;cursor:pointer;accent-color:#f80">
+              <input id="kp-vol-voc" type="range" min="0" max="100" value="${this._vocVol}" style="width:80px;cursor:pointer;accent-color:#f80">
               <div id="kp-ws-voc" style="flex:1;height:40px;min-width:0"></div>
             </div>
           </div>
@@ -605,10 +623,12 @@ export default class KaraokePlayer {
     const vocSlider = this.container.querySelector('#kp-vol-voc')
 
     accSlider.addEventListener('input', e => {
+      this._accVol = Number(e.target.value)
       if (this.accGain) this.accGain.gain.value = e.target.value / 100
       if (this._volumeAnchored) this._syncVolumeSliders(e.target.value, accSlider)
     })
     vocSlider.addEventListener('input', e => {
+      this._vocVol = Number(e.target.value)
       if (this.vocGain) this.vocGain.gain.value = e.target.value / 100
       if (this._volumeAnchored) this._syncVolumeSliders(e.target.value, vocSlider)
     })
@@ -633,9 +653,14 @@ export default class KaraokePlayer {
     for (const s of sliders) {
       if (s.el === exceptEl) continue
       s.el.value = value
+      if (s.el.id === 'kp-vol-acc') this._accVol = Number(value)
+      else if (s.el.id === 'kp-vol-voc') this._vocVol = Number(value)
       const gain = s.gain()
       if (gain) gain.gain.value = value / 100
     }
+    // exceptEl (тот, что двигали) — тоже фиксируем в персистентном уровне.
+    if (exceptEl && exceptEl.id === 'kp-vol-acc') this._accVol = Number(value)
+    else if (exceptEl && exceptEl.id === 'kp-vol-voc') this._vocVol = Number(value)
   }
 
   // Chain-link icon (like the width/height "constrain proportions" toggle in image editors):
@@ -807,7 +832,9 @@ export default class KaraokePlayer {
     this.audioCtx = new AudioContext()
     this.accGain = this.audioCtx.createGain()
     this.vocGain = this.audioCtx.createGain()
-    this.vocGain.gain.value = 0
+    // Применяем персистентные уровни (наследуются при смене трека в плейлисте).
+    this.accGain.gain.value = this._accVol / 100
+    this.vocGain.gain.value = this._vocVol / 100
     this.accGain.connect(this.audioCtx.destination)
     this.vocGain.connect(this.audioCtx.destination)
 
@@ -1044,6 +1071,55 @@ export default class KaraokePlayer {
     this._endFadeStartedAt = Date.now()   // start logo→splash idle transition
     const btn = this.container.querySelector('#kp-play')
     if (btn) btn.textContent = '▶'
+    if (this.onTrackEnded) { try { this.onTrackEnded() } catch (e) { console.error('onTrackEnded error:', e) } }
+  }
+
+  // --- Публичное управление (для страницы плейлиста) ------------------------------------------
+  play() { this._play() }
+  pause() { this._pause() }
+  togglePlay() { this._togglePlay() }
+
+  // Сменить проигрываемую песню в api-режиме, переиспользуя инстанс (без destroy). Зеркалит
+  // teardown/сброс из _loadNewFile, но остаётся в 'api'. autoplay=true — играть сразу по готовности.
+  async playSong(songId, autoplay = true) {
+    if (this.animId) { cancelAnimationFrame(this.animId); this.animId = null }
+    this._endedHandled = true
+    this._stopSources()
+    if (this.audioCtx) { await this.audioCtx.close(); this.audioCtx = null }
+    if (this.wsAcc) { this.wsAcc.destroy(); this.wsAcc = null }
+    if (this.wsVoc) { this.wsVoc.destroy(); this.wsVoc = null }
+    window.removeEventListener('resize', this._resizeHandler)
+    document.removeEventListener('fullscreenchange', this._fsHandler)
+    document.removeEventListener('click', this._menuOutsideClickHandler)
+    for (const url of this._smkaraokeObjectUrls) URL.revokeObjectURL(url)
+    this._smkaraokeObjectUrls = []
+
+    this._mode = 'api'
+    this.songId = songId
+    this.assignmentId = null
+
+    this.accBuffer = null; this.vocBuffer = null
+    this.accSource = null; this.vocSource = null
+    this.accGain = null; this.vocGain = null
+    this.startedAt = 0; this.pausedAt = 0
+    this.isPlaying = false; this.duration = 0
+    this.data = null; this.lines = []; this.voiceLines = []
+    this._ready = false
+    this._loadProgress = null
+    this._endedHandled = false
+    this._cachedCanvasW = null; this._cachedVoiceXStart = null
+    this._lastWsSync = 0
+    this.flashTimes = []
+    this._isPrerolling = false; this._dtPaused = 0
+    this._silentOffset = 0; this._preroll = this._splashDur
+    this._startFadeStartedAt = null
+    this._endFadeStartedAt = null
+    // _volumeAnchored / _accVol / _vocVol НЕ сбрасываем — уровни громкости и якорь наследуются
+    // следующим треком плейлиста (по требованию).
+    clearTimeout(this._prerollTimeout); this._prerollTimeout = null
+
+    await this.init()
+    if (autoplay && this._ready) this._play()
   }
 
   _seekTo(time) {

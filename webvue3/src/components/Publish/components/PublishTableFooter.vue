@@ -47,11 +47,24 @@ import {stringDDMMYYaddDays} from "../../../lib/utils";
 
 export default {
   name: "PublishTableFooter",
-  data() {
-    return {
-      publishDateFrom: '',
-      publishDateTo: '',
-      publishDays: 90
+  async beforeMount() {
+    this.$store.dispatch('setPublishFilterDateFrom', { value: await this.$store.getters.getWebvueProp('publishFilterDateFrom', '') });
+    this.$store.dispatch('setPublishFilterDateTo', { value: await this.$store.getters.getWebvueProp('publishFilterDateTo', '') });
+    this.$store.dispatch('setPublishFilterDays', { value: await this.$store.getters.getWebvueProp('publishFilterDays', 90) });
+    if (this.publishDateFrom && this.publishDateTo) this.clickReload();
+  },
+  computed: {
+    publishDateFrom: {
+      get() { return this.$store.getters.getPublishFilterDateFrom; },
+      set(value) { this.$store.dispatch('setPublishFilterDateFrom', { value }); }
+    },
+    publishDateTo: {
+      get() { return this.$store.getters.getPublishFilterDateTo; },
+      set(value) { this.$store.dispatch('setPublishFilterDateTo', { value }); }
+    },
+    publishDays: {
+      get() { return this.$store.getters.getPublishFilterDays; },
+      set(value) { this.$store.dispatch('setPublishFilterDays', { value }); }
     }
   },
   methods: {

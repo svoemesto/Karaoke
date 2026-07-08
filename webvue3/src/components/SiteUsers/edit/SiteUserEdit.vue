@@ -29,6 +29,36 @@
             <span class="sue-hint">(если включено — премиум действует всегда, независимо от чекбокса выше)</span>
           </label>
         </div>
+        <div class="label-and-input" v-if="siteUserCurrent.sponsrPremiumUntil">
+          <div class="label">Премиум по Sponsr:</div>
+          <div class="sue-static">до {{ siteUserCurrent.sponsrPremiumUntil }} <span class="sue-hint">(Sponsr-синхронизация)</span></div>
+        </div>
+        <div class="label-and-input" v-if="siteUserCurrent.sitePremiumUntil">
+          <div class="label">Подписка на сайт:</div>
+          <div class="sue-static">до {{ siteUserCurrent.sitePremiumUntil }} <span class="sue-hint">(оплаченная подписка на сайте)</span></div>
+        </div>
+        <div class="label-and-input">
+          <div class="label">Редактор караоке:</div>
+          <label class="sue-checkbox-label">
+            <input type="checkbox" v-model="siteUserCurrent.editor">
+            <span class="sue-hint">(доступ к онлайн-редактору разметки на публичном сайте)</span>
+          </label>
+        </div>
+        <div class="label-and-input">
+          <div class="label">Лимит избранного:</div>
+          <input class="input-field sue-num" type="number" min="0" v-model.number="siteUserCurrent.maxFavorites">
+          <span class="sue-hint">0 = дефолт (100)</span>
+        </div>
+        <div class="label-and-input">
+          <div class="label">Лимит плейлистов:</div>
+          <input class="input-field sue-num" type="number" min="0" v-model.number="siteUserCurrent.maxPlaylists">
+          <span class="sue-hint">0 = дефолт (50)</span>
+        </div>
+        <div class="label-and-input">
+          <div class="label">Лимит песен в плейлисте:</div>
+          <input class="input-field sue-num" type="number" min="0" v-model.number="siteUserCurrent.maxPlaylistItems">
+          <span class="sue-hint">0 = дефолт (500)</span>
+        </div>
         <div class="label-and-input">
           <div class="label">Статус:</div>
           <div class="sue-static" :style="{ color: siteUserCurrent.banned ? 'darkred' : 'darkgreen' }">
@@ -164,6 +194,7 @@ export default {
 .label-and-input { display: flex; align-items: center; margin-bottom: 4px; }
 .label { font-size: small; text-align: right; width: 130px; padding-right: 6px; }
 .input-field { padding: 2px 5px; width: 300px; font-size: small; border-radius: 5px; border: thin solid black; }
+.sue-num { width: 90px; margin-right: 8px; }
 .sue-static { font-size: small; }
 .sue-hint { color: gray; font-size: x-small; }
 .sue-checkbox-label { display: flex; align-items: center; gap: 6px; font-size: small; cursor: pointer; }

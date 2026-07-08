@@ -5,6 +5,9 @@ import com.svoemesto.karaokeapp.KaraokeFileType
 import com.svoemesto.karaokeapp.model.EventType
 import com.svoemesto.karaokeapp.model.PlayerAction
 import com.svoemesto.karaokeapp.model.Settings
+import com.svoemesto.karaokeapp.model.SongAssignment
+import com.svoemesto.karaokeapp.model.SongAssignmentDraft
+import com.svoemesto.karaokeapp.model.Subscription
 import com.svoemesto.karaokeapp.rightFileName
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.StorageApiClient
@@ -13,6 +16,7 @@ import com.svoemesto.karaokeweb.services.PlayerGestureUnlockService
 import com.svoemesto.karaokeweb.services.SiteUserResolver
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
+import kotlinx.serialization.json.Json
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
@@ -55,6 +59,7 @@ class PublicPlayerController(
     @Value("\${storage.proxy-url}") private val minioProxyUrl: String,
 ) {
     private val bucket = "karaoke"
+    private val lenientJson = Json { ignoreUnknownKeys = true }
 
     private fun authorized(id: Long, token: String?): Boolean =
         token != null && gestureUnlockService.validateToken(token, id)
@@ -63,6 +68,13 @@ class PublicPlayerController(
     // премиума посреди 30-минутного TTL токена плеера подействовали немедленно.
     private fun isPremiumUser(request: HttpServletRequest): Boolean =
         siteUserResolver.resolve(request)?.isEffectivePremium == true
+
+    // Оформлена ли у текущего пользователя бессрочная подписка именно на эту песню (scope=SONG).
+    // Отдельная ветка доступа от isPremiumUser — подписка на одну песню не даёт isEffectivePremium.
+    private fun isSubscribedToSong(request: HttpServletRequest, id: Long): Boolean {
+        val userId = siteUserResolver.resolve(request)?.id ?: return false
+        return Subscription.isSubscribedToSong(userId, id, WORKING_DATABASE, storageService, storageApiClient)
+    }
 
     private fun stemsReady(settings: Settings): Boolean =
         settings.idStatus >= 3 &&
@@ -80,7 +92,8 @@ class PublicPlayerController(
         val settings = loadSettings(id) ?: return ResponseEntity.notFound().build()
         val ready = stemsReady(settings)
         val premium = isPremiumUser(request)
-        val canWatch = ready && (settings.onAir || premium)
+        val subscribed = !premium && isSubscribedToSong(request, id)
+        val canWatch = ready && (settings.onAir || premium || subscribed)
         val canExport = canWatch && premium
         val token = if (canWatch) gestureUnlockService.issueDirectAccessToken(id) else null
         if (canWatch) {
@@ -127,15 +140,17 @@ class PublicPlayerController(
     @PostMapping("/readiness")
     fun readiness(@RequestParam ids: String, request: HttpServletRequest): ResponseEntity<Map<String, Any?>> {
         val premium = isPremiumUser(request)
-        val items = ids.split(",")
-            .mapNotNull { it.trim().toLongOrNull() }
-            .distinct()
-            .associate { id ->
-                val settings = loadSettings(id)
-                val contentReady = settings != null && stemsReady(settings)
-                val watchable = contentReady && (settings!!.onAir || premium)
-                id.toString() to mapOf("ready" to watchable, "watchable" to watchable, "contentReady" to contentReady)
-            }
+        val songIds = ids.split(",").mapNotNull { it.trim().toLongOrNull() }.distinct()
+        // Батч-проверка подписок на песню одним запросом (не премиуму — премиум уже видит всё).
+        val userId = if (premium) 0L else (siteUserResolver.resolve(request)?.id ?: 0L)
+        val subscribedIds = if (premium) emptySet()
+            else Subscription.subscribedSongIds(userId, songIds, WORKING_DATABASE, storageService, storageApiClient)
+        val items = songIds.associate { id ->
+            val settings = loadSettings(id)
+            val contentReady = settings != null && stemsReady(settings)
+            val watchable = contentReady && (settings!!.onAir || premium || id in subscribedIds)
+            id.toString() to mapOf("ready" to watchable, "watchable" to watchable, "contentReady" to contentReady)
+        }
         return ResponseEntity.ok(mapOf("items" to items))
     }
 
@@ -217,6 +232,21 @@ class PublicPlayerController(
         if (!authorized(id, token)) return ResponseEntity.notFound().build()
         val settings = loadSettings(id) ?: return ResponseEntity.notFound().build()
 
+        // Если токен был выдан онлайн-редактором для конкретного задания (issueDirectAccessTokenForAssignment),
+        // подставляем НЕОДОБРЕННЫЙ черновик этого задания целиком вместо опубликованных маркеров —
+        // превью "проиграть, что я уже сделал" в самом редакторе (см. PublicSongEditorController.task).
+        // Задание покрывает всю песню — черновик несёт ВСЕ голоса разом, отдельный voice не нужен.
+        var markersList = settings.sourceMarkersList
+        gestureUnlockService.assignmentIdForToken(token, id)?.let { assignmentId ->
+            val assignment = SongAssignment.getById(assignmentId, WORKING_DATABASE, storageService, storageApiClient)
+                ?.takeIf { it.songId == id }
+            val draft = assignment?.let { SongAssignmentDraft.getByAssignment(it.id, WORKING_DATABASE, storageService, storageApiClient) }
+            if (draft != null) {
+                val draftMarkersPerVoice = draft.editedMarkersPerVoice(lenientJson)
+                if (draftMarkersPerVoice.isNotEmpty()) markersList = draftMarkersPerVoice
+            }
+        }
+
         val tokenSuffix = "?token=${token}"
         val hasAccompaniment = existsInMinIO(stemStorageKey(settings, KaraokeFileType.MP3_ACCOMPANIMENT))
         val hasVocals = existsInMinIO(stemStorageKey(settings, KaraokeFileType.MP3_VOCAL))
@@ -232,13 +262,13 @@ class PublicPlayerController(
             "track" to settings.track.takeIf { it > 0 },
             "key" to settings.key.takeIf { it.isNotBlank() },
             "bpm" to settings.bpm,
-            "markers" to settings.sourceMarkersList,
+            "markers" to markersList,
             "audioAccompanimentUrl" to if (hasAccompaniment) "/api/public/player/$id/fileminus.mp3$tokenSuffix" else null,
             "audioVocalsUrl" to if (hasVocals) "/api/public/player/$id/filevoice.mp3$tokenSuffix" else null,
             "audioBassUrl" to if (hasBass) "/api/public/player/$id/filebass.mp3$tokenSuffix" else null,
             "audioDrumsUrl" to if (hasDrums) "/api/public/player/$id/filedrums.mp3$tokenSuffix" else null,
-            "albumImageUrl" to settings.pictureAlbum?.storageFileName?.let { "/api/public/picture?file=$it" },
-            "artistImageUrl" to settings.pictureAuthor?.storageFileName?.let { "/api/public/picture?file=$it" },
+            "albumImageUrl" to settings.pictureAlbum?.storageFileName?.let { "/api/public/picture?file=${java.net.URLEncoder.encode(it, java.nio.charset.StandardCharsets.UTF_8)}" },
+            "artistImageUrl" to settings.pictureAuthor?.storageFileName?.let { "/api/public/picture?file=${java.net.URLEncoder.encode(it, java.nio.charset.StandardCharsets.UTF_8)}" },
             "exportBaseName" to "${settings.fileName} [id-$id]".rightFileName(),
             // Живая проверка, не завязанная на TTL токена плеера — открывает/закрывает пункт меню
             // "Экспорт аудио..." на фронте. Сама выдача байт стемов (fileminus.mp3 и т.п.) этим

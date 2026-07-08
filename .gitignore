@@ -5,6 +5,7 @@
 *.obj
 *.out
 build/
+/.build/
 target/
 dist/
 

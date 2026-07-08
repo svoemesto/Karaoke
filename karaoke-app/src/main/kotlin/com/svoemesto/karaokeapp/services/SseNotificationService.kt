@@ -3,7 +3,9 @@ package com.svoemesto.karaokeapp.services
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.svoemesto.karaokeapp.model.SseNotification
+import com.svoemesto.karaokeapp.model.SseNotificationType
 import jakarta.annotation.PreDestroy
+import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter
 import java.io.Serializable
@@ -18,20 +20,43 @@ class Notification<out T>(
 data class UserKey(
     val userId: Long,
     val browserTabId: String)
+
+// Контекст id вкладки браузера, инициировавшей текущий HTTP-запрос (см. TabIdFilter). Заполняется
+// фильтром на входе запроса и обязательно очищается в finally - иначе на переиспользуемом потоке
+// пула значение "протечёт" в следующий, не связанный с этой вкладкой запрос.
+object TabIdContext {
+    private val tl = ThreadLocal<String?>()
+    fun get(): String? = tl.get()
+    fun set(tabId: String?) { tl.set(tabId) }
+    fun clear() { tl.remove() }
+}
+
 @Service
 class SseNotificationService(private val mapper: ObjectMapper) {
 
     private val maxEmittersPerTab = 1
     private var emitters: ConcurrentHashMap<UserKey, MutableList<SseEmitter>> = ConcurrentHashMap()
 
+    // MESSAGE/ERROR, сгенерированные на потоке HTTP-запроса (ответ на конкретное действие пользователя),
+    // доставляются адресно - только вкладке-инициатору (см. TabIdContext). Остальные типы (recordChange,
+    // log, processWorkerState и т.п.), а также MESSAGE/ERROR без известного tabId (фоновый воркер) -
+    // широковещательно, всем вкладкам, как и раньше.
+    private val addressedTypes = setOf(SseNotificationType.MESSAGE, SseNotificationType.ERROR)
+
     fun send(data: SseNotification) {
         send(1L, data)
     }
 
     private fun send(userId: Long, data: SseNotification) {
-        val userKeys = emitters
-            .filter { it.key.userId == userId }
-            .keys
+        val addressedTabId = TabIdContext.get()
+        val targeted = data.type in addressedTypes && !addressedTabId.isNullOrBlank()
+
+        val userKeys: Collection<UserKey> = if (targeted) {
+            val key = UserKey(userId, addressedTabId!!)
+            if (emitters.containsKey(key)) listOf(key) else emptyList()
+        } else {
+            emitters.keys.filter { it.userId == userId }
+        }
 
         if (userKeys.isEmpty()) {
             return
@@ -46,8 +71,26 @@ class SseNotificationService(private val mapper: ObjectMapper) {
             .data(mapper.writeValueAsString(notification))
             .name("user")
 
+        sendEventToKeys(userKeys, sseEvent)
+    }
+
+    // Heartbeat, не зависящий от KaraokeProcessWorker - раньше единственным "пингом" было сообщение
+    // DUMMY, отправляемое только из цикла воркера, пока очередь запущена; при остановленном воркере
+    // соединение переставало получать трафик и рвалось прокси/клиентом по таймауту простоя. Здесь -
+    // независимый Spring-планировщик (@EnableScheduling в KaraokeAppApplication), шлющий SSE-comment
+    // (не долетает до фронтового addEventListener('user', ...), лишних веток обработки не создаёт).
+    @Scheduled(fixedRate = 15_000)
+    fun heartbeat() {
+        val allKeys = emitters.keys.toList()
+        if (allKeys.isEmpty()) {
+            return
+        }
+        sendEventToKeys(allKeys, SseEmitter.event().comment("ping"))
+    }
+
+    private fun sendEventToKeys(userKeys: Collection<UserKey>, sseEvent: SseEmitter.SseEventBuilder) {
         userKeys.forEach { userKey ->
-            val userEmitters = emitters[userKey]!!
+            val userEmitters = emitters[userKey] ?: return@forEach
             synchronized(userEmitters) {
                 val staleEmitters = ArrayList<SseEmitter>()
                 userEmitters.forEach { emitter ->
@@ -66,23 +109,19 @@ class SseNotificationService(private val mapper: ObjectMapper) {
                     }
                 }
                 if (staleEmitters.isNotEmpty()) {
-//                    val before = userEmitters.size
                     staleEmitters.forEach { stale ->
                         userEmitters.removeIf { it === stale }
-                        // если больше не осталось эмиттеров по данному ключу, то удалим ключ из мапы
-                        if (userEmitters.isEmpty()) {
-                            emitters.remove(userKey)
-                        }
+                    }
+                    // если больше не осталось эмиттеров по данному ключу, то удалим ключ из мапы
+                    if (userEmitters.isEmpty()) {
+                        emitters.remove(userKey)
                     }
                 }
             }
         }
     }
 
-    fun subscribe(): SseEmitter {
-        return subscribe(1L, "tabId")
-    }
-    private fun subscribe(userId: Long, browserTabId: String): SseEmitter {
+    fun subscribe(userId: Long, browserTabId: String): SseEmitter {
         val emitter = createEmitter()
         val key = UserKey(userId, browserTabId)
 

@@ -61,7 +61,7 @@ class Author(
             ignoreUseInList = true
         ).firstOrNull()
         val (pictureId, picturePreviewUrl) = picture?.let {
-            Pair(it.id, "/api/picture/file?file=${it.storageFileNamePreview}")
+            Pair(it.id, "/api/picture/file?file=${java.net.URLEncoder.encode(it.storageFileNamePreview, java.nio.charset.StandardCharsets.UTF_8)}")
         } ?: Pair(0L, "")
         return AuthorDTO(
                 id = id,

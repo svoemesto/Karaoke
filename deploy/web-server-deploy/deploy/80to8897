@@ -78,6 +78,15 @@ server {
     proxy_read_timeout 15;
     proxy_send_timeout 15;
   }
+  # Тот же обход MTU black-hole, что и /smartcaptcha/ выше, но для ЮKassa API (создание платежа,
+  # проверка статуса на вебхуке — PaymentService в karaoke-web). YOOKASSA_API_URL=http://minio-proxy/yookassa.
+  location /yookassa/ {
+    proxy_ssl_server_name on;
+    proxy_pass https://api.yookassa.ru/;
+    proxy_set_header Host api.yookassa.ru;
+    proxy_read_timeout 15;
+    proxy_send_timeout 15;
+  }
   location / {
     return 301 https://sm-karaoke.ru$request_uri;
   }

@@ -231,6 +231,22 @@ sealed `AlbumSearchResult`: `Success`/`VpnBlocked`/`AuthExpired`/`BotDetected`/`
 `1` найден новый (обновляется `requestNewSongLastSuccessAuthor`). **Детали диагностики** → memory
 `project_album_search_diagnostics.md`.
 
+**Автоматизация публикации в Telegram-канал (Фаза 1 — отлов ссылки, `services/TelegramApiClient.kt`/
+`TelegramUpdatesConsumer.kt`).** Раньше пользователь вручную создавал отложенный пост в Telegram (метка `-`
+в `id_telegram_*`) и вручную вставлял ссылку после выхода. Теперь фоновый демон-поток (паттерн — как
+`KaraokeProcessWorker`, но не блокирует HTTP/event-поток; автозапуск на `ApplicationReadyEvent`, флаг
+`KaraokeProperties.telegramPollingEnabled`) long-polling'ом `getUpdates` ловит вышедший `channel_post` канала
+и сам пишет `message_id` в песню через штатный `Settings.saveToDb()`. **Сопоставление поста с песней/версией —
+без отдельного маркера**: пост уже содержит `linkSM` (`https://sm-karaoke.ru/song?id=<id>`) и явный разделитель
+версии — `Settings.parseTelegramPostSongId`/`parseTelegramPostSongVersion` (companion `Settings.kt`) извлекают
+их напрямую. Работа из России: Telegram периодически недоступен без VPN — `TelegramApiClient` реализует
+авто-fallback «сначала напрямую → при ошибке через HTTP-прокси (`telegramProxyUrl`) → периодическая попытка
+вернуться на прямой путь»; прокси — отдельный docker-сервис `karaoke-telegram-proxy` (`deploy/docker-compose-
+telegram-proxy.yml`, `xray-core` с VLESS-outbound), конфиг с реальным VLESS вне git —
+`/sm-karaoke/system/telegram-proxy/config.json`. Фаза 2 (постинг видео в момент эфира, снимает лимит Telegram
+в 100 отложенных публикаций) — спроектирована, не реализована. **Детали** → memory
+`project_telegram_publish_automation.md`.
+
 **Frontend ↔ backend wiring.** `webvue3` — Vuex-modules-per-entity SPA (по `store.js` на домен: Songs, Authors,
 Pictures, Processes, Properties, Publish, Stats, Sync, SongEditor…) поверх REST `karaoke-app`
 (`controllers/ApiController.kt` ~3400 строк — по маршруту на поле/действие; `MainController.kt` — страничные/

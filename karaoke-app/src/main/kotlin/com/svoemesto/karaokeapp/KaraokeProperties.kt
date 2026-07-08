@@ -721,4 +721,19 @@ val listKaraokeProperties = listOf(
     KaraokeProperty(key = "cpuLimitPercentSheetsage2", defaultValue = 100L, description = "Лимит CPU (%) для SHEETSAGE2"),
     KaraokeProperty(key = "cpuLimitPercentFf720Kar", defaultValue = 100L, description = "Лимит CPU (%) для FF_720_KAR"),
     KaraokeProperty(key = "cpuLimitPercentFf720Lyr", defaultValue = 100L, description = "Лимит CPU (%) для FF_720_LYR"),
+
+    // Автоматизация публикации в Telegram-канал (см. TelegramApiClient/TelegramUpdatesConsumer).
+    // Фаза 1 — автоотлов ссылки на вышедший (отложенный, созданный вручную) пост через long-polling
+    // getUpdates. Работа из России: Telegram периодически недоступен без VPN — telegramProxyUrl задаёт
+    // HTTP-прокси (VLESS/xray) для авто-fallback "напрямую → прокси" (см. CLAUDE.md/архив).
+    KaraokeProperty(key = "telegramBotToken", defaultValue = "", description = "Telegram: токен бота-администратора канала"),
+    KaraokeProperty(key = "telegramChannelUsername", defaultValue = "svoemestokaraoke", description = "Telegram: username канала (без @)"),
+    KaraokeProperty(key = "telegramChannelChatId", defaultValue = "", description = "Telegram: числовой chat_id канала (-100...)"),
+    KaraokeProperty(key = "telegramBotApiBaseUrl", defaultValue = "https://api.telegram.org", description = "Telegram: базовый URL Bot API (Фаза 2 — локальный Local Bot API server, напр. http://localhost:8081)"),
+    KaraokeProperty(key = "telegramUpdatesOffset", defaultValue = 0L, description = "Telegram: курсор (offset) long-polling getUpdates — не редактировать вручную"),
+    KaraokeProperty(key = "telegramPollingEnabled", defaultValue = false, description = "Telegram: включить фоновый отлов вышедших постов (getUpdates)"),
+    KaraokeProperty(key = "telegramFallbackMatchWindowMin", defaultValue = 10L, description = "Telegram: окно (мин) для проверки времени поста относительно графика эфира"),
+    KaraokeProperty(key = "telegramProxyUrl", defaultValue = "", description = "Telegram: HTTP-прокси (VLESS/xray) для доступа при недоступности напрямую, напр. http://telegram-xray:1082. Пусто = только напрямую"),
+    KaraokeProperty(key = "telegramDirectTimeoutMs", defaultValue = 10_000L, description = "Telegram: таймаут прямого запроса перед переключением на прокси"),
+    KaraokeProperty(key = "telegramProxyModeTtlMs", defaultValue = 60_000L, description = "Telegram: как часто перепроверять восстановление прямого доступа, пока используется прокси"),
 )

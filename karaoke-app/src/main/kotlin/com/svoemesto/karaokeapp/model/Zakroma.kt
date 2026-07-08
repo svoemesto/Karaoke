@@ -61,6 +61,7 @@ class Zakroma(val database: KaraokeConnection): Serializable, Comparable<Zakroma
                         zakromaAlbumSettings.onAir = settings.onAir
                         zakromaAlbumSettings.exclusive = settings.exclusive
                         zakromaAlbumSettings.datePublish = settings.datePublish
+                        zakromaAlbumSettings.songSubscriptionAvailable = settings.idTariff >= 0
                         zakromaAlbumSettings.track = settings.track
                         zakromaAlbumSettings.songName = settings.songName.censored()
                         zakromaAlbumSettings.linkBoosty = settings.linkBoostyTxt
@@ -136,6 +137,7 @@ class ZakromaAlbumSettings: Serializable, Comparable<ZakromaAlbumSettings> {
     var onAir: Boolean = false
     var exclusive: Boolean = false
     var datePublish: String = ""
+    var songSubscriptionAvailable: Boolean = false
     override fun compareTo(other: ZakromaAlbumSettings): Int {
         val compTrack = track.compareTo(other.track)
         if (compTrack == 0) {

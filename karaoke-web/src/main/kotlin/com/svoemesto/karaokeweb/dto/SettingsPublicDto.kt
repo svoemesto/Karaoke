@@ -58,8 +58,9 @@ data class SettingsPublicDto(
     val idVkChordsOID: String,
     val idVkChordsID: String,
     val contentRemoved: Boolean,
-    // Доступна ли отдельная подписка на эту песню (id_tariff>0 — админ отметил тариф в карточке
-    // песни, webvue3). Без is-префикса — иначе Jackson съел бы его в JSON-ключе (инвариант проекта).
+    // Доступна ли отдельная подписка на эту песню (id_tariff: 0 по умолчанию = разрешено тарифом
+    // по умолчанию; -1 = автор запретил в карточке песни, webvue3). Без is-префикса — иначе Jackson
+    // съел бы его в JSON-ключе (инвариант проекта).
     val songSubscriptionAvailable: Boolean,
 ) {
     companion object {
@@ -126,7 +127,7 @@ data class SettingsPublicDto(
             idVkChordsOID = s.idVkChordsOID,
             idVkChordsID = s.idVkChordsID,
             contentRemoved = s.tags.split(" ").map { it.uppercase() }.contains("SKIP"),
-            songSubscriptionAvailable = s.idTariff > 0,
+            songSubscriptionAvailable = s.idTariff >= 0,
         )
     }
 }

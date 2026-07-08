@@ -6,6 +6,7 @@ import com.svoemesto.karaokeapp.model.Author
 import com.svoemesto.karaokeapp.model.Dictionary
 import com.svoemesto.karaokeapp.model.KaraokeDbTable
 import com.svoemesto.karaokeapp.model.Pictures
+import com.svoemesto.karaokeapp.model.PriceTariff
 import com.svoemesto.karaokeapp.model.RecordDiff
 import com.svoemesto.karaokeapp.model.RecordHash
 import com.svoemesto.karaokeapp.model.Settings
@@ -254,6 +255,18 @@ val SongAssignmentDraftsSyncTarget = GenericKaraokeDbTableSyncTarget(
     rowChunkSize = 25,
 )
 
+
+val PriceTariffsSyncTarget = GenericKaraokeDbTableSyncTarget(
+    key = "pricetariffs",
+    tableName = PriceTariff.TABLE_NAME,
+    displayName = "Тарифы",
+    oneClickDirection = SyncDirection.SERVER_TO_LOCAL,
+    clazz = PriceTariff::class,
+    labelFn = { "id=${it.id} ${it.scope} ${it.name}" },
+    // Лёгкие строки, таблица крошечная — по 500.
+    rowChunkSize = 500,
+)
+
 object SyncRegistry {
     // Размер пачки для операций УДАЛЕНИЯ на удалённом сервере (зеркальное удаление в цели + move-удаление
     // из источника, оба идут как зашифрованный "DELETE ... WHERE id=X" на /changerecords). Payload одной
@@ -273,6 +286,7 @@ object SyncRegistry {
         SongAssignmentsSyncTarget,
         SongAssignmentDraftsSyncTarget,
         EventsSyncTarget,
+        PriceTariffsSyncTarget,
     )
 
     fun byKey(key: String): SyncTarget<*>? = all.find { it.key == key }

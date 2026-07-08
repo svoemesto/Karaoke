@@ -16,6 +16,7 @@ import EditorWorkView from '../views/EditorWorkView.vue'
 import SubscriptionReturnView from '../views/SubscriptionReturnView.vue'
 import PremiumView from '../views/PremiumView.vue'
 import SubscriptionsView from '../views/SubscriptionsView.vue'
+import CartView from '../views/CartView.vue'
 import OfertaView from '../views/OfertaView.vue'
 
 // Быстрая синхронная проверка токена для защищённых маршрутов личного кабинета — сами страницы
@@ -45,6 +46,7 @@ const routes = [
   // зарегистрированных» с кнопками Войти/Регистрация (LoginRequired).
   { path: '/account/playlists', name: 'playlists', component: PlaylistsView },
   { path: '/account/subscriptions', name: 'subscriptions', component: SubscriptionsView, beforeEnter: requireAuth },
+  { path: '/account/cart', name: 'cart', component: CartView, beforeEnter: requireAuth },
   { path: '/account/playlists/:id', name: 'playlist-edit', component: PlaylistEditView },
   // Динамический read-only плейлист автора (все песни автора). Аноним — LoginRequired внутри.
   { path: '/author-playlist', name: 'author-playlist', component: AuthorPlaylistView },
@@ -66,7 +68,13 @@ const routes = [
 
 const router = createRouter({
   history: createWebHistory(),
-  routes
+  routes,
+  // Без этого SPA-навигация сохраняет текущий scrollY страницы — переход на новый маршрут (например,
+  // с промотанных Закромов на страницу песни) открывался бы там же, где прокручен был список.
+  scrollBehavior(to, from, savedPosition) {
+    if (savedPosition) return savedPosition
+    return { top: 0 }
+  }
 })
 
 // Трекинг навигации по SPA-маршрутам (кроме скрытого плеера — его существование не палим в лог).

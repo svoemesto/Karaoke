@@ -106,6 +106,54 @@ class PaymentService(
     }
 
     /**
+     * Создаёт ОДИН платёж на НЕСКОЛЬКО позиций (заказ «Корзины» — несколько подписок scope=SONG,
+     * объединённых общим orderId/yookassa_payment_id). `items` — (описание, цена) на каждую песню;
+     * сумма позиций чека обязана точно совпасть с `totalAmount` (54-ФЗ). Idempotence-Key завязан на
+     * orderId — повторный клик "Оплатить всё" до редиректа не создаёт дублирующий платёж.
+     */
+    fun createCartPayment(orderId: String, totalAmount: Double, items: List<Pair<String, Double>>, email: String, returnUrl: String): PaymentResponse? {
+        if (!hasCredentials()) {
+            println("PaymentService: YOOKASSA_SHOP_ID/SECRET_KEY не заданы — платёж для заказа $orderId не создан")
+            return null
+        }
+        val description = "Подписка на ${items.size} " + pluralSongsRu(items.size) + " (заказ корзины)"
+        val body = mapOf(
+            "amount" to Amount(value = "%.2f".format(totalAmount)),
+            "capture" to true,
+            "confirmation" to Confirmation(type = "redirect", return_url = returnUrl),
+            "description" to description,
+            "receipt" to Receipt(
+                customer = ReceiptCustomer(email = email),
+                items = items.map { (desc, price) -> ReceiptItem(description = desc.take(128), amount = Amount(value = "%.2f".format(price))) },
+            ),
+        )
+        return try {
+            webClient.post()
+                .uri("/payments")
+                .header("Idempotence-Key", "order-$orderId")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(body)
+                .retrieve()
+                .bodyToMono<PaymentResponse>()
+                .block()
+        } catch (e: Exception) {
+            println("PaymentService.createCartPayment: ошибка создания платежа для заказа $orderId: ${e.message}")
+            null
+        }
+    }
+
+    private fun pluralSongsRu(n: Int): String {
+        val mod100 = n % 100
+        val mod10 = n % 10
+        return when {
+            mod100 in 11..14 -> "песен"
+            mod10 == 1 -> "песню"
+            mod10 in 2..4 -> "песни"
+            else -> "песен"
+        }
+    }
+
+    /**
      * Повторное списание по сохранённому payment_method_id (автопродление подписки на сайт).
      * Idempotence-Key завязан на конкретный цикл продления (передаётся снаружи), чтобы ретрай
      * шедулера в тот же день не задвоил списание.

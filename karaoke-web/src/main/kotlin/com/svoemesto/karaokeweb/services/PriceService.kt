@@ -28,6 +28,9 @@ class PriceService {
         val discount: Double,
         val final: Double,
         val promoApplied: String?,
+        // >0, если сверху была применена ещё и постоянная персональная скидка пользователя
+        // (SiteUser.personalDiscountPercent) — суммируется поверх любой акции, не конкурирует с ней.
+        val personalDiscountPercent: Double = 0.0,
     )
 
     private val objectMapper = ObjectMapper()
@@ -38,6 +41,10 @@ class PriceService {
         database: KaraokeConnection,
         storageService: KaraokeStorageService,
         storageApiClient: StorageApiClient,
+        // Порядковый номер ЭТОЙ покупки для TYPE_NTH_FREE. null (по умолчанию, одиночная покупка) —
+        // считаем как раньше, countPaid+1. Корзина передаёт явный номер позиции в заказе (см.
+        // computeCartPrice), чтобы не пересчитывать countPaid на каждую позицию отдельно.
+        ordinalOverride: Int? = null,
     ): PriceResult {
         val base = tariff.priceRub
         val rules = PromoRule.loadActive(database, storageService, storageApiClient)
@@ -45,14 +52,62 @@ class PriceService {
             .sortedByDescending { it.priority }
 
         for (rule in rules) {
-            val percent = discountPercentFor(rule, tariff, user, database, storageService, storageApiClient)
+            val percent = discountPercentFor(rule, tariff, user, database, storageService, storageApiClient, ordinalOverride)
             if (percent > 0.0) {
                 val discount = (base * percent / 100.0).coerceIn(0.0, base)
                 val final = (base - discount).coerceAtLeast(0.0)
-                return PriceResult(base, discount, final, rule.name)
+                return applyPersonalDiscount(base, discount, final, rule.name, user)
             }
         }
-        return PriceResult(base, 0.0, base, null)
+        return applyPersonalDiscount(base, 0.0, base, null, user)
+    }
+
+    // Постоянная персональная скидка пользователя (SiteUser.personalDiscountPercent, выставляется
+    // вручную админом) — суммируется поверх РЕЗУЛЬТАТА любой акции (или базовой цены, если акций не
+    // было), а не конкурирует с ними как ещё одно правило. Применяется к любому заказу без исключений.
+    private fun applyPersonalDiscount(base: Double, discountSoFar: Double, finalSoFar: Double, promoName: String?, user: SiteUser): PriceResult {
+        val personalPercent = user.personalDiscountPercent.coerceIn(0.0, 100.0)
+        if (personalPercent <= 0.0) return PriceResult(base, discountSoFar, finalSoFar, promoName, 0.0)
+        val finalAfterPersonal = (finalSoFar * (1.0 - personalPercent / 100.0)).coerceAtLeast(0.0)
+        return PriceResult(base, base - finalAfterPersonal, finalAfterPersonal, promoName, personalPercent)
+    }
+
+    // Цена корзины «Корзина»: список позиций (по одной на песню, в порядке добавления). Один результат
+    // на каждую позицию, а не общая скидка на сумму, — нужно для fiscal-чека ЮKassa (54-ФЗ: у каждой
+    // позиции чека своя цена, сумма позиций обязана совпасть с суммой платежа).
+    //
+    // Приоритет: если найдена активная CART_BULK_PERCENT-акция, применимая по количеству позиций в этом
+    // заказе — она побеждает целиком (как и одиночные акции, не суммируются) и скидывает процент с КАЖДОЙ
+    // позиции. Иначе — каждая позиция считается независимо через computePrice, включая генерализованный
+    // NTH_FREE (порядковый номер растёт по всем покупкам пользователя, начиная с текущего countPaid+1).
+    fun computeCartPrice(
+        tariff: PriceTariff,
+        cartSize: Int,
+        user: SiteUser,
+        database: KaraokeConnection,
+        storageService: KaraokeStorageService,
+        storageApiClient: StorageApiClient,
+    ): List<PriceResult> {
+        if (cartSize <= 0) return emptyList()
+        val base = tariff.priceRub
+        val rules = PromoRule.loadActive(database, storageService, storageApiClient)
+            .filter { it.appliesToScope(tariff.scope) }
+            .sortedByDescending { it.priority }
+
+        val bulkRule = rules.firstOrNull {
+            it.type == PromoRule.TYPE_CART_BULK_PERCENT && cartSize >= asInt(params(it)["minQty"], Int.MAX_VALUE)
+        }
+        if (bulkRule != null) {
+            val percent = asDouble(params(bulkRule)["percent"])
+            val discount = (base * percent / 100.0).coerceIn(0.0, base)
+            val final = (base - discount).coerceAtLeast(0.0)
+            return List(cartSize) { applyPersonalDiscount(base, discount, final, bulkRule.name, user) }
+        }
+
+        val startOrdinal = Subscription.countPaid(user.id, tariff.scope, database, storageService, storageApiClient)
+        return (1..cartSize).map { i ->
+            computePrice(tariff, user, database, storageService, storageApiClient, ordinalOverride = startOrdinal + i)
+        }
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -84,6 +139,7 @@ class PriceService {
         database: KaraokeConnection,
         storageService: KaraokeStorageService,
         storageApiClient: StorageApiClient,
+        ordinalOverride: Int? = null,
     ): Double {
         val p = params(rule)
         return when (rule.type) {
@@ -101,8 +157,8 @@ class PriceService {
                 val n = asInt(p["n"], 0)
                 if (n <= 0) 0.0
                 else {
-                    val paidCount = Subscription.countPaid(user.id, tariff.scope, database, storageService, storageApiClient)
-                    val ordinalOfThisOne = paidCount + 1
+                    val ordinalOfThisOne = ordinalOverride
+                        ?: (Subscription.countPaid(user.id, tariff.scope, database, storageService, storageApiClient) + 1)
                     if (ordinalOfThisOne % n == 0) 100.0 else 0.0
                 }
             }

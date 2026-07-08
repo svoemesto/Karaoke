@@ -263,10 +263,17 @@ interface KaraokeDbTable {
 //                                            val fieldValue = property.getter.call(entity)
                                             property.setter.isAccessible = true
                                             try {
+                                                // getInt()/getLong() возвращают 0 на SQL NULL (примитивы не могут
+                                                // представить null) — для nullable Kotlin-полей (Int?/Long?) это
+                                                // молча подменяет реальный null на 0, из-за чего save() потом видит
+                                                // ложный diff (0 vs null) и падает на попытке записать "null" в
+                                                // числовую колонку (см. баг с Subscription.idSong=null у SITE-
+                                                // подписок — вся строка тихо переставала обновляться). Для полей,
+                                                // не допускающих null в Kotlin, поведение не меняется.
                                                 val newValue = when (property.returnType.classifier) {
                                                     String::class -> rs.getString(fieldName)
-                                                    Int::class -> rs.getInt(fieldName)
-                                                    Long::class -> rs.getLong(fieldName)
+                                                    Int::class -> rs.getInt(fieldName).let { if (rs.wasNull() && property.returnType.isMarkedNullable) null else it }
+                                                    Long::class -> rs.getLong(fieldName).let { if (rs.wasNull() && property.returnType.isMarkedNullable) null else it }
                                                     Double::class -> rs.getDouble(fieldName)
                                                     Boolean::class -> rs.getBoolean(fieldName)
                                                     Timestamp::class -> rs.getTimestamp(fieldName)

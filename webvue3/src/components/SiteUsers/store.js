@@ -85,6 +85,7 @@ export default {
             if (diffs.maxFavorites !== undefined) params.maxFavorites = Number(diffs.maxFavorites) || 0;
             if (diffs.maxPlaylists !== undefined) params.maxPlaylists = Number(diffs.maxPlaylists) || 0;
             if (diffs.maxPlaylistItems !== undefined) params.maxPlaylistItems = Number(diffs.maxPlaylistItems) || 0;
+            if (diffs.personalDiscountPercent !== undefined) params.personalDiscountPercent = Number(diffs.personalDiscountPercent) || 0;
             let request = { method: 'POST', url: "/api/siteusers/update", params: params };
             return promisedXMLHttpRequest(request).then(() => {
                 ctx.commit('saveSiteUser');

@@ -66,6 +66,7 @@
                 <col />
                 <col style="width: 220px" />
                 <col style="width: 24px" />
+                <col style="width: 24px" />
                 <col style="width: 32px" />
                 <col style="width: 26px" />
                 <col style="width: 26px" />
@@ -74,7 +75,7 @@
                 <tr>
                   <th class="km-th km-th-center">№</th>
                   <th class="km-th">Композиция</th>
-                  <th class="km-th" colspan="5">&nbsp;</th>
+                  <th class="km-th" colspan="6">&nbsp;</th>
                 </tr>
               </thead>
               <tbody>
@@ -88,7 +89,16 @@
                     <PremiumIcon v-if="showCoin(sett)" :state="readiness.contentReadyFor(sett.id)" />
                   </td>
                   <td class="km-td km-td-center">
-                    <PlayerIcon :song-id="sett.id" :state="readiness.stateFor(sett.id)" />
+                    <CartIcon v-if="showCartIcon(sett)" :song-id="sett.id" />
+                  </td>
+                  <td class="km-td km-td-center">
+                    <PlayerIcon
+                      :song-id="sett.id"
+                      :watch-state="readiness.stateFor(sett.id)"
+                      :content-ready-state="readiness.contentReadyFor(sett.id)"
+                      :subscribable="sett.songSubscriptionAvailable"
+                      @subscribe="onSubscribeClick(sett, zak.author)"
+                    />
                   </td>
                   <td class="km-td km-td-center">
                     <PlatformLink link-name="sponsr" :link-value="sett.linkSponsrPlay" :song-id="sett.id" song-version="all" />
@@ -110,7 +120,14 @@
               <div class="km-card-top">
                 <span class="km-card-track">{{ sett.track }}</span>
                 <RouterLink :to="{ path: '/song', query: { id: sett.id } }" class="km-card-title">{{ sett.songName }}</RouterLink>
-                <PlayerIcon :song-id="sett.id" :state="readiness.stateFor(sett.id)" />
+                <CartIcon v-if="showCartIcon(sett)" :song-id="sett.id" />
+                <PlayerIcon
+                  :song-id="sett.id"
+                  :watch-state="readiness.stateFor(sett.id)"
+                  :content-ready-state="readiness.contentReadyFor(sett.id)"
+                  :subscribable="sett.songSubscriptionAvailable"
+                  @subscribe="onSubscribeClick(sett, zak.author)"
+                />
                 <PlatformLink link-name="sponsr" :link-value="sett.linkSponsrPlay" :song-id="sett.id" song-version="all" />
                 <FavoriteIcon :song-id="sett.id" />
                 <PlaylistIcon :song-id="sett.id" />
@@ -124,6 +141,14 @@
         </div>
       </div>
     </div>
+
+    <SongSubscriptionModal
+      :visible="!!subscribingSongId"
+      :song-id="subscribingSongId"
+      :song-name="subscribingSongName"
+      @close="subscribingSongId = null"
+      @activated="onSongSubscriptionActivated"
+    />
   </div>
 </template>
 
@@ -132,31 +157,39 @@ import { mapGetters, mapActions } from 'vuex'
 import PlatformLink from '../components/PlatformLink.vue'
 import PlayerIcon from '../components/PlayerIcon.vue'
 import PremiumIcon from '../components/PremiumIcon.vue'
+import SongSubscriptionModal from '../components/SongSubscriptionModal.vue'
 import FavoriteIcon from '../components/FavoriteIcon.vue'
 import PlaylistIcon from '../components/PlaylistIcon.vue'
+import CartIcon from '../components/CartIcon.vue'
 import AuthStatusWidget from '../components/AuthStatusWidget.vue'
 import AuthorTiles from '../components/AuthorTiles.vue'
 import { useDesign } from '../composables/useDesign'
 import { useEngagementTracking } from '../composables/useEngagementTracking'
 import { usePlayerReadiness } from '../composables/usePlayerReadiness'
 import { usePlaylistMembership } from '../composables/usePlaylistMembership'
+import { useCart } from '../composables/useCart'
 import { useAuth } from '../composables/useAuth'
 
 export default {
   name: 'ZakromaView',
-  components: { PlatformLink, PlayerIcon, PremiumIcon, FavoriteIcon, PlaylistIcon, AuthStatusWidget, AuthorTiles },
+  components: { PlatformLink, PlayerIcon, PremiumIcon, SongSubscriptionModal, FavoriteIcon, PlaylistIcon, CartIcon, AuthStatusWidget, AuthorTiles },
   setup() {
     useEngagementTracking('zakroma')
     const { theme, applyTheme } = useDesign()
     const { user } = useAuth()
+    const cart = useCart()
+    cart.load()
     function setTheme(val) { theme.value = val; applyTheme(val) }
-    return { theme, setTheme, readiness: usePlayerReadiness(), membership: usePlaylistMembership(), user }
+    return { theme, setTheme, readiness: usePlayerReadiness(), membership: usePlaylistMembership(), cart, user }
   },
   data() {
     return {
       selectedAuthor: this.$route.query.author || '',
       // Плитки-пикер видны, пока автор не выбран. После выбора (в т.ч. «Все авторы») скрываются.
-      authorChosen: !!this.$route.query.author
+      authorChosen: !!this.$route.query.author,
+      // Модалка подписки на конкретную песню — открывается кликом по золотой иконке плеера.
+      subscribingSongId: null,
+      subscribingSongName: ''
     }
   },
   computed: {
@@ -187,6 +220,28 @@ export default {
     // лишь премиуму (эксклюзив или ещё не в эфире). Золотая/серебряная — по contentReadyFor().
     showCoin(sett) {
       return !this.isPremium && (sett.exclusive || !sett.onAir)
+    },
+    // Иконка «в корзину» — в тех же условиях, что и золотая иконка плеера (контент готов, зрителю
+    // сейчас недоступен, но подписка на песню разрешена автором).
+    showCartIcon(sett) {
+      return sett.songSubscriptionAvailable && this.readiness.contentReadyFor(sett.id) === 'ready' && this.readiness.stateFor(sett.id) !== 'active'
+    },
+    // Клик по золотой иконке плеера (PlayerIcon сам решает, когда её показывать) — открываем модалку
+    // оформления подписки на конкретную песню.
+    onSubscribeClick(sett, author) {
+      this.subscribingSongId = sett.id
+      this.subscribingSongName = `${sett.songName} — ${author}`
+    },
+    // После активации (в т.ч. бесплатной по акции) — закрыть модалку и перепроверить доступность,
+    // чтобы иконка сразу стала зелёной.
+    onSongSubscriptionActivated() {
+      const boughtId = this.subscribingSongId
+      this.subscribingSongId = null
+      const ids = (this.zakroma || []).flatMap(z => z.albums.flatMap(a => a.albumSettings.map(s => s.id)))
+      this.readiness.load(ids)
+      // Купили напрямую песню, которая уже лежала в корзине — убираем её оттуда, чтобы не предлагать
+      // оплатить то, что уже куплено.
+      if (boughtId && this.cart.isInCart(boughtId)) this.cart.toggle(boughtId)
     },
     // Реальную дату публикации (или «Дата пока не определена») показываем всем для ещё не вышедших
     // НЕ-эксклюзивных песен; у не-премиума она соседствует с монеткой. Тексты «Эксклюзивно на SPONSR»

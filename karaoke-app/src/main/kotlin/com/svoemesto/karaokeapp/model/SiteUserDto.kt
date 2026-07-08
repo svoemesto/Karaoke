@@ -16,6 +16,9 @@ data class SiteUserDto(
     // через update() — на изменение этих полей в контроллере нет параметров.
     val sponsrPremiumUntil: String? = null,
     val sitePremiumUntil: String? = null,
+    // Постоянная скидка (%), выставляется вручную админом — суммируется поверх любой акции при
+    // расчёте цены (PriceService). Виден пользователю в личном кабинете, если > 0.
+    val personalDiscountPercent: Double = 0.0,
     val isEditor: Boolean = false,
     val isBanned: Boolean = false,
     val banReason: String = "",

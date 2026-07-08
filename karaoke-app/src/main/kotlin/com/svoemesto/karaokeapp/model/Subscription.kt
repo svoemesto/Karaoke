@@ -65,6 +65,12 @@ class Subscription(
     @KaraokeDbTableField(name = "yookassa_payment_id")
     var yookassaPaymentId: String = ""
 
+    // Заказ «Корзины»: несколько записей одного оформления делят один order_id и один
+    // yookassa_payment_id (один платёж на несколько песен). NULL — одиночная мгновенная покупка
+    // (SongSubscriptionModal), как раньше.
+    @KaraokeDbTableField(name = "order_id")
+    var orderId: String? = null
+
     // Имеет смысл только для scope=SITE. По умолчанию true — подписка на сайт автопродлевается,
     // если явно не отключена пользователем (POST /purchase.../cancel в PublicSubscriptionController).
     @KaraokeDbTableField(name = "auto_renew")
@@ -99,6 +105,7 @@ class Subscription(
         autoRenew = autoRenew,
         createdAt = createdAt.toString(),
         paidAt = paidAt?.toString(),
+        orderId = orderId,
     )
 
     companion object {
@@ -143,19 +150,21 @@ class Subscription(
             storageApiClient = storageApiClient,
         ) as? Subscription?
 
-        fun getByYookassaPaymentId(
+        // Для заказа «Корзины» несколько записей делят один yookassa_payment_id — возвращаем ВСЕ
+        // (для одиночной покупки список будет из одного элемента, вызывающий код это не ломает).
+        fun getAllByYookassaPaymentId(
             paymentId: String,
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
-        ): Subscription? = KaraokeDbTable.loadList(
+        ): List<Subscription> = KaraokeDbTable.loadList(
             clazz = Subscription::class,
             tableName = TABLE_NAME,
             whereList = listOf("yookassa_payment_id='${paymentId.replace("'", "''")}'"),
             database = database,
             storageService = storageService,
             storageApiClient = storageApiClient,
-        ).firstOrNull() as? Subscription?
+        ).map { it as Subscription }
 
         // Активна ли подписка пользователя на конкретную песню (scope=SONG, PAID). Бессрочная —
         // без проверки срока, само наличие PAID-записи = владение.
@@ -236,6 +245,7 @@ class Subscription(
             database: KaraokeConnection,
             storageService: KaraokeStorageService,
             storageApiClient: StorageApiClient,
+            orderId: String? = null,
         ): Subscription? {
             val entity = Subscription(database = database, storageService = storageService, storageApiClient = storageApiClient)
             entity.siteUserId = siteUserId
@@ -248,6 +258,7 @@ class Subscription(
             entity.finalPrice = finalPrice
             entity.promoApplied = promoApplied
             entity.autoRenew = autoRenew
+            entity.orderId = orderId
             entity.createdAt = Timestamp(System.currentTimeMillis())
             return KaraokeDbTable.createDbInstance(entity = entity, database = database) as? Subscription?
         }

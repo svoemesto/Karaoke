@@ -13,6 +13,7 @@
             <span v-if="priceInfo.discount > 0" class="ssm-price-old">{{ priceInfo.base }} ₽</span>
             <span class="ssm-price-final">{{ priceInfo.final }} ₽</span>
             <span v-if="priceInfo.promoApplied" class="ssm-promo">{{ priceInfo.promoApplied }}</span>
+            <span v-if="priceInfo.personalDiscountPercent > 0" class="ssm-promo ssm-promo-personal">Ваша скидка {{ priceInfo.personalDiscountPercent }}%</span>
           </div>
           <div class="ssm-fineprint">Бессрочный доступ к этой песне в онлайн-плеере сайта.</div>
 
@@ -32,11 +33,26 @@
             Приём платежей ещё не подключён, попробуйте позже.
           </div>
 
+          <div class="ssm-upsell">
+            Хотите слушать всю коллекцию, а не только эту песню?
+            <RouterLink to="/premium" @click="$emit('close')">Оформите премиум-подписку →</RouterLink>
+          </div>
+
+          <div v-if="inCart" class="ssm-cart-row">
+            <button class="ssm-btn ssm-btn-secondary" :disabled="cartBusy" @click="onToggleCart">
+              {{ cartBusy ? 'Убираем...' : 'Удалить из корзины и оплатить отдельно' }}
+            </button>
+            <RouterLink to="/account/cart" class="ssm-btn ssm-btn-secondary" @click="$emit('close')">Перейти в корзину</RouterLink>
+          </div>
+          <button v-else class="ssm-btn ssm-btn-secondary ssm-btn-cart-solo" :disabled="cartBusy" @click="onToggleCart">
+            {{ cartBusy ? 'Добавляем...' : 'Добавить в корзину' }}
+          </button>
+
           <div class="ssm-actions">
             <button class="ssm-btn ssm-btn-secondary" @click="$emit('close')">Отмена</button>
             <button
               class="ssm-btn ssm-btn-primary"
-              :disabled="!disclaimerAccepted || submitting || (priceInfo.final > 0 && priceInfo.paymentsEnabled === false)"
+              :disabled="inCart || !disclaimerAccepted || submitting || (priceInfo.final > 0 && priceInfo.paymentsEnabled === false)"
               @click="onSubmit"
             >
               {{ submitting ? 'Оформляем...' : (priceInfo.final > 0 ? 'Оплатить' : 'Активировать бесплатно') }}
@@ -50,6 +66,7 @@
 
 <script>
 import { useSongSubscription } from '../composables/useSongSubscription'
+import { useCart } from '../composables/useCart'
 
 export default {
   name: 'SongSubscriptionModal',
@@ -61,12 +78,16 @@ export default {
   emits: ['close', 'activated'],
   setup() {
     const { loadingPrice, priceInfo, submitting, error, loadPrice, subscribe } = useSongSubscription()
-    return { loadingPrice, priceInfo, submitting, error, loadPrice, subscribe }
+    const cart = useCart()
+    return { loadingPrice, priceInfo, submitting, error, loadPrice, subscribe, cart }
   },
   data() {
-    return { disclaimerAccepted: false, submitError: false }
+    return { disclaimerAccepted: false, submitError: false, cartBusy: false }
   },
   computed: {
+    inCart() {
+      return !!this.songId && this.cart.isInCart(this.songId)
+    },
     submitErrorText() {
       if (this.error === 'already_subscribed') return 'Подписка на эту песню уже оформлена.'
       if (this.error === 'payment_unavailable') return 'Оплата временно недоступна, попробуйте позже.'
@@ -83,6 +104,13 @@ export default {
     }
   },
   methods: {
+    // Один и тот же тумблер на обе кнопки-состояния: "Добавить в корзину" (её нет в корзине) и
+    // "Удалить из корзины и оплатить отдельно" (уже там) — toggle сам знает, что сейчас делать.
+    async onToggleCart() {
+      if (this.cartBusy) return
+      this.cartBusy = true
+      try { await this.cart.toggle(this.songId) } finally { this.cartBusy = false }
+    },
     async onSubmit() {
       this.submitError = false
       const result = await this.subscribe(this.songId, true)
@@ -140,9 +168,24 @@ export default {
 .ssm-price-old { text-decoration: line-through; color: var(--km-text2, #888); font-size: 0.95rem; }
 .ssm-price-final { font-size: 1.5rem; font-weight: 800; }
 .ssm-promo { font-size: 0.78rem; background: linear-gradient(135deg, #f6c94b, #d99413); color: #5a3c00; padding: 0.15rem 0.5rem; border-radius: 12px; }
+.ssm-promo-personal { background: linear-gradient(135deg, #a78bfa, #7C3AED); color: #fff; }
 .ssm-fineprint { font-size: 0.8rem; color: var(--km-text2, #888); margin-bottom: 1rem; }
 .ssm-disclaimer-label { display: flex; gap: 0.5rem; align-items: flex-start; font-size: 0.78rem; line-height: 1.35; color: var(--km-text2, #666); margin-bottom: 1rem; cursor: pointer; }
 .ssm-disclaimer-label input { margin-top: 0.2rem; flex-shrink: 0; }
+.ssm-upsell {
+  font-size: 0.8rem;
+  color: var(--km-text2, #666);
+  background: var(--km-bg2, #f5f5f7);
+  border-radius: 8px;
+  padding: 0.6rem 0.8rem;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+.ssm-upsell a { color: var(--km-accent, #0077ff); font-weight: 600; text-decoration: none; }
+.ssm-upsell a:hover { text-decoration: underline; }
+.ssm-btn-cart-solo { display: block; width: 100%; text-align: center; margin-bottom: 0.75rem; }
+.ssm-cart-row { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; }
+.ssm-cart-row .ssm-btn { flex: 1; text-align: center; text-decoration: none; }
 .ssm-actions { display: flex; gap: 0.6rem; justify-content: flex-end; }
 .ssm-btn { padding: 0.5rem 1.1rem; border-radius: 8px; font-size: 0.88rem; font-weight: 600; cursor: pointer; border: 1px solid transparent; }
 .ssm-btn-primary { background: var(--km-accent, #0077ff); color: #fff; }

@@ -52,6 +52,12 @@ class SiteUser(
     @KaraokeDbTableField(name = "site_premium_until")
     var sitePremiumUntil: Timestamp? = null
 
+    // Постоянная персональная скидка (%), выставляется вручную админом (SiteUsersController).
+    // Суммируется поверх ЛЮБОЙ акции (см. PriceService) и применяется к любому заказу — не
+    // конкурирует с tbl_promo_rules, а уменьшает итоговую цену ДОПОЛНИТЕЛЬНО. 0 = скидки нет.
+    @KaraokeDbTableField(name = "personal_discount_percent")
+    var personalDiscountPercent: Double = 0.0
+
     // Не БД-поле — единая точка правды для всех проверок премиум-доступа (плеер и т.п.):
     // is_permanent_premium/is_premium — вечный/ручной грант админа; sponsr_premium_until —
     // проставляется Sponsr-синхронизацией; site_premium_until — продлевается оплатой подписки на
@@ -109,6 +115,7 @@ class SiteUser(
         isEffectivePremium = isEffectivePremium,
         sponsrPremiumUntil = sponsrPremiumUntil?.toString(),
         sitePremiumUntil = sitePremiumUntil?.toString(),
+        personalDiscountPercent = personalDiscountPercent,
         isEditor = isEditor,
         isBanned = isBanned,
         banReason = banReason,

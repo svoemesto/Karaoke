@@ -153,6 +153,7 @@ data class SettingsDTO(
     val rootId: Long,
     val exclusive: Boolean,
     val free: Boolean,
+    val idTariff: Int,
     val haveSourceText: Boolean
 ): Serializable, Comparable<SettingsDTO>, KaraokeDbTableDto {
 
@@ -232,6 +233,7 @@ data class SettingsDTO(
         entity.rootId = rootId
         entity.exclusive = exclusive
         entity.free = free
+        entity.idTariff = idTariff
         entity.tags = tags
         return entity
     }

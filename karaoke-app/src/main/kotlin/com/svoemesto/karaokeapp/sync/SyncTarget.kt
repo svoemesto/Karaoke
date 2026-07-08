@@ -3,6 +3,7 @@ package com.svoemesto.karaokeapp.sync
 import com.svoemesto.karaokeapp.KaraokeConnection
 import com.svoemesto.karaokeapp.KaraokeProperties
 import com.svoemesto.karaokeapp.model.Author
+import com.svoemesto.karaokeapp.model.Dictionary
 import com.svoemesto.karaokeapp.model.KaraokeDbTable
 import com.svoemesto.karaokeapp.model.Pictures
 import com.svoemesto.karaokeapp.model.RecordDiff
@@ -169,6 +170,17 @@ val AuthorsSyncTarget = GenericKaraokeDbTableSyncTarget(
     rowChunkSize = 500,
 )
 
+val DictionariesSyncTarget = GenericKaraokeDbTableSyncTarget(
+    key = "dictionaries",
+    tableName = Dictionary.TABLE_NAME,
+    displayName = "Словари",
+    oneClickDirection = SyncDirection.LOCAL_TO_SERVER,
+    clazz = Dictionary::class,
+    labelFn = { "${it.dictName}: ${it.dictValue}" },
+    // Лёгкие строки (короткие значения словарей) — по 500 фактически один запрос.
+    rowChunkSize = 500,
+)
+
 val SiteUsersSyncTarget = GenericKaraokeDbTableSyncTarget(
     key = "siteusers",
     tableName = SiteUser.TABLE_NAME,
@@ -254,6 +266,7 @@ object SyncRegistry {
         SettingsSyncTarget,
         PicturesSyncTarget,
         AuthorsSyncTarget,
+        DictionariesSyncTarget,
         SiteUsersSyncTarget,
         SitePlaylistsSyncTarget,
         SitePlaylistItemsSyncTarget,

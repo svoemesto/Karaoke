@@ -1,9 +1,16 @@
 package com.svoemesto.karaokeapp.textfiledictionary
 
 import com.svoemesto.karaokeapp.TEXT_FILE_DICTS
-import com.svoemesto.karaokeapp.runCommand
-import java.io.File
+import com.svoemesto.karaokeapp.WORKING_DATABASE
+import com.svoemesto.karaokeapp.model.Dictionary
 
+/**
+ * Раньше словарь хранился в текстовом файле на диске (pathToFile()/save()/loadList() читали
+ * и писали .txt). Теперь все значения живут в единой таблице БД tbl_dictionaries
+ * (см. model/Dictionary.kt) — интерфейс сохранён как тонкий фасад над ней, чтобы не трогать
+ * вызывающий код (Extentions.censored(), Utils.replaceSymbolsInSong, Settings.getWhereList,
+ * ApiController.doTextFileDictionary/getDict/addSyncForAll).
+ */
 interface TextFileDictionary {
 
     companion object {
@@ -27,66 +34,46 @@ interface TextFileDictionary {
 
     }
 
-    fun pathToFile(): String
+    /** Имя словаря (колонка dict_name в tbl_dictionaries) — раньше был путь к текстовому файлу. */
+    fun dictName(): String
 
-    var dict: MutableList<String>
+    val dict: List<String> get() = Dictionary.loadValues(dictName(), WORKING_DATABASE)
 
     fun clear() {
-        dict.clear()
-        save()
+        Dictionary.clear(dictName(), WORKING_DATABASE)
     }
 
     fun save() {
-        File(pathToFile()).writeText(dict.joinToString("\n"))
-        runCommand(listOf("chmod", "666", pathToFile()))
+        // Раньше здесь файл перезаписывался целиком; теперь запись построчная (add/remove
+        // пишут сразу в БД) — метод оставлен как no-op ради обратной совместимости вызывающего кода.
     }
 
     fun add(elements: List<String>) {
-        for (element in elements) {
-            addOne(element)
-        }
+        Dictionary.addValues(dictName(), elements, WORKING_DATABASE)
     }
 
     fun addOne(element: String) {
-        if (dict.contains(element)) return
-        dict.add(element)
-        save()
+        Dictionary.addValues(dictName(), listOf(element), WORKING_DATABASE)
     }
 
     fun remove(elements: List<String>) {
-        for (element in elements) {
-            removeOne(element)
-        }
+        Dictionary.removeValues(dictName(), elements, WORKING_DATABASE)
     }
 
     fun removeOne(element: String) {
-        if (!dict.contains(element)) return
-        dict.remove(element)
-        save()
+        Dictionary.removeValues(dictName(), listOf(element), WORKING_DATABASE)
     }
 
     @Suppress("unused")
     fun editOne(oldElement: String, newElement: String) {
-        if (!dict.contains(oldElement) || oldElement == "" || newElement == "") return
-        dict.remove(oldElement)
-        dict.add(newElement)
-        save()
+        if (oldElement == "" || newElement == "") return
+        Dictionary.removeValues(dictName(), listOf(oldElement), WORKING_DATABASE)
+        Dictionary.addValues(dictName(), listOf(newElement), WORKING_DATABASE)
     }
 
     @Suppress("unused")
-    fun have(element: String) = dict.contains(element)
+    fun have(element: String) = Dictionary.have(dictName(), element, WORKING_DATABASE)
 
-    fun loadList(): MutableList<String> {
-        val list = try {
-            File(pathToFile())
-                .readText()
-                .split("\n")
-                .filter { it != "" }
-                .sortedBy { it }
-        } catch (_: Exception) {
-            return mutableListOf()
-        }
-        return list.toMutableList()
-    }
+    fun loadList(): List<String> = Dictionary.loadValues(dictName(), WORKING_DATABASE)
 
 }

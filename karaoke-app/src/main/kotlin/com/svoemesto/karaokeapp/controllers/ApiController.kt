@@ -2961,6 +2961,27 @@ class ApiController(
         )))
     }
 
+    // Разовый импорт значений словарей из старых текстовых файлов (/sm-karaoke/system/*.txt) в
+    // tbl_dictionaries. Идемпотентно — повторный вызов не создаёт дублей (UNIQUE-индекс).
+    @PostMapping("/dictionaries/importfromfiles")
+    @ResponseBody
+    fun doImportDictionariesFromFiles(): Map<String, Int> {
+        val filesByDictName = mapOf(
+            "Слова с Ё" to YO_FILE_PATH,
+            "Censored" to CENSORED_FILE_PATH,
+            "Sync Ids" to SYNCIDS_FILE_PATH
+        )
+        val result = filesByDictName.mapValues { (dictName, filePath) ->
+            Dictionary.importFromFile(dictName = dictName, filePath = filePath, database = WORKING_DATABASE)
+        }
+        SNS.send(SseNotification.message(Message(
+            type = "info",
+            head = "Импорт словарей",
+            body = "Импортировано новых значений: " + result.entries.joinToString(", ") { "${it.key} — ${it.value}" }
+        )))
+        return result
+    }
+
     // Обновляем одну картинку в RemoteDatabase
     @PostMapping("/utils/updateremotepicturefromlocaldatabase")
     @ResponseBody

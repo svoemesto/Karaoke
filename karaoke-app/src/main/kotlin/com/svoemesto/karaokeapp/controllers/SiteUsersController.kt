@@ -43,11 +43,13 @@ class SiteUsersController {
         @RequestParam(required = false) filterEmail: String?,
         @RequestParam(required = false) filterDisplayName: String?,
         @RequestParam(required = false) filterIsBanned: String?,
+        @RequestParam(required = false) filterIsEditor: String?,
     ): Map<String, Any> = withDb(target) { db ->
         val args: MutableMap<String, String> = mutableMapOf()
         filterEmail?.let { if (it != "") args["email"] = it }
         filterDisplayName?.let { if (it != "") args["displayName"] = it }
         filterIsBanned?.let { if (it != "") args["isBanned"] = it }
+        filterIsEditor?.let { if (it != "") args["isEditor"] = it }
 
         val list = SiteUser.loadList(
             whereArgs = args,

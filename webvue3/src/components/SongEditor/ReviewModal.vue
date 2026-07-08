@@ -47,9 +47,9 @@
 
         <div v-if="a.reviewComment" class="se-prev-comment">Прошлый комментарий: {{ a.reviewComment }}</div>
         <div v-if="isRemoteView" class="se-remote-note">
-          Запись открыта из серверной БД — «Одобрить» прочитает черновик оттуда (актуальные правки
-          пользователя, если они ещё не подтянуты синхронизацией), но применит их к песне и статусу
-          задания всегда в локальной БД.
+          Запись открыта из серверной БД — «Одобрить»/«Отклонить» прочитают и обновят статус задания там же,
+          на сервере (актуальные правки пользователя, если они ещё не подтянуты синхронизацией). Разметка
+          применяется к самой песне всегда в локальной БД — только здесь есть локальный диск для рендера.
         </div>
 
         <label class="se-field">
@@ -84,13 +84,19 @@ export default {
   },
   computed: {
     a() { return this.$store.getters.getAssignmentCurrent },
-    // Только для информационного баннера — approve/reject безопасны и корректны в обоих режимах
-    // (id совпадает в LOCAL/REMOTE), approve при этом читает черновик оттуда, где target, но
-    // применяет его всегда в LOCAL (см. SongEditorController.approve).
+    // Только для информационного баннера — approve/reject читают И апрувят/отклоняют статус задания в
+    // ОДНОЙ И ТОЙ ЖЕ БД (target); в LOCAL всегда применяется только сама разметка песни (см.
+    // SongEditorController.approve).
     isRemoteView() { return this.$store.getters.getAssignmentsTarget === 'remote' },
     // Превью неодобрённого черновика: /player/:id понимает assignmentId и подставляет edited_markers
     // ВСЕЙ песни (все голоса задания) вместо того, что уже сохранено в tbl_settings (см. ApiController.getSongPlayerData).
-    playerSrc() { return this.a ? `/player/${this.a.songId}?assignmentId=${this.a.id}` : '' },
+    // target — откуда реально читать задание/черновик (см. getAssignmentsTarget): реальный цикл
+    // назначение→работа часто идёт целиком на remote, а local ещё не синкнут.
+    playerSrc() {
+      if (!this.a) return '';
+      const target = this.$store.getters.getAssignmentsTarget;
+      return `/player/${this.a.songId}?assignmentId=${this.a.id}&target=${target}`;
+    },
     voiceCount() { return this.a ? Math.max(1, (this.a.draftMarkersPerVoice || []).length) : 0 },
     currentSourceText() { return (this.a && this.a.draftSourceTexts && this.a.draftSourceTexts[this.currentVoiceIdx]) || '' },
     parsedMarkers() {

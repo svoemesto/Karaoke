@@ -12,9 +12,10 @@
     <custom-confirm v-if="isCustomConfirmVisible" 
       :params="customConfirmParams" 
       @close="closeCustomConfirm" />
-    <health-report-table v-if="isHealthReportTableVisible" 
-      :id="currentSongId" 
+    <health-report-table v-if="isHealthReportTableVisible"
+      :id="currentSongId"
       @close="closeHealthReportTable"/>
+    <ReviewModal v-if="isAssignReviewVisible" @close="isAssignReviewVisible = false" @reviewed="onAssignmentReviewed" />
     <div class="songs-bv-table-header">
       <b-pagination
           v-model="currentPage"
@@ -180,6 +181,23 @@
                 <path d="M8 6.5v7l6-3.5-6-3.5Z" fill="#919191"/>
               </svg>
             </span>
+          </div>
+        </template>
+        <template #cell(assign)="data">
+          <div class="fld-assign" :style="{ backgroundColor: data.item.color }" @click.stop>
+            <template v-if="data.item.idStatus < 3">
+              <button
+                  v-if="assignmentStatusFor(data.item.id)"
+                  class="assign-badge"
+                  :class="`assign-badge-${assignmentStatusFor(data.item.id).status}`"
+                  :title="assignmentStatusFor(data.item.id).assigneeName"
+                  @click="openAssignmentReview(data.item.id)"
+              >{{ assignStatusLabel(assignmentStatusFor(data.item.id).status) }}</button>
+              <select v-else class="assign-select" @change="onAssignSelect(data.item.id, $event)">
+                <option value="" selected disabled>Назначить…</option>
+                <option v-for="u in editorSiteUsers" :key="u.id" :value="u.id">{{ u.displayName || u.email }}</option>
+              </select>
+            </template>
           </div>
         </template>
         <template #cell(flagSponsr)="data">
@@ -401,6 +419,12 @@ import SongsFilter from "../../components/Songs/filter/SongsFilterModal.vue";
 import SmartCopyModal from "../../components/Common/SmartCopy/SmartCopyModal.vue";
 import CustomConfirm from "../../components/Common/CustomConfirm.vue";
 import HealthReportTable from "../Common/HealthReport/HealthReportTable.vue";
+import ReviewModal from "../SongEditor/ReviewModal.vue";
+
+const ASSIGN_STATUS_LABELS = {
+  assigned: 'Назначено', in_progress: 'В работе', submitted: 'На проверке',
+  approved: 'Одобрено', rejected: 'Отклонено',
+};
 
 export default {
   name: "SongsTable",
@@ -410,6 +434,7 @@ export default {
     SongsFilter,
     SmartCopyModal,
     CustomConfirm,
+    ReviewModal,
     BPagination,
     BSpinner,
     BTable,
@@ -424,6 +449,7 @@ export default {
       isSmartCopyVisible: false,
       isCustomConfirmVisible: false,
       isHealthReportTableVisible: false,
+      isAssignReviewVisible: false,
       customConfirmParams: undefined,
       isBusy: false,
       allowAddSync: false,
@@ -442,6 +468,7 @@ export default {
       handler () {
         this.currentPage = 1;
         this.updateHealthReportForCurrentPage();
+        this.reloadAssignmentStatus();
       }
     },
     currentSongId: {
@@ -454,12 +481,17 @@ export default {
       handler () {
         this.hrQueue = [];
         this.updateHealthReportForCurrentPage();
+        this.reloadAssignmentStatus();
       }
     }
   },
   async mounted() {
     // this.$store.dispatch('loadSongsDigests', { filterAuthor: 'Павел Кашин'} )
     this.allowAddSync = await this.propAllowAddSync();
+    // Источник (local/server) для кнопки «Назначить» — KaraokeProperty editorAssignmentDefaultTarget.
+    await this.$store.dispatch('loadEditorDefaultTarget');
+    this.$store.dispatch('loadEditorSiteUsers', this.$store.getters.getEditorDefaultTarget);
+    this.reloadAssignmentStatus();
   },
   computed: {
     parentRoute() {
@@ -486,6 +518,14 @@ export default {
     },
     songsIds() {
       return this.$store.getters.getSongsDigestIds;
+    },
+    // Только id видимой страницы (та же формула, что updateHealthReportForCurrentPage) — батч-статус
+    // назначений грузим не на весь каталог, а по странице, как и HR-запросы.
+    currentPageSongIds() {
+      return this.songsIds.filter(id => this.songIdAndPageId.get(id) === this.currentPage);
+    },
+    editorSiteUsers() {
+      return this.$store.getters.getEditorSiteUsers || [];
     },
     songsDigestIsLoading() {
       return this.$store.getters.getSongsDigestIsLoading;
@@ -660,6 +700,16 @@ export default {
           style: {
             minWidth: '22px',
             maxWidth: '22px',
+            textAlign: 'center',
+            fontSize: 'small'
+          }
+        },
+        {
+          key: 'assign',
+          label: 'Редактор',
+          style: {
+            minWidth: '90px',
+            maxWidth: '90px',
             textAlign: 'center',
             fontSize: 'small'
           }
@@ -920,6 +970,41 @@ export default {
   methods: {
     openPlayer(id) {
       window.open('/player/' + id, '_blank')
+    },
+    // --- Кнопка «Назначить»/«Назначено» (онлайн-редактор) -----------------------------------
+    reloadAssignmentStatus() {
+      const target = this.$store.getters.getEditorDefaultTarget;
+      return this.$store.dispatch('loadAssignmentStatusBySongIds', { songIds: this.currentPageSongIds, target });
+    },
+    assignmentStatusFor(songId) {
+      return this.$store.getters.getAssignmentStatusBySongId[songId];
+    },
+    assignStatusLabel(s) { return ASSIGN_STATUS_LABELS[s] || 'Назначено' },
+    async onAssignSelect(songId, event) {
+      const assigneeId = event.target.value;
+      event.target.value = '';
+      if (!assigneeId) return;
+      const target = this.$store.getters.getEditorDefaultTarget;
+      let res = await this.$store.dispatch('assignSong', { songId, assigneeId, target });
+      if (res && res.error === 'markers_exist') {
+        const clearMarkers = window.confirm('В песне уже есть маркеры. Удалить их при назначении задания?');
+        res = await this.$store.dispatch('assignSong', { songId, assigneeId, target, clearMarkers });
+      }
+      if (res && res.ok) {
+        this.reloadAssignmentStatus();
+      } else {
+        alert('Не удалось назначить: ' + ((res && res.error) || 'неизвестная ошибка'));
+      }
+    },
+    async openAssignmentReview(songId) {
+      const info = this.assignmentStatusFor(songId);
+      if (!info) return;
+      await this.$store.dispatch('loadAssignmentById', { id: info.assignmentId, target: this.$store.getters.getEditorDefaultTarget });
+      this.isAssignReviewVisible = true;
+    },
+    onAssignmentReviewed() {
+      this.isAssignReviewVisible = false;
+      this.reloadAssignmentStatus();
     },
     updateHealthReportForCurrentPage() {
       for (const settingsId of this.songsIds) {
@@ -1593,6 +1678,47 @@ export default {
   line-height: 0;
   cursor: default;
 }
+.fld-assign {
+  min-width: 90px;
+  max-width: 90px;
+  text-align: center;
+  font-size: small;
+}
+.fld-assign .assign-select,
+.fld-assign .assign-badge {
+  display: inline-block;
+  box-sizing: border-box;
+  max-width: 100%;
+  font-size: small;
+  font-family: inherit;
+  line-height: normal;
+  margin: 0;
+  padding: 0 4px;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.fld-assign .assign-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-color: #eef0f2;
+  color: #555;
+}
+.fld-assign .assign-select:hover {
+  background-color: #e2e5e8;
+}
+.fld-assign .assign-badge {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 700;
+}
+.fld-assign .assign-badge-assigned { background: #e2e6ea; color: #5a6570; }
+.fld-assign .assign-badge-in_progress { background: #dbeafe; color: #1e5fbf; }
+.fld-assign .assign-badge-submitted { background: #fef3c7; color: #92700a; }
+.fld-assign .assign-badge-approved { background: #d1f5d8; color: #24803a; }
+.fld-assign .assign-badge-rejected { background: #ffe0cc; color: #b8500f; }
 .fld-flag-sponsr {
   min-width: 20px;
   max-width: 20px;

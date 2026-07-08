@@ -135,6 +135,13 @@ class SiteUser(
                     where += "is_banned = false"
                 }
             }
+            if (whereArgs.containsKey("isEditor")) {
+                if (whereArgs["isEditor"] == "+" || whereArgs["isEditor"] == "true") {
+                    where += "is_editor = true"
+                } else if (whereArgs["isEditor"] == "-" || whereArgs["isEditor"] == "false") {
+                    where += "is_editor = false"
+                }
+            }
             return where
         }
 

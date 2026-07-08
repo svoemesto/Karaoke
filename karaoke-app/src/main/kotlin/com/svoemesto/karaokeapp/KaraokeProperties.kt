@@ -194,6 +194,7 @@ val listKaraokeProperties = listOf(
     KaraokeProperty(key = "autoSaveDelayMs", defaultValue = 1000L, description = "Время (в миллисекундах) задержки перед автосохранением"),
     KaraokeProperty(key = "allowUpdateRemote", defaultValue = false, description = "Разрешить обновлять REMOTE"),
     KaraokeProperty(key = "allowUpdateLocal", defaultValue = false, description = "Разрешить обновлять LOCAL"),
+    KaraokeProperty(key = "editorAssignmentDefaultTarget", defaultValue = "remote", description = "БД по умолчанию для заданий онлайн-редактора и списка редакторов: 'local' или 'remote' (сервер)"),
     KaraokeProperty(key = "allowAddSync", defaultValue = false, description = "Разрешить добавлять SYNC"),
     // Разрешения универсальной синхронизации (webvue3 "Синхронизация", /api/sync/*) — по одному
     // флагу на (сущность SyncRegistry × направление push/pull × операция insert/update/delete/move).
@@ -274,6 +275,14 @@ val listKaraokeProperties = listOf(
     KaraokeProperty(key = "sync_events_pull_update_allowed", defaultValue = true, description = "Синхронизация: Статистика — pull, Изменение"),
     KaraokeProperty(key = "sync_events_pull_delete_allowed", defaultValue = false, description = "Синхронизация: Статистика — pull, Удаление"),
     KaraokeProperty(key = "sync_events_pull_move_allowed", defaultValue = true, description = "Синхронизация: Статистика — pull, Перемещение"),
+    KaraokeProperty(key = "sync_pricetariffs_push_insert_allowed", defaultValue = false, description = "Синхронизация: Тарифы — push, Добавление"),
+    KaraokeProperty(key = "sync_pricetariffs_push_update_allowed", defaultValue = false, description = "Синхронизация: Тарифы — push, Изменение"),
+    KaraokeProperty(key = "sync_pricetariffs_push_delete_allowed", defaultValue = false, description = "Синхронизация: Тарифы — push, Удаление"),
+    KaraokeProperty(key = "sync_pricetariffs_push_move_allowed", defaultValue = false, description = "Синхронизация: Тарифы — push, Перемещение"),
+    KaraokeProperty(key = "sync_pricetariffs_pull_insert_allowed", defaultValue = false, description = "Синхронизация: Тарифы — pull, Добавление"),
+    KaraokeProperty(key = "sync_pricetariffs_pull_update_allowed", defaultValue = false, description = "Синхронизация: Тарифы — pull, Изменение"),
+    KaraokeProperty(key = "sync_pricetariffs_pull_delete_allowed", defaultValue = false, description = "Синхронизация: Тарифы — pull, Удаление"),
+    KaraokeProperty(key = "sync_pricetariffs_pull_move_allowed", defaultValue = false, description = "Синхронизация: Тарифы — pull, Перемещение"),
     KaraokeProperty(key = "backgroundFolderPath", defaultValue = "/sm-karaoke/system/SpaceBox4096", description = "Путь к папке с фонами"),
     KaraokeProperty(key = "createLogotype", defaultValue = true, description = "Создавать логотип"),
     KaraokeProperty(key = "createMicrophone", defaultValue = false, description = "Создавать микрофон"),

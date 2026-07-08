@@ -702,6 +702,11 @@ class Settings(
 
     val rate: Int get() = (fields[SettingField.RATE]?.nullIfEmpty() ?: "0").toInt()
 
+    // Тариф подписки (монетизация). 0 = песня не продаётся отдельно/дефолт. Пишется напрямую через
+    // fields[SettingField.ID_TARIFF] = value.toString() (см. TariffsController не трогает эту
+    // привязку — она делается из карточки песни в webvue3, отдельный эндпоинт Фазы 6).
+    val idTariff: Int get() = (fields[SettingField.ID_TARIFF]?.nullIfEmpty() ?: "0").toInt()
+
     val linkSM: String get() = URL_PREFIX_SM.replace("{REPLACE}", id.toString())
     val linkBoosty: String get() = idBoosty.let {URL_PREFIX_BOOSTY.replace("{REPLACE}", idBoosty)}
     val linkBoostyFiles: String? get() = idBoostyFiles.let {URL_PREFIX_BOOSTY.replace("{REPLACE}", idBoostyFiles)}
@@ -4002,6 +4007,7 @@ class Settings(
         fieldsValues.add(Pair("status_process_melody", settings.statusProcessMelody))
         fieldsValues.add(Pair("tags", settings.tags))
         fieldsValues.add(Pair("rate", settings.rate))
+        fieldsValues.add(Pair("id_tariff", settings.idTariff))
         fieldsValues.add(Pair("formatted_text_song", settings.formattedTextSong))
         fieldsValues.add(Pair("formatted_text_tabs", settings.formattedTextTabs))
         fieldsValues.add(Pair("formatted_text_chords", settings.formattedTextChords))
@@ -4318,6 +4324,7 @@ class Settings(
                 if (settA.rootId != settB.rootId) result.add(RecordDiff("root_id", settA.rootId, settB.rootId))
                 if (settA.exclusive != settB.exclusive) result.add(RecordDiff("exclusive", settA.exclusive, settB.exclusive))
                 if (settA.free != settB.free) result.add(RecordDiff("free", settA.free, settB.free))
+                if (settA.idTariff != settB.idTariff) result.add(RecordDiff("id_tariff", settA.idTariff, settB.idTariff))
 
 
                 if (settA.status != settB.status) result.add(RecordDiff("status", settA.status, settB.status, false))
@@ -4891,6 +4898,7 @@ class Settings(
                         rs.getString("formatted_text_chords")?.let { value -> settings.formattedTextChords = value }
                     }
                     rs.getInt("rate").let { value -> settings.fields[SettingField.RATE] = value.toString() }
+                    rs.getInt("id_tariff").let { value -> settings.fields[SettingField.ID_TARIFF] = value.toString() }
 
                     rs.getLong("root_id").let { value -> settings.rootId = value }
                     rs.getBoolean("exclusive").let { value -> settings.exclusive = value }

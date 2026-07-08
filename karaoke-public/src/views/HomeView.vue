@@ -3,7 +3,7 @@
     <!-- Хедер с переключателями -->
     <header class="km-header">
       <div class="km-header-inner">
-        <span class="km-brand">🎵 Своё Место</span>
+        <img src="/KARAOKE_LOGO.png" class="km-brand-logo" alt="Своё Место" />
         <div class="km-controls">
           <AuthStatusWidget />
           <div class="km-toggle-group km-theme-toggle" title="Тема">
@@ -62,6 +62,11 @@
           <div class="km-nav-title">Избранное и плейлисты</div>
           <div class="km-nav-desc">Ваши сохранённые песни и плейлисты</div>
         </RouterLink>
+        <RouterLink to="/premium" class="km-nav-card">
+          <div class="km-nav-icon">🪙</div>
+          <div class="km-nav-title">Премиум-подписка</div>
+          <div class="km-nav-desc">Sponsr, подписка на сайт или на одну песню</div>
+        </RouterLink>
       </div>
 
       <!-- Соцсети -->
@@ -111,7 +116,7 @@ export default {
   },
   mounted() {
     this.loadStats()
-    document.title = 'Каraoke на «Своём Месте»'
+    document.title = 'Караоке на «Своём Месте»'
   },
   methods: {
     ...mapActions('stats', ['loadStats']),
@@ -128,7 +133,6 @@ export default {
 
 <style scoped>
 .km-home {
-  min-height: 100vh;
   background: var(--km-bg);
   color: var(--km-text);
   display: flex;
@@ -153,11 +157,9 @@ export default {
   gap: 1rem;
   flex-wrap: wrap;
 }
-.km-brand {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--km-text);
-  white-space: nowrap;
+.km-brand-logo {
+  height: 32px;
+  width: auto;
 }
 .km-controls {
   display: flex;
@@ -266,8 +268,7 @@ export default {
   gap: 1rem;
   margin-bottom: 2.5rem;
 }
-/* Третья карточка (Избранное/плейлисты) в 2-колоночной сетке — на всю ширину для баланса. */
-.km-nav-cards .km-nav-card:nth-child(3):last-child { grid-column: 1 / -1; }
+/* 4 карточки — ровная сетка 2×2, особый full-width случай (был для 3-й карточки) больше не нужен. */
 .km-nav-card {
   display: block;
   background: var(--km-card);

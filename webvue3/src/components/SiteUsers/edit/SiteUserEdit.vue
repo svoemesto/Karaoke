@@ -29,6 +29,14 @@
             <span class="sue-hint">(если включено — премиум действует всегда, независимо от чекбокса выше)</span>
           </label>
         </div>
+        <div class="label-and-input" v-if="siteUserCurrent.sponsrPremiumUntil">
+          <div class="label">Премиум по Sponsr:</div>
+          <div class="sue-static">до {{ siteUserCurrent.sponsrPremiumUntil }} <span class="sue-hint">(Sponsr-синхронизация)</span></div>
+        </div>
+        <div class="label-and-input" v-if="siteUserCurrent.sitePremiumUntil">
+          <div class="label">Подписка на сайт:</div>
+          <div class="sue-static">до {{ siteUserCurrent.sitePremiumUntil }} <span class="sue-hint">(оплаченная подписка на сайте)</span></div>
+        </div>
         <div class="label-and-input">
           <div class="label">Редактор караоке:</div>
           <label class="sue-checkbox-label">

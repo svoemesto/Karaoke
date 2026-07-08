@@ -7,6 +7,7 @@ import com.svoemesto.karaokeapp.model.PlayerAction
 import com.svoemesto.karaokeapp.model.Settings
 import com.svoemesto.karaokeapp.model.SongAssignment
 import com.svoemesto.karaokeapp.model.SongAssignmentDraft
+import com.svoemesto.karaokeapp.model.Subscription
 import com.svoemesto.karaokeapp.rightFileName
 import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.StorageApiClient
@@ -68,6 +69,13 @@ class PublicPlayerController(
     private fun isPremiumUser(request: HttpServletRequest): Boolean =
         siteUserResolver.resolve(request)?.isEffectivePremium == true
 
+    // Оформлена ли у текущего пользователя бессрочная подписка именно на эту песню (scope=SONG).
+    // Отдельная ветка доступа от isPremiumUser — подписка на одну песню не даёт isEffectivePremium.
+    private fun isSubscribedToSong(request: HttpServletRequest, id: Long): Boolean {
+        val userId = siteUserResolver.resolve(request)?.id ?: return false
+        return Subscription.isSubscribedToSong(userId, id, WORKING_DATABASE, storageService, storageApiClient)
+    }
+
     private fun stemsReady(settings: Settings): Boolean =
         settings.idStatus >= 3 &&
             existsInMinIO(stemStorageKey(settings, KaraokeFileType.MP3_ACCOMPANIMENT)) &&
@@ -84,7 +92,8 @@ class PublicPlayerController(
         val settings = loadSettings(id) ?: return ResponseEntity.notFound().build()
         val ready = stemsReady(settings)
         val premium = isPremiumUser(request)
-        val canWatch = ready && (settings.onAir || premium)
+        val subscribed = !premium && isSubscribedToSong(request, id)
+        val canWatch = ready && (settings.onAir || premium || subscribed)
         val canExport = canWatch && premium
         val token = if (canWatch) gestureUnlockService.issueDirectAccessToken(id) else null
         if (canWatch) {
@@ -131,15 +140,17 @@ class PublicPlayerController(
     @PostMapping("/readiness")
     fun readiness(@RequestParam ids: String, request: HttpServletRequest): ResponseEntity<Map<String, Any?>> {
         val premium = isPremiumUser(request)
-        val items = ids.split(",")
-            .mapNotNull { it.trim().toLongOrNull() }
-            .distinct()
-            .associate { id ->
-                val settings = loadSettings(id)
-                val contentReady = settings != null && stemsReady(settings)
-                val watchable = contentReady && (settings!!.onAir || premium)
-                id.toString() to mapOf("ready" to watchable, "watchable" to watchable, "contentReady" to contentReady)
-            }
+        val songIds = ids.split(",").mapNotNull { it.trim().toLongOrNull() }.distinct()
+        // Батч-проверка подписок на песню одним запросом (не премиуму — премиум уже видит всё).
+        val userId = if (premium) 0L else (siteUserResolver.resolve(request)?.id ?: 0L)
+        val subscribedIds = if (premium) emptySet()
+            else Subscription.subscribedSongIds(userId, songIds, WORKING_DATABASE, storageService, storageApiClient)
+        val items = songIds.associate { id ->
+            val settings = loadSettings(id)
+            val contentReady = settings != null && stemsReady(settings)
+            val watchable = contentReady && (settings!!.onAir || premium || id in subscribedIds)
+            id.toString() to mapOf("ready" to watchable, "watchable" to watchable, "contentReady" to contentReady)
+        }
         return ResponseEntity.ok(mapOf("items" to items))
     }
 

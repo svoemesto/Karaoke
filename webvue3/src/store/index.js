@@ -23,6 +23,9 @@ import publishFilter from '../components/Publish/filter/store'
 import common from '../components/Common/store'
 import stats from '../components/Stats/store'
 import sync from '../components/Sync/store'
+import tariffs from '../components/Tariffs/store'
+import promotions from '../components/Promotions/store'
+import sponsrSync from '../components/SponsrSync/store'
 import { useToast } from 'bootstrap-vue-next'
 
 export default createStore({
@@ -43,6 +46,9 @@ export default createStore({
     common,
     stats,
     sync,
+    tariffs,
+    promotions,
+    sponsrSync,
     songFilter,
     smartCopy,
     healthReport,

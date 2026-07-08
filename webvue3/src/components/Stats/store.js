@@ -46,6 +46,11 @@ export default {
         webEvents: [],
         webEventsIsLoading: false,
         webEventsTotalCount: 0,
+        // Монетизация (подписки)
+        monetizationSummary: null,
+        monetizationSummaryIsLoading: false,
+        monetizationTopSongs: [],
+        monetizationTopSongsIsLoading: false,
     },
     getters: {
         getStatsTarget(state) { return state.statsTarget },
@@ -77,6 +82,10 @@ export default {
         getWebEvents(state) { return state.webEvents },
         getWebEventsIsLoading(state) { return state.webEventsIsLoading },
         getWebEventsTotalCount(state) { return state.webEventsTotalCount },
+        getMonetizationSummary(state) { return state.monetizationSummary },
+        getMonetizationSummaryIsLoading(state) { return state.monetizationSummaryIsLoading },
+        getMonetizationTopSongs(state) { return state.monetizationTopSongs },
+        getMonetizationTopSongsIsLoading(state) { return state.monetizationTopSongsIsLoading },
     },
     mutations: {
         setStatsTarget(state, target) { state.statsTarget = target },
@@ -108,6 +117,10 @@ export default {
         setWebEvents(state, data) { state.webEvents = data },
         setWebEventsIsLoading(state, v) { state.webEventsIsLoading = v },
         setWebEventsTotalCount(state, v) { state.webEventsTotalCount = v },
+        setMonetizationSummary(state, v) { state.monetizationSummary = v },
+        setMonetizationSummaryIsLoading(state, v) { state.monetizationSummaryIsLoading = v },
+        setMonetizationTopSongs(state, v) { state.monetizationTopSongs = v },
+        setMonetizationTopSongsIsLoading(state, v) { state.monetizationTopSongsIsLoading = v },
     },
     actions: {
         setStatsTarget(ctx, target) { ctx.commit('setStatsTarget', target) },
@@ -201,6 +214,20 @@ export default {
                 ctx.commit('setWebEventsTotalCount', r.totalCount);
                 ctx.commit('setWebEventsIsLoading', false);
             }).catch(e => { console.log(e); ctx.commit('setWebEventsIsLoading', false); });
+        },
+        loadMonetizationSummary(ctx) {
+            ctx.commit('setMonetizationSummaryIsLoading', true);
+            getJson(`/api/stats/monetization?target=${ctx.state.statsTarget}`).then(r => {
+                ctx.commit('setMonetizationSummary', r.summary);
+                ctx.commit('setMonetizationSummaryIsLoading', false);
+            }).catch(e => { console.log(e); ctx.commit('setMonetizationSummaryIsLoading', false); });
+        },
+        loadMonetizationTopSongs(ctx, { limit = 20 } = {}) {
+            ctx.commit('setMonetizationTopSongsIsLoading', true);
+            getJson(`/api/stats/monetization/top-songs?target=${ctx.state.statsTarget}&limit=${limit}`).then(r => {
+                ctx.commit('setMonetizationTopSongs', r.items);
+                ctx.commit('setMonetizationTopSongsIsLoading', false);
+            }).catch(e => { console.log(e); ctx.commit('setMonetizationTopSongsIsLoading', false); });
         },
     }
 }

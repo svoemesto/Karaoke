@@ -575,23 +575,13 @@ export default class KaraokePlayer {
           <div id="kp-progress-wrap" style="flex:1;height:5px;background:#333;border-radius:3px;cursor:pointer;position:relative">
             <div id="kp-progress-bar" style="height:100%;background:#f80;border-radius:3px;width:0%;pointer-events:none"></div>
           </div>
-          <input type="file" id="kp-file-input" accept=".smkaraoke" style="display:none">
-          <div id="kp-menu-wrap" style="position:relative">
-            <button id="kp-menu-btn" title="Меню" style="background:none;border:none;color:#ccc;font-size:16px;cursor:pointer;padding:0 4px">☰</button>
-            <div id="kp-menu" class="kp-menu">
-              <div class="kp-menu-item" id="kp-menu-open"><span>Открыть файл...</span></div>
-              <div class="kp-menu-separator" id="kp-menu-export-separator"></div>
-              <div class="kp-menu-item kp-menu-parent" id="kp-menu-export">
-                <span>Экспорт аудио...</span><span class="kp-menu-arrow">▸</span>
-                <div class="kp-submenu" id="kp-submenu-export">
-                  <div class="kp-menu-item" data-stem="vocals"><span>Голос</span></div>
-                  <div class="kp-menu-item" data-stem="accompaniment"><span>Минусовка</span></div>
-                  <div class="kp-menu-item" data-stem="bass" style="display:none"><span>Бас</span></div>
-                  <div class="kp-menu-item" data-stem="drums" style="display:none"><span>Ударные</span></div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <!-- Меню (☰) целиком убрано из публичного плеера: пункт "Открыть файл..." больше не
+               нужен — публичная монетизация не предоставляет файлы пользователю (см. план
+               монетизации: только онлайн-разблокировка, никаких .smkaraoke наружу), а "Экспорт
+               аудио..." был единственным другим пунктом. #kp-file-input/#kp-menu-wrap намеренно НЕ
+               рендерятся здесь (в отличие от admin-копии webvue3/src/player/KaraokePlayer.js, где
+               меню нужно для работы с локальными файлами) — _buildMenu() ниже безопасно
+               no-op'ает, если #kp-menu-btn не найден. -->
         </div>
       </div>`
 
@@ -607,7 +597,9 @@ export default class KaraokePlayer {
     this.container.querySelector('#kp-widemode').addEventListener('click', () => this._toggleDisplayMode())
     this._updateDisplayModeButton()
     this._updateFullscreenButton()
-    this.container.querySelector('#kp-file-input').addEventListener('change', e => {
+    // #kp-file-input не рендерится в публичном плеере (меню убрано, см. комментарий в шаблоне) —
+    // элемент отсутствует, слушатель просто не вешаем.
+    this.container.querySelector('#kp-file-input')?.addEventListener('change', e => {
       const file = e.target.files[0]
       if (file) this._loadNewFile(file)
     })
@@ -687,6 +679,9 @@ export default class KaraokePlayer {
 
   _buildMenu() {
     const menuBtn = this.container.querySelector('#kp-menu-btn')
+    // Меню целиком убрано из публичного плеера (см. комментарий в шаблоне выше) — no-op, если
+    // разметки нет. Admin-копия (webvue3) рендерит меню и доходит до реальной инициализации ниже.
+    if (!menuBtn) return
     const menu = this.container.querySelector('#kp-menu')
     const exportItem = this.container.querySelector('#kp-menu-export')
     const submenu = this.container.querySelector('#kp-submenu-export')

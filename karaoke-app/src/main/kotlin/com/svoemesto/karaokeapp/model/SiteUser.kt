@@ -42,10 +42,27 @@ class SiteUser(
     @KaraokeDbTableField(name = "is_permanent_premium")
     var isPermanentPremium: Boolean = false
 
+    // Источники срочного премиума (временная ось). Nullable — колонки допускают SQL NULL,
+    // поэтому поле объявлено Timestamp? (инвариант reflection-loader: NPE даёт non-null Kotlin-поле
+    // на nullable колонке, не наоборот). Гашение по истечении срока — без отдельного планировщика,
+    // просто сравнение с now() в isEffectivePremium ниже.
+    @KaraokeDbTableField(name = "sponsr_premium_until")
+    var sponsrPremiumUntil: Timestamp? = null
+
+    @KaraokeDbTableField(name = "site_premium_until")
+    var sitePremiumUntil: Timestamp? = null
+
     // Не БД-поле — единая точка правды для всех проверок премиум-доступа (плеер и т.п.):
-    // is_permanent_premium делает пользователя премиумным всегда, даже если is_premium не выставлен.
+    // is_permanent_premium/is_premium — вечный/ручной грант админа; sponsr_premium_until —
+    // проставляется Sponsr-синхронизацией; site_premium_until — продлевается оплатой подписки на
+    // сайт (в т.ч. автопродлением). Живая проверка срока, не кэшируется.
     val isEffectivePremium: Boolean
-        get() = isPremium || isPermanentPremium
+        get() {
+            val now = System.currentTimeMillis()
+            return isPremium || isPermanentPremium
+                    || (sponsrPremiumUntil?.time?.let { it > now } == true)
+                    || (sitePremiumUntil?.time?.let { it > now } == true)
+        }
 
     // Персональные лимиты (0 = использовать дефолт в PublicPlaylistController). Int безопасен для
     // reflection-loader на SQL NULL (getInt→0), но колонки и так NOT NULL DEFAULT 0.
@@ -90,6 +107,8 @@ class SiteUser(
         isPremium = isPremium,
         isPermanentPremium = isPermanentPremium,
         isEffectivePremium = isEffectivePremium,
+        sponsrPremiumUntil = sponsrPremiumUntil?.toString(),
+        sitePremiumUntil = sitePremiumUntil?.toString(),
         isEditor = isEditor,
         isBanned = isBanned,
         banReason = banReason,
@@ -138,6 +157,24 @@ class SiteUser(
                 storageApiClient = storageApiClient,
             ).map { it as SiteUser }
         }
+
+        // Пользователи, у которых подписка на сайт истекает до указанного момента (включая уже
+        // истёкшую — грейс-период для повторных попыток автосписания после сбоя). Используется
+        // SubscriptionRenewalScheduler (karaoke-web). site_premium_until IS NOT NULL исключает тех,
+        // у кого срочной подписки на сайт вообще нет (только вечный/ручной премиум или её отсутствие).
+        fun loadSitePremiumExpiringBefore(
+            before: Timestamp,
+            database: KaraokeConnection,
+            storageService: KaraokeStorageService,
+            storageApiClient: StorageApiClient,
+        ): List<SiteUser> = KaraokeDbTable.loadList(
+            clazz = SiteUser::class,
+            tableName = TABLE_NAME,
+            whereList = listOf("site_premium_until IS NOT NULL", "site_premium_until < '$before'::timestamp"),
+            database = database,
+            storageService = storageService,
+            storageApiClient = storageApiClient,
+        ).map { it as SiteUser }
 
         fun getSiteUserById(id: Long, database: KaraokeConnection, storageService: KaraokeStorageService, storageApiClient: StorageApiClient): SiteUser? {
             return KaraokeDbTable.loadById(

@@ -48,6 +48,7 @@ fun completeAuth() {
 // созданный контекст вместе с функцией его закрытия (разной для обычного и persistent-контекста).
 private fun runAuthFlow(
     startMessage: String,
+    startUrl: String = "https://music.yandex.ru/",
     createContext: (Playwright) -> Pair<BrowserContext, () -> Unit>,
     onAuthorized: (BrowserContext) -> Unit
 ) {
@@ -64,7 +65,7 @@ private fun runAuthFlow(
             val page = context.pages().firstOrNull() ?: context.newPage()
 
             try {
-                page.navigate("https://music.yandex.ru/")
+                page.navigate(startUrl)
                 println(startMessage)
 
                 authLatch.await() // Блокируется до вызова countDown()
@@ -103,6 +104,34 @@ fun createNewAuthContext() {
                 BrowserContext.StorageStateOptions().setPath(Path.of(YANDEX_AUTH_STATE_PATH))
             )
             println("Состояние сохранено в '$YANDEX_AUTH_STATE_PATH'")
+        }
+    )
+}
+
+// Интерактивный одноразовый вход в Sponsr — вызывать вручную с консоли/REPL admin-машины: залогиниться
+// в открывшемся браузере, затем вызвать completeAuth(). Сохранённая сессия переиспользуется headless
+// в SponsrSyncService.syncViaScraping() (см. SPONSR_AUTH_STATE_PATH). Полный аналог createNewAuthContext()
+// для Яндекс.Музыки, только домен и путь сохранения другие.
+fun createNewSponsrAuthContext() {
+    runAuthFlow(
+        startMessage = "Авторизуйтесь в браузере на sponsr.ru, затем вызовите completeAuth()",
+        startUrl = "https://sponsr.ru/",
+        createContext = { playwright ->
+            val browser = playwright.chromium().launch(
+                BrowserType.LaunchOptions().setHeadless(false)
+            )
+            val context = browser.newContext(
+                Browser.NewContextOptions()
+                    .setLocale("ru-RU")
+                    .setTimezoneId("Europe/Moscow")
+            )
+            context to { browser.close() }
+        },
+        onAuthorized = { context ->
+            context.storageState(
+                BrowserContext.StorageStateOptions().setPath(Path.of(SPONSR_AUTH_STATE_PATH))
+            )
+            println("Состояние сохранено в '$SPONSR_AUTH_STATE_PATH'")
         }
     )
 }

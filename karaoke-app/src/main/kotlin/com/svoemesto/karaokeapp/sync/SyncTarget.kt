@@ -15,6 +15,7 @@ import com.svoemesto.karaokeapp.model.SitePlaylistItem
 import com.svoemesto.karaokeapp.model.SiteUser
 import com.svoemesto.karaokeapp.model.SongAssignment
 import com.svoemesto.karaokeapp.model.SongAssignmentDraft
+import com.svoemesto.karaokeapp.model.Subscription
 import com.svoemesto.karaokeapp.model.WebEvent
 import com.svoemesto.karaokeapp.services.KSS_APP
 import com.svoemesto.karaokeapp.services.SAC_APP
@@ -267,6 +268,19 @@ val PriceTariffsSyncTarget = GenericKaraokeDbTableSyncTarget(
     rowChunkSize = 500,
 )
 
+// Записи создаются платёжным конвейером ЮKassa почти всегда на PROD (webhook в karaoke-web) — как pull
+// пользователей/статистики, а не push с LOCAL.
+val SubscriptionsSyncTarget = GenericKaraokeDbTableSyncTarget(
+    key = "subscriptions",
+    tableName = Subscription.TABLE_NAME,
+    displayName = "Подписки",
+    oneClickDirection = SyncDirection.SERVER_TO_LOCAL,
+    clazz = Subscription::class,
+    labelFn = { "id=${it.id} user=${it.siteUserId} ${it.scope} ${it.status}" },
+    // Лёгкие строки (нет текста/base64) — по 500.
+    rowChunkSize = 500,
+)
+
 object SyncRegistry {
     // Размер пачки для операций УДАЛЕНИЯ на удалённом сервере (зеркальное удаление в цели + move-удаление
     // из источника, оба идут как зашифрованный "DELETE ... WHERE id=X" на /changerecords). Payload одной
@@ -287,6 +301,7 @@ object SyncRegistry {
         SongAssignmentDraftsSyncTarget,
         EventsSyncTarget,
         PriceTariffsSyncTarget,
+        SubscriptionsSyncTarget,
     )
 
     fun byKey(key: String): SyncTarget<*>? = all.find { it.key == key }

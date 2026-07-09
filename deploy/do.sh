@@ -228,36 +228,39 @@ function do_start_webvue() {
   do_stop_webvue
   echo "Старт WEBVUE"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-webvue.yml up -d
-  announce "WEBVUE запущен"
+  announce "Адм+инка зап+ущена"
 }
 
 function do_start_webvue3() {
   do_stop_webvue3
   echo "Старт WEBVUE3"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-webvue3.yml up -d
-  announce "WEBVUE3 запущен"
+  announce "Адм+инка зап+ущена"
 }
 
 function do_stop_webvue() {
   echo "Остановка WEBVUE"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-webvue.yml down
+  announce "Адм+инка остан+овлена"
 }
 
 function do_stop_webvue3() {
   echo "Остановка WEBVUE3"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-webvue3.yml down
+  announce "Адм+инка остан+овлена"
 }
 
 function do_start_public() {
   do_stop_public
   echo "Старт PUBLIC"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-public.yml up -d
-  announce "PUBLIC запущен"
+  announce "Фр+онт с+айта лок+ально зап+ущен"
 }
 
 function do_stop_public() {
   echo "Остановка PUBLIC"
   ${COMPOSE} -f $DEPLOY_DIR/docker-compose-public.yml down
+  announce "Фр+онт с+айта лок+ально остан+овлен"
 }
 
 function do_start_app() {

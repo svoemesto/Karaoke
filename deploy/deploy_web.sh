@@ -16,4 +16,4 @@ echo "=== Pull и restart на сервере ==="
 ssh root@79.174.95.69 "cd Karaoke/deploy && bash do.sh pull_web"
 
 echo "=== Готово ==="
-announce "WEB обновлён на сервере"
+announce "WEB обновлён на сервере" "Конт+эйнер бэк+нда с+айта обновл+ён на с+ервере"

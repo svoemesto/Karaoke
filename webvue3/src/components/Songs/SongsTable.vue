@@ -33,6 +33,7 @@
           :fields="songDigestFields"
           :per-page="perPage"
           :current-page="currentPage"
+          v-model:sort-by="sortBy"
           small
           bordered
           hover
@@ -444,6 +445,7 @@ export default {
     return {
       perPage: 50,
       currentPage: 1,
+      sortBy: [],
       isSongEditVisible: false,
       isSongsFilterVisible: false,
       isSmartCopyVisible: false,
@@ -546,6 +548,7 @@ export default {
       return [
         {
           key: 'id',
+          sortable: true,
           label: 'ID',
           style: {
             minWidth: '50px',
@@ -556,6 +559,7 @@ export default {
         },
         {
           key: 'rootId',
+          sortable: true,
           label: 'root',
           style: {
             minWidth: '50px',
@@ -566,6 +570,7 @@ export default {
         },
         {
           key: 'songName',
+          sortable: true,
           label: 'Композиция',
           style: {
             minWidth: '250px',
@@ -576,6 +581,7 @@ export default {
         },
         {
           key: 'author',
+          sortable: true,
           label: 'Исполнитель',
           style: {
             minWidth: '150px',
@@ -586,6 +592,7 @@ export default {
         },
         {
           key: 'year',
+          sortable: true,
           label: 'Год',
           style: {
             minWidth: '50px',
@@ -596,6 +603,7 @@ export default {
         },
         {
           key: 'album',
+          sortable: true,
           label: 'Альбом',
           style: {
             minWidth: '175px',
@@ -606,6 +614,7 @@ export default {
         },
         {
           key: 'track',
+          sortable: true,
           label: '№',
           style: {
             minWidth: '35px',
@@ -616,6 +625,7 @@ export default {
         },
         {
           key: 'date',
+          sortable: true,
           label: 'Дата',
           style: {
             minWidth: '60px',
@@ -626,6 +636,7 @@ export default {
         },
         {
           key: 'time',
+          sortable: true,
           label: 'Время',
           style: {
             minWidth: '50px',
@@ -636,6 +647,7 @@ export default {
         },
         {
           key: 'tags',
+          sortable: true,
           label: 'Tags',
           style: {
             minWidth: '35px',
@@ -646,6 +658,7 @@ export default {
         },
         {
           key: 'status',
+          sortable: true,
           label: 'Status',
           style: {
             minWidth: '150px',
@@ -656,6 +669,7 @@ export default {
         },
         {
           key: 'countVoices',
+          sortable: true,
           label: 'c',
           style: {
             minWidth: '20px',
@@ -666,6 +680,7 @@ export default {
         },
         {
           key: 'resultVersion',
+          sortable: true,
           label: 'V',
           style: {
             minWidth: '20px',
@@ -676,6 +691,7 @@ export default {
         },
         {
           key: 'timecode',
+          sortable: true,
           label: 't/c',
           style: {
             minWidth: '60px',
@@ -686,6 +702,7 @@ export default {
         },
         {
           key: 'healthReportText',
+          sortable: true,
           label: 'HR',
           style: {
             minWidth: '20px',
@@ -716,6 +733,7 @@ export default {
         },
         {
           key: 'flagSponsr',
+          sortable: true,
           label: 'SP',
           style: {
             minWidth: '20px',
@@ -726,6 +744,7 @@ export default {
         },
         {
           key: 'flagVk',
+          sortable: true,
           label: 'VG',
           style: {
             minWidth: '20px',
@@ -736,6 +755,7 @@ export default {
         },
         {
           key: 'flagDzenLyrics',
+          sortable: true,
           label: 'ZL',
           style: {
             minWidth: '20px',
@@ -746,6 +766,7 @@ export default {
         },
         {
           key: 'flagDzenKaraoke',
+          sortable: true,
           label: 'ZK',
           style: {
             minWidth: '20px',
@@ -756,6 +777,7 @@ export default {
         },
         {
           key: 'flagDzenChords',
+          sortable: true,
           label: 'ZC',
           style: {
             minWidth: '20px',
@@ -766,6 +788,7 @@ export default {
         },
         {
           key: 'flagDzenMelody',
+          sortable: true,
           label: 'ZM',
           style: {
             minWidth: '20px',
@@ -776,6 +799,7 @@ export default {
         },
         {
           key: 'flagVkLyrics',
+          sortable: true,
           label: 'VL',
           style: {
             minWidth: '20px',
@@ -786,6 +810,7 @@ export default {
         },
         {
           key: 'flagVkKaraoke',
+          sortable: true,
           label: 'VK',
           style: {
             minWidth: '20px',
@@ -796,6 +821,7 @@ export default {
         },
         {
           key: 'flagVkChords',
+          sortable: true,
           label: 'VC',
           style: {
             minWidth: '20px',
@@ -806,6 +832,7 @@ export default {
         },
         {
           key: 'flagVkMelody',
+          sortable: true,
           label: 'VM',
           style: {
             minWidth: '20px',
@@ -816,6 +843,7 @@ export default {
         },
         {
           key: 'flagTelegramLyrics',
+          sortable: true,
           label: 'TL',
           style: {
             minWidth: '20px',
@@ -826,6 +854,7 @@ export default {
         },
         {
           key: 'flagTelegramKaraoke',
+          sortable: true,
           label: 'TK',
           style: {
             minWidth: '20px',
@@ -836,6 +865,7 @@ export default {
         },
         {
           key: 'flagTelegramChords',
+          sortable: true,
           label: 'TC',
           style: {
             minWidth: '20px',
@@ -846,6 +876,7 @@ export default {
         },
         {
           key: 'flagTelegramMelody',
+          sortable: true,
           label: 'TM',
           style: {
             minWidth: '20px',
@@ -856,6 +887,7 @@ export default {
         },
         {
           key: 'flagMaxLyrics',
+          sortable: true,
           label: 'ML',
           style: {
             minWidth: '20px',
@@ -866,6 +898,7 @@ export default {
         },
         {
           key: 'flagMaxKaraoke',
+          sortable: true,
           label: 'MK',
           style: {
             minWidth: '20px',
@@ -876,6 +909,7 @@ export default {
         },
         {
           key: 'flagMaxChords',
+          sortable: true,
           label: 'MC',
           style: {
             minWidth: '20px',
@@ -886,6 +920,7 @@ export default {
         },
         {
           key: 'flagMaxMelody',
+          sortable: true,
           label: 'MM',
           style: {
             minWidth: '20px',
@@ -896,6 +931,7 @@ export default {
         },
         {
           key: 'flagExclusive',
+          sortable: true,
           label: 'EX',
           style: {
             minWidth: '20px',
@@ -906,6 +942,7 @@ export default {
         },
         {
           key: 'flagFree',
+          sortable: true,
           label: 'FR',
           style: {
             minWidth: '20px',
@@ -956,6 +993,7 @@ export default {
         // },
         {
           key: 'rate',
+          sortable: true,
           label: 'Rate',
           style: {
             minWidth: '100px',
@@ -1527,6 +1565,25 @@ export default {
   display: flex;
   flex-direction: row;
   align-items: center;
+}
+
+/* Иконка сортировки (bootstrap-vue-next SortIcon) выведена из потока, чтобы клик по заголовку
+   (сортирует так же, как клик по иконке) не менял ширину столбца — она появляется только
+   при наведении на заголовок. */
+.songs-bv-table-body th {
+  position: relative;
+}
+.songs-bv-table-body th svg.bi {
+  position: absolute;
+  right: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0 !important;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+.songs-bv-table-body th:hover svg.bi {
+  opacity: 0.6 !important;
 }
 
 .fld-song-id {

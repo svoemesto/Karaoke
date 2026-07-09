@@ -20,6 +20,7 @@
           :fields="propertyDigestFields"
           :per-page="perPage"
           :current-page="currentPage"
+          v-model:sort-by="sortBy"
           small
           bordered
           hover
@@ -114,6 +115,7 @@ export default {
     return {
       perPage: 50,
       currentPage: 1,
+      sortBy: [],
       isPropertyEditVisible: false,
       isPropertiesFilterVisible: false,
       isCustomConfirmVisible: false,
@@ -147,6 +149,7 @@ export default {
       return [
         {
           key: 'key',
+          sortable: true,
           label: 'KEY',
           style: {
             minWidth: '400px',
@@ -157,6 +160,7 @@ export default {
         },
         {
           key: 'value',
+          sortable: true,
           label: 'Значение',
           style: {
             minWidth: '300px',
@@ -167,6 +171,7 @@ export default {
         },
         {
           key: 'defaultValue',
+          sortable: true,
           label: 'Значение по-умолчанию',
           style: {
             minWidth: '300px',
@@ -177,6 +182,7 @@ export default {
         },
         {
           key: 'description',
+          sortable: true,
           label: 'Описание',
           style: {
             minWidth: '500px',
@@ -187,6 +193,7 @@ export default {
         },
         {
           key: 'type',
+          sortable: true,
           label: 'Тип',
           style: {
             minWidth: '120px',
@@ -279,6 +286,21 @@ export default {
 
 .properties-bv-table-body {
   width: fit-content;
+}
+.properties-bv-table-body th {
+  position: relative;
+}
+.properties-bv-table-body th svg.bi {
+  position: absolute;
+  right: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0 !important;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+.properties-bv-table-body th:hover svg.bi {
+  opacity: 0.6 !important;
 }
 
 .properties-bv-table-footer {

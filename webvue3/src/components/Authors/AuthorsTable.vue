@@ -20,6 +20,7 @@
           :fields="authorDigestFields"
           :per-page="perPage"
           :current-page="currentPage"
+          v-model:sort-by="sortBy"
           small
           bordered
           hover
@@ -174,6 +175,7 @@ export default {
     return {
       perPage: 19,
       currentPage: 1,
+      sortBy: [],
       isAuthorEditVisible: false,
       isPictureEditVisible: false,
       isAuthorsFilterVisible: false,
@@ -218,6 +220,7 @@ export default {
         },
         {
           key: 'id',
+          sortable: true,
           label: 'ID',
           style: {
             minWidth: '50px',
@@ -228,6 +231,7 @@ export default {
         },
         {
           key: 'author',
+          sortable: true,
           label: 'Автор',
           style: {
             minWidth: '300px',
@@ -238,6 +242,7 @@ export default {
         },
         {
           key: 'ymId',
+          sortable: true,
           label: 'Yandex ID',
           style: {
             minWidth: '100px',
@@ -248,6 +253,7 @@ export default {
         },
         {
           key: 'lastAlbumYm',
+          sortable: true,
           label: 'Последний альбом (Yandex)',
           style: {
             minWidth: '300px',
@@ -258,6 +264,7 @@ export default {
         },
         {
           key: 'vkId',
+          sortable: true,
           label: 'VK ID',
           style: {
             minWidth: '100px',
@@ -268,6 +275,7 @@ export default {
         },
         {
           key: 'lastAlbumVk',
+          sortable: true,
           label: 'Последний альбом (VK)',
           style: {
             minWidth: '300px',
@@ -278,6 +286,7 @@ export default {
         },
         {
           key: 'lastAlbumProcessed',
+          sortable: true,
           label: 'Последний альбом (DB)',
           style: {
             minWidth: '300px',
@@ -288,6 +297,7 @@ export default {
         },
         {
           key: 'watched',
+          sortable: true,
           label: 'Watch',
           style: {
             minWidth: '50px',
@@ -298,6 +308,7 @@ export default {
         },
         {
           key: 'skip',
+          sortable: true,
           label: 'Skip',
           style: {
             minWidth: '50px',
@@ -308,6 +319,7 @@ export default {
         },
         {
           key: 'haveNewAlbum',
+          sortable: true,
           label: 'New Album',
           style: {
             minWidth: '50px',
@@ -489,6 +501,21 @@ export default {
 
 .authors-bv-table-body {
   width: fit-content;
+}
+.authors-bv-table-body th {
+  position: relative;
+}
+.authors-bv-table-body th svg.bi {
+  position: absolute;
+  right: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0 !important;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+.authors-bv-table-body th:hover svg.bi {
+  opacity: 0.6 !important;
 }
 
 .authors-bv-table-footer {

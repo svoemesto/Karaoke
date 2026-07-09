@@ -39,9 +39,10 @@
 
     <div class="set-table-body">
       <b-table
-          :items="digest"
+          :items="sortedDigest"
           :busy="isBusy"
           :fields="fields"
+          v-model:sort-by="sortBy"
           small bordered hover
           @row-clicked="onRowClicked"
       >
@@ -75,17 +76,24 @@ const STATUS_LABELS = {
   approved: 'Одобрено', rejected: 'Отклонено',
 };
 
+const STATUS_ORDER = {
+  submitted: 0, in_progress: 1, assigned: 2, approved: 3, rejected: 4,
+};
+
 export default {
   name: "SongEditorTable",
   components: { AssignModal, ReviewModal, BSpinner, BTable },
   data() {
     return {
-      isBusy: false, filterStatus: '', filterAssigneeId: '', filterAuthor: '',
+      isBusy: false, sortBy: [], filterStatus: '', filterAssigneeId: '', filterAuthor: '',
       isAssignVisible: false, isReviewVisible: false, dictAuthors: [],
     }
   },
   computed: {
     digest() { return this.$store.getters.getAssignmentsDigest || [] },
+    sortedDigest() {
+      return [...this.digest].sort((a, b) => (STATUS_ORDER[a.status] ?? 99) - (STATUS_ORDER[b.status] ?? 99));
+    },
     editorSiteUsers() { return this.$store.getters.getEditorSiteUsers || [] },
     target: {
       get() { return this.$store.getters.getAssignmentsTarget },
@@ -98,11 +106,13 @@ export default {
     isRemoteView() { return this.target === 'remote' },
     fields() {
       return [
-        { key: 'id', label: 'ID', style: { minWidth: '50px', maxWidth: '50px', textAlign: 'center', fontSize: 'small' } },
-        { key: 'songName', label: 'Песня', style: { minWidth: '220px', textAlign: 'left', fontSize: 'small' } },
-        { key: 'author', label: 'Автор', style: { minWidth: '160px', textAlign: 'left', fontSize: 'small' } },
-        { key: 'assigneeName', label: 'Исполнитель', style: { minWidth: '160px', textAlign: 'left', fontSize: 'small' } },
-        { key: 'status', label: 'Статус', style: { minWidth: '110px', maxWidth: '110px', textAlign: 'center', fontSize: 'small' } },
+        { key: 'id', sortable: true, label: 'ID', style: { minWidth: '50px', maxWidth: '50px', textAlign: 'center', fontSize: 'small' } },
+        { key: 'author', sortable: true, label: 'Автор', style: { minWidth: '160px', textAlign: 'left', fontSize: 'small' } },
+        { key: 'year', sortable: true, label: 'Год', style: { minWidth: '60px', maxWidth: '60px', textAlign: 'center', fontSize: 'small' } },
+        { key: 'album', sortable: true, label: 'Альбом', style: { minWidth: '160px', textAlign: 'left', fontSize: 'small' } },
+        { key: 'songName', sortable: true, label: 'Песня', style: { minWidth: '220px', textAlign: 'left', fontSize: 'small' } },
+        { key: 'assigneeName', sortable: true, label: 'Редактор', style: { minWidth: '160px', textAlign: 'center', fontSize: 'small' } },
+        { key: 'status', sortable: true, label: 'Статус', style: { minWidth: '110px', maxWidth: '110px', textAlign: 'center', fontSize: 'small' } },
         { key: 'actions', label: '', style: { minWidth: '160px', maxWidth: '160px', textAlign: 'center', fontSize: 'small' } },
       ]
     }
@@ -162,6 +172,17 @@ export default {
   border: 1px solid #f2dd9a; border-radius: 8px; padding: 0.5rem 0.75rem; margin-bottom: 8px;
 }
 .set-table-body { width: fit-content; }
+.set-table-body :deep(th) { position: relative; }
+.set-table-body :deep(th svg.bi) {
+  position: absolute;
+  right: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0 !important;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+.set-table-body :deep(th:hover svg.bi) { opacity: 0.6 !important; }
 .set-table-footer { margin-top: 6px; font-size: small; color: gray; }
 .set-badge { font-size: 0.72rem; font-weight: 700; border-radius: 20px; padding: 0.12rem 0.55rem; }
 .set-badge-assigned { background: #e2e6ea; color: #5a6570; }

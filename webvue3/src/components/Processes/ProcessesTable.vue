@@ -20,6 +20,7 @@
           :fields="processDigestFields"
           :per-page="perPage"
           :current-page="currentPage"
+          v-model:sort-by="sortBy"
           small
           bordered
           hover
@@ -177,6 +178,7 @@ export default {
     return {
       perPage: 50,
       currentPage: 1,
+      sortBy: [],
       isProcessEditVisible: false,
       isProcessesFilterVisible: false,
       isCustomConfirmVisible: false,
@@ -209,6 +211,7 @@ export default {
       return [
         {
           key: 'id',
+          sortable: true,
           label: 'ID',
           style: {
             minWidth: '50px',
@@ -219,6 +222,7 @@ export default {
         },
         {
           key: 'threadId',
+          sortable: true,
           label: 'thId',
           style: {
             minWidth: '50px',
@@ -229,6 +233,7 @@ export default {
         },
         {
           key: 'name',
+          sortable: true,
           label: 'Имя',
           style: {
             minWidth: '400px',
@@ -239,6 +244,7 @@ export default {
         },
         {
           key: 'status',
+          sortable: true,
           label: 'Статус',
           style: {
             minWidth: '90px',
@@ -249,6 +255,7 @@ export default {
         },
         {
           key: 'priority',
+          sortable: true,
           label: 'Prior',
           style: {
             minWidth: '50px',
@@ -259,6 +266,7 @@ export default {
         },
         {
           key: 'description',
+          sortable: true,
           label: 'Описание',
           style: {
             minWidth: '200px',
@@ -269,6 +277,7 @@ export default {
         },
         {
           key: 'type',
+          sortable: true,
           label: 'Тип',
           style: {
             minWidth: '120px',
@@ -279,6 +288,7 @@ export default {
         },
         {
           key: 'startStr',
+          sortable: true,
           label: 'Начало',
           style: {
             minWidth: '120px',
@@ -289,6 +299,7 @@ export default {
         },
         {
           key: 'endStr',
+          sortable: true,
           label: 'Конец',
           style: {
             minWidth: '120px',
@@ -299,6 +310,7 @@ export default {
         },
         {
           key: 'percentageStr',
+          sortable: true,
           label: '%',
           style: {
             minWidth: '70px',
@@ -309,6 +321,7 @@ export default {
         },
         {
           key: 'timePassedStr',
+          sortable: true,
           label: 'Pass',
           style: {
             minWidth: '50px',
@@ -319,6 +332,7 @@ export default {
         },
         {
           key: 'timeLeftStr',
+          sortable: true,
           label: 'Left',
           style: {
             minWidth: '50px',
@@ -378,6 +392,21 @@ export default {
 
 .processes-bv-table-body {
   width: fit-content;
+}
+.processes-bv-table-body th {
+  position: relative;
+}
+.processes-bv-table-body th svg.bi {
+  position: absolute;
+  right: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0 !important;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+.processes-bv-table-body th:hover svg.bi {
+  opacity: 0.6 !important;
 }
 
 .processes-bv-table-footer {

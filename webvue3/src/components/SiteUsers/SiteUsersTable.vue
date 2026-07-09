@@ -186,6 +186,17 @@ export default {
 .sut-btn:hover { background-color: lightpink; }
 .sut-table-header { width: fit-content; }
 .sut-table-body { width: fit-content; }
+.sut-table-body :deep(th) { position: relative; }
+.sut-table-body :deep(th svg.bi) {
+  position: absolute;
+  right: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0 !important;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+.sut-table-body :deep(th:hover svg.bi) { opacity: 0.6 !important; }
 .sut-table-footer { margin-top: 6px; font-size: small; color: gray; }
 .fld-email {
   font-size: small;

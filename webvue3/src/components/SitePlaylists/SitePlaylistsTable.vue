@@ -25,6 +25,7 @@
           :fields="fields"
           :per-page="perPage"
           :current-page="currentPage"
+          v-model:sort-by="sortBy"
           small bordered hover
           @row-clicked="onRowClicked"
       >
@@ -57,7 +58,7 @@ export default {
   name: "SitePlaylistsTable",
   components: { SitePlaylistDetailModal, BPagination, BSpinner, BTable },
   data() {
-    return { perPage: 19, currentPage: 1, isBusy: false, isDetailVisible: false, filterOwnerId: null }
+    return { perPage: 19, currentPage: 1, sortBy: [], isBusy: false, isDetailVisible: false, filterOwnerId: null }
   },
   watch: {
     digestIsLoading() { this.isBusy = this.digestIsLoading }
@@ -72,13 +73,13 @@ export default {
     },
     fields() {
       return [
-        { key: 'id', label: 'ID', style: { minWidth: '50px', maxWidth: '50px', textAlign: 'center', fontSize: 'small' } },
-        { key: 'name', label: 'Плейлист', style: { minWidth: '220px', maxWidth: '220px', textAlign: 'left', fontSize: 'small' } },
-        { key: 'favorites', label: 'Избр.', style: { minWidth: '50px', maxWidth: '50px', textAlign: 'center', fontSize: 'small' } },
-        { key: 'itemsCount', label: 'Песен', style: { minWidth: '70px', maxWidth: '70px', textAlign: 'center', fontSize: 'small' } },
-        { key: 'ownerEmail', label: 'Владелец (email)', style: { minWidth: '240px', maxWidth: '240px', textAlign: 'left', fontSize: 'small' } },
-        { key: 'ownerName', label: 'Имя владельца', style: { minWidth: '160px', maxWidth: '160px', textAlign: 'left', fontSize: 'small' } },
-        { key: 'ownerId', label: 'owner id', style: { minWidth: '70px', maxWidth: '70px', textAlign: 'center', fontSize: 'small' } },
+        { key: 'id', sortable: true, label: 'ID', style: { minWidth: '50px', maxWidth: '50px', textAlign: 'center', fontSize: 'small' } },
+        { key: 'name', sortable: true, label: 'Плейлист', style: { minWidth: '220px', maxWidth: '220px', textAlign: 'left', fontSize: 'small' } },
+        { key: 'favorites', sortable: true, label: 'Избр.', style: { minWidth: '50px', maxWidth: '50px', textAlign: 'center', fontSize: 'small' } },
+        { key: 'itemsCount', sortable: true, label: 'Песен', style: { minWidth: '70px', maxWidth: '70px', textAlign: 'center', fontSize: 'small' } },
+        { key: 'ownerEmail', sortable: true, label: 'Владелец (email)', style: { minWidth: '240px', maxWidth: '240px', textAlign: 'left', fontSize: 'small' } },
+        { key: 'ownerName', sortable: true, label: 'Имя владельца', style: { minWidth: '160px', maxWidth: '160px', textAlign: 'left', fontSize: 'small' } },
+        { key: 'ownerId', sortable: true, label: 'owner id', style: { minWidth: '70px', maxWidth: '70px', textAlign: 'center', fontSize: 'small' } },
       ]
     }
   },
@@ -108,6 +109,17 @@ export default {
 .spt-btn { border: solid 1px black; border-radius: 6px; padding: 4px 10px; background-color: antiquewhite; cursor: pointer; }
 .spt-btn:hover { background-color: lightpink; }
 .spt-table-header, .spt-table-body { width: fit-content; }
+.spt-table-body :deep(th) { position: relative; }
+.spt-table-body :deep(th svg.bi) {
+  position: absolute;
+  right: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0 !important;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+.spt-table-body :deep(th:hover svg.bi) { opacity: 0.6 !important; }
 .spt-table-footer { margin-top: 6px; font-size: small; color: gray; }
 .fld-name { font-size: small; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .fld-name:hover { text-decoration: underline; cursor: pointer; }

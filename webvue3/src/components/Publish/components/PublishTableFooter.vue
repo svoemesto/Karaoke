@@ -51,7 +51,6 @@ export default {
     this.$store.dispatch('setPublishFilterDateFrom', { value: await this.$store.getters.getWebvueProp('publishFilterDateFrom', '') });
     this.$store.dispatch('setPublishFilterDateTo', { value: await this.$store.getters.getWebvueProp('publishFilterDateTo', '') });
     this.$store.dispatch('setPublishFilterDays', { value: await this.$store.getters.getWebvueProp('publishFilterDays', 90) });
-    if (this.publishDateFrom && this.publishDateTo) this.clickReload();
   },
   computed: {
     publishDateFrom: {

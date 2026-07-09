@@ -20,6 +20,7 @@
           :fields="pictureDigestFields"
           :per-page="perPage"
           :current-page="currentPage"
+          v-model:sort-by="sortBy"
           small
           bordered
           hover
@@ -113,6 +114,7 @@ export default {
     return {
       perPage: 19,
       currentPage: 1,
+      sortBy: [],
       isPictureEditVisible: false,
       isPicturesFilterVisible: false,
       isCustomConfirmVisible: false,
@@ -156,6 +158,7 @@ export default {
         },
         {
           key: 'id',
+          sortable: true,
           label: 'ID',
           style: {
             minWidth: '50px',
@@ -166,6 +169,7 @@ export default {
         },
         {
           key: 'name',
+          sortable: true,
           label: 'Имя',
           style: {
             minWidth: '500px',
@@ -226,6 +230,21 @@ export default {
 
 .pictures-bv-table-body {
   width: fit-content;
+}
+.pictures-bv-table-body th {
+  position: relative;
+}
+.pictures-bv-table-body th svg.bi {
+  position: absolute;
+  right: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0 !important;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+.pictures-bv-table-body th:hover svg.bi {
+  opacity: 0.6 !important;
 }
 
 .pictures-bv-table-footer {

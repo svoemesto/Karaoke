@@ -26,6 +26,8 @@ import sync from '../components/Sync/store'
 import tariffs from '../components/Tariffs/store'
 import promotions from '../components/Promotions/store'
 import sponsrSync from '../components/SponsrSync/store'
+import dictionaries from '../components/Dictionaries/store'
+import dictionariesFilter from '../components/Dictionaries/filter/store'
 import { useToast } from 'bootstrap-vue-next'
 
 export default createStore({
@@ -49,6 +51,7 @@ export default createStore({
     tariffs,
     promotions,
     sponsrSync,
+    dictionaries,
     songFilter,
     smartCopy,
     healthReport,
@@ -58,6 +61,7 @@ export default createStore({
     authorsFilter,
     picturesFilter,
     publishFilter,
+    dictionariesFilter,
   },
 
   state: {

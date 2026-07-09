@@ -15,6 +15,7 @@
             <li class="nav-item"><router-link class="nav-link" to="/pictures">Картинки</router-link></li>
             <li class="nav-item"><router-link class="nav-link" to="/processes">Процессы</router-link></li>
             <li class="nav-item"><router-link class="nav-link" to="/properties">Настройки</router-link></li>
+            <li class="nav-item"><router-link class="nav-link" to="/dictionaries">Словари</router-link></li>
             <li class="nav-item"><router-link class="nav-link" to="/siteusers">Пользователи сайта</router-link></li>
             <li class="nav-item"><router-link class="nav-link" to="/siteplaylists">Плейлисты</router-link></li>
             <li class="nav-item"><router-link class="nav-link" to="/songeditor">Задания редактора</router-link></li>

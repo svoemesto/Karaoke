@@ -6,6 +6,7 @@ data class SettingsPublicDto(
     val id: Long,
     val songName: String,
     val author: String,
+    val authorAlias: String = "",
     val album: String,
     val year: Long,
     val track: Long,

@@ -9,6 +9,9 @@ import com.svoemesto.karaokeapp.services.KaraokeStorageService
 import com.svoemesto.karaokeapp.services.SAC_APP
 import com.svoemesto.karaokeapp.services.StorageApiClient
 import java.io.Serializable
+import java.sql.SQLException
+import java.sql.Timestamp
+import java.time.Instant
 
 @JsonIgnoreProperties(value = ["database", "sqlToInsert"])
 class Author(
@@ -46,6 +49,9 @@ class Author(
     @KaraokeDbTableField(name = "skip")
     var skip: Boolean = false
 
+    @KaraokeDbTableField(name = "aliases")
+    var aliases: String = ""
+
     val haveNewAlbum: Boolean get() = watched && (ymId != "" || vkId != "") && (lastAlbumYm != lastAlbumProcessed || lastAlbumVk != lastAlbumProcessed)
     override fun compareTo(other: Author): Int {
         return author.compareTo(other.author)
@@ -73,6 +79,7 @@ class Author(
                 lastAlbumProcessed = lastAlbumProcessed,
                 watched = watched,
                 skip = skip,
+                aliases = aliases,
                 haveNewAlbum = haveNewAlbum,
                 pictureId = pictureId,
                 picturePreview = "",
@@ -193,5 +200,42 @@ class Author(
                 ignoreUseInList = true
             ).firstOrNull()
         }
+
+        /**
+         * Ищет авторов, у которых term совпадает с реальным именем ЛИБО с одним из алиасов
+         * (солист/участник группы). Лёгкий raw-SELECT только по tbl_authors — безопасно
+         * вызывать и из karaoke-web (не создаёт полноценных сущностей Author, не трогает storage).
+         * matchedAliases в результате — только те алиасы, по которым term реально совпал
+         * (пусто, если совпадение произошло по самому имени автора).
+         */
+        fun resolveByTerm(term: String, database: KaraokeConnection): List<AuthorAliasMatch> {
+            val result: MutableList<AuthorAliasMatch> = mutableListOf()
+            val termLower = term.trim().lowercase()
+            if (termLower.isEmpty()) return result
+
+            val connection = database.getConnection() ?: return result
+            val sql = "SELECT author, aliases FROM $TABLE_NAME WHERE LOWER(author) = ? OR LOWER(aliases) LIKE ?"
+            try {
+                connection.prepareStatement(sql).use { ps ->
+                    ps.setString(1, termLower)
+                    ps.setString(2, "%$termLower%")
+                    ps.executeQuery().use { rs ->
+                        while (rs.next()) {
+                            val authorName = rs.getString("author") ?: continue
+                            val aliasesRaw = rs.getString("aliases") ?: ""
+                            val matched = aliasesRaw.split(";")
+                                .map { it.trim() }
+                                .filter { it.isNotEmpty() && it.lowercase().contains(termLower) }
+                            result.add(AuthorAliasMatch(author = authorName, matchedAliases = matched))
+                        }
+                    }
+                }
+            } catch (e: SQLException) {
+                println("[${Timestamp.from(Instant.now())}] Author.resolveByTerm SQLException: ${e.message}")
+            }
+            return result
+        }
     }
 }
+
+data class AuthorAliasMatch(val author: String, val matchedAliases: List<String>)

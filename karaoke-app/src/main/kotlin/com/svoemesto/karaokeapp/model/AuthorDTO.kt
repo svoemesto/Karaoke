@@ -13,6 +13,7 @@ data class AuthorDTO(
         val lastAlbumProcessed: String,
         val watched: Boolean,
         val skip: Boolean,
+        val aliases: String = "",
         val haveNewAlbum: Boolean,
         val pictureId: Long = 0,
         val picturePreview: String = "",
@@ -33,6 +34,7 @@ data class AuthorDTO(
         entity.lastAlbumProcessed = lastAlbumProcessed
         entity.watched = watched
         entity.skip = skip
+        entity.aliases = aliases
         return entity
     }
 }

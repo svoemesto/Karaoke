@@ -3470,7 +3470,8 @@ class ApiController(
         @RequestParam(required = true) lastAlbumVk: String?,
         @RequestParam(required = true) lastAlbumProcessed: String,
         @RequestParam(required = true) watched: Boolean,
-        @RequestParam(required = true) skip: Boolean
+        @RequestParam(required = true) skip: Boolean,
+        @RequestParam(required = false) aliases: String?
     ): Long {
 
         Author.getAuthorById(id = id, database = WORKING_DATABASE, storageService = storageService, storageApiClient = storageApiClient)?.let {
@@ -3482,6 +3483,7 @@ class ApiController(
             it.lastAlbumProcessed = lastAlbumProcessed
             it.watched = watched
             it.skip = skip
+            aliases?.let { a -> it.aliases = a }
             it.save()
             return id
         }

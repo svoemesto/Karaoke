@@ -29,6 +29,7 @@
               v-model="form.author"
               class="km-input"
               placeholder="Введите имя..."
+              @keyup.enter="onSearch"
             />
             <datalist id="list_authors">
               <option v-for="a in authors" :key="a" :value="a" />
@@ -36,7 +37,7 @@
           </div>
           <div class="km-field">
             <label class="km-label">Название</label>
-            <input v-model="form.songName" class="km-input" placeholder="Название песни..." />
+            <input v-model="form.songName" class="km-input" placeholder="Название песни..." @keyup.enter="onSearch" />
           </div>
           <div class="km-field">
             <label class="km-label">Слова</label>
@@ -53,9 +54,9 @@
       <div v-else-if="searchResults.length" class="km-table-wrap">
         <table class="km-table">
           <colgroup>
-            <col style="width: 110px" />
+            <col style="width: 190px" />
             <col style="width: 38px" />
-            <col style="width: 120px" />
+            <col style="width: 180px" />
             <col style="width: 26px" />
             <col />
             <col style="width: 220px" />
@@ -77,7 +78,7 @@
           </thead>
           <tbody>
             <tr v-for="sett in searchResults" :key="sett.id" class="km-tr">
-              <td class="km-td">{{ sett.author }}</td>
+              <td class="km-td">{{ sett.author }}<span v-if="sett.authorAlias" class="km-alias"> ({{ sett.authorAlias }})</span></td>
               <td class="km-td km-td-center">{{ sett.year }}</td>
               <td class="km-td">{{ sett.album }}</td>
               <td class="km-td km-td-center km-track">{{ sett.track }}</td>
@@ -118,7 +119,7 @@
       <div v-if="!searchIsLoading && searchResults.length" class="km-cards">
         <div v-for="sett in searchResults" :key="sett.id" class="km-card">
           <div class="km-card-meta">
-            <span class="km-card-author">{{ sett.author }}</span>
+            <span class="km-card-author">{{ sett.author }}<span v-if="sett.authorAlias" class="km-alias"> ({{ sett.authorAlias }})</span></span>
             <span class="km-card-year">{{ sett.year }}</span>
             <span class="km-card-album">{{ sett.album }}</span>
           </div>
@@ -432,6 +433,7 @@ export default {
 .km-tr:hover .km-td { background: var(--km-hover); }
 .km-td-center { text-align: center; }
 .km-td-name { text-align: left; }
+.km-alias { font-style: italic; font-size: 0.82em; color: var(--km-text2); }
 .km-td-date { text-align: right; color: var(--km-text2); font-size: 0.78rem; white-space: nowrap; }
 .km-date-text { margin-right: 5px; vertical-align: middle; }
 .km-track { color: var(--km-text2); }

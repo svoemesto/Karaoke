@@ -4173,6 +4173,11 @@ class Settings(
     companion object {
         const val TABLE_NAME = "tbl_settings"
 
+        // Разделитель для ключа "author_in" в getWhereList (поиск песен по НАБОРУ имён авторов —
+        // используется при резолвинге алиаса автора в реальные имена, см. Author.resolveByTerm).
+        // Управляющий символ, а не ';'/','/пробел, чтобы не пересечься с символами в именах авторов.
+        const val AUTHOR_IN_DELIMITER = "\u0001"
+
         // Автоматизация публикации в Telegram (TelegramUpdatesConsumer): сопоставление вышедшего
         // channel_post с песней/версией по СОДЕРЖИМОМУ поста, без отдельного маркера. Каждый пост,
         // подготовленный через getDescriptionTelegramHeader(), уже содержит ссылку на страницу песни
@@ -4667,6 +4672,17 @@ class Settings(
             if (args.containsKey("song_name")) where += "LOWER(song_name) LIKE '%${args["song_name"]?.rightFileName()?.lowercase()}%'"
             if (args.containsKey("song_author")) where += "LOWER(song_author) LIKE '%${args["song_author"]?.rightFileName()?.lowercase()}%'"
             if (args.containsKey("author")) where += "LOWER(song_author) = '${args["author"]?.rightFileName()?.lowercase()}'"
+            if (args.containsKey("author_in")) {
+                // Поиск песен по набору реальных имён авторов — используется, когда пользователь ищет
+                // по алиасу (солист/участник группы); набор имён приходит уже резолвленным через
+                // Author.resolveByTerm (см. PublicApiController в karaoke-web).
+                val names = args["author_in"]!!.split(AUTHOR_IN_DELIMITER).filter { it.isNotBlank() }
+                where += if (names.isNotEmpty()) {
+                    "LOWER(song_author) IN (${names.joinToString(",") { "'${it.rightFileName().lowercase()}'" }})"
+                } else {
+                    "1=0"
+                }
+            }
             if (args.containsKey("song_album")) where += "LOWER(song_album) LIKE '%${args["song_album"]?.rightFileName()?.lowercase()}%'"
             if (args.containsKey("album")) where += "LOWER(song_album) = '${args["album"]?.rightFileName()?.lowercase()}'"
 

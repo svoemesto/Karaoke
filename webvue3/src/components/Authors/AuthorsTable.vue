@@ -3,6 +3,7 @@
     <PictureEditModal v-if="isPictureEditVisible" @close="closePictureEdit"/>
     <AuthorsFilter v-if="isAuthorsFilterVisible" @close="closeAuthorsFilter"/>
     <custom-confirm v-if="isCustomConfirmVisible" :params="customConfirmParams" @close="closeCustomConfirm" />
+    <AuthorAliasesModal v-if="isAuthorAliasesVisible" :author-id="aliasesAuthorId" @close="closeAuthorAliases"/>
     <div class="authors-bv-table-header">
       <b-pagination
           v-model="currentPage"
@@ -139,7 +140,14 @@
               :style="{ color: currentAuthorId === data.item.id ? 'blue' : 'black' }"
           ></div>
         </template>
-        
+
+        <template #cell(aliases)="data">
+          <div
+              class="fld-aliases"
+              v-text="aliasesSummary(data.value)"
+              @click.left="editAliases(data.item)"
+          ></div>
+        </template>
 
       </b-table>
     </div>
@@ -160,12 +168,14 @@ import { BPagination, BSpinner, BTable } from 'bootstrap-vue-next'
 import AuthorsFilter from "../../components/Authors/filter/AuthorsFilterModal.vue";
 import CustomConfirm from "../Common/CustomConfirm.vue";
 import PictureEditModal from "../../components/Pictures/edit/PictureEditModal.vue";
+import AuthorAliasesModal from "./AuthorAliasesModal.vue";
 
 export default {
   name: "AuthorsTable",
   components: {
     AuthorsFilter,
     PictureEditModal,
+    AuthorAliasesModal,
     CustomConfirm,
     BPagination,
     BSpinner,
@@ -180,6 +190,8 @@ export default {
       isPictureEditVisible: false,
       isAuthorsFilterVisible: false,
       isCustomConfirmVisible: false,
+      isAuthorAliasesVisible: false,
+      aliasesAuthorId: null,
       customConfirmParams: undefined,
       isBusy: false,
       currentAuthorId: '',
@@ -327,6 +339,17 @@ export default {
             textAlign: 'left',
             fontSize: 'small'
           }
+        },
+        {
+          key: 'aliases',
+          sortable: true,
+          label: 'Алиасы',
+          style: {
+            minWidth: '250px',
+            maxWidth: '250px',
+            textAlign: 'left',
+            fontSize: 'small'
+          }
         }
       ]
     }
@@ -453,6 +476,20 @@ export default {
 
     closeCustomConfirm() {
       this.isCustomConfirmVisible = false;
+    },
+
+    aliasesSummary(aliases) {
+      if (!aliases) return '—';
+      return aliases.split(';').map(a => a.trim()).filter(a => a.length > 0).join(', ') || '—';
+    },
+
+    editAliases(item) {
+      this.aliasesAuthorId = item.id;
+      this.isAuthorAliasesVisible = true;
+    },
+
+    closeAuthorAliases() {
+      this.isAuthorAliasesVisible = false;
     },
 
     editAuthor(key) {
@@ -628,6 +665,20 @@ export default {
   font-size: small;
   white-space: nowrap;
   overflow: hidden;
+}
+
+.fld-aliases {
+  min-width: 250px;
+  max-width: 250px;
+  text-align: left;
+  font-size: small;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fld-aliases:hover {
+  text-decoration: underline;
+  cursor: pointer;
 }
 
 .fld-picture-preview {

@@ -16,7 +16,8 @@ BEGIN
         COALESCE(NEW.last_album_vk, '') ||
         COALESCE(NEW.last_album_processed, '') ||
         COALESCE(NEW.watched::TEXT, '') ||
-        COALESCE(NEW.skip::TEXT, '')
+        COALESCE(NEW.skip::TEXT, '') ||
+        COALESCE(NEW.aliases, '')
     );
     RETURN NEW;
 END;
@@ -38,5 +39,6 @@ SET recordhash = md5(
     COALESCE(last_album_vk, '') ||
     COALESCE(last_album_processed, '') ||
     COALESCE(watched::TEXT, '') ||
-    COALESCE(skip::TEXT, '')
+    COALESCE(skip::TEXT, '') ||
+    COALESCE(aliases, '')
 ) WHERE id > 0;

@@ -12,5 +12,6 @@ enum class SseNotificationType(val value: String) {
     LOG("log"),
     CRUD("crud"),
     SYNC("sync"),
-    HEALTH_REPORTS("healthReports")
+    HEALTH_REPORTS("healthReports"),
+    MONITOR_ALERTS("monitorAlerts")
 }

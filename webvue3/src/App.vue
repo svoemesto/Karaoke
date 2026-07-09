@@ -36,6 +36,7 @@
             <div class="start-stop-and-limit-group">
               <ProcessWorker :hideButton="false" :includedThreadId="[0]"></ProcessWorker>
               <ResourceLimitToggle></ResourceLimitToggle>
+              <MonitorLight></MonitorLight>
             </div>
           </div>
           <router-view/>
@@ -50,6 +51,7 @@ import { useRoute } from 'vue-router'
 import ProcessWorker from "./components/Common/ProcessWorker.vue";
 import BackendConsole from "./components/Common/BackendConsole.vue";
 import ResourceLimitToggle from "./components/Common/ResourceLimitToggle.vue";
+import MonitorLight from "./components/Common/Monitor/MonitorLight.vue";
 import {BApp} from 'bootstrap-vue-next';
 const route = useRoute()
 </script>
@@ -130,6 +132,7 @@ export default {
         case 'CRUD': { this.crudMessageByUserEvent(userEvent.data, create); break; }
         case 'SYNC': { this.syncMessageByUserEvent(userEvent.data, create); break; }
         case 'HEALTH_REPORTS': { this.healthReportMessageByUserEvent(userEvent.data); break; }
+        case 'MONITOR_ALERTS': { this.$store.dispatch('monitorAlertsByUserEvent', userEvent.data); break; }
         default: { console.log("Неизвестный тип события: ", userEvent.type); }
       }
     },

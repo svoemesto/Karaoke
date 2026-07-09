@@ -1,6 +1,7 @@
 package com.svoemesto.karaokeapp.model
 
 import com.svoemesto.karaokeapp.HealthReportDTO
+import com.svoemesto.karaokeapp.monitor.MonitorAlertDto
 
 
 data class SseNotification(
@@ -43,6 +44,9 @@ data class SseNotification(
         }
         fun healthReports(settingsId: Long, healthReportDtoList: List<HealthReportDTO>): SseNotification {
             return SseNotification(SseNotificationType.HEALTH_REPORTS, mapOf( "settingsId" to settingsId, "healthReportDtoList" to healthReportDtoList))
+        }
+        fun monitorAlerts(alerts: List<MonitorAlertDto>): SseNotification {
+            return SseNotification(SseNotificationType.MONITOR_ALERTS, alerts)
         }
     }
 }

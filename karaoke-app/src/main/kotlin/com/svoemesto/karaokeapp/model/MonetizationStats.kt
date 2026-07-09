@@ -88,11 +88,11 @@ object MonetizationStats {
         val result = mutableListOf<TopSubscribedSongDto>()
         val connection = database.getConnection() ?: return emptyList()
         val sql = """
-            select s.id_song, st.song_name, st.author, count(*) as cnt, coalesce(sum(s.final_price), 0) as revenue
+            select s.id_song, st.song_name, st.song_author, count(*) as cnt, coalesce(sum(s.final_price), 0) as revenue
             from tbl_subscriptions s
             join tbl_settings st on st.id = s.id_song
             where s.status = 'PAID' and s.scope = 'SONG'
-            group by s.id_song, st.song_name, st.author
+            group by s.id_song, st.song_name, st.song_author
             order by cnt desc
             limit $limit
         """.trimIndent()
@@ -105,7 +105,7 @@ object MonetizationStats {
                 result.add(TopSubscribedSongDto(
                     songId = rs.getLong("id_song"),
                     songName = rs.getString("song_name") ?: "",
-                    author = rs.getString("author") ?: "",
+                    author = rs.getString("song_author") ?: "",
                     subscriptionsCount = rs.getInt("cnt"),
                     revenue = rs.getDouble("revenue"),
                 ))
